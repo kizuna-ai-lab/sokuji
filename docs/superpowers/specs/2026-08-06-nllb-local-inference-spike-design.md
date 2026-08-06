@@ -17,13 +17,18 @@ The spike answers three questions:
 2. Is it **fast enough** — on CPU (WASM) and on WebGPU, measured separately?
 3. Is the translation **good enough**?
 
-Both criteria are absolute. The spike deliberately does **not** benchmark NLLB
-against Opus-MT, HY-MT1.5, or any other shipping model. Those comparisons were
-in an earlier draft and were dropped: NLLB and a per-pair Opus-MT card are not
+Both criteria are absolute: no shipping model is a bar NLLB must *beat*. An
+earlier draft required NLLB to match Opus-MT on quality and HY-MT1.5 on WebGPU
+latency, and both were dropped — NLLB and a per-pair Opus-MT card are not
 substitutes for the same user need, and on the language pairs where NLLB would
-actually be used there is no incumbent to compare against. A ratio to a model
-doing a different job would only obscure the question that matters, which is
-whether NLLB is usable on its own terms.
+actually be used there is no incumbent to compare against at all.
+
+Two shipping models are still *measured*, for one narrow purpose: an absolute
+speed threshold has to come from somewhere, and inventing one would be worse
+than reading it off what users already accept. Bing Translator and HY-MT1.5 are
+both `recommended: true` today, so their latency calibrates "how slow is too
+slow." See Decision criteria. Nothing calibrates the quality bar — that is
+judged by reading the output.
 
 The outcome is a per-device recommendation — ship on CPU, on WebGPU, on both, or
 not at all — plus, if it ships, whether it earns `recommended: true`.
@@ -107,9 +112,10 @@ affordable is exactly what gets measured.
   straight from HF Hub.
 - **Expanding `LANGUAGE_OPTIONS`.** Sokuji exposes 55 languages; NLLB covers
   200. Harvesting that surplus is a separate change that affects every provider.
-- **Benchmarking against other models.** No Opus-MT, HY-MT1.5, Qwen or Bing
-  numbers are collected. See the Summary for why. A practical consequence worth
-  stating: the spike needs **no models pre-downloaded at all**.
+- **Beating other models.** No Opus-MT, Qwen, TranslateGemma or Bing *quality*
+  comparison is made, and no model is a bar NLLB must out-perform. Bing and
+  HY-MT1.5 latency is measured, but only to calibrate the speed threshold — see
+  Summary and Decision criteria.
 - **Quality on languages nobody here reads.** An earlier draft tested `xh↔en`
   for quality and then admitted in its own limitations section that the verdict
   could only be structural. A probe that cannot deliver its own purpose is
@@ -214,11 +220,17 @@ translate the same sentences.
   `device: 'wasm' | 'webgpu'` in its init message. Reports `loadTimeMs` on ready
   and `inferenceTimeMs` per result, matching the existing worker protocol.
 - **`src/components/dev/NllbSpikeProto.tsx`** — modeled on `NativeTtsProto.tsx`.
-  A device switch (`wasm` / `webgpu`), a run button, and a per-sentence table of
-  source, translation, `inferenceTimeMs` and output token count. Computes median
-  and p90 per direction, and offers one-click JSON copy for pasting into the
-  report. Because quality is judged by reading, the table is the primary output,
-  not the summary statistics.
+  A run selector (NLLB-wasm / NLLB-webgpu / Bing / HY-MT1.5), a run button, and
+  a per-sentence table of source, translation, `inferenceTimeMs` and output token
+  count. Computes median and p90 per direction, and offers one-click JSON copy
+  for pasting into the report. Because quality is judged by reading, the table is
+  the primary output, not the summary statistics.
+
+  The two anchor runs drive the **real** `TranslationEngine` rather than
+  duplicating worker code: it is directly instantiable, it already handles Bing's
+  DNR setup and HY-MT1.5's IndexedDB load, and `TranslationEngine.ts:165` already
+  surfaces `inferenceTimeMs` on its result — that value is simply never logged in
+  production UI, which is why the repo has no recorded latency baseline today.
 - **`App.tsx`** — Ctrl+Shift+L mount, following the existing
   `import.meta.env.DEV` + Ctrl+Shift+N pattern at `App.tsx:40-49`.
 
@@ -227,23 +239,53 @@ IndexedDB.
 
 ## Measurement matrix
 
-Two runs, same model, same sentences, same machine:
+Four runs, same sentences, same machine, same session:
 
-| Run | Device | dtype | Source | Purpose |
+| Run | Model | Device | Source | Purpose |
 |---|---|---|---|---|
-| A | wasm | q8 | HF direct | is NLLB usable on CPU? |
-| B | webgpu | q8 | HF direct | is NLLB usable on WebGPU? also: does a quantized seq2seq produce clean output there (see Risk 4)? |
+| A | NLLB-600M q8 | wasm | HF direct | is NLLB usable on CPU? |
+| B | NLLB-600M q8 | webgpu | HF direct | is NLLB usable on WebGPU? also: does a quantized seq2seq produce clean output there (see Risk 4)? |
+| C | Bing Translator | cloud | — | speed anchor, fast end. Sampled 3× across the session (see Test set) |
+| D | HY-MT1.5 1.8B q4 | webgpu | IndexedDB | speed anchor, "already recommended" end |
 
-Nothing else is measured, and **no models need to be pre-downloaded** — the
-spike streams NLLB from HF Hub and no other model is involved.
+Runs A and B decide NLLB. Runs C and D only set the threshold A and B are
+measured against; their translation output is not judged.
+
+The anchor runs cover the **six readable directions only** (72 sentences).
+HY-MT1.5's 36 languages do not include `xh`, so `en→xh` has no anchor — which is
+the point of that probe. Its timings are reported as a standalone low-resource
+observation and are excluded from the pass/fail bands.
 
 Running both devices is not a comparison between products; it separates two
 independent ship decisions. CPU and WebGPU can pass or fail independently, and
 the result of run A does not change how run B is judged.
 
-Recorded per run: machine, browser build, GPU, per-sentence `inferenceTimeMs`,
+**Pre-download required**: `hy-mt15-1.8b-translation` q4 (~1.34 GB) through the
+normal Model Management UI. NLLB streams from HF Hub; Bing needs no download.
+
+Recorded per run: machine, Electron/Chromium build, GPU, per-sentence `inferenceTimeMs`,
 output token count, `loadTimeMs`, whether the load was cold or HTTP-cached, and
-peak memory if the browser exposes it.
+peak memory if the runtime exposes it.
+
+### Execution environment
+
+The spike runs under **`npm run electron:dev`**, not `npm run dev`. Bing
+Translator's endpoints restrict CORS to `https://www.bing.com` and only work
+when browser-like `Origin` / `Referer` / `User-Agent` headers are injected.
+There are exactly two places that happens: the extension's DNR rules, which
+`TranslationEngine.ts:268` short-circuits outside an extension
+(`if (!isExtension()) return`), and Electron's `session.webRequest` handler at
+`electron/main.js:1016`. A plain browser tab served by Vite has neither, so run
+C would fail there. Electron 34+ is Chromium-based, so WASM and WebGPU are both
+available in the same session — one environment covers all four runs.
+
+It also runs from the **main checkout, on a branch — not from a git worktree**.
+A fresh worktree has no `node_modules`, and installing them there resets
+`node_modules/electron/dist/chrome-sandbox` to non-root ownership, which stops
+Electron from launching until it is manually restored with `sudo chown root` +
+`chmod 4755` (the repo deliberately does not pass `--no-sandbox`). The main
+checkout already has a correctly configured sandbox binary. The worktree used to
+author this spec is for the document only.
 
 ## Test set
 
@@ -278,7 +320,12 @@ output is checked only for the failure modes that need no language knowledge —
 empty output, echoed input, wrong script, degenerate repetition — and those are
 reported as diagnostics, never as a quality verdict.
 
-Total: 84 sentences per device, 168 across both runs.
+**Totals.** NLLB: 84 sentences × 2 devices = 168. HY-MT1.5 anchor: 72.
+Bing anchor: the full 72 once, then a fixed 12-sentence subset at the midpoint
+and again at the end — 96 in total. The subset re-runs exist to expose network
+drift, and keeping them small is deliberate: `www.bing.com/ttranslatev3` is an
+unofficial endpoint reached with a scraped anti-abuse token, so the spike should
+not hammer it. 336 translations overall.
 
 ## Language code mapping
 
@@ -306,24 +353,50 @@ Fixed before measuring, so the verdict cannot be rationalized afterwards.
 
 Translation is a **serial stage after ASR** — `LocalInferenceClient.ts:552`
 awaits `translationEngine.translate()` before anything is displayed or spoken —
-so its latency adds directly to perceived lag. The bands below are therefore
-absolute, in three tiers that map onto the ship/recommend decision:
+so its latency adds directly to perceived lag.
 
-| Band | Median | p90 | Meaning |
-|---|---|---|---|
-| Good | ≤ 1.0 s | ≤ 2.0 s | fast enough to be offered as a default |
-| Usable | ≤ 2.0 s | ≤ 3.5 s | ship as an option, not `recommended` |
-| Too slow | > 2.0 s | — | do not ship on this device |
+The bands are **defined by reference to what already ships**, not by numbers
+invented in this document. Two shipping models are measured in the same session,
+on the same machine, over the same sentences, and their medians become the
+thresholds:
+
+| Band | Definition | Meaning |
+|---|---|---|
+| Good | ≤ measured **Bing Translator** median | as fast as the cloud option users already accept |
+| Usable | ≤ measured **HY-MT1.5 1.8B** median | no slower than the product's current top recommendation |
+| Too slow | slower than the above | do not ship on this device |
 
 Load failure or allocation failure is an automatic "too slow" for that device.
 
-These thresholds are a **judgment call made by this spec**, not a measured
-product requirement — no latency budget is documented anywhere in the repo.
-The reasoning: Sokuji does real-time simultaneous translation, the stage is
-additive on top of ASR, and a translation step alone consuming more than about
-two seconds pushes total lag past the point where output still tracks the
-speaker. If jiangzhuo wants a different bar, changing these three rows is the
-only edit needed — everything downstream reads from them.
+**Why these two anchors.** Both carry `recommended: true` in the manifest today
+and are actively offered to users, so their latency is by construction a level
+this product already treats as acceptable. Bing is the fast end (cloud, no local
+compute); HY-MT1.5 is `sortOrder: 1`, the top local recommendation, and at
+1.34 GB q4 it is both the more apt anchor and a cheaper download than
+TranslateGemma 4B's 3.1 GB.
+
+**This is calibration, not competition.** The spec elsewhere refuses to benchmark
+NLLB against other models, and that still holds: no model here is a bar NLLB
+must *beat* to be worth shipping. These two only answer a different question —
+how slow is too slow in this product — which absolute thresholds cannot be set
+without.
+
+**Two caveats that must appear in the report.**
+
+The Bing anchor is network latency, not compute, so it drifts with connection
+and time of day. It is therefore sampled three times across the session — the
+full set at the start, then a fixed 12-sentence subset at the midpoint and at
+the end. The band uses the median of the full opening run; the two subset
+re-runs exist to expose drift. If their medians diverge materially from the
+opening run, the "good" band is soft and the report says so rather than
+presenting a single confident number.
+
+If an anchor itself comes back slow — say HY-MT1.5 lands near 3 s — then the
+"usable" band becomes *looser* than a hand-picked threshold would have been.
+That is a finding about what the product currently ships, not a loophole for
+NLLB. The report therefore prints both anchor medians prominently, so the bar is
+visible and can be rejected: jiangzhuo may choose to tighten rather than inherit
+it.
 
 ### Quality
 
@@ -360,8 +433,13 @@ backend and corrupt output on the other.
 `.spike/out/nllb-README.md`, following the `.spike/out/README.md` precedent left
 by the CosyVoice3 and OmniVoice spikes:
 
+- **The two anchor medians, stated first**, before any NLLB number — because
+  they define the bar, and a bar the reader cannot see is a bar they cannot
+  reject. Bing's three runs and their spread are shown individually.
 - Raw per-sentence numbers plus median/p90 tables and output token counts, with
-  machine and browser recorded, for both devices.
+  machine and Electron/Chromium build recorded, for both NLLB devices.
+- `en→xh` timings and output token counts, reported separately and explicitly
+  outside the pass/fail bands.
 - The full translated output for all 72 readable sentences, laid out
   source-beside-translation so quality can be judged by reading rather than by
   trusting a summary.
