@@ -433,13 +433,28 @@ export class SonioxClient implements IClient {
    *
    * `gen` is the generation this stream's handlers were wired under
    * (captured once, at wireSttHandlers time). Comparing it against the
-   * CURRENT this.generation in the bare-close branch is what distinguishes a
-   * live socket dying from the close event a browser fires asynchronously
-   * for a socket a user-initiated disconnect() (or a stale connect()/resume
-   * attempt) already closed — without it, a clean Stop would end with a
-   * "connection interrupted" notice.
+   * CURRENT this.generation, before anything else runs, is what
+   * distinguishes a live socket dying from the close event a browser fires
+   * asynchronously for a socket that a user-initiated disconnect() (or a
+   * stale connect()/resume attempt) already closed. Those closes describe a
+   * session that is over and must change nothing: not the notice, not
+   * isConnectedState, not onClose.
    */
   private handleSttClose(event: { code?: number; reason?: string }, gen: number): void {
+    // A stale close belongs to a socket nobody is listening to any more, and
+    // it must not touch session state at all — not just skip the notice.
+    // Everything below assumes it is describing the CURRENT session:
+    // `isConnectedState = false` would mark a freshly started session
+    // disconnected, and `onClose` would run MainPanel's full teardown on it
+    // (MainPanel's own `isSessionActive` guard passes, because the new
+    // session really is active). The narrow but real path: Stop, Start, then
+    // the browser dispatches the first socket's close. There is also a
+    // guaranteed, harmless-today case this closes — disconnect() reports the
+    // close itself, so without this every Stop delivered onClose twice.
+    if (gen !== this.generation) {
+      this.emitRealtime('client', 'session.stale_close', { provider: 'soniox', ...event });
+      return;
+    }
     this.isConnectedState = false;
     // Managed sessions: Soniox drops the session at its granted duration by
     // sending a 403 error frame (caught by handleSttError, which sets this
@@ -473,11 +488,10 @@ export class SonioxClient implements IClient {
     }
     // A close with no announced outcome before it is the shape of a network
     // drop (or a server going away): the user has been told nothing at all,
-    // and this was the last silent failure left. Guarded on `gen` so the
-    // close that trails a user-initiated Stop — disconnect() bumps
-    // generation before it closes the socket — never reports an outage that
-    // did not happen.
-    if (!this.sttOutcomeAnnounced && gen === this.generation) {
+    // and this was the last silent failure left. No generation check needed
+    // here — the stale-close guard at the top of this method already
+    // established that this close describes the current session.
+    if (!this.sttOutcomeAnnounced) {
       this.surfaceRecoverableOutage(
         String(event.code ?? 'socket_closed'),
         event.reason || 'The Soniox connection closed unexpectedly'

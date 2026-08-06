@@ -1389,9 +1389,11 @@ describe('SonioxClient recoverable outages (BYOK)', () => {
     expect(client.getConversationItems()[0].formatted?.text).toBe('[Soniox 401] invalid api key');
   });
 
-  it('the late close that follows a user-initiated Stop stays silent', async () => {
+  it('the late close that follows a user-initiated Stop stays silent and does not re-close', async () => {
     const { client } = await connectedClient();
     const stt = sttInstances.at(-1)!;
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
 
     await client.disconnect();
     // A real browser fires onclose asynchronously, AFTER disconnect() already
@@ -1399,15 +1401,26 @@ describe('SonioxClient recoverable outages (BYOK)', () => {
     stt.handlers.onClose?.({ code: 1000, reason: '' });
 
     expect(client.getConversationItems()).toHaveLength(0);
+    // disconnect() already reported the close itself; the browser's own event
+    // for the socket it closed must not report a second one.
+    expect(closeEvents).toHaveLength(1);
   });
 
-  it('a stale close from a previous session does not notify the new one', async () => {
+  it('a stale close from a previous session cannot tear down the new one', async () => {
     const { client } = await connectedClient();
     const stt0 = sttInstances.at(-1)!;
 
     await client.connect({ ...BASE_CONFIG, textOnly: false }); // second session
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
     stt0.handlers.onClose?.({ code: 1006, reason: 'late' });   // old socket dies late
 
     expect(client.getConversationItems()).toHaveLength(0);
+    // The live session must survive its predecessor's death rattle: MainPanel
+    // tears the session down on onClose (its isSessionActive guard passes,
+    // because the NEW session really is active), and isConnected() gates
+    // whether audio still reaches the wire.
+    expect(closeEvents).toHaveLength(0);
+    expect(client.isConnected()).toBe(true);
   });
 });

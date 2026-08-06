@@ -10,6 +10,29 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-06-soniox-recoverable-outage-design.md`
 
+## Amendments after review
+
+The task steps below are kept as they were executed. Three things changed
+afterwards, in review; the spec describes the shipped design, this plan does
+not:
+
+1. **`sawSttErrorFrame` was renamed `sttOutcomeAnnounced`** and its meaning
+   widened from "an error frame arrived" to "the user has already been told
+   why this stream is ending". Every step below that names the old field means
+   the new one.
+2. **Graceful endings must set that flag too.** `handleBudgetExhausted`
+   announces the balance message and then calls `stt.end()`; without the flag
+   the resulting close reported an outage on top of it and — because teardown
+   replaces the list with `getConversationItems()` — the outage was the only
+   message left. Any future path that ends the stream deliberately must either
+   announce an outcome or bump `generation`.
+3. **`handleSttClose` returns immediately on a stale `gen`**, before touching
+   any state, rather than only skipping the notice. A stale close used to
+   clear `isConnectedState` and call `onClose` on whatever session was live by
+   then.
+
+Tasks 1-5 predate all three. Read the spec for the design as shipped.
+
 ## Global Constraints
 
 - All code comments and identifiers in English. Follow this repo's comment style: say *why*, not *what*.

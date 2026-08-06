@@ -71,7 +71,10 @@ today, so Soniox ends up more like its peers than it started.
 
 ## Architecture
 
-All changes live inside `src/services/clients/SonioxClient.ts`. `MainPanel`,
+Every runtime decision lives inside `src/services/clients/SonioxClient.ts`.
+Two other places change, and only in ways that remove or add nothing to
+reason about: `MainPanel.tsx` loses the `sonioxDurationCutoff` branch (§3) —
+a deletion, no new logic — and the 30 locale catalogs gain one key (§4).
 `IClient`, the stores and the backend are untouched.
 
 ### 1. One emission point
@@ -110,11 +113,29 @@ the same localized message, and emit a `session.connection_lost` debug event
 carrying the wire code and the server's own text.
 
 **Bare closes.** A network drop may produce no error frame at all — just a
-close. A per-stream `sawSttErrorFrame` flag (set by both `surfaceSttError`
-and the recoverable path, cleared whenever a new stream is wired) lets
-`handleSttClose`'s fall-through branch emit the same notice when no error
-frame preceded the close. This is the only genuinely new code path; without
-it the drop is silent.
+close. A per-stream `sttOutcomeAnnounced` flag lets `handleSttClose`'s
+fall-through branch emit the notice only when nothing has told the user
+anything yet. It is set by `surfaceSttError`, by the recoverable path, and —
+critically — by **every graceful ending that closes the stream on purpose**.
+Budget exhaustion is the one that exists today: `handleBudgetExhausted`
+announces "your balance is used up" and then calls `stt.end()`, so without
+the flag the resulting close would report an outage on top of it and, since
+teardown replaces the rendered list with `getConversationItems()`, that
+outage would be the *only* message left — telling a user with no balance to
+tap Start, which the start gate refuses. Any future path that ends the
+stream deliberately must either announce an outcome or bump `generation`.
+The flag is cleared whenever a new stream is wired. This is the only
+genuinely new code path; without it the drop is silent.
+
+**Stale closes.** A close whose captured `generation` no longer matches
+`this.generation` describes a socket nobody is listening to any more —
+`disconnect()` and `connect()` both bump it. `handleSttClose` returns
+immediately on those, before touching anything: it must not clear
+`isConnectedState` (that would mark a freshly started session disconnected)
+and must not call `onClose` (MainPanel's `isSessionActive` guard passes for
+the new session, so its full teardown would run). This also removes a
+guaranteed duplicate: `disconnect()` reports the close itself, so every Stop
+used to deliver `onClose` twice.
 
 **BYOK symmetry.** `resumeSttStream`'s exhausted-ladder tail currently calls
 `surfaceSttError('503', originalMessage)` before its synthetic
@@ -157,8 +178,15 @@ English source string:
   after the ladder is exhausted, the same localized item.
 - `408` and `socket_error` → same treatment.
 - Close with no preceding error frame → one notice; close *with* a preceding
-  error frame → exactly one item, not two (the `sawSttErrorFrame` guard).
-- A user-initiated `disconnect()` → no notice.
+  error frame → exactly one item, not two (the `sttOutcomeAnnounced` guard).
+- Budget exhausted mid-session → the session ends with exactly one item and it
+  is the balance message, not an outage notice. Drive the FULL sequence (meter
+  tick to exhaustion → the client's own `stt.end()` → `onClose`), not just the
+  `end()` call: stopping one step short is what let this regress unnoticed.
+- A user-initiated `disconnect()` → no notice, and exactly one `onClose` (the
+  one `disconnect()` reports); the browser's later close for that socket
+  changes nothing. A stale close from a previous session leaves the new
+  session connected and delivers no `onClose` at all.
 - Duration cutoff → the item now comes from the client and appears in
   `getConversationItems()`; `onClose` carries no `sonioxDurationCutoff`.
   Update the five existing assertions in `SonioxClient.test.ts` and
