@@ -129,7 +129,7 @@ calls `onClose(event)` with no extra field. `MainPanel.tsx`'s
 `if (event?.sonioxDurationCutoff)` block and its inline item construction are
 deleted; its teardown path already renders whatever the client holds.
 
-The key already exists in all 32 locales — this is a move, not a new string.
+The key already exists in all 30 locales — this is a move, not a new string.
 
 Product behaviour is unchanged: still no auto-reconnect after a cutoff (a
 silent reconnect would restart billing without the user knowing), still one
@@ -137,7 +137,9 @@ notice, still the same words.
 
 ### 4. Copy
 
-One new key, `mainPanel.sonioxConnectionLost`, across all 32 locales.
+One new key, `mainPanel.sonioxConnectionLost`, across all 30 locales
+(`src/locales/*/translation.json`; `locales.consistency.test.ts` fails on any
+catalog that lags `en`).
 English source string:
 
 > The connection was interrupted — tap Start in a moment to continue.
