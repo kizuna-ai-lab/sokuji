@@ -250,7 +250,14 @@ In `src/services/clients/SonioxClient.ts`, in `handleSttError`, replace the fina
 - [ ] **Step 7: Run the tests to verify they pass**
 
 Run: `npm run test -- --run src/services/clients/SonioxClient.managed.test.ts src/services/clients/SonioxClient.test.ts`
-Expected: PASS **except** the pre-existing test `after 3 failed reconnect attempts (0/1000/3000ms gaps), surfaces the ORIGINAL 503 message and closes the session`, which now fails on `expect(errors[0].message).toBe('capacity exceeded')`. That is expected and is Task 3's subject — leave it failing and do not patch it here.
+Expected: PASS, whole files.
+
+Note the pre-existing test `after 3 failed reconnect attempts (0/1000/3000ms gaps), surfaces the ORIGINAL 503 message and closes the session` stays green here on purpose: a BYOK 503 is claimed by the resume branch ABOVE the new one, and the exhausted ladder still ends in `surfaceSttError` until Task 3 changes it. If that test fails now, the new branch was inserted above the resume branch instead of below it.
+
+- [ ] **Step 7b: Run the full suite**
+
+Run: `npm run test -- --run`
+Expected: PASS.
 
 - [ ] **Step 8: Commit**
 
@@ -330,7 +337,7 @@ Append these four tests **inside** the `describe('SonioxClient recoverable outag
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `npm run test -- --run src/services/clients/SonioxClient.test.ts`
-Expected: `a close with no preceding error frame…` FAILS (no item is produced — `.at(-1)` on an empty array throws). The other three PASS today; they are the regression guards for Step 3 and must stay green. The Task 3 test noted in Task 1 Step 7 is still failing — ignore it.
+Expected: `a close with no preceding error frame…` FAILS (no item is produced — `.at(-1)` on an empty array throws). The other three PASS today; they are the regression guards for Step 3 and must stay green.
 
 - [ ] **Step 3: Add the per-stream flag and the generation capture**
 
@@ -426,8 +433,8 @@ In `src/services/clients/SonioxClient.managed.test.ts`, replace the whole test n
 
 - [ ] **Step 6: Run the affected files**
 
-Run: `npm run test -- --run src/services/clients/SonioxClient.test.ts src/services/clients/SonioxClient.managed.test.ts`
-Expected: PASS except the known Task 3 failure. If `C1: a 503 with no close, followed by disconnect(), does not let a later close start a zombie resume` fails, the `sawSttErrorFrame` assignment is in the wrong place — it must be the FIRST statement of `handleSttError`, before the 403 and 503 branches return.
+Run: `npm run test -- --run && npm run test -- --run src/services/clients/SonioxClient.test.ts src/services/clients/SonioxClient.managed.test.ts`
+Expected: PASS. If `C1: a 503 with no close, followed by disconnect(), does not let a later close start a zombie resume` fails, the `sawSttErrorFrame` assignment is in the wrong place — it must be the FIRST statement of `handleSttError`, before the 403 and 503 branches return.
 
 - [ ] **Step 7: Commit**
 
@@ -514,7 +521,7 @@ Expected: PASS.
 - [ ] **Step 5: Run the full suite**
 
 Run: `npm run test -- --run`
-Expected: PASS — this is the first point in the plan where everything is green again.
+Expected: PASS.
 
 - [ ] **Step 6: Commit**
 
