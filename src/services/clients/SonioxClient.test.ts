@@ -70,6 +70,12 @@ const BASE_CONFIG: SonioxSessionConfig = {
   textOnly: false,
 };
 
+// i18n-derived copy is matched loosely (house convention, see the TTS-degraded
+// assertions below) — the point is which SENTENCE the user gets, not its exact
+// punctuation.
+const OUTAGE = /the connection was interrupted/i;
+const SEGMENT_ENDED = /this segment has ended/i;
+
 function tok(text: string, extra: object = {}) {
   return { text, ...extra };
 }
@@ -1315,5 +1321,35 @@ describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
     expect(errors).toHaveLength(0);
     expect(closeEvents).toHaveLength(0);
     expect(client.isConnected()).toBe(true);
+  });
+});
+
+describe('SonioxClient recoverable outages (BYOK)', () => {
+  it('408 (no audio for ~20s) reads as a recoverable outage', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('408', 'Request timeout');
+
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(OUTAGE);
+  });
+
+  it('socket_error reads as a recoverable outage', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('socket_error', 'Error: network down');
+
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(OUTAGE);
+  });
+
+  it('an error the user can act on keeps the raw wire text', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('401', 'invalid api key');
+
+    expect(client.getConversationItems().at(-1)!.formatted?.text)
+      .toBe('[Soniox 401] invalid api key');
   });
 });

@@ -53,6 +53,12 @@ const BASE_CONFIG: SonioxSessionConfig = {
   textOnly: false,
 };
 
+// i18n-derived copy is matched loosely (house convention, see the TTS-degraded
+// assertions below) — the point is which SENTENCE the user gets, not its exact
+// punctuation.
+const OUTAGE = /the connection was interrupted/i;
+const SEGMENT_ENDED = /this segment has ended/i;
+
 const SESSION_TOKEN = 'better-auth-session-token-abc';
 
 function speechToSpeechResponse() {
@@ -500,5 +506,44 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     stt.handlers.onClose?.({ code: 1000, reason: '' });
 
     expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
+  });
+});
+
+describe('SonioxClient managed recoverable outages', () => {
+  it('a managed 503 shows a localized notice, not the raw wire text', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    const errors: any[] = [];
+    client.setEventHandlers({ onError: (e) => errors.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('503', 'service unavailable');
+
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].role).toBe('system');
+    expect(items[0].type).toBe('error');
+    expect(items[0].formatted?.text).toMatch(OUTAGE);
+    expect(items[0].formatted?.text).not.toMatch(/^\[Soniox/);
+    // onError still fires (api_error analytics) and carries the same words.
+    expect(errors).toHaveLength(1);
+    expect(errors[0].code).toBe('503');
+    expect(errors[0].message).toMatch(OUTAGE);
+  });
+
+  it('keeps the raw server text in the debug timeline', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    const events: any[] = [];
+    client.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('503', 'service unavailable');
+
+    const lost = events.find((e) => e.type === 'session.connection_lost');
+    expect(lost).toBeDefined();
+    expect(lost.data).toMatchObject({ code: '503', message: 'service unavailable' });
   });
 });

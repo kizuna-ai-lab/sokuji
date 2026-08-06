@@ -37,6 +37,19 @@ const STT_MODEL = 'stt-rt-v5';
 const TTS_MODEL = 'tts-rt-v1';
 const SAMPLE_RATE = 24000; // Sokuji mic pipeline and ModernAudioPlayer both run at 24 kHz
 const AUTH_PROBE_URL = 'https://api.soniox.com/v1/auth/temporary-api-key';
+/**
+ * STT failures the user did not cause and cannot fix from the settings — the
+ * only useful response is to start again:
+ *  - 503: service unavailable. Transient by definition.
+ *  - 408: request timeout, i.e. no audio reached Soniox for ~20 s. Reachable
+ *    in a live session when input stops (a long mute), so it is a dead
+ *    session, not a misconfiguration.
+ *  - socket_error: SonioxSttStream's own code for a transport-level failure.
+ * Everything else (400/401/429/…) stays on surfaceSttError's raw path, where
+ * the server's own words ARE the actionable part and replacing them with a
+ * generic sentence would hide the fix.
+ */
+const RECOVERABLE_STT_CODES: ReadonlySet<string> = new Set(['503', '408', 'socket_error']);
 // Fallback only — the backend's 409 body always carries its own retryAfterMs
 // (see describeManagedSessionError); this is used solely if that field is
 // somehow missing from a malformed/empty body.
@@ -1124,28 +1137,71 @@ export class SonioxClient implements IClient {
       this.emitRealtime('client', 'session.stt_503', { provider: 'soniox', message });
       return;
     }
+    // Ordered last of the three special cases on purpose: the managed-403
+    // cutoff and the BYOK-503 resume ladder above both claim codes that would
+    // otherwise match here, and both must keep winning.
+    if (RECOVERABLE_STT_CODES.has(code)) {
+      this.surfaceRecoverableOutage(code, message);
+      return;
+    }
     this.surfaceSttError(code, message);
   }
 
   /**
-   * Generic STT error surfacing: a system-role error ConversationItem plus
-   * onError. Shared by handleSttError's fallthrough (an error that isn't
-   * the managed-403 cutoff or a resumable 503) and resumeSttStream's final
-   * failure (a 503 that never recovered after 3 attempts).
+   * Push a system notice into the conversation.
+   *
+   * This is the seam every client in this repo uses to reach the UI:
+   * MainPanel renders `type: 'error'` items generically and
+   * `conversationFilter` shows system items unconditionally, so no
+   * provider-specific plumbing is needed. Load-bearing detail: only items the
+   * CLIENT holds survive teardown, because MainPanel's disconnect path calls
+   * setItems(client.getConversationItems()) — an item minted by the UI is
+   * wiped by that call moments after it appears.
    */
-  private surfaceSttError(code: string, message: string): void {
-    console.error(`[SonioxClient] STT error ${code}: ${message}`);
-    const errorItem: ConversationItem = {
+  private emitSystemNotice(text: string): void {
+    const item: ConversationItem = {
       id: this.generateItemId('error'),
       role: 'system',
       type: 'error',
       status: 'completed',
-      formatted: { text: `[Soniox ${code}] ${message}` },
-      content: [{ type: 'text', text: message }],
+      formatted: { text },
+      content: [{ type: 'text', text }],
     };
-    this.conversationItems.push(errorItem);
-    this.eventHandlers.onConversationUpdated?.({ item: errorItem });
+    this.conversationItems.push(item);
+    this.eventHandlers.onConversationUpdated?.({ item });
+  }
+
+  /**
+   * Generic STT error surfacing: a system-role error ConversationItem plus
+   * onError. Shared by handleSttError's fallthrough (an error that is neither
+   * the managed-403 cutoff, nor a resumable 503, nor a recoverable outage).
+   */
+  private surfaceSttError(code: string, message: string): void {
+    console.error(`[SonioxClient] STT error ${code}: ${message}`);
+    this.emitSystemNotice(`[Soniox ${code}] ${message}`);
     this.eventHandlers.onError?.({ code, message });
+  }
+
+  /**
+   * A failure the user can only answer by starting again. Say that in their
+   * language; keep the server's own words for the debug timeline, where they
+   * are diagnostic rather than noise.
+   *
+   * onError still fires — it is what produces the `api_error` analytics
+   * event, so suppressing it would silently lose outage telemetry. The extra
+   * bubble MainPanel appends from onError is transient: the teardown that
+   * follows replaces the list with getConversationItems(), leaving exactly
+   * the one item emitted here.
+   */
+  private surfaceRecoverableOutage(code: string, message: string): void {
+    console.warn(`[SonioxClient] STT connection lost (${code}): ${message}`);
+    this.emitRealtime('client', 'session.connection_lost', { provider: 'soniox', code, message });
+    const text = i18n.t(
+      'mainPanel.sonioxConnectionLost',
+      'The connection was interrupted — tap Start in a moment to continue.'
+    );
+    this.emitSystemNotice(text);
+    this.eventHandlers.onError?.({ code, message: text });
   }
 
   private handleTtsError(code: string, message: string, hadActiveStream: boolean): void {
