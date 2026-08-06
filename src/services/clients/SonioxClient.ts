@@ -508,17 +508,17 @@ export class SonioxClient implements IClient {
       }
     }
 
-    // All attempts exhausted: surface the ORIGINAL 503 the same way a
-    // generic STT error would have, then close the session so MainPanel
-    // tears it down exactly like any other fatal client close. Emit the
-    // realtime milestone BEFORE the error item/onClose — the generic close
-    // branch in handleSttClose always emits one (session.closed); this path
-    // bypasses that branch entirely, so without this the debug timeline
-    // would show the 503 and the resume attempts but nothing marking the
-    // session as actually over.
+    // All attempts exhausted: from here the story is the one a managed 503
+    // already tells — the service was unavailable and never came back — so it
+    // reads the same, then closes the session so MainPanel tears it down
+    // exactly like any other fatal client close. Emit the realtime milestone
+    // BEFORE the notice/onClose — the generic close branch in handleSttClose
+    // always emits one (session.closed); this path bypasses that branch
+    // entirely, so without this the debug timeline would show the 503 and the
+    // resume attempts but nothing marking the session as actually over.
     if (gen !== this.generation) return;
     this.emitRealtime('client', 'session.stt_resume_failed', { provider: 'soniox', message: originalMessage });
-    this.surfaceSttError('503', originalMessage);
+    this.surfaceRecoverableOutage('503', originalMessage);
     this.eventHandlers.onClose?.({ code: 1006, reason: 'stt resume failed' });
   }
 

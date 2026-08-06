@@ -1253,7 +1253,7 @@ describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => { vi.useRealTimers(); MockStt.failConnect = false; });
 
-  it('after 3 failed reconnect attempts (0/1000/3000ms gaps), surfaces the ORIGINAL 503 message and closes the session', async () => {
+  it('after 3 failed reconnect attempts (0/1000/3000ms gaps), ends with the outage notice and keeps the ORIGINAL 503 message in the debug timeline', async () => {
     const client = new SonioxClient('key');
     const errors: any[] = [];
     const updates: any[] = [];
@@ -1282,8 +1282,14 @@ describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
     expect(sttInstances).toHaveLength(4); // original + 3 failed resume attempts
     expect(errors).toHaveLength(1);
     expect(errors[0].code).toBe('503');
-    // The ORIGINAL 503 message — not whatever the 3rd attempt's rejection said.
-    expect(errors[0].message).toBe('capacity exceeded');
+    // The user gets the same sentence a managed outage produces — by this
+    // point the two stories are the same one.
+    expect(errors[0].message).toMatch(OUTAGE);
+    expect(updates.at(-1)!.item.formatted?.text).toMatch(OUTAGE);
+    // The ORIGINAL 503 message — not whatever the 3rd attempt's rejection
+    // said — is preserved where it is diagnostic rather than noise.
+    const lost = realtimeEvents.find((e) => e.event.type === 'session.connection_lost');
+    expect(lost!.event.data).toMatchObject({ code: '503', message: 'capacity exceeded' });
     expect(updates.some((u) => u.item.type === 'error')).toBe(true);
     expect(closeEvents).toHaveLength(1);
     expect(closeEvents[0]).toEqual({ code: 1006, reason: 'stt resume failed' });
