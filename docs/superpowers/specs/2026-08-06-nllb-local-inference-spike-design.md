@@ -7,16 +7,26 @@
 ## Summary
 
 Measure whether Meta's **NLLB-200-distilled-600M** is worth integrating as a
-LOCAL_INFERENCE translation model, and produce a GO/NO-GO recommendation backed
-by real numbers. This spec describes a throwaway spike, not a feature.
+LOCAL_INFERENCE translation model, and produce a per-device ship recommendation
+backed by real numbers. This spec describes a throwaway spike, not a feature.
 
 The spike answers three questions:
 
 1. Does `Xenova/nllb-200-distilled-600M` load and produce correct output under
    this repo's exact `@huggingface/transformers` 4.2.0 + pinned ORT WASM build?
-2. Is WASM (CPU) single-sentence latency good enough for real-time translation?
-   This is the question that decides whether NLLB has a niche at all.
-3. Where does its translation quality land relative to what already ships?
+2. Is it **fast enough** — on CPU (WASM) and on WebGPU, measured separately?
+3. Is the translation **good enough**?
+
+Both criteria are absolute. The spike deliberately does **not** benchmark NLLB
+against Opus-MT, HY-MT1.5, or any other shipping model. Those comparisons were
+in an earlier draft and were dropped: NLLB and a per-pair Opus-MT card are not
+substitutes for the same user need, and on the language pairs where NLLB would
+actually be used there is no incumbent to compare against. A ratio to a model
+doing a different job would only obscure the question that matters, which is
+whether NLLB is usable on its own terms.
+
+The outcome is a per-device recommendation — ship on CPU, on WebGPU, on both, or
+not at all — plus, if it ships, whether it earns `recommended: true`.
 
 Everything the spike builds is deleted afterwards. If the answer is GO, the real
 integration is designed separately.
@@ -48,30 +58,35 @@ Today's LOCAL_INFERENCE translation lineup and, critically, its device split:
 
 Every multilingual local model requires WebGPU. The only WASM/CPU option is
 Opus-MT, which is bilingual per card. **A user without WebGPU who wants offline
-translation is limited to whichever fixed language pairs Opus-MT covers.** That
-gap is the strongest hypothesis for what NLLB could be worth here — and it is
-precisely the hypothesis that hinges on an unmeasured latency number.
+translation is limited to whichever fixed language pairs Opus-MT covers** — one
+download per direction. NLLB would be one download covering everything, which is
+why it is worth measuring on CPU specifically and not only on WebGPU.
 
-The counter-argument is real and must be stated: Qwen 3.5 0.8B already claims
-201+ languages, so on raw language count NLLB adds nothing. If NLLB cannot run
-acceptably on WASM, it has no distinct position in this lineup.
+That is context for why the question is being asked, not a bar NLLB has to
+clear. The spike judges NLLB on its own numbers.
+
+One structural property matters for reading those numbers, so it is recorded
+here rather than discovered mid-run. NLLB carries a 256,206-token shared
+vocabulary at `d_model` 1024 across 12+12 layers (`config.json`). The output
+projection alone is ~262M multiply-accumulates **per generated token**, and the
+256k embedding is ~262M parameters — roughly a third of the 917 MB q8 footprint,
+which is also why q4 does not shrink it (q4 leaves embeddings unquantized).
+Covering 200 languages is not free at inference time; whether the cost is
+affordable is exactly what gets measured.
 
 ## Goals
 
 - Produce measured load time, single-sentence latency (median and p90), and
-  observed failure modes for NLLB-600M q8 on **both** WASM and WebGPU, inside a
-  worker context using this repo's own transformers build and pinned ORT WASM
-  binaries.
-- Produce the same latency numbers for two already-shipping baselines in the
-  same session, on the same machine, so the NLLB numbers have a reference point.
-  The repo currently records **no** latency baseline for any translation model.
-- Produce a quality read on `ja↔en` and `zh↔en` against Opus-MT, and a
-  structural correctness read on `xh↔en` — plus, for `en→xh`, a latency
-  head-to-head against `opus-mt-en-xh` in the WASM lane.
+  observed failure modes for NLLB-600M q8 on **CPU (WASM) and WebGPU
+  separately**, inside a worker context using this repo's own transformers build
+  and pinned ORT WASM binaries.
+- Produce translated output for a fixed sentence set on language pairs a
+  reviewer here can actually read, so quality can be judged directly rather than
+  inferred.
 - Verify the sokuji-code → FLORES-200 language code mapping against the
   tokenizer's own `language_codes` list rather than against memory.
-- Write a decision report with a GO/NO-GO recommendation and, if GO, a scoped
-  list of the real integration work.
+- Write a decision report giving a per-device recommendation and, if it ships, a
+  scoped list of the real integration work.
 
 ## Non-Goals
 
@@ -92,6 +107,13 @@ acceptably on WASM, it has no distinct position in this lineup.
   straight from HF Hub.
 - **Expanding `LANGUAGE_OPTIONS`.** Sokuji exposes 55 languages; NLLB covers
   200. Harvesting that surplus is a separate change that affects every provider.
+- **Benchmarking against other models.** No Opus-MT, HY-MT1.5, Qwen or Bing
+  numbers are collected. See the Summary for why. A practical consequence worth
+  stating: the spike needs **no models pre-downloaded at all**.
+- **Quality on languages nobody here reads.** An earlier draft tested `xh↔en`
+  for quality and then admitted in its own limitations section that the verdict
+  could only be structural. A probe that cannot deliver its own purpose is
+  wasted budget. `en→xh` survives as a **speed-only** probe (see Test set).
 
 ## Established facts
 
@@ -167,14 +189,17 @@ This is not legal advice; it is a flag that a decision is required.
   the input, and is in the expected script.
 
 **Kill condition**: if the model fails to load or output is degenerate, stop.
-Report NO-GO and do not build Phase 1.
+Report "do not ship" and do not build Phase 1.
 
 Node uses `onnxruntime-node`, so this phase proves *correctness only*. It
 produces no latency signal and none is recorded from it.
 
 ## Phase 1 — Browser harness
 
-Three new files plus three lines in `App.tsx`, all spike-only and deleted after.
+Two new files under `src/` plus three lines in `App.tsx`, all spike-only and
+deleted afterwards. The test set itself lives in one JSON file under
+`.spike/nllb/` and is read by both phases, so Node and the browser provably
+translate the same sentences.
 
 - **`src/lib/local-inference/workers/_spike/nllb-spike.worker.ts`** — imports
   from `_shared/transformers-all` and calls
@@ -189,12 +214,11 @@ Three new files plus three lines in `App.tsx`, all spike-only and deleted after.
   `device: 'wasm' | 'webgpu'` in its init message. Reports `loadTimeMs` on ready
   and `inferenceTimeMs` per result, matching the existing worker protocol.
 - **`src/components/dev/NllbSpikeProto.tsx`** — modeled on `NativeTtsProto.tsx`.
-  Runs the fixed test set, shows a per-sentence table of source, output and
-  `inferenceTimeMs`, computes median and p90 per pair, and offers one-click JSON
-  copy. For the two baselines it instantiates the **real** `TranslationEngine`
-  directly rather than duplicating worker code — `TranslationEngine.ts:165`
-  already surfaces `inferenceTimeMs` on its result, it is simply never logged in
-  production UI.
+  A device switch (`wasm` / `webgpu`), a run button, and a per-sentence table of
+  source, translation, `inferenceTimeMs` and output token count. Computes median
+  and p90 per direction, and offers one-click JSON copy for pasting into the
+  report. Because quality is judged by reading, the table is the primary output,
+  not the summary statistics.
 - **`App.tsx`** — Ctrl+Shift+L mount, following the existing
   `import.meta.env.DEV` + Ctrl+Shift+N pattern at `App.tsx:40-49`.
 
@@ -203,61 +227,69 @@ IndexedDB.
 
 ## Measurement matrix
 
-| Model | Device | dtype | Source | Purpose |
+Two runs, same model, same sentences, same machine:
+
+| Run | Device | dtype | Source | Purpose |
 |---|---|---|---|---|
-| NLLB-600M | wasm | q8 | HF direct | the core question |
-| NLLB-600M | webgpu | q8 | HF direct | comparison; plus seq2seq-on-WebGPU output sanity |
-| Opus-MT ja-en | wasm | q8 | IndexedDB | latency baseline — fastest shipping option |
-| HY-MT1.5 1.8B | webgpu | q4 | IndexedDB | quality + latency baseline — current `sortOrder: 1` |
+| A | wasm | q8 | HF direct | is NLLB usable on CPU? |
+| B | webgpu | q8 | HF direct | is NLLB usable on WebGPU? also: does a quantized seq2seq produce clean output there (see Risk 4)? |
 
-The latency baseline needs only one Opus-MT card, but the **quality** comparison
-needs one per direction under test. Models to download through the normal UI
-before running the spike:
+Nothing else is measured, and **no models need to be pre-downloaded** — the
+spike streams NLLB from HF Hub and no other model is involved.
 
-`opus-mt-ja-en`, `opus-mt-en-jap`, `opus-mt-zh-en`, `opus-mt-en-zh`,
-`opus-mt-en-xh` (~110 MB each), and `hy-mt15-1.8b-translation` q4 (~1.34 GB).
+Running both devices is not a comparison between products; it separates two
+independent ship decisions. CPU and WebGPU can pass or fail independently, and
+the result of run A does not change how run B is judged.
 
-`xh→en` has no Opus-MT card — that absence is the point, and NLLB's output there
-is judged structurally rather than comparatively.
-
-Recorded per run: machine, browser build, GPU, and whether the model load was
-cold or HTTP-cached.
+Recorded per run: machine, browser build, GPU, per-sentence `inferenceTimeMs`,
+output token count, `loadTimeMs`, whether the load was cold or HTTP-cached, and
+peak memory if the browser exposes it.
 
 ## Test set
 
-Seven directions, twelve sentences each — 84 sentences per model per device.
-Sentences are conversational-meeting shaped — 8 to 25 words, including elision,
-proper nouns and numbers — not newswire, because that is what Sokuji actually
-translates.
+Twelve sentences per direction. Sentences are conversational-meeting shaped —
+8 to 25 words, including elision, proper nouns and numbers — not newswire,
+because that is what Sokuji actually translates.
 
-| Direction | Why |
-|---|---|
-| `ja→en`, `en→ja` | Sokuji's core pair; head-to-head vs Opus-MT |
-| `zh→en`, `en→zh` | second core pair; also exercises the `zho_Hans` mapping |
-| `ko→en` | third common pair; single direction, to hold the run size down |
-| `en→xh`, `xh→en` | the low-resource probe (see below) |
+**Quality + speed directions** (six, 72 sentences):
 
-**Why Xhosa.** Among Sokuji's 55 languages it is the sharpest test available:
+`ja→en`, `en→ja`, `zh→en`, `en→zh`, `ja→zh`, `zh→ja`
 
-- `opus-mt-en-xh` already ships **and runs on WASM**, giving a latency and
-  structural head-to-head in exactly the lane being probed. (Fluency still
-  cannot be compared — see Known limitations.)
-- `xh` is absent from TranslateGemma's 51 languages and from HY-MT1.5's 36, so
-  **`xh→en` has zero local coverage today** — the exact gap NLLB claims to fill.
-- The obvious alternatives are weaker comparisons: `sw` and `zu` are both
-  already covered by TranslateGemma.
+Every one of these is directly readable by the reviewer here. That is the
+selection rule, and it is deliberate: quality is judged absolutely, by reading
+the output, so a direction nobody can read yields no quality signal. These are
+also Sokuji's highest-traffic pairs, so a failure here is decisive on its own.
+`zh` directions additionally exercise the `zho_Hans` mapping, and `ja↔zh` covers
+the non-English-pivot case.
+
+**Speed-only direction** (one, 12 sentences):
+
+`en→xh`
+
+Included because NLLB's whole proposition is language breadth, so users will run
+it on languages far outside the set above — and because a shared 256k vocabulary
+allocates fewer dedicated subword units to low-resource languages, which inflates
+output token count and therefore decode time. Xhosa is additionally agglutinative,
+making it a reasonable worst case. The magnitude of that inflation is unknown and
+is *measured here* (output token counts are recorded), not assumed.
+
+**No quality claim is made about `en→xh`.** Nobody on this side reads Xhosa. Its
+output is checked only for the failure modes that need no language knowledge —
+empty output, echoed input, wrong script, degenerate repetition — and those are
+reported as diagnostics, never as a quality verdict.
+
+Total: 84 sentences per device, 168 across both runs.
 
 ## Language code mapping
 
 Provisional, to be confirmed against the Phase 0 `language_codes` dump. These
-five are all the spike needs; the full 55-language table is integration scope.
+four are all the spike needs; the full 55-language table is integration scope.
 
 | Sokuji | FLORES-200 |
 |---|---|
 | `en` | `eng_Latn` |
 | `ja` | `jpn_Jpan` |
 | `zh` | `zho_Hans` |
-| `ko` | `kor_Hang` |
 | `xh` | `xho_Latn` |
 
 `zh` → Simplified is an assumption the spike adopts to stay unblocked. Sokuji
@@ -267,43 +299,76 @@ decision is deferred, not resolved here.
 
 ## Decision criteria
 
+Two absolute criteria, speed and quality, applied independently to each device.
 Fixed before measuring, so the verdict cannot be rationalized afterwards.
 
-**WASM — the deciding lane**
+### Speed
 
-- Pass: median ≤ 1.5 s and p90 ≤ 3 s per sentence.
-- Fail: allocation failure, load failure, or median > 3 s.
+Translation is a **serial stage after ASR** — `LocalInferenceClient.ts:552`
+awaits `translationEngine.translate()` before anything is displayed or spoken —
+so its latency adds directly to perceived lag. The bands below are therefore
+absolute, in three tiers that map onto the ship/recommend decision:
 
-These absolute thresholds are provisional and are **re-anchored to the Opus-MT
-baseline measured in the same run**. If Opus-MT comes in around 400 ms, NLLB at
-1.4 s is ~3.5× slower but still plausibly usable as a CPU fallback; if Opus-MT
-itself is already near 1.2 s, the bar for "acceptable" shifts with it. The
-report states both the absolute numbers and the ratio.
+| Band | Median | p90 | Meaning |
+|---|---|---|---|
+| Good | ≤ 1.0 s | ≤ 2.0 s | fast enough to be offered as a default |
+| Usable | ≤ 2.0 s | ≤ 3.5 s | ship as an option, not `recommended` |
+| Too slow | > 2.0 s | — | do not ship on this device |
 
-**Quality**
+Load failure or allocation failure is an automatic "too slow" for that device.
 
-- `ja↔en` and `zh↔en` must not be clearly worse than Opus-MT.
-- `xh↔en` must be structurally sound (see limitations).
+These thresholds are a **judgment call made by this spec**, not a measured
+product requirement — no latency budget is documented anywhere in the repo.
+The reasoning: Sokuji does real-time simultaneous translation, the stage is
+additive on top of ASR, and a translation step alone consuming more than about
+two seconds pushes total lag past the point where output still tracks the
+speaker. If jiangzhuo wants a different bar, changing these three rows is the
+only edit needed — everything downstream reads from them.
 
-**WebGPU**
+### Quality
 
-- NLLB must beat HY-MT1.5 1.8B on latency or quality by a clear margin. The
-  WebGPU lane already carries six translation models; adding a seventh needs a
-  reason.
+Judged by reading the output on the six readable directions. No reference
+translations, no automatic metric, no comparison model.
 
-**Overall NO-GO** if WASM fails *and* WebGPU shows no clear advantage — because
-then NLLB occupies no position that an already-shipping model does not fill.
+| Band | Meaning |
+|---|---|
+| Good | meaning preserved and phrasing natural enough for a meeting → may be `recommended` |
+| Usable | understandable, occasionally awkward or stiff, no meaning errors → ship as an option |
+| Not usable | meaning errors, dropped content, hallucination, degeneration, or code-switching |
+
+Any occurrence of degeneration (repetition loops), truncation, or output in the
+wrong language is disqualifying regardless of how the rest reads.
+
+### Verdict
+
+Speed and quality are combined per device, then the two devices give independent
+answers:
+
+| CPU | WebGPU | Outcome |
+|---|---|---|
+| pass | pass | ship on both; `recommended` only if both criteria are "good" |
+| fail | pass | ship WebGPU-only (`requiredDevice: 'webgpu'`) |
+| pass | fail | ship CPU-only — unusual, but the right call if WebGPU shows output corruption |
+| fail | fail | do not ship |
+
+Quality is device-independent in principle, but it is judged separately per run
+anyway: Risk 4 is precisely that the same model can produce clean output on one
+backend and corrupt output on the other.
 
 ## Deliverable
 
 `.spike/out/nllb-README.md`, following the `.spike/out/README.md` precedent left
 by the CosyVoice3 and OmniVoice spikes:
 
-- Raw per-sentence numbers plus median/p90 tables, with machine and browser
-  recorded.
+- Raw per-sentence numbers plus median/p90 tables and output token counts, with
+  machine and browser recorded, for both devices.
+- The full translated output for all 72 readable sentences, laid out
+  source-beside-translation so quality can be judged by reading rather than by
+  trusting a summary.
 - Every failure and workaround encountered, especially ORT-level ones.
-- A GO/NO-GO recommendation with reasoning.
-- If GO, the scoped integration work — currently understood to be: port the
+- A per-device verdict against the bands above, and the resulting ship /
+  ship-not-recommended / do-not-ship call.
+- If it ships, the scoped integration work — currently understood to be: port the
   non-commercial license gate from the native lane to the WASM lane (a `license`
   field on `ModelManifestEntry`, a gate in `ModelManagementSection`, reuse of
   `LicenseConsentModal` / `licenseConsentStore`); a FLORES-200 mapping module
@@ -314,15 +379,21 @@ by the CosyVoice3 and OmniVoice spikes:
 
 Stated up front so the report is not read as more than it is.
 
-- **Low-resource quality cannot be judged here.** Nobody on this side reads
-  Xhosa. The `xh` verdict is limited to structural checks — non-empty, not an
-  echo, correct script, no code-switching into English, no degenerate repetition.
-  It is explicitly **not** a fluency judgment. If `xh` quality becomes the
-  deciding factor for GO/NO-GO, it needs a native speaker or a stronger
-  reference system, and the report will say so rather than guess.
+- **Quality is judged on six directions out of a possible 200 languages.** A
+  pass means NLLB is good enough on Sokuji's core pairs. It does **not**
+  establish that NLLB is good at Vietnamese, Swahili or Xhosa. If it ships and
+  language breadth becomes the selling point, that claim needs its own
+  evaluation — reference-scored against a parallel corpus such as FLORES-200,
+  which is a separate exercise with its own caveats (FLORES is NLLB's own
+  development benchmark, and it is written wiki prose rather than meeting
+  speech). Deliberately out of scope here; a failure on the core pairs settles
+  the question without it.
+- **Quality is one reviewer's judgment.** No metric, no second opinion. That is
+  an accepted tradeoff for a spike whose job is to decide whether to keep going.
 - **Single-machine numbers.** Latency is measured on one machine. WASM
   performance varies widely with CPU; the numbers bound feasibility, they do not
-  characterize the user population.
+  characterize the user population. The speed bands are pass/fail on that one
+  machine, which is a real limitation when the CPU verdict is the close call.
 - **Phase 0 proves correctness, not speed.** `onnxruntime-node` is a different
   execution provider; no timing from it is carried into the report.
 - **HF-direct loading skips the download path.** Deliberate — that path is
