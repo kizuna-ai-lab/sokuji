@@ -536,7 +536,8 @@
     "sonioxServiceBusy": "Ganap sa kapasidad ang Soniox sa ngayon. Pakisubukang muli sa madaling panahon.",
     "sonioxBudgetExhausted": "Naubos na ang balanse ng iyong session. Mag-top up ng iyong balanse para magpatuloy sa pagsasalin.",
     "sonioxTtsFailed": "Huminto na ang binibigkas na pagsasalin. Patuloy pa ring gumagana ang transcription at pagsasalin ng teksto.",
-    "sonioxSegmentEnded": "Natapos na ang segment na ito — pindutin ang Start para magpatuloy."
+    "sonioxSegmentEnded": "Natapos na ang segment na ito — pindutin ang Start para magpatuloy.",
+    "sonioxConnectionLost": "Naputol ang koneksyon — pindutin ang Start maya-maya para magpatuloy."
   },
   "modePicker": {
     "modeYou": "Ikaw",

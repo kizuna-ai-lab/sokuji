@@ -536,7 +536,8 @@
     "sonioxServiceBusy": "Soniox est actuellement à pleine capacité. Veuillez réessayer sous peu.",
     "sonioxBudgetExhausted": "Le solde de votre session est épuisé. Rechargez votre solde pour continuer à traduire.",
     "sonioxTtsFailed": "La traduction vocale s'est arrêtée. La transcription et la traduction textuelle continuent.",
-    "sonioxSegmentEnded": "Ce segment est terminé — appuyez sur Démarrer pour continuer."
+    "sonioxSegmentEnded": "Ce segment est terminé — appuyez sur Démarrer pour continuer.",
+    "sonioxConnectionLost": "La connexion a été interrompue — appuyez sur Démarrer dans un instant pour continuer."
   },
   "modePicker": {
     "modeYou": "Vous",
