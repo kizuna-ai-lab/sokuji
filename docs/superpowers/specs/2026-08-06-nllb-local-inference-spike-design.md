@@ -2,7 +2,8 @@
 
 **Date**: 2026-08-06
 **Status**: Closed — **do not ship**. Evaluated, rejected on translation quality.
-**Issue**: kizuna-ai-lab/sokuji (see the NLLB evaluation issue, closed as not-planned)
+**Issue**: kizuna-ai-lab/sokuji#382 (closed as not planned — carries the full
+per-sentence measurements)
 
 ## Decision
 
