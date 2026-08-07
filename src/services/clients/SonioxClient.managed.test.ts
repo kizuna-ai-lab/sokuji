@@ -351,8 +351,11 @@ describe('SonioxClient managed mode: cost meter wiring', () => {
     expect(items).toHaveLength(1);
     expect(items[0].formatted?.text).toMatch(BALANCE_USED_UP);
     expect(items[0].formatted?.text).not.toMatch(OUTAGE);
-    // onError still fires for analytics (api_error), same as before.
+    // onError still fires for analytics (api_error), same as before — and the
+    // message it carries is localized, so a stable English original rides
+    // along for the analytics side.
     expect(errors.some((e) => e.code === 'budget_exhausted')).toBe(true);
+    expect(errors[0].rawMessage).toBe('Session budget exhausted');
     // No false session.connection_lost / second onError from the fallthrough.
     expect(errors).toHaveLength(1);
     expect(closeEvents).toHaveLength(1);
@@ -582,6 +585,10 @@ describe('SonioxClient managed recoverable outages', () => {
     expect(errors).toHaveLength(1);
     expect(errors[0].code).toBe('503');
     expect(errors[0].message).toMatch(OUTAGE);
+    // ...but analytics must not be fed the localized sentence, or the same
+    // failure arrives as one of 30 translations. The server's own words ride
+    // along separately (buildApiErrorProps prefers them).
+    expect(errors[0].rawMessage).toBe('service unavailable');
   });
 
   it('keeps the raw server text in the debug timeline', async () => {

@@ -53,6 +53,7 @@ import { ServiceFactory } from '../../services/ServiceFactory'; // Import the Se
 import { IAudioService } from '../../services/interfaces/IAudioService';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
+import { buildApiErrorProps } from '../../lib/apiErrorProps';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible, kizunaBaseProvider } from '../../types/Provider';
@@ -1402,13 +1403,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           formatted: { text: errorMessage },
         }]);
 
-        // Track API errors
-        trackEvent('api_error', {
-          provider: provider || Provider.OPENAI,
-          error_code: event.code,
-          error_message: errorMessage,
-          error_type: event.type === 'error' ? 'client' : 'server'
-        });
+        // Track API errors. Built by buildApiErrorProps, not inline: which
+        // string becomes error_message decides whether outages are groupable
+        // at all, and `errorMessage` above is the user-facing (possibly
+        // localized) one this panel renders — not the one analytics wants.
+        // It also omits error_code when a client reports none, rather than
+        // sending the property as undefined.
+        trackEvent('api_error', buildApiErrorProps(event, provider || Provider.OPENAI));
       },
       onReconnecting: () => {
         console.info('[Sokuji] [MainPanel] Session reconnecting...');

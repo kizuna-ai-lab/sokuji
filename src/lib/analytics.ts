@@ -187,6 +187,9 @@ export interface AnalyticsEvents {
     provider: string;
     endpoint?: string;
     status_code?: number;
+    /** Provider wire code as sent: '503', '408', 'socket_error', … Kept a
+     *  string because the codes that matter are not all numeric, and one
+     *  field beats a numeric/symbolic pair. */
     error_code?: string;
     error_message: string;
     error_type: 'auth' | 'rate_limit' | 'network' | 'server' | 'client';

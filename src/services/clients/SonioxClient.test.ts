@@ -177,6 +177,12 @@ describe('SonioxClient connect', () => {
     // "the session is dead".
     expect(errors[0].message).toMatch(/spoken translation has stopped/i);
     expect(errors[0].message).toMatch(/still running/i);
+    // ...but the message above is localized, so analytics gets the wire code
+    // and the server's own words separately — otherwise a silent quality
+    // regression arrives as 30 translations of one sentence and cannot be
+    // counted. The raw text is right here at the failure site; don't drop it.
+    expect(errors[0].rawMessage).toMatch(/boom/);
+    expect(errors[0].rawMessage).not.toMatch(/spoken translation has stopped/i);
 
     // Still one report per failure episode: it is a notice, not a per-utterance alarm.
     translate();
