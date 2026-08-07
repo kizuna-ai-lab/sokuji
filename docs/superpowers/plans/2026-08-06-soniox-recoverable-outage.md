@@ -12,7 +12,7 @@
 
 ## Amendments after review
 
-The task steps below are kept as they were executed. Three things changed
+The task steps below are kept as they were executed. Four things changed
 afterwards, in review; the spec describes the shipped design, this plan does
 not:
 
@@ -36,7 +36,7 @@ not:
    assertion in `locales.consistency.test.ts`. The translations listed in
    Task 4 below are the pre-review wording.
 
-Tasks 1-5 predate all three. Read the spec for the design as shipped.
+Tasks 1-5 predate all four. Read the spec for the design as shipped.
 
 ## Global Constraints
 

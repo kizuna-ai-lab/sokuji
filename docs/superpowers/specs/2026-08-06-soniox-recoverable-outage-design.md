@@ -71,11 +71,13 @@ today, so Soniox ends up more like its peers than it started.
 
 ## Architecture
 
-Every runtime decision lives inside `src/services/clients/SonioxClient.ts`.
-Two other places change, and only in ways that remove or add nothing to
-reason about: `MainPanel.tsx` loses the `sonioxDurationCutoff` branch (§3) —
-a deletion, no new logic — and the 30 locale catalogs gain one key (§4).
-`IClient`, the stores and the backend are untouched.
+Classifying an outage and emitting the notice for it live entirely inside
+`src/services/clients/SonioxClient.ts` — that is the decision this design
+moves. `MainPanel.tsx` keeps the session-lifecycle behaviour it already owns
+(the `isSessionActive` teardown guard, the `setItems(getConversationItems())`
+that decides which items survive) and only loses the `sonioxDurationCutoff`
+branch (§3) — a deletion, no new logic. The 30 locale catalogs gain one key
+(§4). `IClient`, the stores and the backend are untouched.
 
 ### 1. One emission point
 
