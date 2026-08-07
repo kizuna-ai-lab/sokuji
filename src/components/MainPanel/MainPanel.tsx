@@ -1405,6 +1405,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Track API errors
         trackEvent('api_error', {
           provider: provider || Provider.OPENAI,
+          error_code: event.code,
           error_message: errorMessage,
           error_type: event.type === 'error' ? 'client' : 'server'
         });
