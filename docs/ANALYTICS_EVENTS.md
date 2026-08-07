@@ -218,8 +218,8 @@ This document provides a comprehensive overview of all analytics events tracked 
 - `provider` (string): API provider
 - `endpoint` (string, optional): API endpoint
 - `status_code` (number, optional): HTTP status code
-- `error_code` (string, optional): Provider or transport error code
-- `error_message` (string): Error message
+- `error_code` (string, optional): Provider or transport error code as sent — `'503'`, `'408'`, `'socket_error'`. A string because the codes that matter are not all numeric
+- `error_message` (string): Error message. The provider's own words, untranslated — a client that localizes its user-facing message sends the original separately so this field stays comparable across UI languages
 - `error_type` ('auth' | 'rate_limit' | 'network' | 'server' | 'client'): Error category
 
 ### `audio_error`
