@@ -187,6 +187,7 @@ export interface AnalyticsEvents {
     provider: string;
     endpoint?: string;
     status_code?: number;
+    error_code?: string;
     error_message: string;
     error_type: 'auth' | 'rate_limit' | 'network' | 'server' | 'client';
   };
@@ -441,4 +442,4 @@ export function useAnalytics() {
       isCapturingEnabled,
     }),
   };
-} 
+}

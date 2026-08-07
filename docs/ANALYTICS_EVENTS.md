@@ -218,6 +218,7 @@ This document provides a comprehensive overview of all analytics events tracked 
 - `provider` (string): API provider
 - `endpoint` (string, optional): API endpoint
 - `status_code` (number, optional): HTTP status code
+- `error_code` (string, optional): Provider or transport error code
 - `error_message` (string): Error message
 - `error_type` ('auth' | 'rate_limit' | 'network' | 'server' | 'client'): Error category
 
