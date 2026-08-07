@@ -351,8 +351,11 @@ describe('SonioxClient managed mode: cost meter wiring', () => {
     expect(items).toHaveLength(1);
     expect(items[0].formatted?.text).toMatch(BALANCE_USED_UP);
     expect(items[0].formatted?.text).not.toMatch(OUTAGE);
-    // onError still fires for analytics (api_error), same as before.
+    // onError still fires for analytics (api_error), same as before — and the
+    // message it carries is localized, so a stable English original rides
+    // along for the analytics side.
     expect(errors.some((e) => e.code === 'budget_exhausted')).toBe(true);
+    expect(errors[0].rawMessage).toBe('Session budget exhausted');
     // No false session.connection_lost / second onError from the fallthrough.
     expect(errors).toHaveLength(1);
     expect(closeEvents).toHaveLength(1);

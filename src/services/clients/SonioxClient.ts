@@ -825,7 +825,13 @@ export class SonioxClient implements IClient {
     this.emitRealtime('client', 'session.budget_exhausted', { provider: 'soniox' });
     const message = i18n.t('mainPanel.sonioxBudgetExhausted', 'Your session balance is used up. Top up your balance to keep translating.');
     this.emitSystemNotice(message);
-    this.eventHandlers.onError?.({ code: 'budget_exhausted', message });
+    // `message` is localized for the bubble; analytics gets a stable English
+    // original so this ending stays countable across UI languages.
+    this.eventHandlers.onError?.({
+      code: 'budget_exhausted',
+      message,
+      rawMessage: 'Session budget exhausted',
+    });
     // Must be set before this.stt?.end() — see sttOutcomeAnnounced's
     // declaration for why (and handleSttClose's bare-close branch, which
     // reads it once the close this triggers arrives).
@@ -1325,6 +1331,10 @@ export class SonioxClient implements IClient {
           'mainPanel.sonioxTtsFailed',
           'Spoken translation has stopped. Transcription and text translation are still running.'
         ),
+        // The localized sentence above is for the user; analytics needs what
+        // actually broke. Degraded TTS is a silent quality regression, so
+        // being able to count it by cause is the whole point of measuring it.
+        rawMessage: message,
       });
     }
   }
