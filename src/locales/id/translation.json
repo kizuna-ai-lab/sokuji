@@ -559,7 +559,8 @@
     "sonioxServiceBusy": "Soniox sedang berada pada kapasitas penuh. Silakan coba lagi sebentar lagi.",
     "sonioxBudgetExhausted": "Saldo sesi Anda telah habis. Isi ulang saldo Anda untuk terus menerjemahkan.",
     "sonioxTtsFailed": "Terjemahan suara telah berhenti. Transkripsi dan terjemahan teks masih berjalan.",
-    "sonioxSegmentEnded": "Segmen ini telah berakhir — ketuk Mulai untuk melanjutkan."
+    "sonioxSegmentEnded": "Segmen ini telah berakhir — ketuk “Mulai sesi” untuk melanjutkan.",
+    "sonioxConnectionLost": "Koneksi terputus — ketuk “Mulai sesi” sebentar lagi untuk melanjutkan."
   },
   "modePicker": {
     "modeYou": "Anda",

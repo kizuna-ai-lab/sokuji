@@ -559,7 +559,8 @@
     "sonioxServiceBusy": "Soniox şu anda tam kapasitede çalışıyor. Lütfen kısa süre sonra tekrar deneyin.",
     "sonioxBudgetExhausted": "Oturum bakiyeniz tükendi. Çeviriye devam etmek için bakiyenizi yükleyin.",
     "sonioxTtsFailed": "Sesli çeviri durdu. Deşifre ve metin çevirisi çalışmaya devam ediyor.",
-    "sonioxSegmentEnded": "Bu bölüm sona erdi — devam etmek için Başlat'a dokunun."
+    "sonioxSegmentEnded": "Bu bölüm sona erdi — devam etmek için “Oturumu başlat”a dokunun.",
+    "sonioxConnectionLost": "Bağlantı kesildi — devam etmek için birazdan “Oturumu başlat”a dokunun."
   },
   "modePicker": {
     "modeYou": "Siz",

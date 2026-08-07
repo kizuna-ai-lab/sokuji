@@ -559,7 +559,8 @@
     "sonioxServiceBusy": "Soniox가 현재 용량이 가득 찼습니다. 잠시 후 다시 시도해 주세요.",
     "sonioxBudgetExhausted": "세션 잔액이 모두 소진되었습니다. 번역을 계속하려면 잔액을 충전하세요.",
     "sonioxTtsFailed": "음성 번역이 중지되었습니다. 전사와 텍스트 번역은 계속 작동합니다.",
-    "sonioxSegmentEnded": "이 세그먼트가 종료되었습니다 — 계속하려면 시작을 탭하세요."
+    "sonioxSegmentEnded": "이 세그먼트가 종료되었습니다 — 계속하려면 ‘세션 시작’을 탭하세요.",
+    "sonioxConnectionLost": "연결이 끊어졌습니다 — 잠시 후 계속하려면 ‘세션 시작’을 탭하세요."
   },
   "modePicker": {
     "modeYou": "당신",

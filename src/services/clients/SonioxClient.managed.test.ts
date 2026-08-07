@@ -53,6 +53,13 @@ const BASE_CONFIG: SonioxSessionConfig = {
   textOnly: false,
 };
 
+// i18n-derived copy is matched loosely (house convention, see the TTS-degraded
+// assertions below) — the point is which SENTENCE the user gets, not its exact
+// punctuation.
+const OUTAGE = /the connection was interrupted/i;
+const SEGMENT_ENDED = /this segment has ended/i;
+const BALANCE_USED_UP = /balance is used up/i;
+
 const SESSION_TOKEN = 'better-auth-session-token-abc';
 
 function speechToSpeechResponse() {
@@ -310,6 +317,46 @@ describe('SonioxClient managed mode: cost meter wiring', () => {
     expect(stt.closed).toBe(false); // NOT torn down abruptly via close()
     expect(errors.some((e) => e.code === 'budget_exhausted')).toBe(true);
   });
+
+  // Regression: the test above stops at stt.end() and never simulates the
+  // close that always follows it in production (the server flushes and
+  // closes after receiving the empty-text-frame end-of-stream). That close
+  // used to land in handleSttClose's bare-close fallthrough with no
+  // announced outcome on record, which fired a SECOND, WRONG notice — the
+  // generic "connection was interrupted" outage text — on top of the real
+  // reason, and that wrong notice was the only item left standing (it was
+  // emitted after, and thus overwrote nothing, but the balance message was
+  // never itself an item to begin with — only onError, which is transient
+  // local UI state MainPanel's teardown wipes). Drive the full sequence so
+  // this cannot regress silently again.
+  it('the full sequence — tick to exhaustion, end(), then the close that follows — ends with exactly one item, the balance message, not the outage notice', async () => {
+    mockFetchOnce(200, { ...speechToSpeechResponse(), budgetMicroUsd: 1, rateUsdPerHour: 3600 });
+    const client = managedClient();
+    const errors: Array<{ code?: string; message?: string }> = [];
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onError: (e) => errors.push(e), onClose: (e) => closeEvents.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+    stt.handlers.onTick?.(); // → handleBudgetExhausted() → stt.end()
+    expect(stt.ended).toBe(true);
+
+    // The close the server sends after flushing a graceful end() — exactly
+    // what handleSttClose's bare-close fallthrough would otherwise treat as
+    // an unannounced outage.
+    stt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].formatted?.text).toMatch(BALANCE_USED_UP);
+    expect(items[0].formatted?.text).not.toMatch(OUTAGE);
+    // onError still fires for analytics (api_error), same as before.
+    expect(errors.some((e) => e.code === 'budget_exhausted')).toBe(true);
+    // No false session.connection_lost / second onError from the fallthrough.
+    expect(errors).toHaveLength(1);
+    expect(closeEvents).toHaveLength(1);
+  });
 });
 
 describe('SonioxClient BYOK mode is unaffected', () => {
@@ -442,7 +489,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     expect(client.getConversationItems()).toHaveLength(0);
   });
 
-  it('tags the close that follows with sonioxDurationCutoff', async () => {
+  it('emits the segment-ended notice itself on the close that follows', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
     const client = managedClient();
     const closeEvents: any[] = [];
@@ -454,11 +501,21 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     stt.handlers.onClose?.({ code: 1000, reason: '' });
 
     expect(closeEvents).toHaveLength(1);
-    expect(closeEvents[0].sonioxDurationCutoff).toBe(true);
     expect(closeEvents[0].code).toBe(1000);
+    // No provider-specific field on the close: the notice is a normal item,
+    // so it survives MainPanel's setItems(getConversationItems()) teardown.
+    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].role).toBe('system');
+    expect(items[0].formatted?.text).toMatch(SEGMENT_ENDED);
+    // MainPanel sorts rendered items by `a.createdAt || 0` (MainPanel.tsx);
+    // an item missing this field sorts to the very top of the transcript
+    // instead of appearing where it actually happened.
+    expect(items[0].createdAt).toBeGreaterThan(0);
   });
 
-  it('a normal close with no preceding 403 is not tagged — no auto-reconnect signal either way', async () => {
+  it('a close with no preceding 403 reports a lost connection, not a cutoff', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
     const client = managedClient();
     const closeEvents: any[] = [];
@@ -469,7 +526,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     stt.handlers.onClose?.({ code: 1000, reason: '' });
 
     expect(closeEvents).toHaveLength(1);
-    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(OUTAGE);
   });
 
   it('BYOK: a mid-session 403 still surfaces as a normal error — BYOK has no granted duration', async () => {
@@ -495,10 +552,50 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     // the flag set by the previous session's 403.
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     const stt = sttInstances.at(-1)!;
-    const closeEvents: any[] = [];
-    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
     stt.handlers.onClose?.({ code: 1000, reason: '' });
 
-    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
+    // A lost connection, not a second "segment ended".
+    const text = client.getConversationItems().at(-1)!.formatted?.text;
+    expect(text).toMatch(OUTAGE);
+    expect(text).not.toMatch(SEGMENT_ENDED);
+  });
+});
+
+describe('SonioxClient managed recoverable outages', () => {
+  it('a managed 503 shows a localized notice, not the raw wire text', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    const errors: any[] = [];
+    client.setEventHandlers({ onError: (e) => errors.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('503', 'service unavailable');
+
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].role).toBe('system');
+    expect(items[0].type).toBe('error');
+    expect(items[0].formatted?.text).toMatch(OUTAGE);
+    expect(items[0].formatted?.text).not.toMatch(/^\[Soniox/);
+    // onError still fires (api_error analytics) and carries the same words.
+    expect(errors).toHaveLength(1);
+    expect(errors[0].code).toBe('503');
+    expect(errors[0].message).toMatch(OUTAGE);
+  });
+
+  it('keeps the raw server text in the debug timeline', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = managedClient();
+    const events: any[] = [];
+    client.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('503', 'service unavailable');
+
+    const lost = events.find((e) => e.type === 'session.connection_lost');
+    expect(lost).toBeDefined();
+    expect(lost.data).toMatchObject({ code: '503', message: 'service unavailable' });
   });
 });

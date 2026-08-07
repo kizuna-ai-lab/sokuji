@@ -559,7 +559,8 @@
     "sonioxServiceBusy": "Soniox är för närvarande fullbelastat. Försök igen snart.",
     "sonioxBudgetExhausted": "Ditt sessionssaldo är slut. Fyll på ditt saldo för att fortsätta översätta.",
     "sonioxTtsFailed": "Den talade översättningen har stoppats. Transkribering och textöversättning fungerar fortfarande.",
-    "sonioxSegmentEnded": "Det här avsnittet har avslutats — tryck på Start för att fortsätta."
+    "sonioxSegmentEnded": "Det här avsnittet har avslutats — tryck på ”Starta session” för att fortsätta.",
+    "sonioxConnectionLost": "Anslutningen avbröts — tryck på ”Starta session” om en stund för att fortsätta."
   },
   "modePicker": {
     "modeYou": "Du",

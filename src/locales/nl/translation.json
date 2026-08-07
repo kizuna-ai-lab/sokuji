@@ -559,7 +559,8 @@
     "sonioxServiceBusy": "Soniox zit momenteel aan zijn volledige capaciteit. Probeer het binnenkort opnieuw.",
     "sonioxBudgetExhausted": "Het saldo van uw sessie is op. Laad uw saldo op om door te gaan met vertalen.",
     "sonioxTtsFailed": "De gesproken vertaling is gestopt. Transcriptie en tekstvertaling werken nog steeds.",
-    "sonioxSegmentEnded": "Dit segment is beëindigd — tik op Start om door te gaan."
+    "sonioxSegmentEnded": "Dit segment is beëindigd — tik op ‘Sessie starten’ om door te gaan.",
+    "sonioxConnectionLost": "De verbinding is verbroken — tik zo op ‘Sessie starten’ om door te gaan."
   },
   "modePicker": {
     "modeYou": "Jij",

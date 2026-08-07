@@ -80,3 +80,25 @@ describe('dynamically-built i18n keys resolve in en', () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe('notices that name a button use that locale\'s own label', () => {
+  // Both Soniox end-of-session notices tell the user to tap the session-start
+  // button. They spell the label out rather than interpolating it, so nothing
+  // stops a translation from naming a word that appears nowhere in the UI —
+  // which is exactly what happened: 18 of 30 catalogs said "Start" (or a local
+  // equivalent) while their button read "Start Session" / "Sessione starten" /
+  // "セッション開始". Pin the two together so the next translation pass, or a
+  // rename of the button itself, fails here instead of shipping.
+  const NOTICES = ['mainPanel.sonioxSegmentEnded', 'mainPanel.sonioxConnectionLost'];
+
+  it.each(NOTICES)('%s names mainPanel.startSession in every locale', (key) => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      const label = cat['mainPanel.startSession'];
+      const notice = cat[key];
+      if (typeof label !== 'string' || typeof notice !== 'string') continue; // key-parity is another test's job
+      if (!notice.includes(label)) offenders.push(`${lang}: ${JSON.stringify(notice)} omits ${JSON.stringify(label)}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+});

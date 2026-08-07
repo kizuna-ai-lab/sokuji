@@ -70,6 +70,12 @@ const BASE_CONFIG: SonioxSessionConfig = {
   textOnly: false,
 };
 
+// i18n-derived copy is matched loosely (house convention, see the TTS-degraded
+// assertions below) — the point is which SENTENCE the user gets, not its exact
+// punctuation.
+const OUTAGE = /the connection was interrupted/i;
+const SEGMENT_ENDED = /this segment has ended/i;
+
 function tok(text: string, extra: object = {}) {
   return { text, ...extra };
 }
@@ -1079,7 +1085,8 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
     expect(errors).toHaveLength(0);
     expect(reconnecting).not.toHaveBeenCalled();
     expect(closeEvents).toHaveLength(1);
-    expect(closeEvents[0].sonioxDurationCutoff).toBe(true);
+    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined();
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(SEGMENT_ENDED);
     vi.unstubAllGlobals();
   });
 
@@ -1114,8 +1121,9 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
   // I1: managed sessions cannot resume — the backend mints STT temp keys
   // single_use: true, so a same-key reconnect is rejected AFTER onopen and
   // would masquerade as a duration cutoff (pendingDurationCutoff) instead
-  // of the outage it actually is. Managed 503s must take the plain error
-  // path, exactly like any other managed STT error.
+  // of the outage it actually is. Managed 503s must take the recoverable-
+  // outage path with no resume attempted — the same localized notice a BYOK
+  // 503 eventually gets once its resume ladder is exhausted.
   it('I1: managed mode + 503 takes the generic error path — no resume attempted', async () => {
     const client = new SonioxClient('', { managed: { sessionToken: 'tok' } });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -1149,7 +1157,6 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
     expect(reconnecting).not.toHaveBeenCalled();
     expect(sttInstances).toHaveLength(1); // no resume attempt opened a new stream
     expect(closeEvents).toHaveLength(1);
-    expect(closeEvents[0].sonioxDurationCutoff).toBeUndefined(); // a normal close, not misread as a cutoff
     vi.unstubAllGlobals();
   });
 
@@ -1247,7 +1254,7 @@ describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => { vi.useRealTimers(); MockStt.failConnect = false; });
 
-  it('after 3 failed reconnect attempts (0/1000/3000ms gaps), surfaces the ORIGINAL 503 message and closes the session', async () => {
+  it('after 3 failed reconnect attempts (0/1000/3000ms gaps), ends with the outage notice and keeps the ORIGINAL 503 message in the debug timeline', async () => {
     const client = new SonioxClient('key');
     const errors: any[] = [];
     const updates: any[] = [];
@@ -1276,8 +1283,14 @@ describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
     expect(sttInstances).toHaveLength(4); // original + 3 failed resume attempts
     expect(errors).toHaveLength(1);
     expect(errors[0].code).toBe('503');
-    // The ORIGINAL 503 message — not whatever the 3rd attempt's rejection said.
-    expect(errors[0].message).toBe('capacity exceeded');
+    // The user gets the same sentence a managed outage produces — by this
+    // point the two stories are the same one.
+    expect(errors[0].message).toMatch(OUTAGE);
+    expect(updates.at(-1)!.item.formatted?.text).toMatch(OUTAGE);
+    // The ORIGINAL 503 message — not whatever the 3rd attempt's rejection
+    // said — is preserved where it is diagnostic rather than noise.
+    const lost = realtimeEvents.find((e) => e.event.type === 'session.connection_lost');
+    expect(lost!.event.data).toMatchObject({ code: '503', message: 'capacity exceeded' });
     expect(updates.some((u) => u.item.type === 'error')).toBe(true);
     expect(closeEvents).toHaveLength(1);
     expect(closeEvents[0]).toEqual({ code: 1006, reason: 'stt resume failed' });
@@ -1313,6 +1326,100 @@ describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
 
     expect(reconnected).toHaveBeenCalledTimes(1);
     expect(errors).toHaveLength(0);
+    expect(closeEvents).toHaveLength(0);
+    expect(client.isConnected()).toBe(true);
+  });
+});
+
+describe('SonioxClient recoverable outages (BYOK)', () => {
+  it('408 (no audio for ~20s) reads as a recoverable outage', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('408', 'Request timeout');
+
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(OUTAGE);
+  });
+
+  it('socket_error reads as a recoverable outage', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('socket_error', 'Error: network down');
+
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(OUTAGE);
+  });
+
+  it('an error the user can act on keeps the raw wire text', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('401', 'invalid api key');
+
+    expect(client.getConversationItems().at(-1)!.formatted?.text)
+      .toBe('[Soniox 401] invalid api key');
+  });
+
+  it('a close with no preceding error frame is reported as a lost connection', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
+
+    stt.handlers.onClose?.({ code: 1006, reason: '' });
+
+    // Its sibling test below already asserts an exact length for the
+    // "second notice suppressed" case; assert it here too so a double-emit
+    // in this branch (e.g. a future regression that fires both the
+    // fallthrough AND some other path) cannot pass silently.
+    expect(client.getConversationItems()).toHaveLength(1);
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(OUTAGE);
+    // The close still reaches MainPanel so the session tears down as before.
+    expect(closeEvents).toHaveLength(1);
+  });
+
+  it('a close that FOLLOWS an error frame does not add a second notice', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+
+    stt.handlers.onError?.('401', 'invalid api key');
+    stt.handlers.onClose?.({ code: 1006, reason: '' });
+
+    expect(client.getConversationItems()).toHaveLength(1);
+    expect(client.getConversationItems()[0].formatted?.text).toBe('[Soniox 401] invalid api key');
+  });
+
+  it('the late close that follows a user-initiated Stop stays silent and does not re-close', async () => {
+    const { client } = await connectedClient();
+    const stt = sttInstances.at(-1)!;
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
+
+    await client.disconnect();
+    // A real browser fires onclose asynchronously, AFTER disconnect() already
+    // called ws.close() and returned.
+    stt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    expect(client.getConversationItems()).toHaveLength(0);
+    // disconnect() already reported the close itself; the browser's own event
+    // for the socket it closed must not report a second one.
+    expect(closeEvents).toHaveLength(1);
+  });
+
+  it('a stale close from a previous session cannot tear down the new one', async () => {
+    const { client } = await connectedClient();
+    const stt0 = sttInstances.at(-1)!;
+
+    await client.connect({ ...BASE_CONFIG, textOnly: false }); // second session
+    const closeEvents: any[] = [];
+    client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
+    stt0.handlers.onClose?.({ code: 1006, reason: 'late' });   // old socket dies late
+
+    expect(client.getConversationItems()).toHaveLength(0);
+    // The live session must survive its predecessor's death rattle: MainPanel
+    // tears the session down on onClose (its isSessionActive guard passes,
+    // because the NEW session really is active), and isConnected() gates
+    // whether audio still reaches the wire.
     expect(closeEvents).toHaveLength(0);
     expect(client.isConnected()).toBe(true);
   });

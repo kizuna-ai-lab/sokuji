@@ -559,7 +559,8 @@
     "sonioxServiceBusy": "Soniox ist derzeit ausgelastet. Bitte versuchen Sie es in Kürze erneut.",
     "sonioxBudgetExhausted": "Ihr Sitzungsguthaben ist aufgebraucht. Laden Sie Ihr Guthaben auf, um weiter zu übersetzen.",
     "sonioxTtsFailed": "Die gesprochene Übersetzung wurde beendet. Transkription und Textübersetzung laufen weiter.",
-    "sonioxSegmentEnded": "Dieser Abschnitt ist beendet — tippen Sie auf Start, um fortzufahren."
+    "sonioxSegmentEnded": "Dieser Abschnitt ist beendet — tippen Sie auf „Sitzung starten“, um fortzufahren.",
+    "sonioxConnectionLost": "Die Verbindung wurde unterbrochen — tippen Sie gleich auf „Sitzung starten“, um fortzufahren."
   },
   "modePicker": {
     "modeYou": "Sie",

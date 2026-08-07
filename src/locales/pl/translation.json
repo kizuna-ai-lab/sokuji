@@ -559,7 +559,8 @@
     "sonioxServiceBusy": "Soniox jest obecnie w pełni obciążony. Spróbuj ponownie wkrótce.",
     "sonioxBudgetExhausted": "Saldo Twojej sesji zostało wyczerpane. Doładuj saldo, aby kontynuować tłumaczenie.",
     "sonioxTtsFailed": "Tłumaczenie głosowe zostało zatrzymane. Transkrypcja i tłumaczenie tekstu nadal działają.",
-    "sonioxSegmentEnded": "Ten segment się zakończył — dotknij Start, aby kontynuować."
+    "sonioxSegmentEnded": "Ten segment się zakończył — dotknij „Rozpocznij sesję”, aby kontynuować.",
+    "sonioxConnectionLost": "Połączenie zostało przerwane — za chwilę dotknij „Rozpocznij sesję”, aby kontynuować."
   },
   "modePicker": {
     "modeYou": "Ty",

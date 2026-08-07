@@ -559,7 +559,8 @@
     "sonioxServiceBusy": "Soniox 目前容量已滿。請稍後再試一次。",
     "sonioxBudgetExhausted": "您的工作階段餘額已用盡。請儲值以繼續翻譯。",
     "sonioxTtsFailed": "語音翻譯已停止。轉錄與文字翻譯仍在繼續。",
-    "sonioxSegmentEnded": "此段落已結束——點一下「開始」以繼續。"
+    "sonioxSegmentEnded": "此段落已結束——點一下「開始」以繼續。",
+    "sonioxConnectionLost": "連線已中斷——請稍候點一下「開始」以繼續。"
   },
   "modePicker": {
     "modeYou": "您",

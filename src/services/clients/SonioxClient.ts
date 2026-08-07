@@ -37,6 +37,19 @@ const STT_MODEL = 'stt-rt-v5';
 const TTS_MODEL = 'tts-rt-v1';
 const SAMPLE_RATE = 24000; // Sokuji mic pipeline and ModernAudioPlayer both run at 24 kHz
 const AUTH_PROBE_URL = 'https://api.soniox.com/v1/auth/temporary-api-key';
+/**
+ * STT failures the user did not cause and cannot fix from the settings — the
+ * only useful response is to start again:
+ *  - 503: service unavailable. Transient by definition.
+ *  - 408: request timeout, i.e. no audio reached Soniox for ~20 s. Reachable
+ *    in a live session when input stops (a long mute), so it is a dead
+ *    session, not a misconfiguration.
+ *  - socket_error: SonioxSttStream's own code for a transport-level failure.
+ * Everything else (400/401/429/…) stays on surfaceSttError's raw path, where
+ * the server's own words ARE the actionable part and replacing them with a
+ * generic sentence would hide the fix.
+ */
+const RECOVERABLE_STT_CODES: ReadonlySet<string> = new Set(['503', '408', 'socket_error']);
 // Fallback only — the backend's 409 body always carries its own retryAfterMs
 // (see describeManagedSessionError); this is used solely if that field is
 // somehow missing from a malformed/empty body.
@@ -174,6 +187,20 @@ export class SonioxClient implements IClient {
   // and a fresh socket connects after Stop (zombie socket, managed billing
   // restart if this were ever allowed in managed mode).
   private pendingSttResume503: string | null = null;
+  // True once the user has already been told why THIS stream is ending —
+  // wider than "an error frame arrived": it also covers a graceful ending
+  // that announces its own reason before closing the socket
+  // (handleBudgetExhausted). Read by handleSttClose's fall-through to tell
+  // "the socket died with no warning" (say so) from "we already told the
+  // user why" (stay quiet), so a close that follows an announced outcome
+  // never gets a second, contradictory notice layered on top of it. Set at
+  // the top of handleSttError, BEFORE its early returns, so the cutoff and
+  // resume paths count as having spoken too — a 503 whose close never
+  // arrives must not let a later close file a second, contradictory report.
+  // handleBudgetExhausted sets it too, immediately above its own
+  // this.stt?.end(), for the identical reason. Cleared per stream in
+  // wireSttHandlers, and by reset().
+  private sttOutcomeAnnounced = false;
   // Per-session count of 503 resume cycles actually started (incremented in
   // handleSttError, reset by reset() → i.e. every connect()). Caps a
   // flapping server from looping forever: past MAX_STT_RESUME_CYCLES a 503
@@ -330,10 +357,17 @@ export class SonioxClient implements IClient {
    * being eligible for a FUTURE 503 resume of its own.
    */
   private wireSttHandlers(stream: SonioxSttStream): void {
+    // Captured at wire time. Both connect() and disconnect() bump
+    // `generation`, so comparing it inside onClose is what distinguishes a
+    // live socket dying from the close event a browser fires asynchronously
+    // for a socket disconnect() already closed. Without this, a clean Stop
+    // would end with a "connection interrupted" notice.
+    const gen = this.generation;
+    this.sttOutcomeAnnounced = false;
     stream.setHandlers({
       onMessage: (message) => this.handleSttMessage(message),
       onError: (code, message) => this.handleSttError(code, message),
-      onClose: (event) => this.handleSttClose(event),
+      onClose: (event) => this.handleSttClose(event, gen),
       // The meter's own clock, not a second timer — see onTick's docstring
       // on SonioxSttStreamHandlers. A no-op while costMeter is null (BYOK).
       onTick: () => this.costMeter?.tick(Date.now()),
@@ -385,24 +419,58 @@ export class SonioxClient implements IClient {
   /**
    * Shared onClose routing for every SonioxSttStream this client ever wires
    * (the original one from connect() and any resumed one from
-   * resumeSttStream()). Order matters: the managed-duration cutoff is
-   * checked first so a managed 403 is never misread as a resumable 503 —
-   * the two flags are mutually exclusive in practice (handleSttError only
-   * ever sets one per error frame) but cutoff must win if that ever changes.
+   * resumeSttStream()). Three branches, checked in order: the managed-
+   * duration cutoff (a pending 403), a resumable BYOK 503 (silently
+   * reconnects instead of tearing the session down), and — falling through
+   * both — a bare close, which reports a recoverable-outage notice UNLESS
+   * sttOutcomeAnnounced is already true, meaning some earlier step
+   * (handleSttError's own early paths, or a graceful ending like
+   * handleBudgetExhausted) already told the user why this stream is ending.
+   * Order matters for the first two: the managed-duration cutoff is checked
+   * first so a managed 403 is never misread as a resumable 503 — the two
+   * flags are mutually exclusive in practice (handleSttError only ever sets
+   * one per error frame) but cutoff must win if that ever changes.
+   *
+   * `gen` is the generation this stream's handlers were wired under
+   * (captured once, at wireSttHandlers time). Comparing it against the
+   * CURRENT this.generation, before anything else runs, is what
+   * distinguishes a live socket dying from the close event a browser fires
+   * asynchronously for a socket that a user-initiated disconnect() (or a
+   * stale connect()/resume attempt) already closed. Those closes describe a
+   * session that is over and must change nothing: not the notice, not
+   * isConnectedState, not onClose.
    */
-  private handleSttClose(event: { code?: number; reason?: string }): void {
+  private handleSttClose(event: { code?: number; reason?: string }, gen: number): void {
+    // A stale close belongs to a socket nobody is listening to any more, and
+    // it must not touch session state at all — not just skip the notice.
+    // Everything below assumes it is describing the CURRENT session:
+    // `isConnectedState = false` would mark a freshly started session
+    // disconnected, and `onClose` would run MainPanel's full teardown on it
+    // (MainPanel's own `isSessionActive` guard passes, because the new
+    // session really is active). The narrow but real path: Stop, Start, then
+    // the browser dispatches the first socket's close. There is also a
+    // guaranteed, harmless-today case this closes — disconnect() reports the
+    // close itself, so without this every Stop delivered onClose twice.
+    if (gen !== this.generation) {
+      this.emitRealtime('client', 'session.stale_close', { provider: 'soniox', ...event });
+      return;
+    }
     this.isConnectedState = false;
-    // Managed sessions: Soniox drops the session at its granted duration
-    // by sending a 403 error frame (caught by handleSttError, which sets
-    // this flag and suppresses the generic error bubble) immediately
-    // followed by this close. Tag the event so the UI shows a dedicated
-    // "segment ended, tap to continue" state instead of a raw error —
-    // and, per explicit product decision, does NOT auto-reconnect (a
-    // silent reconnect would restart billing without the user knowing).
+    // Managed sessions: Soniox drops the session at its granted duration by
+    // sending a 403 error frame (caught by handleSttError, which sets this
+    // flag and suppresses the generic error bubble) immediately followed by
+    // this close. Say so as a normal system notice — the same seam every
+    // client uses — rather than a provider-specific field on the close event
+    // that only MainPanel could read. Per explicit product decision this does
+    // NOT auto-reconnect: a silent reconnect would restart billing without
+    // the user knowing, so the user must tap Start for a new segment.
     if (this.pendingDurationCutoff) {
       this.pendingDurationCutoff = false;
       this.emitRealtime('client', 'session.duration_cutoff', { provider: 'soniox', ...event });
-      this.eventHandlers.onClose?.({ ...event, sonioxDurationCutoff: true });
+      this.emitSystemNotice(
+        i18n.t('mainPanel.sonioxSegmentEnded', 'This segment has ended — tap Start Session to continue.')
+      );
+      this.eventHandlers.onClose?.(event);
       return;
     }
     // A 503 error frame (transient "service unavailable") is always
@@ -417,6 +485,17 @@ export class SonioxClient implements IClient {
       this.eventHandlers.onReconnecting?.();
       void this.resumeSttStream(originalMessage);
       return;
+    }
+    // A close with no announced outcome before it is the shape of a network
+    // drop (or a server going away): the user has been told nothing at all,
+    // and this was the last silent failure left. No generation check needed
+    // here — the stale-close guard at the top of this method already
+    // established that this close describes the current session.
+    if (!this.sttOutcomeAnnounced) {
+      this.surfaceRecoverableOutage(
+        String(event.code ?? 'socket_closed'),
+        event.reason || 'The Soniox connection closed unexpectedly'
+      );
     }
     this.emitRealtime('client', 'session.closed', { provider: 'soniox', ...event });
     this.eventHandlers.onClose?.(event);
@@ -469,17 +548,17 @@ export class SonioxClient implements IClient {
       }
     }
 
-    // All attempts exhausted: surface the ORIGINAL 503 the same way a
-    // generic STT error would have, then close the session so MainPanel
-    // tears it down exactly like any other fatal client close. Emit the
-    // realtime milestone BEFORE the error item/onClose — the generic close
-    // branch in handleSttClose always emits one (session.closed); this path
-    // bypasses that branch entirely, so without this the debug timeline
-    // would show the 503 and the resume attempts but nothing marking the
-    // session as actually over.
+    // All attempts exhausted: from here the story is the one a managed 503
+    // already tells — the service was unavailable and never came back — so it
+    // reads the same, then closes the session so MainPanel tears it down
+    // exactly like any other fatal client close. Emit the realtime milestone
+    // BEFORE the notice/onClose — the generic close branch in handleSttClose
+    // always emits one (session.closed); this path bypasses that branch
+    // entirely, so without this the debug timeline would show the 503 and the
+    // resume attempts but nothing marking the session as actually over.
     if (gen !== this.generation) return;
     this.emitRealtime('client', 'session.stt_resume_failed', { provider: 'soniox', message: originalMessage });
-    this.surfaceSttError('503', originalMessage);
+    this.surfaceRecoverableOutage('503', originalMessage);
     this.eventHandlers.onClose?.({ code: 1006, reason: 'stt resume failed' });
   }
 
@@ -727,19 +806,30 @@ export class SonioxClient implements IClient {
   }
 
   /**
-   * The session's budget ran out mid-stream. End the STT stream the same way
+   * The session's budget ran out mid-stream. Tell the user why FIRST — via
+   * emitSystemNotice, not just onError, because MainPanel's teardown replaces
+   * its rendered list with getConversationItems(): an onError-only bubble is
+   * local React state and gets wiped the instant the close that follows
+   * this.stt?.end() below arrives, same as any other transient bubble (see
+   * emitSystemNotice's docstring). Only THEN end the STT stream the same way
    * a normal session ends — the protocol's empty-text-frame end-of-stream
    * signal — so the server flushes and closes it cleanly instead of the
-   * socket being torn down mid-utterance. Surfaced through the same onError
-   * channel handleSttError/handleTtsError already use, with a distinct code
-   * so the UI can show a "balance used up" state rather than a generic error.
+   * socket being torn down mid-utterance. sttOutcomeAnnounced is set right
+   * before that end() call: without it, the close that follows would reach
+   * handleSttClose's bare-close fallthrough with no announced outcome on
+   * record and layer a "connection interrupted" notice on top of the real
+   * reason — leaving a user with an empty balance told to try again, which
+   * the start gate would just refuse.
    */
   private handleBudgetExhausted(): void {
     this.emitRealtime('client', 'session.budget_exhausted', { provider: 'soniox' });
-    this.eventHandlers.onError?.({
-      code: 'budget_exhausted',
-      message: i18n.t('mainPanel.sonioxBudgetExhausted', 'Your session balance is used up. Top up your balance to keep translating.'),
-    });
+    const message = i18n.t('mainPanel.sonioxBudgetExhausted', 'Your session balance is used up. Top up your balance to keep translating.');
+    this.emitSystemNotice(message);
+    this.eventHandlers.onError?.({ code: 'budget_exhausted', message });
+    // Must be set before this.stt?.end() — see sttOutcomeAnnounced's
+    // declaration for why (and handleSttClose's bare-close branch, which
+    // reads it once the close this triggers arrives).
+    this.sttOutcomeAnnounced = true;
     this.stt?.end();
   }
 
@@ -1080,13 +1170,16 @@ export class SonioxClient implements IClient {
   }
 
   private handleSttError(code: string, message: string): void {
+    this.sttOutcomeAnnounced = true;
     // Managed sessions only: Soniox reports the granted-duration cutoff as
     // this exact 403 error frame, immediately followed by a close (handled
-    // in the onClose wiring in connect(), which shows a dedicated "segment
-    // ended" state). Set the flag and stop here — no generic error bubble
-    // for this one, since it isn't really an error. BYOK has no granted
-    // duration and never hits this: a genuine mid-session 403 there (e.g. a
-    // revoked key) still falls through to the normal error path below.
+    // in handleSttClose, wired via wireSttHandlers — used identically by
+    // connect() and resumeSttStream() — which emits a dedicated "segment
+    // ended" system notice conversation item). Set the flag and stop here —
+    // no generic error bubble for this one, since it isn't really an error.
+    // BYOK has no granted duration and never hits this: a genuine mid-session
+    // 403 there (e.g. a revoked key) still falls through to the normal error
+    // path below.
     if (this.managedOptions && code === '403') {
       this.pendingDurationCutoff = true;
       console.info('[SonioxClient] Managed session reached its granted duration (403); closing');
@@ -1106,8 +1199,10 @@ export class SonioxClient implements IClient {
     //    resolves pre-validation) — so resumeSttStream would "succeed", then
     //    immediately take a 403 error frame that pendingDurationCutoff would
     //    misreport as a normal granted-duration cutoff instead of the outage
-    //    it actually is. Managed 503s fall straight through to the generic
-    //    error path below (surfaceSttError) instead.
+    //    it actually is. Managed 503s fall straight through to the
+    //    recoverable-outage path below (surfaceRecoverableOutage) instead —
+    //    the same localized notice a BYOK 503 eventually gets once its
+    //    resume ladder is exhausted, just with no retry attempted first.
     //  - Cycle cap: a flapping server would otherwise retry forever, each
     //    cycle silently dropping mic audio for up to ~4 s (0+1+3 s of
     //    backoff) with zero user-visible signal. Past the cap a 503 is just
@@ -1124,28 +1219,72 @@ export class SonioxClient implements IClient {
       this.emitRealtime('client', 'session.stt_503', { provider: 'soniox', message });
       return;
     }
+    // Ordered last of the three special cases on purpose: the managed-403
+    // cutoff and the BYOK-503 resume ladder above both claim codes that would
+    // otherwise match here, and both must keep winning.
+    if (RECOVERABLE_STT_CODES.has(code)) {
+      this.surfaceRecoverableOutage(code, message);
+      return;
+    }
     this.surfaceSttError(code, message);
   }
 
   /**
-   * Generic STT error surfacing: a system-role error ConversationItem plus
-   * onError. Shared by handleSttError's fallthrough (an error that isn't
-   * the managed-403 cutoff or a resumable 503) and resumeSttStream's final
-   * failure (a 503 that never recovered after 3 attempts).
+   * Push a system notice into the conversation.
+   *
+   * This is the seam every client in this repo uses to reach the UI:
+   * MainPanel renders `type: 'error'` items generically and
+   * `conversationFilter` shows system items unconditionally, so no
+   * provider-specific plumbing is needed. Load-bearing detail: only items the
+   * CLIENT holds survive teardown, because MainPanel's disconnect path calls
+   * setItems(client.getConversationItems()) — an item minted by the UI is
+   * wiped by that call moments after it appears.
    */
-  private surfaceSttError(code: string, message: string): void {
-    console.error(`[SonioxClient] STT error ${code}: ${message}`);
-    const errorItem: ConversationItem = {
+  private emitSystemNotice(text: string): void {
+    const item: ConversationItem = {
       id: this.generateItemId('error'),
       role: 'system',
       type: 'error',
       status: 'completed',
-      formatted: { text: `[Soniox ${code}] ${message}` },
-      content: [{ type: 'text', text: message }],
+      createdAt: Date.now(),
+      formatted: { text },
+      content: [{ type: 'text', text }],
     };
-    this.conversationItems.push(errorItem);
-    this.eventHandlers.onConversationUpdated?.({ item: errorItem });
+    this.conversationItems.push(item);
+    this.eventHandlers.onConversationUpdated?.({ item });
+  }
+
+  /**
+   * Generic STT error surfacing: a system-role error ConversationItem plus
+   * onError. Shared by handleSttError's fallthrough (an error that is neither
+   * the managed-403 cutoff, nor a resumable 503, nor a recoverable outage).
+   */
+  private surfaceSttError(code: string, message: string): void {
+    console.error(`[SonioxClient] STT error ${code}: ${message}`);
+    this.emitSystemNotice(`[Soniox ${code}] ${message}`);
     this.eventHandlers.onError?.({ code, message });
+  }
+
+  /**
+   * A failure the user can only answer by starting again. Say that in their
+   * language; keep the server's own words for the debug timeline, where they
+   * are diagnostic rather than noise.
+   *
+   * onError still fires — it is what produces the `api_error` analytics
+   * event, so suppressing it would silently lose outage telemetry. The extra
+   * bubble MainPanel appends from onError is transient: the teardown that
+   * follows replaces the list with getConversationItems(), leaving exactly
+   * the one item emitted here.
+   */
+  private surfaceRecoverableOutage(code: string, message: string): void {
+    console.warn(`[SonioxClient] STT connection lost (${code}): ${message}`);
+    this.emitRealtime('client', 'session.connection_lost', { provider: 'soniox', code, message });
+    const text = i18n.t(
+      'mainPanel.sonioxConnectionLost',
+      'The connection was interrupted — tap Start Session in a moment to continue.'
+    );
+    this.emitSystemNotice(text);
+    this.eventHandlers.onError?.({ code, message: text });
   }
 
   private handleTtsError(code: string, message: string, hadActiveStream: boolean): void {
@@ -1303,6 +1442,7 @@ export class SonioxClient implements IClient {
     this.costMeter = null;
     this.pendingDurationCutoff = false;
     this.pendingSttResume503 = null;
+    this.sttOutcomeAnnounced = false;
     this.sttResumeCycles = 0;
   }
 
