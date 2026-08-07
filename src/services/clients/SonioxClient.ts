@@ -1284,7 +1284,10 @@ export class SonioxClient implements IClient {
       'The connection was interrupted — tap Start Session in a moment to continue.'
     );
     this.emitSystemNotice(text);
-    this.eventHandlers.onError?.({ code, message: text });
+    // `message` is what the UI shows, so it is localized; `rawMessage` carries
+    // the server's own words for analytics, which would otherwise receive one
+    // of 30 translations of this sentence and be unable to group by cause.
+    this.eventHandlers.onError?.({ code, message: text, rawMessage: message });
   }
 
   private handleTtsError(code: string, message: string, hadActiveStream: boolean): void {

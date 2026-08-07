@@ -582,6 +582,10 @@ describe('SonioxClient managed recoverable outages', () => {
     expect(errors).toHaveLength(1);
     expect(errors[0].code).toBe('503');
     expect(errors[0].message).toMatch(OUTAGE);
+    // ...but analytics must not be fed the localized sentence, or the same
+    // failure arrives as one of 30 translations. The server's own words ride
+    // along separately (buildApiErrorProps prefers them).
+    expect(errors[0].rawMessage).toBe('service unavailable');
   });
 
   it('keeps the raw server text in the debug timeline', async () => {
