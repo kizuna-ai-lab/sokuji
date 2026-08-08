@@ -577,13 +577,19 @@ In `src/services/soniox-api.ts`, add to the object returned by `createSonioxApi`
             const form = new FormData();
             form.set("name", name);
             form.set("file", clip, filename);
-            const res = await fetch("https://api.soniox.com/v1/voices", {
+            const res = await fetch(`${API_BASE}/v1/voices`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${apiKey}` },
                 body: form,
             });
             if (!res.ok) {
-                throw new Error(`Soniox createVoice failed: HTTP ${res.status}`);
+                // Same shape as createTemporaryKey above: this module has no
+                // retry policy of its own, so Soniox's own words about WHY it
+                // refused (bad audio format, oversize clip, malformed
+                // multipart) are the only diagnostic the operator ever gets.
+                let body = "";
+                try { body = await res.text(); } catch {}
+                throw new Error(`Soniox createVoice failed: ${res.status} ${body.slice(0, 300)}`);
             }
             const body = await res.json() as { id: string };
             return { id: body.id };
@@ -592,11 +598,15 @@ In `src/services/soniox-api.ts`, add to the object returned by `createSonioxApi`
         /** Readiness for the one TTS model we run. `null` means the voice is
          *  gone at Soniox — the signal that a slot must be rebuilt. */
         async getVoice(id: string): Promise<{ id: string; status: VoiceStatus } | null> {
-            const res = await fetch(`https://api.soniox.com/v1/voices/${id}`, {
+            const res = await fetch(`${API_BASE}/v1/voices/${id}`, {
                 headers: { Authorization: `Bearer ${apiKey}` },
             });
             if (res.status === 404) return null;
-            if (!res.ok) throw new Error(`Soniox getVoice failed: HTTP ${res.status}`);
+            if (!res.ok) {
+                let body = "";
+                try { body = await res.text(); } catch {}
+                throw new Error(`Soniox getVoice failed: ${res.status} ${body.slice(0, 300)}`);
+            }
             const body = await res.json() as { id: string; models?: Array<{ model: string; status: string }> };
             const entry = body.models?.find((m) => m.model === "tts-rt-v1");
             return { id: body.id, status: (entry?.status ?? "not_computed") as VoiceStatus };
@@ -606,12 +616,14 @@ In `src/services/soniox-api.ts`, add to the object returned by `createSonioxApi`
          *  delete, account deletion) and must never fail because someone else
          *  already removed it. */
         async deleteVoice(id: string): Promise<void> {
-            const res = await fetch(`https://api.soniox.com/v1/voices/${id}`, {
+            const res = await fetch(`${API_BASE}/v1/voices/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${apiKey}` },
             });
             if (!res.ok && res.status !== 404) {
-                throw new Error(`Soniox deleteVoice failed: HTTP ${res.status}`);
+                let body = "";
+                try { body = await res.text(); } catch {}
+                throw new Error(`Soniox deleteVoice failed: ${res.status} ${body.slice(0, 300)}`);
             }
         },
 ```
