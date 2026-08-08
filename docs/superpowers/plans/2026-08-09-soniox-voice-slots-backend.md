@@ -65,14 +65,14 @@ export interface VoiceSlot {
   createdAt: number; lastUsedAt: number; pinnedUntil: number;
 }
 export type ReserveResult =
-  | { ok: true; evictedVoiceId: string | null }
-  | { ok: false; reason: "pool_exhausted" };
+  | { ok: true; placeholderId: string; evictedVoiceId: string | null }
+  | { ok: false; reason: "pool_exhausted"; evictedVoiceId: string | null };
 
 export class VoiceSlotService {
   constructor(env: CloudflareBindings)
   get(accountId: string): Promise<VoiceSlot | null>
   reserve(accountId: string, now: number): Promise<ReserveResult>
-  finalize(accountId: string, sonioxVoiceId: string): Promise<void>
+  finalize(accountId: string, placeholderId: string, sonioxVoiceId: string): Promise<boolean>
   touch(accountId: string, now: number, pinnedUntil?: number): Promise<void>
   unpin(accountId: string, now: number): Promise<void>
   release(accountId: string): Promise<string | null>
@@ -310,8 +310,12 @@ export interface VoiceSlot {
 }
 
 export type ReserveResult =
-    | { ok: true; evictedVoiceId: string | null }
-    | { ok: false; reason: "pool_exhausted" };
+    | { ok: true; placeholderId: string; evictedVoiceId: string | null }
+    /** Even a refusal can carry a voice the caller must delete: the eviction
+     *  succeeded and then someone took the freed space. Dropping that id
+     *  strands the voice at Soniox with no reference anywhere in our table —
+     *  a permanent loss of one of the twenty slots. */
+    | { ok: false; reason: "pool_exhausted"; evictedVoiceId: string | null };
 
 export class VoiceSlotService {
     constructor(private env: CloudflareBindings) {}
@@ -358,7 +362,7 @@ export class VoiceSlotService {
                  WHERE account_id = ?`
             ).bind(placeholderId, now, now, pinnedUntil, accountId).run();
             const previous = mine.sonioxVoiceId.startsWith("pending:") ? null : mine.sonioxVoiceId;
-            return { ok: true, evictedVoiceId: previous };
+            return { ok: true, placeholderId, evictedVoiceId: previous };
         }
 
         // One statement: the count and the insert cannot interleave, so two
@@ -371,7 +375,7 @@ export class VoiceSlotService {
              WHERE (SELECT COUNT(*) FROM soniox_voice_slots) < ?`
         ).bind(accountId, placeholderId, now, now, pinnedUntil, MAX_VOICE_SLOTS).run();
         if ((inserted.meta?.changes ?? 0) > 0) {
-            return { ok: true, evictedVoiceId: null };
+            return { ok: true, placeholderId, evictedVoiceId: null };
         }
 
         // Pool is full. Evict the least-recently-used UNPINNED slot, atomically:
@@ -386,7 +390,7 @@ export class VoiceSlotService {
              )
              RETURNING soniox_voice_id`
         ).bind(now).first();
-        if (!victim) return { ok: false, reason: "pool_exhausted" };
+        if (!victim) return { ok: false, reason: "pool_exhausted", evictedVoiceId: null };
 
         const retry = await this.env.DATABASE.prepare(
             `INSERT INTO soniox_voice_slots
@@ -395,19 +399,36 @@ export class VoiceSlotService {
              WHERE (SELECT COUNT(*) FROM soniox_voice_slots) < ?`
         ).bind(accountId, placeholderId, now, now, pinnedUntil, MAX_VOICE_SLOTS).run();
         if ((retry.meta?.changes ?? 0) === 0) {
-            // Someone took the space we just freed. The victim is already gone
-            // at Soniox's side as far as the caller is concerned, so report it
-            // for deletion rather than leaking it.
-            return { ok: false, reason: "pool_exhausted" };
+            // Someone took the space we just freed between our DELETE and our
+            // INSERT. The victim's row is already gone, so this return value is
+            // the ONLY surviving reference to its voice — hand it back even on
+            // the refusal path or it lives at Soniox forever, holding one of
+            // twenty slots that nothing can ever reclaim.
+            return {
+                ok: false,
+                reason: "pool_exhausted",
+                evictedVoiceId: String(victim.soniox_voice_id),
+            };
         }
-        return { ok: true, evictedVoiceId: String(victim.soniox_voice_id) };
+        return { ok: true, placeholderId, evictedVoiceId: String(victim.soniox_voice_id) };
     }
 
-    /** Swap the `pending:` placeholder for the id Soniox actually issued. */
-    async finalize(accountId: string, sonioxVoiceId: string): Promise<void> {
-        await this.env.DATABASE.prepare(
-            `UPDATE soniox_voice_slots SET soniox_voice_id = ? WHERE account_id = ?`
-        ).bind(sonioxVoiceId, accountId).run();
+    /**
+     * Swap the `pending:` placeholder for the id Soniox actually issued.
+     *
+     * Fenced on the placeholder, and reports whether it won. One account gets
+     * one slot, so a second reserve deliberately overwrites the first — which
+     * means the first caller may already have created a voice at Soniox by
+     * the time it gets here. Without the fence it would overwrite the winner's
+     * row and strand the winner's voice; with it, `false` tells the loser to
+     * delete the voice it just created, leaving exactly one voice per account.
+     */
+    async finalize(accountId: string, placeholderId: string, sonioxVoiceId: string): Promise<boolean> {
+        const res = await this.env.DATABASE.prepare(
+            `UPDATE soniox_voice_slots SET soniox_voice_id = ?
+             WHERE account_id = ? AND soniox_voice_id = ?`
+        ).bind(sonioxVoiceId, accountId, placeholderId).run();
+        return (res.meta?.changes ?? 0) > 0;
     }
 
     /** Mark the slot used; optionally extend the pin. Omitting `pinnedUntil`
@@ -737,6 +758,15 @@ async function ensureHandler(c: Context<SonioxVoicesEnv>) {
 
     const reserved = await slots.reserve(accountId, now);
     if (!reserved.ok) {
+        if (reserved.evictedVoiceId) {
+            // reserve() evicted a row and then lost the freed space. Its
+            // return value is the only surviving reference to that voice.
+            try {
+                await soniox.deleteVoice(reserved.evictedVoiceId);
+            } catch (error) {
+                console.error("ensureHandler: stranded voice delete failed:", error);
+            }
+        }
         // Every pinned slot might be held by a session that has already died
         // without saying so. A sweep reads Soniox's usage logs, which only
         // appear after a session ends, and frees those pins — so contend
@@ -764,7 +794,19 @@ async function ensureHandler(c: Context<SonioxVoicesEnv>) {
             clip,
             "reference.wav"
         );
-        await slots.finalize(accountId, created.id);
+        const won = await slots.finalize(accountId, reserved.placeholderId, created.id);
+        if (!won) {
+            // A second reserve for this same account overwrote our slot while
+            // Soniox was building. One account owns one voice, so the newer
+            // request wins and this one cleans up after itself — otherwise the
+            // voice we just created has no row pointing at it and never dies.
+            try {
+                await soniox.deleteVoice(created.id);
+            } catch (error) {
+                console.error("ensureHandler: superseded voice delete failed:", error);
+            }
+            return c.json({ error: "superseded" }, 409);
+        }
         await slots.touch(accountId, now, pinnedUntil);
         return c.json({ voiceId: created.id, status: "processing" });
     } catch (error) {
