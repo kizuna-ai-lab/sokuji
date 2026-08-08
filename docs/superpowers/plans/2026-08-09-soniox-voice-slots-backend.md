@@ -709,7 +709,32 @@ it("DELETE /mine refuses while the slot is pinned", async () => {
 });
 
 it("DELETE /mine removes the row and the Soniox voice", async () => {
-  // deleteVoice called with the stored id
+  // deleteVoice called with the stored id, and release runs BEFORE it
+});
+
+// The three branches this whole task exists for. Each one, if broken, silently
+// leaks a voice at Soniox: the row leaves our table and nothing can reclaim it,
+// costing one of twenty slots permanently. Assert the ARGUMENTS, not just that
+// a delete happened — passing the wrong id here deletes the wrong voice.
+it("ensure deletes the voice it just built when finalize reports it was superseded", async () => {
+  // finalize -> false; deleteVoice called with created.id (NOT placeholderId,
+  // NOT the account's existing voice); response 409 superseded
+});
+
+it("ensure releases the reservation when createVoice throws", async () => {
+  // release(accountId) called; response 502. Without it, a row holding a
+  // `pending:` id that never resolves occupies a slot until something evicts it.
+});
+
+it("ensure deletes a voice stranded by a lost eviction race", async () => {
+  // reserve -> { ok: false, reason: 'pool_exhausted', evictedVoiceId: 'voice-stranded' }
+  // deleteVoice('voice-stranded') called; response still 409 pool_exhausted
+});
+
+it("GET /mine leaves an in-flight reservation alone", async () => {
+  // slot's sonioxVoiceId starts with `pending:` -> neither getVoice nor release
+  // is called, so a concurrent GET cannot release an account's own in-flight
+  // reservation
 });
 ```
 
