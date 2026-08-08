@@ -993,4 +993,19 @@ git commit -m "feat(soniox): release a voice slot when its account is deleted"
 
 The backend is then complete and independently testable, but **not yet reachable by any client** — `sokuji-react` still shows managed users built-in voices only. That is the second plan, written once this contract is real.
 
-Deployment note for whoever merges: `wrangler deploy` does not apply D1 migrations, and `0009` is additive but required before the new routes work. `db:migrate:prod` must run against production before or with the deploy.
+Deployment: nothing manual. `.github/workflows/deploy.yml` applies D1 migrations
+as its own step **before** the deploy step, and queues concurrent pushes rather
+than cancelling them so two runs cannot race the schema.
+
+`wrangler deploy` itself never executes SQL — it uploads the Worker and its
+bindings, and `drizzle-kit generate` only writes the file. That separation is
+deliberate: code deploys are frequent and reversible, schema changes are not,
+and redeploying an older script would not undo a migration.
+
+`0009` is additive and referenced by nothing that exists today, so the ordering
+is forgiving in a way `0005` was not: an old Worker against the new table is
+fine because it does not know the table exists, and a new Worker against a
+missing table breaks only the voice endpoints, leaving sessions, billing and
+the wallet untouched. `0005` was a column *rename*, which is why the runbook
+treats migrate-before-deploy as load-bearing — but that hazard does not apply
+here.
