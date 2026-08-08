@@ -21,6 +21,11 @@
 - Eviction must be atomic — a single SQL statement whose effect is checked, never SELECT-then-DELETE. Two concurrent `ensure` calls must not pick the same victim, and must not both slip into the last free slot.
 - Real-SQLite tests must **throw at load** when `node:sqlite` is unavailable, never `skipIf` — copy the rationale block from `src/services/session-lease.sqlite.test.ts`. Repo `.nvmrc` pins Node 24.
 - Conventional commit messages. Do not push and do not open a PR — the user approves those separately.
+- **Run every command on Node 24.** The repo's `.nvmrc` pins 24 and the two existing `*.sqlite.test.ts` files THROW AT LOAD on Node < 22 by design. A shell defaulting to Node 20 reports 2 failed suites and silently skips 50 more tests, which looks exactly like a regression you caused. Prefix every session:
+  ```bash
+  export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 24
+  ```
+  Baseline on Node 24 before any change: **49 files / 489 tests passing, 0 skipped**.
 - Run `npm test` in `sokuji-backend` before each commit.
 
 ## File Structure
