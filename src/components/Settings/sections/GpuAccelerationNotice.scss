@@ -1,0 +1,57 @@
+@use '../shared/variables' as vars;
+
+.gpu-acceleration-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid vars.$color-warning-border;
+  border-radius: 6px;
+  background: vars.$color-warning-bg;
+
+  &__icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: vars.$color-warning;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: vars.$font-caption;
+    font-weight: 600;
+    color: vars.$color-warning;
+    line-height: 1.4;
+  }
+
+  &__text {
+    margin: 4px 0 0;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  &__dismiss {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: vars.$text-secondary;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(vars.$color-warning, 0.15);
+      color: vars.$color-warning;
+    }
+  }
+}

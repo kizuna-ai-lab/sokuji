@@ -91,7 +91,11 @@
     "deb": {
       "artifactName": "${name}_${version}_${arch}.${ext}",
       "recommends": [
-        "pulseaudio-utils"
+        "pulseaudio-utils",
+        "xwayland"
+      ],
+      "executableArgs": [
+        "--ozone-platform=x11"
       ]
     },
     "publish": {
