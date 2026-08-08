@@ -1,105 +1,92 @@
 import { describe, it, expect } from 'vitest';
-import { resolveLinuxGpuFlags, VULKAN_FEATURES, NO_VULKAN_FEATURES } from './linux-gpu-flags.js';
+import { resolveLinuxGpuFeatures, VULKAN_FEATURES, NO_VULKAN_FEATURES } from './linux-gpu-flags.js';
 
-const wayland = { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0' };
-const x11 = { XDG_SESSION_TYPE: 'x11', DISPLAY: ':0' };
+const waylandEnv = { XDG_SESSION_TYPE: 'wayland', WAYLAND_DISPLAY: 'wayland-0' };
+const x11Env = { XDG_SESSION_TYPE: 'x11', DISPLAY: ':0' };
 
-describe('resolveLinuxGpuFlags (issue #389)', () => {
+describe('resolveLinuxGpuFeatures (issue #389)', () => {
   it('keeps Vulkan off Linux — Wayland is not involved on win32/darwin', () => {
     for (const platform of ['win32', 'darwin']) {
-      const r = resolveLinuxGpuFlags({ platform, env: {}, argv: [] });
-      expect(r.features).toBe(VULKAN_FEATURES);
-      expect(r.ozonePlatform).toBeNull();
+      expect(resolveLinuxGpuFeatures({ platform, effectivePlatform: '', env: {} })).toBe(VULKAN_FEATURES);
     }
   });
 
-  it('keeps Vulkan on an X11 session and does not pin the ozone platform', () => {
-    const r = resolveLinuxGpuFlags({ platform: 'linux', env: x11, argv: [] });
-    expect(r.features).toBe(VULKAN_FEATURES);
-    expect(r.ozonePlatform).toBeNull();
+  it('keeps Vulkan on X11', () => {
+    expect(resolveLinuxGpuFeatures({ platform: 'linux', effectivePlatform: 'x11', env: x11Env }))
+      .toBe(VULKAN_FEATURES);
   });
 
-  it('runs on XWayland when a Wayland session has an X server, keeping the hardware WebGPU adapter', () => {
-    const r = resolveLinuxGpuFlags({ platform: 'linux', env: { ...wayland, DISPLAY: ':0' }, argv: [] });
-    expect(r.ozonePlatform).toBe('x11');
-    expect(r.features).toBe(VULKAN_FEATURES);
+  it('drops Vulkan on Wayland — it would leave the window permanently unmapped', () => {
+    expect(resolveLinuxGpuFeatures({ platform: 'linux', effectivePlatform: 'wayland', env: waylandEnv }))
+      .toBe(NO_VULKAN_FEATURES);
   });
 
-  it('drops Vulkan on a Wayland session with no XWayland — an invisible window is worse than a slow one', () => {
-    const r = resolveLinuxGpuFlags({ platform: 'linux', env: wayland, argv: [] });
-    expect(r.features).toBe(NO_VULKAN_FEATURES);
-    expect(r.ozonePlatform).toBeNull();
-  });
-
-  it('treats a bare WAYLAND_DISPLAY (no XDG_SESSION_TYPE) as a Wayland session', () => {
-    const r = resolveLinuxGpuFlags({ platform: 'linux', env: { WAYLAND_DISPLAY: 'wayland-0' }, argv: [] });
-    expect(r.features).toBe(NO_VULKAN_FEATURES);
-  });
-
-  it('never overrides an explicit --ozone-platform, and drops Vulkan when the user forces wayland', () => {
-    const r = resolveLinuxGpuFlags({
+  it('drops Vulkan on Wayland even when XWayland is available', () => {
+    // DISPLAY being set does NOT mean we render through X: Electron already
+    // picked wayland before this code ran, and it is too late to change that.
+    expect(resolveLinuxGpuFeatures({
       platform: 'linux',
-      env: { ...wayland, DISPLAY: ':0' },      // XWayland available, but the user said wayland
-      argv: ['/opt/Sokuji/sokuji', '--ozone-platform=wayland'],
-    });
-    expect(r.ozonePlatform).toBeNull();
-    expect(r.features).toBe(NO_VULKAN_FEATURES);
+      effectivePlatform: 'wayland',
+      env: { ...waylandEnv, DISPLAY: ':0' },
+    })).toBe(NO_VULKAN_FEATURES);
   });
 
-  it('keeps Vulkan when the user forces x11 themselves (the issue #389 workaround)', () => {
-    const r = resolveLinuxGpuFlags({
-      platform: 'linux',
-      env: wayland,
-      argv: ['/opt/Sokuji/sokuji', '--ozone-platform=x11'],
+  // Electron resolves --ozone-platform / --ozone-platform-hint / duplicate
+  // switches before the main script runs, so the resolved value is all we read.
+  describe('trusts the platform Electron resolved', () => {
+    it('keeps Vulkan when the user forced x11 on a Wayland box (the #389 workaround)', () => {
+      expect(resolveLinuxGpuFeatures({
+        platform: 'linux',
+        effectivePlatform: 'x11',       // from --ozone-platform=x11
+        env: waylandEnv,
+      })).toBe(VULKAN_FEATURES);
     });
-    expect(r.ozonePlatform).toBeNull();
-    expect(r.features).toBe(VULKAN_FEATURES);
+
+    it('drops Vulkan when a duplicate switch resolves to wayland (last occurrence wins)', () => {
+      // --ozone-platform=x11 --ozone-platform=wayland -> Chromium keeps "wayland".
+      // Disagreeing with that and leaving Vulkan on would recreate the bug.
+      expect(resolveLinuxGpuFeatures({
+        platform: 'linux', effectivePlatform: 'wayland', env: waylandEnv,
+      })).toBe(NO_VULKAN_FEATURES);
+    });
+
+    it('keeps Vulkan when a duplicate switch resolves to x11', () => {
+      // --ozone-platform=wayland --ozone-platform=x11 -> Chromium keeps "x11".
+      expect(resolveLinuxGpuFeatures({
+        platform: 'linux', effectivePlatform: 'x11', env: { ...waylandEnv, DISPLAY: ':0' },
+      })).toBe(VULKAN_FEATURES);
+    });
   });
 
-  it('accepts the space-separated switch form', () => {
-    const r = resolveLinuxGpuFlags({
-      platform: 'linux',
-      env: wayland,
-      argv: ['/opt/Sokuji/sokuji', '--ozone-platform', 'wayland'],
+  describe('env fallback when the resolved platform is unavailable', () => {
+    it('treats a bare WAYLAND_DISPLAY as a Wayland session', () => {
+      expect(resolveLinuxGpuFeatures({
+        platform: 'linux', effectivePlatform: '', env: { WAYLAND_DISPLAY: 'wayland-0' },
+      })).toBe(NO_VULKAN_FEATURES);
     });
-    expect(r.ozonePlatform).toBeNull();
-    expect(r.features).toBe(NO_VULKAN_FEATURES);
-  });
 
-  it('resolves --ozone-platform-hint=auto against the session type', () => {
-    const onWayland = resolveLinuxGpuFlags({
-      platform: 'linux', env: wayland, argv: ['--ozone-platform-hint=auto'],
+    it('treats XDG_SESSION_TYPE=wayland as a Wayland session', () => {
+      expect(resolveLinuxGpuFeatures({
+        platform: 'linux', effectivePlatform: '', env: { XDG_SESSION_TYPE: 'wayland', DISPLAY: ':0' },
+      })).toBe(NO_VULKAN_FEATURES);
     });
-    expect(onWayland.features).toBe(NO_VULKAN_FEATURES);
 
-    const onX11 = resolveLinuxGpuFlags({
-      platform: 'linux', env: x11, argv: ['--ozone-platform-hint=auto'],
+    it('keeps Vulkan when nothing suggests Wayland', () => {
+      expect(resolveLinuxGpuFeatures({ platform: 'linux', effectivePlatform: '', env: x11Env }))
+        .toBe(VULKAN_FEATURES);
     });
-    expect(onX11.features).toBe(VULKAN_FEATURES);
-  });
-
-  it('honours --ozone-platform-hint=wayland even on an X11 session', () => {
-    const r = resolveLinuxGpuFlags({
-      platform: 'linux', env: x11, argv: ['--ozone-platform-hint=wayland'],
-    });
-    expect(r.features).toBe(NO_VULKAN_FEATURES);
-    expect(r.ozonePlatform).toBeNull();
-  });
-
-  it('lets --ozone-platform win over --ozone-platform-hint', () => {
-    const r = resolveLinuxGpuFlags({
-      platform: 'linux',
-      env: wayland,
-      argv: ['--ozone-platform-hint=auto', '--ozone-platform=x11'],
-    });
-    expect(r.features).toBe(VULKAN_FEATURES);
   });
 
   it('always keeps SharedArrayBuffer — the audio ring buffer (#174) needs it', () => {
-    const envs = [x11, wayland, { ...wayland, DISPLAY: ':0' }, {}];
-    for (const env of envs) {
-      const r = resolveLinuxGpuFlags({ platform: 'linux', env, argv: [] });
-      expect(r.features.split(',')).toContain('SharedArrayBuffer');
+    const cases = [
+      { effectivePlatform: 'x11', env: x11Env },
+      { effectivePlatform: 'wayland', env: waylandEnv },
+      { effectivePlatform: 'wayland', env: { ...waylandEnv, DISPLAY: ':0' } },
+      { effectivePlatform: '', env: {} },
+    ];
+    for (const c of cases) {
+      expect(resolveLinuxGpuFeatures({ platform: 'linux', ...c }).split(','))
+        .toContain('SharedArrayBuffer');
     }
   });
 });

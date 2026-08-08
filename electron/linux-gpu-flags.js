@@ -14,15 +14,33 @@
 //
 // Vulkan is still load-bearing: it is what gates Dawn's hardware backend on
 // Linux. Without it WebGPU silently falls back to the SwiftShader software
-// adapter, which would slow local inference down. So keep Vulkan everywhere it
-// actually works, and give it up only where the alternative is no window:
+// adapter, which slows local inference down. So it is dropped only on Wayland,
+// where the alternative is having no window at all:
 //
-//   X11 session             -> keep Vulkan, leave the platform alone
-//   Wayland session + X     -> run on XWayland, keep Vulkan (hardware WebGPU)
-//   Wayland session, no X   -> drop Vulkan; a slow window beats an absent one
+//   X11 / XWayland  -> keep Vulkan (unchanged behaviour)
+//   Wayland         -> drop Vulkan; a slow window beats an absent one
 //
-// An explicit --ozone-platform / --ozone-platform-hint from the user always
-// wins; we only choose the feature set to match whatever they picked.
+// Moving the app to XWayland ourselves would keep the hardware adapter, but it
+// cannot be done from here: Electron selects and initialises the Ozone platform
+// *before* the main script runs, so a late
+// app.commandLine.appendSwitch('ozone-platform', 'x11') is silently ignored --
+// measured on 40.8.5, the app stays on Wayland and its toplevels are still
+// never mapped. Users who want the hardware adapter on a Wayland session have
+// to pass --ozone-platform=x11 on the real command line, which this resolver
+// then sees and honours. (--enable-features is read later, by GPU/compositor
+// init, and *is* honoured from here -- which is precisely why forcing Vulkan
+// from this file could break the window in the first place.)
+//
+// Which platform we are actually on is read back from Electron rather than
+// re-derived from argv: by the time the main script runs, Electron has already
+// resolved --ozone-platform, --ozone-platform-hint and its own session
+// auto-detection into a concrete value on the command line (measured on 40.8.5:
+// a Wayland session reports "wayland" whether or not XWayland is up, an X11
+// session reports "x11"). Reading that value inherits Chromium's parsing rules
+// for free -- notably that a repeated switch keeps its *last* occurrence, and
+// that only the --switch=value form carries a value at all (a bare
+// --ozone-platform aborts startup with "Invalid ozone platform" long before
+// any of this runs).
 
 // SharedArrayBuffer backs the audio ring buffer (#174) and must survive in
 // every branch below.
@@ -30,83 +48,52 @@ const VULKAN_FEATURES = 'Vulkan,SharedArrayBuffer';
 const NO_VULKAN_FEATURES = 'SharedArrayBuffer';
 
 /**
- * Read a Chromium-style switch value from argv, accepting both `--sw=value`
- * and `--sw value`.
- * @returns {string | null}
+ * Is this run going to render through Ozone/Wayland?
+ *
+ * @param {string} platform  process.platform
+ * @param {string} effectivePlatform  the ozone platform Electron resolved for
+ *   this run. Empty/unknown falls back to sniffing the session env, a safety
+ *   net for a future Electron that stops publishing it.
+ * @param {Record<string, string | undefined>} env  process.env
  */
-function readSwitchValue(argv, name) {
-  const prefix = `--${name}=`;
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg.startsWith(prefix)) return arg.slice(prefix.length);
-    if (arg === `--${name}` && i + 1 < argv.length) return argv[i + 1];
-  }
-  return null;
+function isOnWayland(platform, effectivePlatform, env) {
+  if (platform !== 'linux') return false;
+  if (effectivePlatform) return effectivePlatform === 'wayland';
+  return env.XDG_SESSION_TYPE === 'wayland' || Boolean(env.WAYLAND_DISPLAY);
 }
 
 /**
- * Decide which GPU-related Chromium flags are safe for this session.
+ * Decide which Chromium features are safe to enable for this session.
  *
  * @param {object} o
  * @param {string} o.platform  process.platform
+ * @param {string} [o.effectivePlatform]  ozone platform Electron resolved
  * @param {Record<string, string | undefined>} [o.env]  process.env
- * @param {string[]} [o.argv]  process.argv
- * @returns {{ ozonePlatform: 'x11' | null, features: string }}
- *   ozonePlatform is the platform to pin, or null to leave Electron's own
- *   auto-detection untouched.
+ * @returns {string} value for --enable-features
  */
-function resolveLinuxGpuFlags({ platform, env = {}, argv = [] }) {
-  if (platform !== 'linux') return { ozonePlatform: null, features: VULKAN_FEATURES };
-
-  const sessionIsWayland = env.XDG_SESSION_TYPE === 'wayland' || Boolean(env.WAYLAND_DISPLAY);
-
-  // The user's own choice is authoritative — never override it, just match the
-  // feature set to the platform they asked for.
-  const explicit = readSwitchValue(argv, 'ozone-platform');
-  if (explicit) {
-    return {
-      ozonePlatform: null,
-      features: explicit === 'wayland' ? NO_VULKAN_FEATURES : VULKAN_FEATURES,
-    };
-  }
-  const hint = readSwitchValue(argv, 'ozone-platform-hint');
-  if (hint) {
-    const resolvesToWayland = hint === 'auto' ? sessionIsWayland : hint === 'wayland';
-    return {
-      ozonePlatform: null,
-      features: resolvesToWayland ? NO_VULKAN_FEATURES : VULKAN_FEATURES,
-    };
-  }
-
-  if (!sessionIsWayland) return { ozonePlatform: null, features: VULKAN_FEATURES };
-
-  // Wayland session. DISPLAY means XWayland is up, so we can have both a
-  // visible window and a hardware WebGPU adapter.
-  if (env.DISPLAY) return { ozonePlatform: 'x11', features: VULKAN_FEATURES };
-
-  // Native Wayland with no X server to fall back to: Vulkan would cost us the
-  // window entirely.
-  return { ozonePlatform: null, features: NO_VULKAN_FEATURES };
+function resolveLinuxGpuFeatures({ platform, effectivePlatform = '', env = {} }) {
+  return isOnWayland(platform, effectivePlatform, env) ? NO_VULKAN_FEATURES : VULKAN_FEATURES;
 }
 
 /**
- * Apply the resolved flags to Electron's command line. Must run before app is
- * ready.
- * @returns {{ ozonePlatform: 'x11' | null, features: string }} what was applied
+ * Apply the resolved features to Electron's command line. Must run before app
+ * is ready.
+ * @returns {{ features: string, effectivePlatform: string }} what was applied
  */
-function applyLinuxGpuFlags(app, { platform = process.platform, env = process.env, argv = process.argv } = {}) {
-  const resolved = resolveLinuxGpuFlags({ platform, env, argv });
-  if (resolved.ozonePlatform) {
-    app.commandLine.appendSwitch('ozone-platform', resolved.ozonePlatform);
-  }
+function applyLinuxGpuFlags(app, {
+  platform = process.platform,
+  env = process.env,
+  effectivePlatform = app.commandLine.getSwitchValue('ozone-platform'),
+} = {}) {
+  const features = resolveLinuxGpuFeatures({ platform, effectivePlatform, env });
   // A single comma-separated list: repeated --enable-features switches override
   // each other rather than merging.
-  app.commandLine.appendSwitch('enable-features', resolved.features);
-  return resolved;
+  app.commandLine.appendSwitch('enable-features', features);
+  return { features, effectivePlatform };
 }
 
 module.exports = {
-  resolveLinuxGpuFlags,
+  resolveLinuxGpuFeatures,
   applyLinuxGpuFlags,
   VULKAN_FEATURES,
   NO_VULKAN_FEATURES,

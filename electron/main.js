@@ -74,8 +74,8 @@ app.commandLine.appendSwitch('enable-unsafe-webgpu');
 // Enable required Chromium features (Vulkan for a hardware WebGPU adapter,
 // SharedArrayBuffer for the audio ring buffer) as a single comma-separated
 // list -- multiple appendSwitch calls for the same flag would override each
-// other. Vulkan is dropped, or the app moved to XWayland, on Wayland sessions
-// where it would otherwise leave the window permanently unmapped (issue #389).
+// other. Vulkan is dropped on Wayland, where it would otherwise leave the
+// window permanently unmapped and the app invisible (issue #389).
 const appliedGpuFlags = applyLinuxGpuFlags(app);
 console.log('[Sokuji] [Main] GPU flags:', JSON.stringify(appliedGpuFlags));
 
