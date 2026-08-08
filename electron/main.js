@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPrefere
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 const { setupSubtitleHandlers } = require('./subtitle-window.js');
+const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 
 // Handle Squirrel events for Windows
 if (process.platform === 'win32') {
@@ -70,9 +71,13 @@ app.commandLine.appendSwitch('jack-name', 'sokuji');
 
 // Enable WebGPU for ONNX Runtime acceleration
 app.commandLine.appendSwitch('enable-unsafe-webgpu');
-// Enable required Chromium features as a single comma-separated list
-// (multiple appendSwitch calls for the same flag would override each other)
-app.commandLine.appendSwitch('enable-features', 'Vulkan,SharedArrayBuffer');
+// Enable required Chromium features (Vulkan for a hardware WebGPU adapter,
+// SharedArrayBuffer for the audio ring buffer) as a single comma-separated
+// list -- multiple appendSwitch calls for the same flag would override each
+// other. Vulkan is dropped on Wayland, where it would otherwise leave the
+// window permanently unmapped and the app invisible (issue #389).
+const appliedGpuFlags = applyLinuxGpuFlags(app);
+console.log('[Sokuji] [Main] GPU flags:', JSON.stringify(appliedGpuFlags));
 
 // Keep the renderer (and its local-inference Web Worker) running at full speed when
 // the Sokuji window is minimized/hidden/occluded — the common case while the user is

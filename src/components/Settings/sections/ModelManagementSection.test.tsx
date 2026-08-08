@@ -46,6 +46,7 @@ vi.mock('../../../stores/modelStore', () => ({
   useModelInitialized: () => true,
   useModelInitError: () => null,
   useWebGPUAvailable: () => true,
+  useWebGPUSoftwareOnly: () => false,
   useDeviceFeatures: () => [],
   useModelVariants: () => ({}),
   useModelStore: Object.assign(

@@ -143,6 +143,7 @@ export default defineConfig(({ command, mode }) => {
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
             'pipewire-app-audio': 'electron/pipewire-app-audio.js',
             'linux-window-titles': 'electron/linux-window-titles.js',
+            'linux-gpu-flags': 'electron/linux-gpu-flags.js',
             'sandbox-recovery': 'electron/sandbox-recovery.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'audio-host': 'electron/audio-host.js',
