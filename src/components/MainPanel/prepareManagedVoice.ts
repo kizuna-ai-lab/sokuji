@@ -160,3 +160,58 @@ export function voicePrepNotice(reason: VoicePrepFailure): { key: string; defaul
       };
   }
 }
+
+export interface VoicePrepOutcome {
+  /** The voice id THIS SESSION should actually use: the freshly prepared id
+   *  on success, or the built-in fallback on failure. Never null — the
+   *  caller only reaches this function once it has already decided a prep
+   *  attempt was worth making. */
+  sessionVoice: string;
+  /** Settings-store patch to write through, or null when nothing should be
+   *  persisted. */
+  settingsPatch: { voice: string } | null;
+  /** i18n notice to show after the session is up, or null on success. */
+  notice: { key: string; defaultValue: string } | null;
+}
+
+/**
+ * Turn a `prepareManagedVoice()` result into the three decisions
+ * MainPanel.tsx's `connectConversation` actually needs to make: what voice
+ * this session uses, whether to persist a changed id, and what (if
+ * anything) to tell the user afterwards.
+ *
+ * Pure and side-effect free on purpose — unlike `prepareManagedVoice`
+ * itself, which performs the network calls, this is just the branching a
+ * caller does on its result. Extracted out of `connectConversation` and
+ * exported specifically so this decision — most importantly the ASYMMETRIC
+ * write (persist only a genuinely CHANGED successful id; a fallback is
+ * never persisted, so a busy pool tonight cannot silently demote the user's
+ * stored preference) — can be imported and tested directly (see
+ * `voicePrepWiring.test.ts`) rather than hand-transcribed into a test
+ * double. The caller still owns every actual side effect: the
+ * `updateKizunaSoniox` store write, the `sessionConfig` mutation, and the
+ * `t()` translation of `notice` — none of which belong in a routine this
+ * file's other exports keep React- and i18n-free.
+ */
+export function resolveVoicePrepOutcome(
+  result: VoicePrepResult,
+  storedVoiceId: string,
+  builtinFallbackVoice: string
+): VoicePrepOutcome {
+  if (result.ok) {
+    return {
+      sessionVoice: result.voiceId,
+      // Write through ONLY when the id actually changed: a rebuild returns
+      // a new Soniox UUID and the stored preference must follow it; an
+      // unchanged (warm-hit) id must not cause a redundant store write.
+      settingsPatch: result.voiceId !== storedVoiceId ? { voice: result.voiceId } : null,
+      notice: null,
+    };
+  }
+  return {
+    // Applies to THIS SESSION only — never persisted.
+    sessionVoice: builtinFallbackVoice,
+    settingsPatch: null,
+    notice: voicePrepNotice(result.reason),
+  };
+}

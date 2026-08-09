@@ -58,7 +58,7 @@ import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../types/Provider';
 import { computeStartGate, reasonToI18n } from './sessionStartGate';
-import { prepareManagedVoice, voicePrepNotice } from './prepareManagedVoice';
+import { prepareManagedVoice, resolveVoicePrepOutcome } from './prepareManagedVoice';
 import { ManagedVoicesClient } from '../../services/clients/ManagedVoicesClient';
 import { loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
 import { useSubtitleSessionBridge } from './useSubtitleSessionBridge';
@@ -1775,7 +1775,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       //
       // Only the speaker channel speaks: createParticipantSessionConfig is
       // text-only, so a participant-only session has no voice to prepare.
-      let preparedVoiceId: string | null = null;
+      // Voice this session should force onto sessionConfig — the freshly
+      // prepared id on success, or the built-in fallback on failure. null
+      // means: never attempted (wrong provider, no clip, built-in voice
+      // already selected), so leave whatever getSessionConfig() already put
+      // there alone.
+      let sessionVoiceOverride: string | null = null;
       let voicePrepMessage: string | null = null;
       // Provider identity checked FIRST, before touching any settings slice:
       // `voice` is a field name that means something different per provider
@@ -1799,18 +1804,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               client: new ManagedVoicesClient(getAuthToken),
               loadClip: loadVoiceClip,
             });
-            if (result.ok) {
-              preparedVoiceId = result.voiceId;
+            // The decision (what this session uses, whether to persist a
+            // changed id, what to tell the user) lives in
+            // resolveVoicePrepOutcome — a pure function so it can be tested
+            // without a React harness (see voicePrepWiring.test.ts). Only
+            // the actual side effects (the store write, the sessionConfig
+            // mutation below, the t() translation) stay here.
+            const outcome = resolveVoicePrepOutcome(result, sonioxVoiceSetting, SONIOX_DEFAULT_VOICE);
+            sessionVoiceOverride = outcome.sessionVoice;
+            if (outcome.settingsPatch) {
               // A rebuilt voice comes back with a DIFFERENT Soniox UUID, so
               // every ensure response is authoritative. Writing it through
               // here is what keeps the settings dropdown pointing at a voice
               // that actually exists.
-              if (result.voiceId !== sonioxVoiceSetting) {
-                useSettingsStore.getState().updateKizunaSoniox({ voice: result.voiceId });
-              }
-            } else {
-              const notice = voicePrepNotice(result.reason);
-              voicePrepMessage = t(notice.key, notice.defaultValue);
+              useSettingsStore.getState().updateKizunaSoniox(outcome.settingsPatch);
+            }
+            if (outcome.notice) {
+              voicePrepMessage = t(outcome.notice.key, outcome.notice.defaultValue);
             }
           } finally {
             setVoicePreparing(false);
@@ -1905,14 +1915,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Get session configuration
         const sessionConfig = getSessionConfig();
         // Same shape as the `bidirectional` override below: sessionConfig is a
-        // plain object built for this connect() alone. The fallback is applied
-        // to THIS SESSION only and never written back to settings — a busy
-        // pool tonight must not silently demote the user's voice preference
-        // forever.
-        if (preparedVoiceId) {
-          (sessionConfig as SonioxSessionConfig).voice = preparedVoiceId;
-        } else if (voicePrepMessage) {
-          (sessionConfig as SonioxSessionConfig).voice = SONIOX_DEFAULT_VOICE;
+        // plain object built for this connect() alone, so this override never
+        // touches settings — see resolveVoicePrepOutcome's own doc comment for
+        // why the write-through decision is asymmetric (success-and-changed
+        // only, never a fallback).
+        if (sessionVoiceOverride) {
+          (sessionConfig as SonioxSessionConfig).voice = sessionVoiceOverride;
         }
         // Both single-session (Soniox): flip the speaker config to a bidirectional
         // two_way session so one core handles both directions. sonioxSharedBoth

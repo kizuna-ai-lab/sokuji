@@ -1,4 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
+import { resolveVoicePrepOutcome } from './prepareManagedVoice';
+import type { VoicePrepResult } from './prepareManagedVoice';
 
 /**
  * Regression coverage for two properties of MainPanel.tsx's connectConversation
@@ -6,24 +8,27 @@ import { describe, it, expect, vi } from 'vitest';
  * `prepareManagedVoice` itself (that routine's own branches are covered in
  * prepareManagedVoice.test.ts).
  *
- * Like participantErrorOrdering.test.ts (whose approach this mirrors), there
- * is no React rendering harness in this repo, so these tests do not mount
- * MainPanel or invoke connectConversation directly. They instead reproduce
- * the exact shape MainPanel.tsx uses — the same technique
- * participantErrorOrdering.test.ts already established for React's setState
- * value semantics — and pin the property against that reproduction, so a
- * future refactor of connectConversation's tail has something to break.
- *
- * 1. The voice-prep fallback notice is appended to conversation items AFTER
- *    the post-init `setItems(speakerClientRef.current?.getConversationItems()
+ * 1. ORDERING: the voice-prep fallback notice is appended to conversation
+ *    items AFTER the post-init `setItems(speakerClientRef.current?.getConversationItems()
  *    || [])` overwrite, and therefore survives it — the exact ordering hazard
  *    participantErrorOrdering.test.ts documents for `participantErrorMessage`,
- *    now for `voicePrepMessage` (MainPanel.tsx: the overwrite, then the
- *    `participantErrorMessage` append, then the `voicePrepMessage` append).
- * 2. A FAILED prepareManagedVoice() result never calls updateKizunaSoniox —
- *    only a successful, voiceId-CHANGED result does. The fallback voice is
- *    applied to sessionConfig for that session only and never persisted, so a
- *    busy pool tonight cannot silently demote the user's stored preference.
+ *    now for `voicePrepMessage`. There is no React rendering harness in this
+ *    repo, so — matching that sibling file's technique exactly, INCLUDING its
+ *    pre-fix/post-fix contrast pairing — this reproduces React's setState
+ *    value semantics rather than invoking MainPanel.tsx directly. The
+ *    "pre-fix" case below reproduces the WRONG ordering and asserts the
+ *    notice is actually lost, which is what proves the "right ordering"
+ *    assertion depends on the ordering rather than being true by construction.
+ *
+ * 2. THE ASYMMETRIC SETTINGS WRITE: a FAILED prepareManagedVoice() result must
+ *    never produce a settings patch — only a successful, voiceId-CHANGED
+ *    result may. Unlike the ordering property, this decision is a plain
+ *    function with no React or timing involved, so it was extracted out of
+ *    connectConversation into `resolveVoicePrepOutcome` (prepareManagedVoice.ts)
+ *    specifically so it has an actual production implementation to import and
+ *    call here, rather than a hand-transcribed duplicate that could drift from
+ *    the real branch without either side noticing. A contrast case shows what
+ *    an UNCONDITIONAL write would do, to prove the guard is what's under test.
  */
 
 type Item = { id: string; text: string };
@@ -38,59 +43,67 @@ function makeStateContainer(initial: Item[]) {
 }
 
 const voicePrepItem: Item = { id: 'voice-prep-1', text: 'This session uses a built-in voice.' };
+const speakerItems: Item[] = [{ id: 'speaker-1', text: 'hello' }];
 
 describe('voice-prep notice vs. the post-init setItems overwrite', () => {
-  it('survives being appended after the overwrite (current MainPanel.tsx ordering)', () => {
-    const { setItems, getState } = makeStateContainer([]);
-    const speakerItems: Item[] = [{ id: 'speaker-1', text: 'hello' }];
-    setItems(speakerItems); // setItems(speakerClientRef.current?.getConversationItems() || [])
-    setItems(prev => [...prev, voicePrepItem]); // the voicePrepMessage append, deferred like participantErrorMessage
-    expect(getState()).toEqual([...speakerItems, voicePrepItem]);
+  describe('pre-fix ordering (append runs BEFORE the overwrite) — reproduces the bug', () => {
+    it('the notice is wiped by the speaker\'s just-started list', () => {
+      const { setItems, getState } = makeStateContainer([]);
+      setItems(prev => [...prev, voicePrepItem]); // append ran first, hypothetically
+      setItems(speakerItems); // setItems(speakerClientRef.current?.getConversationItems() || [])
+      expect(getState()).toEqual(speakerItems); // notice is gone
+    });
+  });
+
+  describe('fixed ordering (append runs AFTER the overwrite) — current MainPanel.tsx behavior', () => {
+    it('the notice survives being appended after the overwrite', () => {
+      const { setItems, getState } = makeStateContainer([]);
+      setItems(speakerItems); // setItems(speakerClientRef.current?.getConversationItems() || [])
+      setItems(prev => [...prev, voicePrepItem]); // the voicePrepMessage append, deferred like participantErrorMessage
+      expect(getState()).toEqual([...speakerItems, voicePrepItem]);
+    });
   });
 });
 
-/**
- * Minimal reproduction of MainPanel.tsx's voice-prep result handling
- * (the `if (result.ok) { ... } else { ... }` block right after
- * `prepareManagedVoice()` resolves) and its fallback application to
- * sessionConfig (the `if (preparedVoiceId) { ... } else if (voicePrepMessage)
- * { ... }` block right after `getSessionConfig()`). Not prepareManagedVoice's
- * own logic — the CALLER's branching on its result.
- */
-function applyVoicePrepResult(
-  result: { ok: true; voiceId: string } | { ok: false; reason: string },
-  sonioxVoiceSetting: string,
-  updateKizunaSoniox: (patch: { voice: string }) => void,
-  sessionConfig: { voice?: string },
-  builtinDefault: string
-): void {
-  let preparedVoiceId: string | null = null;
-  let voicePrepMessage: string | null = null;
-  if (result.ok) {
-    preparedVoiceId = result.voiceId;
-    if (result.voiceId !== sonioxVoiceSetting) updateKizunaSoniox({ voice: result.voiceId });
-  } else {
-    voicePrepMessage = `fallback: ${result.reason}`;
-  }
-  if (preparedVoiceId) sessionConfig.voice = preparedVoiceId;
-  else if (voicePrepMessage) sessionConfig.voice = builtinDefault;
-}
-
-describe('voice-prep result wiring: the asymmetric settings write', () => {
-  it('never writes the fallback voice back to settings when prepareManagedVoice fails', () => {
-    const updateKizunaSoniox = vi.fn();
-    const sessionConfig: { voice?: string } = { voice: 'cloned-uuid-123' };
-    applyVoicePrepResult(
-      { ok: false, reason: 'pool_exhausted' },
-      'cloned-uuid-123',
-      updateKizunaSoniox,
-      sessionConfig,
-      'Maya'
-    );
+describe('voice-prep result wiring: the asymmetric settings write (resolveVoicePrepOutcome, the real production function)', () => {
+  it('never produces a settings patch when prepareManagedVoice fails', () => {
+    const result: VoicePrepResult = { ok: false, reason: 'pool_exhausted' };
+    const outcome = resolveVoicePrepOutcome(result, 'cloned-uuid-123', 'Maya');
     // A busy pool tonight must not silently demote the stored preference —
     // the next session should try the real voice again.
-    expect(updateKizunaSoniox).not.toHaveBeenCalled();
+    expect(outcome.settingsPatch).toBeNull();
     // The session still gets a usable voice — just not a persisted one.
-    expect(sessionConfig.voice).toBe('Maya');
+    expect(outcome.sessionVoice).toBe('Maya');
+    expect(outcome.notice).not.toBeNull();
+  });
+
+  it('produces a settings patch only when the successful id actually changed', () => {
+    const unchanged = resolveVoicePrepOutcome({ ok: true, voiceId: 'cloned-uuid-123' }, 'cloned-uuid-123', 'Maya');
+    expect(unchanged.settingsPatch).toBeNull();
+    expect(unchanged.sessionVoice).toBe('cloned-uuid-123');
+
+    const rebuilt = resolveVoicePrepOutcome({ ok: true, voiceId: 'cloned-uuid-999' }, 'cloned-uuid-123', 'Maya');
+    expect(rebuilt.settingsPatch).toEqual({ voice: 'cloned-uuid-999' });
+    expect(rebuilt.sessionVoice).toBe('cloned-uuid-999');
+  });
+
+  it('contrast: an UNCONDITIONAL write would clobber the stored voice on every failure', () => {
+    // NOT the real function — a hypothetical wrong implementation, kept only
+    // to prove the assertions above actually depend on the guard inside
+    // resolveVoicePrepOutcome, rather than being true no matter what a
+    // settings-write function does.
+    function unconditionalWrite(result: VoicePrepResult, builtinFallback: string): { voice: string } | null {
+      if (result.ok) return { voice: result.voiceId };
+      // BUG this contrast demonstrates: would persist the built-in fallback
+      // as if the user had chosen it, on every single failed session start.
+      return { voice: builtinFallback };
+    }
+    const failed: VoicePrepResult = { ok: false, reason: 'pool_exhausted' };
+    const wrongPatch = unconditionalWrite(failed, 'Maya');
+    expect(wrongPatch).toEqual({ voice: 'Maya' }); // the bug the real guard prevents
+
+    const realOutcome = resolveVoicePrepOutcome(failed, 'cloned-uuid-123', 'Maya');
+    expect(realOutcome.settingsPatch).toBeNull();
+    expect(realOutcome.settingsPatch).not.toEqual(wrongPatch);
   });
 });
