@@ -21,7 +21,7 @@
 #
 # Expected output ends with VERIFY OK.
 set -uo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || exit 1
 
 BIN=${1:-out/sokuji-audio-host-darwin-arm64}
 [ -x "$BIN" ] || { echo "not built: $BIN (run mac/build.sh)"; exit 1; }
@@ -121,9 +121,15 @@ T=$!
 ( sleep 1; afplay "$TONE" ) &
 capture "$WORK/c.pcm" "$WORK/c.log" "pid:$T" 6
 kill $T 2>/dev/null; wait 2>/dev/null
-CPEAK=$(peaks "$WORK/c.pcm" | tail -1 | tr ' ' '\n' | sort -n | tail -1)
-echo "  peak from a silent target while another process plays: ${CPEAK:-0}"
-[ "${CPEAK:-0}" -lt 100 ]; check "a silent target does not capture other applications" $?
+if [ "$GRANTED" = yes ]; then
+  CPEAK=$(peaks "$WORK/c.pcm" | tail -1 | tr ' ' '\n' | sort -n | tail -1)
+  echo "  peak from a silent target while another process plays: ${CPEAK:-0}"
+  [ "${CPEAK:-0}" -lt 100 ]; check "a silent target does not capture other applications" $?
+else
+  # Without the grant every sample is zero whether the tap is isolated or
+  # global, so this assertion would pass without testing anything.
+  echo "  skip - isolation is unjudgeable without System Audio Recording"
+fi
 
 echo
 if [ "$fails" -eq 0 ]; then echo "VERIFY OK"; else echo "VERIFY FAILED ($fails)"; exit 1; fi

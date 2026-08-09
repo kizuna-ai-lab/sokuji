@@ -46,6 +46,12 @@ import AppKit
 let kOutRate = 24000.0
 let kOutChannels = 1
 
+// Most silence the writer will synthesise in one go to catch up to wall clock.
+// The read that precedes it times out at 0.1 s, so a healthy loop owes about
+// that much; this leaves an order of magnitude for scheduling jitter and treats
+// anything beyond it as a clock jump to be absorbed, not replayed.
+let kMaxSilenceCatchUp = 1.0
+
 // MARK: - small helpers
 
 func emit(_ json: String) {
@@ -499,7 +505,20 @@ func runCapture(pid: pid_t?) -> Int32 {
                 if gStop { break }
                 // Fill the silence the tap owes us, so the reader sees an
                 // unbroken 24 kHz stream whether or not the target is playing.
-                let owed = Int(Date().timeIntervalSince(writtenUntil) * kOutRate)
+                //
+                // Bounded, because the debt is measured against wall clock and
+                // wall clock can jump: system sleep freezes this thread, and a
+                // reader that stops draining stdout blocks it in writePCM. Both
+                // return with writtenUntil hours behind, and materialising that
+                // as one array is 2 bytes per 1/24000 s - an eight-hour sleep
+                // asks for 1.4 GB and kills the helper instead of resuming it.
+                // Past the cap the debt is uncollectable anyway: nobody wants
+                // hours of injected silence, they want the stream to resume.
+                let now = Date()
+                if now.timeIntervalSince(writtenUntil) > kMaxSilenceCatchUp {
+                    writtenUntil = now.addingTimeInterval(-kMaxSilenceCatchUp)
+                }
+                let owed = Int(now.timeIntervalSince(writtenUntil) * kOutRate)
                 if owed > 0 { writePCM([Int16](repeating: 0, count: owed)) }
                 continue
             }
