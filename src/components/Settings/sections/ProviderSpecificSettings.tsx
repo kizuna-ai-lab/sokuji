@@ -106,7 +106,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   loadingModels,
   fetchAvailableModels
 }) => {
-  const { getToken } = useAuth();
+  const { getToken, userId } = useAuth();
   // Settings from store
   const provider = useProvider();
   const systemInstructions = useSystemInstructions();
@@ -214,18 +214,38 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // bug CLAUDE.md warns about for audio devices (depend on `deviceId`, not on
   // the device object).
   //
-  // Managed (isKizunaManagedProvider) always gets a fresh ManagedVoicesClient
-  // keyed only on `provider` — there is no per-account credential to key on
-  // here the way BYOK keys on `apiKey`: the client reads the session token
-  // through `getTokenRef` at call time, not at construction time, so a signed
-  // -in/out swap is picked up on the NEXT request rather than requiring a new
-  // client identity. BYOK stays gated on `provider === Provider.SONIOX`
-  // itself, not merely a truthy apiKey: `activeSonioxSettings` falls through
-  // to the BYOK `soniox` slice for every OTHER provider too, so a
-  // previously-saved Soniox key would otherwise construct a (harmless but
-  // pointless) SonioxVoicesClient while some unrelated provider is selected.
+  // Managed (isKizunaManagedProvider) is gated on `userId`, not just on the
+  // provider being a managed one:
+  //  - No signed-in user (`userId` undefined) yields `null`, same as BYOK
+  //    with no key pasted. Without this, a signed-out managed account would
+  //    still show the record/upload affordances, `saveVoiceClip` would write
+  //    a clip to IndexedDB for an account that can never own a voice, and the
+  //    first `ensure`/`mine` call would 401 into a "check your connection"
+  //    banner that misreports the actual cause (not signed in).
+  //  - `userId` in the dep array (alongside `provider`) means signing in
+  //    mints a source where there was none, and switching to a DIFFERENT
+  //    signed-in account mints a NEW source rather than reusing the old one.
+  //    That matters because SonioxVoiceSection's load effect is keyed on
+  //    source IDENTITY (not on any credential): without this, an account
+  //    switch that doesn't also change `provider` would leave the OLD
+  //    account's already-fetched "My voice" row listed and selectable under
+  //    the NEW account, since refresh() never refires for an unchanged
+  //    object. This is the same identity-churn concern the BYOK branch
+  //    guards against by keying on `apiKey`.
+  //  - The client itself still reads the session TOKEN through `getTokenRef`
+  //    at call time, not at construction time — `userId` only decides
+  //    WHETHER a source exists and which logical account it belongs to;
+  //    per-request token freshness (e.g. a renewed token for the SAME user)
+  //    is deliberately left to the ref so it doesn't need a new source
+  //    identity of its own.
+  // BYOK stays gated on `provider === Provider.SONIOX` itself, not merely a
+  // truthy apiKey: `activeSonioxSettings` falls through to the BYOK `soniox`
+  // slice for every OTHER provider too, so a previously-saved Soniox key
+  // would otherwise construct a (harmless but pointless) SonioxVoicesClient
+  // while some unrelated provider is selected.
   const sonioxVoiceSource = useMemo<VoiceLibrarySource | null>(() => {
     if (isKizunaManagedProvider(provider)) {
+      if (!userId) return null;
       return managedVoiceSource(
         new ManagedVoicesClient(async () => (getTokenRef.current ? getTokenRef.current() : null))
       );
@@ -233,7 +253,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     return provider === Provider.SONIOX && activeSonioxSettings.apiKey
       ? byokVoiceSource(new SonioxVoicesClient(activeSonioxSettings.apiKey))
       : null;
-  }, [provider, activeSonioxSettings.apiKey]);
+  }, [provider, activeSonioxSettings.apiKey, userId]);
 
   // Auto-select compatible models when LOCAL_INFERENCE languages change
   useEffect(() => {

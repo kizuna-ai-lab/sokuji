@@ -25,8 +25,12 @@ vi.mock('../../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
 
+// A plain vi.fn() (not a fixed arrow function) so individual tests can swap
+// its return value to simulate signed-out / signed-in / a different account —
+// needed for the managed-source identity tests below, which depend on
+// `useAuth().userId`.
 vi.mock('../../../lib/auth/hooks', () => ({
-  useAuth: () => ({ getToken: async () => null }),
+  useAuth: vi.fn(() => ({ getToken: async () => null, userId: undefined as string | undefined })),
 }));
 
 vi.mock('../../../services/ServiceFactory', () => ({
@@ -84,6 +88,7 @@ const { default: useSettingsStore } = await import('../../../stores/settingsStor
 const { Provider } = await import('../../../types/Provider');
 const { SonioxProviderConfig } = await import('../../../services/providers/SonioxProviderConfig');
 const { default: ProviderSpecificSettings } = await import('./ProviderSpecificSettings');
+const { useAuth } = await import('../../../lib/auth/hooks');
 
 const baseProps = {
   config: new SonioxProviderConfig().getConfig(),
@@ -100,6 +105,21 @@ function mount() {
   return render(<ProviderSpecificSettings {...baseProps} />);
 }
 
+// useAuth()'s real return type carries several fields (isLoaded, isSignedIn,
+// sessionId, error) this file's tests never read; filling them with harmless
+// stand-ins here (rather than casting each partial literal at every call
+// site) keeps `vi.mocked(useAuth).mockReturnValue(...)` type-checking against
+// the real hook shape.
+function fakeAuth(over: { getToken: () => Promise<string | null>; userId: string | undefined }): ReturnType<typeof useAuth> {
+  return {
+    isLoaded: true,
+    isSignedIn: !!over.userId,
+    sessionId: over.userId ? `session-${over.userId}` : undefined,
+    error: null,
+    ...over,
+  } as ReturnType<typeof useAuth>;
+}
+
 describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', () => {
   beforeEach(() => {
     useSettingsStore.setState((s: any) => ({
@@ -114,6 +134,10 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
         ttsSpeed: 1.0,
       },
     }));
+    // Reset to signed-out between tests: several tests below swap this via
+    // vi.mocked(useAuth).mockReturnValue(...), and mock return values persist
+    // across tests otherwise (no global mockReset/restoreMocks configured).
+    vi.mocked(useAuth).mockReturnValue(fakeAuth({ getToken: async () => null, userId: undefined }));
   });
 
   it('writes the terms textarea to soniox.vocabularyTerms and caps it at 4000 chars', () => {
@@ -232,5 +256,47 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
     });
     const thirdId = getByTestId('soniox-voice-section').getAttribute('data-source-id');
     expect(thirdId).toBe(secondId);
+  });
+
+  // Task 4 review finding: the managed branch of the sonioxVoiceSource memo
+  // was unconditional on `provider` alone, so a signed-out KIZUNA_AI_SONIOX
+  // account still got a real source — recording a clip would write it to
+  // IndexedDB and then have the backend 401 it — and an account switch that
+  // didn't also change `provider` left the OLD account's source (and its
+  // already-fetched voice list) in place, since the section's load effect
+  // refetches on source IDENTITY, not on any credential.
+  it('gives KIZUNA_AI_SONIOX no source at all when no one is signed in', () => {
+    useSettingsStore.setState({ provider: Provider.KIZUNA_AI_SONIOX });
+    vi.mocked(useAuth).mockReturnValue(fakeAuth({ getToken: async () => null, userId: undefined }));
+    const { getByTestId } = mount();
+    expect(getByTestId('soniox-voice-section').getAttribute('data-source-id')).toBe('null');
+  });
+
+  it('gives KIZUNA_AI_SONIOX a real source once a user is signed in', () => {
+    useSettingsStore.setState({ provider: Provider.KIZUNA_AI_SONIOX });
+    vi.mocked(useAuth).mockReturnValue(fakeAuth({ getToken: async () => 'token-a', userId: 'user-a' }));
+    const { getByTestId } = mount();
+    expect(getByTestId('soniox-voice-section').getAttribute('data-source-id')).not.toBe('null');
+  });
+
+  it('mints a fresh managed source identity when the signed-in account changes (guards the sonioxVoiceSource useMemo dep array against an account switch)', () => {
+    useSettingsStore.setState({ provider: Provider.KIZUNA_AI_SONIOX });
+    vi.mocked(useAuth).mockReturnValue(fakeAuth({ getToken: async () => 'token-a', userId: 'user-a' }));
+    const { getByTestId, rerender } = mount();
+    const firstId = getByTestId('soniox-voice-section').getAttribute('data-source-id');
+    expect(firstId).not.toBe('null');
+
+    // A DIFFERENT signed-in user must produce a DIFFERENT source object — the
+    // same object across an account switch would mean the section still
+    // holds account A's ManagedVoicesClient identity, so its load effect
+    // (keyed on source identity, not on any credential) never refires and
+    // account A's "My voice" row stays listed and selectable under B.
+    vi.mocked(useAuth).mockReturnValue(fakeAuth({ getToken: async () => 'token-b', userId: 'user-b' }));
+    act(() => {
+      rerender(<ProviderSpecificSettings {...baseProps} />);
+    });
+    const secondId = getByTestId('soniox-voice-section').getAttribute('data-source-id');
+    expect(secondId).not.toBe('null');
+    expect(secondId).not.toBe(firstId);
   });
 });

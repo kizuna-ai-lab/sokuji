@@ -51,8 +51,14 @@ export interface SonioxVoiceSectionProps {
   settings: { voice: string; apiKey: string; targetLanguage: string; ttsSpeed: number };
   onUpdate: (patch: { voice: string }) => void;
   /** Where voices come from, or null when this account cannot manage any yet
-   *  (BYOK with no API key pasted, managed with no session). Null keeps the
-   *  create/delete affordances hidden rather than reaching a null crash. */
+   *  (BYOK with no API key pasted; managed with no signed-in user). Null
+   *  keeps the create/delete affordances hidden rather than reaching a null
+   *  crash — for managed specifically, this is also what stops a signed-out
+   *  user from recording a clip that would be saved locally and then rejected
+   *  by the backend. The caller mints a NEW `source` object whenever the
+   *  signed-in account changes (not just when it signs in/out), so this
+   *  component's account-scoped state (the fetched list, the preview cache)
+   *  is never carried over from one account to another. */
   source: VoiceLibrarySource | null;
   /** Copy variant. Drives: the custom-voice label (managed shows "My voice"
    *  rather than the backend's internal name), the list-error copy, and —
@@ -166,6 +172,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       }
       if (e.errorType === 'insufficient_balance') {
         return new Error(t('settings.sonioxVoiceInsufficientBalance', 'Add balance to your account before building a custom voice.'));
+      }
+      if (e.errorType === 'authentication_required') {
+        return new Error(t('settings.sonioxVoiceSignInRequired', 'Sign in to build a custom voice.'));
       }
     }
     return e instanceof Error ? e : new Error(String(e));
