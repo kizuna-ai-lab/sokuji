@@ -149,11 +149,28 @@ function startCapture(deviceId, onPcm, onEvent, { spawn = nodeSpawn, resolvePath
   }
 
   current = child;
-  child.stdout.on('data', (d) => onPcm(d));
-  child.stderr.on('data', makeLineParser(onEvent));
-  child.on('error', (err) => onEvent({ event: 'error', code: 'spawn_failed', message: err.message }));
+
+  // Only the helper that is still the current one may speak. kill() is
+  // asynchronous - a killed child's `close` lands 1.5-2.2 ms later, measured -
+  // and by then the renderer has finished switching sources: it has torn down
+  // the old recorder and built a new one, already subscribed. PCM and events
+  // all share one IPC channel per kind, so the late exit of the helper we
+  // ourselves killed arrived at the *new* recorder, which read it as its own
+  // helper dying and fell back to whole-system capture. Switching from one
+  // application to another therefore captured every application, with the
+  // picker still naming the one the user picked. Same for stdout: whatever was
+  // buffered in the old pipe would be mixed into the new application's audio.
+  const isCurrent = () => current === child;
+  child.stdout.on('data', (d) => { if (isCurrent()) onPcm(d); });
+  child.stderr.on('data', makeLineParser((evt) => { if (isCurrent()) onEvent(evt); }));
+  child.on('error', (err) => {
+    if (isCurrent()) onEvent({ event: 'error', code: 'spawn_failed', message: err.message });
+  });
   child.on('close', (code) => {
-    if (current === child) current = null;
+    // A death we did not ask for is the only one worth reporting: that is what
+    // tells the renderer its capture is gone.
+    if (!isCurrent()) return;
+    current = null;
     onEvent({ event: 'exit', code });
   });
   return true;

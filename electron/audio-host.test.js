@@ -164,6 +164,59 @@ describe('startCapture', () => {
     expect(onEvent).toHaveBeenCalledWith({ event: 'exit', code: 1 });
   });
 
+  it('stays quiet about a helper it killed itself', () => {
+    const child = fakeChild();
+    const onEvent = vi.fn();
+    startCapture('app:pid:42', vi.fn(), onEvent, { spawn: () => child, resolvePath });
+
+    stopCapture();
+    // kill() is asynchronous: the child's close lands a millisecond or two
+    // later, by which time the renderer has torn this recorder down and built
+    // the next one. Measured 1.5-2.2 ms, every run.
+    child.emit('close', null);
+
+    expect(onEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not blame the new capture for the old helper exiting', () => {
+    const first = fakeChild();
+    const second = fakeChild();
+    let n = 0;
+    const spawn = () => (++n === 1 ? first : second);
+    const onEventFirst = vi.fn();
+    const onEventSecond = vi.fn();
+
+    startCapture('app:pid:1', vi.fn(), onEventFirst, { spawn, resolvePath });
+    startCapture('app:pid:2', vi.fn(), onEventSecond, { spawn, resolvePath });
+    first.emit('close', null);
+
+    // Both callbacks post to the one app-audio:event channel, so the renderer
+    // cannot tell whose exit this was: whichever fires, the live recorder reads
+    // it as its own helper dying and falls back to whole-system capture - the
+    // user picks one application and gets every application, with the picker
+    // still naming the one they picked.
+    expect(onEventFirst).not.toHaveBeenCalled();
+    expect(onEventSecond).not.toHaveBeenCalled();
+  });
+
+  it('drops audio still draining from a replaced helper', () => {
+    const first = fakeChild();
+    const second = fakeChild();
+    let n = 0;
+    const spawn = () => (++n === 1 ? first : second);
+    const onPcmFirst = vi.fn();
+    const onPcmSecond = vi.fn();
+
+    startCapture('app:pid:1', onPcmFirst, vi.fn(), { spawn, resolvePath });
+    startCapture('app:pid:2', onPcmSecond, vi.fn(), { spawn, resolvePath });
+    // Whatever was buffered in the old pipe would otherwise be mixed into the
+    // new application's stream.
+    first.stdout.emit('data', Buffer.from([1, 2, 3, 4]));
+
+    expect(onPcmFirst).not.toHaveBeenCalled();
+    expect(onPcmSecond).not.toHaveBeenCalled();
+  });
+
   it('kills a previous capture before starting a new one', () => {
     const first = fakeChild();
     const second = fakeChild();
