@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useMemo } from 'react';
+import React, { Fragment, useEffect, useMemo, useRef } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { supportsTranscriptionContext } from '../../../services/providers/openaiTranscriptionContext';
@@ -67,8 +67,9 @@ import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { EngineSection } from './EngineSection';
 import SonioxVoiceSection from './SonioxVoiceSection';
-import { byokVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
+import { byokVoiceSource, managedVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
 import { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
+import { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
 import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
 import { useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
@@ -199,26 +200,40 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       ? updateKizunaSonioxSettings
       : updateSonioxSettings;
 
+  // useAuth() returns a fresh object (and a fresh getToken) on every render.
+  // Capturing it in a ref and closing over the ref keeps the memo below stable,
+  // so SonioxVoiceSection's load effect does not refetch on every render — the
+  // same class of bug the audio-device code avoids by depending on deviceId
+  // rather than on the device object.
+  const getTokenRef = useRef(getToken);
+  useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
+
   // Memoized on primitives, never constructed inline. SonioxVoiceSection's
   // load effect depends on this object's identity, so a fresh instance per
   // render would refetch the voice list on every render — the same class of
   // bug CLAUDE.md warns about for audio devices (depend on `deviceId`, not on
   // the device object).
-  const sonioxVoiceSource = useMemo<VoiceLibrarySource | null>(
-    // Gated on `provider === Provider.SONIOX` itself, not merely a truthy
-    // apiKey: `activeSonioxSettings` falls through to the BYOK `soniox`
-    // slice for every OTHER provider too, so a previously-saved Soniox key
-    // would otherwise construct a (harmless but pointless) SonioxVoicesClient
-    // while some unrelated provider is selected. `provider === SONIOX` also
-    // already excludes the managed twin (KIZUNA_AI_SONIOX is a different
-    // enum value) — managed sources arrive in Task 4; until then a managed
-    // account has no source, which is exactly the built-ins-only behaviour
-    // it has today.
-    () => (provider === Provider.SONIOX && activeSonioxSettings.apiKey
+  //
+  // Managed (isKizunaManagedProvider) always gets a fresh ManagedVoicesClient
+  // keyed only on `provider` — there is no per-account credential to key on
+  // here the way BYOK keys on `apiKey`: the client reads the session token
+  // through `getTokenRef` at call time, not at construction time, so a signed
+  // -in/out swap is picked up on the NEXT request rather than requiring a new
+  // client identity. BYOK stays gated on `provider === Provider.SONIOX`
+  // itself, not merely a truthy apiKey: `activeSonioxSettings` falls through
+  // to the BYOK `soniox` slice for every OTHER provider too, so a
+  // previously-saved Soniox key would otherwise construct a (harmless but
+  // pointless) SonioxVoicesClient while some unrelated provider is selected.
+  const sonioxVoiceSource = useMemo<VoiceLibrarySource | null>(() => {
+    if (isKizunaManagedProvider(provider)) {
+      return managedVoiceSource(
+        new ManagedVoicesClient(async () => (getTokenRef.current ? getTokenRef.current() : null))
+      );
+    }
+    return provider === Provider.SONIOX && activeSonioxSettings.apiKey
       ? byokVoiceSource(new SonioxVoicesClient(activeSonioxSettings.apiKey))
-      : null),
-    [provider, activeSonioxSettings.apiKey]
-  );
+      : null;
+  }, [provider, activeSonioxSettings.apiKey]);
 
   // Auto-select compatible models when LOCAL_INFERENCE languages change
   useEffect(() => {

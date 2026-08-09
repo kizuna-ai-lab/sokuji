@@ -25,6 +25,13 @@ export interface SonioxCloneConfirmModalProps {
    *  both actions so the request can't be double-submitted or orphaned by a
    *  cancel mid-flight. */
   busy: boolean;
+  /** Extra statement shown above the name field. Managed accounts use it to
+   *  say where the recording goes, since it leaves the device for a service
+   *  the user did not hand a key to themselves. */
+  notice?: string;
+  /** False hides the name field entirely. The managed backend names voices
+   *  itself, so offering a name the user cannot influence would be a lie. */
+  showName?: boolean;
   onConfirm: (name: string) => void;
   onClose: () => void;
 }
@@ -57,6 +64,8 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
   audioBlob,
   error,
   busy,
+  notice,
+  showName = true,
   onConfirm,
   onClose,
 }) => {
@@ -165,15 +174,20 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
             </span>
           </div>
         )}
-        <input
-          type="text"
-          className="text-input"
-          value={name}
-          maxLength={128}
-          placeholder={t('settings.sonioxVoiceNamePlaceholder', 'Name for a new cloned voice (optional)')}
-          onChange={(e) => setName(e.target.value)}
-          disabled={busy}
-        />
+        {notice && (
+          <p className="soniox-clone-confirm-modal__notice">{notice}</p>
+        )}
+        {showName && (
+          <input
+            type="text"
+            className="text-input"
+            value={name}
+            maxLength={128}
+            placeholder={t('settings.sonioxVoiceNamePlaceholder', 'Name for a new cloned voice (optional)')}
+            onChange={(e) => setName(e.target.value)}
+            disabled={busy}
+          />
+        )}
         <label className="soniox-clone-confirm-modal__consent">
           {/* Native input kept for semantics/a11y but visually replaced by the
               drawn box below — a raw OS checkbox clashes with the design

@@ -54,12 +54,11 @@ export interface SonioxVoiceSectionProps {
    *  (BYOK with no API key pasted, managed with no session). Null keeps the
    *  create/delete affordances hidden rather than reaching a null crash. */
   source: VoiceLibrarySource | null;
-  /** Copy variant. Drives, today: the custom-voice label (managed shows
-   *  "My voice" rather than the backend's internal name) and the list-error
-   *  copy. The consent-statement and hidden-name-field differences the
-   *  backend-naming design calls for land with the confirm modal's managed
-   *  variant in a later task — this prop doesn't touch
-   *  `SonioxCloneConfirmModal` yet. */
+  /** Copy variant. Drives: the custom-voice label (managed shows "My voice"
+   *  rather than the backend's internal name), the list-error copy, and —
+   *  via the confirm modal's `notice`/`showName` props — the managed-only
+   *  data-destination statement and the hidden name field (the backend names
+   *  voices itself). */
   managed: boolean;
   isSessionActive: boolean;
 }
@@ -158,6 +157,15 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       }
       if (e.errorType === 'voice_failed') {
         return new Error(t('settings.sonioxVoiceFailed', 'Processing failed — delete this voice and try a clearer clip'));
+      }
+      if (e.errorType === 'pool_exhausted') {
+        return new Error(t('settings.sonioxVoicePoolExhausted', 'All custom voice slots are in use right now — please try again in a moment.'));
+      }
+      if (e.errorType === 'voice_pinned') {
+        return new Error(t('settings.sonioxVoicePinned', 'This voice is in use by a running session — end the session before deleting it.'));
+      }
+      if (e.errorType === 'insufficient_balance') {
+        return new Error(t('settings.sonioxVoiceInsufficientBalance', 'Add balance to your account before building a custom voice.'));
       }
     }
     return e instanceof Error ? e : new Error(String(e));
@@ -509,6 +517,13 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         audioBlob={pending?.blob ?? null}
         error={modalError}
         busy={modalBusy}
+        showName={!managed}
+        notice={managed
+          ? t(
+              'settings.sonioxManagedCloneNotice',
+              'This recording is sent to Kizuna AI and passed on to Soniox to build your voice. It is not stored on our servers — it stays on this device so your voice can be rebuilt later.'
+            )
+          : undefined}
         onConfirm={(name) => void handleConfirm(name)}
         onClose={closeModal}
       />

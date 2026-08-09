@@ -13,6 +13,9 @@
  * have. That is a property of the SOURCE, not of the section.
  */
 import type { SonioxVoice, SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
+import type { ManagedVoicesClient, ManagedVoice } from '../../../services/clients/ManagedVoicesClient';
+import { SonioxVoicesError } from '../../../services/clients/SonioxVoicesClient';
+import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
 
 export interface VoiceLibrarySource {
   /** Every voice this source can offer. The managed source returns zero or
@@ -35,5 +38,91 @@ export function byokVoiceSource(client: SonioxVoicesClient): VoiceLibrarySource 
     delete: (id) => client.delete(id),
     waitUntilReady: (id) => client.waitUntilReady(id),
     canPreview: true,
+  };
+}
+
+const TTS_MODEL = 'tts-rt-v1';
+
+/** Project the backend's flat voice record into the per-model shape the
+ *  section reads readiness from. Without this the section's isReady/isFailed
+ *  helpers find no matching model entry and every managed voice renders as
+ *  "processing…" forever. */
+function toSonioxVoice(voice: ManagedVoice): SonioxVoice {
+  return {
+    id: voice.voiceId,
+    // The backend's real name is an internal identifier (`u_<account>_<token>`)
+    // that must never be shown; SonioxVoiceSection supplies the label.
+    name: '',
+    created_at: new Date(voice.createdAt).toISOString(),
+    models: [{ model: TTS_MODEL, status: voice.status }],
+  };
+}
+
+/**
+ * Managed (Kizuna AI): the account's single cached voice, via our backend.
+ *
+ * Two things differ from BYOK in ways the section must not have to know:
+ *
+ *  - The clip is saved to this device BEFORE the build request goes out. The
+ *    backend keeps no copy, so the clip is the only thing that can rebuild an
+ *    evicted voice — and saving it only on success would lose it exactly when
+ *    a retry needs it most.
+ *  - `name` is ignored. The backend names voices itself, uniquely per build,
+ *    because Soniox enforces name uniqueness per project.
+ */
+export function managedVoiceSource(
+  client: ManagedVoicesClient,
+  opts: { intervalMs?: number; timeoutMs?: number } = {}
+): VoiceLibrarySource {
+  const { intervalMs = 1500, timeoutMs = 60_000 } = opts;
+  return {
+    async list() {
+      const voice = await client.mine();
+      return voice ? [toSonioxVoice(voice)] : [];
+    },
+
+    async create(_name, clip) {
+      await saveVoiceClip(clip);
+      // pin: false — building a voice from the settings panel is not starting
+      // a session, and a pin taken here would hold one of the pool's scarce
+      // slots against eviction for no session's benefit.
+      const created = await client.ensure({ pin: false, clip });
+      return toSonioxVoice({ voiceId: created.voiceId, status: created.status, createdAt: Date.now() });
+    },
+
+    async delete(_id) {
+      // The backend deletes THE account's voice; there is only one, so the id
+      // is informational. Order matters: clearing the clip first would lose
+      // the recording even when the backend refuses (voice_pinned).
+      await client.remove();
+      await clearVoiceClip();
+    },
+
+    // `_id` unused: this account has at most one voice, so `client.mine()`
+    // already names it unambiguously — there is nothing to disambiguate by id.
+    async waitUntilReady(_id) {
+      const deadline = Date.now() + timeoutMs;
+      for (;;) {
+        const voice = await client.mine();
+        if (!voice) {
+          // Another device superseded this build, or the LRU evicted the row.
+          // There is nothing left to wait for, and the section's voice_failed
+          // branch already says "try again".
+          throw new SonioxVoicesError('voice_failed', 'The voice is no longer available', 404);
+        }
+        if (voice.status === 'ready') return toSonioxVoice(voice);
+        if (voice.status === 'failed') {
+          throw new SonioxVoicesError('voice_failed', 'Voice processing failed', 503);
+        }
+        if (Date.now() >= deadline) {
+          throw new SonioxVoicesError('timeout', 'Voice processing timed out', 408);
+        }
+        await new Promise((r) => setTimeout(r, intervalMs));
+      }
+    },
+
+    // Auditioning synthesizes a sample, which needs a Soniox key a managed
+    // user does not have.
+    canPreview: false,
   };
 }

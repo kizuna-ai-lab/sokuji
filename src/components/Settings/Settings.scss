@@ -854,6 +854,16 @@
     line-height: 1.5;
   }
 
+  // Managed-account statement about where the recording goes, shown above the
+  // (hidden, for managed) name field. Smaller and dimmer than the intro copy
+  // above so it reads as a footnote, not another instruction.
+  &__notice {
+    margin: 0 0 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.75;
+  }
+
   // Custom audio player replacing native <audio controls> (unstyled browser
   // chrome that clashes with the dark design system). The real <audio>
   // element stays mounted but visually hidden — playback state is driven by
