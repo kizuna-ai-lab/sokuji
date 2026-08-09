@@ -1811,7 +1811,7 @@ git commit -m "feat(soniox): prepare the managed custom voice before a session s
 - Consumes: the `t('key', 'default')` calls added in Tasks 3–5.
 - Produces: nothing importable; this task makes the suite green and the UI translated.
 
-The twelve keys, with their English text (copy these verbatim — the `t(key, default)` defaults written in Tasks 3–5 must match these exactly, or the app shows one string and the catalogs another):
+The thirteen keys, with the English text **as it now stands in the committed code** (I re-derived this from the source after Tasks 3-5 landed; the earlier draft of this table was both incomplete and slightly stale). Copy each `en` value verbatim from this table — it must match the `t(key, default)` fallback in the code, or the app shows one string and the catalogs another.
 
 | Key | English |
 |---|---|
@@ -1821,36 +1821,36 @@ The twelve keys, with their English text (copy these verbatim — the `t(key, de
 | `settings.sonioxVoicePoolExhausted` | `All custom voice slots are in use right now — please try again in a moment.` |
 | `settings.sonioxVoicePinned` | `This voice is in use by a running session — end the session before deleting it.` |
 | `settings.sonioxVoiceInsufficientBalance` | `Add balance to your account before building a custom voice.` |
+| `settings.sonioxVoiceSignInRequired` | `Sign in to build a custom voice.` |
 | `mainPanel.sonioxVoiceClipMissing` | `This device has no voice recording, so this session uses a built-in voice. Record one in Settings to speak in your own voice here.` |
 | `mainPanel.sonioxVoicePoolBusy` | `All custom voice slots are in use right now, so this session uses a built-in voice. Your own voice will be used again next time.` |
 | `mainPanel.sonioxVoiceBuildFailed` | `Your custom voice could not be built, so this session uses a built-in voice. Try recording a clearer clip in Settings.` |
 | `mainPanel.sonioxVoiceUnavailable` | `Your custom voice is unavailable right now, so this session uses a built-in voice.` |
-| `simplePanel.preparingVoice` | `Preparing your voice…` |
 | `mainPanel.preparingVoice` | `Preparing your voice…` |
+| `simplePanel.preparingVoice` | `Preparing your voice…` |
 
-- [ ] **Step 1: Confirm the table matches what Tasks 3–5 actually wrote**
+- [ ] **Step 1: Confirm nothing has drifted**
 
 ```bash
 cd /home/jiangzhuo/Desktop/kizunaai/sokuji-react
-grep -rho "t(\s*'[a-zA-Z]*\.[a-zA-Z]*'" \
-  src/components/Settings/sections/SonioxVoiceSection.tsx \
-  src/components/Settings/sections/SonioxCloneConfirmModal.tsx \
-  src/components/MainPanel/prepareManagedVoice.ts \
-  src/components/MainPanel/MainPanel.tsx \
-  | sed "s/.*'\(.*\)'/\1/" | sort -u \
-  | node -e "
+node -e "
 const en = require('./src/locales/en/translation.json');
 const flat = (o, p = '') => Object.entries(o).flatMap(([k, v]) =>
   v && typeof v === 'object' ? flat(v, p ? p + '.' + k : k) : [p ? p + '.' + k : k]);
 const have = new Set(flat(en));
-let input = '';
-process.stdin.on('data', (d) => { input += d; });
-process.stdin.on('end', () => {
-  input.split('\n').filter(Boolean).forEach((k) => { if (!have.has(k)) console.log('MISSING', k); });
-});"
+[
+  'settings.sonioxManagedVoiceName','settings.sonioxManagedVoiceListError',
+  'settings.sonioxManagedCloneNotice','settings.sonioxVoicePoolExhausted',
+  'settings.sonioxVoicePinned','settings.sonioxVoiceInsufficientBalance',
+  'settings.sonioxVoiceSignInRequired','mainPanel.sonioxVoiceClipMissing',
+  'mainPanel.sonioxVoicePoolBusy','mainPanel.sonioxVoiceBuildFailed',
+  'mainPanel.sonioxVoiceUnavailable','mainPanel.preparingVoice','simplePanel.preparingVoice',
+].forEach(k => { if (!have.has(k)) console.log('MISSING', k); });"
 ```
 
-Every `MISSING` line is this task's work. If it names a key absent from the table above, the implementer renamed something — add it here rather than inventing a translation for a key nobody will look up.
+All thirteen should print `MISSING` before you start and none after Step 2.
+
+Note that **five of these are NOT literal `t('key', 'default')` call sites**, so a naive grep for `t('` will not find them: the four `mainPanel.soniox*` notices are declared as `{ key, defaultValue }` pairs inside `voicePrepNotice()` in `src/components/MainPanel/prepareManagedVoice.ts`, and `settings.sonioxManagedCloneNotice` is split across lines in `SonioxVoiceSection.tsx`. Trust the table and the check above, not a grep.
 
 - [ ] **Step 2: Add them to English first**
 
