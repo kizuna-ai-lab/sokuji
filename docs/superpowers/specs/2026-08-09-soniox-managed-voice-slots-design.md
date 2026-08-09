@@ -45,6 +45,14 @@ anything evicted can be rebuilt by the one party that still holds the clip.
 - **Cloning is not billed** (confirmed by the account owner), so churn costs
   nothing and eviction policy is free to be chosen on UX grounds alone.
 - The backend has **D1, KV and Durable Objects — no R2**.
+- **Manually created voices share the same project the managed pool draws
+  from** — live check on 2026-08-09 found eight, none matching the managed
+  `u_` prefix. This is what makes `MAX_VOICE_SLOTS`' headroom load-bearing
+  rather than decorative: the pool counts only our own table, so anything a
+  human creates by hand is invisible to allocation and shows up as a Soniox
+  quota failure on someone else's session. The list endpoint returns
+  `tts-rt-v2` alongside `tts-rt-v1` in `models`; we read v1, which is what we
+  synthesize with.
 - `docs/ANALYTICS_EVENTS.md` and `sessionStartGate.ts` are shared with the
   subtitle window; see Architecture §5.
 
@@ -384,8 +392,9 @@ our table insisted there was room.
   `markStarted` and `getExpiresAt` already scope theirs.
 - **The reaper's census is project-scoped while Soniox's quota is org-wide**,
   so its divergence alarm is a lower bound.
-- **The reaper depends on `created_at` being present in Soniox's list
-  payload.** That field is optional in both our type and the live-probed
-  reference client; if the list endpoint omits it, every candidate is skipped
-  for unestablishable age and the reaper is silently inert. Needs one live-API
-  confirmation before the safety net can be trusted.
+- **The reaper's age check depends on `created_at` in the list payload.**
+  Verified live (2026-08-09): every item carries it, alongside `id`, `name`,
+  `filename` and `models`. The field is still optional in the type, so a future
+  payload change would make the reaper silently inert rather than loudly
+  broken — which is why it should log how many candidates it skipped for
+  unestablishable age.
