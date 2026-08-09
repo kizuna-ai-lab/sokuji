@@ -27,7 +27,7 @@ import {
 import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
-import { sonioxUsesSharedBothSession } from '../../services/providers/SonioxProviderConfig';
+import { sonioxUsesSharedBothSession, SonioxProviderConfig } from '../../services/providers/SonioxProviderConfig';
 import { reverseTranscriptionDirection } from '../../services/providers/openaiTranscriptionContext';
 import {
   useConversationDisplayFontSize,
@@ -56,8 +56,11 @@ import { useAnalytics } from '../../lib/analytics';
 import { buildApiErrorProps } from '../../lib/apiErrorProps';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
-import { Provider, isOpenAICompatible, kizunaBaseProvider } from '../../types/Provider';
+import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../types/Provider';
 import { computeStartGate, reasonToI18n } from './sessionStartGate';
+import { prepareManagedVoice, voicePrepNotice } from './prepareManagedVoice';
+import { ManagedVoicesClient } from '../../services/clients/ManagedVoicesClient';
+import { loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
 import { useSubtitleSessionBridge } from './useSubtitleSessionBridge';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audioUtils';
@@ -102,6 +105,12 @@ function usesLocalSileroVad(provider: string): boolean {
   return provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE;
 }
 
+/** Soniox's built-in voice names. A `settings.voice` outside this set is a
+ *  cloned-voice UUID, which is the only case that needs preparing. */
+const SONIOX_BUILTIN_VOICES = new Set(
+  new SonioxProviderConfig().getConfig().voices.map((v) => v.value)
+);
+const SONIOX_DEFAULT_VOICE = 'Maya';
 
 // ---------------------------------------------------------------------------
 // ConversationBubble – row renderer extracted from MainPanel.renderConversationItem
@@ -248,7 +257,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [items, setItems] = useState<ConversationItem[]>([]);
   const [isInitializing, setIsInitializing] = useState(false);
   const [initProgress, setInitProgress] = useState<{ completed: number; total: number } | null>(null);
-  
+  // Distinct from initProgress: preparing a cloned voice can take ~10s of
+  // uploading and building, and "Loading (1/3)…" would be a lie about what
+  // the user is waiting for. Mirrors the nativeAsrLoading label swap.
+  const [voicePreparing, setVoicePreparing] = useState(false);
+
   // Get settings from store
   const provider = useProvider();
   const uiMode = useUIMode();
@@ -1754,6 +1767,51 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         return;
       }
 
+      // Managed cloned voices are cache entries, not registrations: the one
+      // selected days ago may have been evicted since. Claim (and if needed
+      // rebuild) it now, before any client exists — the backend pins the slot
+      // for a short start window, which session-started then extends to the
+      // session's own expiry.
+      //
+      // Only the speaker channel speaks: createParticipantSessionConfig is
+      // text-only, so a participant-only session has no voice to prepare.
+      let preparedVoiceId: string | null = null;
+      let voicePrepMessage: string | null = null;
+      const sonioxVoiceSetting = (useSettingsStore.getState()[
+        ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore
+      ] as { voice?: string })?.voice;
+      if (
+        speakerWillStart &&
+        !textOnly &&
+        (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
+        isKizunaManagedProvider(provider) &&
+        sonioxVoiceSetting &&
+        !SONIOX_BUILTIN_VOICES.has(sonioxVoiceSetting)
+      ) {
+        setVoicePreparing(true);
+        try {
+          const result = await prepareManagedVoice({
+            client: new ManagedVoicesClient(getAuthToken),
+            loadClip: loadVoiceClip,
+          });
+          if (result.ok) {
+            preparedVoiceId = result.voiceId;
+            // A rebuilt voice comes back with a DIFFERENT Soniox UUID, so
+            // every ensure response is authoritative. Writing it through here
+            // is what keeps the settings dropdown pointing at a voice that
+            // actually exists.
+            if (result.voiceId !== sonioxVoiceSetting) {
+              useSettingsStore.getState().updateKizunaSoniox({ voice: result.voiceId });
+            }
+          } else {
+            const notice = voicePrepNotice(result.reason);
+            voicePrepMessage = t(notice.key, notice.defaultValue);
+          }
+        } finally {
+          setVoicePreparing(false);
+        }
+      }
+
       // Read mode once at session start. Mode can't change mid-session
       // (the picker is locked), so a one-shot read avoids re-subscribing
       // the entire callback to mode changes.
@@ -1840,6 +1898,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
         // Get session configuration
         const sessionConfig = getSessionConfig();
+        // Same shape as the `bidirectional` override below: sessionConfig is a
+        // plain object built for this connect() alone. The fallback is applied
+        // to THIS SESSION only and never written back to settings — a busy
+        // pool tonight must not silently demote the user's voice preference
+        // forever.
+        if (preparedVoiceId) {
+          (sessionConfig as SonioxSessionConfig).voice = preparedVoiceId;
+        } else if (voicePrepMessage) {
+          (sessionConfig as SonioxSessionConfig).voice = SONIOX_DEFAULT_VOICE;
+        }
         // Both single-session (Soniox): flip the speaker config to a bidirectional
         // two_way session so one core handles both directions. sonioxSharedBoth
         // already guarantees provider === 'soniox', shared toggle on, and a
@@ -2213,6 +2281,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }]);
       }
 
+      // Appended after the setItems overwrite above for the same reason as
+      // participantErrorMessage: setItems(getConversationItems()) would wipe
+      // anything appended earlier in this function.
+      if (voicePrepMessage) {
+        setItems(prevItems => [...prevItems, {
+          id: `voice-prep-${Date.now()}`,
+          role: 'system',
+          // `error` is what every system notice in this codebase uses,
+          // including SonioxClient's own emitSystemNotice — it is the only
+          // system-item type the bubble renderer and subtitleIdleState both
+          // understand. A friendlier-sounding type nobody renders would be a
+          // notice the user never sees.
+          type: 'error',
+          status: 'completed',
+          createdAt: Date.now(),
+          formatted: { text: voicePrepMessage },
+        }]);
+      }
+
       // Start tracking audio quality metrics during session
       audioQualityIntervalRef.current = setInterval(() => {
         if (audioServiceRef.current) {
@@ -2263,9 +2350,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsInitializing(false);
     }
   }, [
-    // Per-provider settings, auth accessors, and getCurrentProviderSettings are
-    // no longer read here — createAIClient resolves credentials via the active
-    // provider's descriptor (which closes over getAuthToken).
+    // Per-provider settings and getCurrentProviderSettings are no longer read
+    // here — createAIClient resolves credentials via the active provider's
+    // descriptor (which closes over getAuthToken itself). getAuthToken IS
+    // listed below, though: the managed-voice prep block calls it directly to
+    // construct a ManagedVoicesClient, and a stale closure would mint that
+    // request with a token from a previous sign-in — a 401 that looks like an
+    // outage.
     noiseSuppressionMode,
     provider,
     transportType,
@@ -2281,7 +2372,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     realVoicePassthroughVolume,
     // Channel-start predicates control which clients are created
     speakerWillStart,
-    participantWillStart
+    participantWillStart,
+    // Managed-voice prep block additions (see the comment above it).
+    getAuthToken,
+    textOnly,
+    t,
   ]);
 
   // Bridge to surfaces outside this React tree (the Electron subtitle window):
@@ -3673,11 +3768,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <>
                     <Loader className="spinning" size={16} />
                     <span className="btn-text">
-                      {initProgress
-                        ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
-                        : nativeAsrLoading
-                          ? t('simplePanel.loadingModel', 'Loading model…')
-                          : t('simplePanel.connecting', 'Connecting...')}
+                      {voicePreparing
+                        ? t('simplePanel.preparingVoice', 'Preparing your voice…')
+                        : initProgress
+                          ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
+                          : nativeAsrLoading
+                            ? t('simplePanel.loadingModel', 'Loading model…')
+                            : t('simplePanel.connecting', 'Connecting...')}
                     </span>
                   </>
                 ) : isSessionActive ? (
@@ -3799,9 +3896,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <>
                     <Loader size={14} className="spinner" />
                     <span>
-                      {initProgress
-                        ? t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
-                        : t('mainPanel.initializing')}
+                      {voicePreparing
+                        ? t('mainPanel.preparingVoice', 'Preparing your voice…')
+                        : initProgress
+                          ? t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
+                          : t('mainPanel.initializing')}
                     </span>
                   </>
                 ) : isSessionActive ? (
