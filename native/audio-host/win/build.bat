@@ -40,8 +40,10 @@ if not exist out mkdir out
 REM /utf-8 pins the source charset. Without it MSVC decodes the file with the
 REM machine's ANSI code page (932 on the Japanese-locale test box) and warns
 REM C4819, which would silently mangle any non-ASCII literal added later.
+REM version.lib provides GetFileVersionInfo*, which reads the FileDescription
+REM resource the picker labels each application with.
 cl /nologo /EHsc /std:c++17 /O2 /W3 /utf-8 main.cpp /Fo:out\ ^
-   /link ole32.lib user32.lib mmdevapi.lib /out:out\sokuji-audio-host.exe
+   /link ole32.lib user32.lib mmdevapi.lib version.lib /out:out\sokuji-audio-host.exe
 
 if errorlevel 1 (
   echo BUILD FAILED

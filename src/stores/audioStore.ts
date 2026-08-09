@@ -39,6 +39,16 @@ export interface AudioDevice {
    * whole-system capture.
    */
   appKey?: string | null;
+  /**
+   * Titles of the windows this capture source owns.
+   *
+   * A source is a process tree, and neither Windows nor macOS can capture one
+   * window of it separately - two Chrome windows are one source. Naming the row
+   * after one of them hid that, so the row carries the application name and the
+   * titles are shown on hover instead. Empty when the platform cannot read them
+   * (macOS gates window titles behind Screen Recording).
+   */
+  windowTitles?: string[];
 }
 
 /**

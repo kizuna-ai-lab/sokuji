@@ -2,7 +2,13 @@
 //
 //   sokuji-audio-host.exe --list
 //       Writes one JSON array to stdout and exits 0.
-//       [{"id":"pid:1234","label":"Zoom Meetings","exe":"Zoom.exe","active":true}]
+//       [{"id":"pid:1234","label":"Zoom Meetings","exe":"Zoom.exe","active":true,
+//         "windows":["Zoom Meeting","Chat"]}]
+//       `id` names the application's root process, which outlives the child
+//       that happens to hold the audio session. `label` is the application
+//       name; `windows` are its window titles, which the UI shows on hover
+//       because one process can own several windows and Windows cannot capture
+//       them separately.
 //
 //   sokuji-audio-host.exe --target pid:1234
 //       Writes raw PCM to stdout until killed. Format is fixed at
@@ -23,8 +29,10 @@
 #include <audioclientactivationparams.h>
 #include <audiopolicy.h>
 #include <tlhelp32.h>
+#include <winver.h>
 #include <fcntl.h>
 #include <io.h>
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -79,62 +87,164 @@ static void EmitError(const char* code) {
     fflush(stderr);
 }
 
-static std::string ExeNameOf(DWORD pid) {
+static std::wstring ImagePathOf(DWORD pid) {
     HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
-    if (!h) return std::string();
+    if (!h) return std::wstring();
     wchar_t path[MAX_PATH] = {};
     DWORD n = MAX_PATH;
-    std::string result;
-    if (QueryFullProcessImageNameW(h, 0, path, &n)) {
-        const wchar_t* slash = wcsrchr(path, L'\\');
-        result = Utf8(slash ? slash + 1 : path);
-    }
+    std::wstring result;
+    if (QueryFullProcessImageNameW(h, 0, path, &n)) result.assign(path, n);
     CloseHandle(h);
     return result;
+}
+
+static std::string ExeNameOf(DWORD pid) {
+    const std::wstring path = ImagePathOf(pid);
+    if (path.empty()) return std::string();
+    const size_t slash = path.find_last_of(L'\\');
+    return Utf8(slash == std::wstring::npos ? path.c_str() : path.c_str() + slash + 1);
+}
+
+/**
+ * The executable's FileDescription resource - "Google Chrome" for chrome.exe.
+ *
+ * This is the name Task Manager shows, and the only application name Windows
+ * offers for free; everything friendlier (AppUserModelID, package display name)
+ * covers packaged apps only.
+ */
+static std::string FileDescription(const wchar_t* path) {
+    DWORD ignored = 0;
+    const DWORD size = GetFileVersionInfoSizeW(path, &ignored);
+    if (size == 0) return std::string();
+    std::vector<BYTE> buffer(size);
+    if (!GetFileVersionInfoW(path, 0, size, buffer.data())) return std::string();
+
+    struct LangCodePage { WORD language; WORD codePage; };
+    LangCodePage* translations = nullptr;
+    UINT bytes = 0;
+    if (!VerQueryValueW(buffer.data(), L"\\VarFileInfo\\Translation",
+                        reinterpret_cast<void**>(&translations), &bytes)
+        || bytes < sizeof(LangCodePage)) {
+        return std::string();
+    }
+    // The first translation is the binary's own language. Later ones are
+    // localisations, which would name the app in a language nobody asked for.
+    wchar_t key[64];
+    swprintf_s(key, L"\\StringFileInfo\\%04x%04x\\FileDescription",
+               translations[0].language, translations[0].codePage);
+    wchar_t* value = nullptr;
+    UINT length = 0;
+    if (!VerQueryValueW(buffer.data(), key, reinterpret_cast<void**>(&value), &length)
+        || length == 0) {
+        return std::string();
+    }
+    return Utf8(value);
 }
 
 // ------------------------------------------------------------------- --list
 
 struct TitleCollector {
-    std::map<DWORD, std::string> byPid;
+    std::map<DWORD, std::vector<std::string>> byPid;
 };
 
 // Chromium and Electron render audio from a child process (the audio service),
-// and that child owns no window - so looking the audio session's pid up
-// directly finds nothing and the list falls back to bare exe names. Walking up
-// the parent chain reaches the browser process that does own the window.
-// Capped so a broken or cyclic chain cannot spin.
+// and that child owns no window, so nothing about the application can be read
+// off the audio session's own pid. Walking up the parent chain reaches the
+// process that does represent the app. Capped so a broken or cyclic chain
+// cannot spin.
 static const int kMaxParentHops = 6;
 
-static std::map<DWORD, DWORD> BuildParentMap() {
-    std::map<DWORD, DWORD> parents;
+struct ProcessTable {
+    std::map<DWORD, DWORD> parent;
+    std::map<DWORD, std::string> image;
+};
+
+static ProcessTable BuildProcessTable() {
+    ProcessTable table;
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (snap == INVALID_HANDLE_VALUE) return parents;
+    if (snap == INVALID_HANDLE_VALUE) return table;
     PROCESSENTRY32W entry{};
     entry.dwSize = sizeof(entry);
     if (Process32FirstW(snap, &entry)) {
         do {
-            parents[entry.th32ProcessID] = entry.th32ParentProcessID;
+            table.parent[entry.th32ProcessID] = entry.th32ParentProcessID;
+            // The snapshot's image name needs no handle, so it also covers
+            // processes this helper may not open.
+            table.image[entry.th32ProcessID] = Utf8(entry.szExeFile);
         } while (Process32NextW(snap, &entry));
     }
     CloseHandle(snap);
-    return parents;
+    return table;
 }
 
-/** Window title owned by `pid` or by its nearest ancestor, else empty. */
-static std::string TitleForPid(DWORD pid,
-                               const std::map<DWORD, std::string>& titles,
-                               const std::map<DWORD, DWORD>& parents) {
-    DWORD current = pid;
-    for (int hop = 0; hop < kMaxParentHops && current != 0; hop++) {
-        auto title = titles.find(current);
-        if (title != titles.end() && !title->second.empty()) return title->second;
-        auto parent = parents.find(current);
-        if (parent == parents.end() || parent->second == current) break;
-        current = parent->second;
-        if (current <= 4) break;  // reached System/Idle; nothing useful above
+static std::string ImageOf(DWORD pid, const ProcessTable& table) {
+    auto it = table.image.find(pid);
+    if (it != table.image.end() && !it->second.empty()) return it->second;
+    return ExeNameOf(pid);
+}
+
+static bool SameImage(const std::string& a, const std::string& b) {
+    return !a.empty() && !b.empty() && _stricmp(a.c_str(), b.c_str()) == 0;
+}
+
+/**
+ * The process that represents the *application* holding this audio session.
+ *
+ * The session belongs to whichever process opened the render stream, and for a
+ * multi-process app that is a short-lived child: Chrome plays through a
+ * `--type=utility` audio service it tears down and replaces around playback.
+ * Targeting that child produced a tap that died with it - the helper exited
+ * `target_gone`, and Sokuji answers a dead helper by falling back to
+ * whole-system capture while the picker still names the application, so the
+ * user's whole desktop starts being translated with nothing on screen saying
+ * so. Reporting the root instead gives a pid that lives as long as the app,
+ * and PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE still reaches every
+ * child it spawns - including the replacement audio service.
+ *
+ * The walk stops as soon as the parent runs a different executable, and that
+ * bound is what makes it safe. Multi-process apps spawn their children from
+ * their own image, whereas an unrelated parent - explorer.exe having launched a
+ * window-less player - does not. Without the bound such an app's root would be
+ * the desktop shell, and capturing that tree would capture nearly everything
+ * the user has open: the exact leak this is meant to close.
+ */
+static DWORD AppRootPid(DWORD pid, const ProcessTable& table) {
+    const std::string image = ImageOf(pid, table);
+    if (image.empty()) return pid;
+    DWORD root = pid;
+    for (int hop = 0; hop < kMaxParentHops; hop++) {
+        auto parent = table.parent.find(root);
+        if (parent == table.parent.end()) break;
+        const DWORD up = parent->second;
+        // 0-4 are System/Idle; a self-referencing entry would loop forever.
+        if (up <= 4 || up == root) break;
+        if (!SameImage(ImageOf(up, table), image)) break;
+        root = up;
     }
-    return std::string();
+    return root;
+}
+
+/**
+ * What to call this application in the picker.
+ *
+ * Deliberately not a window title. A capturable source is a process tree, and
+ * one tree routinely owns several windows - two Chrome windows are one process
+ * and therefore one source, which Windows offers no way to split. Naming the
+ * row after whichever window was enumerated first promised a granularity the OS
+ * cannot deliver, and made two windows look like one arbitrary one. The window
+ * titles still travel, in `windows`, for the UI to show on hover.
+ */
+static std::string FriendlyName(DWORD pid, const ProcessTable& table) {
+    const std::wstring path = ImagePathOf(pid);
+    if (!path.empty()) {
+        const std::string described = FileDescription(path.c_str());
+        if (!described.empty()) return described;
+    }
+    const std::string image = ImageOf(pid, table);
+    if (!image.empty()) return image;
+    char b[32];
+    sprintf_s(b, "PID %lu", pid);
+    return b;
 }
 
 static BOOL CALLBACK CollectTitle(HWND hwnd, LPARAM lp) {
@@ -146,8 +256,9 @@ static BOOL CALLBACK CollectTitle(HWND hwnd, LPARAM lp) {
     GetWindowThreadProcessId(hwnd, &pid);
     if (pid == 0) return TRUE;
     auto* c = reinterpret_cast<TitleCollector*>(lp);
-    // First visible window wins; later ones are usually secondary dialogs.
-    if (c->byPid.find(pid) == c->byPid.end()) c->byPid[pid] = Utf8(title);
+    // Every window, not just the first: they are what the row's tooltip lists,
+    // and dropping all but one is what made two Chrome windows indistinguishable.
+    c->byPid[pid].push_back(Utf8(title));
     return TRUE;
 }
 
@@ -156,6 +267,7 @@ struct Entry {
     std::string exe;
     std::string label;
     bool active;
+    std::vector<std::string> windows;
 };
 
 // Enumerate processes that hold an audio session on the default render endpoint.
@@ -189,7 +301,18 @@ static int ListSources() {
 
     TitleCollector titles;
     EnumWindows(CollectTitle, reinterpret_cast<LPARAM>(&titles));
-    const std::map<DWORD, DWORD> parents = BuildParentMap();
+    const ProcessTable procs = BuildProcessTable();
+
+    // A window belongs to the application, not to the process that happens to
+    // own it, so fold every collected title onto its application root. One row
+    // can then list every window the app has open.
+    std::map<DWORD, std::vector<std::string>> windowsByRoot;
+    for (const auto& owner : titles.byPid) {
+        auto& into = windowsByRoot[AppRootPid(owner.first, procs)];
+        for (const auto& title : owner.second) {
+            if (std::find(into.begin(), into.end(), title) == into.end()) into.push_back(title);
+        }
+    }
 
     std::vector<Entry> entries;
     IAudioSessionEnumerator* sessions = nullptr;
@@ -212,21 +335,25 @@ static int ListSources() {
                 AudioSessionState st = AudioSessionStateInactive;
                 ctl->GetState(&st);
 
-                Entry e{};
-                e.pid = pid;
-                e.exe = ExeNameOf(pid);
-                e.active = (st == AudioSessionStateActive);
+                // Report the application, not the process that opened the
+                // stream: see AppRootPid. This also collapses an app that holds
+                // several sessions into the one row a user expects.
+                const DWORD root = AppRootPid(pid, procs);
 
-                const std::string title = TitleForPid(pid, titles.byPid, parents);
-                e.label = !title.empty() ? title : e.exe;
-                if (e.label.empty()) {
-                    char b[32];
-                    sprintf_s(b, "PID %lu", pid);
-                    e.label = b;
-                }
+                Entry e{};
+                e.pid = root;
+                e.exe = ImageOf(root, procs);
+                e.active = (st == AudioSessionStateActive);
+                e.label = FriendlyName(root, procs);
+                auto windows = windowsByRoot.find(root);
+                if (windows != windowsByRoot.end()) e.windows = windows->second;
 
                 bool dup = false;
-                for (const auto& x : entries) if (x.pid == pid) { dup = true; break; }
+                for (auto& x : entries) {
+                    // Merged rows are active when any of their sessions is, or
+                    // an app playing through its second session reads as idle.
+                    if (x.pid == root) { x.active = x.active || e.active; dup = true; break; }
+                }
                 if (!dup) entries.push_back(e);
             }
             ctl2->Release();
@@ -234,15 +361,24 @@ static int ListSources() {
         ctl->Release();
     }
 
+    // Two instances of one application - a second Chrome profile, or Chrome
+    // beside Chrome Beta - carry the same name here, and nothing in this list
+    // tells them apart. Disambiguating them is the caller's job: it appends the
+    // pid from `id` to every row, on every platform, rather than only where a
+    // collision happens to occur.
     printf("[");
     for (size_t i = 0; i < entries.size(); i++) {
         const Entry& e = entries[i];
-        printf("%s{\"id\":\"pid:%lu\",\"label\":\"%s\",\"exe\":\"%s\",\"active\":%s}",
+        printf("%s{\"id\":\"pid:%lu\",\"label\":\"%s\",\"exe\":\"%s\",\"active\":%s,\"windows\":[",
                i ? "," : "",
                e.pid,
                JsonEscape(e.label).c_str(),
                JsonEscape(e.exe).c_str(),
                e.active ? "true" : "false");
+        for (size_t w = 0; w < e.windows.size(); w++) {
+            printf("%s\"%s\"", w ? "," : "", JsonEscape(e.windows[w]).c_str());
+        }
+        printf("]}");
     }
     printf("]");
     fflush(stdout);

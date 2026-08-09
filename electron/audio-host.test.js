@@ -26,8 +26,50 @@ describe('listAppSources', () => {
     child.emit('close', 0);
 
     // appKey is what survives a restart; deviceId's pid does not.
-    expect(await p).toEqual([{ deviceId: 'app:pid:42', label: 'Zoom', appKey: 'Zoom.exe' }]);
+    expect(await p).toEqual([
+      { deviceId: 'app:pid:42', label: 'Zoom (42)', appKey: 'Zoom.exe', windowTitles: [] },
+    ]);
     expect(spawn.mock.calls[0][1]).toEqual(['--list']);
+  });
+
+  it('names two instances of one application apart by pid', async () => {
+    const child = fakeChild();
+    const p = listAppSources({ spawn: () => child, resolvePath });
+
+    // A second Chrome profile is a second, separately capturable Chrome. The
+    // helper cannot tell them apart by name and must not try to.
+    child.stdout.emit('data', Buffer.from(
+      '[{"id":"pid:42","label":"Google Chrome","exe":"chrome.exe"},'
+      + '{"id":"pid:77","label":"Google Chrome","exe":"chrome.exe"}]'));
+    child.emit('close', 0);
+
+    expect((await p).map((s) => s.label)).toEqual(['Google Chrome (42)', 'Google Chrome (77)']);
+  });
+
+  it('leaves a non-pid id out of the name', async () => {
+    const child = fakeChild();
+    const p = listAppSources({ spawn: () => child, resolvePath });
+    child.stdout.emit('data', Buffer.from('[{"id":"node:31","label":"Firefox","exe":"firefox"}]'));
+    child.emit('close', 0);
+    expect((await p)[0].label).toBe('Firefox');
+  });
+
+  it('carries the window titles through for the row tooltip', async () => {
+    const child = fakeChild();
+    const p = listAppSources({ spawn: () => child, resolvePath });
+
+    // One process tree, two windows - the case the label alone cannot express.
+    child.stdout.emit('data', Buffer.from(
+      '[{"id":"pid:42","label":"Google Chrome","exe":"chrome.exe","active":true,'
+      + '"windows":["YouTube - Google Chrome","","Docs - Google Chrome"]}]'));
+    child.emit('close', 0);
+
+    expect(await p).toEqual([{
+      deviceId: 'app:pid:42',
+      label: 'Google Chrome (42)',
+      appKey: 'chrome.exe',
+      windowTitles: ['YouTube - Google Chrome', 'Docs - Google Chrome'],
+    }]);
   });
 
   it('keeps non-ASCII labels intact across chunk boundaries', async () => {
@@ -42,7 +84,9 @@ describe('listAppSources', () => {
     child.stdout.emit('data', buf.subarray(20));
     child.emit('close', 0);
 
-    expect(await p).toEqual([{ deviceId: 'app:pid:7', label: '守望先锋', appKey: 'Overwatch.exe' }]);
+    expect(await p).toEqual([
+      { deviceId: 'app:pid:7', label: '守望先锋 (7)', appKey: 'Overwatch.exe', windowTitles: [] },
+    ]);
   });
 
   it('falls back to exe when label is empty', async () => {
@@ -50,7 +94,9 @@ describe('listAppSources', () => {
     const p = listAppSources({ spawn: () => child, resolvePath });
     child.stdout.emit('data', Buffer.from('[{"id":"pid:9","label":"","exe":"foo.exe"}]'));
     child.emit('close', 0);
-    expect(await p).toEqual([{ deviceId: 'app:pid:9', label: 'foo.exe', appKey: 'foo.exe' }]);
+    expect(await p).toEqual([
+      { deviceId: 'app:pid:9', label: 'foo.exe (9)', appKey: 'foo.exe', windowTitles: [] },
+    ]);
   });
 
   it('returns an empty array when the helper is missing', async () => {
