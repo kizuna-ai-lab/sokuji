@@ -145,6 +145,11 @@ const defaultDelay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * @returns {Promise<boolean>} true once the stream's only inputs are the monitor
  */
 async function bindCaptureSourceToSink({ exec, delay = defaultDelay, attempts = 4 }) {
+  // Whether each node was ever seen, which is what separates "this PipeWire
+  // builds the remap some other way" from "it has not published the node yet".
+  let sawSink = false;
+  let sawStream = false;
+
   for (let attempt = 0; attempt < attempts; attempt++) {
     // The session manager autoconnects asynchronously, so a repair applied
     // before it runs would simply be undone by it. Let the graph settle, then
@@ -154,14 +159,15 @@ async function bindCaptureSourceToSink({ exec, delay = defaultDelay, attempts = 
     const dump = await dumpGraph(exec);
     const sink = findNodeByName(dump, CAPTURE_SINK_NAME);
     const stream = findNodeByName(dump, `input.${CAPTURE_SOURCE_NAME}`);
-    // A PipeWire that builds the remap differently exposes no such stream.
-    // Leave its graph alone rather than guess at a shape we cannot see.
-    if (!stream) return true;
-    // The sink, by contrast, is ours: module-null-sink created it and the caller
-    // already found it with ports. Missing now means this tap can never carry
-    // audio, so keep looking and let the attempts run out rather than call it a
-    // shape we do not support.
-    if (!sink) continue;
+    if (sink) sawSink = true;
+    if (stream) sawStream = true;
+    // Absent is not the same as absent for good. pactl returns a module id the
+    // moment the module loads, but PipeWire publishes the node into the graph
+    // afterwards, so either of these can simply be late. Spend the attempts
+    // before drawing any conclusion - deciding on the first look would report
+    // success having never examined the autoconnected links, which is the very
+    // bug this exists to prevent.
+    if (!sink || !stream) continue;
 
     // A sink's monitor is its output ports; the remap's capture stream consumes
     // them through its inputs. Both are sorted by port name, so the channels
@@ -207,6 +213,15 @@ async function bindCaptureSourceToSink({ exec, delay = defaultDelay, attempts = 
     // the capture sink and by nothing else.
     if (!changed) return true;
   }
+
+  // Out of attempts. The sink is ours and must exist; without it there is no tap
+  // to bind and no honest way to call this a success.
+  if (!sawSink) return false;
+  // A stream that never appeared at all is a remap this PipeWire builds some
+  // other way. Now that it has had the full budget to show up, leaving its
+  // graph alone is a judgement rather than a guess.
+  if (!sawStream) return true;
+  // Both were there and the wiring would not settle.
   return false;
 }
 

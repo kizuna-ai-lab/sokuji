@@ -152,13 +152,17 @@ function fakeExec(calls, { dump = FULL_DUMP, moduleId = '536870913' } = {}) {
   };
 }
 
+// Binding retries on a real timer. No test here is about timing, so none of
+// them should sit through it.
+const noWait = async () => {};
+
 // The module holds captureModuleId in module scope; release it between tests.
 beforeEach(async () => { await disconnectAppSource({ exec: async () => ({ stdout: '' }) }); });
 
 describe('connectAppSource', () => {
   it('creates the null sink and links every channel pair by numeric id', async () => {
     const calls = [];
-    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls) });
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls), delay: noWait });
 
     expect(r.success).toBe(true);
     expect(r.monitorLabel).toBe(CAPTURE_SINK_DESCRIPTION);
@@ -192,7 +196,7 @@ describe('connectAppSource', () => {
       port(78, 206, 'output', 'output_FR'),
     ];
     const calls = [];
-    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { dump: twoTabs }) });
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { dump: twoTabs }), delay: noWait });
 
     expect(r.success).toBe(true);
     expect(calls).toContain('pw-link 91 153');   // first stream
@@ -204,7 +208,7 @@ describe('connectAppSource', () => {
     const calls = [];
     // Enumeration and selection are seconds apart; the app can quit in between.
     const gone = FULL_DUMP.filter((o) => o.id !== 205);
-    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { dump: gone }) });
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { dump: gone }), delay: noWait });
 
     expect(r.success).toBe(false);
     expect(r.error).toMatch(/no longer playing/i);
@@ -214,14 +218,14 @@ describe('connectAppSource', () => {
 
   it('never moves the stream off its existing sink', async () => {
     const calls = [];
-    await connectAppSource('app:pid:4242', { exec: fakeExec(calls) });
+    await connectAppSource('app:pid:4242', { exec: fakeExec(calls), delay: noWait });
     // move-sink-input would steal the audio from the user's speakers.
     expect(calls.some((c) => c.includes('move-sink-input'))).toBe(false);
   });
 
   it('rejects a deviceId that is not an app: id', async () => {
     const calls = [];
-    const r = await connectAppSource('desktop-audio-loopback', { exec: fakeExec(calls) });
+    const r = await connectAppSource('desktop-audio-loopback', { exec: fakeExec(calls), delay: noWait });
     expect(r.success).toBe(false);
     expect(calls.some((c) => c.includes('load-module'))).toBe(false);
   });
@@ -229,7 +233,7 @@ describe('connectAppSource', () => {
   it('tears the sink back down when the target node has no ports', async () => {
     const calls = [];
     const dumpNoPorts = FULL_DUMP.filter((o) => o.type !== 'PipeWire:Interface:Port');
-    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { dump: dumpNoPorts }) });
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { dump: dumpNoPorts }), delay: noWait });
 
     expect(r.success).toBe(false);
     // A leaked null sink shows up as a phantom device in system settings.
@@ -239,7 +243,7 @@ describe('connectAppSource', () => {
   it('refuses a module id that is not digits', async () => {
     const calls = [];
     // Anything but digits would later be interpolated into a shell string.
-    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { moduleId: '1; rm -rf /' }) });
+    const r = await connectAppSource('app:pid:4242', { exec: fakeExec(calls, { moduleId: '1; rm -rf /' }), delay: noWait });
     expect(r.success).toBe(false);
     expect(calls.some((c) => c.includes('rm -rf'))).toBe(false);
   });
@@ -247,9 +251,9 @@ describe('connectAppSource', () => {
   it('releases a previous tap before creating a new one', async () => {
     const calls = [];
     const exec = fakeExec(calls);
-    await connectAppSource('app:pid:4242', { exec });
+    await connectAppSource('app:pid:4242', { exec, delay: noWait });
     calls.length = 0;
-    await connectAppSource('app:pid:4242', { exec });
+    await connectAppSource('app:pid:4242', { exec, delay: noWait });
 
     // Two live taps would feed both applications into the same capture sink.
     expect(calls.some((c) => c.includes('unload-module 536870913'))).toBe(true);
@@ -325,14 +329,24 @@ function fakeExecStages(calls, dumps, { moduleId = '536870913' } = {}) {
  * observed converging instead of asserted one call at a time. `pw-link` adds a
  * link and `pw-link -d` removes one, exactly as they do on a real graph.
  */
-function fakeExecLiveGraph(calls, initial, { moduleId = '536870913' } = {}) {
+function fakeExecLiveGraph(calls, initial, { moduleId = '536870913', hideStreamUntilDump = 0 } = {}) {
   const nodesAndPorts = initial.filter((o) => o.type !== 'PipeWire:Interface:Link');
   let links = initial.filter((o) => o.type === 'PipeWire:Interface:Link');
   let nextLinkId = 900;
+  let dumps = 0;
 
   return async (cmd) => {
     calls.push(cmd);
-    if (cmd.startsWith('pw-dump')) return { stdout: JSON.stringify([...nodesAndPorts, ...links]) };
+    if (cmd.startsWith('pw-dump')) {
+      dumps++;
+      // pactl hands back a module id the moment the module loads, but PipeWire
+      // publishes the node into the graph a moment later. Hide it for the first
+      // few dumps to reproduce that gap.
+      const nodes = dumps <= hideStreamUntilDump
+        ? nodesAndPorts.filter((o) => o.id !== 400 && o?.info?.props?.['node.id'] !== 400)
+        : nodesAndPorts;
+      return { stdout: JSON.stringify([...nodes, ...links]) };
+    }
     if (cmd.includes('load-module')) return { stdout: `${moduleId}\n` };
 
     const cut = cmd.match(/^pw-link -d (\d+) (\d+)$/);
@@ -413,6 +427,25 @@ describe('the remapped source is bound to the capture sink, not the default inpu
     expect(calls.some((c) => c.startsWith('pw-link -d'))).toBe(false);
   });
 
+  it('waits for a remap stream that PipeWire has not published yet', async () => {
+    // pactl returns the module id as soon as the module loads; the node reaches
+    // the graph afterwards. Calling the shape unsupported on the first look
+    // reports success having never examined the autoconnected links - which is
+    // this bug all over again, on a slower machine.
+    const calls = [];
+    const r = await connectAppSource('app:pid:4242', {
+      // Dumps 1 and 2 resolve the application and the new sink; dump 3 is the
+      // first binding attempt, and the stream only shows up for dump 4.
+      exec: fakeExecLiveGraph(calls, DUMP_MISWIRED, { hideStreamUntilDump: 3 }),
+      delay: async () => {},
+    });
+
+    expect(r.success).toBe(true);
+    // It must have actually done the repair, not shrugged and returned early.
+    expect(calls).toContain('pw-link -d 501 401');
+    expect(calls).toContain('pw-link 310 401');
+  });
+
   it('fails when the capture sink disappears before binding', async () => {
     // The sink is ours: module-null-sink created it and it was already found
     // once, with ports, before we got here. Its absence now is not an
@@ -452,7 +485,7 @@ describe('disconnectAppSource', () => {
   it('unloads the module recorded by connect and is idempotent', async () => {
     const calls = [];
     const exec = fakeExec(calls);
-    await connectAppSource('app:pid:4242', { exec });
+    await connectAppSource('app:pid:4242', { exec, delay: noWait });
 
     expect((await disconnectAppSource({ exec })).success).toBe(true);
     expect(calls.some((c) => c.includes('unload-module 536870913'))).toBe(true);
@@ -541,8 +574,8 @@ describe('capture lifecycle is serialized', () => {
     };
 
     await Promise.all([
-      connectAppSource('app:pid:4242', { exec }),
-      connectAppSource('app:pid:4242', { exec }),
+      connectAppSource('app:pid:4242', { exec, delay: noWait }),
+      connectAppSource('app:pid:4242', { exec, delay: noWait }),
     ]);
     await disconnectAppSource({ exec });
 
