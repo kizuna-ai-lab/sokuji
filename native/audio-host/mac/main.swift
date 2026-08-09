@@ -14,8 +14,12 @@
 //       24000 Hz, 1 channel, signed 16-bit little-endian.
 //       Writes one JSON object per line to stderr:
 //         {"event":"format","sampleRate":24000,"channels":1,"encoding":"s16le"}
-//         {"event":"warning","code":"silent_no_permission"}
+//         {"event":"warning","code":"silent_no_permission|retarget_failed"}
 //         {"event":"error","code":"..."}
+//
+//       A targeted capture starts whether or not the application is currently
+//       playing, and follows the application's audio process objects as macOS
+//       destroys and recreates them - see retarget() below.
 //
 // Exit codes: 0 clean, 1 runtime failure, 2 bad usage.
 //
@@ -41,6 +45,12 @@ import AppKit
 // unlike the Windows helper - where WASAPI converts for us - we convert here.
 let kOutRate = 24000.0
 let kOutChannels = 1
+
+// Most silence the writer will synthesise in one go to catch up to wall clock.
+// The read that precedes it times out at 0.1 s, so a healthy loop owes about
+// that much; this leaves an order of magnitude for scheduling jitter and treats
+// anything beyond it as a clock jump to be absorbed, not replayed.
+let kMaxSilenceCatchUp = 1.0
 
 // MARK: - small helpers
 
@@ -200,10 +210,16 @@ final class RingBuffer: @unchecked Sendable {
         lock.unlock()
     }
 
-    /// Blocks until at least `minimum` samples are available or the ring closes.
-    func read(into dst: inout [Float], minimum: Int) -> Int {
+    /// Blocks until at least `minimum` samples are available, the ring closes,
+    /// or `timeout` elapses. A timeout returns 0 and is not an error: a tap
+    /// whose process list is momentarily empty delivers no buffers at all - not
+    /// even silent ones - so the caller has to make up the missing time itself.
+    func read(into dst: inout [Float], minimum: Int, timeout: TimeInterval) -> Int {
         lock.lock()
-        while count < minimum && !closed { lock.wait() }
+        let deadline = Date().addingTimeInterval(timeout)
+        while count < minimum && !closed {
+            if !lock.wait(until: deadline) { break }
+        }
         let n = min(count, dst.count)
         for i in 0..<n { dst[i] = storage[(readIndex + i) % storage.count] }
         readIndex = (readIndex + n) % storage.count
@@ -251,9 +267,16 @@ func ppidOf(_ pid: pid_t) -> pid_t {
 /// even silence. Windows already captures the whole tree
 /// (PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE) and Linux links every one
 /// of the app's streams; this brings macOS in line.
+///
+/// The result is a snapshot, never a constant: measured on macOS 15.7.3, an
+/// audio process object is destroyed when its process stops rendering and a
+/// fresh one is created for the replacement. Killing Chrome's
+/// audio.mojom.AudioService child took its object out of Chrome's tree and the
+/// respawned service arrived as a different object under a different pid, so a
+/// list resolved once at capture start goes stale on its own.
 func audioObjectsInTree(of targetPid: pid_t) -> [AudioObjectID] {
     let all = objectIDs(kAudioHardwarePropertyProcessObjectList)
-    return all.filter { obj in
+    return all.sorted().filter { obj in
         // pidOf is optional; an object without a pid cannot be in any tree.
         guard var current = pidOf(obj) else { return false }
         // Walk up to the target; the depth bound stops a cycle from hanging us.
@@ -266,6 +289,73 @@ func audioObjectsInTree(of targetPid: pid_t) -> [AudioObjectID] {
     }
 }
 
+/// The tap description for one target. `nil` processes means the whole system.
+///
+/// A targeted capture always uses the mixdown initialiser, even while the list
+/// is empty. The two initialisers are not interchangeable and the difference is
+/// the whole per-application feature: measured on macOS 15.7.3, a mixdown tap
+/// with an empty list captures nothing and clocks nothing, while the global
+/// initialiser with an empty exclusion list captures every application. Reaching
+/// for the wrong one when a target momentarily owns no audio objects is how a
+/// capture of one application silently becomes a capture of all of them.
+func tapDescription(processes: [AudioObjectID]?, uuid: UUID) -> CATapDescription {
+    let desc = processes.map { CATapDescription(monoMixdownOfProcesses: $0) }
+        ?? CATapDescription(stereoGlobalTapButExcludeProcesses: [])
+    desc.uuid = uuid
+    desc.name = "Sokuji Application Capture"
+    desc.isPrivate = true   // visible only to us; CATapUnmuted is the default
+    return desc
+}
+
+/// Point a live tap at a new set of process objects.
+///
+/// Writing kAudioTapPropertyDescription on a running tap is honoured in place:
+/// measured on macOS 15.7.3, the HAL re-reads the list, audio from the newly
+/// named processes arrives within one poll interval, and the aggregate device
+/// keeps its IOProc, its clock and its sample rate throughout - no rebuild, no
+/// gap in the frame count. That is why this is a property write rather than a
+/// teardown of the tap, the aggregate device and the writer thread.
+func retarget(_ tapID: AudioObjectID, processes: [AudioObjectID], uuid: UUID) -> OSStatus {
+    var addr = globalAddress(kAudioTapPropertyDescription)
+    var boxed: CATapDescription? = tapDescription(processes: processes, uuid: uuid)
+    return withUnsafeMutablePointer(to: &boxed) {
+        AudioObjectSetPropertyData(tapID, &addr, 0, nil,
+                                   UInt32(MemoryLayout<CATapDescription?>.size), $0)
+    }
+}
+
+/// The tap's current sample rate and channel count, read off the aggregate
+/// device's input stream. Re-read after a retarget: the rate is the one thing a
+/// new process list could plausibly change under the writer thread.
+func inputFormat(of aggID: AudioObjectID) -> (rate: Double, channels: UInt32)? {
+    var streamAddr = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyStreams,
+                                                mScope: kAudioObjectPropertyScopeInput,
+                                                mElement: kAudioObjectPropertyElementMain)
+    var streamSize: UInt32 = 0
+    AudioObjectGetPropertyDataSize(aggID, &streamAddr, 0, nil, &streamSize)
+    guard streamSize >= UInt32(MemoryLayout<AudioObjectID>.size) else { return nil }
+    var streamIDs = [AudioObjectID](repeating: 0, count: Int(streamSize) / MemoryLayout<AudioObjectID>.size)
+    guard AudioObjectGetPropertyData(aggID, &streamAddr, 0, nil, &streamSize, &streamIDs) == noErr,
+          let first = streamIDs.first else { return nil }
+    var fmtAddr = globalAddress(kAudioStreamPropertyVirtualFormat)
+    var asbd = AudioStreamBasicDescription()
+    var asbdSize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+    guard AudioObjectGetPropertyData(first, &fmtAddr, 0, nil, &asbdSize, &asbd) == noErr,
+          asbd.mSampleRate > 0 else { return nil }
+    return (asbd.mSampleRate, max(1, asbd.mChannelsPerFrame))
+}
+
+/// Resampling ratio shared between the watch loop and the writer thread. It was
+/// a `let` while the tap was immutable; a retarget can in principle bring a new
+/// sample rate, and a writer using the old one would drift.
+final class RatioBox: @unchecked Sendable {
+    private var value: Double
+    private let lock = NSLock()
+    init(_ v: Double) { value = v }
+    var current: Double { lock.lock(); defer { lock.unlock() }; return value }
+    func set(_ v: Double) { lock.lock(); value = v; lock.unlock() }
+}
+
 @inline(__always)
 func appendSample(_ pcm: inout [Int16], _ v: Float) {
     let clamped = max(-1.0, min(1.0, v))
@@ -273,24 +363,23 @@ func appendSample(_ pcm: inout [Int16], _ v: Float) {
 }
 
 func runCapture(pid: pid_t?) -> Int32 {
-    var procObjs: [AudioObjectID] = []
-    if let pid {
-        procObjs = audioObjectsInTree(of: pid)
-        guard !procObjs.isEmpty else {
-            emitError("no_such_audio_process")
-            return 1
-        }
+    // The target must exist, but it need not be making a sound. An application
+    // owns audio process objects only while something in its tree renders, so
+    // requiring a non-empty list here refused to capture any application that
+    // happened to be quiet at the moment the user pressed start - which is most
+    // of them, most of the time. The tap is created empty instead and adopts the
+    // target's objects as they appear, exactly as it does when they are replaced
+    // mid-session.
+    if let pid, kill(pid, 0) != 0, errno == ESRCH {
+        emitError("no_such_audio_process")
+        return 1
     }
+    var procObjs: [AudioObjectID] = pid.map { audioObjectsInTree(of: $0) } ?? []
 
     let tapUUID = UUID()
-    // Excluding nothing yields a global tap; both variants are governed by the
-    // same audio-capture permission.
-    let desc = procObjs.isEmpty
-        ? CATapDescription(stereoGlobalTapButExcludeProcesses: [])
-        : CATapDescription(monoMixdownOfProcesses: procObjs)
-    desc.uuid = tapUUID
-    desc.name = "Sokuji Application Capture"
-    desc.isPrivate = true   // visible only to us; CATapUnmuted is the default
+    // Global and per-application taps are governed by the same audio-capture
+    // permission; see tapDescription for why the two are never interchanged.
+    let desc = tapDescription(processes: pid == nil ? nil : procObjs, uuid: tapUUID)
 
     var tapID: AudioObjectID = 0
     guard AudioHardwareCreateProcessTap(desc, &tapID) == noErr else {
@@ -326,29 +415,15 @@ func runCapture(pid: pid_t?) -> Int32 {
     // than assume - the decimation factor below depends on it.
     var inRate = 48000.0
     var channelsIn: UInt32 = 1
-    var streamAddr = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyStreams,
-                                                mScope: kAudioObjectPropertyScopeInput,
-                                                mElement: kAudioObjectPropertyElementMain)
-    var streamSize: UInt32 = 0
-    AudioObjectGetPropertyDataSize(aggID, &streamAddr, 0, nil, &streamSize)
-    if streamSize >= UInt32(MemoryLayout<AudioObjectID>.size) {
-        var streamIDs = [AudioObjectID](repeating: 0, count: Int(streamSize) / MemoryLayout<AudioObjectID>.size)
-        if AudioObjectGetPropertyData(aggID, &streamAddr, 0, nil, &streamSize, &streamIDs) == noErr,
-           let first = streamIDs.first {
-            var fmtAddr = globalAddress(kAudioStreamPropertyVirtualFormat)
-            var asbd = AudioStreamBasicDescription()
-            var asbdSize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
-            if AudioObjectGetPropertyData(first, &fmtAddr, 0, nil, &asbdSize, &asbd) == noErr, asbd.mSampleRate > 0 {
-                inRate = asbd.mSampleRate
-                if asbd.mChannelsPerFrame > 0 { channelsIn = asbd.mChannelsPerFrame }
-            }
-        }
+    if let fmt = inputFormat(of: aggID) {
+        inRate = fmt.rate
+        channelsIn = fmt.channels
     }
     // Resample by the true ratio, not an integer one. Rounding it meant a
     // 44.1 kHz tap - the common case on macOS - emitted 22050 Hz while still
     // declaring 24000 Hz, so everything downstream ran ~9% fast; a 16 kHz tap
     // (a Bluetooth headset in HFP) was out by a third.
-    let ratio = inRate / kOutRate
+    let ratioBox = RatioBox(inRate / kOutRate)
 
     let ring = RingBuffer(capacity: Int(inRate) * 2)   // ~2 s of slack
     let state = CaptureState()
@@ -408,9 +483,49 @@ func runCapture(pid: pid_t?) -> Int32 {
         var previous: Float = 0
         var havePrevious = false
 
+        // Wall-clock position of the last sample written. A tap with no process
+        // in it - a target that has not started playing yet - delivers no
+        // buffers at all, so without this the stream would simply stop until the
+        // application made a sound, and everything downstream is built on the
+        // stream never stalling.
+        var writtenUntil = Date()
+
+        func writePCM(_ samples: [Int16]) {
+            guard !samples.isEmpty else { return }
+            samples.withUnsafeBufferPointer { bp in
+                let data = Data(bytes: bp.baseAddress!, count: bp.count * MemoryLayout<Int16>.size)
+                out.write(data)
+            }
+            writtenUntil = writtenUntil.addingTimeInterval(Double(samples.count) / kOutRate)
+        }
+
         while !gStop {
-            let n = ring.read(into: &floats, minimum: 256)
-            if n == 0 { if gStop { break } else { continue } }
+            let n = ring.read(into: &floats, minimum: 256, timeout: 0.1)
+            if n == 0 {
+                if gStop { break }
+                // Fill the silence the tap owes us, so the reader sees an
+                // unbroken 24 kHz stream whether or not the target is playing.
+                //
+                // Bounded, because the debt is measured against wall clock and
+                // wall clock can jump: system sleep freezes this thread, and a
+                // reader that stops draining stdout blocks it in writePCM. Both
+                // return with writtenUntil hours behind, and materialising that
+                // as one array is 2 bytes per 1/24000 s - an eight-hour sleep
+                // asks for 1.4 GB and kills the helper instead of resuming it.
+                // Past the cap the debt is uncollectable anyway: nobody wants
+                // hours of injected silence, they want the stream to resume.
+                let now = Date()
+                if now.timeIntervalSince(writtenUntil) > kMaxSilenceCatchUp {
+                    writtenUntil = now.addingTimeInterval(-kMaxSilenceCatchUp)
+                }
+                let owed = Int(now.timeIntervalSince(writtenUntil) * kOutRate)
+                if owed > 0 { writePCM([Int16](repeating: 0, count: owed)) }
+                continue
+            }
+            // Real audio has resumed; drop any silence we were about to owe
+            // rather than inserting it in front of the samples.
+            if writtenUntil < Date() { writtenUntil = Date() }
+            let ratio = ratioBox.current
 
             pcm.removeAll(keepingCapacity: true)
             while true {
@@ -443,17 +558,14 @@ func runCapture(pid: pid_t?) -> Int32 {
             previous = floats[n - 1]
             havePrevious = true
 
-            if !pcm.isEmpty {
-                pcm.withUnsafeBufferPointer { bp in
-                    let data = Data(bytes: bp.baseAddress!, count: bp.count * MemoryLayout<Int16>.size)
-                    out.write(data)
-                }
-            }
+            writePCM(pcm)
         }
     }
     writer.start()
 
     // Watch the target and the permission situation from the main thread.
+    var warnedRetarget = false
+    var renderingSince: Date? = nil
     while !gStop {
         Thread.sleep(forTimeInterval: 0.25)
 
@@ -462,6 +574,32 @@ func runCapture(pid: pid_t?) -> Int32 {
             emitError("target_gone")
             gStop = true
             break
+        }
+
+        // Follow the target's audio process objects. Polling here rather than
+        // installing a property listener keeps the update on the thread that
+        // already owns teardown, so a listener callback cannot race the tap's
+        // destruction.
+        if let pid {
+            let current = audioObjectsInTree(of: pid)
+            if current != procObjs {
+                let status = retarget(tapID, processes: current, uuid: tapUUID)
+                if status == noErr {
+                    procObjs = current
+                    // A new process list could in principle bring a new sample
+                    // rate; the writer would drift on the old one.
+                    if let fmt = inputFormat(of: aggID), fmt.rate > 0 {
+                        ratioBox.set(fmt.rate / kOutRate)
+                    }
+                } else if !warnedRetarget {
+                    // A warning, not an error: the app answers an error by
+                    // tearing the capture down, and a tap still pointing at the
+                    // previous objects is worth more than no tap at all. Once
+                    // only - this loop runs four times a second.
+                    warnedRetarget = true
+                    emit("{\"event\":\"warning\",\"code\":\"retarget_failed\"}")
+                }
+            }
         }
 
         // A missing TCC grant and a quiet application both look like silence,
@@ -475,7 +613,28 @@ func runCapture(pid: pid_t?) -> Int32 {
             && Date().timeIntervalSince(state.startedAt) > 3.0
         state.lock.unlock()
 
-        if unexplainedSilence && isRenderingOutput(procObjs) {
+        // `procObjs` is now the live list, which is what makes this diagnostic
+        // work at all: guarded by the frozen one it could never fire, because
+        // the objects it asked about were the dead ones. An empty targeted list
+        // means the target is rendering nothing - not "ask the whole system",
+        // which is what isRenderingOutput does with an empty argument.
+        let targetRendering = pid == nil
+            ? isRenderingOutput([])
+            : (!procObjs.isEmpty && isRenderingOutput(procObjs))
+
+        // "Rendering" leads the first audible sample by a poll or two - Core
+        // Audio marks the process as running output before the tap has handed us
+        // anything - so an instantaneous reading fires the warning at the exact
+        // moment a target starts playing, which is the one moment we can be sure
+        // the permission is fine. Require the contradiction to hold for a while.
+        if targetRendering {
+            if renderingSince == nil { renderingSince = Date() }
+        } else {
+            renderingSince = nil
+        }
+        let renderingLongEnough = renderingSince.map { Date().timeIntervalSince($0) > 2.0 } ?? false
+
+        if unexplainedSilence && renderingLongEnough {
             state.lock.lock()
             state.warned = true
             state.lock.unlock()
