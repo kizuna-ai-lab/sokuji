@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -44,11 +44,40 @@ vi.mock('./ModelManagementSection', () => ({ ModelManagementSection: () => null 
 vi.mock('./NativeModelManagementSection', () => ({ NativeModelManagementSection: () => null }));
 vi.mock('./EngineSection', () => ({ EngineSection: () => null }));
 
+// Identity map for the stub below: assigns a small stable id to each DISTINCT
+// `source` object the section receives, so a test can tell "the parent handed
+// in a genuinely NEW source object" apart from "still non-null" — nullness
+// alone survives the exact regression this exists to catch. If
+// ProviderSpecificSettings.tsx's `sonioxVoiceSource` useMemo ever drops
+// `activeSonioxSettings.apiKey` from its dependency array (it reads like a
+// redundant sub-field of an object already in the array), a BYOK user
+// swapping Soniox project keys would keep the OLD SonioxVoicesClient: same
+// source object, same id here, and project A's cloned voices / cached
+// preview audio would silently persist under project B's key.
+const sourceIds = new WeakMap<object, number>();
+let nextSourceId = 1;
+function sourceIdentity(source: unknown): string {
+  if (source === null || typeof source !== 'object') return 'null';
+  let id = sourceIds.get(source);
+  if (id === undefined) {
+    id = nextSourceId++;
+    sourceIds.set(source, id);
+  }
+  return String(id);
+}
+
 // SonioxVoiceSection (Task 3) is exercised by its own test file; stub it here
-// with a marker that surfaces the `managed` prop so wiring is testable without
-// pulling in SonioxVoicesClient/recording machinery.
+// with markers that surface the `managed` prop and the `source` prop's
+// IDENTITY (not just its presence, see sourceIdentity above) so wiring is
+// testable without pulling in SonioxVoicesClient/recording machinery.
 vi.mock('./SonioxVoiceSection', () => ({
-  default: (p: any) => <div data-testid="soniox-voice-section" data-managed={String(p.managed)} />,
+  default: (p: any) => (
+    <div
+      data-testid="soniox-voice-section"
+      data-managed={String(p.managed)}
+      data-source-id={sourceIdentity(p.source)}
+    />
+  ),
 }));
 
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
@@ -169,5 +198,39 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
     useSettingsStore.setState({ provider: Provider.KIZUNA_AI_SONIOX });
     const { getByTestId } = mount();
     expect(getByTestId('soniox-voice-section').getAttribute('data-managed')).toBe('true');
+  });
+
+  it('gives SonioxVoiceSection a fresh source identity when the BYOK API key changes, and the SAME identity when it does not (guards the sonioxVoiceSource useMemo dep array)', () => {
+    useSettingsStore.setState((s: any) => ({
+      provider: Provider.SONIOX,
+      soniox: { ...s.soniox, apiKey: 'key-a' },
+    }));
+    const { getByTestId } = mount();
+    const firstId = getByTestId('soniox-voice-section').getAttribute('data-source-id');
+    expect(firstId).not.toBe('null'); // a real source was built for a present key
+
+    // A DIFFERENT key must produce a DIFFERENT source object — the same
+    // object across a key swap would mean the section still holds the OLD
+    // SonioxVoicesClient, i.e. project A's clones/cached preview audio
+    // leaking under project B's key.
+    act(() => {
+      useSettingsStore.setState((s: any) => ({ soniox: { ...s.soniox, apiKey: 'key-b' } }));
+    });
+    const secondId = getByTestId('soniox-voice-section').getAttribute('data-source-id');
+    expect(secondId).not.toBe('null');
+    expect(secondId).not.toBe(firstId);
+
+    // Conversely, an update that leaves the key STRING unchanged (a new
+    // `soniox` slice object, same `apiKey` value) must NOT mint a new
+    // source — that's the whole point of depending on the apiKey primitive
+    // rather than the settings object. Constructing fresh on every
+    // unrelated re-render would refetch the voice list every time, the
+    // class of bug CLAUDE.md warns about for audio devices (depend on
+    // `deviceId`, not the device object).
+    act(() => {
+      useSettingsStore.setState((s: any) => ({ soniox: { ...s.soniox, apiKey: 'key-b' } }));
+    });
+    const thirdId = getByTestId('soniox-voice-section').getAttribute('data-source-id');
+    expect(thirdId).toBe(secondId);
   });
 });

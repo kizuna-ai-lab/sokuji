@@ -205,9 +205,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // bug CLAUDE.md warns about for audio devices (depend on `deviceId`, not on
   // the device object).
   const sonioxVoiceSource = useMemo<VoiceLibrarySource | null>(
-    // Managed sources arrive in Task 4; until then a managed account has no
-    // source, which is exactly the built-ins-only behaviour it has today.
-    () => (!isKizunaManagedProvider(provider) && activeSonioxSettings.apiKey
+    // Gated on `provider === Provider.SONIOX` itself, not merely a truthy
+    // apiKey: `activeSonioxSettings` falls through to the BYOK `soniox`
+    // slice for every OTHER provider too, so a previously-saved Soniox key
+    // would otherwise construct a (harmless but pointless) SonioxVoicesClient
+    // while some unrelated provider is selected. `provider === SONIOX` also
+    // already excludes the managed twin (KIZUNA_AI_SONIOX is a different
+    // enum value) — managed sources arrive in Task 4; until then a managed
+    // account has no source, which is exactly the built-ins-only behaviour
+    // it has today.
+    () => (provider === Provider.SONIOX && activeSonioxSettings.apiKey
       ? byokVoiceSource(new SonioxVoicesClient(activeSonioxSettings.apiKey))
       : null),
     [provider, activeSonioxSettings.apiKey]

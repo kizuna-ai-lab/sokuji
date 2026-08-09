@@ -54,8 +54,12 @@ export interface SonioxVoiceSectionProps {
    *  (BYOK with no API key pasted, managed with no session). Null keeps the
    *  create/delete affordances hidden rather than reaching a null crash. */
   source: VoiceLibrarySource | null;
-  /** Copy variant only: managed accounts get a different consent statement
-   *  and no name field, because the backend names the voice itself. */
+  /** Copy variant. Drives, today: the custom-voice label (managed shows
+   *  "My voice" rather than the backend's internal name) and the list-error
+   *  copy. The consent-statement and hidden-name-field differences the
+   *  backend-naming design calls for land with the confirm modal's managed
+   *  variant in a later task — this prop doesn't touch
+   *  `SonioxCloneConfirmModal` yet. */
   managed: boolean;
   isSessionActive: boolean;
 }
