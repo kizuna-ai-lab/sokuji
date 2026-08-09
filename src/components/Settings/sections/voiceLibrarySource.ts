@@ -69,9 +69,18 @@ function toSonioxVoice(voice: ManagedVoice): SonioxVoice {
  *    a retry needs it most.
  *  - `name` is ignored. The backend names voices itself, uniquely per build,
  *    because Soniox enforces name uniqueness per project.
+ *
+ * `accountId` is the Better Auth user id this source belongs to. It is what
+ * the stored clip is filed under, so a recording made here can never be read
+ * back — and re-uploaded — under a different account signed in on the same
+ * device. The caller already mints a fresh source per account (see
+ * ProviderSpecificSettings' `sonioxVoiceSource` memo), so passing it in keeps
+ * "which account is this" a property of the source rather than something the
+ * storage layer has to re-derive at call time.
  */
 export function managedVoiceSource(
   client: ManagedVoicesClient,
+  accountId: string,
   opts: { intervalMs?: number; timeoutMs?: number } = {}
 ): VoiceLibrarySource {
   const { intervalMs = 1500, timeoutMs = 60_000 } = opts;
@@ -82,7 +91,7 @@ export function managedVoiceSource(
     },
 
     async create(_name, clip) {
-      await saveVoiceClip(clip);
+      await saveVoiceClip(accountId, clip);
       // pin: false — building a voice from the settings panel is not starting
       // a session, and a pin taken here would hold one of the pool's scarce
       // slots against eviction for no session's benefit.
@@ -95,7 +104,21 @@ export function managedVoiceSource(
       // is informational. Order matters: clearing the clip first would lose
       // the recording even when the backend refuses (voice_pinned).
       await client.remove();
-      await clearVoiceClip();
+      try {
+        await clearVoiceClip();
+      } catch (error) {
+        // The voice IS gone (at Soniox and from our table) — only the local
+        // recording survived. Resolving here would tell the user their
+        // biometric material was removed from this device when it was not,
+        // so this rejects with a slug of its own: the section maps it to
+        // copy that says exactly which half failed, rather than to the
+        // generic "delete failed" that would be a second lie.
+        throw new SonioxVoicesError(
+          'clip_clear_failed',
+          error instanceof Error ? error.message : String(error),
+          0
+        );
+      }
     },
 
     // `_id` unused: this account has at most one voice, so `client.mine()`

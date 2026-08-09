@@ -246,8 +246,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const sonioxVoiceSource = useMemo<VoiceLibrarySource | null>(() => {
     if (isKizunaManagedProvider(provider)) {
       if (!userId) return null;
+      // `userId` is handed to the source, not just used as a gate: it is the
+      // account the reference clip is filed under on this device, so a
+      // recording made here can never be read back — and re-uploaded — under
+      // whoever signs in next on the same profile.
       return managedVoiceSource(
-        new ManagedVoicesClient(async () => (getTokenRef.current ? getTokenRef.current() : null))
+        new ManagedVoicesClient(async () => (getTokenRef.current ? getTokenRef.current() : null)),
+        userId
       );
     }
     return provider === Provider.SONIOX && activeSonioxSettings.apiKey

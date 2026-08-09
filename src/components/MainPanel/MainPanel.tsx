@@ -246,8 +246,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   
-  // Get authentication state for Kizuna AI dynamic token fetching
-  const { getToken, isSignedIn, isLoaded } = useAuth();
+  // Get authentication state for Kizuna AI dynamic token fetching.
+  // `userId` is read for the managed-voice prep block below: the reference
+  // clip on this device belongs to an ACCOUNT, not to the device, so the
+  // Start path has to name whose clip it is asking for. Without it, a clip
+  // recorded by whoever signed in previously would be uploaded under the
+  // account signed in now.
+  const { getToken, isSignedIn, isLoaded, userId } = useAuth();
   
   // Get user profile and quota information
   const { quota, refetchAll } = useUserProfile();
@@ -1782,6 +1787,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // there alone.
       let sessionVoiceOverride: string | null = null;
       let voicePrepMessage: string | null = null;
+      // What the stored voice is EXPECTED to be once the prep block has
+      // applied its outcome. Re-read again just before the override below,
+      // because the settings dropdown stays live throughout: see
+      // `readStoredSonioxVoice`.
+      let sonioxVoiceExpected: string | null = null;
+      // Reading the slice generically (through the active descriptor) while
+      // writing it through the hardcoded `updateKizunaSoniox` is deliberate,
+      // not an oversight: the guard below pins `provider` to the managed
+      // Soniox twin, so `settingsSliceKey` is exactly `kizunaSoniox` and
+      // `updateKizunaSoniox` is that slice's own updater. The asymmetry
+      // exists because the store exposes no generic per-slice update action —
+      // every slice has its own named one (settingsStore.ts) — so the write
+      // simply cannot be expressed through the descriptor the way the read
+      // can. The read stays descriptor-driven anyway because it is the shape
+      // every other slice read in this callback already uses.
+      const readStoredSonioxVoice = (): string | undefined =>
+        (useSettingsStore.getState()[
+          ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore
+        ] as { voice?: string })?.voice;
       // Provider identity checked FIRST, before touching any settings slice:
       // `voice` is a field name that means something different per provider
       // (OpenAI's is e.g. 'alloy'), so reading it before confirming we're
@@ -1794,33 +1818,52 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
         isKizunaManagedProvider(provider)
       ) {
-        const sonioxVoiceSetting = (useSettingsStore.getState()[
-          ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore
-        ] as { voice?: string })?.voice;
+        const sonioxVoiceSetting = readStoredSonioxVoice();
         if (sonioxVoiceSetting && !SONIOX_BUILTIN_VOICES.has(sonioxVoiceSetting)) {
           setVoicePreparing(true);
           try {
             const result = await prepareManagedVoice({
               client: new ManagedVoicesClient(getAuthToken),
-              loadClip: loadVoiceClip,
+              // Scoped to the signed-in account: the clip is one record on a
+              // device several people may share, and handing this account
+              // somebody else's recording would upload their voice under this
+              // account. A mismatch (or nobody signed in) reads as "no clip
+              // here", which the routine already degrades to a built-in voice.
+              loadClip: () => loadVoiceClip(userId),
             });
-            // The decision (what this session uses, whether to persist a
-            // changed id, what to tell the user) lives in
-            // resolveVoicePrepOutcome — a pure function so it can be tested
-            // without a React harness (see voicePrepWiring.test.ts). Only
-            // the actual side effects (the store write, the sessionConfig
-            // mutation below, the t() translation) stay here.
-            const outcome = resolveVoicePrepOutcome(result, sonioxVoiceSetting, SONIOX_DEFAULT_VOICE);
-            sessionVoiceOverride = outcome.sessionVoice;
-            if (outcome.settingsPatch) {
-              // A rebuilt voice comes back with a DIFFERENT Soniox UUID, so
-              // every ensure response is authoritative. Writing it through
-              // here is what keeps the settings dropdown pointing at a voice
-              // that actually exists.
-              useSettingsStore.getState().updateKizunaSoniox(outcome.settingsPatch);
-            }
-            if (outcome.notice) {
-              voicePrepMessage = t(outcome.notice.key, outcome.notice.defaultValue);
+            // Preparation takes seconds — up to ~10 s for a cold rebuild —
+            // and the voice dropdown is NOT locked during it: Settings is
+            // mounted beside this panel and VoiceLibrarySection only disables
+            // selection on `isSessionActive`, which flips after connect()
+            // resolves. So the user may have picked a different voice while
+            // this ran, and theirs must win over anything resolved from the
+            // snapshot we started with. Same hazard, same rule, as
+            // SonioxVoiceSection's finishCreate: "a choice the user made
+            // meanwhile must not be silently overwritten."
+            if (readStoredSonioxVoice() !== sonioxVoiceSetting) {
+              console.info(
+                '[Sokuji] [MainPanel] Managed voice preparation finished after the voice selection changed — leaving the newer choice alone.'
+              );
+            } else {
+              // The decision (what this session uses, whether to persist a
+              // changed id, what to tell the user) lives in
+              // resolveVoicePrepOutcome — a pure function so it can be tested
+              // without a React harness (see voicePrepWiring.test.ts). Only
+              // the actual side effects (the store write, the sessionConfig
+              // mutation below, the t() translation) stay here.
+              const outcome = resolveVoicePrepOutcome(result, sonioxVoiceSetting, SONIOX_DEFAULT_VOICE);
+              sessionVoiceOverride = outcome.sessionVoice;
+              if (outcome.settingsPatch) {
+                // A rebuilt voice comes back with a DIFFERENT Soniox UUID, so
+                // every ensure response is authoritative. Writing it through
+                // here is what keeps the settings dropdown pointing at a voice
+                // that actually exists.
+                useSettingsStore.getState().updateKizunaSoniox(outcome.settingsPatch);
+              }
+              sonioxVoiceExpected = outcome.settingsPatch?.voice ?? sonioxVoiceSetting;
+              if (outcome.notice) {
+                voicePrepMessage = t(outcome.notice.key, outcome.notice.defaultValue);
+              }
             }
           } finally {
             setVoicePreparing(false);
@@ -1920,7 +1963,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // why the write-through decision is asymmetric (success-and-changed
         // only, never a fallback).
         if (sessionVoiceOverride) {
-          (sessionConfig as SonioxSessionConfig).voice = sessionVoiceOverride;
+          // Re-checked here, not only at prep time: everything in between is
+          // awaited (audio service init, client construction, listener
+          // wiring) and the voice dropdown stays live the whole way, so the
+          // user may have picked a different voice since. Theirs wins —
+          // including over the built-in fallback and its notice, which would
+          // otherwise explain a substitution that did not happen. Standing
+          // down leaves whatever getSessionConfig() already read from the
+          // (now current) settings in place, which is exactly their choice.
+          if (readStoredSonioxVoice() === sonioxVoiceExpected) {
+            (sessionConfig as SonioxSessionConfig).voice = sessionVoiceOverride;
+          } else {
+            console.info(
+              '[Sokuji] [MainPanel] Voice selection changed after preparation — using the newly selected voice for this session.'
+            );
+            // The override is simply not applied. The notice IS cleared,
+            // because it is read further down (after connect()) and would
+            // otherwise announce a fallback this session did not take.
+            voicePrepMessage = null;
+          }
         }
         // Both single-session (Soniox): flip the speaker config to a bidirectional
         // two_way session so one core handles both directions. sonioxSharedBoth
@@ -2392,6 +2453,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     participantWillStart,
     // Managed-voice prep block additions (see the comment above it).
     getAuthToken,
+    // The reference clip is filed under an ACCOUNT, so a stale closure here
+    // would ask storage for the previously signed-in user's recording and
+    // upload it under the current one.
+    userId,
     textOnly,
     t,
   ]);

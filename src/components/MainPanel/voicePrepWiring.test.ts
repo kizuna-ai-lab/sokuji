@@ -20,7 +20,18 @@ import type { VoicePrepResult } from './prepareManagedVoice';
  *    notice is actually lost, which is what proves the "right ordering"
  *    assertion depends on the ordering rather than being true by construction.
  *
- * 2. THE ASYMMETRIC SETTINGS WRITE: a FAILED prepareManagedVoice() result must
+ * 2. THE FRESHNESS GUARD: preparation takes seconds (up to ~10 s for a cold
+ *    rebuild) and the voice dropdown is NOT locked while it runs —
+ *    VoiceLibrarySection disables selection on `isSessionActive`, which only
+ *    flips after connect() resolves, and Settings is mounted beside MainPanel
+ *    the whole time. So the stored voice is re-read immediately before the
+ *    write-through and again before the sessionConfig override, and a
+ *    mismatch stands the whole outcome down. Same technique as property 1: no
+ *    React harness exists here, so the call-site wiring is reproduced around
+ *    the REAL `resolveVoicePrepOutcome`, with an unguarded contrast case that
+ *    reproduces the clobber.
+ *
+ * 3. THE ASYMMETRIC SETTINGS WRITE: a FAILED prepareManagedVoice() result must
  *    never produce a settings patch — only a successful, voiceId-CHANGED
  *    result may. Unlike the ordering property, this decision is a plain
  *    function with no React or timing involved, so it was extracted out of
@@ -105,5 +116,142 @@ describe('voice-prep result wiring: the asymmetric settings write (resolveVoiceP
     const realOutcome = resolveVoicePrepOutcome(failed, 'cloned-uuid-123', 'Maya');
     expect(realOutcome.settingsPatch).toBeNull();
     expect(realOutcome.settingsPatch).not.toEqual(wrongPatch);
+  });
+});
+
+/**
+ * A stand-in for the settings slice's `voice` field plus the sessionConfig
+ * object connectConversation builds for one connect(). `applyVoicePrep`
+ * reproduces MainPanel.tsx's call site — the two freshness re-reads around
+ * the REAL resolveVoicePrepOutcome — so the guard under test is the guard
+ * that ships, not a paraphrase of it.
+ */
+function makeVoiceWorld(storedVoice: string) {
+  const world = {
+    storedVoice,
+    sessionConfigVoice: storedVoice,
+    notice: null as string | null,
+  };
+  return world;
+}
+
+type VoiceWorld = ReturnType<typeof makeVoiceWorld>;
+
+function applyVoicePrep(
+  world: VoiceWorld,
+  result: VoicePrepResult,
+  snapshot: string,
+  builtinFallback: string,
+  /** What the user does DURING preparation, before the result lands. */
+  duringPrep?: (w: VoiceWorld) => void,
+  /** What the user does between the prep block and the sessionConfig
+   *  override (audio init, client construction, listener wiring are all
+   *  awaited in there). */
+  betweenPrepAndConnect?: (w: VoiceWorld) => void,
+  { guarded = true }: { guarded?: boolean } = {}
+) {
+  duringPrep?.(world);
+
+  let sessionVoiceOverride: string | null = null;
+  let expected: string | null = null;
+  if (!guarded || world.storedVoice === snapshot) {
+    const outcome = resolveVoicePrepOutcome(result, snapshot, builtinFallback);
+    sessionVoiceOverride = outcome.sessionVoice;
+    if (outcome.settingsPatch) world.storedVoice = outcome.settingsPatch.voice;
+    expected = outcome.settingsPatch?.voice ?? snapshot;
+    world.notice = outcome.notice ? outcome.notice.key : null;
+  }
+
+  betweenPrepAndConnect?.(world);
+
+  // getSessionConfig() reads the CURRENT stored voice, then the override (if
+  // it still applies) is written over it.
+  world.sessionConfigVoice = world.storedVoice;
+  if (sessionVoiceOverride) {
+    if (!guarded || world.storedVoice === expected) {
+      world.sessionConfigVoice = sessionVoiceOverride;
+    } else {
+      world.notice = null;
+    }
+  }
+  return world;
+}
+
+describe('voice-prep freshness: a choice made during preparation wins', () => {
+  const SNAPSHOT = 'cloned-uuid-123';
+  const REBUILT = 'cloned-uuid-999';
+
+  it('does not overwrite a built-in the user picked while the voice was being rebuilt', () => {
+    // The reported sequence: the voice was evicted, the user pressed Start,
+    // then opened Settings during the ~10 s "Preparing your voice…" window
+    // and chose Maya. Preparation completing with a rebuilt UUID must not
+    // revert that.
+    const world = applyVoicePrep(
+      makeVoiceWorld(SNAPSHOT),
+      { ok: true, voiceId: REBUILT },
+      SNAPSHOT,
+      'Maya',
+      (w) => { w.storedVoice = 'Maya'; }
+    );
+    expect(world.storedVoice).toBe('Maya');       // preference not reverted
+    expect(world.sessionConfigVoice).toBe('Maya'); // and this session speaks as asked
+  });
+
+  it('contrast: without the guard the rebuilt UUID clobbers both', () => {
+    // Proves the assertions above depend on the re-read rather than being
+    // true no matter what the call site does.
+    const world = applyVoicePrep(
+      makeVoiceWorld(SNAPSHOT),
+      { ok: true, voiceId: REBUILT },
+      SNAPSHOT,
+      'Maya',
+      (w) => { w.storedVoice = 'Maya'; },
+      undefined,
+      { guarded: false }
+    );
+    expect(world.storedVoice).toBe(REBUILT);
+    expect(world.sessionConfigVoice).toBe(REBUILT);
+  });
+
+  it('still writes the rebuilt id through when nobody touched the selection', () => {
+    // The guard must not cost the feature its whole point: a rebuild returns
+    // a NEW Soniox UUID, and the stored preference has to follow it.
+    const world = applyVoicePrep(
+      makeVoiceWorld(SNAPSHOT),
+      { ok: true, voiceId: REBUILT },
+      SNAPSHOT,
+      'Maya'
+    );
+    expect(world.storedVoice).toBe(REBUILT);
+    expect(world.sessionConfigVoice).toBe(REBUILT);
+  });
+
+  it('drops the fallback AND its notice when the selection changes after preparation', () => {
+    // A failed prep resolves to the built-in fallback plus an explanation.
+    // If the user picks a voice in the window between that and connect(),
+    // forcing the fallback would override their choice, and the notice would
+    // explain a substitution that never happened.
+    const world = applyVoicePrep(
+      makeVoiceWorld(SNAPSHOT),
+      { ok: false, reason: 'pool_exhausted' },
+      SNAPSHOT,
+      'Maya',
+      undefined,
+      (w) => { w.storedVoice = 'Aurora'; }
+    );
+    expect(world.sessionConfigVoice).toBe('Aurora');
+    expect(world.notice).toBeNull();
+  });
+
+  it('keeps the fallback and its notice when nothing moved', () => {
+    const world = applyVoicePrep(
+      makeVoiceWorld(SNAPSHOT),
+      { ok: false, reason: 'pool_exhausted' },
+      SNAPSHOT,
+      'Maya'
+    );
+    expect(world.storedVoice).toBe(SNAPSHOT); // fallback is never persisted
+    expect(world.sessionConfigVoice).toBe('Maya');
+    expect(world.notice).toBe('mainPanel.sonioxVoicePoolBusy');
   });
 });

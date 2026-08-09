@@ -19,6 +19,11 @@
  * the user can rename and retry without losing the clip. `voice_failed` is
  * terminal: the entry renders a failed hint and can only be deleted.
  *
+ * Managed accounts additionally cannot REPLACE a healthy voice by recording
+ * again — the backend hands back the voice it already has and ignores the new
+ * clip — so the create affordances are withdrawn while one exists, with a note
+ * saying to delete first. See `managedVoiceBlocksCreate` below.
+ *
  * Previewing (auditioning) a voice is a separate capability from the
  * create/delete affordances above: it needs a Soniox key to synthesize a
  * sample, which a managed account's source does not have, so it is gated on
@@ -175,6 +180,18 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       }
       if (e.errorType === 'authentication_required') {
         return new Error(t('settings.sonioxVoiceSignInRequired', 'Sign in to build a custom voice.'));
+      }
+      if (e.errorType === 'clip_clear_failed') {
+        // Half a delete: the voice is gone, the recording it was built from
+        // is not. Saying "delete failed" would be the wrong half, and saying
+        // nothing would leave biometric material on the device under a claim
+        // that it was removed.
+        return new Error(
+          t(
+            'settings.sonioxVoiceClipClearFailed',
+            'Your voice was deleted, but its recording could not be removed from this device. Try deleting again.'
+          )
+        );
       }
     }
     return e instanceof Error ? e : new Error(String(e));
@@ -427,6 +444,30 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     [managed, t]
   );
 
+  // A managed account that already holds a healthy voice CANNOT replace it by
+  // re-recording: the backend's POST /ensure returns the existing voice and
+  // ignores the uploaded clip entirely, rebuilding only when the voice is
+  // gone at Soniox or terminally failed. Offering record/import here would
+  // therefore report success, overwrite the on-device clip, hand back the
+  // same voice id — and change nothing the user can hear, with nothing to
+  // explain why. Hide the create affordances and say what is actually true:
+  // the current voice has to be deleted first.
+  //
+  // Deliberately NOT a delete-then-create flow: a delete that succeeds
+  // followed by a create that fails would leave the user with no voice at all
+  // and a slot handed to somebody else.
+  //
+  // `isFailed` is the exception because it is also the backend's: a terminally
+  // failed voice IS rebuilt from a fresh clip, so re-recording works there and
+  // the affordances stay.
+  const managedVoiceBlocksCreate = managed && clones.some((v) => !isFailed(v));
+  // Also withheld for managed accounts while the list is still settling: for
+  // the beat before a healthy voice arrives we cannot yet know the answer,
+  // and a click landing in that window would stage a clip that the confirm
+  // step then uploads for nothing. Same "don't claim anything until the fetch
+  // settles" rule the deleted-voice placeholder below already follows.
+  const canCreate = !!source && !managedVoiceBlocksCreate && !(managed && listState === 'loading');
+
   const entries = useMemo<VoiceEntry[]>(() => {
     const builtin: VoiceEntry[] = BUILTIN_VOICES.map((v) => ({
       id: v.value,
@@ -463,7 +504,20 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
           ? t('settings.sonioxVoiceDeletedPlaceholder', '(deleted voice)')
           : settings.voice,
         group: 'custom',
-        removable: false,
+        // MANAGED: an unknown id here is this account's OWN voice after an
+        // eviction — the normal outcome of a small LRU cache serving
+        // unbounded users, not an anomaly. Without a delete button the panel
+        // would show "(deleted voice)" above "No imported voices yet." with
+        // no way forward, the on-device recording would stay there
+        // indefinitely, and every later Start would silently re-upload it.
+        // The backend's DELETE /mine answers 200 when there is no row, so
+        // removing a placeholder is safe and idempotent; it clears the local
+        // clip and resets the stale setting to the default built-in.
+        //
+        // BYOK: left alone. There an unknown id means somebody else's
+        // project, and the existing rule holds — an external deletion never
+        // rewrites the stored setting behind the user's back.
+        removable: managed && !!source,
         // Shows the current selection's state; never a valid new choice.
         disabled: true,
       });
@@ -490,22 +544,33 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         voices={entries}
         selectedId={settings.voice}
         onSelect={(id) => onUpdate({ voice: id })}
-        onImport={source ? onImport : undefined}
-        onRecord={source ? onRecord : undefined}
+        onImport={canCreate ? onImport : undefined}
+        onRecord={canCreate ? onRecord : undefined}
         onDelete={onDelete}
         onPreview={source?.canPreview ? handlePreview : undefined}
         onRefresh={source ? () => void refresh() : undefined}
         refreshing={listState === 'loading'}
-        // Footnote, not a standalone setting: it describes the per-row preview
-        // button, so it belongs beside those rows inside the expanded manage
-        // body rather than sitting above the collapsed expander where the
-        // control it talks about isn't even visible.
-        manageNote={source?.canPreview ? t(
-          'settings.sonioxVoicePreviewCostHint',
-          'Previewing a voice synthesizes a short clip using your own Soniox quota.'
-        ) : undefined}
+        // Footnote, not a standalone setting: it describes controls that live
+        // inside the expanded manage body (the per-row preview button, the
+        // record/import buttons), so it belongs there rather than above the
+        // collapsed expander where they aren't even visible. The two cases
+        // are mutually exclusive — only a managed source can block create,
+        // and a managed source can never preview.
+        manageNote={
+          managedVoiceBlocksCreate
+            ? t(
+                'settings.sonioxManagedVoiceReplaceHint',
+                'Delete this voice before recording a new one — recording again on its own keeps the voice you already have.'
+              )
+            : source?.canPreview
+              ? t(
+                  'settings.sonioxVoicePreviewCostHint',
+                  'Previewing a voice synthesizes a short clip using your own Soniox quota.'
+                )
+              : undefined
+        }
         capability={{
-          importModes: source ? ['record', 'upload'] : [],
+          importModes: canCreate ? ['record', 'upload'] : [],
           curation: false,
           presentation: 'dropdown',
           accept: 'audio/*',

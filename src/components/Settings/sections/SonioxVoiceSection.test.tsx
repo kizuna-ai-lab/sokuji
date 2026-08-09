@@ -540,6 +540,89 @@ describe('SonioxVoiceSection', () => {
     expect(container.querySelector('optgroup[label*="My Voices" i], optgroup[label="My Voices"]')).not.toBeNull();
   });
 
+  // A managed account with a healthy voice cannot replace it by recording
+  // again: the backend's POST /ensure returns the voice it already holds and
+  // ignores the uploaded clip, rebuilding only when the voice is gone at
+  // Soniox or terminally failed. Offering the affordance anyway would report
+  // success and change nothing audible.
+  it('managed mode withdraws record/import while a healthy voice exists, and says why', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    mount({ managed: true, source: fakeSource({ canPreview: false }) });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    await waitFor(() => expect(screen.queryByText(/delete this voice before recording a new one/i)).not.toBeNull());
+    expect(screen.queryByRole('button', { name: /record voice/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /import voice/i })).toBeNull();
+    // The delete button is the way forward, so it must still be there.
+    expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeNull();
+  });
+
+  it('managed mode keeps record/import when the existing voice terminally failed', async () => {
+    // The backend DOES rebuild from a fresh clip in this case, so withdrawing
+    // the affordances here would strand the user with a dead voice.
+    listMock.mockResolvedValue([cloned({ models: [{ model: 'tts-rt-v1', status: 'failed' }] })]);
+    mount({ managed: true, source: fakeSource({ canPreview: false }) });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    await waitFor(() => expect(screen.queryByRole('button', { name: /record voice/i })).not.toBeNull());
+    expect(screen.queryByText(/delete this voice before recording a new one/i)).toBeNull();
+  });
+
+  it('BYOK keeps record/import with a healthy clone listed — the replace restriction is managed-only', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    mount();
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    expect(screen.queryByRole('button', { name: /record voice/i })).not.toBeNull();
+    expect(screen.queryByText(/delete this voice before recording a new one/i)).toBeNull();
+  });
+
+  // Eviction is the NORMAL outcome of a small LRU cache serving unbounded
+  // users. Before this, the placeholder was `removable: false`, so the panel
+  // showed "(deleted voice)" above "No imported voices yet." with no delete
+  // button — the on-device recording stayed there forever and every later
+  // Start silently re-uploaded it.
+  it('managed mode lets an evicted voice\'s placeholder be deleted, clearing the stale setting', async () => {
+    listMock.mockResolvedValue([]);
+    const source = fakeSource({ canPreview: false });
+    const { onUpdate } = mount({
+      managed: true,
+      source,
+      settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    const deleteBtn = await screen.findByRole('button', { name: /^delete$/i });
+    fireEvent.click(deleteBtn);
+    // DELETE /mine answers 200 with no row, so this is safe and idempotent.
+    await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('evicted-uuid'));
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: 'Maya' }));
+  });
+
+  it('BYOK still refuses to delete an unknown id — there it belongs to another project', async () => {
+    listMock.mockResolvedValue([]);
+    mount({ settings: { voice: 'someone-elses-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+    expect(deleteMock).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a half-completed managed delete instead of reporting success', async () => {
+    // The voice is gone but its recording is still on this device. The banner
+    // must say which half failed — silence here would leave biometric
+    // material behind under a claim it was removed.
+    listMock.mockResolvedValue([cloned()]);
+    deleteMock.mockRejectedValue(new SonioxVoicesError('clip_clear_failed', 'denied', 0));
+    mount({ managed: true, source: fakeSource({ canPreview: false }) });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    await waitFor(() =>
+      expect(screen.queryByText(/could not be removed from this device/i)).not.toBeNull()
+    );
+  });
+
   it('the confirm button stays disabled until the usage-rights checkbox is checked', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 5);

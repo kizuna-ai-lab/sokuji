@@ -33,14 +33,25 @@ export interface PrepareManagedVoiceDeps {
   loadClip: () => Promise<Blob | null>;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
-  /** Ceiling for the whole build wait: the poll loop AND any retry (the clip
-   *  upload after `clip_required`, the wait-and-retry after
-   *  `pool_exhausted`). A cold build is ~10 s; this is the point at which we
-   *  stop holding Start open and fall back. This bounds when a NEW attempt
-   *  may BEGIN — an `ensure()` call already in flight keeps its own timeout
-   *  inside `ManagedVoicesClient` (15s / 120s for an upload) and is not
-   *  aborted from here; reaching into another module's in-flight request is
-   *  out of scope for this routine. */
+  /** Budget for STARTING work — NOT a wall-clock ceiling on this call.
+   *
+   *  Every new attempt (a poll, the clip upload after `clip_required`, the
+   *  retry after `pool_exhausted`) is refused once this has elapsed, but an
+   *  attempt already in flight keeps running on `ManagedVoicesClient`'s own
+   *  timeout — 15 s, or 120 s once a clip is attached — and is never aborted
+   *  from here.
+   *
+   *  So the real worst case is roughly `timeoutMs` + that upload timeout. A
+   *  concrete one at the defaults: a warm `ensure` that burns its full ~15 s
+   *  before answering `clip_required` still passes the deadline check, and
+   *  may then start a 120 s upload — about 135 s of Start being disabled with
+   *  no cancel, against a stated 60 s ceiling.
+   *
+   *  This bounding behaviour is deliberate: cancelling mid-upload would need
+   *  an AbortSignal threaded through the client, and abandoning an upload the
+   *  backend may already be building from is worse than waiting for it. The
+   *  comment states the real number so nobody reads `timeoutMs` as a promise
+   *  it does not make. */
   timeoutMs?: number;
   pollIntervalMs?: number;
 }
