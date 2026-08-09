@@ -957,6 +957,19 @@ const fakeClient = (over: Partial<ManagedVoicesClient> = {}) => ({
 
 const clip = () => new Blob([new Uint8Array([7, 7, 7])], { type: 'audio/wav' });
 
+/** jsdom here has no `Blob.prototype.arrayBuffer` — same feature-detect +
+ *  FileReader fallback `src/lib/soniox/voiceClipStorage.ts` ships. Calling
+ *  `blob.arrayBuffer()` directly in a test throws a TypeError under vitest. */
+const readBytes = (blob: Blob): Promise<ArrayBuffer> =>
+  typeof blob.arrayBuffer === 'function'
+    ? blob.arrayBuffer()
+    : new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as ArrayBuffer);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(blob);
+      });
+
 describe('managedVoiceSource.list', () => {
   it('is empty when the account holds no voice', async () => {
     expect(await managedVoiceSource(fakeClient()).list()).toEqual([]);
@@ -986,7 +999,7 @@ describe('managedVoiceSource.create', () => {
     const created = await managedVoiceSource(client).create('ignored', clip());
     expect(created.id).toBe('v9');
     const stored = await loadVoiceClip();
-    expect(new Uint8Array(await stored!.arrayBuffer())).toEqual(new Uint8Array([7, 7, 7]));
+    expect(new Uint8Array(await readBytes(stored!))).toEqual(new Uint8Array([7, 7, 7]));
   });
 
   it('keeps the clip when the build request fails', async () => {
