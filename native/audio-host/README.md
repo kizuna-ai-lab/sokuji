@@ -22,9 +22,19 @@ sokuji-audio-host --list
 Writes one JSON array to stdout and exits 0:
 
 ```json
-[{"id":"pid:22972","label":"守望先锋","exe":"Overwatch.exe","active":true}]
+[{"id":"pid:22972","label":"守望先锋","exe":"Overwatch.exe","active":true,"windows":["守望先锋"]}]
 ```
 
+`id` names the process to tap, and it must be one that lives as long as the application does —
+not whichever child happens to hold the audio session (see the Windows notes). `label` is the
+**application** name, never a window title: a source is a process tree, one tree owns as many
+windows as the user opened, and no platform here can capture them separately. `windows` carries
+those titles so the UI can show them on hover; it may be empty, and macOS always leaves it so.
+
+Helpers emit the bare application name and must not disambiguate two copies of it themselves:
+`electron/audio-host.js` appends the pid from `id` to every row (`Google Chrome (24088)`), so a
+second Chrome profile — a second, separately capturable Chrome — is always distinguishable
+without each helper inventing its own rule.
 `active` is true when the application currently holds a playing audio session. Labels are
 UTF-8 and routinely non-ASCII. An empty array is a valid answer and makes the UI fall back to
 whole-system capture; it is not an error.
@@ -88,10 +98,29 @@ powershell -ExecutionPolicy Bypass -File win\verify.ps1
 ```
 
 Plays a 440 Hz tone in one process, captures a *different* silent process, and asserts the
-tone did not leak in. Needs no interactive desktop. Expected output ends with `VERIFY OK`.
+tone did not leak in. It also builds a two-level same-image process tree (cmd → powershell →
+powershell, a browser's shape) and asserts `--list` reports the root, hides the audio-holding
+child, and that a tap on the root survives that child's death. Needs no interactive desktop.
+Expected output ends with `VERIFY OK`.
 
 ### Things learned the hard way
 
+- **The audio session's pid is not the application's pid.** Chrome renders through a
+  `--type=utility` audio service child, and `IAudioSessionControl2::GetProcessId` returns
+  *that*. Chrome recycles it around playback: measured Aug 2026, killing it made the helper
+  exit `target_gone`, and the replacement came back under a different pid. Sokuji answers a
+  dead helper by falling back to whole-system capture, so the symptom was one selected
+  application quietly turning into every application, with the picker still naming the app.
+  `--list` therefore reports the topmost ancestor running the *same executable*, which
+  `PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE` covers along with every child it later
+  spawns. The same-image bound is load-bearing: walk past it and a window-less player launched
+  from Explorer would root at the desktop shell, and its tree is nearly everything the user
+  has open.
+- **A window title is not an application name.** Two Chrome windows are one process tree and
+  therefore one capturable source — Windows offers no way to split them — so labelling the row
+  with the first window title found promised a granularity that does not exist. The label is
+  the executable's `FileDescription` ("Google Chrome", the name Task Manager shows), and the
+  window titles are listed separately in `windows`.
 - **Requirements.** The API's documented floor is Windows 10 build 20348, i.e. Windows 11 in
   practice; the header ships in SDK 10.0.19041.0 regardless. On older Windows `--list` simply
   returns `[]` and the UI degrades to whole-system capture.

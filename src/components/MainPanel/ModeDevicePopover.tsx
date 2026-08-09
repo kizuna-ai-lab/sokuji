@@ -22,6 +22,7 @@ import {
 import { isExtension } from '../../utils/environment';
 import { useNavigateToSettings } from '../../stores/settingsStore';
 import { isVirtualDevice, type AudioDevice } from '../Settings/shared/hooks';
+import { describeDeviceOnHover } from '../../utils/audioDevices';
 import './ModeDevicePopover.scss';
 
 interface ModeDevicePopoverProps {
@@ -291,7 +292,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
                         className={`mode-device-popover__device-row${selected ? ' mode-device-popover__device-row--selected' : ''}`}
                         onClick={() => row.onSelectDevice!(d)}
                       >
-                        <span>{d.label || d.deviceId}</span>
+                        <span title={describeDeviceOnHover(d)}>{d.label || d.deviceId}</span>
                         {selected && <span className="mode-device-popover__indicator" />}
                       </button>
                     );

@@ -8,6 +8,13 @@ export interface AudioDevice {
   deviceId: string;
   label: string;
   isDefault?: boolean;
+  /**
+   * Windows owned by a per-application capture source. One process tree can own
+   * several, and no desktop platform can capture them separately, so they are
+   * shown on hover rather than folded into the row's name. Absent on ordinary
+   * audio devices.
+   */
+  windowTitles?: string[];
 }
 
 // Re-exported for backward compatibility — the actual (React-free) predicates

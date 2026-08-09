@@ -38,6 +38,16 @@ function makeLineParser(onLine) {
 }
 
 /**
+ * `Google Chrome` + `pid:24088` -> `Google Chrome (24088)`.
+ * Left alone when the id is not a pid, so a future helper keyed on something
+ * else cannot end up with a meaningless number stapled to its name.
+ */
+function withPid(name, id) {
+  const match = /^pid:(\d+)$/.exec(String(id));
+  return match ? `${name} (${match[1]})` : name;
+}
+
+/**
  * List applications the helper can capture.
  * Always resolves; an unavailable or misbehaving helper yields [] so the picker
  * falls back to whole-system capture.
@@ -82,8 +92,25 @@ async function listAppSources({ spawn = nodeSpawn, resolvePath = resolveAudioHos
             // id; either is stable enough to re-find the app next launch.
             .map((r) => ({
               deviceId: `app:${r.id}`,
-              label: r.label || r.exe || r.id,
+              // The pid rides in the name on every row, not only where two rows
+              // would otherwise read alike. An application name is not unique -
+              // a second Chrome profile is a second, separately capturable
+              // Chrome - and a name that silently means "one of the two" is
+              // worse than an ugly one. Composed here rather than in each
+              // helper so Windows and macOS cannot drift apart; Linux taps
+              // PipeWire nodes rather than processes and does not come through
+              // this module at all.
+              label: withPid(r.label || r.exe || r.id, r.id),
               appKey: r.exe || r.label || null,
+              // A source is a process tree, and one tree can own several
+              // windows that no OS here can capture separately. The row is
+              // therefore named after the application, and its window titles
+              // ride along for the UI to show on hover - otherwise two Chrome
+              // windows look like one arbitrarily-chosen one. Absent on macOS,
+              // where window titles cost the Screen Recording permission.
+              windowTitles: Array.isArray(r.windows)
+                ? r.windows.filter((t) => typeof t === 'string' && t.length > 0)
+                : [],
             }))
         );
       } catch {

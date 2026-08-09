@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AudioDevice, isVirtualMic, isVirtualSpeaker } from './hooks';
+import { describeDeviceOnHover } from '../../../utils/audioDevices';
 
 interface DeviceListProps {
   devices: AudioDevice[];
@@ -132,7 +133,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
             aria-disabled={disabled}
             tabIndex={disabled ? -1 : 0}
           >
-            <span title={device.label || undefined}>
+            <span title={describeDeviceOnHover(device)}>
               {device.label || t('audioPanel.unknownDevice')}
             </span>
             {virtual && (

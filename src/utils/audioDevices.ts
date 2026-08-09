@@ -11,6 +11,26 @@ interface LabeledDevice {
   label: string;
 }
 
+interface HoverableDevice {
+  label: string;
+  windowTitles?: string[];
+}
+
+/**
+ * Hover text for a device row.
+ *
+ * A per-application capture source is a process tree, and one tree owns as many
+ * windows as the user opened - two Chrome windows are a single source that no
+ * desktop platform can split. The row is therefore named after the application,
+ * and the windows it covers are listed here, so "Google Chrome" is not silently
+ * standing in for three of them. Ordinary devices keep their label as the title.
+ */
+export const describeDeviceOnHover = (device: HoverableDevice): string | undefined => {
+  const titles = device.windowTitles?.filter((t) => t) ?? [];
+  if (titles.length === 0) return device.label || undefined;
+  return [device.label, ...titles.map((t) => `• ${t}`)].filter(Boolean).join('\n');
+};
+
 /**
  * Check if a device is a virtual device that should be filtered or warned about
  */

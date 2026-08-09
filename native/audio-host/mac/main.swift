@@ -153,14 +153,11 @@ func listSources() -> [Source] {
     // Applications actually making noise are the likely target; float them up.
     out.sort { a, b in a.active == b.active ? a.label < b.label : a.active && !b.active }
 
-    // Same application twice is ambiguous in a picker; disambiguate only then.
-    var counts: [String: Int] = [:]
-    for s in out { counts[s.label, default: 0] += 1 }
-    return out.map { s in
-        (counts[s.label] ?? 0) > 1
-            ? Source(pid: s.pid, label: "\(s.label) (\(s.pid))", exe: s.exe, active: s.active)
-            : s
-    }
+    // Two copies of one application used to be disambiguated here, by appending
+    // the pid only when the names collided. The app now appends it to every row
+    // on every platform (see withPid in electron/audio-host.js), so doing it
+    // here too would print the pid twice.
+    return out
 }
 
 func runList() -> Int32 {
