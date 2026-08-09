@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "Deze stem wordt gebruikt door een actieve sessie — beëindig de sessie voordat u deze verwijdert.",
     "sonioxVoiceInsufficientBalance": "Laad uw saldo op voordat u een aangepaste stem bouwt.",
     "sonioxVoiceSignInRequired": "Log in om een aangepaste stem te bouwen.",
-    "sonioxVoiceClipClearFailed": "Uw stem is verwijderd, maar de bijbehorende opname kon niet van dit apparaat worden verwijderd. Probeer het verwijderen opnieuw.",
+    "sonioxVoiceClipClearFailed": "Uw stem is verwijderd, maar de bijbehorende opname kon niet van dit apparaat worden verwijderd. Deze wordt niet meer gebruikt — een nieuwe stem opnemen vervangt hem.",
     "sonioxVoiceListError": "Gekloonde stemmen konden niet worden geladen — controleer de API-sleutel.",
     "sonioxManagedVoiceListError": "Uw stem kon niet worden geladen — controleer uw verbinding en probeer het opnieuw.",
     "sonioxVoicePreviewCostHint": "Het voorbeeld van een stem synthetiseert een korte clip met uw eigen Soniox-quotum.",

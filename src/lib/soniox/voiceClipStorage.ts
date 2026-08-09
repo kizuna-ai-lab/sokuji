@@ -141,8 +141,14 @@ export async function loadVoiceClip(accountId: string | null | undefined): Promi
  *
  *  Deliberately NOT account-scoped, and deliberately THROWS on failure:
  *
- *  - Unscoped, because the record is a single slot and removing a recording
- *    that belongs to someone else is never the wrong outcome here.
+ *  - Unscoped. The record is a single slot, so scoping the delete would mean
+ *    refusing to remove another account's record — leaving one that nobody
+ *    currently signed in can clear. That is not a free choice, and it does
+ *    have a downside: since an evicted voice's placeholder became deletable,
+ *    there is a concrete path where B, signed in on A's device, deletes A's
+ *    stale placeholder and destroys A's recording along with it. The trade is
+ *    made knowingly — erring toward removing biometric material rather than
+ *    retaining it, and A can re-record — not because no cost exists.
  *  - Throwing, for the same reason `saveVoiceClip` throws. Swallowing the
  *    failure would let the UI report a voice deleted while the recording it
  *    was built from is still sitting on this device — precisely the "left

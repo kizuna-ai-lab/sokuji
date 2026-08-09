@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "هذا الصوت قيد الاستخدام في جلسة نشطة — أنهِ الجلسة قبل حذفه.",
     "sonioxVoiceInsufficientBalance": "اشحن رصيدك قبل إنشاء صوت مخصص.",
     "sonioxVoiceSignInRequired": "سجّل الدخول لإنشاء صوت مخصص.",
-    "sonioxVoiceClipClearFailed": "تم حذف صوتك، لكن تعذّر إزالة التسجيل من هذا الجهاز. حاول الحذف مرة أخرى.",
+    "sonioxVoiceClipClearFailed": "تم حذف صوتك، لكن تعذّر إزالة تسجيله من هذا الجهاز. لم يعد أي صوت يستخدمه — تسجيل صوت جديد سيحلّ محله.",
     "sonioxVoiceListError": "تعذّر تحميل الأصوات المستنسخة — تحقق من مفتاح API.",
     "sonioxManagedVoiceListError": "تعذّر تحميل صوتك — تحقق من اتصالك وحاول مرة أخرى.",
     "sonioxVoicePreviewCostHint": "معاينة صوت ما تُنشئ مقطعًا قصيرًا باستخدام حصتك الخاصة من Soniox.",

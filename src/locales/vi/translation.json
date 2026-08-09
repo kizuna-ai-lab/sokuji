@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "Giọng nói này đang được một phiên đang chạy sử dụng — hãy kết thúc phiên trước khi xóa.",
     "sonioxVoiceInsufficientBalance": "Hãy nạp thêm số dư trước khi xây dựng giọng nói tùy chỉnh.",
     "sonioxVoiceSignInRequired": "Đăng nhập để xây dựng giọng nói tùy chỉnh.",
-    "sonioxVoiceClipClearFailed": "Giọng nói của bạn đã được xóa, nhưng không thể xóa bản ghi âm khỏi thiết bị này. Hãy thử xóa lại.",
+    "sonioxVoiceClipClearFailed": "Giọng nói của bạn đã được xóa, nhưng không thể xóa bản ghi âm khỏi thiết bị này. Bản ghi này không còn được dùng — ghi âm giọng mới sẽ thay thế nó.",
     "sonioxVoiceListError": "Không thể tải giọng nói nhân bản — hãy kiểm tra khóa API.",
     "sonioxManagedVoiceListError": "Không thể tải giọng nói của bạn — hãy kiểm tra kết nối và thử lại.",
     "sonioxVoicePreviewCostHint": "Xem trước một giọng nói sẽ tổng hợp một đoạn clip ngắn bằng hạn mức Soniox của riêng bạn.",

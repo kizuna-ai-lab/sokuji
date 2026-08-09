@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "この音声は実行中のセッションで使用されています — 削除する前にセッションを終了してください。",
     "sonioxVoiceInsufficientBalance": "カスタム音声を作成する前に、残高をチャージしてください。",
     "sonioxVoiceSignInRequired": "カスタム音声を作成するにはサインインしてください。",
-    "sonioxVoiceClipClearFailed": "音声は削除されましたが、その録音をこの端末から削除できませんでした。もう一度削除をお試しください。",
+    "sonioxVoiceClipClearFailed": "音声は削除されましたが、その録音をこの端末から削除できませんでした。現在は使用されていません — 新しい音声を録音すると置き換えられます。",
     "sonioxVoiceListError": "複製した音声を読み込めませんでした — APIキーを確認してください。",
     "sonioxManagedVoiceListError": "音声を読み込めませんでした — 接続を確認して再度お試しください。",
     "sonioxVoicePreviewCostHint": "音声をプレビューすると、ご自身の Soniox クォータを使用して短いクリップが合成されます。",

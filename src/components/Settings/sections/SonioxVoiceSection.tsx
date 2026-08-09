@@ -185,11 +185,15 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         // Half a delete: the voice is gone, the recording it was built from
         // is not. Saying "delete failed" would be the wrong half, and saying
         // nothing would leave biometric material on the device under a claim
-        // that it was removed.
+        // that it was removed. The remedy is NOT "delete again" — by the time
+        // this shows, the voice row is gone from the list and there is no
+        // delete button left to press. Recording a new voice overwrites the
+        // clip (one record, replaced by whoever saves next), which is the
+        // only in-app action that actually removes it.
         return new Error(
           t(
             'settings.sonioxVoiceClipClearFailed',
-            'Your voice was deleted, but its recording could not be removed from this device. Try deleting again.'
+            'Your voice was deleted, but its recording could not be removed from this device. Nothing uses it now — recording a new voice replaces it.'
           )
         );
       }
@@ -420,13 +424,27 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       );
       return;
     }
+    // `clip_clear_failed` is the one failure where the BACKEND delete already
+    // succeeded — the voice is gone at Soniox and from our table, and only
+    // the on-device recording survived. Bailing out here (as every other
+    // failure rightly does) would leave the panel listing a voice that no
+    // longer exists and `settings.voice` still pointing at it, so the next
+    // Start would 409 `clip_required`, upload the surviving clip, and
+    // silently rebuild the voice the user just deleted. The list refresh and
+    // the setting reset below therefore run for it too; the clip failure is
+    // reported afterwards, once the panel tells the truth about the voice.
+    let clipClearFailure: unknown = null;
     try {
       await source.delete(id);
     } catch (e) {
-      // VoiceLibrarySection's own catch only console.warns — surface the
-      // failure in the banner or a failed delete is silent.
-      setCaptureError(mapCreateError(e).message);
-      throw e;
+      if (e instanceof SonioxVoicesError && e.errorType === 'clip_clear_failed') {
+        clipClearFailure = e;
+      } else {
+        // VoiceLibrarySection's own catch only console.warns — surface the
+        // failure in the banner or a failed delete is silent.
+        setCaptureError(mapCreateError(e).message);
+        throw e;
+      }
     }
     await refresh();
     // Deliberate in-app deletion of the selected voice falls back to the
@@ -434,6 +452,10 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // ever shows the placeholder below — the stored setting is never rewritten
     // behind the user's back.
     if (settings.voice === id) onUpdate({ voice: DEFAULT_VOICE });
+    if (clipClearFailure) {
+      setCaptureError(mapCreateError(clipClearFailure).message);
+      throw clipClearFailure;
+    }
   };
 
   // The managed backend names voices itself (`u_<account>_<token>`) and never
@@ -461,12 +483,21 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // failed voice IS rebuilt from a fresh clip, so re-recording works there and
   // the affordances stay.
   const managedVoiceBlocksCreate = managed && clones.some((v) => !isFailed(v));
-  // Also withheld for managed accounts while the list is still settling: for
-  // the beat before a healthy voice arrives we cannot yet know the answer,
-  // and a click landing in that window would stage a clip that the confirm
-  // step then uploads for nothing. Same "don't claim anything until the fetch
-  // settles" rule the deleted-voice placeholder below already follows.
-  const canCreate = !!source && !managedVoiceBlocksCreate && !(managed && listState === 'loading');
+  // AN ERRORED LIST IS NOT AN EMPTY LIST. After a failed or unfinished
+  // `GET /mine` this panel knows NOTHING about what the account holds:
+  // `clones` is `[]` because nothing arrived, not because nothing exists.
+  // Both managed-only affordances below decide on exactly that knowledge —
+  // one offers to CREATE a voice, the other offers to DESTROY one — so both
+  // are withheld until the fetch has actually settled. Reading ignorance as
+  // "there is no voice" is what would offer to build a voice that already
+  // exists (a no-op the backend answers by handing back the existing one),
+  // or to delete a healthy voice the panel merely could not see.
+  //
+  // Only the success state qualifies: 'loading' has not answered yet, and
+  // 'error' never will. The Retry button beside the list error is the way
+  // back to a known state.
+  const managedListKnown = listState === 'idle';
+  const canCreate = !!source && !managedVoiceBlocksCreate && (!managed || managedListKnown);
 
   const entries = useMemo<VoiceEntry[]>(() => {
     const builtin: VoiceEntry[] = BUILTIN_VOICES.map((v) => ({
@@ -504,26 +535,33 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
           ? t('settings.sonioxVoiceDeletedPlaceholder', '(deleted voice)')
           : settings.voice,
         group: 'custom',
-        // MANAGED: an unknown id here is this account's OWN voice after an
-        // eviction — the normal outcome of a small LRU cache serving
-        // unbounded users, not an anomaly. Without a delete button the panel
-        // would show "(deleted voice)" above "No imported voices yet." with
-        // no way forward, the on-device recording would stay there
-        // indefinitely, and every later Start would silently re-upload it.
-        // The backend's DELETE /mine answers 200 when there is no row, so
-        // removing a placeholder is safe and idempotent; it clears the local
-        // clip and resets the stale setting to the default built-in.
+        // MANAGED, and only once the list is KNOWN: an unknown id here is
+        // this account's OWN voice after an eviction — the normal outcome of
+        // a small LRU cache serving unbounded users, not an anomaly. Without
+        // a delete button the panel would show "(deleted voice)" above "No
+        // imported voices yet." with no way forward, the on-device recording
+        // would stay there indefinitely, and every later Start would silently
+        // re-upload it. The backend's DELETE /mine answers 200 when there is
+        // no row, so removing a genuine placeholder is safe and idempotent;
+        // it clears the local clip and resets the stale setting.
+        //
+        // `managedListKnown` is load-bearing, not belt-and-braces. This
+        // placeholder also renders when the fetch FAILED — and there the
+        // label "(deleted voice)" is a guess, not a fact. `delete` ignores
+        // the id and issues an unconditional DELETE /mine, so one click on a
+        // row that only LOOKS stale destroys a healthy voice at Soniox AND
+        // the reference clip that is the only thing that could rebuild it.
         //
         // BYOK: left alone. There an unknown id means somebody else's
         // project, and the existing rule holds — an external deletion never
         // rewrites the stored setting behind the user's back.
-        removable: managed && !!source,
+        removable: managed && !!source && managedListKnown,
         // Shows the current selection's state; never a valid new choice.
         disabled: true,
       });
     }
     return [...builtin, ...custom];
-  }, [clones, managed, managedName, settings.voice, listState, source, t]);
+  }, [clones, managed, managedName, managedListKnown, settings.voice, listState, source, t]);
 
   return (
     <div className="settings-section" id="soniox-voice-section">

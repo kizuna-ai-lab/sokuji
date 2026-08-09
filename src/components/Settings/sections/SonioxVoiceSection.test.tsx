@@ -623,6 +623,76 @@ describe('SonioxVoiceSection', () => {
     );
   });
 
+  it('a half-completed managed delete still refreshes the list and resets the stored voice', async () => {
+    // clip_clear_failed is the ONE failure where the backend delete already
+    // succeeded. Bailing out on it would leave the deleted voice listed and
+    // still selected, so the next Start would 409 clip_required, upload the
+    // surviving clip, and silently rebuild the voice the user just deleted.
+    listMock.mockResolvedValueOnce([cloned()]).mockResolvedValue([]);
+    deleteMock.mockRejectedValue(new SonioxVoicesError('clip_clear_failed', 'denied', 0));
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false }),
+      settings: { voice: 'uuid-1', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    // The list is re-fetched...
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    // ...and the setting stops pointing at a voice that no longer exists.
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: 'Maya' }));
+    // The clip failure is still reported, just after the panel tells the truth.
+    expect(screen.queryByText(/could not be removed from this device/i)).not.toBeNull();
+  });
+
+  // AN ERRORED LIST IS NOT AN EMPTY LIST. After a failed GET /mine the panel
+  // knows nothing about the account's voice, and both managed-only
+  // affordances decide on exactly that knowledge.
+  it('managed mode offers no delete for the placeholder when the list fetch FAILED', async () => {
+    // The healthy voice is invisible only because the fetch failed. `delete`
+    // ignores the id and issues an unconditional DELETE /mine, so one click
+    // would destroy the real voice at Soniox AND the reference clip that is
+    // the only thing able to rebuild it.
+    listMock.mockRejectedValue(new Error('offline'));
+    mount({
+      managed: true,
+      source: fakeSource({ canPreview: false }),
+      settings: { voice: 'real-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(screen.queryByText(/could not load your voice/i)).not.toBeNull());
+    // The manage block may not render at all once nothing inside it is
+    // offered; open it only if it is there, so the assertion below is about
+    // the button rather than about which of the two ways it is absent.
+    const summary = screen.queryByText(/manage imported voices/i);
+    if (summary) fireEvent.click(summary);
+    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+    expect(deleteMock).not.toHaveBeenCalled();
+  });
+
+  it('managed mode withholds record/import when the list fetch FAILED', async () => {
+    // `clones` is [] because nothing arrived, not because nothing exists —
+    // so offering Record here reproduces the original no-op the C3 fix is
+    // about: the backend hands back the existing voice and ignores the clip.
+    listMock.mockRejectedValue(new Error('offline'));
+    mount({ managed: true, source: fakeSource({ canPreview: false }) });
+    await waitFor(() => expect(screen.queryByText(/could not load your voice/i)).not.toBeNull());
+    const summary = screen.queryByText(/manage imported voices/i);
+    if (summary) fireEvent.click(summary);
+    expect(screen.queryByRole('button', { name: /record voice/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /import voice/i })).toBeNull();
+  });
+
+  it('BYOK keeps record/import after a failed list fetch — the unknown-list rule is managed-only', async () => {
+    // BYOK's list error means "check the API key", and its create path does
+    // not depend on knowing what the project already holds.
+    listMock.mockRejectedValue(new Error('offline'));
+    mount();
+    await waitFor(() => expect(screen.queryByText(/could not load cloned voices/i)).not.toBeNull());
+    openManageDetails();
+    expect(screen.queryByRole('button', { name: /record voice/i })).not.toBeNull();
+  });
+
   it('the confirm button stays disabled until the usage-rights checkbox is checked', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 5);

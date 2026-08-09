@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "Bu ses, çalışmakta olan bir oturum tarafından kullanılıyor — silmeden önce oturumu sonlandırın.",
     "sonioxVoiceInsufficientBalance": "Özel bir ses oluşturmadan önce bakiyenizi yükleyin.",
     "sonioxVoiceSignInRequired": "Özel bir ses oluşturmak için giriş yapın.",
-    "sonioxVoiceClipClearFailed": "Sesiniz silindi ancak kaydı bu cihazdan kaldırılamadı. Silmeyi tekrar deneyin.",
+    "sonioxVoiceClipClearFailed": "Sesiniz silindi ancak kaydı bu cihazdan kaldırılamadı. Artık kullanılmıyor — yeni bir ses kaydetmek onun yerini alır.",
     "sonioxVoiceListError": "Klonlanmış sesler yüklenemedi — API anahtarınızı kontrol edin.",
     "sonioxManagedVoiceListError": "Sesiniz yüklenemedi — bağlantınızı kontrol edip tekrar deneyin.",
     "sonioxVoicePreviewCostHint": "Bir sesi önizlemek, kendi Soniox kotanızı kullanarak kısa bir klip sentezler.",

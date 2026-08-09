@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "此声音正被正在进行的会话使用 — 请先结束会话再删除。",
     "sonioxVoiceInsufficientBalance": "请先为您的账户充值,再创建自定义声音。",
     "sonioxVoiceSignInRequired": "请登录以创建自定义声音。",
-    "sonioxVoiceClipClearFailed": "您的声音已删除，但其录音无法从本设备中移除。请重试删除。",
+    "sonioxVoiceClipClearFailed": "您的声音已删除，但其录音无法从本设备中移除。该录音已不再被使用 — 录制新声音会将其替换。",
     "sonioxVoiceListError": "无法加载克隆声音 — 请检查 API 密钥。",
     "sonioxManagedVoiceListError": "无法加载您的声音 — 请检查网络连接后重试。",
     "sonioxVoicePreviewCostHint": "预览声音会使用您自己的 Soniox 配额合成一小段音频。",

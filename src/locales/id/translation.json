@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "Suara ini sedang digunakan oleh sesi yang berjalan — akhiri sesi sebelum menghapusnya.",
     "sonioxVoiceInsufficientBalance": "Isi ulang saldo Anda sebelum membangun suara kustom.",
     "sonioxVoiceSignInRequired": "Masuk untuk membangun suara kustom.",
-    "sonioxVoiceClipClearFailed": "Suara Anda telah dihapus, tetapi rekamannya tidak dapat dihapus dari perangkat ini. Coba hapus lagi.",
+    "sonioxVoiceClipClearFailed": "Suara Anda telah dihapus, tetapi rekamannya tidak dapat dihapus dari perangkat ini. Rekaman itu tidak lagi digunakan — merekam suara baru akan menggantikannya.",
     "sonioxVoiceListError": "Tidak dapat memuat suara hasil kloning — periksa kunci API.",
     "sonioxManagedVoiceListError": "Suara Anda tidak dapat dimuat — periksa koneksi Anda dan coba lagi.",
     "sonioxVoicePreviewCostHint": "Pratinjau suara mensintesis klip singkat menggunakan kuota Soniox Anda sendiri.",

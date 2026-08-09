@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "Suara ini sedang digunakan oleh sesi yang sedang berjalan — tamatkan sesi sebelum memadamkannya.",
     "sonioxVoiceInsufficientBalance": "Tambah nilai baki anda sebelum membina suara tersuai.",
     "sonioxVoiceSignInRequired": "Log masuk untuk membina suara tersuai.",
-    "sonioxVoiceClipClearFailed": "Suara anda telah dipadamkan, tetapi rakamannya tidak dapat dibuang daripada peranti ini. Cuba padam sekali lagi.",
+    "sonioxVoiceClipClearFailed": "Suara anda telah dipadamkan, tetapi rakamannya tidak dapat dibuang daripada peranti ini. Ia tidak lagi digunakan — merakam suara baharu akan menggantikannya.",
     "sonioxVoiceListError": "Tidak dapat memuatkan suara klon — semak kunci API.",
     "sonioxManagedVoiceListError": "Suara anda tidak dapat dimuatkan — semak sambungan anda dan cuba lagi.",
     "sonioxVoicePreviewCostHint": "Pratonton suara mensintesis klip pendek menggunakan kuota Soniox anda sendiri.",

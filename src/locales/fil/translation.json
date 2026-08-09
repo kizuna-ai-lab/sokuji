@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "Ginagamit ang boses na ito ng isang tumatakbong session — tapusin muna ang session bago ito burahin.",
     "sonioxVoiceInsufficientBalance": "Mag-top up ng iyong balanse bago bumuo ng custom na boses.",
     "sonioxVoiceSignInRequired": "Mag-sign in para bumuo ng custom na boses.",
-    "sonioxVoiceClipClearFailed": "Nabura ang iyong boses, ngunit hindi maalis ang recording nito sa device na ito. Subukang burahin muli.",
+    "sonioxVoiceClipClearFailed": "Nabura ang iyong boses, ngunit hindi maalis ang recording nito sa device na ito. Wala nang gumagamit nito — papalitan ito kapag nag-record ka ng bagong boses.",
     "sonioxVoiceListError": "Hindi na-load ang mga klonadong boses — suriin ang iyong API key.",
     "sonioxManagedVoiceListError": "Hindi na-load ang iyong boses — suriin ang iyong koneksyon at subukang muli.",
     "sonioxVoicePreviewCostHint": "Ang pag-preview ng boses ay gumagawa ng maikling clip gamit ang sarili mong Soniox quota.",

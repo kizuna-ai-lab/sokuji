@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "Esta voz está siendo utilizada por una sesión en curso — finaliza la sesión antes de eliminarla.",
     "sonioxVoiceInsufficientBalance": "Recarga tu saldo antes de crear una voz personalizada.",
     "sonioxVoiceSignInRequired": "Inicia sesión para crear una voz personalizada.",
-    "sonioxVoiceClipClearFailed": "Tu voz se eliminó, pero su grabación no se pudo quitar de este dispositivo. Inténtalo de nuevo.",
+    "sonioxVoiceClipClearFailed": "Tu voz se eliminó, pero su grabación no se pudo quitar de este dispositivo. Ya no se usa — grabar una voz nueva la reemplaza.",
     "sonioxVoiceListError": "No se pudieron cargar las voces clonadas — comprueba la clave API.",
     "sonioxManagedVoiceListError": "No se pudo cargar tu voz — comprueba tu conexión e inténtalo de nuevo.",
     "sonioxVoicePreviewCostHint": "La vista previa de una voz sintetiza un clip corto usando tu propia cuota de Soniox.",

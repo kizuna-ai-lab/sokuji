@@ -259,7 +259,7 @@
     "sonioxVoicePinned": "Diese Stimme wird gerade von einer laufenden Sitzung verwendet — beenden Sie die Sitzung, bevor Sie sie löschen.",
     "sonioxVoiceInsufficientBalance": "Laden Sie Ihr Guthaben auf, bevor Sie eine eigene Stimme erstellen.",
     "sonioxVoiceSignInRequired": "Melden Sie sich an, um eine eigene Stimme zu erstellen.",
-    "sonioxVoiceClipClearFailed": "Ihre Stimme wurde gelöscht, aber die zugehörige Aufnahme konnte nicht von diesem Gerät entfernt werden. Versuchen Sie das Löschen erneut.",
+    "sonioxVoiceClipClearFailed": "Ihre Stimme wurde gelöscht, aber die zugehörige Aufnahme konnte nicht von diesem Gerät entfernt werden. Sie wird nicht mehr verwendet — eine neue Aufnahme ersetzt sie.",
     "sonioxVoiceListError": "Geklonte Stimmen konnten nicht geladen werden — überprüfen Sie den API-Schlüssel.",
     "sonioxManagedVoiceListError": "Ihre Stimme konnte nicht geladen werden — überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
     "sonioxVoicePreviewCostHint": "Das Anhören einer Vorschau synthetisiert einen kurzen Clip über Ihr eigenes Soniox-Kontingent.",
