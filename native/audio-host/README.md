@@ -60,8 +60,13 @@ Before the first PCM byte it writes one line to stderr:
 and on failure:
 
 ```json
-{"event":"error","code":"bad_target|activation_failed|initialize_failed|target_gone"}
+{"event":"error","code":"bad_target|no_such_audio_process|activation_failed|initialize_failed|target_gone"}
+{"event":"warning","code":"silent_no_permission|retarget_failed"}
 ```
+
+An `error` tells Sokuji its capture is gone and it tears the recorder down; a
+`warning` does not. Anything degraded-but-still-capturing must therefore be a
+warning.
 
 Exit codes: `0` clean, `1` runtime failure, `2` bad usage.
 
@@ -158,6 +163,19 @@ mac/build.sh
 `resources/bin/darwin-arm64` or `darwin-x64` depending on the build machine's architecture.
 As on Windows the copy is part of the build, not a step to remember.
 
+### Verify
+
+```
+mac/verify.sh [binary]
+```
+
+Captures a process that only starts playing after the session does, captures one
+whose audio child is replaced mid-session, and captures a silent process while
+another one plays. Expected output ends with `VERIFY OK`; it fails five
+assertions on the pre-#393 binary. The audio-content assertions need the
+"System Audio Recording Only" grant, which TCC attributes to the terminal running
+the script — without it the script says so and keeps only the structural checks.
+
 ### Things learned the hard way
 
 - **TCC denies by silence, not by error.** Without the "System Audio Recording Only" grant
@@ -186,6 +204,36 @@ As on Windows the copy is part of the build, not a step to remember.
   every one of the app's streams; macOS has to expand the tree itself. The same
   applies to `IsRunningOutput`: asked of the parent it is always false, so any
   browser reads as idle.
+- **That tree is a snapshot, and it goes stale on its own.** An audio process
+  object is destroyed when its process stops rendering and a *new* object is
+  created for the replacement. Measured Aug 2026 on 15.7.3: killing Chrome's
+  `audio.mojom.AudioService` child removed object 199 from Chrome's tree and the
+  respawned service arrived as object 202 under a new pid. A tap resolved once at
+  capture start then covers only dead objects — and the HAL prunes those, leaving
+  the tap with an empty process list. The symptom is the nastiest one available:
+  correctly-clocked buffers of pure zeros, forever, with the session looking
+  perfectly healthy. This is the macOS half of the Windows "audio session's pid is
+  not the application's pid" defect above; Windows failed loudly by exiting, macOS
+  failed silently.
+- **A live tap can be re-pointed in place.** Writing `kAudioTapPropertyDescription`
+  on a running tap with a new process list returns `noErr` and the HAL re-reads it:
+  measured, audio from the newly named processes resumes within one 0.25 s poll,
+  and the aggregate device keeps its IOProc, its clock and its sample rate — no
+  rebuild, no gap in the frame count. Rebuilding the tap and aggregate device was
+  the fallback plan and turned out to be unnecessary.
+- **An empty mixdown list is not a global tap** — the two initialisers set
+  different flags and do not collapse into each other. Measured: a
+  `monoMixdownOfProcesses: []` tap reads peak 0.0000 while another process is
+  audibly playing, where a global tap on the same audio reads 11994. So the helper
+  can safely create the tap before its target owns any audio object, which is what
+  lets an idle application be picked at all. **But** such a tap delivers no buffers
+  whatsoever — not even silent ones, unlike the Windows path — so the writer thread
+  synthesises silence against the wall clock to keep the stream from stalling.
+- **`IsRunningOutput` leads the first audible sample.** Core Audio marks a process
+  as running output a poll or two before the tap hands over anything non-zero, so
+  a naive reading fires `silent_no_permission` at the exact moment playback starts
+  — the one moment the permission is provably fine. The warning requires the
+  contradiction to hold for two seconds.
 - **Whole-system capture uses a global tap, not getDisplayMedia.** Screen
   Recording is a second, heavier permission, and a `stereoGlobalTapButExcludeProcesses: []`
   tap does the same job under the audio-capture grant the per-application path
