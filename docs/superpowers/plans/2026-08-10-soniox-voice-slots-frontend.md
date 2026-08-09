@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - **Repository:** `sokuji-react`. The backend half is already merged-pending in `kizuna-ai-lab/sokuji-backend` PR #13, branch `feat/soniox-managed-voice-slots`. Do not edit the backend from this plan.
-- **Branch:** work on the existing local branch `feat/soniox-managed-voice-slots` (it already carries this feature's spec and the backend plan as 10 doc commits). Do NOT push and do NOT open a PR — pushing and PR creation require jiangzhuo's explicit per-act approval.
+- **Branch:** `feat/soniox-managed-voices-frontend`, cut from `feat/soniox-managed-voice-slots` (which carries this feature's spec, the backend plan, and this plan as doc commits). You are already on it — never switch branches. Do NOT push and do NOT open a PR: pushing and PR creation require jiangzhuo's explicit per-act approval, every time.
 - **Node 24** (`.nvmrc`). Before any test run: `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 24`.
 - **Test command:** `npx vitest run <path>` for one file, `npm test -- --run` for the suite. Baseline before you start: **1380 tests passing**. Record the real number you observe in Task 1 and never let it drop.
 - **`tsc --noEmit` is NOT clean in this repo** (~113 pre-existing errors). Do not gate anything on it, and do not "fix" errors you did not create. The correctness gate is vitest.
@@ -1818,11 +1818,22 @@ The twelve keys, with their English text (copy these verbatim — the `t(key, de
 
 ```bash
 cd /home/jiangzhuo/Desktop/kizunaai/sokuji-react
-grep -rhno "t(\s*'[a-zA-Z]*\.[a-zA-Z]*'" src/components/Settings/sections/SonioxVoiceSection.tsx \
+grep -rho "t(\s*'[a-zA-Z]*\.[a-zA-Z]*'" \
+  src/components/Settings/sections/SonioxVoiceSection.tsx \
   src/components/Settings/sections/SonioxCloneConfirmModal.tsx \
   src/components/MainPanel/prepareManagedVoice.ts \
-  src/components/MainPanel/MainPanel.tsx | sed "s/.*'\(.*\)'/\1/" | sort -u > /tmp/used-keys.txt
-node -e "const en=require('./src/locales/en/translation.json');const f=(o,p='')=>Object.entries(o).flatMap(([k,v])=>typeof v==='object'?f(v,p?p+'.'+k:k):[p?p+'.'+k:k]);const have=new Set(f(en));require('fs').readFileSync('/tmp/used-keys.txt','utf8').split('\n').filter(Boolean).forEach(k=>{if(!have.has(k))console.log('MISSING',k)})"
+  src/components/MainPanel/MainPanel.tsx \
+  | sed "s/.*'\(.*\)'/\1/" | sort -u \
+  | node -e "
+const en = require('./src/locales/en/translation.json');
+const flat = (o, p = '') => Object.entries(o).flatMap(([k, v]) =>
+  v && typeof v === 'object' ? flat(v, p ? p + '.' + k : k) : [p ? p + '.' + k : k]);
+const have = new Set(flat(en));
+let input = '';
+process.stdin.on('data', (d) => { input += d; });
+process.stdin.on('end', () => {
+  input.split('\n').filter(Boolean).forEach((k) => { if (!have.has(k)) console.log('MISSING', k); });
+});"
 ```
 
 Every `MISSING` line is this task's work. If it names a key absent from the table above, the implementer renamed something — add it here rather than inventing a translation for a key nobody will look up.
