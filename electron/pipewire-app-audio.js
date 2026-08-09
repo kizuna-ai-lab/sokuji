@@ -115,6 +115,93 @@ async function dumpGraph(exec) {
   return JSON.parse(stdout);
 }
 
+function findNodeByName(dump, name) {
+  if (!Array.isArray(dump)) return undefined;
+  return dump.find((o) =>
+    o?.type === 'PipeWire:Interface:Node' &&
+    o?.info?.props?.['node.name'] === name);
+}
+
+const defaultDelay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Point the remapped source's capture stream at the capture sink's monitor.
+ *
+ * `master=` is only a hint. pactl turns it into `node.target`, and on PipeWire
+ * 0.3.x that name resolves to nothing, because `<sink>.monitor` is a PulseAudio
+ * name rather than a node - a sink's monitor is just output ports on the sink
+ * itself. The stream still carries `node.autoconnect`, so the session manager
+ * falls back to the *default source*: the tap then records whatever the default
+ * input carries, identically no matter which application the user picked.
+ * Reproduced on PipeWire 0.3.48, where a 1 kHz tone linked into the capture sink
+ * read back at 0.6% of full scale (room noise) instead of 61%.
+ *
+ * createVirtualAudioDevices() in pulseaudio-utils.js has always repaired the
+ * same autoconnect by hand for the virtual mic. This is that repair, for the
+ * capture tap.
+ *
+ * Idempotent, and a no-op wherever the session manager already got it right.
+ *
+ * @returns {Promise<boolean>} true once the stream's only inputs are the monitor
+ */
+async function bindCaptureSourceToSink({ exec, delay = defaultDelay, attempts = 4 }) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    // The session manager autoconnects asynchronously, so a repair applied
+    // before it runs would simply be undone by it. Let the graph settle, then
+    // look at what it actually did.
+    await delay(150);
+
+    const dump = await dumpGraph(exec);
+    const sink = findNodeByName(dump, CAPTURE_SINK_NAME);
+    const stream = findNodeByName(dump, `input.${CAPTURE_SOURCE_NAME}`);
+    // A PipeWire that builds the remap differently exposes no such stream.
+    // Leave its graph alone rather than guess at a shape we cannot see.
+    if (!sink || !stream) return true;
+
+    // A sink's monitor is its output ports; the remap's capture stream consumes
+    // them through its inputs. Both are sorted by port name, so the channels
+    // pair up positionally.
+    const monitors = resolvePortIds(dump, sink.id, 'output');
+    const inputs = resolvePortIds(dump, stream.id, 'input');
+    if (monitors.length === 0 || inputs.length === 0) continue;
+
+    const pairs = [];
+    for (let i = 0; i < Math.min(monitors.length, inputs.length); i++) {
+      pairs.push([monitors[i], inputs[i]]);
+    }
+    const wanted = new Set(pairs.map(([out, inp]) => `${out}:${inp}`));
+    const inputSet = new Set(inputs);
+
+    const present = new Set();
+    let changed = false;
+    for (const obj of dump) {
+      if (obj?.type !== 'PipeWire:Interface:Link') continue;
+      const props = obj?.info?.props;
+      const out = props?.['link.output.port'];
+      const inp = props?.['link.input.port'];
+      if (!inputSet.has(inp)) continue;
+      const pair = `${out}:${inp}`;
+      if (wanted.has(pair)) { present.add(pair); continue; }
+      // Anything else is the session manager's fallback to the default source.
+      if (!Number.isInteger(out) || !Number.isInteger(inp)) continue;
+      await exec(`pw-link -d ${out} ${inp}`);
+      changed = true;
+    }
+
+    for (const [out, inp] of pairs) {
+      if (present.has(`${out}:${inp}`)) continue;
+      if (!Number.isInteger(out) || !Number.isInteger(inp)) continue;
+      await exec(`pw-link ${out} ${inp}`);
+      changed = true;
+    }
+
+    // Nothing needed changing, so the previous pass stuck: the stream is fed by
+    // the capture sink and by nothing else.
+    if (!changed) return true;
+  }
+  return false;
+}
+
 /**
  * List the applications currently playing audio.
  * @returns {Promise<Array<{deviceId: string, label: string}>>}
@@ -159,7 +246,7 @@ async function listAppSources({ exec = defaultExec, windowTitles = listWindowTit
  * @param {string} deviceId - `app:<nodeId>`
  * @returns {Promise<{success: boolean, monitorLabel?: string, error?: string}>}
  */
-async function connectAppSourceUnsafe(deviceId, { exec = defaultExec } = {}) {
+async function connectAppSourceUnsafe(deviceId, { exec = defaultExec, delay = defaultDelay } = {}) {
   const id = String(deviceId);
   if (!id.startsWith('app:')) {
     return { success: false, error: `Not an application source: ${deviceId}` };
@@ -241,6 +328,16 @@ async function connectAppSourceUnsafe(deviceId, { exec = defaultExec } = {}) {
       throw new Error('no ports to link (the application may have stopped playing)');
     }
 
+    // The tap is built, but the source the renderer will record still has to be
+    // fed by it rather than by the default input. Capturing the wrong device is
+    // worse than capturing nothing: the user picked one application, and audio
+    // they never chose to share would reach the translation provider.
+    if (!await bindCaptureSourceToSink({ exec, delay })) {
+      throw new Error(
+        'the capture source stayed attached to the default input instead of the tap'
+      );
+    }
+
     return { success: true, monitorLabel: CAPTURE_SINK_DESCRIPTION };
   } catch (e) {
     // Never leave the null sink behind: it shows up as a phantom audio device
@@ -302,6 +399,7 @@ async function disconnectAppSource(opts = {}) {
 module.exports = {
   parseAppStreams,
   resolvePortIds,
+  bindCaptureSourceToSink,
   listAppSources,
   connectAppSource,
   disconnectAppSource,

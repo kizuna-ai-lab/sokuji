@@ -32,6 +32,11 @@ const port = (id, nodeId, direction, portName) => ({
   type: 'PipeWire:Interface:Port',
   info: { direction, props: { 'node.id': nodeId, 'port.name': portName } },
 });
+const link = (id, outPort, inPort) => ({
+  id,
+  type: 'PipeWire:Interface:Link',
+  info: { props: { 'link.output.port': outPort, 'link.input.port': inPort } },
+});
 
 describe('parseAppStreams', () => {
   it('returns one entry per application, keyed app:pid:<pid>', () => {
@@ -248,6 +253,133 @@ describe('connectAppSource', () => {
 
     // Two live taps would feed both applications into the same capture sink.
     expect(calls.some((c) => c.includes('unload-module 536870913'))).toBe(true);
+  });
+});
+
+// The graph a real PipeWire 0.3.x leaves behind once both modules are loaded:
+// the remapped source's capture stream (node 400) exists, but the session
+// manager has autoconnected it to the default *microphone* rather than to the
+// capture sink's monitor, because master= resolves to nothing on that version.
+const DUMP_MISWIRED = [
+  ...FULL_DUMP,
+  port(310, 300, 'output', 'monitor_FL'),
+  port(311, 300, 'output', 'monitor_FR'),
+  {
+    id: 400,
+    type: 'PipeWire:Interface:Node',
+    info: { props: { 'media.class': 'Stream/Input/Audio', 'node.name': 'input.sokuji_app_capture_mic' } },
+  },
+  port(401, 400, 'input', 'input_FL'),
+  port(402, 400, 'input', 'input_FR'),
+  {
+    id: 500,
+    type: 'PipeWire:Interface:Node',
+    info: { props: { 'media.class': 'Audio/Source', 'node.name': 'alsa_input.builtin_mic' } },
+  },
+  port(501, 500, 'output', 'capture_FL'),
+  port(502, 500, 'output', 'capture_FR'),
+  link(600, 501, 401),
+  link(601, 502, 402),
+];
+
+// Same graph, but already wired the way PipeWire 1.x does it.
+const DUMP_CORRECT = [
+  ...DUMP_MISWIRED.filter((o) => o.type !== 'PipeWire:Interface:Link'),
+  link(600, 310, 401),
+  link(601, 311, 402),
+];
+
+/**
+ * A fake graph that responds to the edits made to it, so a repair can be
+ * observed converging instead of asserted one call at a time. `pw-link` adds a
+ * link and `pw-link -d` removes one, exactly as they do on a real graph.
+ */
+function fakeExecLiveGraph(calls, initial, { moduleId = '536870913' } = {}) {
+  const nodesAndPorts = initial.filter((o) => o.type !== 'PipeWire:Interface:Link');
+  let links = initial.filter((o) => o.type === 'PipeWire:Interface:Link');
+  let nextLinkId = 900;
+
+  return async (cmd) => {
+    calls.push(cmd);
+    if (cmd.startsWith('pw-dump')) return { stdout: JSON.stringify([...nodesAndPorts, ...links]) };
+    if (cmd.includes('load-module')) return { stdout: `${moduleId}\n` };
+
+    const cut = cmd.match(/^pw-link -d (\d+) (\d+)$/);
+    if (cut) {
+      links = links.filter((l) => l.info.props['link.output.port'] !== Number(cut[1])
+        || l.info.props['link.input.port'] !== Number(cut[2]));
+      return { stdout: '' };
+    }
+    const join = cmd.match(/^pw-link (\d+) (\d+)$/);
+    if (join) {
+      links = [...links, link(nextLinkId++, Number(join[1]), Number(join[2]))];
+      return { stdout: '' };
+    }
+    return { stdout: '' };
+  };
+}
+
+describe('the remapped source is bound to the capture sink, not the default input', () => {
+  // master= is only a hint: pactl turns it into node.target, and on PipeWire
+  // 0.3.x "<sink>.monitor" resolves to no node at all. node.autoconnect then
+  // sends the stream to the default source, so every application the user picks
+  // yields the same audio - whatever the default input happens to carry.
+  // Reproduced on PipeWire 0.3.48.
+
+  it('drops the autoconnected link and links the sink monitor instead', async () => {
+    const calls = [];
+    const r = await connectAppSource('app:pid:4242', {
+      exec: fakeExecLiveGraph(calls, DUMP_MISWIRED),
+      delay: async () => {},
+    });
+
+    expect(r.success).toBe(true);
+    expect(calls).toContain('pw-link -d 501 401');
+    expect(calls).toContain('pw-link -d 502 402');
+    expect(calls).toContain('pw-link 310 401');
+    expect(calls).toContain('pw-link 311 402');
+  });
+
+  it('leaves a correctly wired graph untouched', async () => {
+    const calls = [];
+    const r = await connectAppSource('app:pid:4242', {
+      exec: fakeExecLiveGraph(calls, DUMP_CORRECT),
+      delay: async () => {},
+    });
+
+    expect(r.success).toBe(true);
+    expect(calls.some((c) => c.startsWith('pw-link -d'))).toBe(false);
+    // Already linked; relinking would error on a real graph.
+    expect(calls).not.toContain('pw-link 310 401');
+  });
+
+  it('fails the tap rather than capturing the wrong device', async () => {
+    // A static dump stands in for a session manager that reinstates its link
+    // every time. The user picked one application; handing them their
+    // microphone instead has to fail loudly, not record the wrong thing.
+    const calls = [];
+    const r = await connectAppSource('app:pid:4242', {
+      exec: fakeExec(calls, { dump: DUMP_MISWIRED }),
+      delay: async () => {},
+    });
+
+    expect(r.success).toBe(false);
+    expect(r.error).toMatch(/capture source/i);
+    // And it must not leave the phantom devices behind.
+    expect(calls.some((c) => c.includes('unload-module'))).toBe(true);
+  });
+
+  it('leaves an unrecognised graph alone instead of guessing', async () => {
+    // A PipeWire that builds the remap some other way exposes no
+    // input.<source> stream node. Rewiring blind would be worse than nothing.
+    const calls = [];
+    const r = await connectAppSource('app:pid:4242', {
+      exec: fakeExec(calls),   // FULL_DUMP has no remap stream node
+      delay: async () => {},
+    });
+
+    expect(r.success).toBe(true);
+    expect(calls.some((c) => c.startsWith('pw-link -d'))).toBe(false);
   });
 });
 
