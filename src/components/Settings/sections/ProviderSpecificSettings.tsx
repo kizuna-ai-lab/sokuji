@@ -67,6 +67,8 @@ import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { EngineSection } from './EngineSection';
 import SonioxVoiceSection from './SonioxVoiceSection';
+import { byokVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
+import { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
 import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
 import { useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
@@ -196,6 +198,20 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     provider === Provider.KIZUNA_AI_SONIOX
       ? updateKizunaSonioxSettings
       : updateSonioxSettings;
+
+  // Memoized on primitives, never constructed inline. SonioxVoiceSection's
+  // load effect depends on this object's identity, so a fresh instance per
+  // render would refetch the voice list on every render — the same class of
+  // bug CLAUDE.md warns about for audio devices (depend on `deviceId`, not on
+  // the device object).
+  const sonioxVoiceSource = useMemo<VoiceLibrarySource | null>(
+    // Managed sources arrive in Task 4; until then a managed account has no
+    // source, which is exactly the built-ins-only behaviour it has today.
+    () => (!isKizunaManagedProvider(provider) && activeSonioxSettings.apiKey
+      ? byokVoiceSource(new SonioxVoicesClient(activeSonioxSettings.apiKey))
+      : null),
+    [provider, activeSonioxSettings.apiKey]
+  );
 
   // Auto-select compatible models when LOCAL_INFERENCE languages change
   useEffect(() => {
@@ -1782,6 +1798,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <SonioxVoiceSection
           settings={activeSonioxSettings}
           onUpdate={updateActiveSonioxSettings}
+          source={sonioxVoiceSource}
           managed={managed}
           isSessionActive={isSessionActive}
         />

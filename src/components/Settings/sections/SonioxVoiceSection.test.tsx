@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { VoiceLibrarySource } from './voiceLibrarySource';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -10,19 +11,32 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
+// These stand in for whatever the section used to construct internally (a
+// SonioxVoicesClient's list/create/delete/waitUntilReady). Now that the
+// section receives its `source` as a prop (see voiceLibrarySource.ts), the
+// fake below is the seam's test double — shared across tests so a test can
+// keep configuring `listMock.mockResolvedValue(...)` etc. exactly as before.
 const listMock = vi.fn();
 const createMock = vi.fn();
 const deleteMock = vi.fn();
 const waitMock = vi.fn();
-vi.mock('../../../services/clients/SonioxVoicesClient', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../services/clients/SonioxVoicesClient')>();
+
+/** A fake source standing in for whatever the section used to construct
+ *  internally. The assertions below are unchanged from before the seam
+ *  existed — that is the point of this file: BYOK behaviour must come out
+ *  bit-identical. Defaults route through the shared mocks above (not fresh
+ *  vi.fn()s) so a test's `listMock.mockResolvedValue(...)` etc., set up
+ *  before mount(), still reaches the source the component was given. */
+function fakeSource(over: Partial<VoiceLibrarySource> = {}): VoiceLibrarySource {
   return {
-    ...actual, // keep encodeWavPcm16 + SonioxVoicesError real
-    SonioxVoicesClient: vi.fn(function () {
-      return { list: listMock, create: createMock, delete: deleteMock, waitUntilReady: waitMock, get: vi.fn() };
-    }),
-  };
-});
+    list: listMock,
+    create: createMock,
+    delete: deleteMock,
+    waitUntilReady: waitMock,
+    canPreview: true,
+    ...over,
+  } as VoiceLibrarySource;
+}
 
 const synthesizeMock = vi.fn();
 vi.mock('../../../services/clients/SonioxTtsRest', () => ({
@@ -72,6 +86,7 @@ function mount(over: object = {}) {
     <SonioxVoiceSection
       settings={{ voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }}
       onUpdate={onUpdate}
+      source={fakeSource()}
       managed={false}
       isSessionActive={false}
       {...over}
@@ -153,7 +168,7 @@ describe('SonioxVoiceSection', () => {
   });
 
   it('managed mode renders built-ins only: no fetch, no refresh/create affordances', () => {
-    mount({ managed: true });
+    mount({ managed: true, source: null });
     expect(listMock).not.toHaveBeenCalled();
     expect(screen.queryByTitle(/refresh voice list/i)).toBeNull();
     expect(screen.queryByText(/manage imported voices/i)).toBeNull();
@@ -436,11 +451,15 @@ describe('SonioxVoiceSection', () => {
   it('clears the previous project\'s clones as soon as the API key changes', async () => {
     listMock.mockResolvedValueOnce([cloned()]).mockReturnValueOnce(new Promise(() => {}));
     const onUpdate = vi.fn();
-    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, managed: false, isSessionActive: false };
+    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, source: fakeSource(), managed: false, isSessionActive: false };
     const { container, rerender } = render(<SonioxVoiceSection {...props} />);
     const select = container.querySelector('select')!;
     await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true));
-    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Maya', apiKey: 'other-key' }} />);
+    // A changed API key means a (possibly) different project — in production
+    // this is a fresh SonioxVoicesClient instance behind a fresh memoized
+    // source (ProviderSpecificSettings.tsx's useMemo keyed on the key
+    // string); a new fakeSource() here plays that same role.
+    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Maya', apiKey: 'other-key' }} source={fakeSource()} />);
     // The new key's fetch never resolves — the old project's clone must
     // already be gone rather than lingering selectable.
     await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(false));
@@ -453,7 +472,7 @@ describe('SonioxVoiceSection', () => {
     waitMock.mockReturnValue(new Promise((resolve) => { resolveWait = resolve; }));
     stubAudioContext(16000, 16000 * 5);
     const onUpdate = vi.fn();
-    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, managed: false, isSessionActive: false };
+    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, source: fakeSource(), managed: false, isSessionActive: false };
     const { container, rerender } = render(<SonioxVoiceSection {...props} />);
     openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -464,6 +483,8 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalled());
 
     // The user picks a different voice while the clone is still processing.
+    // The API key (and therefore the source) is unchanged — only `voice`
+    // moves — so `source` is deliberately NOT replaced on this rerender.
     rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Orion', apiKey: 'k' }} />);
 
     resolveWait({ id: 'new-id', name: 'x', models: [READY] });
@@ -478,7 +499,7 @@ describe('SonioxVoiceSection', () => {
     waitMock.mockReturnValue(new Promise((resolve) => { resolveWait = resolve; }));
     stubAudioContext(16000, 16000 * 5);
     const onUpdate = vi.fn();
-    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, managed: false, isSessionActive: false };
+    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, source: fakeSource(), managed: false, isSessionActive: false };
     const { container, rerender } = render(<SonioxVoiceSection {...props} />);
     openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -489,19 +510,34 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalled());
 
     // The user swaps to a different project's key while the clone processes —
-    // the old project's UUID must not be written under the new key.
-    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Maya', apiKey: 'other-key' }} />);
+    // the old project's UUID must not be written under the new key. A new
+    // fakeSource() mirrors the fresh memoized source a real key swap produces.
+    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Maya', apiKey: 'other-key' }} source={fakeSource()} />);
 
     resolveWait({ id: 'new-id', name: 'x', models: [READY] });
     await waitFor(() => expect(listMock.mock.calls.length).toBeGreaterThanOrEqual(2));
     expect(onUpdate).not.toHaveBeenCalledWith({ voice: 'new-id' });
   });
 
-  it('managed mode never synthesizes a custom placeholder entry for a stale UUID', async () => {
-    const { container } = mount({ managed: true, settings: { voice: 'stale-uuid', apiKey: '' } });
+  // NOTE(Task 3 — VoiceLibrarySource seam): before this refactor, `managed`
+  // was special-cased in the deleted-voice-placeholder guard purely to
+  // suppress the section's own internally-constructed client. The guard now
+  // reacts to `source` — exactly like BYOK always did — so a stale UUID with
+  // no source (this account's actual state today; a managed source arrives
+  // in Task 4) renders as a disabled, raw-id placeholder instead of being
+  // hidden outright. That state cannot exist today (the managed twin has
+  // never been able to create a custom voice), and Task 4's real managed
+  // source resolves it properly by actually finding the voice. This is a
+  // documented, intentional consequence of the Task 3 plan (see
+  // voiceLibrarySource.ts's task brief), not an unnoticed regression.
+  it('managed mode with no source shows a stale UUID as a disabled raw-id placeholder (pre-Task-4 state)', async () => {
+    const { container } = mount({ managed: true, source: null, settings: { voice: 'stale-uuid', apiKey: '' } });
     const select = container.querySelector('select')!;
-    expect([...select.querySelectorAll('option')].some((o) => o.value === 'stale-uuid')).toBe(false);
-    expect(container.querySelector('optgroup[label*="My Voices" i], optgroup[label="My Voices"]')).toBeNull();
+    const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'stale-uuid');
+    expect(opt).toBeTruthy();
+    expect(opt!.disabled).toBe(true);
+    expect(opt!.textContent).toBe('stale-uuid');
+    expect(container.querySelector('optgroup[label*="My Voices" i], optgroup[label="My Voices"]')).not.toBeNull();
   });
 
   it('the confirm button stays disabled until the usage-rights checkbox is checked', async () => {
@@ -662,6 +698,7 @@ describe('SonioxVoiceSection', () => {
     const props = {
       settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 },
       onUpdate,
+      source: fakeSource(),
       managed: false,
       isSessionActive: false,
     };
@@ -671,7 +708,9 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
     fireEvent.click(await screen.findByRole('button', { name: /^stop$/i }));
 
-    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} />);
+    // A new fakeSource() mirrors the fresh memoized source a real key swap
+    // produces in ProviderSpecificSettings.tsx.
+    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} source={fakeSource()} />);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
     fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
@@ -688,6 +727,7 @@ describe('SonioxVoiceSection', () => {
     const props = {
       settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 },
       onUpdate: vi.fn(),
+      source: fakeSource(),
       managed: false,
       isSessionActive: false,
     };
@@ -697,7 +737,9 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
 
     // Swap the key while the synthesis is still in flight, then let it land.
-    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} />);
+    // A new fakeSource() mirrors the fresh memoized source a real key swap
+    // produces in ProviderSpecificSettings.tsx.
+    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} source={fakeSource()} />);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
     release({ audio: new Float32Array(2048), sampleRate: 24000 });
     await waitFor(() => expect(screen.queryByRole('button', { name: /synthesizing/i })).toBeNull());
@@ -744,7 +786,7 @@ describe('SonioxVoiceSection', () => {
   });
 
   it('offers no preview affordance and no cost hint without an API key', async () => {
-    mount({ settings: { voice: 'Maya', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    mount({ settings: { voice: 'Maya', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 }, source: null });
     await waitFor(() => expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull());
     expect(screen.queryByText(/your own Soniox quota/i)).toBeNull();
   });
