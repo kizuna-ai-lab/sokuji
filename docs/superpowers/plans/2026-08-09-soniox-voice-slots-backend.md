@@ -1073,6 +1073,92 @@ git commit -m "feat(soniox): release a voice slot when its account is deleted"
 
 ---
 
+---
+
+### Task 7: Entitlement gate on the voice endpoints
+
+Added after Task 6's review found the plan's premise was false. `/soniox/voices/*` checks only that the caller is authenticated — no balance, no frozen check, no anonymous check — while `session-key` gates on the wallet. `anonymous()` is enabled (from the initial commit; nothing in the client calls it), so **anyone can sign in anonymously twenty times and exhaust the organization's entire voice pool for free**, and better-auth's anonymous plugin deletes those users through `internalAdapter.deleteUser()` (`plugins/anonymous/index.mjs:111,158`) without ever running `deleteUser.afterDelete`, so each squatted slot also leaks permanently.
+
+Ruling: a slot requires a real, funded account — signed in, email-verified via the normal flow, not anonymous, not frozen, with at least the minimum balance. Gating this way also makes the anonymous-deletion leak unreachable rather than requiring a second hook.
+
+**Files:**
+- Modify: `src/routes/soniox-voices.ts`, `src/routes/soniox-voices.test.ts`
+- Modify: `src/auth/index.ts`, `src/auth/index.test.ts` (finding I2 below)
+
+**Interfaces:**
+- Consumes: `deps.makeWalletService(env).getBalance("user", accountId)` — already a dep of `createSonioxHandlers`; add it to `createSonioxVoiceHandlers`'s deps in the same style. `minBalanceMicroUsd(sku, MIN_SESSION_S)` from `src/services/pricing.ts`.
+
+- [ ] **Step 1: Write the failing tests**
+
+In `src/routes/soniox-voices.test.ts`, for **each** of the three endpoints (the gate must not have a hole one verb wide):
+
+```ts
+it("refuses an anonymous account", async () => {
+  // session.user.isAnonymous === true -> 403 { error: "verified_account_required" }
+  // and neither the slot service nor Soniox is touched
+});
+
+it("refuses a frozen wallet", async () => {
+  // getBalance -> { frozen: true } -> 403 { error: "wallet_frozen" }
+});
+
+it("refuses a balance below the floor", async () => {
+  // getBalance -> below minBalanceMicroUsd("soniox:text_only", MIN_SESSION_S)
+  //   -> 402 { error: "insufficient_balance" }
+});
+
+it("fails closed when the wallet cannot be read", async () => {
+  // getBalance -> null (DB error, not a missing wallet) -> 503, matching
+  // sessionKeyHandler's reasoning: a transient infra failure must not be
+  // reported as a permission error the client reads as "don't retry"
+});
+```
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `npm test -- --run src/routes/soniox-voices.test.ts`
+Expected: FAIL — every gate test, because the endpoints currently admit anyone authenticated.
+
+- [ ] **Step 3: Implement the gate**
+
+One shared helper in `soniox-voices.ts`, called first by all three handlers, returning either the accountId or a `Response`:
+
+```ts
+/**
+ * A voice slot is one of twenty the whole organization has, so it is not
+ * something a throwaway account may take. The bar is the same one a session
+ * has to clear — funded, unfrozen, real — checked here rather than only at
+ * Start, because `ensure` allocates the scarce resource all by itself.
+ *
+ * Anonymous accounts are refused outright, which also closes a leak:
+ * better-auth's anonymous plugin deletes its users through
+ * internalAdapter.deleteUser(), which never runs deleteUser.afterDelete, so a
+ * slot held by one could never be released.
+ *
+ * The affordability floor uses the CHEAPEST sku: this endpoint does not know
+ * which mode a later session will pick, and refusing someone who could afford
+ * a subtitles-only session would gate more than the ruling asks.
+ */
+```
+
+Checks in order: `session.user.isAnonymous` → `403 verified_account_required`; `getBalance` null → `503`; `frozen` → `403 wallet_frozen`; below `minBalanceMicroUsd("soniox:text_only", MIN_SESSION_S)` → `402 insufficient_balance`.
+
+- [ ] **Step 4: Guard the account-deletion hook's own release call (finding I2)**
+
+`src/auth/index.ts`'s `afterDelete` wraps its `deleteVoice` call but not its `release` call. A transient D1 failure on that one statement propagates out of the hook: the user is told deletion failed although the account row is already gone, and the slot row is orphaned with no owner left to release it. Wrap it the same way, with a comment saying why deletion must never be blockable. Add a test asserting the hook still resolves when `release` rejects.
+
+- [ ] **Step 5: Run the full suite**
+
+Run: `npm test`
+Expected: PASS.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/routes/soniox-voices.ts src/routes/soniox-voices.test.ts src/auth
+git commit -m "feat(soniox): require a funded, non-anonymous account to hold a voice slot"
+```
+
 ## After the plan
 
 The backend is then complete and independently testable, but **not yet reachable by any client** — `sokuji-react` still shows managed users built-in voices only. That is the second plan, written once this contract is real.
