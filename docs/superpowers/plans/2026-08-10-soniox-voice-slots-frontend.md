@@ -13,7 +13,8 @@
 - **Repository:** `sokuji-react`. The backend half is already merged-pending in `kizuna-ai-lab/sokuji-backend` PR #13, branch `feat/soniox-managed-voice-slots`. Do not edit the backend from this plan.
 - **Branch:** `feat/soniox-managed-voices-frontend`, cut from `feat/soniox-managed-voice-slots` (which carries this feature's spec, the backend plan, and this plan as doc commits). You are already on it — never switch branches. Do NOT push and do NOT open a PR: pushing and PR creation require jiangzhuo's explicit per-act approval, every time.
 - **Node 24** (`.nvmrc`). Before any test run: `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 24`.
-- **Test command:** `npx vitest run <path>` for one file, `npm test -- --run` for the suite. Baseline before you start: **1380 tests passing**. Record the real number you observe in Task 1 and never let it drop.
+- **Test command:** `npx vitest run <path>` for one file, `npm test -- --run` for the suite. Baseline measured at Task 1: **2124 tests passing, 0 skipped**. Never let it drop.
+- **`Blob.prototype.arrayBuffer` does not exist under this repo's jsdom.** Any test (or production code reached by a test) that reads a Blob's bytes must feature-detect and fall back to `FileReader`, the way `src/lib/local-inference/voiceStorage.ts` already does. `src/lib/soniox/voiceClipStorage.ts` carries a `readBlobAsArrayBuffer` helper written for exactly this — reuse its shape. Test code in this plan that calls `await blob.arrayBuffer()` directly is wrong as written and must be adapted.
 - **`tsc --noEmit` is NOT clean in this repo** (~113 pre-existing errors). Do not gate anything on it, and do not "fix" errors you did not create. The correctness gate is vitest.
 - **English only** in all code, comments, and commit messages.
 - **No new npm dependencies.** `idb`, `fake-indexeddb`, `lucide-react` and `react-i18next` are already present.
