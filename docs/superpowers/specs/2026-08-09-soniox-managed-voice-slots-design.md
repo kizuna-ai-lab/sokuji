@@ -320,6 +320,50 @@ Heartbeats; cross-device clip sync; more than one voice per account; voice
 rename (no API — the BYOK design already declined it); an admin UI for the
 pool.
 
+### 7. Entitlement, and the reaper
+
+Two things the original design missed, both found in review and added:
+
+**A slot is not free to take.** `/soniox/voices/*` originally checked only that
+a caller was authenticated, while `session-key` gates on the wallet — and
+`anonymous()` has been enabled since the backend's initial commit with nothing
+in the client calling it, so anyone could sign in anonymously and squat the
+organization's whole pool for free. Worse, better-auth's anonymous plugin
+deletes its users through a path that never runs `deleteUser.afterDelete`, so
+every squatted slot would also leak permanently. All three endpoints now refuse
+anonymous accounts; `ensure` — the only verb that *allocates* — additionally
+requires a readable, unfrozen wallet holding at least
+`minBalanceMicroUsd("soniox:text_only", MIN_SESSION_S)`. `GET`/`DELETE` are
+deliberately exempt from the wallet checks: refusing to let a user *release* a
+slot, or delete a voice model built from their own recording, because they ran
+out of money is backwards on both scarcity and privacy grounds.
+
+No `emailVerified` check: this app sets `requireEmailVerification: false`
+globally, so unverified accounts already start sessions and spend money.
+Gating voices on it alone would cost legitimate users and buy no defence — a
+funded wallet means a completed Stripe payment, a far higher bar than an email.
+
+**Deleting at Soniox is best-effort, so something must sweep up.** Six paths
+can strand a voice — a failed delete on eviction, on the stranded-eviction
+refusal, on supersession, on user delete, on account delete, and an isolate
+dying between `createVoice` returning and `finalize`. Each one permanently
+shrinks the pool, and because allocation counts only our own table, the
+eventual symptom is Soniox quota errors surfacing as 502s to arbitrary users
+with nothing pointing at the cause. A reap pass on the cron heartbeat deletes
+any voice that is ours by name prefix, absent from `soniox_voice_slots`, and
+older than the build window — guarded so it can never fail a billing sweep,
+and alarming when the surviving count exceeds what we believe we hold.
+
+Voice names are unique per build (`u_<accountId>_<token>`), not per account:
+Soniox enforces name uniqueness per project, so a constant name meant one
+failed pre-create delete would brick that account forever and destroy a
+stranger's warm voice on every retry.
+
+`MAX_VOICE_SLOTS` is **17**, not 20 — three of Soniox's twenty are reserved for
+manual and operational voices, because one hand-made voice against a pool that
+claimed the whole quota would make the next managed create fail at Soniox while
+our table insisted there was room.
+
 ## Known limitations
 
 - **20 concurrent cloned-voice sessions is the ceiling.** The 21st gets a
@@ -330,3 +374,18 @@ pool.
   fresh recording there. This follows from storing the clip client-side.
 - **The build takes ~10 s and cannot be hidden** when a session starts cold —
   only moved off the critical path by pre-warming at selection.
+- **Unpinning is account-scoped, not lease-scoped.** A delayed or retried
+  `session-end` belonging to an *older* session can clear a newer session's
+  pin — no reconciler outage required, since `sessionEndHandler` carries no
+  lease id. The consequence is bounded: the slot becomes evictable early, and
+  if it is actually evicted mid-session the TTS wire returns `voice_not_found`,
+  which the client already degrades to subtitles. Closing it means having the
+  client send the `leaseId` it already holds and scoping the unpin the way
+  `markStarted` and `getExpiresAt` already scope theirs.
+- **The reaper's census is project-scoped while Soniox's quota is org-wide**,
+  so its divergence alarm is a lower bound.
+- **The reaper depends on `created_at` being present in Soniox's list
+  payload.** That field is optional in both our type and the live-probed
+  reference client; if the list endpoint omits it, every candidate is skipped
+  for unestablishable age and the reaper is silently inert. Needs one live-API
+  confirmation before the safety net can be trusted.
