@@ -77,6 +77,8 @@ interface ModelStoreState {
   initError: string | null;
   /** Whether WebGPU is available on this device */
   webgpuAvailable: boolean;
+  /** WebGPU works but is backed by a CPU rasteriser, so inference will crawl (#389) */
+  webgpuSoftwareOnly: boolean;
   /** GPU features supported by this device (e.g. ['shader-f16']) */
   deviceFeatures: string[];
   /** Downloaded variant key per model (modelId → variant key) */
@@ -155,6 +157,7 @@ export const useModelStore = create<ModelStoreState>()(
     initialized: false,
     initError: null,
     webgpuAvailable: false,
+    webgpuSoftwareOnly: false,
     deviceFeatures: [],
     modelVariants: {},
     modelPreferences: {},
@@ -204,6 +207,7 @@ export const useModelStore = create<ModelStoreState>()(
         storageUsedMb: Math.round(usedBytes / (1024 * 1024)),
         initialized: true,
         webgpuAvailable: capabilities.available,
+        webgpuSoftwareOnly: capabilities.softwareOnly,
         deviceFeatures: capabilities.features,
         modelVariants,
       });
@@ -690,5 +694,6 @@ export const useModelInitialized = () => useModelStore(s => s.initialized);
 export const useModelInitError = () => useModelStore(s => s.initError);
 export const useIsProviderReady = () => useModelStore(s => s.isProviderReady);
 export const useWebGPUAvailable = () => useModelStore(s => s.webgpuAvailable);
+export const useWebGPUSoftwareOnly = () => useModelStore(s => s.webgpuSoftwareOnly);
 export const useDeviceFeatures = () => useModelStore(s => s.deviceFeatures);
 export const useModelVariants = () => useModelStore(s => s.modelVariants);

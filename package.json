@@ -89,7 +89,14 @@
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "deb": {
-      "artifactName": "${name}_${version}_${arch}.${ext}"
+      "artifactName": "${name}_${version}_${arch}.${ext}",
+      "recommends": [
+        "pulseaudio-utils",
+        "xwayland"
+      ],
+      "executableArgs": [
+        "--ozone-platform=x11"
+      ]
     },
     "publish": {
       "provider": "github",

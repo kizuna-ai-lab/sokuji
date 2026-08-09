@@ -32,6 +32,7 @@ import type { LocalInferenceSettings } from '../../../stores/settingsStore';
 import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 import { ModelImportModal } from './ModelImportModal';
+import { GpuAccelerationNotice } from './GpuAccelerationNotice';
 import LocalInferenceVoiceSection from './LocalInferenceVoiceSection';
 import { type VoiceEntry } from './VoiceLibrarySection';
 import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
@@ -996,6 +997,8 @@ export function ModelManagementSection({
   return (
     <div id="model-management-section" className="settings-section model-management-section">
       <h2>{t('models.management', 'Models')}</h2>
+
+      <GpuAccelerationNotice />
 
       {renderAsrGroup()}
       {renderTranslationGroup()}
