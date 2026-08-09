@@ -243,8 +243,10 @@
     "sonioxVoiceConsent": "אישרתי שיש לי את הזכות להשתמש בקול הזה",
     "sonioxVoiceCloneTitle": "שכפול קול",
     "sonioxVoiceCloneReview": "האזן לקטע שלך ותן שם לקול לפני ההעלאה.",
+    "sonioxManagedCloneNotice": "ההקלטה הזו נשלחת ל-Kizuna AI ומועברת הלאה ל-Soniox כדי לבנות את הקול שלך. היא לא נשמרת בשרתים שלנו — היא נשארת במכשיר הזה כדי שניתן יהיה לבנות את הקול שלך מחדש בהמשך.",
     "sonioxVoiceNamePlaceholder": "שם לקול משוכפל חדש (אופציונלי)",
     "sonioxVoiceDefaultName": "הקול שלי {{n}}",
+    "sonioxManagedVoiceName": "הקול שלי",
     "sonioxVoiceDeletedPlaceholder": "(קול שנמחק)",
     "sonioxVoiceDeleteInUse": "קול זה נמצא בשימוש בהפעלה הפעילה — סיים את ההפעלה לפני מחיקתו",
     "sonioxVoiceProcessingBadge": "בעיבוד…",
@@ -252,7 +254,12 @@
     "sonioxVoiceFailed": "העיבוד נכשל — מחק את הקול הזה ונסה קטע ברור יותר",
     "sonioxVoiceNameConflict": "כבר קיים קול בשם הזה",
     "sonioxVoiceQuotaError": "מגבלת הקולות הארגונית של Soniox הושגה — מחק קול ונסה שוב",
+    "sonioxVoicePoolExhausted": "כל המקומות לקולות מותאמים אישית תפוסים כרגע — נסה שוב בעוד רגע.",
+    "sonioxVoicePinned": "קול זה נמצא בשימוש בהפעלה פעילה — סיים את ההפעלה לפני מחיקתו.",
+    "sonioxVoiceInsufficientBalance": "טען את היתרה שלך לפני יצירת קול מותאם אישית.",
+    "sonioxVoiceSignInRequired": "התחבר כדי ליצור קול מותאם אישית.",
     "sonioxVoiceListError": "לא ניתן היה לטעון את הקולות המשוכפלים — בדוק את מפתח ה-API.",
+    "sonioxManagedVoiceListError": "לא ניתן היה לטעון את הקול שלך — בדוק את החיבור שלך ונסה שוב.",
     "sonioxVoicePreviewCostHint": "תצוגה מקדימה של קול מייצרת קטע קצר באמצעות מכסת ה-Soniox שלך.",
     "sonioxVoicePreviewAuthError": "התצוגה המקדימה נכשלה — בדוק את מפתח ה-API",
     "sonioxVoicePreviewQuotaError": "התצוגה המקדימה נכשלה — הגעת למגבלת הקצב או למכסה של Soniox",
@@ -560,7 +567,12 @@
     "sonioxBudgetExhausted": "יתרת ההפעלה שלכם נוצלה במלואה. טענו את היתרה שלכם כדי להמשיך לתרגם.",
     "sonioxTtsFailed": "התרגום המדובר הופסק. התמלול ותרגום הטקסט ממשיכים לפעול.",
     "sonioxSegmentEnded": "קטע זה הסתיים — הקישו על \"התחל הפעלה\" כדי להמשיך.",
-    "sonioxConnectionLost": "החיבור נותק — הקישו על \"התחל הפעלה\" בעוד רגע כדי להמשיך."
+    "sonioxConnectionLost": "החיבור נותק — הקישו על \"התחל הפעלה\" בעוד רגע כדי להמשיך.",
+    "sonioxVoiceClipMissing": "למכשיר הזה אין הקלטת קול, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש. הקליטו אחת בהגדרות כדי לדבר כאן בקול שלכם.",
+    "sonioxVoicePoolBusy": "כל המקומות לקולות מותאמים אישית תפוסים כרגע, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש. הקול שלכם ישמש שוב בפעם הבאה.",
+    "sonioxVoiceBuildFailed": "לא ניתן היה לבנות את הקול המותאם אישית שלכם, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש. נסו להקליט קטע ברור יותר בהגדרות.",
+    "sonioxVoiceUnavailable": "הקול המותאם אישית שלכם אינו זמין כרגע, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש.",
+    "preparingVoice": "מכינים את הקול שלך…"
   },
   "modePicker": {
     "modeYou": "אתה",
@@ -598,7 +610,8 @@
     "initProgress": "טוען ({{completed}}/{{total}})...",
     "stop": "עצור",
     "start": "התחל",
-    "loadingModel": "טוען מודל…"
+    "loadingModel": "טוען מודל…",
+    "preparingVoice": "מכינים את הקול שלך…"
   },
   "errors": {
     "gpuOutOfMemory": "אזל זיכרון ה-GPU — המודל שנבחר גדול מדי עבור ה-GPU שלך. אנא עבור למודל קטן יותר."

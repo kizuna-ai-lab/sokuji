@@ -243,8 +243,10 @@
     "sonioxVoiceConsent": "Saya mengonfirmasi bahwa saya memiliki hak untuk menggunakan suara ini",
     "sonioxVoiceCloneTitle": "Kloning suara",
     "sonioxVoiceCloneReview": "Dengarkan klip Anda dan beri nama suara sebelum mengunggah.",
+    "sonioxManagedCloneNotice": "Rekaman ini dikirim ke Kizuna AI dan diteruskan ke Soniox untuk membangun suara Anda. Rekaman ini tidak disimpan di server kami — rekaman tetap berada di perangkat ini agar suara Anda dapat dibangun kembali nanti.",
     "sonioxVoiceNamePlaceholder": "Nama untuk suara kloning baru (opsional)",
     "sonioxVoiceDefaultName": "Suara Saya {{n}}",
+    "sonioxManagedVoiceName": "Suara saya",
     "sonioxVoiceDeletedPlaceholder": "(suara terhapus)",
     "sonioxVoiceDeleteInUse": "Suara ini sedang digunakan oleh sesi aktif — akhiri sesi sebelum menghapusnya",
     "sonioxVoiceProcessingBadge": "memproses…",
@@ -252,7 +254,12 @@
     "sonioxVoiceFailed": "Pemrosesan gagal — hapus suara ini dan coba klip yang lebih jelas",
     "sonioxVoiceNameConflict": "Suara dengan nama ini sudah ada",
     "sonioxVoiceQuotaError": "Batas suara organisasi Soniox tercapai — hapus suara dan coba lagi",
+    "sonioxVoicePoolExhausted": "Semua slot suara kustom sedang digunakan saat ini — coba lagi sesaat lagi.",
+    "sonioxVoicePinned": "Suara ini sedang digunakan oleh sesi yang berjalan — akhiri sesi sebelum menghapusnya.",
+    "sonioxVoiceInsufficientBalance": "Isi ulang saldo Anda sebelum membangun suara kustom.",
+    "sonioxVoiceSignInRequired": "Masuk untuk membangun suara kustom.",
     "sonioxVoiceListError": "Tidak dapat memuat suara hasil kloning — periksa kunci API.",
+    "sonioxManagedVoiceListError": "Suara Anda tidak dapat dimuat — periksa koneksi Anda dan coba lagi.",
     "sonioxVoicePreviewCostHint": "Pratinjau suara mensintesis klip singkat menggunakan kuota Soniox Anda sendiri.",
     "sonioxVoicePreviewAuthError": "Pratinjau gagal — periksa kunci API",
     "sonioxVoicePreviewQuotaError": "Pratinjau gagal — batas laju atau kuota Soniox tercapai",
@@ -560,7 +567,12 @@
     "sonioxBudgetExhausted": "Saldo sesi Anda telah habis. Isi ulang saldo Anda untuk terus menerjemahkan.",
     "sonioxTtsFailed": "Terjemahan suara telah berhenti. Transkripsi dan terjemahan teks masih berjalan.",
     "sonioxSegmentEnded": "Segmen ini telah berakhir — ketuk “Mulai sesi” untuk melanjutkan.",
-    "sonioxConnectionLost": "Koneksi terputus — ketuk “Mulai sesi” sebentar lagi untuk melanjutkan."
+    "sonioxConnectionLost": "Koneksi terputus — ketuk “Mulai sesi” sebentar lagi untuk melanjutkan.",
+    "sonioxVoiceClipMissing": "Perangkat ini tidak memiliki rekaman suara, sehingga sesi ini menggunakan suara preset. Rekam satu di Pengaturan untuk berbicara dengan suara Anda sendiri di sini.",
+    "sonioxVoicePoolBusy": "Semua slot suara kustom sedang digunakan saat ini, sehingga sesi ini menggunakan suara preset. Suara Anda sendiri akan digunakan lagi lain kali.",
+    "sonioxVoiceBuildFailed": "Suara kustom Anda tidak dapat dibangun, sehingga sesi ini menggunakan suara preset. Coba rekam klip yang lebih jelas di Pengaturan.",
+    "sonioxVoiceUnavailable": "Suara kustom Anda tidak tersedia saat ini, sehingga sesi ini menggunakan suara preset.",
+    "preparingVoice": "Menyiapkan suara Anda…"
   },
   "modePicker": {
     "modeYou": "Anda",
@@ -598,7 +610,8 @@
     "initProgress": "Memuat ({{completed}}/{{total}})...",
     "stop": "Berhenti",
     "start": "Mulai",
-    "loadingModel": "Memuat model…"
+    "loadingModel": "Memuat model…",
+    "preparingVoice": "Menyiapkan suara Anda…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU kehabisan memori — model yang dipilih terlalu besar untuk GPU Anda. Silakan beralih ke model yang lebih kecil."

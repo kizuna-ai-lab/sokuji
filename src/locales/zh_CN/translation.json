@@ -243,8 +243,10 @@
     "sonioxVoiceConsent": "我确认我有权使用此声音",
     "sonioxVoiceCloneTitle": "克隆声音",
     "sonioxVoiceCloneReview": "上传前请先试听您的片段并为声音命名。",
+    "sonioxManagedCloneNotice": "此录音会发送给 Kizuna AI，并转交给 Soniox 以生成您的声音。它不会存储在我们的服务器上 — 而是保留在本设备上，以便日后可以重新生成您的声音。",
     "sonioxVoiceNamePlaceholder": "新克隆声音的名称（可选）",
     "sonioxVoiceDefaultName": "我的声音 {{n}}",
+    "sonioxManagedVoiceName": "我的声音",
     "sonioxVoiceDeletedPlaceholder": "（已删除的声音）",
     "sonioxVoiceDeleteInUse": "此声音正在被当前会话使用 — 请先结束会话再删除",
     "sonioxVoiceProcessingBadge": "处理中…",
@@ -252,7 +254,12 @@
     "sonioxVoiceFailed": "处理失败 — 请删除此声音并尝试更清晰的片段",
     "sonioxVoiceNameConflict": "已存在同名声音",
     "sonioxVoiceQuotaError": "已达到 Soniox 组织声音数量上限 — 请删除一个声音后重试",
+    "sonioxVoicePoolExhausted": "目前所有自定义声音名额都在使用中 — 请稍后重试。",
+    "sonioxVoicePinned": "此声音正被正在进行的会话使用 — 请先结束会话再删除。",
+    "sonioxVoiceInsufficientBalance": "请先为您的账户充值,再创建自定义声音。",
+    "sonioxVoiceSignInRequired": "请登录以创建自定义声音。",
     "sonioxVoiceListError": "无法加载克隆声音 — 请检查 API 密钥。",
+    "sonioxManagedVoiceListError": "无法加载您的声音 — 请检查网络连接后重试。",
     "sonioxVoicePreviewCostHint": "预览声音会使用您自己的 Soniox 配额合成一小段音频。",
     "sonioxVoicePreviewAuthError": "预览失败 — 请检查 API 密钥",
     "sonioxVoicePreviewQuotaError": "预览失败 — 已达到 Soniox 速率限制或配额",
@@ -560,7 +567,12 @@
     "sonioxBudgetExhausted": "您的会话余额已用完。请充值以继续翻译。",
     "sonioxTtsFailed": "语音翻译已停止。转录和文字翻译仍在继续。",
     "sonioxSegmentEnded": "本段已结束——点击“开始会话”以继续。",
-    "sonioxConnectionLost": "连接已中断——请稍候点击“开始会话”以继续。"
+    "sonioxConnectionLost": "连接已中断——请稍候点击“开始会话”以继续。",
+    "sonioxVoiceClipMissing": "此设备没有语音录音,因此本次会话使用预设声音。请在设置中录制一段,以便在此处使用您自己的声音。",
+    "sonioxVoicePoolBusy": "目前所有自定义声音名额都在使用中,因此本次会话使用预设声音。您自己的声音将在下次再次使用。",
+    "sonioxVoiceBuildFailed": "无法生成您的自定义声音,因此本次会话使用预设声音。请尝试在设置中录制更清晰的片段。",
+    "sonioxVoiceUnavailable": "您的自定义声音目前不可用,因此本次会话使用预设声音。",
+    "preparingVoice": "正在准备您的声音…"
   },
   "modePicker": {
     "modeYou": "您",
@@ -598,7 +610,8 @@
     "initProgress": "加载中 ({{completed}}/{{total}})...",
     "stop": "停止",
     "start": "开始",
-    "loadingModel": "正在加载模型…"
+    "loadingModel": "正在加载模型…",
+    "preparingVoice": "正在准备您的声音…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU显存不足 — 所选模型对您的GPU来说太大了，请切换到更小的模型。"

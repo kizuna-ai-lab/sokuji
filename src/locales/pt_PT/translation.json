@@ -243,8 +243,10 @@
     "sonioxVoiceConsent": "Confirmo que tenho o direito de utilizar esta voz",
     "sonioxVoiceCloneTitle": "Clonar voz",
     "sonioxVoiceCloneReview": "Ouça o seu clipe e atribua um nome à voz antes de o carregar.",
+    "sonioxManagedCloneNotice": "Esta gravação é enviada para a Kizuna AI e transmitida à Soniox para criar a sua voz. Não é armazenada nos nossos servidores — permanece neste dispositivo para que a sua voz possa ser reconstruída mais tarde.",
     "sonioxVoiceNamePlaceholder": "Nome para uma nova voz clonada (opcional)",
     "sonioxVoiceDefaultName": "A Minha Voz {{n}}",
+    "sonioxManagedVoiceName": "A minha voz",
     "sonioxVoiceDeletedPlaceholder": "(voz eliminada)",
     "sonioxVoiceDeleteInUse": "Esta voz está a ser usada pela sessão ativa — termine a sessão antes de a eliminar",
     "sonioxVoiceProcessingBadge": "a processar…",
@@ -252,7 +254,12 @@
     "sonioxVoiceFailed": "Falha no processamento — elimine esta voz e experimente um excerto mais claro",
     "sonioxVoiceNameConflict": "Já existe uma voz com este nome",
     "sonioxVoiceQuotaError": "Limite de vozes da organização Soniox atingido — elimine uma voz e tente novamente",
+    "sonioxVoicePoolExhausted": "Todas as vagas de vozes personalizadas estão neste momento em uso — tente novamente dentro de momentos.",
+    "sonioxVoicePinned": "Esta voz está a ser usada por uma sessão em curso — termine a sessão antes de a eliminar.",
+    "sonioxVoiceInsufficientBalance": "Carregue o seu saldo antes de criar uma voz personalizada.",
+    "sonioxVoiceSignInRequired": "Inicie sessão para criar uma voz personalizada.",
     "sonioxVoiceListError": "Não foi possível carregar as vozes clonadas — verifique a chave API.",
+    "sonioxManagedVoiceListError": "Não foi possível carregar a sua voz — verifique a sua ligação e tente novamente.",
     "sonioxVoicePreviewCostHint": "Pré-visualizar uma voz sintetiza um pequeno clipe utilizando a sua própria quota do Soniox.",
     "sonioxVoicePreviewAuthError": "Falha na pré-visualização — verifique a chave API",
     "sonioxVoicePreviewQuotaError": "Falha na pré-visualização — limite de taxa ou quota do Soniox atingido",
@@ -560,7 +567,12 @@
     "sonioxBudgetExhausted": "O saldo da sua sessão esgotou-se. Carregue o seu saldo para continuar a traduzir.",
     "sonioxTtsFailed": "A tradução falada parou. A transcrição e a tradução de texto continuam a funcionar.",
     "sonioxSegmentEnded": "Este segmento terminou — toque em “Iniciar sessão” para continuar.",
-    "sonioxConnectionLost": "A ligação foi interrompida — toque em “Iniciar sessão” dentro de momentos para continuar."
+    "sonioxConnectionLost": "A ligação foi interrompida — toque em “Iniciar sessão” dentro de momentos para continuar.",
+    "sonioxVoiceClipMissing": "Este dispositivo não tem nenhuma gravação de voz, pelo que esta sessão utiliza uma voz predefinida. Grave uma nas Definições para falar aqui com a sua própria voz.",
+    "sonioxVoicePoolBusy": "Todas as vagas de vozes personalizadas estão neste momento em uso, pelo que esta sessão utiliza uma voz predefinida. A sua própria voz será utilizada novamente da próxima vez.",
+    "sonioxVoiceBuildFailed": "Não foi possível criar a sua voz personalizada, pelo que esta sessão utiliza uma voz predefinida. Tente gravar um excerto mais claro nas Definições.",
+    "sonioxVoiceUnavailable": "A sua voz personalizada está indisponível neste momento, pelo que esta sessão utiliza uma voz predefinida.",
+    "preparingVoice": "A preparar a sua voz…"
   },
   "modePicker": {
     "modeYou": "Você",
@@ -598,7 +610,8 @@
     "initProgress": "A carregar ({{completed}}/{{total}})...",
     "stop": "Parar",
     "start": "Iniciar",
-    "loadingModel": "A carregar modelo…"
+    "loadingModel": "A carregar modelo…",
+    "preparingVoice": "A preparar a sua voz…"
   },
   "errors": {
     "gpuOutOfMemory": "Memória da GPU esgotada — o modelo selecionado é demasiado grande para a sua GPU. Mude para um modelo mais pequeno."

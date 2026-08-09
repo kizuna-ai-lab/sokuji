@@ -243,8 +243,10 @@
     "sonioxVoiceConsent": "Je confirme avoir le droit d'utiliser cette voix",
     "sonioxVoiceCloneTitle": "Cloner une voix",
     "sonioxVoiceCloneReview": "Écoutez votre extrait et nommez la voix avant de l'envoyer.",
+    "sonioxManagedCloneNotice": "Cet enregistrement est envoyé à Kizuna AI puis transmis à Soniox pour créer votre voix. Il n'est pas stocké sur nos serveurs — il reste sur cet appareil afin que votre voix puisse être reconstruite plus tard.",
     "sonioxVoiceNamePlaceholder": "Nom pour une nouvelle voix clonée (facultatif)",
     "sonioxVoiceDefaultName": "Ma voix {{n}}",
+    "sonioxManagedVoiceName": "Ma voix",
     "sonioxVoiceDeletedPlaceholder": "(voix supprimée)",
     "sonioxVoiceDeleteInUse": "Cette voix est utilisée par la session active — terminez la session avant de la supprimer",
     "sonioxVoiceProcessingBadge": "traitement en cours…",
@@ -252,7 +254,12 @@
     "sonioxVoiceFailed": "Échec du traitement — supprimez cette voix et essayez avec un extrait plus clair",
     "sonioxVoiceNameConflict": "Une voix portant ce nom existe déjà",
     "sonioxVoiceQuotaError": "Limite de voix de l'organisation Soniox atteinte — supprimez une voix et réessayez",
+    "sonioxVoicePoolExhausted": "Toutes les places de voix personnalisées sont actuellement utilisées — veuillez réessayer dans un instant.",
+    "sonioxVoicePinned": "Cette voix est utilisée par une session en cours — terminez la session avant de la supprimer.",
+    "sonioxVoiceInsufficientBalance": "Rechargez votre solde avant de créer une voix personnalisée.",
+    "sonioxVoiceSignInRequired": "Connectez-vous pour créer une voix personnalisée.",
     "sonioxVoiceListError": "Impossible de charger les voix clonées — vérifiez la clé API.",
+    "sonioxManagedVoiceListError": "Impossible de charger votre voix — vérifiez votre connexion et réessayez.",
     "sonioxVoicePreviewCostHint": "L'aperçu d'une voix synthétise un court extrait en utilisant votre propre quota Soniox.",
     "sonioxVoicePreviewAuthError": "Échec de l'aperçu — vérifiez la clé API",
     "sonioxVoicePreviewQuotaError": "Échec de l'aperçu — limite de fréquence ou quota Soniox atteint",
@@ -560,7 +567,12 @@
     "sonioxBudgetExhausted": "Le solde de votre session est épuisé. Rechargez votre solde pour continuer à traduire.",
     "sonioxTtsFailed": "La traduction vocale s'est arrêtée. La transcription et la traduction textuelle continuent.",
     "sonioxSegmentEnded": "Ce segment est terminé — appuyez sur « Démarrer la session » pour continuer.",
-    "sonioxConnectionLost": "La connexion a été interrompue — appuyez sur « Démarrer la session » dans un instant pour continuer."
+    "sonioxConnectionLost": "La connexion a été interrompue — appuyez sur « Démarrer la session » dans un instant pour continuer.",
+    "sonioxVoiceClipMissing": "Cet appareil ne dispose d'aucun enregistrement vocal, donc cette session utilise une voix préréglée. Enregistrez-en un dans les Paramètres pour parler ici avec votre propre voix.",
+    "sonioxVoicePoolBusy": "Toutes les places de voix personnalisées sont actuellement utilisées, donc cette session utilise une voix préréglée. Votre propre voix sera à nouveau utilisée la prochaine fois.",
+    "sonioxVoiceBuildFailed": "Votre voix personnalisée n'a pas pu être créée, donc cette session utilise une voix préréglée. Essayez d'enregistrer un extrait plus clair dans les Paramètres.",
+    "sonioxVoiceUnavailable": "Votre voix personnalisée est actuellement indisponible, donc cette session utilise une voix préréglée.",
+    "preparingVoice": "Préparation de votre voix…"
   },
   "modePicker": {
     "modeYou": "Vous",
@@ -598,7 +610,8 @@
     "initProgress": "Chargement ({{completed}}/{{total}})...",
     "stop": "Arrêter",
     "start": "Démarrer",
-    "loadingModel": "Chargement du modèle…"
+    "loadingModel": "Chargement du modèle…",
+    "preparingVoice": "Préparation de votre voix…"
   },
   "errors": {
     "gpuOutOfMemory": "Mémoire GPU insuffisante — le modèle sélectionné est trop volumineux pour votre GPU. Veuillez choisir un modèle plus petit."

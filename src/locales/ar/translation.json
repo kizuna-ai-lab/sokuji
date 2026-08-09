@@ -243,8 +243,10 @@
     "sonioxVoiceConsent": "أؤكد أن لدي الحق في استخدام هذا الصوت",
     "sonioxVoiceCloneTitle": "استنساخ الصوت",
     "sonioxVoiceCloneReview": "استمع إلى المقطع الصوتي وقم بتسمية الصوت قبل الرفع.",
+    "sonioxManagedCloneNotice": "يتم إرسال هذا التسجيل إلى Kizuna AI ثم تمريره إلى Soniox لبناء صوتك. لا يتم تخزينه على خوادمنا — بل يبقى على هذا الجهاز حتى يمكن إعادة بناء صوتك لاحقًا.",
     "sonioxVoiceNamePlaceholder": "اسم للصوت المستنسخ الجديد (اختياري)",
     "sonioxVoiceDefaultName": "صوتي {{n}}",
+    "sonioxManagedVoiceName": "صوتي",
     "sonioxVoiceDeletedPlaceholder": "(صوت محذوف)",
     "sonioxVoiceDeleteInUse": "هذا الصوت قيد الاستخدام في الجلسة النشطة — أنهِ الجلسة قبل حذفه",
     "sonioxVoiceProcessingBadge": "قيد المعالجة…",
@@ -252,7 +254,12 @@
     "sonioxVoiceFailed": "فشلت المعالجة — احذف هذا الصوت وجرّب مقطعًا أوضح",
     "sonioxVoiceNameConflict": "يوجد بالفعل صوت بهذا الاسم",
     "sonioxVoiceQuotaError": "تم بلوغ الحد الأقصى لأصوات مؤسسة Soniox — احذف صوتًا وأعد المحاولة",
+    "sonioxVoicePoolExhausted": "جميع أماكن الأصوات المخصصة مُستخدمة حاليًا — يرجى المحاولة مرة أخرى بعد قليل.",
+    "sonioxVoicePinned": "هذا الصوت قيد الاستخدام في جلسة نشطة — أنهِ الجلسة قبل حذفه.",
+    "sonioxVoiceInsufficientBalance": "اشحن رصيدك قبل إنشاء صوت مخصص.",
+    "sonioxVoiceSignInRequired": "سجّل الدخول لإنشاء صوت مخصص.",
     "sonioxVoiceListError": "تعذّر تحميل الأصوات المستنسخة — تحقق من مفتاح API.",
+    "sonioxManagedVoiceListError": "تعذّر تحميل صوتك — تحقق من اتصالك وحاول مرة أخرى.",
     "sonioxVoicePreviewCostHint": "معاينة صوت ما تُنشئ مقطعًا قصيرًا باستخدام حصتك الخاصة من Soniox.",
     "sonioxVoicePreviewAuthError": "فشلت المعاينة — تحقق من مفتاح API",
     "sonioxVoicePreviewQuotaError": "فشلت المعاينة — تم بلوغ حد المعدل أو الحصة في Soniox",
@@ -560,7 +567,12 @@
     "sonioxBudgetExhausted": "تم استهلاك رصيد الجلسة بالكامل. يرجى شحن رصيدك لمواصلة الترجمة.",
     "sonioxTtsFailed": "توقفت الترجمة الصوتية. لا يزال النسخ والترجمة النصية يعملان.",
     "sonioxSegmentEnded": "انتهى هذا المقطع — اضغط على \"بدء الجلسة\" للمتابعة.",
-    "sonioxConnectionLost": "انقطع الاتصال — اضغط على \"بدء الجلسة\" بعد قليل للمتابعة."
+    "sonioxConnectionLost": "انقطع الاتصال — اضغط على \"بدء الجلسة\" بعد قليل للمتابعة.",
+    "sonioxVoiceClipMissing": "لا يوجد تسجيل صوتي على هذا الجهاز، لذا تستخدم هذه الجلسة صوتًا افتراضيًا. سجّل واحدًا في الإعدادات لتتحدث بصوتك الخاص هنا.",
+    "sonioxVoicePoolBusy": "جميع أماكن الأصوات المخصصة مُستخدمة حاليًا، لذا تستخدم هذه الجلسة صوتًا افتراضيًا. سيُستخدم صوتك الخاص مرة أخرى في المرة القادمة.",
+    "sonioxVoiceBuildFailed": "تعذّر إنشاء صوتك المخصص، لذا تستخدم هذه الجلسة صوتًا افتراضيًا. جرّب تسجيل مقطع أوضح في الإعدادات.",
+    "sonioxVoiceUnavailable": "صوتك المخصص غير متاح حاليًا، لذا تستخدم هذه الجلسة صوتًا افتراضيًا.",
+    "preparingVoice": "جارٍ تحضير صوتك…"
   },
   "modePicker": {
     "modeYou": "أنت",
@@ -598,7 +610,8 @@
     "initProgress": "جاري التحميل ({{completed}}/{{total}})...",
     "stop": "توقف",
     "start": "ابدأ",
-    "loadingModel": "جاري تحميل النموذج…"
+    "loadingModel": "جاري تحميل النموذج…",
+    "preparingVoice": "جارٍ تحضير صوتك…"
   },
   "errors": {
     "gpuOutOfMemory": "نفدت ذاكرة GPU — النموذج المحدد كبير جدًا على GPU لديك. يرجى التبديل إلى نموذج أصغر."
