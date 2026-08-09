@@ -156,7 +156,12 @@ async function bindCaptureSourceToSink({ exec, delay = defaultDelay, attempts = 
     const stream = findNodeByName(dump, `input.${CAPTURE_SOURCE_NAME}`);
     // A PipeWire that builds the remap differently exposes no such stream.
     // Leave its graph alone rather than guess at a shape we cannot see.
-    if (!sink || !stream) return true;
+    if (!stream) return true;
+    // The sink, by contrast, is ours: module-null-sink created it and the caller
+    // already found it with ports. Missing now means this tap can never carry
+    // audio, so keep looking and let the attempts run out rather than call it a
+    // shape we do not support.
+    if (!sink) continue;
 
     // A sink's monitor is its output ports; the remap's capture stream consumes
     // them through its inputs. Both are sorted by port name, so the channels
@@ -164,11 +169,14 @@ async function bindCaptureSourceToSink({ exec, delay = defaultDelay, attempts = 
     const monitors = resolvePortIds(dump, sink.id, 'output');
     const inputs = resolvePortIds(dump, stream.id, 'input');
     if (monitors.length === 0 || inputs.length === 0) continue;
+    // Pairing the overlap while clearing links from every input would leave the
+    // surplus input fed by nothing, and the next pass would find a graph it has
+    // no complaint about: success reported over a channel of silence. Both
+    // lists come from the same null sink, so a mismatch is not a layout to
+    // adapt to - it is a graph to leave alone.
+    if (monitors.length !== inputs.length) continue;
 
-    const pairs = [];
-    for (let i = 0; i < Math.min(monitors.length, inputs.length); i++) {
-      pairs.push([monitors[i], inputs[i]]);
-    }
+    const pairs = monitors.map((monitor, i) => [monitor, inputs[i]]);
     const wanted = new Set(pairs.map(([out, inp]) => `${out}:${inp}`));
     const inputSet = new Set(inputs);
 

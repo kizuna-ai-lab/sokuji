@@ -289,6 +289,37 @@ const DUMP_CORRECT = [
   link(601, 311, 402),
 ];
 
+// The capture sink gone from under us, with the remap stream still present.
+const DUMP_SINK_GONE = DUMP_MISWIRED.filter((o) =>
+  o.id !== 300 && o?.info?.props?.['node.id'] !== 300);
+
+// A stream with one more input than the sink has monitor ports. Contrived -
+// both derive from the same null sink - but the pairing must not quietly wire
+// the overlap and clear the rest.
+const DUMP_UNEVEN_PORTS = [
+  ...DUMP_MISWIRED,
+  port(403, 400, 'input', 'input_RC'),
+];
+
+/**
+ * Returns each dump in turn: the first for every pw-dump before the capture
+ * modules exist, the next for every one after. Lets a test change the graph
+ * out from under the binding loop.
+ */
+function fakeExecStages(calls, dumps, { moduleId = '536870913' } = {}) {
+  let seen = 0;
+  return async (cmd) => {
+    calls.push(cmd);
+    if (cmd.startsWith('pw-dump')) {
+      const dump = dumps[Math.min(seen, dumps.length - 1)];
+      seen++;
+      return { stdout: JSON.stringify(dump) };
+    }
+    if (cmd.includes('load-module')) return { stdout: `${moduleId}\n` };
+    return { stdout: '' };
+  };
+}
+
 /**
  * A fake graph that responds to the edits made to it, so a repair can be
  * observed converging instead of asserted one call at a time. `pw-link` adds a
@@ -380,6 +411,40 @@ describe('the remapped source is bound to the capture sink, not the default inpu
 
     expect(r.success).toBe(true);
     expect(calls.some((c) => c.startsWith('pw-link -d'))).toBe(false);
+  });
+
+  it('fails when the capture sink disappears before binding', async () => {
+    // The sink is ours: module-null-sink created it and it was already found
+    // once, with ports, before we got here. Its absence now is not an
+    // unrecognised remap shape - it means this tap can never carry audio, and
+    // reporting success would send the renderer to whole-system capture.
+    const calls = [];
+    const r = await connectAppSource('app:pid:4242', {
+      // Two dumps happen before binding starts: resolving the application, then
+      // finding the freshly loaded sink. The sink goes missing only after that.
+      exec: fakeExecStages(calls, [DUMP_MISWIRED, DUMP_MISWIRED, DUMP_SINK_GONE]),
+      delay: async () => {},
+    });
+
+    expect(r.success).toBe(false);
+    expect(r.error).toMatch(/capture source/i);
+    expect(calls.some((c) => c.includes('unload-module'))).toBe(true);
+  });
+
+  it('refuses to half-wire a graph whose port counts do not line up', async () => {
+    // Pairing the shorter list while clearing links from every input leaves the
+    // surplus input connected to nothing, and the next pass sees a graph it has
+    // no complaint about - success reported over a channel of silence.
+    const calls = [];
+    const r = await connectAppSource('app:pid:4242', {
+      exec: fakeExecLiveGraph(calls, DUMP_UNEVEN_PORTS),
+      delay: async () => {},
+    });
+
+    expect(r.success).toBe(false);
+    // Better to leave the graph as found than to rewire part of it.
+    expect(calls.some((c) => c.startsWith('pw-link -d'))).toBe(false);
+    expect(calls.some((c) => c === 'pw-link 310 401')).toBe(false);
   });
 });
 
