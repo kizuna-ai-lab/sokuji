@@ -96,6 +96,58 @@ describe('prepareManagedVoice', () => {
     const res = await prepareManagedVoice({ ...deps({ ensure, mine }), timeoutMs: 0 });
     expect(res).toEqual({ ok: false, reason: 'unavailable' });
   });
+
+  it('does not start a clip upload once the deadline has already passed', async () => {
+    // A warm attempt that itself ate the whole budget must not be followed
+    // by an up-to-120s upload against a ceiling that's already gone. With a
+    // frozen clock and timeoutMs: 0, the deadline is already behind us by
+    // the time the clip_required refusal comes back.
+    const ensure = vi.fn().mockRejectedValue(new SonioxVoicesError('clip_required', 'need clip', 409));
+    const loadClip = vi.fn().mockResolvedValue(clip());
+    const res = await prepareManagedVoice({
+      ...deps({ ensure, loadClip }),
+      timeoutMs: 0,
+      now: () => 1_000,
+    });
+    expect(res).toEqual({ ok: false, reason: 'unavailable' });
+    expect(ensure).toHaveBeenCalledTimes(1);
+    // Never even reads the clip: there's no time left to send it.
+    expect(loadClip).not.toHaveBeenCalled();
+  });
+
+  it('does not start a pool_exhausted retry once the deadline has already passed', async () => {
+    const ensure = vi.fn().mockRejectedValue(new SonioxVoicesError('pool_exhausted', 'busy', 409, 3_000));
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    const res = await prepareManagedVoice({
+      ...deps({ ensure }),
+      sleep,
+      timeoutMs: 0,
+      now: () => 1_000,
+    });
+    expect(res).toEqual({ ok: false, reason: 'unavailable' });
+    expect(ensure).toHaveBeenCalledTimes(1);
+    // No point sleeping out a hint when there's no budget left to wait it out.
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it('clamps a pool_exhausted retry hint to the time actually remaining, not honored verbatim', async () => {
+    // The backend's hint is a suggestion, not a budget override — a
+    // reconciler bug (or just a generous hint) must not be allowed to hang
+    // Start for longer than this routine's own ceiling permits.
+    const ensure = vi.fn()
+      .mockRejectedValueOnce(new SonioxVoicesError('pool_exhausted', 'busy', 409, 10_000))
+      .mockResolvedValueOnce({ voiceId: 'v7', status: 'ready' });
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    const res = await prepareManagedVoice({
+      ...deps({ ensure }),
+      sleep,
+      now: () => 0,
+      timeoutMs: 5_000,
+    });
+    expect(res).toEqual({ ok: true, voiceId: 'v7' });
+    // 5000 remaining < the server's 10000ms hint — clamped, not honored.
+    expect(sleep).toHaveBeenCalledWith(5_000);
+  });
 });
 
 describe('voicePrepNotice', () => {

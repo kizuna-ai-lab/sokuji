@@ -1777,38 +1777,44 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // text-only, so a participant-only session has no voice to prepare.
       let preparedVoiceId: string | null = null;
       let voicePrepMessage: string | null = null;
-      const sonioxVoiceSetting = (useSettingsStore.getState()[
-        ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore
-      ] as { voice?: string })?.voice;
+      // Provider identity checked FIRST, before touching any settings slice:
+      // `voice` is a field name that means something different per provider
+      // (OpenAI's is e.g. 'alloy'), so reading it before confirming we're
+      // looking at the Soniox-managed twin would read as if that field were
+      // provider-agnostic. It is not — it's only meaningful once we already
+      // know which slice we're in.
       if (
         speakerWillStart &&
         !textOnly &&
         (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
-        isKizunaManagedProvider(provider) &&
-        sonioxVoiceSetting &&
-        !SONIOX_BUILTIN_VOICES.has(sonioxVoiceSetting)
+        isKizunaManagedProvider(provider)
       ) {
-        setVoicePreparing(true);
-        try {
-          const result = await prepareManagedVoice({
-            client: new ManagedVoicesClient(getAuthToken),
-            loadClip: loadVoiceClip,
-          });
-          if (result.ok) {
-            preparedVoiceId = result.voiceId;
-            // A rebuilt voice comes back with a DIFFERENT Soniox UUID, so
-            // every ensure response is authoritative. Writing it through here
-            // is what keeps the settings dropdown pointing at a voice that
-            // actually exists.
-            if (result.voiceId !== sonioxVoiceSetting) {
-              useSettingsStore.getState().updateKizunaSoniox({ voice: result.voiceId });
+        const sonioxVoiceSetting = (useSettingsStore.getState()[
+          ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore
+        ] as { voice?: string })?.voice;
+        if (sonioxVoiceSetting && !SONIOX_BUILTIN_VOICES.has(sonioxVoiceSetting)) {
+          setVoicePreparing(true);
+          try {
+            const result = await prepareManagedVoice({
+              client: new ManagedVoicesClient(getAuthToken),
+              loadClip: loadVoiceClip,
+            });
+            if (result.ok) {
+              preparedVoiceId = result.voiceId;
+              // A rebuilt voice comes back with a DIFFERENT Soniox UUID, so
+              // every ensure response is authoritative. Writing it through
+              // here is what keeps the settings dropdown pointing at a voice
+              // that actually exists.
+              if (result.voiceId !== sonioxVoiceSetting) {
+                useSettingsStore.getState().updateKizunaSoniox({ voice: result.voiceId });
+              }
+            } else {
+              const notice = voicePrepNotice(result.reason);
+              voicePrepMessage = t(notice.key, notice.defaultValue);
             }
-          } else {
-            const notice = voicePrepNotice(result.reason);
-            voicePrepMessage = t(notice.key, notice.defaultValue);
+          } finally {
+            setVoicePreparing(false);
           }
-        } finally {
-          setVoicePreparing(false);
         }
       }
 
@@ -2350,13 +2356,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsInitializing(false);
     }
   }, [
-    // Per-provider settings and getCurrentProviderSettings are no longer read
-    // here — createAIClient resolves credentials via the active provider's
-    // descriptor (which closes over getAuthToken itself). getAuthToken IS
-    // listed below, though: the managed-voice prep block calls it directly to
-    // construct a ManagedVoicesClient, and a stale closure would mint that
-    // request with a token from a previous sign-in — a 401 that looks like an
-    // outage.
+    // getCurrentProviderSettings itself is no longer read here — createAIClient
+    // resolves credentials via the active provider's descriptor. Per-provider
+    // settings SLICES are still read directly, though: both the pre-existing
+    // `sonioxActiveSettings` snapshot below and the managed-voice prep block's
+    // `sonioxVoiceSetting` snapshot go through useSettingsStore.getState(), a
+    // one-shot read that intentionally is NOT a dependency here (only a
+    // reactive hook value would need to be). getAuthToken IS listed below,
+    // though: the managed-voice prep block calls it directly to construct a
+    // ManagedVoicesClient, and a stale closure would mint that request with a
+    // token from a previous sign-in — a 401 that looks like an outage.
     noiseSuppressionMode,
     provider,
     transportType,

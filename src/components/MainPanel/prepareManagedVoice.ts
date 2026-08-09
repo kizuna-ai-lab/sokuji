@@ -33,8 +33,14 @@ export interface PrepareManagedVoiceDeps {
   loadClip: () => Promise<Blob | null>;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
-  /** Ceiling for the whole build wait. A cold build is ~10 s; this is the
-   *  point at which we stop holding Start open and fall back. */
+  /** Ceiling for the whole build wait: the poll loop AND any retry (the clip
+   *  upload after `clip_required`, the wait-and-retry after
+   *  `pool_exhausted`). A cold build is ~10 s; this is the point at which we
+   *  stop holding Start open and fall back. This bounds when a NEW attempt
+   *  may BEGIN — an `ensure()` call already in flight keeps its own timeout
+   *  inside `ManagedVoicesClient` (15s / 120s for an upload) and is not
+   *  aborted from here; reaching into another module's in-flight request is
+   *  out of scope for this routine. */
   timeoutMs?: number;
   pollIntervalMs?: number;
 }
@@ -95,6 +101,14 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
         return { ok: false, reason: 'unavailable' };
       }
       if (error.errorType === 'clip_required' && !opts.retriedClip) {
+        // Never START a retry once the deadline is already gone: a warm
+        // attempt that itself consumed most of the budget must not be
+        // followed by up to a 120s upload against a stated (e.g.) 60s
+        // ceiling. 'unavailable' reads truer than 'clip_required' here — the
+        // device DOES have a clip, we simply ran out of time to send it, and
+        // 'clip_required's own copy ("record one in Settings") would be
+        // actively wrong.
+        if (now() >= deadline) return { ok: false, reason: 'unavailable' };
         const stored = await loadClip();
         // No clip here means this device has never recorded one. Warm slots
         // follow the user anywhere; a cold slot cannot, by design.
@@ -102,7 +116,14 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
         return ensureOnce(stored, { ...opts, retriedClip: true });
       }
       if (error.errorType === 'pool_exhausted' && !opts.retriedPool) {
-        await sleep(error.retryAfterMs ?? DEFAULT_RETRY_MS);
+        // Same ceiling, same reasoning as clip_required above, plus: never
+        // trust the server's own retry-after hint past what's actually left
+        // in the budget — a reconciler bug returning e.g. a ten-minute hint
+        // must not hang Start for anywhere near that long.
+        const remaining = deadline - now();
+        if (remaining <= 0) return { ok: false, reason: 'unavailable' };
+        await sleep(Math.min(error.retryAfterMs ?? DEFAULT_RETRY_MS, remaining));
+        if (now() >= deadline) return { ok: false, reason: 'unavailable' };
         return ensureOnce(clip, { ...opts, retriedPool: true });
       }
       if (error.errorType === 'pool_exhausted') return { ok: false, reason: 'pool_exhausted' };
