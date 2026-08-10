@@ -79,8 +79,16 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
     if (ensured.value.status === 'ready') return { ok: true, voiceId: ensured.value.voiceId };
 
     for (;;) {
+      const remaining = deadline - now();
+      if (remaining <= 0) return { ok: false, reason: 'unavailable' };
+      // Clamp the wait AND re-check after it. Checking only before the sleep
+      // let a full interval step straight over the deadline and then start a
+      // poll anyway — and that poll carries its own 15s request timeout, so
+      // Start stayed disabled well past the budget it had just been told it
+      // was out of. The rule everywhere in this routine is the same: no new
+      // attempt may BEGIN after the deadline.
+      await sleep(Math.min(pollIntervalMs, remaining));
       if (now() >= deadline) return { ok: false, reason: 'unavailable' };
-      await sleep(pollIntervalMs);
       const voice = await client.mine();
       // A vanished row means another device superseded this build or the LRU
       // evicted it. Rebuilding here would race the same way again.
@@ -104,7 +112,14 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
     try {
       // pin: true — this slot must survive until the session's own lease takes
       // over the pin at session-started.
-      const value = await client.ensure({ pin: true, clip });
+      //
+      // budgetMs hands the client what is LEFT of our deadline. Refusing to
+      // begin an attempt after expiry (below) bounds when a request starts;
+      // this bounds how long one may run. Without it a cold upload keeps its
+      // own 120s timeout and blows straight through a 60s preparation budget,
+      // with Start disabled and no way to cancel — the two together are what
+      // make timeoutMs an actual ceiling rather than a hopeful one.
+      const value = await client.ensure({ pin: true, clip, budgetMs: deadline - now() });
       return { ok: true, value };
     } catch (error) {
       if (!(error instanceof SonioxVoicesError)) {

@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "אישרתי שיש לי את הזכות להשתמש בקול הזה",
     "sonioxVoiceCloneTitle": "שכפול קול",
     "sonioxVoiceCloneReview": "האזן לקטע שלך ותן שם לקול לפני ההעלאה.",
+    "sonioxVoiceCloneReviewNoName": "האזן לקטע שלך לפני ההעלאה.",
     "sonioxManagedCloneNotice": "ההקלטה הזו נשלחת ל-Kizuna AI ומועברת הלאה ל-Soniox כדי לבנות את הקול שלך. היא לא נשמרת בשרתים שלנו — היא נשארת במכשיר הזה כדי שניתן יהיה לבנות את הקול שלך מחדש בהמשך.",
     "sonioxVoiceNamePlaceholder": "שם לקול משוכפל חדש (אופציונלי)",
     "sonioxVoiceDefaultName": "הקול שלי {{n}}",

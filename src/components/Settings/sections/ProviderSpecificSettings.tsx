@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useMemo, useRef } from 'react';
+import React, { Fragment, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { supportsTranscriptionContext } from '../../../services/providers/openaiTranscriptionContext';
@@ -206,7 +206,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // same class of bug the audio-device code avoids by depending on deviceId
   // rather than on the device object.
   const getTokenRef = useRef(getToken);
-  useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
+  // useLayoutEffect, NOT useEffect, and the difference is load-bearing. React
+  // flushes passive effects child-first, so on the render where the signed-in
+  // account changes, SonioxVoiceSection's load effect runs BEFORE this one:
+  // it already holds the newly memoized source for account B, calls
+  // `getTokenRef.current()` synchronously on its way into `mine()`, and gets
+  // A's still-installed getToken. B's panel then lists A's voice, fetched with
+  // A's bearer token. Layout effects all flush before any passive effect, so
+  // running the assignment here puts the new token in place before the child
+  // can ask for it.
+  useLayoutEffect(() => { getTokenRef.current = getToken; }, [getToken]);
 
   // Memoized on primitives, never constructed inline. SonioxVoiceSection's
   // load effect depends on this object's identity, so a fresh instance per

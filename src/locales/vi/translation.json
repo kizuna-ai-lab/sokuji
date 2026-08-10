@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "Tôi xác nhận rằng tôi có quyền sử dụng giọng nói này",
     "sonioxVoiceCloneTitle": "Nhân bản giọng nói",
     "sonioxVoiceCloneReview": "Hãy nghe đoạn ghi âm của bạn và đặt tên cho giọng nói trước khi tải lên.",
+    "sonioxVoiceCloneReviewNoName": "Hãy nghe đoạn ghi âm của bạn trước khi tải lên.",
     "sonioxManagedCloneNotice": "Bản ghi âm này được gửi đến Kizuna AI và chuyển tiếp cho Soniox để xây dựng giọng nói của bạn. Nó không được lưu trữ trên máy chủ của chúng tôi — nó vẫn ở trên thiết bị này để giọng nói của bạn có thể được xây dựng lại sau này.",
     "sonioxVoiceNamePlaceholder": "Tên cho giọng nói nhân bản mới (không bắt buộc)",
     "sonioxVoiceDefaultName": "Giọng nói của tôi {{n}}",

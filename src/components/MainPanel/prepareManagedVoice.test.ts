@@ -28,7 +28,7 @@ describe('prepareManagedVoice', () => {
     const loadClip = vi.fn();
     const res = await prepareManagedVoice(deps({ ensure, loadClip }));
     expect(res).toEqual({ ok: true, voiceId: 'v1' });
-    expect(ensure).toHaveBeenCalledWith({ pin: true, clip: undefined });
+    expect(ensure).toHaveBeenCalledWith({ pin: true, clip: undefined, budgetMs: expect.any(Number) });
     expect(loadClip).not.toHaveBeenCalled();
   });
 
@@ -38,7 +38,7 @@ describe('prepareManagedVoice', () => {
       .mockResolvedValueOnce({ voiceId: 'v2', status: 'ready' });
     const res = await prepareManagedVoice(deps({ ensure }));
     expect(res).toEqual({ ok: true, voiceId: 'v2' });
-    expect(ensure).toHaveBeenNthCalledWith(2, { pin: true, clip: expect.any(Blob) });
+    expect(ensure).toHaveBeenNthCalledWith(2, { pin: true, clip: expect.any(Blob), budgetMs: expect.any(Number) });
   });
 
   it('gives up gracefully when this device has never recorded a clip', async () => {
@@ -128,6 +128,51 @@ describe('prepareManagedVoice', () => {
     expect(ensure).toHaveBeenCalledTimes(1);
     // No point sleeping out a hint when there's no budget left to wait it out.
     expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it('does not poll again when the wait would step over the deadline', async () => {
+    // The deadline used to be checked only BEFORE the sleep, so an interval
+    // that crossed it still started one more /mine — and that request carries
+    // its own 15s timeout, holding Start disabled well past the budget it had
+    // just been told was spent. A moving clock is essential here: with a
+    // frozen one the sleep can never consume the remaining time.
+    let t = 0;
+    const ensure = vi.fn().mockResolvedValue({ voiceId: 'v8', status: 'processing' });
+    const mine = vi.fn().mockResolvedValue({ voiceId: 'v8', status: 'processing', createdAt: 1 });
+    const sleep = vi.fn().mockImplementation(async (ms: number) => { t += ms; });
+    const res = await prepareManagedVoice({
+      ...deps({ ensure, mine }),
+      sleep,
+      now: () => t,
+      timeoutMs: 1_000,
+      pollIntervalMs: 1_500,
+    });
+    expect(res).toEqual({ ok: false, reason: 'unavailable' });
+    // Clamped to what was left rather than sleeping the full interval...
+    expect(sleep).toHaveBeenCalledWith(1_000);
+    // ...and no poll started once that was spent.
+    expect(mine).not.toHaveBeenCalled();
+  });
+
+  it('gives ensure only the budget that is left, so an upload cannot outlive it', async () => {
+    // ManagedVoicesClient defaults a clip upload to 120s. Preparation budgets
+    // 60s for everything. Without handing the remaining budget down, one cold
+    // upload blows through the ceiling with Start disabled and no cancel.
+    let t = 0;
+    const ensure = vi.fn()
+      .mockImplementationOnce(async () => { t += 4_000; throw new SonioxVoicesError('clip_required', 'need clip', 409); })
+      .mockResolvedValueOnce({ voiceId: 'v9', status: 'ready' });
+    const res = await prepareManagedVoice({
+      ...deps({ ensure }),
+      now: () => t,
+      timeoutMs: 10_000,
+    });
+    expect(res).toEqual({ ok: true, voiceId: 'v9' });
+    expect(ensure).toHaveBeenNthCalledWith(2, {
+      pin: true,
+      clip: expect.any(Blob),
+      budgetMs: 6_000,
+    });
   });
 
   it('clamps a pool_exhausted retry hint to the time actually remaining, not honored verbatim', async () => {

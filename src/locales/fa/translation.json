@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "تأیید می‌کنم که حق استفاده از این صدا را دارم",
     "sonioxVoiceCloneTitle": "شبیه‌سازی صدا",
     "sonioxVoiceCloneReview": "قبل از بارگذاری، به کلیپ خود گوش دهید و برای صدا نامی انتخاب کنید.",
+    "sonioxVoiceCloneReviewNoName": "قبل از بارگذاری، به کلیپ خود گوش دهید.",
     "sonioxManagedCloneNotice": "این ضبط به Kizuna AI ارسال و سپس برای ساخت صدای شما به Soniox منتقل می‌شود. این فایل روی سرورهای ما ذخیره نمی‌شود — روی همین دستگاه باقی می‌ماند تا بعداً بتوان صدای شما را دوباره ساخت.",
     "sonioxVoiceNamePlaceholder": "نام برای صدای شبیه‌سازی‌شده جدید (اختیاری)",
     "sonioxVoiceDefaultName": "صدای من {{n}}",

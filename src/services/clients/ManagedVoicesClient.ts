@@ -102,18 +102,27 @@ export class ManagedVoicesClient {
    *
    * Omit `clip` first. A warm slot needs no upload, and `clip_required` is the
    * backend's way of saying this device must supply the recording.
+   *
+   * `budgetMs` caps this call's own timeout. The upload default is 120s, which
+   * a caller working to a shorter deadline of its own cannot otherwise
+   * respect: session start budgets 60s for the whole preparation, so without
+   * this a single cold upload could hold Start disabled for twice that with no
+   * way to cancel. Callers with no deadline omit it and keep the defaults.
    */
-  async ensure(opts: { pin: boolean; clip?: Blob }): Promise<{ voiceId: string; status: 'ready' | 'processing' }> {
+  async ensure(
+    opts: { pin: boolean; clip?: Blob; budgetMs?: number }
+  ): Promise<{ voiceId: string; status: 'ready' | 'processing' }> {
     const form = new FormData();
     form.set('pin', opts.pin ? '1' : '0');
     if (opts.clip) form.set('clip', opts.clip, 'reference.wav');
+    const defaultTimeout = opts.clip ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
     // No Content-Type header on purpose: fetch generates the multipart
     // boundary, and setting the header by hand strips it, which makes the
     // backend's formData() parse fail.
     const res = await this.request(
       '/ensure',
       { method: 'POST', body: form },
-      opts.clip ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS
+      opts.budgetMs !== undefined ? Math.min(defaultTimeout, opts.budgetMs) : defaultTimeout
     );
     const body = await res.json();
     return { voiceId: body.voiceId, status: body.status };

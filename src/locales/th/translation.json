@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "ฉันยืนยันว่ามีสิทธิ์ใช้เสียงนี้",
     "sonioxVoiceCloneTitle": "โคลนเสียง",
     "sonioxVoiceCloneReview": "ฟังคลิปของคุณและตั้งชื่อเสียงก่อนอัปโหลด",
+    "sonioxVoiceCloneReviewNoName": "ฟังคลิปของคุณก่อนอัปโหลด",
     "sonioxManagedCloneNotice": "การบันทึกนี้จะถูกส่งไปยัง Kizuna AI และส่งต่อไปยัง Soniox เพื่อสร้างเสียงของคุณ โดยจะไม่ถูกเก็บไว้บนเซิร์ฟเวอร์ของเรา — แต่จะอยู่ในอุปกรณ์เครื่องนี้เพื่อให้สามารถสร้างเสียงของคุณขึ้นใหม่ได้ในภายหลัง",
     "sonioxVoiceNamePlaceholder": "ชื่อสำหรับเสียงโคลนใหม่ (ไม่บังคับ)",
     "sonioxVoiceDefaultName": "เสียงของฉัน {{n}}",

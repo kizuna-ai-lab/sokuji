@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "Bu sesi kullanma hakkına sahip olduğumu onaylıyorum",
     "sonioxVoiceCloneTitle": "Sesi klonla",
     "sonioxVoiceCloneReview": "Yüklemeden önce klibinizi dinleyin ve sese bir ad verin.",
+    "sonioxVoiceCloneReviewNoName": "Yüklemeden önce klibinizi dinleyin.",
     "sonioxManagedCloneNotice": "Bu kayıt Kizuna AI'ya gönderilir ve sesinizi oluşturmak üzere Soniox'a iletilir. Sunucularımızda saklanmaz — sesinizin daha sonra yeniden oluşturulabilmesi için bu cihazda kalır.",
     "sonioxVoiceNamePlaceholder": "Yeni klonlanmış ses için ad (isteğe bağlı)",
     "sonioxVoiceDefaultName": "Sesim {{n}}",

@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "أؤكد أن لدي الحق في استخدام هذا الصوت",
     "sonioxVoiceCloneTitle": "استنساخ الصوت",
     "sonioxVoiceCloneReview": "استمع إلى المقطع الصوتي وقم بتسمية الصوت قبل الرفع.",
+    "sonioxVoiceCloneReviewNoName": "استمع إلى المقطع الصوتي قبل الرفع.",
     "sonioxManagedCloneNotice": "يتم إرسال هذا التسجيل إلى Kizuna AI ثم تمريره إلى Soniox لبناء صوتك. لا يتم تخزينه على خوادمنا — بل يبقى على هذا الجهاز حتى يمكن إعادة بناء صوتك لاحقًا.",
     "sonioxVoiceNamePlaceholder": "اسم للصوت المستنسخ الجديد (اختياري)",
     "sonioxVoiceDefaultName": "صوتي {{n}}",

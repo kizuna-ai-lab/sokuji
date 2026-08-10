@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "Saya mengonfirmasi bahwa saya memiliki hak untuk menggunakan suara ini",
     "sonioxVoiceCloneTitle": "Kloning suara",
     "sonioxVoiceCloneReview": "Dengarkan klip Anda dan beri nama suara sebelum mengunggah.",
+    "sonioxVoiceCloneReviewNoName": "Dengarkan klip Anda sebelum mengunggah.",
     "sonioxManagedCloneNotice": "Rekaman ini dikirim ke Kizuna AI dan diteruskan ke Soniox untuk membangun suara Anda. Rekaman ini tidak disimpan di server kami — rekaman tetap berada di perangkat ini agar suara Anda dapat dibangun kembali nanti.",
     "sonioxVoiceNamePlaceholder": "Nama untuk suara kloning baru (opsional)",
     "sonioxVoiceDefaultName": "Suara Saya {{n}}",

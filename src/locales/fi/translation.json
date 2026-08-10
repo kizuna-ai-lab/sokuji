@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "Vahvistan, että minulla on oikeus käyttää tätä ääntä",
     "sonioxVoiceCloneTitle": "Kloonaa ääni",
     "sonioxVoiceCloneReview": "Kuuntele klippisi ja nimeä ääni ennen lataamista.",
+    "sonioxVoiceCloneReviewNoName": "Kuuntele klippisi ennen lataamista.",
     "sonioxManagedCloneNotice": "Tämä tallenne lähetetään Kizuna AI:lle ja edelleen Soniox'ille äänesi luomista varten. Sitä ei tallenneta palvelimillemme — se pysyy tällä laitteella, jotta äänesi voidaan rakentaa uudelleen myöhemmin.",
     "sonioxVoiceNamePlaceholder": "Nimi uudelle kloonatulle äänelle (valinnainen)",
     "sonioxVoiceDefaultName": "Oma ääni {{n}}",

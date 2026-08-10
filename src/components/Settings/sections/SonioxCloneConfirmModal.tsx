@@ -131,7 +131,13 @@ const SonioxCloneConfirmModal: React.FC<SonioxCloneConfirmModalProps> = ({
     >
       <div className="soniox-clone-confirm-modal">
         <p>
-          {t('settings.sonioxVoiceCloneReview', 'Listen to your clip and name the voice before uploading.')}
+          {/* The default copy tells the user to name the voice, which is only
+              true where the name field exists. Managed accounts do not name
+              their voice — the backend does — so `showName === false` selects
+              a variant that instructs only what the user can actually do. */}
+          {showName
+            ? t('settings.sonioxVoiceCloneReview', 'Listen to your clip and name the voice before uploading.')
+            : t('settings.sonioxVoiceCloneReviewNoName', 'Listen to your clip before uploading.')}
         </p>
         {audioUrl && (
           <div className="soniox-clone-confirm-modal__player">

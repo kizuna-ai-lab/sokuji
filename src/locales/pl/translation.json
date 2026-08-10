@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "Potwierdzam, że mam prawo do korzystania z tego głosu",
     "sonioxVoiceCloneTitle": "Klonuj głos",
     "sonioxVoiceCloneReview": "Odsłuchaj swój klip i nazwij głos przed przesłaniem.",
+    "sonioxVoiceCloneReviewNoName": "Odsłuchaj swój klip przed przesłaniem.",
     "sonioxManagedCloneNotice": "To nagranie jest wysyłane do Kizuna AI i przekazywane do Soniox w celu zbudowania Twojego głosu. Nie jest przechowywane na naszych serwerach — pozostaje na tym urządzeniu, aby Twój głos można było później odtworzyć.",
     "sonioxVoiceNamePlaceholder": "Nazwa dla nowego sklonowanego głosu (opcjonalnie)",
     "sonioxVoiceDefaultName": "Mój głos {{n}}",

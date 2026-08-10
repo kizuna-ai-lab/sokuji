@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "Ik bevestig dat ik het recht heb om deze stem te gebruiken",
     "sonioxVoiceCloneTitle": "Stem klonen",
     "sonioxVoiceCloneReview": "Luister naar uw clip en geef de stem een naam voordat u deze uploadt.",
+    "sonioxVoiceCloneReviewNoName": "Luister naar uw clip voordat u deze uploadt.",
     "sonioxManagedCloneNotice": "Deze opname wordt naar Kizuna AI gestuurd en doorgegeven aan Soniox om uw stem te bouwen. Deze wordt niet op onze servers opgeslagen — hij blijft op dit apparaat, zodat uw stem later opnieuw kan worden opgebouwd.",
     "sonioxVoiceNamePlaceholder": "Naam voor een nieuwe gekloonde stem (optioneel)",
     "sonioxVoiceDefaultName": "Mijn stem {{n}}",

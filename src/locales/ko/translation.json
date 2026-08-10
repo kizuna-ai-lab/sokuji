@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "이 음성을 사용할 권리가 있음을 확인합니다",
     "sonioxVoiceCloneTitle": "음성 복제",
     "sonioxVoiceCloneReview": "업로드하기 전에 클립을 듣고 음성 이름을 지정하세요.",
+    "sonioxVoiceCloneReviewNoName": "업로드하기 전에 클립을 들어보세요.",
     "sonioxManagedCloneNotice": "이 녹음은 Kizuna AI로 전송된 후 음성을 만들기 위해 Soniox로 전달됩니다. 당사 서버에는 저장되지 않으며 — 이 기기에만 남아 나중에 음성을 다시 만들 수 있습니다.",
     "sonioxVoiceNamePlaceholder": "새로 복제할 음성 이름(선택 사항)",
     "sonioxVoiceDefaultName": "내 음성 {{n}}",

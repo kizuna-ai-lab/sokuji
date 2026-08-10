@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "আমি নিশ্চিত করছি যে এই কণ্ঠস্বর ব্যবহার করার অধিকার আমার আছে",
     "sonioxVoiceCloneTitle": "কণ্ঠস্বর ক্লোন করুন",
     "sonioxVoiceCloneReview": "আপলোড করার আগে আপনার ক্লিপটি শুনুন এবং কণ্ঠস্বরের নাম দিন।",
+    "sonioxVoiceCloneReviewNoName": "আপলোড করার আগে আপনার ক্লিপটি শুনুন।",
     "sonioxManagedCloneNotice": "এই রেকর্ডিংটি Kizuna AI-তে পাঠানো হয় এবং আপনার কণ্ঠস্বর তৈরি করতে Soniox-এ পাঠানো হয়। এটি আমাদের সার্ভারে সংরক্ষণ করা হয় না — এটি এই ডিভাইসেই থাকে যাতে পরে আপনার কণ্ঠস্বর পুনর্নির্মাণ করা যায়।",
     "sonioxVoiceNamePlaceholder": "নতুন ক্লোন করা কণ্ঠস্বরের জন্য নাম (ঐচ্ছিক)",
     "sonioxVoiceDefaultName": "আমার কণ্ঠস্বর {{n}}",

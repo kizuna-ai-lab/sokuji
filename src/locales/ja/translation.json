@@ -243,6 +243,7 @@
     "sonioxVoiceConsent": "この音声を使用する権利があることを確認します",
     "sonioxVoiceCloneTitle": "音声を複製",
     "sonioxVoiceCloneReview": "アップロードする前に、クリップを聞いて音声に名前を付けてください。",
+    "sonioxVoiceCloneReviewNoName": "アップロードする前に、クリップを聞いてください。",
     "sonioxManagedCloneNotice": "この録音はKizuna AIに送信され、音声を作成するためSonioxに渡されます。当社のサーバーには保存されません — この端末上にのみ保存され、後で音声を再構築できるようにします。",
     "sonioxVoiceNamePlaceholder": "新しく複製する音声の名前（任意）",
     "sonioxVoiceDefaultName": "マイ音声 {{n}}",

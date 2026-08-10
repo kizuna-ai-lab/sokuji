@@ -451,7 +451,11 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // default built-in; an EXTERNAL deletion (e.g. from another client) only
     // ever shows the placeholder below — the stored setting is never rewritten
     // behind the user's back.
-    if (settings.voice === id) onUpdate({ voice: DEFAULT_VOICE });
+    // selectedVoiceRef, not the captured `settings.voice`: two awaits have
+    // happened since this closure was created, and a user who picked a
+    // different voice meanwhile must not have it reset out from under them.
+    // Same guard, for the same reason, as finishCreate's auto-select.
+    if (selectedVoiceRef.current === id) onUpdate({ voice: DEFAULT_VOICE });
     if (clipClearFailure) {
       setCaptureError(mapCreateError(clipClearFailure).message);
       throw clipClearFailure;
