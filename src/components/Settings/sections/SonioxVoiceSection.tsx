@@ -1,12 +1,13 @@
 /**
- * Soniox voice picker + BYOK voice cloning, wrapping the shared
- * VoiceLibrarySection (dropdown presentation): 28 built-ins as the preset
- * group, cloned voices (fetched live from /v1/voices — Soniox is the sole
- * source of truth) as the custom group. Managed (Kizuna) sessions cannot
- * manage voices (temporary keys are locked out of the REST API), so the twin
- * renders built-ins only; Phase 2 swaps the data source to backend endpoints.
+ * Soniox voice picker + voice cloning, wrapping the shared VoiceLibrarySection
+ * (dropdown presentation): 28 built-ins as the preset group, cloned voices
+ * (fetched live via the injected `source`) as the custom group. Where those
+ * voices come from — BYOK talking to Soniox directly, or a managed account
+ * talking to our backend — is entirely the caller's concern; see
+ * `voiceLibrarySource.ts` for the seam. A null `source` (BYOK with no API key
+ * pasted yet, or a managed account with no session) renders built-ins only.
  *
- * Create flow: record/upload are always available once a client exists (the
+ * Create flow: record/upload are always available once a source exists (the
  * shared voice-library look, no gating checkbox) → client-side validation
  * (upload only: ≤10 MB, decoded duration 3-20s, mirroring NativeVoiceSection's
  * `validateVoiceClip` pattern) → the validated/recorded clip is staged as
@@ -18,18 +19,21 @@
  * the user can rename and retry without losing the clip. `voice_failed` is
  * terminal: the entry renders a failed hint and can only be deleted.
  *
- * Cloning affordances also require an API key: managing voices needs the
- * permanent project key, so the record/upload controls stay hidden until
- * `settings.apiKey` is non-empty (mirrors the `managed` gate — both leave
- * `client` null, see below) rather than reaching a null-client crash if a
- * BYOK user opens this section before pasting their key.
+ * Managed accounts additionally cannot REPLACE a healthy voice by recording
+ * again — the backend hands back the voice it already has and ignores the new
+ * clip — so the create affordances are withdrawn while one exists, with a note
+ * saying to delete first. See `managedVoiceBlocksCreate` below.
+ *
+ * Previewing (auditioning) a voice is a separate capability from the
+ * create/delete affordances above: it needs a Soniox key to synthesize a
+ * sample, which a managed account's source does not have, so it is gated on
+ * `source.canPreview` rather than on `source` merely being non-null.
  */
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
 import SonioxCloneConfirmModal from './SonioxCloneConfirmModal';
 import {
-  SonioxVoicesClient,
   SonioxVoicesError,
   encodeWavPcm16,
   type SonioxVoice,
@@ -42,12 +46,30 @@ import {
   downmixToMono,
   type ClipValidationError,
 } from '../../../lib/local-inference/native/nativeVoiceStores';
+import type { VoiceLibrarySource } from './voiceLibrarySource';
 
 export interface SonioxVoiceSectionProps {
   /** `targetLanguage` and `ttsSpeed` drive the preview audition so it matches
-   *  what the session would actually speak. */
+   *  what the session would actually speak. `apiKey` is BYOK-only and is
+   *  empty for managed accounts — the preview path is gated on
+   *  `source.canPreview`, not on this field. */
   settings: { voice: string; apiKey: string; targetLanguage: string; ttsSpeed: number };
   onUpdate: (patch: { voice: string }) => void;
+  /** Where voices come from, or null when this account cannot manage any yet
+   *  (BYOK with no API key pasted; managed with no signed-in user). Null
+   *  keeps the create/delete affordances hidden rather than reaching a null
+   *  crash — for managed specifically, this is also what stops a signed-out
+   *  user from recording a clip that would be saved locally and then rejected
+   *  by the backend. The caller mints a NEW `source` object whenever the
+   *  signed-in account changes (not just when it signs in/out), so this
+   *  component's account-scoped state (the fetched list, the preview cache)
+   *  is never carried over from one account to another. */
+  source: VoiceLibrarySource | null;
+  /** Copy variant. Drives: the custom-voice label (managed shows "My voice"
+   *  rather than the backend's internal name), the list-error copy, and —
+   *  via the confirm modal's `notice`/`showName` props — the managed-only
+   *  data-destination statement and the hidden name field (the backend names
+   *  voices itself). */
   managed: boolean;
   isSessionActive: boolean;
 }
@@ -71,29 +93,22 @@ function isFailed(v: SonioxVoice): boolean {
 const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   settings,
   onUpdate,
+  source,
   managed,
   isSessionActive,
 }) => {
   const { t } = useTranslation();
-  // Managing voices (list/create/delete) needs the permanent project key;
-  // temporary/managed keys are live-verified 401 on this REST surface. No
-  // key yet → no client → the create/delete affordances stay hidden below,
-  // same as the managed twin.
-  const client = useMemo(
-    () => (managed || !settings.apiKey ? null : new SonioxVoicesClient(settings.apiKey)),
-    [managed, settings.apiKey]
-  );
   // Latest-value ref so an in-flight `refresh()` can tell, at resolution
-  // time, whether the client it was issued against is still current — an
+  // time, whether the source it was issued against is still current — an
   // explicit guard alongside the generation counter below rather than
-  // relying solely on effect-cleanup ordering when `client` changes mid-fetch.
-  const clientRef = useRef(client);
-  useEffect(() => { clientRef.current = client; }, [client]);
+  // relying solely on effect-cleanup ordering when `source` changes mid-fetch.
+  const sourceRef = useRef(source);
+  useEffect(() => { sourceRef.current = source; }, [source]);
   const [clones, setClones] = useState<SonioxVoice[]>([]);
-  // Start 'loading' whenever a client exists so the first paint never shows
+  // Start 'loading' whenever a source exists so the first paint never shows
   // the "(deleted voice)" placeholder for a settings.voice that simply
   // hasn't been checked against the fetched list yet.
-  const [listState, setListState] = useState<'idle' | 'loading' | 'error'>(client ? 'loading' : 'idle');
+  const [listState, setListState] = useState<'idle' | 'loading' | 'error'>(source ? 'loading' : 'idle');
   const [captureError, setCaptureError] = useState<string | null>(null);
   // A clip that's been picked/recorded and passed client-side validation,
   // staged for the confirm modal (playback + naming + consent) before it's
@@ -116,23 +131,23 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   const loadGeneration = useRef(0);
 
   const refresh = useCallback(async () => {
-    if (!client) return;
-    const requestClient = client;
+    if (!source) return;
+    const requestSource = source;
     const generation = ++loadGeneration.current;
     setListState('loading');
     try {
-      const voices = await requestClient.list();
-      if (generation !== loadGeneration.current || clientRef.current !== requestClient) return;
+      const voices = await requestSource.list();
+      if (generation !== loadGeneration.current || sourceRef.current !== requestSource) return;
       setClones(voices);
       setListState('idle');
     } catch {
-      if (generation !== loadGeneration.current || clientRef.current !== requestClient) return;
+      if (generation !== loadGeneration.current || sourceRef.current !== requestSource) return;
       setListState('error');
     }
-  }, [client]);
+  }, [source]);
 
   useEffect(() => {
-    // A changed client means a (possibly) different Soniox project: the old
+    // A changed source means a (possibly) different voice project: the old
     // project's clones must not stay listed/selectable while the new fetch is
     // pending — or forever, if it fails. Manual refresh() calls (the toolbar
     // button) deliberately keep the current list until fresh data lands.
@@ -153,6 +168,34 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       }
       if (e.errorType === 'voice_failed') {
         return new Error(t('settings.sonioxVoiceFailed', 'Processing failed — delete this voice and try a clearer clip'));
+      }
+      if (e.errorType === 'pool_exhausted') {
+        return new Error(t('settings.sonioxVoicePoolExhausted', 'All custom voice slots are in use right now — please try again in a moment.'));
+      }
+      if (e.errorType === 'voice_pinned') {
+        return new Error(t('settings.sonioxVoicePinned', 'This voice is in use by a running session — end the session before deleting it.'));
+      }
+      if (e.errorType === 'insufficient_balance') {
+        return new Error(t('settings.sonioxVoiceInsufficientBalance', 'Add balance to your account before building a custom voice.'));
+      }
+      if (e.errorType === 'authentication_required') {
+        return new Error(t('settings.sonioxVoiceSignInRequired', 'Sign in to build a custom voice.'));
+      }
+      if (e.errorType === 'clip_clear_failed') {
+        // Half a delete: the voice is gone, the recording it was built from
+        // is not. Saying "delete failed" would be the wrong half, and saying
+        // nothing would leave biometric material on the device under a claim
+        // that it was removed. The remedy is NOT "delete again" — by the time
+        // this shows, the voice row is gone from the list and there is no
+        // delete button left to press. Recording a new voice overwrites the
+        // clip (one record, replaced by whoever saves next), which is the
+        // only in-app action that actually removes it.
+        return new Error(
+          t(
+            'settings.sonioxVoiceClipClearFailed',
+            'Your voice was deleted, but its recording could not be removed from this device. Nothing uses it now — recording a new voice replaces it.'
+          )
+        );
       }
     }
     return e instanceof Error ? e : new Error(String(e));
@@ -180,18 +223,18 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // repeat listen carries no new information but would spend the user's tokens
   // again. Keyed by voice + language + speed so changing either re-synthesizes.
   const previewCacheRef = useRef(new Map<string, { audio: Float32Array; sampleRate: number }>());
-  // A changed client means a (possibly) different Soniox project: audio cached
+  // A changed source means a (possibly) different voice project: audio cached
   // against the old project's UUIDs must not replay under the new key.
-  useEffect(() => { previewCacheRef.current.clear(); }, [client]);
+  useEffect(() => { previewCacheRef.current.clear(); }, [source]);
 
   const handlePreview = useCallback(async (
     id: string,
     signal?: AbortSignal
   ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
-    if (!client) return null;
+    if (!source?.canPreview) return null;
     // Pinned for the post-await staleness check below — same guard the
-    // list/create paths use via clientRef.
-    const requestClient = client;
+    // list/create paths use via sourceRef.
+    const requestSource = source;
     const sample = previewSampleFor(settings.targetLanguage);
     // Same choke point the session path uses (SonioxProviderConfig.
     // buildSessionConfig): the slider already constrains this in practice, so
@@ -217,7 +260,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       // returning it would play another project's voice under this key.
       // Discard instead; nothing was cancelled, so the user simply hears
       // nothing and can click again.
-      if (clientRef.current !== requestClient) return null;
+      if (sourceRef.current !== requestSource) return null;
       previewCacheRef.current.set(cacheKey, result);
       return result;
     } catch (e) {
@@ -227,7 +270,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       setCaptureError(mapTtsError(e).message);
       return null;
     }
-  }, [client, settings.apiKey, settings.targetLanguage, settings.ttsSpeed, t]);
+  }, [source, settings.apiKey, settings.targetLanguage, settings.ttsSpeed, t]);
 
   // Latest selection, read at auto-select time: the ready-wait below runs for
   // up to a minute in the background, and a choice the user made meanwhile
@@ -237,22 +280,22 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
 
   const finishCreate = async (
     created: SonioxVoice,
-    createClient: SonioxVoicesClient,
+    createSource: VoiceLibrarySource,
     selectionAtCreate: string
   ) => {
     try {
-      await createClient.waitUntilReady(created.id);
+      await createSource.waitUntilReady(created.id);
     } finally {
       // Refresh regardless of outcome: a `voice_failed` rejection still needs
       // the now-failed entry to show up (with its failed hint) so it can be
-      // deleted. (refresh() self-invalidates if the client changed meanwhile.)
+      // deleted. (refresh() self-invalidates if the source changed meanwhile.)
       await refresh();
     }
-    // Auto-select only while the world hasn't moved: the API key is still the
-    // one the voice was created under (a swapped key must not inherit an old
-    // project's UUID), and the user hasn't picked a different voice while the
-    // clone was processing.
-    if (clientRef.current !== createClient) return;
+    // Auto-select only while the world hasn't moved: the source is still the
+    // one the voice was created under (a swapped source must not inherit an
+    // old project's UUID), and the user hasn't picked a different voice while
+    // the clone was processing.
+    if (sourceRef.current !== createSource) return;
     if (selectedVoiceRef.current !== selectionAtCreate) return;
     onUpdate({ voice: created.id });
   };
@@ -282,18 +325,18 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // open with the mapped message inline so the user can rename and retry
   // without losing the clip.
   const handleConfirm = async (name: string) => {
-    if (!client || !pending || modalBusy) return;
-    const createClient = client;
+    if (!source || !pending || modalBusy) return;
+    const createSource = source;
     const selectionAtCreate = settings.voice;
     setModalBusy(true);
     setModalError(null);
     try {
-      const created = await createClient.create(name.trim() || pending.suggestedName, pending.blob, pending.fileName);
+      const created = await createSource.create(name.trim() || pending.suggestedName, pending.blob, pending.fileName);
       await refresh();
       setPending(null);
       setModalBusy(false);
       try {
-        await finishCreate(created, createClient, selectionAtCreate);
+        await finishCreate(created, createSource, selectionAtCreate);
       } catch (e) {
         setCaptureError(mapCreateError(e).message);
       }
@@ -371,7 +414,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   };
 
   const onDelete = async (id: string) => {
-    if (!client) return;
+    if (!source) return;
     // The live session's SonioxClient captured this voice id at session start
     // and reuses it for every TTS stream — deleting it server-side would break
     // spoken translation for the rest of the session.
@@ -381,21 +424,84 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       );
       return;
     }
+    // `clip_clear_failed` is the one failure where the BACKEND delete already
+    // succeeded — the voice is gone at Soniox and from our table, and only
+    // the on-device recording survived. Bailing out here (as every other
+    // failure rightly does) would leave the panel listing a voice that no
+    // longer exists and `settings.voice` still pointing at it, so the next
+    // Start would 409 `clip_required`, upload the surviving clip, and
+    // silently rebuild the voice the user just deleted. The list refresh and
+    // the setting reset below therefore run for it too; the clip failure is
+    // reported afterwards, once the panel tells the truth about the voice.
+    let clipClearFailure: unknown = null;
     try {
-      await client.delete(id);
+      await source.delete(id);
     } catch (e) {
-      // VoiceLibrarySection's own catch only console.warns — surface the
-      // failure in the banner or a failed delete is silent.
-      setCaptureError(mapCreateError(e).message);
-      throw e;
+      if (e instanceof SonioxVoicesError && e.errorType === 'clip_clear_failed') {
+        clipClearFailure = e;
+      } else {
+        // VoiceLibrarySection's own catch only console.warns — surface the
+        // failure in the banner or a failed delete is silent.
+        setCaptureError(mapCreateError(e).message);
+        throw e;
+      }
     }
     await refresh();
     // Deliberate in-app deletion of the selected voice falls back to the
     // default built-in; an EXTERNAL deletion (e.g. from another client) only
     // ever shows the placeholder below — the stored setting is never rewritten
     // behind the user's back.
-    if (settings.voice === id) onUpdate({ voice: DEFAULT_VOICE });
+    // selectedVoiceRef, not the captured `settings.voice`: two awaits have
+    // happened since this closure was created, and a user who picked a
+    // different voice meanwhile must not have it reset out from under them.
+    // Same guard, for the same reason, as finishCreate's auto-select.
+    if (selectedVoiceRef.current === id) onUpdate({ voice: DEFAULT_VOICE });
+    if (clipClearFailure) {
+      setCaptureError(mapCreateError(clipClearFailure).message);
+      throw clipClearFailure;
+    }
   };
+
+  // The managed backend names voices itself (`u_<account>_<token>`) and never
+  // shows that name to anyone, so the section supplies the label instead of
+  // rendering an internal identifier at the user.
+  const managedName = useCallback(
+    (v: SonioxVoice) => (managed ? t('settings.sonioxManagedVoiceName', 'My voice') : v.name),
+    [managed, t]
+  );
+
+  // A managed account that already holds a healthy voice CANNOT replace it by
+  // re-recording: the backend's POST /ensure returns the existing voice and
+  // ignores the uploaded clip entirely, rebuilding only when the voice is
+  // gone at Soniox or terminally failed. Offering record/import here would
+  // therefore report success, overwrite the on-device clip, hand back the
+  // same voice id — and change nothing the user can hear, with nothing to
+  // explain why. Hide the create affordances and say what is actually true:
+  // the current voice has to be deleted first.
+  //
+  // Deliberately NOT a delete-then-create flow: a delete that succeeds
+  // followed by a create that fails would leave the user with no voice at all
+  // and a slot handed to somebody else.
+  //
+  // `isFailed` is the exception because it is also the backend's: a terminally
+  // failed voice IS rebuilt from a fresh clip, so re-recording works there and
+  // the affordances stay.
+  const managedVoiceBlocksCreate = managed && clones.some((v) => !isFailed(v));
+  // AN ERRORED LIST IS NOT AN EMPTY LIST. After a failed or unfinished
+  // `GET /mine` this panel knows NOTHING about what the account holds:
+  // `clones` is `[]` because nothing arrived, not because nothing exists.
+  // Both managed-only affordances below decide on exactly that knowledge —
+  // one offers to CREATE a voice, the other offers to DESTROY one — so both
+  // are withheld until the fetch has actually settled. Reading ignorance as
+  // "there is no voice" is what would offer to build a voice that already
+  // exists (a no-op the backend answers by handing back the existing one),
+  // or to delete a healthy voice the panel merely could not see.
+  //
+  // Only the success state qualifies: 'loading' has not answered yet, and
+  // 'error' never will. The Retry button beside the list error is the way
+  // back to a known state.
+  const managedListKnown = listState === 'idle';
+  const canCreate = !!source && !managedVoiceBlocksCreate && (!managed || managedListKnown);
 
   const entries = useMemo<VoiceEntry[]>(() => {
     const builtin: VoiceEntry[] = BUILTIN_VOICES.map((v) => ({
@@ -404,45 +510,62 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       group: 'builtin',
       removable: false,
     }));
-    const custom: VoiceEntry[] = managed
-      ? []
-      : clones.map((v) => ({
-          id: v.id,
-          label: isFailed(v)
-            ? `${v.name} — ${t('settings.sonioxVoiceFailedBadge', 'failed')}`
-            : isReady(v)
-              ? v.name
-              : `${v.name} — ${t('settings.sonioxVoiceProcessingBadge', 'processing…')}`,
-          group: 'custom',
-          removable: true,
-          // A processing/failed clone stays listed (and deletable via the
-          // manage list) but can't be picked: a session started with it
-          // couldn't synthesize. Auto-select only ever happens post-`ready`.
-          disabled: !isReady(v),
-        }));
+    const custom: VoiceEntry[] = clones.map((v) => ({
+      id: v.id,
+      label: isFailed(v)
+        ? `${managedName(v)} — ${t('settings.sonioxVoiceFailedBadge', 'failed')}`
+        : isReady(v)
+          ? managedName(v)
+          : `${managedName(v)} — ${t('settings.sonioxVoiceProcessingBadge', 'processing…')}`,
+      group: 'custom',
+      removable: true,
+      // A processing/failed clone stays listed (and deletable via the
+      // manage list) but can't be picked: a session started with it
+      // couldn't synthesize. Auto-select only ever happens post-`ready`.
+      disabled: !isReady(v),
+    }));
     const known = new Set([...builtin, ...custom].map((e) => e.id));
     // Only synthesize the placeholder once we're not mid-fetch: a settings
     // value pointing at a real (not-yet-loaded) clone must not flash the
-    // "(deleted voice)" label before the list arrives. Without a client
-    // (no API key yet) there's no fetch to settle at all, so the entry makes
-    // no claim about deletion — it shows the raw id rather than asserting
-    // something we have no evidence for.
-    // Never in managed mode: the twin is built-ins only, and a stale UUID in
-    // its slice must not conjure a custom optgroup out of nowhere.
-    if (!managed && settings.voice && !known.has(settings.voice) && listState !== 'loading') {
+    // "(deleted voice)" label before the list arrives. Without a source
+    // (no API key yet, or a managed account with no session) there's no
+    // fetch to settle at all, so the entry makes no claim about deletion —
+    // it shows the raw id rather than asserting something we have no
+    // evidence for.
+    if (settings.voice && !known.has(settings.voice) && listState !== 'loading') {
       custom.push({
         id: settings.voice,
-        label: client
+        label: source
           ? t('settings.sonioxVoiceDeletedPlaceholder', '(deleted voice)')
           : settings.voice,
         group: 'custom',
-        removable: false,
+        // MANAGED, and only once the list is KNOWN: an unknown id here is
+        // this account's OWN voice after an eviction — the normal outcome of
+        // a small LRU cache serving unbounded users, not an anomaly. Without
+        // a delete button the panel would show "(deleted voice)" above "No
+        // imported voices yet." with no way forward, the on-device recording
+        // would stay there indefinitely, and every later Start would silently
+        // re-upload it. The backend's DELETE /mine answers 200 when there is
+        // no row, so removing a genuine placeholder is safe and idempotent;
+        // it clears the local clip and resets the stale setting.
+        //
+        // `managedListKnown` is load-bearing, not belt-and-braces. This
+        // placeholder also renders when the fetch FAILED — and there the
+        // label "(deleted voice)" is a guess, not a fact. `delete` ignores
+        // the id and issues an unconditional DELETE /mine, so one click on a
+        // row that only LOOKS stale destroys a healthy voice at Soniox AND
+        // the reference clip that is the only thing that could rebuild it.
+        //
+        // BYOK: left alone. There an unknown id means somebody else's
+        // project, and the existing rule holds — an external deletion never
+        // rewrites the stored setting behind the user's back.
+        removable: managed && !!source && managedListKnown,
         // Shows the current selection's state; never a valid new choice.
         disabled: true,
       });
     }
     return [...builtin, ...custom];
-  }, [clones, managed, settings.voice, listState, client, t]);
+  }, [clones, managed, managedName, managedListKnown, settings.voice, listState, source, t]);
 
   return (
     <div className="settings-section" id="soniox-voice-section">
@@ -450,7 +573,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       {listState === 'error' && (
         <div className="setting-item">
           <div className="setting-description">
-            {t('settings.sonioxVoiceListError', 'Could not load cloned voices — check the API key.')}{' '}
+            {managed
+              ? t('settings.sonioxManagedVoiceListError', 'Could not load your voice — check your connection and try again.')
+              : t('settings.sonioxVoiceListError', 'Could not load cloned voices — check the API key.')}{' '}
             <button className="option-button" onClick={() => void refresh()}>
               {t('common.retry', 'Retry')}
             </button>
@@ -461,22 +586,33 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         voices={entries}
         selectedId={settings.voice}
         onSelect={(id) => onUpdate({ voice: id })}
-        onImport={client ? onImport : undefined}
-        onRecord={client ? onRecord : undefined}
+        onImport={canCreate ? onImport : undefined}
+        onRecord={canCreate ? onRecord : undefined}
         onDelete={onDelete}
-        onPreview={client ? handlePreview : undefined}
-        onRefresh={client ? () => void refresh() : undefined}
+        onPreview={source?.canPreview ? handlePreview : undefined}
+        onRefresh={source ? () => void refresh() : undefined}
         refreshing={listState === 'loading'}
-        // Footnote, not a standalone setting: it describes the per-row preview
-        // button, so it belongs beside those rows inside the expanded manage
-        // body rather than sitting above the collapsed expander where the
-        // control it talks about isn't even visible.
-        manageNote={client ? t(
-          'settings.sonioxVoicePreviewCostHint',
-          'Previewing a voice synthesizes a short clip using your own Soniox quota.'
-        ) : undefined}
+        // Footnote, not a standalone setting: it describes controls that live
+        // inside the expanded manage body (the per-row preview button, the
+        // record/import buttons), so it belongs there rather than above the
+        // collapsed expander where they aren't even visible. The two cases
+        // are mutually exclusive — only a managed source can block create,
+        // and a managed source can never preview.
+        manageNote={
+          managedVoiceBlocksCreate
+            ? t(
+                'settings.sonioxManagedVoiceReplaceHint',
+                'Delete this voice before recording a new one — recording again on its own keeps the voice you already have.'
+              )
+            : source?.canPreview
+              ? t(
+                  'settings.sonioxVoicePreviewCostHint',
+                  'Previewing a voice synthesizes a short clip using your own Soniox quota.'
+                )
+              : undefined
+        }
         capability={{
-          importModes: client ? ['record', 'upload'] : [],
+          importModes: canCreate ? ['record', 'upload'] : [],
           curation: false,
           presentation: 'dropdown',
           accept: 'audio/*',
@@ -497,6 +633,13 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         audioBlob={pending?.blob ?? null}
         error={modalError}
         busy={modalBusy}
+        showName={!managed}
+        notice={managed
+          ? t(
+              'settings.sonioxManagedCloneNotice',
+              'This recording is sent to Kizuna AI and passed on to Soniox to build your voice. It is not stored on our servers — it stays on this device so your voice can be rebuilt later.'
+            )
+          : undefined}
         onConfirm={(name) => void handleConfirm(name)}
         onClose={closeModal}
       />

@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Jag bekräftar att jag har rätt att använda den här rösten",
     "sonioxVoiceCloneTitle": "Klona röst",
     "sonioxVoiceCloneReview": "Lyssna på ditt klipp och namnge rösten innan du laddar upp den.",
+    "sonioxVoiceCloneReviewNoName": "Lyssna på ditt klipp innan du laddar upp det.",
+    "sonioxManagedCloneNotice": "Den här inspelningen skickas till Kizuna AI och vidarebefordras till Soniox för att bygga din röst. Den lagras inte på våra servrar — den stannar på den här enheten så att din röst kan återskapas senare.",
     "sonioxVoiceNamePlaceholder": "Namn för en ny klonad röst (valfritt)",
     "sonioxVoiceDefaultName": "Min röst {{n}}",
+    "sonioxManagedVoiceName": "Min röst",
+    "sonioxManagedVoiceReplaceHint": "Ta bort den här rösten innan du spelar in en ny — att bara spela in igen behåller rösten du redan har.",
     "sonioxVoiceDeletedPlaceholder": "(borttagen röst)",
     "sonioxVoiceDeleteInUse": "Den här rösten används av den aktiva sessionen — avsluta sessionen innan du tar bort den",
     "sonioxVoiceProcessingBadge": "bearbetar…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Bearbetningen misslyckades — ta bort den här rösten och prova ett tydligare klipp",
     "sonioxVoiceNameConflict": "Det finns redan en röst med det här namnet",
     "sonioxVoiceQuotaError": "Soniox organisationsgräns för röster har nåtts — ta bort en röst och försök igen",
+    "sonioxVoicePoolExhausted": "Alla platser för anpassade röster används just nu — försök igen om en liten stund.",
+    "sonioxVoicePinned": "Den här rösten används av en pågående session — avsluta sessionen innan du tar bort den.",
+    "sonioxVoiceInsufficientBalance": "Fyll på ditt saldo innan du bygger en anpassad röst.",
+    "sonioxVoiceSignInRequired": "Logga in för att bygga en anpassad röst.",
+    "sonioxVoiceClipClearFailed": "Din röst togs bort, men dess inspelning kunde inte tas bort från den här enheten. Den används inte längre — att spela in en ny röst ersätter den.",
     "sonioxVoiceListError": "Kunde inte läsa in klonade röster — kontrollera API-nyckeln.",
+    "sonioxManagedVoiceListError": "Din röst kunde inte läsas in — kontrollera din anslutning och försök igen.",
     "sonioxVoicePreviewCostHint": "Att förhandsgranska en röst syntetiserar ett kort klipp med din egen Soniox-kvot.",
     "sonioxVoicePreviewAuthError": "Förhandsgranskning misslyckades — kontrollera API-nyckeln",
     "sonioxVoicePreviewQuotaError": "Förhandsgranskning misslyckades — Soniox hastighetsgräns eller kvot uppnådd",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Ditt sessionssaldo är slut. Fyll på ditt saldo för att fortsätta översätta.",
     "sonioxTtsFailed": "Den talade översättningen har stoppats. Transkribering och textöversättning fungerar fortfarande.",
     "sonioxSegmentEnded": "Det här avsnittet har avslutats — tryck på ”Starta session” för att fortsätta.",
-    "sonioxConnectionLost": "Anslutningen avbröts — tryck på ”Starta session” om en stund för att fortsätta."
+    "sonioxConnectionLost": "Anslutningen avbröts — tryck på ”Starta session” om en stund för att fortsätta.",
+    "sonioxVoiceClipMissing": "Den här enheten har ingen röstinspelning, så den här sessionen använder en förinställd röst. Spela in en i Inställningar för att tala med din egen röst här.",
+    "sonioxVoicePoolBusy": "Alla platser för anpassade röster används just nu, så den här sessionen använder en förinställd röst. Din egen röst används igen nästa gång.",
+    "sonioxVoiceBuildFailed": "Din anpassade röst kunde inte byggas, så den här sessionen använder en förinställd röst. Försök spela in ett tydligare klipp i Inställningar.",
+    "sonioxVoiceUnavailable": "Din anpassade röst är inte tillgänglig just nu, så den här sessionen använder en förinställd röst.",
+    "preparingVoice": "Förbereder din röst…"
   },
   "modePicker": {
     "modeYou": "Du",
@@ -598,7 +613,8 @@
     "initProgress": "Laddar ({{completed}}/{{total}})...",
     "stop": "Stoppa",
     "start": "Starta",
-    "loadingModel": "Laddar modell…"
+    "loadingModel": "Laddar modell…",
+    "preparingVoice": "Förbereder din röst…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU:n har slut på minne — den valda modellen är för stor för din GPU. Byt till en mindre modell."

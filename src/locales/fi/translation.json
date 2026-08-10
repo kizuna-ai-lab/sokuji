@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Vahvistan, että minulla on oikeus käyttää tätä ääntä",
     "sonioxVoiceCloneTitle": "Kloonaa ääni",
     "sonioxVoiceCloneReview": "Kuuntele klippisi ja nimeä ääni ennen lataamista.",
+    "sonioxVoiceCloneReviewNoName": "Kuuntele klippisi ennen lataamista.",
+    "sonioxManagedCloneNotice": "Tämä tallenne lähetetään Kizuna AI:lle ja edelleen Soniox'ille äänesi luomista varten. Sitä ei tallenneta palvelimillemme — se pysyy tällä laitteella, jotta äänesi voidaan rakentaa uudelleen myöhemmin.",
     "sonioxVoiceNamePlaceholder": "Nimi uudelle kloonatulle äänelle (valinnainen)",
     "sonioxVoiceDefaultName": "Oma ääni {{n}}",
+    "sonioxManagedVoiceName": "Oma ääni",
+    "sonioxManagedVoiceReplaceHint": "Poista tämä ääni ennen uuden nauhoittamista — pelkkä uusi nauhoitus säilyttää nykyisen äänen.",
     "sonioxVoiceDeletedPlaceholder": "(poistettu ääni)",
     "sonioxVoiceDeleteInUse": "Tämä ääni on aktiivisen istunnon käytössä — lopeta istunto ennen sen poistamista",
     "sonioxVoiceProcessingBadge": "käsitellään…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Käsittely epäonnistui — poista tämä ääni ja kokeile selkeämpää näytettä",
     "sonioxVoiceNameConflict": "Tämän niminen ääni on jo olemassa",
     "sonioxVoiceQuotaError": "Soniox-organisaation äänirajoitus saavutettu — poista ääni ja yritä uudelleen",
+    "sonioxVoicePoolExhausted": "Kaikki mukautettujen äänten paikat ovat juuri nyt käytössä — yritä hetken kuluttua uudelleen.",
+    "sonioxVoicePinned": "Tätä ääntä käyttää parhaillaan käynnissä oleva istunto — lopeta istunto ennen sen poistamista.",
+    "sonioxVoiceInsufficientBalance": "Lataa saldoasi ennen mukautetun äänen luomista.",
+    "sonioxVoiceSignInRequired": "Kirjaudu sisään luodaksesi mukautetun äänen.",
+    "sonioxVoiceClipClearFailed": "Äänesi poistettiin, mutta sen tallennetta ei voitu poistaa tältä laitteelta. Sitä ei enää käytetä — uuden äänen nauhoittaminen korvaa sen.",
     "sonioxVoiceListError": "Kloonattuja ääniä ei voitu ladata — tarkista API-avain.",
+    "sonioxManagedVoiceListError": "Ääntäsi ei voitu ladata — tarkista yhteytesi ja yritä uudelleen.",
     "sonioxVoicePreviewCostHint": "Äänen esikatselu synteesoi lyhyen näytteen käyttäen omaa Soniox-kiintiötäsi.",
     "sonioxVoicePreviewAuthError": "Esikatselu epäonnistui — tarkista API-avain",
     "sonioxVoicePreviewQuotaError": "Esikatselu epäonnistui — Soniox-nopeusrajoitus tai kiintiö saavutettu",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Istuntosi saldo on käytetty loppuun. Lataa saldoasi jatkaaksesi kääntämistä.",
     "sonioxTtsFailed": "Puhuttu käännös on pysähtynyt. Litterointi ja tekstikäännös toimivat edelleen.",
     "sonioxSegmentEnded": "Tämä jakso on päättynyt — jatka napauttamalla ”Aloita istunto”.",
-    "sonioxConnectionLost": "Yhteys katkesi — jatka hetken kuluttua napauttamalla ”Aloita istunto”."
+    "sonioxConnectionLost": "Yhteys katkesi — jatka hetken kuluttua napauttamalla ”Aloita istunto”.",
+    "sonioxVoiceClipMissing": "Tällä laitteella ei ole äänitallennetta, joten tämä istunto käyttää esiasetettua ääntä. Äänitä sellainen asetuksista, jotta voit puhua täällä omalla äänelläsi.",
+    "sonioxVoicePoolBusy": "Kaikki mukautettujen äänten paikat ovat juuri nyt käytössä, joten tämä istunto käyttää esiasetettua ääntä. Omaa ääntäsi käytetään taas ensi kerralla.",
+    "sonioxVoiceBuildFailed": "Mukautettua ääntäsi ei voitu luoda, joten tämä istunto käyttää esiasetettua ääntä. Kokeile äänittää selkeämpi näyte asetuksista.",
+    "sonioxVoiceUnavailable": "Mukautettu äänesi ei ole juuri nyt käytettävissä, joten tämä istunto käyttää esiasetettua ääntä.",
+    "preparingVoice": "Valmistellaan ääntäsi…"
   },
   "modePicker": {
     "modeYou": "Sinä",
@@ -598,7 +613,8 @@
     "initProgress": "Ladataan ({{completed}}/{{total}})...",
     "stop": "Lopeta",
     "start": "Aloita",
-    "loadingModel": "Ladataan mallia…"
+    "loadingModel": "Ladataan mallia…",
+    "preparingVoice": "Valmistellaan ääntäsi…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU-muisti loppui — valittu malli on liian suuri GPU:llesi. Vaihda pienempään malliin."

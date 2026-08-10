@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "I confirm I have the right to use this voice",
     "sonioxVoiceCloneTitle": "Clone voice",
     "sonioxVoiceCloneReview": "Listen to your clip and name the voice before uploading.",
+    "sonioxVoiceCloneReviewNoName": "Listen to your clip before uploading.",
+    "sonioxManagedCloneNotice": "This recording is sent to Kizuna AI and passed on to Soniox to build your voice. It is not stored on our servers — it stays on this device so your voice can be rebuilt later.",
     "sonioxVoiceNamePlaceholder": "Name for a new cloned voice (optional)",
     "sonioxVoiceDefaultName": "My Voice {{n}}",
+    "sonioxManagedVoiceName": "My voice",
+    "sonioxManagedVoiceReplaceHint": "Delete this voice before recording a new one — recording again on its own keeps the voice you already have.",
     "sonioxVoiceDeletedPlaceholder": "(deleted voice)",
     "sonioxVoiceDeleteInUse": "This voice is being used by the active session — end the session before deleting it",
     "sonioxVoiceProcessingBadge": "processing…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Processing failed — delete this voice and try a clearer clip",
     "sonioxVoiceNameConflict": "A voice with this name already exists",
     "sonioxVoiceQuotaError": "Soniox organization voice limit reached — delete a voice and retry",
+    "sonioxVoicePoolExhausted": "All custom voice slots are in use right now — please try again in a moment.",
+    "sonioxVoicePinned": "This voice is in use by a running session — end the session before deleting it.",
+    "sonioxVoiceInsufficientBalance": "Add balance to your account before building a custom voice.",
+    "sonioxVoiceSignInRequired": "Sign in to build a custom voice.",
+    "sonioxVoiceClipClearFailed": "Your voice was deleted, but its recording could not be removed from this device. Nothing uses it now — recording a new voice replaces it.",
     "sonioxVoiceListError": "Could not load cloned voices — check the API key.",
+    "sonioxManagedVoiceListError": "Could not load your voice — check your connection and try again.",
     "sonioxVoicePreviewCostHint": "Previewing a voice synthesizes a short clip using your own Soniox quota.",
     "sonioxVoicePreviewAuthError": "Preview failed — check the API key",
     "sonioxVoicePreviewQuotaError": "Preview failed — Soniox rate limit or quota reached",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Your session balance is used up. Top up your balance to keep translating.",
     "sonioxTtsFailed": "Spoken translation has stopped. Transcription and text translation are still running.",
     "sonioxSegmentEnded": "This segment has ended — tap Start Session to continue.",
-    "sonioxConnectionLost": "The connection was interrupted — tap Start Session in a moment to continue."
+    "sonioxConnectionLost": "The connection was interrupted — tap Start Session in a moment to continue.",
+    "sonioxVoiceClipMissing": "This device has no voice recording, so this session uses a built-in voice. Record one in Settings to speak in your own voice here.",
+    "sonioxVoicePoolBusy": "All custom voice slots are in use right now, so this session uses a built-in voice. Your own voice will be used again next time.",
+    "sonioxVoiceBuildFailed": "Your custom voice could not be built, so this session uses a built-in voice. Try recording a clearer clip in Settings.",
+    "sonioxVoiceUnavailable": "Your custom voice is unavailable right now, so this session uses a built-in voice.",
+    "preparingVoice": "Preparing your voice…"
   },
   "modePicker": {
     "modeYou": "You",
@@ -598,7 +613,8 @@
     "initProgress": "Loading ({{completed}}/{{total}})...",
     "stop": "Stop",
     "start": "Start",
-    "loadingModel": "Loading model…"
+    "loadingModel": "Loading model…",
+    "preparingVoice": "Preparing your voice…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU out of memory — the selected model is too large for your GPU. Please switch to a smaller model."

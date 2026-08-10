@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Tôi xác nhận rằng tôi có quyền sử dụng giọng nói này",
     "sonioxVoiceCloneTitle": "Nhân bản giọng nói",
     "sonioxVoiceCloneReview": "Hãy nghe đoạn ghi âm của bạn và đặt tên cho giọng nói trước khi tải lên.",
+    "sonioxVoiceCloneReviewNoName": "Hãy nghe đoạn ghi âm của bạn trước khi tải lên.",
+    "sonioxManagedCloneNotice": "Bản ghi âm này được gửi đến Kizuna AI và chuyển tiếp cho Soniox để xây dựng giọng nói của bạn. Nó không được lưu trữ trên máy chủ của chúng tôi — nó vẫn ở trên thiết bị này để giọng nói của bạn có thể được xây dựng lại sau này.",
     "sonioxVoiceNamePlaceholder": "Tên cho giọng nói nhân bản mới (không bắt buộc)",
     "sonioxVoiceDefaultName": "Giọng nói của tôi {{n}}",
+    "sonioxManagedVoiceName": "Giọng nói của tôi",
+    "sonioxManagedVoiceReplaceHint": "Hãy xóa giọng nói này trước khi ghi âm giọng mới — chỉ ghi âm lại sẽ vẫn giữ nguyên giọng nói bạn đang có.",
     "sonioxVoiceDeletedPlaceholder": "(giọng nói đã xóa)",
     "sonioxVoiceDeleteInUse": "Giọng nói này đang được phiên hoạt động sử dụng — hãy kết thúc phiên trước khi xóa",
     "sonioxVoiceProcessingBadge": "đang xử lý…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Xử lý thất bại — hãy xóa giọng nói này và thử một đoạn rõ hơn",
     "sonioxVoiceNameConflict": "Đã tồn tại giọng nói với tên này",
     "sonioxVoiceQuotaError": "Đã đạt giới hạn giọng nói của tổ chức Soniox — hãy xóa một giọng nói và thử lại",
+    "sonioxVoicePoolExhausted": "Hiện tất cả các chỗ giọng nói tùy chỉnh đều đang được sử dụng — vui lòng thử lại sau ít phút.",
+    "sonioxVoicePinned": "Giọng nói này đang được một phiên đang chạy sử dụng — hãy kết thúc phiên trước khi xóa.",
+    "sonioxVoiceInsufficientBalance": "Hãy nạp thêm số dư trước khi xây dựng giọng nói tùy chỉnh.",
+    "sonioxVoiceSignInRequired": "Đăng nhập để xây dựng giọng nói tùy chỉnh.",
+    "sonioxVoiceClipClearFailed": "Giọng nói của bạn đã được xóa, nhưng không thể xóa bản ghi âm khỏi thiết bị này. Bản ghi này không còn được dùng — ghi âm giọng mới sẽ thay thế nó.",
     "sonioxVoiceListError": "Không thể tải giọng nói nhân bản — hãy kiểm tra khóa API.",
+    "sonioxManagedVoiceListError": "Không thể tải giọng nói của bạn — hãy kiểm tra kết nối và thử lại.",
     "sonioxVoicePreviewCostHint": "Xem trước một giọng nói sẽ tổng hợp một đoạn clip ngắn bằng hạn mức Soniox của riêng bạn.",
     "sonioxVoicePreviewAuthError": "Xem trước không thành công — hãy kiểm tra khóa API",
     "sonioxVoicePreviewQuotaError": "Xem trước không thành công — đã đạt giới hạn tốc độ hoặc hạn mức của Soniox",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Số dư phiên của bạn đã hết. Nạp thêm số dư để tiếp tục dịch.",
     "sonioxTtsFailed": "Bản dịch giọng nói đã dừng. Phiên âm và dịch văn bản vẫn đang hoạt động.",
     "sonioxSegmentEnded": "Đoạn này đã kết thúc — nhấn “Bắt đầu phiên” để tiếp tục.",
-    "sonioxConnectionLost": "Kết nối đã bị gián đoạn — hãy nhấn “Bắt đầu phiên” sau giây lát để tiếp tục."
+    "sonioxConnectionLost": "Kết nối đã bị gián đoạn — hãy nhấn “Bắt đầu phiên” sau giây lát để tiếp tục.",
+    "sonioxVoiceClipMissing": "Thiết bị này không có bản ghi âm giọng nói nào, vì vậy phiên này dùng một giọng có sẵn. Hãy ghi âm một bản trong Cài đặt để nói bằng chính giọng của bạn tại đây.",
+    "sonioxVoicePoolBusy": "Hiện tất cả các chỗ giọng nói tùy chỉnh đều đang được sử dụng, vì vậy phiên này dùng một giọng có sẵn. Giọng nói của riêng bạn sẽ được dùng lại vào lần sau.",
+    "sonioxVoiceBuildFailed": "Không thể xây dựng giọng nói tùy chỉnh của bạn, vì vậy phiên này dùng một giọng có sẵn. Hãy thử ghi âm một đoạn rõ hơn trong Cài đặt.",
+    "sonioxVoiceUnavailable": "Giọng nói tùy chỉnh của bạn hiện không khả dụng, vì vậy phiên này dùng một giọng có sẵn.",
+    "preparingVoice": "Đang chuẩn bị giọng nói của bạn…"
   },
   "modePicker": {
     "modeYou": "Bạn",
@@ -598,7 +613,8 @@
     "initProgress": "Đang tải ({{completed}}/{{total}})...",
     "stop": "Dừng",
     "start": "Bắt đầu",
-    "loadingModel": "Đang tải mô hình…"
+    "loadingModel": "Đang tải mô hình…",
+    "preparingVoice": "Đang chuẩn bị giọng nói của bạn…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU hết bộ nhớ — mô hình đã chọn quá lớn so với GPU của bạn. Vui lòng chuyển sang mô hình nhỏ hơn."

@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Ich bestätige, dass ich das Recht habe, diese Stimme zu verwenden",
     "sonioxVoiceCloneTitle": "Stimme klonen",
     "sonioxVoiceCloneReview": "Hören Sie sich Ihren Clip an und benennen Sie die Stimme, bevor Sie sie hochladen.",
+    "sonioxVoiceCloneReviewNoName": "Hören Sie sich Ihren Clip an, bevor Sie ihn hochladen.",
+    "sonioxManagedCloneNotice": "Diese Aufnahme wird an Kizuna AI gesendet und zur Erstellung Ihrer Stimme an Soniox weitergegeben. Sie wird nicht auf unseren Servern gespeichert — sie verbleibt auf diesem Gerät, damit Ihre Stimme später neu erstellt werden kann.",
     "sonioxVoiceNamePlaceholder": "Name für eine neue geklonte Stimme (optional)",
     "sonioxVoiceDefaultName": "Meine Stimme {{n}}",
+    "sonioxManagedVoiceName": "Meine Stimme",
+    "sonioxManagedVoiceReplaceHint": "Löschen Sie diese Stimme, bevor Sie eine neue aufnehmen — eine erneute Aufnahme allein behält die vorhandene Stimme bei.",
     "sonioxVoiceDeletedPlaceholder": "(gelöschte Stimme)",
     "sonioxVoiceDeleteInUse": "Diese Stimme wird von der aktiven Sitzung verwendet — beenden Sie die Sitzung, bevor Sie sie löschen",
     "sonioxVoiceProcessingBadge": "wird verarbeitet…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Verarbeitung fehlgeschlagen — löschen Sie diese Stimme und versuchen Sie es mit einer klareren Aufnahme",
     "sonioxVoiceNameConflict": "Eine Stimme mit diesem Namen existiert bereits",
     "sonioxVoiceQuotaError": "Soniox-Limit für Organisationsstimmen erreicht — löschen Sie eine Stimme und versuchen Sie es erneut",
+    "sonioxVoicePoolExhausted": "Alle Plätze für eigene Stimmen sind gerade belegt — bitte versuchen Sie es in Kürze erneut.",
+    "sonioxVoicePinned": "Diese Stimme wird gerade von einer laufenden Sitzung verwendet — beenden Sie die Sitzung, bevor Sie sie löschen.",
+    "sonioxVoiceInsufficientBalance": "Laden Sie Ihr Guthaben auf, bevor Sie eine eigene Stimme erstellen.",
+    "sonioxVoiceSignInRequired": "Melden Sie sich an, um eine eigene Stimme zu erstellen.",
+    "sonioxVoiceClipClearFailed": "Ihre Stimme wurde gelöscht, aber die zugehörige Aufnahme konnte nicht von diesem Gerät entfernt werden. Sie wird nicht mehr verwendet — eine neue Aufnahme ersetzt sie.",
     "sonioxVoiceListError": "Geklonte Stimmen konnten nicht geladen werden — überprüfen Sie den API-Schlüssel.",
+    "sonioxManagedVoiceListError": "Ihre Stimme konnte nicht geladen werden — überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
     "sonioxVoicePreviewCostHint": "Das Anhören einer Vorschau synthetisiert einen kurzen Clip über Ihr eigenes Soniox-Kontingent.",
     "sonioxVoicePreviewAuthError": "Vorschau fehlgeschlagen — überprüfen Sie den API-Schlüssel",
     "sonioxVoicePreviewQuotaError": "Vorschau fehlgeschlagen — Soniox-Ratenlimit oder Kontingent erreicht",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Ihr Sitzungsguthaben ist aufgebraucht. Laden Sie Ihr Guthaben auf, um weiter zu übersetzen.",
     "sonioxTtsFailed": "Die gesprochene Übersetzung wurde beendet. Transkription und Textübersetzung laufen weiter.",
     "sonioxSegmentEnded": "Dieser Abschnitt ist beendet — tippen Sie auf „Sitzung starten“, um fortzufahren.",
-    "sonioxConnectionLost": "Die Verbindung wurde unterbrochen — tippen Sie gleich auf „Sitzung starten“, um fortzufahren."
+    "sonioxConnectionLost": "Die Verbindung wurde unterbrochen — tippen Sie gleich auf „Sitzung starten“, um fortzufahren.",
+    "sonioxVoiceClipMissing": "Auf diesem Gerät liegt keine Sprachaufnahme vor, daher verwendet diese Sitzung eine voreingestellte Stimme. Nehmen Sie eine in den Einstellungen auf, um hier mit Ihrer eigenen Stimme zu sprechen.",
+    "sonioxVoicePoolBusy": "Alle Plätze für eigene Stimmen sind gerade belegt, daher verwendet diese Sitzung eine voreingestellte Stimme. Ihre eigene Stimme wird beim nächsten Mal wieder verwendet.",
+    "sonioxVoiceBuildFailed": "Ihre eigene Stimme konnte nicht erstellt werden, daher verwendet diese Sitzung eine voreingestellte Stimme. Versuchen Sie, in den Einstellungen eine klarere Aufnahme zu machen.",
+    "sonioxVoiceUnavailable": "Ihre eigene Stimme ist gerade nicht verfügbar, daher verwendet diese Sitzung eine voreingestellte Stimme.",
+    "preparingVoice": "Ihre Stimme wird vorbereitet…"
   },
   "modePicker": {
     "modeYou": "Sie",
@@ -598,7 +613,8 @@
     "initProgress": "Laden ({{completed}}/{{total}})...",
     "stop": "Stoppen",
     "start": "Starten",
-    "loadingModel": "Modell wird geladen…"
+    "loadingModel": "Modell wird geladen…",
+    "preparingVoice": "Ihre Stimme wird vorbereitet…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU-Speicher voll — das gewählte Modell ist zu groß für Ihre GPU. Bitte wechseln Sie zu einem kleineren Modell."

@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Ik bevestig dat ik het recht heb om deze stem te gebruiken",
     "sonioxVoiceCloneTitle": "Stem klonen",
     "sonioxVoiceCloneReview": "Luister naar uw clip en geef de stem een naam voordat u deze uploadt.",
+    "sonioxVoiceCloneReviewNoName": "Luister naar uw clip voordat u deze uploadt.",
+    "sonioxManagedCloneNotice": "Deze opname wordt naar Kizuna AI gestuurd en doorgegeven aan Soniox om uw stem te bouwen. Deze wordt niet op onze servers opgeslagen — hij blijft op dit apparaat, zodat uw stem later opnieuw kan worden opgebouwd.",
     "sonioxVoiceNamePlaceholder": "Naam voor een nieuwe gekloonde stem (optioneel)",
     "sonioxVoiceDefaultName": "Mijn stem {{n}}",
+    "sonioxManagedVoiceName": "Mijn stem",
+    "sonioxManagedVoiceReplaceHint": "Verwijder deze stem voordat u een nieuwe opneemt — opnieuw opnemen alleen behoudt de stem die u al hebt.",
     "sonioxVoiceDeletedPlaceholder": "(verwijderde stem)",
     "sonioxVoiceDeleteInUse": "Deze stem wordt gebruikt door de actieve sessie — beëindig de sessie voordat u deze verwijdert",
     "sonioxVoiceProcessingBadge": "wordt verwerkt…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Verwerking mislukt — verwijder deze stem en probeer een duidelijkere opname",
     "sonioxVoiceNameConflict": "Er bestaat al een stem met deze naam",
     "sonioxVoiceQuotaError": "Limiet voor organisatiestemmen van Soniox bereikt — verwijder een stem en probeer het opnieuw",
+    "sonioxVoicePoolExhausted": "Alle plekken voor aangepaste stemmen zijn op dit moment bezet — probeer het over een moment opnieuw.",
+    "sonioxVoicePinned": "Deze stem wordt gebruikt door een actieve sessie — beëindig de sessie voordat u deze verwijdert.",
+    "sonioxVoiceInsufficientBalance": "Laad uw saldo op voordat u een aangepaste stem bouwt.",
+    "sonioxVoiceSignInRequired": "Log in om een aangepaste stem te bouwen.",
+    "sonioxVoiceClipClearFailed": "Uw stem is verwijderd, maar de bijbehorende opname kon niet van dit apparaat worden verwijderd. Deze wordt niet meer gebruikt — een nieuwe stem opnemen vervangt hem.",
     "sonioxVoiceListError": "Gekloonde stemmen konden niet worden geladen — controleer de API-sleutel.",
+    "sonioxManagedVoiceListError": "Uw stem kon niet worden geladen — controleer uw verbinding en probeer het opnieuw.",
     "sonioxVoicePreviewCostHint": "Het voorbeeld van een stem synthetiseert een korte clip met uw eigen Soniox-quotum.",
     "sonioxVoicePreviewAuthError": "Voorbeeld mislukt — controleer de API-sleutel",
     "sonioxVoicePreviewQuotaError": "Voorbeeld mislukt — Soniox-snelheidslimiet of quotum bereikt",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Het saldo van uw sessie is op. Laad uw saldo op om door te gaan met vertalen.",
     "sonioxTtsFailed": "De gesproken vertaling is gestopt. Transcriptie en tekstvertaling werken nog steeds.",
     "sonioxSegmentEnded": "Dit segment is beëindigd — tik op ‘Sessie starten’ om door te gaan.",
-    "sonioxConnectionLost": "De verbinding is verbroken — tik zo op ‘Sessie starten’ om door te gaan."
+    "sonioxConnectionLost": "De verbinding is verbroken — tik zo op ‘Sessie starten’ om door te gaan.",
+    "sonioxVoiceClipMissing": "Dit apparaat heeft geen stemopname, dus deze sessie gebruikt een preset-stem. Neem er een op in Instellingen om hier met uw eigen stem te spreken.",
+    "sonioxVoicePoolBusy": "Alle plekken voor aangepaste stemmen zijn op dit moment bezet, dus deze sessie gebruikt een preset-stem. Uw eigen stem wordt de volgende keer weer gebruikt.",
+    "sonioxVoiceBuildFailed": "Uw aangepaste stem kon niet worden gebouwd, dus deze sessie gebruikt een preset-stem. Probeer een duidelijkere opname te maken in Instellingen.",
+    "sonioxVoiceUnavailable": "Uw aangepaste stem is op dit moment niet beschikbaar, dus deze sessie gebruikt een preset-stem.",
+    "preparingVoice": "Uw stem wordt voorbereid…"
   },
   "modePicker": {
     "modeYou": "Jij",
@@ -598,7 +613,8 @@
     "initProgress": "Laden ({{completed}}/{{total}})...",
     "stop": "Stoppen",
     "start": "Starten",
-    "loadingModel": "Model laden…"
+    "loadingModel": "Model laden…",
+    "preparingVoice": "Uw stem wordt voorbereid…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU-geheugen vol — het geselecteerde model is te groot voor uw GPU. Schakel over naar een kleiner model."

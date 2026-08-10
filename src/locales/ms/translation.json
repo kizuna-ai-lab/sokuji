@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Saya mengesahkan bahawa saya mempunyai hak untuk menggunakan suara ini",
     "sonioxVoiceCloneTitle": "Klon suara",
     "sonioxVoiceCloneReview": "Dengar klip anda dan namakan suara sebelum memuat naik.",
+    "sonioxVoiceCloneReviewNoName": "Dengar klip anda sebelum memuat naik.",
+    "sonioxManagedCloneNotice": "Rakaman ini dihantar ke Kizuna AI dan diteruskan ke Soniox untuk membina suara anda. Ia tidak disimpan pada pelayan kami — ia kekal pada peranti ini supaya suara anda boleh dibina semula kemudian.",
     "sonioxVoiceNamePlaceholder": "Nama untuk suara klon baharu (pilihan)",
     "sonioxVoiceDefaultName": "Suara Saya {{n}}",
+    "sonioxManagedVoiceName": "Suara saya",
+    "sonioxManagedVoiceReplaceHint": "Padam suara ini sebelum merakam yang baharu — merakam semula sahaja akan mengekalkan suara yang sedia ada.",
     "sonioxVoiceDeletedPlaceholder": "(suara dipadam)",
     "sonioxVoiceDeleteInUse": "Suara ini sedang digunakan oleh sesi aktif — tamatkan sesi sebelum memadamkannya",
     "sonioxVoiceProcessingBadge": "memproses…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Pemprosesan gagal — padam suara ini dan cuba klip yang lebih jelas",
     "sonioxVoiceNameConflict": "Suara dengan nama ini sudah wujud",
     "sonioxVoiceQuotaError": "Had suara organisasi Soniox dicapai — padam suara dan cuba lagi",
+    "sonioxVoicePoolExhausted": "Semua slot suara tersuai sedang digunakan sekarang — sila cuba lagi sebentar lagi.",
+    "sonioxVoicePinned": "Suara ini sedang digunakan oleh sesi yang sedang berjalan — tamatkan sesi sebelum memadamkannya.",
+    "sonioxVoiceInsufficientBalance": "Tambah nilai baki anda sebelum membina suara tersuai.",
+    "sonioxVoiceSignInRequired": "Log masuk untuk membina suara tersuai.",
+    "sonioxVoiceClipClearFailed": "Suara anda telah dipadamkan, tetapi rakamannya tidak dapat dibuang daripada peranti ini. Ia tidak lagi digunakan — merakam suara baharu akan menggantikannya.",
     "sonioxVoiceListError": "Tidak dapat memuatkan suara klon — semak kunci API.",
+    "sonioxManagedVoiceListError": "Suara anda tidak dapat dimuatkan — semak sambungan anda dan cuba lagi.",
     "sonioxVoicePreviewCostHint": "Pratonton suara mensintesis klip pendek menggunakan kuota Soniox anda sendiri.",
     "sonioxVoicePreviewAuthError": "Pratonton gagal — semak kunci API",
     "sonioxVoicePreviewQuotaError": "Pratonton gagal — had kadar atau kuota Soniox dicapai",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Baki sesi anda telah habis. Tambah nilai baki anda untuk terus menterjemah.",
     "sonioxTtsFailed": "Terjemahan suara telah berhenti. Transkripsi dan terjemahan teks masih berjalan.",
     "sonioxSegmentEnded": "Segmen ini telah berakhir — ketik “Mula sesi” untuk meneruskan.",
-    "sonioxConnectionLost": "Sambungan terputus — ketik “Mula sesi” sebentar lagi untuk meneruskan."
+    "sonioxConnectionLost": "Sambungan terputus — ketik “Mula sesi” sebentar lagi untuk meneruskan.",
+    "sonioxVoiceClipMissing": "Peranti ini tiada rakaman suara, jadi sesi ini menggunakan suara pratetap. Rakam satu dalam Tetapan untuk bercakap dengan suara anda sendiri di sini.",
+    "sonioxVoicePoolBusy": "Semua slot suara tersuai sedang digunakan sekarang, jadi sesi ini menggunakan suara pratetap. Suara anda sendiri akan digunakan semula pada masa akan datang.",
+    "sonioxVoiceBuildFailed": "Suara tersuai anda tidak dapat dibina, jadi sesi ini menggunakan suara pratetap. Cuba rakam klip yang lebih jelas dalam Tetapan.",
+    "sonioxVoiceUnavailable": "Suara tersuai anda tidak tersedia sekarang, jadi sesi ini menggunakan suara pratetap.",
+    "preparingVoice": "Menyediakan suara anda…"
   },
   "modePicker": {
     "modeYou": "Anda",
@@ -598,7 +613,8 @@
     "initProgress": "Memuatkan ({{completed}}/{{total}})...",
     "stop": "Berhenti",
     "start": "Mula",
-    "loadingModel": "Memuatkan model…"
+    "loadingModel": "Memuatkan model…",
+    "preparingVoice": "Menyediakan suara anda…"
   },
   "errors": {
     "gpuOutOfMemory": "Memori GPU tidak mencukupi — model yang dipilih terlalu besar untuk GPU anda. Sila tukar kepada model yang lebih kecil."

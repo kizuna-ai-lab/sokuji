@@ -854,6 +854,29 @@
     line-height: 1.5;
   }
 
+  // Managed-account statement about where the recording goes, shown above the
+  // (hidden, for managed) name field. Smaller and dimmer than the intro copy
+  // above so it reads as a footnote, not another instruction.
+  //
+  // Element-qualified (`p#{&}__notice`, not `&__notice`): the notice IS a
+  // <p>, so an unqualified class selector (specificity 0,1,0) loses to the
+  // sibling `p` rule above (`.soniox-clone-confirm-modal p`, specificity
+  // 0,1,1), which sets the same three properties — font-size and margin
+  // silently never applied, only opacity survived. This compiles to
+  // `.soniox-clone-confirm-modal p.soniox-clone-confirm-modal__notice`
+  // (specificity 0,2,1), which beats the sibling `p` rule outright rather
+  // than needing to rely on a same-specificity source-order tiebreak.
+  // Written via `#{&}` interpolation rather than a bare leading `p&` — Dart
+  // Sass (this project's compiler) rejects `&` anywhere but the start of a
+  // compound selector, so `p&__notice` fails to build; interpolating the
+  // parent selector into a string first sidesteps that restriction.
+  p#{&}__notice {
+    margin: 0 0 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.75;
+  }
+
   // Custom audio player replacing native <audio controls> (unstyled browser
   // chrome that clashes with the dark design system). The real <audio>
   // element stays mounted but visually hidden — playback state is driven by

@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Bu sesi kullanma hakkına sahip olduğumu onaylıyorum",
     "sonioxVoiceCloneTitle": "Sesi klonla",
     "sonioxVoiceCloneReview": "Yüklemeden önce klibinizi dinleyin ve sese bir ad verin.",
+    "sonioxVoiceCloneReviewNoName": "Yüklemeden önce klibinizi dinleyin.",
+    "sonioxManagedCloneNotice": "Bu kayıt Kizuna AI'ya gönderilir ve sesinizi oluşturmak üzere Soniox'a iletilir. Sunucularımızda saklanmaz — sesinizin daha sonra yeniden oluşturulabilmesi için bu cihazda kalır.",
     "sonioxVoiceNamePlaceholder": "Yeni klonlanmış ses için ad (isteğe bağlı)",
     "sonioxVoiceDefaultName": "Sesim {{n}}",
+    "sonioxManagedVoiceName": "Sesim",
+    "sonioxManagedVoiceReplaceHint": "Yeni bir ses kaydetmeden önce bu sesi silin — yalnızca yeniden kaydetmek mevcut sesinizi korur.",
     "sonioxVoiceDeletedPlaceholder": "(silinmiş ses)",
     "sonioxVoiceDeleteInUse": "Bu ses etkin oturum tarafından kullanılıyor — silmeden önce oturumu sonlandırın",
     "sonioxVoiceProcessingBadge": "işleniyor…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "İşleme başarısız oldu — bu sesi silin ve daha net bir klip deneyin",
     "sonioxVoiceNameConflict": "Bu isimde bir ses zaten var",
     "sonioxVoiceQuotaError": "Soniox kuruluş ses sınırına ulaşıldı — bir sesi silin ve tekrar deneyin",
+    "sonioxVoicePoolExhausted": "Şu anda tüm özel ses yuvaları kullanımda — lütfen birazdan tekrar deneyin.",
+    "sonioxVoicePinned": "Bu ses, çalışmakta olan bir oturum tarafından kullanılıyor — silmeden önce oturumu sonlandırın.",
+    "sonioxVoiceInsufficientBalance": "Özel bir ses oluşturmadan önce bakiyenizi yükleyin.",
+    "sonioxVoiceSignInRequired": "Özel bir ses oluşturmak için giriş yapın.",
+    "sonioxVoiceClipClearFailed": "Sesiniz silindi ancak kaydı bu cihazdan kaldırılamadı. Artık kullanılmıyor — yeni bir ses kaydetmek onun yerini alır.",
     "sonioxVoiceListError": "Klonlanmış sesler yüklenemedi — API anahtarınızı kontrol edin.",
+    "sonioxManagedVoiceListError": "Sesiniz yüklenemedi — bağlantınızı kontrol edip tekrar deneyin.",
     "sonioxVoicePreviewCostHint": "Bir sesi önizlemek, kendi Soniox kotanızı kullanarak kısa bir klip sentezler.",
     "sonioxVoicePreviewAuthError": "Önizleme başarısız oldu — API anahtarını kontrol edin",
     "sonioxVoicePreviewQuotaError": "Önizleme başarısız oldu — Soniox hız sınırına veya kotasına ulaşıldı",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Oturum bakiyeniz tükendi. Çeviriye devam etmek için bakiyenizi yükleyin.",
     "sonioxTtsFailed": "Sesli çeviri durdu. Deşifre ve metin çevirisi çalışmaya devam ediyor.",
     "sonioxSegmentEnded": "Bu bölüm sona erdi — devam etmek için “Oturumu başlat”a dokunun.",
-    "sonioxConnectionLost": "Bağlantı kesildi — devam etmek için birazdan “Oturumu başlat”a dokunun."
+    "sonioxConnectionLost": "Bağlantı kesildi — devam etmek için birazdan “Oturumu başlat”a dokunun.",
+    "sonioxVoiceClipMissing": "Bu cihazda ses kaydı yok, bu yüzden bu oturum hazır bir ses kullanıyor. Burada kendi sesinizle konuşmak için Ayarlar'dan bir kayıt yapın.",
+    "sonioxVoicePoolBusy": "Şu anda tüm özel ses yuvaları kullanımda olduğundan bu oturum hazır bir ses kullanıyor. Kendi sesiniz bir sonraki sefer tekrar kullanılacak.",
+    "sonioxVoiceBuildFailed": "Özel sesiniz oluşturulamadı, bu yüzden bu oturum hazır bir ses kullanıyor. Ayarlar'dan daha net bir kayıt yapmayı deneyin.",
+    "sonioxVoiceUnavailable": "Özel sesiniz şu anda kullanılamıyor, bu yüzden bu oturum hazır bir ses kullanıyor.",
+    "preparingVoice": "Sesiniz hazırlanıyor…"
   },
   "modePicker": {
     "modeYou": "Siz",
@@ -598,7 +613,8 @@
     "initProgress": "Yükleniyor ({{completed}}/{{total}})...",
     "stop": "Durdur",
     "start": "Başlat",
-    "loadingModel": "Model yükleniyor…"
+    "loadingModel": "Model yükleniyor…",
+    "preparingVoice": "Sesiniz hazırlanıyor…"
   },
   "errors": {
     "gpuOutOfMemory": "GPU belleği yetersiz — seçilen model GPU'nuz için çok büyük. Lütfen daha küçük bir modele geçin."

@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Potwierdzam, że mam prawo do korzystania z tego głosu",
     "sonioxVoiceCloneTitle": "Klonuj głos",
     "sonioxVoiceCloneReview": "Odsłuchaj swój klip i nazwij głos przed przesłaniem.",
+    "sonioxVoiceCloneReviewNoName": "Odsłuchaj swój klip przed przesłaniem.",
+    "sonioxManagedCloneNotice": "To nagranie jest wysyłane do Kizuna AI i przekazywane do Soniox w celu zbudowania Twojego głosu. Nie jest przechowywane na naszych serwerach — pozostaje na tym urządzeniu, aby Twój głos można było później odtworzyć.",
     "sonioxVoiceNamePlaceholder": "Nazwa dla nowego sklonowanego głosu (opcjonalnie)",
     "sonioxVoiceDefaultName": "Mój głos {{n}}",
+    "sonioxManagedVoiceName": "Mój głos",
+    "sonioxManagedVoiceReplaceHint": "Usuń ten głos przed nagraniem nowego — samo ponowne nagranie zachowa głos, który już masz.",
     "sonioxVoiceDeletedPlaceholder": "(usunięty głos)",
     "sonioxVoiceDeleteInUse": "Ten głos jest używany przez aktywną sesję — zakończ sesję przed jego usunięciem",
     "sonioxVoiceProcessingBadge": "przetwarzanie…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Przetwarzanie nie powiodło się — usuń ten głos i spróbuj z wyraźniejszym nagraniem",
     "sonioxVoiceNameConflict": "Głos o tej nazwie już istnieje",
     "sonioxVoiceQuotaError": "Osiągnięto limit głosów organizacji Soniox — usuń głos i spróbuj ponownie",
+    "sonioxVoicePoolExhausted": "Wszystkie miejsca na własne głosy są obecnie zajęte — spróbuj ponownie za chwilę.",
+    "sonioxVoicePinned": "Ten głos jest używany przez działającą sesję — zakończ sesję przed jego usunięciem.",
+    "sonioxVoiceInsufficientBalance": "Doładuj saldo, zanim zbudujesz własny głos.",
+    "sonioxVoiceSignInRequired": "Zaloguj się, aby zbudować własny głos.",
+    "sonioxVoiceClipClearFailed": "Twój głos został usunięty, ale jego nagrania nie udało się usunąć z tego urządzenia. Nie jest już używane — nagranie nowego głosu je zastąpi.",
     "sonioxVoiceListError": "Nie udało się wczytać sklonowanych głosów — sprawdź klucz API.",
+    "sonioxManagedVoiceListError": "Nie udało się wczytać Twojego głosu — sprawdź połączenie i spróbuj ponownie.",
     "sonioxVoicePreviewCostHint": "Odsłuchanie podglądu głosu generuje krótki klip przy użyciu Twojego własnego limitu Soniox.",
     "sonioxVoicePreviewAuthError": "Podgląd nie powiódł się — sprawdź klucz API",
     "sonioxVoicePreviewQuotaError": "Podgląd nie powiódł się — osiągnięto limit szybkości lub limit Soniox",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Saldo Twojej sesji zostało wyczerpane. Doładuj saldo, aby kontynuować tłumaczenie.",
     "sonioxTtsFailed": "Tłumaczenie głosowe zostało zatrzymane. Transkrypcja i tłumaczenie tekstu nadal działają.",
     "sonioxSegmentEnded": "Ten segment się zakończył — dotknij „Rozpocznij sesję”, aby kontynuować.",
-    "sonioxConnectionLost": "Połączenie zostało przerwane — za chwilę dotknij „Rozpocznij sesję”, aby kontynuować."
+    "sonioxConnectionLost": "Połączenie zostało przerwane — za chwilę dotknij „Rozpocznij sesję”, aby kontynuować.",
+    "sonioxVoiceClipMissing": "To urządzenie nie ma nagrania głosu, więc ta sesja korzysta z głosu z presetu. Nagraj je w Ustawieniach, aby mówić tutaj własnym głosem.",
+    "sonioxVoicePoolBusy": "Wszystkie miejsca na własne głosy są obecnie zajęte, więc ta sesja korzysta z głosu z presetu. Twój własny głos zostanie użyty ponownie następnym razem.",
+    "sonioxVoiceBuildFailed": "Nie udało się zbudować Twojego własnego głosu, więc ta sesja korzysta z głosu z presetu. Spróbuj nagrać wyraźniejszy klip w Ustawieniach.",
+    "sonioxVoiceUnavailable": "Twój własny głos jest obecnie niedostępny, więc ta sesja korzysta z głosu z presetu.",
+    "preparingVoice": "Przygotowywanie Twojego głosu…"
   },
   "modePicker": {
     "modeYou": "Ty",
@@ -598,7 +613,8 @@
     "initProgress": "Ładowanie ({{completed}}/{{total}})...",
     "stop": "Zatrzymaj",
     "start": "Uruchom",
-    "loadingModel": "Ładowanie modelu…"
+    "loadingModel": "Ładowanie modelu…",
+    "preparingVoice": "Przygotowywanie Twojego głosu…"
   },
   "errors": {
     "gpuOutOfMemory": "Brak pamięci GPU — wybrany model jest zbyt duży dla Twojego GPU. Przełącz się na mniejszy model."

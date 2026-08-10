@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Kinukumpirma kong may karapatan akong gamitin ang boses na ito",
     "sonioxVoiceCloneTitle": "I-clone ang boses",
     "sonioxVoiceCloneReview": "Pakinggan ang iyong clip at pangalanan ang boses bago i-upload.",
+    "sonioxVoiceCloneReviewNoName": "Pakinggan ang iyong clip bago i-upload.",
+    "sonioxManagedCloneNotice": "Ipinapadala ang recording na ito sa Kizuna AI at ipinapasa sa Soniox para buuin ang iyong boses. Hindi ito nakaimbak sa aming mga server — nananatili ito sa device na ito para maibuo muli ang iyong boses sa ibang pagkakataon.",
     "sonioxVoiceNamePlaceholder": "Pangalan para sa bagong klonadong boses (opsyonal)",
     "sonioxVoiceDefaultName": "Aking Boses {{n}}",
+    "sonioxManagedVoiceName": "Aking boses",
+    "sonioxManagedVoiceReplaceHint": "Burahin muna ang boses na ito bago mag-record ng bago — ang pag-record lang ay hindi papalitan ang boses na mayroon ka na.",
     "sonioxVoiceDeletedPlaceholder": "(tinanggal na boses)",
     "sonioxVoiceDeleteInUse": "Ginagamit ng aktibong session ang boses na ito — tapusin muna ang session bago ito burahin",
     "sonioxVoiceProcessingBadge": "pinoproseso…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Nabigo ang pagproseso — tanggalin ang boses na ito at subukan ang mas malinaw na clip",
     "sonioxVoiceNameConflict": "May umiiral nang boses na may ganitong pangalan",
     "sonioxVoiceQuotaError": "Naabot na ang limitasyon ng boses ng organisasyong Soniox — tanggalin ang isang boses at subukang muli",
+    "sonioxVoicePoolExhausted": "Ginagamit ngayon ang lahat ng custom na voice slot — subukang muli sandali.",
+    "sonioxVoicePinned": "Ginagamit ang boses na ito ng isang tumatakbong session — tapusin muna ang session bago ito burahin.",
+    "sonioxVoiceInsufficientBalance": "Mag-top up ng iyong balanse bago bumuo ng custom na boses.",
+    "sonioxVoiceSignInRequired": "Mag-sign in para bumuo ng custom na boses.",
+    "sonioxVoiceClipClearFailed": "Nabura ang iyong boses, ngunit hindi maalis ang recording nito sa device na ito. Wala nang gumagamit nito — papalitan ito kapag nag-record ka ng bagong boses.",
     "sonioxVoiceListError": "Hindi na-load ang mga klonadong boses — suriin ang iyong API key.",
+    "sonioxManagedVoiceListError": "Hindi na-load ang iyong boses — suriin ang iyong koneksyon at subukang muli.",
     "sonioxVoicePreviewCostHint": "Ang pag-preview ng boses ay gumagawa ng maikling clip gamit ang sarili mong Soniox quota.",
     "sonioxVoicePreviewAuthError": "Nabigo ang preview — suriin ang API key",
     "sonioxVoicePreviewQuotaError": "Nabigo ang preview — naabot ang rate limit o quota ng Soniox",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Naubos na ang balanse ng iyong session. Mag-top up ng iyong balanse para magpatuloy sa pagsasalin.",
     "sonioxTtsFailed": "Huminto na ang binibigkas na pagsasalin. Patuloy pa ring gumagana ang transcription at pagsasalin ng teksto.",
     "sonioxSegmentEnded": "Natapos na ang segment na ito — pindutin ang “Simulan ang session” para magpatuloy.",
-    "sonioxConnectionLost": "Naputol ang koneksyon — pindutin ang “Simulan ang session” maya-maya para magpatuloy."
+    "sonioxConnectionLost": "Naputol ang koneksyon — pindutin ang “Simulan ang session” maya-maya para magpatuloy.",
+    "sonioxVoiceClipMissing": "Walang voice recording ang device na ito, kaya gumagamit ang session na ito ng preset na boses. Mag-record ng isa sa Mga Setting para makapagsalita gamit ang sarili mong boses dito.",
+    "sonioxVoicePoolBusy": "Ginagamit ngayon ang lahat ng custom na voice slot, kaya gumagamit ang session na ito ng preset na boses. Gagamitin muli ang sarili mong boses sa susunod.",
+    "sonioxVoiceBuildFailed": "Hindi mabuo ang custom mong boses, kaya gumagamit ang session na ito ng preset na boses. Subukang mag-record ng mas malinaw na clip sa Mga Setting.",
+    "sonioxVoiceUnavailable": "Hindi available ngayon ang custom mong boses, kaya gumagamit ang session na ito ng preset na boses.",
+    "preparingVoice": "Inihahanda ang iyong boses…"
   },
   "modePicker": {
     "modeYou": "Ikaw",
@@ -598,7 +613,8 @@
     "initProgress": "Naglo-load ({{completed}}/{{total}})...",
     "stop": "Itigil",
     "start": "Simulan",
-    "loadingModel": "Naglo-load ng modelo…"
+    "loadingModel": "Naglo-load ng modelo…",
+    "preparingVoice": "Inihahanda ang iyong boses…"
   },
   "errors": {
     "gpuOutOfMemory": "Naubos ang memory ng GPU — masyadong malaki ang piniling modelo para sa inyong GPU. Lumipat sa mas maliit na modelo."

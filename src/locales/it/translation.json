@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Confermo di avere il diritto di utilizzare questa voce",
     "sonioxVoiceCloneTitle": "Clona voce",
     "sonioxVoiceCloneReview": "Ascolta la tua clip e assegna un nome alla voce prima di caricarla.",
+    "sonioxVoiceCloneReviewNoName": "Ascolta la tua clip prima di caricarla.",
+    "sonioxManagedCloneNotice": "Questa registrazione viene inviata a Kizuna AI e trasmessa a Soniox per creare la tua voce. Non viene memorizzata sui nostri server — resta su questo dispositivo così la tua voce potrà essere ricreata in seguito.",
     "sonioxVoiceNamePlaceholder": "Nome per una nuova voce clonata (facoltativo)",
     "sonioxVoiceDefaultName": "La mia voce {{n}}",
+    "sonioxManagedVoiceName": "La mia voce",
+    "sonioxManagedVoiceReplaceHint": "Elimina questa voce prima di registrarne una nuova — registrare di nuovo da solo mantiene la voce che hai già.",
     "sonioxVoiceDeletedPlaceholder": "(voce eliminata)",
     "sonioxVoiceDeleteInUse": "Questa voce è in uso nella sessione attiva — termina la sessione prima di eliminarla",
     "sonioxVoiceProcessingBadge": "elaborazione…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Elaborazione non riuscita — elimina questa voce e prova con una clip più chiara",
     "sonioxVoiceNameConflict": "Esiste già una voce con questo nome",
     "sonioxVoiceQuotaError": "Limite di voci dell'organizzazione Soniox raggiunto — elimina una voce e riprova",
+    "sonioxVoicePoolExhausted": "Al momento tutti i posti per le voci personalizzate sono occupati — riprova tra un momento.",
+    "sonioxVoicePinned": "Questa voce è in uso da una sessione attiva — termina la sessione prima di eliminarla.",
+    "sonioxVoiceInsufficientBalance": "Ricarica il tuo saldo prima di creare una voce personalizzata.",
+    "sonioxVoiceSignInRequired": "Accedi per creare una voce personalizzata.",
+    "sonioxVoiceClipClearFailed": "La tua voce è stata eliminata, ma la sua registrazione non è stata rimossa da questo dispositivo. Non è più utilizzata — registrarne una nuova la sostituisce.",
     "sonioxVoiceListError": "Impossibile caricare le voci clonate — controlla la chiave API.",
+    "sonioxManagedVoiceListError": "Impossibile caricare la tua voce — controlla la connessione e riprova.",
     "sonioxVoicePreviewCostHint": "L'anteprima di una voce sintetizza una breve clip utilizzando la tua quota Soniox personale.",
     "sonioxVoicePreviewAuthError": "Anteprima non riuscita — controlla la chiave API",
     "sonioxVoicePreviewQuotaError": "Anteprima non riuscita — limite di frequenza o quota Soniox raggiunti",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "Il saldo della sessione è esaurito. Ricarica il tuo saldo per continuare a tradurre.",
     "sonioxTtsFailed": "La traduzione vocale si è interrotta. La trascrizione e la traduzione testuale continuano a funzionare.",
     "sonioxSegmentEnded": "Questo segmento è terminato — tocca «Inizia sessione» per continuare.",
-    "sonioxConnectionLost": "La connessione è stata interrotta — tocca «Inizia sessione» tra un momento per continuare."
+    "sonioxConnectionLost": "La connessione è stata interrotta — tocca «Inizia sessione» tra un momento per continuare.",
+    "sonioxVoiceClipMissing": "Questo dispositivo non ha alcuna registrazione vocale, quindi questa sessione usa una voce preimpostata. Registrane una nelle Impostazioni per parlare qui con la tua voce.",
+    "sonioxVoicePoolBusy": "Al momento tutti i posti per le voci personalizzate sono occupati, quindi questa sessione usa una voce preimpostata. La tua voce verrà usata di nuovo la prossima volta.",
+    "sonioxVoiceBuildFailed": "Non è stato possibile creare la tua voce personalizzata, quindi questa sessione usa una voce preimpostata. Prova a registrare una clip più chiara nelle Impostazioni.",
+    "sonioxVoiceUnavailable": "La tua voce personalizzata non è disponibile al momento, quindi questa sessione usa una voce preimpostata.",
+    "preparingVoice": "Preparazione della tua voce…"
   },
   "modePicker": {
     "modeYou": "Tu",
@@ -598,7 +613,8 @@
     "initProgress": "Caricamento ({{completed}}/{{total}})...",
     "stop": "Ferma",
     "start": "Avvia",
-    "loadingModel": "Caricamento modello…"
+    "loadingModel": "Caricamento modello…",
+    "preparingVoice": "Preparazione della tua voce…"
   },
   "errors": {
     "gpuOutOfMemory": "Memoria GPU esaurita — il modello selezionato è troppo grande per la tua GPU. Passa a un modello più piccolo."

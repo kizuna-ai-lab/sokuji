@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { VoiceLibrarySource } from './voiceLibrarySource';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -10,19 +11,32 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
+// These stand in for whatever the section used to construct internally (a
+// SonioxVoicesClient's list/create/delete/waitUntilReady). Now that the
+// section receives its `source` as a prop (see voiceLibrarySource.ts), the
+// fake below is the seam's test double — shared across tests so a test can
+// keep configuring `listMock.mockResolvedValue(...)` etc. exactly as before.
 const listMock = vi.fn();
 const createMock = vi.fn();
 const deleteMock = vi.fn();
 const waitMock = vi.fn();
-vi.mock('../../../services/clients/SonioxVoicesClient', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../services/clients/SonioxVoicesClient')>();
+
+/** A fake source standing in for whatever the section used to construct
+ *  internally. The assertions below are unchanged from before the seam
+ *  existed — that is the point of this file: BYOK behaviour must come out
+ *  bit-identical. Defaults route through the shared mocks above (not fresh
+ *  vi.fn()s) so a test's `listMock.mockResolvedValue(...)` etc., set up
+ *  before mount(), still reaches the source the component was given. */
+function fakeSource(over: Partial<VoiceLibrarySource> = {}): VoiceLibrarySource {
   return {
-    ...actual, // keep encodeWavPcm16 + SonioxVoicesError real
-    SonioxVoicesClient: vi.fn(function () {
-      return { list: listMock, create: createMock, delete: deleteMock, waitUntilReady: waitMock, get: vi.fn() };
-    }),
-  };
-});
+    list: listMock,
+    create: createMock,
+    delete: deleteMock,
+    waitUntilReady: waitMock,
+    canPreview: true,
+    ...over,
+  } as VoiceLibrarySource;
+}
 
 const synthesizeMock = vi.fn();
 vi.mock('../../../services/clients/SonioxTtsRest', () => ({
@@ -72,6 +86,7 @@ function mount(over: object = {}) {
     <SonioxVoiceSection
       settings={{ voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }}
       onUpdate={onUpdate}
+      source={fakeSource()}
       managed={false}
       isSessionActive={false}
       {...over}
@@ -153,7 +168,7 @@ describe('SonioxVoiceSection', () => {
   });
 
   it('managed mode renders built-ins only: no fetch, no refresh/create affordances', () => {
-    mount({ managed: true });
+    mount({ managed: true, source: null });
     expect(listMock).not.toHaveBeenCalled();
     expect(screen.queryByTitle(/refresh voice list/i)).toBeNull();
     expect(screen.queryByText(/manage imported voices/i)).toBeNull();
@@ -436,11 +451,15 @@ describe('SonioxVoiceSection', () => {
   it('clears the previous project\'s clones as soon as the API key changes', async () => {
     listMock.mockResolvedValueOnce([cloned()]).mockReturnValueOnce(new Promise(() => {}));
     const onUpdate = vi.fn();
-    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, managed: false, isSessionActive: false };
+    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, source: fakeSource(), managed: false, isSessionActive: false };
     const { container, rerender } = render(<SonioxVoiceSection {...props} />);
     const select = container.querySelector('select')!;
     await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true));
-    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Maya', apiKey: 'other-key' }} />);
+    // A changed API key means a (possibly) different project — in production
+    // this is a fresh SonioxVoicesClient instance behind a fresh memoized
+    // source (ProviderSpecificSettings.tsx's useMemo keyed on the key
+    // string); a new fakeSource() here plays that same role.
+    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Maya', apiKey: 'other-key' }} source={fakeSource()} />);
     // The new key's fetch never resolves — the old project's clone must
     // already be gone rather than lingering selectable.
     await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(false));
@@ -453,7 +472,7 @@ describe('SonioxVoiceSection', () => {
     waitMock.mockReturnValue(new Promise((resolve) => { resolveWait = resolve; }));
     stubAudioContext(16000, 16000 * 5);
     const onUpdate = vi.fn();
-    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, managed: false, isSessionActive: false };
+    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, source: fakeSource(), managed: false, isSessionActive: false };
     const { container, rerender } = render(<SonioxVoiceSection {...props} />);
     openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -464,6 +483,8 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalled());
 
     // The user picks a different voice while the clone is still processing.
+    // The API key (and therefore the source) is unchanged — only `voice`
+    // moves — so `source` is deliberately NOT replaced on this rerender.
     rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Orion', apiKey: 'k' }} />);
 
     resolveWait({ id: 'new-id', name: 'x', models: [READY] });
@@ -478,7 +499,7 @@ describe('SonioxVoiceSection', () => {
     waitMock.mockReturnValue(new Promise((resolve) => { resolveWait = resolve; }));
     stubAudioContext(16000, 16000 * 5);
     const onUpdate = vi.fn();
-    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, managed: false, isSessionActive: false };
+    const props = { settings: { voice: 'Maya', apiKey: 'k' }, onUpdate, source: fakeSource(), managed: false, isSessionActive: false };
     const { container, rerender } = render(<SonioxVoiceSection {...props} />);
     openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -489,19 +510,187 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalled());
 
     // The user swaps to a different project's key while the clone processes —
-    // the old project's UUID must not be written under the new key.
-    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Maya', apiKey: 'other-key' }} />);
+    // the old project's UUID must not be written under the new key. A new
+    // fakeSource() mirrors the fresh memoized source a real key swap produces.
+    rerender(<SonioxVoiceSection {...props} settings={{ voice: 'Maya', apiKey: 'other-key' }} source={fakeSource()} />);
 
     resolveWait({ id: 'new-id', name: 'x', models: [READY] });
     await waitFor(() => expect(listMock.mock.calls.length).toBeGreaterThanOrEqual(2));
     expect(onUpdate).not.toHaveBeenCalledWith({ voice: 'new-id' });
   });
 
-  it('managed mode never synthesizes a custom placeholder entry for a stale UUID', async () => {
-    const { container } = mount({ managed: true, settings: { voice: 'stale-uuid', apiKey: '' } });
+  // NOTE(Task 3 — VoiceLibrarySource seam): before this refactor, `managed`
+  // was special-cased in the deleted-voice-placeholder guard purely to
+  // suppress the section's own internally-constructed client. The guard now
+  // reacts to `source` — exactly like BYOK always did — so a stale UUID with
+  // no source (this account's actual state today; a managed source arrives
+  // in Task 4) renders as a disabled, raw-id placeholder instead of being
+  // hidden outright. That state cannot exist today (the managed twin has
+  // never been able to create a custom voice), and Task 4's real managed
+  // source resolves it properly by actually finding the voice. This is a
+  // documented, intentional consequence of the Task 3 plan (see
+  // voiceLibrarySource.ts's task brief), not an unnoticed regression.
+  it('managed mode with no source shows a stale UUID as a disabled raw-id placeholder (pre-Task-4 state)', async () => {
+    const { container } = mount({ managed: true, source: null, settings: { voice: 'stale-uuid', apiKey: '' } });
     const select = container.querySelector('select')!;
-    expect([...select.querySelectorAll('option')].some((o) => o.value === 'stale-uuid')).toBe(false);
-    expect(container.querySelector('optgroup[label*="My Voices" i], optgroup[label="My Voices"]')).toBeNull();
+    const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'stale-uuid');
+    expect(opt).toBeTruthy();
+    expect(opt!.disabled).toBe(true);
+    expect(opt!.textContent).toBe('stale-uuid');
+    expect(container.querySelector('optgroup[label*="My Voices" i], optgroup[label="My Voices"]')).not.toBeNull();
+  });
+
+  // A managed account with a healthy voice cannot replace it by recording
+  // again: the backend's POST /ensure returns the voice it already holds and
+  // ignores the uploaded clip, rebuilding only when the voice is gone at
+  // Soniox or terminally failed. Offering the affordance anyway would report
+  // success and change nothing audible.
+  it('managed mode withdraws record/import while a healthy voice exists, and says why', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    mount({ managed: true, source: fakeSource({ canPreview: false }) });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    await waitFor(() => expect(screen.queryByText(/delete this voice before recording a new one/i)).not.toBeNull());
+    expect(screen.queryByRole('button', { name: /record voice/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /import voice/i })).toBeNull();
+    // The delete button is the way forward, so it must still be there.
+    expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeNull();
+  });
+
+  it('managed mode keeps record/import when the existing voice terminally failed', async () => {
+    // The backend DOES rebuild from a fresh clip in this case, so withdrawing
+    // the affordances here would strand the user with a dead voice.
+    listMock.mockResolvedValue([cloned({ models: [{ model: 'tts-rt-v1', status: 'failed' }] })]);
+    mount({ managed: true, source: fakeSource({ canPreview: false }) });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    await waitFor(() => expect(screen.queryByRole('button', { name: /record voice/i })).not.toBeNull());
+    expect(screen.queryByText(/delete this voice before recording a new one/i)).toBeNull();
+  });
+
+  it('BYOK keeps record/import with a healthy clone listed — the replace restriction is managed-only', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    mount();
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    expect(screen.queryByRole('button', { name: /record voice/i })).not.toBeNull();
+    expect(screen.queryByText(/delete this voice before recording a new one/i)).toBeNull();
+  });
+
+  // Eviction is the NORMAL outcome of a small LRU cache serving unbounded
+  // users. Before this, the placeholder was `removable: false`, so the panel
+  // showed "(deleted voice)" above "No imported voices yet." with no delete
+  // button — the on-device recording stayed there forever and every later
+  // Start silently re-uploaded it.
+  it('managed mode lets an evicted voice\'s placeholder be deleted, clearing the stale setting', async () => {
+    listMock.mockResolvedValue([]);
+    const source = fakeSource({ canPreview: false });
+    const { onUpdate } = mount({
+      managed: true,
+      source,
+      settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    const deleteBtn = await screen.findByRole('button', { name: /^delete$/i });
+    fireEvent.click(deleteBtn);
+    // DELETE /mine answers 200 with no row, so this is safe and idempotent.
+    await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('evicted-uuid'));
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: 'Maya' }));
+  });
+
+  it('BYOK still refuses to delete an unknown id — there it belongs to another project', async () => {
+    listMock.mockResolvedValue([]);
+    mount({ settings: { voice: 'someone-elses-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+    expect(deleteMock).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a half-completed managed delete instead of reporting success', async () => {
+    // The voice is gone but its recording is still on this device. The banner
+    // must say which half failed — silence here would leave biometric
+    // material behind under a claim it was removed.
+    listMock.mockResolvedValue([cloned()]);
+    deleteMock.mockRejectedValue(new SonioxVoicesError('clip_clear_failed', 'denied', 0));
+    mount({ managed: true, source: fakeSource({ canPreview: false }) });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    await waitFor(() =>
+      expect(screen.queryByText(/could not be removed from this device/i)).not.toBeNull()
+    );
+  });
+
+  it('a half-completed managed delete still refreshes the list and resets the stored voice', async () => {
+    // clip_clear_failed is the ONE failure where the backend delete already
+    // succeeded. Bailing out on it would leave the deleted voice listed and
+    // still selected, so the next Start would 409 clip_required, upload the
+    // surviving clip, and silently rebuild the voice the user just deleted.
+    listMock.mockResolvedValueOnce([cloned()]).mockResolvedValue([]);
+    deleteMock.mockRejectedValue(new SonioxVoicesError('clip_clear_failed', 'denied', 0));
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false }),
+      settings: { voice: 'uuid-1', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    // The list is re-fetched...
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    // ...and the setting stops pointing at a voice that no longer exists.
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: 'Maya' }));
+    // The clip failure is still reported, just after the panel tells the truth.
+    expect(screen.queryByText(/could not be removed from this device/i)).not.toBeNull();
+  });
+
+  // AN ERRORED LIST IS NOT AN EMPTY LIST. After a failed GET /mine the panel
+  // knows nothing about the account's voice, and both managed-only
+  // affordances decide on exactly that knowledge.
+  it('managed mode offers no delete for the placeholder when the list fetch FAILED', async () => {
+    // The healthy voice is invisible only because the fetch failed. `delete`
+    // ignores the id and issues an unconditional DELETE /mine, so one click
+    // would destroy the real voice at Soniox AND the reference clip that is
+    // the only thing able to rebuild it.
+    listMock.mockRejectedValue(new Error('offline'));
+    mount({
+      managed: true,
+      source: fakeSource({ canPreview: false }),
+      settings: { voice: 'real-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(screen.queryByText(/could not load your voice/i)).not.toBeNull());
+    // The manage block may not render at all once nothing inside it is
+    // offered; open it only if it is there, so the assertion below is about
+    // the button rather than about which of the two ways it is absent.
+    const summary = screen.queryByText(/manage imported voices/i);
+    if (summary) fireEvent.click(summary);
+    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+    expect(deleteMock).not.toHaveBeenCalled();
+  });
+
+  it('managed mode withholds record/import when the list fetch FAILED', async () => {
+    // `clones` is [] because nothing arrived, not because nothing exists —
+    // so offering Record here reproduces the original no-op the C3 fix is
+    // about: the backend hands back the existing voice and ignores the clip.
+    listMock.mockRejectedValue(new Error('offline'));
+    mount({ managed: true, source: fakeSource({ canPreview: false }) });
+    await waitFor(() => expect(screen.queryByText(/could not load your voice/i)).not.toBeNull());
+    const summary = screen.queryByText(/manage imported voices/i);
+    if (summary) fireEvent.click(summary);
+    expect(screen.queryByRole('button', { name: /record voice/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /import voice/i })).toBeNull();
+  });
+
+  it('BYOK keeps record/import after a failed list fetch — the unknown-list rule is managed-only', async () => {
+    // BYOK's list error means "check the API key", and its create path does
+    // not depend on knowing what the project already holds.
+    listMock.mockRejectedValue(new Error('offline'));
+    mount();
+    await waitFor(() => expect(screen.queryByText(/could not load cloned voices/i)).not.toBeNull());
+    openManageDetails();
+    expect(screen.queryByRole('button', { name: /record voice/i })).not.toBeNull();
   });
 
   it('the confirm button stays disabled until the usage-rights checkbox is checked', async () => {
@@ -662,6 +851,7 @@ describe('SonioxVoiceSection', () => {
     const props = {
       settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 },
       onUpdate,
+      source: fakeSource(),
       managed: false,
       isSessionActive: false,
     };
@@ -671,7 +861,9 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
     fireEvent.click(await screen.findByRole('button', { name: /^stop$/i }));
 
-    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} />);
+    // A new fakeSource() mirrors the fresh memoized source a real key swap
+    // produces in ProviderSpecificSettings.tsx.
+    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} source={fakeSource()} />);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
     fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
@@ -688,6 +880,7 @@ describe('SonioxVoiceSection', () => {
     const props = {
       settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 },
       onUpdate: vi.fn(),
+      source: fakeSource(),
       managed: false,
       isSessionActive: false,
     };
@@ -697,7 +890,9 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
 
     // Swap the key while the synthesis is still in flight, then let it land.
-    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} />);
+    // A new fakeSource() mirrors the fresh memoized source a real key swap
+    // produces in ProviderSpecificSettings.tsx.
+    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} source={fakeSource()} />);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
     release({ audio: new Float32Array(2048), sampleRate: 24000 });
     await waitFor(() => expect(screen.queryByRole('button', { name: /synthesizing/i })).toBeNull());
@@ -744,7 +939,7 @@ describe('SonioxVoiceSection', () => {
   });
 
   it('offers no preview affordance and no cost hint without an API key', async () => {
-    mount({ settings: { voice: 'Maya', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    mount({ settings: { voice: 'Maya', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 }, source: null });
     await waitFor(() => expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull());
     expect(screen.queryByText(/your own Soniox quota/i)).toBeNull();
   });

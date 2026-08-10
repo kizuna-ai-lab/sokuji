@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useMemo } from 'react';
+import React, { Fragment, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { supportsTranscriptionContext } from '../../../services/providers/openaiTranscriptionContext';
@@ -67,6 +67,9 @@ import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { EngineSection } from './EngineSection';
 import SonioxVoiceSection from './SonioxVoiceSection';
+import { byokVoiceSource, managedVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
+import { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
+import { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
 import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
 import { useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
@@ -103,7 +106,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   loadingModels,
   fetchAvailableModels
 }) => {
-  const { getToken } = useAuth();
+  const { getToken, userId } = useAuth();
   // Settings from store
   const provider = useProvider();
   const systemInstructions = useSystemInstructions();
@@ -196,6 +199,75 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     provider === Provider.KIZUNA_AI_SONIOX
       ? updateKizunaSonioxSettings
       : updateSonioxSettings;
+
+  // useAuth() returns a fresh object (and a fresh getToken) on every render.
+  // Capturing it in a ref and closing over the ref keeps the memo below stable,
+  // so SonioxVoiceSection's load effect does not refetch on every render — the
+  // same class of bug the audio-device code avoids by depending on deviceId
+  // rather than on the device object.
+  const getTokenRef = useRef(getToken);
+  // useLayoutEffect, NOT useEffect, and the difference is load-bearing. React
+  // flushes passive effects child-first, so on the render where the signed-in
+  // account changes, SonioxVoiceSection's load effect runs BEFORE this one:
+  // it already holds the newly memoized source for account B, calls
+  // `getTokenRef.current()` synchronously on its way into `mine()`, and gets
+  // A's still-installed getToken. B's panel then lists A's voice, fetched with
+  // A's bearer token. Layout effects all flush before any passive effect, so
+  // running the assignment here puts the new token in place before the child
+  // can ask for it.
+  useLayoutEffect(() => { getTokenRef.current = getToken; }, [getToken]);
+
+  // Memoized on primitives, never constructed inline. SonioxVoiceSection's
+  // load effect depends on this object's identity, so a fresh instance per
+  // render would refetch the voice list on every render — the same class of
+  // bug CLAUDE.md warns about for audio devices (depend on `deviceId`, not on
+  // the device object).
+  //
+  // Managed (isKizunaManagedProvider) is gated on `userId`, not just on the
+  // provider being a managed one:
+  //  - No signed-in user (`userId` undefined) yields `null`, same as BYOK
+  //    with no key pasted. Without this, a signed-out managed account would
+  //    still show the record/upload affordances, `saveVoiceClip` would write
+  //    a clip to IndexedDB for an account that can never own a voice, and the
+  //    first `ensure`/`mine` call would 401 into a "check your connection"
+  //    banner that misreports the actual cause (not signed in).
+  //  - `userId` in the dep array (alongside `provider`) means signing in
+  //    mints a source where there was none, and switching to a DIFFERENT
+  //    signed-in account mints a NEW source rather than reusing the old one.
+  //    That matters because SonioxVoiceSection's load effect is keyed on
+  //    source IDENTITY (not on any credential): without this, an account
+  //    switch that doesn't also change `provider` would leave the OLD
+  //    account's already-fetched "My voice" row listed and selectable under
+  //    the NEW account, since refresh() never refires for an unchanged
+  //    object. This is the same identity-churn concern the BYOK branch
+  //    guards against by keying on `apiKey`.
+  //  - The client itself still reads the session TOKEN through `getTokenRef`
+  //    at call time, not at construction time — `userId` only decides
+  //    WHETHER a source exists and which logical account it belongs to;
+  //    per-request token freshness (e.g. a renewed token for the SAME user)
+  //    is deliberately left to the ref so it doesn't need a new source
+  //    identity of its own.
+  // BYOK stays gated on `provider === Provider.SONIOX` itself, not merely a
+  // truthy apiKey: `activeSonioxSettings` falls through to the BYOK `soniox`
+  // slice for every OTHER provider too, so a previously-saved Soniox key
+  // would otherwise construct a (harmless but pointless) SonioxVoicesClient
+  // while some unrelated provider is selected.
+  const sonioxVoiceSource = useMemo<VoiceLibrarySource | null>(() => {
+    if (isKizunaManagedProvider(provider)) {
+      if (!userId) return null;
+      // `userId` is handed to the source, not just used as a gate: it is the
+      // account the reference clip is filed under on this device, so a
+      // recording made here can never be read back — and re-uploaded — under
+      // whoever signs in next on the same profile.
+      return managedVoiceSource(
+        new ManagedVoicesClient(async () => (getTokenRef.current ? getTokenRef.current() : null)),
+        userId
+      );
+    }
+    return provider === Provider.SONIOX && activeSonioxSettings.apiKey
+      ? byokVoiceSource(new SonioxVoicesClient(activeSonioxSettings.apiKey))
+      : null;
+  }, [provider, activeSonioxSettings.apiKey, userId]);
 
   // Auto-select compatible models when LOCAL_INFERENCE languages change
   useEffect(() => {
@@ -1782,6 +1854,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <SonioxVoiceSection
           settings={activeSonioxSettings}
           onUpdate={updateActiveSonioxSettings}
+          source={sonioxVoiceSource}
           managed={managed}
           isSessionActive={isSessionActive}
         />

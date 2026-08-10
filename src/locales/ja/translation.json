@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "この音声を使用する権利があることを確認します",
     "sonioxVoiceCloneTitle": "音声を複製",
     "sonioxVoiceCloneReview": "アップロードする前に、クリップを聞いて音声に名前を付けてください。",
+    "sonioxVoiceCloneReviewNoName": "アップロードする前に、クリップを聞いてください。",
+    "sonioxManagedCloneNotice": "この録音はKizuna AIに送信され、音声を作成するためSonioxに渡されます。当社のサーバーには保存されません — この端末上にのみ保存され、後で音声を再構築できるようにします。",
     "sonioxVoiceNamePlaceholder": "新しく複製する音声の名前（任意）",
     "sonioxVoiceDefaultName": "マイ音声 {{n}}",
+    "sonioxManagedVoiceName": "マイ音声",
+    "sonioxManagedVoiceReplaceHint": "新しい音声を録音する前に、この音声を削除してください — 録音し直すだけでは現在の音声がそのまま使われます。",
     "sonioxVoiceDeletedPlaceholder": "（削除された音声）",
     "sonioxVoiceDeleteInUse": "この音声はアクティブなセッションで使用中です — 削除する前にセッションを終了してください",
     "sonioxVoiceProcessingBadge": "処理中…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "処理に失敗しました — この音声を削除し、より聞き取りやすいクリップでお試しください",
     "sonioxVoiceNameConflict": "この名前の音声はすでに存在します",
     "sonioxVoiceQuotaError": "Soniox の組織の音声上限に達しました — 音声を削除してから再試行してください",
+    "sonioxVoicePoolExhausted": "現在、カスタム音声の枠がすべて使用中です — しばらくしてから再度お試しください。",
+    "sonioxVoicePinned": "この音声は実行中のセッションで使用されています — 削除する前にセッションを終了してください。",
+    "sonioxVoiceInsufficientBalance": "カスタム音声を作成する前に、残高をチャージしてください。",
+    "sonioxVoiceSignInRequired": "カスタム音声を作成するにはサインインしてください。",
+    "sonioxVoiceClipClearFailed": "音声は削除されましたが、その録音をこの端末から削除できませんでした。現在は使用されていません — 新しい音声を録音すると置き換えられます。",
     "sonioxVoiceListError": "複製した音声を読み込めませんでした — APIキーを確認してください。",
+    "sonioxManagedVoiceListError": "音声を読み込めませんでした — 接続を確認して再度お試しください。",
     "sonioxVoicePreviewCostHint": "音声をプレビューすると、ご自身の Soniox クォータを使用して短いクリップが合成されます。",
     "sonioxVoicePreviewAuthError": "プレビューに失敗しました — APIキーを確認してください",
     "sonioxVoicePreviewQuotaError": "プレビューに失敗しました — Soniox のレート制限またはクォータに達しました",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "セッションの残高がなくなりました。翻訳を続けるには残高をチャージしてください。",
     "sonioxTtsFailed": "音声翻訳が停止しました。文字起こしとテキスト翻訳は続いています。",
     "sonioxSegmentEnded": "このセグメントは終了しました——続けるには「セッション開始」をタップしてください。",
-    "sonioxConnectionLost": "接続が中断されました——少ししてから「セッション開始」をタップして続けてください。"
+    "sonioxConnectionLost": "接続が中断されました——少ししてから「セッション開始」をタップして続けてください。",
+    "sonioxVoiceClipMissing": "この端末には音声の録音がないため、このセッションではプリセット音声を使用します。ここでご自身の声で話すには、設定で録音してください。",
+    "sonioxVoicePoolBusy": "現在、カスタム音声の枠がすべて使用中のため、このセッションではプリセット音声を使用します。次回はご自身の音声が再び使用されます。",
+    "sonioxVoiceBuildFailed": "カスタム音声を作成できなかったため、このセッションではプリセット音声を使用します。設定でより聞き取りやすいクリップを録音してみてください。",
+    "sonioxVoiceUnavailable": "カスタム音声は現在利用できないため、このセッションではプリセット音声を使用します。",
+    "preparingVoice": "音声を準備しています…"
   },
   "modePicker": {
     "modeYou": "あなた",
@@ -598,7 +613,8 @@
     "initProgress": "読み込み中 ({{completed}}/{{total}})...",
     "stop": "停止",
     "start": "開始",
-    "loadingModel": "モデルを読み込み中…"
+    "loadingModel": "モデルを読み込み中…",
+    "preparingVoice": "音声を準備しています…"
   },
   "errors": {
     "gpuOutOfMemory": "GPUメモリ不足 — 選択されたモデルがGPUには大きすぎます。より小さいモデルに切り替えてください。"

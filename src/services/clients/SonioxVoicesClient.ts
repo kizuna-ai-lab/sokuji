@@ -37,7 +37,11 @@ export class SonioxVoicesError extends Error {
   constructor(
     readonly errorType: string,
     message: string,
-    readonly status: number
+    readonly status: number,
+    /** Server's own hint for how long to wait before retrying. Only the
+     *  managed backend sends one (409 pool_exhausted); Soniox's direct API
+     *  does not, which is why it is optional. */
+    readonly retryAfterMs?: number
   ) {
     super(message);
     this.name = 'SonioxVoicesError';

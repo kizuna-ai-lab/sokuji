@@ -243,8 +243,12 @@
     "sonioxVoiceConsent": "Confirmo que tenho o direito de usar esta voz",
     "sonioxVoiceCloneTitle": "Clonar voz",
     "sonioxVoiceCloneReview": "Ouça seu clipe e nomeie a voz antes de enviá-lo.",
+    "sonioxVoiceCloneReviewNoName": "Ouça seu clipe antes de enviá-lo.",
+    "sonioxManagedCloneNotice": "Esta gravação é enviada para a Kizuna AI e repassada para a Soniox para criar sua voz. Ela não é armazenada em nossos servidores — permanece neste dispositivo para que sua voz possa ser reconstruída depois.",
     "sonioxVoiceNamePlaceholder": "Nome para uma nova voz clonada (opcional)",
     "sonioxVoiceDefaultName": "Minha Voz {{n}}",
+    "sonioxManagedVoiceName": "Minha voz",
+    "sonioxManagedVoiceReplaceHint": "Exclua esta voz antes de gravar uma nova — apenas gravar de novo mantém a voz que você já tem.",
     "sonioxVoiceDeletedPlaceholder": "(voz excluída)",
     "sonioxVoiceDeleteInUse": "Esta voz está sendo usada pela sessão ativa — encerre a sessão antes de excluí-la",
     "sonioxVoiceProcessingBadge": "processando…",
@@ -252,7 +256,13 @@
     "sonioxVoiceFailed": "Falha no processamento — exclua esta voz e tente um trecho mais claro",
     "sonioxVoiceNameConflict": "Já existe uma voz com este nome",
     "sonioxVoiceQuotaError": "Limite de vozes da organização Soniox atingido — exclua uma voz e tente novamente",
+    "sonioxVoicePoolExhausted": "Todas as vagas de vozes personalizadas estão em uso no momento — tente novamente em instantes.",
+    "sonioxVoicePinned": "Esta voz está sendo usada por uma sessão em andamento — encerre a sessão antes de excluí-la.",
+    "sonioxVoiceInsufficientBalance": "Recarregue seu saldo antes de criar uma voz personalizada.",
+    "sonioxVoiceSignInRequired": "Entre para criar uma voz personalizada.",
+    "sonioxVoiceClipClearFailed": "Sua voz foi excluída, mas a gravação dela não pôde ser removida deste dispositivo. Ela não é mais usada — gravar uma nova voz a substitui.",
     "sonioxVoiceListError": "Não foi possível carregar as vozes clonadas — verifique a chave da API.",
+    "sonioxManagedVoiceListError": "Não foi possível carregar sua voz — verifique sua conexão e tente novamente.",
     "sonioxVoicePreviewCostHint": "Visualizar uma voz sintetiza um clipe curto usando sua própria cota do Soniox.",
     "sonioxVoicePreviewAuthError": "Falha na visualização — verifique a chave da API",
     "sonioxVoicePreviewQuotaError": "Falha na visualização — limite de taxa ou cota do Soniox atingido",
@@ -560,7 +570,12 @@
     "sonioxBudgetExhausted": "O saldo da sua sessão acabou. Recarregue seu saldo para continuar traduzindo.",
     "sonioxTtsFailed": "A tradução falada parou. A transcrição e a tradução de texto continuam funcionando.",
     "sonioxSegmentEnded": "Este segmento terminou — toque em “Iniciar sessão” para continuar.",
-    "sonioxConnectionLost": "A conexão foi interrompida — toque em “Iniciar sessão” daqui a pouco para continuar."
+    "sonioxConnectionLost": "A conexão foi interrompida — toque em “Iniciar sessão” daqui a pouco para continuar.",
+    "sonioxVoiceClipMissing": "Este dispositivo não tem nenhuma gravação de voz, então esta sessão usa uma voz predefinida. Grave uma em Configurações para falar aqui com sua própria voz.",
+    "sonioxVoicePoolBusy": "Todas as vagas de vozes personalizadas estão em uso no momento, então esta sessão usa uma voz predefinida. Sua própria voz será usada novamente na próxima vez.",
+    "sonioxVoiceBuildFailed": "Não foi possível criar sua voz personalizada, então esta sessão usa uma voz predefinida. Tente gravar um trecho mais claro em Configurações.",
+    "sonioxVoiceUnavailable": "Sua voz personalizada está indisponível no momento, então esta sessão usa uma voz predefinida.",
+    "preparingVoice": "Preparando sua voz…"
   },
   "modePicker": {
     "modeYou": "Você",
@@ -598,7 +613,8 @@
     "initProgress": "Carregando ({{completed}}/{{total}})...",
     "stop": "Parar",
     "start": "Iniciar",
-    "loadingModel": "Carregando modelo…"
+    "loadingModel": "Carregando modelo…",
+    "preparingVoice": "Preparando sua voz…"
   },
   "errors": {
     "gpuOutOfMemory": "Memória da GPU esgotada — o modelo selecionado é grande demais para sua GPU. Mude para um modelo menor."
