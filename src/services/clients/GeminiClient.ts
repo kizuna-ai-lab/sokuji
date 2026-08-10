@@ -67,6 +67,50 @@ export class GeminiClient implements IClient {
     textParts: [],
   };
 
+  /**
+   * True for a Live Translate session, where `turnComplete` never arrives.
+   *
+   * The dialogue models close a turn when the exchange ends, and
+   * `handleMessage`'s turnComplete branch is what finalizes the accumulated
+   * items and resets for the next one. Live Translate is a continuous
+   * interpreter — it starts translating while the speaker is still talking and
+   * has no notion of a turn — so it emits neither `turnComplete` nor
+   * `generationComplete`. Measured against the live API on 2026-08-11: over a
+   * full utterance the dialogue model emitted generationComplete at 9.1s and
+   * turnComplete at 13.4s, while the translate model emitted zero of either,
+   * with or without `translationConfig`. Left alone, every transcript in the
+   * session therefore lands in one conversation item and every translation in
+   * one more, growing without bound.
+   *
+   * So this client segments those sessions itself, on silence. Same problem
+   * and same remedy as OpenAI Translate, whose API also has no server-side
+   * turn detection — see OpenAITranslateGAClient's user/assistant silence
+   * timers, whose thresholds these borrow.
+   */
+  private continuousSegmentation = false;
+  private inputSegmentTimer: ReturnType<typeof setTimeout> | null = null;
+  private assistantSegmentTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * The two sides are timed independently rather than as a pair: a translation
+   * routinely spans several input sentences and lags behind the speech that
+   * produced it, so a boundary on one side is not a boundary on the other.
+   *
+   * The threshold is picked from the model's measured delivery cadence rather
+   * than borrowed from OpenAI Translate, whose 1.0s/0.5s defaults are far too
+   * eager here. Two utterances separated by 2.5s of silence, measured
+   * 2026-08-11:
+   *
+   *   transcript fragments *within* an utterance   ~1000 ms apart (median)
+   *   the pause *between* the two utterances       ~4250 ms (output side)
+   *
+   * so anything at or under a second splits on nearly every fragment. 2s sits
+   * with roughly 2x margin on both sides. Note this is one measured sample; if
+   * it proves wrong in the field, it is one constant to move.
+   */
+  private static readonly INPUT_SEGMENT_SILENCE_MS = 2000;
+  private static readonly ASSISTANT_SEGMENT_SILENCE_MS = 2000;
+
   constructor(apiKey: string) {
     this.apiKey = apiKey;
     this.client = new GoogleGenAI({ apiKey });
@@ -366,6 +410,10 @@ export class GeminiClient implements IClient {
     // which stay the descriptor's business.
     const translationConfig = isGeminiSessionConfig(config) ? config.translationConfig : undefined;
     const isTranslateSession = translationConfig !== undefined;
+    // A translate session never sends turnComplete, so this client has to
+    // close conversation items itself — see continuousSegmentation.
+    this.continuousSegmentation = isTranslateSession;
+    this.clearSegmentTimers();
 
     // Convert SessionConfig to LiveConnectConfig
     const liveConfig: LiveConnectConfig = {
@@ -589,6 +637,7 @@ export class GeminiClient implements IClient {
   }
 
   private resetCurrentTurn(): void {
+    this.clearSegmentTimers();
     this.currentTurn = {
       inputTranscription: '',
       modelTurnParts: [],
@@ -596,6 +645,80 @@ export class GeminiClient implements IClient {
       audioData: [],
       textParts: [],
     };
+  }
+
+  private clearSegmentTimers(): void {
+    if (this.inputSegmentTimer) {
+      clearTimeout(this.inputSegmentTimer);
+      this.inputSegmentTimer = null;
+    }
+    if (this.assistantSegmentTimer) {
+      clearTimeout(this.assistantSegmentTimer);
+      this.assistantSegmentTimer = null;
+    }
+  }
+
+  /** Restart the input-side idle countdown. No-op outside translate sessions. */
+  private armInputSegmentTimer(): void {
+    if (!this.continuousSegmentation) return;
+    if (this.inputSegmentTimer) clearTimeout(this.inputSegmentTimer);
+    this.inputSegmentTimer = setTimeout(
+      () => { this.inputSegmentTimer = null; this.closeInputSegment(); },
+      GeminiClient.INPUT_SEGMENT_SILENCE_MS,
+    );
+  }
+
+  /** Restart the assistant-side idle countdown. No-op outside translate sessions. */
+  private armAssistantSegmentTimer(): void {
+    if (!this.continuousSegmentation) return;
+    if (this.assistantSegmentTimer) clearTimeout(this.assistantSegmentTimer);
+    this.assistantSegmentTimer = setTimeout(
+      () => { this.assistantSegmentTimer = null; this.closeAssistantSegment(); },
+      GeminiClient.ASSISTANT_SEGMENT_SILENCE_MS,
+    );
+  }
+
+  /**
+   * Complete the in-progress user item and drop the reference, so the next
+   * transcription fragment starts a fresh one. Deliberately narrower than
+   * finalizeTurn(), which closes both sides at once — here the two sides end
+   * at different moments.
+   */
+  private closeInputSegment(): void {
+    const item = this.currentTurn.inputTranscriptionItem;
+    const text = this.currentTurn.inputTranscription.trim();
+    if (item && text) {
+      if (item.formatted) item.formatted.transcript = this.normalizeCJKSpaces(text);
+      item.status = 'completed';
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    this.currentTurn.inputTranscription = '';
+    this.currentTurn.inputTranscriptionItem = undefined;
+  }
+
+  /**
+   * Same for the assistant side. The per-segment accumulators are cleared
+   * along with the item because `formatted.audio` and `formatted.text` are
+   * rebuilt from them on every update — carrying them over would replay the
+   * previous segment's audio inside the next one's bubble.
+   */
+  private closeAssistantSegment(): void {
+    const item = this.currentTurn.assistantItem;
+    if (item) {
+      if (item.formatted) {
+        const combinedText = this.currentTurn.textParts.join('');
+        const outputTranscript = this.currentTurn.outputTranscription.trim();
+        if (combinedText && !item.formatted.text) item.formatted.text = combinedText;
+        if (outputTranscript && !item.formatted.transcript) item.formatted.transcript = outputTranscript;
+      }
+      item.status = 'completed';
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    this.currentTurn.assistantItem = undefined;
+    this.currentTurn.outputTranscription = '';
+    this.currentTurn.textParts = [];
+    this.currentTurn.audioData = [];
+    this.currentTurn.modelTurnParts = [];
   }
 
   private async finalizeTurn(): Promise<void> {
@@ -763,6 +886,8 @@ export class GeminiClient implements IClient {
           this.currentTurn.assistantItem.formatted.transcript = this.currentTurn.outputTranscription;
           this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.assistantItem });
         }
+
+        this.armAssistantSegmentTimer();
       }
     }
 
@@ -798,6 +923,8 @@ export class GeminiClient implements IClient {
           this.currentTurn.inputTranscriptionItem.formatted.transcript = normalizedTranscript;
           this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.inputTranscriptionItem });
         }
+
+        this.armInputSegmentTimer();
       }
     }
 
@@ -844,7 +971,12 @@ export class GeminiClient implements IClient {
         }
       }
 
-      // Create or update conversation item for real-time display
+      // Deliberately NOT arming the assistant segment timer here. Audio
+      // carries no boundary information for this model: measured 2026-08-11,
+      // chunks arrive every ~250 ms with a 315 ms worst case and never once a
+      // gap of 500 ms, straight through a 2.5 s pause in the speech. Treating
+      // that as activity would hold the timer open forever and the assistant
+      // side would never segment at all. Only the output transcript pauses.
       if (hasNewAudio || hasNewText) {
         if (!this.currentTurn.assistantItem) {
           this.currentTurn.assistantItem = {
@@ -932,6 +1064,14 @@ export class GeminiClient implements IClient {
     this.isReconnecting = false;
     this.savedResumptionHandle = undefined;
     this.lastConfig = null;  // Marks user-initiated disconnect — onclose must not reconnect
+    // Close whatever segment is open rather than leaving the last utterance
+    // stuck at in_progress, then stop the timers from firing into a dead
+    // session.
+    if (this.continuousSegmentation) {
+      this.closeInputSegment();
+      this.closeAssistantSegment();
+    }
+    this.clearSegmentTimers();
     if (this.session) {
       this.session.close();
       this.session = null;
