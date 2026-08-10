@@ -3,6 +3,11 @@ import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDe
 import { IClient, FilteredModel, SessionConfig, GeminiSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { GeminiClient } from '../clients/GeminiClient';
+import {
+  buildGeminiTranslationConfig,
+  isGeminiTranslateModel,
+  toTranslationLanguageCode,
+} from './geminiTranslateModel';
 
 // Gemini Settings
 export interface GeminiSettings {
@@ -70,6 +75,13 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
       vadEndSensitivity: settings.vadEndSensitivity,
       vadSilenceDurationMs: settings.vadSilenceDurationMs,
       vadPrefixPaddingMs: settings.vadPrefixPaddingMs,
+      // Undefined for the dialogue models, which carry direction in the
+      // instruction; set for Live Translate, where the instruction alone is
+      // not a reliable target. See geminiTranslateModel.ts.
+      translationConfig: buildGeminiTranslationConfig(settings.model, settings.targetLanguage),
+      sourceLanguageCode: isGeminiTranslateModel(settings.model)
+        ? toTranslationLanguageCode(settings.sourceLanguage)
+        : undefined,
     } as GeminiSessionConfig;
   }
 

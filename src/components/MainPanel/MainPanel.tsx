@@ -29,6 +29,8 @@ import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { sonioxUsesSharedBothSession, SonioxProviderConfig } from '../../services/providers/SonioxProviderConfig';
 import { reverseTranscriptionDirection } from '../../services/providers/openaiTranscriptionContext';
+import { reverseGeminiTranslationDirection } from '../../services/providers/geminiTranslateModel';
+import { reversesDirectionViaSourceLanguage } from '../../services/providers/autoSourceReversal';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -47,7 +49,7 @@ import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, OpenAISessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig, PalabraAISessionConfig } from '../../services/interfaces/IClient';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, OpenAISessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig, PalabraAISessionConfig, GeminiSessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -560,16 +562,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return null;
   }, [currentMode, selectedInputDevice?.deviceId]);
 
-  // Soniox carries direction in source/target and reverses them for the
-  // participant client. An 'auto' source can't be reversed — the participant's
-  // translate target would become 'auto', which Soniox one_way rejects — so
-  // Others/Both with an 'auto' source can't start. Matches the LanguageSection
-  // warning (`showSonioxAutoParticipantWarning`); the user must pick a concrete
-  // source first. `participantWillStart` === isParticipantChannelInScope.
+  // Soniox reverses source/target for the participant client, and Gemini Live
+  // Translate reverses `translationConfig.targetLanguageCode` — see
+  // reversesDirectionViaSourceLanguage. An 'auto' source can't be reversed for
+  // either: the participant's translate target would become the literal
+  // 'auto', which Soniox one_way rejects and which is not a language code for
+  // Gemini. So Others/Both with an 'auto' source can't start. Matches the
+  // LanguageSection warning (`showAutoSourceParticipantWarning`); the user must
+  // pick a concrete source first. `participantWillStart` ===
+  // isParticipantChannelInScope.
   //
   // Resolves the EFFECTIVE provider (kizunaBaseProvider) and reads the
   // ACTIVE provider's settings slice via its descriptor's settingsSliceKey —
-  // mirrors LanguageSection.showSonioxAutoParticipantWarning exactly. A raw
+  // mirrors LanguageSection.showAutoSourceParticipantWarning exactly. A raw
   // `provider === Provider.SONIOX` check against the hardcoded `soniox` slice
   // (as this used to be) is always false for the KIZUNA_AI_SONIOX managed
   // twin, so this gate silently no-op'd for it: LanguageSection still showed
@@ -580,8 +585,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const activeProviderSourceLanguage = useSettingsStore(
     (s) => (s[ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey as keyof SettingsStore] as { sourceLanguage?: string } | undefined)?.sourceLanguage
   );
-  const sonioxAutoParticipantBlocked =
-    (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
+  const activeProviderModel = useSettingsStore(
+    (s) => (s[ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey as keyof SettingsStore] as { model?: string } | undefined)?.model
+  );
+  const autoSourceParticipantBlocked =
+    reversesDirectionViaSourceLanguage(provider, activeProviderModel) &&
     participantWillStart && activeProviderSourceLanguage === 'auto';
 
   // canStartSession requires the *intended* mode to have all its devices
@@ -600,10 +608,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       provider,
       quota,
       missingDeviceForMode,
-      sonioxAutoParticipantBlocked,
+      autoSourceParticipantBlocked,
       textOnly,
     }),
-    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, sonioxAutoParticipantBlocked, textOnly],
+    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, autoSourceParticipantBlocked, textOnly],
   );
   const canStartSession = startGate.canStart;
 
@@ -815,6 +823,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Force Auto mode for Gemini participant (no PTT for participant)
       ...(baseConfig.provider === 'gemini' ? { turnDetectionMode: 'Auto' as const } : {}),
     };
+
+    // Gemini's dialogue models need nothing here: their direction rides in the
+    // system instruction, which was already swapped above. A Live Translate
+    // session does, because its `translationConfig.targetLanguageCode`
+    // overrules that instruction — left alone, the participant session would
+    // translate the other party's speech into the language they are already
+    // speaking. No-op when no translationConfig is present.
+    if (config.provider === 'gemini') {
+      reverseGeminiTranslationDirection(config as GeminiSessionConfig);
+    }
 
     // OpenAI Translate carries language direction only in `audio.output.language`
     // (not system instructions — translate doesn't accept instructions). Swap
@@ -1895,7 +1913,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       //
       // Resolves the EFFECTIVE provider and reads the ACTIVE provider's settings
       // slice (soniox for BYOK, kizunaSoniox for the KIZUNA_AI_SONIOX managed
-      // twin) — mirrors the sonioxAutoParticipantBlocked gate above. A raw
+      // twin) — mirrors the autoSourceParticipantBlocked gate above. A raw
       // `provider === Provider.SONIOX` check against the hardcoded `soniox` slice
       // (as this used to be) is always false for the twin, so it opened TWO
       // independent managed sessions instead of one shared one; the backend's
