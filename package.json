@@ -139,7 +139,7 @@
     "@electron/fuses": "^2.0.0",
     "@electron/rebuild": "^4.2.0",
     "@floating-ui/react": "^0.27.15",
-    "@google/genai": "^1.46.0",
+    "@google/genai": "^2.16.0",
     "@huggingface/transformers": "^4.2.0",
     "@ricky0123/vad-web": "^0.0.30",
     "@sapphi-red/web-noise-suppressor": "^0.3.5",
