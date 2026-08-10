@@ -3873,1718 +3873,6 @@ EOF
 
 ---
 
-### Task BE6: Server-side stream expansion, per-role key minting, additive response
-
-**Files:**
-- Modify: `sokuji-backend/src/config/soniox.ts` (add after line 26; replace lines 73–86)
-- Modify: `sokuji-backend/src/services/session-lease.ts` (lines 21–30, line 123)
-- Modify: `sokuji-backend/src/routes/soniox.ts` (lines 5–12, 15–37, 47–49, 133–311)
-- Create: `sokuji-backend/src/config/soniox.test.ts`
-- Test: `sokuji-backend/src/services/session-lease.test.ts` (line 3 import; add one describe)
-- Test: `sokuji-backend/src/routes/soniox.test.ts` (replace lines 2–5, 7–36, 136, 210–219, 339–390, 392–454; add three describes)
-
-**Interfaces:**
-
-- Consumes (from BE2, `src/config/soniox.ts`):
-  `export type SonioxStreamRole = "spk_stt" | "spk_tts" | "par_stt" | "par_tts" | "mix_stt" | "mix_tts"`
-- Consumes (from BE2, `src/services/session-lease.ts`):
-  `export function clientRefIdFor(accountId: string, leaseId: string, role: SonioxStreamRole): string`
-  `export function baseRefFor(accountId: string, leaseId: string): string`
-- Consumes (from BE3, `src/services/session-lease.ts`): `AcquireParams` has gained `sttStreamCount: number`, and `acquire` writes it into the `INSERT`.
-- Produces (`src/config/soniox.ts`):
-  `export const PARTICIPANT_KEY_START_WINDOW_S = 180`
-  `export const REVENUE_COEFFICIENT_K = 2.0`
-  `export const CONSERVATIVE_RATE_USD_PER_HOUR_PER_STT_STREAM = 1.1`
-  `export const CONSERVATIVE_RATE_USD_PER_HOUR_PER_TTS_STREAM = 1.4`
-  `export type SonioxAudioMode = "speaker" | "participant" | "both"`
-  `export interface SonioxSessionShape { mode: SonioxAudioMode; textOnly: boolean; bothSplit: boolean }`
-  `export function normalizeSessionShape(body: unknown): SonioxSessionShape | null`
-  `export function expandStreamRoles(shape: SonioxSessionShape): SonioxStreamRole[]`
-  `export function usageTypeForRole(role: SonioxStreamRole): SonioxUsageType`
-  `export function sttStreamCount(roles: readonly SonioxStreamRole[]): number`
-  `export function usesTtsFor(roles: readonly SonioxStreamRole[]): boolean`
-  `export function skuForRoles(roles: readonly SonioxStreamRole[]): "soniox:text_only" | "soniox:speech_to_speech"`
-  `export function primaryRole(roles: readonly SonioxStreamRole[]): SonioxStreamRole`
-  `export function keyStartWindowForRole(role: SonioxStreamRole): number`
-  `export function maxKeyStartWindowS(roles: readonly SonioxStreamRole[]): number`
-  `export function conservativeRateUsdPerHour(roles: readonly SonioxStreamRole[]): number`
-  (`skuForMode` and `usageTypesForMode` are DELETED — nothing else in the repo imports them; verified by grep.)
-- Produces (`src/services/session-lease.ts`): `AcquireParams` gains `startWindowS?: number`.
-- Produces (`src/routes/soniox.ts`):
-  `export function computeSessionBudget(balanceMicroUsd: number, rateUsdPerHour: number): SessionBudget`
-  `export function microUsdAtRate(rateUsdPerHour: number, seconds: number): number`
-  `export function earliestExpiresAt(values: readonly string[]): string | undefined`
-- Produces (wire): `POST /soniox/session-key` response gains
-  `streams: Array<{ role: SonioxStreamRole; apiKey: string; clientReferenceId: string; expiresAt: string }>`
-  while `sttApiKey` / `ttsApiKey` / `clientReferenceId` stay and come from the primary leg, and `expiresAt` becomes the **earliest** expiry among issued keys.
-
-**What this task deliberately changes for already-shipped clients** (put it in the PR body; do not let a reviewer discover it):
-a shipped `{ mode: "text_only" }` request keeps working, and its response keeps every field it reads — but `rateUsdPerHour` moves from `0.6` to `1.1`, and `speech_to_speech` from `1.5` to `2.5`, because budgeting now runs on conservative per-stream rates (1.10/hr per `*_stt`, 1.40/hr per `*_tts` = K × worst-case provider cost, K = 2.0). At the same balance a single-stream user is quoted a **shorter** duration than today while, under BE7's cost × K charging, typically being **charged less**. Pinning the legacy rows to today's 0.6/1.5 was considered and rejected: it re-opens overdraft under cost × K.
-
----
-
-- [ ] **Step 1: Write the failing test — the expansion is total and closed**
-
-Create `sokuji-backend/src/config/soniox.test.ts`:
-
-```ts
-import { describe, it, expect } from "vitest";
-import {
-    expandStreamRoles, usageTypeForRole, sttStreamCount, usesTtsFor,
-    skuForRoles, primaryRole,
-    type SonioxSessionShape, type SonioxStreamRole,
-} from "./soniox";
-
-/** EVERY input the expansion can ever be handed: 3 modes x textOnly x bothSplit.
- *  Enumerated rather than sampled, because "total and closed" is the property
- *  under test — a spot check cannot tell an eighth reachable role set from a
- *  seventh. */
-const ALL_SHAPES: SonioxSessionShape[] = (["speaker", "participant", "both"] as const).flatMap(
-    (mode) => [true, false].flatMap(
-        (textOnly) => [true, false].map((bothSplit) => ({ mode, textOnly, bothSplit }))
-    )
-);
-
-describe("expandStreamRoles — total and closed (spec A6)", () => {
-    it("reaches exactly the seven rows of the matrix and nothing else", () => {
-        const reachable = new Set(ALL_SHAPES.map((s) => expandStreamRoles(s).join(",")));
-        expect([...reachable].sort()).toEqual([
-            "mix_stt",
-            "mix_stt,mix_tts",
-            "par_stt",
-            "spk_stt",
-            "spk_stt,par_stt",
-            "spk_stt,spk_tts",
-            "spk_stt,spk_tts,par_stt",
-        ]);
-    });
-
-    it("maps each matrix row to its exact role list, in mint order", () => {
-        expect(expandStreamRoles({ mode: "speaker", textOnly: true, bothSplit: false })).toEqual(["spk_stt"]);
-        expect(expandStreamRoles({ mode: "speaker", textOnly: false, bothSplit: false })).toEqual(["spk_stt", "spk_tts"]);
-        expect(expandStreamRoles({ mode: "participant", textOnly: true, bothSplit: false })).toEqual(["par_stt"]);
-        expect(expandStreamRoles({ mode: "both", textOnly: true, bothSplit: false })).toEqual(["mix_stt"]);
-        expect(expandStreamRoles({ mode: "both", textOnly: false, bothSplit: false })).toEqual(["mix_stt", "mix_tts"]);
-        expect(expandStreamRoles({ mode: "both", textOnly: true, bothSplit: true })).toEqual(["spk_stt", "par_stt"]);
-        expect(expandStreamRoles({ mode: "both", textOnly: false, bothSplit: true })).toEqual(["spk_stt", "spk_tts", "par_stt"]);
-    });
-
-    it("ignores textOnly for participant-only — createParticipantSessionConfig forces text", () => {
-        expect(expandStreamRoles({ mode: "participant", textOnly: false, bothSplit: true })).toEqual(["par_stt"]);
-    });
-
-    it("ignores bothSplit outside 'both' — a split speaker-only session is not a thing", () => {
-        expect(expandStreamRoles({ mode: "speaker", textOnly: true, bothSplit: true })).toEqual(["spk_stt"]);
-    });
-
-    it("never returns par_tts: the participant channel has no synthesis in v1", () => {
-        for (const s of ALL_SHAPES) {
-            expect(expandStreamRoles(s)).not.toContain("par_tts" as SonioxStreamRole);
-        }
-    });
-
-    it("never returns more than ONE tts stream, so no request can mint two reusable TTS keys", () => {
-        // The structural property A2 demands and a client-declared stream list
-        // with a blocklist cannot give: ['spk_tts'] alone is not merely
-        // rejected, it is unrepresentable.
-        for (const s of ALL_SHAPES) {
-            const tts = expandStreamRoles(s).filter((r) => usageTypeForRole(r) === "tts_rt");
-            expect(tts.length).toBeLessThanOrEqual(1);
-        }
-    });
-
-    it("always contains at least one STT stream, so the started/ended mask is never vacuous", () => {
-        // A role set with zero STT roles would make `(ended & started) === started`
-        // true forever with started === 0, i.e. a lease that can never release.
-        for (const s of ALL_SHAPES) {
-            expect(sttStreamCount(expandStreamRoles(s))).toBeGreaterThanOrEqual(1);
-        }
-    });
-});
-
-describe("derivations off the expansion", () => {
-    it("counts STT streams for the lease's concurrency weight", () => {
-        expect(sttStreamCount(["spk_stt"])).toBe(1);
-        expect(sttStreamCount(["spk_stt", "spk_tts"])).toBe(1);
-        expect(sttStreamCount(["spk_stt", "spk_tts", "par_stt"])).toBe(2);
-    });
-
-    it("derives uses_tts and the SKU from the roles, never from the request", () => {
-        expect(usesTtsFor(["spk_stt"])).toBe(false);
-        expect(usesTtsFor(["spk_stt", "par_stt"])).toBe(false);
-        expect(usesTtsFor(["mix_stt", "mix_tts"])).toBe(true);
-        expect(skuForRoles(["spk_stt", "par_stt"])).toBe("soniox:text_only");
-        expect(skuForRoles(["spk_stt", "spk_tts", "par_stt"])).toBe("soniox:speech_to_speech");
-    });
-
-    it("names the primary leg as the FIRST STT role — spk_stt, par_stt or mix_stt, never a TTS role", () => {
-        expect(primaryRole(["spk_stt", "spk_tts"])).toBe("spk_stt");
-        expect(primaryRole(["par_stt"])).toBe("par_stt");
-        expect(primaryRole(["mix_stt", "mix_tts"])).toBe("mix_stt");
-        // Split Both has two STT legs; the speaker is the primary one.
-        expect(primaryRole(["spk_stt", "spk_tts", "par_stt"])).toBe("spk_stt");
-    });
-
-    it("maps roles to Soniox usage types by suffix", () => {
-        expect(usageTypeForRole("spk_stt")).toBe("transcribe_websocket");
-        expect(usageTypeForRole("par_stt")).toBe("transcribe_websocket");
-        expect(usageTypeForRole("mix_stt")).toBe("transcribe_websocket");
-        expect(usageTypeForRole("spk_tts")).toBe("tts_rt");
-        expect(usageTypeForRole("mix_tts")).toBe("tts_rt");
-    });
-});
-```
-
-- [ ] **Step 2: Run it and watch it fail**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
-
-Expected: FAIL — `TypeError: expandStreamRoles is not a function` (vite-node resolves a missing named export to `undefined` rather than throwing at import, so the failure surfaces at the first call).
-
-- [ ] **Step 3: Implement the expansion and its derivations**
-
-In `src/config/soniox.ts`, DELETE lines 73–86 verbatim:
-
-```ts
-export function skuForMode(mode: SonioxMode): "soniox:text_only" | "soniox:speech_to_speech" {
-    return mode === "speech_to_speech" ? "soniox:speech_to_speech" : "soniox:text_only";
-}
-
-/**
- * A temporary key is scoped to ONE usage type, so speech-to-speech needs two.
- * This is also why the client's declared mode is self-enforcing: asking for
- * text_only yields no TTS key, so the cheap rate cannot buy the expensive path.
- */
-export function usageTypesForMode(mode: SonioxMode): SonioxUsageType[] {
-    return mode === "speech_to_speech"
-        ? ["transcribe_websocket", "tts_rt"]
-        : ["transcribe_websocket"];
-}
-```
-
-and put this in its place:
-
-```ts
-// ---------------------------------------------------------------------------
-// Stream roles and the mode matrix (spec A2 / A6)
-// ---------------------------------------------------------------------------
-
-/**
- * The AUDIO shape of a session. This is vocabulary TWO of the two DISJOINT
- * vocabularies that share the request key `mode`:
- *
- *   vocabulary 1 (legacy, currently shipped): "text_only" | "speech_to_speech"
- *                — a BILLING shape, with no textOnly/bothSplit fields at all.
- *   vocabulary 2 (this one):                  "speaker" | "participant" | "both"
- *                — an AUDIO shape, with textOnly and bothSplit alongside it.
- *
- * They are told apart by VALUE and nothing else (see `normalizeSessionShape`).
- * An implementer who assumes one vocabulary either 400s every currently-shipped
- * client during the deploy window, or mis-expands a new one.
- */
-export type SonioxAudioMode = "speaker" | "participant" | "both";
-
-/** The matrix inputs the client sends. NOT a stream list: see
- *  `expandStreamRoles` for why the server owns the expansion. */
-export interface SonioxSessionShape {
-    mode: SonioxAudioMode;
-    textOnly: boolean;
-    bothSplit: boolean;
-}
-
-/**
- * The ONLY source of a session's key set. Total over its input and closed over
- * its output: exactly the seven rows of spec A6 are reachable and nothing else.
- *
- * This replaces `usageTypesForMode` and keeps its self-enforcing property. The
- * alternative — a client-declared stream list validated by a blocklist — is
- * strictly weaker: a request for `['spk_tts']` alone passes "no par_tts" and
- * "at most one *_tts", yet mints a non-single_use TTS key valid for the whole
- * granted duration against an API with no revoke, while an empty STT
- * expectation makes the mask release predicate vacuously true forever. Here
- * that request is not rejected, it is unrepresentable.
- *
- * Order is the MINT order and also fixes the primary leg (`primaryRole` takes
- * the first STT role), so do not reorder these arrays casually.
- */
-export function expandStreamRoles(shape: SonioxSessionShape): SonioxStreamRole[] {
-    switch (shape.mode) {
-        case "speaker":
-            return shape.textOnly ? ["spk_stt"] : ["spk_stt", "spk_tts"];
-        case "participant":
-            // textOnly is IGNORED here, not defaulted: createParticipantSessionConfig
-            // sets textOnly: true unconditionally, so no participant-side TTS
-            // exists in any mode. bothSplit is meaningless outside `both`.
-            return ["par_stt"];
-        case "both":
-            if (shape.bothSplit) {
-                // Two independent Soniox sessions; attribution is physical.
-                // Only the SPEAKER leg carries synthesis — the participant leg
-                // is text-only by the same hardcoded config as above.
-                return shape.textOnly
-                    ? ["spk_stt", "par_stt"]
-                    : ["spk_stt", "spk_tts", "par_stt"];
-            }
-            // Shared: PcmMixer mixes mic + system audio into ONE stream, so the
-            // role is `mix_*`. Calling it `spk_*` would be a lie about which
-            // audio source feeds it.
-            return shape.textOnly ? ["mix_stt"] : ["mix_stt", "mix_tts"];
-    }
-    // Unreachable while `mode` is the closed union above. The `never`
-    // assignment is what turns ADDING a mode into a compile error rather than
-    // a silent `undefined` role set — `npm run build` (npx tsc --noEmit) is
-    // what enforces it, and CI runs it.
-    const exhaustive: never = shape.mode;
-    throw new Error(`expandStreamRoles: unhandled mode ${String(exhaustive)}`);
-}
-
-/** A temporary key is scoped to ONE usage type. Derived from the role's own
- *  suffix so there is no second table to keep in sync. */
-export function usageTypeForRole(role: SonioxStreamRole): SonioxUsageType {
-    return role.endsWith("_tts") ? "tts_rt" : "transcribe_websocket";
-}
-
-/** How many transcription STREAMS this set opens. Stored on the lease, because
- *  a split Both session must count as two against MAX_STT_CONCURRENT — the
- *  ceiling is on streams, not on leases. */
-export function sttStreamCount(roles: readonly SonioxStreamRole[]): number {
-    return roles.filter((r) => usageTypeForRole(r) === "transcribe_websocket").length;
-}
-
-/** The lease's TTS weight, derived from the expansion rather than from the
- *  request, so the declared mode can never buy an undeclared TTS stream. */
-export function usesTtsFor(roles: readonly SonioxStreamRole[]): boolean {
-    return roles.some((r) => usageTypeForRole(r) === "tts_rt");
-}
-
-/** The lease row's `sku` column, kept for the ledger and the response's legacy
- *  `sku` field. It is NOT what budgeting reads any more — see
- *  `conservativeRateUsdPerHour`. */
-export function skuForRoles(
-    roles: readonly SonioxStreamRole[]
-): "soniox:text_only" | "soniox:speech_to_speech" {
-    return usesTtsFor(roles) ? "soniox:speech_to_speech" : "soniox:text_only";
-}
-
-/**
- * The leg whose key backs the response's FLAT `sttApiKey` / `clientReferenceId`
- * fields: the lease's single STT role — spk_stt for speaker and for both-split,
- * par_stt for participant-only, mix_stt for both-shared.
- *
- * "Primary" cannot simply mean "speaker": a participant-only session has no
- * speaker leg at all, and returning `undefined` there would break a shipped
- * client's very first read of the response.
- */
-export function primaryRole(roles: readonly SonioxStreamRole[]): SonioxStreamRole {
-    const first = roles.find((r) => usageTypeForRole(r) === "transcribe_websocket");
-    if (!first) {
-        // Unreachable through expandStreamRoles (every row has an STT leg) —
-        // loud rather than silent, because a set with no STT leg would also be
-        // a lease that can never release.
-        throw new Error(`primaryRole: role set has no STT stream: ${roles.join(",")}`);
-    }
-    return first;
-}
-```
-
-- [ ] **Step 4: Run it and watch it pass**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
-
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
-git add src/config/soniox.ts src/config/soniox.test.ts
-git commit -m "feat(soniox): expand the mode matrix into a closed stream-role set
-
-Replaces usageTypesForMode. The server owns the expansion, so the seven rows
-of the design's A6 matrix are the only reachable key sets and a client cannot
-name a stream list at all.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
-```
-
----
-
-- [ ] **Step 6: Write the failing test — the normaliser, both vocabularies**
-
-Append to `sokuji-backend/src/config/soniox.test.ts`:
-
-```ts
-import {
-    normalizeSessionShape, keyStartWindowForRole, maxKeyStartWindowS,
-    conservativeRateUsdPerHour, KEY_START_WINDOW_S, PARTICIPANT_KEY_START_WINDOW_S,
-    CONSERVATIVE_RATE_USD_PER_HOUR_PER_STT_STREAM,
-    CONSERVATIVE_RATE_USD_PER_HOUR_PER_TTS_STREAM,
-} from "./soniox";
-
-describe("normalizeSessionShape — two disjoint vocabularies on one key", () => {
-    it("accepts the currently-shipped legacy vocabulary and expands it to the single-stream rows", () => {
-        // These two are what every client in the field posts today. If this
-        // ever 400s, the deploy window takes managed Soniox down.
-        expect(normalizeSessionShape({ mode: "text_only" }))
-            .toEqual({ mode: "speaker", textOnly: true, bothSplit: false });
-        expect(normalizeSessionShape({ mode: "speech_to_speech" }))
-            .toEqual({ mode: "speaker", textOnly: false, bothSplit: false });
-    });
-
-    it("ignores stray textOnly/bothSplit on a legacy body rather than mixing the vocabularies", () => {
-        // A hybrid body is a client bug, not a request for split. The legacy
-        // value fully determines the shape.
-        expect(normalizeSessionShape({ mode: "text_only", textOnly: false, bothSplit: true }))
-            .toEqual({ mode: "speaker", textOnly: true, bothSplit: false });
-    });
-
-    it("accepts the new vocabulary with explicit booleans", () => {
-        expect(normalizeSessionShape({ mode: "speaker", textOnly: false }))
-            .toEqual({ mode: "speaker", textOnly: false, bothSplit: false });
-        expect(normalizeSessionShape({ mode: "both", textOnly: true, bothSplit: true }))
-            .toEqual({ mode: "both", textOnly: true, bothSplit: true });
-        expect(normalizeSessionShape({ mode: "both", textOnly: false, bothSplit: false }))
-            .toEqual({ mode: "both", textOnly: false, bothSplit: false });
-    });
-
-    it("takes participant-only without a textOnly, because the participant config forces it", () => {
-        expect(normalizeSessionShape({ mode: "participant" }))
-            .toEqual({ mode: "participant", textOnly: true, bothSplit: false });
-    });
-
-    it("rejects a new-vocabulary body with a missing or non-boolean textOnly", () => {
-        // Same reasoning as the original "no default for mode": a client bug
-        // that drops textOnly must fail loudly, not silently buy the TTS path.
-        expect(normalizeSessionShape({ mode: "speaker" })).toBeNull();
-        expect(normalizeSessionShape({ mode: "speaker", textOnly: "false" })).toBeNull();
-        expect(normalizeSessionShape({ mode: "both", bothSplit: true })).toBeNull();
-    });
-
-    it("rejects a 'both' body with a missing bothSplit rather than silently choosing shared", () => {
-        // Choosing shared here would quietly halve the price of what the user
-        // asked for and mis-attribute the session's audio.
-        expect(normalizeSessionShape({ mode: "both", textOnly: true })).toBeNull();
-        expect(normalizeSessionShape({ mode: "both", textOnly: true, bothSplit: 1 })).toBeNull();
-    });
-
-    it("rejects everything else with no default", () => {
-        expect(normalizeSessionShape({})).toBeNull();
-        expect(normalizeSessionShape({ mode: "bogus" })).toBeNull();
-        expect(normalizeSessionShape({ mode: "" })).toBeNull();
-        expect(normalizeSessionShape(null)).toBeNull();
-        expect(normalizeSessionShape(undefined)).toBeNull();
-    });
-});
-```
-
-- [ ] **Step 7: Run it and watch it fail**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
-
-Expected: FAIL — `TypeError: normalizeSessionShape is not a function`
-
-- [ ] **Step 8: Implement the normaliser**
-
-Append to the block written in Step 3:
-
-```ts
-/**
- * Turn a request body into the matrix inputs, or null for a loud 400.
- *
- * Discriminates the two vocabularies BY VALUE of `mode` — never by "did the
- * body also carry textOnly". A hybrid body is a client bug and the legacy
- * value wins outright, because guessing would be how a shipped client silently
- * gets a stream set it did not ask for during the deploy window.
- */
-export function normalizeSessionShape(body: unknown): SonioxSessionShape | null {
-    const b = (body ?? {}) as Record<string, unknown>;
-    const mode = b.mode;
-
-    // Vocabulary 1 — currently-shipped clients. `mode` is the BILLING shape and
-    // expands to the legacy single-stream rows. A shipped client running shared
-    // Both lands on spk_stt rather than mix_stt: a labelling imprecision only,
-    // and self-consistent, because session-started infers a lease's single STT
-    // role when the client (as shipped) posts no role at all.
-    if (mode === "text_only") return { mode: "speaker", textOnly: true, bothSplit: false };
-    if (mode === "speech_to_speech") return { mode: "speaker", textOnly: false, bothSplit: false };
-
-    // Vocabulary 2 — new clients. `mode` is the AUDIO shape.
-    if (mode === "participant") {
-        // textOnly is structurally ignored here, so it is not required either.
-        return { mode: "participant", textOnly: true, bothSplit: false };
-    }
-    if (mode === "speaker") {
-        if (typeof b.textOnly !== "boolean") return null;
-        return { mode: "speaker", textOnly: b.textOnly, bothSplit: false };
-    }
-    if (mode === "both") {
-        if (typeof b.textOnly !== "boolean") return null;
-        if (typeof b.bothSplit !== "boolean") return null;
-        return { mode: "both", textOnly: b.textOnly, bothSplit: b.bothSplit };
-    }
-    return null;
-}
-```
-
-- [ ] **Step 9: Run it and watch it pass**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
-
-Expected: PASS on the normaliser describe; the start-window and rate describes are not written yet.
-
-- [ ] **Step 10: Commit**
-
-```bash
-cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
-git add src/config/soniox.ts src/config/soniox.test.ts
-git commit -m "feat(soniox): normalise both mode vocabularies on one request key
-
-'text_only'/'speech_to_speech' and 'speaker'/'participant'/'both' are disjoint
-vocabularies sharing the key 'mode'; discriminate by value so a currently
-shipped body still parses during the deploy window.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
-```
-
----
-
-- [ ] **Step 11: Write the failing test — start windows and the conservative rate**
-
-Append to `sokuji-backend/src/config/soniox.test.ts`:
-
-```ts
-describe("key start windows", () => {
-    it("gives par_stt the wider window, because its leg waits on a loopback permission dialog", () => {
-        expect(keyStartWindowForRole("par_stt")).toBe(PARTICIPANT_KEY_START_WINDOW_S);
-        expect(PARTICIPANT_KEY_START_WINDOW_S).toBe(180);
-        expect(PARTICIPANT_KEY_START_WINDOW_S).toBeGreaterThan(KEY_START_WINDOW_S);
-    });
-
-    it("leaves every other STT role on the short 60s window", () => {
-        expect(keyStartWindowForRole("spk_stt")).toBe(KEY_START_WINDOW_S);
-        expect(keyStartWindowForRole("mix_stt")).toBe(KEY_START_WINDOW_S);
-    });
-
-    it("reports the widest window a set issues, which is what the lease must outlast", () => {
-        expect(maxKeyStartWindowS(["spk_stt", "spk_tts"])).toBe(KEY_START_WINDOW_S);
-        expect(maxKeyStartWindowS(["par_stt"])).toBe(PARTICIPANT_KEY_START_WINDOW_S);
-        expect(maxKeyStartWindowS(["spk_stt", "spk_tts", "par_stt"])).toBe(PARTICIPANT_KEY_START_WINDOW_S);
-    });
-});
-
-describe("conservativeRateUsdPerHour — budgeting only, never charging", () => {
-    it("is K x the worst-case provider cost per stream, K = 2.0", () => {
-        // 0.55/hr worst-case per STT stream, 0.70/hr per TTS stream.
-        expect(CONSERVATIVE_RATE_USD_PER_HOUR_PER_STT_STREAM).toBe(1.1);
-        expect(CONSERVATIVE_RATE_USD_PER_HOUR_PER_TTS_STREAM).toBe(1.4);
-    });
-
-    it("aggregates over the whole set — one number for durationS, the quoted rate and the budget", () => {
-        expect(conservativeRateUsdPerHour(["spk_stt"])).toBe(1.1);
-        expect(conservativeRateUsdPerHour(["par_stt"])).toBe(1.1);
-        expect(conservativeRateUsdPerHour(["mix_stt"])).toBe(1.1);
-        expect(conservativeRateUsdPerHour(["spk_stt", "spk_tts"])).toBe(2.5);
-        expect(conservativeRateUsdPerHour(["mix_stt", "mix_tts"])).toBe(2.5);
-        expect(conservativeRateUsdPerHour(["spk_stt", "par_stt"])).toBe(2.2);
-        expect(conservativeRateUsdPerHour(["spk_stt", "spk_tts", "par_stt"])).toBe(3.6);
-    });
-
-    it("makes split cost 2x shared at the same textOnly setting — decision 2, reflected honestly", () => {
-        expect(conservativeRateUsdPerHour(["spk_stt", "par_stt"]))
-            .toBe(2 * conservativeRateUsdPerHour(["mix_stt"]));
-    });
-
-    it("returns a 2-decimal number, so a rate change cannot leak float dust into a user-visible quote", () => {
-        for (const r of [
-            conservativeRateUsdPerHour(["spk_stt"]),
-            conservativeRateUsdPerHour(["spk_stt", "spk_tts", "par_stt"]),
-        ]) {
-            expect(Math.round(r * 100) / 100).toBe(r);
-        }
-    });
-});
-```
-
-- [ ] **Step 12: Run it and watch it fail**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
-
-Expected: FAIL — `TypeError: keyStartWindowForRole is not a function`
-
-- [ ] **Step 13: Implement the participant window and the rate table**
-
-In `src/config/soniox.ts`, insert immediately after line 26 (`export const KEY_START_WINDOW_S = 60;`):
-
-```ts
-/** `expires_in_seconds` on the PARTICIPANT STT key specifically.
- *
- *  Three times KEY_START_WINDOW_S, and not a copy-paste slip: the participant
- *  leg is acquired AFTER the speaker's, behind the operating system's loopback
- *  / screen-audio permission dialog, which a human has to read and click. The
- *  key is minted inside the speaker's connect(), before that dialog is even
- *  shown, so a 60s window routinely expires while the dialog is still open and
- *  the participant leg 401s for a reason the user cannot act on.
- *
- *  The trade-off is a longer-lived single_use STT key. It is still single_use,
- *  still capped at max_session_duration_seconds, and still useless without the
- *  lease behind it — and `maxKeyStartWindowS` widens that lease to match, so
- *  the key cannot outlive its own lease. */
-export const PARTICIPANT_KEY_START_WINDOW_S = 180;
-```
-
-Then append to the block written in Steps 3 and 8:
-
-```ts
-/** The key start window for one role. Only `par_stt` differs — see
- *  PARTICIPANT_KEY_START_WINDOW_S for why. TTS keys do not use this at all
- *  (their expires_in_seconds is the granted duration). */
-export function keyStartWindowForRole(role: SonioxStreamRole): number {
-    return role === "par_stt" ? PARTICIPANT_KEY_START_WINDOW_S : KEY_START_WINDOW_S;
-}
-
-/** The widest start window this set actually issues.
- *
- *  The LEASE's initial TTL has to cover it. Without this a participant-only
- *  session gets a key valid for 180s behind a lease that dies at 75s: the
- *  client connects at, say, 120s, `markStarted`'s `expires_at > ?` liveness
- *  guard refuses, the lease is never extended, and a second `acquire` can take
- *  the row out from under a session that is genuinely running. */
-export function maxKeyStartWindowS(roles: readonly SonioxStreamRole[]): number {
-    return roles.reduce(
-        (widest, role) => Math.max(widest, keyStartWindowForRole(role)),
-        KEY_START_WINDOW_S
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Budgeting rates (spec A5)
-// ---------------------------------------------------------------------------
-
-// K and the conservative-rate table are NOT defined here. K lives in
-// `src/services/pricing.ts` (Task BE7) and the budgeting rates in
-// `src/services/soniox-budget.ts` (Task BE8), which is why both of those
-// tasks must reach production before this one. Two definitions of a money
-// constant is the failure this note exists to prevent: both would keep
-// producing plausible numbers while disagreeing.
-
-// `conservativeRateUsdPerHour(roles)` is imported from
-// `src/services/soniox-budget.ts` (Task BE8). Do not re-implement it here —
-// it is the ONE budgeting number for a stream set, and it must reach all four
-// of its consumers from a single place or they drift.
-import { conservativeRateUsdPerHour } from "../services/soniox-budget";
-```
-
-- [ ] **Step 14: Run it and watch it pass**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
-
-Expected: PASS
-
-- [ ] **Step 15: Commit**
-
-```bash
-cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
-git add src/config/soniox.ts src/config/soniox.test.ts
-git commit -m "feat(soniox): price a stream set on conservative per-stream rates
-
-K x worst-case provider cost per stream, aggregated over the set, plus the
-participant key's 180s start window and the widest-window helper the lease TTL
-has to follow.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
-```
-
----
-
-- [ ] **Step 16: Write the failing test — the lease's start window follows the widest key**
-
-In `sokuji-backend/src/services/session-lease.test.ts`, change line 3 from:
-
-```ts
-import { MAX_STT_CONCURRENT, MAX_TTS_CONCURRENT } from "../config/soniox";
-```
-
-to:
-
-```ts
-import {
-    MAX_STT_CONCURRENT, MAX_TTS_CONCURRENT,
-    KEY_START_WINDOW_S, LEASE_MARGIN_MS, PARTICIPANT_KEY_START_WINDOW_S,
-} from "../config/soniox";
-```
-
-and append to the end of the file:
-
-```ts
-describe("acquire — the lease's start window must cover the WIDEST key start window issued", () => {
-    it("defaults to KEY_START_WINDOW_S when the caller names no window", async () => {
-        const { env, store } = makeEnv();
-        const svc = new SessionLeaseService(env);
-        await svc.acquire({ ...base, leaseId: "L1", now: 1000 });
-        expect(store["acct1"].expires_at).toBe(1000 + KEY_START_WINDOW_S * 1000 + LEASE_MARGIN_MS);
-    });
-
-    it("honours a wider window, so a 180s participant key cannot outlive its own lease", async () => {
-        // A participant-only session's key is valid for 180s. Left on the 60s
-        // default the lease dies at 75s, markStarted's `expires_at > ?` guard
-        // refuses, and a competing acquire can take the row out from under a
-        // session that is genuinely about to run.
-        const { env, store } = makeEnv();
-        const svc = new SessionLeaseService(env);
-        await svc.acquire({
-            ...base, leaseId: "L1", now: 1000,
-            startWindowS: PARTICIPANT_KEY_START_WINDOW_S,
-        });
-        expect(store["acct1"].expires_at)
-            .toBe(1000 + PARTICIPANT_KEY_START_WINDOW_S * 1000 + LEASE_MARGIN_MS);
-    });
-});
-```
-
-- [ ] **Step 17: Run it and watch it fail**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/services/session-lease.test.ts`
-
-Expected: FAIL on the second case — `AssertionError: expected 76000 to be 196000 // Object.is equality` (the extra param is ignored, so the lease still expires on the 60s window).
-
-- [ ] **Step 18: Implement**
-
-In `src/services/session-lease.ts`, replace lines 21–30 verbatim:
-
-```ts
-export interface AcquireParams {
-    accountId: string;
-    leaseId: string;
-    provider: string;
-    sku: string;
-    usesTts: boolean;
-    maxDurationS: number;
-    budgetMicroUsd: number;
-    now: number;
-}
-```
-
-with (keeping whatever field BE3 added for the STT stream count — shown here as `sttStreamCount`):
-
-```ts
-export interface AcquireParams {
-    accountId: string;
-    leaseId: string;
-    provider: string;
-    sku: string;
-    usesTts: boolean;
-    sttStreamCount: number;
-    maxDurationS: number;
-    budgetMicroUsd: number;
-    /** The widest key START window this session's key set actually issues, in
-     *  seconds. Optional and defaulting to KEY_START_WINDOW_S, so every caller
-     *  that predates split Both keeps today's 75s two-phase TTL exactly.
-     *
-     *  Load-bearing for the participant leg: its key gets
-     *  PARTICIPANT_KEY_START_WINDOW_S (180s) because it waits on a loopback
-     *  permission dialog, and a lease that expires at 75s would refuse that
-     *  leg's markStarted on the liveness guard. */
-    startWindowS?: number;
-    now: number;
-}
-```
-
-and replace line 123:
-
-```ts
-        const initialExpiry = p.now + KEY_START_WINDOW_S * 1000 + LEASE_MARGIN_MS;
-```
-
-with:
-
-```ts
-        const initialExpiry = p.now + (p.startWindowS ?? KEY_START_WINDOW_S) * 1000 + LEASE_MARGIN_MS;
-```
-
-- [ ] **Step 19: Run it and watch it pass**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/services/session-lease.test.ts src/services/session-lease.sqlite.test.ts`
-
-Expected: PASS
-
-- [ ] **Step 20: Commit**
-
-```bash
-cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
-git add src/services/session-lease.ts src/services/session-lease.test.ts
-git commit -m "feat(soniox): let acquire widen the lease's start window to the widest key
-
-A participant STT key lives 180s. Without this the lease still died at 75s and
-the participant leg's markStarted failed its own liveness guard.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
-```
-
----
-
-- [ ] **Step 21: Write the failing test — the two additive route helpers**
-
-Append to `sokuji-backend/src/routes/soniox.test.ts`:
-
-```ts
-import { microUsdAtRate, earliestExpiresAt } from "./soniox";
-
-describe("microUsdAtRate", () => {
-    it("is the same arithmetic the granted duration is divided out of, so the two round-trip", () => {
-        // $1.10/hr for 1800s = $0.55.
-        expect(microUsdAtRate(1.1, 1800)).toBe(550_000);
-        expect(microUsdAtRate(3.6, 3600)).toBe(3_600_000);
-    });
-
-    it("rounds UP, so a partial micro-dollar is never given away", () => {
-        // 60s at $1.10/hr = 18333.33... µUSD.
-        expect(microUsdAtRate(1.1, 60)).toBe(18_334);
-    });
-
-    it("is zero for a non-positive or non-finite duration", () => {
-        expect(microUsdAtRate(1.1, 0)).toBe(0);
-        expect(microUsdAtRate(1.1, -5)).toBe(0);
-        expect(microUsdAtRate(1.1, Number.NaN)).toBe(0);
-    });
-});
-
-describe("earliestExpiresAt", () => {
-    it("returns the EARLIEST expiry, not the last one issued", () => {
-        // The flat `expiresAt` is what a client uses to decide the key set is
-        // still usable. With three keys the honest answer is the first to die —
-        // today's last-wins value is already meaningless.
-        expect(earliestExpiresAt([
-            "2026-01-01T00:03:00Z",
-            "2026-01-01T00:01:00Z",
-            "2026-01-01T01:00:00Z",
-        ])).toBe("2026-01-01T00:01:00Z");
-    });
-
-    it("passes a single value through", () => {
-        expect(earliestExpiresAt(["2026-01-01T00:00:00Z"])).toBe("2026-01-01T00:00:00Z");
-    });
-
-    it("skips values it cannot parse rather than dropping the field", () => {
-        expect(earliestExpiresAt(["not-a-date", "2026-01-01T00:05:00Z"]))
-            .toBe("2026-01-01T00:05:00Z");
-    });
-
-    it("falls back to the first value when NOTHING parses, degrading to today's behaviour", () => {
-        expect(earliestExpiresAt(["not-a-date", "also-not"])).toBe("not-a-date");
-    });
-
-    it("is undefined for an empty set", () => {
-        expect(earliestExpiresAt([])).toBeUndefined();
-    });
-});
-```
-
-- [ ] **Step 22: Run it and watch it fail**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/routes/soniox.test.ts`
-
-Expected: FAIL — `TypeError: microUsdAtRate is not a function`
-
-- [ ] **Step 23: Implement**
-
-In `src/routes/soniox.ts`, insert immediately after the `SessionBudget` interface (after line 19, before `computeSessionBudget`):
-
-```ts
-/**
- * What `seconds` costs at a per-hour rate, in integer µUSD.
- *
- * Deliberately NOT `chargeMicroUsd(sku, …)`: the session budget is now derived
- * from the conservative rate for the whole STREAM SET, which no SKU names.
- * Feeding the budget from a SKU list rate while the granted duration came from
- * the conservative rate is exactly how the on-screen countdown and the real
- * cutoff drift apart.
- */
-export function microUsdAtRate(rateUsdPerHour: number, seconds: number): number {
-    if (!Number.isFinite(seconds) || seconds <= 0) return 0;
-    // Round up so a partial micro-dollar is never given away.
-    return Math.ceil((seconds / 3600) * rateUsdPerHour * MICRO_USD_PER_USD);
-}
-
-/**
- * The flat `expiresAt` field: the EARLIEST expiry among the issued keys.
- *
- * Today's value is whatever the last iteration of the mint loop happened to
- * write, which is already meaningless (the TTS key's expiry is an hour out
- * while the STT key's is 60s). With up to three keys the only useful answer is
- * the first one to die.
- */
-export function earliestExpiresAt(values: readonly string[]): string | undefined {
-    let best: string | undefined;
-    let bestMs = Infinity;
-    for (const v of values) {
-        const ms = Date.parse(v);
-        if (Number.isNaN(ms)) continue;
-        if (ms < bestMs) {
-            bestMs = ms;
-            best = v;
-        }
-    }
-    // If NOTHING parsed, hand back the first value rather than dropping the
-    // field: a change in Soniox's timestamp format should degrade to today's
-    // behaviour, not to a missing expiry the client reads as "no key".
-    return best ?? values[0];
-}
-```
-
-- [ ] **Step 24: Run it and watch it pass**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/routes/soniox.test.ts`
-
-Expected: PASS (38 existing + the new helper tests)
-
-- [ ] **Step 25: Commit**
-
-```bash
-cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
-git add src/routes/soniox.ts src/routes/soniox.test.ts
-git commit -m "feat(soniox): add rate-based budget arithmetic and an earliest-expiry pick
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
-```
-
----
-
-- [ ] **Step 26: Write the failing test — rewrite the test-file fixtures the new contract breaks**
-
-Still in `sokuji-backend/src/routes/soniox.test.ts`, three fixtures must change before any handler test can be written.
-
-**(a)** Replace lines 2–5:
-
-```ts
-import { computeSessionBudget, createSonioxHandlers } from "./soniox";
-import { chargeMicroUsd } from "../services/pricing";
-import { clientRefIdFor } from "../services/session-lease";
-import { KEY_START_WINDOW_S, TTS_KEY_MAX_TTL_S, ttsKeyExpiresInSeconds } from "../config/soniox";
-```
-
-with:
-
-```ts
-import { computeSessionBudget, createSonioxHandlers, microUsdAtRate, earliestExpiresAt } from "./soniox";
-import { baseRefFor, clientRefIdFor } from "../services/session-lease";
-import {
-    KEY_START_WINDOW_S, PARTICIPANT_KEY_START_WINDOW_S, TTS_KEY_MAX_TTL_S,
-    ttsKeyExpiresInSeconds, conservativeRateUsdPerHour,
-} from "../config/soniox";
-```
-
-(and delete the duplicate `import { microUsdAtRate, earliestExpiresAt } from "./soniox";` line added in Step 21.)
-
-**(b)** Replace line 136 inside `fakeLeaseService`:
-
-```ts
-                    clientRefId: clientRefIdFor(p.accountId, p.leaseId),
-```
-
-with:
-
-```ts
-                    // The lease's ref is the THREE-segment base ref; the
-                    // four-segment per-role refs are built by the handler.
-                    clientRefId: baseRefFor(p.accountId, p.leaseId),
-```
-
-**(c)** Replace `capturingSonioxApi` (lines 210–219) so two keys of the same usage type are tellable apart:
-
-```ts
-/** A Soniox API stub that records the exact opts passed to each
- *  createTemporaryKey() call, so tests can assert the per-role
- *  singleUse/expiresInSeconds/clientReferenceId policy without inspecting HTTP
- *  request bodies. The returned apiKey is call-indexed, because a split session
- *  mints TWO transcribe_websocket keys and they must be distinguishable. */
-function capturingSonioxApi(opts: { expiresAt?: string[] } = {}) {
-    const seenOpts: any[] = [];
-    return {
-        createTemporaryKey: async (o: any) => {
-            const i = seenOpts.length;
-            seenOpts.push(o);
-            return {
-                apiKey: `key-${o.usageType}-${i}`,
-                expiresAt: opts.expiresAt?.[i] ?? "2026-01-01T00:00:00Z",
-            };
-        },
-        seenOpts,
-    };
-}
-```
-
-- [ ] **Step 27: Write the failing test — rewrite `computeSessionBudget`'s describe**
-
-Replace lines 7–36 — the whole `describe("computeSessionBudget", …)` block, which currently passes a SKU string — with:
-
-```ts
-describe("computeSessionBudget", () => {
-    it("is an exact division of balance by the SET's conservative rate, not an estimate", () => {
-        // $1.10/hr (one STT stream): $0.55 buys exactly 1800s.
-        expect(computeSessionBudget(550_000, 1.1).durationS).toBe(1800);
-        // $2.50/hr (one STT + one TTS stream): $1.25 buys exactly 1800s.
-        expect(computeSessionBudget(1_250_000, 2.5).durationS).toBe(1800);
-    });
-
-    it("halves the granted duration for split Both at the same balance — decision 2, honestly", () => {
-        const shared = computeSessionBudget(550_000, 1.1).durationS;   // mix_stt
-        const split = computeSessionBudget(550_000, 2.2).durationS;    // spk_stt + par_stt
-        expect(shared).toBe(1800);
-        expect(split).toBe(900);
-    });
-
-    it("caps at one hour however large the balance", () => {
-        expect(computeSessionBudget(100_000_000, 1.1).durationS).toBe(3600);
-        expect(computeSessionBudget(100_000_000, 3.6).durationS).toBe(3600);
-    });
-
-    it("reports affordable=false below one minimum-length session at that rate", () => {
-        // 60s at $1.10/hr rounds up to 18,334 µUSD.
-        expect(computeSessionBudget(18_333, 1.1).affordable).toBe(false);
-        expect(computeSessionBudget(18_334, 1.1).affordable).toBe(true);
-        // 60s at $3.60/hr is exactly 60,000 µUSD — the split speech-to-speech floor.
-        expect(computeSessionBudget(59_999, 3.6).affordable).toBe(false);
-        expect(computeSessionBudget(60_000, 3.6).affordable).toBe(true);
-    });
-
-    it("never returns a duration below the minimum for an affordable balance", () => {
-        expect(computeSessionBudget(18_334, 1.1).durationS).toBe(60);
-    });
-
-    it("echoes the aggregate rate back so the client can meter without its own table", () => {
-        expect(computeSessionBudget(550_000, 2.2).rateUsdPerHour).toBe(2.2);
-    });
-
-    it("throws on a non-positive rate rather than granting an unbounded session", () => {
-        expect(() => computeSessionBudget(550_000, 0)).toThrow(/invalid rate/);
-        expect(() => computeSessionBudget(550_000, Number.NaN)).toThrow(/invalid rate/);
-    });
-});
-```
-
-- [ ] **Step 28: Write the failing test — rewrite the two handler describes the contract makes false**
-
-**(a)** Replace lines 339–390 — the whole `describe("sessionKeyHandler — clientReferenceId in the response (item 7)", …)` block, whose second test asserts ONE shared reference across both key calls — with:
-
-```ts
-describe("sessionKeyHandler — every key carries its OWN four-segment reference", () => {
-    it("puts the PRIMARY leg's own reference in the flat clientReferenceId field", async () => {
-        const { svc: leaseSvc } = fakeLeaseService();
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(10_000_000) as any,
-            makeSessionLeaseService: () => leaseSvc as any,
-            makeSonioxApi: () => fakeSonioxApi() as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({ session: USER, body: { mode: "text_only" } });
-
-        await sessionKeyHandler(c);
-
-        expect(calls.json?.status).toBe(200);
-        // Four segments, ending in the primary role — NOT the lease's bare
-        // three-segment base ref, which no key is bound to any more.
-        expect(calls.json?.body.clientReferenceId)
-            .toBe(clientRefIdFor("u1", calls.json?.body.leaseId, "spk_stt"));
-        expect(calls.json?.body.clientReferenceId).not.toBe(calls.json?.body.leaseId);
-        expect(calls.json?.body.clientReferenceId.split(":")).toHaveLength(4);
-    });
-
-    it("gives the STT and TTS keys DIFFERENT references, because attribution is key-bound", async () => {
-        // Probed live 2026-08-11: Soniox attributes a usage log to the
-        // client_reference_id bound to the KEY and ignores the one the socket
-        // declares. Two keys sharing a reference are indistinguishable in the
-        // usage logs — which is what would make a split session's two legs
-        // untellable apart and the ended mask undriveable.
-        const sonioxApi = capturingSonioxApi();
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(10_000_000) as any,
-            makeSessionLeaseService: () => fakeLeaseService().svc as any,
-            makeSonioxApi: () => sonioxApi as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({ session: USER, body: { mode: "speech_to_speech" } });
-
-        await sessionKeyHandler(c);
-
-        expect(calls.json?.status).toBe(200);
-        expect(sonioxApi.seenOpts).toHaveLength(2);
-        const refs = sonioxApi.seenOpts.map((o) => o.clientReferenceId);
-        expect(new Set(refs).size).toBe(2);
-        const leaseId = calls.json?.body.leaseId;
-        expect(refs).toEqual([
-            clientRefIdFor("u1", leaseId, "spk_stt"),
-            clientRefIdFor("u1", leaseId, "spk_tts"),
-        ]);
-    });
-});
-```
-
-**(b)** Replace lines 392–454 — the whole `describe("sessionKeyHandler — budgetMicroUsd is the session's spendable amount…")` block, which computes its expectations with `chargeMicroUsd(sku, …)` — with:
-
-```ts
-describe("sessionKeyHandler — budgetMicroUsd is the session's spendable amount, not the wallet balance", () => {
-    it("a balance-limited session: budget = balance, at the SET's conservative rate", async () => {
-        // $1.10/hr for one STT stream: $0.55 buys exactly 1800s, so
-        // microUsdAtRate round-trips back to the original balance.
-        const balanceMicroUsd = 550_000;
-        let seenBudget: number | undefined;
-        const { svc: leaseSvc } = fakeLeaseService();
-        const wrappedLease = {
-            ...leaseSvc,
-            acquire: async (p: any) => {
-                seenBudget = p.budgetMicroUsd;
-                return leaseSvc.acquire(p);
-            },
-        };
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(balanceMicroUsd) as any,
-            makeSessionLeaseService: () => wrappedLease as any,
-            makeSonioxApi: () => fakeSonioxApi() as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({ session: USER, body: { mode: "text_only" } });
-
-        await sessionKeyHandler(c);
-
-        const expected = microUsdAtRate(conservativeRateUsdPerHour(["spk_stt"]), 1800);
-        expect(expected).toBe(balanceMicroUsd);
-        expect(calls.json?.body.budgetMicroUsd).toBe(expected);
-        expect(seenBudget).toBe(expected); // same value stored on the lease
-        expect(calls.json?.body.maxSessionDurationSeconds).toBe(1800);
-    });
-
-    it("a cap-limited session: budget is the cost of the capped hour, not the balance", async () => {
-        const balanceMicroUsd = 100_000_000;
-        let seenBudget: number | undefined;
-        const { svc: leaseSvc } = fakeLeaseService();
-        const wrappedLease = {
-            ...leaseSvc,
-            acquire: async (p: any) => {
-                seenBudget = p.budgetMicroUsd;
-                return leaseSvc.acquire(p);
-            },
-        };
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(balanceMicroUsd) as any,
-            makeSessionLeaseService: () => wrappedLease as any,
-            makeSonioxApi: () => fakeSonioxApi() as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({ session: USER, body: { mode: "text_only" } });
-
-        await sessionKeyHandler(c);
-
-        const oneHour = microUsdAtRate(conservativeRateUsdPerHour(["spk_stt"]), 3600);
-        expect(oneHour).toBe(1_100_000);
-        expect(calls.json?.body.maxSessionDurationSeconds).toBe(3600);
-        expect(calls.json?.body.budgetMicroUsd).toBe(oneHour);
-        expect(calls.json?.body.budgetMicroUsd).not.toBe(balanceMicroUsd);
-        expect(seenBudget).toBe(oneHour);
-    });
-});
-```
-
-- [ ] **Step 29: Write the failing test — the legacy replay, i.e. the deploy window**
-
-Append to `sokuji-backend/src/routes/soniox.test.ts`:
-
-```ts
-describe("sessionKeyHandler — currently-shipped request/response shapes still work (deploy window)", () => {
-    it("replays a shipped { mode: 'text_only' } body and returns every flat field that client reads", async () => {
-        const sonioxApi = capturingSonioxApi();
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(10_000_000) as any,
-            makeSessionLeaseService: () => fakeLeaseService().svc as any,
-            makeSonioxApi: () => sonioxApi as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({ session: USER, body: { mode: "text_only" } });
-
-        await sessionKeyHandler(c);
-
-        expect(calls.json?.status).toBe(200);
-        const b = calls.json?.body;
-        expect(typeof b.sttApiKey).toBe("string");
-        expect(b.ttsApiKey).toBeUndefined();
-        expect(typeof b.expiresAt).toBe("string");
-        expect(b.maxSessionDurationSeconds).toBe(3600);
-        expect(typeof b.budgetMicroUsd).toBe("number");
-        expect(b.rateUsdPerHour).toBe(conservativeRateUsdPerHour(["spk_stt"]));
-        expect(b.sku).toBe("soniox:text_only");
-        expect(typeof b.leaseId).toBe("string");
-        expect(typeof b.clientReferenceId).toBe("string");
-        // The legacy single-stream set: exactly one key, transcription only.
-        expect(sonioxApi.seenOpts).toHaveLength(1);
-        expect(sonioxApi.seenOpts[0].usageType).toBe("transcribe_websocket");
-        expect(sonioxApi.seenOpts[0].singleUse).toBe(true);
-        expect(sonioxApi.seenOpts[0].expiresInSeconds).toBe(KEY_START_WINDOW_S);
-    });
-
-    it("replays a shipped { mode: 'speech_to_speech' } body as the two-key set", async () => {
-        const sonioxApi = capturingSonioxApi();
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(10_000_000) as any,
-            makeSessionLeaseService: () => fakeLeaseService().svc as any,
-            makeSonioxApi: () => sonioxApi as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({ session: USER, body: { mode: "speech_to_speech" } });
-
-        await sessionKeyHandler(c);
-
-        expect(calls.json?.status).toBe(200);
-        expect(calls.json?.body.sku).toBe("soniox:speech_to_speech");
-        expect(typeof calls.json?.body.sttApiKey).toBe("string");
-        expect(typeof calls.json?.body.ttsApiKey).toBe("string");
-        expect(sonioxApi.seenOpts.map((o) => o.usageType))
-            .toEqual(["transcribe_websocket", "tts_rt"]);
-    });
-});
-```
-
-- [ ] **Step 30: Write the failing test — the new vocabulary and split minting**
-
-Append to `sokuji-backend/src/routes/soniox.test.ts`:
-
-```ts
-describe("sessionKeyHandler — the new mode/textOnly/bothSplit vocabulary (spec A6)", () => {
-    it("split Both with speech mints THREE keys, each bound to its own four-segment reference", async () => {
-        const sonioxApi = capturingSonioxApi();
-        let seenAcquire: any;
-        const { svc: leaseSvc } = fakeLeaseService();
-        const wrappedLease = {
-            ...leaseSvc,
-            acquire: async (p: any) => { seenAcquire = p; return leaseSvc.acquire(p); },
-        };
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(100_000_000) as any,
-            makeSessionLeaseService: () => wrappedLease as any,
-            makeSonioxApi: () => sonioxApi as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({
-            session: USER,
-            body: { mode: "both", textOnly: false, bothSplit: true },
-        });
-
-        await sessionKeyHandler(c);
-
-        expect(calls.json?.status).toBe(200);
-        const leaseId = calls.json?.body.leaseId;
-
-        expect(sonioxApi.seenOpts.map((o) => o.usageType))
-            .toEqual(["transcribe_websocket", "tts_rt", "transcribe_websocket"]);
-        expect(sonioxApi.seenOpts.map((o) => o.clientReferenceId)).toEqual([
-            clientRefIdFor("u1", leaseId, "spk_stt"),
-            clientRefIdFor("u1", leaseId, "spk_tts"),
-            clientRefIdFor("u1", leaseId, "par_stt"),
-        ]);
-
-        // Start windows: the participant leg waits on a permission dialog.
-        expect(sonioxApi.seenOpts[0].expiresInSeconds).toBe(KEY_START_WINDOW_S);
-        expect(sonioxApi.seenOpts[2].expiresInSeconds).toBe(PARTICIPANT_KEY_START_WINDOW_S);
-        // Both STT keys share the cutoff, so both legs 403 in the same second.
-        expect(sonioxApi.seenOpts[0].maxSessionDurationSeconds)
-            .toBe(sonioxApi.seenOpts[2].maxSessionDurationSeconds);
-        // single_use holds per KIND, not per leg.
-        expect(sonioxApi.seenOpts.map((o) => o.singleUse)).toEqual([true, false, true]);
-
-        // The lease carries the counts the server derived, not anything the
-        // client declared.
-        expect(seenAcquire.sttStreamCount).toBe(2);
-        expect(seenAcquire.usesTts).toBe(true);
-        expect(seenAcquire.startWindowS).toBe(PARTICIPANT_KEY_START_WINDOW_S);
-
-        // Per-stream structure, plus the flat fields from the primary leg.
-        expect(calls.json?.body.streams.map((s: any) => s.role))
-            .toEqual(["spk_stt", "spk_tts", "par_stt"]);
-        expect(calls.json?.body.sttApiKey).toBe(calls.json?.body.streams[0].apiKey);
-        expect(calls.json?.body.ttsApiKey).toBe(calls.json?.body.streams[1].apiKey);
-        expect(calls.json?.body.clientReferenceId)
-            .toBe(clientRefIdFor("u1", leaseId, "spk_stt"));
-        expect(calls.json?.body.rateUsdPerHour)
-            .toBe(conservativeRateUsdPerHour(["spk_stt", "spk_tts", "par_stt"]));
-    });
-
-    it("participant-only mints ONE key and takes its flat fields from par_stt, not from an absent speaker", async () => {
-        const sonioxApi = capturingSonioxApi();
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(10_000_000) as any,
-            makeSessionLeaseService: () => fakeLeaseService().svc as any,
-            makeSonioxApi: () => sonioxApi as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({ session: USER, body: { mode: "participant" } });
-
-        await sessionKeyHandler(c);
-
-        expect(calls.json?.status).toBe(200);
-        expect(sonioxApi.seenOpts).toHaveLength(1);
-        expect(sonioxApi.seenOpts[0].expiresInSeconds).toBe(PARTICIPANT_KEY_START_WINDOW_S);
-        expect(calls.json?.body.ttsApiKey).toBeUndefined();
-        expect(calls.json?.body.clientReferenceId)
-            .toBe(clientRefIdFor("u1", calls.json?.body.leaseId, "par_stt"));
-        expect(calls.json?.body.streams.map((s: any) => s.role)).toEqual(["par_stt"]);
-    });
-
-    it("split Both text-only halves the granted duration at the same balance", async () => {
-        const make = (body: any) => {
-            const { sessionKeyHandler } = createSonioxHandlers({
-                makeWalletService: () => fakeWallet(550_000) as any,
-                makeSessionLeaseService: () => fakeLeaseService().svc as any,
-                makeSonioxApi: () => fakeSonioxApi() as any,
-                makeSonioxReconciler: () => fakeReconciler().svc,
-                makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-            });
-            return { handler: sessionKeyHandler, ctx: makeCtx({ session: USER, body }) };
-        };
-
-        const shared = make({ mode: "both", textOnly: true, bothSplit: false });
-        await shared.handler(shared.ctx.c);
-        const split = make({ mode: "both", textOnly: true, bothSplit: true });
-        await split.handler(split.ctx.c);
-
-        expect(shared.ctx.calls.json?.body.maxSessionDurationSeconds).toBe(1800);
-        expect(split.ctx.calls.json?.body.maxSessionDurationSeconds).toBe(900);
-    });
-
-    it("400s a 'both' body with no bothSplit rather than silently choosing shared", async () => {
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(10_000_000) as any,
-            makeSessionLeaseService: () => fakeLeaseService().svc as any,
-            makeSonioxApi: () => fakeSonioxApi() as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({ session: USER, body: { mode: "both", textOnly: true } });
-        await sessionKeyHandler(c);
-        expect(calls.json?.status).toBe(400);
-    });
-
-    it("400s a 'speaker' body with no textOnly rather than silently buying the TTS path", async () => {
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(10_000_000) as any,
-            makeSessionLeaseService: () => fakeLeaseService().svc as any,
-            makeSonioxApi: () => fakeSonioxApi() as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({ session: USER, body: { mode: "speaker" } });
-        await sessionKeyHandler(c);
-        expect(calls.json?.status).toBe(400);
-    });
-});
-
-describe("sessionKeyHandler — the flat expiresAt is the EARLIEST key expiry", () => {
-    it("reports the first key to die, not the last one minted", async () => {
-        // The TTS key lives an hour; the STT keys live 60s/180s. Reporting the
-        // loop's last write (today's behaviour) tells a client the whole set is
-        // good for an hour when its transcription key is already gone.
-        const sonioxApi = capturingSonioxApi({
-            expiresAt: [
-                "2026-01-01T00:01:00Z", // spk_stt
-                "2026-01-01T01:00:00Z", // spk_tts
-                "2026-01-01T00:03:00Z", // par_stt
-            ],
-        });
-        const { sessionKeyHandler } = createSonioxHandlers({
-            makeWalletService: () => fakeWallet(100_000_000) as any,
-            makeSessionLeaseService: () => fakeLeaseService().svc as any,
-            makeSonioxApi: () => sonioxApi as any,
-            makeSonioxReconciler: () => fakeReconciler().svc,
-            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
-        });
-        const { c, calls } = makeCtx({
-            session: USER,
-            body: { mode: "both", textOnly: false, bothSplit: true },
-        });
-
-        await sessionKeyHandler(c);
-
-        expect(calls.json?.status).toBe(200);
-        expect(calls.json?.body.expiresAt).toBe("2026-01-01T00:01:00Z");
-    });
-});
-```
-
-- [ ] **Step 31: Run it and watch it fail**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/routes/soniox.test.ts`
-
-Expected: FAIL on many cases at once, headlined by `Error: No rate configured for SKU "1.1"` (the old `computeSessionBudget` still looks its second argument up in `RATE_USD_PER_HOUR`) and `AssertionError: expected 400 to be 200` on every new-vocabulary case (the old `isSonioxMode` guard rejects `mode: "both"`).
-
-- [ ] **Step 32: Implement — imports, `computeSessionBudget`, and deleting `isSonioxMode`**
-
-**(a)** In `src/routes/soniox.ts`, replace lines 5–12 verbatim:
-
-```ts
-import { createSessionLeaseService, type SessionLeaseService } from "../services/session-lease";
-import { createVoiceSlotService, type VoiceSlotService } from "../services/voice-slot";
-import { createWalletService, type WalletService } from "../services/wallet-service";
-import {
-    MAX_SESSION_S, MIN_SESSION_S, KEY_START_WINDOW_S, ttsKeyExpiresInSeconds,
-    skuForMode, usageTypesForMode, type SonioxMode,
-} from "../config/soniox";
-import { RATE_USD_PER_HOUR, minBalanceMicroUsd, chargeMicroUsd, MICRO_USD_PER_USD } from "../services/pricing";
-```
-
-with:
-
-```ts
-import { clientRefIdFor, createSessionLeaseService, type SessionLeaseService } from "../services/session-lease";
-import { createVoiceSlotService, type VoiceSlotService } from "../services/voice-slot";
-import { createWalletService, type WalletService } from "../services/wallet-service";
-import {
-    MAX_SESSION_S, MIN_SESSION_S, ttsKeyExpiresInSeconds,
-    normalizeSessionShape, expandStreamRoles, usageTypeForRole, primaryRole,
-    skuForRoles, sttStreamCount, usesTtsFor, keyStartWindowForRole,
-    maxKeyStartWindowS, conservativeRateUsdPerHour,
-    type SonioxStreamRole,
-} from "../config/soniox";
-import { MICRO_USD_PER_USD } from "../services/pricing";
-```
-
-**(b)** Replace `computeSessionBudget` (lines 21–37) verbatim:
-
-```ts
-/**
- * How long a balance buys at a SKU's rate.
- *
- * Because Part A charges by time, this is a division rather than a guess — which
- * is why the session budget is exact and overdraft is structurally ~zero.
- */
-export function computeSessionBudget(balanceMicroUsd: number, sku: string): SessionBudget {
-    const rate = (RATE_USD_PER_HOUR as Record<string, number>)[sku];
-    if (rate == null) throw new Error(`No rate configured for SKU "${sku}"`);
-    const floor = minBalanceMicroUsd(sku, MIN_SESSION_S);
-    if (!Number.isFinite(balanceMicroUsd) || balanceMicroUsd < floor) {
-        return { affordable: false, durationS: 0, rateUsdPerHour: rate };
-    }
-    const seconds = (balanceMicroUsd / MICRO_USD_PER_USD / rate) * 3600;
-    const durationS = Math.min(MAX_SESSION_S, Math.max(MIN_SESSION_S, Math.floor(seconds)));
-    return { affordable: true, durationS, rateUsdPerHour: rate };
-}
-```
-
-with:
-
-```ts
-/**
- * How long a balance buys at the CONSERVATIVE AGGREGATE RATE for this
- * session's whole stream set.
- *
- * Takes a rate, not a SKU, because a split Both session's stream set has no
- * SKU: a SKU names a billing shape, and this is now an allowance estimate.
- * The caller derives the rate from the expansion (`conservativeRateUsdPerHour`)
- * so that ONE number feeds durationS, the rate quoted back to the client, and
- * budgetMicroUsd. Two of them coming from different tables is how the on-screen
- * countdown and the real cutoff drift apart.
- */
-export function computeSessionBudget(balanceMicroUsd: number, rateUsdPerHour: number): SessionBudget {
-    // Fail loudly: a zero or NaN rate would divide out to an unbounded session.
-    if (!Number.isFinite(rateUsdPerHour) || rateUsdPerHour <= 0) {
-        throw new Error(`computeSessionBudget: invalid rate ${rateUsdPerHour}`);
-    }
-    const floor = microUsdAtRate(rateUsdPerHour, MIN_SESSION_S);
-    if (!Number.isFinite(balanceMicroUsd) || balanceMicroUsd < floor) {
-        return { affordable: false, durationS: 0, rateUsdPerHour };
-    }
-    const seconds = (balanceMicroUsd / MICRO_USD_PER_USD / rateUsdPerHour) * 3600;
-    const durationS = Math.min(MAX_SESSION_S, Math.max(MIN_SESSION_S, Math.floor(seconds)));
-    return { affordable: true, durationS, rateUsdPerHour };
-}
-```
-
-**(c)** Delete `isSonioxMode` (lines 47–49) verbatim:
-
-```ts
-function isSonioxMode(v: unknown): v is SonioxMode {
-    return v === "text_only" || v === "speech_to_speech";
-}
-```
-
-- [ ] **Step 33: Implement — the handler's front half (validation, expansion, lease)**
-
-In `src/routes/soniox.ts`, replace lines 141–213 of `sessionKeyHandler` — from `let body: any = {};` down to and including the `stt_full | tts_full` return — with:
-
-```ts
-        let body: any = {};
-        try {
-            body = await c.req.json();
-        } catch {
-            body = {};
-        }
-
-        // TWO DISJOINT VOCABULARIES SHARE THE KEY `mode`, and
-        // `normalizeSessionShape` discriminates them by VALUE:
-        // 'text_only'/'speech_to_speech' are the currently-shipped BILLING
-        // shape and expand to the legacy single-stream rows;
-        // 'speaker'/'participant'/'both' are the new AUDIO shape, with
-        // textOnly/bothSplit alongside. Still no default: a client bug that
-        // drops `mode` (or drops `textOnly` on the new path) must fail loudly
-        // rather than silently buy the more expensive synthesis path.
-        const shape = normalizeSessionShape(body);
-        if (!shape) {
-            return c.json({
-                error: "Invalid mode. Use { mode: 'speaker'|'participant'|'both', textOnly, bothSplit }, or the legacy 'text_only'|'speech_to_speech'",
-            }, 400);
-        }
-
-        // THE SERVER owns the expansion. This is the only source of the key
-        // set — never a client-supplied stream list with a blocklist, which is
-        // strictly weaker (see `expandStreamRoles`). Everything below derives
-        // from it: which keys to mint, each key's reference, uses_tts, the STT
-        // stream count and the budget rate.
-        const roles = expandStreamRoles(shape);
-        const sku = skuForRoles(roles);
-        const usesTts = usesTtsFor(roles);
-        const sttCount = sttStreamCount(roles);
-        const rateUsdPerHour = conservativeRateUsdPerHour(roles);
-
-        const walletService = deps.makeWalletService(c.env);
-        const balance = await walletService.getBalance("user", userId);
-        // getBalance returns null ONLY on a DB error (a genuinely missing wallet
-        // row comes back as a valid zero-balance object) — fail closed with 503,
-        // the same status TranslateRelayDO/VolcengineAST2RelayDO use for this
-        // exact case, rather than reporting a transient infra failure as a
-        // permission error the client would read as "don't retry".
-        if (!balance) {
-            return c.json({ error: "Wallet unavailable" }, 503);
-        }
-        if (balance.frozen) {
-            return c.json({ error: "Wallet is frozen" }, 403);
-        }
-
-        const budget = computeSessionBudget(balance.balanceMicroUsd, rateUsdPerHour);
-        if (!budget.affordable) {
-            return c.json({ error: "Insufficient balance" }, 402);
-        }
-
-        // What THIS session can actually consume, not the whole wallet balance:
-        // durationS is capped at MAX_SESSION_S, so a large balance must not be
-        // advertised as spendable in one session. Computed from the SAME rate
-        // the duration was divided out of, so the client's countdown tracks the
-        // session's real cutoff.
-        const sessionBudgetMicroUsd = microUsdAtRate(rateUsdPerHour, budget.durationS);
-
-        const leaseService = deps.makeSessionLeaseService(c.env);
-        const leaseId = crypto.randomUUID();
-        const now = Date.now();
-
-        const acquireResult = await leaseService.acquire({
-            accountId: userId,
-            leaseId,
-            provider: "soniox",
-            sku,
-            usesTts,
-            // Concurrency is counted per STREAM, not per lease: a split Both
-            // session opens two transcriptions and must count as two against
-            // MAX_STT_CONCURRENT.
-            sttStreamCount: sttCount,
-            maxDurationS: budget.durationS,
-            budgetMicroUsd: sessionBudgetMicroUsd,
-            // The lease has to outlast the widest key start window this set
-            // issues — 180s when a par_stt key is in it.
-            startWindowS: maxKeyStartWindowS(roles),
-            now,
-        });
-
-        if (!acquireResult.ok) {
-            if (acquireResult.reason === "active_lease") {
-                // A user is actively blocked on this lease right now -- poke for
-                // an immediate sweep, not the debounced one session-end uses,
-                // and mark it `blocked` so the reconciler uses the 409 gate
-                // rather than the idle heartbeat's. Without that flag a client
-                // that force-quit (no `session-end`, expiry up to an hour out)
-                // matched nothing, so relaunching hit this same 409 until the
-                // lease expired.
-                c.executionCtx.waitUntil(deps.makeSonioxReconciler(c.env).poke({ blocked: true }));
-                return c.json({ error: "Another session is already active", retryAfterMs: 3000 }, 409);
-            }
-            // stt_full | tts_full — the org-wide Soniox concurrency ceiling, not a
-            // per-account problem.
-            return c.json({ error: "Soniox capacity is temporarily full" }, 503);
-        }
-```
-
-- [ ] **Step 34: Implement — the handler's back half (per-role minting and the response)**
-
-Replace the remainder of `sessionKeyHandler` — from `const lease = acquireResult.lease;` (line 215) through the closing `});` of the final `c.json` (line 310) — with:
-
-```ts
-        const lease = acquireResult.lease;
-        const sonioxApi = deps.makeSonioxApi(c.env);
-
-        const streams: Array<{
-            role: SonioxStreamRole;
-            apiKey: string;
-            clientReferenceId: string;
-            expiresAt: string;
-        }> = [];
-
-        try {
-            for (const role of roles) {
-                const usageType = usageTypeForRole(role);
-                const isTts = usageType === "tts_rt";
-
-                // ONE KEY, ONE REFERENCE, ONE ROLE — required, not merely tidy.
-                // Probed live 2026-08-11: Soniox attributes a usage log to the
-                // client_reference_id bound to the KEY and ignores the one the
-                // socket declares in its config frame. Two streams sharing a key
-                // are therefore indistinguishable in the usage logs, so a split
-                // session's two legs could not be told apart and the lease's
-                // ended-mask could not be driven at all. The reference the
-                // client echoes on its socket frames is inert; it is a no-op and
-                // must never be the only thing carrying a role.
-                const clientReferenceId = clientRefIdFor(lease.accountId, lease.leaseId, role);
-
-                const key = await sonioxApi.createTemporaryKey({
-                    usageType,
-                    // STT keys: single_use, with only a START window —
-                    // KEY_START_WINDOW_S (60s), or PARTICIPANT_KEY_START_WINDOW_S
-                    // (180s) for par_stt, whose leg waits on a loopback
-                    // permission dialog. single_use is what stops one issued key
-                    // opening two concurrent transcriptions.
-                    //
-                    // TTS key: MUST be reusable and MUST outlive the session,
-                    // because the client is *designed* to reconnect the TTS
-                    // socket — Soniox drops an idle TTS stream after ~5.3s (408;
-                    // measured live against tts-rt-v1), so a reconnect happens
-                    // after almost every conversational pause, and a single_use
-                    // key 401s on that reconnect. So its expires_in_seconds is
-                    // the granted duration, clamped by ttsKeyExpiresInSeconds /
-                    // TTS_KEY_MAX_TTL_S — Soniox's own, independent 3600s
-                    // ceiling on this field.
-                    //
-                    // ACCEPTED RISK, RESTATED: two premises of the old version of
-                    // this comment are now false, so it is rewritten rather than
-                    // trimmed. A reusable TTS key alive for the whole session
-                    // lets a client open several concurrent TTS sockets with it.
-                    //   (1) It is NO LONGER true that this costs the wallet
-                    //       nothing. TTS logs used to be recorded cost-only
-                    //       (sku: null -> amount 0). Under cost x K charging every
-                    //       tts-* log bills the USER, so the exposure is now the
-                    //       account's own balance, not pure provider spend.
-                    //   (2) It is NO LONGER true that "one active lease at a
-                    //       time" bounds it to one key per account. The key
-                    //       outlives its lease, Soniox has no revoke API, and a
-                    //       client running short sessions accumulates
-                    //       independently valid keys as fast as leases release.
-                    // What DOES bound it: the key stops working after this
-                    // session's granted duration (<= TTS_KEY_MAX_TTL_S); every
-                    // socket opened with it is independently capped at
-                    // max_session_duration_seconds; MAX_TTS_CONCURRENT caps the
-                    // whole org's open TTS streams; and the NUMBER of keys minted
-                    // is decided here by the server-side expansion, which can
-                    // never issue more than one TTS key for a session.
-                    expiresInSeconds: isTts
-                        ? ttsKeyExpiresInSeconds(budget.durationS)
-                        : keyStartWindowForRole(role),
-                    // Both STT keys of a split session share this, so at the
-                    // granted-duration cutoff both legs 403 within the same
-                    // second rather than one outliving the other.
-                    maxSessionDurationSeconds: budget.durationS,
-                    clientReferenceId,
-                    singleUse: !isTts,
-                });
-
-                streams.push({ role, apiKey: key.apiKey, clientReferenceId, expiresAt: key.expiresAt });
-            }
-        } catch (error) {
-            // A Soniox failure must not leave the account locked behind a lease
-            // whose only purpose was to guard a session that never started.
-            //
-            // NAMED, not widened silently: a partial mint now leaks up to TWO
-            // already-issued keys instead of one (split speech-to-speech mints
-            // spk_stt, spk_tts, par_stt in that order, so a failure on the third
-            // leaves the first two live), and one of them is the non-single_use
-            // TTS key. Soniox has no revoke API, so the leaked keys are bounded
-            // only by their own expires_in_seconds — the STT ones by their start
-            // window, the TTS one by the granted duration.
-            await leaseService.release(lease.clientRefId, Date.now());
-            console.error("Soniox createTemporaryKey failed:", error);
-            return c.json({ error: "Failed to issue Soniox session key" }, 502);
-        }
-
-        // The PRIMARY leg backs the flat, legacy response fields: the lease's
-        // single STT role — spk_stt for speaker and for both-split, par_stt for
-        // participant-only, mix_stt for both-shared.
-        const primary = primaryRole(roles);
-        const primaryStream = streams.find((s) => s.role === primary);
-        if (!primaryStream) {
-            // Unreachable: `roles` always contains its own primary role and the
-            // loop above either minted every key or threw. Loud rather than a
-            // response with a missing sttApiKey, which a client reads as "no key".
-            throw new Error(`sessionKeyHandler: no key minted for primary role ${primary}`);
-        }
-        // At most one TTS role exists in any row of the matrix, so this find is
-        // unambiguous by construction.
-        const ttsStream = streams.find((s) => usageTypeForRole(s.role) === "tts_rt");
-
-        return c.json({
-            // --- flat fields, kept so a currently-shipped client is unchanged
-            // during the deploy window ---
-            sttApiKey: primaryStream.apiKey,
-            ttsApiKey: ttsStream?.apiKey,
-            // The EARLIEST expiry among the issued keys. Today's value is
-            // whichever the mint loop wrote last, which is already meaningless.
-            expiresAt: earliestExpiresAt(streams.map((s) => s.expiresAt)),
-            maxSessionDurationSeconds: budget.durationS,
-            budgetMicroUsd: sessionBudgetMicroUsd,
-            // An AGGREGATE allowance rate for the whole stream set, not a
-            // per-stream price and no longer a per-SKU list price.
-            rateUsdPerHour: budget.rateUsdPerHour,
-            sku,
-            leaseId,
-            // The PRIMARY leg's own four-segment reference — the exact value
-            // bound to that key. A client may still echo it as
-            // client_reference_id on its socket frames; that echo is a
-            // documented NO-OP (Soniox honours the key-bound value), kept only
-            // because removing it buys nothing.
-            clientReferenceId: primaryStream.clientReferenceId,
-            // --- additive: one entry per Soniox stream this session may open ---
-            streams,
-        });
-```
-
-`src/services/soniox-api.ts` is **unchanged**: `clientReferenceId` is already a per-call field on `CreateTemporaryKeyOpts`, so per-stream references need nothing there. Do not go looking for a change in that file.
-
-- [ ] **Step 35: Run it and watch it pass**
-
-Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run && npx tsc --noEmit`
-
-Expected: PASS — the whole backend suite green, and `tsc --noEmit` clean (CI runs it via `npm run build`).
-
-- [ ] **Step 36: Commit**
-
-```bash
-cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
-git add src/routes/soniox.ts src/routes/soniox.test.ts
-git commit -m "feat(soniox): mint one key per stream, each with its own role reference
-
-sessionKeyHandler expands the matrix inputs server-side and mints up to three
-temporary keys, each bound to its own four-segment client_reference_id --
-required, because Soniox attributes usage to the key-bound reference and
-ignores the socket-level one. The response gains a per-stream structure while
-every flat field stays, populated from the primary STT leg; expiresAt becomes
-the earliest expiry among the issued keys.
-
-Budgeting moves to a conservative aggregate rate for the stream set, so a
-single-stream user is quoted a shorter duration at the same balance.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
-```
-
----
-
 ### Task BE7: Cost-based charging — `usdToMicroUsd(cost_usd) × K` with K = 2.0, opt-in per `ChargeRequest`, with a time-based floor
 
 **Repo for this whole task: `/home/jiangzhuo/Desktop/kizunaai/sokuji-backend`.** Every path below is relative to it; run every command from that directory.
@@ -7623,6 +5911,1718 @@ estimate. The Start floor rises from 10_000/25_000 to 18_334/41_667 uUSD.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 EOF
 )"
+```
+
+---
+
+### Task BE6: Server-side stream expansion, per-role key minting, additive response
+
+**Files:**
+- Modify: `sokuji-backend/src/config/soniox.ts` (add after line 26; replace lines 73–86)
+- Modify: `sokuji-backend/src/services/session-lease.ts` (lines 21–30, line 123)
+- Modify: `sokuji-backend/src/routes/soniox.ts` (lines 5–12, 15–37, 47–49, 133–311)
+- Create: `sokuji-backend/src/config/soniox.test.ts`
+- Test: `sokuji-backend/src/services/session-lease.test.ts` (line 3 import; add one describe)
+- Test: `sokuji-backend/src/routes/soniox.test.ts` (replace lines 2–5, 7–36, 136, 210–219, 339–390, 392–454; add three describes)
+
+**Interfaces:**
+
+- Consumes (from BE2, `src/config/soniox.ts`):
+  `export type SonioxStreamRole = "spk_stt" | "spk_tts" | "par_stt" | "par_tts" | "mix_stt" | "mix_tts"`
+- Consumes (from BE2, `src/services/session-lease.ts`):
+  `export function clientRefIdFor(accountId: string, leaseId: string, role: SonioxStreamRole): string`
+  `export function baseRefFor(accountId: string, leaseId: string): string`
+- Consumes (from BE3, `src/services/session-lease.ts`): `AcquireParams` has gained `sttStreamCount: number`, and `acquire` writes it into the `INSERT`.
+- Produces (`src/config/soniox.ts`):
+  `export const PARTICIPANT_KEY_START_WINDOW_S = 180`
+  `export const REVENUE_COEFFICIENT_K = 2.0`
+  `export const CONSERVATIVE_RATE_USD_PER_HOUR_PER_STT_STREAM = 1.1`
+  `export const CONSERVATIVE_RATE_USD_PER_HOUR_PER_TTS_STREAM = 1.4`
+  `export type SonioxAudioMode = "speaker" | "participant" | "both"`
+  `export interface SonioxSessionShape { mode: SonioxAudioMode; textOnly: boolean; bothSplit: boolean }`
+  `export function normalizeSessionShape(body: unknown): SonioxSessionShape | null`
+  `export function expandStreamRoles(shape: SonioxSessionShape): SonioxStreamRole[]`
+  `export function usageTypeForRole(role: SonioxStreamRole): SonioxUsageType`
+  `export function sttStreamCount(roles: readonly SonioxStreamRole[]): number`
+  `export function usesTtsFor(roles: readonly SonioxStreamRole[]): boolean`
+  `export function skuForRoles(roles: readonly SonioxStreamRole[]): "soniox:text_only" | "soniox:speech_to_speech"`
+  `export function primaryRole(roles: readonly SonioxStreamRole[]): SonioxStreamRole`
+  `export function keyStartWindowForRole(role: SonioxStreamRole): number`
+  `export function maxKeyStartWindowS(roles: readonly SonioxStreamRole[]): number`
+  `export function conservativeRateUsdPerHour(roles: readonly SonioxStreamRole[]): number`
+  (`skuForMode` and `usageTypesForMode` are DELETED — nothing else in the repo imports them; verified by grep.)
+- Produces (`src/services/session-lease.ts`): `AcquireParams` gains `startWindowS?: number`.
+- Produces (`src/routes/soniox.ts`):
+  `export function computeSessionBudget(balanceMicroUsd: number, rateUsdPerHour: number): SessionBudget`
+  `export function microUsdAtRate(rateUsdPerHour: number, seconds: number): number`
+  `export function earliestExpiresAt(values: readonly string[]): string | undefined`
+- Produces (wire): `POST /soniox/session-key` response gains
+  `streams: Array<{ role: SonioxStreamRole; apiKey: string; clientReferenceId: string; expiresAt: string }>`
+  while `sttApiKey` / `ttsApiKey` / `clientReferenceId` stay and come from the primary leg, and `expiresAt` becomes the **earliest** expiry among issued keys.
+
+**What this task deliberately changes for already-shipped clients** (put it in the PR body; do not let a reviewer discover it):
+a shipped `{ mode: "text_only" }` request keeps working, and its response keeps every field it reads — but `rateUsdPerHour` moves from `0.6` to `1.1`, and `speech_to_speech` from `1.5` to `2.5`, because budgeting now runs on conservative per-stream rates (1.10/hr per `*_stt`, 1.40/hr per `*_tts` = K × worst-case provider cost, K = 2.0). At the same balance a single-stream user is quoted a **shorter** duration than today while, under BE7's cost × K charging, typically being **charged less**. Pinning the legacy rows to today's 0.6/1.5 was considered and rejected: it re-opens overdraft under cost × K.
+
+---
+
+- [ ] **Step 1: Write the failing test — the expansion is total and closed**
+
+Create `sokuji-backend/src/config/soniox.test.ts`:
+
+```ts
+import { describe, it, expect } from "vitest";
+import {
+    expandStreamRoles, usageTypeForRole, sttStreamCount, usesTtsFor,
+    skuForRoles, primaryRole,
+    type SonioxSessionShape, type SonioxStreamRole,
+} from "./soniox";
+
+/** EVERY input the expansion can ever be handed: 3 modes x textOnly x bothSplit.
+ *  Enumerated rather than sampled, because "total and closed" is the property
+ *  under test — a spot check cannot tell an eighth reachable role set from a
+ *  seventh. */
+const ALL_SHAPES: SonioxSessionShape[] = (["speaker", "participant", "both"] as const).flatMap(
+    (mode) => [true, false].flatMap(
+        (textOnly) => [true, false].map((bothSplit) => ({ mode, textOnly, bothSplit }))
+    )
+);
+
+describe("expandStreamRoles — total and closed (spec A6)", () => {
+    it("reaches exactly the seven rows of the matrix and nothing else", () => {
+        const reachable = new Set(ALL_SHAPES.map((s) => expandStreamRoles(s).join(",")));
+        expect([...reachable].sort()).toEqual([
+            "mix_stt",
+            "mix_stt,mix_tts",
+            "par_stt",
+            "spk_stt",
+            "spk_stt,par_stt",
+            "spk_stt,spk_tts",
+            "spk_stt,spk_tts,par_stt",
+        ]);
+    });
+
+    it("maps each matrix row to its exact role list, in mint order", () => {
+        expect(expandStreamRoles({ mode: "speaker", textOnly: true, bothSplit: false })).toEqual(["spk_stt"]);
+        expect(expandStreamRoles({ mode: "speaker", textOnly: false, bothSplit: false })).toEqual(["spk_stt", "spk_tts"]);
+        expect(expandStreamRoles({ mode: "participant", textOnly: true, bothSplit: false })).toEqual(["par_stt"]);
+        expect(expandStreamRoles({ mode: "both", textOnly: true, bothSplit: false })).toEqual(["mix_stt"]);
+        expect(expandStreamRoles({ mode: "both", textOnly: false, bothSplit: false })).toEqual(["mix_stt", "mix_tts"]);
+        expect(expandStreamRoles({ mode: "both", textOnly: true, bothSplit: true })).toEqual(["spk_stt", "par_stt"]);
+        expect(expandStreamRoles({ mode: "both", textOnly: false, bothSplit: true })).toEqual(["spk_stt", "spk_tts", "par_stt"]);
+    });
+
+    it("ignores textOnly for participant-only — createParticipantSessionConfig forces text", () => {
+        expect(expandStreamRoles({ mode: "participant", textOnly: false, bothSplit: true })).toEqual(["par_stt"]);
+    });
+
+    it("ignores bothSplit outside 'both' — a split speaker-only session is not a thing", () => {
+        expect(expandStreamRoles({ mode: "speaker", textOnly: true, bothSplit: true })).toEqual(["spk_stt"]);
+    });
+
+    it("never returns par_tts: the participant channel has no synthesis in v1", () => {
+        for (const s of ALL_SHAPES) {
+            expect(expandStreamRoles(s)).not.toContain("par_tts" as SonioxStreamRole);
+        }
+    });
+
+    it("never returns more than ONE tts stream, so no request can mint two reusable TTS keys", () => {
+        // The structural property A2 demands and a client-declared stream list
+        // with a blocklist cannot give: ['spk_tts'] alone is not merely
+        // rejected, it is unrepresentable.
+        for (const s of ALL_SHAPES) {
+            const tts = expandStreamRoles(s).filter((r) => usageTypeForRole(r) === "tts_rt");
+            expect(tts.length).toBeLessThanOrEqual(1);
+        }
+    });
+
+    it("always contains at least one STT stream, so the started/ended mask is never vacuous", () => {
+        // A role set with zero STT roles would make `(ended & started) === started`
+        // true forever with started === 0, i.e. a lease that can never release.
+        for (const s of ALL_SHAPES) {
+            expect(sttStreamCount(expandStreamRoles(s))).toBeGreaterThanOrEqual(1);
+        }
+    });
+});
+
+describe("derivations off the expansion", () => {
+    it("counts STT streams for the lease's concurrency weight", () => {
+        expect(sttStreamCount(["spk_stt"])).toBe(1);
+        expect(sttStreamCount(["spk_stt", "spk_tts"])).toBe(1);
+        expect(sttStreamCount(["spk_stt", "spk_tts", "par_stt"])).toBe(2);
+    });
+
+    it("derives uses_tts and the SKU from the roles, never from the request", () => {
+        expect(usesTtsFor(["spk_stt"])).toBe(false);
+        expect(usesTtsFor(["spk_stt", "par_stt"])).toBe(false);
+        expect(usesTtsFor(["mix_stt", "mix_tts"])).toBe(true);
+        expect(skuForRoles(["spk_stt", "par_stt"])).toBe("soniox:text_only");
+        expect(skuForRoles(["spk_stt", "spk_tts", "par_stt"])).toBe("soniox:speech_to_speech");
+    });
+
+    it("names the primary leg as the FIRST STT role — spk_stt, par_stt or mix_stt, never a TTS role", () => {
+        expect(primaryRole(["spk_stt", "spk_tts"])).toBe("spk_stt");
+        expect(primaryRole(["par_stt"])).toBe("par_stt");
+        expect(primaryRole(["mix_stt", "mix_tts"])).toBe("mix_stt");
+        // Split Both has two STT legs; the speaker is the primary one.
+        expect(primaryRole(["spk_stt", "spk_tts", "par_stt"])).toBe("spk_stt");
+    });
+
+    it("maps roles to Soniox usage types by suffix", () => {
+        expect(usageTypeForRole("spk_stt")).toBe("transcribe_websocket");
+        expect(usageTypeForRole("par_stt")).toBe("transcribe_websocket");
+        expect(usageTypeForRole("mix_stt")).toBe("transcribe_websocket");
+        expect(usageTypeForRole("spk_tts")).toBe("tts_rt");
+        expect(usageTypeForRole("mix_tts")).toBe("tts_rt");
+    });
+});
+```
+
+- [ ] **Step 2: Run it and watch it fail**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
+
+Expected: FAIL — `TypeError: expandStreamRoles is not a function` (vite-node resolves a missing named export to `undefined` rather than throwing at import, so the failure surfaces at the first call).
+
+- [ ] **Step 3: Implement the expansion and its derivations**
+
+In `src/config/soniox.ts`, DELETE lines 73–86 verbatim:
+
+```ts
+export function skuForMode(mode: SonioxMode): "soniox:text_only" | "soniox:speech_to_speech" {
+    return mode === "speech_to_speech" ? "soniox:speech_to_speech" : "soniox:text_only";
+}
+
+/**
+ * A temporary key is scoped to ONE usage type, so speech-to-speech needs two.
+ * This is also why the client's declared mode is self-enforcing: asking for
+ * text_only yields no TTS key, so the cheap rate cannot buy the expensive path.
+ */
+export function usageTypesForMode(mode: SonioxMode): SonioxUsageType[] {
+    return mode === "speech_to_speech"
+        ? ["transcribe_websocket", "tts_rt"]
+        : ["transcribe_websocket"];
+}
+```
+
+and put this in its place:
+
+```ts
+// ---------------------------------------------------------------------------
+// Stream roles and the mode matrix (spec A2 / A6)
+// ---------------------------------------------------------------------------
+
+/**
+ * The AUDIO shape of a session. This is vocabulary TWO of the two DISJOINT
+ * vocabularies that share the request key `mode`:
+ *
+ *   vocabulary 1 (legacy, currently shipped): "text_only" | "speech_to_speech"
+ *                — a BILLING shape, with no textOnly/bothSplit fields at all.
+ *   vocabulary 2 (this one):                  "speaker" | "participant" | "both"
+ *                — an AUDIO shape, with textOnly and bothSplit alongside it.
+ *
+ * They are told apart by VALUE and nothing else (see `normalizeSessionShape`).
+ * An implementer who assumes one vocabulary either 400s every currently-shipped
+ * client during the deploy window, or mis-expands a new one.
+ */
+export type SonioxAudioMode = "speaker" | "participant" | "both";
+
+/** The matrix inputs the client sends. NOT a stream list: see
+ *  `expandStreamRoles` for why the server owns the expansion. */
+export interface SonioxSessionShape {
+    mode: SonioxAudioMode;
+    textOnly: boolean;
+    bothSplit: boolean;
+}
+
+/**
+ * The ONLY source of a session's key set. Total over its input and closed over
+ * its output: exactly the seven rows of spec A6 are reachable and nothing else.
+ *
+ * This replaces `usageTypesForMode` and keeps its self-enforcing property. The
+ * alternative — a client-declared stream list validated by a blocklist — is
+ * strictly weaker: a request for `['spk_tts']` alone passes "no par_tts" and
+ * "at most one *_tts", yet mints a non-single_use TTS key valid for the whole
+ * granted duration against an API with no revoke, while an empty STT
+ * expectation makes the mask release predicate vacuously true forever. Here
+ * that request is not rejected, it is unrepresentable.
+ *
+ * Order is the MINT order and also fixes the primary leg (`primaryRole` takes
+ * the first STT role), so do not reorder these arrays casually.
+ */
+export function expandStreamRoles(shape: SonioxSessionShape): SonioxStreamRole[] {
+    switch (shape.mode) {
+        case "speaker":
+            return shape.textOnly ? ["spk_stt"] : ["spk_stt", "spk_tts"];
+        case "participant":
+            // textOnly is IGNORED here, not defaulted: createParticipantSessionConfig
+            // sets textOnly: true unconditionally, so no participant-side TTS
+            // exists in any mode. bothSplit is meaningless outside `both`.
+            return ["par_stt"];
+        case "both":
+            if (shape.bothSplit) {
+                // Two independent Soniox sessions; attribution is physical.
+                // Only the SPEAKER leg carries synthesis — the participant leg
+                // is text-only by the same hardcoded config as above.
+                return shape.textOnly
+                    ? ["spk_stt", "par_stt"]
+                    : ["spk_stt", "spk_tts", "par_stt"];
+            }
+            // Shared: PcmMixer mixes mic + system audio into ONE stream, so the
+            // role is `mix_*`. Calling it `spk_*` would be a lie about which
+            // audio source feeds it.
+            return shape.textOnly ? ["mix_stt"] : ["mix_stt", "mix_tts"];
+    }
+    // Unreachable while `mode` is the closed union above. The `never`
+    // assignment is what turns ADDING a mode into a compile error rather than
+    // a silent `undefined` role set — `npm run build` (npx tsc --noEmit) is
+    // what enforces it, and CI runs it.
+    const exhaustive: never = shape.mode;
+    throw new Error(`expandStreamRoles: unhandled mode ${String(exhaustive)}`);
+}
+
+/** A temporary key is scoped to ONE usage type. Derived from the role's own
+ *  suffix so there is no second table to keep in sync. */
+export function usageTypeForRole(role: SonioxStreamRole): SonioxUsageType {
+    return role.endsWith("_tts") ? "tts_rt" : "transcribe_websocket";
+}
+
+/** How many transcription STREAMS this set opens. Stored on the lease, because
+ *  a split Both session must count as two against MAX_STT_CONCURRENT — the
+ *  ceiling is on streams, not on leases. */
+export function sttStreamCount(roles: readonly SonioxStreamRole[]): number {
+    return roles.filter((r) => usageTypeForRole(r) === "transcribe_websocket").length;
+}
+
+/** The lease's TTS weight, derived from the expansion rather than from the
+ *  request, so the declared mode can never buy an undeclared TTS stream. */
+export function usesTtsFor(roles: readonly SonioxStreamRole[]): boolean {
+    return roles.some((r) => usageTypeForRole(r) === "tts_rt");
+}
+
+/** The lease row's `sku` column, kept for the ledger and the response's legacy
+ *  `sku` field. It is NOT what budgeting reads any more — see
+ *  `conservativeRateUsdPerHour`. */
+export function skuForRoles(
+    roles: readonly SonioxStreamRole[]
+): "soniox:text_only" | "soniox:speech_to_speech" {
+    return usesTtsFor(roles) ? "soniox:speech_to_speech" : "soniox:text_only";
+}
+
+/**
+ * The leg whose key backs the response's FLAT `sttApiKey` / `clientReferenceId`
+ * fields: the lease's single STT role — spk_stt for speaker and for both-split,
+ * par_stt for participant-only, mix_stt for both-shared.
+ *
+ * "Primary" cannot simply mean "speaker": a participant-only session has no
+ * speaker leg at all, and returning `undefined` there would break a shipped
+ * client's very first read of the response.
+ */
+export function primaryRole(roles: readonly SonioxStreamRole[]): SonioxStreamRole {
+    const first = roles.find((r) => usageTypeForRole(r) === "transcribe_websocket");
+    if (!first) {
+        // Unreachable through expandStreamRoles (every row has an STT leg) —
+        // loud rather than silent, because a set with no STT leg would also be
+        // a lease that can never release.
+        throw new Error(`primaryRole: role set has no STT stream: ${roles.join(",")}`);
+    }
+    return first;
+}
+```
+
+- [ ] **Step 4: Run it and watch it pass**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
+git add src/config/soniox.ts src/config/soniox.test.ts
+git commit -m "feat(soniox): expand the mode matrix into a closed stream-role set
+
+Replaces usageTypesForMode. The server owns the expansion, so the seven rows
+of the design's A6 matrix are the only reachable key sets and a client cannot
+name a stream list at all.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+```
+
+---
+
+- [ ] **Step 6: Write the failing test — the normaliser, both vocabularies**
+
+Append to `sokuji-backend/src/config/soniox.test.ts`:
+
+```ts
+import {
+    normalizeSessionShape, keyStartWindowForRole, maxKeyStartWindowS,
+    conservativeRateUsdPerHour, KEY_START_WINDOW_S, PARTICIPANT_KEY_START_WINDOW_S,
+    CONSERVATIVE_RATE_USD_PER_HOUR_PER_STT_STREAM,
+    CONSERVATIVE_RATE_USD_PER_HOUR_PER_TTS_STREAM,
+} from "./soniox";
+
+describe("normalizeSessionShape — two disjoint vocabularies on one key", () => {
+    it("accepts the currently-shipped legacy vocabulary and expands it to the single-stream rows", () => {
+        // These two are what every client in the field posts today. If this
+        // ever 400s, the deploy window takes managed Soniox down.
+        expect(normalizeSessionShape({ mode: "text_only" }))
+            .toEqual({ mode: "speaker", textOnly: true, bothSplit: false });
+        expect(normalizeSessionShape({ mode: "speech_to_speech" }))
+            .toEqual({ mode: "speaker", textOnly: false, bothSplit: false });
+    });
+
+    it("ignores stray textOnly/bothSplit on a legacy body rather than mixing the vocabularies", () => {
+        // A hybrid body is a client bug, not a request for split. The legacy
+        // value fully determines the shape.
+        expect(normalizeSessionShape({ mode: "text_only", textOnly: false, bothSplit: true }))
+            .toEqual({ mode: "speaker", textOnly: true, bothSplit: false });
+    });
+
+    it("accepts the new vocabulary with explicit booleans", () => {
+        expect(normalizeSessionShape({ mode: "speaker", textOnly: false }))
+            .toEqual({ mode: "speaker", textOnly: false, bothSplit: false });
+        expect(normalizeSessionShape({ mode: "both", textOnly: true, bothSplit: true }))
+            .toEqual({ mode: "both", textOnly: true, bothSplit: true });
+        expect(normalizeSessionShape({ mode: "both", textOnly: false, bothSplit: false }))
+            .toEqual({ mode: "both", textOnly: false, bothSplit: false });
+    });
+
+    it("takes participant-only without a textOnly, because the participant config forces it", () => {
+        expect(normalizeSessionShape({ mode: "participant" }))
+            .toEqual({ mode: "participant", textOnly: true, bothSplit: false });
+    });
+
+    it("rejects a new-vocabulary body with a missing or non-boolean textOnly", () => {
+        // Same reasoning as the original "no default for mode": a client bug
+        // that drops textOnly must fail loudly, not silently buy the TTS path.
+        expect(normalizeSessionShape({ mode: "speaker" })).toBeNull();
+        expect(normalizeSessionShape({ mode: "speaker", textOnly: "false" })).toBeNull();
+        expect(normalizeSessionShape({ mode: "both", bothSplit: true })).toBeNull();
+    });
+
+    it("rejects a 'both' body with a missing bothSplit rather than silently choosing shared", () => {
+        // Choosing shared here would quietly halve the price of what the user
+        // asked for and mis-attribute the session's audio.
+        expect(normalizeSessionShape({ mode: "both", textOnly: true })).toBeNull();
+        expect(normalizeSessionShape({ mode: "both", textOnly: true, bothSplit: 1 })).toBeNull();
+    });
+
+    it("rejects everything else with no default", () => {
+        expect(normalizeSessionShape({})).toBeNull();
+        expect(normalizeSessionShape({ mode: "bogus" })).toBeNull();
+        expect(normalizeSessionShape({ mode: "" })).toBeNull();
+        expect(normalizeSessionShape(null)).toBeNull();
+        expect(normalizeSessionShape(undefined)).toBeNull();
+    });
+});
+```
+
+- [ ] **Step 7: Run it and watch it fail**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
+
+Expected: FAIL — `TypeError: normalizeSessionShape is not a function`
+
+- [ ] **Step 8: Implement the normaliser**
+
+Append to the block written in Step 3:
+
+```ts
+/**
+ * Turn a request body into the matrix inputs, or null for a loud 400.
+ *
+ * Discriminates the two vocabularies BY VALUE of `mode` — never by "did the
+ * body also carry textOnly". A hybrid body is a client bug and the legacy
+ * value wins outright, because guessing would be how a shipped client silently
+ * gets a stream set it did not ask for during the deploy window.
+ */
+export function normalizeSessionShape(body: unknown): SonioxSessionShape | null {
+    const b = (body ?? {}) as Record<string, unknown>;
+    const mode = b.mode;
+
+    // Vocabulary 1 — currently-shipped clients. `mode` is the BILLING shape and
+    // expands to the legacy single-stream rows. A shipped client running shared
+    // Both lands on spk_stt rather than mix_stt: a labelling imprecision only,
+    // and self-consistent, because session-started infers a lease's single STT
+    // role when the client (as shipped) posts no role at all.
+    if (mode === "text_only") return { mode: "speaker", textOnly: true, bothSplit: false };
+    if (mode === "speech_to_speech") return { mode: "speaker", textOnly: false, bothSplit: false };
+
+    // Vocabulary 2 — new clients. `mode` is the AUDIO shape.
+    if (mode === "participant") {
+        // textOnly is structurally ignored here, so it is not required either.
+        return { mode: "participant", textOnly: true, bothSplit: false };
+    }
+    if (mode === "speaker") {
+        if (typeof b.textOnly !== "boolean") return null;
+        return { mode: "speaker", textOnly: b.textOnly, bothSplit: false };
+    }
+    if (mode === "both") {
+        if (typeof b.textOnly !== "boolean") return null;
+        if (typeof b.bothSplit !== "boolean") return null;
+        return { mode: "both", textOnly: b.textOnly, bothSplit: b.bothSplit };
+    }
+    return null;
+}
+```
+
+- [ ] **Step 9: Run it and watch it pass**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
+
+Expected: PASS on the normaliser describe; the start-window and rate describes are not written yet.
+
+- [ ] **Step 10: Commit**
+
+```bash
+cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
+git add src/config/soniox.ts src/config/soniox.test.ts
+git commit -m "feat(soniox): normalise both mode vocabularies on one request key
+
+'text_only'/'speech_to_speech' and 'speaker'/'participant'/'both' are disjoint
+vocabularies sharing the key 'mode'; discriminate by value so a currently
+shipped body still parses during the deploy window.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+```
+
+---
+
+- [ ] **Step 11: Write the failing test — start windows and the conservative rate**
+
+Append to `sokuji-backend/src/config/soniox.test.ts`:
+
+```ts
+describe("key start windows", () => {
+    it("gives par_stt the wider window, because its leg waits on a loopback permission dialog", () => {
+        expect(keyStartWindowForRole("par_stt")).toBe(PARTICIPANT_KEY_START_WINDOW_S);
+        expect(PARTICIPANT_KEY_START_WINDOW_S).toBe(180);
+        expect(PARTICIPANT_KEY_START_WINDOW_S).toBeGreaterThan(KEY_START_WINDOW_S);
+    });
+
+    it("leaves every other STT role on the short 60s window", () => {
+        expect(keyStartWindowForRole("spk_stt")).toBe(KEY_START_WINDOW_S);
+        expect(keyStartWindowForRole("mix_stt")).toBe(KEY_START_WINDOW_S);
+    });
+
+    it("reports the widest window a set issues, which is what the lease must outlast", () => {
+        expect(maxKeyStartWindowS(["spk_stt", "spk_tts"])).toBe(KEY_START_WINDOW_S);
+        expect(maxKeyStartWindowS(["par_stt"])).toBe(PARTICIPANT_KEY_START_WINDOW_S);
+        expect(maxKeyStartWindowS(["spk_stt", "spk_tts", "par_stt"])).toBe(PARTICIPANT_KEY_START_WINDOW_S);
+    });
+});
+
+describe("conservativeRateUsdPerHour — budgeting only, never charging", () => {
+    it("is K x the worst-case provider cost per stream, K = 2.0", () => {
+        // 0.55/hr worst-case per STT stream, 0.70/hr per TTS stream.
+        expect(CONSERVATIVE_RATE_USD_PER_HOUR_PER_STT_STREAM).toBe(1.1);
+        expect(CONSERVATIVE_RATE_USD_PER_HOUR_PER_TTS_STREAM).toBe(1.4);
+    });
+
+    it("aggregates over the whole set — one number for durationS, the quoted rate and the budget", () => {
+        expect(conservativeRateUsdPerHour(["spk_stt"])).toBe(1.1);
+        expect(conservativeRateUsdPerHour(["par_stt"])).toBe(1.1);
+        expect(conservativeRateUsdPerHour(["mix_stt"])).toBe(1.1);
+        expect(conservativeRateUsdPerHour(["spk_stt", "spk_tts"])).toBe(2.5);
+        expect(conservativeRateUsdPerHour(["mix_stt", "mix_tts"])).toBe(2.5);
+        expect(conservativeRateUsdPerHour(["spk_stt", "par_stt"])).toBe(2.2);
+        expect(conservativeRateUsdPerHour(["spk_stt", "spk_tts", "par_stt"])).toBe(3.6);
+    });
+
+    it("makes split cost 2x shared at the same textOnly setting — decision 2, reflected honestly", () => {
+        expect(conservativeRateUsdPerHour(["spk_stt", "par_stt"]))
+            .toBe(2 * conservativeRateUsdPerHour(["mix_stt"]));
+    });
+
+    it("returns a 2-decimal number, so a rate change cannot leak float dust into a user-visible quote", () => {
+        for (const r of [
+            conservativeRateUsdPerHour(["spk_stt"]),
+            conservativeRateUsdPerHour(["spk_stt", "spk_tts", "par_stt"]),
+        ]) {
+            expect(Math.round(r * 100) / 100).toBe(r);
+        }
+    });
+});
+```
+
+- [ ] **Step 12: Run it and watch it fail**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
+
+Expected: FAIL — `TypeError: keyStartWindowForRole is not a function`
+
+- [ ] **Step 13: Implement the participant window and the rate table**
+
+In `src/config/soniox.ts`, insert immediately after line 26 (`export const KEY_START_WINDOW_S = 60;`):
+
+```ts
+/** `expires_in_seconds` on the PARTICIPANT STT key specifically.
+ *
+ *  Three times KEY_START_WINDOW_S, and not a copy-paste slip: the participant
+ *  leg is acquired AFTER the speaker's, behind the operating system's loopback
+ *  / screen-audio permission dialog, which a human has to read and click. The
+ *  key is minted inside the speaker's connect(), before that dialog is even
+ *  shown, so a 60s window routinely expires while the dialog is still open and
+ *  the participant leg 401s for a reason the user cannot act on.
+ *
+ *  The trade-off is a longer-lived single_use STT key. It is still single_use,
+ *  still capped at max_session_duration_seconds, and still useless without the
+ *  lease behind it — and `maxKeyStartWindowS` widens that lease to match, so
+ *  the key cannot outlive its own lease. */
+export const PARTICIPANT_KEY_START_WINDOW_S = 180;
+```
+
+Then append to the block written in Steps 3 and 8:
+
+```ts
+/** The key start window for one role. Only `par_stt` differs — see
+ *  PARTICIPANT_KEY_START_WINDOW_S for why. TTS keys do not use this at all
+ *  (their expires_in_seconds is the granted duration). */
+export function keyStartWindowForRole(role: SonioxStreamRole): number {
+    return role === "par_stt" ? PARTICIPANT_KEY_START_WINDOW_S : KEY_START_WINDOW_S;
+}
+
+/** The widest start window this set actually issues.
+ *
+ *  The LEASE's initial TTL has to cover it. Without this a participant-only
+ *  session gets a key valid for 180s behind a lease that dies at 75s: the
+ *  client connects at, say, 120s, `markStarted`'s `expires_at > ?` liveness
+ *  guard refuses, the lease is never extended, and a second `acquire` can take
+ *  the row out from under a session that is genuinely running. */
+export function maxKeyStartWindowS(roles: readonly SonioxStreamRole[]): number {
+    return roles.reduce(
+        (widest, role) => Math.max(widest, keyStartWindowForRole(role)),
+        KEY_START_WINDOW_S
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Budgeting rates (spec A5)
+// ---------------------------------------------------------------------------
+
+// K and the conservative-rate table are NOT defined here. K lives in
+// `src/services/pricing.ts` (Task BE7) and the budgeting rates in
+// `src/services/soniox-budget.ts` (Task BE8), which is why both of those
+// tasks must reach production before this one. Two definitions of a money
+// constant is the failure this note exists to prevent: both would keep
+// producing plausible numbers while disagreeing.
+
+// `conservativeRateUsdPerHour(roles)` is imported from
+// `src/services/soniox-budget.ts` (Task BE8). Do not re-implement it here —
+// it is the ONE budgeting number for a stream set, and it must reach all four
+// of its consumers from a single place or they drift.
+import { conservativeRateUsdPerHour } from "../services/soniox-budget";
+```
+
+- [ ] **Step 14: Run it and watch it pass**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/config/soniox.test.ts`
+
+Expected: PASS
+
+- [ ] **Step 15: Commit**
+
+```bash
+cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
+git add src/config/soniox.ts src/config/soniox.test.ts
+git commit -m "feat(soniox): price a stream set on conservative per-stream rates
+
+K x worst-case provider cost per stream, aggregated over the set, plus the
+participant key's 180s start window and the widest-window helper the lease TTL
+has to follow.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+```
+
+---
+
+- [ ] **Step 16: Write the failing test — the lease's start window follows the widest key**
+
+In `sokuji-backend/src/services/session-lease.test.ts`, change line 3 from:
+
+```ts
+import { MAX_STT_CONCURRENT, MAX_TTS_CONCURRENT } from "../config/soniox";
+```
+
+to:
+
+```ts
+import {
+    MAX_STT_CONCURRENT, MAX_TTS_CONCURRENT,
+    KEY_START_WINDOW_S, LEASE_MARGIN_MS, PARTICIPANT_KEY_START_WINDOW_S,
+} from "../config/soniox";
+```
+
+and append to the end of the file:
+
+```ts
+describe("acquire — the lease's start window must cover the WIDEST key start window issued", () => {
+    it("defaults to KEY_START_WINDOW_S when the caller names no window", async () => {
+        const { env, store } = makeEnv();
+        const svc = new SessionLeaseService(env);
+        await svc.acquire({ ...base, leaseId: "L1", now: 1000 });
+        expect(store["acct1"].expires_at).toBe(1000 + KEY_START_WINDOW_S * 1000 + LEASE_MARGIN_MS);
+    });
+
+    it("honours a wider window, so a 180s participant key cannot outlive its own lease", async () => {
+        // A participant-only session's key is valid for 180s. Left on the 60s
+        // default the lease dies at 75s, markStarted's `expires_at > ?` guard
+        // refuses, and a competing acquire can take the row out from under a
+        // session that is genuinely about to run.
+        const { env, store } = makeEnv();
+        const svc = new SessionLeaseService(env);
+        await svc.acquire({
+            ...base, leaseId: "L1", now: 1000,
+            startWindowS: PARTICIPANT_KEY_START_WINDOW_S,
+        });
+        expect(store["acct1"].expires_at)
+            .toBe(1000 + PARTICIPANT_KEY_START_WINDOW_S * 1000 + LEASE_MARGIN_MS);
+    });
+});
+```
+
+- [ ] **Step 17: Run it and watch it fail**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/services/session-lease.test.ts`
+
+Expected: FAIL on the second case — `AssertionError: expected 76000 to be 196000 // Object.is equality` (the extra param is ignored, so the lease still expires on the 60s window).
+
+- [ ] **Step 18: Implement**
+
+In `src/services/session-lease.ts`, replace lines 21–30 verbatim:
+
+```ts
+export interface AcquireParams {
+    accountId: string;
+    leaseId: string;
+    provider: string;
+    sku: string;
+    usesTts: boolean;
+    maxDurationS: number;
+    budgetMicroUsd: number;
+    now: number;
+}
+```
+
+with (keeping whatever field BE3 added for the STT stream count — shown here as `sttStreamCount`):
+
+```ts
+export interface AcquireParams {
+    accountId: string;
+    leaseId: string;
+    provider: string;
+    sku: string;
+    usesTts: boolean;
+    sttStreamCount: number;
+    maxDurationS: number;
+    budgetMicroUsd: number;
+    /** The widest key START window this session's key set actually issues, in
+     *  seconds. Optional and defaulting to KEY_START_WINDOW_S, so every caller
+     *  that predates split Both keeps today's 75s two-phase TTL exactly.
+     *
+     *  Load-bearing for the participant leg: its key gets
+     *  PARTICIPANT_KEY_START_WINDOW_S (180s) because it waits on a loopback
+     *  permission dialog, and a lease that expires at 75s would refuse that
+     *  leg's markStarted on the liveness guard. */
+    startWindowS?: number;
+    now: number;
+}
+```
+
+and replace line 123:
+
+```ts
+        const initialExpiry = p.now + KEY_START_WINDOW_S * 1000 + LEASE_MARGIN_MS;
+```
+
+with:
+
+```ts
+        const initialExpiry = p.now + (p.startWindowS ?? KEY_START_WINDOW_S) * 1000 + LEASE_MARGIN_MS;
+```
+
+- [ ] **Step 19: Run it and watch it pass**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/services/session-lease.test.ts src/services/session-lease.sqlite.test.ts`
+
+Expected: PASS
+
+- [ ] **Step 20: Commit**
+
+```bash
+cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
+git add src/services/session-lease.ts src/services/session-lease.test.ts
+git commit -m "feat(soniox): let acquire widen the lease's start window to the widest key
+
+A participant STT key lives 180s. Without this the lease still died at 75s and
+the participant leg's markStarted failed its own liveness guard.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+```
+
+---
+
+- [ ] **Step 21: Write the failing test — the two additive route helpers**
+
+Append to `sokuji-backend/src/routes/soniox.test.ts`:
+
+```ts
+import { microUsdAtRate, earliestExpiresAt } from "./soniox";
+
+describe("microUsdAtRate", () => {
+    it("is the same arithmetic the granted duration is divided out of, so the two round-trip", () => {
+        // $1.10/hr for 1800s = $0.55.
+        expect(microUsdAtRate(1.1, 1800)).toBe(550_000);
+        expect(microUsdAtRate(3.6, 3600)).toBe(3_600_000);
+    });
+
+    it("rounds UP, so a partial micro-dollar is never given away", () => {
+        // 60s at $1.10/hr = 18333.33... µUSD.
+        expect(microUsdAtRate(1.1, 60)).toBe(18_334);
+    });
+
+    it("is zero for a non-positive or non-finite duration", () => {
+        expect(microUsdAtRate(1.1, 0)).toBe(0);
+        expect(microUsdAtRate(1.1, -5)).toBe(0);
+        expect(microUsdAtRate(1.1, Number.NaN)).toBe(0);
+    });
+});
+
+describe("earliestExpiresAt", () => {
+    it("returns the EARLIEST expiry, not the last one issued", () => {
+        // The flat `expiresAt` is what a client uses to decide the key set is
+        // still usable. With three keys the honest answer is the first to die —
+        // today's last-wins value is already meaningless.
+        expect(earliestExpiresAt([
+            "2026-01-01T00:03:00Z",
+            "2026-01-01T00:01:00Z",
+            "2026-01-01T01:00:00Z",
+        ])).toBe("2026-01-01T00:01:00Z");
+    });
+
+    it("passes a single value through", () => {
+        expect(earliestExpiresAt(["2026-01-01T00:00:00Z"])).toBe("2026-01-01T00:00:00Z");
+    });
+
+    it("skips values it cannot parse rather than dropping the field", () => {
+        expect(earliestExpiresAt(["not-a-date", "2026-01-01T00:05:00Z"]))
+            .toBe("2026-01-01T00:05:00Z");
+    });
+
+    it("falls back to the first value when NOTHING parses, degrading to today's behaviour", () => {
+        expect(earliestExpiresAt(["not-a-date", "also-not"])).toBe("not-a-date");
+    });
+
+    it("is undefined for an empty set", () => {
+        expect(earliestExpiresAt([])).toBeUndefined();
+    });
+});
+```
+
+- [ ] **Step 22: Run it and watch it fail**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/routes/soniox.test.ts`
+
+Expected: FAIL — `TypeError: microUsdAtRate is not a function`
+
+- [ ] **Step 23: Implement**
+
+In `src/routes/soniox.ts`, insert immediately after the `SessionBudget` interface (after line 19, before `computeSessionBudget`):
+
+```ts
+/**
+ * What `seconds` costs at a per-hour rate, in integer µUSD.
+ *
+ * Deliberately NOT `chargeMicroUsd(sku, …)`: the session budget is now derived
+ * from the conservative rate for the whole STREAM SET, which no SKU names.
+ * Feeding the budget from a SKU list rate while the granted duration came from
+ * the conservative rate is exactly how the on-screen countdown and the real
+ * cutoff drift apart.
+ */
+export function microUsdAtRate(rateUsdPerHour: number, seconds: number): number {
+    if (!Number.isFinite(seconds) || seconds <= 0) return 0;
+    // Round up so a partial micro-dollar is never given away.
+    return Math.ceil((seconds / 3600) * rateUsdPerHour * MICRO_USD_PER_USD);
+}
+
+/**
+ * The flat `expiresAt` field: the EARLIEST expiry among the issued keys.
+ *
+ * Today's value is whatever the last iteration of the mint loop happened to
+ * write, which is already meaningless (the TTS key's expiry is an hour out
+ * while the STT key's is 60s). With up to three keys the only useful answer is
+ * the first one to die.
+ */
+export function earliestExpiresAt(values: readonly string[]): string | undefined {
+    let best: string | undefined;
+    let bestMs = Infinity;
+    for (const v of values) {
+        const ms = Date.parse(v);
+        if (Number.isNaN(ms)) continue;
+        if (ms < bestMs) {
+            bestMs = ms;
+            best = v;
+        }
+    }
+    // If NOTHING parsed, hand back the first value rather than dropping the
+    // field: a change in Soniox's timestamp format should degrade to today's
+    // behaviour, not to a missing expiry the client reads as "no key".
+    return best ?? values[0];
+}
+```
+
+- [ ] **Step 24: Run it and watch it pass**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/routes/soniox.test.ts`
+
+Expected: PASS (38 existing + the new helper tests)
+
+- [ ] **Step 25: Commit**
+
+```bash
+cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
+git add src/routes/soniox.ts src/routes/soniox.test.ts
+git commit -m "feat(soniox): add rate-based budget arithmetic and an earliest-expiry pick
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+```
+
+---
+
+- [ ] **Step 26: Write the failing test — rewrite the test-file fixtures the new contract breaks**
+
+Still in `sokuji-backend/src/routes/soniox.test.ts`, three fixtures must change before any handler test can be written.
+
+**(a)** Replace lines 2–5:
+
+```ts
+import { computeSessionBudget, createSonioxHandlers } from "./soniox";
+import { chargeMicroUsd } from "../services/pricing";
+import { clientRefIdFor } from "../services/session-lease";
+import { KEY_START_WINDOW_S, TTS_KEY_MAX_TTL_S, ttsKeyExpiresInSeconds } from "../config/soniox";
+```
+
+with:
+
+```ts
+import { computeSessionBudget, createSonioxHandlers, microUsdAtRate, earliestExpiresAt } from "./soniox";
+import { baseRefFor, clientRefIdFor } from "../services/session-lease";
+import {
+    KEY_START_WINDOW_S, PARTICIPANT_KEY_START_WINDOW_S, TTS_KEY_MAX_TTL_S,
+    ttsKeyExpiresInSeconds, conservativeRateUsdPerHour,
+} from "../config/soniox";
+```
+
+(and delete the duplicate `import { microUsdAtRate, earliestExpiresAt } from "./soniox";` line added in Step 21.)
+
+**(b)** Replace line 136 inside `fakeLeaseService`:
+
+```ts
+                    clientRefId: clientRefIdFor(p.accountId, p.leaseId),
+```
+
+with:
+
+```ts
+                    // The lease's ref is the THREE-segment base ref; the
+                    // four-segment per-role refs are built by the handler.
+                    clientRefId: baseRefFor(p.accountId, p.leaseId),
+```
+
+**(c)** Replace `capturingSonioxApi` (lines 210–219) so two keys of the same usage type are tellable apart:
+
+```ts
+/** A Soniox API stub that records the exact opts passed to each
+ *  createTemporaryKey() call, so tests can assert the per-role
+ *  singleUse/expiresInSeconds/clientReferenceId policy without inspecting HTTP
+ *  request bodies. The returned apiKey is call-indexed, because a split session
+ *  mints TWO transcribe_websocket keys and they must be distinguishable. */
+function capturingSonioxApi(opts: { expiresAt?: string[] } = {}) {
+    const seenOpts: any[] = [];
+    return {
+        createTemporaryKey: async (o: any) => {
+            const i = seenOpts.length;
+            seenOpts.push(o);
+            return {
+                apiKey: `key-${o.usageType}-${i}`,
+                expiresAt: opts.expiresAt?.[i] ?? "2026-01-01T00:00:00Z",
+            };
+        },
+        seenOpts,
+    };
+}
+```
+
+- [ ] **Step 27: Write the failing test — rewrite `computeSessionBudget`'s describe**
+
+Replace lines 7–36 — the whole `describe("computeSessionBudget", …)` block, which currently passes a SKU string — with:
+
+```ts
+describe("computeSessionBudget", () => {
+    it("is an exact division of balance by the SET's conservative rate, not an estimate", () => {
+        // $1.10/hr (one STT stream): $0.55 buys exactly 1800s.
+        expect(computeSessionBudget(550_000, 1.1).durationS).toBe(1800);
+        // $2.50/hr (one STT + one TTS stream): $1.25 buys exactly 1800s.
+        expect(computeSessionBudget(1_250_000, 2.5).durationS).toBe(1800);
+    });
+
+    it("halves the granted duration for split Both at the same balance — decision 2, honestly", () => {
+        const shared = computeSessionBudget(550_000, 1.1).durationS;   // mix_stt
+        const split = computeSessionBudget(550_000, 2.2).durationS;    // spk_stt + par_stt
+        expect(shared).toBe(1800);
+        expect(split).toBe(900);
+    });
+
+    it("caps at one hour however large the balance", () => {
+        expect(computeSessionBudget(100_000_000, 1.1).durationS).toBe(3600);
+        expect(computeSessionBudget(100_000_000, 3.6).durationS).toBe(3600);
+    });
+
+    it("reports affordable=false below one minimum-length session at that rate", () => {
+        // 60s at $1.10/hr rounds up to 18,334 µUSD.
+        expect(computeSessionBudget(18_333, 1.1).affordable).toBe(false);
+        expect(computeSessionBudget(18_334, 1.1).affordable).toBe(true);
+        // 60s at $3.60/hr is exactly 60,000 µUSD — the split speech-to-speech floor.
+        expect(computeSessionBudget(59_999, 3.6).affordable).toBe(false);
+        expect(computeSessionBudget(60_000, 3.6).affordable).toBe(true);
+    });
+
+    it("never returns a duration below the minimum for an affordable balance", () => {
+        expect(computeSessionBudget(18_334, 1.1).durationS).toBe(60);
+    });
+
+    it("echoes the aggregate rate back so the client can meter without its own table", () => {
+        expect(computeSessionBudget(550_000, 2.2).rateUsdPerHour).toBe(2.2);
+    });
+
+    it("throws on a non-positive rate rather than granting an unbounded session", () => {
+        expect(() => computeSessionBudget(550_000, 0)).toThrow(/invalid rate/);
+        expect(() => computeSessionBudget(550_000, Number.NaN)).toThrow(/invalid rate/);
+    });
+});
+```
+
+- [ ] **Step 28: Write the failing test — rewrite the two handler describes the contract makes false**
+
+**(a)** Replace lines 339–390 — the whole `describe("sessionKeyHandler — clientReferenceId in the response (item 7)", …)` block, whose second test asserts ONE shared reference across both key calls — with:
+
+```ts
+describe("sessionKeyHandler — every key carries its OWN four-segment reference", () => {
+    it("puts the PRIMARY leg's own reference in the flat clientReferenceId field", async () => {
+        const { svc: leaseSvc } = fakeLeaseService();
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(10_000_000) as any,
+            makeSessionLeaseService: () => leaseSvc as any,
+            makeSonioxApi: () => fakeSonioxApi() as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({ session: USER, body: { mode: "text_only" } });
+
+        await sessionKeyHandler(c);
+
+        expect(calls.json?.status).toBe(200);
+        // Four segments, ending in the primary role — NOT the lease's bare
+        // three-segment base ref, which no key is bound to any more.
+        expect(calls.json?.body.clientReferenceId)
+            .toBe(clientRefIdFor("u1", calls.json?.body.leaseId, "spk_stt"));
+        expect(calls.json?.body.clientReferenceId).not.toBe(calls.json?.body.leaseId);
+        expect(calls.json?.body.clientReferenceId.split(":")).toHaveLength(4);
+    });
+
+    it("gives the STT and TTS keys DIFFERENT references, because attribution is key-bound", async () => {
+        // Probed live 2026-08-11: Soniox attributes a usage log to the
+        // client_reference_id bound to the KEY and ignores the one the socket
+        // declares. Two keys sharing a reference are indistinguishable in the
+        // usage logs — which is what would make a split session's two legs
+        // untellable apart and the ended mask undriveable.
+        const sonioxApi = capturingSonioxApi();
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(10_000_000) as any,
+            makeSessionLeaseService: () => fakeLeaseService().svc as any,
+            makeSonioxApi: () => sonioxApi as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({ session: USER, body: { mode: "speech_to_speech" } });
+
+        await sessionKeyHandler(c);
+
+        expect(calls.json?.status).toBe(200);
+        expect(sonioxApi.seenOpts).toHaveLength(2);
+        const refs = sonioxApi.seenOpts.map((o) => o.clientReferenceId);
+        expect(new Set(refs).size).toBe(2);
+        const leaseId = calls.json?.body.leaseId;
+        expect(refs).toEqual([
+            clientRefIdFor("u1", leaseId, "spk_stt"),
+            clientRefIdFor("u1", leaseId, "spk_tts"),
+        ]);
+    });
+});
+```
+
+**(b)** Replace lines 392–454 — the whole `describe("sessionKeyHandler — budgetMicroUsd is the session's spendable amount…")` block, which computes its expectations with `chargeMicroUsd(sku, …)` — with:
+
+```ts
+describe("sessionKeyHandler — budgetMicroUsd is the session's spendable amount, not the wallet balance", () => {
+    it("a balance-limited session: budget = balance, at the SET's conservative rate", async () => {
+        // $1.10/hr for one STT stream: $0.55 buys exactly 1800s, so
+        // microUsdAtRate round-trips back to the original balance.
+        const balanceMicroUsd = 550_000;
+        let seenBudget: number | undefined;
+        const { svc: leaseSvc } = fakeLeaseService();
+        const wrappedLease = {
+            ...leaseSvc,
+            acquire: async (p: any) => {
+                seenBudget = p.budgetMicroUsd;
+                return leaseSvc.acquire(p);
+            },
+        };
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(balanceMicroUsd) as any,
+            makeSessionLeaseService: () => wrappedLease as any,
+            makeSonioxApi: () => fakeSonioxApi() as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({ session: USER, body: { mode: "text_only" } });
+
+        await sessionKeyHandler(c);
+
+        const expected = microUsdAtRate(conservativeRateUsdPerHour(["spk_stt"]), 1800);
+        expect(expected).toBe(balanceMicroUsd);
+        expect(calls.json?.body.budgetMicroUsd).toBe(expected);
+        expect(seenBudget).toBe(expected); // same value stored on the lease
+        expect(calls.json?.body.maxSessionDurationSeconds).toBe(1800);
+    });
+
+    it("a cap-limited session: budget is the cost of the capped hour, not the balance", async () => {
+        const balanceMicroUsd = 100_000_000;
+        let seenBudget: number | undefined;
+        const { svc: leaseSvc } = fakeLeaseService();
+        const wrappedLease = {
+            ...leaseSvc,
+            acquire: async (p: any) => {
+                seenBudget = p.budgetMicroUsd;
+                return leaseSvc.acquire(p);
+            },
+        };
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(balanceMicroUsd) as any,
+            makeSessionLeaseService: () => wrappedLease as any,
+            makeSonioxApi: () => fakeSonioxApi() as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({ session: USER, body: { mode: "text_only" } });
+
+        await sessionKeyHandler(c);
+
+        const oneHour = microUsdAtRate(conservativeRateUsdPerHour(["spk_stt"]), 3600);
+        expect(oneHour).toBe(1_100_000);
+        expect(calls.json?.body.maxSessionDurationSeconds).toBe(3600);
+        expect(calls.json?.body.budgetMicroUsd).toBe(oneHour);
+        expect(calls.json?.body.budgetMicroUsd).not.toBe(balanceMicroUsd);
+        expect(seenBudget).toBe(oneHour);
+    });
+});
+```
+
+- [ ] **Step 29: Write the failing test — the legacy replay, i.e. the deploy window**
+
+Append to `sokuji-backend/src/routes/soniox.test.ts`:
+
+```ts
+describe("sessionKeyHandler — currently-shipped request/response shapes still work (deploy window)", () => {
+    it("replays a shipped { mode: 'text_only' } body and returns every flat field that client reads", async () => {
+        const sonioxApi = capturingSonioxApi();
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(10_000_000) as any,
+            makeSessionLeaseService: () => fakeLeaseService().svc as any,
+            makeSonioxApi: () => sonioxApi as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({ session: USER, body: { mode: "text_only" } });
+
+        await sessionKeyHandler(c);
+
+        expect(calls.json?.status).toBe(200);
+        const b = calls.json?.body;
+        expect(typeof b.sttApiKey).toBe("string");
+        expect(b.ttsApiKey).toBeUndefined();
+        expect(typeof b.expiresAt).toBe("string");
+        expect(b.maxSessionDurationSeconds).toBe(3600);
+        expect(typeof b.budgetMicroUsd).toBe("number");
+        expect(b.rateUsdPerHour).toBe(conservativeRateUsdPerHour(["spk_stt"]));
+        expect(b.sku).toBe("soniox:text_only");
+        expect(typeof b.leaseId).toBe("string");
+        expect(typeof b.clientReferenceId).toBe("string");
+        // The legacy single-stream set: exactly one key, transcription only.
+        expect(sonioxApi.seenOpts).toHaveLength(1);
+        expect(sonioxApi.seenOpts[0].usageType).toBe("transcribe_websocket");
+        expect(sonioxApi.seenOpts[0].singleUse).toBe(true);
+        expect(sonioxApi.seenOpts[0].expiresInSeconds).toBe(KEY_START_WINDOW_S);
+    });
+
+    it("replays a shipped { mode: 'speech_to_speech' } body as the two-key set", async () => {
+        const sonioxApi = capturingSonioxApi();
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(10_000_000) as any,
+            makeSessionLeaseService: () => fakeLeaseService().svc as any,
+            makeSonioxApi: () => sonioxApi as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({ session: USER, body: { mode: "speech_to_speech" } });
+
+        await sessionKeyHandler(c);
+
+        expect(calls.json?.status).toBe(200);
+        expect(calls.json?.body.sku).toBe("soniox:speech_to_speech");
+        expect(typeof calls.json?.body.sttApiKey).toBe("string");
+        expect(typeof calls.json?.body.ttsApiKey).toBe("string");
+        expect(sonioxApi.seenOpts.map((o) => o.usageType))
+            .toEqual(["transcribe_websocket", "tts_rt"]);
+    });
+});
+```
+
+- [ ] **Step 30: Write the failing test — the new vocabulary and split minting**
+
+Append to `sokuji-backend/src/routes/soniox.test.ts`:
+
+```ts
+describe("sessionKeyHandler — the new mode/textOnly/bothSplit vocabulary (spec A6)", () => {
+    it("split Both with speech mints THREE keys, each bound to its own four-segment reference", async () => {
+        const sonioxApi = capturingSonioxApi();
+        let seenAcquire: any;
+        const { svc: leaseSvc } = fakeLeaseService();
+        const wrappedLease = {
+            ...leaseSvc,
+            acquire: async (p: any) => { seenAcquire = p; return leaseSvc.acquire(p); },
+        };
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(100_000_000) as any,
+            makeSessionLeaseService: () => wrappedLease as any,
+            makeSonioxApi: () => sonioxApi as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({
+            session: USER,
+            body: { mode: "both", textOnly: false, bothSplit: true },
+        });
+
+        await sessionKeyHandler(c);
+
+        expect(calls.json?.status).toBe(200);
+        const leaseId = calls.json?.body.leaseId;
+
+        expect(sonioxApi.seenOpts.map((o) => o.usageType))
+            .toEqual(["transcribe_websocket", "tts_rt", "transcribe_websocket"]);
+        expect(sonioxApi.seenOpts.map((o) => o.clientReferenceId)).toEqual([
+            clientRefIdFor("u1", leaseId, "spk_stt"),
+            clientRefIdFor("u1", leaseId, "spk_tts"),
+            clientRefIdFor("u1", leaseId, "par_stt"),
+        ]);
+
+        // Start windows: the participant leg waits on a permission dialog.
+        expect(sonioxApi.seenOpts[0].expiresInSeconds).toBe(KEY_START_WINDOW_S);
+        expect(sonioxApi.seenOpts[2].expiresInSeconds).toBe(PARTICIPANT_KEY_START_WINDOW_S);
+        // Both STT keys share the cutoff, so both legs 403 in the same second.
+        expect(sonioxApi.seenOpts[0].maxSessionDurationSeconds)
+            .toBe(sonioxApi.seenOpts[2].maxSessionDurationSeconds);
+        // single_use holds per KIND, not per leg.
+        expect(sonioxApi.seenOpts.map((o) => o.singleUse)).toEqual([true, false, true]);
+
+        // The lease carries the counts the server derived, not anything the
+        // client declared.
+        expect(seenAcquire.sttStreamCount).toBe(2);
+        expect(seenAcquire.usesTts).toBe(true);
+        expect(seenAcquire.startWindowS).toBe(PARTICIPANT_KEY_START_WINDOW_S);
+
+        // Per-stream structure, plus the flat fields from the primary leg.
+        expect(calls.json?.body.streams.map((s: any) => s.role))
+            .toEqual(["spk_stt", "spk_tts", "par_stt"]);
+        expect(calls.json?.body.sttApiKey).toBe(calls.json?.body.streams[0].apiKey);
+        expect(calls.json?.body.ttsApiKey).toBe(calls.json?.body.streams[1].apiKey);
+        expect(calls.json?.body.clientReferenceId)
+            .toBe(clientRefIdFor("u1", leaseId, "spk_stt"));
+        expect(calls.json?.body.rateUsdPerHour)
+            .toBe(conservativeRateUsdPerHour(["spk_stt", "spk_tts", "par_stt"]));
+    });
+
+    it("participant-only mints ONE key and takes its flat fields from par_stt, not from an absent speaker", async () => {
+        const sonioxApi = capturingSonioxApi();
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(10_000_000) as any,
+            makeSessionLeaseService: () => fakeLeaseService().svc as any,
+            makeSonioxApi: () => sonioxApi as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({ session: USER, body: { mode: "participant" } });
+
+        await sessionKeyHandler(c);
+
+        expect(calls.json?.status).toBe(200);
+        expect(sonioxApi.seenOpts).toHaveLength(1);
+        expect(sonioxApi.seenOpts[0].expiresInSeconds).toBe(PARTICIPANT_KEY_START_WINDOW_S);
+        expect(calls.json?.body.ttsApiKey).toBeUndefined();
+        expect(calls.json?.body.clientReferenceId)
+            .toBe(clientRefIdFor("u1", calls.json?.body.leaseId, "par_stt"));
+        expect(calls.json?.body.streams.map((s: any) => s.role)).toEqual(["par_stt"]);
+    });
+
+    it("split Both text-only halves the granted duration at the same balance", async () => {
+        const make = (body: any) => {
+            const { sessionKeyHandler } = createSonioxHandlers({
+                makeWalletService: () => fakeWallet(550_000) as any,
+                makeSessionLeaseService: () => fakeLeaseService().svc as any,
+                makeSonioxApi: () => fakeSonioxApi() as any,
+                makeSonioxReconciler: () => fakeReconciler().svc,
+                makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+            });
+            return { handler: sessionKeyHandler, ctx: makeCtx({ session: USER, body }) };
+        };
+
+        const shared = make({ mode: "both", textOnly: true, bothSplit: false });
+        await shared.handler(shared.ctx.c);
+        const split = make({ mode: "both", textOnly: true, bothSplit: true });
+        await split.handler(split.ctx.c);
+
+        expect(shared.ctx.calls.json?.body.maxSessionDurationSeconds).toBe(1800);
+        expect(split.ctx.calls.json?.body.maxSessionDurationSeconds).toBe(900);
+    });
+
+    it("400s a 'both' body with no bothSplit rather than silently choosing shared", async () => {
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(10_000_000) as any,
+            makeSessionLeaseService: () => fakeLeaseService().svc as any,
+            makeSonioxApi: () => fakeSonioxApi() as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({ session: USER, body: { mode: "both", textOnly: true } });
+        await sessionKeyHandler(c);
+        expect(calls.json?.status).toBe(400);
+    });
+
+    it("400s a 'speaker' body with no textOnly rather than silently buying the TTS path", async () => {
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(10_000_000) as any,
+            makeSessionLeaseService: () => fakeLeaseService().svc as any,
+            makeSonioxApi: () => fakeSonioxApi() as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({ session: USER, body: { mode: "speaker" } });
+        await sessionKeyHandler(c);
+        expect(calls.json?.status).toBe(400);
+    });
+});
+
+describe("sessionKeyHandler — the flat expiresAt is the EARLIEST key expiry", () => {
+    it("reports the first key to die, not the last one minted", async () => {
+        // The TTS key lives an hour; the STT keys live 60s/180s. Reporting the
+        // loop's last write (today's behaviour) tells a client the whole set is
+        // good for an hour when its transcription key is already gone.
+        const sonioxApi = capturingSonioxApi({
+            expiresAt: [
+                "2026-01-01T00:01:00Z", // spk_stt
+                "2026-01-01T01:00:00Z", // spk_tts
+                "2026-01-01T00:03:00Z", // par_stt
+            ],
+        });
+        const { sessionKeyHandler } = createSonioxHandlers({
+            makeWalletService: () => fakeWallet(100_000_000) as any,
+            makeSessionLeaseService: () => fakeLeaseService().svc as any,
+            makeSonioxApi: () => sonioxApi as any,
+            makeSonioxReconciler: () => fakeReconciler().svc,
+            makeVoiceSlotService: () => fakeVoiceSlotService().svc as any,
+        });
+        const { c, calls } = makeCtx({
+            session: USER,
+            body: { mode: "both", textOnly: false, bothSplit: true },
+        });
+
+        await sessionKeyHandler(c);
+
+        expect(calls.json?.status).toBe(200);
+        expect(calls.json?.body.expiresAt).toBe("2026-01-01T00:01:00Z");
+    });
+});
+```
+
+- [ ] **Step 31: Run it and watch it fail**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run src/routes/soniox.test.ts`
+
+Expected: FAIL on many cases at once, headlined by `Error: No rate configured for SKU "1.1"` (the old `computeSessionBudget` still looks its second argument up in `RATE_USD_PER_HOUR`) and `AssertionError: expected 400 to be 200` on every new-vocabulary case (the old `isSonioxMode` guard rejects `mode: "both"`).
+
+- [ ] **Step 32: Implement — imports, `computeSessionBudget`, and deleting `isSonioxMode`**
+
+**(a)** In `src/routes/soniox.ts`, replace lines 5–12 verbatim:
+
+```ts
+import { createSessionLeaseService, type SessionLeaseService } from "../services/session-lease";
+import { createVoiceSlotService, type VoiceSlotService } from "../services/voice-slot";
+import { createWalletService, type WalletService } from "../services/wallet-service";
+import {
+    MAX_SESSION_S, MIN_SESSION_S, KEY_START_WINDOW_S, ttsKeyExpiresInSeconds,
+    skuForMode, usageTypesForMode, type SonioxMode,
+} from "../config/soniox";
+import { RATE_USD_PER_HOUR, minBalanceMicroUsd, chargeMicroUsd, MICRO_USD_PER_USD } from "../services/pricing";
+```
+
+with:
+
+```ts
+import { clientRefIdFor, createSessionLeaseService, type SessionLeaseService } from "../services/session-lease";
+import { createVoiceSlotService, type VoiceSlotService } from "../services/voice-slot";
+import { createWalletService, type WalletService } from "../services/wallet-service";
+import {
+    MAX_SESSION_S, MIN_SESSION_S, ttsKeyExpiresInSeconds,
+    normalizeSessionShape, expandStreamRoles, usageTypeForRole, primaryRole,
+    skuForRoles, sttStreamCount, usesTtsFor, keyStartWindowForRole,
+    maxKeyStartWindowS, conservativeRateUsdPerHour,
+    type SonioxStreamRole,
+} from "../config/soniox";
+import { MICRO_USD_PER_USD } from "../services/pricing";
+```
+
+**(b)** Replace `computeSessionBudget` (lines 21–37) verbatim:
+
+```ts
+/**
+ * How long a balance buys at a SKU's rate.
+ *
+ * Because Part A charges by time, this is a division rather than a guess — which
+ * is why the session budget is exact and overdraft is structurally ~zero.
+ */
+export function computeSessionBudget(balanceMicroUsd: number, sku: string): SessionBudget {
+    const rate = (RATE_USD_PER_HOUR as Record<string, number>)[sku];
+    if (rate == null) throw new Error(`No rate configured for SKU "${sku}"`);
+    const floor = minBalanceMicroUsd(sku, MIN_SESSION_S);
+    if (!Number.isFinite(balanceMicroUsd) || balanceMicroUsd < floor) {
+        return { affordable: false, durationS: 0, rateUsdPerHour: rate };
+    }
+    const seconds = (balanceMicroUsd / MICRO_USD_PER_USD / rate) * 3600;
+    const durationS = Math.min(MAX_SESSION_S, Math.max(MIN_SESSION_S, Math.floor(seconds)));
+    return { affordable: true, durationS, rateUsdPerHour: rate };
+}
+```
+
+with:
+
+```ts
+/**
+ * How long a balance buys at the CONSERVATIVE AGGREGATE RATE for this
+ * session's whole stream set.
+ *
+ * Takes a rate, not a SKU, because a split Both session's stream set has no
+ * SKU: a SKU names a billing shape, and this is now an allowance estimate.
+ * The caller derives the rate from the expansion (`conservativeRateUsdPerHour`)
+ * so that ONE number feeds durationS, the rate quoted back to the client, and
+ * budgetMicroUsd. Two of them coming from different tables is how the on-screen
+ * countdown and the real cutoff drift apart.
+ */
+export function computeSessionBudget(balanceMicroUsd: number, rateUsdPerHour: number): SessionBudget {
+    // Fail loudly: a zero or NaN rate would divide out to an unbounded session.
+    if (!Number.isFinite(rateUsdPerHour) || rateUsdPerHour <= 0) {
+        throw new Error(`computeSessionBudget: invalid rate ${rateUsdPerHour}`);
+    }
+    const floor = microUsdAtRate(rateUsdPerHour, MIN_SESSION_S);
+    if (!Number.isFinite(balanceMicroUsd) || balanceMicroUsd < floor) {
+        return { affordable: false, durationS: 0, rateUsdPerHour };
+    }
+    const seconds = (balanceMicroUsd / MICRO_USD_PER_USD / rateUsdPerHour) * 3600;
+    const durationS = Math.min(MAX_SESSION_S, Math.max(MIN_SESSION_S, Math.floor(seconds)));
+    return { affordable: true, durationS, rateUsdPerHour };
+}
+```
+
+**(c)** Delete `isSonioxMode` (lines 47–49) verbatim:
+
+```ts
+function isSonioxMode(v: unknown): v is SonioxMode {
+    return v === "text_only" || v === "speech_to_speech";
+}
+```
+
+- [ ] **Step 33: Implement — the handler's front half (validation, expansion, lease)**
+
+In `src/routes/soniox.ts`, replace lines 141–213 of `sessionKeyHandler` — from `let body: any = {};` down to and including the `stt_full | tts_full` return — with:
+
+```ts
+        let body: any = {};
+        try {
+            body = await c.req.json();
+        } catch {
+            body = {};
+        }
+
+        // TWO DISJOINT VOCABULARIES SHARE THE KEY `mode`, and
+        // `normalizeSessionShape` discriminates them by VALUE:
+        // 'text_only'/'speech_to_speech' are the currently-shipped BILLING
+        // shape and expand to the legacy single-stream rows;
+        // 'speaker'/'participant'/'both' are the new AUDIO shape, with
+        // textOnly/bothSplit alongside. Still no default: a client bug that
+        // drops `mode` (or drops `textOnly` on the new path) must fail loudly
+        // rather than silently buy the more expensive synthesis path.
+        const shape = normalizeSessionShape(body);
+        if (!shape) {
+            return c.json({
+                error: "Invalid mode. Use { mode: 'speaker'|'participant'|'both', textOnly, bothSplit }, or the legacy 'text_only'|'speech_to_speech'",
+            }, 400);
+        }
+
+        // THE SERVER owns the expansion. This is the only source of the key
+        // set — never a client-supplied stream list with a blocklist, which is
+        // strictly weaker (see `expandStreamRoles`). Everything below derives
+        // from it: which keys to mint, each key's reference, uses_tts, the STT
+        // stream count and the budget rate.
+        const roles = expandStreamRoles(shape);
+        const sku = skuForRoles(roles);
+        const usesTts = usesTtsFor(roles);
+        const sttCount = sttStreamCount(roles);
+        const rateUsdPerHour = conservativeRateUsdPerHour(roles);
+
+        const walletService = deps.makeWalletService(c.env);
+        const balance = await walletService.getBalance("user", userId);
+        // getBalance returns null ONLY on a DB error (a genuinely missing wallet
+        // row comes back as a valid zero-balance object) — fail closed with 503,
+        // the same status TranslateRelayDO/VolcengineAST2RelayDO use for this
+        // exact case, rather than reporting a transient infra failure as a
+        // permission error the client would read as "don't retry".
+        if (!balance) {
+            return c.json({ error: "Wallet unavailable" }, 503);
+        }
+        if (balance.frozen) {
+            return c.json({ error: "Wallet is frozen" }, 403);
+        }
+
+        const budget = computeSessionBudget(balance.balanceMicroUsd, rateUsdPerHour);
+        if (!budget.affordable) {
+            return c.json({ error: "Insufficient balance" }, 402);
+        }
+
+        // What THIS session can actually consume, not the whole wallet balance:
+        // durationS is capped at MAX_SESSION_S, so a large balance must not be
+        // advertised as spendable in one session. Computed from the SAME rate
+        // the duration was divided out of, so the client's countdown tracks the
+        // session's real cutoff.
+        const sessionBudgetMicroUsd = microUsdAtRate(rateUsdPerHour, budget.durationS);
+
+        const leaseService = deps.makeSessionLeaseService(c.env);
+        const leaseId = crypto.randomUUID();
+        const now = Date.now();
+
+        const acquireResult = await leaseService.acquire({
+            accountId: userId,
+            leaseId,
+            provider: "soniox",
+            sku,
+            usesTts,
+            // Concurrency is counted per STREAM, not per lease: a split Both
+            // session opens two transcriptions and must count as two against
+            // MAX_STT_CONCURRENT.
+            sttStreamCount: sttCount,
+            maxDurationS: budget.durationS,
+            budgetMicroUsd: sessionBudgetMicroUsd,
+            // The lease has to outlast the widest key start window this set
+            // issues — 180s when a par_stt key is in it.
+            startWindowS: maxKeyStartWindowS(roles),
+            now,
+        });
+
+        if (!acquireResult.ok) {
+            if (acquireResult.reason === "active_lease") {
+                // A user is actively blocked on this lease right now -- poke for
+                // an immediate sweep, not the debounced one session-end uses,
+                // and mark it `blocked` so the reconciler uses the 409 gate
+                // rather than the idle heartbeat's. Without that flag a client
+                // that force-quit (no `session-end`, expiry up to an hour out)
+                // matched nothing, so relaunching hit this same 409 until the
+                // lease expired.
+                c.executionCtx.waitUntil(deps.makeSonioxReconciler(c.env).poke({ blocked: true }));
+                return c.json({ error: "Another session is already active", retryAfterMs: 3000 }, 409);
+            }
+            // stt_full | tts_full — the org-wide Soniox concurrency ceiling, not a
+            // per-account problem.
+            return c.json({ error: "Soniox capacity is temporarily full" }, 503);
+        }
+```
+
+- [ ] **Step 34: Implement — the handler's back half (per-role minting and the response)**
+
+Replace the remainder of `sessionKeyHandler` — from `const lease = acquireResult.lease;` (line 215) through the closing `});` of the final `c.json` (line 310) — with:
+
+```ts
+        const lease = acquireResult.lease;
+        const sonioxApi = deps.makeSonioxApi(c.env);
+
+        const streams: Array<{
+            role: SonioxStreamRole;
+            apiKey: string;
+            clientReferenceId: string;
+            expiresAt: string;
+        }> = [];
+
+        try {
+            for (const role of roles) {
+                const usageType = usageTypeForRole(role);
+                const isTts = usageType === "tts_rt";
+
+                // ONE KEY, ONE REFERENCE, ONE ROLE — required, not merely tidy.
+                // Probed live 2026-08-11: Soniox attributes a usage log to the
+                // client_reference_id bound to the KEY and ignores the one the
+                // socket declares in its config frame. Two streams sharing a key
+                // are therefore indistinguishable in the usage logs, so a split
+                // session's two legs could not be told apart and the lease's
+                // ended-mask could not be driven at all. The reference the
+                // client echoes on its socket frames is inert; it is a no-op and
+                // must never be the only thing carrying a role.
+                const clientReferenceId = clientRefIdFor(lease.accountId, lease.leaseId, role);
+
+                const key = await sonioxApi.createTemporaryKey({
+                    usageType,
+                    // STT keys: single_use, with only a START window —
+                    // KEY_START_WINDOW_S (60s), or PARTICIPANT_KEY_START_WINDOW_S
+                    // (180s) for par_stt, whose leg waits on a loopback
+                    // permission dialog. single_use is what stops one issued key
+                    // opening two concurrent transcriptions.
+                    //
+                    // TTS key: MUST be reusable and MUST outlive the session,
+                    // because the client is *designed* to reconnect the TTS
+                    // socket — Soniox drops an idle TTS stream after ~5.3s (408;
+                    // measured live against tts-rt-v1), so a reconnect happens
+                    // after almost every conversational pause, and a single_use
+                    // key 401s on that reconnect. So its expires_in_seconds is
+                    // the granted duration, clamped by ttsKeyExpiresInSeconds /
+                    // TTS_KEY_MAX_TTL_S — Soniox's own, independent 3600s
+                    // ceiling on this field.
+                    //
+                    // ACCEPTED RISK, RESTATED: two premises of the old version of
+                    // this comment are now false, so it is rewritten rather than
+                    // trimmed. A reusable TTS key alive for the whole session
+                    // lets a client open several concurrent TTS sockets with it.
+                    //   (1) It is NO LONGER true that this costs the wallet
+                    //       nothing. TTS logs used to be recorded cost-only
+                    //       (sku: null -> amount 0). Under cost x K charging every
+                    //       tts-* log bills the USER, so the exposure is now the
+                    //       account's own balance, not pure provider spend.
+                    //   (2) It is NO LONGER true that "one active lease at a
+                    //       time" bounds it to one key per account. The key
+                    //       outlives its lease, Soniox has no revoke API, and a
+                    //       client running short sessions accumulates
+                    //       independently valid keys as fast as leases release.
+                    // What DOES bound it: the key stops working after this
+                    // session's granted duration (<= TTS_KEY_MAX_TTL_S); every
+                    // socket opened with it is independently capped at
+                    // max_session_duration_seconds; MAX_TTS_CONCURRENT caps the
+                    // whole org's open TTS streams; and the NUMBER of keys minted
+                    // is decided here by the server-side expansion, which can
+                    // never issue more than one TTS key for a session.
+                    expiresInSeconds: isTts
+                        ? ttsKeyExpiresInSeconds(budget.durationS)
+                        : keyStartWindowForRole(role),
+                    // Both STT keys of a split session share this, so at the
+                    // granted-duration cutoff both legs 403 within the same
+                    // second rather than one outliving the other.
+                    maxSessionDurationSeconds: budget.durationS,
+                    clientReferenceId,
+                    singleUse: !isTts,
+                });
+
+                streams.push({ role, apiKey: key.apiKey, clientReferenceId, expiresAt: key.expiresAt });
+            }
+        } catch (error) {
+            // A Soniox failure must not leave the account locked behind a lease
+            // whose only purpose was to guard a session that never started.
+            //
+            // NAMED, not widened silently: a partial mint now leaks up to TWO
+            // already-issued keys instead of one (split speech-to-speech mints
+            // spk_stt, spk_tts, par_stt in that order, so a failure on the third
+            // leaves the first two live), and one of them is the non-single_use
+            // TTS key. Soniox has no revoke API, so the leaked keys are bounded
+            // only by their own expires_in_seconds — the STT ones by their start
+            // window, the TTS one by the granted duration.
+            await leaseService.release(lease.clientRefId, Date.now());
+            console.error("Soniox createTemporaryKey failed:", error);
+            return c.json({ error: "Failed to issue Soniox session key" }, 502);
+        }
+
+        // The PRIMARY leg backs the flat, legacy response fields: the lease's
+        // single STT role — spk_stt for speaker and for both-split, par_stt for
+        // participant-only, mix_stt for both-shared.
+        const primary = primaryRole(roles);
+        const primaryStream = streams.find((s) => s.role === primary);
+        if (!primaryStream) {
+            // Unreachable: `roles` always contains its own primary role and the
+            // loop above either minted every key or threw. Loud rather than a
+            // response with a missing sttApiKey, which a client reads as "no key".
+            throw new Error(`sessionKeyHandler: no key minted for primary role ${primary}`);
+        }
+        // At most one TTS role exists in any row of the matrix, so this find is
+        // unambiguous by construction.
+        const ttsStream = streams.find((s) => usageTypeForRole(s.role) === "tts_rt");
+
+        return c.json({
+            // --- flat fields, kept so a currently-shipped client is unchanged
+            // during the deploy window ---
+            sttApiKey: primaryStream.apiKey,
+            ttsApiKey: ttsStream?.apiKey,
+            // The EARLIEST expiry among the issued keys. Today's value is
+            // whichever the mint loop wrote last, which is already meaningless.
+            expiresAt: earliestExpiresAt(streams.map((s) => s.expiresAt)),
+            maxSessionDurationSeconds: budget.durationS,
+            budgetMicroUsd: sessionBudgetMicroUsd,
+            // An AGGREGATE allowance rate for the whole stream set, not a
+            // per-stream price and no longer a per-SKU list price.
+            rateUsdPerHour: budget.rateUsdPerHour,
+            sku,
+            leaseId,
+            // The PRIMARY leg's own four-segment reference — the exact value
+            // bound to that key. A client may still echo it as
+            // client_reference_id on its socket frames; that echo is a
+            // documented NO-OP (Soniox honours the key-bound value), kept only
+            // because removing it buys nothing.
+            clientReferenceId: primaryStream.clientReferenceId,
+            // --- additive: one entry per Soniox stream this session may open ---
+            streams,
+        });
+```
+
+`src/services/soniox-api.ts` is **unchanged**: `clientReferenceId` is already a per-call field on `CreateTemporaryKeyOpts`, so per-stream references need nothing there. Do not go looking for a change in that file.
+
+- [ ] **Step 35: Run it and watch it pass**
+
+Run: `cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend && npx vitest run && npx tsc --noEmit`
+
+Expected: PASS — the whole backend suite green, and `tsc --noEmit` clean (CI runs it via `npm run build`).
+
+- [ ] **Step 36: Commit**
+
+```bash
+cd /home/jiangzhuo/Desktop/kizunaai/sokuji-backend
+git add src/routes/soniox.ts src/routes/soniox.test.ts
+git commit -m "feat(soniox): mint one key per stream, each with its own role reference
+
+sessionKeyHandler expands the matrix inputs server-side and mints up to three
+temporary keys, each bound to its own four-segment client_reference_id --
+required, because Soniox attributes usage to the key-bound reference and
+ignores the socket-level one. The response gains a per-stream structure while
+every flat field stays, populated from the primary STT leg; expiresAt becomes
+the earliest expiry among the issued keys.
+
+Budgeting moves to a conservative aggregate rate for the stream set, so a
+single-stream user is quoted a shorter duration at the same balance.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
 ---
