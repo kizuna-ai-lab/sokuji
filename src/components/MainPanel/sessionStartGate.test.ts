@@ -17,7 +17,7 @@ const ready: StartGateInput = {
   provider: Provider.OPENAI,
   quota: null,
   missingDeviceForMode: null,
-  sonioxAutoParticipantBlocked: false,
+  autoSourceParticipantBlocked: false,
 };
 
 describe('computeStartGate', () => {
@@ -208,29 +208,29 @@ describe('computeStartGate', () => {
   // Soniox reverses source/target for the participant client, so an 'auto'
   // source cannot be reversed. On main this closed the gate with no
   // explanation at all; it now reports a reason like every other blocker.
-  it('reports soniox-auto-source when auto detection blocks the participant', () => {
-    expect(computeStartGate({ ...ready, sonioxAutoParticipantBlocked: true })).toEqual({
+  it('reports auto-source-participant when auto detection blocks the participant', () => {
+    expect(computeStartGate({ ...ready, autoSourceParticipantBlocked: true })).toEqual({
       canStart: false,
-      reason: 'soniox-auto-source',
+      reason: 'auto-source-participant',
     });
   });
 
-  it('prefers missing-device over soniox-auto-source', () => {
+  it('prefers missing-device over auto-source-participant', () => {
     const gate = computeStartGate({
       ...ready,
       missingDeviceForMode: 'speaker',
-      sonioxAutoParticipantBlocked: true,
+      autoSourceParticipantBlocked: true,
     });
     expect(gate.reason).toBe('missing-device');
   });
 
-  it('prefers soniox-auto-source over a credential problem', () => {
+  it('prefers auto-source-participant over a credential problem', () => {
     const gate = computeStartGate({
       ...ready,
-      sonioxAutoParticipantBlocked: true,
+      autoSourceParticipantBlocked: true,
       isApiKeyValid: false,
     });
-    expect(gate.reason).toBe('soniox-auto-source');
+    expect(gate.reason).toBe('auto-source-participant');
   });
 
   it('prefers wallet-frozen over insufficient-balance', () => {
@@ -257,7 +257,7 @@ describe('reasonToSettingsTarget', () => {
   });
 
   it('routes the Soniox auto-source block to the language settings', () => {
-    expect(reasonToSettingsTarget('soniox-auto-source')).toBe('languages');
+    expect(reasonToSettingsTarget('auto-source-participant')).toBe('languages');
   });
 
   it('routes model and key problems to their sections', () => {
@@ -283,7 +283,7 @@ describe('reasonToSettingsTarget', () => {
 describe('reasonToI18n', () => {
   it('maps every reason to an existing translation key', () => {
     const reasons = [
-      'missing-device', 'soniox-auto-source', 'local-models-missing',
+      'missing-device', 'auto-source-participant', 'local-models-missing',
       'api-key-invalid', 'no-models', 'loading-models', 'wallet-frozen',
       'insufficient-balance', 'quota-unknown',
     ] as const;
