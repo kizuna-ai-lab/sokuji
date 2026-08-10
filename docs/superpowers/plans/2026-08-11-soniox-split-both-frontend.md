@@ -6838,3 +6838,52 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 EOF
 )"
 ```
+
+---
+
+## Carried in from the backend execution (added 2026-08-11, after the backend branch completed)
+
+The backend landed as `sokuji-backend` branch `feat/soniox-split-both` (25 commits,
+809 tests). Four things it discovered change what this plan's tasks must do. They are
+here rather than in a task body because each one crosses task boundaries.
+
+**FE3 must post `role` on every `session-started`, and the backend now enforces it.**
+`markStarted` refuses to guess a leg when the lease owns two streams, and the handler
+now answers **400** with a machine-readable `reason` (`role_required`, or
+`role_not_issued` when the role was never issued for that lease) instead of the
+`{ok:true}` it used to return. A roleless body against a split lease therefore fails
+loudly rather than leaving the lease un-extended — which previously let it expire at
+~195 s and allowed the same account to acquire a *second* lease while the first was
+still streaming. No currently-shipped client can reach either refusal: they post only
+the legacy vocabulary, which resolves to one issued stream.
+
+**FE2's floor values, now that the backend has them.** The Start floor comes from
+`sonioxStartFloorMicroUsd(roles)` — conservative rates 1.10/hour per transcription
+stream and 1.40 per synthesis stream, K = 2.0. The concrete numbers the backend
+computes today: **18,334** µUSD for a shared text-only session and **41,667** for
+speech-to-speech, against `sonioxManagedMinBalance.ts`'s current 10,000 / 25,000.
+The 402 body now also carries `requiredMicroUsd` and `balanceMicroUsd`, so the client
+can show what was needed rather than a bare refusal. **`main` deploys the backend
+ahead of the client**, so until FE2 ships there is a window where the local gate says
+Start is fine and the backend answers 402.
+
+**The `clientReferenceId` in `SonioxSessionKeyResponse` is now four segments**, and its
+comment in `SonioxClient.ts` still documents three. The value is opaque to the client,
+so only the comment needs correcting — but the reason matters: Soniox attributes usage
+to the reference bound to the *key*, and ignores the one the socket declares, so the
+socket-level echo is inert. Do not build anything on it.
+
+**Split Both widens a crashed client's account hold from ~75 s to ~195 s**, because the
+lease must outlast the participant leg's 180 s start window (which exists to cover the
+loopback permission dialog). Every legacy shape still holds for 75 s exactly. This is
+the designed trade-off, not a regression to fix.
+
+### One open question that gates shipping split Both
+
+**Does a connected-but-silent Soniox transcription stream emit a usage log?** If it does
+not, a split session whose participant leg is muted for its whole duration never clears
+its ended-mask bit, and the lease strands for the full grant plus ten minutes — with no
+alarm and no client bug. The backend's whole release predicate rests on "a usage log
+exists once a stream has ended". Settling it needs one live managed split session with
+the participant leg muted, watched through to the usage logs. This is the single
+highest-value check before the feature is exposed to users.
