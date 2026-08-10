@@ -419,14 +419,28 @@ disagree — the failure mode a `session_leases` primary-key change would have i
 
 ## Open items
 
-**Whether Soniox honours a key-bound or a socket-level `client_reference_id` is unknown.**
-The code hedges by sending the same value at both levels. With one key per stream, key
-binding alone gives correct attribution; the requirement is that each client echoes the
-reference matching *its own* key, never a shared one. Resolve empirically before
-implementation — mint a key with reference A, connect a socket declaring reference B, read
-the log — because if socket level wins, per-stream keys become required rather than merely
-convenient. Regardless of the answer, keep a floor charge that does not depend on
-per-stream attribution.
+**Resolved 2026-08-11: Soniox attributes usage to the KEY-BOUND `client_reference_id`
+and ignores the socket-level one.** Probed directly — a temporary key was minted bound to
+`sokuji1:PROBEACCT:KEYBOUND`, a socket opened with that key declared
+`sokuji1:PROBEACCT:SOCKETSAID` in its config frame, and all three probe sessions logged
+under the key's value. Two consequences, both now settled rather than assumed:
+
+- **One key per stream is required, not merely convenient.** Attribution comes from the
+  key, so two streams sharing one key are indistinguishable in the usage logs — there
+  would be no way to tell a split session's two legs apart, and A3's ended-mask could not
+  be driven at all.
+- **The `client_reference_id` the client sends on its socket frames is inert.** Keep the
+  existing hedge or drop it, but document it as a no-op; it must not be relied on, and it
+  must never be the only thing carrying a role.
+
+Scope of the finding: our keys always carry a bound reference. Whether Soniox falls back to
+the socket-level value for a key with *none* bound was not tested, because no path in this
+system mints such a key.
+
+Calibration collected at the same time, for A5's conservative-rate table: a 3.23 s stream
+with no recognised speech cost `$0.000110` (≈ `$0.12`/hr); a 10.08 s stream of real speech
+with `one_way` translation cost `$0.000776` (≈ `$0.28`/hr). The spread is the translation
+output, consistent with output text being the dominant cost term.
 
 **The `par_stt` key's 60 s start window may expire during the loopback permission dialog.**
 It is minted inside the speaker's `connect()`, before the participant channel is attempted.
