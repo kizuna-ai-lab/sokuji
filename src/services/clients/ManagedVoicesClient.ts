@@ -44,6 +44,14 @@ export class ManagedVoicesClient {
     init: RequestInit,
     timeoutMs: number
   ): Promise<Response> {
+    if (timeoutMs <= 0) {
+      // A caller working to a deadline can hand down a budget that has already
+      // run out (its own earlier steps consumed it). Issuing a fetch only to
+      // abort it on the same tick wastes a request and leans on
+      // AbortSignal.timeout(0) behaving sensibly; refusing outright says the
+      // same thing sooner and more plainly.
+      throw new SonioxVoicesError('timeout', 'No time left in the caller\'s budget', 408);
+    }
     const token = await this.getToken();
     if (!token) {
       // Asking the server to tell us what we already know costs a round trip
@@ -86,9 +94,17 @@ export class ManagedVoicesClient {
 
   /** This account's voice as the backend currently sees it, or null when it
    *  holds none — including while a build has been reserved but has no real
-   *  Soniox id yet. */
-  async mine(): Promise<ManagedVoice | null> {
-    const res = await this.request('/mine', { method: 'GET' }, REQUEST_TIMEOUT_MS);
+   *  Soniox id yet.
+   *
+   *  `budgetMs` caps this call's own timeout, same contract as `ensure`: a
+   *  caller polling against a deadline would otherwise have its last poll run
+   *  the full 15s past that deadline. Callers with no deadline omit it. */
+  async mine(budgetMs?: number): Promise<ManagedVoice | null> {
+    const res = await this.request(
+      '/mine',
+      { method: 'GET' },
+      budgetMs !== undefined ? Math.min(REQUEST_TIMEOUT_MS, budgetMs) : REQUEST_TIMEOUT_MS
+    );
     const body = await res.json();
     return body?.voice ?? null;
   }

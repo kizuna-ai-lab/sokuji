@@ -154,6 +154,43 @@ describe('prepareManagedVoice', () => {
     expect(mine).not.toHaveBeenCalled();
   });
 
+  it('gives the poll its remaining budget, so the last one cannot outlive the ceiling', async () => {
+    // `mine` carries a fixed 15s request timeout of its own. Letting a poll
+    // start just inside the deadline is fine; letting it RUN 15s past is what
+    // makes the ceiling soft.
+    let t = 0;
+    const ensure = vi.fn().mockResolvedValue({ voiceId: 'vA', status: 'processing' });
+    const mine = vi.fn().mockResolvedValue({ voiceId: 'vA', status: 'ready', createdAt: 1 });
+    const sleep = vi.fn().mockImplementation(async (ms: number) => { t += ms; });
+    const res = await prepareManagedVoice({
+      ...deps({ ensure, mine }),
+      sleep,
+      now: () => t,
+      timeoutMs: 5_000,
+      pollIntervalMs: 1_500,
+    });
+    expect(res).toEqual({ ok: true, voiceId: 'vA' });
+    expect(mine).toHaveBeenCalledWith(3_500);
+  });
+
+  it('abandons the clip upload when reading the clip itself ran out the clock', async () => {
+    // loadClip pulls up to 10MB out of IndexedDB. Checking the deadline only
+    // BEFORE that read let a slow read be followed by the most expensive call
+    // in the routine, already over budget.
+    let t = 0;
+    const ensure = vi.fn().mockRejectedValue(new SonioxVoicesError('clip_required', 'need clip', 409));
+    const loadClip = vi.fn().mockImplementation(async () => { t += 10_000; return clip(); });
+    const res = await prepareManagedVoice({
+      ...deps({ ensure, loadClip }),
+      now: () => t,
+      timeoutMs: 5_000,
+    });
+    expect(res).toEqual({ ok: false, reason: 'unavailable' });
+    expect(loadClip).toHaveBeenCalledTimes(1);
+    // The warm attempt only — no upload was ever started.
+    expect(ensure).toHaveBeenCalledTimes(1);
+  });
+
   it('gives ensure only the budget that is left, so an upload cannot outlive it', async () => {
     // ManagedVoicesClient defaults a clip upload to 120s. Preparation budgets
     // 60s for everything. Without handing the remaining budget down, one cold

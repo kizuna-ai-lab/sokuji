@@ -88,8 +88,12 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
       // was out of. The rule everywhere in this routine is the same: no new
       // attempt may BEGIN after the deadline.
       await sleep(Math.min(pollIntervalMs, remaining));
-      if (now() >= deadline) return { ok: false, reason: 'unavailable' };
-      const voice = await client.mine();
+      // The poll gets the budget too, not just permission to start: `mine`
+      // otherwise runs its own fixed 15s timeout, so a poll beginning just
+      // inside the deadline still finishes outside it.
+      const budgetMs = deadline - now();
+      if (budgetMs <= 0) return { ok: false, reason: 'unavailable' };
+      const voice = await client.mine(budgetMs);
       // A vanished row means another device superseded this build or the LRU
       // evicted it. Rebuilding here would race the same way again.
       if (!voice) return { ok: false, reason: 'voice_failed' };
@@ -139,6 +143,10 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
         // No clip here means this device has never recorded one. Warm slots
         // follow the user anywhere; a cold slot cannot, by design.
         if (!stored) return { ok: false, reason: 'clip_required' };
+        // Re-checked AFTER the read, not only before it: pulling a clip of up
+        // to 10 MB out of IndexedDB can itself outlast what was left, and the
+        // upload that follows is the most expensive thing this routine does.
+        if (now() >= deadline) return { ok: false, reason: 'unavailable' };
         return ensureOnce(stored, { ...opts, retriedClip: true });
       }
       if (error.errorType === 'pool_exhausted' && !opts.retriedPool) {
