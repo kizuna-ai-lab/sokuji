@@ -413,7 +413,17 @@ export class GeminiClient implements IClient {
     // A translate session never sends turnComplete, so this client has to
     // close conversation items itself — see continuousSegmentation.
     this.continuousSegmentation = isTranslateSession;
+    // reconnect() reaches this method with currentTurn deliberately intact: it
+    // clears isConnectedState so the disconnect() above is skipped, and
+    // hasLocalSessionState() exists precisely because that state survives. An
+    // open segment therefore outlives the outage, and dropping its deadline
+    // would strand it at in_progress forever if the speaker stopped talking
+    // while the socket was down. Restart the countdown instead.
     this.clearSegmentTimers();
+    if (this.continuousSegmentation) {
+      if (this.currentTurn.inputTranscriptionItem) this.armInputSegmentTimer();
+      if (this.currentTurn.assistantItem) this.armAssistantSegmentTimer();
+    }
 
     // Convert SessionConfig to LiveConnectConfig
     const liveConfig: LiveConnectConfig = {
@@ -953,6 +963,17 @@ export class GeminiClient implements IClient {
           const audioChunk = new Int16Array(audioData);
           // Per-turn replay buffer: skip when keepReplayAudio is off so the
           // entire turn's PCM doesn't pile up in memory before being dropped.
+          //
+          // KNOWN GAP for translate sessions with the flag on: chunks keep
+          // arriving through the pause between utterances, and the first of
+          // them re-creates assistantItem below, so the idle interval ends up
+          // heading the next segment's replay buffer. Gating this push alone
+          // does not fix it — item creation is what admits the idle audio, and
+          // moving that behind the transcript means first hoisting the live
+          // playback delta out of the same block, which is a change to every
+          // Gemini model's playback path and does not belong in this fix. This
+          // is still strictly better than before segmentation existed, when the
+          // buffer grew for the whole session. Tracked separately.
           if (this.keepReplayAudio) {
             this.currentTurn.audioData.push(audioChunk);
           }

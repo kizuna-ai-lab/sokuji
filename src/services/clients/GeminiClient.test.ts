@@ -884,6 +884,29 @@ describe('GeminiClient — Live Translate silence segmentation', () => {
     expect(second.formatted.audio?.length).toBe(160);
   });
 
+  it('keeps an open segment on a deadline across a reconnect', async () => {
+    await client.connect(translateConfig as any);
+
+    // A resumption handle is what lets reconnect() take the resume path rather
+    // than declaring a permanent disconnect.
+    capturedCallbacks.onmessage?.({
+      sessionResumptionUpdate: { resumable: true, newHandle: 'handle-1' },
+    });
+    sendInput('interrupted mid-sentence');
+
+    // Drive the real reconnect path. A plain second connect() would not do:
+    // it goes through disconnect(), which closes the segment for an unrelated
+    // reason and would let this test pass with the fix reverted. reconnect()
+    // clears isConnectedState precisely so connect() skips that, arriving with
+    // currentTurn — and the open item — intact.
+    setupSuccessfulConnect();
+    capturedCallbacks.onmessage?.({ goAway: {} });
+    await vi.advanceTimersByTimeAsync(100);
+
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('completed');
+  });
+
   it('closes the open segment on disconnect instead of stranding it in_progress', async () => {
     await client.connect(translateConfig as any);
 
