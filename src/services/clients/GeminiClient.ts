@@ -361,15 +361,30 @@ export class GeminiClient implements IClient {
 
     console.info('[Sokuji] [GeminiClient] realtimeInputConfig:', JSON.stringify(realtimeInputConfig));
 
+    // A Live Translate session is identified by carrying a translationConfig —
+    // the client keys off the config's shape rather than matching model names,
+    // which stay the descriptor's business.
+    const translationConfig = isGeminiSessionConfig(config) ? config.translationConfig : undefined;
+    const isTranslateSession = translationConfig !== undefined;
+
     // Convert SessionConfig to LiveConnectConfig
     const liveConfig: LiveConnectConfig = {
       responseModalities,
-      temperature: config.temperature,
-      maxOutputTokens: typeof config.maxTokens === 'number' ? config.maxTokens : undefined,
+      // The translate model takes neither: it is a fixed interpreter with no
+      // sampling or length controls to offer, and the settings UI hides both.
+      temperature: isTranslateSession ? undefined : config.temperature,
+      maxOutputTokens: !isTranslateSession && typeof config.maxTokens === 'number' ? config.maxTokens : undefined,
+      // Still sent for translate sessions: translationConfig fixes the target
+      // language, and the instruction remains the only mechanism that reaches
+      // terminology and style.
       systemInstruction: config.instructions ? {
         parts: [{ text: config.instructions }]
       } : undefined,
-      speechConfig: config.voice && !config.textOnly ? {
+      translationConfig,
+      // The translate model reproduces the speaker's own voice and accepts a
+      // speechConfig only to ignore it. Sending one would imply a choice we
+      // don't have.
+      speechConfig: config.voice && !config.textOnly && !isTranslateSession ? {
         voiceConfig: {
           prebuiltVoiceConfig: {
             voiceName: config.voice

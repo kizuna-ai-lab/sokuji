@@ -4,6 +4,7 @@ import { ProviderConfigFactory } from '../../../services/providers/ProviderConfi
 import { supportsTranscriptionContext } from '../../../services/providers/openaiTranscriptionContext';
 import { OpenAITranscriptModel } from '../../../services/providers/OpenAIProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
+import { isGeminiTranslateModel } from '../../../services/providers/geminiTranslateModel';
 import {
   useProvider,
   useSystemInstructions,
@@ -442,6 +443,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
   const renderVoiceSettings = () => {
     if (!config.capabilities.hasVoiceSettings || provider === Provider.PALABRA_AI) {
+      return null;
+    }
+    // Gemini Live Translate reproduces the speaker's own voice; it accepts a
+    // speechConfig and silently ignores it. Offering a picker would promise a
+    // choice that does not exist. Gated per-model rather than per-provider,
+    // the same way reasoning effort is gated to `gpt-realtime-2`.
+    if (provider === Provider.GEMINI && isGeminiTranslateModel(geminiSettings.model)) {
       return null;
     }
 
@@ -985,6 +993,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
   const renderModelConfigurationSettings = () => {
     if (!config.capabilities.hasModelConfiguration || provider === Provider.PALABRA_AI) {
+      return null;
+    }
+    // Live Translate is a fixed interpreter with no sampling or output-length
+    // controls to offer; GeminiClient stops sending both for that model.
+    if (provider === Provider.GEMINI && isGeminiTranslateModel(geminiSettings.model)) {
       return null;
     }
 

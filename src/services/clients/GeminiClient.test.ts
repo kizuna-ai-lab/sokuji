@@ -664,3 +664,83 @@ describe('GeminiClient — keepReplayAudio gating', () => {
     expect(assistant!.formatted?.audio).toBeUndefined();
   });
 });
+
+// ─────────────────────────────────────────────
+describe('GeminiClient — Live Translate wire config', () => {
+  let client: InstanceType<typeof GeminiClient>;
+
+  /** The LiveConnectConfig handed to the SDK on the most recent connect().
+   *  Indexed rather than `.at(-1)` — the project's `lib` target predates it. */
+  const sentConfig = () => {
+    const calls = mockLiveConnect.mock.calls;
+    return calls[calls.length - 1][0].config;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    capturedCallbacks = {};
+    mockSessionClose.mockReset();
+    mockLiveConnect.mockReset();
+    client = new GeminiClient('test-api-key');
+    client.setEventHandlers({} as any);
+    setupSuccessfulConnect();
+  });
+
+  const translateConfig = {
+    ...baseConfig,
+    model: 'gemini-3.5-live-translate-preview',
+    voice: 'Aoede',
+    temperature: 0.8,
+    maxTokens: 2048,
+    instructions: 'Glossary: render "agenda" as 議事次第.',
+    translationConfig: { targetLanguageCode: 'ja', echoTargetLanguage: false },
+  };
+
+  it('forwards translationConfig so the target language does not depend on the prompt', async () => {
+    await client.connect(translateConfig as any);
+
+    expect(sentConfig().translationConfig).toEqual({
+      targetLanguageCode: 'ja',
+      echoTargetLanguage: false,
+    });
+  });
+
+  it('keeps sending the system instruction, which still carries terminology', async () => {
+    await client.connect(translateConfig as any);
+
+    expect(sentConfig().systemInstruction).toEqual({
+      parts: [{ text: 'Glossary: render "agenda" as 議事次第.' }],
+    });
+  });
+
+  it('omits speechConfig — the model reproduces the speaker and ignores a voice', async () => {
+    await client.connect(translateConfig as any);
+
+    expect(sentConfig().speechConfig).toBeUndefined();
+  });
+
+  it('omits the sampling and length knobs the translate model has no use for', async () => {
+    await client.connect(translateConfig as any);
+
+    expect(sentConfig().temperature).toBeUndefined();
+    expect(sentConfig().maxOutputTokens).toBeUndefined();
+  });
+
+  it('leaves a dialogue session untouched: voice and temperature still ride along', async () => {
+    await client.connect({
+      ...baseConfig,
+      model: 'gemini-3.1-flash-live-preview',
+      voice: 'Aoede',
+      temperature: 0.8,
+      maxTokens: 2048,
+      instructions: 'Translate English to Japanese.',
+    } as any);
+
+    expect(sentConfig().translationConfig).toBeUndefined();
+    expect(sentConfig().speechConfig).toEqual({
+      voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } },
+    });
+    expect(sentConfig().temperature).toBe(0.8);
+    expect(sentConfig().maxOutputTokens).toBe(2048);
+  });
+});

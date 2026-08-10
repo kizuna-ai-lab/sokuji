@@ -29,6 +29,7 @@ import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { sonioxUsesSharedBothSession, SonioxProviderConfig } from '../../services/providers/SonioxProviderConfig';
 import { reverseTranscriptionDirection } from '../../services/providers/openaiTranscriptionContext';
+import { reverseGeminiTranslationDirection } from '../../services/providers/geminiTranslateModel';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -47,7 +48,7 @@ import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, OpenAISessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig, PalabraAISessionConfig } from '../../services/interfaces/IClient';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, OpenAISessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig, PalabraAISessionConfig, GeminiSessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -815,6 +816,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Force Auto mode for Gemini participant (no PTT for participant)
       ...(baseConfig.provider === 'gemini' ? { turnDetectionMode: 'Auto' as const } : {}),
     };
+
+    // Gemini's dialogue models need nothing here: their direction rides in the
+    // system instruction, which was already swapped above. A Live Translate
+    // session does, because its `translationConfig.targetLanguageCode`
+    // overrules that instruction — left alone, the participant session would
+    // translate the other party's speech into the language they are already
+    // speaking. No-op when no translationConfig is present.
+    if (config.provider === 'gemini') {
+      reverseGeminiTranslationDirection(config as GeminiSessionConfig);
+    }
 
     // OpenAI Translate carries language direction only in `audio.output.language`
     // (not system instructions — translate doesn't accept instructions). Swap
