@@ -141,6 +141,14 @@ an unrecognised role parses as ours-with-unknown-role and alarms, and specifical
 fall through to "not ours" — that path is silent by design and would hide the failure.
 Exactly three segments is rejected (decision 5).
 
+**Ownership and parsing must be two separate predicates, or decisions 5 and A4 contradict
+each other.** `parseClientRefId` answers "can I bill this?" and rejects three segments;
+a prefix-only `isOurClientRef` answers "is this ours at all?" and accepts both three and
+four. A4's release path is gated on the second, never the first. Collapsing them into one
+function strands every session that was live at deploy — the exact outcome A4 exists to
+prevent — and the failure is silent, because rejecting a reference is indistinguishable
+from a BYOK customer's traffic.
+
 **Why the role is worth carrying even though `classifyLog` already derives stt/tts from the
 model prefix.** It gives a second, independent signal. The existing alarm text says that if
 Soniox renamed a model prefix, *every* session would classify as `other`, bill zero at full
