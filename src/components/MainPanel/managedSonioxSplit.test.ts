@@ -1,10 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { ManagedSonioxSession } from '../../services/clients/ManagedSonioxSession';
 import {
   resolveManagedSonioxWiring,
   resolveParticipantSlot,
   connectLegAndMarkStarted,
   teardownSessionLegs,
 } from './managedSonioxSplit';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 /**
  * There is no React rendering harness in this repo, so MainPanel's
@@ -403,5 +409,148 @@ describe('resolveManagedSonioxWiring — every reachable input agrees with the s
         expect(wiring.participantRole !== null || wiring.speakerRole === 'mix_stt').toBe(true);
       }
     }
+  });
+});
+
+describe('a managed split Both session, wiring through the real session object', () => {
+  /**
+   * Split is not reachable through the UI yet (sonioxUsesSharedBothSession
+   * still forces shared for managed accounts), and there is no React harness to
+   * drive connectConversation with. So this drives the same sequence MainPanel
+   * does — resolve the wiring, acquire, take one bundle per leg, mark each leg
+   * started after its connect, tear both legs down, end once — against the real
+   * ManagedSonioxSession with only `fetch` stubbed. It is what turns "the
+   * pieces are individually correct" into "they compose".
+   */
+  const bodiesTo = (fetchMock: ReturnType<typeof vi.fn>, path: string) =>
+    fetchMock.mock.calls
+      .filter(([url]) => (url as string).includes(path))
+      .map(([, init]) => JSON.parse((init as RequestInit).body as string));
+
+  it('buys one lease, runs two legs on two keys, and ends exactly once', async () => {
+    const fetchMock = vi.fn(async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => (url.includes('/soniox/session-key')
+        ? {
+            sttApiKey: 'k-spk-stt',
+            ttsApiKey: 'k-spk-tts',
+            expiresAt: '2026-08-11T00:01:00Z',
+            maxSessionDurationSeconds: 900,
+            budgetMicroUsd: 500_000,
+            rateUsdPerHour: 2.5,
+            sku: 'soniox:speech_to_speech',
+            leaseId: 'L1',
+            clientReferenceId: 'sokuji1:acct:L1:spk_stt',
+            streams: [
+              { role: 'spk_stt', apiKey: 'k-spk-stt', clientReferenceId: 'sokuji1:acct:L1:spk_stt', expiresAt: 'x' },
+              { role: 'spk_tts', apiKey: 'k-spk-tts', clientReferenceId: 'sokuji1:acct:L1:spk_tts', expiresAt: 'x' },
+              { role: 'par_stt', apiKey: 'k-par-stt', clientReferenceId: 'sokuji1:acct:L1:par_stt', expiresAt: 'x' },
+            ],
+          }
+        : { ok: true }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wiring = resolveManagedSonioxWiring({
+      speakerWillStart: true,
+      participantWillStart: true,
+      textOnly: false,
+      sonioxSharedBoth: false,
+      sonioxSplitBoth: true,
+    });
+    const session = new ManagedSonioxSession({ sessionToken: 'sess' });
+    await session.acquire(wiring.acquire);
+
+    // ONE lease for the whole session — this is what the old in-client
+    // acquisition could not do: the second client asked for a lease of its own
+    // and the account-scoped lease refused it with a 409.
+    expect(bodiesTo(fetchMock, '/soniox/session-key')).toEqual([
+      { mode: 'both', textOnly: false, bothSplit: true },
+    ]);
+
+    const speaker = session.credentialsFor(wiring.speakerRole!);
+    const participant = session.credentialsFor(wiring.participantRole!);
+    expect(speaker.stt).not.toBe(participant.stt);
+    expect(speaker.clientReferenceId).not.toBe(participant.clientReferenceId);
+    // The session's only TTS key rides the speaker leg; the participant is
+    // text-only and must not hold one.
+    expect(speaker.tts).toBe('k-spk-tts');
+    expect(participant.tts).toBeUndefined();
+
+    // Speaker connects first, participant second — MainPanel's order. The
+    // participant's connect FAILS to resolve nothing here; both come up.
+    await connectLegAndMarkStarted({
+      connect: async () => {},
+      markStarted: () => session.markStarted(wiring.speakerRole!),
+    });
+    await connectLegAndMarkStarted({
+      connect: async () => {},
+      markStarted: () => session.markStarted(wiring.participantRole!),
+    });
+    expect(bodiesTo(fetchMock, '/soniox/session-started')).toEqual([
+      { leaseId: 'L1', role: 'spk_stt' },
+      { leaseId: 'L1', role: 'par_stt' },
+    ]);
+
+    await teardownSessionLegs({
+      speaker: async () => {},
+      participant: async () => {},
+      afterBothLegs: () => session.end(),
+    });
+    expect(bodiesTo(fetchMock, '/soniox/session-end')).toEqual([{ leaseId: 'L1' }]);
+  });
+
+  it('a participant leg that never connects leaves the lease waiting on the speaker alone', async () => {
+    // The settled degradation: three ordinary paths drop the participant leg,
+    // and none of them may hold the lease. Release is keyed on STARTED, so the
+    // par_stt bit must never be set for a leg whose socket never opened.
+    const fetchMock = vi.fn(async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => (url.includes('/soniox/session-key')
+        ? {
+            sttApiKey: 'k-spk-stt', expiresAt: 'x', maxSessionDurationSeconds: 900,
+            budgetMicroUsd: 500_000, rateUsdPerHour: 2.2, sku: 'soniox:text_only',
+            leaseId: 'L2', clientReferenceId: 'sokuji1:acct:L2:spk_stt',
+            streams: [
+              { role: 'spk_stt', apiKey: 'k-spk-stt', clientReferenceId: 'sokuji1:acct:L2:spk_stt', expiresAt: 'x' },
+              { role: 'par_stt', apiKey: 'k-par-stt', clientReferenceId: 'sokuji1:acct:L2:par_stt', expiresAt: 'x' },
+            ],
+          }
+        : { ok: true }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const wiring = resolveManagedSonioxWiring({
+      speakerWillStart: true,
+      participantWillStart: true,
+      textOnly: true,
+      sonioxSharedBoth: false,
+      sonioxSplitBoth: true,
+    });
+    const session = new ManagedSonioxSession({ sessionToken: 'sess' });
+    await session.acquire(wiring.acquire);
+
+    await connectLegAndMarkStarted({
+      connect: async () => {},
+      markStarted: () => session.markStarted(wiring.speakerRole!),
+    });
+    await expect(
+      connectLegAndMarkStarted({
+        connect: async () => { throw new Error('loopback permission denied'); },
+        markStarted: () => session.markStarted(wiring.participantRole!),
+      }),
+    ).rejects.toThrow('loopback permission denied');
+
+    // Only the speaker's bit. The par_stt key is simply abandoned — single_use
+    // with a short start window, so it lapses on its own.
+    expect(bodiesTo(fetchMock, '/soniox/session-started')).toEqual([
+      { leaseId: 'L2', role: 'spk_stt' },
+    ]);
+
+    // The session still ends exactly once, on the speaker's teardown alone.
+    await teardownSessionLegs({ speaker: async () => {}, afterBothLegs: () => session.end() });
+    expect(bodiesTo(fetchMock, '/soniox/session-end')).toEqual([{ leaseId: 'L2' }]);
   });
 });
