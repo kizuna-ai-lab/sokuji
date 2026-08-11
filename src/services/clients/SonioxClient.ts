@@ -267,9 +267,9 @@ export class SonioxClient implements IClient {
 
     this.stt = new SonioxSttStream();
     this.wireSttHandlers(this.stt);
-    // buildSttConnectConfig() is a pure function of currentConfig + the
-    // instance fields set above (this.bidirectional, managed keys,
-    // clientReferenceId) — resumeSttStream() calls the exact same helper to
+    // buildSttConnectConfig() is a pure function of currentConfig, the
+    // readonly credential bundle, and the instance fields set above
+    // (this.bidirectional) — resumeSttStream() calls the exact same helper to
     // rebuild a byte-identical config frame on a fresh stream.
     const sttConfig = this.buildSttConnectConfig();
     await this.stt.connect(sttConfig);
@@ -356,9 +356,9 @@ export class SonioxClient implements IClient {
   }
 
   /**
-   * Build the STT wire config frame. A pure function of currentConfig plus
-   * the instance fields that outlive a single stream (this.bidirectional,
-   * managed session keys, clientReferenceId) — never of local variables
+   * Build the STT wire config frame. A pure function of currentConfig, the
+   * readonly credential bundle, and the instance fields that outlive a single
+   * stream (this.bidirectional) — never of local variables
    * computed inline during one connect() call — so resumeSttStream() can
    * call this same helper after a 503 and get a byte-identical config on
    * the fresh stream, without connect()'s caller-specific setup re-running.
