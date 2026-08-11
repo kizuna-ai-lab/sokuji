@@ -3,7 +3,6 @@ import { ManagedSonioxSession } from '../../services/clients/ManagedSonioxSessio
 import {
   resolveManagedSonioxWiring,
   resolveParticipantSlot,
-  connectLegAndMarkStarted,
   teardownSessionLegs,
 } from './managedSonioxSplit';
 
@@ -182,37 +181,14 @@ describe('resolveParticipantSlot — the secondary port is the SHARED path only'
   });
 });
 
-describe('connectLegAndMarkStarted — the started bit means "confirmed connected"', () => {
-  it('marks the leg started after connect resolves', async () => {
-    const order: string[] = [];
-    await connectLegAndMarkStarted({
-      connect: async () => { order.push('connect'); },
-      markStarted: () => { order.push('markStarted'); },
-    });
-    expect(order).toEqual(['connect', 'markStarted']);
-  });
-
-  it('does NOT mark the leg started when connect rejects', async () => {
-    // This is the whole reason release is keyed on STARTED rather than on
-    // EXPECTED: a bit set for a leg that never opened a socket waits forever
-    // for a usage log that cannot arrive, holding the lease — and 409-ing every
-    // subsequent Start — until it expires, up to an hour.
-    let marked = false;
-    await expect(
-      connectLegAndMarkStarted({
-        connect: async () => { throw new Error('403 loopback denied'); },
-        markStarted: () => { marked = true; },
-      }),
-    ).rejects.toThrow('403 loopback denied');
-    expect(marked).toBe(false);
-  });
-
-  it('is a no-op wrapper when there is no session to mark (BYOK)', async () => {
-    let connected = false;
-    await connectLegAndMarkStarted({ connect: async () => { connected = true; } });
-    expect(connected).toBe(true);
-  });
-});
+// `connectLegAndMarkStarted` and its three tests are gone. It set the started
+// bit when a leg's connect() resolved, which for Soniox is ws.onopen — before
+// the key is validated. The bit is now driven from the first frame the stream
+// receives; that path is pinned end to end in SonioxClient.managed.test.ts
+// ("a leg is reported started only when Soniox ACCEPTS its stream") and in
+// ManagedSonioxSession.test.ts ("noteStreamAccepted"), both of which can drive
+// a real client and a real session — which MainPanel, having no React harness
+// here, never could.
 
 describe('teardownSessionLegs — session-end fires exactly once, after BOTH legs', () => {
   it('runs speaker, then participant, then the session-level end', async () => {
@@ -478,16 +454,13 @@ describe('a managed split Both session, wiring through the real session object',
     expect(speaker.tts).toBe('k-spk-tts');
     expect(participant.tts).toBeUndefined();
 
-    // Speaker connects first, participant second — MainPanel's order. The
-    // participant's connect FAILS to resolve nothing here; both come up.
-    await connectLegAndMarkStarted({
-      connect: async () => {},
-      markStarted: () => session.markStarted(wiring.speakerRole!),
-    });
-    await connectLegAndMarkStarted({
-      connect: async () => {},
-      markStarted: () => session.markStarted(wiring.participantRole!),
-    });
+    // Speaker connects first, participant second — MainPanel's order. Both
+    // streams are then ACCEPTED, which is what each leg's own SonioxClient
+    // reports off its first frame (SonioxClient.handleSttMessage). Connecting
+    // is deliberately not modelled as marking anything: for Soniox a resolved
+    // connect is only ws.onopen.
+    session.noteStreamAccepted(wiring.speakerRole!);
+    session.noteStreamAccepted(wiring.participantRole!);
     expect(bodiesTo(fetchMock, '/soniox/session-started')).toEqual([
       { leaseId: 'L1', role: 'spk_stt' },
       { leaseId: 'L1', role: 'par_stt' },
@@ -532,16 +505,12 @@ describe('a managed split Both session, wiring through the real session object',
     const session = new ManagedSonioxSession({ sessionToken: 'sess' });
     await session.acquire(wiring.acquire);
 
-    await connectLegAndMarkStarted({
-      connect: async () => {},
-      markStarted: () => session.markStarted(wiring.speakerRole!),
-    });
-    await expect(
-      connectLegAndMarkStarted({
-        connect: async () => { throw new Error('loopback permission denied'); },
-        markStarted: () => session.markStarted(wiring.participantRole!),
-      }),
-    ).rejects.toThrow('loopback permission denied');
+    session.noteStreamAccepted(wiring.speakerRole!);
+    // ...and nothing for the participant: its connect threw (loopback
+    // permission denied), so it never opened a stream, never received a frame,
+    // and therefore never reported itself accepted. The same silence covers the
+    // subtler case this replaced — a participant socket that DID open on a key
+    // whose start window had lapsed, and was rejected a moment later.
 
     // Only the speaker's bit. The par_stt key is simply abandoned — single_use
     // with a short start window, so it lapses on its own.

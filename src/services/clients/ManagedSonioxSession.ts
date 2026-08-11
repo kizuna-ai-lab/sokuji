@@ -13,11 +13,13 @@ import { getApiUrl } from '../../utils/environment';
  * session allowance countdown.
  *
  * Who drives it: MainPanel.connectConversation acquires one per Start, hands
- * each client its bundle through ClientOptions.sonioxManaged, calls
- * markStarted() once each leg's socket is up, and end() once every client is
- * down. ProviderDescriptor.createClient is synchronous and returns exactly one
- * client, so it cannot own an awaited acquire() without going async for all
- * eleven providers.
+ * each client its bundle and its role through ClientOptions.sonioxManaged, and
+ * calls end() once every client is down. The started bit is NOT MainPanel's to
+ * set — only the leg's own stream can tell an accepted stream from a socket
+ * that merely opened, so each client reports `noteStreamAccepted(role)` and the
+ * decision of what that is worth stays here. ProviderDescriptor.createClient is
+ * synchronous and returns exactly one client, so it cannot own an awaited
+ * acquire() without going async for all eleven providers.
  */
 
 /**
@@ -31,6 +33,18 @@ export type SonioxStreamRole =
   | 'spk_stt' | 'spk_tts'
   | 'par_stt' | 'par_tts'
   | 'mix_stt' | 'mix_tts';
+
+/**
+ * The TRANSCRIPTION roles — the closed set one SonioxClient can BE. There is
+ * exactly one client per transcription stream, and a `*_tts` role is not a leg
+ * of its own but the synthesis key riding the STT leg of the same side.
+ *
+ * Narrower than `SonioxStreamRole` on purpose wherever a leg names itself:
+ * these are also exactly the roles that carry a bit in the backend's
+ * `stt_started_mask`, and `session-started` answers 400 "Invalid role" for any
+ * other (sokuji-backend `sessionStartedHandler`, `sttRoleBit`).
+ */
+export type SonioxSttRole = 'spk_stt' | 'par_stt' | 'mix_stt';
 
 /**
  * What one SonioxClient needs to run its sockets. A NEW construction shape for
@@ -83,7 +97,7 @@ export type SonioxSessionMatrixInput = ManagedSessionRequest;
  * fields describe. NOT simply "the speaker": a participant-only session's
  * primary leg is par_stt, and shared Both's is mix_stt.
  */
-export function primarySttRoleFor(request: ManagedSessionRequest): SonioxStreamRole {
+export function primarySttRoleFor(request: ManagedSessionRequest): SonioxSttRole {
   if (request.mode === 'participant') return 'par_stt';
   if (request.mode === 'both' && !request.bothSplit) return 'mix_stt';
   return 'spk_stt';
@@ -153,6 +167,11 @@ export class ManagedSonioxSession {
   // session-end is a hint the backend acts on once; teardown can reach it from
   // more than one path (the user's Stop, a client's onClose, connect()'s catch).
   private endSignalled = false;
+  // Which legs have already been reported accepted. Session-scoped rather than
+  // client-scoped because "this lease's spk_stt bit is set" is lease state: a
+  // client resets its own fields on every connect(), and the question here is
+  // per lease, not per socket.
+  private readonly acceptedRoles = new Set<SonioxSttRole>();
 
   constructor(options: ManagedSonioxSessionOptions) {
     this.sessionToken = options.sessionToken;
@@ -163,7 +182,7 @@ export class ManagedSonioxSession {
     return this.leaseIdValue;
   }
 
-  get primarySttRole(): SonioxStreamRole {
+  get primarySttRole(): SonioxSttRole {
     if (!this.request) throw new Error('ManagedSonioxSession.primarySttRole read before acquire()');
     return primarySttRoleFor(this.request);
   }
@@ -202,6 +221,10 @@ export class ManagedSonioxSession {
     }
     this.leaseIdValue = data.leaseId;
     this.bundles.clear();
+    // A new lease is a new mask (acquire resets stt_started_mask to 0 server
+    // side), so a role carried over from a previous one would suppress the very
+    // report that extends this lease.
+    this.acceptedRoles.clear();
     this.fileBundles(request, data);
     this.costMeter = new SonioxCostMeter({
       budgetMicroUsd: data.budgetMicroUsd,
@@ -277,10 +300,54 @@ export class ManagedSonioxSession {
   }
 
   /**
-   * Fire-and-forget: confirms a leg's socket is up so the backend extends the
-   * lease from its short start-window TTL to the full granted duration. Never
-   * awaited — a failure here just means the lease expires on its own schedule,
-   * never worth failing an already-open session over.
+   * A leg's stream was ACCEPTED by Soniox — the only observation that may set a
+   * started bit. Reported by the leg's own SonioxClient on every frame it
+   * receives, because a frame is the only proof available: SonioxSttStream
+   * routes anything carrying `error_code` to `onError` and returns, so a frame
+   * that reaches the client got past authentication.
+   *
+   * Socket-open is NOT that proof. `SonioxSttStream.connect()` resolves inside
+   * `ws.onopen`, right after the config frame goes out and before Soniox has
+   * looked at `api_key` — the same fact SonioxClient's managed-503 gate turns
+   * on. A key whose start window lapsed (the participant's waits behind the OS
+   * screen-recording dialog for up to 180 s) still opens a socket and is
+   * rejected afterwards. Marking that leg started would OR a bit into
+   * `stt_started_mask` that no usage log can ever clear — Soniox writes no log
+   * for a stream it refused — and the backend releases the lease only when
+   * `(ended & started) = started`, so the account would 409 every subsequent
+   * Start for up to an hour.
+   *
+   * The first report per role becomes one `session-started`; the hundreds that
+   * follow are the same fact restated. `markStarted` is idempotent server-side
+   * (ORed mask, MAX()-ed expiry), so the dedupe is about not flooding the
+   * backend at frame rate, not about the mask.
+   *
+   * KNOWN COST, taken deliberately: Soniox answers as it PROCESSES AUDIO, so a
+   * leg that is accepted but sent no audio at all — the speaker leg of a session
+   * started with the input device off, whose per-frame callback drops every
+   * chunk — produces no frame and never reports. Its lease then keeps the short
+   * start-window TTL instead of the full grant. That is the same direction the
+   * backend chose for `role_not_issued`: an unset bit costs THIS session its
+   * extension (and frees the account), while a wrongly-set bit costs the ACCOUNT
+   * every subsequent Start for up to an hour. A silent session is one nobody is
+   * getting value from; a locked account is one nobody can escape.
+   */
+  noteStreamAccepted(role: SonioxSttRole): void {
+    if (this.acceptedRoles.has(role)) return;
+    this.acceptedRoles.add(role);
+    this.markStarted(role);
+  }
+
+  /**
+   * Fire-and-forget: tells the backend one transcription stream of this session
+   * is confirmed RUNNING, so it extends the lease from its short start-window
+   * TTL to the full granted duration. Never awaited — a failure here just means
+   * the lease expires on its own schedule, never worth failing an already-open
+   * session over.
+   *
+   * Reached through `noteStreamAccepted`, which owns the "what counts as
+   * confirmed" question. Kept separate (and public) because this is purely the
+   * wire act: one role, one POST, no memory.
    */
   markStarted(role: SonioxStreamRole): void {
     const leaseId = this.leaseIdValue;

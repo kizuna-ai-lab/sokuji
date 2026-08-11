@@ -3,7 +3,7 @@ import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 // Type-only, so this adds no runtime edge from the shared descriptor module to
 // SonioxClient's dependency graph (i18n, the wire components).
-import type { ManagedSonioxSession, SonioxCredentialBundle } from '../clients/ManagedSonioxSession';
+import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from '../clients/ManagedSonioxSession';
 
 /** Transport for realtime providers. Moved here from settingsStore so the
  *  services layer no longer imports from stores. settingsStore re-exports it. */
@@ -35,6 +35,14 @@ export type ClientOptions = {
   sonioxManaged?: {
     credentials: SonioxCredentialBundle;
     session: ManagedSonioxSession;
+    /**
+     * WHICH leg this client is — the role its bundle was taken with. Required,
+     * not optional: it is how the leg names itself when it reports that Soniox
+     * accepted its stream, and on a two-stream lease `session-started` refuses
+     * a roleless body (400 `role_required`) and another leg's role
+     * (`role_not_issued`), leaving the lease at its start window either way.
+     */
+    role: SonioxSttRole;
     /**
      * Whether THIS client announces the session-level outcomes (balance
      * exhausted) and ends its stream on them. Defaults to true.

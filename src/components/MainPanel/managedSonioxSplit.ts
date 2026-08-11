@@ -137,27 +137,29 @@ export function resolveParticipantSlot(input: {
   return 'own-client';
 }
 
-/**
- * Connect one leg and, only if that succeeds, tell the backend the leg started.
+/*
+ * There is deliberately no `connectLegAndMarkStarted` here any more.
  *
- * `stt_started_mask` means "this stream is confirmed connected", and the lease
- * releases when every STARTED leg has ended. Setting a bit before the socket is
- * up would make the lease wait on a usage log that can never arrive.
+ * It existed to post `session-started` once a leg's `connect()` resolved, on
+ * the premise that a resolved connect meant a confirmed stream. It does not:
+ * `SonioxSttStream.connect()` resolves inside `ws.onopen`, before Soniox has
+ * looked at `api_key`. A key whose start window lapsed — the participant's
+ * waits behind the OS screen-recording dialog — still opens its socket, and the
+ * rejection arrives afterwards as an error frame. The bit set for it could
+ * never be cleared (Soniox writes no usage log for a stream it refused), and
+ * the lease releases only when `(ended & started) = started`.
  *
- * The mirror image is deliberate and is what makes the three non-fatal
- * participant failure paths in connectConversation safe under split — loopback
- * permission denied, `createParticipantSessionConfig()` returning null, and the
- * general participant catch. In each of them `connect` is either never reached
- * or rejects, so the par_stt bit is never set, so the lease is never waiting on
- * the participant and releases on the speaker alone.
+ * The started bit is now driven from the only place that can tell the two
+ * apart: the leg's own stream. SonioxClient reports each frame it receives to
+ * `ManagedSonioxSession.noteStreamAccepted(role)`, which turns the first report
+ * per role into one `session-started`. MainPanel just connects.
+ *
+ * The three non-fatal participant failure paths in connectConversation stay
+ * safe for a STRONGER reason than before — loopback permission denied,
+ * `createParticipantSessionConfig()` returning null, and the general participant
+ * catch never reach a frame, so the par_stt bit is never set and the lease
+ * releases on the speaker alone.
  */
-export async function connectLegAndMarkStarted(steps: {
-  connect: () => Promise<void>;
-  markStarted?: () => void;
-}): Promise<void> {
-  await steps.connect();
-  steps.markStarted?.();
-}
 
 /**
  * Tear both legs down, then signal session end EXACTLY ONCE.

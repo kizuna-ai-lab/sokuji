@@ -75,7 +75,6 @@ import type { SonioxCredentialBundle } from '../../services/clients/ManagedSonio
 import {
   resolveManagedSonioxWiring,
   resolveParticipantSlot,
-  connectLegAndMarkStarted,
   teardownSessionLegs,
 } from './managedSonioxSplit';
 import { KIZUNA_SIGN_IN_REQUIRED } from '../../services/providers/KizunaAISonioxProviderConfig';
@@ -2109,6 +2108,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         return {
           credentials: managedSonioxSession.credentialsFor(role),
           session: managedSonioxSession,
+          // The leg names itself with the SAME role its bundle came from. The
+          // client reports acceptance under it, and the backend refuses any
+          // other role for this lease (400 `role_not_issued`) — so taking both
+          // from one argument is what keeps them unable to disagree.
+          role,
           // Exactly one leg announces exhaustion, and it is the speaker
           // whenever there is one: the session holds a single handler with
           // last-registration-wins semantics, and the participant connects
@@ -2209,24 +2213,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Track connection attempt and measure latency
         const connectionStartTime = Date.now();
 
-        const speakerStartedRole = managedWiring?.speakerRole ?? null;
         try {
-          // Connect to the AI service, then — and only then — set this leg's
-          // started bit. Fire-and-forget: it extends the lease from its short
-          // start window to the full granted duration now that the socket is
-          // actually up. Used to fire from inside SonioxClient.connect(); it is
-          // a SESSION fact, so the session owns it. A few ms later than before
-          // (after the best-effort TTS connect), well inside the start window.
-          //
-          // The role is this leg's own, not the lease's primary: on a split
-          // lease a roleless or wrong-role body is refused with a 400 and the
-          // lease is never extended.
-          await connectLegAndMarkStarted({
-            connect: () => client.connect(sessionConfig),
-            markStarted: speakerStartedRole
-              ? () => managedSonioxSession?.markStarted(speakerStartedRole)
-              : undefined,
-          });
+          // Connect to the AI service. For managed Soniox this does NOT set the
+          // leg's started bit: a resolved connect only means the socket opened,
+          // which for Soniox happens before the key is validated at all. The bit
+          // is set from the first frame the stream actually receives — see
+          // managedSonioxSplit.ts's note where connectLegAndMarkStarted used to
+          // be, and SonioxClient.handleSttMessage.
+          await client.connect(sessionConfig);
 
           // Track successful connection with latency
           const connectionLatency = Date.now() - connectionStartTime;
@@ -2491,17 +2485,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               console.info('[Sokuji] [MainPanel] Participant skipped — no suitable models');
               participantClientRef.current = null;
             } else {
-              const participantStartedRole = managedWiring?.participantRole ?? null;
-              await connectLegAndMarkStarted({
-                connect: () => participantClient.connect(participantSessionConfig),
-                // Only after connect resolves: the started bit means "this
-                // stream is confirmed connected", and the lease releases when
-                // every STARTED leg has ended. Idempotent server-side, so a
-                // retry is harmless.
-                markStarted: participantStartedRole
-                  ? () => managedSonioxSession?.markStarted(participantStartedRole)
-                  : undefined,
-              });
+              // No started bit here either: this leg's key is the one most
+              // likely to have lapsed (its 180 s start window is spent behind
+              // the OS loopback-permission dialog), and a lapsed key still opens
+              // its socket. Only a frame proves the stream ran.
+              await participantClient.connect(participantSessionConfig);
               console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
 
               // Start recording from appropriate source based on environment
@@ -2562,9 +2550,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           //
           // Non-fatal failure path #3, unchanged: the session continues on
           // whichever channel(s) did come up, and the speaker is NOT torn down.
-          // Under split, a participant leg that fails here failed inside
-          // connectLegAndMarkStarted's `connect`, so markStarted never ran and
-          // the lease is not waiting on it.
+          // Under split, a participant leg that fails here never reached a
+          // frame, so no par_stt bit was ever set and the lease is not waiting
+          // on it.
           participantErrorMessage = error?.message || t('mainPanel.participantChannelFailed', 'Failed to start the participant audio channel.');
           addRealtimeEvent(
             { type: 'participant.error', data: { message: participantErrorMessage } },

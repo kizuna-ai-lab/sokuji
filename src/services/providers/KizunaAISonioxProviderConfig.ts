@@ -49,6 +49,9 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
     }
     return new SonioxClient(managed.credentials, {
       session: managed.session,
+      // Same role the bundle was taken with — the client needs it to name its
+      // own leg when it reports that Soniox accepted the stream.
+      sttRole: managed.role,
       announcesSessionOutcome: managed.announcesSessionOutcome,
     });
   }

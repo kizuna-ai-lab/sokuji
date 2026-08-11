@@ -12,7 +12,7 @@ import { Provider, ProviderType } from '../../types/Provider';
 import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig, SonioxSttConfig } from './SonioxSttStream';
 import { SonioxTtsStream } from './SonioxTtsStream';
 import { SonioxBudgetSnapshot } from './SonioxCostMeter';
-import type { ManagedSonioxSession, SonioxCredentialBundle } from './ManagedSonioxSession';
+import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from './ManagedSonioxSession';
 import { PcmMixer } from './PcmMixer';
 import { SonioxSideTracker } from './SonioxSideTracker';
 import i18n from '../../locales';
@@ -61,6 +61,22 @@ const RECOVERABLE_STT_CODES: ReadonlySet<string> = new Set(['503', '408', 'socke
  */
 export interface SonioxClientOptions {
   session?: ManagedSonioxSession;
+  /**
+   * WHICH leg of the session this client is — the same role its credential
+   * bundle was taken with. Managed only; a BYOK client has no lease and no leg.
+   *
+   * It exists so the client can name itself when it reports that Soniox
+   * accepted its stream (see handleSttMessage). The role must be this leg's
+   * OWN: on a two-stream lease the backend refuses a roleless body with 400
+   * `role_required` and another leg's role with `role_not_issued`, and in both
+   * cases the lease is left at its start window while both keys stay valid.
+   *
+   * Optional, and a managed client without it simply reports nothing: no bit is
+   * better than a bit naming the wrong leg, which can never be cleared. In
+   * production KizunaAISonioxProviderConfig always supplies it — ClientOptions
+   * makes it required there.
+   */
+  sttRole?: SonioxSttRole;
   /** See ClientOptions.sonioxManaged.announcesSessionOutcome. Defaults to true,
    *  which is the right answer for every single-leg session and for the speaker
    *  leg of a split one. */
@@ -144,6 +160,10 @@ export class SonioxClient implements IClient {
   // runs at the TOP of connect() — structurally unable to clear them.
   private readonly credentials: SonioxCredentialBundle;
   private readonly session: ManagedSonioxSession | null;
+  // Which leg of the session this client is. Readonly and constructor-set for
+  // the same reason the bundle is: it identifies the stream, so reset() must be
+  // structurally unable to clear it. Null for BYOK.
+  private readonly sttRole: SonioxSttRole | null;
   // Whether this leg is the session's ONE announcer of session-level outcomes.
   // False only for the participant leg of a split Both session, where the
   // speaker owns the announcement — see the option's docstring for why the
@@ -197,6 +217,7 @@ export class SonioxClient implements IClient {
   constructor(credentials: SonioxCredentialBundle, options?: SonioxClientOptions) {
     this.credentials = credentials;
     this.session = options?.session ?? null;
+    this.sttRole = options?.sttRole ?? null;
     this.announcesSessionOutcome = options?.announcesSessionOutcome ?? true;
     this.instanceId = `soniox_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
@@ -697,6 +718,16 @@ export class SonioxClient implements IClient {
   }
 
   private handleSttMessage(message: SonioxSttMessage): void {
+    // Reaching here at all is PROOF Soniox accepted this stream, and it is the
+    // only proof there is: SonioxSttStream routes every frame carrying
+    // `error_code` to onError and returns, while connect() resolves inside
+    // ws.onopen — before the server has looked at `api_key` (the same fact the
+    // managed-503 gate in handleSttError turns on). Reported on every frame,
+    // deliberately: the client OBSERVES, and the session decides what the
+    // observation is worth (see ManagedSonioxSession.noteStreamAccepted, which
+    // turns the first report per role into one session-started).
+    if (this.sttRole) this.session?.noteStreamAccepted(this.sttRole);
+
     const tokens = message.tokens ?? [];
     this.emitDebugLog(tokens);
 

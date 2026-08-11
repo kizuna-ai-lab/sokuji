@@ -351,6 +351,56 @@ describe('ManagedSonioxSession: lifecycle notifications (fire-and-forget)', () =
   });
 });
 
+describe('ManagedSonioxSession: noteStreamAccepted — the observation that earns a started bit', () => {
+  /**
+   * A leg's client reports "Soniox accepted my stream" on EVERY frame it
+   * receives, because a frame is the only proof there is (SonioxSttStream routes
+   * anything with `error_code` to `onError` instead). Deciding what that
+   * observation is worth belongs here, with the lease: the first report per role
+   * becomes a `session-started`, and the hundreds that follow are the same fact
+   * restated. `markStarted` is itself idempotent server-side (the mask is ORed
+   * and the expiry MAX()-ed), so this dedupe is about not flooding the backend
+   * at ~8 requests a second, not about correctness of the mask.
+   */
+  const startedBodies = (fetchMock: ReturnType<typeof vi.fn>) =>
+    callsTo(fetchMock, '/soniox/session-started')
+      .map(([, init]) => JSON.parse((init as RequestInit).body as string));
+
+  it('turns the first report for a role into one session-started, and the rest into nothing', async () => {
+    const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
+    const session = newSession();
+    await session.acquire(SPEAKER_S2S);
+
+    session.noteStreamAccepted('spk_stt');
+    session.noteStreamAccepted('spk_stt');
+    session.noteStreamAccepted('spk_stt');
+
+    expect(startedBodies(fetchMock)).toEqual([{ leaseId: 'lease-abc-123', role: 'spk_stt' }]);
+  });
+
+  it('reports each leg of a split lease separately — one bit per stream', async () => {
+    const fetchMock = mockFetchOnce(200, splitBothResponse());
+    const session = newSession();
+    await session.acquire({ mode: 'both', textOnly: false, bothSplit: true });
+
+    session.noteStreamAccepted('spk_stt');
+    session.noteStreamAccepted('par_stt');
+    session.noteStreamAccepted('spk_stt');
+
+    expect(startedBodies(fetchMock)).toEqual([
+      { leaseId: 'lease-split-1', role: 'spk_stt' },
+      { leaseId: 'lease-split-1', role: 'par_stt' },
+    ]);
+  });
+
+  it('is a no-op when no lease was ever acquired', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    newSession().noteStreamAccepted('spk_stt');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
 describe('ManagedSonioxSession: the session allowance countdown', () => {
   it('has no snapshot before acquire and carries the response’s numbers after it', async () => {
     mockFetchOnce(200, speechToSpeechResponse());

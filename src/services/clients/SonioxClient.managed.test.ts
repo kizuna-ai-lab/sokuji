@@ -98,7 +98,13 @@ function mockFetchOnce(status: number, body: unknown) {
 async function managedClient(textOnly = false) {
   const session = new ManagedSonioxSession({ sessionToken: SESSION_TOKEN });
   await session.acquire({ mode: 'speaker', textOnly, bothSplit: false });
-  return new SonioxClient(session.credentialsFor(session.primarySttRole), { session });
+  // `sttRole` is how this client names its own leg when it reports that Soniox
+  // accepted the stream — MainPanel passes the same value it took the bundle
+  // with (see managedSonioxArgFor).
+  return new SonioxClient(session.credentialsFor(session.primarySttRole), {
+    session,
+    sttRole: session.primarySttRole,
+  });
 }
 
 beforeEach(() => {
@@ -480,6 +486,131 @@ describe('SonioxClient sends no lease lifecycle traffic of its own', () => {
     expect(stt.ended).toBe(true);
     expect(errors.some((e) => e.code === 'budget_exhausted')).toBe(true);
     expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(BALANCE_USED_UP);
+  });
+});
+
+describe('SonioxClient: a leg is reported started only when Soniox ACCEPTS its stream', () => {
+  /**
+   * `SonioxSttStream.connect()` resolves inside `ws.onopen`, right after the
+   * config frame is sent and BEFORE Soniox has looked at `api_key` — the same
+   * fact `handleSttError`'s managed-503 gate already turns on ("connect()
+   * resolves pre-validation"). A socket that opened is therefore not a stream
+   * that ran: the participant key's start window can have lapsed while the user
+   * sat on the OS screen-recording dialog, and the rejection arrives as an
+   * error frame AFTER the open.
+   *
+   * That distinction is the lease's whole release rule. `markStarted` ORs this
+   * leg's bit into `stt_started_mask` AND pushes `expires_at` out to the full
+   * granted duration; the backend releases only when
+   * `(ended & started) = started` (session-lease.ts `noteStreamEnded` /
+   * `releaseSatisfiedOrExpired`), and ended bits come exclusively from Soniox
+   * usage logs. A rejected stream produces no usage log, so a bit set for it can
+   * never clear and the account 409s every subsequent Start for up to an hour.
+   *
+   * The first frame that reaches `onMessage` IS the proof: SonioxSttStream
+   * routes anything carrying `error_code` to `onError` and returns, so a frame
+   * the client sees got past authentication.
+   */
+  const startedBodies = (fetchMock: ReturnType<typeof vi.fn>) =>
+    fetchMock.mock.calls
+      .filter(([url]) => (url as string).includes('/soniox/session-started'))
+      .map(([, init]) => JSON.parse((init as RequestInit).body as string));
+
+  it('a socket that merely OPENED reports nothing — connect() resolves pre-validation', async () => {
+    const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
+    const client = await managedClient();
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    expect(startedBodies(fetchMock)).toEqual([]);
+  });
+
+  it('the first accepted frame reports THIS leg started, naming its own role', async () => {
+    const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
+    const client = await managedClient();
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+
+    sttInstances.at(-1)!.emit({ tokens: [], final_audio_proc_ms: 0, total_audio_proc_ms: 1080 });
+
+    // Even the empty inter-token frame Soniox emits while it processes audio is
+    // proof — the point is that the server answered at all, not what it said.
+    expect(startedBodies(fetchMock)).toEqual([{ leaseId: 'lease-abc-123', role: 'spk_stt' }]);
+  });
+
+  it('a stream Soniox REJECTS after the socket opened is never reported started', async () => {
+    // The concrete trigger: a participant key whose start window lapsed behind
+    // the OS permission dialog. The socket opens (there is no auth in the URL),
+    // connect() resolves, and only then does the rejection arrive.
+    const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
+    const client = await managedClient();
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+
+    const stt = sttInstances.at(-1)!;
+    stt.handlers.onError?.('401', 'Invalid or expired temporary API key');
+    stt.handlers.onClose?.({ code: 1008, reason: 'unauthorized' });
+
+    expect(startedBodies(fetchMock)).toEqual([]);
+  });
+
+  it('reports once, not once per frame — a live stream delivers hundreds', async () => {
+    const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
+    const client = await managedClient();
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+
+    const stt = sttInstances.at(-1)!;
+    stt.emit({ tokens: [] });
+    stt.emit({ tokens: [{ text: 'hello', is_final: true, translation_status: 'original' }] });
+    stt.emit({ tokens: [], finished: true });
+
+    expect(startedBodies(fetchMock)).toHaveLength(1);
+  });
+
+  it('each leg of a split session reports its OWN role, and only for the leg that was accepted', async () => {
+    // The role must be this leg's own: on a two-stream lease the backend
+    // answers 400 `role_required` for a roleless body and `role_not_issued`
+    // for the other leg's role, and in both cases the lease is NOT extended.
+    const fetchMock = mockFetchOnce(200, {
+      ...speechToSpeechResponse(),
+      leaseId: 'lease-split-1',
+      streams: [
+        { role: 'spk_stt', apiKey: 'k-spk', clientReferenceId: 'sokuji1:a:lease-split-1:spk_stt', expiresAt: 'x' },
+        { role: 'par_stt', apiKey: 'k-par', clientReferenceId: 'sokuji1:a:lease-split-1:par_stt', expiresAt: 'x' },
+      ],
+    });
+    const session = new ManagedSonioxSession({ sessionToken: SESSION_TOKEN });
+    await session.acquire({ mode: 'both', textOnly: true, bothSplit: true });
+
+    const speaker = new SonioxClient(session.credentialsFor('spk_stt'), { session, sttRole: 'spk_stt' });
+    const participant = new SonioxClient(session.credentialsFor('par_stt'), {
+      session,
+      sttRole: 'par_stt',
+      announcesSessionOutcome: false,
+    });
+    await speaker.connect({ ...BASE_CONFIG, textOnly: true });
+    const speakerStt = sttInstances.at(-1)!;
+    await participant.connect({ ...BASE_CONFIG, textOnly: true });
+    const participantStt = sttInstances.at(-1)!;
+
+    speakerStt.emit({ tokens: [] });
+    expect(startedBodies(fetchMock)).toEqual([{ leaseId: 'lease-split-1', role: 'spk_stt' }]);
+
+    // The participant leg's own key is rejected: its bit must stay clear, so
+    // the lease is satisfied by the speaker alone rather than waiting forever.
+    participantStt.handlers.onError?.('401', 'Invalid or expired temporary API key');
+    expect(startedBodies(fetchMock)).toEqual([{ leaseId: 'lease-split-1', role: 'spk_stt' }]);
+
+    participantStt.emit({ tokens: [] });
+    expect(startedBodies(fetchMock)).toEqual([
+      { leaseId: 'lease-split-1', role: 'spk_stt' },
+      { leaseId: 'lease-split-1', role: 'par_stt' },
+    ]);
+  });
+
+  it('BYOK reports nothing — there is no lease to extend', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new SonioxClient(byokCredentials('byok-key'));
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    sttInstances.at(-1)!.emit({ tokens: [] });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
