@@ -664,3 +664,257 @@ describe('GeminiClient — keepReplayAudio gating', () => {
     expect(assistant!.formatted?.audio).toBeUndefined();
   });
 });
+
+// ─────────────────────────────────────────────
+describe('GeminiClient — Live Translate wire config', () => {
+  let client: InstanceType<typeof GeminiClient>;
+
+  /** The LiveConnectConfig handed to the SDK on the most recent connect().
+   *  Indexed rather than `.at(-1)` — the project's `lib` target predates it. */
+  const sentConfig = () => {
+    const calls = mockLiveConnect.mock.calls;
+    return calls[calls.length - 1][0].config;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    capturedCallbacks = {};
+    mockSessionClose.mockReset();
+    mockLiveConnect.mockReset();
+    client = new GeminiClient('test-api-key');
+    client.setEventHandlers({} as any);
+    setupSuccessfulConnect();
+  });
+
+  const translateConfig = {
+    ...baseConfig,
+    model: 'gemini-3.5-live-translate-preview',
+    voice: 'Aoede',
+    temperature: 0.8,
+    maxTokens: 2048,
+    instructions: 'Glossary: render "agenda" as 議事次第.',
+    translationConfig: { targetLanguageCode: 'ja', echoTargetLanguage: false },
+  };
+
+  it('forwards translationConfig so the target language does not depend on the prompt', async () => {
+    await client.connect(translateConfig as any);
+
+    expect(sentConfig().translationConfig).toEqual({
+      targetLanguageCode: 'ja',
+      echoTargetLanguage: false,
+    });
+  });
+
+  it('keeps sending the system instruction, which still carries terminology', async () => {
+    await client.connect(translateConfig as any);
+
+    expect(sentConfig().systemInstruction).toEqual({
+      parts: [{ text: 'Glossary: render "agenda" as 議事次第.' }],
+    });
+  });
+
+  it('omits speechConfig — the model reproduces the speaker and ignores a voice', async () => {
+    await client.connect(translateConfig as any);
+
+    expect(sentConfig().speechConfig).toBeUndefined();
+  });
+
+  it('omits the sampling and length knobs the translate model has no use for', async () => {
+    await client.connect(translateConfig as any);
+
+    expect(sentConfig().temperature).toBeUndefined();
+    expect(sentConfig().maxOutputTokens).toBeUndefined();
+  });
+
+  it('leaves a dialogue session untouched: voice and temperature still ride along', async () => {
+    await client.connect({
+      ...baseConfig,
+      model: 'gemini-3.1-flash-live-preview',
+      voice: 'Aoede',
+      temperature: 0.8,
+      maxTokens: 2048,
+      instructions: 'Translate English to Japanese.',
+    } as any);
+
+    expect(sentConfig().translationConfig).toBeUndefined();
+    expect(sentConfig().speechConfig).toEqual({
+      voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } },
+    });
+    expect(sentConfig().temperature).toBe(0.8);
+    expect(sentConfig().maxOutputTokens).toBe(2048);
+  });
+});
+
+// ─────────────────────────────────────────────
+describe('GeminiClient — Live Translate silence segmentation', () => {
+  let client: InstanceType<typeof GeminiClient>;
+
+  const INPUT_SILENCE_MS = 2000;
+  const ASSISTANT_SILENCE_MS = 2000;
+
+  const translateConfig = {
+    ...baseConfig,
+    model: 'gemini-3.5-live-translate-preview',
+    translationConfig: { targetLanguageCode: 'ja', echoTargetLanguage: false },
+  };
+  const dialogueConfig = { ...baseConfig, model: 'gemini-3.1-flash-live-preview' };
+
+  const sendInput = (text: string) =>
+    capturedCallbacks.onmessage?.({ serverContent: { inputTranscription: { text } } });
+  const sendOutput = (text: string) =>
+    capturedCallbacks.onmessage?.({ serverContent: { outputTranscription: { text } } });
+  /** Local copy — the one above lives inside another describe's scope. */
+  const pcmBase64 = (samples: Int16Array): string => {
+    const bytes = new Uint8Array(samples.buffer, samples.byteOffset, samples.byteLength);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  };
+  const sendAudio = () =>
+    capturedCallbacks.onmessage?.({
+      serverContent: {
+        modelTurn: { parts: [{ inlineData: { data: pcmBase64(new Int16Array(160)), mimeType: 'audio/pcm' } }] },
+      },
+    });
+
+  // `any[]`: these assertions reach into optional `formatted` fields, and the
+  // narrowing ceremony would bury what each test is actually checking.
+  const itemsOf = (role: 'user' | 'assistant'): any[] =>
+    client.getConversationItems().filter((i: any) => i.role === role);
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.clearAllMocks();
+    capturedCallbacks = {};
+    mockSessionClose.mockReset();
+    mockLiveConnect.mockReset();
+    client = new GeminiClient('test-api-key');
+    client.setEventHandlers({} as any);
+    setupSuccessfulConnect();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('starts a new user item once the speaker has been quiet', async () => {
+    await client.connect(translateConfig as any);
+
+    sendInput('first utterance');
+    expect(itemsOf('user')).toHaveLength(1);
+
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('completed');
+
+    sendInput('second utterance');
+    expect(itemsOf('user')).toHaveLength(2);
+    expect(itemsOf('user')[1].formatted.transcript).toBe('second utterance');
+  });
+
+  it('keeps appending to one item while the speaker keeps going', async () => {
+    await client.connect(translateConfig as any);
+
+    sendInput('one ');
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS - 100);
+    sendInput('two ');
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS - 100);
+    sendInput('three');
+
+    expect(itemsOf('user')).toHaveLength(1);
+    expect(itemsOf('user')[0].formatted.transcript).toBe('one two three');
+  });
+
+  it('leaves a dialogue session alone — its turnComplete still owns segmentation', async () => {
+    await client.connect(dialogueConfig as any);
+
+    sendInput('hello');
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS * 10);
+
+    expect(itemsOf('user')).toHaveLength(1);
+    expect(itemsOf('user')[0].status).toBe('in_progress');
+  });
+
+  it('times the two sides independently', async () => {
+    await client.connect(translateConfig as any);
+
+    sendInput('speaking');
+    sendOutput('translating');
+
+    // The speaker carries on while the translation goes quiet. The assistant
+    // side has to close on its own schedule without dragging the still-open
+    // user item shut with it.
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS - 500);
+    sendInput(' and continuing');
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(itemsOf('assistant')[0].status).toBe('completed');
+    expect(itemsOf('user')[0].status).toBe('in_progress');
+  });
+
+  it('segments while audio is still streaming — audio never pauses for this model', async () => {
+    await client.connect(translateConfig as any);
+
+    sendOutput('translated text');
+
+    // Chunks keep arriving every ~250ms the way they do in a real session,
+    // straight through the speaker's pause. If audio counted as activity the
+    // timer would never fire and this side would never segment at all.
+    for (let i = 0; i < 10; i++) {
+      sendAudio();
+      await vi.advanceTimersByTimeAsync(250);
+    }
+
+    expect(itemsOf('assistant')[0].status).toBe('completed');
+  });
+
+  it('does not carry one segment\'s audio into the next bubble', async () => {
+    await client.connect({ ...translateConfig, keepReplayAudio: true } as any);
+
+    sendAudio();
+    sendOutput('first');
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    const first = itemsOf('assistant')[0];
+    expect(first.status).toBe('completed');
+
+    sendAudio();
+    const second = itemsOf('assistant')[1];
+
+    expect(second).toBeDefined();
+    expect(second.id).not.toBe(first.id);
+    expect(second.formatted.audio?.length).toBe(160);
+  });
+
+  it('keeps an open segment on a deadline across a reconnect', async () => {
+    await client.connect(translateConfig as any);
+
+    // A resumption handle is what lets reconnect() take the resume path rather
+    // than declaring a permanent disconnect.
+    capturedCallbacks.onmessage?.({
+      sessionResumptionUpdate: { resumable: true, newHandle: 'handle-1' },
+    });
+    sendInput('interrupted mid-sentence');
+
+    // Drive the real reconnect path. A plain second connect() would not do:
+    // it goes through disconnect(), which closes the segment for an unrelated
+    // reason and would let this test pass with the fix reverted. reconnect()
+    // clears isConnectedState precisely so connect() skips that, arriving with
+    // currentTurn — and the open item — intact.
+    setupSuccessfulConnect();
+    capturedCallbacks.onmessage?.({ goAway: {} });
+    await vi.advanceTimersByTimeAsync(100);
+
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('completed');
+  });
+
+  it('closes the open segment on disconnect instead of stranding it in_progress', async () => {
+    await client.connect(translateConfig as any);
+
+    sendInput('unfinished');
+    sendOutput('unfinished translation');
+    await client.disconnect();
+
+    expect(itemsOf('user')[0].status).toBe('completed');
+    expect(itemsOf('assistant')[0].status).toBe('completed');
+  });
+});

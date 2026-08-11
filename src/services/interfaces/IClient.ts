@@ -141,6 +141,22 @@ export interface GeminiSessionConfig extends BaseSessionConfig {
   vadEndSensitivity: 'high' | 'low';
   vadSilenceDurationMs: number;
   vadPrefixPaddingMs: number;
+  /**
+   * Set only for the Live Translate models, where it — not the system
+   * instruction — is what pins the output language. Absent for the dialogue
+   * models, which carry their direction in the instruction. Built by
+   * buildGeminiTranslationConfig; see geminiTranslateModel.ts.
+   */
+  translationConfig?: {
+    targetLanguageCode: string;
+    echoTargetLanguage: boolean;
+  };
+  /**
+   * The short code for the direction's *other* end, carried for the
+   * participant session's benefit only — never sent to the API. Mirrors how
+   * OpenAITranslateSessionConfig carries `sourceLanguage`.
+   */
+  sourceLanguageCode?: string;
 }
 
 /**

@@ -38,6 +38,7 @@ import { Provider, kizunaBaseProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
+import { reversesDirectionViaSourceLanguage } from '../../../services/providers/autoSourceReversal';
 import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
@@ -385,11 +386,11 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // reversed — it would make the participant's translate target 'auto', which
   // Soniox one_way rejects — so require a concrete source language whenever a
   // participant channel is in scope.
-  const showSonioxAutoParticipantWarning = useMemo(() => {
-    return effectiveProvider === Provider.SONIOX
+  const showAutoSourceParticipantWarning = useMemo(() => {
+    return reversesDirectionViaSourceLanguage(effectiveProvider, currentProviderSettings.model)
       && isParticipantChannelInScope
       && currentProviderSettings.sourceLanguage === 'auto';
-  }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage]);
+  }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage, currentProviderSettings.model]);
 
   // Simplified interface language list (12 most common languages)
   const simplifiedLanguages = [
@@ -591,7 +592,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
           )}
 
-          {showSonioxAutoParticipantWarning && (
+          {showAutoSourceParticipantWarning && (
             <div className="language-warning">
               <AlertTriangle size={12} />
               <span>{t('settings.sonioxAutoParticipantWarning')}</span>

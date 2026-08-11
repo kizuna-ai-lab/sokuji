@@ -17,7 +17,7 @@ import { formatUsd } from '../../utils/formatters';
 
 export type StartBlockReason =
   | 'missing-device'
-  | 'soniox-auto-source'
+  | 'auto-source-participant'
   | 'local-models-missing'
   | 'api-key-invalid'
   | 'no-models'
@@ -55,12 +55,15 @@ export interface StartGateInput {
   quota: { balance?: number; frozen?: boolean } | null | undefined;
   missingDeviceForMode: DeviceScope | null;
   /**
-   * Soniox carries direction in source/target and reverses them for the
-   * participant client, so an 'auto' source can't be reversed — the
-   * participant's translate target would become 'auto', which Soniox
-   * rejects. True when that combination is selected. See MainPanel.
+   * Some providers build the participant session by swapping a *concrete*
+   * source language into the translate target — Soniox through
+   * source/target, Gemini Live Translate through
+   * `translationConfig.targetLanguageCode`. An 'auto' source cannot be
+   * reversed for either: the participant's target would become the literal
+   * 'auto', which is not a language. True when that combination is selected.
+   * See `reversesDirectionViaSourceLanguage` and MainPanel.
    */
-  sonioxAutoParticipantBlocked: boolean;
+  autoSourceParticipantBlocked: boolean;
   /**
    * Will the session about to start be text-only (no spoken translation)?
    *
@@ -100,7 +103,7 @@ export function computeStartGate(input: StartGateInput): StartGate {
     provider,
     quota,
     missingDeviceForMode,
-    sonioxAutoParticipantBlocked,
+    autoSourceParticipantBlocked,
     textOnly,
     sonioxBothSplit,
   } = input;
@@ -139,7 +142,7 @@ export function computeStartGate(input: StartGateInput): StartGate {
     !isInitializing &&
     hasValidBalance &&
     missingDeviceForMode === null &&
-    !sonioxAutoParticipantBlocked;
+    !autoSourceParticipantBlocked;
 
   if (canStart) return { canStart: true, reason: null };
 
@@ -156,8 +159,8 @@ export function computeStartGate(input: StartGateInput): StartGate {
   // generic credential complaint. On main this condition closed the gate
   // with no explanation at all — the silent-disable this module exists to
   // remove.
-  if (sonioxAutoParticipantBlocked) {
-    return { canStart: false, reason: 'soniox-auto-source' };
+  if (autoSourceParticipantBlocked) {
+    return { canStart: false, reason: 'auto-source-participant' };
   }
   if (!isApiKeyValid) {
     // For LOCAL_INFERENCE, "API key valid" is really "required models are
@@ -197,7 +200,7 @@ export function reasonToSettingsTarget(
   switch (reason) {
     case 'missing-device':
       return deviceScope === 'participant' ? 'participant' : 'microphone';
-    case 'soniox-auto-source':
+    case 'auto-source-participant':
       return 'languages';
     case 'local-models-missing':
       return 'model-management';
@@ -231,9 +234,12 @@ export function reasonToI18n(
   switch (reason) {
     case 'missing-device':
       return { key: 'modePicker.missingDevice', defaultValue: 'Configure devices for this mode to start.' };
-    case 'soniox-auto-source':
+    case 'auto-source-participant':
       // Same sentence the language settings already show for this exact
-      // combination (LanguageSection's showSonioxAutoParticipantWarning).
+      // combination (LanguageSection's showAutoSourceParticipantWarning).
+      // The key still reads `soniox...` because Soniox was the first provider
+      // to hit this; the sentence itself never named a provider, and renaming
+      // the key would churn every locale file for no user-visible gain.
       return {
         key: 'settings.sonioxAutoParticipantWarning',
         defaultValue: "Choose a specific source language — with automatic detection, the other participant's speech can't be translated into your language.",
