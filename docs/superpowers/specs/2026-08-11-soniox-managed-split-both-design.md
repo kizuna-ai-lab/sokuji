@@ -1,6 +1,8 @@
 # Managed Soniox: user-selectable split "Both" mode — Design
 
-**Status**: design agreed, not implemented. Backend and frontend both in scope.
+**Status**: implemented. The backend shipped first and is deployed on `sokuji-backend`
+`main`; the client side is `sokuji-react` PR #401. Where an architecture item below reads as
+a proposal, it describes what was built.
 **Repos**: `sokuji-react` (client), `sokuji-backend` (lease, keys, billing, reconciler).
 
 ## Why
@@ -14,9 +16,12 @@ audio. BYOK Soniox lets the user choose how that runs:
 - **Split**: two independent Soniox sessions, one per audio source. Attribution is
   physical rather than inferred.
 
-Managed (Kizuna AI) Soniox **forces shared**, because the backend's session lease is one
-per account and two sessions would need two leases. `sonioxUsesSharedBothSession` returns
-`true` unconditionally for the managed twin whatever the stored preference says.
+Managed (Kizuna AI) Soniox **used to force shared**, because the backend's session lease is
+one per account and two sessions would need two leases. `sonioxUsesSharedBothSession`
+returned `true` unconditionally for the managed twin whatever the stored preference said.
+That override was removed: the helper no longer takes a provider at all, it reads only the
+stored preference, and shared is the *default* for both flavours rather than a rule for one
+of them. A managed user who turns the toggle off gets split.
 
 Shared mode's attribution is a guess, and it guesses wrong often enough to be a complaint:
 the two sides are distinguished by *language*, not by channel, which is also why shared
@@ -181,13 +186,30 @@ reference, `uses_tts`, the STT stream count, the budget rate, and the expected m
 
 Two bitmask columns on the lease row, one bit per role:
 
-- `stt_started_mask` — set when a stream is confirmed connected.
+- `stt_started_mask` — set when a stream is confirmed **accepted**.
 - `stt_ended_mask` — set when that stream's usage log arrives.
+
+**The started boundary is the accepted-frame boundary, not socket-open.** A socket that
+opened is not a stream Soniox took: `SonioxSttStream.connect()` resolves inside `ws.onopen`,
+before the server has looked at the key at all, and every frame carrying an `error_code` is
+routed to `onError` and never reaches the message path. The first ordinary frame arriving at
+`SonioxClient.handleSttMessage` is therefore the only proof of acceptance there is, and that
+is where `noteStreamAccepted(role)` fires. Socket-open alone does not set `stt_started_mask`;
+a leg that opened and was then rejected sets no bit, which is exactly the behaviour the
+release predicate below wants. The client reports on every frame and the session turns the
+first report per role into one `session-started`, so the "what counts as confirmed" question
+has one owner and the backend is not written to at frame rate.
 
 **`session-started` becomes per-role and idempotent**: `{ leaseId, role }`. It ORs the
 role's bit into `stt_started_mask` and moves expiry with
-`expires_at = MAX(expires_at, now + max_duration + margin)`, so a leg that connects late
-can neither shrink the lease nor extend it past its grant.
+`expires_at = MAX(expires_at, now + max_duration + margin)` — measured from the connect
+rather than from `issued_at`, and `MAX()`-ed per leg. Each leg's Soniox
+`max_session_duration_seconds` clock starts at that socket's own open, so the lease has to
+outlast the *latest* leg's connect: a leg that connects late legitimately pushes the lease
+out past the original grant, while a replayed or clock-skewed call from the other leg must
+not pull it back in under a stream that is still running. Anchoring `expires_at` at the
+grant deadline instead would let a session outlive its lease — the account could then take a
+second lease and run two sessions against one balance.
 
 **Release when `(ended & started) === started` and `started != 0`.**
 
@@ -288,8 +310,8 @@ gap, noted here because the matrix makes it visible, and out of scope.
 many (idle-close plus reconnect). Only the STT columns describe a fixed socket population.
 
 The STT bits a row can ever set follow directly: one for every row but the last two, which
-can set two. What a row actually sets is decided at connect time, not here — that is the
-distinction A3 turns on.
+can set two. What a row actually sets is decided by which of those streams Soniox accepted —
+the first non-error frame on each — not here; that is the distinction A3 turns on.
 
 ### A7. Concurrency accounting
 
@@ -334,9 +356,17 @@ Four details this must get right, each of which is a real failure if missed:
   `getConversationItems()` and a message held only in React state is wiped. Get this wrong
   and an exhausted balance reads as "the connection was interrupted — tap Start Session",
   sending the user to retry into a `402`.
-- **Both STT keys share a `max_session_duration_seconds`**, so at the cutoff both legs
-  `403` within the same second. Name one owner for end-of-segment messaging, or the notice
-  appears twice or once depending on which close wins the teardown race.
+- **Both STT keys share a `max_session_duration_seconds` — a length, not a deadline.**
+  Soniox starts that clock at each socket's own open, and the `par_stt` key is minted with a
+  180 s start window against the speaker's 60 s precisely because the participant leg opens
+  behind the OS loopback permission dialog. The participant leg can therefore outlive the
+  speaker by up to the difference, 120 s, and the two `403`s need not land together. Name
+  one owner for end-of-segment messaging anyway — the cutoff is a session-level outcome, so
+  without a designated leg plus a one-shot claim the notice appears twice, or once, decided
+  by which close wins the teardown race. The claim has to tolerate an arbitrary gap rather
+  than a same-second race, and the cutoff test has to be one-sided (at-or-past the margin)
+  so a late `403` still reads as the cutoff and not as an outage. What bounds the pair is
+  the lease's own expiry, moved per leg by `markStarted`'s `MAX()`.
 
 ### A9. Voice pin
 
@@ -349,6 +379,18 @@ Deciding pin ownership by role buys nothing while there is one slot per account,
 earlier "release the set of pins this lease holds" framing is dropped. It would also be
 wrong about who owns what: a pin is claimed before any lease exists.
 
+**Which is why the fence is installed in two phases.** `prepareManagedVoice` claims the slot
+in MainPanel before any client is constructed, so at that moment there is no lease id to
+write: the row is created with `pinned_by_lease` NULL and only the short `SLOT_PIN_START_MS`
+TTL. `session-started` is the first point at which a lease id and that
+row exist together, so it is the handler that writes the owner on, with
+`voiceSlots.touch(accountId, now, expiresAt, leaseId)` — copying the lease's own `expires_at`
+rather than recomputing a duration that is derived from the wallet balance and exists nowhere
+else, which is what keeps the two clocks from drifting apart. A session that fails anywhere
+before that leaves the pin owner-less: the fenced unpin matches no lease and deliberately
+leaves the row alone, and the TTL — not a caller — reclaims it. That is the behaviour already
+noted above, now with the mechanism named.
+
 ## Failure paths
 
 | Situation | Behaviour |
@@ -356,7 +398,7 @@ wrong about who owns what: a pin is claimed before any lease exists.
 | Participant leg never connects | Session starts on the speaker alone (decision 4). Its started bit is never set, so release is unaffected. The user is told split did not take effect. |
 | Either leg dies mid-session | Whole session stops (decision 3), via the existing symmetric teardown. The notice says which direction died. |
 | Balance exhausted | Session-level: every stream torn down, announced once through a client. |
-| Granted duration reached | Both legs `403` within the same second; one owner announces. |
+| Granted duration reached | Both legs `403`, but not necessarily together — each key's clock runs from its own connect. One owner announces, whenever the second one arrives. |
 | Voice slot evicted mid-session | TTS returns `voice_not_found`; spoken output stops, transcription continues. Unchanged. |
 | Soniox key issuance fails | Lease released immediately, as today. |
 | A log arrives for a lease that is gone | Charged if parseable; release is a no-op reporting zero rows changed, and alarms if the log is young. |
@@ -395,6 +437,20 @@ currently-shipped request and response shapes against the new handler.
 This is not about supporting old clients — the desktop app and the extension both ship
 updated. It is about the deploy window: the backend deploys before the client does, and
 `main` auto-deploys to production on merge.
+
+**The rest of the lifecycle needed the same treatment, and got it**, because a session live
+at deploy posts its `session-started` and `session-end` in the old shapes and has its usage
+log arrive with the old three-segment reference. A roleless `session-started` resolves its
+bit against the lease's `issued_stt_mask`, and falls back to `LEGACY_STT_ROLE` (`spk_stt`)
+only for a single-stream row — the shape those writers could actually produce — rather than
+guessing for a lease that runs two. A three-segment log releases its lease through
+`isOurClientRef` while `parseClientRefId` still refuses to bill it, which is A4's separation
+doing exactly the work it exists for. An empty-body `session-end` fences its unpin on a
+server-read `currentLeaseId`, because the shipped client posts `{}` and a body field it never
+sends would make the fence match nothing on every session — silently, holding each slot for
+its whole granted duration. The end-to-end replay lives in `soniox-session.sqlite.test.ts` as
+"a legacy single-stream session mints, starts and releases with no role anywhere", alongside
+the roleless and three-segment cases in `session-lease.sqlite.test.ts`.
 
 Schema changes are additive: new mask and stream-count columns with defaults. No primary
 key is rebuilt, so there is no window in which the deployed Worker and the applied schema
@@ -442,18 +498,31 @@ with no recognised speech cost `$0.000110` (≈ `$0.12`/hr); a 10.08 s stream of
 with `one_way` translation cost `$0.000776` (≈ `$0.28`/hr). The spread is the translation
 output, consistent with output text being the dominant cost term.
 
-**The `par_stt` key's 60 s start window may expire during the loopback permission dialog.**
-It is minted inside the speaker's `connect()`, before the participant channel is attempted.
-Either mint it lazily, after loopback acquisition, or size its `expires_in_seconds` to
-cover the dialog.
+**Resolved: the `par_stt` key gets its own start window, sized for the loopback permission
+dialog.** The key is minted inside the speaker's `connect()`, before the participant channel
+is attempted, so a 60 s window could expire while the OS dialog was open. Of the two options
+— mint it lazily after loopback acquisition, or size the window to cover the dialog — the
+second was taken: `keyStartWindowForRole` gives `par_stt` `PARTICIPANT_KEY_START_WINDOW_S`
+(180 s) where every other role gets `KEY_START_WINDOW_S` (60 s), and the lease's own expiry
+is sized from `maxKeyStartWindowS` over the issued set so it cannot lapse first. That wider
+window is the same fact A8 turns on when it says the two legs' cutoffs need not land
+together.
 
 **A bare managed `403` is currently read as the granted-duration cutoff.** It should be
 accepted as "segment ended" only when elapsed session time is within a margin of the grant,
 and otherwise fall through to the recoverable-outage path.
 
-**The shared-vs-split decision is expressed in more than one place in MainPanel**, including
-a `sourceLanguage !== 'auto'` clause. It becomes a single derived value that the
-`session-key` request, the Start-gate floor and the client wiring all read.
+**Resolved: the shared-vs-split decision is one derived value.** It was expressed in more
+than one place in MainPanel — a four-clause `&&` inside `connectConversation`, and a second,
+partial copy of the same `sourceLanguage !== 'auto'` reasoning twenty lines above it in the
+`sonioxAutoParticipantBlocked` gate. It became `sonioxBothModePlan` in `sonioxBothMode.ts`, a
+pure function returning `{ shared, split }`, and the managed `session-key` request (which
+declares `bothSplit`), the Start gate's balance floor and the client wiring all read that one
+answer. Pure and store-free on purpose, so the same function serves both the render pass and
+the one-shot snapshot inside `connectConversation`. It is deliberately *not* imported by
+`sessionStartGate.ts`, which takes the derived boolean as a plain input: the gate is also
+loaded by the subtitle window, and this module's import of `SonioxProviderConfig` would pull
+`SonioxClient` and the i18n bootstrap into that bundle.
 
 ## Not doing
 
