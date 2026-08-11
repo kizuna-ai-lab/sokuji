@@ -8,6 +8,12 @@ import { SonioxClient } from '../clients/SonioxClient';
 // Backend-managed KizunaAI twin reuses the existing Soniox slice shape.
 export const defaultKizunaSonioxSettings: SonioxSettings = { ...defaultSonioxSettings };
 
+/** The exact message this twin has always produced for a signed-out user.
+ *  Exported so MainPanel's acquire path can throw the same sentence — the
+ *  lease moved out of the client, so the sign-in gate now fires there first.
+ *  Pinned by descriptorRegistry.test.ts. */
+export const KIZUNA_SIGN_IN_REQUIRED = 'Sign in is required for Kizuna providers';
+
 /**
  * KizunaAI Soniox — the backend-managed twin of the BYOK Soniox provider.
  * Same protocol/UI, but authenticated by the backend-managed Better Auth
@@ -22,7 +28,7 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
   // from ctx, not the parent's apiKey settings-slice field.
   async extractCredentials(_slice: unknown, ctx: CredentialCtx): Promise<Credentials> {
     const token = ctx.getAuthToken ? await ctx.getAuthToken() : null;
-    if (!token) return { ok: false, missing: 'Sign in is required for Kizuna providers' };
+    if (!token) return { ok: false, missing: KIZUNA_SIGN_IN_REQUIRED };
     return { ok: true, primary: token };
   }
 
@@ -30,10 +36,18 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
     return '';
   }
 
-  // Override — SonioxClient exchanges the session token for temporary Soniox
-  // keys at connect() time; no BYOK apiKey is ever used here.
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new SonioxClient('', { managed: { sessionToken: creds.primary } });
+  // The lease is not a stream property (design decision 7): MainPanel acquires
+  // a ManagedSonioxSession and hands this client the bundle for its role. There
+  // is deliberately no fallback that mints a lease here — a client that could
+  // acquire its own would 409 the moment a session ran two of them.
+  createClient(_creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    const managed = options.sonioxManaged;
+    if (!managed) {
+      throw new Error(
+        'The managed Soniox client must be built from a ManagedSonioxSession — acquire one and pass it as ClientOptions.sonioxManaged (see MainPanel.connectConversation).'
+      );
+    }
+    return new SonioxClient(managed.credentials, { session: managed.session });
   }
 
   // Backend-managed twin: the "credential" is a Better Auth session token,

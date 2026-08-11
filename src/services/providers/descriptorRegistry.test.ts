@@ -29,6 +29,7 @@ import { defaultKizunaOpenaiTranslateSettings } from './KizunaAIOpenAITranslateP
 import { defaultKizunaVolcengineAst2Settings } from './KizunaAIVolcengineAST2ProviderConfig';
 import { defaultKizunaSonioxSettings } from './KizunaAISonioxProviderConfig';
 import { defaultSonioxSettings } from './SonioxProviderConfig';
+import { ManagedSonioxSession } from '../clients/ManagedSonioxSession';
 import en from '../../locales/en/translation.json';
 
 // Map each provider's settingsSliceKey to its per-module default settings slice,
@@ -71,10 +72,19 @@ describe('provider registry descriptors', () => {
 describe('descriptor.createClient', () => {
   const creds = { ok: true as const, primary: 'k', secret: 's', endpoint: 'https://e.example' };
   const ws = { transport: 'websocket' as const };
+  // The managed Soniox twin is the one descriptor whose client cannot be built
+  // from credentials alone: its keys come from a ManagedSonioxSession acquired
+  // before any client exists. Supplied unacquired here — createClient only
+  // stores it.
+  const sonioxManaged = {
+    credentials: { stt: 'stt-k', tts: 'tts-k', clientReferenceId: 'sokuji1:acct:lease:mix_stt' },
+    session: new ManagedSonioxSession({ sessionToken: 'sess_TOKEN' }),
+  };
+  const optionsFor = (id: unknown) => (id === Provider.KIZUNA_AI_SONIOX ? { ...ws, sonioxManaged } : ws);
 
   it('constructs a client for every available provider', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      const client = ProviderConfigFactory.getDescriptor(id).createClient(creds, ws);
+      const client = ProviderConfigFactory.getDescriptor(id).createClient(creds, optionsFor(id));
       expect(client.getProvider()).toBe(id === Provider.KIZUNA_AI_OPENAI_TRANSLATE ? Provider.OPENAI_TRANSLATE
         : id === Provider.KIZUNA_AI_VOLCENGINE_AST2 ? Provider.VOLCENGINE_AST2
         : id === Provider.KIZUNA_AI_SONIOX ? Provider.SONIOX
@@ -95,12 +105,19 @@ describe('descriptor.createClient', () => {
     expect(c).toBeInstanceOf(VolcengineAST2Client);
   });
 
-  it('kizuna soniox twin routes to a managed-mode SonioxClient', async () => {
+  it('kizuna soniox twin routes to a managed-mode SonioxClient built from the session', async () => {
     const { SonioxClient } = await import('../clients/SonioxClient');
     const c = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX)
-      .createClient({ ok: true, primary: 'sess_TOKEN' }, ws);
+      .createClient({ ok: true, primary: 'sess_TOKEN' }, { ...ws, sonioxManaged });
     expect(c).toBeInstanceOf(SonioxClient);
     expect(c.getProvider()).toBe(Provider.SONIOX);
+  });
+
+  it('refuses to build the managed twin without a session rather than minting a second lease', () => {
+    expect(() =>
+      ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX)
+        .createClient({ ok: true, primary: 'sess_TOKEN' }, ws),
+    ).toThrow(/ManagedSonioxSession/);
   });
 });
 

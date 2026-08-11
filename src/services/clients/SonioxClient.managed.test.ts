@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SonioxClient } from './SonioxClient';
+import { ManagedSonioxSession, byokCredentials } from './ManagedSonioxSession';
 import { SonioxSessionConfig } from '../interfaces/IClient';
 import type { SonioxSttMessage, SonioxSttStreamHandlers, SonioxSttConfig } from './SonioxSttStream';
 import type { SonioxTtsOptions, SonioxTtsStreamHandlers } from './SonioxTtsStream';
@@ -79,20 +80,6 @@ function speechToSpeechResponse() {
   };
 }
 
-function textOnlyResponse() {
-  return {
-    sttApiKey: 'soniox-stt-temp-key-text-only',
-    // ttsApiKey intentionally absent — text_only mode never gets one.
-    expiresAt: '2026-07-25T00:01:00Z',
-    maxSessionDurationSeconds: 900,
-    budgetMicroUsd: 200_000,
-    rateUsdPerHour: 0.12,
-    sku: 'soniox:text_only',
-    leaseId: 'lease-text-only-1',
-    clientReferenceId: 'sokuji1:acct-1:lease-text-only-1',
-  };
-}
-
 function mockFetchOnce(status: number, body: unknown) {
   const fn = vi.fn().mockResolvedValue({
     ok: status >= 200 && status < 300,
@@ -104,28 +91,14 @@ function mockFetchOnce(status: number, body: unknown) {
 }
 
 /**
- * Queues distinct responses in call order (for the 409-retry tests, where the
- * first and second /soniox/session-key attempts must differ). Once the queue
- * is drained, further calls (e.g. the fire-and-forget /soniox/session-started
- * notification after a retry that succeeds) get a generic 200 — those calls
- * are not under test and must not throw from an unconfigured mock.
+ * The new construction shape: MainPanel acquires the session, then hands the
+ * client the bundle for its role. Consumes whatever `mockFetch*` the test
+ * installed, exactly as the client's own connect() used to.
  */
-function mockFetchSequence(...responses: Array<{ status: number; body: unknown }>) {
-  const queue = [...responses];
-  const fn = vi.fn(async () => {
-    const next = queue.shift() ?? { status: 200, body: {} };
-    return { ok: next.status >= 200 && next.status < 300, status: next.status, json: async () => next.body };
-  });
-  vi.stubGlobal('fetch', fn);
-  return fn;
-}
-
-function sessionKeyCalls(fetchMock: ReturnType<typeof vi.fn>) {
-  return fetchMock.mock.calls.filter(([url]) => (url as string).includes('/soniox/session-key'));
-}
-
-function managedClient() {
-  return new SonioxClient('', { managed: { sessionToken: SESSION_TOKEN } });
+async function managedClient(textOnly = false) {
+  const session = new ManagedSonioxSession({ sessionToken: SESSION_TOKEN });
+  await session.acquire({ mode: 'speaker', textOnly, bothSplit: false });
+  return new SonioxClient(session.credentialsFor(session.primarySttRole), { session });
 }
 
 beforeEach(() => {
@@ -138,35 +111,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('SonioxClient managed mode: session-key exchange', () => {
-  it('POSTs /soniox/session-key with the better-auth session token in Authorization and mode: speech_to_speech for a non-text-only session', async () => {
-    const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
-    await client.connect({ ...BASE_CONFIG, textOnly: false });
-
-    // First call is the session-key exchange itself; connect() also fires a
-    // fire-and-forget session-started notification once the socket is up —
-    // this test only cares about the session-key call.
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toContain('/soniox/session-key');
-    expect((init.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
-    expect(JSON.parse(init.body as string)).toEqual({ mode: 'speech_to_speech' });
-  });
-
-  it('sends mode: text_only when the session config has textOnly: true', async () => {
-    const fetchMock = mockFetchOnce(200, textOnlyResponse());
-    const client = managedClient();
-    await client.connect({ ...BASE_CONFIG, textOnly: true });
-
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(init.body as string)).toEqual({ mode: 'text_only' });
-  });
-});
-
 describe('SonioxClient managed mode: key routing (never leaks the session token to Soniox)', () => {
   it('the STT config frame carries api_key === sttApiKey — never the better-auth session token', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     await client.connect({ ...BASE_CONFIG, textOnly: false });
 
     const stt = sttInstances.at(-1)!;
@@ -176,7 +124,7 @@ describe('SonioxClient managed mode: key routing (never leaks the session token 
 
   it('the TTS stream is constructed with ttsApiKey, not sttApiKey', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     await client.connect({ ...BASE_CONFIG, textOnly: false });
 
     const tts = ttsInstances.at(-1)!;
@@ -186,7 +134,7 @@ describe('SonioxClient managed mode: key routing (never leaks the session token 
 
   it('both the STT and TTS streams receive the same client_reference_id', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     await client.connect({ ...BASE_CONFIG, textOnly: false });
 
     const stt = sttInstances.at(-1)!;
@@ -197,7 +145,7 @@ describe('SonioxClient managed mode: key routing (never leaks the session token 
 
   it('both sockets send the backend-issued clientReferenceId verbatim — not leaseId, and not two different values', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     await client.connect({ ...BASE_CONFIG, textOnly: false });
 
     const stt = sttInstances.at(-1)!;
@@ -211,75 +159,17 @@ describe('SonioxClient managed mode: key routing (never leaks the session token 
   });
 });
 
-describe('SonioxClient managed mode: missing clientReferenceId is a backend contract break', () => {
-  it('rejects connect() rather than falling back to leaseId when clientReferenceId is absent from the response', async () => {
-    const response = speechToSpeechResponse() as Record<string, unknown>;
-    delete response.clientReferenceId;
-    mockFetchOnce(200, response);
-    const client = managedClient();
-
-    await expect(client.connect({ ...BASE_CONFIG, textOnly: false })).rejects.toThrow(/clientReferenceId/);
-    // No socket should have been opened with the known-to-be-rejected leaseId.
-    expect(sttInstances).toHaveLength(0);
-  });
-});
-
-describe('SonioxClient managed mode: session-key failures', () => {
-  it('a 402 response rejects connect() with a message distinguishing insufficient balance from other failures', async () => {
-    mockFetchOnce(402, { error: 'Insufficient balance' });
-    const client = managedClient();
-    await expect(client.connect({ ...BASE_CONFIG, textOnly: false })).rejects.toThrow(/insufficient balance/i);
-  });
-
-  it('a 503 (capacity) failure does NOT read as insufficient balance', async () => {
-    mockFetchOnce(503, { error: 'Soniox capacity is temporarily full' });
-    const client = managedClient();
-    await expect(client.connect({ ...BASE_CONFIG, textOnly: false })).rejects.not.toThrow(/insufficient balance/i);
-  });
-
-  it('a 403 (frozen wallet) failure does NOT read as insufficient balance', async () => {
-    mockFetchOnce(403, { error: 'Wallet is frozen' });
-    const client = managedClient();
-    await expect(client.connect({ ...BASE_CONFIG, textOnly: false })).rejects.not.toThrow(/insufficient balance/i);
-  });
-
-  it('never opens an STT stream when the session-key exchange fails', async () => {
-    mockFetchOnce(402, { error: 'Insufficient balance' });
-    const client = managedClient();
-    await expect(client.connect({ ...BASE_CONFIG, textOnly: false })).rejects.toThrow();
-    expect(sttInstances).toHaveLength(0);
-  });
-});
-
 describe('SonioxClient managed mode: session lifecycle notifications (fire-and-forget)', () => {
-  it('POSTs /soniox/session-started with the leaseId once the socket is open', async () => {
-    const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
-    await client.connect({ ...BASE_CONFIG, textOnly: false });
-
-    const startedCall = fetchMock.mock.calls.find(([url]) => (url as string).includes('/soniox/session-started'));
-    expect(startedCall).toBeDefined();
-    const [, init] = startedCall as [string, RequestInit];
-    expect((init.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
-    expect(JSON.parse(init.body as string)).toEqual({ leaseId: 'lease-abc-123' });
-  });
-
-  it('POSTs /soniox/session-end with the leaseId on disconnect', async () => {
-    const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
-    await client.connect({ ...BASE_CONFIG, textOnly: false });
-    await client.disconnect();
-
-    const endCall = fetchMock.mock.calls.find(([url]) => (url as string).includes('/soniox/session-end'));
-    expect(endCall).toBeDefined();
-    const [, init] = endCall as [string, RequestInit];
-    expect(JSON.parse(init.body as string)).toEqual({ leaseId: 'lease-abc-123' });
-  });
-
+  // The two tests that used to live here — "POSTs /soniox/session-started once
+  // the socket is open" and "POSTs /soniox/session-end on disconnect" — moved
+  // to ManagedSonioxSession.test.ts's own lifecycle describe. They asserted the
+  // CLIENT drives the lease, which is exactly what this task removes; the
+  // replacement contract ("SonioxClient sends no lease lifecycle traffic of its
+  // own", at the bottom of this file) is their direct negation.
   it('BYOK disconnect never calls fetch', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    const client = new SonioxClient('byok-key');
+    const client = new SonioxClient(byokCredentials('byok-key'));
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     await client.disconnect();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -289,7 +179,7 @@ describe('SonioxClient managed mode: session lifecycle notifications (fire-and-f
 describe('SonioxClient managed mode: cost meter wiring', () => {
   it('ticks the meter off the STT stream\'s existing keepalive interval, not a second timer', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     const stt = sttInstances.at(-1)!;
     // The client wires an onTick handler onto the SAME SonioxSttStream
@@ -300,7 +190,7 @@ describe('SonioxClient managed mode: cost meter wiring', () => {
 
   it('when the budget is exhausted, ends the STT stream gracefully (empty-frame end(), not close()) and surfaces a distinct error', async () => {
     mockFetchOnce(200, { ...speechToSpeechResponse(), budgetMicroUsd: 1, rateUsdPerHour: 3600 });
-    const client = managedClient();
+    const client = await managedClient();
     const errors: Array<{ code?: string; message?: string }> = [];
     client.setEventHandlers({ onError: (e) => errors.push(e) });
     await client.connect({ ...BASE_CONFIG, textOnly: false });
@@ -331,7 +221,7 @@ describe('SonioxClient managed mode: cost meter wiring', () => {
   // this cannot regress silently again.
   it('the full sequence — tick to exhaustion, end(), then the close that follows — ends with exactly one item, the balance message, not the outage notice', async () => {
     mockFetchOnce(200, { ...speechToSpeechResponse(), budgetMicroUsd: 1, rateUsdPerHour: 3600 });
-    const client = managedClient();
+    const client = await managedClient();
     const errors: Array<{ code?: string; message?: string }> = [];
     const closeEvents: any[] = [];
     client.setEventHandlers({ onError: (e) => errors.push(e), onClose: (e) => closeEvents.push(e) });
@@ -366,7 +256,7 @@ describe('SonioxClient BYOK mode is unaffected', () => {
   it('the single-argument constructor still works and never calls fetch', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    const client = new SonioxClient('byok-key');
+    const client = new SonioxClient(byokCredentials('byok-key'));
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     expect(fetchMock).not.toHaveBeenCalled();
     const stt = sttInstances.at(-1)!;
@@ -375,85 +265,26 @@ describe('SonioxClient BYOK mode is unaffected', () => {
   });
 });
 
-describe('SonioxClient managed mode: 409 conflict — retry once using the backend\'s retryAfterMs', () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
-  it('retries once and succeeds transparently when the second attempt is issued', async () => {
-    const fetchMock = mockFetchSequence(
-      { status: 409, body: { error: 'Another session is already active', retryAfterMs: 2500 } },
-      { status: 200, body: speechToSpeechResponse() },
-    );
-    const client = managedClient();
-    const connectPromise = client.connect({ ...BASE_CONFIG, textOnly: false });
-    await vi.advanceTimersByTimeAsync(2500);
-    await connectPromise;
-
-    expect(client.isConnected()).toBe(true);
-    expect(sessionKeyCalls(fetchMock)).toHaveLength(2);
-  });
-
-  it('waits exactly the backend-supplied retryAfterMs — not a fixed guess', async () => {
-    const fetchMock = mockFetchSequence(
-      { status: 409, body: { error: 'Another session is already active', retryAfterMs: 7000 } },
-      { status: 200, body: speechToSpeechResponse() },
-    );
-    const client = managedClient();
-    const connectPromise = client.connect({ ...BASE_CONFIG, textOnly: false });
-
-    await vi.advanceTimersByTimeAsync(6999);
-    expect(sessionKeyCalls(fetchMock)).toHaveLength(1); // retry has not fired yet
-
-    await vi.advanceTimersByTimeAsync(1);
-    await connectPromise;
-    expect(sessionKeyCalls(fetchMock)).toHaveLength(2);
-  });
-
-  it('falls back to a default wait only when retryAfterMs is missing from the body', async () => {
-    const fetchMock = mockFetchSequence(
-      { status: 409, body: { error: 'Another session is already active' } }, // no retryAfterMs
-      { status: 200, body: speechToSpeechResponse() },
-    );
-    const client = managedClient();
-    const connectPromise = client.connect({ ...BASE_CONFIG, textOnly: false });
-    await vi.advanceTimersByTimeAsync(3000);
-    await connectPromise;
-
-    expect(client.isConnected()).toBe(true);
-    expect(sessionKeyCalls(fetchMock)).toHaveLength(2);
-  });
-
-  it('retries exactly once — a conflict on the retry itself rejects rather than retrying again', async () => {
-    const fetchMock = mockFetchSequence(
-      { status: 409, body: { error: 'Another session is already active', retryAfterMs: 100 } },
-      { status: 409, body: { error: 'Another session is already active', retryAfterMs: 100 } },
-    );
-    const client = managedClient();
-    const connectPromise = client.connect({ ...BASE_CONFIG, textOnly: false });
-    const assertion = expect(connectPromise).rejects.toThrow(/already running|already active/i);
-    await vi.advanceTimersByTimeAsync(100);
-    await assertion;
-
-    expect(sessionKeyCalls(fetchMock)).toHaveLength(2);
-    expect(sttInstances).toHaveLength(0); // never opened a socket on the failed path
-  });
-});
-
 describe('SonioxClient managed mode: getManagedBudgetInfo', () => {
-  it('is null before connect()', () => {
-    const client = managedClient();
-    expect(client.getManagedBudgetInfo()).toBeNull();
+  it('is null before connect() but non-null as soon as the session is acquired', async () => {
+    // The stub is needed now that the helper acquires a real session: the
+    // allowance belongs to the SESSION, so the exchange has to happen.
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = await managedClient();
+    // The allowance now belongs to the SESSION, which acquire() already
+    // started, so the snapshot exists before any socket does.
+    expect(client.getManagedBudgetInfo()).not.toBeNull();
   });
 
   it('is null for BYOK sessions even after connect() (no cost meter)', async () => {
-    const client = new SonioxClient('byok-key');
+    const client = new SonioxClient(byokCredentials('byok-key'));
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     expect(client.getManagedBudgetInfo()).toBeNull();
   });
 
   it('returns the session\'s budget/rate/start snapshot once connected', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     const before = Date.now();
     await client.connect({ ...BASE_CONFIG, textOnly: false });
 
@@ -464,21 +295,24 @@ describe('SonioxClient managed mode: getManagedBudgetInfo', () => {
     expect(info!.startedAtMs).toBeGreaterThanOrEqual(before);
   });
 
-  it('is cleared back to null once reset() runs (the next connect())', async () => {
+  it('survives reset() — the allowance belongs to the session, which outlives a client reset', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     expect(client.getManagedBudgetInfo()).not.toBeNull();
 
+    // reset() runs at the TOP of connect() and must never clear the injected
+    // bundle or session — they are readonly constructor fields.
     client.reset();
-    expect(client.getManagedBudgetInfo()).toBeNull();
+    expect(client.getManagedBudgetInfo()).not.toBeNull();
+    expect(client.getManagedBudgetInfo()!.budgetMicroUsd).toBe(500_000);
   });
 });
 
 describe('SonioxClient managed mode: session-duration cutoff (403 error frame + close 1000)', () => {
   it('a managed-session 403 wire error does not push a generic error bubble or call onError', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     const errors: any[] = [];
     const updates: any[] = [];
     client.setEventHandlers({ onError: (e) => errors.push(e), onConversationUpdated: (d) => updates.push(d) });
@@ -494,7 +328,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
 
   it('emits the segment-ended notice itself on the close that follows', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     const closeEvents: any[] = [];
     client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
     await client.connect({ ...BASE_CONFIG, textOnly: false });
@@ -520,7 +354,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
 
   it('a close with no preceding 403 reports a lost connection, not a cutoff', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     const closeEvents: any[] = [];
     client.setEventHandlers({ onClose: (e) => closeEvents.push(e) });
     await client.connect({ ...BASE_CONFIG, textOnly: false });
@@ -533,7 +367,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
   });
 
   it('BYOK: a mid-session 403 still surfaces as a normal error — BYOK has no granted duration', async () => {
-    const client = new SonioxClient('byok-key');
+    const client = new SonioxClient(byokCredentials('byok-key'));
     const errors: any[] = [];
     client.setEventHandlers({ onError: (e) => errors.push(e) });
     await client.connect({ ...BASE_CONFIG, textOnly: false });
@@ -547,7 +381,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
 
   it('the pending-cutoff flag does not leak into an unrelated close from a later session', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     sttInstances.at(-1)!.handlers.onError?.('403', 'session duration exceeded');
 
@@ -567,7 +401,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
 describe('SonioxClient managed recoverable outages', () => {
   it('a managed 503 shows a localized notice, not the raw wire text', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     const errors: any[] = [];
     client.setEventHandlers({ onError: (e) => errors.push(e) });
     await client.connect({ ...BASE_CONFIG, textOnly: false });
@@ -593,7 +427,7 @@ describe('SonioxClient managed recoverable outages', () => {
 
   it('keeps the raw server text in the debug timeline', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = managedClient();
+    const client = await managedClient();
     const events: any[] = [];
     client.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
     await client.connect({ ...BASE_CONFIG, textOnly: false });
@@ -604,5 +438,44 @@ describe('SonioxClient managed recoverable outages', () => {
     const lost = events.find((e) => e.type === 'session.connection_lost');
     expect(lost).toBeDefined();
     expect(lost.data).toMatchObject({ code: '503', message: 'service unavailable' });
+  });
+});
+
+describe('SonioxClient sends no lease lifecycle traffic of its own', () => {
+  it('a full managed connect/disconnect cycle POSTs nothing beyond the session’s own acquire', async () => {
+    const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
+    const client = await managedClient();
+    const callsAfterAcquire = fetchMock.mock.calls.length; // just the session-key exchange
+
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    await client.disconnect();
+
+    // The whole point of decision 7: session-started and session-end are
+    // SESSION facts. MainPanel drives them; a stream must not. With two legs,
+    // a client-driven session-end would fire on the first teardown while the
+    // other leg was still streaming.
+    expect(fetchMock.mock.calls).toHaveLength(callsAfterAcquire);
+    expect(fetchMock.mock.calls.filter(([u]) => (u as string).includes('/soniox/session-started'))).toHaveLength(0);
+    expect(fetchMock.mock.calls.filter(([u]) => (u as string).includes('/soniox/session-end'))).toHaveLength(0);
+  });
+
+  it('exhaustion still reaches the user through the client, driven by the session’s meter', async () => {
+    mockFetchOnce(200, { ...speechToSpeechResponse(), budgetMicroUsd: 1, rateUsdPerHour: 3600 });
+    const client = await managedClient();
+    const errors: Array<{ code?: string }> = [];
+    client.setEventHandlers({ onError: (e) => errors.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    // The tick is forwarded from the stream's keepalive to the SESSION now;
+    // the handler's presence on the stream is still the "no second timer"
+    // contract.
+    expect(stt.handlers.onTick).toBeInstanceOf(Function);
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+    stt.handlers.onTick?.();
+
+    expect(stt.ended).toBe(true);
+    expect(errors.some((e) => e.code === 'budget_exhausted')).toBe(true);
+    expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(BALANCE_USED_UP);
   });
 });

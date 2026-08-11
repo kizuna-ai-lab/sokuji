@@ -3,6 +3,7 @@ import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDe
 import { IClient, FilteredModel, SessionConfig, SonioxSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
+import { byokCredentials } from '../clients/ManagedSonioxSession';
 import { Provider, isKizunaManagedProvider } from '../../types/Provider';
 
 // Soniox Settings — single BYOK API key (extractCredentials inherited from base)
@@ -171,7 +172,10 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
   readonly supportsWebRTC = false;
 
   createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new SonioxClient(creds.primary);
+    // A NEW construction shape for BYOK too, not a shape managed was moved
+    // onto: one user key in both slots, and no client_reference_id — BYOK
+    // traffic is not ours to bill.
+    return new SonioxClient(byokCredentials(creds.primary));
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{

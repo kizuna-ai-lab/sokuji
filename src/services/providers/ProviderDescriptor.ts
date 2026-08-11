@@ -1,6 +1,9 @@
 import { ProviderConfig, LanguageOption } from './ProviderConfig';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+// Type-only, so this adds no runtime edge from the shared descriptor module to
+// SonioxClient's dependency graph (i18n, the wire components).
+import type { ManagedSonioxSession, SonioxCredentialBundle } from '../clients/ManagedSonioxSession';
 
 /** Transport for realtime providers. Moved here from settingsStore so the
  *  services layer no longer imports from stores. settingsStore re-exports it. */
@@ -22,6 +25,17 @@ export type CredentialCtx = {
 export type ClientOptions = {
   transport: TransportType;
   webrtcOptions?: { inputDeviceId?: string; outputDeviceId?: string };
+  /**
+   * Managed Soniox only. The lease is acquired by MainPanel BEFORE any client
+   * exists (an awaited round trip with a 409 retry), so the keys arrive here
+   * rather than being minted inside the client. Keeping this optional is what
+   * lets createClient stay synchronous and return exactly one IClient for all
+   * eleven providers.
+   */
+  sonioxManaged?: {
+    credentials: SonioxCredentialBundle;
+    session: ManagedSonioxSession;
+  };
 };
 
 /**
