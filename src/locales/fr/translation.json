@@ -218,7 +218,7 @@
     "simpleMode": "Rapide",
     "sonioxSharedSession": "Session partagée en mode Les deux",
     "sonioxSharedSessionTooltip": "Le mode Les deux peut utiliser une seule session Soniox partagée ou une session distincte par direction.\n\nActivé : une seule session traduit les deux côtés avec séparation automatique des locuteurs — coût et latence réduits.\n\nDésactivé : une session distincte par direction — plus fiable lorsque les deux personnes parlent en même temps, mais environ deux fois plus coûteux.\n\nN’affecte que le mode Les deux.",
-    "sonioxSharedSessionManagedCost": "Kizuna AI prend en charge les deux. Désactivé lance deux sessions à la fois : environ deux fois plus cher par minute, votre crédit de session s'épuise donc en à peu près moitié moins de temps et un solde plus élevé est nécessaire pour démarrer.",
+    "sonioxSharedSessionManagedCost": "Kizuna AI prend en charge les deux. Lorsque la session partagée est désactivée, deux sessions sont exécutées simultanément : environ deux fois plus cher par minute, votre crédit de session s'épuise donc environ deux fois plus vite et un solde plus élevé est nécessaire pour démarrer.",
     "sonioxAutoParticipantWarning": "Choisissez une langue source spécifique — avec la détection automatique, la parole de l'autre participant ne peut pas être traduite dans votre langue.",
     "sonioxVocabulary": "Vocabulaire personnalisé",
     "sonioxVocabularyTooltip": "Favorise la reconnaissance des noms et termes techniques importants, et oriente la façon dont certains termes sont traduits. S'applique à partir de la prochaine session.",
