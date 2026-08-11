@@ -683,16 +683,16 @@ export class SonioxClient implements IClient {
   }
 
   /**
-   * Managed-mode only: the running session's fixed budget parameters, for
-   * the status footer's remaining-time countdown (see
+   * Managed-mode only: the running session's fixed budget parameters (see
    * SonioxCostMeter.getBudgetSnapshot / computeSonioxRemainingMs). Null for
-   * BYOK sessions (no cost meter) or before the session-key exchange has
-   * completed.
+   * BYOK sessions (no session, no cost meter).
+   *
+   * MainPanel's countdown no longer reads this — the allowance belongs to the
+   * SESSION, and asking a client became ambiguous the moment two of them could
+   * share one lease. Kept as the IClient-level accessor for any caller that
+   * holds only a client.
    */
   getManagedBudgetInfo(): SonioxBudgetSnapshot | null {
-    // MainPanel reads this off the speaker ref and caches it for the whole
-    // session, so delegating keeps its countdown effect untouched. Null for
-    // BYOK (no session) and before the session was acquired.
     return this.session?.getBudgetSnapshot() ?? null;
   }
 
