@@ -60,7 +60,7 @@ import { clientErrorMessage } from '../../lib/apiErrorProps';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../types/Provider';
-import { computeStartGate, reasonToI18n } from './sessionStartGate';
+import { computeStartGate, noChannelCameUp, reasonToI18n } from './sessionStartGate';
 import { prepareManagedVoice, resolveVoicePrepOutcome } from './prepareManagedVoice';
 import { ManagedVoicesClient } from '../../services/clients/ManagedVoicesClient';
 import { loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
@@ -2151,6 +2151,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // only thing this repo can test: there is no React harness for
       // connectConversation, and the inline version silently lost `role`.
 
+      // Whether the speaker channel came up END TO END, as a local the post-init
+      // guard below can read back in this same pass — the participant side's
+      // `participantChannelStarted` exists for exactly that reason, and
+      // `speakerChannelActive`, being state, cannot be read back here either.
+      // Starts false and stays false when the whole block is skipped, which is
+      // correct: a participant-only session has no speaker channel.
+      let speakerChannelStarted = false;
+
       // Speaker channel: only initialize when mic is selected + enabled.
       // When this whole block is skipped (participant-only session), no speaker
       // client is created — saves a WebSocket and, for Kizuna AI, wallet cost.
@@ -2398,6 +2406,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // have completed successfully (the catch block above re-throws on
         // unrecoverable failures, which skips this).
         setSpeakerChannelActive(true);
+        // Same end-to-end contract, as a local — mirrors participantChannelStarted.
+        speakerChannelStarted = true;
       }
 
       // Start participant audio client (unified for both Electron system audio and Extension tab audio)
@@ -2605,26 +2615,56 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }
 
-      // Post-init guard: if BOTH channels failed to come up (e.g., speaker
-      // WebRTC fallback failed AND participant loopback permission was denied),
-      // bail instead of entering a fake "active" UI state with no translation
-      // happening. Errors above were caught non-fatally and continued; this
-      // is where we detect total failure.
-      if (!speakerClientRef.current && !participantClientRef.current) {
-        console.error('[Sokuji] [MainPanel] Both speaker and participant channels failed to initialize; aborting session start');
+      // Post-init guard: if NEITHER channel came up, bail instead of entering a
+      // fake "active" UI state with no translation happening. Errors above were
+      // caught non-fatally and continued; this is where we detect total failure.
+      //
+      // Asks whether a channel WORKS, not whether a client object exists. The
+      // refs cannot answer that: the participant catch is non-fatal by design
+      // and leaves `participantClientRef.current` set, and
+      // `speakerClientRef.current` is never assigned null anywhere in this file
+      // (not even on Stop), so the old ref-based condition also went permanently
+      // false after the first session that built a speaker client. See
+      // noChannelCameUp.
+      if (noChannelCameUp({ speakerChannelStarted, participantChannelStarted })) {
+        console.error('[Sokuji] [MainPanel] Neither the speaker nor the participant channel came up; aborting session start');
         // The ONLY early return between acquire() and the end of this function,
-        // and it does not route through disconnectConversation — so release the
-        // lease here or it stays held until it expires on its own, 409-ing the
-        // next Start. Could not leak before this task: the lease used to be
-        // minted inside client.connect(), which never ran on this path.
-        // Reachable as participant-only + a participant channel that yields no
-        // client at all (loopback acquire refused, or no suitable models).
-        // Idempotent and a no-op when nothing was acquired.
-        const abortedSoniox = managedSonioxSessionRef.current;
-        if (abortedSoniox) {
-          abortedSoniox.end();
-          managedSonioxSessionRef.current = null;
-        }
+        // and it does not route through disconnectConversation — so whatever was
+        // built here has to be taken down here.
+        //
+        // A participant client can now be holding a LIVE socket at this point:
+        // the guard reads outcomes, so it fires for a leg that connected and
+        // then failed to wire its recorder. There is never a speaker client to
+        // take down — one that came up would have set speakerChannelStarted, and
+        // one that failed re-threw past this point — so a non-null
+        // speakerClientRef here belongs to a PREVIOUS session (this file never
+        // clears it) and must not be touched.
+        //
+        // Ordered through teardownSessionLegs for its one invariant: every leg
+        // is down before `session-end` is signalled. Releasing the lease while a
+        // stream is still open burns the reconciler's fast-retry ladder on a
+        // usage log that cannot exist yet; and not releasing it at all leaves it
+        // held until expiry, 409-ing the next Start for up to an hour.
+        await teardownSessionLegs({
+          participant: async () => {
+            const abortedParticipant = participantClientRef.current;
+            if (!abortedParticipant) return;
+            participantClientRef.current = null;
+            try {
+              await abortedParticipant.disconnect();
+              abortedParticipant.reset();
+            } catch (error) {
+              console.warn('[Sokuji] [MainPanel] Error disconnecting the participant client during abort:', error);
+            }
+          },
+          // Idempotent, and a no-op when nothing was acquired. The ref is
+          // cleared BEFORE end() so no re-entry can produce a second POST.
+          afterBothLegs: () => {
+            const abortedSoniox = managedSonioxSessionRef.current;
+            managedSonioxSessionRef.current = null;
+            abortedSoniox?.end();
+          },
+        });
         setIsInitializing(false);
         const errorMessage = t('mainPanel.allChannelsFailed', 'Failed to start any audio channel. Check device permissions and try again.');
         addRealtimeEvent(

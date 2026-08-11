@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Provider } from '../../types/Provider';
 import {
   computeStartGate,
+  noChannelCameUp,
   reasonToSettingsTarget,
   reasonToI18n,
   type StartGateInput,
@@ -378,5 +379,45 @@ describe('reasonToI18n', () => {
       key: 'tokenUsage.unableToLoadQuota',
       defaultValue: 'Unable to load quota information',
     });
+  });
+});
+
+describe('noChannelCameUp — the post-init guard reads outcomes, not refs', () => {
+  /**
+   * The guard this replaces was `!speakerClientRef.current &&
+   * !participantClientRef.current`, and a client reference is not evidence that
+   * a channel works. Two ways it was wrong, both reachable:
+   *
+   *  - The participant catch block is non-fatal BY DESIGN and does not clear
+   *    `participantClientRef.current`. A participant leg whose connect() or
+   *    startSystemAudioRecording() rejected therefore left the ref set and the
+   *    guard silent.
+   *  - `speakerClientRef.current` is never assigned null anywhere in MainPanel,
+   *    not even in disconnectConversation. After the first session that builds a
+   *    speaker client, the left-hand operand is false forever.
+   *
+   * Together those make the participant-only session the real hazard: no
+   * microphone, the participant leg fails, and the session is nonetheless marked
+   * active with zero working streams while a managed Soniox lease is held until
+   * it expires — 409ing every subsequent Start for up to an hour.
+   */
+  it('fires only when neither channel came up end to end', () => {
+    expect(noChannelCameUp({ speakerChannelStarted: false, participantChannelStarted: false })).toBe(true);
+    expect(noChannelCameUp({ speakerChannelStarted: true, participantChannelStarted: false })).toBe(false);
+    expect(noChannelCameUp({ speakerChannelStarted: false, participantChannelStarted: true })).toBe(false);
+    expect(noChannelCameUp({ speakerChannelStarted: true, participantChannelStarted: true })).toBe(false);
+  });
+
+  it('a failed participant leg alongside a working speaker is NOT a failed session', () => {
+    // The settled design (decision 4): a participant leg that never comes up
+    // degrades a Both session to one-way and is reported by SplitDegradedChip.
+    // It must not abort a session the speaker is translating fine.
+    expect(noChannelCameUp({ speakerChannelStarted: true, participantChannelStarted: false })).toBe(false);
+  });
+
+  it('a participant-only session whose only leg failed IS a failed session', () => {
+    // The case the ref-based guard could not see: the client object exists, so
+    // the old condition read it as a live channel.
+    expect(noChannelCameUp({ speakerChannelStarted: false, participantChannelStarted: false })).toBe(true);
   });
 });

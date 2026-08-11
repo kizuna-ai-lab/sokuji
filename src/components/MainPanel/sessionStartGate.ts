@@ -188,6 +188,41 @@ export function computeStartGate(input: StartGateInput): StartGate {
 }
 
 /**
+ * The other end of the same question: the session was allowed to start — did
+ * any channel actually come up? True means abort, because a session with no
+ * working stream is a fake "active" UI state.
+ *
+ * Both inputs mean "end to end": connected AND its recorder wired, the contract
+ * `setSpeakerChannelActive(true)` / `setParticipantChannelActive(true)` already
+ * carry. They are passed as plain booleans because connectConversation must read
+ * them back within the same pass, which a setState cannot offer.
+ *
+ * It takes OUTCOMES because the guard this replaces took client references, and
+ * a reference is not evidence that a channel works:
+ *
+ *  - The participant catch block is non-fatal by design and does NOT clear
+ *    `participantClientRef.current`, so a leg whose connect() or
+ *    startSystemAudioRecording() rejected still left the ref set.
+ *  - `speakerClientRef.current` is never assigned null anywhere in MainPanel,
+ *    not even on Stop — so after the first session that builds a speaker client
+ *    the speaker half of the old condition was false for the rest of the
+ *    process's life, and the guard could not fire at all.
+ *
+ * The case that makes this matter is the participant-only session: no
+ * microphone, the participant leg fails, and the session is marked active with
+ * zero working streams while a managed Soniox lease is held until it expires,
+ * 409ing every subsequent Start. A failed participant leg ALONGSIDE a working
+ * speaker stays what it has always been — a one-way session that continues, and
+ * that SplitDegradedChip reports.
+ */
+export function noChannelCameUp(channels: {
+  speakerChannelStarted: boolean;
+  participantChannelStarted: boolean;
+}): boolean {
+  return !channels.speakerChannelStarted && !channels.participantChannelStarted;
+}
+
+/**
  * Settings section to navigate to when the user asks to fix the blocker.
  * Values are keys of NAVIGATION_TAB_MAP (Settings.tsx:25); passing one to
  * settingsStore.navigateToSettings() opens the panel and scrolls to it.
