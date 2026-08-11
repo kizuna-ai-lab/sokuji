@@ -564,9 +564,15 @@ export class ManagedSonioxSession {
    * announcing leg, then tear down every leg.
    *
    * Callable from any leg, any number of times. In split Both both STT keys
-   * share one `max_session_duration_seconds`, so both legs 403 within the same
-   * second and both call this; the claim decides who speaks, and the teardown
-   * loop runs regardless so the losing leg still ends gracefully. That teardown
+   * carry the same `max_session_duration_seconds`, but Soniox starts each
+   * stream's clock at that stream's OWN connect — and the participant leg opens
+   * behind the OS loopback permission dialog, so its cutoff can trail the
+   * speaker's by up to the difference between the two start windows (120 s
+   * today). Both legs therefore 403 eventually, but not necessarily close
+   * together; the claim decides who speaks whenever the second one arrives, and
+   * the teardown loop runs regardless so the losing leg still ends gracefully.
+   * (`isAtGrantedDurationEnd` is one-sided — at-or-past the margin — so a late
+   * 403 still classifies as the cutoff rather than as an outage.) That teardown
    * is what stops the losing leg's own close from falling into
    * handleSttClose's bare-close branch and layering "the connection was
    * interrupted" on top of the real reason.
