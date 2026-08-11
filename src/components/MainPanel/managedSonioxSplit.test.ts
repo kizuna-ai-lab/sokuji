@@ -342,3 +342,66 @@ describe('resolveManagedSonioxWiring — the roles agree with the body that was 
     });
   });
 });
+
+describe('resolveManagedSonioxWiring — every reachable input agrees with the server', () => {
+  /**
+   * The client and the server must name the same STT roles for the same body,
+   * and neither can discover a disagreement at runtime in a way the user would
+   * survive: `credentialsFor` throws for a role that was never issued, and
+   * `session-started` answers 400 `role_not_issued` and then never extends the
+   * lease past its start window.
+   *
+   * `expectedSttRoles` below is a transcription of the STT half of the
+   * backend's `expandStreamRoles` (sokuji-backend `src/config/soniox.ts`), which
+   * is the only authority on what a body expands to. Kept as a table rather
+   * than as spot checks because "total and closed" is the property under test —
+   * a sample cannot tell an eighth reachable role set from a seventh.
+   */
+  function expectedSttRoles(acquire: { mode: string; bothSplit: boolean }): string[] {
+    if (acquire.mode === 'speaker') return ['spk_stt'];
+    if (acquire.mode === 'participant') return ['par_stt'];
+    return acquire.bothSplit ? ['spk_stt', 'par_stt'] : ['mix_stt'];
+  }
+
+  const BOOLS = [true, false];
+  const ALL_INPUTS = BOOLS.flatMap((speakerWillStart) =>
+    BOOLS.flatMap((participantWillStart) =>
+      BOOLS.flatMap((textOnly) =>
+        BOOLS.flatMap((sonioxSharedBoth) =>
+          BOOLS.map((sonioxSplitBoth) => ({
+            speakerWillStart, participantWillStart, textOnly, sonioxSharedBoth, sonioxSplitBoth,
+          })),
+        ),
+      ),
+    ),
+  // Neither channel starting never reaches acquire: connectConversation bails
+  // on that combination before any session exists.
+  ).filter((i) => i.speakerWillStart || i.participantWillStart);
+
+  it('names exactly the STT roles the server issues, for all 24 reachable inputs', () => {
+    expect(ALL_INPUTS).toHaveLength(24);
+    for (const input of ALL_INPUTS) {
+      const wiring = resolveManagedSonioxWiring(input);
+      const named = [wiring.speakerRole, wiring.participantRole].filter(Boolean);
+      expect(
+        named.sort(),
+        `roles disagree with the server for ${JSON.stringify(input)}`,
+      ).toEqual(expectedSttRoles(wiring.acquire).sort());
+    }
+  });
+
+  it('never asks for a leg that will not start, and never leaves one unnamed', () => {
+    for (const input of ALL_INPUTS) {
+      const wiring = resolveManagedSonioxWiring(input);
+      // A key nothing connects is real exposure: Soniox has no revoke API.
+      if (!input.speakerWillStart) expect(wiring.speakerRole).toBeNull();
+      if (!input.participantWillStart) expect(wiring.participantRole).toBeNull();
+      // Every leg that starts is covered by a role, either its own or — for the
+      // participant of a shared Both session — the mixed stream it feeds.
+      if (input.speakerWillStart) expect(wiring.speakerRole).not.toBeNull();
+      if (input.participantWillStart) {
+        expect(wiring.participantRole !== null || wiring.speakerRole === 'mix_stt').toBe(true);
+      }
+    }
+  });
+});
