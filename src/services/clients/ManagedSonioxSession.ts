@@ -57,14 +57,26 @@ export function byokCredentials(apiKey: string): SonioxCredentialBundle {
   return { stt: apiKey, tts: apiKey };
 }
 
-/** The matrix inputs the server expands into a role set. FE1 sends only the
- *  legacy `{ mode }` derived from `textOnly`; `mode`/`bothSplit` are carried so
- *  FE3 changes one method, not this whole signature. */
+/**
+ * The matrix inputs the server expands into a role set. This IS the wire body
+ * of `POST /soniox/session-key` — the client never sends a stream list, because
+ * server-side expansion is what makes an unreachable role set unrepresentable
+ * rather than merely rejected (spec A2).
+ *
+ * The backend requires `textOnly` for `speaker` and `both`, and `bothSplit` for
+ * `both`; neither has a server-side default, so a client that dropped one would
+ * be refused rather than silently sold the more expensive shape. All three are
+ * always sent.
+ */
 export interface ManagedSessionRequest {
   mode: 'speaker' | 'participant' | 'both';
   textOnly: boolean;
   bothSplit: boolean;
 }
+
+/** The plan's name for the same three fields, used by the MainPanel wiring
+ *  module. One type, two names, so neither call site had to be renamed. */
+export type SonioxSessionMatrixInput = ManagedSessionRequest;
 
 /**
  * The lease's single STT role — the "primary leg" the flat legacy response
