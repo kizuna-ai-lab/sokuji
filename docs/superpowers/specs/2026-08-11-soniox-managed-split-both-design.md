@@ -363,10 +363,21 @@ Four details this must get right, each of which is a real failure if missed:
   speaker by up to the difference, 120 s, and the two `403`s need not land together. Name
   one owner for end-of-segment messaging anyway — the cutoff is a session-level outcome, so
   without a designated leg plus a one-shot claim the notice appears twice, or once, decided
-  by which close wins the teardown race. The claim has to tolerate an arbitrary gap rather
-  than a same-second race, and the cutoff test has to be one-sided (at-or-past the margin)
-  so a late `403` still reads as the cutoff and not as an outage. What bounds the pair is
-  the lease's own expiry, moved per leg by `markStarted`'s `MAX()`.
+  by which close wins the teardown race. The owner named was the session itself:
+  `ManagedSonioxSession.finishSession(kind)` takes the one-shot claim — a
+  `SonioxSessionOutcome`, re-created by every `acquire()` so a new lease cannot inherit the
+  previous one's silence — and announces on the leg whose
+  `ClientOptions.sonioxManaged.announcesSessionOutcome` is true. That bit is decided in
+  exactly one place, MainPanel's `managedLegOptions`: the speaker whenever the session has
+  one, otherwise the single leg that runs. `finishSession` reads it back off the legs that
+  registered themselves rather than re-deriving it, and falls back to the first registered
+  leg when the designated announcer has already disconnected — a speaker can die while the
+  participant streams on, and a silent ending is the failure this exists to prevent. The
+  teardown loop then runs regardless of who won the claim, over a copy of the leg list,
+  because ending a leg can re-enter `detachLeg`. The claim has to tolerate an arbitrary gap
+  rather than a same-second race, and the cutoff test has to be one-sided (at-or-past the
+  margin) so a late `403` still reads as the cutoff and not as an outage. What bounds the
+  pair is the lease's own expiry, moved per leg by `markStarted`'s `MAX()`.
 
 ### A9. Voice pin
 
