@@ -80,11 +80,24 @@ function mockFetchOnce(status: number, body: unknown) {
  * first and second /soniox/session-key attempts must differ). Once drained,
  * further calls get a generic 200 — the fire-and-forget lifecycle POSTs are
  * not under test here and must not throw from an unconfigured mock.
+ *
+ * `{ pending: true }` queues an attempt that NEVER answers and settles only
+ * when its own abort signal fires, rejecting with that signal's reason exactly
+ * as a real hung fetch does. Needed to watch one attempt's timeout run out: a
+ * mock that answers immediately makes every timeout unobservable.
  */
-function mockFetchSequence(...responses: Array<{ status: number; body: unknown }>) {
+type QueuedResponse = { status: number; body: unknown } | { pending: true };
+
+function mockFetchSequence(...responses: QueuedResponse[]) {
   const queue = [...responses];
-  const fn = vi.fn(async () => {
-    const next = queue.shift() ?? { status: 200, body: {} };
+  const fn = vi.fn(async (_url: string, init?: RequestInit) => {
+    const next: QueuedResponse = queue.shift() ?? { status: 200, body: {} };
+    if ('pending' in next) {
+      return new Promise<never>((_resolve, reject) => {
+        const signal = init?.signal;
+        signal?.addEventListener('abort', () => reject(signal.reason));
+      });
+    }
     return { ok: next.status >= 200 && next.status < 300, status: next.status, json: async () => next.body };
   });
   vi.stubGlobal('fetch', fn);
@@ -300,27 +313,72 @@ describe('ManagedSonioxSession: the session-key request cannot hang forever', ()
     expect(callsTo(fetchMock, '/soniox/session-key')).toHaveLength(1);
   });
 
+  /**
+   * `AbortSignal.timeout` is NOT driven by vitest's fake timers — its clock is
+   * internal to the platform rather than the patched global `setTimeout`
+   * (measured: advancing 15 s leaves a real one un-aborted). Substitute an
+   * AbortController armed on the faked `setTimeout`, which is what makes an
+   * attempt's deadline observable at all, and record every duration the session
+   * asks for. What is under test — which deadline is armed PER ATTEMPT — is
+   * preserved exactly; only the platform's own timer is stood in for.
+   */
+  function captureArmedTimeouts(): number[] {
+    const armed: number[] = [];
+    vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms: number) => {
+      armed.push(ms);
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(timeoutError()), ms);
+      return controller.signal;
+    });
+    return armed;
+  }
+
   it('gives the 409 retry a full timeout of its own rather than a leftover budget', async () => {
     // Per-attempt, not a budget across both. The retry only happens after a
     // 409, which means the first attempt got an HTTP answer and did not time
     // out — so a shared budget would only ever shorten a healthy second attempt,
     // and the backend's own retryAfterMs hint (7 s here, unbounded in principle)
     // would eat it. Worst case stays bounded: timeout + retryAfterMs + timeout.
+    //
+    // The two implementations only diverge once the wait PLUS the second
+    // attempt outlast the first attempt's clock, so the second attempt has to
+    // HANG: an earlier version of this test let it answer at once, advanced
+    // 7 s and asserted neither signal had aborted — which a single shared 15 s
+    // budget satisfies just as well, 8 s of it still unspent.
     vi.useFakeTimers();
     try {
+      const armed = captureArmedTimeouts();
       const fetchMock = mockFetchSequence(
         { status: 409, body: { error: 'Another session is already active', retryAfterMs: 7000 } },
-        { status: 200, body: speechToSpeechResponse() },
+        { pending: true },
       );
       const acquiring = newSession().acquire(SPEAKER_S2S);
+      const rejection = expect(acquiring).rejects.toThrow(/temporarily unavailable/i);
+      let settled = false;
+      void acquiring.then(() => { settled = true; }, () => { settled = true; });
+
+      // t=7000: the backend's retryAfterMs has elapsed and the second attempt
+      // goes out, starting a clock of its own.
       await vi.advanceTimersByTimeAsync(7000);
-      await acquiring;
-      const signals = callsTo(fetchMock, '/soniox/session-key')
-        .map(([, init]) => (init as RequestInit).signal!);
-      expect(signals).toHaveLength(2);
-      // A budget carried across the wait would have left the second attempt
-      // already aborted before it was issued.
-      expect(signals.map((s) => s.aborted)).toEqual([false, false]);
+      const attempts = callsTo(fetchMock, '/soniox/session-key');
+      expect(attempts).toHaveLength(2);
+      const secondSignal = (attempts[1][1] as RequestInit).signal!;
+
+      // t=15000: exactly when a budget armed at the FIRST attempt would fire.
+      // The second attempt is 8 s into its own, so it must still be running.
+      await vi.advanceTimersByTimeAsync(8000);
+      expect(secondSignal.aborted).toBe(false);
+      expect(settled).toBe(false);
+
+      // t=22000: the second attempt's own 15 s, and only now.
+      await vi.advanceTimersByTimeAsync(7000);
+      expect(secondSignal.aborted).toBe(true);
+      await rejection;
+
+      // Two attempts, two equal budgets — not one signal shared by both, and
+      // not a second one shortened by what the first and the wait consumed.
+      expect(armed).toHaveLength(2);
+      expect(armed[1]).toBe(armed[0]);
     } finally {
       vi.useRealTimers();
     }
