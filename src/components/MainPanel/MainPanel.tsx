@@ -54,7 +54,7 @@ import { ServiceFactory } from '../../services/ServiceFactory'; // Import the Se
 import { IAudioService } from '../../services/interfaces/IAudioService';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
-import { buildApiErrorProps } from '../../lib/apiErrorProps';
+import { clientErrorMessage } from '../../lib/apiErrorProps';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../types/Provider';
@@ -95,6 +95,8 @@ import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackSto
 import ModePicker from './ModePicker';
 import SplitDegradedChip from './SplitDegradedChip';
 import { resolveSplitDegraded, type SplitDegradedReason } from './splitDegraded';
+import { buildChannelTelemetryHandlers, type ChannelTelemetryPorts } from './participantTelemetry';
+import { NO_CHANNELS_RECONNECTING, type ReconnectingState } from './reconnectingChannels';
 import ModeDevicePopover from './ModeDevicePopover';
 import WaveformStrip from './WaveformStrip';
 import { isVirtualDevice, type WarningType } from '../Settings/shared/hooks';
@@ -825,12 +827,41 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return descriptor.createClient(creds, { transport: effectiveTransportType, webrtcOptions, sonioxManaged });
   }, [provider, getAuthToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted]);
 
+  // Which legs are reconnecting right now. A ref rather than state: these
+  // transitions arrive from socket callbacks that can land several times in one
+  // frame, and each needs the value the previous one wrote. The single rendered
+  // `isReconnecting` boolean is derived from it inside the telemetry handlers.
+  const reconnectingChannelsRef = useRef<ReconnectingState>(NO_CHANNELS_RECONNECTING);
+
+  // Declared HERE, above createParticipantEventHandlers, and not next to the
+  // countdown state further down: this value appears in that useCallback's
+  // dependency array, which is evaluated during render at its own line. A
+  // `const` declared later would be in its temporal dead zone at that moment
+  // and throw on every render.
+  const telemetryPortsFor = useCallback((): ChannelTelemetryPorts => ({
+    addRealtimeEvent,
+    trackApiError: (props) => trackEvent('api_error', props),
+    provider: provider || Provider.OPENAI,
+    readReconnecting: () => reconnectingChannelsRef.current,
+    writeReconnecting: (next) => { reconnectingChannelsRef.current = next; },
+    setIsReconnecting,
+  }), [addRealtimeEvent, trackEvent, provider, setIsReconnecting]);
+
   /**
    * Helper to create event handlers for participant audio client
    */
   const createParticipantEventHandlers = useCallback((
     client: IClient
   ): ClientEventHandlers => ({
+    // The participant leg is an independently failing provider stream in split
+    // Both mode, so it reports its own errors and reconnects, tagged
+    // 'participant'. Deliberately NO conversation bubble here, unlike the
+    // speaker: `onConversationUpdated` below replaces the whole participant
+    // list with `client.getConversationItems()`, which would wipe a manually
+    // appended error item — the exact hazard participantErrorOrdering.test.ts
+    // documents. Either leg dying already tears the session down via onClose
+    // and the user sees that; what was missing was telemetry.
+    ...buildChannelTelemetryHandlers('participant', telemetryPortsFor()),
     onRealtimeEvent: (realtimeEvent: RealtimeEvent) => {
       addRealtimeEvent(
         realtimeEvent.event,
@@ -873,7 +904,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // same call chain.
       await disconnectConversationRef.current?.();
     }
-  }), [addRealtimeEvent, trackEvent, provider]);
+  }), [addRealtimeEvent, trackEvent, provider, telemetryPortsFor]);
 
   /**
    * Helper to create session config for participant mode (swapped languages, text-only, semantic VAD)
@@ -1450,6 +1481,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     if (!client || !audioService) return;
 
+    const speakerTelemetry = buildChannelTelemetryHandlers('speaker', telemetryPortsFor());
+
     const eventHandlers: ClientEventHandlers = {
       onRealtimeEvent: (realtimeEvent: RealtimeEvent) => {
         addRealtimeEvent(
@@ -1487,52 +1520,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
         }
       },
+      // Logging, api_error and the reconnect flag are identical for both legs
+      // and now come from one place, tagged per channel — see
+      // participantTelemetry.ts. The speaker keeps one extra behaviour the
+      // participant deliberately does not have: a visible conversation bubble.
       onError: (event: any) => {
-        console.error('[Sokuji] [MainPanel]', event);
-
-        // Surface error to LogsPanel so users can see it
-        const errorMessage = event.message || event.error || 'Unknown error';
-        addRealtimeEvent(
-          { type: 'session.error', data: { message: errorMessage, event } },
-          'client', 'session.error'
-        );
-
-        // Show error in conversation panel so it's visible to user
+        speakerTelemetry.onError(event);
+        // Speaker-only: the participant's list is replaced wholesale by its
+        // onConversationUpdated, which would wipe an appended item.
         setItems(prevItems => [...prevItems, {
           id: `error-${Date.now()}`,
           role: 'system',
           type: 'error',
           status: 'completed',
           createdAt: Date.now(),
-          formatted: { text: errorMessage },
+          formatted: { text: clientErrorMessage(event) },
         }]);
-
-        // Track API errors. Built by buildApiErrorProps, not inline: which
-        // string becomes error_message decides whether outages are groupable
-        // at all, and `errorMessage` above is the user-facing (possibly
-        // localized) one this panel renders — not the one analytics wants.
-        // It also omits error_code when a client reports none, rather than
-        // sending the property as undefined.
-        trackEvent('api_error', buildApiErrorProps(event, provider || Provider.OPENAI));
       },
-      onReconnecting: () => {
-        console.info('[Sokuji] [MainPanel] Session reconnecting...');
-        setIsReconnecting(true);
-        addRealtimeEvent(
-          { type: 'session.reconnecting', data: { timestamp: Date.now() } },
-          'client',
-          'session.reconnecting'
-        );
-      },
-      onReconnected: () => {
-        console.info('[Sokuji] [MainPanel] Session reconnected successfully');
-        setIsReconnecting(false);
-        addRealtimeEvent(
-          { type: 'session.reconnected', data: { timestamp: Date.now() } },
-          'client',
-          'session.reconnected'
-        );
-      },
+      onReconnecting: speakerTelemetry.onReconnecting,
+      onReconnected: speakerTelemetry.onReconnected,
       onClose: async (event: any) => {
         // Bail out if the session is already inactive. Some clients (e.g. OpenAIClient)
         // synchronously fire onClose from inside disconnect() during a user-initiated
@@ -1647,7 +1653,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     trackEvent,
     addRealtimeEvent,
     setIsSessionActive,
-    setIsReconnecting
+    setIsReconnecting,
+    telemetryPortsFor
   ]); // addRealtimeEvent from Zustand is stable
 
   /**
@@ -1668,6 +1675,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     disconnectInProgressRef.current = true;
 
     try {
+      // Both the derived boolean and the set it is derived from: a leg still
+      // listed as reconnecting here would survive into the next session and
+      // pin its banner on.
+      reconnectingChannelsRef.current = NO_CHANNELS_RECONNECTING;
       setIsReconnecting(false);
       setIsSessionActive(false);
       setIsAIResponding(false);

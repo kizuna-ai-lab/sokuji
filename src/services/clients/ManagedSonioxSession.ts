@@ -570,9 +570,19 @@ export class ManagedSonioxSession {
       // Fall back to the first registered leg rather than swallowing the
       // announcement: a session whose announcer has already disconnected is
       // reachable (the speaker can die while the participant streams on), and
-      // a silent ending is exactly the failure this exists to prevent. The
-      // fallback's notice lands in a list MainPanel does not render, but its
-      // onError still reaches the analytics and the transient bubble.
+      // a silent ending is exactly the failure this exists to prevent.
+      //
+      // The fallback is NOT a lesser announcement. Its system notice lands in
+      // `participantItems`, which MainPanel merges into the rendered
+      // conversation (combinedItems, sorted by createdAt) — an earlier version
+      // of this comment claimed that list is not rendered, and it is. Its
+      // onError now reaches api_error too, tagged 'participant'; before the
+      // participant leg was given telemetry handlers it was dropped on the
+      // floor, so this sentence used to describe something that did not
+      // happen. The one thing the fallback does not produce is the speaker's
+      // extra red error item, which is withheld on purpose — the participant
+      // list is replaced wholesale by onConversationUpdated and an appended
+      // item would be wiped.
       const announcer = this.legs.find((leg) => leg.announcesSessionOutcome) ?? this.legs[0];
       announcer?.announceSessionOutcome(notice);
     }
