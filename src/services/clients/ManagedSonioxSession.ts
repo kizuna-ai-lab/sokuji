@@ -367,7 +367,50 @@ export class ManagedSonioxSession {
       // as hard (`role_not_issued`), which is why the caller's role must be
       // derived from the same matrix body the server expanded.
       body: JSON.stringify({ leaseId, role }),
-    }).catch((error) => console.error('[ManagedSonioxSession] session-started notify failed:', error));
+    })
+      // Fire-and-forget is about not AWAITING the answer, not about throwing it
+      // away. `.catch` alone fires for transport failures only: a 400 resolves
+      // normally, and the backend answers 400 precisely for the two states no
+      // client can otherwise detect — `role_required` and `role_not_issued`,
+      // both meaning THE LEASE WAS NOT EXTENDED. Unread, that presents later as
+      // a session dying mid-call at its start window with a generic "connection
+      // closed unexpectedly", while both Soniox keys stay valid past the lease
+      // and the account can take a second one. `no_live_lease` is a 200 by
+      // design (routine, and nothing the client can act on), so silence here
+      // still means silence for it.
+      .then((response) => (response.ok ? null : this.reportStartedRefusal(response, role)))
+      .catch((error) => console.error('[ManagedSonioxSession] session-started notify failed:', error));
+  }
+
+  /**
+   * Surface a refused `session-started` in both places a diagnosis is looked
+   * for: the console and the app's own debug timeline (LogsPanel), so the cause
+   * is named where the symptom is seen. Deliberately does NOT fail the session —
+   * the stream is already up and the user would gain nothing from a torn-down
+   * call; what was missing is any record naming the reason.
+   */
+  private async reportStartedRefusal(response: Response, role: SonioxStreamRole): Promise<void> {
+    // The reason is a machine-readable field, so read it as one. A body that is
+    // not JSON (a proxy's HTML error page, an empty 500) still leaves the status,
+    // which alone says the lease was not extended.
+    let reason: string | null = null;
+    try {
+      const body = await response.json();
+      if (typeof body?.reason === 'string') reason = body.reason;
+    } catch {
+      // Not JSON — the status carries the news on its own.
+    }
+    console.error(
+      `[ManagedSonioxSession] session-started was REFUSED for role ${role} ` +
+      `(HTTP ${response.status}${reason ? `, reason ${reason}` : ''}). The lease was NOT ` +
+      `extended: this session will expire at its start window while its Soniox keys stay valid.`
+    );
+    this.onEvent?.('session.started_refused', {
+      provider: 'soniox',
+      status: response.status,
+      reason,
+      role,
+    });
   }
 
   /**

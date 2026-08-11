@@ -401,6 +401,83 @@ describe('ManagedSonioxSession: noteStreamAccepted — the observation that earn
   });
 });
 
+describe('ManagedSonioxSession: a refused session-started is REPORTED, not dropped', () => {
+  /**
+   * `.catch` on `fetch` fires for transport failures only — a 400 resolves
+   * normally. The backend answers 400 with a machine-readable `reason`
+   * (`role_required` / `role_not_issued`) for exactly the two cases a client
+   * cannot detect any other way: it did not extend the lease, so the session
+   * dies at its start window while both Soniox keys stay valid past it, and the
+   * user sees a generic "connection closed unexpectedly" with nothing anywhere
+   * naming the cause. `no_live_lease` is deliberately a 200 and stays silent.
+   *
+   * Still fire-and-forget: nothing is awaited and nothing throws. The answer is
+   * simply read instead of discarded.
+   */
+  function refusingStartedFetch(status: number, body: unknown) {
+    const fn = vi.fn(async (url: string) => (
+      url.includes('/soniox/session-started')
+        ? { ok: status >= 200 && status < 300, status, json: async () => body }
+        : { ok: true, status: 200, json: async () => speechToSpeechResponse() }
+    ));
+    vi.stubGlobal('fetch', fn);
+    return fn;
+  }
+
+  it('puts the backend’s reason on the debug timeline and in the console', async () => {
+    refusingStartedFetch(400, { error: 'Role not issued for this lease', reason: 'role_not_issued' });
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const events: Array<{ type: string; data: any }> = [];
+    const session = newSession((type, data) => events.push({ type, data: data as any }));
+    await session.acquire(SPEAKER_S2S);
+
+    session.markStarted('mix_stt');
+    await vi.waitFor(() => expect(events.some((e) => e.type === 'session.started_refused')).toBe(true));
+
+    expect(events.find((e) => e.type === 'session.started_refused')!.data).toMatchObject({
+      provider: 'soniox',
+      status: 400,
+      reason: 'role_not_issued',
+      role: 'mix_stt',
+    });
+    expect(consoleError.mock.calls.flat().join(' ')).toContain('role_not_issued');
+  });
+
+  it('says so even when the body carries no reason at all', async () => {
+    // A 500, an HTML error page from a proxy, an empty body: the status alone
+    // still says the lease was not extended, which is the actionable part.
+    refusingStartedFetch(500, 'not json');
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const events: Array<{ type: string; data: any }> = [];
+    const session = newSession((type, data) => events.push({ type, data: data as any }));
+    await session.acquire(SPEAKER_S2S);
+
+    session.markStarted('spk_stt');
+    await vi.waitFor(() => expect(events.some((e) => e.type === 'session.started_refused')).toBe(true));
+
+    expect(events.find((e) => e.type === 'session.started_refused')!.data).toMatchObject({
+      status: 500,
+      reason: null,
+    });
+    expect(consoleError).toHaveBeenCalled();
+  });
+
+  it('stays silent on the 200 the backend answers for a stale lease', async () => {
+    refusingStartedFetch(200, { ok: true });
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const events: Array<{ type: string; data: unknown }> = [];
+    const session = newSession((type, data) => events.push({ type, data }));
+    await session.acquire(SPEAKER_S2S);
+
+    session.markStarted('spk_stt');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(events.some((e) => e.type === 'session.started_refused')).toBe(false);
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+});
+
 describe('ManagedSonioxSession: the session allowance countdown', () => {
   it('has no snapshot before acquire and carries the response’s numbers after it', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
