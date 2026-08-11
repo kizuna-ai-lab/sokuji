@@ -1,6 +1,11 @@
 import type {
+  ManagedSonioxSession,
   SonioxSessionMatrixInput,
 } from '../../services/clients/ManagedSonioxSession';
+// Type-only, like the import above: this keeps the module free of any runtime
+// edge to the descriptor layer (and the client graph behind it), which matters
+// because the subtitle window loads MainPanel's helpers too.
+import type { ClientOptions } from '../../services/providers/ProviderDescriptor';
 
 /**
  * Pure wiring decisions for a managed (Kizuna AI) Soniox session, extracted out
@@ -101,6 +106,65 @@ export function resolveManagedSonioxWiring(input: {
     // single stream — which can only happen when a speaker leg exists to fold
     // it into.
     participantRole: participantWillStart && !sharedBothOnTheWire ? 'par_stt' : null,
+  };
+}
+
+/** MainPanel's two client slots. Not the same thing as a role: the shared-Both
+ *  participant slot runs no stream of its own and therefore has no role. */
+export type SessionLeg = 'speaker' | 'participant';
+
+/**
+ * Everything ONE leg needs to be a managed Soniox stream — or `undefined` when
+ * it is not one (BYOK, another provider, no lease, or the shared path's inert
+ * secondary port).
+ *
+ * Return type is `ClientOptions['sonioxManaged']` BY REFERENCE, and that is the
+ * point of the function existing at all. This object used to be built inline in
+ * connectConversation and passed through a `createAIClient` parameter that
+ * restated the option's fields by hand. The hand-written copy drifted — it never
+ * gained `role` — so the literal was checked against a type that did not want
+ * the field, and nothing but a tsc error at the descriptor boundary said so. A
+ * leg with no role sets no started bit (`SonioxClient.sttRole` gates the
+ * `noteStreamAccepted` call), which leaves the lease at its ~75-195 s start
+ * window while both Soniox keys stay valid for the full grant, and leaves a
+ * pinned voice evictable mid-session. Stating the shape once removes the way
+ * that can happen quietly.
+ *
+ * Taking the LEG rather than a role is what keeps the role and the key from
+ * disagreeing: both are read from the same wiring here, so no call site can
+ * pair the participant's key with the speaker's role.
+ */
+export function managedLegOptions(
+  leg: SessionLeg,
+  session: ManagedSonioxSession | null,
+  wiring: ManagedSonioxWiring | null,
+): ClientOptions['sonioxManaged'] {
+  if (!session || !wiring) return undefined;
+  const role = leg === 'speaker' ? wiring.speakerRole : wiring.participantRole;
+  if (!role) return undefined;
+  return {
+    // One key, one four-segment client_reference_id, one role per leg. Soniox
+    // attributes a usage log to the reference bound to the KEY and ignores the
+    // one the socket declares in its config frame (probed live 2026-08-11), so
+    // two legs sharing a key are indistinguishable in the usage logs and the
+    // lease's ended-mask could not be driven at all. Per-stream keys are
+    // required, not merely convenient.
+    credentials: session.credentialsFor(role),
+    session,
+    // The leg names itself with the SAME role its bundle came from. The client
+    // reports acceptance under it, and the backend refuses any other role for
+    // this lease (400 `role_not_issued`).
+    role,
+    // The "is this the PRIMARY leg" bit, and the only place it is decided. Both
+    // session-level endings — the balance running out and the granted-duration
+    // cutoff — are announced exactly once, on the leg that says true here;
+    // every leg is torn down either way (ManagedSonioxSession.finishSession).
+    //
+    // It must be the speaker whenever there is one: MainPanel's teardown
+    // renders `speakerClientRef.current?.getConversationItems()`, so a notice
+    // emitted on the participant leg is never displayed at all. See
+    // ClientOptions.sonioxManaged.announcesSessionOutcome.
+    announcesSessionOutcome: leg !== 'participant' || wiring.speakerRole === null,
   };
 }
 

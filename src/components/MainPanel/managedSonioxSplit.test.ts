@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ManagedSonioxSession } from '../../services/clients/ManagedSonioxSession';
 import {
+  managedLegOptions,
   resolveManagedSonioxWiring,
   resolveParticipantSlot,
   teardownSessionLegs,
@@ -178,6 +179,100 @@ describe('resolveParticipantSlot — the secondary port is the SHARED path only'
     expect(
       resolveParticipantSlot({ ...sharedCapable, speakerSupportsSecondaryPort: false }),
     ).toBe('own-client');
+  });
+});
+
+describe('managedLegOptions — what ONE leg is handed, role included', () => {
+  /**
+   * This exists because the role went missing on the way to the client and
+   * nothing said so. `ClientOptions.sonioxManaged.role` is required, but
+   * MainPanel restated that option's shape BY HAND in `createAIClient`'s
+   * parameter list and its copy had no `role` — so the compiler checked the
+   * literal against a type that did not want the field, and the only signal was
+   * a tsc error at the descriptor boundary in a repo where tsc is not a gate.
+   * Drop the field from the literal and `SonioxClient.sttRole` becomes null,
+   * `noteStreamAccepted` is never called, and every managed session keeps its
+   * ~75-195 s start-window lease while both Soniox keys stay valid for the full
+   * grant. The shape is now stated once (ClientOptions) and this function is
+   * checked against it.
+   */
+  async function acquiredSession(request: Parameters<ManagedSonioxSession['acquire']>[0]) {
+    // Split Both is the only shape the backend answers with a `streams` list;
+    // every other shape uses the flat legacy fields, which file the primary
+    // role. Serving the split list for a shared request would be a fixture the
+    // server never sends (and `fileBundles` rightly refuses it).
+    const split = request.mode === 'both' && request.bothSplit;
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => (url.includes('/soniox/session-key')
+        ? {
+            sttApiKey: 'k-spk-stt', ttsApiKey: 'k-spk-tts', expiresAt: 'x',
+            maxSessionDurationSeconds: 900, budgetMicroUsd: 500_000,
+            rateUsdPerHour: 2.5, sku: 'soniox:speech_to_speech',
+            leaseId: 'L9', clientReferenceId: 'sokuji1:acct:L9:primary',
+            ...(split ? {
+              streams: [
+                { role: 'spk_stt', apiKey: 'k-spk-stt', clientReferenceId: 'sokuji1:acct:L9:spk_stt', expiresAt: 'x' },
+                { role: 'spk_tts', apiKey: 'k-spk-tts', clientReferenceId: 'sokuji1:acct:L9:spk_tts', expiresAt: 'x' },
+                { role: 'par_stt', apiKey: 'k-par-stt', clientReferenceId: 'sokuji1:acct:L9:par_stt', expiresAt: 'x' },
+              ],
+            } : {}),
+          }
+        : { ok: true }),
+    })));
+    const session = new ManagedSonioxSession({ sessionToken: 'sess' });
+    await session.acquire(request);
+    return session;
+  }
+
+  it('names each split leg with the SAME role its bundle was taken with', async () => {
+    const wiring = resolveManagedSonioxWiring({ ...splitBoth });
+    const session = await acquiredSession(wiring.acquire);
+
+    const speaker = managedLegOptions('speaker', session, wiring);
+    const participant = managedLegOptions('participant', session, wiring);
+
+    expect(speaker?.role).toBe('spk_stt');
+    expect(participant?.role).toBe('par_stt');
+    // Role and key must agree: the backend answers 400 `role_not_issued` for a
+    // role this lease did not issue, and Soniox attributes usage to the
+    // reference bound to the KEY, so a leg naming the other leg's role is
+    // undetectable downstream.
+    expect(speaker?.credentials).toEqual(session.credentialsFor('spk_stt'));
+    expect(participant?.credentials).toEqual(session.credentialsFor('par_stt'));
+  });
+
+  it('names shared Both’s single mixed stream mix_stt', async () => {
+    const wiring = resolveManagedSonioxWiring({ ...splitBoth, sonioxSplitBoth: false });
+    const session = await acquiredSession({ mode: 'both', textOnly: false, bothSplit: false });
+    expect(managedLegOptions('speaker', session, wiring)?.role).toBe('mix_stt');
+    // The shared path's participant slot is the speaker core's inert secondary
+    // port: no socket, no key, no role — so no options at all.
+    expect(managedLegOptions('participant', session, wiring)).toBeUndefined();
+  });
+
+  it('gives the outcome announcement to the speaker, and to the participant only when it runs alone', async () => {
+    const both = resolveManagedSonioxWiring({ ...splitBoth });
+    const session = await acquiredSession(both.acquire);
+    expect(managedLegOptions('speaker', session, both)?.announcesSessionOutcome).toBe(true);
+    // MainPanel's teardown renders the SPEAKER's conversation items, so a
+    // notice emitted on the participant leg of a two-leg session is never shown.
+    expect(managedLegOptions('participant', session, both)?.announcesSessionOutcome).toBe(false);
+
+    const participantOnly = resolveManagedSonioxWiring({
+      ...splitBoth, speakerWillStart: false,
+    });
+    expect(
+      managedLegOptions('participant', await acquiredSession(participantOnly.acquire), participantOnly)
+        ?.announcesSessionOutcome,
+    ).toBe(true);
+  });
+
+  it('hands out nothing when there is no lease — BYOK and every other provider', async () => {
+    const wiring = resolveManagedSonioxWiring({ ...splitBoth });
+    expect(managedLegOptions('speaker', null, wiring)).toBeUndefined();
+    expect(managedLegOptions('speaker', await acquiredSession(wiring.acquire), null)).toBeUndefined();
   });
 });
 

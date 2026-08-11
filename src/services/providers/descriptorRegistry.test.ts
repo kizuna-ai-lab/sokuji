@@ -30,6 +30,7 @@ import { defaultKizunaVolcengineAst2Settings } from './KizunaAIVolcengineAST2Pro
 import { defaultKizunaSonioxSettings } from './KizunaAISonioxProviderConfig';
 import { defaultSonioxSettings } from './SonioxProviderConfig';
 import { ManagedSonioxSession } from '../clients/ManagedSonioxSession';
+import type { ClientOptions } from './ProviderDescriptor';
 import en from '../../locales/en/translation.json';
 
 // Map each provider's settingsSliceKey to its per-module default settings slice,
@@ -76,9 +77,16 @@ describe('descriptor.createClient', () => {
   // from credentials alone: its keys come from a ManagedSonioxSession acquired
   // before any client exists. Supplied unacquired here — createClient only
   // stores it.
-  const sonioxManaged = {
+  // `role` is required, and required for a reason: it is how the leg names
+  // itself when it reports that Soniox accepted its stream, and a leg with no
+  // role sets no started bit at all. Typed as ClientOptions['sonioxManaged'] so
+  // the fixture cannot quietly drop a field the option gains later — this
+  // fixture had already lost `role`, and only tsc noticed.
+  const sonioxManaged: ClientOptions['sonioxManaged'] = {
     credentials: { stt: 'stt-k', tts: 'tts-k', clientReferenceId: 'sokuji1:acct:lease:mix_stt' },
     session: new ManagedSonioxSession({ sessionToken: 'sess_TOKEN' }),
+    // Matches the four-segment reference above: shared Both's single mixed stream.
+    role: 'mix_stt',
   };
   const optionsFor = (id: unknown) => (id === Provider.KIZUNA_AI_SONIOX ? { ...ws, sonioxManaged } : ws);
 

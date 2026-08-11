@@ -4,6 +4,11 @@ import { ManagedSonioxSession, byokCredentials } from './ManagedSonioxSession';
 import { SonioxSessionConfig } from '../interfaces/IClient';
 import type { SonioxSttMessage, SonioxSttStreamHandlers, SonioxSttConfig } from './SonioxSttStream';
 import type { SonioxTtsOptions, SonioxTtsStreamHandlers } from './SonioxTtsStream';
+// The two links between MainPanel's per-leg decision and this client's
+// constructor. Imported directly rather than through ProviderConfigFactory so
+// this file needs none of the registry's feature-flag mocking.
+import { KizunaAISonioxProviderConfig } from '../providers/KizunaAISonioxProviderConfig';
+import { managedLegOptions, resolveManagedSonioxWiring } from '../../components/MainPanel/managedSonioxSplit';
 
 // --- Mock both wire components; capture instances for driving/inspecting the client ---
 // (same style as SonioxClient.test.ts)
@@ -622,6 +627,51 @@ describe('SonioxClient: a leg is reported started only when Soniox ACCEPTS its s
       { leaseId: 'lease-split-1', role: 'spk_stt' },
       { leaseId: 'lease-split-1', role: 'par_stt' },
     ]);
+  });
+
+  it('reaches the client through MainPanel’s own argument builder and the descriptor', async () => {
+    // Every other test in this describe constructs SonioxClient directly with
+    // `sttRole`, which proves the client honours the role but not that anything
+    // supplies it. The two links between MainPanel's decision and this
+    // constructor — `managedLegOptions` and the descriptor's
+    // `managed.role -> sttRole` mapping — were unpinned, and the descriptor's
+    // was where the role silently went missing (MainPanel restated the option
+    // shape by hand, without the field). Walk the real chain instead.
+    const fetchMock = mockFetchOnce(200, {
+      ...speechToSpeechResponse(),
+      leaseId: 'lease-chain-1',
+      streams: [
+        { role: 'spk_stt', apiKey: 'k-spk', clientReferenceId: 'sokuji1:a:lease-chain-1:spk_stt', expiresAt: 'x' },
+        { role: 'par_stt', apiKey: 'k-par', clientReferenceId: 'sokuji1:a:lease-chain-1:par_stt', expiresAt: 'x' },
+      ],
+    });
+    const wiring = resolveManagedSonioxWiring({
+      speakerWillStart: true,
+      participantWillStart: true,
+      textOnly: true,
+      sonioxSharedBoth: false,
+      sonioxSplitBoth: true,
+    });
+    const session = new ManagedSonioxSession({ sessionToken: SESSION_TOKEN });
+    await session.acquire(wiring.acquire);
+
+    const descriptor = new KizunaAISonioxProviderConfig();
+    const creds = { ok: true as const, primary: '' };
+    const participant = descriptor.createClient(creds, {
+      transport: 'websocket',
+      sonioxManaged: managedLegOptions('participant', session, wiring),
+    });
+
+    await participant.connect({ ...BASE_CONFIG, textOnly: true });
+    // Indexed rather than `.at(-1)`: this file's `.at` calls are the single
+    // largest block of the repo's pre-existing tsc noise (the lib target
+    // predates Array.prototype.at) and tsc is the evidence for this change.
+    sttInstances[sttInstances.length - 1].emit({ tokens: [] });
+
+    // Without the role the client's `sttRole` is null, the guard in
+    // handleSttMessage never fires, and this array is empty — the lease then
+    // keeps its short start window while both keys stay valid for the full grant.
+    expect(startedBodies(fetchMock)).toEqual([{ leaseId: 'lease-chain-1', role: 'par_stt' }]);
   });
 
   it('BYOK reports nothing — there is no lease to extend', async () => {

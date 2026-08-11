@@ -73,8 +73,9 @@ import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../
 import { formatRemainingTime } from '../../utils/formatters';
 import { computeSonioxRemainingMs, computeSonioxBudgetTotalMs, SonioxBudgetSnapshot } from '../../services/clients/SonioxCostMeter';
 import { ManagedSonioxSession } from '../../services/clients/ManagedSonioxSession';
-import type { SonioxCredentialBundle } from '../../services/clients/ManagedSonioxSession';
+import type { ClientOptions } from '../../services/providers/ProviderDescriptor';
 import {
+  managedLegOptions,
   resolveManagedSonioxWiring,
   resolveParticipantSlot,
   teardownSessionLegs,
@@ -793,11 +794,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // stream runs on, plus the session it belongs to. Undefined for BYOK and
     // for every other provider, whose descriptors build credentials from
     // settings and ignore it.
-    sonioxManaged?: {
-      credentials: SonioxCredentialBundle;
-      session: ManagedSonioxSession;
-      announcesSessionOutcome?: boolean;
-    },
+    // Stated BY REFERENCE, never restated. A hand-written copy of this shape
+    // lived here and drifted: it never gained `role`, so the argument was
+    // checked against a type that did not want the field and the only signal
+    // was a tsc error where it reached the descriptor. See managedLegOptions.
+    sonioxManaged?: ClientOptions['sonioxManaged'],
   ): Promise<IClient> => {
     const descriptor = ProviderConfigFactory.getDescriptor(provider);
     const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore];
@@ -2143,42 +2144,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         await session.acquire(managedWiring.acquire);
         managedSonioxSession = session;
       }
-      /**
-       * The `sonioxManaged` argument for ONE leg, or undefined when this leg is
-       * not a managed Soniox stream of its own (BYOK, another provider, or the
-       * shared path's inert secondary port).
-       *
-       * One key, one four-segment client_reference_id, one role per leg. Soniox
-       * attributes a usage log to the reference bound to the KEY and ignores
-       * the one the socket declares in its config frame (probed live
-       * 2026-08-11), so two legs sharing a key are indistinguishable in the
-       * usage logs and the lease's ended-mask could not be driven at all.
-       * Per-stream keys are required, not merely convenient.
-       */
-      const managedSonioxArgFor = (role: 'spk_stt' | 'mix_stt' | 'par_stt' | null) => {
-        if (!role || !managedSonioxSession) return undefined;
-        return {
-          credentials: managedSonioxSession.credentialsFor(role),
-          session: managedSonioxSession,
-          // The leg names itself with the SAME role its bundle came from. The
-          // client reports acceptance under it, and the backend refuses any
-          // other role for this lease (400 `role_not_issued`) — so taking both
-          // from one argument is what keeps them unable to disagree.
-          role,
-          // The "is this the PRIMARY leg" bit, and the only place it is
-          // decided. Both session-level endings — the balance running out and
-          // the granted-duration cutoff — are announced exactly once, on the
-          // leg that says true here; every leg is torn down either way
-          // (ManagedSonioxSession.finishSession).
-          //
-          // It must be the speaker whenever there is one: MainPanel's teardown
-          // renders `speakerClientRef.current?.getConversationItems()`, so a
-          // notice emitted on the participant leg is never displayed at all.
-          // See ClientOptions.sonioxManaged.announcesSessionOutcome.
-          announcesSessionOutcome:
-            role !== 'par_stt' || managedWiring?.speakerRole === null,
-        };
-      };
+      // What ONE leg is handed — key, session, role, and the primacy bit — is
+      // decided by `managedLegOptions`, which reads the role and the key from
+      // the same wiring so they cannot disagree. It lives in
+      // managedSonioxSplit.ts rather than here because a plain function is the
+      // only thing this repo can test: there is no React harness for
+      // connectConversation, and the inline version silently lost `role`.
 
       // Speaker channel: only initialize when mic is selected + enabled.
       // When this whole block is skipped (participant-only session), no speaker
@@ -2192,7 +2163,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // microphone has a stream of its own.
         speakerClientRef.current = await createAIClient(
           useWebRTC,
-          managedSonioxArgFor(managedWiring?.speakerRole ?? null),
+          managedLegOptions('speaker', managedSonioxSession, managedWiring),
         );
 
         // Setup listeners for the new client instance
@@ -2532,7 +2503,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               // speaker survives, which is the settled degradation.
               participantClientRef.current = await createAIClient(
                 false,
-                managedSonioxArgFor(managedWiring?.participantRole ?? null),
+                managedLegOptions('participant', managedSonioxSession, managedWiring),
               );
             }
 
