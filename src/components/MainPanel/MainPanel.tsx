@@ -45,7 +45,7 @@ import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSe
 import { resolveParticipantSourceId, needsLoopbackStream } from '../../lib/modern-audio/participantSource';
 import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
-import type { RealtimeEvent } from '../../stores/logStore';
+import type { RealtimeEvent, EventData } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
 import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, OpenAISessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig, PalabraAISessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
@@ -1967,7 +1967,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         if (!token) throw new Error(KIZUNA_SIGN_IN_REQUIRED);
         const session = new ManagedSonioxSession({
           sessionToken: token,
-          onEvent: (type, data) => addRealtimeEvent({ type, data }, 'client', type),
+          // The session's sink is typed `(type: string, ...)` because it must
+          // not depend on the store's event union. 'session.retry' — the one
+          // type it emits — is not in that union, exactly as when SonioxClient
+          // emitted it (emitRealtime casts the whole event `as any`); this is
+          // the same escape, narrowed to the one field that needs it.
+          onEvent: (type, data) => addRealtimeEvent({ type: type as EventData['type'], data }, 'client', type),
         });
         // Stored BEFORE acquire() so a failed acquire still leaves something
         // for disconnectConversation to clear; end() no-ops without a lease.
