@@ -1,9 +1,13 @@
 #!/bin/bash
-# Build sokuji-audio-host for macOS and refresh the vendored copy.
+# Build sokuji-audio-host for macOS and refresh the copy the app loads.
 #
-# The committed binary under resources/bin is what the app loads; out/ is only
-# the compiler's scratch output. Copying is part of the build, not a step to
+# The binary under resources/bin is what the app loads; out/ is only the
+# compiler's scratch output. Copying is part of the build, not a step to
 # remember - the Windows helper lost a debugging round trip to exactly that gap.
+#
+# resources/bin is gitignored: these are build artifacts, produced by CI before
+# packaging (npm run build:audio-host) and never committed. Changing main.swift
+# is therefore the whole change; there is no binary to refresh in the repo.
 set -euo pipefail
 cd "$(dirname "$0")"
 

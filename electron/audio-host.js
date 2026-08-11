@@ -187,4 +187,53 @@ function stopCapture() {
   current = null;
 }
 
-module.exports = { listAppSources, startCapture, stopCapture };
+/**
+ * Put a virtual device's volume back to unity, and unmute it.
+ *
+ * macOS stores that volume itself and restores it onto the driver, so it
+ * survives reinstalling the driver - and a macOS 15 -> 26 upgrade was measured
+ * leaving Sokuji's device at scalar 0.5, which the driver's logarithmic control
+ * turns into -32 dB. The audio still flows, so nothing reports an error; the
+ * other application simply hears silence. See the helper's --ensure-unity-gain
+ * documentation for the measurement.
+ *
+ * Never throws and never rejects: this runs on the startup path, and a device
+ * whose gain could not be checked must not be the reason the app fails to come
+ * up. A null result means "could not tell", which the caller logs and moves on.
+ *
+ * @param {string} deviceName  Substring matched against device names
+ * @returns {Promise<{found: boolean, changed?: boolean, unmuted?: boolean,
+ *                    before?: object, after?: object}|null>}
+ */
+async function ensureUnityGain(deviceName, { spawn = nodeSpawn, resolvePath = resolveAudioHostPath } = {}) {
+  const exe = resolvePath();
+  if (!exe) return null;
+
+  return new Promise((resolve) => {
+    let out = '';
+    let child;
+    try {
+      child = spawn(exe, ['--ensure-unity-gain', deviceName]);
+    } catch {
+      return resolve(null);
+    }
+
+    child.stdout.on('data', (d) => { out += d.toString('utf8'); });
+    child.on('error', () => resolve(null));
+    child.on('close', () => {
+      try {
+        const result = JSON.parse(out);
+        // An older shipped helper predates this mode and answers with its usage
+        // text on stderr and nothing on stdout. Treat anything that is not the
+        // documented object as "could not tell" rather than as a device that is
+        // missing, which would send the caller down the not-installed path.
+        if (!result || typeof result.found !== 'boolean') return resolve(null);
+        resolve(result);
+      } catch {
+        resolve(null);
+      }
+    });
+  });
+}
+
+module.exports = { listAppSources, startCapture, stopCapture, ensureUnityGain };

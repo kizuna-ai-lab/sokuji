@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
-import { listAppSources, startCapture, stopCapture } from './audio-host.js';
+import { listAppSources, startCapture, stopCapture, ensureUnityGain } from './audio-host.js';
 
 function fakeChild() {
   const c = new EventEmitter();
@@ -265,5 +265,64 @@ describe('stopCapture', () => {
 
   it('is safe when nothing was ever started', () => {
     expect(() => stopCapture()).not.toThrow();
+  });
+});
+
+describe('ensureUnityGain', () => {
+  const REPAIRED = '{"found":true,"name":"SokujiVirtualAudio","changed":true,"unmuted":false,'
+    + '"before":{"output":0.5000,"input":0.5000},"after":{"output":1.0000,"input":1.0000}}';
+
+  it('passes the device name through and returns what the helper measured', async () => {
+    const child = fakeChild();
+    const spawn = vi.fn(() => child);
+    const p = ensureUnityGain('SokujiVirtualAudio', { spawn, resolvePath });
+
+    child.stdout.emit('data', Buffer.from(REPAIRED));
+    child.emit('close', 0);
+
+    const result = await p;
+    expect(spawn.mock.calls[0][1]).toEqual(['--ensure-unity-gain', 'SokujiVirtualAudio']);
+    expect(result.changed).toBe(true);
+    expect(result.before).toEqual({ output: 0.5, input: 0.5 });
+  });
+
+  it('reports a device that is not registered rather than guessing', async () => {
+    const child = fakeChild();
+    const p = ensureUnityGain('SokujiVirtualAudio', { spawn: () => child, resolvePath });
+    child.stdout.emit('data', Buffer.from('{"found":false}'));
+    child.emit('close', 0);
+    expect(await p).toEqual({ found: false });
+  });
+
+  // A helper shipped before this mode existed writes its usage text to stderr
+  // and nothing to stdout. That has to read as "could not tell", never as
+  // "the device is missing" - the caller treats those differently.
+  it('returns null for a helper too old to know the mode', async () => {
+    const child = fakeChild();
+    const p = ensureUnityGain('SokujiVirtualAudio', { spawn: () => child, resolvePath });
+    child.stderr.emit('data', Buffer.from('usage:\n'));
+    child.emit('close', 2);
+    expect(await p).toBeNull();
+  });
+
+  it('returns null on malformed output instead of throwing', async () => {
+    const child = fakeChild();
+    const p = ensureUnityGain('SokujiVirtualAudio', { spawn: () => child, resolvePath });
+    child.stdout.emit('data', Buffer.from('{not json'));
+    child.emit('close', 0);
+    expect(await p).toBeNull();
+  });
+
+  it('returns null when the helper cannot be spawned or found', async () => {
+    const throwing = () => { throw new Error('EACCES'); };
+    expect(await ensureUnityGain('X', { spawn: throwing, resolvePath })).toBeNull();
+    expect(await ensureUnityGain('X', { spawn: () => fakeChild(), resolvePath: () => null })).toBeNull();
+  });
+
+  it('returns null when the child errors out', async () => {
+    const child = fakeChild();
+    const p = ensureUnityGain('X', { spawn: () => child, resolvePath });
+    child.emit('error', new Error('ENOENT'));
+    expect(await p).toBeNull();
   });
 });
