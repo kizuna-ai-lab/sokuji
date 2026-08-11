@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - Penterjemah Mesyuarat AI"
+    "message": "GM MeetMind - Penterjemah Mesyuarat AI"
   },
   "extensionDescription": {
     "message": "Terjemahan pertuturan segera berkuasa AI untuk semua mesyuarat video. Hancurkan halangan bahasa dengan terjemahan suara masa nyata."
   },
   "popupTitle": {
-    "message": "Sokuji - Laman Web yang Disokong"
+    "message": "GM MeetMind - Laman Web yang Disokong"
   },
   "openSokuji": {
-    "message": "Buka Sokuji"
+    "message": "Buka GM MeetMind"
   },
   "chromeWebStore": {
     "message": "Kedai Web Chrome"
@@ -18,7 +18,7 @@
     "message": "Tambahan Edge"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji tersedia di $SITE_NAME$!",
+    "message": "✓ GM MeetMind tersedia di $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "Klik \"Buka Sokuji\" di bawah untuk memulakan terjemahan masa nyata."
+    "message": "Klik \"Buka GM MeetMind\" di bawah untuk memulakan terjemahan masa nyata."
   },
   "quickStart": {
     "message": "Mula Pantas:"
@@ -36,16 +36,16 @@
     "message": "Konfigurasikan kunci API OpenAI anda ← Pilih \"Sokuji_Virtual_Mic\" sebagai mikrofon ← Mula bercakap!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "GM MeetMind for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Untuk menggunakan Sokuji, pilih <strong>\"Sokuji Virtual Microphone\"</strong> dalam tetapan mikrofon anda."
+    "message": "Untuk menggunakan GM MeetMind, pilih <strong>\"GM MeetMind Virtual Microphone\"</strong> dalam tetapan mikrofon anda."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "GM MeetMind for Whereby"
   },
   "wherebyGuidance": {
-    "message": "Untuk menggunakan Sokuji, sila pilih <strong>\"Sokuji Virtual Microphone\"</strong> dalam tetapan mikrofon anda dan <strong>lumpuhkan pengurangan bunyi</strong> untuk prestasi yang lebih baik."
+    "message": "Untuk menggunakan GM MeetMind, sila pilih <strong>\"GM MeetMind Virtual Microphone\"</strong> dalam tetapan mikrofon anda dan <strong>lumpuhkan pengurangan bunyi</strong> untuk prestasi yang lebih baik."
   },
   "gotIt": {
     "message": "Faham"
@@ -54,37 +54,37 @@
     "message": "Ingatkan kemudian"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "Untuk menggunakan Sokuji, sila pilih \"Sokuji Virtual Microphone\" dalam tetapan mikrofon anda."
+    "message": "Untuk menggunakan GM MeetMind, sila pilih \"GM MeetMind Virtual Microphone\" dalam tetapan mikrofon anda."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "GM MeetMind for Discord"
   },
   "discordGuidance": {
-    "message": "Untuk menggunakan Sokuji, sila pilih <strong>\"Sokuji Virtual Microphone\"</strong> dalam tetapan mikrofon anda dan <strong>lumpuhkan Penindasan bunyi</strong> dalam tetapan suara Discord untuk prestasi yang lebih baik."
+    "message": "Untuk menggunakan GM MeetMind, sila pilih <strong>\"GM MeetMind Virtual Microphone\"</strong> dalam tetapan mikrofon anda dan <strong>lumpuhkan Penindasan bunyi</strong> dalam tetapan suara Discord untuk prestasi yang lebih baik."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "GM MeetMind for Slack"
   },
   "slackGuidance": {
-    "message": "Untuk menggunakan Sokuji dalam Slack Huddles, sila <strong>mulakan Huddle</strong>, kemudian pilih <strong>\"Sokuji Virtual Microphone\"</strong> dalam tetapan Video dan Mic anda, dan <strong>nyahaktifkan Penekanan Bunyi</strong> dalam pilihan Audio dan Video untuk prestasi yang lebih baik."
+    "message": "Untuk menggunakan GM MeetMind dalam Slack Huddles, sila <strong>mulakan Huddle</strong>, kemudian pilih <strong>\"GM MeetMind Virtual Microphone\"</strong> dalam tetapan Video dan Mic anda, dan <strong>nyahaktifkan Penekanan Bunyi</strong> dalam pilihan Audio dan Video untuk prestasi yang lebih baik."
   },
   "teamsTitle": {
-    "message": "Sokuji untuk Microsoft Teams"
+    "message": "GM MeetMind untuk Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Jika anda tidak melihat senarai peranti audio lengkap dalam tetapan Teams:<br><strong>1)</strong> Lumpuhkan sementara sambungan Sokuji dan muat semula halaman<br><strong>2)</strong> Benarkan Teams mengakses mikrofon dan kamera anda apabila diminta<br><strong>3)</strong> Aktifkan semula sambungan Sokuji dan muat semula halaman sekali lagi<br><strong>4)</strong> Benarkan Sokuji mengakses mikrofon anda apabila diminta. Kini anda sepatutnya melihat kedua-dua peranti sebenar dan <strong>\"Sokuji Virtual Microphone\"</strong> dalam tetapan anda."
+    "message": "Jika anda tidak melihat senarai peranti audio lengkap dalam tetapan Teams:<br><strong>1)</strong> Lumpuhkan sementara sambungan GM MeetMind dan muat semula halaman<br><strong>2)</strong> Benarkan Teams mengakses mikrofon dan kamera anda apabila diminta<br><strong>3)</strong> Aktifkan semula sambungan GM MeetMind dan muat semula halaman sekali lagi<br><strong>4)</strong> Benarkan GM MeetMind mengakses mikrofon anda apabila diminta. Kini anda sepatutnya melihat kedua-dua peranti sebenar dan <strong>\"GM MeetMind Virtual Microphone\"</strong> dalam tetapan anda."
   },
   "jitsiTitle": {
-    "message": "Sokuji for Jitsi Meet"
+    "message": "GM MeetMind for Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "Untuk menggunakan Sokuji dalam Jitsi Meet, buka <strong>Settings > Devices</strong> dan pilih <strong>\"Sokuji Virtual Microphone\"</strong> sebagai mikrofon anda. Kemudian buka <strong>Advanced audio settings</strong> dan <strong>matikan Penindasan bunyi, Pembatalan gema, dan Kawalan gandaan automatik</strong> untuk audio terjemahan yang jelas."
+    "message": "Untuk menggunakan GM MeetMind dalam Jitsi Meet, buka <strong>Settings > Devices</strong> dan pilih <strong>\"GM MeetMind Virtual Microphone\"</strong> sebagai mikrofon anda. Kemudian buka <strong>Advanced audio settings</strong> dan <strong>matikan Penindasan bunyi, Pembatalan gema, dan Kawalan gandaan automatik</strong> untuk audio terjemahan yang jelas."
   },
   "unsupportedHeadline": {
-    "message": "Sokuji belum tersedia di $HOSTNAME$.",
+    "message": "GM MeetMind belum tersedia di $HOSTNAME$.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "Muat turun apl desktop"
   },
   "browserSitesHeading": {
-    "message": "Lebih suka penyemak imbas? Sokuji berfungsi di laman-laman ini — klik untuk buka:"
+    "message": "Lebih suka penyemak imbas? GM MeetMind berfungsi di laman-laman ini — klik untuk buka:"
   },
   "requestSiteLink": {
     "message": "Minta laman web"
@@ -114,6 +114,6 @@
     "message": "Tidak dapat mengesan tab ini"
   },
   "detectFailBody": {
-    "message": "Muat semula halaman dan buka semula Sokuji."
+    "message": "Muat semula halaman dan buka semula GM MeetMind."
   }
 }

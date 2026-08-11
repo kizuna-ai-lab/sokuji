@@ -1,7 +1,7 @@
 .display-mode-btn {
   background: none;
   border: none;
-  color: #555;
+  color: #9AA6B4;
   cursor: pointer;
   padding: 4px 6px;
   display: inline-flex;
@@ -14,8 +14,8 @@
   transition: color 0.15s, background-color 0.15s;
 
   &:hover {
-    color: #ccc;
-    background: rgba(255, 255, 255, 0.1);
+    color: #546274;
+    background: rgba(30, 121, 193, 0.08);
   }
 }
 

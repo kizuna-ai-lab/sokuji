@@ -15,15 +15,15 @@
   padding: 10px 16px;
   border-radius: 6px;
   font-size: 14px;
-  color: #fff;
-  background: #2a2a2a;
-  border: 1px solid #444;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  color: #1A2332;
+  background: #FFFFFF;
+  border: 1px solid #D5DDE6;
+  box-shadow: 0 4px 12px rgba(26, 35, 50, 0.12);
   max-width: 80vw;
   animation: toast-in 150ms ease-out;
 
   &.toast-success {
-    border-color: #10a37f;
+    border-color: #1E79C1;
   }
   &.toast-error {
     border-color: #e74c3c;

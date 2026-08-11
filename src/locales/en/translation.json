@@ -135,7 +135,7 @@
     "transcriptModelTooltip": "Speech recognition model for your own words. This only affects the original text shown next to each translation — the translation itself is produced from your audio directly. \ngpt-live-transcribe: Most accurate, streams as you speak, and the priciest. \ngpt-transcribe: Current generation, transcribes each finished turn. \ngpt-4o-mini-transcribe: Cheapest, the default. \ngpt-4o-transcribe / whisper-1: Older models.",
     "transcriptKeywords": "Transcription keywords",
     "transcriptKeywordsTooltip": "Names, jargon, and product terms the transcriber should be ready for, separated by commas. Hints only — a term appears in the transcript only when it is actually spoken. Supported by gpt-live-transcribe and gpt-transcribe.",
-    "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
+    "transcriptKeywordsPlaceholder": "GM MeetMind, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Background noise removal. \nNone: No processing, use in quiet rooms. \nNear field: For headsets/close microphones. \nFar field: For speakers/conference rooms with echo.",
     "systemInstructionsTooltip": "Custom instructions for the AI translator. Tell it your preferences like formal/casual tone, technical terms handling, or specific translation style.",
     "transportType": "Connection Type",
@@ -274,12 +274,12 @@
     "virtualMicrophoneNotice": "Virtual Microphone Notice",
     "virtualSpeakerNotice": "Virtual Speaker Notice",
     "iUnderstand": "I understand",
-    "virtualMicWarningTitle": "This is a virtual microphone created by Sokuji.",
+    "virtualMicWarningTitle": "This is a virtual microphone created by GM MeetMind.",
     "virtualMicWarningText1": "Please do not select this device here. Instead, use this virtual microphone in your video conferencing applications (like Google Meet, Zoom, Microsoft Teams, etc.) to receive the live speech translation output.",
-    "virtualMicWarningText2": "For Sokuji to work properly, please select your actual physical microphone from the list.",
-    "virtualSpeakerWarningTitle": "This is a virtual speaker created by Sokuji.",
-    "virtualSpeakerWarningText1": "Please do not select this device as your monitor. The Sokuji_Virtual_Speaker is used by Sokuji to output audio to your conferencing applications.",
-    "virtualSpeakerWarningText2": "Connecting your monitor to Sokuji's output device would create an audio feedback loop, causing your input to contain your own monitored output.",
+    "virtualMicWarningText2": "For GM MeetMind to work properly, please select your actual physical microphone from the list.",
+    "virtualSpeakerWarningTitle": "This is a virtual speaker created by GM MeetMind.",
+    "virtualSpeakerWarningText1": "Please do not select this device as your monitor. The Sokuji_Virtual_Speaker is used by GM MeetMind to output audio to your conferencing applications.",
+    "virtualSpeakerWarningText2": "Connecting your monitor to GM MeetMind's output device would create an audio feedback loop, causing your input to contain your own monitored output.",
     "virtualSpeakerWarningText3": "The \"Turn On\" switch connects the virtual speaker to your selected monitor device, allowing you to hear what's being sent to your conferencing application. The \"Turn Off\" switch disconnects this monitoring connection.",
     "virtualSpeakerWarningText4": "For proper operation, please select a different monitor device (like your headphones or speakers) from the list.",
     "realVoicePassthrough": "Original Audio Passthrough",
@@ -294,7 +294,7 @@
     "screenRecordingDeniedNotice": "Permission Required",
     "screenRecordingDeniedTitle": "Screen Recording Permission Denied",
     "screenRecordingDeniedText1": "Participant Audio requires Screen Recording permission to capture system audio.",
-    "screenRecordingDeniedText2": "Please go to System Preferences > Privacy & Security > Screen Recording and enable Sokuji.",
+    "screenRecordingDeniedText2": "Please go to System Preferences > Privacy & Security > Screen Recording and enable GM MeetMind.",
     "screenRecordingDeniedText3": "After enabling the permission, please restart the app.",
     "turnOnMicrophone": "Turn on microphone",
     "turnOffMicrophone": "Turn off microphone",
@@ -306,12 +306,12 @@
     "participantSource": "Participant Audio Source",
     "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
     "turnOffParticipant": "Turn off participant audio",
-    "participantSilentNoPermission": "The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.",
+    "participantSilentNoPermission": "The selected application is sending no audio. If you are on macOS, allow GM MeetMind under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.",
     "audioCaptureDeniedNotice": "Permission Required",
     "audioCaptureDeniedTitle": "System Audio Recording Permission Needed",
     "audioCaptureDeniedText1": "Capturing one application needs the \"System Audio Recording Only\" permission. Without it macOS delivers silence instead of an error, so the session runs but nothing is translated.",
-    "audioCaptureDeniedText2": "Open System Settings > Privacy & Security > System Audio Recording Only and enable Sokuji.",
-    "audioCaptureDeniedText3": "Sokuji only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
+    "audioCaptureDeniedText2": "Open System Settings > Privacy & Security > System Audio Recording Only and enable GM MeetMind.",
+    "audioCaptureDeniedText3": "GM MeetMind only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "openSystemSettings": "Open System Settings",
     "screenRecordingDeniedText2Named": "Open System Settings > Privacy & Security > Screen Recording and enable \"{{app}}\".",
     "audioCaptureDeniedText2Named": "Open System Settings > Privacy & Security > System Audio Recording Only and enable \"{{app}}\".",
@@ -374,7 +374,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Language",
-    "interfaceLanguageDesc": "This changes the language of Sokuji's menus and buttons. It does NOT affect which languages you can translate between.",
+    "interfaceLanguageDesc": "This changes the language of GM MeetMind's menus and buttons. It does NOT affect which languages you can translate between.",
     "translationLanguages": "Translation Languages",
     "translationLanguagesDesc": "Choose which language you speak (Your Language) and which language you want to hear the translation in (Target Language). Select \"Auto Detect\" if you're unsure about the source language.",
     "yourLanguage": "My Language",
@@ -383,7 +383,7 @@
     "signInRequired": "You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai's API service.",
     "targetLanguage": "Other's Language",
     "microphone": "Microphone",
-    "microphoneDesc": "Select the microphone to capture your speech. Speak your language into this microphone, and Sokuji will translate everything it hears in real-time.",
+    "microphoneDesc": "Select the microphone to capture your speech. Speak your language into this microphone, and GM MeetMind will translate everything it hears in real-time.",
     "speaker": "Speaker",
     "speakerDesc": "Select a speaker for monitoring the translated output. This lets you hear how the translation sounds. You can turn it off if monitoring is not needed. Whether on or off, the translated audio is always sent to the virtual microphone for other participants to hear.",
     "swapLanguages": "Swap languages",
@@ -540,7 +540,7 @@
       "speakerYou": "You",
       "speakerOther": "Other",
       "translationSuffix": "(trans)",
-      "headerTitle": "Sokuji conversation export",
+      "headerTitle": "GM MeetMind conversation export",
       "headerGenerated": "Generated",
       "headerProvider": "Provider",
       "headerModels": "Models",
@@ -625,7 +625,7 @@
     }
   },
   "userTypeSelection": {
-    "title": "Welcome to Sokuji",
+    "title": "Welcome to GM MeetMind",
     "subtitle": "Please select your user type to get started",
     "regular": {
       "title": "Regular User",
@@ -648,11 +648,11 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to GM MeetMind",
+          "content": "Welcome to GM MeetMind! This simple guide will help you start using real-time translation in just a few steps."
         },
         "mode": {
-          "content": "Choose what Sokuji translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio.",
+          "content": "Choose what GM MeetMind translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio.",
           "title": "Translation mode"
         },
         "settings": {
@@ -661,7 +661,7 @@
         },
         "account": {
           "title": "Step 2: User Account",
-          "content": "Sign in to use Sokuji's built-in translation service, or choose another provider and enter your own API key."
+          "content": "Sign in to use GM MeetMind's built-in translation service, or choose another provider and enter your own API key."
         },
         "languages": {
           "title": "Step 3: Choose Languages",
@@ -673,7 +673,7 @@
         },
         "speaker": {
           "title": "Step 6: Select Speaker",
-          "content": "Choose a monitoring device to preview the translation. Translated audio is always output to the virtual microphone regardless of monitoring. Select Sokuji Virtual Microphone as the microphone input in your meeting app or website. Headphones are recommended for monitoring to avoid feedback."
+          "content": "Choose a monitoring device to preview the translation. Translated audio is always output to the virtual microphone regardless of monitoring. Select GM MeetMind Virtual Microphone as the microphone input in your meeting app or website. Headphones are recommended for monitoring to avoid feedback."
         },
         "systemAudio": {
           "title": "Step 7: Participant Audio",
@@ -685,11 +685,11 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use GM MeetMind. Click Start and begin speaking to hear real-time translations."
         },
         "provider": {
           "title": "Step 4: Translation Provider",
-          "content": "Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation."
+          "content": "Choose your translation provider. GM MeetMind supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation."
         }
       }
     },
@@ -703,11 +703,11 @@
     "restartTour": "Restart Setup Guide",
     "steps": {
       "welcome": {
-        "title": "Welcome to Sokuji",
-        "content": "Welcome to Sokuji! This guide will help you set up the extension for live speech translation. Let's get started!"
+        "title": "Welcome to GM MeetMind",
+        "content": "Welcome to GM MeetMind! This guide will help you set up the extension for live speech translation. Let's get started!"
       },
       "mode": {
-        "content": "Choose what Sokuji translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio.",
+        "content": "Choose what GM MeetMind translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio.",
         "title": "Translation mode"
       },
       "settings": {
@@ -716,7 +716,7 @@
       },
       "apiKey": {
         "title": "Step 2: Translation Provider",
-        "content": "Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation."
+        "content": "Choose your translation provider. GM MeetMind supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation."
       },
       "systemInstructions": {
         "title": "Step 3: System Instructions",
@@ -744,7 +744,7 @@
       },
       "startSession": {
         "title": "Step 9: Start Session",
-        "content": "Click the \"Start Session\" button to begin using Sokuji. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use \"Push to Talk\" (Space key) to speak."
+        "content": "Click the \"Start Session\" button to begin using GM MeetMind. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use \"Push to Talk\" (Space key) to speak."
       },
       "complete": {
         "title": "Setup Guide Complete!",
@@ -855,7 +855,7 @@
     "gpuSoftwareOnly": "GPU acceleration unavailable — running on the CPU",
     "gpuUnavailable": "GPU acceleration unavailable",
     "gpuSlowWarning": "Local models will still work, but transcription and translation will be noticeably slower.",
-    "gpuWaylandRemedy": "On a Wayland session, Chromium cannot use the GPU for this. Starting Sokuji with --ozone-platform=x11 restores acceleration.",
+    "gpuWaylandRemedy": "On a Wayland session, Chromium cannot use the GPU for this. Starting GM MeetMind with --ozone-platform=x11 restores acceleration.",
     "incompatibleVariant": "This model format is incompatible with your device. Please delete and re-download.",
     "initFailed": "Model storage failed to initialize: {{message}}",
     "othersGroup": "Others",
@@ -867,7 +867,7 @@
       "licenseName": "It is distributed under {{name}} ({{spdx}}).",
       "viewLicense": "View the full license text",
       "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
-      "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
+      "disclaimer": "GM MeetMind is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
       "attribution": "Attribution: {{attribution}}",
       "cancel": "Cancel",
       "accept": "I understand — non-commercial only"
@@ -894,9 +894,9 @@
     "linuxMigrateTitle": "New version v{{version}} available"
   },
   "audioSystem": {
-    "pactlMissingBody": "pactl (PulseAudio command-line tools) was not found, so Sokuji couldn't set up its virtual microphone/speaker. Install it, then retry:",
+    "pactlMissingBody": "pactl (PulseAudio command-line tools) was not found, so GM MeetMind couldn't set up its virtual microphone/speaker. Install it, then retry:",
     "installCommand": "sudo apt install pulseaudio-utils",
-    "unavailableBody": "Sokuji couldn't set up its virtual microphone/speaker. Make sure PulseAudio or PipeWire is running.",
+    "unavailableBody": "GM MeetMind couldn't set up its virtual microphone/speaker. Make sure PulseAudio or PipeWire is running.",
     "retry": "Retry",
     "retrying": "Retrying..."
   },
@@ -981,7 +981,7 @@
     "transcriptPlaceholder": "Type exactly what the clip says…",
     "unstable": "unstable",
     "voice": "Voice",
-    "voiceBuilderDisclaimer": "Paid Supertone service. Sokuji is not involved in that transaction.",
+    "voiceBuilderDisclaimer": "Paid Supertone service. GM MeetMind is not involved in that transaction.",
     "refreshList": "Refresh voice list"
   }
 }

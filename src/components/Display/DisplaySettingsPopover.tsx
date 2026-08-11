@@ -30,14 +30,14 @@ import {
 } from '../../stores/conversationDisplayStore';
 import './DisplaySettingsPopover.scss';
 
-const BG_PRESETS = ['#000000', '#1a1a1a', '#0d2032', '#0f2419', '#FFFFFF', '#2a2a2a'];
+const BG_PRESETS = ['#F4F7FA', '#FFFFFF', '#E8EEF4', '#EEF3F8', '#1a1a1a', '#0d2032'];
 const SOURCE_PRESETS = [
-  '#FFFFFF', '#E8E8E8', '#FFD27D', '#FFAA66', '#9aa0a6', '#FF6B6B',
-  '#000000', '#003B6F', '#1B5E20',
+  '#5A6B7D', '#3D4F63', '#182636', '#9aa0a6', '#1E79C1', '#A35C0D',
+  '#FFFFFF', '#003B6F', '#1B5E20',
 ];
 const TRANSLATION_PRESETS = [
-  '#6CC5FF', '#10a37f', '#FFFFFF', '#A8E6CF', '#FFB86C', '#BD93F9',
-  '#000000', '#003B6F', '#7B1FA2',
+  '#182636', '#1E79C1', '#3D6B55', '#003B6F', '#A35C0D', '#7B1FA2',
+  '#FFFFFF', '#6CC5FF', '#000000',
 ];
 
 const PICKER_DEBOUNCE_MS = 150;

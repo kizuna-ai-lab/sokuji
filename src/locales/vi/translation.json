@@ -135,7 +135,7 @@
     "transcriptModelTooltip": "Mô hình nhận dạng giọng nói cho chính lời bạn nói. Chỉ ảnh hưởng đến văn bản gốc hiển thị bên cạnh mỗi bản dịch — bản dịch được tạo trực tiếp từ âm thanh của bạn.\ngpt-live-transcribe: chính xác nhất, hiện chữ ngay khi bạn nói, đắt nhất.\ngpt-transcribe: thế hệ hiện tại, phiên âm từng lượt nói đã kết thúc.\ngpt-4o-mini-transcribe: rẻ nhất, là mặc định.\ngpt-4o-transcribe / whisper-1: các mô hình cũ hơn.",
     "transcriptKeywords": "Từ khóa phiên âm",
     "transcriptKeywordsTooltip": "Tên riêng, thuật ngữ chuyên ngành và tên sản phẩm mà bộ phiên âm cần sẵn sàng, phân tách bằng dấu phẩy. Chỉ là gợi ý — một từ chỉ xuất hiện trong bản phiên âm khi nó thực sự được nói. Được hỗ trợ bởi gpt-live-transcribe và gpt-transcribe.",
-    "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
+    "transcriptKeywordsPlaceholder": "GM MeetMind, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Loại bỏ tiếng ồn nền. \nKhông: Không xử lý, dùng trong phòng yên tĩnh. \nGần: Cho tai nghe/microphone gần. \nXa: Cho loa/phòng hội nghị có tiếng vọng.",
     "systemInstructionsTooltip": "Hướng dẫn tùy chỉnh cho AI dịch. Cho biết sở thích của bạn như giọng điệu trang trọng/thân mật, xử lý thuật ngữ kỹ thuật, hoặc phong cách dịch cụ thể.",
     "transportType": "Loại kết nối",
@@ -274,12 +274,12 @@
     "virtualMicrophoneNotice": "Thông Báo Micro Ảo",
     "virtualSpeakerNotice": "Thông Báo Loa Ảo",
     "iUnderstand": "Tôi đã hiểu",
-    "virtualMicWarningTitle": "Đây là micro ảo do Sokuji tạo ra.",
+    "virtualMicWarningTitle": "Đây là micro ảo do GM MeetMind tạo ra.",
     "virtualMicWarningText1": "Vui lòng không chọn thiết bị này tại đây. Thay vào đó, hãy sử dụng micro ảo này trong các ứng dụng hội nghị truyền hình của bạn (như Google Meet, Zoom, Microsoft Teams, v.v.) để nhận đầu ra dịch giọng nói trực tiếp.",
-    "virtualMicWarningText2": "Để Sokuji hoạt động đúng, vui lòng chọn micro vật lý thực của bạn từ danh sách.",
-    "virtualSpeakerWarningTitle": "Đây là loa ảo do Sokuji tạo ra.",
-    "virtualSpeakerWarningText1": "Vui lòng không chọn thiết bị này làm thiết bị giám sát. Sokuji_Virtual_Speaker được Sokuji sử dụng để xuất âm thanh tới các ứng dụng hội nghị của bạn.",
-    "virtualSpeakerWarningText2": "Kết nối thiết bị giám sát với thiết bị đầu ra của Sokuji sẽ tạo ra vòng lặp phản hồi âm thanh, khiến đầu vào của bạn chứa chính đầu ra đang được giám sát.",
+    "virtualMicWarningText2": "Để GM MeetMind hoạt động đúng, vui lòng chọn micro vật lý thực của bạn từ danh sách.",
+    "virtualSpeakerWarningTitle": "Đây là loa ảo do GM MeetMind tạo ra.",
+    "virtualSpeakerWarningText1": "Vui lòng không chọn thiết bị này làm thiết bị giám sát. Sokuji_Virtual_Speaker được GM MeetMind sử dụng để xuất âm thanh tới các ứng dụng hội nghị của bạn.",
+    "virtualSpeakerWarningText2": "Kết nối thiết bị giám sát với thiết bị đầu ra của GM MeetMind sẽ tạo ra vòng lặp phản hồi âm thanh, khiến đầu vào của bạn chứa chính đầu ra đang được giám sát.",
     "virtualSpeakerWarningText3": "Công tắc \"Bật\" kết nối loa ảo với thiết bị giám sát bạn đã chọn, cho phép bạn nghe những gì đang được gửi tới ứng dụng hội nghị. Công tắc \"Tắt\" ngắt kết nối giám sát này.",
     "virtualSpeakerWarningText4": "Để hoạt động đúng, vui lòng chọn một thiết bị giám sát khác (như tai nghe hoặc loa của bạn) từ danh sách.",
     "realVoicePassthrough": "Truyền Âm Thanh Gốc",
@@ -294,7 +294,7 @@
     "screenRecordingDeniedNotice": "Cần Cấp Quyền",
     "screenRecordingDeniedTitle": "Quyền Ghi Màn Hình Bị Từ Chối",
     "screenRecordingDeniedText1": "Âm thanh người tham gia cần quyền Ghi màn hình để thu âm thanh hệ thống.",
-    "screenRecordingDeniedText2": "Vui lòng vào System Preferences > Privacy & Security > Screen Recording và bật Sokuji.",
+    "screenRecordingDeniedText2": "Vui lòng vào System Preferences > Privacy & Security > Screen Recording và bật GM MeetMind.",
     "screenRecordingDeniedText3": "Sau khi cấp quyền, vui lòng khởi động lại ứng dụng.",
     "turnOnMicrophone": "Bật micro",
     "turnOffMicrophone": "Tắt micro",
@@ -306,12 +306,12 @@
     "participantSource": "Participant Audio Source",
     "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
     "turnOffParticipant": "Turn off participant audio",
-    "participantSilentNoPermission": "The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.",
+    "participantSilentNoPermission": "The selected application is sending no audio. If you are on macOS, allow GM MeetMind under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.",
     "audioCaptureDeniedNotice": "Permission Required",
     "audioCaptureDeniedTitle": "System Audio Recording Permission Needed",
     "audioCaptureDeniedText1": "Capturing one application needs the \"System Audio Recording Only\" permission. Without it macOS delivers silence instead of an error, so the session runs but nothing is translated.",
-    "audioCaptureDeniedText2": "Open System Settings > Privacy & Security > System Audio Recording Only and enable Sokuji.",
-    "audioCaptureDeniedText3": "Sokuji only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
+    "audioCaptureDeniedText2": "Open System Settings > Privacy & Security > System Audio Recording Only and enable GM MeetMind.",
+    "audioCaptureDeniedText3": "GM MeetMind only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "openSystemSettings": "Open System Settings",
     "screenRecordingDeniedText2Named": "Open System Settings > Privacy & Security > Screen Recording and enable \"{{app}}\".",
     "audioCaptureDeniedText2Named": "Open System Settings > Privacy & Security > System Audio Recording Only and enable \"{{app}}\".",
@@ -374,7 +374,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "Ngôn Ngữ Giao Diện",
-    "interfaceLanguageDesc": "Điều này thay đổi ngôn ngữ của menu và nút của Sokuji. Nó KHÔNG ảnh hưởng đến các ngôn ngữ bạn có thể dịch giữa.",
+    "interfaceLanguageDesc": "Điều này thay đổi ngôn ngữ của menu và nút của GM MeetMind. Nó KHÔNG ảnh hưởng đến các ngôn ngữ bạn có thể dịch giữa.",
     "translationLanguages": "Ngôn Ngữ Dịch",
     "translationLanguagesDesc": "Chọn ngôn ngữ bạn nói (Ngôn Ngữ Của Bạn) và ngôn ngữ bạn muốn nghe bản dịch (Ngôn Ngữ Đích). Chọn 'Tự Động Phát Hiện' nếu bạn không chắc chắn về ngôn ngữ nguồn.",
     "yourLanguage": "Ngôn ngữ của tôi",
@@ -383,7 +383,7 @@
     "signInRequired": "Sử dụng khóa API riêng của bạn hoặc đăng ký dịch vụ kizuna.ai.",
     "targetLanguage": "Ngôn ngữ đối phương",
     "microphone": "Microphone",
-    "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Sokuji sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
+    "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và GM MeetMind sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
     "speaker": "Loa",
     "speakerDesc": "Chọn loa để giám sát đầu ra đã dịch. Điều này cho phép bạn nghe bản dịch như thế nào. Bạn có thể tắt nó nếu không cần giám sát. Dù bật hay tắt, âm thanh đã dịch luôn được gửi tới microphone ảo để những người tham gia khác có thể nghe.",
     "swapLanguages": "Đổi ngôn ngữ",
@@ -540,7 +540,7 @@
       "speakerYou": "Bạn",
       "speakerOther": "Người khác",
       "translationSuffix": "(dịch)",
-      "headerTitle": "Xuất hội thoại Sokuji",
+      "headerTitle": "Xuất hội thoại GM MeetMind",
       "headerGenerated": "Đã tạo",
       "headerProvider": "Nhà cung cấp",
       "headerModels": "Mô hình",
@@ -625,7 +625,7 @@
     }
   },
   "userTypeSelection": {
-    "title": "Chào mừng đến với Sokuji",
+    "title": "Chào mừng đến với GM MeetMind",
     "subtitle": "Vui lòng chọn loại người dùng của bạn để bắt đầu",
     "regular": {
       "title": "Người dùng thông thường",
@@ -648,11 +648,11 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Chào mừng đến với Sokuji",
-          "content": "Chào mừng đến với Sokuji! Hướng dẫn đơn giản này sẽ giúp bạn bắt đầu sử dụng dịch thời gian thực chỉ trong vài bước."
+          "title": "Chào mừng đến với GM MeetMind",
+          "content": "Chào mừng đến với GM MeetMind! Hướng dẫn đơn giản này sẽ giúp bạn bắt đầu sử dụng dịch thời gian thực chỉ trong vài bước."
         },
         "mode": {
-          "content": "Chọn những gì Sokuji dịch: Bạn — giọng của chính bạn (để người khác hiểu bạn); Người khác — những gì các người tham gia khác nói (để bạn hiểu họ); hoặc Cả hai để dịch hai chiều. Điều này quyết định âm thanh nào được thu — chọn Người khác hoặc Cả hai để bật âm thanh người tham gia.",
+          "content": "Chọn những gì GM MeetMind dịch: Bạn — giọng của chính bạn (để người khác hiểu bạn); Người khác — những gì các người tham gia khác nói (để bạn hiểu họ); hoặc Cả hai để dịch hai chiều. Điều này quyết định âm thanh nào được thu — chọn Người khác hoặc Cả hai để bật âm thanh người tham gia.",
           "title": "Chế độ dịch"
         },
         "settings": {
@@ -661,7 +661,7 @@
         },
         "account": {
           "title": "Bước 2: Tài khoản người dùng",
-          "content": "Đăng nhập để sử dụng dịch vụ dịch thuật tích hợp của Sokuji, hoặc chọn nhà cung cấp khác và nhập khóa API của bạn."
+          "content": "Đăng nhập để sử dụng dịch vụ dịch thuật tích hợp của GM MeetMind, hoặc chọn nhà cung cấp khác và nhập khóa API của bạn."
         },
         "languages": {
           "title": "Bước 3: Chọn ngôn ngữ",
@@ -673,7 +673,7 @@
         },
         "speaker": {
           "title": "Bước 6: Chọn loa",
-          "content": "Chọn thiết bị giám sát để xem trước bản dịch. Âm thanh đã dịch luôn được gửi đến micrô ảo bất kể có giám sát hay không. Chọn Sokuji Virtual Microphone làm đầu vào micrô trong ứng dụng họp hoặc trang web của bạn. Nên sử dụng tai nghe để giám sát nhằm tránh phản hồi."
+          "content": "Chọn thiết bị giám sát để xem trước bản dịch. Âm thanh đã dịch luôn được gửi đến micrô ảo bất kể có giám sát hay không. Chọn GM MeetMind Virtual Microphone làm đầu vào micrô trong ứng dụng họp hoặc trang web của bạn. Nên sử dụng tai nghe để giám sát nhằm tránh phản hồi."
         },
         "systemAudio": {
           "title": "Bước 7: Âm thanh người tham gia",
@@ -685,11 +685,11 @@
         },
         "complete": {
           "title": "Đã sẵn sàng!",
-          "content": "Tuyệt vời! Bạn đã sẵn sàng sử dụng Sokuji. Nhấp vào Bắt đầu và nói để nghe bản dịch thời gian thực."
+          "content": "Tuyệt vời! Bạn đã sẵn sàng sử dụng GM MeetMind. Nhấp vào Bắt đầu và nói để nghe bản dịch thời gian thực."
         },
         "provider": {
           "title": "Bước 4: Nhà cung cấp dịch thuật",
-          "content": "Chọn nhà cung cấp dịch thuật của bạn. Sokuji hỗ trợ các dịch vụ đám mây như OpenAI, Gemini, Volcengine (Doubao) và nhiều hơn nữa. Bạn cũng có thể sử dụng suy luận cục bộ — không cần API key, miễn phí và bảo vệ quyền riêng tư, chỉ cần tải mô hình về để dịch hoàn toàn ngoại tuyến."
+          "content": "Chọn nhà cung cấp dịch thuật của bạn. GM MeetMind hỗ trợ các dịch vụ đám mây như OpenAI, Gemini, Volcengine (Doubao) và nhiều hơn nữa. Bạn cũng có thể sử dụng suy luận cục bộ — không cần API key, miễn phí và bảo vệ quyền riêng tư, chỉ cần tải mô hình về để dịch hoàn toàn ngoại tuyến."
         }
       }
     },
@@ -703,11 +703,11 @@
     "restartTour": "Khởi động lại hướng dẫn thiết lập",
     "steps": {
       "welcome": {
-        "title": "Chào mừng đến với Sokuji!",
+        "title": "Chào mừng đến với GM MeetMind!",
         "content": "Chào mừng bạn đến với ứng dụng dịch giọng nói thời gian thực! Hãy thiết lập hệ thống của bạn nhanh chóng để có trải nghiệm tốt nhất."
       },
       "mode": {
-        "content": "Chọn những gì Sokuji dịch: Bạn — giọng của chính bạn (để người khác hiểu bạn); Người khác — những gì các người tham gia khác nói (để bạn hiểu họ); hoặc Cả hai để dịch hai chiều. Điều này quyết định âm thanh nào được thu — chọn Người khác hoặc Cả hai để bật âm thanh người tham gia.",
+        "content": "Chọn những gì GM MeetMind dịch: Bạn — giọng của chính bạn (để người khác hiểu bạn); Người khác — những gì các người tham gia khác nói (để bạn hiểu họ); hoặc Cả hai để dịch hai chiều. Điều này quyết định âm thanh nào được thu — chọn Người khác hoặc Cả hai để bật âm thanh người tham gia.",
         "title": "Chế độ dịch"
       },
       "settings": {
@@ -716,7 +716,7 @@
       },
       "apiKey": {
         "title": "Bước 2: Nhà cung cấp dịch thuật",
-        "content": "Chọn nhà cung cấp dịch thuật của bạn. Sokuji hỗ trợ các dịch vụ đám mây như OpenAI, Gemini, Volcengine (Doubao) và nhiều hơn nữa. Bạn cũng có thể sử dụng suy luận cục bộ — không cần API key, miễn phí và bảo vệ quyền riêng tư, chỉ cần tải mô hình về để dịch hoàn toàn ngoại tuyến."
+        "content": "Chọn nhà cung cấp dịch thuật của bạn. GM MeetMind hỗ trợ các dịch vụ đám mây như OpenAI, Gemini, Volcengine (Doubao) và nhiều hơn nữa. Bạn cũng có thể sử dụng suy luận cục bộ — không cần API key, miễn phí và bảo vệ quyền riêng tư, chỉ cần tải mô hình về để dịch hoàn toàn ngoại tuyến."
       },
       "systemInstructions": {
         "title": "Tùy chỉnh hướng dẫn hệ thống",
@@ -744,7 +744,7 @@
       },
       "startSession": {
         "title": "Bắt đầu phiên của bạn",
-        "content": "Mọi thứ đã sẵn sàng! Nhấp vào nút \"Bắt đầu phiên\" để bắt đầu dịch thời gian thực. Nhớ chọn microphone ảo Sokuji làm thiết bị đầu vào trong ứng dụng hội nghị của bạn."
+        "content": "Mọi thứ đã sẵn sàng! Nhấp vào nút \"Bắt đầu phiên\" để bắt đầu dịch thời gian thực. Nhớ chọn microphone ảo GM MeetMind làm thiết bị đầu vào trong ứng dụng hội nghị của bạn."
       },
       "complete": {
         "title": "Hoàn tất hướng dẫn thiết lập!",
@@ -855,7 +855,7 @@
     "gpuSoftwareOnly": "Không có tăng tốc GPU — đang chạy trên CPU",
     "gpuUnavailable": "Không có tăng tốc GPU",
     "gpuSlowWarning": "Các mô hình cục bộ vẫn hoạt động, nhưng việc phiên âm và dịch sẽ chậm hơn đáng kể.",
-    "gpuWaylandRemedy": "Trong phiên Wayland, Chromium không thể dùng GPU cho việc này. Khởi chạy Sokuji với --ozone-platform=x11 sẽ khôi phục tăng tốc.",
+    "gpuWaylandRemedy": "Trong phiên Wayland, Chromium không thể dùng GPU cho việc này. Khởi chạy GM MeetMind với --ozone-platform=x11 sẽ khôi phục tăng tốc.",
     "incompatibleVariant": "Định dạng mô hình này không tương thích với thiết bị của bạn. Vui lòng xóa và tải lại.",
     "initFailed": "Khởi tạo bộ nhớ mô hình thất bại: {{message}}",
     "othersGroup": "Khác",
@@ -867,7 +867,7 @@
       "licenseName": "Được phân phối theo giấy phép {{name}} ({{spdx}}).",
       "viewLicense": "Xem toàn văn giấy phép",
       "nonCommercial": "Giấy phép này chỉ cho phép sử dụng phi thương mại — không sử dụng mô hình này trong bất kỳ sản phẩm hoặc dịch vụ thương mại nào.",
-      "disclaimer": "Sokuji không liên kết với các tác giả của mô hình và không có bất kỳ quan hệ nào với họ. Tích hợp này không chính thức và được cung cấp nguyên trạng, không kèm bất kỳ bảo đảm nào.",
+      "disclaimer": "GM MeetMind không liên kết với các tác giả của mô hình và không có bất kỳ quan hệ nào với họ. Tích hợp này không chính thức và được cung cấp nguyên trạng, không kèm bất kỳ bảo đảm nào.",
       "attribution": "Ghi công: {{attribution}}",
       "cancel": "Hủy",
       "accept": "Tôi hiểu — chỉ dùng phi thương mại"
@@ -894,9 +894,9 @@
     "linuxMigrateTitle": "Phiên bản mới v{{version}} khả dụng"
   },
   "audioSystem": {
-    "pactlMissingBody": "Không tìm thấy pactl (công cụ dòng lệnh của PulseAudio), vì vậy Sokuji không thể thiết lập micro/loa ảo. Hãy cài đặt rồi thử lại:",
+    "pactlMissingBody": "Không tìm thấy pactl (công cụ dòng lệnh của PulseAudio), vì vậy GM MeetMind không thể thiết lập micro/loa ảo. Hãy cài đặt rồi thử lại:",
     "installCommand": "sudo apt install pulseaudio-utils",
-    "unavailableBody": "Sokuji không thể thiết lập micro/loa ảo. Hãy đảm bảo PulseAudio hoặc PipeWire đang chạy.",
+    "unavailableBody": "GM MeetMind không thể thiết lập micro/loa ảo. Hãy đảm bảo PulseAudio hoặc PipeWire đang chạy.",
     "retry": "Thử lại",
     "retrying": "Đang thử lại..."
   },
@@ -981,7 +981,7 @@
     "transcriptPlaceholder": "Nhập chính xác nội dung của đoạn ghi…",
     "unstable": "không ổn định",
     "voice": "Giọng nói",
-    "voiceBuilderDisclaimer": "Dịch vụ trả phí của Supertone. Sokuji không tham gia vào giao dịch đó.",
+    "voiceBuilderDisclaimer": "Dịch vụ trả phí của Supertone. GM MeetMind không tham gia vào giao dịch đó.",
     "refreshList": "Làm mới danh sách giọng nói"
   }
 }

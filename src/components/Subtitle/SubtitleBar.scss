@@ -52,7 +52,7 @@
 
   .subtitle-bar__logo {
     font-weight: 600;
-    color: #10a37f;
+    color: #1E79C1;
   }
 
   .subtitle-bar__quota {
@@ -87,8 +87,8 @@
     }
 
     &.active {
-      color: #10a37f;
-      background: rgba(16, 163, 127, 0.15);
+      color: #1E79C1;
+      background: rgba(30, 121, 193, 0.15);
     }
 
     &:disabled {
@@ -143,7 +143,7 @@
     -webkit-app-region: no-drag;
     transition: background 120ms ease, opacity 120ms ease;
 
-    &.is-start { background: #10a37f; }
+    &.is-start { background: #1E79C1; }
     &.is-stop  { background: #e74c3c; }
 
     &:disabled {

@@ -3,18 +3,28 @@
 .settings-input {
   width: 100%;
   box-sizing: border-box;
-  padding: vars.$space-2 10px;
+  min-height: 36px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: vars.$font-body;
+  line-height: 1.35;
   @include vars.control-base;
 
   &::placeholder {
     color: vars.$text-disabled;
   }
 
+  &:hover:not(:disabled):not(:focus) {
+    border-color: vars.$border-strong;
+  }
+
   &--valid {
-    border-color: vars.$color-primary;
+    border-color: vars.$color-success;
+    box-shadow: 0 0 0 3px rgba(vars.$color-success, 0.12);
   }
 
   &--invalid {
     border-color: vars.$color-error;
+    box-shadow: 0 0 0 3px rgba(vars.$color-error, 0.12);
   }
 }

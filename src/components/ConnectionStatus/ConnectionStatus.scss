@@ -3,9 +3,9 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(26, 35, 50, 0.04);
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(30, 121, 193, 0.08);
   transition: all 0.3s ease;
 
   &.compact {
@@ -27,7 +27,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(30, 121, 193, 0.08);
     border-radius: 50%;
     
     svg {
@@ -57,7 +57,7 @@
     
     .status-icon {
       background: rgba(136, 136, 136, 0.2);
-      color: #888;
+      color: #7A8796;
     }
   }
 
@@ -72,12 +72,12 @@
   }
 
   &.connected {
-    background: rgba(68, 255, 68, 0.1);
-    border-color: rgba(68, 255, 68, 0.3);
+    background: #EEF3F0;
+    border-color: #C5D4CC;
     
     .status-icon {
-      background: rgba(68, 255, 68, 0.2);
-      color: #44ff44;
+      background: #DEE8E2;
+      color: #3D6B55;
     }
   }
 

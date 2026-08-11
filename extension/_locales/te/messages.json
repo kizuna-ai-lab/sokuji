@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI Meeting Translator"
+    "message": "GM MeetMind - AI Meeting Translator"
   },
   "extensionDescription": {
     "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "GM MeetMind - Supported Sites"
   },
   "openSokuji": {
-    "message": "Open Sokuji"
+    "message": "Open GM MeetMind"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -18,7 +18,7 @@
     "message": "Edge యాడ్-ఆన్‌లు"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+    "message": "✓ GM MeetMind is available on $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "Click \"Open GM MeetMind\" below to start real-time translation."
   },
   "quickStart": {
     "message": "Quick Start:"
@@ -36,16 +36,16 @@
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "GM MeetMind for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Sokuji ఉపయోగించడానికి, మీ మైక్రోఫోన్ సెట్టింగ్స్‌లో <strong>\"Sokuji Virtual Microphone\"</strong> ఎంచుకోండి."
+    "message": "GM MeetMind ఉపయోగించడానికి, మీ మైక్రోఫోన్ సెట్టింగ్స్‌లో <strong>\"GM MeetMind Virtual Microphone\"</strong> ఎంచుకోండి."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "GM MeetMind for Whereby"
   },
   "wherebyGuidance": {
-    "message": "Sokuji ను ఉపయోగించడానికి, దయచేసి మీ మైక్రోఫోన్ సెట్టింగ్‌లలో <strong>\"Sokuji Virtual Microphone\"</strong> ను ఎంచుకోండి మరియు మెరుగైన పనితీరు కోసం <strong>శబ్దం తగ్గింపును నిలిపివేయండి</strong>."
+    "message": "GM MeetMind ను ఉపయోగించడానికి, దయచేసి మీ మైక్రోఫోన్ సెట్టింగ్‌లలో <strong>\"GM MeetMind Virtual Microphone\"</strong> ను ఎంచుకోండి మరియు మెరుగైన పనితీరు కోసం <strong>శబ్దం తగ్గింపును నిలిపివేయండి</strong>."
   },
   "gotIt": {
     "message": "అర్థమైంది"
@@ -54,37 +54,37 @@
     "message": "తరువాత గుర్తుచేయండి"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "Sokuji ని ఉపయోగించడానికి, దయచేసి మీ మైక్రోఫోన్ సెట్టింగ్‌లలో \"Sokuji Virtual Microphone\" ని ఎంచుకోండి."
+    "message": "GM MeetMind ని ఉపయోగించడానికి, దయచేసి మీ మైక్రోఫోన్ సెట్టింగ్‌లలో \"GM MeetMind Virtual Microphone\" ని ఎంచుకోండి."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "GM MeetMind for Discord"
   },
   "discordGuidance": {
-    "message": "Sokuji ని ఉపయోగించడానికి, దయచేసి మీ మైక్రోఫోన్ సెట్టింగ్‌లలో <strong>\"Sokuji Virtual Microphone\"</strong> ని ఎంచుకోండి మరియు మెరుగైన పనితీరు కోసం Discord యొక్క వాయిస్ సెట్టింగ్‌లలో <strong>నాయిజ్ సప్రెషన్‌ను నిలిపివేయండి</strong>."
+    "message": "GM MeetMind ని ఉపయోగించడానికి, దయచేసి మీ మైక్రోఫోన్ సెట్టింగ్‌లలో <strong>\"GM MeetMind Virtual Microphone\"</strong> ని ఎంచుకోండి మరియు మెరుగైన పనితీరు కోసం Discord యొక్క వాయిస్ సెట్టింగ్‌లలో <strong>నాయిజ్ సప్రెషన్‌ను నిలిపివేయండి</strong>."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "GM MeetMind for Slack"
   },
   "slackGuidance": {
-    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
+    "message": "To use GM MeetMind in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"GM MeetMind Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
   "teamsTitle": {
-    "message": "Microsoft Teams కోసం Sokuji"
+    "message": "Microsoft Teams కోసం GM MeetMind"
   },
   "teamsGuidance": {
-    "message": "Teams సెట్టింగ్‌లలో పూర్తి ఆడియో పరికరాల జాబితా కనిపించకుంటే:<br><strong>1)</strong> Sokuji ఎక్స్‌టెన్షన్‌ను తాత్కాలికంగా నిలిపివేసి పేజీని రిఫ్రెష్ చేయండి<br><strong>2)</strong> అడిగినప్పుడు Teams మీ మైక్రోఫోన్ మరియు కెమెరాకు యాక్సెస్ అనుమతించండి<br><strong>3)</strong> Sokuji ఎక్స్‌టెన్షన్‌ను మళ్లీ ప్రారంభించి పేజీని మళ్లీ రిఫ్రెష్ చేయండి<br><strong>4)</strong> అడిగినప్పుడు Sokuji మీ మైక్రోఫోన్‌కు యాక్సెస్ అనుమతించండి. ఇప్పుడు మీరు మీ సెట్టింగ్‌లలో వాస్తవ పరికరాలు మరియు <strong>\"Sokuji Virtual Microphone\"</strong> రెండింటినీ చూడగలగాలి."
+    "message": "Teams సెట్టింగ్‌లలో పూర్తి ఆడియో పరికరాల జాబితా కనిపించకుంటే:<br><strong>1)</strong> GM MeetMind ఎక్స్‌టెన్షన్‌ను తాత్కాలికంగా నిలిపివేసి పేజీని రిఫ్రెష్ చేయండి<br><strong>2)</strong> అడిగినప్పుడు Teams మీ మైక్రోఫోన్ మరియు కెమెరాకు యాక్సెస్ అనుమతించండి<br><strong>3)</strong> GM MeetMind ఎక్స్‌టెన్షన్‌ను మళ్లీ ప్రారంభించి పేజీని మళ్లీ రిఫ్రెష్ చేయండి<br><strong>4)</strong> అడిగినప్పుడు GM MeetMind మీ మైక్రోఫోన్‌కు యాక్సెస్ అనుమతించండి. ఇప్పుడు మీరు మీ సెట్టింగ్‌లలో వాస్తవ పరికరాలు మరియు <strong>\"GM MeetMind Virtual Microphone\"</strong> రెండింటినీ చూడగలగాలి."
   },
   "jitsiTitle": {
-    "message": "Sokuji for Jitsi Meet"
+    "message": "GM MeetMind for Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "Jitsi Meet లో Sokuji ని ఉపయోగించడానికి, <strong>Settings > Devices</strong> ని తెరిచి మీ మైక్రోఫోన్‌గా <strong>\"Sokuji Virtual Microphone\"</strong> ని ఎంచుకోండి. తర్వాత <strong>Advanced audio settings</strong> ని తెరిచి, స్పష్టమైన అనువదించబడిన ఆడియో కోసం <strong>Noise suppression, Echo cancellation, మరియు Automatic gain control ను నిలిపివేయండి</strong>."
+    "message": "Jitsi Meet లో GM MeetMind ని ఉపయోగించడానికి, <strong>Settings > Devices</strong> ని తెరిచి మీ మైక్రోఫోన్‌గా <strong>\"GM MeetMind Virtual Microphone\"</strong> ని ఎంచుకోండి. తర్వాత <strong>Advanced audio settings</strong> ని తెరిచి, స్పష్టమైన అనువదించబడిన ఆడియో కోసం <strong>Noise suppression, Echo cancellation, మరియు Automatic gain control ను నిలిపివేయండి</strong>."
   },
   "unsupportedHeadline": {
-    "message": "Sokuji ఇంకా $HOSTNAME$లో అందుబాటులో లేదు.",
+    "message": "GM MeetMind ఇంకా $HOSTNAME$లో అందుబాటులో లేదు.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "డెస్క్‌టాప్ యాప్ డౌన్‌లోడ్ చేయండి"
   },
   "browserSitesHeading": {
-    "message": "బ్రౌజర్ ఇష్టమా? Sokuji ఈ సైట్‌లలో పని చేస్తుంది — తెరవడానికి క్లిక్ చేయండి:"
+    "message": "బ్రౌజర్ ఇష్టమా? GM MeetMind ఈ సైట్‌లలో పని చేస్తుంది — తెరవడానికి క్లిక్ చేయండి:"
   },
   "requestSiteLink": {
     "message": "సైట్ అభ్యర్థించండి"
@@ -114,6 +114,6 @@
     "message": "ఈ ట్యాబ్‌ను గుర్తించలేకపోయాం"
   },
   "detectFailBody": {
-    "message": "పేజీని రిఫ్రెష్ చేసి Sokuji మళ్ళీ తెరవండి."
+    "message": "పేజీని రిఫ్రెష్ చేసి GM MeetMind మళ్ళీ తెరవండి."
   }
 }

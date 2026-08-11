@@ -1,109 +1,122 @@
 .main-layout {
   display: flex;
   height: 100%;
-  min-height: 0; /* Allow shrinking for nested scrolling */
+  min-height: 0;
   width: 100%;
-  flex: 1; /* Take up available space from parent */
-  background-color: #1e1e1e; /* opaque background so window body looks normal */
-  color: white;
-  overflow: hidden; /* Prevent overflow from causing scrollbars on the body */
-  
-  /* Narrow viewports: stack vertically. When a side panel (Settings/Logs) is
-     open, the panel takes the space and MainPanel collapses to its control
-     footer, pinned as a bar at the bottom; the footer renders unchanged (its
-     own @container styles handle narrow widths).
-     See docs/superpowers/specs/2026-05-29-narrow-layout-panel-design.md.
+  flex: 1;
+  background-color: var(--gm-bg, #f4f7fa);
+  color: var(--gm-ink, #182636);
+  overflow: hidden;
+  position: relative;
 
-     CONTRACT: the rules below reach into MainPanel's class names
-     (.conversation-toolbar, .conversation-display, .text-input-section) to hide
-     the transcript. If those names change in MainPanel, update them here too —
-     a stale selector silently matches nothing (this is exactly what broke the
-     previous version). */
-  @media (max-width: 768px) {
+  /* MeetMind shell: sidebar full-height | header + content column */
+  .main-shell {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* Traffic lights sit over the full-height sidebar on macOS Electron. */
+  &.main-layout--darwin {
+    .nav-rail {
+      padding-top: 40px;
+    }
+  }
+
+  .main-slot {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
     flex-direction: column;
 
-    .panel-resizer { display: none; } /* meaningless when stacked */
+    &.is-hidden {
+      display: none;
+    }
+  }
 
-    /* A11y trade-off (WCAG 2.4.3 Focus Order / 1.3.2 Meaningful Sequence):
-       `order` reflows the layout visually but NOT the DOM/focus order. So in
-       this narrow + panel-open state, keyboard and screen-reader users reach
-       the footer (inside .main-content, order: 2) BEFORE the panel — the
-       reverse of the visual top→bottom. Accepted: the mismatch is confined to
-       this one state and the footer holds only a few controls. If WCAG focus
-       order becomes a priority for this viewport, reorder the DOM in
-       MainLayout.tsx (render the panel before .main-content when narrow +
-       panel-open) and drop the `order` swap. Raised in PR #254 review. */
-    .settings-panel-container {
-      order: 1; /* panel on top */
-      width: 100% !important;
-      min-width: 100% !important;
-      max-width: 100% !important;
-      flex: 1 1 auto;
-      min-height: 0; /* allow internal scrolling */
-      overflow-y: auto;
-      border-top: none;
-      border-right: none;
+  .main-panel-container,
+  .settings-full-slot {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .settings-full-slot {
+    background: var(--gm-bg-elevated, #fff);
+    container-type: inline-size;
+    container-name: panel-chrome;
+  }
+
+  .logs-drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(24, 38, 54, 0.28);
+    cursor: pointer;
+    animation: gmDrawerFade 0.18s var(--gm-ease, ease);
+  }
+
+  .logs-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 25;
+    display: flex;
+    background: var(--gm-bg-elevated, #fff);
+    border-left: 1px solid var(--gm-border, #cfd8e3);
+    box-shadow: -12px 0 32px rgba(26, 35, 50, 0.12);
+    transform: translateX(100%);
+    transition: transform 0.22s var(--gm-ease, ease);
+    pointer-events: none;
+    container-type: inline-size;
+    container-name: panel-chrome;
+
+    &.is-open {
+      transform: translateX(0);
+      pointer-events: auto;
     }
 
-    .main-content.with-panel {
-      order: 2; /* control footer pinned below the panel */
-      flex: 0 0 auto; /* size to the footer, not a flex-grow region */
-      height: auto;
+    .panel-resizer {
+      position: absolute;
+      left: -3px;
+      top: 0;
+      bottom: 0;
+      z-index: 2;
+    }
+
+    &__body {
+      flex: 1;
+      min-width: 0;
       min-height: 0;
-      border-right: none;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+  }
 
-      .main-panel-container {
-        height: auto;
-        overflow: visible;
-      }
+  @media (max-width: 768px) {
+    .logs-drawer {
+      width: min(100%, 420px) !important;
+      max-width: 100%;
 
-      .main-panel-wrapper,
-      .main-panel {
-        height: auto;
-        min-height: 0;
-      }
-
-      /* Hide the transcript while a panel is open. MainPanel stays mounted
-         (display:none, NOT unmounted) so the active session survives. The
-         .control-footer is intentionally left untouched — it renders exactly
-         as in the normal layout and adapts via its own @container styles. */
-      .conversation-toolbar,
-      .conversation-display,
-      .text-input-section {
+      .panel-resizer {
         display: none;
       }
     }
   }
-  
-  .main-content {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0; /* Allow content to shrink below its minimum content size */
-    min-height: 0; /* Allow content to shrink for nested scrolling to work */
-    
-    &.full-width {
-      width: 100%;
-    }
-  }
-  
-  .main-panel-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; // Prevent content from overflowing
-    min-height: 0; // Allow shrinking in flex container
-  }
-  
-  .settings-panel-container {
-    min-width: 300px; /* width is state-driven via inline style (see MainLayout.tsx) */
-    overflow-y: auto; /* Changed to allow vertical scrolling */
-    padding: 0;
-    background-color: #252525;
-    /* Query container so PanelBar can collapse labels based on the panel's
-       own width, not the viewport's (the side panel stays narrow even when
-       the window is wide). */
-    container-type: inline-size;
-    container-name: panel-chrome;
-  }
+}
+
+@keyframes gmDrawerFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

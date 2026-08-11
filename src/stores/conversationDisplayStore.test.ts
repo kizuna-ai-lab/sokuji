@@ -26,9 +26,9 @@ describe('conversationDisplayStore', () => {
     useConversationDisplayStore.setState({
       fontSize: 14,
       compactMode: false,
-      bgColor: '#1f1f1f',
-      sourceTextColor: '#9aa0a6',
-      translationTextColor: '#e8e8e8',
+      bgColor: '#f4f7fa',
+      sourceTextColor: '#5a6b7d',
+      translationTextColor: '#182636',
     });
   });
 
@@ -41,9 +41,9 @@ describe('conversationDisplayStore', () => {
     const s = useConversationDisplayStore.getState();
     expect(s.fontSize).toBe(14);
     expect(s.compactMode).toBe(false);
-    expect(s.bgColor).toBe('#1f1f1f');
-    expect(s.sourceTextColor).toBe('#9aa0a6');
-    expect(s.translationTextColor).toBe('#e8e8e8');
+    expect(s.bgColor).toBe('#f4f7fa');
+    expect(s.sourceTextColor).toBe('#5a6b7d');
+    expect(s.translationTextColor).toBe('#182636');
   });
 
   it('clamps setFontSize to [12, 64]', async () => {
@@ -92,7 +92,7 @@ describe('conversationDisplayStore', () => {
     }
     const s = useConversationDisplayStore.getState();
     expect(s.fontSize).toBe(14);
-    expect(s.bgColor).toBe('#1f1f1f');
+    expect(s.bgColor).toBe('#f4f7fa');
   });
 
   it('hydrate does NOT read the old conversationFontSize / conversationCompactMode keys', async () => {

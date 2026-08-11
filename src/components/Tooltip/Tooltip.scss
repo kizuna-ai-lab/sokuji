@@ -1,24 +1,24 @@
 .tooltip-trigger {
   cursor: help;
-  color: #888;
+  color: #7A8796;
   transition: color 0.2s ease;
   display: inline-flex;
   align-items: center;
-  
+
   &:hover {
-    color: #aaa;
+    color: #1E79C1;
   }
 }
 
 .tooltip-content {
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: #1A2332;
+  border: 1px solid #2c3a4d;
   border-radius: 6px;
   padding: 10px 12px;
   font-size: 13px;
   line-height: 1.5;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(26, 35, 50, 0.22);
   white-space: normal;
   min-width: 200px;
   opacity: 0;
@@ -27,17 +27,17 @@
   .tooltip-body {
     position: relative;
     z-index: 1;
-    
+
     p {
       margin: 0 0 8px 0;
-      
+
       &:last-child {
         margin-bottom: 0;
       }
     }
-    
+
     code {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.12);
       padding: 2px 4px;
       border-radius: 3px;
       font-size: 12px;

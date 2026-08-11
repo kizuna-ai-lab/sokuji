@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI Toplantı Çevirmeni"
+    "message": "GM MeetMind - AI Toplantı Çevirmeni"
   },
   "extensionDescription": {
     "message": "Tüm video toplantıları için AI destekli anlık konuşma çevirisi. Gerçek zamanlı ses çevirisi ile dil engellerini aşın."
   },
   "popupTitle": {
-    "message": "Sokuji - Desteklenen Siteler"
+    "message": "GM MeetMind - Desteklenen Siteler"
   },
   "openSokuji": {
-    "message": "Sokuji'yi Aç"
+    "message": "GM MeetMind'yi Aç"
   },
   "chromeWebStore": {
     "message": "Chrome Web Mağazası"
@@ -18,7 +18,7 @@
     "message": "Edge Eklentileri"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji $SITE_NAME$ üzerinde kullanılabilir!",
+    "message": "✓ GM MeetMind $SITE_NAME$ üzerinde kullanılabilir!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "Gerçek zamanlı çeviriyi başlatmak için aşağıdaki \"Sokuji'yi Aç\" düğmesine tıklayın."
+    "message": "Gerçek zamanlı çeviriyi başlatmak için aşağıdaki \"GM MeetMind'yi Aç\" düğmesine tıklayın."
   },
   "quickStart": {
     "message": "Hızlı Başlangıç:"
@@ -36,16 +36,16 @@
     "message": "API anahtarınızı yapılandırın (OpenAI veya Gemini) → Mikrofon olarak \"Sokuji_Virtual_Mic\"i seçin → Konuşmaya başlayın!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "GM MeetMind for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Sokuji'yi kullanmak için mikrofon ayarlarınızda <strong>\"Sokuji Virtual Microphone\"</strong> seçin."
+    "message": "GM MeetMind'yi kullanmak için mikrofon ayarlarınızda <strong>\"GM MeetMind Virtual Microphone\"</strong> seçin."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "GM MeetMind for Whereby"
   },
   "wherebyGuidance": {
-    "message": "Sokuji'yi kullanmak için mikrofon ayarlarınızda <strong>\"Sokuji Virtual Microphone\"</strong> seçin ve daha iyi performans için <strong>gürültü azaltmayı devre dışı bırakın</strong>."
+    "message": "GM MeetMind'yi kullanmak için mikrofon ayarlarınızda <strong>\"GM MeetMind Virtual Microphone\"</strong> seçin ve daha iyi performans için <strong>gürültü azaltmayı devre dışı bırakın</strong>."
   },
   "gotIt": {
     "message": "Anladım"
@@ -54,37 +54,37 @@
     "message": "Daha sonra hatırlat"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "Sokuji'yi kullanmak için mikrofon ayarlarınızda \"Sokuji Virtual Microphone\"u seçin."
+    "message": "GM MeetMind'yi kullanmak için mikrofon ayarlarınızda \"GM MeetMind Virtual Microphone\"u seçin."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "GM MeetMind for Discord"
   },
   "discordGuidance": {
-    "message": "Sokuji'yi kullanmak için mikrofon ayarlarınızda <strong>\"Sokuji Virtual Microphone\"</strong>u seçin ve daha iyi performans için Discord'un ses ayarlarında <strong>Gürültü Bastırma'yı devre dışı bırakın</strong>."
+    "message": "GM MeetMind'yi kullanmak için mikrofon ayarlarınızda <strong>\"GM MeetMind Virtual Microphone\"</strong>u seçin ve daha iyi performans için Discord'un ses ayarlarında <strong>Gürültü Bastırma'yı devre dışı bırakın</strong>."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "GM MeetMind for Slack"
   },
   "slackGuidance": {
-    "message": "Slack Huddles'da Sokuji kullanmak için lütfen <strong>bir Huddle başlatın</strong>, ardından Video ve Mikrofon ayarlarınızda <strong>\"Sokuji Virtual Microphone\"</strong> seçin ve daha iyi performans için Audio ve Video tercihlerinde <strong>Gürültü Bastırma'yı devre dışı bırakın</strong>."
+    "message": "Slack Huddles'da GM MeetMind kullanmak için lütfen <strong>bir Huddle başlatın</strong>, ardından Video ve Mikrofon ayarlarınızda <strong>\"GM MeetMind Virtual Microphone\"</strong> seçin ve daha iyi performans için Audio ve Video tercihlerinde <strong>Gürültü Bastırma'yı devre dışı bırakın</strong>."
   },
   "teamsTitle": {
-    "message": "Microsoft Teams için Sokuji"
+    "message": "Microsoft Teams için GM MeetMind"
   },
   "teamsGuidance": {
-    "message": "Teams ayarlarında tam ses cihazı listesini görmüyorsanız:<br><strong>1)</strong> Sokuji uzantısını geçici olarak devre dışı bırakın ve sayfayı yenileyin<br><strong>2)</strong> İstendiğinde Teams'in mikrofonunuza ve kameranıza erişmesine izin verin<br><strong>3)</strong> Sokuji uzantısını tekrar etkinleştirin ve sayfayı tekrar yenileyin<br><strong>4)</strong> İstendiğinde Sokuji'nin mikrofonunuza erişmesine izin verin. Artık ayarlarınızda hem gerçek cihazları hem de <strong>\"Sokuji Virtual Microphone\"</strong> sanal cihazı görmelisiniz."
+    "message": "Teams ayarlarında tam ses cihazı listesini görmüyorsanız:<br><strong>1)</strong> GM MeetMind uzantısını geçici olarak devre dışı bırakın ve sayfayı yenileyin<br><strong>2)</strong> İstendiğinde Teams'in mikrofonunuza ve kameranıza erişmesine izin verin<br><strong>3)</strong> GM MeetMind uzantısını tekrar etkinleştirin ve sayfayı tekrar yenileyin<br><strong>4)</strong> İstendiğinde GM MeetMind'nin mikrofonunuza erişmesine izin verin. Artık ayarlarınızda hem gerçek cihazları hem de <strong>\"GM MeetMind Virtual Microphone\"</strong> sanal cihazı görmelisiniz."
   },
   "jitsiTitle": {
-    "message": "Sokuji for Jitsi Meet"
+    "message": "GM MeetMind for Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "Jitsi Meet'te Sokuji kullanmak için <strong>Settings > Devices</strong> bölümünü açın ve mikrofonunuz olarak <strong>\"Sokuji Virtual Microphone\"</strong> seçin. Ardından <strong>Advanced audio settings</strong> bölümünü açın ve net çevrilmiş ses için <strong>Gürültü Bastırma, Yankı Giderme ve Otomatik Kazanç Kontrolü'nü devre dışı bırakın</strong>."
+    "message": "Jitsi Meet'te GM MeetMind kullanmak için <strong>Settings > Devices</strong> bölümünü açın ve mikrofonunuz olarak <strong>\"GM MeetMind Virtual Microphone\"</strong> seçin. Ardından <strong>Advanced audio settings</strong> bölümünü açın ve net çevrilmiş ses için <strong>Gürültü Bastırma, Yankı Giderme ve Otomatik Kazanç Kontrolü'nü devre dışı bırakın</strong>."
   },
   "unsupportedHeadline": {
-    "message": "Sokuji henüz $HOSTNAME$ üzerinde mevcut değil.",
+    "message": "GM MeetMind henüz $HOSTNAME$ üzerinde mevcut değil.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "Masaüstü uygulamasını indir"
   },
   "browserSitesHeading": {
-    "message": "Tarayıcıyı mı tercih ediyorsunuz? Sokuji bu sitelerde çalışır — açmak için tıklayın:"
+    "message": "Tarayıcıyı mı tercih ediyorsunuz? GM MeetMind bu sitelerde çalışır — açmak için tıklayın:"
   },
   "requestSiteLink": {
     "message": "Site talep et"
@@ -114,6 +114,6 @@
     "message": "Bu sekme tespit edilemedi"
   },
   "detectFailBody": {
-    "message": "Sayfayı yenileyin ve Sokuji'yi yeniden açın."
+    "message": "Sayfayı yenileyin ve GM MeetMind'yi yeniden açın."
   }
 }

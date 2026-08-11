@@ -1,19 +1,19 @@
 {
-  "name": "sokuji",
-  "productName": "Sokuji",
+  "name": "gm-meetmind",
+  "productName": "GM MeetMind",
   "version": "0.35.5",
   "sidecarVersion": "0.1.8",
   "private": true,
   "main": "dist-electron/main.js",
   "homepage": "./",
-  "description": "AI-powered live speech translation application",
+  "description": "GM MeetMind — AI-powered live speech translation",
   "author": {
-    "name": "Kizuna AI Lab",
-    "email": "contact@kizuna.ai"
+    "name": "GM Solutions",
+    "email": "contact@gmsolutions.vn"
   },
   "build": {
-    "appId": "ai.kizunaai.sokuji",
-    "productName": "Sokuji",
+    "appId": "vn.gmmeetminds.gmmeetmind",
+    "productName": "GM MeetMind",
     "asar": true,
     "electronLanguages": [
       "en",
@@ -62,7 +62,7 @@
       ],
       "category": "AudioVideo",
       "icon": "assets/icon.png",
-      "executableName": "sokuji"
+      "executableName": "gm-meetmind"
     },
     "mac": {
       "target": [

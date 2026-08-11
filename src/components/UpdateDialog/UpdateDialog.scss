@@ -12,22 +12,22 @@
 }
 
 .update-dialog {
-  background-color: #1e1e1e;
-  border: 1px solid #333;
+  background-color: #FFFFFF;
+  border: 1px solid #CFD8E3;
   border-radius: 8px;
   width: 480px;
   max-width: 90vw;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  color: #e0e0e0;
+  color: #182636;
 
   .update-dialog-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #E8EEF4;
 
     h3 {
       margin: 0;
@@ -38,14 +38,14 @@
     .close-button {
       background: none;
       border: none;
-      color: #999;
+      color: #7A8796;
       cursor: pointer;
       padding: 4px;
       display: flex;
       align-items: center;
 
       &:hover {
-        color: #fff;
+        color: #1A2332;
       }
     }
   }
@@ -61,28 +61,28 @@
       gap: 8px;
       margin-bottom: 12px;
       font-size: 13px;
-      color: #999;
+      color: #7A8796;
 
       .arrow {
-        color: #10a37f;
+        color: #1E79C1;
       }
 
       .new-version {
-        color: #10a37f;
+        color: #1E79C1;
         font-weight: 600;
       }
     }
 
     .changelog {
-      background-color: #161616;
-      border: 1px solid #2a2a2a;
-      border-radius: 4px;
+      background-color: #F4F7FA;
+      border: 1px solid #CFD8E3;
+      border-radius: 6px;
       padding: 12px;
       max-height: 300px;
       overflow-y: auto;
       font-size: 12px;
       line-height: 1.6;
-      color: #ccc;
+      color: #3D4F63;
 
       pre {
         margin: 0;
@@ -92,7 +92,7 @@
       }
 
       h3 {
-        color: #10a37f;
+        color: #1E79C1;
         font-size: 13px;
         font-weight: 600;
         margin: 0 0 8px 0;
@@ -104,7 +104,7 @@
 
       hr {
         border: none;
-        border-top: 1px solid #2a2a2a;
+        border-top: 1px solid #FFFFFF;
         margin: 12px 0;
       }
 
@@ -122,7 +122,7 @@
       }
 
       a {
-        color: #10a37f;
+        color: #1E79C1;
         text-decoration: none;
 
         &:hover {
@@ -136,13 +136,13 @@
 
       .progress-bar {
         height: 6px;
-        background-color: #333;
+        background-color: #E8EEF4;
         border-radius: 3px;
         overflow: hidden;
 
         .progress-fill {
           height: 100%;
-          background-color: #10a37f;
+          background-color: #1E79C1;
           border-radius: 3px;
           transition: width 0.3s ease;
         }
@@ -153,14 +153,14 @@
         justify-content: space-between;
         margin-top: 8px;
         font-size: 11px;
-        color: #999;
+        color: #7A8796;
       }
     }
 
     .up-to-date {
       text-align: center;
       padding: 20px 0;
-      color: #999;
+      color: #7A8796;
       font-size: 13px;
     }
 
@@ -168,7 +168,7 @@
       margin: 12px 0;
       padding: 12px;
       border-radius: 6px;
-      background: rgba(16, 163, 127, 0.08);
+      background: rgba(30, 121, 193, 0.08);
       color: #b8d4c9;
       font-size: 0.9em;
       line-height: 1.5;
@@ -180,10 +180,10 @@
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 16px;
-    border-top: 1px solid #333;
+    border-top: 1px solid #E8EEF4;
 
     .primary-button {
-      background-color: #10a37f;
+      background-color: #1E79C1;
       color: #fff;
       border: none;
       border-radius: 4px;
@@ -192,36 +192,36 @@
       cursor: pointer;
 
       &:hover {
-        background-color: #0d8a6a;
+        background-color: #1767A6;
       }
     }
 
     .secondary-button {
       background-color: transparent;
-      color: #999;
-      border: 1px solid #444;
+      color: #7A8796;
+      border: 1px solid #D5DDE6;
       border-radius: 4px;
       padding: 8px 16px;
       font-size: 13px;
       cursor: pointer;
 
       &:hover {
-        color: #fff;
-        border-color: #666;
+        color: #1A2332;
+        border-color: #7A8796;
       }
     }
 
     .tertiary-button {
       background: transparent;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #ccc;
+      color: #546274;
       border-radius: 4px;
       padding: 8px 16px;
       font-size: 13px;
       cursor: pointer;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(26, 35, 50, 0.04);
       }
     }
   }

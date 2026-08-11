@@ -156,7 +156,7 @@ const SubtitleBar: React.FC<Props> = ({
                 : <Play size={14} />}
           </button>
         )}
-        <span className="subtitle-bar__logo">Sokuji</span>
+        <span className="subtitle-bar__logo">GM MeetMind</span>
         <span className="subtitle-bar__quota" />
       </div>
 

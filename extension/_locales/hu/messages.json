@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI Találkozófordító"
+    "message": "GM MeetMind - AI Találkozófordító"
   },
   "extensionDescription": {
     "message": "AI-alapú azonnali beszédfordítás minden videótalálkozóhoz. Törje át a nyelvi akadályokat valós idejű hangfordítással."
   },
   "popupTitle": {
-    "message": "Sokuji - Támogatott Oldalak"
+    "message": "GM MeetMind - Támogatott Oldalak"
   },
   "openSokuji": {
-    "message": "Sokuji Megnyitása"
+    "message": "GM MeetMind Megnyitása"
   },
   "chromeWebStore": {
     "message": "Chrome Webáruház"
@@ -18,7 +18,7 @@
     "message": "Edge bővítmények"
   },
   "sokujiAvailable": {
-    "message": "✓ A Sokuji elérhető a(z) $SITE_NAME$ oldalon!",
+    "message": "✓ A GM MeetMind elérhető a(z) $SITE_NAME$ oldalon!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "Kattintson a \"Sokuji Megnyitása\" gombra alább a valós idejű fordítás elindításához."
+    "message": "Kattintson a \"GM MeetMind Megnyitása\" gombra alább a valós idejű fordítás elindításához."
   },
   "quickStart": {
     "message": "Gyors Kezdés:"
@@ -36,16 +36,16 @@
     "message": "Konfigurálja API kulcsát (OpenAI vagy Gemini) → Válassza a \"Sokuji_Virtual_Mic\"-et mikrofonként → Kezdjen el beszélni!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "GM MeetMind for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "A Sokuji használatához válassza ki a <strong>\"Sokuji Virtual Microphone\"</strong> opciót a mikrofon beállításaiban."
+    "message": "A GM MeetMind használatához válassza ki a <strong>\"GM MeetMind Virtual Microphone\"</strong> opciót a mikrofon beállításaiban."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "GM MeetMind for Whereby"
   },
   "wherebyGuidance": {
-    "message": "A Sokuji használatához kérjük válassza ki a <strong>\"Sokuji Virtual Microphone\"</strong> opciót a mikrofon beállításokban és <strong>kapcsolja ki a zajcsökkentést</strong> a jobb teljesítmény érdekében."
+    "message": "A GM MeetMind használatához kérjük válassza ki a <strong>\"GM MeetMind Virtual Microphone\"</strong> opciót a mikrofon beállításokban és <strong>kapcsolja ki a zajcsökkentést</strong> a jobb teljesítmény érdekében."
   },
   "gotIt": {
     "message": "Értem"
@@ -54,37 +54,37 @@
     "message": "Emlékeztessen később"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "To use Sokuji, please select \"Sokuji Virtual Microphone\" in your microphone settings."
+    "message": "To use GM MeetMind, please select \"GM MeetMind Virtual Microphone\" in your microphone settings."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "GM MeetMind for Discord"
   },
   "discordGuidance": {
-    "message": "To use Sokuji, please select <strong>\"Sokuji Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
+    "message": "To use GM MeetMind, please select <strong>\"GM MeetMind Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "GM MeetMind for Slack"
   },
   "slackGuidance": {
-    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
+    "message": "To use GM MeetMind in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"GM MeetMind Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
   "teamsTitle": {
-    "message": "Sokuji a Microsoft Teamshez"
+    "message": "GM MeetMind a Microsoft Teamshez"
   },
   "teamsGuidance": {
-    "message": "Ha nem látja a teljes hangeszközlistát a Teams beállításaiban:<br><strong>1)</strong> Ideiglenesen tiltsa le a Sokuji bővítményt és frissítse az oldalt<br><strong>2)</strong> Engedélyezze a Teams számára a mikrofon és a kamera elérését, amikor a rendszer kéri<br><strong>3)</strong> Engedélyezze újra a Sokuji bővítményt és frissítse újra az oldalt<br><strong>4)</strong> Engedélyezze a Sokuji számára a mikrofon elérését, amikor a rendszer kéri. Most már látnia kell mind a valódi eszközöket, mind a <strong>\"Sokuji Virtual Microphone\"</strong> virtuális eszközt a beállításaiban."
+    "message": "Ha nem látja a teljes hangeszközlistát a Teams beállításaiban:<br><strong>1)</strong> Ideiglenesen tiltsa le a GM MeetMind bővítményt és frissítse az oldalt<br><strong>2)</strong> Engedélyezze a Teams számára a mikrofon és a kamera elérését, amikor a rendszer kéri<br><strong>3)</strong> Engedélyezze újra a GM MeetMind bővítményt és frissítse újra az oldalt<br><strong>4)</strong> Engedélyezze a GM MeetMind számára a mikrofon elérését, amikor a rendszer kéri. Most már látnia kell mind a valódi eszközöket, mind a <strong>\"GM MeetMind Virtual Microphone\"</strong> virtuális eszközt a beállításaiban."
   },
   "jitsiTitle": {
-    "message": "Sokuji for Jitsi Meet"
+    "message": "GM MeetMind for Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "A Sokuji Jitsi Meetben való használatához nyissa meg a <strong>Settings > Devices</strong> menüt, és válassza ki a <strong>\"Sokuji Virtual Microphone\"</strong> opciót mikrofonként. Ezután nyissa meg az <strong>Advanced audio settings</strong> beállításokat, és <strong>kapcsolja ki a zajcsökkentést, a visszhangszűrést és az automatikus erősítésszabályozást</strong> a tiszta lefordított hang érdekében."
+    "message": "A GM MeetMind Jitsi Meetben való használatához nyissa meg a <strong>Settings > Devices</strong> menüt, és válassza ki a <strong>\"GM MeetMind Virtual Microphone\"</strong> opciót mikrofonként. Ezután nyissa meg az <strong>Advanced audio settings</strong> beállításokat, és <strong>kapcsolja ki a zajcsökkentést, a visszhangszűrést és az automatikus erősítésszabályozást</strong> a tiszta lefordított hang érdekében."
   },
   "unsupportedHeadline": {
-    "message": "A Sokuji még nem érhető el a(z) $HOSTNAME$ oldalon.",
+    "message": "A GM MeetMind még nem érhető el a(z) $HOSTNAME$ oldalon.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "Töltse le az asztali alkalmazást"
   },
   "browserSitesHeading": {
-    "message": "A böngészőt részesíti előnyben? A Sokuji működik ezeken az oldalakon — kattintson a megnyitáshoz:"
+    "message": "A böngészőt részesíti előnyben? A GM MeetMind működik ezeken az oldalakon — kattintson a megnyitáshoz:"
   },
   "requestSiteLink": {
     "message": "Oldal kérése"
@@ -114,6 +114,6 @@
     "message": "Ez a lap nem volt észlelhető"
   },
   "detectFailBody": {
-    "message": "Frissítse az oldalt, majd nyissa meg újra a Sokuji-t."
+    "message": "Frissítse az oldalt, majd nyissa meg újra a GM MeetMind-t."
   }
 }

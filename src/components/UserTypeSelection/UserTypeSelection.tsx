@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Sparkles, Globe } from 'lucide-react';
+import { User, Sparkles, Globe, Check, ArrowRight } from 'lucide-react';
+import gmLogoLockup from '../../assets/logo-gm-lockup.png';
 import './UserTypeSelection.scss';
 import { changeLanguageWithLoad } from '../../locales';
 
@@ -38,6 +39,7 @@ const UserTypeSelection: React.FC<UserTypeSelectionProps> = ({ onSelectUserType 
       </div>
       <div className="selection-container">
         <div className="selection-header">
+          <img className="brand-mark" src={gmLogoLockup} alt="GM MeetMind" width={160} height={128} />
           <h1>{t('userTypeSelection.title')}</h1>
           <p className="subtitle">{t('userTypeSelection.subtitle')}</p>
         </div>
@@ -48,20 +50,21 @@ const UserTypeSelection: React.FC<UserTypeSelectionProps> = ({ onSelectUserType 
             className="user-card regular-user"
             onClick={() => onSelectUserType('regular')}
           >
-            <div className="card-icon">
-              <User size={64} />
+            <div className="card-icon" aria-hidden="true">
+              <User size={28} strokeWidth={1.75} />
             </div>
             <h2>{t('userTypeSelection.regular.title')}</h2>
             <p className="card-description">
               {t('userTypeSelection.regular.description')}
             </p>
             <ul className="card-features">
-              <li>{t('userTypeSelection.regular.feature1')}</li>
-              <li>{t('userTypeSelection.regular.feature2')}</li>
-              <li>{t('userTypeSelection.regular.feature3')}</li>
+              <li><Check size={14} strokeWidth={2.25} aria-hidden="true" />{t('userTypeSelection.regular.feature1')}</li>
+              <li><Check size={14} strokeWidth={2.25} aria-hidden="true" />{t('userTypeSelection.regular.feature2')}</li>
+              <li><Check size={14} strokeWidth={2.25} aria-hidden="true" />{t('userTypeSelection.regular.feature3')}</li>
             </ul>
             <div className="card-action">
               <span className="action-text">{t('userTypeSelection.regular.action')}</span>
+              <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />
             </div>
           </button>
 
@@ -70,20 +73,21 @@ const UserTypeSelection: React.FC<UserTypeSelectionProps> = ({ onSelectUserType 
             className="user-card experienced-user"
             onClick={() => onSelectUserType('experienced')}
           >
-            <div className="card-icon">
-              <Sparkles size={64} />
+            <div className="card-icon" aria-hidden="true">
+              <Sparkles size={28} strokeWidth={1.75} />
             </div>
             <h2>{t('userTypeSelection.experienced.title')}</h2>
             <p className="card-description">
               {t('userTypeSelection.experienced.description')}
             </p>
             <ul className="card-features">
-              <li>{t('userTypeSelection.experienced.feature1')}</li>
-              <li>{t('userTypeSelection.experienced.feature2')}</li>
-              <li>{t('userTypeSelection.experienced.feature3')}</li>
+              <li><Check size={14} strokeWidth={2.25} aria-hidden="true" />{t('userTypeSelection.experienced.feature1')}</li>
+              <li><Check size={14} strokeWidth={2.25} aria-hidden="true" />{t('userTypeSelection.experienced.feature2')}</li>
+              <li><Check size={14} strokeWidth={2.25} aria-hidden="true" />{t('userTypeSelection.experienced.feature3')}</li>
             </ul>
             <div className="card-action">
               <span className="action-text">{t('userTypeSelection.experienced.action')}</span>
+              <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />
             </div>
           </button>
         </div>

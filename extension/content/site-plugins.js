@@ -44,7 +44,7 @@ function parseI18nFromURL() {
         ),
         guidance: decodeMessage(
           params.get('guidance'), 
-          'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings.'
+          'To use GM MeetMind, please select "GM MeetMind Virtual Microphone" in your microphone settings.'
         ),
         gotIt: decodeMessage(
           params.get('gotIt'), 
@@ -66,7 +66,7 @@ function parseI18nFromURL() {
   // Fallback to default English messages
   return {
     title: 'Sokuji',
-    guidance: 'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings.',
+    guidance: 'To use GM MeetMind, please select "GM MeetMind Virtual Microphone" in your microphone settings.',
     gotIt: 'Got it',
     remindLater: 'Remind me later'
   };
@@ -314,7 +314,7 @@ const gatherTownPlugin = {
     // Use provided messages or fallback to default English
     const i18n = messages || {
       title: 'Sokuji for Gather Town',
-      guidance: 'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings.',
+      guidance: 'To use GM MeetMind, please select "GM MeetMind Virtual Microphone" in your microphone settings.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
@@ -341,7 +341,7 @@ const wherebyPlugin = {
     // Use provided messages or fallback to default English
     const i18n = messages || {
       title: 'Sokuji for Whereby',
-      guidance: 'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings and disable Noise reduction for better performance.',
+      guidance: 'To use GM MeetMind, please select "GM MeetMind Virtual Microphone" in your microphone settings and disable Noise reduction for better performance.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
@@ -368,7 +368,7 @@ const discordPlugin = {
     // Use provided messages or fallback to default English
     const i18n = messages || {
       title: 'Sokuji for Discord',
-      guidance: 'To use Sokuji, please select <strong>"Sokuji Virtual Microphone"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord\'s Voice settings for better performance.',
+      guidance: 'To use GM MeetMind, please select <strong>"GM MeetMind Virtual Microphone"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord\'s Voice settings for better performance.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
@@ -395,7 +395,7 @@ const slackPlugin = {
     // Use provided messages or fallback to default English
     const i18n = messages || {
       title: 'Sokuji for Slack',
-      guidance: 'To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>"Sokuji Virtual Microphone"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance.',
+      guidance: 'To use GM MeetMind in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>"GM MeetMind Virtual Microphone"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
@@ -422,7 +422,7 @@ const teamsPlugin = {
     // Use provided messages or fallback to default English
     const i18n = messages || {
       title: 'Sokuji for Microsoft Teams',
-      guidance: 'If you don\'t see the complete audio device list in Teams settings: <strong>1)</strong> Temporarily disable the Sokuji extension and refresh the page <strong>2)</strong> Allow Teams to access your microphone and camera when prompted <strong>3)</strong> Re-enable Sokuji extension and refresh the page again <strong>4)</strong> Allow Sokuji to access your microphone when prompted. Now you should see both real and <strong>"Sokuji Virtual Microphone"</strong> devices in your settings.',
+      guidance: 'If you don\'t see the complete audio device list in Teams settings: <strong>1)</strong> Temporarily disable the GM MeetMind extension and refresh the page <strong>2)</strong> Allow Teams to access your microphone and camera when prompted <strong>3)</strong> Re-enable GM MeetMind extension and refresh the page again <strong>4)</strong> Allow GM MeetMind to access your microphone when prompted. Now you should see both real and <strong>"GM MeetMind Virtual Microphone"</strong> devices in your settings.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
@@ -449,7 +449,7 @@ const jitsiPlugin = {
     // Use provided messages or fallback to default English
     const i18n = messages || {
       title: 'Sokuji for Jitsi Meet',
-      guidance: 'To use Sokuji in Jitsi Meet, open <strong>Settings > Devices</strong> and select <strong>"Sokuji Virtual Microphone"</strong> as your microphone. Then open <strong>Advanced audio settings</strong> and <strong>turn off Noise suppression, Echo cancellation, and Automatic gain control</strong> for clear translated audio.',
+      guidance: 'To use GM MeetMind in Jitsi Meet, open <strong>Settings > Devices</strong> and select <strong>"GM MeetMind Virtual Microphone"</strong> as your microphone. Then open <strong>Advanced audio settings</strong> and <strong>turn off Noise suppression, Echo cancellation, and Automatic gain control</strong> for clear translated audio.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };

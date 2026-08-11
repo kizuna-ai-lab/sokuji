@@ -5,12 +5,12 @@
   padding: 6px 12px;
   font-size: 12px;
   color: #fff;
-  background-color: #10a37f;
+  background-color: #1E79C1;
   cursor: default;
   flex-shrink: 0;
 
   &.error {
-    background-color: #e74c3c;
+    background-color: #b42318;
   }
 
   &.downloading {
@@ -48,7 +48,7 @@
   .dismiss-button {
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
     padding: 2px;
     display: flex;

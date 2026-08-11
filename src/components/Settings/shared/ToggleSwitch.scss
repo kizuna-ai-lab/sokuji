@@ -61,9 +61,10 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: vars.$toggle-bg-off;
+        background-color: vars.$bg-elevated;
         transition: vars.$transition-fast;
         border-radius: 20px;
+        box-shadow: inset 0 0 0 1px rgba(26, 35, 50, 0.06);
 
         &:before {
           position: absolute;
@@ -75,6 +76,7 @@
           background-color: white;
           transition: vars.$transition-fast;
           border-radius: 50%;
+          box-shadow: 0 1px 3px rgba(26, 35, 50, 0.18);
         }
       }
     }

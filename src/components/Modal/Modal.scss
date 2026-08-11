@@ -1,10 +1,7 @@
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  inset: 0;
+  background-color: rgba(24, 38, 54, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -13,15 +10,16 @@
 }
 
 .modal-content {
-  background-color: #2a2a2a;
-  border-radius: 8px;
+  background-color: var(--gm-bg-elevated, #fff);
+  border: 1px solid var(--gm-border, #cfd8e3);
+  border-radius: 14px;
   width: 90%;
   max-width: 700px;
   max-height: 90vh;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  color: #fff;
+  box-shadow: 0 20px 48px rgba(24, 38, 54, 0.18);
+  color: var(--gm-ink, #182636);
   overflow: hidden;
-  animation: modal-appear 0.2s ease-out;
+  animation: modal-appear 0.2s var(--gm-ease, ease-out);
   display: flex;
   flex-direction: column;
 }
@@ -29,7 +27,7 @@
 @keyframes modal-appear {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-12px);
   }
   to {
     opacity: 1;
@@ -42,18 +40,19 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--gm-border, #cfd8e3);
 
   h3 {
     margin: 0;
     font-size: 18px;
     font-weight: 600;
+    color: var(--gm-ink, #182636);
   }
 
   .close-button {
     background: none;
     border: none;
-    color: #aaa;
+    color: var(--gm-ink-subtle, #5a6b7d);
     cursor: pointer;
     padding: 4px;
     display: flex;
@@ -63,8 +62,8 @@
     transition: all 0.2s;
 
     &:hover {
-      color: #fff;
-      background-color: rgba(255, 255, 255, 0.1);
+      color: var(--gm-ink, #182636);
+      background-color: var(--gm-surface-hover, #eef3f8);
     }
   }
 }
@@ -74,4 +73,5 @@
   line-height: 1.5;
   overflow-y: auto;
   flex: 1;
+  color: var(--gm-ink, #182636);
 }

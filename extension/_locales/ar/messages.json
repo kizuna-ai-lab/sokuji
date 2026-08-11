@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - مترجم اجتماعات AI"
+    "message": "GM MeetMind - مترجم اجتماعات AI"
   },
   "extensionDescription": {
     "message": "ترجمة فورية للكلام بالذكاء الاصطناعي لجميع اجتماعات الفيديو. كسر حواجز اللغة مع الترجمة الصوتية في الوقت الفعلي."
   },
   "popupTitle": {
-    "message": "Sokuji - المواقع المدعومة"
+    "message": "GM MeetMind - المواقع المدعومة"
   },
   "openSokuji": {
-    "message": "فتح Sokuji"
+    "message": "فتح GM MeetMind"
   },
   "chromeWebStore": {
     "message": "متجر Chrome الإلكتروني"
@@ -18,7 +18,7 @@
     "message": "إضافات Edge"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji متاح على $SITE_NAME$!",
+    "message": "✓ GM MeetMind متاح على $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "انقر على \"فتح Sokuji\" أدناه لبدء الترجمة في الوقت الفعلي."
+    "message": "انقر على \"فتح GM MeetMind\" أدناه لبدء الترجمة في الوقت الفعلي."
   },
   "quickStart": {
     "message": "البدء السريع:"
@@ -36,16 +36,16 @@
     "message": "قم بتكوين مفتاح API الخاص بك (OpenAI أو Gemini) ← حدد \"Sokuji_Virtual_Mic\" كميكروفون ← ابدأ بالتحدث!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji لـ Gather Town"
+    "message": "GM MeetMind لـ Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "لاستخدام Sokuji، يرجى تحديد <strong>\"Sokuji Virtual Microphone\"</strong> في إعدادات الميكروفون الخاص بك."
+    "message": "لاستخدام GM MeetMind، يرجى تحديد <strong>\"GM MeetMind Virtual Microphone\"</strong> في إعدادات الميكروفون الخاص بك."
   },
   "wherebyTitle": {
-    "message": "Sokuji لـ Whereby"
+    "message": "GM MeetMind لـ Whereby"
   },
   "wherebyGuidance": {
-    "message": "لاستخدام Sokuji، يرجى تحديد <strong>\"Sokuji Virtual Microphone\"</strong> في إعدادات الميكروفون و<strong>إلغاء تنشيط تقليل الضوضاء</strong> للحصول على أداء أفضل."
+    "message": "لاستخدام GM MeetMind، يرجى تحديد <strong>\"GM MeetMind Virtual Microphone\"</strong> في إعدادات الميكروفون و<strong>إلغاء تنشيط تقليل الضوضاء</strong> للحصول على أداء أفضل."
   },
   "gotIt": {
     "message": "فهمت"
@@ -54,37 +54,37 @@
     "message": "ذكرني لاحقاً"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "لاستخدام Sokuji، يرجى تحديد \"Sokuji Virtual Microphone\" في إعدادات الميكروفون."
+    "message": "لاستخدام GM MeetMind، يرجى تحديد \"GM MeetMind Virtual Microphone\" في إعدادات الميكروفون."
   },
   "discordTitle": {
-    "message": "Sokuji لـ Discord"
+    "message": "GM MeetMind لـ Discord"
   },
   "discordGuidance": {
-    "message": "لاستخدام Sokuji، يرجى تحديد <strong>\"Sokuji Virtual Microphone\"</strong> في إعدادات الميكروفون و<strong>إلغاء تفعيل قمع الضوضاء</strong> في إعدادات الصوت في Discord للحصول على أداء أفضل."
+    "message": "لاستخدام GM MeetMind، يرجى تحديد <strong>\"GM MeetMind Virtual Microphone\"</strong> في إعدادات الميكروفون و<strong>إلغاء تفعيل قمع الضوضاء</strong> في إعدادات الصوت في Discord للحصول على أداء أفضل."
   },
   "slackTitle": {
-    "message": "Sokuji لـ Slack"
+    "message": "GM MeetMind لـ Slack"
   },
   "slackGuidance": {
-    "message": "لاستخدام Sokuji في Slack Huddles، يرجى <strong>بدء Huddle</strong>، ثم حدد <strong>\"Sokuji Virtual Microphone\"</strong> في إعدادات الفيديو والميكروفون، و<strong>قم بإلغاء تنشيط كبت الضوضاء</strong> في تفضيلات الصوت والفيديو للحصول على أداء أفضل."
+    "message": "لاستخدام GM MeetMind في Slack Huddles، يرجى <strong>بدء Huddle</strong>، ثم حدد <strong>\"GM MeetMind Virtual Microphone\"</strong> في إعدادات الفيديو والميكروفون، و<strong>قم بإلغاء تنشيط كبت الضوضاء</strong> في تفضيلات الصوت والفيديو للحصول على أداء أفضل."
   },
   "teamsTitle": {
-    "message": "Sokuji لـ Microsoft Teams"
+    "message": "GM MeetMind لـ Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "إذا لم تشاهد القائمة الكاملة لأجهزة الصوت في إعدادات Teams:<br><strong>1)</strong> قم بتعطيل ملحق Sokuji مؤقتًا وحدّث الصفحة<br><strong>2)</strong> اسمح لـ Teams بالوصول إلى الميكروفون والكاميرا عند المطالبة<br><strong>3)</strong> أعد تمكين ملحق Sokuji وحدّث الصفحة مرة أخرى<br><strong>4)</strong> اسمح لـ Sokuji بالوصول إلى الميكروفون عند المطالبة. الآن يجب أن ترى كلاً من الأجهزة الحقيقية و <strong>\"Sokuji Virtual Microphone\"</strong> في إعداداتك."
+    "message": "إذا لم تشاهد القائمة الكاملة لأجهزة الصوت في إعدادات Teams:<br><strong>1)</strong> قم بتعطيل ملحق GM MeetMind مؤقتًا وحدّث الصفحة<br><strong>2)</strong> اسمح لـ Teams بالوصول إلى الميكروفون والكاميرا عند المطالبة<br><strong>3)</strong> أعد تمكين ملحق GM MeetMind وحدّث الصفحة مرة أخرى<br><strong>4)</strong> اسمح لـ GM MeetMind بالوصول إلى الميكروفون عند المطالبة. الآن يجب أن ترى كلاً من الأجهزة الحقيقية و <strong>\"GM MeetMind Virtual Microphone\"</strong> في إعداداتك."
   },
   "jitsiTitle": {
-    "message": "Sokuji لـ Jitsi Meet"
+    "message": "GM MeetMind لـ Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "لاستخدام Sokuji في Jitsi Meet، افتح <strong>Settings > Devices</strong> وحدد <strong>\"Sokuji Virtual Microphone\"</strong> كميكروفون لك. ثم افتح <strong>Advanced audio settings</strong> و<strong>قم بإيقاف قمع الضوضاء وإلغاء الصدى والتحكم التلقائي في مستوى الصوت</strong> للحصول على صوت مترجم واضح."
+    "message": "لاستخدام GM MeetMind في Jitsi Meet، افتح <strong>Settings > Devices</strong> وحدد <strong>\"GM MeetMind Virtual Microphone\"</strong> كميكروفون لك. ثم افتح <strong>Advanced audio settings</strong> و<strong>قم بإيقاف قمع الضوضاء وإلغاء الصدى والتحكم التلقائي في مستوى الصوت</strong> للحصول على صوت مترجم واضح."
   },
   "unsupportedHeadline": {
-    "message": "Sokuji غير متاح على $HOSTNAME$ بعد.",
+    "message": "GM MeetMind غير متاح على $HOSTNAME$ بعد.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "تحميل تطبيق سطح المكتب"
   },
   "browserSitesHeading": {
-    "message": "تفضّل المتصفح؟ Sokuji يعمل على هذه المواقع — انقر للفتح:"
+    "message": "تفضّل المتصفح؟ GM MeetMind يعمل على هذه المواقع — انقر للفتح:"
   },
   "requestSiteLink": {
     "message": "طلب إضافة موقع"
@@ -114,6 +114,6 @@
     "message": "تعذّر اكتشاف هذه الصفحة"
   },
   "detectFailBody": {
-    "message": "حدّث الصفحة وأعد فتح Sokuji."
+    "message": "حدّث الصفحة وأعد فتح GM MeetMind."
   }
 }

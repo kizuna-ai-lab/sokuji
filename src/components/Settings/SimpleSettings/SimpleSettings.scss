@@ -10,10 +10,12 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 15px;
+    padding: 20px 28px 32px;
     scrollbar-gutter: stable;
     box-sizing: border-box;
     width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
 
     .session-warning {
       display: flex;

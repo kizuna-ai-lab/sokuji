@@ -1,7 +1,7 @@
 .export-btn {
   background: none;
   border: none;
-  color: #555;
+  color: #9AA6B4;
   cursor: pointer;
   padding: 4px;
   display: inline-flex;
@@ -12,8 +12,8 @@
   transition: color 0.15s, background-color 0.15s;
 
   &:hover:not(:disabled) {
-    color: #ccc;
-    background: rgba(255, 255, 255, 0.1);
+    color: #546274;
+    background: rgba(30, 121, 193, 0.08);
   }
 
   &:disabled {
@@ -32,10 +32,10 @@
   flex-direction: column;
   min-width: 200px;
   padding: 4px;
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: #FFFFFF;
+  border: 1px solid #D5DDE6;
   border-radius: 6px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(26, 35, 50, 0.12);
 }
 
 .export-menu-item {
@@ -45,7 +45,7 @@
   padding: 8px 12px;
   background: transparent;
   border: none;
-  color: #ddd;
+  color: #3D4F63;
   font-size: 13px;
   text-align: left;
   cursor: pointer;
@@ -53,8 +53,8 @@
 
   &:hover,
   &:focus {
-    background: #3a3a3a;
-    color: #fff;
+    background: #E4ECF4;
+    color: #1A2332;
     outline: none;
   }
 }

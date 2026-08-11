@@ -17,11 +17,15 @@
     border: 1px solid vars.$color-warning-border;
     border-radius: vars.$radius-md;
     padding: vars.$space-3;
-    margin: 15px 15px 0;
+    margin: 16px 28px 0;
     color: vars.$color-warning;
     font-size: vars.$font-body;
     line-height: 1.4;
     flex-shrink: 0;
+    max-width: 880px;
+    width: calc(100% - 56px);
+    align-self: center;
+    box-sizing: border-box;
 
     svg {
       flex-shrink: 0;
@@ -37,10 +41,12 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 15px;
+    padding: 20px 28px 32px;
     scrollbar-gutter: stable;
     box-sizing: border-box;
     width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
 
     .settings-section {
       margin-bottom: vars.$space-5;

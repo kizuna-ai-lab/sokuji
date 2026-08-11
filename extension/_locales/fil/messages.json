@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI Meeting Translator"
+    "message": "GM MeetMind - AI Meeting Translator"
   },
   "extensionDescription": {
     "message": "Instant na speech translation na may AI para sa lahat ng video meetings. Sirain ang mga hadlang sa wika gamit ang real-time voice translation."
   },
   "popupTitle": {
-    "message": "Sokuji - Mga Suportadong Website"
+    "message": "GM MeetMind - Mga Suportadong Website"
   },
   "openSokuji": {
-    "message": "Buksan ang Sokuji"
+    "message": "Buksan ang GM MeetMind"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -18,7 +18,7 @@
     "message": "Mga Edge Add-on"
   },
   "sokujiAvailable": {
-    "message": "✓ Available ang Sokuji sa $SITE_NAME$!",
+    "message": "✓ Available ang GM MeetMind sa $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "I-click ang \"Buksan ang Sokuji\" sa ibaba para simulan ang real-time translation."
+    "message": "I-click ang \"Buksan ang GM MeetMind\" sa ibaba para simulan ang real-time translation."
   },
   "quickStart": {
     "message": "Mabilis na Simula:"
@@ -36,16 +36,16 @@
     "message": "I-configure ang inyong API key (OpenAI or Gemini) ← Piliin ang \"Sokuji_Virtual_Mic\" bilang microphone ← Simulang magsalita!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "GM MeetMind for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Para gamitin ang Sokuji, piliin ang <strong>\"Sokuji Virtual Microphone\"</strong> sa inyong microphone settings."
+    "message": "Para gamitin ang GM MeetMind, piliin ang <strong>\"GM MeetMind Virtual Microphone\"</strong> sa inyong microphone settings."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "GM MeetMind for Whereby"
   },
   "wherebyGuidance": {
-    "message": "Upang gamitin ang Sokuji, mangyaring piliin ang <strong>\"Sokuji Virtual Microphone\"</strong> sa inyong microphone settings at <strong>i-disable ang Noise reduction</strong> para sa mas magandang performance."
+    "message": "Upang gamitin ang GM MeetMind, mangyaring piliin ang <strong>\"GM MeetMind Virtual Microphone\"</strong> sa inyong microphone settings at <strong>i-disable ang Noise reduction</strong> para sa mas magandang performance."
   },
   "gotIt": {
     "message": "Naintindihan"
@@ -54,37 +54,37 @@
     "message": "Paalalahanan mamaya"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "Upang gamitin ang Sokuji, pakipili ang \"Sokuji Virtual Microphone\" sa inyong microphone settings."
+    "message": "Upang gamitin ang GM MeetMind, pakipili ang \"GM MeetMind Virtual Microphone\" sa inyong microphone settings."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "GM MeetMind for Discord"
   },
   "discordGuidance": {
-    "message": "Upang gamitin ang Sokuji, pakipili ang <strong>\"Sokuji Virtual Microphone\"</strong> sa inyong microphone settings at <strong>i-disable ang Noise Suppression</strong> sa voice settings ng Discord para sa mas magandang performance."
+    "message": "Upang gamitin ang GM MeetMind, pakipili ang <strong>\"GM MeetMind Virtual Microphone\"</strong> sa inyong microphone settings at <strong>i-disable ang Noise Suppression</strong> sa voice settings ng Discord para sa mas magandang performance."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "GM MeetMind for Slack"
   },
   "slackGuidance": {
-    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
+    "message": "To use GM MeetMind in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"GM MeetMind Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
   "teamsTitle": {
-    "message": "Sokuji para sa Microsoft Teams"
+    "message": "GM MeetMind para sa Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Kung hindi mo nakikita ang kumpletong listahan ng audio device sa mga setting ng Teams:<br><strong>1)</strong> Pansamantalang i-disable ang Sokuji extension at i-refresh ang page<br><strong>2)</strong> Payagan ang Teams na ma-access ang iyong microphone at camera kapag hiniling<br><strong>3)</strong> I-enable muli ang Sokuji extension at i-refresh muli ang page<br><strong>4)</strong> Payagan ang Sokuji na ma-access ang iyong microphone kapag hiniling. Ngayon ay dapat mong makita ang parehong mga tunay na device at <strong>\"Sokuji Virtual Microphone\"</strong> sa iyong mga setting."
+    "message": "Kung hindi mo nakikita ang kumpletong listahan ng audio device sa mga setting ng Teams:<br><strong>1)</strong> Pansamantalang i-disable ang GM MeetMind extension at i-refresh ang page<br><strong>2)</strong> Payagan ang Teams na ma-access ang iyong microphone at camera kapag hiniling<br><strong>3)</strong> I-enable muli ang GM MeetMind extension at i-refresh muli ang page<br><strong>4)</strong> Payagan ang GM MeetMind na ma-access ang iyong microphone kapag hiniling. Ngayon ay dapat mong makita ang parehong mga tunay na device at <strong>\"GM MeetMind Virtual Microphone\"</strong> sa iyong mga setting."
   },
   "jitsiTitle": {
-    "message": "Sokuji for Jitsi Meet"
+    "message": "GM MeetMind for Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "Upang gamitin ang Sokuji sa Jitsi Meet, buksan ang <strong>Settings > Devices</strong> at piliin ang <strong>\"Sokuji Virtual Microphone\"</strong> bilang inyong microphone. Pagkatapos ay buksan ang <strong>Advanced audio settings</strong> at <strong>i-disable ang Noise suppression, Echo cancellation, at Automatic gain control</strong> para sa malinaw na isinaling audio."
+    "message": "Upang gamitin ang GM MeetMind sa Jitsi Meet, buksan ang <strong>Settings > Devices</strong> at piliin ang <strong>\"GM MeetMind Virtual Microphone\"</strong> bilang inyong microphone. Pagkatapos ay buksan ang <strong>Advanced audio settings</strong> at <strong>i-disable ang Noise suppression, Echo cancellation, at Automatic gain control</strong> para sa malinaw na isinaling audio."
   },
   "unsupportedHeadline": {
-    "message": "Hindi pa available ang Sokuji sa $HOSTNAME$.",
+    "message": "Hindi pa available ang GM MeetMind sa $HOSTNAME$.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "I-download ang desktop app"
   },
   "browserSitesHeading": {
-    "message": "Mas gusto ang browser? Gumagana ang Sokuji sa mga site na ito — i-click para buksan:"
+    "message": "Mas gusto ang browser? Gumagana ang GM MeetMind sa mga site na ito — i-click para buksan:"
   },
   "requestSiteLink": {
     "message": "Humiling ng site"
@@ -114,6 +114,6 @@
     "message": "Hindi ma-detect ang tab na ito"
   },
   "detectFailBody": {
-    "message": "I-refresh ang pahina at buksan muli ang Sokuji."
+    "message": "I-refresh ang pahina at buksan muli ang GM MeetMind."
   }
 }

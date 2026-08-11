@@ -14,6 +14,8 @@ interface SettingsProps {
   toggleSettings?: () => void;
   /** External highlight section prop */
   highlightSection?: string | null;
+  /** PanelBar close affordance — Settings full-slot uses back-to-session. */
+  closeMode?: 'collapse' | 'back';
 }
 
 const TABS: Tab[] = [
@@ -49,7 +51,7 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'model-tts': 'provider',
 };
 
-const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection }) => {
+const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection, closeMode = 'back' }) => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const isSessionActive = useIsSessionActive();
@@ -146,6 +148,7 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
         onTabChange={isSimpleMode ? undefined : setActiveTab}
         actions={modeToggle}
         onClose={toggleSettings ?? (() => {})}
+        closeMode={closeMode}
       />
 
       <div className="settings-body">

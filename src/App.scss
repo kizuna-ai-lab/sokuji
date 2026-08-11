@@ -1,16 +1,16 @@
 html, body, #root, .App {
-  background: transparent;
+  background: var(--gm-bg, #f4f7fa);
 }
 
 .App {
   width: 100%;
   height: 100%;
-  min-height: 0; /* Allow shrinking for nested scrolling */
+  min-height: 0;
   overflow: hidden;
-  color: white;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  color: var(--gm-ink, #182636);
+  font-family: var(--gm-font-sans);
+  font-size: var(--gm-fs-base, 14px);
+  line-height: var(--gm-lh-body, 1.5);
   display: flex;
   flex-direction: column;
 }

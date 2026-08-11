@@ -14,6 +14,8 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    padding: 0;
   }
 }
 
@@ -38,8 +40,8 @@
       align-items: flex-start;
       gap: 8px;
       padding: 12px;
-      background: rgba(16, 163, 127, 0.1);
-      border: 1px solid rgba(16, 163, 127, 0.3);
+      background: rgba(30, 121, 193, 0.1);
+      border: 1px solid rgba(30, 121, 193, 0.3);
       border-radius: 6px;
       font-size: 13px;
       line-height: 1.4;
@@ -47,7 +49,7 @@
       svg {
         flex-shrink: 0;
         margin-top: 2px;
-        color: #10a37f;
+        color: #1E79C1;
       }
     }
   }
@@ -109,7 +111,7 @@
 
       &:hover:not(:disabled) {
         color: vars.$text-muted;
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--gm-surface-hover, #eef3f8);
       }
 
       &:disabled {
@@ -495,18 +497,27 @@
     // Text input
     .text-input {
       width: 100%;
-      padding: 8px 10px;
+      min-height: 36px;
+      padding: 8px 12px;
       background-color: vars.$bg-control;
       border: 1px solid vars.$border-default;
       border-radius: vars.$radius-sm;
       color: vars.$text-primary;
       font-size: vars.$font-body;
       box-sizing: border-box;
-      transition: border-color vars.$transition-fast;
+      transition:
+        border-color vars.$transition-fast,
+        box-shadow vars.$transition-fast,
+        background-color vars.$transition-fast;
+
+      &:hover:not(:disabled) {
+        border-color: vars.$border-strong;
+      }
 
       &:focus {
         outline: none;
         border-color: vars.$color-primary;
+        box-shadow: 0 0 0 3px rgba(vars.$color-primary, 0.15);
       }
 
       &::placeholder {
@@ -565,11 +576,12 @@
       color: vars.$text-muted;
 
       input[type="checkbox"] {
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
         margin-right: 6px;
         cursor: pointer;
         accent-color: vars.$color-primary;
+        border-radius: 4px;
 
         &:disabled {
           cursor: not-allowed;
@@ -601,7 +613,7 @@
       padding: 6px 10px;
       border-radius: vars.$radius-sm;
       font-size: vars.$font-caption;
-      background-color: vars.$color-success-bg;
+      background-color: vars.$color-info-bg;
       color: vars.$color-primary;
     }
 
@@ -613,7 +625,7 @@
       font-size: vars.$font-caption;
 
       &.success {
-        background-color: vars.$color-success-bg;
+        background-color: vars.$color-info-bg;
         color: vars.$color-primary;
       }
 
@@ -637,20 +649,27 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 12px;
-    background-color: vars.$bg-control;
-    border-radius: vars.$radius-sm;
+    background-color: vars.$bg-surface;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-md;
     margin-bottom: 6px;
     cursor: pointer;
-    transition: background-color vars.$transition-fast;
+    transition:
+      background-color vars.$transition-fast,
+      border-color vars.$transition-fast,
+      box-shadow vars.$transition-fast;
     position: relative;
     font-size: vars.$font-body;
 
     &:hover:not(.disabled) {
-      background-color: rgba(255, 255, 255, 0.05);
+      background-color: vars.$bg-hover;
+      border-color: vars.$border-default;
     }
 
     &.selected {
-      background-color: vars.$color-success-bg;
+      background-color: vars.$color-info-bg;
+      border-color: color-mix(in srgb, vars.$color-primary 35%, vars.$border-default);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, vars.$color-primary 18%, transparent);
     }
 
     &:focus-visible {
@@ -661,7 +680,7 @@
       @include vars.disabled-state;
 
       &:hover {
-        background-color: vars.$bg-control;
+        background-color: vars.$bg-surface;
       }
     }
 
@@ -720,7 +739,7 @@
     margin-top: 10px;
     padding: 8px 10px;
     border-left: 2px solid vars.$color-primary;
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: var(--gm-surface-hover, #eef3f8);
   }
 
   .open-settings-button {
@@ -744,10 +763,10 @@
       margin-top: 8px;
       background-color: transparent;
       border: 1px solid var(--border-color, #444);
-      color: var(--text-secondary, #aaa);
+      color: var(--text-secondary, #5A6B7D);
 
       &:hover {
-        background-color: rgba(255, 255, 255, 0.06);
+        background-color: #E4ECF4;
       }
     }
   }
@@ -814,7 +833,7 @@
     color: vars.$text-primary;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: #E4ECF4;
     }
   }
 
@@ -920,7 +939,8 @@
   // and never reaches this modal.
   .text-input {
     width: 100%;
-    padding: 8px 10px;
+    min-height: 36px;
+    padding: 8px 12px;
     margin-bottom: 10px;
     background-color: vars.$bg-control;
     border: 1px solid vars.$border-default;
@@ -928,11 +948,18 @@
     color: vars.$text-primary;
     font-size: vars.$font-body;
     box-sizing: border-box;
-    transition: border-color vars.$transition-fast;
+    transition:
+      border-color vars.$transition-fast,
+      box-shadow vars.$transition-fast;
+
+    &:hover:not(:disabled) {
+      border-color: vars.$border-strong;
+    }
 
     &:focus {
       outline: none;
       border-color: vars.$color-primary;
+      box-shadow: 0 0 0 3px rgba(vars.$color-primary, 0.15);
     }
 
     &::placeholder {
@@ -1206,33 +1233,8 @@
 // Language select styles
 .language-select,
 .select-dropdown {
-  width: 100%;
-  background: vars.$bg-control;
-  border: 1px solid vars.$border-default;
-  color: vars.$text-primary;
-  padding: 8px 10px;
-  border-radius: vars.$radius-sm;
+  @include vars.select-control;
   font-size: vars.$font-title;
-  cursor: pointer;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px;
-
-  &:focus {
-    outline: none;
-    border-color: vars.$color-primary;
-  }
-
-  &:disabled {
-    background-color: vars.$bg-surface;
-    color: vars.$text-disabled;
-    @include vars.disabled-state;
-    opacity: 0.6;
-  }
 }
 
 // Provider section styles
@@ -1531,7 +1533,7 @@
       line-height: 1;
       border: none;
       background: vars.$bg-control;
-      color: #aaa;
+      color: #5A6B7D;
       cursor: pointer;
       transition: all 0.15s ease;
 
@@ -1562,8 +1564,8 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  background: vars.$color-success-bg;
-  border: 1px solid vars.$color-success-border;
+  background: vars.$color-info-bg;
+  border: 1px solid vars.$color-info-border;
   border-radius: vars.$radius-sm;
   margin-bottom: 12px;
 
@@ -1654,9 +1656,9 @@
   margin-bottom: 0;
 
   &.success {
-    background: rgba(68, 255, 68, 0.1);
-    border: 1px solid rgba(68, 255, 68, 0.3);
-    color: #44ff44;
+    background: vars.$color-success-bg;
+    border: 1px solid vars.$color-success-border;
+    color: vars.$color-success;
   }
 
   &.error {
@@ -1754,7 +1756,7 @@
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--gm-surface-hover, #eef3f8);
     border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-sm;
     cursor: pointer;
@@ -1763,7 +1765,7 @@
     color: inherit;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: #E4ECF4;
       border-color: vars.$color-primary;
     }
   }
@@ -1844,7 +1846,7 @@
   transition: all vars.$transition-fast;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--gm-surface-hover, #eef3f8);
     border-color: vars.$border-strong;
     color: vars.$text-primary;
   }
@@ -1906,7 +1908,7 @@
     gap: 6px;
     margin-bottom: 6px;
     font-size: 13px;
-    color: var(--text-secondary, #aaa);
+    color: var(--text-secondary, #5A6B7D);
   }
 
   .noise-suppression-label {
@@ -1917,28 +1919,28 @@
     display: flex;
     border-radius: 6px;
     overflow: hidden;
-    border: 1px solid var(--border-color, #444);
+    border: 1px solid var(--border-color, #D5DDE6);
 
     .segmented-option {
       flex: 1;
       padding: 6px 12px;
       font-size: 12px;
       border: none;
-      background: var(--bg-secondary, #333);
-      color: var(--text-secondary, #aaa);
+      background: var(--bg-secondary, #EEF3F8);
+      color: var(--text-secondary, #546274);
       cursor: pointer;
       transition: all 0.15s ease;
 
       &:not(:last-child) {
-        border-right: 1px solid var(--border-color, #444);
+        border-right: 1px solid var(--border-color, #D5DDE6);
       }
 
       &:hover:not(.active) {
-        background: var(--bg-hover, #3a3a3a);
+        background: var(--bg-hover, #E4ECF4);
       }
 
       &.active {
-        background: #10a37f;
+        background: #1E79C1;
         color: #fff;
         font-weight: 500;
       }

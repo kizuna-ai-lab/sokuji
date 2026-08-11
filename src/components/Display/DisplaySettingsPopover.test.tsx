@@ -29,9 +29,9 @@ describe('DisplaySettingsPopover', () => {
       bgOpacity: 80,
     } as Partial<ReturnType<typeof useSubtitleStore.getState>> as never);
     useConversationDisplayStore.setState({
-      bgColor: '#1f1f1f',
-      sourceTextColor: '#9aa0a6',
-      translationTextColor: '#e8e8e8',
+      bgColor: '#f4f7fa',
+      sourceTextColor: '#5a6b7d',
+      translationTextColor: '#182636',
     } as Partial<ReturnType<typeof useConversationDisplayStore.getState>> as never);
     vi.useFakeTimers();
   });
@@ -58,7 +58,7 @@ describe('DisplaySettingsPopover', () => {
     expect(whiteChip).not.toBeNull();
     await act(async () => { fireEvent.click(whiteChip); });
     expect(useSubtitleStore.getState().bgColor).toBe('#FFFFFF');
-    expect(useConversationDisplayStore.getState().bgColor).toBe('#1f1f1f');
+    expect(useConversationDisplayStore.getState().bgColor).toBe('#f4f7fa');
   });
 
   it('clicking a preset chip in conversation mode updates only conversationDisplayStore', async () => {
@@ -81,10 +81,10 @@ describe('DisplaySettingsPopover', () => {
   });
 
   it('preset chip is selected when current value matches', () => {
-    useConversationDisplayStore.setState({ bgColor: '#000000' } as never);
+    useConversationDisplayStore.setState({ bgColor: '#1a1a1a' } as never);
     const { container } = render(<DisplaySettingsPopover source="conversation" />);
-    const blackChip = container.querySelector('button.swatch[aria-label="#000000"]');
-    expect(blackChip?.classList.contains('selected')).toBe(true);
+    const darkChip = container.querySelector('button.swatch[aria-label="#1a1a1a"]');
+    expect(darkChip?.classList.contains('selected')).toBe(true);
     const customChip = container.querySelector('label.swatch.custom');
     expect(customChip?.classList.contains('selected')).toBe(false);
   });
@@ -111,7 +111,7 @@ describe('DisplaySettingsPopover', () => {
     fireEvent.change(colorInput, { target: { value: '#cccccc' } });
 
     // Before debounce window: setter NOT called yet
-    expect(useConversationDisplayStore.getState().bgColor).toBe('#1f1f1f');
+    expect(useConversationDisplayStore.getState().bgColor).toBe('#f4f7fa');
 
     // Advance past the 150ms debounce
     await act(async () => { vi.advanceTimersByTime(160); });
@@ -168,8 +168,8 @@ describe('DisplaySettingsPopover', () => {
     const bgFirstChip = fields[0].querySelector('button.swatch') as HTMLButtonElement;
     const sourceFirstChip = fields[1].querySelector('button.swatch') as HTMLButtonElement;
     const translationFirstChip = fields[2].querySelector('button.swatch') as HTMLButtonElement;
-    expect(bgFirstChip.getAttribute('aria-label')).toBe('#1f1f1f');
-    expect(sourceFirstChip.getAttribute('aria-label')).toBe('#9aa0a6');
-    expect(translationFirstChip.getAttribute('aria-label')).toBe('#e8e8e8');
+    expect(bgFirstChip.getAttribute('aria-label')).toBe('#f4f7fa');
+    expect(sourceFirstChip.getAttribute('aria-label')).toBe('#5a6b7d');
+    expect(translationFirstChip.getAttribute('aria-label')).toBe('#182636');
   });
 });

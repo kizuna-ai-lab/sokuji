@@ -81,7 +81,7 @@ if (!isWebclientIframe) {
     console.info('[Sokuji] [Zoom] Virtual microphone script injected into Zoom webclient iframe');
   }
 
-  // Function to monitor and auto-select Sokuji Virtual Microphone
+  // Function to monitor and auto-select GM MeetMind Virtual Microphone
   function monitorMicrophoneSelection() {
     // Function to check and update microphone selection
     function checkAndUpdateMicSelection() {
@@ -116,14 +116,14 @@ if (!isWebclientIframe) {
         item.classList.contains('audio-option-menu__pop-menu--checked')
       );
 
-      // Find our Sokuji Virtual Microphone item
+      // Find our GM MeetMind Virtual Microphone item
       const sokujiMicItem = microphoneItems.find(item => 
-        item.textContent.includes('Sokuji Virtual Microphone')
+        item.textContent.includes('GM MeetMind Virtual Microphone')
       );
 
       if (!hasSelectedMicrophone && sokujiMicItem) {
         // No microphone is selected, auto-select our virtual microphone
-        console.info('[Sokuji] [Zoom] No microphone selected, auto-selecting Sokuji Virtual Microphone');
+        console.info('[Sokuji] [Zoom] No microphone selected, auto-selecting GM MeetMind Virtual Microphone');
         
         // Remove checked class from all microphone items (just in case)
         microphoneItems.forEach(item => {
@@ -147,7 +147,7 @@ if (!isWebclientIframe) {
 
         if (isSokujiSelected && otherMicSelected) {
           // Both our mic and another mic are selected, uncheck ours
-          console.info('[Sokuji] [Zoom] Another microphone is selected, unchecking Sokuji Virtual Microphone');
+          console.info('[Sokuji] [Zoom] Another microphone is selected, unchecking GM MeetMind Virtual Microphone');
           sokujiMicItem.classList.remove('audio-option-menu__pop-menu--checked');
           sokujiMicItem.setAttribute('aria-selected', 'false');
           sokujiMicItem.setAttribute('aria-label', 
@@ -491,7 +491,7 @@ if (!isWebclientIframe) {
         status: 'success',
         microphoneItems,
         hasSelectedMicrophone: microphoneItems.some(item => item.selected),
-        sokujiMicPresent: microphoneItems.some(item => item.text.includes('Sokuji Virtual Microphone'))
+        sokujiMicPresent: microphoneItems.some(item => item.text.includes('GM MeetMind Virtual Microphone'))
       };
     },
     // Helper function to manually show audio profile notification

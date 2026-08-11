@@ -3,13 +3,11 @@
 .panel-bar {
   display: flex;
   align-items: center;
-  padding: 0 15px;
+  padding: 0 12px;
   border-bottom: 1px solid vars.$border-subtle;
+  background: color-mix(in srgb, vars.$bg-surface 92%, vars.$bg-page);
   flex-shrink: 0;
 
-  // TabBar provides its own item styling; the bar owns padding + the divider.
-  // min-width:0 + overflow lets the tab strip give way first so the right
-  // cluster (and its collapse button) is never pushed off-screen.
   .tab-bar {
     border-bottom: none;
     padding: 0;
@@ -18,12 +16,26 @@
     overflow: hidden;
   }
 
+  &__title-cluster {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    gap: vars.$space-2;
+  }
+
+  &__title {
+    font-size: vars.$font-title;
+    font-weight: vars.$weight-semibold;
+    color: vars.$text-primary;
+    letter-spacing: -0.02em;
+    padding-left: 2px;
+  }
+
   &__spacer {
     flex: 1;
   }
 
-  // Right cluster never shrinks — the collapse button must always stay
-  // reachable, and nothing here wraps to a second line.
   &__actions {
     margin-left: auto;
     flex-shrink: 0;
@@ -34,79 +46,128 @@
     white-space: nowrap;
   }
 
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 10px 0 8px;
+    margin-right: 4px;
+    background: transparent;
+    border: none;
+    border-radius: vars.$radius-md;
+    color: vars.$text-muted;
+    font-family: inherit;
+    font-size: vars.$font-caption;
+    font-weight: vars.$weight-medium;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition:
+      color vars.$transition-fast,
+      background-color vars.$transition-fast;
+
+    &:hover {
+      color: vars.$text-primary;
+      background: vars.$bg-hover;
+    }
+
+    &:focus-visible {
+      @include vars.focus-ring;
+    }
+  }
+
   &__close {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 32px;
+    height: 32px;
     background: none;
     border: none;
     border-left: 1px solid vars.$border-subtle;
+    border-radius: 0 vars.$radius-sm vars.$radius-sm 0;
     color: vars.$text-muted;
     cursor: pointer;
-    padding: 6px 6px 6px 12px;
-    transition: color vars.$transition-fast;
+    padding: 0;
+    margin-left: 4px;
+    transition:
+      color vars.$transition-fast,
+      background-color vars.$transition-fast;
 
-    &:hover { color: vars.$text-primary; }
-    &:focus-visible { @include vars.focus-ring; }
+    &:hover {
+      color: vars.$text-primary;
+      background: vars.$bg-hover;
+    }
+
+    &:focus-visible {
+      @include vars.focus-ring;
+    }
   }
 
-  // Segmented mode toggle. Applied to a `.mode-toggle` element a consumer
-  // passes via the `actions` slot (see Settings.tsx for the markup shape).
-  // Relocated from Settings.scss, with the track intentionally deepened to
-  // $bg-page (vs the old $bg-surface) so it reads as a recessed segmented
-  // track against the $bg-surface panel rather than two loose buttons.
   .mode-toggle {
     display: flex;
     background: vars.$bg-page;
-    border-radius: vars.$radius-md;
-    padding: 2px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-lg;
+    padding: 3px;
     gap: 2px;
+    box-shadow: inset 0 1px 2px rgba(26, 35, 50, 0.04);
 
     .mode-button {
       display: flex;
       align-items: center;
       gap: 6px;
+      min-height: 30px;
       padding: 6px 12px;
       background: transparent;
       border: none;
-      border-radius: vars.$radius-sm;
+      border-radius: vars.$radius-md;
       color: vars.$text-muted;
+      font-family: inherit;
       font-size: vars.$font-caption;
-      font-weight: 500;
+      font-weight: vars.$weight-medium;
       white-space: nowrap;
       cursor: pointer;
       transition: all vars.$transition-fast;
 
-      svg { width: 14px; height: 14px; }
+      svg {
+        width: 14px;
+        height: 14px;
+      }
 
       &:hover:not(:disabled):not(.active) {
         color: vars.$text-secondary;
-        background: rgba(255, 255, 255, 0.05);
+        background: color-mix(in srgb, vars.$bg-surface 80%, transparent);
       }
 
-      &.active { @include vars.state-selected-fill; }
-      &:disabled { @include vars.disabled-state; }
-      &:focus-visible { @include vars.focus-ring; }
+      &.active {
+        background: vars.$bg-surface;
+        color: vars.$color-primary;
+        box-shadow: 0 1px 3px rgba(26, 35, 50, 0.1);
+        font-weight: vars.$weight-semibold;
+      }
+
+      &:disabled {
+        @include vars.disabled-state;
+      }
+
+      &:focus-visible {
+        @include vars.focus-ring;
+      }
     }
   }
 
-  // When the bar carries tabs (Settings Advanced, all of Logs) the tabs eat
-  // the horizontal room, so the right-cluster controls collapse to icon-only
-  // (their `title`/`aria-label` carry the meaning). With no tabs (Settings
-  // Quick) there is room, so the labels stay visible.
   &--has-tabs {
     .panel-bar__actions .mode-button {
       padding: 6px 8px;
     }
+
     .panel-bar__actions span {
       display: none;
     }
   }
 }
 
-// Tab labels are the last thing to go — only on a genuinely tiny panel. Use an
-// sr-only collapse (not display:none) so the accessible name survives while the
-// visual width drops to just the icon.
 @container panel-chrome (max-width: 360px) {
   .panel-bar .tab-bar__tab span {
     position: absolute;

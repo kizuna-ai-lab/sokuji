@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI会议翻译"
+    "message": "GM MeetMind - AI会议翻译"
   },
   "extensionDescription": {
     "message": "AI驱动的即时语音翻译，适用于所有视频会议。通过实时语音翻译打破语言障碍。"
   },
   "popupTitle": {
-    "message": "Sokuji - 支持的网站"
+    "message": "GM MeetMind - 支持的网站"
   },
   "openSokuji": {
-    "message": "打开 Sokuji"
+    "message": "打开 GM MeetMind"
   },
   "chromeWebStore": {
     "message": "Chrome 网上应用店"
@@ -18,7 +18,7 @@
     "message": "Edge 插件商店"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji 在 $SITE_NAME$ 上可用！",
+    "message": "✓ GM MeetMind 在 $SITE_NAME$ 上可用！",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "点击下方的\"打开 Sokuji\"开始实时翻译。"
+    "message": "点击下方的\"打开 GM MeetMind\"开始实时翻译。"
   },
   "quickStart": {
     "message": "快速开始："
@@ -36,16 +36,16 @@
     "message": "配置您的 API 密钥（OpenAI 或 Gemini）← 选择\"Sokuji_Virtual_Mic\"作为麦克风 ← 开始说话！"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "GM MeetMind for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "要使用 Sokuji，请在麦克风设置中选择<strong>\"Sokuji Virtual Microphone\"</strong>。"
+    "message": "要使用 GM MeetMind，请在麦克风设置中选择<strong>\"GM MeetMind Virtual Microphone\"</strong>。"
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "GM MeetMind for Whereby"
   },
   "wherebyGuidance": {
-    "message": "要使用 Sokuji，请在麦克风设置中选择<strong>\"Sokuji Virtual Microphone\"</strong>，并<strong>关闭噪声抑制</strong>以获得更好的性能。"
+    "message": "要使用 GM MeetMind，请在麦克风设置中选择<strong>\"GM MeetMind Virtual Microphone\"</strong>，并<strong>关闭噪声抑制</strong>以获得更好的性能。"
   },
   "gotIt": {
     "message": "知道了"
@@ -54,37 +54,37 @@
     "message": "稍后提醒"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "要使用 Sokuji，请在麦克风设置中选择\"Sokuji Virtual Microphone\"。"
+    "message": "要使用 GM MeetMind，请在麦克风设置中选择\"GM MeetMind Virtual Microphone\"。"
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "GM MeetMind for Discord"
   },
   "discordGuidance": {
-    "message": "要使用 Sokuji，请在麦克风设置中选择<strong>\"Sokuji Virtual Microphone\"</strong>，并在 Discord 的语音设置中<strong>关闭噪音抑制</strong>以获得更好的性能。"
+    "message": "要使用 GM MeetMind，请在麦克风设置中选择<strong>\"GM MeetMind Virtual Microphone\"</strong>，并在 Discord 的语音设置中<strong>关闭噪音抑制</strong>以获得更好的性能。"
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "GM MeetMind for Slack"
   },
   "slackGuidance": {
-    "message": "要在 Slack Huddles 中使用 Sokuji，请<strong>开始一个 Huddle</strong>，然后在视频和麦克风设置中选择<strong>\"Sokuji Virtual Microphone\"</strong>，并在音频和视频偏好设置中<strong>关闭噪音抑制</strong>以获得更好的性能。"
+    "message": "要在 Slack Huddles 中使用 GM MeetMind，请<strong>开始一个 Huddle</strong>，然后在视频和麦克风设置中选择<strong>\"GM MeetMind Virtual Microphone\"</strong>，并在音频和视频偏好设置中<strong>关闭噪音抑制</strong>以获得更好的性能。"
   },
   "teamsTitle": {
-    "message": "Sokuji for Microsoft Teams"
+    "message": "GM MeetMind for Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "如果您在 Teams 设置中看不到完整的音频设备列表：<br><strong>1)</strong> 暂时禁用 Sokuji 扩展并刷新页面<br><strong>2)</strong> 在提示时允许 Teams 访问您的麦克风和摄像头<br><strong>3)</strong> 重新启用 Sokuji 扩展并再次刷新页面<br><strong>4)</strong> 在提示时允许 Sokuji 访问您的麦克风。<br>现在您应该可以在设置中看到真实设备和 <strong>\"Sokuji Virtual Microphone\"</strong> 虚拟设备了。"
+    "message": "如果您在 Teams 设置中看不到完整的音频设备列表：<br><strong>1)</strong> 暂时禁用 GM MeetMind 扩展并刷新页面<br><strong>2)</strong> 在提示时允许 Teams 访问您的麦克风和摄像头<br><strong>3)</strong> 重新启用 GM MeetMind 扩展并再次刷新页面<br><strong>4)</strong> 在提示时允许 GM MeetMind 访问您的麦克风。<br>现在您应该可以在设置中看到真实设备和 <strong>\"GM MeetMind Virtual Microphone\"</strong> 虚拟设备了。"
   },
   "jitsiTitle": {
-    "message": "Sokuji for Jitsi Meet"
+    "message": "GM MeetMind for Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "要在 Jitsi Meet 中使用 Sokuji，请打开 <strong>Settings > Devices</strong>，选择 <strong>\"Sokuji Virtual Microphone\"</strong> 作为您的麦克风。然后打开 <strong>Advanced audio settings</strong>，并<strong>关闭噪音抑制、回声消除和自动增益控制</strong>以获得清晰的翻译音频。"
+    "message": "要在 Jitsi Meet 中使用 GM MeetMind，请打开 <strong>Settings > Devices</strong>，选择 <strong>\"GM MeetMind Virtual Microphone\"</strong> 作为您的麦克风。然后打开 <strong>Advanced audio settings</strong>，并<strong>关闭噪音抑制、回声消除和自动增益控制</strong>以获得清晰的翻译音频。"
   },
   "unsupportedHeadline": {
-    "message": "Sokuji 暂不支持 $HOSTNAME$。",
+    "message": "GM MeetMind 暂不支持 $HOSTNAME$。",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "下载桌面应用"
   },
   "browserSitesHeading": {
-    "message": "想用浏览器？Sokuji 支持以下网站，点击即可打开："
+    "message": "想用浏览器？GM MeetMind 支持以下网站，点击即可打开："
   },
   "requestSiteLink": {
     "message": "申请站点"
@@ -114,6 +114,6 @@
     "message": "无法识别当前标签页"
   },
   "detectFailBody": {
-    "message": "请刷新页面后重新打开 Sokuji。"
+    "message": "请刷新页面后重新打开 GM MeetMind。"
   }
 }

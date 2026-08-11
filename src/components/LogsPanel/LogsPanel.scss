@@ -17,7 +17,7 @@
       align-items: center;
       background: none;
       border: none;
-      color: #aaa;
+      color: #7A8796;
       cursor: pointer;
       padding: 5px 10px;
       border-radius: 4px;
@@ -29,16 +29,16 @@
       }
 
       &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: white;
+        background-color: rgba(30, 121, 193, 0.08);
+        color: #1A2332;
       }
 
       &.active {
-        background-color: rgba(16, 163, 127, 0.1);
-        color: #10a37f;
+        background-color: rgba(30, 121, 193, 0.1);
+        color: #1E79C1;
 
         &:hover {
-          background-color: rgba(16, 163, 127, 0.2);
+          background-color: rgba(30, 121, 193, 0.2);
         }
       }
     }
@@ -48,7 +48,7 @@
       align-items: center;
       background: none;
       border: none;
-      color: #aaa;
+      color: #7A8796;
       cursor: pointer;
       padding: 5px 10px;
       border-radius: 4px;
@@ -60,8 +60,8 @@
       }
 
       &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: white;
+        background-color: rgba(30, 121, 193, 0.08);
+        color: #1A2332;
       }
     }
 
@@ -70,7 +70,7 @@
       align-items: center;
       background: none;
       border: none;
-      color: #aaa;
+      color: #7A8796;
       cursor: pointer;
       padding: 5px 10px;
       border-radius: 4px;
@@ -106,27 +106,27 @@
       display: flex;
       
       .log-timestamp {
-        color: #888;
+        color: #7A8796;
         margin-right: 10px;
         flex-shrink: 0;
         font-size: 11px;
       }
       
       .log-message {
-        color: #ddd;
+        color: #3D4F63;
         word-break: break-word;
         font-size: 12px;
       }
       
       &.info {
         .log-message {
-          color: #ddd;
+          color: #3D4F63;
         }
       }
       
       &.success {
         .log-message {
-          color: #10a37f;
+          color: #1E79C1;
         }
       }
       
@@ -156,7 +156,7 @@
       align-items: center;
       height: 100%;
       width: 100%;
-      color: #888;
+      color: #7A8796;
       font-size: 16px;
       
       .placeholder-content {
@@ -171,12 +171,12 @@
           align-items: center;
           width: 48px;
           height: 48px;
-          background-color: #333;
+          background-color: #E8EEF4;
           border-radius: 8px;
           margin-bottom: 16px;
           
           svg {
-            color: #888;
+            color: #7A8796;
           }
         }
       }
@@ -187,7 +187,7 @@
       display: flex;
       flex-direction: column;
       margin-bottom: 6px;
-      background-color: #1e1e1e;
+      background-color: #F5F8FB;
       border-radius: 4px;
       overflow: hidden;
       
@@ -200,11 +200,11 @@
         transition: background-color 0.2s;
         
         &:hover {
-          background-color: #2a2a2a;
+          background-color: var(--gm-surface-hover, #eef3f8);
         }
         
         .log-timestamp {
-          color: #888;
+          color: #7A8796;
           margin-right: 5px;
           flex-shrink: 0;
           font-size: 11px;
@@ -221,7 +221,7 @@
         }
         
         .server-icon {
-          color: #10a37f; // Green for server events
+          color: #1E79C1; // Green for server events
         }
         
         .event-info {
@@ -231,11 +231,11 @@
           font-size: 11px;
           
           .source-label {
-            color: #aaa;
+            color: #7A8796;
           }
           
           .event-type {
-            color: #ddd;
+            color: #3D4F63;
           }
           
           .event-count {
@@ -251,15 +251,16 @@
       }
       
       .event-details {
-        background-color: #252525;
+        background-color: #EEF3F8;
         padding: 8px;
         border-radius: 0 0 4px 4px;
         overflow-x: auto;
+        border-top: 1px solid #E8EEF4;
         
         pre {
           margin: 0;
           font-size: 11px;
-          color: #ddd;
+          color: #3D4F63;
           white-space: pre-wrap;
           word-break: break-word;
         }
@@ -270,7 +271,7 @@
           gap: 12px;
           
           .grouped-event {
-            border-left: 2px solid #444;
+            border-left: 2px solid #D5DDE6;
             padding-left: 8px;
             
             .grouped-event-header {
@@ -279,7 +280,7 @@
               
               .grouped-event-index {
                 font-size: 10px;
-                color: #888;
+                color: #7A8796;
                 font-style: italic;
               }
             }
@@ -302,12 +303,12 @@
       .separator-line {
         flex: 1;
         height: 1px;
-        background-color: #333;
+        background-color: #E8EEF4;
       }
       
       .separator-text {
         padding: 0 10px;
-        color: #666;
+        color: #7A8796;
         font-size: 10px;
         text-transform: uppercase;
         letter-spacing: 0.5px;

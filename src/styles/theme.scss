@@ -1,0 +1,97 @@
+// GM MeetMind design tokens — MeetMind desktop chrome
+// Brand: Primary #1E79C1 · Mid #3A8DD5 · Light #60A5E4
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --gm-bg: #f4f7fa;
+  --gm-bg-elevated: #ffffff;
+  --gm-bg-sunken: #e8eef4;
+  --gm-surface: #ffffff;
+  --gm-surface-hover: #eef3f8;
+  --gm-border: #cfd8e3;
+  --gm-border-strong: #a8b6c6;
+
+  /* Ink — stronger contrast for AA on light surfaces */
+  --gm-ink: #182636;
+  --gm-ink-muted: #3d4f63;
+  --gm-ink-subtle: #5a6b7d;
+
+  /* Brand */
+  --gm-accent: #1e79c1;
+  --gm-accent-hover: #1767a6;
+  --gm-accent-soft: #60a5e4;
+  --gm-accent-muted: #e5f2fb;
+  --gm-accent-fg: #ffffff;
+
+  --gm-danger: #b42318;
+  --gm-danger-muted: #fdecea;
+  /* Soft sage success — readable, not neon */
+  --gm-success: #3d6b55;
+  --gm-success-muted: #eef3f0;
+  --gm-success-border: #c5d4cc;
+  --gm-warning: #a35c0d;
+
+  /* Type — SF Pro when available; system + CJK fallbacks for multilingual UI */
+  --gm-font-sans:
+    "SF Pro Display",
+    "SF Pro Text",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Segoe UI Variable",
+    system-ui,
+    "Noto Sans",
+    "Yu Gothic UI",
+    "Meiryo UI",
+    "Microsoft YaHei UI",
+    "Microsoft JhengHei UI",
+    "Malgun Gothic",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  --gm-font-mono:
+    "SF Mono",
+    ui-monospace,
+    Consolas,
+    "Cascadia Mono",
+    "JetBrains Mono",
+    Menlo,
+    monospace;
+
+  /* Type scale (MeetMind) */
+  --gm-fs-xs: 12px;
+  --gm-fs-sm: 13px;
+  --gm-fs-base: 14px;
+  --gm-fs-md: 15px;
+  --gm-fs-lg: 18px;
+  --gm-fs-xl: 22px;
+  --gm-lh-tight: 1.25;
+  --gm-lh-body: 1.5;
+
+  /* Space — 8px grid */
+  --gm-space-1: 4px;
+  --gm-space-2: 8px;
+  --gm-space-3: 12px;
+  --gm-space-4: 16px;
+  --gm-space-5: 20px;
+  --gm-space-6: 24px;
+  --gm-space-7: 32px;
+  --gm-space-8: 40px;
+
+  /* Chrome metrics */
+  --gm-radius: 8px;
+  --gm-radius-sm: 6px;
+  --gm-radius-lg: 12px;
+  --gm-titlebar-h: 52px;
+  --gm-control-h: 36px;
+  --gm-footer-h: 52px;
+  --gm-ease: cubic-bezier(0.2, 0, 0, 1);
+  --gm-shadow-sm: 0 1px 2px rgba(26, 35, 50, 0.06);
+  --gm-shadow-md: 0 8px 24px rgba(26, 35, 50, 0.08);
+
+  --conversation-bg-color: var(--gm-bg);
+  --conversation-font-size: var(--gm-fs-base);
+  --conversation-source-color: var(--gm-ink-subtle);
+  --conversation-translation-color: var(--gm-ink);
+}

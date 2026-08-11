@@ -1,10 +1,26 @@
-/* Popup styles for Sokuji extension */
+/* Popup styles for GM MeetMind extension */
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    "SF Pro Display",
+    "SF Pro Text",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Segoe UI Variable",
+    system-ui,
+    "Noto Sans",
+    "Yu Gothic UI",
+    "Meiryo UI",
+    "Microsoft YaHei UI",
+    "Microsoft JhengHei UI",
+    "Malgun Gothic",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
   background: #ffffff;
-  color: #333333;
+  color: #1a2332;
   min-width: 320px;
   max-width: 400px;
 }
@@ -25,13 +41,15 @@ body {
   width: 32px;
   height: 32px;
   margin-right: 12px;
+  border-radius: 6px;
+  object-fit: cover;
 }
 
 .header h1 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #1E79C1;
 }
 
 .content {
@@ -157,7 +175,7 @@ body {
 }
 
 .site-group-pill:hover {
-  background-color: #667eea;
+  background-color: #1E79C1;
   color: white;
 }
 
@@ -170,7 +188,7 @@ body {
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1E79C1;
   color: white;
   border: none;
   padding: 10px 16px;
@@ -183,7 +201,7 @@ body {
 
 .primary-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(30, 121, 193, 0.3);
 }
 
 .primary-button:active {
@@ -191,7 +209,7 @@ body {
 }
 
 .link {
-  color: #667eea;
+  color: #1E79C1;
   text-decoration: none;
   font-size: 12px;
   text-align: center;
@@ -299,12 +317,12 @@ body {
 .cta-card-button {
   width: 100%;
   /* Brand primary action color (overrides .primary-button's purple gradient,
-     which is kept for the supported-state "Open Sokuji" button). */
-  background: #10a37f;
+     which is kept for the supported-state "Open GM MeetMind" button). */
+  background: #1E79C1;
 }
 
 .cta-card-button:hover {
-  box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
+  box-shadow: 0 4px 12px rgba(30, 121, 193, 0.3);
 }
 
 .browser-sites-heading {
@@ -333,7 +351,7 @@ body {
 }
 
 .popup-footer-links a:last-child {
-  color: #10a37f;
+  color: #1E79C1;
 }
 
 .popup-footer-links a:hover {

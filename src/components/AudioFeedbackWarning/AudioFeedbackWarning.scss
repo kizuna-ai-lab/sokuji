@@ -10,9 +10,9 @@
     background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    color: white;
+    color: #1A2332;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(30, 121, 193, 0.08);
   }
 
   // High risk (speaker mode) - stronger warning
@@ -37,11 +37,11 @@
     align-items: center;
     padding: 16px;
     background: rgba(0, 0, 0, 0.1);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(30, 121, 193, 0.08);
 
     .warning-icon {
       margin-right: 8px;
-      color: #ffffff;
+      color: #1A2332;
     }
 
     .warning-title {
@@ -53,7 +53,7 @@
     .dismiss-button {
       background: none;
       border: none;
-      color: white;
+      color: #1A2332;
       font-size: 20px;
       cursor: pointer;
       padding: 0;
@@ -116,7 +116,7 @@
         align-items: center;
         gap: 12px;
         padding: 12px 16px;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(30, 121, 193, 0.08);
         border-radius: 8px;
         margin-bottom: 12px;
         font-weight: 600;

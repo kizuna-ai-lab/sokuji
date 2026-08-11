@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI Meeting Translator"
+    "message": "GM MeetMind - AI Meeting Translator"
   },
   "extensionDescription": {
     "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "GM MeetMind - Supported Sites"
   },
   "openSokuji": {
-    "message": "Open Sokuji"
+    "message": "Open GM MeetMind"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -18,7 +18,7 @@
     "message": "Edge pievienojumi"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+    "message": "✓ GM MeetMind is available on $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "Click \"Open GM MeetMind\" below to start real-time translation."
   },
   "quickStart": {
     "message": "Quick Start:"
@@ -36,16 +36,16 @@
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "GM MeetMind for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Lai izmantotu Sokuji, lūdzu izvēlieties <strong>\"Sokuji Virtual Microphone\"</strong> mikrofona iestatījumos."
+    "message": "Lai izmantotu GM MeetMind, lūdzu izvēlieties <strong>\"GM MeetMind Virtual Microphone\"</strong> mikrofona iestatījumos."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "GM MeetMind for Whereby"
   },
   "wherebyGuidance": {
-    "message": "Lai izmantotu Sokuji, lūdzu, izvēlieties <strong>\"Sokuji Virtual Microphone\"</strong> mikrofona iestatījumos un <strong>atspējojiet trokšņu samazināšanu</strong> labākai veiktspējai."
+    "message": "Lai izmantotu GM MeetMind, lūdzu, izvēlieties <strong>\"GM MeetMind Virtual Microphone\"</strong> mikrofona iestatījumos un <strong>atspējojiet trokšņu samazināšanu</strong> labākai veiktspējai."
   },
   "gotIt": {
     "message": "Sapratu"
@@ -54,37 +54,37 @@
     "message": "Atgādināt vēlāk"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "To use Sokuji, please select \"Sokuji Virtual Microphone\" in your microphone settings."
+    "message": "To use GM MeetMind, please select \"GM MeetMind Virtual Microphone\" in your microphone settings."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "GM MeetMind for Discord"
   },
   "discordGuidance": {
-    "message": "To use Sokuji, please select <strong>\"Sokuji Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
+    "message": "To use GM MeetMind, please select <strong>\"GM MeetMind Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "GM MeetMind for Slack"
   },
   "slackGuidance": {
-    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
+    "message": "To use GM MeetMind in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"GM MeetMind Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
   "teamsTitle": {
-    "message": "Sokuji priekš Microsoft Teams"
+    "message": "GM MeetMind priekš Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Ja neredzat pilnu audio ierīču sarakstu Teams iestatījumos:<br><strong>1)</strong> Īslaicīgi atspējojiet Sokuji paplašinājumu un atsvaidziniet lapu<br><strong>2)</strong> Atļaujiet Teams piekļūt mikrofonam un kamerai, kad tiek lūgts<br><strong>3)</strong> Vēlreiz iespējojiet Sokuji paplašinājumu un vēlreiz atsvaidziniet lapu<br><strong>4)</strong> Atļaujiet Sokuji piekļūt mikrofonam, kad tiek lūgts. Tagad jums vajadzētu redzēt gan īstās ierīces, gan <strong>\"Sokuji Virtual Microphone\"</strong> iestatījumos."
+    "message": "Ja neredzat pilnu audio ierīču sarakstu Teams iestatījumos:<br><strong>1)</strong> Īslaicīgi atspējojiet GM MeetMind paplašinājumu un atsvaidziniet lapu<br><strong>2)</strong> Atļaujiet Teams piekļūt mikrofonam un kamerai, kad tiek lūgts<br><strong>3)</strong> Vēlreiz iespējojiet GM MeetMind paplašinājumu un vēlreiz atsvaidziniet lapu<br><strong>4)</strong> Atļaujiet GM MeetMind piekļūt mikrofonam, kad tiek lūgts. Tagad jums vajadzētu redzēt gan īstās ierīces, gan <strong>\"GM MeetMind Virtual Microphone\"</strong> iestatījumos."
   },
   "jitsiTitle": {
-    "message": "Sokuji for Jitsi Meet"
+    "message": "GM MeetMind for Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "Lai izmantotu Sokuji pakalpojumā Jitsi Meet, atveriet <strong>Settings > Devices</strong> un izvēlieties <strong>\"Sokuji Virtual Microphone\"</strong> kā savu mikrofonu. Pēc tam atveriet <strong>Advanced audio settings</strong> un <strong>atspējojiet Noise suppression, Echo cancellation un Automatic gain control</strong>, lai iegūtu skaidru tulkoto audio."
+    "message": "Lai izmantotu GM MeetMind pakalpojumā Jitsi Meet, atveriet <strong>Settings > Devices</strong> un izvēlieties <strong>\"GM MeetMind Virtual Microphone\"</strong> kā savu mikrofonu. Pēc tam atveriet <strong>Advanced audio settings</strong> un <strong>atspējojiet Noise suppression, Echo cancellation un Automatic gain control</strong>, lai iegūtu skaidru tulkoto audio."
   },
   "unsupportedHeadline": {
-    "message": "Sokuji vēl nav pieejams vietnē $HOSTNAME$.",
+    "message": "GM MeetMind vēl nav pieejams vietnē $HOSTNAME$.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "Lejupielādēt darbvirsmas lietotni"
   },
   "browserSitesHeading": {
-    "message": "Dodat priekšroku pārlūkprogrammai? Sokuji darbojas šajās vietnēs — noklikšķiniet, lai atvērtu:"
+    "message": "Dodat priekšroku pārlūkprogrammai? GM MeetMind darbojas šajās vietnēs — noklikšķiniet, lai atvērtu:"
   },
   "requestSiteLink": {
     "message": "Pieprasīt vietni"
@@ -114,6 +114,6 @@
     "message": "Nevarēja noteikt šo cilni"
   },
   "detectFailBody": {
-    "message": "Atsvaidziniet lapu un atkārtoti atveriet Sokuji."
+    "message": "Atsvaidziniet lapu un atkārtoti atveriet GM MeetMind."
   }
 }

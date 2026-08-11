@@ -19,7 +19,7 @@
 
   // Virtual device configuration
   const VIRTUAL_MIC_ID = 'sokuji-virtual-microphone';
-  const VIRTUAL_MIC_LABEL = 'Sokuji Virtual Microphone';
+  const VIRTUAL_MIC_LABEL = 'GM MeetMind Virtual Microphone';
   const VIRTUAL_MIC_GROUP_ID = 'sokuji-device-group';
   const SAMPLE_RATE = 24000;
   const CHANNEL_COUNT = 1;

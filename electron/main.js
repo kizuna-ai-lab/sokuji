@@ -65,9 +65,9 @@ const {
 }
 
 // Set application name for PulseAudio
-app.setName('sokuji');
-app.commandLine.appendSwitch('application-name', 'sokuji');
-app.commandLine.appendSwitch('jack-name', 'sokuji');
+app.setName('GM MeetMind');
+app.commandLine.appendSwitch('application-name', 'gm-meetmind');
+app.commandLine.appendSwitch('jack-name', 'gm-meetmind');
 
 // Enable WebGPU for ONNX Runtime acceleration
 app.commandLine.appendSwitch('enable-unsafe-webgpu');
@@ -163,8 +163,8 @@ function createApplicationMenu() {
             dialog.showMessageBox({
               type: 'info',
               title: `About ${app.getName()}`,
-              message: 'Sokuji - Real-time AI Translation',
-              detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2026 Kizuna AI Lab`,
+              message: 'GM MeetMind - Real-time AI Translation',
+              detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2026 GM Solutions`,
               buttons: ['OK'],
               icon: path.join(__dirname, '../assets/icon.png')
             });
@@ -260,8 +260,8 @@ function createApplicationMenu() {
             dialog.showMessageBox({
               type: 'info',
               title: `About ${app.getName()}`,
-              message: 'Sokuji - Real-time AI Translation',
-              detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2026 Kizuna AI Lab`,
+              message: 'GM MeetMind - Real-time AI Translation',
+              detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2026 GM Solutions`,
               buttons: ['OK'],
               icon: path.join(__dirname, '../assets/icon.png')
             });
@@ -317,12 +317,12 @@ function createWindow() {
   const electronVersion = process.versions.electron;
   const appVersion = app.getVersion();
   const osName = { darwin: 'macOS', win32: 'Windows', linux: 'Linux' }[process.platform] || process.platform;
-  const customUserAgent = `Sokuji/${appVersion} Electron/${electronVersion} (${osName})`;
+  const customUserAgent = `GMMeetMind/${appVersion} Electron/${electronVersion} (${osName})`;
 
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: 'Sokuji',
+    title: 'GM MeetMind',
     icon: iconPath,
     frame: false,
     transparent: true,

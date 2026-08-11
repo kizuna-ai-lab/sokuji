@@ -283,14 +283,14 @@
     align-items: center;
     gap: 3px;
     padding: 1px 6px;
-    background: rgba(255, 255, 255, 0.08);
+    background: #EEF3F8;
     border-radius: 3px;
     font-size: vars.$font-caption;
     color: vars.$text-muted;
   }
 
   &__lang-tag--live { border: 1px solid currentColor; font-weight: 600; }  // highlighted (neutral): chosen-CPU
-  &__lang-tag--accel { border-color: #10a37f; color: #10a37f; }  // GPU live
+  &__lang-tag--accel { border-color: #1E79C1; color: #1E79C1; }  // GPU live
   &__lang-tag--warn  { border-color: #e74c3c; color: #e74c3c; }  // degraded CPU
 
   &__recommended-badge {
@@ -381,12 +381,12 @@
     }
 
     &--cancel {
-      background: rgba(255, 255, 255, 0.1);
+      background: #E4ECF4;
       color: vars.$text-muted;
       padding: 3px 6px;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.15);
+        background: #CFD8E3;
         color: vars.$text-primary;
       }
     }
@@ -412,7 +412,7 @@
 
   &__progress-bar {
     height: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: #E4ECF4;
     border-radius: 2px;
     overflow: hidden;
   }
@@ -498,7 +498,7 @@
     font: inherit;
     font-size: vars.$font-caption;
     color: vars.$text-secondary;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--gm-surface-hover, #eef3f8);
     border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-sm;
     padding: 2px 6px;
@@ -507,7 +507,7 @@
 
     &:hover:not(:disabled) {
       border-color: vars.$border-default;
-      background: rgba(255, 255, 255, 0.08);
+      background: #EEF3F8;
     }
 
     &:disabled { cursor: not-allowed; opacity: 0.6; }
@@ -531,7 +531,7 @@
     flex-direction: column;
     gap: 2px;
     padding: 4px;
-    background: #1f2225;
+    background: #EEF3F8;
     border: 1px solid vars.$border-default;
     border-radius: vars.$radius-sm;
     // The selectable .model-card sets cursor:pointer, which `cursor` inheritance
@@ -556,7 +556,7 @@
 
     // Hover highlight only on selectable rows (unsupported rows use aria-disabled,
     // not the :disabled pseudo-class, so exclude them by class).
-    &:hover:not(:disabled):not(#{&}--unsupported) { background: rgba(255, 255, 255, 0.06); }
+    &:hover:not(:disabled):not(#{&}--unsupported) { background: #E4ECF4; }
 
     // Selected variant: filled tint only (no accent-bar shadow, by preference) —
     // still unmistakable via the green name + check.

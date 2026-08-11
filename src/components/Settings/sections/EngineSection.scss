@@ -1,8 +1,7 @@
-// Engine (sidecar bundle) card — dark-theme styling consistent with the
-// model-management cards (see ModelManagementSection.scss).
+// Engine (sidecar bundle) card — GM MeetMind light theme
 .engine-section {
-  background: #1e1e1e;
-  border: 1px solid #333;
+  background: #FFFFFF;
+  border: 1px solid #D5DDE6;
   border-radius: 8px;
   padding: 12px 14px;
   margin-bottom: 12px;
@@ -10,46 +9,40 @@
   flex-direction: column;
   gap: 8px;
 
-  &__header { display: flex; align-items: center; gap: 8px; color: #e0e0e0; }
+  &__header { display: flex; align-items: center; gap: 8px; color: #1A2332; }
   &__title { font-weight: 600; font-size: 13px; flex: 1; }
-  &__version { display: inline-flex; align-items: center; gap: 4px; color: #10a37f; font-size: 12px; }
+  &__version { display: inline-flex; align-items: center; gap: 4px; color: #1E79C1; font-size: 12px; }
 
   &__row {
-    display: flex; align-items: center; gap: 6px; font-size: 12px; color: #b0b0b0;
-    &--muted { color: #888; }
-    &--warn { color: #e6a23c; }
-    &--error { color: #e74c3c; }
+    display: flex; align-items: center; gap: 6px; font-size: 12px; color: #546274;
+    &--muted { color: #7A8796; }
+    &--warn { color: #C47A12; }
+    &--error { color: #C62828; }
   }
 
-  &__bar { height: 6px; border-radius: 3px; background: #333; overflow: hidden; }
+  &__bar { height: 6px; border-radius: 3px; background: #E8EEF4; overflow: hidden; }
   &__bar-fill {
-    height: 100%; background: #10a37f; transition: width 0.2s ease;
+    height: 100%; background: #1E79C1; transition: width 0.2s ease;
     &--busy { width: 100%; animation: engine-busy 1.2s linear infinite; }
   }
 
   &__action {
     align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
-    background: #10a37f; color: #fff; border: none; border-radius: 6px;
+    background: #1E79C1; color: #fff; border: none; border-radius: 6px;
     padding: 6px 12px; font-size: 12px; cursor: pointer;
-    &:hover { background: #0e9271; }
+    &:hover { background: #1969A8; }
     &:disabled { opacity: 0.5; cursor: default; }
-    &--secondary { background: #444; &:hover { background: #555; } }
+    &--secondary { background: #EEF3F8; color: #1A2332; &:hover { background: #E4ECF4; } }
   }
 
   &__link {
     display: inline-flex; align-items: center; gap: 4px; background: none; border: none;
-    color: #888; font-size: 12px; cursor: pointer; padding: 0; margin-left: auto;
-    &:hover { color: #e74c3c; }
-    &:disabled { opacity: 0.5; cursor: default; }
+    color: #1E79C1; font-size: 12px; cursor: pointer; padding: 0;
+    &:hover { text-decoration: underline; }
   }
-
-  // Stands between the engine card and the next settings section — needs its
-  // own bottom breathing room (sections carry no margin-top of their own).
-  &__models-placeholder { font-size: 12px; color: #888; padding: 10px 4px; margin-bottom: 16px; }
 }
 
 @keyframes engine-busy {
-  0% { opacity: 0.35; }
-  50% { opacity: 0.7; }
-  100% { opacity: 0.35; }
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 0; }
 }

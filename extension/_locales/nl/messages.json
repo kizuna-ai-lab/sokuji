@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI-vergadervertaler"
+    "message": "GM MeetMind - AI-vergadervertaler"
   },
   "extensionDescription": {
     "message": "AI-aangedreven directe spraakvertaling voor alle videovergaderingen. Doorbreek taalbarrières met realtime stemvertaling."
   },
   "popupTitle": {
-    "message": "Sokuji - Ondersteunde Sites"
+    "message": "GM MeetMind - Ondersteunde Sites"
   },
   "openSokuji": {
-    "message": "Sokuji Openen"
+    "message": "GM MeetMind Openen"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -18,7 +18,7 @@
     "message": "Edge-invoegtoepassingen"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is beschikbaar op $SITE_NAME$!",
+    "message": "✓ GM MeetMind is beschikbaar op $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "Klik op \"Sokuji Openen\" hieronder om realtime vertaling te starten."
+    "message": "Klik op \"GM MeetMind Openen\" hieronder om realtime vertaling te starten."
   },
   "quickStart": {
     "message": "Snelle Start:"
@@ -36,16 +36,16 @@
     "message": "Configureer uw API-sleutel (OpenAI of Gemini) → Selecteer \"Sokuji_Virtual_Mic\" als microfoon → Begin met spreken!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji voor Gather Town"
+    "message": "GM MeetMind voor Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Om Sokuji te gebruiken, selecteer <strong>\"Sokuji Virtual Microphone\"</strong> in uw microfooninstellingen."
+    "message": "Om GM MeetMind te gebruiken, selecteer <strong>\"GM MeetMind Virtual Microphone\"</strong> in uw microfooninstellingen."
   },
   "wherebyTitle": {
-    "message": "Sokuji voor Whereby"
+    "message": "GM MeetMind voor Whereby"
   },
   "wherebyGuidance": {
-    "message": "Om Sokuji te gebruiken, selecteer <strong>\"Sokuji Virtual Microphone\"</strong> in de microfooninstellingen en <strong>schakel ruisonderdrukking uit</strong> voor betere prestaties."
+    "message": "Om GM MeetMind te gebruiken, selecteer <strong>\"GM MeetMind Virtual Microphone\"</strong> in de microfooninstellingen en <strong>schakel ruisonderdrukking uit</strong> voor betere prestaties."
   },
   "gotIt": {
     "message": "Begrepen"
@@ -54,37 +54,37 @@
     "message": "Later herinneren"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "Om Sokuji te gebruiken, selecteer \"Sokuji Virtual Microphone\" in uw microfooninstellingen."
+    "message": "Om GM MeetMind te gebruiken, selecteer \"GM MeetMind Virtual Microphone\" in uw microfooninstellingen."
   },
   "discordTitle": {
-    "message": "Sokuji voor Discord"
+    "message": "GM MeetMind voor Discord"
   },
   "discordGuidance": {
-    "message": "Om Sokuji te gebruiken, selecteer <strong>\"Sokuji Virtual Microphone\"</strong> in uw microfooninstellingen en <strong>schakel Ruisonderdrukking uit</strong> in de Discord-spraakinstellingen voor betere prestaties."
+    "message": "Om GM MeetMind te gebruiken, selecteer <strong>\"GM MeetMind Virtual Microphone\"</strong> in uw microfooninstellingen en <strong>schakel Ruisonderdrukking uit</strong> in de Discord-spraakinstellingen voor betere prestaties."
   },
   "slackTitle": {
-    "message": "Sokuji voor Slack"
+    "message": "GM MeetMind voor Slack"
   },
   "slackGuidance": {
-    "message": "Om Sokuji in Slack Huddles te gebruiken, <strong>start een Huddle</strong>, selecteer dan <strong>\"Sokuji Virtual Microphone\"</strong> in je video- en microfooninstellingen, en <strong>schakel ruisonderdrukking uit</strong> in audio- en videovoorkeuren voor betere prestaties."
+    "message": "Om GM MeetMind in Slack Huddles te gebruiken, <strong>start een Huddle</strong>, selecteer dan <strong>\"GM MeetMind Virtual Microphone\"</strong> in je video- en microfooninstellingen, en <strong>schakel ruisonderdrukking uit</strong> in audio- en videovoorkeuren voor betere prestaties."
   },
   "teamsTitle": {
-    "message": "Sokuji voor Microsoft Teams"
+    "message": "GM MeetMind voor Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Als u de volledige lijst met audioapparaten niet ziet in de Teams-instellingen:<br><strong>1)</strong> Schakel de Sokuji-extensie tijdelijk uit en vernieuw de pagina<br><strong>2)</strong> Sta Teams toegang tot uw microfoon en camera toe wanneer daarom wordt gevraagd<br><strong>3)</strong> Schakel de Sokuji-extensie opnieuw in en vernieuw de pagina opnieuw<br><strong>4)</strong> Sta Sokuji toegang tot uw microfoon toe wanneer daarom wordt gevraagd. Nu zou u zowel echte apparaten als <strong>\"Sokuji Virtual Microphone\"</strong> in uw instellingen moeten zien."
+    "message": "Als u de volledige lijst met audioapparaten niet ziet in de Teams-instellingen:<br><strong>1)</strong> Schakel de GM MeetMind-extensie tijdelijk uit en vernieuw de pagina<br><strong>2)</strong> Sta Teams toegang tot uw microfoon en camera toe wanneer daarom wordt gevraagd<br><strong>3)</strong> Schakel de GM MeetMind-extensie opnieuw in en vernieuw de pagina opnieuw<br><strong>4)</strong> Sta GM MeetMind toegang tot uw microfoon toe wanneer daarom wordt gevraagd. Nu zou u zowel echte apparaten als <strong>\"GM MeetMind Virtual Microphone\"</strong> in uw instellingen moeten zien."
   },
   "jitsiTitle": {
-    "message": "Sokuji voor Jitsi Meet"
+    "message": "GM MeetMind voor Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "Om Sokuji in Jitsi Meet te gebruiken, open <strong>Settings > Devices</strong> en selecteer <strong>\"Sokuji Virtual Microphone\"</strong> als uw microfoon. Open vervolgens <strong>Advanced audio settings</strong> en <strong>schakel Ruisonderdrukking, Echo-onderdrukking en Automatische versterkingsregeling uit</strong> voor heldere vertaalde audio."
+    "message": "Om GM MeetMind in Jitsi Meet te gebruiken, open <strong>Settings > Devices</strong> en selecteer <strong>\"GM MeetMind Virtual Microphone\"</strong> als uw microfoon. Open vervolgens <strong>Advanced audio settings</strong> en <strong>schakel Ruisonderdrukking, Echo-onderdrukking en Automatische versterkingsregeling uit</strong> voor heldere vertaalde audio."
   },
   "unsupportedHeadline": {
-    "message": "Sokuji is nog niet beschikbaar op $HOSTNAME$.",
+    "message": "GM MeetMind is nog niet beschikbaar op $HOSTNAME$.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "Desktop-app downloaden"
   },
   "browserSitesHeading": {
-    "message": "Liever de browser? Sokuji werkt op deze sites — klik om te openen:"
+    "message": "Liever de browser? GM MeetMind werkt op deze sites — klik om te openen:"
   },
   "requestSiteLink": {
     "message": "Vraag een site aan"
@@ -114,6 +114,6 @@
     "message": "Dit tabblad kon niet worden gedetecteerd"
   },
   "detectFailBody": {
-    "message": "Ververs de pagina en open Sokuji opnieuw."
+    "message": "Ververs de pagina en open GM MeetMind opnieuw."
   }
 }

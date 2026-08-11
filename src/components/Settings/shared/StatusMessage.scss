@@ -4,10 +4,11 @@
   display: flex;
   align-items: center;
   gap: vars.$space-2;
-  padding: vars.$space-2 10px;
-  border-radius: vars.$radius-sm;
+  padding: 10px 12px;
+  border-radius: vars.$radius-md;
   font-size: vars.$font-caption;
   margin-bottom: vars.$space-3;
+  line-height: 1.4;
 
   &__icon {
     display: flex;
@@ -30,6 +31,7 @@
       vars.$color-success-bg,
       vars.$color-success-border
     );
+    border-radius: vars.$radius-md;
   }
 
   &--warning {
@@ -38,6 +40,7 @@
       vars.$color-warning-bg,
       vars.$color-warning-border
     );
+    border-radius: vars.$radius-md;
   }
 
   &--error {
@@ -46,6 +49,7 @@
       vars.$color-error-bg,
       vars.$color-error-border
     );
+    border-radius: vars.$radius-md;
   }
 
   &--info {
@@ -54,13 +58,13 @@
       vars.$color-info-bg,
       vars.$color-info-border
     );
+    border-radius: vars.$radius-md;
   }
 
-  // Spinner variant for loading states
   .spinner {
     width: 14px;
     height: 14px;
-    border: 2px solid transparent;
+    border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
     border-top-color: currentColor;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;

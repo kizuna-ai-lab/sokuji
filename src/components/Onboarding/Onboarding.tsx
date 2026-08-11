@@ -33,7 +33,7 @@ const TARGET_NAVIGATION_MAP: Record<string, string | 'close-settings'> = {
 // (offsetParent is null anywhere under a display:none ancestor).
 const isSettingsPanelVisible = (): boolean => {
   const panel = document.querySelector<HTMLElement>(
-    '.settings-panel, .simple-settings, .advanced-settings'
+    '.settings-full-slot .settings-container, .simple-settings, .advanced-settings'
   );
   return !!panel && panel.offsetParent !== null;
 };
@@ -192,10 +192,10 @@ const Onboarding: React.FC = () => {
         // v2's disableOverlayClose.
         overlayClickAction: false,
         showProgress: true,
-        primaryColor: '#007bff',
+        primaryColor: '#1E79C1',
         backgroundColor: '#ffffff',
-        textColor: '#333333',
-        overlayColor: 'rgba(0, 0, 0, 0.4)',
+        textColor: '#182636',
+        overlayColor: 'rgba(24, 38, 54, 0.4)',
         beaconSize: 36,
         zIndex: 10000,
       }}

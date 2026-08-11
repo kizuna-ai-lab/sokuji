@@ -33,9 +33,9 @@ module.exports = {
     asar: true,
     extraResource: ['assets', 'resources'],
     icon: process.platform === 'win32' ? 'assets/icon.ico' : 'assets/icon',
-    appId: 'ai.kizunaai.sokuji',
-    executableName: 'sokuji',
-    name: 'Sokuji',
+    appId: 'vn.gmmeetminds.gmmeetmind',
+    executableName: 'gm-meetmind',
+    name: 'GM MeetMind',
     // Whitelist-based ignore: only include package.json, dist-electron/,
     // build/ (minus wasm/), and node_modules/ (pruned by Forge).
     // Everything else (src/, public/, model-packs/, extension/, etc.) is excluded.

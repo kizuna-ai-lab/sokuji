@@ -2,33 +2,55 @@
 
 .tab-bar {
   display: flex;
-  gap: vars.$space-1;
-  padding: 0 15px;
+  gap: 2px;
+  padding: 0 12px;
   border-bottom: 1px solid vars.$border-subtle;
   flex-shrink: 0;
 
   &__tab {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: vars.$space-1;
-    padding: vars.$space-2 vars.$space-3;
+    gap: 8px;
+    padding: 12px 14px;
     background: none;
     border: none;
-    border-bottom: 2px solid transparent;
     color: vars.$text-muted;
+    font-family: inherit;
     font-size: vars.$font-body;
     font-weight: vars.$weight-medium;
     line-height: 1;
     cursor: pointer;
-    transition: color vars.$transition-fast, border-color vars.$transition-fast;
+    transition:
+      color vars.$transition-fast,
+      background-color vars.$transition-fast;
     white-space: nowrap;
+    border-radius: vars.$radius-md vars.$radius-md 0 0;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 0;
+      height: 2px;
+      border-radius: 2px 2px 0 0;
+      background: transparent;
+      transition: background-color vars.$transition-fast;
+    }
 
     &:hover {
       color: vars.$text-secondary;
+      background: color-mix(in srgb, vars.$bg-hover 70%, transparent);
     }
 
     &--active {
-      @include vars.state-selected-underline;
+      color: vars.$color-primary;
+      font-weight: vars.$weight-semibold;
+
+      &::after {
+        background: vars.$color-primary;
+      }
     }
 
     &:focus-visible {
@@ -38,6 +60,7 @@
 
     svg {
       flex-shrink: 0;
+      opacity: 0.9;
     }
   }
 }

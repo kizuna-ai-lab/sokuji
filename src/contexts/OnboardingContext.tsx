@@ -49,15 +49,15 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
   const allSteps: (OnboardingStep | null)[] = [
   {
     target: 'body',
-    content: t('onboarding.basic.steps.welcome.content', 'Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps.'),
-    title: t('onboarding.basic.steps.welcome.title', 'Welcome to Sokuji'),
+    content: t('onboarding.basic.steps.welcome.content', 'Welcome to GM MeetMind! This simple guide will help you start using real-time translation in just a few steps.'),
+    title: t('onboarding.basic.steps.welcome.title', 'Welcome to GM MeetMind'),
     placement: 'center',
     skipBeacon: true,
-    primaryColor: '#10a37f',
+    primaryColor: '#1E79C1',
   },
   {
     target: '.mode-picker',
-    content: t('onboarding.basic.steps.mode.content', "Choose what Sokuji translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio."),
+    content: t('onboarding.basic.steps.mode.content', "Choose what GM MeetMind translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio."),
     title: t('onboarding.basic.steps.mode.title', 'Translation mode'),
     placement: 'top',
   },
@@ -69,7 +69,7 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
   },
   isKizunaAIEnabled() ? {
     target: '#user-account-section',
-    content: t('onboarding.basic.steps.account.content', 'Sign in to use Sokuji\'s built-in translation service, or choose another provider and enter your own API key.'),
+    content: t('onboarding.basic.steps.account.content', 'Sign in to use GM MeetMind\'s built-in translation service, or choose another provider and enter your own API key.'),
     title: t('onboarding.basic.steps.account.title', 'Step 2: User Account'),
     placement: 'left',
   } : null,
@@ -81,7 +81,7 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
   },
   {
     target: '#provider-section',
-    content: t('onboarding.basic.steps.provider.content', 'Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
+    content: t('onboarding.basic.steps.provider.content', 'Choose your translation provider. GM MeetMind supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
     title: t('onboarding.basic.steps.provider.title', 'Step 4: Translation Provider'),
     placement: 'left',
   },
@@ -93,7 +93,7 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
   },
   {
     target: '#speaker-section',
-    content: t('onboarding.basic.steps.speaker.content', 'Choose a monitoring device to preview the translation. Translated audio is always output to the virtual microphone regardless of monitoring. Select Sokuji Virtual Microphone as the microphone input in your meeting app or website. Headphones are recommended for monitoring to avoid feedback.'),
+    content: t('onboarding.basic.steps.speaker.content', 'Choose a monitoring device to preview the translation. Translated audio is always output to the virtual microphone regardless of monitoring. Select GM MeetMind Virtual Microphone as the microphone input in your meeting app or website. Headphones are recommended for monitoring to avoid feedback.'),
     title: t('onboarding.basic.steps.speaker.title', 'Step 6: Select Speaker'),
     placement: 'left',
   },
@@ -111,7 +111,7 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
   },
   {
     target: 'body',
-    content: t('onboarding.basic.steps.complete.content', 'Perfect! You\'re ready to use Sokuji. Click Start and begin speaking to hear real-time translations.'),
+    content: t('onboarding.basic.steps.complete.content', 'Perfect! You\'re ready to use GM MeetMind. Click Start and begin speaking to hear real-time translations.'),
     title: t('onboarding.basic.steps.complete.title', 'All Set!'),
     placement: 'center',
     skipBeacon: true,
@@ -126,15 +126,15 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
   const allSteps: (OnboardingStep | null)[] = [
     {
       target: 'body',
-      content: t('onboarding.steps.welcome.content', 'Welcome to Sokuji! This guide will help you set up the extension for live speech translation. Let\'s get started!'),
-      title: t('onboarding.steps.welcome.title', 'Welcome to Sokuji'),
+      content: t('onboarding.steps.welcome.content', 'Welcome to GM MeetMind! This guide will help you set up the extension for live speech translation. Let\'s get started!'),
+      title: t('onboarding.steps.welcome.title', 'Welcome to GM MeetMind'),
       placement: 'center',
       skipBeacon: true,
-      primaryColor: '#007bff',
+      primaryColor: '#1E79C1',
     },
     {
       target: '.mode-picker',
-      content: t('onboarding.steps.mode.content', "Choose what Sokuji translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio."),
+      content: t('onboarding.steps.mode.content', "Choose what GM MeetMind translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio."),
       title: t('onboarding.steps.mode.title', 'Translation mode'),
       placement: 'top',
     },
@@ -146,7 +146,7 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
     },
     {
       target: '.provider-section',
-      content: t('onboarding.steps.apiKey.content', 'Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
+      content: t('onboarding.steps.apiKey.content', 'Choose your translation provider. GM MeetMind supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
       title: t('onboarding.steps.apiKey.title', 'Step 2: Translation Provider'),
       placement: 'left',
     },
@@ -188,7 +188,7 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
     },
     {
       target: '.session-button',
-      content: t('onboarding.steps.startSession.content', 'Click the "Start Session" button to begin using Sokuji. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use "Push to Talk" (Space key) to speak.'),
+      content: t('onboarding.steps.startSession.content', 'Click the "Start Session" button to begin using GM MeetMind. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use "Push to Talk" (Space key) to speak.'),
       title: t('onboarding.steps.startSession.title', 'Step 9: Start Session'),
       placement: 'top',
     },

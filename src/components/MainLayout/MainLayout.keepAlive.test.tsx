@@ -3,9 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { useState } from 'react';
 import MainLayout from './MainLayout';
 
-// Stateful stub: proves whether a panel's component state survives
-// panel switches. Pre-keep-alive, switching panels unmounted the
-// component and reset the counter.
 const CounterStub = ({ label }: { label: string }) => {
   const [count, setCount] = useState(0);
   return (
@@ -18,24 +15,13 @@ vi.mock('../Onboarding/Onboarding', () => ({ default: () => null }));
 vi.mock('../Subtitle/SubtitleApp', () => ({ default: () => null }));
 vi.mock('../UserTypeSelection/UserTypeSelection', () => ({ default: () => null }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));
+vi.mock('../TitleBar/TitleBar', () => ({ default: () => null }));
 
 vi.mock('../LogsPanel/LogsPanel', () => ({
   default: () => <CounterStub label="logs" />,
 }));
 vi.mock('../Settings', () => ({
   Settings: () => <CounterStub label="settings" />,
-}));
-
-// TitleBar: just the two toggle buttons MainLayout wires up.
-vi.mock('../TitleBar/TitleBar', () => ({
-  default: ({ onToggleSettings, onToggleLogs }: {
-    onToggleSettings: () => void; onToggleLogs: () => void;
-  }) => (
-    <div>
-      <button onClick={onToggleSettings}>toggle-settings</button>
-      <button onClick={onToggleLogs}>toggle-logs</button>
-    </div>
-  ),
 }));
 
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
@@ -62,39 +48,54 @@ describe('MainLayout panel keep-alive', () => {
     localStorage.clear();
   });
 
-  it('preserves panel state across settings -> logs -> settings', () => {
+  it('preserves settings state across session toggle', () => {
     render(<MainLayout />);
 
-    fireEvent.click(screen.getByText('toggle-settings'));
+    fireEvent.click(screen.getByLabelText('Settings'));
     const settings = screen.getByText(/^settings:/);
     fireEvent.click(settings);
     fireEvent.click(settings);
     expect(settings).toHaveTextContent('settings:2');
 
-    fireEvent.click(screen.getByText('toggle-logs'));
+    // Back to session (toggle settings off), then reopen.
+    fireEvent.click(screen.getByLabelText('Settings'));
     expect(screen.getByText(/^settings:/)).not.toBeVisible();
-    expect(screen.getByText(/^logs:/)).toBeVisible();
 
-    fireEvent.click(screen.getByText('toggle-settings'));
+    fireEvent.click(screen.getByLabelText('Settings'));
     expect(screen.getByText(/^settings:/)).toBeVisible();
     expect(screen.getByText(/^settings:/)).toHaveTextContent('settings:2');
   });
 
-  it('preserves panel state across close and reopen', () => {
+  it('preserves logs drawer state across close and reopen', () => {
     render(<MainLayout />);
 
-    fireEvent.click(screen.getByText('toggle-settings'));
+    fireEvent.click(screen.getByLabelText('Logs'));
+    const logs = screen.getByText(/^logs:/);
+    fireEvent.click(logs);
+    expect(logs).toHaveTextContent('logs:1');
+
+    fireEvent.click(screen.getByLabelText('Logs'));
+    expect(screen.getByText(/^logs:/)).not.toBeVisible();
+
+    fireEvent.click(screen.getByLabelText('Logs'));
+    expect(screen.getByText(/^logs:/)).toBeVisible();
+    expect(screen.getByText(/^logs:/)).toHaveTextContent('logs:1');
+  });
+
+  it('keeps settings alive while logs drawer overlays', () => {
+    render(<MainLayout />);
+
+    fireEvent.click(screen.getByLabelText('Settings'));
     fireEvent.click(screen.getByText(/^settings:/));
     expect(screen.getByText(/^settings:/)).toHaveTextContent('settings:1');
 
-    // Close the panel entirely, then reopen it.
-    fireEvent.click(screen.getByText('toggle-settings'));
-    expect(screen.getByText(/^settings:/)).not.toBeVisible();
-    fireEvent.click(screen.getByText('toggle-settings'));
+    fireEvent.click(screen.getByLabelText('Logs'));
+    expect(screen.getByText(/^logs:/)).toBeVisible();
+    // Settings remains the active main view under the drawer overlay.
     expect(screen.getByText(/^settings:/)).toHaveTextContent('settings:1');
   });
 
-  it('shows no panel initially and keeps hidden panels out of the visible layout', () => {
+  it('shows session initially with settings/logs hidden', () => {
     render(<MainLayout />);
     expect(screen.getByText(/^settings:/)).not.toBeVisible();
     expect(screen.getByText(/^logs:/)).not.toBeVisible();

@@ -96,7 +96,7 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
               if (el) onSegmentClick(seg, el);
             }}
           >
-            <Icon size={14} />
+            <Icon size={15} strokeWidth={1.75} />
             <span className="mode-picker__label">{label}</span>
           </button>
         );

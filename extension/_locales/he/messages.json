@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - מתרגם פגישות AI"
+    "message": "GM MeetMind - מתרגם פגישות AI"
   },
   "extensionDescription": {
     "message": "תרגום דיבור מיידי מבוסס בינה מלאכותית לכל פגישות הווידאו. שבירת מחסומי השפה עם תרגום קולי בזמן אמת."
   },
   "popupTitle": {
-    "message": "Sokuji - אתרים נתמכים"
+    "message": "GM MeetMind - אתרים נתמכים"
   },
   "openSokuji": {
-    "message": "פתח Sokuji"
+    "message": "פתח GM MeetMind"
   },
   "chromeWebStore": {
     "message": "חנות האינטרנט של Chrome"
@@ -18,7 +18,7 @@
     "message": "תוספות Edge"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji זמין ב-$SITE_NAME$!",
+    "message": "✓ GM MeetMind זמין ב-$SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "לחץ על \"פתח Sokuji\" למטה כדי להתחיל תרגום בזמן אמת."
+    "message": "לחץ על \"פתח GM MeetMind\" למטה כדי להתחיל תרגום בזמן אמת."
   },
   "quickStart": {
     "message": "התחלה מהירה:"
@@ -36,16 +36,16 @@
     "message": "הגדר את מפתח ה-API של OpenAI שלך ← בחר \"Sokuji_Virtual_Mic\" כמיקרופון ← התחל לדבר!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "GM MeetMind for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "כדי להשתמש ב-Sokuji, בחר <strong>\"Sokuji Virtual Microphone\"</strong> בהגדרות המיקרופון שלך."
+    "message": "כדי להשתמש ב-GM MeetMind, בחר <strong>\"GM MeetMind Virtual Microphone\"</strong> בהגדרות המיקרופון שלך."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "GM MeetMind for Whereby"
   },
   "wherebyGuidance": {
-    "message": "כדי להשתמש ב-Sokuji, אנא בחר <strong>\"Sokuji Virtual Microphone\"</strong> בהגדרות המיקרופון ו<strong>השבת את הפחתת הרעש</strong> לביצועים טובים יותר."
+    "message": "כדי להשתמש ב-GM MeetMind, אנא בחר <strong>\"GM MeetMind Virtual Microphone\"</strong> בהגדרות המיקרופון ו<strong>השבת את הפחתת הרעש</strong> לביצועים טובים יותר."
   },
   "gotIt": {
     "message": "הבנתי"
@@ -54,37 +54,37 @@
     "message": "הזכר לי מאוחר יותר"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "כדי להשתמש ב-Sokuji, אנא בחר \"Sokuji Virtual Microphone\" בהגדרות המיקרופון שלך."
+    "message": "כדי להשתמש ב-GM MeetMind, אנא בחר \"GM MeetMind Virtual Microphone\" בהגדרות המיקרופון שלך."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "GM MeetMind for Discord"
   },
   "discordGuidance": {
-    "message": "כדי להשתמש ב-Sokuji, אנא בחר <strong>\"Sokuji Virtual Microphone\"</strong> בהגדרות המיקרופון שלך ו<strong>השבת את דיכוי הרעש</strong> בהגדרות הקול של Discord לביצועים טובים יותר."
+    "message": "כדי להשתמש ב-GM MeetMind, אנא בחר <strong>\"GM MeetMind Virtual Microphone\"</strong> בהגדרות המיקרופון שלך ו<strong>השבת את דיכוי הרעש</strong> בהגדרות הקול של Discord לביצועים טובים יותר."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "GM MeetMind for Slack"
   },
   "slackGuidance": {
-    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
+    "message": "To use GM MeetMind in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"GM MeetMind Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
   "teamsTitle": {
-    "message": "Sokuji עבור Microsoft Teams"
+    "message": "GM MeetMind עבור Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "אם אינך רואה את רשימת מכשירי השמע המלאה בהגדרות Teams:<br><strong>1)</strong> השבת זמנית את התוסף Sokuji ורענן את הדף<br><strong>2)</strong> אפשר ל-Teams גישה למיקרופון ולמצלמה שלך כשתתבקש<br><strong>3)</strong> הפעל מחדש את התוסף Sokuji ורענן את הדף שוב<br><strong>4)</strong> אפשר ל-Sokuji גישה למיקרופון שלך כשתתבקש. כעת אתה אמור לראות גם מכשירים אמיתיים וגם <strong>\"Sokuji Virtual Microphone\"</strong> בהגדרות שלך."
+    "message": "אם אינך רואה את רשימת מכשירי השמע המלאה בהגדרות Teams:<br><strong>1)</strong> השבת זמנית את התוסף GM MeetMind ורענן את הדף<br><strong>2)</strong> אפשר ל-Teams גישה למיקרופון ולמצלמה שלך כשתתבקש<br><strong>3)</strong> הפעל מחדש את התוסף GM MeetMind ורענן את הדף שוב<br><strong>4)</strong> אפשר ל-GM MeetMind גישה למיקרופון שלך כשתתבקש. כעת אתה אמור לראות גם מכשירים אמיתיים וגם <strong>\"GM MeetMind Virtual Microphone\"</strong> בהגדרות שלך."
   },
   "jitsiTitle": {
-    "message": "Sokuji for Jitsi Meet"
+    "message": "GM MeetMind for Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "כדי להשתמש ב-Sokuji ב-Jitsi Meet, פתח את <strong>Settings > Devices</strong> ובחר <strong>\"Sokuji Virtual Microphone\"</strong> כמיקרופון שלך. לאחר מכן פתח את <strong>Advanced audio settings</strong> ו<strong>השבת את הפחתת הרעש, ביטול ההד ובקרת ההגבר האוטומטית</strong> לקבלת אודיו מתורגם ברור."
+    "message": "כדי להשתמש ב-GM MeetMind ב-Jitsi Meet, פתח את <strong>Settings > Devices</strong> ובחר <strong>\"GM MeetMind Virtual Microphone\"</strong> כמיקרופון שלך. לאחר מכן פתח את <strong>Advanced audio settings</strong> ו<strong>השבת את הפחתת הרעש, ביטול ההד ובקרת ההגבר האוטומטית</strong> לקבלת אודיו מתורגם ברור."
   },
   "unsupportedHeadline": {
-    "message": "Sokuji אינו זמין עדיין ב-$HOSTNAME$.",
+    "message": "GM MeetMind אינו זמין עדיין ב-$HOSTNAME$.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "הורד את אפליקציית שולחן העבודה"
   },
   "browserSitesHeading": {
-    "message": "מעדיפ/ה את הדפדפן? Sokuji עובד באתרים האלו — לחץ/י לפתיחה:"
+    "message": "מעדיפ/ה את הדפדפן? GM MeetMind עובד באתרים האלו — לחץ/י לפתיחה:"
   },
   "requestSiteLink": {
     "message": "בקש/י אתר"
@@ -114,6 +114,6 @@
     "message": "לא ניתן לזהות כרטיסייה זו"
   },
   "detectFailBody": {
-    "message": "רענן/י את הדף ופתח/י מחדש את Sokuji."
+    "message": "רענן/י את הדף ופתח/י מחדש את GM MeetMind."
   }
 }

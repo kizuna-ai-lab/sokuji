@@ -1,5 +1,5 @@
 {
-  "name": "sokuji-extension",
+  "name": "gm-meetmind-extension",
   "version": "0.35.5",
   "description": "Live speech translation browser extension powered by AI",
   "private": true,

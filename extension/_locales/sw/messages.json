@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI Meeting Translator"
+    "message": "GM MeetMind - AI Meeting Translator"
   },
   "extensionDescription": {
     "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "GM MeetMind - Supported Sites"
   },
   "openSokuji": {
-    "message": "Open Sokuji"
+    "message": "Open GM MeetMind"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -18,7 +18,7 @@
     "message": "Nyongeza za Edge"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+    "message": "✓ GM MeetMind is available on $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "Click \"Open GM MeetMind\" below to start real-time translation."
   },
   "quickStart": {
     "message": "Quick Start:"
@@ -36,16 +36,16 @@
     "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "GM MeetMind for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Kutumia Sokuji, chagua <strong>\"Sokuji Virtual Microphone\"</strong> katika mipangilio ya kipaza sauti chako."
+    "message": "Kutumia GM MeetMind, chagua <strong>\"GM MeetMind Virtual Microphone\"</strong> katika mipangilio ya kipaza sauti chako."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "GM MeetMind for Whereby"
   },
   "wherebyGuidance": {
-    "message": "Kutumia Sokuji, tafadhali chagua <strong>\"Sokuji Virtual Microphone\"</strong> katika mipangilio ya kipaza sauti chako na <strong>lemaza kupunguza kelele</strong> kwa utendaji bora zaidi."
+    "message": "Kutumia GM MeetMind, tafadhali chagua <strong>\"GM MeetMind Virtual Microphone\"</strong> katika mipangilio ya kipaza sauti chako na <strong>lemaza kupunguza kelele</strong> kwa utendaji bora zaidi."
   },
   "gotIt": {
     "message": "Nimeelewa"
@@ -54,37 +54,37 @@
     "message": "Nikumbushe baadaye"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "To use Sokuji, please select \"Sokuji Virtual Microphone\" in your microphone settings."
+    "message": "To use GM MeetMind, please select \"GM MeetMind Virtual Microphone\" in your microphone settings."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "GM MeetMind for Discord"
   },
   "discordGuidance": {
-    "message": "To use Sokuji, please select <strong>\"Sokuji Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
+    "message": "To use GM MeetMind, please select <strong>\"GM MeetMind Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "GM MeetMind for Slack"
   },
   "slackGuidance": {
-    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
+    "message": "To use GM MeetMind in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"GM MeetMind Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
   "teamsTitle": {
-    "message": "Sokuji kwa ajili ya Microsoft Teams"
+    "message": "GM MeetMind kwa ajili ya Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Ikiwa huoni orodha kamili ya vifaa vya sauti katika mipangilio ya Teams:<br><strong>1)</strong> Zima kwa muda ugani wa Sokuji na onyesha upya ukurasa<br><strong>2)</strong> Ruhusu Teams kufikia maikrofoni na kamera yako unapoombwa<br><strong>3)</strong> Washa tena ugani wa Sokuji na onyesha upya ukurasa tena<br><strong>4)</strong> Ruhusu Sokuji kufikia maikrofoni yako unapoombwa. Sasa unapaswa kuona vifaa halisi na <strong>\"Sokuji Virtual Microphone\"</strong> katika mipangilio yako."
+    "message": "Ikiwa huoni orodha kamili ya vifaa vya sauti katika mipangilio ya Teams:<br><strong>1)</strong> Zima kwa muda ugani wa GM MeetMind na onyesha upya ukurasa<br><strong>2)</strong> Ruhusu Teams kufikia maikrofoni na kamera yako unapoombwa<br><strong>3)</strong> Washa tena ugani wa GM MeetMind na onyesha upya ukurasa tena<br><strong>4)</strong> Ruhusu GM MeetMind kufikia maikrofoni yako unapoombwa. Sasa unapaswa kuona vifaa halisi na <strong>\"GM MeetMind Virtual Microphone\"</strong> katika mipangilio yako."
   },
   "jitsiTitle": {
-    "message": "Sokuji for Jitsi Meet"
+    "message": "GM MeetMind for Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "Ili kutumia Sokuji katika Jitsi Meet, fungua <strong>Settings > Devices</strong> na uchague <strong>\"Sokuji Virtual Microphone\"</strong> kama maikrofoni yako. Kisha fungua <strong>Advanced audio settings</strong> na <strong>uzime Noise suppression, Echo cancellation, na Automatic gain control</strong> kwa sauti ya tafsiri iliyo wazi."
+    "message": "Ili kutumia GM MeetMind katika Jitsi Meet, fungua <strong>Settings > Devices</strong> na uchague <strong>\"GM MeetMind Virtual Microphone\"</strong> kama maikrofoni yako. Kisha fungua <strong>Advanced audio settings</strong> na <strong>uzime Noise suppression, Echo cancellation, na Automatic gain control</strong> kwa sauti ya tafsiri iliyo wazi."
   },
   "unsupportedHeadline": {
-    "message": "Sokuji bado haipatikani kwenye $HOSTNAME$.",
+    "message": "GM MeetMind bado haipatikani kwenye $HOSTNAME$.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "Pakua programu ya desktop"
   },
   "browserSitesHeading": {
-    "message": "Unapenda kivinjari? Sokuji inafanya kazi kwenye tovuti hizi — bofya kufungua:"
+    "message": "Unapenda kivinjari? GM MeetMind inafanya kazi kwenye tovuti hizi — bofya kufungua:"
   },
   "requestSiteLink": {
     "message": "Omba tovuti"
@@ -114,6 +114,6 @@
     "message": "Haikuwezekana kutambua kichupo hiki"
   },
   "detectFailBody": {
-    "message": "Onyesha upya ukurasa na ufungue Sokuji tena."
+    "message": "Onyesha upya ukurasa na ufungue GM MeetMind tena."
   }
 }

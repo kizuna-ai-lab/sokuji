@@ -7,11 +7,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: #0d0d0d;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(96, 165, 228, 0.2), transparent 55%),
+    #F5F8FB;
   padding: 20px;
   position: relative;
-  
+
   .back-button {
     position: absolute;
     top: 20px;
@@ -20,19 +22,20 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: #fff;
+    border: 1px solid #D5DDE6;
     border-radius: 6px;
-    color: #fff;
+    color: #1A2332;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
-    
+
     &:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
+      background: #E8F3FB;
+      border-color: #1E79C1;
+      color: #1E79C1;
     }
-    
+
     svg {
       opacity: 0.8;
     }
@@ -48,12 +51,12 @@
 .sign-in-title {
   font-size: 28px;
   font-weight: 600;
-  color: #fff;
+  color: #1A2332;
   margin-bottom: 8px;
 }
 
 .sign-in-subtitle {
   font-size: 14px;
-  color: #999;
+  color: #7A8796;
   margin-bottom: 32px;
 }

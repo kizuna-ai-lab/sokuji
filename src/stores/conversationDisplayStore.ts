@@ -23,9 +23,30 @@ interface ConversationDisplayState {
 }
 
 // ──────────── Default colors (exported for popover preset wiring) ────────────
-export const CONVERSATION_DISPLAY_DEFAULT_BG_COLOR = '#1f1f1f';
-export const CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR = '#9aa0a6';
-export const CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR = '#e8e8e8';
+// Light MeetMind chrome — chat surface must match the rest of the app shell.
+export const CONVERSATION_DISPLAY_DEFAULT_BG_COLOR = '#f4f7fa';
+export const CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR = '#5a6b7d';
+export const CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR = '#182636';
+
+/** Pre-rebrand dark defaults — remapped on hydrate so existing installs flip to light. */
+const LEGACY_DARK_DEFAULTS = {
+  bgColor: '#1f1f1f',
+  sourceTextColor: '#9aa0a6',
+  translationTextColor: '#e8e8e8',
+} as const;
+
+function migrateLegacyConversationColor(
+  key: keyof typeof LEGACY_DARK_DEFAULTS,
+  value: string,
+): string {
+  const legacy = LEGACY_DARK_DEFAULTS[key];
+  if (value.toLowerCase() === legacy) {
+    if (key === 'bgColor') return CONVERSATION_DISPLAY_DEFAULT_BG_COLOR;
+    if (key === 'sourceTextColor') return CONVERSATION_DISPLAY_DEFAULT_SOURCE_TEXT_COLOR;
+    return CONVERSATION_DISPLAY_DEFAULT_TRANSLATION_TEXT_COLOR;
+  }
+  return value;
+}
 
 const DEFAULTS = {
   fontSize: 14,
@@ -107,10 +128,29 @@ export const useConversationDisplayStore = create<ConversationDisplayState>()(
       set({
         fontSize: clamp(Math.round(fontSize), CONVERSATION_FONT_SIZE_MIN, CONVERSATION_FONT_SIZE_MAX),
         compactMode,
-        bgColor,
-        sourceTextColor,
-        translationTextColor,
+        bgColor: migrateLegacyConversationColor('bgColor', bgColor),
+        sourceTextColor: migrateLegacyConversationColor('sourceTextColor', sourceTextColor),
+        translationTextColor: migrateLegacyConversationColor(
+          'translationTextColor',
+          translationTextColor,
+        ),
       });
+
+      // Persist remapped legacy dark defaults so the next boot stays light.
+      const next = get();
+      const writes: Promise<unknown>[] = [];
+      if (bgColor.toLowerCase() === LEGACY_DARK_DEFAULTS.bgColor) {
+        writes.push(persist('bgColor', next.bgColor, 'bgColor'));
+      }
+      if (sourceTextColor.toLowerCase() === LEGACY_DARK_DEFAULTS.sourceTextColor) {
+        writes.push(persist('sourceTextColor', next.sourceTextColor, 'sourceTextColor'));
+      }
+      if (translationTextColor.toLowerCase() === LEGACY_DARK_DEFAULTS.translationTextColor) {
+        writes.push(
+          persist('translationTextColor', next.translationTextColor, 'translationTextColor'),
+        );
+      }
+      if (writes.length) await Promise.all(writes);
     },
   })),
 );

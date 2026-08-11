@@ -1,6 +1,6 @@
 {
-  "short_name": "Sokuji",
-  "name": "Sokuji - Live speech translation application",
+  "short_name": "GM MeetMind",
+  "name": "GM MeetMind",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,6 +20,7 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#1E79C1",
+  "background_color": "#F5F8FB",
+  "description": "GM MeetMind — live speech translation"
 }

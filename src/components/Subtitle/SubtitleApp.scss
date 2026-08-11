@@ -79,7 +79,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: #10a37f;
+    background: #1E79C1;
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -98,7 +98,7 @@
       white-space: nowrap;
     }
 
-    &:hover:not(:disabled) { background: #0d8c6d; }
+    &:hover:not(:disabled) { background: #1969A8; }
 
     &:disabled {
       background: rgba(255, 255, 255, 0.09);

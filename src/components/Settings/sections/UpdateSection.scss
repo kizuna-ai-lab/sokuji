@@ -3,16 +3,17 @@
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background-color: #2a2a2a;
-  color: #e0e0e0;
-  border: 1px solid #444;
+  background-color: #EEF3F8;
+  color: #1A2332;
+  border: 1px solid #D5DDE6;
   border-radius: 4px;
   font-size: 13px;
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 
   &:hover:not(:disabled) {
-    background-color: #333;
-    border-color: #555;
+    background-color: #E4ECF4;
+    border-color: #B8C4D1;
   }
 
   &:disabled {
@@ -21,8 +22,9 @@
   }
 
   &.up-to-date {
-    color: #10a37f;
-    border-color: #10a37f;
+    color: #1E79C1;
+    border-color: #1E79C1;
+    background-color: #E8F3FB;
   }
 
   .spinning {

@@ -1,4 +1,4 @@
-// Background script for Sokuji browser extension
+// Background script for GM MeetMind browser extension
 // This script handles configuration storage and uninstall feedback
 
 /* global chrome */
@@ -49,7 +49,7 @@ async function getStoredDistinctId() {
     const result = await chrome.storage.local.get('posthog_distinct_id');
     return result.posthog_distinct_id || null;
   } catch (error) {
-    console.error('[Sokuji] [Background] Error getting stored distinct_id:', error);
+    console.error('[GM MeetMind] [Background] Error getting stored distinct_id:', error);
     return null;
   }
 }
@@ -59,10 +59,10 @@ async function storeDistinctId(distinctId) {
   try {
     await chrome.storage.local.set({ posthog_distinct_id: distinctId });
     currentDistinctId = distinctId;
-    console.debug('[Sokuji] [Background] Stored distinct_id');
+    console.debug('[GM MeetMind] [Background] Stored distinct_id');
     return true;
   } catch (error) {
-    console.error('[Sokuji] [Background] Error storing distinct_id:', error);
+    console.error('[GM MeetMind] [Background] Error storing distinct_id:', error);
     return false;
   }
 }
@@ -79,19 +79,19 @@ async function updateUninstallURL(distinctId = null) {
       const url = new URL(uninstallUrl);
       url.searchParams.set('distinct_id', activeDistinctId);
       uninstallUrl = url.toString();
-      console.debug('[Sokuji] [Background] Updated uninstall URL with distinct_id');
+      console.debug('[GM MeetMind] [Background] Updated uninstall URL with distinct_id');
     } else {
-      console.debug('[Sokuji] [Background] No distinct_id available, using base uninstall URL');
+      console.debug('[GM MeetMind] [Background] No distinct_id available, using base uninstall URL');
     }
 
     if (chrome.runtime.setUninstallURL) {
       chrome.runtime.setUninstallURL(uninstallUrl);
-      console.debug('[Sokuji] [Background] Uninstall feedback URL configured');
+      console.debug('[GM MeetMind] [Background] Uninstall feedback URL configured');
     }
 
     return true;
   } catch (error) {
-    console.error('[Sokuji] [Background] Error updating uninstall URL:', error);
+    console.error('[GM MeetMind] [Background] Error updating uninstall URL:', error);
     return false;
   }
 }
@@ -102,13 +102,13 @@ chrome.runtime.onInstalled.addListener(async () => {
     const result = await chrome.storage.local.get('config');
     if (!result.config) {
       await chrome.storage.local.set({ config: DEFAULT_CONFIG });
-      console.debug('[Sokuji] [Background] Default configuration initialized');
+      console.debug('[GM MeetMind] [Background] Default configuration initialized');
     }
 
     // Set up uninstall URL for feedback collection
     await updateUninstallURL();
   } catch (error) {
-    console.error('[Sokuji] [Background] Error initializing configuration:', error);
+    console.error('[GM MeetMind] [Background] Error initializing configuration:', error);
   }
 });
 
@@ -152,7 +152,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       // (tabCapture requires a real action invocation, not the implicit
       // setPanelBehavior({ openPanelOnActionClick: true }) path).
       await chrome.action.setPopup({ tabId: tabId, popup: '' });
-      console.debug('[Sokuji] [Background] Enabled side panel (onClicked mode) for site:', url.hostname);
+      console.debug('[GM MeetMind] [Background] Enabled side panel (onClicked mode) for site:', url.hostname);
     } else {
       // Disable side panel for this tab and restore the popup
       await chrome.sidePanel.setOptions({
@@ -162,11 +162,11 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       await chrome.action.setPopup({ tabId: tabId, popup: 'popup.html' });
       if (tabsWithSidePanelOpen.has(tabId)) {
         tabsWithSidePanelOpen.delete(tabId);
-        console.debug('[Sokuji] [Background] Removed tab from side panel tracking due to URL change:', tabId);
+        console.debug('[GM MeetMind] [Background] Removed tab from side panel tracking due to URL change:', tabId);
       }
     }
   } catch (error) {
-    console.error('[Sokuji] [Background] Error updating side panel for tab:', error);
+    console.error('[GM MeetMind] [Background] Error updating side panel for tab:', error);
   }
 });
 
@@ -188,7 +188,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
         enabled: true,
       });
       await chrome.action.setPopup({ tabId: tabId, popup: '' });
-      console.debug('[Sokuji] [Background] Maintaining side panel (onClicked mode) for supported site:', url.hostname);
+      console.debug('[GM MeetMind] [Background] Maintaining side panel (onClicked mode) for supported site:', url.hostname);
     } else {
       // Reset the GLOBAL default to disabled so any currently-open side panel
       // actually closes when the user switches to an unsupported tab. Per-tab
@@ -200,7 +200,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       await chrome.action.setPopup({ tabId: tabId, popup: 'popup.html' });
     }
   } catch (error) {
-    console.error('[Sokuji] [Background] Error updating side panel for switched tab:', error);
+    console.error('[GM MeetMind] [Background] Error updating side panel for switched tab:', error);
   }
 });
 
@@ -230,9 +230,9 @@ chrome.action.onClicked.addListener((tab) => {
   // Synchronous call — do NOT await anything before this.
   chrome.sidePanel.open({ tabId: tab.id }).then(() => {
     tabsWithSidePanelOpen.add(tab.id);
-    console.debug('[Sokuji] [Background] Opened side panel on action click for:', url.hostname);
+    console.debug('[GM MeetMind] [Background] Opened side panel on action click for:', url.hostname);
   }).catch((error) => {
-    console.error('[Sokuji] [Background] Error opening side panel on action click:', error);
+    console.error('[GM MeetMind] [Background] Error opening side panel on action click:', error);
   });
 });
 
@@ -241,13 +241,13 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   // Remove the tab from tracking when it's closed
   if (tabsWithSidePanelOpen.has(tabId)) {
     tabsWithSidePanelOpen.delete(tabId);
-    console.debug('[Sokuji] [Background] Removed closed tab from side panel tracking:', tabId);
+    console.debug('[GM MeetMind] [Background] Removed closed tab from side panel tracking:', tabId);
   }
 
   // Clean up any active tab audio captures
   if (activeTabCaptures.has(tabId)) {
     activeTabCaptures.delete(tabId);
-    console.debug('[Sokuji] [Background] Cleaned up tab capture for closed tab:', tabId);
+    console.debug('[GM MeetMind] [Background] Cleaned up tab capture for closed tab:', tabId);
   }
 });
 
@@ -295,7 +295,7 @@ async function volcengineSetDNRHeaders(credentials) {
       addRules: rules,
     });
 
-    console.debug('[Sokuji] [Background] Volcengine AST2 DNR rules registered:', rules.length);
+    console.debug('[GM MeetMind] [Background] Volcengine AST2 DNR rules registered:', rules.length);
   });
   return dnrUpdatePromise;
 }
@@ -310,7 +310,7 @@ async function volgengineClearDNRHeaders() {
       await chrome.declarativeNetRequest.updateDynamicRules({
         removeRuleIds: existingRuleIds,
       });
-      console.debug('[Sokuji] [Background] Volcengine AST2 DNR rules cleared');
+      console.debug('[GM MeetMind] [Background] Volcengine AST2 DNR rules cleared');
     }
   });
   return dnrUpdatePromise;
@@ -366,7 +366,7 @@ async function edgeTtsSetDNRHeaders() {
     addRules: rules,
   });
 
-  console.debug('[Sokuji] [Background] Edge TTS DNR rules registered');
+  console.debug('[GM MeetMind] [Background] Edge TTS DNR rules registered');
 }
 
 async function edgeTtsClearDNRHeaders() {
@@ -378,7 +378,7 @@ async function edgeTtsClearDNRHeaders() {
     await chrome.declarativeNetRequest.updateDynamicRules({
       removeRuleIds: existingRuleIds,
     });
-    console.debug('[Sokuji] [Background] Edge TTS DNR rules cleared');
+    console.debug('[GM MeetMind] [Background] Edge TTS DNR rules cleared');
   }
 }
 
@@ -420,7 +420,7 @@ async function bingTranslatorSetDNRHeaders() {
     addRules: rules,
   });
 
-  console.debug('[Sokuji] [Background] Bing Translator DNR rules registered');
+  console.debug('[GM MeetMind] [Background] Bing Translator DNR rules registered');
 }
 
 async function bingTranslatorClearDNRHeaders() {
@@ -432,7 +432,7 @@ async function bingTranslatorClearDNRHeaders() {
     await chrome.declarativeNetRequest.updateDynamicRules({
       removeRuleIds: existingRuleIds,
     });
-    console.debug('[Sokuji] [Background] Bing Translator DNR rules cleared');
+    console.debug('[GM MeetMind] [Background] Bing Translator DNR rules cleared');
   }
 }
 
@@ -463,7 +463,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }).then(() => {
         sendResponse({ success: true });
       }).catch(error => {
-        console.error('[Sokuji] [Background] Error handling distinct_id update:', error);
+        console.error('[GM MeetMind] [Background] Error handling distinct_id update:', error);
         sendResponse({ success: false, error: error.message });
       });
     } else {
@@ -471,7 +471,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       updateUninstallURL().then(() => {
         sendResponse({ success: true });
       }).catch(error => {
-        console.error('[Sokuji] [Background] Error updating uninstall URL:', error);
+        console.error('[GM MeetMind] [Background] Error updating uninstall URL:', error);
         sendResponse({ success: false, error: error.message });
       });
     }
@@ -483,7 +483,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     volcengineSetDNRHeaders(message.credentials)
       .then(() => sendResponse({ success: true }))
       .catch((error) => {
-        console.error('[Sokuji] [Background] Failed to set Volcengine DNR headers:', error);
+        console.error('[GM MeetMind] [Background] Failed to set Volcengine DNR headers:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;
@@ -493,7 +493,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     volgengineClearDNRHeaders()
       .then(() => sendResponse({ success: true }))
       .catch((error) => {
-        console.error('[Sokuji] [Background] Failed to clear Volcengine DNR headers:', error);
+        console.error('[GM MeetMind] [Background] Failed to clear Volcengine DNR headers:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;
@@ -504,7 +504,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     edgeTtsSetDNRHeaders()
       .then(() => sendResponse({ success: true }))
       .catch((error) => {
-        console.error('[Sokuji] [Background] Failed to set Edge TTS DNR headers:', error);
+        console.error('[GM MeetMind] [Background] Failed to set Edge TTS DNR headers:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;
@@ -514,7 +514,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     edgeTtsClearDNRHeaders()
       .then(() => sendResponse({ success: true }))
       .catch((error) => {
-        console.error('[Sokuji] [Background] Failed to clear Edge TTS DNR headers:', error);
+        console.error('[GM MeetMind] [Background] Failed to clear Edge TTS DNR headers:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;
@@ -525,7 +525,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     bingTranslatorSetDNRHeaders()
       .then(() => sendResponse({ success: true }))
       .catch((error) => {
-        console.error('[Sokuji] [Background] Failed to set Bing Translator DNR headers:', error);
+        console.error('[GM MeetMind] [Background] Failed to set Bing Translator DNR headers:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;
@@ -535,7 +535,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     bingTranslatorClearDNRHeaders()
       .then(() => sendResponse({ success: true }))
       .catch((error) => {
-        console.error('[Sokuji] [Background] Failed to clear Bing Translator DNR headers:', error);
+        console.error('[GM MeetMind] [Background] Failed to clear Bing Translator DNR headers:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;
@@ -566,7 +566,7 @@ async function handleGetConfig(key, defaultValue) {
       return { success: true, value: config };
     }
   } catch (error) {
-    console.error('[Sokuji] [Background] Error getting config:', error);
+    console.error('[GM MeetMind] [Background] Error getting config:', error);
     return { success: false, error: error.message, value: defaultValue };
   }
 }
@@ -585,7 +585,7 @@ async function handleSetConfig(key, value) {
 
     return { success: true };
   } catch (error) {
-    console.error('[Sokuji] [Background] Error setting config:', error);
+    console.error('[GM MeetMind] [Background] Error setting config:', error);
     return { success: false, error: error.message };
   }
 }
@@ -595,10 +595,10 @@ async function handleOpenSidePanel(tabId) {
   try {
     await chrome.sidePanel.open({ tabId: tabId });
     tabsWithSidePanelOpen.add(tabId);
-    console.debug('[Sokuji] [Background] Opened side panel for tab:', tabId);
+    console.debug('[GM MeetMind] [Background] Opened side panel for tab:', tabId);
     return { success: true };
   } catch (error) {
-    console.error('[Sokuji] [Background] Error opening side panel:', error);
+    console.error('[GM MeetMind] [Background] Error opening side panel:', error);
     return { success: false, error: error.message };
   }
 }
@@ -606,7 +606,7 @@ async function handleOpenSidePanel(tabId) {
 // Start tab audio capture and return streamId
 async function handleStartTabCapture(tabId) {
   try {
-    console.info('[Sokuji] [Background] Starting tab capture for tab:', tabId);
+    console.info('[GM MeetMind] [Background] Starting tab capture for tab:', tabId);
 
     // Validate tabId
     if (!tabId) {
@@ -617,7 +617,7 @@ async function handleStartTabCapture(tabId) {
     if (activeTabCaptures.has(tabId)) {
       const existing = activeTabCaptures.get(tabId);
       if (existing.active) {
-        console.info('[Sokuji] [Background] Tab already being captured, returning existing streamId');
+        console.info('[GM MeetMind] [Background] Tab already being captured, returning existing streamId');
         return { success: true, streamId: existing.streamId };
       }
     }
@@ -626,24 +626,24 @@ async function handleStartTabCapture(tabId) {
     try {
       await chrome.tabs.get(tabId);
     } catch (error) {
-      console.error('[Sokuji] [Background] Tab not found:', tabId);
+      console.error('[GM MeetMind] [Background] Tab not found:', tabId);
       return { success: false, error: 'Tab not found' };
     }
 
     // Request media stream ID for the tab using tabCapture API
-    console.info('[Sokuji] [Background] Calling chrome.tabCapture.getMediaStreamId for tabId:', tabId);
+    console.info('[GM MeetMind] [Background] Calling chrome.tabCapture.getMediaStreamId for tabId:', tabId);
     const streamId = await new Promise((resolve, reject) => {
       chrome.tabCapture.getMediaStreamId(
         { targetTabId: tabId },
         (streamId) => {
           if (chrome.runtime.lastError) {
-            console.error('[Sokuji] [Background] tabCapture.getMediaStreamId failed:', chrome.runtime.lastError.message);
+            console.error('[GM MeetMind] [Background] tabCapture.getMediaStreamId failed:', chrome.runtime.lastError.message);
             reject(new Error(chrome.runtime.lastError.message));
           } else if (!streamId) {
-            console.error('[Sokuji] [Background] tabCapture.getMediaStreamId returned empty streamId');
+            console.error('[GM MeetMind] [Background] tabCapture.getMediaStreamId returned empty streamId');
             reject(new Error('Failed to get stream ID'));
           } else {
-            console.info('[Sokuji] [Background] tabCapture.getMediaStreamId succeeded, streamId:', streamId);
+            console.info('[GM MeetMind] [Background] tabCapture.getMediaStreamId succeeded, streamId:', streamId);
             resolve(streamId);
           }
         }
@@ -653,11 +653,11 @@ async function handleStartTabCapture(tabId) {
     // Store the active capture
     activeTabCaptures.set(tabId, { streamId, active: true });
 
-    console.info('[Sokuji] [Background] Tab capture started successfully, streamId:', streamId);
+    console.info('[GM MeetMind] [Background] Tab capture started successfully, streamId:', streamId);
     return { success: true, streamId };
 
   } catch (error) {
-    console.error('[Sokuji] [Background] Failed to start tab capture:', error);
+    console.error('[GM MeetMind] [Background] Failed to start tab capture:', error);
     return { success: false, error: error.message || 'Failed to start tab capture' };
   }
 }
@@ -665,16 +665,16 @@ async function handleStartTabCapture(tabId) {
 // Stop tab audio capture
 async function handleStopTabCapture(tabId) {
   try {
-    console.info('[Sokuji] [Background] Stopping tab capture for tab:', tabId);
+    console.info('[GM MeetMind] [Background] Stopping tab capture for tab:', tabId);
 
     if (tabId && activeTabCaptures.has(tabId)) {
       activeTabCaptures.delete(tabId);
-      console.info('[Sokuji] [Background] Tab capture stopped for tab:', tabId);
+      console.info('[GM MeetMind] [Background] Tab capture stopped for tab:', tabId);
     }
 
     return { success: true };
   } catch (error) {
-    console.error('[Sokuji] [Background] Failed to stop tab capture:', error);
+    console.error('[GM MeetMind] [Background] Failed to stop tab capture:', error);
     return { success: false, error: error.message };
   }
 }

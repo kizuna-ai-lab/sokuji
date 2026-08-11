@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - Phiên Dịch Họp AI"
+    "message": "GM MeetMind - Phiên Dịch Họp AI"
   },
   "extensionDescription": {
     "message": "Dịch giọng nói tức thì bằng AI cho tất cả cuộc họp video. Phá vỡ rào cản ngôn ngữ với dịch giọng nói thời gian thực."
   },
   "popupTitle": {
-    "message": "Sokuji - Các Trang Web Được Hỗ Trợ"
+    "message": "GM MeetMind - Các Trang Web Được Hỗ Trợ"
   },
   "openSokuji": {
-    "message": "Mở Sokuji"
+    "message": "Mở GM MeetMind"
   },
   "chromeWebStore": {
     "message": "Cửa Hàng Web Chrome"
@@ -18,7 +18,7 @@
     "message": "Tiện ích bổ sung Edge"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji có sẵn trên $SITE_NAME$!",
+    "message": "✓ GM MeetMind có sẵn trên $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,7 +27,7 @@
     }
   },
   "clickToStart": {
-    "message": "Nhấp vào \"Mở Sokuji\" bên dưới để bắt đầu dịch thời gian thực."
+    "message": "Nhấp vào \"Mở GM MeetMind\" bên dưới để bắt đầu dịch thời gian thực."
   },
   "quickStart": {
     "message": "Bắt Đầu Nhanh:"
@@ -36,16 +36,16 @@
     "message": "Cấu hình khóa API OpenAI của bạn → Chọn \"Sokuji_Virtual_Mic\" làm microphone → Bắt đầu nói!"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "GM MeetMind for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Để sử dụng Sokuji, vui lòng chọn <strong>\"Sokuji Virtual Microphone\"</strong> trong cài đặt micrô của bạn."
+    "message": "Để sử dụng GM MeetMind, vui lòng chọn <strong>\"GM MeetMind Virtual Microphone\"</strong> trong cài đặt micrô của bạn."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "GM MeetMind for Whereby"
   },
   "wherebyGuidance": {
-    "message": "Để sử dụng Sokuji, vui lòng chọn <strong>\"Sokuji Virtual Microphone\"</strong> trong cài đặt micrô và <strong>tắt tính năng giảm tiếng ồn</strong> để có hiệu suất tốt hơn."
+    "message": "Để sử dụng GM MeetMind, vui lòng chọn <strong>\"GM MeetMind Virtual Microphone\"</strong> trong cài đặt micrô và <strong>tắt tính năng giảm tiếng ồn</strong> để có hiệu suất tốt hơn."
   },
   "gotIt": {
     "message": "Đã hiểu"
@@ -54,37 +54,37 @@
     "message": "Nhắc nhở sau"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "GM MeetMind"
   },
   "defaultGuidance": {
-    "message": "Để sử dụng Sokuji, vui lòng chọn \"Sokuji Virtual Microphone\" trong cài đặt micrô của bạn."
+    "message": "Để sử dụng GM MeetMind, vui lòng chọn \"GM MeetMind Virtual Microphone\" trong cài đặt micrô của bạn."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "GM MeetMind for Discord"
   },
   "discordGuidance": {
-    "message": "Để sử dụng Sokuji, vui lòng chọn <strong>\"Sokuji Virtual Microphone\"</strong> trong cài đặt micrô của bạn và <strong>tắt Khử tiếng ồn</strong> trong cài đặt âm thanh của Discord để có hiệu suất tốt hơn."
+    "message": "Để sử dụng GM MeetMind, vui lòng chọn <strong>\"GM MeetMind Virtual Microphone\"</strong> trong cài đặt micrô của bạn và <strong>tắt Khử tiếng ồn</strong> trong cài đặt âm thanh của Discord để có hiệu suất tốt hơn."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "GM MeetMind for Slack"
   },
   "slackGuidance": {
-    "message": "Để sử dụng Sokuji trong Slack Huddles, vui lòng <strong>bắt đầu một Huddle</strong>, sau đó chọn <strong>\"Sokuji Virtual Microphone\"</strong> trong cài đặt Video và Mic của bạn, và <strong>tắt Triệt tiêu tiếng ồn</strong> trong tùy chọn Âm thanh và Video để có hiệu suất tốt hơn."
+    "message": "Để sử dụng GM MeetMind trong Slack Huddles, vui lòng <strong>bắt đầu một Huddle</strong>, sau đó chọn <strong>\"GM MeetMind Virtual Microphone\"</strong> trong cài đặt Video và Mic của bạn, và <strong>tắt Triệt tiêu tiếng ồn</strong> trong tùy chọn Âm thanh và Video để có hiệu suất tốt hơn."
   },
   "teamsTitle": {
-    "message": "Sokuji cho Microsoft Teams"
+    "message": "GM MeetMind cho Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Nếu bạn không thấy danh sách thiết bị âm thanh đầy đủ trong cài đặt Teams:<br><strong>1)</strong> Tạm thời tắt tiện ích Sokuji và làm mới trang<br><strong>2)</strong> Cho phép Teams truy cập micro và camera của bạn khi được nhắc<br><strong>3)</strong> Bật lại tiện ích Sokuji và làm mới trang lần nữa<br><strong>4)</strong> Cho phép Sokuji truy cập micro của bạn khi được nhắc. Bây giờ bạn sẽ thấy cả thiết bị thực và <strong>\"Sokuji Virtual Microphone\"</strong> trong cài đặt của mình."
+    "message": "Nếu bạn không thấy danh sách thiết bị âm thanh đầy đủ trong cài đặt Teams:<br><strong>1)</strong> Tạm thời tắt tiện ích GM MeetMind và làm mới trang<br><strong>2)</strong> Cho phép Teams truy cập micro và camera của bạn khi được nhắc<br><strong>3)</strong> Bật lại tiện ích GM MeetMind và làm mới trang lần nữa<br><strong>4)</strong> Cho phép GM MeetMind truy cập micro của bạn khi được nhắc. Bây giờ bạn sẽ thấy cả thiết bị thực và <strong>\"GM MeetMind Virtual Microphone\"</strong> trong cài đặt của mình."
   },
   "jitsiTitle": {
-    "message": "Sokuji for Jitsi Meet"
+    "message": "GM MeetMind for Jitsi Meet"
   },
   "jitsiGuidance": {
-    "message": "Để sử dụng Sokuji trong Jitsi Meet, hãy mở <strong>Settings > Devices</strong> và chọn <strong>\"Sokuji Virtual Microphone\"</strong> làm micrô của bạn. Sau đó mở <strong>Advanced audio settings</strong> và <strong>tắt Khử tiếng ồn, Khử tiếng vọng và Tự động điều chỉnh độ khuếch đại</strong> để có âm thanh dịch rõ ràng."
+    "message": "Để sử dụng GM MeetMind trong Jitsi Meet, hãy mở <strong>Settings > Devices</strong> và chọn <strong>\"GM MeetMind Virtual Microphone\"</strong> làm micrô của bạn. Sau đó mở <strong>Advanced audio settings</strong> và <strong>tắt Khử tiếng ồn, Khử tiếng vọng và Tự động điều chỉnh độ khuếch đại</strong> để có âm thanh dịch rõ ràng."
   },
   "unsupportedHeadline": {
-    "message": "Sokuji chưa có sẵn trên $HOSTNAME$.",
+    "message": "GM MeetMind chưa có sẵn trên $HOSTNAME$.",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -102,7 +102,7 @@
     "message": "Tải xuống ứng dụng máy tính để bàn"
   },
   "browserSitesHeading": {
-    "message": "Thích dùng trình duyệt? Sokuji hoạt động trên những trang này — nhấp để mở:"
+    "message": "Thích dùng trình duyệt? GM MeetMind hoạt động trên những trang này — nhấp để mở:"
   },
   "requestSiteLink": {
     "message": "Yêu cầu thêm trang web"
@@ -114,6 +114,6 @@
     "message": "Không thể phát hiện tab này"
   },
   "detectFailBody": {
-    "message": "Làm mới trang và mở lại Sokuji."
+    "message": "Làm mới trang và mở lại GM MeetMind."
   }
 }

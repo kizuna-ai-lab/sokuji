@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, Loader, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings} from 'lucide-react';
+import {Zap, Mic, Loader, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Captions, Settings, Languages, AlertTriangle, ChevronRight} from 'lucide-react';
 import './MainPanel.scss';
 import '../../styles/karaoke.scss';
 import {
@@ -57,7 +57,7 @@ import { buildApiErrorProps } from '../../lib/apiErrorProps';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible, kizunaBaseProvider } from '../../types/Provider';
-import { computeStartGate, reasonToI18n } from './sessionStartGate';
+import { computeStartGate, reasonToI18n, reasonToSettingsTarget } from './sessionStartGate';
 import { useSubtitleSessionBridge } from './useSubtitleSessionBridge';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audioUtils';
@@ -599,6 +599,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return t(key, defaultValue, values);
   }, [startGate.reason, startGate.balance, t]);
 
+  const startSettingsTarget = useMemo(() => {
+    if (!startGate.reason) return null;
+    return reasonToSettingsTarget(startGate.reason, startGate.deviceScope);
+  }, [startGate.reason, startGate.deviceScope]);
+
+  const canFixStartBlocker = startSettingsTarget !== null;
+
+  // Full-sentence reasons (shared with subtitle) look wrong as a button label;
+  // strip trailing punctuation the same way SubtitleIdle does.
+  const startFixLabel = useMemo(
+    () => (startBlockMessage ? startBlockMessage.replace(/[.。！!]+$/, '') : undefined),
+    [startBlockMessage],
+  );
+
   // Footer mode picker — pre-session, click a segment to:
   //   1. Write the channel toggles to match the target mode (auto-mutes
   //      irrelevant channels via the per-channel setters).
@@ -617,6 +631,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // supplied by ModePicker via callback.
   const [modePopoverOpen, setModePopoverOpen] = useState(false);
   const [modePopoverAnchor, setModePopoverAnchor] = useState<HTMLElement | null>(null);
+
+  const openStartBlockerFix = useCallback(() => {
+    if (!startSettingsTarget) return;
+    // Always route into Settings and highlight the missing section — same
+    // path as subtitle "fix". Opening the mode-device popover from the
+    // Start slot left a floating panel anchored far left of the click.
+    navigateToSettings(startSettingsTarget);
+  }, [startSettingsTarget, navigateToSettings]);
 
   // Reference for conversation container to enable auto-scrolling
   const conversationContainerRef = useRef<HTMLDivElement>(null);
@@ -3619,130 +3641,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           </div>
         )}
 
-        {/* Control Footer — Basic Mode */}
-        {uiMode === 'basic' && (
-          <div className="control-footer basic">
-            <span className={`status-dot ${isReconnecting ? 'reconnecting' : isSessionActive ? 'active' : ''}`} />
-            {isReconnecting && (
-              <span className="reconnecting-label">
-                {t('connectionStatus.reconnecting', 'Reconnecting...')}
-              </span>
-            )}
-            <ModePicker
-              mode={effectiveMode}
-              locked={isSessionActive || isInitializing}
-              missingDeviceForMode={missingDeviceForMode}
-              onSegmentClick={(target, el) => {
-                if (target === effectiveMode) {
-                  // Toggle: clicking the active segment again closes the popover.
-                  if (modePopoverOpen) {
-                    setModePopoverOpen(false);
-                  } else {
-                    setModePopoverAnchor(el);
-                    setModePopoverOpen(true);
-                  }
-                } else {
-                  handleModeSwitch(target);
-                  setModePopoverOpen(false);
-                }
-              }}
-            />
-
-            <span className="footer-spacer" />
-
-            <div className="action-cluster">
-              {isSessionActive && speakerChannelActive && canHoldToSpeak && (
-                <button
-                  className={`push-to-talk-btn ${isRecording ? 'recording' : ''}`}
-                  onMouseDown={startRecording}
-                  onMouseUp={stopRecording}
-                  onTouchStart={startRecording}
-                  onTouchEnd={stopRecording}
-                >
-                  <Mic size={12} />
-                  <span className="btn-text">{isRecording ? t('simplePanel.release', 'Release') : t('simplePanel.holdToSpeak', 'Hold')}</span>
-                </button>
-              )}
-              <button
-                className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
-                onClick={isSessionActive ? disconnectConversation : connectConversation}
-                disabled={!canStartSession && !isSessionActive}
-                title={!isSessionActive ? startBlockMessage : undefined}
-              >
-                {isInitializing ? (
-                  <>
-                    <Loader className="spinning" size={16} />
-                    <span className="btn-text">
-                      {initProgress
-                        ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
-                        : nativeAsrLoading
-                          ? t('simplePanel.loadingModel', 'Loading model…')
-                          : t('simplePanel.connecting', 'Connecting...')}
-                    </span>
-                  </>
-                ) : isSessionActive ? (
-                  <>
-                    <span className="stop-icon">■</span>
-                    <span className="btn-text">{t('simplePanel.stop', 'Stop')}</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="play-icon">▶</span>
-                    <span className="btn-text">{t('simplePanel.start', 'Start')}</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <span className="footer-spacer" />
-
-            <div className="footer-metadata">
-              <span
-                className="language-pair clickable"
-                onClick={() => navigateToSettings('languages')}
-                title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
-              >
-                {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
-              </span>
-              {isSessionActive && (
-                <span className="session-duration">{sessionDuration}</span>
-              )}
-              {isSessionActive && sonioxCountdown && (
-                <span className={`session-remaining-time${sonioxRemainingLow ? ' low' : ''}`}>
-                  {formatRemainingTime(sonioxCountdown.remainingMs)}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Control Footer — Advanced Mode */}
+        {/* Session detail tray — Advanced only (waveforms / debug) */}
         {uiMode === 'advanced' && (
-          <div className="control-footer advanced">
-            <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
-
-            <ModePicker
-              mode={effectiveMode}
-              locked={isSessionActive || isInitializing}
-              missingDeviceForMode={missingDeviceForMode}
-              onSegmentClick={(target, el) => {
-                if (target === effectiveMode) {
-                  // Toggle: clicking the active segment again closes the popover.
-                  if (modePopoverOpen) {
-                    setModePopoverOpen(false);
-                  } else {
-                    setModePopoverAnchor(el);
-                    setModePopoverOpen(true);
-                  }
-                } else {
-                  handleModeSwitch(target);
-                  setModePopoverOpen(false);
-                }
-              }}
-            />
-
-            {/* Input waveforms (mic + system) grouped with a tight gap so
-                they read as a pair, distinct from the wider footer rhythm. */}
+          <div className="session-detail-tray">
             {(effectiveMode === 'speaker' || effectiveMode === 'participant' || effectiveMode === 'both') && (
               <div className="waveform-input-group">
                 {(effectiveMode === 'speaker' || effectiveMode === 'both') && (
@@ -3763,97 +3664,188 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 )}
               </div>
             )}
-
             <span className="footer-spacer" />
-
-            <div className="action-cluster">
-              {isSessionActive && speakerChannelActive && canHoldToSpeak && (
-                <button
-                  className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
-                  onMouseDown={startRecording}
-                  onMouseUp={stopRecording}
-                  disabled={isMicMuted}
-                >
-                  <Mic size={14} />
-                  <span>
-                    {isRecording ? t('mainPanel.release') : !isMicMuted ? t('mainPanel.pushToTalk') : t('mainPanel.inputDeviceOff')}
-                  </span>
-                </button>
-              )}
-              <button
-                className={`session-button ${isSessionActive ? 'active' : ''}`}
-                onClick={() => {
-                  trackEvent('session_control_clicked', {
-                    action: isSessionActive ? 'stop' : 'start',
-                    method: 'button'
-                  });
-                  if (isSessionActive) {
-                    disconnectConversation();
-                  } else {
-                    connectConversation();
-                  }
-                }}
-                disabled={(!isSessionActive && !canStartSession) || isInitializing}
-              >
-                {isInitializing ? (
-                  <>
-                    <Loader size={14} className="spinner" />
-                    <span>
-                      {initProgress
-                        ? t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
-                        : t('mainPanel.initializing')}
-                    </span>
-                  </>
-                ) : isSessionActive ? (
-                  <>
-                    <X size={14} />
-                    <span>{t('mainPanel.endSession')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap size={14} />
-                    <span>{t('mainPanel.startSession')}</span>
-                    {startGate.reason && (
-                      <span className="tooltip">{startBlockMessage}</span>
-                    )}
-                  </>
-                )}
-              </button>
-
-              {isDevelopment() && (
-                <button
-                  className={`debug-button ${isTestTonePlaying ? 'active' : ''}`}
-                  onClick={playTestTone}
-                >
-                  <Wrench size={14} />
-                  <span>{isTestTonePlaying ? t('mainPanel.stopDebug') : t('mainPanel.debug')}</span>
-                </button>
-              )}
-            </div>
-
-            <span className="footer-spacer" />
-
             <WaveformStrip kind="output" canvasRef={serverCanvasRef} width="full" title={t('mainPanel.waveformOutputTooltip', 'Audio sent to the virtual microphone (translation + passthrough)')} />
-
-            <div className="footer-metadata">
-              <span
-                className="language-pair clickable"
-                onClick={() => navigateToSettings('languages')}
-                title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
+            {isDevelopment() && (
+              <button
+                type="button"
+                className={`debug-button ${isTestTonePlaying ? 'active' : ''}`}
+                onClick={playTestTone}
               >
-                {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
-              </span>
-              {isSessionActive && (
-                <span className="session-duration">{sessionDuration}</span>
-              )}
-              {isSessionActive && sonioxCountdown && (
-                <span className={`session-remaining-time${sonioxRemainingLow ? ' low' : ''}`}>
-                  {formatRemainingTime(sonioxCountdown.remainingMs)}
-                </span>
-              )}
-            </div>
+                <Wrench size={14} />
+                <span>{isTestTonePlaying ? t('mainPanel.stopDebug') : t('mainPanel.debug')}</span>
+              </button>
+            )}
           </div>
         )}
+
+        {/* Control Footer — shared slim chrome */}
+        <div className={`control-footer ${uiMode === 'advanced' ? 'advanced' : 'basic'}`}>
+          <span className={`status-dot ${isReconnecting ? 'reconnecting' : isSessionActive ? 'active' : ''}`} />
+          {isReconnecting && (
+            <span className="reconnecting-label">
+              {t('connectionStatus.reconnecting', 'Reconnecting...')}
+            </span>
+          )}
+          <ModePicker
+            mode={effectiveMode}
+            locked={isSessionActive || isInitializing}
+            missingDeviceForMode={missingDeviceForMode}
+            onSegmentClick={(target, el) => {
+              if (target === effectiveMode) {
+                if (modePopoverOpen) {
+                  setModePopoverOpen(false);
+                } else {
+                  setModePopoverAnchor(el);
+                  setModePopoverOpen(true);
+                }
+              } else {
+                handleModeSwitch(target);
+                setModePopoverOpen(false);
+              }
+            }}
+          />
+
+          <span className="footer-spacer" />
+
+          <div className="action-cluster">
+            {isSessionActive && speakerChannelActive && canHoldToSpeak && (
+              <button
+                type="button"
+                className={`push-to-talk-btn ${isRecording ? 'recording' : ''}`}
+                onMouseDown={startRecording}
+                onMouseUp={stopRecording}
+                onTouchStart={startRecording}
+                onTouchEnd={stopRecording}
+                disabled={uiMode === 'advanced' ? isMicMuted : false}
+              >
+                <Mic size={12} />
+                <span className="btn-text">
+                  {isRecording
+                    ? t('simplePanel.release', 'Release')
+                    : uiMode === 'advanced' && isMicMuted
+                      ? t('mainPanel.inputDeviceOff')
+                      : t('simplePanel.holdToSpeak', 'Hold')}
+                </span>
+              </button>
+            )}
+            <button
+              type="button"
+              className={`main-action-btn session-button ${
+                isSessionActive
+                  ? 'stop active'
+                  : !canStartSession && startGate.reason
+                    ? canFixStartBlocker
+                      ? 'start start-fix'
+                      : 'start start-blocked'
+                    : 'start'
+              }`}
+              onClick={() => {
+                if (isSessionActive) {
+                  trackEvent('session_control_clicked', {
+                    action: 'stop',
+                    method: 'button',
+                  });
+                  disconnectConversation();
+                  return;
+                }
+
+                // When Start is blocked for a fixable reason, the same slot
+                // becomes the corrective action (open Settings on the missing
+                // section) so users are never left with a silent disabled button.
+                if (!canStartSession && canFixStartBlocker) {
+                  trackEvent('session_control_clicked', {
+                    action: 'start',
+                    method: 'button',
+                  });
+                  openStartBlockerFix();
+                  return;
+                }
+
+                trackEvent('session_control_clicked', {
+                  action: 'start',
+                  method: 'button',
+                });
+                connectConversation();
+              }}
+              disabled={
+                isInitializing ||
+                (!isSessionActive && !canStartSession && !canFixStartBlocker)
+              }
+              title={
+                !isSessionActive && startBlockMessage
+                  ? canFixStartBlocker
+                    ? t(
+                        'simplePanel.clickToFixStart',
+                        '{{reason}} — click to open settings',
+                        { reason: startBlockMessage },
+                      )
+                    : startBlockMessage
+                  : undefined
+              }
+            >
+              {isInitializing ? (
+                <>
+                  <Loader className="spinning spinner" size={16} />
+                  <span className="btn-text">
+                    {initProgress
+                      ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', {
+                          completed: initProgress.completed,
+                          total: initProgress.total,
+                        })
+                      : nativeAsrLoading
+                        ? t('simplePanel.loadingModel', 'Loading model…')
+                        : t('simplePanel.connecting', 'Connecting...')}
+                  </span>
+                </>
+              ) : isSessionActive ? (
+                <>
+                  <span className="stop-icon">■</span>
+                  <span className="btn-text">{t('simplePanel.stop', 'Stop')}</span>
+                </>
+              ) : !canStartSession && startGate.reason ? (
+                <>
+                  <AlertTriangle size={14} aria-hidden="true" />
+                  <span className="btn-text">
+                    {startFixLabel ?? startBlockMessage}
+                  </span>
+                  {canFixStartBlocker && (
+                    <ChevronRight size={15} strokeWidth={2.25} className="start-fix__chevron" aria-hidden="true" />
+                  )}
+                </>
+              ) : (
+                <>
+                  <Zap size={14} />
+                  <span className="btn-text">{t('simplePanel.start', 'Start')}</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <span className="footer-spacer" />
+
+          <div className="footer-metadata">
+            <button
+              type="button"
+              className="language-pair clickable"
+              onClick={() => navigateToSettings('languages')}
+              title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
+            >
+              <Languages size={15} strokeWidth={1.75} className="language-pair__icon" aria-hidden="true" />
+              <span className="language-pair__code">{currentSettings.sourceLanguage}</span>
+              <span className="language-pair__arrow" aria-hidden="true">→</span>
+              <span className="language-pair__code">{currentSettings.targetLanguage}</span>
+            </button>
+            {isSessionActive && (
+              <span className="session-duration">{sessionDuration}</span>
+            )}
+            {isSessionActive && sonioxCountdown && (
+              <span className={`session-remaining-time${sonioxRemainingLow ? ' low' : ''}`}>
+                {formatRemainingTime(sonioxCountdown.remainingMs)}
+              </span>
+            )}
+          </div>
+        </div>
 
         <AudioFeedbackWarning
           isVisible={showFeedbackWarning}
