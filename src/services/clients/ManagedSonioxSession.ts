@@ -94,7 +94,21 @@ export function primarySttRoleFor(request: ManagedSessionRequest): SonioxStreamR
 // from a malformed/empty body.
 const DEFAULT_CONFLICT_RETRY_MS = 3000;
 
-/** The flat one-lease/one-key-pair shape the deployed backend returns. */
+/** One issued Soniox temporary key and the four-segment reference bound to it.
+ *  Mirrors the backend's `SessionStream` (sokuji-backend routes/soniox.ts). */
+interface SonioxSessionKeyStream {
+  role: SonioxStreamRole;
+  apiKey: string;
+  clientReferenceId: string;
+  expiresAt: string;
+}
+
+/**
+ * The session-key response. `streams` is what the deployed backend answers with
+ * — one entry per Soniox stream this session may open. The flat fields are kept
+ * populated from the PRIMARY leg, which is what made the backend deployable
+ * ahead of this client.
+ */
 interface SonioxSessionKeyResponse {
   sttApiKey: string;
   ttsApiKey?: string;
@@ -105,6 +119,17 @@ interface SonioxSessionKeyResponse {
   sku: string;
   leaseId: string;
   clientReferenceId: string;
+  streams?: SonioxSessionKeyStream[];
+}
+
+/** The audio source a role's stream carries: `spk` mic, `par` far end, `mix`
+ *  both mixed. What pairs an STT leg with the TTS key of the SAME side. */
+function roleSide(role: SonioxStreamRole): 'spk' | 'par' | 'mix' {
+  return role.slice(0, 3) as 'spk' | 'par' | 'mix';
+}
+
+function isSttRole(role: SonioxStreamRole): boolean {
+  return role.endsWith('_stt');
 }
 
 export interface ManagedSonioxSessionOptions {
@@ -177,14 +202,7 @@ export class ManagedSonioxSession {
     }
     this.leaseIdValue = data.leaseId;
     this.bundles.clear();
-    // One flat key pair, filed under the lease's single STT role. FE3 replaces
-    // this with the per-stream structure; every caller already asks by role, so
-    // that is a change here and nowhere else.
-    this.bundles.set(primarySttRoleFor(request), {
-      stt: data.sttApiKey,
-      ...(data.ttsApiKey ? { tts: data.ttsApiKey } : {}),
-      clientReferenceId: data.clientReferenceId,
-    });
+    this.fileBundles(request, data);
     this.costMeter = new SonioxCostMeter({
       budgetMicroUsd: data.budgetMicroUsd,
       rateUsdPerHour: data.rateUsdPerHour,
@@ -193,6 +211,56 @@ export class ManagedSonioxSession {
       onExhausted: () => this.exhaustedHandler?.(),
     });
     this.costMeter.start(Date.now());
+  }
+
+  /**
+   * Turn the response into ONE bundle per transcription leg.
+   *
+   * A bundle is what a SonioxClient runs on, and there is exactly one client
+   * per transcription stream — so the map is keyed on the `*_stt` roles and a
+   * `*_tts` role is not a leg of its own, it is the synthesis key that rides
+   * the STT leg of the SAME side. Matching by side is what keeps a split Both
+   * session's single `spk_tts` key on the speaker and off the participant.
+   *
+   * Every leg gets its OWN stt key and its OWN four-segment reference. That is
+   * a requirement, not tidiness: Soniox attributes a usage log to the reference
+   * bound to the KEY (probed live 2026-08-11), so two legs sharing a key are
+   * indistinguishable in the usage logs and the lease's ended-mask could not be
+   * driven at all.
+   */
+  private fileBundles(request: ManagedSessionRequest, data: SonioxSessionKeyResponse): void {
+    const primary = primarySttRoleFor(request);
+    const streams = data.streams;
+    if (!Array.isArray(streams) || streams.length === 0) {
+      // Defensive fallback for a response with no per-stream structure. Files
+      // the flat pair under the primary role ALONE — never under a second role
+      // as well, which would hand two legs the same key. A split session then
+      // fails at the participant's credentialsFor, inside the non-fatal
+      // participant catch, and degrades to one-way rather than mis-attributing.
+      this.bundles.set(primary, {
+        stt: data.sttApiKey,
+        ...(data.ttsApiKey ? { tts: data.ttsApiKey } : {}),
+        clientReferenceId: data.clientReferenceId,
+      });
+      return;
+    }
+    for (const stream of streams) {
+      if (!isSttRole(stream.role)) continue;
+      const tts = streams.find(
+        (s) => !isSttRole(s.role) && roleSide(s.role) === roleSide(stream.role),
+      );
+      this.bundles.set(stream.role, {
+        stt: stream.apiKey,
+        ...(tts ? { tts: tts.apiKey } : {}),
+        clientReferenceId: stream.clientReferenceId,
+      });
+    }
+    // Loud rather than a lease that is held while the speaker leg fails to
+    // build: the primary role is the one the flat fields describe and the one
+    // every single-leg shape runs on, so its absence is a contract break.
+    if (!this.bundles.has(primary)) {
+      throw new Error(`Soniox session-key response issued no key for the primary role ${primary}`);
+    }
   }
 
   hasRole(role: SonioxStreamRole): boolean {
@@ -223,8 +291,14 @@ export class ManagedSonioxSession {
         'Authorization': `Bearer ${this.sessionToken}`,
         'Content-Type': 'application/json',
       },
-      // The deployed handler reads leaseId and ignores every other field, so
-      // sending the role now is safe today and is what BE5 starts reading.
+      // The role is REQUIRED on a lease that runs more than one transcription
+      // stream: the backend answers 400 `role_required` there rather than
+      // reporting a success it did not get, because a roleless body would leave
+      // the lease at its ~195 s start window while both Soniox keys stayed
+      // valid for the full grant — the account would then acquire a SECOND
+      // lease while the first was still streaming. A wrong role is refused just
+      // as hard (`role_not_issued`), which is why the caller's role must be
+      // derived from the same matrix body the server expanded.
       body: JSON.stringify({ leaseId, role }),
     }).catch((error) => console.error('[ManagedSonioxSession] session-started notify failed:', error));
   }
@@ -275,10 +349,21 @@ export class ManagedSonioxSession {
    * response (ok or not) is returned for the caller to interpret status-by-status.
    */
   private async requestSessionKey(request: ManagedSessionRequest): Promise<Response> {
-    // FE1 speaks the LEGACY contract on purpose: this task must run against the
-    // backend as currently deployed. FE3 swaps this one expression for the
-    // matrix body { mode, textOnly, bothSplit }.
-    const body = { mode: request.textOnly ? 'text_only' : 'speech_to_speech' };
+    // The MATRIX body. `mode` here is the AUDIO shape ('speaker' | 'participant'
+    // | 'both'), not the legacy BILLING shape ('text_only' | 'speech_to_speech')
+    // this used to send. The backend tells the two vocabularies apart by the
+    // value of `mode` and nothing else, checking the legacy one first, so the
+    // switch is the value — there is no version flag to set.
+    //
+    // All three fields, always: the backend defaults neither `textOnly` (for
+    // speaker/both) nor `bothSplit` (for both) and answers 400 without them,
+    // deliberately, so a client that dropped one cannot silently buy the more
+    // expensive synthesis path or halve the price of a two-leg session.
+    const body: ManagedSessionRequest = {
+      mode: request.mode,
+      textOnly: request.textOnly,
+      bothSplit: request.bothSplit,
+    };
     try {
       return await fetch(`${getApiUrl()}/soniox/session-key`, {
         method: 'POST',

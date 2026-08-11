@@ -26,6 +26,31 @@ function speechToSpeechResponse() {
   };
 }
 
+/**
+ * What production actually answers since BE6: the flat fields stay (populated
+ * from the primary leg) and `streams` carries one entry per Soniox stream, each
+ * with the key and the FOUR-segment reference bound to it.
+ */
+function splitBothResponse() {
+  return {
+    // Flat fields = the primary leg, which for split Both is the speaker's STT.
+    sttApiKey: 'key-spk-stt',
+    ttsApiKey: 'key-spk-tts',
+    expiresAt: '2026-07-25T00:01:00Z',
+    maxSessionDurationSeconds: 900,
+    budgetMicroUsd: 500_000,
+    rateUsdPerHour: 2.5,
+    sku: 'soniox:speech_to_speech',
+    leaseId: 'lease-split-1',
+    clientReferenceId: 'sokuji1:acct-1:lease-split-1:spk_stt',
+    streams: [
+      { role: 'spk_stt', apiKey: 'key-spk-stt', clientReferenceId: 'sokuji1:acct-1:lease-split-1:spk_stt', expiresAt: '2026-07-25T00:01:00Z' },
+      { role: 'spk_tts', apiKey: 'key-spk-tts', clientReferenceId: 'sokuji1:acct-1:lease-split-1:spk_tts', expiresAt: '2026-07-25T00:05:00Z' },
+      { role: 'par_stt', apiKey: 'key-par-stt', clientReferenceId: 'sokuji1:acct-1:lease-split-1:par_stt', expiresAt: '2026-07-25T00:03:00Z' },
+    ],
+  };
+}
+
 function textOnlyResponse() {
   return {
     sttApiKey: 'soniox-stt-temp-key-text-only',
@@ -100,26 +125,92 @@ describe('byokCredentials', () => {
 });
 
 describe('ManagedSonioxSession.acquire', () => {
-  it('POSTs the LEGACY { mode } body with the better-auth token in Authorization', async () => {
+  it('POSTs the MATRIX body with the better-auth token in Authorization', async () => {
     const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
     await newSession().acquire(SPEAKER_S2S);
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain('/soniox/session-key');
     expect((init.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
-    // FE1 ships against the deployed backend: no `textOnly`, no `bothSplit`.
-    expect(JSON.parse(init.body as string)).toEqual({ mode: 'speech_to_speech' });
+    // The AUDIO-shape vocabulary, not the legacy billing one. The backend tells
+    // the two apart by the value of `mode` alone and checks the legacy one
+    // first, so 'speaker' is what selects the matrix reading.
+    expect(JSON.parse(init.body as string)).toEqual({ mode: 'speaker', textOnly: false, bothSplit: false });
   });
 
-  it('sends mode: text_only when the request is text-only', async () => {
+  it('always sends all three fields — the backend defaults none of them', async () => {
+    // `normalizeSessionShape` returns null (→ 400) when `textOnly` is missing
+    // for speaker/both or `bothSplit` is missing for both. Deliberate: a client
+    // bug that dropped one would otherwise silently buy the more expensive
+    // synthesis path, or halve the price of what the user asked for.
     const fetchMock = mockFetchOnce(200, textOnlyResponse());
     await newSession().acquire({ mode: 'speaker', textOnly: true, bothSplit: false });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(init.body as string)).toEqual({ mode: 'text_only' });
+    expect(JSON.parse(init.body as string)).toEqual({ mode: 'speaker', textOnly: true, bothSplit: false });
   });
 
-  it('files the flat response under the request’s primary STT role', async () => {
+  it('declares bothSplit: true for a split Both session', async () => {
+    const fetchMock = mockFetchOnce(200, splitBothResponse());
+    await newSession().acquire({ mode: 'both', textOnly: false, bothSplit: true });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ mode: 'both', textOnly: false, bothSplit: true });
+  });
+
+  it('files a per-stream response under EVERY issued STT role, TTS matched by side', async () => {
+    mockFetchOnce(200, splitBothResponse());
+    const session = newSession();
+    await session.acquire({ mode: 'both', textOnly: false, bothSplit: true });
+
+    // The speaker leg carries the session's only TTS key, and its own
+    // four-segment reference — not the participant's, and not the lease's
+    // three-segment base ref.
+    expect(session.credentialsFor('spk_stt')).toEqual({
+      stt: 'key-spk-stt',
+      tts: 'key-spk-tts',
+      clientReferenceId: 'sokuji1:acct-1:lease-split-1:spk_stt',
+    });
+    // A DIFFERENT key. Attribution is key-bound, so two legs sharing one key
+    // are indistinguishable in the usage logs and the ended-mask could not be
+    // driven at all.
+    expect(session.credentialsFor('par_stt')).toEqual({
+      stt: 'key-par-stt',
+      clientReferenceId: 'sokuji1:acct-1:lease-split-1:par_stt',
+    });
+    expect(session.credentialsFor('spk_stt').stt)
+      .not.toBe(session.credentialsFor('par_stt').stt);
+    // par_tts is unreachable in v1: the participant config forces textOnly.
+    expect(session.credentialsFor('par_stt').tts).toBeUndefined();
+  });
+
+  it('a TTS role is not a leg of its own — no bundle is filed under one', async () => {
+    mockFetchOnce(200, splitBothResponse());
+    const session = newSession();
+    await session.acquire({ mode: 'both', textOnly: false, bothSplit: true });
+
+    expect(session.hasRole('spk_tts')).toBe(false);
+    expect(session.hasRole('mix_stt')).toBe(false);
+  });
+
+  it('rejects a per-stream response that is missing the primary leg', async () => {
+    // Unreachable from a correct backend (it throws rather than answer one),
+    // but the alternative here is a session that acquires a lease and then
+    // fails at the speaker's credentialsFor with no lease released.
+    const response = splitBothResponse();
+    response.streams = response.streams.filter((s) => s.role !== 'spk_stt');
+    mockFetchOnce(200, response);
+
+    await expect(newSession().acquire({ mode: 'both', textOnly: false, bothSplit: true }))
+      .rejects.toThrow(/spk_stt/);
+  });
+
+  it('falls back to the flat fields, under the primary STT role, when `streams` is absent', async () => {
+    // Defensive only — production has answered with `streams` since BE6. A
+    // rollback would leave single-stream shapes fully working and make split
+    // fail LOUDLY on the participant's credentialsFor (inside the non-fatal
+    // participant catch), which is the settled degradation. What it must never
+    // do is hand the same key to both legs.
     mockFetchOnce(200, speechToSpeechResponse());
     const session = newSession();
     await session.acquire({ mode: 'both', textOnly: false, bothSplit: false });
