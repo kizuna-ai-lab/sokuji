@@ -218,7 +218,7 @@
     "simpleMode": "Cepat",
     "sonioxSharedSession": "Sesi dikongsi dalam mod Kedua-duanya",
     "sonioxSharedSessionTooltip": "Mod Kedua-duanya boleh menggunakan satu sesi Soniox yang dikongsi atau sesi berasingan bagi setiap arah.\n\nDidayakan: satu sesi menterjemah kedua-dua belah pihak dengan pemisahan penutur automatik — kos dan latensi lebih rendah.\n\nDilumpuhkan: sesi berasingan bagi setiap arah — lebih dipercayai apabila kedua-duanya bercakap serentak, tetapi kira-kira dua kali ganda kos.\n\nHanya menjejaskan mod Kedua-duanya.",
-    "sonioxSharedSessionManaged": "Kizuna AI menjalankan mod Kedua-duanya sebagai satu sesi dikongsi, jadi ini tidak boleh dimatikan.",
+    "sonioxSharedSessionManagedCost": "Kizuna AI menyokong kedua-duanya. Dilumpuhkan menjalankan dua sesi serentak — kira-kira dua kali ganda kos seminit, jadi peruntukan sesi anda habis dalam kira-kira separuh masa dan baki yang lebih tinggi diperlukan untuk bermula.",
     "sonioxAutoParticipantWarning": "Pilih bahasa sumber yang tertentu — dengan pengesanan automatik, pertuturan peserta lain tidak boleh diterjemahkan ke bahasa anda.",
     "sonioxVocabulary": "Perbendaharaan Kata Tersuai",
     "sonioxVocabularyTooltip": "Mencondongkan pengecaman ke arah nama dan istilah penting, serta memandu cara istilah tertentu diterjemahkan. Berkuat kuasa mulai sesi seterusnya.",

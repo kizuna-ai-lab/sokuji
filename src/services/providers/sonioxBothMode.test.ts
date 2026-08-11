@@ -10,11 +10,10 @@ import { Provider } from '../../types/Provider';
  * balance floor, and the client wiring (`bidirectional` + the secondary-port
  * participant) — so it is one pure function, tested here directly.
  *
- * NOTE for whoever lands the managed-split UI: this file deliberately does NOT
- * assert what a managed account does with a stored `bothModeSharedSession:
- * false`. At this point `sonioxUsesSharedBothSession` still forces shared on
- * for the managed twin, and that policy is inverted in its own task, which
- * adds the managed-split cases here.
+ * The managed-split cases at the bottom were added when the UI switch landed:
+ * `sonioxUsesSharedBothSession` no longer forces shared on for the managed
+ * twin, so what a managed account does with a stored `bothModeSharedSession:
+ * false` is now a real question with a pinned answer.
  */
 describe('sonioxBothModePlan', () => {
   const concrete = { bothModeSharedSession: true, sourceLanguage: 'en' };
@@ -76,5 +75,26 @@ describe('sonioxBothModePlan', () => {
       settings: concrete,
       mode: 'both',
     }).shared).toBe(true);
+  });
+
+  // The managed twin no longer forces shared. MainPanel reads the helper
+  // rather than the raw `bothModeSharedSession` field precisely so this stays
+  // one decision: if the UI lets a managed user pick split, the session must
+  // actually run split, and if the UI ever locks it again a stored `false`
+  // must not resurrect split behind the UI's back.
+  it('lets the Kizuna-managed twin run split Both when that is what is stored', () => {
+    expect(sonioxBothModePlan({
+      provider: Provider.KIZUNA_AI_SONIOX,
+      settings: { bothModeSharedSession: false, sourceLanguage: 'en' },
+      mode: 'both',
+    })).toEqual({ shared: false, split: true });
+  });
+
+  it('still defaults the managed twin to shared with nothing stored', () => {
+    expect(sonioxBothModePlan({
+      provider: Provider.KIZUNA_AI_SONIOX,
+      settings: { sourceLanguage: 'en' },
+      mode: 'both',
+    })).toEqual({ shared: true, split: false });
   });
 });

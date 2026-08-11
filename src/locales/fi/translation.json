@@ -218,7 +218,7 @@
     "simpleMode": "Pika",
     "sonioxSharedSession": "Jaettu istunto Molemmat-tilassa",
     "sonioxSharedSessionTooltip": "Molemmat-tila voi käyttää yhtä jaettua Soniox-istuntoa tai erillistä istuntoa kumpaankin suuntaan.\n\nKäytössä: yksi istunto kääntää molemmat puolet automaattisella puhujien erottelulla — pienemmät kustannukset ja viive.\n\nPois käytöstä: erillinen istunto kumpaankin suuntaan — luotettavampi, kun molemmat puhuvat yhtä aikaa, mutta noin kaksinkertainen kustannus.\n\nVaikuttaa vain Molemmat-tilaan.",
-    "sonioxSharedSessionManaged": "Kizuna AI suorittaa Molemmat-tilan yhtenä jaettuna istuntona, joten tätä ei voi poistaa käytöstä.",
+    "sonioxSharedSessionManagedCost": "Kizuna AI tukee molempia. Pois käytöstä ajaa kaksi istuntoa yhtä aikaa — noin kaksinkertainen hinta minuutissa, joten istuntoaikasi loppuu noin puolessa ajassa ja aloittamiseen tarvitaan suurempi saldo.",
     "sonioxAutoParticipantWarning": "Valitse tietty lähdekieli — automaattisella tunnistuksella toisen osallistujan puhetta ei voi kääntää omalle kielellesi.",
     "sonioxVocabulary": "Mukautettu sanasto",
     "sonioxVocabularyTooltip": "Ohjaa tunnistusta tärkeiden nimien ja erikoistermien suuntaan ja vaikuttaa siihen, miten tietyt termit käännetään. Otetaan käyttöön vasta seuraavasta istunnosta alkaen.",

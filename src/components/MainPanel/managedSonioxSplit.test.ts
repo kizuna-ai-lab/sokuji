@@ -260,9 +260,10 @@ describe('resolveManagedSonioxWiring — the roles agree with the body that was 
    */
 
   it('shared Both with NO microphone asks for participant AND names par_stt', () => {
-    // Reachable today for every managed account: sonioxUsesSharedBothSession
-    // forces shared, and `speakerWillStart` is false whenever no input device
-    // is selected. Deriving the role from `sonioxSharedBoth` reports "no
+    // Reachable for every managed account that has not turned the shared
+    // toggle off: shared is the default, and `speakerWillStart` is false
+    // whenever no input device is selected. Deriving the role from
+    // `sonioxSharedBoth` reports "no
     // participant role" while the body just asked for a par_stt key — the
     // participant leg would then be built with no credentials at all and the
     // managed descriptor would refuse to construct it.
@@ -390,9 +391,9 @@ describe('resolveManagedSonioxWiring — every reachable input agrees with the s
 
 describe('a managed split Both session, wiring through the real session object', () => {
   /**
-   * Split is not reachable through the UI yet (sonioxUsesSharedBothSession
-   * still forces shared for managed accounts), and there is no React harness to
-   * drive connectConversation with. So this drives the same sequence MainPanel
+   * Split is now reachable through the UI (the settings toggle is live for
+   * managed accounts), but there is still no React harness to drive
+   * connectConversation with. So this drives the same sequence MainPanel
    * does — resolve the wiring, acquire, take one bundle per leg, mark each leg
    * started after its connect, tear both legs down, end once — against the real
    * ManagedSonioxSession with only `fetch` stubbed. It is what turns "the

@@ -218,7 +218,7 @@
     "simpleMode": "Rapido",
     "sonioxSharedSession": "Sessione condivisa in modalità Entrambi",
     "sonioxSharedSessionTooltip": "La modalità Entrambi può usare un’unica sessione Soniox condivisa o una sessione separata per direzione.\n\nAbilitato: un’unica sessione traduce entrambi i lati con separazione automatica dei parlanti — costi e latenza inferiori.\n\nDisabilitato: una sessione separata per direzione — più affidabile quando parlano entrambi contemporaneamente, ma con costo circa doppio.\n\nInfluisce solo sulla modalità Entrambi.",
-    "sonioxSharedSessionManaged": "Kizuna AI esegue la modalità Entrambi come un'unica sessione condivisa, quindi non è possibile disattivarla.",
+    "sonioxSharedSessionManagedCost": "Kizuna AI supporta entrambe le modalità. Disattivato esegue due sessioni contemporaneamente: circa il doppio del costo al minuto, quindi il credito della sessione si esaurisce in circa metà tempo e serve un saldo più alto per iniziare.",
     "sonioxAutoParticipantWarning": "Scegli una lingua di origine specifica — con il rilevamento automatico non è possibile tradurre la voce dell'altro partecipante nella tua lingua.",
     "sonioxVocabulary": "Vocabolario personalizzato",
     "sonioxVocabularyTooltip": "Orienta il riconoscimento verso nomi e termini tecnici importanti e guida il modo in cui vengono tradotti termini specifici. Si applica dalla prossima sessione.",

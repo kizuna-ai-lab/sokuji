@@ -7,7 +7,7 @@
  * catch a missing case.
  */
 import React from 'react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 
 vi.mock('react-i18next', async (importOriginal) => {
@@ -89,6 +89,7 @@ const { Provider } = await import('../../../types/Provider');
 const { SonioxProviderConfig } = await import('../../../services/providers/SonioxProviderConfig');
 const { default: ProviderSpecificSettings } = await import('./ProviderSpecificSettings');
 const { useAuth } = await import('../../../lib/auth/hooks');
+const { default: useAudioStore } = await import('../../../stores/audioStore');
 
 const baseProps = {
   config: new SonioxProviderConfig().getConfig(),
@@ -298,5 +299,70 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
     const secondId = getByTestId('soniox-voice-section').getAttribute('data-source-id');
     expect(secondId).not.toBe('null');
     expect(secondId).not.toBe(firstId);
+  });
+});
+
+/**
+ * Managed Soniox used to have the shared/split toggle locked on, with an
+ * inline note saying it could not be turned off. The backend now issues one
+ * temporary key per stream, so split is a real choice for managed accounts
+ * too — and it costs roughly 2× per wall-clock minute, which the UI has to say
+ * out loud rather than let the user discover from a halved countdown.
+ */
+describe('ProviderSpecificSettings — managed Soniox shared/split toggle', () => {
+  beforeEach(() => {
+    // The toggle is only live in Both mode (`inBoth`); every other test in
+    // this file runs in the default speaker mode.
+    useAudioStore.setState({ mode: 'both' });
+    useSettingsStore.setState((s: any) => ({
+      provider: Provider.KIZUNA_AI_SONIOX,
+      kizunaSoniox: { ...s.kizunaSoniox, bothModeSharedSession: true },
+    }));
+  });
+
+  afterEach(() => {
+    useAudioStore.setState({ mode: 'speaker' });
+  });
+
+  function pills(container: HTMLElement): HTMLButtonElement[] {
+    const section = container.querySelector('#soniox-settings-section') as HTMLElement;
+    expect(section).not.toBeNull();
+    return Array.from(section.querySelectorAll('.option-button')) as HTMLButtonElement[];
+  }
+
+  it('leaves both pills enabled for a managed account in Both mode', () => {
+    const { container } = mount();
+    const [enabled, disabled] = pills(container);
+    expect(enabled.disabled).toBe(false);
+    expect(disabled.disabled).toBe(false);
+  });
+
+  it('writes bothModeSharedSession: false to the kizunaSoniox slice when split is picked', () => {
+    const { container } = mount();
+    const [, disabled] = pills(container);
+    fireEvent.click(disabled);
+    expect(useSettingsStore.getState().kizunaSoniox.bothModeSharedSession).toBe(false);
+  });
+
+  it('still locks both pills during an active session', () => {
+    const { container } = render(<ProviderSpecificSettings {...baseProps} isSessionActive={true} />);
+    const [enabled, disabled] = pills(container);
+    expect(enabled.disabled).toBe(true);
+    expect(disabled.disabled).toBe(true);
+  });
+
+  it('shows the explanatory tooltip for managed accounts too', () => {
+    const { container } = mount();
+    const section = container.querySelector('#soniox-settings-section') as HTMLElement;
+    expect(section.querySelector('.tooltip-trigger')).not.toBeNull();
+  });
+
+  it('tells a managed account what split costs instead of saying it cannot be turned off', () => {
+    const { container } = mount();
+    const section = container.querySelector('#soniox-settings-section') as HTMLElement;
+    // The i18n mock at the top of this file returns each t() call's English
+    // default, so this asserts the shipped copy verbatim.
+    expect(section.textContent).toContain('about twice the cost per minute');
+    expect(section.textContent).not.toContain('cannot be turned off');
   });
 });

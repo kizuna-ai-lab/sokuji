@@ -218,7 +218,7 @@
     "simpleMode": "Schnell",
     "sonioxSharedSession": "Gemeinsame Sitzung im Modus „Beides“",
     "sonioxSharedSessionTooltip": "Im Modus „Beides“ kann eine gemeinsame Soniox-Sitzung für beide Richtungen oder je Richtung eine separate Sitzung verwendet werden.\n\nAktiviert: Eine einzelne Sitzung übersetzt beide Seiten mit automatischer Sprechertrennung – geringere Kosten und Latenz.\n\nDeaktiviert: Eine separate Sitzung pro Richtung – zuverlässiger, wenn beide gleichzeitig sprechen, aber etwa doppelte Kosten.\n\nBetrifft nur den Modus „Beides“.",
-    "sonioxSharedSessionManaged": "Kizuna AI führt den Modus „Beides“ immer als eine gemeinsame Sitzung aus, daher lässt sich dies nicht deaktivieren.",
+    "sonioxSharedSessionManagedCost": "Kizuna AI unterstützt beides. „Deaktiviert“ führt zwei Sitzungen gleichzeitig aus – etwa doppelte Kosten pro Minute, dein Sitzungsguthaben ist also in etwa der halben Zeit aufgebraucht und zum Starten ist ein höheres Guthaben nötig.",
     "sonioxAutoParticipantWarning": "Wählen Sie eine konkrete Ausgangssprache – bei automatischer Erkennung kann die Sprache des Gegenübers nicht in Ihre Sprache übersetzt werden.",
     "sonioxVocabulary": "Benutzerdefiniertes Vokabular",
     "sonioxVocabularyTooltip": "Beeinflusst die Erkennung wichtiger Namen und Fachbegriffe und lenkt, wie bestimmte Begriffe übersetzt werden. Wirkt sich erst ab der nächsten Sitzung aus.",

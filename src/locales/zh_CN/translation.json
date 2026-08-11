@@ -218,7 +218,7 @@
     "simpleMode": "快捷",
     "sonioxSharedSession": "「两者」模式下共享会话",
     "sonioxSharedSessionTooltip": "「两者」模式可以用一个共享的 Soniox 会话,也可以每个方向各用一个独立会话。\n\n已启用:单个会话同时翻译双方,并自动区分说话人——成本和延迟更低。\n\n禁用:每个方向各一个独立会话——两人同时说话时更可靠,但成本约为两倍。\n\n仅影响「两者」模式。",
-    "sonioxSharedSessionManaged": "Kizuna AI 的「两者」模式始终使用一个共享会话，因此无法关闭。",
+    "sonioxSharedSessionManagedCost": "Kizuna AI 两种方式都支持。关闭后会同时运行两个会话——每分钟成本约为两倍，因此可用会话时长大约减半，开始会话所需的余额也更高。",
     "sonioxAutoParticipantWarning": "请选择具体的源语言——使用自动检测时,无法把对方的语音翻译成你的语言。",
     "sonioxVocabulary": "自定义词表",
     "sonioxVocabularyTooltip": "使识别偏向重要人名和专业术语，并引导特定术语的译法。将在下次会话生效。",

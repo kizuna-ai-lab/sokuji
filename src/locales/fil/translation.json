@@ -218,7 +218,7 @@
     "simpleMode": "Mabilis",
     "sonioxSharedSession": "Nakabahaging session sa mode na Pareho",
     "sonioxSharedSessionTooltip": "Ang mode na Pareho ay maaaring gumamit ng isang nakabahaging session ng Soniox o hiwalay na session para sa bawat direksyon.\n\nPinagana: isang session ang nagsasalin sa magkabilang panig na may awtomatikong paghihiwalay ng nagsasalita — mas mababang gastos at latency.\n\nHindi pinagana: hiwalay na session para sa bawat direksyon — mas maaasahan kapag sabay na nagsasalita ang dalawa, ngunit halos doble ang gastos.\n\nNakakaapekto lamang sa mode na Pareho.",
-    "sonioxSharedSessionManaged": "Pinapatakbo ng Kizuna AI ang mode na Pareho bilang isang shared session, kaya hindi ito maaaring i-off.",
+    "sonioxSharedSessionManagedCost": "Sinusuportahan ng Kizuna AI ang dalawa. Ang Naka-disable ay nagpapatakbo ng dalawang session nang sabay — halos doble ang gastos kada minuto, kaya mauubos ang oras ng iyong session sa halos kalahati ng panahon at kailangan ng mas mataas na balanse para makapagsimula.",
     "sonioxAutoParticipantWarning": "Pumili ng tiyak na pinagmulang wika — sa awtomatikong pagtukoy, hindi maisasalin ang sinasabi ng ibang kalahok sa iyong wika.",
     "sonioxVocabulary": "Custom na Bokabularyo",
     "sonioxVocabularyTooltip": "Umiimpluwensya sa pagkilala tungo sa mahahalagang pangalan at teknikal na termino, at gumagabay kung paano isinasalin ang mga partikular na termino. Mag-aapply mula sa susunod na session.",

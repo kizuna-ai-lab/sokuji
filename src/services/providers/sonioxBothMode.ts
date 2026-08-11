@@ -59,10 +59,12 @@ export function sonioxBothModePlan(input: SonioxBothModeInput): SonioxBothModePl
   if (!isSoniox || mode !== 'both') return { shared: false, split: false };
 
   // The stored preference, through the shared helper rather than reading
-  // `bothModeSharedSession` directly: that helper is the single seam where a
-  // per-provider policy on this toggle lives, and reading the raw field would
-  // route around it.
-  const prefersShared = sonioxUsesSharedBothSession(provider, settings);
+  // `bothModeSharedSession` directly: the helper is the one place the default
+  // for an unset preference lives, and it is the same function the settings
+  // toggle renders from, so a stored value cannot mean one thing to the UI and
+  // another to the session. It no longer takes a provider — the managed
+  // override it used to apply is gone.
+  const prefersShared = sonioxUsesSharedBothSession(settings);
 
   // Shared mode distinguishes the two sides by LANGUAGE, not by channel, so it
   // cannot run with an 'auto' source. When the user has asked for shared with
