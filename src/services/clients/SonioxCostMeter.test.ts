@@ -1,20 +1,35 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SonioxCostMeter, computeSonioxRemainingMs, computeSonioxBudgetTotalMs } from './SonioxCostMeter';
 
-const opts = { budgetMicroUsd: 300_000, rateUsdPerHour: 0.6 }; // $0.30 at $0.60/hr = 1800s
+// A $0.30 allowance granted at a conservative $0.60/hr = 1800s of session time.
+// Neither number is a price: the backend charges provider cost × K per usage
+// log, and the actual charge for 1800s at these settings is normally LESS.
+const opts = { budgetMicroUsd: 300_000, rateUsdPerHour: 0.6 };
 
 describe('SonioxCostMeter', () => {
-  it('spends nothing before it starts', () => {
+  it('consumes none of the allowance before it starts', () => {
     const m = new SonioxCostMeter(opts);
-    expect(m.spentMicroUsd).toBe(0);
+    expect(m.allowanceConsumedMicroUsd).toBe(0);
     expect(m.remainingMicroUsd).toBe(300_000);
   });
 
-  it('spends at the SKU rate as the clock runs', () => {
+  it('burns the allowance down at the granted conservative rate as the clock runs', () => {
     const m = new SonioxCostMeter(opts);
     m.start(0);
     m.tick(3_600_000);              // one hour
-    expect(m.spentMicroUsd).toBe(600_000);
+    expect(m.allowanceConsumedMicroUsd).toBe(600_000);
+  });
+
+  it('offers no "spent" reading at all — this class cannot know what the session is charged', () => {
+    // The charge is provider cost × K, applied per usage log by the backend
+    // reconciler AFTER each Soniox stream ends. No usage log exists while the
+    // session is running, so a getter named `spentMicroUsd` on a live meter
+    // could only ever be a guess presented as a fact — and a high one, since
+    // the granted rate is the worst case for the whole stream set.
+    const m = new SonioxCostMeter(opts);
+    m.start(0);
+    m.tick(3_600_000);
+    expect((m as unknown as Record<string, unknown>).spentMicroUsd).toBeUndefined();
   });
 
   it('reports remaining seconds from the budget and rate', () => {
@@ -25,7 +40,9 @@ describe('SonioxCostMeter', () => {
     expect(m.remainingSeconds).toBe(900);
   });
 
-  it('uses the speech-to-speech rate when given one', () => {
+  it('uses whatever aggregate rate the backend granted — one number for the whole stream set', () => {
+    // $1.50/hr is the kind of aggregate a multi-stream set is budgeted at. The
+    // client never derives it; it has no rate table and must not grow one.
     const m = new SonioxCostMeter({ budgetMicroUsd: 750_000, rateUsdPerHour: 1.5 });
     m.start(0);
     expect(m.remainingSeconds).toBe(1800);
@@ -58,16 +75,21 @@ describe('SonioxCostMeter', () => {
     expect(Number.isFinite(m.remainingSeconds)).toBe(true);
   });
 
-  it('rounds a partial micro-dollar up, never down', () => {
+  it('rounds a partial micro-dollar of allowance up, never down', () => {
     // 1 second at $0.60/hour:
     // (1000 ms / 3_600_000 ms/hr) * $0.60/hr * 1_000_000 µUSD/USD
     // = (1 / 3600) * 0.6 * 1_000_000
     // = 166.666... µUSD
     // ceil(166.666...) = 167, floor(166.666...) = 166
+    //
+    // The direction is a safety margin ON THE ALLOWANCE — rounding down would
+    // hand out fractionally more session time than the grant covers. It is NOT
+    // an attempt to match a charge; the charge is computed elsewhere, from
+    // provider cost, and is not visible from here.
     const m = new SonioxCostMeter({ budgetMicroUsd: 1_000_000, rateUsdPerHour: 0.6 });
     m.start(0);
     m.tick(1000);  // 1 second
-    expect(m.spentMicroUsd).toBe(167);
+    expect(m.allowanceConsumedMicroUsd).toBe(167);
   });
 
   describe('getBudgetSnapshot', () => {

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Provider } from '../../types/Provider';
 import {
   computeStartGate,
+  noChannelCameUp,
   reasonToSettingsTarget,
   reasonToI18n,
   type StartGateInput,
@@ -84,34 +85,83 @@ describe('computeStartGate', () => {
 
   // Managed Soniox is the one provider with a real floor rather than "any
   // positive balance": the backend refuses a session key below the price of
-  // its shortest session (60s) at the SKU's rate. `> 0` showed a green Start
-  // to a user who was then handed a 402. Boundaries are checked on both sides
-  // of each SKU's floor; the floor values themselves are pinned against the
-  // backend formula in services/providers/sonioxManagedMinBalance.test.ts.
+  // its shortest session (60s) at the conservative aggregate rate for the
+  // stream set that session opens. `> 0` showed a green Start to a user who
+  // was then handed a 402. Boundaries are checked on both sides of each stream
+  // set's floor; the floor values themselves are pinned against the backend
+  // formula in services/providers/sonioxManagedMinBalance.test.ts.
   describe('managed Soniox balance floor', () => {
     const soniox = { ...ready, provider: Provider.KIZUNA_AI_SONIOX } as StartGateInput;
 
-    it('blocks one micro-USD below the text-only floor ($0.01)', () => {
+    it('blocks one micro-USD below the single-stream text-only floor ($0.018334)', () => {
       expect(
-        computeStartGate({ ...soniox, textOnly: true, quota: { balance: 9_999, frozen: false } }),
-      ).toEqual({ canStart: false, reason: 'insufficient-balance', balance: 9_999 });
+        computeStartGate({ ...soniox, textOnly: true, quota: { balance: 18_333, frozen: false } }),
+      ).toEqual({ canStart: false, reason: 'insufficient-balance', balance: 18_333 });
     });
 
-    it('allows exactly the text-only floor', () => {
+    it('allows exactly the single-stream text-only floor', () => {
       expect(
-        computeStartGate({ ...soniox, textOnly: true, quota: { balance: 10_000, frozen: false } }),
+        computeStartGate({ ...soniox, textOnly: true, quota: { balance: 18_334, frozen: false } }),
       ).toEqual({ canStart: true, reason: null });
     });
 
-    it('blocks one micro-USD below the speech-to-speech floor ($0.025)', () => {
+    it('blocks one micro-USD below the single-stream speech-to-speech floor ($0.041667)', () => {
       expect(
-        computeStartGate({ ...soniox, textOnly: false, quota: { balance: 24_999, frozen: false } }),
-      ).toEqual({ canStart: false, reason: 'insufficient-balance', balance: 24_999 });
+        computeStartGate({ ...soniox, textOnly: false, quota: { balance: 41_666, frozen: false } }),
+      ).toEqual({ canStart: false, reason: 'insufficient-balance', balance: 41_666 });
     });
 
-    it('allows exactly the speech-to-speech floor', () => {
+    it('allows exactly the single-stream speech-to-speech floor', () => {
       expect(
-        computeStartGate({ ...soniox, textOnly: false, quota: { balance: 25_000, frozen: false } }),
+        computeStartGate({ ...soniox, textOnly: false, quota: { balance: 41_667, frozen: false } }),
+      ).toEqual({ canStart: true, reason: null });
+    });
+
+    // Split Both opens a SECOND transcription stream, so the shortest session
+    // the backend will start costs roughly twice as much. Decision 2: the
+    // difference is reflected honestly rather than absorbed, so a low-balance
+    // user finds split refused.
+    it('blocks one micro-USD below the split text-only floor ($0.036667)', () => {
+      expect(
+        computeStartGate({
+          ...soniox,
+          textOnly: true,
+          sonioxBothSplit: true,
+          quota: { balance: 36_666, frozen: false },
+        }),
+      ).toEqual({ canStart: false, reason: 'insufficient-balance', balance: 36_666 });
+    });
+
+    it('allows exactly the split text-only floor', () => {
+      expect(
+        computeStartGate({
+          ...soniox,
+          textOnly: true,
+          sonioxBothSplit: true,
+          quota: { balance: 36_667, frozen: false },
+        }),
+      ).toEqual({ canStart: true, reason: null });
+    });
+
+    it('blocks one micro-USD below the split speech-to-speech floor ($0.06)', () => {
+      expect(
+        computeStartGate({
+          ...soniox,
+          textOnly: false,
+          sonioxBothSplit: true,
+          quota: { balance: 59_999, frozen: false },
+        }),
+      ).toEqual({ canStart: false, reason: 'insufficient-balance', balance: 59_999 });
+    });
+
+    it('allows exactly the split speech-to-speech floor', () => {
+      expect(
+        computeStartGate({
+          ...soniox,
+          textOnly: false,
+          sonioxBothSplit: true,
+          quota: { balance: 60_000, frozen: false },
+        }),
       ).toEqual({ canStart: true, reason: null });
     });
 
@@ -127,10 +177,21 @@ describe('computeStartGate', () => {
     // still get a safe gate rather than silently falling back to `> 0`.
     it('defaults to the speech-to-speech floor when textOnly is omitted', () => {
       expect(
-        computeStartGate({ ...soniox, quota: { balance: 24_999, frozen: false } }).canStart,
+        computeStartGate({ ...soniox, quota: { balance: 41_666, frozen: false } }).canStart,
       ).toBe(false);
       expect(
-        computeStartGate({ ...soniox, quota: { balance: 25_000, frozen: false } }).canStart,
+        computeStartGate({ ...soniox, quota: { balance: 41_667, frozen: false } }).canStart,
+      ).toBe(true);
+    });
+
+    // sonioxBothSplit defaults the OPPOSITE way to textOnly, on purpose: split
+    // is opt-in and only a caller that reads the shared/split toggle can be in
+    // it, so omitting it must not raise the floor for every speaker-only
+    // session a split-unaware caller starts.
+    it('defaults to the single-stream floor when sonioxBothSplit is omitted', () => {
+      expect(
+        computeStartGate({ ...soniox, textOnly: true, quota: { balance: 36_666, frozen: false } })
+          .canStart,
       ).toBe(true);
     });
 
@@ -145,9 +206,13 @@ describe('computeStartGate', () => {
       expect(computeStartGate({ ...other, quota: { balance: 0, frozen: false } }).reason).toBe(
         'insufficient-balance',
       );
-      // textOnly must not move a non-Soniox provider's floor.
+      // Neither toggle may move a non-Soniox provider's floor.
       expect(
         computeStartGate({ ...other, textOnly: true, quota: { balance: 1, frozen: false } })
+          .canStart,
+      ).toBe(true);
+      expect(
+        computeStartGate({ ...other, sonioxBothSplit: true, quota: { balance: 1, frozen: false } })
           .canStart,
       ).toBe(true);
     });
@@ -314,5 +379,45 @@ describe('reasonToI18n', () => {
       key: 'tokenUsage.unableToLoadQuota',
       defaultValue: 'Unable to load quota information',
     });
+  });
+});
+
+describe('noChannelCameUp — the post-init guard reads outcomes, not refs', () => {
+  /**
+   * The guard this replaces was `!speakerClientRef.current &&
+   * !participantClientRef.current`, and a client reference is not evidence that
+   * a channel works. Two ways it was wrong, both reachable:
+   *
+   *  - The participant catch block is non-fatal BY DESIGN and does not clear
+   *    `participantClientRef.current`. A participant leg whose connect() or
+   *    startSystemAudioRecording() rejected therefore left the ref set and the
+   *    guard silent.
+   *  - `speakerClientRef.current` is never assigned null anywhere in MainPanel,
+   *    not even in disconnectConversation. After the first session that builds a
+   *    speaker client, the left-hand operand is false forever.
+   *
+   * Together those make the participant-only session the real hazard: no
+   * microphone, the participant leg fails, and the session is nonetheless marked
+   * active with zero working streams while a managed Soniox lease is held until
+   * it expires — 409ing every subsequent Start for up to an hour.
+   */
+  it('fires only when neither channel came up end to end', () => {
+    expect(noChannelCameUp({ speakerChannelStarted: false, participantChannelStarted: false })).toBe(true);
+    expect(noChannelCameUp({ speakerChannelStarted: true, participantChannelStarted: false })).toBe(false);
+    expect(noChannelCameUp({ speakerChannelStarted: false, participantChannelStarted: true })).toBe(false);
+    expect(noChannelCameUp({ speakerChannelStarted: true, participantChannelStarted: true })).toBe(false);
+  });
+
+  it('a failed participant leg alongside a working speaker is NOT a failed session', () => {
+    // The settled design (decision 4): a participant leg that never comes up
+    // degrades a Both session to one-way and is reported by SplitDegradedChip.
+    // It must not abort a session the speaker is translating fine.
+    expect(noChannelCameUp({ speakerChannelStarted: true, participantChannelStarted: false })).toBe(false);
+  });
+
+  it('a participant-only session whose only leg failed IS a failed session', () => {
+    // The case the ref-based guard could not see: the client object exists, so
+    // the old condition read it as a live channel.
+    expect(noChannelCameUp({ speakerChannelStarted: false, participantChannelStarted: false })).toBe(true);
   });
 });

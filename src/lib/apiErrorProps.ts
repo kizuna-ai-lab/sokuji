@@ -26,6 +26,18 @@ export interface ClientErrorEvent {
 }
 
 /**
+ * The text a human should see for this error.
+ *
+ * Deliberately a DIFFERENT precedence from `error_message` below: the bubble
+ * wants the localized `message`, analytics wants the untranslated `rawMessage`.
+ * Exported so the conversation bubble and the log entry are built from one
+ * expression instead of two copies that drift.
+ */
+export function clientErrorMessage(event: ClientErrorEvent): string {
+  return event.message || event.error || 'Unknown error';
+}
+
+/**
  * Map a client error onto the `api_error` analytics event.
  *
  * Lives in its own module rather than inline in MainPanel's `onError` handler:
@@ -34,7 +46,10 @@ export interface ClientErrorEvent {
  */
 export function buildApiErrorProps(
   event: ClientErrorEvent,
-  provider: string
+  provider: string,
+  /** Which audio leg reported it. Optional so existing single-leg call sites
+   *  keep compiling; every MainPanel call site names one. */
+  channel?: 'speaker' | 'participant'
 ): AnalyticsEvents['api_error'] {
   const code = event.code === undefined || event.code === null || event.code === ''
     ? undefined
@@ -45,6 +60,8 @@ export function buildApiErrorProps(
     // Omitted rather than set to undefined: an absent property and a property
     // whose value is undefined are different rows once they reach PostHog.
     ...(code === undefined ? {} : { error_code: code }),
+    // Same reasoning as error_code: omitted, not undefined.
+    ...(channel === undefined ? {} : { channel }),
     // Deliberately unchanged. `type` is set by almost no client, so this has
     // always resolved to 'server' in practice — including for transport-level
     // failures that are anything but. Correcting it would shift the meaning of

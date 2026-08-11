@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SonioxClient } from './SonioxClient';
+import { ManagedSonioxSession, byokCredentials } from './ManagedSonioxSession';
 import { SonioxSessionConfig, ConversationItem } from '../interfaces/IClient';
 import { Provider } from '../../types/Provider';
 import type { SonioxSttMessage, SonioxSttStreamHandlers, SonioxSttConfig } from './SonioxSttStream';
@@ -81,7 +82,7 @@ function tok(text: string, extra: object = {}) {
 }
 
 async function connectedClient(cfg: Partial<SonioxSessionConfig> = {}) {
-  const client = new SonioxClient('key');
+  const client = new SonioxClient(byokCredentials('key'));
   const updates: Array<{ item: ConversationItem; delta?: any }> = [];
   client.setEventHandlers({ onConversationUpdated: (d) => updates.push(d) });
   await client.connect({ ...BASE_CONFIG, ...cfg });
@@ -138,7 +139,7 @@ describe('SonioxClient connect', () => {
 
   it('TTS eager-connect failure defers (no degraded); a failed reconnect on the first translation degrades once', async () => {
     MockTts.failConnect = true;
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const realtimeEvents: Array<{ event: { type: string } }> = [];
     client.setEventHandlers({ onRealtimeEvent: (e: any) => realtimeEvents.push(e) });
     await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
@@ -158,7 +159,7 @@ describe('SonioxClient connect', () => {
     // the user never learns speech died, and a managed session goes on being
     // billed at the speech-to-speech rate.
     MockTts.failConnect = true;
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const errors: Array<{ code: string; message: string }> = [];
     client.setEventHandlers({ onError: (e: any) => errors.push(e) });
     await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
@@ -463,7 +464,7 @@ describe('SonioxClient disconnect race (a socket that connects after Stop must b
   });
 
   it('a connect() whose TTS socket opens after disconnect() never announces the session (no session.opened after Stop)', async () => {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const events: Array<{ event: { type: string } }> = [];
     client.setEventHandlers({ onRealtimeEvent: (e) => events.push(e as any) });
     let release!: () => void;
@@ -497,7 +498,7 @@ describe('SonioxClient lifecycle and IClient contract', () => {
 
   it('no-interruption: createResponse/cancelResponse are no-ops and interruption never fires', async () => {
     const interrupted = vi.fn();
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     client.setEventHandlers({ onConversationInterrupted: interrupted });
     await client.connect(BASE_CONFIG);
     client.createResponse();
@@ -507,11 +508,11 @@ describe('SonioxClient lifecycle and IClient contract', () => {
   });
 
   it('getProvider returns SONIOX', () => {
-    expect(new SonioxClient('key').getProvider()).toBe(Provider.SONIOX);
+    expect(new SonioxClient(byokCredentials('key')).getProvider()).toBe(Provider.SONIOX);
   });
 
   it('rejects a non-soniox session config', async () => {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     await expect(client.connect({ provider: 'gemini' } as any)).rejects.toThrow(/soniox/i);
   });
 });
@@ -521,7 +522,7 @@ describe('SonioxClient bidirectional core (Both single-session)', () => {
   afterEach(() => vi.useRealTimers());
 
   async function bidiClient() {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     client.setEventHandlers({});
     await client.connect({ ...BASE_CONFIG, bidirectional: true, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: true });
     return { client, stt: sttInstances.at(-1)! };
@@ -539,7 +540,7 @@ describe('SonioxClient bidirectional core (Both single-session)', () => {
   });
 
   it('non-bidirectional appendInputAudio still goes straight to the STT stream (no mixer)', async () => {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     client.setEventHandlers({});
     await client.connect({ ...BASE_CONFIG, bidirectional: false, textOnly: true });
     const stt = sttInstances.at(-1)!;
@@ -573,7 +574,7 @@ describe('SonioxClient bidirectional core (Both single-session)', () => {
 
 describe('SonioxClient bidirectional tagging + TTS filter', () => {
   async function bidi(textOnly = true) {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const updates: any[] = [];
     client.setEventHandlers({ onConversationUpdated: (d) => updates.push(d) });
     await client.connect({ ...BASE_CONFIG, bidirectional: true, sourceLanguage: 'zh', targetLanguage: 'en', textOnly });
@@ -601,7 +602,7 @@ describe('SonioxClient bidirectional tagging + TTS filter', () => {
   });
 
   it('does NOT set source when not bidirectional (MainPanel fallback owns it)', async () => {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const updates: any[] = [];
     client.setEventHandlers({ onConversationUpdated: (d) => updates.push(d) });
     await client.connect({ ...BASE_CONFIG, bidirectional: false, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: true });
@@ -693,7 +694,7 @@ describe('SonioxClient advanced-feature passthrough (#342)', () => {
 
 describe('SonioxClient compact debug logging', () => {
   async function logged() {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const events: Array<{ event: { type: string; data: any } }> = [];
     client.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e) });
     await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: true });
@@ -734,7 +735,7 @@ describe('SonioxClient compact debug logging', () => {
   });
 
   it('emits tts.speak (the text sent to TTS) once per utterance, and tts.audio per chunk', async () => {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const events: Array<{ event: { type: string; data: any } }> = [];
     client.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e) });
     await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
@@ -754,7 +755,7 @@ describe('SonioxClient compact debug logging', () => {
 
 describe('SonioxClient TTS reconnect-on-demand (idle socket dies mid-session)', () => {
   it('reconnects a dead TTS socket on the next translation and flushes buffered text + end in order', async () => {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     client.setEventHandlers({});
     await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
     const stt = sttInstances.at(-1)!;
@@ -774,7 +775,7 @@ describe('SonioxClient TTS reconnect-on-demand (idle socket dies mid-session)', 
   });
 
   it('an idle-timeout drop (408, no active stream) followed by a successful reconnect surfaces NOTHING to the user', async () => {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const errors: Array<{ code: string; message: string }> = [];
     const realtimeEvents: Array<{ event: { type: string } }> = [];
     client.setEventHandlers({
@@ -802,7 +803,7 @@ describe('SonioxClient TTS reconnect-on-demand (idle socket dies mid-session)', 
   });
 
   it('a drop whose reconnect fails DOES surface the failure', async () => {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const errors: Array<{ code: string; message: string }> = [];
     client.setEventHandlers({ onError: (e: any) => errors.push(e) });
     await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
@@ -834,7 +835,7 @@ describe('SonioxClient diarization attribution (#342)', () => {
   const tok = (text: string, extra: object = {}) => ({ text, ...extra });
 
   async function bidi(textOnly = true) {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const updates: any[] = [];
     client.setEventHandlers({ onConversationUpdated: (d) => updates.push(d) });
     await client.connect({ ...BASE_CONFIG, bidirectional: true, sourceLanguage: 'zh', targetLanguage: 'en', textOnly });
@@ -848,7 +849,7 @@ describe('SonioxClient diarization attribution (#342)', () => {
   it('enables diarization on the wire for bidirectional sessions only', async () => {
     const { stt } = await bidi();
     expect(stt.config!.enableSpeakerDiarization).toBe(true);
-    const solo = new SonioxClient('key');
+    const solo = new SonioxClient(byokCredentials('key'));
     solo.setEventHandlers({});
     await solo.connect({ ...BASE_CONFIG, bidirectional: false, textOnly: true });
     expect((sttInstances.at(-1)!.config as any).enableSpeakerDiarization).toBeUndefined();
@@ -1048,7 +1049,7 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
 
   it('bidirectional: the side tracker is reset on resume (stale labels/timeline must not leak into the new stream)', async () => {
     const resetSpy = vi.spyOn(SonioxSideTracker.prototype, 'reset');
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     client.setEventHandlers({});
     await client.connect({ ...BASE_CONFIG, bidirectional: true, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: true });
     const stt0 = sttInstances.at(-1)!;
@@ -1063,7 +1064,6 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
   });
 
   it('managed-403 duration cutoff is unaffected by the 503 resume path (cutoff still wins, never resumes)', async () => {
-    const client = new SonioxClient('', { managed: { sessionToken: 'tok' } });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -1073,6 +1073,9 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
         sku: 'soniox:speech_to_speech', leaseId: 'lease-1', clientReferenceId: 'sokuji1:acct:lease-1',
       }),
     }));
+    const session = new ManagedSonioxSession({ sessionToken: 'tok' });
+    await session.acquire({ mode: 'speaker', textOnly: false, bothSplit: false });
+    const client = new SonioxClient(session.credentialsFor(session.primarySttRole), { session });
     const errors: any[] = [];
     const closeEvents: any[] = [];
     const reconnecting = vi.fn();
@@ -1084,6 +1087,10 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     const stt0 = sttInstances.at(-1)!;
 
+    // Soniox only sends this 403 once the 900 s grant is up, and the client now
+    // requires that before reading a bare 403 as the cutoff (a revoked key
+    // looks identical on the wire) — see ManagedSonioxSession.CUTOFF_MARGIN_MS.
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 900_000);
     stt0.handlers.onError?.('403', 'session duration exceeded');
     stt0.handlers.onClose?.({ code: 1000, reason: '' });
     await flush();
@@ -1131,7 +1138,6 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
   // outage path with no resume attempted — the same localized notice a BYOK
   // 503 eventually gets once its resume ladder is exhausted.
   it('I1: managed mode + 503 takes the generic error path — no resume attempted', async () => {
-    const client = new SonioxClient('', { managed: { sessionToken: 'tok' } });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -1141,6 +1147,9 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
         sku: 'soniox:speech_to_speech', leaseId: 'lease-1', clientReferenceId: 'sokuji1:acct:lease-1',
       }),
     }));
+    const session = new ManagedSonioxSession({ sessionToken: 'tok' });
+    await session.acquire({ mode: 'speaker', textOnly: false, bothSplit: false });
+    const client = new SonioxClient(session.credentialsFor(session.primarySttRole), { session });
     const errors: any[] = [];
     const closeEvents: any[] = [];
     const reconnecting = vi.fn();
@@ -1261,7 +1270,7 @@ describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
   afterEach(() => { vi.useRealTimers(); MockStt.failConnect = false; });
 
   it('after 3 failed reconnect attempts (0/1000/3000ms gaps), ends with the outage notice and keeps the ORIGINAL 503 message in the debug timeline', async () => {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const errors: any[] = [];
     const updates: any[] = [];
     const closeEvents: any[] = [];
@@ -1308,7 +1317,7 @@ describe('SonioxClient STT 503 auto-resume: all attempts fail', () => {
   });
 
   it('a resume that succeeds on a later attempt does not surface anything and reaches onReconnected', async () => {
-    const client = new SonioxClient('key');
+    const client = new SonioxClient(byokCredentials('key'));
     const errors: any[] = [];
     const closeEvents: any[] = [];
     const reconnected = vi.fn();

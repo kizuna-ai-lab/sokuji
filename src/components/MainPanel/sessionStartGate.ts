@@ -74,6 +74,24 @@ export interface StartGateInput {
    * not know about the text-only toggle can leave it out.
    */
   textOnly?: boolean;
+  /**
+   * Will the session about to start run Both mode as TWO Soniox streams (one
+   * per audio source) rather than one shared mixed stream?
+   *
+   * Read ONLY for managed Soniox, and only to pick the balance floor: split
+   * opens a second transcription stream, so the shortest session the backend
+   * will start costs roughly twice as much.
+   *
+   * Optional like `textOnly`, but with the OPPOSITE safe default, deliberately.
+   * `textOnly` omitted falls back to the HIGHER speech-to-speech floor, because
+   * a caller that does not know about that toggle might be about to start a
+   * speech session. Split is the reverse: it is opt-in, reachable only in Both
+   * mode, and only a caller that reads the shared/split toggle can be in it —
+   * so omitting it means "not split" and falls back to the LOWER floor.
+   * Defaulting it the other way would block Start on every speaker-only
+   * session for any caller that had not been taught about split.
+   */
+  sonioxBothSplit?: boolean;
 }
 
 export function computeStartGate(input: StartGateInput): StartGate {
@@ -87,22 +105,25 @@ export function computeStartGate(input: StartGateInput): StartGate {
     missingDeviceForMode,
     autoSourceParticipantBlocked,
     textOnly,
+    sonioxBothSplit,
   } = input;
 
   const kizunaManaged = isKizunaManagedProvider(provider);
 
   // Managed Soniox has a real floor rather than "any positive balance": the
   // backend refuses to issue a session key below the price of its shortest
-  // session (60s) at the SKU's rate — $0.01 text-only, $0.025
-  // speech-to-speech. Gating on `> 0` showed a green Start to a user who was
-  // then handed a 402 by the server. The 402 stays as the authority; this
-  // stops the button lying about it.
+  // session (60s) at the CONSERVATIVE AGGREGATE rate for the stream set that
+  // session will open — $0.018334 text-only, $0.041667 speech-to-speech, and
+  // for split Both (a second transcription stream) $0.036667 and $0.06.
+  // Gating on `> 0` showed a green Start to a user who was then handed a 402
+  // by the server. The 402 stays as the authority; this stops the button lying
+  // about it.
   //
   // Every other provider gets a floor of 1: balances are integer micro-USD,
   // so `>= 1` is exactly the `> 0` rule this replaced.
   const balanceFloorMicroUsd =
     provider === Provider.KIZUNA_AI_SONIOX
-      ? sonioxManagedMinBalanceMicroUsd(Boolean(textOnly))
+      ? sonioxManagedMinBalanceMicroUsd(Boolean(textOnly), Boolean(sonioxBothSplit))
       : 1;
 
   const hasValidBalance =
@@ -164,6 +185,41 @@ export function computeStartGate(input: StartGateInput): StartGate {
   // tokens") and route the user to the account page for a problem that may
   // not exist. 'quota-unknown' is its own distinct, inert reason instead.
   return { canStart: false, reason: 'quota-unknown' };
+}
+
+/**
+ * The other end of the same question: the session was allowed to start — did
+ * any channel actually come up? True means abort, because a session with no
+ * working stream is a fake "active" UI state.
+ *
+ * Both inputs mean "end to end": connected AND its recorder wired, the contract
+ * `setSpeakerChannelActive(true)` / `setParticipantChannelActive(true)` already
+ * carry. They are passed as plain booleans because connectConversation must read
+ * them back within the same pass, which a setState cannot offer.
+ *
+ * It takes OUTCOMES because the guard this replaces took client references, and
+ * a reference is not evidence that a channel works:
+ *
+ *  - The participant catch block is non-fatal by design and does NOT clear
+ *    `participantClientRef.current`, so a leg whose connect() or
+ *    startSystemAudioRecording() rejected still left the ref set.
+ *  - `speakerClientRef.current` is never assigned null anywhere in MainPanel,
+ *    not even on Stop — so after the first session that builds a speaker client
+ *    the speaker half of the old condition was false for the rest of the
+ *    process's life, and the guard could not fire at all.
+ *
+ * The case that makes this matter is the participant-only session: no
+ * microphone, the participant leg fails, and the session is marked active with
+ * zero working streams while a managed Soniox lease is held until it expires,
+ * 409ing every subsequent Start. A failed participant leg ALONGSIDE a working
+ * speaker stays what it has always been — a one-way session that continues, and
+ * that SplitDegradedChip reports.
+ */
+export function noChannelCameUp(channels: {
+  speakerChannelStarted: boolean;
+  participantChannelStarted: boolean;
+}): boolean {
+  return !channels.speakerChannelStarted && !channels.participantChannelStarted;
 }
 
 /**

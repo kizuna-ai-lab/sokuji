@@ -193,6 +193,12 @@ export interface AnalyticsEvents {
     error_code?: string;
     error_message: string;
     error_type: 'auth' | 'rate_limit' | 'network' | 'server' | 'client';
+    /** Which audio leg reported it: 'speaker' (microphone) or 'participant'
+     *  (far end / system audio). Split Both mode runs the two as independent
+     *  provider streams that fail independently, so an untagged api_error
+     *  cannot distinguish "the whole session died" from "one direction died".
+     *  Optional: errors raised before any leg exists carry no channel. */
+    channel?: 'speaker' | 'participant';
   };
   'audio_error': {
     error_type: 'device_access' | 'processing' | 'playback' | 'recording';

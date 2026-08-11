@@ -1,6 +1,9 @@
 import { ProviderConfig, LanguageOption } from './ProviderConfig';
 import { IClient, FilteredModel, SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
+// Type-only, so this adds no runtime edge from the shared descriptor module to
+// SonioxClient's dependency graph (i18n, the wire components).
+import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from '../clients/ManagedSonioxSession';
 
 /** Transport for realtime providers. Moved here from settingsStore so the
  *  services layer no longer imports from stores. settingsStore re-exports it. */
@@ -22,6 +25,40 @@ export type CredentialCtx = {
 export type ClientOptions = {
   transport: TransportType;
   webrtcOptions?: { inputDeviceId?: string; outputDeviceId?: string };
+  /**
+   * Managed Soniox only. The lease is acquired by MainPanel BEFORE any client
+   * exists (an awaited round trip with a 409 retry), so the keys arrive here
+   * rather than being minted inside the client. Keeping this optional is what
+   * lets createClient stay synchronous and return exactly one IClient for all
+   * eleven providers.
+   */
+  sonioxManaged?: {
+    credentials: SonioxCredentialBundle;
+    session: ManagedSonioxSession;
+    /**
+     * WHICH leg this client is — the role its bundle was taken with. Required,
+     * not optional: it is how the leg names itself when it reports that Soniox
+     * accepted its stream, and on a two-stream lease `session-started` refuses
+     * a roleless body (400 `role_required`) and another leg's role
+     * (`role_not_issued`), leaving the lease at its start window either way.
+     */
+    role: SonioxSttRole;
+    /**
+     * Whether THIS client speaks for the session when it ends for a
+     * session-level reason — the balance running out, or Soniox dropping the
+     * session at its granted duration. Defaults to true.
+     *
+     * Exactly one client per session may say yes; it is the primacy bit, and
+     * this is its single source (ManagedSonioxSession reads it back off the leg
+     * rather than being told a second time). Every leg is still ENDED by such
+     * an outcome — saying no only means "not the one who says the sentence".
+     *
+     * It has to be the speaker whenever there is one, because MainPanel's
+     * teardown renders `speakerClient.getConversationItems()`: a notice emitted
+     * on the participant leg is not merely misplaced, it is never displayed.
+     */
+    announcesSessionOutcome?: boolean;
+  };
 };
 
 /**

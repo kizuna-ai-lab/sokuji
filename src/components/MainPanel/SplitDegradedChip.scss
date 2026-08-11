@@ -1,0 +1,36 @@
+// ── Split-degraded indicator (rendered in both control footers) ──
+//
+// Persistent footer chrome, not a conversation bubble: a split Both session
+// whose participant leg never came up runs happily one-way, and the mode
+// picker beside this chip still reads "Both". Amber rather than the red error
+// colour used elsewhere in the footer — the session is working, just not the
+// way it was asked to.
+//
+// Sized against the footer's other inline elements (.reconnecting-label at
+// 12px, .session-duration at 11px) so it reads as part of the same strip
+// rather than as an overlay.
+.split-degraded-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(243, 156, 18, 0.15);
+  border: 1px solid rgba(243, 156, 18, 0.45);
+  color: #f39c12;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: default;
+
+  svg { flex-shrink: 0; }
+
+  // The footer is tight in basic mode at narrow widths; the icon alone still
+  // carries the warning, the title attribute still explains it, and the
+  // chip's aria-label keeps the accessible name when this text goes.
+  @media (max-width: 420px) {
+    .chip-text { display: none; }
+    padding: 2px 4px;
+  }
+}

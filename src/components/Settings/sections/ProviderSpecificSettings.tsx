@@ -1853,14 +1853,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     // In You-only or Others-only mode there's nothing to share, so the pill
     // is greyed out (still shows the persisted preference, just inert).
     const inBoth = mode === 'both';
-    // Managed (Kizuna) Soniox has no choice to offer: the backend's session
-    // lease is account-scoped, so "Disabled" would open a second client that
-    // the backend refuses with 409 — You→Others would work while Others→You
-    // silently did not. Forced on and locked, with the reason shown, rather
-    // than letting the user pick a mode the backend cannot honour.
+    // Managed (Kizuna) Soniox used to have no choice to offer: the backend's
+    // session lease was account-scoped and single-session, so "Disabled" opened
+    // a second client that the backend refused with 409 — You→Others worked
+    // while Others→You silently did not. One lease now issues one temporary key
+    // per stream, so split is a real option here and the control is live.
+    // `managed` survives only to swap the note below for one that states what
+    // split costs; it no longer gates the buttons.
     const managed = isKizunaManagedProvider(provider);
-    const shared = sonioxUsesSharedBothSession(provider, activeSonioxSettings);
-    const lockedOff = isSessionActive || !inBoth || managed;
+    const shared = sonioxUsesSharedBothSession(activeSonioxSettings);
+    const lockedOff = isSessionActive || !inBoth;
 
     return (
       <>
@@ -2014,17 +2016,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="settings-section" id="soniox-settings-section">
         <h2>
           {t('settings.sonioxSharedSession', 'Shared session in Both mode')}
-          {/* The Enabled/Disabled tooltip recommends "Disabled" for reliability,
-              which is advice a managed account cannot act on — the inline note
-              below replaces it there. */}
-          {!managed && (
-            <Tooltip
-              content={t('settings.sonioxSharedSessionTooltip', 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.')}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-            </Tooltip>
-          )}
+          {/* Shown for managed too. The tooltip recommends "Disabled" for
+              reliability, which used to be advice a managed account could not
+              act on; now it can, so suppressing the explanation would leave the
+              managed user with a live control and no description of it. */}
+          <Tooltip
+            content={t('settings.sonioxSharedSessionTooltip', 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
         </h2>
         <div className="setting-item">
           <div className="turn-detection-options">
@@ -2047,9 +2048,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         {managed && (
           <div className="setting-item">
             <div className="setting-description">
+              {/* Managed accounts pay per minute out of a wallet balance, so
+                  the BYOK tooltip's "about twice the cost" is not the whole
+                  story here: the on-screen session countdown halves and the
+                  Start button's balance floor rises with it. Decision 2 — the
+                  difference is reflected honestly, not absorbed — and a user
+                  who finds Start refused deserves to have been told why. */}
               {t(
-                'settings.sonioxSharedSessionManaged',
-                'Kizuna AI runs Both mode as one shared session, so this cannot be turned off.'
+                'settings.sonioxSharedSessionManagedCost',
+                'Kizuna AI supports both. Disabled runs two sessions at once — about twice the cost per minute, so your session allowance runs out in about half the time and a higher balance is needed to start.'
               )}
             </div>
           </div>

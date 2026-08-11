@@ -463,10 +463,13 @@ export interface IClient {
   createSecondaryPort?(): IClient;
 
   /**
-   * Managed-mode Soniox only: the running session's fixed budget parameters
-   * (grant, rate, start time), for the status footer's remaining-time
-   * countdown — see SonioxClient.getManagedBudgetInfo. Null for BYOK
-   * sessions or before the managed session-key exchange has completed.
+   * Managed-mode Soniox only: the running session's fixed ALLOWANCE parameters
+   * (grant, conservative rate, start time), for the status footer's
+   * remaining-time countdown — see SonioxClient.getManagedBudgetInfo. Null for
+   * BYOK sessions or before the managed session-key exchange has completed.
+   *
+   * `rateUsdPerHour` is the rate the allowance was budgeted at, not a price:
+   * the countdown says when the session stops, never what it cost.
    */
   getManagedBudgetInfo?(): { budgetMicroUsd: number; rateUsdPerHour: number; startedAtMs: number } | null;
 }
