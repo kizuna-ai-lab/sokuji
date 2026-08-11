@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "翻訳のためにキャプチャされる参加者の音声（ブラウザタブ / システム音声）",
     "allChannelsFailed": "オーディオチャンネルを開始できませんでした。デバイスの権限を確認してもう一度お試しください。",
     "participantChannelFailed": "参加者の音声チャンネルを開始できませんでした。",
+    "splitDegradedLabel": "片方向のみ",
+    "splitDegradedTooltip": "参加者の音声が翻訳されていないため、このセッションは片方向のみで動作しています。参加者音声の権限を確認してから、新しいセッションを実行してください。",
     "sonioxInsufficientBalance": "セッションを開始するには残高が不足しています。残高をチャージしてもう一度お試しください。",
     "sonioxSessionConflict": "このアカウントでは既に別のセッションが実行中です。しばらくしてからもう一度お試しください。",
     "sonioxServiceUnavailable": "Sonioxは一時的に利用できません。しばらくしてからもう一度お試しください。",

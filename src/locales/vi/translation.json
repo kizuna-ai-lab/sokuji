@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "Âm thanh của người tham gia được thu để dịch (tab trình duyệt / âm thanh hệ thống)",
     "allChannelsFailed": "Không thể khởi động bất kỳ kênh âm thanh nào. Kiểm tra quyền thiết bị và thử lại.",
     "participantChannelFailed": "Không thể khởi động kênh âm thanh của người tham gia.",
+    "splitDegradedLabel": "Chỉ một chiều",
+    "splitDegradedTooltip": "Âm thanh của người tham gia không được dịch, nên phiên này chỉ chạy một chiều. Hãy kiểm tra quyền âm thanh của người tham gia, rồi chạy một phiên mới.",
     "sonioxInsufficientBalance": "Số dư không đủ để bắt đầu phiên. Vui lòng nạp thêm số dư và thử lại.",
     "sonioxSessionConflict": "Một phiên khác đã đang chạy trên tài khoản của bạn. Vui lòng thử lại sau giây lát.",
     "sonioxServiceUnavailable": "Soniox tạm thời không khả dụng. Vui lòng thử lại sau giây lát.",

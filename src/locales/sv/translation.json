@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "Deltagarljud som fångas för översättning (webbläsarflik / systemljud)",
     "allChannelsFailed": "Kunde inte starta någon ljudkanal. Kontrollera enhetsbehörigheterna och försök igen.",
     "participantChannelFailed": "Det gick inte att starta deltagarens ljudkanal.",
+    "splitDegradedLabel": "Endast en riktning",
+    "splitDegradedTooltip": "Deltagarljudet översätts inte, så den här sessionen körs bara åt ett håll. Kontrollera behörigheterna för deltagarljud och kör sedan en ny session.",
     "sonioxInsufficientBalance": "Otillräckligt saldo för att starta en session. Fyll på ditt saldo och försök igen.",
     "sonioxSessionConflict": "En annan session pågår redan på ditt konto. Försök igen om en liten stund.",
     "sonioxServiceUnavailable": "Soniox är tillfälligt otillgängligt. Försök igen om en liten stund.",

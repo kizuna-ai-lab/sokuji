@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "번역을 위해 캡처되는 참가자 오디오 (브라우저 탭 / 시스템 오디오)",
     "allChannelsFailed": "오디오 채널을 시작하지 못했습니다. 장치 권한을 확인하고 다시 시도하세요.",
     "participantChannelFailed": "참가자 오디오 채널을 시작하지 못했습니다.",
+    "splitDegradedLabel": "단방향만",
+    "splitDegradedTooltip": "참가자 오디오가 번역되지 않아 이 세션은 단방향으로만 실행됩니다. 참가자 오디오 권한을 확인한 후 새 세션을 실행하세요.",
     "sonioxInsufficientBalance": "세션을 시작하기에 잔액이 부족합니다. 잔액을 충전한 후 다시 시도해 주세요.",
     "sonioxSessionConflict": "이미 계정에서 다른 세션이 실행 중입니다. 잠시 후 다시 시도해 주세요.",
     "sonioxServiceUnavailable": "Soniox를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",

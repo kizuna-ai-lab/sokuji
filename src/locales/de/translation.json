@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "Teilnehmer-Audio, das zur Übersetzung erfasst wird (Browser-Tab / System-Audio)",
     "allChannelsFailed": "Kein Audiokanal konnte gestartet werden. Prüfen Sie die Geräteberechtigungen und versuchen Sie es erneut.",
     "participantChannelFailed": "Der Teilnehmer-Audiokanal konnte nicht gestartet werden.",
+    "splitDegradedLabel": "Nur eine Richtung",
+    "splitDegradedTooltip": "Teilnehmer-Audio wird nicht übersetzt, diese Sitzung läuft daher nur in eine Richtung. Prüfen Sie die Berechtigungen für Teilnehmer-Audio und starten Sie dann eine neue Sitzung.",
     "sonioxInsufficientBalance": "Unzureichendes Guthaben, um eine Sitzung zu starten. Bitte laden Sie Ihr Guthaben auf und versuchen Sie es erneut.",
     "sonioxSessionConflict": "In Ihrem Konto läuft bereits eine andere Sitzung. Bitte versuchen Sie es in Kürze erneut.",
     "sonioxServiceUnavailable": "Soniox ist vorübergehend nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.",

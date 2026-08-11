@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "Katılımcı sesi çeviri için yakalanıyor (tarayıcı sekmesi / sistem sesi)",
     "allChannelsFailed": "Hiçbir ses kanalı başlatılamadı. Cihaz izinlerini kontrol edip tekrar deneyin.",
     "participantChannelFailed": "Katılımcı ses kanalı başlatılamadı.",
+    "splitDegradedLabel": "Yalnızca tek yönlü",
+    "splitDegradedTooltip": "Katılımcı sesi çevrilmiyor, bu nedenle bu oturum yalnızca tek yönlü çalışıyor. Katılımcı ses izinlerini kontrol edin, ardından yeni bir oturum başlatın.",
     "sonioxInsufficientBalance": "Oturum başlatmak için bakiye yetersiz. Lütfen bakiyenizi yükleyip tekrar deneyin.",
     "sonioxSessionConflict": "Hesabınızda zaten başka bir oturum çalışıyor. Lütfen biraz sonra tekrar deneyin.",
     "sonioxServiceUnavailable": "Soniox geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar deneyin.",

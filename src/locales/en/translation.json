@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "Participant audio captured for translation (browser tab / system audio)",
     "allChannelsFailed": "Failed to start any audio channel. Check device permissions and try again.",
     "participantChannelFailed": "Failed to start the participant audio channel.",
+    "splitDegradedLabel": "One-way only",
+    "splitDegradedTooltip": "Participant audio isn't being translated, so this session is running one way only. Check participant audio permissions, then run a new session.",
     "sonioxInsufficientBalance": "Insufficient balance to start a session. Please top up your balance and try again.",
     "sonioxSessionConflict": "Another session is already running on your account. Please try again in a moment.",
     "sonioxServiceUnavailable": "Soniox is temporarily unavailable. Please try again in a moment.",

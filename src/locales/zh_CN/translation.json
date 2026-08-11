@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "捕获参与者音频用于翻译（浏览器标签页 / 系统音频）",
     "allChannelsFailed": "无法启动任何音频通道。请检查设备权限后重试。",
     "participantChannelFailed": "无法启动参与者音频通道。",
+    "splitDegradedLabel": "仅单向",
+    "splitDegradedTooltip": "参与者音频未被翻译，因此本次会话仅单向运行。请检查参与者音频权限，然后开始新的会话。",
     "sonioxInsufficientBalance": "余额不足,无法开始会话。请充值后重试。",
     "sonioxSessionConflict": "您的账户中已有另一个会话正在进行。请稍后重试。",
     "sonioxServiceUnavailable": "Soniox 暂时不可用。请稍后重试。",

@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "Áudio de participantes captado para tradução (separador do navegador / áudio do sistema)",
     "allChannelsFailed": "Não foi possível iniciar qualquer canal de áudio. Verifique as permissões dos dispositivos e tente novamente.",
     "participantChannelFailed": "Não foi possível iniciar o canal de áudio do participante.",
+    "splitDegradedLabel": "Apenas num sentido",
+    "splitDegradedTooltip": "O áudio do participante não está a ser traduzido, pelo que esta sessão está a funcionar apenas num sentido. Verifique as permissões de áudio do participante e execute uma nova sessão.",
     "sonioxInsufficientBalance": "Saldo insuficiente para iniciar uma sessão. Carregue o seu saldo e tente novamente.",
     "sonioxSessionConflict": "Já existe outra sessão em curso na sua conta. Tente novamente dentro de momentos.",
     "sonioxServiceUnavailable": "O Soniox está temporariamente indisponível. Tente novamente dentro de momentos.",

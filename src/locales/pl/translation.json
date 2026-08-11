@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "Dźwięk uczestnika przechwytywany do tłumaczenia (karta przeglądarki / dźwięk systemu)",
     "allChannelsFailed": "Nie udało się uruchomić żadnego kanału audio. Sprawdź uprawnienia urządzeń i spróbuj ponownie.",
     "participantChannelFailed": "Nie udało się uruchomić kanału audio uczestnika.",
+    "splitDegradedLabel": "Tylko w jedną stronę",
+    "splitDegradedTooltip": "Dźwięk uczestnika nie jest tłumaczony, więc ta sesja działa tylko w jedną stronę. Sprawdź uprawnienia do dźwięku uczestnika, a następnie uruchom nową sesję.",
     "sonioxInsufficientBalance": "Niewystarczające saldo, aby rozpocząć sesję. Doładuj saldo i spróbuj ponownie.",
     "sonioxSessionConflict": "Na Twoim koncie trwa już inna sesja. Spróbuj ponownie za chwilę.",
     "sonioxServiceUnavailable": "Soniox jest tymczasowo niedostępny. Spróbuj ponownie za chwilę.",

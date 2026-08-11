@@ -93,6 +93,8 @@ import {
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackStore';
 import ModePicker from './ModePicker';
+import SplitDegradedChip from './SplitDegradedChip';
+import { resolveSplitDegraded, type SplitDegradedReason } from './splitDegraded';
 import ModeDevicePopover from './ModeDevicePopover';
 import WaveformStrip from './WaveformStrip';
 import { isVirtualDevice, type WarningType } from '../Settings/shared/hooks';
@@ -352,6 +354,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // affordances (PTT button for speaker only, etc.).
   const [speakerChannelActive, setSpeakerChannelActive] = useState(false);
   const [participantChannelActive, setParticipantChannelActive] = useState(false);
+
+  // "Split did not take effect": a managed split Both session whose
+  // participant leg never came up. The session is fine and continues one-way
+  // (decision 4), but nothing else on screen says so — the mode picker still
+  // reads Both and the countdown still runs, while the user is being billed
+  // at roughly the split rate. Held as plain React state, NOT as a
+  // conversation item: it must persist for the whole session rather than
+  // scroll away, and it must be visible in basic UI mode where there is no
+  // participant waveform to be missing.
+  const [splitDegraded, setSplitDegraded] = useState<SplitDegradedReason | null>(null);
 
   // supportsTextInput is true for providers that support text input
   const supportsTextInput = useMemo(() => {
@@ -1658,6 +1670,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsUsingWebRTC(false);
       setSpeakerChannelActive(false);
       setParticipantChannelActive(false);
+      // The indicator describes the RUNNING session; it goes when it does.
+      setSplitDegraded(null);
       setLockedMode(null);
       pendingTextRef.current = null;
 
@@ -1826,6 +1840,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     try {
       setIsInitializing(true);
       setInitProgress(null);
+      // Clear last session's indicator before anything can set this one's.
+      // Not redundant with the disconnectConversation reset: the post-init
+      // "both channels failed" guard below returns early WITHOUT routing
+      // through disconnectConversation, so that path relies on this one.
+      setSplitDegraded(null);
 
       // Re-validate before starting session to catch stale button state.
       // validateApiKey is the single authority for session readiness — it handles
@@ -2390,6 +2409,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Both mode: overwritten with the speaker's just-started list).
       let participantErrorMessage: string | null = null;
 
+      // Why the participant leg failed, if it did, and whether it ever came up
+      // end to end. Locals rather than state because connectConversation reads
+      // them back in the same pass — a setState here would not be visible to
+      // the resolve call below.
+      //
+      // `participantChannelStarted` starts false and stays false when the
+      // whole block is skipped (no audio service), which is correct: under
+      // split that is still a one-way session.
+      let splitParticipantFailure: SplitDegradedReason | null = null;
+      let participantChannelStarted = false;
+
       if (shouldCaptureParticipantAudio) {
         try {
           const captureMode = isExtension() ? 'tab' : 'system';
@@ -2424,6 +2454,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   // releases on the speaker alone and the session continues
                   // one-way. The minted par_stt key is abandoned unused.
                   electronAcquireOk = false;
+                  splitParticipantFailure = 'loopback-denied';
                 } else {
                   await audioServiceRef.current!.connectSystemAudioSource(participantSourceId);
                   systemAudioAcquiredRef.current = true;
@@ -2435,6 +2466,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             } catch (error) {
               console.error('[Sokuji] [MainPanel] Failed to acquire participant audio:', error);
               electronAcquireOk = false;
+              // Previously console-only: this branch produced NO user-visible
+              // signal of any kind.
+              splitParticipantFailure = 'participant-connect-failed';
             }
           }
 
@@ -2483,6 +2517,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               // start window, so it lapses on its own.
               console.info('[Sokuji] [MainPanel] Participant skipped — no suitable models');
               participantClientRef.current = null;
+              // Also previously console-only.
+              splitParticipantFailure = 'no-participant-config';
             } else {
               // No started bit here either: this leg's key is the one most
               // likely to have lapsed (its 180 s start window is spent behind
@@ -2527,6 +2563,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               // active" not "connect resolved". If startTab/SystemAudioRecording
               // throws (non-OOM, caught below as non-fatal), the flag stays false.
               setParticipantChannelActive(true);
+              // Same end-to-end contract, as a local the resolve below can
+              // read — setParticipantChannelActive's own value cannot be read
+              // back within this pass.
+              participantChannelStarted = true;
             }
           }
         } catch (error: any) {
@@ -2557,6 +2597,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             { type: 'participant.error', data: { message: participantErrorMessage } },
             'client', 'participant.error'
           );
+          splitParticipantFailure = 'participant-connect-failed';
         }
       }
 
@@ -2643,6 +2684,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           formatted: { text: voicePrepMessage },
         }]);
       }
+
+      // One decision, three inputs, computed once the participant block has
+      // finished. Deliberately NOT a conversation item: the setItems overwrite
+      // a few lines up replaces that array wholesale, which is why
+      // participantErrorMessage and voicePrepMessage have to be appended after
+      // it. This lives in its own state and is untouched by that call.
+      //
+      // Placed after the "both channels failed" guard on purpose — that path
+      // returns early because no session starts at all, and a session that
+      // never started is not a degraded one.
+      setSplitDegraded(resolveSplitDegraded({
+        splitRequested: sonioxSplitBoth,
+        participantChannelStarted,
+        failure: splitParticipantFailure,
+      }));
 
       // Start tracking audio quality metrics during session
       audioQualityIntervalRef.current = setInterval(() => {
@@ -4094,6 +4150,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               }}
             />
 
+            {/* Directly beside the "Both" segment it contradicts. Renders
+                nothing unless the split actually failed to take effect. */}
+            <SplitDegradedChip reason={splitDegraded} />
+
             <span className="footer-spacer" />
 
             <div className="action-cluster">
@@ -4188,6 +4248,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 }
               }}
             />
+
+            {/* Same chip, same placement, in the advanced footer too. The
+                missing participant waveform below is only a hint, and only
+                here — basic mode has no waveforms at all. */}
+            <SplitDegradedChip reason={splitDegraded} />
 
             {/* Input waveforms (mic + system) grouped with a tight gap so
                 they read as a pair, distinct from the wider footer rhythm. */}

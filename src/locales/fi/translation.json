@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "Osallistujan ääni, joka kaapataan käännöstä varten (selainvälilehti / järjestelmän ääni)",
     "allChannelsFailed": "Yhdenkään äänikanavan käynnistys ei onnistunut. Tarkista laitteiden käyttöoikeudet ja yritä uudelleen.",
     "participantChannelFailed": "Osallistujan äänikanavan käynnistys epäonnistui.",
+    "splitDegradedLabel": "Vain yhteen suuntaan",
+    "splitDegradedTooltip": "Osallistujan ääntä ei käännetä, joten tämä istunto toimii vain yhteen suuntaan. Tarkista osallistujan äänen käyttöoikeudet ja aloita sitten uusi istunto.",
     "sonioxInsufficientBalance": "Saldo ei riitä istunnon aloittamiseen. Lataa saldoasi ja yritä uudelleen.",
     "sonioxSessionConflict": "Tililläsi on jo käynnissä toinen istunto. Yritä uudelleen hetken kuluttua.",
     "sonioxServiceUnavailable": "Soniox ei ole tilapäisesti käytettävissä. Yritä uudelleen hetken kuluttua.",

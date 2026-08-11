@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "Audio ng kalahok na kinukuha para isalin (browser tab / system audio)",
     "allChannelsFailed": "Hindi nagsimula ang anumang audio channel. Suriin ang mga pahintulot ng device at subukang muli.",
     "participantChannelFailed": "Nabigong simulan ang audio channel ng kalahok.",
+    "splitDegradedLabel": "Isang direksyon lamang",
+    "splitDegradedTooltip": "Hindi isinasalin ang audio ng kalahok, kaya isang direksyon lamang ang takbo ng session na ito. Suriin ang mga pahintulot para sa audio ng kalahok, pagkatapos ay magpatakbo ng bagong session.",
     "sonioxInsufficientBalance": "Hindi sapat ang balanse para simulan ang session. Mangyaring mag-top up ng iyong balanse at subukang muli.",
     "sonioxSessionConflict": "May isa nang aktibong session sa iyong account. Pakisubukang muli sa ilang sandali.",
     "sonioxServiceUnavailable": "Pansamantalang hindi available ang Soniox. Pakisubukang muli sa ilang sandali.",

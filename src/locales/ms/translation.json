@@ -563,6 +563,8 @@
     "waveformSystemTooltip": "Audio peserta yang ditangkap untuk terjemahan (tab pelayar / audio sistem)",
     "allChannelsFailed": "Gagal memulakan sebarang saluran audio. Semak kebenaran peranti dan cuba lagi.",
     "participantChannelFailed": "Gagal memulakan saluran audio peserta.",
+    "splitDegradedLabel": "Satu hala sahaja",
+    "splitDegradedTooltip": "Audio peserta tidak diterjemahkan, jadi sesi ini berjalan satu hala sahaja. Semak kebenaran audio peserta, kemudian jalankan sesi baharu.",
     "sonioxInsufficientBalance": "Baki tidak mencukupi untuk memulakan sesi. Sila tambah nilai baki anda dan cuba lagi.",
     "sonioxSessionConflict": "Satu lagi sesi sudah aktif dalam akaun anda. Sila cuba lagi sebentar lagi.",
     "sonioxServiceUnavailable": "Soniox tidak tersedia buat sementara waktu. Sila cuba lagi sebentar lagi.",
