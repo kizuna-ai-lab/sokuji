@@ -1087,6 +1087,10 @@ describe('SonioxClient STT 503 auto-resume (transient service-unavailable, not f
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     const stt0 = sttInstances.at(-1)!;
 
+    // Soniox only sends this 403 once the 900 s grant is up, and the client now
+    // requires that before reading a bare 403 as the cutoff (a revoked key
+    // looks identical on the wire) — see ManagedSonioxSession.CUTOFF_MARGIN_MS.
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 900_000);
     stt0.handlers.onError?.('403', 'session duration exceeded');
     stt0.handlers.onClose?.({ code: 1000, reason: '' });
     await flush();

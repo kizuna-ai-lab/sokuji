@@ -2113,17 +2113,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // other role for this lease (400 `role_not_issued`) — so taking both
           // from one argument is what keeps them unable to disagree.
           role,
-          // Exactly one leg announces exhaustion, and it is the speaker
-          // whenever there is one: the session holds a single handler with
-          // last-registration-wins semantics, and the participant connects
-          // second. See ClientOptions.sonioxManaged.announcesSessionOutcome.
+          // The "is this the PRIMARY leg" bit, and the only place it is
+          // decided. Both session-level endings — the balance running out and
+          // the granted-duration cutoff — are announced exactly once, on the
+          // leg that says true here; every leg is torn down either way
+          // (ManagedSonioxSession.finishSession).
           //
-          // This is the "is this the PRIMARY leg" bit, minimal and scoped to
-          // the one outcome FE3 makes reachable. FE4 generalises it to both
-          // session-level outcomes (the granted-duration 403 cutoff is still
-          // announced per-leg and will double up under split) with a one-shot
-          // claim; this flag is the input its `{ primary }` wants, not a
-          // parallel mechanism to unpick.
+          // It must be the speaker whenever there is one: MainPanel's teardown
+          // renders `speakerClientRef.current?.getConversationItems()`, so a
+          // notice emitted on the participant leg is never displayed at all.
+          // See ClientOptions.sonioxManaged.announcesSessionOutcome.
           announcesSessionOutcome:
             role !== 'par_stt' || managedWiring?.speakerRole === null,
         };

@@ -1,4 +1,10 @@
 import { SonioxCostMeter, SonioxBudgetSnapshot } from './SonioxCostMeter';
+import {
+  SonioxSessionOutcome,
+  type SonioxSessionLeg,
+  type SonioxSessionOutcomeKind,
+  type SonioxSessionOutcomeNotice,
+} from './SonioxSessionOutcome';
 import i18n from '../../locales';
 import { getApiUrl } from '../../utils/environment';
 
@@ -9,8 +15,13 @@ import { getApiUrl } from '../../utils/environment';
  * Extracted out of SonioxClient because a lease is not a stream property. A
  * client is now just "a thing that runs one stream with credentials it was
  * handed"; this object owns the session-key exchange (and its 409 retry), the
- * per-role credential bundles, the lease lifecycle notifications, and the
- * session allowance countdown.
+ * per-role credential bundles, the lease lifecycle notifications, the session
+ * allowance countdown, and the two endings that belong to the session rather
+ * than to any one stream — the balance running out, and the granted duration
+ * being reached. Both are announced exactly once and tear down EVERY leg,
+ * which is why they cannot live on a client: under split there are two, they
+ * share one `max_session_duration_seconds`, and a per-leg announcement means
+ * the same sentence twice (or once, in the wrong panel).
  *
  * Who drives it: MainPanel.connectConversation acquires one per Start, hands
  * each client its bundle and its role through ClientOptions.sonioxManaged, and
@@ -108,6 +119,38 @@ export function primarySttRoleFor(request: ManagedSessionRequest): SonioxSttRole
 // from a malformed/empty body.
 const DEFAULT_CONFLICT_RETRY_MS = 3000;
 
+/**
+ * The two session-level endings, as the user sees them.
+ *
+ * `realtimeEvent` is present only where nothing else already emits one:
+ * the duration cutoff is emitted PER LEG by SonioxClient.handleSttClose
+ * (deliberately — that is how both legs' 403s stay countable), so emitting it
+ * again here would double-count it. Exhaustion has no per-leg emitter at all
+ * once the meter belongs to the session, so it carries its own, under the exact
+ * name it has always had.
+ *
+ * `analytics` is present only for exhaustion. The cutoff has never fired
+ * onError and must not start: it is the normal way a managed segment ends,
+ * and routing it to api_error would drown the dashboard in non-errors.
+ */
+const SESSION_OUTCOME_COPY: Record<
+  SonioxSessionOutcomeKind,
+  { key: string; defaultValue: string; realtimeEvent?: string; analytics?: { code: string; rawMessage: string } }
+> = {
+  budget_exhausted: {
+    key: 'mainPanel.sonioxBudgetExhausted',
+    defaultValue: 'Your session balance is used up. Top up your balance to keep translating.',
+    realtimeEvent: 'session.budget_exhausted',
+    // The notice text is localized; analytics gets a stable English original
+    // so this ending stays countable across UI languages.
+    analytics: { code: 'budget_exhausted', rawMessage: 'Session budget exhausted' },
+  },
+  duration_cutoff: {
+    key: 'mainPanel.sonioxSegmentEnded',
+    defaultValue: 'This segment has ended — tap Start Session to continue.',
+  },
+};
+
 /** One issued Soniox temporary key and the four-segment reference bound to it.
  *  Mirrors the backend's `SessionStream` (sokuji-backend routes/soniox.ts). */
 interface SonioxSessionKeyStream {
@@ -157,13 +200,36 @@ export interface ManagedSonioxSessionOptions {
 }
 
 export class ManagedSonioxSession {
+  /**
+   * How close to the end of the granted duration a bare 403 has to arrive to
+   * be read as the cutoff rather than as a recoverable outage.
+   *
+   * The only clock this session has is the STT stream's ~5 s keepalive, and
+   * the close that carries the 403 can lag it by seconds more, so the margin
+   * only needs to absorb tick granularity plus teardown skew. 90 s is far
+   * wider than that, and still narrow enough that a 403 arriving in the first
+   * minutes of a 15-minute grant — a revoked key, a frozen wallet — falls
+   * through to the outage path instead of claiming "this segment has ended".
+   */
+  static readonly CUTOFF_MARGIN_MS = 90_000;
+
   private readonly sessionToken: string;
   private readonly onEvent?: (type: string, data: unknown) => void;
   private request: ManagedSessionRequest | null = null;
   private readonly bundles = new Map<SonioxStreamRole, SonioxCredentialBundle>();
   private leaseIdValue: string | null = null;
   private costMeter: SonioxCostMeter | null = null;
-  private exhaustedHandler: (() => void) | null = null;
+  // The grant, as acquire() received it. Both are needed to tell a
+  // granted-duration cutoff from any other bare 403 — see isAtGrantedDurationEnd.
+  private startedAtMs: number | null = null;
+  private maxSessionDurationSeconds = 0;
+  // One-shot ownership of this lease's ending announcement, and the streams it
+  // has to tear down. Replaces the single `exhaustedHandler` slot: that could
+  // name the ONE leg that speaks, but not the OTHER legs that must still be
+  // ended — under split, exhaustion left the participant streaming on an empty
+  // balance, and the granted-duration cutoff was announced once per leg.
+  private outcome = new SonioxSessionOutcome();
+  private readonly legs: SonioxSessionLeg[] = [];
   // session-end is a hint the backend acts on once; teardown can reach it from
   // more than one path (the user's Stop, a client's onClose, connect()'s catch).
   private endSignalled = false;
@@ -223,17 +289,28 @@ export class ManagedSonioxSession {
     this.bundles.clear();
     // A new lease is a new mask (acquire resets stt_started_mask to 0 server
     // side), so a role carried over from a previous one would suppress the very
-    // report that extends this lease.
+    // report that extends this lease. The ending claim is per-lease for the
+    // same reason: a claim carried over would silence the new lease entirely.
     this.acceptedRoles.clear();
+    this.outcome = new SonioxSessionOutcome();
     this.fileBundles(request, data);
+    // ONE timestamp for both readers: the meter's countdown and the
+    // granted-duration margin describe the same lease, and two Date.now()
+    // calls a millisecond apart would make them disagree by that millisecond.
+    const startedAtMs = Date.now();
+    this.startedAtMs = startedAtMs;
+    this.maxSessionDurationSeconds = data.maxSessionDurationSeconds;
     this.costMeter = new SonioxCostMeter({
       budgetMicroUsd: data.budgetMicroUsd,
       rateUsdPerHour: data.rateUsdPerHour,
-      // Read through the field, not captured: the announcing client registers
-      // at connect() time, strictly after this.
-      onExhausted: () => this.exhaustedHandler?.(),
+      // Session-level, not stream-level: exhaustion ends EVERY leg and is
+      // announced exactly once. In split, both legs forward keepalive ticks
+      // into this one meter, so this can fire from either — finishSession
+      // does not care which. Read through the method, not a captured leg:
+      // clients register at connect() time, strictly after this.
+      onExhausted: () => this.finishSession('budget_exhausted'),
     });
-    this.costMeter.start(Date.now());
+    this.costMeter.start(startedAtMs);
   }
 
   /**
@@ -435,11 +512,85 @@ export class ManagedSonioxSession {
   }
 
   /**
-   * Exactly ONE owner announces exhaustion — the LAST registration wins, which
-   * is why FE3/FE4 must register only the announcing (speaker/primary) client.
+   * Register a client as one of this session's streams.
+   *
+   * Every leg registers, not just the announcing one: the session has to be
+   * able to END them all, and only the leg itself knows whether it speaks for
+   * the session (`SonioxSessionLeg.announcesSessionOutcome`, the bit MainPanel's
+   * `managedSonioxArgFor` computes and hands to the client at construction).
+   * Reading that bit here rather than taking a second `{ primary }` argument is
+   * what keeps "which leg is primary" a single source of truth.
+   *
+   * Legs attach themselves from SonioxClient.connect() and detach in
+   * disconnect(), which is what keeps this list to the streams that actually
+   * exist: a participant leg whose connect throws never registers, so the
+   * session neither announces on it nor waits for it.
+   *
+   * Idempotent: re-attaching the same client does not create a second leg,
+   * which would tear it down twice on every outcome.
    */
-  setExhaustedHandler(fn: (() => void) | null): void {
-    this.exhaustedHandler = fn;
+  attachLeg(leg: SonioxSessionLeg): void {
+    if (this.legs.includes(leg)) return;
+    this.legs.push(leg);
+  }
+
+  /** Stand a leg down — it has disconnected and must not be announced on or
+   *  ended again. Unknown legs are ignored. */
+  detachLeg(leg: SonioxSessionLeg): void {
+    const index = this.legs.indexOf(leg);
+    if (index !== -1) this.legs.splice(index, 1);
+  }
+
+  /**
+   * The session is over for a session-level reason. Announce it ONCE, on the
+   * announcing leg, then tear down every leg.
+   *
+   * Callable from any leg, any number of times. In split Both both STT keys
+   * share one `max_session_duration_seconds`, so both legs 403 within the same
+   * second and both call this; the claim decides who speaks, and the teardown
+   * loop runs regardless so the losing leg still ends gracefully. That teardown
+   * is what stops the losing leg's own close from falling into
+   * handleSttClose's bare-close branch and layering "the connection was
+   * interrupted" on top of the real reason.
+   */
+  finishSession(kind: SonioxSessionOutcomeKind): void {
+    if (this.outcome.claim(kind)) {
+      const copy = SESSION_OUTCOME_COPY[kind];
+      const notice: SonioxSessionOutcomeNotice = {
+        text: i18n.t(copy.key, copy.defaultValue),
+        realtimeEvent: copy.realtimeEvent,
+        analytics: copy.analytics,
+      };
+      // Fall back to the first registered leg rather than swallowing the
+      // announcement: a session whose announcer has already disconnected is
+      // reachable (the speaker can die while the participant streams on), and
+      // a silent ending is exactly the failure this exists to prevent. The
+      // fallback's notice lands in a list MainPanel does not render, but its
+      // onError still reaches the analytics and the transient bubble.
+      const announcer = this.legs.find((leg) => leg.announcesSessionOutcome) ?? this.legs[0];
+      announcer?.announceSessionOutcome(notice);
+    }
+    // Announce-then-end, matching the order the old per-client
+    // handleBudgetExhausted always used, and unconditional so a second caller
+    // still gets its leg ended. Iterated over a COPY: endForSessionOutcome
+    // drives a close that can reach detachLeg synchronously.
+    for (const leg of [...this.legs]) leg.endForSessionOutcome();
+  }
+
+  /**
+   * Is `nowMs` within CUTOFF_MARGIN_MS of the end of the granted duration?
+   *
+   * Soniox reports the granted-duration cutoff as a bare 403, which is also
+   * what a revoked key and a frozen wallet look like. Reading every managed
+   * 403 as the cutoff tells a user whose key just died to "tap Start Session
+   * to continue"; reading a real cutoff as an outage tells them "the
+   * connection was interrupted". With no grant to compare against, the
+   * second is the worse lie, so an unknown grant keeps today's behaviour.
+   */
+  isAtGrantedDurationEnd(nowMs: number): boolean {
+    if (this.startedAtMs === null || !this.maxSessionDurationSeconds) return true;
+    const elapsedMs = nowMs - this.startedAtMs;
+    return elapsedMs >= this.maxSessionDurationSeconds * 1000 - ManagedSonioxSession.CUTOFF_MARGIN_MS;
   }
 
   /** The meter has no clock of its own: it is advanced by an STT stream's ~5 s

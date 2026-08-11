@@ -107,6 +107,19 @@ async function managedClient(textOnly = false) {
   });
 }
 
+/**
+ * Move the clock to the end of the 900 s grant `speechToSpeechResponse()` hands
+ * out.
+ *
+ * Soniox only sends the granted-duration 403 when the grant is actually up, and
+ * the client now checks that before reading a bare 403 as the cutoff — a
+ * revoked key and a frozen wallet arrive as the identical frame. Must be called
+ * AFTER acquire(), which is what latches the grant's start.
+ */
+function advanceToGrantEnd() {
+  vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 900_000);
+}
+
 beforeEach(() => {
   sttInstances.length = 0;
   ttsInstances.length = 0;
@@ -235,7 +248,7 @@ describe('SonioxClient managed mode: cost meter wiring', () => {
     const stt = sttInstances.at(-1)!;
 
     vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
-    stt.handlers.onTick?.(); // → handleBudgetExhausted() → stt.end()
+    stt.handlers.onTick?.(); // → session.finishSession('budget_exhausted') → stt.end()
     expect(stt.ended).toBe(true);
 
     // The close the server sends after flushing a graceful end() — exactly
@@ -328,6 +341,10 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     const stt = sttInstances.at(-1)!;
 
+    // Soniox sends this 403 when the grant is up, and the client now checks
+    // that before believing it — see 'a managed 403 far from the granted
+    // duration is NOT read as the cutoff'.
+    advanceToGrantEnd();
     stt.handlers.onError?.('403', 'session duration exceeded');
 
     expect(errors).toHaveLength(0);
@@ -335,7 +352,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     expect(client.getConversationItems()).toHaveLength(0);
   });
 
-  it('emits the segment-ended notice itself on the close that follows', async () => {
+  it('emits the segment-ended notice on the close that follows — one leg, so this leg says it', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
     const client = await managedClient();
     const closeEvents: any[] = [];
@@ -343,6 +360,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     const stt = sttInstances.at(-1)!;
 
+    advanceToGrantEnd();
     stt.handlers.onError?.('403', 'session duration exceeded');
     stt.handlers.onClose?.({ code: 1000, reason: '' });
 
@@ -392,6 +410,8 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
     mockFetchOnce(200, speechToSpeechResponse());
     const client = await managedClient();
     await client.connect({ ...BASE_CONFIG, textOnly: false });
+    // At the grant end, so the 403 really does set the flag this test is about.
+    advanceToGrantEnd();
     sttInstances.at(-1)!.handlers.onError?.('403', 'session duration exceeded');
 
     // A fresh connect() calls reset() before anything else, which must clear
@@ -616,13 +636,11 @@ describe('SonioxClient: a leg is reported started only when Soniox ACCEPTS its s
 
 describe('SonioxClient: exactly one leg announces the session-level outcome', () => {
   /**
-   * Split Both runs two clients off one session, and the session holds ONE
-   * exhaustion handler with last-registration-wins semantics. The participant
-   * leg connects second, so without an owner it would take the announcement —
-   * putting the balance notice in the wrong panel, ending the wrong stream, and
-   * (if it registered and then failed to connect) leaving the handler pointing
-   * at a client MainPanel has already dropped, so exhaustion would announce
-   * nothing at all.
+   * Split Both runs two clients off one session. BOTH register as legs — the
+   * session has to be able to end them both — but exactly one of them says the
+   * sentence, and it must be the speaker: MainPanel's teardown renders
+   * `speakerClientRef.current?.getConversationItems()`, so a balance notice
+   * emitted on the participant leg is not merely misplaced, it is never shown.
    */
   async function twoLegSession() {
     const session = new ManagedSonioxSession({ sessionToken: SESSION_TOKEN });
@@ -630,7 +648,7 @@ describe('SonioxClient: exactly one leg announces the session-level outcome', ()
     return session;
   }
 
-  it('a non-announcing leg does not register, so the announcing leg keeps the outcome', async () => {
+  it('a non-announcing leg never takes the outcome, however it connects', async () => {
     mockFetchOnce(200, {
       ...speechToSpeechResponse(),
       budgetMicroUsd: 1,
@@ -693,5 +711,247 @@ describe('SonioxClient: exactly one leg announces the session-level outcome', ()
     vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
     session.tick(Date.now());
     expect(speakerErrors.some((e) => e.code === 'budget_exhausted')).toBe(true);
+  });
+});
+
+describe('SonioxClient as a session leg: session-level endings are announced exactly once', () => {
+  /**
+   * Split Both runs TWO SonioxClients off ONE lease, and therefore off one
+   * `max_session_duration_seconds`. Both legs take the cutoff 403 within the
+   * same second, and before this the "segment ended" notice was emitted by
+   * whichever leg's close arrived — twice under split, and on the participant
+   * leg (whose conversation items MainPanel never renders) if it won the race.
+   *
+   * The session owns the sentence now. These tests drive the real
+   * ManagedSonioxSession, because the routing is the whole behaviour: a fake
+   * session would only re-assert the client's half of it.
+   */
+  const splitResponse = (overrides: Record<string, unknown> = {}) => ({
+    ...speechToSpeechResponse(),
+    leaseId: 'lease-split-1',
+    streams: [
+      { role: 'spk_stt', apiKey: 'k-spk', clientReferenceId: 'sokuji1:a:lease-split-1:spk_stt', expiresAt: 'x' },
+      { role: 'par_stt', apiKey: 'k-par', clientReferenceId: 'sokuji1:a:lease-split-1:par_stt', expiresAt: 'x' },
+    ],
+    ...overrides,
+  });
+
+  /** The two legs MainPanel builds for a managed split Both session, connected
+   *  in the order it connects them (speaker first, participant second). */
+  async function splitLegs(overrides: Record<string, unknown> = {}) {
+    mockFetchOnce(200, splitResponse(overrides));
+    const session = new ManagedSonioxSession({ sessionToken: SESSION_TOKEN });
+    await session.acquire({ mode: 'both', textOnly: true, bothSplit: true });
+
+    const speaker = new SonioxClient(session.credentialsFor('spk_stt'), {
+      session,
+      sttRole: 'spk_stt',
+    });
+    const participant = new SonioxClient(session.credentialsFor('par_stt'), {
+      session,
+      sttRole: 'par_stt',
+      // The bit MainPanel's managedSonioxArgFor computes: the participant's
+      // items are never rendered, so it must not be the one that speaks.
+      announcesSessionOutcome: false,
+    });
+    await speaker.connect({ ...BASE_CONFIG, textOnly: true });
+    const speakerStt = sttInstances.at(-1)!;
+    await participant.connect({ ...BASE_CONFIG, textOnly: true });
+    const participantStt = sttInstances.at(-1)!;
+    return { session, speaker, participant, speakerStt, participantStt };
+  }
+
+  it('both legs 403ing in the same second produce ONE notice, on the speaker', async () => {
+    const { speaker, participant, speakerStt, participantStt } = await splitLegs();
+    advanceToGrantEnd();
+
+    // Both keys share one granted duration, so both closes arrive together.
+    speakerStt.handlers.onError?.('403', 'session duration exceeded');
+    speakerStt.handlers.onClose?.({ code: 1000, reason: '' });
+    participantStt.handlers.onError?.('403', 'session duration exceeded');
+    participantStt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    const speakerItems = speaker.getConversationItems();
+    expect(speakerItems).toHaveLength(1);
+    expect(speakerItems[0].formatted?.text).toMatch(SEGMENT_ENDED);
+    // Not merely "not twice on the speaker": the participant's list is never
+    // rendered, so a notice here is invisible rather than duplicated.
+    expect(participant.getConversationItems()).toHaveLength(0);
+  });
+
+  it('the leg that did NOT notice is still ended gracefully', async () => {
+    const { speakerStt, participantStt } = await splitLegs();
+    advanceToGrantEnd();
+
+    // Only the participant's 403 arrives; the speaker's socket is still open.
+    participantStt.handlers.onError?.('403', 'session duration exceeded');
+    participantStt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    // Graceful empty-text-frame end-of-stream on BOTH, not an abrupt close —
+    // before this the speaker would have kept streaming (and billing) until
+    // its own 403 arrived.
+    expect(participantStt.ended).toBe(true);
+    expect(speakerStt.ended).toBe(true);
+    expect(speakerStt.closed).toBe(false);
+  });
+
+  it('the ended leg\'s own close cannot layer an outage notice on top of the real reason', async () => {
+    const { speaker, participant, speakerStt, participantStt } = await splitLegs();
+    advanceToGrantEnd();
+
+    participantStt.handlers.onError?.('403', 'session duration exceeded');
+    participantStt.handlers.onClose?.({ code: 1000, reason: '' });
+    // The close the server sends after the graceful end() the session just
+    // triggered on the speaker. With no outcome on record it would reach
+    // handleSttClose's bare-close fallthrough and say "the connection was
+    // interrupted" — contradicting "this segment has ended".
+    speakerStt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    const texts = speaker.getConversationItems().map((i) => i.formatted?.text ?? '');
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toMatch(SEGMENT_ENDED);
+    expect(texts.some((t) => OUTAGE.test(t))).toBe(false);
+    expect(participant.getConversationItems()).toHaveLength(0);
+  });
+
+  it('keeps emitting session.duration_cutoff once PER LEG — two 403s is the expected shape', async () => {
+    const { speaker, participant, speakerStt, participantStt } = await splitLegs();
+    advanceToGrantEnd();
+    // Per-leg telemetry is deliberately NOT deduped: both keys really did take
+    // a 403, and collapsing them would hide a leg dying alone.
+    const events: Array<{ type: string }> = [];
+    speaker.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
+    participant.setEventHandlers({ onRealtimeEvent: (e: any) => events.push(e.event) });
+
+    speakerStt.handlers.onError?.('403', 'session duration exceeded');
+    speakerStt.handlers.onClose?.({ code: 1000, reason: '' });
+    participantStt.handlers.onError?.('403', 'session duration exceeded');
+    participantStt.handlers.onClose?.({ code: 1000, reason: '' });
+
+    expect(events.filter((e) => e.type === 'session.duration_cutoff')).toHaveLength(2);
+  });
+
+  it('exhaustion ends the participant leg too — it would otherwise stream on an empty balance', async () => {
+    const { speaker, participant, speakerStt, participantStt } =
+      await splitLegs({ budgetMicroUsd: 1, rateUsdPerHour: 3600 });
+    const speakerErrors: Array<{ code?: string }> = [];
+    const participantErrors: Array<{ code?: string }> = [];
+    speaker.setEventHandlers({ onError: (e) => speakerErrors.push(e) });
+    participant.setEventHandlers({ onError: (e) => participantErrors.push(e) });
+
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+    // Either leg's keepalive may be the one that trips the meter.
+    participantStt.handlers.onTick?.();
+
+    expect(speakerErrors.some((e) => e.code === 'budget_exhausted')).toBe(true);
+    expect(participantErrors).toHaveLength(0);
+    expect(speaker.getConversationItems().at(-1)!.formatted?.text).toMatch(BALANCE_USED_UP);
+    expect(participant.getConversationItems()).toHaveLength(0);
+    expect(speakerStt.ended).toBe(true);
+    expect(participantStt.ended).toBe(true);
+  });
+
+  it('announceSessionOutcome pushes an item that SURVIVES MainPanel’s setItems overwrite', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = await managedClient();
+    const errors: any[] = [];
+    const events: any[] = [];
+    client.setEventHandlers({ onError: (e) => errors.push(e), onRealtimeEvent: (e: any) => events.push(e.event) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+
+    client.announceSessionOutcome({
+      text: 'Your session balance is used up.',
+      realtimeEvent: 'session.budget_exhausted',
+      analytics: { code: 'budget_exhausted', rawMessage: 'Session budget exhausted' },
+    });
+
+    // MainPanel's teardown is literally this: setItems(client.getConversationItems()).
+    // An item held only in React state would not be in this array.
+    const rendered = client.getConversationItems();
+    expect(rendered).toHaveLength(1);
+    expect(rendered[0].role).toBe('system');
+    expect(rendered[0].formatted?.text).toMatch(BALANCE_USED_UP);
+    expect(rendered[0].createdAt).toBeGreaterThan(0);
+    expect(errors).toEqual([
+      { code: 'budget_exhausted', message: 'Your session balance is used up.', rawMessage: 'Session budget exhausted' },
+    ]);
+    expect(events.some((e) => e.type === 'session.budget_exhausted')).toBe(true);
+  });
+
+  it('announceSessionOutcome without analytics stays out of the api_error channel', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = await managedClient();
+    const errors: any[] = [];
+    client.setEventHandlers({ onError: (e) => errors.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+
+    // The cutoff's notice shape: a normal end-of-segment is not an error, and
+    // routing it to onError would drown the api_error dashboard in non-errors.
+    client.announceSessionOutcome({ text: 'This segment has ended.' });
+
+    expect(client.getConversationItems()).toHaveLength(1);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('endForSessionOutcome ends the stream gracefully, once, and suppresses the outage notice', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = await managedClient();
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    client.endForSessionOutcome();
+    client.endForSessionOutcome(); // the second leg's 403 re-enters finishSession
+
+    expect(stt.ended).toBe(true);   // protocol's empty-text-frame end-of-stream
+    expect(stt.closed).toBe(false); // not torn down abruptly
+
+    // The close that always follows a graceful end() must NOT add
+    // "the connection was interrupted" on top of the session's real reason.
+    stt.handlers.onClose?.({ code: 1000, reason: '' });
+    expect(client.getConversationItems()).toHaveLength(0);
+  });
+
+  it('a managed 403 far from the granted duration is NOT read as the cutoff', async () => {
+    mockFetchOnce(200, speechToSpeechResponse());
+    const client = await managedClient();
+    const errors: any[] = [];
+    client.setEventHandlers({ onError: (e) => errors.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+
+    // A revoked key or a frozen wallet looks exactly like the cutoff on the
+    // wire. At t=0 of a 15-minute grant it is not the cutoff. No clock
+    // advance: the session was acquired moments ago.
+    stt.handlers.onError?.('403', 'forbidden');
+    stt.handlers.onClose?.({ code: 1006, reason: '' });
+
+    const text = client.getConversationItems().at(-1)!.formatted?.text;
+    // Deliberately the SAME treatment BYOK gives a mid-session 403: the raw
+    // server words, and onError under a groupable code. Not "this segment has
+    // ended", which would tell a user whose key just died to tap Start; and
+    // not the recoverable-outage sentence either, which says "tap Start
+    // Session in a moment to continue" and invites the identical refused
+    // retry — the very thing the margin exists to stop.
+    expect(text).not.toMatch(SEGMENT_ENDED);
+    expect(text).not.toMatch(OUTAGE);
+    expect(text).toMatch(/forbidden/);
+    expect(errors.some((e) => e.code === '403')).toBe(true);
+  });
+
+  it('a disconnected leg is detached, so the session neither announces on it nor ends it again', async () => {
+    const { session, speaker, participant, participantStt } =
+      await splitLegs({ budgetMicroUsd: 1, rateUsdPerHour: 3600 });
+    const speakerErrors: Array<{ code?: string }> = [];
+    speaker.setEventHandlers({ onError: (e) => speakerErrors.push(e) });
+
+    await participant.disconnect();
+    participantStt.ended = false; // disconnect()'s own end() is not the one under test
+
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+    session.tick(Date.now());
+
+    // The speaker still announces — a leg standing down must not disarm it.
+    expect(speakerErrors.some((e) => e.code === 'budget_exhausted')).toBe(true);
+    expect(participantStt.ended).toBe(false);
   });
 });

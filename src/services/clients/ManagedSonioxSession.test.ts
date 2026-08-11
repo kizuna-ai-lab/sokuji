@@ -493,30 +493,41 @@ describe('ManagedSonioxSession: the session allowance countdown', () => {
     expect(info!.startedAtMs).toBeGreaterThanOrEqual(before);
   });
 
-  it('fires the exhaustion handler exactly once, and honours a handler registered AFTER acquire', async () => {
+  // The exhaustion announcement is routed through the leg registry now (one
+  // announcing leg, every leg torn down) rather than a single handler slot —
+  // see ManagedSonioxSession.outcome.test.ts. These two keep the properties
+  // that were pinned here: it fires exactly once, and a leg that registers
+  // after acquire still gets it.
+  const announcingLeg = () => ({
+    announcesSessionOutcome: true,
+    announceSessionOutcome: vi.fn(),
+    endForSessionOutcome: vi.fn(),
+  });
+
+  it('announces exhaustion exactly once, and honours a leg attached AFTER acquire', async () => {
     mockFetchOnce(200, { ...speechToSpeechResponse(), budgetMicroUsd: 1, rateUsdPerHour: 3600 });
     const session = newSession();
     await session.acquire(SPEAKER_S2S);
 
     // Late binding matters: SonioxClient registers at connect() time, which is
     // strictly after MainPanel has acquired the session.
-    const onExhausted = vi.fn();
-    session.setExhaustedHandler(onExhausted);
+    const leg = announcingLeg();
+    session.attachLeg(leg);
 
     session.tick(Date.now() + 5_000);
     session.tick(Date.now() + 10_000);
-    expect(onExhausted).toHaveBeenCalledTimes(1);
+    expect(leg.announceSessionOutcome).toHaveBeenCalledTimes(1);
   });
 
-  it('setExhaustedHandler(null) stops the announcement', async () => {
+  it('a detached leg stops the announcement', async () => {
     mockFetchOnce(200, { ...speechToSpeechResponse(), budgetMicroUsd: 1, rateUsdPerHour: 3600 });
     const session = newSession();
     await session.acquire(SPEAKER_S2S);
-    const onExhausted = vi.fn();
-    session.setExhaustedHandler(onExhausted);
-    session.setExhaustedHandler(null);
+    const leg = announcingLeg();
+    session.attachLeg(leg);
+    session.detachLeg(leg);
 
     session.tick(Date.now() + 5_000);
-    expect(onExhausted).not.toHaveBeenCalled();
+    expect(leg.announceSessionOutcome).not.toHaveBeenCalled();
   });
 });

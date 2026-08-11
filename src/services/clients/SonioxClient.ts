@@ -13,6 +13,7 @@ import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig
 import { SonioxTtsStream } from './SonioxTtsStream';
 import { SonioxBudgetSnapshot } from './SonioxCostMeter';
 import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from './ManagedSonioxSession';
+import type { SonioxSessionLeg, SonioxSessionOutcomeNotice } from './SonioxSessionOutcome';
 import { PcmMixer } from './PcmMixer';
 import { SonioxSideTracker } from './SonioxSideTracker';
 import i18n from '../../locales';
@@ -83,7 +84,7 @@ export interface SonioxClientOptions {
   announcesSessionOutcome?: boolean;
 }
 
-export class SonioxClient implements IClient {
+export class SonioxClient implements IClient, SonioxSessionLeg {
   private stt: SonioxSttStream | null = null;
   private tts: SonioxTtsStream | null = null;
   private eventHandlers: ClientEventHandlers = {};
@@ -166,9 +167,16 @@ export class SonioxClient implements IClient {
   private readonly sttRole: SonioxSttRole | null;
   // Whether this leg is the session's ONE announcer of session-level outcomes.
   // False only for the participant leg of a split Both session, where the
-  // speaker owns the announcement — see the option's docstring for why the
-  // last-registration-wins default is the wrong owner there.
-  private readonly announcesSessionOutcome: boolean;
+  // speaker owns the announcement — see the option's docstring. Exposed
+  // read-only as `announcesSessionOutcome` (the SonioxSessionLeg member the
+  // session reads), so the primacy bit has exactly one source: the value
+  // MainPanel's managedSonioxArgFor computed at construction.
+  private readonly announcesSessionOutcomeFlag: boolean;
+  // Guards endForSessionOutcome. finishSession calls it on every leg on every
+  // invocation, and in split the second leg's own 403 re-enters — without this,
+  // end() would be sent twice on the same socket. Per-session, so reset()
+  // (which runs at the top of connect()) clears it.
+  private sessionOutcomeEnded = false;
   // Set by handleSttError when a managed session's STT stream reports the
   // 403 "granted duration reached" error frame; consumed (and cleared) by
   // the close that always immediately follows it — see onClose's docstring.
@@ -195,15 +203,19 @@ export class SonioxClient implements IClient {
   private pendingSttResume503: string | null = null;
   // True once the user has already been told why THIS stream is ending —
   // wider than "an error frame arrived": it also covers a graceful ending
-  // that announces its own reason before closing the socket
-  // (handleBudgetExhausted). Read by handleSttClose's fall-through to tell
+  // whose reason was announced before the socket closed
+  // (endForSessionOutcome, on EVERY leg the session tears down — including
+  // the one that lost the announcement race and never said anything itself,
+  // because the sentence was rendered on the other leg and a second,
+  // contradictory one here would be worse than silence). Read by
+  // handleSttClose's fall-through to tell
   // "the socket died with no warning" (say so) from "we already told the
   // user why" (stay quiet), so a close that follows an announced outcome
   // never gets a second, contradictory notice layered on top of it. Set at
   // the top of handleSttError, BEFORE its early returns, so the cutoff and
   // resume paths count as having spoken too — a 503 whose close never
   // arrives must not let a later close file a second, contradictory report.
-  // handleBudgetExhausted sets it too, immediately above its own
+  // endForSessionOutcome sets it too, immediately above its own
   // this.stt?.end(), for the identical reason. Cleared per stream in
   // wireSttHandlers, and by reset().
   private sttOutcomeAnnounced = false;
@@ -218,8 +230,20 @@ export class SonioxClient implements IClient {
     this.credentials = credentials;
     this.session = options?.session ?? null;
     this.sttRole = options?.sttRole ?? null;
-    this.announcesSessionOutcome = options?.announcesSessionOutcome ?? true;
+    this.announcesSessionOutcomeFlag = options?.announcesSessionOutcome ?? true;
     this.instanceId = `soniox_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * SonioxSessionLeg: is this the ONE leg that speaks for the session?
+   *
+   * Read by ManagedSonioxSession.finishSession to pick the announcer. True for
+   * the speaker of a split Both session and for every single-leg session;
+   * false for the split participant, whose conversation items MainPanel never
+   * renders (its teardown does setItems(speakerClient.getConversationItems())).
+   */
+  get announcesSessionOutcome(): boolean {
+    return this.announcesSessionOutcomeFlag;
   }
 
   /** Backend-billed session? One question, one answer, five readers: the two
@@ -291,13 +315,17 @@ export class SonioxClient implements IClient {
     this.bidirectional = cfg.bidirectional && cfg.sourceLanguage !== 'auto';
 
     // No network round trip here any more: MainPanel acquired the session and
-    // handed this client its bundle before construction. Registering the
-    // announcer here rather than in the constructor is what lets the caller
-    // name ONE owner for the session-level outcome — the session keeps a single
-    // handler, so a second registering leg would silently take it over.
-    if (this.announcesSessionOutcome) {
-      this.session?.setExhaustedHandler(() => this.handleBudgetExhausted());
-    }
+    // handed this client its bundle before construction. What happens here is
+    // registration: this stream joins the session's list of legs, so a
+    // session-level ending (balance exhausted, granted duration reached) can be
+    // announced once and tear down EVERY leg.
+    //
+    // EVERY leg registers, not just the announcing one — the session reads
+    // `announcesSessionOutcome` off each leg to pick who speaks. Registering
+    // here rather than in the constructor is deliberate: a leg that is
+    // constructed and never connected (the participant whose loopback
+    // permission was refused) has no stream to end and must not be waited on.
+    this.session?.attachLeg(this);
 
     this.stt = new SonioxSttStream();
     this.wireSttHandlers(this.stt);
@@ -441,8 +469,9 @@ export class SonioxClient implements IClient {
    * reconnects instead of tearing the session down), and — falling through
    * both — a bare close, which reports a recoverable-outage notice UNLESS
    * sttOutcomeAnnounced is already true, meaning some earlier step
-   * (handleSttError's own early paths, or a graceful ending like
-   * handleBudgetExhausted) already told the user why this stream is ending.
+   * (handleSttError's own early paths, or a session-level ending routed
+   * through endForSessionOutcome) already accounted for why this stream is
+   * ending.
    * Order matters for the first two: the managed-duration cutoff is checked
    * first so a managed 403 is never misread as a resumable 503 — the two
    * flags are mutually exclusive in practice (handleSttError only ever sets
@@ -483,10 +512,25 @@ export class SonioxClient implements IClient {
     // the user knowing, so the user must tap Start for a new segment.
     if (this.pendingDurationCutoff) {
       this.pendingDurationCutoff = false;
+      // Per-LEG telemetry, deliberately emitted by both legs: in split both
+      // STT keys share one max_session_duration_seconds, so seeing two of
+      // these in one session is the expected shape, not a duplicate.
       this.emitRealtime('client', 'session.duration_cutoff', { provider: 'soniox', ...event });
-      this.emitSystemNotice(
-        i18n.t('mainPanel.sonioxSegmentEnded', 'This segment has ended — tap Start Session to continue.')
-      );
+      if (this.session) {
+        // Session-level: announced ONCE, on the announcing leg, and every leg
+        // torn down. Whichever leg's close arrives first calls this; the other
+        // one's call is a no-op for the notice and still ends it.
+        this.session.finishSession('duration_cutoff');
+      } else {
+        // Unreachable by construction — pendingDurationCutoff is only ever set
+        // on the managed branch of handleSttError, which implies a session.
+        // Kept because that invariant lives in a mutable field two hundred
+        // lines away, and the cost of it breaking is a session that ends in
+        // silence — the exact failure this whole path exists to prevent.
+        this.emitSystemNotice(
+          i18n.t('mainPanel.sonioxSegmentEnded', 'This segment has ended — tap Start Session to continue.')
+        );
+      }
       this.eventHandlers.onClose?.(event);
       return;
     }
@@ -670,37 +714,66 @@ export class SonioxClient implements IClient {
   }
 
   /**
-   * The session's budget ran out mid-stream. Tell the user why FIRST — via
-   * emitSystemNotice, not just onError, because MainPanel's teardown replaces
-   * its rendered list with getConversationItems(): an onError-only bubble is
-   * local React state and gets wiped the instant the close that follows
-   * this.stt?.end() below arrives, same as any other transient bubble (see
-   * emitSystemNotice's docstring). Only THEN end the STT stream the same way
-   * a normal session ends — the protocol's empty-text-frame end-of-stream
-   * signal — so the server flushes and closes it cleanly instead of the
-   * socket being torn down mid-utterance. sttOutcomeAnnounced is set right
-   * before that end() call: without it, the close that follows would reach
-   * handleSttClose's bare-close fallthrough with no announced outcome on
-   * record and layer a "connection interrupted" notice on top of the real
-   * reason — leaving a user with an empty balance told to try again, which
-   * the start gate would just refuse.
+   * SonioxSessionLeg: render the session's single ending notice on this leg.
+   *
+   * Goes through emitSystemNotice — a CLIENT-held conversation item — and not
+   * through onError alone, because MainPanel's teardown replaces its rendered
+   * list with getConversationItems(). A message living only in React state is
+   * wiped the instant the session tears down, and an exhausted balance then
+   * reads as "the connection was interrupted — tap Start Session", which sends
+   * the user to retry into a 402.
+   *
+   * The session decides what rides along: `realtimeEvent` only where nothing
+   * else already emits one (the cutoff is emitted per leg by handleSttClose),
+   * and `analytics` only for endings that are genuinely errors — a normal
+   * end-of-segment must not land in the api_error dashboard.
    */
-  private handleBudgetExhausted(): void {
-    this.emitRealtime('client', 'session.budget_exhausted', { provider: 'soniox' });
-    const message = i18n.t('mainPanel.sonioxBudgetExhausted', 'Your session balance is used up. Top up your balance to keep translating.');
-    this.emitSystemNotice(message);
-    // `message` is localized for the bubble; analytics gets a stable English
-    // original so this ending stays countable across UI languages.
-    this.eventHandlers.onError?.({
-      code: 'budget_exhausted',
-      message,
-      rawMessage: 'Session budget exhausted',
-    });
-    // Must be set before this.stt?.end() — see sttOutcomeAnnounced's
-    // declaration for why (and handleSttClose's bare-close branch, which
-    // reads it once the close this triggers arrives).
+  announceSessionOutcome(notice: SonioxSessionOutcomeNotice): void {
+    if (notice.realtimeEvent) {
+      this.emitRealtime('client', notice.realtimeEvent, { provider: 'soniox' });
+    }
+    this.emitSystemNotice(notice.text);
+    if (notice.analytics) {
+      // `notice.text` is localized for the bubble; analytics gets a stable
+      // English original so this ending stays countable across UI languages.
+      this.eventHandlers.onError?.({
+        code: notice.analytics.code,
+        message: notice.text,
+        rawMessage: notice.analytics.rawMessage,
+      });
+    }
+  }
+
+  /**
+   * SonioxSessionLeg: end this leg because the SESSION ended. Idempotent.
+   *
+   * The stream is ended the way a normal session ends — the protocol's
+   * empty-text-frame end-of-stream signal — so the server flushes and closes
+   * cleanly instead of the socket being torn down mid-utterance.
+   *
+   * sttOutcomeAnnounced is set BEFORE that end() for the reason its own
+   * declaration gives: the close that follows would otherwise reach
+   * handleSttClose's bare-close fallthrough with nothing on record and layer a
+   * contradictory "connection interrupted" notice on top of the real reason.
+   * In split this is also what silences the leg that LOST the announcement
+   * race — it is torn down having "already spoken", even though the sentence
+   * was rendered on the other leg.
+   */
+  endForSessionOutcome(): void {
+    if (this.sessionOutcomeEnded) return;
+    this.sessionOutcomeEnded = true;
     this.sttOutcomeAnnounced = true;
     this.stt?.end();
+  }
+
+  /**
+   * Is a bare managed 403 close enough to the end of the granted duration to
+   * mean "segment ended"? True when there is no session, or the session does
+   * not know its grant — see ManagedSonioxSession.isAtGrantedDurationEnd for
+   * why that is the safer default.
+   */
+  private isAtGrantedDurationEnd(): boolean {
+    return this.session?.isAtGrantedDurationEnd(Date.now()) ?? true;
   }
 
   /**
@@ -1070,7 +1143,13 @@ export class SonioxClient implements IClient {
     // BYOK has no granted duration and never hits this: a genuine mid-session
     // 403 there (e.g. a revoked key) still falls through to the normal error
     // path below.
-    if (this.isManaged && code === '403') {
+    //
+    // ...and only when we are actually near the end of the grant. A revoked
+    // key and a frozen wallet arrive as the same bare 403; reading those as
+    // "this segment has ended — tap Start Session" invites a retry that the
+    // start gate will refuse. Outside the margin this falls through to the
+    // recoverable-outage path below.
+    if (this.isManaged && code === '403' && this.isAtGrantedDurationEnd()) {
       this.pendingDurationCutoff = true;
       console.info('[SonioxClient] Managed session reached its granted duration (403); closing');
       return;
@@ -1197,7 +1276,7 @@ export class SonioxClient implements IClient {
     // output has stopped, and (in managed mode) the session is still billed at
     // the speech-to-speech rate. A console.error and a debug event reach
     // neither. Surfaced through the same onError channel handleSttError and
-    // handleBudgetExhausted use, which puts a system bubble in the
+    // announceSessionOutcome use, which puts a system bubble in the
     // conversation and a session.error entry in the LogsPanel.
     //
     // Reported ONCE per failure episode: ttsFailedOnce is reset on a successful
@@ -1287,16 +1366,15 @@ export class SonioxClient implements IClient {
     this.pendingDurationCutoff = false;
     this.pendingSttResume503 = null;
     // session-end is NOT sent from here any more: it is one POST per SESSION,
-    // and MainPanel sends it after every client is down. Stand down as the
-    // exhaustion announcer, though — a disconnected client must not emit a
-    // balance notice into a list nobody renders.
+    // and MainPanel sends it after every client is down. Stand down as a leg,
+    // though — this stream is gone, so a session-level ending must neither
+    // announce into a list nobody renders nor try to end a socket that is
+    // already closed.
     //
-    // Only the leg that registered may clear: the session holds ONE handler, so
-    // a non-announcing participant leg clearing it here would silently disarm
-    // the speaker's announcement for the rest of a session that is still live.
-    if (this.announcesSessionOutcome) {
-      this.session?.setExhaustedHandler(null);
-    }
+    // Each leg detaches only ITSELF (the list is keyed on identity), so a
+    // participant dying mid-session cannot disarm the speaker's announcement
+    // for the rest of a session that is still live.
+    this.session?.detachLeg(this);
     if (this.mixer) { this.mixer.stop(); this.mixer = null; }
     this.sideTracker = null;
     if (this.stt) {
@@ -1345,6 +1423,11 @@ export class SonioxClient implements IClient {
     this.pendingDurationCutoff = false;
     this.pendingSttResume503 = null;
     this.sttOutcomeAnnounced = false;
+    this.sessionOutcomeEnded = false;
+    // NOT cleared, and structurally unable to be: `announcesSessionOutcomeFlag`
+    // is a readonly constructor field. reset() runs at the top of connect(),
+    // and dropping the primacy bit there would orphan the leg for the very
+    // session it is about to run.
     this.sttResumeCycles = 0;
   }
 

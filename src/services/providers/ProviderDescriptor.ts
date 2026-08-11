@@ -44,15 +44,18 @@ export type ClientOptions = {
      */
     role: SonioxSttRole;
     /**
-     * Whether THIS client announces the session-level outcomes (balance
-     * exhausted) and ends its stream on them. Defaults to true.
+     * Whether THIS client speaks for the session when it ends for a
+     * session-level reason — the balance running out, or Soniox dropping the
+     * session at its granted duration. Defaults to true.
      *
-     * Exactly one client per session may say yes. The session holds a single
-     * handler and the LAST registration wins, so with two legs the participant
-     * — which connects second — would otherwise take it: the notice would land
-     * in the wrong panel, and a participant leg that registers and then fails
-     * to connect would leave the handler pointing at a client MainPanel has
-     * already dropped, so exhaustion would announce nothing and end nothing.
+     * Exactly one client per session may say yes; it is the primacy bit, and
+     * this is its single source (ManagedSonioxSession reads it back off the leg
+     * rather than being told a second time). Every leg is still ENDED by such
+     * an outcome — saying no only means "not the one who says the sentence".
+     *
+     * It has to be the speaker whenever there is one, because MainPanel's
+     * teardown renders `speakerClient.getConversationItems()`: a notice emitted
+     * on the participant leg is not merely misplaced, it is never displayed.
      */
     announcesSessionOutcome?: boolean;
   };
