@@ -1977,20 +1977,33 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Stored BEFORE acquire() so a failed acquire still leaves something
         // for disconnectConversation to clear; end() no-ops without a lease.
         managedSonioxSessionRef.current = session;
+        // One lease, one Soniox client in FE1 — the speaker when it starts,
+        // otherwise the participant-only leg. Identical to today, where
+        // whichever single client got created minted the lease itself.
+        // Resolved BEFORE acquire() because it decides the lease's SKU.
+        managedSonioxCore = speakerWillStart ? 'speaker' : 'participant';
         await session.acquire({
           mode: effectiveMode,
-          // The same one-shot snapshot getSessionConfig() reads below
-          // (settingsStore: `config.textOnly = state.textOnly`), so the lease's
-          // SKU and the socket's config cannot disagree.
-          textOnly: useSettingsStore.getState().textOnly,
+          // Must match the config of the leg that will actually run, because
+          // it picks the SKU the account is billed at.
+          //
+          // Speaker: the same one-shot snapshot getSessionConfig() reads below
+          // (settingsStore: `config.textOnly = state.textOnly`).
+          //
+          // Participant-only: NOT that snapshot.
+          // createParticipantSessionConfig() hard-codes `textOnly: true`
+          // whatever the user's setting says, and before the lease moved out of
+          // the client it was that config the participant client minted from —
+          // so reading the store here would buy a speech_to_speech lease (5x the
+          // rate in the backend's table) for a session that never opens a TTS
+          // socket, and burn the countdown at that rate.
+          textOnly: managedSonioxCore === 'speaker'
+            ? useSettingsStore.getState().textOnly
+            : true,
           // FE1 ships no split: the managed twin still forces the shared Both
           // session. FE2 replaces this with the single derived value.
           bothSplit: false,
         });
-        // One lease, one Soniox client in FE1 — the speaker when it starts,
-        // otherwise the participant-only leg. Identical to today, where
-        // whichever single client got created minted the lease itself.
-        managedSonioxCore = speakerWillStart ? 'speaker' : 'participant';
         managedSonioxArg = {
           credentials: session.credentialsFor(session.primarySttRole),
           session,
