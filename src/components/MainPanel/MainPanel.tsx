@@ -27,7 +27,8 @@ import {
 import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
-import { sonioxUsesSharedBothSession, SonioxProviderConfig } from '../../services/providers/SonioxProviderConfig';
+import { SonioxProviderConfig } from '../../services/providers/SonioxProviderConfig';
+import { sonioxBothModePlan, type SonioxBothModePlan } from '../../services/providers/sonioxBothMode';
 import { reverseTranscriptionDirection } from '../../services/providers/openaiTranscriptionContext';
 import {
   useConversationDisplayFontSize,
@@ -587,6 +588,38 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
     participantWillStart && activeProviderSourceLanguage === 'auto';
 
+  // The stored shared/split preference, subscribed REACTIVELY through the same
+  // descriptor-driven slice read as activeProviderSourceLanguage above. It has
+  // to be a subscription rather than a getState() snapshot because the Start
+  // gate's balance floor depends on it: flipping the toggle in the settings
+  // panel must re-render the button, and a one-shot read would leave it
+  // showing the other shape's floor until something unrelated re-rendered.
+  // Selected as a PRIMITIVE, not as the slice object — a new object every
+  // render would defeat Zustand's reference equality and re-render this panel
+  // on every unrelated settings write.
+  const activeProviderBothModeShared = useSettingsStore(
+    (s) => (s[ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey as keyof SettingsStore] as { bothModeSharedSession?: boolean } | undefined)?.bothModeSharedSession
+  );
+
+  // THE shared-vs-split answer for this render. One derived value, from the
+  // same pure helper connectConversation calls below (with a getState()
+  // snapshot instead of these selectors), so the Start-gate floor, the managed
+  // session-key request and the client wiring cannot disagree about what this
+  // session is. `effectiveMode` rather than `currentMode`: lockedMode is null
+  // until a session starts, so the two are equal here, and using the same
+  // input as connectConversation keeps the call sites literally identical.
+  const sonioxBothSplit = useMemo(
+    () => sonioxBothModePlan({
+      provider,
+      mode: effectiveMode,
+      settings: {
+        bothModeSharedSession: activeProviderBothModeShared,
+        sourceLanguage: activeProviderSourceLanguage,
+      },
+    }).split,
+    [provider, effectiveMode, activeProviderBothModeShared, activeProviderSourceLanguage],
+  );
+
   // canStartSession requires the *intended* mode to have all its devices
   // ready (missingDeviceForMode === null). Mode is always one of the three
   // values: 'speaker', 'participant', or 'both'.
@@ -605,8 +638,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       missingDeviceForMode,
       sonioxAutoParticipantBlocked,
       textOnly,
+      // Split Both opens a second transcription stream, so managed Soniox's
+      // balance floor roughly doubles. Same derived value the session wiring
+      // uses, so the button and the session cannot disagree.
+      sonioxBothSplit,
     }),
-    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, sonioxAutoParticipantBlocked, textOnly],
+    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, sonioxAutoParticipantBlocked, textOnly, sonioxBothSplit],
   );
   const canStartSession = startGate.canStart;
 
@@ -1950,17 +1987,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const sonioxActiveSettings = useSettingsStore.getState()[
         ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore
       ] as { bothModeSharedSession?: boolean; sourceLanguage?: string };
-      // sonioxUsesSharedBothSession forces the shared path on for the managed
-      // twin whatever the stored preference says: the backend lease is
-      // account-scoped, so two clients means the second gets a 409 and
-      // Others→You silently never runs. The settings UI disables the control
-      // for the twin; this reads the same helper so a `false` persisted before
-      // that (or by BYOK use of the same account) cannot resurrect it.
-      const sonioxSharedBoth =
-        (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
-        effectiveMode === 'both' &&
-        sonioxUsesSharedBothSession(provider, sonioxActiveSettings) &&
-        sonioxActiveSettings.sourceLanguage !== 'auto';
+      // THE shared-vs-split answer, from the same pure helper the Start gate
+      // called at render time above — including the `sourceLanguage !== 'auto'`
+      // clause, which shared mode needs because it tells the two sides apart by
+      // LANGUAGE and cannot do that with an auto source. Calling
+      // sonioxUsesSharedBothSession alone here would silently drop that clause
+      // plus the provider and mode ones.
+      //
+      // `.shared` drives the bidirectional flip and the secondary-port
+      // participant below; `.split` is what the managed session-key request
+      // declares as `bothSplit`, and is the same boolean that chose the Start
+      // gate's balance floor.
+      const sonioxBothPlan: SonioxBothModePlan = sonioxBothModePlan({
+        provider,
+        mode: effectiveMode,
+        settings: sonioxActiveSettings,
+      });
+      const sonioxSharedBoth = sonioxBothPlan.shared;
 
       // The managed Soniox lease belongs to the SESSION, not to a stream
       // (design decision 7). Everything the client used to do inside connect()

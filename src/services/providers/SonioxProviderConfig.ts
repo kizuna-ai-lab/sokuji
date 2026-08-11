@@ -141,6 +141,8 @@ function fitContextToBudget(
 // SonioxClient — and the i18n bootstrap behind it — into their bundles.
 // Re-exported here so this file stays the one place to look for Soniox config.
 export {
+  SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR,
+  SONIOX_MANAGED_MIN_SESSION_S,
   SONIOX_MANAGED_MIN_BALANCE_MICRO_USD,
   sonioxManagedMinBalanceMicroUsd,
 } from './sonioxManagedMinBalance';
