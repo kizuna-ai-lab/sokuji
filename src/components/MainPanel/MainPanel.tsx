@@ -2073,7 +2073,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             sonioxSplitBoth,
           })
         : null;
-      let managedSonioxSession: ManagedSonioxSession | undefined;
+      let managedSonioxSession: ManagedSonioxSession | null = null;
       if (managedWiring) {
         const token = await getAuthToken();
         if (!token) throw new Error(KIZUNA_SIGN_IN_REQUIRED);
@@ -2113,6 +2113,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // whenever there is one: the session holds a single handler with
           // last-registration-wins semantics, and the participant connects
           // second. See ClientOptions.sonioxManaged.announcesSessionOutcome.
+          //
+          // This is the "is this the PRIMARY leg" bit, minimal and scoped to
+          // the one outcome FE3 makes reachable. FE4 generalises it to both
+          // session-level outcomes (the granted-duration 403 cutoff is still
+          // announced per-leg and will double up under split) with a one-shot
+          // claim; this flag is the input its `{ primary }` wants, not a
+          // parallel mechanism to unpick.
           announcesSessionOutcome:
             role !== 'par_stt' || managedWiring?.speakerRole === null,
         };
