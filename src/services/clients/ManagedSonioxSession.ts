@@ -171,7 +171,13 @@ interface SonioxSessionKeyResponse {
   ttsApiKey?: string;
   expiresAt: string;
   maxSessionDurationSeconds: number;
+  /** The session ALLOWANCE, in micro-USD: a snapshot of the account balance,
+   *  and the ceiling this session may consume. Not a bill. */
   budgetMicroUsd: number;
+  // The CONSERVATIVE aggregate rate the backend budgeted this session's whole
+  // stream set at — what the granted duration was divided out of, not a price.
+  // Charging is provider cost × a revenue coefficient, per usage log, after the
+  // fact. See SonioxCostMeter's class docstring.
   rateUsdPerHour: number;
   sku: string;
   leaseId: string;

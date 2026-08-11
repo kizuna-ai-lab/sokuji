@@ -6,8 +6,13 @@
  * a missing participant waveform, which exists in ADVANCED UI mode only. The
  * session is genuinely fine to continue (decision 4: a participant leg that
  * never comes up does not block the session) — it is just one-way, and the
- * user has no way to know. Split costs roughly twice as much per minute as
- * shared, so a user paying for it is owed the truth when it did not happen.
+ * user has no way to know. Split is BUDGETED at roughly twice shared's rate
+ * (two transcription streams instead of one), so a degraded split session
+ * spends the allowance — and the visible countdown — at the split rate while
+ * delivering one direction. The loss is session TIME rather than money: the
+ * charge is provider cost × K per usage log, and a leg that never opened a
+ * socket produces neither. A user who asked for split is owed the truth when
+ * it did not happen.
  *
  * Three paths in connectConversation can leave a split session one-way, and
  * all three feed this:

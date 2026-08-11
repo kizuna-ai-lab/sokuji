@@ -358,11 +358,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // "Split did not take effect": a managed split Both session whose
   // participant leg never came up. The session is fine and continues one-way
   // (decision 4), but nothing else on screen says so — the mode picker still
-  // reads Both and the countdown still runs, while the user is being billed
-  // at roughly the split rate. Held as plain React state, NOT as a
-  // conversation item: it must persist for the whole session rather than
-  // scroll away, and it must be visible in basic UI mode where there is no
-  // participant waveform to be missing.
+  // reads Both and the countdown still runs, and that countdown was budgeted
+  // at the SPLIT aggregate rate, so it burns down about twice as fast as a
+  // one-way session's would. What the user LOSES here is session time, not
+  // money: charging is provider cost × K per usage log, and a leg that never
+  // opened a socket produces no usage log and no charge. Held as plain React
+  // state, NOT as a conversation item: it must persist for the whole session
+  // rather than scroll away, and it must be visible in basic UI mode where
+  // there is no participant waveform to be missing.
   const [splitDegraded, setSplitDegraded] = useState<SplitDegradedReason | null>(null);
 
   // supportsTextInput is true for providers that support text input
@@ -394,10 +397,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Text-only mode (no spoken translation). Fed to computeStartGate, which
   // uses it to pick the managed-Soniox balance floor: that provider's backend
-  // refuses to issue a session key below the price of its shortest session at
-  // the SKU's rate, and the rate differs between text-only and
-  // speech-to-speech. The balance gate itself lives in sessionStartGate.ts so
-  // the subtitle window applies the identical rule.
+  // refuses to issue a session key below what its shortest session (60s) would
+  // consume at the CONSERVATIVE AGGREGATE rate of the stream set that session
+  // opens — not at any SKU list price — and text-only opens one fewer stream
+  // than speech-to-speech. The balance gate itself lives in sessionStartGate.ts
+  // so the subtitle window applies the identical rule.
   const textOnly = useTextOnly();
 
   // Footer-level mode reflects user INTENT (which channels are toggled on).

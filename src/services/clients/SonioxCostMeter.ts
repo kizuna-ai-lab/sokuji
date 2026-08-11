@@ -1,24 +1,40 @@
 const MICRO_USD_PER_USD = 1_000_000;
 
 export interface SonioxCostMeterOptions {
-  /** Balance snapshot the backend issued this session against, in micro-USD. */
+  /** The session ALLOWANCE the backend granted, in micro-USD: a snapshot of the
+   *  account balance taken at session start. It is the ceiling this session may
+   *  consume, not a bill. */
   budgetMicroUsd: number;
-  /** The SKU's list price, supplied by the backend so the client needs no rate table. */
+  /**
+   * The CONSERVATIVE aggregate rate the backend budgeted this session's whole
+   * stream set at, in USD/hour — supplied by the backend so the client needs no
+   * rate table and must never grow one.
+   *
+   * Deliberately not a price. The backend charges provider cost × a revenue
+   * coefficient per usage log; this rate is the worst case it is willing to
+   * grant time against, so `budgetMicroUsd / rateUsdPerHour` UNDER-states how
+   * long the balance really buys. It is one number for the whole SET — a split
+   * Both session runs two transcription streams and is budgeted at roughly
+   * twice a single-stream session — never a per-stream figure.
+   */
   rateUsdPerHour: number;
-  /** Called once, when the budget is exhausted. */
+  /** Called once, when the allowance is used up. */
   onExhausted?: () => void;
 }
 
-/** Micro-USD spent for `elapsedMs` of usage at `rateUsdPerHour`, rounded UP to the
- *  whole micro-USD — pinned by SonioxCostMeter.test.ts's "round-up direction" case,
- *  since underbilling by rounding down would never match what the backend charges. */
-function spentMicroUsdFor(elapsedMs: number, rateUsdPerHour: number): number {
+/** Allowance consumed by `elapsedMs` of session time at `rateUsdPerHour`,
+ *  rounded UP to the whole micro-USD — pinned by SonioxCostMeter.test.ts's
+ *  "round-up direction" case. The direction is a safety margin on the
+ *  allowance: rounding down would hand out fractionally more session time than
+ *  the grant covers. It is NOT an attempt to match a charge — the charge is
+ *  provider cost × K per usage log and is not knowable from here. */
+function allowanceConsumedMicroUsdFor(elapsedMs: number, rateUsdPerHour: number): number {
   const hours = elapsedMs / 3_600_000;
   return Math.ceil(hours * rateUsdPerHour * MICRO_USD_PER_USD);
 }
 
 function remainingMicroUsdFor(elapsedMs: number, budgetMicroUsd: number, rateUsdPerHour: number): number {
-  return Math.max(0, budgetMicroUsd - spentMicroUsdFor(elapsedMs, rateUsdPerHour));
+  return Math.max(0, budgetMicroUsd - allowanceConsumedMicroUsdFor(elapsedMs, rateUsdPerHour));
 }
 
 function remainingSecondsFor(elapsedMs: number, budgetMicroUsd: number, rateUsdPerHour: number): number {
@@ -55,10 +71,27 @@ export function computeSonioxBudgetTotalMs(snapshot: SonioxBudgetSnapshot): numb
 }
 
 /**
- * Tracks what a managed Soniox session has cost so far.
+ * The session ALLOWANCE countdown for a managed Soniox session.
  *
- * Billing is by time, so this is a clock — no token counting, no correction
- * factor, and no estimation error: what it reports is what will be charged.
+ * The backend grants each session a fixed allowance (a snapshot of the account
+ * balance) and a conservative rate to spend it against. This class burns that
+ * allowance down against wall-clock time and fires `onExhausted` when it hits
+ * zero. That is the real cutoff — the session is torn down — so this number is
+ * load-bearing for "when does this stop".
+ *
+ * It is NOT a price, and must never be presented as one. Billing is provider
+ * cost × a revenue coefficient, applied per usage log by the backend
+ * reconciler after each Soniox stream ends. That figure is not knowable here —
+ * no usage log exists while the session is still running — and it is normally
+ * SMALLER than what this meter has counted down, because the granted rate is
+ * the worst case for the whole stream set. Trust the countdown for the cutoff;
+ * the wallet is the only authority on cost.
+ *
+ * It has no clock of its own. `tick(nowMs)` is fed by the STT stream's ~5 s
+ * keepalive and is ABSOLUTE (`now - startedAt`), not incremental — which is
+ * what makes a split Both session harmless: two transcription streams each
+ * forwarding their own keepalive compute the same elapsed time, so more than
+ * one ticker cannot double-count. Do not make `tick` incremental.
  */
 export class SonioxCostMeter {
   private startedAt: number | null = null;
@@ -81,8 +114,11 @@ export class SonioxCostMeter {
     }
   }
 
-  get spentMicroUsd(): number {
-    return spentMicroUsdFor(this.elapsedMs, this.opts.rateUsdPerHour);
+  /** How much of the granted allowance this session has burned through. Named
+   *  for what it is: this is not what the user is charged, and there is
+   *  deliberately no getter that claims to be. */
+  get allowanceConsumedMicroUsd(): number {
+    return allowanceConsumedMicroUsdFor(this.elapsedMs, this.opts.rateUsdPerHour);
   }
 
   get remainingMicroUsd(): number {

@@ -777,7 +777,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
   }
 
   /**
-   * Managed-mode only: the running session's fixed budget parameters (see
+   * Managed-mode only: the running session's fixed ALLOWANCE parameters (see
    * SonioxCostMeter.getBudgetSnapshot / computeSonioxRemainingMs). Null for
    * BYOK sessions (no session, no cost meter).
    *
@@ -785,6 +785,10 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
    * SESSION, and asking a client became ambiguous the moment two of them could
    * share one lease. Kept as the IClient-level accessor for any caller that
    * holds only a client.
+   *
+   * The countdown this drives is a cutoff, not a running bill — the session
+   * ends when it reaches zero, but what the user is charged is computed by the
+   * backend from provider cost and is normally less. Do not render it as money.
    */
   getManagedBudgetInfo(): SonioxBudgetSnapshot | null {
     return this.session?.getBudgetSnapshot() ?? null;
