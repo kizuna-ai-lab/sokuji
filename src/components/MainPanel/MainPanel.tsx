@@ -892,6 +892,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setParticipantItems(client.getConversationItems());
     },
     onClose: async () => {
+      // Recorded BEFORE the guard below, and unconditionally: this leg's
+      // stream has ended, and that is true in every session phase. The guard
+      // decides whether to TEAR DOWN, not whether the fact happened.
+      //
+      // It is load-bearing precisely where the guard returns early. Soniox
+      // validates `api_key` only after the socket is open (connect() resolves
+      // inside ws.onopen), so a refused participant key — a lapsed start
+      // window is the reachable case, that key waits out the OS
+      // screen-recording dialog — arrives as an error frame and a close in the
+      // window between connect() resolving and setIsSessionActive(true).
+      // Nothing tore down, `participantChannelStarted` was already true, and a
+      // split session ran one-way at split rates saying nothing at all.
+      participantStreamEndedRef.current = true;
       // Bail out if the session is already inactive. This handler can be invoked
       // by some clients (e.g. OpenAIClient) synchronously from disconnect() during
       // a user-initiated stop — disconnectConversation() has already cleared
@@ -1241,6 +1254,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Participant client ref (for translating other participants)
   const participantClientRef = useRef<IClient | null>(null);
+
+  // Has THIS session's participant leg lost its stream? Written by the leg's
+  // own onClose (below) and read once, at connectConversation's
+  // resolveSplitDegraded call. A ref rather than state because that read
+  // happens in the same synchronous pass as the writes it must see, exactly
+  // like `participantChannelStarted` — and because the fact has to be
+  // recorded from an event handler that fires while the session is not yet
+  // active, which is the one window where nothing else in this file reacts to
+  // a dead participant leg. See splitDegraded.ts's `participantStreamEnded`.
+  const participantStreamEndedRef = useRef<boolean>(false);
 
   // Ref to disconnectConversation — used by client onClose handlers, which are
   // captured inside setupClientListeners (a useCallback that runs before
@@ -1879,6 +1902,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // "both channels failed" guard below returns early WITHOUT routing
       // through disconnectConversation, so that path relies on this one.
       setSplitDegraded(null);
+      // And the late fact that feeds it. Every session's teardown ends the
+      // participant leg's stream, so without this reset the FIRST session's
+      // ordinary Stop would condemn every session after it. Here rather than
+      // in disconnectConversation because the write it has to undo happens
+      // DURING that teardown (SonioxClient.disconnect() delivers the close
+      // itself, synchronously); a straggling close from an already-torn-down
+      // socket cannot arrive later and re-set it, since handleSttClose drops
+      // stale closes before reaching onClose.
+      participantStreamEndedRef.current = false;
 
       // Re-validate before starting session to catch stale button state.
       // validateApiKey is the single authority for session readiness — it handles
@@ -2738,10 +2770,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Placed after the "both channels failed" guard on purpose — that path
       // returns early because no session starts at all, and a session that
       // never started is not a degraded one.
+      //
+      // Reading the stream-ended ref HERE is what closes the gap between
+      // "wired" and "working": every close that lands before the line above
+      // has already written it, and every close that lands after it finds
+      // isSessionActive true and tears the session down instead, which the
+      // user cannot miss. There is no third case, and therefore no timer and
+      // no waiting — a far side that has simply not spoken is never accused.
       setSplitDegraded(resolveSplitDegraded({
         splitRequested: sonioxSplitBoth,
         participantChannelStarted,
         failure: splitParticipantFailure,
+        participantStreamEnded: participantStreamEndedRef.current,
       }));
 
       // Start tracking audio quality metrics during session

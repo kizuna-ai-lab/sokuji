@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import SplitDegradedChip from './SplitDegradedChip';
-import { SPLIT_DEGRADED_DETAIL, SPLIT_DEGRADED_TOOLTIP, type SplitDegradedReason } from './splitDegraded';
+import { SPLIT_DEGRADED_DETAIL, SPLIT_DEGRADED_REASONS, SPLIT_DEGRADED_TOOLTIP } from './splitDegraded';
 
 // Same shape as SubtitleIdle.test.tsx: resolve to the inline English default
 // so what is asserted is the copy that actually ships, not a key.
@@ -42,17 +42,25 @@ describe('SplitDegradedChip', () => {
     );
   });
 
-  it('gives a different cause line for each reason', () => {
-    const titles = (['loopback-denied', 'no-participant-config', 'participant-connect-failed'] as SplitDegradedReason[])
-      .map(reason => {
-        const { unmount } = render(<SplitDegradedChip reason={reason} />);
-        const title = screen.getByRole('status').getAttribute('title');
-        unmount();
-        return title;
-      });
-    expect(titles[0]).toContain('Screen Recording permission');
-    expect(titles[1]).toContain('participant audio channel');
-    expect(titles[0]).not.toBe(titles[1]);
+  it('renders a resolved cause line for every reason, not a raw key', () => {
+    // Iterates the exported list rather than a hand-written one, so a reason
+    // added later cannot ship without a render behind it.
+    const titles = new Map(SPLIT_DEGRADED_REASONS.map(reason => {
+      const { unmount } = render(<SplitDegradedChip reason={reason} />);
+      const title = screen.getByRole('status').getAttribute('title');
+      unmount();
+      return [reason, title] as const;
+    }));
+    for (const [reason, title] of titles) {
+      expect(title, `no cause line for ${reason}`).toBeTruthy();
+      expect(title, `raw i18n key rendered for ${reason}`).not.toMatch(/^[a-zA-Z]+\.[a-zA-Z0-9]+$/);
+    }
+    // The permission case is the one with its own words; the other three
+    // deliberately share a key, because what the user can do about them is
+    // identical.
+    expect(titles.get('loopback-denied')).toContain('Screen Recording permission');
+    expect(titles.get('participant-stream-ended')).toContain('participant audio channel');
+    expect(titles.get('loopback-denied')).not.toBe(titles.get('participant-stream-ended'));
   });
 
   it('keeps an accessible name even where the label text is hidden', () => {

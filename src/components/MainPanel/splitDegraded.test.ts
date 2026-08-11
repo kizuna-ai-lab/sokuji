@@ -4,6 +4,7 @@ import {
   splitDegradedChipText,
   SPLIT_DEGRADED_DETAIL,
   SPLIT_DEGRADED_LABEL,
+  SPLIT_DEGRADED_REASONS,
   SPLIT_DEGRADED_TOOLTIP,
   type SplitDegradedReason,
 } from './splitDegraded';
@@ -49,9 +50,40 @@ describe('resolveSplitDegraded', () => {
     })).toBeNull();
   });
 
+  describe('a leg that started and then lost its stream', () => {
+    const started = { splitRequested: true, participantChannelStarted: true, failure: null as SplitDegradedReason | null };
+
+    it('is degraded once its own stream has ended', () => {
+      // The finding: `participantChannelStarted` only means connect() resolved
+      // and the recorder was wired. Soniox validates `api_key` AFTER the socket
+      // opens, so a refused participant key produces a live-looking leg that is
+      // already dead. The stream's end is that fact arriving.
+      expect(resolveSplitDegraded({ ...started, participantStreamEnded: true }))
+        .toBe('participant-stream-ended');
+    });
+
+    it('is NOT degraded while the stream is merely quiet', () => {
+      // The failure mode this must never hit: the far side has not spoken yet.
+      // Silence is indistinguishable from health, so it claims nothing.
+      expect(resolveSplitDegraded({ ...started, participantStreamEnded: false })).toBeNull();
+      expect(resolveSplitDegraded({ ...started })).toBeNull();
+    });
+
+    it('does not resurrect a leg that never started at all', () => {
+      // A leg that never got a socket has no stream to end; the earlier,
+      // more specific reason is the one that explains it.
+      expect(resolveSplitDegraded({
+        ...started, participantChannelStarted: false, failure: 'loopback-denied', participantStreamEnded: false,
+      })).toBe('loopback-denied');
+    });
+
+    it('is inert outside split', () => {
+      expect(resolveSplitDegraded({ ...started, splitRequested: false, participantStreamEnded: true })).toBeNull();
+    });
+  });
+
   it('every reason maps to a detail string that exists', () => {
-    const reasons: SplitDegradedReason[] = ['loopback-denied', 'no-participant-config', 'participant-connect-failed'];
-    for (const r of reasons) {
+    for (const r of SPLIT_DEGRADED_REASONS) {
       expect(SPLIT_DEGRADED_DETAIL[r].key).toMatch(/^[a-zA-Z]+\.[a-zA-Z0-9]+$/);
       expect(SPLIT_DEGRADED_DETAIL[r].defaultValue.length).toBeGreaterThan(0);
     }
@@ -110,7 +142,7 @@ describe('splitDegradedChipText', () => {
   const translate = (_key: string, defaultValue: string) => defaultValue;
 
   it('labels the chip with the shared label regardless of reason', () => {
-    for (const r of ['loopback-denied', 'no-participant-config', 'participant-connect-failed'] as SplitDegradedReason[]) {
+    for (const r of SPLIT_DEGRADED_REASONS) {
       expect(splitDegradedChipText(r, translate).label).toBe('One-way only');
     }
   });
