@@ -1676,7 +1676,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Fix: after disconnect() finalizes any in-flight pair, cancel the
         // pending throttle timer and synchronously capture the final state
         // into React, then reset.
-        await client.disconnect();
+        //
+        // Guarded because the managed Soniox lease release below now depends on
+        // reaching it: SonioxClient.disconnect() used to POST session-end early
+        // inside itself, so a throw later in teardown could not strand the
+        // lease. It posts nothing now, and MainPanel releases only after this
+        // await resolves — so an exception here would hold the lease until it
+        // expired. Every other await in this function is already individually
+        // guarded (the audio-service calls above, the participant client
+        // below); this was the one exception. The steps after it still run:
+        // they are what stop the trailing throttle timer from blanking the
+        // transcript, and they must not be skipped either.
+        try {
+          await client.disconnect();
+        } catch (error) {
+          console.warn('[Sokuji] [MainPanel] Error disconnecting speaker client:', error);
+        }
         if (throttleTimerRef.current) {
           clearTimeout(throttleTimerRef.current);
           throttleTimerRef.current = null;
