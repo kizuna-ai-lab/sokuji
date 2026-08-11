@@ -265,6 +265,68 @@ describe('ManagedSonioxSession.acquire', () => {
   });
 });
 
+describe('ManagedSonioxSession: the session-key request cannot hang forever', () => {
+  /**
+   * Nothing else can rescue this call. MainPanel awaits `acquire()` inside
+   * connectConversation with `isInitializing` already true, so a request that
+   * never settles holds Start disabled with no way out but restarting the app —
+   * and the user's own Stop button is not rendered yet. The sibling
+   * `ManagedVoicesClient` already solved exactly this with
+   * `AbortSignal.timeout`; this is the same shape.
+   */
+  const timeoutError = () => new DOMException('The operation timed out', 'TimeoutError');
+
+  it('arms an abort signal on every attempt', async () => {
+    const fetchMock = mockFetchOnce(200, speechToSpeechResponse());
+    await newSession().acquire(SPEAKER_S2S);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('reports a hung request as a service outage, not as a bare abort', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(timeoutError()));
+    // The message a user can act on ("try again in a moment") rather than
+    // "signal is aborted without reason", which is what the generic transport
+    // branch would have produced.
+    await expect(newSession().acquire(SPEAKER_S2S)).rejects.toThrow(/temporarily unavailable/i);
+  });
+
+  it('does not mistake a timeout for something worth retrying', async () => {
+    // Only a 409 is retried. A timeout is not a conflict, so it must surface at
+    // once rather than costing the user a second full timeout.
+    const fetchMock = vi.fn().mockRejectedValue(timeoutError());
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(newSession().acquire(SPEAKER_S2S)).rejects.toThrow();
+    expect(callsTo(fetchMock, '/soniox/session-key')).toHaveLength(1);
+  });
+
+  it('gives the 409 retry a full timeout of its own rather than a leftover budget', async () => {
+    // Per-attempt, not a budget across both. The retry only happens after a
+    // 409, which means the first attempt got an HTTP answer and did not time
+    // out — so a shared budget would only ever shorten a healthy second attempt,
+    // and the backend's own retryAfterMs hint (7 s here, unbounded in principle)
+    // would eat it. Worst case stays bounded: timeout + retryAfterMs + timeout.
+    vi.useFakeTimers();
+    try {
+      const fetchMock = mockFetchSequence(
+        { status: 409, body: { error: 'Another session is already active', retryAfterMs: 7000 } },
+        { status: 200, body: speechToSpeechResponse() },
+      );
+      const acquiring = newSession().acquire(SPEAKER_S2S);
+      await vi.advanceTimersByTimeAsync(7000);
+      await acquiring;
+      const signals = callsTo(fetchMock, '/soniox/session-key')
+        .map(([, init]) => (init as RequestInit).signal!);
+      expect(signals).toHaveLength(2);
+      // A budget carried across the wait would have left the second attempt
+      // already aborted before it was issued.
+      expect(signals.map((s) => s.aborted)).toEqual([false, false]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('ManagedSonioxSession: 409 conflict — retry once using the backend’s retryAfterMs', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());

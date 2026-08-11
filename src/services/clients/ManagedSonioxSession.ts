@@ -120,6 +120,18 @@ export function primarySttRoleFor(request: ManagedSessionRequest): SonioxSttRole
 const DEFAULT_CONFLICT_RETRY_MS = 3000;
 
 /**
+ * How long one /soniox/session-key attempt may hang before it is abandoned.
+ *
+ * MainPanel awaits `acquire()` inside connectConversation with `isInitializing`
+ * already set, so a request that never settles leaves Start disabled and no Stop
+ * button rendered — the user's only exit is restarting the app. 15 s matches
+ * `ManagedVoicesClient.REQUEST_TIMEOUT_MS`, the sibling client talking to the
+ * same backend; this endpoint is a small JSON POST (the backend mints the
+ * temporary Soniox keys behind it), so 15 s is generous rather than tight.
+ */
+const SESSION_KEY_TIMEOUT_MS = 15_000;
+
+/**
  * The two session-level endings, as the user sees them.
  *
  * `realtimeEvent` is present only where nothing else already emits one:
@@ -624,6 +636,15 @@ export class ManagedSonioxSession {
    * POST /soniox/session-key. Network failures (DNS, offline, CORS) throw
    * immediately — transport errors have nothing to retry; only an HTTP-level
    * response (ok or not) is returned for the caller to interpret status-by-status.
+   *
+   * PER ATTEMPT, deliberately, not a budget shared across acquire's 409 retry.
+   * The retry fires only on a 409, which means the first attempt received an
+   * HTTP answer and therefore did not time out — so a shared budget could never
+   * protect against the case timeouts actually guard (a hung request), and would
+   * instead hand the healthy second attempt whatever was left after the
+   * backend's own `retryAfterMs` wait, which this client does not choose and
+   * cannot bound. The worst case stays finite and knowable either way:
+   * timeout + retryAfterMs + timeout.
    */
   private async requestSessionKey(request: ManagedSessionRequest): Promise<Response> {
     // The MATRIX body. `mode` here is the AUDIO shape ('speaker' | 'participant'
@@ -649,8 +670,22 @@ export class ManagedSonioxSession {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(SESSION_KEY_TIMEOUT_MS),
       });
     } catch (error) {
+      // A timeout is not a generic transport failure and must not be worded as
+      // one: `signal is aborted without reason` is what the branch below would
+      // show a user whose Start button has been stuck for 15 s.
+      //
+      // Reported with the SAME sentence as a 502 rather than a key of its own.
+      // It says the true thing ("the service didn't answer, try again in a
+      // moment") and it already ships in all 30 locale catalogs — and the
+      // consistency test requires a new key to be translated 30 times before it
+      // can be added, which is a poor trade for a distinction the user cannot
+      // act on differently.
+      if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+        throw new Error(i18n.t('mainPanel.sonioxServiceUnavailable', 'Soniox is temporarily unavailable. Please try again in a moment.'));
+      }
       throw new Error(`Failed to reach the Soniox session service: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
