@@ -284,8 +284,11 @@ describe('SonioxClient managed mode: getManagedBudgetInfo', () => {
 
   it('returns the session\'s budget/rate/start snapshot once connected', async () => {
     mockFetchOnce(200, speechToSpeechResponse());
-    const client = await managedClient();
+    // BEFORE the acquire, not after it: the cost meter latches Date.now() inside
+    // acquire(), so capturing the bound afterwards only passed while both calls
+    // landed in the same millisecond — a ~1-in-N flake, observed failing by 1ms.
     const before = Date.now();
+    const client = await managedClient();
     await client.connect({ ...BASE_CONFIG, textOnly: false });
 
     const info = client.getManagedBudgetInfo();
@@ -477,5 +480,87 @@ describe('SonioxClient sends no lease lifecycle traffic of its own', () => {
     expect(stt.ended).toBe(true);
     expect(errors.some((e) => e.code === 'budget_exhausted')).toBe(true);
     expect(client.getConversationItems().at(-1)!.formatted?.text).toMatch(BALANCE_USED_UP);
+  });
+});
+
+describe('SonioxClient: exactly one leg announces the session-level outcome', () => {
+  /**
+   * Split Both runs two clients off one session, and the session holds ONE
+   * exhaustion handler with last-registration-wins semantics. The participant
+   * leg connects second, so without an owner it would take the announcement —
+   * putting the balance notice in the wrong panel, ending the wrong stream, and
+   * (if it registered and then failed to connect) leaving the handler pointing
+   * at a client MainPanel has already dropped, so exhaustion would announce
+   * nothing at all.
+   */
+  async function twoLegSession() {
+    const session = new ManagedSonioxSession({ sessionToken: SESSION_TOKEN });
+    await session.acquire({ mode: 'both', textOnly: true, bothSplit: true });
+    return session;
+  }
+
+  it('a non-announcing leg does not register, so the announcing leg keeps the outcome', async () => {
+    mockFetchOnce(200, {
+      ...speechToSpeechResponse(),
+      budgetMicroUsd: 1,
+      rateUsdPerHour: 3600,
+      streams: [
+        { role: 'spk_stt', apiKey: 'k-spk', clientReferenceId: 'sokuji1:a:l:spk_stt', expiresAt: 'x' },
+        { role: 'par_stt', apiKey: 'k-par', clientReferenceId: 'sokuji1:a:l:par_stt', expiresAt: 'x' },
+      ],
+    });
+    const session = await twoLegSession();
+
+    const speaker = new SonioxClient(session.credentialsFor('spk_stt'), { session });
+    const participant = new SonioxClient(session.credentialsFor('par_stt'), {
+      session,
+      announcesSessionOutcome: false,
+    });
+    const speakerErrors: Array<{ code?: string }> = [];
+    const participantErrors: Array<{ code?: string }> = [];
+    speaker.setEventHandlers({ onError: (e) => speakerErrors.push(e) });
+    participant.setEventHandlers({ onError: (e) => participantErrors.push(e) });
+
+    await speaker.connect({ ...BASE_CONFIG, textOnly: true });
+    // Second, exactly as MainPanel connects them.
+    await participant.connect({ ...BASE_CONFIG, textOnly: true });
+
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+    session.tick(Date.now());
+
+    expect(speakerErrors.some((e) => e.code === 'budget_exhausted')).toBe(true);
+    expect(participantErrors).toHaveLength(0);
+  });
+
+  it('a non-announcing leg’s disconnect does not disarm the announcer', async () => {
+    // The participant can die mid-session while the speaker keeps streaming.
+    // Clearing a handler it never set would silently leave the rest of that
+    // session with no exhaustion announcement at all.
+    mockFetchOnce(200, {
+      ...speechToSpeechResponse(),
+      budgetMicroUsd: 1,
+      rateUsdPerHour: 3600,
+      streams: [
+        { role: 'spk_stt', apiKey: 'k-spk', clientReferenceId: 'sokuji1:a:l:spk_stt', expiresAt: 'x' },
+        { role: 'par_stt', apiKey: 'k-par', clientReferenceId: 'sokuji1:a:l:par_stt', expiresAt: 'x' },
+      ],
+    });
+    const session = await twoLegSession();
+
+    const speaker = new SonioxClient(session.credentialsFor('spk_stt'), { session });
+    const participant = new SonioxClient(session.credentialsFor('par_stt'), {
+      session,
+      announcesSessionOutcome: false,
+    });
+    const speakerErrors: Array<{ code?: string }> = [];
+    speaker.setEventHandlers({ onError: (e) => speakerErrors.push(e) });
+    await speaker.connect({ ...BASE_CONFIG, textOnly: true });
+    await participant.connect({ ...BASE_CONFIG, textOnly: true });
+
+    await participant.disconnect();
+
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+    session.tick(Date.now());
+    expect(speakerErrors.some((e) => e.code === 'budget_exhausted')).toBe(true);
   });
 });

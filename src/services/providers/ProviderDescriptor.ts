@@ -35,6 +35,18 @@ export type ClientOptions = {
   sonioxManaged?: {
     credentials: SonioxCredentialBundle;
     session: ManagedSonioxSession;
+    /**
+     * Whether THIS client announces the session-level outcomes (balance
+     * exhausted) and ends its stream on them. Defaults to true.
+     *
+     * Exactly one client per session may say yes. The session holds a single
+     * handler and the LAST registration wins, so with two legs the participant
+     * — which connects second — would otherwise take it: the notice would land
+     * in the wrong panel, and a participant leg that registers and then fails
+     * to connect would leave the handler pointing at a client MainPanel has
+     * already dropped, so exhaustion would announce nothing and end nothing.
+     */
+    announcesSessionOutcome?: boolean;
   };
 };
 

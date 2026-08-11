@@ -47,7 +47,10 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
         'The managed Soniox client must be built from a ManagedSonioxSession — acquire one and pass it as ClientOptions.sonioxManaged (see MainPanel.connectConversation).'
       );
     }
-    return new SonioxClient(managed.credentials, { session: managed.session });
+    return new SonioxClient(managed.credentials, {
+      session: managed.session,
+      announcesSessionOutcome: managed.announcesSessionOutcome,
+    });
   }
 
   // Backend-managed twin: the "credential" is a Better Auth session token,

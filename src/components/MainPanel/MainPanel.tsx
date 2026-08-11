@@ -72,6 +72,12 @@ import { formatRemainingTime } from '../../utils/formatters';
 import { computeSonioxRemainingMs, computeSonioxBudgetTotalMs, SonioxBudgetSnapshot } from '../../services/clients/SonioxCostMeter';
 import { ManagedSonioxSession } from '../../services/clients/ManagedSonioxSession';
 import type { SonioxCredentialBundle } from '../../services/clients/ManagedSonioxSession';
+import {
+  resolveManagedSonioxWiring,
+  resolveParticipantSlot,
+  connectLegAndMarkStarted,
+  teardownSessionLegs,
+} from './managedSonioxSplit';
 import { KIZUNA_SIGN_IN_REQUIRED } from '../../services/providers/KizunaAISonioxProviderConfig';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
@@ -758,7 +764,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const createAIClient = useCallback(async (
     useWebRTC: boolean = false,
-    sonioxManaged?: { credentials: SonioxCredentialBundle; session: ManagedSonioxSession },
+    // Managed Soniox only: the per-role credential bundle this client's ONE
+    // stream runs on, plus the session it belongs to. Undefined for BYOK and
+    // for every other provider, whose descriptors build credentials from
+    // settings and ignore it.
+    sonioxManaged?: {
+      credentials: SonioxCredentialBundle;
+      session: ManagedSonioxSession;
+      announcesSessionOutcome?: boolean;
+    },
   ): Promise<IClient> => {
     const descriptor = ProviderConfigFactory.getDescriptor(provider);
     const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore];
@@ -1311,7 +1325,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // second — a smooth per-second countdown without polling the cost meter
   // itself, which only advances on the STT stream's ~5s keepalive tick.
   // Only the KIZUNA_AI_SONIOX managed twin has a budget to count down; BYOK
-  // Soniox has no cost meter and getManagedBudgetInfo() is always null there.
+  // Soniox leases nothing, so no session is ever acquired for it.
   const sonioxBudgetInfoRef = useRef<SonioxBudgetSnapshot | null>(null);
   // The managed Soniox lease for the CURRENT session. Lives here, not in a
   // client, because it outlives any one client and because acquiring it is an
@@ -1326,12 +1340,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
     const update = () => {
       if (!sonioxBudgetInfoRef.current) {
-        // Whichever client is the real managed-session core: speaker if
-        // present, else participant (participant-only mode). Both
-        // single-session's participant ref is an inert secondary port with
-        // no budget info of its own — see createSecondaryPort.
-        const client = speakerClientRef.current ?? participantClientRef.current;
-        sonioxBudgetInfoRef.current = client?.getManagedBudgetInfo?.() ?? null;
+        // The allowance belongs to the SESSION, not to a stream. Reading it off
+        // a client would be ambiguous under split — two real clients, one
+        // lease — and the ref is populated before any client is constructed,
+        // for every managed row of the matrix including split, so the countdown
+        // is non-null whenever a managed session is running.
+        sonioxBudgetInfoRef.current =
+          managedSonioxSessionRef.current?.getBudgetSnapshot() ?? null;
       }
       const info = sonioxBudgetInfoRef.current;
       setSonioxCountdown(info ? {
@@ -1699,68 +1714,72 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Small delay to ensure any in-flight audio processing completes
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const client = speakerClientRef.current;
-      if (client) {
-        // disconnect() emits final completion deltas via the throttle path,
-        // which schedules a trailing setItems(client.getConversationItems())
-        // via setTimeout. If we then call client.reset() (which empties the
-        // client's internal items), the trailing timer fires *after* reset
-        // and pushes [] to React, blanking the conversation. This is most
-        // visible with high-delta-rate providers like OpenAI Translate where
-        // a throttle timer is almost always pending when the user hits stop
-        // mid-utterance.
-        //
-        // Fix: after disconnect() finalizes any in-flight pair, cancel the
-        // pending throttle timer and synchronously capture the final state
-        // into React, then reset.
-        //
-        // Guarded because the managed Soniox lease release below now depends on
-        // reaching it: SonioxClient.disconnect() used to POST session-end early
-        // inside itself, so a throw later in teardown could not strand the
-        // lease. It posts nothing now, and MainPanel releases only after this
-        // await resolves — so an exception here would hold the lease until it
-        // expired. Every other await in this function is already individually
-        // guarded (the audio-service calls above, the participant client
-        // below); this was the one exception. The steps after it still run:
-        // they are what stop the trailing throttle timer from blanking the
-        // transcript, and they must not be skipped either.
-        try {
-          await client.disconnect();
-        } catch (error) {
-          console.warn('[Sokuji] [MainPanel] Error disconnecting speaker client:', error);
-        }
-        if (throttleTimerRef.current) {
-          clearTimeout(throttleTimerRef.current);
-          throttleTimerRef.current = null;
-        }
-        setItems(client.getConversationItems());
-        client.reset();
-      }
-
-      // Disconnect participant client
-      const participantClient = participantClientRef.current;
-      if (participantClient) {
-        try {
-          await participantClient.disconnect();
-          participantClient.reset();
-          participantClientRef.current = null;
-          console.info('[Sokuji] [MainPanel] Disconnected participant client');
-        } catch (error) {
-          console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
-        }
-      }
-
-      // ONE session-end per session, after every client is down.
-      // SonioxClient.disconnect() used to post it unconditionally, and this
-      // function disconnects the speaker first — so with two legs the first
-      // teardown would signal the end (and unpin the voice slot) while the
-      // other was still streaming. A no-op when no lease was acquired, and
-      // idempotent, so the connect-failure path through here is safe.
-      const managedSoniox = managedSonioxSessionRef.current;
-      if (managedSoniox) {
-        managedSoniox.end();
-        managedSonioxSessionRef.current = null;
-      }
+      // Both legs come down here, and the managed session's end is signalled
+      // exactly once AFTER both of them — see teardownSessionLegs for why the
+      // ordering is load-bearing, and why its two nested `finally`s are what
+      // make a throw in either leg unable to strand the other leg's socket or
+      // the lease. In split Both the participant ref is a REAL second
+      // SonioxClient, not the inert secondary port of the shared path.
+      await teardownSessionLegs({
+        speaker: async () => {
+          const client = speakerClientRef.current;
+          if (!client) return;
+          // disconnect() emits final completion deltas via the throttle path,
+          // which schedules a trailing setItems(client.getConversationItems())
+          // via setTimeout. If we then call client.reset() (which empties the
+          // client's internal items), the trailing timer fires *after* reset
+          // and pushes [] to React, blanking the conversation. This is most
+          // visible with high-delta-rate providers like OpenAI Translate where
+          // a throttle timer is almost always pending when the user hits stop
+          // mid-utterance.
+          //
+          // Fix: after disconnect() finalizes any in-flight pair, cancel the
+          // pending throttle timer and synchronously capture the final state
+          // into React, then reset.
+          //
+          // Guarded because the managed Soniox lease release now depends on
+          // reaching the steps after it: SonioxClient.disconnect() used to POST
+          // session-end early inside itself, so a throw later in teardown could
+          // not strand the lease. It posts nothing now. The steps after it must
+          // run too: they are what stop the trailing throttle timer from
+          // blanking the transcript.
+          try {
+            await client.disconnect();
+          } catch (error) {
+            console.warn('[Sokuji] [MainPanel] Error disconnecting speaker client:', error);
+          }
+          if (throttleTimerRef.current) {
+            clearTimeout(throttleTimerRef.current);
+            throttleTimerRef.current = null;
+          }
+          setItems(client.getConversationItems());
+          client.reset();
+        },
+        participant: async () => {
+          const participantClient = participantClientRef.current;
+          if (!participantClient) return;
+          try {
+            await participantClient.disconnect();
+            participantClient.reset();
+            participantClientRef.current = null;
+            console.info('[Sokuji] [MainPanel] Disconnected participant client');
+          } catch (error) {
+            console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
+          }
+        },
+        afterBothLegs: () => {
+          // ONE session-end per session, after every client is down.
+          // SonioxClient.disconnect() used to post it unconditionally, and this
+          // function disconnects the speaker first — so with two legs the first
+          // teardown would signal the end (and unpin the voice slot) while the
+          // other was still streaming. A no-op when no lease was acquired, and
+          // idempotent, so the connect-failure path through here is safe. The
+          // ref is cleared BEFORE end() so no re-entry can produce a second POST.
+          const managedSoniox = managedSonioxSessionRef.current;
+          managedSonioxSessionRef.current = null;
+          managedSoniox?.end();
+        },
+      });
 
       // Now fully end the recorder after client is reset
       if (audioService) {
@@ -2004,6 +2023,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         settings: sonioxActiveSettings,
       });
       const sonioxSharedBoth = sonioxBothPlan.shared;
+      const sonioxSplitBoth = sonioxBothPlan.split;
 
       // The managed Soniox lease belongs to the SESSION, not to a stream
       // (design decision 7). Everything the client used to do inside connect()
@@ -2015,12 +2035,46 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // round trip and ProviderDescriptor.createClient is synchronous and
       // returns exactly one client, so the descriptor cannot own it without
       // going async for all eleven providers.
-      let managedSonioxCore: 'speaker' | 'participant' | null = null;
-      let managedSonioxArg: { credentials: SonioxCredentialBundle; session: ManagedSonioxSession } | undefined;
-      if (
+      const isManagedSoniox =
         (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
-        isKizunaManagedProvider(provider)
-      ) {
+        isKizunaManagedProvider(provider);
+      // The whole wiring decision, in one pure value: the matrix body to buy,
+      // and the STT role each leg runs. Null for BYOK Soniox and for every
+      // other provider — those clients carry their own key and lease nothing.
+      //
+      // Both roles are derived from the body, so they mirror the server's own
+      // expansion. That is not cosmetic: `credentialsFor` throws for a role
+      // that was never issued, and `session-started` answers 400
+      // `role_not_issued`, which leaves the lease at its start window while
+      // both Soniox keys stay valid for the full grant.
+      const managedWiring = isManagedSoniox
+        ? resolveManagedSonioxWiring({
+            speakerWillStart,
+            participantWillStart,
+            // Must match the config of the leg that will actually run, because
+            // it decides whether a TTS key is minted at all and at what rate
+            // the allowance is spent.
+            //
+            // Speaker: the same one-shot snapshot getSessionConfig() reads below
+            // (settingsStore: `config.textOnly = state.textOnly`). It stays the
+            // speaker's answer in split Both too — the participant leg is
+            // text-only either way, so only the speaker can want synthesis.
+            //
+            // No speaker leg: NOT that snapshot.
+            // createParticipantSessionConfig() hard-codes `textOnly: true`
+            // whatever the user's setting says, so reading the store here would
+            // buy a speech-to-speech lease for a session that never opens a TTS
+            // socket, and burn the countdown at that rate. (The backend also
+            // ignores `textOnly` for mode 'participant'; this keeps the client
+            // honest rather than relying on that.)
+            textOnly: speakerWillStart ? useSettingsStore.getState().textOnly : true,
+            sonioxSharedBoth,
+            // FE2's derived value, on the wire for the first time here.
+            sonioxSplitBoth,
+          })
+        : null;
+      let managedSonioxSession: ManagedSonioxSession | undefined;
+      if (managedWiring) {
         const token = await getAuthToken();
         if (!token) throw new Error(KIZUNA_SIGN_IN_REQUIRED);
         const session = new ManagedSonioxSession({
@@ -2035,38 +2089,34 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Stored BEFORE acquire() so a failed acquire still leaves something
         // for disconnectConversation to clear; end() no-ops without a lease.
         managedSonioxSessionRef.current = session;
-        // One lease, one Soniox client in FE1 — the speaker when it starts,
-        // otherwise the participant-only leg. Identical to today, where
-        // whichever single client got created minted the lease itself.
-        // Resolved BEFORE acquire() because it decides the lease's SKU.
-        managedSonioxCore = speakerWillStart ? 'speaker' : 'participant';
-        await session.acquire({
-          mode: effectiveMode,
-          // Must match the config of the leg that will actually run, because
-          // it picks the SKU the account is billed at.
-          //
-          // Speaker: the same one-shot snapshot getSessionConfig() reads below
-          // (settingsStore: `config.textOnly = state.textOnly`).
-          //
-          // Participant-only: NOT that snapshot.
-          // createParticipantSessionConfig() hard-codes `textOnly: true`
-          // whatever the user's setting says, and before the lease moved out of
-          // the client it was that config the participant client minted from —
-          // so reading the store here would buy a speech_to_speech lease (5x the
-          // rate in the backend's table) for a session that never opens a TTS
-          // socket, and burn the countdown at that rate.
-          textOnly: managedSonioxCore === 'speaker'
-            ? useSettingsStore.getState().textOnly
-            : true,
-          // FE1 ships no split: the managed twin still forces the shared Both
-          // session. FE2 replaces this with the single derived value.
-          bothSplit: false,
-        });
-        managedSonioxArg = {
-          credentials: session.credentialsFor(session.primarySttRole),
-          session,
-        };
+        await session.acquire(managedWiring.acquire);
+        managedSonioxSession = session;
       }
+      /**
+       * The `sonioxManaged` argument for ONE leg, or undefined when this leg is
+       * not a managed Soniox stream of its own (BYOK, another provider, or the
+       * shared path's inert secondary port).
+       *
+       * One key, one four-segment client_reference_id, one role per leg. Soniox
+       * attributes a usage log to the reference bound to the KEY and ignores
+       * the one the socket declares in its config frame (probed live
+       * 2026-08-11), so two legs sharing a key are indistinguishable in the
+       * usage logs and the lease's ended-mask could not be driven at all.
+       * Per-stream keys are required, not merely convenient.
+       */
+      const managedSonioxArgFor = (role: 'spk_stt' | 'mix_stt' | 'par_stt' | null) => {
+        if (!role || !managedSonioxSession) return undefined;
+        return {
+          credentials: managedSonioxSession.credentialsFor(role),
+          session: managedSonioxSession,
+          // Exactly one leg announces exhaustion, and it is the speaker
+          // whenever there is one: the session holds a single handler with
+          // last-registration-wins semantics, and the participant connects
+          // second. See ClientOptions.sonioxManaged.announcesSessionOutcome.
+          announcesSessionOutcome:
+            role !== 'par_stt' || managedWiring?.speakerRole === null,
+        };
+      };
 
       // Speaker channel: only initialize when mic is selected + enabled.
       // When this whole block is skipped (participant-only session), no speaker
@@ -2075,10 +2125,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Determine if WebRTC transport should be used
         let useWebRTC = transportType === 'webrtc' && ClientFactory.supportsWebRTC(provider);
 
-        // Create speaker client using helper
+        // Create speaker client using helper. `mix_stt` in shared Both (one
+        // stream carrying mic and system audio mixed), `spk_stt` whenever the
+        // microphone has a stream of its own.
         speakerClientRef.current = await createAIClient(
           useWebRTC,
-          managedSonioxCore === 'speaker' ? managedSonioxArg : undefined,
+          managedSonioxArgFor(managedWiring?.speakerRole ?? null),
         );
 
         // Setup listeners for the new client instance
@@ -2150,18 +2202,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Track connection attempt and measure latency
         const connectionStartTime = Date.now();
 
+        const speakerStartedRole = managedWiring?.speakerRole ?? null;
         try {
-          // Connect to the AI service
-          await client.connect(sessionConfig);
-
-          // Fire-and-forget: extends the lease from its short start window to
-          // the full granted duration now that the socket is actually up. Used
-          // to fire from inside SonioxClient.connect(); it is a SESSION fact,
-          // so the session owns it. A few ms later than before (after the
-          // best-effort TTS connect), well inside the 60 s start window.
-          if (managedSonioxCore === 'speaker' && managedSonioxArg) {
-            managedSonioxArg.session.markStarted(managedSonioxArg.session.primarySttRole);
-          }
+          // Connect to the AI service, then — and only then — set this leg's
+          // started bit. Fire-and-forget: it extends the lease from its short
+          // start window to the full granted duration now that the socket is
+          // actually up. Used to fire from inside SonioxClient.connect(); it is
+          // a SESSION fact, so the session owns it. A few ms later than before
+          // (after the best-effort TTS connect), well inside the start window.
+          //
+          // The role is this leg's own, not the lease's primary: on a split
+          // lease a roleless or wrong-role body is refused with a 400 and the
+          // lease is never extended.
+          await connectLegAndMarkStarted({
+            connect: () => client.connect(sessionConfig),
+            markStarted: speakerStartedRole
+              ? () => managedSonioxSession?.markStarted(speakerStartedRole)
+              : undefined,
+          });
 
           // Track successful connection with latency
           const connectionLatency = Date.now() - connectionStartTime;
@@ -2361,6 +2419,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     },
                     'client', 'participant.warning'
                   );
+                  // Non-fatal failure path #1. Under split the par_stt leg
+                  // never connects: its started bit is never set, so the lease
+                  // releases on the speaker alone and the session continues
+                  // one-way. The minted par_stt key is abandoned unused.
                   electronAcquireOk = false;
                 } else {
                   await audioServiceRef.current!.connectSystemAudioSource(participantSourceId);
@@ -2377,35 +2439,33 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
 
           if (electronAcquireOk) {
-            // Create participant client. In Both single-session (Soniox, shared
-            // toggle on, concrete source language), reuse the speaker core as
-            // channel B via its inert secondary port instead of opening a second
-            // session. Otherwise create an independent participant client.
+            // Create participant client. In Both SINGLE-session (Soniox, shared
+            // toggle on, concrete source language) reuse the speaker core as
+            // channel B via its inert secondary port. In managed SPLIT Both the
+            // participant leg is a REAL second SonioxClient running on the
+            // session's own par_stt key — see resolveParticipantSlot for why the
+            // secondary port has to be unreachable there.
             const speakerCore = speakerClientRef.current;
-            if (
-              speakerWillStart &&
-              sonioxSharedBoth &&
-              speakerCore && typeof speakerCore.createSecondaryPort === 'function'
-            ) {
-              participantClientRef.current = speakerCore.createSecondaryPort();
-            } else if (managedSonioxCore === 'speaker') {
-              // A managed session that already spent its single STT key on the
-              // speaker cannot open a second transcription socket: the backend
-              // mints STT keys single_use, so the second socket would be
-              // rejected AFTER onopen with a 403 the client reads as the
-              // granted-duration cutoff — tearing the whole session down.
-              // Unreachable today: sonioxAutoParticipantBlocked closes the
-              // Start gate for the only combination that reaches here (managed
-              // + Both + an 'auto' source), and every other managed Both
-              // session takes the shared secondary-port branch above. Kept as a
-              // loud invariant; FE3 replaces it with a real par_stt leg on its
-              // own key. Lands in the non-fatal catch below, so the speaker
-              // survives.
-              throw new Error('Managed Soniox cannot open a second transcription stream without its own session key');
+            const participantSlot = resolveParticipantSlot({
+              speakerWillStart,
+              sonioxSharedBoth,
+              sonioxSplitBoth,
+              speakerSupportsSecondaryPort:
+                !!speakerCore && typeof speakerCore.createSecondaryPort === 'function',
+            });
+            if (participantSlot === 'secondary-port') {
+              participantClientRef.current = speakerCore!.createSecondaryPort!();
             } else {
+              // Only ever `par_stt`: createParticipantSessionConfig forces
+              // textOnly, so the participant leg never holds a TTS credential.
+              // Undefined for a managed session whose wiring gives the slot no
+              // role of its own — credentialsFor would throw for an unissued
+              // role, and the managed descriptor refuses to build a client with
+              // no bundle. Both land in the non-fatal catch below, so the
+              // speaker survives, which is the settled degradation.
               participantClientRef.current = await createAIClient(
                 false,
-                managedSonioxCore === 'participant' ? managedSonioxArg : undefined,
+                managedSonioxArgFor(managedWiring?.participantRole ?? null),
               );
             }
 
@@ -2416,15 +2476,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             // Create and connect with participant session config
             const participantSessionConfig = createParticipantSessionConfig();
             if (!participantSessionConfig) {
+              // Non-fatal failure path #2. Under split this is a par_stt leg
+              // that never connects: no started bit is ever set for it, so the
+              // lease is never waiting on it and releases on the speaker alone.
+              // Its minted key is simply abandoned — single_use with a short
+              // start window, so it lapses on its own.
               console.info('[Sokuji] [MainPanel] Participant skipped — no suitable models');
               participantClientRef.current = null;
             } else {
-              await participantClient.connect(participantSessionConfig);
-              // Participant-only managed session: this leg IS the lease's
-              // single stream, so it is the one that extends the lease.
-              if (managedSonioxCore === 'participant' && managedSonioxArg) {
-                managedSonioxArg.session.markStarted(managedSonioxArg.session.primarySttRole);
-              }
+              const participantStartedRole = managedWiring?.participantRole ?? null;
+              await connectLegAndMarkStarted({
+                connect: () => participantClient.connect(participantSessionConfig),
+                // Only after connect resolves: the started bit means "this
+                // stream is confirmed connected", and the lease releases when
+                // every STARTED leg has ended. Idempotent server-side, so a
+                // retry is harmless.
+                markStarted: participantStartedRole
+                  ? () => managedSonioxSession?.markStarted(participantStartedRole)
+                  : undefined,
+              });
               console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
 
               // Start recording from appropriate source based on environment
@@ -2482,6 +2552,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // The bubble itself is appended later (after the setItems overwrite
           // below) — see the comment on the `participantErrorMessage`
           // declaration above.
+          //
+          // Non-fatal failure path #3, unchanged: the session continues on
+          // whichever channel(s) did come up, and the speaker is NOT torn down.
+          // Under split, a participant leg that fails here failed inside
+          // connectLegAndMarkStarted's `connect`, so markStarted never ran and
+          // the lease is not waiting on it.
           participantErrorMessage = error?.message || t('mainPanel.participantChannelFailed', 'Failed to start the participant audio channel.');
           addRealtimeEvent(
             { type: 'participant.error', data: { message: participantErrorMessage } },

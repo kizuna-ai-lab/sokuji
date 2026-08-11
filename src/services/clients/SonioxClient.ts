@@ -61,6 +61,10 @@ const RECOVERABLE_STT_CODES: ReadonlySet<string> = new Set(['503', '408', 'socke
  */
 export interface SonioxClientOptions {
   session?: ManagedSonioxSession;
+  /** See ClientOptions.sonioxManaged.announcesSessionOutcome. Defaults to true,
+   *  which is the right answer for every single-leg session and for the speaker
+   *  leg of a split one. */
+  announcesSessionOutcome?: boolean;
 }
 
 export class SonioxClient implements IClient {
@@ -140,6 +144,11 @@ export class SonioxClient implements IClient {
   // runs at the TOP of connect() — structurally unable to clear them.
   private readonly credentials: SonioxCredentialBundle;
   private readonly session: ManagedSonioxSession | null;
+  // Whether this leg is the session's ONE announcer of session-level outcomes.
+  // False only for the participant leg of a split Both session, where the
+  // speaker owns the announcement — see the option's docstring for why the
+  // last-registration-wins default is the wrong owner there.
+  private readonly announcesSessionOutcome: boolean;
   // Set by handleSttError when a managed session's STT stream reports the
   // 403 "granted duration reached" error frame; consumed (and cleared) by
   // the close that always immediately follows it — see onClose's docstring.
@@ -188,6 +197,7 @@ export class SonioxClient implements IClient {
   constructor(credentials: SonioxCredentialBundle, options?: SonioxClientOptions) {
     this.credentials = credentials;
     this.session = options?.session ?? null;
+    this.announcesSessionOutcome = options?.announcesSessionOutcome ?? true;
     this.instanceId = `soniox_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
@@ -261,9 +271,12 @@ export class SonioxClient implements IClient {
 
     // No network round trip here any more: MainPanel acquired the session and
     // handed this client its bundle before construction. Registering the
-    // announcer here rather than in the constructor is what lets FE3/FE4 name
-    // ONE owner for the session-level outcome.
-    this.session?.setExhaustedHandler(() => this.handleBudgetExhausted());
+    // announcer here rather than in the constructor is what lets the caller
+    // name ONE owner for the session-level outcome — the session keeps a single
+    // handler, so a second registering leg would silently take it over.
+    if (this.announcesSessionOutcome) {
+      this.session?.setExhaustedHandler(() => this.handleBudgetExhausted());
+    }
 
     this.stt = new SonioxSttStream();
     this.wireSttHandlers(this.stt);
@@ -1246,7 +1259,13 @@ export class SonioxClient implements IClient {
     // and MainPanel sends it after every client is down. Stand down as the
     // exhaustion announcer, though — a disconnected client must not emit a
     // balance notice into a list nobody renders.
-    this.session?.setExhaustedHandler(null);
+    //
+    // Only the leg that registered may clear: the session holds ONE handler, so
+    // a non-announcing participant leg clearing it here would silently disarm
+    // the speaker's announcement for the rest of a session that is still live.
+    if (this.announcesSessionOutcome) {
+      this.session?.setExhaustedHandler(null);
+    }
     if (this.mixer) { this.mixer.stop(); this.mixer = null; }
     this.sideTracker = null;
     if (this.stt) {
