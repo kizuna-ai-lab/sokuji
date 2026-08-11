@@ -69,6 +69,9 @@ import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
 import { formatRemainingTime } from '../../utils/formatters';
 import { computeSonioxRemainingMs, computeSonioxBudgetTotalMs, SonioxBudgetSnapshot } from '../../services/clients/SonioxCostMeter';
+import { ManagedSonioxSession } from '../../services/clients/ManagedSonioxSession';
+import type { SonioxCredentialBundle } from '../../services/clients/ManagedSonioxSession';
+import { KIZUNA_SIGN_IN_REQUIRED } from '../../services/providers/KizunaAISonioxProviderConfig';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
@@ -716,10 +719,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Credential shapes live in each provider's descriptor — MainPanel no longer
    * names provider-specific fields (apiKey / clientSecret / endpoint).
    */
-  const createAIClient = useCallback(async (useWebRTC: boolean = false): Promise<IClient> => {
+  const createAIClient = useCallback(async (
+    useWebRTC: boolean = false,
+    sonioxManaged?: { credentials: SonioxCredentialBundle; session: ManagedSonioxSession },
+  ): Promise<IClient> => {
     const descriptor = ProviderConfigFactory.getDescriptor(provider);
     const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore];
-    const creds = await descriptor.extractCredentials(slice, { getAuthToken });
+    // The managed Soniox twin's "credential" IS the better-auth session token,
+    // and connectConversation has already spent it: acquire() exchanged it for
+    // the temporary Soniox keys now sitting in sonioxManaged.credentials.
+    // Re-running extractCredentials would fire a second
+    // getToken({ skipCache: true }) round trip per Start for a value this path
+    // no longer reads. The sign-in gate it used to provide is not lost — the
+    // acquire path throws KIZUNA_SIGN_IN_REQUIRED when no token is available.
+    const creds = sonioxManaged
+      ? ({ ok: true, primary: '' } as const)
+      : await descriptor.extractCredentials(slice, { getAuthToken });
     if (!creds.ok) throw new Error(creds.missing);
 
     // Determine transport type based on provider and useWebRTC flag.
@@ -741,7 +756,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       outputDeviceId: selectedMonitorDevice?.deviceId
     } : undefined;
 
-    return descriptor.createClient(creds, { transport: effectiveTransportType, webrtcOptions });
+    return descriptor.createClient(creds, { transport: effectiveTransportType, webrtcOptions, sonioxManaged });
   }, [provider, getAuthToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted]);
 
   /**
@@ -1261,6 +1276,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Only the KIZUNA_AI_SONIOX managed twin has a budget to count down; BYOK
   // Soniox has no cost meter and getManagedBudgetInfo() is always null there.
   const sonioxBudgetInfoRef = useRef<SonioxBudgetSnapshot | null>(null);
+  // The managed Soniox lease for the CURRENT session. Lives here, not in a
+  // client, because it outlives any one client and because acquiring it is an
+  // awaited round trip that ProviderDescriptor.createClient cannot make.
+  const managedSonioxSessionRef = useRef<ManagedSonioxSession | null>(null);
   const [sonioxCountdown, setSonioxCountdown] = useState<{ remainingMs: number; totalMs: number } | null>(null);
   useEffect(() => {
     if (!isSessionActive || provider !== Provider.KIZUNA_AI_SONIOX) {
@@ -1679,6 +1698,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }
 
+      // ONE session-end per session, after every client is down.
+      // SonioxClient.disconnect() used to post it unconditionally, and this
+      // function disconnects the speaker first — so with two legs the first
+      // teardown would signal the end (and unpin the voice slot) while the
+      // other was still streaming. A no-op when no lease was acquired, and
+      // idempotent, so the connect-failure path through here is safe.
+      const managedSoniox = managedSonioxSessionRef.current;
+      if (managedSoniox) {
+        managedSoniox.end();
+        managedSonioxSessionRef.current = null;
+      }
+
       // Now fully end the recorder after client is reset
       if (audioService) {
         try {
@@ -1916,6 +1947,51 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         sonioxUsesSharedBothSession(provider, sonioxActiveSettings) &&
         sonioxActiveSettings.sourceLanguage !== 'auto';
 
+      // The managed Soniox lease belongs to the SESSION, not to a stream
+      // (design decision 7). Everything the client used to do inside connect()
+      // — the session-key exchange, its 409 retry, the cost meter, and the
+      // session-started/session-end notifications — happens here and in
+      // ManagedSonioxSession now.
+      //
+      // Deliberately NOT inside createAIClient: acquire() is an awaited network
+      // round trip and ProviderDescriptor.createClient is synchronous and
+      // returns exactly one client, so the descriptor cannot own it without
+      // going async for all eleven providers.
+      let managedSonioxCore: 'speaker' | 'participant' | null = null;
+      let managedSonioxArg: { credentials: SonioxCredentialBundle; session: ManagedSonioxSession } | undefined;
+      if (
+        (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
+        isKizunaManagedProvider(provider)
+      ) {
+        const token = await getAuthToken();
+        if (!token) throw new Error(KIZUNA_SIGN_IN_REQUIRED);
+        const session = new ManagedSonioxSession({
+          sessionToken: token,
+          onEvent: (type, data) => addRealtimeEvent({ type, data }, 'client', type),
+        });
+        // Stored BEFORE acquire() so a failed acquire still leaves something
+        // for disconnectConversation to clear; end() no-ops without a lease.
+        managedSonioxSessionRef.current = session;
+        await session.acquire({
+          mode: effectiveMode,
+          // The same one-shot snapshot getSessionConfig() reads below
+          // (settingsStore: `config.textOnly = state.textOnly`), so the lease's
+          // SKU and the socket's config cannot disagree.
+          textOnly: useSettingsStore.getState().textOnly,
+          // FE1 ships no split: the managed twin still forces the shared Both
+          // session. FE2 replaces this with the single derived value.
+          bothSplit: false,
+        });
+        // One lease, one Soniox client in FE1 — the speaker when it starts,
+        // otherwise the participant-only leg. Identical to today, where
+        // whichever single client got created minted the lease itself.
+        managedSonioxCore = speakerWillStart ? 'speaker' : 'participant';
+        managedSonioxArg = {
+          credentials: session.credentialsFor(session.primarySttRole),
+          session,
+        };
+      }
+
       // Speaker channel: only initialize when mic is selected + enabled.
       // When this whole block is skipped (participant-only session), no speaker
       // client is created — saves a WebSocket and, for Kizuna AI, wallet cost.
@@ -1924,7 +2000,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         let useWebRTC = transportType === 'webrtc' && ClientFactory.supportsWebRTC(provider);
 
         // Create speaker client using helper
-        speakerClientRef.current = await createAIClient(useWebRTC);
+        speakerClientRef.current = await createAIClient(
+          useWebRTC,
+          managedSonioxCore === 'speaker' ? managedSonioxArg : undefined,
+        );
 
         // Setup listeners for the new client instance
         await setupClientListeners();
@@ -1998,6 +2077,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         try {
           // Connect to the AI service
           await client.connect(sessionConfig);
+
+          // Fire-and-forget: extends the lease from its short start window to
+          // the full granted duration now that the socket is actually up. Used
+          // to fire from inside SonioxClient.connect(); it is a SESSION fact,
+          // so the session owns it. A few ms later than before (after the
+          // best-effort TTS connect), well inside the 60 s start window.
+          if (managedSonioxCore === 'speaker' && managedSonioxArg) {
+            managedSonioxArg.session.markStarted(managedSonioxArg.session.primarySttRole);
+          }
 
           // Track successful connection with latency
           const connectionLatency = Date.now() - connectionStartTime;
@@ -2224,8 +2312,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               speakerCore && typeof speakerCore.createSecondaryPort === 'function'
             ) {
               participantClientRef.current = speakerCore.createSecondaryPort();
+            } else if (managedSonioxCore === 'speaker') {
+              // A managed session that already spent its single STT key on the
+              // speaker cannot open a second transcription socket: the backend
+              // mints STT keys single_use, so the second socket would be
+              // rejected AFTER onopen with a 403 the client reads as the
+              // granted-duration cutoff — tearing the whole session down.
+              // Unreachable today: sonioxAutoParticipantBlocked closes the
+              // Start gate for the only combination that reaches here (managed
+              // + Both + an 'auto' source), and every other managed Both
+              // session takes the shared secondary-port branch above. Kept as a
+              // loud invariant; FE3 replaces it with a real par_stt leg on its
+              // own key. Lands in the non-fatal catch below, so the speaker
+              // survives.
+              throw new Error('Managed Soniox cannot open a second transcription stream without its own session key');
             } else {
-              participantClientRef.current = await createAIClient();
+              participantClientRef.current = await createAIClient(
+                false,
+                managedSonioxCore === 'participant' ? managedSonioxArg : undefined,
+              );
             }
 
             // Setup event handlers using helper
@@ -2239,6 +2344,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               participantClientRef.current = null;
             } else {
               await participantClient.connect(participantSessionConfig);
+              // Participant-only managed session: this leg IS the lease's
+              // single stream, so it is the one that extends the lease.
+              if (managedSonioxCore === 'participant' && managedSonioxArg) {
+                managedSonioxArg.session.markStarted(managedSonioxArg.session.primarySttRole);
+              }
               console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
 
               // Start recording from appropriate source based on environment
@@ -2311,6 +2421,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // is where we detect total failure.
       if (!speakerClientRef.current && !participantClientRef.current) {
         console.error('[Sokuji] [MainPanel] Both speaker and participant channels failed to initialize; aborting session start');
+        // The ONLY early return between acquire() and the end of this function,
+        // and it does not route through disconnectConversation — so release the
+        // lease here or it stays held until it expires on its own, 409-ing the
+        // next Start. Could not leak before this task: the lease used to be
+        // minted inside client.connect(), which never ran on this path.
+        // Reachable as participant-only + a participant channel that yields no
+        // client at all (loopback acquire refused, or no suitable models).
+        // Idempotent and a no-op when nothing was acquired.
+        const abortedSoniox = managedSonioxSessionRef.current;
+        if (abortedSoniox) {
+          abortedSoniox.end();
+          managedSonioxSessionRef.current = null;
+        }
         setIsInitializing(false);
         const errorMessage = t('mainPanel.allChannelsFailed', 'Failed to start any audio channel. Check device permissions and try again.');
         addRealtimeEvent(
