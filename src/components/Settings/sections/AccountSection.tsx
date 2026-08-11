@@ -6,6 +6,8 @@ import Tooltip from '../../Tooltip/Tooltip';
 import { UserAccountInfo } from '../../Auth/UserAccountInfo';
 import { SignedIn, SignedOut } from '../../Auth/AuthGuard';
 import { isKizunaAIEnabled } from '../../../utils/environment';
+import { useProvider } from '../../../stores/settingsStore';
+import { isKizunaManagedProvider } from '../../../types/Provider';
 
 interface AccountSectionProps {
   /** Additional class name */
@@ -15,9 +17,13 @@ interface AccountSectionProps {
 const AccountSection: React.FC<AccountSectionProps> = ({ className = '' }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const provider = useProvider();
 
-  // Only show if Kizuna AI is enabled
-  if (!isKizunaAIEnabled()) {
+  // The account panel only means something while the relay is billing the
+  // user's wallet. On a bring-your-own-key provider it would show a balance
+  // nothing draws from, so scope it to the Kizuna-managed providers - and to
+  // builds where those providers are registered at all.
+  if (!isKizunaAIEnabled() || !isKizunaManagedProvider(provider)) {
     return null;
   }
 
