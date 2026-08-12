@@ -346,24 +346,40 @@ const useLogStore = create<LogStore>(
       set(state => {
         // Find the last log with the same clientId for grouping
         // This allows proper grouping even when logs from different clients are interleaved
-        const pendingLogIndex = [...state.pendingLogs].reverse().findIndex(log => log.clientId === logClientId);
-        const logsIndex = [...state.logs].reverse().findIndex(log => log.clientId === logClientId);
+        //
+        // Scanned backwards in place. This used to be
+        // `[...arr].reverse().findIndex(...)` on both arrays, which copied and
+        // reversed the entire log history on *every* realtime event — an O(n)
+        // cost per event against an array that grows all session long, on the
+        // same main thread that has to keep up with audio. Walking backwards
+        // also stops at the first match, which is usually the last element, and
+        // skips `logs` entirely whenever `pendingLogs` already has one.
+        const findLastIndexForClient = (arr: LogEntry[]): number => {
+          for (let i = arr.length - 1; i >= 0; i--) {
+            if (arr[i].clientId === logClientId) return i;
+          }
+          return -1;
+        };
 
         // Determine which array has the more recent log for this client
         let lastLogForClient: LogEntry | undefined;
         let isInPendingLogs = false;
         let actualIndex = -1;
 
+        const pendingLogIndex = findLastIndexForClient(state.pendingLogs);
         if (pendingLogIndex !== -1) {
           // Found in pendingLogs - this is more recent since pendingLogs come after logs
-          lastLogForClient = state.pendingLogs[state.pendingLogs.length - 1 - pendingLogIndex];
+          lastLogForClient = state.pendingLogs[pendingLogIndex];
           isInPendingLogs = true;
-          actualIndex = state.pendingLogs.length - 1 - pendingLogIndex;
-        } else if (logsIndex !== -1) {
-          // Found in logs
-          lastLogForClient = state.logs[state.logs.length - 1 - logsIndex];
-          isInPendingLogs = false;
-          actualIndex = state.logs.length - 1 - logsIndex;
+          actualIndex = pendingLogIndex;
+        } else {
+          const logsIndex = findLastIndexForClient(state.logs);
+          if (logsIndex !== -1) {
+            // Found in logs
+            lastLogForClient = state.logs[logsIndex];
+            isInPendingLogs = false;
+            actualIndex = logsIndex;
+          }
         }
 
         // Check if we should group with the last log for this client
