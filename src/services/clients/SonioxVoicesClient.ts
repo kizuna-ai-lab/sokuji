@@ -15,8 +15,10 @@
  * - The organization-wide quota is 20 voices (all projects combined).
  */
 
+import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
+
 const VOICES_URL = 'https://api.soniox.com/v1/voices';
-const TTS_MODEL = 'tts-rt-v1';
+const TTS_MODEL = SONIOX_TTS_MODEL;
 
 export type SonioxVoiceModelStatus = 'not_computed' | 'processing' | 'ready' | 'failed';
 

@@ -28,6 +28,7 @@
  *   `hadActiveStream` so the caller can tell this ordinary idle drop (no
  *   stream was carrying content) apart from one that hit real speech.
  */
+import { SONIOX_REDUCE_SILENCE } from '../../lib/soniox/ttsCatalog';
 
 export interface SonioxTtsOptions {
   apiKey: string;
@@ -293,6 +294,11 @@ export class SonioxTtsStream {
       language,
       audio_format: 'pcm_s16le',
       sample_rate: this.options.sampleRate,
+      // Sent unconditionally: it is only valid on models that advertise
+      // supports_silence_reduction, and this stream only ever opens against
+      // one (SONIOX_TTS_MODEL). A model that does not support it answers 400,
+      // which is the loud failure we want if that constant ever moves back.
+      reduce_silence: SONIOX_REDUCE_SILENCE,
       ...(this.options.speed != null && this.options.speed !== 1.0 ? { speed: this.options.speed } : {}),
       ...(this.options.clientReferenceId ? { client_reference_id: this.options.clientReferenceId } : {}),
     }));

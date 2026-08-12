@@ -27,7 +27,7 @@ import {
 import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
-import { SonioxProviderConfig } from '../../services/providers/SonioxProviderConfig';
+import { SonioxProviderConfig, defaultSonioxSettings } from '../../services/providers/SonioxProviderConfig';
 import { sonioxBothModePlan, type SonioxBothModePlan } from '../../services/providers/sonioxBothMode';
 import { reverseTranscriptionDirection } from '../../services/providers/openaiTranscriptionContext';
 import { reverseGeminiTranslationDirection } from '../../services/providers/geminiTranslateModel';
@@ -126,7 +126,7 @@ function usesLocalSileroVad(provider: string): boolean {
 const SONIOX_BUILTIN_VOICES = new Set(
   new SonioxProviderConfig().getConfig().voices.map((v) => v.value)
 );
-const SONIOX_DEFAULT_VOICE = 'Maya';
+const SONIOX_DEFAULT_VOICE = defaultSonioxSettings.voice;
 
 // ---------------------------------------------------------------------------
 // ConversationBubble – row renderer extracted from MainPanel.renderConversationItem

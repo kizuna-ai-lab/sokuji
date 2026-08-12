@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SonioxVoicesClient, encodeWavPcm16 } from './SonioxVoicesClient';
+import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
 
 const fetchMock = vi.fn();
 
@@ -18,7 +19,7 @@ const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body }
 const err = (status: number, body: unknown) => ({ ok: false, status, json: async () => body });
 const VOICE = (over: object = {}) => ({
   id: 'v-1', name: 'My Voice',
-  models: [{ model: 'tts-rt-v1', status: 'processing', error_type: null, error_message: null }],
+  models: [{ model: SONIOX_TTS_MODEL, status: 'processing', error_type: null, error_message: null }],
   ...over,
 });
 
@@ -66,14 +67,14 @@ describe('SonioxVoicesClient', () => {
   it('waitUntilReady polls until ready', async () => {
     fetchMock
       .mockResolvedValueOnce(ok(VOICE()))
-      .mockResolvedValueOnce(ok(VOICE({ models: [{ model: 'tts-rt-v1', status: 'ready' }] })));
+      .mockResolvedValueOnce(ok(VOICE({ models: [{ model: SONIOX_TTS_MODEL, status: 'ready' }] })));
     const p = new SonioxVoicesClient('k').waitUntilReady('v-1', { intervalMs: 100 });
     await vi.advanceTimersByTimeAsync(250);
     await expect(p).resolves.toMatchObject({ id: 'v-1' });
   });
 
   it('waitUntilReady rejects terminally on failed (no retry) and on timeout', async () => {
-    fetchMock.mockResolvedValueOnce(ok(VOICE({ models: [{ model: 'tts-rt-v1', status: 'failed', error_message: 'bad clip' }] })));
+    fetchMock.mockResolvedValueOnce(ok(VOICE({ models: [{ model: SONIOX_TTS_MODEL, status: 'failed', error_message: 'bad clip' }] })));
     await expect(new SonioxVoicesClient('k').waitUntilReady('v-1'))
       .rejects.toMatchObject({ errorType: 'voice_failed' });
 

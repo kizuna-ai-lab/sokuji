@@ -35,12 +35,15 @@ describe('synthesizeOnce', () => {
     expect(init.headers.Authorization).toBe('Bearer k');
     expect(init.headers['Content-Type']).toBe('application/json');
     expect(JSON.parse(init.body)).toEqual({
-      model: 'tts-rt-v1',
+      model: 'tts-rt-v2',
       voice: 'uuid-1',
       language: 'ja',
       text: 'こんにちは。',
       audio_format: 'pcm_s16le',
       sample_rate: 24000,
+      // An audition is paced like the session it auditions for, so the live
+      // stream and this request have to send the same value.
+      reduce_silence: true,
     });
   });
 

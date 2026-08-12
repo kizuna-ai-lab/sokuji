@@ -189,7 +189,7 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
     expect(useSettingsStore.getState().soniox.contextText).toBe('Quarterly roadmap sync');
   });
 
-  it('renders no model dropdown for Soniox (fixed stt-rt-v5 + tts-rt-v1 pipeline, nothing to choose)', () => {
+  it('renders no model dropdown for Soniox (fixed stt-rt-v5 + tts-rt-v2 pipeline, nothing to choose)', () => {
     const { container } = mount();
     expect(container.querySelector('.model-selection-container')).toBeNull();
     useSettingsStore.setState({ provider: Provider.KIZUNA_AI_SONIOX });

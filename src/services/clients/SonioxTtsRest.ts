@@ -21,9 +21,9 @@
  *   (it already listed only the `wss://` origin, which does NOT cover https)
  */
 import { SonioxVoicesError, throwApiError } from './SonioxVoicesClient';
+import { SONIOX_TTS_MODEL, SONIOX_REDUCE_SILENCE } from '../../lib/soniox/ttsCatalog';
 
 const TTS_REST_URL = 'https://tts-rt.soniox.com/tts';
-const TTS_MODEL = 'tts-rt-v1';
 const SAMPLE_RATE = 24000;
 // A preview is one short sentence; anything past this is a stall, not slowness.
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -97,12 +97,15 @@ export async function synthesizeOnce(
           Authorization: `Bearer ${opts.apiKey}`,
         },
         body: JSON.stringify({
-          model: TTS_MODEL,
+          model: SONIOX_TTS_MODEL,
           voice: opts.voice,
           language: opts.language,
           text: opts.text,
           audio_format: 'pcm_s16le',
           sample_rate: SAMPLE_RATE,
+          // Matches the live stream, so an audition is paced like the session
+          // it is auditioning for.
+          reduce_silence: SONIOX_REDUCE_SILENCE,
           ...(opts.speed != null && opts.speed !== 1.0 ? { speed: opts.speed } : {}),
         }),
         signal: controller.signal,

@@ -64,7 +64,9 @@ vi.mock('./SonioxTtsStream', () => ({ SonioxTtsStream: vi.fn(function (o: unknow
 const BASE_CONFIG: SonioxSessionConfig = {
   provider: 'soniox',
   model: 'stt-rt-v5',
-  voice: 'Maya',
+  // A voice tts-rt-v2 actually serves, so the tests below exercise the normal
+  // path; the retired-voice fallback is asserted explicitly where it belongs.
+  voice: 'Adrian',
   sourceLanguage: 'zh',
   targetLanguage: 'en',
   bidirectional: false,
@@ -750,6 +752,28 @@ describe('SonioxClient compact debug logging', () => {
     // TTS audio arriving surfaces as tts.audio events (logStore groups them)
     tts.handlers.onAudio!(new Int16Array([1, 2, 3]));
     expect(events.find((e) => e.event.type === 'tts.audio')?.event.data).toEqual({ bytes: 3 });
+  });
+
+  it('opens the TTS stream on tts-rt-v2 and forwards the configured voice verbatim', async () => {
+    // No rewrite layer sits between settings and the wire: a voice tts-rt-v2
+    // retired (settings written under v1) is sent as-is, Soniox answers 400,
+    // and the session degrades to subtitles like any other TTS failure.
+    const client = new SonioxClient(byokCredentials('key'));
+    client.setEventHandlers({});
+    await client.connect({ ...BASE_CONFIG, voice: 'Maya', textOnly: false });
+    const opts = ttsInstances.at(-1)!.options as { model: string; voice: string };
+    expect(opts.model).toBe('tts-rt-v2');
+    expect(opts.voice).toBe('Maya');
+  });
+
+  it('forwards a cloned-voice id to TTS unchanged', async () => {
+    // Cloned voices are Soniox-issued UUIDs, never members of the built-in
+    // roster; nothing between settings and the wire may normalize them.
+    const client = new SonioxClient(byokCredentials('key'));
+    client.setEventHandlers({});
+    const uuid = 'bf8c1ec8-548f-4d2c-8706-72e3b840f349';
+    await client.connect({ ...BASE_CONFIG, voice: uuid, textOnly: false });
+    expect((ttsInstances.at(-1)!.options as { voice: string }).voice).toBe(uuid);
   });
 });
 

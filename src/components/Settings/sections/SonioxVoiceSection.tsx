@@ -41,6 +41,7 @@ import {
 import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
 import { previewSampleFor } from './sonioxPreviewSample';
 import { SonioxProviderConfig, clampNumber } from '../../../services/providers/SonioxProviderConfig';
+import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 import {
   validateVoiceClip,
   downmixToMono,
@@ -75,8 +76,8 @@ export interface SonioxVoiceSectionProps {
 }
 
 const BUILTIN_VOICES = new SonioxProviderConfig().getConfig().voices;
-const TTS_MODEL = 'tts-rt-v1';
-const DEFAULT_VOICE = 'Maya';
+const TTS_MODEL = SONIOX_TTS_MODEL;
+const DEFAULT_VOICE = SONIOX_DEFAULT_VOICE;
 // Reference-clip bounds Soniox enforces server-side; validated client-side on
 // upload too (mirrors NativeVoiceSection / validateVoiceClip's defaults).
 const MIN_CLIP_SECONDS = 3;
