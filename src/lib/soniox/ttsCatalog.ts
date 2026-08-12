@@ -11,11 +11,23 @@
  * had five chances to miss one.
  *
  * A settings file written under v1 can still name one of the dropped voices.
- * That is not repaired here: the name reaches the wire, Soniox answers 400, and
- * the session degrades to subtitles the way any other TTS failure does. The
- * alternative — a rewrite table mapping retired names to a survivor — hides a
- * roster change behind a silent voice substitution, and has to be carried
- * forever afterwards.
+ * That is deliberately not repaired here. The alternative — a rewrite table
+ * mapping retired names onto a survivor — hides a roster change behind a silent
+ * voice substitution, and has to be carried forever afterwards.
+ *
+ * What a stale name actually does depends on who is asking, because "not in
+ * this roster" is also how the app recognizes a CLONED voice:
+ *
+ *  - BYOK: the name reaches the wire, Soniox answers 400, and the session
+ *    degrades to subtitles the way any other TTS failure does.
+ *  - Managed (Kizuna AI): MainPanel reads it as a cloned voice and runs the
+ *    managed-voice preparation path first.
+ *  - Settings: SonioxVoiceSection lists it as an unknown stored voice — the
+ *    same presentation a deleted clone gets, delete affordance included.
+ *
+ * Only the first is a property of this module. The other two are the existing
+ * "unknown id ⇒ cloned voice" heuristic meeting a roster that shrank, and they
+ * behave that way for any name the roster does not list.
  *
  * The roster is a SNAPSHOT (source: `GET /v1/tts-models`, 70 voices,
  * 2026-08-11), not a contract: Soniox deleted the voice table from its own docs

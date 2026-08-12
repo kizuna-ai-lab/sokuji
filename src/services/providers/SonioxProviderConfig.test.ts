@@ -245,11 +245,19 @@ describe('SonioxProviderConfig voices', () => {
     expect(voices).toEqual(expect.arrayContaining(['Adrian', 'Daniel', 'Kenji', 'Mina', 'Nina']));
   });
 
-
+  it('defaults to a voice the roster actually offers', () => {
+    // Nothing rewrites a voice on its way to the wire, so a default that the
+    // model does not serve would fail TTS for every install that has never
+    // picked one — the state a fresh install is in.
+    const voices = new SonioxProviderConfig().getConfig().voices.map((v) => v.value);
+    expect(voices).toContain(SONIOX_DEFAULT_VOICE);
+    expect(defaultSonioxSettings.voice).toBe(SONIOX_DEFAULT_VOICE);
+  });
 
   it('passes a cloned-voice id through untouched', () => {
     // Cloned voices are Soniox-issued UUIDs and are absent from the built-in
-    // roster by design — the fallback must not mistake that for a stale name.
+    // roster by design; nothing between settings and the wire may normalize
+    // them just because the roster does not list them.
     const uuid = 'bf8c1ec8-548f-4d2c-8706-72e3b840f349';
     expect(voiceOf(uuid)).toBe(uuid);
   });
