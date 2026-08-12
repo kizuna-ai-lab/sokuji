@@ -1,4 +1,4 @@
-import { RealtimeClient } from 'openai-realtime-api';
+import { RealtimeClient, arrayBufferToBase64 } from 'openai-realtime-api';
 import type { 
   RealtimeEvent as OpenAIRealtimeEvent,
   Realtime,
@@ -38,11 +38,21 @@ export class OpenAIClient implements IClient {
    * `convertToConversationItem` strips `item.formatted.audio` and
    * `item.formatted.file` from the returned `ConversationItem`, so the inline
    * replay button stays hidden and no per-item PCM/WAV memory is retained in
-   * the UI state. The underlying `openai-realtime-api` SDK may still cache
-   * audio internally (outside our control), but we don't propagate it forward.
-   * Mirrors the gating in the other provider clients.
+   * the UI state. Mirrors the gating in the other provider clients.
+   *
+   * It also selects the input path in `appendInputAudio`: when false we stop
+   * feeding the SDK's session-long `inputAudioBuffer` altogether, since nothing
+   * downstream reads it once `formatted.audio` is stripped. See issue #406.
    */
   private keepReplayAudio: boolean = false;
+  /**
+   * Bytes appended since the last client-side commit. Stands in for the SDK's
+   * `inputAudioBuffer` on the default (non-replay) path, where we deliberately
+   * stop retaining the audio itself — see `appendInputAudio`. Only consulted
+   * when turn detection is off, which is the one case where the client, not the
+   * server, decides when a turn ends.
+   */
+  private pendingInputAudioBytes: number = 0;
 
   constructor(apiKey: string, apiHost?: string) {
     this.apiKey = apiKey;
@@ -465,6 +475,7 @@ export class OpenAIClient implements IClient {
     // Reset delta sequence number and item creation times for new session
     this.deltaSequenceNumber = 0;
     this.itemCreatedAtMap.clear();
+    this.pendingInputAudioBytes = 0;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
 
     // Create new client instance with fresh API key, API host and model
@@ -617,10 +628,37 @@ export class OpenAIClient implements IClient {
   reset(): void {
     this.client.reset();
     this.itemCreatedAtMap.clear();
+    this.pendingInputAudioBytes = 0;
   }
 
   appendInputAudio(audioData: Int16Array): void {
-    this.client.appendInputAudio(audioData);
+    if (audioData.byteLength === 0) return;
+
+    if (this.keepReplayAudio) {
+      // Opt-in path: let the SDK accumulate. Its `speech_stopped` handler slices
+      // the finished utterance back out of `inputAudioBuffer` into
+      // `item.formatted.audio`, and nothing else populates replay audio for
+      // *user* items on this provider. We accept the retention cost below only
+      // because the user explicitly asked to keep replay audio.
+      this.client.appendInputAudio(audioData);
+      this.pendingInputAudioBytes += audioData.byteLength;
+      return;
+    }
+
+    // Default path: send the chunk without retaining it.
+    //
+    // RealtimeClient.appendInputAudio() concatenates every chunk onto
+    // `client.inputAudioBuffer`, and its createResponse() only empties that
+    // buffer when turn detection is OFF. Under server/semantic VAD it therefore
+    // grew for the whole session (~2.8MB/min at 24kHz) and each append re-copied
+    // all of it — element by element, on the main thread — so append cost climbed
+    // linearly with session length until it starved audio delivery and inbound
+    // message handling. With keepReplayAudio off we drop `formatted.audio`
+    // anyway, so that buffer had no reader at all. See issue #406.
+    this.client.realtime.send('input_audio_buffer.append', {
+      audio: arrayBufferToBase64(audioData)
+    });
+    this.pendingInputAudioBytes += audioData.byteLength;
   }
 
   appendInputText(text: string): void {
@@ -652,6 +690,7 @@ export class OpenAIClient implements IClient {
       // an empty buffer causes "buffer too small" errors
       if (config.conversation !== 'none') {
         this.client.realtime.send('input_audio_buffer.commit');
+        this.pendingInputAudioBytes = 0;
       }
 
       // Send response.create event with per-turn configuration
@@ -691,9 +730,20 @@ export class OpenAIClient implements IClient {
 
       // Use the underlying realtime API to send the event
       this.client.realtime.send('response.create', responseEvent);
-    } else {
-      // Use the default library method when no config is provided
+    } else if (this.keepReplayAudio) {
+      // The SDK still owns the audio buffer on the replay path, so let it do the
+      // commit and hand the audio to the conversation as it always has.
       this.client.createResponse();
+    } else {
+      // Mirror RealtimeClient.createResponse() for the non-retaining path.
+      // It commits only when turn detection is off and audio is actually
+      // pending; committing an empty buffer is rejected as "buffer too small".
+      // The byte counter is all that decision ever needed — not the audio.
+      if (!this.client.getTurnDetectionType() && this.pendingInputAudioBytes > 0) {
+        this.client.realtime.send('input_audio_buffer.commit');
+        this.pendingInputAudioBytes = 0;
+      }
+      this.client.realtime.send('response.create');
     }
   }
 
