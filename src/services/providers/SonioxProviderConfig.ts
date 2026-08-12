@@ -4,7 +4,7 @@ import { IClient, FilteredModel, SessionConfig, SonioxSessionConfig } from '../i
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
 import { byokCredentials } from '../clients/ManagedSonioxSession';
-import { SONIOX_VOICES, SONIOX_DEFAULT_VOICE, resolveVoice } from '../../lib/soniox/ttsCatalog';
+import { SONIOX_VOICES, SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
 
 // Soniox Settings — single BYOK API key (extractCredentials inherited from base)
 export interface SonioxSettings {
@@ -205,9 +205,7 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     return {
       provider: 'soniox',
       model: settings.model || 'stt-rt-v5',
-      // Settings saved under tts-rt-v1 can name a voice v2 retired; resolveVoice
-      // maps those to the default instead of letting them reach the wire.
-      voice: resolveVoice(settings.voice),
+      voice: settings.voice || SONIOX_DEFAULT_VOICE,
       instructions: systemInstructions,
       sourceLanguage: settings.sourceLanguage,
       targetLanguage: settings.targetLanguage,

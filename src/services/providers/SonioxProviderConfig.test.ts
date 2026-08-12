@@ -6,7 +6,7 @@ import {
   parseVocabularyTranslations,
 } from './SonioxProviderConfig';
 import { SonioxSessionConfig } from '../interfaces/IClient';
-import { SONIOX_DEFAULT_VOICE, resolveVoice } from '../../lib/soniox/ttsCatalog';
+import { SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
 
 /** Built-ins tts-rt-v1 served that tts-rt-v2 rejects with HTTP 400. */
 const RETIRED_BY_V2 = ['Claire', 'Elise', 'Jack', 'Maya', 'Meera', 'Noah', 'Sofia'];
@@ -245,21 +245,7 @@ describe('SonioxProviderConfig voices', () => {
     expect(voices).toEqual(expect.arrayContaining(['Adrian', 'Daniel', 'Kenji', 'Mina', 'Nina']));
   });
 
-  it('never offers a voice that resolveVoice would rewrite', () => {
-    // The dropdown and the wire have to agree. An option the user can pick
-    // that resolveVoice then swaps out would speak in a voice they did not
-    // choose, with nothing in the UI admitting it.
-    for (const { value } of new SonioxProviderConfig().getConfig().voices) {
-      expect(resolveVoice(value)).toBe(value);
-    }
-  });
 
-  it('rewrites a retired v1 voice from saved settings instead of sending it', () => {
-    // The upgrade path that actually exists: settings written under tts-rt-v1,
-    // read back by a build that talks to v2. 'Maya' was the shipped default,
-    // so this is the common case, not an edge one.
-    for (const retired of RETIRED_BY_V2) expect(voiceOf(retired)).toBe(SONIOX_DEFAULT_VOICE);
-  });
 
   it('passes a cloned-voice id through untouched', () => {
     // Cloned voices are Soniox-issued UUIDs and are absent from the built-in

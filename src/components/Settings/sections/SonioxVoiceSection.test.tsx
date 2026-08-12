@@ -173,19 +173,19 @@ describe('SonioxVoiceSection', () => {
     expect(select.value).toBe('gone-uuid'); // stored setting is not rewritten
   });
 
-  it('does not mistake a voice retired by tts-rt-v2 for a deleted clone', async () => {
-    // 'Maya' was Sokuji's shipped default under tts-rt-v1 and is absent from
-    // v2's roster, so after the upgrade it is neither a built-in nor a clone —
-    // exactly the shape the "(deleted voice)" placeholder is built to detect.
-    // Showing it here would offer a Delete button for a voice the user never
-    // cloned, and there is nothing behind that button to delete.
+  it('renders a retired built-in the same way as any other unknown stored voice', async () => {
+    // 'Maya' was the shipped default under tts-rt-v1 and is absent from v2's
+    // roster, so after the upgrade it is neither a built-in nor a clone — the
+    // same shape as a deleted clone, and shown the same way. Nothing rewrites
+    // it: the stored setting stands until the user picks something else.
     listMock.mockResolvedValue([]);
     const { container } = mount({ settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     const select = container.querySelector('select')!;
-    await waitFor(() => expect(select.value).toBe(SONIOX_DEFAULT_VOICE));
-    expect([...select.querySelectorAll('option')].some((o) => o.value === 'Maya')).toBe(false);
-    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+    await waitFor(() => {
+      expect([...select.querySelectorAll('option')].some((o) => o.value === 'Maya')).toBe(true);
+    });
+    expect(select.value).toBe('Maya');
   });
 
   it('managed mode renders built-ins only: no fetch, no refresh/create affordances', () => {

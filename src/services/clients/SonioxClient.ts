@@ -12,7 +12,7 @@ import { Provider, ProviderType } from '../../types/Provider';
 import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig, SonioxSttConfig } from './SonioxSttStream';
 import { SonioxTtsStream } from './SonioxTtsStream';
 import { SonioxBudgetSnapshot } from './SonioxCostMeter';
-import { SONIOX_TTS_MODEL, resolveVoice } from '../../lib/soniox/ttsCatalog';
+import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
 import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from './ManagedSonioxSession';
 import type { SonioxSessionLeg, SonioxSessionOutcomeNotice } from './SonioxSessionOutcome';
 import { PcmMixer } from './PcmMixer';
@@ -871,10 +871,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     }
     const stream = new SonioxTtsStream({
       apiKey: ttsApiKey,
-      // resolveVoice, not `|| default`: a session config can carry a voice the
-      // current model retired (settings persisted under tts-rt-v1), which is
-      // truthy and would reach the wire as a 400.
-      voice: resolveVoice(this.currentConfig?.voice),
+      voice: this.currentConfig?.voice || SONIOX_DEFAULT_VOICE,
       model: SONIOX_TTS_MODEL,
       sampleRate: SAMPLE_RATE,
       speed: this.currentConfig?.ttsSpeed,

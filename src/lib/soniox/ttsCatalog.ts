@@ -1,22 +1,25 @@
 /**
  * What Soniox Text-to-Speech accepts: the model id, the built-in voice roster,
- * and the fallback that keeps a saved-but-retired voice from killing a session.
+ * and the wire options that go with them.
  *
  * This module exists because `tts-rt-v1` → `tts-rt-v2` was not the drop-in the
  * vendor changelog promised. Soniox announced v2 as "fully compatible ... simply
  * replace the model name" (GA 2026-08-11, v1 removed 2026-08-31), but v2 drops
- * 7 voices that v1 served — Claire, Elise, Jack, Maya, Meera, Noah, Sofia —
+ * seven voices that v1 served — Claire, Elise, Jack, Maya, Meera, Noah, Sofia —
  * and rejects them with HTTP 400. Sokuji had the model id copied into five
- * modules and the default voice ('Maya', one of the dropped ones) into four, so
- * a rename-per-call-site migration had five chances to miss one and four ways
- * to keep shipping a voice the new model refuses.
+ * modules and the default voice into four, so a rename-per-call-site migration
+ * had five chances to miss one.
+ *
+ * A settings file written under v1 can still name one of the dropped voices.
+ * That is not repaired here: the name reaches the wire, Soniox answers 400, and
+ * the session degrades to subtitles the way any other TTS failure does. The
+ * alternative — a rewrite table mapping retired names to a survivor — hides a
+ * roster change behind a silent voice substitution, and has to be carried
+ * forever afterwards.
  *
  * The roster is a SNAPSHOT (source: `GET /v1/tts-models`, 70 voices,
- * 2026-08-11), not a contract. Soniox deleted the voice table from its own docs
- * in favour of that endpoint, and the v2 roster moved (71 → 70) within hours
- * of GA. `resolveVoice` is what makes a stale snapshot survivable: an unknown
- * name — retired upstream, or persisted in settings from a previous release —
- * degrades to the default instead of reaching the wire and failing the request.
+ * 2026-08-11), not a contract: Soniox deleted the voice table from its own docs
+ * in favour of that endpoint, and the roster moved (71 → 70) within hours of GA.
  */
 import type { VoiceOption } from '../../services/providers/ProviderConfig';
 
@@ -114,27 +117,3 @@ export const SONIOX_VOICES: VoiceOption[] = [
   { name: 'Bianca', value: 'Bianca' }, // female — A serious female voice with a Brazilian accent and crisp, deliberate deli…
   { name: 'Sari', value: 'Sari' }, // female — A calm female voice with a gentle, deep tone and clear delivery
 ];
-
-const KNOWN = new Set(SONIOX_VOICES.map((v) => v.value));
-
-/**
- * Built-ins that v1 served and v2 does not. Named explicitly rather than
- * inferred, because "not in the roster" is also true of every cloned voice.
- */
-const RETIRED = new Set(['Claire', 'Elise', 'Jack', 'Maya', 'Meera', 'Noah', 'Sofia']);
-
-/**
- * A voice name the current model will accept.
- *
- * Cloned voices are UUIDs issued by Soniox and are not in the built-in roster,
- * so anything that is not a known built-in is passed through untouched — only
- * a name that LOOKS like a built-in but is not one gets replaced. That keeps
- * this from silently overriding a user's cloned voice while still catching
- * 'Maya' and the other retired v1 names left in persisted settings.
- */
-export function resolveVoice(voice: string | undefined | null): string {
-  if (!voice) return SONIOX_DEFAULT_VOICE;
-  if (KNOWN.has(voice)) return voice;
-  return RETIRED.has(voice) ? SONIOX_DEFAULT_VOICE : voice;
-}
-

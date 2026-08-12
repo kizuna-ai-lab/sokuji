@@ -41,7 +41,7 @@ import {
 import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
 import { previewSampleFor } from './sonioxPreviewSample';
 import { SonioxProviderConfig, clampNumber } from '../../../services/providers/SonioxProviderConfig';
-import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE, resolveVoice } from '../../../lib/soniox/ttsCatalog';
+import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 import {
   validateVoiceClip,
   downmixToMono,
@@ -276,15 +276,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // Latest selection, read at auto-select time: the ready-wait below runs for
   // up to a minute in the background, and a choice the user made meanwhile
   // must not be silently overwritten.
-  // A settings file written under tts-rt-v1 can still name a voice that
-  // tts-rt-v2 retired. Those names left BUILTIN_VOICES with the upgrade, and
-  // everything below keys off "not a known voice ⇒ a cloned one" — so an
-  // unnormalized 'Maya' would render as a "(deleted voice)" row with a Delete
-  // button for a voice the user never cloned. Normalizing once, here, keeps
-  // that misreading out of every consumer below.
-  const selectedVoice = resolveVoice(settings.voice);
-  const selectedVoiceRef = useRef(selectedVoice);
-  useEffect(() => { selectedVoiceRef.current = selectedVoice; }, [selectedVoice]);
+  const selectedVoiceRef = useRef(settings.voice);
+  useEffect(() => { selectedVoiceRef.current = settings.voice; }, [settings.voice]);
 
   const finishCreate = async (
     created: SonioxVoice,
@@ -335,7 +328,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   const handleConfirm = async (name: string) => {
     if (!source || !pending || modalBusy) return;
     const createSource = source;
-    const selectionAtCreate = selectedVoice;
+    const selectionAtCreate = settings.voice;
     setModalBusy(true);
     setModalError(null);
     try {
@@ -426,7 +419,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // The live session's SonioxClient captured this voice id at session start
     // and reuses it for every TTS stream — deleting it server-side would break
     // spoken translation for the rest of the session.
-    if (isSessionActive && selectedVoice === id) {
+    if (isSessionActive && settings.voice === id) {
       setCaptureError(
         t('settings.sonioxVoiceDeleteInUse', 'This voice is being used by the active session — end the session before deleting it')
       );
@@ -540,12 +533,12 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // fetch to settle at all, so the entry makes no claim about deletion —
     // it shows the raw id rather than asserting something we have no
     // evidence for.
-    if (selectedVoice && !known.has(selectedVoice) && listState !== 'loading') {
+    if (settings.voice && !known.has(settings.voice) && listState !== 'loading') {
       custom.push({
-        id: selectedVoice,
+        id: settings.voice,
         label: source
           ? t('settings.sonioxVoiceDeletedPlaceholder', '(deleted voice)')
-          : selectedVoice,
+          : settings.voice,
         group: 'custom',
         // MANAGED, and only once the list is KNOWN: an unknown id here is
         // this account's OWN voice after an eviction — the normal outcome of
@@ -573,7 +566,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       });
     }
     return [...builtin, ...custom];
-  }, [clones, managed, managedName, managedListKnown, selectedVoice, listState, source, t]);
+  }, [clones, managed, managedName, managedListKnown, settings.voice, listState, source, t]);
 
   return (
     <div className="settings-section" id="soniox-voice-section">
@@ -592,7 +585,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       )}
       <VoiceLibrarySection
         voices={entries}
-        selectedId={selectedVoice}
+        selectedId={settings.voice}
         onSelect={(id) => onUpdate({ voice: id })}
         onImport={canCreate ? onImport : undefined}
         onRecord={canCreate ? onRecord : undefined}
