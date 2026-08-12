@@ -8,12 +8,12 @@ import {useUserProfile} from '../../contexts/UserProfileContext';
 import {authClient} from '../../lib/auth-client';
 import {
   AlertCircle,
+  ChartColumn,
   CheckCircle,
   LogOut,
   Mail,
   MessageCircleQuestion,
   RefreshCw,
-  TrendingDown,
   UserCog,
   Wallet
 } from 'lucide-react';
@@ -261,14 +261,6 @@ export function UserAccountInfo({
     openExternalWithAuth('/dashboard/feedback');
   };
 
-  // Handle manage subscription click - navigate to subscription management
-  const handleManageSubscriptionClick = () => {
-    // Track subscription management click
-    trackEvent('subscription_management_clicked', {});
-    // TODO: Implement subscription management page or link to backend billing page
-    console.log('Manage subscription clicked - implement subscription management');
-  };
-
   // Handle refresh click
   const handleRefresh = () => {
     trackEvent('user_profile_refresh_clicked', {});
@@ -375,17 +367,13 @@ export function UserAccountInfo({
           <>
 
             <div className="quota-compact-line">
-              <span className={`plan-badge plan-badge-${subscription}`}>
-                {subscription.toUpperCase()}
-              </span>
-              <span className="divider">|</span>
               <Wallet size={14} className="wallet-icon"/>
               <span className="balance-section">
                 {formatUsd(quota.balance || quota.remaining)}
               </span>
               <span className="divider">|</span>
               <span className="usage-section">
-                <TrendingDown size={14} className="usage-icon"/>
+                <ChartColumn size={14} className="usage-icon"/>
                 30D: {formatUsd(quota.last30DaysUsage || 0)}
               </span>
               <button
@@ -399,17 +387,6 @@ export function UserAccountInfo({
           </>
         )}
       </div>
-
-      {subscription === 'free' && (
-        <div className="upgrade-section">
-          <button
-            className="upgrade-button"
-            onClick={handleManageSubscriptionClick}
-          >
-            {t('tokenUsage.upgradeToPremium')}
-          </button>
-        </div>
-      )}
 
     </div>
   );
