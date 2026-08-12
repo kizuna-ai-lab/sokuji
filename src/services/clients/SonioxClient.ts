@@ -12,6 +12,7 @@ import { Provider, ProviderType } from '../../types/Provider';
 import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig, SonioxSttConfig } from './SonioxSttStream';
 import { SonioxTtsStream } from './SonioxTtsStream';
 import { SonioxBudgetSnapshot } from './SonioxCostMeter';
+import { SONIOX_TTS_MODEL, resolveVoice } from '../../lib/soniox/ttsCatalog';
 import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from './ManagedSonioxSession';
 import type { SonioxSessionLeg, SonioxSessionOutcomeNotice } from './SonioxSessionOutcome';
 import { PcmMixer } from './PcmMixer';
@@ -35,7 +36,6 @@ import i18n from '../../locales';
  */
 
 const STT_MODEL = 'stt-rt-v5';
-const TTS_MODEL = 'tts-rt-v1';
 const SAMPLE_RATE = 24000; // Sokuji mic pipeline and ModernAudioPlayer both run at 24 kHz
 const AUTH_PROBE_URL = 'https://api.soniox.com/v1/auth/temporary-api-key';
 /**
@@ -871,8 +871,11 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     }
     const stream = new SonioxTtsStream({
       apiKey: ttsApiKey,
-      voice: this.currentConfig?.voice || 'Maya',
-      model: TTS_MODEL,
+      // resolveVoice, not `|| default`: a session config can carry a voice the
+      // current model retired (settings persisted under tts-rt-v1), which is
+      // truthy and would reach the wire as a 400.
+      voice: resolveVoice(this.currentConfig?.voice),
+      model: SONIOX_TTS_MODEL,
       sampleRate: SAMPLE_RATE,
       speed: this.currentConfig?.ttsSpeed,
       // Same id as the STT stream — required for the TTS half of a managed

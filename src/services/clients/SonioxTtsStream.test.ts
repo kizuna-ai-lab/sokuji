@@ -30,7 +30,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const OPTS = { apiKey: 'k', voice: 'Maya', model: 'tts-rt-v1', sampleRate: 24000 };
+const OPTS = { apiKey: 'k', voice: 'Adrian', model: 'tts-rt-v2', sampleRate: 24000 };
 
 async function openTts() {
   const t = new SonioxTtsStream(OPTS);
@@ -62,8 +62,10 @@ describe('SonioxTtsStream', () => {
     t.sendText('world', 'en');
     const msgs = ws.jsonSent();
     expect(msgs[0]).toMatchObject({
-      api_key: 'k', stream_id: 'utt-1', model: 'tts-rt-v1', voice: 'Maya',
+      api_key: 'k', stream_id: 'utt-1', model: 'tts-rt-v2', voice: 'Adrian',
       language: 'en', audio_format: 'pcm_s16le', sample_rate: 24000,
+      // Only tts-rt-v2 accepts this; a model without silence reduction 400s.
+      reduce_silence: true,
     });
     expect(msgs[1]).toEqual({ stream_id: 'utt-1', text: 'Hello ', text_end: false });
     expect(msgs[2]).toEqual({ stream_id: 'utt-1', text: 'world', text_end: false });

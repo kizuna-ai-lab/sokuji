@@ -64,7 +64,9 @@ vi.mock('./SonioxTtsStream', () => ({ SonioxTtsStream: vi.fn(function (o: unknow
 const BASE_CONFIG: SonioxSessionConfig = {
   provider: 'soniox',
   model: 'stt-rt-v5',
-  voice: 'Maya',
+  // A voice tts-rt-v2 actually serves, so the tests below exercise the normal
+  // path; the retired-voice fallback is asserted explicitly where it belongs.
+  voice: 'Adrian',
   sourceLanguage: 'zh',
   targetLanguage: 'en',
   bidirectional: false,
@@ -750,6 +752,31 @@ describe('SonioxClient compact debug logging', () => {
     // TTS audio arriving surfaces as tts.audio events (logStore groups them)
     tts.handlers.onAudio!(new Int16Array([1, 2, 3]));
     expect(events.find((e) => e.event.type === 'tts.audio')?.event.data).toEqual({ bytes: 3 });
+  });
+
+  it('opens the TTS stream on tts-rt-v2 and never forwards a voice that model retired', async () => {
+    // BASE_CONFIG carries 'Maya' — the voice Sokuji shipped as its default
+    // under tts-rt-v1 and the one tts-rt-v2 rejects with HTTP 400. A live
+    // session config is built from stored settings, so this is the state every
+    // existing installation is in on the first run after the upgrade; letting
+    // it through would fail TTS for all of them and degrade every session to
+    // subtitles.
+    const client = new SonioxClient(byokCredentials('key'));
+    client.setEventHandlers({});
+    await client.connect({ ...BASE_CONFIG, voice: 'Maya', textOnly: false });
+    const opts = ttsInstances.at(-1)!.options as { model: string; voice: string };
+    expect(opts.model).toBe('tts-rt-v2');
+    expect(opts.voice).toBe('Adrian');
+  });
+
+  it('forwards a cloned-voice id to TTS unchanged', async () => {
+    // The fallback keys off a list of retired built-ins, not off "unknown", so
+    // a cloned voice — always absent from the built-in roster — stays intact.
+    const client = new SonioxClient(byokCredentials('key'));
+    client.setEventHandlers({});
+    const uuid = 'bf8c1ec8-548f-4d2c-8706-72e3b840f349';
+    await client.connect({ ...BASE_CONFIG, voice: uuid, textOnly: false });
+    expect((ttsInstances.at(-1)!.options as { voice: string }).voice).toBe(uuid);
   });
 });
 

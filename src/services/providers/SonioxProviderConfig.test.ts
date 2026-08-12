@@ -6,6 +6,10 @@ import {
   parseVocabularyTranslations,
 } from './SonioxProviderConfig';
 import { SonioxSessionConfig } from '../interfaces/IClient';
+import { SONIOX_DEFAULT_VOICE, resolveVoice } from '../../lib/soniox/ttsCatalog';
+
+/** Built-ins tts-rt-v1 served that tts-rt-v2 rejects with HTTP 400. */
+const RETIRED_BY_V2 = ['Claire', 'Elise', 'Jack', 'Maya', 'Meera', 'Noah', 'Sofia'];
 
 describe('parseVocabularyTerms', () => {
   it('splits lines, trims, drops empties and dedupes', () => {
@@ -224,17 +228,43 @@ describe('SonioxProviderConfig.buildSessionConfig', () => {
 });
 
 describe('SonioxProviderConfig voices', () => {
-  it('exposes exactly the official 28-voice catalog (originals first, accented additions after)', () => {
+  const descriptor = new SonioxProviderConfig();
+  const voiceOf = (voice: string) =>
+    (descriptor.buildSessionConfig({ ...defaultSonioxSettings, voice }, '') as SonioxSessionConfig).voice;
+
+  it('offers the tts-rt-v2 roster and none of the seven voices v2 retired', () => {
     const voices = new SonioxProviderConfig().getConfig().voices.map((v) => v.value);
-    expect(voices).toEqual([
-      // Original twelve (order preserved — existing users' stored values):
-      'Adrian', 'Claire', 'Daniel', 'Emma', 'Grace', 'Jack',
-      'Kenji', 'Maya', 'Mina', 'Nina', 'Noah', 'Owen',
-      // Accented additions (official catalog, 2026-07-31):
-      'Rafael', 'Mateo', 'Lucia', 'Sofia',        // Spanish
-      'Oliver', 'Arthur', 'Isla', 'Victoria',     // British
-      'Cooper', 'Mason', 'Ruby', 'Elise',         // Australian
-      'Arjun', 'Rohan', 'Priya', 'Meera',         // Indian
-    ]);
+    // Pinning all 70 names would make this fail on Soniox's release schedule
+    // rather than on ours — the roster is a snapshot of GET /v1/tts-models and
+    // already moved once (71 → 70) on GA day. What must hold is the property
+    // the v1 → v2 migration is about: nothing offered is something v2 rejects.
+    expect(voices.length).toBeGreaterThan(0);
+    expect(new Set(voices).size).toBe(voices.length);
+    for (const retired of RETIRED_BY_V2) expect(voices).not.toContain(retired);
+    // Survivors: still offered, so a user who picked one under v1 keeps it.
+    expect(voices).toEqual(expect.arrayContaining(['Adrian', 'Daniel', 'Kenji', 'Mina', 'Nina']));
+  });
+
+  it('never offers a voice that resolveVoice would rewrite', () => {
+    // The dropdown and the wire have to agree. An option the user can pick
+    // that resolveVoice then swaps out would speak in a voice they did not
+    // choose, with nothing in the UI admitting it.
+    for (const { value } of new SonioxProviderConfig().getConfig().voices) {
+      expect(resolveVoice(value)).toBe(value);
+    }
+  });
+
+  it('rewrites a retired v1 voice from saved settings instead of sending it', () => {
+    // The upgrade path that actually exists: settings written under tts-rt-v1,
+    // read back by a build that talks to v2. 'Maya' was the shipped default,
+    // so this is the common case, not an edge one.
+    for (const retired of RETIRED_BY_V2) expect(voiceOf(retired)).toBe(SONIOX_DEFAULT_VOICE);
+  });
+
+  it('passes a cloned-voice id through untouched', () => {
+    // Cloned voices are Soniox-issued UUIDs and are absent from the built-in
+    // roster by design — the fallback must not mistake that for a stale name.
+    const uuid = 'bf8c1ec8-548f-4d2c-8706-72e3b840f349';
+    expect(voiceOf(uuid)).toBe(uuid);
   });
 });

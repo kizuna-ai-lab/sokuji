@@ -52,7 +52,7 @@ vi.mock('./SonioxTtsStream', () => ({ SonioxTtsStream: vi.fn(function (o: Soniox
 const BASE_CONFIG: SonioxSessionConfig = {
   provider: 'soniox',
   model: 'stt-rt-v5',
-  voice: 'Maya',
+  voice: 'Adrian',
   sourceLanguage: 'zh',
   targetLanguage: 'en',
   bidirectional: false,

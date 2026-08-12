@@ -37,15 +37,17 @@ describe('managedVoiceSource.list', () => {
   });
 
   it('projects the single voice into the shape the section renders', async () => {
-    // The section decides ready/failed by looking for a tts-rt-v1 entry in
-    // `models`. Without that projection a perfectly ready managed voice
-    // renders as "processing…" forever and can never be selected.
+    // The section decides ready/failed by looking for an entry matching the
+    // model this build talks to. Without that projection a perfectly ready
+    // managed voice renders as "processing…" forever and can never be
+    // selected — and projecting the WRONG model id has the same effect, which
+    // is why the id is pinned literally here rather than imported.
     const client = fakeClient({
       mine: vi.fn().mockResolvedValue({ voiceId: 'v1', status: 'ready', createdAt: 42 }),
     });
     const [voice] = await managedVoiceSource(client, ACCOUNT).list();
     expect(voice.id).toBe('v1');
-    expect(voice.models).toEqual([{ model: 'tts-rt-v1', status: 'ready' }]);
+    expect(voice.models).toEqual([{ model: 'tts-rt-v2', status: 'ready' }]);
   });
 });
 

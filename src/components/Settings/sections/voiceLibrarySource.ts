@@ -16,6 +16,7 @@ import type { SonioxVoice, SonioxVoicesClient } from '../../../services/clients/
 import type { ManagedVoicesClient, ManagedVoice } from '../../../services/clients/ManagedVoicesClient';
 import { SonioxVoicesError } from '../../../services/clients/SonioxVoicesClient';
 import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
+import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
 
 export interface VoiceLibrarySource {
   /** Every voice this source can offer. The managed source returns zero or
@@ -41,7 +42,7 @@ export function byokVoiceSource(client: SonioxVoicesClient): VoiceLibrarySource 
   };
 }
 
-const TTS_MODEL = 'tts-rt-v1';
+const TTS_MODEL = SONIOX_TTS_MODEL;
 
 /** Project the backend's flat voice record into the per-model shape the
  *  section reads readiness from. Without this the section's isReady/isFailed

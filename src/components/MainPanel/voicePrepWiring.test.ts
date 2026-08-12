@@ -79,21 +79,21 @@ describe('voice-prep notice vs. the post-init setItems overwrite', () => {
 describe('voice-prep result wiring: the asymmetric settings write (resolveVoicePrepOutcome, the real production function)', () => {
   it('never produces a settings patch when prepareManagedVoice fails', () => {
     const result: VoicePrepResult = { ok: false, reason: 'pool_exhausted' };
-    const outcome = resolveVoicePrepOutcome(result, 'cloned-uuid-123', 'Maya');
+    const outcome = resolveVoicePrepOutcome(result, 'cloned-uuid-123', 'Adrian');
     // A busy pool tonight must not silently demote the stored preference —
     // the next session should try the real voice again.
     expect(outcome.settingsPatch).toBeNull();
     // The session still gets a usable voice — just not a persisted one.
-    expect(outcome.sessionVoice).toBe('Maya');
+    expect(outcome.sessionVoice).toBe('Adrian');
     expect(outcome.notice).not.toBeNull();
   });
 
   it('produces a settings patch only when the successful id actually changed', () => {
-    const unchanged = resolveVoicePrepOutcome({ ok: true, voiceId: 'cloned-uuid-123' }, 'cloned-uuid-123', 'Maya');
+    const unchanged = resolveVoicePrepOutcome({ ok: true, voiceId: 'cloned-uuid-123' }, 'cloned-uuid-123', 'Adrian');
     expect(unchanged.settingsPatch).toBeNull();
     expect(unchanged.sessionVoice).toBe('cloned-uuid-123');
 
-    const rebuilt = resolveVoicePrepOutcome({ ok: true, voiceId: 'cloned-uuid-999' }, 'cloned-uuid-123', 'Maya');
+    const rebuilt = resolveVoicePrepOutcome({ ok: true, voiceId: 'cloned-uuid-999' }, 'cloned-uuid-123', 'Adrian');
     expect(rebuilt.settingsPatch).toEqual({ voice: 'cloned-uuid-999' });
     expect(rebuilt.sessionVoice).toBe('cloned-uuid-999');
   });
@@ -110,10 +110,10 @@ describe('voice-prep result wiring: the asymmetric settings write (resolveVoiceP
       return { voice: builtinFallback };
     }
     const failed: VoicePrepResult = { ok: false, reason: 'pool_exhausted' };
-    const wrongPatch = unconditionalWrite(failed, 'Maya');
-    expect(wrongPatch).toEqual({ voice: 'Maya' }); // the bug the real guard prevents
+    const wrongPatch = unconditionalWrite(failed, 'Adrian');
+    expect(wrongPatch).toEqual({ voice: 'Adrian' }); // the bug the real guard prevents
 
-    const realOutcome = resolveVoicePrepOutcome(failed, 'cloned-uuid-123', 'Maya');
+    const realOutcome = resolveVoicePrepOutcome(failed, 'cloned-uuid-123', 'Adrian');
     expect(realOutcome.settingsPatch).toBeNull();
     expect(realOutcome.settingsPatch).not.toEqual(wrongPatch);
   });
@@ -190,11 +190,11 @@ describe('voice-prep freshness: a choice made during preparation wins', () => {
       makeVoiceWorld(SNAPSHOT),
       { ok: true, voiceId: REBUILT },
       SNAPSHOT,
-      'Maya',
-      (w) => { w.storedVoice = 'Maya'; }
+      'Adrian',
+      (w) => { w.storedVoice = 'Adrian'; }
     );
-    expect(world.storedVoice).toBe('Maya');       // preference not reverted
-    expect(world.sessionConfigVoice).toBe('Maya'); // and this session speaks as asked
+    expect(world.storedVoice).toBe('Adrian');       // preference not reverted
+    expect(world.sessionConfigVoice).toBe('Adrian'); // and this session speaks as asked
   });
 
   it('contrast: without the guard the rebuilt UUID clobbers both', () => {
@@ -204,8 +204,8 @@ describe('voice-prep freshness: a choice made during preparation wins', () => {
       makeVoiceWorld(SNAPSHOT),
       { ok: true, voiceId: REBUILT },
       SNAPSHOT,
-      'Maya',
-      (w) => { w.storedVoice = 'Maya'; },
+      'Adrian',
+      (w) => { w.storedVoice = 'Adrian'; },
       undefined,
       { guarded: false }
     );
@@ -220,7 +220,7 @@ describe('voice-prep freshness: a choice made during preparation wins', () => {
       makeVoiceWorld(SNAPSHOT),
       { ok: true, voiceId: REBUILT },
       SNAPSHOT,
-      'Maya'
+      'Adrian'
     );
     expect(world.storedVoice).toBe(REBUILT);
     expect(world.sessionConfigVoice).toBe(REBUILT);
@@ -235,7 +235,7 @@ describe('voice-prep freshness: a choice made during preparation wins', () => {
       makeVoiceWorld(SNAPSHOT),
       { ok: false, reason: 'pool_exhausted' },
       SNAPSHOT,
-      'Maya',
+      'Adrian',
       undefined,
       (w) => { w.storedVoice = 'Aurora'; }
     );
@@ -248,10 +248,10 @@ describe('voice-prep freshness: a choice made during preparation wins', () => {
       makeVoiceWorld(SNAPSHOT),
       { ok: false, reason: 'pool_exhausted' },
       SNAPSHOT,
-      'Maya'
+      'Adrian'
     );
     expect(world.storedVoice).toBe(SNAPSHOT); // fallback is never persisted
-    expect(world.sessionConfigVoice).toBe('Maya');
+    expect(world.sessionConfigVoice).toBe('Adrian');
     expect(world.notice).toBe('mainPanel.sonioxVoicePoolBusy');
   });
 });
