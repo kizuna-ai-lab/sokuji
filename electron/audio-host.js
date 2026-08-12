@@ -199,7 +199,10 @@ function stopCapture() {
  *
  * Never throws and never rejects: this runs on the startup path, and a device
  * whose gain could not be checked must not be the reason the app fails to come
- * up. A null result means "could not tell", which the caller logs and moves on.
+ * up. A null result means "could not tell", which the caller logs and moves on:
+ * no helper, a helper too old to know the mode, output that is not the
+ * documented object, or any non-zero exit - including a refused write, where
+ * the helper has still printed a perfectly well-formed measurement.
  *
  * @param {string} deviceName  Substring matched against device names
  * @returns {Promise<{found: boolean, changed?: boolean, unmuted?: boolean,
@@ -220,7 +223,13 @@ async function ensureUnityGain(deviceName, { spawn = nodeSpawn, resolvePath = re
 
     child.stdout.on('data', (d) => { out += d.toString('utf8'); });
     child.on('error', () => resolve(null));
-    child.on('close', () => {
+    child.on('close', (code) => {
+      // The helper reports what it measured and *then* exits non-zero when a
+      // write was refused, so the payload alone cannot be trusted: it would say
+      // found, unchanged, which the caller reads as "already at unity" - the
+      // same silent-success failure this whole path exists to remove. A signal
+      // kill arrives here as a null code and is equally untrustworthy.
+      if (code !== 0) return resolve(null);
       try {
         const result = JSON.parse(out);
         // An older shipped helper predates this mode and answers with its usage

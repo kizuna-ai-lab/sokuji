@@ -305,6 +305,28 @@ describe('ensureUnityGain', () => {
     expect(await p).toBeNull();
   });
 
+  // The helper prints its measurement and then exits 1 when Core Audio refused
+  // the write. Trusting the payload would report "found, unchanged" - which the
+  // caller reads as "already at unity" while the device is still attenuated.
+  it('returns null when the helper reports a measurement but exits non-zero', async () => {
+    const child = fakeChild();
+    const p = ensureUnityGain('SokujiVirtualAudio', { spawn: () => child, resolvePath });
+    child.stdout.emit('data', Buffer.from(
+      '{"found":true,"name":"SokujiVirtualAudio","changed":false,"unmuted":false,'
+      + '"before":{"output":0.5000,"input":0.5000},"after":{"output":0.5000,"input":0.5000}}'));
+    child.stderr.emit('data', Buffer.from('{"event":"error","code":"volume_write_failed"}\n'));
+    child.emit('close', 1);
+    expect(await p).toBeNull();
+  });
+
+  it('returns null when the helper is killed by a signal', async () => {
+    const child = fakeChild();
+    const p = ensureUnityGain('SokujiVirtualAudio', { spawn: () => child, resolvePath });
+    child.stdout.emit('data', Buffer.from('{"found":true,"changed":false}'));
+    child.emit('close', null, 'SIGKILL');
+    expect(await p).toBeNull();
+  });
+
   it('returns null on malformed output instead of throwing', async () => {
     const child = fakeChild();
     const p = ensureUnityGain('SokujiVirtualAudio', { spawn: () => child, resolvePath });
