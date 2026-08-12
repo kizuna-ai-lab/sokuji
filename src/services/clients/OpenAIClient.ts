@@ -53,6 +53,12 @@ export class OpenAIClient implements IClient {
    * server, decides when a turn ends.
    */
   private pendingInputAudioBytes: number = 0;
+  /**
+   * Latches once an input-audio send has failed, so a socket that stays down
+   * reports once instead of once per chunk. Cleared by the next successful
+   * send. See `reportSendFailure`.
+   */
+  private inputAudioSendFailed: boolean = false;
 
   constructor(apiKey: string, apiHost?: string) {
     this.apiKey = apiKey;
@@ -476,6 +482,7 @@ export class OpenAIClient implements IClient {
     this.deltaSequenceNumber = 0;
     this.itemCreatedAtMap.clear();
     this.pendingInputAudioBytes = 0;
+    this.inputAudioSendFailed = false;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
 
     // Create new client instance with fresh API key, API host and model
@@ -629,11 +636,51 @@ export class OpenAIClient implements IClient {
     this.client.reset();
     this.itemCreatedAtMap.clear();
     this.pendingInputAudioBytes = 0;
+    this.inputAudioSendFailed = false;
+  }
+
+  /**
+   * Routes a failed `RealtimeAPI.send()` through the same telemetry path as
+   * every other client error, so logStore and the conversation surface record
+   * it instead of the throw escaping into whatever called us.
+   *
+   * `send()` throws `RealtimeAPI is not connected` as soon as the socket drops,
+   * and the beta SDK guards none of its own sends. The GA path doesn't need
+   * this — the official `openai` SDK already catches inside send() and routes
+   * to its own error handler.
+   */
+  private reportSendFailure(operation: string, error: unknown): void {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[Sokuji] [OpenAIClient] Failed to send ${operation}:`, message);
+    this.eventHandlers.onRealtimeEvent?.({
+      source: 'client',
+      event: {
+        type: 'session.error',
+        data: { operation, message, provider: 'openai', timestamp: Date.now() }
+      }
+    });
+    this.eventHandlers.onError?.(error);
   }
 
   appendInputAudio(audioData: Int16Array): void {
     if (audioData.byteLength === 0) return;
 
+    try {
+      this.sendInputAudio(audioData);
+      this.pendingInputAudioBytes += audioData.byteLength;
+      this.inputAudioSendFailed = false;
+    } catch (error) {
+      // Reported once per outage, not once per chunk: this runs ~6x/second at
+      // 24kHz and `onError` appends an item to the conversation, so per-chunk
+      // reporting would bury the transcript under duplicate error entries.
+      if (!this.inputAudioSendFailed) {
+        this.inputAudioSendFailed = true;
+        this.reportSendFailure('input_audio_buffer.append', error);
+      }
+    }
+  }
+
+  private sendInputAudio(audioData: Int16Array): void {
     if (this.keepReplayAudio) {
       // Opt-in path: let the SDK accumulate. Its `speech_stopped` handler slices
       // the finished utterance back out of `inputAudioBuffer` into
@@ -641,7 +688,6 @@ export class OpenAIClient implements IClient {
       // *user* items on this provider. We accept the retention cost below only
       // because the user explicitly asked to keep replay audio.
       this.client.appendInputAudio(audioData);
-      this.pendingInputAudioBytes += audioData.byteLength;
       return;
     }
 
@@ -658,7 +704,6 @@ export class OpenAIClient implements IClient {
     this.client.realtime.send('input_audio_buffer.append', {
       audio: arrayBufferToBase64(audioData)
     });
-    this.pendingInputAudioBytes += audioData.byteLength;
   }
 
   appendInputText(text: string): void {
@@ -689,8 +734,15 @@ export class OpenAIClient implements IClient {
       // (conversation: 'none') as they don't use audio input and committing
       // an empty buffer causes "buffer too small" errors
       if (config.conversation !== 'none') {
-        this.client.realtime.send('input_audio_buffer.commit');
-        this.pendingInputAudioBytes = 0;
+        try {
+          this.client.realtime.send('input_audio_buffer.commit');
+          this.pendingInputAudioBytes = 0;
+        } catch (error) {
+          // Abort the turn: a response created over an uncommitted buffer would
+          // answer the wrong audio, or fail on the same dead socket anyway.
+          this.reportSendFailure('input_audio_buffer.commit', error);
+          return;
+        }
       }
 
       // Send response.create event with per-turn configuration
@@ -729,21 +781,40 @@ export class OpenAIClient implements IClient {
       }
 
       // Use the underlying realtime API to send the event
-      this.client.realtime.send('response.create', responseEvent);
+      try {
+        this.client.realtime.send('response.create', responseEvent);
+      } catch (error) {
+        this.reportSendFailure('response.create', error);
+      }
     } else if (this.keepReplayAudio) {
       // The SDK still owns the audio buffer on the replay path, so let it do the
-      // commit and hand the audio to the conversation as it always has.
-      this.client.createResponse();
+      // commit and hand the audio to the conversation as it always has. It sends
+      // the commit and response.create itself, so one guard covers both.
+      try {
+        this.client.createResponse();
+      } catch (error) {
+        this.reportSendFailure('response.create', error);
+      }
     } else {
       // Mirror RealtimeClient.createResponse() for the non-retaining path.
       // It commits only when turn detection is off and audio is actually
       // pending; committing an empty buffer is rejected as "buffer too small".
       // The byte counter is all that decision ever needed — not the audio.
       if (!this.client.getTurnDetectionType() && this.pendingInputAudioBytes > 0) {
-        this.client.realtime.send('input_audio_buffer.commit');
-        this.pendingInputAudioBytes = 0;
+        try {
+          this.client.realtime.send('input_audio_buffer.commit');
+          this.pendingInputAudioBytes = 0;
+        } catch (error) {
+          // Same reasoning as the config branch: no commit, no response.
+          this.reportSendFailure('input_audio_buffer.commit', error);
+          return;
+        }
       }
-      this.client.realtime.send('response.create');
+      try {
+        this.client.realtime.send('response.create');
+      } catch (error) {
+        this.reportSendFailure('response.create', error);
+      }
     }
   }
 

@@ -202,3 +202,101 @@ describe('OpenAIClient — input audio buffer retention (issue #406)', () => {
     });
   });
 });
+
+// RealtimeAPI.send() throws `RealtimeAPI is not connected` once the socket is
+// down (dist/index.js:339). The beta SDK never guards its own sends, so these
+// throws used to escape into the per-chunk audio callback in MainPanel, which
+// has no try/catch around it. The GA client doesn't have this problem: the
+// official `openai` SDK catches inside send() and routes to _onError. This
+// brings the beta client to the same effective behaviour.
+describe('OpenAIClient — realtime send failure handling', () => {
+  let client: any;
+  let sdk: any;
+  let onError: any;
+  let onRealtimeEvent: any;
+
+  beforeEach(() => {
+    client = new OpenAIClient('test-api-key');
+    sdk = client.client;
+    onError = vi.fn();
+    onRealtimeEvent = vi.fn();
+    client.setEventHandlers({ onError, onRealtimeEvent });
+    client.keepReplayAudio = false;
+  });
+
+  const chunk = () => new Int16Array(4096);
+  const failEverySend = () => sdk.realtime.send.mockImplementation(() => {
+    throw new Error('RealtimeAPI is not connected');
+  });
+  const sentTypes = () => sdk.realtime.send.mock.calls.map((c: any[]) => c[0]);
+  const reportedOps = () => onRealtimeEvent.mock.calls
+    .filter((c: any[]) => c[0].event.type === 'session.error')
+    .map((c: any[]) => c[0].event.data.operation);
+
+  it('does not let an append failure escape into the audio callback', () => {
+    failEverySend();
+
+    expect(() => client.appendInputAudio(chunk())).not.toThrow();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(reportedOps()).toEqual(['input_audio_buffer.append']);
+  });
+
+  it('reports a sustained append failure once, not once per chunk', () => {
+    failEverySend();
+
+    for (let i = 0; i < 50; i++) client.appendInputAudio(chunk());
+
+    // onError appends an item to the conversation list (MainPanel), and this
+    // path runs ~6x/second at 24kHz, so per-chunk reporting would bury the
+    // transcript under hundreds of duplicate error entries.
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(reportedOps()).toEqual(['input_audio_buffer.append']);
+  });
+
+  it('reports again after the socket recovers and fails a second time', () => {
+    failEverySend();
+    client.appendInputAudio(chunk());
+
+    sdk.realtime.send.mockImplementation(() => {});
+    client.appendInputAudio(chunk());
+
+    failEverySend();
+    client.appendInputAudio(chunk());
+
+    // A new outage is new information, so the latch must clear on success.
+    expect(onError).toHaveBeenCalledTimes(2);
+  });
+
+  it('aborts response creation when the PTT commit fails', () => {
+    sdk.turnDetectionType = undefined;
+    client.appendInputAudio(chunk());
+    sdk.realtime.send.mockClear();
+    failEverySend();
+
+    expect(() => client.createResponse()).not.toThrow();
+
+    // Creating a response over an uncommitted buffer would answer the wrong
+    // audio, so the commit failure has to stop the turn.
+    expect(sentTypes()).toEqual(['input_audio_buffer.commit']);
+    expect(reportedOps()).toEqual(['input_audio_buffer.commit']);
+  });
+
+  it('reports a response.create failure without throwing', () => {
+    sdk.realtime.send.mockImplementation((type: string) => {
+      if (type === 'response.create') throw new Error('RealtimeAPI is not connected');
+    });
+
+    expect(() => client.createResponse()).not.toThrow();
+    expect(reportedOps()).toEqual(['response.create']);
+  });
+
+  it('catches failures on the keepReplayAudio path too', () => {
+    client.keepReplayAudio = true;
+    sdk.appendInputAudio.mockImplementation(() => {
+      throw new Error('RealtimeAPI is not connected');
+    });
+
+    expect(() => client.appendInputAudio(chunk())).not.toThrow();
+    expect(reportedOps()).toEqual(['input_audio_buffer.append']);
+  });
+});
