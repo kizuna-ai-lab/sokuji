@@ -10,20 +10,68 @@ const execPromise = util.promisify(exec);
 const fs = require('fs').promises;
 const path = require('path');
 
+// The device the driver publishes. Matched as a substring, and kept here rather
+// than inline so the renderer's own label match (detectAndSetVirtualSpeaker)
+// and this one cannot drift apart.
+const VIRTUAL_DEVICE_NAME = 'SokujiVirtualAudio';
+
+/**
+ * Put the virtual device back to unity gain if something moved it.
+ *
+ * Reported as "SokujiVirtualAudio is visible but receives no audio": macOS
+ * stores the device's volume and restores it onto the driver, a macOS 15 -> 26
+ * upgrade was measured leaving it at scalar 0.5, and the driver's logarithmic
+ * volume control makes that -32 dB - 2.5% of the amplitude, which reads as
+ * silence at the far end while every diagnostic says the device is fine.
+ *
+ * Best-effort by construction: a helper that is missing, old, or unable to
+ * write the property must not stop the app from starting.
+ */
+async function restoreVirtualDeviceGain({ host = audioHost } = {}) {
+  let result = null;
+  try {
+    result = await host.ensureUnityGain(VIRTUAL_DEVICE_NAME);
+  } catch (error) {
+    console.warn('[Sokuji] [macOS Audio] Could not check virtual device gain:', error);
+    return;
+  }
+
+  if (!result) {
+    console.warn('[Sokuji] [macOS Audio] Could not check the virtual device gain; if other applications hear silence, check that SokujiVirtualAudio is at full volume in Audio MIDI Setup');
+    return;
+  }
+  if (!result.found) {
+    // Installed on disk but not registered with Core Audio - a restart usually
+    // settles it, and the caller has already told the user how that looks.
+    console.warn('[Sokuji] [macOS Audio] Virtual device is installed but not registered with Core Audio yet');
+    return;
+  }
+  if (result.changed || result.unmuted) {
+    console.log(`[Sokuji] [macOS Audio] Virtual device gain restored to unity (was output=${result.before?.output}, input=${result.before?.input}${result.unmuted ? ', and it was muted' : ''})`);
+    return;
+  }
+  console.log('[Sokuji] [macOS Audio] Virtual device gain is at unity');
+}
+
 /**
  * Create virtual audio devices on macOS using Sokuji Virtual Audio
  * This function checks if our bundled driver is installed by the PKG installer
+ * @param {{host?: object, isInstalled?: function}} deps - injected in tests
  * @returns {Promise<boolean>} True if virtual devices can be used, false otherwise
  */
-async function createVirtualAudioDevices() {
+async function createVirtualAudioDevices({
+  host = audioHost,
+  isInstalled: checkInstalled = isSokujiVirtualAudioInstalled,
+} = {}) {
   try {
     console.log('[Sokuji] [macOS Audio] Checking for Sokuji Virtual Audio devices...');
 
     // Check if our custom driver is installed
-    const isInstalled = await isSokujiVirtualAudioInstalled();
+    const isInstalled = await checkInstalled();
 
     if (isInstalled) {
       console.log('[Sokuji] [macOS Audio] Sokuji Virtual Audio is installed and ready');
+      await restoreVirtualDeviceGain({ host });
       return true;
     }
 
@@ -314,6 +362,8 @@ module.exports = {
   startCapture: audioHost.startCapture,
   stopCapture: audioHost.stopCapture,
   createVirtualAudioDevices,
+  restoreVirtualDeviceGain,
+  VIRTUAL_DEVICE_NAME,
   removeVirtualAudioDevices,
   isMacOSAudioAvailable,
   cleanupOrphanedDevices,

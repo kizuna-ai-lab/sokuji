@@ -21,6 +21,15 @@
 //       playing, and follows the application's audio process objects as macOS
 //       destroys and recreates them - see retarget() below.
 //
+//   sokuji-audio-host --ensure-unity-gain <device name substring>
+//       Restores that device's volume to unity and clears its mute, then writes
+//       one JSON object to stdout and exits 0:
+//         {"found":true,"name":"SokujiVirtualAudio","changed":true,
+//          "before":{"output":0.5,"input":0.5},"after":{"output":1,"input":1},
+//          "unmuted":false}
+//       A device that is not present is {"found":false} and still exit 0 - not
+//       having the driver installed is a normal state, not a failure.
+//
 // Exit codes: 0 clean, 1 runtime failure, 2 bad usage.
 //
 // stdout carries ONLY PCM. Everything else goes to stderr, or the audio stream
@@ -175,6 +184,138 @@ func runList() -> Int32 {
         "{\"id\":\"pid:\(s.pid)\",\"label\":\"\(jsonEscape(s.label))\",\"exe\":\"\(jsonEscape(s.exe))\",\"active\":\(s.active)}"
     }
     FileHandle.standardOutput.write(("[" + rows.joined(separator: ",") + "]").data(using: .utf8)!)
+    return 0
+}
+
+// MARK: - --ensure-unity-gain
+
+// macOS keeps a per-device volume in coreaudiod's own settings store and pushes
+// it onto the driver as the device registers, so the stored value outlives the
+// driver binary - reinstalling the driver does not reset it.
+//
+// A macOS 15 -> 26 upgrade was measured leaving SokujiVirtualAudio's stored
+// volume at scalar 0.5. The driver's volume control is logarithmic across a
+// 64 dB range, so scalar 0.5 is -32 dB: it passes 2.5% of the amplitude, not
+// half. Nothing errors and audio still flows, but the receiving application
+// hears what sounds like silence and the level meter in Audio MIDI Setup does
+// not move - which reads as "the virtual device is broken", and is exactly how
+// it was reported.
+//
+// Unity is the only meaningful setting for a bus no human listens to directly,
+// so put it back instead of asking every user to find a slider they never
+// knowingly moved. Writing the scalar needs no privilege and no entitlement,
+// and coreaudiod persists it at its next restart - verified on 26.6.1.
+
+func scopedAddress(_ selector: AudioObjectPropertySelector,
+                   _ scope: AudioObjectPropertyScope) -> AudioObjectPropertyAddress {
+    AudioObjectPropertyAddress(mSelector: selector,
+                               mScope: scope,
+                               mElement: kAudioObjectPropertyElementMain)
+}
+
+func volumeScalar(_ device: AudioObjectID, _ scope: AudioObjectPropertyScope) -> Float32? {
+    var addr = scopedAddress(kAudioDevicePropertyVolumeScalar, scope)
+    guard AudioObjectHasProperty(device, &addr) else { return nil }
+    var value: Float32 = 0
+    var size = UInt32(MemoryLayout<Float32>.size)
+    guard AudioObjectGetPropertyData(device, &addr, 0, nil, &size, &value) == noErr else { return nil }
+    return value
+}
+
+/// True only when the value was actually written. A device without the control,
+/// or one that reports it read-only, is not a failure worth reporting: some
+/// virtual devices legitimately have no volume at all.
+func setVolumeScalar(_ device: AudioObjectID, _ scope: AudioObjectPropertyScope, _ value: Float32) -> Bool {
+    var addr = scopedAddress(kAudioDevicePropertyVolumeScalar, scope)
+    guard AudioObjectHasProperty(device, &addr) else { return false }
+    var settable: DarwinBoolean = false
+    guard AudioObjectIsPropertySettable(device, &addr, &settable) == noErr, settable.boolValue else { return false }
+    var v = value
+    return AudioObjectSetPropertyData(device, &addr, 0, nil, UInt32(MemoryLayout<Float32>.size), &v) == noErr
+}
+
+func muteFlag(_ device: AudioObjectID, _ scope: AudioObjectPropertyScope) -> UInt32? {
+    var addr = scopedAddress(kAudioDevicePropertyMute, scope)
+    guard AudioObjectHasProperty(device, &addr) else { return nil }
+    var value: UInt32 = 0
+    var size = UInt32(MemoryLayout<UInt32>.size)
+    guard AudioObjectGetPropertyData(device, &addr, 0, nil, &size, &value) == noErr else { return nil }
+    return value
+}
+
+func clearMute(_ device: AudioObjectID, _ scope: AudioObjectPropertyScope) -> Bool {
+    var addr = scopedAddress(kAudioDevicePropertyMute, scope)
+    guard AudioObjectHasProperty(device, &addr) else { return false }
+    var settable: DarwinBoolean = false
+    guard AudioObjectIsPropertySettable(device, &addr, &settable) == noErr, settable.boolValue else { return false }
+    var v: UInt32 = 0
+    return AudioObjectSetPropertyData(device, &addr, 0, nil, UInt32(MemoryLayout<UInt32>.size), &v) == noErr
+}
+
+func jsonNumber(_ value: Float32?) -> String {
+    guard let value else { return "null" }
+    return String(format: "%.4f", value)
+}
+
+func runEnsureUnityGain(deviceName needle: String) -> Int32 {
+    // Both scopes carry a control, and in BlackHole-derived drivers they are two
+    // faces of one value - but that is the driver's business, not ours. Setting
+    // each independently keeps this correct for any device.
+    let scopes: [(String, AudioObjectPropertyScope)] = [
+        ("output", kAudioObjectPropertyScopeOutput),
+        ("input", kAudioObjectPropertyScopeInput),
+    ]
+
+    let device = objectIDs(kAudioHardwarePropertyDevices).first {
+        (stringProp($0, kAudioObjectPropertyName) ?? "").localizedCaseInsensitiveContains(needle)
+    }
+    guard let device else {
+        FileHandle.standardOutput.write("{\"found\":false}".data(using: .utf8)!)
+        return 0
+    }
+
+    var before: [String: Float32?] = [:]
+    var after: [String: Float32?] = [:]
+    var changed = false
+    var unmuted = false
+    var writeFailed = false
+
+    // Read every scope before writing any of them. In BlackHole-derived drivers
+    // the two scopes are two faces of one stored value, so repairing the output
+    // scope silently repairs the input scope too - and a read-as-you-go loop
+    // would then report the input scope as having been fine all along. The
+    // report is what we get to debug from, so it has to describe the state we
+    // actually found.
+    for (label, scope) in scopes { before[label] = volumeScalar(device, scope) }
+
+    for (label, scope) in scopes {
+        // Compared against a tolerance because the scalar makes a round trip
+        // through the driver's dB curve: writing 1.0 and reading it back can
+        // land a hair under, and re-writing it on every launch would be noise.
+        if let current = before[label] ?? nil, current < 0.999 {
+            if setVolumeScalar(device, scope, 1.0) { changed = true } else { writeFailed = true }
+        }
+
+        if let mute = muteFlag(device, scope), mute != 0 {
+            if clearMute(device, scope) { unmuted = true } else { writeFailed = true }
+        }
+    }
+
+    for (label, scope) in scopes { after[label] = volumeScalar(device, scope) }
+
+    let name = stringProp(device, kAudioObjectPropertyName) ?? needle
+    let json = "{\"found\":true,\"name\":\"\(jsonEscape(name))\"," +
+        "\"changed\":\(changed),\"unmuted\":\(unmuted)," +
+        "\"before\":{\"output\":\(jsonNumber(before["output"] ?? nil)),\"input\":\(jsonNumber(before["input"] ?? nil))}," +
+        "\"after\":{\"output\":\(jsonNumber(after["output"] ?? nil)),\"input\":\(jsonNumber(after["input"] ?? nil))}}"
+    FileHandle.standardOutput.write(json.data(using: .utf8)!)
+
+    // A device that is present but refuses the write is worth surfacing: the
+    // caller cannot tell it apart from success by the audio alone.
+    if writeFailed {
+        emitError("volume_write_failed")
+        return 1
+    }
     return 0
 }
 
@@ -660,6 +801,12 @@ func SetupSignals() {
 let args = CommandLine.arguments
 if args.count >= 2 && args[1] == "--list" {
     exit(runList())
+} else if args.count >= 3 && args[1] == "--ensure-unity-gain" {
+    guard !args[2].isEmpty else {
+        emitError("bad_device_name")
+        exit(2)
+    }
+    exit(runEnsureUnityGain(deviceName: args[2]))
 } else if args.count >= 3 && args[1] == "--target" {
     if args[2] == "system" {
         SetupSignals()
@@ -675,5 +822,6 @@ if args.count >= 2 && args[1] == "--list" {
     emit("usage:")
     emit("  sokuji-audio-host --list")
     emit("  sokuji-audio-host --target pid:<processId>")
+    emit("  sokuji-audio-host --ensure-unity-gain <deviceName>")
     exit(2)
 }
