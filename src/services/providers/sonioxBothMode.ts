@@ -20,15 +20,15 @@
 // the gate takes the derived boolean as a plain input. That matters: the gate
 // is also loaded by the subtitle window, and this file's import of
 // SonioxProviderConfig pulls SonioxClient and the i18n bootstrap behind it.
-import { Provider, kizunaBaseProvider } from '../../types/Provider';
+// Type-only, so this adds no runtime edge: this module still has no import of
+// ProviderConfigFactory or any concrete descriptor.
+import type { BothModePlan } from './ProviderDescriptor';
 
 /** Structurally identical to audioStore's AudioMode, declared locally so this
  *  module does not import a Zustand store into every caller. */
 export type SonioxBothModeScope = 'speaker' | 'participant' | 'both';
 
 export interface SonioxBothModeInput {
-  /** The ACTIVE provider id — the Kizuna-managed twin, not its base. */
-  provider: Provider;
   /**
    * The ACTIVE provider's settings slice (`soniox` for BYOK, `kizunaSoniox`
    * for the managed twin), resolved by the descriptor's settingsSliceKey.
@@ -40,12 +40,10 @@ export interface SonioxBothModeInput {
   mode: SonioxBothModeScope;
 }
 
-export interface SonioxBothModePlan {
-  /** One Soniox session, mic and system audio mixed (`mix_stt`). */
-  shared: boolean;
-  /** Two Soniox sessions, one per audio source (`spk_stt` + `par_stt`). */
-  split: boolean;
-}
+/** Alias for the descriptor-level type — this module's own return shape was
+ *  the type before ProviderDescriptor.planBothMode existed; kept as a
+ *  type-only re-export so existing importers of the name are unaffected. */
+export type SonioxBothModePlan = BothModePlan;
 
 /**
  * Does Both mode run on ONE shared Soniox session?
@@ -76,14 +74,14 @@ export function sonioxUsesSharedBothSession(
 }
 
 export function sonioxBothModePlan(input: SonioxBothModeInput): SonioxBothModePlan {
-  const { provider, settings, mode } = input;
+  const { settings, mode } = input;
 
-  // Effective provider, so the KIZUNA_AI_SONIOX managed twin resolves to
-  // SONIOX. A raw `provider === Provider.SONIOX` test is always false for the
-  // twin — the exact bug this expression carried before, which opened two
-  // independent managed sessions and had the second refused with a 409.
-  const isSoniox = (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX;
-  if (!isSoniox || mode !== 'both') return { shared: false, split: false };
+  // Provider dispatch no longer lives here: this module is the Soniox
+  // descriptor's planBothMode implementation (twin included, by class
+  // extension), so "is this Soniox at all" is answered by which descriptor
+  // you asked. The registry test pins that the managed twin and BYOK answer
+  // identically — the 409 twin bug this module's old isSoniox line existed for.
+  if (mode !== 'both') return { shared: false, split: false };
 
   // The stored preference, through the shared helper rather than reading
   // `bothModeSharedSession` directly: the helper is the one place the default

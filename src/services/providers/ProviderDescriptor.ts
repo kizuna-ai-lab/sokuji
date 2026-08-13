@@ -61,6 +61,13 @@ export type ClientOptions = {
   };
 };
 
+export interface BothModePlan {
+  /** One session, mic and system audio mixed. */
+  shared: boolean;
+  /** Two sessions, one per audio source. */
+  split: boolean;
+}
+
 export interface ParticipantNotice {
   channel: 'error' | 'warning' | 'info';
   message: string;
@@ -127,6 +134,12 @@ export interface ProviderDescriptor {
   resolveSourceLanguages(): LanguageOption[];
   resolveTargetLanguages(source: string): LanguageOption[];
   reconcileTarget(source: string, currentTarget: string): string;
+
+  /** Session shape for Both mode. Base: neither — one client per channel,
+   *  the historical fall-through every non-Soniox provider runs today.
+   *  `mode` is the effective AudioMode-shaped scope ('speaker' | 'participant'
+   *  | 'both'). */
+  planBothMode(slice: unknown, mode: string): BothModePlan;
 }
 
 /** Shared defaults. Subclasses override only what differs from the common case
@@ -189,5 +202,9 @@ export abstract class BaseProviderDescriptor implements ProviderDescriptor {
   reconcileTarget(source: string, currentTarget: string): string {
     const allowed = this.resolveTargetLanguages(source).map(l => l.value);
     return allowed.includes(currentTarget) ? currentTarget : (allowed[0] ?? currentTarget);
+  }
+
+  planBothMode(_slice: unknown, _mode: string): BothModePlan {
+    return { shared: false, split: false };
   }
 }

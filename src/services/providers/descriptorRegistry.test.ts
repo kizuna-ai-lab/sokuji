@@ -542,3 +542,44 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
     expect(ClientFactory.createClient('m', Provider.LOCAL_INFERENCE, '')).toBeTruthy();
   });
 });
+
+describe('S3 planBothMode', () => {
+  it('is inert for every non-Soniox descriptor in every mode', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      if (id === Provider.SONIOX || id === Provider.KIZUNA_AI_SONIOX) continue;
+      const d = ProviderConfigFactory.getDescriptor(id);
+      for (const mode of ['speaker', 'participant', 'both']) {
+        expect(d.planBothMode(DEFAULTS_BY_SLICE[d.settingsSliceKey], mode), `${id}/${mode}`)
+          .toEqual({ shared: false, split: false });
+      }
+    }
+  });
+
+  it('the managed twin answers exactly like BYOK Soniox (the 409 twin bug, pinned at this layer)', () => {
+    // Historically a raw `provider === Provider.SONIOX` dispatch was always
+    // false for the twin, which opened two independent managed sessions and
+    // had the second refused with a 409. Dispatch now lives in the registry:
+    // the twin inherits the override by class extension, pinned here.
+    const byok = ProviderConfigFactory.getDescriptor(Provider.SONIOX);
+    const twin = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
+    for (const settings of [
+      { bothModeSharedSession: true, sourceLanguage: 'en' },
+      { bothModeSharedSession: true, sourceLanguage: 'auto' },
+      { bothModeSharedSession: false, sourceLanguage: 'en' },
+      undefined,
+    ]) {
+      for (const mode of ['speaker', 'both']) {
+        expect(twin.planBothMode(settings, mode), `${JSON.stringify(settings)}/${mode}`)
+          .toEqual(byok.planBothMode(settings, mode));
+      }
+    }
+  });
+
+  it('Soniox Both mode: shared needs the toggle AND a concrete source; split is the toggle off', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.SONIOX);
+    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'en' }, 'both')).toEqual({ shared: true, split: false });
+    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'auto' }, 'both')).toEqual({ shared: false, split: false });
+    expect(d.planBothMode({ bothModeSharedSession: false, sourceLanguage: 'en' }, 'both')).toEqual({ shared: false, split: true });
+    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'en' }, 'speaker')).toEqual({ shared: false, split: false });
+  });
+});

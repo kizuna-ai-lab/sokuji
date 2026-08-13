@@ -1,10 +1,11 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, ClientOptions, ParticipantSessionResult, BothModePlan } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, SonioxSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
 import { byokCredentials } from '../clients/ManagedSonioxSession';
 import { SONIOX_VOICES, SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
+import { sonioxBothModePlan, SonioxBothModeScope } from './sonioxBothMode';
 
 // Soniox Settings — single BYOK API key (extractCredentials inherited from base)
 export interface SonioxSettings {
@@ -219,6 +220,16 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     const sx = result.config as SonioxSessionConfig;
     [sx.sourceLanguage, sx.targetLanguage] = [sx.targetLanguage, sx.sourceLanguage];
     return result;
+  }
+
+  // The Kizuna-managed twin inherits this unchanged (class extension, not a
+  // provider switch): descriptorRegistry.test.ts pins that it answers exactly
+  // like BYOK Soniox — the 409 twin bug the old isSoniox dispatch existed for.
+  planBothMode(slice: unknown, mode: string): BothModePlan {
+    return sonioxBothModePlan({
+      settings: slice as { bothModeSharedSession?: boolean; sourceLanguage?: string } | null | undefined,
+      mode: mode as SonioxBothModeScope,
+    });
   }
 
   // The 60 languages from Soniox's own STS demo app — translation is
