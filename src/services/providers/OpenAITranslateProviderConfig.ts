@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions, TransportType } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, ClientOptions, TransportType, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, OpenAITranslateSessionConfig, TranslateTargetLanguage } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
@@ -113,6 +113,32 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
       userSilenceDurationMs: Math.round(settings.userSilenceDuration * 1000),
       assistantSilenceDurationMs: Math.round(settings.assistantSilenceDuration * 1000),
     } as OpenAITranslateSessionConfig;
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    const tConfig = result.config as OpenAITranslateSessionConfig;
+
+    // OpenAI Translate carries language direction only in `audio.output.language`
+    // (not system instructions — translate doesn't accept instructions). Swap
+    // targetLanguage to settings.sourceLanguage so the participant client
+    // translates "their speech → user's language" instead of mirroring the
+    // speaker's direction. If the user picked a sourceLanguage outside the
+    // 13 supported targets, the swap may produce an invalid target — the UI
+    // already warns about this combination, and the API will surface a clear
+    // error if the user proceeds anyway.
+    const oldTarget: TranslateTargetLanguage = tConfig.targetLanguage;
+    const oldSource: string | undefined = tConfig.sourceLanguage;
+    // Cast: type-system can't validate at this layer; runtime gating is
+    // the UI warning + API error message.
+    tConfig.targetLanguage = (oldSource ?? oldTarget) as TranslateTargetLanguage;
+    tConfig.sourceLanguage = oldTarget;
+
+    return result;
   }
 
   // 13 target languages supported by gpt-realtime-translate.

@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, GeminiSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { GeminiClient } from '../clients/GeminiClient';
@@ -7,6 +7,7 @@ import {
   buildGeminiTranslationConfig,
   isGeminiTranslateModel,
   toTranslationLanguageCode,
+  reverseGeminiTranslationDirection,
 } from './geminiTranslateModel';
 
 // Gemini Settings
@@ -83,6 +84,29 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
         ? toTranslationLanguageCode(settings.sourceLanguage)
         : undefined,
     } as GeminiSessionConfig;
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    const config = {
+      ...result.config,
+      // Force Auto mode for Gemini participant (no PTT for participant)
+      turnDetectionMode: 'Auto' as const,
+    } as GeminiSessionConfig;
+
+    // Gemini's dialogue models need nothing here: their direction rides in the
+    // system instruction, which was already swapped above. A Live Translate
+    // session does, because its `translationConfig.targetLanguageCode`
+    // overrules that instruction — left alone, the participant session would
+    // translate the other party's speech into the language they are already
+    // speaking. No-op when no translationConfig is present.
+    reverseGeminiTranslationDirection(config);
+
+    return { config, notices: result.notices };
   }
 
   private static readonly LANGUAGES: LanguageOption[] = [

@@ -17,8 +17,27 @@ import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultVolcengineSTSettings } from './VolcengineSTProviderConfig';
 import { defaultZoomAISettings } from './ZoomAIProviderConfig';
+import { defaultGeminiSettings } from './GeminiProviderConfig';
+import { defaultOpenAISettings } from './OpenAIProviderConfig';
+import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
+import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
+import { reverseGeminiTranslationDirection } from './geminiTranslateModel';
+import { reverseTranscriptionDirection } from './openaiTranscriptionContext';
+import type {
+  GeminiSessionConfig,
+  OpenAISessionConfig,
+  OpenAITranslateSessionConfig,
+} from '../interfaces/IClient';
 
 const shell = { keepReplayAudio: false };
+
+// Local mapping from settingsSliceKey to default settings slice, scoped to
+// the two openai-family providers exercised below — mirrors DEFAULTS_BY_SLICE
+// in descriptorRegistry.test.ts.
+const DEFAULTS_BY_SLICE_LOCAL: Record<string, unknown> = {
+  openai: defaultOpenAISettings,
+  openaiCompatible: defaultOpenAICompatibleSettings,
+};
 
 describe('participant config: direction lives in config fields', () => {
   it('soniox swaps sourceLanguage/targetLanguage', () => {
@@ -65,5 +84,52 @@ describe('participant config: direction lives in config fields', () => {
       expect(c.sourceLanguage, `rotate for ${id}`).toBe(base.targetLanguages[0] || base.sourceLanguage);
       expect(c.targetLanguages, `rotate for ${id}`).toEqual([base.sourceLanguage]);
     }
+  });
+});
+
+describe('participant config: helper-based reversals', () => {
+  it('gemini forces turnDetectionMode Auto and reverses translationConfig when present', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
+    const slice = { ...defaultGeminiSettings };
+    const { config } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    const c = config as GeminiSessionConfig & { turnDetectionMode?: string };
+    expect(c.turnDetectionMode).toBe('Auto');
+    // Behavioural equality with the helper is asserted exactly: applying
+    // reverseGeminiTranslationDirection to a fresh base+overrides copy must
+    // yield the same object.
+    const expected = {
+      ...d.buildSessionConfig(slice, 'i'),
+      keepReplayAudio: false,
+      textOnly: true,
+      turnDetection: { type: 'semantic_vad', createResponse: true, interruptResponse: false, eagerness: 'high' },
+      turnDetectionMode: 'Auto',
+    } as unknown as GeminiSessionConfig;
+    reverseGeminiTranslationDirection(expected);
+    expect(c).toEqual(expected);
+  });
+
+  it('openai and openai_compatible rebuild the transcription hint for the reversed direction', () => {
+    for (const id of [Provider.OPENAI, Provider.OPENAI_COMPATIBLE]) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      const slice = { ...(DEFAULTS_BY_SLICE_LOCAL[d.settingsSliceKey] as Record<string, unknown>) };
+      const { config } = d.buildParticipantSessionConfig(slice, 'i', shell);
+      const expected = {
+        ...d.buildSessionConfig(slice, 'i'),
+        keepReplayAudio: false,
+        textOnly: true,
+        turnDetection: { type: 'semantic_vad', createResponse: true, interruptResponse: false, eagerness: 'high' },
+      } as OpenAISessionConfig;
+      reverseTranscriptionDirection(expected);
+      expect(config, `hint reversal for ${id}`).toEqual(expected);
+    }
+  });
+
+  it('openai_translate swaps targetLanguage to the old sourceLanguage', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE);
+    const slice = { ...defaultOpenAITranslateSettings, sourceLanguage: 'ja', targetLanguage: 'en' };
+    const base = d.buildSessionConfig(slice, 'i') as OpenAITranslateSessionConfig;
+    const c = d.buildParticipantSessionConfig(slice, 'i', shell).config as OpenAITranslateSessionConfig;
+    expect(c.targetLanguage).toBe(base.sourceLanguage ?? base.targetLanguage);
+    expect(c.sourceLanguage).toBe(base.targetLanguage);
   });
 });
