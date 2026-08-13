@@ -154,7 +154,8 @@ export interface SessionResources {
   legClientOptions(role: 'speaker' | 'participant'): Partial<ClientOptions>;
   /** Present iff the session runs on a metered budget. Drives the countdown
    *  generically — a data condition, not a provider condition. Returns null
-   *  while the budget is not yet known. */
+   *  while the budget is not yet known. Implementations must not rely on `this`:
+   *  callers may extract the function and call it bare. */
   budget?: () => BudgetSnapshot | null;
   /** Idempotent. 'aborted' = Start failed after acquire (the no-channel
    *  abort branch); 'disconnect' = normal teardown, including the
@@ -169,7 +170,11 @@ export interface AcquireSessionResourcesContext {
   /** The session's channel matrix, resolved by MainPanel. `textOnly` is the
    *  EFFECTIVE session text-only-ness — `speakerWillStart ? <store snapshot>
    *  : true` — resolved at the call site; the rule and its rationale live at
-   *  the MainPanel computation, the descriptor consumes the value. */
+   *  the MainPanel computation, the descriptor consumes the value. `splitBoth`
+   *  feeds the resolver's both-split decision; `sharedBoth` is carried for
+   *  call-shape symmetry and deliberately NOT read — the soniox resolver
+   *  derives roles from the acquire body instead (resolveManagedSonioxWiring
+   *  documents why). */
   wiring: {
     speakerWillStart: boolean;
     participantWillStart: boolean;

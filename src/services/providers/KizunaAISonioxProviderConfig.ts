@@ -25,9 +25,8 @@ import i18n from '../../locales';
 export const defaultKizunaSonioxSettings: SonioxSettings = { ...defaultSonioxSettings };
 
 /** The exact message this twin has always produced for a signed-out user.
- *  Exported so MainPanel's acquire path can throw the same sentence — the
- *  lease moved out of the client, so the sign-in gate now fires there first.
- *  Pinned by descriptorRegistry.test.ts. */
+ *  Exported for tests to verify the exact error message thrown by
+ *  acquireSessionResources when the auth token is not available. */
 export const KIZUNA_SIGN_IN_REQUIRED = 'Sign in is required for Kizuna providers';
 
 /**
