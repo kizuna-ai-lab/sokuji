@@ -61,6 +61,21 @@ export type ClientOptions = {
   };
 };
 
+export interface ParticipantNotice {
+  channel: 'error' | 'warning' | 'info';
+  message: string;
+}
+
+export interface ParticipantSessionResult {
+  /** null ⇒ this provider cannot run a participant leg right now; MainPanel
+   *  maps null to the participant-skip path (splitParticipantFailure =
+   *  'no-participant-config'). */
+  config: SessionConfig | null;
+  /** User-facing participant.error/.warning/.info events. Emitting them is
+   *  MainPanel's job (side effects stay in the component). */
+  notices: ParticipantNotice[];
+}
+
 /**
  * The deep module for one provider. Everything the app needs to know about a
  * provider is answered here; callers dispatch via
@@ -93,6 +108,22 @@ export interface ProviderDescriptor {
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig;
 
+  /**
+   * Session config for the participant (reverse-direction) channel.
+   *
+   * Base: buildSessionConfig(slice, swappedInstructions) + the generic
+   * participant overrides — textOnly is forced true (the participant leg
+   * never speaks), turn detection is overridden to OpenAI-shaped semantic
+   * VAD (providers that don't read the field ignore it, exactly as before
+   * the extraction). Providers whose direction lives in config fields
+   * override to also reverse those fields.
+   */
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult;
+
   resolveSourceLanguages(): LanguageOption[];
   resolveTargetLanguages(source: string): LanguageOption[];
   reconcileTarget(source: string, currentTarget: string): string;
@@ -111,6 +142,26 @@ export abstract class BaseProviderDescriptor implements ProviderDescriptor {
     validation: ApiKeyValidationResult; models: FilteredModel[];
   }>;
   abstract buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig;
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const config = {
+      ...this.buildSessionConfig(slice, swappedInstructions),
+      keepReplayAudio: shell.keepReplayAudio,
+      textOnly: true,
+      // Override turn detection to use semantic VAD for participant audio (OpenAI-compatible)
+      turnDetection: {
+        type: 'semantic_vad' as const,
+        createResponse: true,
+        interruptResponse: false,
+        eagerness: 'high',
+      },
+    } as SessionConfig;
+    return { config, notices: [] };
+  }
 
   latestRealtimeModel(models: FilteredModel[]): string {
     return models[0]?.id ?? this.getConfig().models[0]?.id ?? '';

@@ -472,6 +472,21 @@ describe('S1 capability flags', () => {
   });
 });
 
+describe('S2 buildParticipantSessionConfig', () => {
+  it('every descriptor answers with a ParticipantSessionResult shape', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      const slice = DEFAULTS_BY_SLICE[d.settingsSliceKey];
+      const res = d.buildParticipantSessionConfig(slice, 'instr', { keepReplayAudio: false });
+      expect(Array.isArray(res.notices), `notices array for ${id}`).toBe(true);
+      if (res.config !== null) {
+        expect(res.config.textOnly, `participant textOnly for ${id}`).toBe(true);
+        expect(res.config.keepReplayAudio, `keepReplayAudio for ${id}`).toBe(false);
+      }
+    }
+  });
+});
+
 describe('legacy façade credential guards (deprecated ClientOperations/ClientFactory paths)', () => {
   // The production path runs extractCredentials first, but the @deprecated
   // façades accept raw positional args — they must keep the old contract of
