@@ -232,6 +232,13 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     });
   }
 
+  // Soniox reverses sourceLanguage/targetLanguage directly for the
+  // participant leg, whatever the model — an 'auto' source would reverse into
+  // the literal 'auto' as the participant's translate target.
+  reversesDirectionViaSourceLanguage(): boolean {
+    return true;
+  }
+
   // The 60 languages from Soniox's own STS demo app — translation is
   // any-to-any across this set, so source and target share one list
   // (the "Auto Detect" source option is injected by the generic UI).

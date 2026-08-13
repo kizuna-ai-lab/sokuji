@@ -543,6 +543,32 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
   });
 });
 
+describe('S3 reversesDirectionViaSourceLanguage', () => {
+  const TRANSLATE = 'gemini-3.5-live-translate-preview';
+  const DIALOGUE = 'gemini-3.1-flash-live-preview';
+
+  it('true for Soniox and its managed twin regardless of model', () => {
+    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).reversesDirectionViaSourceLanguage(undefined)).toBe(true);
+    expect(ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX).reversesDirectionViaSourceLanguage(undefined)).toBe(true);
+  });
+
+  it('gemini: only the live-translate models', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
+    expect(d.reversesDirectionViaSourceLanguage(TRANSLATE)).toBe(true);
+    expect(d.reversesDirectionViaSourceLanguage(DIALOGUE)).toBe(false);
+    expect(d.reversesDirectionViaSourceLanguage(undefined)).toBe(false);
+  });
+
+  it('false for every other descriptor, any model', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.GEMINI].includes(id)) continue;
+      const d = ProviderConfigFactory.getDescriptor(id);
+      expect(d.reversesDirectionViaSourceLanguage(TRANSLATE), `${id}`).toBe(false);
+      expect(d.reversesDirectionViaSourceLanguage(undefined), `${id}`).toBe(false);
+    }
+  });
+});
+
 describe('S3 planBothMode', () => {
   it('is inert for every non-Soniox descriptor in every mode', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {

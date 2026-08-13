@@ -109,6 +109,13 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
     return { config, notices: result.notices };
   }
 
+  // Only the Live Translate models: their translationConfig.targetLanguageCode
+  // overrules the instruction, so the instruction swap cannot stand in for it.
+  // Dialogue Live models carry direction in the instruction like everyone else.
+  reversesDirectionViaSourceLanguage(model: string | null | undefined): boolean {
+    return isGeminiTranslateModel(model);
+  }
+
   private static readonly LANGUAGES: LanguageOption[] = [
     { name: 'English (United States)', value: 'en-US', englishName: 'English (United States)' },
     { name: 'English (Australia)', value: 'en-AU', englishName: 'English (Australia)' },
