@@ -191,6 +191,12 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
         
         temperatureRange: { min: 0.0, max: 2.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 8192, step: 1 },
+
+        pushGatedModes: ['Push-to-Talk', 'Push-to-Translate'],
+        supportsTextInput: true,
+        // Too little speech actively cancels the turn so Gemini doesn't
+        // generate a response for silence.
+        pttFinalization: { response: 'voice-gated-cancel' },
       },
     };
   }

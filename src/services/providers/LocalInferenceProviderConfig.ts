@@ -153,6 +153,14 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        pushGatedModes: ['Push-to-Talk', 'Push-to-Translate'],
+        supportsTextInput: true,
+        usesLocalPromptTemplate: true,
+        // Silero VAD needs a 700 ms silence tail to detect end-of-speech;
+        // createResponse always follows — for streaming ASR it flushes the
+        // pending utterance, for offline ASR it is harmless.
+        pttFinalization: { silenceTailFrames: 7, response: 'always' },
       },
     };
   }

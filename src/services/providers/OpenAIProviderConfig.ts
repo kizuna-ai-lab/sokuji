@@ -296,6 +296,12 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
         
         temperatureRange: { min: 0.6, max: 1.2, step: 0.01 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        // 'Disabled' is OpenAI's spelling of push-to-talk (the settings UI
+        // renames it); 'Push-to-Translate' adds passthrough during idle.
+        pushGatedModes: ['Disabled', 'Push-to-Translate'],
+        supportsTextInput: true,
+        queuesTextWhileResponding: true,
       },
     };
   }

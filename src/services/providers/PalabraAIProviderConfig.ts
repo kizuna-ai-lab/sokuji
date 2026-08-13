@@ -301,6 +301,11 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
         
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        // LiveKit-based: always webrtc transport, regardless of the user's
+        // transport preference. (Capture is still appendInputAudio — see
+        // supportsWebRTC, which stays false.)
+        forcedTransport: 'webrtc',
       },
     };
   }

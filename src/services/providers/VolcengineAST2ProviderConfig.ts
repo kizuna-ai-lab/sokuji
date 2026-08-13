@@ -148,6 +148,11 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        pushGatedModes: ['Push-to-Talk', 'Push-to-Translate'],
+        // 500 ms silence tail for the server VAD; AST2 creates the response
+        // server-side, so the client never calls createResponse on release.
+        pttFinalization: { silenceTailFrames: 5, response: 'server-decides' },
       },
     };
   }

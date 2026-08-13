@@ -353,6 +353,125 @@ describe('registry invariants', () => {
   });
 });
 
+describe('S1 capability flags', () => {
+  const PUSH_GATED: Record<Provider, string[] | undefined> = {
+    [Provider.OPENAI]: ['Disabled', 'Push-to-Translate'],
+    [Provider.OPENAI_COMPATIBLE]: ['Disabled', 'Push-to-Translate'], // inherited from OpenAI via ...base
+    [Provider.GEMINI]: ['Push-to-Talk', 'Push-to-Translate'],
+    [Provider.LOCAL_INFERENCE]: ['Push-to-Talk', 'Push-to-Translate'],
+    [Provider.LOCAL_NATIVE]: ['Push-to-Talk', 'Push-to-Translate'],
+    [Provider.VOLCENGINE_AST2]: ['Push-to-Talk', 'Push-to-Translate'],
+    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: ['Push-to-Talk', 'Push-to-Translate'], // twin spread
+    [Provider.OPENAI_TRANSLATE]: undefined,
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
+    [Provider.SONIOX]: undefined,
+    [Provider.KIZUNA_AI_SONIOX]: undefined,
+    [Provider.PALABRA_AI]: undefined,
+    [Provider.VOLCENGINE_ST]: undefined,
+    [Provider.ZOOM_AI]: undefined,
+  };
+
+  const TEXT_INPUT: Record<Provider, boolean | undefined> = {
+    [Provider.OPENAI]: true,
+    [Provider.OPENAI_COMPATIBLE]: true, // inherited
+    [Provider.GEMINI]: true,
+    [Provider.LOCAL_INFERENCE]: true,
+    [Provider.LOCAL_NATIVE]: true,
+    [Provider.OPENAI_TRANSLATE]: undefined,
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
+    [Provider.SONIOX]: undefined,
+    [Provider.KIZUNA_AI_SONIOX]: undefined,
+    [Provider.VOLCENGINE_AST2]: undefined,
+    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: undefined,
+    [Provider.PALABRA_AI]: undefined,
+    [Provider.VOLCENGINE_ST]: undefined,
+    [Provider.ZOOM_AI]: undefined,
+  };
+
+  const QUEUES_TEXT: Provider[] = [Provider.OPENAI, Provider.OPENAI_COMPATIBLE];
+  const LOCAL_PROMPT: Provider[] = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
+
+  const PTT_FINALIZATION: Record<Provider, { silenceTailFrames?: number; response: string } | undefined> = {
+    [Provider.LOCAL_INFERENCE]: { silenceTailFrames: 7, response: 'always' },
+    [Provider.LOCAL_NATIVE]: { silenceTailFrames: 7, response: 'always' },
+    [Provider.VOLCENGINE_AST2]: { silenceTailFrames: 5, response: 'server-decides' },
+    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: { silenceTailFrames: 5, response: 'server-decides' }, // twin spread
+    [Provider.GEMINI]: { response: 'voice-gated-cancel' },
+    [Provider.OPENAI]: undefined,
+    [Provider.OPENAI_COMPATIBLE]: undefined,
+    [Provider.OPENAI_TRANSLATE]: undefined,
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
+    [Provider.SONIOX]: undefined,
+    [Provider.KIZUNA_AI_SONIOX]: undefined,
+    [Provider.PALABRA_AI]: undefined,
+    [Provider.VOLCENGINE_ST]: undefined,
+    [Provider.ZOOM_AI]: undefined,
+  };
+
+  it('declares pushGatedModes exactly where the settings vocabulary has push-gated modes', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(caps.pushGatedModes, `pushGatedModes for ${id}`).toEqual(PUSH_GATED[id]);
+    }
+  });
+
+  it('pushGatedModes entries are unique non-empty strings', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const modes = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities.pushGatedModes;
+      if (!modes) continue;
+      expect(modes.length, `non-empty list for ${id}`).toBeGreaterThan(0);
+      expect(new Set(modes).size, `no duplicates for ${id}`).toBe(modes.length);
+      for (const m of modes) expect(m, `non-empty mode string for ${id}`).toBeTruthy();
+    }
+  });
+
+  it('declares supportsTextInput on exactly the five whitelisted providers', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(caps.supportsTextInput, `supportsTextInput for ${id}`).toBe(TEXT_INPUT[id]);
+    }
+  });
+
+  it('queuesTextWhileResponding only on providers that also support text input', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(!!caps.queuesTextWhileResponding, `queuesTextWhileResponding for ${id}`).toBe(QUEUES_TEXT.includes(id));
+      if (caps.queuesTextWhileResponding) {
+        expect(caps.supportsTextInput, `queueing implies text input for ${id}`).toBe(true);
+      }
+    }
+  });
+
+  it('usesLocalPromptTemplate only on the local providers', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(!!caps.usesLocalPromptTemplate, `usesLocalPromptTemplate for ${id}`).toBe(LOCAL_PROMPT.includes(id));
+    }
+  });
+
+  it('pttFinalization matches the behavior table, with valid frame counts', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(caps.pttFinalization, `pttFinalization for ${id}`).toEqual(PTT_FINALIZATION[id]);
+      const frames = caps.pttFinalization?.silenceTailFrames;
+      if (frames !== undefined) {
+        expect(Number.isInteger(frames) && frames > 0, `positive integer frames for ${id}`).toBe(true);
+      }
+    }
+  });
+
+  it('forcedTransport only on PalabraAI, and it names a real transport', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      if (id === Provider.PALABRA_AI) {
+        expect(caps.forcedTransport, `forcedTransport for ${id}`).toBe('webrtc');
+      } else {
+        expect(caps.forcedTransport, `no forcedTransport for ${id}`).toBeUndefined();
+      }
+    }
+  });
+});
+
 describe('legacy façade credential guards (deprecated ClientOperations/ClientFactory paths)', () => {
   // The production path runs extractCredentials first, but the @deprecated
   // façades accept raw positional args — they must keep the old contract of
