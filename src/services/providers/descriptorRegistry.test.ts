@@ -627,7 +627,7 @@ describe('S4 prepareToStart', () => {
 
 describe('S6 acquireSessionResources', () => {
   it('is declared only where a session leases resources (kizuna-soniox)', () => {
-    const WITH_RESOURCES: Provider[] = []; // Task 3 flips this to [Provider.KIZUNA_AI_SONIOX]
+    const WITH_RESOURCES: Provider[] = [Provider.KIZUNA_AI_SONIOX];
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(typeof d.acquireSessionResources === 'function', `resource hook presence for ${id}`)

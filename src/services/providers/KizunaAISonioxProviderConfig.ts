@@ -1,10 +1,21 @@
 import { SonioxProviderConfig, SonioxSettings, defaultSonioxSettings } from './SonioxProviderConfig';
 import { ProviderConfig } from './ProviderConfig';
-import { Credentials, CredentialCtx, ClientOptions, PreparePorts, PrepareOutcome } from './ProviderDescriptor';
+import {
+  Credentials,
+  CredentialCtx,
+  ClientOptions,
+  PreparePorts,
+  PrepareOutcome,
+  AcquireSessionResourcesContext,
+  SessionResources,
+} from './ProviderDescriptor';
 import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
 import { ManagedVoicesClient } from '../clients/ManagedVoicesClient';
+import { ManagedSonioxSession } from '../clients/ManagedSonioxSession';
+import { computeSonioxRemainingMs, computeSonioxBudgetTotalMs, type SonioxBudgetSnapshot } from '../clients/SonioxCostMeter';
+import { resolveManagedSonioxWiring, managedLegOptions } from './managedSonioxSplit';
 import { prepareManagedVoice, resolveVoicePrepOutcome } from './managedVoicePrep';
 import { loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
 import { SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
@@ -103,6 +114,65 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
     } finally {
       ports.onPhase(null);
     }
+  }
+
+  async acquireSessionResources(ctx: AcquireSessionResourcesContext): Promise<SessionResources | null> {
+    // The whole wiring decision, in one pure value: the matrix body to buy,
+    // and the STT role each leg runs. Both roles are derived from the body,
+    // so they mirror the server's own expansion — `credentialsFor` throws for
+    // a role that was never issued, and `session-started` answers 400
+    // `role_not_issued`, which leaves the lease at its start window while
+    // both Soniox keys stay valid for the full grant.
+    const wiring = resolveManagedSonioxWiring({
+      speakerWillStart: ctx.wiring.speakerWillStart,
+      participantWillStart: ctx.wiring.participantWillStart,
+      textOnly: ctx.wiring.textOnly,
+      sonioxSharedBoth: ctx.wiring.sharedBoth,
+      sonioxSplitBoth: ctx.wiring.splitBoth,
+    });
+    const token = await ctx.getAuthToken();
+    if (!token) throw new Error(KIZUNA_SIGN_IN_REQUIRED);
+    const session = new ManagedSonioxSession({
+      sessionToken: token,
+      // The session's sink is typed `(type: string, ...)` because it must not
+      // depend on any event union; the ctx port carries the closed two-member
+      // vocabulary, so this narrows rather than widens — same escape as when
+      // SonioxClient emitted these itself.
+      onEvent: (type, data) =>
+        ctx.onEvent(type as Parameters<AcquireSessionResourcesContext['onEvent']>[0], data),
+    });
+    try {
+      await session.acquire(wiring.acquire);
+    } catch (error) {
+      // Normative error path: clean up our own partial state, then rethrow.
+      // end() no-ops without a lease, so this is safe wherever acquire failed.
+      session.end();
+      throw error;
+    }
+    // Static budget parameters are read once (they don't change over the
+    // lease); remaining time is recomputed against the clock on every call —
+    // the caller polls once a second.
+    let snapshot: SonioxBudgetSnapshot | null = null;
+    return {
+      legClientOptions: (role) => {
+        const options = managedLegOptions(role, session, wiring);
+        return options ? { sonioxManaged: options } : {};
+      },
+      budget: () => {
+        snapshot ??= session.getBudgetSnapshot();
+        return snapshot
+          ? {
+              remainingMs: computeSonioxRemainingMs(Date.now(), snapshot),
+              totalMs: computeSonioxBudgetTotalMs(snapshot),
+            }
+          : null;
+      },
+      release: () => {
+        // end() carries its own idempotency and no-lease guards; the reason
+        // parameter is contract vocabulary, not behavior, today.
+        session.end();
+      },
+    };
   }
 
   // Backend-managed twin: the "credential" is a Better Auth session token,
