@@ -1,10 +1,11 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
 import { getTranslationSourceLanguages, getManifestEntry, getTtsModelsForLanguage, getTranslationModel } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, LocalInferenceSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalInferenceClient } from '../clients/LocalInferenceClient';
+import { createParticipantLocalInferenceConfig } from './localParticipantConfig';
 
 // Local Inference Settings
 export interface LocalInferenceSettings {
@@ -115,6 +116,33 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
       turnDetectionMode: settings.turnDetectionMode,
       wrapTranscript,
     } as LocalInferenceSessionConfig;
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const base = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    const localConfig = base.config as LocalInferenceSessionConfig;
+    const result = createParticipantLocalInferenceConfig(localConfig);
+
+    if (!result.success) {
+      const channel: ParticipantNotice['channel'] = result.reason === 'memory_exceeded' ? 'warning' : 'error';
+      return { config: null, notices: [{ channel, message: result.detail }] };
+    }
+
+    const notices: ParticipantNotice[] = [];
+
+    if (!result.status.translationAvailable) {
+      notices.push({ channel: 'warning', message: `No translation model for ${localConfig.targetLanguage} → ${localConfig.sourceLanguage} — transcription only` });
+    }
+
+    if (result.status.asrFallback) {
+      notices.push({ channel: 'info', message: `Using ${result.status.asrModelId} instead of ${result.status.asrOriginalModelId} for ASR` });
+    }
+
+    return { config: result.config, notices };
   }
 
   private static readonly MODELS: ModelOption[] = [

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
@@ -8,6 +8,11 @@ vi.mock('../../utils/environment', async (orig) => ({
   isElectron: () => true,
   isExtension: () => false,
   getRelayWsUrl: () => 'wss://r.example/v1',
+}));
+
+vi.mock('./localParticipantConfig', () => ({
+  createParticipantLocalInferenceConfig: vi.fn(),
+  createParticipantLocalNativeConfig: vi.fn(),
 }));
 
 import { ProviderConfigFactory } from './ProviderConfigFactory';
@@ -21,13 +26,21 @@ import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
 import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
 import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
+import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
+import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { reverseGeminiTranslationDirection } from './geminiTranslateModel';
 import { reverseTranscriptionDirection } from './openaiTranscriptionContext';
+import { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from './localParticipantConfig';
 import type {
   GeminiSessionConfig,
   OpenAISessionConfig,
   OpenAITranslateSessionConfig,
+  LocalInferenceSessionConfig,
+  LocalNativeSessionConfig,
 } from '../interfaces/IClient';
+
+const mockedLocalInference = vi.mocked(createParticipantLocalInferenceConfig);
+const mockedLocalNative = vi.mocked(createParticipantLocalNativeConfig);
 
 const shell = { keepReplayAudio: false };
 
@@ -133,5 +146,153 @@ describe('participant config: helper-based reversals', () => {
     const c = d.buildParticipantSessionConfig(slice, 'i', shell).config as OpenAITranslateSessionConfig;
     expect(c.targetLanguage).toBe(base.sourceLanguage ?? base.targetLanguage);
     expect(c.sourceLanguage).toBe(base.targetLanguage);
+  });
+});
+
+describe('participant config: local providers (mocked helpers)', () => {
+  beforeEach(() => {
+    mockedLocalInference.mockReset();
+    mockedLocalNative.mockReset();
+  });
+
+  it('local_inference: success with translation available and no ASR fallback maps to config + no notices', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
+    const slice = { ...defaultLocalInferenceSettings };
+    const resultConfig = { provider: 'local_inference', sourceLanguage: 'en', targetLanguage: 'ja' } as LocalInferenceSessionConfig;
+    mockedLocalInference.mockReturnValue({
+      success: true,
+      config: resultConfig,
+      status: {
+        asrAvailable: true, asrModelId: 'sensevoice-int8', asrFallback: false,
+        asrOriginalModelId: 'sensevoice-int8', translationAvailable: true, translationModelId: 'opus-mt-en-ja',
+      },
+    });
+
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).toBe(resultConfig);
+    expect(notices).toEqual([]);
+  });
+
+  it("local_inference: failure reason 'memory_exceeded' returns null config + warning notice", () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
+    const slice = { ...defaultLocalInferenceSettings };
+    mockedLocalInference.mockReturnValue({
+      success: false, reason: 'memory_exceeded', detail: 'Total RAM ~5000MB exceeds budget ~4000MB (device memory: 4GB)',
+    });
+
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).toBeNull();
+    expect(notices).toEqual([{ channel: 'warning', message: 'Total RAM ~5000MB exceeds budget ~4000MB (device memory: 4GB)' }]);
+  });
+
+  it('local_inference: other failure reason returns null config + error notice', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
+    const slice = { ...defaultLocalInferenceSettings };
+    mockedLocalInference.mockReturnValue({
+      success: false, reason: 'no_asr', detail: 'No ASR model available for en',
+    });
+
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).toBeNull();
+    expect(notices).toEqual([{ channel: 'error', message: 'No ASR model available for en' }]);
+  });
+
+  it('local_inference: translationAvailable false emits the exact target → source warning template', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
+    const slice = { ...defaultLocalInferenceSettings, sourceLanguage: 'ja', targetLanguage: 'en' };
+    mockedLocalInference.mockReturnValue({
+      success: true,
+      config: { provider: 'local_inference' } as LocalInferenceSessionConfig,
+      status: {
+        asrAvailable: true, asrModelId: 'sensevoice-int8', asrFallback: false,
+        asrOriginalModelId: 'sensevoice-int8', translationAvailable: false, translationModelId: null,
+      },
+    });
+
+    const { notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(notices).toEqual([{ channel: 'warning', message: 'No translation model for en → ja — transcription only' }]);
+  });
+
+  it('local_inference: asrFallback emits the exact info template', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
+    const slice = { ...defaultLocalInferenceSettings };
+    mockedLocalInference.mockReturnValue({
+      success: true,
+      config: { provider: 'local_inference' } as LocalInferenceSessionConfig,
+      status: {
+        asrAvailable: true, asrModelId: 'sensevoice-int8', asrFallback: true,
+        asrOriginalModelId: 'whisper-large', translationAvailable: true, translationModelId: 'opus-mt-ja-en',
+      },
+    });
+
+    const { notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(notices).toEqual([{ channel: 'info', message: 'Using sensevoice-int8 instead of whisper-large for ASR' }]);
+  });
+
+  it('local_native: failure returns null config + error notice', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_NATIVE);
+    const slice = { ...defaultLocalNativeSettings };
+    mockedLocalNative.mockReturnValue({
+      success: false, reason: 'no_asr', detail: 'No ASR model available for en',
+    });
+
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).toBeNull();
+    expect(notices).toEqual([{ channel: 'error', message: 'No ASR model available for en' }]);
+  });
+
+  it('local_native: translationAvailable false emits the exact source → target warning template (direction differs from local_inference)', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_NATIVE);
+    const slice = { ...defaultLocalNativeSettings };
+    mockedLocalNative.mockReturnValue({
+      success: true,
+      translationAvailable: false,
+      config: { provider: 'local_native', sourceLanguage: 'en', targetLanguage: 'ja' } as LocalNativeSessionConfig,
+    });
+
+    const { notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(notices).toEqual([{ channel: 'warning', message: 'No translation model for en → ja — transcription only' }]);
+  });
+
+  it('local_native: success with translation available maps to config + no notices', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_NATIVE);
+    const slice = { ...defaultLocalNativeSettings };
+    const resultConfig = { provider: 'local_native', sourceLanguage: 'en', targetLanguage: 'ja' } as LocalNativeSessionConfig;
+    mockedLocalNative.mockReturnValue({ success: true, translationAvailable: true, config: resultConfig });
+
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).toBe(resultConfig);
+    expect(notices).toEqual([]);
+  });
+
+  it('local_inference and local_native pass the BASE participant config (textOnly + semantic VAD already applied) to their helper', () => {
+    const dInf = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
+    mockedLocalInference.mockReturnValue({
+      success: true,
+      config: {} as LocalInferenceSessionConfig,
+      status: {
+        asrAvailable: true, asrModelId: 'x', asrFallback: false,
+        asrOriginalModelId: 'x', translationAvailable: true, translationModelId: 'y',
+      },
+    });
+    dInf.buildParticipantSessionConfig({ ...defaultLocalInferenceSettings }, 'i', shell);
+    const infCalls = mockedLocalInference.mock.calls;
+    const argInf = infCalls[infCalls.length - 1]?.[0] as unknown as {
+      textOnly?: boolean; turnDetection?: unknown; keepReplayAudio?: boolean;
+    };
+    expect(argInf.textOnly).toBe(true);
+    expect(argInf.turnDetection).toEqual({ type: 'semantic_vad', createResponse: true, interruptResponse: false, eagerness: 'high' });
+    expect(argInf.keepReplayAudio).toBe(false);
+
+    const dNat = ProviderConfigFactory.getDescriptor(Provider.LOCAL_NATIVE);
+    mockedLocalNative.mockReturnValue({ success: true, translationAvailable: true, config: {} as LocalNativeSessionConfig });
+    dNat.buildParticipantSessionConfig({ ...defaultLocalNativeSettings }, 'i', shell);
+    const natCalls = mockedLocalNative.mock.calls;
+    const argNat = natCalls[natCalls.length - 1]?.[0] as unknown as {
+      textOnly?: boolean; turnDetection?: unknown; keepReplayAudio?: boolean;
+    };
+    expect(argNat.textOnly).toBe(true);
+    expect(argNat.turnDetection).toEqual({ type: 'semantic_vad', createResponse: true, interruptResponse: false, eagerness: 'high' });
+    expect(argNat.keepReplayAudio).toBe(false);
   });
 });

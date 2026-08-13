@@ -1,7 +1,7 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
 import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, LocalNativeSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalNativeClient } from '../clients/LocalNativeClient';
@@ -10,6 +10,7 @@ import type { NativeModelInfo } from '../../lib/local-inference/native/nativePro
 // nativeModelStore imports no provider modules, so this store read introduces
 // no cycle; the descriptor needs the sidecar catalog for TTS auto-resolution.
 import { useNativeModelStore } from '../../stores/nativeModelStore';
+import { createParticipantLocalNativeConfig } from './localParticipantConfig';
 
 /**
  * Native (Electron sidecar) provider settings. Keeps field parity with
@@ -163,6 +164,32 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
     // matching the builder's default-catalog semantics.
     const catalog = useNativeModelStore.getState().catalog;
     return createLocalNativeSessionConfig(slice as LocalNativeSettings, systemInstructions, catalog);
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const base = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    // Native ASR/translate carry the translation direction in
+    // sourceLanguage/targetLanguage AND in the chosen model ids (a directional
+    // Opus model bakes the direction in; a source-specific ASR only handles one
+    // language). Reverse the direction and re-resolve both models for the
+    // reversed pair — see createParticipantLocalNativeConfig.
+    const result = createParticipantLocalNativeConfig(base.config as LocalNativeSessionConfig);
+
+    if (!result.success) {
+      return { config: null, notices: [{ channel: 'error', message: result.detail }] };
+    }
+
+    const notices: ParticipantNotice[] = [];
+
+    if (!result.translationAvailable) {
+      notices.push({ channel: 'warning', message: `No translation model for ${result.config.sourceLanguage} → ${result.config.targetLanguage} — transcription only` });
+    }
+
+    return { config: result.config, notices };
   }
 
   private static readonly MODELS: ModelOption[] = [
