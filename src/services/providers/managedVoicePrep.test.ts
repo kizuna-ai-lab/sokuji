@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { prepareManagedVoice, voicePrepNotice } from './prepareManagedVoice';
-import { SonioxVoicesError } from '../../services/clients/SonioxVoicesClient';
-import type { ManagedVoicesClient } from '../../services/clients/ManagedVoicesClient';
+import { prepareManagedVoice, voicePrepNotice } from './managedVoicePrep';
+import { SonioxVoicesError } from '../clients/SonioxVoicesClient';
+import type { ManagedVoicesClient } from '../clients/ManagedVoicesClient';
 
 const clip = () => new Blob([new Uint8Array([1])], { type: 'audio/wav' });
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { resolveVoicePrepOutcome } from './prepareManagedVoice';
-import type { VoicePrepResult } from './prepareManagedVoice';
+import { resolveVoicePrepOutcome } from './managedVoicePrep';
+import type { VoicePrepResult } from './managedVoicePrep';
 
 /**
  * Regression coverage for two properties of MainPanel.tsx's connectConversation

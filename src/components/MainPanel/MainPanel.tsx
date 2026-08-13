@@ -60,7 +60,7 @@ import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../types/Provider';
 import { computeStartGate, noChannelCameUp, reasonToI18n } from './sessionStartGate';
-import { prepareManagedVoice, resolveVoicePrepOutcome } from './prepareManagedVoice';
+import { prepareManagedVoice, resolveVoicePrepOutcome } from '../../services/providers/managedVoicePrep';
 import { ManagedVoicesClient } from '../../services/clients/ManagedVoicesClient';
 import { loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
 import { useSubtitleSessionBridge } from './useSubtitleSessionBridge';

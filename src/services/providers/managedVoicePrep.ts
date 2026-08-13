@@ -19,6 +19,7 @@
  * evaluated by the subtitle window too, so an uploading ten-second side effect
  * there would break the property that lets both surfaces agree.
  */
+// Moved beside its caller (KizunaAISonioxProviderConfig.prepareToStart, S5); deliberately React-, store- and i18n-free — a descriptor calls it without cycles.
 import type { ManagedVoicesClient } from '../../services/clients/ManagedVoicesClient';
 import { SonioxVoicesError } from '../../services/clients/SonioxVoicesClient';
 
