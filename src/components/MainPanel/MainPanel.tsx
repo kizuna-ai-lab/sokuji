@@ -24,14 +24,12 @@ import {
   useKeepReplayAudio,
   useTextOnly,
 } from '../../stores/settingsStore';
-import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
+import useSettingsStore from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { isPushGatedMode } from '../../services/providers/speechMode';
 import { SonioxProviderConfig, defaultSonioxSettings } from '../../services/providers/SonioxProviderConfig';
 import { sonioxBothModePlan, type SonioxBothModePlan } from '../../services/providers/sonioxBothMode';
-import { reverseTranscriptionDirection } from '../../services/providers/openaiTranscriptionContext';
-import { reverseGeminiTranslationDirection } from '../../services/providers/geminiTranslateModel';
 import { reversesDirectionViaSourceLanguage } from '../../services/providers/autoSourceReversal';
 import {
   useConversationDisplayFontSize,
@@ -51,7 +49,7 @@ import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent, EventData } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig, LocalNativeSessionConfig, OpenAITranslateSessionConfig, OpenAISessionConfig, TranslateTargetLanguage, ZoomAISessionConfig, SonioxSessionConfig, PalabraAISessionConfig, GeminiSessionConfig } from '../../services/interfaces/IClient';
+import type { SonioxSessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -915,160 +913,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }), [addRealtimeEvent, trackEvent, provider, telemetryPortsFor]);
 
   /**
-   * Helper to create session config for participant mode (swapped languages, text-only, semantic VAD)
+   * Session config for the participant channel. All per-provider direction
+   * reversal lives in the descriptors (buildParticipantSessionConfig); this
+   * callback owns only the store reads and the side effects — emitting the
+   * descriptor's notices and returning null for the participant-skip path.
    */
   const createParticipantSessionConfig = useCallback((): SessionConfig | null => {
-    const swappedSystemInstructions = ProviderConfigFactory.getDescriptor(provider).getConfig().capabilities.usesLocalPromptTemplate
+    const descriptor = ProviderConfigFactory.getDescriptor(provider);
+    const swappedSystemInstructions = descriptor.getConfig().capabilities.usesLocalPromptTemplate
       ? getProcessedLocalPrompt(true)
       : getProcessedSystemInstructions(true);
-    const baseConfig = createSessionConfig(swappedSystemInstructions);
-    const config = {
-      ...baseConfig,
-      textOnly: true,
-      // Override turn detection to use semantic VAD for participant audio (OpenAI-compatible)
-      turnDetection: {
-        type: 'semantic_vad' as const,
-        createResponse: true,
-        interruptResponse: false,
-        eagerness: 'high',
-      },
-      // Force Auto mode for Gemini participant (no PTT for participant)
-      ...(baseConfig.provider === 'gemini' ? { turnDetectionMode: 'Auto' as const } : {}),
-    };
-
-    // Gemini's dialogue models need nothing here: their direction rides in the
-    // system instruction, which was already swapped above. A Live Translate
-    // session does, because its `translationConfig.targetLanguageCode`
-    // overrules that instruction — left alone, the participant session would
-    // translate the other party's speech into the language they are already
-    // speaking. No-op when no translationConfig is present.
-    if (config.provider === 'gemini') {
-      reverseGeminiTranslationDirection(config as GeminiSessionConfig);
+    const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore];
+    const { config, notices } = descriptor.buildParticipantSessionConfig(slice, swappedSystemInstructions, {
+      keepReplayAudio: useSettingsStore.getState().keepReplayAudio,
+    });
+    for (const n of notices) {
+      const type = `participant.${n.channel === 'error' ? 'error' : n.channel === 'warning' ? 'warning' : 'info'}` as const;
+      addRealtimeEvent({ type, data: { message: n.message } }, 'client', type);
     }
-
-    // OpenAI Translate carries language direction only in `audio.output.language`
-    // (not system instructions — translate doesn't accept instructions). Swap
-    // targetLanguage to settings.sourceLanguage so the participant client
-    // translates "their speech → user's language" instead of mirroring the
-    // speaker's direction. If the user picked a sourceLanguage outside the
-    // 13 supported targets, the swap may produce an invalid target — the UI
-    // already warns about this combination, and the API will surface a clear
-    // error if the user proceeds anyway.
-    if (config.provider === 'openai_translate') {
-      const tConfig = config as OpenAITranslateSessionConfig;
-      const oldTarget: TranslateTargetLanguage = tConfig.targetLanguage;
-      const oldSource: string | undefined = tConfig.sourceLanguage;
-      // Cast: type-system can't validate at this layer; runtime gating is
-      // the UI warning + API error message.
-      tConfig.targetLanguage = (oldSource ?? oldTarget) as TranslateTargetLanguage;
-      tConfig.sourceLanguage = oldTarget;
-    }
-
-    // OpenAI (and its compatible/Kizuna twins) carry the direction in
-    // `instructions`, already reversed above — except for the transcription
-    // hint, which is built from the user's source language. The participant
-    // speaks the configured *target* language, so leaving the hint alone would
-    // point their ASR at the wrong language, i.e. actively worse than sending
-    // no hint at all. Rebuild it around the reversed direction; the glossary
-    // carries over, since proper nouns are the same either way.
-    if (config.provider === 'openai' || config.provider === 'cometapi') {
-      reverseTranscriptionDirection(config as OpenAISessionConfig);
-    }
-
-    // Volcengine providers carry language direction in explicit config fields
-    // (not system instructions), so we must swap sourceLanguage/targetLanguage
-    // for the participant session to reverse the translation direction.
-    if (config.provider === 'volcengine_ast2') {
-      const ast2 = config as VolcengineAST2SessionConfig;
-      [ast2.sourceLanguage, ast2.targetLanguage] = [ast2.targetLanguage, ast2.sourceLanguage];
-    } else if (config.provider === 'soniox') {
-      // Soniox carries direction in sourceLanguage/targetLanguage; reverse it so the
-      // participant translates the other party's speech into the user's language.
-      const sx = config as SonioxSessionConfig;
-      [sx.sourceLanguage, sx.targetLanguage] = [sx.targetLanguage, sx.sourceLanguage];
-    } else if (config.provider === 'palabraai') {
-      // PalabraAI ignores `instructions` entirely — set_task carries the direction
-      // in pipeline.transcription.source_language and
-      // pipeline.translations[0].target_language, built from these two fields. Without
-      // this swap the participant session transcribes the other party's speech under
-      // the *user's* language and "translates" it back to the other party's language,
-      // so the other party's own language comes out on both lines.
-      //
-      // The two fields use different code spaces (targets carry region suffixes like
-      // en-us, sources don't), but the API strips the suffix before validating a
-      // source, so a plain swap holds for every target we offer. In the other
-      // direction five source languages aren't valid targets (eu, ga, mn, mt, ug);
-      // picking one of those makes the reversed task fail with the API's
-      // VALIDATION_ERROR, which arrives as a data message and surfaces through
-      // handleError rather than throwing out of connect().
-      const pa = config as PalabraAISessionConfig;
-      [pa.sourceLanguage, pa.targetLanguage] = [pa.targetLanguage, pa.sourceLanguage];
-    } else if (config.provider === 'local_native') {
-      // Native ASR/translate carry the translation direction in
-      // sourceLanguage/targetLanguage AND in the chosen model ids (a directional
-      // Opus model bakes the direction in; a source-specific ASR only handles one
-      // language). Reverse the direction and re-resolve both models for the
-      // reversed pair — see createParticipantLocalNativeConfig.
-      const result = createParticipantLocalNativeConfig(config as LocalNativeSessionConfig);
-
-      if (!result.success) {
-        addRealtimeEvent(
-          { type: 'participant.error', data: { message: result.detail } },
-          'client', 'participant.error'
-        );
-        return null;
-      }
-
-      if (!result.translationAvailable) {
-        addRealtimeEvent(
-          { type: 'participant.warning', data: { message: `No translation model for ${result.config.sourceLanguage} → ${result.config.targetLanguage} — transcription only` } },
-          'client', 'participant.warning'
-        );
-      }
-
-      return result.config;
-    } else if (config.provider === 'volcengine_st') {
-      const st = config as VolcengineSTSessionConfig;
-      const oldSource = st.sourceLanguage;
-      st.sourceLanguage = st.targetLanguages[0] || oldSource;
-      st.targetLanguages = [oldSource];
-    } else if (config.provider === 'zoom_ai') {
-      const z = config as ZoomAISessionConfig;
-      const oldSource = z.sourceLanguage;
-      z.sourceLanguage = z.targetLanguages[0] || oldSource;
-      z.targetLanguages = [oldSource];
-    } else if (config.provider === 'local_inference') {
-      const localConfig = config as LocalInferenceSessionConfig;
-      const result = createParticipantLocalInferenceConfig(localConfig);
-
-      if (!result.success) {
-        const eventType = result.reason === 'memory_exceeded' ? 'participant.warning' : 'participant.error';
-        addRealtimeEvent(
-          { type: eventType, data: { message: result.detail } },
-          'client', eventType
-        );
-        return null;
-      }
-
-      if (!result.status.translationAvailable) {
-        addRealtimeEvent(
-          { type: 'participant.warning', data: { message: `No translation model for ${localConfig.targetLanguage} → ${localConfig.sourceLanguage} — transcription only` } },
-          'client', 'participant.warning'
-        );
-      }
-
-      if (result.status.asrFallback) {
-        addRealtimeEvent(
-          { type: 'participant.info', data: { message: `Using ${result.status.asrModelId} instead of ${result.status.asrOriginalModelId} for ASR` } },
-          'client', 'participant.info'
-        );
-      }
-
-      return result.config;
-    }
-
     return config;
-  }, [provider, getProcessedLocalPrompt, getProcessedSystemInstructions, createSessionConfig, addRealtimeEvent]);
+  }, [provider, getProcessedLocalPrompt, getProcessedSystemInstructions, addRealtimeEvent]);
 
   // Initialize auto-update listeners
   const initUpdateListeners = useInitUpdateListeners();
