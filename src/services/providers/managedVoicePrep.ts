@@ -211,8 +211,8 @@ export interface VoicePrepOutcome {
 
 /**
  * Turn a `prepareManagedVoice()` result into the three decisions
- * MainPanel.tsx's `connectConversation` actually needs to make: what voice
- * this session uses, whether to persist a changed id, and what (if
+ * `KizunaAISonioxProviderConfig.prepareToStart` actually needs to make: what
+ * voice this session uses, whether to persist a changed id, and what (if
  * anything) to tell the user afterwards.
  *
  * Pure and side-effect free on purpose — unlike `prepareManagedVoice`
@@ -224,9 +224,10 @@ export interface VoicePrepOutcome {
  * stored preference) — can be imported and tested directly (see
  * `voicePrepWiring.test.ts`) rather than hand-transcribed into a test
  * double. The caller still owns every actual side effect: the
- * `updateKizunaSoniox` store write, the `sessionConfig` mutation, and the
- * `t()` translation of `notice` — none of which belong in a routine this
- * file's other exports keep React- and i18n-free.
+ * `updateProviderSlice` store write and the `sessionConfig` mutation; the
+ * `t()` translation of `notice` happens in the hook itself
+ * (`KizunaAISonioxProviderConfig.prepareToStart`) — none of which belong in
+ * a routine this file's other exports keep React- and i18n-free.
  */
 export function resolveVoicePrepOutcome(
   result: VoicePrepResult,

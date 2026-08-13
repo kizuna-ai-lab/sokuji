@@ -13,7 +13,7 @@ import type { ClientOptions } from '../../services/providers/ProviderDescriptor'
  *
  * There is no React rendering harness in this repo, so anything that can be a
  * plain function is one — the same discipline `resolveVoicePrepOutcome`
- * (prepareManagedVoice.ts) follows, and for the same reason: the alternative is
+ * (managedVoicePrep.ts) follows, and for the same reason: the alternative is
  * a hand-transcribed duplicate inside a test that drifts from the real branch
  * without either side noticing. Only the side effects stay inline in MainPanel.
  */

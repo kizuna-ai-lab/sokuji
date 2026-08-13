@@ -420,7 +420,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // initPhase label — this is the store-subscription case, so there is no
   // local setter to migrate; providers are mutually exclusive per session
   // (only local_native drives asrLoading), so this never races the
-  // local.init.* progress writes below.
+  // local.init.* progress writes below. A prepareToStart hook's onPhase is a
+  // third writer of initPhase (set via the port below, cleared unconditionally
+  // in the hook's own finally) — connectConversation has no re-entry guard, so
+  // a double-Start can still let one attempt's clear stomp another's label;
+  // that hazard predates this hook and is left for a later stage.
   useEffect(() => {
     setInitPhase(asrLoading ? { phase: 'loading-native-asr' } : null);
   }, [asrLoading]);
@@ -1850,8 +1854,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             // Fire-and-forget, as the old named-action write was: a rebuilt
             // voice comes back with a DIFFERENT id, so every ensure response
             // is authoritative — writing it through keeps the settings
-            // dropdown pointing at a voice that actually exists.
-            void useSettingsStore.getState().updateProviderSlice(startDescriptor.settingsSliceKey, prepared.settingsPatch);
+            // dropdown pointing at a voice that actually exists. `.catch`
+            // only logs — it must not turn into an `await`, which would hold
+            // Start open for a write whose outcome this session doesn't need
+            // (an unknown slice key rejects, and a 'throw'-mode slice
+            // propagates its own persistence errors — see settingsStore.ts).
+            void useSettingsStore.getState().updateProviderSlice(startDescriptor.settingsSliceKey, prepared.settingsPatch)
+              .catch((err) => console.error('[Sokuji] [MainPanel] prepareToStart settingsPatch write failed:', err));
           }
           if (prepared.sessionPatch) {
             pendingSessionPatch = prepared.sessionPatch;
