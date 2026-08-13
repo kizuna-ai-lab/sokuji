@@ -788,7 +788,8 @@ const useSettingsStore = create<SettingsStore>()(
     updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
     updateLocalNative: (settings) => updateProviderSlice(set, 'localNative', settings),
     updateProviderSlice: (sliceKey, patch) => {
-      if (!(sliceKey in PROVIDER_SLICE_REGISTRY)) {
+      // hasOwnProperty.call, not `in`: 'toString'/'constructor' must reject, not index the prototype (same idiom as sonioxPreviewSample).
+      if (!Object.prototype.hasOwnProperty.call(PROVIDER_SLICE_REGISTRY, sliceKey)) {
         return Promise.reject(new Error(`updateProviderSlice: unknown slice key '${sliceKey}'`));
       }
       return updateProviderSlice(set, sliceKey as ProviderSliceKey, patch);

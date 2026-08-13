@@ -525,6 +525,12 @@ describe('updateProviderSlice (public generic action)', () => {
     ).rejects.toThrow();
   });
 
+  it('rejects prototype-chain names', async () => {
+    await expect(
+      useSettingsStore.getState().updateProviderSlice('toString', { x: 1 })
+    ).rejects.toThrow();
+  });
+
   it('behaves identically to the named per-provider action', async () => {
     await useSettingsStore.getState().updateProviderSlice('soniox', { voice: 'Daniel' });
     const viaGeneric = useSettingsStore.getState().soniox;
