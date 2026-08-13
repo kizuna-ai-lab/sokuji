@@ -90,7 +90,9 @@ describe('participant config: direction lives in config fields', () => {
 describe('participant config: helper-based reversals', () => {
   it('gemini forces turnDetectionMode Auto and reverses translationConfig when present', () => {
     const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
-    const slice = { ...defaultGeminiSettings };
+    // Non-Auto so the assertion below discriminates the override's forcing
+    // spread from the base builder simply forwarding settings.turnDetectionMode.
+    const slice = { ...defaultGeminiSettings, turnDetectionMode: 'Push-to-Talk' as const };
     const { config } = d.buildParticipantSessionConfig(slice, 'i', shell);
     const c = config as GeminiSessionConfig & { turnDetectionMode?: string };
     expect(c.turnDetectionMode).toBe('Auto');
