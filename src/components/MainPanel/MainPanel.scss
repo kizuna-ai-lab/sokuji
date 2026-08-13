@@ -365,21 +365,6 @@
         font-size: 11px;
         white-space: nowrap;
       }
-
-      // Managed Soniox remaining-time countdown. Below 20% of the session's
-      // granted budget it switches to the same warning red used elsewhere in
-      // this footer (see .status-dot.reconnecting / balance error states).
-      .session-remaining-time {
-        color: #888;
-        font-size: 11px;
-        white-space: nowrap;
-        font-variant-numeric: tabular-nums;
-
-        &.low {
-          color: #e74c3c;
-          font-weight: 600;
-        }
-      }
     }
   }
 
@@ -442,21 +427,6 @@
         color: #888;
         font-size: 11px;
         white-space: nowrap;
-      }
-
-      // Managed Soniox remaining-time countdown. Below 20% of the session's
-      // granted budget it switches to the same warning red used elsewhere in
-      // this footer.
-      .session-remaining-time {
-        color: #888;
-        font-size: 11px;
-        white-space: nowrap;
-        font-variant-numeric: tabular-nums;
-
-        &.low {
-          color: #e74c3c;
-          font-weight: 600;
-        }
       }
     }
   }

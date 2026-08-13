@@ -66,7 +66,6 @@ import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audi
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
-import { formatRemainingTime } from '../../utils/formatters';
 import type { ClientOptions, SessionResources } from '../../services/providers/ProviderDescriptor';
 import {
   resolveParticipantSlot,
@@ -93,6 +92,7 @@ import { buildChannelTelemetryHandlers, type ChannelTelemetryPorts } from './par
 import { NO_CHANNELS_RECONNECTING, type ReconnectingState } from './reconnectingChannels';
 import ModeDevicePopover from './ModeDevicePopover';
 import WaveformStrip from './WaveformStrip';
+import SessionCountdown from './SessionCountdown';
 import { isVirtualDevice, type WarningType } from '../Settings/shared/hooks';
 import WarningModal from '../Settings/shared/WarningModal';
 
@@ -840,7 +840,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const reconnectingChannelsRef = useRef<ReconnectingState>(NO_CHANNELS_RECONNECTING);
 
   // Declared HERE, above createParticipantEventHandlers, and not next to the
-  // countdown state further down: this value appears in that useCallback's
+  // getBudgetSnapshot callback further down: this value appears in that useCallback's
   // dependency array, which is evaluated during render at its own line. A
   // `const` declared later would be in its temporal dead zone at that moment
   // and throw on every render.
@@ -1293,28 +1293,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // client and acquiring them is an awaited round trip that
   // ProviderDescriptor.createClient cannot make.
   const sessionResourcesRef = useRef<SessionResources | null>(null);
-  const [sonioxCountdown, setSonioxCountdown] = useState<{ remainingMs: number; totalMs: number } | null>(null);
-  useEffect(() => {
-    // Data condition, not a provider condition: the countdown runs whenever
-    // the session's resources are metered. The resources are acquired before
-    // any client is constructed and isSessionActive flips only after the legs
-    // come up, so the ref is already populated on this effect's first
-    // active-session run — for every managed row of the matrix including
-    // split, which is why the allowance lives on the SESSION, not a client.
-    const budget = isSessionActive ? sessionResourcesRef.current?.budget : undefined;
-    if (!budget) {
-      setSonioxCountdown(null);
-      return;
-    }
-    const update = () => setSonioxCountdown(budget());
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [isSessionActive, provider]);
-  // Below 20% of the session's granted budget, the countdown switches to a
-  // stronger visual emphasis (see the `.low` class in MainPanel.scss).
-  const sonioxRemainingLow = !!sonioxCountdown && sonioxCountdown.totalMs > 0
-    && sonioxCountdown.remainingMs / sonioxCountdown.totalMs < 0.2;
+  // Stable across renders: reads through the ref so the countdown component
+  // re-polls the live resources without re-arming its interval.
+  const getBudgetSnapshot = useCallback(
+    () => sessionResourcesRef.current?.budget?.() ?? null,
+    [],
+  );
 
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
@@ -4108,11 +4092,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               {isSessionActive && (
                 <span className="session-duration">{sessionDuration}</span>
               )}
-              {isSessionActive && sonioxCountdown && (
-                <span className={`session-remaining-time${sonioxRemainingLow ? ' low' : ''}`}>
-                  {formatRemainingTime(sonioxCountdown.remainingMs)}
-                </span>
-              )}
+              <SessionCountdown active={isSessionActive} getSnapshot={getBudgetSnapshot} />
             </div>
           </div>
         )}
@@ -4252,11 +4232,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               {isSessionActive && (
                 <span className="session-duration">{sessionDuration}</span>
               )}
-              {isSessionActive && sonioxCountdown && (
-                <span className={`session-remaining-time${sonioxRemainingLow ? ' low' : ''}`}>
-                  {formatRemainingTime(sonioxCountdown.remainingMs)}
-                </span>
-              )}
+              <SessionCountdown active={isSessionActive} getSnapshot={getBudgetSnapshot} />
             </div>
           </div>
         )}
