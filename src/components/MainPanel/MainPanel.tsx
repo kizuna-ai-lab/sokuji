@@ -1778,7 +1778,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           prepared = await startDescriptor.prepareToStart(prepareSlice, {
             getAuthToken,
             userId: userId ?? null,
-            revalidate: () => useSettingsStore.getState().validateApiKey(),
+            // `=== true` normalizes ApiKeyValidationResult's boolean|null into the
+            // port's strict boolean — the action never resolves null at runtime, and
+            // the old inline check (`!result.valid`) treated null as invalid anyway.
+            revalidate: () => useSettingsStore.getState().validateApiKey()
+              .then(r => ({ valid: r.valid === true, message: r.message })),
             onPhase: () => {}, // Task 5 wires the state
             signal: prepareAbort.signal,
           });
