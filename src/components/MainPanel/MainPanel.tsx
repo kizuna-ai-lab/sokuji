@@ -744,8 +744,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Convert settings to SessionConfig
    */
   const getSessionConfig = useCallback((): SessionConfig => {
-    // Get processed system instructions from the context
-    const systemInstructions = (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE)
+    // Local providers build instructions from the local prompt template;
+    // everyone else uses the shared system-instructions builder.
+    const systemInstructions = ProviderConfigFactory.getDescriptor(provider).getConfig().capabilities.usesLocalPromptTemplate
       ? getProcessedLocalPrompt(false)
       : getProcessedSystemInstructions();
 
@@ -921,7 +922,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Helper to create session config for participant mode (swapped languages, text-only, semantic VAD)
    */
   const createParticipantSessionConfig = useCallback((): SessionConfig | null => {
-    const swappedSystemInstructions = (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE)
+    const swappedSystemInstructions = ProviderConfigFactory.getDescriptor(provider).getConfig().capabilities.usesLocalPromptTemplate
       ? getProcessedLocalPrompt(true)
       : getProcessedSystemInstructions(true);
     const baseConfig = createSessionConfig(swappedSystemInstructions);
