@@ -253,6 +253,8 @@ acquireSessionResources?(ctx: {
 - **Countdown**: new `<SessionCountdown getSnapshot={...} />` component (owns the 1s interval, the low-threshold class, `formatRemainingTime`). Rendered when `sessionResources?.budget` exists — a data condition, not a provider condition. Kills the duplicated JSX at L4302-4306/L4448-4452 (the adjacent generic session-duration span L4299-4301/L4445-4447 stays) and the state block L1409-1452.
 - **Init labels**: the generic `initPhaseKey: string | null` + i18n-lookup label is introduced **in S4** (not S7), so every migration stage deletes its own rungs of the old ladder as its provider moves to `onPhase` — no interim gap where migrated providers have no label. Existing label strings are reused under phase keys; no visible text changes. S7 removes whatever remains of the ladder alongside the countdown work.
 
+  **Landed correction (S4)**: one visible text change did land — the advanced footer now shows `simplePanel.loadingModel` ("Loading model…") during a native ASR load, in place of the generic `mainPanel.initializing` ("Initializing..."), matching what the simple footer always showed.
+
 ## Explicitly staged-last (S8, individually optional)
 
 1. **`describeSessionForAnalytics`** — also absorbs the four uncovered `provider || Provider.OPENAI` analytics-tag fallbacks (L853, L920, L1598, L1671; four more sit inside the WebRTC block below).
