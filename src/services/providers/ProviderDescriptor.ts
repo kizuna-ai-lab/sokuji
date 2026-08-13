@@ -73,7 +73,11 @@ export interface ProviderDescriptor {
   readonly settingsSliceKey: string;
   /** i18n namespace under `providers.*`; defaults to getConfig().id. */
   readonly i18nKey?: string;
-  /** True for providers that can run over WebRTC transport. */
+  /** True when the CLIENT owns audio capture over WebRTC transport
+   *  (MediaStreamTrack) and MainPanel must not start the native recorder.
+   *  NOT "can run over webrtc": PalabraAI always runs webrtc transport yet
+   *  declares false, because its capture path is appendInputAudio. See
+   *  capabilities.forcedTransport for transport selection. */
   readonly supportsWebRTC: boolean;
 
   createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient;

@@ -81,7 +81,7 @@ export interface ProviderCapabilities {
    *  VOLCENGINE_AST2 five-silence-frame special case. */
   pttFinalization?: {
     silenceTailFrames?: number;          // trailing silence frames to flush VAD
-    response: 'always' | 'server-decides';
+    response: 'always' | 'server-decides' | 'voice-gated' | 'voice-gated-cancel';
   };
 
   /** Turn-detection mode names that behave as push-gated. Kills
@@ -103,7 +103,7 @@ export interface ProviderCapabilities {
 
 S1 also updates `ProviderDescriptor.supportsWebRTC`'s doc comment to its real meaning ("MainPanel starts no native recorder; the client owns capture over WebRTC transport") — palabra's `supportsWebRTC = false` while always running webrtc transport is what falsifies the current comment.
 
-`descriptorRegistry.test.ts` gains invariants covering **every** new flag: `pushGatedModes ⊆ capabilities.turnDetection.modes`; `pttFinalization.silenceTailFrames` only with `response` set; `forcedTransport` implies the provider actually supports that transport; `usesLocalPromptTemplate` only on providers whose slice carries a local prompt; boolean flags simply asserted present-or-defaulted for all 14 registered descriptors.
+`descriptorRegistry.test.ts` gains invariants covering **every** new flag: `pushGatedModes entries are unique non-empty strings drawn from the provider's settings vocabulary (turnDetection.modes is a settings-UI list — often empty — and is NOT a superset of the speech-mode vocabulary)`; `pttFinalization.silenceTailFrames` only with `response` set; `forcedTransport` implies the provider actually supports that transport; `usesLocalPromptTemplate` only on providers whose slice carries a local prompt; boolean flags simply asserted present-or-defaulted for all 14 registered descriptors.
 
 ## Tier 2 — sync config-transform methods (`ProviderDescriptor`, base defaults)
 
