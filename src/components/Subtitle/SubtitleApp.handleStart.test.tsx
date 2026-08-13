@@ -81,6 +81,13 @@ vi.mock('./SubtitleIdle', () => ({
   },
 }));
 
+// Isolate the speechMode import: it loads ProviderConfigFactory → all provider descriptors → clients → i18n setup,
+// which requires a complete react-i18next mock; this test's sparse i18n mock would fail without this isolation.
+vi.mock('../../services/providers/speechMode', () => ({
+  isPushGatedMode: (provider: string, mode: string) =>
+    mode === 'Push-to-Talk' || mode === 'Push-to-Translate' || mode === 'Disabled',
+}));
+
 const { default: SubtitleApp } = await import('./SubtitleApp');
 
 beforeEach(() => {
