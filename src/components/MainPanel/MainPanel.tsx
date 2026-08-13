@@ -27,6 +27,7 @@ import {
 import useSettingsStore, { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
+import { isPushGatedMode } from '../../services/providers/speechMode';
 import { SonioxProviderConfig, defaultSonioxSettings } from '../../services/providers/SonioxProviderConfig';
 import { sonioxBothModePlan, type SonioxBothModePlan } from '../../services/providers/sonioxBothMode';
 import { reverseTranscriptionDirection } from '../../services/providers/openaiTranscriptionContext';
@@ -105,15 +106,6 @@ import WaveformStrip from './WaveformStrip';
 import { isVirtualDevice, type WarningType } from '../Settings/shared/hooks';
 import WarningModal from '../Settings/shared/WarningModal';
 
-
-/**
- * True for Speech Modes that send audio to the AI provider only while the user
- * holds Space: OpenAI's `'Disabled'`, other providers' `'Push-to-Talk'`, and
- * the new `'Push-to-Translate'` (which adds raw mic passthrough during idle).
- */
-function isPttLikeMode(mode: string): boolean {
-  return mode === 'Push-to-Talk' || mode === 'Push-to-Translate' || mode === 'Disabled';
-}
 
 /** Local providers driven by a Silero VAD that PTT release finalizes the same way
  *  (trailing silence frames + createResponse → flush). */
@@ -389,8 +381,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // or Push-to-Translate). Derives directly from currentTurnDetectionMode so the
   // keyboard handler stays in sync with mode changes without imperative setters.
   const canHoldToSpeak = useMemo(
-    () => isPttLikeMode(currentTurnDetectionMode),
-    [currentTurnDetectionMode]
+    () => isPushGatedMode(provider, currentTurnDetectionMode),
+    [provider, currentTurnDetectionMode]
   );
 
   // Advanced mode text input state
@@ -2361,8 +2353,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Both 'Disabled' (OpenAI) and 'Push-to-Talk' (others) mean "key-hold-only mode";
         // 'Push-to-Translate' is its own gated-callback mode (handled separately below).
         const isPushToTranslateMode = currentTurnDetectionMode === 'Push-to-Translate';
+        // Push-gated minus Push-to-Translate = key-hold-only ("pure manual").
+        // 'Disabled' (OpenAI) and 'Push-to-Talk' (others) both land here, via
+        // each provider's declared vocabulary instead of a hardcoded pair.
         const isPureManualMode =
-          currentTurnDetectionMode === 'Disabled' || currentTurnDetectionMode === 'Push-to-Talk';
+          isPushGatedMode(provider, currentTurnDetectionMode) && !isPushToTranslateMode;
 
         // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
         // In native capture mode, audio is automatically captured via MediaStreamTrack
