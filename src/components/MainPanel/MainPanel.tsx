@@ -107,12 +107,6 @@ import { isVirtualDevice, type WarningType } from '../Settings/shared/hooks';
 import WarningModal from '../Settings/shared/WarningModal';
 
 
-/** Local providers driven by a Silero VAD that PTT release finalizes the same way
- *  (trailing silence frames + createResponse → flush). */
-function usesLocalSileroVad(provider: string): boolean {
-  return provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE;
-}
-
 /** Soniox's built-in voice names. A `settings.voice` outside this set is a
  *  cloned-voice UUID, which is the only case that needs preparing. */
 const SONIOX_BUILTIN_VOICES = new Set(
@@ -2986,26 +2980,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const recorder = audioService.getRecorder();
       const isPushToTranslate = currentTurnDetectionMode === 'Push-to-Translate';
 
-      // A relay-managed twin behaves exactly like its base provider here, so resolve
-      // to the base provider before any provider-specific PTT branching. Without this,
-      // the KIZUNA_AI_VOLCENGINE_AST2 twin would skip AST2's silence-frame flush and
-      // wrongly fall into the createResponse() path, leaving the turn unfinalized.
-      const effectiveProvider = kizunaBaseProvider(provider) ?? provider;
+      // How this provider's PTT release is finalized is its descriptor's
+      // claim. Twins inherit their base's declaration through the ...base
+      // spread, which is what the old kizunaBaseProvider() normalization
+      // here existed to reproduce.
+      const finalization =
+        ProviderConfigFactory.getDescriptor(provider).getConfig().capabilities.pttFinalization
+        ?? { response: 'voice-gated' as const };
 
       // For Push-to-translate, recorder.isRecording() is always true (continuous capture).
       // For pure PTT, only proceed if the recorder was actually started by startRecording.
       if (recorder.isRecording()) {
-        // For Volcengine AST2 and LocalOffline PTT: send silence frames before stopping
-        // This helps the VAD detect end of speech
-        if ((effectiveProvider === Provider.VOLCENGINE_AST2 || usesLocalSileroVad(effectiveProvider)) && client) {
+        // Trailing silence frames help a server/local VAD detect end of speech.
+        if (finalization.silenceTailFrames && client) {
           const silenceFrameSize = 2400; // 24kHz * 0.1s = 2400 samples per 100ms frame (client downsamples to 16kHz internally)
-          // LOCAL_INFERENCE / LOCAL_NATIVE both use Silero VAD → 700ms tail; AST2 → 500ms
-          const silenceFrames = usesLocalSileroVad(effectiveProvider) ? 7 : 5;
-          for (let i = 0; i < silenceFrames; i++) {
+          for (let i = 0; i < finalization.silenceTailFrames; i++) {
             // New buffer each iteration — worker postMessage transfers (detaches) the ArrayBuffer
             client.appendInputAudio(new Int16Array(silenceFrameSize));
           }
-          console.debug(`[Sokuji] [MainPanel] PTT: Sent ${silenceFrames * 100}ms silence frames for VAD end detection`);
+          console.debug(`[Sokuji] [MainPanel] PTT: Sent ${finalization.silenceTailFrames * 100}ms silence frames for VAD end detection`);
         }
 
         // Stop recording — but only for pure PTT. Push-to-translate keeps the recorder
@@ -3016,26 +3009,36 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
 
         // Only create response if we detected enough voice audio (prevents empty requests)
-        // Note: AST2 handles response creation server-side via VAD, so skip client.createResponse() for it
-        // Note: LOCAL_INFERENCE always calls createResponse() — for streaming ASR it flushes the
-        //       pending utterance; for offline ASR (VAD-based) it's harmless (silence frames handle it)
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
-        if (client && usesLocalSileroVad(effectiveProvider)) {
-          client.createResponse();
-        } else if (client && effectiveProvider === Provider.GEMINI) {
-          if (pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
-            client.createResponse();
-          } else {
-            // No meaningful speech detected — reset speaking state without sending
-            // activityEnd so Gemini doesn't generate a response for silence
-            client.cancelPttTurn?.();
-            console.debug(`[Sokuji] [MainPanel] PTT: Gemini turn cancelled - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
+        if (client) {
+          switch (finalization.response) {
+            case 'always':
+              // Local Silero VAD: for streaming ASR createResponse flushes the
+              // pending utterance; for offline ASR it's harmless (silence frames handle it).
+              client.createResponse();
+              break;
+            case 'server-decides':
+              // The server's own VAD closes the turn; the client stays silent.
+              break;
+            case 'voice-gated-cancel':
+              if (pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
+                client.createResponse();
+              } else {
+                // No meaningful speech detected — reset speaking state without sending
+                // activityEnd so the provider doesn't generate a response for silence.
+                client.cancelPttTurn?.();
+                console.debug(`[Sokuji] [MainPanel] PTT: turn cancelled - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
+              }
+              break;
+            case 'voice-gated':
+              if (pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
+                // Model drift prevention is handled by the silent anchor mechanism (useEffect)
+                client.createResponse();
+              } else {
+                console.debug(`[Sokuji] [MainPanel] PTT: Skipping response - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
+              }
+              break;
           }
-        } else if (client && effectiveProvider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
-          // Model drift prevention is handled by the silent anchor mechanism (useEffect)
-          client.createResponse();
-        } else if (client && effectiveProvider !== Provider.VOLCENGINE_AST2) {
-          console.debug(`[Sokuji] [MainPanel] PTT: Skipping response - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
         }
       }
     } catch (error) {
