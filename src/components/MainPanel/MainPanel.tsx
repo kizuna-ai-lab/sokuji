@@ -57,7 +57,7 @@ import { useAnalytics } from '../../lib/analytics';
 import { clientErrorMessage } from '../../lib/apiErrorProps';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
-import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../types/Provider';
+import { Provider, isOpenAICompatible } from '../../types/Provider';
 import { computeStartGate, noChannelCameUp, reasonToI18n } from './sessionStartGate';
 import { expectationHolds } from './prepareEnvelope';
 import { useSubtitleSessionBridge } from './useSubtitleSessionBridge';
@@ -67,16 +67,11 @@ import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
 import { formatRemainingTime } from '../../utils/formatters';
-import { computeSonioxRemainingMs, computeSonioxBudgetTotalMs, SonioxBudgetSnapshot } from '../../services/clients/SonioxCostMeter';
-import { ManagedSonioxSession } from '../../services/clients/ManagedSonioxSession';
-import type { ClientOptions } from '../../services/providers/ProviderDescriptor';
+import type { ClientOptions, SessionResources } from '../../services/providers/ProviderDescriptor';
 import {
-  managedLegOptions,
-  resolveManagedSonioxWiring,
   resolveParticipantSlot,
   teardownSessionLegs,
 } from '../../services/providers/managedSonioxSplit';
-import { KIZUNA_SIGN_IN_REQUIRED } from '../../services/providers/KizunaAISonioxProviderConfig';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
@@ -795,26 +790,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const createAIClient = useCallback(async (
     useWebRTC: boolean = false,
-    // Managed Soniox only: the per-role credential bundle this client's ONE
-    // stream runs on, plus the session it belongs to. Undefined for BYOK and
-    // for every other provider, whose descriptors build credentials from
-    // settings and ignore it.
-    // Stated BY REFERENCE, never restated. A hand-written copy of this shape
-    // lived here and drifted: it never gained `role`, so the argument was
-    // checked against a type that did not want the field and the only signal
-    // was a tsc error where it reached the descriptor. See managedLegOptions.
-    sonioxManaged?: ClientOptions['sonioxManaged'],
+    // Per-leg additions from the session's resources
+    // (SessionResources.legClientOptions) — today the managed Soniox
+    // sonioxManaged bundle; undefined/empty for BYOK and for every provider
+    // whose descriptor acquires nothing. Stated BY REFERENCE, never restated.
+    legOptions?: Partial<ClientOptions>,
   ): Promise<IClient> => {
     const descriptor = ProviderConfigFactory.getDescriptor(provider);
     const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore];
-    // The managed Soniox twin's "credential" IS the better-auth session token,
-    // and connectConversation has already spent it: acquire() exchanged it for
-    // the temporary Soniox keys now sitting in sonioxManaged.credentials.
-    // Re-running extractCredentials would fire a second
-    // getToken({ skipCache: true }) round trip per Start for a value this path
-    // no longer reads. The sign-in gate it used to provide is not lost — the
-    // acquire path throws KIZUNA_SIGN_IN_REQUIRED when no token is available.
-    const creds = sonioxManaged
+    // The managed twin's "credential" IS the auth session token, and
+    // acquireSessionResources has already spent it: the exchange left the
+    // temporary Soniox keys in legOptions.sonioxManaged.credentials.
+    // Re-running extractCredentials would fire a second getToken round trip
+    // for a value this path no longer reads; the sign-in gate it provided
+    // lives in the acquire path (KIZUNA_SIGN_IN_REQUIRED).
+    const creds = legOptions?.sonioxManaged
       ? ({ ok: true, primary: '' } as const)
       : await descriptor.extractCredentials(slice, { getAuthToken });
     if (!creds.ok) throw new Error(creds.missing);
@@ -840,7 +830,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       outputDeviceId: selectedMonitorDevice?.deviceId
     } : undefined;
 
-    return descriptor.createClient(creds, { transport: effectiveTransportType, webrtcOptions, sonioxManaged });
+    return descriptor.createClient(creds, { transport: effectiveTransportType, webrtcOptions, ...legOptions });
   }, [provider, getAuthToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted]);
 
   // Which legs are reconnecting right now. A ref rather than state: these
@@ -1281,40 +1271,31 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Managed Soniox remaining-time countdown for the status footer. The
   // session's budget/rate/start-time are fixed for the whole session (see
-  // SonioxCostMeter.getBudgetSnapshot), so this captures them once and then
-  // re-evaluates the same pure wall-clock formula against Date.now() every
-  // second — a smooth per-second countdown without polling the cost meter
-  // itself, which only advances on the STT stream's ~5s keepalive tick.
-  // Only the KIZUNA_AI_SONIOX managed twin has a budget to count down; BYOK
-  // Soniox leases nothing, so no session is ever acquired for it.
-  const sonioxBudgetInfoRef = useRef<SonioxBudgetSnapshot | null>(null);
-  // The managed Soniox lease for the CURRENT session. Lives here, not in a
-  // client, because it outlives any one client and because acquiring it is an
-  // awaited round trip that ProviderDescriptor.createClient cannot make.
-  const managedSonioxSessionRef = useRef<ManagedSonioxSession | null>(null);
+  // SonioxCostMeter.getBudgetSnapshot), polled once a second via
+  // sessionResourcesRef.current.budget() for a smooth countdown without
+  // polling the cost meter itself, which only advances on the STT stream's
+  // ~5s keepalive tick. Populated only when acquireSessionResources returned
+  // a budget (today: the KIZUNA_AI_SONIOX managed twin) — BYOK Soniox
+  // acquires nothing, so no budget is ever produced for it.
+  // The session-scoped resources for the CURRENT session (today: the managed
+  // Soniox lease). Live here, not in a client, because they outlive any one
+  // client and acquiring them is an awaited round trip that
+  // ProviderDescriptor.createClient cannot make.
+  const sessionResourcesRef = useRef<SessionResources | null>(null);
   const [sonioxCountdown, setSonioxCountdown] = useState<{ remainingMs: number; totalMs: number } | null>(null);
   useEffect(() => {
-    if (!isSessionActive || provider !== Provider.KIZUNA_AI_SONIOX) {
-      sonioxBudgetInfoRef.current = null;
+    // Data condition, not a provider condition: the countdown runs whenever
+    // the session's resources are metered. The resources are acquired before
+    // any client is constructed and isSessionActive flips only after the legs
+    // come up, so the ref is already populated on this effect's first
+    // active-session run — for every managed row of the matrix including
+    // split, which is why the allowance lives on the SESSION, not a client.
+    const budget = isSessionActive ? sessionResourcesRef.current?.budget : undefined;
+    if (!budget) {
       setSonioxCountdown(null);
       return;
     }
-    const update = () => {
-      if (!sonioxBudgetInfoRef.current) {
-        // The allowance belongs to the SESSION, not to a stream. Reading it off
-        // a client would be ambiguous under split — two real clients, one
-        // lease — and the ref is populated before any client is constructed,
-        // for every managed row of the matrix including split, so the countdown
-        // is non-null whenever a managed session is running.
-        sonioxBudgetInfoRef.current =
-          managedSonioxSessionRef.current?.getBudgetSnapshot() ?? null;
-      }
-      const info = sonioxBudgetInfoRef.current;
-      setSonioxCountdown(info ? {
-        remainingMs: computeSonioxRemainingMs(Date.now(), info),
-        totalMs: computeSonioxBudgetTotalMs(info),
-      } : null);
-    };
+    const update = () => setSonioxCountdown(budget());
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
@@ -1711,16 +1692,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
         },
         afterBothLegs: () => {
-          // ONE session-end per session, after every client is down.
-          // SonioxClient.disconnect() used to post it unconditionally, and this
-          // function disconnects the speaker first — so with two legs the first
-          // teardown would signal the end (and unpin the voice slot) while the
-          // other was still streaming. A no-op when no lease was acquired, and
-          // idempotent, so the connect-failure path through here is safe. The
-          // ref is cleared BEFORE end() so no re-entry can produce a second POST.
-          const managedSoniox = managedSonioxSessionRef.current;
-          managedSonioxSessionRef.current = null;
-          managedSoniox?.end();
+          const resources = sessionResourcesRef.current;
+          sessionResourcesRef.current = null;
+          resources?.release('disconnect');
         },
       });
 
@@ -1935,79 +1909,52 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const sonioxSharedBoth = sonioxBothPlan.shared;
       const sonioxSplitBoth = sonioxBothPlan.split;
 
-      // The managed Soniox lease belongs to the SESSION, not to a stream
-      // (design decision 7). Everything the client used to do inside connect()
-      // — the session-key exchange, its 409 retry, the cost meter, and the
-      // session-started/session-end notifications — happens here and in
-      // ManagedSonioxSession now.
+      // Session-scoped resources (design decision 7): everything the client used
+      // to do inside connect() — the session-key exchange, its 409 retry, the
+      // cost meter, and the session-started/session-end notifications — happens
+      // behind the descriptor's acquireSessionResources now.
       //
-      // Deliberately NOT inside createAIClient: acquire() is an awaited network
-      // round trip and ProviderDescriptor.createClient is synchronous and
-      // returns exactly one client, so the descriptor cannot own it without
-      // going async for all eleven providers.
-      const isManagedSoniox =
-        (kizunaBaseProvider(provider) ?? provider) === Provider.SONIOX &&
-        isKizunaManagedProvider(provider);
-      // The whole wiring decision, in one pure value: the matrix body to buy,
-      // and the STT role each leg runs. Null for BYOK Soniox and for every
-      // other provider — those clients carry their own key and lease nothing.
-      //
-      // Both roles are derived from the body, so they mirror the server's own
-      // expansion. That is not cosmetic: `credentialsFor` throws for a role
-      // that was never issued, and `session-started` answers 400
-      // `role_not_issued`, which leaves the lease at its start window while
-      // both Soniox keys stay valid for the full grant.
-      const managedWiring = isManagedSoniox
-        ? resolveManagedSonioxWiring({
-            speakerWillStart,
-            participantWillStart,
-            // Must match the config of the leg that will actually run, because
-            // it decides whether a TTS key is minted at all and at what rate
-            // the allowance is spent.
-            //
-            // Speaker: the same one-shot snapshot getSessionConfig() reads below
-            // (settingsStore: `config.textOnly = state.textOnly`). It stays the
-            // speaker's answer in split Both too — the participant leg is
-            // text-only either way, so only the speaker can want synthesis.
-            //
-            // No speaker leg: NOT that snapshot.
-            // createParticipantSessionConfig() hard-codes `textOnly: true`
-            // whatever the user's setting says, so reading the store here would
-            // buy a speech-to-speech lease for a session that never opens a TTS
-            // socket, and burn the countdown at that rate. (The backend also
-            // ignores `textOnly` for mode 'participant'; this keeps the client
-            // honest rather than relying on that.)
-            textOnly: speakerWillStart ? useSettingsStore.getState().textOnly : true,
-            sonioxSharedBoth,
-            // FE2's derived value, on the wire for the first time here.
-            sonioxSplitBoth,
+      // Deliberately NOT inside createAIClient: acquiring is an awaited network
+      // round trip and ProviderDescriptor.createClient is synchronous and returns
+      // exactly one client, so the descriptor cannot own it without going async
+      // for all eleven providers. On failure the descriptor cleans up its own
+      // partial state and throws; the outer catch unwinds through
+      // disconnectConversation, whose afterBothLegs finds this ref still null —
+      // a failed acquire is never release()d.
+      const sessionResources = startDescriptor.acquireSessionResources
+        ? await startDescriptor.acquireSessionResources({
+            getAuthToken,
+            wiring: {
+              speakerWillStart,
+              participantWillStart,
+              sharedBoth: sonioxSharedBoth,
+              splitBoth: sonioxSplitBoth,
+              // Must match the config of the leg that will actually run, because
+              // it decides whether a TTS key is minted at all and at what rate
+              // the allowance is spent.
+              //
+              // Speaker: the same one-shot snapshot getSessionConfig() reads below
+              // (settingsStore: `config.textOnly = state.textOnly`). It stays the
+              // speaker's answer in split Both too — the participant leg is
+              // text-only either way, so only the speaker can want synthesis.
+              //
+              // No speaker leg: NOT that snapshot.
+              // createParticipantSessionConfig() hard-codes `textOnly: true`
+              // whatever the user's setting says, so reading the store here would
+              // buy a speech-to-speech lease for a session that never opens a TTS
+              // socket, and burn the countdown at that rate. (The backend also
+              // ignores `textOnly` for mode 'participant'; this keeps the client
+              // honest rather than relying on that.)
+              textOnly: speakerWillStart ? useSettingsStore.getState().textOnly : true,
+            },
+            // The store's event union doesn't contain these types, exactly as when
+            // SonioxClient emitted them (emitRealtime casts the whole event
+            // `as any`); the same escape, narrowed to the one field that needs it.
+            onEvent: (type, data) =>
+              addRealtimeEvent({ type: type as EventData['type'], data }, 'client', type),
           })
         : null;
-      let managedSonioxSession: ManagedSonioxSession | null = null;
-      if (managedWiring) {
-        const token = await getAuthToken();
-        if (!token) throw new Error(KIZUNA_SIGN_IN_REQUIRED);
-        const session = new ManagedSonioxSession({
-          sessionToken: token,
-          // The session's sink is typed `(type: string, ...)` because it must
-          // not depend on the store's event union. 'session.retry' — the one
-          // type it emits — is not in that union, exactly as when SonioxClient
-          // emitted it (emitRealtime casts the whole event `as any`); this is
-          // the same escape, narrowed to the one field that needs it.
-          onEvent: (type, data) => addRealtimeEvent({ type: type as EventData['type'], data }, 'client', type),
-        });
-        // Stored BEFORE acquire() so a failed acquire still leaves something
-        // for disconnectConversation to clear; end() no-ops without a lease.
-        managedSonioxSessionRef.current = session;
-        await session.acquire(managedWiring.acquire);
-        managedSonioxSession = session;
-      }
-      // What ONE leg is handed — key, session, role, and the primacy bit — is
-      // decided by `managedLegOptions`, which reads the role and the key from
-      // the same wiring so they cannot disagree. It lives in
-      // managedSonioxSplit.ts rather than here because a plain function is the
-      // only thing this repo can test: there is no React harness for
-      // connectConversation, and the inline version silently lost `role`.
+      sessionResourcesRef.current = sessionResources;
 
       // Whether the speaker channel came up END TO END, as a local the post-init
       // guard below can read back in this same pass — the participant side's
@@ -2029,7 +1976,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // microphone has a stream of its own.
         speakerClientRef.current = await createAIClient(
           useWebRTC,
-          managedLegOptions('speaker', managedSonioxSession, managedWiring),
+          sessionResources?.legClientOptions('speaker'),
         );
 
         // Setup listeners for the new client instance
@@ -2361,14 +2308,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             } else {
               // Only ever `par_stt`: createParticipantSessionConfig forces
               // textOnly, so the participant leg never holds a TTS credential.
-              // Undefined for a managed session whose wiring gives the slot no
+              // Empty ({}) for a managed session whose wiring gives the slot no
               // role of its own — credentialsFor would throw for an unissued
               // role, and the managed descriptor refuses to build a client with
               // no bundle. Both land in the non-fatal catch below, so the
               // speaker survives, which is the settled degradation.
               participantClientRef.current = await createAIClient(
                 false,
-                managedLegOptions('participant', managedSonioxSession, managedWiring),
+                sessionResources?.legClientOptions('participant'),
               );
             }
 
@@ -2513,11 +2460,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             }
           },
           // Idempotent, and a no-op when nothing was acquired. The ref is
-          // cleared BEFORE end() so no re-entry can produce a second POST.
+          // cleared BEFORE release() so no re-entry can produce a second POST.
           afterBothLegs: () => {
-            const abortedSoniox = managedSonioxSessionRef.current;
-            managedSonioxSessionRef.current = null;
-            abortedSoniox?.end();
+            const aborted = sessionResourcesRef.current;
+            sessionResourcesRef.current = null;
+            aborted?.release('aborted');
           },
         });
         setIsInitializing(false);
