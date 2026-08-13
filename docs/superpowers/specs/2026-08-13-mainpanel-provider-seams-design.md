@@ -77,7 +77,7 @@ export interface ProviderCapabilities {
   queuesTextWhileResponding?: boolean;
 
   /** How a push-to-talk segment is finalized on release. Default
-   *  { response: 'always' }. Kills usesLocalSileroVad() and the
+   *  { response: 'voice-gated' }. Kills usesLocalSileroVad() and the
    *  VOLCENGINE_AST2 five-silence-frame special case. */
   pttFinalization?: {
     silenceTailFrames?: number;          // trailing silence frames to flush VAD
