@@ -624,3 +624,18 @@ describe('S4 prepareToStart', () => {
     expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).prepareToStart).toBeUndefined();
   });
 });
+
+describe('S6 acquireSessionResources', () => {
+  it('is declared only where a session leases resources (kizuna-soniox)', () => {
+    const WITH_RESOURCES: Provider[] = []; // Task 3 flips this to [Provider.KIZUNA_AI_SONIOX]
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      expect(typeof d.acquireSessionResources === 'function', `resource hook presence for ${id}`)
+        .toBe(WITH_RESOURCES.includes(id));
+    }
+    // BYOK Soniox is explicitly resource-less: a user's own key never
+    // exchanges a lease, mints no metered budget, and must not POST
+    // session-end to the managed backend.
+    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).acquireSessionResources).toBeUndefined();
+  });
+});
