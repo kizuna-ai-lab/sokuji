@@ -197,6 +197,8 @@ interface PreparePorts {
 prepareToStart?(slice: unknown, ports: PreparePorts): Promise<PrepareOutcome>;
 ```
 
+**Landed correction (S4)**: `onPhase` carries a structured `InitPhase` union — `{ phase: 'loading-models'; completed: number; total: number } | { phase: 'loading-native-asr' }` — not the bare `phaseKey: string` sketched above; the loading-models label interpolates `completed`/`total` counts, which a bare key cannot carry.
+
 **Error paths (normative)**: a *rejected* `prepareToStart` is treated as `{ ok: false, message: t('mainPanel.startPreparationFailed') }` — MainPanel catches, logs the original error, blocks Start, shows the generic message. If `ports.signal` has fired, the result (or rejection) is discarded silently and nothing is shown. `message` on an explicit `ok: false` is display-ready text (the local hook passes the store's `validationMessage` through verbatim, as today).
 
 Absorbs, per provider:
