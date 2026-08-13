@@ -509,6 +509,7 @@
     "endSession": "Akhiri sesi",
     "startSession": "Mulai sesi",
     "initializing": "Menginisialisasi...",
+    "startPreparationFailed": "Sesi tidak dapat disiapkan. Silakan coba lagi.",
     "initProgress": "Memuat ({{completed}}/{{total}})...",
     "stopDebug": "Hentikan debug",
     "debug": "Debug",

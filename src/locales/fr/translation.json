@@ -509,6 +509,7 @@
     "endSession": "Terminer la session",
     "startSession": "Démarrer la session",
     "initializing": "Initialisation...",
+    "startPreparationFailed": "Impossible de préparer la session. Veuillez réessayer.",
     "initProgress": "Chargement ({{completed}}/{{total}})...",
     "stopDebug": "Arrêter le débogage",
     "debug": "Déboguer",

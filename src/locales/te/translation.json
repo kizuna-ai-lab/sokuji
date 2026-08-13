@@ -509,6 +509,7 @@
     "endSession": "సెషన్ ముగించు",
     "startSession": "సెషన్ ప్రారంభించు",
     "initializing": "ప్రారంభిస్తోంది...",
+    "startPreparationFailed": "సెషన్‌ను సిద్ధం చేయలేకపోయాము. దయచేసి మళ్ళీ ప్రయత్నించండి.",
     "initProgress": "లోడ్ అవుతోంది ({{completed}}/{{total}})...",
     "stopDebug": "డీబగ్ ఆపు",
     "debug": "డీబగ్",

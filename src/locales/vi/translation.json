@@ -509,6 +509,7 @@
     "endSession": "Kết thúc phiên",
     "startSession": "Bắt đầu phiên",
     "initializing": "Đang khởi tạo...",
+    "startPreparationFailed": "Không thể chuẩn bị phiên. Vui lòng thử lại.",
     "initProgress": "Đang tải ({{completed}}/{{total}})...",
     "stopDebug": "Dừng gỡ lỗi",
     "debug": "Gỡ lỗi",

@@ -29,7 +29,7 @@ import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { isPushGatedMode } from '../../services/providers/speechMode';
 import { SonioxProviderConfig, defaultSonioxSettings } from '../../services/providers/SonioxProviderConfig';
-import type { BothModePlan } from '../../services/providers/ProviderDescriptor';
+import type { BothModePlan, PrepareOutcome } from '../../services/providers/ProviderDescriptor';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -1760,38 +1760,53 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // stale closes before reaching onClose.
       participantStreamEndedRef.current = false;
 
-      // Re-validate before starting session to catch stale button state.
-      // validateApiKey is the single authority for session readiness — it handles
-      // auto-select, model readiness, and API key validation for all providers.
-      if (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
-        const result = await useSettingsStore.getState().validateApiKey();
-        if (!result.valid) {
+      // Providers with pre-start work declare prepareToStart; run it FIRST,
+      // before the no-channel guard, any audio init, any client. For the
+      // local providers this is the model-readiness revalidation — the
+      // descriptor's hook calls back into settingsStore.validateApiKey via
+      // the revalidate port, so the store keeps its isApiKeyValid write (the
+      // Start gate closes and the subtitle window derives `blocked`, which
+      // wins over `failed` and routes to the right settings section).
+      const startDescriptor = ProviderConfigFactory.getDescriptor(provider);
+      if (startDescriptor.prepareToStart) {
+        // No aborter calls .abort() yet — S6's abort path is the intended
+        // caller; the contract requires a live signal from day one.
+        const prepareAbort = new AbortController();
+        const prepareSlice = useSettingsStore.getState()[startDescriptor.settingsSliceKey as keyof SettingsStore];
+        let prepared: PrepareOutcome;
+        try {
+          prepared = await startDescriptor.prepareToStart(prepareSlice, {
+            getAuthToken,
+            userId: userId ?? null,
+            revalidate: () => useSettingsStore.getState().validateApiKey(),
+            onPhase: () => {}, // Task 5 wires the state
+            signal: prepareAbort.signal,
+          });
+        } catch (prepareError) {
+          console.error('[Sokuji] [MainPanel] prepareToStart rejected:', prepareError);
+          prepared = { ok: false, message: t('mainPanel.startPreparationFailed', 'Could not prepare the session. Please try again.') };
+        }
+        if (!prepared.ok) {
           setIsInitializing(false);
-          const errorMessage = result.message || t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.');
           addRealtimeEvent(
-            { type: 'session.init_error', data: { message: errorMessage } },
+            { type: 'session.init_error', data: { message: prepared.message } },
             'client', 'session.init_error'
           );
           // Also surface this in the conversation items, not just the realtime
           // event log, which is unreachable from the subtitle bar — see the
           // equivalent append in the outer catch block below.
-          //
-          // The subtitle window will actually render this as `blocked`, not
-          // `failed`: validateApiKey has just set isApiKeyValid false, so the
-          // start gate is closed by the time the idle body re-derives, and
-          // blocked wins over failed (subtitleIdleState.ts). That is the more
-          // actionable of the two — it routes to the right settings section.
-          // The item still earns its keep in the main window's conversation.
           setItems(prevItems => [...prevItems, {
             id: `error-${Date.now()}`,
             role: 'system',
             type: 'error',
             status: 'completed',
             createdAt: Date.now(),
-            formatted: { text: errorMessage },
+            formatted: { text: prepared.message },
           }]);
           return;
         }
+        // sessionPatch/settingsPatch/notice application lands with S5 — no
+        // descriptor returns them yet.
       }
 
       // No-channel guard: Start requires at least one channel configured.

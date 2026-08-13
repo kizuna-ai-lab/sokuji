@@ -509,6 +509,7 @@
     "endSession": "세션 종료",
     "startSession": "세션 시작",
     "initializing": "초기화 중...",
+    "startPreparationFailed": "세션을 준비할 수 없습니다. 다시 시도해 주세요.",
     "initProgress": "로딩 중 ({{completed}}/{{total}})...",
     "stopDebug": "디버그 중지",
     "debug": "디버그",

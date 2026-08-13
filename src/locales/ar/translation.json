@@ -509,6 +509,7 @@
     "endSession": "إنهاء الجلسة",
     "startSession": "بدء الجلسة",
     "initializing": "جاري التهيئة...",
+    "startPreparationFailed": "تعذّر تجهيز الجلسة. يرجى المحاولة مرة أخرى.",
     "initProgress": "جاري التحميل ({{completed}}/{{total}})...",
     "stopDebug": "إيقاف التصحيح",
     "debug": "تصحيح",

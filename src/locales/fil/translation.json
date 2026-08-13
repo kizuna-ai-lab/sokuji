@@ -509,6 +509,7 @@
     "endSession": "Tapusin ang session",
     "startSession": "Simulan ang session",
     "initializing": "Nagsisimula...",
+    "startPreparationFailed": "Hindi maihanda ang session. Pakisubukang muli.",
     "initProgress": "Naglo-load ({{completed}}/{{total}})...",
     "stopDebug": "Itigil ang Debug",
     "debug": "Debug",

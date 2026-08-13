@@ -509,6 +509,7 @@
     "endSession": "پایان جلسه",
     "startSession": "شروع جلسه",
     "initializing": "در حال راه‌اندازی...",
+    "startPreparationFailed": "آماده‌سازی جلسه ممکن نشد. لطفاً دوباره امتحان کنید.",
     "initProgress": "در حال بارگذاری ({{completed}}/{{total}})...",
     "stopDebug": "توقف اشکال‌زدایی",
     "debug": "اشکال‌زدایی",

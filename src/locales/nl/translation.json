@@ -509,6 +509,7 @@
     "endSession": "Sessie beëindigen",
     "startSession": "Sessie starten",
     "initializing": "Initialiseren...",
+    "startPreparationFailed": "De sessie kon niet worden voorbereid. Probeer het opnieuw.",
     "initProgress": "Laden ({{completed}}/{{total}})...",
     "stopDebug": "Debug stoppen",
     "debug": "Debug",

@@ -509,6 +509,7 @@
     "endSession": "সেশন শেষ করুন",
     "startSession": "সেশন শুরু করুন",
     "initializing": "শুরু করা হচ্ছে...",
+    "startPreparationFailed": "সেশন প্রস্তুত করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
     "initProgress": "লোড হচ্ছে ({{completed}}/{{total}})...",
     "stopDebug": "ডিবাগ বন্ধ করুন",
     "debug": "ডিবাগ",

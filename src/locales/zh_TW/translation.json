@@ -509,6 +509,7 @@
     "endSession": "結束",
     "startSession": "開始",
     "initializing": "初始化中...",
+    "startPreparationFailed": "無法準備工作階段。請再試一次。",
     "initProgress": "載入中 ({{completed}}/{{total}})...",
     "stopDebug": "停止偵錯",
     "debug": "偵錯",

@@ -509,6 +509,7 @@
     "endSession": "Завершить сессию",
     "startSession": "Начать сессию",
     "initializing": "Инициализация...",
+    "startPreparationFailed": "Не удалось подготовить сессию. Попробуйте снова.",
     "initProgress": "Загрузка ({{completed}}/{{total}})...",
     "stopDebug": "Остановить отладку",
     "debug": "Отладка",

@@ -509,6 +509,7 @@
     "endSession": "Lopeta istunto",
     "startSession": "Aloita istunto",
     "initializing": "Alustetaan...",
+    "startPreparationFailed": "Istuntoa ei voitu valmistella. Yritä uudelleen.",
     "initProgress": "Ladataan ({{completed}}/{{total}})...",
     "stopDebug": "Lopeta virheenkorjaus",
     "debug": "Virheenkorjaus",

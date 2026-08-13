@@ -509,6 +509,7 @@
     "endSession": "Oturumu sonlandır",
     "startSession": "Oturumu başlat",
     "initializing": "Başlatılıyor...",
+    "startPreparationFailed": "Oturum hazırlanamadı. Lütfen tekrar deneyin.",
     "initProgress": "Yükleniyor ({{completed}}/{{total}})...",
     "stopDebug": "Hata Ayıklamayı Durdur",
     "debug": "Hata Ayıklama",

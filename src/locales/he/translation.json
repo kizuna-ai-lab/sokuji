@@ -509,6 +509,7 @@
     "endSession": "סיים הפעלה",
     "startSession": "התחל הפעלה",
     "initializing": "מאתחל...",
+    "startPreparationFailed": "לא ניתן היה להכין את ההפעלה. אנא נסה שוב.",
     "initProgress": "טוען ({{completed}}/{{total}})...",
     "stopDebug": "עצור ניפוי שגיאות",
     "debug": "ניפוי שגיאות",

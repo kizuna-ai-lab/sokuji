@@ -509,6 +509,7 @@
     "endSession": "结束会话",
     "startSession": "开始会话",
     "initializing": "初始化中...",
+    "startPreparationFailed": "无法准备会话。请重试。",
     "initProgress": "加载中 ({{completed}}/{{total}})...",
     "stopDebug": "停止调试",
     "debug": "调试",

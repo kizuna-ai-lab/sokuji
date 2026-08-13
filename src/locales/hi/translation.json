@@ -509,6 +509,7 @@
     "endSession": "सत्र समाप्त करें",
     "startSession": "सत्र शुरू करें",
     "initializing": "प्रारंभ हो रहा है...",
+    "startPreparationFailed": "सत्र तैयार नहीं हो सका। कृपया पुनः प्रयास करें।",
     "initProgress": "लोड हो रहा है ({{completed}}/{{total}})...",
     "stopDebug": "डीबग रोकें",
     "debug": "डीबग",

@@ -509,6 +509,7 @@
     "endSession": "จบเซสชัน",
     "startSession": "เริ่มเซสชัน",
     "initializing": "กำลังเริ่มต้น...",
+    "startPreparationFailed": "ไม่สามารถเตรียมเซสชันได้ กรุณาลองใหม่อีกครั้ง",
     "initProgress": "กำลังโหลด ({{completed}}/{{total}})...",
     "stopDebug": "หยุดดีบัก",
     "debug": "ดีบัก",

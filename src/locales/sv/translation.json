@@ -509,6 +509,7 @@
     "endSession": "Avsluta session",
     "startSession": "Starta session",
     "initializing": "Initialiserar...",
+    "startPreparationFailed": "Sessionen kunde inte förberedas. Försök igen.",
     "initProgress": "Laddar ({{completed}}/{{total}})...",
     "stopDebug": "Stoppa felsökning",
     "debug": "Felsök",

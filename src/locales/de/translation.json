@@ -509,6 +509,7 @@
     "endSession": "Sitzung beenden",
     "startSession": "Sitzung starten",
     "initializing": "Initialisierung...",
+    "startPreparationFailed": "Die Sitzung konnte nicht vorbereitet werden. Bitte versuchen Sie es erneut.",
     "initProgress": "Laden ({{completed}}/{{total}})...",
     "stopDebug": "Debug stoppen",
     "debug": "Debug",

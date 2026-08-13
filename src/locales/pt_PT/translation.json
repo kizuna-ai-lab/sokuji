@@ -509,6 +509,7 @@
     "endSession": "Terminar sessão",
     "startSession": "Iniciar sessão",
     "initializing": "A inicializar...",
+    "startPreparationFailed": "Não foi possível preparar a sessão. Tente novamente.",
     "initProgress": "A carregar ({{completed}}/{{total}})...",
     "stopDebug": "Parar depuração",
     "debug": "Depurar",
