@@ -83,6 +83,50 @@ export interface ParticipantSessionResult {
   notices: ParticipantNotice[];
 }
 
+export type PrepareOutcome =
+  | {
+      ok: true;
+      /** Merged into the built session config just before connect (S5). */
+      sessionPatch?: Record<string, unknown>;
+      /** Applied via settingsStore.updateProviderSlice (S5). */
+      settingsPatch?: Record<string, unknown>;
+      /** Two-phase stale-selection guard (S5): `expect` is checked against the
+       *  slice when the hook returns — on mismatch ALL outcome parts are
+       *  discarded and Start proceeds unmodified. `expectAtApply` is re-checked
+       *  immediately before merging sessionPatch — on mismatch the patch is
+       *  dropped and the notice suppressed, Start proceeds. */
+      expect?: Record<string, unknown>;
+      expectAtApply?: Record<string, unknown>;
+      /** i18n key for a user-facing notice (S5). */
+      noticeKey?: string;
+    }
+  | { ok: false; /** Display-ready text; blocks Start. */ message: string };
+
+export interface PreparePorts {
+  getAuthToken: () => Promise<string | null>;
+  userId: string | null;
+  /** Re-runs provider validation via the STORE action (validateApiKey) and
+   *  reports the outcome. Exists because the revalidation authority IS
+   *  settingsStore.validateApiKey — a store action with slice-writing side
+   *  effects (isApiKeyValid drives the Start gate and the subtitle window's
+   *  blocked state) that a descriptor must not import: settingsStore imports
+   *  every descriptor, and the reverse edge is a cycle. MainPanel binds it. */
+  revalidate: () => Promise<{ valid: boolean; message?: string }>;
+  /** Reports a user-visible preparation phase; MainPanel renders it through
+   *  the generic init label. */
+  onPhase: (phase: InitPhase) => void;
+  /** Start cancellation. No caller aborts today — MainPanel supplies a live
+   *  controller per Start and S6's abort path is the intended aborter; a hook
+   *  must still honor it (result discarded silently once fired). */
+  signal: AbortSignal;
+}
+
+/** Semantic preparation/loading phases the init button can display. Sites map
+ *  phase → their own i18n key. */
+export type InitPhase =
+  | { phase: 'loading-models'; completed: number; total: number }
+  | { phase: 'loading-native-asr' };
+
 /**
  * The deep module for one provider. Everything the app needs to know about a
  * provider is answered here; callers dispatch via
@@ -163,6 +207,15 @@ export interface ProviderDescriptor {
    * `computeStartGate`'s `autoSourceParticipantBlocked`.
    */
   reversesDirectionViaSourceLanguage(model: string | null | undefined): boolean;
+
+  /**
+   * Optional async pre-start hook, awaited by MainPanel FIRST in the connect
+   * sequence (before the no-channel guard, any audio init, any client).
+   * ok:false blocks Start with the display-ready message; a REJECTED promise
+   * is treated as ok:false with a generic message (MainPanel catches and
+   * logs); once ports.signal fires the result is discarded silently.
+   */
+  prepareToStart?(slice: unknown, ports: PreparePorts): Promise<PrepareOutcome>;
 }
 
 /** Shared defaults. Subclasses override only what differs from the common case

@@ -610,3 +610,11 @@ describe('S3 planBothMode', () => {
     expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'en' }, 'speaker')).toEqual({ shared: false, split: false });
   });
 });
+
+describe('S4 prepareToStart', () => {
+  it('no descriptor declares the hook yet (locals arrive with their migration)', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      expect(ProviderConfigFactory.getDescriptor(id).prepareToStart, `${id}`).toBeUndefined();
+    }
+  });
+});
