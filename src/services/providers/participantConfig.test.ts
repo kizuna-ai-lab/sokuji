@@ -53,16 +53,18 @@ const DEFAULTS_BY_SLICE_LOCAL: Record<string, unknown> = {
 };
 
 describe('participant config: direction lives in config fields', () => {
-  it('soniox swaps sourceLanguage/targetLanguage', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.SONIOX);
-    const slice = { ...defaultSonioxSettings, sourceLanguage: 'zh', targetLanguage: 'en' };
-    const base = d.buildSessionConfig(slice, 'i') as { sourceLanguage?: string; targetLanguage?: string };
-    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    const c = config as { sourceLanguage?: string; targetLanguage?: string; textOnly?: boolean };
-    expect(c.sourceLanguage).toBe(base.targetLanguage);
-    expect(c.targetLanguage).toBe(base.sourceLanguage);
-    expect(c.textOnly).toBe(true);
-    expect(notices).toEqual([]);
+  it('soniox swaps sourceLanguage/targetLanguage (twin inherits)', () => {
+    for (const id of [Provider.SONIOX, Provider.KIZUNA_AI_SONIOX]) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      const slice = { ...defaultSonioxSettings, sourceLanguage: 'zh', targetLanguage: 'en' };
+      const base = d.buildSessionConfig(slice, 'i') as { sourceLanguage?: string; targetLanguage?: string };
+      const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+      const c = config as { sourceLanguage?: string; targetLanguage?: string; textOnly?: boolean };
+      expect(c.sourceLanguage, `swap for ${id}`).toBe(base.targetLanguage);
+      expect(c.targetLanguage, `swap for ${id}`).toBe(base.sourceLanguage);
+      expect(c.textOnly, `textOnly for ${id}`).toBe(true);
+      expect(notices, `notices for ${id}`).toEqual([]);
+    }
   });
 
   it('volcengine_ast2 swaps sourceLanguage/targetLanguage (twin inherits)', () => {
@@ -123,6 +125,31 @@ describe('participant config: helper-based reversals', () => {
     expect(c).toEqual(expected);
   });
 
+  it('gemini live-translate model reverses translationConfig direction for participant', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
+    // 'live-translate' matches isGeminiTranslateModel's marker, so this slice
+    // exercises the branch the previous case's model: '' (defaultGeminiSettings)
+    // cannot: translationConfig actually present on the base config.
+    const slice = {
+      ...defaultGeminiSettings,
+      model: 'gemini-3.5-live-translate-preview',
+      sourceLanguage: 'en-US',
+      targetLanguage: 'ja-JP',
+    };
+    const base = d.buildSessionConfig(slice, 'i') as GeminiSessionConfig;
+    // toTranslationLanguageCode reduces 'en-US' -> 'en' and 'ja-JP' -> 'ja'.
+    expect(base.translationConfig).toEqual({ targetLanguageCode: 'ja', echoTargetLanguage: false });
+    expect(base.sourceLanguageCode).toBe('en');
+
+    const { config } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    const c = config as GeminiSessionConfig;
+    // Participant translates INTO the user's own language (en): the target
+    // the other party hears is now the original source, and the carried
+    // sourceLanguageCode becomes the original target.
+    expect(c.translationConfig).toEqual({ targetLanguageCode: 'en', echoTargetLanguage: false });
+    expect(c.sourceLanguageCode).toBe('ja');
+  });
+
   it('openai and openai_compatible rebuild the transcription hint for the reversed direction', () => {
     for (const id of [Provider.OPENAI, Provider.OPENAI_COMPATIBLE]) {
       const d = ProviderConfigFactory.getDescriptor(id);
@@ -139,13 +166,15 @@ describe('participant config: helper-based reversals', () => {
     }
   });
 
-  it('openai_translate swaps targetLanguage to the old sourceLanguage', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE);
-    const slice = { ...defaultOpenAITranslateSettings, sourceLanguage: 'ja', targetLanguage: 'en' };
-    const base = d.buildSessionConfig(slice, 'i') as OpenAITranslateSessionConfig;
-    const c = d.buildParticipantSessionConfig(slice, 'i', shell).config as OpenAITranslateSessionConfig;
-    expect(c.targetLanguage).toBe(base.sourceLanguage ?? base.targetLanguage);
-    expect(c.sourceLanguage).toBe(base.targetLanguage);
+  it('openai_translate swaps targetLanguage to the old sourceLanguage (twin inherits)', () => {
+    for (const id of [Provider.OPENAI_TRANSLATE, Provider.KIZUNA_AI_OPENAI_TRANSLATE]) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      const slice = { ...defaultOpenAITranslateSettings, sourceLanguage: 'ja', targetLanguage: 'en' };
+      const base = d.buildSessionConfig(slice, 'i') as OpenAITranslateSessionConfig;
+      const c = d.buildParticipantSessionConfig(slice, 'i', shell).config as OpenAITranslateSessionConfig;
+      expect(c.targetLanguage, `target for ${id}`).toBe(base.sourceLanguage ?? base.targetLanguage);
+      expect(c.sourceLanguage, `source for ${id}`).toBe(base.targetLanguage);
+    }
   });
 });
 
