@@ -84,8 +84,14 @@ describe('SessionCountdown', () => {
     expect(boundarySpan?.classList.contains('low')).toBe(false);
   });
 
-  it('totalMs of 0 is never low regardless of remainingMs (guard pinned)', () => {
-    const snapshot: BudgetSnapshot = { remainingMs: 5_000, totalMs: 0 };
+  it('totalMs of 0 is never low, even with a negative remainingMs that would otherwise trip the threshold (guard pinned)', () => {
+    // remainingMs is negative here specifically so the guard actually
+    // discriminates: -5_000 / 0 = -Infinity, and -Infinity < 0.2 is true —
+    // an unguarded expression WOULD flip to low. With the `totalMs > 0`
+    // guard, it stays false. (A non-negative remainingMs, e.g. 5_000 / 0 =
+    // Infinity, fails the `< 0.2` check on its own either way and can't tell
+    // the guard's presence apart from its absence.)
+    const snapshot: BudgetSnapshot = { remainingMs: -5_000, totalMs: 0 };
     const { container } = render(<SessionCountdown active={true} getSnapshot={() => snapshot} />);
     const span = container.querySelector('.session-remaining-time');
     expect(span?.classList.contains('low')).toBe(false);

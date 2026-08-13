@@ -2456,9 +2456,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // noChannelCameUp.
       if (noChannelCameUp({ speakerChannelStarted, participantChannelStarted })) {
         console.error('[Sokuji] [MainPanel] Neither the speaker nor the participant channel came up; aborting session start');
-        // The ONLY early return between acquire() and the end of this function,
-        // and it does not route through disconnectConversation — so whatever was
-        // built here has to be taken down here.
+        // The first of two early returns between acquire() and the end of
+        // this function (the second is the pre-activation cancel check
+        // below), and it does not route through disconnectConversation — so
+        // whatever was built here has to be taken down here.
         //
         // A participant client can now be holding a LIVE socket at this point:
         // the guard reads outcomes, so it fires for a leg that connected and
@@ -2513,6 +2514,78 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           createdAt: Date.now(),
           formatted: { text: errorMessage },
         }]);
+        return;
+      }
+
+      // Pre-activation cancel check: from the acquire check above (1975) down
+      // to here, nothing has consulted startAbort.signal — and that stretch
+      // contains real awaits (createAIClient, setupClientListeners,
+      // client.connect(), the WebRTC fallback reconstruction, the
+      // recorder-start awaits, and the whole participant block). A cancel
+      // landing in that window fires disconnectConversation concurrently with
+      // this still-running construction; its teardown can only act on what
+      // existed AT THAT MOMENT (e.g. no speaker client yet, or a client that
+      // had not connected yet), so it cannot undo work this pass finishes
+      // afterward. Left unchecked, that either starts the session the user
+      // just cancelled, or leaves it "active" on a client the teardown
+      // already disconnected. Catch it here, one last time, before the
+      // session is ever marked active.
+      //
+      // The teardown below mirrors the no-channel guard above, with one
+      // addition: unlike that guard (which never sees a live speaker client —
+      // one that came up would have set speakerChannelStarted and skipped
+      // this branch, so the guard's own `speakerClientRef` is always a prior
+      // session's, untouched), a cancel here CAN be racing a speaker leg that
+      // finished coming up. Its disconnect/reset shape is the same one
+      // disconnectConversation's speaker leg uses. Both legs, and the
+      // resources release, are idempotent against a teardown that already
+      // ran concurrently: if disconnectConversation's own teardown got there
+      // first, the client refs and sessionResourcesRef are already null and
+      // these steps no-op safely (ref-null-before-release, same pattern as
+      // the acquire-window check above and the no-channel guard's
+      // afterBothLegs).
+      //
+      // Not a full fix for every interleaving: a cancel landing mid-
+      // `client.connect()` still races disconnect's teardown against the
+      // in-flight connect, and if connect rejects, the outer catch below
+      // surfaces its error bubble instead of a clean cancel — inherent to
+      // that race and accepted (see the S7 final review, issue I1).
+      if (startAbort.signal.aborted) {
+        console.info('[Sokuji] [MainPanel] Cancel raced client construction; tearing down what this pass built instead of activating.');
+        await teardownSessionLegs({
+          speaker: async () => {
+            if (!speakerChannelStarted) return;
+            const client = speakerClientRef.current;
+            if (!client) return;
+            try {
+              await client.disconnect();
+            } catch (error) {
+              console.warn('[Sokuji] [MainPanel] Error disconnecting speaker client during cancel:', error);
+            }
+            if (throttleTimerRef.current) {
+              clearTimeout(throttleTimerRef.current);
+              throttleTimerRef.current = null;
+            }
+            setItems(client.getConversationItems());
+            client.reset();
+          },
+          participant: async () => {
+            const client = participantClientRef.current;
+            if (!client) return;
+            participantClientRef.current = null;
+            try {
+              await client.disconnect();
+              client.reset();
+            } catch (error) {
+              console.warn('[Sokuji] [MainPanel] Error disconnecting the participant client during cancel:', error);
+            }
+          },
+          afterBothLegs: () => {
+            const resources = sessionResourcesRef.current;
+            sessionResourcesRef.current = null;
+            resources?.release('aborted');
+          },
+        });
         return;
       }
 

@@ -157,11 +157,14 @@ export interface SessionResources {
    *  while the budget is not yet known. Implementations must not rely on `this`:
    *  callers may extract the function and call it bare. */
   budget?: () => BudgetSnapshot | null;
-  /** Idempotent. 'aborted' = Start failed after acquire (the no-channel
-   *  abort branch); 'disconnect' = normal teardown, including the
-   *  init-failure unwind that routes through disconnectConversation. Called
-   *  from afterBothLegs at both teardown sites, strictly after both legs are
-   *  down — and never for a failed acquire (see acquireSessionResources). */
+  /** Idempotent. 'aborted' = Start did not reach an active session after
+   *  acquire — either it failed (the no-channel guard) or it was cancelled
+   *  (the post-acquire check, or the pre-activation check that catches a
+   *  cancel racing client construction); 'disconnect' = normal teardown,
+   *  including the init-failure unwind that routes through
+   *  disconnectConversation. Called from afterBothLegs at each of these
+   *  teardown sites, strictly after both legs are down — and never for a
+   *  failed acquire (see acquireSessionResources). */
   release(reason: 'disconnect' | 'aborted'): void;
 }
 

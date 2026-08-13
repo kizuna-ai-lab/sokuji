@@ -180,6 +180,38 @@ describe('ManagedVoicesClient caller-signal threading (via .mine)', () => {
     }
   });
 
+  it('aborts before the fetch settles when the signal fires during the getToken() await', async () => {
+    // A deliberately slow token fetch: the pre-flight check (before this
+    // await) already passed, so only the post-await forwardAbort
+    // registration is left to catch a cancel landing here — the gap M1
+    // closes. Mirrors what a real fetch() does with an already-aborted
+    // signal: reject immediately, before touching the network — never
+    // resolves and never waits out request()'s own 15s deadline.
+    let resolveToken!: (token: string) => void;
+    const slowGetToken = () => new Promise<string>((resolve) => { resolveToken = resolve; });
+    const client = new ManagedVoicesClient(slowGetToken);
+    fetchMock.mockImplementation((_url: string, init: RequestInit) => {
+      const internalSignal = init.signal as AbortSignal;
+      if (internalSignal.aborted) return Promise.reject(internalSignal.reason);
+      return new Promise((_resolve, reject) => {
+        internalSignal.addEventListener('abort', () => reject(internalSignal.reason));
+      });
+    });
+    const controller = new AbortController();
+
+    const promise = client.mine(undefined, controller.signal);
+    controller.abort();
+    resolveToken(TOKEN);
+
+    await expect(promise).rejects.toMatchObject({ errorType: 'aborted' });
+    // fetch is still invoked (request() has no separate skip-fetch branch),
+    // but with an already-aborted internal signal — the "aborted
+    // immediately" case, not "ran to its own timeout".
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, calledInit] = fetchMock.mock.calls[0];
+    expect((calledInit.signal as AbortSignal).aborted).toBe(true);
+  });
+
   it('removes the caller-signal listener once the request settles, so a later abort is inert', async () => {
     fetchMock.mockResolvedValue(json(200, { voice: null }));
     const controller = new AbortController();

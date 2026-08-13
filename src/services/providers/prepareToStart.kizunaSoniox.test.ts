@@ -104,6 +104,10 @@ describe('kizuna-soniox prepareToStart', () => {
     const deps = prepareManagedVoice.mock.calls[0][0];
     expect(deps.client).toBeInstanceOf(ManagedVoicesClient);
     expect(typeof deps.loadClip).toBe('function');
+    // Pins the stage's central contract: the same Start-scoped signal object
+    // reaches the core, not a copy or a fresh controller — see
+    // KizunaAISonioxProviderConfig.ts's `signal: ports.signal`.
+    expect(deps.signal).toBe(p.signal);
     await deps.loadClip();
     expect(loadVoiceClipMock).toHaveBeenCalledWith('user-1');
 

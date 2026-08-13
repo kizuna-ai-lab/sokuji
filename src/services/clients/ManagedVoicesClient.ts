@@ -79,6 +79,10 @@ export class ManagedVoicesClient {
     const forwardAbort = () =>
       controller.abort(signal?.reason ?? new DOMException('Cancelled by the caller', 'AbortError'));
     signal?.addEventListener('abort', forwardAbort, { once: true });
+    // An abort landing during the `getToken()` await above fires before this
+    // listener existed to hear it; catch it here so the fetch below starts
+    // (and rejects) already aborted instead of running to its own timeout.
+    if (signal?.aborted) forwardAbort();
     try {
       let res: Response;
       try {
