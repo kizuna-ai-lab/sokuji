@@ -16,12 +16,15 @@
 // house rule as resolveVoicePrepOutcome: the DECISION is a pure function, only
 // the side effects stay in the component.
 //
-// This module is NOT imported by components/MainPanel/sessionStartGate.ts —
-// the gate takes the derived boolean as a plain input. That matters: the gate
-// is also loaded by the subtitle window, and this file's import of
-// SonioxProviderConfig pulls SonioxClient and the i18n bootstrap behind it.
-// Type-only, so this adds no runtime edge: this module still has no import of
-// ProviderConfigFactory or any concrete descriptor.
+// This module is a LEAF, consumed BY SonioxProviderConfig's planBothMode
+// override rather than the other way around — the edge runs descriptor →
+// here, and this file still has no import of ProviderConfigFactory or any
+// concrete descriptor of its own. components/MainPanel/sessionStartGate.ts
+// keeps taking the derived boolean as a plain input regardless: that gate is
+// also loaded by the subtitle window, so it stays clear of this module (and
+// every other provider-specific one) on principle, not because importing it
+// would be heavy.
+// Type-only, so the one import above adds no runtime edge.
 import type { BothModePlan } from './ProviderDescriptor';
 
 /** Structurally identical to audioStore's AudioMode, declared locally so this

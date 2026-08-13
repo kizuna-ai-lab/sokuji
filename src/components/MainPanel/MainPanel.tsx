@@ -580,9 +580,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // pick a concrete source first. `participantWillStart` ===
   // isParticipantChannelInScope.
   //
-  // Resolves the EFFECTIVE provider (kizunaBaseProvider) and reads the
-  // ACTIVE provider's settings slice via its descriptor's settingsSliceKey —
-  // mirrors LanguageSection.showAutoSourceParticipantWarning exactly. A raw
+  // Dispatch goes through the ACTIVE provider's descriptor
+  // (ProviderConfigFactory.getDescriptor(provider)), which reads the settings
+  // slice via its settingsSliceKey; the Kizuna twin inherits Soniox's
+  // reversesDirectionViaSourceLanguage answer by class extension, not by
+  // normalizing to a base provider first — mirrors
+  // LanguageSection.showAutoSourceParticipantWarning exactly. A raw
   // `provider === Provider.SONIOX` check against the hardcoded `soniox` slice
   // (as this used to be) is always false for the KIZUNA_AI_SONIOX managed
   // twin, so this gate silently no-op'd for it: LanguageSection still showed
@@ -1924,9 +1927,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Both mode uses ONE shared Soniox two_way session (mic+system mixed) when the
       // shared-session toggle is on and the source language is concrete; else 2 clients.
       //
-      // Resolves the EFFECTIVE provider and reads the ACTIVE provider's settings
-      // slice (soniox for BYOK, kizunaSoniox for the KIZUNA_AI_SONIOX managed
-      // twin) — mirrors the autoSourceParticipantBlocked gate above. A raw
+      // Dispatch goes through the ACTIVE provider's descriptor, which reads the
+      // settings slice via its settingsSliceKey (soniox for BYOK, kizunaSoniox
+      // for the KIZUNA_AI_SONIOX managed twin); the twin inherits
+      // SonioxProviderConfig's planBothMode override by class extension, not by
+      // normalizing to a base provider first — mirrors the
+      // autoSourceParticipantBlocked gate above. A raw
       // `provider === Provider.SONIOX` check against the hardcoded `soniox` slice
       // (as this used to be) is always false for the twin, so it opened TWO
       // independent managed sessions instead of one shared one; the backend's
