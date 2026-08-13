@@ -2586,6 +2586,64 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             resources?.release('aborted');
           },
         });
+
+        // The teardown above closed this pass's clients; now end capture the
+        // same way disconnectConversation does after ITS teardown: the mic
+        // recorder, Electron system-audio capture, and the Extension's tab-
+        // audio capture. Without this, a cancel whose disconnect finished
+        // while client construction was still awaited has already run these
+        // same stops — whichever capture(s) this pass started afterwards
+        // would keep running into a disconnected client, a hot mic or a
+        // silent system-audio tap behind a UI showing Start.
+        // Deliberately no 100ms settle and neither participant-capture stop
+        // hoisted before the legs (disconnectConversation's ordering protects
+        // an ACTIVE session's in-flight audio; this session never activated).
+        const audioService = audioServiceRef.current;
+        if (audioService) {
+          // Stop system audio recording and release the loopback stream on
+          // Electron — mirrors disconnectConversation's pre-teardown block.
+          // startSystemAudioRecording's stored callback closes over the LOCAL
+          // participantClient const from this pass, not the ref, so once the
+          // participant leg above disconnects that client, nothing else would
+          // otherwise stop the OS-level capture — it would run silently until
+          // the next successful Start self-heals it (startSystemAudioRecording
+          // stops an already-active capture first).
+          if (audioService.isSystemAudioRecordingActive()) {
+            try {
+              await audioService.stopSystemAudioRecording();
+            } catch (error) {
+              console.warn('[Sokuji] [MainPanel] Error stopping system audio recording during cancel:', error);
+            }
+          }
+          if (isElectron() && !isExtension() && systemAudioAcquiredRef.current) {
+            try {
+              await audioService.disconnectSystemAudioSource();
+              systemAudioAcquiredRef.current = false;
+            } catch (error) {
+              console.warn('[Sokuji] [MainPanel] Failed to disconnect system audio source during cancel:', error);
+            }
+          }
+
+          if (audioService.isTabAudioRecordingActive?.()) {
+            try {
+              await audioService.stopTabAudioRecording();
+            } catch (error) {
+              console.warn('[Sokuji] [MainPanel] Error stopping tab audio recording during cancel:', error);
+            }
+          }
+          try {
+            await audioService.stopRecording();
+          } catch (error: any) {
+            // Silently ignore if recording was never started (expected in push-to-talk mode)
+            if (!error?.message?.includes('begin()')) {
+              console.warn('[Sokuji] [MainPanel] Error ending recorder during cancel:', error);
+            }
+          }
+          await audioService.interruptAudio();
+          audioService.clearStreamingTrack('ai-assistant');
+          audioService.clearStreamingTrack('system-audio-assistant');
+        }
+
         return;
       }
 
