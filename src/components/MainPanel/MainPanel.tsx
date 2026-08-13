@@ -365,14 +365,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // there is no participant waveform to be missing.
   const [splitDegraded, setSplitDegraded] = useState<SplitDegradedReason | null>(null);
 
-  // supportsTextInput is true for providers that support text input
-  const supportsTextInput = useMemo(() => {
-    return provider === Provider.OPENAI ||
-           provider === Provider.GEMINI ||
-           provider === Provider.OPENAI_COMPATIBLE ||
-           provider === Provider.LOCAL_INFERENCE ||
-           provider === Provider.LOCAL_NATIVE;
-  }, [provider]);
+  // Whether the text-input row renders is the provider's own claim.
+  const supportsTextInput = useMemo(
+    () => ProviderConfigFactory.getDescriptor(provider).getConfig().capabilities.supportsTextInput ?? false,
+    [provider]
+  );
 
   // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers without one
   const currentTurnDetectionMode = useCurrentTurnDetectionMode();
