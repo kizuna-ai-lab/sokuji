@@ -63,6 +63,19 @@ describe('useSubtitleSessionBridge mirroring', () => {
     expect(useSessionStore.getState().isInitializing).toBe(true);
     expect(useSessionStore.getState().initProgress).toEqual({ completed: 2, total: 5 });
   });
+
+  it('mirrors loading-native-asr as null progress (no counted form)', () => {
+    renderHook(() =>
+      useSubtitleSessionBridge({
+        startGate: readyGate,
+        isInitializing: true,
+        initPhase: { phase: 'loading-native-asr' },
+        onStart: vi.fn(),
+        onStop: vi.fn(),
+      }),
+    );
+    expect(useSessionStore.getState().initProgress).toBeNull();
+  });
 });
 
 describe('useSubtitleSessionBridge request watching', () => {
