@@ -263,9 +263,14 @@ acquireSessionResources?(ctx: {
 ### UI becomes data-driven
 
 - **Countdown**: new `<SessionCountdown getSnapshot={...} />` component (owns the 1s interval, the low-threshold class, `formatRemainingTime`). Rendered when `sessionResources?.budget` exists — a data condition, not a provider condition. Kills the duplicated JSX at L4302-4306/L4448-4452 (the adjacent generic session-duration span L4299-4301/L4445-4447 stays) and the state block L1409-1452.
+
+  **Landed correction (S7)**: `<SessionCountdown>` landed with props `{ active: boolean; getSnapshot: () => BudgetSnapshot | null }` and a self-nulling render (`if (!countdown) return null;` inside the component) — the budget gate lives inside the component itself, not as the conditionally-rendered, `getSnapshot`-only sketch the bullet above implies. The state block S7 deleted was not the sketch's `L1409-1452` — those anchors were already stale by the time S7 landed: S6 had regeared the countdown's data source onto `sessionResourcesRef.current?.budget` behind a new `getBudgetSnapshot` callback (see the S6 landed correction under the `acquireSessionResources` sketch above), and it is that regeared block S7 deleted, at the callback's own declaration site next to `sessionResourcesRef`. `formatRemainingTime` itself did not move file — it still lives in `src/utils/formatters.ts` — but its only call site did, moving with the countdown state it already accompanied: from MainPanel's footer JSX into `<SessionCountdown>`, import included.
+
 - **Init labels**: the generic `initPhaseKey: string | null` + i18n-lookup label is introduced **in S4** (not S7), so every migration stage deletes its own rungs of the old ladder as its provider moves to `onPhase` — no interim gap where migrated providers have no label. Existing label strings are reused under phase keys; no visible text changes. S7 removes whatever remains of the ladder alongside the countdown work.
 
   **Landed correction (S4)**: one visible text change did land — the advanced footer now shows `simplePanel.loadingModel` ("Loading model…") during a native ASR load, in place of the generic `mainPanel.initializing` ("Initializing..."), matching what the simple footer always showed.
+
+  **Landed correction (S7)**: "S7 removes whatever remains of the ladder" above was a no-op in practice — by the time S7 landed, S4 through S6 had already deleted every migrated provider's rung as each moved onto `onPhase`; no provider was left on the old ladder for S7 to remove. S7's own diff touches no init-label code; it only extracts the countdown.
 
 ## Explicitly staged-last (S8, individually optional)
 
@@ -296,6 +301,8 @@ Each stage: add seam (+ base default) → migrate providers → **delete the Mai
 | S8 | Optional: analytics, anchor policy, WebRTC fallback | ~200 | per-item; WebRTC fallback keeps its own retry-path tests |
 
 **Projected**: MainPanel −600..−650 lines for S1–S7; ~−800..−850 if all of S8 lands. (The audit's 1314 provider-specific lines exceed the deletions because a share becomes generic data-driven code that stays, and imports/types shrink rather than disappear.)
+
+**Landed correction (S7)**: the S7 row's `Content` column (`<SessionCountdown> + remaining ladder removal`) undersells what actually landed — an in-flight Start became cancellable, beyond anything sketched for this stage. The S6 `prepareToStart` aborter (see the S6 landed correction under `acquireSessionResources` above) became a Start-scoped `AbortController` that also survives through `acquireSessionResources` itself, with a post-acquire `release('aborted')` when the signal fires while that await is in flight. `ManagedVoicesClient` gained a caller-`AbortSignal` path through its `request`/`mine`/`ensure` methods, following the `SonioxTtsRest` precedent's shape — a manual `AbortController` plus a `forwardAbort` listener, not `AbortSignal.any` — so an in-flight managed-voice network call is actually interrupted, not merely ignored. Both footer buttons now dispatch to `disconnectConversation` while `isInitializing` is true, behind a new `mainPanel.clickToCancel` locale key (added to all 30 locale catalogs); on the advanced button this also drives a `trackEvent('session_control_clicked', { action: 'cancel' })` call, which widened `AnalyticsEvents['session_control_clicked'].action` in `src/lib/analytics.ts` from `'start' | 'stop'` to `'start' | 'stop' | 'cancel'`. One deliberate, small visible-behavior change rode along: the advanced button's `disabled` expression lost its explicit `|| isInitializing` disable (it is no longer disabled while initializing, so its cancel click is reachable); the simple button's `disabled` expression gained a matching `&& !isInitializing` clause for the same reason.
 
 ## Testing
 

@@ -186,8 +186,9 @@ describe('kizuna-soniox prepareToStart', () => {
     prepareManagedVoice.mockImplementation(async () => {
       // MainPanel fires startAbortRef mid-flight (a teardown racing this
       // prepare); the core keeps running and resolves normally regardless —
-      // it does not know about the signal (see the brief: threading it into
-      // ManagedVoicesClient is future work).
+      // it does not know about the signal (ManagedVoicesClient threads a
+      // caller signal too as of T4, but this mock replaces
+      // prepareManagedVoice wholesale and never exercises that path).
       controller.abort();
       return { ok: true, voiceId: 'cloned-uuid-999' };
     });
