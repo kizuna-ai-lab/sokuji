@@ -38,7 +38,6 @@ import { Provider, kizunaBaseProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
-import { reversesDirectionViaSourceLanguage } from '../../../services/providers/autoSourceReversal';
 import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
@@ -387,7 +386,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // Soniox one_way rejects — so require a concrete source language whenever a
   // participant channel is in scope.
   const showAutoSourceParticipantWarning = useMemo(() => {
-    return reversesDirectionViaSourceLanguage(effectiveProvider, currentProviderSettings.model)
+    return ProviderConfigFactory.getDescriptor(effectiveProvider).reversesDirectionViaSourceLanguage(currentProviderSettings.model)
       && isParticipantChannelInScope
       && currentProviderSettings.sourceLanguage === 'auto';
   }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage, currentProviderSettings.model]);

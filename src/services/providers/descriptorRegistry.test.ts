@@ -557,6 +557,7 @@ describe('S3 reversesDirectionViaSourceLanguage', () => {
     expect(d.reversesDirectionViaSourceLanguage(TRANSLATE)).toBe(true);
     expect(d.reversesDirectionViaSourceLanguage(DIALOGUE)).toBe(false);
     expect(d.reversesDirectionViaSourceLanguage(undefined)).toBe(false);
+    expect(d.reversesDirectionViaSourceLanguage('')).toBe(false);
   });
 
   it('false for every other descriptor, any model', () => {

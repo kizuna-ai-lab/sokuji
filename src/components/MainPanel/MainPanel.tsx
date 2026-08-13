@@ -29,8 +29,7 @@ import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { isPushGatedMode } from '../../services/providers/speechMode';
 import { SonioxProviderConfig, defaultSonioxSettings } from '../../services/providers/SonioxProviderConfig';
-import { sonioxBothModePlan, type SonioxBothModePlan } from '../../services/providers/sonioxBothMode';
-import { reversesDirectionViaSourceLanguage } from '../../services/providers/autoSourceReversal';
+import type { BothModePlan } from '../../services/providers/ProviderDescriptor';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -598,7 +597,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     (s) => (s[ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey as keyof SettingsStore] as { model?: string } | undefined)?.model
   );
   const autoSourceParticipantBlocked =
-    reversesDirectionViaSourceLanguage(provider, activeProviderModel) &&
+    ProviderConfigFactory.getDescriptor(provider).reversesDirectionViaSourceLanguage(activeProviderModel) &&
     participantWillStart && activeProviderSourceLanguage === 'auto';
 
   // The stored shared/split preference, subscribed REACTIVELY through the same
@@ -622,14 +621,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // until a session starts, so the two are equal here, and using the same
   // input as connectConversation keeps the call sites literally identical.
   const sonioxBothSplit = useMemo(
-    () => sonioxBothModePlan({
-      provider,
-      mode: effectiveMode,
-      settings: {
-        bothModeSharedSession: activeProviderBothModeShared,
-        sourceLanguage: activeProviderSourceLanguage,
-      },
-    }).split,
+    () => ProviderConfigFactory.getDescriptor(provider).planBothMode({
+      bothModeSharedSession: activeProviderBothModeShared,
+      sourceLanguage: activeProviderSourceLanguage,
+    }, effectiveMode).split,
     [provider, effectiveMode, activeProviderBothModeShared, activeProviderSourceLanguage],
   );
 
@@ -1951,11 +1946,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // participant below; `.split` is what the managed session-key request
       // declares as `bothSplit`, and is the same boolean that chose the Start
       // gate's balance floor.
-      const sonioxBothPlan: SonioxBothModePlan = sonioxBothModePlan({
-        provider,
-        mode: effectiveMode,
-        settings: sonioxActiveSettings,
-      });
+      const sonioxBothPlan: BothModePlan = ProviderConfigFactory.getDescriptor(provider).planBothMode(sonioxActiveSettings, effectiveMode);
       const sonioxSharedBoth = sonioxBothPlan.shared;
       const sonioxSplitBoth = sonioxBothPlan.split;
 
