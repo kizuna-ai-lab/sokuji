@@ -803,7 +803,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // temporary Soniox keys in legOptions.sonioxManaged.credentials.
     // Re-running extractCredentials would fire a second getToken round trip
     // for a value this path no longer reads; the sign-in gate it provided
-    // lives in the acquire path (KIZUNA_SIGN_IN_REQUIRED).
+    // lives in the acquire path, which throws the sign-in-required error.
     const creds = legOptions?.sonioxManaged
       ? ({ ok: true, primary: '' } as const)
       : await descriptor.extractCredentials(slice, { getAuthToken });
@@ -1282,7 +1282,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Managed Soniox remaining-time countdown for the status footer. The
   // session's budget/rate/start-time are fixed for the whole session (see
-  // SonioxCostMeter.getBudgetSnapshot), polled once a second via
+  // the underlying cost meter's budget-snapshot getter), polled once a second via
   // sessionResourcesRef.current.budget() for a smooth countdown without
   // polling the cost meter itself, which only advances on the STT stream's
   // ~5s keepalive tick. Populated only when acquireSessionResources returned
