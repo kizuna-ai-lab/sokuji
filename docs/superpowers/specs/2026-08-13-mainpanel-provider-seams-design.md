@@ -199,6 +199,8 @@ prepareToStart?(slice: unknown, ports: PreparePorts): Promise<PrepareOutcome>;
 
 **Landed correction (S4)**: `onPhase` carries a structured `InitPhase` union — `{ phase: 'loading-models'; completed: number; total: number } | { phase: 'loading-native-asr' }` — not the bare `phaseKey: string` sketched above; the loading-models label interpolates `completed`/`total` counts, which a bare key cannot carry.
 
+**Landed correction (S5)**: `PreparePorts` gained `sessionShape: { speakerWillStart: boolean; participantWillStart: boolean; textOnly: boolean }`, not sketched above — provider-agnostic facts the component owns; the kizuna-soniox hook gates on them instead of re-deriving (it prepares a voice only when the speaker channel will actually speak). `onPhase`'s parameter is `InitPhase | null`, not the bare `InitPhase` the S4 correction above describes — `null` clears the phase (a hook's `finally`). The `InitPhase` union itself gained a third member, `{ phase: 'preparing-voice' }`. And `PrepareOutcome.noticeKey` (the sketched i18n key) never landed; `notice?: string` shipped instead — display-ready text the hook itself resolves (S4-T3 precedent: hooks own i18n), not a key for MainPanel to look up.
+
 **Error paths (normative)**: a *rejected* `prepareToStart` is treated as `{ ok: false, message: t('mainPanel.startPreparationFailed') }` — MainPanel catches, logs the original error, blocks Start, shows the generic message. If `ports.signal` has fired, the result (or rejection) is discarded silently and nothing is shown. `message` on an explicit `ok: false` is display-ready text (the local hook passes the store's `validationMessage` through verbatim, as today).
 
 Absorbs, per provider:
