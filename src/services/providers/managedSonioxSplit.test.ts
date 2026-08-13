@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ManagedSonioxSession } from '../../services/clients/ManagedSonioxSession';
+import { ManagedSonioxSession } from '../clients/ManagedSonioxSession';
 import {
   managedLegOptions,
   resolveManagedSonioxWiring,

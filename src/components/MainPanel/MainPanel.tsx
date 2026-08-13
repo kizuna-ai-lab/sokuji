@@ -75,7 +75,7 @@ import {
   resolveManagedSonioxWiring,
   resolveParticipantSlot,
   teardownSessionLegs,
-} from './managedSonioxSplit';
+} from '../../services/providers/managedSonioxSplit';
 import { KIZUNA_SIGN_IN_REQUIRED } from '../../services/providers/KizunaAISonioxProviderConfig';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';

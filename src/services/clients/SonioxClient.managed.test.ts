@@ -8,7 +8,7 @@ import type { SonioxTtsOptions, SonioxTtsStreamHandlers } from './SonioxTtsStrea
 // constructor. Imported directly rather than through ProviderConfigFactory so
 // this file needs none of the registry's feature-flag mocking.
 import { KizunaAISonioxProviderConfig } from '../providers/KizunaAISonioxProviderConfig';
-import { managedLegOptions, resolveManagedSonioxWiring } from '../../components/MainPanel/managedSonioxSplit';
+import { managedLegOptions, resolveManagedSonioxWiring } from '../providers/managedSonioxSplit';
 
 // --- Mock both wire components; capture instances for driving/inspecting the client ---
 // (same style as SonioxClient.test.ts)
