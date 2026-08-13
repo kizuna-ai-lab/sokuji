@@ -612,9 +612,12 @@ describe('S3 planBothMode', () => {
 });
 
 describe('S4 prepareToStart', () => {
-  it('no descriptor declares the hook yet (locals arrive with their migration)', () => {
+  it('is declared only where a provider has pre-start work (locals, later kizuna-soniox)', () => {
+    const WITH_HOOK = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      expect(ProviderConfigFactory.getDescriptor(id).prepareToStart, `${id}`).toBeUndefined();
+      const d = ProviderConfigFactory.getDescriptor(id);
+      expect(typeof d.prepareToStart === 'function', `hook presence for ${id}`)
+        .toBe(WITH_HOOK.includes(id));
     }
   });
 });

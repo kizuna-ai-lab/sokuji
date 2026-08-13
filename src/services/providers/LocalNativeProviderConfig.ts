@@ -1,7 +1,7 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
 import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult, PreparePorts, PrepareOutcome } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, LocalNativeSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalNativeClient } from '../clients/LocalNativeClient';
@@ -11,6 +11,7 @@ import type { NativeModelInfo } from '../../lib/local-inference/native/nativePro
 // no cycle; the descriptor needs the sidecar catalog for TTS auto-resolution.
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { createParticipantLocalNativeConfig } from './localParticipantConfig';
+import i18n from '../../locales';
 
 /**
  * Native (Electron sidecar) provider settings. Keeps field parity with
@@ -156,6 +157,21 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
     validation: ApiKeyValidationResult; models: FilteredModel[];
   }> {
     return { validation: { valid: false, message: 'local native readiness is model-based', validating: false }, models: [] };
+  }
+
+  /** Pre-start model-readiness revalidation. validateApiKey is the single
+   *  authority for session readiness — auto-select, model readiness, key
+   *  validation — and it must run as the STORE action (its isApiKeyValid
+   *  write is what closes the Start gate and flips the subtitle window to
+   *  'blocked' on failure), so it arrives here through ports.revalidate. */
+  async prepareToStart(_slice: unknown, ports: PreparePorts): Promise<PrepareOutcome> {
+    const result = await ports.revalidate();
+    if (result.valid) return { ok: true };
+    return {
+      ok: false,
+      message: result.message
+        || i18n.t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.'),
+    };
   }
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
