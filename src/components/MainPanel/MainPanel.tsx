@@ -1801,7 +1801,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const startDescriptor = ProviderConfigFactory.getDescriptor(provider);
       if (startDescriptor.prepareToStart) {
         // No aborter calls .abort() yet — S6's abort path is the intended
-        // caller; the contract requires a live signal from day one.
+        // caller; the contract requires a live signal from day one. The
+        // aborted-discard check itself (spec: once ports.signal fires the
+        // result is discarded silently) must land together with that
+        // aborter in S6, not before — there is no signal to fire yet.
         const prepareAbort = new AbortController();
         const prepareSlice = useSettingsStore.getState()[startDescriptor.settingsSliceKey as keyof SettingsStore];
         let prepared: PrepareOutcome;
