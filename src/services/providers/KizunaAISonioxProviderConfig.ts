@@ -100,6 +100,11 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
         // account. A mismatch (or nobody signed in) reads as "no clip
         // here", which the routine already degrades to a built-in voice.
         loadClip: () => loadVoiceClip(ports.userId),
+        // The same Start-scoped aborter the hook itself already checks
+        // post-await (below): threading it into the core too means a
+        // mid-flight cancel now reaches the network instead of only being
+        // noticed once the whole prep call has already settled.
+        signal: ports.signal,
       });
       if (ports.signal.aborted) {
         // The Start this prepare belonged to is gone; hand back nothing to apply.

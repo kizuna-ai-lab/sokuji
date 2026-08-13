@@ -107,6 +107,88 @@ describe('ManagedVoicesClient.ensure', () => {
     expect(err).toBeInstanceOf(SonioxVoicesError);
     expect(err.errorType).toBe('network');
   });
+
+  it('refuses to call at all when the caller signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      make().ensure({ pin: true, signal: controller.signal })
+    ).rejects.toMatchObject({ errorType: 'aborted' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('ManagedVoicesClient caller-signal threading (via .mine)', () => {
+  // Exercised through `mine` because `mine`/`ensure` both funnel into the
+  // same private `request()` — one code path to cover, plus one threading
+  // check above (`ensure`'s pre-flight refusal) proving the object-form
+  // signature passes `signal` through too.
+
+  it('refuses to call at all when the caller signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(make().mine(undefined, controller.signal)).rejects.toMatchObject({
+      errorType: 'aborted',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('maps a mid-flight caller cancel to aborted, NOT timeout', async () => {
+    // fetch() aborting mid-flight rejects with the controller's own reason —
+    // simulate that by listening for the abort request() actually issues
+    // (on its OWN internal controller, forwarded from the caller's signal)
+    // and rejecting with that reason, same as a real fetch would.
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          const internalSignal = init.signal as AbortSignal;
+          internalSignal.addEventListener('abort', () => reject(internalSignal.reason));
+        })
+    );
+    const controller = new AbortController();
+    const promise = make().mine(undefined, controller.signal);
+    // Let request() run past `getToken()` and reach fetch() — by which point
+    // its forwardAbort listener is already attached to the caller's signal —
+    // before firing the cancel.
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    controller.abort();
+    await expect(promise).rejects.toMatchObject({ errorType: 'aborted' });
+  });
+
+  it('still maps to timeout when the caller signal never fires', async () => {
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementation(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            const internalSignal = init.signal as AbortSignal;
+            internalSignal.addEventListener('abort', () => reject(internalSignal.reason));
+          })
+      );
+      // No caller signal at all — only the client's own deadline can fire.
+      // The assertion is wired up BEFORE advancing the fake timer: attaching
+      // `.rejects` only after would race the timer-driven rejection against
+      // Node's unhandled-rejection detector (the two don't share a
+      // microtask queue tick under fake timers) and flake with a spurious
+      // "handled asynchronously" warning that fails the run.
+      const promise = make().mine();
+      const assertion = expect(promise).rejects.toMatchObject({ errorType: 'timeout' });
+      await vi.advanceTimersByTimeAsync(15_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('removes the caller-signal listener once the request settles, so a later abort is inert', async () => {
+    fetchMock.mockResolvedValue(json(200, { voice: null }));
+    const controller = new AbortController();
+    await expect(make().mine(undefined, controller.signal)).resolves.toBeNull();
+    // Firing the signal after the request already settled must be a no-op —
+    // no throw here, and (since vitest fails a run on an unhandled
+    // rejection) nothing left listening to produce one either.
+    expect(() => controller.abort()).not.toThrow();
+  });
 });
 
 describe('ManagedVoicesClient.remove', () => {

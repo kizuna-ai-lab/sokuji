@@ -34,25 +34,37 @@ export interface PrepareManagedVoiceDeps {
   loadClip: () => Promise<Blob | null>;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
+  /** Caller cancellation — e.g. MainPanel's start-scoped aborter, threaded in
+   *  as `ports.signal` by `KizunaAISonioxProviderConfig.prepareToStart`.
+   *  Threaded into every `ensure`/`mine` call so a cancel reaches the network
+   *  (not just gates the NEXT attempt), and additionally checked at every
+   *  loop boundary below the deadline already is. Optional: a caller with no
+   *  cancellation concept simply omits it, and behaviour is unchanged from
+   *  before this parameter existed. */
+  signal?: AbortSignal;
   /** Budget for STARTING work — NOT a wall-clock ceiling on this call.
    *
    *  Every new attempt (a poll, the clip upload after `clip_required`, the
-   *  retry after `pool_exhausted`) is refused once this has elapsed, but an
-   *  attempt already in flight keeps running on `ManagedVoicesClient`'s own
-   *  timeout — 15 s, or 120 s once a clip is attached — and is never aborted
-   *  from here.
+   *  retry after `pool_exhausted`) is refused once this has elapsed. Without
+   *  `signal`, an attempt already in flight keeps running on
+   *  `ManagedVoicesClient`'s own timeout — 15 s, or 120 s once a clip is
+   *  attached — and is never aborted from here.
    *
-   *  So the real worst case is roughly `timeoutMs` + that upload timeout. A
-   *  concrete one at the defaults: a warm `ensure` that burns its full ~15 s
-   *  before answering `clip_required` still passes the deadline check, and
-   *  may then start a 120 s upload — about 135 s of Start being disabled with
-   *  no cancel, against a stated 60 s ceiling.
+   *  So the NO-SIGNAL worst case is roughly `timeoutMs` + that upload
+   *  timeout. A concrete one at the defaults: a warm `ensure` that burns its
+   *  full ~15 s before answering `clip_required` still passes the deadline
+   *  check, and may then start a 120 s upload — about 135 s of Start being
+   *  disabled with no cancel, against a stated 60 s ceiling.
    *
-   *  This bounding behaviour is deliberate: cancelling mid-upload would need
-   *  an AbortSignal threaded through the client, and abandoning an upload the
-   *  backend may already be building from is worse than waiting for it. The
-   *  comment states the real number so nobody reads `timeoutMs` as a promise
-   *  it does not make. */
+   *  With `signal` supplied that figure no longer applies: an in-flight
+   *  `ensure`/`mine` aborts too (ManagedVoicesClient forwards it into its own
+   *  AbortController, keeping the caller's cancel distinguishable from its
+   *  own deadline at the catch site — see SonioxTtsRest.synthesizeOnce, the
+   *  precedent for that shape), and a cancel observed at a loop boundary
+   *  resolves through the same degrade path deadline exhaustion already
+   *  does. `KizunaAISonioxProviderConfig.prepareToStart` always supplies one
+   *  (`ports.signal`), so 135 s is a bound this codebase's only caller no
+   *  longer hits in practice. */
   timeoutMs?: number;
   pollIntervalMs?: number;
 }
@@ -63,6 +75,7 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
   const {
     client,
     loadClip,
+    signal,
     sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
     now = () => Date.now(),
     timeoutMs = 60_000,
@@ -81,20 +94,28 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
 
     for (;;) {
       const remaining = deadline - now();
-      if (remaining <= 0) return { ok: false, reason: 'unavailable' };
+      // A cancelled caller resolves through the exact same degrade result a
+      // spent deadline does — 'unavailable' — rather than a fourth branch:
+      // both mean "stop trying, the session starts without this voice".
+      if (remaining <= 0 || signal?.aborted) return { ok: false, reason: 'unavailable' };
       // Clamp the wait AND re-check after it. Checking only before the sleep
       // let a full interval step straight over the deadline and then start a
       // poll anyway — and that poll carries its own 15s request timeout, so
       // Start stayed disabled well past the budget it had just been told it
       // was out of. The rule everywhere in this routine is the same: no new
-      // attempt may BEGIN after the deadline.
+      // attempt may BEGIN after the deadline (or after a cancel).
       await sleep(Math.min(pollIntervalMs, remaining));
       // The poll gets the budget too, not just permission to start: `mine`
       // otherwise runs its own fixed 15s timeout, so a poll beginning just
       // inside the deadline still finishes outside it.
       const budgetMs = deadline - now();
-      if (budgetMs <= 0) return { ok: false, reason: 'unavailable' };
-      const voice = await client.mine(budgetMs);
+      if (budgetMs <= 0 || signal?.aborted) return { ok: false, reason: 'unavailable' };
+      // `mine(budgetMs, signal)` vs `mine(budgetMs)`: passing `undefined`
+      // explicitly (rather than omitting the argument) would still change
+      // the call's arity, which a test double built with a plain mock
+      // function distinguishes from a one-argument call — so the second
+      // argument is only ever supplied when there is one.
+      const voice = signal ? await client.mine(budgetMs, signal) : await client.mine(budgetMs);
       // A vanished row means another device superseded this build or the LRU
       // evicted it. Rebuilding here would race the same way again.
       if (!voice) return { ok: false, reason: 'voice_failed' };
@@ -124,7 +145,7 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
       // own 120s timeout and blows straight through a 60s preparation budget,
       // with Start disabled and no way to cancel — the two together are what
       // make timeoutMs an actual ceiling rather than a hopeful one.
-      const value = await client.ensure({ pin: true, clip, budgetMs: deadline - now() });
+      const value = await client.ensure({ pin: true, clip, budgetMs: deadline - now(), signal });
       return { ok: true, value };
     } catch (error) {
       if (!(error instanceof SonioxVoicesError)) {
@@ -132,14 +153,14 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
         return { ok: false, reason: 'unavailable' };
       }
       if (error.errorType === 'clip_required' && !opts.retriedClip) {
-        // Never START a retry once the deadline is already gone: a warm
-        // attempt that itself consumed most of the budget must not be
-        // followed by up to a 120s upload against a stated (e.g.) 60s
-        // ceiling. 'unavailable' reads truer than 'clip_required' here — the
-        // device DOES have a clip, we simply ran out of time to send it, and
-        // 'clip_required's own copy ("record one in Settings") would be
-        // actively wrong.
-        if (now() >= deadline) return { ok: false, reason: 'unavailable' };
+        // Never START a retry once the deadline is already gone (or the
+        // caller has cancelled): a warm attempt that itself consumed most of
+        // the budget must not be followed by up to a 120s upload against a
+        // stated (e.g.) 60s ceiling. 'unavailable' reads truer than
+        // 'clip_required' here — the device DOES have a clip, we simply ran
+        // out of time (or permission) to send it, and 'clip_required's own
+        // copy ("record one in Settings") would be actively wrong.
+        if (now() >= deadline || signal?.aborted) return { ok: false, reason: 'unavailable' };
         const stored = await loadClip();
         // No clip here means this device has never recorded one. Warm slots
         // follow the user anywhere; a cold slot cannot, by design.
@@ -147,7 +168,7 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
         // Re-checked AFTER the read, not only before it: pulling a clip of up
         // to 10 MB out of IndexedDB can itself outlast what was left, and the
         // upload that follows is the most expensive thing this routine does.
-        if (now() >= deadline) return { ok: false, reason: 'unavailable' };
+        if (now() >= deadline || signal?.aborted) return { ok: false, reason: 'unavailable' };
         return ensureOnce(stored, { ...opts, retriedClip: true });
       }
       if (error.errorType === 'pool_exhausted' && !opts.retriedPool) {
@@ -156,13 +177,19 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
         // in the budget — a reconciler bug returning e.g. a ten-minute hint
         // must not hang Start for anywhere near that long.
         const remaining = deadline - now();
-        if (remaining <= 0) return { ok: false, reason: 'unavailable' };
+        if (remaining <= 0 || signal?.aborted) return { ok: false, reason: 'unavailable' };
         await sleep(Math.min(error.retryAfterMs ?? DEFAULT_RETRY_MS, remaining));
-        if (now() >= deadline) return { ok: false, reason: 'unavailable' };
+        if (now() >= deadline || signal?.aborted) return { ok: false, reason: 'unavailable' };
         return ensureOnce(clip, { ...opts, retriedPool: true });
       }
       if (error.errorType === 'pool_exhausted') return { ok: false, reason: 'pool_exhausted' };
       if (error.errorType === 'clip_required') return { ok: false, reason: 'clip_required' };
+      // Falls through for every other errorType, including 'aborted': a
+      // client request that lost the race with the caller's own cancel (or
+      // was refused outright because the signal was already aborted) has no
+      // more of a "next move" than a plain network failure does, so it
+      // resolves through the exact same degrade path — deliberately not a
+      // fifth `if` branch of its own.
       return { ok: false, reason: 'unavailable' };
     }
   }
