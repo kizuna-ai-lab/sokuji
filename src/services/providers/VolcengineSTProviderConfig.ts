@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, VolcengineSTSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineSTClient } from '../clients/VolcengineSTClient';
@@ -63,6 +63,19 @@ export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
       sourceLanguage: settings.sourceLanguage,
       targetLanguages: [settings.targetLanguage],
     } as VolcengineSTSessionConfig;
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    const st = result.config as VolcengineSTSessionConfig;
+    const oldSource = st.sourceLanguage;
+    st.sourceLanguage = st.targetLanguages[0] || oldSource;
+    st.targetLanguages = [oldSource];
+    return result;
   }
 
   // Volcengine Real-time Speech Translation supported source languages

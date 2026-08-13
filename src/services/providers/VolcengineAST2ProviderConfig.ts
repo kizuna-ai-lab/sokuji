@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, VolcengineAST2SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
@@ -85,6 +85,20 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
       replacementTableId,
       glossaryTableId,
     } as VolcengineAST2SessionConfig;
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    // Volcengine providers carry language direction in explicit config fields
+    // (not system instructions), so we must swap sourceLanguage/targetLanguage
+    // for the participant session to reverse the translation direction.
+    const ast2 = result.config as VolcengineAST2SessionConfig;
+    [ast2.sourceLanguage, ast2.targetLanguage] = [ast2.targetLanguage, ast2.sourceLanguage];
+    return result;
   }
 
   // AST 2.0 supported languages (s2s mode)

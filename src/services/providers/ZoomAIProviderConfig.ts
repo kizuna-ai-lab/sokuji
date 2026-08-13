@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, ZoomAISessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { ZoomAIClient } from '../clients/ZoomAIClient';
@@ -65,6 +65,19 @@ export class ZoomAIProviderConfig extends BaseProviderDescriptor {
       targetLanguages: [settings.targetLanguage],
       textOnly: true,
     } as ZoomAISessionConfig;
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    const z = result.config as ZoomAISessionConfig;
+    const oldSource = z.sourceLanguage;
+    z.sourceLanguage = z.targetLanguages[0] || oldSource;
+    z.targetLanguages = [oldSource];
+    return result;
   }
 
   // ASR-recognizable sources (Zoom Scribe supported languages).

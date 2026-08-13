@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, SonioxSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
@@ -229,6 +229,19 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
       ),
       ttsSpeed: clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0),
     } as SonioxSessionConfig;
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    // Soniox carries direction in sourceLanguage/targetLanguage; reverse it so the
+    // participant translates the other party's speech into the user's language.
+    const sx = result.config as SonioxSessionConfig;
+    [sx.sourceLanguage, sx.targetLanguage] = [sx.targetLanguage, sx.sourceLanguage];
+    return result;
   }
 
   // The 60 languages from Soniox's own STS demo app — translation is
