@@ -3056,8 +3056,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       return;
     }
 
-    // If AI is responding (OpenAI), queue the message for later
-    if (isAIResponding && (provider === Provider.OPENAI || provider === Provider.OPENAI_COMPATIBLE)) {
+    // Providers that declare it queue text typed mid-response (capacity 1)
+    // and flush it after response.done; everyone else sends immediately.
+    // isAIResponding only ever becomes true for OpenAI-shaped clients
+    // (response.created/.done), so this is belt-and-braces for them.
+    if (isAIResponding && ProviderConfigFactory.getDescriptor(provider).getConfig().capabilities.queuesTextWhileResponding) {
       console.log('[MainPanel] AI is responding, queuing text message');
       pendingTextRef.current = text;
       return;
