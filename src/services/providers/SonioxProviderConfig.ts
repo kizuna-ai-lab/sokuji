@@ -147,33 +147,10 @@ export {
   sonioxManagedMinBalanceMicroUsd,
 } from './sonioxManagedMinBalance';
 
-/**
- * Does Both mode run on ONE shared Soniox session?
- *
- * Both flavours honour the user's stored preference. Managed (Kizuna AI) used
- * to be forced to `true` here because the backend's session lease was
- * account-scoped and single-session: a second client meant a 409, so You→Others
- * worked while Others→You silently did not. One lease now issues one temporary
- * key per stream (spk_stt + par_stt for split Both), so two managed
- * transcription streams are a supported shape rather than a race the backend
- * refuses — and the answer no longer depends on which provider is asking. The
- * `provider` parameter was removed rather than left dead, so that every call
- * site had to be visited when the policy inverted.
- *
- * `ProviderSpecificSettings` (the toggle) and `sonioxBothModePlan` (the
- * session wiring, the Start-gate floor and the managed session-key request)
- * both read this one function, so a stored value cannot mean one thing to the
- * UI and another to the session.
- *
- * Default is shared: it is one stream instead of two, i.e. the cheaper and
- * lower-latency shape, and it is what every existing install without a stored
- * preference has been running.
- */
-export function sonioxUsesSharedBothSession(
-  settings: { bothModeSharedSession?: boolean } | null | undefined
-): boolean {
-  return settings?.bothModeSharedSession ?? true;
-}
+// Moved into sonioxBothMode.ts (its main consumer) so that this class can
+// import sonioxBothModePlan for the planBothMode override without a cycle;
+// re-exported here so existing importers keep working.
+export { sonioxUsesSharedBothSession } from './sonioxBothMode';
 
 export class SonioxProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'soniox';
