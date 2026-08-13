@@ -798,9 +798,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       : await descriptor.extractCredentials(slice, { getAuthToken });
     if (!creds.ok) throw new Error(creds.missing);
 
-    // Determine transport type based on provider and useWebRTC flag.
-    // For PalabraAI (LiveKit), treat as 'webrtc' mode for unified handling.
-    const effectiveTransportType = (useWebRTC || provider === Provider.PALABRA_AI) ? 'webrtc' : 'websocket';
+    // Transport: the provider's own forcedTransport claim wins (PalabraAI's
+    // LiveKit always runs webrtc regardless of the user preference);
+    // otherwise the user's choice, already gated by supportsWebRTC upstream.
+    const effectiveTransportType =
+      descriptor.getConfig().capabilities.forcedTransport ?? (useWebRTC ? 'webrtc' : 'websocket');
 
     // Native audio capture (MediaStreamTrack) applies only to descriptors that
     // truly run over WebRTC. PalabraAI is 'webrtc' transport but uses
