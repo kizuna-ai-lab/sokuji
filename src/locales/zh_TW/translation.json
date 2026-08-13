@@ -578,7 +578,8 @@
     "sonioxVoicePoolBusy": "目前所有自訂語音名額都在使用中，因此本次工作階段使用預設語音。您自己的語音將於下次再次使用。",
     "sonioxVoiceBuildFailed": "無法建立您的自訂語音，因此本次工作階段使用預設語音。請嘗試在設定中錄製更清晰的片段。",
     "sonioxVoiceUnavailable": "您的自訂語音目前無法使用，因此本次工作階段使用預設語音。",
-    "preparingVoice": "正在準備您的語音…"
+    "preparingVoice": "正在準備您的語音…",
+    "clickToCancel": "點擊取消"
   },
   "modePicker": {
     "modeYou": "您",

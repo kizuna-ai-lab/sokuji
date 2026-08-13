@@ -578,7 +578,8 @@
     "sonioxVoicePoolBusy": "Hiện tất cả các chỗ giọng nói tùy chỉnh đều đang được sử dụng, vì vậy phiên này dùng một giọng có sẵn. Giọng nói của riêng bạn sẽ được dùng lại vào lần sau.",
     "sonioxVoiceBuildFailed": "Không thể xây dựng giọng nói tùy chỉnh của bạn, vì vậy phiên này dùng một giọng có sẵn. Hãy thử ghi âm một đoạn rõ hơn trong Cài đặt.",
     "sonioxVoiceUnavailable": "Giọng nói tùy chỉnh của bạn hiện không khả dụng, vì vậy phiên này dùng một giọng có sẵn.",
-    "preparingVoice": "Đang chuẩn bị giọng nói của bạn…"
+    "preparingVoice": "Đang chuẩn bị giọng nói của bạn…",
+    "clickToCancel": "Nhấp để hủy"
   },
   "modePicker": {
     "modeYou": "Bạn",

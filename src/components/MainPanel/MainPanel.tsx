@@ -4067,9 +4067,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               )}
               <button
                 className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
-                onClick={isSessionActive ? disconnectConversation : connectConversation}
-                disabled={!canStartSession && !isSessionActive}
-                title={!isSessionActive ? startBlockMessage : undefined}
+                onClick={isSessionActive || isInitializing ? disconnectConversation : connectConversation}
+                disabled={!canStartSession && !isSessionActive && !isInitializing}
+                title={isInitializing ? t('mainPanel.clickToCancel', 'Click to cancel') : !isSessionActive ? startBlockMessage : undefined}
               >
                 {isInitializing ? (
                   <>
@@ -4185,16 +4185,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 className={`session-button ${isSessionActive ? 'active' : ''}`}
                 onClick={() => {
                   trackEvent('session_control_clicked', {
-                    action: isSessionActive ? 'stop' : 'start',
+                    action: isSessionActive ? 'stop' : isInitializing ? 'cancel' : 'start',
                     method: 'button'
                   });
-                  if (isSessionActive) {
+                  if (isSessionActive || isInitializing) {
                     disconnectConversation();
                   } else {
                     connectConversation();
                   }
                 }}
-                disabled={(!isSessionActive && !canStartSession) || isInitializing}
+                disabled={!isSessionActive && !canStartSession && !isInitializing}
+                title={isInitializing ? t('mainPanel.clickToCancel', 'Click to cancel') : undefined}
               >
                 {isInitializing ? (
                   <>

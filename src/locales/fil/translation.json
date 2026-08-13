@@ -578,7 +578,8 @@
     "sonioxVoicePoolBusy": "Ginagamit ngayon ang lahat ng custom na voice slot, kaya gumagamit ang session na ito ng preset na boses. Gagamitin muli ang sarili mong boses sa susunod.",
     "sonioxVoiceBuildFailed": "Hindi mabuo ang custom mong boses, kaya gumagamit ang session na ito ng preset na boses. Subukang mag-record ng mas malinaw na clip sa Mga Setting.",
     "sonioxVoiceUnavailable": "Hindi available ngayon ang custom mong boses, kaya gumagamit ang session na ito ng preset na boses.",
-    "preparingVoice": "Inihahanda ang iyong boses…"
+    "preparingVoice": "Inihahanda ang iyong boses…",
+    "clickToCancel": "I-click upang kanselahin"
   },
   "modePicker": {
     "modeYou": "Ikaw",

@@ -578,7 +578,8 @@
     "sonioxVoicePoolBusy": "Alle Plätze für eigene Stimmen sind gerade belegt, daher verwendet diese Sitzung eine voreingestellte Stimme. Ihre eigene Stimme wird beim nächsten Mal wieder verwendet.",
     "sonioxVoiceBuildFailed": "Ihre eigene Stimme konnte nicht erstellt werden, daher verwendet diese Sitzung eine voreingestellte Stimme. Versuchen Sie, in den Einstellungen eine klarere Aufnahme zu machen.",
     "sonioxVoiceUnavailable": "Ihre eigene Stimme ist gerade nicht verfügbar, daher verwendet diese Sitzung eine voreingestellte Stimme.",
-    "preparingVoice": "Ihre Stimme wird vorbereitet…"
+    "preparingVoice": "Ihre Stimme wird vorbereitet…",
+    "clickToCancel": "Klicken Sie, um abzubrechen"
   },
   "modePicker": {
     "modeYou": "Sie",

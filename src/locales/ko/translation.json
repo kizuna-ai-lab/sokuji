@@ -578,7 +578,8 @@
     "sonioxVoicePoolBusy": "지금은 모든 맞춤 음성 슬롯이 사용 중이라 이 세션은 프리셋 음성을 사용합니다. 다음 번에는 본인 음성이 다시 사용됩니다.",
     "sonioxVoiceBuildFailed": "맞춤 음성을 만들지 못해 이 세션은 프리셋 음성을 사용합니다. 설정에서 더 또렷한 클립을 녹음해 보세요.",
     "sonioxVoiceUnavailable": "맞춤 음성을 지금은 사용할 수 없어 이 세션은 프리셋 음성을 사용합니다.",
-    "preparingVoice": "음성을 준비하는 중…"
+    "preparingVoice": "음성을 준비하는 중…",
+    "clickToCancel": "취소하려면 클릭"
   },
   "modePicker": {
     "modeYou": "당신",

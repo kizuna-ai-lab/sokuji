@@ -578,7 +578,8 @@
     "sonioxVoicePoolBusy": "Kaikki mukautettujen äänten paikat ovat juuri nyt käytössä, joten tämä istunto käyttää esiasetettua ääntä. Omaa ääntäsi käytetään taas ensi kerralla.",
     "sonioxVoiceBuildFailed": "Mukautettua ääntäsi ei voitu luoda, joten tämä istunto käyttää esiasetettua ääntä. Kokeile äänittää selkeämpi näyte asetuksista.",
     "sonioxVoiceUnavailable": "Mukautettu äänesi ei ole juuri nyt käytettävissä, joten tämä istunto käyttää esiasetettua ääntä.",
-    "preparingVoice": "Valmistellaan ääntäsi…"
+    "preparingVoice": "Valmistellaan ääntäsi…",
+    "clickToCancel": "Napsauta peruuttaaksesi"
   },
   "modePicker": {
     "modeYou": "Sinä",
