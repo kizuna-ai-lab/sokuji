@@ -1147,11 +1147,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // against one set of session refs, and let one attempt's initPhase clear
   // stomp the other's label. Blocked outright, like disconnect re-entry.
   const connectInProgressRef = useRef(false);
-  // The in-flight Start's prepare aborter. disconnectConversation fires it so
-  // a teardown racing a pending prepareToStart discards that prepare's result
+  // The in-flight Start's aborter — covers both prepareToStart AND the
+  // resource acquire that follows it. disconnectConversation fires it so a
+  // teardown racing a pending prepareToStart discards that prepare's result
   // silently (the normative rule on ProviderDescriptor.prepareToStart)
-  // instead of applying patches to a session that no longer exists.
-  const prepareAbortRef = useRef<AbortController | null>(null);
+  // instead of applying patches to a session that no longer exists, and so a
+  // teardown racing the acquire releases the lease it bought instead of
+  // starting a metered session against a torn-down UI.
+  const startAbortRef = useRef<AbortController | null>(null);
 
   const [participantItems, setParticipantItems] = useState<ConversationItem[]>([]);
 
@@ -1565,10 +1568,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
     disconnectInProgressRef.current = true;
 
-    // Discard any in-flight prepare: its patches would target the session this
-    // teardown is ending.
-    prepareAbortRef.current?.abort();
-    prepareAbortRef.current = null;
+    // Discard any in-flight Start: its prepare patches and its acquired
+    // resources would target the session this teardown is ending.
+    startAbortRef.current?.abort();
+    startAbortRef.current = null;
 
     try {
       // Both the derived boolean and the set it is derived from: a leg still
@@ -1777,13 +1780,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       let pendingSessionPatch: Record<string, unknown> | null = null;
       let pendingExpectAtApply: Record<string, unknown> | undefined;
       let prepareNotice: string | null = null;
+      // One Start-scoped aborter per attempt: disconnectConversation fires it so a
+      // teardown racing this Start discards the prepare's result silently and
+      // releases a lease acquired after the teardown already ran. Live from here
+      // until the finally — the prepare check and the post-acquire check below are
+      // its two consumers.
+      const startAbort = new AbortController();
+      startAbortRef.current = startAbort;
       if (startDescriptor.prepareToStart) {
-        // A live aborter: disconnectConversation fires it if a teardown races this
-        // prepare. The aborted-discard check below implements the contract's
+        // The aborted-discard check below implements the contract's
         // silent-discard rule — the result (or rejection) of an aborted prepare is
         // thrown away and nothing is shown.
-        const prepareAbort = new AbortController();
-        prepareAbortRef.current = prepareAbort;
         const prepareSlice = useSettingsStore.getState()[startDescriptor.settingsSliceKey as keyof SettingsStore];
         let prepared: PrepareOutcome;
         try {
@@ -1797,14 +1804,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               .then(r => ({ valid: r.valid === true, message: r.message })),
             sessionShape: { speakerWillStart, participantWillStart, textOnly },
             onPhase: (phase) => setInitPhase(phase),
-            signal: prepareAbort.signal,
+            signal: startAbort.signal,
           });
         } catch (prepareError) {
           console.error('[Sokuji] [MainPanel] prepareToStart rejected:', prepareError);
           prepared = { ok: false, message: t('mainPanel.startPreparationFailed', 'Could not prepare the session. Please try again.') };
         }
-        prepareAbortRef.current = null;
-        if (prepareAbort.signal.aborted) {
+        if (startAbort.signal.aborted) {
           // A teardown raced the prepare: discard the result (or rejection)
           // silently — nothing applied, nothing shown.
           return;
@@ -1966,6 +1972,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           })
         : null;
       sessionResourcesRef.current = sessionResources;
+      if (startAbort.signal.aborted) {
+        // A teardown raced the acquire: the session this lease was bought for is
+        // already gone, and the teardown's afterBothLegs ran before the ref was
+        // set. Release it as an abort and bail silently — no client ever saw it.
+        const abortedResources = sessionResourcesRef.current;
+        sessionResourcesRef.current = null;
+        abortedResources?.release('aborted');
+        return;
+      }
 
       // Whether the speaker channel came up END TO END, as a local the post-init
       // guard below can read back in this same pass — the participant side's
@@ -2614,7 +2629,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } finally {
       setIsInitializing(false);
       connectInProgressRef.current = false;
-      prepareAbortRef.current = null;
+      startAbortRef.current = null;
     }
   }, [
     // getCurrentProviderSettings itself is no longer read here — createAIClient

@@ -264,4 +264,45 @@ describe('the session-resources seam: acquireSessionResources <-> MainPanel tear
     resources!.release('aborted');
     expect(endMock).toHaveBeenCalledTimes(2);
   });
+
+  it("(7) a Start aborted during the acquire releases 'aborted' exactly once", async () => {
+    acquireMock.mockResolvedValue(undefined);
+    const d = descriptor();
+    const ctx = makeCtx();
+    const resources = await d.acquireSessionResources!(ctx);
+    expect(resources).not.toBeNull();
+
+    // A teardown raced the acquire and fired the Start-scoped aborter before
+    // this line ran (S7 task 3's fix — see MainPanel.tsx: the post-acquire
+    // check right after `sessionResourcesRef.current = sessionResources;`).
+    const startAbort = new AbortController();
+    startAbort.abort();
+
+    let ref: SessionResources | null = resources; // mirrors sessionResourcesRef.current = sessionResources
+    if (startAbort.signal.aborted) {
+      const abortedResources = ref;
+      ref = null;
+      abortedResources?.release('aborted');
+    }
+
+    expect(endMock).toHaveBeenCalledTimes(1);
+    expect(ref).toBeNull();
+
+    // A subsequent site-1 mirror teardown (disconnectConversation's own
+    // afterBothLegs, running later on the same session) finds the ref
+    // already null and releases nothing further.
+    const order: string[] = [];
+    await teardownSessionLegs({
+      speaker: async () => { order.push('speaker-down'); },
+      participant: async () => { order.push('participant-down'); },
+      afterBothLegs: () => {
+        const r = ref; ref = null;
+        r?.release('disconnect');
+        order.push('release');
+      },
+    });
+
+    expect(order).toEqual(['speaker-down', 'participant-down', 'release']);
+    expect(endMock).toHaveBeenCalledTimes(1);
+  });
 });

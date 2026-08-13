@@ -184,7 +184,7 @@ describe('kizuna-soniox prepareToStart', () => {
   it('(8) the aborter fires during the core await, which then resolves normally → the hook discards the outcome (bare ok, no sessionPatch/settingsPatch/expect/notice) and still clears onPhase in finally', async () => {
     const controller = new AbortController();
     prepareManagedVoice.mockImplementation(async () => {
-      // MainPanel fires prepareAbortRef mid-flight (a teardown racing this
+      // MainPanel fires startAbortRef mid-flight (a teardown racing this
       // prepare); the core keeps running and resolves normally regardless —
       // it does not know about the signal (see the brief: threading it into
       // ManagedVoicesClient is future work).

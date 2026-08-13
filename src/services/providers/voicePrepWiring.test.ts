@@ -151,11 +151,13 @@ describe('the hook↔MainPanel envelope seam', () => {
      *  and the sessionConfig override (guard 2) — audio init, client
      *  construction and listener wiring are all awaited there in MainPanel. */
     betweenGuards?: (slice: Record<string, unknown>) => void,
-    /** Mirrors MainPanel's check-before-apply line: `prepareAbortRef.current
-     *  = null; if (prepareAbort.signal.aborted) return;`, which runs right
-     *  after the try/catch that produces `prepared` — BEFORE guard 1 even
-     *  looks at `outcome.expect`. A teardown that raced this prepare
-     *  discards the whole outcome silently, same as an early `return`. */
+    /** Mirrors MainPanel's check-before-apply line: `if (startAbort.signal
+     *  .aborted) return;`, which runs right after the try/catch that
+     *  produces `prepared` — BEFORE guard 1 even looks at `outcome.expect`.
+     *  A teardown that raced this prepare discards the whole outcome
+     *  silently, same as an early `return`. The ref itself (`startAbortRef`)
+     *  now stays live until the finally — it also guards the resource
+     *  acquire that follows prepare, unrelated to this mirror. */
     aborted = false,
   ): { notice: string | null } {
     if (aborted) return { notice: null };
