@@ -29,7 +29,7 @@ import type { SettingsStore } from '../../stores/settingsStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { isPushGatedMode } from '../../services/providers/speechMode';
 import { SonioxProviderConfig, defaultSonioxSettings } from '../../services/providers/SonioxProviderConfig';
-import type { BothModePlan, PrepareOutcome } from '../../services/providers/ProviderDescriptor';
+import type { BothModePlan, InitPhase, PrepareOutcome } from '../../services/providers/ProviderDescriptor';
 import {
   useConversationDisplayFontSize,
   useSetConversationDisplayFontSize,
@@ -53,6 +53,7 @@ import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { clientErrorMessage } from '../../lib/apiErrorProps';
 import { isDevelopment } from '../../config/analytics';
@@ -239,6 +240,23 @@ const ConversationBubble: React.FC<ConversationBubbleProps> = ({
   return null;
 };
 
+/** The generic init-phase label. Both footers map the semantic phase to their
+ *  own i18n key; 'loading-native-asr' reuses the simple footer's key in both
+ *  (already translated across locales). SANCTIONED DELTA vs the old ladders:
+ *  the advanced footer used to lack the native-ASR rung and showed the
+ *  generic 'Initializing...' during a sidecar model load — it now shows
+ *  'Loading model…' like the simple footer always did. */
+function initPhaseLabel(t: TFunction, phase: InitPhase, site: 'simple' | 'advanced'): string {
+  switch (phase.phase) {
+    case 'loading-models':
+      return site === 'simple'
+        ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: phase.completed, total: phase.total })
+        : t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: phase.completed, total: phase.total });
+    case 'loading-native-asr':
+      return t('simplePanel.loadingModel', 'Loading model…');
+  }
+}
+
 interface MainPanelProps {}
 
 const MainPanel: React.FC<MainPanelProps> = () => {
@@ -260,10 +278,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [items, setItems] = useState<ConversationItem[]>([]);
   const [isInitializing, setIsInitializing] = useState(false);
-  const [initProgress, setInitProgress] = useState<{ completed: number; total: number } | null>(null);
-  // Distinct from initProgress: preparing a cloned voice can take ~10s of
+  const [initPhase, setInitPhase] = useState<InitPhase | null>(null);
+  // Distinct from initPhase: preparing a cloned voice can take ~10s of
   // uploading and building, and "Loading (1/3)…" would be a lie about what
-  // the user is waiting for. Mirrors the nativeAsrLoading label swap.
+  // the user is waiting for. Mirrors the loading-native-asr label swap.
   const [voicePreparing, setVoicePreparing] = useState(false);
 
   // Get settings from store
@@ -307,7 +325,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   } = useSession();
 
   const isReconnecting = useIsReconnecting();
-  const nativeAsrLoading = useNativeAsrLoading();
+  // nativeModelStore's `asrLoading` field, not local state — no setter of our
+  // own exists. LocalNativeClient toggles the store field around the native
+  // ASR engine's own load (true on start, false in its `finally`); the effect
+  // below mirrors those transitions into the generic initPhase label instead.
+  const asrLoading = useNativeAsrLoading();
   const setIsReconnecting = useSetIsReconnecting();
 
   // Store setters for mirroring local items state into sessionStore
@@ -403,6 +425,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Flipped once audioServiceRef.current is populated, so effects that attach
   // handlers to the service run again after it exists.
   const [audioServiceReady, setAudioServiceReady] = useState(false);
+
+  // Mirror nativeModelStore's asrLoading transitions into the generic
+  // initPhase label — this is the store-subscription case, so there is no
+  // local setter to migrate; providers are mutually exclusive per session
+  // (only local_native drives asrLoading), so this never races the
+  // local.init.* progress writes below.
+  useEffect(() => {
+    setInitPhase(asrLoading ? { phase: 'loading-native-asr' } : null);
+  }, [asrLoading]);
 
   // A capture helper that reports unbroken silence almost always means the OS
   // denied audio access - macOS TCC zeroes every sample instead of failing, so
@@ -1389,9 +1420,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const eventType = realtimeEvent.event?.type;
         if (eventType === 'local.init.start') {
           const total = realtimeEvent.event?.data?.engines?.length ?? 3;
-          setInitProgress({ completed: 0, total });
+          setInitPhase({ phase: 'loading-models', completed: 0, total });
         } else if (eventType === 'local.init.asr.ready' || eventType === 'local.init.translation.ready' || eventType === 'local.init.tts.ready') {
-          setInitProgress(prev => prev ? { ...prev, completed: prev.completed + 1 } : prev);
+          setInitPhase(prev => prev && prev.phase === 'loading-models' ? { ...prev, completed: prev.completed + 1 } : prev);
         }
 
         // Track AI response state for text input queueing (OpenAI only)
@@ -1744,7 +1775,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const connectConversation = useCallback(async () => {
     try {
       setIsInitializing(true);
-      setInitProgress(null);
+      setInitPhase(null);
       // Clear last session's indicator before anything can set this one's.
       // Not redundant with the disconnectConversation reset: the post-init
       // "both channels failed" guard below returns early WITHOUT routing
@@ -1783,7 +1814,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             // the old inline check (`!result.valid`) treated null as invalid anyway.
             revalidate: () => useSettingsStore.getState().validateApiKey()
               .then(r => ({ valid: r.valid === true, message: r.message })),
-            onPhase: () => {}, // Task 5 wires the state
+            onPhase: (phase) => setInitPhase(phase),
             signal: prepareAbort.signal,
           });
         } catch (prepareError) {
@@ -2745,7 +2776,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   useSubtitleSessionBridge({
     startGate,
     isInitializing,
-    initProgress,
+    initPhase,
     onStart: connectConversation,
     onStop: disconnectConversation,
   });
@@ -4146,11 +4177,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     <span className="btn-text">
                       {voicePreparing
                         ? t('simplePanel.preparingVoice', 'Preparing your voice…')
-                        : initProgress
-                          ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
-                          : nativeAsrLoading
-                            ? t('simplePanel.loadingModel', 'Loading model…')
-                            : t('simplePanel.connecting', 'Connecting...')}
+                        : initPhase
+                          ? initPhaseLabel(t, initPhase, 'simple')
+                          : t('simplePanel.connecting', 'Connecting...')}
                     </span>
                   </>
                 ) : isSessionActive ? (
@@ -4279,8 +4308,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     <span>
                       {voicePreparing
                         ? t('mainPanel.preparingVoice', 'Preparing your voice…')
-                        : initProgress
-                          ? t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
+                        : initPhase
+                          ? initPhaseLabel(t, initPhase, 'advanced')
                           : t('mainPanel.initializing')}
                     </span>
                   </>
