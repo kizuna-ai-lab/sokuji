@@ -295,6 +295,12 @@ export interface SettingsStore {
   updateKizunaSoniox: (settings: Partial<SonioxSettings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
   updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
+  /** Generic slice update keyed by descriptor.settingsSliceKey — the write
+   *  half of the read path the reactive selectors already use. Same registry
+   *  (transforms, persistence policy) as the named actions; throws on an
+   *  unknown key. Consumed by MainPanel when applying a descriptor
+   *  prepareToStart settingsPatch (S4/S5 seam). */
+  updateProviderSlice: (sliceKey: string, patch: Record<string, unknown>) => Promise<void>;
 
   // Async actions
   validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<ApiKeyValidationResult>;
@@ -781,6 +787,12 @@ const useSettingsStore = create<SettingsStore>()(
     updateKizunaSoniox: (settings) => updateProviderSlice(set, 'kizunaSoniox', settings),
     updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
     updateLocalNative: (settings) => updateProviderSlice(set, 'localNative', settings),
+    updateProviderSlice: (sliceKey, patch) => {
+      if (!(sliceKey in PROVIDER_SLICE_REGISTRY)) {
+        return Promise.reject(new Error(`updateProviderSlice: unknown slice key '${sliceKey}'`));
+      }
+      return updateProviderSlice(set, sliceKey as ProviderSliceKey, patch);
+    },
 
     // === Async Actions ===
     validateApiKey: async (getAuthToken) => {
