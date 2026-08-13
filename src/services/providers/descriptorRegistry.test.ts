@@ -612,12 +612,15 @@ describe('S3 planBothMode', () => {
 });
 
 describe('S4 prepareToStart', () => {
-  it('is declared only where a provider has pre-start work (locals, later kizuna-soniox)', () => {
-    const WITH_HOOK = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
+  it('is declared only where a provider has pre-start work (locals, kizuna-soniox)', () => {
+    const WITH_HOOK = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE, Provider.KIZUNA_AI_SONIOX];
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(typeof d.prepareToStart === 'function', `hook presence for ${id}`)
         .toBe(WITH_HOOK.includes(id));
     }
+    // BYOK Soniox is explicitly hookless: the managed voice-prep flow must
+    // never run for a user's own Soniox key.
+    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).prepareToStart).toBeUndefined();
   });
 });

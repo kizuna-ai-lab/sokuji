@@ -1,9 +1,14 @@
 import { SonioxProviderConfig, SonioxSettings, defaultSonioxSettings } from './SonioxProviderConfig';
 import { ProviderConfig } from './ProviderConfig';
-import { Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { Credentials, CredentialCtx, ClientOptions, PreparePorts, PrepareOutcome } from './ProviderDescriptor';
 import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
+import { ManagedVoicesClient } from '../clients/ManagedVoicesClient';
+import { prepareManagedVoice, resolveVoicePrepOutcome } from './managedVoicePrep';
+import { loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
+import { SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
+import i18n from '../../locales';
 
 // Backend-managed KizunaAI twin reuses the existing Soniox slice shape.
 export const defaultKizunaSonioxSettings: SonioxSettings = { ...defaultSonioxSettings };
@@ -54,6 +59,50 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
       sttRole: managed.role,
       announcesSessionOutcome: managed.announcesSessionOutcome,
     });
+  }
+
+  /** Managed cloned voices are cache entries, not registrations: the one
+   *  selected days ago may have been evicted since. Claim (and if needed
+   *  rebuild) it now, before any client exists — the backend pins the slot
+   *  for a short start window, which session-started then extends to the
+   *  session's own expiry. Only the speaker channel speaks, so a
+   *  participant-only or text-only session has no voice to prepare.
+   *
+   *  The envelope's two expectations carry the dropdown-stays-live race
+   *  rule (the caller enforces it): preparation takes seconds, Settings is
+   *  mounted throughout, and a choice the user made meanwhile must not be
+   *  silently overwritten — `expect` guards the whole outcome at hook
+   *  return, `expectAtApply` re-guards the session-config override after
+   *  the further awaits between prep and connect. */
+  async prepareToStart(slice: unknown, ports: PreparePorts): Promise<PrepareOutcome> {
+    if (!ports.sessionShape.speakerWillStart || ports.sessionShape.textOnly) return { ok: true };
+    const voice = (slice as { voice?: string })?.voice;
+    const builtIn = new Set(this.getConfig().voices.map((v) => v.value));
+    if (!voice || builtIn.has(voice)) return { ok: true };
+
+    ports.onPhase({ phase: 'preparing-voice' });
+    try {
+      const result = await prepareManagedVoice({
+        client: new ManagedVoicesClient(ports.getAuthToken),
+        // Scoped to the signed-in account: the clip is one record on a
+        // device several people may share, and handing this account
+        // somebody else's recording would upload their voice under this
+        // account. A mismatch (or nobody signed in) reads as "no clip
+        // here", which the routine already degrades to a built-in voice.
+        loadClip: () => loadVoiceClip(ports.userId),
+      });
+      const outcome = resolveVoicePrepOutcome(result, voice, SONIOX_DEFAULT_VOICE);
+      return {
+        ok: true,
+        ...(outcome.sessionVoice ? { sessionPatch: { voice: outcome.sessionVoice } } : {}),
+        ...(outcome.settingsPatch ? { settingsPatch: outcome.settingsPatch } : {}),
+        expect: { voice },
+        expectAtApply: { voice: outcome.settingsPatch?.voice ?? voice },
+        ...(outcome.notice ? { notice: i18n.t(outcome.notice.key, outcome.notice.defaultValue) } : {}),
+      };
+    } finally {
+      ports.onPhase(null);
+    }
   }
 
   // Backend-managed twin: the "credential" is a Better Auth session token,
