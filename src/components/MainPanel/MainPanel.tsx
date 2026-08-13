@@ -254,6 +254,10 @@ function initPhaseLabel(t: TFunction, phase: InitPhase, site: 'simple' | 'advanc
         : t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: phase.completed, total: phase.total });
     case 'loading-native-asr':
       return t('simplePanel.loadingModel', 'Loading model…');
+    case 'preparing-voice':
+      return site === 'simple'
+        ? t('simplePanel.preparingVoice', 'Preparing your voice…')
+        : t('mainPanel.preparingVoice', 'Preparing your voice…');
   }
 }
 
@@ -1817,6 +1821,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             // the old inline check (`!result.valid`) treated null as invalid anyway.
             revalidate: () => useSettingsStore.getState().validateApiKey()
               .then(r => ({ valid: r.valid === true, message: r.message })),
+            sessionShape: { speakerWillStart, participantWillStart, textOnly },
             onPhase: (phase) => setInitPhase(phase),
             signal: prepareAbort.signal,
           });

@@ -97,8 +97,9 @@ export type PrepareOutcome =
        *  dropped and the notice suppressed, Start proceeds. */
       expect?: Record<string, unknown>;
       expectAtApply?: Record<string, unknown>;
-      /** i18n key for a user-facing notice (S5). */
-      noticeKey?: string;
+      /** Display-ready user notice (the hook owns i18n, S4-T3 precedent) —
+       *  replaces the never-consumed noticeKey. */
+      notice?: string;
     }
   | { ok: false; /** Display-ready text; blocks Start. */ message: string };
 
@@ -112,9 +113,13 @@ export interface PreparePorts {
    *  blocked state) that a descriptor must not import: settingsStore imports
    *  every descriptor, and the reverse edge is a cycle. MainPanel binds it. */
   revalidate: () => Promise<{ valid: boolean; message?: string }>;
-  /** Reports a user-visible preparation phase; MainPanel renders it through
-   *  the generic init label. */
-  onPhase: (phase: InitPhase) => void;
+  /** The session shape this Start is about to create. Provider-agnostic
+   *  facts the component owns; hooks gate on them instead of re-deriving
+   *  (the kizuna-soniox hook prepares a voice only when the speaker channel
+   *  will actually speak). */
+  sessionShape: { speakerWillStart: boolean; participantWillStart: boolean; textOnly: boolean };
+  /** null clears the phase (a hook's finally). */
+  onPhase: (phase: InitPhase | null) => void;
   /** Start cancellation. No caller aborts today — MainPanel supplies a live
    *  controller per Start and S6's abort path is the intended aborter; a hook
    *  must still honor it (result discarded silently once fired). */
@@ -125,7 +130,8 @@ export interface PreparePorts {
  *  phase → their own i18n key. */
 export type InitPhase =
   | { phase: 'loading-models'; completed: number; total: number }
-  | { phase: 'loading-native-asr' };
+  | { phase: 'loading-native-asr' }
+  | { phase: 'preparing-voice' };
 
 /**
  * The deep module for one provider. Everything the app needs to know about a

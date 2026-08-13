@@ -27,6 +27,7 @@ describe('local prepareToStart', () => {
     getAuthToken: async () => null,
     userId: null,
     revalidate: vi.fn().mockResolvedValue(revalidateResult),
+    sessionShape: { speakerWillStart: true, participantWillStart: false, textOnly: false },
     onPhase: vi.fn(),
     signal: new AbortController().signal,
   });
