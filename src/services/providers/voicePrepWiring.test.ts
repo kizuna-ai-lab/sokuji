@@ -151,7 +151,15 @@ describe('the hook↔MainPanel envelope seam', () => {
      *  and the sessionConfig override (guard 2) — audio init, client
      *  construction and listener wiring are all awaited there in MainPanel. */
     betweenGuards?: (slice: Record<string, unknown>) => void,
+    /** Mirrors MainPanel's check-before-apply line: `prepareAbortRef.current
+     *  = null; if (prepareAbort.signal.aborted) return;`, which runs right
+     *  after the try/catch that produces `prepared` — BEFORE guard 1 even
+     *  looks at `outcome.expect`. A teardown that raced this prepare
+     *  discards the whole outcome silently, same as an early `return`. */
+    aborted = false,
   ): { notice: string | null } {
+    if (aborted) return { notice: null };
+
     let notice: string | null = null;
     let pendingSessionPatch: Record<string, unknown> | undefined;
     let pendingExpectAtApply: Record<string, unknown> | undefined;
@@ -290,5 +298,25 @@ describe('the hook↔MainPanel envelope seam', () => {
     expect(settingsSlice.voice).toBe('Aurora'); // the user's own choice, unclobbered
     expect(sessionConfig.voice).toBe('cloned-uuid-123'); // fallback never applied
     expect(notice).toBeNull(); // would otherwise explain a substitution that never happened
+  });
+
+  it('an aborted prepare: the outcome is discarded wholesale — neither patch applies, no notice, mirroring the return before the ok check', async () => {
+    // Same rebuilt-voice outcome as the first test in this block, which
+    // WOULD apply both patches — the only difference here is `aborted: true`,
+    // proving the discard happens ahead of (and regardless of) guard 1.
+    prepareManagedVoiceMock.mockResolvedValue({ ok: true, voiceId: 'cloned-uuid-999' } satisfies VoicePrepResult);
+    const slice = sliceWith('cloned-uuid-123');
+
+    const outcome = await descriptor().prepareToStart!(slice, ports());
+    if (!outcome.ok) throw new Error('expected ok:true');
+
+    const settingsSlice: Record<string, unknown> = { ...slice };
+    const sessionConfig = descriptor().buildSessionConfig(slice, '') as SonioxSessionConfig;
+
+    const { notice } = applyEnvelope(outcome, settingsSlice, sessionConfig, undefined, true);
+
+    expect(settingsSlice.voice).toBe('cloned-uuid-123'); // settingsPatch never applied
+    expect(sessionConfig.voice).toBe('cloned-uuid-123'); // sessionPatch never applied
+    expect(notice).toBeNull();
   });
 });

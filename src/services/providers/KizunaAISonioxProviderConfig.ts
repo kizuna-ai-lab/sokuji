@@ -102,6 +102,12 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
         // here", which the routine already degrades to a built-in voice.
         loadClip: () => loadVoiceClip(ports.userId),
       });
+      if (ports.signal.aborted) {
+        // The Start this prepare belonged to is gone; hand back nothing to apply.
+        // MainPanel discards an aborted prepare wholesale anyway — this keeps the
+        // hook honest about the contract rather than relying on that.
+        return { ok: true };
+      }
       const outcome = resolveVoicePrepOutcome(result, voice, SONIOX_DEFAULT_VOICE);
       return {
         ok: true,

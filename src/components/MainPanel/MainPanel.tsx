@@ -417,9 +417,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // (only local_native drives asrLoading), so this never races the
   // local.init.* progress writes below. A prepareToStart hook's onPhase is a
   // third writer of initPhase (set via the port below, cleared unconditionally
-  // in the hook's own finally) — connectConversation has no re-entry guard, so
-  // a double-Start can still let one attempt's clear stomp another's label;
-  // that hazard predates this hook and is left for a later stage.
+  // in the hook's own finally) — connectConversation now has a re-entry guard
+  // (connectInProgressRef), so a double-Start can no longer let one attempt's
+  // clear stomp another's label; that hazard is closed.
   useEffect(() => {
     setInitPhase(asrLoading ? { phase: 'loading-native-asr' } : null);
   }, [asrLoading]);
@@ -1142,6 +1142,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // whether the cleanup succeeded or threw.
   const disconnectInProgressRef = useRef<boolean>(false);
 
+  // Start re-entry guard, the disconnect guard's mirror: a second Start while
+  // one is mid-flight would run two prepares (and two resource acquires)
+  // against one set of session refs, and let one attempt's initPhase clear
+  // stomp the other's label. Blocked outright, like disconnect re-entry.
+  const connectInProgressRef = useRef(false);
+  // The in-flight Start's prepare aborter. disconnectConversation fires it so
+  // a teardown racing a pending prepareToStart discards that prepare's result
+  // silently (the normative rule on ProviderDescriptor.prepareToStart)
+  // instead of applying patches to a session that no longer exists.
+  const prepareAbortRef = useRef<AbortController | null>(null);
+
   const [participantItems, setParticipantItems] = useState<ConversationItem[]>([]);
 
   // Mirror items into sessionStore so SubtitleApp can read them
@@ -1570,6 +1581,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
     disconnectInProgressRef.current = true;
 
+    // Discard any in-flight prepare: its patches would target the session this
+    // teardown is ending.
+    prepareAbortRef.current?.abort();
+    prepareAbortRef.current = null;
+
     try {
       // Both the derived boolean and the set it is derived from: a leg still
       // listed as reconnecting here would survive into the next session and
@@ -1741,6 +1757,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * ModernAudioRecorder takes speech input, audio service provides output, client is API client
    */
   const connectConversation = useCallback(async () => {
+    if (connectInProgressRef.current) {
+      console.info('[Sokuji] [MainPanel] connectConversation re-entry blocked (already in progress)');
+      return;
+    }
+    connectInProgressRef.current = true;
     try {
       setIsInitializing(true);
       setInitPhase(null);
@@ -1773,12 +1794,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       let pendingExpectAtApply: Record<string, unknown> | undefined;
       let prepareNotice: string | null = null;
       if (startDescriptor.prepareToStart) {
-        // No aborter calls .abort() yet — S6's abort path is the intended
-        // caller; the contract requires a live signal from day one. The
-        // aborted-discard check itself (spec: once ports.signal fires the
-        // result is discarded silently) must land together with that
-        // aborter in S6, not before — there is no signal to fire yet.
+        // A live aborter: disconnectConversation fires it if a teardown races this
+        // prepare. The aborted-discard check below implements the contract's
+        // silent-discard rule — the result (or rejection) of an aborted prepare is
+        // thrown away and nothing is shown.
         const prepareAbort = new AbortController();
+        prepareAbortRef.current = prepareAbort;
         const prepareSlice = useSettingsStore.getState()[startDescriptor.settingsSliceKey as keyof SettingsStore];
         let prepared: PrepareOutcome;
         try {
@@ -1797,6 +1818,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         } catch (prepareError) {
           console.error('[Sokuji] [MainPanel] prepareToStart rejected:', prepareError);
           prepared = { ok: false, message: t('mainPanel.startPreparationFailed', 'Could not prepare the session. Please try again.') };
+        }
+        prepareAbortRef.current = null;
+        if (prepareAbort.signal.aborted) {
+          // A teardown raced the prepare: discard the result (or rejection)
+          // silently — nothing applied, nothing shown.
+          return;
         }
         if (!prepared.ok) {
           setIsInitializing(false);
@@ -2602,6 +2629,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }]);
     } finally {
       setIsInitializing(false);
+      connectInProgressRef.current = false;
+      prepareAbortRef.current = null;
     }
   }, [
     // getCurrentProviderSettings itself is no longer read here — createAIClient

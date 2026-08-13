@@ -180,4 +180,31 @@ describe('kizuna-soniox prepareToStart', () => {
     });
     expect(out).not.toHaveProperty('sessionPatch');
   });
+
+  it('(8) the aborter fires during the core await, which then resolves normally → the hook discards the outcome (bare ok, no sessionPatch/settingsPatch/expect/notice) and still clears onPhase in finally', async () => {
+    const controller = new AbortController();
+    prepareManagedVoice.mockImplementation(async () => {
+      // MainPanel fires prepareAbortRef mid-flight (a teardown racing this
+      // prepare); the core keeps running and resolves normally regardless —
+      // it does not know about the signal (see the brief: threading it into
+      // ManagedVoicesClient is future work).
+      controller.abort();
+      return { ok: true, voiceId: 'cloned-uuid-999' };
+    });
+    resolveVoicePrepOutcome.mockReturnValue({
+      sessionVoice: 'cloned-uuid-999',
+      settingsPatch: { voice: 'cloned-uuid-999' },
+      notice: null,
+    });
+    const d = descriptor();
+    const p = { ...ports(), signal: controller.signal };
+
+    const out = await d.prepareToStart!({ voice: 'cloned-uuid-123' }, p);
+
+    expect(out).toEqual({ ok: true });
+    // The mapping through resolveVoicePrepOutcome never runs once aborted.
+    expect(resolveVoicePrepOutcome).not.toHaveBeenCalled();
+    // The finally still clears the phase unconditionally.
+    expect(p.onPhase).toHaveBeenLastCalledWith(null);
+  });
 });
