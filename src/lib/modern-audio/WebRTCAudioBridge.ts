@@ -91,6 +91,13 @@ export class WebRTCAudioBridge {
   private localAudioContext: AudioContext | null = null;
   private localSourceNode: MediaStreamAudioSourceNode | null = null;
   private localAnalyserNode: AnalyserNode | null = null;
+  // Tracks whether getLocalFrequencies() has already warned about a rejected
+  // backstop resume() for the current localAudioContext. getLocalFrequencies
+  // is polled from MainPanel's render loop, so without this a persistently
+  // rejecting resume() would otherwise warn (and risk an unhandled rejection)
+  // at frame rate. Reset in setupLocalAudioProcessing() so a fresh context
+  // gets one fresh warning opportunity.
+  private localResumeWarned = false;
   private currentInputDeviceId: string | undefined;
   private currentOutputDeviceId: string | undefined;
   private onAudioData: ((pcmData: Int16Array) => void) | undefined;
@@ -254,6 +261,7 @@ export class WebRTCAudioBridge {
     try {
       const sampleRate = this.options.sampleRate ?? 24000;
       this.localAudioContext = new AudioContext({ sampleRate });
+      this.localResumeWarned = false;
       if (this.localAudioContext.state === 'suspended') {
         await this.localAudioContext.resume();
       }
@@ -533,7 +541,12 @@ export class WebRTCAudioBridge {
     }
 
     if (this.localAudioContext && this.localAudioContext.state === 'suspended') {
-      void this.localAudioContext.resume();
+      this.localAudioContext.resume().catch((error) => {
+        if (!this.localResumeWarned) {
+          this.localResumeWarned = true;
+          console.warn('[WebRTCAudioBridge] Failed to resume local audio context:', error);
+        }
+      });
     }
 
     const frequencies = new Float32Array(this.localAnalyserNode.frequencyBinCount);

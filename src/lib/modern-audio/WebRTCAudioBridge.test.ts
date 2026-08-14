@@ -125,4 +125,37 @@ describe('WebRTCAudioBridge local analyser lifecycle', () => {
       delete (globalThis as any).AudioContext;
     }
   });
+
+  it('warns once per bridge instance when the backstop resume() rejects, without leaking an unhandled rejection', async () => {
+    (globalThis as any).AudioContext = FakeAudioContext;
+    try {
+      const bridge = new WebRTCAudioBridge({ sampleRate: 24000 });
+      await bridge.getLocalStream('mic-1');
+
+      const localCtx = (bridge as any).localAudioContext as FakeAudioContext;
+      // Stays suspended across both calls: resume() keeps rejecting instead of
+      // flipping state to 'running', so getLocalFrequencies() retries it twice.
+      localCtx.state = 'suspended';
+      localCtx.resume = () => Promise.reject(new Error('resume failed'));
+
+      const warns: string[] = [];
+      const spy = vi.spyOn(console, 'warn').mockImplementation((m: any) => { warns.push(String(m)); });
+
+      const result1 = bridge.getLocalFrequencies();
+      const result2 = bridge.getLocalFrequencies();
+      // Flush microtasks so the rejected resume() promises settle here — if
+      // they weren't caught, vitest would surface them as unhandled rejections.
+      await Promise.resolve();
+      await Promise.resolve();
+
+      spy.mockRestore();
+
+      // Fallback (flat) analyser data must still come back both times.
+      expect(result1).not.toBeNull();
+      expect(result2).not.toBeNull();
+      expect(warns.filter((w) => w.includes('Failed to resume local audio context'))).toHaveLength(1);
+    } finally {
+      delete (globalThis as any).AudioContext;
+    }
+  });
 });
