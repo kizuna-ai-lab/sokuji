@@ -83,16 +83,14 @@ export class WebRTCAudioBridge {
   // Local (microphone) analyser chain — independent of the remote analyser above,
   // which is fed by the received/AI-output track and has its own audioContext
   // lifecycle (created/closed per remote track in setupAudioProcessing /
-  // cleanupRemoteAudio). Reuses that context when one is already open at setup
-  // time to avoid proliferating AudioContexts; otherwise owns a dedicated one.
+  // cleanupRemoteAudio). The local chain owns a dedicated AudioContext so its
+  // lifecycle never depends on the remote path: reusing the remote context used
+  // to leave a dangling analyser whenever cleanupRemoteAudio() closed it out
+  // from under a local setup that had borrowed it (mic waveform going flat
+  // until the next device switch).
   private localAudioContext: AudioContext | null = null;
   private localSourceNode: MediaStreamAudioSourceNode | null = null;
   private localAnalyserNode: AnalyserNode | null = null;
-  // True when localAudioContext is a reused reference to the shared `audioContext`
-  // (the remote side's). In that case cleanupRemoteAudio() owns closing it, so
-  // stopLocalStream() must only disconnect the local nodes, never close it out
-  // from under the remote path.
-  private localAudioContextIsShared: boolean = false;
   private currentInputDeviceId: string | undefined;
   private currentOutputDeviceId: string | undefined;
   private onAudioData: ((pcmData: Int16Array) => void) | undefined;
@@ -227,7 +225,7 @@ export class WebRTCAudioBridge {
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.currentInputDeviceId = deviceId;
 
-      this.setupLocalAudioProcessing(this.localStream);
+      await this.setupLocalAudioProcessing(this.localStream);
 
       console.debug('[WebRTCAudioBridge] Got local stream from device:', deviceId || 'default');
       return this.localStream;
@@ -244,17 +242,20 @@ export class WebRTCAudioBridge {
    * are shape-compatible. No PCM extraction here: the local stream's PCM
    * already reaches the caller via the peer connection's own track, not
    * through this bridge's worklet path.
+   *
+   * Always opens its own dedicated AudioContext (see the localAudioContext
+   * field comment for why reusing the remote one was unsafe). A freshly
+   * created context can start 'suspended' under autoplay policy if the mic
+   * permission prompt or token round trip outlives the click that started
+   * the session, so resume it here the same way ParticipantRecorder.begin()
+   * and ModernAudioRecorder.begin() resume their own contexts on creation.
    */
-  private setupLocalAudioProcessing(stream: MediaStream): void {
+  private async setupLocalAudioProcessing(stream: MediaStream): Promise<void> {
     try {
-      if (this.audioContext && this.audioContext.state !== 'closed') {
-        // Reuse the remote side's context instead of opening a second one.
-        this.localAudioContext = this.audioContext;
-        this.localAudioContextIsShared = true;
-      } else {
-        const sampleRate = this.options.sampleRate ?? 24000;
-        this.localAudioContext = new AudioContext({ sampleRate });
-        this.localAudioContextIsShared = false;
+      const sampleRate = this.options.sampleRate ?? 24000;
+      this.localAudioContext = new AudioContext({ sampleRate });
+      if (this.localAudioContext.state === 'suspended') {
+        await this.localAudioContext.resume();
       }
 
       this.localSourceNode = this.localAudioContext.createMediaStreamSource(stream);
@@ -271,9 +272,8 @@ export class WebRTCAudioBridge {
   }
 
   /**
-   * Tear down the local analyser chain. Only closes localAudioContext when it
-   * is NOT the shared remote-side context (localAudioContextIsShared), so a
-   * device switch or mic stop never closes a context the remote path still owns.
+   * Tear down the local analyser chain, including its dedicated AudioContext.
+   * Independent of the remote path: never touches `this.audioContext`.
    */
   private cleanupLocalAudioProcessing(): void {
     if (this.localSourceNode) {
@@ -287,12 +287,11 @@ export class WebRTCAudioBridge {
     }
 
     if (this.localAudioContext) {
-      if (!this.localAudioContextIsShared && this.localAudioContext.state !== 'closed') {
+      if (this.localAudioContext.state !== 'closed') {
         this.localAudioContext.close().catch(console.warn);
       }
       this.localAudioContext = null;
     }
-    this.localAudioContextIsShared = false;
   }
 
   /**
@@ -520,12 +519,21 @@ export class WebRTCAudioBridge {
    * Get LOCAL (microphone) frequency data for visualization — the input-side
    * counterpart to getFrequencies() above, which reports the REMOTE/received
    * stream. Same normalization, independent analyser and context.
+   *
+   * Also resumes the context if it's still 'suspended' here, same as
+   * AppAudioRecorder.feedAnalyser(): setup-time resume() can lose the race
+   * against autoplay policy, so this read site is a backstop that keeps
+   * retrying on every poll instead of leaving the waveform flat forever.
    * @returns Object with frequencies array, or null before the local stream
    *          (and its analyser) has been set up
    */
   getLocalFrequencies(): { values: Float32Array } | null {
     if (!this.localAnalyserNode) {
       return null;
+    }
+
+    if (this.localAudioContext && this.localAudioContext.state === 'suspended') {
+      void this.localAudioContext.resume();
     }
 
     const frequencies = new Float32Array(this.localAnalyserNode.frequencyBinCount);
