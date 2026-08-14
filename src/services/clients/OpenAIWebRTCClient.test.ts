@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { OpenAIWebRTCClient } from './OpenAIWebRTCClient';
 
 /**
@@ -58,5 +58,33 @@ describe('OpenAIWebRTCClient GA conversation items', () => {
     });
 
     expect(client.getConversationItems()).toHaveLength(1);
+  });
+});
+
+describe('OpenAIWebRTCClient.getInputFrequencies', () => {
+  it('returns null before a local stream (and its analyser) exists', () => {
+    // No session has connected (no getUserMedia call has happened yet), so
+    // the bridge's LOCAL analyser has nothing to report.
+    const { client } = makeClient();
+
+    expect(client.getInputFrequencies()).toBeNull();
+  });
+
+  it('delegates to the bridge LOCAL analyser, not the remote/output one', () => {
+    // Pins the IClient contract added for the mic-waveform fallback:
+    // getInputFrequencies() must forward to the bridge's getLocalFrequencies
+    // (mic input), never to getFrequencies (remote/AI output) — the spy
+    // proves forwarding rather than both coincidentally returning null.
+    const { client } = makeClient();
+    const bridge = (client as any).audioBridge;
+    const localSpy = vi.spyOn(bridge, 'getLocalFrequencies')
+      .mockReturnValue({ values: new Float32Array([0.5]) });
+    const remoteSpy = vi.spyOn(bridge, 'getFrequencies');
+
+    const result = client.getInputFrequencies();
+
+    expect(localSpy).toHaveBeenCalledTimes(1);
+    expect(remoteSpy).not.toHaveBeenCalled();
+    expect(result).toEqual({ values: new Float32Array([0.5]) });
   });
 });

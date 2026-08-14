@@ -3472,9 +3472,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             // while the session is active — so the mute flag must gate the waveform
             // independently. Without this, mic waveform would animate even when
             // muted, contradicting the spec's "muted = flat waveform" rule.
+            //
+            // Native-capture (WebRTC) sessions never start the shared recorder — their
+            // mic frequencies come from the client's own LOCAL-capture bridge analyser
+            // instead (getInputFrequencies, distinct from the client's getFrequencies()
+            // which reports the remote/AI-output stream). The fallback is suppressed for
+            // push-gated modes (canHoldToSpeak): there the waveform means "transmitting
+            // while held" (the hold handler starts the recorder), and a continuously-hot
+            // native track must not repaint that semantic.
+            const clientFrequencies =
+              !isMicMuted && !recorder.isRecording() && !canHoldToSpeak
+                ? speakerClientRef.current?.getInputFrequencies?.() ?? null
+                : null;
             const result = recorder.isRecording() && !isMicMuted
               ? recorder.getFrequencies('voice')
-              : { values: new Float32Array([0]) };
+              : clientFrequencies ?? { values: new Float32Array([0]) };
             WavRenderer.drawBars(
               clientCanvas,
               clientCtx,
@@ -3602,7 +3614,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // isMicMuted / isParticipantMuted in deps so the render-loop closure
     // re-initializes when mute toggles — without them, the rAF callback
     // captures a stale mute value and the waveform gate never updates.
-  }, [uiMode, effectiveMode, isSessionActive, participantChannelActive, isMicMuted, isParticipantMuted]);
+    // canHoldToSpeak likewise, so the client-analyser fallback gate stays in
+    // sync when the active mode's push-gating changes mid-session.
+  }, [uiMode, effectiveMode, isSessionActive, participantChannelActive, isMicMuted, isParticipantMuted, canHoldToSpeak]);
 
   /**
    * Auto-scroll to the bottom of the conversation when new content is added
