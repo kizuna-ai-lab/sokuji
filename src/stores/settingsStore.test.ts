@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
 import { Provider } from '../types/Provider';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 
@@ -40,6 +41,7 @@ vi.mock('../lib/local-inference/modelManifest', async () => {
 // Import after mocking
 const {
   default: useSettingsStore,
+  useTransportType,
 } = await import('./settingsStore');
 
 describe('settingsStore', () => {
@@ -355,6 +357,37 @@ describe('settingsStore', () => {
       await useSettingsStore.getState().setKeepReplayAudio(true);
       // State must roll back to the previous value.
       expect(useSettingsStore.getState().keepReplayAudio).toBe(false);
+    });
+  });
+
+  describe('useTransportType', () => {
+    it('resolves the active provider slice, not a hardcoded openai slice (bug repro: OpenAI Translate reads its own websocket choice, not OpenAI leftover webrtc)', async () => {
+      const store = useSettingsStore.getState();
+      await store.updateOpenAI({ transportType: 'webrtc' });
+      await store.updateOpenAITranslate({ transportType: 'websocket' });
+      useSettingsStore.setState({ provider: Provider.OPENAI_TRANSLATE });
+
+      const { result } = renderHook(() => useTransportType());
+
+      expect(result.current).toBe('websocket');
+    });
+
+    it('resolves OpenAI itself to its own webrtc choice', async () => {
+      const store = useSettingsStore.getState();
+      await store.updateOpenAI({ transportType: 'webrtc' });
+      useSettingsStore.setState({ provider: Provider.OPENAI });
+
+      const { result } = renderHook(() => useTransportType());
+
+      expect(result.current).toBe('webrtc');
+    });
+
+    it('defaults to websocket for a provider slice with no transportType field', () => {
+      useSettingsStore.setState({ provider: Provider.GEMINI });
+
+      const { result } = renderHook(() => useTransportType());
+
+      expect(result.current).toBe('websocket');
     });
   });
 

@@ -3,6 +3,7 @@ import {subscribeWithSelector} from 'zustand/middleware';
 import {ServiceFactory} from '../services/ServiceFactory';
 import {ProviderConfigFactory} from '../services/providers/ProviderConfigFactory';
 import {ProviderConfig} from '../services/providers/ProviderConfig';
+import type {TransportType} from '../services/providers/ProviderDescriptor';
 import {
   FilteredModel,
   SessionConfig,
@@ -1258,8 +1259,15 @@ export const useKizunaSonioxSettings = () => useSettingsStore((state) => state.k
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
 export const useLocalNativeSettings = () => useSettingsStore((state) => state.localNative);
 
-// Transport type selector (for OpenAI provider)
-export const useTransportType = () => useSettingsStore((state) => state.openai.transportType);
+// Transport type selector — resolves the ACTIVE provider's own slice (a
+// selector hardcoded to `state.openai` let OpenAI's WebRTC choice silently
+// govern other providers' sessions while their own pickers wrote an unread
+// field).
+export const useTransportType = (): TransportType => useSettingsStore((state) => {
+  const descriptor = ProviderConfigFactory.getDescriptor(state.provider);
+  const slice = state[descriptor.settingsSliceKey as keyof SettingsStore] as { transportType?: TransportType };
+  return slice?.transportType ?? 'websocket';
+});
 
 // Validation state
 export const useIsApiKeyValid = () => useSettingsStore((state) => state.isApiKeyValid);
