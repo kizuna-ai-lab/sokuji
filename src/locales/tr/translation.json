@@ -509,6 +509,7 @@
     "endSession": "Oturumu sonlandır",
     "startSession": "Oturumu başlat",
     "initializing": "Başlatılıyor...",
+    "startPreparationFailed": "Oturum hazırlanamadı. Lütfen tekrar deneyin.",
     "initProgress": "Yükleniyor ({{completed}}/{{total}})...",
     "stopDebug": "Hata Ayıklamayı Durdur",
     "debug": "Hata Ayıklama",
@@ -577,7 +578,8 @@
     "sonioxVoicePoolBusy": "Şu anda tüm özel ses yuvaları kullanımda olduğundan bu oturum hazır bir ses kullanıyor. Kendi sesiniz bir sonraki sefer tekrar kullanılacak.",
     "sonioxVoiceBuildFailed": "Özel sesiniz oluşturulamadı, bu yüzden bu oturum hazır bir ses kullanıyor. Ayarlar'dan daha net bir kayıt yapmayı deneyin.",
     "sonioxVoiceUnavailable": "Özel sesiniz şu anda kullanılamıyor, bu yüzden bu oturum hazır bir ses kullanıyor.",
-    "preparingVoice": "Sesiniz hazırlanıyor…"
+    "preparingVoice": "Sesiniz hazırlanıyor…",
+    "clickToCancel": "İptal etmek için tıklayın"
   },
   "modePicker": {
     "modeYou": "Siz",

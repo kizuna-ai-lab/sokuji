@@ -535,7 +535,7 @@ export class ManagedSonioxSession {
    * Every leg registers, not just the announcing one: the session has to be
    * able to END them all, and only the leg itself knows whether it speaks for
    * the session (`SonioxSessionLeg.announcesSessionOutcome`, the bit MainPanel's
-   * `managedSonioxArgFor` computes and hands to the client at construction).
+   * `managedLegOptions` computes and hands to the client at construction).
    * Reading that bit here rather than taking a second `{ primary }` argument is
    * what keeps "which leg is primary" a single source of truth.
    *

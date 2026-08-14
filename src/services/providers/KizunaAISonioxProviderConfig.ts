@@ -1,17 +1,32 @@
 import { SonioxProviderConfig, SonioxSettings, defaultSonioxSettings } from './SonioxProviderConfig';
 import { ProviderConfig } from './ProviderConfig';
-import { Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import {
+  Credentials,
+  CredentialCtx,
+  ClientOptions,
+  PreparePorts,
+  PrepareOutcome,
+  AcquireSessionResourcesContext,
+  SessionResources,
+} from './ProviderDescriptor';
 import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
+import { ManagedVoicesClient } from '../clients/ManagedVoicesClient';
+import { ManagedSonioxSession } from '../clients/ManagedSonioxSession';
+import { computeSonioxRemainingMs, computeSonioxBudgetTotalMs, type SonioxBudgetSnapshot } from '../clients/SonioxCostMeter';
+import { resolveManagedSonioxWiring, managedLegOptions } from './managedSonioxSplit';
+import { prepareManagedVoice, resolveVoicePrepOutcome } from './managedVoicePrep';
+import { loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
+import { SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
+import i18n from '../../locales';
 
 // Backend-managed KizunaAI twin reuses the existing Soniox slice shape.
 export const defaultKizunaSonioxSettings: SonioxSettings = { ...defaultSonioxSettings };
 
 /** The exact message this twin has always produced for a signed-out user.
- *  Exported so MainPanel's acquire path can throw the same sentence — the
- *  lease moved out of the client, so the sign-in gate now fires there first.
- *  Pinned by descriptorRegistry.test.ts. */
+ *  Exported for tests to verify the exact error message thrown by
+ *  acquireSessionResources when the auth token is not available. */
 export const KIZUNA_SIGN_IN_REQUIRED = 'Sign in is required for Kizuna providers';
 
 /**
@@ -54,6 +69,120 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
       sttRole: managed.role,
       announcesSessionOutcome: managed.announcesSessionOutcome,
     });
+  }
+
+  /** Managed cloned voices are cache entries, not registrations: the one
+   *  selected days ago may have been evicted since. Claim (and if needed
+   *  rebuild) it now, before any client exists — the backend pins the slot
+   *  for a short start window, which session-started then extends to the
+   *  session's own expiry. Only the speaker channel speaks, so a
+   *  participant-only or text-only session has no voice to prepare.
+   *
+   *  The envelope's two expectations carry the dropdown-stays-live race
+   *  rule (the caller enforces it): preparation takes seconds, Settings is
+   *  mounted throughout, and a choice the user made meanwhile must not be
+   *  silently overwritten — `expect` guards the whole outcome at hook
+   *  return, `expectAtApply` re-guards the session-config override after
+   *  the further awaits between prep and connect. */
+  async prepareToStart(slice: unknown, ports: PreparePorts): Promise<PrepareOutcome> {
+    if (!ports.sessionShape.speakerWillStart || ports.sessionShape.textOnly) return { ok: true };
+    const voice = (slice as { voice?: string })?.voice;
+    const builtIn = new Set(this.getConfig().voices.map((v) => v.value));
+    if (!voice || builtIn.has(voice)) return { ok: true };
+
+    ports.onPhase({ phase: 'preparing-voice' });
+    try {
+      const result = await prepareManagedVoice({
+        client: new ManagedVoicesClient(ports.getAuthToken),
+        // Scoped to the signed-in account: the clip is one record on a
+        // device several people may share, and handing this account
+        // somebody else's recording would upload their voice under this
+        // account. A mismatch (or nobody signed in) reads as "no clip
+        // here", which the routine already degrades to a built-in voice.
+        loadClip: () => loadVoiceClip(ports.userId),
+        // The same Start-scoped aborter the hook itself already checks
+        // post-await (below): threading it into the core too means a
+        // mid-flight cancel now reaches the network instead of only being
+        // noticed once the whole prep call has already settled.
+        signal: ports.signal,
+      });
+      if (ports.signal.aborted) {
+        // The Start this prepare belonged to is gone; hand back nothing to apply.
+        // MainPanel discards an aborted prepare wholesale anyway — this keeps the
+        // hook honest about the contract rather than relying on that.
+        return { ok: true };
+      }
+      const outcome = resolveVoicePrepOutcome(result, voice, SONIOX_DEFAULT_VOICE);
+      return {
+        ok: true,
+        ...(outcome.sessionVoice ? { sessionPatch: { voice: outcome.sessionVoice } } : {}),
+        ...(outcome.settingsPatch ? { settingsPatch: outcome.settingsPatch } : {}),
+        expect: { voice },
+        expectAtApply: { voice: outcome.settingsPatch?.voice ?? voice },
+        ...(outcome.notice ? { notice: i18n.t(outcome.notice.key, outcome.notice.defaultValue) } : {}),
+      };
+    } finally {
+      ports.onPhase(null);
+    }
+  }
+
+  async acquireSessionResources(ctx: AcquireSessionResourcesContext): Promise<SessionResources | null> {
+    // The whole wiring decision, in one pure value: the matrix body to buy,
+    // and the STT role each leg runs. Both roles are derived from the body,
+    // so they mirror the server's own expansion — `credentialsFor` throws for
+    // a role that was never issued, and `session-started` answers 400
+    // `role_not_issued`, which leaves the lease at its start window while
+    // both Soniox keys stay valid for the full grant.
+    const wiring = resolveManagedSonioxWiring({
+      speakerWillStart: ctx.wiring.speakerWillStart,
+      participantWillStart: ctx.wiring.participantWillStart,
+      textOnly: ctx.wiring.textOnly,
+      sonioxSharedBoth: ctx.wiring.sharedBoth,
+      sonioxSplitBoth: ctx.wiring.splitBoth,
+    });
+    const token = await ctx.getAuthToken();
+    if (!token) throw new Error(KIZUNA_SIGN_IN_REQUIRED);
+    const session = new ManagedSonioxSession({
+      sessionToken: token,
+      // The session's sink is typed `(type: string, ...)` because it must not
+      // depend on any event union; the ctx port carries the closed two-member
+      // vocabulary, so this narrows rather than widens — same escape as when
+      // SonioxClient emitted these itself.
+      onEvent: (type, data) =>
+        ctx.onEvent(type as Parameters<AcquireSessionResourcesContext['onEvent']>[0], data),
+    });
+    try {
+      await session.acquire(wiring.acquire);
+    } catch (error) {
+      // Normative error path: clean up our own partial state, then rethrow.
+      // end() no-ops without a lease, so this is safe wherever acquire failed.
+      session.end();
+      throw error;
+    }
+    // Static budget parameters are read once (they don't change over the
+    // lease); remaining time is recomputed against the clock on every call —
+    // the caller polls once a second.
+    let snapshot: SonioxBudgetSnapshot | null = null;
+    return {
+      legClientOptions: (role) => {
+        const options = managedLegOptions(role, session, wiring);
+        return options ? { sonioxManaged: options } : {};
+      },
+      budget: () => {
+        snapshot ??= session.getBudgetSnapshot();
+        return snapshot
+          ? {
+              remainingMs: computeSonioxRemainingMs(Date.now(), snapshot),
+              totalMs: computeSonioxBudgetTotalMs(snapshot),
+            }
+          : null;
+      },
+      release: () => {
+        // end() carries its own idempotency and no-lease guards; the reason
+        // parameter is contract vocabulary, not behavior, today.
+        session.end();
+      },
+    };
   }
 
   // Backend-managed twin: the "credential" is a Better Auth session token,

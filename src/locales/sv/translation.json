@@ -509,6 +509,7 @@
     "endSession": "Avsluta session",
     "startSession": "Starta session",
     "initializing": "Initialiserar...",
+    "startPreparationFailed": "Sessionen kunde inte förberedas. Försök igen.",
     "initProgress": "Laddar ({{completed}}/{{total}})...",
     "stopDebug": "Stoppa felsökning",
     "debug": "Felsök",
@@ -577,7 +578,8 @@
     "sonioxVoicePoolBusy": "Alla platser för anpassade röster används just nu, så den här sessionen använder en förinställd röst. Din egen röst används igen nästa gång.",
     "sonioxVoiceBuildFailed": "Din anpassade röst kunde inte byggas, så den här sessionen använder en förinställd röst. Försök spela in ett tydligare klipp i Inställningar.",
     "sonioxVoiceUnavailable": "Din anpassade röst är inte tillgänglig just nu, så den här sessionen använder en förinställd röst.",
-    "preparingVoice": "Förbereder din röst…"
+    "preparingVoice": "Förbereder din röst…",
+    "clickToCancel": "Klicka för att avbryta"
   },
   "modePicker": {
     "modeYou": "Du",

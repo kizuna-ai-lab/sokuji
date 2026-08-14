@@ -1,0 +1,14 @@
+// Metered-session remaining-time countdown. Below 20% of the session's
+// granted budget it switches to the same warning red the footers use for
+// error states.
+.session-remaining-time {
+  color: #888;
+  font-size: 11px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+
+  &.low {
+    color: #e74c3c;
+    font-weight: 600;
+  }
+}

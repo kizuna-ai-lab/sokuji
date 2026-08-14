@@ -46,7 +46,8 @@ export interface SonioxSessionLeg {
    * True for the ONE leg that speaks for the session — the same bit
    * `ClientOptions.sonioxManaged.announcesSessionOutcome` already carries,
    * read here rather than re-derived, so "which leg is primary" has exactly
-   * one source (MainPanel's `managedSonioxArgFor`).
+   * one source (`managedLegOptions` in managedSonioxSplit.ts, called from
+   * the kizuna descriptor's `acquireSessionResources`).
    *
    * Load-bearing: MainPanel's teardown calls
    * `setItems(speakerClient.getConversationItems())`, so an item emitted on

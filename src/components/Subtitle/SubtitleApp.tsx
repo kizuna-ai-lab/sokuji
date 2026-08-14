@@ -41,6 +41,7 @@ import {
 } from '../../stores/sessionStore';
 import { useMode } from '../../stores/audioStore';
 import type { ConversationItem } from '../../services/interfaces/IClient';
+import { isPushGatedMode } from '../../services/providers/speechMode';
 import './SubtitleApp.scss';
 
 const AUTO_HIDE_MS = 1500;
@@ -151,12 +152,10 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     hasRunSession: hasRunSessionRef.current,
     startRequestedAt: startRequestedAtRef.current,
   });
-  // Mirrors isPttLikeMode in MainPanel — modes that send audio only while
-  // the user holds Space.
-  const canHoldToSpeak =
-    turnDetectionMode === 'Push-to-Talk' ||
-    turnDetectionMode === 'Push-to-Translate' ||
-    turnDetectionMode === 'Disabled';
+  // Modes that send audio only while the user holds Space — the same
+  // capabilities-driven predicate MainPanel uses, so the two windows can
+  // never disagree about what counts as push-gated.
+  const canHoldToSpeak = isPushGatedMode(provider, turnDetectionMode);
 
   // Reactive: re-emits whenever state[provider] is replaced, so changing
   // sourceLanguage / targetLanguage in the side panel (which mutates the

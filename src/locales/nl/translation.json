@@ -509,6 +509,7 @@
     "endSession": "Sessie beëindigen",
     "startSession": "Sessie starten",
     "initializing": "Initialiseren...",
+    "startPreparationFailed": "De sessie kon niet worden voorbereid. Probeer het opnieuw.",
     "initProgress": "Laden ({{completed}}/{{total}})...",
     "stopDebug": "Debug stoppen",
     "debug": "Debug",
@@ -577,7 +578,8 @@
     "sonioxVoicePoolBusy": "Alle plekken voor aangepaste stemmen zijn op dit moment bezet, dus deze sessie gebruikt een preset-stem. Uw eigen stem wordt de volgende keer weer gebruikt.",
     "sonioxVoiceBuildFailed": "Uw aangepaste stem kon niet worden gebouwd, dus deze sessie gebruikt een preset-stem. Probeer een duidelijkere opname te maken in Instellingen.",
     "sonioxVoiceUnavailable": "Uw aangepaste stem is op dit moment niet beschikbaar, dus deze sessie gebruikt een preset-stem.",
-    "preparingVoice": "Uw stem wordt voorbereid…"
+    "preparingVoice": "Uw stem wordt voorbereid…",
+    "clickToCancel": "Klik om te annuleren"
   },
   "modePicker": {
     "modeYou": "Jij",

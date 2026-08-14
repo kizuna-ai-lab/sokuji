@@ -509,6 +509,7 @@
     "endSession": "End Session",
     "startSession": "Start Session",
     "initializing": "Initializing...",
+    "startPreparationFailed": "Could not prepare the session. Please try again.",
     "initProgress": "Loading ({{completed}}/{{total}})...",
     "stopDebug": "Stop Debug",
     "debug": "Debug",
@@ -577,7 +578,8 @@
     "sonioxVoicePoolBusy": "All custom voice slots are in use right now, so this session uses a built-in voice. Your own voice will be used again next time.",
     "sonioxVoiceBuildFailed": "Your custom voice could not be built, so this session uses a built-in voice. Try recording a clearer clip in Settings.",
     "sonioxVoiceUnavailable": "Your custom voice is unavailable right now, so this session uses a built-in voice.",
-    "preparingVoice": "Preparing your voice…"
+    "preparingVoice": "Preparing your voice…",
+    "clickToCancel": "Click to cancel"
   },
   "modePicker": {
     "modeYou": "You",

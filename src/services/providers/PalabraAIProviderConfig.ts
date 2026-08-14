@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, PalabraAISessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { PalabraAIClient, PalabraCredentials } from '../clients/PalabraAIClient';
@@ -119,6 +119,31 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
       maxQueueLevelMs: settings.maxQueueLevelMs,
       autoTempo: settings.autoTempo,
     } as PalabraAISessionConfig;
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    // PalabraAI ignores `instructions` entirely — set_task carries the direction
+    // in pipeline.transcription.source_language and
+    // pipeline.translations[0].target_language, built from these two fields. Without
+    // this swap the participant session transcribes the other party's speech under
+    // the *user's* language and "translates" it back to the other party's language,
+    // so the other party's own language comes out on both lines.
+    //
+    // The two fields use different code spaces (targets carry region suffixes like
+    // en-us, sources don't), but the API strips the suffix before validating a
+    // source, so a plain swap holds for every target we offer. In the other
+    // direction five source languages aren't valid targets (eu, ga, mn, mt, ug);
+    // picking one of those makes the reversed task fail with the API's
+    // VALIDATION_ERROR, which arrives as a data message and surfaces through
+    // handleError rather than throwing out of connect().
+    const pa = result.config as PalabraAISessionConfig;
+    [pa.sourceLanguage, pa.targetLanguage] = [pa.targetLanguage, pa.sourceLanguage];
+    return result;
   }
 
   // PalabraAI supported source languages (for recognition) based on their documentation
@@ -301,6 +326,11 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
         
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        // LiveKit-based: always webrtc transport, regardless of the user's
+        // transport preference. (Capture is still appendInputAudio — see
+        // supportsWebRTC, which stays false.)
+        forcedTransport: 'webrtc',
       },
     };
   }

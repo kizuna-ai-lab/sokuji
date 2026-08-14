@@ -509,6 +509,7 @@
     "endSession": "Tamat sesi",
     "startSession": "Mula sesi",
     "initializing": "Memulakan...",
+    "startPreparationFailed": "Sesi tidak dapat disediakan. Sila cuba lagi.",
     "initProgress": "Memuatkan ({{completed}}/{{total}})...",
     "stopDebug": "Henti nyahpepijat",
     "debug": "Nyahpepijat",
@@ -577,7 +578,8 @@
     "sonioxVoicePoolBusy": "Semua slot suara tersuai sedang digunakan sekarang, jadi sesi ini menggunakan suara pratetap. Suara anda sendiri akan digunakan semula pada masa akan datang.",
     "sonioxVoiceBuildFailed": "Suara tersuai anda tidak dapat dibina, jadi sesi ini menggunakan suara pratetap. Cuba rakam klip yang lebih jelas dalam Tetapan.",
     "sonioxVoiceUnavailable": "Suara tersuai anda tidak tersedia sekarang, jadi sesi ini menggunakan suara pratetap.",
-    "preparingVoice": "Menyediakan suara anda…"
+    "preparingVoice": "Menyediakan suara anda…",
+    "clickToCancel": "Klik untuk membatalkan"
   },
   "modePicker": {
     "modeYou": "Anda",

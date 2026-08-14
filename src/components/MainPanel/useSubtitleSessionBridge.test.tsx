@@ -22,7 +22,7 @@ describe('useSubtitleSessionBridge mirroring', () => {
       useSubtitleSessionBridge({
         startGate: { canStart: false, reason: 'missing-device', deviceScope: 'speaker' },
         isInitializing: false,
-        initProgress: null,
+        initPhase: null,
         onStart: vi.fn(),
         onStop: vi.fn(),
       }),
@@ -40,7 +40,7 @@ describe('useSubtitleSessionBridge mirroring', () => {
         useSubtitleSessionBridge({
           startGate: props.startGate,
           isInitializing: false,
-          initProgress: null,
+          initPhase: null,
           onStart: vi.fn(),
           onStop: vi.fn(),
         }),
@@ -55,13 +55,26 @@ describe('useSubtitleSessionBridge mirroring', () => {
       useSubtitleSessionBridge({
         startGate: readyGate,
         isInitializing: true,
-        initProgress: { completed: 2, total: 5 },
+        initPhase: { phase: 'loading-models', completed: 2, total: 5 },
         onStart: vi.fn(),
         onStop: vi.fn(),
       }),
     );
     expect(useSessionStore.getState().isInitializing).toBe(true);
     expect(useSessionStore.getState().initProgress).toEqual({ completed: 2, total: 5 });
+  });
+
+  it('mirrors loading-native-asr as null progress (no counted form)', () => {
+    renderHook(() =>
+      useSubtitleSessionBridge({
+        startGate: readyGate,
+        isInitializing: true,
+        initPhase: { phase: 'loading-native-asr' },
+        onStart: vi.fn(),
+        onStop: vi.fn(),
+      }),
+    );
+    expect(useSessionStore.getState().initProgress).toBeNull();
   });
 });
 
@@ -72,7 +85,7 @@ describe('useSubtitleSessionBridge request watching', () => {
     const onStop = vi.fn();
     renderHook(() =>
       useSubtitleSessionBridge({
-        startGate: readyGate, isInitializing: false, initProgress: null, onStart, onStop,
+        startGate: readyGate, isInitializing: false, initPhase: null, onStart, onStop,
       }),
     );
     expect(onStart).not.toHaveBeenCalled();
@@ -83,7 +96,7 @@ describe('useSubtitleSessionBridge request watching', () => {
     const onStart = vi.fn();
     renderHook(() =>
       useSubtitleSessionBridge({
-        startGate: readyGate, isInitializing: false, initProgress: null,
+        startGate: readyGate, isInitializing: false, initPhase: null,
         onStart, onStop: vi.fn(),
       }),
     );
@@ -96,7 +109,7 @@ describe('useSubtitleSessionBridge request watching', () => {
     const onStop = vi.fn();
     renderHook(() =>
       useSubtitleSessionBridge({
-        startGate: readyGate, isInitializing: false, initProgress: null, onStart, onStop,
+        startGate: readyGate, isInitializing: false, initPhase: null, onStart, onStop,
       }),
     );
     act(() => { useSessionStore.getState().requestSessionStop(); });
@@ -108,7 +121,7 @@ describe('useSubtitleSessionBridge request watching', () => {
     const onStart = vi.fn();
     renderHook(() =>
       useSubtitleSessionBridge({
-        startGate: readyGate, isInitializing: false, initProgress: null,
+        startGate: readyGate, isInitializing: false, initPhase: null,
         onStart, onStop: vi.fn(),
       }),
     );
@@ -125,7 +138,7 @@ describe('useSubtitleSessionBridge request watching', () => {
     const { rerender } = renderHook(
       (props: { onStart: () => void }) =>
         useSubtitleSessionBridge({
-          startGate: readyGate, isInitializing: false, initProgress: null,
+          startGate: readyGate, isInitializing: false, initPhase: null,
           onStart: props.onStart, onStop: vi.fn(),
         }),
       { initialProps: { onStart: first } },

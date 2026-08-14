@@ -1,3 +1,5 @@
+import type { TransportType } from './ProviderDescriptor';
+
 export interface LanguageOption {
   name: string;
   value: string;
@@ -52,6 +54,45 @@ export interface ProviderCapabilities {
   // gates the glossary input on this flag plus the selected model, so that
   // provider does not render a control that could never take effect.
   hasTranscriptKeywords?: boolean;
+
+  // ── S1 capability flags (spec: 2026-08-13-mainpanel-provider-seams) ──
+  // Optional: only descriptors that deviate from the default declare them.
+  // Kizuna twins and OpenAI-Compatible inherit via their `...base` spread.
+
+  /** Speech-mode names from THIS provider's settings vocabulary that send
+   *  audio only while the user holds Space. Encodes that 'Disabled' is
+   *  OpenAI's spelling of push-to-talk. Undefined ⇒ no push-gated modes. */
+  pushGatedModes?: string[];
+
+  /** Provider accepts typed text input into a live session. Undefined ⇒ no. */
+  supportsTextInput?: boolean;
+
+  /** Text typed while the AI is responding is queued and flushed after
+   *  response.done (capacity 1). Undefined ⇒ sent immediately. */
+  queuesTextWhileResponding?: boolean;
+
+  /** System instructions come from the local prompt template
+   *  (getProcessedLocalPrompt) instead of the shared builder. Undefined ⇒ shared. */
+  usesLocalPromptTemplate?: boolean;
+
+  /** How a push-to-talk segment is finalized on release. Undefined ⇒
+   *  { response: 'voice-gated' }: createResponse() only when enough voiced
+   *  chunks were captured, otherwise skip.
+   *  - silenceTailFrames: 100 ms zero frames appended first so a server/local
+   *    VAD detects end-of-speech.
+   *  - 'always': createResponse() unconditionally (local Silero VAD — for
+   *    streaming ASR it flushes the pending utterance; for offline ASR it is
+   *    harmless, the silence frames handle it).
+   *  - 'server-decides': no client call; the server's own VAD closes the turn.
+   *  - 'voice-gated-cancel': like the default, but too-little speech actively
+   *    cancels the turn (cancelPttTurn) so no response is generated for silence. */
+  pttFinalization?: {
+    silenceTailFrames?: number;
+    response: 'always' | 'server-decides' | 'voice-gated' | 'voice-gated-cancel';
+  };
+
+  /** Transport this provider must run on, overriding the user preference. */
+  forcedTransport?: TransportType;
 }
 
 export interface ProviderConfig {

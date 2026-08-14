@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { prepareManagedVoice, voicePrepNotice } from './prepareManagedVoice';
-import { SonioxVoicesError } from '../../services/clients/SonioxVoicesClient';
-import type { ManagedVoicesClient } from '../../services/clients/ManagedVoicesClient';
+import { prepareManagedVoice, voicePrepNotice } from './managedVoicePrep';
+import { SonioxVoicesError } from '../clients/SonioxVoicesClient';
+import type { ManagedVoicesClient } from '../clients/ManagedVoicesClient';
 
 const clip = () => new Blob([new Uint8Array([1])], { type: 'audio/wav' });
 
@@ -229,6 +229,73 @@ describe('prepareManagedVoice', () => {
     expect(res).toEqual({ ok: true, voiceId: 'v7' });
     // 5000 remaining < the server's 10000ms hint — clamped, not honored.
     expect(sleep).toHaveBeenCalledWith(5_000);
+  });
+
+  it('threads the signal into every ensure and mine call', async () => {
+    const controller = new AbortController();
+    const ensure = vi.fn().mockResolvedValue({ voiceId: 'vB', status: 'processing' });
+    const mine = vi.fn().mockResolvedValue({ voiceId: 'vB', status: 'ready', createdAt: 1 });
+    const res = await prepareManagedVoice({ ...deps({ ensure, mine }), signal: controller.signal });
+    expect(res).toEqual({ ok: true, voiceId: 'vB' });
+    expect(ensure).toHaveBeenCalledWith({
+      pin: true,
+      clip: undefined,
+      budgetMs: expect.any(Number),
+      signal: controller.signal,
+    });
+    expect(mine).toHaveBeenCalledWith(expect.any(Number), controller.signal);
+  });
+
+  it('resolves via the degrade path when the caller aborts between the warm ensure and the poll loop', async () => {
+    // Mirrors 'stops polling at the deadline': a cancel observed at the same
+    // loop boundary the deadline check already guards must resolve exactly
+    // the same way — no further client calls once it's noticed.
+    const controller = new AbortController();
+    const ensure = vi.fn().mockImplementation(async () => {
+      controller.abort();
+      return { voiceId: 'vC', status: 'processing' };
+    });
+    const mine = vi.fn();
+    const res = await prepareManagedVoice({ ...deps({ ensure, mine }), signal: controller.signal });
+    expect(res).toEqual({ ok: false, reason: 'unavailable' });
+    expect(mine).not.toHaveBeenCalled();
+  });
+
+  it('degrades gracefully when the client itself reports a request as aborted', async () => {
+    // An 'aborted' client error (ManagedVoicesClient's own refusal/mapping)
+    // resolves through the identical fallthrough 'network', 'timeout', etc.
+    // already use — not a new branch of its own.
+    const ensure = vi.fn().mockRejectedValue(new SonioxVoicesError('aborted', 'Cancelled by the caller', 0));
+    expect(await prepareManagedVoice(deps({ ensure }))).toEqual({ ok: false, reason: 'unavailable' });
+  });
+
+  it('does not start the clip retry once the caller has aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const ensure = vi.fn().mockRejectedValue(new SonioxVoicesError('clip_required', 'need clip', 409));
+    const loadClip = vi.fn().mockResolvedValue(clip());
+    const res = await prepareManagedVoice({ ...deps({ ensure, loadClip }), signal: controller.signal });
+    expect(res).toEqual({ ok: false, reason: 'unavailable' });
+    expect(loadClip).not.toHaveBeenCalled();
+  });
+
+  it('does not start the pool_exhausted retry once the caller has aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const ensure = vi.fn().mockRejectedValue(new SonioxVoicesError('pool_exhausted', 'busy', 409, 3_000));
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    const res = await prepareManagedVoice({ ...deps({ ensure }), sleep, signal: controller.signal });
+    expect(res).toEqual({ ok: false, reason: 'unavailable' });
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it('behaves exactly as before this parameter existed when no signal is supplied', async () => {
+    // deps() never sets `signal` — every test above this one already proves
+    // this, but this case pins it explicitly as a regression guard.
+    const ensure = vi.fn().mockResolvedValue({ voiceId: 'vD', status: 'ready' });
+    const res = await prepareManagedVoice(deps({ ensure }));
+    expect(res).toEqual({ ok: true, voiceId: 'vD' });
+    expect(ensure).toHaveBeenCalledWith({ pin: true, clip: undefined, budgetMs: expect.any(Number) });
   });
 });
 

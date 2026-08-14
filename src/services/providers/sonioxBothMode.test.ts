@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { sonioxBothModePlan } from './sonioxBothMode';
-import { Provider } from '../../types/Provider';
 
 /**
  * The shared-vs-split decision used to be a four-clause `&&` written inline in
@@ -10,6 +9,13 @@ import { Provider } from '../../types/Provider';
  * balance floor, and the client wiring (`bidirectional` + the secondary-port
  * participant) — so it is one pure function, tested here directly.
  *
+ * Provider dispatch (BYOK vs the Kizuna-managed twin, and every non-Soniox
+ * provider) no longer lives in this function — it is answered by which
+ * descriptor you asked (see SonioxProviderConfig.planBothMode and its
+ * KizunaAISonioxProviderConfig inheritance). Those cases are pinned in
+ * descriptorRegistry.test.ts's 'S3 planBothMode' suite instead; this file only
+ * tests the shared/split decision itself.
+ *
  * The managed-split cases at the bottom were added when the UI switch landed:
  * `sonioxUsesSharedBothSession` no longer forces shared on for the managed
  * twin, so what a managed account does with a stored `bothModeSharedSession:
@@ -18,26 +24,20 @@ import { Provider } from '../../types/Provider';
 describe('sonioxBothModePlan', () => {
   const concrete = { bothModeSharedSession: true, sourceLanguage: 'en' };
 
-  it('is inert for a provider that is not Soniox', () => {
-    expect(sonioxBothModePlan({ provider: Provider.OPENAI, settings: concrete, mode: 'both' }))
-      .toEqual({ shared: false, split: false });
-  });
-
   it('is inert outside Both mode', () => {
-    expect(sonioxBothModePlan({ provider: Provider.SONIOX, settings: concrete, mode: 'speaker' }))
+    expect(sonioxBothModePlan({ settings: concrete, mode: 'speaker' }))
       .toEqual({ shared: false, split: false });
-    expect(sonioxBothModePlan({ provider: Provider.SONIOX, settings: concrete, mode: 'participant' }))
+    expect(sonioxBothModePlan({ settings: concrete, mode: 'participant' }))
       .toEqual({ shared: false, split: false });
   });
 
   it('reports shared for BYOK Both with the toggle on and a concrete source language', () => {
-    expect(sonioxBothModePlan({ provider: Provider.SONIOX, settings: concrete, mode: 'both' }))
+    expect(sonioxBothModePlan({ settings: concrete, mode: 'both' }))
       .toEqual({ shared: true, split: false });
   });
 
   it('reports split for BYOK Both with the toggle off', () => {
     expect(sonioxBothModePlan({
-      provider: Provider.SONIOX,
       settings: { bothModeSharedSession: false, sourceLanguage: 'en' },
       mode: 'both',
     })).toEqual({ shared: false, split: true });
@@ -50,31 +50,18 @@ describe('sonioxBothModePlan', () => {
   // calling `sonioxUsesSharedBothSession` alone silently drops it.
   it('reports neither when the shared toggle is on but the source language is auto', () => {
     expect(sonioxBothModePlan({
-      provider: Provider.SONIOX,
       settings: { bothModeSharedSession: true, sourceLanguage: 'auto' },
       mode: 'both',
     })).toEqual({ shared: false, split: false });
   });
 
   it('defaults to shared when nothing is stored', () => {
-    expect(sonioxBothModePlan({ provider: Provider.SONIOX, settings: {}, mode: 'both' }))
+    expect(sonioxBothModePlan({ settings: {}, mode: 'both' }))
       .toEqual({ shared: true, split: false });
-    expect(sonioxBothModePlan({ provider: Provider.SONIOX, settings: null, mode: 'both' }))
+    expect(sonioxBothModePlan({ settings: null, mode: 'both' }))
       .toEqual({ shared: true, split: false });
-    expect(sonioxBothModePlan({ provider: Provider.SONIOX, settings: undefined, mode: 'both' }))
+    expect(sonioxBothModePlan({ settings: undefined, mode: 'both' }))
       .toEqual({ shared: true, split: false });
-  });
-
-  // The managed twin must resolve through kizunaBaseProvider. A raw
-  // `provider === Provider.SONIOX` test is always false for it, which is
-  // exactly how this expression once opened two managed sessions instead of
-  // one and got the second refused with a 409.
-  it('resolves the Kizuna-managed twin to Soniox rather than treating it as another provider', () => {
-    expect(sonioxBothModePlan({
-      provider: Provider.KIZUNA_AI_SONIOX,
-      settings: concrete,
-      mode: 'both',
-    }).shared).toBe(true);
   });
 
   // The managed twin no longer forces shared. MainPanel reads the helper
@@ -84,7 +71,6 @@ describe('sonioxBothModePlan', () => {
   // must not resurrect split behind the UI's back.
   it('lets the Kizuna-managed twin run split Both when that is what is stored', () => {
     expect(sonioxBothModePlan({
-      provider: Provider.KIZUNA_AI_SONIOX,
       settings: { bothModeSharedSession: false, sourceLanguage: 'en' },
       mode: 'both',
     })).toEqual({ shared: false, split: true });
@@ -92,7 +78,6 @@ describe('sonioxBothModePlan', () => {
 
   it('still defaults the managed twin to shared with nothing stored', () => {
     expect(sonioxBothModePlan({
-      provider: Provider.KIZUNA_AI_SONIOX,
       settings: { sourceLanguage: 'en' },
       mode: 'both',
     })).toEqual({ shared: true, split: false });

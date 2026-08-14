@@ -509,6 +509,7 @@
     "endSession": "Termina sessione",
     "startSession": "Inizia sessione",
     "initializing": "Inizializzazione...",
+    "startPreparationFailed": "Impossibile preparare la sessione. Riprova.",
     "initProgress": "Caricamento ({{completed}}/{{total}})...",
     "stopDebug": "Ferma debug",
     "debug": "Debug",
@@ -577,7 +578,8 @@
     "sonioxVoicePoolBusy": "Al momento tutti i posti per le voci personalizzate sono occupati, quindi questa sessione usa una voce preimpostata. La tua voce verrà usata di nuovo la prossima volta.",
     "sonioxVoiceBuildFailed": "Non è stato possibile creare la tua voce personalizzata, quindi questa sessione usa una voce preimpostata. Prova a registrare una clip più chiara nelle Impostazioni.",
     "sonioxVoiceUnavailable": "La tua voce personalizzata non è disponibile al momento, quindi questa sessione usa una voce preimpostata.",
-    "preparingVoice": "Preparazione della tua voce…"
+    "preparingVoice": "Preparazione della tua voce…",
+    "clickToCancel": "Clicca per annullare"
   },
   "modePicker": {
     "modeYou": "Tu",

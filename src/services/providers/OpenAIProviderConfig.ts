@@ -1,11 +1,11 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption, ReasoningEffort } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions, TransportType } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, ClientOptions, TransportType, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, OpenAISessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAIClient } from '../clients/OpenAIClient';
 import { OpenAIGAClient } from '../clients/OpenAIGAClient';
 import { OpenAIWebRTCClient } from '../clients/OpenAIWebRTCClient';
-import { buildInputAudioTranscription } from './openaiTranscriptionContext';
+import { buildInputAudioTranscription, reverseTranscriptionDirection } from './openaiTranscriptionContext';
 
 /**
  * Transcription models offered for the user's own speech. The first two are
@@ -166,6 +166,25 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
     return buildOpenAISessionConfig(settings, systemInstructions);
   }
 
+  // OpenAICompatibleProviderConfig inherits this override too — the transcription
+  // hint needs rebuilding regardless of which endpoint the session talks to.
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    // OpenAI (and its compatible/Kizuna twins) carry the direction in
+    // `instructions`, already reversed above — except for the transcription
+    // hint, which is built from the user's source language. The participant
+    // speaks the configured *target* language, so leaving the hint alone would
+    // point their ASR at the wrong language, i.e. actively worse than sending
+    // no hint at all. Rebuild it around the reversed direction; the glossary
+    // carries over, since proper nouns are the same either way.
+    reverseTranscriptionDirection(result.config as OpenAISessionConfig);
+    return result;
+  }
+
   private static readonly LANGUAGES: LanguageOption[] = [
     { name: 'العربية', value: 'ar', englishName: 'Arabic' },
     { name: 'አማርኛ', value: 'am', englishName: 'Amharic' },
@@ -296,6 +315,12 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
         
         temperatureRange: { min: 0.6, max: 1.2, step: 0.01 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        // 'Disabled' is OpenAI's spelling of push-to-talk (the settings UI
+        // renames it); 'Push-to-Translate' adds passthrough during idle.
+        pushGatedModes: ['Disabled', 'Push-to-Translate'],
+        supportsTextInput: true,
+        queuesTextWhileResponding: true,
       },
     };
   }

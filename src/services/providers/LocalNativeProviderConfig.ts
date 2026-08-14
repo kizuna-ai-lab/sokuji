@@ -1,7 +1,7 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
 import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult, PreparePorts, PrepareOutcome } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, LocalNativeSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalNativeClient } from '../clients/LocalNativeClient';
@@ -10,6 +10,8 @@ import type { NativeModelInfo } from '../../lib/local-inference/native/nativePro
 // nativeModelStore imports no provider modules, so this store read introduces
 // no cycle; the descriptor needs the sidecar catalog for TTS auto-resolution.
 import { useNativeModelStore } from '../../stores/nativeModelStore';
+import { createParticipantLocalNativeConfig } from './localParticipantConfig';
+import i18n from '../../locales';
 
 /**
  * Native (Electron sidecar) provider settings. Keeps field parity with
@@ -157,12 +159,53 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
     return { validation: { valid: false, message: 'local native readiness is model-based', validating: false }, models: [] };
   }
 
+  /** Pre-start model-readiness revalidation. validateApiKey is the single
+   *  authority for session readiness — auto-select, model readiness, key
+   *  validation — and it must run as the STORE action (its isApiKeyValid
+   *  write is what closes the Start gate and flips the subtitle window to
+   *  'blocked' on failure), so it arrives here through ports.revalidate. */
+  async prepareToStart(_slice: unknown, ports: PreparePorts): Promise<PrepareOutcome> {
+    const result = await ports.revalidate();
+    if (result.valid) return { ok: true };
+    return {
+      ok: false,
+      message: result.message
+        || i18n.t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.'),
+    };
+  }
+
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
     // TTS auto-resolution needs the sidecar's per-machine catalog; read it at
     // build time — before the sidecar responds it is {} and TTS stays off,
     // matching the builder's default-catalog semantics.
     const catalog = useNativeModelStore.getState().catalog;
     return createLocalNativeSessionConfig(slice as LocalNativeSettings, systemInstructions, catalog);
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const base = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    // Native ASR/translate carry the translation direction in
+    // sourceLanguage/targetLanguage AND in the chosen model ids (a directional
+    // Opus model bakes the direction in; a source-specific ASR only handles one
+    // language). Reverse the direction and re-resolve both models for the
+    // reversed pair — see createParticipantLocalNativeConfig.
+    const result = createParticipantLocalNativeConfig(base.config as LocalNativeSessionConfig);
+
+    if (!result.success) {
+      return { config: null, notices: [{ channel: 'error', message: result.detail }] };
+    }
+
+    const notices: ParticipantNotice[] = [];
+
+    if (!result.translationAvailable) {
+      notices.push({ channel: 'warning', message: `No translation model for ${result.config.sourceLanguage} → ${result.config.targetLanguage} — transcription only` });
+    }
+
+    return { config: result.config, notices };
   }
 
   private static readonly MODELS: ModelOption[] = [
@@ -201,6 +244,14 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        pushGatedModes: ['Push-to-Talk', 'Push-to-Translate'],
+        supportsTextInput: true,
+        usesLocalPromptTemplate: true,
+        // Silero VAD needs a 700 ms silence tail to detect end-of-speech;
+        // createResponse always follows — for streaming ASR it flushes the
+        // pending utterance, for offline ASR it is harmless.
+        pttFinalization: { silenceTailFrames: 7, response: 'always' },
       },
     };
   }

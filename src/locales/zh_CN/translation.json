@@ -509,6 +509,7 @@
     "endSession": "结束会话",
     "startSession": "开始会话",
     "initializing": "初始化中...",
+    "startPreparationFailed": "无法准备会话。请重试。",
     "initProgress": "加载中 ({{completed}}/{{total}})...",
     "stopDebug": "停止调试",
     "debug": "调试",
@@ -577,7 +578,8 @@
     "sonioxVoicePoolBusy": "目前所有自定义声音名额都在使用中，因此本次会话使用预设声音。您自己的声音将在下次再次使用。",
     "sonioxVoiceBuildFailed": "无法生成您的自定义声音，因此本次会话使用预设声音。请尝试在设置中录制更清晰的片段。",
     "sonioxVoiceUnavailable": "您的自定义声音目前不可用，因此本次会话使用预设声音。",
-    "preparingVoice": "正在准备您的声音…"
+    "preparingVoice": "正在准备您的声音…",
+    "clickToCancel": "点击取消"
   },
   "modePicker": {
     "modeYou": "您",

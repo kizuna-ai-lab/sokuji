@@ -509,6 +509,7 @@
     "endSession": "Akhiri sesi",
     "startSession": "Mulai sesi",
     "initializing": "Menginisialisasi...",
+    "startPreparationFailed": "Sesi tidak dapat disiapkan. Silakan coba lagi.",
     "initProgress": "Memuat ({{completed}}/{{total}})...",
     "stopDebug": "Hentikan debug",
     "debug": "Debug",
@@ -577,7 +578,8 @@
     "sonioxVoicePoolBusy": "Semua slot suara kustom sedang digunakan saat ini, sehingga sesi ini menggunakan suara preset. Suara Anda sendiri akan digunakan lagi lain kali.",
     "sonioxVoiceBuildFailed": "Suara kustom Anda tidak dapat dibangun, sehingga sesi ini menggunakan suara preset. Coba rekam klip yang lebih jelas di Pengaturan.",
     "sonioxVoiceUnavailable": "Suara kustom Anda tidak tersedia saat ini, sehingga sesi ini menggunakan suara preset.",
-    "preparingVoice": "Menyiapkan suara Anda…"
+    "preparingVoice": "Menyiapkan suara Anda…",
+    "clickToCancel": "Klik untuk membatalkan"
   },
   "modePicker": {
     "modeYou": "Anda",

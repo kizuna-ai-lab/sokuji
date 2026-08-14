@@ -489,6 +489,56 @@ describe('createParticipantLocalInferenceConfig', () => {
   });
 });
 
+describe('updateProviderSlice (public generic action)', () => {
+  // No beforeEach reset needed here: unlike the top-level `settingsStore`
+  // describe (which resets `provider`/validation fields consumed by
+  // Provider Switching tests), every assertion below either checks a value
+  // freshly written by the call under test or a relative before/after
+  // snapshot — none depend on a slice's pristine default, so no adaptation
+  // to the file's reset/persistence-mocking style was needed beyond the
+  // module-level ServiceFactory mock already in effect for the whole file.
+
+  it('merges a patch into the named slice', async () => {
+    await useSettingsStore.getState().updateProviderSlice('soniox', { targetLanguage: 'ja' });
+    expect((useSettingsStore.getState().soniox as { targetLanguage: string }).targetLanguage).toBe('ja');
+  });
+
+  it('does not bleed into other slices or drop unpatched fields', async () => {
+    const geminiBefore = useSettingsStore.getState().gemini;
+    const sourceBefore = (useSettingsStore.getState().soniox as { sourceLanguage: string }).sourceLanguage;
+    await useSettingsStore.getState().updateProviderSlice('soniox', { targetLanguage: 'ko' });
+    expect(useSettingsStore.getState().gemini).toBe(geminiBefore);
+    expect((useSettingsStore.getState().soniox as { sourceLanguage: string }).sourceLanguage).toBe(sourceBefore);
+  });
+
+  it('applies the same registry transform the named action applies', async () => {
+    // The openai row's transformPatch forces turnDetectionMode 'Disabled' when
+    // transportType flips to webrtc — the generic path must run it too, or the
+    // two write paths diverge on the same slice.
+    await useSettingsStore.getState().updateProviderSlice('openai', { transportType: 'webrtc' });
+    expect((useSettingsStore.getState().openai as { turnDetectionMode: string }).turnDetectionMode).toBe('Disabled');
+  });
+
+  it('rejects an unknown slice key', async () => {
+    await expect(
+      useSettingsStore.getState().updateProviderSlice('not-a-slice', { x: 1 })
+    ).rejects.toThrow();
+  });
+
+  it('rejects prototype-chain names', async () => {
+    await expect(
+      useSettingsStore.getState().updateProviderSlice('toString', { x: 1 })
+    ).rejects.toThrow();
+  });
+
+  it('behaves identically to the named per-provider action', async () => {
+    await useSettingsStore.getState().updateProviderSlice('soniox', { voice: 'Daniel' });
+    const viaGeneric = useSettingsStore.getState().soniox;
+    await useSettingsStore.getState().updateSoniox({ voice: 'Daniel' });
+    expect(useSettingsStore.getState().soniox).toEqual(viaGeneric);
+  });
+});
+
 describe('local_native asrDevice setting', () => {
   it('local_native session config carries the asrDevice override', () => {
     useSettingsStore.setState({

@@ -42,7 +42,11 @@ export class ManagedVoicesClient {
   private async request(
     path: string,
     init: RequestInit,
-    timeoutMs: number
+    timeoutMs: number,
+    /** Caller cancellation (e.g. the Start this call belongs to was aborted).
+     *  Forwarded into an internal AbortController rather than handed to fetch
+     *  directly — see the comment below for why not `AbortSignal.any`. */
+    signal?: AbortSignal
   ): Promise<Response> {
     if (timeoutMs <= 0) {
       // A caller working to a deadline can hand down a budget that has already
@@ -52,27 +56,64 @@ export class ManagedVoicesClient {
       // same thing sooner and more plainly.
       throw new SonioxVoicesError('timeout', 'No time left in the caller\'s budget', 408);
     }
+    if (signal?.aborted) {
+      // Refuse before spending a fetch: an already-cancelled caller (Start
+      // already ended) must not dial out at all.
+      throw new SonioxVoicesError('aborted', 'Cancelled by the caller', 0);
+    }
     const token = await this.getToken();
     if (!token) {
       // Asking the server to tell us what we already know costs a round trip
       // and returns a 401 that reads like an outage instead of "sign in".
       throw new SonioxVoicesError('authentication_required', 'Sign in to manage your voice', 401);
     }
-    let res: Response;
+    // An explicit controller rather than AbortSignal.any(): the deadline and
+    // the caller's cancel must stay distinguishable at the catch site below,
+    // and the abort reason's `name` is what carries that distinction (see
+    // SonioxTtsRest.synthesizeOnce, the precedent for this shape).
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () => controller.abort(new DOMException(`Request timed out after ${timeoutMs / 1000}s`, 'TimeoutError')),
+      timeoutMs
+    );
+    const forwardAbort = () =>
+      controller.abort(signal?.reason ?? new DOMException('Cancelled by the caller', 'AbortError'));
+    signal?.addEventListener('abort', forwardAbort, { once: true });
+    // An abort landing during the `getToken()` await above fires before this
+    // listener existed to hear it; catch it here so the fetch below starts
+    // (and rejects) already aborted instead of running to its own timeout.
+    if (signal?.aborted) forwardAbort();
     try {
-      res = await fetch(`${getApiUrl()}/soniox/voices${path}`, {
-        ...init,
-        headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-    } catch (e) {
-      if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
-        throw new SonioxVoicesError('timeout', `Request timed out after ${timeoutMs / 1000}s`, 408);
+      let res: Response;
+      try {
+        res = await fetch(`${getApiUrl()}/soniox/voices${path}`, {
+          ...init,
+          headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+      } catch (e) {
+        // The caller's own signal is checked before sniffing the rejection's
+        // name: it survived the abort (unlike a DOMException instance, which
+        // can fail `instanceof` across realms — observed right here under
+        // the jsdom test environment) and is realm-agnostic, same reasoning
+        // as SonioxTtsRest.asSonioxError, this module's precedent for the
+        // shape.
+        if (signal?.aborted) throw new SonioxVoicesError('aborted', 'Cancelled by the caller', 0);
+        const name = e instanceof DOMException ? e.name : '';
+        if (name === 'TimeoutError') {
+          throw new SonioxVoicesError('timeout', `Request timed out after ${timeoutMs / 1000}s`, 408);
+        }
+        if (name === 'AbortError') {
+          throw new SonioxVoicesError('aborted', 'Cancelled by the caller', 0);
+        }
+        throw new SonioxVoicesError('network', e instanceof Error ? e.message : String(e), 0);
       }
-      throw new SonioxVoicesError('network', e instanceof Error ? e.message : String(e), 0);
+      if (!res.ok) await this.throwBackendError(res);
+      return res;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', forwardAbort);
     }
-    if (!res.ok) await this.throwBackendError(res);
-    return res;
   }
 
   /** Every failing response from this backend carries `{ error: '<slug>' }`,
@@ -98,12 +139,16 @@ export class ManagedVoicesClient {
    *
    *  `budgetMs` caps this call's own timeout, same contract as `ensure`: a
    *  caller polling against a deadline would otherwise have its last poll run
-   *  the full 15s past that deadline. Callers with no deadline omit it. */
-  async mine(budgetMs?: number): Promise<ManagedVoice | null> {
+   *  the full 15s past that deadline. Callers with no deadline omit it.
+   *
+   *  `signal` cancels an in-flight request too, not just future ones —
+   *  threaded straight into `request()`'s own AbortController. */
+  async mine(budgetMs?: number, signal?: AbortSignal): Promise<ManagedVoice | null> {
     const res = await this.request(
       '/mine',
       { method: 'GET' },
-      budgetMs !== undefined ? Math.min(REQUEST_TIMEOUT_MS, budgetMs) : REQUEST_TIMEOUT_MS
+      budgetMs !== undefined ? Math.min(REQUEST_TIMEOUT_MS, budgetMs) : REQUEST_TIMEOUT_MS,
+      signal
     );
     const body = await res.json();
     return body?.voice ?? null;
@@ -124,9 +169,12 @@ export class ManagedVoicesClient {
    * respect: session start budgets 60s for the whole preparation, so without
    * this a single cold upload could hold Start disabled for twice that with no
    * way to cancel. Callers with no deadline omit it and keep the defaults.
+   *
+   * `signal` cancels an in-flight request too (including a cold upload),
+   * same threading as `mine`.
    */
   async ensure(
-    opts: { pin: boolean; clip?: Blob; budgetMs?: number }
+    opts: { pin: boolean; clip?: Blob; budgetMs?: number; signal?: AbortSignal }
   ): Promise<{ voiceId: string; status: 'ready' | 'processing' }> {
     const form = new FormData();
     form.set('pin', opts.pin ? '1' : '0');
@@ -138,7 +186,8 @@ export class ManagedVoicesClient {
     const res = await this.request(
       '/ensure',
       { method: 'POST', body: form },
-      opts.budgetMs !== undefined ? Math.min(defaultTimeout, opts.budgetMs) : defaultTimeout
+      opts.budgetMs !== undefined ? Math.min(defaultTimeout, opts.budgetMs) : defaultTimeout,
+      opts.signal
     );
     const body = await res.json();
     return { voiceId: body.voiceId, status: body.status };

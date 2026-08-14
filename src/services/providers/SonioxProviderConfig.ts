@@ -1,10 +1,11 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, ClientOptions, ParticipantSessionResult, BothModePlan } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, SonioxSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
 import { byokCredentials } from '../clients/ManagedSonioxSession';
 import { SONIOX_VOICES, SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
+import { sonioxBothModePlan, SonioxBothModeScope } from './sonioxBothMode';
 
 // Soniox Settings — single BYOK API key (extractCredentials inherited from base)
 export interface SonioxSettings {
@@ -147,33 +148,10 @@ export {
   sonioxManagedMinBalanceMicroUsd,
 } from './sonioxManagedMinBalance';
 
-/**
- * Does Both mode run on ONE shared Soniox session?
- *
- * Both flavours honour the user's stored preference. Managed (Kizuna AI) used
- * to be forced to `true` here because the backend's session lease was
- * account-scoped and single-session: a second client meant a 409, so You→Others
- * worked while Others→You silently did not. One lease now issues one temporary
- * key per stream (spk_stt + par_stt for split Both), so two managed
- * transcription streams are a supported shape rather than a race the backend
- * refuses — and the answer no longer depends on which provider is asking. The
- * `provider` parameter was removed rather than left dead, so that every call
- * site had to be visited when the policy inverted.
- *
- * `ProviderSpecificSettings` (the toggle) and `sonioxBothModePlan` (the
- * session wiring, the Start-gate floor and the managed session-key request)
- * both read this one function, so a stored value cannot mean one thing to the
- * UI and another to the session.
- *
- * Default is shared: it is one stream instead of two, i.e. the cheaper and
- * lower-latency shape, and it is what every existing install without a stored
- * preference has been running.
- */
-export function sonioxUsesSharedBothSession(
-  settings: { bothModeSharedSession?: boolean } | null | undefined
-): boolean {
-  return settings?.bothModeSharedSession ?? true;
-}
+// Moved into sonioxBothMode.ts (its main consumer) so that this class can
+// import sonioxBothModePlan for the planBothMode override without a cycle;
+// re-exported here so existing importers keep working.
+export { sonioxUsesSharedBothSession } from './sonioxBothMode';
 
 export class SonioxProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'soniox';
@@ -229,6 +207,36 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
       ),
       ttsSpeed: clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0),
     } as SonioxSessionConfig;
+  }
+
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    // Soniox carries direction in sourceLanguage/targetLanguage; reverse it so the
+    // participant translates the other party's speech into the user's language.
+    const sx = result.config as SonioxSessionConfig;
+    [sx.sourceLanguage, sx.targetLanguage] = [sx.targetLanguage, sx.sourceLanguage];
+    return result;
+  }
+
+  // The Kizuna-managed twin inherits this unchanged (class extension, not a
+  // provider switch): descriptorRegistry.test.ts pins that it answers exactly
+  // like BYOK Soniox — the 409 twin bug the old isSoniox dispatch existed for.
+  planBothMode(slice: unknown, mode: string): BothModePlan {
+    return sonioxBothModePlan({
+      settings: slice as { bothModeSharedSession?: boolean; sourceLanguage?: string } | null | undefined,
+      mode: mode as SonioxBothModeScope,
+    });
+  }
+
+  // Soniox reverses sourceLanguage/targetLanguage directly for the
+  // participant leg, whatever the model — an 'auto' source would reverse into
+  // the literal 'auto' as the participant's translate target.
+  reversesDirectionViaSourceLanguage(): boolean {
+    return true;
   }
 
   // The 60 languages from Soniox's own STS demo app — translation is

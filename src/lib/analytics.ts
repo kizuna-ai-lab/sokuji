@@ -144,7 +144,7 @@ export interface AnalyticsEvents {
     to_mode: string;
   };
   'session_control_clicked': {
-    action: 'start' | 'stop';
+    action: 'start' | 'stop' | 'cancel';
     method: 'button' | 'keyboard';
   };
   'panel_viewed': {

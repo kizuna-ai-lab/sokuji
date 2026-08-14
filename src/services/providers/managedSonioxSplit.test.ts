@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ManagedSonioxSession } from '../../services/clients/ManagedSonioxSession';
+import { ManagedSonioxSession } from '../clients/ManagedSonioxSession';
 import {
   managedLegOptions,
   resolveManagedSonioxWiring,
@@ -15,7 +15,7 @@ afterEach(() => {
 /**
  * There is no React rendering harness in this repo, so MainPanel's
  * connectConversation is never mounted or invoked by a test. The house
- * technique (see voicePrepWiring.test.ts / prepareManagedVoice.ts) is to
+ * technique (see voicePrepWiring.test.ts / managedVoicePrep.ts) is to
  * extract the DECISION into a plain function with a real production
  * implementation and test that directly, leaving only side effects inline.
  * These four functions are that extraction for the managed split-Both wiring.

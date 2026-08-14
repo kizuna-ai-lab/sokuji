@@ -1,10 +1,12 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
 import { getTranslationSourceLanguages, getManifestEntry, getTtsModelsForLanguage, getTranslationModel } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult, PreparePorts, PrepareOutcome } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, LocalInferenceSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalInferenceClient } from '../clients/LocalInferenceClient';
+import { createParticipantLocalInferenceConfig } from './localParticipantConfig';
+import i18n from '../../locales';
 
 // Local Inference Settings
 export interface LocalInferenceSettings {
@@ -79,6 +81,21 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
     return { validation: { valid: false, message: 'local inference readiness is model-based', validating: false }, models: [] };
   }
 
+  /** Pre-start model-readiness revalidation. validateApiKey is the single
+   *  authority for session readiness — auto-select, model readiness, key
+   *  validation — and it must run as the STORE action (its isApiKeyValid
+   *  write is what closes the Start gate and flips the subtitle window to
+   *  'blocked' on failure), so it arrives here through ports.revalidate. */
+  async prepareToStart(_slice: unknown, ports: PreparePorts): Promise<PrepareOutcome> {
+    const result = await ports.revalidate();
+    if (result.valid) return { ok: true };
+    return {
+      ok: false,
+      message: result.message
+        || i18n.t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.'),
+    };
+  }
+
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
     const settings = slice as LocalInferenceSettings;
     // Auto-select TTS model: use current if it supports the target language, otherwise find a matching one
@@ -117,6 +134,33 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
     } as LocalInferenceSessionConfig;
   }
 
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const base = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    const localConfig = base.config as LocalInferenceSessionConfig;
+    const result = createParticipantLocalInferenceConfig(localConfig);
+
+    if (!result.success) {
+      const channel: ParticipantNotice['channel'] = result.reason === 'memory_exceeded' ? 'warning' : 'error';
+      return { config: null, notices: [{ channel, message: result.detail }] };
+    }
+
+    const notices: ParticipantNotice[] = [];
+
+    if (!result.status.translationAvailable) {
+      notices.push({ channel: 'warning', message: `No translation model for ${localConfig.targetLanguage} → ${localConfig.sourceLanguage} — transcription only` });
+    }
+
+    if (result.status.asrFallback) {
+      notices.push({ channel: 'info', message: `Using ${result.status.asrModelId} instead of ${result.status.asrOriginalModelId} for ASR` });
+    }
+
+    return { config: result.config, notices };
+  }
+
   private static readonly MODELS: ModelOption[] = [
     { id: 'local-asr-translate', type: 'realtime' },
   ];
@@ -153,6 +197,14 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        pushGatedModes: ['Push-to-Talk', 'Push-to-Translate'],
+        supportsTextInput: true,
+        usesLocalPromptTemplate: true,
+        // Silero VAD needs a 700 ms silence tail to detect end-of-speech;
+        // createResponse always follows — for streaming ASR it flushes the
+        // pending utterance, for offline ASR it is harmless.
+        pttFinalization: { silenceTailFrames: 7, response: 'always' },
       },
     };
   }

@@ -509,6 +509,7 @@
     "endSession": "Zakończ sesję",
     "startSession": "Rozpocznij sesję",
     "initializing": "Inicjalizacja...",
+    "startPreparationFailed": "Nie udało się przygotować sesji. Spróbuj ponownie.",
     "initProgress": "Ładowanie ({{completed}}/{{total}})...",
     "stopDebug": "Zatrzymaj debugowanie",
     "debug": "Debuguj",
@@ -577,7 +578,8 @@
     "sonioxVoicePoolBusy": "Wszystkie miejsca na własne głosy są obecnie zajęte, więc ta sesja korzysta z głosu z presetu. Twój własny głos zostanie użyty ponownie następnym razem.",
     "sonioxVoiceBuildFailed": "Nie udało się zbudować Twojego własnego głosu, więc ta sesja korzysta z głosu z presetu. Spróbuj nagrać wyraźniejszy klip w Ustawieniach.",
     "sonioxVoiceUnavailable": "Twój własny głos jest obecnie niedostępny, więc ta sesja korzysta z głosu z presetu.",
-    "preparingVoice": "Przygotowywanie Twojego głosu…"
+    "preparingVoice": "Przygotowywanie Twojego głosu…",
+    "clickToCancel": "Kliknij, aby anulować"
   },
   "modePicker": {
     "modeYou": "Ty",

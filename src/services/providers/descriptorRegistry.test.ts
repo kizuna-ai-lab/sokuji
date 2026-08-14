@@ -353,6 +353,140 @@ describe('registry invariants', () => {
   });
 });
 
+describe('S1 capability flags', () => {
+  const PUSH_GATED: Record<Provider, string[] | undefined> = {
+    [Provider.OPENAI]: ['Disabled', 'Push-to-Translate'],
+    [Provider.OPENAI_COMPATIBLE]: ['Disabled', 'Push-to-Translate'], // inherited from OpenAI via ...base
+    [Provider.GEMINI]: ['Push-to-Talk', 'Push-to-Translate'],
+    [Provider.LOCAL_INFERENCE]: ['Push-to-Talk', 'Push-to-Translate'],
+    [Provider.LOCAL_NATIVE]: ['Push-to-Talk', 'Push-to-Translate'],
+    [Provider.VOLCENGINE_AST2]: ['Push-to-Talk', 'Push-to-Translate'],
+    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: ['Push-to-Talk', 'Push-to-Translate'], // twin spread
+    [Provider.OPENAI_TRANSLATE]: undefined,
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
+    [Provider.SONIOX]: undefined,
+    [Provider.KIZUNA_AI_SONIOX]: undefined,
+    [Provider.PALABRA_AI]: undefined,
+    [Provider.VOLCENGINE_ST]: undefined,
+    [Provider.ZOOM_AI]: undefined,
+  };
+
+  const TEXT_INPUT: Record<Provider, boolean | undefined> = {
+    [Provider.OPENAI]: true,
+    [Provider.OPENAI_COMPATIBLE]: true, // inherited
+    [Provider.GEMINI]: true,
+    [Provider.LOCAL_INFERENCE]: true,
+    [Provider.LOCAL_NATIVE]: true,
+    [Provider.OPENAI_TRANSLATE]: undefined,
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
+    [Provider.SONIOX]: undefined,
+    [Provider.KIZUNA_AI_SONIOX]: undefined,
+    [Provider.VOLCENGINE_AST2]: undefined,
+    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: undefined,
+    [Provider.PALABRA_AI]: undefined,
+    [Provider.VOLCENGINE_ST]: undefined,
+    [Provider.ZOOM_AI]: undefined,
+  };
+
+  const QUEUES_TEXT: Provider[] = [Provider.OPENAI, Provider.OPENAI_COMPATIBLE];
+  const LOCAL_PROMPT: Provider[] = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
+
+  const PTT_FINALIZATION: Record<Provider, { silenceTailFrames?: number; response: string } | undefined> = {
+    [Provider.LOCAL_INFERENCE]: { silenceTailFrames: 7, response: 'always' },
+    [Provider.LOCAL_NATIVE]: { silenceTailFrames: 7, response: 'always' },
+    [Provider.VOLCENGINE_AST2]: { silenceTailFrames: 5, response: 'server-decides' },
+    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: { silenceTailFrames: 5, response: 'server-decides' }, // twin spread
+    [Provider.GEMINI]: { response: 'voice-gated-cancel' },
+    [Provider.OPENAI]: undefined,
+    [Provider.OPENAI_COMPATIBLE]: undefined,
+    [Provider.OPENAI_TRANSLATE]: undefined,
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
+    [Provider.SONIOX]: undefined,
+    [Provider.KIZUNA_AI_SONIOX]: undefined,
+    [Provider.PALABRA_AI]: undefined,
+    [Provider.VOLCENGINE_ST]: undefined,
+    [Provider.ZOOM_AI]: undefined,
+  };
+
+  it('declares pushGatedModes exactly where the settings vocabulary has push-gated modes', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(caps.pushGatedModes, `pushGatedModes for ${id}`).toEqual(PUSH_GATED[id]);
+    }
+  });
+
+  it('pushGatedModes entries are unique non-empty strings', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const modes = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities.pushGatedModes;
+      if (!modes) continue;
+      expect(modes.length, `non-empty list for ${id}`).toBeGreaterThan(0);
+      expect(new Set(modes).size, `no duplicates for ${id}`).toBe(modes.length);
+      for (const m of modes) expect(m, `non-empty mode string for ${id}`).toBeTruthy();
+    }
+  });
+
+  it('declares supportsTextInput on exactly the five whitelisted providers', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(caps.supportsTextInput, `supportsTextInput for ${id}`).toBe(TEXT_INPUT[id]);
+    }
+  });
+
+  it('queuesTextWhileResponding only on providers that also support text input', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(!!caps.queuesTextWhileResponding, `queuesTextWhileResponding for ${id}`).toBe(QUEUES_TEXT.includes(id));
+      if (caps.queuesTextWhileResponding) {
+        expect(caps.supportsTextInput, `queueing implies text input for ${id}`).toBe(true);
+      }
+    }
+  });
+
+  it('usesLocalPromptTemplate only on the local providers', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(!!caps.usesLocalPromptTemplate, `usesLocalPromptTemplate for ${id}`).toBe(LOCAL_PROMPT.includes(id));
+    }
+  });
+
+  it('pttFinalization matches the behavior table, with valid frame counts', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(caps.pttFinalization, `pttFinalization for ${id}`).toEqual(PTT_FINALIZATION[id]);
+      const frames = caps.pttFinalization?.silenceTailFrames;
+      if (frames !== undefined) {
+        expect(Number.isInteger(frames) && frames > 0, `positive integer frames for ${id}`).toBe(true);
+      }
+    }
+  });
+
+  it('forcedTransport only on PalabraAI, and it names a real transport', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      if (id === Provider.PALABRA_AI) {
+        expect(caps.forcedTransport, `forcedTransport for ${id}`).toBe('webrtc');
+      } else {
+        expect(caps.forcedTransport, `no forcedTransport for ${id}`).toBeUndefined();
+      }
+    }
+  });
+});
+
+describe('S2 buildParticipantSessionConfig', () => {
+  it('every descriptor answers with a ParticipantSessionResult shape', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      const slice = DEFAULTS_BY_SLICE[d.settingsSliceKey];
+      const res = d.buildParticipantSessionConfig(slice, 'instr', { keepReplayAudio: false });
+      expect(Array.isArray(res.notices), `notices array for ${id}`).toBe(true);
+      if (res.config !== null) {
+        expect(res.config.textOnly, `participant textOnly for ${id}`).toBe(true);
+        expect(res.config.keepReplayAudio, `keepReplayAudio for ${id}`).toBe(false);
+      }
+    }
+  });
+});
+
 describe('legacy façade credential guards (deprecated ClientOperations/ClientFactory paths)', () => {
   // The production path runs extractCredentials first, but the @deprecated
   // façades accept raw positional args — they must keep the old contract of
@@ -406,5 +540,102 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
       .toThrow(/API key is required/);
     // LOCAL_INFERENCE never had credentials — must keep working with ''
     expect(ClientFactory.createClient('m', Provider.LOCAL_INFERENCE, '')).toBeTruthy();
+  });
+});
+
+describe('S3 reversesDirectionViaSourceLanguage', () => {
+  const TRANSLATE = 'gemini-3.5-live-translate-preview';
+  const DIALOGUE = 'gemini-3.1-flash-live-preview';
+
+  it('true for Soniox and its managed twin regardless of model', () => {
+    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).reversesDirectionViaSourceLanguage(undefined)).toBe(true);
+    expect(ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX).reversesDirectionViaSourceLanguage(undefined)).toBe(true);
+  });
+
+  it('gemini: only the live-translate models', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
+    expect(d.reversesDirectionViaSourceLanguage(TRANSLATE)).toBe(true);
+    expect(d.reversesDirectionViaSourceLanguage(DIALOGUE)).toBe(false);
+    expect(d.reversesDirectionViaSourceLanguage(undefined)).toBe(false);
+    expect(d.reversesDirectionViaSourceLanguage('')).toBe(false);
+  });
+
+  it('false for every other descriptor, any model', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.GEMINI].includes(id)) continue;
+      const d = ProviderConfigFactory.getDescriptor(id);
+      expect(d.reversesDirectionViaSourceLanguage(TRANSLATE), `${id}`).toBe(false);
+      expect(d.reversesDirectionViaSourceLanguage(undefined), `${id}`).toBe(false);
+    }
+  });
+});
+
+describe('S3 planBothMode', () => {
+  it('is inert for every non-Soniox descriptor in every mode', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      if (id === Provider.SONIOX || id === Provider.KIZUNA_AI_SONIOX) continue;
+      const d = ProviderConfigFactory.getDescriptor(id);
+      for (const mode of ['speaker', 'participant', 'both']) {
+        expect(d.planBothMode(DEFAULTS_BY_SLICE[d.settingsSliceKey], mode), `${id}/${mode}`)
+          .toEqual({ shared: false, split: false });
+      }
+    }
+  });
+
+  it('the managed twin answers exactly like BYOK Soniox (the 409 twin bug, pinned at this layer)', () => {
+    // Historically a raw `provider === Provider.SONIOX` dispatch was always
+    // false for the twin, which opened two independent managed sessions and
+    // had the second refused with a 409. Dispatch now lives in the registry:
+    // the twin inherits the override by class extension, pinned here.
+    const byok = ProviderConfigFactory.getDescriptor(Provider.SONIOX);
+    const twin = ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
+    for (const settings of [
+      { bothModeSharedSession: true, sourceLanguage: 'en' },
+      { bothModeSharedSession: true, sourceLanguage: 'auto' },
+      { bothModeSharedSession: false, sourceLanguage: 'en' },
+      undefined,
+    ]) {
+      for (const mode of ['speaker', 'both']) {
+        expect(twin.planBothMode(settings, mode), `${JSON.stringify(settings)}/${mode}`)
+          .toEqual(byok.planBothMode(settings, mode));
+      }
+    }
+  });
+
+  it('Soniox Both mode: shared needs the toggle AND a concrete source; split is the toggle off', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.SONIOX);
+    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'en' }, 'both')).toEqual({ shared: true, split: false });
+    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'auto' }, 'both')).toEqual({ shared: false, split: false });
+    expect(d.planBothMode({ bothModeSharedSession: false, sourceLanguage: 'en' }, 'both')).toEqual({ shared: false, split: true });
+    expect(d.planBothMode({ bothModeSharedSession: true, sourceLanguage: 'en' }, 'speaker')).toEqual({ shared: false, split: false });
+  });
+});
+
+describe('S4 prepareToStart', () => {
+  it('is declared only where a provider has pre-start work (locals, kizuna-soniox)', () => {
+    const WITH_HOOK = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE, Provider.KIZUNA_AI_SONIOX];
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      expect(typeof d.prepareToStart === 'function', `hook presence for ${id}`)
+        .toBe(WITH_HOOK.includes(id));
+    }
+    // BYOK Soniox is explicitly hookless: the managed voice-prep flow must
+    // never run for a user's own Soniox key.
+    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).prepareToStart).toBeUndefined();
+  });
+});
+
+describe('S6 acquireSessionResources', () => {
+  it('is declared only where a session leases resources (kizuna-soniox)', () => {
+    const WITH_RESOURCES: Provider[] = [Provider.KIZUNA_AI_SONIOX];
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      expect(typeof d.acquireSessionResources === 'function', `resource hook presence for ${id}`)
+        .toBe(WITH_RESOURCES.includes(id));
+    }
+    // BYOK Soniox is explicitly resource-less: a user's own key never
+    // exchanges a lease, mints no metered budget, and must not POST
+    // session-end to the managed backend.
+    expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).acquireSessionResources).toBeUndefined();
   });
 });

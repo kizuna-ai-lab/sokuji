@@ -11,11 +11,16 @@
 import { useEffect, useRef } from 'react';
 import useSessionStore from '../../stores/sessionStore';
 import type { StartGate } from './sessionStartGate';
+import type { InitPhase } from '../../services/providers/ProviderDescriptor';
 
 interface Args {
   startGate: StartGate;
   isInitializing: boolean;
-  initProgress: { completed: number; total: number } | null;
+  // MainPanel's own progress indicator is the generic InitPhase (S4); the
+  // subtitle window's store still only understands loading-models' counted
+  // form, so only that phase is translated below — other phases (e.g.
+  // loading-native-asr) mirror as null, same as before that phase existed.
+  initPhase: InitPhase | null;
   onStart: () => void;
   onStop: () => void;
 }
@@ -23,7 +28,7 @@ interface Args {
 export function useSubtitleSessionBridge({
   startGate,
   isInitializing,
-  initProgress,
+  initPhase,
   onStart,
   onStop,
 }: Args): void {
@@ -45,8 +50,8 @@ export function useSubtitleSessionBridge({
     setIsInitializing(isInitializing);
   }, [isInitializing, setIsInitializing]);
 
-  const completed = initProgress?.completed;
-  const total = initProgress?.total;
+  const completed = initPhase?.phase === 'loading-models' ? initPhase.completed : undefined;
+  const total = initPhase?.phase === 'loading-models' ? initPhase.total : undefined;
   useEffect(() => {
     setInitProgress(
       completed === undefined || total === undefined ? null : { completed, total },

@@ -509,6 +509,7 @@
     "endSession": "セッション終了",
     "startSession": "セッション開始",
     "initializing": "初期化中...",
+    "startPreparationFailed": "セッションの準備に失敗しました。もう一度お試しください。",
     "initProgress": "読み込み中 ({{completed}}/{{total}})...",
     "stopDebug": "デバッグ停止",
     "debug": "デバッグ",
@@ -577,7 +578,8 @@
     "sonioxVoicePoolBusy": "現在、カスタム音声の枠がすべて使用中のため、このセッションではプリセット音声を使用します。次回はご自身の音声が再び使用されます。",
     "sonioxVoiceBuildFailed": "カスタム音声を作成できなかったため、このセッションではプリセット音声を使用します。設定でより聞き取りやすいクリップを録音してみてください。",
     "sonioxVoiceUnavailable": "カスタム音声は現在利用できないため、このセッションではプリセット音声を使用します。",
-    "preparingVoice": "音声を準備しています…"
+    "preparingVoice": "音声を準備しています…",
+    "clickToCancel": "キャンセルするにはクリック"
   },
   "modePicker": {
     "modeYou": "あなた",

@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, VolcengineAST2SessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
@@ -87,6 +87,20 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
     } as VolcengineAST2SessionConfig;
   }
 
+  buildParticipantSessionConfig(
+    slice: unknown,
+    swappedInstructions: string,
+    shell: { keepReplayAudio: boolean },
+  ): ParticipantSessionResult {
+    const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    // Volcengine providers carry language direction in explicit config fields
+    // (not system instructions), so we must swap sourceLanguage/targetLanguage
+    // for the participant session to reverse the translation direction.
+    const ast2 = result.config as VolcengineAST2SessionConfig;
+    [ast2.sourceLanguage, ast2.targetLanguage] = [ast2.targetLanguage, ast2.sourceLanguage];
+    return result;
+  }
+
   // AST 2.0 supported languages (s2s mode)
   private static readonly LANGUAGES: LanguageOption[] = [
     { name: '中文', value: 'zh', englishName: 'Chinese' },
@@ -148,6 +162,11 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        pushGatedModes: ['Push-to-Talk', 'Push-to-Translate'],
+        // 500 ms silence tail for the server VAD; AST2 creates the response
+        // server-side, so the client never calls createResponse on release.
+        pttFinalization: { silenceTailFrames: 5, response: 'server-decides' },
       },
     };
   }
