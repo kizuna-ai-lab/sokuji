@@ -17,7 +17,11 @@ interface SessionCountdownProps {
  * testable — MainPanel has no React harness in this repo, so inline JSX there
  * is untestable by construction. Owns the 1s poll, the <20% low-budget
  * emphasis, and the remaining-time formatting. Renders nothing when the
- * session has no budget: a data condition, not a provider condition.
+ * session has no budget, or when `active` is false: a data condition, not a
+ * provider condition. The `!active` half of the guard matters on the very
+ * render where `active` flips to false — `countdown` state is only cleared
+ * by the effect below, which runs AFTER that render, so without it this
+ * component would render one stale frame of the old countdown first.
  */
 const SessionCountdown: React.FC<SessionCountdownProps> = ({ active, getSnapshot }) => {
   const [countdown, setCountdown] = useState<BudgetSnapshot | null>(null);
@@ -31,7 +35,7 @@ const SessionCountdown: React.FC<SessionCountdownProps> = ({ active, getSnapshot
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, [active, getSnapshot]);
-  if (!countdown) return null;
+  if (!active || !countdown) return null;
   // Below 20% of the granted budget, switch to the warning emphasis.
   const low = countdown.totalMs > 0 && countdown.remainingMs / countdown.totalMs < 0.2;
   return (

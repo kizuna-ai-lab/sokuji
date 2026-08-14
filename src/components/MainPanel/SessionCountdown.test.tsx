@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, act } from '@testing-library/react';
+import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import SessionCountdown from './SessionCountdown';
 import { formatRemainingTime } from '../../utils/formatters';
 import type { BudgetSnapshot } from '../../services/providers/ProviderDescriptor';
@@ -127,5 +129,34 @@ describe('SessionCountdown', () => {
     });
 
     expect(getSnapshot).toHaveBeenCalledTimes(callsWhileActive);
+  });
+
+  it('does not flash the stale countdown on the render where active flips to false', () => {
+    // The test above (`rerender` + implicit act()) cannot tell this apart
+    // from the old `if (!countdown) return null;` guard: act() flushes the
+    // passive effect that clears `countdown` before control returns to the
+    // test, so both guards end up looking empty by the time it's checked.
+    // This test forces a synchronous commit with flushSync and reads the
+    // DOM WITHOUT wrapping in act(), so the passive effect has not run yet
+    // — the assertion below sees exactly what the render itself produced.
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const snapshot: BudgetSnapshot = { remainingMs: 600_000, totalMs: 1_200_000 };
+
+    act(() => {
+      root.render(<SessionCountdown active={true} getSnapshot={() => snapshot} />);
+    });
+    expect(container.querySelector('.session-remaining-time')).not.toBeNull();
+
+    flushSync(() => {
+      root.render(<SessionCountdown active={false} getSnapshot={() => snapshot} />);
+    });
+    expect(container).toBeEmptyDOMElement();
+
+    act(() => {
+      root.unmount();
+    });
+    document.body.removeChild(container);
   });
 });

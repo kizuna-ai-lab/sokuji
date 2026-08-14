@@ -162,9 +162,13 @@ export interface SessionResources {
    *  (the post-acquire check, or the pre-activation check that catches a
    *  cancel racing client construction); 'disconnect' = normal teardown,
    *  including the init-failure unwind that routes through
-   *  disconnectConversation. Called from afterBothLegs at each of these
-   *  teardown sites, strictly after both legs are down — and never for a
-   *  failed acquire (see acquireSessionResources). */
+   *  disconnectConversation. The no-channel guard, the pre-activation bail,
+   *  and normal teardown all call this from afterBothLegs, strictly after
+   *  both legs are down. The post-acquire check is the one exception: it
+   *  calls release() directly, deliberately not routed through
+   *  teardownSessionLegs, because acquire has just returned and no leg has
+   *  been created yet — there is nothing for that teardown to wait on.
+   *  Never called for a failed acquire (see acquireSessionResources). */
   release(reason: 'disconnect' | 'aborted'): void;
 }
 
