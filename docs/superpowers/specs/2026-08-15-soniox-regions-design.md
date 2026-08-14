@@ -128,10 +128,12 @@ Recorded because the reasoning is not recoverable from the resulting code.
 7. **One managed voice slot per account, tagged with its region** — `account_id` stays the
    primary key of `soniox_voice_slots`. Switching region deletes the voice in the old
    region and rebuilds it in the new one (the reference clip lives in the browser, so
-   rebuilding is an ability the system already has). A composite `(account_id, region)`
-   key would triple consumption of a voice quota that, per the "per project within your
-   organization" wording, is very likely org-wide and therefore shared across regions.
-   See *Open questions*.
+   rebuilding is an ability the system already has). This is a choice about what is worth
+   *holding*, not about what we are *allowed* to hold: quotas are adjustable (see
+   *Quotas*). Nearly every user clones a voice for the region they actually work in, so
+   keeping three per account would triple the standing cost of the feature to serve a case
+   the rebuild path already covers. A composite `(account_id, region)` key remains
+   available later as a pure relaxation.
 8. **Region is user-selectable for managed too**, using the same control as BYOK — not
    inferred from the account or from geography.
 
@@ -256,23 +258,25 @@ both schemes because the one-shot preview is HTTPS and the session stream is WSS
 
 - Automatic region selection by geography or by account. The user picks.
 - Migrating an existing managed user's data or cloned voice into another region.
-- Per-region concurrency accounting. The existing org-wide caps are kept, which stays
-  correct under the shared-quota assumption and is merely conservative if quotas turn out
-  to be per project.
+- Per-region concurrency accounting. The existing caps are kept as they are; raising or
+  regionalizing them is a config change once regional usage says what the numbers should
+  be (see *Quotas*).
 
-## Open questions
+## Quotas
 
-Neither blocks implementation; both were resolved conservatively, and either answer leaves
-the shipped design correct.
+Quotas are an operational lever, not a design constraint: Soniox lets us set them per
+project, and an organization-level increase can be requested. So no decision here is
+made because a limit forced it.
 
-1. **Is the ~20 cloned-voice quota org-wide or per project?** The docs place data
-   residency "per project within your Soniox organization" but do not say whether quotas
-   follow the project or the organization. Assumed org-wide, which is why decision 7 keeps
-   one voice slot per account. If it is per project, `(account_id, region)` becomes
-   available later as a pure relaxation.
-2. **Are the STT/TTS concurrency caps org-wide or per project?** Assumed org-wide; the
-   existing global caps are kept unchanged. If per project, the caps are three times more
-   generous than we currently model and can be raised.
+What that buys the design is the freedom to keep today's numbers unchanged and raise them
+if regional usage warrants it. Two consequences worth stating, because both are easy to
+get wrong later:
 
-Both are answerable by Soniox support or by provisioning a second regional project and
-observing the console.
+- **The usage-log token bucket stays shared across regions regardless** (backend spec,
+  decision 4). It protects a request-rate limit, and whether that limit is org-wide or per
+  project, sweeping three regions from three independent buckets triples the rate against
+  whatever the real ceiling is. Raising the ceiling is the lever; splitting the bucket is
+  not.
+- **The quota constants stay in one config module** (`src/config/soniox.ts` on the
+  backend). Turning any of them per-region later is then a change of shape in one file,
+  not a redesign.
