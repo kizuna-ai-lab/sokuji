@@ -1749,6 +1749,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       return;
     }
     connectInProgressRef.current = true;
+    // Declared here, not where it's constructed below, so the outer catch
+    // can read startAbort.signal.aborted too: a const declared inside the
+    // try is not visible from its own catch block (separate block scopes).
+    // The catch needs this to tell a cancel that raced client construction
+    // apart from a real failure — see the catch block below.
+    let startAbort: AbortController | undefined;
     try {
       setIsInitializing(true);
       setInitPhase(null);
@@ -1785,7 +1791,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // releases a lease acquired after the teardown already ran. Live from here
       // until the finally — the prepare check and the post-acquire check below are
       // its two consumers.
-      const startAbort = new AbortController();
+      startAbort = new AbortController();
       startAbortRef.current = startAbort;
       if (startDescriptor.prepareToStart) {
         // The aborted-discard check below implements the contract's
@@ -2455,7 +2461,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // false after the first session that built a speaker client. See
       // noChannelCameUp.
       if (noChannelCameUp({ speakerChannelStarted, participantChannelStarted })) {
-        console.error('[Sokuji] [MainPanel] Neither the speaker nor the participant channel came up; aborting session start');
+        // A cancel that races client construction can surface here too: the
+        // teardown it triggers can fail both legs' setup instead of
+        // rejecting a promise the outer catch would see, and this guard
+        // cannot tell that apart from a genuine failure by outcome alone.
+        // startAbort is this attempt's own aborter (see its declaration
+        // above the try) — check it before deciding whether to blame the
+        // network for what was actually an intentional Stop.
+        const cancelledDuringConnect = startAbort?.signal.aborted ?? false;
+        if (cancelledDuringConnect) {
+          console.info('[Sokuji] [MainPanel] Neither channel came up because Start was cancelled; tearing down without reporting an error.');
+        } else {
+          console.error('[Sokuji] [MainPanel] Neither the speaker nor the participant channel came up; aborting session start');
+        }
         // The first of two early returns between acquire() and the end of
         // this function (the second is the pre-activation cancel check
         // below), and it does not route through disconnectConversation — so
@@ -2495,25 +2513,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           },
         });
         setIsInitializing(false);
-        const errorMessage = t('mainPanel.allChannelsFailed', 'Failed to start any audio channel. Check device permissions and try again.');
-        addRealtimeEvent(
-          { type: 'session.init_error', data: { message: errorMessage } },
-          'client', 'session.init_error'
-        );
-        // Same reasoning as the local-model revalidation guard above and the
-        // outer catch block below: append to items (not just the realtime
-        // event log) so subtitleIdleState can derive `failed` and the
-        // subtitle window shows why start didn't happen. Nothing here calls
-        // setItems(getConversationItems()) afterward, so there's no overwrite
-        // risk and no "append after disconnect" ordering is needed.
-        setItems(prevItems => [...prevItems, {
-          id: `error-${Date.now()}`,
-          role: 'system',
-          type: 'error',
-          status: 'completed',
-          createdAt: Date.now(),
-          formatted: { text: errorMessage },
-        }]);
+        // Gated: unwinding is correct even on a genuine cancel, but blaming
+        // the network for an intentional Stop is not. Skip the blame and
+        // return silently when this guard was tripped by a cancel.
+        if (!cancelledDuringConnect) {
+          const errorMessage = t('mainPanel.allChannelsFailed', 'Failed to start any audio channel. Check device permissions and try again.');
+          addRealtimeEvent(
+            { type: 'session.init_error', data: { message: errorMessage } },
+            'client', 'session.init_error'
+          );
+          // Same reasoning as the local-model revalidation guard above and the
+          // outer catch block below: append to items (not just the realtime
+          // event log) so subtitleIdleState can derive `failed` and the
+          // subtitle window shows why start didn't happen. Nothing here calls
+          // setItems(getConversationItems()) afterward, so there's no overwrite
+          // risk and no "append after disconnect" ordering is needed.
+          setItems(prevItems => [...prevItems, {
+            id: `error-${Date.now()}`,
+            role: 'system',
+            type: 'error',
+            status: 'completed',
+            createdAt: Date.now(),
+            formatted: { text: errorMessage },
+          }]);
+        }
         return;
       }
 
@@ -2727,36 +2750,61 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }, 30000); // Every 30 seconds
     } catch (error: any) {
-      console.error('[Sokuji] [MainPanel] Failed to initialize session:', error);
+      // A cancel that races client construction (Start cancelled while a
+      // speaker/participant connect() was in flight) makes
+      // disconnectConversation's teardown reject that in-flight promise,
+      // landing here even though nothing actually failed. startAbort is
+      // THIS attempt's own aborter, captured before disconnectConversation
+      // below can null out startAbortRef.current — its .aborted flag
+      // survives that regardless of what the ref currently points to,
+      // which a check against the ref itself would not (see the hoisted
+      // declaration above the try).
+      const wasCancelled = startAbort?.signal.aborted ?? false;
+      if (wasCancelled) {
+        console.info('[Sokuji] [MainPanel] Session init unwound by a cancelled Start (rejection expected, not a failure):', error);
+      } else {
+        console.error('[Sokuji] [MainPanel] Failed to initialize session:', error);
+      }
 
       const errorMessage = error.message || 'Network connection error';
-      addRealtimeEvent(
-        { type: 'session.init_error', data: { message: errorMessage, error: String(error) } },
-        'client', 'session.init_error'
-      );
 
-      trackEvent('error_occurred', {
-        error_type: 'session_initialization',
-        error_message: error.message || 'Failed to initialize session',
-        component: 'MainPanel',
-        severity: 'high',
-        provider: provider,
-        recoverable: true
-      });
+      // Unwinding here is correct; blaming the network for an intentional
+      // cancel is not — only report to the user and analytics when this
+      // was a genuine failure.
+      if (!wasCancelled) {
+        addRealtimeEvent(
+          { type: 'session.init_error', data: { message: errorMessage, error: String(error) } },
+          'client', 'session.init_error'
+        );
 
+        trackEvent('error_occurred', {
+          error_type: 'session_initialization',
+          error_message: error.message || 'Failed to initialize session',
+          component: 'MainPanel',
+          severity: 'high',
+          provider: provider,
+          recoverable: true
+        });
+      }
+
+      // Unconditional: cleans up clients constructed after the teardown
+      // that caused this rejection already ran. disconnectConversation's
+      // re-entry guard and null refs make a second pass safe.
       await disconnectConversation();
 
-      // Append after disconnect: disconnectConversation calls
-      // setItems(client.getConversationItems()) which would otherwise
-      // overwrite this entry (client has no items on init failure).
-      setItems(prevItems => [...prevItems, {
-        id: `error-${Date.now()}`,
-        role: 'system',
-        type: 'error',
-        status: 'completed',
-        createdAt: Date.now(),
-        formatted: { text: errorMessage },
-      }]);
+      if (!wasCancelled) {
+        // Append after disconnect: disconnectConversation calls
+        // setItems(client.getConversationItems()) which would otherwise
+        // overwrite this entry (client has no items on init failure).
+        setItems(prevItems => [...prevItems, {
+          id: `error-${Date.now()}`,
+          role: 'system',
+          type: 'error',
+          status: 'completed',
+          createdAt: Date.now(),
+          formatted: { text: errorMessage },
+        }]);
+      }
     } finally {
       setIsInitializing(false);
       connectInProgressRef.current = false;
