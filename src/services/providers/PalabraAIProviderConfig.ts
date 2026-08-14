@@ -138,11 +138,27 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     // en-us, sources don't), but the API strips the suffix before validating a
     // source, so a plain swap holds for every target we offer. In the other
     // direction five source languages aren't valid targets (eu, ga, mn, mt, ug);
-    // picking one of those makes the reversed task fail with the API's
-    // VALIDATION_ERROR, which arrives as a data message and surfaces through
-    // handleError rather than throwing out of connect().
+    // the guard below rejects those upfront — matched against TARGET_LANGUAGES
+    // by exact value or by its bare (suffix-stripped) prefix — instead of
+    // shipping a reversed task the API would only answer with a
+    // VALIDATION_ERROR data message after connect.
     const pa = result.config as PalabraAISessionConfig;
     [pa.sourceLanguage, pa.targetLanguage] = [pa.targetLanguage, pa.sourceLanguage];
+
+    const newTarget = pa.targetLanguage;
+    const targetValid = PalabraAIProviderConfig.TARGET_LANGUAGES.some(
+      t => t.value === newTarget || t.value.split('-')[0] === newTarget
+    );
+    if (!targetValid) {
+      return {
+        config: null,
+        notices: [{
+          channel: 'error',
+          message: `Participant translation ${pa.sourceLanguage} → ${newTarget} is not supported — participant channel skipped`,
+        }],
+      };
+    }
+
     return result;
   }
 

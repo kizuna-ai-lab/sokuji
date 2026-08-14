@@ -102,6 +102,74 @@ describe('participant config: direction lives in config fields', () => {
   });
 });
 
+describe('participant config: reversed pairs the provider catalog cannot run', () => {
+  it('zoom_ai rejects a reversed pair outside its asymmetric matrix (en-US -> ko-KR reverses to ko-KR, not a source)', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.ZOOM_AI);
+    const slice = { ...defaultZoomAISettings, sourceLanguage: 'en-US', targetLanguage: 'ko-KR' };
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).toBeNull();
+    expect(notices).toHaveLength(1);
+    expect(notices[0].channel).toBe('error');
+    expect(notices[0].message).toContain('ko-KR');
+    expect(notices[0].message).toContain('en-US');
+  });
+
+  it('volcengine_st rejects a reversed pair whose new source is outside SOURCE_LANGUAGES (zh -> ko reverses to ko as source)', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.VOLCENGINE_ST);
+    const slice = { ...defaultVolcengineSTSettings, sourceLanguage: 'zh', targetLanguage: 'ko' };
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).toBeNull();
+    expect(notices).toHaveLength(1);
+    expect(notices[0].channel).toBe('error');
+    expect(notices[0].message).toContain('ko');
+    expect(notices[0].message).toContain('zh');
+  });
+
+  it('palabraai rejects a reversed target from the five source-only codes (eu is not a valid target)', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
+    const slice = { ...defaultPalabraAISettings, sourceLanguage: 'eu', targetLanguage: 'ja' };
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).toBeNull();
+    expect(notices).toHaveLength(1);
+    expect(notices[0].channel).toBe('error');
+    expect(notices[0].message).toContain('eu');
+    expect(notices[0].message).toContain('ja');
+  });
+
+  it('openai_translate rejects a reversed target outside the 13-entry TARGET_LANGUAGES (th is source-only)', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE);
+    const slice = { ...defaultOpenAITranslateSettings, sourceLanguage: 'th', targetLanguage: 'en' };
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).toBeNull();
+    expect(notices).toHaveLength(1);
+    expect(notices[0].channel).toBe('error');
+    expect(notices[0].message).toContain('th');
+    expect(notices[0].message).toContain('en');
+  });
+
+  it('zoom_ai accepts a reversed pair the catalog can run (en-US -> ja-JP reverses to ja-JP -> [en-US])', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.ZOOM_AI);
+    const slice = { ...defaultZoomAISettings, sourceLanguage: 'en-US', targetLanguage: 'ja-JP' };
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).not.toBeNull();
+    expect(notices).toEqual([]);
+  });
+
+  it('palabraai accepts a reversed target that exactly matches a TARGET_LANGUAGES entry (es)', () => {
+    // Pins the exact-match arm of the guard (`t.value === newTarget`) — 'es'
+    // has its own entry in TARGET_LANGUAGES. The split('-')[0] arm described
+    // in PalabraAIProviderConfig's guard comment is currently unreachable
+    // defensive cover for future suffixed-only target entries: every source
+    // code in today's catalog either matches exactly or is one of the five
+    // excluded source-only codes (eu, ga, mn, mt, ug).
+    const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
+    const slice = { ...defaultPalabraAISettings, sourceLanguage: 'es', targetLanguage: 'ja' };
+    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
+    expect(config).not.toBeNull();
+    expect(notices).toEqual([]);
+  });
+});
+
 describe('participant config: helper-based reversals', () => {
   it('gemini forces turnDetectionMode Auto and reverses translationConfig when present', () => {
     const d = ProviderConfigFactory.getDescriptor(Provider.GEMINI);
