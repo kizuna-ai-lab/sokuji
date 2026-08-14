@@ -415,7 +415,7 @@
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 kieltä, mikä tahansa yhdistelmä · kloonaa oma äänesi",
+      "description": "60 kieltä, 3600 kieliparia · kloonaa oma äänesi",
       "vendor": "Soniox"
     },
     "openai": {

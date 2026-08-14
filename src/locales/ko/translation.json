@@ -415,7 +415,7 @@
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60개 언어, 자유로운 조합 · 내 목소리 클론",
+      "description": "60개 언어, 3,600개 언어 쌍 · 내 목소리 클론",
       "vendor": "Soniox"
     },
     "openai": {

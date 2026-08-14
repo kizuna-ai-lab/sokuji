@@ -415,7 +415,7 @@
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 bahasa, antara mana-mana bahasa · klon suara anda sendiri",
+      "description": "60 bahasa, 3,600 pasangan · klon suara anda sendiri",
       "vendor": "Soniox"
     },
     "openai": {

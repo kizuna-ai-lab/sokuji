@@ -415,7 +415,7 @@
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 langues, dans n'importe quel sens · clonez votre voix",
+      "description": "60 langues, 3600 paires · clonez votre voix",
       "vendor": "Soniox"
     },
     "openai": {

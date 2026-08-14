@@ -415,7 +415,7 @@
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 языков, в любом сочетании · клонирование вашего голоса",
+      "description": "60 языков, 3600 языковых пар · клонирование вашего голоса",
       "vendor": "Soniox"
     },
     "openai": {

@@ -415,7 +415,7 @@
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 Sprachen, beliebige Kombination · eigene Stimme klonen",
+      "description": "60 Sprachen, 3.600 Sprachpaare · eigene Stimme klonen",
       "vendor": "Soniox"
     },
     "openai": {

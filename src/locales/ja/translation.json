@@ -415,7 +415,7 @@
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60言語、自由な組み合わせ · 自分の声をクローン",
+      "description": "60言語、3,600の言語ペア · 自分の声をクローン",
       "vendor": "Soniox"
     },
     "openai": {

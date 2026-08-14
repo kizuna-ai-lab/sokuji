@@ -415,7 +415,7 @@
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 لغة، من أي لغة إلى أي لغة · استنساخ صوتك",
+      "description": "60 لغة، 3,600 زوج لغوي · استنساخ صوتك",
       "vendor": "Soniox"
     },
     "openai": {

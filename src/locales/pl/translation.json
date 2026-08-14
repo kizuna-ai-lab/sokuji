@@ -415,7 +415,7 @@
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 języków, w dowolnej kombinacji · sklonuj własny głos",
+      "description": "60 języków, 3600 par językowych · sklonuj własny głos",
       "vendor": "Soniox"
     },
     "openai": {
