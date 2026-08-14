@@ -195,8 +195,11 @@ string do not share a verdict.
 they already share the voice and vocabulary controls. `sonioxVoiceSource` passes the
 region into `SonioxVoicesClient` and adds it to the `useMemo` dependency list.
 
-New locale keys (`settings.sonioxRegion`, its tooltip, and the three region names) must be
-added to all 30 catalogs — `locales.consistency.test.ts` fails otherwise.
+Two new locale keys — `settings.sonioxRegion` and its tooltip — must be added to all 30
+catalogs; `locales.consistency.test.ts` fails otherwise. The region *names* are
+deliberately **not** locale keys: they come from a `SONIOX_REGION_LABELS` table beside the
+host table, following the rule the language dropdown already uses (a place is named in its
+own language). That keeps adding a fourth region a one-line change instead of a 30-file one.
 
 ### Managed contract
 
