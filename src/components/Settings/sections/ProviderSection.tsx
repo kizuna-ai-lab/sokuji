@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, ExternalLink, X } from 'lucide-react';
-import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon, SonioxIcon } from '../../Icons/ProviderIcons';
+import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon, SonioxIcon, KIZUNA_HOSTED_ICONS } from '../../Icons/ProviderIcons';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
@@ -71,9 +71,10 @@ const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: 
   [Provider.VOLCENGINE_AST2]: VolcengineIcon,
   [Provider.ZOOM_AI]: ZoomIcon,
   [Provider.SONIOX]: SonioxIcon,
-  [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: KizunaAIIcon,
-  [Provider.KIZUNA_AI_VOLCENGINE_AST2]: KizunaAIIcon,
-  [Provider.KIZUNA_AI_SONIOX]: KizunaAIIcon,
+  // The Kizuna-managed twins get "Kizuna AI, powered by <vendor>" composites —
+  // the bare logo made all three indistinguishable here. Local inference has
+  // no third-party engine to credit, so it keeps the plain logo.
+  ...KIZUNA_HOSTED_ICONS,
   [Provider.LOCAL_INFERENCE]: KizunaAIIcon,
   [Provider.LOCAL_NATIVE]: KizunaAIIcon,
 };
