@@ -57,6 +57,17 @@ describe('Kizuna-hosted provider icons', () => {
     expect(mark.style.height).toBe(`${Math.round(24 * HOSTED_BADGE_RATIO)}px`);
   });
 
+  it('keeps the badge between "visible" and "competing"', () => {
+    // Below ~0.45 the vendor mark stops being identifiable at the 20px dropdown
+    // size; above ~0.58 it clips the Kizuna signature stroke and starts reading
+    // as a co-equal mark, which would blur the managed twin against the BYOK
+    // provider sitting next to it in the same list. The number is a judgement
+    // call, but drifting out of this band is not one — it changes what the icon
+    // says about the row.
+    expect(HOSTED_BADGE_RATIO).toBeGreaterThanOrEqual(0.45);
+    expect(HOSTED_BADGE_RATIO).toBeLessThanOrEqual(0.58);
+  });
+
   it('scales the badge with the icon size', () => {
     const Icon = KIZUNA_HOSTED_ICONS[Provider.KIZUNA_AI_SONIOX];
     const { container } = render(<Icon size={20} />);

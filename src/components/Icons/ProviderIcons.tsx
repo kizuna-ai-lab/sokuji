@@ -183,11 +183,21 @@ export const SonioxIcon: React.FC<IconProps> = ({ size = 18, className, style })
  * ------------------------------------------------------------------------ */
 
 /**
- * Badge edge as a fraction of the icon's edge. 0.46 keeps the vendor mark
- * readable at the 20px dropdown size (9px) without letting it swallow the
- * Kizuna logo at 24px (11px).
+ * Badge edge as a fraction of the icon's edge — 14px at the 24px selected row,
+ * 12px in the 20px dropdown rows.
+ *
+ * What the badge eats as it grows is the three motion strokes at the top right
+ * of the Kizuna mark: at 0.52 it covers the lowest one, at 0.58 two of three,
+ * and past ~0.64 it takes all three and starts clipping the signature stroke
+ * itself. 0.58 is therefore the ceiling — the strokes are decorative, the
+ * signature is the identity, and the identity stays whole.
+ *
+ * There is a second ceiling and it is the reason this is a badge at all: BYOK
+ * Soniox sits in the same list as the managed twin, and the Kizuna mark being
+ * the dominant one is what keeps those two rows apart. Enlarging the badge
+ * walks toward the inverted design, so it does not get to grow freely.
  */
-export const HOSTED_BADGE_RATIO = 0.46;
+export const HOSTED_BADGE_RATIO = 0.58;
 
 /** Mirrors $bg-surface in Settings/shared/_variables.scss. */
 const BADGE_RING = '#252525';
