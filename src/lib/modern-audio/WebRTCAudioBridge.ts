@@ -80,6 +80,19 @@ export class WebRTCAudioBridge {
   private analyserNode: AnalyserNode | null = null;
   private remoteSourceNode: MediaStreamAudioSourceNode | null = null;
   private pcmWorkletNode: AudioWorkletNode | null = null;
+  // Local (microphone) analyser chain — independent of the remote analyser above,
+  // which is fed by the received/AI-output track and has its own audioContext
+  // lifecycle (created/closed per remote track in setupAudioProcessing /
+  // cleanupRemoteAudio). Reuses that context when one is already open at setup
+  // time to avoid proliferating AudioContexts; otherwise owns a dedicated one.
+  private localAudioContext: AudioContext | null = null;
+  private localSourceNode: MediaStreamAudioSourceNode | null = null;
+  private localAnalyserNode: AnalyserNode | null = null;
+  // True when localAudioContext is a reused reference to the shared `audioContext`
+  // (the remote side's). In that case cleanupRemoteAudio() owns closing it, so
+  // stopLocalStream() must only disconnect the local nodes, never close it out
+  // from under the remote path.
+  private localAudioContextIsShared: boolean = false;
   private currentInputDeviceId: string | undefined;
   private currentOutputDeviceId: string | undefined;
   private onAudioData: ((pcmData: Int16Array) => void) | undefined;
@@ -214,12 +227,72 @@ export class WebRTCAudioBridge {
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.currentInputDeviceId = deviceId;
 
+      this.setupLocalAudioProcessing(this.localStream);
+
       console.debug('[WebRTCAudioBridge] Got local stream from device:', deviceId || 'default');
       return this.localStream;
     } catch (error) {
       console.error('[WebRTCAudioBridge] Error getting local stream:', error);
       throw error;
     }
+  }
+
+  /**
+   * Set up the local (microphone) analyser chain for visualization only —
+   * mirrors setupAudioProcessing's analyser config exactly (fftSize 256,
+   * smoothingTimeConstant 0.8) so getFrequencies() and getLocalFrequencies()
+   * are shape-compatible. No PCM extraction here: the local stream's PCM
+   * already reaches the caller via the peer connection's own track, not
+   * through this bridge's worklet path.
+   */
+  private setupLocalAudioProcessing(stream: MediaStream): void {
+    try {
+      if (this.audioContext && this.audioContext.state !== 'closed') {
+        // Reuse the remote side's context instead of opening a second one.
+        this.localAudioContext = this.audioContext;
+        this.localAudioContextIsShared = true;
+      } else {
+        const sampleRate = this.options.sampleRate ?? 24000;
+        this.localAudioContext = new AudioContext({ sampleRate });
+        this.localAudioContextIsShared = false;
+      }
+
+      this.localSourceNode = this.localAudioContext.createMediaStreamSource(stream);
+      this.localAnalyserNode = this.localAudioContext.createAnalyser();
+      this.localAnalyserNode.fftSize = 256;
+      this.localAnalyserNode.smoothingTimeConstant = 0.8;
+      this.localSourceNode.connect(this.localAnalyserNode);
+      // Note: analyser doesn't need to connect to destination — visualization only.
+
+      console.debug('[WebRTCAudioBridge] Local audio processing set up');
+    } catch (error) {
+      console.warn('[WebRTCAudioBridge] Failed to set up local audio processing:', error);
+    }
+  }
+
+  /**
+   * Tear down the local analyser chain. Only closes localAudioContext when it
+   * is NOT the shared remote-side context (localAudioContextIsShared), so a
+   * device switch or mic stop never closes a context the remote path still owns.
+   */
+  private cleanupLocalAudioProcessing(): void {
+    if (this.localSourceNode) {
+      this.localSourceNode.disconnect();
+      this.localSourceNode = null;
+    }
+
+    if (this.localAnalyserNode) {
+      this.localAnalyserNode.disconnect();
+      this.localAnalyserNode = null;
+    }
+
+    if (this.localAudioContext) {
+      if (!this.localAudioContextIsShared && this.localAudioContext.state !== 'closed') {
+        this.localAudioContext.close().catch(console.warn);
+      }
+      this.localAudioContext = null;
+    }
+    this.localAudioContextIsShared = false;
   }
 
   /**
@@ -444,6 +517,31 @@ export class WebRTCAudioBridge {
   }
 
   /**
+   * Get LOCAL (microphone) frequency data for visualization — the input-side
+   * counterpart to getFrequencies() above, which reports the REMOTE/received
+   * stream. Same normalization, independent analyser and context.
+   * @returns Object with frequencies array, or null before the local stream
+   *          (and its analyser) has been set up
+   */
+  getLocalFrequencies(): { values: Float32Array } | null {
+    if (!this.localAnalyserNode) {
+      return null;
+    }
+
+    const frequencies = new Float32Array(this.localAnalyserNode.frequencyBinCount);
+    this.localAnalyserNode.getFloatFrequencyData(frequencies);
+
+    // Normalize to 0-1 range (dB values are typically -100 to 0)
+    const normalized = new Float32Array(frequencies.length);
+    for (let i = 0; i < frequencies.length; i++) {
+      // Convert dB to linear scale (0-1)
+      normalized[i] = Math.max(0, Math.min(1, (frequencies[i] + 100) / 100));
+    }
+
+    return { values: normalized };
+  }
+
+  /**
    * Set output device for remote audio playback
    * @param deviceId - The device ID to use for output
    */
@@ -508,6 +606,7 @@ export class WebRTCAudioBridge {
       this.localStream.getTracks().forEach(track => track.stop());
       this.localStream = null;
       this.currentInputDeviceId = undefined;
+      this.cleanupLocalAudioProcessing();
       console.debug('[WebRTCAudioBridge] Local stream stopped');
     }
   }

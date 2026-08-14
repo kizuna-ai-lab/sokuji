@@ -808,9 +808,20 @@ export class OpenAIWebRTCClient implements IClient {
   }
 
   /**
-   * Get frequency data for visualization
+   * Get frequency data for visualization (REMOTE/received audio — the AI's
+   * spoken output). No current consumer; kept as-is.
    */
   getFrequencies(): { values: Float32Array } | null {
     return this.audioBridge.getFrequencies();
+  }
+
+  /**
+   * Get LOCAL (microphone) frequency data for visualization — the input-side
+   * counterpart to getFrequencies() above. Backs MainPanel's mic-waveform
+   * fallback for native-capture sessions, which never start the shared
+   * recorder.
+   */
+  getInputFrequencies(): { values: Float32Array } | null {
+    return this.audioBridge.getLocalFrequencies();
   }
 }

@@ -456,6 +456,11 @@ export interface IClient {
   setOutputMuted?(muted: boolean): void;
   setOutputVolume?(volume: number): void;
 
+  /** Input-side (local capture) frequency data for visualization, where the client
+   * owns its own capture (WebRTC bridge analyser). Absent on clients fed by the
+   * shared recorder. */
+  getInputFrequencies?(): { values: Float32Array } | null;
+
   // Optional Both single-session (Soniox) mixer methods
   /** Feed the second audio channel (Both single-session mixer). SonioxClient only. */
   appendParticipantAudio?(audioData: Int16Array): void;

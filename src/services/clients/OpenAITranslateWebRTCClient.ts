@@ -743,8 +743,19 @@ export class OpenAITranslateWebRTCClient implements IClient {
     console.debug('[OpenAITranslateWebRTCClient] Output muted request (no-op, handled by audioStore):', muted);
   }
 
+  /** REMOTE/received audio (the AI's translated output). No current consumer; kept as-is. */
   getFrequencies(): { values: Float32Array } | null {
     return this.audioBridge.getFrequencies();
+  }
+
+  /**
+   * Get LOCAL (microphone) frequency data for visualization — the input-side
+   * counterpart to getFrequencies() above. Backs MainPanel's mic-waveform
+   * fallback for native-capture sessions, which never start the shared
+   * recorder.
+   */
+  getInputFrequencies(): { values: Float32Array } | null {
+    return this.audioBridge.getLocalFrequencies();
   }
 }
 
