@@ -77,6 +77,26 @@ export class ZoomAIProviderConfig extends BaseProviderDescriptor {
     const oldSource = z.sourceLanguage;
     z.sourceLanguage = z.targetLanguages[0] || oldSource;
     z.targetLanguages = [oldSource];
+
+    const newSource = z.sourceLanguage;
+    const newTarget = z.targetLanguages[0];
+    // Asymmetric matrix: sources are the 5 Scribe-recognizable languages,
+    // and a valid target depends on which source it pairs with (PAIRS).
+    // Reversing base en-US→ko-KR lands on ko-KR→[en-US]: ko-KR isn't a
+    // source at all, so it must be rejected before it ships and fails late
+    // as an API error.
+    const sourceValid = ZoomAIProviderConfig.SOURCE_LANGUAGES.some(l => l.value === newSource);
+    const targetValid = sourceValid && this.resolveTargetLanguages(newSource).some(l => l.value === newTarget);
+    if (!sourceValid || !targetValid) {
+      return {
+        config: null,
+        notices: [{
+          channel: 'error',
+          message: `Participant translation ${newSource} → ${newTarget} is not supported — participant channel skipped`,
+        }],
+      };
+    }
+
     return result;
   }
 
