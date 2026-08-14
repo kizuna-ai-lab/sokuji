@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "实时翻译，通过你的账户进行身份验证"
+      "name": "KizunaAI",
+      "description": "75 种源语言（自动识别），13 种目标语言",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "端到端语音翻译，通过你的账户进行身份验证"
+      "name": "KizunaAI",
+      "description": "8 种语言 + 中英双向 · 保留你的声音",
+      "vendor": "豆包"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "端到端语音翻译，通过你的账户进行身份验证"
+      "name": "KizunaAI",
+      "description": "60 种语言任意互译 · 可克隆你自己的声音",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "未知",
       "description": "未知提供商"
-    }
+    },
+    "poweredBy": "<brand>{{name}}</brand> 驱动"
   },
   "logsPanel": {
     "autoScrollOn": "自动滚动 开",

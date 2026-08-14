@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "রিয়েল-টাইম অনুবাদ, আপনার অ্যাকাউন্টের মাধ্যমে প্রমাণীকৃত"
+      "name": "KizunaAI",
+      "description": "৭৫টি উৎস ভাষা (স্বয়ংক্রিয় শনাক্ত), ১৩টি লক্ষ্য",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "স্পিচ-টু-স্পিচ অনুবাদ, আপনার অ্যাকাউন্টের মাধ্যমে প্রমাণীকৃত"
+      "name": "KizunaAI",
+      "description": "৮টি ভাষা + চীনা-ইংরেজি দ্বিমুখী · আপনার কণ্ঠ বজায় রাখে",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "স্পিচ-টু-স্পিচ অনুবাদ, আপনার অ্যাকাউন্টের মাধ্যমে প্রমাণীকৃত"
+      "name": "KizunaAI",
+      "description": "৬০টি ভাষা, যেকোনো-থেকে-যেকোনো · নিজের কণ্ঠ ক্লোন করুন",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "অজানা",
       "description": "অজানা প্রদানকারী"
-    }
+    },
+    "poweredBy": "<brand>{{name}}</brand> দ্বারা চালিত"
   },
   "logsPanel": {
     "autoScrollOn": "অটো স্ক্রল চালু",

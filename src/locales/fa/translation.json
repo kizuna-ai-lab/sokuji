@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "ترجمهٔ بی‌درنگ، احراز هویت‌شده از طریق حساب شما"
+      "name": "KizunaAI",
+      "description": "۷۵ زبان مبدأ (تشخیص خودکار)، ۱۳ زبان مقصد",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "ترجمهٔ گفتار به گفتار، احراز هویت‌شده از طریق حساب شما"
+      "name": "KizunaAI",
+      "description": "۸ زبان + چینی–انگلیسی دوطرفه · صدای شما را حفظ می‌کند",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "ترجمهٔ گفتار به گفتار، احراز هویت‌شده از طریق حساب شما"
+      "name": "KizunaAI",
+      "description": "۶۰ زبان، از هر زبان به هر زبان · شبیه‌سازی صدای خودتان",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "نامشخص",
       "description": "ارائه‌دهنده نامشخص"
-    }
+    },
+    "poweredBy": "قدرت‌گرفته از <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "اسکرول خودکار روشن",

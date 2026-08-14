@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "Dịch thời gian thực, xác thực qua tài khoản của bạn"
+      "name": "KizunaAI",
+      "description": "75 ngôn ngữ nguồn (tự động nhận diện), 13 ngôn ngữ đích",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "Dịch giọng nói sang giọng nói, xác thực qua tài khoản của bạn"
+      "name": "KizunaAI",
+      "description": "8 ngôn ngữ + Trung–Anh hai chiều · giữ nguyên giọng của bạn",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "Dịch giọng nói sang giọng nói, xác thực qua tài khoản của bạn"
+      "name": "KizunaAI",
+      "description": "60 ngôn ngữ, dịch giữa hai ngôn ngữ bất kỳ · nhân bản giọng của bạn",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "Không rõ",
       "description": "Nhà cung cấp không rõ"
-    }
+    },
+    "poweredBy": "Được hỗ trợ bởi <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "Tự động cuộn: Bật",

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Provider } from '../../types/Provider';
+import { Provider, KizunaManagedProvider } from '../../types/Provider';
 
 interface IconProps {
   size?: string | number;
@@ -274,11 +274,6 @@ export function kizunaHostedIcon(
   HostedIcon.displayName = `KizunaHosted(${VendorIcon.displayName || VendorIcon.name || 'Vendor'})`;
   return HostedIcon;
 }
-
-type KizunaManagedProvider =
-  | Provider.KIZUNA_AI_SONIOX
-  | Provider.KIZUNA_AI_OPENAI_TRANSLATE
-  | Provider.KIZUNA_AI_VOLCENGINE_AST2;
 
 /**
  * Every Kizuna-managed provider's composite mark. Kept exhaustive by

@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "การแปลแบบเรียลไทม์ ยืนยันตัวตนผ่านบัญชีของคุณ"
+      "name": "KizunaAI",
+      "description": "75 ภาษาต้นทาง (ตรวจจับอัตโนมัติ), 13 ภาษาปลายทาง",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "การแปลเสียงเป็นเสียง ยืนยันตัวตนผ่านบัญชีของคุณ"
+      "name": "KizunaAI",
+      "description": "8 ภาษา + จีน–อังกฤษสองทาง · คงเสียงของคุณไว้",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "การแปลเสียงเป็นเสียง ยืนยันตัวตนผ่านบัญชีของคุณ"
+      "name": "KizunaAI",
+      "description": "60 ภาษา แปลข้ามได้ทุกคู่ · โคลนเสียงของคุณเอง",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "ไม่ทราบ",
       "description": "ผู้ให้บริการที่ไม่ทราบ"
-    }
+    },
+    "poweredBy": "ขับเคลื่อนโดย <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "เลื่อนอัตโนมัติเปิด",

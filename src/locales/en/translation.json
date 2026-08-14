@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "Real-time translation, authenticated via your account"
+      "name": "KizunaAI",
+      "description": "75 source languages (auto-detected), 13 target",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "Speech-to-speech translation, authenticated via your account"
+      "name": "KizunaAI",
+      "description": "8 languages + Chinese–English two-way · keeps your voice",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "Speech-to-speech translation, authenticated via your account"
+      "name": "KizunaAI",
+      "description": "60 languages, any to any · clone your own voice",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "Unknown",
       "description": "Unknown provider"
-    }
+    },
+    "poweredBy": "Powered by <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "Auto-scroll on",
