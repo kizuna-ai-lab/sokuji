@@ -4,6 +4,8 @@ import {
   defaultSonioxSettings,
   parseVocabularyTerms,
   parseVocabularyTranslations,
+  sonioxKeyField,
+  sonioxVoiceField,
 } from './SonioxProviderConfig';
 import { SonioxSessionConfig } from '../interfaces/IClient';
 import { SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
@@ -260,5 +262,77 @@ describe('SonioxProviderConfig voices', () => {
     // them just because the roster does not list them.
     const uuid = 'bf8c1ec8-548f-4d2c-8706-72e3b840f349';
     expect(voiceOf(uuid)).toBe(uuid);
+  });
+});
+
+describe('per-region credentials', () => {
+  const config = new SonioxProviderConfig();
+
+  it('maps regions to key fields, US keeping the suffix-less name', () => {
+    expect(sonioxKeyField('us')).toBe('apiKey');
+    expect(sonioxKeyField('eu')).toBe('apiKeyEu');
+    expect(sonioxKeyField('jp')).toBe('apiKeyJp');
+  });
+
+  it('maps regions to voice fields the same way', () => {
+    expect(sonioxVoiceField('us')).toBe('voice');
+    expect(sonioxVoiceField('eu')).toBe('voiceEu');
+    expect(sonioxVoiceField('jp')).toBe('voiceJp');
+  });
+
+  it('defaults to the us region', () => {
+    expect(defaultSonioxSettings.region).toBe('us');
+  });
+
+  it("extractCredentials picks the active region's key", async () => {
+    const creds = await config.extractCredentials(
+      { ...defaultSonioxSettings, region: 'eu', apiKey: 'us-key', apiKeyEu: 'eu-key' },
+      {},
+    );
+    expect(creds).toMatchObject({ ok: true, primary: 'eu-key' });
+  });
+
+  // `endpoint` is part of settingsStore's validation cache key, so three
+  // regions are three cache entries -- switching region re-validates with no
+  // new mechanism, and two regions holding the same key string never share a
+  // verdict.
+  it('carries the region in endpoint so validation is cached per region', async () => {
+    const creds = await config.extractCredentials(
+      { ...defaultSonioxSettings, region: 'jp', apiKeyJp: 'jp-key' },
+      {},
+    );
+    expect(creds).toMatchObject({ ok: true, endpoint: 'jp' });
+  });
+
+  it('reports missing when the active region has no key, even if another does', async () => {
+    const creds = await config.extractCredentials(
+      { ...defaultSonioxSettings, region: 'eu', apiKey: 'us-key' },
+      {},
+    );
+    expect(creds.ok).toBe(false);
+  });
+
+  it("peekPrimaryCredential shows the active region's key", () => {
+    expect(config.peekPrimaryCredential(
+      { ...defaultSonioxSettings, region: 'eu', apiKey: 'us-key', apiKeyEu: 'eu-key' },
+    )).toBe('eu-key');
+  });
+
+  // A persisted region this build does not recognise must degrade to a working
+  // session, not to a malformed hostname.
+  it('falls back to the us key for an unrecognised persisted region', async () => {
+    const creds = await config.extractCredentials(
+      { ...defaultSonioxSettings, region: 'atlantis' as never, apiKey: 'us-key' },
+      {},
+    );
+    expect(creds).toMatchObject({ ok: true, primary: 'us-key', endpoint: 'us' });
+  });
+
+  it("buildSessionConfig uses the active region's voice selection", () => {
+    const session = config.buildSessionConfig(
+      { ...defaultSonioxSettings, region: 'eu', voice: 'us-voice', voiceEu: 'eu-voice' },
+      'instructions',
+    );
+    expect(session).toMatchObject({ voice: 'eu-voice' });
   });
 });

@@ -654,3 +654,50 @@ describe('ManagedSonioxSession: the session allowance countdown', () => {
     expect(leg.announceSessionOutcome).not.toHaveBeenCalled();
   });
 });
+
+describe('region', () => {
+  it('sends the requested region in the session-key body', async () => {
+    const fetchMock = mockFetchOnce(200, textOnlyResponse());
+    await newSession().acquire({ mode: 'speaker', textOnly: true, bothSplit: false, region: 'eu' });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({ region: 'eu' });
+  });
+
+  // The RESPONSE is authoritative, not the request. A settings change between
+  // request and connect must never pair one region's keys with another
+  // region's hosts, and the backend is the only party that knows which project
+  // actually minted them.
+  it('files bundles with the region from the RESPONSE, not the request', async () => {
+    mockFetchOnce(200, { ...textOnlyResponse(), region: 'jp' });
+    const session = newSession();
+    await session.acquire({ mode: 'speaker', textOnly: true, bothSplit: false, region: 'eu' });
+
+    expect(session.credentialsFor(session.primarySttRole).region).toBe('jp');
+  });
+
+  it('normalizes a missing region (an older backend) to us', async () => {
+    mockFetchOnce(200, textOnlyResponse());
+    const session = newSession();
+    await session.acquire({ mode: 'speaker', textOnly: true, bothSplit: false, region: 'eu' });
+
+    expect(session.credentialsFor(session.primarySttRole).region).toBe('us');
+  });
+
+  it('normalizes an unrecognized response region to us', async () => {
+    mockFetchOnce(200, { ...textOnlyResponse(), region: 'atlantis' });
+    const session = newSession();
+    await session.acquire({ mode: 'speaker', textOnly: true, bothSplit: false, region: 'us' });
+
+    expect(session.credentialsFor(session.primarySttRole).region).toBe('us');
+  });
+
+  it('stamps the region on EVERY leg of a split session, not just the primary', async () => {
+    mockFetchOnce(200, { ...splitBothResponse(), region: 'eu' });
+    const session = newSession();
+    await session.acquire({ mode: 'both', textOnly: false, bothSplit: true, region: 'eu' });
+
+    expect(session.credentialsFor('spk_stt').region).toBe('eu');
+    expect(session.credentialsFor('par_stt').region).toBe('eu');
+  });
+});
