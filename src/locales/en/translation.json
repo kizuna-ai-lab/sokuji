@@ -405,7 +405,7 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 source languages (auto-detected), 13 target",
+      "description": "75 source languages (auto-detected), 13 target languages",
       "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {

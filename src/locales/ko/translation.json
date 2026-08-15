@@ -405,7 +405,7 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "소스 75개 언어(자동 감지), 타깃 13개",
+      "description": "소스 75개 언어(자동 감지), 타깃 13개 언어",
       "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {

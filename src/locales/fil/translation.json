@@ -405,7 +405,7 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 source na wika (auto-detect), 13 target",
+      "description": "75 source na wika (auto-detect), 13 target na wika",
       "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {

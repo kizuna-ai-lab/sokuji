@@ -13,6 +13,11 @@ import { KIZUNA_HOSTED_ICONS, HOSTED_BADGE_RATIO } from './ProviderIcons';
 const badgeOf = (container: HTMLElement) =>
   container.querySelector('.hosted-provider-icon__badge') as HTMLElement;
 
+/** Sizes are calc() expressions; jsdom normalises `calc(24px * 0.58)` to
+ *  `calc(13.92px)`. Pull the number back out so assertions stay derived from
+ *  HOSTED_BADGE_RATIO instead of hard-coding whatever it currently is. */
+const cssPx = (value: string) => parseFloat(value.replace(/[^0-9.]/g, ''));
+
 describe('Kizuna-hosted provider icons', () => {
   it('covers exactly the Kizuna-managed providers', () => {
     // Adding a fourth managed twin without giving it a badge would silently
@@ -53,8 +58,26 @@ describe('Kizuna-hosted provider icons', () => {
     const { container } = render(<Icon size={24} />);
 
     const mark = container.querySelector('svg') as SVGElement;
-    expect(mark.style.width).toBe(`${Math.round(24 * HOSTED_BADGE_RATIO)}px`);
-    expect(mark.style.height).toBe(`${Math.round(24 * HOSTED_BADGE_RATIO)}px`);
+    expect(mark.style.width).not.toBe('');
+    expect(cssPx(mark.style.width)).toBeCloseTo(24 * HOSTED_BADGE_RATIO, 5);
+    expect(cssPx(mark.style.height)).toBeCloseTo(24 * HOSTED_BADGE_RATIO, 5);
+  });
+
+  it('keeps a string size as a CSS dimension instead of parsing it to pixels', () => {
+    // IconProps.size is `string | number`, and every other icon in this file
+    // hands the value straight to the svg's width/height attributes, so `1em`
+    // and `100%` work. This composite is the only one that does arithmetic on
+    // it — parseFloat turned `1em` into 1, i.e. a one-pixel badge.
+    const Icon = KIZUNA_HOSTED_ICONS[Provider.KIZUNA_AI_SONIOX];
+    const { container } = render(<Icon size="1em" />);
+
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.getAttribute('style')).toContain('1em');
+
+    // The badge keeps the caller's unit — `calc(0.58em)`, not a pixel count.
+    const mark = container.querySelector('svg') as SVGElement;
+    expect(mark.getAttribute('style')).toContain('em');
+    expect(mark.getAttribute('style')).not.toContain('px');
   });
 
   it('keeps the badge between "visible" and "competing"', () => {
@@ -73,7 +96,7 @@ describe('Kizuna-hosted provider icons', () => {
     const { container } = render(<Icon size={20} />);
 
     const mark = container.querySelector('svg') as SVGElement;
-    expect(mark.style.width).toBe(`${Math.round(20 * HOSTED_BADGE_RATIO)}px`);
+    expect(cssPx(mark.style.width)).toBeCloseTo(20 * HOSTED_BADGE_RATIO, 5);
   });
 
   it('rings the badge so it separates from the logo art behind it', () => {

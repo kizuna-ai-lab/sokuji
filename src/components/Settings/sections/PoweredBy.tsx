@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Provider, isKizunaManagedProvider } from '../../../types/Provider';
+import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 
 interface PoweredByProps {
   provider: Provider;
@@ -13,8 +14,14 @@ interface PoweredByProps {
  * Rendered through <Trans> rather than an interpolated t() so the vendor keeps
  * its own element: it is the token that carries the meaning, so it is typeset a
  * step stronger than the preposition, and word order moves between languages
- * (Japanese and Korean lead with the vendor). Renders nothing for providers
- * Kizuna does not host, so callers can drop it in unconditionally.
+ * (Japanese and Korean lead with the vendor).
+ *
+ * Renders nothing for a provider Kizuna does not host, and nothing for one that
+ * is not registered in this build — a persisted selection can name a twin whose
+ * feature flag is off, and ProviderSection already degrades that row to the
+ * "Unknown" name, icon and description. Crediting an engine beside it would read
+ * as "Unknown — Powered by Soniox". Both guards live here so callers can drop
+ * the component in unconditionally.
  *
  * The vendor label is a locale string (`providers.<id>.vendor`) rather than a
  * constant, because "brand names are never translated" turns out to be false
@@ -25,6 +32,7 @@ interface PoweredByProps {
 export const PoweredBy: React.FC<PoweredByProps> = ({ provider }) => {
   const { t } = useTranslation();
   if (!isKizunaManagedProvider(provider)) return null;
+  if (!ProviderConfigFactory.isProviderSupported(provider)) return null;
 
   return (
     <span className="powered-by">

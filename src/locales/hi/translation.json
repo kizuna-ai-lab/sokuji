@@ -405,7 +405,7 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 स्रोत भाषाएँ (स्वतः पहचान), 13 लक्ष्य",
+      "description": "75 स्रोत भाषाएँ (स्वतः पहचान), 13 लक्ष्य भाषाएँ",
       "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {

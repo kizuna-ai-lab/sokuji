@@ -223,12 +223,17 @@ export function kizunaHostedIcon(
   { plate = false, color }: HostedBadgeOptions = {},
 ): React.FC<IconProps> {
   const HostedIcon: React.FC<IconProps> = ({ size = 24, className, style }) => {
-    const edge = (typeof size === 'number' ? size : parseFloat(size)) || 24;
-    const badge = Math.round(edge * HOSTED_BADGE_RATIO);
-    // Soniox's own mark is a rounded square; the plate matches its corner
-    // radius so the badge reads as one shape either way.
-    const radius = Math.max(2, Math.round(badge * 0.22));
-    const mark = plate ? badge - 2 * Math.max(1, Math.round(badge * 0.15)) : badge;
+    // Sizes stay CSS dimensions rather than becoming numbers. IconProps.size is
+    // `string | number` and every other icon in this file hands the value
+    // straight to the svg's width/height, so `1em` and `100%` work there;
+    // parsing it here turned `1em` into 1, i.e. a one-pixel badge. calc() keeps
+    // the arithmetic without leaving CSS.
+    const edge = typeof size === 'number' ? `${size}px` : size;
+    const badge = `calc(${edge} * ${HOSTED_BADGE_RATIO})`;
+    // A plated mark is inset inside its plate; a bare one fills the badge.
+    // Soniox's own mark is already a rounded square, and the plate's radius is
+    // a percentage of its own box, so the badge reads as one shape either way.
+    const mark = plate ? `calc(${badge} * 0.7)` : badge;
 
     return (
       <span
@@ -254,7 +259,7 @@ export function kizunaHostedIcon(
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            borderRadius: radius,
+            borderRadius: '22%',
             // Separates the badge from the artwork behind it. The badge sits
             // over the logo rather than the panel, so a fixed neutral holds up
             // through the row's hover state too.

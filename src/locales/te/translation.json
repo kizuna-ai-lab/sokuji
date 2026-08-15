@@ -405,7 +405,7 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 మూల భాషలు (స్వయంచాలక గుర్తింపు), 13 లక్ష్య",
+      "description": "75 మూల భాషలు (స్వయంచాలక గుర్తింపు), 13 లక్ష్య భాషలు",
       "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {

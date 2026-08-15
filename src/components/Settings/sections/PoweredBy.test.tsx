@@ -8,11 +8,12 @@
  * between languages (Japanese and Korean lead with the vendor) and the vendor
  * has to stay styleable wherever the sentence puts it.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import '../../../locales';
 import en from '../../../locales/en/translation.json';
 import { Provider, isKizunaManagedProvider } from '../../../types/Provider';
+import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { PoweredBy } from './PoweredBy';
 
 const providers = en.providers as Record<string, { vendor?: string; name?: string }>;
@@ -49,5 +50,19 @@ describe('PoweredBy', () => {
     const { container } = render(<PoweredBy provider={Provider.SONIOX} />);
 
     expect(container.innerHTML).toBe('');
+  });
+
+  it('renders nothing when the twin is not registered in this build', () => {
+    // A persisted selection can name a provider whose feature flag is off in
+    // the running build. ProviderSection already degrades that row to the
+    // "Unknown" name, icon and description; crediting an engine next to it
+    // would read as "Unknown — Powered by Soniox".
+    const supported = vi.spyOn(ProviderConfigFactory, 'isProviderSupported').mockReturnValue(false);
+    try {
+      const { container } = render(<PoweredBy provider={Provider.KIZUNA_AI_SONIOX} />);
+      expect(container.innerHTML).toBe('');
+    } finally {
+      supported.mockRestore();
+    }
   });
 });

@@ -405,7 +405,7 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 மூல மொழிகள் (தானாகக் கண்டறியும்), 13 இலக்கு",
+      "description": "75 மூல மொழிகள் (தானாகக் கண்டறியும்), 13 இலக்கு மொழிகள்",
       "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
