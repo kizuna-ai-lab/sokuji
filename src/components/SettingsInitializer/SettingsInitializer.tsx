@@ -9,7 +9,6 @@ import {
   usePalabraAISettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
-  useSonioxSettings,
   useSettingsLoaded,
   useLocalInferenceSettings,
   useLocalNativeSettings,
@@ -53,7 +52,7 @@ export function SettingsInitializer() {
   // holds three independent credentials while `isApiKeyValid` is a single
   // verdict, so switching region silently leaves the verdict describing a key
   // that is no longer the active one.
-  const sonioxRegion = useSonioxSettings().region;
+  const sonioxRegion = useSettingsStore((state) => state.soniox.region);
 
   // Monitor model download statuses and local inference settings for LOCAL_INFERENCE
   const modelStatuses = useModelStatuses();
