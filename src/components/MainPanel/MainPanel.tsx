@@ -1947,6 +1947,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const sessionResources = startDescriptor.acquireSessionResources
         ? await startDescriptor.acquireSessionResources({
             getAuthToken,
+            // Read here, not inside the descriptor: the descriptor must not
+            // reach into the store. Undefined for every provider without
+            // regions, which ignores it.
+            region: (getCurrentProviderSettings() as { region?: string } | null)?.region,
             wiring: {
               speakerWillStart,
               participantWillStart,

@@ -28,7 +28,7 @@ describe('SonioxVoicesClient', () => {
     fetchMock
       .mockResolvedValueOnce(ok({ voices: [VOICE({ id: 'a' })], next_page_cursor: 'c2' }))
       .mockResolvedValueOnce(ok({ voices: [VOICE({ id: 'b' })], next_page_cursor: null }));
-    const voices = await new SonioxVoicesClient('key-1').list();
+    const voices = await new SonioxVoicesClient('key-1', 'us').list();
     expect(voices.map((v) => v.id)).toEqual(['a', 'b']);
     const [url1, init1] = fetchMock.mock.calls[0];
     expect(String(url1)).toContain('https://api.soniox.com/v1/voices');
@@ -40,7 +40,7 @@ describe('SonioxVoicesClient', () => {
   it('creates via multipart with exactly name + file and surfaces the created voice', async () => {
     fetchMock.mockResolvedValueOnce(ok(VOICE()));
     const blob = new Blob(['x'], { type: 'audio/wav' });
-    const voice = await new SonioxVoicesClient('k').create('My Voice', blob, 'ref.wav');
+    const voice = await new SonioxVoicesClient('k', 'us').create('My Voice', blob, 'ref.wav');
     expect(voice.id).toBe('v-1');
     const [, init] = fetchMock.mock.calls[0];
     expect(init.method).toBe('POST');
@@ -52,15 +52,15 @@ describe('SonioxVoicesClient', () => {
 
   it('maps API errors to SonioxVoicesError with error_type', async () => {
     fetchMock.mockResolvedValueOnce(err(409, { error_type: 'voice_name_conflict', message: 'dup' }));
-    await expect(new SonioxVoicesClient('k').create('x', new Blob(['y'])))
+    await expect(new SonioxVoicesClient('k', 'us').create('x', new Blob(['y'])))
       .rejects.toMatchObject({ errorType: 'voice_name_conflict', status: 409 });
   });
 
   it('delete tolerates 404 and rejects other failures', async () => {
     fetchMock.mockResolvedValueOnce(err(404, { error_type: 'voice_not_found', message: 'gone' }));
-    await expect(new SonioxVoicesClient('k').delete('v-x')).resolves.toBeUndefined();
+    await expect(new SonioxVoicesClient('k', 'us').delete('v-x')).resolves.toBeUndefined();
     fetchMock.mockResolvedValueOnce(err(500, { error_type: 'internal_error', message: 'boom' }));
-    await expect(new SonioxVoicesClient('k').delete('v-x'))
+    await expect(new SonioxVoicesClient('k', 'us').delete('v-x'))
       .rejects.toMatchObject({ errorType: 'internal_error' });
   });
 
@@ -68,18 +68,18 @@ describe('SonioxVoicesClient', () => {
     fetchMock
       .mockResolvedValueOnce(ok(VOICE()))
       .mockResolvedValueOnce(ok(VOICE({ models: [{ model: SONIOX_TTS_MODEL, status: 'ready' }] })));
-    const p = new SonioxVoicesClient('k').waitUntilReady('v-1', { intervalMs: 100 });
+    const p = new SonioxVoicesClient('k', 'us').waitUntilReady('v-1', { intervalMs: 100 });
     await vi.advanceTimersByTimeAsync(250);
     await expect(p).resolves.toMatchObject({ id: 'v-1' });
   });
 
   it('waitUntilReady rejects terminally on failed (no retry) and on timeout', async () => {
     fetchMock.mockResolvedValueOnce(ok(VOICE({ models: [{ model: SONIOX_TTS_MODEL, status: 'failed', error_message: 'bad clip' }] })));
-    await expect(new SonioxVoicesClient('k').waitUntilReady('v-1'))
+    await expect(new SonioxVoicesClient('k', 'us').waitUntilReady('v-1'))
       .rejects.toMatchObject({ errorType: 'voice_failed' });
 
     fetchMock.mockResolvedValue(ok(VOICE())); // forever processing
-    const p = new SonioxVoicesClient('k').waitUntilReady('v-2', { timeoutMs: 500, intervalMs: 100 });
+    const p = new SonioxVoicesClient('k', 'us').waitUntilReady('v-2', { timeoutMs: 500, intervalMs: 100 });
     const assertion = expect(p).rejects.toMatchObject({ errorType: 'timeout' });
     await vi.advanceTimersByTimeAsync(1000);
     await assertion;

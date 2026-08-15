@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "การดูตัวอย่างเสียงจะสังเคราะห์คลิปสั้น ๆ โดยใช้โควตา Soniox ของคุณเอง",
     "sonioxVoicePreviewAuthError": "การดูตัวอย่างล้มเหลว — ตรวจสอบ API key",
     "sonioxVoicePreviewQuotaError": "การดูตัวอย่างล้มเหลว — ถึงขีดจำกัดอัตราหรือโควตาของ Soniox แล้ว",
-    "sonioxVoicePreviewTimeout": "การดูตัวอย่างหมดเวลา — ลองใหม่อีกครั้ง"
+    "sonioxVoicePreviewTimeout": "การดูตัวอย่างหมดเวลา — ลองใหม่อีกครั้ง",
+    "sonioxRegion": "ภูมิภาค",
+    "sonioxRegionTooltip": "Soniox ให้บริการแยกตามภูมิภาค แต่ละแห่งมีคีย์ API ของตัวเอง เสียงของคุณจะถูกประมวลผลและจัดเก็บในภูมิภาคที่คุณเลือก มีผลตั้งแต่เซสชันถัดไป"
   },
   "simpleSettings": {
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",

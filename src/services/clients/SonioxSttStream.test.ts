@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SonioxSttStream, SonioxSttMessage } from './SonioxSttStream';
+import { SONIOX_REGIONS, sonioxHosts } from '../../lib/soniox/regions';
 
 /** Minimal scripted WebSocket double. Instances register on MockWebSocket.instances. */
 class MockWebSocket {
@@ -32,7 +33,7 @@ afterEach(() => {
 });
 
 const CONFIG = {
-  apiKey: 'k', model: 'stt-rt-v5', sampleRate: 24000,
+  apiKey: 'k', model: 'stt-rt-v5', sampleRate: 24000, region: 'us' as const,
   translation: { type: 'one_way' as const, target_language: 'en' },
 };
 
@@ -212,5 +213,12 @@ describe('SonioxSttStream', () => {
       const first = JSON.parse(ws.sent[0] as string);
       expect('enable_speaker_diarization' in first).toBe(false);
     }
+  });
+});
+
+describe('SonioxSttStream regional endpoints', () => {
+  it.each(SONIOX_REGIONS)('opens the %s transcribe socket', async (region) => {
+    const { ws } = await openStream({ ...CONFIG, region });
+    expect(ws.url).toBe(`wss://${sonioxHosts(region).sttRt}/transcribe-websocket`);
   });
 });

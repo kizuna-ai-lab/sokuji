@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Das Anhören einer Vorschau synthetisiert einen kurzen Clip über Ihr eigenes Soniox-Kontingent.",
     "sonioxVoicePreviewAuthError": "Vorschau fehlgeschlagen — überprüfen Sie den API-Schlüssel",
     "sonioxVoicePreviewQuotaError": "Vorschau fehlgeschlagen — Soniox-Ratenlimit oder Kontingent erreicht",
-    "sonioxVoicePreviewTimeout": "Zeitüberschreitung bei der Vorschau — versuchen Sie es erneut"
+    "sonioxVoicePreviewTimeout": "Zeitüberschreitung bei der Vorschau — versuchen Sie es erneut",
+    "sonioxRegion": "Region",
+    "sonioxRegionTooltip": "Soniox betreibt pro Region eine eigene Bereitstellung mit jeweils eigenem API-Schlüssel. Ihr Audio wird in der gewählten Region verarbeitet und gespeichert. Gilt ab der nächsten Sitzung."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",

@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Odsłuchanie podglądu głosu generuje krótki klip przy użyciu Twojego własnego limitu Soniox.",
     "sonioxVoicePreviewAuthError": "Podgląd nie powiódł się — sprawdź klucz API",
     "sonioxVoicePreviewQuotaError": "Podgląd nie powiódł się — osiągnięto limit szybkości lub limit Soniox",
-    "sonioxVoicePreviewTimeout": "Przekroczono czas oczekiwania na podgląd — spróbuj ponownie"
+    "sonioxVoicePreviewTimeout": "Przekroczono czas oczekiwania na podgląd — spróbuj ponownie",
+    "sonioxRegion": "Region",
+    "sonioxRegionTooltip": "Soniox utrzymuje osobne wdrożenie dla każdego regionu, każde z własnym kluczem API. Twój dźwięk jest przetwarzany i przechowywany w wybranym regionie. Obowiązuje od następnej sesji."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",

@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "معاينة صوت ما تُنشئ مقطعًا قصيرًا باستخدام حصتك الخاصة من Soniox.",
     "sonioxVoicePreviewAuthError": "فشلت المعاينة — تحقق من مفتاح API",
     "sonioxVoicePreviewQuotaError": "فشلت المعاينة — تم بلوغ حد المعدل أو الحصة في Soniox",
-    "sonioxVoicePreviewTimeout": "انتهت مهلة المعاينة — حاول مرة أخرى"
+    "sonioxVoicePreviewTimeout": "انتهت مهلة المعاينة — حاول مرة أخرى",
+    "sonioxRegion": "المنطقة",
+    "sonioxRegionTooltip": "تشغّل Soniox نشرًا منفصلًا لكل منطقة، ولكل منها مفتاح API خاص بها. تتم معالجة صوتك وتخزينه في المنطقة التي تختارها. يسري ابتداءً من الجلسة التالية."
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",

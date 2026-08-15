@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Bir sesi önizlemek, kendi Soniox kotanızı kullanarak kısa bir klip sentezler.",
     "sonioxVoicePreviewAuthError": "Önizleme başarısız oldu — API anahtarını kontrol edin",
     "sonioxVoicePreviewQuotaError": "Önizleme başarısız oldu — Soniox hız sınırına veya kotasına ulaşıldı",
-    "sonioxVoicePreviewTimeout": "Önizleme zaman aşımına uğradı — tekrar deneyin"
+    "sonioxVoicePreviewTimeout": "Önizleme zaman aşımına uğradı — tekrar deneyin",
+    "sonioxRegion": "Bölge",
+    "sonioxRegionTooltip": "Soniox her bölge için ayrı bir dağıtım çalıştırır ve her birinin kendi API anahtarı vardır. Sesiniz seçtiğiniz bölgede işlenir ve saklanır. Bir sonraki oturumdan itibaren geçerlidir."
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",

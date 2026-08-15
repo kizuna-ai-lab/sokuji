@@ -24,4 +24,19 @@ describe('manifest stays consistent with the platform registry', () => {
     const csp = (manifest as any).content_security_policy.extension_pages;
     expect(csp).toContain('https://tts-rt.soniox.com');
   });
+
+  it('allows every Soniox regional origin', () => {
+    const csp = manifest.content_security_policy.extension_pages;
+    for (const origin of [
+      'https://api.eu.soniox.com', 'https://api.jp.soniox.com',
+      'wss://stt-rt.eu.soniox.com', 'wss://stt-rt.jp.soniox.com',
+      'wss://tts-rt.eu.soniox.com', 'wss://tts-rt.jp.soniox.com',
+      // tts-rt needs BOTH schemes: the one-shot voice preview is HTTPS while
+      // the session stream is WSS, and a wss:// entry does not cover https://.
+      // The US host already carries the pair for exactly this reason.
+      'https://tts-rt.eu.soniox.com', 'https://tts-rt.jp.soniox.com',
+    ]) {
+      expect(csp).toContain(origin);
+    }
+  });
 });

@@ -57,7 +57,9 @@ describe('ManagedVoicesClient.ensure', () => {
     const res = await make().ensure({ pin: true });
     expect(res).toEqual({ voiceId: 'v1', status: 'ready' });
     const [url, init] = fetchMock.mock.calls[0];
-    expect(String(url)).toMatch(/\/soniox\/voices\/ensure$/);
+    // The region rides in the query string: the backend builds the voice
+    // in that project, and a UUID exists only inside one project.
+    expect(String(url)).toMatch(/\/soniox\/voices\/ensure\?region=us$/);
     expect(init.method).toBe('POST');
     const form = init.body as FormData;
     expect(form.get('pin')).toBe('1');

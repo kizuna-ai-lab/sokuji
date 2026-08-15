@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SonioxTtsStream } from './SonioxTtsStream';
+import { SONIOX_REGIONS, sonioxHosts } from '../../lib/soniox/regions';
 
 class MockWebSocket {
   static instances: MockWebSocket[] = [];
@@ -30,7 +31,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const OPTS = { apiKey: 'k', voice: 'Adrian', model: 'tts-rt-v2', sampleRate: 24000 };
+const OPTS = { apiKey: 'k', voice: 'Adrian', model: 'tts-rt-v2', sampleRate: 24000, region: 'us' as const };
 
 async function openTts() {
   const t = new SonioxTtsStream(OPTS);
@@ -239,5 +240,16 @@ describe('SonioxTtsStream', () => {
       t.sendText('Hi', 'en');
       expect('speed' in ws.jsonSent()[0]).toBe(false);
     }
+  });
+});
+
+describe('SonioxTtsStream regional endpoints', () => {
+  it.each(SONIOX_REGIONS)('opens the %s tts socket', async (region) => {
+    const t = new SonioxTtsStream({ ...OPTS, region });
+    const p = t.connect();
+    MockWebSocket.instances.at(-1)!.open();
+    await p;
+    expect(MockWebSocket.instances.at(-1)!.url)
+      .toBe(`wss://${sonioxHosts(region).ttsRt}/tts-websocket`);
   });
 });

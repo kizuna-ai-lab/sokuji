@@ -46,6 +46,13 @@ export function SettingsInitializer() {
   const palabraAISettings = usePalabraAISettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  // Only the REGION, not the keys. Soniox's keys are deliberately absent from
+  // the validation effect below (they always were — the explicit Validate
+  // button covers them), but the region is different in kind: one slice now
+  // holds three independent credentials while `isApiKeyValid` is a single
+  // verdict, so switching region silently leaves the verdict describing a key
+  // that is no longer the active one.
+  const sonioxRegion = useSettingsStore((state) => state.soniox.region);
 
   // Monitor model download statuses and local inference settings for LOCAL_INFERENCE
   const modelStatuses = useModelStatuses();
@@ -133,6 +140,11 @@ export function SettingsInitializer() {
       palabraAISettings.clientId, palabraAISettings.clientSecret,
       volcengineSTSettings.accessKeyId, volcengineSTSettings.secretAccessKey,
       volcengineAST2Settings.appId, volcengineAST2Settings.accessToken,
+      // Switching region swaps WHICH key is active, so the standing verdict is
+      // about a different credential and must be re-derived. Without this,
+      // Start stays enabled on a region whose key is empty (and fails at
+      // connect), or stays disabled on a region whose key is already good.
+      sonioxRegion,
       validateApiKey]);
 
   // ── Edge TTS: auto-select voice when target language changes ───────────

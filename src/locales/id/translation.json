@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Pratinjau suara mensintesis klip singkat menggunakan kuota Soniox Anda sendiri.",
     "sonioxVoicePreviewAuthError": "Pratinjau gagal — periksa kunci API",
     "sonioxVoicePreviewQuotaError": "Pratinjau gagal — batas laju atau kuota Soniox tercapai",
-    "sonioxVoicePreviewTimeout": "Pratinjau habis waktu — coba lagi"
+    "sonioxVoicePreviewTimeout": "Pratinjau habis waktu — coba lagi",
+    "sonioxRegion": "Wilayah",
+    "sonioxRegionTooltip": "Soniox menjalankan penerapan terpisah per wilayah, masing-masing dengan kunci API sendiri. Audio Anda diproses dan disimpan di wilayah yang Anda pilih. Berlaku mulai sesi berikutnya."
   },
   "simpleSettings": {
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",

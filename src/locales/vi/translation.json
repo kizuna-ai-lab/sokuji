@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Xem trước một giọng nói sẽ tổng hợp một đoạn clip ngắn bằng hạn mức Soniox của riêng bạn.",
     "sonioxVoicePreviewAuthError": "Xem trước không thành công — hãy kiểm tra khóa API",
     "sonioxVoicePreviewQuotaError": "Xem trước không thành công — đã đạt giới hạn tốc độ hoặc hạn mức của Soniox",
-    "sonioxVoicePreviewTimeout": "Xem trước đã hết thời gian chờ — hãy thử lại"
+    "sonioxVoicePreviewTimeout": "Xem trước đã hết thời gian chờ — hãy thử lại",
+    "sonioxRegion": "Khu vực",
+    "sonioxRegionTooltip": "Soniox vận hành triển khai riêng cho từng khu vực, mỗi khu vực có khóa API riêng. Âm thanh của bạn được xử lý và lưu trữ trong khu vực bạn chọn. Áp dụng từ phiên tiếp theo."
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",

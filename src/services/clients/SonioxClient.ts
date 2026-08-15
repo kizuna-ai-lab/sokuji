@@ -13,6 +13,7 @@ import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig
 import { SonioxTtsStream } from './SonioxTtsStream';
 import { SonioxBudgetSnapshot } from './SonioxCostMeter';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
+import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
 import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from './ManagedSonioxSession';
 import type { SonioxSessionLeg, SonioxSessionOutcomeNotice } from './SonioxSessionOutcome';
 import { PcmMixer } from './PcmMixer';
@@ -37,7 +38,6 @@ import i18n from '../../locales';
 
 const STT_MODEL = 'stt-rt-v5';
 const SAMPLE_RATE = 24000; // Sokuji mic pipeline and ModernAudioPlayer both run at 24 kHz
-const AUTH_PROBE_URL = 'https://api.soniox.com/v1/auth/temporary-api-key';
 /**
  * STT failures the user did not cause and cannot fix from the settings — the
  * only useful response is to start again:
@@ -257,8 +257,10 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     return `${this.instanceId}_${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  /** Validate the key with a cheap temporary-key probe (201 = valid). */
-  static async validateApiKeyAndFetchModels(apiKey: string): Promise<{
+  /** Validate the key with a cheap temporary-key probe (201 = valid), against
+   *  the region the key belongs to. A key probed on the WRONG region's host
+   *  answers 401 and would be reported to the user as invalid. */
+  static async validateApiKeyAndFetchModels(apiKey: string, region: SonioxRegion): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }> {
@@ -269,7 +271,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       };
     }
     try {
-      const response = await fetch(AUTH_PROBE_URL, {
+      const response = await fetch(`https://${sonioxHosts(region).api}/v1/auth/temporary-api-key`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -447,6 +449,9 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       : undefined;
     return {
       apiKey: this.credentials.stt,
+      // From the BUNDLE, so a split Both session's two legs cannot drift onto
+      // different regions and neither can a mid-session settings change.
+      region: this.credentials.region,
       model: cfg.model || STT_MODEL,
       sampleRate: SAMPLE_RATE,
       languageHints,
@@ -871,6 +876,9 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     }
     const stream = new SonioxTtsStream({
       apiKey: ttsApiKey,
+      // Same region as the STT socket, by construction: both keys come off the
+      // one bundle, which is what makes a mixed-region session impossible.
+      region: this.credentials.region,
       voice: this.currentConfig?.voice || SONIOX_DEFAULT_VOICE,
       model: SONIOX_TTS_MODEL,
       sampleRate: SAMPLE_RATE,

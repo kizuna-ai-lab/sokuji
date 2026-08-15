@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Pratonton suara mensintesis klip pendek menggunakan kuota Soniox anda sendiri.",
     "sonioxVoicePreviewAuthError": "Pratonton gagal — semak kunci API",
     "sonioxVoicePreviewQuotaError": "Pratonton gagal — had kadar atau kuota Soniox dicapai",
-    "sonioxVoicePreviewTimeout": "Pratonton tamat masa — cuba lagi"
+    "sonioxVoicePreviewTimeout": "Pratonton tamat masa — cuba lagi",
+    "sonioxRegion": "Wilayah",
+    "sonioxRegionTooltip": "Soniox menjalankan penggunaan berasingan bagi setiap wilayah, setiap satu dengan kunci API sendiri. Audio anda diproses dan disimpan di wilayah yang anda pilih. Berkuat kuasa mulai sesi seterusnya."
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",

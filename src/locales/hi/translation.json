@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "आवाज़ का पूर्वावलोकन करने पर आपके अपने Soniox कोटा का उपयोग करके एक छोटा क्लिप बनाया जाता है।",
     "sonioxVoicePreviewAuthError": "पूर्वावलोकन विफल — अपनी API कुंजी जाँचें",
     "sonioxVoicePreviewQuotaError": "पूर्वावलोकन विफल — Soniox दर सीमा या कोटा पूरा हो गया",
-    "sonioxVoicePreviewTimeout": "पूर्वावलोकन का समय समाप्त हो गया — पुनः प्रयास करें"
+    "sonioxVoicePreviewTimeout": "पूर्वावलोकन का समय समाप्त हो गया — पुनः प्रयास करें",
+    "sonioxRegion": "क्षेत्र",
+    "sonioxRegionTooltip": "Soniox हर क्षेत्र के लिए अलग परिनियोजन चलाता है, प्रत्येक की अपनी API कुंजी होती है। आपका ऑडियो आपके चुने हुए क्षेत्र में ही संसाधित और संग्रहीत होता है। अगले सत्र से लागू होगा।"
   },
   "simpleSettings": {
     "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित",

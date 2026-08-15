@@ -193,7 +193,7 @@ describe('SonioxClient managed mode: session lifecycle notifications (fire-and-f
   it('BYOK disconnect never calls fetch', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    const client = new SonioxClient(byokCredentials('byok-key'));
+    const client = new SonioxClient(byokCredentials('byok-key', 'us'));
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     await client.disconnect();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -280,7 +280,7 @@ describe('SonioxClient BYOK mode is unaffected', () => {
   it('the single-argument constructor still works and never calls fetch', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    const client = new SonioxClient(byokCredentials('byok-key'));
+    const client = new SonioxClient(byokCredentials('byok-key', 'us'));
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     expect(fetchMock).not.toHaveBeenCalled();
     const stt = sttInstances.at(-1)!;
@@ -301,7 +301,7 @@ describe('SonioxClient managed mode: getManagedBudgetInfo', () => {
   });
 
   it('is null for BYOK sessions even after connect() (no cost meter)', async () => {
-    const client = new SonioxClient(byokCredentials('byok-key'));
+    const client = new SonioxClient(byokCredentials('byok-key', 'us'));
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     expect(client.getManagedBudgetInfo()).toBeNull();
   });
@@ -399,7 +399,7 @@ describe('SonioxClient managed mode: session-duration cutoff (403 error frame + 
   });
 
   it('BYOK: a mid-session 403 still surfaces as a normal error — BYOK has no granted duration', async () => {
-    const client = new SonioxClient(byokCredentials('byok-key'));
+    const client = new SonioxClient(byokCredentials('byok-key', 'us'));
     const errors: any[] = [];
     client.setEventHandlers({ onError: (e) => errors.push(e) });
     await client.connect({ ...BASE_CONFIG, textOnly: false });
@@ -677,7 +677,7 @@ describe('SonioxClient: a leg is reported started only when Soniox ACCEPTS its s
   it('BYOK reports nothing — there is no lease to extend', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    const client = new SonioxClient(byokCredentials('byok-key'));
+    const client = new SonioxClient(byokCredentials('byok-key', 'us'));
     await client.connect({ ...BASE_CONFIG, textOnly: false });
     sttInstances.at(-1)!.emit({ tokens: [] });
     expect(fetchMock).not.toHaveBeenCalled();

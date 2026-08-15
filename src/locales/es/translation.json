@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "La vista previa de una voz sintetiza un clip corto usando tu propia cuota de Soniox.",
     "sonioxVoicePreviewAuthError": "Error en la vista previa — comprueba la clave API",
     "sonioxVoicePreviewQuotaError": "Error en la vista previa — se alcanzó el límite de frecuencia o la cuota de Soniox",
-    "sonioxVoicePreviewTimeout": "La vista previa agotó el tiempo de espera — inténtalo de nuevo"
+    "sonioxVoicePreviewTimeout": "La vista previa agotó el tiempo de espera — inténtalo de nuevo",
+    "sonioxRegion": "Región",
+    "sonioxRegionTooltip": "Soniox ejecuta una implementación independiente por región, cada una con su propia clave de API. Tu audio se procesa y almacena en la región que elijas. Se aplica a partir de la próxima sesión."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automáticamente a través de tu cuenta",

@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Прослуховування прев'ю голосу синтезує короткий фрагмент, використовуючи вашу власну квоту Soniox.",
     "sonioxVoicePreviewAuthError": "Помилка прев'ю — перевірте API-ключ",
     "sonioxVoicePreviewQuotaError": "Помилка прев'ю — досягнуто ліміту швидкості або квоти Soniox",
-    "sonioxVoicePreviewTimeout": "Час очікування прев'ю вичерпано — спробуйте ще раз"
+    "sonioxVoicePreviewTimeout": "Час очікування прев'ю вичерпано — спробуйте ще раз",
+    "sonioxRegion": "Регіон",
+    "sonioxRegionTooltip": "Soniox має окреме розгортання для кожного регіону, кожне зі своїм ключем API. Ваш звук обробляється та зберігається у вибраному регіоні. Діє з наступного сеансу."
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис",

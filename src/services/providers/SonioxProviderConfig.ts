@@ -1,20 +1,36 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, ClientOptions, ParticipantSessionResult, BothModePlan } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult, BothModePlan } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, SonioxSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
 import { byokCredentials } from '../clients/ManagedSonioxSession';
 import { SONIOX_VOICES, SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
 import { sonioxBothModePlan, SonioxBothModeScope } from './sonioxBothMode';
+import { asSonioxRegion, DEFAULT_SONIOX_REGION, type SonioxRegion } from '../../lib/soniox/regions';
 
 // Soniox Settings — single BYOK API key (extractCredentials inherited from base)
 export interface SonioxSettings {
+  /**
+   * Which Soniox deployment to use. Soniox issues a SEPARATE key per regional
+   * project, so this selects a whole credential, not just a route.
+   */
+  region: SonioxRegion;
+  /** US/global project key. The suffix-less name pairs with the infix-less
+   *  host, which is also what makes this backward compatible: a value stored
+   *  before regions existed is still exactly what it was. */
   apiKey: string;
+  apiKeyEu: string;
+  apiKeyJp: string;
   sourceLanguage: string;     // 'auto' | ISO code
   targetLanguage: string;
   /** Both mode: use one shared two_way session (true) vs two separate sessions (false). */
   bothModeSharedSession: boolean;
-  voice: string;              // TTS voice, one of VOICES
+  /** TTS voice for the US project. A cloned voice is a UUID INSIDE one
+   *  project, so each region needs its own selection — sharing one field would
+   *  send a UUID to a region where it does not exist. */
+  voice: string;
+  voiceEu: string;
+  voiceJp: string;
   model: string;
   /** Custom vocabulary, one term per line (raw textarea text → context.terms). */
   vocabularyTerms: string;
@@ -31,11 +47,16 @@ export interface SonioxSettings {
 }
 
 export const defaultSonioxSettings: SonioxSettings = {
+  region: DEFAULT_SONIOX_REGION,
   apiKey: '',
+  apiKeyEu: '',
+  apiKeyJp: '',
   sourceLanguage: 'auto',
   targetLanguage: 'en',
   bothModeSharedSession: true,
   voice: SONIOX_DEFAULT_VOICE,
+  voiceEu: SONIOX_DEFAULT_VOICE,
+  voiceJp: SONIOX_DEFAULT_VOICE,
   model: 'stt-rt-v5',
   vocabularyTerms: '',
   vocabularyTranslations: '',
@@ -153,15 +174,48 @@ export {
 // re-exported here so existing importers keep working.
 export { sonioxUsesSharedBothSession } from './sonioxBothMode';
 
+/** The settings field holding a region's API key. The ONLY mapping from region
+ *  to storage — every reader and writer goes through this, so adding a region
+ *  is a change in one place. */
+export function sonioxKeyField(region: SonioxRegion): 'apiKey' | 'apiKeyEu' | 'apiKeyJp' {
+  return region === 'us' ? 'apiKey' : region === 'eu' ? 'apiKeyEu' : 'apiKeyJp';
+}
+
+/** The settings field holding a region's selected voice. Same rule, same reason. */
+export function sonioxVoiceField(region: SonioxRegion): 'voice' | 'voiceEu' | 'voiceJp' {
+  return region === 'us' ? 'voice' : region === 'eu' ? 'voiceEu' : 'voiceJp';
+}
+
 export class SonioxProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'soniox';
   readonly supportsWebRTC = false;
+
+  /**
+   * Pick the ACTIVE region's key, and carry the region in `endpoint`.
+   *
+   * `endpoint` is the carrier, not an abuse of it: settingsStore already keys
+   * its validation cache on it, so three regions become three cache entries
+   * with no new mechanism — switching region re-validates for free, and two
+   * regions holding the same key string never share a verdict.
+   */
+  async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
+    const settings = slice as SonioxSettings | null;
+    const region = asSonioxRegion(settings?.region);
+    const apiKey = settings?.[sonioxKeyField(region)] ?? '';
+    if (!apiKey) return { ok: false, missing: 'API key is required for soniox' };
+    return { ok: true, primary: apiKey, endpoint: region };
+  }
+
+  peekPrimaryCredential(slice: unknown): string {
+    const settings = slice as SonioxSettings | null;
+    return settings?.[sonioxKeyField(asSonioxRegion(settings?.region))] ?? '';
+  }
 
   createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
     // A NEW construction shape for BYOK too, not a shape managed was moved
     // onto: one user key in both slots, and no client_reference_id — BYOK
     // traffic is not ours to bill.
-    return new SonioxClient(byokCredentials(creds.primary));
+    return new SonioxClient(byokCredentials(creds.primary, asSonioxRegion(creds.endpoint)));
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
@@ -170,7 +224,7 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     if (!creds.ok) {
       return { validation: { valid: false, message: creds.missing, validating: false }, models: [] };
     }
-    return SonioxClient.validateApiKeyAndFetchModels(creds.primary);
+    return SonioxClient.validateApiKeyAndFetchModels(creds.primary, asSonioxRegion(creds.endpoint));
   }
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
@@ -183,7 +237,7 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     return {
       provider: 'soniox',
       model: settings.model || 'stt-rt-v5',
-      voice: settings.voice || SONIOX_DEFAULT_VOICE,
+      voice: settings[sonioxVoiceField(asSonioxRegion(settings.region))] || SONIOX_DEFAULT_VOICE,
       instructions: systemInstructions,
       sourceLanguage: settings.sourceLanguage,
       targetLanguage: settings.targetLanguage,

@@ -39,6 +39,7 @@ import {
   type SonioxVoice,
 } from '../../../services/clients/SonioxVoicesClient';
 import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
+import { asSonioxRegion } from '../../../lib/soniox/regions';
 import { previewSampleFor } from './sonioxPreviewSample';
 import { SonioxProviderConfig, clampNumber } from '../../../services/providers/SonioxProviderConfig';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
@@ -54,7 +55,16 @@ export interface SonioxVoiceSectionProps {
    *  what the session would actually speak. `apiKey` is BYOK-only and is
    *  empty for managed accounts — the preview path is gated on
    *  `source.canPreview`, not on this field. */
-  settings: { voice: string; apiKey: string; targetLanguage: string; ttsSpeed: number };
+  settings: {
+    voice: string;
+    apiKey: string;
+    targetLanguage: string;
+    ttsSpeed: number;
+    /** Which Soniox deployment `apiKey` belongs to, so the preview is
+     *  synthesized on the host that key authenticates against. Optional so the
+     *  existing tests' fixtures keep compiling; absent reads as US. */
+    region?: string;
+  };
   onUpdate: (patch: { voice: string }) => void;
   /** Where voices come from, or null when this account cannot manage any yet
    *  (BYOK with no API key pasted; managed with no signed-in user). Null
@@ -249,6 +259,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     try {
       const result = await synthesizeOnce({
         apiKey: settings.apiKey,
+        region: asSonioxRegion(settings.region),
         voice: id,
         language: sample.language,
         text: sample.text,

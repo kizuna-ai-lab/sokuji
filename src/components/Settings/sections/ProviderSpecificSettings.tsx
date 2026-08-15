@@ -70,6 +70,11 @@ import { EngineSection } from './EngineSection';
 import SonioxVoiceSection from './SonioxVoiceSection';
 import { byokVoiceSource, managedVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
 import { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
+import { useSessionIsInitializing } from '../../../stores/sessionStore';
+import {
+  SONIOX_REGIONS, SONIOX_REGION_LABELS, asSonioxRegion,
+} from '../../../lib/soniox/regions';
+import { sonioxKeyField, sonioxVoiceField } from '../../../services/providers/SonioxProviderConfig';
 import { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
 import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
@@ -253,6 +258,21 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // slice for every OTHER provider too, so a previously-saved Soniox key
   // would otherwise construct a (harmless but pointless) SonioxVoicesClient
   // while some unrelated provider is selected.
+  // The active region, and the key/voice fields it selects. Read once here so
+  // every Soniox consumer below agrees on which credential is in play.
+  const isSessionInitializing = useSessionIsInitializing();
+  const sonioxRegion = asSonioxRegion(activeSonioxSettings.region);
+  // Start is not instantaneous: managed voice preparation, the session-key
+  // round trip and both clients' construction all happen while
+  // `isSessionActive` is still false. A region change landing inside that
+  // window is read by different steps at different times — the voice can be
+  // claimed in the old region while the lease is bought in the new one, and a
+  // split BYOK session's two legs each read the live slice as they are
+  // constructed, so they can capture different regional keys. The selector is
+  // therefore frozen from the moment Start is pressed, not from the moment the
+  // session goes live.
+  const sonioxRegionLocked = isSessionActive || isSessionInitializing;
+  const sonioxApiKeyForRegion = activeSonioxSettings[sonioxKeyField(sonioxRegion)];
   const sonioxVoiceSource = useMemo<VoiceLibrarySource | null>(() => {
     if (isKizunaManagedProvider(provider)) {
       if (!userId) return null;
@@ -261,14 +281,17 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       // recording made here can never be read back — and re-uploaded — under
       // whoever signs in next on the same profile.
       return managedVoiceSource(
-        new ManagedVoicesClient(async () => (getTokenRef.current ? getTokenRef.current() : null)),
+        new ManagedVoicesClient(
+          async () => (getTokenRef.current ? getTokenRef.current() : null),
+          sonioxRegion
+        ),
         userId
       );
     }
-    return provider === Provider.SONIOX && activeSonioxSettings.apiKey
-      ? byokVoiceSource(new SonioxVoicesClient(activeSonioxSettings.apiKey))
+    return provider === Provider.SONIOX && sonioxApiKeyForRegion
+      ? byokVoiceSource(new SonioxVoicesClient(sonioxApiKeyForRegion, sonioxRegion))
       : null;
-  }, [provider, activeSonioxSettings.apiKey, userId]);
+  }, [provider, sonioxApiKeyForRegion, sonioxRegion, userId]);
 
   // Auto-select compatible models when LOCAL_INFERENCE languages change
   useEffect(() => {
@@ -1866,9 +1889,48 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <>
+        <div className="settings-section" id="soniox-region-section">
+          <h2>
+            {t('settings.sonioxRegion', 'Region')}
+            <Tooltip
+              content={t('settings.sonioxRegionTooltip', 'Soniox runs a separate deployment per region, each with its own API key. Your audio is processed and stored in the region you pick. Applies from the next session.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
+          <div className="setting-item">
+            <label className="setting-label" htmlFor="soniox-region-select">
+              {t('settings.sonioxRegion', 'Region')}
+            </label>
+            <select
+              id="soniox-region-select"
+              value={sonioxRegion}
+              disabled={sonioxRegionLocked}
+              onChange={(e) => updateActiveSonioxSettings({ region: asSonioxRegion(e.target.value) })}
+            >
+              {SONIOX_REGIONS.map((region) => (
+                <option key={region} value={region}>{SONIOX_REGION_LABELS[region]}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <SonioxVoiceSection
-          settings={activeSonioxSettings}
-          onUpdate={updateActiveSonioxSettings}
+          settings={{
+            ...activeSonioxSettings,
+            // The voice this REGION has selected, and the key that region's
+            // preview must authenticate with — a cloned voice UUID exists only
+            // inside one project.
+            voice: activeSonioxSettings[sonioxVoiceField(sonioxRegion)],
+            apiKey: sonioxApiKeyForRegion,
+            region: sonioxRegion,
+          }}
+          onUpdate={(patch) =>
+            updateActiveSonioxSettings(
+              'voice' in patch ? { [sonioxVoiceField(sonioxRegion)]: patch.voice } : patch
+            )
+          }
           source={sonioxVoiceSource}
           managed={managed}
           isSessionActive={isSessionActive}

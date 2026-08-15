@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "L'anteprima di una voce sintetizza una breve clip utilizzando la tua quota Soniox personale.",
     "sonioxVoicePreviewAuthError": "Anteprima non riuscita — controlla la chiave API",
     "sonioxVoicePreviewQuotaError": "Anteprima non riuscita — limite di frequenza o quota Soniox raggiunti",
-    "sonioxVoicePreviewTimeout": "Anteprima scaduta — riprova"
+    "sonioxVoicePreviewTimeout": "Anteprima scaduta — riprova",
+    "sonioxRegion": "Regione",
+    "sonioxRegionTooltip": "Soniox esegue un'implementazione separata per regione, ciascuna con la propria chiave API. Il tuo audio viene elaborato e archiviato nella regione scelta. Si applica dalla prossima sessione."
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticato automaticamente tramite il tuo account",

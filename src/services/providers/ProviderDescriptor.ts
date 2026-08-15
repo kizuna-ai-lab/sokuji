@@ -174,6 +174,10 @@ export interface SessionResources {
 
 export interface AcquireSessionResourcesContext {
   getAuthToken: () => Promise<string | null>;
+  /** The active provider slice's Soniox region, resolved by the caller so the
+   *  descriptor never reaches into the store. Ignored by every provider that
+   *  has no regions. */
+  region?: string;
   /** The session's channel matrix, resolved by MainPanel. `textOnly` is the
    *  EFFECTIVE session text-only-ness — `speakerWillStart ? <store snapshot>
    *  : true` — resolved at the call site; the rule and its rationale live at

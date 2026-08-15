@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Ang pag-preview ng boses ay gumagawa ng maikling clip gamit ang sarili mong Soniox quota.",
     "sonioxVoicePreviewAuthError": "Nabigo ang preview — suriin ang API key",
     "sonioxVoicePreviewQuotaError": "Nabigo ang preview — naabot ang rate limit o quota ng Soniox",
-    "sonioxVoicePreviewTimeout": "Nag-timeout ang preview — subukang muli"
+    "sonioxVoicePreviewTimeout": "Nag-timeout ang preview — subukang muli",
+    "sonioxRegion": "Rehiyon",
+    "sonioxRegionTooltip": "Nagpapatakbo ang Soniox ng hiwalay na deployment kada rehiyon, bawat isa ay may sariling API key. Pinoproseso at iniimbak ang iyong audio sa rehiyong pipiliin mo. Iiral mula sa susunod na sesyon."
   },
   "simpleSettings": {
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",

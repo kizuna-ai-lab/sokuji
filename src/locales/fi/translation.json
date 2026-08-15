@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Äänen esikatselu synteesoi lyhyen näytteen käyttäen omaa Soniox-kiintiötäsi.",
     "sonioxVoicePreviewAuthError": "Esikatselu epäonnistui — tarkista API-avain",
     "sonioxVoicePreviewQuotaError": "Esikatselu epäonnistui — Soniox-nopeusrajoitus tai kiintiö saavutettu",
-    "sonioxVoicePreviewTimeout": "Esikatselu aikakatkaistiin — yritä uudelleen"
+    "sonioxVoicePreviewTimeout": "Esikatselu aikakatkaistiin — yritä uudelleen",
+    "sonioxRegion": "Alue",
+    "sonioxRegionTooltip": "Soniox ylläpitää erillistä ympäristöä kullekin alueelle, ja kullakin on oma API-avaimensa. Äänesi käsitellään ja tallennetaan valitsemallasi alueella. Voimassa seuraavasta istunnosta alkaen."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",

@@ -20,6 +20,8 @@ import { prepareManagedVoice, resolveVoicePrepOutcome } from './managedVoicePrep
 import { loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
 import { SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
 import i18n from '../../locales';
+import { asSonioxRegion } from '../../lib/soniox/regions';
+import { sonioxVoiceField } from './SonioxProviderConfig';
 
 // Backend-managed KizunaAI twin reuses the existing Soniox slice shape.
 export const defaultKizunaSonioxSettings: SonioxSettings = { ...defaultSonioxSettings };
@@ -86,14 +88,18 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
    *  the further awaits between prep and connect. */
   async prepareToStart(slice: unknown, ports: PreparePorts): Promise<PrepareOutcome> {
     if (!ports.sessionShape.speakerWillStart || ports.sessionShape.textOnly) return { ok: true };
-    const voice = (slice as { voice?: string })?.voice;
+    const region = asSonioxRegion((slice as { region?: string })?.region);
+    // The voice THIS region has selected: a cloned UUID exists only inside one
+    // project, so the US selection means nothing to an EU session.
+    const voice = (slice as Record<string, string | undefined>)?.[sonioxVoiceField(region)];
     const builtIn = new Set(this.getConfig().voices.map((v) => v.value));
     if (!voice || builtIn.has(voice)) return { ok: true };
 
     ports.onPhase({ phase: 'preparing-voice' });
     try {
       const result = await prepareManagedVoice({
-        client: new ManagedVoicesClient(ports.getAuthToken),
+        // Claimed in the region the session will actually run in.
+        client: new ManagedVoicesClient(ports.getAuthToken, region),
         // Scoped to the signed-in account: the clip is one record on a
         // device several people may share, and handing this account
         // somebody else's recording would upload their voice under this
@@ -113,12 +119,23 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
         return { ok: true };
       }
       const outcome = resolveVoicePrepOutcome(result, voice, SONIOX_DEFAULT_VOICE);
+      // Everything that names a SETTINGS field has to name the region's field.
+      // `sessionPatch` is the exception and stays `voice`: it patches the
+      // SESSION config, whose voice field is region-less by construction.
+      //
+      // Getting this wrong is silent rather than loud: `expectationHolds`
+      // compares `slice[key]`, so an EU session whose expectation said `voice`
+      // would compare the EU clone's UUID against the untouched US field, never
+      // match, and discard every prepared outcome — while `settingsPatch` wrote
+      // the rebuilt voice over the US selection the user never touched.
+      const voiceField = sonioxVoiceField(region);
+      const patchedVoice = outcome.settingsPatch?.voice;
       return {
         ok: true,
         ...(outcome.sessionVoice ? { sessionPatch: { voice: outcome.sessionVoice } } : {}),
-        ...(outcome.settingsPatch ? { settingsPatch: outcome.settingsPatch } : {}),
-        expect: { voice },
-        expectAtApply: { voice: outcome.settingsPatch?.voice ?? voice },
+        ...(patchedVoice !== undefined ? { settingsPatch: { [voiceField]: patchedVoice } } : {}),
+        expect: { [voiceField]: voice },
+        expectAtApply: { [voiceField]: patchedVoice ?? voice },
         ...(outcome.notice ? { notice: i18n.t(outcome.notice.key, outcome.notice.defaultValue) } : {}),
       };
     } finally {
@@ -139,6 +156,10 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
       textOnly: ctx.wiring.textOnly,
       sonioxSharedBoth: ctx.wiring.sharedBoth,
       sonioxSplitBoth: ctx.wiring.splitBoth,
+      // From the slice the user actually configured. The RESPONSE's region is
+      // what the bundles end up carrying (see ManagedSonioxSession.fileBundles)
+      // -- this is only the request.
+      region: asSonioxRegion(ctx.region),
     });
     const token = await ctx.getAuthToken();
     if (!token) throw new Error(KIZUNA_SIGN_IN_REQUIRED);

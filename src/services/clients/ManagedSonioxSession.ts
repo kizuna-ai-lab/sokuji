@@ -7,6 +7,7 @@ import {
 } from './SonioxSessionOutcome';
 import i18n from '../../locales';
 import { getApiUrl } from '../../utils/environment';
+import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 
 /**
  * The managed (backend-billed) Soniox SESSION: everything that belongs to the
@@ -69,6 +70,16 @@ export type SonioxSttRole = 'spk_stt' | 'par_stt' | 'mix_stt';
  * on it and it must never be the only thing carrying a role.
  */
 export interface SonioxCredentialBundle {
+  /**
+   * Which Soniox deployment these keys belong to.
+   *
+   * On the BUNDLE rather than on the client or a module global, because a split
+   * Both session runs two clients at once and a global would be one mutable
+   * cell shared by both legs and by any settings change made mid-session.
+   * Binding it here makes "dial an EU host with a US key" unrepresentable
+   * rather than merely a bug we test for.
+   */
+  region: SonioxRegion;
   /** Key for the STT socket. */
   stt: string;
   /** Key for the TTS socket. Absent for a text-only lease. BYOK: the same key as `stt`. */
@@ -78,8 +89,8 @@ export interface SonioxCredentialBundle {
 }
 
 /** BYOK: one user key serves both sockets, and no reference is sent. */
-export function byokCredentials(apiKey: string): SonioxCredentialBundle {
-  return { stt: apiKey, tts: apiKey };
+export function byokCredentials(apiKey: string, region: SonioxRegion): SonioxCredentialBundle {
+  return { stt: apiKey, tts: apiKey, region };
 }
 
 /**
@@ -97,6 +108,9 @@ export interface ManagedSessionRequest {
   mode: 'speaker' | 'participant' | 'both';
   textOnly: boolean;
   bothSplit: boolean;
+  /** Which Soniox regional project should mint this session's keys. The backend
+   *  refuses a region it has no project key for rather than serving US. */
+  region: SonioxRegion;
 }
 
 /** The plan's name for the same three fields, used by the MainPanel wiring
@@ -194,6 +208,9 @@ interface SonioxSessionKeyResponse {
   sku: string;
   leaseId: string;
   clientReferenceId: string;
+  /** Which regional project minted these keys. Absent from an older backend's
+   *  response, which normalizes to us. */
+  region?: string;
   streams?: SonioxSessionKeyStream[];
 }
 
@@ -348,6 +365,13 @@ export class ManagedSonioxSession {
    */
   private fileBundles(request: ManagedSessionRequest, data: SonioxSessionKeyResponse): void {
     const primary = primarySttRoleFor(request);
+    // The RESPONSE's region, never the request's. The backend is the authority
+    // on which project actually minted these keys, and a settings change
+    // between request and connect must not pair one region's keys with
+    // another's hosts. A missing field (an older backend, which predates the
+    // field entirely) or an unrecognised value normalizes to us — which is
+    // exactly asSonioxRegion's job, and why it defaults instead of rejecting.
+    const region = asSonioxRegion(data.region);
     const streams = data.streams;
     if (!Array.isArray(streams) || streams.length === 0) {
       // Defensive fallback for a response with no per-stream structure. Files
@@ -356,6 +380,7 @@ export class ManagedSonioxSession {
       // fails at the participant's credentialsFor, inside the non-fatal
       // participant catch, and degrades to one-way rather than mis-attributing.
       this.bundles.set(primary, {
+        region,
         stt: data.sttApiKey,
         ...(data.ttsApiKey ? { tts: data.ttsApiKey } : {}),
         clientReferenceId: data.clientReferenceId,
@@ -368,6 +393,7 @@ export class ManagedSonioxSession {
         (s) => !isSttRole(s.role) && roleSide(s.role) === roleSide(stream.role),
       );
       this.bundles.set(stream.role, {
+        region,
         stt: stream.apiKey,
         ...(tts ? { tts: tts.apiKey } : {}),
         clientReferenceId: stream.clientReferenceId,
@@ -667,6 +693,7 @@ export class ManagedSonioxSession {
       mode: request.mode,
       textOnly: request.textOnly,
       bothSplit: request.bothSplit,
+      region: request.region,
     };
     try {
       return await fetch(`${getApiUrl()}/soniox/session-key`, {

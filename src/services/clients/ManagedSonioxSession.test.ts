@@ -133,7 +133,16 @@ describe('primarySttRoleFor', () => {
 
 describe('byokCredentials', () => {
   it('puts the one user key in both slots and sends no reference', () => {
-    expect(byokCredentials('user-key')).toEqual({ stt: 'user-key', tts: 'user-key' });
+    expect(byokCredentials('user-key', 'us'))
+      .toEqual({ stt: 'user-key', tts: 'user-key', region: 'us' });
+  });
+
+  // No default on the parameter, deliberately: a key and a host are ONE
+  // credential, so a caller that forgot the region would silently dial US with
+  // a regional key. This pins that the region reaches the bundle verbatim.
+  it('carries the region it was given, not a default', () => {
+    expect(byokCredentials('eu-key', 'eu')).toMatchObject({ region: 'eu' });
+    expect(byokCredentials('jp-key', 'jp')).toMatchObject({ region: 'jp' });
   });
 });
 
@@ -180,6 +189,7 @@ describe('ManagedSonioxSession.acquire', () => {
     // four-segment reference — not the participant's, and not the lease's
     // three-segment base ref.
     expect(session.credentialsFor('spk_stt')).toEqual({
+      region: 'us',
       stt: 'key-spk-stt',
       tts: 'key-spk-tts',
       clientReferenceId: 'sokuji1:acct-1:lease-split-1:spk_stt',
@@ -188,6 +198,7 @@ describe('ManagedSonioxSession.acquire', () => {
     // are indistinguishable in the usage logs and the ended-mask could not be
     // driven at all.
     expect(session.credentialsFor('par_stt')).toEqual({
+      region: 'us',
       stt: 'key-par-stt',
       clientReferenceId: 'sokuji1:acct-1:lease-split-1:par_stt',
     });
@@ -230,6 +241,7 @@ describe('ManagedSonioxSession.acquire', () => {
 
     expect(session.primarySttRole).toBe('mix_stt');
     expect(session.credentialsFor('mix_stt')).toEqual({
+      region: 'us',
       stt: 'soniox-stt-temp-key',
       tts: 'soniox-tts-temp-key',
       clientReferenceId: 'sokuji1:acct-1:lease-abc-123',
@@ -649,5 +661,52 @@ describe('ManagedSonioxSession: the session allowance countdown', () => {
 
     session.tick(Date.now() + 5_000);
     expect(leg.announceSessionOutcome).not.toHaveBeenCalled();
+  });
+});
+
+describe('region', () => {
+  it('sends the requested region in the session-key body', async () => {
+    const fetchMock = mockFetchOnce(200, textOnlyResponse());
+    await newSession().acquire({ mode: 'speaker', textOnly: true, bothSplit: false, region: 'eu' });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({ region: 'eu' });
+  });
+
+  // The RESPONSE is authoritative, not the request. A settings change between
+  // request and connect must never pair one region's keys with another
+  // region's hosts, and the backend is the only party that knows which project
+  // actually minted them.
+  it('files bundles with the region from the RESPONSE, not the request', async () => {
+    mockFetchOnce(200, { ...textOnlyResponse(), region: 'jp' });
+    const session = newSession();
+    await session.acquire({ mode: 'speaker', textOnly: true, bothSplit: false, region: 'eu' });
+
+    expect(session.credentialsFor(session.primarySttRole).region).toBe('jp');
+  });
+
+  it('normalizes a missing region (an older backend) to us', async () => {
+    mockFetchOnce(200, textOnlyResponse());
+    const session = newSession();
+    await session.acquire({ mode: 'speaker', textOnly: true, bothSplit: false, region: 'eu' });
+
+    expect(session.credentialsFor(session.primarySttRole).region).toBe('us');
+  });
+
+  it('normalizes an unrecognized response region to us', async () => {
+    mockFetchOnce(200, { ...textOnlyResponse(), region: 'atlantis' });
+    const session = newSession();
+    await session.acquire({ mode: 'speaker', textOnly: true, bothSplit: false, region: 'us' });
+
+    expect(session.credentialsFor(session.primarySttRole).region).toBe('us');
+  });
+
+  it('stamps the region on EVERY leg of a split session, not just the primary', async () => {
+    mockFetchOnce(200, { ...splitBothResponse(), region: 'eu' });
+    const session = newSession();
+    await session.acquire({ mode: 'both', textOnly: false, bothSplit: true, region: 'eu' });
+
+    expect(session.credentialsFor('spk_stt').region).toBe('eu');
+    expect(session.credentialsFor('par_stt').region).toBe('eu');
   });
 });

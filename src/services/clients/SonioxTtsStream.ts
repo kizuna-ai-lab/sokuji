@@ -29,9 +29,15 @@
  *   stream was carrying content) apart from one that hit real speech.
  */
 import { SONIOX_REDUCE_SILENCE } from '../../lib/soniox/ttsCatalog';
+import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
 
 export interface SonioxTtsOptions {
   apiKey: string;
+  /** Which Soniox deployment `apiKey` belongs to. Required, not defaulted, for
+   *  the same reason as SonioxSttConfig.region: a key and a host are ONE
+   *  credential. In a session this is always the STT leg's own region — both
+   *  come off the same SonioxCredentialBundle. */
+  region: SonioxRegion;
   voice: string;
   model: string;
   sampleRate: number;
@@ -60,7 +66,6 @@ interface QueuedItem {
   language?: string;
 }
 
-const TTS_URL = 'wss://tts-rt.soniox.com/tts-websocket';
 const CONNECTION_TIMEOUT_MS = 15000;
 const KEEPALIVE_INTERVAL_MS = 20000;
 
@@ -90,7 +95,7 @@ export class SonioxTtsStream {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(TTS_URL);
+      const ws = new WebSocket(`wss://${sonioxHosts(this.options.region).ttsRt}/tts-websocket`);
       this.ws = ws;
       this.intentionalClose = false;
       let opened = false;

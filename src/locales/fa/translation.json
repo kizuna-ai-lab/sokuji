@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "پیش‌نمایش یک صدا با استفاده از سهمیه Soniox خودتان یک قطعه کوتاه تولید می‌کند.",
     "sonioxVoicePreviewAuthError": "پیش‌نمایش ناموفق بود — کلید API را بررسی کنید",
     "sonioxVoicePreviewQuotaError": "پیش‌نمایش ناموفق بود — محدودیت نرخ یا سهمیه Soniox پر شده است",
-    "sonioxVoicePreviewTimeout": "زمان پیش‌نمایش به پایان رسید — دوباره تلاش کنید"
+    "sonioxVoicePreviewTimeout": "زمان پیش‌نمایش به پایان رسید — دوباره تلاش کنید",
+    "sonioxRegion": "منطقه",
+    "sonioxRegionTooltip": "Soniox برای هر منطقه استقرار جداگانه‌ای دارد که هرکدام کلید API مخصوص خود را دارند. صدای شما در منطقه انتخابی پردازش و ذخیره می‌شود. از جلسه بعدی اعمال می‌شود."
   },
   "simpleSettings": {
     "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",

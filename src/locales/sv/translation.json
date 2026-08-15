@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Att förhandsgranska en röst syntetiserar ett kort klipp med din egen Soniox-kvot.",
     "sonioxVoicePreviewAuthError": "Förhandsgranskning misslyckades — kontrollera API-nyckeln",
     "sonioxVoicePreviewQuotaError": "Förhandsgranskning misslyckades — Soniox hastighetsgräns eller kvot uppnådd",
-    "sonioxVoicePreviewTimeout": "Förhandsgranskningen tog för lång tid — försök igen"
+    "sonioxVoicePreviewTimeout": "Förhandsgranskningen tog för lång tid — försök igen",
+    "sonioxRegion": "Region",
+    "sonioxRegionTooltip": "Soniox kör en separat driftsättning per region, var och en med en egen API-nyckel. Ditt ljud behandlas och lagras i den region du väljer. Gäller från nästa session."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",

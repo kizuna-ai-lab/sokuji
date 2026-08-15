@@ -23,7 +23,7 @@ const errBody = (status: number, body: unknown) => ({
   status,
   json: async () => body,
 });
-const OPTS = { apiKey: 'k', voice: 'uuid-1', language: 'ja', text: 'こんにちは。' };
+const OPTS = { region: 'us' as const, apiKey: 'k', voice: 'uuid-1', language: 'ja', text: 'こんにちは。' };
 
 describe('synthesizeOnce', () => {
   it('posts every required field with a Bearer header and omits speed at 1.0', async () => {
