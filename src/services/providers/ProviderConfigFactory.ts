@@ -132,6 +132,28 @@ export class ProviderConfigFactory {
    * @param providerId - The provider identifier
    * @returns ProviderDescriptor instance
    */
+  /**
+   * The Kizuna-managed provider to put a Basic-mode user on when they sign in,
+   * or null when this build offers none.
+   *
+   * Derived from what is REGISTERED rather than from a feature flag. The
+   * managed providers are gated independently, so `isKizunaAIEnabled()` no
+   * longer implies any particular one exists — a caller that hardcoded the
+   * Translate twin would set a provider `getDescriptor` then throws on.
+   *
+   * The preference order preserves the previous behaviour where the twins are
+   * available (Translate first) and falls through to whatever else is
+   * registered, so a build offering only Soniox lands on Soniox.
+   */
+  static getDefaultManagedProvider(): ProviderType | null {
+    const preferred = [
+      Provider.KIZUNA_AI_OPENAI_TRANSLATE,
+      Provider.KIZUNA_AI_VOLCENGINE_AST2,
+      Provider.KIZUNA_AI_SONIOX,
+    ];
+    return preferred.find((p) => this.configs.has(p)) ?? null;
+  }
+
   static getDescriptor(providerId: ProviderType): ProviderDescriptor {
     const d = this.configs.get(providerId);
     if (!d) throw new Error(`Unsupported provider: ${providerId}`);
