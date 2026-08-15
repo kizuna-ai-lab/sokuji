@@ -321,11 +321,26 @@ export interface SettingsStore {
 
 // ==================== Helper Functions ====================
 
-/** Migrate a persisted legacy 'kizunaai' provider value to the relay twin.
- *  The realtime KizunaAI provider was replaced by two relay-managed providers;
- *  default existing users to the Translate twin. */
+/**
+ * Migrate a persisted legacy 'kizunaai' provider value to a managed provider.
+ *
+ * The realtime KizunaAI provider was replaced by relay-managed twins. The
+ * target is whichever managed provider this build REGISTERED, not a fixed one:
+ * the twins are gated independently, so a build that ships Soniox alone does
+ * not offer the Translate twin, and naming it would fail `isProviderSupported`
+ * in `loadSettings` and drop the user to BYOK OpenAI — the opposite of what
+ * this migration exists for, and silent. Advanced-mode users are not rescued
+ * by the Basic-mode sign-in switch either, so nothing downstream would correct
+ * it.
+ *
+ * Falls back to the Translate twin when no managed provider is registered at
+ * all, which preserves the previous behaviour: `loadSettings` rejects it and
+ * lands on OpenAI, the only sensible answer for a build with no managed
+ * providers.
+ */
 export function migrateLegacyKizunaProvider(p: Provider | string): Provider {
-  return (p as string) === 'kizunaai' ? Provider.KIZUNA_AI_OPENAI_TRANSLATE : (p as Provider);
+  if ((p as string) !== 'kizunaai') return p as Provider;
+  return ProviderConfigFactory.getDefaultManagedProvider() ?? Provider.KIZUNA_AI_OPENAI_TRANSLATE;
 }
 
 /** Migrate persisted PalabraAI language codes that the API rejects.

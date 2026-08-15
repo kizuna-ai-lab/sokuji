@@ -152,3 +152,53 @@ describe('the sign-in default must be a provider this build registered', () => {
     expect(ProviderConfigFactory.getDefaultManagedProvider()).toBeNull();
   });
 });
+
+describe('the legacy kizunaai migration must land on a registered provider', () => {
+  // Codex on #415. `migrateLegacyKizunaProvider` rewrote a persisted 'kizunaai'
+  // to the Translate twin, and its own comment promised "stranded users land on
+  // a supported provider". Splitting the gates broke that promise: in a build
+  // that ships Soniox alone the twin is unregistered, `loadSettings` rejects it
+  // at `isProviderSupported`, and the user silently drops to BYOK OpenAI — from
+  // a managed provider to one needing their own API key. Advanced-mode users
+  // are not rescued by the Basic-mode sign-in switch, so nothing corrects it.
+  async function migrateWith(relayEnabled: boolean) {
+    vi.resetModules();
+    vi.doMock('../../utils/environment', async (orig) => ({
+      ...(await orig<any>()),
+      isKizunaAIEnabled: () => true,
+      isKizunaRelayProvidersEnabled: () => relayEnabled,
+      isPalabraAIEnabled: () => false,
+      isLocalNativeEnabled: () => false,
+      isElectron: () => true,
+      isExtension: () => false,
+      getRelayWsUrl: () => 'wss://r.example/v1',
+    }));
+    const { migrateLegacyKizunaProvider } = await import('../../stores/settingsStore');
+    const { ProviderConfigFactory } = await import('./ProviderConfigFactory');
+    return { migrateLegacyKizunaProvider, ProviderConfigFactory };
+  }
+
+  it('sends a legacy user to managed Soniox when the twins are not registered', async () => {
+    const { migrateLegacyKizunaProvider, ProviderConfigFactory } = await migrateWith(false);
+    const migrated = migrateLegacyKizunaProvider('kizunaai');
+
+    expect(migrated).toBe(Provider.KIZUNA_AI_SONIOX);
+    // The property that matters: the migration target must survive the
+    // isProviderSupported check that `loadSettings` puts it through.
+    expect(ProviderConfigFactory.isProviderSupported(migrated)).toBe(true);
+  });
+
+  it('still prefers the Translate twin where it is registered', async () => {
+    const { migrateLegacyKizunaProvider, ProviderConfigFactory } = await migrateWith(true);
+    const migrated = migrateLegacyKizunaProvider('kizunaai');
+
+    expect(migrated).toBe(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
+    expect(ProviderConfigFactory.isProviderSupported(migrated)).toBe(true);
+  });
+
+  it('leaves any other persisted provider untouched', async () => {
+    const { migrateLegacyKizunaProvider } = await migrateWith(false);
+    expect(migrateLegacyKizunaProvider(Provider.GEMINI)).toBe(Provider.GEMINI);
+    expect(migrateLegacyKizunaProvider(Provider.SONIOX)).toBe(Provider.SONIOX);
+  });
+});
