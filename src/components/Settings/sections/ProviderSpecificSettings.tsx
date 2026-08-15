@@ -70,6 +70,7 @@ import { EngineSection } from './EngineSection';
 import SonioxVoiceSection from './SonioxVoiceSection';
 import { byokVoiceSource, managedVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
 import { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
+import { useSessionIsInitializing } from '../../../stores/sessionStore';
 import {
   SONIOX_REGIONS, SONIOX_REGION_LABELS, asSonioxRegion,
 } from '../../../lib/soniox/regions';
@@ -259,7 +260,18 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // while some unrelated provider is selected.
   // The active region, and the key/voice fields it selects. Read once here so
   // every Soniox consumer below agrees on which credential is in play.
+  const isSessionInitializing = useSessionIsInitializing();
   const sonioxRegion = asSonioxRegion(activeSonioxSettings.region);
+  // Start is not instantaneous: managed voice preparation, the session-key
+  // round trip and both clients' construction all happen while
+  // `isSessionActive` is still false. A region change landing inside that
+  // window is read by different steps at different times — the voice can be
+  // claimed in the old region while the lease is bought in the new one, and a
+  // split BYOK session's two legs each read the live slice as they are
+  // constructed, so they can capture different regional keys. The selector is
+  // therefore frozen from the moment Start is pressed, not from the moment the
+  // session goes live.
+  const sonioxRegionLocked = isSessionActive || isSessionInitializing;
   const sonioxApiKeyForRegion = activeSonioxSettings[sonioxKeyField(sonioxRegion)];
   const sonioxVoiceSource = useMemo<VoiceLibrarySource | null>(() => {
     if (isKizunaManagedProvider(provider)) {
@@ -1894,9 +1906,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <select
               id="soniox-region-select"
               value={sonioxRegion}
-              // Switching hosts under a live socket is not something the
-              // session can survive, so this is inert while one is running.
-              disabled={isSessionActive}
+              disabled={sonioxRegionLocked}
               onChange={(e) => updateActiveSonioxSettings({ region: asSonioxRegion(e.target.value) })}
             >
               {SONIOX_REGIONS.map((region) => (

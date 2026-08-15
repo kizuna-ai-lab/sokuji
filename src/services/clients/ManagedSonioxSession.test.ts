@@ -133,7 +133,16 @@ describe('primarySttRoleFor', () => {
 
 describe('byokCredentials', () => {
   it('puts the one user key in both slots and sends no reference', () => {
-    expect(byokCredentials('user-key')).toEqual({ stt: 'user-key', tts: 'user-key' });
+    expect(byokCredentials('user-key', 'us'))
+      .toEqual({ stt: 'user-key', tts: 'user-key', region: 'us' });
+  });
+
+  // No default on the parameter, deliberately: a key and a host are ONE
+  // credential, so a caller that forgot the region would silently dial US with
+  // a regional key. This pins that the region reaches the bundle verbatim.
+  it('carries the region it was given, not a default', () => {
+    expect(byokCredentials('eu-key', 'eu')).toMatchObject({ region: 'eu' });
+    expect(byokCredentials('jp-key', 'jp')).toMatchObject({ region: 'jp' });
   });
 });
 

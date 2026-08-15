@@ -119,12 +119,23 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
         return { ok: true };
       }
       const outcome = resolveVoicePrepOutcome(result, voice, SONIOX_DEFAULT_VOICE);
+      // Everything that names a SETTINGS field has to name the region's field.
+      // `sessionPatch` is the exception and stays `voice`: it patches the
+      // SESSION config, whose voice field is region-less by construction.
+      //
+      // Getting this wrong is silent rather than loud: `expectationHolds`
+      // compares `slice[key]`, so an EU session whose expectation said `voice`
+      // would compare the EU clone's UUID against the untouched US field, never
+      // match, and discard every prepared outcome — while `settingsPatch` wrote
+      // the rebuilt voice over the US selection the user never touched.
+      const voiceField = sonioxVoiceField(region);
+      const patchedVoice = outcome.settingsPatch?.voice;
       return {
         ok: true,
         ...(outcome.sessionVoice ? { sessionPatch: { voice: outcome.sessionVoice } } : {}),
-        ...(outcome.settingsPatch ? { settingsPatch: outcome.settingsPatch } : {}),
-        expect: { voice },
-        expectAtApply: { voice: outcome.settingsPatch?.voice ?? voice },
+        ...(patchedVoice !== undefined ? { settingsPatch: { [voiceField]: patchedVoice } } : {}),
+        expect: { [voiceField]: voice },
+        expectAtApply: { [voiceField]: patchedVoice ?? voice },
         ...(outcome.notice ? { notice: i18n.t(outcome.notice.key, outcome.notice.defaultValue) } : {}),
       };
     } finally {

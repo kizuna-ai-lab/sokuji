@@ -13,8 +13,8 @@ backend.
 
 Users who need their audio to stay in the EU or in Japan cannot use Sokuji's Soniox
 provider at all — not as a degraded experience, but not at all, because a US-region key
-does not authenticate against the US host on their behalf and a regional key does not
-authenticate against the US host either. Regional projects are separate projects with
+does not authenticate against an EU or JP host, and a regional key does not authenticate
+against the US host either. Regional projects are separate projects with
 separate keys, so the region is not a routing preference; it is part of the credential.
 
 This applies to both flavours: BYOK Soniox (the user's own regional project key) and
@@ -147,14 +147,16 @@ Recorded because the reasoning is not recoverable from the resulting code.
 export type SonioxRegion = 'us' | 'eu' | 'jp';
 export const SONIOX_REGIONS: readonly SonioxRegion[];
 export function sonioxHosts(region: SonioxRegion): { api: string; sttRt: string; ttsRt: string };
-export function isSonioxRegion(value: unknown): value is SonioxRegion;
+export function asSonioxRegion(value: unknown): SonioxRegion;
 export const DEFAULT_SONIOX_REGION: SonioxRegion = 'us';
 ```
 
-`isSonioxRegion` exists because the region arrives from two untrusted places: a persisted
+`asSonioxRegion` exists because the region arrives from two untrusted places: a persisted
 settings value written by an older or newer build, and the backend's session-key response.
 Both are normalized through it, falling back to `us` rather than producing a malformed
-hostname.
+hostname. It DEFAULTS rather than rejecting, which is the opposite of the backend's
+`parseSonioxRegion`: refusing is right when a user asks for a region we cannot serve,
+defaulting is right when reading back our own storage.
 
 **Wire components** each gain a `region` input and derive their own URL from
 `sonioxHosts`:
@@ -226,7 +228,7 @@ a voice in the region its slot records.
 | Key belongs to a different region | Soniox answers 401. Caught at validation time, because changing region re-validates. Mid-session it falls through the existing `surfaceSttError` raw path, where the server's own words are the actionable part. |
 | Region has no key entered yet | `extractCredentials` returns `{ ok: false }` — the same silent, non-erroring state as an empty key today. |
 | Backend has no project key for the region | Session-key returns a distinct error code, mapped to one localized sentence. No fallback. |
-| Persisted region is not a known value | `isSonioxRegion` rejects it; falls back to `us`. |
+| Persisted region is not a known value | `asSonioxRegion` normalizes it to `us`. |
 | Cloned voice UUID missing in the region | Per-region voice fields make this unreachable for a user who set it up in that region. A managed slot in the wrong region is rebuilt by `prepareManagedVoice`, which already handles an evicted slot. |
 
 ## Testing

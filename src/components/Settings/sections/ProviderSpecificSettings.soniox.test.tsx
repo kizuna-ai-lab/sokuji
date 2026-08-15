@@ -87,6 +87,7 @@ vi.mock('./SonioxVoiceSection', () => ({
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
 const { Provider } = await import('../../../types/Provider');
 const { ProviderConfigFactory } = await import('../../../services/providers/ProviderConfigFactory');
+const { default: useSessionStore } = await import('../../../stores/sessionStore');
 const { SonioxProviderConfig } = await import('../../../services/providers/SonioxProviderConfig');
 const { default: ProviderSpecificSettings } = await import('./ProviderSpecificSettings');
 const { useAuth } = await import('../../../lib/auth/hooks');
@@ -386,6 +387,19 @@ describe('region selector', () => {
 
     fireEvent.change(el, { target: { value: 'eu' } });
     expect(useSettingsStore.getState().soniox.region).toBe('eu');
+  });
+
+  // Codex review on PR #413: Start is not instantaneous. Managed voice prep,
+  // the session-key round trip and both clients' construction all run while
+  // `isSessionActive` is still false, and they read the region at different
+  // moments -- so a change landing inside that window can claim a voice in one
+  // region while the lease is bought in another.
+  it('is disabled from the moment Start is pressed, not just once live', () => {
+    act(() => { useSessionStore.setState({ isInitializing: true, isSessionActive: false } as any); });
+    const { container } = mount();
+    const el = container.querySelector('#soniox-region-select') as HTMLSelectElement;
+    expect(el.disabled).toBe(true);
+    act(() => { useSessionStore.setState({ isInitializing: false } as any); });
   });
 
   // Switching hosts under a live socket is not something the session can
