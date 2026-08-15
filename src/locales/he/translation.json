@@ -406,16 +406,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "תרגום בזמן אמת, מאומת דרך החשבון שלך"
+      "name": "KizunaAI",
+      "description": "75 שפות מקור (זיהוי אוטומטי), 13 שפות יעד",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "תרגום דיבור לדיבור, מאומת דרך החשבון שלך"
+      "name": "KizunaAI",
+      "description": "8 שפות + סינית–אנגלית דו-כיווני · שומר על הקול שלך",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "תרגום דיבור לדיבור, מאומת דרך החשבון שלך"
+      "name": "KizunaAI",
+      "description": "60 שפות, 3,600 צמדים · שכפול הקול שלך",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -481,7 +484,8 @@
     "unknown": {
       "name": "לא ידוע",
       "description": "ספק לא ידוע"
-    }
+    },
+    "poweredBy": "מופעל על ידי <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "גלילה אוטומטית פועלת",

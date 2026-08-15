@@ -406,16 +406,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "Terjemahan real-time, diautentikasi melalui akun Anda"
+      "name": "KizunaAI",
+      "description": "75 bahasa sumber (deteksi otomatis), 13 bahasa target",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "Terjemahan ucapan-ke-ucapan, diautentikasi melalui akun Anda"
+      "name": "KizunaAI",
+      "description": "8 bahasa + Mandarin–Inggris dua arah · mempertahankan suara Anda",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "Terjemahan ucapan-ke-ucapan, diautentikasi melalui akun Anda"
+      "name": "KizunaAI",
+      "description": "60 bahasa, 3.600 pasangan · klon suara Anda sendiri",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -481,7 +484,8 @@
     "unknown": {
       "name": "Tidak Diketahui",
       "description": "Penyedia tidak diketahui"
-    }
+    },
+    "poweredBy": "Didukung oleh <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "Gulir otomatis aktif",

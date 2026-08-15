@@ -406,16 +406,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "Tradução em tempo real, autenticada pela sua conta"
+      "name": "KizunaAI",
+      "description": "75 idiomas de origem (detecção automática), 13 de destino",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "Tradução de voz para voz, autenticada pela sua conta"
+      "name": "KizunaAI",
+      "description": "8 idiomas + chinês–inglês bidirecional · mantém sua voz",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "Tradução de voz para voz, autenticada pela sua conta"
+      "name": "KizunaAI",
+      "description": "60 idiomas, 3.600 pares · clone sua própria voz",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -481,7 +484,8 @@
     "unknown": {
       "name": "Desconhecido",
       "description": "Provedor desconhecido"
-    }
+    },
+    "poweredBy": "Com tecnologia <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "Rolagem automática ligada",

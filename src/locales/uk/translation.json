@@ -406,16 +406,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "Переклад у реальному часі, автентифікація через ваш обліковий запис"
+      "name": "KizunaAI",
+      "description": "75 вихідних мов (автовизначення), 13 цільових",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "Переклад мовлення в мовлення, автентифікація через ваш обліковий запис"
+      "name": "KizunaAI",
+      "description": "8 мов + китайська–англійська двосторонньо · зберігає ваш голос",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "Переклад мовлення в мовлення, автентифікація через ваш обліковий запис"
+      "name": "KizunaAI",
+      "description": "60 мов, 3600 мовних пар · клонування вашого голосу",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -481,7 +484,8 @@
     "unknown": {
       "name": "Невідомо",
       "description": "Невідомий постачальник"
-    }
+    },
+    "poweredBy": "Працює на <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "Автопрокрутку ввімкнено",

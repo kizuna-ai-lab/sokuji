@@ -406,16 +406,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "실시간 번역, 계정으로 인증"
+      "name": "KizunaAI",
+      "description": "소스 75개 언어(자동 감지), 타깃 13개 언어",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "음성 대 음성 번역, 계정으로 인증"
+      "name": "KizunaAI",
+      "description": "8개 언어 + 중–영 양방향 · 화자 목소리 유지",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "음성 대 음성 번역, 계정으로 인증"
+      "name": "KizunaAI",
+      "description": "60개 언어, 3,600개 언어 쌍 · 내 목소리 클론",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -481,7 +484,8 @@
     "unknown": {
       "name": "알 수 없음",
       "description": "알 수 없는 제공업체"
-    }
+    },
+    "poweredBy": "<brand>{{name}}</brand> 제공"
   },
   "logsPanel": {
     "autoScrollOn": "자동 스크롤 켜짐",

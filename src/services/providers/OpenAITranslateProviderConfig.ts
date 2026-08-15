@@ -128,15 +128,27 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
     // targetLanguage to settings.sourceLanguage so the participant client
     // translates "their speech → user's language" instead of mirroring the
     // speaker's direction. If the user picked a sourceLanguage outside the
-    // 13 supported targets, the swap may produce an invalid target — the UI
-    // already warns about this combination, and the API will surface a clear
-    // error if the user proceeds anyway.
+    // 13 supported targets, the swap would produce an invalid target — the
+    // guard below rejects that upfront instead of shipping a config
+    // gpt-realtime-translate would only reject after connect.
     const oldTarget: TranslateTargetLanguage = tConfig.targetLanguage;
     const oldSource: string | undefined = tConfig.sourceLanguage;
-    // Cast: type-system can't validate at this layer; runtime gating is
-    // the UI warning + API error message.
+    // Cast: type-system can't validate at this layer; the guard below is
+    // the runtime check.
     tConfig.targetLanguage = (oldSource ?? oldTarget) as TranslateTargetLanguage;
     tConfig.sourceLanguage = oldTarget;
+
+    const newTarget = tConfig.targetLanguage;
+    const targetValid = OpenAITranslateProviderConfig.TARGET_LANGUAGES.some(l => l.value === newTarget);
+    if (!targetValid) {
+      return {
+        config: null,
+        notices: [{
+          channel: 'error',
+          message: `Participant translation ${tConfig.sourceLanguage} → ${newTarget} is not supported — participant channel skipped`,
+        }],
+      };
+    }
 
     return result;
   }

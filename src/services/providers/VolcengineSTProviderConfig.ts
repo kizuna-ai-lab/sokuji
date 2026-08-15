@@ -75,6 +75,25 @@ export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
     const oldSource = st.sourceLanguage;
     st.sourceLanguage = st.targetLanguages[0] || oldSource;
     st.targetLanguages = [oldSource];
+
+    const newSource = st.sourceLanguage;
+    const newTarget = st.targetLanguages[0];
+    // The new target (= old source) is always in the 28-entry TARGET_LANGUAGES
+    // list, so only newSource can actually fail — written as a pair check
+    // against both lists anyway to keep the same shape as the other
+    // rotate-pattern guard (ZoomAI) and stay correct if either list narrows.
+    const sourceValid = VolcengineSTProviderConfig.SOURCE_LANGUAGES.some(l => l.value === newSource);
+    const targetValid = VolcengineSTProviderConfig.TARGET_LANGUAGES.some(l => l.value === newTarget);
+    if (!sourceValid || !targetValid) {
+      return {
+        config: null,
+        notices: [{
+          channel: 'error',
+          message: `Participant translation ${newSource} → ${newTarget} is not supported — participant channel skipped`,
+        }],
+      };
+    }
+
     return result;
   }
 

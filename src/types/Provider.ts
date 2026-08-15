@@ -42,7 +42,15 @@ export function isOpenAICompatible(provider: ProviderType): boolean {
   return OPENAI_COMPATIBLE_PROVIDERS.includes(provider);
 }
 
-export function isKizunaManagedProvider(p: Provider): boolean {
+/** The backend-managed twins: Kizuna AI's own service running on a third-party
+ *  engine. Keep in lockstep with isKizunaManagedProvider below — several UI
+ *  maps are keyed by this type and tested for exhaustiveness against it. */
+export type KizunaManagedProvider =
+  | Provider.KIZUNA_AI_OPENAI_TRANSLATE
+  | Provider.KIZUNA_AI_VOLCENGINE_AST2
+  | Provider.KIZUNA_AI_SONIOX;
+
+export function isKizunaManagedProvider(p: Provider): p is KizunaManagedProvider {
   return p === Provider.KIZUNA_AI_OPENAI_TRANSLATE || p === Provider.KIZUNA_AI_VOLCENGINE_AST2
     || p === Provider.KIZUNA_AI_SONIOX;
 }

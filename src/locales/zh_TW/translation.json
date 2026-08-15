@@ -406,16 +406,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "即時翻譯，透過您的帳戶進行驗證"
+      "name": "KizunaAI",
+      "description": "75 種來源語言（自動辨識），13 種目標語言",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "語音到語音翻譯，透過您的帳戶進行驗證"
+      "name": "KizunaAI",
+      "description": "8 種語言 + 中英雙向 · 保留你的聲音",
+      "vendor": "豆包"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "語音到語音翻譯，透過您的帳戶進行驗證"
+      "name": "KizunaAI",
+      "description": "60 種語言，3,600 個語言對 · 可複製你自己的聲音",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -481,7 +484,8 @@
     "unknown": {
       "name": "未知",
       "description": "未知的提供商"
-    }
+    },
+    "poweredBy": "<brand>{{name}}</brand> 驅動"
   },
   "logsPanel": {
     "autoScrollOn": "自動捲動 開",

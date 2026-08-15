@@ -406,16 +406,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "रीयल-टाइम अनुवाद, आपके खाते के माध्यम से प्रमाणित"
+      "name": "KizunaAI",
+      "description": "75 स्रोत भाषाएँ (स्वतः पहचान), 13 लक्ष्य भाषाएँ",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "वाक्-से-वाक् अनुवाद, आपके खाते के माध्यम से प्रमाणित"
+      "name": "KizunaAI",
+      "description": "8 भाषाएँ + चीनी–अंग्रेज़ी द्विदिश · आपकी आवाज़ बनाए रखता है",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "वाक्-से-वाक् अनुवाद, आपके खाते के माध्यम से प्रमाणित"
+      "name": "KizunaAI",
+      "description": "60 भाषाएँ, 3,600 जोड़े · अपनी आवाज़ क्लोन करें",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -481,7 +484,8 @@
     "unknown": {
       "name": "अज्ञात",
       "description": "अज्ञात प्रदाता"
-    }
+    },
+    "poweredBy": "<brand>{{name}}</brand> द्वारा संचालित"
   },
   "logsPanel": {
     "autoScrollOn": "ऑटो-स्क्रॉल चालू",
