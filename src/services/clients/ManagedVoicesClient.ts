@@ -20,6 +20,7 @@
  * `errorType`, so SonioxVoiceSection's existing error mapping works unchanged
  * whichever source is behind it.
  */
+import { DEFAULT_SONIOX_REGION, type SonioxRegion } from '../../lib/soniox/regions';
 import { getApiUrl } from '../../utils/environment';
 import { SonioxVoicesError } from './SonioxVoicesClient';
 
@@ -37,7 +38,14 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const UPLOAD_TIMEOUT_MS = 120_000;
 
 export class ManagedVoicesClient {
-  constructor(private readonly getToken: () => Promise<string | null>) {}
+  constructor(
+    private readonly getToken: () => Promise<string | null>,
+    /** Which Soniox regional project the backend should build this account's
+     *  voice in. A cloned voice's UUID exists only inside one project, so a
+     *  slot claimed in the wrong region names a voice the session cannot use.
+     *  Defaults to US so existing call sites keep their behaviour. */
+    private readonly region: SonioxRegion = DEFAULT_SONIOX_REGION,
+  ) {}
 
   private async request(
     path: string,
@@ -86,7 +94,7 @@ export class ManagedVoicesClient {
     try {
       let res: Response;
       try {
-        res = await fetch(`${getApiUrl()}/soniox/voices${path}`, {
+        res = await fetch(`${getApiUrl()}/soniox/voices${path}${path.includes('?') ? '&' : '?'}region=${this.region}`, {
           ...init,
           headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${token}` },
           signal: controller.signal,

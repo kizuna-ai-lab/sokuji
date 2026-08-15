@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "L'aperçu d'une voix synthétise un court extrait en utilisant votre propre quota Soniox.",
     "sonioxVoicePreviewAuthError": "Échec de l'aperçu — vérifiez la clé API",
     "sonioxVoicePreviewQuotaError": "Échec de l'aperçu — limite de fréquence ou quota Soniox atteint",
-    "sonioxVoicePreviewTimeout": "L'aperçu a expiré — réessayez"
+    "sonioxVoicePreviewTimeout": "L'aperçu a expiré — réessayez",
+    "sonioxRegion": "Région",
+    "sonioxRegionTooltip": "Soniox exploite un déploiement distinct par région, chacun avec sa propre clé API. Votre audio est traité et stocké dans la région choisie. S'applique à partir de la prochaine session."
   },
   "simpleSettings": {
     "autoAuthenticated": "Authentifié automatiquement via votre compte",

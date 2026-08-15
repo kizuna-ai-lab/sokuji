@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "音声をプレビューすると、ご自身の Soniox クォータを使用して短いクリップが合成されます。",
     "sonioxVoicePreviewAuthError": "プレビューに失敗しました — APIキーを確認してください",
     "sonioxVoicePreviewQuotaError": "プレビューに失敗しました — Soniox のレート制限またはクォータに達しました",
-    "sonioxVoicePreviewTimeout": "プレビューがタイムアウトしました — もう一度お試しください"
+    "sonioxVoicePreviewTimeout": "プレビューがタイムアウトしました — もう一度お試しください",
+    "sonioxRegion": "リージョン",
+    "sonioxRegionTooltip": "Soniox はリージョンごとに独立したデプロイで、それぞれ専用の API キーがあります。音声は選択したリージョン内で処理・保存されます。次のセッションから適用されます。"
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",

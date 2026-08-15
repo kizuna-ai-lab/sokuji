@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, ExternalLink, X } from 'lucide-react';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon, SonioxIcon } from '../../Icons/ProviderIcons';
+import { asSonioxRegion } from '../../../lib/soniox/regions';
+import { sonioxKeyField } from '../../../services/providers/SonioxProviderConfig';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
@@ -321,7 +323,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         updateZoomAISettings({ apiKey: value });
         break;
       case Provider.SONIOX:
-        updateSonioxSettings({ apiKey: value });
+        // The generic input edits the ACTIVE region's key: three regions mean
+        // three independent credentials, and writing them all to `apiKey` would
+        // overwrite the US key every time a regional one was pasted.
+        updateSonioxSettings({
+          [sonioxKeyField(asSonioxRegion((currentProviderSettingsSlice as { region?: string })?.region))]: value,
+        });
         break;
     }
   };

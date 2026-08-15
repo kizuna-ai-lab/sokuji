@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "একটি কণ্ঠস্বর প্রিভিউ করলে আপনার নিজস্ব Soniox কোটা ব্যবহার করে একটি সংক্ষিপ্ত ক্লিপ সংশ্লেষিত হয়।",
     "sonioxVoicePreviewAuthError": "প্রিভিউ ব্যর্থ হয়েছে — আপনার API কী পরীক্ষা করুন",
     "sonioxVoicePreviewQuotaError": "প্রিভিউ ব্যর্থ হয়েছে — Soniox রেট সীমা বা কোটা পৌঁছে গেছে",
-    "sonioxVoicePreviewTimeout": "প্রিভিউর সময় শেষ হয়ে গেছে — আবার চেষ্টা করুন"
+    "sonioxVoicePreviewTimeout": "প্রিভিউর সময় শেষ হয়ে গেছে — আবার চেষ্টা করুন",
+    "sonioxRegion": "অঞ্চল",
+    "sonioxRegionTooltip": "Soniox প্রতিটি অঞ্চলের জন্য আলাদা স্থাপনা চালায়, প্রতিটির নিজস্ব API কী রয়েছে। আপনার অডিও আপনার নির্বাচিত অঞ্চলেই প্রক্রিয়াজাত ও সংরক্ষিত হয়। পরবর্তী সেশন থেকে কার্যকর।"
   },
   "simpleSettings": {
     "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত",

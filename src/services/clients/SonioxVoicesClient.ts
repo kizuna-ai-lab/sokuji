@@ -16,8 +16,8 @@
  */
 
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
+import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
 
-const VOICES_URL = 'https://api.soniox.com/v1/voices';
 const TTS_MODEL = SONIOX_TTS_MODEL;
 
 export type SonioxVoiceModelStatus = 'not_computed' | 'processing' | 'ready' | 'failed';
@@ -71,7 +71,14 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const UPLOAD_TIMEOUT_MS = 120_000;
 
 export class SonioxVoicesClient {
-  constructor(private readonly apiKey: string) {}
+  /** `/v1/voices` on this region's host. Per instance, because voice
+   *  MANAGEMENT needs the permanent project key and a project belongs to
+   *  exactly one region — a cloned voice's UUID does not exist in the others. */
+  private readonly voicesUrl: string;
+
+  constructor(private readonly apiKey: string, region: SonioxRegion) {
+    this.voicesUrl = `https://${sonioxHosts(region).api}/v1/voices`;
+  }
 
   private headers(): Record<string, string> {
     return { Authorization: `Bearer ${this.apiKey}` };
@@ -95,7 +102,7 @@ export class SonioxVoicesClient {
     const voices: SonioxVoice[] = [];
     let cursor: string | null = null;
     do {
-      const url = new URL(VOICES_URL);
+      const url = new URL(this.voicesUrl);
       url.searchParams.set('limit', '1000');
       if (cursor) url.searchParams.set('cursor', cursor);
       const res = await this.request(url, { headers: this.headers() }, REQUEST_TIMEOUT_MS);
@@ -108,7 +115,7 @@ export class SonioxVoicesClient {
   }
 
   async get(id: string): Promise<SonioxVoice> {
-    const res = await this.request(`${VOICES_URL}/${id}`, { headers: this.headers() }, REQUEST_TIMEOUT_MS);
+    const res = await this.request(`${this.voicesUrl}/${id}`, { headers: this.headers() }, REQUEST_TIMEOUT_MS);
     if (!res.ok) await throwApiError(res);
     return res.json();
   }
@@ -118,7 +125,7 @@ export class SonioxVoicesClient {
     form.set('name', name);
     form.set('file', file, filename);
     const res = await this.request(
-      VOICES_URL,
+      this.voicesUrl,
       { method: 'POST', headers: this.headers(), body: form },
       UPLOAD_TIMEOUT_MS
     );
@@ -129,7 +136,7 @@ export class SonioxVoicesClient {
   /** Deleting an already-gone voice is a success (idempotent cleanup). */
   async delete(id: string): Promise<void> {
     const res = await this.request(
-      `${VOICES_URL}/${id}`,
+      `${this.voicesUrl}/${id}`,
       { method: 'DELETE', headers: this.headers() },
       REQUEST_TIMEOUT_MS
     );

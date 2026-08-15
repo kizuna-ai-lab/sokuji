@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "음성을 미리 듣기 하면 회원님의 Soniox 할당량을 사용하여 짧은 클립이 합성됩니다.",
     "sonioxVoicePreviewAuthError": "미리듣기 실패 — API 키를 확인하세요",
     "sonioxVoicePreviewQuotaError": "미리듣기 실패 — Soniox 속도 제한 또는 할당량에 도달했습니다",
-    "sonioxVoicePreviewTimeout": "미리듣기 시간이 초과되었습니다 — 다시 시도하세요"
+    "sonioxVoicePreviewTimeout": "미리듣기 시간이 초과되었습니다 — 다시 시도하세요",
+    "sonioxRegion": "지역",
+    "sonioxRegionTooltip": "Soniox는 지역마다 별도로 배포되며 각각 고유한 API 키를 사용합니다. 오디오는 선택한 지역에서 처리 및 저장됩니다. 다음 세션부터 적용됩니다."
   },
   "simpleSettings": {
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",

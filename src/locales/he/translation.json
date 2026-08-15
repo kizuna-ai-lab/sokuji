@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "תצוגה מקדימה של קול מייצרת קטע קצר באמצעות מכסת ה-Soniox שלך.",
     "sonioxVoicePreviewAuthError": "התצוגה המקדימה נכשלה — בדוק את מפתח ה-API",
     "sonioxVoicePreviewQuotaError": "התצוגה המקדימה נכשלה — הגעת למגבלת הקצב או למכסה של Soniox",
-    "sonioxVoicePreviewTimeout": "פג תוקף התצוגה המקדימה — נסה שוב"
+    "sonioxVoicePreviewTimeout": "פג תוקף התצוגה המקדימה — נסה שוב",
+    "sonioxRegion": "אזור",
+    "sonioxRegionTooltip": "‏Soniox מפעילה פריסה נפרדת לכל אזור, לכל אחת מפתח API משלה. האודיו שלך מעובד ומאוחסן באזור שבחרת. חל מהפעלה הבאה."
   },
   "simpleSettings": {
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",

@@ -22,8 +22,8 @@
  */
 import { SonioxVoicesError, throwApiError } from './SonioxVoicesClient';
 import { SONIOX_TTS_MODEL, SONIOX_REDUCE_SILENCE } from '../../lib/soniox/ttsCatalog';
+import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
 
-const TTS_REST_URL = 'https://tts-rt.soniox.com/tts';
 const SAMPLE_RATE = 24000;
 // A preview is one short sentence; anything past this is a stall, not slowness.
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -50,6 +50,8 @@ function asSonioxError(e: unknown, signal: AbortSignal | undefined, status: numb
 
 export interface SonioxTtsRestOptions {
   apiKey: string;
+  /** Which Soniox deployment `apiKey` belongs to. */
+  region: SonioxRegion;
   voice: string;
   /** ISO-639-1 code; MUST match the language `text` is written in. */
   language: string;
@@ -90,7 +92,7 @@ export async function synthesizeOnce(
   try {
     let res: Response;
     try {
-      res = await fetch(TTS_REST_URL, {
+      res = await fetch(`https://${sonioxHosts(opts.region).ttsRt}/tts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

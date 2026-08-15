@@ -81,7 +81,7 @@ describe('KizunaAISonioxProviderConfig.acquireSessionResources', () => {
     await d.acquireSessionResources(ctx);
 
     expect(acquireMock).toHaveBeenCalledTimes(1);
-    expect(acquireMock).toHaveBeenCalledWith({ mode: 'speaker', textOnly: true, bothSplit: false });
+    expect(acquireMock).toHaveBeenCalledWith({ mode: 'speaker', textOnly: true, bothSplit: false, region: 'us' });
   });
 
   it('(2) a null token throws KIZUNA_SIGN_IN_REQUIRED before any session is constructed', async () => {

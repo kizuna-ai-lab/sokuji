@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Previewing a voice synthesizes a short clip using your own Soniox quota.",
     "sonioxVoicePreviewAuthError": "Preview failed — check the API key",
     "sonioxVoicePreviewQuotaError": "Preview failed — Soniox rate limit or quota reached",
-    "sonioxVoicePreviewTimeout": "Preview timed out — try again"
+    "sonioxVoicePreviewTimeout": "Preview timed out — try again",
+    "sonioxRegion": "Region",
+    "sonioxRegionTooltip": "Soniox runs a separate deployment per region, each with its own API key. Your audio is processed and stored in the region you pick. Applies from the next session."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",

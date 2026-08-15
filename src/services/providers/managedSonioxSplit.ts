@@ -1,3 +1,4 @@
+import type { SonioxRegion } from '../../lib/soniox/regions';
 import type {
   ManagedSonioxSession,
   SonioxSessionMatrixInput,
@@ -58,8 +59,11 @@ export function resolveManagedSonioxWiring(input: {
   textOnly: boolean;
   sonioxSharedBoth: boolean;
   sonioxSplitBoth: boolean;
+  /** Which regional project should mint this session's keys. Rides in the
+   *  acquire body unchanged — this resolver decides stream SHAPE, not region. */
+  region: SonioxRegion;
 }): ManagedSonioxWiring {
-  const { speakerWillStart, participantWillStart, textOnly, sonioxSplitBoth } = input;
+  const { speakerWillStart, participantWillStart, textOnly, sonioxSplitBoth, region } = input;
 
   // Derived from what will ACTUALLY start, not from the mode picker. Both mode
   // with no microphone selected starts the participant leg alone; asking the
@@ -99,7 +103,7 @@ export function resolveManagedSonioxWiring(input: {
   //     own client, so it needs a par_stt bundle that `!sonioxSharedBoth` denies.
   const sharedBothOnTheWire = mode === 'both' && !bothSplit;
   return {
-    acquire: { mode, textOnly, bothSplit },
+    acquire: { mode, textOnly, bothSplit, region },
     // `mix_stt` for the one mixed stream of shared Both; `spk_stt` whenever the
     // microphone has a stream of its own (speaker-only, and the speaker leg of
     // a split Both).

@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "预览声音会使用您自己的 Soniox 配额合成一小段音频。",
     "sonioxVoicePreviewAuthError": "预览失败 — 请检查 API 密钥",
     "sonioxVoicePreviewQuotaError": "预览失败 — 已达到 Soniox 速率限制或配额",
-    "sonioxVoicePreviewTimeout": "预览超时 — 请重试"
+    "sonioxVoicePreviewTimeout": "预览超时 — 请重试",
+    "sonioxRegion": "区域",
+    "sonioxRegionTooltip": "Soniox 每个区域是独立部署，各自有独立的 API 密钥。你的音频将在所选区域内处理和存储。下次会话开始生效。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",

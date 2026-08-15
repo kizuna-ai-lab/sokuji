@@ -506,7 +506,7 @@ const PROVIDER_SLICE_REGISTRY = {
   // (stale/sensitive values). See each descriptor's extractCredentials.
   kizunaOpenaiTranslate: { defaults: defaultKizunaOpenaiTranslateSettings, neverPersist: ['apiKey'], persistErrors: 'throw' },
   kizunaVolcengineAst2: { defaults: defaultKizunaVolcengineAst2Settings, neverPersist: ['appId', 'accessToken'], persistErrors: 'swallow' },
-  kizunaSoniox: { defaults: defaultKizunaSonioxSettings, neverPersist: ['apiKey'], persistErrors: 'swallow' },
+  kizunaSoniox: { defaults: defaultKizunaSonioxSettings, neverPersist: ['apiKey', 'apiKeyEu', 'apiKeyJp'], persistErrors: 'swallow' },
   localInference: { defaults: defaultLocalInferenceSettings, persistErrors: 'swallow' },
   localNative: { defaults: defaultLocalNativeSettings, persistErrors: 'swallow' },
 } satisfies Record<string, SliceUpdateSpec>;

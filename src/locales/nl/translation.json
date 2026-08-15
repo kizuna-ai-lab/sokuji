@@ -266,7 +266,9 @@
     "sonioxVoicePreviewCostHint": "Het voorbeeld van een stem synthetiseert een korte clip met uw eigen Soniox-quotum.",
     "sonioxVoicePreviewAuthError": "Voorbeeld mislukt — controleer de API-sleutel",
     "sonioxVoicePreviewQuotaError": "Voorbeeld mislukt — Soniox-snelheidslimiet of quotum bereikt",
-    "sonioxVoicePreviewTimeout": "Time-out bij voorbeeld — probeer het opnieuw"
+    "sonioxVoicePreviewTimeout": "Time-out bij voorbeeld — probeer het opnieuw",
+    "sonioxRegion": "Regio",
+    "sonioxRegionTooltip": "Soniox draait per regio een aparte omgeving, elk met een eigen API-sleutel. Je audio wordt verwerkt en opgeslagen in de gekozen regio. Geldt vanaf de volgende sessie."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",

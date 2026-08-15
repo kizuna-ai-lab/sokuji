@@ -180,6 +180,7 @@ describe('ManagedSonioxSession.acquire', () => {
     // four-segment reference — not the participant's, and not the lease's
     // three-segment base ref.
     expect(session.credentialsFor('spk_stt')).toEqual({
+      region: 'us',
       stt: 'key-spk-stt',
       tts: 'key-spk-tts',
       clientReferenceId: 'sokuji1:acct-1:lease-split-1:spk_stt',
@@ -188,6 +189,7 @@ describe('ManagedSonioxSession.acquire', () => {
     // are indistinguishable in the usage logs and the ended-mask could not be
     // driven at all.
     expect(session.credentialsFor('par_stt')).toEqual({
+      region: 'us',
       stt: 'key-par-stt',
       clientReferenceId: 'sokuji1:acct-1:lease-split-1:par_stt',
     });
@@ -230,6 +232,7 @@ describe('ManagedSonioxSession.acquire', () => {
 
     expect(session.primarySttRole).toBe('mix_stt');
     expect(session.credentialsFor('mix_stt')).toEqual({
+      region: 'us',
       stt: 'soniox-stt-temp-key',
       tts: 'soniox-tts-temp-key',
       clientReferenceId: 'sokuji1:acct-1:lease-abc-123',
