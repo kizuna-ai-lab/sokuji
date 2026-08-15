@@ -2,6 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("../../utils/environment", async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
+  // Explicit: the relay twins are gated separately now, and this mock's
+  // promise is that EVERY provider gate is forced on.
+  isKizunaRelayProvidersEnabled: () => true,
   getRelayWsUrl: () => "wss://r.example/v1",
 }));
 import { ClientFactory } from "./ClientFactory";
