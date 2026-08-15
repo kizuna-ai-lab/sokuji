@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "Real-time na pagsasalin, napapatotohanan sa pamamagitan ng iyong account"
+      "name": "KizunaAI",
+      "description": "75 source na wika (auto-detect), 13 target na wika",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "Speech-to-speech na pagsasalin, napapatotohanan sa pamamagitan ng iyong account"
+      "name": "KizunaAI",
+      "description": "8 wika + Chinese–English two-way · pinapanatili ang boses mo",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "Speech-to-speech na pagsasalin, napapatotohanan sa pamamagitan ng iyong account"
+      "name": "KizunaAI",
+      "description": "60 na wika, 3,600 pares · i-clone ang sarili mong boses",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "Hindi Kilala",
       "description": "Hindi kilalang provider"
-    }
+    },
+    "poweredBy": "Pinapagana ng <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "Naka-on ang auto-scroll",

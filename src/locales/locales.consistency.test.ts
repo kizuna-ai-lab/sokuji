@@ -81,6 +81,23 @@ describe('dynamically-built i18n keys resolve in en', () => {
   });
 });
 
+describe('the powered-by attribution keeps its brand slot', () => {
+  // PoweredBy renders through <Trans components={{ brand: <span/> }}> so the
+  // vendor gets its own element and can be typeset a step stronger than the
+  // preposition it sits next to. A translation that drops the tag still shows
+  // the vendor — it just silently loses the emphasis, which is exactly the kind
+  // of regression that survives a review. Word order is free; the wrapper isn't.
+  it('wraps {{name}} in <brand> in every locale', () => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      const s = cat['providers.poweredBy'];
+      if (typeof s !== 'string') continue; // key parity is another test's job
+      if (!/<brand>\s*\{\{name\}\}\s*<\/brand>/.test(s)) offenders.push(`${lang}: ${JSON.stringify(s)}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('notices that name a button use that locale\'s own label', () => {
   // Both Soniox end-of-session notices tell the user to tap the session-start
   // button. They spell the label out rather than interpolating it, so nothing

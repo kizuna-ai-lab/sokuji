@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "ترجمة فورية، مُصادَق عليها عبر حسابك"
+      "name": "KizunaAI",
+      "description": "75 لغة مصدر (كشف تلقائي)، 13 لغة هدف",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "ترجمة من صوت إلى صوت، مُصادَق عليها عبر حسابك"
+      "name": "KizunaAI",
+      "description": "8 لغات + الصينية-الإنجليزية باتجاهين · يحافظ على صوتك",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "ترجمة من صوت إلى صوت، مُصادَق عليها عبر حسابك"
+      "name": "KizunaAI",
+      "description": "60 لغة، 3,600 زوج لغوي · استنساخ صوتك",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "غير معروف",
       "description": "مقدم خدمة غير معروف"
-    }
+    },
+    "poweredBy": "مدعوم من <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "التمرير التلقائي مفعل",

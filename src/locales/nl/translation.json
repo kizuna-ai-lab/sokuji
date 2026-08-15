@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "Realtime vertaling, geverifieerd via je account"
+      "name": "KizunaAI",
+      "description": "75 brontalen (automatisch herkend), 13 doeltalen",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "Spraak-naar-spraak-vertaling, geverifieerd via je account"
+      "name": "KizunaAI",
+      "description": "8 talen + Chinees–Engels tweerichtings · behoudt je stem",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "Spraak-naar-spraak-vertaling, geverifieerd via je account"
+      "name": "KizunaAI",
+      "description": "60 talen, 3.600 taalparen · kloon je eigen stem",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "Onbekend",
       "description": "Onbekende provider"
-    }
+    },
+    "poweredBy": "Mogelijk gemaakt door <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "Auto-scroll aan",

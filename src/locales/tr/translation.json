@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "Gerçek zamanlı çeviri, hesabınız üzerinden kimliği doğrulanır"
+      "name": "KizunaAI",
+      "description": "75 kaynak dil (otomatik algılama), 13 hedef dil",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "Konuşmadan konuşmaya çeviri, hesabınız üzerinden kimliği doğrulanır"
+      "name": "KizunaAI",
+      "description": "8 dil + Çince–İngilizce çift yönlü · sesinizi korur",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "Konuşmadan konuşmaya çeviri, hesabınız üzerinden kimliği doğrulanır"
+      "name": "KizunaAI",
+      "description": "60 dil, 3.600 dil çifti · kendi sesinizi klonlayın",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "Bilinmeyen",
       "description": "Bilinmeyen sağlayıcı"
-    }
+    },
+    "poweredBy": "<brand>{{name}}</brand> tarafından desteklenir"
   },
   "logsPanel": {
     "autoScrollOn": "Otomatik kaydırma açık",

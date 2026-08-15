@@ -1338,6 +1338,49 @@
   }
 }
 
+/* Provider name + engine credit sharing one line.
+ *
+ * The Kizuna-managed twins are all named "KizunaAI", so the vendor is what
+ * tells them apart; giving it its own line would make every row a line taller
+ * for information that fits beside the name. Wrapping is allowed rather than
+ * truncating — at the 300px minimum panel width the line still fits with room
+ * for a vendor name about five characters longer than today's.
+ *
+ * Four text levels, in order of loudness: name (primary) > vendor (secondary)
+ * > description (muted) = "Powered by" (muted, but 9.5px and uppercased, so
+ * size and case carry the demotion where colour has run out of steps). */
+.provider-name-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 2px;
+
+  .provider-name,
+  .provider-option-name {
+    margin-bottom: 0;
+  }
+}
+
+.powered-by {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: vars.$text-muted;
+  white-space: nowrap;
+
+  .powered-by-vendor {
+    font-size: 11px;
+    font-weight: vars.$weight-semibold;
+    letter-spacing: 0;
+    text-transform: none;
+    color: vars.$text-secondary;
+  }
+}
+
 .provider-options {
   background: vars.$bg-surface;
   border: 1px solid vars.$bg-hover;

@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "Reaaliaikainen käännös, todennettu tililläsi"
+      "name": "KizunaAI",
+      "description": "75 lähdekieltä (tunnistetaan automaattisesti), 13 kohdekieltä",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "Puheesta puheeksi -käännös, todennettu tililläsi"
+      "name": "KizunaAI",
+      "description": "8 kieltä + kiina–englanti kaksisuuntaisesti · säilyttää äänesi",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "Puheesta puheeksi -käännös, todennettu tililläsi"
+      "name": "KizunaAI",
+      "description": "60 kieltä, 3600 kieliparia · kloonaa oma äänesi",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "Tuntematon",
       "description": "Tuntematon palveluntarjoaja"
-    }
+    },
+    "poweredBy": "Moottorina <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "Automaattivieritys päällä",

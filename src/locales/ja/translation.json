@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "リアルタイム翻訳、アカウントで認証"
+      "name": "KizunaAI",
+      "description": "ソース75言語（自動検出）、ターゲット13言語",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "音声から音声への翻訳、アカウントで認証"
+      "name": "KizunaAI",
+      "description": "8言語＋中英双方向 · 話者の声を再現",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "音声から音声への翻訳、アカウントで認証"
+      "name": "KizunaAI",
+      "description": "60言語、3,600の言語ペア · 自分の声をクローン",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "不明",
       "description": "不明なプロバイダー"
-    }
+    },
+    "poweredBy": "<brand>{{name}}</brand> 提供"
   },
   "logsPanel": {
     "autoScrollOn": "自動スクロール オン",

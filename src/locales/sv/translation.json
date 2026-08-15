@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "Realtidsöversättning, autentiserad via ditt konto"
+      "name": "KizunaAI",
+      "description": "75 källspråk (identifieras automatiskt), 13 målspråk",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "Tal-till-tal-översättning, autentiserad via ditt konto"
+      "name": "KizunaAI",
+      "description": "8 språk + kinesiska–engelska dubbelriktat · behåller din röst",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "Tal-till-tal-översättning, autentiserad via ditt konto"
+      "name": "KizunaAI",
+      "description": "60 språk, 3600 språkpar · klona din egen röst",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "Okänd",
       "description": "Okänd leverantör"
-    }
+    },
+    "poweredBy": "Drivs av <brand>{{name}}</brand>"
   },
   "logsPanel": {
     "autoScrollOn": "Autoscroll på",

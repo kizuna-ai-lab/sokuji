@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, ExternalLink, X } from 'lucide-react';
-import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon, SonioxIcon } from '../../Icons/ProviderIcons';
+import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon, SonioxIcon, KIZUNA_HOSTED_ICONS } from '../../Icons/ProviderIcons';
+import { PoweredBy } from './PoweredBy';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
@@ -71,9 +72,10 @@ const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: 
   [Provider.VOLCENGINE_AST2]: VolcengineIcon,
   [Provider.ZOOM_AI]: ZoomIcon,
   [Provider.SONIOX]: SonioxIcon,
-  [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: KizunaAIIcon,
-  [Provider.KIZUNA_AI_VOLCENGINE_AST2]: KizunaAIIcon,
-  [Provider.KIZUNA_AI_SONIOX]: KizunaAIIcon,
+  // The Kizuna-managed twins get "Kizuna AI, powered by <vendor>" composites —
+  // the bare logo made all three indistinguishable here. Local inference has
+  // no third-party engine to credit, so it keeps the plain logo.
+  ...KIZUNA_HOSTED_ICONS,
   [Provider.LOCAL_INFERENCE]: KizunaAIIcon,
   [Provider.LOCAL_NATIVE]: KizunaAIIcon,
 };
@@ -431,7 +433,13 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           <div className="provider-icon">{React.createElement(providerInfo.icon, { size: 24 })}</div>
           <div className="provider-details">
             <div className="provider-main-info">
-              <div className="provider-name">{providerInfo.name}</div>
+              {/* Name and engine credit share one line: the managed twins are all
+                  named "KizunaAI", so the vendor is what tells them apart, and
+                  giving it its own line would make every row a line taller. */}
+              <div className="provider-name-line">
+                <span className="provider-name">{providerInfo.name}</span>
+                <PoweredBy provider={provider} />
+              </div>
               <div className="provider-description">{providerInfo.description}</div>
             </div>
             {!isSessionActive && availableProviders.length > 1 && (
@@ -459,7 +467,10 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                       {React.createElement(optionInfo.icon, { size: 20 })}
                     </div>
                     <div className="provider-option-details">
-                      <div className="provider-option-name">{optionInfo.name}</div>
+                      <div className="provider-name-line">
+                        <span className="provider-option-name">{optionInfo.name}</span>
+                        <PoweredBy provider={p.id as ProviderType} />
+                      </div>
                       <div className="provider-option-description">{optionInfo.description}</div>
                     </div>
                   </div>

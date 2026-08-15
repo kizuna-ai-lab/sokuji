@@ -1,4 +1,5 @@
 import React from 'react';
+import { Provider, KizunaManagedProvider } from '../../types/Provider';
 
 interface IconProps {
   size?: string | number;
@@ -176,3 +177,126 @@ export const SonioxIcon: React.FC<IconProps> = ({ size = 18, className, style })
     />
   </svg>
 );
+
+/* ------------------------------------------------------------------------ *
+ * Kizuna-hosted composites — "Kizuna AI, powered by <vendor>"
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Badge edge as a fraction of the icon's edge — 14px at the 24px selected row,
+ * 12px in the 20px dropdown rows.
+ *
+ * What the badge eats as it grows is the three motion strokes at the top right
+ * of the Kizuna mark: at 0.52 it covers the lowest one, at 0.58 two of three,
+ * and past ~0.64 it takes all three and starts clipping the signature stroke
+ * itself. 0.58 is therefore the ceiling — the strokes are decorative, the
+ * signature is the identity, and the identity stays whole.
+ *
+ * There is a second ceiling and it is the reason this is a badge at all: BYOK
+ * Soniox sits in the same list as the managed twin, and the Kizuna mark being
+ * the dominant one is what keeps those two rows apart. Enlarging the badge
+ * walks toward the inverted design, so it does not get to grow freely.
+ */
+export const HOSTED_BADGE_RATIO = 0.58;
+
+/** Mirrors $bg-surface in Settings/shared/_variables.scss. */
+const BADGE_RING = '#252525';
+
+interface HostedBadgeOptions {
+  /**
+   * Vendor marks with a transparent background need an opaque plate to read
+   * over the Kizuna artwork. Soniox's own mark is already a white square.
+   */
+  plate?: boolean;
+  /** Forced onto marks painted with `currentColor` — see below. */
+  color?: string;
+}
+
+/**
+ * Composes a Kizuna-managed provider's mark: the Kizuna logo carries the
+ * identity at full size, and the third-party engine it runs on rides along as
+ * a ringed corner badge. Without this the three managed twins all render the
+ * bare Kizuna logo and are indistinguishable in the provider dropdown.
+ */
+export function kizunaHostedIcon(
+  VendorIcon: React.FC<IconProps>,
+  { plate = false, color }: HostedBadgeOptions = {},
+): React.FC<IconProps> {
+  const HostedIcon: React.FC<IconProps> = ({ size = 24, className, style }) => {
+    // Sizes stay CSS dimensions rather than becoming numbers. IconProps.size is
+    // `string | number` and every other icon in this file hands the value
+    // straight to the svg's width/height, so `1em` and `100%` work there;
+    // parsing it here turned `1em` into 1, i.e. a one-pixel badge. calc() keeps
+    // the arithmetic without leaving CSS.
+    const edge = typeof size === 'number' ? `${size}px` : size;
+    const badge = `calc(${edge} * ${HOSTED_BADGE_RATIO})`;
+    // A plated mark is inset inside its plate; a bare one fills the badge.
+    // Soniox's own mark is already a rounded square, and the plate's radius is
+    // a percentage of its own box, so the badge reads as one shape either way.
+    const mark = plate ? `calc(${badge} * 0.7)` : badge;
+
+    return (
+      <span
+        className={['hosted-provider-icon', className].filter(Boolean).join(' ')}
+        style={{
+          position: 'relative',
+          display: 'inline-block',
+          width: edge,
+          height: edge,
+          flexShrink: 0,
+          ...style,
+        }}
+      >
+        <KizunaAIIcon size={edge} />
+        <span
+          className="hosted-provider-icon__badge"
+          style={{
+            position: 'absolute',
+            right: 0,
+            bottom: 0,
+            width: badge,
+            height: badge,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '22%',
+            // Separates the badge from the artwork behind it. The badge sits
+            // over the logo rather than the panel, so a fixed neutral holds up
+            // through the row's hover state too.
+            boxShadow: `0 0 0 1.5px ${BADGE_RING}`,
+            ...(plate ? { background: '#fff' } : null),
+          }}
+        >
+          <VendorIcon
+            size={mark}
+            style={{
+              // Inline, not via the svg's width/height attributes:
+              // `.provider-icon svg { width: 24px }` in Settings.scss outranks
+              // those attributes and would stretch the badge to full size,
+              // burying the Kizuna logo. Inline styles outrank the stylesheet.
+              width: mark,
+              height: mark,
+              display: 'block',
+              // `.provider-icon { color: $text-muted }` cascades in here and
+              // would paint a currentColor mark #888 on a white plate.
+              ...(color ? { color } : null),
+            }}
+          />
+        </span>
+      </span>
+    );
+  };
+  HostedIcon.displayName = `KizunaHosted(${VendorIcon.displayName || VendorIcon.name || 'Vendor'})`;
+  return HostedIcon;
+}
+
+/**
+ * Every Kizuna-managed provider's composite mark. Kept exhaustive by
+ * ProviderIcons.test.tsx against isKizunaManagedProvider(), so a fourth twin
+ * can't quietly fall back to the bare Kizuna logo.
+ */
+export const KIZUNA_HOSTED_ICONS: Record<KizunaManagedProvider, React.FC<IconProps>> = {
+  [Provider.KIZUNA_AI_SONIOX]: kizunaHostedIcon(SonioxIcon),
+  [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: kizunaHostedIcon(OpenAIIcon, { plate: true, color: '#000' }),
+  [Provider.KIZUNA_AI_VOLCENGINE_AST2]: kizunaHostedIcon(VolcengineIcon, { plate: true }),
+};

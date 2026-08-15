@@ -404,16 +404,19 @@
   },
   "providers": {
     "kizunaai_openai_translate": {
-      "name": "KizunaAI Translate",
-      "description": "நிகழ்நேர மொழிபெயர்ப்பு, உங்கள் கணக்கின் வழியாக அங்கீகரிக்கப்பட்டது"
+      "name": "KizunaAI",
+      "description": "75 மூல மொழிகள் (தானாகக் கண்டறியும்), 13 இலக்கு மொழிகள்",
+      "vendor": "OpenAI"
     },
     "kizunaai_volcengine_ast2": {
-      "name": "KizunaAI Doubao",
-      "description": "பேச்சு-க்கு-பேச்சு மொழிபெயர்ப்பு, உங்கள் கணக்கின் வழியாக அங்கீகரிக்கப்பட்டது"
+      "name": "KizunaAI",
+      "description": "8 மொழிகள் + சீன–ஆங்கில இருவழி · உங்கள் குரலைத் தக்கவைக்கும்",
+      "vendor": "Doubao"
     },
     "kizunaai_soniox": {
-      "name": "KizunaAI Soniox",
-      "description": "பேச்சு-க்கு-பேச்சு மொழிபெயர்ப்பு, உங்கள் கணக்கின் வழியாக அங்கீகரிக்கப்பட்டது"
+      "name": "KizunaAI",
+      "description": "60 மொழிகள், 3,600 இணைகள் · உங்கள் குரலை நகலெடுக்கவும்",
+      "vendor": "Soniox"
     },
     "openai": {
       "name": "OpenAI",
@@ -479,7 +482,8 @@
     "unknown": {
       "name": "தெரியாதது",
       "description": "தெரியாத வழங்குநர்"
-    }
+    },
+    "poweredBy": "<brand>{{name}}</brand> மூலம் இயங்குகிறது"
   },
   "logsPanel": {
     "autoScrollOn": "தானியங்கு உருள் இயக்கத்தில்",
