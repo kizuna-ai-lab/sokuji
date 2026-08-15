@@ -86,6 +86,7 @@ vi.mock('./SonioxVoiceSection', () => ({
 
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
 const { Provider } = await import('../../../types/Provider');
+const { ProviderConfigFactory } = await import('../../../services/providers/ProviderConfigFactory');
 const { SonioxProviderConfig } = await import('../../../services/providers/SonioxProviderConfig');
 const { default: ProviderSpecificSettings } = await import('./ProviderSpecificSettings');
 const { useAuth } = await import('../../../lib/auth/hooks');
@@ -364,5 +365,57 @@ describe('ProviderSpecificSettings — managed Soniox shared/split toggle', () =
     // default, so this asserts the shipped copy verbatim.
     expect(section.textContent).toContain('about twice the cost per minute');
     expect(section.textContent).not.toContain('cannot be turned off');
+  });
+});
+
+describe('region selector', () => {
+  // Its own setup: this block sits outside the main describe, so relying on
+  // that one's beforeEach would make these tests depend on execution order.
+  beforeEach(() => {
+    useSettingsStore.setState((s: any) => ({
+      provider: Provider.SONIOX,
+      soniox: { ...s.soniox, region: 'us', voice: 'us-voice', voiceEu: 'eu-voice', voiceJp: 'jp-voice' },
+    }));
+  });
+
+  it('lists every deployment and writes the choice to the active soniox slice', () => {
+    const { container } = mount();
+    const el = container.querySelector('#soniox-region-select') as HTMLSelectElement;
+    expect(el).toBeTruthy();
+    expect([...el.options].map((o) => o.value)).toEqual(['us', 'eu', 'jp']);
+
+    fireEvent.change(el, { target: { value: 'eu' } });
+    expect(useSettingsStore.getState().soniox.region).toBe('eu');
+  });
+
+  // Switching hosts under a live socket is not something the session can
+  // survive, so the control is inert while one is running.
+  it('is disabled during an active session', () => {
+    const { container } = render(<ProviderSpecificSettings {...baseProps} isSessionActive={true} />);
+    const el = container.querySelector('#soniox-region-select') as HTMLSelectElement;
+    expect(el.disabled).toBe(true);
+  });
+
+  // The generic API key input edits the ACTIVE region's field. Writing every
+  // region to `apiKey` would overwrite the US key each time a regional one was
+  // pasted -- the exact silent data loss per-region storage exists to prevent.
+  it('the voice section follows the region, not the us field', () => {
+    act(() => {
+      useSettingsStore.setState({
+        soniox: {
+          ...useSettingsStore.getState().soniox,
+          region: 'jp',
+          voice: 'us-voice',
+          voiceJp: 'jp-voice',
+        },
+      });
+    });
+    mount();
+    // buildSessionConfig is the one place the session's voice is decided, so
+    // assert through it rather than through a rendered label.
+    const session = ProviderConfigFactory
+      .getDescriptor(Provider.SONIOX)
+      .buildSessionConfig(useSettingsStore.getState().soniox, '');
+    expect(session).toMatchObject({ voice: 'jp-voice' });
   });
 });
