@@ -196,6 +196,36 @@ describe('the legacy kizunaai migration must land on a registered provider', () 
     expect(ProviderConfigFactory.isProviderSupported(migrated)).toBe(true);
   });
 
+  // The likelier case, and the one the first fix missed: a user who ACTUALLY
+  // SELECTED a twin in an earlier build has that exact value persisted, not
+  // the ancient 'kizunaai' string.
+  it('redirects a persisted twin the build no longer registers', async () => {
+    const { migrateLegacyKizunaProvider, ProviderConfigFactory } = await migrateWith(false);
+
+    for (const twin of RELAY_TWINS) {
+      const migrated = migrateLegacyKizunaProvider(twin);
+      expect(migrated).toBe(Provider.KIZUNA_AI_SONIOX);
+      expect(ProviderConfigFactory.isProviderSupported(migrated)).toBe(true);
+    }
+  });
+
+  // Redirecting is only for providers this build cannot offer. A registered
+  // one is the user's actual choice and must survive untouched.
+  it('leaves a registered twin exactly as the user chose it', async () => {
+    const { migrateLegacyKizunaProvider } = await migrateWith(true);
+
+    for (const twin of RELAY_TWINS) {
+      expect(migrateLegacyKizunaProvider(twin)).toBe(twin);
+    }
+  });
+
+  it('leaves managed Soniox alone in both configurations', async () => {
+    const off = await migrateWith(false);
+    const on = await migrateWith(true);
+    expect(off.migrateLegacyKizunaProvider(Provider.KIZUNA_AI_SONIOX)).toBe(Provider.KIZUNA_AI_SONIOX);
+    expect(on.migrateLegacyKizunaProvider(Provider.KIZUNA_AI_SONIOX)).toBe(Provider.KIZUNA_AI_SONIOX);
+  });
+
   it('leaves any other persisted provider untouched', async () => {
     const { migrateLegacyKizunaProvider } = await migrateWith(false);
     expect(migrateLegacyKizunaProvider(Provider.GEMINI)).toBe(Provider.GEMINI);

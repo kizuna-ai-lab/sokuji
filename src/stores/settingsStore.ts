@@ -322,9 +322,18 @@ export interface SettingsStore {
 // ==================== Helper Functions ====================
 
 /**
- * Migrate a persisted legacy 'kizunaai' provider value to a managed provider.
+ * Redirect a persisted Kizuna-managed provider this build does not offer.
  *
- * The realtime KizunaAI provider was replaced by relay-managed twins. The
+ * Two inputs need it, and the second is the likelier one. The legacy realtime
+ * 'kizunaai' value, replaced long ago by the relay twins; and a twin the user
+ * ACTUALLY SELECTED in an earlier build, which a later build may no longer
+ * register now that the managed providers are gated independently. Both end at
+ * the same place: `loadSettings` runs the result through
+ * `isProviderSupported`, and anything unregistered silently becomes BYOK
+ * OpenAI — a managed user dropped to one who must supply their own API key,
+ * with nothing downstream to correct it in Advanced mode.
+ *
+ * A registered managed provider is left exactly as the user chose it. The
  * target is whichever managed provider this build REGISTERED, not a fixed one:
  * the twins are gated independently, so a build that ships Soniox alone does
  * not offer the Translate twin, and naming it would fail `isProviderSupported`
@@ -339,7 +348,16 @@ export interface SettingsStore {
  * providers.
  */
 export function migrateLegacyKizunaProvider(p: Provider | string): Provider {
-  if ((p as string) !== 'kizunaai') return p as Provider;
+  const isLegacy = (p as string) === 'kizunaai';
+  const isManaged = isLegacy || isKizunaManagedProvider(p as Provider);
+  if (!isManaged) return p as Provider;
+
+  // A managed provider THIS build registered is already fine — keep the user's
+  // actual choice. Only a gated-out one needs redirecting.
+  if (!isLegacy && ProviderConfigFactory.isProviderSupported(p as Provider)) {
+    return p as Provider;
+  }
+
   return ProviderConfigFactory.getDefaultManagedProvider() ?? Provider.KIZUNA_AI_OPENAI_TRANSLATE;
 }
 
