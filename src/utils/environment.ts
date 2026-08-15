@@ -191,6 +191,31 @@ export function isKizunaAIEnabled(): boolean {
 }
 
 /**
+ * Check if the relay-managed Kizuna twins (OpenAI Translate, Volcengine AST2)
+ * should be offered.
+ *
+ * NARROWER than `isKizunaAIEnabled`, which is the master "this is a Kizuna
+ * build" gate and also drives the account UI, onboarding and MainLayout's
+ * provider defaulting — it cannot be used to hold back individual providers.
+ *
+ * These two exist because the managed providers are released independently:
+ * only Soniox is being released, and turning on the master gate to ship it
+ * would otherwise expose all three. They also bill differently from Soniox
+ * (per second of session time rather than on reported usage) and the wallet
+ * page currently states only Soniox's rates, so offering them would show a
+ * user of those providers a price that is not theirs.
+ *
+ * Development keeps them on, so nothing changes while working locally.
+ */
+export function isKizunaRelayProvidersEnabled(): boolean {
+  if (isDevelopmentMode()) {
+    return true;
+  }
+
+  return import.meta.env.VITE_ENABLE_KIZUNA_RELAY_PROVIDERS === 'true';
+}
+
+/**
  * Check if Palabra AI features should be enabled
  * @returns true if Palabra AI features should be shown
  *

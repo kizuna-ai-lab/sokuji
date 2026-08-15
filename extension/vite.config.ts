@@ -161,6 +161,15 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_ENABLE_KIZUNA_AI': JSON.stringify(
         envVal('VITE_ENABLE_KIZUNA_AI', 'false', 'true')
       ),
+      // Forwarded explicitly, like every key above: Vite's automatic loading
+      // reads the EXTENSION directory, so a flag documented in the root .env
+      // reaches this build only by appearing in this list. Omitted, the gate
+      // would read false in extension builds no matter how it was configured —
+      // harmless today (the twins are meant to be off) but it would make the
+      // switch unturnable-on when they ship.
+      'import.meta.env.VITE_ENABLE_KIZUNA_RELAY_PROVIDERS': JSON.stringify(
+        envVal('VITE_ENABLE_KIZUNA_RELAY_PROVIDERS', 'false', 'true')
+      ),
       'import.meta.env.VITE_ENABLE_PALABRA_AI': JSON.stringify(
         envVal('VITE_ENABLE_PALABRA_AI', 'false')
       ),

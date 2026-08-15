@@ -15,7 +15,7 @@ import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
 import { ZoomAIProviderConfig } from './ZoomAIProviderConfig';
 import { SonioxProviderConfig } from './SonioxProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron, isExtension } from '../../utils/environment';
+import { isKizunaAIEnabled, isKizunaRelayProvidersEnabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron, isExtension } from '../../utils/environment';
 
 export class ProviderConfigFactory {
   private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
@@ -54,8 +54,15 @@ export class ProviderConfigFactory {
 
     // Only register Kizuna AI if the feature flag is enabled
     if (isKizunaAIEnabled()) {
-      ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_OPENAI_TRANSLATE, new KizunaAIOpenAITranslateProviderConfig());
-      ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_VOLCENGINE_AST2, new KizunaAIVolcengineAST2ProviderConfig());
+      // The two relay twins are gated SEPARATELY: the managed providers are
+      // released independently, and only Soniox is released today. Without
+      // this, turning the master gate on to ship Soniox would also offer two
+      // providers that bill on a different model and whose rates the wallet
+      // page does not state.
+      if (isKizunaRelayProvidersEnabled()) {
+        ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_OPENAI_TRANSLATE, new KizunaAIOpenAITranslateProviderConfig());
+        ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_VOLCENGINE_AST2, new KizunaAIVolcengineAST2ProviderConfig());
+      }
       ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_SONIOX, new KizunaAISonioxProviderConfig());
     }
 
@@ -125,6 +132,28 @@ export class ProviderConfigFactory {
    * @param providerId - The provider identifier
    * @returns ProviderDescriptor instance
    */
+  /**
+   * The Kizuna-managed provider to put a Basic-mode user on when they sign in,
+   * or null when this build offers none.
+   *
+   * Derived from what is REGISTERED rather than from a feature flag. The
+   * managed providers are gated independently, so `isKizunaAIEnabled()` no
+   * longer implies any particular one exists — a caller that hardcoded the
+   * Translate twin would set a provider `getDescriptor` then throws on.
+   *
+   * The preference order preserves the previous behaviour where the twins are
+   * available (Translate first) and falls through to whatever else is
+   * registered, so a build offering only Soniox lands on Soniox.
+   */
+  static getDefaultManagedProvider(): ProviderType | null {
+    const preferred = [
+      Provider.KIZUNA_AI_OPENAI_TRANSLATE,
+      Provider.KIZUNA_AI_VOLCENGINE_AST2,
+      Provider.KIZUNA_AI_SONIOX,
+    ];
+    return preferred.find((p) => this.configs.has(p)) ?? null;
+  }
+
   static getDescriptor(providerId: ProviderType): ProviderDescriptor {
     const d = this.configs.get(providerId);
     if (!d) throw new Error(`Unsupported provider: ${providerId}`);

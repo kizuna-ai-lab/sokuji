@@ -11,11 +11,12 @@ import { clampPanelWidth, maxPanelWidth, readPanelWidth, savePanelWidth, PANEL_M
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
-import { isElectron, isKizunaAIEnabled } from '../../utils/environment';
+import { isElectron } from '../../utils/environment';
 import SubtitleApp from '../Subtitle/SubtitleApp';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
-import { Provider, isKizunaManagedProvider } from '../../types/Provider';
+import { isKizunaManagedProvider } from '../../types/Provider';
+import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 
 type PanelName = 'settings' | 'logs' | 'main';
 
@@ -153,18 +154,23 @@ const MainLayout: React.FC = () => {
   useEffect(() => {
     // Check if user just logged in (was false, now true)
     if (!prevIsSignedInRef.current && isSignedIn) {
-      // User just logged in. Only auto-switch when the Kizuna twins are actually
-      // registered (isKizunaAIEnabled); otherwise we'd strand non-Kizuna builds on
-      // a provider that ProviderConfigFactory/ClientFactory never registered.
-      if (isKizunaAIEnabled() && uiMode === 'basic' && !isKizunaManagedProvider(provider)) {
+      // User just logged in. The target is derived from what is REGISTERED, not
+      // from a feature flag: the managed providers are gated independently now,
+      // so isKizunaAIEnabled() no longer implies the Translate twin exists. In
+      // the shipping build (Kizuna on, relay twins off) selecting it would set
+      // a provider ProviderConfigFactory never registered, and the getDescriptor
+      // calls throughout MainPanel/ProviderSection throw on the next render —
+      // signing in would break the app outright.
+      const managedDefault = ProviderConfigFactory.getDefaultManagedProvider();
+      if (managedDefault && uiMode === 'basic' && !isKizunaManagedProvider(provider)) {
         // User is in Basic Mode and not using a Kizuna-managed provider; switch
-        // to the default relay-managed provider (the Translate twin).
-        setProvider(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
+        // to whichever managed provider this build actually offers.
+        setProvider(managedDefault);
 
         // Track the auto-switch
         trackEvent('settings_modified', {
           setting_name: 'provider',
-          new_value: Provider.KIZUNA_AI_OPENAI_TRANSLATE,
+          new_value: managedDefault,
           old_value: provider,
           category: 'api'
         });
