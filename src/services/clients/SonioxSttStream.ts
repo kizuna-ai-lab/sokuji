@@ -19,6 +19,8 @@
  *   cadence as the threshold let the worst case approach 30 s).
  */
 
+import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
+
 export interface SonioxToken {
   text: string;
   is_final?: boolean;
@@ -44,6 +46,10 @@ export type SonioxTranslationConfig =
 
 export interface SonioxSttConfig {
   apiKey: string;
+  /** Which Soniox deployment `apiKey` belongs to. Required, not defaulted: a
+   *  key and a host are ONE credential, and a default would silently send a
+   *  regional key to the US host, where it 401s. */
+  region: SonioxRegion;
   model: string;
   sampleRate: number;
   languageHints?: string[];
@@ -79,7 +85,6 @@ export interface SonioxSttStreamHandlers {
   onTick?: () => void;
 }
 
-const STT_URL = 'wss://stt-rt.soniox.com/transcribe-websocket';
 const CONNECTION_TIMEOUT_MS = 15000;
 const KEEPALIVE_AFTER_IDLE_MS = 15000;
 const KEEPALIVE_CHECK_INTERVAL_MS = 5000;
@@ -96,7 +101,7 @@ export class SonioxSttStream {
 
   connect(config: SonioxSttConfig): Promise<void> {
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(STT_URL);
+      const ws = new WebSocket(`wss://${sonioxHosts(config.region).sttRt}/transcribe-websocket`);
       this.ws = ws;
       let opened = false;
       const timer = setTimeout(() => {
