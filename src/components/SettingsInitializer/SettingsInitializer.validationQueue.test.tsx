@@ -63,6 +63,23 @@ describe('SettingsInitializer — validation rerun queue', () => {
     expect(validateMock).toHaveBeenCalledTimes(2); // queued rerun fired with the latest state
   });
 
+  // Codex review on PR #413. One slice now holds three independent keys while
+  // `isApiKeyValid` is a single verdict, so a region switch leaves the standing
+  // verdict describing a key that is no longer active: Start stays enabled on a
+  // region whose key is empty (and fails at connect), or stays disabled on a
+  // region whose key is already good.
+  it('re-validates when the Soniox region changes', async () => {
+    useSettingsStore.setState({ provider: Provider.SONIOX } as never);
+    render(<SettingsInitializer />);
+    expect(validateMock).toHaveBeenCalledTimes(1);
+    await act(async () => { resolveFirst!(); });
+
+    act(() => {
+      useSettingsStore.setState((s: any) => ({ soniox: { ...s.soniox, region: 'eu' } }));
+    });
+    expect(validateMock).toHaveBeenCalledTimes(2);
+  });
+
   it('does not rerun when nothing changed during the validation', async () => {
     render(<SettingsInitializer />);
     expect(validateMock).toHaveBeenCalledTimes(1);
