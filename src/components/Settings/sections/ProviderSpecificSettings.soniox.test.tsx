@@ -384,6 +384,14 @@ describe('region selector', () => {
     const el = container.querySelector('#soniox-region-select') as HTMLSelectElement;
     expect(el).toBeTruthy();
     expect([...el.options].map((o) => o.value)).toEqual(['us', 'eu', 'jp']);
+    // Every select in this panel carries `select-dropdown`; without it the
+    // browser default renders a light, shrink-to-fit control inside a dark
+    // panel. Shipped that way once -- caught by rendering it, not by reading it.
+    expect(el.className).toContain('select-dropdown');
+    // The <h2> already names the control. A second visible label rendered
+    // "Region" twice; `aria-label` keeps it named without the duplicate.
+    expect(el.getAttribute('aria-label')).toBeTruthy();
+    expect(container.querySelectorAll('#soniox-region-section .setting-label')).toHaveLength(0);
 
     fireEvent.change(el, { target: { value: 'eu' } });
     expect(useSettingsStore.getState().soniox.region).toBe('eu');
