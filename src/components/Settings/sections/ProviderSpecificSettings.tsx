@@ -1900,11 +1900,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </Tooltip>
           </h2>
           <div className="setting-item">
-            <label className="setting-label" htmlFor="soniox-region-select">
-              {t('settings.sonioxRegion', 'Region')}
-            </label>
+            {/* No visible label: the <h2> above already names this control, and
+                every other select in this panel relies on that. A second
+                "Region" line rendered the word twice. `aria-label` keeps the
+                control named for assistive tech without the duplicate. */}
             <select
               id="soniox-region-select"
+              className="select-dropdown"
+              aria-label={t('settings.sonioxRegion', 'Region')}
               value={sonioxRegion}
               disabled={sonioxRegionLocked}
               onChange={(e) => updateActiveSonioxSettings({ region: asSonioxRegion(e.target.value) })}
