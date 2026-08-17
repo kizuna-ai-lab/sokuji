@@ -15,7 +15,7 @@ import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
 import { ZoomAIProviderConfig } from './ZoomAIProviderConfig';
 import { SonioxProviderConfig } from './SonioxProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isKizunaRelayProvidersEnabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron, isExtension } from '../../utils/environment';
+import { isKizunaAIEnabled, isKizunaSonioxEnabled, isKizunaOpenAITranslateEnabled, isKizunaVolcengineAST2Enabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron, isExtension } from '../../utils/environment';
 
 export class ProviderConfigFactory {
   private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
@@ -54,16 +54,19 @@ export class ProviderConfigFactory {
 
     // Only register Kizuna AI if the feature flag is enabled
     if (isKizunaAIEnabled()) {
-      // The two relay twins are gated SEPARATELY: the managed providers are
-      // released independently, and only Soniox is released today. Without
-      // this, turning the master gate on to ship Soniox would also offer two
-      // providers that bill on a different model and whose rates the wallet
-      // page does not state.
-      if (isKizunaRelayProvidersEnabled()) {
+      // Each managed provider carries its OWN gate: they are released
+      // independently, and they bill on different models whose rates the wallet
+      // page publishes one at a time. A shared gate could not express "ship this
+      // one alone", which is what independent release means.
+      if (isKizunaSonioxEnabled()) {
+        ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_SONIOX, new KizunaAISonioxProviderConfig());
+      }
+      if (isKizunaOpenAITranslateEnabled()) {
         ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_OPENAI_TRANSLATE, new KizunaAIOpenAITranslateProviderConfig());
+      }
+      if (isKizunaVolcengineAST2Enabled()) {
         ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_VOLCENGINE_AST2, new KizunaAIVolcengineAST2ProviderConfig());
       }
-      ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_SONIOX, new KizunaAISonioxProviderConfig());
     }
 
     // Only register OpenAI Compatible provider in Electron environment

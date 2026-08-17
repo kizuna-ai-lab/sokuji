@@ -191,28 +191,48 @@ export function isKizunaAIEnabled(): boolean {
 }
 
 /**
- * Check if the relay-managed Kizuna twins (OpenAI Translate, Volcengine AST2)
- * should be offered.
+ * Whether each Kizuna-managed provider should be offered.
  *
- * NARROWER than `isKizunaAIEnabled`, which is the master "this is a Kizuna
- * build" gate and also drives the account UI, onboarding and MainLayout's
- * provider defaulting — it cannot be used to hold back individual providers.
+ * One gate per provider, all NARROWER than `isKizunaAIEnabled`. The master gate
+ * cannot hold an individual provider back: it also drives the account UI and
+ * onboarding, which are "is this a Kizuna build" concerns rather than
+ * per-provider ones.
  *
- * These two exist because the managed providers are released independently:
- * only Soniox is being released, and turning on the master gate to ship it
- * would otherwise expose all three. They also bill differently from Soniox
- * (per second of session time rather than on reported usage) and the wallet
- * page currently states only Soniox's rates, so offering them would show a
- * user of those providers a price that is not theirs.
+ * They are separate because the managed providers are released independently.
+ * They also bill differently from one another — the relay twins charge per
+ * second of session time, Soniox on reported usage — and the wallet page states
+ * one set of rates, so offering a provider before its rates are published shows
+ * a user a price that is not theirs.
  *
- * Development keeps them on, so nothing changes while working locally.
+ * These gates only decide REGISTRATION. Nothing downstream may infer "gate on
+ * implies provider registered": callers ask ProviderConfigFactory
+ * (isProviderSupported / getDefaultManagedProvider) instead, which is what lets
+ * any combination of these be safe.
+ *
+ * Development keeps all of them on, so nothing changes while working locally.
  */
-export function isKizunaRelayProvidersEnabled(): boolean {
+export function isKizunaSonioxEnabled(): boolean {
   if (isDevelopmentMode()) {
     return true;
   }
 
-  return import.meta.env.VITE_ENABLE_KIZUNA_RELAY_PROVIDERS === 'true';
+  return import.meta.env.VITE_ENABLE_KIZUNA_SONIOX === 'true';
+}
+
+export function isKizunaOpenAITranslateEnabled(): boolean {
+  if (isDevelopmentMode()) {
+    return true;
+  }
+
+  return import.meta.env.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE === 'true';
+}
+
+export function isKizunaVolcengineAST2Enabled(): boolean {
+  if (isDevelopmentMode()) {
+    return true;
+  }
+
+  return import.meta.env.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 === 'true';
 }
 
 /**
