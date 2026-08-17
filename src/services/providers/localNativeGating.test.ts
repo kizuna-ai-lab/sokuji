@@ -7,9 +7,11 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
-  // Explicit: the relay twins are gated separately now, and this mock's
+  // Explicit: each managed provider is gated on its own now, and this mock's
   // promise is that EVERY provider gate is forced on.
-  isKizunaRelayProvidersEnabled: () => true,
+  isKizunaSonioxEnabled: () => true,
+  isKizunaOpenAITranslateEnabled: () => true,
+  isKizunaVolcengineAST2Enabled: () => true,
   isPalabraAIEnabled: () => true,
   isVolcengineSTEnabled: () => true,
   isVolcengineAST2Enabled: () => true,
