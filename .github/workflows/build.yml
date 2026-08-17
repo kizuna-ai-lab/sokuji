@@ -58,6 +58,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Feature gates decide which providers get compiled into the artifact, and
+      # an unset one expands to the empty string, which reads as "off" — silently.
+      # v0.36.3 shipped with the whole Kizuna family missing that way. Printing
+      # the resolved values means the log answers "what does this build offer?"
+      # without reverse-engineering the bundle. `toJSON(vars)` needs no list to
+      # keep in step, and variables are not redacted the way secrets are.
+      #
+      # Passed through `env:` rather than interpolated into `run:` — a value
+      # containing a quote would otherwise break out of the shell command.
+      - name: Show resolved feature gates
+        env:
+          RESOLVED_VARS: ${{ toJSON(vars) }}
+        run: echo "$RESOLVED_VARS"
+
       - name: Build React app
         run: npm run build
         env:
@@ -66,15 +80,15 @@ jobs:
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
-          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
-          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
-          VITE_ENABLE_KIZUNA_AI: ${{ secrets.VITE_ENABLE_KIZUNA_AI }}
-          VITE_ENABLE_KIZUNA_SONIOX: ${{ secrets.VITE_ENABLE_KIZUNA_SONIOX }}
-          VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ secrets.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
-          VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
-          VITE_ENABLE_ZOOM_AI: ${{ secrets.VITE_ENABLE_ZOOM_AI }}
-          VITE_ENABLE_LOCAL_NATIVE: ${{ secrets.VITE_ENABLE_LOCAL_NATIVE }}
+          VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
+          VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
+          VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
+          VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
+          VITE_ENABLE_KIZUNA_SONIOX: ${{ vars.VITE_ENABLE_KIZUNA_SONIOX }}
+          VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ vars.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
+          VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
+          VITE_ENABLE_ZOOM_AI: ${{ vars.VITE_ENABLE_ZOOM_AI }}
+          VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
           # Additional variables only for releases
           VITE_ENABLE_DEBUG: ${{ startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
           VITE_ENABLE_ANALYTICS: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || '' }}
@@ -121,15 +135,15 @@ jobs:
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
-          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
-          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
-          VITE_ENABLE_KIZUNA_AI: ${{ secrets.VITE_ENABLE_KIZUNA_AI }}
-          VITE_ENABLE_KIZUNA_SONIOX: ${{ secrets.VITE_ENABLE_KIZUNA_SONIOX }}
-          VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ secrets.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
-          VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
-          VITE_ENABLE_ZOOM_AI: ${{ secrets.VITE_ENABLE_ZOOM_AI }}
-          VITE_ENABLE_LOCAL_NATIVE: ${{ secrets.VITE_ENABLE_LOCAL_NATIVE }}
+          VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
+          VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
+          VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
+          VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
+          VITE_ENABLE_KIZUNA_SONIOX: ${{ vars.VITE_ENABLE_KIZUNA_SONIOX }}
+          VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ vars.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
+          VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
+          VITE_ENABLE_ZOOM_AI: ${{ vars.VITE_ENABLE_ZOOM_AI }}
+          VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
 
       # electron-builder bundles an x86_64-only `fpm` for building .deb packages.
       # On the arm64 runner, install `fpm` via Ruby gem and tell electron-builder
@@ -162,15 +176,15 @@ jobs:
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
-          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
-          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
-          VITE_ENABLE_KIZUNA_AI: ${{ secrets.VITE_ENABLE_KIZUNA_AI }}
-          VITE_ENABLE_KIZUNA_SONIOX: ${{ secrets.VITE_ENABLE_KIZUNA_SONIOX }}
-          VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ secrets.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
-          VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
-          VITE_ENABLE_ZOOM_AI: ${{ secrets.VITE_ENABLE_ZOOM_AI }}
-          VITE_ENABLE_LOCAL_NATIVE: ${{ secrets.VITE_ENABLE_LOCAL_NATIVE }}
+          VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
+          VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
+          VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
+          VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
+          VITE_ENABLE_KIZUNA_SONIOX: ${{ vars.VITE_ENABLE_KIZUNA_SONIOX }}
+          VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ vars.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
+          VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
+          VITE_ENABLE_ZOOM_AI: ${{ vars.VITE_ENABLE_ZOOM_AI }}
+          VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
 
       - name: Build macOS PKG (electron-builder)
         if: runner.os == 'macOS'
@@ -188,15 +202,15 @@ jobs:
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
-          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
-          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
-          VITE_ENABLE_KIZUNA_AI: ${{ secrets.VITE_ENABLE_KIZUNA_AI }}
-          VITE_ENABLE_KIZUNA_SONIOX: ${{ secrets.VITE_ENABLE_KIZUNA_SONIOX }}
-          VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ secrets.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
-          VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
-          VITE_ENABLE_ZOOM_AI: ${{ secrets.VITE_ENABLE_ZOOM_AI }}
-          VITE_ENABLE_LOCAL_NATIVE: ${{ secrets.VITE_ENABLE_LOCAL_NATIVE }}
+          VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
+          VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
+          VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
+          VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
+          VITE_ENABLE_KIZUNA_SONIOX: ${{ vars.VITE_ENABLE_KIZUNA_SONIOX }}
+          VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ vars.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
+          VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
+          VITE_ENABLE_ZOOM_AI: ${{ vars.VITE_ENABLE_ZOOM_AI }}
+          VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
 
       - name: Build Chrome Extension
         if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
@@ -222,15 +236,15 @@ jobs:
           # Production environment variables for extension
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
-          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
-          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
-          VITE_ENABLE_KIZUNA_AI: ${{ secrets.VITE_ENABLE_KIZUNA_AI }}
-          VITE_ENABLE_KIZUNA_SONIOX: ${{ secrets.VITE_ENABLE_KIZUNA_SONIOX }}
-          VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ secrets.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
-          VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
-          VITE_ENABLE_ZOOM_AI: ${{ secrets.VITE_ENABLE_ZOOM_AI }}
-          VITE_ENABLE_LOCAL_NATIVE: ${{ secrets.VITE_ENABLE_LOCAL_NATIVE }}
+          VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
+          VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
+          VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
+          VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
+          VITE_ENABLE_KIZUNA_SONIOX: ${{ vars.VITE_ENABLE_KIZUNA_SONIOX }}
+          VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ vars.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
+          VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
+          VITE_ENABLE_ZOOM_AI: ${{ vars.VITE_ENABLE_ZOOM_AI }}
+          VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
 
       # Release-specific steps
       - name: Generate changelog

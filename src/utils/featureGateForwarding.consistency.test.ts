@@ -64,7 +64,7 @@ describe('feature gates reach the builds that need them', () => {
   // added build step fail here until it forwards the gates too.
   it('forwards every gate in every CI env block that builds the app', () => {
     const buildBlocks = envBlocks(repoFile('.github/workflows/build.yml')).filter((block) =>
-      block.keys.has('VITE_BACKEND_URL')
+      block.env.has('VITE_BACKEND_URL')
     );
 
     expect(buildBlocks.length).toBeGreaterThan(0);
@@ -72,40 +72,69 @@ describe('feature gates reach the builds that need them', () => {
     const incomplete = buildBlocks
       .map((block) => ({
         line: block.line,
-        missing: GATES.filter((gate) => !block.keys.has(gate)),
+        missing: GATES.filter((gate) => !block.env.has(gate)),
       }))
       .filter((block) => block.missing.length > 0);
 
     expect(incomplete).toEqual([]);
   });
+
+  // Forwarding the right name from the wrong namespace is the same silent
+  // failure as not forwarding it at all: `secrets.X` and `vars.X` are separate
+  // stores, and an undefined one expands to the empty string, which reads as a
+  // closed gate. v0.36.3 shipped with the whole Kizuna family off for exactly
+  // this reason — the values were set as repository *variables* while the
+  // workflow read *secrets*.
+  //
+  // Gates belong in `vars`: their value is compiled into the published client,
+  // so it is public by construction, and GitHub redacts secret values wherever
+  // they appear in logs — a secret set to `true` censors that word throughout
+  // the build output. `vars` also prints its values in `gh variable list`,
+  // which is what makes a misconfiguration visible before a release rather
+  // than after.
+  it('reads every gate from the vars namespace, never from secrets', () => {
+    const buildBlocks = envBlocks(repoFile('.github/workflows/build.yml')).filter((block) =>
+      block.env.has('VITE_BACKEND_URL')
+    );
+
+    const wrongNamespace = buildBlocks.flatMap((block) =>
+      GATES.filter((gate) => {
+        const value = block.env.get(gate);
+        return value !== undefined && !/\$\{\{\s*vars\./.test(value);
+      }).map((gate) => ({ line: block.line, gate, value: block.env.get(gate) }))
+    );
+
+    expect(wrongNamespace).toEqual([]);
+  });
 });
 
 /**
- * The `env:` mappings of a GitHub workflow, as key sets tagged with the line the
- * block opens on so a failure names the offender.
+ * The `env:` mappings of a GitHub workflow, as key→value maps tagged with the
+ * line the block opens on so a failure names the offender. The value matters as
+ * much as the key: it carries which namespace the entry reads from.
  *
  * Indentation-based rather than a YAML parse: the repo has no YAML dependency,
  * and `env:` blocks are flat `KEY: value` mappings, which is the one shape this
  * needs to read.
  */
-function envBlocks(yaml: string): { line: number; keys: Set<string> }[] {
+function envBlocks(yaml: string): { line: number; env: Map<string, string> }[] {
   const lines = yaml.split('\n');
-  const blocks: { line: number; keys: Set<string> }[] = [];
+  const blocks: { line: number; env: Map<string, string> }[] = [];
 
   const indentOf = (line: string) => line.length - line.trimStart().length;
 
   lines.forEach((line, index) => {
     if (!/^\s*env:\s*$/.test(line)) return;
 
-    const keys = new Set<string>();
+    const env = new Map<string, string>();
     for (let i = index + 1; i < lines.length; i++) {
       if (lines[i].trim() === '') continue;
       if (indentOf(lines[i]) <= indentOf(line)) break;
 
-      const key = lines[i].match(/^\s*([A-Za-z_][A-Za-z0-9_]*):/);
-      if (key) keys.add(key[1]);
+      const entry = lines[i].match(/^\s*([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/);
+      if (entry) env.set(entry[1], entry[2]);
     }
-    blocks.push({ line: index + 1, keys });
+    blocks.push({ line: index + 1, env });
   });
 
   return blocks;
