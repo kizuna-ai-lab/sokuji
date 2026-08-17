@@ -54,22 +54,59 @@ describe('feature gates reach the builds that need them', () => {
     expect(missing).toEqual([]);
   });
 
-  // Not "appears somewhere": build.yml has five build steps, each with its own
-  // env block, and a gate added to one of them leaves the other four broken.
-  // Equal occurrence counts is the cheap way to say "in the same places as
-  // every other gate" without parsing YAML.
-  it('forwards every gate to the same build steps in CI', () => {
-    const workflow = repoFile('.github/workflows/build.yml');
-
-    const counts = Object.fromEntries(
-      GATES.map((gate) => [
-        gate,
-        workflow.split('\n').filter((line) => new RegExp(`^\\s*${gate}:`).test(line)).length,
-      ])
+  // Per env block, not per file. Comparing total occurrence counts would let an
+  // uneven distribution pass — build.yml has more `env:` blocks than the ones
+  // that build the app, so five appearances do not mean five *build steps*.
+  //
+  // Which blocks must carry the gates is derived rather than hardcoded to a
+  // count: a step that builds the app always points itself at the backend, so
+  // `VITE_BACKEND_URL` marks exactly those blocks. That also makes a newly
+  // added build step fail here until it forwards the gates too.
+  it('forwards every gate in every CI env block that builds the app', () => {
+    const buildBlocks = envBlocks(repoFile('.github/workflows/build.yml')).filter((block) =>
+      block.keys.has('VITE_BACKEND_URL')
     );
-    const expected = Math.max(...Object.values(counts));
 
-    expect(expected).toBeGreaterThan(0);
-    expect(counts).toEqual(Object.fromEntries(GATES.map((gate) => [gate, expected])));
+    expect(buildBlocks.length).toBeGreaterThan(0);
+
+    const incomplete = buildBlocks
+      .map((block) => ({
+        line: block.line,
+        missing: GATES.filter((gate) => !block.keys.has(gate)),
+      }))
+      .filter((block) => block.missing.length > 0);
+
+    expect(incomplete).toEqual([]);
   });
 });
+
+/**
+ * The `env:` mappings of a GitHub workflow, as key sets tagged with the line the
+ * block opens on so a failure names the offender.
+ *
+ * Indentation-based rather than a YAML parse: the repo has no YAML dependency,
+ * and `env:` blocks are flat `KEY: value` mappings, which is the one shape this
+ * needs to read.
+ */
+function envBlocks(yaml: string): { line: number; keys: Set<string> }[] {
+  const lines = yaml.split('\n');
+  const blocks: { line: number; keys: Set<string> }[] = [];
+
+  const indentOf = (line: string) => line.length - line.trimStart().length;
+
+  lines.forEach((line, index) => {
+    if (!/^\s*env:\s*$/.test(line)) return;
+
+    const keys = new Set<string>();
+    for (let i = index + 1; i < lines.length; i++) {
+      if (lines[i].trim() === '') continue;
+      if (indentOf(lines[i]) <= indentOf(line)) break;
+
+      const key = lines[i].match(/^\s*([A-Za-z_][A-Za-z0-9_]*):/);
+      if (key) keys.add(key[1]);
+    }
+    blocks.push({ line: index + 1, keys });
+  });
+
+  return blocks;
+}
