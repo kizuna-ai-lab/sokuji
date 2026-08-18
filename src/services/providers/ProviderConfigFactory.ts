@@ -26,18 +26,20 @@ export class ProviderConfigFactory {
     // its own environment / feature-flag guard.
 
     ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
+
+    // Kizuna-managed Soniox — behind the master Kizuna gate plus its own gate.
+    // Each managed provider carries its OWN gate: they are released
+    // independently, and they bill on different models whose rates the wallet
+    // page publishes one at a time. A shared gate could not express "ship this
+    // one alone", which is what independent release means.
+    if (isKizunaAIEnabled() && isKizunaSonioxEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_SONIOX, new KizunaAISonioxProviderConfig());
+    }
+
     ProviderConfigFactory.configs.set(Provider.OPENAI_TRANSLATE, new OpenAITranslateProviderConfig());
 
     // Local inference is always available (no API key or feature flag required)
     ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
-
-    // Native (Electron sidecar) local inference — Electron only, behind feature flag
-    if (isElectron() && isLocalNativeEnabled()) {
-      ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
-    }
-
-    // Soniox speech-to-speech translation — always available (BYOK)
-    ProviderConfigFactory.configs.set(Provider.SONIOX, new SonioxProviderConfig());
 
     // Volcengine AST 2.0 — always available, but only in Electron (IPC proxy) and
     // Extension (declarativeNetRequest header injection), which it technically requires
@@ -47,20 +49,22 @@ export class ProviderConfigFactory {
 
     ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
 
+    // Soniox speech-to-speech translation — always available (BYOK)
+    ProviderConfigFactory.configs.set(Provider.SONIOX, new SonioxProviderConfig());
+
     // Only register Palabra AI if the feature flag is enabled
     if (isPalabraAIEnabled()) {
       ProviderConfigFactory.configs.set(Provider.PALABRA_AI, new PalabraAIProviderConfig());
     }
 
-    // Only register Kizuna AI if the feature flag is enabled
+    // Native (Electron sidecar) local inference — Electron only, behind feature flag
+    if (isElectron() && isLocalNativeEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
+    }
+
+    // The remaining Kizuna-managed providers, each behind the master gate plus
+    // its own gate (see the Kizuna Soniox registration above).
     if (isKizunaAIEnabled()) {
-      // Each managed provider carries its OWN gate: they are released
-      // independently, and they bill on different models whose rates the wallet
-      // page publishes one at a time. A shared gate could not express "ship this
-      // one alone", which is what independent release means.
-      if (isKizunaSonioxEnabled()) {
-        ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_SONIOX, new KizunaAISonioxProviderConfig());
-      }
       if (isKizunaOpenAITranslateEnabled()) {
         ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_OPENAI_TRANSLATE, new KizunaAIOpenAITranslateProviderConfig());
       }
