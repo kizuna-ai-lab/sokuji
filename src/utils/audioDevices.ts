@@ -49,8 +49,35 @@ export const isVirtualDevice = (device: LabeledDevice): boolean => {
 export const isVirtualMic = (device: LabeledDevice): boolean => {
   const label = device.label.toLowerCase();
   return label.includes('sokuji_virtual_mic') ||
+         // The monitor of Sokuji's own virtual speaker ("Monitor of
+         // Sokuji_Virtual_Speaker" on PulseAudio) carries Sokuji's TTS output
+         // verbatim; used as the mic it is a guaranteed feedback loop.
+         label.includes('sokuji_virtual_speaker') ||
          label.includes('sokujivirtualaudio') ||
          label.includes('cable');
+};
+
+/**
+ * OS loopback-style inputs that re-capture whatever the machine is playing —
+ * which during a session includes Sokuji's own TTS. Unlike Sokuji's virtual
+ * devices these are legitimate OS devices a user may have deliberately wired
+ * up (VoiceMeeter routing setups in particular), so callers warn on manual
+ * selection and skip them for automatic selection, but never hide or block
+ * them.
+ *
+ * Matching is deliberately narrow: 'monitor of ' is prefix-only (the
+ * PulseAudio/PipeWire sink-monitor naming) so a product name containing the
+ * words is not caught, and plain 'mix' / generic 'output' are not matched at
+ * all — they appear in hardware people record with ("MixPre-3", mixers).
+ */
+export const isLoopbackInput = (device: LabeledDevice): boolean => {
+  const label = device.label.toLowerCase();
+  return label.startsWith('monitor of ') ||
+         label.includes('stereo mix') ||
+         label.includes('what u hear') ||
+         label.includes('what you hear') ||
+         label.includes('wave out mix') ||
+         label.includes('voicemeeter');
 };
 
 /**

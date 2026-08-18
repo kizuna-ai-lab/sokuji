@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { AudioDevice, isVirtualMic, isVirtualSpeaker } from './hooks';
+import { AudioDevice, isVirtualMic, isVirtualSpeaker, isLoopbackInput } from './hooks';
 import { describeDeviceOnHover } from '../../../utils/audioDevices';
 
 interface DeviceListProps {
@@ -62,6 +62,14 @@ const DeviceList: React.FC<DeviceListProps> = ({
     if (showVirtualIndicators && isVirtual(device) && onVirtualDeviceClick) {
       onVirtualDeviceClick(device);
       return;
+    }
+
+    // OS loopback-style inputs ("Stereo Mix", sink monitors, VoiceMeeter)
+    // re-capture what the machine is playing — Sokuji's own TTS included.
+    // Warn, but unlike Sokuji's own virtual devices do NOT block: loopback
+    // routing can be a deliberate setup, so the selection falls through.
+    if (showVirtualIndicators && deviceType === 'input' && isLoopbackInput(device) && onVirtualDeviceClick) {
+      onVirtualDeviceClick(device);
     }
 
     // Turn on if off

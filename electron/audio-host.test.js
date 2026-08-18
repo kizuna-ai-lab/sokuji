@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
 import { listAppSources, startCapture, stopCapture, ensureUnityGain } from './audio-host.js';
+import { makeSelfIdentity } from './own-app-source.js';
 
 function fakeChild() {
   const c = new EventEmitter();
@@ -44,6 +45,27 @@ describe('listAppSources', () => {
     child.emit('close', 0);
 
     expect((await p).map((s) => s.label)).toEqual(['Google Chrome (42)', 'Google Chrome (77)']);
+  });
+
+  it('never lists the running app itself', async () => {
+    const child = fakeChild();
+    // The helper excludes its own helper pid, but the Electron app whose TTS
+    // is playing is a different process — capturing it would translate
+    // Sokuji's own output in a loop.
+    const selfIdentity = makeSelfIdentity({
+      execPath: 'C:\\Program Files\\Sokuji\\Sokuji.exe',
+      pids: [100, 245],
+      appName: 'Sokuji',
+    });
+    const p = listAppSources({ spawn: () => child, resolvePath, selfIdentity });
+
+    child.stdout.emit('data', Buffer.from(
+      '[{"id":"pid:42","label":"Zoom","exe":"Zoom.exe"},'
+      + '{"id":"pid:7","label":"Sokuji","exe":"Sokuji.exe"},' // ours by exe
+      + '{"id":"pid:245","label":"Whatever","exe":"other.exe"}]')); // ours by pid
+    child.emit('close', 0);
+
+    expect((await p).map((s) => s.deviceId)).toEqual(['app:pid:42']);
   });
 
   it('leaves a non-pid id out of the name', async () => {

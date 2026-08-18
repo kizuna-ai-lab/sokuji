@@ -13,6 +13,7 @@ const { promisify } = require('util');
 
 const defaultExec = promisify(nodeExec);
 const { listWindowTitles, titleForPid } = require('./linux-window-titles.js');
+const { isOwnAppSource, currentSelfIdentity } = require('./own-app-source.js');
 
 // Labels are NOT truncated here. The device list already ellipsises overflow in
 // CSS and now carries the full text as a tooltip, so trimming the data would
@@ -229,13 +230,23 @@ async function bindCaptureSourceToSink({ exec, delay = defaultDelay, attempts = 
  * List the applications currently playing audio.
  * @returns {Promise<Array<{deviceId: string, label: string}>>}
  */
-async function listAppSources({ exec = defaultExec, windowTitles = listWindowTitles } = {}) {
+async function listAppSources({
+  exec = defaultExec,
+  windowTitles = listWindowTitles,
+  selfIdentity = currentSelfIdentity(),
+} = {}) {
   let streams;
   try {
     streams = parseAppStreams(await dumpGraph(exec))
       // A crashed session can leave our capture sink behind; offering it would
       // let the user capture Sokuji's own tap.
-      .filter((s) => s.label !== CAPTURE_SINK_DESCRIPTION);
+      .filter((s) => s.label !== CAPTURE_SINK_DESCRIPTION)
+      // Sokuji's own TTS playback is an ordinary stream in this graph, owned
+      // by Chromium's audio-service utility process; listing it would let the
+      // user translate Sokuji's own output in a loop. The pid set from
+      // app.getAppMetrics() covers the utility process, the binary name
+      // covers a graph enumerated before that process spun up.
+      .filter((s) => !isOwnAppSource({ pid: s.pid, exe: s.binary, label: s.label }, selfIdentity));
   } catch (e) {
     console.warn('[Sokuji] [PipeWire] Failed to list application audio sources:', e.message);
     return [];

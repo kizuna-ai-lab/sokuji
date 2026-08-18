@@ -50,6 +50,15 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type, note
             t('audioPanel.virtualMicWarningText2')
           ]
         };
+      case 'loopback-mic':
+        return {
+          title: t('audioPanel.loopbackMicNotice', 'Loopback Input Notice'),
+          titleText: t('audioPanel.loopbackMicWarningTitle', 'This input re-captures what this computer is playing.'),
+          paragraphs: [
+            t('audioPanel.loopbackMicWarningText1', 'Loopback inputs like "Stereo Mix" or a "Monitor of ..." device record the system\'s own audio output. During a session that includes Sokuji\'s translated speech, so Sokuji would hear and translate itself in a loop.'),
+            t('audioPanel.loopbackMicWarningText2', 'The device stays selected in case this routing is intentional, but for normal use please pick a physical microphone instead.')
+          ]
+        };
       case 'virtual-speaker':
         return {
           title: t('audioPanel.virtualSpeakerNotice'),

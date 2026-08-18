@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { isVirtualDevice, isVirtualMic, isVirtualSpeaker } from '../../../utils/audioDevices';
+import { isVirtualDevice, isVirtualMic, isVirtualSpeaker, isLoopbackInput } from '../../../utils/audioDevices';
 
 /**
  * Shared types for audio devices
@@ -20,7 +20,7 @@ export interface AudioDevice {
 // Re-exported for backward compatibility — the actual (React-free) predicates
 // now live in utils/audioDevices.ts so non-UI modules (e.g.
 // ModernBrowserAudioService) can use them without pulling in React.
-export { isVirtualDevice, isVirtualMic, isVirtualSpeaker };
+export { isVirtualDevice, isVirtualMic, isVirtualSpeaker, isLoopbackInput };
 
 /**
  * Hook to filter virtual devices from a device list
@@ -55,6 +55,7 @@ export const useVirtualDeviceCheck = () => {
  */
 export type WarningType =
   | 'virtual-mic'
+  | 'loopback-mic'
   | 'virtual-speaker'
   | 'mutual-exclusivity-speaker'
   | 'mutual-exclusivity-participant'

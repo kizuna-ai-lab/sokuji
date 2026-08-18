@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { IAudioService, AudioOperationResult } from '../services/interfaces/IAudioService';
 import { isVirtualDevice } from '../components/Settings/shared/hooks';
+import { isLoopbackInput } from '../utils/audioDevices';
 
 export type NoiseSuppressionMode = 'off' | 'standard' | 'enhanced';
 export type AudioMode = 'speaker' | 'participant' | 'both';
@@ -70,10 +71,15 @@ export const DEFAULT_PARTICIPANT_SOURCE: AudioDevice = {
  * mic would feed Sokuji's own TTS output back into ASR as "user speech",
  * creating a self-sustaining transcription loop (observed on machines with
  * no physical microphone, where a virtual device is the only input listed).
+ *
+ * OS loopback-style inputs ("Stereo Mix", PulseAudio sink monitors,
+ * VoiceMeeter outputs) carry isVirtual: false — they are real OS devices and
+ * must stay manually selectable (warned) — but they re-capture system output
+ * just the same, so automatic selection skips them by label too.
  */
 export function pickDefaultInputDevice(inputs: AudioDevice[]): AudioDevice | null {
-  const nonVirtualInputs = inputs.filter(device => !device.isVirtual);
-  return nonVirtualInputs[0] ?? null;
+  const candidates = inputs.filter(device => !device.isVirtual && !isLoopbackInput(device));
+  return candidates[0] ?? null;
 }
 
 interface AudioStore {
@@ -305,7 +311,12 @@ const useAudioStore = create<AudioStore>()(
         // restart (otherwise setting would only live in memory until the user
         // explicitly picks a device via the popover or settings).
         if (nextSpeakerInScope && !state.selectedInputDevice && state.audioInputDevices.length > 0) {
-          const nonVirtual = state.audioInputDevices.find(d => !isVirtualDevice(d as any));
+          // Graded preference: a real microphone, else a non-virtual device
+          // even if loopback-style (this path must pick *something* so the
+          // channel is usable), else whatever exists.
+          const realMic = state.audioInputDevices.find(
+            d => !isVirtualDevice(d as any) && !isLoopbackInput(d as any));
+          const nonVirtual = realMic ?? state.audioInputDevices.find(d => !isVirtualDevice(d as any));
           const picked = nonVirtual ?? state.audioInputDevices[0];
           patch.selectedInputDevice = picked;
           settingsService.setSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, picked.deviceId)
