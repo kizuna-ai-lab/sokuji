@@ -330,7 +330,7 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "participantFellBackToSystemAudio": "توقف التقاط التطبيق المحدد، لذا تتم الآن ترجمة كل صوت النظام بدلاً منه. اختر التطبيق مجددًا لتضييق النطاق.",
     "loopbackMicNotice": "تنبيه إدخال الاسترجاع",
     "loopbackMicWarningTitle": "جهاز الإدخال هذا يعيد التقاط ما يشغّله هذا الجهاز.",
     "loopbackMicWarningText1": "أجهزة إدخال الاسترجاع مثل \"Stereo Mix\" أو أجهزة \"Monitor of ...\" تسجّل مخرجات صوت النظام نفسها. خلال جلسة تتضمن كلام Sokuji المترجم، سيسمع Sokuji نفسه ويترجم نفسه في حلقة.",

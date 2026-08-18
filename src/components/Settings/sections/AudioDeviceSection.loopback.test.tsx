@@ -19,12 +19,15 @@ vi.mock('../../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
 
-const inputDevices = [
-  { deviceId: 'real-1', label: 'Built-in Microphone' },
-  { deviceId: 'loop-1', label: 'Stereo Mix (Realtek High Definition Audio)' },
-];
-
-const selectInputDevice = vi.fn();
+// vi.mock factories are hoisted above the imports; vi.hoisted lifts these
+// values with them so the factory never reads a not-yet-initialized binding.
+const { inputDevices, selectInputDevice } = vi.hoisted(() => ({
+  inputDevices: [
+    { deviceId: 'real-1', label: 'Built-in Microphone' },
+    { deviceId: 'loop-1', label: 'Stereo Mix (Realtek High Definition Audio)' },
+  ],
+  selectInputDevice: vi.fn(),
+}));
 
 vi.mock('../../../stores/audioStore', () => ({
   useIsMonitorChannelInScope: () => true,

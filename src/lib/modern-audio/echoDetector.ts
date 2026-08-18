@@ -1,9 +1,9 @@
 /**
- * SPIKE (issue #227 follow-up): acoustic echo *detection* from real captured
- * audio, replacing the removed device-name heuristic that previously lived in audioUtils.
- *
- * Not wired into anything yet. This module is pure logic plus its own state; it
- * has no imports from the audio graph so it can be swept offline.
+ * Acoustic echo *detection* from real captured audio (issue #227 follow-up),
+ * replacing the removed device-name heuristic that previously lived in
+ * audioUtils. EchoMonitor composes these detectors in production; this module
+ * stays pure logic with no imports from the audio graph so the threshold sweep
+ * (echoDetector.sweep.test.ts) can run it offline.
  *
  * ## What it decides
  *
@@ -30,9 +30,12 @@
  * (the reply follows the remote utterance at a repeatable-looking offset). The
  * discriminators are:
  *
- *   1. the peak lag must be physically plausible (a few ms to ~600 ms), and
- *   2. the peak lag must stay put across consecutive ticks. An acoustic path
- *      has a fixed delay; conversational turn-taking does not.
+ *   1. the peak must beat the decoy lags (the `contrast` statistic) — a lag
+ *      where echo physically cannot exist scoring just as well means the
+ *      match is coincidence, and
+ *   2. enough strong observations must agree on ONE lag bin over the voting
+ *      history (`stepDecision`). An acoustic path has a fixed delay;
+ *      conversational turn-taking scatters across the search range.
  */
 
 /** One detection tick's raw measurement against a single reference. */
@@ -563,8 +566,8 @@ export class EchoDetector {
    * Evaluate every reference and update the verdict.
    *
    * Call on a timer (~4 Hz). Calling faster costs little but shortens the wall
-   * time a `streakToDetect` streak represents, which is the actual guard against
-   * a transient conversational coincidence — so the two must be tuned together.
+   * time the `historyTicks` voting window represents, which is the actual guard
+   * against transient conversational coincidence — tune the two together.
    */
   /**
    * Measure every reference and return the strongest match, without applying any

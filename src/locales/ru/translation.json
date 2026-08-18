@@ -330,7 +330,7 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "participantFellBackToSystemAudio": "Захват выбранного приложения остановился, поэтому теперь переводится весь системный звук. Выберите приложение снова, чтобы сузить охват.",
     "loopbackMicNotice": "Предупреждение о loopback-входе",
     "loopbackMicWarningTitle": "Этот вход повторно захватывает то, что воспроизводит компьютер.",
     "loopbackMicWarningText1": "Loopback-входы, такие как \"Stereo Mix\" или устройство \"Monitor of ...\", записывают собственный звуковой вывод системы. В сессии с переведённой речью Sokuji программа слышала бы и переводила саму себя по кругу.",

@@ -330,7 +330,7 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "participantFellBackToSystemAudio": "선택한 애플리케이션의 캡처가 중지되어 지금은 시스템 오디오 전체가 번역되고 있습니다. 범위를 다시 좁히려면 애플리케이션을 다시 선택하세요.",
     "loopbackMicNotice": "루프백 입력 알림",
     "loopbackMicWarningTitle": "이 입력은 이 컴퓨터가 재생하는 소리를 다시 캡처합니다.",
     "loopbackMicWarningText1": "\"Stereo Mix\"나 \"Monitor of ...\" 같은 루프백 입력은 시스템 자체의 오디오 출력을 녹음합니다. Sokuji의 번역 음성이 포함된 세션에서는 Sokuji가 자기 자신을 듣고 루프로 번역하게 됩니다.",

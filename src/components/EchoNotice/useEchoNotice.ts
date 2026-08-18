@@ -23,7 +23,11 @@ export function useEchoNotice(
   const [state, setState] = useState<EchoNoticeState | null>(null);
   const [dismissedCause, setDismissedCause] = useState<EchoCause | null>(null);
   const onDetectedRef = useRef(onDetected);
-  onDetectedRef.current = onDetected;
+  // Synchronized in an effect rather than during render: a render-time write
+  // could publish a callback from a discarded concurrent render.
+  useEffect(() => {
+    onDetectedRef.current = onDetected;
+  }, [onDetected]);
 
   useEffect(() => {
     if (!service) return;

@@ -330,7 +330,7 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "participantFellBackToSystemAudio": "নির্বাচিত অ্যাপ্লিকেশনের ক্যাপচার বন্ধ হয়ে গেছে, তাই এখন পুরো সিস্টেম অডিও অনুবাদ হচ্ছে। পরিসর সীমিত করতে অ্যাপ্লিকেশনটি আবার বেছে নিন।",
     "loopbackMicNotice": "লুপব্যাক ইনপুট সতর্কতা",
     "loopbackMicWarningTitle": "এই ইনপুটটি এই কম্পিউটার যা বাজাচ্ছে তা পুনরায় ধারণ করে।",
     "loopbackMicWarningText1": "\"Stereo Mix\" বা \"Monitor of ...\" ধরনের লুপব্যাক ইনপুট সিস্টেমের নিজস্ব অডিও আউটপুট রেকর্ড করে। Sokuji-র অনূদিত কথাসহ সেশনে Sokuji নিজেকেই শুনে লুপে অনুবাদ করবে।",

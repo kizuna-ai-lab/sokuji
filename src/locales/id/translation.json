@@ -330,7 +330,7 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "participantFellBackToSystemAudio": "Penangkapan aplikasi yang dipilih berhenti, jadi seluruh audio sistem kini diterjemahkan. Pilih kembali aplikasinya untuk mempersempit cakupan.",
     "loopbackMicNotice": "Pemberitahuan Input Loopback",
     "loopbackMicWarningTitle": "Input ini menangkap kembali apa yang diputar komputer ini.",
     "loopbackMicWarningText1": "Input loopback seperti \"Stereo Mix\" atau perangkat \"Monitor of ...\" merekam keluaran audio sistem itu sendiri. Dalam sesi yang menyertakan suara terjemahan Sokuji, Sokuji akan mendengar dan menerjemahkan dirinya sendiri dalam loop.",

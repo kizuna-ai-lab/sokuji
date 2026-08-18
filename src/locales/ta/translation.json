@@ -330,7 +330,7 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "participantFellBackToSystemAudio": "தேர்ந்தெடுத்த பயன்பாட்டின் பதிவு நின்றுவிட்டதால், இப்போது முழு கணினி ஒலியும் மொழிபெயர்க்கப்படுகிறது. வரம்பைச் சுருக்க பயன்பாட்டை மீண்டும் தேர்ந்தெடுக்கவும்.",
     "loopbackMicNotice": "லூப்பேக் உள்ளீட்டு அறிவிப்பு",
     "loopbackMicWarningTitle": "இந்த உள்ளீடு இந்தக் கணினி இயக்குவதை மீண்டும் பதிவு செய்கிறது.",
     "loopbackMicWarningText1": "\"Stereo Mix\" அல்லது \"Monitor of ...\" போன்ற லூப்பேக் உள்ளீடுகள் கணினியின் சொந்த ஒலி வெளியீட்டையே பதிவு செய்கின்றன. Sokuji-யின் மொழிபெயர்ப்புக் குரல் உள்ள அமர்வில், Sokuji தன்னையே கேட்டு சுழற்சியில் மொழிபெயர்க்கும்.",

@@ -330,7 +330,7 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "participantFellBackToSystemAudio": "選択したアプリケーションのキャプチャが停止したため、代わりにシステム音声全体が翻訳されています。範囲を絞り直すには、アプリケーションをもう一度選択してください。",
     "loopbackMicNotice": "ループバック入力の注意",
     "loopbackMicWarningTitle": "この入力はこのコンピューターの再生音を再取り込みします。",
     "loopbackMicWarningText1": "「ステレオミキサー」や「Monitor of ...」のようなループバック入力は、システム自身の音声出力を録音します。Sokuji の翻訳音声を含むセッションでは、Sokuji が自分自身を聞き取り、ループ状に翻訳してしまいます。",

@@ -330,7 +330,7 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "participantFellBackToSystemAudio": "Huminto ang capture ng napiling application, kaya isinasalin na ngayon ang buong system audio. Piliin muli ang application para paliitin ulit ang saklaw.",
     "loopbackMicNotice": "Abiso sa Loopback Input",
     "loopbackMicWarningTitle": "Muling kinukuha ng input na ito ang pinapatugtog ng computer.",
     "loopbackMicWarningText1": "Ang mga loopback input tulad ng \"Stereo Mix\" o \"Monitor of ...\" na device ay nagre-record ng sariling audio output ng system. Sa session na may isinaling boses ng Sokuji, maririnig at isasalin ng Sokuji ang sarili nito nang paulit-ulit.",

@@ -311,16 +311,21 @@ const useAudioStore = create<AudioStore>()(
         // restart (otherwise setting would only live in memory until the user
         // explicitly picks a device via the popover or settings).
         if (nextSpeakerInScope && !state.selectedInputDevice && state.audioInputDevices.length > 0) {
-          // Graded preference: a real microphone, else a non-virtual device
-          // even if loopback-style (this path must pick *something* so the
-          // channel is usable), else whatever exists.
+          // Only a real microphone may be picked silently. Auto-selecting a
+          // loopback or virtual input would wire this machine's own playback
+          // into the speech pipeline with no warning shown anywhere — leaving
+          // the selection empty makes the missing-mic state visible instead,
+          // and the user can still pick such a device manually (with the
+          // warning modal) when the routing is deliberate.
           const realMic = state.audioInputDevices.find(
             d => !isVirtualDevice(d as any) && !isLoopbackInput(d as any));
-          const nonVirtual = realMic ?? state.audioInputDevices.find(d => !isVirtualDevice(d as any));
-          const picked = nonVirtual ?? state.audioInputDevices[0];
-          patch.selectedInputDevice = picked;
-          settingsService.setSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, picked.deviceId)
-            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist auto-picked input device:', error));
+          if (realMic) {
+            patch.selectedInputDevice = realMic;
+            settingsService.setSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, realMic.deviceId)
+              .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist auto-picked input device:', error));
+          } else {
+            console.warn('[Sokuji] [AudioStore] No real microphone available; leaving input unselected rather than auto-picking a loopback/virtual device');
+          }
         }
 
         settingsService.setSetting(STORAGE_KEYS.MODE, target)

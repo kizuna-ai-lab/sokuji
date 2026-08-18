@@ -64,7 +64,7 @@ export class ModernBrowserAudioService implements IAudioService {
   // PCM callbacks below; the reference is the player's main ring, read at the
   // worklet's consumption cursor so it reflects audio actually rendered.
   private echoMonitor: EchoMonitor | null = null;
-  private echoTtsCursor: number | null = null;
+  private echoTtsTap: { read: () => Float32Array } | null = null;
   private echoNoticeCallback: ((state: EchoNoticeState | null) => void) | null = null;
   private echoDiagnostics = false;
   private tabAudioRecordingActive: boolean = false;
@@ -710,11 +710,7 @@ export class ModernBrowserAudioService implements IAudioService {
   private ensureEchoMonitor(): EchoMonitor {
     if (!this.echoMonitor) {
       this.echoMonitor = new EchoMonitor({
-        readPlayedTts: () => {
-          const r = this.player.readPlayedMainRingSince(this.echoTtsCursor);
-          this.echoTtsCursor = r.nextIndex;
-          return r.pcm;
-        },
+        readPlayedTts: () => this.echoTtsTap?.read() ?? new Float32Array(0),
         onChange: (state) => this.echoNoticeCallback?.(state),
         onDiagnostic: (line) => {
           if (this.echoDiagnostics) console.info('[Sokuji] [EchoMonitor]', line);
@@ -731,9 +727,40 @@ export class ModernBrowserAudioService implements IAudioService {
       this.systemAudioRecordingActive ||
       this.tabAudioRecordingActive;
     if (anyCapture) {
-      this.ensureEchoMonitor().start();
+      const monitor = this.ensureEchoMonitor();
+      if (!monitor.running) {
+        // Fresh tap per capture epoch: its cursor starts at "now", so audio
+        // played while detection was off is discarded instead of replayed.
+        this.echoTtsTap = this.player.createPlayedAudioTap();
+      }
+      monitor.start();
     } else {
       this.echoMonitor?.stop();
+      this.echoTtsTap = null;
+    }
+  }
+
+  /** Single dispatch point for mic PCM: passthrough, echo probe, then the client. */
+  private dispatchMicAudio(data: {
+    mono: Int16Array;
+    raw: Int16Array;
+    isPassthrough?: boolean;
+    isRecording?: boolean;
+    passthroughVolume?: number;
+  }): void {
+    // Passthrough BEFORE the external callback, because some clients transfer
+    // the buffer to a Worker via postMessage, which detaches it. (#177)
+    if (data.isPassthrough && data.mono) {
+      this.handlePassthroughAudio(data.mono, data.passthroughVolume || 0.3);
+    }
+
+    // Echo probe: every mic chunk, passthrough-gated or not, is mic signal.
+    if (this.echoMonitor?.running && data.mono) {
+      this.echoMonitor.pushMic(data.mono);
+    }
+
+    if (this.recordingCallback) {
+      this.recordingCallback(data);
     }
   }
 
@@ -773,26 +800,8 @@ export class ModernBrowserAudioService implements IAudioService {
     }
 
 
-    // Start recording with callback that handles both AI and passthrough
-    await this.recorder.record((data) => {
-      // Handle passthrough BEFORE the external callback, because some clients
-      // (e.g. LocalInferenceClient) transfer the audio buffer to a Worker via
-      // postMessage, which detaches/neuters the ArrayBuffer.  Passthrough must
-      // read the buffer while it is still valid.  (#177)
-      if (data.isPassthrough && data.mono) {
-        this.handlePassthroughAudio(data.mono, data.passthroughVolume || 0.3);
-      }
-
-      // Echo probe: every mic chunk, passthrough-gated or not, is mic signal.
-      if (this.echoMonitor?.running && data.mono) {
-        this.echoMonitor.pushMic(data.mono);
-      }
-
-      // Forward to the external callback (MainPanel will send to AI)
-      if (this.recordingCallback) {
-        this.recordingCallback(data);
-      }
-    });
+    // Start recording with callback that handles AI, passthrough, echo probe.
+    await this.recorder.record((data) => this.dispatchMicAudio(data));
 
     this.updateEchoMonitorLifecycle();
   }
@@ -839,18 +848,13 @@ export class ModernBrowserAudioService implements IAudioService {
     await this.recorder.begin(deviceId);
     this.currentRecordingDeviceId = deviceId;
     
-    // Resume recording if it was active
+    // Resume recording if it was active. recordingCallback survives the
+    // device switch (only stopRecording clears it), so the shared dispatch
+    // keeps the client, passthrough, and echo probe all wired to the new
+    // device — a bespoke callback here previously dropped the echo probe.
     if (wasRecording && savedCallback) {
-      await this.recorder.record((data) => {
-        // Passthrough before external callback — see #177
-        if (data.isPassthrough && data.mono) {
-          this.handlePassthroughAudio(data.mono, data.passthroughVolume || 0.3);
-        }
-
-        if (savedCallback) {
-          savedCallback(data);
-        }
-      });
+      await this.recorder.record((data) => this.dispatchMicAudio(data));
+      this.updateEchoMonitorLifecycle();
     }
   }
 

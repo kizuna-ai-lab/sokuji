@@ -330,7 +330,7 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "participantFellBackToSystemAudio": "ఎంచుకున్న అప్లికేషన్ క్యాప్చర్ ఆగిపోయింది, కాబట్టి ఇప్పుడు మొత్తం సిస్టమ్ ఆడియో అనువదించబడుతోంది. పరిధిని మళ్లీ తగ్గించడానికి అప్లికేషన్‌ను మళ్లీ ఎంచుకోండి.",
     "loopbackMicNotice": "లూప్‌బ్యాక్ ఇన్‌పుట్ గమనిక",
     "loopbackMicWarningTitle": "ఈ ఇన్‌పుట్ ఈ కంప్యూటర్ ప్లే చేస్తున్నదాన్ని మళ్లీ క్యాప్చర్ చేస్తుంది.",
     "loopbackMicWarningText1": "\"Stereo Mix\" లేదా \"Monitor of ...\" వంటి లూప్‌బ్యాక్ ఇన్‌పుట్‌లు సిస్టమ్ సొంత ఆడియో అవుట్‌పుట్‌నే రికార్డ్ చేస్తాయి. Sokuji అనువాద స్వరం ఉన్న సెషన్‌లో, Sokuji తననే విని లూప్‌లో అనువదిస్తుంది.",

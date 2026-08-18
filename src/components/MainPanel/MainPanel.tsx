@@ -1873,6 +1873,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (!audioServiceRef.current) {
         audioServiceRef.current = ServiceFactory.getAudioService();
         await audioServiceRef.current.initialize();
+        // Effects keyed on readiness (echo notice, participant warnings) must
+        // re-run even when this fallback, not the mount initializer, wins.
+        setAudioServiceReady(true);
       }
 
       // Credentials (apiKey / clientSecret / relay token) are now resolved
@@ -3429,6 +3432,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Initialize audio service if not already done
     if (!audioServiceRef.current) {
       audioServiceRef.current = ServiceFactory.getAudioService();
+      // Same readiness contract as the mount initializer and the session-start
+      // fallback: effects that attach service handlers key off this state.
+      setAudioServiceReady(true);
     }
     const audioService = audioServiceRef.current;
     const serverCanvas = serverCanvasRef.current;

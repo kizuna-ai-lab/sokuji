@@ -291,7 +291,7 @@
     "virtualMicWarningText2": "For Sokuji to work properly, please select your actual physical microphone from the list.",
     "loopbackMicNotice": "Loopback Input Notice",
     "loopbackMicWarningTitle": "This input re-captures what this computer is playing.",
-    "loopbackMicWarningText1": "Loopback inputs like \"Stereo Mix\" or a \"Monitor of ...\" device record the system's own audio output. During a session that includes Sokuji's translated speech, so Sokuji would hear and translate itself in a loop.",
+    "loopbackMicWarningText1": "Loopback inputs like \"Stereo Mix\" or a \"Monitor of ...\" device record the system's own audio output. During a session that includes Sokuji's translated speech, Sokuji would hear and translate itself in a loop.",
     "loopbackMicWarningText2": "The device stays selected in case this routing is intentional, but for normal use please pick a physical microphone instead.",
     "virtualSpeakerWarningTitle": "This is a virtual speaker created by Sokuji.",
     "virtualSpeakerWarningText1": "Please do not select this device as your monitor. The Sokuji_Virtual_Speaker is used by Sokuji to output audio to your conferencing applications.",
