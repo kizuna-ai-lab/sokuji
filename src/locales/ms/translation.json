@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "loopbackMicNotice": "Notis Input Loopback",
+    "loopbackMicWarningTitle": "Input ini menangkap semula apa yang dimainkan komputer ini.",
+    "loopbackMicWarningText1": "Input loopback seperti \"Stereo Mix\" atau peranti \"Monitor of ...\" merakam output audio sistem itu sendiri. Dalam sesi yang mengandungi suara terjemahan Sokuji, Sokuji akan mendengar dan menterjemah dirinya sendiri dalam gelung.",
+    "loopbackMicWarningText2": "Peranti kekal dipilih sekiranya penghalaan ini disengajakan, tetapi untuk kegunaan biasa sila pilih mikrofon fizikal."
   },
   "auth": {
     "signIn": "Log Masuk",
@@ -637,18 +641,6 @@
     "noApiKey": "Perlukan Kunci API",
     "noMic": "Perlukan Mikrofon",
     "reconnecting": "Menyambung semula..."
-  },
-  "audioFeedback": {
-    "title": "Amaran Maklum Balas Audio",
-    "description": "Gema dikesan antara mikrofon dan pembesar suara.",
-    "speakerModeDescription": "Mod pembesar suara aktif - risiko gema tinggi yang boleh menjejaskan kualiti terjemahan.",
-    "solutions": {
-      "useHeadphones": "Gunakan fon kepala untuk hasil terbaik",
-      "differentDevices": "Pilih peranti audio yang berbeza",
-      "adjustDistance": "Jauhkan mikrofon dari pembesar suara",
-      "disablePassthrough": "Matikan laluan audio asal",
-      "orTry": "Atau cuba:"
-    }
   },
   "userTypeSelection": {
     "title": "Selamat datang ke Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "Suara",
     "voiceBuilderDisclaimer": "Perkhidmatan berbayar Supertone. Sokuji tidak terlibat dalam transaksi tersebut.",
     "refreshList": "Segarkan senarai suara"
+  },
+  "echoNotice": {
+    "ttsEcho": "Pembesar suara anda memulangkan suara terjemahan Sokuji ke mikrofon.",
+    "meetingEcho": "Audio mesyuarat daripada pembesar suara anda sampai ke mikrofon.",
+    "farEndEcho": "Peranti seorang peserta menggemakan terjemahan anda kembali ke mesyuarat.",
+    "selfCapture": "Sumber peserta sedang menangkap audio Sokuji sendiri.",
+    "routingLoop": "Peranti input yang dipilih menangkap terus main balik komputer ini.",
+    "actionHeadphones": "Menggunakan fon kepala akan memutuskan gelung.",
+    "actionAskRemote": "Minta peserta itu menggunakan fon kepala.",
+    "actionPickApp": "Pilih aplikasi mesyuarat sebagai sumber peserta dan bukannya audio sistem.",
+    "actionChangeInput": "Pilih mikrofon fizikal sebagai peranti input.",
+    "dismiss": "Tutup"
   }
 }

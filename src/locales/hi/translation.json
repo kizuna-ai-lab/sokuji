@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "loopbackMicNotice": "लूपबैक इनपुट सूचना",
+    "loopbackMicWarningTitle": "यह इनपुट वही दोबारा कैप्चर करता है जो यह कंप्यूटर बजा रहा है।",
+    "loopbackMicWarningText1": "\"Stereo Mix\" या \"Monitor of ...\" जैसे लूपबैक इनपुट सिस्टम का अपना ऑडियो आउटपुट रिकॉर्ड करते हैं। जिस सत्र में Sokuji की अनुवादित आवाज़ शामिल हो, Sokuji खुद को सुनकर लूप में अनुवाद करेगा।",
+    "loopbackMicWarningText2": "यदि यह रूटिंग जानबूझकर है तो डिवाइस चयनित रहेगा, लेकिन सामान्य उपयोग के लिए कृपया असली माइक्रोफ़ोन चुनें।"
   },
   "auth": {
     "signIn": "साइन इन",
@@ -637,18 +641,6 @@
     "noApiKey": "API की आवश्यक",
     "noMic": "माइक्रोफोन आवश्यक",
     "reconnecting": "पुनः कनेक्ट हो रहा है..."
-  },
-  "audioFeedback": {
-    "title": "ऑडियो फीडबैक चेतावनी",
-    "description": "माइक्रोफ़ोन और स्पीकर के बीच इको का पता चला।",
-    "speakerModeDescription": "स्पीकर मोड सक्रिय - उच्च इको जोखिम जो अनुवाद गुणवत्ता को प्रभावित कर सकता है।",
-    "solutions": {
-      "useHeadphones": "सर्वोत्तम परिणाम के लिए हेडफ़ोन उपयोग करें",
-      "differentDevices": "अलग ऑडियो डिवाइस चुनें",
-      "adjustDistance": "माइक्रोफ़ोन को स्पीकर से दूर रखें",
-      "disablePassthrough": "मूल ऑडियो पासथ्रू बंद करें",
-      "orTry": "या कोशिश करें:"
-    }
   },
   "userTypeSelection": {
     "title": "Sokuji में आपका स्वागत है",
@@ -1009,5 +1001,17 @@
     "voice": "आवाज़",
     "voiceBuilderDisclaimer": "सशुल्क Supertone सेवा। Sokuji उस लेन-देन में शामिल नहीं है।",
     "refreshList": "आवाज़ सूची रीफ़्रेश करें"
+  },
+  "echoNotice": {
+    "ttsEcho": "आपके स्पीकर Sokuji की अनुवादित आवाज़ को वापस माइक्रोफ़ोन में भेज रहे हैं।",
+    "meetingEcho": "स्पीकर से मीटिंग की आवाज़ माइक्रोफ़ोन तक पहुँच रही है।",
+    "farEndEcho": "किसी प्रतिभागी का डिवाइस आपके अनुवाद को मीटिंग में गूँज के रूप में लौटा रहा है।",
+    "selfCapture": "प्रतिभागी स्रोत Sokuji का अपना ऑडियो कैप्चर कर रहा है।",
+    "routingLoop": "चयनित इनपुट डिवाइस इस कंप्यूटर के प्लेबैक को सीधे कैप्चर कर रहा है।",
+    "actionHeadphones": "हेडफ़ोन इस्तेमाल करने से लूप टूट जाएगा।",
+    "actionAskRemote": "उस प्रतिभागी से हेडफ़ोन इस्तेमाल करने को कहें।",
+    "actionPickApp": "सिस्टम ऑडियो के बजाय मीटिंग ऐप्लिकेशन को प्रतिभागी स्रोत चुनें।",
+    "actionChangeInput": "इनपुट डिवाइस के रूप में असली माइक्रोफ़ोन चुनें।",
+    "dismiss": "बंद करें"
   }
 }

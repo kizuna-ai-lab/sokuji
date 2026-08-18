@@ -61,8 +61,7 @@ import { Provider, isOpenAICompatible } from '../../types/Provider';
 import { computeStartGate, noChannelCameUp, reasonToI18n } from './sessionStartGate';
 import { expectationHolds } from './prepareEnvelope';
 import { useSubtitleSessionBridge } from './useSubtitleSessionBridge';
-import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
-import { getSafeAudioConfiguration, isPassthroughActive } from '../../utils/audioUtils';
+import { isPassthroughActive } from '../../utils/audioUtils';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, isElectron, isLoopbackPlatform, getEnvironment } from '../../utils/environment';
@@ -95,6 +94,8 @@ import WaveformStrip from './WaveformStrip';
 import SessionCountdown from './SessionCountdown';
 import { isVirtualDevice, type WarningType } from '../Settings/shared/hooks';
 import WarningModal from '../Settings/shared/WarningModal';
+import EchoNotice from '../EchoNotice/EchoNotice';
+import { useEchoNotice } from '../EchoNotice/useEchoNotice';
 
 
 // ---------------------------------------------------------------------------
@@ -324,7 +325,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const requestClearConversation = useRequestClearConversation();
 
   // Get log functions from store
-  const { addRealtimeEvent } = useLogActions();
+  const { addLog, addRealtimeEvent } = useLogActions();
 
   // Get audio context from context
   const {
@@ -726,10 +727,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const setProgress = usePlaybackStore((s) => s.setProgress);
   const playingItemId = usePlaybackStore((s) => s.playingItemId);
   
-  // Audio feedback warning state
-  const [showFeedbackWarning, setShowFeedbackWarning] = useState(false);
-  const [feedbackWarningDismissed, setFeedbackWarningDismissed] = useState(false);
-
   // AI response state for text input queueing (OpenAI only)
   const [isAIResponding, setIsAIResponding] = useState(false);
   const pendingTextRef = useRef<string | null>(null);
@@ -1014,9 +1011,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
   }, []);
 
-  // Whether raw-mic passthrough is currently audible to the outputs. Shared by
-  // the passthrough setup, the feedback-warning effect, and the warning UI so
-  // they never drift (mute always wins; see isPassthroughActive).
+  // Whether raw-mic passthrough is currently audible to the outputs, used by
+  // the passthrough setup (mute always wins; see isPassthroughActive).
   const passthroughActive = useMemo(
     () =>
       isPassthroughActive({
@@ -1074,38 +1070,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         console.error('[Sokuji] [MainPanel] Failed to set noise suppression mode:', error);
       });
   }, [noiseSuppressionMode, isSessionActive, speakerChannelActive]);
-
-  /**
-   * Check for potential audio feedback and show warning.
-   * Considers Push-to-translate's effective passthrough (always on @ 100% during idle)
-   * in addition to the user-controlled isRealVoicePassthroughEnabled.
-   */
-  useEffect(() => {
-    const effectivePassthroughEnabled = passthroughActive;
-
-    if (feedbackWarningDismissed || !effectivePassthroughEnabled || isMonitorMuted) {
-      setShowFeedbackWarning(false);
-      return;
-    }
-
-    const safeConfig = getSafeAudioConfiguration(
-      selectedInputDevice,
-      selectedMonitorDevice,
-      effectivePassthroughEnabled
-    );
-
-    if (!safeConfig.safePassthroughEnabled && safeConfig.recommendedAction) {
-      setShowFeedbackWarning(true);
-    } else {
-      setShowFeedbackWarning(false);
-    }
-  }, [
-    passthroughActive,
-    selectedInputDevice,
-    selectedMonitorDevice,
-    feedbackWarningDismissed,
-    isMonitorMuted,
-  ]);
 
   /**
    * Instantiate:
@@ -1305,6 +1269,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
+
+  // Measured-echo notice (EchoMonitor verdicts via the audio service). The
+  // detection itself lives in the service layer; this only surfaces it, logs
+  // it, and counts it.
+  const { notice: echoNotice, dismiss: dismissEchoNotice } = useEchoNotice(
+    audioServiceReady ? audioServiceRef.current : null,
+    (state) => {
+      addLog(
+        `Echo detected: ${state.cause} (lag ${Math.round(state.lagMs)}ms, rho ${state.rho.toFixed(2)})`,
+        'warning'
+      );
+      trackEvent('echo_detected', { cause: state.cause, lag_ms: Math.round(state.lagMs) });
+    }
+  );
+
 
   // Tracks whether connectSystemAudioSource succeeded in the current session.
   // Guards the session-end disconnectSystemAudioSource call so it only fires
@@ -4450,29 +4429,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           </div>
         )}
 
-        <AudioFeedbackWarning
-          isVisible={showFeedbackWarning}
-          inputDeviceLabel={selectedInputDevice?.label}
-          outputDeviceLabel={selectedMonitorDevice?.label}
-          recommendedAction={
-            getSafeAudioConfiguration(
-              selectedInputDevice,
-              selectedMonitorDevice,
-              passthroughActive
-            ).recommendedAction
-          }
-          feedbackRisk={
-            getSafeAudioConfiguration(
-              selectedInputDevice,
-              selectedMonitorDevice,
-              passthroughActive
-            ).feedbackRisk
-          }
-          onDismiss={() => {
-            setShowFeedbackWarning(false);
-            setFeedbackWarningDismissed(true);
-          }}
-        />
+        <EchoNotice state={echoNotice} onDismiss={dismissEchoNotice} />
       </div>
       <WarningModal
         isOpen={permissionWarning !== null}

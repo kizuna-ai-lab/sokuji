@@ -289,6 +289,10 @@
     "virtualMicWarningTitle": "This is a virtual microphone created by Sokuji.",
     "virtualMicWarningText1": "Please do not select this device here. Instead, use this virtual microphone in your video conferencing applications (like Google Meet, Zoom, Microsoft Teams, etc.) to receive the live speech translation output.",
     "virtualMicWarningText2": "For Sokuji to work properly, please select your actual physical microphone from the list.",
+    "loopbackMicNotice": "Loopback Input Notice",
+    "loopbackMicWarningTitle": "This input re-captures what this computer is playing.",
+    "loopbackMicWarningText1": "Loopback inputs like \"Stereo Mix\" or a \"Monitor of ...\" device record the system's own audio output. During a session that includes Sokuji's translated speech, so Sokuji would hear and translate itself in a loop.",
+    "loopbackMicWarningText2": "The device stays selected in case this routing is intentional, but for normal use please pick a physical microphone instead.",
     "virtualSpeakerWarningTitle": "This is a virtual speaker created by Sokuji.",
     "virtualSpeakerWarningText1": "Please do not select this device as your monitor. The Sokuji_Virtual_Speaker is used by Sokuji to output audio to your conferencing applications.",
     "virtualSpeakerWarningText2": "Connecting your monitor to Sokuji's output device would create an audio feedback loop, causing your input to contain your own monitored output.",
@@ -637,18 +641,6 @@
     "noApiKey": "API Key Required",
     "noMic": "Microphone Required",
     "reconnecting": "Reconnecting..."
-  },
-  "audioFeedback": {
-    "title": "Audio Feedback Warning",
-    "description": "Potential echo detected between microphone and speakers.",
-    "speakerModeDescription": "Speaker mode active - high risk of echo affecting translation quality.",
-    "solutions": {
-      "useHeadphones": "Use headphones for best results",
-      "differentDevices": "Select different audio devices",
-      "adjustDistance": "Move microphone away from speakers",
-      "disablePassthrough": "Turn off original audio passthrough",
-      "orTry": "Or try:"
-    }
   },
   "userTypeSelection": {
     "title": "Welcome to Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "Voice",
     "voiceBuilderDisclaimer": "Paid Supertone service. Sokuji is not involved in that transaction.",
     "refreshList": "Refresh voice list"
+  },
+  "echoNotice": {
+    "ttsEcho": "Your speakers are feeding Sokuji's translated speech back into the microphone.",
+    "meetingEcho": "Meeting audio from your speakers is reaching the microphone.",
+    "farEndEcho": "A participant's device is echoing your translation back into the meeting.",
+    "selfCapture": "The participant source is capturing Sokuji's own audio.",
+    "routingLoop": "The selected input device is capturing this computer's playback directly.",
+    "actionHeadphones": "Using headphones will break the loop.",
+    "actionAskRemote": "Ask that participant to use headphones.",
+    "actionPickApp": "Pick the meeting application as the participant source instead of system audio.",
+    "actionChangeInput": "Pick a physical microphone as the input device.",
+    "dismiss": "Dismiss"
   }
 }

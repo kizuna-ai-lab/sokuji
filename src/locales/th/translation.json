@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "loopbackMicNotice": "ประกาศอินพุตลูปแบ็ก",
+    "loopbackMicWarningTitle": "อินพุตนี้จับเสียงที่คอมพิวเตอร์นี้เล่นซ้ำอีกครั้ง",
+    "loopbackMicWarningText1": "อินพุตลูปแบ็กอย่าง \"Stereo Mix\" หรืออุปกรณ์ \"Monitor of ...\" จะบันทึกเอาต์พุตเสียงของระบบเอง ในเซสชันที่มีเสียงแปลของ Sokuji โปรแกรมจะได้ยินและแปลตัวเองวนซ้ำ",
+    "loopbackMicWarningText2": "อุปกรณ์จะยังถูกเลือกอยู่เผื่อว่าการกำหนดเส้นทางนี้ตั้งใจ แต่สำหรับการใช้งานปกติโปรดเลือกไมโครโฟนจริง"
   },
   "auth": {
     "signIn": "เข้าสู่ระบบ",
@@ -637,18 +641,6 @@
     "noApiKey": "ต้องมี API Key",
     "noMic": "ต้องมีไมโครโฟน",
     "reconnecting": "กำลังเชื่อมต่อใหม่..."
-  },
-  "audioFeedback": {
-    "title": "คำเตือนการป้อนกลับเสียง",
-    "description": "ตรวจพบเสียงสะท้อนระหว่างไมโครโฟนและลำโพง",
-    "speakerModeDescription": "โหมดลำโพงเปิดใช้งานอยู่ - ความเสี่ยงสูงของเสียงสะท้อนที่อาจส่งผลต่อคุณภาพการแปล",
-    "solutions": {
-      "useHeadphones": "ใช้หูฟังเพื่อผลลัพธ์ที่ดีที่สุด",
-      "differentDevices": "เลือกอุปกรณ์เสียงที่แตกต่างกัน",
-      "adjustDistance": "ย้ายไมโครโฟนให้ห่างจากลำโพง",
-      "disablePassthrough": "ปิดการส่งผ่านเสียงต้นฉบับ",
-      "orTry": "หรือลอง:"
-    }
   },
   "userTypeSelection": {
     "title": "ยินดีต้อนรับสู่ Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "เสียง",
     "voiceBuilderDisclaimer": "บริการแบบเสียเงินของ Supertone Sokuji ไม่มีส่วนเกี่ยวข้องกับธุรกรรมนั้น",
     "refreshList": "รีเฟรชรายการเสียง"
+  },
+  "echoNotice": {
+    "ttsEcho": "ลำโพงของคุณกำลังส่งเสียงแปลของ Sokuji กลับเข้าไมโครโฟน",
+    "meetingEcho": "เสียงการประชุมจากลำโพงกำลังเข้าสู่ไมโครโฟน",
+    "farEndEcho": "อุปกรณ์ของผู้เข้าร่วมคนหนึ่งสะท้อนคำแปลของคุณกลับเข้าที่ประชุม",
+    "selfCapture": "แหล่งเสียงผู้เข้าร่วมกำลังจับเสียงของ Sokuji เอง",
+    "routingLoop": "อุปกรณ์อินพุตที่เลือกกำลังจับเสียงที่คอมพิวเตอร์นี้เล่นโดยตรง",
+    "actionHeadphones": "การใช้หูฟังจะตัดลูปนี้",
+    "actionAskRemote": "ขอให้ผู้เข้าร่วมคนนั้นใช้หูฟัง",
+    "actionPickApp": "เลือกแอปการประชุมเป็นแหล่งเสียงผู้เข้าร่วมแทนเสียงระบบ",
+    "actionChangeInput": "เลือกไมโครโฟนจริงเป็นอุปกรณ์อินพุต",
+    "dismiss": "ปิด"
   }
 }

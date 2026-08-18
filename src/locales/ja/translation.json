@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "loopbackMicNotice": "ループバック入力の注意",
+    "loopbackMicWarningTitle": "この入力はこのコンピューターの再生音を再取り込みします。",
+    "loopbackMicWarningText1": "「ステレオミキサー」や「Monitor of ...」のようなループバック入力は、システム自身の音声出力を録音します。Sokuji の翻訳音声を含むセッションでは、Sokuji が自分自身を聞き取り、ループ状に翻訳してしまいます。",
+    "loopbackMicWarningText2": "意図的なルーティングの場合に備えてデバイスは選択されたままにしますが、通常の利用では物理マイクを選んでください。"
   },
   "auth": {
     "signIn": "サインイン",
@@ -637,18 +641,6 @@
     "noApiKey": "APIキーが必要",
     "noMic": "マイクが必要",
     "reconnecting": "再接続中..."
-  },
-  "audioFeedback": {
-    "title": "オーディオフィードバック警告",
-    "description": "マイクとスピーカー間でエコーが検出されました。",
-    "speakerModeDescription": "スピーカーモード使用中 - 翻訳品質に影響する高いエコーリスクがあります。",
-    "solutions": {
-      "useHeadphones": "最良の結果のためヘッドフォンを使用してください",
-      "differentDevices": "異なるオーディオデバイスを選択してください",
-      "adjustDistance": "マイクをスピーカーから離してください",
-      "disablePassthrough": "原音パススルーをオフにしてください",
-      "orTry": "または次をお試しください："
-    }
   },
   "userTypeSelection": {
     "title": "Sokujiへようこそ",
@@ -1009,5 +1001,17 @@
     "voice": "音声",
     "voiceBuilderDisclaimer": "Supertone の有料サービスです。Sokuji はこの取引に関与しません。",
     "refreshList": "音声リストを更新"
+  },
+  "echoNotice": {
+    "ttsEcho": "スピーカーから出た Sokuji の翻訳音声がマイクに回り込んでいます。",
+    "meetingEcho": "スピーカーから出た会議の音声がマイクに届いています。",
+    "farEndEcho": "参加者のデバイスがあなたの翻訳を会議にエコーとして返しています。",
+    "selfCapture": "参加者ソースが Sokuji 自身の音声を取り込んでいます。",
+    "routingLoop": "選択中の入力デバイスがこのコンピューターの再生音を直接取り込んでいます。",
+    "actionHeadphones": "ヘッドホンを使うとループを断ち切れます。",
+    "actionAskRemote": "その参加者にヘッドホンの使用を依頼してください。",
+    "actionPickApp": "参加者ソースにはシステム音声ではなく会議アプリを選んでください。",
+    "actionChangeInput": "入力デバイスには物理マイクを選んでください。",
+    "dismiss": "閉じる"
   }
 }

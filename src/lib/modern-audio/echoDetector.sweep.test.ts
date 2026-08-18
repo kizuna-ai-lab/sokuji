@@ -102,7 +102,7 @@ const NEG_KINDS: SceneKind[] = [
 ];
 const ECHO_KINDS: SceneKind[] = ['echo_listening', 'echo_only', 'echo_double_talk'];
 
-describe.skip('echo detection threshold sweep', () => {
+describe.only('echo detection threshold sweep', () => {
   it('sweeps window x rho x votes across echo and non-echo scenes', () => {
     const alphas = [0.1, 0.2, 0.4];
     const delays = [0.03, 0.15, 0.3];
@@ -189,7 +189,7 @@ describe.skip('echo detection threshold sweep', () => {
     // --- detail at a promising operating point -----------------------------
     const PICK_WINDOW = 2000;
     const PICK_HISTORY = 80;
-    const PICK = params(0.5, 14, 0.4, PICK_HISTORY);
+    const PICK = params(0.5, 16, 0.4, PICK_HISTORY);
     const { echo, neg } = store.get(PICK_WINDOW)!;
     L.push(
       `  detail — window ${PICK_WINDOW}ms, rho>=${PICK.rhoThreshold}, contrast>=${PICK.contrastThreshold}, votes>=${PICK.minVotes}/${PICK_HISTORY}:`

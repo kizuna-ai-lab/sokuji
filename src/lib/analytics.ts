@@ -89,6 +89,10 @@ export interface AnalyticsEvents {
     device_type: 'input' | 'output';
     action_taken: 'ignored' | 'changed_device';
   };
+  'echo_detected': {
+    cause: 'tts-echo' | 'meeting-echo' | 'far-end-echo' | 'self-capture' | 'routing-loop';
+    lag_ms: number;
+  };
   
   // Settings & Configuration
   'settings_modified': { 

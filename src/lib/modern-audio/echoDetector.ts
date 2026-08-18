@@ -1,6 +1,6 @@
 /**
  * SPIKE (issue #227 follow-up): acoustic echo *detection* from real captured
- * audio, replacing the device-name guesswork in `audioUtils.isLikelyToGenerateFeedback`.
+ * audio, replacing the removed device-name heuristic that previously lived in audioUtils.
  *
  * Not wired into anything yet. This module is pure logic plus its own state; it
  * has no imports from the audio graph so it can be swept offline.
@@ -141,7 +141,7 @@ const DEFAULTS: Omit<Required<EchoDetectorOptions>, 'sampleRate'> = {
   decoyLagsMs: [2000, 3000, 4000, 5000],
   lagToleranceMs: 40,
   historyTicks: 80,
-  minVotes: 14,
+  minVotes: 16,
   clearAfterTicks: 120,
   minEnvelopeStdDb: 3,
 };
@@ -177,9 +177,12 @@ export class EnvelopeTracker {
     return this.produced;
   }
 
-  push(pcm: Float32Array): void {
+  push(pcm: Float32Array | Int16Array): void {
+    // Int16 PCM (the recorder and participant callbacks) is normalized to the
+    // same [-1, 1] scale as Float32 so both stream kinds share thresholds.
+    const scale = pcm instanceof Int16Array ? 1 / 32768 : 1;
     for (let i = 0; i < pcm.length; i++) {
-      const s = pcm[i];
+      const s = pcm[i] * scale;
       this.partialSumSq += s * s;
       this.partialCount++;
       if (this.partialCount === this.frameSamples) {
@@ -399,19 +402,25 @@ export function stepDecision(
     ? [...state.history.slice(state.history.length - p.historyTicks + 1), obs]
     : [...state.history, obs];
 
-  // Tally strong observations per (reference, lag bin).
+  // Tally strong observations per (reference, lag bin). Each vote lands in TWO
+  // adjacent bins (floor and floor+1): with single rounded bins, lags jittering
+  // across a bin boundary (e.g. 9/10/11 frames with a 4-frame bin) split their
+  // votes and accumulate at half speed even though they agree within tolerance.
+  // Overlapping bins make agreement within one bin width always accumulate.
   const tally = new Map<string, { votes: number; lagSum: number }>();
   let best: { key: string; votes: number; lagSum: number } | null = null;
 
   for (const o of history) {
     if (o.winner === null || o.rho < p.rhoThreshold || o.contrast < p.contrastThreshold) continue;
-    const bin = Math.round(o.lagFrames / p.lagBinFrames);
-    const key = `${o.winner}#${bin}`;
-    const entry = tally.get(key) ?? { votes: 0, lagSum: 0 };
-    entry.votes++;
-    entry.lagSum += o.lagFrames;
-    tally.set(key, entry);
-    if (best === null || entry.votes > best.votes) best = { key, ...entry };
+    const base = Math.floor(o.lagFrames / p.lagBinFrames);
+    for (const bin of [base, base + 1]) {
+      const key = `${o.winner}#${bin}`;
+      const entry = tally.get(key) ?? { votes: 0, lagSum: 0 };
+      entry.votes++;
+      entry.lagSum += o.lagFrames;
+      tally.set(key, entry);
+      if (best === null || entry.votes > best.votes) best = { key, ...entry };
+    }
   }
 
   const next: DecisionState = { ...state, history };
@@ -431,22 +440,43 @@ export function stepDecision(
   next.idleTicks = qualifiedThisTick ? 0 : state.idleTicks + 1;
   next.votes = best.votes;
 
-  if (best.votes >= p.minVotes) {
+  // Idle clearing outranks the tally: votes linger in the history ring for
+  // `historyTicks` after the echo stops, so without this ordering a detection
+  // could only ever age out, never clear on sustained silence.
+  if (next.idleTicks >= p.clearAfterTicks) {
+    next.detected = false;
+    next.cause = null;
+  } else if (best.votes >= p.minVotes) {
     next.detected = true;
     next.cause = best.key.slice(0, best.key.lastIndexOf('#'));
     next.lagFrames = Math.round(best.lagSum / best.votes);
-  } else if (next.idleTicks >= p.clearAfterTicks) {
-    next.detected = false;
-    next.cause = null;
   }
 
   return next;
+}
+
+/** Per-reference lag search configuration. */
+export interface ReferenceBand {
+  /** Shortest lag to consider, ms. 0 admits electrical (wired) loops. */
+  minLagMs?: number;
+  /** Longest lag to search, ms. */
+  maxLagMs?: number;
+  /**
+   * Null-hypothesis lags, ms. Must sit beyond maxLagMs by enough that the
+   * speech envelope has decorrelated from itself (seconds).
+   */
+  decoyLagsMs?: number[];
 }
 
 /** A named reference signal the microphone might be echoing. */
 interface Reference {
   id: string;
   tracker: EnvelopeTracker;
+  minLagFrames: number;
+  maxLagFrames: number;
+  decoyLagFrames: number[];
+  maxDecoyFrames: number;
+  window: Float32Array;
 }
 
 /**
@@ -465,23 +495,18 @@ export class EchoDetector {
   private readonly opts: ResolvedOptions;
   private readonly frameSamples: number;
   private readonly windowFrames: number;
-  private readonly maxLagFrames: number;
-  private readonly minLagFrames: number;
-  private readonly decoyLagFrames: number[];
-  private readonly maxDecoyFrames: number;
 
   private readonly mic: EnvelopeTracker;
   private readonly refs: Reference[] = [];
 
   private readonly micWindow: Float32Array;
-  private readonly refWindow: Float32Array;
 
   private state: DecisionState = initialDecisionState();
   private readonly decision: DecisionParams;
 
   constructor(options: EchoDetectorOptions) {
     this.opts = { ...DEFAULTS, ...options };
-    const { sampleRate, frameMs, windowMs, maxLagMs, minLagMs, floorDb } = this.opts;
+    const { sampleRate, frameMs, windowMs, floorDb } = this.opts;
 
     this.decision = {
       rhoThreshold: this.opts.rhoThreshold,
@@ -494,39 +519,42 @@ export class EchoDetector {
 
     this.frameSamples = Math.max(1, Math.round((sampleRate * frameMs) / 1000));
     this.windowFrames = Math.max(2, Math.round(windowMs / frameMs));
-    this.maxLagFrames = Math.max(1, Math.round(maxLagMs / frameMs));
-    this.minLagFrames = Math.max(0, Math.round(minLagMs / frameMs));
-    this.decoyLagFrames = this.opts.decoyLagsMs.map(ms => Math.round(ms / frameMs));
-    this.maxDecoyFrames = this.decoyLagFrames.length
-      ? Math.max(...this.decoyLagFrames)
-      : this.maxLagFrames;
 
-    // References need the window plus the deepest lag looked at — the decoys sit
-    // seconds back, so they, not the search range, set the history depth.
-    const refCapacity = this.windowFrames + this.maxDecoyFrames;
     this.mic = new EnvelopeTracker(this.frameSamples, this.windowFrames, floorDb);
     this.micWindow = new Float32Array(this.windowFrames);
-    this.refWindow = new Float32Array(refCapacity);
   }
 
-  /** Register a reference stream. Ids are the values reported as `cause`. */
-  addReference(id: string): void {
+  /**
+   * Register a reference stream. Ids are the values reported as `cause`.
+   *
+   * Each reference carries its own lag band: the same underlying signal can be
+   * registered twice — once with an acoustic band (tens to hundreds of ms) and
+   * once with a network-return band (seconds) — and the decision layer will
+   * attribute a detection to whichever band explains the probe.
+   */
+  addReference(id: string, band: ReferenceBand = {}): void {
     if (this.refs.some(r => r.id === id)) return;
+    const { frameMs } = this.opts;
+    const minLagFrames = Math.max(0, Math.round((band.minLagMs ?? this.opts.minLagMs) / frameMs));
+    const maxLagFrames = Math.max(minLagFrames + 1, Math.round((band.maxLagMs ?? this.opts.maxLagMs) / frameMs));
+    const decoyLagFrames = (band.decoyLagsMs ?? this.opts.decoyLagsMs).map(ms => Math.round(ms / frameMs));
+    const maxDecoyFrames = decoyLagFrames.length ? Math.max(...decoyLagFrames) : maxLagFrames;
     this.refs.push({
       id,
-      tracker: new EnvelopeTracker(
-        this.frameSamples,
-        this.windowFrames + this.maxDecoyFrames,
-        this.opts.floorDb
-      ),
+      tracker: new EnvelopeTracker(this.frameSamples, this.windowFrames + maxDecoyFrames, this.opts.floorDb),
+      minLagFrames,
+      maxLagFrames,
+      decoyLagFrames,
+      maxDecoyFrames,
+      window: new Float32Array(this.windowFrames + maxDecoyFrames),
     });
   }
 
-  pushMic(pcm: Float32Array): void {
+  pushMic(pcm: Float32Array | Int16Array): void {
     this.mic.push(pcm);
   }
 
-  pushReference(id: string, pcm: Float32Array): void {
+  pushReference(id: string, pcm: Float32Array | Int16Array): void {
     const ref = this.refs.find(r => r.id === id);
     if (ref) ref.tracker.push(pcm);
   }
@@ -553,15 +581,15 @@ export class EchoDetector {
     let bestLag = 0;
 
     for (const ref of this.refs) {
-      if (!ref.tracker.copyLast(this.windowFrames + this.maxDecoyFrames, this.refWindow)) {
+      if (!ref.tracker.copyLast(this.windowFrames + ref.maxDecoyFrames, ref.window)) {
         continue;
       }
       const result = peakCorrelation(
         this.micWindow,
-        this.refWindow,
-        this.minLagFrames,
-        this.maxLagFrames,
-        this.decoyLagFrames,
+        ref.window,
+        ref.minLagFrames,
+        ref.maxLagFrames,
+        ref.decoyLagFrames,
         this.opts.minEnvelopeStdDb
       );
       // Ranked by contrast, not rho: with whole-system loopback our own TTS sits

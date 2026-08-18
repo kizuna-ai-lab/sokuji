@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "loopbackMicNotice": "Loopback-ingångsnotis",
+    "loopbackMicWarningTitle": "Den här ingången fångar igen det som datorn spelar upp.",
+    "loopbackMicWarningText1": "Loopback-ingångar som \"Stereo Mix\" eller en \"Monitor of ...\"-enhet spelar in systemets egen ljudutgång. I en session med Sokujis översatta tal skulle Sokuji höra och översätta sig själv i en slinga.",
+    "loopbackMicWarningText2": "Enheten förblir vald om denna routning är avsiktlig, men välj en fysisk mikrofon för normal användning."
   },
   "auth": {
     "signIn": "Logga in",
@@ -637,18 +641,6 @@
     "noApiKey": "API Nyckel Krävs",
     "noMic": "Mikrofon Krävs",
     "reconnecting": "Återansluter..."
-  },
-  "audioFeedback": {
-    "title": "Ljudåterkopplingsvarning",
-    "description": "Eko upptäckt mellan mikrofon och högtalare.",
-    "speakerModeDescription": "Högtalarläge aktivt - hög ekorisk som kan påverka översättningskvaliteten.",
-    "solutions": {
-      "useHeadphones": "Använd hörlurar för bästa resultat",
-      "differentDevices": "Välj olika ljudenheter",
-      "adjustDistance": "Flytta mikrofonen bort från högtalarna",
-      "disablePassthrough": "Stäng av original ljudgenomströmning",
-      "orTry": "Eller försök:"
-    }
   },
   "userTypeSelection": {
     "title": "Välkommen till Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "Röst",
     "voiceBuilderDisclaimer": "Betald Supertone-tjänst. Sokuji är inte inblandat i den transaktionen.",
     "refreshList": "Uppdatera röstlistan"
+  },
+  "echoNotice": {
+    "ttsEcho": "Dina högtalare matar tillbaka Sokujis översatta tal in i mikrofonen.",
+    "meetingEcho": "Mötesljud från dina högtalare når mikrofonen.",
+    "farEndEcho": "En deltagares enhet ekar tillbaka din översättning in i mötet.",
+    "selfCapture": "Deltagarkällan fångar Sokujis eget ljud.",
+    "routingLoop": "Den valda ingångsenheten fångar direkt den här datorns uppspelning.",
+    "actionHeadphones": "Hörlurar bryter slingan.",
+    "actionAskRemote": "Be den deltagaren att använda hörlurar.",
+    "actionPickApp": "Välj mötesapplikationen som deltagarkälla i stället för systemljud.",
+    "actionChangeInput": "Välj en fysisk mikrofon som ingångsenhet.",
+    "dismiss": "Stäng"
   }
 }

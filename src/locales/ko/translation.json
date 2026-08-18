@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "loopbackMicNotice": "루프백 입력 알림",
+    "loopbackMicWarningTitle": "이 입력은 이 컴퓨터가 재생하는 소리를 다시 캡처합니다.",
+    "loopbackMicWarningText1": "\"Stereo Mix\"나 \"Monitor of ...\" 같은 루프백 입력은 시스템 자체의 오디오 출력을 녹음합니다. Sokuji의 번역 음성이 포함된 세션에서는 Sokuji가 자기 자신을 듣고 루프로 번역하게 됩니다.",
+    "loopbackMicWarningText2": "의도적인 라우팅일 수 있어 장치 선택은 유지되지만, 일반적인 사용에는 실제 마이크를 선택하세요."
   },
   "auth": {
     "signIn": "로그인",
@@ -637,18 +641,6 @@
     "noApiKey": "API 키 필요",
     "noMic": "마이크 필요",
     "reconnecting": "재연결 중..."
-  },
-  "audioFeedback": {
-    "title": "오디오 피드백 경고",
-    "description": "마이크와 스피커 사이에 에코가 감지되었습니다.",
-    "speakerModeDescription": "스피커 모드 활성화 - 번역 품질에 영향을 줄 수 있는 높은 에코 위험이 있습니다.",
-    "solutions": {
-      "useHeadphones": "최상의 결과를 위해 헤드폰을 사용하세요",
-      "differentDevices": "다른 오디오 장치를 선택하세요",
-      "adjustDistance": "마이크를 스피커에서 멀리 떨어뜨리세요",
-      "disablePassthrough": "원음 패스스루를 끄세요",
-      "orTry": "또는 시도해보세요:"
-    }
   },
   "userTypeSelection": {
     "title": "Sokuji에 오신 것을 환영합니다",
@@ -1009,5 +1001,17 @@
     "voice": "음성",
     "voiceBuilderDisclaimer": "Supertone의 유료 서비스입니다. Sokuji는 해당 거래에 관여하지 않습니다.",
     "refreshList": "음성 목록 새로고침"
+  },
+  "echoNotice": {
+    "ttsEcho": "스피커에서 나온 Sokuji의 번역 음성이 마이크로 되돌아오고 있습니다.",
+    "meetingEcho": "스피커의 회의 오디오가 마이크에 들어오고 있습니다.",
+    "farEndEcho": "한 참가자의 기기가 회의에 번역을 에코로 되돌리고 있습니다.",
+    "selfCapture": "참가자 소스가 Sokuji 자체 오디오를 캡처하고 있습니다.",
+    "routingLoop": "선택한 입력 장치가 이 컴퓨터의 재생을 직접 캡처하고 있습니다.",
+    "actionHeadphones": "헤드폰을 사용하면 루프가 끊어집니다.",
+    "actionAskRemote": "해당 참가자에게 헤드폰 사용을 요청하세요.",
+    "actionPickApp": "시스템 오디오 대신 회의 애플리케이션을 참가자 소스로 선택하세요.",
+    "actionChangeInput": "입력 장치로 실제 마이크를 선택하세요.",
+    "dismiss": "닫기"
   }
 }

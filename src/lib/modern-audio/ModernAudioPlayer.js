@@ -915,6 +915,51 @@ export class ModernAudioPlayer {
   }
 
   // =========================================================================
+  // Echo-detection reference tap
+  // =========================================================================
+
+  /**
+   * Copy the MAIN-ring samples the worklet has consumed since `sinceIndex`.
+   *
+   * This is the echo detector's reference signal: exactly the TTS/streamed
+   * audio that has actually been rendered, on the consumer's own clock. The
+   * passthrough ring is deliberately NOT exposed — its content is the
+   * microphone itself, and correlating the mic against it would fire on plain
+   * speech autocorrelation even with headphones on.
+   *
+   * readIndex is monotonic for the lifetime of the SAB (producer clears by
+   * advancing writeIndex to it, never by rewinding it), so `sinceIndex` is a
+   * stable cursor. It only restarts at 0 when the ring is rebuilt (connect()
+   * after a context recreation), which the cursor check below absorbs.
+   *
+   * @param {number|null} sinceIndex cursor from the previous call, or null to
+   *   start at the current position without reading history.
+   * @returns {{pcm: Float32Array, nextIndex: number}}
+   */
+  readPlayedMainRingSince(sinceIndex) {
+    if (!this._indices || !this._data) {
+      return { pcm: new Float32Array(0), nextIndex: sinceIndex ?? 0 };
+    }
+    const cur = Atomics.load(this._indices, 1);
+    let from = sinceIndex;
+    if (from === null || from === undefined || from > cur) {
+      // First call, or the ring was rebuilt and the index restarted.
+      return { pcm: new Float32Array(0), nextIndex: cur };
+    }
+    // Anything further back than one capacity has been overwritten.
+    if (cur - from > this._ringCapacity) {
+      from = cur - this._ringCapacity;
+    }
+    const n = cur - from;
+    const out = new Float32Array(n);
+    const cap = this._ringCapacity;
+    for (let i = 0; i < n; i++) {
+      out[i] = this._data[(from + i) % cap];
+    }
+    return { pcm: out, nextIndex: cur };
+  }
+
+  // =========================================================================
   // Visualization
   // =========================================================================
 

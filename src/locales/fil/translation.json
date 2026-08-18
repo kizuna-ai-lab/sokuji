@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "loopbackMicNotice": "Abiso sa Loopback Input",
+    "loopbackMicWarningTitle": "Muling kinukuha ng input na ito ang pinapatugtog ng computer.",
+    "loopbackMicWarningText1": "Ang mga loopback input tulad ng \"Stereo Mix\" o \"Monitor of ...\" na device ay nagre-record ng sariling audio output ng system. Sa session na may isinaling boses ng Sokuji, maririnig at isasalin ng Sokuji ang sarili nito nang paulit-ulit.",
+    "loopbackMicWarningText2": "Mananatiling napili ang device kung sinadya ang routing na ito, ngunit para sa normal na paggamit ay pumili ng pisikal na mikropono."
   },
   "auth": {
     "signIn": "Mag-sign In",
@@ -637,18 +641,6 @@
     "noApiKey": "Kailangan ang API Key",
     "noMic": "Kailangan ang Microphone",
     "reconnecting": "Muling kumukonekta..."
-  },
-  "audioFeedback": {
-    "title": "Babala sa Audio Feedback",
-    "description": "May nakitang echo sa pagitan ng microphone at speakers.",
-    "speakerModeDescription": "Aktibo ang speaker mode - mataas na panganib ng echo na maaaring makaapekto sa kalidad ng pagsasalin.",
-    "solutions": {
-      "useHeadphones": "Gumamit ng headphones para sa pinakamahusay na resulta",
-      "differentDevices": "Pumili ng iba't ibang audio devices",
-      "adjustDistance": "Ilayo ang microphone sa speakers",
-      "disablePassthrough": "I-off ang original audio passthrough",
-      "orTry": "O subukan:"
-    }
   },
   "userTypeSelection": {
     "title": "Maligayang pagdating sa Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "Boses",
     "voiceBuilderDisclaimer": "Bayad na serbisyo ng Supertone. Hindi kasangkot ang Sokuji sa transaksyong iyon.",
     "refreshList": "I-refresh ang listahan ng boses"
+  },
+  "echoNotice": {
+    "ttsEcho": "Ibinabalik ng iyong speaker ang isinaling boses ng Sokuji sa mikropono.",
+    "meetingEcho": "Umaabot sa mikropono ang audio ng meeting mula sa iyong speaker.",
+    "farEndEcho": "Ini-echo ng device ng isang kalahok ang iyong salin pabalik sa meeting.",
+    "selfCapture": "Kinukuha ng participant source ang sariling audio ng Sokuji.",
+    "routingLoop": "Direktang kinukuha ng napiling input device ang playback ng computer na ito.",
+    "actionHeadphones": "Mapuputol ang loop kapag gumamit ng headphones.",
+    "actionAskRemote": "Pakiusapan ang kalahok na iyon na gumamit ng headphones.",
+    "actionPickApp": "Piliin ang meeting application bilang participant source sa halip na system audio.",
+    "actionChangeInput": "Pumili ng pisikal na mikropono bilang input device.",
+    "dismiss": "Isara"
   }
 }

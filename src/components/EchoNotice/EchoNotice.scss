@@ -1,0 +1,76 @@
+.echo-notice {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 360px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  animation: echo-notice-slide-in 0.3s ease-out;
+
+  .echo-notice-icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .echo-notice-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    .echo-notice-message {
+      font-weight: 600;
+    }
+
+    .echo-notice-action {
+      opacity: 0.9;
+    }
+  }
+
+  .echo-notice-dismiss {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    margin: -2px -4px 0 0;
+    color: #fff;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.8;
+
+    &:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  // The routing loop is a configuration error, not an acoustics problem —
+  // color it like an error rather than a warning.
+  &[data-cause='routing-loop'],
+  &[data-cause='self-capture'] {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  }
+}
+
+@keyframes echo-notice-slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

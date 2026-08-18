@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "loopbackMicNotice": "লুপব্যাক ইনপুট সতর্কতা",
+    "loopbackMicWarningTitle": "এই ইনপুটটি এই কম্পিউটার যা বাজাচ্ছে তা পুনরায় ধারণ করে।",
+    "loopbackMicWarningText1": "\"Stereo Mix\" বা \"Monitor of ...\" ধরনের লুপব্যাক ইনপুট সিস্টেমের নিজস্ব অডিও আউটপুট রেকর্ড করে। Sokuji-র অনূদিত কথাসহ সেশনে Sokuji নিজেকেই শুনে লুপে অনুবাদ করবে।",
+    "loopbackMicWarningText2": "এই রাউটিং ইচ্ছাকৃত হলে ডিভাইসটি নির্বাচিত থাকবে, তবে সাধারণ ব্যবহারের জন্য একটি বাস্তব মাইক্রোফোন বেছে নিন।"
   },
   "auth": {
     "signIn": "সাইন ইন",
@@ -637,18 +641,6 @@
     "noApiKey": "API কী প্রয়োজন",
     "noMic": "মাইক্রোফোন প্রয়োজন",
     "reconnecting": "পুনরায় সংযুক্ত হচ্ছে..."
-  },
-  "audioFeedback": {
-    "title": "অডিও ফিডব্যাক সতর্কতা",
-    "description": "মাইক্রোফোন এবং স্পিকারের মধ্যে সম্ভাব্য প্রতিধ্বনি সনাক্ত হয়েছে।",
-    "speakerModeDescription": "স্পিকার মোড সক্রিয় - উচ্চ প্রতিধ্বনি ঝুঁকি যা অনুবাদ মানের উপর প্রভাব ফেলতে পারে।",
-    "solutions": {
-      "useHeadphones": "সেরা ফলাফলের জন্য হেডফোন ব্যবহার করুন",
-      "differentDevices": "ভিন্ন অডিও ডিভাইস নির্বাচন করুন",
-      "adjustDistance": "মাইক্রোফোনকে স্পিকার থেকে দূরে সরান",
-      "disablePassthrough": "মূল অডিও পাসথ্রু বন্ধ করুন",
-      "orTry": "অথবা চেষ্টা করুন:"
-    }
   },
   "userTypeSelection": {
     "title": "Sokuji-তে স্বাগতম",
@@ -1009,5 +1001,17 @@
     "voice": "কণ্ঠস্বর",
     "voiceBuilderDisclaimer": "এটি Supertone-এর একটি পেইড পরিষেবা। Sokuji সেই লেনদেনে জড়িত নয়।",
     "refreshList": "কণ্ঠস্বর তালিকা রিফ্রেশ করুন"
+  },
+  "echoNotice": {
+    "ttsEcho": "আপনার স্পিকার Sokuji-র অনূদিত কথা মাইক্রোফোনে ফিরিয়ে দিচ্ছে।",
+    "meetingEcho": "স্পিকার থেকে মিটিংয়ের শব্দ মাইক্রোফোনে পৌঁছাচ্ছে।",
+    "farEndEcho": "একজন অংশগ্রহণকারীর ডিভাইস আপনার অনুবাদ মিটিংয়ে প্রতিধ্বনিত করছে।",
+    "selfCapture": "অংশগ্রহণকারী উৎস Sokuji-র নিজের অডিও ধারণ করছে।",
+    "routingLoop": "নির্বাচিত ইনপুট ডিভাইস এই কম্পিউটারের প্লেব্যাক সরাসরি ধারণ করছে।",
+    "actionHeadphones": "হেডফোন ব্যবহার করলে লুপ ভেঙে যাবে।",
+    "actionAskRemote": "সেই অংশগ্রহণকারীকে হেডফোন ব্যবহার করতে বলুন।",
+    "actionPickApp": "সিস্টেম অডিওর বদলে মিটিং অ্যাপ্লিকেশনটিকে অংশগ্রহণকারী উৎস হিসেবে বেছে নিন।",
+    "actionChangeInput": "ইনপুট ডিভাইস হিসেবে একটি বাস্তব মাইক্রোফোন বেছে নিন।",
+    "dismiss": "বন্ধ করুন"
   }
 }

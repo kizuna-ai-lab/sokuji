@@ -1,4 +1,5 @@
 import { IAudioService, AudioDevices, AudioOperationResult, AudioRecordingCallback } from '../../services/interfaces/IAudioService';
+import { EchoMonitor, type EchoNoticeState } from './EchoMonitor';
 import { ModernAudioRecorder } from './ModernAudioRecorder';
 import { ModernAudioPlayer } from './ModernAudioPlayer';
 import { TabAudioRecorder } from './TabAudioRecorder';
@@ -57,6 +58,15 @@ export class ModernBrowserAudioService implements IAudioService {
   // Tab audio capture state (Extension - uses Chrome tabCapture API)
   private tabAudioRecorder: TabAudioRecorder | null = null;
   private tabAudioCallback: AudioRecordingCallback | null = null;
+
+  // ---- Echo detection (see EchoMonitor.ts) -------------------------------
+  // Runs whenever any capture is active. Probes are the mic and participant
+  // PCM callbacks below; the reference is the player's main ring, read at the
+  // worklet's consumption cursor so it reflects audio actually rendered.
+  private echoMonitor: EchoMonitor | null = null;
+  private echoTtsCursor: number | null = null;
+  private echoNoticeCallback: ((state: EchoNoticeState | null) => void) | null = null;
+  private echoDiagnostics = false;
   private tabAudioRecordingActive: boolean = false;
 
 
@@ -687,6 +697,56 @@ export class ModernBrowserAudioService implements IAudioService {
     console.debug('[Sokuji] [ModernBrowserAudio] Cleared interrupted tracks');
   }
 
+  /** Subscribe to echo-detection verdict changes (null = all clear). */
+  public onEchoNotice(callback: ((state: EchoNoticeState | null) => void) | null): void {
+    this.echoNoticeCallback = callback;
+  }
+
+  /** Emit once-per-second detector statistics to the console for field debugging. */
+  public setEchoDiagnostics(enabled: boolean): void {
+    this.echoDiagnostics = enabled;
+  }
+
+  private ensureEchoMonitor(): EchoMonitor {
+    if (!this.echoMonitor) {
+      this.echoMonitor = new EchoMonitor({
+        readPlayedTts: () => {
+          const r = this.player.readPlayedMainRingSince(this.echoTtsCursor);
+          this.echoTtsCursor = r.nextIndex;
+          return r.pcm;
+        },
+        onChange: (state) => this.echoNoticeCallback?.(state),
+        onDiagnostic: (line) => {
+          if (this.echoDiagnostics) console.info('[Sokuji] [EchoMonitor]', line);
+        },
+      });
+    }
+    return this.echoMonitor;
+  }
+
+  /** Start/stop the monitor to track whether any capture is running. */
+  private updateEchoMonitorLifecycle(): void {
+    const anyCapture =
+      this.recordingCallback !== null ||
+      this.systemAudioRecordingActive ||
+      this.tabAudioRecordingActive;
+    if (anyCapture) {
+      this.ensureEchoMonitor().start();
+    } else {
+      this.echoMonitor?.stop();
+    }
+  }
+
+  /** Single dispatch point for participant PCM: echo probe, then the client. */
+  private dispatchParticipantAudio(data: { mono: Int16Array; raw: Int16Array }): void {
+    if (this.echoMonitor?.running && data.mono) {
+      this.echoMonitor.pushParticipant(data.mono);
+    }
+    if (this.systemAudioCallback) {
+      this.systemAudioCallback(data);
+    }
+  }
+
   /**
    * Start recording audio from the specified device
    */
@@ -723,11 +783,18 @@ export class ModernBrowserAudioService implements IAudioService {
         this.handlePassthroughAudio(data.mono, data.passthroughVolume || 0.3);
       }
 
+      // Echo probe: every mic chunk, passthrough-gated or not, is mic signal.
+      if (this.echoMonitor?.running && data.mono) {
+        this.echoMonitor.pushMic(data.mono);
+      }
+
       // Forward to the external callback (MainPanel will send to AI)
       if (this.recordingCallback) {
         this.recordingCallback(data);
       }
     });
+
+    this.updateEchoMonitorLifecycle();
   }
 
   /**
@@ -737,6 +804,7 @@ export class ModernBrowserAudioService implements IAudioService {
     await this.recorder.end();
     this.recordingCallback = null;
     this.currentRecordingDeviceId = undefined;
+    this.updateEchoMonitorLifecycle();
   }
 
   /**
@@ -1044,13 +1112,11 @@ export class ModernBrowserAudioService implements IAudioService {
       }
 
       // Start recording with callback
-      await this.systemAudioRecorder.record((data: { mono: Int16Array; raw: Int16Array }) => {
-        if (this.systemAudioCallback) {
-          this.systemAudioCallback(data);
-        }
-      });
+      await this.systemAudioRecorder.record((data: { mono: Int16Array; raw: Int16Array }) =>
+        this.dispatchParticipantAudio(data));
 
       this.systemAudioRecordingActive = true;
+      this.updateEchoMonitorLifecycle();
       console.info(`[Sokuji] [ModernBrowserAudio] System audio recording started successfully`);
     } catch (error) {
       console.error('[Sokuji] [ModernBrowserAudio] Failed to start loopback recording:', error);
@@ -1078,13 +1144,11 @@ export class ModernBrowserAudioService implements IAudioService {
         throw new Error('Failed to begin device audio capture');
       }
 
-      await this.systemAudioRecorder.record((data: { mono: Int16Array; raw: Int16Array }) => {
-        if (this.systemAudioCallback) {
-          this.systemAudioCallback(data);
-        }
-      });
+      await this.systemAudioRecorder.record((data: { mono: Int16Array; raw: Int16Array }) =>
+        this.dispatchParticipantAudio(data));
 
       this.systemAudioRecordingActive = true;
+      this.updateEchoMonitorLifecycle();
       console.info('[Sokuji] [ModernBrowserAudio] Device audio capture started');
     } catch (error) {
       console.error('[Sokuji] [ModernBrowserAudio] Failed to start device capture:', error);
@@ -1127,13 +1191,11 @@ export class ModernBrowserAudioService implements IAudioService {
         throw new Error('Failed to begin application audio capture');
       }
 
-      await recorder.record((data: { mono: Int16Array; raw: Int16Array }) => {
-        if (this.systemAudioCallback) {
-          this.systemAudioCallback(data);
-        }
-      });
+      await recorder.record((data: { mono: Int16Array; raw: Int16Array }) =>
+        this.dispatchParticipantAudio(data));
 
       this.systemAudioRecordingActive = true;
+      this.updateEchoMonitorLifecycle();
       console.info('[Sokuji] [ModernBrowserAudio] Application capture started');
     } catch (error) {
       console.error('[Sokuji] [ModernBrowserAudio] Failed to start application capture:', error);
@@ -1233,6 +1295,7 @@ export class ModernBrowserAudioService implements IAudioService {
 
     this.systemAudioCallback = null;
     this.systemAudioRecordingActive = false;
+    this.updateEchoMonitorLifecycle();
     console.info('[Sokuji] [ModernBrowserAudio] System audio recording stopped');
   }
 
@@ -1404,12 +1467,16 @@ export class ModernBrowserAudioService implements IAudioService {
 
       // Start recording with the callback
       await this.tabAudioRecorder.record((data) => {
+        if (this.echoMonitor?.running && data.mono) {
+          this.echoMonitor.pushParticipant(data.mono);
+        }
         if (this.tabAudioCallback) {
           this.tabAudioCallback(data);
         }
       });
 
       this.tabAudioRecordingActive = true;
+      this.updateEchoMonitorLifecycle();
       console.info('[Sokuji] [ModernBrowserAudio] Tab audio recording started successfully');
     } catch (error) {
       console.error('[Sokuji] [ModernBrowserAudio] Failed to start tab audio recording:', error);
@@ -1436,6 +1503,7 @@ export class ModernBrowserAudioService implements IAudioService {
 
     this.tabAudioCallback = null;
     this.tabAudioRecordingActive = false;
+    this.updateEchoMonitorLifecycle();
     console.info('[Sokuji] [ModernBrowserAudio] Tab audio recording stopped');
   }
 

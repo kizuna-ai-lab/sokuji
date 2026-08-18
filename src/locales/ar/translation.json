@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "loopbackMicNotice": "تنبيه إدخال الاسترجاع",
+    "loopbackMicWarningTitle": "جهاز الإدخال هذا يعيد التقاط ما يشغّله هذا الجهاز.",
+    "loopbackMicWarningText1": "أجهزة إدخال الاسترجاع مثل \"Stereo Mix\" أو أجهزة \"Monitor of ...\" تسجّل مخرجات صوت النظام نفسها. خلال جلسة تتضمن كلام Sokuji المترجم، سيسمع Sokuji نفسه ويترجم نفسه في حلقة.",
+    "loopbackMicWarningText2": "يبقى الجهاز محددًا في حال كان هذا التوجيه مقصودًا، لكن للاستخدام العادي يُرجى اختيار ميكروفون فعلي."
   },
   "auth": {
     "signIn": "تسجيل الدخول",
@@ -637,18 +641,6 @@
     "noApiKey": "مفتاح API مطلوب",
     "noMic": "ميكروفون مطلوب",
     "reconnecting": "إعادة الاتصال..."
-  },
-  "audioFeedback": {
-    "title": "تحذير من التغذية الراجعة للصوت",
-    "description": "تم اكتشاف صدى محتمل بين الميكروفون والسماعات.",
-    "speakerModeDescription": "وضع السماعة نشط - خطر عالي من الصدى قد يؤثر على جودة الترجمة.",
-    "solutions": {
-      "useHeadphones": "استخدم سماعات الرأس للحصول على أفضل النتائج",
-      "differentDevices": "اختر أجهزة صوت مختلفة",
-      "adjustDistance": "أبعد الميكروفون عن السماعات",
-      "disablePassthrough": "أوقف تمرير الصوت الأصلي",
-      "orTry": "أو جرب:"
-    }
   },
   "userTypeSelection": {
     "title": "مرحباً بك في Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "الصوت",
     "voiceBuilderDisclaimer": "خدمة Supertone مدفوعة. Sokuji ليس طرفًا في تلك المعاملة.",
     "refreshList": "تحديث قائمة الأصوات"
+  },
+  "echoNotice": {
+    "ttsEcho": "مكبرات الصوت لديك تعيد كلام Sokuji المترجم إلى الميكروفون.",
+    "meetingEcho": "صوت الاجتماع من مكبرات الصوت يصل إلى الميكروفون.",
+    "farEndEcho": "جهاز أحد المشاركين يعيد ترجمتك صدىً إلى الاجتماع.",
+    "selfCapture": "مصدر صوت المشاركين يلتقط صوت Sokuji نفسه.",
+    "routingLoop": "جهاز الإدخال المحدد يلتقط تشغيل هذا الجهاز مباشرة.",
+    "actionHeadphones": "استخدام سماعات الرأس سيكسر الحلقة.",
+    "actionAskRemote": "اطلب من ذلك المشارك استخدام سماعات رأس.",
+    "actionPickApp": "اختر تطبيق الاجتماع كمصدر صوت المشاركين بدلاً من صوت النظام.",
+    "actionChangeInput": "اختر ميكروفوناً فعلياً كجهاز إدخال.",
+    "dismiss": "إغلاق"
   }
 }
