@@ -974,10 +974,16 @@ export class ModernAudioPlayer {
         }
 
         let from = lastIndex;
-        // Anything further back than one capacity has been overwritten.
-        if (cur - from > this._ringCapacity) {
-          from = cur - this._ringCapacity;
-        }
+        // Clamp against what is actually still readable:
+        // - the producer may have advanced writeIndex up to readIndex +
+        //   capacity, so slots older than (writeIndex - capacity) hold NEWER
+        //   audio than their position claims — clamping merely to
+        //   (cur - capacity) would hand the detector samples that were never
+        //   rendered at that point in the timeline;
+        // - and one read never returns more than maxReadSamples of audio,
+        //   dropping the oldest first, to bound the allocation after a stall.
+        const writeIdx = Atomics.load(this._indices, 0);
+        from = Math.max(from, writeIdx - this._ringCapacity, cur - maxReadSamples);
         const consumed = cur - from;
         const expected = Math.round(((nowMs - lastTimeMs) / 1000) * this.sampleRate);
         const silence = Math.max(0, Math.min(expected - consumed, maxReadSamples - consumed));

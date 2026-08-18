@@ -105,22 +105,44 @@ describe('createPlayedAudioTap', () => {
     expect(total).toBe((RATE * 750) / 1000); // 750 ms of wall time, exactly
   });
 
-  it('does not replay old audio when the ring index restarts', () => {
+  it('re-syncs on a ring restart instead of replaying old audio', () => {
     const player = makePlayer();
     player._workletState = 'starving';
     const tap = player.createPlayedAudioTap();
     tap.read();
+    // Advance the cursor past the future reset point, so the restart is
+    // actually visible to the tap as cur < lastIndex.
     playSamples(player, new Array(100).fill(0.5));
+    vi.advanceTimersByTime(5);
+    expect(tap.read().length).toBeGreaterThan(0); // cursor now at 100
 
     // Ring rebuild: indices restart at 0 while old samples still sit in _data.
     Atomics.store(player._indices as Int32Array, 0, 0);
     Atomics.store(player._indices as Int32Array, 1, 0);
     vi.advanceTimersByTime(100);
 
-    // The interval renders as silence — the timeline stays continuous, and
-    // none of the stale 0.5 samples leak through as replayed audio.
+    // The reset branch fires: a sync-only empty read, then normal operation
+    // with no stale 0.5 samples replayed.
+    expect(tap.read().length).toBe(0);
+    playSamples(player, new Array(48).fill(0.25));
+    vi.advanceTimersByTime(2);
+    const next = tap.read();
+    expect(next.length).toBeGreaterThan(0);
+    expect(next.every((v: number) => v === 0 || Math.abs(v - 0.25) < 1e-6)).toBe(true);
+  });
+
+  it('caps consumed audio too, dropping the oldest, when far behind', () => {
+    const player = makePlayer();
+    player._workletState = 'starving';
+    const tap = player.createPlayedAudioTap();
+    tap.read();
+
+    // 2 s of audio consumed plus a 40 s stall: neither the consumed span nor
+    // the silence padding may push one read past the per-read budget.
+    playSamples(player, new Array(RATE * 2).fill(0.3));
+    vi.advanceTimersByTime(40_000);
     const out = tap.read();
-    expect(out.every((v: number) => v === 0)).toBe(true);
+    expect(out.length).toBeLessThanOrEqual(RATE * 30);
   });
 
   it('caps a single read after a very long stall', () => {
