@@ -78,3 +78,6 @@
     opacity: 1;
   }
 }
+
+// Same pattern as ModelImportModal.scss: the notice simply appears in place.
+@media (prefers-reduced-motion: reduce) { .echo-notice { animation: none; } }
