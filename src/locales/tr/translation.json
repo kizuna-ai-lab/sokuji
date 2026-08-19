@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Seçili uygulamanın yakalaması durdu, bu yüzden artık tüm sistem sesi çevriliyor. Kapsamı yeniden daraltmak için uygulamayı tekrar seçin.",
+    "loopbackMicNotice": "Loopback Girişi Bildirimi",
+    "loopbackMicWarningTitle": "Bu giriş, bilgisayarın çaldığı sesi yeniden yakalar.",
+    "loopbackMicWarningText1": "\"Stereo Mix\" veya \"Monitor of ...\" gibi loopback girişleri sistemin kendi ses çıkışını kaydeder. Sokuji'nin çevrilmiş sesini içeren bir oturumda Sokuji kendini duyar ve döngü hâlinde çevirir.",
+    "loopbackMicWarningText2": "Bu yönlendirme kasıtlıysa aygıt seçili kalır, ancak normal kullanım için lütfen fiziksel bir mikrofon seçin."
   },
   "auth": {
     "signIn": "Giriş Yap",
@@ -637,18 +641,6 @@
     "noApiKey": "API Anahtarı Gerekli",
     "noMic": "Mikrofon Gerekli",
     "reconnecting": "Yeniden bağlanıyor..."
-  },
-  "audioFeedback": {
-    "title": "Ses Geri Beslemesi Uyarısı",
-    "description": "Mikrofon ve hoparlörler arasında eko tespit edildi.",
-    "speakerModeDescription": "Hoparlör modu aktif - çeviri kalitesini etkileyebilecek yüksek eko riski.",
-    "solutions": {
-      "useHeadphones": "En iyi sonuçlar için kulaklık kullanın",
-      "differentDevices": "Farklı ses cihazları seçin",
-      "adjustDistance": "Mikrofonu hoparlörlerden uzağa taşıyın",
-      "disablePassthrough": "Orijinal ses geçişini kapatın",
-      "orTry": "Veya deneyin:"
-    }
   },
   "userTypeSelection": {
     "title": "Sokuji'ye Hoş Geldiniz",
@@ -1009,5 +1001,17 @@
     "voice": "Ses",
     "voiceBuilderDisclaimer": "Ücretli Supertone hizmeti. Sokuji bu işleme dahil değildir.",
     "refreshList": "Ses listesini yenile"
+  },
+  "echoNotice": {
+    "ttsEcho": "Hoparlörleriniz Sokuji'nin çevrilmiş sesini mikrofona geri besliyor.",
+    "meetingEcho": "Hoparlörlerinizden gelen toplantı sesi mikrofona ulaşıyor.",
+    "farEndEcho": "Bir katılımcının cihazı çevirinizi toplantıya yankı olarak geri gönderiyor.",
+    "selfCapture": "Katılımcı kaynağı Sokuji'nin kendi sesini yakalıyor.",
+    "routingLoop": "Seçili giriş aygıtı bu bilgisayarın çalınan sesini doğrudan yakalıyor.",
+    "actionHeadphones": "Kulaklık kullanmak döngüyü kıracaktır.",
+    "actionAskRemote": "O katılımcıdan kulaklık kullanmasını isteyin.",
+    "actionPickApp": "Katılımcı kaynağı olarak sistem sesi yerine toplantı uygulamasını seçin.",
+    "actionChangeInput": "Giriş aygıtı olarak fiziksel bir mikrofon seçin.",
+    "dismiss": "Kapat"
   }
 }

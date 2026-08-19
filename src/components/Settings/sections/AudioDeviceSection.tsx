@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import DeviceList from '../shared/DeviceList';
 import WarningModal from '../shared/WarningModal';
-import { useFilteredDevices, WarningType, AudioDevice } from '../shared/hooks';
+import { useFilteredDevices, WarningType, AudioDevice, isVirtualMic } from '../shared/hooks';
 import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, useIsMonitorChannelInScope, NoiseSuppressionMode } from '../../../stores/audioStore';
 import { useAnalytics } from '../../../lib/analytics';
 
@@ -135,8 +135,11 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
     });
   };
 
-  const handleInputVirtualDeviceClick = () => {
-    setWarningType('virtual-mic');
+  const handleInputVirtualDeviceClick = (device: AudioDevice) => {
+    // DeviceList routes two kinds of risky input picks here: Sokuji's own
+    // virtual devices (selection blocked) and OS loopback-style inputs
+    // (selection goes through, warned). Each gets its own explanation.
+    setWarningType(isVirtualMic(device) ? 'virtual-mic' : 'loopback-mic');
     trackEvent('virtual_device_warning', {
       device_type: 'input',
       action_taken: 'ignored'

@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "ఎంచుకున్న అప్లికేషన్ క్యాప్చర్ ఆగిపోయింది, కాబట్టి ఇప్పుడు మొత్తం సిస్టమ్ ఆడియో అనువదించబడుతోంది. పరిధిని మళ్లీ తగ్గించడానికి అప్లికేషన్‌ను మళ్లీ ఎంచుకోండి.",
+    "loopbackMicNotice": "లూప్‌బ్యాక్ ఇన్‌పుట్ గమనిక",
+    "loopbackMicWarningTitle": "ఈ ఇన్‌పుట్ ఈ కంప్యూటర్ ప్లే చేస్తున్నదాన్ని మళ్లీ క్యాప్చర్ చేస్తుంది.",
+    "loopbackMicWarningText1": "\"Stereo Mix\" లేదా \"Monitor of ...\" వంటి లూప్‌బ్యాక్ ఇన్‌పుట్‌లు సిస్టమ్ సొంత ఆడియో అవుట్‌పుట్‌నే రికార్డ్ చేస్తాయి. Sokuji అనువాద స్వరం ఉన్న సెషన్‌లో, Sokuji తననే విని లూప్‌లో అనువదిస్తుంది.",
+    "loopbackMicWarningText2": "ఈ రూటింగ్ ఉద్దేశపూర్వకమైతే పరికరం ఎంపికలో ఉంటుంది; సాధారణ వినియోగానికి నిజమైన మైక్రోఫోన్‌ను ఎంచుకోండి."
   },
   "auth": {
     "signIn": "సైన్ ఇన్",
@@ -637,18 +641,6 @@
     "noApiKey": "API కీ అవసరం",
     "noMic": "మైక్రోఫోన్ అవసరం",
     "reconnecting": "మళ్ళీ కనెక్ట్ అవుతోంది..."
-  },
-  "audioFeedback": {
-    "title": "ఆడియో ఫీడ్‌బ్యాక్ హెచ్చరిక",
-    "description": "మైక్రోఫోన్ మరియు స్పీకర్‌ల మధ్య ఎకో గుర్తించబడింది.",
-    "speakerModeDescription": "స్పీకర్ మోడ్ చురుకుగా ఉంది - అనువాద నాణ్యతను ప్రభావితం చేసే అధిక ఎకో ప్రమాదం.",
-    "solutions": {
-      "useHeadphones": "ఉత్తమ ఫలితాల కోసం హెడ్‌ఫోన్‌లను ఉపయోగించండి",
-      "differentDevices": "వేర్వేరు ఆడియో పరికరాలను ఎంచుకోండి",
-      "adjustDistance": "మైక్రోఫోన్‌ను స్పీకర్‌ల నుండి దూరంగా తరలించండి",
-      "disablePassthrough": "అసలు ఆడియో పాస్‌త్రూను ఆఫ్ చేయండి",
-      "orTry": "లేదా ప్రయత్నించండి:"
-    }
   },
   "userTypeSelection": {
     "title": "Sokujiకి స్వాగతం",
@@ -1009,5 +1001,17 @@
     "voice": "వాయిస్",
     "voiceBuilderDisclaimer": "చెల్లింపు Supertone సేవ. ఆ లావాదేవీలో Sokuji ప్రమేయం లేదు.",
     "refreshList": "వాయిస్ జాబితాను రిఫ్రెష్ చేయండి"
+  },
+  "echoNotice": {
+    "ttsEcho": "మీ స్పీకర్లు Sokuji అనువాద స్వరాన్ని మైక్రోఫోన్‌లోకి తిరిగి పంపుతున్నాయి.",
+    "meetingEcho": "స్పీకర్ల నుంచి సమావేశ ఆడియో మైక్రోఫోన్‌కు చేరుతోంది.",
+    "farEndEcho": "ఒక పాల్గొనేవారి పరికరం మీ అనువాదాన్ని ప్రతిధ్వనిగా సమావేశానికి తిరిగి పంపుతోంది.",
+    "selfCapture": "పాల్గొనేవారి మూలం Sokuji సొంత ఆడియోనే క్యాప్చర్ చేస్తోంది.",
+    "routingLoop": "ఎంచుకున్న ఇన్‌పుట్ పరికరం ఈ కంప్యూటర్ ప్లేబ్యాక్‌ను నేరుగా క్యాప్చర్ చేస్తోంది.",
+    "actionHeadphones": "హెడ్‌ఫోన్లు వాడితే లూప్ తెగిపోతుంది.",
+    "actionAskRemote": "ఆ పాల్గొనేవారిని హెడ్‌ఫోన్లు వాడమని అడగండి.",
+    "actionPickApp": "సిస్టమ్ ఆడియోకు బదులు సమావేశ అప్లికేషన్‌ను పాల్గొనేవారి మూలంగా ఎంచుకోండి.",
+    "actionChangeInput": "ఇన్‌పుట్ పరికరంగా నిజమైన మైక్రోఫోన్‌ను ఎంచుకోండి.",
+    "dismiss": "మూసివేయి"
   }
 }

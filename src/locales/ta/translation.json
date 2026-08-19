@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "தேர்ந்தெடுத்த பயன்பாட்டின் பதிவு நின்றுவிட்டதால், இப்போது முழு கணினி ஒலியும் மொழிபெயர்க்கப்படுகிறது. வரம்பைச் சுருக்க பயன்பாட்டை மீண்டும் தேர்ந்தெடுக்கவும்.",
+    "loopbackMicNotice": "லூப்பேக் உள்ளீட்டு அறிவிப்பு",
+    "loopbackMicWarningTitle": "இந்த உள்ளீடு இந்தக் கணினி இயக்குவதை மீண்டும் பதிவு செய்கிறது.",
+    "loopbackMicWarningText1": "\"Stereo Mix\" அல்லது \"Monitor of ...\" போன்ற லூப்பேக் உள்ளீடுகள் கணினியின் சொந்த ஒலி வெளியீட்டையே பதிவு செய்கின்றன. Sokuji-யின் மொழிபெயர்ப்புக் குரல் உள்ள அமர்வில், Sokuji தன்னையே கேட்டு சுழற்சியில் மொழிபெயர்க்கும்.",
+    "loopbackMicWarningText2": "இந்த வழித்தடம் வேண்டுமென்றே இருந்தால் சாதனம் தேர்வில் இருக்கும்; சாதாரண பயன்பாட்டிற்கு உண்மையான மைக்ரோஃபோனைத் தேர்ந்தெடுக்கவும்."
   },
   "auth": {
     "signIn": "உள்நுழை",
@@ -637,18 +641,6 @@
     "noApiKey": "API விசை தேவை",
     "noMic": "இக்கோ தேவை",
     "reconnecting": "மீண்டும் இணைக்கிறது..."
-  },
-  "audioFeedback": {
-    "title": "ஆடியோ பீட்பேக் எச்சரிக்கை",
-    "description": "மைக்ரோஃபோன் மற்றும் ஸ்பீக்கர்களுக்கு இடையில் எதிரொலி கண்டறியப்பட்டது.",
-    "speakerModeDescription": "ஸ்பீக்கர் பயன்முறை செயலில் உள்ளது - மொழிபெயர்ப்பு தரத்தை பாதிக்கும் உயர் எதிரொலி ஆபத்து.",
-    "solutions": {
-      "useHeadphones": "சிறந்த முடிவுகளுக்கு ஹெட்போன்களைப் பயன்படுத்தவும்",
-      "differentDevices": "வெவ்வேறு ஆடியோ சாதனங்களைத் தேர்ந்தெடுக்கவும்",
-      "adjustDistance": "மைக்ரோஃபோனை ஸ்பீக்கர்களிலிருந்து தூரமாக நகர்த்தவும்",
-      "disablePassthrough": "அசல் ஆடியோ பாஸ்த்ரூவை அணைக்கவும்",
-      "orTry": "அல்லது முயற்சிக்கவும்:"
-    }
   },
   "userTypeSelection": {
     "title": "Sokuji-க்கு வரவேற்பு",
@@ -1009,5 +1001,17 @@
     "voice": "குரல்",
     "voiceBuilderDisclaimer": "கட்டணச் Supertone சேவை. அந்தப் பரிவர்த்தனையில் Sokuji ஈடுபடவில்லை.",
     "refreshList": "குரல் பட்டியலைப் புதுப்பிக்கவும்"
+  },
+  "echoNotice": {
+    "ttsEcho": "உங்கள் ஸ்பீக்கர்கள் Sokuji-யின் மொழிபெயர்ப்புக் குரலை மைக்ரோஃபோனுக்குத் திருப்பி அனுப்புகின்றன.",
+    "meetingEcho": "ஸ்பீக்கர்களில் இருந்து கூட்ட ஒலி மைக்ரோஃபோனை அடைகிறது.",
+    "farEndEcho": "ஒரு பங்கேற்பாளரின் சாதனம் உங்கள் மொழிபெயர்ப்பை எதிரொலியாகக் கூட்டத்திற்குத் திருப்புகிறது.",
+    "selfCapture": "பங்கேற்பாளர் மூலம் Sokuji-யின் சொந்த ஒலியையே பதிவு செய்கிறது.",
+    "routingLoop": "தேர்ந்தெடுத்த உள்ளீட்டு சாதனம் இந்தக் கணினியின் இயக்கத்தை நேரடியாகப் பதிவு செய்கிறது.",
+    "actionHeadphones": "ஹெட்ஃபோன் பயன்படுத்தினால் சுழற்சி அறுபடும்.",
+    "actionAskRemote": "அந்தப் பங்கேற்பாளரை ஹெட்ஃபோன் பயன்படுத்தச் சொல்லுங்கள்.",
+    "actionPickApp": "கணினி ஒலிக்குப் பதிலாக கூட்டப் பயன்பாட்டைப் பங்கேற்பாளர் மூலமாகத் தேர்ந்தெடுக்கவும்.",
+    "actionChangeInput": "உள்ளீட்டு சாதனமாக உண்மையான மைக்ரோஃபோனைத் தேர்ந்தெடுக்கவும்.",
+    "dismiss": "மூடு"
   }
 }

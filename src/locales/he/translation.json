@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "לכידת היישום שנבחר הופסקה, ולכן כעת מתורגם כל שמע המערכת במקומו. בחרו את היישום שוב כדי לצמצם בחזרה.",
+    "loopbackMicNotice": "התראת קלט Loopback",
+    "loopbackMicWarningTitle": "קלט זה קולט מחדש את מה שהמחשב משמיע.",
+    "loopbackMicWarningText1": "קלטי Loopback כמו \"Stereo Mix\" או התקן \"Monitor of ...\" מקליטים את פלט השמע של המערכת עצמה. בפגישה הכוללת את הדיבור המתורגם של Sokuji, התוכנה תשמע ותתרגם את עצמה בלולאה.",
+    "loopbackMicWarningText2": "ההתקן נשאר נבחר למקרה שהניתוב מכוון, אך לשימוש רגיל בחרו מיקרופון פיזי."
   },
   "auth": {
     "signIn": "התחבר",
@@ -637,18 +641,6 @@
     "noApiKey": "נדרש מפתח API",
     "noMic": "נדרש מיקרופון",
     "reconnecting": "מתחבר מחדש..."
-  },
-  "audioFeedback": {
-    "title": "אזהרת משוב אודיו",
-    "description": "זוהה הד בין המיקרופון לרמקולים.",
-    "speakerModeDescription": "מצב רמקול פעיל - סיכון גבוה להד שעלול להשפיע על איכות התרגום.",
-    "solutions": {
-      "useHeadphones": "השתמשו באוזניות לתוצאות מיטביות",
-      "differentDevices": "בחרו התקני אודיו שונים",
-      "adjustDistance": "הרחיקו את המיקרופון מהרמקולים",
-      "disablePassthrough": "כבו העברת אודיו מקורי",
-      "orTry": "או נסו:"
-    }
   },
   "userTypeSelection": {
     "title": "ברוכים הבאים ל-Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "קול",
     "voiceBuilderDisclaimer": "שירות בתשלום של Supertone. Sokuji אינה מעורבת בעסקה זו.",
     "refreshList": "רענן את רשימת הקולות"
+  },
+  "echoNotice": {
+    "ttsEcho": "הרמקולים שלך מחזירים את הדיבור המתורגם של Sokuji אל המיקרופון.",
+    "meetingEcho": "שמע הפגישה מהרמקולים מגיע אל המיקרופון.",
+    "farEndEcho": "מכשיר של משתתף מהדהד את התרגום שלך בחזרה לפגישה.",
+    "selfCapture": "מקור המשתתפים קולט את השמע של Sokuji עצמו.",
+    "routingLoop": "התקן הקלט שנבחר קולט ישירות את ההשמעה של מחשב זה.",
+    "actionHeadphones": "שימוש באוזניות יקטע את הלולאה.",
+    "actionAskRemote": "בקשו מאותו משתתף להשתמש באוזניות.",
+    "actionPickApp": "בחרו את יישום הפגישה כמקור המשתתפים במקום שמע המערכת.",
+    "actionChangeInput": "בחרו מיקרופון פיזי כהתקן קלט.",
+    "dismiss": "סגירה"
   }
 }

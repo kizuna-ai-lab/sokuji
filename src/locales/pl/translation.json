@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Przechwytywanie wybranej aplikacji zostało przerwane, więc tłumaczony jest teraz cały dźwięk systemowy. Wybierz aplikację ponownie, aby zawęzić zakres.",
+    "loopbackMicNotice": "Uwaga dot. wejścia loopback",
+    "loopbackMicWarningTitle": "To wejście ponownie przechwytuje to, co odtwarza ten komputer.",
+    "loopbackMicWarningText1": "Wejścia loopback, takie jak \"Stereo Mix\" lub urządzenie \"Monitor of ...\", nagrywają własne wyjście audio systemu. Podczas sesji z przetłumaczoną mową Sokuji program słyszałby i tłumaczył sam siebie w pętli.",
+    "loopbackMicWarningText2": "Urządzenie pozostaje wybrane, jeśli to trasowanie jest zamierzone, ale do normalnego użytku wybierz fizyczny mikrofon."
   },
   "auth": {
     "signIn": "Zaloguj się",
@@ -637,18 +641,6 @@
     "noApiKey": "Wymagany Klucz API",
     "noMic": "Wymagany Mikrofon",
     "reconnecting": "Ponowne łączenie..."
-  },
-  "audioFeedback": {
-    "title": "Ostrzeżenie o sprzężeniu zwrotnym dźwięku",
-    "description": "Wykryto echo między mikrofonem a głośnikami.",
-    "speakerModeDescription": "Tryb głośnikowy aktywny - wysokie ryzyko echa mogące wpłynąć na jakość tłumaczenia.",
-    "solutions": {
-      "useHeadphones": "Użyj słuchawek dla najlepszych rezultatów",
-      "differentDevices": "Wybierz różne urządzenia audio",
-      "adjustDistance": "Oddal mikrofon od głośników",
-      "disablePassthrough": "Wyłącz przepuszczanie oryginalnego dźwięku",
-      "orTry": "Lub spróbuj:"
-    }
   },
   "userTypeSelection": {
     "title": "Witamy w Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "Głos",
     "voiceBuilderDisclaimer": "Płatna usługa Supertone. Sokuji nie uczestniczy w tej transakcji.",
     "refreshList": "Odśwież listę głosów"
+  },
+  "echoNotice": {
+    "ttsEcho": "Głośniki zawracają przetłumaczoną mowę Sokuji do mikrofonu.",
+    "meetingEcho": "Dźwięk spotkania z głośników dociera do mikrofonu.",
+    "farEndEcho": "Urządzenie jednego z uczestników odbija Twoje tłumaczenie echem do spotkania.",
+    "selfCapture": "Źródło uczestników przechwytuje dźwięk samego Sokuji.",
+    "routingLoop": "Wybrane urządzenie wejściowe przechwytuje bezpośrednio odtwarzanie tego komputera.",
+    "actionHeadphones": "Użycie słuchawek przerwie pętlę.",
+    "actionAskRemote": "Poproś tego uczestnika o użycie słuchawek.",
+    "actionPickApp": "Wybierz aplikację spotkania jako źródło uczestników zamiast dźwięku systemowego.",
+    "actionChangeInput": "Wybierz fizyczny mikrofon jako urządzenie wejściowe.",
+    "dismiss": "Zamknij"
   }
 }

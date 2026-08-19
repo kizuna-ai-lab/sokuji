@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "ضبط برنامهٔ انتخاب‌شده متوقف شد، بنابراین اکنون کل صدای سیستم ترجمه می‌شود. برای محدود کردن دوباره، برنامه را دوباره انتخاب کنید.",
+    "loopbackMicNotice": "هشدار ورودی لوپ‌بک",
+    "loopbackMicWarningTitle": "این ورودی آنچه را این رایانه پخش می‌کند دوباره ضبط می‌کند.",
+    "loopbackMicWarningText1": "ورودی‌های لوپ‌بک مانند «Stereo Mix» یا دستگاه‌های «Monitor of ...» خروجی صوتی خود سیستم را ضبط می‌کنند. در جلسه‌ای که گفتار ترجمه‌شدهٔ Sokuji را شامل شود، Sokuji صدای خود را می‌شنود و در یک حلقه خود را ترجمه می‌کند.",
+    "loopbackMicWarningText2": "اگر این مسیر عمدی است دستگاه انتخاب‌شده می‌ماند، اما برای استفادهٔ عادی لطفاً یک میکروفون فیزیکی انتخاب کنید."
   },
   "auth": {
     "signIn": "ورود",
@@ -637,18 +641,6 @@
     "noApiKey": "کلید API ضروری",
     "noMic": "میکروفون ضروری",
     "reconnecting": "در حال اتصال مجدد..."
-  },
-  "audioFeedback": {
-    "title": "هشدار بازخورد صوتی",
-    "description": "اکو بین میکروفون و بلندگوها شناسایی شد.",
-    "speakerModeDescription": "حالت بلندگو فعال است - خطر بالای اکو که کیفیت ترجمه را تحت تأثیر قرار می‌دهد.",
-    "solutions": {
-      "useHeadphones": "از هدفون برای بهترین نتایج استفاده کنید",
-      "differentDevices": "دستگاه‌های صوتی مختلف انتخاب کنید",
-      "adjustDistance": "میکروفون را از بلندگوها دور کنید",
-      "disablePassthrough": "عبور صدای اصلی را خاموش کنید",
-      "orTry": "یا امتحان کنید:"
-    }
   },
   "userTypeSelection": {
     "title": "به Sokuji خوش آمدید",
@@ -1009,5 +1001,17 @@
     "voice": "صدا",
     "voiceBuilderDisclaimer": "سرویس پولی Supertone. Sokuji در آن تراکنش دخالتی ندارد.",
     "refreshList": "به‌روزرسانی فهرست صداها"
+  },
+  "echoNotice": {
+    "ttsEcho": "بلندگوهای شما گفتار ترجمه‌شدهٔ Sokuji را به میکروفون بازمی‌گردانند.",
+    "meetingEcho": "صدای جلسه از بلندگوهای شما به میکروفون می‌رسد.",
+    "farEndEcho": "دستگاه یکی از شرکت‌کنندگان ترجمهٔ شما را به‌صورت پژواک به جلسه بازمی‌گرداند.",
+    "selfCapture": "منبع شرکت‌کنندگان در حال ضبط صدای خود Sokuji است.",
+    "routingLoop": "دستگاه ورودی انتخاب‌شده مستقیماً پخش این رایانه را ضبط می‌کند.",
+    "actionHeadphones": "استفاده از هدفون حلقه را می‌شکند.",
+    "actionAskRemote": "از آن شرکت‌کننده بخواهید هدفون استفاده کند.",
+    "actionPickApp": "به‌جای صدای سیستم، برنامهٔ جلسه را به‌عنوان منبع شرکت‌کنندگان انتخاب کنید.",
+    "actionChangeInput": "یک میکروفون فیزیکی را به‌عنوان دستگاه ورودی انتخاب کنید.",
+    "dismiss": "بستن"
   }
 }

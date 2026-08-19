@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "所选应用的采集已停止，现在改为翻译整个系统的声音。请重新选择该应用以缩小范围。",
+    "loopbackMicNotice": "环回输入提示",
+    "loopbackMicWarningTitle": "该输入设备会重新采集本机正在播放的声音。",
+    "loopbackMicWarningText1": "「立体声混音」或「Monitor of ...」这类环回输入录制的是系统自身的音频输出。在包含 Sokuji 翻译语音的会话中，Sokuji 会听到并循环翻译自己。",
+    "loopbackMicWarningText2": "如果这种路由是有意为之，设备会保持选中；正常使用请改选真实麦克风。"
   },
   "auth": {
     "signIn": "登录",
@@ -637,18 +641,6 @@
     "noApiKey": "需要API密钥",
     "noMic": "需要麦克风",
     "reconnecting": "重新连接中..."
-  },
-  "audioFeedback": {
-    "title": "音频反馈警告",
-    "description": "检测到麦克风和扬声器之间可能存在回声。",
-    "speakerModeDescription": "扬声器模式已激活 - 回声风险较高，可能影响翻译质量。",
-    "solutions": {
-      "useHeadphones": "使用耳机以获得最佳效果",
-      "differentDevices": "选择不同的音频设备",
-      "adjustDistance": "将麦克风远离扬声器",
-      "disablePassthrough": "关闭原声直通",
-      "orTry": "或尝试："
-    }
   },
   "userTypeSelection": {
     "title": "欢迎使用 Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "语音",
     "voiceBuilderDisclaimer": "Supertone 的付费服务。Sokuji 不参与该交易。",
     "refreshList": "刷新声音列表"
+  },
+  "echoNotice": {
+    "ttsEcho": "您的扬声器正把 Sokuji 的翻译语音送回麦克风。",
+    "meetingEcho": "扬声器播放的会议声音正进入麦克风。",
+    "farEndEcho": "某位参会者的设备正把您的翻译回声传回会议。",
+    "selfCapture": "参会者音源正在采集 Sokuji 自己的声音。",
+    "routingLoop": "所选输入设备正在直接采集本机播放的声音。",
+    "actionHeadphones": "使用耳机即可切断回路。",
+    "actionAskRemote": "请该参会者佩戴耳机。",
+    "actionPickApp": "请将参会者音源改为会议应用，而不是系统音频。",
+    "actionChangeInput": "请选择真实麦克风作为输入设备。",
+    "dismiss": "关闭"
   }
 }

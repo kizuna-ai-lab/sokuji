@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "所選應用程式的擷取已停止，現在改為翻譯整個系統的聲音。請重新選擇該應用程式以縮小範圍。",
+    "loopbackMicNotice": "環回輸入提示",
+    "loopbackMicWarningTitle": "此輸入裝置會重新擷取本機正在播放的聲音。",
+    "loopbackMicWarningText1": "「立體聲混音」或「Monitor of ...」這類環回輸入錄製的是系統自身的音訊輸出。在包含 Sokuji 翻譯語音的工作階段中，Sokuji 會聽到並循環翻譯自己。",
+    "loopbackMicWarningText2": "若此路由是刻意設定，裝置會保持選取；一般使用請改選實體麥克風。"
   },
   "auth": {
     "signIn": "登入",
@@ -637,18 +641,6 @@
     "noApiKey": "需要 API 金鑰",
     "noMic": "需要麥克風",
     "reconnecting": "重新連線中..."
-  },
-  "audioFeedback": {
-    "title": "音訊回饋警告",
-    "description": "偵測到麥克風和揚聲器之間的回音。",
-    "speakerModeDescription": "揚聲器模式啟用中 - 高回音風險可能影響翻譯品質。",
-    "solutions": {
-      "useHeadphones": "使用耳機以獲得最佳效果",
-      "differentDevices": "選擇不同的音訊裝置",
-      "adjustDistance": "將麥克風移離揚聲器",
-      "disablePassthrough": "關閉原始音訊直通",
-      "orTry": "或嘗試："
-    }
   },
   "userTypeSelection": {
     "title": "歡迎使用 Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "語音",
     "voiceBuilderDisclaimer": "這是 Supertone 的付費服務。Sokuji 不涉及該交易。",
     "refreshList": "重新整理語音清單"
+  },
+  "echoNotice": {
+    "ttsEcho": "您的喇叭正把 Sokuji 的翻譯語音送回麥克風。",
+    "meetingEcho": "喇叭播放的會議聲音正進入麥克風。",
+    "farEndEcho": "某位與會者的裝置正把您的翻譯回聲傳回會議。",
+    "selfCapture": "與會者音訊來源正在擷取 Sokuji 自己的聲音。",
+    "routingLoop": "所選輸入裝置正在直接擷取本機播放的聲音。",
+    "actionHeadphones": "使用耳機即可切斷迴路。",
+    "actionAskRemote": "請該與會者配戴耳機。",
+    "actionPickApp": "請將與會者音訊來源改為會議應用程式，而不是系統音訊。",
+    "actionChangeInput": "請選擇實體麥克風作為輸入裝置。",
+    "dismiss": "關閉"
   }
 }

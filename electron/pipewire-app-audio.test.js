@@ -7,6 +7,7 @@ import {
   disconnectAppSource,
   CAPTURE_SINK_DESCRIPTION,
 } from './pipewire-app-audio.js';
+import { makeSelfIdentity } from './own-app-source.js';
 
 // Shapes copied from a real `pw-dump` on PipeWire 1.x.
 const NODE_STREAM = {
@@ -535,6 +536,43 @@ describe('listAppSources', () => {
     // The capture sink in FULL_DUMP is an Audio/Sink, so it must not be listed.
     expect(await listAppSources({ exec: fakeExec([]), windowTitles: noTitles }))
       .toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
+  });
+
+  it('never lists the running app itself', async () => {
+    // Sokuji's TTS playback is an ordinary Stream/Output/Audio node. On Linux
+    // the stream belongs to Chromium's audio-service utility process, so both
+    // the binary name and the utility pid must count as "us".
+    const ownByBinary = {
+      id: 401,
+      type: 'PipeWire:Interface:Node',
+      info: {
+        props: {
+          'media.class': 'Stream/Output/Audio',
+          'application.name': 'Sokuji',
+          'application.process.binary': 'sokuji',
+          'application.process.id': 7001,
+        },
+      },
+    };
+    const ownByPid = {
+      id: 402,
+      type: 'PipeWire:Interface:Node',
+      info: {
+        props: {
+          'media.class': 'Stream/Output/Audio',
+          'application.name': 'Electron',
+          'application.process.binary': 'electron',
+          'application.process.id': 9999,
+        },
+      },
+    };
+    const selfIdentity = makeSelfIdentity({ execPath: '/usr/lib/sokuji/sokuji', pids: [9000, 9999] });
+    const sources = await listAppSources({
+      exec: fakeExec([], { dump: [...FULL_DUMP, ownByBinary, ownByPid] }),
+      windowTitles: noTitles,
+      selfIdentity,
+    });
+    expect(sources.map((s) => s.label)).toEqual(['Chromium']);
   });
 
   it('never lists a leaked capture sink from a previous session', async () => {

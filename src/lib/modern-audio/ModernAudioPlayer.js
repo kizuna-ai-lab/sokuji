@@ -915,6 +915,100 @@ export class ModernAudioPlayer {
   }
 
   // =========================================================================
+  // Echo-detection reference tap
+  // =========================================================================
+
+  /**
+   * Create a reader over the MAIN-ring samples as the worklet renders them.
+   *
+   * This is the echo detector's reference signal: exactly the TTS/streamed
+   * audio that has actually been played, on a wall-clock-continuous timeline.
+   * The passthrough ring is deliberately NOT exposed — its content is the
+   * microphone itself, and correlating the mic against it would fire on plain
+   * speech autocorrelation even with headphones on.
+   *
+   * The worklet advances readIndex only while main-ring samples exist; during
+   * starvation it renders silence without consuming. A reader that copied only
+   * readIndex advancement would therefore concatenate utterances and drop the
+   * silences between them, compressing the reference timeline against the
+   * wall-clock microphone probe and shifting every apparent lag. Each read()
+   * fills the gap: expected = elapsed wall time × sampleRate, and anything the
+   * worklet did not consume in that span is emitted as zeros. performance.now()
+   * rather than context.currentTime, because a suspended context freezes its
+   * clock while the microphone keeps running — exactly when the timeline must
+   * keep filling with silence.
+   *
+   * Zero placement inside one read interval is decided by the worklet state at
+   * read time: if it is playing now, the starved stretch preceded the audio
+   * (silence first); otherwise the audio ended mid-interval (silence last).
+   * That bounds boundary error to one read interval, which the detector's lag
+   * bins and vote accumulation absorb.
+   *
+   * Each tap owns its cursor, so creating a fresh tap discards history — the
+   * caller does that on capture start rather than replaying up to 120 s of
+   * audio played while detection was off.
+   *
+   * @returns {{read: () => Float32Array}}
+   */
+  createPlayedAudioTap() {
+    let lastIndex = null;
+    let lastTimeMs = 0;
+    // Cap one read at 30 s of samples: after a long stall nothing useful is
+    // recoverable, and an unbounded allocation is worse than a brief timeline
+    // discontinuity the detector self-heals from.
+    const maxReadSamples = this.sampleRate * 30;
+    const empty = new Float32Array(0);
+
+    return {
+      read: () => {
+        if (!this._indices || !this._data) {
+          return empty;
+        }
+        const cur = Atomics.load(this._indices, 1);
+        const nowMs = performance.now();
+        if (lastIndex === null || cur < lastIndex) {
+          // First read, or the ring was rebuilt and the index restarted.
+          lastIndex = cur;
+          lastTimeMs = nowMs;
+          return empty;
+        }
+
+        let from = lastIndex;
+        // Clamp against what is actually still readable:
+        // - the producer may have advanced writeIndex up to readIndex +
+        //   capacity, so slots older than (writeIndex - capacity) hold NEWER
+        //   audio than their position claims — clamping merely to
+        //   (cur - capacity) would hand the detector samples that were never
+        //   rendered at that point in the timeline;
+        // - and one read never returns more than maxReadSamples of audio,
+        //   dropping the oldest first, to bound the allocation after a stall.
+        const writeIdx = Atomics.load(this._indices, 0);
+        from = Math.max(from, writeIdx - this._ringCapacity, cur - maxReadSamples);
+        const consumed = cur - from;
+        const expected = Math.round(((nowMs - lastTimeMs) / 1000) * this.sampleRate);
+        const silence = Math.max(0, Math.min(expected - consumed, maxReadSamples - consumed));
+
+        const total = consumed + silence;
+        lastIndex = cur;
+        lastTimeMs = nowMs;
+        if (total <= 0) {
+          return empty;
+        }
+
+        const out = new Float32Array(total);
+        // Silence-first while playing (the starved stretch preceded the audio
+        // now flowing), silence-last otherwise.
+        const audioOffset = this._workletState === 'playing' ? silence : 0;
+        const cap = this._ringCapacity;
+        for (let i = 0; i < consumed; i++) {
+          out[audioOffset + i] = this._data[(from + i) % cap];
+        }
+        return out;
+      },
+    };
+  }
+
+  // =========================================================================
   // Visualization
   // =========================================================================
 

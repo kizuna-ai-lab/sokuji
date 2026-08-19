@@ -1,0 +1,87 @@
+.echo-notice {
+  position: fixed;
+  // Bottom-center, floated above the control footer (min 36px) plus the
+  // text-input row (~50px, provider-dependent) with margin to spare — the
+  // notice must never sit over the message input or the footer controls.
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 360px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #fff;
+  // Dark stops rather than the repo's brighter warning orange: this is a
+  // safety notice with 12px white text, and WCAG 2.2 needs 4.5:1 at every
+  // gradient stop (#f39c12 manages only ~2.2:1). These measure 7.3-9.4:1.
+  background: linear-gradient(135deg, #9a3412 0%, #7c2d12 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  animation: echo-notice-rise-in 0.3s ease-out;
+
+  .echo-notice-icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .echo-notice-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    .echo-notice-message {
+      font-weight: 600;
+    }
+
+    .echo-notice-action {
+      opacity: 1;
+    }
+  }
+
+  .echo-notice-dismiss {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    margin: -2px -4px 0 0;
+    color: #fff;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.8;
+
+    &:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  // The routing loop is a configuration error, not an acoustics problem —
+  // color it like an error rather than a warning.
+  &[data-cause='routing-loop'],
+  &[data-cause='self-capture'] {
+    // 6.5-8.3:1 against white at both stops.
+    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  }
+}
+
+@keyframes echo-notice-rise-in {
+  from {
+    transform: translate(-50%, 12px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+// Same pattern as ModelImportModal.scss: the notice simply appears in place.
+@media (prefers-reduced-motion: reduce) { .echo-notice { animation: none; } }

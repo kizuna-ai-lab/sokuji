@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Valitun sovelluksen kaappaus pysähtyi, joten nyt käännetään kaikki järjestelmän ääni. Rajaa takaisin valitsemalla sovellus uudelleen.",
+    "loopbackMicNotice": "Loopback-tulon huomautus",
+    "loopbackMicWarningTitle": "Tämä tulo tallentaa uudelleen sen, mitä tietokone toistaa.",
+    "loopbackMicWarningText1": "Loopback-tulot kuten \"Stereo Mix\" tai \"Monitor of ...\" -laitteet äänittävät järjestelmän omaa äänilähtöä. Istunnossa, joka sisältää Sokujin käännetyn puheen, Sokuji kuulisi ja kääntäisi itseään silmukassa.",
+    "loopbackMicWarningText2": "Laite pysyy valittuna, jos tämä reititys on tarkoituksellinen, mutta tavalliseen käyttöön valitse fyysinen mikrofoni."
   },
   "auth": {
     "signIn": "Kirjaudu sisään",
@@ -637,18 +641,6 @@
     "noApiKey": "API-avain vaaditaan",
     "noMic": "Mikrofoni vaaditaan",
     "reconnecting": "Yhdistetään uudelleen..."
-  },
-  "audioFeedback": {
-    "title": "Äänipalautteen varoitus",
-    "description": "Kaiku havaittu mikrofonin ja kaiuttimien välillä.",
-    "speakerModeDescription": "Kaiutintila aktiivinen - korkea kaikuriski, joka voi vaikuttaa käännöksen laatuun.",
-    "solutions": {
-      "useHeadphones": "Käytä kuulokkeita parhaan tuloksen saamiseksi",
-      "differentDevices": "Valitse eri äänilaitteet",
-      "adjustDistance": "Siirrä mikrofoni kauemmas kaiuttimista",
-      "disablePassthrough": "Poista alkuperäisen äänen läpivienti käytöstä",
-      "orTry": "Tai kokeile:"
-    }
   },
   "userTypeSelection": {
     "title": "Tervetuloa Sokuji:iin",
@@ -1009,5 +1001,17 @@
     "voice": "Ääni",
     "voiceBuilderDisclaimer": "Maksullinen Supertone-palvelu. Sokuji ei ole osallisena tässä liiketoimessa.",
     "refreshList": "Päivitä äänilista"
+  },
+  "echoNotice": {
+    "ttsEcho": "Kaiuttimesi syöttävät Sokujin käännetyn puheen takaisin mikrofoniin.",
+    "meetingEcho": "Kokouksen ääni kaiuttimista kantautuu mikrofoniin.",
+    "farEndEcho": "Osallistujan laite kaiuttaa käännöksesi takaisin kokoukseen.",
+    "selfCapture": "Osallistujalähde tallentaa Sokujin omaa ääntä.",
+    "routingLoop": "Valittu äänitulolaite tallentaa suoraan tämän tietokoneen toistoa.",
+    "actionHeadphones": "Kuulokkeiden käyttö katkaisee silmukan.",
+    "actionAskRemote": "Pyydä osallistujaa käyttämään kuulokkeita.",
+    "actionPickApp": "Valitse kokoussovellus osallistujalähteeksi järjestelmä-äänen sijaan.",
+    "actionChangeInput": "Valitse fyysinen mikrofoni äänitulolaitteeksi.",
+    "dismiss": "Sulje"
   }
 }

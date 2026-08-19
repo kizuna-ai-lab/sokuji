@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Захват выбранного приложения остановился, поэтому теперь переводится весь системный звук. Выберите приложение снова, чтобы сузить охват.",
+    "loopbackMicNotice": "Предупреждение о loopback-входе",
+    "loopbackMicWarningTitle": "Этот вход повторно захватывает то, что воспроизводит компьютер.",
+    "loopbackMicWarningText1": "Loopback-входы, такие как \"Stereo Mix\" или устройство \"Monitor of ...\", записывают собственный звуковой вывод системы. В сессии с переведённой речью Sokuji программа слышала бы и переводила саму себя по кругу.",
+    "loopbackMicWarningText2": "Устройство остаётся выбранным на случай, если такая маршрутизация намеренна, но для обычного использования выберите физический микрофон."
   },
   "auth": {
     "signIn": "Войти",
@@ -637,18 +641,6 @@
     "noApiKey": "Требуется API-ключ",
     "noMic": "Требуется микрофон",
     "reconnecting": "Переподключение..."
-  },
-  "audioFeedback": {
-    "title": "Предупреждение об обратной связи аудио",
-    "description": "Обнаружено эхо между микрофоном и динамиками.",
-    "speakerModeDescription": "Режим динамика активен - высокий риск эхо, влияющего на качество перевода.",
-    "solutions": {
-      "useHeadphones": "Используйте наушники для лучших результатов",
-      "differentDevices": "Выберите разные аудиоустройства",
-      "adjustDistance": "Отодвиньте микрофон от динамиков",
-      "disablePassthrough": "Отключите сквозную передачу оригинального аудио",
-      "orTry": "Или попробуйте:"
-    }
   },
   "userTypeSelection": {
     "title": "Добро пожаловать в Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "Голос",
     "voiceBuilderDisclaimer": "Платный сервис Supertone. Sokuji не участвует в этой сделке.",
     "refreshList": "Обновить список голосов"
+  },
+  "echoNotice": {
+    "ttsEcho": "Динамики возвращают переведённую речь Sokuji обратно в микрофон.",
+    "meetingEcho": "Звук встречи из динамиков попадает в микрофон.",
+    "farEndEcho": "Устройство одного из участников возвращает ваш перевод эхом во встречу.",
+    "selfCapture": "Источник участников захватывает собственный звук Sokuji.",
+    "routingLoop": "Выбранное устройство ввода напрямую захватывает воспроизведение этого компьютера.",
+    "actionHeadphones": "Наушники разорвут петлю.",
+    "actionAskRemote": "Попросите этого участника использовать наушники.",
+    "actionPickApp": "Выберите приложение встречи в качестве источника участников вместо системного звука.",
+    "actionChangeInput": "Выберите физический микрофон в качестве устройства ввода.",
+    "dismiss": "Закрыть"
   }
 }

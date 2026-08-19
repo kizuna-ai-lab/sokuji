@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "A captação da aplicação selecionada parou, pelo que todo o áudio do sistema está agora a ser traduzido. Escolha novamente a aplicação para voltar a restringir.",
+    "loopbackMicNotice": "Aviso de entrada loopback",
+    "loopbackMicWarningTitle": "Esta entrada volta a captar o que este computador está a reproduzir.",
+    "loopbackMicWarningText1": "Entradas loopback como \"Stereo Mix\" ou um dispositivo \"Monitor of ...\" gravam a própria saída de áudio do sistema. Numa sessão com a voz traduzida do Sokuji, o Sokuji ouvir-se-ia e traduzir-se-ia a si próprio em ciclo.",
+    "loopbackMicWarningText2": "O dispositivo permanece selecionado caso este encaminhamento seja intencional, mas para uso normal escolha um microfone físico."
   },
   "auth": {
     "signIn": "Iniciar sessão",
@@ -637,18 +641,6 @@
     "noApiKey": "Chave API Necessária",
     "noMic": "Microfone Necessário",
     "reconnecting": "A reconectar..."
-  },
-  "audioFeedback": {
-    "title": "Aviso de Retorno de Áudio",
-    "description": "Eco detectado entre microfone e altifalantes.",
-    "speakerModeDescription": "Modo altifalante activo - alto risco de eco que pode afectar a qualidade da tradução.",
-    "solutions": {
-      "useHeadphones": "Use auscultadores para melhores resultados",
-      "differentDevices": "Seleccione dispositivos de áudio diferentes",
-      "adjustDistance": "Afaste o microfone dos altifalantes",
-      "disablePassthrough": "Desactive a passagem de áudio original",
-      "orTry": "Ou tente:"
-    }
   },
   "userTypeSelection": {
     "title": "Bem-vindo ao Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "Voz",
     "voiceBuilderDisclaimer": "Serviço pago da Supertone. O Sokuji não intervém nessa transação.",
     "refreshList": "Atualizar lista de vozes"
+  },
+  "echoNotice": {
+    "ttsEcho": "Os altifalantes estão a devolver a voz traduzida do Sokuji ao microfone.",
+    "meetingEcho": "O áudio da reunião dos altifalantes está a chegar ao microfone.",
+    "farEndEcho": "O dispositivo de um participante está a ecoar a sua tradução de volta para a reunião.",
+    "selfCapture": "A fonte de participantes está a captar o próprio áudio do Sokuji.",
+    "routingLoop": "O dispositivo de entrada selecionado capta diretamente a reprodução deste computador.",
+    "actionHeadphones": "Usar auscultadores quebrará o ciclo.",
+    "actionAskRemote": "Peça a esse participante para usar auscultadores.",
+    "actionPickApp": "Escolha a aplicação da reunião como fonte de participantes em vez do áudio do sistema.",
+    "actionChangeInput": "Escolha um microfone físico como dispositivo de entrada.",
+    "dismiss": "Fechar"
   }
 }

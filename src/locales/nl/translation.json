@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Het vastleggen van de geselecteerde applicatie is gestopt, dus wordt nu alle systeemaudio vertaald. Kies de applicatie opnieuw om het bereik weer te beperken.",
+    "loopbackMicNotice": "Melding loopback-invoer",
+    "loopbackMicWarningTitle": "Deze invoer neemt opnieuw op wat deze computer afspeelt.",
+    "loopbackMicWarningText1": "Loopback-invoer zoals \"Stereo Mix\" of een \"Monitor of ...\"-apparaat neemt de audio-uitvoer van het systeem zelf op. Tijdens een sessie met Sokuji's vertaalde spraak zou Sokuji zichzelf horen en in een lus vertalen.",
+    "loopbackMicWarningText2": "Het apparaat blijft geselecteerd voor het geval deze routering opzettelijk is, maar kies voor normaal gebruik een fysieke microfoon."
   },
   "auth": {
     "signIn": "Inloggen",
@@ -637,18 +641,6 @@
     "noApiKey": "API Sleutel Vereist",
     "noMic": "Microfoon Vereist",
     "reconnecting": "Opnieuw verbinden..."
-  },
-  "audioFeedback": {
-    "title": "Audio Feedback Waarschuwing",
-    "description": "Echo gedetecteerd tussen microfoon en luidsprekers.",
-    "speakerModeDescription": "Luidsprekermodus actief - hoog echorisico dat de vertaalkwaliteit kan beïnvloeden.",
-    "solutions": {
-      "useHeadphones": "Gebruik koptelefoons voor de beste resultaten",
-      "differentDevices": "Selecteer verschillende audioapparaten",
-      "adjustDistance": "Verplaats de microfoon verder van de luidsprekers",
-      "disablePassthrough": "Schakel originele audio doorvoer uit",
-      "orTry": "Of probeer:"
-    }
   },
   "userTypeSelection": {
     "title": "Welkom bij Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "Stem",
     "voiceBuilderDisclaimer": "Betaalde Supertone-dienst. Sokuji is niet betrokken bij die transactie.",
     "refreshList": "Stemlijst vernieuwen"
+  },
+  "echoNotice": {
+    "ttsEcho": "Uw luidsprekers voeren Sokuji's vertaalde spraak terug in de microfoon.",
+    "meetingEcho": "Vergaderaudio uit uw luidsprekers bereikt de microfoon.",
+    "farEndEcho": "Het apparaat van een deelnemer echoot uw vertaling terug de vergadering in.",
+    "selfCapture": "De deelnemersbron neemt Sokuji's eigen audio op.",
+    "routingLoop": "Het geselecteerde invoerapparaat neemt de weergave van deze computer rechtstreeks op.",
+    "actionHeadphones": "Een koptelefoon verbreekt de lus.",
+    "actionAskRemote": "Vraag die deelnemer een koptelefoon te gebruiken.",
+    "actionPickApp": "Kies de vergaderapp als deelnemersbron in plaats van systeemaudio.",
+    "actionChangeInput": "Kies een fysieke microfoon als invoerapparaat.",
+    "dismiss": "Sluiten"
   }
 }

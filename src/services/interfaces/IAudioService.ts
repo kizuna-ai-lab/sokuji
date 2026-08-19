@@ -1,6 +1,8 @@
 import { AudioDevice } from '../../stores/audioStore';
 import { ModernAudioPlayer, ModernAudioRecorder } from '../../lib/modern-audio';
 
+import type { EchoNoticeState } from '../../lib/modern-audio/EchoMonitor';
+
 export interface AudioDevices {
   inputs: AudioDevice[];
   outputs: AudioDevice[];
@@ -298,5 +300,22 @@ export interface IAudioService {
    * the participant waveform visualization.
    */
   getParticipantAnalyser(): AnalyserNode | null;
+
+  /**
+   * Assigned by the UI to hear participant-capture degradations (e.g. per-app
+   * capture died and fell back to whole-system audio). Was previously only on
+   * the concrete service, leaving these assignments type-errored.
+   */
+  onParticipantWarning?: ((code: string) => void) | null;
+
+  /**
+   * Subscribe to echo-detection verdict changes (null = all clear). One
+   * subscriber at a time; pass null to unsubscribe. Causes and thresholds are
+   * documented in src/lib/modern-audio/EchoMonitor.ts.
+   */
+  onEchoNotice(callback: ((state: EchoNoticeState | null) => void) | null): void;
+
+  /** Emit once-per-second echo-detector statistics for field debugging. */
+  setEchoDiagnostics(enabled: boolean): void;
 
 }

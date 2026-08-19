@@ -330,7 +330,11 @@
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Việc thu ứng dụng đã chọn đã dừng, nên toàn bộ âm thanh hệ thống đang được dịch thay thế. Hãy chọn lại ứng dụng để thu hẹp phạm vi.",
+    "loopbackMicNotice": "Lưu ý đầu vào loopback",
+    "loopbackMicWarningTitle": "Đầu vào này thu lại những gì máy tính đang phát.",
+    "loopbackMicWarningText1": "Các đầu vào loopback như \"Stereo Mix\" hoặc thiết bị \"Monitor of ...\" ghi lại chính đầu ra âm thanh của hệ thống. Trong phiên có giọng dịch của Sokuji, Sokuji sẽ nghe và dịch chính mình theo vòng lặp.",
+    "loopbackMicWarningText2": "Thiết bị vẫn được chọn phòng khi cách định tuyến này là chủ ý, nhưng khi dùng bình thường hãy chọn micrô vật lý."
   },
   "auth": {
     "signIn": "Đăng nhập",
@@ -637,18 +641,6 @@
     "noApiKey": "Cần Khóa API",
     "noMic": "Cần Microphone",
     "reconnecting": "Đang kết nối lại..."
-  },
-  "audioFeedback": {
-    "title": "Cảnh báo phản hồi âm thanh",
-    "description": "Phát hiện tiếng vọng giữa microphone và loa.",
-    "speakerModeDescription": "Chế độ loa đang hoạt động - nguy cơ tiếng vọng cao có thể ảnh hưởng chất lượng dịch.",
-    "solutions": {
-      "useHeadphones": "Sử dụng tai nghe để có kết quả tốt nhất",
-      "differentDevices": "Chọn các thiết bị âm thanh khác nhau",
-      "adjustDistance": "Di chuyển microphone ra xa loa",
-      "disablePassthrough": "Tắt truyền âm thanh gốc",
-      "orTry": "Hoặc thử:"
-    }
   },
   "userTypeSelection": {
     "title": "Chào mừng đến với Sokuji",
@@ -1009,5 +1001,17 @@
     "voice": "Giọng nói",
     "voiceBuilderDisclaimer": "Dịch vụ trả phí của Supertone. Sokuji không tham gia vào giao dịch đó.",
     "refreshList": "Làm mới danh sách giọng nói"
+  },
+  "echoNotice": {
+    "ttsEcho": "Loa của bạn đang đưa giọng dịch của Sokuji quay lại micrô.",
+    "meetingEcho": "Âm thanh cuộc họp từ loa đang lọt vào micrô.",
+    "farEndEcho": "Thiết bị của một người tham gia đang dội bản dịch của bạn trở lại cuộc họp.",
+    "selfCapture": "Nguồn người tham gia đang thu chính âm thanh của Sokuji.",
+    "routingLoop": "Thiết bị đầu vào đã chọn đang thu trực tiếp âm thanh phát của máy tính này.",
+    "actionHeadphones": "Dùng tai nghe sẽ cắt vòng lặp.",
+    "actionAskRemote": "Hãy đề nghị người tham gia đó dùng tai nghe.",
+    "actionPickApp": "Chọn ứng dụng họp làm nguồn người tham gia thay vì âm thanh hệ thống.",
+    "actionChangeInput": "Chọn micrô vật lý làm thiết bị đầu vào.",
+    "dismiss": "Đóng"
   }
 }

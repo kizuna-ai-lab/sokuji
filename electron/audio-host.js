@@ -10,6 +10,7 @@
 // a handshake, so there is no surface for other local processes to attach to.
 const { spawn: nodeSpawn } = require('child_process');
 const { resolveAudioHostPath } = require('./audio-host-path.js');
+const { isOwnAppSource, currentSelfIdentity } = require('./own-app-source.js');
 
 // At most one capture runs at a time; switching sources kills the previous one.
 let current = null;
@@ -47,6 +48,12 @@ function withPid(name, id) {
   return match ? `${name} (${match[1]})` : name;
 }
 
+/** `pid:42` -> 42; anything else -> null. */
+function pidOfId(id) {
+  const match = /^pid:(\d+)$/.exec(String(id));
+  return match ? Number(match[1]) : null;
+}
+
 /**
  * List applications the helper can capture.
  * Always resolves; an unavailable or misbehaving helper yields [] so the picker
@@ -54,7 +61,11 @@ function withPid(name, id) {
  *
  * @returns {Promise<Array<{deviceId: string, label: string}>>}
  */
-async function listAppSources({ spawn = nodeSpawn, resolvePath = resolveAudioHostPath } = {}) {
+async function listAppSources({
+  spawn = nodeSpawn,
+  resolvePath = resolveAudioHostPath,
+  selfIdentity = currentSelfIdentity(),
+} = {}) {
   const exe = resolvePath();
   if (!exe) {
     // Not an error on Linux, which has no helper. Everywhere else it means the
@@ -87,6 +98,11 @@ async function listAppSources({ spawn = nodeSpawn, resolvePath = resolveAudioHos
         resolve(
           rows
             .filter((r) => r && typeof r.id === 'string')
+            // The helper excludes its own short-lived process but cannot know
+            // which app spawned it. A Sokuji row here would let the user pick
+            // Sokuji as the participant source and translate its own TTS in a
+            // loop, so the running app filters itself out.
+            .filter((r) => !isOwnAppSource({ pid: pidOfId(r.id), exe: r.exe, label: r.label }, selfIdentity))
             // appKey identifies the application across restarts, unlike the
             // pid inside deviceId. Windows reports an exe name, macOS a bundle
             // id; either is stable enough to re-find the app next launch.

@@ -28,6 +28,27 @@ describe('pickDefaultInputDevice', () => {
   it('returns null for an empty device list', () => {
     expect(pickDefaultInputDevice([])).toBeNull();
   });
+
+  // OS loopback inputs ("Stereo Mix", sink monitors) re-capture what the
+  // machine is playing — Sokuji's own TTS included — so they are as bad an
+  // automatic choice as Sokuji's own virtual devices. They carry
+  // isVirtual: false (they are real OS devices and stay manually selectable,
+  // with a warning); the auto-pick exclusion goes by label.
+  it('never auto-picks an OS loopback-style input over a real mic', () => {
+    const inputs: AudioDevice[] = [
+      { deviceId: 'loop-1', label: 'Stereo Mix (Realtek High Definition Audio)', isVirtual: false },
+      { deviceId: 'real-1', label: 'Built-in Microphone', isVirtual: false },
+    ];
+    expect(pickDefaultInputDevice(inputs)?.deviceId).toBe('real-1');
+  });
+
+  it('returns null when only virtual and loopback inputs exist', () => {
+    const inputs: AudioDevice[] = [
+      { deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true },
+      { deviceId: 'loop-1', label: 'Monitor of Built-in Audio Analog Stereo', isVirtual: false },
+    ];
+    expect(pickDefaultInputDevice(inputs)).toBeNull();
+  });
 });
 
 // Integration-level regression test for the actual UI-visible fix: when
