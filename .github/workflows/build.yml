@@ -77,7 +77,7 @@ jobs:
         env:
           CI: false
           # Use production environment variables for releases, simpler ones for CI
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
@@ -132,7 +132,7 @@ jobs:
           CI: false
           # Prevent actual publishing during CI builds
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ !startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
@@ -173,7 +173,7 @@ jobs:
           # empty string passes that check (truthy) which skips the bundled-fpm
           # download and then fails on missing system `fpm`.
           USE_SYSTEM_FPM: ${{ matrix.arch == 'arm64' && 'true' || 'false' }}
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
@@ -199,7 +199,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
@@ -234,7 +234,7 @@ jobs:
           fi
         env:
           # Production environment variables for extension
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
           VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
