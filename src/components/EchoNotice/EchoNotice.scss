@@ -14,7 +14,10 @@
   padding: 10px 12px;
   font-size: 12px;
   color: #fff;
-  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  // Dark stops rather than the repo's brighter warning orange: this is a
+  // safety notice with 12px white text, and WCAG 2.2 needs 4.5:1 at every
+  // gradient stop (#f39c12 manages only ~2.2:1). These measure 7.3-9.4:1.
+  background: linear-gradient(135deg, #9a3412 0%, #7c2d12 100%);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
@@ -36,7 +39,7 @@
     }
 
     .echo-notice-action {
-      opacity: 0.9;
+      opacity: 1;
     }
   }
 
@@ -64,7 +67,8 @@
   // color it like an error rather than a warning.
   &[data-cause='routing-loop'],
   &[data-cause='self-capture'] {
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    // 6.5-8.3:1 against white at both stops.
+    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
   }
 }
 
