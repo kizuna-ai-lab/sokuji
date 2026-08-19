@@ -335,8 +335,15 @@ export function UserAccountInfo({
                 // Even if backend returns 403 or other errors, clear frontend state
                 // This ensures users can always "log out"
               } finally {
-                // Force page reload to clear all state
-                window.location.href = '/';
+                // Reload in place, never navigate to '/'. Only the dev server
+                // serves the app at the site root: the packaged desktop app is
+                // loaded from file://…/build/index.html, where '/' is the
+                // filesystem root (the window went blank), and the extension
+                // panel is chrome-extension://<id>/fullpage.html, where '/' is
+                // the extension root with no document (ERR_FILE_NOT_FOUND).
+                // reload() re-runs the current document on every surface, which
+                // is all the "clear all state" here ever needed.
+                window.location.reload();
               }
             }}
           >
