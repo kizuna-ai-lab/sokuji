@@ -145,7 +145,11 @@ const DEFAULTS: Omit<Required<EchoDetectorOptions>, 'sampleRate'> = {
   lagToleranceMs: 40,
   historyTicks: 80,
   minVotes: 16,
-  clearAfterTicks: 120,
+  // 15 s of sustained silence from every reference before an active notice
+  // clears. Long enough that the user talking over the echo for a few phrases
+  // does not flap the notice, short enough that fixing the problem (putting
+  // headphones on) is visibly acknowledged.
+  clearAfterTicks: 60,
   minEnvelopeStdDb: 3,
 };
 

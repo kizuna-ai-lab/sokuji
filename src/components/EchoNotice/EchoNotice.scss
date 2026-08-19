@@ -1,7 +1,11 @@
 .echo-notice {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  // Bottom-center, floated above the control footer (min 36px) plus the
+  // text-input row (~50px, provider-dependent) with margin to spare — the
+  // notice must never sit over the message input or the footer controls.
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1000;
   display: flex;
   align-items: flex-start;
@@ -14,7 +18,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  animation: echo-notice-slide-in 0.3s ease-out;
+  animation: echo-notice-rise-in 0.3s ease-out;
 
   .echo-notice-icon {
     flex-shrink: 0;
@@ -64,13 +68,13 @@
   }
 }
 
-@keyframes echo-notice-slide-in {
+@keyframes echo-notice-rise-in {
   from {
-    transform: translateX(24px);
+    transform: translate(-50%, 12px);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translate(-50%, 0);
     opacity: 1;
   }
 }
