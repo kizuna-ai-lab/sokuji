@@ -244,7 +244,13 @@ function setupSubtitleHandlers(mainWindow) {
     // resize/move can fire synchronously during window teardown; isFullScreen()
     // throws on a destroyed window, so bail before touching it.
     if (mainWindow.isDestroyed()) return;
-    if (mainWindow.isFullScreen()) return; // never persist fullscreen geometry as bar bounds
+    // Never persist screen-filling geometry as the bar's bounds. Fullscreen
+    // comes from the bar's own button; maximized comes from double-clicking
+    // the bar (the window manager on Linux, the WM_SYSCOMMAND hook in
+    // window-caption-dblclick.js on Windows). Either way the size is not the
+    // bar size the user picked, and remembering it would restore a
+    // screen-sized "bar" on the next entry into subtitle mode.
+    if (mainWindow.isFullScreen() || mainWindow.isMaximized()) return;
     if (Date.now() < transitionUntil) return;
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {

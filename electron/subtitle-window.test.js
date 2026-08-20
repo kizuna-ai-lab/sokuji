@@ -49,6 +49,7 @@ function makeFakeWindow() {
     destroyed: false,
     visible: true,
     minimized: false,
+    maximized: false,
     setBounds: vi.fn(),
     getBounds: vi.fn(() => ({ x: 0, y: 0, width: 1200, height: 800 })),
     setAlwaysOnTop: vi.fn(),
@@ -59,6 +60,7 @@ function makeFakeWindow() {
     setFullScreen: vi.fn(),
     isVisible: () => win.visible,
     isMinimized: () => win.minimized,
+    isMaximized: () => win.maximized,
     isDestroyed: () => win.destroyed,
     webContents: { send: vi.fn() },
     on: (event, fn) => {
@@ -342,5 +344,62 @@ describe('subtitle-window always-on-top enforcement (#326)', () => {
     // macOS 'floating' level already keeps the window above fullscreen
     // presentations; keep the original one-shot behavior there.
     expect(win.setAlwaysOnTop).not.toHaveBeenCalled();
+  });
+});
+
+describe('subtitle bar bounds persistence', () => {
+  let win;
+
+  const boundsBroadcasts = () =>
+    win.webContents.send.mock.calls.filter(([channel]) => channel === 'subtitle:window-bounds-changed');
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    setPlatform('win32');
+    ipcHandlers.clear();
+    const { setupSubtitleHandlers } = loadSubtitleWindowModule();
+    win = makeFakeWindow();
+    setupSubtitleHandlers(win);
+  });
+
+  afterEach(() => {
+    win.destroyed = true;
+    win.emit('closed');
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    Object.defineProperty(process, 'platform', originalPlatform);
+    delete nodeRequire.cache[electronPath];
+    delete nodeRequire.cache[modulePath];
+  });
+
+  it('broadcasts the new geometry after a normal resize', () => {
+    win.emit('resize');
+    vi.advanceTimersByTime(300);
+
+    expect(boundsBroadcasts()).toHaveLength(1);
+  });
+
+  // Double-clicking the bar maximizes the window (the window manager does this
+  // on Linux; the WM_SYSCOMMAND hook does it on Windows). Screen-sized
+  // geometry must not be remembered as the user's chosen bar size, or the next
+  // entry into subtitle mode restores a full-screen "bar".
+  it('does not persist maximized geometry as the bar bounds', () => {
+    win.maximized = true;
+    win.emit('resize');
+    vi.advanceTimersByTime(300);
+
+    expect(boundsBroadcasts()).toHaveLength(0);
+  });
+
+  it('resumes persisting once the window is restored', () => {
+    win.maximized = true;
+    win.emit('resize');
+    vi.advanceTimersByTime(300);
+
+    win.maximized = false;
+    win.emit('resize');
+    vi.advanceTimersByTime(300);
+
+    expect(boundsBroadcasts()).toHaveLength(1);
   });
 });

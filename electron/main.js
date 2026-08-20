@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPrefere
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 const { setupSubtitleHandlers } = require('./subtitle-window.js');
+const { setupCaptionDoubleClick } = require('./window-caption-dblclick.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 
@@ -343,6 +344,10 @@ function createWindow() {
   });
 
   setupSubtitleHandlers(mainWindow);
+  // Windows only: frame:false + transparent:true above costs the window its
+  // WS_CAPTION style, and with it the native double-click-to-maximize on the
+  // custom title bar. Linux and macOS keep it for free — see the module.
+  setupCaptionDoubleClick(mainWindow);
   setupPopoverWindowHandlers(mainWindow);
 
   // Set custom User Agent for the window

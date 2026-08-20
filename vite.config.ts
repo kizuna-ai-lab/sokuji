@@ -148,11 +148,13 @@ export default defineConfig(({ command, mode }) => {
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'audio-host': 'electron/audio-host.js',
             'audio-host-path': 'electron/audio-host-path.js',
+            'own-app-source': 'electron/own-app-source.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',
             'squirrel-events': 'electron/squirrel-events.js',
             'subtitle-window': 'electron/subtitle-window.js',
             'popover-windows': 'electron/popover-windows.js',
-            'update-manager': 'electron/update-manager.js'
+            'update-manager': 'electron/update-manager.js',
+            'window-caption-dblclick': 'electron/window-caption-dblclick.js'
           },
           onstart(args) {
             // Override default [".", "--no-sandbox"] to fix DevTools crash on Linux
