@@ -7,6 +7,7 @@ import {
   offset,
   flip,
   shift,
+  size,
   useClick,
   useDismiss,
   useRole,
@@ -30,6 +31,7 @@ import {
   type TxtI18n,
 } from '../../utils/conversationExport';
 import { useToast } from '../Toast';
+import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWindowPopover';
 import './ExportButton.scss';
 
 interface ExportButtonProps {
@@ -49,6 +51,12 @@ interface ExportButtonProps {
   sourceLanguage: string;
   /** Target language code from current provider settings. Used as a fallback when the conversation carries no per-item language snapshots (e.g. empty conversation). */
   targetLanguage: string;
+  /**
+   * Where the menu renders. 'floating' (default) is the in-window floating-ui
+   * menu. 'child-window' hosts it in its own frameless OS window — for the
+   * Electron subtitle bar, whose 200px window cannot contain the menu.
+   */
+  popoverHost?: 'floating' | 'child-window';
 }
 
 const ExportButton: React.FC<ExportButtonProps> = ({
@@ -58,9 +66,13 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   localInferenceSettings,
   sourceLanguage,
   targetLanguage,
+  popoverHost = 'floating',
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const childHosted = popoverHost === 'child-window';
+  const childMenu = useChildPopoverToggle();
+  const childBtnRef = React.useRef<HTMLButtonElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const listRef = React.useRef<Array<HTMLElement | null>>([]);
@@ -85,7 +97,20 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     open: isOpen,
     onOpenChange: setIsOpen,
     placement: 'bottom-end',
-    middleware: [offset(4), flip(), shift({ padding: 8 })],
+    middleware: [
+      offset(4),
+      flip(),
+      shift({ padding: 8 }),
+      // A short window scrolls the menu instead of cutting it off.
+      size({
+        padding: 8,
+        apply({ availableHeight, elements }) {
+          Object.assign(elements.floating.style, {
+            maxHeight: `${Math.max(0, availableHeight)}px`,
+          });
+        },
+      }),
+    ],
     whileElementsMounted: autoUpdate,
     strategy: 'fixed',
   });
@@ -117,6 +142,12 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     headerNote: t('mainPanel.export.headerNote', 'Note: settings reflect current state at export, not mid-session changes.'),
   }), [t]);
 
+  // Close whichever host is active; each call no-ops for the inactive one.
+  const closeMenu = useCallback(() => {
+    setIsOpen(false);
+    childMenu.onClose('action');
+  }, [childMenu]);
+
   /** Compute a fresh export payload at click time. */
   const buildPayload = useCallback(() => {
     const models = getActiveModelInfo(provider, currentProviderSettings, localInferenceSettings);
@@ -139,7 +170,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   }, [normalizedMessages, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage]);
 
   const handleCopy = useCallback(async () => {
-    setIsOpen(false);
+    closeMenu();
     const { messages, metadata } = buildPayload();
     const text = formatAsTxt(messages, metadata, txtI18n, { includeHeader: false });
     const ok = await copyToClipboard(text);
@@ -148,29 +179,78 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     } else {
       showToast(t('mainPanel.export.copyFailed', 'Failed to copy. Check browser permissions.'), { variant: 'error', durationMs: 4000 });
     }
-  }, [buildPayload, showToast, t, txtI18n]);
+  }, [buildPayload, showToast, t, txtI18n, closeMenu]);
 
   const handleDownloadTxt = useCallback(() => {
-    setIsOpen(false);
+    closeMenu();
     const { messages, metadata } = buildPayload();
     const content = formatAsTxt(messages, metadata, txtI18n, { includeHeader: true });
     const filename = `sokuji-conversation-${formatTimestampForFilename(Date.now())}.txt`;
     downloadFile(content, filename, 'text/plain;charset=utf-8');
-  }, [buildPayload, txtI18n]);
+  }, [buildPayload, txtI18n, closeMenu]);
 
   const handleDownloadJson = useCallback(() => {
-    setIsOpen(false);
+    closeMenu();
     const { messages, metadata } = buildPayload();
     const content = formatAsJson(messages, metadata);
     const filename = `sokuji-conversation-${formatTimestampForFilename(Date.now())}.json`;
     downloadFile(content, filename, 'application/json');
-  }, [buildPayload]);
+  }, [buildPayload, closeMenu]);
 
   const items = useMemo(() => ([
     { key: 'copy', label: t('mainPanel.export.copyToClipboard', 'Copy to clipboard'), Icon: Copy, onClick: handleCopy },
     { key: 'txt',  label: t('mainPanel.export.downloadTxt',     'Download as .txt'),    Icon: FileText, onClick: handleDownloadTxt },
     { key: 'json', label: t('mainPanel.export.downloadJson',    'Download as .json'),   Icon: FileJson, onClick: handleDownloadJson },
   ]), [t, handleCopy, handleDownloadTxt, handleDownloadJson]);
+
+  if (childHosted) {
+    return (
+      <>
+        <button
+          ref={childBtnRef}
+          className="export-btn"
+          type="button"
+          disabled={!hasContent}
+          onClick={childMenu.toggle}
+          title={t('mainPanel.toolbar.export', 'Export conversation')}
+          aria-label={t('mainPanel.toolbar.export', 'Export conversation')}
+          aria-haspopup="menu"
+          aria-expanded={childMenu.open}
+        >
+          <Download size={14} />
+          <ChevronDown size={12} className="export-btn-chevron" />
+        </button>
+
+        <ChildWindowPopover
+          open={childMenu.open}
+          onClose={childMenu.onClose}
+          anchorEl={childBtnRef.current}
+          width={240}
+          height={140}
+        >
+          {/* Plain buttons: the child window's native focus handles keyboard
+              use; floating-ui's roving tabindex belongs to the inline host. */}
+          <div className="export-menu" role="menu">
+            {items.map((it) => {
+              const { Icon } = it;
+              return (
+                <button
+                  key={it.key}
+                  role="menuitem"
+                  type="button"
+                  className="export-menu-item"
+                  onClick={it.onClick}
+                >
+                  <Icon size={14} />
+                  <span>{it.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </ChildWindowPopover>
+      </>
+    );
+  }
 
   return (
     <>

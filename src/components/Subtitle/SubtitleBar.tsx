@@ -1,5 +1,5 @@
 // src/components/Subtitle/SubtitleBar.tsx
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown,
@@ -7,7 +7,8 @@ import {
   Play, Square, Loader,
 } from 'lucide-react';
 import {
-  useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, FloatingPortal,
+  useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, shift, size,
+  autoUpdate, FloatingPortal,
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
 import ExportButton from '../MainPanel/ExportButton';
@@ -32,6 +33,7 @@ import {
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import type { SubtitleSurfaceKind } from './SubtitleApp';
 import { useOverlayDragResize } from './useOverlayDragResize';
+import { ChildWindowPopover, useChildPopoverToggle } from './ChildWindowPopover';
 import './SubtitleBar.scss';
 
 interface Props {
@@ -107,12 +109,36 @@ const SubtitleBar: React.FC<Props> = ({
   // edges, not the bar's 36px footprint.
   const { dragHandleProps } = useOverlayDragResize({ surface });
 
+  // Electron: the settings popover lives in its own frameless transparent
+  // child window — the 200px bar window cannot contain it, and resizing the
+  // bar window for it flashes at the compositor level. The extension overlay
+  // has no OS window to open (it's an iframe) and keeps the in-window
+  // floating popover below.
+  const childWindowHost = surface === 'electron';
+  const settingsChild = useChildPopoverToggle();
+  const settingsBtnRef = useRef<HTMLButtonElement>(null);
+
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { refs, floatingStyles, context } = useFloating({
     open: popoverOpen,
     onOpenChange: setPopoverOpen,
     placement: 'bottom-end',
-    middleware: [offset(8), flip()],
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(8),
+      flip(),
+      shift({ padding: 8 }),
+      // The overlay iframe can be shorter than the popover; clamp so it
+      // scrolls internally instead of being cut off at the iframe edge.
+      size({
+        padding: 8,
+        apply({ availableHeight, elements }) {
+          Object.assign(elements.floating.style, {
+            maxHeight: `${Math.max(0, availableHeight)}px`,
+          });
+        },
+      }),
+    ],
   });
   const click = useClick(context);
   const dismiss = useDismiss(context);
@@ -208,7 +234,7 @@ const SubtitleBar: React.FC<Props> = ({
             messages. The side panel holds the full conversation and is the
             export source of truth — only offer export on the Electron surface,
             where the overlay shares the full session store. */}
-        {surface === 'electron' && <ExportButton {...exportProps} />}
+        {surface === 'electron' && <ExportButton {...exportProps} popoverHost="child-window" />}
         <button
           type="button"
           className="subtitle-bar__btn"
@@ -221,16 +247,31 @@ const SubtitleBar: React.FC<Props> = ({
 
         <span className="subtitle-bar__divider" />
 
-        <button
-          type="button"
-          className="subtitle-bar__btn"
-          ref={refs.setReference}
-          {...getReferenceProps()}
-          title={t('subtitle.bar.settings', 'Subtitle settings')}
-          aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
-        >
-          <Settings size={14} />
-        </button>
+        {childWindowHost ? (
+          <button
+            type="button"
+            className={`subtitle-bar__btn ${settingsChild.open ? 'active' : ''}`}
+            ref={settingsBtnRef}
+            onClick={settingsChild.toggle}
+            aria-haspopup="dialog"
+            aria-expanded={settingsChild.open}
+            title={t('subtitle.bar.settings', 'Subtitle settings')}
+            aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
+          >
+            <Settings size={14} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="subtitle-bar__btn"
+            ref={refs.setReference}
+            {...getReferenceProps()}
+            title={t('subtitle.bar.settings', 'Subtitle settings')}
+            aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
+          >
+            <Settings size={14} />
+          </button>
+        )}
         {surface === 'electron' && (
           <button
             type="button"
@@ -273,17 +314,30 @@ const SubtitleBar: React.FC<Props> = ({
         </button>
       </div>
 
-      {popoverOpen && (
-        <FloatingPortal>
-          <div
-            ref={refs.setFloating}
-            style={floatingStyles}
-            aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
-            {...getFloatingProps()}
-          >
-            <DisplaySettingsPopover source="subtitle" />
-          </div>
-        </FloatingPortal>
+      {childWindowHost ? (
+        <ChildWindowPopover
+          open={settingsChild.open}
+          onClose={settingsChild.onClose}
+          anchorEl={settingsBtnRef.current}
+          width={320}
+          height={400}
+        >
+          <DisplaySettingsPopover source="subtitle" />
+        </ChildWindowPopover>
+      ) : (
+        popoverOpen && (
+          <FloatingPortal>
+            <div
+              ref={refs.setFloating}
+              className="subtitle-bar__settings-popover"
+              style={floatingStyles}
+              aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
+              {...getFloatingProps()}
+            >
+              <DisplaySettingsPopover source="subtitle" />
+            </div>
+          </FloatingPortal>
+        )
       )}
     </div>
   );
