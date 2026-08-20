@@ -855,6 +855,7 @@
     "variantWontFit": "Perlu ~{{need}} memori GPU — mesin ini memiliki {{have}}",
     "variantWontFitNoMem": "Perlu ~{{need}} memori GPU",
     "wontFit": "Tidak muat di mesin ini",
+    "variantNoGpuFits": "Tidak ada varian GPU yang muat — berjalan di CPU.",
     "hwFramework": "Mesin",
     "hwDevice": "Perangkat",
     "hwApi": "Akselerasi",

@@ -80,7 +80,8 @@ import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
 import ExportButton from './ExportButton';
 import {
-  useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, FloatingPortal,
+  useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, shift, size,
+  autoUpdate, FloatingPortal,
 } from '@floating-ui/react';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackStore';
@@ -737,7 +738,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     open: displayPopoverOpen,
     onOpenChange: setDisplayPopoverOpen,
     placement: 'bottom-end',
-    middleware: [offset(8), flip()],
+    // Re-position and re-clamp while open — without this a window resize
+    // leaves flip/shift/size results stale (same as ModeDevicePopover).
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(8),
+      flip(),
+      shift({ padding: 8 }),
+      // Clamp to the viewport so a short window scrolls the popover instead
+      // of cutting it off — same pattern as ModeDevicePopover.
+      size({
+        padding: 8,
+        apply({ availableHeight, elements }) {
+          Object.assign(elements.floating.style, {
+            maxHeight: `${Math.max(0, availableHeight)}px`,
+          });
+        },
+      }),
+    ],
   });
   // useRole wires aria-haspopup / aria-expanded / aria-controls on the
   // trigger button and role="dialog" / aria-modal on the floating wrapper.
@@ -4103,6 +4121,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             <FloatingPortal>
               <div
                 ref={displayPopoverFloating.refs.setFloating}
+                className="display-popover-floating"
                 style={displayPopoverFloating.floatingStyles}
                 aria-label={t('mainPanel.displaySettings', 'Display settings')}
                 {...displayPopoverInteractions.getFloatingProps()}

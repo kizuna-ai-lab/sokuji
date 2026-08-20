@@ -1258,84 +1258,139 @@
   }
 }
 
+// ── Customizable select (appearance: base-select, Chromium 135+) ──────────
+// One shared layer replaces every classic select's OS-drawn popup — which
+// ignores our theme beyond option colors — with a themed picker on the
+// in-window top layer. @supports guards it: the extension's floor is Chrome
+// 116, and anything older keeps today's classic popup untouched (rich option
+// markup is likewise gated in TSX — see supportsBaseSelect()).
+@supports (appearance: base-select) {
+  .language-select,
+  .select-dropdown,
+  .provider-select {
+    &,
+    &::picker(select) {
+      appearance: base-select;
+    }
+
+    // base-select renders its own ::picker-icon chevron; the data-URI arrow
+    // from the classic styling would double it.
+    background-image: none;
+
+    &::picker-icon {
+      color: vars.$text-muted;
+    }
+
+    &:open {
+      border-color: vars.$color-primary;
+    }
+
+    &::picker(select) {
+      background: vars.$bg-surface;
+      border: 1px solid vars.$border-default;
+      border-radius: vars.$radius-md;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      padding: 4px;
+      margin-top: 4px;
+      // Long lists (35+ languages) scroll inside the picker. The top layer
+      // already clamps to the viewport; this keeps the list hand-sized.
+      max-height: 320px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: vars.$radius-sm;
+      font-size: vars.$font-title;
+      color: vars.$text-primary;
+      background: transparent;
+      cursor: pointer;
+
+      &:hover,
+      &:focus {
+        background: vars.$bg-control;
+      }
+
+      &:disabled {
+        color: vars.$text-disabled;
+        cursor: not-allowed;
+      }
+
+      // Push the checkmark to the row's far end. It is the option's FIRST
+      // flex item in the UA stylesheet, so `margin-left: auto` alone shoves
+      // the content after it to the right edge instead — `order: 1` has to
+      // move the checkmark box last first.
+      &::checkmark {
+        color: vars.$color-primary;
+        order: 1;
+        margin-left: auto;
+      }
+    }
+  }
+
+  // Rich provider rows: icon + name-line (name · engine credit) + description.
+  // The option markup lives in ProviderSection.tsx; .provider-name-line and
+  // .powered-by are the shared styles used across the settings panel.
+  .provider-select {
+    // The closed control holds a two-line row, like the old .provider-info.
+    padding: 12px;
+
+    option {
+      align-items: center;
+      gap: 12px;
+    }
+
+    // The closed control's content is <selectedcontent> — a CLONE of the
+    // chosen option, not an option — so the option flex rule above does not
+    // reach it. Without this the icon stacks on its own line above the name
+    // instead of sitting beside it the way the old .provider-info row did.
+    selectedcontent {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    &::picker(select) {
+      // Provider descriptions run long; let rows breathe a little more.
+      max-height: 380px;
+    }
+
+    .provider-select__icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      color: vars.$text-muted;
+    }
+
+    .provider-select__text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .provider-select__name {
+      font-size: vars.$font-title;
+      font-weight: vars.$weight-medium;
+      color: vars.$text-primary;
+    }
+
+    .provider-select__description {
+      font-size: vars.$font-caption;
+      color: vars.$text-muted;
+    }
+  }
+}
+
 // Provider section styles
 .provider-selection-area {
   margin-bottom: vars.$space-2;
   position: relative;
-}
-
-.provider-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: vars.$bg-control;
-  border-radius: vars.$radius-sm;
-  cursor: pointer;
-  transition: all vars.$transition-fast;
-  user-select: none;
-
-  &:hover:not(.disabled) {
-    background: vars.$bg-hover;
-  }
-
-  &.expanded {
-    background: vars.$bg-hover;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-
-  &.disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-    background: vars.$bg-surface;
-
-    .provider-details .provider-toggle {
-      display: none;
-    }
-  }
-
-  .provider-icon {
-    color: vars.$text-muted;
-
-    svg {
-      width: 24px;
-      height: 24px;
-    }
-  }
-
-  .provider-details {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    .provider-main-info {
-      flex: 1;
-
-      .provider-name {
-        font-size: vars.$font-title;
-        font-weight: 600;
-        margin-bottom: 2px;
-        color: vars.$text-primary;
-      }
-
-      .provider-description {
-        font-size: vars.$font-caption;
-        color: vars.$text-muted;
-        line-height: 1.3;
-      }
-    }
-
-    .provider-toggle {
-      color: vars.$text-muted;
-      transition: color vars.$transition-fast;
-
-      &:hover {
-        color: vars.$text-primary;
-      }
-    }
-  }
 }
 
 /* Provider name + engine credit sharing one line.
@@ -1356,8 +1411,7 @@
   gap: 7px;
   margin-bottom: 2px;
 
-  .provider-name,
-  .provider-option-name {
+  .provider-select__name {
     margin-bottom: 0;
   }
 }
@@ -1378,76 +1432,6 @@
     letter-spacing: 0;
     text-transform: none;
     color: vars.$text-secondary;
-  }
-}
-
-.provider-options {
-  background: vars.$bg-surface;
-  border: 1px solid vars.$bg-hover;
-  border-top: none;
-  border-radius: 0 0 vars.$radius-sm vars.$radius-sm;
-  max-height: 300px;
-  overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  animation: slideDown 0.15s ease-out;
-
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .provider-option {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-    border-bottom: 1px solid vars.$border-subtle;
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    &:hover {
-      background: vars.$bg-control;
-    }
-
-    &:active {
-      background: vars.$bg-hover;
-    }
-
-    .provider-option-icon {
-      color: vars.$text-muted;
-
-      svg {
-        width: 20px;
-        height: 20px;
-      }
-    }
-
-    .provider-option-details {
-      flex: 1;
-
-      .provider-option-name {
-        font-size: vars.$font-title;
-        font-weight: 500;
-        color: vars.$text-primary;
-        margin-bottom: 1px;
-      }
-
-      .provider-option-description {
-        font-size: vars.$font-caption;
-        color: vars.$text-muted;
-        line-height: 1.2;
-      }
-    }
   }
 }
 

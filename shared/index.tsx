@@ -5,6 +5,12 @@ import PostHog from 'posthog-js-lite';
 import { ANALYTICS_CONFIG, isDevelopment, getPlatform, getEnvironment, isAnalyticsEnabled } from '../src/config/analytics';
 import { setupErrorTracking } from '../src/lib/errorTracking';
 import { AppProviders } from '../src/components/AppProviders';
+import { installCustomizableSelectWarningMuffler } from '../src/utils/muffleCustomizableSelectWarnings';
+
+// Before anything renders: drop React's two dev-only false positives about
+// customizable-select markup (valid in Chromium 135+, still flagged by
+// validateDOMNesting as of react-dom 19.2.8 — see the muffler's doc comment).
+installCustomizableSelectWarningMuffler();
 
 // Re-export PostHog context from its dedicated side-effect-free module.
 // Keeping the named exports here preserves backward compatibility with

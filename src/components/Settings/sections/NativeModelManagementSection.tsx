@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle, CircleHelp, Ban } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle, CircleHelp } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
 import { useLocalNativeSettings, useUpdateLocalNative, type LocalNativeSettings } from '../../../stores/settingsStore';
 import {
@@ -78,11 +78,15 @@ type VariantCardProps = {
 };
 
 /**
- * Compact quant-variant picker shown in a card header (in place of the size). A trigger
- * shows the chosen variant + size (e.g. "FP8 · 8.0 GB"); clicking opens a menu listing all
- * variants with sizes — unsupported ones disabled with a reason, plus a "runs on CPU" note
- * when no GPU variant fits. A dropdown (rather than an inline button stack) keeps the card
- * short and scales as more quant formats are added.
+ * Compact quant-variant picker shown in a card header (in place of the size).
+ * A customizable <select> (appearance: base-select): the closed control mirrors
+ * the chosen variant + size (e.g. "FP8 · 8.0 GB") via <selectedcontent>; the
+ * picker lists all variants with sizes — unsupported ones disabled with the
+ * reason inline (a hover tooltip can't render above the top-layer picker) —
+ * plus a "runs on CPU" note when no GPU variant fits.
+ *
+ * No classic-select fallback: local native models are Electron-only, and the
+ * packaged Electron (Chromium 144) always renders base-select.
  */
 const VariantDropdown: React.FC<{
   variantProps: VariantCardProps;
@@ -91,85 +95,63 @@ const VariantDropdown: React.FC<{
   selectId: string;
 }> = ({ variantProps, chosenVariant, disabled, selectId }) => {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
 
   const gpuFits = variantProps.variants.some((v) => v.supported);
   const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
-  const triggerLabel = chosenVariant
-    ? `${chosenVariant.computeType.toUpperCase()} · ${formatMemMb(Math.round(chosenVariant.sizeBytes / 1e6))}`
-    : 'CPU';
 
   return (
-    <div className="model-card__variant-dd" ref={ref} onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        className="model-card__variant-trigger"
+    // stopPropagation: the surrounding .model-card selects the model on click.
+    <div className="model-card__variant-dd" onClick={(e) => e.stopPropagation()}>
+      <select
+        className="model-card__variant-select"
         data-testid={`variant-dd-${selectId}`}
         disabled={disabled}
-        aria-expanded={open}
-        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        value={chosenVariant ? chosenId : ''}
+        onChange={(e) => {
+          // The picker never lets a disabled option through; this guards the
+          // programmatic/keyboard path the way the old menu's click handler
+          // no-opped on unsupported rows.
+          const v = variantProps.variants.find((x) => x.id === e.target.value);
+          if (v?.supported) variantProps.onPinVariant(v.id);
+        }}
       >
-        <span className="model-card__variant-trigger-value">{triggerLabel}</span>
-        <ChevronDown size={12} />
-      </button>
-      {open && (
-        <div className="model-card__variant-menu" role="listbox">
-          {variantProps.variants.map((v) => {
-            const isChosen = v.supported && v.id === chosenId;
-            const isRec = v.supported && v.id === variantProps.recommendedVariantId;
-            const sizeLabel = formatMemMb(Math.round(v.sizeBytes / 1e6));
-            return (
-              <button
-                key={v.id}
-                type="button"
-                role="option"
-                aria-selected={isChosen}
-                data-testid={`variant-row-${v.id}`}
-                className={'model-card__variant-item'
-                  + (isChosen ? ' model-card__variant-item--chosen' : '')
-                  + (!v.supported ? ' model-card__variant-item--unsupported' : '')}
-                // aria-disabled (not the `disabled` attribute) so the row stays
-                // hoverable — a disabled <button> suppresses pointer events for its
-                // whole subtree, which would block the icon's tooltip. The click
-                // handler already no-ops for unsupported variants.
-                aria-disabled={!v.supported}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (v.supported) { variantProps.onPinVariant(v.id); setOpen(false); }
-                }}
-              >
-                <span className="model-card__variant-name">
-                  {isChosen && <span className="model-card__variant-check" aria-label="selected">✓ </span>}
-                  {v.computeType.toUpperCase()}
-                  <span className="model-card__variant-size"> · {sizeLabel}</span>
-                </span>
-                {isRec && (
-                  <span className="model-card__variant-recommended">{t('models.recommended', 'Recommended').toLowerCase()}</span>
-                )}
-                {!v.supported && (
-                  // Muted "blocked" glyph mirrors the green "recommended" slot; the full
-                  // reason shows in an instant (0ms) tooltip on hover.
-                  <Tooltip content={v.reason || t('models.wontFit', "Won't fit on this machine")} position="top" icon="none" openDelay={0}>
-                    <span className="model-card__variant-unavailable" aria-label={t('models.wontFit', "Won't fit on this machine")}>
-                      <Ban size={13} />
-                    </span>
-                  </Tooltip>
-                )}
-              </button>
-            );
-          })}
-          {!gpuFits && (
-            <span className="model-card__variant-cpu-note">No GPU variant fits — runs on CPU.</span>
-          )}
-        </div>
-      )}
+        <button type="button"><selectedcontent /></button>
+        {!chosenVariant && (
+          <option value="" disabled hidden>CPU</option>
+        )}
+        {variantProps.variants.map((v) => {
+          const isRec = v.supported && v.id === variantProps.recommendedVariantId;
+          const sizeLabel = formatMemMb(Math.round(v.sizeBytes / 1e6));
+          return (
+            <option
+              key={v.id}
+              value={v.id}
+              disabled={!v.supported}
+              data-testid={`variant-row-${v.id}`}
+            >
+              <span className="model-card__variant-name">
+                {v.computeType.toUpperCase()}
+                <span className="model-card__variant-size"> · {sizeLabel}</span>
+              </span>
+              {isRec && (
+                <span className="model-card__variant-recommended">{t('models.recommended', 'Recommended').toLowerCase()}</span>
+              )}
+              {!v.supported && (
+                <span className="model-card__variant-reason">{v.reason || t('models.wontFit', "Won't fit on this machine")}</span>
+              )}
+            </option>
+          );
+        })}
+        {!gpuFits && (
+          // A disabled option, not a bare <span>: the select content model
+          // (and React's nesting validator) only admits option-shaped
+          // children, and a span here would log the very warning class the
+          // dev muffler exists to avoid adding to.
+          <option disabled className="model-card__variant-cpu-note">
+            {t('models.variantNoGpuFits', 'No GPU variant fits — runs on CPU.')}
+          </option>
+        )}
+      </select>
     </div>
   );
 };

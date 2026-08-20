@@ -855,6 +855,7 @@
     "variantWontFit": "~{{need}} GPU belleği gerekir — bu makinede {{have}} var",
     "variantWontFitNoMem": "~{{need}} GPU belleği gerekir",
     "wontFit": "Bu makineye sığmaz",
+    "variantNoGpuFits": "GPU’ya sığan bir sürüm yok — CPU üzerinde çalışır.",
     "hwFramework": "Motor",
     "hwDevice": "Cihaz",
     "hwApi": "Hızlandırma",

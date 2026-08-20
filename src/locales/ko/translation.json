@@ -855,6 +855,7 @@
     "variantWontFit": "약 {{need}}의 GPU 메모리가 필요 — 이 컴퓨터는 {{have}}",
     "variantWontFitNoMem": "약 {{need}}의 GPU 메모리가 필요",
     "wontFit": "이 컴퓨터에서는 실행할 수 없습니다",
+    "variantNoGpuFits": "GPU에 맞는 버전이 없습니다 — CPU에서 실행됩니다.",
     "hwFramework": "엔진",
     "hwDevice": "장치",
     "hwApi": "가속",

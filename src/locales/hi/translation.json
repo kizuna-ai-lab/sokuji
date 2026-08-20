@@ -855,6 +855,7 @@
     "variantWontFit": "~{{need}} GPU मेमोरी चाहिए — इस मशीन में {{have}} है",
     "variantWontFitNoMem": "~{{need}} GPU मेमोरी चाहिए",
     "wontFit": "इस मशीन पर फ़िट नहीं होगा",
+    "variantNoGpuFits": "कोई GPU वैरिएंट फ़िट नहीं होता — CPU पर चलेगा।",
     "hwFramework": "इंजन",
     "hwDevice": "डिवाइस",
     "hwApi": "त्वरण",

@@ -620,3 +620,16 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
+
+// Floating wrapper for the display-settings popover. size() middleware sets
+// max-height inline; the inner popover has to scroll within it, or the clamp
+// would just cut the content off.
+.display-popover-floating {
+  display: flex;
+  min-height: 0;
+
+  .display-settings-popover {
+    overflow-y: auto;
+    min-height: 0;
+  }
+}

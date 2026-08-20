@@ -855,6 +855,7 @@
     "variantWontFit": "דורש ~{{need}} מזיכרון GPU — במחשב זה יש {{have}}",
     "variantWontFitNoMem": "דורש ~{{need}} מזיכרון GPU",
     "wontFit": "לא יתאים למחשב זה",
+    "variantNoGpuFits": "אף גרסה לא מתאימה ל-GPU — יופעל על המעבד.",
     "hwFramework": "מנוע",
     "hwDevice": "התקן",
     "hwApi": "האצה",

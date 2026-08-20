@@ -855,6 +855,7 @@
     "variantWontFit": "~{{need}} GPU మెమొరీ అవసరం — ఈ మెషిన్‌లో {{have}} ఉంది",
     "variantWontFitNoMem": "~{{need}} GPU మెమొరీ అవసరం",
     "wontFit": "ఈ మెషిన్‌లో సరిపోదు",
+    "variantNoGpuFits": "ఏ GPU వేరియంట్ సరిపోదు — CPU పై నడుస్తుంది.",
     "hwFramework": "ఇంజిన్",
     "hwDevice": "పరికరం",
     "hwApi": "యాక్సిలరేషన్",

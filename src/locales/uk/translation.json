@@ -855,6 +855,7 @@
     "variantWontFit": "Потребує ~{{need}} пам'яті GPU — на цьому комп'ютері {{have}}",
     "variantWontFitNoMem": "Потребує ~{{need}} пам'яті GPU",
     "wontFit": "Не вміститься на цьому комп'ютері",
+    "variantNoGpuFits": "Жоден варіант не вміщується в GPU — працюватиме на CPU.",
     "hwFramework": "Рушій",
     "hwDevice": "Пристрій",
     "hwApi": "Прискорення",
