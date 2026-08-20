@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "ID libreria non validi o vuoti vengono ignorati silenziosamente — la sessione viene eseguita come se il campo non fosse impostato. Le modifiche apportate nella console Volcengine possono richiedere alcuni minuti per essere applicate.",
     "zoomAIInfo": "Informazioni Zoom AI Services",
     "zoomAIInfoText": "Zoom Scribe trascrive ogni frase e Zoom Translator la traduce in testo. Le coppie di traduzione devono includere l'inglese su un lato.",
-    "geminiParticipantTokenWarning": "In modalità Altro, Gemini genera risposte audio che vengono scartate, causando un consumo aggiuntivo di token.",
+    "geminiParticipantTokenWarning": "Gemini genera per l'audio dell'altro risposte audio che vengono scartate, causando un consumo aggiuntivo di token.",
     "help": "Aiuto",
     "helpEmailTooltip": "Segnala bug o ottieni assistenza",
     "helpDiscussions": "Discussioni",

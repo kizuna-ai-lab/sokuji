@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "填入无效或留空的词表 ID 会被静默忽略——会话将视为该字段未设置。在火山引擎控制台中更新词表后，可能需要几分钟才能生效。",
     "zoomAIInfo": "Zoom AI Services 信息",
     "zoomAIInfoText": "Zoom Scribe 转录每句话，Zoom Translator 将其翻译为文本。翻译语言对中必须有一方为英语。",
-    "geminiParticipantTokenWarning": "在「对方」模式下，Gemini 会生成音频响应但只使用文本转录，导致额外的 token 消耗。",
+    "geminiParticipantTokenWarning": "Gemini 会为对方音频生成音频响应但只使用文本转录，导致额外的 token 消耗。",
     "help": "帮助",
     "helpEmailTooltip": "报告问题或获取帮助",
     "helpDiscussions": "讨论区",

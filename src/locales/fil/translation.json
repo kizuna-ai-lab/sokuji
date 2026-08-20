@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "Ang mga di-wastong o walang lamang library ID ay tahimik na pinapalampas — tumatakbo ang session na parang hindi naitakda ang field. Ang mga pagbabago sa Volcengine console ay maaaring tumagal ng ilang minuto bago magkaroon ng bisa.",
     "zoomAIInfo": "Impormasyon ng Zoom AI Services",
     "zoomAIInfoText": "Tina-transcribe ng Zoom Scribe ang bawat pagbigkas at isinasalin ito ng Zoom Translator sa teksto. Ang mga pares ng pagsasalin ay dapat may Ingles sa isang panig.",
-    "geminiParticipantTokenWarning": "Sa mode na Kausap, gumagawa ang Gemini ng mga audio response na itinatapon, kaya may karagdagang paggamit ng token.",
+    "geminiParticipantTokenWarning": "Gumagawa ang Gemini ng mga audio response para sa audio ng kausap na itinatapon, kaya may karagdagang paggamit ng token.",
     "help": "Tulong",
     "helpEmailTooltip": "Mag-report ng bug o humingi ng tulong",
     "helpDiscussions": "Mga Talakayan",

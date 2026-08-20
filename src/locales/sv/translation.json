@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "Ogiltiga eller tomma bibliotek-ID:n ignoreras tyst — sessionen körs som om fältet inte vore inställt. Ändringar i Volcengine-konsolen kan ta några minuter innan de träder i kraft.",
     "zoomAIInfo": "Zoom AI Services-information",
     "zoomAIInfoText": "Zoom Scribe transkriberar varje yttrande och Zoom Translator översätter det till text. Språkparen måste innehålla engelska på ena sidan.",
-    "geminiParticipantTokenWarning": "I läget Den andra genererar Gemini ljudsvar som kastas bort, vilket ger extra tokenanvändning.",
+    "geminiParticipantTokenWarning": "Gemini genererar ljudsvar för den andras ljud som kastas bort, vilket ger extra tokenanvändning.",
     "help": "Hjälp",
     "helpEmailTooltip": "Rapportera fel eller få hjälp",
     "helpDiscussions": "Diskussioner",

@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "معرّفات المكتبة غير الصالحة أو الفارغة يتم تجاهلها بصمت — تعمل الجلسة كما لو لم يتم تعيين الحقل. قد تستغرق التغييرات التي تم إجراؤها في وحدة تحكم Volcengine بضع دقائق لتصبح سارية.",
     "zoomAIInfo": "معلومات Zoom AI Services",
     "zoomAIInfoText": "يقوم Zoom Scribe بنسخ كل عبارة ويترجمها Zoom Translator إلى نص. يجب أن تتضمن أزواج الترجمة الإنجليزية في أحد الجانبين.",
-    "geminiParticipantTokenWarning": "في وضع «الآخر»، يولّد Gemini ردودًا صوتية يتم تجاهلها، مما يؤدي إلى استهلاك إضافي للرموز.",
+    "geminiParticipantTokenWarning": "يولّد Gemini لصوت الآخر ردودًا صوتية يتم تجاهلها، مما يؤدي إلى استهلاك إضافي للرموز.",
     "help": "مساعدة",
     "helpEmailTooltip": "الإبلاغ عن الأخطاء أو الحصول على مساعدة",
     "helpDiscussions": "المناقشات",

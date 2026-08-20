@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "ID thư viện không hợp lệ hoặc để trống sẽ bị bỏ qua âm thầm — phiên hoạt động như thể trường không được đặt. Các thay đổi trong bảng điều khiển Volcengine có thể mất vài phút để có hiệu lực.",
     "zoomAIInfo": "Thông tin Zoom AI Services",
     "zoomAIInfoText": "Zoom Scribe phiên âm từng câu nói và Zoom Translator dịch chúng thành văn bản. Cặp ngôn ngữ dịch phải có tiếng Anh ở một bên.",
-    "geminiParticipantTokenWarning": "Ở chế độ Đối phương, Gemini tạo ra các phản hồi âm thanh bị loại bỏ, dẫn đến việc sử dụng thêm token.",
+    "geminiParticipantTokenWarning": "Gemini tạo ra các phản hồi âm thanh cho âm thanh đối phương nhưng chúng bị loại bỏ, dẫn đến việc sử dụng thêm token.",
     "help": "Trợ giúp",
     "helpEmailTooltip": "Báo lỗi hoặc nhận trợ giúp",
     "helpDiscussions": "Thảo luận",

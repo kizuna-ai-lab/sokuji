@@ -95,11 +95,13 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           icon="help"
           maxWidth={300}
         />
-        {/* Gemini participant mode discards generated audio but still bills for
-            its tokens — warn the user when the channel is active. */}
+        {/* Gemini discards the audio it generates for Other's audio but still
+            bills for its tokens. The gate is the channel, not the mode — the
+            channel is unmuted in Other AND Both (see audioStore's mode->mute
+            binding), so the warning must not name a single mode. */}
         {provider === Provider.GEMINI && !isParticipantMuted && (
           <Tooltip
-            content={t('settings.geminiParticipantTokenWarning', 'In Other mode, Gemini generates audio responses that are discarded, resulting in additional token usage.')}
+            content={t('settings.geminiParticipantTokenWarning', "Gemini generates audio responses for Other's audio that are discarded, resulting in additional token usage.")}
             position="top"
             maxWidth={280}
           >

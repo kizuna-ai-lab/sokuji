@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "ID pustaka yang tidak sah atau kosong diabaikan secara senyap — sesi berjalan seolah-olah medan tidak ditetapkan. Perubahan dalam konsol Volcengine mungkin mengambil masa beberapa minit untuk berkuat kuasa.",
     "zoomAIInfo": "Maklumat Zoom AI Services",
     "zoomAIInfoText": "Zoom Scribe mentranskripsikan setiap ujaran dan Zoom Translator menterjemahkannya kepada teks. Pasangan terjemahan mesti mengandungi bahasa Inggeris pada satu pihak.",
-    "geminiParticipantTokenWarning": "Dalam mod Pihak lain, Gemini menjana respons audio yang dibuang, menyebabkan penggunaan token tambahan.",
+    "geminiParticipantTokenWarning": "Gemini menjana respons audio untuk audio pihak lain yang dibuang, menyebabkan penggunaan token tambahan.",
     "help": "Bantuan",
     "helpEmailTooltip": "Laporkan pepijat atau dapatkan bantuan",
     "helpDiscussions": "Perbincangan",

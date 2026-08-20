@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "מזהי ספרייה לא תקינים או ריקים מתעלמים בשקט — הסשן פועל כאילו השדה לא הוגדר. שינויים במסוף Volcengine עשויים להימשך מספר דקות עד שייכנסו לתוקף.",
     "zoomAIInfo": "מידע על Zoom AI Services",
     "zoomAIInfoText": "Zoom Scribe מתמלל כל אמירה ו-Zoom Translator מתרגם אותה לטקסט. צמדי התרגום חייבים לכלול אנגלית בצד אחד.",
-    "geminiParticipantTokenWarning": "במצב הצד השני, Gemini מייצר תגובות שמע שנזרקות, מה שגורם לשימוש נוסף בטוקנים.",
+    "geminiParticipantTokenWarning": "Gemini מייצר עבור שמע הצד השני תגובות שמע שנזרקות, מה שגורם לשימוש נוסף בטוקנים.",
     "help": "עזרה",
     "helpEmailTooltip": "דווח על באגים או קבל עזרה",
     "helpDiscussions": "דיונים",

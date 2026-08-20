@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "Ongeldige of lege bibliotheek-ID's worden stilzwijgend genegeerd — de sessie wordt uitgevoerd alsof het veld niet is ingesteld. Wijzigingen in de Volcengine-console kunnen enkele minuten duren voordat ze van kracht worden.",
     "zoomAIInfo": "Zoom AI Services-informatie",
     "zoomAIInfoText": "Zoom Scribe transcribeert elke uiting en Zoom Translator vertaalt deze naar tekst. Vertaalparen moeten aan één kant Engels bevatten.",
-    "geminiParticipantTokenWarning": "In de modus Ander genereert Gemini audioantwoorden die worden weggegooid, wat extra tokenverbruik veroorzaakt.",
+    "geminiParticipantTokenWarning": "Gemini genereert voor de audio van de ander audioantwoorden die worden weggegooid, wat extra tokenverbruik veroorzaakt.",
     "help": "Help",
     "helpEmailTooltip": "Bugs melden of hulp krijgen",
     "helpDiscussions": "Discussies",

@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "無効または空のライブラリ ID は静かに無視され、該当フィールドが設定されていないかのようにセッションが実行されます。Volcengine コンソールでライブラリを更新してから有効になるまで、数分かかることがあります。",
     "zoomAIInfo": "Zoom AI Services について",
     "zoomAIInfoText": "Zoom Scribe が各発話を文字起こしし、Zoom Translator がそれをテキストに翻訳します。翻訳の言語ペアは、いずれか一方が英語である必要があります。",
-    "geminiParticipantTokenWarning": "「相手」モードでは、Gemini が音声応答を生成しますが破棄されるため、追加のトークン消費が発生します。",
+    "geminiParticipantTokenWarning": "Gemini は相手の音声に対して音声応答を生成しますが破棄されるため、追加のトークン消費が発生します。",
     "help": "ヘルプ",
     "helpEmailTooltip": "バグの報告やヘルプの取得",
     "helpDiscussions": "ディスカッション",

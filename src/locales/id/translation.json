@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "ID pustaka yang tidak valid atau kosong diabaikan secara diam-diam — sesi berjalan seolah-olah bidang tidak diatur. Perubahan di konsol Volcengine dapat memerlukan beberapa menit untuk berlaku.",
     "zoomAIInfo": "Informasi Zoom AI Services",
     "zoomAIInfoText": "Zoom Scribe mentranskripsikan setiap ucapan dan Zoom Translator menerjemahkannya menjadi teks. Pasangan terjemahan harus menyertakan bahasa Inggris di salah satu sisi.",
-    "geminiParticipantTokenWarning": "Dalam mode Lawan bicara, Gemini menghasilkan respons audio yang dibuang, sehingga menimbulkan penggunaan token tambahan.",
+    "geminiParticipantTokenWarning": "Gemini menghasilkan respons audio untuk audio lawan bicara yang dibuang, sehingga menimbulkan penggunaan token tambahan.",
     "help": "Bantuan",
     "helpEmailTooltip": "Laporkan bug atau dapatkan bantuan",
     "helpDiscussions": "Diskusi",

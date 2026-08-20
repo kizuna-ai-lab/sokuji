@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "Geçersiz veya boş kütüphane kimlikleri sessizce yok sayılır — oturum, alan ayarlanmamış gibi çalışır. Volcengine konsolunda yapılan değişikliklerin yürürlüğe girmesi birkaç dakika sürebilir.",
     "zoomAIInfo": "Zoom AI Services Bilgileri",
     "zoomAIInfoText": "Zoom Scribe her konuşmayı yazıya döker ve Zoom Translator bunu metne çevirir. Çeviri çiftlerinin bir tarafı İngilizce olmalıdır.",
-    "geminiParticipantTokenWarning": "Karşı taraf modunda Gemini, atılan ses yanıtları üretir ve bu da ek token kullanımına yol açar.",
+    "geminiParticipantTokenWarning": "Gemini, karşı tarafın sesi için atılan ses yanıtları üretir ve bu da ek token kullanımına yol açar.",
     "help": "Yardım",
     "helpEmailTooltip": "Hataları bildirin veya yardım alın",
     "helpDiscussions": "Tartışmalar",

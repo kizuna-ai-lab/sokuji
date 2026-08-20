@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "Virheelliset tai tyhjät kirjaston tunnukset ohitetaan hiljaisesti — istunto suoritetaan kuin kenttää ei olisi asetettu. Volcengine-konsolissa tehdyt muutokset voivat tulla voimaan muutamassa minuutissa.",
     "zoomAIInfo": "Zoom AI Services -tiedot",
     "zoomAIInfoText": "Zoom Scribe litteroi jokaisen puheenvuoron ja Zoom Translator kääntää sen tekstiksi. Käännösparin toisen kielen on oltava englanti.",
-    "geminiParticipantTokenWarning": "Toinen-tilassa Gemini tuottaa äänivastauksia, jotka hylätään, mikä lisää token-kulutusta.",
+    "geminiParticipantTokenWarning": "Gemini tuottaa toisen äänelle äänivastauksia, jotka hylätään, mikä lisää token-kulutusta.",
     "help": "Ohje",
     "helpEmailTooltip": "Ilmoita virheistä tai pyydä apua",
     "helpDiscussions": "Keskustelut",

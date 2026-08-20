@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "IDs de biblioteca inválidos ou vazios são ignorados silenciosamente — a sessão é executada como se o campo não tivesse sido definido. Alterações feitas na consola da Volcengine podem demorar alguns minutos a entrar em vigor.",
     "zoomAIInfo": "Informações do Zoom AI Services",
     "zoomAIInfoText": "O Zoom Scribe transcreve cada enunciado e o Zoom Translator traduz para texto. Os pares de tradução têm de incluir inglês num dos lados.",
-    "geminiParticipantTokenWarning": "No modo Outro, o Gemini gera respostas de áudio que são descartadas, resultando numa utilização adicional de tokens.",
+    "geminiParticipantTokenWarning": "O Gemini gera para o áudio do outro respostas de áudio que são descartadas, resultando numa utilização adicional de tokens.",
     "help": "Ajuda",
     "helpEmailTooltip": "Comunicar erros ou obter ajuda",
     "helpDiscussions": "Discussões",

@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "অবৈধ বা খালি লাইব্রেরি ID নীরবে উপেক্ষা করা হয় — সেশনটি এমনভাবে চলে যেন ক্ষেত্রটি সেট করা হয়নি। Volcengine কনসোলে করা পরিবর্তনগুলি কার্যকর হতে কয়েক মিনিট লাগতে পারে।",
     "zoomAIInfo": "Zoom AI Services তথ্য",
     "zoomAIInfoText": "Zoom Scribe প্রতিটি উক্তি প্রতিলিপি করে এবং Zoom Translator তা পাঠ্যে অনুবাদ করে। অনুবাদ জোড়ার এক দিকে অবশ্যই ইংরেজি থাকতে হবে।",
-    "geminiParticipantTokenWarning": "অন্য মোডে, Gemini অডিও প্রতিক্রিয়া তৈরি করে যা বাতিল করা হয়, ফলে অতিরিক্ত টোকেন খরচ হয়।",
+    "geminiParticipantTokenWarning": "Gemini অন্যের অডিওর জন্য অডিও প্রতিক্রিয়া তৈরি করে যা বাতিল করা হয়, ফলে অতিরিক্ত টোকেন খরচ হয়।",
     "help": "সাহায্য",
     "helpEmailTooltip": "বাগ রিপোর্ট করুন বা সাহায্য নিন",
     "helpDiscussions": "আলোচনা",

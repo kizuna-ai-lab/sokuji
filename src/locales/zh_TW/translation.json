@@ -105,7 +105,7 @@
     "volcengineAST2CustomVocabularyFooter": "填入無效或留空的詞表 ID 會被靜默忽略——工作階段將視為該欄位未設定。在火山引擎主控台中更新詞表後，可能需要幾分鐘才能生效。",
     "zoomAIInfo": "Zoom AI Services 資訊",
     "zoomAIInfoText": "Zoom Scribe 會轉錄每一句話，再由 Zoom Translator 將其翻譯為文字。翻譯語言對的其中一方必須是英文。",
-    "geminiParticipantTokenWarning": "在「對方」模式下，Gemini 會產生並捨棄音訊回應，因此會增加權杖用量。",
+    "geminiParticipantTokenWarning": "Gemini 會為對方音訊產生並捨棄音訊回應，因此會增加權杖用量。",
     "help": "說明",
     "helpEmailTooltip": "回報問題或取得協助",
     "helpDiscussions": "討論區",
