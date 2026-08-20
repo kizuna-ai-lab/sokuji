@@ -13,6 +13,7 @@
 // via a setWindowOpenHandler override — show:false from the very first
 // frame — and shown/hidden over IPC.
 const { ipcMain, shell } = require('electron');
+const { topmostLevel } = require('./topmost-level.js');
 
 // The renderer names its popover windows with this window.open target prefix.
 const POPOVER_PREFIX = 'sokuji-popover:';
@@ -34,11 +35,40 @@ function isBlankUrl(url) {
 // handlers register once at module load and resolve windows at call time.
 const popoverWindows = new Map();
 
+// The renderer opens these windows with alwaysOnTop=true in its feature
+// string, which lands them on Electron's DEFAULT level — 'floating'. On
+// Windows that level is demoted below the taskbar inside the topmost band,
+// while the pinned subtitle bar sits at the top of that band
+// ('screen-saver', see topmost-level.js), so a floating popover is covered
+// by its own parent bar no matter which window was raised last. Re-pin at
+// the shared level on every show so the popover — and the native tooltips
+// that hang off it — clear the bar.
+function raisePopover(win) {
+  win.setAlwaysOnTop(true, topmostLevel());
+}
+
+/**
+ * Re-raise every popover that is currently on screen. The pinned subtitle
+ * bar re-asserts its own topmost position on a heartbeat (subtitle-window.js
+ * — PowerPoint steals it back otherwise), and each of those re-asserts moves
+ * the bar to the top of the band, above an open popover. Calling this right
+ * after the bar's re-assert puts the popover back on top: same band, raised
+ * last. Exported rather than driven from a timer here so the two are ordered
+ * by construction instead of by luck.
+ */
+function raiseVisiblePopovers() {
+  for (const win of popoverWindows.values()) {
+    if (!win || win.isDestroyed() || !win.isVisible()) continue;
+    raisePopover(win);
+  }
+}
+
 ipcMain.handle('popover-window:set-visible', (_event, payload) => {
   const name = payload?.name;
   const win = popoverWindows.get(name);
   if (!win || win.isDestroyed()) return { ok: false };
   if (payload?.visible) {
+    raisePopover(win);
     // show() also focuses the window — which the renderer wants: focus is
     // what makes its blur-to-dismiss behavior work.
     win.show();
@@ -93,4 +123,4 @@ function setupPopoverWindowHandlers(mainWindow) {
   });
 }
 
-module.exports = { setupPopoverWindowHandlers };
+module.exports = { setupPopoverWindowHandlers, raiseVisiblePopovers };

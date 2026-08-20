@@ -42,8 +42,13 @@ function makeFakeChildWindow() {
   const wcListeners = new Map();
   const win = {
     destroyed: false,
-    show: vi.fn(),
-    hide: vi.fn(),
+    // Popover windows are created hidden and shown on demand, so `visible`
+    // starts false and tracks show/hide — raiseVisiblePopovers() filters on it.
+    visible: false,
+    show: vi.fn(() => { win.visible = true; }),
+    hide: vi.fn(() => { win.visible = false; }),
+    setAlwaysOnTop: vi.fn(),
+    isVisible: () => win.visible,
     isDestroyed: () => win.destroyed,
     on: (event, fn) => {
       if (!listeners.has(event)) listeners.set(event, []);
@@ -89,21 +94,30 @@ function makeFakeMainWindow() {
   return win;
 }
 
+const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+const setPlatform = (value) =>
+  Object.defineProperty(process, 'platform', { value, configurable: true });
+
 describe('popover child-window visibility bridge', () => {
   let main;
   let setupPopoverWindowHandlers;
+  let raiseVisiblePopovers;
 
   const setVisible = (name, visible) =>
     ipcHandlers.get('popover-window:set-visible')({}, { name, visible });
 
   beforeEach(() => {
+    // The z-order behavior below is platform-dependent; pin the platform so
+    // the suite asserts the same thing wherever it runs.
+    setPlatform('win32');
     ipcHandlers.clear();
-    ({ setupPopoverWindowHandlers } = loadModule());
+    ({ setupPopoverWindowHandlers, raiseVisiblePopovers } = loadModule());
     main = makeFakeMainWindow();
     setupPopoverWindowHandlers(main);
   });
 
   afterEach(() => {
+    Object.defineProperty(process, 'platform', originalPlatform);
     delete nodeRequire.cache[electronPath];
     delete nodeRequire.cache[modulePath];
   });
@@ -175,6 +189,65 @@ describe('popover child-window visibility bridge', () => {
 
     expect(setVisible('sokuji-popover:1', false)).toMatchObject({ ok: true });
     expect(child.hide).toHaveBeenCalledTimes(1);
+  });
+
+  it('pins the popover at the shared topmost level before showing it', () => {
+    // The renderer can only ask for alwaysOnTop=true in its window.open
+    // feature string, which lands the window on Electron's DEFAULT level,
+    // 'floating'. On Windows that level is demoted below the taskbar inside
+    // the topmost band while the pinned bar sits at the top of it, so the bar
+    // covers its own settings popover — and the native tooltips that hang off
+    // it — no matter which window was raised last. The override has to happen
+    // here, in the main process, on every show.
+    const child = makeFakeChildWindow();
+    main.__emitCreated(child, 'sokuji-popover:1');
+
+    setVisible('sokuji-popover:1', true);
+    expect(child.setAlwaysOnTop).toHaveBeenCalledWith(true, 'screen-saver');
+    // Raised while still hidden: showing first would paint at least one frame
+    // at the wrong z-order.
+    expect(child.setAlwaysOnTop.mock.invocationCallOrder[0])
+      .toBeLessThan(child.show.mock.invocationCallOrder[0]);
+
+    // Re-raised on every show, not just the first: the bar's pin heartbeat
+    // moves itself back to the top of the band between opens.
+    setVisible('sokuji-popover:1', false);
+    setVisible('sokuji-popover:1', true);
+    expect(child.setAlwaysOnTop).toHaveBeenCalledTimes(2);
+  });
+
+  it('pins at the platform level, leaving macOS and Linux on floating', () => {
+    // The bug is Windows-only. Everywhere else the shared level is exactly
+    // what alwaysOnTop=true already produced, so this override is a no-op in
+    // effect — worth asserting, because that is what makes the fix safe to
+    // ship unconditionally.
+    setPlatform('darwin');
+    const child = makeFakeChildWindow();
+    main.__emitCreated(child, 'sokuji-popover:1');
+    setVisible('sokuji-popover:1', true);
+    expect(child.setAlwaysOnTop).toHaveBeenCalledWith(true, 'floating');
+  });
+
+  it('re-raises only the popovers that are on screen', () => {
+    // Called right after the bar re-asserts its own topmost position. A
+    // hidden window must not be raised (nothing to fix, and it would churn
+    // the z-order of a window the user cannot see), and a destroyed one must
+    // not throw — the bar's heartbeat would die with it.
+    const shown = makeFakeChildWindow();
+    const hidden = makeFakeChildWindow();
+    const dead = makeFakeChildWindow();
+    main.__emitCreated(shown, 'sokuji-popover:1');
+    main.__emitCreated(hidden, 'sokuji-popover:2');
+    main.__emitCreated(dead, 'sokuji-popover:3');
+
+    setVisible('sokuji-popover:1', true);
+    setVisible('sokuji-popover:3', true);
+    dead.destroyed = true;
+    shown.setAlwaysOnTop.mockClear();
+
+    expect(() => raiseVisiblePopovers()).not.toThrow();
+    expect(shown.setAlwaysOnTop).toHaveBeenCalledWith(true, 'screen-saver');
+    expect(hidden.setAlwaysOnTop).not.toHaveBeenCalled();
   });
 
   it('reports ok:false for an unknown or closed window instead of throwing', () => {

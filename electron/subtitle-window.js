@@ -1,5 +1,7 @@
 // electron/subtitle-window.js
 const { ipcMain, screen } = require('electron');
+const { topmostLevel } = require('./topmost-level.js');
+const { raiseVisiblePopovers } = require('./popover-windows.js');
 
 // Window managers (esp. on Linux/X11/Wayland) apply setBounds() asynchronously.
 // During the settling period, the resize event fires with intermediate values
@@ -73,16 +75,11 @@ function getLiveWindow() {
 const PIN_REASSERT_INTERVAL_MS = 1000;
 const PIN_REASSERT_EVENT_DELAY_MS = 200;
 
-// On Windows, every setAlwaysOnTop with a level in Electron's
-// "behind task bar" set — which includes the 'floating' default — ends with
-// a second SetWindowPos tucking the window just BELOW the taskbar in the
-// topmost band. A PowerPoint slideshow sits ABOVE the taskbar, so a
-// 'floating' pin can never beat it. 'screen-saver' skips that demotion and
-// leaves the bar at the very top of the topmost band. On macOS the level is
-// a real NSWindow level; keep the original 'floating' there.
-function pinLevel() {
-  return process.platform === 'win32' ? 'screen-saver' : 'floating';
-}
+// A PowerPoint slideshow sits ABOVE the taskbar, so the bar has to be pinned
+// at the top of the topmost band to beat it — see topmost-level.js for why
+// Electron's default 'floating' level cannot. The popover child windows use
+// the same level, so the two never end up in different bands.
+const pinLevel = topmostLevel;
 
 let pinHeartbeatTimer = null;
 let pinEventTimer = null;
@@ -97,6 +94,11 @@ function reassertOnTop() {
   // resumes on the next tick once the window is visible again.
   if (!win.isVisible() || win.isMinimized()) return;
   win.setAlwaysOnTop(true, pinLevel());
+  // The bar just moved to the top of the topmost band — over its own open
+  // popover, whose window is a sibling, not a child. Put the popover back
+  // above it in the same breath, or every heartbeat buries the settings
+  // panel the user is currently using.
+  raiseVisiblePopovers();
 }
 
 function startPinEnforcement() {
