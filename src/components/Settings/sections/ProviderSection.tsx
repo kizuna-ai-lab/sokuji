@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, ExternalLink, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Cpu, Zap, HelpCircle, CheckCircle, AlertCircle, ExternalLink, X } from 'lucide-react';
+import { supportsBaseSelect } from '../../../utils/supportsBaseSelect';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon, SonioxIcon, KIZUNA_HOSTED_ICONS } from '../../Icons/ProviderIcons';
 import { PoweredBy } from './PoweredBy';
 import { asSonioxRegion } from '../../../lib/soniox/regions';
@@ -246,7 +247,10 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage,
   ]);
 
-  const [isProviderExpanded, setIsProviderExpanded] = useState(false);
+  // Whether the provider select can render rich option markup (icons,
+  // descriptions, engine credits). Stable for the life of the page, so a
+  // one-shot init is enough.
+  const [richSelect] = useState(() => supportsBaseSelect());
 
   const [dismissedTutorials, setDismissedTutorials] = useState<Set<string>>(() => {
     try {
@@ -358,27 +362,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       to_provider: newProvider,
       during_session: isSessionActive
     });
-
-    setIsProviderExpanded(false);
   };
-
-  // Handle clicking outside the provider selector
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    const target = event.target as Element;
-    if (!target.closest('.provider-selection-area')) {
-      setIsProviderExpanded(false);
-    }
-  }, []);
-
-  // Add click outside listener
-  useEffect(() => {
-    if (isProviderExpanded) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [isProviderExpanded, handleClickOutside]);
 
   // Get provider info by ID. Name/description resolve through the descriptor's
   // i18n key (defaults to the provider id itself — see i18nKey on
@@ -403,7 +387,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     };
   };
 
-  const providerInfo = getProviderInfoById(provider);
   const currentApiKey = getCurrentApiKey();
 
   return (
@@ -433,58 +416,52 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       </h3>
 
       <div className="provider-selection-area">
-        <div
-          className={`provider-info ${isProviderExpanded ? 'expanded' : ''} ${isSessionActive ? 'disabled' : ''}`}
-          onClick={() => !isSessionActive && availableProviders.length > 1 && setIsProviderExpanded(!isProviderExpanded)}
+        {/* A customizable <select> (appearance: base-select): keyboard
+            navigation, ARIA and the disabled rule come with the element, and
+            the picker floats on the top layer instead of pushing the settings
+            below it down the way the old in-flow expander did. Where the
+            runtime lacks base-select (extension on Chrome <135), options fall
+            back to plain text — rich children would be flattened or invisible
+            in the classic OS-drawn popup. */}
+        <select
+          className="select-dropdown provider-select"
+          value={provider}
+          onChange={(e) => handleProviderChange(e.target.value as ProviderType)}
+          disabled={isSessionActive}
+          aria-label={t('simpleSettings.provider', 'Provider')}
         >
-          <div className="provider-icon">{React.createElement(providerInfo.icon, { size: 24 })}</div>
-          <div className="provider-details">
-            <div className="provider-main-info">
-              {/* Name and engine credit share one line: the managed twins are all
-                  named "KizunaAI", so the vendor is what tells them apart, and
-                  giving it its own line would make every row a line taller. */}
-              <div className="provider-name-line">
-                <span className="provider-name">{providerInfo.name}</span>
-                <PoweredBy provider={provider} />
-              </div>
-              <div className="provider-description">{providerInfo.description}</div>
-            </div>
-            {!isSessionActive && availableProviders.length > 1 && (
-              <div className="provider-toggle">
-                {isProviderExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {isProviderExpanded && !isSessionActive && (
-          <div className="provider-options">
-            {availableProviders
-              .filter(p => p.id !== provider)
-              .map((p) => {
-                const optionInfo = getProviderInfoById(p.id as ProviderType);
-
-                return (
-                  <div
-                    key={p.id}
-                    className="provider-option"
-                    onClick={() => { handleProviderChange(p.id as ProviderType); setIsProviderExpanded(false); }}
-                  >
-                    <div className="provider-option-icon">
-                      {React.createElement(optionInfo.icon, { size: 20 })}
-                    </div>
-                    <div className="provider-option-details">
-                      <div className="provider-name-line">
-                        <span className="provider-option-name">{optionInfo.name}</span>
-                        <PoweredBy provider={p.id as ProviderType} />
-                      </div>
-                      <div className="provider-option-description">{optionInfo.description}</div>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        )}
+          {richSelect && (
+            // The closed control mirrors the selected option's markup;
+            // CSS trims it down (see .provider-select selectedcontent).
+            <button type="button"><selectedcontent /></button>
+          )}
+          {availableProviders.map((p) => {
+            const optionInfo = getProviderInfoById(p.id as ProviderType);
+            if (!richSelect) {
+              return (
+                <option key={p.id} value={p.id}>{optionInfo.name}</option>
+              );
+            }
+            return (
+              <option key={p.id} value={p.id}>
+                <span className="provider-select__icon">
+                  {React.createElement(optionInfo.icon, { size: 20 })}
+                </span>
+                <span className="provider-select__text">
+                  {/* Name and engine credit share one line: the managed twins
+                      are all named "KizunaAI", so the vendor is what tells
+                      them apart, and giving it its own line would make every
+                      row a line taller. */}
+                  <span className="provider-name-line">
+                    <span className="provider-select__name">{optionInfo.name}</span>
+                    <PoweredBy provider={p.id as ProviderType} />
+                  </span>
+                  <span className="provider-select__description">{optionInfo.description}</span>
+                </span>
+              </option>
+            );
+          })}
+        </select>
       </div>
 
       {/* API Endpoint Input - Only for OpenAI Compatible */}
