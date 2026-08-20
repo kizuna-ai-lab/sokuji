@@ -164,10 +164,22 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     // suppressBlur: opening a native picker owned by this window (the color
     // chooser behind <input type="color">, a file dialog) steals focus and
     // fires blur — closing then would tear the popover away mid-interaction.
-    // A pointerdown on such an input arms the suppression; focus returning to
-    // the window re-arms normal blur dismissal.
+    // Activating such an input arms the suppression; focus returning to the
+    // window re-arms normal blur dismissal.
+    //
+    // Both mousedown AND a capturing click are needed, and click is the one
+    // that does the real work: keyboard activation (Space/Enter) dispatches
+    // click with no mousedown at all, and DisplaySettingsPopover wraps its
+    // colour input in a <label> — a mouse press there targets the label or
+    // its icon, where closest() finds no input; the input only becomes the
+    // target on the click the label forwards to it. mousedown stays as the
+    // earliest possible arming point for a direct press on the control.
+    //
+    // Residual edge, accepted: if the user abandons the picker by focusing a
+    // different application entirely, suppression stays armed until focus
+    // returns here. The trigger button still closes the popover.
     let suppressBlur = false;
-    const handleMousedown = (e: unknown) => {
+    const handlePickerActivation = (e: unknown) => {
       const target = (e as { target?: Element | null }).target;
       if (target && typeof target.closest === 'function'
           && target.closest('input[type="color"], input[type="file"]')) {
@@ -182,13 +194,15 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     const handleKeydown = (e: unknown) => {
       if (openRef.current && (e as KeyboardEvent).key === 'Escape') onCloseRef.current('escape');
     };
-    win.addEventListener('mousedown', handleMousedown as EventListener, true);
+    win.addEventListener('mousedown', handlePickerActivation as EventListener, true);
+    win.addEventListener('click', handlePickerActivation as EventListener, true);
     win.addEventListener('focus', handleFocus);
     win.addEventListener('blur', handleBlur);
     win.addEventListener('keydown', handleKeydown as EventListener);
 
     teardownRef.current = () => {
-      win.removeEventListener('mousedown', handleMousedown as EventListener, true);
+      win.removeEventListener('mousedown', handlePickerActivation as EventListener, true);
+      win.removeEventListener('click', handlePickerActivation as EventListener, true);
       win.removeEventListener('focus', handleFocus);
       win.removeEventListener('blur', handleBlur);
       win.removeEventListener('keydown', handleKeydown as EventListener);

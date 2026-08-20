@@ -220,6 +220,39 @@ describe('ChildWindowPopover', () => {
     expect(onClose).toHaveBeenCalledWith('blur');
   });
 
+  it('suppresses the blur for a KEYBOARD-activated picker (no mousedown at all)', () => {
+    // Space/Enter on a focused color input runs the activation behavior,
+    // which dispatches click directly — mousedown never happens, so arming
+    // on mousedown alone would let the picker's focus grab close the popover.
+    const { onClose } = renderPopover(true);
+    const colorInput = child.document.createElement('input');
+    colorInput.type = 'color';
+    child.document.body.appendChild(colorInput);
+
+    act(() => { child.dispatch('click', { target: colorInput }); });
+    act(() => { child.dispatch('blur'); });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('suppresses the blur when the picker is reached through its wrapping label', () => {
+    // DisplaySettingsPopover wraps its color input in a <label> holding an
+    // icon. A mouse press lands on the label/icon, whose closest() finds no
+    // input — the matching target only appears on the click the label
+    // forwards to the control.
+    const { onClose } = renderPopover(true);
+    const label = child.document.createElement('label');
+    const icon = child.document.createElement('span');
+    const colorInput = child.document.createElement('input');
+    colorInput.type = 'color';
+    label.append(icon, colorInput);
+    child.document.body.appendChild(label);
+
+    act(() => { child.dispatch('mousedown', { target: icon }); });   // no match
+    act(() => { child.dispatch('click', { target: colorInput }); }); // forwarded
+    act(() => { child.dispatch('blur'); });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('closes the OS window only on unmount', () => {
     const { unmount } = renderPopover(true);
     expect(child.close).not.toHaveBeenCalled();
