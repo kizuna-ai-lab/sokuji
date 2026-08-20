@@ -146,6 +146,27 @@ describe('DisplaySettingsPopover', () => {
     expect(useConversationDisplayStore.getState().bgColor).toBe('#7f3ac1');
   });
 
+  it('a preset click cancels a picker write still inside the debounce window', async () => {
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const bgCustom = container.querySelectorAll('button.swatch.custom')[0] as HTMLButtonElement;
+    await act(async () => { fireEvent.click(bgCustom); });
+    const hexInput = container.querySelector('input.color-picker__hex-input') as HTMLInputElement;
+
+    fireEvent.change(hexInput, { target: { value: '#7f3ac1' } });
+    // Preset clicked before the debounce elapses. Both controls are visible at
+    // once now that the picker is inline, so this is an easy sequence to hit.
+    const bgField = container.querySelectorAll('.field')[0];
+    const whiteChip = bgField.querySelector(
+      'button.swatch[aria-label="#FFFFFF"]',
+    ) as HTMLButtonElement;
+    await act(async () => { fireEvent.click(whiteChip); });
+    expect(useConversationDisplayStore.getState().bgColor).toBe('#FFFFFF');
+
+    // The superseded picker write must not land afterwards.
+    await act(async () => { vi.advanceTimersByTime(300); });
+    expect(useConversationDisplayStore.getState().bgColor).toBe('#FFFFFF');
+  });
+
   it('debounces picker changes by ~150ms (only last value applied)', async () => {
     const { container } = render(<DisplaySettingsPopover source="conversation" />);
     const bgCustom = container.querySelectorAll('button.swatch.custom')[0] as HTMLButtonElement;

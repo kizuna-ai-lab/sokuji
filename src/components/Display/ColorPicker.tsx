@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Hsv, hexToHsv, hsvToHex, normalizeHex } from '../../utils/color';
 import './ColorPicker.scss';
@@ -40,8 +40,14 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
   // The last hex this component pushed out. Used to tell our own echo apart
   // from a genuine outside change (preset chip clicked, store hydrated).
   const lastEmittedRef = useRef<string>(initialHex);
+  // Refreshed in a layout effect, not during render: React may render and
+  // discard, and a render-phase write would leak that abandoned render's
+  // callback to the committed pointer/keyboard handlers below. useLayoutEffect
+  // (not useEffect) so it is current before any event can fire after a commit.
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useLayoutEffect(() => {
+    onChangeRef.current = onChange;
+  });
 
   const setHsv = useCallback((next: Hsv) => {
     hsvRef.current = next;
@@ -109,7 +115,17 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
       applyFromPoint(e.clientX, e.clientY);
 
       detachRef.current?.();
-      const move = (ev: MouseEvent) => applyFromPoint(ev.clientX, ev.clientY);
+      const move = (ev: MouseEvent) => {
+        // A release that happens outside the window never reaches us as a
+        // pointerup, which would leave this listener armed and repaint the
+        // color on plain hover once the pointer came back. No button held
+        // means the drag is already over.
+        if (ev.buttons === 0) {
+          detachRef.current?.();
+          return;
+        }
+        applyFromPoint(ev.clientX, ev.clientY);
+      };
       const up = () => detachRef.current?.();
       detachRef.current = () => {
         window.removeEventListener('pointermove', move);
@@ -234,6 +250,11 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
           onChange={(e) => onHexChange(e.target.value)}
           onBlur={commitHexText}
           onKeyDown={(e) => {
+            // Enter also terminates an IME composition. Treating that as a
+            // submit would reset the field out from under a user who was
+            // mid-candidate — likely here, since CJK users often have an IME
+            // armed in every text field.
+            if (e.nativeEvent.isComposing) return;
             if (e.key === 'Enter') {
               e.preventDefault();
               commitHexText();

@@ -81,6 +81,19 @@ describe('ColorPicker', () => {
     expect(onChange).toHaveBeenLastCalledWith('#aabbcc');
   });
 
+  it('ignores Enter that is confirming an IME candidate, not submitting', () => {
+    const { hex, onChange } = setup('#123456');
+    fireEvent.change(hex, { target: { value: '#abc' } });
+
+    // CJK users typically have an IME armed in text fields; the Enter that
+    // accepts a candidate must not be read as "commit this color".
+    fireEvent.keyDown(hex, { key: 'Enter', isComposing: true });
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(hex, { key: 'Enter' });
+    expect(onChange).toHaveBeenLastCalledWith('#aabbcc');
+  });
+
   it('restores the current value in the hex field when the user leaves it invalid', () => {
     const { hex } = setup('#123456');
     fireEvent.change(hex, { target: { value: 'nonsense' } });
@@ -92,34 +105,55 @@ describe('ColorPicker', () => {
     const { area, onChange } = setup('#ff0000');
     stubRect(area);
     // Top-right corner: full saturation, full brightness -> pure hue.
-    act(() => { area.dispatchEvent(pointer('pointerdown', { clientX: 200, clientY: 0 })); });
+    act(() => { area.dispatchEvent(pointer('pointerdown', { clientX: 200, clientY: 0, buttons: 1 })); });
     expect(onChange).toHaveBeenLastCalledWith('#ff0000');
     act(() => { area.dispatchEvent(pointer('pointerup', {})); });
 
     // Bottom edge: zero brightness -> black regardless of x.
-    act(() => { area.dispatchEvent(pointer('pointerdown', { clientX: 120, clientY: 100 })); });
+    act(() => { area.dispatchEvent(pointer('pointerdown', { clientX: 120, clientY: 100, buttons: 1 })); });
     expect(onChange).toHaveBeenLastCalledWith('#000000');
     act(() => { area.dispatchEvent(pointer('pointerup', {})); });
 
     // Top-left corner: zero saturation, full brightness -> white.
-    act(() => { area.dispatchEvent(pointer('pointerdown', { clientX: 0, clientY: 0 })); });
+    act(() => { area.dispatchEvent(pointer('pointerdown', { clientX: 0, clientY: 0, buttons: 1 })); });
     expect(onChange).toHaveBeenLastCalledWith('#ffffff');
   });
 
   it('keeps tracking the pointer after it leaves the area, until release', () => {
     const { area, onChange } = setup('#ff0000');
     stubRect(area);
-    act(() => { area.dispatchEvent(pointer('pointerdown', { clientX: 200, clientY: 0 })); });
+    act(() => { area.dispatchEvent(pointer('pointerdown', { clientX: 200, clientY: 0, buttons: 1 })); });
     // Way outside the box on both axes: clamps to the bottom-right corner.
     act(() => {
-      window.dispatchEvent(pointer('pointermove', { clientX: 9999, clientY: 9999 }));
+      window.dispatchEvent(pointer('pointermove', { clientX: 9999, clientY: 9999, buttons: 1 }));
     });
     expect(onChange).toHaveBeenLastCalledWith('#000000');
 
     act(() => { window.dispatchEvent(pointer('pointerup', {})); });
     onChange.mockClear();
     act(() => {
-      window.dispatchEvent(pointer('pointermove', { clientX: 200, clientY: 0 }));
+      window.dispatchEvent(pointer('pointermove', { clientX: 200, clientY: 0, buttons: 1 }));
+    });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('ends a drag whose release happened outside the window', () => {
+    const { area, onChange } = setup('#ff0000');
+    stubRect(area);
+    act(() => { area.dispatchEvent(pointer('pointerdown', { clientX: 200, clientY: 0, buttons: 1 })); });
+    expect(onChange).toHaveBeenLastCalledWith('#ff0000');
+    onChange.mockClear();
+
+    // Released off-window, so no pointerup/pointercancel ever reaches us. The
+    // giveaway is the next move arriving with no button held — that move must
+    // neither repaint the color nor leave the listener armed.
+    act(() => {
+      window.dispatchEvent(pointer('pointermove', { clientX: 0, clientY: 0, buttons: 0 }));
+    });
+    expect(onChange).not.toHaveBeenCalled();
+
+    act(() => {
+      window.dispatchEvent(pointer('pointermove', { clientX: 0, clientY: 100, buttons: 1 }));
     });
     expect(onChange).not.toHaveBeenCalled();
   });

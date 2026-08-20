@@ -281,20 +281,32 @@ const ColorRow: React.FC<ColorRowProps> = ({
   // Debounce the high-frequency change events emitted while the user
   // drags inside the picker.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelPendingPickerWrite = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = null;
+  }, []);
   const onPickerChange = useCallback(
     (next: string) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      cancelPendingPickerWrite();
       debounceRef.current = setTimeout(() => {
+        debounceRef.current = null;
         onChange(next);
       }, PICKER_DEBOUNCE_MS);
     },
-    [onChange],
+    [onChange, cancelPendingPickerWrite],
   );
-  useEffect(
-    () => () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+  useEffect(() => cancelPendingPickerWrite, [cancelPendingPickerWrite]);
+
+  // A preset must supersede a picker write that is still in flight. The picker
+  // is inline now, so both controls are on screen together and "drag, then
+  // click a preset" is an ordinary sequence — without this the debounce fires
+  // afterwards and silently reverts the preset.
+  const onPresetClick = useCallback(
+    (c: string) => {
+      cancelPendingPickerWrite();
+      onChange(c);
     },
-    [],
+    [onChange, cancelPendingPickerWrite],
   );
 
   return (
@@ -308,7 +320,7 @@ const ColorRow: React.FC<ColorRowProps> = ({
             aria-label={c}
             className={`swatch ${valueLower === c.toLowerCase() ? 'selected' : ''}`}
             style={{ background: c }}
-            onClick={() => onChange(c)}
+            onClick={() => onPresetClick(c)}
           />
         ))}
         <button
