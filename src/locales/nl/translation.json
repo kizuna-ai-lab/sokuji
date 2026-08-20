@@ -961,6 +961,9 @@
       "sourceColor": "Kleur brontekst",
       "translationColor": "Vertaalkleur",
       "customColor": "Aangepaste kleur",
+      "colorArea": "Verzadiging en helderheid",
+      "colorHue": "Tint",
+      "colorHex": "Hexadecimale kleurwaarde",
       "newItemHighlight": "Markeer nieuw binnengekomen tekst"
     },
     "pttHint": "Druk op Spatie om te spreken"

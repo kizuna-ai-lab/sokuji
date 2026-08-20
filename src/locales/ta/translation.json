@@ -961,6 +961,9 @@
       "sourceColor": "மூல உரை நிறம்",
       "translationColor": "மொழிபெயர்ப்பு நிறம்",
       "customColor": "தனிப்பயன் நிறம்",
+      "colorArea": "நிறச்செறிவு மற்றும் பிரகாசம்",
+      "colorHue": "நிறச்சாயல்",
+      "colorHex": "ஹெக்ஸ் நிற மதிப்பு",
       "newItemHighlight": "புதிதாக வந்த உரையை முன்னிலைப்படுத்து"
     },
     "pttHint": "பேச Space அழுத்தவும்"

@@ -961,6 +961,9 @@
       "sourceColor": "Lähdetekstin väri",
       "translationColor": "Käännöksen väri",
       "customColor": "Mukautettu väri",
+      "colorArea": "Kylläisyys ja kirkkaus",
+      "colorHue": "Sävy",
+      "colorHex": "Heksadesimaalinen värikoodi",
       "newItemHighlight": "Korosta vasta saapunutta tekstiä"
     },
     "pttHint": "Paina välilyöntiä puhuaksesi"

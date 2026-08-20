@@ -961,6 +961,9 @@
       "sourceColor": "لون النص الأصلي",
       "translationColor": "لون الترجمة",
       "customColor": "لون مخصص",
+      "colorArea": "التشبع والسطوع",
+      "colorHue": "درجة اللون",
+      "colorHex": "قيمة اللون السداسية",
       "newItemHighlight": "تمييز النص الذي وصل حديثًا"
     },
     "pttHint": "اضغط مفتاح المسافة للتحدث"

@@ -961,6 +961,9 @@
       "sourceColor": "צבע טקסט מקור",
       "translationColor": "צבע תרגום",
       "customColor": "צבע מותאם אישית",
+      "colorArea": "רוויה ובהירות",
+      "colorHue": "גוון",
+      "colorHex": "ערך צבע הקסדצימלי",
       "newItemHighlight": "הדגשת טקסט שהגיע זה עתה"
     },
     "pttHint": "לחץ על רווח כדי לדבר"

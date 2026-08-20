@@ -961,6 +961,9 @@
       "sourceColor": "मूल पाठ रंग",
       "translationColor": "अनुवाद रंग",
       "customColor": "कस्टम रंग",
+      "colorArea": "संतृप्ति और चमक",
+      "colorHue": "रंगत",
+      "colorHex": "हेक्स रंग मान",
       "newItemHighlight": "नए आए हुए पाठ को हाइलाइट करें"
     },
     "pttHint": "बोलने के लिए स्पेस दबाएँ"

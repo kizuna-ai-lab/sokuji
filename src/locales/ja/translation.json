@@ -961,6 +961,9 @@
       "sourceColor": "原文の色",
       "translationColor": "訳文の色",
       "customColor": "カスタム色",
+      "colorArea": "彩度と明度",
+      "colorHue": "色相",
+      "colorHex": "16進数カラーコード",
       "newItemHighlight": "新しく届いたテキストをハイライトする"
     },
     "pttHint": "スペースキーを押して話す"

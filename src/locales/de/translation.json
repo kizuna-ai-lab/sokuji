@@ -961,6 +961,9 @@
       "sourceColor": "Quelltextfarbe",
       "translationColor": "Übersetzungsfarbe",
       "customColor": "Benutzerdefinierte Farbe",
+      "colorArea": "Sättigung und Helligkeit",
+      "colorHue": "Farbton",
+      "colorHex": "Hex-Farbwert",
       "newItemHighlight": "Neu eingetroffenen Text hervorheben"
     },
     "pttHint": "Leertaste zum Sprechen halten"

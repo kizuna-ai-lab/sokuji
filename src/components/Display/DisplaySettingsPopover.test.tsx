@@ -85,7 +85,7 @@ describe('DisplaySettingsPopover', () => {
     const { container } = render(<DisplaySettingsPopover source="conversation" />);
     const blackChip = container.querySelector('button.swatch[aria-label="#000000"]');
     expect(blackChip?.classList.contains('selected')).toBe(true);
-    const customChip = container.querySelector('label.swatch.custom');
+    const customChip = container.querySelector('button.swatch.custom');
     expect(customChip?.classList.contains('selected')).toBe(false);
   });
 
@@ -93,22 +93,90 @@ describe('DisplaySettingsPopover', () => {
     useConversationDisplayStore.setState({ bgColor: '#abcdef' } as never);
     const { container } = render(<DisplaySettingsPopover source="conversation" />);
     // BG row's custom chip
-    const customChips = container.querySelectorAll('label.swatch.custom');
+    const customChips = container.querySelectorAll('button.swatch.custom');
     expect(customChips.length).toBe(3);
     expect(customChips[0].classList.contains('selected')).toBe(true);
   });
 
-  it('debounces "+" chip color picker changes by ~150ms (only last value applied)', async () => {
+  it('the "+" chip toggles an inline picker instead of the OS color dialog', async () => {
     const { container } = render(<DisplaySettingsPopover source="conversation" />);
-    // The first custom chip's hidden input is the BG row's picker.
-    const colorInput = container.querySelector(
-      'label.swatch.custom input[type="color"]',
-    ) as HTMLInputElement;
-    expect(colorInput).not.toBeNull();
+    // The native input delegated to the OS dialog, which on Linux opens on a
+    // fixed grid of shades. It must be gone.
+    expect(container.querySelector('input[type="color"]')).toBeNull();
 
-    fireEvent.change(colorInput, { target: { value: '#aaaaaa' } });
-    fireEvent.change(colorInput, { target: { value: '#bbbbbb' } });
-    fireEvent.change(colorInput, { target: { value: '#cccccc' } });
+    const bgCustom = container.querySelectorAll('button.swatch.custom')[0] as HTMLButtonElement;
+    expect(container.querySelector('.color-picker')).toBeNull();
+    expect(bgCustom.getAttribute('aria-expanded')).toBe('false');
+
+    await act(async () => { fireEvent.click(bgCustom); });
+    expect(container.querySelectorAll('.color-picker').length).toBe(1);
+    expect(bgCustom.getAttribute('aria-expanded')).toBe('true');
+
+    await act(async () => { fireEvent.click(bgCustom); });
+    expect(container.querySelector('.color-picker')).toBeNull();
+  });
+
+  it('opens the picker seeded with that row\'s current color', async () => {
+    useConversationDisplayStore.setState({ sourceTextColor: '#7f3ac1' } as never);
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const sourceCustom = container.querySelectorAll('button.swatch.custom')[1] as HTMLButtonElement;
+    await act(async () => { fireEvent.click(sourceCustom); });
+    const hexInput = container.querySelector('input.color-picker__hex-input') as HTMLInputElement;
+    expect(hexInput.value).toBe('#7f3ac1');
+  });
+
+  it('keeps only one row\'s picker open at a time', async () => {
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const chips = container.querySelectorAll('button.swatch.custom');
+    await act(async () => { fireEvent.click(chips[0]); });
+    await act(async () => { fireEvent.click(chips[2]); });
+    expect(container.querySelectorAll('.color-picker').length).toBe(1);
+    expect(chips[0].getAttribute('aria-expanded')).toBe('false');
+    expect(chips[2].getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('commits an arbitrary color typed into the picker\'s hex field', async () => {
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const bgCustom = container.querySelectorAll('button.swatch.custom')[0] as HTMLButtonElement;
+    await act(async () => { fireEvent.click(bgCustom); });
+    const hexInput = container.querySelector('input.color-picker__hex-input') as HTMLInputElement;
+
+    fireEvent.change(hexInput, { target: { value: '#7f3ac1' } });
+    await act(async () => { vi.advanceTimersByTime(160); });
+    expect(useConversationDisplayStore.getState().bgColor).toBe('#7f3ac1');
+  });
+
+  it('a preset click cancels a picker write still inside the debounce window', async () => {
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const bgCustom = container.querySelectorAll('button.swatch.custom')[0] as HTMLButtonElement;
+    await act(async () => { fireEvent.click(bgCustom); });
+    const hexInput = container.querySelector('input.color-picker__hex-input') as HTMLInputElement;
+
+    fireEvent.change(hexInput, { target: { value: '#7f3ac1' } });
+    // Preset clicked before the debounce elapses. Both controls are visible at
+    // once now that the picker is inline, so this is an easy sequence to hit.
+    const bgField = container.querySelectorAll('.field')[0];
+    const whiteChip = bgField.querySelector(
+      'button.swatch[aria-label="#FFFFFF"]',
+    ) as HTMLButtonElement;
+    await act(async () => { fireEvent.click(whiteChip); });
+    expect(useConversationDisplayStore.getState().bgColor).toBe('#FFFFFF');
+
+    // The superseded picker write must not land afterwards.
+    await act(async () => { vi.advanceTimersByTime(300); });
+    expect(useConversationDisplayStore.getState().bgColor).toBe('#FFFFFF');
+  });
+
+  it('debounces picker changes by ~150ms (only last value applied)', async () => {
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const bgCustom = container.querySelectorAll('button.swatch.custom')[0] as HTMLButtonElement;
+    await act(async () => { fireEvent.click(bgCustom); });
+    const hexInput = container.querySelector('input.color-picker__hex-input') as HTMLInputElement;
+    expect(hexInput).not.toBeNull();
+
+    fireEvent.change(hexInput, { target: { value: '#aaaaaa' } });
+    fireEvent.change(hexInput, { target: { value: '#bbbbbb' } });
+    fireEvent.change(hexInput, { target: { value: '#cccccc' } });
 
     // Before debounce window: setter NOT called yet
     expect(useConversationDisplayStore.getState().bgColor).toBe('#1f1f1f');

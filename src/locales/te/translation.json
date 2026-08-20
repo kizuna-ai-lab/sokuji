@@ -961,6 +961,9 @@
       "sourceColor": "మూల వచనం రంగు",
       "translationColor": "అనువాదం రంగు",
       "customColor": "అనుకూల రంగు",
+      "colorArea": "సంతృప్తత మరియు ప్రకాశం",
+      "colorHue": "వర్ణ ఛాయ",
+      "colorHex": "హెక్స్ రంగు విలువ",
       "newItemHighlight": "కొత్తగా వచ్చిన టెక్స్ట్‌ను హైలైట్ చేయండి"
     },
     "pttHint": "మాట్లాడడానికి Space నొక్కండి"

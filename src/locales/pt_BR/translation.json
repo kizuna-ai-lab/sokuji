@@ -961,6 +961,9 @@
       "sourceColor": "Cor do texto original",
       "translationColor": "Cor da tradução",
       "customColor": "Cor personalizada",
+      "colorArea": "Saturação e brilho",
+      "colorHue": "Matiz",
+      "colorHex": "Valor hexadecimal da cor",
       "newItemHighlight": "Destacar texto recém-chegado"
     },
     "pttHint": "Pressione Espaço para falar"

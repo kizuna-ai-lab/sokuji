@@ -961,6 +961,9 @@
       "sourceColor": "رنگ متن اصلی",
       "translationColor": "رنگ ترجمه",
       "customColor": "رنگ سفارشی",
+      "colorArea": "اشباع و روشنایی",
+      "colorHue": "فام رنگ",
+      "colorHex": "مقدار رنگ هگز",
       "newItemHighlight": "برجسته‌سازی متنِ تازه‌رسیده"
     },
     "pttHint": "برای صحبت، Space را نگه دارید"

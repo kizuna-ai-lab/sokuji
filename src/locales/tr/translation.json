@@ -961,6 +961,9 @@
       "sourceColor": "Kaynak metin rengi",
       "translationColor": "Çeviri rengi",
       "customColor": "Özel renk",
+      "colorArea": "Doygunluk ve parlaklık",
+      "colorHue": "Renk tonu",
+      "colorHex": "Onaltılık renk değeri",
       "newItemHighlight": "Yeni gelen metni vurgula"
     },
     "pttHint": "Konuşmak için Boşluk tuşuna basın"

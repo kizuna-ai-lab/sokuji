@@ -961,6 +961,9 @@
       "sourceColor": "Warna teks sumber",
       "translationColor": "Warna terjemahan",
       "customColor": "Warna tersuai",
+      "colorArea": "Ketepuan dan kecerahan",
+      "colorHue": "Rona",
+      "colorHex": "Nilai warna heks",
       "newItemHighlight": "Serlahkan teks yang baru tiba"
     },
     "pttHint": "Tekan Bar Ruang untuk bercakap"
