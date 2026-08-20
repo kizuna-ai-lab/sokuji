@@ -216,46 +216,63 @@ describe('ChildWindowPopover', () => {
       expect(rootOf().style.maxHeight).toBe(`${asked}px`);
     });
 
-    // Which side of the anchor the window opens on depends on the height, so
-    // recomputing it on every resize made the window jump across the bar the
-    // moment a color picker expanded past the room above the anchor. The side
-    // is chosen once per open and held.
-    it('does not flip to the other side of the anchor when the content grows', () => {
-      // A real screen, or the clamp below collapses both branches onto 0 and
-      // the assertion cannot tell them apart.
+    // Placement geometry these four share: a real screen is required, or the
+    // clamps collapse both branches onto 0 and no assertion can tell them
+    // apart. anchor = top 700 / bottom 736, screenTop 0, availHeight 1000, so
+    // the room below the anchor is 1000 - (736 + 8) = 256px.
+    const realScreen = () =>
       Object.defineProperty(window.screen, 'availHeight', {
         value: 1000, configurable: true,
       });
+    const BELOW_TOP = 736 + 8;          // hangs off the anchor's bottom edge
+    const aboveTopFor = (h: number) => 700 - h - 8;
+
+    it('opens below the anchor when the screen has room there', () => {
+      realScreen();
       const { setOpen } = openPopover();
-
-      // anchor sits at top 700 / bottom 736, so 280 fits above it.
-      stubHeight(280);
+      stubHeight(200);
       act(() => { setOpen(true); });
-      const openedAt = lastMoveTop();
-      expect(openedAt).toBe(700 - 280 - 8);
+      expect(lastMoveTop()).toBe(BELOW_TOP);
+    });
 
-      // 800 no longer fits above. Holding the side pins it to the screen top;
-      // flipping would drop it to the clamped below-anchor position instead.
+    it('falls back to above when the content does not fit below', () => {
+      realScreen();
+      const { setOpen } = openPopover();
+      stubHeight(280); // > 256px of room below
+      act(() => { setOpen(true); });
+      expect(lastMoveTop()).toBe(aboveTopFor(280));
+    });
+
+    // Which side fits depends on the height, so recomputing it on every resize
+    // threw the window across the bar the moment a color picker expanded. The
+    // side is chosen once per open and held.
+    it('does not flip to the other side of the anchor when the content grows', () => {
+      realScreen();
+      const { setOpen } = openPopover();
+      stubHeight(200);
+      act(() => { setOpen(true); });
+      expect(lastMoveTop()).toBe(BELOW_TOP);
+
+      // 800 no longer fits below. Holding the side pins it to the bottom of
+      // the screen; flipping would lift it to the above-anchor position.
       stubHeight(800);
       act(() => { fireResizeObservers(); });
-      expect(lastMoveTop()).toBe(0);
-      expect(lastMoveTop()).not.toBe(200);
+      expect(lastMoveTop()).toBe(200);          // 1000 - 800, screen-clamped
+      expect(lastMoveTop()).not.toBe(aboveTopFor(800));
     });
 
     it('re-decides the side on the next open', () => {
-      Object.defineProperty(window.screen, 'availHeight', {
-        value: 1000, configurable: true,
-      });
+      realScreen();
       const { setOpen } = openPopover();
-      stubHeight(280);
+      stubHeight(200);
       act(() => { setOpen(true); });
-      expect(lastMoveTop()).toBe(412);
+      expect(lastMoveTop()).toBe(BELOW_TOP);
 
       act(() => { setOpen(false); });
-      // Too tall to sit above the anchor: this open must land below it.
-      stubHeight(800);
+      // Too tall for the room below: this open must land above the anchor.
+      stubHeight(280);
       act(() => { setOpen(true); });
-      expect(lastMoveTop()).toBe(200);
+      expect(lastMoveTop()).toBe(aboveTopFor(280));
     });
 
     it('stops observing once closed', () => {

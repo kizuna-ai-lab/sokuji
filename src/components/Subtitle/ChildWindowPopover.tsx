@@ -274,14 +274,25 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     // room above. Clamped on ALL edges — a partially off-screen request gets
     // re-placed by mutter to an arbitrary position, which is worse than a
     // slightly shifted popover.
-    // Which side fits depends on the height, and the height changes while the
-    // popover is open — expanding a color picker adds ~164px. Re-deciding on
-    // every resize threw the window across the bar mid-interaction, so the
-    // side is chosen on the open that placed it and held until it closes.
-    // Growing past the room available on that side pins it to the screen edge
-    // instead, which the height cap already keeps on-screen.
+    // Below the anchor by default, above only when the screen has no room
+    // below. Preferring below matches what a control hanging off a toolbar
+    // button is expected to do, and it costs nothing where above used to be
+    // picked: a bar parked at the bottom of the screen has no room below, so
+    // it still opens upward.
+    //
+    // Which side fits depends on the height, and the height is no longer fixed
+    // for the popover's lifetime — expanding a color picker adds ~164px.
+    // Re-deciding on every resize threw the window across the bar
+    // mid-interaction, so the side is chosen on the open that placed it and
+    // held until it closes. Outgrowing that side pins the window to the screen
+    // edge instead, which the height cap already keeps fully visible.
     if (placementRef.current === null) {
-      placementRef.current = anchorTop - h - EDGE_PAD >= screenTop ? 'above' : 'below';
+      // availHeight of 0 means "unknown"; default to below rather than
+      // concluding there is no room anywhere.
+      const roomBelow = availH > 0
+        ? screenTop + availH - (anchorBottom + EDGE_PAD)
+        : Number.POSITIVE_INFINITY;
+      placementRef.current = roomBelow >= h ? 'below' : 'above';
     }
     const above = placementRef.current === 'above';
     const left = Math.min(
