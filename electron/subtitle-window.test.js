@@ -380,7 +380,7 @@ describe('subtitle bar bounds persistence', () => {
   });
 
   // Double-clicking the bar maximizes the window (the window manager does this
-  // on Linux; the WM_NCLBUTTONDBLCLK hook does it on Windows). Screen-sized
+  // on Linux; the WM_SYSCOMMAND hook does it on Windows). Screen-sized
   // geometry must not be remembered as the user's chosen bar size, or the next
   // entry into subtitle mode restores a full-screen "bar".
   it('does not persist maximized geometry as the bar bounds', () => {

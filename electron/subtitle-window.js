@@ -246,7 +246,7 @@ function setupSubtitleHandlers(mainWindow) {
     if (mainWindow.isDestroyed()) return;
     // Never persist screen-filling geometry as the bar's bounds. Fullscreen
     // comes from the bar's own button; maximized comes from double-clicking
-    // the bar (the window manager on Linux, the WM_NCLBUTTONDBLCLK hook in
+    // the bar (the window manager on Linux, the WM_SYSCOMMAND hook in
     // window-caption-dblclick.js on Windows). Either way the size is not the
     // bar size the user picked, and remembering it would restore a
     // screen-sized "bar" on the next entry into subtitle mode.
