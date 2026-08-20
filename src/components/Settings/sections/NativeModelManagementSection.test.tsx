@@ -292,52 +292,54 @@ beforeEach(() => {
 });
 
 describe('NativeModelManagementSection — HY-MT2 variant card', () => {
-  it('header dropdown shows the chosen variant + size; opening it lists supported (enabled) and unsupported (disabled) variants', async () => {
+  it('header dropdown is a select whose value is the chosen variant; rows list supported (enabled) and unsupported (disabled) variants', async () => {
     // All statuses absent (default) → pre-download state for hy-mt2-7b.
     render(<NativeModelManagementSection />);
     const q4SizeLabel = formatMemMb(Math.round(8e9 / 1e6));
 
-    // The compact dropdown trigger appears in the header, showing the chosen variant + size.
-    const trigger = await waitFor(() => {
+    // The compact dropdown in the header is a customizable <select>
+    // (appearance: base-select — this section is Electron-only, Chromium 144);
+    // its value is the chosen variant id, and <selectedcontent> mirrors the
+    // chosen option's label + size into the closed control.
+    const dd = await waitFor(() => {
       const card = screen.getByTestId('model-card-hy-mt2-7b');
-      return within(card).getByTestId('variant-dd-hy-mt2-7b');
+      return within(card).getByTestId('variant-dd-hy-mt2-7b') as HTMLSelectElement;
     });
-    expect(trigger).toHaveTextContent('Q4_K_M');
-    expect(trigger).toHaveTextContent(q4SizeLabel);
+    expect(dd.value).toBe('q4_k_m');
 
-    // Variant rows are NOT rendered until the dropdown is opened (keeps the card short).
-    expect(screen.queryByTestId('variant-row-q4_k_m')).not.toBeInTheDocument();
-
-    // Open the menu.
-    fireEvent.click(trigger);
-
+    // Options live inside the select from the start — the picker is a
+    // top-layer popup, so listing them never grows the card (which is what
+    // the old menu's lazy render existed to prevent).
     const card7b = screen.getByTestId('model-card-hy-mt2-7b');
     const q4Row = within(card7b).getByTestId('variant-row-q4_k_m');
+    expect(q4Row).toHaveTextContent('Q4_K_M');
     expect(q4Row).toHaveTextContent(q4SizeLabel);
     expect(within(q4Row).getByText('recommended')).toBeInTheDocument();
     expect(q4Row).toBeEnabled();
 
-    // q8_0 is unsupported → listed (so the user sees the option) but not
-    // selectable. It uses aria-disabled (not the disabled attribute) so the row
-    // stays hoverable for the instant tooltip; a muted "blocked" icon marks it.
+    // q8_0 is unsupported → listed (so the user sees the option) but disabled;
+    // its actual reason is spelled out inline in the row — the old hover
+    // tooltip can't render above the select's top-layer picker, and inline
+    // beats hover-only anyway.
     const q8Row = within(card7b).getByTestId('variant-row-q8_0');
-    expect(q8Row).toHaveAttribute('aria-disabled', 'true');
-    expect(within(q8Row).getByLabelText("Won't fit on this machine")).toBeInTheDocument();
+    expect(q8Row).toBeDisabled();
+    expect(q8Row).toHaveTextContent('GPU memory');
   });
 
-  it('clicking a supported variant in the menu pins it (writes translationVariant)', async () => {
+  it('changing the select to an unsupported variant is a no-op', async () => {
+    // A real picker never lets a disabled option through; this guards the
+    // programmatic/keyboard path — pinning must itself check support, the
+    // way the old menu's click handler no-opped on unsupported rows.
+    // (The positive pin path is covered on the TTS card below, where a
+    // second supported variant exists to change to.)
     render(<NativeModelManagementSection />);
-    const trigger = await waitFor(() =>
+    const dd = await waitFor(() =>
       within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-dd-hy-mt2-7b'));
-    fireEvent.click(trigger); // open the menu
 
-    const q4Row = within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-row-q4_k_m');
-    fireEvent.click(q4Row);
+    fireEvent.change(dd, { target: { value: 'q8_0' } });
 
-    // The pin reaches settings (single source of truth feeding both download repo and load).
-    expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ translationVariantByModel: { 'hy-mt2-7b': 'q4_k_m' } }));
-    // and it must NOT switch the active model
+    expect(mockUpdate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ translationVariantByModel: expect.anything() }));
     expect(mockUpdate).not.toHaveBeenCalledWith(
       expect.objectContaining({ translationModel: expect.anything() }));
   });
@@ -346,9 +348,9 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     render(<NativeModelManagementSection />);
     // hy-mt15-7b is a multilingual card always present; its catalog entry carries
     // variantIds too, so it fetches variants and shows the same Q4_K_M dropdown as hy-mt2.
-    const trigger = await waitFor(() =>
-      within(screen.getByTestId('model-card-hy-mt15-7b')).getByTestId('variant-dd-hy-mt15-7b'));
-    expect(trigger).toHaveTextContent('Q4_K_M');
+    const dd = await waitFor(() =>
+      within(screen.getByTestId('model-card-hy-mt15-7b')).getByTestId('variant-dd-hy-mt15-7b')) as HTMLSelectElement;
+    expect(dd.value).toBe('q4_k_m');
   });
 
   it('collapses to resolved variant label after download; no variant chooser buttons', async () => {
@@ -439,22 +441,22 @@ describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', ()
     render(<NativeModelManagementSection />);
     const q4SizeLabel = formatMemMb(Math.round(3.6e9 / 1e6));
 
-    const trigger = await waitFor(() => {
+    const dd = await waitFor(() => {
       const card = screen.getByTestId('model-card-qwen3-tts-1.7b');
-      return within(card).getByTestId('variant-dd-qwen3-tts-1.7b');
+      return within(card).getByTestId('variant-dd-qwen3-tts-1.7b') as HTMLSelectElement;
     });
-    expect(trigger).toHaveTextContent('BF16');
-    expect(trigger).toHaveTextContent(q4SizeLabel);
+    expect(dd.value).toBe('bf16');
+    const bf16Row = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-bf16');
+    expect(bf16Row).toHaveTextContent('BF16');
+    expect(bf16Row).toHaveTextContent(q4SizeLabel);
   });
 
   it('pinning a supported variant on a TTS card writes translationVariantByModel (not the download or active model)', async () => {
     render(<NativeModelManagementSection />);
-    const trigger = await waitFor(() =>
+    const dd = await waitFor(() =>
       within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-dd-qwen3-tts-1.7b'));
-    fireEvent.click(trigger); // open the menu
 
-    const fp32Row = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-fp32');
-    fireEvent.click(fp32Row);
+    fireEvent.change(dd, { target: { value: 'fp32' } });
 
     // The pin reaches settings via the same generic per-model map ASR/translation use.
     expect(mockUpdate).toHaveBeenCalledWith(

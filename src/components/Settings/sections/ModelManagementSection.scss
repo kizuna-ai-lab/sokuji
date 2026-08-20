@@ -484,14 +484,24 @@
   }
 
   // --- Variant chooser (pre-download quant selection for multi-variant models) ---
+  //
+  // A customizable <select> (appearance: base-select). This section is
+  // Electron-only (Chromium 144), so there is no classic-select fallback to
+  // style. The picker floats on the top layer, so opening it never grows the
+  // card — which is what the old absolutely-positioned menu existed to ensure,
+  // minus its clipping inside the settings panel's scroll container.
 
-  // Dropdown wrapper lives in the header (where the size sits); menu is absolutely
-  // positioned so opening it never grows the card.
   &__variant-dd {
-    position: relative;
+    display: inline-flex;
   }
 
-  &__variant-trigger {
+  &__variant-select {
+    &,
+    &::picker(select) {
+      appearance: base-select;
+    }
+
+    // Closed control: the compact chip the old trigger button was.
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -511,74 +521,66 @@
     }
 
     &:disabled { cursor: not-allowed; opacity: 0.6; }
-  }
 
-  // Calm, matches the muted "size" slot on sibling cards; green is reserved for
-  // the chosen row inside the menu, not the always-visible trigger.
-  &__variant-trigger-value {
-    color: vars.$text-secondary;
-    font-weight: vars.$weight-medium;
-    letter-spacing: 0.02em;
-  }
+    &::picker-icon { color: vars.$text-muted; }
 
-  &__variant-menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    z-index: 20;
-    min-width: 210px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 4px;
-    background: #1f2225;
-    border: 1px solid vars.$border-default;
-    border-radius: vars.$radius-sm;
-    // The selectable .model-card sets cursor:pointer, which `cursor` inheritance
-    // leaks onto the menu's plain text (e.g. the CPU note). Reset it here; the
-    // item buttons re-assert their own pointer/not-allowed cursor.
-    cursor: default;
-  }
-
-  &__variant-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 5px 8px;
-    background: transparent;
-    border: 0;
-    border-radius: vars.$radius-sm;
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-    transition: background vars.$transition-fast;
-
-    // Hover highlight only on selectable rows (unsupported rows use aria-disabled,
-    // not the :disabled pseudo-class, so exclude them by class).
-    &:hover:not(:disabled):not(#{&}--unsupported) { background: rgba(255, 255, 255, 0.06); }
-
-    // Selected variant: filled tint only (no accent-bar shadow, by preference) —
-    // still unmistakable via the green name + check.
-    &--chosen {
-      background: rgba(vars.$color-primary, 0.12);
+    // The closed control mirrors the chosen option; keep only its name + size
+    // there (calm, matches the muted "size" slot on sibling cards — green is
+    // reserved for the picker rows).
+    selectedcontent {
+      .model-card__variant-recommended,
+      .model-card__variant-reason { display: none; }
+      .model-card__variant-name { color: vars.$text-secondary; }
     }
 
-    // Unsupported: greyed, not clickable (still listed with its size + blocked icon).
-    &--unsupported { opacity: 0.5; cursor: not-allowed; }
+    &::picker(select) {
+      min-width: 230px;
+      padding: 4px;
+      background: #1f2225;
+      border: 1px solid vars.$border-default;
+      border-radius: vars.$radius-sm;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+      margin-top: 4px;
+      // The selectable .model-card sets cursor:pointer, which `cursor`
+      // inheritance leaks onto the picker's plain text (the CPU note).
+      cursor: default;
+    }
 
-    &:disabled { cursor: not-allowed; }
+    option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 5px 8px;
+      background: transparent;
+      border-radius: vars.$radius-sm;
+      cursor: pointer;
+      transition: background vars.$transition-fast;
+
+      &:hover:not(:disabled),
+      &:focus:not(:disabled) { background: rgba(255, 255, 255, 0.06); }
+
+      // Selected variant: filled tint only (no accent-bar shadow, by
+      // preference) — still unmistakable via the green name + checkmark.
+      &:checked {
+        background: rgba(vars.$color-primary, 0.12);
+
+        .model-card__variant-name { color: vars.$color-primary; }
+      }
+
+      &::checkmark {
+        color: vars.$color-primary;
+        font-weight: vars.$weight-semibold;
+      }
+
+      // Unsupported: greyed, not selectable (still listed with size + reason).
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
   }
 
-  &__variant-check {
-    color: vars.$color-primary;
-    font-weight: vars.$weight-semibold;
-  }
-
-  // Compute type is the primary label of the row → bright + tracked; the chosen
-  // row turns green to reinforce selection.
-  // Precision + size is the primary info → never wraps; the secondary reason on the
-  // right wraps instead. flex-shrink:0 protects it from the reason column.
+  // Compute type is the primary label of the row → bright + tracked.
+  // Precision + size never wraps; the secondary reason on the right wraps
+  // instead. flex-shrink:0 protects it from the reason column.
   &__variant-name {
     flex: 0 0 auto;
     white-space: nowrap;
@@ -586,10 +588,6 @@
     color: vars.$text-primary;
     font-weight: vars.$weight-medium;
     letter-spacing: 0.02em;
-
-    .model-card__variant-item--chosen & {
-      color: vars.$color-primary;
-    }
   }
 
   // Secondary metadata: the size trails the compute type, muted and lighter so the
@@ -610,13 +608,13 @@
     white-space: nowrap;
   }
 
-  // Muted "blocked" icon — full reason is in the row's title tooltip. Mirrors the
-  // green "recommended" slot on the opposite end of the state spectrum.
-  &__variant-unavailable {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
+  // Why an unsupported variant can't be picked, inline in the row — the old
+  // hover tooltip can't render above the top-layer picker, and inline beats
+  // hover-only anyway.
+  &__variant-reason {
+    font-size: 10px;
     color: vars.$text-muted;
+    text-align: right;
   }
 
   &__variant-cpu-note {
