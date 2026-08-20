@@ -108,6 +108,11 @@ describe('ChildWindowPopover', () => {
       return calls.length ? (calls[calls.length - 1][1] as number) : undefined;
     };
 
+    const lastMoveLeft = () => {
+      const calls = child.moveTo.mock.calls;
+      return calls.length ? (calls[calls.length - 1][0] as number) : undefined;
+    };
+
     const contentOf = () => {
       const all = child.document.querySelectorAll('.child-popover-content');
       return all[all.length - 1] as HTMLElement;
@@ -259,6 +264,24 @@ describe('ChildWindowPopover', () => {
       act(() => { fireResizeObservers(); });
       expect(lastMoveTop()).toBe(200);          // 1000 - 800, screen-clamped
       expect(lastMoveTop()).not.toBe(aboveTopFor(800));
+    });
+
+    // Screen metrics of 0 mean "unknown", and the height already treats them
+    // that way. The position clamps must agree: reading 0 as "the screen is
+    // 0px tall/wide" turns their upper bound into the screen origin, which
+    // wins every min() and drags the window into the corner, anchor ignored.
+    it('leaves the position uncapped when the screen metrics are unknown', () => {
+      // jsdom reports 0 for availHeight/availWidth; deliberately not stubbed.
+      expect(window.screen.availHeight).toBe(0);
+      const { setOpen } = openPopover();
+      stubHeight(200);
+      act(() => { setOpen(true); });
+
+      expect(lastMoveTop()).toBe(BELOW_TOP);
+      expect(lastMoveTop()).not.toBe(0);
+      // anchor.right 1200, measured width 280 -> right edges align at 920.
+      expect(lastMoveLeft()).toBe(1200 - 280);
+      expect(lastMoveLeft()).not.toBe(0);
     });
 
     it('re-decides the side on the next open', () => {

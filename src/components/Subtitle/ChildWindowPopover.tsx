@@ -295,17 +295,25 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
       placementRef.current = roomBelow >= h ? 'below' : 'above';
     }
     const above = placementRef.current === 'above';
-    const left = Math.min(
-      Math.max(screenLeft, Math.round(window.screenX + anchor.right - (w + scrollbar))),
-      screenLeft + Math.max(0, window.screen.availWidth - (w + scrollbar)),
+
+    // A screen metric of 0 means "unknown" here, exactly as it does for the
+    // height above — never "the screen is 0px tall". Reading it literally
+    // collapses the upper bound onto the screen origin, which wins every
+    // min() and drags the window into the corner with the anchor ignored.
+    const availW = window.screen.availWidth;
+    const clamp = (raw: number, origin: number, avail: number, size: number) =>
+      avail > 0
+        ? Math.min(Math.max(origin, raw), origin + Math.max(0, avail - size))
+        : Math.max(origin, raw);
+
+    const left = clamp(
+      Math.round(window.screenX + anchor.right - (w + scrollbar)),
+      screenLeft, availW, w + scrollbar,
     );
     const rawTop = above
       ? Math.round(anchorTop - h - EDGE_PAD)
       : Math.round(anchorBottom + EDGE_PAD);
-    const top = Math.min(
-      Math.max(screenTop, rawTop),
-      screenTop + Math.max(0, window.screen.availHeight - h),
-    );
+    const top = clamp(rawTop, screenTop, availH, h);
 
     win.resizeTo(w + scrollbar, h);
     win.moveTo(left, top);
