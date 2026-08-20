@@ -855,6 +855,7 @@
     "variantWontFit": "Cần ~{{need}} bộ nhớ GPU — máy này chỉ có {{have}}",
     "variantWontFitNoMem": "Cần ~{{need}} bộ nhớ GPU",
     "wontFit": "Không vừa với máy này",
+    "variantNoGpuFits": "Không có biến thể nào vừa với GPU — sẽ chạy trên CPU.",
     "hwFramework": "Công cụ",
     "hwDevice": "Thiết bị",
     "hwApi": "Tăng tốc",

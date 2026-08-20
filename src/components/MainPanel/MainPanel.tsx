@@ -81,7 +81,7 @@ import { shouldShowItem } from './conversationFilter';
 import ExportButton from './ExportButton';
 import {
   useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, shift, size,
-  FloatingPortal,
+  autoUpdate, FloatingPortal,
 } from '@floating-ui/react';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackStore';
@@ -738,6 +738,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     open: displayPopoverOpen,
     onOpenChange: setDisplayPopoverOpen,
     placement: 'bottom-end',
+    // Re-position and re-clamp while open — without this a window resize
+    // leaves flip/shift/size results stale (same as ModeDevicePopover).
+    whileElementsMounted: autoUpdate,
     middleware: [
       offset(8),
       flip(),

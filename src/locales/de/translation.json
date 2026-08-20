@@ -855,6 +855,7 @@
     "variantWontFit": "Benötigt ~{{need}} GPU-Speicher — dieser Rechner hat {{have}}",
     "variantWontFitNoMem": "Benötigt ~{{need}} GPU-Speicher",
     "wontFit": "Passt nicht auf diesen Rechner",
+    "variantNoGpuFits": "Keine GPU-Variante passt — läuft auf der CPU.",
     "hwFramework": "Engine",
     "hwDevice": "Gerät",
     "hwApi": "Beschleunigung",

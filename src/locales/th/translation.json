@@ -855,6 +855,7 @@
     "variantWontFit": "ต้องการหน่วยความจำ GPU ~{{need}} — เครื่องนี้มี {{have}}",
     "variantWontFitNoMem": "ต้องการหน่วยความจำ GPU ~{{need}}",
     "wontFit": "ไม่พอดีกับเครื่องนี้",
+    "variantNoGpuFits": "ไม่มีเวอร์ชันที่พอดีกับ GPU — จะทำงานบน CPU",
     "hwFramework": "เอนจิน",
     "hwDevice": "อุปกรณ์",
     "hwApi": "การเร่งความเร็ว",

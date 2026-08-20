@@ -283,6 +283,13 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     return ProviderConfigFactory.getAllConfigs();
   }, []);
 
+  // The persisted provider can be one the registry no longer carries — a
+  // feature flag turned off since, or a selection made in Electron opened in
+  // the extension (local_native, volcengine_ast2). getDescriptor throws for
+  // those, and this component must survive them: the select renders the
+  // stored value on a disabled placeholder option instead.
+  const providerRegistered = ProviderConfigFactory.isProviderSupported(provider);
+
   // Get current API key based on provider — delegates to the descriptor's
   // peekPrimaryCredential so the per-provider credential shape lives in one
   // place instead of being hand-copied here (see also settingsStore.validateApiKey).
@@ -291,9 +298,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // user types (OpenAI/Gemini/OpenAI Translate no longer have their own
   // dedicated settings hooks called here after the switch collapsed).
   const currentProviderSettingsSlice = useSettingsStore(
-    (state) => state[ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore]
+    (state) => providerRegistered
+      ? state[ProviderConfigFactory.getDescriptor(provider).settingsSliceKey as keyof SettingsStore]
+      : undefined
   );
   const getCurrentApiKey = (): string => {
+    if (!providerRegistered) return '';
     return ProviderConfigFactory.getDescriptor(provider).peekPrimaryCredential(currentProviderSettingsSlice);
   };
 
@@ -389,6 +399,35 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   const currentApiKey = getCurrentApiKey();
 
+  // One renderer for every provider option — the registered list and the
+  // unregistered-placeholder both go through it, so the rich/plain split
+  // (see richSelect) lives in exactly one place.
+  const renderProviderOption = (id: ProviderType, disabled = false) => {
+    const optionInfo = getProviderInfoById(id);
+    if (!richSelect) {
+      return (
+        <option key={id} value={id} disabled={disabled}>{optionInfo.name}</option>
+      );
+    }
+    return (
+      <option key={id} value={id} disabled={disabled}>
+        <span className="provider-select__icon">
+          {React.createElement(optionInfo.icon, { size: 20 })}
+        </span>
+        <span className="provider-select__text">
+          {/* Name and engine credit share one line: the managed twins are all
+              named "KizunaAI", so the vendor is what tells them apart, and
+              giving it its own line would make every row a line taller. */}
+          <span className="provider-name-line">
+            <span className="provider-select__name">{optionInfo.name}</span>
+            <PoweredBy provider={id} />
+          </span>
+          <span className="provider-select__description">{optionInfo.description}</span>
+        </span>
+      </option>
+    );
+  };
+
   return (
     <div className={`config-section provider-section ${className}`} id="provider-section">
       <h3>
@@ -435,32 +474,14 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             // CSS trims it down (see .provider-select selectedcontent).
             <button type="button"><selectedcontent /></button>
           )}
-          {availableProviders.map((p) => {
-            const optionInfo = getProviderInfoById(p.id as ProviderType);
-            if (!richSelect) {
-              return (
-                <option key={p.id} value={p.id}>{optionInfo.name}</option>
-              );
-            }
-            return (
-              <option key={p.id} value={p.id}>
-                <span className="provider-select__icon">
-                  {React.createElement(optionInfo.icon, { size: 20 })}
-                </span>
-                <span className="provider-select__text">
-                  {/* Name and engine credit share one line: the managed twins
-                      are all named "KizunaAI", so the vendor is what tells
-                      them apart, and giving it its own line would make every
-                      row a line taller. */}
-                  <span className="provider-name-line">
-                    <span className="provider-select__name">{optionInfo.name}</span>
-                    <PoweredBy provider={p.id as ProviderType} />
-                  </span>
-                  <span className="provider-select__description">{optionInfo.description}</span>
-                </span>
-              </option>
-            );
-          })}
+          {!providerRegistered && (
+            // A persisted provider whose registration is gone gets its own
+            // disabled option — without it a controlled select with an
+            // unmatched value silently displays the first registered provider
+            // while the store still holds this one.
+            renderProviderOption(provider, true)
+          )}
+          {availableProviders.map((p) => renderProviderOption(p.id as ProviderType))}
         </select>
       </div>
 

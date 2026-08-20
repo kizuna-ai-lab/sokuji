@@ -622,10 +622,15 @@
     text-align: right;
   }
 
-  &__variant-cpu-note {
+  // Rendered as a disabled <option> (the select content model admits no
+  // other child shape), but it is a note, not a rejected choice — undo the
+  // option:disabled treatment that reading would be wrong for.
+  &__variant-select option.model-card__variant-cpu-note {
     font-size: 10px;
     color: vars.$text-muted;
-    padding: 2px 4px;
+    padding: 2px 8px;
+    opacity: 1;
+    cursor: default;
   }
 }
 

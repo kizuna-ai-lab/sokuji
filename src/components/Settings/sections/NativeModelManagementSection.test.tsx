@@ -439,7 +439,7 @@ describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', ()
   // variantMap/onPin (the picker was translation/ASR-only before this task).
   it('the picker renders on a multi-variant TTS card (same as ASR/translation)', async () => {
     render(<NativeModelManagementSection />);
-    const q4SizeLabel = formatMemMb(Math.round(3.6e9 / 1e6));
+    const bf16SizeLabel = formatMemMb(Math.round(3.6e9 / 1e6));
 
     const dd = await waitFor(() => {
       const card = screen.getByTestId('model-card-qwen3-tts-1.7b');
@@ -448,7 +448,7 @@ describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', ()
     expect(dd.value).toBe('bf16');
     const bf16Row = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-bf16');
     expect(bf16Row).toHaveTextContent('BF16');
-    expect(bf16Row).toHaveTextContent(q4SizeLabel);
+    expect(bf16Row).toHaveTextContent(bf16SizeLabel);
   });
 
   it('pinning a supported variant on a TTS card writes translationVariantByModel (not the download or active model)', async () => {

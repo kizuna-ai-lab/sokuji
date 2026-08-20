@@ -855,6 +855,7 @@
     "variantWontFit": "~{{need}} GPU நினைவகம் தேவை — இந்த கணினியில் {{have}} உள்ளது",
     "variantWontFitNoMem": "~{{need}} GPU நினைவகம் தேவை",
     "wontFit": "இந்த கணினியில் பொருந்தாது",
+    "variantNoGpuFits": "எந்த GPU வகையும் பொருந்தவில்லை — CPU-இல் இயங்கும்.",
     "hwFramework": "இயந்திரம்",
     "hwDevice": "சாதனம்",
     "hwApi": "முடுக்கம்",

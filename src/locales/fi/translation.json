@@ -855,6 +855,7 @@
     "variantWontFit": "Vaatii ~{{need}} GPU-muistia — tässä koneessa on {{have}}",
     "variantWontFitNoMem": "Vaatii ~{{need}} GPU-muistia",
     "wontFit": "Ei mahdu tähän koneeseen",
+    "variantNoGpuFits": "Mikään GPU-versio ei mahdu — suoritetaan CPU:lla.",
     "hwFramework": "Moottori",
     "hwDevice": "Laite",
     "hwApi": "Kiihdytys",

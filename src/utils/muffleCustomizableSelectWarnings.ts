@@ -47,7 +47,11 @@ export function installCustomizableSelectWarningMuffler(): void {
   if (!import.meta.env.DEV) return;
   const original = console.error;
   console.error = (...args: unknown[]) => {
-    const text = renderConsoleFormat(args);
+    // Only the first line carries the verdict ("In HTML, <x> cannot be a
+    // child of <y>."). The component stack that follows routinely contains
+    // bare tags like "<span>" or "<option>", which would make a REAL error
+    // (say, <div> in <option>) match a muffled pair by accident.
+    const text = renderConsoleFormat(args).split('\n', 1)[0];
     if (
       text.includes('cannot be a child of') &&
       MUFFLED_PAIRS.some(([child, parent]) => text.includes(child) && text.includes(parent))

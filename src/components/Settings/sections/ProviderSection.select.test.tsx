@@ -82,6 +82,28 @@ describe('ProviderSection — provider <select>', () => {
     expect(document.querySelector('.provider-select selectedcontent')).not.toBeNull();
   });
 
+  it('survives a persisted provider that is no longer registered and keeps it visible', () => {
+    // e.g. local_native persisted in Electron, then the profile opened in the
+    // extension — or a feature flag turned off since. The registry has no
+    // descriptor for it; before this, the settings-slice selector threw
+    // (getDescriptor) and the whole section crashed. The select must render,
+    // report the stored value, and pin it on a disabled option instead of
+    // silently displaying the first registered provider.
+    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE } as never);
+    render(<ProviderSection isSessionActive={false} />);
+
+    const select = getSelect();
+    expect(select.value).toBe(Provider.LOCAL_NATIVE);
+    const opt = document.querySelector(
+      `.provider-select option[value="${Provider.LOCAL_NATIVE}"]`,
+    ) as HTMLOptionElement;
+    expect(opt).not.toBeNull();
+    expect(opt.disabled).toBe(true);
+    // Switching AWAY still works.
+    fireEvent.change(select, { target: { value: Provider.GEMINI } });
+    expect(useSettingsStore.getState().provider).toBe(Provider.GEMINI);
+  });
+
   it('falls back to plain text options where base-select is unsupported', () => {
     baseSelectSupported.value = false;
     render(<ProviderSection isSessionActive={false} />);

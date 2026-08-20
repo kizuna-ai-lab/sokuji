@@ -49,6 +49,22 @@ describe('installCustomizableSelectWarningMuffler', () => {
     expect(sink).toHaveBeenCalledTimes(1);
   });
 
+  it('still reports a real error whose component stack happens to mention muffled tags', () => {
+    // React appends the component stack as the last format argument, and a
+    // stack routinely contains lines like "<span className=..." — so matching
+    // the WHOLE rendered text would let a real <div>-in-<option> error be
+    // swallowed whenever any <span> appears in the stack. Only the first line
+    // carries the actual verdict.
+    console.error(
+      'In HTML, %s cannot be a child of <%s>.%s\nThis will cause a hydration error.%s',
+      '<div>', 'option', '',
+      // Prop-less elements render bare in React stacks ("<span>", "<option>"),
+      // exactly matching the muffled pair strings.
+      '\n  ...\n    <span>\n    <option>\n',
+    );
+    expect(sink).toHaveBeenCalledTimes(1);
+  });
+
   it('leaves unrelated errors alone', () => {
     console.error('boom', new Error('x'));
     expect(sink).toHaveBeenCalledTimes(1);

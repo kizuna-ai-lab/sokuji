@@ -855,6 +855,7 @@
     "variantWontFit": "به حدود {{need}} حافظه GPU نیاز دارد — این دستگاه {{have}} دارد",
     "variantWontFitNoMem": "به حدود {{need}} حافظه GPU نیاز دارد",
     "wontFit": "روی این دستگاه جا نمی‌شود",
+    "variantNoGpuFits": "هیچ نسخه‌ای در GPU جا نمی‌شود — روی CPU اجرا می‌شود.",
     "hwFramework": "موتور",
     "hwDevice": "دستگاه",
     "hwApi": "شتاب‌دهی",

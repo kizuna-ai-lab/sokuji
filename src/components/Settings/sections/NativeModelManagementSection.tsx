@@ -143,7 +143,13 @@ const VariantDropdown: React.FC<{
           );
         })}
         {!gpuFits && (
-          <span className="model-card__variant-cpu-note">No GPU variant fits — runs on CPU.</span>
+          // A disabled option, not a bare <span>: the select content model
+          // (and React's nesting validator) only admits option-shaped
+          // children, and a span here would log the very warning class the
+          // dev muffler exists to avoid adding to.
+          <option disabled className="model-card__variant-cpu-note">
+            {t('models.variantNoGpuFits', 'No GPU variant fits — runs on CPU.')}
+          </option>
         )}
       </select>
     </div>

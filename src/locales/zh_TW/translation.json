@@ -855,6 +855,7 @@
     "variantWontFit": "需要約 {{need}} 顯示記憶體 — 本機為 {{have}}",
     "variantWontFitNoMem": "需要約 {{need}} 顯示記憶體",
     "wontFit": "本機無法執行",
+    "variantNoGpuFits": "沒有適合 GPU 的版本 — 將在 CPU 上執行。",
     "hwFramework": "推理引擎",
     "hwDevice": "裝置",
     "hwApi": "加速 API",
