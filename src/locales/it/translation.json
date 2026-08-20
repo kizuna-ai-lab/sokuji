@@ -961,6 +961,9 @@
       "sourceColor": "Colore testo originale",
       "translationColor": "Colore traduzione",
       "customColor": "Colore personalizzato",
+      "colorArea": "Saturazione e luminosità",
+      "colorHue": "Tonalità",
+      "colorHex": "Valore colore esadecimale",
       "newItemHighlight": "Evidenzia il testo appena arrivato"
     },
     "pttHint": "Premi Spazio per parlare"

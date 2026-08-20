@@ -1,0 +1,126 @@
+// Styles for the in-app HSV picker. Kept self-contained (no reliance on the
+// popover's selectors) so the component can be dropped anywhere.
+
+.color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+
+  // ── Saturation (x) / brightness (y) area ──
+  // backgroundColor is set inline to the fully-saturated hue; these two
+  // gradients wash it out to white on the left and to black at the bottom.
+  &__area {
+    position: relative;
+    width: 100%;
+    height: 104px;
+    border-radius: 4px;
+    cursor: crosshair;
+    // Keeps a touch drag from scrolling the popover instead of picking.
+    touch-action: none;
+    background-image:
+      linear-gradient(to top, #000000, rgba(0, 0, 0, 0)),
+      linear-gradient(to right, #ffffff, rgba(255, 255, 255, 0));
+
+    &:focus-visible {
+      outline: 2px solid #10a37f;
+      outline-offset: 2px;
+    }
+  }
+
+  &__thumb {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    // A second, dark ring so the thumb stays visible over white too.
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  // ── Hue slider ──
+
+  &__hue {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 12px;
+    margin: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    background: linear-gradient(
+      to right,
+      #ff0000 0%,
+      #ffff00 16.66%,
+      #00ff00 33.33%,
+      #00ffff 50%,
+      #0000ff 66.66%,
+      #ff00ff 83.33%,
+      #ff0000 100%
+    );
+
+    &:focus-visible {
+      outline: 2px solid #10a37f;
+      outline-offset: 2px;
+    }
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: transparent;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+    }
+
+    &::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: transparent;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+    }
+  }
+
+  // ── Hex field ──
+
+  &__hex {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__preview {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid #3a3a3a;
+  }
+
+  &__hex-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 4px 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: #e8e8e8;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+
+    &::placeholder {
+      color: #6a6a6a;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #10a37f;
+    }
+  }
+}

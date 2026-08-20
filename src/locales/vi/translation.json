@@ -961,6 +961,9 @@
       "sourceColor": "Màu văn bản gốc",
       "translationColor": "Màu bản dịch",
       "customColor": "Màu tùy chỉnh",
+      "colorArea": "Độ bão hòa và độ sáng",
+      "colorHue": "Sắc độ",
+      "colorHex": "Giá trị màu hex",
       "newItemHighlight": "Tô sáng văn bản vừa đến"
     },
     "pttHint": "Nhấn Phím cách để nói"

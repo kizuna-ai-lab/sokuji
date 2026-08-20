@@ -961,6 +961,9 @@
       "sourceColor": "สีข้อความต้นฉบับ",
       "translationColor": "สีคำแปล",
       "customColor": "สีที่กำหนดเอง",
+      "colorArea": "ความอิ่มตัวและความสว่าง",
+      "colorHue": "เฉดสี",
+      "colorHex": "ค่าสีเลขฐานสิบหก",
       "newItemHighlight": "เน้นข้อความที่เพิ่งมาถึง"
     },
     "pttHint": "กด Space ค้างเพื่อพูด"

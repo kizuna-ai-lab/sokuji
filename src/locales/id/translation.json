@@ -961,6 +961,9 @@
       "sourceColor": "Warna teks asli",
       "translationColor": "Warna terjemahan",
       "customColor": "Warna kustom",
+      "colorArea": "Saturasi dan kecerahan",
+      "colorHue": "Rona",
+      "colorHex": "Nilai warna heksadesimal",
       "newItemHighlight": "Sorot teks yang baru tiba"
     },
     "pttHint": "Tekan Spasi untuk berbicara"

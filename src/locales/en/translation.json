@@ -961,6 +961,9 @@
       "sourceColor": "Source text",
       "translationColor": "Translation text",
       "customColor": "Custom color",
+      "colorArea": "Saturation and brightness",
+      "colorHue": "Hue",
+      "colorHex": "Hex color value",
       "newItemHighlight": "Highlight newly-arrived text"
     },
     "pttHint": "Press Space to speak"

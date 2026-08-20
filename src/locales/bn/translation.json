@@ -961,6 +961,9 @@
       "sourceColor": "মূল টেক্সটের রঙ",
       "translationColor": "অনুবাদের রঙ",
       "customColor": "কাস্টম রঙ",
+      "colorArea": "স্যাচুরেশন ও উজ্জ্বলতা",
+      "colorHue": "রঙের আভা",
+      "colorHex": "হেক্স রঙের মান",
       "newItemHighlight": "নতুন আসা পাঠ্য হাইলাইট করুন"
     },
     "pttHint": "কথা বলতে Space চাপুন"

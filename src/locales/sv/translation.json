@@ -961,6 +961,9 @@
       "sourceColor": "Källtextfärg",
       "translationColor": "Översättningsfärg",
       "customColor": "Anpassad färg",
+      "colorArea": "Mättnad och ljusstyrka",
+      "colorHue": "Nyans",
+      "colorHex": "Hexadecimalt färgvärde",
       "newItemHighlight": "Markera nyligen ankommen text"
     },
     "pttHint": "Tryck på mellanslag för att tala"

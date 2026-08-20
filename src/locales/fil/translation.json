@@ -961,6 +961,9 @@
       "sourceColor": "Kulay ng orihinal na teksto",
       "translationColor": "Kulay ng salin",
       "customColor": "Custom na kulay",
+      "colorArea": "Saturation at liwanag",
+      "colorHue": "Hue",
+      "colorHex": "Hex na halaga ng kulay",
       "newItemHighlight": "I-highlight ang bagong dating na teksto"
     },
     "pttHint": "Pindutin ang Space upang magsalita"

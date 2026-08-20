@@ -961,6 +961,9 @@
       "sourceColor": "原文顏色",
       "translationColor": "譯文顏色",
       "customColor": "自訂顏色",
+      "colorArea": "飽和度與明度",
+      "colorHue": "色相",
+      "colorHex": "十六進位色彩值",
       "newItemHighlight": "醒目顯示新到達的文字"
     },
     "pttHint": "按住空白鍵說話"

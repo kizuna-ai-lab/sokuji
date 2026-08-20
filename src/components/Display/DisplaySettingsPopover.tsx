@@ -17,6 +17,7 @@ import {
   SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
 } from '../../stores/subtitleStore';
 import ToggleSwitch from '../Settings/shared/ToggleSwitch';
+import ColorPicker from './ColorPicker';
 import {
   useConversationDisplayBgColor,
   useConversationDisplaySourceTextColor,
@@ -124,6 +125,15 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
     bindings.newItemHighlightEnabled !== undefined &&
     bindings.setNewItemHighlightEnabled !== undefined;
 
+  // Which row (if any) has its custom picker expanded. Held here rather than
+  // per-row so opening one collapses the others — three stacked pickers would
+  // make the popover taller than most of the surfaces it floats over.
+  const [openPicker, setOpenPicker] = useState<string | null>(null);
+  const togglePicker = useCallback(
+    (key: string) => setOpenPicker((cur) => (cur === key ? null : key)),
+    [],
+  );
+
   // Note: role="dialog" + accessible name are intentionally NOT set on this
   // root. They live on the floating wrapper in SubtitleBar / MainPanel via
   // @floating-ui/react's useRole, which also wires aria-haspopup / aria-
@@ -142,6 +152,8 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
         presets={BG_PRESETS}
         value={bindings.bgColor}
         onChange={bindings.setBgColor}
+        pickerOpen={openPicker === 'bg'}
+        onTogglePicker={() => togglePicker('bg')}
       />
       <ColorRow
         labelKey="subtitle.settings.sourceColor"
@@ -150,6 +162,8 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
         presets={SOURCE_PRESETS}
         value={bindings.sourceTextColor}
         onChange={bindings.setSourceTextColor}
+        pickerOpen={openPicker === 'source'}
+        onTogglePicker={() => togglePicker('source')}
       />
       <ColorRow
         labelKey="subtitle.settings.translationColor"
@@ -158,6 +172,8 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings }> = ({ bi
         presets={TRANSLATION_PRESETS}
         value={bindings.translationTextColor}
         onChange={bindings.setTranslationTextColor}
+        pickerOpen={openPicker === 'translation'}
+        onTogglePicker={() => togglePicker('translation')}
       />
       {includeHighlightToggle && (
         <div className="field">
@@ -234,6 +250,9 @@ interface ColorRowProps {
   presets: readonly string[];
   value: string;
   onChange: (s: string) => Promise<void>;
+  /** Whether this row's free-choice picker is expanded. */
+  pickerOpen: boolean;
+  onTogglePicker: () => void;
 }
 
 const ColorRow: React.FC<ColorRowProps> = ({
@@ -243,6 +262,8 @@ const ColorRow: React.FC<ColorRowProps> = ({
   presets,
   value,
   onChange,
+  pickerOpen,
+  onTogglePicker,
 }) => {
   const { t } = useTranslation();
   const valueLower = value.toLowerCase();
@@ -258,7 +279,7 @@ const ColorRow: React.FC<ColorRowProps> = ({
   const isCustom = !orderedPresets.some((p) => p.toLowerCase() === valueLower);
 
   // Debounce the high-frequency change events emitted while the user
-  // drags inside the OS color picker.
+  // drags inside the picker.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onPickerChange = useCallback(
     (next: string) => {
@@ -290,21 +311,19 @@ const ColorRow: React.FC<ColorRowProps> = ({
             onClick={() => onChange(c)}
           />
         ))}
-        <label
+        <button
+          type="button"
           className={`swatch custom ${isCustom ? 'selected' : ''}`}
           style={{ background: value }}
           title={t('subtitle.settings.customColor', 'Custom color')}
           aria-label={t('subtitle.settings.customColor', 'Custom color')}
+          aria-expanded={pickerOpen}
+          onClick={onTogglePicker}
         >
           <Plus size={10} />
-          <input
-            type="color"
-            value={value}
-            aria-label={t('subtitle.settings.customColor', 'Custom color')}
-            onChange={(e) => onPickerChange(e.target.value)}
-          />
-        </label>
+        </button>
       </div>
+      {pickerOpen && <ColorPicker value={value} onChange={onPickerChange} />}
     </div>
   );
 };

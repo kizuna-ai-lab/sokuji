@@ -961,6 +961,9 @@
       "sourceColor": "Couleur du texte source",
       "translationColor": "Couleur de la traduction",
       "customColor": "Couleur personnalisée",
+      "colorArea": "Saturation et luminosité",
+      "colorHue": "Teinte",
+      "colorHex": "Valeur hexadécimale de la couleur",
       "newItemHighlight": "Surligner le texte nouvellement arrivé"
     },
     "pttHint": "Appuyez sur Espace pour parler"
