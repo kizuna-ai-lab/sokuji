@@ -4,6 +4,7 @@
   border: 1px solid #3a3a3a;
   border-radius: 8px;
   padding: 16px;
+
   // 314, not 280, because box-sizing below is now border-box: this rule read
   // as "280 of content" under the browser default and the popover has always
   // rendered 280 + 32 padding + 2 border wide. Keeping the rendered width
@@ -23,9 +24,11 @@
   // the ChildWindowPopover window smaller on every open (measured: 16px per
   // open, unbounded) the moment a reset ever landed.
   //
-  // --popover-max-height lets a host that owns the surface set the real cap;
-  // ChildWindowPopover sets it to the height it sized its window to, having
-  // measured with the cap lifted. Hosts that don't set it get the viewport.
+  // --popover-max-height lets a host that owns the surface take the clipping
+  // over. ChildWindowPopover sets it to `none` and clips at its own scroll
+  // port instead: a ResizeObserver only reports border-box changes, so if this
+  // element capped itself the host would never learn the content had grown.
+  // Hosts that don't set it get the viewport.
   box-sizing: border-box;
   max-height: var(--popover-max-height, 100vh);
   overflow-y: auto;

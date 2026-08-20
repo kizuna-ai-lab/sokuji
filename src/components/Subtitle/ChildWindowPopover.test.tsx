@@ -37,7 +37,7 @@ describe('ChildWindowPopover', () => {
   let invoke: ReturnType<typeof vi.fn>;
   // jsdom has no ResizeObserver. Capture the callbacks so a test can play the
   // part of the browser noticing the hosted content changed height.
-  let observers: Array<{ cb: () => void; live: boolean }>;
+  let observers: Array<{ cb: () => void; live: boolean; targets: Element[] }>;
   // Only observers that have not been disconnected, mirroring the browser.
   const fireResizeObservers = () => {
     observers.filter((o) => o.live).forEach((o) => o.cb());
@@ -46,12 +46,12 @@ describe('ChildWindowPopover', () => {
   beforeEach(() => {
     observers = [];
     (globalThis as { ResizeObserver?: unknown }).ResizeObserver = class {
-      private entry: { cb: () => void; live: boolean };
+      private entry: { cb: () => void; live: boolean; targets: Element[] };
       constructor(cb: () => void) {
-        this.entry = { cb, live: true };
+        this.entry = { cb, live: true, targets: [] };
         observers.push(this.entry);
       }
-      observe() {}
+      observe(el: Element) { this.entry.targets.push(el); }
       unobserve() {}
       disconnect() { this.entry.live = false; }
     };
@@ -103,9 +103,17 @@ describe('ChildWindowPopover', () => {
       return calls.length ? (calls[calls.length - 1][1] as number) : undefined;
     };
 
+    const contentOf = () => {
+      const all = child.document.querySelectorAll('.child-popover-content');
+      return all[all.length - 1] as HTMLElement;
+    };
+
+    // Height is taken from the content wrapper, so that is what a test must
+    // stub. Stubbing the root would prove nothing: the root is the capped
+    // element and is deliberately not what drives the size.
     const stubHeight = (h: number) => {
-      const root = rootOf();
-      root.getBoundingClientRect = () =>
+      const content = contentOf();
+      content.getBoundingClientRect = () =>
         ({ width: 280, height: h, top: 0, left: 0, right: 280, bottom: h } as DOMRect);
     };
 
@@ -124,22 +132,52 @@ describe('ChildWindowPopover', () => {
       return { ...utils, setOpen };
     };
 
-    it('measures the natural height, not a height the popover clamped itself to', () => {
+    // The bug this guards against is invisible to a test that fires the
+    // observer by hand: if the observed element is the one carrying the height
+    // cap, expanding content only grows its scroll height, the border box
+    // never changes, and the browser never calls the callback at all. Verified
+    // in a real browser before this assertion existed — four expand/collapse
+    // cycles produced exactly zero callbacks.
+    it('observes an element that is free to grow, not the one it caps', () => {
+      const { setOpen } = openPopover();
+      stubHeight(280);
+      act(() => { setOpen(true); });
+
+      const targets = observers.filter((o) => o.live).flatMap((o) => o.targets);
+      expect(targets.length).toBeGreaterThan(0);
+
+      for (const el of targets) {
+        const style = (el as HTMLElement).style;
+        expect(style.maxHeight).toBe('');
+        expect(style.getPropertyValue('--popover-max-height')).toBe('');
+      }
+
+      // ...and something else is in fact carrying the cap, so the popover is
+      // still constrained to the window.
+      const root = rootOf();
+      expect(root.style.maxHeight).not.toBe('');
+      expect(targets).not.toContain(root);
+    });
+
+    it('sizes the window from the content wrapper, never from the capped port', () => {
       const { setOpen } = openPopover();
       stubHeight(468);
-      // The host must lift its own cap before measuring; otherwise it reads
-      // back whatever it imposed last time and the window can never grow.
-      let capWhileMeasuring: string | null = null;
+      // Give the capped port a deliberately wrong height. If the host reads it
+      // — as it would if the cap and the measurement sat on the same element —
+      // the window comes out at 999 instead of the content's 468.
       const root = rootOf();
-      const stubbed = root.getBoundingClientRect.bind(root);
-      root.getBoundingClientRect = () => {
-        capWhileMeasuring = root.style.getPropertyValue('--popover-max-height');
-        return stubbed();
-      };
+      root.getBoundingClientRect = () =>
+        ({ width: 280, height: 999, top: 0, left: 0, right: 280, bottom: 999 } as DOMRect);
 
       act(() => { setOpen(true); });
-      expect(capWhileMeasuring).toBe('none');
       expect(lastResizeHeight()).toBe(468);
+    });
+
+    it('tells the popover not to cap itself; the port does the clipping', () => {
+      openPopover();
+      const root = rootOf();
+      expect(root.style.getPropertyValue('--popover-max-height')).toBe('none');
+      expect(root.style.overflowY).toBe('auto');
     });
 
     it('resizes the window when the content grows while open', () => {
@@ -168,9 +206,9 @@ describe('ChildWindowPopover', () => {
       const asked = lastResizeHeight() as number;
       expect(asked).toBeLessThanOrEqual(avail);
       expect(asked).toBeGreaterThan(0);
-      // ...and the popover is told the same cap, so it scrolls instead of
-      // being cut off at the window edge.
-      expect(rootOf().style.getPropertyValue('--popover-max-height')).toBe(`${asked}px`);
+      // ...and the scroll port gets the same cap, so the overflow scrolls
+      // instead of being cut off at the window edge.
+      expect(rootOf().style.maxHeight).toBe(`${asked}px`);
     });
 
     it('stops observing once closed', () => {

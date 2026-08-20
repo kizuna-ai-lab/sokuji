@@ -108,6 +108,7 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
 }) => {
   const winRef = useRef<Window | null>(null);
   const [container, setContainer] = useState<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const clonedStylesRef = useRef(new WeakSet<Node>());
   // The latest values without re-running effects that must not churn.
   const onCloseRef = useRef(onClose);
@@ -152,9 +153,19 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     body.style.overflow = 'hidden';
     const root = win.document.createElement('div');
     root.className = 'child-popover-root';
-    // Shrink-wrap so the open-time measurement reads the popover's own
-    // footprint rather than the hidden window's.
+    // Shrink-wrap so the measurement reads the popover's own footprint rather
+    // than the hidden window's.
     root.style.width = 'fit-content';
+    // This root is the scroll port, and the ONLY thing that clips: it carries
+    // the height cap, and the popover is told not to cap itself.
+    //
+    // Not interchangeable with capping the popover. A ResizeObserver reports
+    // border-box changes, so watching an element that caps itself sees
+    // nothing when its content grows — only its scroll height moves — and the
+    // callback never runs. Measured in a browser: four expand/collapse cycles
+    // of a self-capped popover produced zero callbacks.
+    root.style.overflowY = 'auto';
+    root.style.setProperty('--popover-max-height', 'none');
     body.appendChild(root);
     setContainer(root);
 
@@ -225,14 +236,13 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
   // can reuse it without re-running show/focus.
   const sizeAndPlace = useCallback(() => {
     const win = winRef.current;
-    if (!win || win.closed || !container || !anchorEl) return;
+    const content = contentRef.current;
+    if (!win || win.closed || !container || !anchorEl || !content) return;
 
-    // Lift our own cap before measuring. The popover is capped at whatever we
-    // imposed last time, so measuring through it reads back our own previous
-    // answer: the window could then never grow, and with a viewport-relative
-    // cap it would ratchet smaller on every open.
-    container.style.setProperty('--popover-max-height', 'none');
-    const rect = container.getBoundingClientRect();
+    // Measure the content wrapper, which nothing caps, rather than the scroll
+    // port: reading the port would return the height we imposed last time and
+    // the window could never grow.
+    const rect = content.getBoundingClientRect();
     const w = Math.ceil(rect.width) || width;
     const natural = Math.ceil(rect.height) || height;
 
@@ -249,7 +259,11 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     const h = availH > 0
       ? Math.min(natural, Math.max(1, availH - 2 * EDGE_PAD))
       : natural;
-    container.style.setProperty('--popover-max-height', `${h}px`);
+    container.style.maxHeight = `${h}px`;
+    // When the screen forced a clamp the port grows a scrollbar, which eats
+    // into its own width. Widen the window by exactly that much so the
+    // popover is not shaved instead.
+    const scrollbar = Math.max(0, container.offsetWidth - container.clientWidth);
 
     const anchor = anchorEl.getBoundingClientRect();
     const anchorTop = window.screenY + anchor.top;
@@ -260,8 +274,8 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     // slightly shifted popover.
     const above = anchorTop - h - EDGE_PAD >= screenTop;
     const left = Math.min(
-      Math.max(screenLeft, Math.round(window.screenX + anchor.right - w)),
-      screenLeft + Math.max(0, window.screen.availWidth - w),
+      Math.max(screenLeft, Math.round(window.screenX + anchor.right - (w + scrollbar))),
+      screenLeft + Math.max(0, window.screen.availWidth - (w + scrollbar)),
     );
     const rawTop = above
       ? Math.round(anchorTop - h - EDGE_PAD)
@@ -271,7 +285,7 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
       screenTop + Math.max(0, window.screen.availHeight - h),
     );
 
-    win.resizeTo(w, h);
+    win.resizeTo(w + scrollbar, h);
     win.moveTo(left, top);
   }, [anchorEl, container, width, height]);
 
@@ -322,13 +336,22 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
   // would fight the user mid-drag.
   useEffect(() => {
     if (!open || !container || typeof ResizeObserver === 'undefined') return;
+    const content = contentRef.current;
+    if (!content) return;
     const ro = new ResizeObserver(() => sizeAndPlace());
-    ro.observe(container);
+    ro.observe(content);
     return () => ro.disconnect();
   }, [open, container, sizeAndPlace]);
 
   if (!container) return null;
-  return createPortal(children, container);
+  // The wrapper exists so there is an element the cap never touches: it is
+  // what gets measured and observed.
+  return createPortal(
+    <div ref={contentRef} className="child-popover-content" style={{ width: 'fit-content' }}>
+      {children}
+    </div>,
+    container,
+  );
 };
 
 /**
