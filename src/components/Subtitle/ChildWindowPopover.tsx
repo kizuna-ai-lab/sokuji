@@ -108,6 +108,9 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
 }) => {
   const winRef = useRef<Window | null>(null);
   const [container, setContainer] = useState<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  // Side of the anchor this open landed on; null until the placing open.
+  const placementRef = useRef<'above' | 'below' | null>(null);
   const clonedStylesRef = useRef(new WeakSet<Node>());
   // The latest values without re-running effects that must not churn.
   const onCloseRef = useRef(onClose);
@@ -152,9 +155,19 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     body.style.overflow = 'hidden';
     const root = win.document.createElement('div');
     root.className = 'child-popover-root';
-    // Shrink-wrap so the open-time measurement reads the popover's own
-    // footprint rather than the hidden window's.
+    // Shrink-wrap so the measurement reads the popover's own footprint rather
+    // than the hidden window's.
     root.style.width = 'fit-content';
+    // This root is the scroll port, and the ONLY thing that clips: it carries
+    // the height cap, and the popover is told not to cap itself.
+    //
+    // Not interchangeable with capping the popover. A ResizeObserver reports
+    // border-box changes, so watching an element that caps itself sees
+    // nothing when its content grows — only its scroll height moves — and the
+    // callback never runs. Measured in a browser: four expand/collapse cycles
+    // of a self-capped popover produced zero callbacks.
+    root.style.overflowY = 'auto';
+    root.style.setProperty('--popover-max-height', 'none');
     body.appendChild(root);
     setContainer(root);
 
@@ -220,9 +233,95 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     };
   }, [createWindow]);
 
-  // Open: measure the already-rendered content, size and place the window
-  // while it is still hidden, then have the main process show it (show also
-  // focuses, and focus is what makes blur-dismiss work). Close: hide it.
+  // Fit the window to whatever the content currently measures, and place it
+  // against the anchor. Split out of the open path so later content changes
+  // can reuse it without re-running show/focus.
+  const sizeAndPlace = useCallback(() => {
+    const win = winRef.current;
+    const content = contentRef.current;
+    if (!win || win.closed || !container || !anchorEl || !content) return;
+
+    // Measure the content wrapper, which nothing caps, rather than the scroll
+    // port: reading the port would return the height we imposed last time and
+    // the window could never grow.
+    const rect = content.getBoundingClientRect();
+    const w = Math.ceil(rect.width) || width;
+    const natural = Math.ceil(rect.height) || height;
+
+    const screenTop = (window.screen as { availTop?: number }).availTop ?? 0;
+    const screenLeft = (window.screen as { availLeft?: number }).availLeft ?? 0;
+
+    // Never ask for more than the screen can show. Handing the same number to
+    // the popover as a max-height is what makes the overflow scrollable
+    // instead of cut off at the window edge.
+    //
+    // A non-positive availHeight means "unknown", not "no room" — capping to
+    // it would collapse the window to nothing.
+    const availH = window.screen.availHeight;
+    const h = availH > 0
+      ? Math.min(natural, Math.max(1, availH - 2 * EDGE_PAD))
+      : natural;
+    container.style.maxHeight = `${h}px`;
+    // When the screen forced a clamp the port grows a scrollbar, which eats
+    // into its own width. Widen the window by exactly that much so the
+    // popover is not shaved instead.
+    const scrollbar = Math.max(0, container.offsetWidth - container.clientWidth);
+
+    const anchor = anchorEl.getBoundingClientRect();
+    const anchorTop = window.screenY + anchor.top;
+    const anchorBottom = window.screenY + anchor.bottom;
+    // Above the anchor, right edges aligned; below when the screen has no
+    // room above. Clamped on ALL edges — a partially off-screen request gets
+    // re-placed by mutter to an arbitrary position, which is worse than a
+    // slightly shifted popover.
+    // Below the anchor by default, above only when the screen has no room
+    // below. Preferring below matches what a control hanging off a toolbar
+    // button is expected to do, and it costs nothing where above used to be
+    // picked: a bar parked at the bottom of the screen has no room below, so
+    // it still opens upward.
+    //
+    // Which side fits depends on the height, and the height is no longer fixed
+    // for the popover's lifetime — expanding a color picker adds ~164px.
+    // Re-deciding on every resize threw the window across the bar
+    // mid-interaction, so the side is chosen on the open that placed it and
+    // held until it closes. Outgrowing that side pins the window to the screen
+    // edge instead, which the height cap already keeps fully visible.
+    if (placementRef.current === null) {
+      // availHeight of 0 means "unknown"; default to below rather than
+      // concluding there is no room anywhere.
+      const roomBelow = availH > 0
+        ? screenTop + availH - (anchorBottom + EDGE_PAD)
+        : Number.POSITIVE_INFINITY;
+      placementRef.current = roomBelow >= h ? 'below' : 'above';
+    }
+    const above = placementRef.current === 'above';
+
+    // A screen metric of 0 means "unknown" here, exactly as it does for the
+    // height above — never "the screen is 0px tall". Reading it literally
+    // collapses the upper bound onto the screen origin, which wins every
+    // min() and drags the window into the corner with the anchor ignored.
+    const availW = window.screen.availWidth;
+    const clamp = (raw: number, origin: number, avail: number, size: number) =>
+      avail > 0
+        ? Math.min(Math.max(origin, raw), origin + Math.max(0, avail - size))
+        : Math.max(origin, raw);
+
+    const left = clamp(
+      Math.round(window.screenX + anchor.right - (w + scrollbar)),
+      screenLeft, availW, w + scrollbar,
+    );
+    const rawTop = above
+      ? Math.round(anchorTop - h - EDGE_PAD)
+      : Math.round(anchorBottom + EDGE_PAD);
+    const top = clamp(rawTop, screenTop, availH, h);
+
+    win.resizeTo(w + scrollbar, h);
+    win.moveTo(left, top);
+  }, [anchorEl, container, width, height]);
+
+  // Open: size and place the window while it is still hidden, then have the
+  // main process show it (show also focuses, and focus is what makes
+  // blur-dismiss work). Close: hide it.
   useEffect(() => {
     const win = winRef.current;
     if (open && anchorEl && (!win || win.closed)) {
@@ -234,6 +333,7 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     if (!win || win.closed || !container) return;
 
     if (!open || !anchorEl) {
+      placementRef.current = null;
       setNativeVisibility(nameRef.current, false);
       return;
     }
@@ -241,34 +341,8 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     // Styles that appeared since creation (dev HMR, late chunks).
     syncStyles(document, win.document, clonedStylesRef.current);
 
-    const rect = container.getBoundingClientRect();
-    const w = Math.ceil(rect.width) || width;
-    const h = Math.ceil(rect.height) || height;
-
-    const anchor = anchorEl.getBoundingClientRect();
-    const screenTop = (window.screen as { availTop?: number }).availTop ?? 0;
-    const screenLeft = (window.screen as { availLeft?: number }).availLeft ?? 0;
-    const anchorTop = window.screenY + anchor.top;
-    const anchorBottom = window.screenY + anchor.bottom;
-    // Above the anchor, right edges aligned; below when the screen has no
-    // room above. Clamped on ALL edges — a partially off-screen request gets
-    // re-placed by mutter to an arbitrary position, which is worse than a
-    // slightly shifted popover.
-    const above = anchorTop - h - EDGE_PAD >= screenTop;
-    const left = Math.min(
-      Math.max(screenLeft, Math.round(window.screenX + anchor.right - w)),
-      screenLeft + Math.max(0, window.screen.availWidth - w),
-    );
-    const rawTop = above
-      ? Math.round(anchorTop - h - EDGE_PAD)
-      : Math.round(anchorBottom + EDGE_PAD);
-    const top = Math.min(
-      Math.max(screenTop, rawTop),
-      screenTop + Math.max(0, window.screen.availHeight - h),
-    );
-
-    win.resizeTo(w, h);
-    win.moveTo(left, top);
+    placementRef.current = null;
+    sizeAndPlace();
     setNativeVisibility(nameRef.current, true);
     win.focus();
 
@@ -283,12 +357,33 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
       }
     }, 300);
     return () => clearInterval(movePoll);
-  }, [open, anchorEl, container, width, height, createWindow]);
+  }, [open, anchorEl, container, createWindow, sizeAndPlace]);
 
-  // Children render into the hidden window permanently — store-driven updates
-  // keep flowing while it is invisible, so opening has nothing to build.
+  // Hosted content is not a fixed size: DisplaySettingsPopover grows by ~190px
+  // when a colour picker is expanded. Re-measure and re-place on every content
+  // resize, or the window keeps the height it happened to have at open and the
+  // rest of the popover sits behind an internal scrollbar.
+  //
+  // Visibility and focus stay OUT of this path — refocusing on every resize
+  // would fight the user mid-drag.
+  useEffect(() => {
+    if (!open || !container || typeof ResizeObserver === 'undefined') return;
+    const content = contentRef.current;
+    if (!content) return;
+    const ro = new ResizeObserver(() => sizeAndPlace());
+    ro.observe(content);
+    return () => ro.disconnect();
+  }, [open, container, sizeAndPlace]);
+
   if (!container) return null;
-  return createPortal(children, container);
+  // The wrapper exists so there is an element the cap never touches: it is
+  // what gets measured and observed.
+  return createPortal(
+    <div ref={contentRef} className="child-popover-content" style={{ width: 'fit-content' }}>
+      {children}
+    </div>,
+    container,
+  );
 };
 
 /**

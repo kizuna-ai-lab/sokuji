@@ -4,13 +4,33 @@
   border: 1px solid #3a3a3a;
   border-radius: 8px;
   padding: 16px;
-  width: 280px;
+
+  // 314, not 280, because box-sizing below is now border-box: this rule read
+  // as "280 of content" under the browser default and the popover has always
+  // rendered 280 + 32 padding + 2 border wide. Keeping the rendered width
+  // identical matters — at 280 total the swatch rows rewrap and strand a
+  // single chip on a line of its own.
+  width: 314px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 
-  // The subtitle overlay window is short by default (~200px), and expanding a
-  // color picker adds ~180px. Scroll rather than let the surface clip the
-  // controls off the bottom where they can't be reached at all.
-  max-height: calc(100vh - 16px);
+  // Expanding a color picker adds ~190px, which can outgrow the surface this
+  // floats over. Scroll rather than let it clip the controls off the bottom
+  // where they cannot be reached at all.
+  //
+  // box-sizing is explicit because the cap depends on it: nothing in the
+  // subtitle overlay sets a global reset, and under the browser default
+  // (content-box) a cap of N lets the border box reach N+34. That silently
+  // changes how much is visible, and a `calc(100vh - N)` form would ratchet
+  // the ChildWindowPopover window smaller on every open (measured: 16px per
+  // open, unbounded) the moment a reset ever landed.
+  //
+  // --popover-max-height lets a host that owns the surface take the clipping
+  // over. ChildWindowPopover sets it to `none` and clips at its own scroll
+  // port instead: a ResizeObserver only reports border-box changes, so if this
+  // element capped itself the host would never learn the content had grown.
+  // Hosts that don't set it get the viewport.
+  box-sizing: border-box;
+  max-height: var(--popover-max-height, 100vh);
   overflow-y: auto;
 
   .field {

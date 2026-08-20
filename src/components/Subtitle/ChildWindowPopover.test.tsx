@@ -35,8 +35,26 @@ describe('ChildWindowPopover', () => {
   let openSpy: ReturnType<typeof vi.spyOn>;
   let anchor: HTMLButtonElement;
   let invoke: ReturnType<typeof vi.fn>;
+  // jsdom has no ResizeObserver. Capture the callbacks so a test can play the
+  // part of the browser noticing the hosted content changed height.
+  let observers: Array<{ cb: () => void; live: boolean; targets: Element[] }>;
+  // Only observers that have not been disconnected, mirroring the browser.
+  const fireResizeObservers = () => {
+    observers.filter((o) => o.live).forEach((o) => o.cb());
+  };
 
   beforeEach(() => {
+    observers = [];
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = class {
+      private entry: { cb: () => void; live: boolean; targets: Element[] };
+      constructor(cb: () => void) {
+        this.entry = { cb, live: true, targets: [] };
+        observers.push(this.entry);
+      }
+      observe(el: Element) { this.entry.targets.push(el); }
+      unobserve() {}
+      disconnect() { this.entry.live = false; }
+    };
     child = makeFakeChild();
     openSpy = vi.spyOn(window, 'open').mockReturnValue(child as unknown as Window);
     invoke = vi.fn(async () => ({ ok: true }));
@@ -61,6 +79,237 @@ describe('ChildWindowPopover', () => {
     );
     return { ...utils, onClose };
   };
+
+  // The hosted popover is not a fixed-size thing: DisplaySettingsPopover grows
+  // by ~190px when a color picker is expanded. A window measured once at open
+  // would leave that content behind an internal scrollbar forever.
+  describe('following the hosted content height', () => {
+    // One test overrides screen.availHeight; drop the own property again so
+    // the prototype getter is back for everyone else.
+    afterEach(() => {
+      delete (window.screen as unknown as Record<string, unknown>).availHeight;
+    });
+
+    // createWindow appends a fresh root on every (re)creation, so always take
+    // the newest one rather than the first.
+    const rootOf = () => {
+      const all = child.document.querySelectorAll('.child-popover-root');
+      return all[all.length - 1] as HTMLElement;
+    };
+
+    // Array.prototype.at is outside the project's ES2020 lib target.
+    const lastResizeHeight = () => {
+      const calls = child.resizeTo.mock.calls;
+      return calls.length ? (calls[calls.length - 1][1] as number) : undefined;
+    };
+
+    const lastMoveTop = () => {
+      const calls = child.moveTo.mock.calls;
+      return calls.length ? (calls[calls.length - 1][1] as number) : undefined;
+    };
+
+    const lastMoveLeft = () => {
+      const calls = child.moveTo.mock.calls;
+      return calls.length ? (calls[calls.length - 1][0] as number) : undefined;
+    };
+
+    const contentOf = () => {
+      const all = child.document.querySelectorAll('.child-popover-content');
+      return all[all.length - 1] as HTMLElement;
+    };
+
+    // Height is taken from the content wrapper, so that is what a test must
+    // stub. Stubbing the root would prove nothing: the root is the capped
+    // element and is deliberately not what drives the size.
+    const stubHeight = (h: number) => {
+      const content = contentOf();
+      content.getBoundingClientRect = () =>
+        ({ width: 280, height: h, top: 0, left: 0, right: 280, bottom: h } as DOMRect);
+    };
+
+    const openPopover = (onClose = vi.fn()) => {
+      const utils = render(
+        <ChildWindowPopover open={false} onClose={onClose} anchorEl={anchor} width={320} height={400}>
+          <div className="probe-content">hello</div>
+        </ChildWindowPopover>,
+      );
+      const setOpen = (open: boolean) =>
+        utils.rerender(
+          <ChildWindowPopover open={open} onClose={onClose} anchorEl={anchor} width={320} height={400}>
+            <div className="probe-content">hello</div>
+          </ChildWindowPopover>,
+        );
+      return { ...utils, setOpen };
+    };
+
+    // The bug this guards against is invisible to a test that fires the
+    // observer by hand: if the observed element is the one carrying the height
+    // cap, expanding content only grows its scroll height, the border box
+    // never changes, and the browser never calls the callback at all. Verified
+    // in a real browser before this assertion existed — four expand/collapse
+    // cycles produced exactly zero callbacks.
+    it('observes an element that is free to grow, not the one it caps', () => {
+      const { setOpen } = openPopover();
+      stubHeight(280);
+      act(() => { setOpen(true); });
+
+      const targets = observers.filter((o) => o.live).flatMap((o) => o.targets);
+      expect(targets.length).toBeGreaterThan(0);
+
+      for (const el of targets) {
+        const style = (el as HTMLElement).style;
+        expect(style.maxHeight).toBe('');
+        expect(style.getPropertyValue('--popover-max-height')).toBe('');
+      }
+
+      // ...and something else is in fact carrying the cap, so the popover is
+      // still constrained to the window.
+      const root = rootOf();
+      expect(root.style.maxHeight).not.toBe('');
+      expect(targets).not.toContain(root);
+    });
+
+    it('sizes the window from the content wrapper, never from the capped port', () => {
+      const { setOpen } = openPopover();
+      stubHeight(468);
+      // Give the capped port a deliberately wrong height. If the host reads it
+      // — as it would if the cap and the measurement sat on the same element —
+      // the window comes out at 999 instead of the content's 468.
+      const root = rootOf();
+      root.getBoundingClientRect = () =>
+        ({ width: 280, height: 999, top: 0, left: 0, right: 280, bottom: 999 } as DOMRect);
+
+      act(() => { setOpen(true); });
+      expect(lastResizeHeight()).toBe(468);
+    });
+
+    it('tells the popover not to cap itself; the port does the clipping', () => {
+      openPopover();
+      const root = rootOf();
+      expect(root.style.getPropertyValue('--popover-max-height')).toBe('none');
+      expect(root.style.overflowY).toBe('auto');
+    });
+
+    it('resizes the window when the content grows while open', () => {
+      const { setOpen } = openPopover();
+      stubHeight(280);
+      act(() => { setOpen(true); });
+      expect(lastResizeHeight()).toBe(280);
+
+      // A color picker expands.
+      stubHeight(468);
+      act(() => { fireResizeObservers(); });
+      expect(lastResizeHeight()).toBe(468);
+    });
+
+    it('caps the window at the usable screen height and lets the popover scroll', () => {
+      // jsdom reports 0 for every screen metric; give it a real one, since
+      // this is the assertion that depends on it.
+      const avail = 600;
+      Object.defineProperty(window.screen, 'availHeight', {
+        value: avail, configurable: true,
+      });
+      const { setOpen } = openPopover();
+      stubHeight(avail + 500);
+      act(() => { setOpen(true); });
+
+      const asked = lastResizeHeight() as number;
+      expect(asked).toBeLessThanOrEqual(avail);
+      expect(asked).toBeGreaterThan(0);
+      // ...and the scroll port gets the same cap, so the overflow scrolls
+      // instead of being cut off at the window edge.
+      expect(rootOf().style.maxHeight).toBe(`${asked}px`);
+    });
+
+    // Placement geometry these four share: a real screen is required, or the
+    // clamps collapse both branches onto 0 and no assertion can tell them
+    // apart. anchor = top 700 / bottom 736, screenTop 0, availHeight 1000, so
+    // the room below the anchor is 1000 - (736 + 8) = 256px.
+    const realScreen = () =>
+      Object.defineProperty(window.screen, 'availHeight', {
+        value: 1000, configurable: true,
+      });
+    const BELOW_TOP = 736 + 8;          // hangs off the anchor's bottom edge
+    const aboveTopFor = (h: number) => 700 - h - 8;
+
+    it('opens below the anchor when the screen has room there', () => {
+      realScreen();
+      const { setOpen } = openPopover();
+      stubHeight(200);
+      act(() => { setOpen(true); });
+      expect(lastMoveTop()).toBe(BELOW_TOP);
+    });
+
+    it('falls back to above when the content does not fit below', () => {
+      realScreen();
+      const { setOpen } = openPopover();
+      stubHeight(280); // > 256px of room below
+      act(() => { setOpen(true); });
+      expect(lastMoveTop()).toBe(aboveTopFor(280));
+    });
+
+    // Which side fits depends on the height, so recomputing it on every resize
+    // threw the window across the bar the moment a color picker expanded. The
+    // side is chosen once per open and held.
+    it('does not flip to the other side of the anchor when the content grows', () => {
+      realScreen();
+      const { setOpen } = openPopover();
+      stubHeight(200);
+      act(() => { setOpen(true); });
+      expect(lastMoveTop()).toBe(BELOW_TOP);
+
+      // 800 no longer fits below. Holding the side pins it to the bottom of
+      // the screen; flipping would lift it to the above-anchor position.
+      stubHeight(800);
+      act(() => { fireResizeObservers(); });
+      expect(lastMoveTop()).toBe(200);          // 1000 - 800, screen-clamped
+      expect(lastMoveTop()).not.toBe(aboveTopFor(800));
+    });
+
+    // Screen metrics of 0 mean "unknown", and the height already treats them
+    // that way. The position clamps must agree: reading 0 as "the screen is
+    // 0px tall/wide" turns their upper bound into the screen origin, which
+    // wins every min() and drags the window into the corner, anchor ignored.
+    it('leaves the position uncapped when the screen metrics are unknown', () => {
+      // jsdom reports 0 for availHeight/availWidth; deliberately not stubbed.
+      expect(window.screen.availHeight).toBe(0);
+      const { setOpen } = openPopover();
+      stubHeight(200);
+      act(() => { setOpen(true); });
+
+      expect(lastMoveTop()).toBe(BELOW_TOP);
+      expect(lastMoveTop()).not.toBe(0);
+      // anchor.right 1200, measured width 280 -> right edges align at 920.
+      expect(lastMoveLeft()).toBe(1200 - 280);
+      expect(lastMoveLeft()).not.toBe(0);
+    });
+
+    it('re-decides the side on the next open', () => {
+      realScreen();
+      const { setOpen } = openPopover();
+      stubHeight(200);
+      act(() => { setOpen(true); });
+      expect(lastMoveTop()).toBe(BELOW_TOP);
+
+      act(() => { setOpen(false); });
+      // Too tall for the room below: this open must land above the anchor.
+      stubHeight(280);
+      act(() => { setOpen(true); });
+      expect(lastMoveTop()).toBe(aboveTopFor(280));
+    });
+
+    it('stops observing once closed', () => {
+      const { setOpen } = openPopover();
+      stubHeight(280);
+      act(() => { setOpen(true); });
+      act(() => { setOpen(false); });
+
+      child.resizeTo.mockClear();
+      stubHeight(468);
+      act(() => { fireResizeObservers(); });
+      expect(child.resizeTo).not.toHaveBeenCalled();
+    });
+  });
 
   it('creates the window on mount, named for the main-process hidden override', () => {
     // Created while CLOSED: the whole point of pre-creation is that the
