@@ -1344,6 +1344,17 @@
       gap: 12px;
     }
 
+    // The closed control's content is <selectedcontent> — a CLONE of the
+    // chosen option, not an option — so the option flex rule above does not
+    // reach it. Without this the icon stacks on its own line above the name
+    // instead of sitting beside it the way the old .provider-info row did.
+    selectedcontent {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
     &::picker(select) {
       // Provider descriptions run long; let rows breathe a little more.
       max-height: 380px;
