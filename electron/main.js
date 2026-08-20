@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPrefere
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 const { setupSubtitleHandlers } = require('./subtitle-window.js');
+const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 
 // Handle Squirrel events for Windows
@@ -342,6 +343,7 @@ function createWindow() {
   });
 
   setupSubtitleHandlers(mainWindow);
+  setupPopoverWindowHandlers(mainWindow);
 
   // Set custom User Agent for the window
   mainWindow.webContents.setUserAgent(customUserAgent);

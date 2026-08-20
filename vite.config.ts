@@ -151,6 +151,7 @@ export default defineConfig(({ command, mode }) => {
             'vb-cable-installer': 'electron/vb-cable-installer.js',
             'squirrel-events': 'electron/squirrel-events.js',
             'subtitle-window': 'electron/subtitle-window.js',
+            'popover-windows': 'electron/popover-windows.js',
             'update-manager': 'electron/update-manager.js'
           },
           onstart(args) {

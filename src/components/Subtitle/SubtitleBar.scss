@@ -167,3 +167,18 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+// Floating wrapper for the settings popover on the EXTENSION OVERLAY surface
+// (Electron hosts it in a child window instead — see ChildWindowPopover).
+// floating-ui's size() middleware writes max-height inline; the popover
+// inside has to scroll rather than overflow it, or the clamp would just cut
+// the content off.
+.subtitle-bar__settings-popover {
+  display: flex;
+  min-height: 0;
+
+  .display-settings-popover {
+    overflow-y: auto;
+    min-height: 0;
+  }
+}

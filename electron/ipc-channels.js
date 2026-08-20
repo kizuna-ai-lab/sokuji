@@ -86,6 +86,8 @@ export const INVOKE_CHANNELS = [
   'subtitle:set-locked',
   'subtitle:set-fullscreen',
   'subtitle:get-screen-bounds',
+  // Popover child-window visibility (see popover-windows.js)
+  'popover-window:set-visible',
   // Externally-registered (electron-audio-loopback)
   ...EXTERNAL_INVOKE_CHANNELS,
 ];

@@ -58,3 +58,10 @@
     outline: none;
   }
 }
+
+// The floating host's size() clamp writes max-height inline; scroll inside it
+// rather than clipping. Harmless for the child-window host, whose window is
+// sized to the content.
+.export-menu {
+  overflow-y: auto;
+}
