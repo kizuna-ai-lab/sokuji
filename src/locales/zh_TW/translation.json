@@ -132,7 +132,7 @@
     "temperatureTooltip": "翻譯創意度（0.0-1.0）。較低=更字面的逐詞翻譯。較高=更自然的對話風格。翻譯用0.7-0.9最好。",
     "maxTokensTooltip": "每次翻譯的最大長度。Token就像單詞片段-100個token≈75個單詞。對話用2048-4096好。'inf'=無限制。",
     "unlimited": "無限制",
-    "transcriptModelTooltip": "辨識你自己說話內容的語音模型。它只影響每則翻譯旁顯示的原文，翻譯本身直接由音訊產生。\ngpt-live-transcribe：最準確，邊說邊出字，也最貴。\ngpt-transcribe：目前世代，每段話說完後轉錄。\ngpt-4o-mini-transcribe：最便宜，預設值。\ngpt-4o-transcribe / whisper-1：較舊的模型。",
+    "transcriptModelTooltip": "辨識您自己說話內容的語音模型。它只影響每則翻譯旁顯示的原文，翻譯本身直接由音訊產生。\ngpt-live-transcribe：最準確，邊說邊出字，也最貴。\ngpt-transcribe：目前世代，每段話說完後轉錄。\ngpt-4o-mini-transcribe：最便宜，預設值。\ngpt-4o-transcribe / whisper-1：較舊的模型。",
     "transcriptKeywords": "轉錄關鍵字",
     "transcriptKeywordsTooltip": "希望轉錄模型事先知道的人名、術語與產品名稱，以逗號分隔。這些只是提示——只有真的說出口，該詞才會出現在轉錄結果中。gpt-live-transcribe 與 gpt-transcribe 支援此功能。",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
@@ -268,7 +268,7 @@
     "sonioxVoicePreviewQuotaError": "預覽失敗 — 已達到 Soniox 速率限制或配額",
     "sonioxVoicePreviewTimeout": "預覽逾時 — 請重試",
     "sonioxRegion": "區域",
-    "sonioxRegionTooltip": "Soniox 每個區域是獨立部署，各自有獨立的 API 金鑰。你的音訊將在所選區域內處理和儲存。下次工作階段開始生效。"
+    "sonioxRegionTooltip": "Soniox 每個區域是獨立部署，各自有獨立的 API 金鑰。您的音訊將在所選區域內處理和儲存。下次工作階段開始生效。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通過您的帳戶自動認證",
@@ -416,12 +416,12 @@
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 種語言 + 中英雙向 · 保留你的聲音",
+      "description": "8 種語言 + 中英雙向 · 保留您的聲音",
       "vendor": "豆包"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 種語言，3,600 個語言對 · 可複製你自己的聲音",
+      "description": "60 種語言，3,600 個語言對 · 可複製您自己的聲音",
       "vendor": "Soniox"
     },
     "openai": {

@@ -125,14 +125,14 @@
     "thresholdTooltip": "语音检测灵敏度（0.0-1.0）。较低的值检测更安静的声音，但可能意外触发。较高的值需要更大声说话。默认0.5适合大多数人。",
     "prefixPaddingTooltip": "语音开始前保留的静音时间（秒）。有助于捕捉句子开头。太高会延迟响应。试试0.3-0.5。",
     "silenceDurationTooltip": "停止说话后等待时间（秒）。短=快速响应但可能打断您。长=耐心等待但较慢。试试0.5。",
-    "silenceDurationTranslateTooltip": "Translate 没有服务端轮次检测，因此这些滑块只控制 UI 如何切分消息。\n源端停顿 = 你停止说话后，多长时间开启一条新的源语言消息。\n译文停顿 = 同上，但用于译文输出（可能因 TTS 渲染比源端持续更久）。",
+    "silenceDurationTranslateTooltip": "Translate 没有服务端轮次检测，因此这些滑块只控制 UI 如何切分消息。\n源端停顿 = 您停止说话后，多长时间开启一条新的源语言消息。\n译文停顿 = 同上，但用于译文输出（可能因 TTS 渲染比源端持续更久）。",
     "userSilenceDuration": "源端停顿",
     "assistantSilenceDuration": "译文停顿",
     "semanticEagernessTooltip": "AI决定您说完的速度（仅语义模式）。\n自动：AI决定。\n低：非常耐心。\n中：平衡。\n高：快速响应。",
     "temperatureTooltip": "翻译创意度（0.0-1.0）。较低=更字面的逐词翻译。较高=更自然的对话风格。翻译用0.7-0.9最好。",
     "maxTokensTooltip": "每次翻译的最大长度。Token就像单词片段-100个token≈75个单词。对话用2048-4096好。'inf'=无限制。",
     "unlimited": "无限制",
-    "transcriptModelTooltip": "识别你自己说话内容的语音模型。它只影响每条翻译旁边显示的原文，翻译本身直接由音频生成。\ngpt-live-transcribe：最准确，边说边出字，也最贵。\ngpt-transcribe：当前一代，每段话说完后转录。\ngpt-4o-mini-transcribe：最便宜，默认值。\ngpt-4o-transcribe / whisper-1：更早的模型。",
+    "transcriptModelTooltip": "识别您自己说话内容的语音模型。它只影响每条翻译旁边显示的原文，翻译本身直接由音频生成。\ngpt-live-transcribe：最准确，边说边出字，也最贵。\ngpt-transcribe：当前一代，每段话说完后转录。\ngpt-4o-mini-transcribe：最便宜，默认值。\ngpt-4o-transcribe / whisper-1：更早的模型。",
     "transcriptKeywords": "转录关键词",
     "transcriptKeywordsTooltip": "希望转录模型预先知道的人名、术语和产品名，用逗号分隔。这些只是提示——只有真的说出来，词才会出现在转录结果里。gpt-live-transcribe 和 gpt-transcribe 支持此功能。",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
@@ -268,7 +268,7 @@
     "sonioxVoicePreviewQuotaError": "预览失败 — 已达到 Soniox 速率限制或配额",
     "sonioxVoicePreviewTimeout": "预览超时 — 请重试",
     "sonioxRegion": "区域",
-    "sonioxRegionTooltip": "Soniox 每个区域是独立部署，各自有独立的 API 密钥。你的音频将在所选区域内处理和存储。下次会话开始生效。"
+    "sonioxRegionTooltip": "Soniox 每个区域是独立部署，各自有独立的 API 密钥。您的音频将在所选区域内处理和存储。下次会话开始生效。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",
@@ -416,12 +416,12 @@
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 种语言 + 中英双向 · 保留你的声音",
+      "description": "8 种语言 + 中英双向 · 保留您的声音",
       "vendor": "豆包"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 种语言，3,600 个语言对 · 可克隆你自己的声音",
+      "description": "60 种语言，3,600 个语言对 · 可克隆您自己的声音",
       "vendor": "Soniox"
     },
     "openai": {
@@ -809,7 +809,7 @@
     "importTitle": "导入模型",
     "importStep1": "获取文件",
     "importStep1Hint": "在任意可用的机器或网络上下载这些文件 —— curl/wget 和 Hugging Face CLI 通常能在应用内下载被屏蔽时成功。",
-    "importStep2": "添加你的文件",
+    "importStep2": "添加您的文件",
     "importStep3": "文件",
     "importRepo": "仓库",
     "importCopy": "复制",
