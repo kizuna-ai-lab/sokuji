@@ -202,13 +202,13 @@
     "translateInfoBanner": "Este modelo permanece en silencio cuando el hablante usa el mismo idioma que el destino. El habla mixta puede tener vacíos.",
     "translateModelAvailable": "Clave API validada. gpt-realtime-translate está disponible.",
     "translateModelNotAvailable": "La clave API funciona, pero gpt-realtime-translate no es accesible con esta clave.",
-    "translateSourceParticipantWarning": "La traducción del audio del otro puede no funcionar — el idioma de origen seleccionado no está en los 13 idiomas de destino admitidos.",
+    "translateSourceParticipantWarning": "La traducción del audio del otro puede no funcionar — «Mi idioma» no está entre los 13 idiomas de destino que admite este proveedor.",
     "participantSectionHeader": "Audio del otro",
     "participantSectionDescriptionElectron": "Traduce el audio de cualquier aplicación que se reproduzca en este sistema.",
     "participantSectionDescriptionExtension": "Traduce el audio de la pestaña activa del navegador. El audio original se reproduce por la salida predeterminada de tu sistema.",
     "edgeTtsNoVoicesForLanguage": "No hay voces disponibles para este idioma",
     "edgeTtsVoiceLoadError": "Error al cargar las voces — consulta LogsPanel",
-    "localNativeAsrIncompatible": "Selecciona un modelo de reconocimiento de voz para el idioma de origen",
+    "localNativeAsrIncompatible": "Selecciona un modelo de reconocimiento de voz para «Mi idioma»",
     "localNativeEngineRequired": "Descarga el motor de inferencia en la configuración del proveedor",
     "localNativeEngineUpdateRequired": "El motor de inferencia necesita una actualización — abre la configuración del proveedor para actualizarlo",
     "localNativeModelsRequired": "Descarga los modelos nativos en la configuración",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Sesión compartida en el modo Ambos",
     "sonioxSharedSessionTooltip": "El modo Ambos puede usar una sola sesión de Soniox compartida o una sesión independiente por dirección.\n\nHabilitado: una sola sesión traduce ambos lados con separación automática de voces — menor costo y latencia.\n\nDeshabilitado: una sesión independiente por dirección — más fiable cuando ambos hablan a la vez, pero con el doble de costo aproximadamente.\n\nSolo afecta al modo Ambos.",
     "sonioxSharedSessionManagedCost": "Kizuna AI admite ambas opciones. Cuando está deshabilitado, se ejecutan dos sesiones a la vez: alrededor del doble de coste por minuto, así que tu tiempo de sesión se agota en aproximadamente la mitad y hace falta más saldo para empezar.",
-    "sonioxAutoParticipantWarning": "Elige un idioma de origen específico: con la detección automática no se puede traducir la voz del otro a tu idioma.",
+    "sonioxAutoParticipantWarning": "Fija «Mi idioma» en un idioma concreto: con la detección automática no se puede traducir la voz del otro a ese idioma.",
     "sonioxVocabulary": "Vocabulario personalizado",
     "sonioxVocabularyTooltip": "Inclina el reconocimiento hacia nombres y términos importantes, y orienta cómo se traducen términos específicos. Se aplica a partir de la próxima sesión.",
     "sonioxVocabularyTerms": "Términos",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Idioma de la Interfaz",
     "interfaceLanguageDesc": "Esto cambia el idioma de los menús y botones de Sokuji. NO afecta los idiomas entre los que puedes traducir.",
     "translationLanguages": "Idiomas de Traducción",
-    "translationLanguagesDesc": "Elige qué idioma hablas (Mi idioma) y en qué idioma quieres escuchar la traducción (Idioma del otro). Selecciona \"Detección Automática\" si no estás seguro del idioma origen.",
+    "translationLanguagesDesc": "Elige qué idioma hablas (Mi idioma) y en qué idioma quieres escuchar la traducción (Idioma del otro). Selecciona \"Detección Automática\" si no estás seguro de qué idioma vas a hablar.",
     "yourLanguage": "Mi idioma",
     "userAccount": "Cuenta de Usuario",
     "userAccountTooltip": "Para usuarios con conocimientos técnicos y sus propias claves API, pueden usar su propia clave API estén conectados o no. La Cuenta de Usuario está diseñada para nuevos usuarios que prefieren una configuración simplificada sin configuración compleja.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Generado",
       "headerProvider": "Proveedor",
       "headerModels": "Modelos",
-      "headerSource": "Fuente",
-      "headerTarget": "Destino",
+      "headerSource": "Mi idioma",
+      "headerTarget": "Idioma del otro",
       "headerNote": "Nota: la configuración refleja el estado actual en el momento de la exportación, no los cambios realizados durante la sesión."
     },
     "waveformOutputTooltip": "Audio enviado al micrófono virtual (traducción + paso de audio original)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Paso 3: Elegir Idiomas",
-          "content": "Seleccione su idioma de origen (lo que habla) e idioma de destino (lo que la otra persona escuchará)."
+          "content": "Selecciona «Mi idioma» (lo que hablas) y «Idioma del otro» (lo que el otro escuchará)."
         },
         "microphone": {
           "title": "Paso 5: Seleccionar Micrófono",

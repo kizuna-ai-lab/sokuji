@@ -202,13 +202,13 @@
     "translateInfoBanner": "當說話人使用與目標相同的語言時，該模型會保持沉默。混合語言場景可能會有片段缺失。",
     "translateModelAvailable": "API key 驗證成功。gpt-realtime-translate 可用。",
     "translateModelNotAvailable": "API key 有效，但當前 key 沒有 gpt-realtime-translate 存取權限。",
-    "translateSourceParticipantWarning": "翻譯對方音訊可能無法運作——您選的來源語言不在 13 個支援的目標語言裡。",
+    "translateSourceParticipantWarning": "翻譯對方音訊可能無法運作——「我的語言」不在該服務商支援的 13 個目標語言裡。",
     "participantSectionHeader": "對方音訊",
     "participantSectionDescriptionElectron": "翻譯此系統上任何正在播放的應用程式的音訊。",
     "participantSectionDescriptionExtension": "翻譯當前瀏覽器分頁的音訊。原始音訊透過系統預設輸出播放。",
     "edgeTtsNoVoicesForLanguage": "此語言沒有可用的語音",
     "edgeTtsVoiceLoadError": "載入語音失敗 — 請查看 LogsPanel",
-    "localNativeAsrIncompatible": "請為來源語言選擇語音辨識（ASR）模型",
+    "localNativeAsrIncompatible": "請為「我的語言」選擇語音辨識（ASR）模型",
     "localNativeEngineRequired": "請在提供商設定中下載推理引擎",
     "localNativeEngineUpdateRequired": "推理引擎需要更新 — 請開啟提供商設定進行更新",
     "localNativeModelsRequired": "請在設定中下載本機模型",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "「兩者」模式下共用工作階段",
     "sonioxSharedSessionTooltip": "「兩者」模式可以使用一個共用的 Soniox 工作階段，也可以每個方向各用一個獨立的工作階段。\n\n已啟用：單一工作階段同時翻譯雙方，並自動區分聲音——成本與延遲更低。\n\n停用：每個方向各一個獨立工作階段——兩人同時說話時更可靠，但成本約為兩倍。\n\n僅影響「兩者」模式。",
     "sonioxSharedSessionManagedCost": "Kizuna AI 兩種方式都支援。關閉後會同時執行兩個工作階段——每分鐘成本約為兩倍，因此可用時長大約減半，開始所需的餘額也更高。",
-    "sonioxAutoParticipantWarning": "請選擇具體的來源語言——使用自動偵測時，無法把對方的語音翻譯成您的語言。",
+    "sonioxAutoParticipantWarning": "請把「我的語言」設為具體語言——使用自動偵測時，無法把對方的語音翻譯成它。",
     "sonioxVocabulary": "自訂詞彙",
     "sonioxVocabularyTooltip": "讓辨識更偏向重要人名與專業術語，並引導特定術語的譯法。將於下次工作階段生效。",
     "sonioxVocabularyTerms": "詞彙",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "介面語言",
     "interfaceLanguageDesc": "這會變更 Sokuji 選單和按鈕的語言。不會影響您可以在哪些語言之間翻譯。",
     "translationLanguages": "翻譯語言",
-    "translationLanguagesDesc": "選擇您說的語言（我的語言）和您想要聽到翻譯的語言（對方語言）。如果您不確定來源語言，請選擇「自動偵測」。",
+    "translationLanguagesDesc": "選擇您說的語言（我的語言）和您想要聽到翻譯的語言（對方語言）。如果您不確定自己會說哪種語言，請選擇「自動偵測」。",
     "yourLanguage": "我的語言",
     "userAccount": "使用者帳戶",
     "userAccountTooltip": "對於具有技術知識和自己的API金鑰的使用者，無論是否登入都可以使用自己的API金鑰。使用者帳戶是為偏好簡化設定且無需複雜配置的新使用者而設計。",
@@ -565,8 +565,8 @@
       "headerGenerated": "生成時間",
       "headerProvider": "服務商",
       "headerModels": "模型",
-      "headerSource": "來源語言",
-      "headerTarget": "目標語言",
+      "headerSource": "我的語言",
+      "headerTarget": "對方語言",
       "headerNote": "注意：設定反映匯出時的當前狀態，不含會話中途的更改。"
     },
     "waveformOutputTooltip": "傳送到虛擬麥克風的音訊（翻譯 + 原聲直通）",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "步驟 3：選擇語言",
-          "content": "選擇您的來源語言（您說的語言）和目標語言（您希望對方聽到的語言）。"
+          "content": "選擇「我的語言」（您說的語言）和「對方語言」（您希望對方聽到的語言）。"
         },
         "microphone": {
           "title": "步驟 5：選擇麥克風",

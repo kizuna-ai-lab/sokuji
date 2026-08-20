@@ -202,13 +202,13 @@
     "translateInfoBanner": "Model ini senyap apabila penutur menggunakan bahasa yang sama dengan sasaran. Pertuturan berbilang bahasa mungkin mempunyai jurang.",
     "translateModelAvailable": "Kunci API disahkan. gpt-realtime-translate tersedia.",
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak boleh diakses dengan kunci ini.",
-    "translateSourceParticipantWarning": "Terjemahan audio pihak lain mungkin tidak berfungsi — bahasa sumber yang anda pilih tiada dalam 13 bahasa sasaran yang disokong.",
+    "translateSourceParticipantWarning": "Terjemahan audio pihak lain mungkin tidak berfungsi — \"Bahasa saya\" tiada dalam 13 bahasa sasaran yang disokong penyedia ini.",
     "participantSectionHeader": "Audio pihak lain",
     "participantSectionDescriptionElectron": "Terjemahkan audio daripada mana-mana aplikasi yang dimainkan pada sistem ini.",
     "participantSectionDescriptionExtension": "Terjemahkan audio daripada tab pelayar aktif. Audio asal dimainkan melalui output lalai sistem anda.",
     "edgeTtsNoVoicesForLanguage": "Tiada suara tersedia untuk bahasa ini",
     "edgeTtsVoiceLoadError": "Gagal memuatkan suara — semak LogsPanel",
-    "localNativeAsrIncompatible": "Pilih model pengecaman pertuturan untuk bahasa sumber",
+    "localNativeAsrIncompatible": "Pilih model pengecaman pertuturan untuk \"Bahasa saya\"",
     "localNativeEngineRequired": "Muat turun enjin inferens dalam tetapan penyedia",
     "localNativeEngineUpdateRequired": "Enjin inferens perlu dikemas kini — buka tetapan penyedia untuk mengemas kininya",
     "localNativeModelsRequired": "Muat turun model native dalam tetapan",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Sesi dikongsi dalam mod Kedua-duanya",
     "sonioxSharedSessionTooltip": "Mod Kedua-duanya boleh menggunakan satu sesi Soniox yang dikongsi atau sesi berasingan bagi setiap arah.\n\nDidayakan: satu sesi menterjemah kedua-dua belah pihak dengan pemisahan suara automatik — kos dan kependaman lebih rendah.\n\nDilumpuhkan: sesi berasingan bagi setiap arah — lebih boleh dipercayai apabila kedua-duanya bercakap serentak, tetapi kosnya kira-kira dua kali ganda.\n\nHanya menjejaskan mod Kedua-duanya.",
     "sonioxSharedSessionManagedCost": "Kizuna AI menyokong kedua-duanya. Dilumpuhkan menjalankan dua sesi serentak — kira-kira dua kali ganda kos seminit, jadi peruntukan sesi anda habis dalam kira-kira separuh masa dan baki yang lebih tinggi diperlukan untuk bermula.",
-    "sonioxAutoParticipantWarning": "Pilih bahasa sumber tertentu — dengan pengesanan automatik, pertuturan pihak lain tidak dapat diterjemah ke bahasa anda.",
+    "sonioxAutoParticipantWarning": "Tetapkan \"Bahasa saya\" kepada bahasa tertentu — dengan pengesanan automatik, pertuturan pihak lain tidak dapat diterjemah ke bahasa itu.",
     "sonioxVocabulary": "Perbendaharaan Kata Tersuai",
     "sonioxVocabularyTooltip": "Mencondongkan pengecaman ke arah nama dan istilah penting, serta memandu cara istilah tertentu diterjemahkan. Berkuat kuasa mulai sesi seterusnya.",
     "sonioxVocabularyTerms": "Istilah",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Bahasa Antara Muka",
     "interfaceLanguageDesc": "Ini mengubah bahasa menu dan butang Sokuji. Ia TIDAK mempengaruhi bahasa mana yang boleh anda terjemahkan.",
     "translationLanguages": "Bahasa Terjemahan",
-    "translationLanguagesDesc": "Pilih bahasa yang anda gunakan (Bahasa saya) dan bahasa yang anda mahu dengar terjemahannya (Bahasa pihak lain). Pilih \"Kesan Automatik\" jika anda tidak pasti tentang bahasa sumber.",
+    "translationLanguagesDesc": "Pilih bahasa yang anda gunakan (Bahasa saya) dan bahasa yang anda mahu dengar terjemahannya (Bahasa pihak lain). Pilih \"Kesan Automatik\" jika anda tidak pasti bahasa apa yang akan anda tuturkan.",
     "yourLanguage": "Bahasa saya",
     "userAccount": "Akaun Pengguna",
     "userAccountTooltip": "Pengguna teknikal boleh menggunakan kunci API mereka sendiri. Akaun Pengguna direka untuk persediaan yang dipermudahkan.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Dijana",
       "headerProvider": "Pembekal",
       "headerModels": "Model",
-      "headerSource": "Sumber",
-      "headerTarget": "Sasaran",
+      "headerSource": "Bahasa saya",
+      "headerTarget": "Bahasa pihak lain",
       "headerNote": "Nota: tetapan mencerminkan keadaan semasa pada masa eksport, bukan perubahan semasa sesi."
     },
     "waveformOutputTooltip": "Audio yang dihantar ke mikrofon maya (terjemahan + passthrough)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Langkah 3: Pilih Bahasa",
-          "content": "Pilih bahasa sumber (yang anda tuturkan) dan bahasa sasaran (yang pihak lain akan dengar)."
+          "content": "Pilih \"Bahasa saya\" (yang anda tuturkan) dan \"Bahasa pihak lain\" (yang pihak lain akan dengar)."
         },
         "microphone": {
           "title": "Langkah 5: Pilih Mikrofon",

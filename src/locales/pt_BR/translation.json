@@ -202,13 +202,13 @@
     "translateInfoBanner": "Este modelo fica em silêncio quando o falante usa o mesmo idioma do destino. A fala em idiomas mistos pode ter lacunas.",
     "translateModelAvailable": "Chave de API validada. gpt-realtime-translate está disponível.",
     "translateModelNotAvailable": "A chave de API funciona, mas gpt-realtime-translate não está acessível com essa chave.",
-    "translateSourceParticipantWarning": "A tradução do áudio do outro pode não funcionar — o idioma de origem selecionado não está entre os 13 idiomas de destino suportados.",
+    "translateSourceParticipantWarning": "A tradução do áudio do outro pode não funcionar — \"Meu idioma\" não está entre os 13 idiomas de destino suportados por este provedor.",
     "participantSectionHeader": "Áudio do outro",
     "participantSectionDescriptionElectron": "Traduza o áudio de qualquer aplicativo reproduzido neste sistema.",
     "participantSectionDescriptionExtension": "Traduza o áudio da aba ativa do navegador. O áudio original é reproduzido pela saída padrão do seu sistema.",
     "edgeTtsNoVoicesForLanguage": "Nenhuma voz disponível para este idioma",
     "edgeTtsVoiceLoadError": "Falha ao carregar as vozes — verifique o LogsPanel",
-    "localNativeAsrIncompatible": "Selecione um modelo de reconhecimento de fala para o idioma de origem",
+    "localNativeAsrIncompatible": "Selecione um modelo de reconhecimento de fala para \"Meu idioma\"",
     "localNativeEngineRequired": "Baixe o motor de inferência nas configurações do provedor",
     "localNativeEngineUpdateRequired": "O motor de inferência precisa ser atualizado — abra as configurações do provedor para atualizá-lo",
     "localNativeModelsRequired": "Baixe os modelos nativos nas configurações",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Sessão compartilhada no modo Ambos",
     "sonioxSharedSessionTooltip": "O modo Ambos pode usar uma única sessão Soniox compartilhada ou uma sessão separada por direção.\n\nAtivado: uma única sessão traduz os dois lados com separação automática de vozes — menor custo e latência.\n\nDesativado: uma sessão separada por direção — mais confiável quando os dois falam ao mesmo tempo, mas com cerca do dobro do custo.\n\nAfeta apenas o modo Ambos.",
     "sonioxSharedSessionManagedCost": "A Kizuna AI oferece as duas opções. Desativado executa duas sessões ao mesmo tempo — cerca do dobro do custo por minuto, então o seu tempo de sessão acaba em aproximadamente metade e é preciso um saldo maior para começar.",
-    "sonioxAutoParticipantWarning": "Escolha um idioma de origem específico — com a detecção automática, a fala do outro não pode ser traduzida para o seu idioma.",
+    "sonioxAutoParticipantWarning": "Defina \"Meu idioma\" como um idioma específico — com a detecção automática, a fala do outro não pode ser traduzida para ele.",
     "sonioxVocabulary": "Vocabulário personalizado",
     "sonioxVocabularyTooltip": "Direciona o reconhecimento para nomes e termos importantes e orienta como termos específicos são traduzidos. Aplica-se a partir da próxima sessão.",
     "sonioxVocabularyTerms": "Termos",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Idioma da Interface",
     "interfaceLanguageDesc": "Isso muda o idioma dos menus e botões do Sokuji. NÃO afeta quais idiomas você pode traduzir.",
     "translationLanguages": "Idiomas de Tradução",
-    "translationLanguagesDesc": "Escolha qual idioma você fala (Meu idioma) e em qual idioma você quer ouvir a tradução (Idioma do outro). Selecione \"Detecção Automática\" se não tiver certeza sobre o idioma de origem.",
+    "translationLanguagesDesc": "Escolha qual idioma você fala (Meu idioma) e em qual idioma você quer ouvir a tradução (Idioma do outro). Selecione \"Detecção Automática\" se não tiver certeza de qual idioma vai falar.",
     "yourLanguage": "Meu idioma",
     "userAccount": "Conta de Usuário",
     "userAccountTooltip": "Para usuários com conhecimento técnico e suas próprias chaves de API, você pode usar sua própria chave de API estando logado ou não. A Conta de Usuário é projetada para novos usuários que preferem uma configuração simplificada sem configuração complexa.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Gerado",
       "headerProvider": "Provedor",
       "headerModels": "Modelos",
-      "headerSource": "Origem",
-      "headerTarget": "Destino",
+      "headerSource": "Meu idioma",
+      "headerTarget": "Idioma do outro",
       "headerNote": "Nota: as configurações refletem o estado atual no momento da exportação, não alterações feitas durante a sessão."
     },
     "waveformOutputTooltip": "Áudio enviado ao microfone virtual (tradução + passthrough)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Passo 3: Escolher Idiomas",
-          "content": "Selecione seu idioma de origem (o que você fala) e o idioma de destino (o que a outra pessoa ouvirá)."
+          "content": "Selecione \"Meu idioma\" (o que você fala) e \"Idioma do outro\" (o que o outro ouvirá)."
         },
         "microphone": {
           "title": "Passo 5: Selecionar Microfone",

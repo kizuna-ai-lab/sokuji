@@ -202,13 +202,13 @@
     "translateInfoBanner": "Dieses Modell bleibt still, wenn der Sprecher die Zielsprache verwendet. Bei gemischtsprachiger Sprache können Lücken entstehen.",
     "translateModelAvailable": "API-Schlüssel validiert. gpt-realtime-translate ist verfügbar.",
     "translateModelNotAvailable": "Der API-Schlüssel funktioniert, aber gpt-realtime-translate ist mit diesem Schlüssel nicht zugänglich.",
-    "translateSourceParticipantWarning": "Die Übersetzung des Audios Ihres Gegenübers funktioniert möglicherweise nicht — Ihre gewählte Ausgangssprache ist nicht in den 13 unterstützten Zielsprachen.",
+    "translateSourceParticipantWarning": "Die Übersetzung des Audios Ihres Gegenübers funktioniert möglicherweise nicht — „Meine Sprache“ ist nicht unter den 13 von diesem Anbieter unterstützten Zielsprachen.",
     "participantSectionHeader": "Audio des Gegenübers",
     "participantSectionDescriptionElectron": "Audio von jeder auf diesem System laufenden Anwendung übersetzen.",
     "participantSectionDescriptionExtension": "Audio des aktiven Browser-Tabs übersetzen. Das Original-Audio wird über die Standardausgabe Ihres Systems wiedergegeben.",
     "edgeTtsNoVoicesForLanguage": "Keine Stimmen für diese Sprache verfügbar",
     "edgeTtsVoiceLoadError": "Stimmen konnten nicht geladen werden — siehe LogsPanel",
-    "localNativeAsrIncompatible": "Wählen Sie ein Spracherkennung (ASR)-Modell für die Ausgangssprache",
+    "localNativeAsrIncompatible": "Wählen Sie ein Spracherkennung (ASR)-Modell für „Meine Sprache“",
     "localNativeEngineRequired": "Laden Sie die Inferenz-Engine in den Anbietereinstellungen herunter",
     "localNativeEngineUpdateRequired": "Die Inferenz-Engine benötigt ein Update — öffnen Sie die Anbietereinstellungen zum Aktualisieren",
     "localNativeModelsRequired": "Laden Sie die nativen Modelle in den Einstellungen herunter",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Gemeinsame Sitzung im Modus „Beides“",
     "sonioxSharedSessionTooltip": "Im Modus „Beides“ kann eine gemeinsame Soniox-Sitzung für beide Richtungen oder je Richtung eine separate Sitzung verwendet werden.\n\nAktiviert: Eine einzelne Sitzung übersetzt beide Seiten mit automatischer Stimmentrennung – geringere Kosten und Latenz.\n\nDeaktiviert: Eine separate Sitzung pro Richtung – zuverlässiger, wenn beide gleichzeitig sprechen, aber etwa doppelte Kosten.\n\nBetrifft nur den Modus „Beides“.",
     "sonioxSharedSessionManagedCost": "Kizuna AI unterstützt beides. „Deaktiviert“ führt zwei Sitzungen gleichzeitig aus – etwa doppelte Kosten pro Minute, Ihr Sitzungsguthaben ist also in etwa der halben Zeit aufgebraucht und zum Starten ist ein höheres Guthaben nötig.",
-    "sonioxAutoParticipantWarning": "Wählen Sie eine konkrete Ausgangssprache – bei automatischer Erkennung kann die Sprache des Gegenübers nicht in Ihre Sprache übersetzt werden.",
+    "sonioxAutoParticipantWarning": "Legen Sie für „Meine Sprache“ eine konkrete Sprache fest – bei automatischer Erkennung kann die Sprache des Gegenübers nicht dorthin übersetzt werden.",
     "sonioxVocabulary": "Benutzerdefiniertes Vokabular",
     "sonioxVocabularyTooltip": "Beeinflusst die Erkennung wichtiger Namen und Fachbegriffe und lenkt, wie bestimmte Begriffe übersetzt werden. Wirkt sich erst ab der nächsten Sitzung aus.",
     "sonioxVocabularyTerms": "Begriffe",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Sprache der Benutzeroberfläche",
     "interfaceLanguageDesc": "Dies ändert die Sprache von Sokujis Menüs und Schaltflächen. Es beeinflusst NICHT, zwischen welchen Sprachen Sie übersetzen können.",
     "translationLanguages": "Übersetzungssprachen",
-    "translationLanguagesDesc": "Wählen Sie, welche Sprache Sie sprechen (Meine Sprache) und in welcher Sprache Sie die Übersetzung hören möchten (Sprache des Gegenübers). Wählen Sie \"Automatische Erkennung\", wenn Sie sich über die Quellsprache unsicher sind.",
+    "translationLanguagesDesc": "Wählen Sie, welche Sprache Sie sprechen (Meine Sprache) und in welcher Sprache Sie die Übersetzung hören möchten (Sprache des Gegenübers). Wählen Sie \"Automatische Erkennung\", wenn Sie sich nicht sicher sind, welche Sprache Sie sprechen werden.",
     "yourLanguage": "Meine Sprache",
     "userAccount": "Benutzerkonto",
     "userAccountTooltip": "Für Benutzer mit technischen Kenntnissen und eigenen API-Schlüsseln können Sie Ihren eigenen API-Schlüssel verwenden, egal ob Sie angemeldet sind oder nicht. Das Benutzerkonto ist für neue Benutzer konzipiert, die eine vereinfachte Einrichtung ohne komplexe Konfiguration bevorzugen.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Erstellt",
       "headerProvider": "Anbieter",
       "headerModels": "Modelle",
-      "headerSource": "Quelle",
-      "headerTarget": "Ziel",
+      "headerSource": "Meine Sprache",
+      "headerTarget": "Sprache des Gegenübers",
       "headerNote": "Hinweis: Die Einstellungen spiegeln den aktuellen Stand beim Export wider, nicht Änderungen während der Sitzung."
     },
     "waveformOutputTooltip": "Audio, das an das virtuelle Mikrofon gesendet wird (Übersetzung + Durchleitung)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Schritt 3: Sprachen auswählen",
-          "content": "Wählen Sie Ihre Quellsprache (was Sie sprechen) und Zielsprache (was die andere Person hören soll)."
+          "content": "Wählen Sie „Meine Sprache“ (was Sie sprechen) und „Sprache des Gegenübers“ (was Ihr Gegenüber hören soll)."
         },
         "microphone": {
           "title": "Schritt 5: Mikrofon auswählen",

@@ -202,13 +202,13 @@
     "translateInfoBanner": "This model stays silent when the speaker uses the same language as the target. Mixed-language speech may have gaps.",
     "translateModelAvailable": "API key validated. gpt-realtime-translate is available.",
     "translateModelNotAvailable": "API key works, but gpt-realtime-translate is not accessible with this key.",
-    "translateSourceParticipantWarning": "Translating Other's audio may not work — your selected source language is not in the 13 supported target languages.",
+    "translateSourceParticipantWarning": "Translating Other's audio may not work — My language is not among the 13 target languages this provider supports.",
     "participantSectionHeader": "Other's audio",
     "participantSectionDescriptionElectron": "Translate audio from any application playing on this system.",
     "participantSectionDescriptionExtension": "Translate audio from the active browser tab. The original audio plays through your system default output.",
     "edgeTtsNoVoicesForLanguage": "No voices available for this language",
     "edgeTtsVoiceLoadError": "Failed to load voices — check LogsPanel",
-    "localNativeAsrIncompatible": "Select a speech-recognition model for the source language",
+    "localNativeAsrIncompatible": "Select a speech-recognition model for My language",
     "localNativeEngineRequired": "Download the inference engine in provider settings",
     "localNativeEngineUpdateRequired": "The inference engine needs an update — open provider settings to update it",
     "localNativeModelsRequired": "Download the native models in settings",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Shared session in Both mode",
     "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic voice separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.",
     "sonioxSharedSessionManagedCost": "Kizuna AI supports both. Disabled runs two sessions at once — about twice the cost per minute, so your session allowance runs out in about half the time and a higher balance is needed to start.",
-    "sonioxAutoParticipantWarning": "Choose a specific source language — with automatic detection, the other side's speech can't be translated into your language.",
+    "sonioxAutoParticipantWarning": "Set My language to a specific language — with automatic detection, the other side's speech can't be translated into it.",
     "sonioxVocabulary": "Custom Vocabulary",
     "sonioxVocabularyTooltip": "Bias recognition toward important names and jargon, and steer how specific terms are translated. Applies from the next session.",
     "sonioxVocabularyTerms": "Terms",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Interface Language",
     "interfaceLanguageDesc": "This changes the language of Sokuji's menus and buttons. It does NOT affect which languages you can translate between.",
     "translationLanguages": "Translation Languages",
-    "translationLanguagesDesc": "Choose which language you speak (My language) and which language you want to hear the translation in (Other's language). Select \"Auto Detect\" if you're unsure about the source language.",
+    "translationLanguagesDesc": "Choose which language you speak (My language) and which language you want to hear the translation in (Other's language). Select \"Auto Detect\" if you're unsure which language you'll be speaking.",
     "yourLanguage": "My Language",
     "userAccount": "User Account",
     "userAccountTooltip": "For users with technical knowledge and their own API keys, you can use your own API key whether logged in or not. User Account is designed for new users who prefer a simplified setup without complex configuration.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Generated",
       "headerProvider": "Provider",
       "headerModels": "Models",
-      "headerSource": "Source",
-      "headerTarget": "Target",
+      "headerSource": "My Language",
+      "headerTarget": "Other's Language",
       "headerNote": "Note: settings reflect current state at export, not mid-session changes."
     },
     "waveformOutputTooltip": "Audio sent to the virtual microphone (translation + passthrough)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Step 3: Choose Languages",
-          "content": "Select your source language (what you speak) and target language (what you want the other party to hear)."
+          "content": "Select My language (what you speak) and Other's language (what you want the other side to hear)."
         },
         "microphone": {
           "title": "Step 5: Select Microphone",

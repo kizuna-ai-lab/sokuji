@@ -202,13 +202,13 @@
     "translateInfoBanner": "Model milczy, gdy mówca używa tego samego języka co docelowy. Mowa wielojęzyczna może mieć luki.",
     "translateModelAvailable": "Klucz API zweryfikowany. gpt-realtime-translate jest dostępny.",
     "translateModelNotAvailable": "Klucz API działa, ale gpt-realtime-translate jest niedostępny z tym kluczem.",
-    "translateSourceParticipantWarning": "Tłumaczenie dźwięku rozmówcy może nie działać — wybrany język źródłowy nie znajduje się wśród 13 obsługiwanych języków docelowych.",
+    "translateSourceParticipantWarning": "Tłumaczenie dźwięku rozmówcy może nie działać — „Mój język” nie znajduje się wśród 13 języków docelowych obsługiwanych przez tego dostawcę.",
     "participantSectionHeader": "Dźwięk rozmówcy",
     "participantSectionDescriptionElectron": "Tłumacz dźwięk z dowolnej aplikacji odtwarzanej w tym systemie.",
     "participantSectionDescriptionExtension": "Tłumacz dźwięk z aktywnej karty przeglądarki. Oryginalny dźwięk jest odtwarzany przez domyślne wyjście systemu.",
     "edgeTtsNoVoicesForLanguage": "Brak dostępnych głosów dla tego języka",
     "edgeTtsVoiceLoadError": "Nie udało się załadować głosów — sprawdź LogsPanel",
-    "localNativeAsrIncompatible": "Wybierz model rozpoznawania mowy dla języka źródłowego",
+    "localNativeAsrIncompatible": "Wybierz model rozpoznawania mowy dla „Mojego języka”",
     "localNativeEngineRequired": "Pobierz silnik wnioskowania w ustawieniach dostawcy",
     "localNativeEngineUpdateRequired": "Silnik wnioskowania wymaga aktualizacji — otwórz ustawienia dostawcy, aby go zaktualizować",
     "localNativeModelsRequired": "Pobierz modele natywne w ustawieniach",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Współdzielona sesja w trybie Oba",
     "sonioxSharedSessionTooltip": "Tryb Oba może korzystać z jednej współdzielonej sesji Soniox lub z osobnej sesji dla każdego kierunku.\n\nWłączone: jedna sesja tłumaczy obie strony z automatycznym rozdzielaniem głosów — niższy koszt i opóźnienie.\n\nWyłączone: osobna sesja dla każdego kierunku — bardziej niezawodne, gdy obie osoby mówią jednocześnie, ale koszt jest około dwukrotnie wyższy.\n\nWpływa tylko na tryb Oba.",
     "sonioxSharedSessionManagedCost": "Kizuna AI obsługuje oba tryby. Wyłączone uruchamia dwie sesje jednocześnie — około dwa razy większy koszt na minutę, więc limit sesji kończy się mniej więcej o połowę szybciej, a do rozpoczęcia potrzebne jest wyższe saldo.",
-    "sonioxAutoParticipantWarning": "Wybierz konkretny język źródłowy — przy automatycznym wykrywaniu mowy rozmówcy nie da się przetłumaczyć na Twój język.",
+    "sonioxAutoParticipantWarning": "Ustaw „Mój język” na konkretny język — przy automatycznym wykrywaniu mowy rozmówcy nie da się na niego przetłumaczyć.",
     "sonioxVocabulary": "Słownik niestandardowy",
     "sonioxVocabularyTooltip": "Ukierunkowuje rozpoznawanie na ważne nazwy i terminologię branżową oraz wpływa na sposób tłumaczenia określonych terminów. Zaczyna obowiązywać od następnej sesji.",
     "sonioxVocabularyTerms": "Terminy",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Język Interfejsu",
     "interfaceLanguageDesc": "To zmienia język menu i przycisków Sokuji. NIE wpływa na języki, między którymi możesz tłumaczyć.",
     "translationLanguages": "Języki Tłumaczenia",
-    "translationLanguagesDesc": "Wybierz język, którym mówisz (Mój język) i język, w którym chcesz słyszeć tłumaczenie (Język rozmówcy). Wybierz 'Automatyczne Wykrywanie', jeśli nie jesteś pewien języka źródłowego.",
+    "translationLanguagesDesc": "Wybierz język, którym mówisz (Mój język) i język, w którym chcesz słyszeć tłumaczenie (Język rozmówcy). Wybierz 'Automatyczne Wykrywanie', jeśli nie jesteś pewien, jakim językiem będziesz mówić.",
     "yourLanguage": "Mój język",
     "userAccount": "Konto Użytkownika",
     "userAccountTooltip": "Użytkownicy techniczni mogą używać własnych kluczy API. Konto Użytkownika jest zaprojektowane dla uproszczonej konfiguracji.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Wygenerowano",
       "headerProvider": "Dostawca",
       "headerModels": "Modele",
-      "headerSource": "Źródło",
-      "headerTarget": "Cel",
+      "headerSource": "Mój język",
+      "headerTarget": "Język rozmówcy",
       "headerNote": "Uwaga: ustawienia odzwierciedlają stan w momencie eksportu, a nie zmiany wprowadzone w trakcie sesji."
     },
     "waveformOutputTooltip": "Dźwięk wysyłany do wirtualnego mikrofonu (tłumaczenie + przepuszczanie)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Krok 3: Wybierz Języki",
-          "content": "Wybierz język źródłowy (w którym mówisz) i język docelowy (który druga osoba usłyszy)."
+          "content": "Wybierz „Mój język” (którym mówisz) i „Język rozmówcy” (który usłyszy rozmówca)."
         },
         "microphone": {
           "title": "Krok 5: Wybierz Mikrofon",

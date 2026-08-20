@@ -202,13 +202,13 @@
     "translateInfoBanner": "Malli on hiljaa, kun puhuja käyttää samaa kieltä kuin kohde. Monikielisessä puheessa voi olla aukkoja.",
     "translateModelAvailable": "API-avain vahvistettu. gpt-realtime-translate on käytettävissä.",
     "translateModelNotAvailable": "API-avain toimii, mutta gpt-realtime-translate ei ole käytettävissä tällä avaimella.",
-    "translateSourceParticipantWarning": "Toisen äänen kääntäminen ei välttämättä toimi — valitsemasi lähdekieli ei ole 13 tuetun kohdekielen joukossa.",
+    "translateSourceParticipantWarning": "Toisen äänen kääntäminen ei välttämättä toimi — 'Minun kieleni' ei ole niiden 13 kohdekielen joukossa, joita tämä palveluntarjoaja tukee.",
     "participantSectionHeader": "Toisen ääni",
     "participantSectionDescriptionElectron": "Käännä ääni mistä tahansa tässä järjestelmässä toistettavasta sovelluksesta.",
     "participantSectionDescriptionExtension": "Käännä ääni aktiivisesta selainvälilehdestä. Alkuperäinen ääni toistetaan järjestelmäsi oletuslähdön kautta.",
     "edgeTtsNoVoicesForLanguage": "Tälle kielelle ei ole ääniä saatavilla",
     "edgeTtsVoiceLoadError": "Äänien lataus epäonnistui — tarkista LogsPanel",
-    "localNativeAsrIncompatible": "Valitse puheentunnistusmalli lähdekielelle",
+    "localNativeAsrIncompatible": "Valitse puheentunnistusmalli kohteelle 'Minun kieleni'",
     "localNativeEngineRequired": "Lataa päättelymoottori palveluntarjoajan asetuksista",
     "localNativeEngineUpdateRequired": "Päättelymoottori tarvitsee päivityksen — päivitä se palveluntarjoajan asetuksista",
     "localNativeModelsRequired": "Lataa natiivimallit asetuksista",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Jaettu istunto Molemmat-tilassa",
     "sonioxSharedSessionTooltip": "Molemmat-tila voi käyttää yhtä jaettua Soniox-istuntoa tai erillistä istuntoa kumpaankin suuntaan.\n\nKäytössä: yksi istunto kääntää molemmat puolet automaattisella äänten erottelulla — pienemmät kustannukset ja viive.\n\nPois käytöstä: erillinen istunto kumpaankin suuntaan — luotettavampi, kun molemmat puhuvat yhtä aikaa, mutta noin kaksinkertainen kustannus.\n\nVaikuttaa vain Molemmat-tilaan.",
     "sonioxSharedSessionManagedCost": "Kizuna AI tukee molempia. Kun jaettu istunto on pois käytöstä, kaksi istuntoa on käynnissä samanaikaisesti — noin kaksinkertainen hinta minuutissa, joten istuntosi saldo loppuu noin puolessa ajassa ja aloittamiseen tarvitaan suurempi saldo.",
-    "sonioxAutoParticipantWarning": "Valitse tietty lähdekieli — automaattisella tunnistuksella toisen puhetta ei voi kääntää omalle kielellesi.",
+    "sonioxAutoParticipantWarning": "Aseta 'Minun kieleni' tietyksi kieleksi — automaattisella tunnistuksella toisen puhetta ei voi kääntää siihen.",
     "sonioxVocabulary": "Mukautettu sanasto",
     "sonioxVocabularyTooltip": "Ohjaa tunnistusta tärkeiden nimien ja erikoistermien suuntaan ja vaikuttaa siihen, miten tietyt termit käännetään. Otetaan käyttöön vasta seuraavasta istunnosta alkaen.",
     "sonioxVocabularyTerms": "Termit",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Käyttöliittymän kieli",
     "interfaceLanguageDesc": "Tämä muuttaa Sokuji:n valikoiden ja painikkeiden kieltä. Se EI vaikuta siihen, minkä kielten välillä voit kääntää.",
     "translationLanguages": "Käännöskielet",
-    "translationLanguagesDesc": "Valitse mikä kieli puhut (Minun kieleni) ja mikä kieli haluat kuulla käännöksen (Toisen kieli). Valitse \"Automaattinen tunnistus\" jos et ole varma lähdekielestä.",
+    "translationLanguagesDesc": "Valitse mikä kieli puhut (Minun kieleni) ja mikä kieli haluat kuulla käännöksen (Toisen kieli). Valitse \"Automaattinen tunnistus\" jos et ole varma, mitä kieltä puhut.",
     "yourLanguage": "Minun kieleni",
     "userAccount": "Käyttäjätili",
     "userAccountTooltip": "Tekniset käyttäjät voivat käyttää omia API-avaimiaan. Käyttäjätili on suunniteltu yksinkertaistettuun asennukseen.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Luotu",
       "headerProvider": "Palveluntarjoaja",
       "headerModels": "Mallit",
-      "headerSource": "Lähde",
-      "headerTarget": "Kohde",
+      "headerSource": "Minun kieleni",
+      "headerTarget": "Toisen kieli",
       "headerNote": "Huom: asetukset heijastavat tilaa viennin hetkellä, eivät istunnon aikaisia muutoksia."
     },
     "waveformOutputTooltip": "Virtuaalimikrofoniin lähetetty ääni (käännös + alkuperäisen äänen läpivienti)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Vaihe 3: Valitse Kielet",
-          "content": "Valitse lähdekieli (mitä puhut) ja kohdekieli (mitä toinen osapuoli kuulee)."
+          "content": "Valitse 'Minun kieleni' (mitä puhut) ja 'Toisen kieli' (mitä toinen kuulee)."
         },
         "microphone": {
           "title": "Vaihe 5: Valitse Mikrofoni",

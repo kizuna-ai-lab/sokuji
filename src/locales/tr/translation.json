@@ -202,13 +202,13 @@
     "translateInfoBanner": "Konuşmacı hedef dille aynı dili kullandığında model sessiz kalır. Karışık dilli konuşmalarda boşluklar olabilir.",
     "translateModelAvailable": "API anahtarı doğrulandı. gpt-realtime-translate kullanılabilir.",
     "translateModelNotAvailable": "API anahtarı çalışıyor ancak bu anahtarla gpt-realtime-translate erişilebilir değil.",
-    "translateSourceParticipantWarning": "Karşı tarafın sesinin çevrilmesi çalışmayabilir — seçtiğiniz kaynak dil, desteklenen 13 hedef dil arasında değil.",
+    "translateSourceParticipantWarning": "Karşı tarafın sesinin çevrilmesi çalışmayabilir — \"Benim dilim\", bu sağlayıcının desteklediği 13 hedef dil arasında değil.",
     "participantSectionHeader": "Karşı tarafın sesi",
     "participantSectionDescriptionElectron": "Bu sistemde çalan herhangi bir uygulamadan gelen sesi çevirin.",
     "participantSectionDescriptionExtension": "Etkin tarayıcı sekmesinden gelen sesi çevirin. Orijinal ses, sistem varsayılan çıkışınızdan çalar.",
     "edgeTtsNoVoicesForLanguage": "Bu dil için kullanılabilir ses yok",
     "edgeTtsVoiceLoadError": "Sesler yüklenemedi — LogsPanel'i kontrol edin",
-    "localNativeAsrIncompatible": "Kaynak dil için bir konuşma tanıma (ASR) modeli seçin",
+    "localNativeAsrIncompatible": "\"Benim dilim\" için bir konuşma tanıma (ASR) modeli seçin",
     "localNativeEngineRequired": "Çıkarım motorunu sağlayıcı ayarlarından indirin",
     "localNativeEngineUpdateRequired": "Çıkarım motorunun güncellenmesi gerekiyor — güncellemek için sağlayıcı ayarlarını açın",
     "localNativeModelsRequired": "Native modelleri ayarlardan indirin",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Her ikisi modunda paylaşılan oturum",
     "sonioxSharedSessionTooltip": "Her ikisi modu, tek bir paylaşılan Soniox oturumu veya her yön için ayrı bir oturum kullanabilir.\n\nEtkin: tek bir oturum her iki tarafı otomatik ses ayrımıyla çevirir — daha düşük maliyet ve gecikme.\n\nDevre dışı: her yön için ayrı bir oturum — iki kişi aynı anda konuştuğunda daha güvenilir, ancak maliyeti yaklaşık iki katı.\n\nYalnızca Her ikisi modunu etkiler.",
     "sonioxSharedSessionManagedCost": "Kizuna AI her ikisini de destekler. Devre dışı, aynı anda iki oturum çalıştırır — dakika başına yaklaşık iki katı maliyet, bu yüzden oturum süreniz yaklaşık yarı sürede biter ve başlamak için daha yüksek bakiye gerekir.",
-    "sonioxAutoParticipantWarning": "Belirli bir kaynak dil seçin — otomatik algılamayla karşı tarafın konuşması sizin dilinize çevrilemez.",
+    "sonioxAutoParticipantWarning": "\"Benim dilim\" için belirli bir dil seçin — otomatik algılamayla karşı tarafın konuşması o dile çevrilemez.",
     "sonioxVocabulary": "Özel Kelime Dağarcığı",
     "sonioxVocabularyTooltip": "Tanımayı önemli adlara ve terimlere doğru yönlendirir ve belirli terimlerin nasıl çevrileceğine yön verir. Bir sonraki oturumdan itibaren geçerli olur.",
     "sonioxVocabularyTerms": "Terimler",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Arayüz Dili",
     "interfaceLanguageDesc": "Bu, Sokuji'nin menülerinin ve düğmelerinin dilini değiştirir. Çeviri yapabileceğiniz dilleri ETKİLEMEZ.",
     "translationLanguages": "Çeviri Dilleri",
-    "translationLanguagesDesc": "Hangi dilde konuştuğunuzu (Benim dilim) ve çeviriyi hangi dilde duymak istediğinizi (Karşı tarafın dili) seçin. Kaynak dili hakkinda emin değilseniz 'Otomatik Algılama'yı seçin.",
+    "translationLanguagesDesc": "Hangi dilde konuştuğunuzu (Benim dilim) ve çeviriyi hangi dilde duymak istediğinizi (Karşı tarafın dili) seçin. Hangi dili konuşacağınızdan emin değilseniz 'Otomatik Algılama'yı seçin.",
     "yourLanguage": "Benim dilim",
     "userAccount": "Kullanıcı Hesabı",
     "userAccountTooltip": "Teknik kullanıcılar kendi API anahtarlarını kullanabilir. Kullanıcı hesabı basitleştirilmiş kurulum için tasarlanmıştır.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Oluşturuldu",
       "headerProvider": "Sağlayıcı",
       "headerModels": "Modeller",
-      "headerSource": "Kaynak",
-      "headerTarget": "Hedef",
+      "headerSource": "Benim dilim",
+      "headerTarget": "Karşı tarafın dili",
       "headerNote": "Not: ayarlar dışa aktarma anındaki mevcut durumu yansıtır, oturum sırasındaki değişiklikleri değil."
     },
     "waveformOutputTooltip": "Sanal mikrofona gönderilen ses (çeviri + orijinal ses geçişi)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Adım 3: Dilleri Seçin",
-          "content": "Kaynak dilinizi (konuştuğunuz dil) ve hedef dili (karşı tarafın duyacağı dil) seçin."
+          "content": "\"Benim dilim\" (konuştuğunuz dil) ve \"Karşı tarafın dili\" (karşı tarafın duyacağı dil) seçeneklerini belirleyin."
         },
         "microphone": {
           "title": "Adım 5: Mikrofon Seçin",

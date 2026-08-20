@@ -171,4 +171,21 @@ describe('the three translation modes are named with one word each', () => {
     }
     expect(offenders).toEqual([]);
   });
+
+  // The export header labels the two configured languages. It used to say
+  // "Source"/"Target" while the settings screen that set them said
+  // "My Language"/"Other's Language" — the reader had to map one to the other.
+  // These are the same two fields, so they get the same two labels.
+  it.each([
+    ['mainPanel.export.headerSource', 'settings.sourceLanguage'],
+    ['mainPanel.export.headerTarget', 'settings.targetLanguage'],
+  ])('%s matches %s in every locale', (header, label) => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      if (cat[header] !== cat[label]) {
+        offenders.push(`${lang}: ${JSON.stringify(cat[header])} != ${JSON.stringify(cat[label])}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
 });

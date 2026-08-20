@@ -137,8 +137,8 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     headerGenerated: t('mainPanel.export.headerGenerated', 'Generated'),
     headerProvider: t('mainPanel.export.headerProvider', 'Provider'),
     headerModels: t('mainPanel.export.headerModels', 'Models'),
-    headerSource: t('mainPanel.export.headerSource', 'Source'),
-    headerTarget: t('mainPanel.export.headerTarget', 'Target'),
+    headerSource: t('mainPanel.export.headerSource', 'My Language'),
+    headerTarget: t('mainPanel.export.headerTarget', "Other's Language"),
     headerNote: t('mainPanel.export.headerNote', 'Note: settings reflect current state at export, not mid-session changes.'),
   }), [t]);
 

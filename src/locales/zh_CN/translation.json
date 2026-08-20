@@ -202,13 +202,13 @@
     "translateInfoBanner": "当说话人使用与目标相同的语言时，该模型会保持沉默。混合语言场景可能会有片段缺失。",
     "translateModelAvailable": "API key 验证成功。gpt-realtime-translate 可用。",
     "translateModelNotAvailable": "API key 有效，但当前 key 没有 gpt-realtime-translate 访问权限。",
-    "translateSourceParticipantWarning": "翻译对方音频可能无法工作——您选的源语言不在 13 个支持的目标语言里。",
+    "translateSourceParticipantWarning": "翻译对方音频可能无法工作——「我的语言」不在该服务商支持的 13 个目标语言里。",
     "participantSectionHeader": "对方音频",
     "participantSectionDescriptionElectron": "翻译此系统上任何正在播放的应用程序的音频。",
     "participantSectionDescriptionExtension": "翻译当前浏览器标签页的音频。原始音频通过系统默认输出播放。",
     "edgeTtsNoVoicesForLanguage": "此语言没有可用的语音",
     "edgeTtsVoiceLoadError": "加载语音失败 — 请查看 LogsPanel",
-    "localNativeAsrIncompatible": "请为源语言选择语音识别（ASR）模型",
+    "localNativeAsrIncompatible": "请为「我的语言」选择语音识别（ASR）模型",
     "localNativeEngineRequired": "请在提供商设置中下载推理引擎",
     "localNativeEngineUpdateRequired": "推理引擎需要更新 — 请在提供商设置中更新",
     "localNativeModelsRequired": "请在设置中下载 Native 模型",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "「两者」模式下共享会话",
     "sonioxSharedSessionTooltip": "「两者」模式可以用一个共享的 Soniox 会话，也可以每个方向各用一个独立会话。\n\n已启用：单个会话同时翻译双方，并自动区分声音——成本和延迟更低。\n\n禁用：每个方向各一个独立会话——两人同时说话时更可靠，但成本约为两倍。\n\n仅影响「两者」模式。",
     "sonioxSharedSessionManagedCost": "Kizuna AI 两种方式都支持。关闭后会同时运行两个会话——每分钟成本约为两倍，因此可用会话时长大约减半，开始会话所需的余额也更高。",
-    "sonioxAutoParticipantWarning": "请选择具体的源语言——使用自动检测时，无法把对方的语音翻译成您的语言。",
+    "sonioxAutoParticipantWarning": "请把「我的语言」设为具体语言——使用自动检测时，无法把对方的语音翻译成它。",
     "sonioxVocabulary": "自定义词表",
     "sonioxVocabularyTooltip": "使识别偏向重要人名和专业术语，并引导特定术语的译法。将在下次会话生效。",
     "sonioxVocabularyTerms": "术语",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "界面语言",
     "interfaceLanguageDesc": "这会更改Sokuji菜单和按钮的语言。它不会影响您可以在哪些语言之间翻译。",
     "translationLanguages": "翻译语言",
-    "translationLanguagesDesc": "选择您说的语言（我的语言）和您想要听到翻译的语言（对方语言）。如果您不确定源语言，请选择“自动检测”。",
+    "translationLanguagesDesc": "选择您说的语言（我的语言）和您想要听到翻译的语言（对方语言）。如果您不确定自己会说哪种语言，请选择“自动检测”。",
     "yourLanguage": "我的语言",
     "userAccount": "用户账户",
     "userAccountTooltip": "对于拥有技术知识和自己API密钥的用户，无论是否登录都可以使用自己的API密钥。用户账户是为希望简化设置、无需复杂配置的新用户设计的。",
@@ -565,8 +565,8 @@
       "headerGenerated": "生成时间",
       "headerProvider": "服务商",
       "headerModels": "模型",
-      "headerSource": "源语言",
-      "headerTarget": "目标语言",
+      "headerSource": "我的语言",
+      "headerTarget": "对方语言",
       "headerNote": "注意：设置反映导出时的当前状态，不包含会话中途的更改。"
     },
     "waveformOutputTooltip": "发送到虚拟麦克风的音频（翻译 + 原声直通）",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "步骤 3：选择语言",
-          "content": "选择您的源语言（您说的语言）和目标语言（您希望对方听到的语言）。"
+          "content": "选择「我的语言」（您说的语言）和「对方语言」（您希望对方听到的语言）。"
         },
         "microphone": {
           "title": "步骤 5：选择麦克风",

@@ -202,13 +202,13 @@
     "translateInfoBanner": "話者が出力言語と同じ言語を話す場合、このモデルは無音になります。混合言語の発話では空白が生じる可能性があります。",
     "translateModelAvailable": "APIキーが検証されました。gpt-realtime-translate が利用可能です。",
     "translateModelNotAvailable": "APIキーは有効ですが、このキーでは gpt-realtime-translate にアクセスできません。",
-    "translateSourceParticipantWarning": "相手の音声の翻訳が機能しない可能性があります — 選択した入力言語が 13 のサポート対象出力言語に含まれていません。",
+    "translateSourceParticipantWarning": "相手の音声の翻訳が機能しない可能性があります — 「自分の言語」がこのプロバイダーのサポートする 13 の出力言語に含まれていません。",
     "participantSectionHeader": "相手の音声",
     "participantSectionDescriptionElectron": "このシステムで再生されている任意のアプリケーションの音声を翻訳します。",
     "participantSectionDescriptionExtension": "アクティブなブラウザタブの音声を翻訳します。元の音声はシステムの既定の出力から再生されます。",
     "edgeTtsNoVoicesForLanguage": "この言語で利用できる音声がありません",
     "edgeTtsVoiceLoadError": "音声の読み込みに失敗しました — LogsPanel を確認してください",
-    "localNativeAsrIncompatible": "ソース言語の音声認識（ASR）モデルを選択してください",
+    "localNativeAsrIncompatible": "「自分の言語」の音声認識（ASR）モデルを選択してください",
     "localNativeEngineRequired": "プロバイダー設定で推論エンジンをダウンロードしてください",
     "localNativeEngineUpdateRequired": "推論エンジンの更新が必要です — プロバイダー設定を開いて更新してください",
     "localNativeModelsRequired": "設定でネイティブモデルをダウンロードしてください",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "「両方」モードでセッションを共有",
     "sonioxSharedSessionTooltip": "「両方」モードでは、1 つの Soniox セッションを共有することも、方向ごとに別々のセッションを使うこともできます。\n\n有効:1 つのセッションで両者を翻訳し、声を自動的に区別します——コストと遅延が低くなります。\n\n無効:方向ごとに別々のセッションを使用します——2 人が同時に話すときに安定しますが、コストは約 2 倍になります。\n\n「両方」モードにのみ影響します。",
     "sonioxSharedSessionManagedCost": "Kizuna AI はどちらにも対応しています。無効にすると 2 つのセッションを同時に実行します。1 分あたりの費用が約 2 倍になるため、セッションの残り時間はおよそ半分になり、開始にはより多くの残高が必要です。",
-    "sonioxAutoParticipantWarning": "入力言語を具体的に選んでください——自動検出では、相手の音声をあなたの言語に翻訳できません。",
+    "sonioxAutoParticipantWarning": "「自分の言語」を具体的に指定してください——自動検出では、相手の音声をその言語に翻訳できません。",
     "sonioxVocabulary": "カスタム語彙",
     "sonioxVocabularyTooltip": "重要な固有名詞や専門用語の認識に重みを付け、特定の用語の訳し方を導きます。次回のセッションから適用されます。",
     "sonioxVocabularyTerms": "用語",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "インターフェース言語",
     "interfaceLanguageDesc": "これはSokujiのメニューとボタンの言語を変更します。翻訳可能な言語には影響しません。",
     "translationLanguages": "翻訳言語",
-    "translationLanguagesDesc": "話す言語（自分の言語）と翻訳を聞きたい言語（相手の言語）を選択します。ソース言語が不明な場合は「自動検出」を選択してください。",
+    "translationLanguagesDesc": "話す言語（自分の言語）と翻訳を聞きたい言語（相手の言語）を選択します。自分がどの言語を話すか不明な場合は「自動検出」を選択してください。",
     "yourLanguage": "自分の言語",
     "userAccount": "ユーザーアカウント",
     "userAccountTooltip": "技術的な知識と独自のAPIキーをお持ちのユーザーは、ログインの有無に関わらず独自のAPIキーを使用できます。ユーザーアカウントは、複雑な設定なしで簡単にセットアップしたい新規ユーザー向けに設計されています。",
@@ -565,8 +565,8 @@
       "headerGenerated": "生成日時",
       "headerProvider": "プロバイダー",
       "headerModels": "モデル",
-      "headerSource": "ソース言語",
-      "headerTarget": "ターゲット言語",
+      "headerSource": "自分の言語",
+      "headerTarget": "相手の言語",
       "headerNote": "注意: 設定はエクスポート時点の状態を反映しており、セッション中の変更は含まれません。"
     },
     "waveformOutputTooltip": "仮想マイクへ送られる音声（翻訳 + パススルー）",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "ステップ 3：言語を選択",
-          "content": "話す言語（ソース言語）と、相手に聞こえる言語（ターゲット言語）を選択してください。"
+          "content": "「自分の言語」（あなたが話す言語）と「相手の言語」（相手に聞こえる言語）を選択してください。"
         },
         "microphone": {
           "title": "ステップ 5：マイクを選択",

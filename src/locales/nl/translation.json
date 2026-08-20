@@ -202,13 +202,13 @@
     "translateInfoBanner": "Dit model blijft stil wanneer de spreker dezelfde taal gebruikt als de doeltaal. Gemengde talen kunnen hiaten veroorzaken.",
     "translateModelAvailable": "API-sleutel gevalideerd. gpt-realtime-translate is beschikbaar.",
     "translateModelNotAvailable": "API-sleutel werkt, maar gpt-realtime-translate is niet toegankelijk met deze sleutel.",
-    "translateSourceParticipantWarning": "Het vertalen van de audio van de ander werkt mogelijk niet — uw geselecteerde brontaal staat niet in de 13 ondersteunde doeltalen.",
+    "translateSourceParticipantWarning": "Het vertalen van de audio van de ander werkt mogelijk niet — 'Mijn taal' staat niet bij de 13 doeltalen die deze provider ondersteunt.",
     "participantSectionHeader": "Audio van de ander",
     "participantSectionDescriptionElectron": "Vertaal audio van elke applicatie die op dit systeem wordt afgespeeld.",
     "participantSectionDescriptionExtension": "Vertaal audio van het actieve browsertabblad. De originele audio wordt afgespeeld via de standaarduitvoer van uw systeem.",
     "edgeTtsNoVoicesForLanguage": "Geen stemmen beschikbaar voor deze taal",
     "edgeTtsVoiceLoadError": "Laden van stemmen mislukt — controleer LogsPanel",
-    "localNativeAsrIncompatible": "Selecteer een spraakherkenningsmodel voor de brontaal",
+    "localNativeAsrIncompatible": "Selecteer een spraakherkenningsmodel voor 'Mijn taal'",
     "localNativeEngineRequired": "Download de inferentie-engine in de providerinstellingen",
     "localNativeEngineUpdateRequired": "De inferentie-engine heeft een update nodig — open de providerinstellingen om deze bij te werken",
     "localNativeModelsRequired": "Download de native modellen in Instellingen",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Gedeelde sessie in de modus Beide",
     "sonioxSharedSessionTooltip": "In de modus Beide kan één gedeelde Soniox-sessie voor beide richtingen worden gebruikt, of een aparte sessie per richting.\n\nIngeschakeld: één sessie vertaalt beide kanten met automatische stemscheiding — lagere kosten en latentie.\n\nUitgeschakeld: een aparte sessie per richting — betrouwbaarder wanneer beiden tegelijk praten, maar ongeveer dubbele kosten.\n\nHeeft alleen invloed op de modus Beide.",
     "sonioxSharedSessionManagedCost": "Kizuna AI ondersteunt beide. Uitgeschakeld voert twee sessies tegelijk uit — ongeveer twee keer zoveel kosten per minuut, dus je sessietegoed is in ongeveer de helft van de tijd op en je hebt een hoger saldo nodig om te starten.",
-    "sonioxAutoParticipantWarning": "Kies een specifieke brontaal — met automatische detectie kan de spraak van de ander niet naar jouw taal worden vertaald.",
+    "sonioxAutoParticipantWarning": "Stel 'Mijn taal' in op een specifieke taal — met automatische detectie kan de spraak van de ander daar niet naartoe worden vertaald.",
     "sonioxVocabulary": "Aangepast vocabulaire",
     "sonioxVocabularyTooltip": "Stuurt de herkenning richting belangrijke namen en vakjargon en beïnvloedt hoe specifieke termen worden vertaald. Wordt toegepast vanaf de volgende sessie.",
     "sonioxVocabularyTerms": "Termen",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Interface Taal",
     "interfaceLanguageDesc": "Dit verandert de taal van Sokuji's menu's en knoppen. Dit heeft GEEN invloed op de talen waartussen je kunt vertalen.",
     "translationLanguages": "Vertaaltalen",
-    "translationLanguagesDesc": "Kies welke taal je spreekt (Mijn taal) en in welke taal je de vertaling wilt horen (Taal van de ander). Selecteer 'Automatische Detectie' als je niet zeker weet welke brontaal.",
+    "translationLanguagesDesc": "Kies welke taal je spreekt (Mijn taal) en in welke taal je de vertaling wilt horen (Taal van de ander). Selecteer 'Automatische Detectie' als je niet zeker weet welke taal je gaat spreken.",
     "yourLanguage": "Mijn taal",
     "userAccount": "Gebruikersaccount",
     "userAccountTooltip": "Technische gebruikers kunnen hun eigen API-sleutels gebruiken. Gebruikersaccount is ontworpen voor vereenvoudigde setup.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Gegenereerd",
       "headerProvider": "Aanbieder",
       "headerModels": "Modellen",
-      "headerSource": "Bron",
-      "headerTarget": "Doel",
+      "headerSource": "Mijn taal",
+      "headerTarget": "Taal van de ander",
       "headerNote": "Opmerking: instellingen weerspiegelen de huidige staat bij export, niet wijzigingen tijdens de sessie."
     },
     "waveformOutputTooltip": "Audio die naar de virtuele microfoon wordt gestuurd (vertaling + doorvoer)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Stap 3: Talen Kiezen",
-          "content": "Selecteer uw brontaal (wat u spreekt) en doeltaal (wat de andere persoon zal horen)."
+          "content": "Selecteer 'Mijn taal' (wat u spreekt) en 'Taal van de ander' (wat de ander zal horen)."
         },
         "microphone": {
           "title": "Stap 5: Microfoon Selecteren",

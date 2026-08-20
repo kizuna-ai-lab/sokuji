@@ -202,13 +202,13 @@
     "translateInfoBanner": "Modellen är tyst när talaren använder samma språk som målspråket. Blandspråklig tal kan ha luckor.",
     "translateModelAvailable": "API-nyckel validerad. gpt-realtime-translate är tillgänglig.",
     "translateModelNotAvailable": "API-nyckeln fungerar, men gpt-realtime-translate är inte tillgänglig med den här nyckeln.",
-    "translateSourceParticipantWarning": "Översättning av den andras ljud kanske inte fungerar — det valda källspråket finns inte bland de 13 målspråken som stöds.",
+    "translateSourceParticipantWarning": "Översättning av den andras ljud kanske inte fungerar — 'Mitt språk' finns inte bland de 13 målspråk som den här leverantören stöder.",
     "participantSectionHeader": "Den andras ljud",
     "participantSectionDescriptionElectron": "Översätt ljud från valfri applikation som spelas upp på detta system.",
     "participantSectionDescriptionExtension": "Översätt ljud från den aktiva webbläsarfliken. Originalljudet spelas upp via systemets standardutgång.",
     "edgeTtsNoVoicesForLanguage": "Inga röster tillgängliga för detta språk",
     "edgeTtsVoiceLoadError": "Kunde inte ladda röster — kontrollera LogsPanel",
-    "localNativeAsrIncompatible": "Välj en taligenkänningsmodell för källspråket",
+    "localNativeAsrIncompatible": "Välj en taligenkänningsmodell för 'Mitt språk'",
     "localNativeEngineRequired": "Ladda ner inferensmotorn i leverantörsinställningarna",
     "localNativeEngineUpdateRequired": "Inferensmotorn behöver uppdateras — öppna leverantörsinställningarna för att uppdatera den",
     "localNativeModelsRequired": "Ladda ner de nativa modellerna i inställningarna",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Delad session i läget Båda",
     "sonioxSharedSessionTooltip": "Läget Båda kan använda en delad Soniox-session eller en separat session per riktning.\n\nAktiverad: en enda session översätter båda sidor med automatisk röstseparation — lägre kostnad och latens.\n\nInaktiverad: en separat session per riktning — mer tillförlitlig när båda talar samtidigt, men ungefär dubbel kostnad.\n\nPåverkar endast läget Båda.",
     "sonioxSharedSessionManagedCost": "Kizuna AI stöder båda. Inaktiverad kör två sessioner samtidigt — ungefär dubbla kostnaden per minut, så din sessionstid tar slut på ungefär halva tiden och det krävs ett högre saldo för att starta.",
-    "sonioxAutoParticipantWarning": "Välj ett specifikt källspråk — med automatisk identifiering kan den andras tal inte översättas till ditt språk.",
+    "sonioxAutoParticipantWarning": "Ange ett specifikt språk för 'Mitt språk' — med automatisk identifiering kan den andras tal inte översättas dit.",
     "sonioxVocabulary": "Anpassat ordförråd",
     "sonioxVocabularyTooltip": "Styr igenkänningen mot viktiga namn och fackterminologi och påverkar hur specifika termer översätts. Gäller från nästa session.",
     "sonioxVocabularyTerms": "Termer",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Gränssnittsspråk",
     "interfaceLanguageDesc": "Detta ändrar språket för Sokujis menyer och knappar. Det påverkar INTE språken du kan översätta mellan.",
     "translationLanguages": "Översättningsspråk",
-    "translationLanguagesDesc": "Välj vilket språk du talar (Mitt språk) och vilket språk du vill höra översättningen på (Den andras språk). Välj 'Automatisk Detektion' om du inte är säker på källspråket.",
+    "translationLanguagesDesc": "Välj vilket språk du talar (Mitt språk) och vilket språk du vill höra översättningen på (Den andras språk). Välj 'Automatisk Detektion' om du inte är säker på vilket språk du kommer att tala.",
     "yourLanguage": "Mitt språk",
     "userAccount": "Användarkonto",
     "userAccountTooltip": "Tekniska användare kan använda sina egna API-nycklar. Användarkonto designat för förenklad installation.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Genererad",
       "headerProvider": "Leverantör",
       "headerModels": "Modeller",
-      "headerSource": "Källa",
-      "headerTarget": "Mål",
+      "headerSource": "Mitt språk",
+      "headerTarget": "Den andras språk",
       "headerNote": "Obs: inställningarna speglar det aktuella tillståndet vid export, inte ändringar under sessionen."
     },
     "waveformOutputTooltip": "Ljud som skickas till den virtuella mikrofonen (översättning + genomströmning av originalljud)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Steg 3: Välj Språk",
-          "content": "Välj ditt källspråk (det du talar) och målspråk (det den andra personen kommer att höra)."
+          "content": "Välj 'Mitt språk' (det du talar) och 'Den andras språk' (det den andra kommer att höra)."
         },
         "microphone": {
           "title": "Steg 5: Välj Mikrofon",

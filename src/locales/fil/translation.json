@@ -202,13 +202,13 @@
     "translateInfoBanner": "Tahimik ang modelo kapag ginagamit ng nagsasalita ang parehong wika sa target. Maaaring may mga puwang sa magkahalong wika.",
     "translateModelAvailable": "Na-validate ang API key. Available ang gpt-realtime-translate.",
     "translateModelNotAvailable": "Gumagana ang API key, ngunit hindi ma-access ang gpt-realtime-translate gamit ang key na ito.",
-    "translateSourceParticipantWarning": "Maaaring hindi gumana ang pagsasalin ng audio ng kausap — ang napili ninyong source language ay wala sa 13 sinusuportahang target na wika.",
+    "translateSourceParticipantWarning": "Maaaring hindi gumana ang pagsasalin ng audio ng kausap — ang \"Aking wika\" ay wala sa 13 target na wikang sinusuportahan ng provider na ito.",
     "participantSectionHeader": "Audio ng kausap",
     "participantSectionDescriptionElectron": "Isalin ang audio mula sa anumang application na tumutugtog sa system na ito.",
     "participantSectionDescriptionExtension": "Isalin ang audio mula sa aktibong browser tab. Ang orihinal na audio ay tumutugtog sa default na output ng iyong system.",
     "edgeTtsNoVoicesForLanguage": "Walang available na boses para sa wikang ito",
     "edgeTtsVoiceLoadError": "Hindi na-load ang mga boses — suriin ang LogsPanel",
-    "localNativeAsrIncompatible": "Pumili ng modelo ng pagkilala sa pagsasalita para sa source language",
+    "localNativeAsrIncompatible": "Pumili ng modelo ng pagkilala sa pagsasalita para sa \"Aking wika\"",
     "localNativeEngineRequired": "I-download ang inference engine sa mga setting ng provider",
     "localNativeEngineUpdateRequired": "Kailangan ng update ang inference engine — buksan ang mga setting ng provider para i-update ito",
     "localNativeModelsRequired": "I-download ang mga native na modelo sa mga setting",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Nakabahaging session sa mode na Pareho",
     "sonioxSharedSessionTooltip": "Ang mode na Pareho ay maaaring gumamit ng isang nakabahaging session ng Soniox o hiwalay na session para sa bawat direksyon.\n\nPinagana: isang session ang nagsasalin sa magkabilang panig na may awtomatikong paghihiwalay ng nagsasalita — mas mababang gastos at latency.\n\nHindi pinagana: hiwalay na session para sa bawat direksyon — mas maaasahan kapag sabay na nagsasalita ang dalawa, ngunit halos doble ang gastos.\n\nNakakaapekto lamang sa mode na Pareho.",
     "sonioxSharedSessionManagedCost": "Sinusuportahan ng Kizuna AI ang dalawa. Kapag hindi pinagana ang nakabahaging session, dalawang session ang sabay na tumatakbo — halos doble ang gastos kada minuto, kaya mauubos ang oras ng iyong session sa halos kalahati ng panahon at kailangan ng mas mataas na balanse para makapagsimula.",
-    "sonioxAutoParticipantWarning": "Pumili ng tiyak na source language — sa awtomatikong pagtukoy, hindi maisasalin sa inyong wika ang sinasabi ng kausap.",
+    "sonioxAutoParticipantWarning": "Itakda ang \"Aking wika\" sa isang tiyak na wika — sa awtomatikong pagtukoy, hindi maisasalin doon ang sinasabi ng kausap.",
     "sonioxVocabulary": "Custom na Bokabularyo",
     "sonioxVocabularyTooltip": "Umiimpluwensya sa pagkilala tungo sa mahahalagang pangalan at teknikal na termino, at gumagabay kung paano isinasalin ang mga partikular na termino. Mag-aapply mula sa susunod na session.",
     "sonioxVocabularyTerms": "Mga Termino",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Wika ng Interface",
     "interfaceLanguageDesc": "Binabago nito ang wika ng mga menu at button ng Sokuji. HINDI nito naaapektuhan kung anong mga wika ang pwede ninyong i-translate.",
     "translationLanguages": "Mga Wika ng Translation",
-    "translationLanguagesDesc": "Piliin kung anong wika ang ginagamit ninyo (Aking wika) at kung anong wika ang gusto ninyong marinig sa translation (Wika ng kausap). Piliin ang \"Awtomatikong Detekta\" kung hindi kayo sigurado sa source language.",
+    "translationLanguagesDesc": "Piliin kung anong wika ang ginagamit ninyo (Aking wika) at kung anong wika ang gusto ninyong marinig sa translation (Wika ng kausap). Piliin ang \"Awtomatikong Detekta\" kung hindi kayo sigurado kung anong wika ang inyong sasalitain.",
     "yourLanguage": "Aking wika",
     "userAccount": "Account ng User",
     "userAccountTooltip": "Ang mga technical na user ay pwedeng gumamit ng sarili nilang API keys. Ang User Account ay ginawa para sa simplified na setup.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Nabuo",
       "headerProvider": "Provider",
       "headerModels": "Mga modelo",
-      "headerSource": "Pinagmulan",
-      "headerTarget": "Target",
+      "headerSource": "Aking wika",
+      "headerTarget": "Wika ng kausap",
       "headerNote": "Tandaan: ang mga setting ay sumasalamin sa kasalukuyang estado sa pag-export, hindi sa mga pagbabago sa kalagitnaan ng session."
     },
     "waveformOutputTooltip": "Audio na ipinapadala sa virtual microphone (pagsasalin + original audio passthrough)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Hakbang 3: Pumili ng mga Wika",
-          "content": "Piliin ang iyong source language (ang wika na sinasalita mo) at target language (ang maririnig ng kabilang partido)."
+          "content": "Piliin ang \"Aking wika\" (ang wika na sinasalita ninyo) at \"Wika ng kausap\" (ang maririnig ng kausap)."
         },
         "microphone": {
           "title": "Hakbang 5: Pumili ng Mikropono",

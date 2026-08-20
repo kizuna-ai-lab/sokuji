@@ -202,13 +202,13 @@
     "translateInfoBanner": "Model ini diam ketika pembicara menggunakan bahasa yang sama dengan target. Ucapan multi-bahasa mungkin memiliki celah.",
     "translateModelAvailable": "Kunci API divalidasi. gpt-realtime-translate tersedia.",
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak dapat diakses dengan kunci ini.",
-    "translateSourceParticipantWarning": "Penerjemahan audio lawan bicara mungkin tidak berfungsi — bahasa sumber yang Anda pilih tidak termasuk dalam 13 bahasa target yang didukung.",
+    "translateSourceParticipantWarning": "Penerjemahan audio lawan bicara mungkin tidak berfungsi — \"Bahasa saya\" tidak termasuk dalam 13 bahasa target yang didukung penyedia ini.",
     "participantSectionHeader": "Audio lawan bicara",
     "participantSectionDescriptionElectron": "Terjemahkan audio dari aplikasi apa pun yang diputar di sistem ini.",
     "participantSectionDescriptionExtension": "Terjemahkan audio dari tab browser aktif. Audio asli diputar melalui output default sistem Anda.",
     "edgeTtsNoVoicesForLanguage": "Tidak ada suara tersedia untuk bahasa ini",
     "edgeTtsVoiceLoadError": "Gagal memuat suara — periksa LogsPanel",
-    "localNativeAsrIncompatible": "Pilih model pengenalan ucapan untuk bahasa sumber",
+    "localNativeAsrIncompatible": "Pilih model pengenalan ucapan untuk \"Bahasa saya\"",
     "localNativeEngineRequired": "Unduh mesin inferensi di pengaturan penyedia",
     "localNativeEngineUpdateRequired": "Mesin inferensi perlu diperbarui — buka pengaturan penyedia untuk memperbaruinya",
     "localNativeModelsRequired": "Unduh model native di pengaturan",
@@ -219,7 +219,7 @@
     "sonioxSharedSession": "Sesi bersama dalam mode Keduanya",
     "sonioxSharedSessionTooltip": "Mode Keduanya dapat menggunakan satu sesi Soniox bersama atau sesi terpisah untuk tiap arah.\n\nAktif: satu sesi menerjemahkan kedua sisi dengan pemisahan suara otomatis — biaya dan latensi lebih rendah.\n\nNonaktif: sesi terpisah untuk tiap arah — lebih andal ketika keduanya berbicara bersamaan, tetapi biayanya sekitar dua kali lipat.\n\nHanya memengaruhi mode Keduanya.",
     "sonioxSharedSessionManagedCost": "Kizuna AI mendukung keduanya. Nonaktif menjalankan dua sesi sekaligus — biayanya sekitar dua kali lipat per menit, jadi jatah sesi Anda habis dalam waktu sekitar setengahnya dan diperlukan saldo lebih besar untuk memulai.",
-    "sonioxAutoParticipantWarning": "Pilih bahasa sumber tertentu — dengan deteksi otomatis, ucapan lawan bicara tidak dapat diterjemahkan ke bahasa Anda.",
+    "sonioxAutoParticipantWarning": "Setel \"Bahasa saya\" ke bahasa tertentu — dengan deteksi otomatis, ucapan lawan bicara tidak dapat diterjemahkan ke bahasa itu.",
     "sonioxVocabulary": "Kosakata Kustom",
     "sonioxVocabularyTooltip": "Mengarahkan pengenalan ke nama dan istilah penting, serta memengaruhi cara penerjemahan istilah tertentu. Berlaku mulai sesi berikutnya.",
     "sonioxVocabularyTerms": "Istilah",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Bahasa Antarmuka",
     "interfaceLanguageDesc": "Ini mengubah bahasa menu dan tombol Sokuji. Ini TIDAK mempengaruhi bahasa mana yang dapat Anda terjemahkan.",
     "translationLanguages": "Bahasa Terjemahan",
-    "translationLanguagesDesc": "Pilih bahasa yang Anda gunakan (Bahasa saya) dan bahasa yang ingin Anda dengar terjemahannya (Bahasa lawan bicara). Pilih \"Deteksi Otomatis\" jika Anda tidak yakin tentang bahasa sumber.",
+    "translationLanguagesDesc": "Pilih bahasa yang Anda gunakan (Bahasa saya) dan bahasa yang ingin Anda dengar terjemahannya (Bahasa lawan bicara). Pilih \"Deteksi Otomatis\" jika Anda tidak yakin bahasa apa yang akan Anda gunakan.",
     "yourLanguage": "Bahasa saya",
     "userAccount": "Akun Pengguna",
     "userAccountTooltip": "Pengguna teknis dapat menggunakan kunci API mereka sendiri. Akun Pengguna dirancang untuk pengaturan yang disederhanakan.",
@@ -565,8 +565,8 @@
       "headerGenerated": "Dibuat",
       "headerProvider": "Penyedia",
       "headerModels": "Model",
-      "headerSource": "Sumber",
-      "headerTarget": "Target",
+      "headerSource": "Bahasa saya",
+      "headerTarget": "Bahasa lawan bicara",
       "headerNote": "Catatan: pengaturan mencerminkan kondisi saat ekspor, bukan perubahan selama sesi berlangsung."
     },
     "waveformOutputTooltip": "Audio yang dikirim ke mikrofon virtual (terjemahan + passthrough audio asli)",
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Langkah 3: Pilih Bahasa",
-          "content": "Pilih bahasa sumber (yang Anda ucapkan) dan bahasa target (yang akan didengar pihak lain)."
+          "content": "Pilih \"Bahasa saya\" (yang Anda ucapkan) dan \"Bahasa lawan bicara\" (yang akan didengar lawan bicara)."
         },
         "microphone": {
           "title": "Langkah 5: Pilih Mikrofon",
