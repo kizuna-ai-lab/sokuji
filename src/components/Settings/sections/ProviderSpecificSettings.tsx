@@ -2409,7 +2409,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 </div>
                 <textarea
                   className="system-instructions"
-                  placeholder={t('settings.participantInstructionsTooltip', 'Leave empty to use main instructions...')}
+                  placeholder={t('settings.participantInstructionsPlaceholder', 'Leave empty to use main instructions')}
                   value={participantSystemInstructions}
                   onChange={(e) => setParticipantSystemInstructions(e.target.value)}
                   disabled={isSessionActive}

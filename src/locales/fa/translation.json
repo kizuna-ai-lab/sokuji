@@ -316,7 +316,7 @@
     "refreshDevices": "بروزرسانی دستگاه‌ها",
     "unknownDevice": "دستگاه نامشخص",
     "participantSource": "منبع صدای طرف مقابل",
-    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
+    "participantSourceDesc": "انتخاب کنید کدام برنامه ترجمه شود. «صدای سیستم» هر آنچه می‌شنوید را ضبط می‌کند، از جمله بازی‌ها و موسیقی.",
     "turnOffParticipant": "خاموش کردن صدای طرف مقابل",
     "participantSilentNoPermission": "The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.",
     "audioCaptureDeniedNotice": "Permission Required",

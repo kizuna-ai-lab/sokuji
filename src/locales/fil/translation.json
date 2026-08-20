@@ -316,7 +316,7 @@
     "refreshDevices": "I-refresh ang mga device",
     "unknownDevice": "Hindi kilalang device",
     "participantSource": "Pinagmulan ng audio ng kausap",
-    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
+    "participantSourceDesc": "Piliin kung aling application ang isasalin. Kinukuha ng \"System Audio\" ang lahat ng inyong naririnig, kasama ang mga laro at musika.",
     "turnOffParticipant": "Patayin ang audio ng kausap",
     "participantSilentNoPermission": "The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.",
     "audioCaptureDeniedNotice": "Permission Required",
@@ -542,7 +542,7 @@
     "displayMode": {
       "speaker": "Ako",
       "participant": "Kausap",
-      "both": "Parehas",
+      "both": "Pareho",
       "source": "Orihinal",
       "translation": "Salin",
       "tooltip": "{{scope}} — i-click para baguhin\nIpinapakita: {{mode}}\n• Orihinal: orihinal na pananalita lamang\n• Salin: salin lamang\n• Parehas: parehong linya",
@@ -877,7 +877,7 @@
     "gpuWaylandRemedy": "Sa isang Wayland session, hindi magagamit ng Chromium ang GPU para dito. Ang pagbukas ng Sokuji gamit ang --ozone-platform=x11 ay nagbabalik ng acceleration.",
     "incompatibleVariant": "Hindi tugma ang format ng modelong ito sa inyong device. Pakiusap na i-delete at i-download muli.",
     "initFailed": "Nabigong mag-initialize ang storage ng modelo: {{message}}",
-    "othersGroup": "Iba pang modelo",
+    "othersGroup": "Iba pang mga modelo",
     "requiresGpu": "Nangangailangan ng GPU",
     "upgradeVariant": "Sinusuportahan ng inyong device ang mas mabilis na format ng modelo. I-delete at i-download muli para sa mas magandang performance.",
     "licenseConsent": {

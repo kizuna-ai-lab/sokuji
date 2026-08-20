@@ -152,22 +152,39 @@ describe('the three translation modes are named with one word each', () => {
     'mainPanel.export.speakerOther',
     'providers.local_inference.participant',
   ];
+  // Both is named twice and drifted too: fil said "Pareho" in the picker and
+  // "Parehas" on the display-mode toggle.
+  const BOTH = [
+    'modePicker.modeBoth',
+    'mainPanel.displayMode.both',
+  ];
 
-  const agree = (cat: Record<string, string>, keys: string[]) =>
-    new Set(keys.map(k => cat[k]).filter(v => typeof v === 'string'));
+  // Deliberately does NOT skip absent keys: a missing key must fail here rather
+  // than shrink the set into a passing one. (Key parity is asserted above too,
+  // but a test that reads as "these all agree" should not quietly pass when one
+  // of them does not exist.)
+  const agree = (cat: Record<string, string>, keys: string[]) => {
+    const missing = keys.filter(k => typeof cat[k] !== 'string');
+    expect(missing).toEqual([]);
+    return new Set(keys.map(k => cat[k]));
+  };
 
   it.each([['en', EN] as const, ...locales])(
-    '%s uses one word for "me" and one for "the other side"',
+    '%s uses one word each for "me", "the other side" and "both"',
     (_lang, cat) => {
       expect([...agree(cat, SELF)]).toHaveLength(1);
       expect([...agree(cat, OTHER)]).toHaveLength(1);
+      expect([...agree(cat, BOTH)]).toHaveLength(1);
     },
   );
 
-  it('the two words are never the same word', () => {
+  it('the three words are always distinct', () => {
     const offenders: string[] = [];
     for (const [lang, cat] of [['en', EN] as const, ...locales]) {
-      if (cat[SELF[0]] === cat[OTHER[0]]) offenders.push(`${lang}: both sides read ${JSON.stringify(cat[SELF[0]])}`);
+      const [me, other, both] = [cat[SELF[0]], cat[OTHER[0]], cat[BOTH[0]]];
+      if (new Set([me, other, both]).size !== 3) {
+        offenders.push(`${lang}: ${JSON.stringify([me, other, both])}`);
+      }
     }
     expect(offenders).toEqual([]);
   });
@@ -182,7 +199,11 @@ describe('the three translation modes are named with one word each', () => {
   ])('%s matches %s in every locale', (header, label) => {
     const offenders: string[] = [];
     for (const [lang, cat] of [['en', EN] as const, ...locales]) {
-      if (cat[header] !== cat[label]) {
+      // Require both to exist: two absent keys are `undefined === undefined`,
+      // which would pass while saying nothing.
+      if (typeof cat[header] !== 'string' || typeof cat[label] !== 'string') {
+        offenders.push(`${lang}: missing ${typeof cat[header] !== 'string' ? header : label}`);
+      } else if (cat[header] !== cat[label]) {
         offenders.push(`${lang}: ${JSON.stringify(cat[header])} != ${JSON.stringify(cat[label])}`);
       }
     }

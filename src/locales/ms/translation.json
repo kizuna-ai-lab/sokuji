@@ -316,7 +316,7 @@
     "refreshDevices": "Segar semula peranti",
     "unknownDevice": "Peranti tidak diketahui",
     "participantSource": "Sumber audio pihak lain",
-    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
+    "participantSourceDesc": "Pilih aplikasi yang hendak diterjemah. \"Audio sistem\" menangkap semua yang anda dengar, termasuk permainan dan muzik.",
     "turnOffParticipant": "Matikan audio pihak lain",
     "participantSilentNoPermission": "The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.",
     "audioCaptureDeniedNotice": "Permission Required",
