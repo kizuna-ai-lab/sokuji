@@ -109,6 +109,8 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
   const winRef = useRef<Window | null>(null);
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  // Side of the anchor this open landed on; null until the placing open.
+  const placementRef = useRef<'above' | 'below' | null>(null);
   const clonedStylesRef = useRef(new WeakSet<Node>());
   // The latest values without re-running effects that must not churn.
   const onCloseRef = useRef(onClose);
@@ -272,7 +274,16 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     // room above. Clamped on ALL edges — a partially off-screen request gets
     // re-placed by mutter to an arbitrary position, which is worse than a
     // slightly shifted popover.
-    const above = anchorTop - h - EDGE_PAD >= screenTop;
+    // Which side fits depends on the height, and the height changes while the
+    // popover is open — expanding a color picker adds ~164px. Re-deciding on
+    // every resize threw the window across the bar mid-interaction, so the
+    // side is chosen on the open that placed it and held until it closes.
+    // Growing past the room available on that side pins it to the screen edge
+    // instead, which the height cap already keeps on-screen.
+    if (placementRef.current === null) {
+      placementRef.current = anchorTop - h - EDGE_PAD >= screenTop ? 'above' : 'below';
+    }
+    const above = placementRef.current === 'above';
     const left = Math.min(
       Math.max(screenLeft, Math.round(window.screenX + anchor.right - (w + scrollbar))),
       screenLeft + Math.max(0, window.screen.availWidth - (w + scrollbar)),
@@ -303,6 +314,7 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     if (!win || win.closed || !container) return;
 
     if (!open || !anchorEl) {
+      placementRef.current = null;
       setNativeVisibility(nameRef.current, false);
       return;
     }
@@ -310,6 +322,7 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     // Styles that appeared since creation (dev HMR, late chunks).
     syncStyles(document, win.document, clonedStylesRef.current);
 
+    placementRef.current = null;
     sizeAndPlace();
     setNativeVisibility(nameRef.current, true);
     win.focus();

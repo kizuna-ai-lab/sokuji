@@ -103,6 +103,11 @@ describe('ChildWindowPopover', () => {
       return calls.length ? (calls[calls.length - 1][1] as number) : undefined;
     };
 
+    const lastMoveTop = () => {
+      const calls = child.moveTo.mock.calls;
+      return calls.length ? (calls[calls.length - 1][1] as number) : undefined;
+    };
+
     const contentOf = () => {
       const all = child.document.querySelectorAll('.child-popover-content');
       return all[all.length - 1] as HTMLElement;
@@ -209,6 +214,48 @@ describe('ChildWindowPopover', () => {
       // ...and the scroll port gets the same cap, so the overflow scrolls
       // instead of being cut off at the window edge.
       expect(rootOf().style.maxHeight).toBe(`${asked}px`);
+    });
+
+    // Which side of the anchor the window opens on depends on the height, so
+    // recomputing it on every resize made the window jump across the bar the
+    // moment a color picker expanded past the room above the anchor. The side
+    // is chosen once per open and held.
+    it('does not flip to the other side of the anchor when the content grows', () => {
+      // A real screen, or the clamp below collapses both branches onto 0 and
+      // the assertion cannot tell them apart.
+      Object.defineProperty(window.screen, 'availHeight', {
+        value: 1000, configurable: true,
+      });
+      const { setOpen } = openPopover();
+
+      // anchor sits at top 700 / bottom 736, so 280 fits above it.
+      stubHeight(280);
+      act(() => { setOpen(true); });
+      const openedAt = lastMoveTop();
+      expect(openedAt).toBe(700 - 280 - 8);
+
+      // 800 no longer fits above. Holding the side pins it to the screen top;
+      // flipping would drop it to the clamped below-anchor position instead.
+      stubHeight(800);
+      act(() => { fireResizeObservers(); });
+      expect(lastMoveTop()).toBe(0);
+      expect(lastMoveTop()).not.toBe(200);
+    });
+
+    it('re-decides the side on the next open', () => {
+      Object.defineProperty(window.screen, 'availHeight', {
+        value: 1000, configurable: true,
+      });
+      const { setOpen } = openPopover();
+      stubHeight(280);
+      act(() => { setOpen(true); });
+      expect(lastMoveTop()).toBe(412);
+
+      act(() => { setOpen(false); });
+      // Too tall to sit above the anchor: this open must land below it.
+      stubHeight(800);
+      act(() => { setOpen(true); });
+      expect(lastMoveTop()).toBe(200);
     });
 
     it('stops observing once closed', () => {
