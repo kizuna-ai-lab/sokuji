@@ -17,7 +17,7 @@ import {
   UserCog,
   Wallet
 } from 'lucide-react';
-import {formatUsd} from '../../utils/formatters';
+import {formatUsd, formatUsdFloor} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
 import {isElectron, getBackendUrl, getApiUrl} from '../../utils/environment';
@@ -376,7 +376,9 @@ export function UserAccountInfo({
             <div className="quota-compact-line">
               <Wallet size={14} className="wallet-icon"/>
               <span className="balance-section">
-                {formatUsd(quota.balance || quota.remaining)}
+                {/* Floored, not rounded: a balance must never display more
+                    money than the wallet holds. See `formatUsdFloor`. */}
+                {formatUsdFloor(quota.balance || quota.remaining)}
               </span>
               <span className="divider">|</span>
               <span className="usage-section">
