@@ -48,7 +48,16 @@ function usdDecimals(absUsd: number): 2 | 4 | 6 {
 }
 
 /**
- * Assemble the final string from an already-scaled µUSD amount.
+ * µUSD per displayed unit at a given precision: 10,000 (a cent) at 2dp, 100 at
+ * 4dp, 1 at 6dp. Exact, because both operands are powers of ten.
+ */
+function stepMicroUsd(decimals: 2 | 4 | 6): number {
+  return 10 ** (6 - decimals);
+}
+
+/**
+ * Assemble the final string from an amount ALREADY quantized onto the display
+ * grid by `quantize`.
  *
  * The sign is applied to the FORMATTED magnitude, not the raw number, so an
  * amount too small to survive its own precision bucket cannot render as
@@ -59,6 +68,32 @@ function render(microUsd: number, decimals: 2 | 4 | 6): string {
   const magnitude = Math.abs(microUsd / MICRO_USD_PER_USD).toFixed(decimals);
   const sign = microUsd < 0 && !ALL_ZEROS.test(magnitude) ? '-' : '';
   return `$${sign}${magnitude}`;
+}
+
+/**
+ * Snap an exact integer µUSD amount onto the display grid.
+ *
+ * BOTH ROUNDING MODES QUANTIZE IN INTEGER µUSD RATHER THAN IN FLOAT DOLLARS,
+ * for the same reason: the grid points are exact there and are not in IEEE 754.
+ *
+ *   - `round`: dividing first and letting `toFixed` round decides ties on
+ *     representation accident. 10,050 µUSD is exactly half a 4dp unit, but as a
+ *     double it is 0.010049999999999999906, so `toFixed(4)` rounds it DOWN to
+ *     "0.0100". That is not a rule — sweeping the 9,900 exact ties in the 4dp
+ *     bucket splits 4,943 down and 4,957 up. Rounding `|micro| / step` instead
+ *     resolves every tie away from zero, symmetrically for either sign.
+ *   - `floor`: `4.95 * 100` is 494.99999999999994, so flooring in dollars would
+ *     render an exact $4.95 balance as "$4.94".
+ *
+ * The magnitude is what gets quantized — the same magnitude `render` then
+ * applies the sign to — so the two agree on which side of a tie an amount sits
+ * regardless of sign.
+ */
+function quantize(microUsd: number, decimals: 2 | 4 | 6, mode: 'round' | 'floor'): number {
+  const step = stepMicroUsd(decimals);
+  if (mode === 'floor') return Math.floor(microUsd / step) * step;
+  const magnitude = Math.round(Math.abs(microUsd) / step) * step;
+  return microUsd < 0 ? -magnitude : magnitude;
 }
 
 /**
@@ -80,7 +115,8 @@ function render(microUsd: number, decimals: 2 | 4 | 6): string {
  */
 export function formatUsd(microUsd: number | null | undefined): string {
   if (typeof microUsd !== 'number' || !Number.isFinite(microUsd)) return '$0.00';
-  return render(microUsd, usdDecimals(Math.abs(microUsd / MICRO_USD_PER_USD)));
+  const decimals = usdDecimals(Math.abs(microUsd / MICRO_USD_PER_USD));
+  return render(quantize(microUsd, decimals, 'round'), decimals);
 }
 
 /**
@@ -98,11 +134,8 @@ export function formatUsd(microUsd: number | null | undefined): string {
  * away from zero — the same conservative direction: never show less debt than
  * is owed.
  *
- * THE TRUNCATION HAPPENS IN INTEGER µUSD, not in float dollars, because the
- * grid points are exact there and are not in IEEE 754: `4.95 * 100` is
- * 494.99999999999994, so flooring in dollars would render an exact $4.95
- * balance as "$4.94". Every amount in this system is an integer number of
- * micro-USD, which makes `step` an exact divisor.
+ * Like `formatUsd`, it quantizes in integer µUSD rather than float dollars —
+ * see `quantize` for why each mode needs that.
  *
  * @param microUsd Amount in micro-USD
  * @returns Formatted string (e.g., "$4.99" for a balance of $4.998448)
@@ -112,9 +145,7 @@ export function formatUsdFloor(microUsd: number | null | undefined): string {
   // Bucket chosen from the RAW magnitude, exactly as `formatUsd` does, so the
   // two agree on precision and differ only in direction.
   const decimals = usdDecimals(Math.abs(microUsd / MICRO_USD_PER_USD));
-  // µUSD per displayed unit: 10,000 (a cent) at 2dp, 100 at 4dp, 1 at 6dp.
-  const step = 10 ** (6 - decimals);
-  return render(Math.floor(microUsd / step) * step, decimals);
+  return render(quantize(microUsd, decimals, 'floor'), decimals);
 }
 
 /**

@@ -68,6 +68,25 @@ describe('formatUsd', () => {
     expect(formatUsd(9_999_999)).toBe('$10.00');
   });
 
+  // Rounding happens on the exact integer micro-USD, NOT on the float dollars,
+  // so an amount sitting exactly half a display unit from its neighbours lands
+  // by rule instead of by IEEE 754 accident. 10,050 µUSD is
+  // 0.010049999999999999906 as a double, so `(m / 1e6).toFixed(4)` rounds it
+  // DOWN to "$0.0100"; 1,005,000 µUSD does the same at 2dp. Neither direction
+  // was a decision: a sweep of the 4dp bucket's 9,900 exact ties splits 4,943
+  // down and 4,957 up purely on how each value happens to be representable.
+  it('resolves an exact tie by rule rather than by float representation', () => {
+    expect(formatUsd(10_050)).toBe('$0.0101');
+    expect(formatUsd(1_005_000)).toBe('$1.01');
+  });
+
+  // Ties resolve away from zero on both sides, because the magnitude is what
+  // gets rounded - the same magnitude the sign is then applied to.
+  it('resolves ties symmetrically for negative amounts', () => {
+    expect(formatUsd(-10_050)).toBe('$-0.0101');
+    expect(formatUsd(-1_005_000)).toBe('$-1.01');
+  });
+
   it('keeps negative amounts signed at every precision bucket', () => {
     expect(formatUsd(-1_500_000)).toBe('$-1.50');
     expect(formatUsd(-26_499)).toBe('$-0.0265');
