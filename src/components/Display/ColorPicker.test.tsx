@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
+import { createPortal } from 'react-dom';
 import ColorPicker from './ColorPicker';
 
 vi.mock('react-i18next', () => ({
@@ -172,6 +173,52 @@ describe('ColorPicker', () => {
     // under 0.1 in binary floating point.
     fireEvent.keyDown(area, { key: 'ArrowLeft', shiftKey: true });
     expect(onChange).toHaveBeenLastCalledWith('#ff1919');
+  });
+
+  // SubtitleBar hosts this popover in a real child window on Electron and
+  // reaches it with createPortal: the DOM lives in that window's document
+  // while the component's JS keeps running in the parent window's realm. A
+  // bare `window.addEventListener` therefore lands on the WRONG window and
+  // the drag never tracks. An iframe reproduces exactly that split.
+  it('tracks the drag in the document it was portaled into, not the parent window', () => {
+    const iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+    const childDoc = iframe.contentDocument!;
+    const childWin = iframe.contentWindow!;
+    const host = childDoc.createElement('div');
+    childDoc.body.appendChild(host);
+
+    const onChange = vi.fn();
+    render(createPortal(<ColorPicker value="#ff0000" onChange={onChange} />, host));
+
+    const area = childDoc.querySelector('.color-picker__area') as HTMLElement;
+    expect(area).not.toBeNull();
+    stubRect(area);
+
+    // Build the events with the CHILD realm's constructor, as a real child
+    // window would.
+    const childPointer = (type: string, init: MouseEventInit) =>
+      new (childWin as unknown as { MouseEvent: typeof MouseEvent }).MouseEvent(
+        type, { bubbles: true, ...init },
+      );
+
+    act(() => { area.dispatchEvent(childPointer('pointerdown', { clientX: 200, clientY: 0, buttons: 1 })); });
+    expect(onChange).toHaveBeenLastCalledWith('#ff0000');
+    onChange.mockClear();
+
+    // The move is dispatched on the CHILD window. A listener parked on the
+    // parent window would never see it.
+    act(() => { childWin.dispatchEvent(childPointer('pointermove', { clientX: 0, clientY: 0, buttons: 1 })); });
+    expect(onChange).toHaveBeenLastCalledWith('#ffffff');
+
+    // ...and the release must be heard there too, or the listener leaks onto
+    // a window the user goes on using.
+    act(() => { childWin.dispatchEvent(childPointer('pointerup', {})); });
+    onChange.mockClear();
+    act(() => { childWin.dispatchEvent(childPointer('pointermove', { clientX: 200, clientY: 0, buttons: 1 })); });
+    expect(onChange).not.toHaveBeenCalled();
+
+    iframe.remove();
   });
 
   it('re-syncs when the bound value changes from the outside', () => {

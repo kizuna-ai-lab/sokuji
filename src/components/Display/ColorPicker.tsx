@@ -103,8 +103,15 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
     [emit],
   );
 
-  // Tracked on window rather than via setPointerCapture so a drag that runs
-  // off the edge of the small area keeps updating instead of freezing.
+  // Tracked on the window rather than via setPointerCapture so a drag that
+  // runs off the edge of the small area keeps updating instead of freezing.
+  //
+  // That window is deliberately NOT the bare global. On Electron, SubtitleBar
+  // hosts this popover in a separate child window and reaches it through
+  // createPortal, so the DOM lives in that window while this module's code
+  // keeps running in the parent window's realm. Pointer events raised in the
+  // child never reach the parent's `window`, so a bare listener would leave
+  // the drag dead on exactly the surface this picker was built for.
   const detachRef = useRef<(() => void) | null>(null);
   useEffect(() => () => detachRef.current?.(), []);
 
@@ -114,6 +121,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
       areaRef.current?.focus();
       applyFromPoint(e.clientX, e.clientY);
 
+      const view = areaRef.current?.ownerDocument.defaultView ?? window;
       detachRef.current?.();
       const move = (ev: MouseEvent) => {
         // A release that happens outside the window never reaches us as a
@@ -128,14 +136,14 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange }) => {
       };
       const up = () => detachRef.current?.();
       detachRef.current = () => {
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-        window.removeEventListener('pointercancel', up);
+        view.removeEventListener('pointermove', move);
+        view.removeEventListener('pointerup', up);
+        view.removeEventListener('pointercancel', up);
         detachRef.current = null;
       };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
-      window.addEventListener('pointercancel', up);
+      view.addEventListener('pointermove', move);
+      view.addEventListener('pointerup', up);
+      view.addEventListener('pointercancel', up);
     },
     [applyFromPoint],
   );

@@ -35,8 +35,26 @@ describe('ChildWindowPopover', () => {
   let openSpy: ReturnType<typeof vi.spyOn>;
   let anchor: HTMLButtonElement;
   let invoke: ReturnType<typeof vi.fn>;
+  // jsdom has no ResizeObserver. Capture the callbacks so a test can play the
+  // part of the browser noticing the hosted content changed height.
+  let observers: Array<{ cb: () => void; live: boolean }>;
+  // Only observers that have not been disconnected, mirroring the browser.
+  const fireResizeObservers = () => {
+    observers.filter((o) => o.live).forEach((o) => o.cb());
+  };
 
   beforeEach(() => {
+    observers = [];
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = class {
+      private entry: { cb: () => void; live: boolean };
+      constructor(cb: () => void) {
+        this.entry = { cb, live: true };
+        observers.push(this.entry);
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() { this.entry.live = false; }
+    };
     child = makeFakeChild();
     openSpy = vi.spyOn(window, 'open').mockReturnValue(child as unknown as Window);
     invoke = vi.fn(async () => ({ ok: true }));
@@ -61,6 +79,112 @@ describe('ChildWindowPopover', () => {
     );
     return { ...utils, onClose };
   };
+
+  // The hosted popover is not a fixed-size thing: DisplaySettingsPopover grows
+  // by ~190px when a color picker is expanded. A window measured once at open
+  // would leave that content behind an internal scrollbar forever.
+  describe('following the hosted content height', () => {
+    // One test overrides screen.availHeight; drop the own property again so
+    // the prototype getter is back for everyone else.
+    afterEach(() => {
+      delete (window.screen as unknown as Record<string, unknown>).availHeight;
+    });
+
+    // createWindow appends a fresh root on every (re)creation, so always take
+    // the newest one rather than the first.
+    const rootOf = () => {
+      const all = child.document.querySelectorAll('.child-popover-root');
+      return all[all.length - 1] as HTMLElement;
+    };
+
+    // Array.prototype.at is outside the project's ES2020 lib target.
+    const lastResizeHeight = () => {
+      const calls = child.resizeTo.mock.calls;
+      return calls.length ? (calls[calls.length - 1][1] as number) : undefined;
+    };
+
+    const stubHeight = (h: number) => {
+      const root = rootOf();
+      root.getBoundingClientRect = () =>
+        ({ width: 280, height: h, top: 0, left: 0, right: 280, bottom: h } as DOMRect);
+    };
+
+    const openPopover = (onClose = vi.fn()) => {
+      const utils = render(
+        <ChildWindowPopover open={false} onClose={onClose} anchorEl={anchor} width={320} height={400}>
+          <div className="probe-content">hello</div>
+        </ChildWindowPopover>,
+      );
+      const setOpen = (open: boolean) =>
+        utils.rerender(
+          <ChildWindowPopover open={open} onClose={onClose} anchorEl={anchor} width={320} height={400}>
+            <div className="probe-content">hello</div>
+          </ChildWindowPopover>,
+        );
+      return { ...utils, setOpen };
+    };
+
+    it('measures the natural height, not a height the popover clamped itself to', () => {
+      const { setOpen } = openPopover();
+      stubHeight(468);
+      // The host must lift its own cap before measuring; otherwise it reads
+      // back whatever it imposed last time and the window can never grow.
+      let capWhileMeasuring: string | null = null;
+      const root = rootOf();
+      const stubbed = root.getBoundingClientRect.bind(root);
+      root.getBoundingClientRect = () => {
+        capWhileMeasuring = root.style.getPropertyValue('--popover-max-height');
+        return stubbed();
+      };
+
+      act(() => { setOpen(true); });
+      expect(capWhileMeasuring).toBe('none');
+      expect(lastResizeHeight()).toBe(468);
+    });
+
+    it('resizes the window when the content grows while open', () => {
+      const { setOpen } = openPopover();
+      stubHeight(280);
+      act(() => { setOpen(true); });
+      expect(lastResizeHeight()).toBe(280);
+
+      // A color picker expands.
+      stubHeight(468);
+      act(() => { fireResizeObservers(); });
+      expect(lastResizeHeight()).toBe(468);
+    });
+
+    it('caps the window at the usable screen height and lets the popover scroll', () => {
+      // jsdom reports 0 for every screen metric; give it a real one, since
+      // this is the assertion that depends on it.
+      const avail = 600;
+      Object.defineProperty(window.screen, 'availHeight', {
+        value: avail, configurable: true,
+      });
+      const { setOpen } = openPopover();
+      stubHeight(avail + 500);
+      act(() => { setOpen(true); });
+
+      const asked = lastResizeHeight() as number;
+      expect(asked).toBeLessThanOrEqual(avail);
+      expect(asked).toBeGreaterThan(0);
+      // ...and the popover is told the same cap, so it scrolls instead of
+      // being cut off at the window edge.
+      expect(rootOf().style.getPropertyValue('--popover-max-height')).toBe(`${asked}px`);
+    });
+
+    it('stops observing once closed', () => {
+      const { setOpen } = openPopover();
+      stubHeight(280);
+      act(() => { setOpen(true); });
+      act(() => { setOpen(false); });
+
+      child.resizeTo.mockClear();
+      stubHeight(468);
+      act(() => { fireResizeObservers(); });
+      expect(child.resizeTo).not.toHaveBeenCalled();
+    });
+  });
 
   it('creates the window on mount, named for the main-process hidden override', () => {
     // Created while CLOSED: the whole point of pre-creation is that the

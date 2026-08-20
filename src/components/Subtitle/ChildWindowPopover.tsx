@@ -220,34 +220,38 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     };
   }, [createWindow]);
 
-  // Open: measure the already-rendered content, size and place the window
-  // while it is still hidden, then have the main process show it (show also
-  // focuses, and focus is what makes blur-dismiss work). Close: hide it.
-  useEffect(() => {
+  // Fit the window to whatever the content currently measures, and place it
+  // against the anchor. Split out of the open path so later content changes
+  // can reuse it without re-running show/focus.
+  const sizeAndPlace = useCallback(() => {
     const win = winRef.current;
-    if (open && anchorEl && (!win || win.closed)) {
-      // Destroyed externally (WM close). Rebuild; the container state change
-      // reruns this effect, which then places and shows the new window.
-      createWindow();
-      return;
-    }
-    if (!win || win.closed || !container) return;
+    if (!win || win.closed || !container || !anchorEl) return;
 
-    if (!open || !anchorEl) {
-      setNativeVisibility(nameRef.current, false);
-      return;
-    }
-
-    // Styles that appeared since creation (dev HMR, late chunks).
-    syncStyles(document, win.document, clonedStylesRef.current);
-
+    // Lift our own cap before measuring. The popover is capped at whatever we
+    // imposed last time, so measuring through it reads back our own previous
+    // answer: the window could then never grow, and with a viewport-relative
+    // cap it would ratchet smaller on every open.
+    container.style.setProperty('--popover-max-height', 'none');
     const rect = container.getBoundingClientRect();
     const w = Math.ceil(rect.width) || width;
-    const h = Math.ceil(rect.height) || height;
+    const natural = Math.ceil(rect.height) || height;
 
-    const anchor = anchorEl.getBoundingClientRect();
     const screenTop = (window.screen as { availTop?: number }).availTop ?? 0;
     const screenLeft = (window.screen as { availLeft?: number }).availLeft ?? 0;
+
+    // Never ask for more than the screen can show. Handing the same number to
+    // the popover as a max-height is what makes the overflow scrollable
+    // instead of cut off at the window edge.
+    //
+    // A non-positive availHeight means "unknown", not "no room" — capping to
+    // it would collapse the window to nothing.
+    const availH = window.screen.availHeight;
+    const h = availH > 0
+      ? Math.min(natural, Math.max(1, availH - 2 * EDGE_PAD))
+      : natural;
+    container.style.setProperty('--popover-max-height', `${h}px`);
+
+    const anchor = anchorEl.getBoundingClientRect();
     const anchorTop = window.screenY + anchor.top;
     const anchorBottom = window.screenY + anchor.bottom;
     // Above the anchor, right edges aligned; below when the screen has no
@@ -269,6 +273,30 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
 
     win.resizeTo(w, h);
     win.moveTo(left, top);
+  }, [anchorEl, container, width, height]);
+
+  // Open: size and place the window while it is still hidden, then have the
+  // main process show it (show also focuses, and focus is what makes
+  // blur-dismiss work). Close: hide it.
+  useEffect(() => {
+    const win = winRef.current;
+    if (open && anchorEl && (!win || win.closed)) {
+      // Destroyed externally (WM close). Rebuild; the container state change
+      // reruns this effect, which then places and shows the new window.
+      createWindow();
+      return;
+    }
+    if (!win || win.closed || !container) return;
+
+    if (!open || !anchorEl) {
+      setNativeVisibility(nameRef.current, false);
+      return;
+    }
+
+    // Styles that appeared since creation (dev HMR, late chunks).
+    syncStyles(document, win.document, clonedStylesRef.current);
+
+    sizeAndPlace();
     setNativeVisibility(nameRef.current, true);
     win.focus();
 
@@ -283,10 +311,22 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
       }
     }, 300);
     return () => clearInterval(movePoll);
-  }, [open, anchorEl, container, width, height, createWindow]);
+  }, [open, anchorEl, container, createWindow, sizeAndPlace]);
 
-  // Children render into the hidden window permanently — store-driven updates
-  // keep flowing while it is invisible, so opening has nothing to build.
+  // Hosted content is not a fixed size: DisplaySettingsPopover grows by ~190px
+  // when a colour picker is expanded. Re-measure and re-place on every content
+  // resize, or the window keeps the height it happened to have at open and the
+  // rest of the popover sits behind an internal scrollbar.
+  //
+  // Visibility and focus stay OUT of this path — refocusing on every resize
+  // would fight the user mid-drag.
+  useEffect(() => {
+    if (!open || !container || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => sizeAndPlace());
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [open, container, sizeAndPlace]);
+
   if (!container) return null;
   return createPortal(children, container);
 };
