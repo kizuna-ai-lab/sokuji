@@ -39,6 +39,7 @@ function loadModule() {
 
 function makeFakeChildWindow() {
   const listeners = new Map();
+  const wcListeners = new Map();
   const win = {
     destroyed: false,
     show: vi.fn(),
@@ -49,6 +50,19 @@ function makeFakeChildWindow() {
       listeners.get(event).push(fn);
     },
     emit: (event) => { for (const fn of listeners.get(event) ?? []) fn(); },
+    webContents: {
+      on: (event, fn) => {
+        if (!wcListeners.has(event)) wcListeners.set(event, []);
+        wcListeners.get(event).push(fn);
+      },
+    },
+    // test helper: fire a navigation attempt, return whether it was blocked
+    __navigate: (event, url) => {
+      const e = { preventDefault: vi.fn(), url };
+      for (const fn of wcListeners.get(event) ?? []) fn(e, url);
+      return e.preventDefault.mock.calls.length > 0;
+    },
+    __hasNavListeners: () => wcListeners.has('will-navigate') && wcListeners.has('will-redirect'),
   };
   return win;
 }
@@ -100,6 +114,35 @@ describe('popover child-window visibility bridge', () => {
     // show:false in the override is what prevents even a single visible
     // frame before the first explicit show.
     expect(decision.overrideBrowserWindowOptions).toMatchObject({ show: false });
+
+    // The renderer opens with '' (Electron resolves it to about:blank).
+    expect(main.__open('sokuji-popover:1', '').action).toBe('allow');
+  });
+
+  it('refuses a popover window asked to load a real URL', () => {
+    // frameName is renderer-controlled, so the prefix alone must not be a
+    // licence to load anything: a compromised renderer could otherwise get a
+    // frameless, transparent, always-on-top window pointed at its own page.
+    // Popover windows only ever host DOM portaled in from the parent.
+    openExternal.mockClear();
+    const decision = main.__open('sokuji-popover:1', 'https://evil.example/');
+    expect(decision.action).toBe('deny');
+    // Nor is it an external-link path — this shape is not a link click.
+    expect(openExternal).not.toHaveBeenCalled();
+  });
+
+  it('blocks navigation and redirects inside a popover window', () => {
+    // setWindowOpenHandler only governs creation. Reusing an existing window
+    // name navigates the live window instead, and any in-page navigation
+    // would replace the popover with a web page in an always-on-top frame.
+    const child = makeFakeChildWindow();
+    main.__emitCreated(child, 'sokuji-popover:1');
+    expect(child.__hasNavListeners()).toBe(true);
+
+    expect(child.__navigate('will-navigate', 'https://evil.example/')).toBe(true);
+    expect(child.__navigate('will-redirect', 'https://evil.example/')).toBe(true);
+    // The document's own blank URL must not be blocked.
+    expect(child.__navigate('will-navigate', 'about:blank')).toBe(false);
   });
 
   it('denies non-popover window.opens, routing http(s) URLs to the system browser', () => {

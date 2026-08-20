@@ -17,6 +17,17 @@ const { ipcMain, shell } = require('electron');
 // The renderer names its popover windows with this window.open target prefix.
 const POPOVER_PREFIX = 'sokuji-popover:';
 
+/**
+ * Popover windows only ever host DOM the parent portals into them, so their
+ * document stays blank for life. Anything else is a renderer trying to point
+ * a frameless, transparent, always-on-top window at a page — the frame name
+ * is renderer-controlled, so matching the prefix cannot be a licence to load
+ * arbitrary content.
+ */
+function isBlankUrl(url) {
+  return !url || url === 'about:blank';
+}
+
 // Live popover windows by frame name. Module scope for the same reason as
 // subtitle-window.js: createWindow() can run more than once per app lifetime,
 // and ipcMain.handle throws on a second registration of the same channel, so
@@ -40,6 +51,7 @@ ipcMain.handle('popover-window:set-visible', (_event, payload) => {
 function setupPopoverWindowHandlers(mainWindow) {
   mainWindow.webContents.setWindowOpenHandler((details) => {
     if (details.frameName?.startsWith(POPOVER_PREFIX)) {
+      if (!isBlankUrl(details.url)) return { action: 'deny' };
       return {
         action: 'allow',
         overrideBrowserWindowOptions: { show: false },
@@ -59,6 +71,19 @@ function setupPopoverWindowHandlers(mainWindow) {
     const name = details.frameName;
     if (!name?.startsWith(POPOVER_PREFIX)) return;
     popoverWindows.set(name, childWindow);
+
+    // setWindowOpenHandler governs creation only. Re-opening an existing
+    // window NAME navigates the live window instead of making a new one, and
+    // in-page navigation would likewise swap the popover for a web page in
+    // an always-on-top frame. Pin the document to blank for the window's
+    // life. (`url` is the second argument on the legacy signature and a
+    // field on the newer event object; read both.)
+    const blockNavigation = (event, url) => {
+      if (isBlankUrl(url ?? event?.url)) return;
+      event.preventDefault();
+    };
+    childWindow.webContents.on('will-navigate', blockNavigation);
+    childWindow.webContents.on('will-redirect', blockNavigation);
     childWindow.on('closed', () => {
       // Only forget the window if it is still the registered one — a name
       // can be reused after a close, and the stale closed event must not
