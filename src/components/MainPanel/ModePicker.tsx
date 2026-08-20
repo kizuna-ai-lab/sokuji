@@ -28,8 +28,8 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const labelFor = (seg: 'speaker' | 'participant' | 'both') => {
-    if (seg === 'speaker') return t('modePicker.modeYou', 'You');
-    if (seg === 'participant') return t('modePicker.modeParticipants', 'Others');
+    if (seg === 'speaker') return t('modePicker.modeYou', 'Me');
+    if (seg === 'participant') return t('modePicker.modeParticipants', 'Other');
     return t('modePicker.modeBoth', 'Both');
   };
 

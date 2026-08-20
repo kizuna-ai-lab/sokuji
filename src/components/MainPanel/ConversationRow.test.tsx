@@ -323,7 +323,7 @@ describe('ConversationRow — compact mode', () => {
     );
     const dot = container.querySelector('.row-role-dot');
     expect(dot?.getAttribute('role')).toBe('img');
-    expect(dot?.getAttribute('aria-label')).toBe('Speaker');
+    expect(dot?.getAttribute('aria-label')).toBe('Me');
   });
 
   it('renders a participant-colored role dot on the first row of a participant run', () => {

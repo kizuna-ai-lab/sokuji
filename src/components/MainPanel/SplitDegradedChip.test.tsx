@@ -59,7 +59,7 @@ describe('SplitDegradedChip', () => {
     // deliberately share a key, because what the user can do about them is
     // identical.
     expect(titles.get('loopback-denied')).toContain('Screen Recording permission');
-    expect(titles.get('participant-stream-ended')).toContain('participant audio channel');
+    expect(titles.get('participant-stream-ended')).toContain("Other's audio channel");
     expect(titles.get('loopback-denied')).not.toBe(titles.get('participant-stream-ended'));
   });
 

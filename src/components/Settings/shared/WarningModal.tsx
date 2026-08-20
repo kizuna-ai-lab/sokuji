@@ -73,17 +73,17 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type, note
       case 'mutual-exclusivity-speaker':
         return {
           title: t('audioPanel.mutualExclusivityNotice', 'Audio Conflict'),
-          titleText: t('audioPanel.mutualExclusivitySpeakerTitle', 'Cannot enable Speaker'),
+          titleText: t('audioPanel.mutualExclusivitySpeakerTitle', 'Cannot enable the speaker monitor'),
           paragraphs: [
-            t('audioPanel.mutualExclusivitySpeakerText', 'Please turn off Participant Audio before enabling Speaker.')
+            t('audioPanel.mutualExclusivitySpeakerText', "Please turn off Other's audio before enabling the speaker monitor.")
           ]
         };
       case 'mutual-exclusivity-participant':
         return {
           title: t('audioPanel.mutualExclusivityNotice', 'Audio Conflict'),
-          titleText: t('audioPanel.mutualExclusivityParticipantTitle', 'Cannot enable Participant Audio'),
+          titleText: t('audioPanel.mutualExclusivityParticipantTitle', "Cannot enable Other's audio"),
           paragraphs: [
-            t('audioPanel.mutualExclusivityParticipantText', 'Please turn off Speaker before enabling Participant Audio.')
+            t('audioPanel.mutualExclusivityParticipantText', "Please turn off the speaker monitor before enabling Other's audio.")
           ]
         };
       case 'screen-recording-denied':
@@ -91,7 +91,7 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type, note
           title: t('audioPanel.screenRecordingDeniedNotice', 'Permission Required'),
           titleText: t('audioPanel.screenRecordingDeniedTitle', 'Screen Recording Permission Denied'),
           paragraphs: [
-            t('audioPanel.screenRecordingDeniedText1', 'Participant Audio requires Screen Recording permission to capture system audio.'),
+            t('audioPanel.screenRecordingDeniedText1', "Other's audio requires Screen Recording permission to capture system audio."),
             t('audioPanel.screenRecordingDeniedText2Named', 'Open System Settings > Privacy & Security > Screen Recording and enable "{{app}}".', { app: tccName }),
             t('audioPanel.screenRecordingDeniedText3', 'After enabling the permission, please restart the app.')
           ],

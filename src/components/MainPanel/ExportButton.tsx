@@ -130,7 +130,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
 
   // Collect i18n strings once per render.
   const txtI18n: TxtI18n = useMemo(() => ({
-    speakerYou: t('mainPanel.export.speakerYou', 'You'),
+    speakerYou: t('mainPanel.export.speakerYou', 'Me'),
     speakerOther: t('mainPanel.export.speakerOther', 'Other'),
     translationSuffix: t('mainPanel.export.translationSuffix', '(trans)'),
     headerTitle: t('mainPanel.export.headerTitle', 'Sokuji conversation export'),

@@ -88,7 +88,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     >
       <h3>
         <AudioLines size={18} />
-        <span>{t('settings.participantSectionHeader', 'Participant audio')}</span>
+        <span>{t('settings.participantSectionHeader', "Other's audio")}</span>
         <Tooltip
           content={description}
           position="top"
@@ -99,7 +99,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
             its tokens — warn the user when the channel is active. */}
         {provider === Provider.GEMINI && !isParticipantMuted && (
           <Tooltip
-            content={t('settings.geminiParticipantTokenWarning', 'Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.')}
+            content={t('settings.geminiParticipantTokenWarning', 'In Other mode, Gemini generates audio responses that are discarded, resulting in additional token usage.')}
             position="top"
             maxWidth={280}
           >
@@ -130,7 +130,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           deviceType="input"
           filterVirtual={false}
           showVirtualIndicators={false}
-          toggleAriaLabel={t('audioPanel.turnOffParticipant', 'Turn off participant audio')}
+          toggleAriaLabel={t('audioPanel.turnOffParticipant', "Turn off Other's audio")}
         />
       ) : (
         <ToggleSwitch

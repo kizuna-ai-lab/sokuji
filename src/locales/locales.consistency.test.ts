@@ -124,3 +124,51 @@ describe('notices that name a button use that locale\'s own label', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('the three translation modes are named with one word each', () => {
+  // The app names the same two conversation sides in six places: the mode
+  // picker, the display-mode toggle, the per-bubble badge (which reads through
+  // the display-mode keys), the logs panel, the conversation export and the
+  // local-provider model group. Nothing but convention kept them in step, and
+  // they drifted badly — en alone shipped "You"/"Others" in the picker,
+  // "Speaker"/"Participant" on the badges and in the logs, "You"/"Other" in the
+  // export, and "My"/"Other's" on the language labels: five vocabularies for
+  // two concepts. Worse, "Speaker" meant BOTH the user's own channel and the
+  // audio output device, so "Cannot enable Speaker" pointed at the wrong thing.
+  //
+  // The rule now: within a locale, every key naming a side says the *same
+  // word*. Which word stays a per-locale choice (ja 自分/相手, de
+  // Ich/Gegenüber, ru Я/Собеседник) — only the agreement is enforced.
+  const SELF = [
+    'modePicker.modeYou',
+    'mainPanel.displayMode.speaker',
+    'logsPanel.speakerClient',
+    'mainPanel.export.speakerYou',
+  ];
+  const OTHER = [
+    'modePicker.modeParticipants',
+    'mainPanel.displayMode.participant',
+    'logsPanel.participantClient',
+    'mainPanel.export.speakerOther',
+    'providers.local_inference.participant',
+  ];
+
+  const agree = (cat: Record<string, string>, keys: string[]) =>
+    new Set(keys.map(k => cat[k]).filter(v => typeof v === 'string'));
+
+  it.each([['en', EN] as const, ...locales])(
+    '%s uses one word for "me" and one for "the other side"',
+    (_lang, cat) => {
+      expect([...agree(cat, SELF)]).toHaveLength(1);
+      expect([...agree(cat, OTHER)]).toHaveLength(1);
+    },
+  );
+
+  it('the two words are never the same word', () => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      if (cat[SELF[0]] === cat[OTHER[0]]) offenders.push(`${lang}: both sides read ${JSON.stringify(cat[SELF[0]])}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+});

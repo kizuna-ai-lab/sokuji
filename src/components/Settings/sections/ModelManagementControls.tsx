@@ -67,7 +67,7 @@ export function RecommendedOthers<T>({
       </div>
       {others.length > 0 && (
         <div className="model-subgroup">
-          <div className="model-subgroup__label">{t('models.othersGroup', 'Others')}</div>
+          <div className="model-subgroup__label">{t('models.othersGroup', 'Other models')}</div>
           {others.map(renderItem)}
         </div>
       )}

@@ -72,7 +72,7 @@ export const SpeechModeControl: React.FC<{
     ['Push-to-Talk', t('settings.pushToTalk')],
     ['Push-to-Translate', t('settings.pushToTranslate')],
   ];
-  const tooltipContent = tooltip ?? `${t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', 'Applies to your voice. Participant audio always uses semantic VAD.')}`;
+  const tooltipContent = tooltip ?? `${t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', "Applies to your voice. Other's audio always uses semantic VAD.")}`;
   return (
     <div className="settings-section turn-detection-section" id="turn-detection-section">
       <h2>
@@ -286,8 +286,8 @@ export const TranslationPromptControl: React.FC<{
             <div className="setting-item">
               <div className="setting-label">
                 <span>
-                  {t('settings.participantInstructions', 'Participant Instructions')}
-                  <Tooltip content={t('settings.participantInstructionsTooltip', 'System instructions for participant audio translation. Leave empty to use main instructions.')} position="top">{inlineHelpIcon}</Tooltip>
+                  {t('settings.participantInstructions', "Other's Instructions")}
+                  <Tooltip content={t('settings.participantInstructionsTooltip', "System instructions for translating Other's audio. Leave empty to use main instructions.")} position="top">{inlineHelpIcon}</Tooltip>
                 </span>
               </div>
               <textarea
