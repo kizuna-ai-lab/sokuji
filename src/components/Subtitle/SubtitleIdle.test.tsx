@@ -107,8 +107,19 @@ describe('SubtitleIdle blocked state', () => {
     render(
       <SubtitleIdle state={{ kind: 'blocked', reason: 'insufficient-balance', balance: 9_999 }} {...handlers()} />,
     );
-    expect(screen.getByRole('button', { name: /\$0\.01/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /9999/ })).not.toBeInTheDocument();
+    // 9,999 µUSD is $0.009999 — under a cent, so it renders at full micro-USD
+    // precision and floored. This used to read "$0.01", rounding UP to a cent
+    // the wallet does not hold, in the one message whose whole job is to say
+    // the balance is short. See `formatUsdFloor`.
+    const button = screen.getByRole('button', { name: /\$0\.009999/ });
+    expect(button).toBeInTheDocument();
+    // The original guard here was `not.toMatch(/9999/)`, which no longer
+    // expresses the intent: at full precision the formatted amount CONTAINS
+    // the integer's own digits — "$0.009999" is 9,999 µUSD written correctly.
+    // What must never appear is those digits as a bare integer, so pin that
+    // instead: the run may only occur after a "$0." decimal point.
+    expect(button.textContent).toContain('$0.009999');
+    expect(button.textContent).not.toMatch(/(^|[^.\d])9999(\D|$)/);
   });
 
   // loading-models has no settings destination, so there is nothing to click.

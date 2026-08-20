@@ -13,7 +13,7 @@ import { Provider, isKizunaManagedProvider, type ProviderType } from '../../type
 // re-exports it: this file is also loaded by the subtitle window, and that
 // barrel pulls in SonioxClient and the i18n bootstrap behind it.
 import { sonioxManagedMinBalanceMicroUsd } from '../../services/providers/sonioxManagedMinBalance';
-import { formatUsd } from '../../utils/formatters';
+import { formatUsdFloor } from '../../utils/formatters';
 
 export type StartBlockReason =
   | 'missing-device'
@@ -294,10 +294,14 @@ export function reasonToI18n(
       // speaks in "tokens", so the raw value would render as a 7-digit
       // integer. Formatted here — the one place every surface reads its
       // blocker message from — rather than at each call site.
+      //
+      // Floored, like every other balance: this message appears precisely when
+      // the balance is too low to start, so rounding it UP to a friendlier
+      // number is the worst possible moment to overstate it.
       return {
         key: 'mainPanel.insufficientBalance',
         defaultValue: 'Insufficient balance: {{balance}}',
-        values: { balance: formatUsd(balanceMicroUsd ?? 0) },
+        values: { balance: formatUsdFloor(balanceMicroUsd ?? 0) },
       };
     case 'quota-unknown':
       return { key: 'tokenUsage.unableToLoadQuota', defaultValue: 'Unable to load quota information' };

@@ -367,7 +367,11 @@ describe('reasonToI18n', () => {
     const entry = reasonToI18n('insufficient-balance', 9_999);
     expect(entry.defaultValue).toBe('Insufficient balance: {{balance}}');
     expect(entry.defaultValue).not.toMatch(/token/i);
-    expect(entry.values).toEqual({ balance: '$0.01' });
+    // Sub-cent, so it renders at full micro-USD precision and is FLOORED.
+    // This used to read "$0.01" — a fixed 2dp rounded 9,999 µUSD up to a cent
+    // the wallet does not hold, in the one message whose entire job is to say
+    // the balance is too low. See `formatUsdFloor`.
+    expect(entry.values).toEqual({ balance: '$0.009999' });
   });
 
   it('renders a missing balance as $0.00 rather than an empty slot', () => {
