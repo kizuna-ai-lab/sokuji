@@ -1,6 +1,7 @@
 // src/components/Subtitle/ChildWindowPopover.tsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import useLogStore from '../../stores/logStore';
 
 /**
  * Hosts a popover in its own frameless, transparent OS window instead of
@@ -16,9 +17,10 @@ import { createPortal } from 'react-dom';
  * React DOM.
  *
  * Mechanics: Electron parses BrowserWindow options straight out of
- * window.open's feature string (main registers no setWindowOpenHandler), so
- * the renderer can open a frameless transparent always-on-top window without
- * main-process help. The children render into it through createPortal — they
+ * window.open's feature string, so the renderer picks the frameless,
+ * transparent, always-on-top shape itself; the main process only overrides
+ * `show` and owns visibility (electron/popover-windows.js). The children
+ * render into it through createPortal — they
  * stay part of THIS React tree, so handlers and context work unchanged — and
  * the parent's stylesheets are cloned into the child head so the same
  * component styles apply (the react-new-window copyStyles pattern).
@@ -60,8 +62,20 @@ const POPOVER_PREFIX = 'sokuji-popover:';
 let popoverSerial = 0;
 
 function setNativeVisibility(name: string, visible: boolean): void {
-  void (window as { electron?: { invoke: (c: string, p: unknown) => Promise<unknown> } })
-    .electron?.invoke('popover-window:set-visible', { name, visible });
+  void (async () => {
+    try {
+      await (window as { electron?: { invoke: (c: string, p: unknown) => Promise<unknown> } })
+        .electron?.invoke('popover-window:set-visible', { name, visible });
+    } catch (error) {
+      // A rejection leaves the popover in the wrong visibility state; there
+      // is no recovery beyond the user toggling again, but it must not be
+      // silent (and never an unhandled rejection).
+      useLogStore.getState().addLog(
+        `[ChildWindowPopover] set-visible(${visible}) failed for ${name}: ${String(error)}`,
+        'error',
+      );
+    }
+  })();
 }
 
 /**
@@ -101,15 +115,24 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
   const openRef = useRef(open);
   openRef.current = open;
 
-  // Create the hidden window once, for the component's lifetime.
+  // Create the hidden window. Callable more than once: the native window can
+  // be destroyed under React by a WM close command (Alt+F4 and friends), and
+  // the next open rebuilds it instead of toggling a corpse.
   const nameRef = useRef('');
-  useEffect(() => {
+  const teardownRef = useRef<(() => void) | null>(null);
+  const createWindow = useCallback(() => {
+    teardownRef.current?.();
+    teardownRef.current = null;
+
     const name = `${POPOVER_PREFIX}${++popoverSerial}`;
     nameRef.current = name;
     const features = [
       `width=${width}`, `height=${height}`,
       'frame=false', 'transparent=true', 'alwaysOnTop=true', 'skipTaskbar=true',
       'resizable=false', 'minimizable=false', 'maximizable=false', 'hasShadow=false',
+      // Best-effort shield against WM close commands; the rebuild path above
+      // still covers whatever gets through.
+      'closable=false',
       'focusable=true',
       ...platformWindowTypeFeature(),
     ].join(',');
@@ -130,37 +153,70 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     const root = win.document.createElement('div');
     root.className = 'child-popover-root';
     // Shrink-wrap so the open-time measurement reads the popover's own
-    // footprint rather than the parked window's.
+    // footprint rather than the hidden window's.
     root.style.width = 'fit-content';
     body.appendChild(root);
     setContainer(root);
 
     // Dismissal listeners live for the window's lifetime; they no-op while
     // hidden (a hidden window never has focus to lose).
-    const handleBlur = () => { if (openRef.current) onCloseRef.current('blur'); };
+    //
+    // suppressBlur: opening a native picker owned by this window (the color
+    // chooser behind <input type="color">, a file dialog) steals focus and
+    // fires blur — closing then would tear the popover away mid-interaction.
+    // A pointerdown on such an input arms the suppression; focus returning to
+    // the window re-arms normal blur dismissal.
+    let suppressBlur = false;
+    const handleMousedown = (e: unknown) => {
+      const target = (e as { target?: Element | null }).target;
+      if (target && typeof target.closest === 'function'
+          && target.closest('input[type="color"], input[type="file"]')) {
+        suppressBlur = true;
+      }
+    };
+    const handleFocus = () => { suppressBlur = false; };
+    const handleBlur = () => {
+      if (suppressBlur) return;
+      if (openRef.current) onCloseRef.current('blur');
+    };
     const handleKeydown = (e: unknown) => {
       if (openRef.current && (e as KeyboardEvent).key === 'Escape') onCloseRef.current('escape');
     };
+    win.addEventListener('mousedown', handleMousedown as EventListener, true);
+    win.addEventListener('focus', handleFocus);
     win.addEventListener('blur', handleBlur);
     win.addEventListener('keydown', handleKeydown as EventListener);
 
-    return () => {
+    teardownRef.current = () => {
+      win.removeEventListener('mousedown', handleMousedown as EventListener, true);
+      win.removeEventListener('focus', handleFocus);
       win.removeEventListener('blur', handleBlur);
       win.removeEventListener('keydown', handleKeydown as EventListener);
       setContainer(null);
       winRef.current = null;
       if (!win.closed) win.close();
     };
-    // The parked window is sized/positioned per open; creation params are
-    // deliberately captured once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [width, height]);
+
+  useEffect(() => {
+    createWindow();
+    return () => {
+      teardownRef.current?.();
+      teardownRef.current = null;
+    };
+  }, [createWindow]);
 
   // Open: measure the already-rendered content, size and place the window
   // while it is still hidden, then have the main process show it (show also
   // focuses, and focus is what makes blur-dismiss work). Close: hide it.
   useEffect(() => {
     const win = winRef.current;
+    if (open && anchorEl && (!win || win.closed)) {
+      // Destroyed externally (WM close). Rebuild; the container state change
+      // reruns this effect, which then places and shows the new window.
+      createWindow();
+      return;
+    }
     if (!win || win.closed || !container) return;
 
     if (!open || !anchorEl) {
@@ -181,12 +237,21 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     const anchorTop = window.screenY + anchor.top;
     const anchorBottom = window.screenY + anchor.bottom;
     // Above the anchor, right edges aligned; below when the screen has no
-    // room above.
+    // room above. Clamped on ALL edges — a partially off-screen request gets
+    // re-placed by mutter to an arbitrary position, which is worse than a
+    // slightly shifted popover.
     const above = anchorTop - h - EDGE_PAD >= screenTop;
-    const left = Math.max(screenLeft, Math.round(window.screenX + anchor.right - w));
-    const top = above
+    const left = Math.min(
+      Math.max(screenLeft, Math.round(window.screenX + anchor.right - w)),
+      screenLeft + Math.max(0, window.screen.availWidth - w),
+    );
+    const rawTop = above
       ? Math.round(anchorTop - h - EDGE_PAD)
       : Math.round(anchorBottom + EDGE_PAD);
+    const top = Math.min(
+      Math.max(screenTop, rawTop),
+      screenTop + Math.max(0, window.screen.availHeight - h),
+    );
 
     win.resizeTo(w, h);
     win.moveTo(left, top);
@@ -204,7 +269,7 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
       }
     }, 300);
     return () => clearInterval(movePoll);
-  }, [open, anchorEl, container, width, height]);
+  }, [open, anchorEl, container, width, height, createWindow]);
 
   // Children render into the hidden window permanently — store-driven updates
   // keep flowing while it is invisible, so opening has nothing to build.

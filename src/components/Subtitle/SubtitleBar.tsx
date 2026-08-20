@@ -322,7 +322,12 @@ const SubtitleBar: React.FC<Props> = ({
           width={320}
           height={400}
         >
-          <DisplaySettingsPopover source="subtitle" />
+          {/* The floating branch gets role="dialog" + a name from useRole;
+              the child-window host has to supply the same semantics itself,
+              matching the trigger's aria-haspopup="dialog". */}
+          <div role="dialog" aria-label={t('subtitle.bar.settings', 'Subtitle settings')}>
+            <DisplaySettingsPopover source="subtitle" />
+          </div>
         </ChildWindowPopover>
       ) : (
         popoverOpen && (

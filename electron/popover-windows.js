@@ -12,7 +12,7 @@
 // So the main process owns visibility: popover windows are created hidden
 // via a setWindowOpenHandler override — show:false from the very first
 // frame — and shown/hidden over IPC.
-const { ipcMain } = require('electron');
+const { ipcMain, shell } = require('electron');
 
 // The renderer names its popover windows with this window.open target prefix.
 const POPOVER_PREFIX = 'sokuji-popover:';
@@ -45,8 +45,14 @@ function setupPopoverWindowHandlers(mainWindow) {
         overrideBrowserWindowOptions: { show: false },
       };
     }
-    // Everything else keeps Electron's default window.open behavior.
-    return { action: 'allow' };
+    // Everything else is denied: the renderer's own window.open('http…')
+    // calls (help links, update downloads) belong in the system browser,
+    // and a compromised renderer must not be able to conjure arbitrary
+    // Electron windows. Only web URLs reach the OS.
+    if (/^https?:\/\//i.test(details.url ?? '')) {
+      void shell.openExternal(details.url);
+    }
+    return { action: 'deny' };
   });
 
   mainWindow.webContents.on('did-create-window', (childWindow, details) => {

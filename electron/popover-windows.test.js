@@ -16,9 +16,13 @@ const electronPath = nodeRequire.resolve('electron');
 const modulePath = nodeRequire.resolve('./popover-windows.js');
 
 const ipcHandlers = new Map();
+const openExternal = vi.fn();
 const fakeElectron = {
   ipcMain: {
     handle: (channel, fn) => ipcHandlers.set(channel, fn),
+  },
+  shell: {
+    openExternal: (...a) => openExternal(...a),
   },
 };
 
@@ -63,7 +67,7 @@ function makeFakeMainWindow() {
       },
     },
     // test helpers
-    __open: (frameName) => openHandler({ frameName, url: 'about:blank' }),
+    __open: (frameName, url = 'about:blank') => openHandler({ frameName, url }),
     __emitCreated: (child, frameName) => {
       for (const fn of wcListeners.get('did-create-window') ?? []) fn(child, { frameName });
     },
@@ -98,10 +102,25 @@ describe('popover child-window visibility bridge', () => {
     expect(decision.overrideBrowserWindowOptions).toMatchObject({ show: false });
   });
 
-  it('leaves non-popover window.opens untouched', () => {
-    const decision = main.__open('some-other-window');
-    expect(decision.action).toBe('allow');
-    expect(decision.overrideBrowserWindowOptions).toBeUndefined();
+  it('denies non-popover window.opens, routing http(s) URLs to the system browser', () => {
+    // The app's own window.open('http…', '_blank') calls (help links, update
+    // downloads) belong in the system browser, and a compromised renderer
+    // must not be able to conjure arbitrary Electron windows.
+    openExternal.mockClear();
+    const web = main.__open('some-other-window', 'https://sokuji.kizuna.ai/docs');
+    expect(web.action).toBe('deny');
+    expect(openExternal).toHaveBeenCalledWith('https://sokuji.kizuna.ai/docs');
+
+    openExternal.mockClear();
+    const blank = main.__open('', 'about:blank');
+    expect(blank.action).toBe('deny');
+    expect(openExternal).not.toHaveBeenCalled();
+
+    // Non-web schemes never reach the OS.
+    openExternal.mockClear();
+    const weird = main.__open('', 'file:///etc/passwd');
+    expect(weird.action).toBe('deny');
+    expect(openExternal).not.toHaveBeenCalled();
   });
 
   it('shows and hides a registered popover window on demand', () => {

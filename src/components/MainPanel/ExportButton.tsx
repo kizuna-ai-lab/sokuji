@@ -230,7 +230,11 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         >
           {/* Plain buttons: the child window's native focus handles keyboard
               use; floating-ui's roving tabindex belongs to the inline host. */}
-          <div className="export-menu" role="menu">
+          <div
+            className="export-menu"
+            role="menu"
+            aria-label={t('mainPanel.toolbar.export', 'Export conversation')}
+          >
             {items.map((it) => {
               const { Icon } = it;
               return (

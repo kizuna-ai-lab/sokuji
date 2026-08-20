@@ -174,6 +174,52 @@ describe('ChildWindowPopover', () => {
     expect(onClose).toHaveBeenCalledWith('escape');
   });
 
+  it('recreates the window when the native one was closed externally', () => {
+    // Alt+F4 / a WM close command destroys the native window without React
+    // knowing. The next open must rebuild it instead of toggling a corpse.
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <ChildWindowPopover open={false} onClose={onClose} anchorEl={anchor} width={320} height={400}>
+        <div className="probe-content">x</div>
+      </ChildWindowPopover>,
+    );
+    expect(openSpy).toHaveBeenCalledTimes(1);
+
+    child.closed = true; // the WM killed it
+    const child2 = makeFakeChild();
+    openSpy.mockReturnValue(child2 as unknown as Window);
+
+    rerender(
+      <ChildWindowPopover open={true} onClose={onClose} anchorEl={anchor} width={320} height={400}>
+        <div className="probe-content">x</div>
+      </ChildWindowPopover>,
+    );
+    expect(openSpy).toHaveBeenCalledTimes(2);
+    // The rebuilt window carries the content and gets shown.
+    expect(child2.document.querySelector('.probe-content')).not.toBeNull();
+    const name2 = String(openSpy.mock.calls[1][1]);
+    expect(invoke).toHaveBeenCalledWith('popover-window:set-visible', { name: name2, visible: true });
+    expect(child2.focus).toHaveBeenCalled();
+  });
+
+  it('does not dismiss on the blur a native picker (color input) causes', () => {
+    // Opening <input type="color"> hands focus to the OS chooser; that blur
+    // must not close the settings popover mid-interaction. Focus returning
+    // to the child re-arms normal blur dismissal.
+    const { onClose } = renderPopover(true);
+    const colorInput = child.document.createElement('input');
+    colorInput.type = 'color';
+    child.document.body.appendChild(colorInput);
+
+    act(() => { child.dispatch('mousedown', { target: colorInput }); });
+    act(() => { child.dispatch('blur'); });
+    expect(onClose).not.toHaveBeenCalled();
+
+    act(() => { child.dispatch('focus'); });
+    act(() => { child.dispatch('blur'); });
+    expect(onClose).toHaveBeenCalledWith('blur');
+  });
+
   it('closes the OS window only on unmount', () => {
     const { unmount } = renderPopover(true);
     expect(child.close).not.toHaveBeenCalled();
