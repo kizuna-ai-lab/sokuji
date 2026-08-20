@@ -1320,10 +1320,13 @@
         cursor: not-allowed;
       }
 
-      // The checkmark only renders on the selected option; push it to the
-      // row's far end (options are flex rows).
+      // Push the checkmark to the row's far end. It is the option's FIRST
+      // flex item in the UA stylesheet, so `margin-left: auto` alone shoves
+      // the content after it to the right edge instead — `order: 1` has to
+      // move the checkmark box last first.
       &::checkmark {
         color: vars.$color-primary;
+        order: 1;
         margin-left: auto;
       }
     }

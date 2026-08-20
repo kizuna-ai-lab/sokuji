@@ -568,9 +568,14 @@
         .model-card__variant-name { color: vars.$color-primary; }
       }
 
+      // order:1 + auto margin park the checkmark at the row end; without the
+      // order it sits first in flex order and the auto margin would shove the
+      // row content right instead (see the shared layer in Settings.scss).
       &::checkmark {
         color: vars.$color-primary;
         font-weight: vars.$weight-semibold;
+        order: 1;
+        margin-left: auto;
       }
 
       // Unsupported: greyed, not selectable (still listed with size + reason).
