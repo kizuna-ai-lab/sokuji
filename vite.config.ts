@@ -151,6 +151,7 @@ export default defineConfig(({ command, mode }) => {
             'own-app-source': 'electron/own-app-source.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',
             'squirrel-events': 'electron/squirrel-events.js',
+            'topmost-level': 'electron/topmost-level.js',
             'subtitle-window': 'electron/subtitle-window.js',
             'popover-windows': 'electron/popover-windows.js',
             'update-manager': 'electron/update-manager.js',

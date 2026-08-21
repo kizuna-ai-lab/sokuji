@@ -19,6 +19,12 @@ import { createRequire } from 'node:module';
 const nodeRequire = createRequire(import.meta.url);
 const electronPath = nodeRequire.resolve('electron');
 const modulePath = nodeRequire.resolve('./subtitle-window.js');
+// The pin heartbeat has to put the bar's own popover back above it after each
+// re-assert (they are sibling windows, not parent/child). Stub the popover
+// module so the coupling itself is observable — its own behavior is covered
+// in popover-windows.test.js.
+const popoverModulePath = nodeRequire.resolve('./popover-windows.js');
+const raiseVisiblePopovers = vi.fn();
 
 const ipcHandlers = new Map();
 const fakeElectron = {
@@ -38,6 +44,12 @@ function loadSubtitleWindowModule() {
     filename: electronPath,
     loaded: true,
     exports: fakeElectron,
+  };
+  nodeRequire.cache[popoverModulePath] = {
+    id: popoverModulePath,
+    filename: popoverModulePath,
+    loaded: true,
+    exports: { setupPopoverWindowHandlers: () => {}, raiseVisiblePopovers },
   };
   delete nodeRequire.cache[modulePath]; // fresh module state per test
   return nodeRequire(modulePath);
@@ -90,6 +102,7 @@ describe('subtitle-window always-on-top enforcement (#326)', () => {
     vi.useFakeTimers();
     setPlatform('win32');
     ipcHandlers.clear();
+    raiseVisiblePopovers.mockClear();
     ({ setupSubtitleHandlers } = loadSubtitleWindowModule());
     win = makeFakeWindow();
     setupSubtitleHandlers(win);
@@ -104,6 +117,7 @@ describe('subtitle-window always-on-top enforcement (#326)', () => {
     Object.defineProperty(process, 'platform', originalPlatform);
     delete nodeRequire.cache[electronPath];
     delete nodeRequire.cache[modulePath];
+    delete nodeRequire.cache[popoverModulePath];
   });
 
   it('pins with the screen-saver level on Windows so the bar is not re-inserted below the taskbar', async () => {
@@ -144,6 +158,39 @@ describe('subtitle-window always-on-top enforcement (#326)', () => {
     // moveTop() must NOT be used either: its SWP_SHOWWINDOW flag force-shows
     // a hidden window, and HWND_TOP escalates the z-order arms race.
     expect(win.moveTop).not.toHaveBeenCalled();
+  });
+
+  it('puts the open popover back on top in the same breath as the bar', async () => {
+    // The bar's popovers live in sibling top-level windows, so each re-assert
+    // moves the bar ABOVE the settings panel the user is currently using.
+    // Same band, raised last wins — so the popover has to be re-raised after
+    // the bar, every tick. Ordered by construction here rather than by two
+    // timers racing.
+    await enter({ alwaysOnTop: true });
+    win.setAlwaysOnTop.mockClear();
+    raiseVisiblePopovers.mockClear();
+
+    vi.advanceTimersByTime(1000);
+
+    expect(win.setAlwaysOnTop).toHaveBeenCalledWith(true, 'screen-saver');
+    expect(raiseVisiblePopovers).toHaveBeenCalledTimes(1);
+    expect(win.setAlwaysOnTop.mock.invocationCallOrder[0])
+      .toBeLessThan(raiseVisiblePopovers.mock.invocationCallOrder[0]);
+  });
+
+  it('leaves popovers alone on the ticks that skip the bar', async () => {
+    // reassertOnTop() bails on a hidden or minimized bar. Nothing has moved
+    // above the popover on those ticks, and raising a window the user cannot
+    // see is pure z-order churn.
+    await enter({ alwaysOnTop: true });
+    win.visible = false;
+    raiseVisiblePopovers.mockClear();
+    win.setAlwaysOnTop.mockClear();
+
+    vi.advanceTimersByTime(3000);
+
+    expect(win.setAlwaysOnTop).not.toHaveBeenCalled();
+    expect(raiseVisiblePopovers).not.toHaveBeenCalled();
   });
 
   it('does not enforce when subtitle mode is entered without alwaysOnTop', async () => {
@@ -357,6 +404,7 @@ describe('subtitle bar bounds persistence', () => {
     vi.useFakeTimers();
     setPlatform('win32');
     ipcHandlers.clear();
+    raiseVisiblePopovers.mockClear();
     const { setupSubtitleHandlers } = loadSubtitleWindowModule();
     win = makeFakeWindow();
     setupSubtitleHandlers(win);
@@ -370,6 +418,7 @@ describe('subtitle bar bounds persistence', () => {
     Object.defineProperty(process, 'platform', originalPlatform);
     delete nodeRequire.cache[electronPath];
     delete nodeRequire.cache[modulePath];
+    delete nodeRequire.cache[popoverModulePath];
   });
 
   it('broadcasts the new geometry after a normal resize', () => {
