@@ -87,14 +87,19 @@ describe('sessionStartGate import hygiene (subtitle window contract)', () => {
   // header) specifically so it can sit behind this gate without reopening a
   // path to ProviderConfigFactory one hop down. Pin that directly rather than
   // trusting the comment.
+  // Asserted through `collectImportSpecifiers`, not a bare `from '...'` regex:
+  // that narrow shape is exactly the hole the widened scan above was built to
+  // close, and it would wave through a side-effect import, a dynamic import or
+  // a require — any of which reopens the path to ProviderConfigFactory one hop
+  // down while this test still passes.
   it('sonioxManagedMinBalance stays an import-free leaf', () => {
-    expect(sonioxManagedMinBalanceSrc).not.toMatch(/from\s+['"][^'"]+['"]/);
+    expect(collectImportSpecifiers(sonioxManagedMinBalanceSrc)).toEqual([]);
   });
 
   // Same deal for the text-only resolver: it is read by the settings panel, the
   // settings store, MainPanel and this gate, and only stays safe behind the
   // subtitle window while it imports nothing at all.
   it('effectiveTextOnly stays an import-free leaf', () => {
-    expect(effectiveTextOnlySrc).not.toMatch(/from\s+['"][^'"]+['"]/);
+    expect(collectImportSpecifiers(effectiveTextOnlySrc)).toEqual([]);
   });
 });

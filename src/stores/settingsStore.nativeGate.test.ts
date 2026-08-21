@@ -112,23 +112,25 @@ describe('LOCAL_NATIVE gate delegates to ensureSelectionReady', () => {
       return seen.textOnly;
     };
 
-    it('passes the raw toggle through in speaker mode', async () => {
-      useAudioStore.setState({ mode: 'speaker' } as any);
-      useSettingsStore.setState({ textOnly: false } as any);
-      expect(await readTextOnly()).toBe(false);
-    });
+    // Both values of the stored toggle, or an implementation that hard-coded
+    // `false` for an in-scope mode would pass the off-case alone.
+    for (const mode of ['speaker', 'both'] as const) {
+      for (const stored of [false, true]) {
+        it(`passes the stored toggle (${stored}) straight through in ${mode} mode`, async () => {
+          useAudioStore.setState({ mode } as any);
+          useSettingsStore.setState({ textOnly: stored } as any);
+          expect(await readTextOnly()).toBe(stored);
+        });
+      }
+    }
 
-    it('passes the raw toggle through in both mode — the speaker leg still speaks', async () => {
-      useAudioStore.setState({ mode: 'both' } as any);
-      useSettingsStore.setState({ textOnly: false } as any);
-      expect(await readTextOnly()).toBe(false);
-    });
-
-    it('forces text-only in participant mode, whatever the toggle says', async () => {
-      useAudioStore.setState({ mode: 'participant' } as any);
-      useSettingsStore.setState({ textOnly: false } as any);
-      expect(await readTextOnly()).toBe(true);
-    });
+    for (const stored of [false, true]) {
+      it(`forces text-only in participant mode (stored toggle ${stored})`, async () => {
+        useAudioStore.setState({ mode: 'participant' } as any);
+        useSettingsStore.setState({ textOnly: stored } as any);
+        expect(await readTextOnly()).toBe(true);
+      });
+    }
   });
 
   it('applies corrections to localNative', async () => {

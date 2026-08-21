@@ -20,7 +20,19 @@ vi.mock('../../lib/edge-tts/voiceList', () => ({
   filterVoicesByLanguage: () => [],
 }));
 
+// LOCAL_NATIVE's effect warms the sidecar before validating; stub the facade so
+// the readiness-input tests below never reach it.
+vi.mock('../../stores/nativeModelStore', () => ({
+  useNativeModelStore: {
+    getState: () => ({
+      ensureCatalog: async () => undefined,
+      ensureSelectionReady: async () => ({ ready: true, reason: 'ready', corrections: null }),
+    }),
+  },
+}));
+
 const { default: useSettingsStore } = await import('../../stores/settingsStore');
+const { default: useAudioStore } = await import('../../stores/audioStore');
 const { Provider } = await import('../../types/Provider');
 const { SettingsInitializer } = await import('./SettingsInitializer');
 
@@ -78,6 +90,45 @@ describe('SettingsInitializer — validation rerun queue', () => {
       useSettingsStore.setState((s: any) => ({ soniox: { ...s.soniox, region: 'eu' } }));
     });
     expect(validateMock).toHaveBeenCalledTimes(2);
+  });
+
+  // Codex review on PR #434. LOCAL_NATIVE readiness asks whether the session
+  // needs a TTS model, and that answer is now `effectiveTextOnly(speaker leg in
+  // scope, the toggle)` — so the audio mode is a readiness input. The native
+  // effect is the ONLY thing that re-runs validateApiKey for this provider (the
+  // generic credential effect skips LOCAL_NATIVE), so an untracked input leaves
+  // the verdict standing: fail readiness in Speaker for a missing voice, switch
+  // to Others, and Start stays disabled forever even though a participant-only
+  // session never loads a voice. The opposite direction is caught by
+  // prepareToStart's revalidate, but it fails at Start rather than never lying.
+  //
+  // `textOnly` is the other half of the same derived value and was already
+  // untracked before this PR — same staleness, same one-line cause.
+  describe('LOCAL_NATIVE readiness inputs', () => {
+    const renderNative = async () => {
+      useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE } as never);
+      useAudioStore.setState({ mode: 'speaker' } as never);
+      render(<SettingsInitializer />);
+      // The native effect awaits ensureCatalog before validating.
+      await act(async () => { resolveFirst?.(); });
+      validateMock.mockClear();
+    };
+
+    it('re-validates when the audio mode changes', async () => {
+      await renderNative();
+      await act(async () => {
+        useAudioStore.setState({ mode: 'participant' } as never);
+      });
+      expect(validateMock).toHaveBeenCalled();
+    });
+
+    it('re-validates when the text-only toggle changes', async () => {
+      await renderNative();
+      await act(async () => {
+        useSettingsStore.setState({ textOnly: true } as never);
+      });
+      expect(validateMock).toHaveBeenCalled();
+    });
   });
 
   it('does not rerun when nothing changed during the validation', async () => {

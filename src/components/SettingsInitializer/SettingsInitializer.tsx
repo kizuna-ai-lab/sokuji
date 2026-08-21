@@ -12,8 +12,10 @@ import {
   useSettingsLoaded,
   useLocalInferenceSettings,
   useLocalNativeSettings,
+  useTextOnly,
 } from '../../stores/settingsStore';
 import useSettingsStore from '../../stores/settingsStore';
+import { useMode } from '../../stores/audioStore';
 import { useModelStatuses, useModelInitialized, useModelStore } from '../../stores/modelStore';
 import { useAuth } from '../../lib/auth/hooks';
 import { Provider, isKizunaManagedProvider } from '../../types/Provider';
@@ -59,6 +61,17 @@ export function SettingsInitializer() {
   const modelInitialized = useModelInitialized();
   const localInferenceSettings = useLocalInferenceSettings();
   const localNativeSettings = useLocalNativeSettings();
+
+  // Native readiness asks whether the session needs a TTS model, and that
+  // answer is `effectiveTextOnly(speaker leg in scope, the toggle)` — so BOTH
+  // of these are readiness inputs, and the native effect below is the only
+  // thing that re-runs validateApiKey for LOCAL_NATIVE (the generic credential
+  // effect skips it). Untracked, either one leaves the standing verdict
+  // describing a session shape the user has already left: fail readiness in
+  // Speaker for a missing voice, switch to Others, and Start stays disabled
+  // forever even though a participant-only session never loads a voice.
+  const audioMode = useMode();
+  const textOnly = useTextOnly();
 
   // ── Ensure model store is initialized when LOCAL_INFERENCE is selected ──
   useEffect(() => {
@@ -230,6 +243,9 @@ export function SettingsInitializer() {
       localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
       localNativeSettings.asrModel, localNativeSettings.translationModel,
       localNativeSettings.ttsModel,
+      // The two inputs to the effective text-only answer — see their
+      // declaration above for why a stale verdict is unrecoverable here.
+      audioMode, textOnly,
       validateApiKey]);
 
   // This component doesn't render anything
