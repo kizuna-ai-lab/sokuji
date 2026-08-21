@@ -145,6 +145,7 @@ export default defineConfig(({ command, mode }) => {
             'linux-window-titles': 'electron/linux-window-titles.js',
             'linux-gpu-flags': 'electron/linux-gpu-flags.js',
             'sandbox-recovery': 'electron/sandbox-recovery.js',
+            'single-instance': 'electron/single-instance.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'audio-host': 'electron/audio-host.js',
             'audio-host-path': 'electron/audio-host-path.js',
