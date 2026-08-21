@@ -6,10 +6,13 @@ import { IClient, FilteredModel, SessionConfig, LocalInferenceSessionConfig } fr
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalInferenceClient } from '../clients/LocalInferenceClient';
 import { createParticipantLocalInferenceConfig } from './localParticipantConfig';
+import type { Selections } from '../../lib/local-inference/selection/types';
 import i18n from '../../locales';
 
 // Local Inference Settings
 export interface LocalInferenceSettings {
+  /** Per-direction model choices, keyed `src→tgt`. '' in any stage means auto. */
+  selections: Selections;
   asrModel: string;
   translationModel: string; // '' (auto) | 'opus-mt-ja-en' | ...
   ttsModel: string;        // '' (auto) | 'piper-en' | 'piper-de'
@@ -29,6 +32,7 @@ export interface LocalInferenceSettings {
 }
 
 export const defaultLocalInferenceSettings: LocalInferenceSettings = {
+  selections: {},
   asrModel: 'sensevoice-int8',
   translationModel: '',  // Auto-select based on language pair
   ttsModel: '',  // Auto-select based on target language

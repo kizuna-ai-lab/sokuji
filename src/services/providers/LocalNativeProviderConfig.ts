@@ -11,6 +11,7 @@ import type { NativeModelInfo } from '../../lib/local-inference/native/nativePro
 // no cycle; the descriptor needs the sidecar catalog for TTS auto-resolution.
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { createParticipantLocalNativeConfig } from './localParticipantConfig';
+import type { Selections } from '../../lib/local-inference/selection/types';
 import i18n from '../../locales';
 
 /**
@@ -19,6 +20,8 @@ import i18n from '../../locales';
  * (speech mode, VAD, prompt, TTS speed) need it.
  */
 export interface LocalNativeSettings {
+  /** Per-direction model choices, keyed `src→tgt`. '' in any stage means auto. */
+  selections: Selections;
   asrModel: string;          // sidecar ASR model id (e.g. 'sense-voice', 'whisper-tiny')
   translationModel: string;  // '' (auto) | LLM id (e.g. 'qwen2.5-0.5b')
   // Per-model chosen quant variant (e.g. { 'hy-mt2-1.8b': 'fp8' }). A model with no
@@ -44,6 +47,7 @@ export interface LocalNativeSettings {
 }
 
 export const defaultLocalNativeSettings: LocalNativeSettings = {
+  selections: {},
   asrModel: 'sense-voice',
   translationModel: 'qwen2.5-0.5b',  // explicit default LLM; opus-mt selectable per language pair
   ttsModel: '',          // '' = Auto (default voice for the target); text-only via the textOnly toggle
