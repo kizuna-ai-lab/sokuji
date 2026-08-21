@@ -1,5 +1,5 @@
 import {
-  type Candidate, type CandidateSource, type ResolutionNote, type ResolutionReason,
+  type Candidate, type CandidateSource, type DirectionResult, type ResolutionNote, type ResolutionReason,
   type Selections, type Stage, type StageResult, EMPTY_STAGE, splitDirection,
 } from './types';
 
@@ -62,4 +62,29 @@ export function resolveStage(
   }
 
   return { resolved, note, prune };
+}
+
+const STAGES: Stage[] = ['asr', 'translation', 'tts'];
+
+/**
+ * One direction's three stages. Called once per live direction — speaker
+ * (`src→tgt`) and participant (`tgt→src`) — with nothing shared between the two
+ * calls beyond `selections` and `candidates`. There is deliberately no path by
+ * which one direction can influence the other.
+ */
+export function resolveDirection(
+  direction: string,
+  selections: Selections,
+  candidates: CandidateSource,
+): DirectionResult {
+  const out: DirectionResult = {
+    asr: null, translation: null, tts: null, notes: [], prunes: [],
+  };
+  for (const stage of STAGES) {
+    const r = resolveStage(direction, stage, selections, candidates);
+    out[stage] = r.resolved;
+    if (r.note) out.notes.push(r.note);
+    if (r.prune) out.prunes.push({ direction, stage });
+  }
+  return out;
 }
