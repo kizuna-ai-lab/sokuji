@@ -134,3 +134,73 @@ describe('resolveStage — auto', () => {
     expect(r.resolved).toBeNull();
   });
 });
+
+describe('resolveStage — why the explicit pick was not used', () => {
+  const pick = (id: string): Selections => ({
+    'ja→en': { asr: { modelId: id }, translation: { modelId: '' }, tts: { modelId: '' } },
+  });
+
+  it('deleted model -> not-downloaded, falls back, keeps the selection', () => {
+    const selections = pick('whisper-base');
+    const r = resolveStage('ja→en', 'asr', selections,
+      src([C('whisper-base', { ready: false }), C('sensevoice')]));
+    expect(r.note).toEqual({
+      direction: 'ja→en', stage: 'asr',
+      from: 'whisper-base', to: 'sensevoice', reason: 'not-downloaded',
+    });
+    expect(r.resolved).toEqual({ modelId: 'sensevoice', variant: undefined, source: 'auto' });
+    expect(r.prune).toBeUndefined();
+    expect(selections['ja→en'].asr.modelId).toBe('whisper-base');
+  });
+
+  it('wrong direction -> lang-incompatible when the model still exists elsewhere', () => {
+    const selections: Selections = {
+      'ja→en': { asr: { modelId: '' }, translation: { modelId: 'opus-mt-en-ja' }, tts: { modelId: '' } },
+    };
+    const r = resolveStage('ja→en', 'translation', selections,
+      src([C('qwen')], ['opus-mt-en-ja']));
+    expect(r.note?.reason).toBe('lang-incompatible');
+    expect(r.prune).toBeUndefined();
+  });
+
+  it('model gone from the catalog -> not-in-catalog AND prune', () => {
+    const r = resolveStage('ja→en', 'asr', pick('retired-model'), src([C('sensevoice')]));
+    expect(r.note?.reason).toBe('not-in-catalog');
+    expect(r.prune).toBe(true);
+  });
+
+  it('lost the GPU -> hardware-gated', () => {
+    const r = resolveStage('ja→en', 'asr', pick('gpu-only'),
+      src([C('gpu-only', { hardwareOk: false }), C('cpu')]));
+    expect(r.note?.reason).toBe('hardware-gated');
+  });
+
+  it('cloud implementation without a key -> needs-key, not not-downloaded', () => {
+    const r = resolveStage('ja→en', 'asr', pick('cloud'),
+      src([C('cloud', { ready: false, needsKey: true }), C('local')]));
+    expect(r.note?.reason).toBe('needs-key');
+  });
+
+  it('nothing usable and nothing chosen -> a single no-candidate note', () => {
+    const r = resolveStage('ja→en', 'asr', {}, src([C('down', { ready: false })]));
+    expect(r.resolved).toBeNull();
+    expect(r.note).toEqual({
+      direction: 'ja→en', stage: 'asr', from: null, to: null, reason: 'no-candidate',
+    });
+  });
+
+  it('nothing usable but something was chosen -> keeps the specific reason, to: null', () => {
+    const r = resolveStage('ja→en', 'asr', pick('whisper-base'),
+      src([C('whisper-base', { ready: false })]));
+    expect(r.resolved).toBeNull();
+    expect(r.note).toEqual({
+      direction: 'ja→en', stage: 'asr', from: 'whisper-base', to: null, reason: 'not-downloaded',
+    });
+  });
+
+  it('prunes even when the fallback also fails', () => {
+    const r = resolveStage('ja→en', 'asr', pick('retired-model'), src([]));
+    expect(r.prune).toBe(true);
+    expect(r.note?.reason).toBe('not-in-catalog');
+  });
+});
