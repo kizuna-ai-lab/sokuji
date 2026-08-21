@@ -179,14 +179,24 @@ const SubtitleStream: React.FC<Props> = ({
     isFirstRenderRef.current = false;
   });
 
-  // Apply fontSize to both our flat-line styles and the CSS var that
-  // ConversationRow reads in expanded mode.
+  // Apply fontSize and the text colours to both our own compact-band styles
+  // and the CSS vars ConversationRow reads in expanded mode. ConversationRow
+  // is themed via --conversation-* (renamed off --subtitle-* when MainPanel
+  // gained its own display settings), so each value has to be published under
+  // both names — expanded mode is the subtitle window's DEFAULT layout, and
+  // publishing only --subtitle-* leaves the user's colour choice inert there.
   const style: React.CSSProperties & Record<string, string> = {
     fontSize: `${fontSize}px`,
     '--conversation-font-size': `${fontSize}px`,
   };
-  if (sourceTextColor) style['--subtitle-source-color'] = sourceTextColor;
-  if (translationTextColor) style['--subtitle-translation-color'] = translationTextColor;
+  if (sourceTextColor) {
+    style['--subtitle-source-color'] = sourceTextColor;
+    style['--conversation-source-color'] = sourceTextColor;
+  }
+  if (translationTextColor) {
+    style['--subtitle-translation-color'] = translationTextColor;
+    style['--conversation-translation-color'] = translationTextColor;
+  }
 
   return (
     <div className={`subtitle-stream ${compact ? 'compact' : 'expanded'}`} style={style}>

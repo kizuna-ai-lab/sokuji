@@ -330,6 +330,13 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     '--bar-opacity': barVisible ? 1 : 0,
     '--bar-pointer-events': barVisible ? 'auto' : 'none',
     '--subtitle-highlight-overlay': getHighlightOverlayForBg(subtitle.bgColor),
+    // SubtitleApp.scss reads this for `.subtitle-app`'s inherited text
+    // colour. It had never been defined at the root, so that declaration
+    // always resolved to its #FFFFFF fallback. Every chrome element below
+    // (idle body, PTT hint, bar) sets its own colour and overrides this, so
+    // defining it changes nothing that is on screen today — it just makes
+    // the rule mean what it says for anything that inherits.
+    '--subtitle-source-color': subtitle.sourceTextColor,
   };
 
   return (

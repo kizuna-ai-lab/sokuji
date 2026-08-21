@@ -347,6 +347,30 @@ describe('SubtitleStream — expanded mode (per-item rows)', () => {
     expect(container.querySelectorAll('.conversation-row').length).toBe(4);
     expect(container.querySelector('.subtitle-stream__line')).toBeNull();
   });
+
+  // Expanded mode delegates to ConversationRow, whose stylesheet reads the
+  // --conversation-* custom properties (it was renamed off --subtitle-* when
+  // MainPanel gained its own display settings). The subtitle colours must be
+  // published under BOTH names or the user's text-colour choice silently does
+  // nothing in the subtitle window's default (non-compact) layout.
+  it('publishes the text colours under the --conversation-* names ConversationRow reads', () => {
+    const { container } = render(
+      <SubtitleStream
+        items={items}
+        compact={false}
+        fontSize={36}
+        speakerMode="both"
+        participantMode="both"
+        sourceLanguage="en"
+        targetLanguage="zh"
+        sourceTextColor="#FF0000"
+        translationTextColor="#00FF00"
+      />,
+    );
+    const root = container.querySelector('.subtitle-stream') as HTMLElement;
+    expect(root.style.getPropertyValue('--conversation-source-color')).toBe('#FF0000');
+    expect(root.style.getPropertyValue('--conversation-translation-color')).toBe('#00FF00');
+  });
 });
 
 describe('SubtitleStream — expanded karaoke highlight', () => {
