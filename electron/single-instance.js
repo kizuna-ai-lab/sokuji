@@ -42,7 +42,13 @@ function acquireSingleInstanceLock(app, { onSecondInstance, env = process.env } 
   // hatch, `npm run electron:dev` would exit on the spot whenever the installed
   // Sokuji happened to be open. Opt-in only -- two instances still fight over
   // the virtual audio devices, so this is a debugging tool, not a supported mode.
-  if (env[OPT_OUT_ENV] === '1') {
+  //
+  // Honoured in development builds only. A packaged Sokuji that inherited the
+  // variable -- from a shell profile, a hand-edited .desktop Exec line -- would
+  // resurrect the exact failure this lock exists to prevent, for a user who
+  // never asked to debug anything. Gating on isPackaged costs the dev case
+  // nothing: the process running `npm run electron:dev` is the unpackaged one.
+  if (env[OPT_OUT_ENV] === '1' && !app.isPackaged) {
     return true;
   }
 
@@ -63,6 +69,47 @@ function acquireSingleInstanceLock(app, { onSecondInstance, env = process.env } 
 }
 
 /**
+ * Focus handling for second launches, including the ones that arrive before
+ * there is a window to focus.
+ *
+ * The lock is claimed at module load, but mainWindow is assigned deep inside
+ * whenReady -- after Better Auth init, orphan-device cleanup, and the pactl
+ * round-trip that creates the virtual devices. Measured on Linux that gap is
+ * ~530ms, and a duplicate launch fired 200-500ms after the first reproducibly
+ * lands inside it. Passing the not-yet-created window to focusWindow() there
+ * drops the request silently -- and that is the likeliest duplicate launch of
+ * all: the user clicking the icon again because nothing has appeared yet.
+ *
+ * So an early request is held and honoured the moment the window exists.
+ *
+ * @param {() => Electron.BrowserWindow | null | undefined} getWindow
+ * @returns {{ onSecondInstance: () => void, windowCreated: () => void }}
+ */
+function createFocusRelay(getWindow) {
+  let pending = false;
+
+  return {
+    onSecondInstance() {
+      const win = getWindow();
+      if (!win) {
+        pending = true;
+        return;
+      }
+      focusWindow(win);
+    },
+
+    /** Call right after the main window is assigned. */
+    windowCreated() {
+      // No request pending means an ordinary first launch: a fresh window
+      // already comes up focused, and raising it again would be noise.
+      if (!pending) return;
+      pending = false;
+      focusWindow(getWindow());
+    },
+  };
+}
+
+/**
  * Bring an existing window to the user, whatever state it was left in.
  * Null-safe: between window-all-closed and the next launch there is none.
  *
@@ -77,4 +124,4 @@ function focusWindow(win) {
   win.focus();
 }
 
-module.exports = { acquireSingleInstanceLock, focusWindow, OPT_OUT_ENV };
+module.exports = { acquireSingleInstanceLock, focusWindow, createFocusRelay, OPT_OUT_ENV };

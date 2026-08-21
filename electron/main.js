@@ -5,7 +5,7 @@ const { setupSubtitleHandlers } = require('./subtitle-window.js');
 const { setupCaptionDoubleClick } = require('./window-caption-dblclick.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
-const { acquireSingleInstanceLock, focusWindow } = require('./single-instance');
+const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
 
 // Handle Squirrel events for Windows
 if (process.platform === 'win32') {
@@ -81,10 +81,13 @@ app.commandLine.appendSwitch('jack-name', 'sokuji');
 // install/uninstall helpers, which legitimately run while the app is open,
 // have already exited by this point.
 let isDuplicateInstance = false;
+// Holds a focus request that lands before createWindow() has run -- see
+// createFocusRelay for why that is the common case rather than the rare one.
+const focusRelay = createFocusRelay(() => mainWindow);
 if (!acquireSingleInstanceLock(app, {
   onSecondInstance: () => {
     console.log('[Sokuji] [Main] Second launch detected; focusing the existing window');
-    focusWindow(mainWindow);
+    focusRelay.onSecondInstance();
   },
 })) {
   isDuplicateInstance = true;
@@ -374,6 +377,10 @@ function createWindow() {
       backgroundThrottling: false
     }
   });
+
+  // A second launch during the ~half second between claiming the lock and
+  // getting here left its focus request waiting; honour it now.
+  focusRelay.windowCreated();
 
   setupSubtitleHandlers(mainWindow);
   // Windows only: frame:false + transparent:true above costs the window its
