@@ -2,12 +2,15 @@ import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
 import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, HardwareInfoResultMsg } from '../lib/local-inference/native/nativeProtocol';
 import {
-  autoSelectNative, hardwareGated, statusReposFor,
+  statusReposFor,
   nativeAsrCards, nativeTranslationCards, nativeTtsCards,
   requiredNativeModels, resolveNativeTts, supportsLanguage,
   type NativeSelection, type NativeReadinessInput, type NativeReadinessResult, type NativeReadinessReason,
 } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
+import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
+import { nativeCandidates } from '../lib/local-inference/selection/candidates.native';
+import { directionKey, emptyDirection, type DirectionResult, type Selections, type Stage } from '../lib/local-inference/selection/types';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
 
@@ -79,23 +82,40 @@ interface NativeModelStore {
   /** True only if every listed model is cached. */
   isReady: (models: string[]) => boolean;
   /** Full LOCAL_NATIVE session-readiness gate: warm the sidecar, check the
-   *  lifecycle, refresh the pair's statuses (variant-aware), auto-select stale
-   *  choices, and judge compat + downloaded state. Returns ready + a reason and
-   *  the auto-select corrections (the caller persists them). Mirrors the WASM
+   *  lifecycle, refresh the pair's statuses (variant-aware), resolve the
+   *  selection against the catalog, and judge compat + downloaded state.
+   *  Returns ready + a reason and the resolver's corrections (the caller
+   *  persists them). Mirrors the WASM
    *  useModelStore.ensureSelectionReady in shape (peers, not a shared layer).
    *  `read` is a thunk, called only once the sidecar is warm — see
    *  NativeReadinessInput for why a snapshot would be wrong. */
   ensureSelectionReady: (read: () => NativeReadinessInput) => Promise<NativeReadinessResult>;
   /** Persist the chosen models for a language pair/direction. */
   rememberModels: (src: string, tgt: string, sel: NativeSelection) => void;
-  /** The remembered selection for a direction (raw; readiness is re-checked by autoSelect). */
+  /** The remembered selection for a direction (raw; readiness is re-checked against the resolver). */
   recallModels: (src: string, tgt: string) => NativeSelection | null;
   /**
-   * Reconcile a selection for the pair using the catalog reconciler + recalled
-   * history + live download statuses, and remember the final choice. Returns the
-   * changed fields (null if nothing changed) — the caller applies them to settings.
+   * Resolve one direction against the sidecar catalog and current download
+   * statuses. Pure: `selections` comes in as a parameter rather than being
+   * read from settingsStore, so the result is a computed value with no
+   * dependency of its own on settings — the caller (which already has
+   * settingsStore in scope, or reaches it via a dynamic import) decides what
+   * "current" selections means. Never written back — that distinction is what
+   * lets the system tell a user's choice from a machine's guess. Mirrors
+   * modelStore.ts's `resolve`, substituting the sidecar catalog for the WASM
+   * manifest.
    */
-  autoSelect: (src: string, tgt: string, current: NativeSelection) => Partial<NativeSelection> | null;
+  resolve: (src: string, tgt: string, selections: Selections) => DirectionResult;
+  /**
+   * The one write the resolver can cause: an id the catalog no longer knows
+   * can never resolve again, so keeping it only produces a note the user
+   * cannot act on. Garbage collection, not write-back. Reaches settingsStore
+   * via a dynamic import — same settingsStore-import path this file already
+   * uses (catalogStatusRepos / revalidateNativeProvider) — so a settings-store
+   * failure at this point degrades to "nothing pruned" rather than throwing.
+   * Mirrors modelStore.ts's `applyPrunes`, against the `localNative` slice.
+   */
+  applyPrunes: (prunes: Array<{ direction: string; stage: Stage }>) => Promise<void>;
   /** True while a native ASR session is loading its model (init→ready). */
   asrLoading: boolean;
   /** The resolved ASR plan from the last session `ready` (device + measured rtf + memory). */
@@ -479,13 +499,41 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     ].map((c) => c.downloadId).filter((id): id is string => !!id)));
     const candidateRepos = deriveVariantRepos(asCards(candidateIds), pins);
     await get().refresh(candidateIds, Object.keys(candidateRepos).length > 0 ? candidateRepos : undefined);
-    // Reconcile the stale selection against catalog + live statuses. autoSelect
-    // also persists to modelPreferences internally; it RETURNS the changed
-    // settings fields (the caller applies them to settingsStore).
-    const corrections = get().autoSelect(selection.sourceLanguage, selection.targetLanguage, {
-      asrModel: selection.asrModel, translationModel: selection.translationModel, ttsModel: selection.ttsModel,
-    });
-    const effective = corrections ? { ...selection, ...corrections } : selection;
+
+    // Resolve the pair against the sidecar catalog + the live download
+    // statuses just refreshed above, then garbage-collect any selection the
+    // resolver found dead (an id the catalog no longer knows about at all).
+    // Settings are reached via a dynamic import — same path
+    // catalogStatusRepos/revalidateNativeProvider already use in this file —
+    // rather than a static one, to avoid a circular static import with
+    // settingsStore.ts (which already dynamically imports this module).
+    // Unavailable settings store degrades to "nothing explicit", i.e. every
+    // stage resolves purely from the catalog.
+    let selections: Selections = {};
+    try {
+      const { useSettingsStore } = await import('./settingsStore');
+      selections = useSettingsStore.getState().localNative.selections;
+    } catch { /* settings store unavailable — resolve with no explicit selections */ }
+    const result = get().resolve(selection.sourceLanguage, selection.targetLanguage, selections);
+    if (result.prunes.length > 0) {
+      await get().applyPrunes(result.prunes);
+    }
+
+    // Surface the resolved ids as corrections whenever they differ from the
+    // flat fields the caller passed in — same shape autoSelect used to
+    // produce, now driven by the resolver instead of the catalog reconciler.
+    // Task 14 owns the final {ready, notes} contract this interim bridge
+    // feeds into; for now settingsStore.validateApiKey's native arm keeps
+    // reading this same {ready, reason, corrections} shape.
+    const corrections: Partial<NativeSelection> = {};
+    if (result.asr && result.asr.modelId !== selection.asrModel) corrections.asrModel = result.asr.modelId;
+    if (result.translation && result.translation.modelId !== selection.translationModel) {
+      corrections.translationModel = result.translation.modelId;
+    }
+    if (result.tts && result.tts.modelId !== selection.ttsModel) corrections.ttsModel = result.tts.modelId;
+    const finalCorrections = Object.keys(corrections).length > 0 ? corrections : null;
+
+    const effective = finalCorrections ? { ...selection, ...finalCorrections } : selection;
     const asrOpt = catalog[effective.asrModel];
     const asrCompatible = !!asrOpt && asrOpt.kind === 'asr' && supportsLanguage(asrOpt, effective.sourceLanguage);
     const trCompatible = nativeTranslationCards(effective.sourceLanguage, effective.targetLanguage, catalog)
@@ -514,7 +562,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       : !asrCompatible ? 'asr-incompatible'
       : !trCompatible ? 'translation-incompatible'
       : 'models-missing';
-    return { ready, reason, corrections: corrections ?? null };
+    return { ready, reason, corrections: finalCorrections };
   },
 
   rememberModels: (src, tgt, sel) => {
@@ -523,22 +571,28 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
 
   recallModels: (src, tgt) => get().modelPreferences[`${src}→${tgt}`] ?? null,
 
-  autoSelect: (src, tgt, current) => {
-    const statuses = get().statuses;
-    const catalog = get().catalog;
-    const isDownloaded = (id: string | null) => id === null || statuses[id] === 'ready';
-    // A GPU-only model on a CPU-only machine is hardware-gated — never auto-select it
-    // (it would pass readiness but fail at Start with NoUsablePlan).
-    const isHardwareGated = (id: string | null) => id !== null && hardwareGated(catalog[id]);
-    const updates = autoSelectNative(src, tgt, current, isDownloaded, get().recallModels(src, tgt), isHardwareGated, catalog);
-    const final: NativeSelection = {
-      asrModel: updates?.asrModel ?? current.asrModel,
-      translationModel: updates?.translationModel ?? current.translationModel,
-      ttsModel: updates?.ttsModel ?? current.ttsModel,
-    };
-    // Remember the resolved choice for this direction (mirrors modelStore.autoSelectModels).
-    if (final.asrModel) get().rememberModels(src, tgt, final);
-    return updates;
+  resolve: (src, tgt, selections) => {
+    const { catalog, statuses } = get();
+    return resolveDirection(directionKey(src, tgt), selections, nativeCandidates({ catalog, statuses }));
+  },
+
+  applyPrunes: async (prunes) => {
+    if (prunes.length === 0) return;
+    try {
+      const { useSettingsStore } = await import('./settingsStore');
+      const store = useSettingsStore.getState();
+      const next = { ...store.localNative.selections };
+      for (const { direction, stage } of prunes) {
+        const dir = next[direction] ?? emptyDirection();
+        next[direction] = { ...dir, [stage]: { modelId: '' } };
+      }
+      // A direction with nothing explicit left carries no information.
+      for (const key of Object.keys(next)) {
+        const d = next[key];
+        if (!d.asr.modelId && !d.translation.modelId && !d.tts.modelId) delete next[key];
+      }
+      await store.updateLocalNative({ selections: next });
+    } catch { /* settings store unavailable — nothing to prune */ }
   },
 
   setAsrLoading: (v) => set({ asrLoading: v }),

@@ -1,6 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useNativeModelStore, deriveVariantRepos } from './nativeModelStore';
 import { requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
+import { directionKey, emptyDirection } from '../lib/local-inference/selection/types';
+
+// resolve()/applyPrunes()/ensureSelectionReady() now reach settingsStore via a
+// dynamic import, which drags in its real static import graph — including
+// audioStore -> ServiceFactory -> ModernBrowserAudioService -> ModernAudioRecorder
+// -> the @sapphi-red/web-noise-suppressor worklet's `?url` import, which this
+// sandboxed Vite test transform denies outright. Mock ServiceFactory (same
+// fix modelStore.test.ts and settingsStore.translationVariant.test.ts already
+// use) so that chain never loads; settingsStore's own persistence goes through
+// this mock instead of a real settings backend.
+vi.mock('../services/ServiceFactory', () => ({
+  ServiceFactory: {
+    getSettingsService: vi.fn(() => ({
+      setSetting: vi.fn().mockResolvedValue(undefined),
+      getSetting: vi.fn(),
+    })),
+  },
+}));
 
 // The store's bundle IPC helpers (bundleInvoke/onBundleProgress) gate on the
 // centralized isElectron() check; force the Electron branch so the FakeWS/
@@ -390,15 +408,21 @@ describe('ensureSelectionReady (facade)', () => {
     translationVariantByModel: {} as Record<string, string>,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     _shouldReject = false;
     _notReadyModels = new Set();
     // The top-level beforeEach resets catalog/statuses/statusRepos but not
-    // modelPreferences — autoSelect's step 1 layers recalled history from a
-    // PRIOR test's rememberModels() for the same `${src}→${tgt}` key on top of
-    // the requested selection, so a leftover here would silently override the
-    // translationModel this block is trying to exercise.
+    // modelPreferences — a leftover rememberModels() from a PRIOR test for the
+    // same `${src}→${tgt}` key could otherwise linger unused across tests.
     useNativeModelStore.setState({ modelPreferences: {} });
+    // ensureSelectionReady now resolves against settingsStore's
+    // localNative.selections (the structured source of truth), not the flat
+    // fields the read() thunk returns — a leftover explicit selection from a
+    // PRIOR test would silently change what these tests are exercising.
+    const { useSettingsStore } = await import('./settingsStore');
+    useSettingsStore.setState({
+      localNative: { ...useSettingsStore.getState().localNative, selections: {} },
+    });
   });
 
   it('reads the selection AFTER sidecar warmup, not at call time', async () => {
@@ -499,6 +523,18 @@ describe('ensureSelectionReady (facade)', () => {
         { id: 'bf16', sizeBytes: 15e9, repo: 'tencent/Hy-MT2-1.8B', supported: true, recommended: false },
       ],
     } } as any });
+    // ensureSelectionReady resolves against settingsStore's localNative.selections
+    // (the structured source of truth), not the flat translationModel field the
+    // read() thunk returns below — without this, the resolver would auto-pick
+    // the recommended qwen2.5-0.5b instead of honoring hy-mt2-1.8b as explicit.
+    const { useSettingsStore } = await import('./settingsStore');
+    const dir = directionKey(SEL.sourceLanguage, SEL.targetLanguage);
+    useSettingsStore.setState({
+      localNative: {
+        ...useSettingsStore.getState().localNative,
+        selections: { [dir]: { ...emptyDirection(), translation: { modelId: 'hy-mt2-1.8b' } } },
+      },
+    });
     await useNativeModelStore.getState().ensureSelectionReady(() => ({
       selection: { ...SEL, translationModel: 'hy-mt2-1.8b' }, textOnly: false,
     }));
@@ -525,6 +561,17 @@ describe('ensureSelectionReady (facade)', () => {
         { id: 'bf16', sizeBytes: 1.5e9, repo: 'org/moss-pro-bf16', supported: true, recommended: true },
       ],
     } } as any });
+    // Without an explicit structured selection, the resolver would auto-pick
+    // the recommended moss-tts-nano (from the base fixture) over moss-tts-pro —
+    // see the note on the translation-variant test above.
+    const { useSettingsStore } = await import('./settingsStore');
+    const dir = directionKey(SEL.sourceLanguage, 'ja');
+    useSettingsStore.setState({
+      localNative: {
+        ...useSettingsStore.getState().localNative,
+        selections: { [dir]: { ...emptyDirection(), tts: { modelId: 'moss-tts-pro' } } },
+      },
+    });
     await useNativeModelStore.getState().ensureSelectionReady(() => ({
       selection: { ...SEL, targetLanguage: 'ja', ttsModel: 'moss-tts-pro',
         translationVariantByModel: { 'moss-tts-pro': 'fp32' } },
@@ -751,5 +798,49 @@ describe('nativeModelStore bundle state machine (distribution spec)', () => {
     const s = useNativeModelStore.getState();
     expect(s.bundleSize).toBe(2040);
     expect(s.bundleInstalledSize).toBe(4900);
+  });
+});
+
+describe('nativeModelStore.resolve', () => {
+  const ASR_FIXTURE = {
+    'sense-voice': {
+      id: 'sense-voice', name: 'SenseVoice', languages: ['ja', 'en'],
+      recommended: true, tiers: [{ tier: 'cpu', backend: 'ct2', available: true }],
+      order: 1, repo: 'r', kind: 'asr',
+    },
+  } as any;
+
+  beforeEach(async () => {
+    // resolve() reads `selections` from the caller, not settingsStore — this
+    // block only resets settingsStore for applyPrunes(), which reaches it via
+    // a dynamic import (same path ensureSelectionReady uses).
+    const { useSettingsStore } = await import('./settingsStore');
+    useSettingsStore.setState({
+      localNative: { ...useSettingsStore.getState().localNative, selections: {} },
+    });
+  });
+
+  it('resolves from the sidecar catalog and download statuses', () => {
+    useNativeModelStore.setState({ catalog: ASR_FIXTURE, statuses: { 'sense-voice': 'ready' } });
+    expect(useNativeModelStore.getState().resolve('ja', 'en', {}).asr?.modelId).toBe('sense-voice');
+  });
+
+  it('falls to null when the only candidate is absent', () => {
+    useNativeModelStore.setState({ catalog: ASR_FIXTURE, statuses: { 'sense-voice': 'absent' } });
+    expect(useNativeModelStore.getState().resolve('ja', 'en', {}).asr).toBeNull();
+  });
+
+  it('applyPrunes writes to the localNative slice, not localInference', async () => {
+    const { useSettingsStore } = await import('./settingsStore');
+    const dir = directionKey('ja', 'en');
+    useSettingsStore.setState({
+      localNative: {
+        ...useSettingsStore.getState().localNative,
+        selections: { [dir]: { asr: { modelId: 'gone' }, translation: { modelId: 'kept' }, tts: { modelId: '' } } },
+      },
+    });
+    await useNativeModelStore.getState().applyPrunes([{ direction: dir, stage: 'asr' }]);
+    expect(useSettingsStore.getState().localNative.selections[dir].asr.modelId).toBe('');
+    expect(useSettingsStore.getState().localInference.selections[dir]).toBeUndefined();
   });
 });
