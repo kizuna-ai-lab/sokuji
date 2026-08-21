@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, cloneElement, isValidElement } from 'react';
+import React, { useState, useEffect, cloneElement, isValidElement } from 'react';
 import { HelpCircle, Info } from 'lucide-react';
 import {
   useFloating,
@@ -101,34 +101,13 @@ const Tooltip: React.FC<TooltipProps> = ({
 
   const triggerElement = children || renderIcon();
 
-  // A trigger can live in ANOTHER window's document: the subtitle bar hosts
-  // its popovers in child BrowserWindows and portals React into them, so one
-  // React tree spans two documents. Left to itself FloatingPortal lands in
-  // `document.body` — THIS document's — painting the tooltip in the wrong
-  // window and positioning it with that window's coordinates. So the portal
-  // container is the trigger's own body, whichever document that is.
-  //
-  // `null` means "not resolved yet", and that is load-bearing rather than a
-  // tidy initial value: FloatingPortal builds its portal node in the first
-  // layout effect and then keeps it forever (portalNodeRef short-circuits
-  // every later run), so a root that arrives afterwards is ignored. Passing
-  // null is the one input it waits on. The ref fires in the same commit, one
-  // render before anything can open, so nothing is delayed in practice.
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const setReference = useCallback((node: Element | null) => {
-    refs.setReference(node);
-    // Only ever set, never cleared: a detach on unmount must not tear the
-    // portal node down and rebuild it somewhere else.
-    if (node) setPortalRoot(node.ownerDocument.body);
-  }, [refs.setReference]);
-
   // React 19 passes ref as a regular prop, so a caller-supplied ref on the
   // trigger child arrives via props and must be merged with (not clobbered
   // by, nor clobbering) the floating-ui anchor ref.
   const childRef = isValidElement(triggerElement)
     ? (triggerElement.props as { ref?: React.Ref<Element> }).ref
     : undefined;
-  const triggerRef = useMergeRefs([setReference, childRef]);
+  const triggerRef = useMergeRefs([refs.setReference, childRef]);
 
   // Function to render content with line break support
   const renderContent = () => {
@@ -164,14 +143,14 @@ const Tooltip: React.FC<TooltipProps> = ({
         )
       ) : (
         <span
-          ref={setReference}
+          ref={refs.setReference}
           {...getReferenceProps()}
           className="tooltip-trigger"
         >
           {triggerElement}
         </span>
       )}
-      <FloatingPortal root={portalRoot}>
+      <FloatingPortal>
         {isOpen && (
           <div
             ref={refs.setFloating}

@@ -10,7 +10,6 @@ import {
   useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, shift, size,
   autoUpdate, FloatingPortal,
 } from '@floating-ui/react';
-import ToolbarTooltip from '../Tooltip/ToolbarTooltip';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
 import ExportButton from '../MainPanel/ExportButton';
 import {
@@ -156,35 +155,32 @@ const SubtitleBar: React.FC<Props> = ({
     >
       <div className="subtitle-bar__left">
         {surface === 'electron' && sessionControl && (
-          <ToolbarTooltip
-            label={sessionControl.isSessionActive
+          <button
+            type="button"
+            className={`subtitle-bar__session ${sessionControl.isSessionActive ? 'is-stop' : 'is-start'}`}
+            onClick={sessionControl.isSessionActive ? sessionControl.onStop : sessionControl.onStart}
+            // Stop must always be clickable during a session — written so that
+            // invariant is structural (guarded by !isSessionActive) rather than
+            // an accident of isInitializing/canStart never both being true
+            // while a session is active.
+            disabled={
+              !sessionControl.isSessionActive &&
+              (sessionControl.isInitializing || !sessionControl.canStart)
+            }
+            title={sessionControl.isSessionActive
+              ? t('subtitle.bar.stop', 'Stop session')
+              : t('subtitle.bar.start', 'Start session')}
+            aria-label={sessionControl.isSessionActive
               ? t('subtitle.bar.stop', 'Stop session')
               : t('subtitle.bar.start', 'Start session')}
           >
-            <button
-              type="button"
-              className={`subtitle-bar__session ${sessionControl.isSessionActive ? 'is-stop' : 'is-start'}`}
-              onClick={sessionControl.isSessionActive ? sessionControl.onStop : sessionControl.onStart}
-              // Stop must always be clickable during a session — written so that
-              // invariant is structural (guarded by !isSessionActive) rather than
-              // an accident of isInitializing/canStart never both being true
-              // while a session is active.
-              disabled={
-                !sessionControl.isSessionActive &&
-                (sessionControl.isInitializing || !sessionControl.canStart)
-              }
-              aria-label={sessionControl.isSessionActive
-                ? t('subtitle.bar.stop', 'Stop session')
-                : t('subtitle.bar.start', 'Start session')}
-            >
-              {/* 14px matches every other icon in this bar. */}
-              {sessionControl.isInitializing
-                ? <Loader size={14} className="spinning" />
-                : sessionControl.isSessionActive
-                  ? <Square size={14} />
-                  : <Play size={14} />}
-            </button>
-          </ToolbarTooltip>
+            {/* 14px matches every other icon in this bar. */}
+            {sessionControl.isInitializing
+              ? <Loader size={14} className="spinning" />
+              : sessionControl.isSessionActive
+                ? <Square size={14} />
+                : <Play size={14} />}
+          </button>
         )}
         <span className="subtitle-bar__logo">Sokuji</span>
         <span className="subtitle-bar__quota" />
@@ -204,128 +200,118 @@ const SubtitleBar: React.FC<Props> = ({
         {participantActive && (
           <DisplayModeButton scope="participant" value={participantMode} onChange={setParticipantMode} />
         )}
-        <ToolbarTooltip label={t('subtitle.bar.fontDecrease', 'Decrease font size')}>
-          <button
-            type="button"
-            className="subtitle-bar__btn"
-            onClick={() => setFontSize(subtitle.fontSize - 2)}
-            disabled={subtitle.fontSize <= FONT_SIZE_MIN}
-            aria-label={t('subtitle.bar.fontDecrease', 'Decrease font size')}
-          >
-            <AArrowDown size={14} />
-          </button>
-        </ToolbarTooltip>
-        <ToolbarTooltip label={t('subtitle.bar.fontIncrease', 'Increase font size')}>
-          <button
-            type="button"
-            className="subtitle-bar__btn"
-            onClick={() => setFontSize(subtitle.fontSize + 2)}
-            disabled={subtitle.fontSize >= FONT_SIZE_MAX}
-            aria-label={t('subtitle.bar.fontIncrease', 'Increase font size')}
-          >
-            <AArrowUp size={14} />
-          </button>
-        </ToolbarTooltip>
-        <ToolbarTooltip label={subtitle.compactMode ? t('subtitle.bar.expand', 'Expanded view') : t('subtitle.bar.compact', 'Compact view')}>
-          <button
-            type="button"
-            className="subtitle-bar__btn"
-            onClick={() => setCompactMode(!subtitle.compactMode)}
-            aria-label={subtitle.compactMode ? t('subtitle.bar.expand', 'Expanded view') : t('subtitle.bar.compact', 'Compact view')}
-          >
-            {subtitle.compactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
-          </button>
-        </ToolbarTooltip>
+        <button
+          type="button"
+          className="subtitle-bar__btn"
+          onClick={() => setFontSize(subtitle.fontSize - 2)}
+          disabled={subtitle.fontSize <= FONT_SIZE_MIN}
+          title={t('subtitle.bar.fontDecrease', 'Decrease font size')}
+          aria-label={t('subtitle.bar.fontDecrease', 'Decrease font size')}
+        >
+          <AArrowDown size={14} />
+        </button>
+        <button
+          type="button"
+          className="subtitle-bar__btn"
+          onClick={() => setFontSize(subtitle.fontSize + 2)}
+          disabled={subtitle.fontSize >= FONT_SIZE_MAX}
+          title={t('subtitle.bar.fontIncrease', 'Increase font size')}
+          aria-label={t('subtitle.bar.fontIncrease', 'Increase font size')}
+        >
+          <AArrowUp size={14} />
+        </button>
+        <button
+          type="button"
+          className="subtitle-bar__btn"
+          onClick={() => setCompactMode(!subtitle.compactMode)}
+          title={subtitle.compactMode ? t('subtitle.bar.expand', 'Expanded view') : t('subtitle.bar.compact', 'Compact view')}
+          aria-label={subtitle.compactMode ? t('subtitle.bar.expand', 'Expanded view') : t('subtitle.bar.compact', 'Compact view')}
+        >
+          {subtitle.compactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
+        </button>
         {/* In the extension overlay the wire is capped to the recent tail
             (MAX_FORWARDED_ITEMS), so an export here would silently omit older
             messages. The side panel holds the full conversation and is the
             export source of truth — only offer export on the Electron surface,
             where the overlay shares the full session store. */}
         {surface === 'electron' && <ExportButton {...exportProps} popoverHost="child-window" />}
-        <ToolbarTooltip label={t('subtitle.bar.clear', 'Clear conversation')}>
-          <button
-            type="button"
-            className="subtitle-bar__btn"
-            onClick={onClearConversation}
-            aria-label={t('subtitle.bar.clear', 'Clear conversation')}
-          >
-            <Trash2 size={14} />
-          </button>
-        </ToolbarTooltip>
+        <button
+          type="button"
+          className="subtitle-bar__btn"
+          onClick={onClearConversation}
+          title={t('subtitle.bar.clear', 'Clear conversation')}
+          aria-label={t('subtitle.bar.clear', 'Clear conversation')}
+        >
+          <Trash2 size={14} />
+        </button>
 
         <span className="subtitle-bar__divider" />
 
         {childWindowHost ? (
-          <ToolbarTooltip label={t('subtitle.bar.settings', 'Subtitle settings')}>
-            <button
-              type="button"
-              className={`subtitle-bar__btn ${settingsChild.open ? 'active' : ''}`}
-              ref={settingsBtnRef}
-              onClick={settingsChild.toggle}
-              aria-haspopup="dialog"
-              aria-expanded={settingsChild.open}
-              aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
-            >
-              <Settings size={14} />
-            </button>
-          </ToolbarTooltip>
-        ) : (
-          <ToolbarTooltip label={t('subtitle.bar.settings', 'Subtitle settings')}>
-            <button
-              type="button"
-              className="subtitle-bar__btn"
-              ref={refs.setReference}
-              {...getReferenceProps()}
-              aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
-            >
-              <Settings size={14} />
-            </button>
-          </ToolbarTooltip>
-        )}
-        {surface === 'electron' && (
-          <ToolbarTooltip label={fullscreenLabel}>
-            <button
-              type="button"
-              className={`subtitle-bar__btn ${fullscreen ? 'active' : ''}`}
-              onClick={() => void setFullscreen(!fullscreen)}
-              aria-label={fullscreenLabel}
-            >
-              {fullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
-            </button>
-          </ToolbarTooltip>
-        )}
-        {surface === 'electron' && (
-          <ToolbarTooltip label={t('subtitle.bar.alwaysOnTop', 'Always on top')}>
-            <button
-              type="button"
-              className={`subtitle-bar__btn ${subtitle.alwaysOnTop ? 'active' : ''}`}
-              onClick={toggleAlwaysOnTop}
-              aria-label={t('subtitle.bar.alwaysOnTop', 'Always on top')}
-            >
-              <Pin size={14} />
-            </button>
-          </ToolbarTooltip>
-        )}
-        <ToolbarTooltip label={t('subtitle.bar.lock', 'Lock position and size')}>
           <button
             type="button"
-            className={`subtitle-bar__btn ${subtitle.positionLocked ? 'active' : ''}`}
-            onClick={togglePositionLocked}
-            aria-label={t('subtitle.bar.lock', 'Lock position and size')}
+            className={`subtitle-bar__btn ${settingsChild.open ? 'active' : ''}`}
+            ref={settingsBtnRef}
+            onClick={settingsChild.toggle}
+            aria-haspopup="dialog"
+            aria-expanded={settingsChild.open}
+            title={t('subtitle.bar.settings', 'Subtitle settings')}
+            aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
           >
-            <Lock size={14} />
+            <Settings size={14} />
           </button>
-        </ToolbarTooltip>
-        <ToolbarTooltip label={t('subtitle.bar.exit', 'Exit subtitle mode')}>
+        ) : (
           <button
             type="button"
             className="subtitle-bar__btn"
-            onClick={requestExit}
-            aria-label={t('subtitle.bar.exit', 'Exit subtitle mode')}
+            ref={refs.setReference}
+            {...getReferenceProps()}
+            title={t('subtitle.bar.settings', 'Subtitle settings')}
+            aria-label={t('subtitle.bar.settings', 'Subtitle settings')}
           >
-            <X size={14} />
+            <Settings size={14} />
           </button>
-        </ToolbarTooltip>
+        )}
+        {surface === 'electron' && (
+          <button
+            type="button"
+            className={`subtitle-bar__btn ${fullscreen ? 'active' : ''}`}
+            onClick={() => void setFullscreen(!fullscreen)}
+            title={fullscreenLabel}
+            aria-label={fullscreenLabel}
+          >
+            {fullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+          </button>
+        )}
+        {surface === 'electron' && (
+          <button
+            type="button"
+            className={`subtitle-bar__btn ${subtitle.alwaysOnTop ? 'active' : ''}`}
+            onClick={toggleAlwaysOnTop}
+            title={t('subtitle.bar.alwaysOnTop', 'Always on top')}
+            aria-label={t('subtitle.bar.alwaysOnTop', 'Always on top')}
+          >
+            <Pin size={14} />
+          </button>
+        )}
+        <button
+          type="button"
+          className={`subtitle-bar__btn ${subtitle.positionLocked ? 'active' : ''}`}
+          onClick={togglePositionLocked}
+          title={t('subtitle.bar.lock', 'Lock position and size')}
+          aria-label={t('subtitle.bar.lock', 'Lock position and size')}
+        >
+          <Lock size={14} />
+        </button>
+        <button
+          type="button"
+          className="subtitle-bar__btn"
+          onClick={requestExit}
+          title={t('subtitle.bar.exit', 'Exit subtitle mode')}
+          aria-label={t('subtitle.bar.exit', 'Exit subtitle mode')}
+        >
+          <X size={14} />
+        </button>
       </div>
 
       {childWindowHost ? (

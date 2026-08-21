@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { createRef } from 'react';
-import { createPortal } from 'react-dom';
 import Tooltip from './Tooltip';
 
 vi.mock('react-i18next', () => ({
@@ -58,41 +57,5 @@ describe('Tooltip trigger ref handling (React 19 ref-as-prop)', () => {
     await waitFor(() => {
       expect(screen.getByText('plain-tip')).toBeInTheDocument();
     });
-  });
-});
-
-describe('Tooltip whose trigger lives in another document', () => {
-  // The subtitle bar hosts its popovers in child BrowserWindows and portals
-  // React into them, so one React tree can span two documents. A tooltip that
-  // portalled to THIS document's body would be painted in the wrong window
-  // entirely — and positioned with the wrong window's coordinates. An iframe
-  // document stands in for the child window here: same "separate document,
-  // same React tree" shape, and it works in jsdom.
-  it('portals into the trigger\'s own document, not the host one', async () => {
-    const frame = document.createElement('iframe');
-    document.body.appendChild(frame);
-    const otherDoc = frame.contentDocument!;
-
-    render(
-      createPortal(
-        <Tooltip content="other-doc-tip" trigger="hover" openDelay={0}>
-          <button>other-doc-trigger</button>
-        </Tooltip>,
-        otherDoc.body,
-      ),
-    );
-
-    const button = otherDoc.body.querySelector('button')!;
-    expect(button).not.toBeNull();
-    fireEvent.mouseEnter(button);
-
-    await waitFor(() => {
-      expect(otherDoc.body.textContent).toContain('other-doc-tip');
-    });
-    // Nothing leaked into the hosting document — an iframe's content is not
-    // part of its parent's text, so a stray portal here would show up.
-    expect(document.body.textContent).not.toContain('other-doc-tip');
-    // The frame is deliberately left in place: tearing down the document a
-    // live portal points into makes React's unmount throw.
   });
 });

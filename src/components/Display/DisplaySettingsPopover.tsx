@@ -17,7 +17,6 @@ import {
   SUBTITLE_DEFAULT_TRANSLATION_TEXT_COLOR,
 } from '../../stores/subtitleStore';
 import ToggleSwitch from '../Settings/shared/ToggleSwitch';
-import ToolbarTooltip from '../Tooltip/ToolbarTooltip';
 import ColorPicker from './ColorPicker';
 import {
   useConversationDisplayBgColor,
@@ -324,18 +323,17 @@ const ColorRow: React.FC<ColorRowProps> = ({
             onClick={() => onPresetClick(c)}
           />
         ))}
-        <ToolbarTooltip label={t('subtitle.settings.customColor', 'Custom color')}>
-          <button
-            type="button"
-            className={`swatch custom ${isCustom ? 'selected' : ''}`}
-            style={{ background: value }}
-            aria-label={t('subtitle.settings.customColor', 'Custom color')}
-            aria-expanded={pickerOpen}
-            onClick={onTogglePicker}
-          >
-            <Plus size={10} />
-          </button>
-        </ToolbarTooltip>
+        <button
+          type="button"
+          className={`swatch custom ${isCustom ? 'selected' : ''}`}
+          style={{ background: value }}
+          title={t('subtitle.settings.customColor', 'Custom color')}
+          aria-label={t('subtitle.settings.customColor', 'Custom color')}
+          aria-expanded={pickerOpen}
+          onClick={onTogglePicker}
+        >
+          <Plus size={10} />
+        </button>
       </div>
       {pickerOpen && <ColorPicker value={value} onChange={onPickerChange} />}
     </div>

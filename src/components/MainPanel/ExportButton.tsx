@@ -31,7 +31,6 @@ import {
   type TxtI18n,
 } from '../../utils/conversationExport';
 import { useToast } from '../Toast';
-import ToolbarTooltip from '../Tooltip/ToolbarTooltip';
 import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWindowPopover';
 import './ExportButton.scss';
 
@@ -207,21 +206,20 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   if (childHosted) {
     return (
       <>
-        <ToolbarTooltip label={t('mainPanel.toolbar.export', 'Export conversation')}>
-          <button
-            ref={childBtnRef}
-            className="export-btn"
-            type="button"
-            disabled={!hasContent}
-            onClick={childMenu.toggle}
-            aria-label={t('mainPanel.toolbar.export', 'Export conversation')}
-            aria-haspopup="menu"
-            aria-expanded={childMenu.open}
-          >
-            <Download size={14} />
-            <ChevronDown size={12} className="export-btn-chevron" />
-          </button>
-        </ToolbarTooltip>
+        <button
+          ref={childBtnRef}
+          className="export-btn"
+          type="button"
+          disabled={!hasContent}
+          onClick={childMenu.toggle}
+          title={t('mainPanel.toolbar.export', 'Export conversation')}
+          aria-label={t('mainPanel.toolbar.export', 'Export conversation')}
+          aria-haspopup="menu"
+          aria-expanded={childMenu.open}
+        >
+          <Download size={14} />
+          <ChevronDown size={12} className="export-btn-chevron" />
+        </button>
 
         <ChildWindowPopover
           open={childMenu.open}
@@ -260,21 +258,20 @@ const ExportButton: React.FC<ExportButtonProps> = ({
 
   return (
     <>
-      <ToolbarTooltip label={t('mainPanel.toolbar.export', 'Export conversation')}>
-        <button
-          ref={refs.setReference}
-          className="export-btn"
-          type="button"
-          disabled={!hasContent}
-          aria-label={t('mainPanel.toolbar.export', 'Export conversation')}
-          aria-haspopup="menu"
-          aria-expanded={isOpen}
-          {...getReferenceProps()}
-        >
-          <Download size={14} />
-          <ChevronDown size={12} className="export-btn-chevron" />
-        </button>
-      </ToolbarTooltip>
+      <button
+        ref={refs.setReference}
+        className="export-btn"
+        type="button"
+        disabled={!hasContent}
+        title={t('mainPanel.toolbar.export', 'Export conversation')}
+        aria-label={t('mainPanel.toolbar.export', 'Export conversation')}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        {...getReferenceProps()}
+      >
+        <Download size={14} />
+        <ChevronDown size={12} className="export-btn-chevron" />
+      </button>
 
       {isOpen && (
         <FloatingPortal>

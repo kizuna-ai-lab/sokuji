@@ -181,26 +181,3 @@ describe('SubtitleBar session pill', () => {
     expect(screen.queryByLabelText('Start session')).not.toBeInTheDocument();
   });
 });
-
-describe('SubtitleBar button tooltips', () => {
-  // The bar's buttons used to carry a native `title`. Chromium draws those in
-  // its own OS window, in the ordinary topmost band — below a bar pinned at the
-  // level it needs to beat a PowerPoint slideshow (topmost-level.js), and
-  // directly under the 36px bar the tooltip hangs off. The result was a tooltip
-  // that was simply never visible while the bar was pinned.
-  it('carries no native title attribute on its buttons', () => {
-    render(<SubtitleBar {...baseProps} surface="electron" />);
-    expect(screen.getByLabelText('Always on top')).not.toHaveAttribute('title');
-    expect(screen.getByLabelText('Exit subtitle mode')).not.toHaveAttribute('title');
-  });
-
-  it('shows the label as ordinary DOM on hover instead', async () => {
-    render(<SubtitleBar {...baseProps} surface="electron" />);
-    // Nothing before the pointer arrives — a tooltip, not a permanent label.
-    expect(screen.queryByRole('tooltip')).toBeNull();
-
-    fireEvent.mouseEnter(screen.getByLabelText('Always on top'));
-    const tip = await screen.findByRole('tooltip', {}, { timeout: 2000 });
-    expect(tip).toHaveTextContent('Always on top');
-  });
-});
