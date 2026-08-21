@@ -624,6 +624,7 @@
     "switchDisabled": "Le mode est verrouillé pendant une session.",
     "configureDevices": "Cliquez pour configurer les périphériques.",
     "missingDevice": "Configurez les périphériques de ce mode pour démarrer.",
+    "missingDeviceChip": "{{device}} non sélectionné",
     "popoverHeaderYou": "Moi — périphériques",
     "popoverHeaderParticipants": "Autre — périphériques",
     "popoverHeaderBoth": "Les deux — périphériques",

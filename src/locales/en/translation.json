@@ -624,6 +624,7 @@
     "switchDisabled": "Mode is locked during a session.",
     "configureDevices": "Click to configure devices.",
     "missingDevice": "Configure devices for this mode to start.",
+    "missingDeviceChip": "{{device}} not selected",
     "popoverHeaderYou": "Me — devices",
     "popoverHeaderParticipants": "Other — devices",
     "popoverHeaderBoth": "Both — devices",

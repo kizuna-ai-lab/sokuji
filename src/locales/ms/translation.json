@@ -624,6 +624,7 @@
     "switchDisabled": "Mod dikunci semasa sesi.",
     "configureDevices": "Klik untuk mengkonfigurasi peranti.",
     "missingDevice": "Konfigurasikan peranti untuk mod ini bagi bermula.",
+    "missingDeviceChip": "{{device}} belum dipilih",
     "popoverHeaderYou": "Saya — peranti",
     "popoverHeaderParticipants": "Pihak lain — peranti",
     "popoverHeaderBoth": "Kedua-duanya — peranti",

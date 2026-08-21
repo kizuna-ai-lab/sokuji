@@ -624,6 +624,7 @@
     "switchDisabled": "সেশন চলাকালীন মোড লক থাকে।",
     "configureDevices": "ডিভাইস কনফিগার করতে ক্লিক করুন।",
     "missingDevice": "শুরু করতে এই মোডের জন্য ডিভাইস কনফিগার করুন।",
+    "missingDeviceChip": "{{device}} নির্বাচন করা হয়নি",
     "popoverHeaderYou": "আমি — ডিভাইস",
     "popoverHeaderParticipants": "অন্য — ডিভাইস",
     "popoverHeaderBoth": "উভয় — ডিভাইস",

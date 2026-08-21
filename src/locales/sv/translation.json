@@ -624,6 +624,7 @@
     "switchDisabled": "Läget är låst under en session.",
     "configureDevices": "Klicka för att konfigurera enheter.",
     "missingDevice": "Konfigurera enheter för detta läge för att börja.",
+    "missingDeviceChip": "{{device}} har inte valts",
     "popoverHeaderYou": "Jag — enheter",
     "popoverHeaderParticipants": "Den andra — enheter",
     "popoverHeaderBoth": "Båda — enheter",

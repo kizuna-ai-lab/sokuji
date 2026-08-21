@@ -624,6 +624,7 @@
     "switchDisabled": "โหมดถูกล็อกระหว่างเซสชัน",
     "configureDevices": "คลิกเพื่อกำหนดค่าอุปกรณ์",
     "missingDevice": "กำหนดค่าอุปกรณ์สำหรับโหมดนี้เพื่อเริ่ม",
+    "missingDeviceChip": "ยังไม่ได้เลือก{{device}}",
     "popoverHeaderYou": "ฉัน — อุปกรณ์",
     "popoverHeaderParticipants": "อีกฝ่าย — อุปกรณ์",
     "popoverHeaderBoth": "ทั้งคู่ — อุปกรณ์",

@@ -624,6 +624,7 @@
     "switchDisabled": "O modo está bloqueado durante uma sessão.",
     "configureDevices": "Clique para configurar dispositivos.",
     "missingDevice": "Configure os dispositivos para este modo para começar.",
+    "missingDeviceChip": "{{device}} não selecionado",
     "popoverHeaderYou": "Eu — dispositivos",
     "popoverHeaderParticipants": "Outro — dispositivos",
     "popoverHeaderBoth": "Ambos — dispositivos",

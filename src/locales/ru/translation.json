@@ -624,6 +624,7 @@
     "switchDisabled": "Режим заблокирован во время сессии.",
     "configureDevices": "Нажмите, чтобы настроить устройства.",
     "missingDevice": "Настройте устройства для этого режима, чтобы начать.",
+    "missingDeviceChip": "Не выбрано: {{device}}",
     "popoverHeaderYou": "Я — устройства",
     "popoverHeaderParticipants": "Собеседник — устройства",
     "popoverHeaderBoth": "Оба — устройства",

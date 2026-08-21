@@ -624,6 +624,7 @@
     "switchDisabled": "セッション中はモードがロックされています。",
     "configureDevices": "クリックしてデバイスを設定。",
     "missingDevice": "このモードを開始するにはデバイスを設定してください。",
+    "missingDeviceChip": "{{device}}が未選択です",
     "popoverHeaderYou": "自分 — デバイス",
     "popoverHeaderParticipants": "相手 — デバイス",
     "popoverHeaderBoth": "両方 — デバイス",

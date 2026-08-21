@@ -624,6 +624,7 @@
     "switchDisabled": "الوضع مقفل أثناء الجلسة.",
     "configureDevices": "انقر لتكوين الأجهزة.",
     "missingDevice": "كوّن الأجهزة لهذا الوضع للبدء.",
+    "missingDeviceChip": "لم يتم تحديد {{device}}",
     "popoverHeaderYou": "أنا — الأجهزة",
     "popoverHeaderParticipants": "الآخر — الأجهزة",
     "popoverHeaderBoth": "الكل — الأجهزة",

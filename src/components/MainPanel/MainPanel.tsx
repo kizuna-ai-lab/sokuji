@@ -87,6 +87,7 @@ import {
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackStore';
 import ModePicker from './ModePicker';
+import MissingDeviceChip from './MissingDeviceChip';
 import SplitDegradedChip from './SplitDegradedChip';
 import { resolveSplitDegraded, type SplitDegradedReason } from './splitDegraded';
 import { buildChannelTelemetryHandlers, type ChannelTelemetryPorts } from './participantTelemetry';
@@ -4271,6 +4272,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               }}
             />
 
+            {/* Says WHAT the picker's amber warn ring is pointing at, in
+                words and without a hover. Clicking it opens the same device
+                popover the active segment opens, so the chip is both the
+                explanation and the fix. */}
+            <MissingDeviceChip
+              scope={missingDeviceForMode}
+              onClick={(el) => {
+                if (modePopoverOpen) {
+                  setModePopoverOpen(false);
+                } else {
+                  setModePopoverAnchor(el);
+                  setModePopoverOpen(true);
+                }
+              }}
+            />
+
             {/* Directly beside the "Both" segment it contradicts. Renders
                 nothing unless the split actually failed to take effect. */}
             <SplitDegradedChip reason={splitDegraded} />
@@ -4359,6 +4376,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 } else {
                   handleModeSwitch(target);
                   setModePopoverOpen(false);
+                }
+              }}
+            />
+
+            {/* Same chip, same placement, as in the basic footer. */}
+            <MissingDeviceChip
+              scope={missingDeviceForMode}
+              onClick={(el) => {
+                if (modePopoverOpen) {
+                  setModePopoverOpen(false);
+                } else {
+                  setModePopoverAnchor(el);
+                  setModePopoverOpen(true);
                 }
               }}
             />

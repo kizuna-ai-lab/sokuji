@@ -624,6 +624,7 @@
     "switchDisabled": "Режим заблоковано під час сесії.",
     "configureDevices": "Натисніть для налаштування пристроїв.",
     "missingDevice": "Налаштуйте пристрої для цього режиму, щоб почати.",
+    "missingDeviceChip": "Не вибрано: {{device}}",
     "popoverHeaderYou": "Я — пристрої",
     "popoverHeaderParticipants": "Співрозмовник — пристрої",
     "popoverHeaderBoth": "Обидва — пристрої",

@@ -624,6 +624,7 @@
     "switchDisabled": "அமர்வின் போது பயன்முறை பூட்டப்பட்டுள்ளது.",
     "configureDevices": "சாதனங்களை உள்ளமைக்க கிளிக் செய்யவும்.",
     "missingDevice": "தொடங்க இந்த பயன்முறைக்கான சாதனங்களை உள்ளமைக்கவும்.",
+    "missingDeviceChip": "{{device}} தேர்ந்தெடுக்கப்படவில்லை",
     "popoverHeaderYou": "நான் — சாதனங்கள்",
     "popoverHeaderParticipants": "மற்றவர் — சாதனங்கள்",
     "popoverHeaderBoth": "இரண்டும் — சாதனங்கள்",

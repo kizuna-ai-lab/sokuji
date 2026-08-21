@@ -624,6 +624,7 @@
     "switchDisabled": "工作階段期間模式已鎖定。",
     "configureDevices": "點擊配置裝置。",
     "missingDevice": "請為此模式配置裝置以開始。",
+    "missingDeviceChip": "未選擇{{device}}",
     "popoverHeaderYou": "我 — 裝置",
     "popoverHeaderParticipants": "對方 — 裝置",
     "popoverHeaderBoth": "兩者 — 裝置",

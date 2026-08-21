@@ -624,6 +624,7 @@
     "switchDisabled": "Tila on lukittu istunnon aikana.",
     "configureDevices": "Napsauta määrittääksesi laitteet.",
     "missingDevice": "Määritä tämän tilan laitteet aloittaaksesi.",
+    "missingDeviceChip": "{{device}}: ei valittu",
     "popoverHeaderYou": "Minä — laitteet",
     "popoverHeaderParticipants": "Toinen — laitteet",
     "popoverHeaderBoth": "Molemmat — laitteet",

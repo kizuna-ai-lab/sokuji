@@ -624,6 +624,7 @@
     "switchDisabled": "Naka-lock ang mode habang may session.",
     "configureDevices": "I-click upang i-configure ang mga device.",
     "missingDevice": "I-configure ang mga device para sa mode na ito upang magsimula.",
+    "missingDeviceChip": "Walang napiling {{device}}",
     "popoverHeaderYou": "Ako — mga device",
     "popoverHeaderParticipants": "Kausap — mga device",
     "popoverHeaderBoth": "Pareho — mga device",

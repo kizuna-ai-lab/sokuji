@@ -624,6 +624,7 @@
     "switchDisabled": "会话期间模式已锁定。",
     "configureDevices": "点击配置设备。",
     "missingDevice": "请为此模式配置设备以开始。",
+    "missingDeviceChip": "未选择{{device}}",
     "popoverHeaderYou": "我 — 设备",
     "popoverHeaderParticipants": "对方 — 设备",
     "popoverHeaderBoth": "两者 — 设备",

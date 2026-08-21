@@ -1,0 +1,51 @@
+// ── Missing-device indicator (rendered in both control footers) ──
+//
+// The resting-state twin of .mode-picker__segment--warn's amber inset ring:
+// the ring says "here", this says what. Deliberately the SAME amber the ring
+// uses (#f59e0b) rather than SplitDegradedChip's #f39c12 — the two chips are
+// mutually exclusive in practice (this one is pre-session, that one only
+// appears once a split session is running), and matching the ring beside it
+// matters more than matching the other chip.
+//
+// Sized against SplitDegradedChip so the two read as the same piece of footer
+// furniture: 11px text, 10px radius, same padding, same narrow-width rule.
+.missing-device-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #f59e0b;
+  font-size: 11px;
+  font-family: inherit;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+
+  svg { flex-shrink: 0; }
+
+  &:hover {
+    background: rgba(245, 158, 11, 0.25);
+    border-color: rgba(245, 158, 11, 0.7);
+  }
+
+  // Unlike SplitDegradedChip this one is focusable, and the ring it gets is
+  // load-bearing: keyboard reach is half of why the chip is a button.
+  &:focus-visible {
+    outline: 2px solid #f59e0b;
+    outline-offset: 2px;
+  }
+
+  // The footer is tight in basic mode at narrow widths; the icon alone still
+  // carries the warning, the title attribute still explains it, and the
+  // aria-label keeps the accessible name when this text goes. Same breakpoint
+  // as .split-degraded-chip so the two collapse together.
+  @media (max-width: 420px) {
+    .chip-text { display: none; }
+    padding: 2px 4px;
+  }
+}

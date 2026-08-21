@@ -624,6 +624,7 @@
     "switchDisabled": "De modus is vergrendeld tijdens een sessie.",
     "configureDevices": "Klik om apparaten te configureren.",
     "missingDevice": "Configureer apparaten voor deze modus om te starten.",
+    "missingDeviceChip": "{{device}} niet geselecteerd",
     "popoverHeaderYou": "Ik — apparaten",
     "popoverHeaderParticipants": "Ander — apparaten",
     "popoverHeaderBoth": "Beide — apparaten",

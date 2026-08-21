@@ -624,6 +624,7 @@
     "switchDisabled": "Mode terkunci selama sesi.",
     "configureDevices": "Klik untuk mengonfigurasi perangkat.",
     "missingDevice": "Konfigurasikan perangkat untuk mode ini untuk memulai.",
+    "missingDeviceChip": "{{device}} belum dipilih",
     "popoverHeaderYou": "Saya — perangkat",
     "popoverHeaderParticipants": "Lawan bicara — perangkat",
     "popoverHeaderBoth": "Keduanya — perangkat",

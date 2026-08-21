@@ -624,6 +624,7 @@
     "switchDisabled": "Der Modus ist während einer Sitzung gesperrt.",
     "configureDevices": "Klicken Sie, um Geräte zu konfigurieren.",
     "missingDevice": "Konfigurieren Sie die Geräte für diesen Modus, um zu starten.",
+    "missingDeviceChip": "{{device}} nicht ausgewählt",
     "popoverHeaderYou": "Ich — Geräte",
     "popoverHeaderParticipants": "Gegenüber — Geräte",
     "popoverHeaderBoth": "Beides — Geräte",

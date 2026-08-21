@@ -624,6 +624,7 @@
     "switchDisabled": "המצב נעול במהלך סשן.",
     "configureDevices": "לחץ כדי להגדיר התקנים.",
     "missingDevice": "הגדר התקנים עבור מצב זה כדי להתחיל.",
+    "missingDeviceChip": "{{device}} לא נבחר",
     "popoverHeaderYou": "אני — התקנים",
     "popoverHeaderParticipants": "הצד השני — התקנים",
     "popoverHeaderBoth": "שניהם — התקנים",

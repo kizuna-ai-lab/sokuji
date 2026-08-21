@@ -624,6 +624,7 @@
     "switchDisabled": "Chế độ bị khóa trong phiên.",
     "configureDevices": "Nhấp để cấu hình thiết bị.",
     "missingDevice": "Cấu hình thiết bị cho chế độ này để bắt đầu.",
+    "missingDeviceChip": "Chưa chọn {{device}}",
     "popoverHeaderYou": "Tôi — thiết bị",
     "popoverHeaderParticipants": "Đối phương — thiết bị",
     "popoverHeaderBoth": "Cả hai — thiết bị",

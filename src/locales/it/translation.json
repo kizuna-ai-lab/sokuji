@@ -624,6 +624,7 @@
     "switchDisabled": "La modalità è bloccata durante una sessione.",
     "configureDevices": "Clicca per configurare i dispositivi.",
     "missingDevice": "Configura i dispositivi per questa modalità per iniziare.",
+    "missingDeviceChip": "{{device}} non selezionato",
     "popoverHeaderYou": "Io — dispositivi",
     "popoverHeaderParticipants": "Altro — dispositivi",
     "popoverHeaderBoth": "Entrambi — dispositivi",

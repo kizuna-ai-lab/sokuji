@@ -624,6 +624,7 @@
     "switchDisabled": "सत्र के दौरान मोड लॉक रहता है।",
     "configureDevices": "डिवाइस कॉन्फ़िगर करने के लिए क्लिक करें।",
     "missingDevice": "शुरू करने के लिए इस मोड के डिवाइस कॉन्फ़िगर करें।",
+    "missingDeviceChip": "{{device}} चयनित नहीं है",
     "popoverHeaderYou": "मैं — डिवाइस",
     "popoverHeaderParticipants": "दूसरा — डिवाइस",
     "popoverHeaderBoth": "दोनों — डिवाइस",

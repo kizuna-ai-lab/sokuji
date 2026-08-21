@@ -624,6 +624,7 @@
     "switchDisabled": "Tryb jest zablokowany podczas sesji.",
     "configureDevices": "Kliknij, aby skonfigurować urządzenia.",
     "missingDevice": "Skonfiguruj urządzenia dla tego trybu, aby rozpocząć.",
+    "missingDeviceChip": "Nie wybrano: {{device}}",
     "popoverHeaderYou": "Ja — urządzenia",
     "popoverHeaderParticipants": "Rozmówca — urządzenia",
     "popoverHeaderBoth": "Oba — urządzenia",

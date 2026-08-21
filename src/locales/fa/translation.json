@@ -624,6 +624,7 @@
     "switchDisabled": "حالت در طول جلسه قفل است.",
     "configureDevices": "برای پیکربندی دستگاه‌ها کلیک کنید.",
     "missingDevice": "برای شروع، دستگاه‌های این حالت را پیکربندی کنید.",
+    "missingDeviceChip": "{{device}} انتخاب نشده است",
     "popoverHeaderYou": "من — دستگاه‌ها",
     "popoverHeaderParticipants": "طرف مقابل — دستگاه‌ها",
     "popoverHeaderBoth": "هر دو — دستگاه‌ها",

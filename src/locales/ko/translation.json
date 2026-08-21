@@ -624,6 +624,7 @@
     "switchDisabled": "세션 중에는 모드가 잠겨 있습니다.",
     "configureDevices": "클릭하여 장치를 구성하세요.",
     "missingDevice": "이 모드를 시작하려면 장치를 구성하세요.",
+    "missingDeviceChip": "{{device}} 선택 안 됨",
     "popoverHeaderYou": "나 — 장치",
     "popoverHeaderParticipants": "상대방 — 장치",
     "popoverHeaderBoth": "모두 — 장치",

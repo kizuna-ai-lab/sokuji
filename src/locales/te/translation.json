@@ -624,6 +624,7 @@
     "switchDisabled": "సెషన్ సమయంలో మోడ్ లాక్ చేయబడింది.",
     "configureDevices": "పరికరాలను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి.",
     "missingDevice": "ప్రారంభించడానికి ఈ మోడ్ కోసం పరికరాలను కాన్ఫిగర్ చేయండి.",
+    "missingDeviceChip": "{{device}} ఎంపిక చేయలేదు",
     "popoverHeaderYou": "నేను — పరికరాలు",
     "popoverHeaderParticipants": "ఇతరులు — పరికరాలు",
     "popoverHeaderBoth": "రెండూ — పరికరాలు",
