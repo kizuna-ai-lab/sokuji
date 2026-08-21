@@ -405,6 +405,7 @@
     "swapLanguages": "Tukar bahasa",
     "textOnly": "Teks sahaja",
     "textOnlyDesc": "Terjemah ke teks sahaja — tiada output suara",
+    "textOnlyForcedByMode": "Mod \"{{mode}}\" hanya menukar apa yang diucapkan peserta kepada teks untuk anda dan tidak pernah menghasilkan audio, jadi \"Teks sahaja\" kekal dihidupkan. Tukar mod terjemahan untuk menterjemah suara anda sendiri dengan pertuturan.",
     "keepReplayAudio": "Simpan audio untuk main semula",
     "keepReplayAudioDesc": "Simpan audio terjemahan dalam memori supaya anda boleh memainkannya semula kemudian daripada setiap mesej. Dimatikan secara lalai untuk mengurangkan penggunaan memori semasa sesi panjang."
   },

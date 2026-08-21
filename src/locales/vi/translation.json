@@ -405,6 +405,7 @@
     "swapLanguages": "Đổi ngôn ngữ",
     "textOnly": "Chỉ văn bản",
     "textOnlyDesc": "Chỉ dịch sang văn bản — không phát âm thanh",
+    "textOnlyForcedByMode": "Chế độ \"{{mode}}\" chỉ chuyển lời người tham gia thành văn bản cho bạn và không bao giờ tạo âm thanh, nên \"Chỉ văn bản\" luôn bật. Hãy chuyển chế độ dịch để dịch giọng nói của bạn kèm âm thanh.",
     "keepReplayAudio": "Giữ âm thanh để phát lại",
     "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài."
   },

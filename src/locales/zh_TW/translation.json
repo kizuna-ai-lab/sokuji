@@ -405,6 +405,7 @@
     "swapLanguages": "交換語言",
     "textOnly": "僅文字",
     "textOnlyDesc": "僅翻譯為文字 — 不產生語音",
+    "textOnlyForcedByMode": "「{{mode}}」模式只會把參與者說的話轉成文字給你看，不會產生語音，因此「僅文字」始終開啟。切換翻譯模式即可讓自己的語音帶聲音輸出。",
     "keepReplayAudio": "保留音訊以便重播",
     "keepReplayAudioDesc": "將翻譯的音訊保存在記憶體中，以便您之後可以從每則訊息重新播放。預設關閉以減少長時間工作階段中的記憶體用量。"
   },

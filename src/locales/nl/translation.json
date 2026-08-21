@@ -405,6 +405,7 @@
     "swapLanguages": "Talen wisselen",
     "textOnly": "Alleen tekst",
     "textOnlyDesc": "Vertaal alleen naar tekst — geen spraakuitvoer",
+    "textOnlyForcedByMode": "De modus \"{{mode}}\" zet alleen om wat deelnemers zeggen in tekst voor jou en genereert nooit audio, dus \"Alleen tekst\" blijft aan. Wissel van vertaalmodus om je eigen stem met spraak te vertalen.",
     "keepReplayAudio": "Audio bewaren voor herhaling",
     "keepReplayAudioDesc": "Vertaalde audio in het geheugen bewaren zodat u deze later vanuit elk bericht opnieuw kunt afspelen. Standaard uitgeschakeld om geheugengebruik tijdens lange sessies te beperken."
   },

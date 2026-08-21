@@ -405,6 +405,7 @@
     "swapLanguages": "Tukar bahasa",
     "textOnly": "Teks saja",
     "textOnlyDesc": "Terjemahkan ke teks saja — tanpa keluaran suara",
+    "textOnlyForcedByMode": "Mode \"{{mode}}\" hanya mengubah ucapan peserta menjadi teks untuk Anda dan tidak pernah menghasilkan audio, jadi \"Teks saja\" tetap aktif. Ubah mode terjemahan untuk menerjemahkan suara Anda sendiri dengan ucapan.",
     "keepReplayAudio": "Simpan audio untuk diputar ulang",
     "keepReplayAudioDesc": "Simpan audio terjemahan di memori sehingga Anda dapat memutarnya kembali nanti dari setiap pesan. Nonaktif secara default untuk mengurangi penggunaan memori selama sesi yang panjang."
   },

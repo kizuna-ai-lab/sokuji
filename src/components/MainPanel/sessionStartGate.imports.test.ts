@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 // sessionStartGate is loaded by the Electron subtitle window. Its import list
-// is a CONTRACT: exactly three leaf modules, none of which reach
+// is a CONTRACT: exactly four leaf modules, none of which reach
 // ProviderConfigFactory — that barrel imports every descriptor, and the
 // descriptors pull the client graph and the i18n bootstrap behind them.
 // planBothMode/capabilities answers reach the gate as derived primitives
@@ -14,6 +14,10 @@ const src = readFileSync(join(here, 'sessionStartGate.ts'), 'utf8');
 const providersDir = join(here, '..', '..', 'services', 'providers');
 const sonioxManagedMinBalanceSrc = readFileSync(
   join(providersDir, 'sonioxManagedMinBalance.ts'),
+  'utf8'
+);
+const effectiveTextOnlySrc = readFileSync(
+  join(here, '..', '..', 'utils', 'effectiveTextOnly.ts'),
   'utf8'
 );
 
@@ -41,11 +45,12 @@ function collectImportSpecifiers(source: string): string[] {
 }
 
 describe('sessionStartGate import hygiene (subtitle window contract)', () => {
-  it('imports only the three sanctioned leaf modules', () => {
+  it('imports only the four sanctioned leaf modules', () => {
     const specifiers = collectImportSpecifiers(src);
     expect(specifiers).toEqual([
       '../../services/providers/sonioxManagedMinBalance',
       '../../types/Provider',
+      '../../utils/effectiveTextOnly',
       '../../utils/formatters',
     ]);
   });
@@ -82,7 +87,19 @@ describe('sessionStartGate import hygiene (subtitle window contract)', () => {
   // header) specifically so it can sit behind this gate without reopening a
   // path to ProviderConfigFactory one hop down. Pin that directly rather than
   // trusting the comment.
+  // Asserted through `collectImportSpecifiers`, not a bare `from '...'` regex:
+  // that narrow shape is exactly the hole the widened scan above was built to
+  // close, and it would wave through a side-effect import, a dynamic import or
+  // a require — any of which reopens the path to ProviderConfigFactory one hop
+  // down while this test still passes.
   it('sonioxManagedMinBalance stays an import-free leaf', () => {
-    expect(sonioxManagedMinBalanceSrc).not.toMatch(/from\s+['"][^'"]+['"]/);
+    expect(collectImportSpecifiers(sonioxManagedMinBalanceSrc)).toEqual([]);
+  });
+
+  // Same deal for the text-only resolver: it is read by the settings panel, the
+  // settings store, MainPanel and this gate, and only stays safe behind the
+  // subtitle window while it imports nothing at all.
+  it('effectiveTextOnly stays an import-free leaf', () => {
+    expect(collectImportSpecifiers(effectiveTextOnlySrc)).toEqual([]);
   });
 });

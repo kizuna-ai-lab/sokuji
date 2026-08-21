@@ -14,6 +14,8 @@ import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { type NativeReadinessReason } from '../lib/local-inference/native/nativeCatalog';
 import { useNativeModelStore } from './nativeModelStore';
 import useSessionStore from './sessionStore';
+import useAudioStore, { speakerChannelInScope } from './audioStore';
+import { effectiveTextOnly } from '../utils/effectiveTextOnly';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
 import { canEnterSubtitleMode } from '../components/Subtitle/subtitleEnterGate';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
@@ -843,8 +845,22 @@ const useSettingsStore = create<SettingsStore>()(
         // Settings go in as a thunk, not a snapshot: the facade warms the sidecar
         // first (seconds, on a cold start) and reads them only after — so a pair
         // or text-only change made during warmup is honoured, not resolved stale.
+        //
+        // The toggle is resolved against the channel matrix, not passed raw:
+        // `requiredNativeModels` adds a TTS model when speech output is on, and
+        // in a participant-only mode no leg ever speaks, so requiring one made
+        // readiness fail over a voice the session would never load. Mode scope
+        // rather than the start path's device-aware `speakerWillStart` — this
+        // gate has no business knowing which microphone is selected, and the
+        // Start gate refuses a mode whose devices are missing anyway.
         const { ready, reason, corrections } = await useNativeModelStore.getState()
-          .ensureSelectionReady(() => ({ selection: get().localNative, textOnly: get().textOnly }));
+          .ensureSelectionReady(() => ({
+            selection: get().localNative,
+            textOnly: effectiveTextOnly({
+              speakerLegRuns: speakerChannelInScope(useAudioStore.getState().mode),
+              textOnly: get().textOnly,
+            }),
+          }));
         if (corrections) get().updateLocalNative(corrections);
         const message = msgForNativeReason(reason);
         set({

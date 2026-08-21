@@ -38,6 +38,7 @@ vi.mock('./nativeModelStore', () => ({
 }));
 
 const { default: useSettingsStore } = await import('./settingsStore');
+const { default: useAudioStore } = await import('./audioStore');
 
 // The Task-1 frozen per-scenario messages, now keyed by the facade's reason —
 // this table is the wrapper's contract with msgForNativeReason (module-private,
@@ -57,6 +58,10 @@ const REASON_MESSAGE: Record<string, string> = {
 describe('LOCAL_NATIVE gate delegates to ensureSelectionReady', () => {
   beforeEach(() => {
     useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE } as any);
+    // The gate resolves the text-only toggle against the channel matrix, so the
+    // mode has to be pinned or a mode-specific case would leak into its
+    // neighbours. 'speaker' is audioStore's own default.
+    useAudioStore.setState({ mode: 'speaker' } as any);
     mockEnsureSelectionReady.mockReset();
   });
 
@@ -89,6 +94,43 @@ describe('LOCAL_NATIVE gate delegates to ensureSelectionReady', () => {
     await useSettingsStore.getState().validateApiKey();
     expect(seen.selection.sourceLanguage).toBe('ja');
     expect(seen.textOnly).toBe(true);
+  });
+
+  // The participant (reverse-direction) leg never speaks — every descriptor's
+  // buildParticipantSessionConfig forces textOnly, pinned registry-wide by
+  // descriptorRegistry.test.ts. So in a participant-only mode the TTS model is
+  // dead weight: requiring it made the gate report "download the native models"
+  // for a voice the session would never load.
+  describe('resolves the toggle against the channel matrix', () => {
+    const readTextOnly = async () => {
+      let seen: any;
+      mockEnsureSelectionReady.mockImplementation(async (read: any) => {
+        seen = read();
+        return { ready: true, reason: 'ready', corrections: null };
+      });
+      await useSettingsStore.getState().validateApiKey();
+      return seen.textOnly;
+    };
+
+    // Both values of the stored toggle, or an implementation that hard-coded
+    // `false` for an in-scope mode would pass the off-case alone.
+    for (const mode of ['speaker', 'both'] as const) {
+      for (const stored of [false, true]) {
+        it(`passes the stored toggle (${stored}) straight through in ${mode} mode`, async () => {
+          useAudioStore.setState({ mode } as any);
+          useSettingsStore.setState({ textOnly: stored } as any);
+          expect(await readTextOnly()).toBe(stored);
+        });
+      }
+    }
+
+    for (const stored of [false, true]) {
+      it(`forces text-only in participant mode (stored toggle ${stored})`, async () => {
+        useAudioStore.setState({ mode: 'participant' } as any);
+        useSettingsStore.setState({ textOnly: stored } as any);
+        expect(await readTextOnly()).toBe(true);
+      });
+    }
   });
 
   it('applies corrections to localNative', async () => {

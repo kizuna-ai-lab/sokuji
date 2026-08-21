@@ -405,6 +405,7 @@
     "swapLanguages": "Scambia lingue",
     "textOnly": "Solo testo",
     "textOnlyDesc": "Traduci solo in testo — nessuna uscita vocale",
+    "textOnlyForcedByMode": "La modalità \"{{mode}}\" trasforma ciò che dicono i partecipanti in testo per te e non genera mai audio, quindi \"Solo testo\" resta attivo. Cambia la modalità di traduzione per tradurre la tua voce con l'audio.",
     "keepReplayAudio": "Mantieni l'audio per la riproduzione",
     "keepReplayAudioDesc": "Memorizza l'audio tradotto in memoria per poterlo riprodurre in seguito da ogni messaggio. Disattivato per impostazione predefinita per ridurre l'uso della memoria nelle sessioni lunghe."
   },
