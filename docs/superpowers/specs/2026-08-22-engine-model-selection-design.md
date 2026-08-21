@@ -1,7 +1,7 @@
 # Engine Model Selection — Design
 
 **Date**: 2026-08-22
-**Status**: Brainstormed with jiangzhuo; awaiting spec review
+**Status**: Approved by jiangzhuo 2026-08-22 (brainstormed and reviewed across seven rounds; every `file:line` verified against the working tree at `14b5496f`)
 
 ## Summary
 
@@ -246,6 +246,11 @@ type Candidate = {
   ready: boolean;           // downloaded, or cloud with a valid key
   hardwareOk: boolean;      // WASM deviceReady(); native !hardwareGated()
   needsKey: boolean;        // reserved: false for every local implementation today
+  /** May auto pick this? False for candidates that are selectable only on
+   *  purpose — today, the AST-capable ASR entries that appear in the
+   *  translation pool (see the AST special case below). Explicit lookup
+   *  searches the whole pool; ranking considers only autoEligible ones. */
+  autoEligible: boolean;
   /** Is this pinned quantization still offered and runnable here?
    *  `undefined` (no pin) is always supported. */
   supportsVariant: (variant: string | undefined) => boolean;
@@ -318,8 +323,8 @@ if sel.modelId !== '':
     else:                  note({ …, reason: 'hardware-gated' })
     // fall through — selections is otherwise NOT modified
 
-usable = pool.filter(c => c.ready ∧ c.hardwareOk)
-usable.sort(recommended desc, sortOrder asc, sizeBytes asc)
+usable = pool.filter(c => c.ready ∧ c.hardwareOk ∧ c.autoEligible)
+usable.sort(recommended desc, sortOrder asc, sizeBytes asc)   // sizeBytes 0 = unknown, sorts last
 return usable[0]
      ? { modelId: usable[0].id, variant: undefined, source: 'auto', prune }
      : { null, prune }
@@ -403,6 +408,11 @@ native sidecar `supported`/`recommended` in `_h_models_catalog`. Unchanged behav
 explicit `modelId` may name an ASR model when that model declares `astLanguages`
 covering the direction; translation is then performed by the ASR model and no separate
 translation model is loaded. Exists today (`modelStore.ts:583-591`); keep it.
+
+The WASM `CandidateSource` therefore puts AST-capable ASR entries into the
+**translation** pool with `autoEligible: false`. Explicit selection finds them; auto
+never picks one. Today's short-circuit only fires when `translationModel === asrModel`,
+so letting auto reach them would be a behavior change, not a preservation.
 
 ### Notes
 
