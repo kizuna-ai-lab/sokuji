@@ -1,6 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ModelManager } from '../lib/local-inference/ModelManager';
 import { ModelImportError } from '../lib/local-inference/modelImport';
+import { directionKey } from '../lib/local-inference/selection/types';
+
+// modelStore now statically imports settingsStore (for `resolve`/`applyPrunes`
+// to read and write localInference.selections) — stub the persistence layer
+// settingsStore's updateProviderSlice touches, same as settingsStore.test.ts.
+vi.mock('../services/ServiceFactory', () => ({
+  ServiceFactory: {
+    getSettingsService: vi.fn(() => ({
+      setSetting: vi.fn().mockResolvedValue(undefined),
+      getSetting: vi.fn(),
+    })),
+  },
+}));
 
 // Mock modelManifest functions
 const mockGetManifestEntry = vi.fn();
@@ -22,7 +35,11 @@ vi.mock('../lib/local-inference/modelManifest', async () => {
     isTranslationModelCompatible: vi.fn(() => true),
     modelUsable: actual.modelUsable,
     isAstCompatible: actual.isAstCompatible,
-    pickBestModel: actual.pickBestModel,
+    // resolve()'s candidates.wasm.ts pulls these two directly (not through
+    // modelUsable) so a note can say WHICH half failed. Real implementations —
+    // they're pure and only need the (mocked) manifest entry + device inputs.
+    deviceReady: actual.deviceReady,
+    getModelSizeMb: actual.getModelSizeMb,
   };
 });
 
@@ -46,6 +63,7 @@ vi.mock('../utils/webgpu', () => ({
 }));
 
 const { useModelStore } = await import('./modelStore');
+const { default: useSettingsStore } = await import('./settingsStore');
 
 describe('getParticipantModelStatus', () => {
   // Reusable model fixtures
@@ -248,64 +266,30 @@ describe('rememberModels / recallModels', () => {
   });
 });
 
-describe('autoSelectModels device gating', () => {
-  // A downloaded webgpu ASR model must NOT be auto-selected when webgpu is
-  // unavailable — otherwise autoSelect hands the session a model isProviderReady
-  // then rejects (dead-end selection). This gate now flows through modelUsable,
-  // matching isProviderReady / getParticipantModelStatus.
-  const webgpuAsr = { id: 'voxtral-webgpu', type: 'asr', languages: ['en'], multilingual: true, requiredDevice: 'webgpu' };
-  const plainAsr = { id: 'sensevoice-int8', type: 'asr', languages: ['en'], multilingual: true };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    useModelStore.setState({ modelPreferences: {}, webgpuAvailable: false });
-    mockGetManifestEntry.mockImplementation((id: string) =>
-      [webgpuAsr, plainAsr].find(m => m.id === id),
-    );
-    mockGetManifestByType.mockImplementation((type: string) =>
-      [webgpuAsr, plainAsr].filter(m => m.type === type),
-    );
-  });
-
-  it('skips a downloaded webgpu ASR model when webgpu is unavailable', () => {
-    useModelStore.setState({
-      modelStatuses: { 'voxtral-webgpu': 'downloaded', 'sensevoice-int8': 'downloaded' },
-    });
-
-    const updates = useModelStore.getState().autoSelectModels('en', 'ja', 'voxtral-webgpu', '', '');
-
-    expect(updates?.asrModel).toBe('sensevoice-int8');
-  });
-
-  it('keeps a webgpu ASR model when webgpu is available', () => {
-    useModelStore.setState({
-      webgpuAvailable: true,
-      modelStatuses: { 'voxtral-webgpu': 'downloaded', 'sensevoice-int8': 'downloaded' },
-    });
-
-    const updates = useModelStore.getState().autoSelectModels('en', 'ja', 'voxtral-webgpu', '', '');
-
-    // Current model is usable → no ASR correction emitted.
-    expect(updates?.asrModel).toBeUndefined();
-  });
-});
-
 describe('ensureSelectionReady', () => {
-  const sensevoice = { id: 'sensevoice-int8', type: 'asr', languages: ['ja', 'en'], multilingual: true };
-  const opusEnJa = { id: 'opus-mt-en-ja', type: 'translation', languages: ['en', 'ja'] };
-  const piperJa = { id: 'piper-ja', type: 'tts', languages: ['ja'], multilingual: false };
-  const piperEn = { id: 'piper-en', type: 'tts', languages: ['en'], multilingual: false };
+  // Every non-cloud candidate needs a `variants` entry — resolve()'s
+  // candidates.wasm.ts sizes each one via the real getModelSizeMb(), which
+  // reads entry.variants[selectedKey].files.
+  const noSize = { default: { files: [] } };
+  const sensevoice = { id: 'sensevoice-int8', type: 'asr', languages: ['ja', 'en'], multilingual: true, variants: noSize };
+  const opusEnJa = { id: 'opus-mt-en-ja', type: 'translation', languages: ['en', 'ja'], variants: noSize };
+  const piperJa = { id: 'piper-ja', type: 'tts', languages: ['ja'], multilingual: false, variants: noSize };
+  const piperEn = { id: 'piper-en', type: 'tts', languages: ['en'], multilingual: false, variants: noSize };
   const all = [sensevoice, opusEnJa, piperJa, piperEn];
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Skip the IndexedDB scan — readiness logic is what we're exercising here.
-    useModelStore.setState({ initialized: true, modelPreferences: {}, webgpuAvailable: false });
+    useModelStore.setState({ initialized: true, webgpuAvailable: false });
+    // No direction has an explicit selection — resolve() reads live off
+    // useSettingsStore, so a leftover selection from another describe block
+    // would silently change what these tests are exercising.
+    useSettingsStore.getState().updateLocalInference({ selections: {} });
     mockGetManifestEntry.mockImplementation((id: string) => all.find(m => m.id === id));
     mockGetManifestByType.mockImplementation((type: string) => all.filter(m => m.type === type));
   });
 
-  it('reports ready with no corrections when the selection is already valid', async () => {
+  it('reports ready with no corrections when the flat selection already matches the resolved direction', async () => {
     useModelStore.setState({
       modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded', 'piper-ja': 'downloaded' },
     });
@@ -319,9 +303,10 @@ describe('ensureSelectionReady', () => {
     expect(result.corrections).toBeNull();
   });
 
-  it('corrects a stale TTS selection and judges readiness against the correction', async () => {
+  it('corrects a stale flat TTS field to what the resolver actually picked', async () => {
     useModelStore.setState({
-      // piper-en is downloaded but wrong language; piper-ja is the valid one.
+      // piper-en is downloaded but wrong language for targetLanguage 'ja' —
+      // resolve()'s TTS pool excludes it entirely, so auto-pick lands on piper-ja.
       modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded', 'piper-ja': 'downloaded', 'piper-en': 'downloaded' },
     });
 
@@ -332,6 +317,17 @@ describe('ensureSelectionReady', () => {
 
     expect(result.corrections?.ttsModel).toBe('piper-ja');
     expect(result.ready).toBe(true);
+  });
+
+  it('is not ready when nothing downloaded can resolve ASR or translation', async () => {
+    useModelStore.setState({ modelStatuses: {} });
+
+    const result = await useModelStore.getState().ensureSelectionReady({
+      sourceLanguage: 'en', targetLanguage: 'ja',
+      asrModel: '', translationModel: '', ttsModel: '',
+    });
+
+    expect(result.ready).toBe(false);
   });
 });
 
@@ -415,5 +411,53 @@ describe('initialize resilience', () => {
     await useModelStore.getState().initialize();
     expect(useModelStore.getState().initialized).toBe(true);
     expect(useModelStore.getState().initError).toBeNull();
+  });
+});
+
+describe('modelStore.resolve', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Empty manifest by default — later describe blocks in this file leave
+    // mockGetManifestByType wired to their own fixtures, and clearAllMocks
+    // doesn't reset implementations.
+    mockGetManifestByType.mockReturnValue([]);
+    // applyPrunes reaches the real settingsStore via a dynamic import — reset
+    // it so a leftover selection from another describe block can't leak in.
+    useSettingsStore.getState().updateLocalInference({ selections: {} });
+  });
+
+  it('resolves a direction from the manifest and current download statuses', () => {
+    useModelStore.setState({ modelStatuses: {}, webgpuAvailable: false });
+    const r = useModelStore.getState().resolve('ja', 'en', {});
+    // Nothing downloaded: every local stage is unresolvable.
+    expect(r.asr).toBeNull();
+    expect(r.notes.some((n) => n.stage === 'asr' && n.reason === 'no-candidate')).toBe(true);
+  });
+
+  it('does not mutate the selections object it is given', () => {
+    useModelStore.setState({ modelStatuses: {}, webgpuAvailable: false });
+    const dir = directionKey('ja', 'en');
+    const selections = {
+      [dir]: { asr: { modelId: 'x' }, translation: { modelId: 'y' }, tts: { modelId: '' } },
+    };
+    const before = JSON.stringify(selections);
+    useModelStore.getState().resolve('ja', 'en', selections);
+    expect(JSON.stringify(selections)).toBe(before);
+  });
+
+  it('applyPrunes clears only the named stages and drops an all-auto direction', async () => {
+    const dir = directionKey('ja', 'en');
+    await useSettingsStore.getState().updateLocalInference({
+      selections: {
+        [dir]: { asr: { modelId: 'gone' }, translation: { modelId: 'kept' }, tts: { modelId: '' } },
+      },
+    });
+    await useModelStore.getState().applyPrunes([{ direction: dir, stage: 'asr' }]);
+    expect(useSettingsStore.getState().localInference.selections[dir]).toEqual({
+      asr: { modelId: '' }, translation: { modelId: 'kept' }, tts: { modelId: '' },
+    });
+
+    await useModelStore.getState().applyPrunes([{ direction: dir, stage: 'translation' }]);
+    expect(useSettingsStore.getState().localInference.selections[dir]).toBeUndefined();
   });
 });

@@ -18,12 +18,14 @@ import {
   isTranslationModelCompatible,
   isAstCompatible,
   modelUsable,
-  pickBestModel,
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
 import * as modelStorage from '../lib/local-inference/modelStorage';
 import { filesToImportMap, type NamedBlob } from '../lib/local-inference/modelImport';
 import { checkWebGPU } from '../utils/webgpu';
+import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
+import { wasmCandidates } from '../lib/local-inference/selection/candidates.wasm';
+import { directionKey, emptyDirection, type DirectionResult, type Selections, type Stage } from '../lib/local-inference/selection/types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -58,7 +60,7 @@ export interface LocalSelection {
   ttsModel: string;
 }
 
-/** Result of {@link ModelStoreState.autoSelectModels}: corrected model IDs, or null. */
+/** Result of {@link ModelStoreState.ensureSelectionReady}: corrected model IDs, or null. */
 export type ModelCorrections = { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
 
 interface ModelStoreState {
@@ -124,20 +126,32 @@ interface ModelStoreState {
   getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string) => ParticipantModelStatus;
 
   /**
-   * Auto-correct stale model selections when languages change.
-   * Returns partial update object with corrected model IDs, or null if no changes needed.
-   * This mirrors the auto-select logic in ModelManagementSection but can run without that component mounted.
+   * Resolve one direction against the WASM manifest and current download
+   * statuses. Pure: `selections` comes in as a parameter rather than being
+   * read from settingsStore, so the result is a computed value with no
+   * dependency of its own on settings — the caller (which already has
+   * settingsStore in scope) decides what "current" selections means. Never
+   * written back — that distinction is what lets the system tell a user's
+   * choice from a machine's guess.
    */
-  autoSelectModels: (
-    sourceLang: string, targetLang: string,
-    currentAsrModel: string, currentTranslationModel: string, currentTtsModel: string,
-  ) => ModelCorrections;
+  resolve: (src: string, tgt: string, selections: Selections) => DirectionResult;
+  /**
+   * The one write the resolver can cause: an id the manifest no longer knows
+   * can never resolve again, so keeping it only produces a note the user
+   * cannot act on. Garbage collection, not write-back. Async: reaches
+   * settingsStore via a dynamic import (mirrors nativeModelStore.ts's
+   * settingsStore-import path) rather than a static one, to avoid a circular
+   * static import with settingsStore.ts (which already dynamically imports
+   * this module).
+   */
+  applyPrunes: (prunes: Array<{ direction: string; stage: Stage }>) => Promise<void>;
   /**
    * Full LOCAL_INFERENCE session-readiness check for a selection. Initializes
-   * the store if needed, auto-corrects stale selections, and reports readiness
-   * against the corrected selection — WITHOUT persisting. The caller applies the
-   * returned `corrections` to its own settings slice. This is the single
-   * readiness entry point for settingsStore.validateApiKey's LOCAL_INFERENCE arm.
+   * the store if needed, resolves the direction via {@link resolve}, applies
+   * any prunes the resolution surfaced, and reports readiness against the
+   * resolved stages — WITHOUT persisting. The caller applies the returned
+   * `corrections` to its own settings slice. This is the single readiness
+   * entry point for settingsStore.validateApiKey's LOCAL_INFERENCE arm.
    */
   ensureSelectionReady: (selection: LocalSelection) => Promise<{ ready: boolean; corrections: ModelCorrections }>;
   /** Save model selection for a language pair */
@@ -540,94 +554,50 @@ export const useModelStore = create<ModelStoreState>()(
       };
     },
 
-    autoSelectModels: (sourceLang, targetLang, currentAsrModel, currentTranslationModel, currentTtsModel) => {
-      const { modelStatuses, webgpuAvailable } = get();
-      const ctx = { modelStatuses, webgpuAvailable };
-      const updates: { asrModel?: string; translationModel?: string; ttsModel?: string } = {};
+    /**
+     * Resolve one direction. Pure: takes `selections` as a parameter instead
+     * of reading settingsStore itself — settingsStore already dynamically
+     * imports this module (validateApiKey's LOCAL_INFERENCE arm), so a static
+     * import back would create a circular type dependency. Callers that have
+     * settingsStore in scope pass `useSettingsStore.getState().localInference
+     * .selections` straight through.
+     */
+    resolve: (src, tgt, selections) => {
+      const { modelStatuses, webgpuAvailable, deviceFeatures } = get();
+      return resolveDirection(
+        directionKey(src, tgt),
+        selections,
+        wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures }),
+      );
+    },
 
-      // Save original input to detect recall overrides later
-      const inputAsrModel = currentAsrModel;
-      const inputTranslationModel = currentTranslationModel;
-      const inputTtsModel = currentTtsModel;
-
-      // Check recalled preferences — override "current" with recalled values if available
-      const recalled = get().recallModels(sourceLang, targetLang);
-      if (recalled) {
-        if (recalled.asrModel && recalled.asrModel !== currentAsrModel) {
-          currentAsrModel = recalled.asrModel;
+    /**
+     * The one write the resolver can cause: an id the manifest no longer knows
+     * can never resolve again, so keeping it only produces a note the user
+     * cannot act on. Garbage collection, not write-back.
+     *
+     * Reaches settingsStore via a dynamic import rather than a static one —
+     * same settingsStore-import path nativeModelStore.ts already uses
+     * (catalogStatusRepos / revalidateNativeProvider) — so a settings-store
+     * failure at this point degrades to "nothing pruned" rather than throwing.
+     */
+    applyPrunes: async (prunes) => {
+      if (prunes.length === 0) return;
+      try {
+        const { useSettingsStore } = await import('./settingsStore');
+        const store = useSettingsStore.getState();
+        const next = { ...store.localInference.selections };
+        for (const { direction, stage } of prunes) {
+          const dir = next[direction] ?? emptyDirection();
+          next[direction] = { ...dir, [stage]: { modelId: '' } };
         }
-        if (recalled.translationModel && recalled.translationModel !== currentTranslationModel) {
-          currentTranslationModel = recalled.translationModel;
+        // A direction with nothing explicit left carries no information.
+        for (const key of Object.keys(next)) {
+          const d = next[key];
+          if (!d.asr.modelId && !d.translation.modelId && !d.tts.modelId) delete next[key];
         }
-        if (recalled.ttsModel && recalled.ttsModel !== currentTtsModel) {
-          currentTtsModel = recalled.ttsModel;
-        }
-      }
-
-      // ASR: must support sourceLanguage and be downloaded
-      const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-      const currentAsr = currentAsrModel ? allAsrModels.find(m => m.id === currentAsrModel) : null;
-      const asrOk = currentAsr
-        && (currentAsr.multilingual || currentAsr.languages.includes(sourceLang))
-        && modelUsable(currentAsr, ctx);
-      if (!asrOk) {
-        const match = pickBestModel(allAsrModels.filter(m =>
-          (m.multilingual || m.languages.includes(sourceLang)) && modelUsable(m, ctx)
-        ));
-        const newId = match?.id || '';
-        if (newId !== currentAsrModel) updates.asrModel = newId;
-      }
-
-      // Translation: must be compatible with source→target pair, downloaded, and device-ready
-      // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
-      const asrEntryForAst = currentTranslationModel && currentTranslationModel === currentAsrModel
-        ? getManifestEntry(currentTranslationModel) : null;
-      const isAstValid = asrEntryForAst
-        && isAstCompatible(asrEntryForAst, sourceLang, targetLang)
-        && modelUsable(asrEntryForAst, ctx);
-
-      const currentTrans = !isAstValid && currentTranslationModel ? getManifestByType('translation').find(m => m.id === currentTranslationModel) : null;
-      const transOk = isAstValid || (currentTrans
-        && isTranslationModelCompatible(currentTrans, sourceLang, targetLang)
-        && modelUsable(currentTrans, ctx));
-      if (!transOk) {
-        const match = pickBestModel(getManifestByType('translation').filter(m =>
-          isTranslationModelCompatible(m, sourceLang, targetLang)
-          && modelUsable(m, ctx)
-        ));
-        const newId = match?.id || '';
-        if (newId !== currentTranslationModel) updates.translationModel = newId;
-      }
-
-      // TTS: must support targetLanguage and be downloaded (cloud models are always ready)
-      const currentTts = currentTtsModel ? getManifestByType('tts').find(m => m.id === currentTtsModel) : null;
-      const ttsOk = currentTts
-        && (currentTts.multilingual || currentTts.languages.includes(targetLang))
-        && modelUsable(currentTts, ctx);
-      if (!ttsOk) {
-        const match = pickBestModel(getManifestByType('tts').filter(m =>
-          (m.multilingual || m.languages.includes(targetLang))
-          && modelUsable(m, ctx)
-        ));
-        const newId = match?.id || '';
-        if (newId !== currentTtsModel) updates.ttsModel = newId;
-      }
-
-      // Emit updates for recalled overrides that survived validation
-      // (recalled value was used as "current", passed checks, but settings still have the old value)
-      if (!updates.asrModel && currentAsrModel !== inputAsrModel) updates.asrModel = currentAsrModel;
-      if (!updates.translationModel && currentTranslationModel !== inputTranslationModel) updates.translationModel = currentTranslationModel;
-      if (!updates.ttsModel && currentTtsModel !== inputTtsModel) updates.ttsModel = currentTtsModel;
-
-      // Remember the final selection for this language pair
-      const finalAsr = updates.asrModel ?? currentAsrModel;
-      const finalTranslation = updates.translationModel ?? currentTranslationModel;
-      const finalTts = updates.ttsModel ?? currentTtsModel;
-      if (finalAsr) {
-        get().rememberModels(sourceLang, targetLang, finalAsr, finalTranslation, finalTts);
-      }
-
-      return Object.keys(updates).length > 0 ? updates : null;
+        await store.updateLocalInference({ selections: next });
+      } catch { /* settings store unavailable — nothing to prune */ }
     },
 
     rememberModels: (src, tgt, asr, translation, tts) => {
@@ -661,25 +631,44 @@ export const useModelStore = create<ModelStoreState>()(
       if (!get().initialized) {
         await get().initialize();
       }
-      // Auto-correct stale selections (e.g. a TTS model for the wrong language
-      // after a language change); readiness is judged against the corrected
-      // selection so a valid setup isn't rejected for a stale stored ID.
-      const corrections = get().autoSelectModels(
-        selection.sourceLanguage,
-        selection.targetLanguage,
-        selection.asrModel,
-        selection.translationModel,
-        selection.ttsModel,
-      );
-      const effective = corrections ? { ...selection, ...corrections } : selection;
-      const ready = get().isProviderReady(
-        effective.sourceLanguage,
-        effective.targetLanguage,
-        effective.asrModel || undefined,
-        effective.translationModel || undefined,
-        effective.ttsModel || undefined,
-      );
-      return { ready, corrections };
+      // Dynamic import — same settingsStore-import path nativeModelStore.ts
+      // uses — rather than a static one, to avoid a circular static import
+      // with settingsStore.ts (which already dynamically imports this
+      // module). Unavailable settings store degrades to "nothing explicit",
+      // i.e. every stage resolves purely from the manifest.
+      let selections: Selections = {};
+      try {
+        const { useSettingsStore } = await import('./settingsStore');
+        selections = useSettingsStore.getState().localInference.selections;
+      } catch { /* settings store unavailable — resolve with no explicit selections */ }
+
+      // Resolve the speaker direction against the WASM manifest + current
+      // download statuses, then garbage-collect any selection the resolver
+      // found dead (an id the manifest no longer knows about at all).
+      const result = get().resolve(selection.sourceLanguage, selection.targetLanguage, selections);
+      if (result.prunes.length > 0) {
+        await get().applyPrunes(result.prunes);
+      }
+
+      // Surface the resolved ids as corrections whenever they differ from the
+      // flat fields the caller passed in — same shape the old autoSelectModels
+      // produced, now driven by the resolver instead of a bespoke walk.
+      const corrections: { asrModel?: string; translationModel?: string; ttsModel?: string } = {};
+      if (result.asr && result.asr.modelId !== selection.asrModel) corrections.asrModel = result.asr.modelId;
+      if (result.translation && result.translation.modelId !== selection.translationModel) {
+        corrections.translationModel = result.translation.modelId;
+      }
+      if (result.tts && result.tts.modelId !== selection.ttsModel) corrections.ttsModel = result.tts.modelId;
+
+      // Readiness is ASR + translation both resolving to something usable.
+      // TTS is optional (text-only sessions never load a voice); Task 14 owns
+      // the final {ready, notes} contract this will grow into.
+      const ready = result.asr !== null && result.translation !== null;
+
+      return {
+        ready,
+        corrections: Object.keys(corrections).length > 0 ? corrections : null,
+      };
     },
   })),
 );
