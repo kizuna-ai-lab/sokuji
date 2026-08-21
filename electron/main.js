@@ -5,6 +5,7 @@ const { setupSubtitleHandlers } = require('./subtitle-window.js');
 const { setupCaptionDoubleClick } = require('./window-caption-dblclick.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
+const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
 
 // Handle Squirrel events for Windows
 if (process.platform === 'win32') {
@@ -70,6 +71,40 @@ const {
 app.setName('sokuji');
 app.commandLine.appendSwitch('application-name', 'sokuji');
 app.commandLine.appendSwitch('jack-name', 'sokuji');
+
+// Single instance. Sokuji was only ever single-instance on macOS, and that was
+// Launch Services refusing to start a second copy of the .app bundle rather
+// than anything we did -- on Windows and Linux every Start-menu click started
+// another process that then fought the first one over the PulseAudio modules
+// and the sidecar's file locks. Claimed here because the lock lives under
+// userData (so it must follow app.setName above) and because the Squirrel
+// install/uninstall helpers, which legitimately run while the app is open,
+// have already exited by this point.
+let isDuplicateInstance = false;
+// Holds a focus request that lands before createWindow() has run -- see
+// createFocusRelay for why that is the common case rather than the rare one.
+const focusRelay = createFocusRelay(() => mainWindow);
+if (!acquireSingleInstanceLock(app, {
+  onSecondInstance: () => {
+    console.log('[Sokuji] [Main] Second launch detected; focusing the existing window');
+    focusRelay.onSecondInstance();
+  },
+})) {
+  isDuplicateInstance = true;
+  console.log('[Sokuji] [Main] Another instance is already running; focusing it and exiting');
+  // app.quit(), not app.exit(): app.exit() before the message loop is up takes
+  // Chromium's early exit() path, which aborts -- measured on Linux, a duplicate
+  // launch died with SIGABRT and dumped core every time.
+  //
+  // quit() is clean but not immediate, and it emits before-quit/will-quit, where
+  // cleanupAndExit() is wired up. That teardown must NOT run here:
+  // removeVirtualAudioDevices() ends in cleanupModulesByName(), which unloads
+  // every sokuji_* PulseAudio module regardless of who created it, so quitting
+  // this process would tear down the audio of the instance we just handed over
+  // to. The isDuplicateInstance guards in cleanupAndExit() and in whenReady()
+  // below are what make that safe -- they are load-bearing, not decorative.
+  app.quit();
+}
 
 // Enable WebGPU for ONNX Runtime acceleration
 app.commandLine.appendSwitch('enable-unsafe-webgpu');
@@ -343,6 +378,10 @@ function createWindow() {
     }
   });
 
+  // A second launch during the ~half second between claiming the lock and
+  // getting here left its focus request waiting; honour it now.
+  focusRelay.windowCreated();
+
   setupSubtitleHandlers(mainWindow);
   // Windows only: frame:false + transparent:true above costs the window its
   // WS_CAPTION style, and with it the native double-click-to-maximize on the
@@ -408,6 +447,7 @@ function createWindow() {
 
 // Create window when Electron is ready
 app.whenReady().then(async () => {
+  if (isDuplicateInstance) return;
   // Windows sandbox recovery (issue #352): if a prior run left a crash marker,
   // scan ACLs and show the native recovery dialog BEFORE creating the (transparent)
   // main window. May relaunch or exit; if so, do not proceed to createWindow().
@@ -507,6 +547,7 @@ app.whenReady().then(async () => {
 
 // Ensure cleanup happens before app exits
 const cleanupAndExit = () => {
+  if (isDuplicateInstance) return;
   console.log('[Sokuji] [Main] Cleaning up virtual audio devices before exit...');
   removeVirtualAudioDevices();
   nativeHost.stop();
