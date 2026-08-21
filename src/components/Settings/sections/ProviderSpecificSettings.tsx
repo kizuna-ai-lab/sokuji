@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { Fragment, useLayoutEffect, useMemo, useRef } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { supportsTranscriptionContext } from '../../../services/providers/openaiTranscriptionContext';
@@ -60,7 +60,7 @@ import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../../types/Provider';
 import { sonioxUsesSharedBothSession } from '../../../services/providers/SonioxProviderConfig';
-import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
+import { getManifestEntry } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
 import { useMode } from '../../../stores/audioStore';
 import { isElectron } from '../../../utils/environment';
@@ -292,62 +292,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       ? byokVoiceSource(new SonioxVoicesClient(sonioxApiKeyForRegion, sonioxRegion))
       : null;
   }, [provider, sonioxApiKeyForRegion, sonioxRegion, userId]);
-
-  // Auto-select compatible models when LOCAL_INFERENCE languages change
-  useEffect(() => {
-    if (provider !== Provider.LOCAL_INFERENCE) return;
-
-    const sourceLang = localInferenceSettings.sourceLanguage;
-    const targetLang = localInferenceSettings.targetLanguage;
-    const updates: Record<string, any> = {};
-
-    // Auto-select ASR model (includes streaming models)
-    const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-    const currentAsr = allAsr.find(m => m.id === localInferenceSettings.asrModel);
-    if (!currentAsr || !(currentAsr.multilingual || currentAsr.languages.includes(sourceLang))) {
-      const firstMatch = pickBestModel(allAsr.filter(m =>
-        (m.multilingual || m.languages.includes(sourceLang)) && modelStatuses[m.id] === 'downloaded'
-      ));
-      updates.asrModel = firstMatch?.id || '';
-    }
-
-    // Auto-select TTS model
-    const allTts = getManifestByType('tts');
-    const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
-    if (!currentTtsEntry || (!currentTtsEntry.multilingual && !currentTtsEntry.languages.includes(targetLang))) {
-      const firstMatch = pickBestModel(allTts.filter(m =>
-        (m.multilingual || m.languages.includes(targetLang)) && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
-      ));
-      updates.ttsModel = firstMatch?.id || '';
-      updates.ttsSpeakerId = 0;
-    }
-
-    // Auto-select translation model
-    // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
-    const transModelId = localInferenceSettings.translationModel;
-    const effectiveAsrId = updates.asrModel ?? localInferenceSettings.asrModel;
-    const asrEntryForAst = transModelId && transModelId === effectiveAsrId
-      ? getManifestEntry(transModelId) : null;
-    const isAstValid = asrEntryForAst
-      && isAstCompatible(asrEntryForAst, sourceLang, targetLang)
-      && modelStatuses[transModelId] === 'downloaded';
-
-    if (!isAstValid) {
-      const allTranslation = getManifestByType('translation');
-      const currentTransEntry = allTranslation.find(m => m.id === transModelId);
-      const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, sourceLang, targetLang);
-      if (!isCurrentTransCompatible) {
-        const firstMatch = pickBestModel(allTranslation.filter(m =>
-          isTranslationModelCompatible(m, sourceLang, targetLang) && modelStatuses[m.id] === 'downloaded'
-        ));
-        updates.translationModel = firstMatch?.id || '';
-      }
-    }
-
-    if (Object.keys(updates).length > 0) {
-      updateLocalInferenceSettings(updates);
-    }
-  }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, modelStatuses]);
 
   // Custom prompt is supported when EITHER the speaker's or the participant's
   // translation worker is Qwen-family. Participant's worker type is derived via
