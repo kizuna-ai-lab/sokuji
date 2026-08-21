@@ -161,7 +161,7 @@ describe('splitDegradedChipText', () => {
     const failed = splitDegradedChipText('participant-connect-failed', translate).title;
     expect(denied).not.toBe(failed);
     expect(denied).toContain('Screen Recording permission');
-    expect(failed).toContain('participant audio channel');
+    expect(failed).toContain("Other's audio channel");
   });
 
   it('goes through the translator for every string it emits', () => {
@@ -202,7 +202,7 @@ describe('the split-degraded indicator is not a conversation item', () => {
     const setDegraded = (v: SplitDegradedReason | null) => { degraded = v; };
 
     // participant catch: the old shape appended a bubble here
-    setItems(prev => [...prev, { id: 'bubble', text: 'Failed to start the participant audio channel.' }]);
+    setItems(prev => [...prev, { id: 'bubble', text: "Failed to start Other's audio channel." }]);
     // ...and the indicator is set from the same place, into its own state
     setDegraded(resolveSplitDegraded({
       splitRequested: true, participantChannelStarted: false, failure: 'participant-connect-failed',

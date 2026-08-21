@@ -49,7 +49,7 @@ const REASON_MESSAGE: Record<string, string> = {
   'engine-absent': 'Download the inference engine in provider settings',
   'unavailable': 'Native engine unavailable — retry in settings',
   'starting': 'Starting the local engine…',
-  'asr-incompatible': 'Select a speech-recognition model for the source language',
+  'asr-incompatible': 'Select a speech-recognition model for My language',
   'translation-incompatible': 'Select a translation model for this language pair',
   'models-missing': 'Download the native models in settings',
 };

@@ -277,7 +277,7 @@ export function reasonToI18n(
       // the key would churn every locale file for no user-visible gain.
       return {
         key: 'settings.sonioxAutoParticipantWarning',
-        defaultValue: "Choose a specific source language — with automatic detection, the other participant's speech can't be translated into your language.",
+        defaultValue: "Set My language to a specific language — with automatic detection, the other side's speech can't be translated into it.",
       };
     case 'local-models-missing':
       return { key: 'mainPanel.localModelsRequired', defaultValue: 'Please download the required models in Settings to start.' };

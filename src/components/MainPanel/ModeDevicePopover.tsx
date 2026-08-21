@@ -177,7 +177,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
       list.push({
         key: 'participant',
         icon: AudioLines,
-        label: t('modePicker.deviceParticipantAudio', 'Participant audio'),
+        label: t('modePicker.deviceParticipantAudio', "Other's audio"),
         devices: canPickSource ? participantSources : [],
         selectedDevice: canPickSource ? selectedParticipantSource : null,
         subtitle: canPickSource
@@ -208,9 +208,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   if (!open || !anchorEl) return null;
 
   const headerLabel = mode === 'speaker'
-    ? t('modePicker.popoverHeaderYou', 'You — devices')
+    ? t('modePicker.popoverHeaderYou', 'Me — devices')
     : mode === 'participant'
-      ? t('modePicker.popoverHeaderParticipants', 'Participants — devices')
+      ? t('modePicker.popoverHeaderParticipants', 'Other — devices')
       : t('modePicker.popoverHeaderBoth', 'Both — devices');
 
   const summaryText = (row: ChannelRowSpec): { text: string; cls: string } => {

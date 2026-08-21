@@ -124,3 +124,89 @@ describe('notices that name a button use that locale\'s own label', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('the three translation modes are named with one word each', () => {
+  // The app names the same two conversation sides in six places: the mode
+  // picker, the display-mode toggle, the per-bubble badge (which reads through
+  // the display-mode keys), the logs panel, the conversation export and the
+  // local-provider model group. Nothing but convention kept them in step, and
+  // they drifted badly — en alone shipped "You"/"Others" in the picker,
+  // "Speaker"/"Participant" on the badges and in the logs, "You"/"Other" in the
+  // export, and "My"/"Other's" on the language labels: five vocabularies for
+  // two concepts. Worse, "Speaker" meant BOTH the user's own channel and the
+  // audio output device, so "Cannot enable Speaker" pointed at the wrong thing.
+  //
+  // The rule now: within a locale, every key naming a side says the *same
+  // word*. Which word stays a per-locale choice (ja 自分/相手, de
+  // Ich/Gegenüber, ru Я/Собеседник) — only the agreement is enforced.
+  const SELF = [
+    'modePicker.modeYou',
+    'mainPanel.displayMode.speaker',
+    'logsPanel.speakerClient',
+    'mainPanel.export.speakerYou',
+  ];
+  const OTHER = [
+    'modePicker.modeParticipants',
+    'mainPanel.displayMode.participant',
+    'logsPanel.participantClient',
+    'mainPanel.export.speakerOther',
+    'providers.local_inference.participant',
+  ];
+  // Both is named twice and drifted too: fil said "Pareho" in the picker and
+  // "Parehas" on the display-mode toggle.
+  const BOTH = [
+    'modePicker.modeBoth',
+    'mainPanel.displayMode.both',
+  ];
+
+  // Deliberately does NOT skip absent keys: a missing key must fail here rather
+  // than shrink the set into a passing one. (Key parity is asserted above too,
+  // but a test that reads as "these all agree" should not quietly pass when one
+  // of them does not exist.)
+  const agree = (cat: Record<string, string>, keys: string[]) => {
+    const missing = keys.filter(k => typeof cat[k] !== 'string');
+    expect(missing).toEqual([]);
+    return new Set(keys.map(k => cat[k]));
+  };
+
+  it.each([['en', EN] as const, ...locales])(
+    '%s uses one word each for "me", "the other side" and "both"',
+    (_lang, cat) => {
+      expect([...agree(cat, SELF)]).toHaveLength(1);
+      expect([...agree(cat, OTHER)]).toHaveLength(1);
+      expect([...agree(cat, BOTH)]).toHaveLength(1);
+    },
+  );
+
+  it('the three words are always distinct', () => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      const [me, other, both] = [cat[SELF[0]], cat[OTHER[0]], cat[BOTH[0]]];
+      if (new Set([me, other, both]).size !== 3) {
+        offenders.push(`${lang}: ${JSON.stringify([me, other, both])}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  // The export header labels the two configured languages. It used to say
+  // "Source"/"Target" while the settings screen that set them said
+  // "My Language"/"Other's Language" — the reader had to map one to the other.
+  // These are the same two fields, so they get the same two labels.
+  it.each([
+    ['mainPanel.export.headerSource', 'settings.sourceLanguage'],
+    ['mainPanel.export.headerTarget', 'settings.targetLanguage'],
+  ])('%s matches %s in every locale', (header, label) => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      // Require both to exist: two absent keys are `undefined === undefined`,
+      // which would pass while saying nothing.
+      if (typeof cat[header] !== 'string' || typeof cat[label] !== 'string') {
+        offenders.push(`${lang}: missing ${typeof cat[header] !== 'string' ? header : label}`);
+      } else if (cat[header] !== cat[label]) {
+        offenders.push(`${lang}: ${JSON.stringify(cat[header])} != ${JSON.stringify(cat[label])}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

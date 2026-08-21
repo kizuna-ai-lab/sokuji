@@ -130,15 +130,15 @@ const ExportButton: React.FC<ExportButtonProps> = ({
 
   // Collect i18n strings once per render.
   const txtI18n: TxtI18n = useMemo(() => ({
-    speakerYou: t('mainPanel.export.speakerYou', 'You'),
+    speakerYou: t('mainPanel.export.speakerYou', 'Me'),
     speakerOther: t('mainPanel.export.speakerOther', 'Other'),
     translationSuffix: t('mainPanel.export.translationSuffix', '(trans)'),
     headerTitle: t('mainPanel.export.headerTitle', 'Sokuji conversation export'),
     headerGenerated: t('mainPanel.export.headerGenerated', 'Generated'),
     headerProvider: t('mainPanel.export.headerProvider', 'Provider'),
     headerModels: t('mainPanel.export.headerModels', 'Models'),
-    headerSource: t('mainPanel.export.headerSource', 'Source'),
-    headerTarget: t('mainPanel.export.headerTarget', 'Target'),
+    headerSource: t('mainPanel.export.headerSource', 'My Language'),
+    headerTarget: t('mainPanel.export.headerTarget', "Other's Language"),
     headerNote: t('mainPanel.export.headerNote', 'Note: settings reflect current state at export, not mid-session changes.'),
   }), [t]);
 

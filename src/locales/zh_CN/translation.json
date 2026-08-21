@@ -42,7 +42,7 @@
     "pushToTranslateNotAvailableInWebrtc": "在 WebRTC 模式下不可用。请切换到 WebSocket 以使用按住翻译。",
     "systemInstructions": "系统指令",
     "speechMode": "语音模式",
-    "speechModeAppliesTo": "适用于您的语音。参会者音频始终使用语义 VAD。",
+    "speechModeAppliesTo": "适用于您的语音。对方音频始终使用语义 VAD。",
     "userTranscriptModel": "用户转录模型",
     "noiseReduction": "降噪",
     "noiseSuppression": "噪声抑制",
@@ -105,12 +105,12 @@
     "volcengineAST2CustomVocabularyFooter": "填入无效或留空的词表 ID 会被静默忽略——会话将视为该字段未设置。在火山引擎控制台中更新词表后，可能需要几分钟才能生效。",
     "zoomAIInfo": "Zoom AI Services 信息",
     "zoomAIInfoText": "Zoom Scribe 转录每句话，Zoom Translator 将其翻译为文本。翻译语言对中必须有一方为英语。",
-    "geminiParticipantTokenWarning": "Gemini参与者模式会生成音频响应但只使用文本转录，导致额外的token消耗。",
+    "geminiParticipantTokenWarning": "Gemini 会为对方音频生成音频响应但只使用文本转录，导致额外的 token 消耗。",
     "help": "帮助",
     "helpEmailTooltip": "报告问题或获取帮助",
     "helpDiscussions": "讨论区",
     "helpDiscussionsTooltip": "功能建议、反馈与社区讨论",
-    "participantModelHint": "切换到 {{source}} → {{target}} 以更改参与者模型",
+    "participantModelHint": "切换到 {{source}} → {{target}} 以更改对方模型",
     "auto": "自动",
     "low": "低",
     "medium": "中",
@@ -125,14 +125,14 @@
     "thresholdTooltip": "语音检测灵敏度（0.0-1.0）。较低的值检测更安静的声音，但可能意外触发。较高的值需要更大声说话。默认0.5适合大多数人。",
     "prefixPaddingTooltip": "语音开始前保留的静音时间（秒）。有助于捕捉句子开头。太高会延迟响应。试试0.3-0.5。",
     "silenceDurationTooltip": "停止说话后等待时间（秒）。短=快速响应但可能打断您。长=耐心等待但较慢。试试0.5。",
-    "silenceDurationTranslateTooltip": "Translate 没有服务端轮次检测，因此这些滑块只控制 UI 如何切分消息。\n源端停顿 = 你停止说话后，多长时间开启一条新的源语言消息。\n译文停顿 = 同上，但用于译文输出（可能因 TTS 渲染比源端持续更久）。",
+    "silenceDurationTranslateTooltip": "Translate 没有服务端轮次检测，因此这些滑块只控制 UI 如何切分消息。\n源端停顿 = 您停止说话后，多长时间开启一条新的源语言消息。\n译文停顿 = 同上，但用于译文输出（可能因 TTS 渲染比源端持续更久）。",
     "userSilenceDuration": "源端停顿",
     "assistantSilenceDuration": "译文停顿",
     "semanticEagernessTooltip": "AI决定您说完的速度（仅语义模式）。\n自动：AI决定。\n低：非常耐心。\n中：平衡。\n高：快速响应。",
     "temperatureTooltip": "翻译创意度（0.0-1.0）。较低=更字面的逐词翻译。较高=更自然的对话风格。翻译用0.7-0.9最好。",
     "maxTokensTooltip": "每次翻译的最大长度。Token就像单词片段-100个token≈75个单词。对话用2048-4096好。'inf'=无限制。",
     "unlimited": "无限制",
-    "transcriptModelTooltip": "识别你自己说话内容的语音模型。它只影响每条翻译旁边显示的原文，翻译本身直接由音频生成。\ngpt-live-transcribe：最准确，边说边出字，也最贵。\ngpt-transcribe：当前一代，每段话说完后转录。\ngpt-4o-mini-transcribe：最便宜，默认值。\ngpt-4o-transcribe / whisper-1：更早的模型。",
+    "transcriptModelTooltip": "识别您自己说话内容的语音模型。它只影响每条翻译旁边显示的原文，翻译本身直接由音频生成。\ngpt-live-transcribe：最准确，边说边出字，也最贵。\ngpt-transcribe：当前一代，每段话说完后转录。\ngpt-4o-mini-transcribe：最便宜，默认值。\ngpt-4o-transcribe / whisper-1：更早的模型。",
     "transcriptKeywords": "转录关键词",
     "transcriptKeywordsTooltip": "希望转录模型预先知道的人名、术语和产品名，用逗号分隔。这些只是提示——只有真的说出来，词才会出现在转录结果里。gpt-live-transcribe 和 gpt-transcribe 支持此功能。",
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
@@ -144,8 +144,8 @@
     "webrtc": "WebRTC（低延迟）",
     "webrtcVadDisabledTitle": "WebRTC 模式下不支持服务器 VAD",
     "webrtcVadNotice": "WebRTC 模式下服务器 VAD 已禁用。在 WebRTC 模式中，服务器检测到语音时会自动截断音频输出，这会导致翻译被中断。",
-    "participantInstructions": "参会者指令",
-    "participantInstructionsTooltip": "用于翻译参会者音频的系统指令。留空则使用上方的主指令。\n\n注意：主指令中的语言方向可能与参会者不符。例如：如果您说中文、主指令翻译中文→日语，但参会者说日语，使用主指令会错误地尝试翻译日语→日语。请设置单独的参会者指令来翻译日语→中文。",
+    "participantInstructions": "对方指令",
+    "participantInstructionsTooltip": "用于翻译对方音频的系统指令。留空则使用上方的主指令。\n\n注意：主指令中的语言方向可能与对方不符。例如：如果您说中文、主指令翻译中文→日语，但对方说日语，使用主指令会错误地尝试翻译日语→日语。请设置单独的对方指令来翻译日语→中文。",
     "localTranslationPrompt": "翻译提示词",
     "localTranslationPromptTooltip": "自定义本地翻译模型收到的系统指令。仅对 Qwen 系列模型生效。",
     "localPromptUnsupported": "当前翻译模型不支持自定义提示词。在「模型管理」中切换到 Qwen 系列模型后可用。",
@@ -202,13 +202,13 @@
     "translateInfoBanner": "当说话人使用与目标相同的语言时，该模型会保持沉默。混合语言场景可能会有片段缺失。",
     "translateModelAvailable": "API key 验证成功。gpt-realtime-translate 可用。",
     "translateModelNotAvailable": "API key 有效，但当前 key 没有 gpt-realtime-translate 访问权限。",
-    "translateSourceParticipantWarning": "Participant 翻译可能无法工作——你选的源语言不在 13 个支持的目标语言里。",
-    "participantSectionHeader": "参会者音频",
+    "translateSourceParticipantWarning": "翻译对方音频可能无法工作——「我的语言」不在该服务商支持的 13 个目标语言里。",
+    "participantSectionHeader": "对方音频",
     "participantSectionDescriptionElectron": "翻译此系统上任何正在播放的应用程序的音频。",
     "participantSectionDescriptionExtension": "翻译当前浏览器标签页的音频。原始音频通过系统默认输出播放。",
     "edgeTtsNoVoicesForLanguage": "此语言没有可用的语音",
     "edgeTtsVoiceLoadError": "加载语音失败 — 请查看 LogsPanel",
-    "localNativeAsrIncompatible": "请为源语言选择语音识别（ASR）模型",
+    "localNativeAsrIncompatible": "请为「我的语言」选择语音识别（ASR）模型",
     "localNativeEngineRequired": "请在提供商设置中下载推理引擎",
     "localNativeEngineUpdateRequired": "推理引擎需要更新 — 请在提供商设置中更新",
     "localNativeModelsRequired": "请在设置中下载 Native 模型",
@@ -217,9 +217,9 @@
     "localNativeUnavailable": "Native 引擎不可用 — 请在设置中重试",
     "simpleMode": "快捷",
     "sonioxSharedSession": "「两者」模式下共享会话",
-    "sonioxSharedSessionTooltip": "「两者」模式可以用一个共享的 Soniox 会话,也可以每个方向各用一个独立会话。\n\n已启用:单个会话同时翻译双方,并自动区分说话人——成本和延迟更低。\n\n禁用:每个方向各一个独立会话——两人同时说话时更可靠,但成本约为两倍。\n\n仅影响「两者」模式。",
+    "sonioxSharedSessionTooltip": "「两者」模式可以用一个共享的 Soniox 会话，也可以每个方向各用一个独立会话。\n\n已启用：单个会话同时翻译双方，并自动区分声音——成本和延迟更低。\n\n禁用：每个方向各一个独立会话——两人同时说话时更可靠，但成本约为两倍。\n\n仅影响「两者」模式。",
     "sonioxSharedSessionManagedCost": "Kizuna AI 两种方式都支持。关闭后会同时运行两个会话——每分钟成本约为两倍，因此可用会话时长大约减半，开始会话所需的余额也更高。",
-    "sonioxAutoParticipantWarning": "请选择具体的源语言——使用自动检测时,无法把对方的语音翻译成你的语言。",
+    "sonioxAutoParticipantWarning": "请把「我的语言」设为具体语言——使用自动检测时，无法把对方的语音翻译成它。",
     "sonioxVocabulary": "自定义词表",
     "sonioxVocabularyTooltip": "使识别偏向重要人名和专业术语，并引导特定术语的译法。将在下次会话生效。",
     "sonioxVocabularyTerms": "术语",
@@ -268,7 +268,7 @@
     "sonioxVoicePreviewQuotaError": "预览失败 — 已达到 Soniox 速率限制或配额",
     "sonioxVoicePreviewTimeout": "预览超时 — 请重试",
     "sonioxRegion": "区域",
-    "sonioxRegionTooltip": "Soniox 每个区域是独立部署，各自有独立的 API 密钥。你的音频将在所选区域内处理和存储。下次会话开始生效。"
+    "sonioxRegionTooltip": "Soniox 每个区域是独立部署，各自有独立的 API 密钥。您的音频将在所选区域内处理和存储。下次会话开始生效。"
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",
@@ -299,25 +299,25 @@
     "passthroughManagedByPushToTranslate": "按住翻译模式下原声直通自动管理：未按住按键时以 100% 音量直通，按住时进行录音翻译、不直通。",
     "realVoiceVolume": "原声音量",
     "mutualExclusivityNotice": "音频冲突",
-    "mutualExclusivitySpeakerTitle": "无法启用扬声器",
-    "mutualExclusivityParticipantTitle": "无法启用参与者音频",
-    "mutualExclusivitySpeakerText": "请先关闭参与者音频，再启用扬声器。",
-    "mutualExclusivityParticipantText": "请先关闭扬声器，再启用参与者音频。",
+    "mutualExclusivitySpeakerTitle": "无法启用扬声器监听",
+    "mutualExclusivityParticipantTitle": "无法启用对方音频",
+    "mutualExclusivitySpeakerText": "请先关闭对方音频，再启用扬声器监听。",
+    "mutualExclusivityParticipantText": "请先关闭扬声器监听，再启用对方音频。",
     "screenRecordingDeniedNotice": "需要权限",
     "screenRecordingDeniedTitle": "屏幕录制权限被拒绝",
-    "screenRecordingDeniedText1": "参与者音频需要屏幕录制权限才能捕获系统音频。",
+    "screenRecordingDeniedText1": "对方音频需要屏幕录制权限才能捕获系统音频。",
     "screenRecordingDeniedText2": "请前往 系统偏好设置 > 隐私与安全性 > 屏幕录制，启用 Sokuji。",
     "screenRecordingDeniedText3": "启用权限后，请重新启动应用。",
     "turnOnMicrophone": "打开麦克风",
     "turnOffMicrophone": "关闭麦克风",
     "turnOnMonitor": "打开扬声器监听",
     "turnOffMonitor": "关闭扬声器监听",
-    "monitorLockedByMode": "扬声器监听仅在「{{mode}}」模式下可用——与参会者音频同时开启会产生回声。将翻译模式切换为「{{mode}}」即可重新启用。",
+    "monitorLockedByMode": "扬声器监听仅在「{{mode}}」模式下可用——与对方音频同时开启会产生回声。将翻译模式切换为「{{mode}}」即可重新启用。",
     "refreshDevices": "刷新设备",
     "unknownDevice": "未知设备",
-    "participantSource": "Participant Audio Source",
-    "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
-    "turnOffParticipant": "Turn off participant audio",
+    "participantSource": "对方音频来源",
+    "participantSourceDesc": "选择要翻译的应用。「系统音频」会捕获您听到的一切，包括游戏和音乐。",
+    "turnOffParticipant": "关闭对方音频",
     "participantSilentNoPermission": "The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.",
     "audioCaptureDeniedNotice": "Permission Required",
     "audioCaptureDeniedTitle": "System Audio Recording Permission Needed",
@@ -328,8 +328,8 @@
     "screenRecordingDeniedText2Named": "Open System Settings > Privacy & Security > Screen Recording and enable \"{{app}}\".",
     "audioCaptureDeniedText2Named": "Open System Settings > Privacy & Security > System Audio Recording Only and enable \"{{app}}\".",
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
-    "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
-    "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
+    "screenRecordingHasAlternative": "您也可以完全避开这项权限：改为指定某个应用作为对方音频来源。应用只有在正在播放音频时才会出现在该列表中。",
+    "participantSourceSwitchFailed": "无法切换对方音频来源。请结束会话后重新开始以更改。",
     "participantFellBackToSystemAudio": "所选应用的采集已停止，现在改为翻译整个系统的声音。请重新选择该应用以缩小范围。",
     "loopbackMicNotice": "环回输入提示",
     "loopbackMicWarningTitle": "该输入设备会重新采集本机正在播放的声音。",
@@ -392,7 +392,7 @@
     "interfaceLanguage": "界面语言",
     "interfaceLanguageDesc": "这会更改Sokuji菜单和按钮的语言。它不会影响您可以在哪些语言之间翻译。",
     "translationLanguages": "翻译语言",
-    "translationLanguagesDesc": "选择您说的语言（您的语言）和您想要听到翻译的语言（目标语言）。如果您不确定源语言，请选择\"自动检测\"。",
+    "translationLanguagesDesc": "选择您说的语言（我的语言）和您想要听到翻译的语言（对方语言）。如果您不确定自己会说哪种语言，请选择“自动检测”。",
     "yourLanguage": "我的语言",
     "userAccount": "用户账户",
     "userAccountTooltip": "对于拥有技术知识和自己API密钥的用户，无论是否登录都可以使用自己的API密钥。用户账户是为希望简化设置、无需复杂配置的新用户设计的。",
@@ -416,12 +416,12 @@
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 种语言 + 中英双向 · 保留你的声音",
+      "description": "8 种语言 + 中英双向 · 保留您的声音",
       "vendor": "豆包"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 种语言，3,600 个语言对 · 可克隆你自己的声音",
+      "description": "60 种语言，3,600 个语言对 · 可克隆您自己的声音",
       "vendor": "Soniox"
     },
     "openai": {
@@ -479,7 +479,7 @@
       "modelAsr": "ASR",
       "modelTranslation": "MT",
       "modelTts": "TTS",
-      "participant": "参与者"
+      "participant": "对方"
     },
     "local_native": {
       "name": "免费 (Native)",
@@ -503,8 +503,8 @@
     "of": "的",
     "unknown": "未知",
     "sessionEnded": "会话结束",
-    "speakerClient": "讲者",
-    "participantClient": "参与者",
+    "speakerClient": "我",
+    "participantClient": "对方",
     "copyLogs": "复制",
     "logsCopied": "已复制！"
   },
@@ -512,7 +512,7 @@
     "subtitleTakeover": "翻译内容正在字幕浮层中显示",
     "speechDetected": "[检测到语音]",
     "function": "功能",
-    "noChannelConfigured": "开始前请启用麦克风或参会者音频。",
+    "noChannelConfigured": "开始前请启用麦克风或对方音频。",
     "release": "释放",
     "pushToTalk": "按住说话 (空格)",
     "inputDeviceOff": "输入设备关闭",
@@ -540,8 +540,8 @@
     "displaySettings": "显示设置",
     "expandedView": "展开视图",
     "displayMode": {
-      "speaker": "讲者",
-      "participant": "参与者",
+      "speaker": "我",
+      "participant": "对方",
       "both": "两者",
       "source": "原文",
       "translation": "译文",
@@ -558,24 +558,24 @@
       "downloadJson": "下载为 .json",
       "copySuccess": "对话已复制到剪贴板",
       "copyFailed": "复制失败。请检查浏览器权限。",
-      "speakerYou": "你",
+      "speakerYou": "我",
       "speakerOther": "对方",
       "translationSuffix": "(译)",
       "headerTitle": "Sokuji 对话导出",
       "headerGenerated": "生成时间",
       "headerProvider": "服务商",
       "headerModels": "模型",
-      "headerSource": "源语言",
-      "headerTarget": "目标语言",
+      "headerSource": "我的语言",
+      "headerTarget": "对方语言",
       "headerNote": "注意：设置反映导出时的当前状态，不包含会话中途的更改。"
     },
     "waveformOutputTooltip": "发送到虚拟麦克风的音频（翻译 + 原声直通）",
     "waveformMicTooltip": "您的麦克风 —— 正在捕获您的声音用于翻译",
-    "waveformSystemTooltip": "捕获参与者音频用于翻译（浏览器标签页 / 系统音频）",
+    "waveformSystemTooltip": "捕获对方音频用于翻译（浏览器标签页 / 系统音频）",
     "allChannelsFailed": "无法启动任何音频通道。请检查设备权限后重试。",
-    "participantChannelFailed": "无法启动参与者音频通道。",
+    "participantChannelFailed": "无法启动对方音频通道。",
     "splitDegradedLabel": "仅单向",
-    "splitDegradedTooltip": "参与者音频未被翻译，因此本次会话仅单向运行。请检查参与者音频权限，然后开始新的会话。",
+    "splitDegradedTooltip": "对方音频未被翻译，因此本次会话仅单向运行。请检查对方音频权限，然后开始新的会话。",
     "sonioxInsufficientBalance": "余额不足,无法开始会话。请充值后重试。",
     "sonioxSessionConflict": "您的账户中已有另一个会话正在进行。请稍后重试。",
     "sonioxServiceUnavailable": "Soniox 暂时不可用。请稍后重试。",
@@ -592,24 +592,24 @@
     "clickToCancel": "点击取消"
   },
   "modePicker": {
-    "modeYou": "您",
-    "modeParticipants": "其他人",
+    "modeYou": "我",
+    "modeParticipants": "对方",
     "modeBoth": "两者",
     "groupLabel": "翻译模式",
-    "descYou": "您的语音 → 翻译给其他人。翻译您说的话，让其他人听懂您。",
-    "descOthers": "其他人的语音 → 翻译给您。翻译参会者说的话，让您看懂他们。",
-    "descBoth": "双向。同时翻译您和其他人的语音。",
+    "descYou": "您的语音 → 翻译给对方。翻译您说的话，让对方听懂您。",
+    "descOthers": "对方的语音 → 翻译给您。翻译对方说的话，让您看懂他们。",
+    "descBoth": "双向。同时翻译您和对方的语音。",
     "switchDisabled": "会话期间模式已锁定。",
     "configureDevices": "点击配置设备。",
     "missingDevice": "请为此模式配置设备以开始。",
-    "popoverHeaderYou": "您 — 设备",
-    "popoverHeaderParticipants": "参会者 — 设备",
+    "popoverHeaderYou": "我 — 设备",
+    "popoverHeaderParticipants": "对方 — 设备",
     "popoverHeaderBoth": "两者 — 设备",
     "popoverFooter": "完整设置 →",
     "deviceMic": "麦克风",
     "deviceSpeakerMonitor": "扬声器监听",
     "notSelected": "未选择",
-    "deviceParticipantAudio": "参会者音频"
+    "deviceParticipantAudio": "对方音频"
   },
   "popover": {
     "statusOff": "关闭",
@@ -670,7 +670,7 @@
           "content": "欢迎使用 Sokuji！这个简单的指南将帮助您在几个步骤内开始使用实时翻译。"
         },
         "mode": {
-          "content": "选择 Sokuji 翻译什么：您 — 您自己的语音（让其他人听懂您）；其他人 — 其他参会者说的话（让您看懂他们）；或两者，进行双向翻译。这决定了捕获哪一路音频 — 选择其他人或两者即可开启参会者音频。",
+          "content": "选择 Sokuji 翻译什么：我 — 您自己的语音（让对方听懂您）；对方 — 对方说的话（让您看懂他们）；或两者，进行双向翻译。这决定了捕获哪一路音频 — 选择「对方」或「两者」即可开启对方音频。",
           "title": "翻译模式"
         },
         "settings": {
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "步骤 3：选择语言",
-          "content": "选择您的源语言（您说的语言）和目标语言（您希望对方听到的语言）。"
+          "content": "选择「我的语言」（您说的语言）和「对方语言」（您希望对方听到的语言）。"
         },
         "microphone": {
           "title": "步骤 5：选择麦克风",
@@ -694,8 +694,8 @@
           "content": "选择监听设备来试听翻译效果。无论是否开启监听，翻译后的语音都会输出到虚拟麦克风。您需要在会议软件或网站上选择 Sokuji 虚拟麦克风作为麦克风输入。推荐使用耳机监听，避免干扰麦克风收音。"
         },
         "systemAudio": {
-          "title": "步骤 7：参与者音频",
-          "content": "这是参会者通道 — 其他人说的话，翻译给您看。在翻译模式中选择其他人或两者即可开启（在“您”模式下保持关闭）。在浏览器扩展中，它会捕获当前标签页，让您可以翻译 Google Meet、Teams 或 Zoom 中的参会者。在桌面应用中，它会捕获所有系统声音，让您可以翻译 YouTube、Twitch、Netflix 或任何来源。参会者语音仅翻译为文字 — 不会进行语音合成。与您的麦克风配合，即可实现完整的双向翻译。"
+          "title": "步骤 7：对方音频",
+          "content": "这是对方通道 — 对方说的话，翻译给您看。在翻译模式中选择「对方」或「两者」即可开启（在「我」模式下保持关闭）。在浏览器扩展中，它会捕获当前标签页，让您可以翻译 Google Meet、Teams 或 Zoom 中对方的发言。在桌面应用中，它会捕获所有系统声音，让您可以翻译 YouTube、Twitch、Netflix 或任何来源。对方语音仅翻译为文字 — 不会进行语音合成。与您的麦克风配合，即可实现完整的双向翻译。"
         },
         "start": {
           "title": "步骤 8：开始翻译",
@@ -725,7 +725,7 @@
         "content": "欢迎使用Sokuji！本指南将帮助您设置实时语音翻译应用程序。让我们开始吧！"
       },
       "mode": {
-        "content": "选择 Sokuji 翻译什么：您 — 您自己的语音（让其他人听懂您）；其他人 — 其他参会者说的话（让您看懂他们）；或两者，进行双向翻译。这决定了捕获哪一路音频 — 选择其他人或两者即可开启参会者音频。",
+        "content": "选择 Sokuji 翻译什么：我 — 您自己的语音（让对方听懂您）；对方 — 对方说的话（让您看懂他们）；或两者，进行双向翻译。这决定了捕获哪一路音频 — 选择「对方」或「两者」即可开启对方音频。",
         "title": "翻译模式"
       },
       "settings": {
@@ -757,8 +757,8 @@
         "content": "选择监听设备来试听翻译效果。无论是否开启监听，翻译后的语音都会输出到虚拟麦克风。您需要在会议软件或网站上选择 Sokuji 虚拟麦克风作为麦克风输入。推荐使用耳机监听，避免干扰麦克风收音。"
       },
       "systemAudio": {
-        "title": "步骤 8：参与者音频",
-        "content": "这是参会者通道 — 其他人说的话，翻译给您看。在翻译模式中选择其他人或两者即可开启（在“您”模式下保持关闭）。在浏览器扩展中，它会捕获当前标签页，让您可以翻译 Google Meet、Teams 或 Zoom 中的参会者。在桌面应用中，它会捕获所有系统声音，让您可以翻译 YouTube、Twitch、Netflix 或任何来源。参会者语音仅翻译为文字 — 不会进行语音合成。与您的麦克风配合，即可实现完整的双向翻译。"
+        "title": "步骤 8：对方音频",
+        "content": "这是对方通道 — 对方说的话，翻译给您看。在翻译模式中选择「对方」或「两者」即可开启（在「我」模式下保持关闭）。在浏览器扩展中，它会捕获当前标签页，让您可以翻译 Google Meet、Teams 或 Zoom 中对方的发言。在桌面应用中，它会捕获所有系统声音，让您可以翻译 YouTube、Twitch、Netflix 或任何来源。对方语音仅翻译为文字 — 不会进行语音合成。与您的麦克风配合，即可实现完整的双向翻译。"
       },
       "startSession": {
         "title": "步骤9：开始会话",
@@ -809,7 +809,7 @@
     "importTitle": "导入模型",
     "importStep1": "获取文件",
     "importStep1Hint": "在任意可用的机器或网络上下载这些文件 —— curl/wget 和 Hugging Face CLI 通常能在应用内下载被屏蔽时成功。",
-    "importStep2": "添加你的文件",
+    "importStep2": "添加您的文件",
     "importStep3": "文件",
     "importRepo": "仓库",
     "importCopy": "复制",
@@ -877,7 +877,7 @@
     "gpuWaylandRemedy": "在 Wayland 会话中 Chromium 无法使用 GPU。使用 --ozone-platform=x11 启动 Sokuji 可恢复加速。",
     "incompatibleVariant": "此模型格式与您的设备不兼容。请删除后重新下载。",
     "initFailed": "模型存储初始化失败：{{message}}",
-    "othersGroup": "其他",
+    "othersGroup": "其他模型",
     "requiresGpu": "需要 GPU",
     "upgradeVariant": "您的设备支持更快的模型格式。删除后重新下载可获得更好的性能。",
     "licenseConsent": {
@@ -1010,11 +1010,11 @@
     "ttsEcho": "您的扬声器正把 Sokuji 的翻译语音送回麦克风。",
     "meetingEcho": "扬声器播放的会议声音正进入麦克风。",
     "farEndEcho": "某位参会者的设备正把您的翻译回声传回会议。",
-    "selfCapture": "参会者音源正在采集 Sokuji 自己的声音。",
+    "selfCapture": "对方音频来源正在采集 Sokuji 自己的声音。",
     "routingLoop": "所选输入设备正在直接采集本机播放的声音。",
     "actionHeadphones": "使用耳机即可切断回路。",
     "actionAskRemote": "请该参会者佩戴耳机。",
-    "actionPickApp": "请将参会者音源改为会议应用，而不是系统音频。",
+    "actionPickApp": "请将对方音频来源改为会议应用，而不是系统音频。",
     "actionChangeInput": "请选择真实麦克风作为输入设备。",
     "dismiss": "关闭"
   }

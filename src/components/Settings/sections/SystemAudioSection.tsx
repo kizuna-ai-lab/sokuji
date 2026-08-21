@@ -88,18 +88,20 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     >
       <h3>
         <AudioLines size={18} />
-        <span>{t('settings.participantSectionHeader', 'Participant audio')}</span>
+        <span>{t('settings.participantSectionHeader', "Other's audio")}</span>
         <Tooltip
           content={description}
           position="top"
           icon="help"
           maxWidth={300}
         />
-        {/* Gemini participant mode discards generated audio but still bills for
-            its tokens — warn the user when the channel is active. */}
+        {/* Gemini discards the audio it generates for Other's audio but still
+            bills for its tokens. The gate is the channel, not the mode — the
+            channel is unmuted in Other AND Both (see audioStore's mode->mute
+            binding), so the warning must not name a single mode. */}
         {provider === Provider.GEMINI && !isParticipantMuted && (
           <Tooltip
-            content={t('settings.geminiParticipantTokenWarning', 'Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.')}
+            content={t('settings.geminiParticipantTokenWarning', "Gemini generates audio responses for Other's audio that are discarded, resulting in additional token usage.")}
             position="top"
             maxWidth={280}
           >
@@ -130,7 +132,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           deviceType="input"
           filterVirtual={false}
           showVirtualIndicators={false}
-          toggleAriaLabel={t('audioPanel.turnOffParticipant', 'Turn off participant audio')}
+          toggleAriaLabel={t('audioPanel.turnOffParticipant', "Turn off Other's audio")}
         />
       ) : (
         <ToggleSwitch

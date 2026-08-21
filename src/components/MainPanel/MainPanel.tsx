@@ -1872,7 +1872,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (!speakerWillStart && !participantWillStart) {
         setIsInitializing(false);
         addRealtimeEvent(
-          { type: 'session.init_error', data: { message: t('mainPanel.noChannelConfigured', 'Enable microphone or participant audio before starting.') } },
+          { type: 'session.init_error', data: { message: t('mainPanel.noChannelConfigured', "Enable microphone or Other's audio before starting.") } },
           'client', 'session.init_error'
         );
         return;
@@ -2296,7 +2296,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     {
                       type: 'participant.warning',
                       data: {
-                        message: t('audioPanel.screenRecordingDeniedText1', 'Participant Audio requires Screen Recording permission to capture system audio.')
+                        message: t('audioPanel.screenRecordingDeniedText1', "Other's audio requires Screen Recording permission to capture system audio.")
                       }
                     },
                     'client', 'participant.warning'
@@ -2444,7 +2444,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Under split, a participant leg that fails here never reached a
           // frame, so no par_stt bit was ever set and the lease is not waiting
           // on it.
-          participantErrorMessage = error?.message || t('mainPanel.participantChannelFailed', 'Failed to start the participant audio channel.');
+          participantErrorMessage = error?.message || t('mainPanel.participantChannelFailed', "Failed to start Other's audio channel.");
           addRealtimeEvent(
             { type: 'participant.error', data: { message: participantErrorMessage } },
             'client', 'participant.error'
@@ -4360,7 +4360,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     kind="system"
                     canvasRef={systemCanvasRef}
                     width={effectiveMode === 'both' ? 'half' : 'full'}
-                    title={t('mainPanel.waveformSystemTooltip', 'Participant audio captured for translation (browser tab / system audio)')}
+                    title={t('mainPanel.waveformSystemTooltip', "Other's audio captured for translation (browser tab / system audio)")}
                   />
                 )}
               </div>

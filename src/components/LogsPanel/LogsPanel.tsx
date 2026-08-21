@@ -105,8 +105,8 @@ const BUFFER_SIZE = 10; // Number of extra items to render outside viewport
 const SCROLL_THROTTLE_MS = 16; // ~60fps
 
 const LOG_TABS: Tab[] = [
-  { id: 'speaker', labelKey: 'logsPanel.speakerClient', fallback: 'Speaker Client', icon: Mic },
-  { id: 'participant', labelKey: 'logsPanel.participantClient', fallback: 'Participant Client', icon: Users },
+  { id: 'speaker', labelKey: 'logsPanel.speakerClient', fallback: 'Me', icon: Mic },
+  { id: 'participant', labelKey: 'logsPanel.participantClient', fallback: 'Other', icon: Users },
 ];
 
 const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {

@@ -28,8 +28,8 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const labelFor = (seg: 'speaker' | 'participant' | 'both') => {
-    if (seg === 'speaker') return t('modePicker.modeYou', 'You');
-    if (seg === 'participant') return t('modePicker.modeParticipants', 'Others');
+    if (seg === 'speaker') return t('modePicker.modeYou', 'Me');
+    if (seg === 'participant') return t('modePicker.modeParticipants', 'Other');
     return t('modePicker.modeBoth', 'Both');
   };
 
@@ -37,9 +37,9 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
   // direction. Leads every tooltip so the mode's *meaning* is always
   // available on hover (the bare "You / Others / Both" labels don't convey it).
   const descFor = (seg: 'speaker' | 'participant' | 'both') => {
-    if (seg === 'speaker') return t('modePicker.descYou', 'Your voice → translated for others. Translate what you say so others understand you.');
-    if (seg === 'participant') return t('modePicker.descOthers', "Others' voices → translated for you. Translate what participants say so you understand them.");
-    return t('modePicker.descBoth', "Two-way. Translate your voice and others' at the same time.");
+    if (seg === 'speaker') return t('modePicker.descYou', 'Your voice → translated for the other side. Translate what you say so they understand you.');
+    if (seg === 'participant') return t('modePicker.descOthers', "The other side's voice → translated for you. Translate what they say so you understand them.");
+    return t('modePicker.descBoth', "Two-way. Translate your voice and the other side's at the same time.");
   };
 
   const titleFor = (seg: 'speaker' | 'participant' | 'both') => {

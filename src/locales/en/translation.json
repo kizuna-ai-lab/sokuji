@@ -42,7 +42,7 @@
     "pushToTranslateNotAvailableInWebrtc": "Not available in WebRTC mode. Switch to WebSocket to use Push-to-Translate.",
     "systemInstructions": "System Instructions",
     "speechMode": "Speech Mode",
-    "speechModeAppliesTo": "Applies to your voice. Participant audio always uses semantic VAD.",
+    "speechModeAppliesTo": "Applies to your voice. Other's audio always uses semantic VAD.",
     "userTranscriptModel": "User transcript model",
     "noiseReduction": "Noise reduction",
     "noiseSuppression": "Noise Suppression",
@@ -105,12 +105,12 @@
     "volcengineAST2CustomVocabularyFooter": "Invalid or empty library IDs are silently ignored — the session runs as if the field weren't set. Library changes made in the Volcengine console can take a few minutes to take effect.",
     "zoomAIInfo": "Zoom AI Services Info",
     "zoomAIInfoText": "Zoom Scribe transcribes each utterance and Zoom Translator translates it to text. Translation pairs must include English on one side.",
-    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
+    "geminiParticipantTokenWarning": "Gemini generates audio responses for Other's audio that are discarded, resulting in additional token usage.",
     "help": "Help",
     "helpEmailTooltip": "Report bugs or get help",
     "helpDiscussions": "Discussions",
     "helpDiscussionsTooltip": "Feature requests, feedback, and community discussions",
-    "participantModelHint": "Switch to {{source}} → {{target}} to change participant models",
+    "participantModelHint": "Switch to {{source}} → {{target}} to change Other's models",
     "auto": "Auto",
     "low": "Low",
     "medium": "Medium",
@@ -144,8 +144,8 @@
     "webrtc": "WebRTC (Low Latency)",
     "webrtcVadDisabledTitle": "Server VAD is not available in WebRTC mode",
     "webrtcVadNotice": "Server VAD is disabled in WebRTC mode. In WebRTC, the server automatically truncates audio when it detects speech, which interrupts translations.",
-    "participantInstructions": "Participant Instructions",
-    "participantInstructionsTooltip": "System instructions for translating participant audio. If empty, the main instructions above will be used.\n\nImportant: Your main instructions may have the wrong language direction for participants. Example: If you speak Chinese and your main instructions translate Chinese→Japanese, but participants speak Japanese, the main instructions would incorrectly try to translate Japanese→Japanese. Set separate participant instructions to translate Japanese→Chinese.",
+    "participantInstructions": "Other's Instructions",
+    "participantInstructionsTooltip": "System instructions for translating Other's audio. If empty, the main instructions above will be used.\n\nImportant: Your main instructions may have the wrong language direction for the other side. Example: If you speak Chinese and your main instructions translate Chinese→Japanese, but the other side speaks Japanese, the main instructions would incorrectly try to translate Japanese→Japanese. Set separate Other's instructions to translate Japanese→Chinese.",
     "localTranslationPrompt": "Translation Prompt",
     "localTranslationPromptTooltip": "Customize how the local translation model is instructed. Only applies to Qwen-family models.",
     "localPromptUnsupported": "Current translation model does not support custom prompts. Switch to a Qwen-family model in Model Management to enable.",
@@ -202,13 +202,13 @@
     "translateInfoBanner": "This model stays silent when the speaker uses the same language as the target. Mixed-language speech may have gaps.",
     "translateModelAvailable": "API key validated. gpt-realtime-translate is available.",
     "translateModelNotAvailable": "API key works, but gpt-realtime-translate is not accessible with this key.",
-    "translateSourceParticipantWarning": "Participant translation may not work — your selected source language is not in the 13 supported target languages.",
-    "participantSectionHeader": "Participant audio",
+    "translateSourceParticipantWarning": "Translating Other's audio may not work — My language is not among the 13 target languages this provider supports.",
+    "participantSectionHeader": "Other's audio",
     "participantSectionDescriptionElectron": "Translate audio from any application playing on this system.",
     "participantSectionDescriptionExtension": "Translate audio from the active browser tab. The original audio plays through your system default output.",
     "edgeTtsNoVoicesForLanguage": "No voices available for this language",
     "edgeTtsVoiceLoadError": "Failed to load voices — check LogsPanel",
-    "localNativeAsrIncompatible": "Select a speech-recognition model for the source language",
+    "localNativeAsrIncompatible": "Select a speech-recognition model for My language",
     "localNativeEngineRequired": "Download the inference engine in provider settings",
     "localNativeEngineUpdateRequired": "The inference engine needs an update — open provider settings to update it",
     "localNativeModelsRequired": "Download the native models in settings",
@@ -217,9 +217,9 @@
     "localNativeUnavailable": "Native engine unavailable — retry in settings",
     "simpleMode": "Quick",
     "sonioxSharedSession": "Shared session in Both mode",
-    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.",
+    "sonioxSharedSessionTooltip": "Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic voice separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.",
     "sonioxSharedSessionManagedCost": "Kizuna AI supports both. Disabled runs two sessions at once — about twice the cost per minute, so your session allowance runs out in about half the time and a higher balance is needed to start.",
-    "sonioxAutoParticipantWarning": "Choose a specific source language — with automatic detection, the other participant's speech can't be translated into your language.",
+    "sonioxAutoParticipantWarning": "Set My language to a specific language — with automatic detection, the other side's speech can't be translated into it.",
     "sonioxVocabulary": "Custom Vocabulary",
     "sonioxVocabularyTooltip": "Bias recognition toward important names and jargon, and steer how specific terms are translated. Applies from the next session.",
     "sonioxVocabularyTerms": "Terms",
@@ -303,25 +303,25 @@
     "passthroughManagedByPushToTranslate": "In Push-to-Translate mode, passthrough is automatic — it plays at 100% volume when you're not holding the key, and stops (audio goes to translation) while you hold it.",
     "realVoiceVolume": "Original Audio Volume",
     "mutualExclusivityNotice": "Audio Conflict",
-    "mutualExclusivitySpeakerTitle": "Cannot enable Speaker",
-    "mutualExclusivityParticipantTitle": "Cannot enable Participant Audio",
-    "mutualExclusivitySpeakerText": "Please turn off Participant Audio before enabling Speaker.",
-    "mutualExclusivityParticipantText": "Please turn off Speaker before enabling Participant Audio.",
+    "mutualExclusivitySpeakerTitle": "Cannot enable the speaker monitor",
+    "mutualExclusivityParticipantTitle": "Cannot enable Other's audio",
+    "mutualExclusivitySpeakerText": "Please turn off Other's audio before enabling the speaker monitor.",
+    "mutualExclusivityParticipantText": "Please turn off the speaker monitor before enabling Other's audio.",
     "screenRecordingDeniedNotice": "Permission Required",
     "screenRecordingDeniedTitle": "Screen Recording Permission Denied",
-    "screenRecordingDeniedText1": "Participant Audio requires Screen Recording permission to capture system audio.",
+    "screenRecordingDeniedText1": "Other's audio requires Screen Recording permission to capture system audio.",
     "screenRecordingDeniedText2": "Please go to System Preferences > Privacy & Security > Screen Recording and enable Sokuji.",
     "screenRecordingDeniedText3": "After enabling the permission, please restart the app.",
     "turnOnMicrophone": "Turn on microphone",
     "turnOffMicrophone": "Turn off microphone",
     "turnOnMonitor": "Turn on speaker monitor",
     "turnOffMonitor": "Turn off speaker monitor",
-    "monitorLockedByMode": "Speaker monitoring is only available in \"{{mode}}\" mode — it cannot run alongside Participant audio without causing echo. Switch the translation mode to \"{{mode}}\" to re-enable it.",
+    "monitorLockedByMode": "Speaker monitoring is only available in \"{{mode}}\" mode — it cannot run alongside Other's audio without causing echo. Switch the translation mode to \"{{mode}}\" to re-enable it.",
     "refreshDevices": "Refresh devices",
     "unknownDevice": "Unknown device",
-    "participantSource": "Participant Audio Source",
+    "participantSource": "Other's Audio Source",
     "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
-    "turnOffParticipant": "Turn off participant audio",
+    "turnOffParticipant": "Turn off Other's audio",
     "participantSilentNoPermission": "The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.",
     "audioCaptureDeniedNotice": "Permission Required",
     "audioCaptureDeniedTitle": "System Audio Recording Permission Needed",
@@ -332,8 +332,8 @@
     "screenRecordingDeniedText2Named": "Open System Settings > Privacy & Security > Screen Recording and enable \"{{app}}\".",
     "audioCaptureDeniedText2Named": "Open System Settings > Privacy & Security > System Audio Recording Only and enable \"{{app}}\".",
     "audioCaptureDeniedText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
-    "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as the participant source instead. Applications only appear in that list while they are playing audio.",
-    "participantSourceSwitchFailed": "Could not switch the participant audio source. Stop and start the session to change it.",
+    "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as Other's audio source instead. Applications only appear in that list while they are playing audio.",
+    "participantSourceSwitchFailed": "Could not switch Other's audio source. Stop and start the session to change it.",
     "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
   },
   "auth": {
@@ -392,7 +392,7 @@
     "interfaceLanguage": "Interface Language",
     "interfaceLanguageDesc": "This changes the language of Sokuji's menus and buttons. It does NOT affect which languages you can translate between.",
     "translationLanguages": "Translation Languages",
-    "translationLanguagesDesc": "Choose which language you speak (Your Language) and which language you want to hear the translation in (Target Language). Select \"Auto Detect\" if you're unsure about the source language.",
+    "translationLanguagesDesc": "Choose which language you speak (My language) and which language you want to hear the translation in (Other's language). Select \"Auto Detect\" if you're unsure which language you'll be speaking.",
     "yourLanguage": "My Language",
     "userAccount": "User Account",
     "userAccountTooltip": "For users with technical knowledge and their own API keys, you can use your own API key whether logged in or not. User Account is designed for new users who prefer a simplified setup without complex configuration.",
@@ -479,7 +479,7 @@
       "modelAsr": "ASR",
       "modelTranslation": "MT",
       "modelTts": "TTS",
-      "participant": "Participant"
+      "participant": "Other"
     },
     "local_native": {
       "name": "Free (Native)",
@@ -503,8 +503,8 @@
     "of": "of",
     "unknown": "unknown",
     "sessionEnded": "Session Ended",
-    "speakerClient": "Speaker",
-    "participantClient": "Participant",
+    "speakerClient": "Me",
+    "participantClient": "Other",
     "copyLogs": "Copy",
     "logsCopied": "Copied!"
   },
@@ -512,7 +512,7 @@
     "subtitleTakeover": "Translations are showing in the subtitle overlay",
     "speechDetected": "[Speech detected]",
     "function": "Function",
-    "noChannelConfigured": "Enable microphone or participant audio before starting.",
+    "noChannelConfigured": "Enable microphone or Other's audio before starting.",
     "release": "release",
     "pushToTalk": "Push-to-Talk (Space)",
     "inputDeviceOff": "input device off",
@@ -540,8 +540,8 @@
     "displaySettings": "Display settings",
     "expandedView": "Expanded view",
     "displayMode": {
-      "speaker": "Speaker",
-      "participant": "Participant",
+      "speaker": "Me",
+      "participant": "Other",
       "both": "Both",
       "source": "Src",
       "translation": "Trans",
@@ -558,24 +558,24 @@
       "downloadJson": "Download as .json",
       "copySuccess": "Conversation copied to clipboard",
       "copyFailed": "Failed to copy. Check browser permissions.",
-      "speakerYou": "You",
+      "speakerYou": "Me",
       "speakerOther": "Other",
       "translationSuffix": "(trans)",
       "headerTitle": "Sokuji conversation export",
       "headerGenerated": "Generated",
       "headerProvider": "Provider",
       "headerModels": "Models",
-      "headerSource": "Source",
-      "headerTarget": "Target",
+      "headerSource": "My Language",
+      "headerTarget": "Other's Language",
       "headerNote": "Note: settings reflect current state at export, not mid-session changes."
     },
     "waveformOutputTooltip": "Audio sent to the virtual microphone (translation + passthrough)",
     "waveformMicTooltip": "Your microphone — your voice being captured for translation",
-    "waveformSystemTooltip": "Participant audio captured for translation (browser tab / system audio)",
+    "waveformSystemTooltip": "Other's audio captured for translation (browser tab / system audio)",
     "allChannelsFailed": "Failed to start any audio channel. Check device permissions and try again.",
-    "participantChannelFailed": "Failed to start the participant audio channel.",
+    "participantChannelFailed": "Failed to start Other's audio channel.",
     "splitDegradedLabel": "One-way only",
-    "splitDegradedTooltip": "Participant audio isn't being translated, so this session is running one way only. Check participant audio permissions, then run a new session.",
+    "splitDegradedTooltip": "Other's audio isn't being translated, so this session is running one way only. Check Other's audio permissions, then run a new session.",
     "sonioxInsufficientBalance": "Insufficient balance to start a session. Please top up your balance and try again.",
     "sonioxSessionConflict": "Another session is already running on your account. Please try again in a moment.",
     "sonioxServiceUnavailable": "Soniox is temporarily unavailable. Please try again in a moment.",
@@ -592,24 +592,24 @@
     "clickToCancel": "Click to cancel"
   },
   "modePicker": {
-    "modeYou": "You",
-    "modeParticipants": "Others",
+    "modeYou": "Me",
+    "modeParticipants": "Other",
     "modeBoth": "Both",
     "groupLabel": "Translation mode",
-    "descYou": "Your voice → translated for others. Translate what you say so others understand you.",
-    "descOthers": "Others' voices → translated for you. Translate what participants say so you understand them.",
-    "descBoth": "Two-way. Translate your voice and others' at the same time.",
+    "descYou": "Your voice → translated for the other side. Translate what you say so they understand you.",
+    "descOthers": "The other side's voice → translated for you. Translate what they say so you understand them.",
+    "descBoth": "Two-way. Translate your voice and the other side's at the same time.",
     "switchDisabled": "Mode is locked during a session.",
     "configureDevices": "Click to configure devices.",
     "missingDevice": "Configure devices for this mode to start.",
-    "popoverHeaderYou": "You — devices",
-    "popoverHeaderParticipants": "Participants — devices",
+    "popoverHeaderYou": "Me — devices",
+    "popoverHeaderParticipants": "Other — devices",
     "popoverHeaderBoth": "Both — devices",
     "popoverFooter": "Full settings →",
     "deviceMic": "Microphone",
     "deviceSpeakerMonitor": "Speaker monitor",
     "notSelected": "Not selected",
-    "deviceParticipantAudio": "Participant audio"
+    "deviceParticipantAudio": "Other's audio"
   },
   "popover": {
     "statusOff": "Off",
@@ -670,7 +670,7 @@
           "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
         },
         "mode": {
-          "content": "Choose what Sokuji translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio.",
+          "content": "Choose what Sokuji translates: Me — your own voice (so the other side understands you); Other — what the other side says (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Other or Both to turn on Other's audio.",
           "title": "Translation mode"
         },
         "settings": {
@@ -683,7 +683,7 @@
         },
         "languages": {
           "title": "Step 3: Choose Languages",
-          "content": "Select your source language (what you speak) and target language (what you want the other party to hear)."
+          "content": "Select My language (what you speak) and Other's language (what you want the other side to hear)."
         },
         "microphone": {
           "title": "Step 5: Select Microphone",
@@ -694,8 +694,8 @@
           "content": "Choose a monitoring device to preview the translation. Translated audio is always output to the virtual microphone regardless of monitoring. Select Sokuji Virtual Microphone as the microphone input in your meeting app or website. Headphones are recommended for monitoring to avoid feedback."
         },
         "systemAudio": {
-          "title": "Step 7: Participant Audio",
-          "content": "This is the participant channel — what other people say, translated for you. Turn it on by choosing Others or Both in the translation mode (it stays off in You mode). In the browser extension, it captures the current tab so you can translate participants in Google Meet, Teams, or Zoom. In the desktop app, it captures all system audio, so you can translate YouTube, Twitch, Netflix, or any source. Participant speech is translated to text only — no speech synthesis. Together with your microphone, this gives full two-way translation."
+          "title": "Step 7: Other's Audio",
+          "content": "This is the Other channel — what other people say, translated for you. Turn it on by choosing Other or Both in the translation mode (it stays off in Me mode). In the browser extension, it captures the current tab so you can translate the other side in Google Meet, Teams, or Zoom. In the desktop app, it captures all system audio, so you can translate YouTube, Twitch, Netflix, or any source. The other side's speech is translated to text only — no speech synthesis. Together with your microphone, this gives full two-way translation."
         },
         "start": {
           "title": "Step 8: Start Translating",
@@ -725,7 +725,7 @@
         "content": "Welcome to Sokuji! This guide will help you set up the extension for live speech translation. Let's get started!"
       },
       "mode": {
-        "content": "Choose what Sokuji translates: You — your own voice (so others understand you); Others — what other participants say (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Others or Both to turn on participant audio.",
+        "content": "Choose what Sokuji translates: Me — your own voice (so the other side understands you); Other — what the other side says (so you understand them); or Both for two-way translation. This decides which audio is captured — pick Other or Both to turn on Other's audio.",
         "title": "Translation mode"
       },
       "settings": {
@@ -757,8 +757,8 @@
         "content": "Select a monitoring device to listen to the translated audio and verify if it meets your requirements. It is recommended to use headphones for monitoring to avoid interference with microphone input. When you are satisfied with the translation settings, it is suggested to turn off monitoring so you can focus more on your expression without microphone interference."
       },
       "systemAudio": {
-        "title": "Step 8: Participant Audio",
-        "content": "This is the participant channel — what other people say, translated for you. Turn it on by choosing Others or Both in the translation mode (it stays off in You mode). In the browser extension, it captures the current tab so you can translate participants in Google Meet, Teams, or Zoom. In the desktop app, it captures all system audio, so you can translate YouTube, Twitch, Netflix, or any source. Participant speech is translated to text only — no speech synthesis. Together with your microphone, this gives full two-way translation."
+        "title": "Step 8: Other's Audio",
+        "content": "This is the Other channel — what other people say, translated for you. Turn it on by choosing Other or Both in the translation mode (it stays off in Me mode). In the browser extension, it captures the current tab so you can translate the other side in Google Meet, Teams, or Zoom. In the desktop app, it captures all system audio, so you can translate YouTube, Twitch, Netflix, or any source. The other side's speech is translated to text only — no speech synthesis. Together with your microphone, this gives full two-way translation."
       },
       "startSession": {
         "title": "Step 9: Start Session",
@@ -877,7 +877,7 @@
     "gpuWaylandRemedy": "On a Wayland session, Chromium cannot use the GPU for this. Starting Sokuji with --ozone-platform=x11 restores acceleration.",
     "incompatibleVariant": "This model format is incompatible with your device. Please delete and re-download.",
     "initFailed": "Model storage failed to initialize: {{message}}",
-    "othersGroup": "Others",
+    "othersGroup": "Other models",
     "requiresGpu": "Requires a GPU",
     "upgradeVariant": "Your device supports a faster model format. Delete and re-download for better performance.",
     "licenseConsent": {
@@ -1010,11 +1010,11 @@
     "ttsEcho": "Your speakers are feeding Sokuji's translated speech back into the microphone.",
     "meetingEcho": "Meeting audio from your speakers is reaching the microphone.",
     "farEndEcho": "A participant's device is echoing your translation back into the meeting.",
-    "selfCapture": "The participant source is capturing Sokuji's own audio.",
+    "selfCapture": "Other's audio source is capturing Sokuji's own audio.",
     "routingLoop": "The selected input device is capturing this computer's playback directly.",
     "actionHeadphones": "Using headphones will break the loop.",
     "actionAskRemote": "Ask that participant to use headphones.",
-    "actionPickApp": "Pick the meeting application as the participant source instead of system audio.",
+    "actionPickApp": "Pick the meeting application as Other's audio source instead of system audio.",
     "actionChangeInput": "Pick a physical microphone as the input device.",
     "dismiss": "Dismiss"
   }

@@ -77,15 +77,15 @@ export interface LocalizedString {
 export const SPLIT_DEGRADED_DETAIL: Record<SplitDegradedReason, LocalizedString> = {
   'loopback-denied': {
     key: 'audioPanel.screenRecordingDeniedText1',
-    defaultValue: 'Participant Audio requires Screen Recording permission to capture system audio.',
+    defaultValue: "Other's audio requires Screen Recording permission to capture system audio.",
   },
   'no-participant-config': {
     key: 'mainPanel.participantChannelFailed',
-    defaultValue: 'Failed to start the participant audio channel.',
+    defaultValue: "Failed to start Other's audio channel.",
   },
   'participant-connect-failed': {
     key: 'mainPanel.participantChannelFailed',
-    defaultValue: 'Failed to start the participant audio channel.',
+    defaultValue: "Failed to start Other's audio channel.",
   },
   // Same key again, and for the same reason the two above share one: the
   // user-facing distinction between "the socket never opened" and "the socket
@@ -93,7 +93,7 @@ export const SPLIT_DEGRADED_DETAIL: Record<SplitDegradedReason, LocalizedString>
   // is identical — this channel did not start, run a new session.
   'participant-stream-ended': {
     key: 'mainPanel.participantChannelFailed',
-    defaultValue: 'Failed to start the participant audio channel.',
+    defaultValue: "Failed to start Other's audio channel.",
   },
 };
 
@@ -112,8 +112,8 @@ export const SPLIT_DEGRADED_LABEL: LocalizedString = {
 export const SPLIT_DEGRADED_TOOLTIP: LocalizedString = {
   key: 'mainPanel.splitDegradedTooltip',
   defaultValue:
-    "Participant audio isn't being translated, so this session is running one way only. " +
-    'Check participant audio permissions, then run a new session.',
+    "Other's audio isn't being translated, so this session is running one way only. " +
+    "Check Other's audio permissions, then run a new session.",
 };
 
 /**

@@ -88,7 +88,7 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
 
   const scopeName = t(
     source === 'speaker' ? 'mainPanel.displayMode.speaker' : 'mainPanel.displayMode.participant',
-    source === 'speaker' ? 'Speaker' : 'Participant',
+    source === 'speaker' ? 'Me' : 'Other',
   );
 
   const renderText = () => {

@@ -622,9 +622,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             {isParticipantChannelInScope && participantModelStatus && (
               <div className="participant-inline">
                 <div className="participant-header">
-                  <span className="participant-label">{t('providers.local_inference.participant', 'Participant')}</span>
+                  <span className="participant-label">{t('providers.local_inference.participant', 'Other')}</span>
                   <span className="participant-hint">
-                    {t('settings.participantModelHint', 'Switch to {{source}} → {{target}} to change participant models', {
+                    {t('settings.participantModelHint', "Switch to {{source}} → {{target}} to change Other's models", {
                       source: localInferenceSettings.targetLanguage,
                       target: localInferenceSettings.sourceLanguage,
                     })}
