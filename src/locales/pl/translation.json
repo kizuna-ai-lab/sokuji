@@ -405,6 +405,7 @@
     "swapLanguages": "Zamień języki",
     "textOnly": "Tylko tekst",
     "textOnlyDesc": "Tłumacz tylko na tekst — bez wyjścia głosowego",
+    "textOnlyForcedByMode": "Tryb \"{{mode}}\" zamienia to, co mówią uczestnicy, wyłącznie w tekst dla Ciebie i nigdy nie generuje dźwięku, dlatego \"Tylko tekst\" pozostaje włączony. Zmień tryb tłumaczenia, aby tłumaczyć własny głos z mową.",
     "keepReplayAudio": "Zachowaj dźwięk do powtórnego odtworzenia",
     "keepReplayAudioDesc": "Przechowuj przetłumaczony dźwięk w pamięci, abyś mógł go później odtworzyć z każdej wiadomości. Domyślnie wyłączone, aby zmniejszyć zużycie pamięci podczas długich sesji."
   },

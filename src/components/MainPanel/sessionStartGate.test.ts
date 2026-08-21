@@ -184,6 +184,73 @@ describe('computeStartGate', () => {
       ).toBe(true);
     });
 
+    // The participant leg never speaks — every descriptor's
+    // buildParticipantSessionConfig forces textOnly, pinned registry-wide by
+    // descriptorRegistry.test.ts. So a participant-only session opens ONE
+    // transcription stream and no synthesis stream, whatever the user's toggle
+    // says, and gating it at the speech-to-speech floor told a user with
+    // $0.018334–$0.041666 they had insufficient funds for a session the
+    // backend would have started. The gate applies the rule itself so the
+    // caller cannot forget it.
+    describe('participant-only sessions ignore the speech toggle', () => {
+      it('uses the text-only floor when no speaker leg will run', () => {
+        expect(
+          computeStartGate({
+            ...soniox,
+            speakerWillStart: false,
+            textOnly: false,
+            quota: { balance: 18_334, frozen: false },
+          }),
+        ).toEqual({ canStart: true, reason: null });
+      });
+
+      it('still blocks below the text-only floor', () => {
+        expect(
+          computeStartGate({
+            ...soniox,
+            speakerWillStart: false,
+            textOnly: false,
+            quota: { balance: 18_333, frozen: false },
+          }).reason,
+        ).toBe('insufficient-balance');
+      });
+
+      it('keeps the speech-to-speech floor when a speaker leg will run', () => {
+        expect(
+          computeStartGate({
+            ...soniox,
+            speakerWillStart: true,
+            textOnly: false,
+            quota: { balance: 41_666, frozen: false },
+          }).canStart,
+        ).toBe(false);
+      });
+
+      // Same safe-default doctrine as `textOnly`: a caller that has not been
+      // taught about the speaker leg might be about to start one, so omitting
+      // it keeps the HIGHER floor rather than quietly cheapening the gate.
+      it('defaults to assuming a speaker leg when speakerWillStart is omitted', () => {
+        expect(
+          computeStartGate({ ...soniox, textOnly: false, quota: { balance: 41_666, frozen: false } })
+            .canStart,
+        ).toBe(false);
+      });
+
+      // Split Both always has a speaker leg (that is what makes it split), so
+      // the participant rule must not reach into the two-stream floors.
+      it('leaves the split floors alone', () => {
+        expect(
+          computeStartGate({
+            ...soniox,
+            speakerWillStart: true,
+            textOnly: false,
+            sonioxBothSplit: true,
+            quota: { balance: 59_999, frozen: false },
+          }).canStart,
+        ).toBe(false);
+      });
+    });
+
     // sonioxBothSplit defaults the OPPOSITE way to textOnly, on purpose: split
     // is opt-in and only a caller that reads the shared/split toggle can be in
     // it, so omitting it must not raise the floor for every speaker-only

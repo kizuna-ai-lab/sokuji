@@ -59,6 +59,7 @@ import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import { computeStartGate, noChannelCameUp, reasonToI18n } from './sessionStartGate';
+import { effectiveTextOnly } from '../../utils/effectiveTextOnly';
 import { expectationHolds } from './prepareEnvelope';
 import { useSubtitleSessionBridge } from './useSubtitleSessionBridge';
 import { isPassthroughActive } from '../../utils/audioUtils';
@@ -671,12 +672,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       missingDeviceForMode,
       autoSourceParticipantBlocked,
       textOnly,
+      // The toggle alone is the user's REQUEST; the gate resolves it against
+      // this into the session's effective text-only-ness. A participant-only
+      // session never synthesizes (the participant leg is forced text-only for
+      // every provider), so it belongs on the cheaper managed-Soniox floor —
+      // without this the button refused a session the backend would start.
+      speakerWillStart,
       // Split Both opens a second transcription stream, so managed Soniox's
       // balance floor roughly doubles. Same derived value the session wiring
       // uses, so the button and the session cannot disagree.
       sonioxBothSplit,
     }),
-    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, autoSourceParticipantBlocked, textOnly, sonioxBothSplit],
+    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, autoSourceParticipantBlocked, textOnly, speakerWillStart, sonioxBothSplit],
   );
   const canStartSession = startGate.canStart;
 
@@ -1972,7 +1979,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               // socket, and burn the countdown at that rate. (The backend also
               // ignores `textOnly` for mode 'participant'; this keeps the client
               // honest rather than relying on that.)
-              textOnly: speakerWillStart ? useSettingsStore.getState().textOnly : true,
+              //
+              // The rule itself lives in `effectiveTextOnly` — it used to be
+              // written inline only here, while the Start gate and the native
+              // readiness check read the raw toggle and disagreed with the
+              // session they were describing.
+              textOnly: effectiveTextOnly({
+                speakerLegRuns: speakerWillStart,
+                textOnly: useSettingsStore.getState().textOnly,
+              }),
             },
             // The store's event union doesn't contain these types, exactly as when
             // SonioxClient emitted them (emitRealtime casts the whole event

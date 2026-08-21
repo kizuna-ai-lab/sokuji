@@ -405,6 +405,7 @@
     "swapLanguages": "Palitan ang mga wika",
     "textOnly": "Teksto lamang",
     "textOnlyDesc": "Isalin sa teksto lamang — walang boses na output",
+    "textOnlyForcedByMode": "Ang mode na \"{{mode}}\" ay ginagawa lang na teksto para sa iyo ang sinasabi ng mga kalahok at hindi kailanman gumagawa ng audio, kaya nananatiling naka-on ang \"Teksto lamang\". Palitan ang translation mode para isalin ang sarili mong boses nang may tunog.",
     "keepReplayAudio": "Itago ang audio para sa muling pagpapatugtog",
     "keepReplayAudioDesc": "Mag-imbak ng isinaling audio sa memorya upang maaari mong patugtugin muli mamaya mula sa bawat mensahe. Naka-off bilang default upang mabawasan ang paggamit ng memorya sa mahahabang sesyon."
   },

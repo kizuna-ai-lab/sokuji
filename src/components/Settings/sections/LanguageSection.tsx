@@ -38,7 +38,9 @@ import { Provider, kizunaBaseProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { resolveAST2LanguagePair } from '../../../services/providers/volcengineAST2LanguageSync';
-import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
+import { useIsParticipantChannelInScope, useMode, speakerChannelInScope } from '../../../stores/audioStore';
+import { useLockedMode } from '../../../stores/sessionStore';
+import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
 import { getTranslationTargetLanguages, getManifestByType, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
@@ -75,6 +77,13 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const zoomAISettings = useZoomAISettings();
 
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
+  // Mode scope for the Text Only lock below. `lockedMode ?? mode` — the same
+  // "effective mode" every other mode-scoped lock in Settings reads, so an
+  // in-session panel describes the session that is running rather than the
+  // picker's current position.
+  const mode = useMode();
+  const lockedMode = useLockedMode();
+  const speakerChannelInScopeForUi = speakerChannelInScope(lockedMode ?? mode);
   const modelStatuses = useModelStatuses();
   const modelInitialized = useModelInitialized();
   const navigateToSettings = useNavigateToSettings();
@@ -598,13 +607,29 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
           )}
 
+          {/* Interactive only while a speaker leg is in scope. A participant-only
+              mode is text-only whatever the setting says — the participant channel
+              never synthesizes — so the switch shows the truth (on, locked) with a
+              tooltip naming the mode, matching the inherently-text-only case below
+              and the mode-scoped locks in AdvancedSettings. The persisted setting
+              is left alone: it is one global preference, and rewriting it here
+              would discard the user's choice for You/Both. */}
           {providerConfig.capabilities.textOnlyCapability === 'optional' && (
             <ToggleSwitch
-              checked={textOnly}
+              checked={effectiveTextOnly({ speakerLegRuns: speakerChannelInScopeForUi, textOnly })}
               onChange={() => setTextOnly(!textOnly)}
               label={t('simpleConfig.textOnly', 'Text Only')}
-              disabled={isSessionActive}
-              tooltip={t('simpleConfig.textOnlyDesc', 'Show translation as text only, without generating an audio response')}
+              disabled={isSessionActive || !speakerChannelInScopeForUi}
+              tooltip={
+                speakerChannelInScopeForUi
+                  ? t('simpleConfig.textOnlyDesc', 'Show translation as text only, without generating an audio response')
+                  // Name the mode through modePicker's own key so this reason and
+                  // the picker segment cannot drift apart in a locale.
+                  : t('simpleConfig.textOnlyForcedByMode', {
+                      mode: t('modePicker.modeParticipants', 'Others'),
+                      defaultValue: '"{{mode}}" mode turns what participants say into text for you and never generates audio, so Text Only stays on. Switch the translation mode to translate your own voice with speech.',
+                    })
+              }
             />
           )}
 

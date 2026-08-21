@@ -405,6 +405,7 @@
     "swapLanguages": "Inverser les langues",
     "textOnly": "Texte uniquement",
     "textOnlyDesc": "Traduire en texte uniquement — pas de sortie vocale",
+    "textOnlyForcedByMode": "Le mode « {{mode}} » transforme uniquement ce que disent les participants en texte pour vous et ne génère jamais d'audio : « Texte uniquement » reste donc activé. Changez de mode de traduction pour traduire votre propre voix avec la parole.",
     "keepReplayAudio": "Conserver l'audio pour la relecture",
     "keepReplayAudioDesc": "Stocker l'audio traduit en mémoire pour pouvoir le rejouer plus tard depuis chaque message. Désactivé par défaut afin de réduire l'utilisation de la mémoire pendant les longues sessions."
   },

@@ -405,6 +405,7 @@
     "swapLanguages": "Swap languages",
     "textOnly": "Text Only",
     "textOnlyDesc": "Translate to text only — no spoken audio output",
+    "textOnlyForcedByMode": "\"{{mode}}\" mode turns what participants say into text for you and never generates audio, so Text Only stays on. Switch the translation mode to translate your own voice with speech.",
     "keepReplayAudio": "Keep audio for replay",
     "keepReplayAudioDesc": "Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions."
   },

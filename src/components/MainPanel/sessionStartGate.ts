@@ -13,6 +13,8 @@ import { Provider, isKizunaManagedProvider, type ProviderType } from '../../type
 // re-exports it: this file is also loaded by the subtitle window, and that
 // barrel pulls in SonioxClient and the i18n bootstrap behind it.
 import { sonioxManagedMinBalanceMicroUsd } from '../../services/providers/sonioxManagedMinBalance';
+// Also a leaf, for the same reason.
+import { effectiveTextOnly } from '../../utils/effectiveTextOnly';
 import { formatUsdFloor } from '../../utils/formatters';
 
 export type StartBlockReason =
@@ -65,7 +67,11 @@ export interface StartGateInput {
    */
   autoSourceParticipantBlocked: boolean;
   /**
-   * Will the session about to start be text-only (no spoken translation)?
+   * The user's "Text Only" toggle (no spoken translation).
+   *
+   * The user's REQUEST, not the answer: `speakerWillStart` below can override
+   * it, and the gate applies that rule itself rather than trusting the caller
+   * to have pre-resolved it — see `effectiveTextOnly`.
    *
    * Read ONLY for managed Soniox, which is the one provider with a real
    * balance floor rather than "any positive balance" — see
@@ -74,6 +80,20 @@ export interface StartGateInput {
    * not know about the text-only toggle can leave it out.
    */
   textOnly?: boolean;
+  /**
+   * Will the microphone (forward-direction) leg of the session about to start
+   * actually run? False for a participant-only session.
+   *
+   * Read ONLY for managed Soniox, and only to resolve `textOnly` into the
+   * session's EFFECTIVE text-only-ness: the participant leg never speaks, so a
+   * session without a speaker leg opens no synthesis stream however the toggle
+   * is set, and belongs on the cheaper floor.
+   *
+   * Optional with the same safe default as `textOnly` — omitted means "assume
+   * a speaker leg", which keeps the HIGHER floor, because a caller that has
+   * not been taught about the channel matrix might be about to start one.
+   */
+  speakerWillStart?: boolean;
   /**
    * Will the session about to start run Both mode as TWO Soniox streams (one
    * per audio source) rather than one shared mixed stream?
@@ -105,6 +125,7 @@ export function computeStartGate(input: StartGateInput): StartGate {
     missingDeviceForMode,
     autoSourceParticipantBlocked,
     textOnly,
+    speakerWillStart,
     sonioxBothSplit,
   } = input;
 
@@ -121,9 +142,20 @@ export function computeStartGate(input: StartGateInput): StartGate {
   //
   // Every other provider gets a floor of 1: balances are integer micro-USD,
   // so `>= 1` is exactly the `> 0` rule this replaced.
+  //
+  // `effectiveTextOnly` rather than the raw toggle: a participant-only session
+  // opens no synthesis stream whatever the toggle says (the participant leg is
+  // forced text-only for every provider), so charging it the speech-to-speech
+  // floor blocked Start on a session the backend would have started.
   const balanceFloorMicroUsd =
     provider === Provider.KIZUNA_AI_SONIOX
-      ? sonioxManagedMinBalanceMicroUsd(Boolean(textOnly), Boolean(sonioxBothSplit))
+      ? sonioxManagedMinBalanceMicroUsd(
+          effectiveTextOnly({
+            speakerLegRuns: speakerWillStart ?? true,
+            textOnly: Boolean(textOnly),
+          }),
+          Boolean(sonioxBothSplit),
+        )
       : 1;
 
   const hasValidBalance =

@@ -405,6 +405,7 @@
     "swapLanguages": "Vaihda kielet",
     "textOnly": "Vain teksti",
     "textOnlyDesc": "Käännä vain tekstiksi — ei puhuttua ääntä",
+    "textOnlyForcedByMode": "Tila \"{{mode}}\" muuttaa osallistujien puheen vain tekstiksi sinulle eikä koskaan tuota ääntä, joten \"Vain teksti\" pysyy päällä. Vaihda käännöstilaa kääntääksesi oman äänesi puheena.",
     "keepReplayAudio": "Säilytä ääni toistoa varten",
     "keepReplayAudioDesc": "Säilytä käännetty ääni muistissa, jotta voit toistaa sen myöhemmin jokaisesta viestistä. Oletuksena pois päältä, jotta muistinkäyttö pysyy pienenä pitkissä istunnoissa."
   },
