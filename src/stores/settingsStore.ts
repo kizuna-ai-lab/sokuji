@@ -469,9 +469,9 @@ export function resolveTranslationWorkerTypeForModelId(modelId: string | null | 
  * the current local-inference settings. Considers auto-select fallback (empty
  * translationModel → getTranslationModel lookup).
  *
- * Note: this only looks at speaker direction. For participant direction, use
- * `useModelStore.getState().getParticipantModelStatus(...)` — that path already
- * consults the modelPreferences recall system for the reversed language pair.
+ * Note: this only looks at speaker direction. The participant direction is a
+ * peer, not a reversal — resolve it via `useModelStore.getState().resolve(...)`
+ * against its own entry in `settings.selections`.
  */
 export function resolveTranslationWorkerType(settings: LocalInferenceSettings): string {
   const modelId = settings.translationModel

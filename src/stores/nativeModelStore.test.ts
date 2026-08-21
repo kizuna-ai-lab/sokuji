@@ -411,10 +411,6 @@ describe('ensureSelectionReady (facade)', () => {
   beforeEach(async () => {
     _shouldReject = false;
     _notReadyModels = new Set();
-    // The top-level beforeEach resets catalog/statuses/statusRepos but not
-    // modelPreferences — a leftover rememberModels() from a PRIOR test for the
-    // same `${src}→${tgt}` key could otherwise linger unused across tests.
-    useNativeModelStore.setState({ modelPreferences: {} });
     // ensureSelectionReady now resolves against settingsStore's
     // localNative.selections (the structured source of truth), not the flat
     // fields the read() thunk returns — a leftover explicit selection from a

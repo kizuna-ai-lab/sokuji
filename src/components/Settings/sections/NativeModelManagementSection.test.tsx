@@ -244,7 +244,6 @@ vi.mock('../../../stores/nativeModelStore', () => {
     refreshCatalog: vi.fn().mockResolvedValue(undefined),
     setStatusRepos: mockSetStatusRepos,
     autoSelect: vi.fn().mockReturnValue(null),
-    rememberModels: vi.fn(),
     retrySidecar: mockRetrySidecar,
     asrLoading: false,
     asrResolved: null,

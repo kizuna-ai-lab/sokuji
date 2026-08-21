@@ -294,33 +294,29 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   }, [provider, sonioxApiKeyForRegion, sonioxRegion, userId]);
 
   // Custom prompt is supported when EITHER the speaker's or the participant's
-  // translation worker is Qwen-family. Participant's worker type is derived via
-  // modelStore.getParticipantModelStatus, which consults modelPreferences recall
-  // for the reversed language pair (so user's prior choice for tgt→src is honored).
+  // translation worker is Qwen-family. The participant direction (tgt→src) is
+  // a peer of the speaker direction, not a reversal of it: its worker type is
+  // derived by resolving its OWN entry in `selections` via modelStore.resolve
+  // — the same resolver the participant session config uses — never by
+  // borrowing the speaker's chosen model.
   const speakerWorkerType = useMemo(
     () => resolveTranslationWorkerType(localInferenceSettings),
     [localInferenceSettings.translationModel, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage],
   );
-  // Subscribe via selectors so the memo recomputes when the user changes their
-  // remembered model preferences (e.g. after picking a model for the reversed
-  // language pair via the temporary-swap workflow) or after WebGPU availability
-  // flips.
-  const modelPreferences = useModelStore(s => s.modelPreferences);
+  // Subscribe via the modelStatuses selector so the memo recomputes once a
+  // participant-direction model finishes downloading.
   const participantWorkerType = useMemo(() => {
-    const status = useModelStore.getState().getParticipantModelStatus(
-      localInferenceSettings.sourceLanguage,
+    const result = useModelStore.getState().resolve(
       localInferenceSettings.targetLanguage,
-      localInferenceSettings.asrModel,
-      localInferenceSettings.translationModel || undefined,
+      localInferenceSettings.sourceLanguage,
+      localInferenceSettings.selections,
     );
-    return resolveTranslationWorkerTypeForModelId(status.translationModelId);
+    return resolveTranslationWorkerTypeForModelId(result.translation?.modelId);
   }, [
     localInferenceSettings.sourceLanguage,
     localInferenceSettings.targetLanguage,
-    localInferenceSettings.asrModel,
-    localInferenceSettings.translationModel,
+    localInferenceSettings.selections,
     modelStatuses,
-    modelPreferences,
   ]);
   const isQwenFamily = (t: string) => t === 'qwen' || t === 'qwen35';
   const localPromptSupported = isQwenFamily(speakerWorkerType) || isQwenFamily(participantWorkerType);

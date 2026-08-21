@@ -145,7 +145,7 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
   ): ParticipantSessionResult {
     const base = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
     const localConfig = base.config as LocalInferenceSessionConfig;
-    const result = createParticipantLocalInferenceConfig(localConfig);
+    const result = createParticipantLocalInferenceConfig(localConfig, (slice as LocalInferenceSettings).selections);
 
     if (!result.success) {
       const channel: ParticipantNotice['channel'] = result.reason === 'memory_exceeded' ? 'warning' : 'error';
@@ -154,12 +154,8 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
 
     const notices: ParticipantNotice[] = [];
 
-    if (!result.status.translationAvailable) {
+    if (!result.translationAvailable) {
       notices.push({ channel: 'warning', message: `No translation model for ${localConfig.targetLanguage} → ${localConfig.sourceLanguage} — transcription only` });
-    }
-
-    if (result.status.asrFallback) {
-      notices.push({ channel: 'info', message: `Using ${result.status.asrModelId} instead of ${result.status.asrOriginalModelId} for ASR` });
     }
 
     return { config: result.config, notices };

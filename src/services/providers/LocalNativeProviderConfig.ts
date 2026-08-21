@@ -197,7 +197,7 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
     // Opus model bakes the direction in; a source-specific ASR only handles one
     // language). Reverse the direction and re-resolve both models for the
     // reversed pair — see createParticipantLocalNativeConfig.
-    const result = createParticipantLocalNativeConfig(base.config as LocalNativeSessionConfig);
+    const result = createParticipantLocalNativeConfig(base.config as LocalNativeSessionConfig, (slice as LocalNativeSettings).selections);
 
     if (!result.success) {
       return { config: null, notices: [{ channel: 'error', message: result.detail }] };

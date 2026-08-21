@@ -11,7 +11,6 @@ import { ModelManager, type DownloadProgress } from '../lib/local-inference/Mode
 import {
   MODEL_MANIFEST,
   getManifestEntry,
-  getManifestByType,
   getAsrModelsForLanguage,
   getTranslationModel,
   getTtsModelsForLanguage,
@@ -36,15 +35,6 @@ export interface DownloadState {
   percent: number;
   /** True while a manual import writes files — imports are not cancelable. */
   isImport?: boolean;
-}
-
-export interface ParticipantModelStatus {
-  asrAvailable: boolean;
-  asrModelId: string | null;
-  asrFallback: boolean;
-  asrOriginalModelId: string;
-  translationAvailable: boolean;
-  translationModelId: string | null;
 }
 
 /**
@@ -85,8 +75,6 @@ interface ModelStoreState {
   deviceFeatures: string[];
   /** Downloaded variant key per model (modelId → variant key) */
   modelVariants: Record<string, string>;
-  /** In-memory model preferences per language pair (key: "src→tgt") */
-  modelPreferences: Record<string, { asrModel: string; translationModel: string; ttsModel: string }>;
 
   /** Initialize: scan IndexedDB for existing models */
   initialize: () => Promise<void>;
@@ -119,13 +107,6 @@ interface ModelStoreState {
   ) => boolean;
 
   /**
-   * Check if reverse-direction models are available for participant mode.
-   * Participant reverses direction: recognizes targetLang (ASR) and translates target→source.
-   * Returns detailed status for each model type (ASR and translation).
-   */
-  getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string) => ParticipantModelStatus;
-
-  /**
    * Resolve one direction against the WASM manifest and current download
    * statuses. Pure: `selections` comes in as a parameter rather than being
    * read from settingsStore, so the result is a computed value with no
@@ -154,10 +135,6 @@ interface ModelStoreState {
    * entry point for settingsStore.validateApiKey's LOCAL_INFERENCE arm.
    */
   ensureSelectionReady: (selection: LocalSelection) => Promise<{ ready: boolean; corrections: ModelCorrections }>;
-  /** Save model selection for a language pair */
-  rememberModels: (sourceLang: string, targetLang: string, asrModel: string, translationModel: string, ttsModel: string) => void;
-  /** Recall saved model selection — per-field degradation if models deleted */
-  recallModels: (sourceLang: string, targetLang: string) => { asrModel: string; translationModel: string; ttsModel: string } | null;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -174,7 +151,6 @@ export const useModelStore = create<ModelStoreState>()(
     webgpuSoftwareOnly: false,
     deviceFeatures: [],
     modelVariants: {},
-    modelPreferences: {},
 
     initialize: async () => {
       if (get().initialized) return;
@@ -459,101 +435,6 @@ export const useModelStore = create<ModelStoreState>()(
       return true;
     },
 
-    getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string): ParticipantModelStatus => {
-      const { modelStatuses, webgpuAvailable } = get();
-      const ctx = { modelStatuses, webgpuAvailable };
-
-      // Participant reverses direction: participant source = user's target
-      const participantSourceLang = targetLang;
-      const participantTargetLang = sourceLang;
-
-      // Check recalled preferences for the reverse direction
-      const recalled = get().recallModels(participantSourceLang, participantTargetLang);
-
-      // 1. ASR: prefer recalled > current model > fallback
-      let asrModelId: string | null = null;
-      let asrFallback = false;
-
-      const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-
-      // Try recalled ASR first
-      if (recalled?.asrModel) {
-        const recalledAsr = allAsrModels.find(m => m.id === recalled.asrModel);
-        if (recalledAsr
-          && (recalledAsr.multilingual || recalledAsr.languages.includes(participantSourceLang))
-          && modelUsable(recalledAsr, ctx)) {
-          asrModelId = recalled.asrModel;
-          asrFallback = recalled.asrModel !== currentAsrModelId;
-        }
-      }
-
-      // Try current model
-      if (!asrModelId) {
-        const currentAsr = allAsrModels.find(m => m.id === currentAsrModelId);
-        const currentAsrOk = currentAsr
-          && (currentAsr.multilingual || currentAsr.languages.includes(participantSourceLang))
-          && modelUsable(currentAsr, ctx);
-
-        if (currentAsrOk) {
-          asrModelId = currentAsrModelId;
-        } else {
-          const match = allAsrModels.find(m =>
-            (m.multilingual || m.languages.includes(participantSourceLang))
-            && modelUsable(m, ctx)
-          );
-          if (match) {
-            asrModelId = match.id;
-            asrFallback = true;
-          }
-        }
-      }
-
-      // 2. Translation: prefer recalled > current model > fallback
-      //    AST short-circuit: if translation model === ASR model and isAstCompatible, it's valid
-      let translationModelId: string | null = null;
-
-      // Helper: check if a model is valid as translation (standard or AST)
-      const isValidTranslation = (modelId: string, forAsrId: string | null) => {
-        if (!modelId) return false;
-        const entry = getManifestEntry(modelId);
-        if (!modelUsable(entry, ctx)) return false;
-        // AST: translation model === ASR model with AST support
-        if (modelId === forAsrId && isAstCompatible(entry, participantSourceLang, participantTargetLang)) return true;
-        // Standard translation model
-        return isTranslationModelCompatible(entry, participantSourceLang, participantTargetLang);
-      };
-
-      // Try recalled translation first
-      if (recalled?.translationModel && isValidTranslation(recalled.translationModel, asrModelId)) {
-        translationModelId = recalled.translationModel;
-      }
-
-      // Try current model
-      if (!translationModelId && currentTranslationModelId && isValidTranslation(currentTranslationModelId, asrModelId)) {
-        translationModelId = currentTranslationModelId;
-      }
-
-      // Fallback
-      if (!translationModelId) {
-        const match = getManifestByType('translation').find(m =>
-          isTranslationModelCompatible(m, participantSourceLang, participantTargetLang)
-          && modelUsable(m, ctx)
-        );
-        if (match) {
-          translationModelId = match.id;
-        }
-      }
-
-      return {
-        asrAvailable: asrModelId !== null,
-        asrModelId,
-        asrFallback,
-        asrOriginalModelId: currentAsrModelId,
-        translationAvailable: translationModelId !== null,
-        translationModelId,
-      };
-    },
-
     /**
      * Resolve one direction. Pure: takes `selections` as a parameter instead
      * of reading settingsStore itself — settingsStore already dynamically
@@ -598,32 +479,6 @@ export const useModelStore = create<ModelStoreState>()(
         }
         await store.updateLocalInference({ selections: next });
       } catch { /* settings store unavailable — nothing to prune */ }
-    },
-
-    rememberModels: (src, tgt, asr, translation, tts) => {
-      set(state => ({
-        modelPreferences: {
-          ...state.modelPreferences,
-          [`${src}→${tgt}`]: { asrModel: asr, translationModel: translation, ttsModel: tts },
-        },
-      }));
-    },
-
-    recallModels: (src, tgt) => {
-      const { modelPreferences, modelStatuses, webgpuAvailable } = get();
-      const ctx = { modelStatuses, webgpuAvailable };
-      const key = `${src}→${tgt}`;
-      const pref = modelPreferences[key];
-      if (!pref) return null;
-
-      // Check downloaded + device compatibility (cloud models skip the download check)
-      const isUsable = (id: string) => Boolean(id) && modelUsable(getManifestEntry(id), ctx);
-
-      return {
-        asrModel: isUsable(pref.asrModel) ? pref.asrModel : '',
-        translationModel: isUsable(pref.translationModel) ? pref.translationModel : '',
-        ttsModel: isUsable(pref.ttsModel) ? pref.ttsModel : '',
-      };
     },
 
     ensureSelectionReady: async (selection) => {

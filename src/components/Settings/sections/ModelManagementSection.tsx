@@ -403,13 +403,6 @@ export function ModelManagementSection({
         [dir]: { ...current, [stage]: { modelId } },
       },
     });
-    useModelStore.getState().rememberModels(
-      sourceLanguage,
-      targetLanguage,
-      stage === 'asr' ? modelId : selectedAsr,
-      stage === 'translation' ? modelId : selectedTranslation,
-      stage === 'tts' ? modelId : selectedTts,
-    );
   };
 
   // ── Memoized model lists ──────────────────────────────────────────────

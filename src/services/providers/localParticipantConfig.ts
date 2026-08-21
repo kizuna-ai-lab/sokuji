@@ -1,19 +1,34 @@
 import { LocalInferenceSessionConfig, LocalNativeSessionConfig } from '../interfaces/IClient';
 import { estimateModelMemoryByDevice } from '../../lib/local-inference/modelManifest';
-import { autoSelectNative, hardwareGated, type NativeSelection } from '../../lib/local-inference/native/nativeCatalog';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
-import { useModelStore, type ParticipantModelStatus } from '../../stores/modelStore';
+import { useModelStore } from '../../stores/modelStore';
+import type { Selections } from '../../lib/local-inference/selection/types';
 
 /**
- * Participant-channel model re-resolution for the two local providers.
+ * Participant-channel model resolution for the two local providers.
  *
  * Lived in settingsStore.ts by historical accident: these functions read the
  * MODEL stores (modelStore / nativeModelStore) — readiness state — not
  * settings state. They sit beside the descriptors because the descriptors'
  * buildParticipantSessionConfig is their caller, and a descriptor must never
  * import settingsStore (settingsStore imports every descriptor; the reverse
- * edge is a cycle). Descriptor→model-store is established practice
- * (LocalNativeProviderConfig already imports useNativeModelStore).
+ * edge is a cycle — AND, concretely, settingsStore's own static import graph
+ * reaches audioStore -> ServiceFactory -> ModernAudioRecorder -> an audio
+ * worklet `?url` import that the sandboxed Vite test transform denies
+ * outright, so the edge would drag that failure into every test file that
+ * merely imports ProviderConfigFactory, which both local descriptors are
+ * reachable from). `selections` is threaded in as a parameter instead — the
+ * caller (a descriptor's buildParticipantSessionConfig) already has it
+ * on `slice` without needing settingsStore, since `slice` IS the live
+ * settings slice the caller was handed. Mirrors modelStore.resolve /
+ * nativeModelStore.resolve, which take `selections` as a parameter for the
+ * same reason.
+ *
+ * The participant direction (`target→source`) is a PEER of the speaker
+ * direction (`source→target`), not a reversal of it: it has its own entry in
+ * `selections` and resolves from its own pool via the model store's
+ * `resolve()`, exactly like the speaker direction does. Nothing here reverses
+ * a field or borrows the speaker's chosen models.
  */
 
 /** Fraction of navigator.deviceMemory used as the system RAM model budget. */
@@ -41,12 +56,15 @@ function readDebugNumber(key: string): number | null {
 export type ParticipantConfigSkipReason = 'no_asr' | 'memory_exceeded';
 
 export type ParticipantLocalInferenceResult =
-  | { success: true; config: LocalInferenceSessionConfig; status: ParticipantModelStatus }
+  | { success: true; translationAvailable: boolean; config: LocalInferenceSessionConfig }
   | { success: false; reason: ParticipantConfigSkipReason; detail: string };
 
 /**
- * Create a participant session config for local inference by swapping languages
- * and resolving reverse-direction models.
+ * Build the participant (other-speaker) config for the WASM local-inference
+ * provider. The participant direction is `target→source` — a peer of the
+ * speaker direction, not a reversal of it. It has its own entry in
+ * `selections` and resolves from its own pool, so nothing here reverses
+ * fields or borrows the speaker's memory.
  *
  * Returns `{ success: false }` when participant should be skipped — either
  * because no suitable ASR model exists, or because loading both main and
@@ -58,17 +76,15 @@ export type ParticipantLocalInferenceResult =
  *   localStorage.setItem('debug:device-memory', '4')     // simulate 4 GB RAM
  */
 export function createParticipantLocalInferenceConfig(
-  baseConfig: LocalInferenceSessionConfig
+  baseConfig: LocalInferenceSessionConfig,
+  selections: Selections
 ): ParticipantLocalInferenceResult {
-  const status = useModelStore.getState().getParticipantModelStatus(
-    baseConfig.sourceLanguage,
-    baseConfig.targetLanguage,
-    baseConfig.asrModelId,
-    baseConfig.translationModelId,
-  );
+  const revSrc = baseConfig.targetLanguage;
+  const revTgt = baseConfig.sourceLanguage;
+  const r = useModelStore.getState().resolve(revSrc, revTgt, selections);
 
-  if (!status.asrAvailable) {
-    return { success: false, reason: 'no_asr', detail: `No ASR model available for ${baseConfig.targetLanguage}` };
+  if (!r.asr) {
+    return { success: false, reason: 'no_asr', detail: `No ASR model available for ${revSrc}` };
   }
 
   // Memory budget check: estimate total model footprint for main + participant,
@@ -76,7 +92,7 @@ export function createParticipantLocalInferenceConfig(
   const deviceFeatures = useModelStore.getState().deviceFeatures;
   const allModelIds = [
     baseConfig.asrModelId, baseConfig.translationModelId, baseConfig.ttsModelId,
-    status.asrModelId, status.translationModelId,
+    r.asr.modelId, r.translation?.modelId,
   ];
   const { vramMb, ramMb } = estimateModelMemoryByDevice(allModelIds, deviceFeatures);
 
@@ -102,15 +118,15 @@ export function createParticipantLocalInferenceConfig(
 
   return {
     success: true,
+    translationAvailable: Boolean(r.translation),
     config: {
       ...baseConfig,
-      sourceLanguage: baseConfig.targetLanguage,
-      targetLanguage: baseConfig.sourceLanguage,
-      asrModelId: status.asrModelId!,
-      translationModelId: status.translationModelId ?? undefined,
+      sourceLanguage: revSrc,
+      targetLanguage: revTgt,
+      asrModelId: r.asr.modelId,
+      translationModelId: r.translation?.modelId,
       ttsModelId: undefined,
     },
-    status,
   };
 }
 
@@ -119,73 +135,37 @@ export type ParticipantLocalNativeResult =
   | { success: false; reason: 'no_asr'; detail: string };
 
 /**
- * Build a participant (other-speaker) session config for the native provider.
+ * Build the participant (other-speaker) config. The participant direction is
+ * `target→source` — a peer of the speaker direction, not a reversal of it. It
+ * has its own entry in `selections` and resolves from its own pool, so
+ * nothing here reverses fields or borrows the speaker's memory.
  *
- * The participant channel translates the OTHER speaker — who speaks the user's
- * TARGET language — so the direction is reversed. Reversing must re-resolve the
- * ASR and translation models, not just swap the language fields, because:
- *   - the native ASR model is language-conditioned; a source-specific ASR can't
- *     transcribe the reversed source language, and
- *   - directional Opus-MT translation models bake the direction into the model
- *     and ignore src/tgt (translate_backends.py), so the speaker-direction model
- *     would translate the wrong way.
- * Multilingual models (qwen*) handle both directions, so for them the
- * re-resolution is a no-op and the same model is reused (no extra memory).
- *
- * Model re-resolution reuses `autoSelectNative` — the same download-/hardware-
- * aware logic the settings UI uses — so an un-downloaded reverse model is never
- * selected; it falls back to a downloaded multilingual model, else to
- * transcription-only. TTS is dropped (participant channel is text-only).
- *
- * Returns `{ success: false, reason: 'no_asr' }` when no ASR model can serve the
- * reversed source language, so the caller can skip the participant channel.
+ * TTS is dropped: the participant channel is text-only.
  */
 export function createParticipantLocalNativeConfig(
-  baseConfig: LocalNativeSessionConfig
+  baseConfig: LocalNativeSessionConfig,
+  selections: Selections
 ): ParticipantLocalNativeResult {
-  const store = useNativeModelStore.getState();
-  const catalog = store.catalog;
-  const statuses = store.statuses;
-  const isDownloaded = (id: string | null) => id === null || statuses[id] === 'ready';
-  const isHardwareGated = (id: string | null) => id !== null && hardwareGated(catalog[id]);
-
-  // Reversed direction: the participant speaks the user's target language.
   const revSrc = baseConfig.targetLanguage;
   const revTgt = baseConfig.sourceLanguage;
+  const r = useNativeModelStore.getState().resolve(revSrc, revTgt, selections);
 
-  const current: NativeSelection = {
-    asrModel: baseConfig.asrModelId,
-    translationModel: baseConfig.translationModelId ?? '',
-    ttsModel: '',
-  };
-  const updates = autoSelectNative(
-    revSrc, revTgt, current, isDownloaded, store.recallModels(revSrc, revTgt), isHardwareGated, catalog,
-  );
-  const asrModel = updates?.asrModel ?? current.asrModel;
-  const translationModel = updates?.translationModel ?? current.translationModel;
-
-  if (!asrModel) {
+  if (!r.asr) {
     return { success: false, reason: 'no_asr', detail: `No ASR model available for ${revSrc}` };
   }
 
   return {
     success: true,
-    translationAvailable: !!translationModel,
+    translationAvailable: Boolean(r.translation),
     config: {
       ...baseConfig,
       sourceLanguage: revSrc,
       targetLanguage: revTgt,
-      asrModelId: asrModel,
-      translationModelId: translationModel || undefined,
-      // Variant pins are keyed by model id: keep the pin only when the reversed
-      // direction reuses the same model, else let the sidecar auto-select.
-      asrVariant: asrModel === baseConfig.asrModelId ? baseConfig.asrVariant : undefined,
-      translationVariant: translationModel === (baseConfig.translationModelId ?? '')
-        ? baseConfig.translationVariant : undefined,
+      asrModelId: r.asr.modelId,
+      asrVariant: r.asr.variant,
+      translationModelId: r.translation?.modelId,
+      translationVariant: r.translation?.variant,
       ttsModelId: undefined,
-      // TTS is dropped entirely for the participant channel (text-only) — drop
-      // its variant pin too, else a stale pin from the base config would leak
-      // into a config whose ttsModelId is unconditionally undefined.
       ttsVariant: undefined,
     },
   };

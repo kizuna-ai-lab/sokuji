@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, autoSelectNative, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -52,19 +52,6 @@ const TTS_CAT: Record<string, NativeModelInfo> = {
   'moss-tts-nano': M('moss-tts-nano', 'tts', ['en', 'ja'], 0, true, { clones: true, streaming: true, numSpeakers: 1 }),
   'csukuangfj/vits-piper-en_US-amy-low': M('csukuangfj/vits-piper-en_US-amy-low', 'tts', ['en'], 10, false, { clones: false, numSpeakers: 1 }),
   'csukuangfj/vits-piper-en_US-libritts_r-medium': M('csukuangfj/vits-piper-en_US-libritts_r-medium', 'tts', ['en'], 11, false, { clones: false, numSpeakers: 904 }),
-};
-
-/**
- * Combined fixture for autoSelectNative tests — needs both ASR and translate entries
- * so nativeTranslationCards(src, tgt, catalog) returns the expected cards.
- */
-const FIXTURE_FULL: Record<string, NativeModelInfo> = {
-  ...FIXTURE_ASR,
-  'qwen2.5-0.5b': M('qwen2.5-0.5b', 'translate', ['multi'], 1, true),
-  'qwen3-0.6b': M('qwen3-0.6b', 'translate', ['multi'], 2, true),
-  'translategemma-4b': M('translategemma-4b', 'translate', ['multi'], 6),
-  'opus-mt-zh-en': M('opus-mt-zh-en', 'translate', ['zh', 'en'], 21),
-  'opus-mt-en-zh': M('opus-mt-en-zh', 'translate', ['en', 'zh'], 22),
 };
 
 describe('nativeCatalog', () => {
@@ -154,125 +141,6 @@ describe('nativeCatalog', () => {
     // for zh: all fixture models except granite are compatible; granite (en/fr only) is incompatible
     expect(incompatibleNativeAsr('zh', FIXTURE_ASR).map((m) => m.id)).toContain('granite');
     expect(nativeAsrIncompatibleCards('zh', FIXTURE_ASR).map((c) => c.selectId)).toContain('granite');
-  });
-
-  describe('autoSelectNative', () => {
-    const cur = (over = {}) => ({ asrModel: 'sense-voice', translationModel: 'qwen2.5-0.5b', ttsModel: '', ...over });
-    const downloaded = (...ids: string[]) => (id: string | null) => id === null || ids.includes(id);
-    const none = () => false;
-
-    it('keeps a valid, downloaded selection (no change)', () => {
-      expect(autoSelectNative('zh', 'en', cur(), downloaded('sense-voice', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_FULL)).toBeNull();
-    });
-
-    it('drops an ASR model that no longer supports the source language', () => {
-      // sense-voice does not support German → switch to the best downloaded compatible (whisper-base)
-      const r = autoSelectNative('de', 'en', cur({ asrModel: 'sense-voice' }), downloaded('whisper-base', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_FULL);
-      expect(r).toMatchObject({ asrModel: 'whisper-base' });
-    });
-
-    it('clears ASR to "" when nothing compatible is downloaded (parity with local inference)', () => {
-      const r = autoSelectNative('de', 'en', cur({ asrModel: 'sense-voice' }), none,
-        undefined, undefined, FIXTURE_FULL);
-      expect(r?.asrModel).toBe('');
-    });
-
-    it('falls back from a not-downloaded translation model to whatever is downloaded for this pair', () => {
-      // user picked translategemma but only qwen2.5 is cached → revert to Qwen 2.5
-      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice', translationModel: 'translategemma-4b' }), downloaded('sense-voice', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_FULL);
-      expect(r).toMatchObject({ translationModel: 'qwen2.5-0.5b' });
-    });
-
-    it('resets a stale cross-language TTS voice to Auto', () => {
-      const r = autoSelectNative('en', 'de', cur({ asrModel: 'whisper-base', ttsModel: 'csukuangfj/vits-piper-en_US-amy-low' }), downloaded('whisper-base', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_FULL);
-      expect(r?.ttsModel).toBe('');
-    });
-
-    it('migrates a legacy "off" TTS choice to Auto', () => {
-      const r = autoSelectNative('zh', 'en', cur({ ttsModel: 'off' }), downloaded('sense-voice', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_FULL);
-      expect(r?.ttsModel).toBe('');
-    });
-
-    it('applies recalled history when its models are downloaded for this pair', () => {
-      // history for zh→en prefers whisper-small; it is downloaded → recall overrides the default
-      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice' }), downloaded('whisper-small', 'qwen2.5-0.5b'),
-        { asrModel: 'whisper-small', translationModel: 'qwen2.5-0.5b', ttsModel: '' }, undefined, FIXTURE_FULL);
-      expect(r).toMatchObject({ asrModel: 'whisper-small' });
-    });
-
-    it('ignores recalled history whose model is not downloaded', () => {
-      // recall wants whisper-small but only sense-voice is cached → keep sense-voice
-      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'sense-voice' }), downloaded('sense-voice', 'qwen2.5-0.5b'),
-        { asrModel: 'whisper-small', translationModel: 'qwen2.5-0.5b', ttsModel: '' }, undefined, FIXTURE_FULL);
-      expect(r?.asrModel ?? 'sense-voice').toBe('sense-voice');
-    });
-
-    it('clears translation to "" when nothing is downloaded for this pair', () => {
-      // Only the ASR model is cached. The selected translategemma is absent and no
-      // other translation card is downloaded → '' (parity with the ASR stage and web
-      // local inference); never fall back to the un-downloaded recommended card.
-      const r = autoSelectNative('zh', 'en', cur({ translationModel: 'translategemma-4b' }), downloaded('sense-voice'),
-        undefined, undefined, FIXTURE_FULL);
-      expect(r?.translationModel).toBe('');
-    });
-
-    it('clears an un-downloaded translation selection even when it IS the recommended card', () => {
-      // Fresh install shape: settings default to qwen2.5-0.5b but nothing is cached →
-      // the selection must be cleared, not left pointing at an un-downloaded card.
-      const r = autoSelectNative('zh', 'en', cur(), downloaded('sense-voice'),
-        undefined, undefined, FIXTURE_FULL);
-      expect(r?.translationModel).toBe('');
-    });
-
-    // TTS entries for the download-state tests (FIXTURE_FULL has no TTS models).
-    const FIXTURE_WITH_TTS: Record<string, NativeModelInfo> = {
-      ...FIXTURE_FULL,
-      'moss-tts-nano': M('moss-tts-nano', 'tts', ['en', 'ja'], 0, true),
-    };
-
-    it('resets a valid but un-downloaded TTS voice to Auto', () => {
-      // moss supports the target (en) but is not cached → reset to '' (Auto).
-      const r = autoSelectNative('zh', 'en', cur({ ttsModel: 'moss-tts-nano' }), downloaded('sense-voice', 'qwen2.5-0.5b'),
-        undefined, undefined, FIXTURE_WITH_TTS);
-      expect(r?.ttsModel).toBe('');
-    });
-
-    it('ignores a recalled TTS voice that is not downloaded', () => {
-      // History remembers moss for zh→en, but it has since been deleted → must not
-      // be re-applied; the selection stays Auto ('').
-      const r = autoSelectNative('zh', 'en', cur(), downloaded('sense-voice', 'qwen2.5-0.5b'),
-        { asrModel: 'sense-voice', translationModel: 'qwen2.5-0.5b', ttsModel: 'moss-tts-nano' }, undefined, FIXTURE_WITH_TTS);
-      expect(r?.ttsModel ?? '').toBe('');
-    });
-
-    it('keeps a downloaded TTS voice for the target language', () => {
-      const r = autoSelectNative('zh', 'en', cur({ ttsModel: 'moss-tts-nano' }),
-        downloaded('sense-voice', 'qwen2.5-0.5b', 'moss-tts-nano'),
-        undefined, undefined, FIXTURE_WITH_TTS);
-      expect(r).toBeNull();
-    });
-
-    const gatesCohere = (id: string | null) => id === 'cohere-transcribe-03-2026';
-
-    it('never auto-selects a downloaded but hardware-gated ASR (GPU-only on a CPU box)', () => {
-      // cohere (GPU-only, sorted first) + sense-voice both downloaded, but cohere is gated
-      // here → must pick sense-voice, never the unrunnable cohere.
-      const r = autoSelectNative('zh', 'en', cur({ asrModel: '' }),
-        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen2.5-0.5b'), null, gatesCohere, FIXTURE_FULL);
-      expect(r?.asrModel).toBe('sense-voice');
-    });
-
-    it('reconciles away a remembered ASR that is now hardware-gated', () => {
-      // the current selection IS the GPU-only cohere but this machine can't run it → replace it
-      const r = autoSelectNative('zh', 'en', cur({ asrModel: 'cohere-transcribe-03-2026' }),
-        downloaded('cohere-transcribe-03-2026', 'sense-voice', 'qwen2.5-0.5b'), null, gatesCohere, FIXTURE_FULL);
-      expect(r?.asrModel).toBe('sense-voice');
-    });
   });
 
   it('maps hardware tiers to display labels', () => {

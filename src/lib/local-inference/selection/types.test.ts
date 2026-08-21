@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { directionKey, splitDirection, emptyDirection } from './types';
 
 describe('directionKey', () => {
-  it('joins with U+2192, matching the legacy modelPreferences key format', () => {
+  it('joins with U+2192, matching the legacy per-direction preference key format', () => {
     expect(directionKey('ja', 'en')).toBe('ja→en');
   });
 

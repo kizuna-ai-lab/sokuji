@@ -21,7 +21,6 @@ import {
   statusReposFor,
   buildBackendTooltipRows,
   type NativeModelCardSpec,
-  type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { TierIcon } from './TierIcon';
@@ -447,10 +446,9 @@ const NativeModelCard: React.FC<{
  * groups of selectable + downloadable cards, matching LOCAL_INFERENCE's
  * ModelManagementSection. Models live in the sidecar's HF cache.
  *
- * Auto-select + history parity: an effect calls nativeModelStore.autoSelect on
- * status/language change, which applies the catalog reconciler + per-direction
- * remembered history (so a src↔tgt swap recalls the reverse pair). Selecting a
- * card also records the choice for that direction.
+ * Selecting a card writes the flat settings field directly; auto-select
+ * reconciliation for the language pair is owned by the global gate
+ * (validateApiKey -> nativeModelStore.ensureSelectionReady), not this panel.
  */
 export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessionActive = false }) => {
   const { t } = useTranslation();
@@ -467,7 +465,6 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const refresh = useNativeModelStore((s) => s.refresh);
   const setStatusRepos = useNativeModelStore((s) => s.setStatusRepos);
   const refreshCatalog = useNativeModelStore((s) => s.refreshCatalog);
-  const rememberModels = useNativeModelStore((s) => s.rememberModels);
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
 
   const [showAllAsr, setShowAllAsr] = useState(false);
@@ -573,17 +570,11 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const ttsSelected = (selectId: string) =>
     settings.ttsModel === selectId || (settings.ttsModel === '' && selectId === pickNativeTts(settings.targetLanguage, catalog));
 
-  // Explicit user selection: write the choice and remember the full selection for
-  // this direction (mirrors ModelManagementSection). Auto-select reconciliation is
+  // Explicit user selection: write the choice. Auto-select reconciliation is
   // owned by the global gate (validateApiKey / Task 10), not this panel.
   const selectCard = (field: Stage, selectId: string) => {
     const updates: Partial<LocalNativeSettings> = { [field]: selectId };
     update(updates);
-    const sel: NativeSelection = {
-      asrModel: settings.asrModel, translationModel: settings.translationModel, ttsModel: settings.ttsModel,
-      [field]: selectId,
-    };
-    rememberModels(settings.sourceLanguage, settings.targetLanguage, sel);
   };
 
   // Pick the download quant/variant for a card (asr/translation/tts alike) — a

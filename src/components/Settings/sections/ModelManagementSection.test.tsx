@@ -44,7 +44,6 @@ const mockStoreState = {
   cancelDownload: vi.fn(),
   deleteModel: vi.fn(),
   deleteAllModels: vi.fn(),
-  rememberModels: vi.fn(),
   // Real resolver + real WASM candidate projection, fed by this file's own
   // mutable mockStatuses/mockWebgpuAvailable — not a stub, so the component's
   // selected-state derivation is exercised for real (deviceReady gate included).
@@ -75,7 +74,6 @@ vi.mock('../../../stores/modelStore', () => ({
 
 beforeEach(() => {
   mockUpdate.mockReset();
-  mockStoreState.rememberModels.mockReset();
   mockWebgpuAvailable = true;
   Object.assign(mockSettings, defaultSettings, { selections: {} });
   for (const k of Object.keys(mockStatuses)) delete mockStatuses[k];

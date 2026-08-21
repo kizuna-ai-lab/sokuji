@@ -214,15 +214,18 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Read model download statuses reactively so participant status updates when models are downloaded
   const modelStatuses = useModelStore(state => state.modelStatuses);
-  const participantModelStatus = useMemo(() => {
+  // The participant direction (target→source) is a peer of the speaker
+  // direction, not a reversal of it: resolve it directly via the same
+  // resolve() the session-config builder uses, against its own selections
+  // entry — never derived from the speaker's chosen models.
+  const participantResolved = useMemo(() => {
     if (provider !== Provider.LOCAL_INFERENCE) return null;
-    return useModelStore.getState().getParticipantModelStatus(
-      localInferenceSettings.sourceLanguage,
+    return useModelStore.getState().resolve(
       localInferenceSettings.targetLanguage,
-      localInferenceSettings.asrModel,
-      localInferenceSettings.translationModel || undefined,
+      localInferenceSettings.sourceLanguage,
+      localInferenceSettings.selections,
     );
-  }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, localInferenceSettings.asrModel, localInferenceSettings.translationModel, modelStatuses]);
+  }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, localInferenceSettings.selections, modelStatuses]);
 
   const deviceFeatures = useModelStore(state => state.deviceFeatures);
   const memoryEstimate = useMemo(() => {
@@ -237,12 +240,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     const effectiveTtsId = ttsEntry?.isCloudModel ? undefined : ttsId;
 
     const mainIds = [localInferenceSettings.asrModel, translationId, effectiveTtsId];
-    const participantIds = isParticipantChannelInScope && participantModelStatus
-      ? [participantModelStatus.asrModelId, participantModelStatus.translationModelId]
+    const participantIds = isParticipantChannelInScope && participantResolved
+      ? [participantResolved.asr?.modelId, participantResolved.translation?.modelId]
       : [];
     return estimateModelMemoryByDevice([...mainIds, ...participantIds], deviceFeatures);
   }, [
-    provider, deviceFeatures, modelStatuses, isParticipantChannelInScope, participantModelStatus,
+    provider, deviceFeatures, modelStatuses, isParticipantChannelInScope, participantResolved,
     localInferenceSettings.asrModel, localInferenceSettings.translationModel, localInferenceSettings.ttsModel,
     localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage,
   ]);
@@ -619,7 +622,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 );
               })()}
             </div>
-            {isParticipantChannelInScope && participantModelStatus && (
+            {isParticipantChannelInScope && participantResolved && (
               <div className="participant-inline">
                 <div className="participant-header">
                   <span className="participant-label">{t('providers.local_inference.participant', 'Other')}</span>
@@ -633,19 +636,16 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 <div className="model-inline">
                   <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
                     <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-                    {participantModelStatus.asrAvailable ? (
-                      <span className="model-chip-value model-ok">
-                        {participantModelStatus.asrModelId}
-                        {participantModelStatus.asrFallback && ` ↻`}
-                      </span>
+                    {participantResolved.asr ? (
+                      <span className="model-chip-value model-ok">{participantResolved.asr.modelId}</span>
                     ) : (
                       <span className="model-chip-value model-warn">✗</span>
                     )}
                   </button>
                   <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
                     <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
-                    {participantModelStatus.translationAvailable ? (
-                      <span className="model-chip-value model-ok">{participantModelStatus.translationModelId}</span>
+                    {participantResolved.translation ? (
+                      <span className="model-chip-value model-ok">{participantResolved.translation.modelId}</span>
                     ) : (
                       <span className="model-chip-value model-warn">✗</span>
                     )}

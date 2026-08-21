@@ -19,8 +19,6 @@ interface NativeModelStore {
   progress: Record<string, { downloaded: number; total: number }>;
   sizes: Record<string, number>;
   errors: Record<string, string>;
-  /** Remembered selection per language pair, keyed `${src}→${tgt}` (mirrors modelStore.modelPreferences). */
-  modelPreferences: Record<string, NativeSelection>;
   /** Per-machine model catalog from the sidecar (languages, recommended, tier availability). */
   catalog: Record<string, NativeModelInfo>;
   /** Sidecar lifecycle. Drives every native UI surface that depends on the catalog. */
@@ -90,10 +88,6 @@ interface NativeModelStore {
    *  `read` is a thunk, called only once the sidecar is warm — see
    *  NativeReadinessInput for why a snapshot would be wrong. */
   ensureSelectionReady: (read: () => NativeReadinessInput) => Promise<NativeReadinessResult>;
-  /** Persist the chosen models for a language pair/direction. */
-  rememberModels: (src: string, tgt: string, sel: NativeSelection) => void;
-  /** The remembered selection for a direction (raw; readiness is re-checked against the resolver). */
-  recallModels: (src: string, tgt: string) => NativeSelection | null;
   /**
    * Resolve one direction against the sidecar catalog and current download
    * statuses. Pure: `selections` comes in as a parameter rather than being
@@ -228,7 +222,6 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   errors: {},
   catalog: {},
   sidecarStatus: 'idle',
-  modelPreferences: {},
   statusRepos: {},
   asrLoading: false,
   asrResolved: null,
@@ -564,12 +557,6 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       : 'models-missing';
     return { ready, reason, corrections: finalCorrections };
   },
-
-  rememberModels: (src, tgt, sel) => {
-    set((s) => ({ modelPreferences: { ...s.modelPreferences, [`${src}→${tgt}`]: sel } }));
-  },
-
-  recallModels: (src, tgt) => get().modelPreferences[`${src}→${tgt}`] ?? null,
 
   resolve: (src, tgt, selections) => {
     const { catalog, statuses } = get();
