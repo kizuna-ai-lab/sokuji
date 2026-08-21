@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, Users } from 'lucide-react';
+import ToolbarTooltip from '../Tooltip/ToolbarTooltip';
 import type { DisplayMode } from '../../stores/settingsStore';
 import './DisplayModeButton.scss';
 
@@ -49,16 +50,17 @@ const DisplayModeButton: React.FC<DisplayModeButtonProps> = ({ scope, value, onC
   const Icon = scope === 'speaker' ? User : Users;
 
   return (
-    <button
-      type="button"
-      className="display-mode-btn"
-      onClick={handleClick}
-      title={title}
-      aria-label={ariaLabel}
-    >
-      <Icon size={14} />
-      <span className="display-mode-label">{modeLabel}</span>
-    </button>
+    <ToolbarTooltip label={title}>
+      <button
+        type="button"
+        className="display-mode-btn"
+        onClick={handleClick}
+        aria-label={ariaLabel}
+      >
+        <Icon size={14} />
+        <span className="display-mode-label">{modeLabel}</span>
+      </button>
+    </ToolbarTooltip>
   );
 };
 
