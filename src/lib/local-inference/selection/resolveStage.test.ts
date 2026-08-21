@@ -60,3 +60,77 @@ describe('resolveStage — explicit selection', () => {
     expect(r.resolved?.modelId).toBe('whisper-base');
   });
 });
+
+const auto: Selections = {};
+
+describe('resolveStage — auto', () => {
+  it("resolves '' by ranking the pool", () => {
+    const r = resolveStage('ja→en', 'asr', auto, src([C('a'), C('b', { recommended: true })]));
+    expect(r.resolved).toEqual({ modelId: 'b', variant: undefined, source: 'auto' });
+  });
+
+  it('treats an absent direction the same as an all-auto one', () => {
+    const explicitlyEmpty: Selections = {
+      'ja→en': { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: '' } },
+    };
+    const pool = [C('a'), C('b', { recommended: true })];
+    expect(resolveStage('ja→en', 'asr', auto, src(pool)).resolved)
+      .toEqual(resolveStage('ja→en', 'asr', explicitlyEmpty, src(pool)).resolved);
+  });
+
+  it('ranks recommended first', () => {
+    const r = resolveStage('ja→en', 'asr', auto,
+      src([C('plain', { sortOrder: 0 }), C('star', { recommended: true, sortOrder: 9 })]));
+    expect(r.resolved?.modelId).toBe('star');
+  });
+
+  it('breaks a recommended tie by sortOrder', () => {
+    const r = resolveStage('ja→en', 'asr', auto,
+      src([C('late', { recommended: true, sortOrder: 5 }), C('early', { recommended: true, sortOrder: 1 })]));
+    expect(r.resolved?.modelId).toBe('early');
+  });
+
+  it('breaks a sortOrder tie by smaller size', () => {
+    const r = resolveStage('ja→en', 'asr', auto,
+      src([C('big', { sizeBytes: 900 }), C('small', { sizeBytes: 100 })]));
+    expect(r.resolved?.modelId).toBe('small');
+  });
+
+  it('sorts unknown size (0) last among ties rather than first', () => {
+    const r = resolveStage('ja→en', 'asr', auto,
+      src([C('unknown', { sizeBytes: 0 }), C('known', { sizeBytes: 900 })]));
+    expect(r.resolved?.modelId).toBe('known');
+  });
+
+  it('never auto-picks an un-ready candidate', () => {
+    const r = resolveStage('ja→en', 'asr', auto,
+      src([C('down', { ready: false, recommended: true }), C('up')]));
+    expect(r.resolved?.modelId).toBe('up');
+  });
+
+  it('never auto-picks a hardware-gated candidate', () => {
+    const r = resolveStage('ja→en', 'asr', auto,
+      src([C('gpu', { hardwareOk: false, recommended: true }), C('cpu')]));
+    expect(r.resolved?.modelId).toBe('cpu');
+  });
+
+  it('never auto-picks a candidate marked explicit-only', () => {
+    const r = resolveStage('ja→en', 'translation', auto,
+      src([C('ast-model', { autoEligible: false, recommended: true }), C('mt')]));
+    expect(r.resolved?.modelId).toBe('mt');
+  });
+
+  it('still lets an explicit selection reach an explicit-only candidate', () => {
+    const selections: Selections = {
+      'ja→en': { asr: { modelId: '' }, translation: { modelId: 'ast-model' }, tts: { modelId: '' } },
+    };
+    const r = resolveStage('ja→en', 'translation', selections,
+      src([C('ast-model', { autoEligible: false }), C('mt')]));
+    expect(r.resolved).toEqual({ modelId: 'ast-model', variant: undefined, source: 'explicit' });
+  });
+
+  it('returns null when nothing is usable', () => {
+    const r = resolveStage('ja→en', 'asr', auto, src([C('down', { ready: false })]));
+    expect(r.resolved).toBeNull();
+  });
+});
