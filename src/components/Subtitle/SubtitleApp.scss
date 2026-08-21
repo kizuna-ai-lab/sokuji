@@ -6,6 +6,9 @@
   width: 100vw;
   border-radius: 8px;
   overflow: hidden;
+  // Defined on this element's inline style by SubtitleApp.tsx (the user's
+  // source-text colour). Only reaches descendants that don't set their own
+  // colour — the idle body, PTT hint and bar all do.
   color: var(--subtitle-source-color, #FFFFFF);
   // Positioning context for the SubtitleBar, which floats above the
   // subtitle area so the bar's footprint isn't permanently reserved.
