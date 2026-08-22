@@ -106,4 +106,23 @@ describe('EngineSurface / EnginePage', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /ASR/ })[0]);
     for (const r of screen.getAllByRole('radio')) expect(r).toBeDisabled();
   });
+
+  it('returning from a pushed Library does not re-flash the deep-linked slot', () => {
+    // Pushing unmounts the slot rows; if the flash signal were the raw
+    // initialSlot prop, remounting on pop would re-run every row's flash
+    // effect against the still-truthy object and flash the slot again.
+    render(
+      <EngineSurface adapter={adapter()} initialSlot={{ dir: 'ja→en', stage: 'asr' }}
+        renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>}
+        renderStorage={() => <div data-testid="storage" />} />);
+
+    // The deep-link itself flashes the target slot…
+    expect(document.querySelector('.engine-slot.highlight')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Browse library/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+    // …but coming back from the Library must not flash it again.
+    expect(document.querySelector('.engine-slot.highlight')).not.toBeInTheDocument();
+  });
 });

@@ -61,8 +61,14 @@
     color: inherit; text-align: left; border-radius: inherit;
   }
   &__chevron { display: flex; align-items: center; color: vars.$text-muted; }
-  &__label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9aa0a6; min-width: 42px; }
-  &__value { font-size: 13px; font-family: ui-monospace, monospace; }
+  // Full stage names ("Speech Recognition (ASR)"), matching the standalone
+  // sections' group titles — not the abbreviated ASR/MT/TTS badges.
+  &__label { font-size: 12px; color: #9aa0a6; white-space: nowrap; }
+  &__value {
+    font-size: 13px; font-family: ui-monospace, monospace;
+    margin-left: auto; text-align: right;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   &__value--missing { color: vars.$color-error; }
   &__body {
     display: flex; flex-direction: column; gap: 6px;

@@ -102,7 +102,7 @@ describe('SimpleSettings — engine host (Task 9)', () => {
     render(<SimpleSettings />);
     expect(screen.queryByTestId('account-section')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Translation engine' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Models' }));
 
     expect(screen.getByTestId('account-section')).not.toBeNull();
   });

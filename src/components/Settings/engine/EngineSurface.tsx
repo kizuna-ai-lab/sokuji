@@ -21,6 +21,12 @@ export const EngineSurface: React.FC<{
   const { t } = useTranslation();
   const [expandedSlot, setExpandedSlot] = useState<SlotId | null>(initialSlot);
   const [pushed, setPushed] = useState<Pushed>(null);
+  // The flash signal is a CONSUMED copy of initialSlot, not the prop itself:
+  // pushing Library/Storage unmounts the slot rows, so a still-truthy prop
+  // handed straight down would re-run SlotRow's flash effect on every pop —
+  // the "coming back from the Library flashes the slot again" bug. Pushing a
+  // page clears this copy; only a fresh deep-link object re-arms it.
+  const [flashSlot, setFlashSlot] = useState<SlotId | null>(initialSlot);
 
   // Respond to a NEW deep-link target, not just the initial mount value — a
   // host that re-fires the same (dir, stage) slot (e.g. the same chip tapped
@@ -32,9 +38,15 @@ export const EngineSurface: React.FC<{
   useEffect(() => {
     if (initialSlot) {
       setExpandedSlot(initialSlot);
+      setFlashSlot(initialSlot);
       setPushed(null);
     }
   }, [initialSlot]);
+
+  const push = (page: Pushed) => {
+    setFlashSlot(null);
+    setPushed(page);
+  };
 
   const toggle = (slot: SlotId) =>
     setExpandedSlot((cur) =>
@@ -68,12 +80,12 @@ export const EngineSurface: React.FC<{
     <div className="config-section engine-surface">
       <h3>
         <Settings2 size={18} />
-        <span>{t('engineUi.titleEngine', 'Translation engine')}</span>
+        <span>{t('models.management', 'Models')}</span>
       </h3>
       <EnginePage adapter={adapter} expandedSlot={expandedSlot} onToggleSlot={toggle}
-        flashSlot={initialSlot}
-        onBrowse={(slot) => setPushed({ page: 'library', slot })}
-        onStorage={() => setPushed({ page: 'storage' })} />
+        flashSlot={flashSlot}
+        onBrowse={(slot) => push({ page: 'library', slot })}
+        onStorage={() => push({ page: 'storage' })} />
     </div>
   );
 };

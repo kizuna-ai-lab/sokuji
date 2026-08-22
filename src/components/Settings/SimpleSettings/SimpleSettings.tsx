@@ -125,7 +125,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
 
           <button type="button" className="engine-back-row" onClick={() => setEngineOpen(null)}>
             <ArrowLeft size={14} />
-            {t('engineUi.titleEngine', 'Translation engine')}
+            {t('models.management', 'Models')}
           </button>
 
           {isNative ? (

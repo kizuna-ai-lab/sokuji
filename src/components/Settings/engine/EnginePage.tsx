@@ -5,12 +5,21 @@ import type { EngineAdapter, SlotId } from './EngineTypes';
 import { SlotRow } from './SlotRow';
 import './Engine.scss';
 
-/** Localized stage labels (ASR / MT / TTS) — shared by the slot rows here and
- *  the pushed Library title in EngineSurface, so the two can't drift. */
+/** Short stage labels (ASR / MT / TTS) — used where space is tight: the
+ *  pushed Library title in EngineSurface ("Library · ASR"). */
 export const STAGE_LABEL_KEY: Record<string, [string, string]> = {
   asr: ['providers.local_inference.modelAsr', 'ASR'],
   translation: ['providers.local_inference.modelTranslation', 'MT'],
   tts: ['providers.local_inference.modelTts', 'TTS'],
+};
+
+/** Full stage names for the slot rows — the same keys the standalone model
+ *  sections title their groups with ("Speech Recognition (ASR)", …), so the
+ *  Engine page and the Library speak the same words for a stage. */
+export const STAGE_FULL_LABEL_KEY: Record<string, [string, string]> = {
+  asr: ['models.asrModels', 'Speech Recognition (ASR)'],
+  translation: ['models.translationModels', 'Translation'],
+  tts: ['models.ttsModels', 'Speech Synthesis (TTS)'],
 };
 
 /** The Engine overview: both directions, three slots each, nothing else. */
@@ -42,7 +51,7 @@ export const EnginePage: React.FC<{
             const slot: SlotId = { dir, stage };
             const resolved = adapter.resolved(slot);
             return (
-              <SlotRow key={stage} slot={slot} label={t(STAGE_LABEL_KEY[stage][0], STAGE_LABEL_KEY[stage][1])}
+              <SlotRow key={stage} slot={slot} label={t(STAGE_FULL_LABEL_KEY[stage][0], STAGE_FULL_LABEL_KEY[stage][1])}
                 resolved={resolved} displayName={adapter.displayName}
                 expanded={isOpen(slot)} onToggle={() => onToggleSlot(slot)} flashSlot={flashSlot}>
                 {adapter.stageExtras?.(slot)}
