@@ -268,7 +268,14 @@
     "sonioxVoicePreviewQuotaError": "Preview failed — Soniox rate limit or quota reached",
     "sonioxVoicePreviewTimeout": "Preview timed out — try again",
     "sonioxRegion": "Region",
-    "sonioxRegionTooltip": "Soniox runs a separate deployment per region, each with its own API key. Your audio is processed and stored in the region you pick. Applies from the next session."
+    "sonioxRegionTooltip": "Soniox runs a separate deployment per region, each with its own API key. Your audio is processed and stored in the region you pick. Applies from the next session.",
+    "langSentence": {
+      "iSpeak": "I speak",
+      "iRead": "I read",
+      "theyHear": "they hear",
+      "theySpeak": "they speak",
+      "mirror": "They speak {{their}} → I read {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",

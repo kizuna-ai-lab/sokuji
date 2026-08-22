@@ -1187,6 +1187,12 @@
   }
 }
 
+.language-mirror-line {
+  margin-top: 6px;
+  font-size: 12px;
+  color: vars.$text-secondary;
+}
+
 .language-swap-btn {
   background: none;
   border: 1px solid vars.$border-default;

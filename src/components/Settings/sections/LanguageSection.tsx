@@ -483,6 +483,30 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     return missing;
   }, [provider, modelInitialized, modelStatuses, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, t]);
 
+  // S0: local providers narrate the language pair as a sentence whose verbs
+  // follow the current audio mode — "I speak → they hear" (speaker/both) or
+  // "I read ← they speak" (participant). The two selectors underneath never
+  // change meaning: first is always my language (sourceLanguage), second is
+  // always their language (targetLanguage) — only the verbs naming them do.
+  // Scoped to LOCAL_INFERENCE/LOCAL_NATIVE only: every other provider's mode
+  // semantics differ, so it keeps today's plain "My Language"/"Other's
+  // Language" labels.
+  const sentenceLabels = provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE;
+  const myLanguageLabel = sentenceLabels
+    ? (mode === 'participant' ? t('settings.langSentence.iRead', 'I read') : t('settings.langSentence.iSpeak', 'I speak'))
+    : t('simpleConfig.yourLanguage');
+  const theirLanguageLabel = sentenceLabels
+    ? (mode === 'participant' ? t('settings.langSentence.theySpeak', 'they speak') : t('settings.langSentence.theyHear', 'they hear'))
+    : t('simpleConfig.targetLanguage');
+
+  // "Both" mode runs the speaker leg above plus a mirrored participant leg;
+  // the mirror line states that second leg as plain text derived from the
+  // same two fields — never a third pair of controls.
+  const sourceLanguageName = providerConfig.languages.find(l => l.value === currentProviderSettings.sourceLanguage)?.name
+    ?? currentProviderSettings.sourceLanguage;
+  const targetLanguageName = targetLanguages.find(l => l.value === currentProviderSettings.targetLanguage)?.name
+    ?? currentProviderSettings.targetLanguage;
+
   return (
     <>
       {/* Interface Language Section */}
@@ -540,7 +564,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
           <div className="language-pair-row">
             <div className="language-select-group">
-              <label>{t('simpleConfig.yourLanguage')}</label>
+              <label>{myLanguageLabel}</label>
               <select
                 value={currentProviderSettings.sourceLanguage || 'auto'}
                 onChange={(e) => updateSourceLanguage(e.target.value)}
@@ -577,7 +601,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
 
             <div className="language-select-group">
-              <label>{t('simpleConfig.targetLanguage')}</label>
+              <label>{theirLanguageLabel}</label>
               <select
                 value={currentProviderSettings.targetLanguage || 'en'}
                 onChange={(e) => updateTargetLanguage(e.target.value)}
@@ -592,6 +616,15 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               </select>
             </div>
           </div>
+
+          {sentenceLabels && mode === 'both' && (
+            <div className="language-mirror-line" data-testid="language-mirror-line">
+              {t('settings.langSentence.mirror', 'They speak {{their}} → I read {{mine}}', {
+                their: targetLanguageName,
+                mine: sourceLanguageName,
+              })}
+            </div>
+          )}
 
           {showTranslateParticipantWarning && (
             <div className="language-warning">
