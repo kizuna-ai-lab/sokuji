@@ -37,13 +37,6 @@ export interface DownloadState {
   isImport?: boolean;
 }
 
-/** Result of {@link ModelStoreState.ensureSelectionReady}: corrected model IDs, or null.
- *  Kept as the interim bridge to `LocalInferenceSettings`'s flat `asrModel`/
- *  `translationModel`/`ttsModel` fields — `buildSessionConfig` still reads
- *  those directly rather than the resolver, so a T15 task rewires it to read
- *  `resolve()` output and this bridge goes away. */
-export type ModelCorrections = { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
-
 interface ModelStoreState {
   /** Status of each model by ID */
   modelStatuses: Record<string, ModelStatus>;
@@ -130,7 +123,7 @@ interface ModelStoreState {
    * point for settingsStore.validateApiKey's LOCAL_INFERENCE arm, and it owns
    * its own reads), resolves BOTH the speaker (src→tgt) and participant
    * (tgt→src) directions via {@link resolve}, and applies every prune either
-   * resolution surfaced — WITHOUT persisting corrections.
+   * resolution surfaced.
    *
    * The session-gate table this implements is deliberately asymmetric:
    *   - missing speaker ASR or translation → blocks (`ready: false`) — a
@@ -142,14 +135,11 @@ interface ModelStoreState {
    *
    * `notes` carries every stage note from both directions (blocking or not)
    * for the UI to render instead of the generic `localInferenceModelsRequired`
-   * string. `corrections` is kept only as the interim bridge to the flat
-   * `LocalInferenceSettings.asrModel`/`.translationModel`/`.ttsModel` fields
-   * that `buildSessionConfig` still reads directly; it reflects the SPEAKER
-   * direction only (there is no flat-field equivalent for the participant
-   * direction to correct). The caller applies `corrections` to its own
-   * settings slice.
+   * string. There is nothing left to write back to settings: `resolve()`
+   * output IS the answer, and every reader (buildSessionConfig, the Models UI)
+   * calls `resolve()` itself instead of reading a corrected flat field.
    */
-  ensureSelectionReady: () => Promise<{ ready: boolean; notes: ResolutionNote[]; corrections: ModelCorrections }>;
+  ensureSelectionReady: () => Promise<{ ready: boolean; notes: ResolutionNote[] }>;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -510,14 +500,11 @@ export const useModelStore = create<ModelStoreState>()(
       // against an empty '→' direction — never ready, but never throws.
       let sourceLanguage = '';
       let targetLanguage = '';
-      let asrModel = '';
-      let translationModel = '';
-      let ttsModel = '';
       let selections: Selections = {};
       try {
         const { useSettingsStore } = await import('./settingsStore');
         const localInference = useSettingsStore.getState().localInference;
-        ({ sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel, selections } = localInference);
+        ({ sourceLanguage, targetLanguage, selections } = localInference);
       } catch { /* settings store unavailable — resolve with no explicit selections */ }
 
       // Resolve BOTH directions against the WASM manifest + current download
@@ -533,18 +520,6 @@ export const useModelStore = create<ModelStoreState>()(
         await get().applyPrunes(prunes);
       }
 
-      // Surface the SPEAKER direction's resolved ids as corrections whenever
-      // they differ from the flat fields on settings — same shape the old
-      // autoSelectModels produced, now driven by the resolver instead of a
-      // bespoke walk. There is no flat-field equivalent for the participant
-      // direction, so it is never a source of corrections.
-      const corrections: { asrModel?: string; translationModel?: string; ttsModel?: string } = {};
-      if (speaker.asr && speaker.asr.modelId !== asrModel) corrections.asrModel = speaker.asr.modelId;
-      if (speaker.translation && speaker.translation.modelId !== translationModel) {
-        corrections.translationModel = speaker.translation.modelId;
-      }
-      if (speaker.tts && speaker.tts.modelId !== ttsModel) corrections.ttsModel = speaker.tts.modelId;
-
       // The session-gate table (deliberately asymmetric — see the doc
       // comment on the interface member): only the speaker's ASR and
       // translation stages can block Start. Speaker TTS and the entire
@@ -553,11 +528,7 @@ export const useModelStore = create<ModelStoreState>()(
       const notes = [...speaker.notes, ...participant.notes];
       set({ lastResolutionNotes: notes });
 
-      return {
-        ready,
-        notes,
-        corrections: Object.keys(corrections).length > 0 ? corrections : null,
-      };
+      return { ready, notes };
     },
   })),
 );

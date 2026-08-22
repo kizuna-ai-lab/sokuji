@@ -4,8 +4,8 @@ import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, H
 import {
   statusReposFor,
   nativeAsrCards, nativeTranslationCards, nativeTtsCards,
-  requiredNativeModels, resolveNativeTts,
-  type NativeSelection, type NativeReadinessInput, type NativeReadinessResult, type NativeReadinessReason,
+  requiredNativeModels, resolveNativeTts, pinsFromSelections,
+  type NativeReadinessInput, type NativeReadinessResult, type NativeReadinessReason,
 } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
@@ -90,11 +90,10 @@ interface NativeModelStore {
    *     subtitles.
    *   - missing participant ASR/translation/TTS → never blocks — that
    *     channel is simply skipped at connect time.
-   * Returns ready + a reason, the resolver's corrections (the caller
-   * persists them — SPEAKER direction only, mirroring the flat
-   * `NativeSelection` fields there is no participant equivalent for), and
-   * `notes` (both directions, blocking or not) for the UI to render instead
-   * of the generic `localNative*`-family strings. Mirrors the WASM
+   * Returns ready + a reason, and `notes` (both directions, blocking or not)
+   * for the UI to render instead of the generic `localNative*`-family
+   * strings. resolve() output IS the answer — there is nothing left to write
+   * back to settings on the caller's behalf. Mirrors the WASM
    * useModelStore.ensureSelectionReady in shape (peers, not a shared layer).
    * `read` is a thunk, called only once the sidecar is warm — see
    * NativeReadinessInput for why a snapshot would be wrong.
@@ -192,7 +191,11 @@ async function catalogStatusRepos(list: NativeModelInfo[]): Promise<Record<strin
   let pins: Record<string, string> = {};
   try {
     const { useSettingsStore } = await import('./settingsStore');
-    pins = useSettingsStore.getState().localNative.translationVariantByModel ?? {};
+    const selections = useSettingsStore.getState().localNative.selections;
+    // Catalog-wide (not scoped to one pair yet — this runs before any direction
+    // is necessarily "current"), so collect pins across every direction the
+    // user has ever touched, not just the speaker/participant pair.
+    pins = pinsFromSelections(selections, Object.keys(selections));
   } catch { /* settings store unavailable — fall back to recommendations */ }
   return deriveVariantRepos(list, pins);
 }
@@ -481,7 +484,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   isReady: (models) => models.length > 0 && models.every((m) => get().statuses[m] === 'ready'),
 
   ensureSelectionReady: async (read) => {
-    if (!isElectron()) return { ready: false, reason: 'not-electron', corrections: null, notes: [] };
+    if (!isElectron()) return { ready: false, reason: 'not-electron', notes: [] };
     await get().ensureCatalog();
     const status = get().sidecarStatus;
     if (status !== 'ready') {
@@ -491,14 +494,31 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         : (bundle === 'absent' || bundle === 'paused') ? 'engine-absent'
         : status === 'unavailable' ? 'unavailable'
         : 'starting';
-      return { ready: false, reason, corrections: null, notes: [] };
+      return { ready: false, reason, notes: [] };
     }
     // Settings are read HERE, not at the call site: the warmup above can take
     // seconds on a cold start, during which the user may change the pair or
     // toggle text-only. The pre-facade gate read them at this same point.
     const { selection, textOnly } = read();
     const catalog = get().catalog;
-    const pins = selection.translationVariantByModel ?? {};
+    // Selections are reached via a dynamic import — same path
+    // catalogStatusRepos/revalidateNativeProvider already use in this file —
+    // rather than a static one, to avoid a circular static import with
+    // settingsStore.ts (which already dynamically imports this module).
+    // Unavailable settings store degrades to "nothing explicit", i.e. every
+    // stage resolves purely from the catalog.
+    let selections: Selections = {};
+    try {
+      const { useSettingsStore } = await import('./settingsStore');
+      selections = useSettingsStore.getState().localNative.selections;
+    } catch { /* settings store unavailable — resolve with no explicit selections */ }
+    const speakerDir = directionKey(selection.sourceLanguage, selection.targetLanguage);
+    const participantDir = directionKey(selection.targetLanguage, selection.sourceLanguage);
+    // Pins now live on the (direction, stage) that chose them — collect only
+    // the two directions this gate actually resolves, not every direction the
+    // user has ever touched (catalogStatusRepos does that broader collection
+    // for the direction-agnostic catalog cache).
+    const pins = pinsFromSelections(selections, [speakerDir, participantDir]);
     const asCards = (ids: string[]): NativeModelInfo[] =>
       ids.map((id) => catalog[id]).filter((c): c is NativeModelInfo => !!c);
     // FIRST refresh: BOTH directions' candidate statuses, variant-aware — so a
@@ -521,17 +541,6 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     // against the sidecar catalog + the live download statuses just refreshed
     // above, then garbage-collect every id either resolution found dead (an id
     // the catalog no longer knows about at all) in one combined write.
-    // Settings are reached via a dynamic import — same path
-    // catalogStatusRepos/revalidateNativeProvider already use in this file —
-    // rather than a static one, to avoid a circular static import with
-    // settingsStore.ts (which already dynamically imports this module).
-    // Unavailable settings store degrades to "nothing explicit", i.e. every
-    // stage resolves purely from the catalog.
-    let selections: Selections = {};
-    try {
-      const { useSettingsStore } = await import('./settingsStore');
-      selections = useSettingsStore.getState().localNative.selections;
-    } catch { /* settings store unavailable — resolve with no explicit selections */ }
     const speaker = get().resolve(selection.sourceLanguage, selection.targetLanguage, selections);
     const participant = get().resolve(selection.targetLanguage, selection.sourceLanguage, selections);
     const prunes = [...speaker.prunes, ...participant.prunes];
@@ -539,40 +548,31 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       await get().applyPrunes(prunes);
     }
 
-    // Surface the SPEAKER direction's resolved ids as corrections whenever
-    // they differ from the flat fields the caller passed in — same shape
-    // autoSelect used to produce, now driven by the resolver instead of the
-    // catalog reconciler. There is no flat-field equivalent for the
-    // participant direction, so it is never a source of corrections. Kept as
-    // the interim bridge to `NativeSelection`'s flat fields; T15 rewires the
-    // remaining reader (buildSessionConfig) to read resolve() output directly
-    // and this bridge goes away.
-    const corrections: Partial<NativeSelection> = {};
-    if (speaker.asr && speaker.asr.modelId !== selection.asrModel) corrections.asrModel = speaker.asr.modelId;
-    if (speaker.translation && speaker.translation.modelId !== selection.translationModel) {
-      corrections.translationModel = speaker.translation.modelId;
-    }
-    if (speaker.tts && speaker.tts.modelId !== selection.ttsModel) corrections.ttsModel = speaker.tts.modelId;
-    const finalCorrections = Object.keys(corrections).length > 0 ? corrections : null;
-
-    const effective = finalCorrections ? { ...selection, ...finalCorrections } : selection;
+    // requiredNativeModels/the SECOND refresh below need the SPEAKER direction's
+    // resolved ids directly — resolve() already folds explicit-vs-auto,
+    // language compatibility, download status, and hardware gating into a
+    // single verdict per stage, so there is no separate corrections/effective
+    // bridge left to build: a null stage simply means "nothing to require".
+    const resolvedAsr = speaker.asr?.modelId ?? '';
+    const resolvedTranslation = speaker.translation?.modelId ?? '';
+    const resolvedTts = speaker.tts?.modelId ?? '';
     const models = requiredNativeModels(
-      effective.asrModel, effective.translationModel, effective.ttsModel,
-      effective.sourceLanguage, effective.targetLanguage, catalog, textOnly);
+      resolvedAsr, resolvedTranslation, resolvedTts,
+      selection.sourceLanguage, selection.targetLanguage, catalog, textOnly);
     // SECOND refresh: the selected models' chosen variant repos (pin ?? recommended).
-    // Includes ttsModel alongside asrModel/translationModel — omitting it here
-    // meant a pinned non-recommended TTS variant (e.g. fp32 on a box where bf16
-    // is recommended) was checked against the recommended/default repo instead
-    // of the pin, so status tracking could report ready/missing against the
-    // wrong repo. Kept even though TTS no longer gates readiness (below): the
-    // Models UI still needs accurate per-model status for the resolved TTS
-    // pick. effective.ttsModel is resolved through resolveNativeTts FIRST, not
-    // passed raw: '' means Auto, and asCards() below drops '' (catalog[''] is
-    // undefined) — passing it raw silently dropped the pin lookup for Auto-TTS
-    // users. Mirrors LocalNativeProviderConfig's ttsModelId resolution (same
-    // "not settings.ttsModel, which can be '' for Auto" reasoning).
-    const resolvedTtsId = resolveNativeTts(effective.ttsModel, effective.targetLanguage, catalog) ?? '';
-    const resolved = deriveVariantRepos(asCards([effective.asrModel, effective.translationModel, resolvedTtsId]), pins);
+    // Includes TTS alongside ASR/translation — omitting it here meant a pinned
+    // non-recommended TTS variant (e.g. fp32 on a box where bf16 is
+    // recommended) was checked against the recommended/default repo instead of
+    // the pin, so status tracking could report ready/missing against the wrong
+    // repo. Kept even though TTS no longer gates readiness (below): the Models
+    // UI still needs accurate per-model status for the resolved TTS pick.
+    // resolvedTts is run through resolveNativeTts FIRST, not passed raw: ''
+    // means Auto, and asCards() below drops '' (catalog[''] is undefined) —
+    // passing it raw would silently drop the pin lookup for Auto-TTS users.
+    // Mirrors LocalNativeProviderConfig's ttsModelId resolution (same "not the
+    // raw stage choice, which can be '' for Auto" reasoning).
+    const resolvedTtsId = resolveNativeTts(resolvedTts, selection.targetLanguage, catalog) ?? '';
+    const resolved = deriveVariantRepos(asCards([resolvedAsr, resolvedTranslation, resolvedTtsId]), pins);
     const statusRepos = Object.keys(resolved).length > 0 ? resolved : undefined;
     await get().refresh(models, statusRepos);
 
@@ -589,7 +589,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       : 'translation-incompatible';
     const notes = [...speaker.notes, ...participant.notes];
     set({ lastResolutionNotes: notes });
-    return { ready, reason, corrections: finalCorrections, notes };
+    return { ready, reason, notes };
   },
 
   resolve: (src, tgt, selections) => {

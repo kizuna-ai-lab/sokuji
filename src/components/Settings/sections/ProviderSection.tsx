@@ -46,8 +46,6 @@ import { useModelStore } from '../../../stores/modelStore';
 import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
 import {
   getManifestEntry,
-  getTranslationModel,
-  getTtsModelsForLanguage,
   estimateModelMemoryByDevice,
 } from '../../../lib/local-inference/modelManifest';
 import { useNativeModelStatuses, useNativeModelSizes, useNativeModelStore, useNativeCatalog, useNativeAsrResolved, useNativeTranslationResolved, useNativeSidecarStatus } from '../../../stores/nativeModelStore';
@@ -56,7 +54,6 @@ import {
   nativeAsrIncompatibleCards,
   nativeTranslationCards,
   nativeTtsModels,
-  resolveNativeTts,
   estimateNativeMemoryByDevice,
   actualNativeMemoryByDevice,
   formatMemMb,
@@ -149,17 +146,23 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const nativeRefreshCatalog = useNativeModelStore(s => s.refreshCatalog);
   const nativeStatus = useNativeSidecarStatus();
 
-  // The sidecar download ids the current native selection maps to (ASR id is its
-  // own download id; translation/TTS resolve through the catalog). Shared by the
-  // status refresh + the memory estimate so both stay in sync with the chips.
+  // Live, resolved view of the native speaker (src→tgt) direction — selections
+  // is the only source now, so the chips, memory estimate, and download-id
+  // list all read resolve() output instead of flat settings fields.
+  const nativeSpeakerResolved = useMemo(() => {
+    if (provider !== Provider.LOCAL_NATIVE) return null;
+    return useNativeModelStore.getState().resolve(
+      localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, localNativeSettings.selections);
+  }, [provider, localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
+    localNativeSettings.selections, nativeModelStatuses, nativeCatalog]);
+
+  // The sidecar download ids the current native selection maps to. Shared by
+  // the status refresh + the memory estimate so both stay in sync with the chips.
   const nativeActiveDownloadIds = useMemo(() => {
-    if (provider !== Provider.LOCAL_NATIVE) return [];
-    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
-    const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
-    const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
-    return [localNativeSettings.asrModel, trCard?.downloadId, ttsId].filter((x): x is string => !!x);
-  }, [provider, localNativeSettings.asrModel, localNativeSettings.translationModel, localNativeSettings.ttsModel,
-    localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog]);
+    if (!nativeSpeakerResolved) return [];
+    return [nativeSpeakerResolved.asr?.modelId, nativeSpeakerResolved.translation?.modelId, nativeSpeakerResolved.tts?.modelId]
+      .filter((x): x is string => !!x);
+  }, [nativeSpeakerResolved]);
 
   // Pull cache status + sizes from the sidecar so the chips and estimate work even
   // when the model-management section isn't mounted (e.g. before opening Advanced).
@@ -177,19 +180,14 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // reports an available GPU tier for it (so the resolver would run it on the
   // GPU). Each stage (ASR/translation/TTS) carries its own device override.
   const nativeMemoryEstimate = useMemo(() => {
-    if (provider !== Provider.LOCAL_NATIVE) return null;
-    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
-    const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
-    const ttsId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
+    if (!nativeSpeakerResolved) return null;
     return estimateNativeMemoryByDevice([
-      { id: localNativeSettings.asrModel, device: localNativeSettings.asrDevice },
-      { id: trCard?.downloadId, device: localNativeSettings.translationDevice },
-      { id: ttsId, device: localNativeSettings.ttsDevice },
+      { id: nativeSpeakerResolved.asr?.modelId, device: localNativeSettings.asrDevice },
+      { id: nativeSpeakerResolved.translation?.modelId, device: localNativeSettings.translationDevice },
+      { id: nativeSpeakerResolved.tts?.modelId, device: localNativeSettings.ttsDevice },
     ], nativeModelSizes, nativeCatalog);
-  }, [provider, localNativeSettings.asrModel, localNativeSettings.translationModel, localNativeSettings.ttsModel,
-    localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
-    localNativeSettings.asrDevice, localNativeSettings.translationDevice, localNativeSettings.ttsDevice,
-    nativeModelSizes, nativeCatalog]);
+  }, [nativeSpeakerResolved, localNativeSettings.asrDevice, localNativeSettings.translationDevice,
+    localNativeSettings.ttsDevice, nativeModelSizes, nativeCatalog]);
 
   const asrResolved = useNativeAsrResolved();
   const translationResolved = useNativeTranslationResolved();
@@ -198,22 +196,28 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // (else a prior session's numbers would mislead). Resolution carries the real
   // device, so a VRAM-degraded translation correctly shows up under RAM.
   const nativeActual = useMemo(() => {
-    if (provider !== Provider.LOCAL_NATIVE) return null;
-    const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
-    const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
-    const asrMatch = !!asrResolved && asrResolved.model === localNativeSettings.asrModel;
-    const trMatch = !!translationResolved && translationResolved.model === trCard?.downloadId;
+    if (!nativeSpeakerResolved) return null;
+    const asrMatch = !!asrResolved && asrResolved.model === nativeSpeakerResolved.asr?.modelId;
+    const trMatch = !!translationResolved && translationResolved.model === nativeSpeakerResolved.translation?.modelId;
     if (!asrMatch || !trMatch) return null;
     const mem = actualNativeMemoryByDevice(asrResolved, translationResolved);
     const degraded = [asrResolved, translationResolved].some(r => r?.device === 'cpu' && r?.fallbackReason);
     return { ...mem, degraded };
-  }, [provider, asrResolved, translationResolved, localNativeSettings.asrModel,
-    localNativeSettings.translationModel, localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
-    nativeCatalog]);
+  }, [asrResolved, translationResolved, nativeSpeakerResolved]);
 
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Read model download statuses reactively so participant status updates when models are downloaded
   const modelStatuses = useModelStore(state => state.modelStatuses);
+  // Live, resolved view of the WASM speaker (src→tgt) direction — same
+  // resolve() the session-config builder uses.
+  const speakerResolved = useMemo(() => {
+    if (provider !== Provider.LOCAL_INFERENCE) return null;
+    return useModelStore.getState().resolve(
+      localInferenceSettings.sourceLanguage,
+      localInferenceSettings.targetLanguage,
+      localInferenceSettings.selections,
+    );
+  }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, localInferenceSettings.selections, modelStatuses]);
   // The participant direction (target→source) is a peer of the speaker
   // direction, not a reversal of it: resolve it directly via the same
   // resolve() the session-config builder uses, against its own selections
@@ -229,26 +233,18 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   const deviceFeatures = useModelStore(state => state.deviceFeatures);
   const memoryEstimate = useMemo(() => {
-    if (provider !== Provider.LOCAL_INFERENCE) return null;
-    // Resolve effective model IDs (same logic as the chips above)
-    const translationId = localInferenceSettings.translationModel
-      || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id;
-    const ttsId = localInferenceSettings.ttsModel
-      || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => m.isCloudModel || modelStatuses[m.id] === 'downloaded')?.id;
+    if (provider !== Provider.LOCAL_INFERENCE || !speakerResolved) return null;
     // Skip cloud TTS models (e.g. Edge TTS) — they don't consume local memory
+    const ttsId = speakerResolved.tts?.modelId;
     const ttsEntry = ttsId ? getManifestEntry(ttsId) : undefined;
     const effectiveTtsId = ttsEntry?.isCloudModel ? undefined : ttsId;
 
-    const mainIds = [localInferenceSettings.asrModel, translationId, effectiveTtsId];
+    const mainIds = [speakerResolved.asr?.modelId, speakerResolved.translation?.modelId, effectiveTtsId];
     const participantIds = isParticipantChannelInScope && participantResolved
       ? [participantResolved.asr?.modelId, participantResolved.translation?.modelId]
       : [];
     return estimateModelMemoryByDevice([...mainIds, ...participantIds], deviceFeatures);
-  }, [
-    provider, deviceFeatures, modelStatuses, isParticipantChannelInScope, participantResolved,
-    localInferenceSettings.asrModel, localInferenceSettings.translationModel, localInferenceSettings.ttsModel,
-    localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage,
-  ]);
+  }, [provider, deviceFeatures, isParticipantChannelInScope, participantResolved, speakerResolved]);
 
   // Whether the provider select can render rich option markup (icons,
   // descriptions, engine credits). Stable for the life of the page, so a
@@ -513,45 +509,48 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             <div className="model-info">
               <div className="model-inline">
                 {(() => {
-                  const asrId = localNativeSettings.asrModel;
+                  // resolve() only returns a stage when it's a usable (ready +
+                  // hardware-ok) candidate, so its presence already means "ready" —
+                  // no separate nativeModelStatuses check needed.
+                  const asrId = nativeSpeakerResolved?.asr?.modelId;
                   const asrCard = asrId
                     ? [...nativeAsrCards(localNativeSettings.sourceLanguage, nativeCatalog), ...nativeAsrIncompatibleCards(localNativeSettings.sourceLanguage, nativeCatalog)]
                         .find(c => c.selectId === asrId)
                     : undefined;
-                  const asrReady = !!asrId && nativeModelStatuses[asrId] === 'ready';
                   return (
                     <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
                       <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-                      <span className={`model-chip-value ${asrReady ? 'model-ok' : 'model-warn'}`}>
-                        {asrReady ? (asrCard?.name || asrId) : t('common.none', 'None')}
+                      <span className={`model-chip-value ${asrId ? 'model-ok' : 'model-warn'}`}>
+                        {asrId ? (asrCard?.name || asrId) : t('common.none', 'None')}
                       </span>
                     </button>
                   );
                 })()}
                 {(() => {
-                  const trCards = nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog);
-                  const trCard = trCards.find(c => c.selectId === localNativeSettings.translationModel) || trCards.find(c => c.selectId === '');
-                  const trReady = !!trCard?.downloadId && nativeModelStatuses[trCard.downloadId] === 'ready';
+                  const trId = nativeSpeakerResolved?.translation?.modelId;
+                  const trCard = trId
+                    ? nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog)
+                        .find(c => c.selectId === trId)
+                    : undefined;
                   return (
                     <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
                       <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
-                      <span className={`model-chip-value ${trReady ? 'model-ok' : 'model-warn'}`}>
-                        {trReady ? (trCard?.name) : t('common.none', 'None')}
+                      <span className={`model-chip-value ${trId ? 'model-ok' : 'model-warn'}`}>
+                        {trId ? (trCard?.name) : t('common.none', 'None')}
                       </span>
                     </button>
                   );
                 })()}
                 {(() => {
-                  const voiceId = resolveNativeTts(localNativeSettings.ttsModel, localNativeSettings.targetLanguage, nativeCatalog);
+                  const voiceId = nativeSpeakerResolved?.tts?.modelId;
                   const ttsVoice = voiceId
                     ? nativeTtsModels(localNativeSettings.targetLanguage, nativeCatalog).find(m => m.id === voiceId)
                     : undefined;
-                  const ttsReady = !!voiceId && nativeModelStatuses[voiceId] === 'ready';
                   return (
                     <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
                       <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
-                      <span className={`model-chip-value ${ttsReady ? 'model-ok' : 'model-warn'}`}>
-                        {ttsReady ? (ttsVoice?.name || voiceId) : t('common.none', 'None')}
+                      <span className={`model-chip-value ${voiceId ? 'model-ok' : 'model-warn'}`}>
+                        {voiceId ? (ttsVoice?.name || voiceId) : t('common.none', 'None')}
                       </span>
                     </button>
                   );
@@ -583,40 +582,40 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           <div className="model-info">
             <div className="model-inline">
               {(() => {
-                const asrReady = localInferenceSettings.asrModel && modelStatuses[localInferenceSettings.asrModel] === 'downloaded';
+                // resolve() only returns a stage when it's a usable (ready +
+                // hardware-ok, or always-ready cloud) candidate, so its
+                // presence already means "ready" — no separate modelStatuses
+                // check needed.
+                const id = speakerResolved?.asr?.modelId;
                 return (
                   <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
                     <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-                    <span className={`model-chip-value ${asrReady ? 'model-ok' : 'model-warn'}`}>
-                      {asrReady ? localInferenceSettings.asrModel : t('common.none', 'None')}
+                    <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
+                      {id || t('common.none', 'None')}
                     </span>
                   </button>
                 );
               })()}
               {(() => {
-                const id = localInferenceSettings.translationModel
-                  || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id;
+                const id = speakerResolved?.translation?.modelId;
                 const translationEntry = id ? getManifestEntry(id) : undefined;
-                const translationReady = id && (translationEntry?.isCloudModel || modelStatuses[id] === 'downloaded');
                 return (
                   <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
                     <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
-                    <span className={`model-chip-value ${translationReady ? 'model-ok' : 'model-warn'}`}>
-                      {translationReady ? (translationEntry?.name || id) : t('common.none', 'None')}
+                    <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
+                      {id ? (translationEntry?.name || id) : t('common.none', 'None')}
                     </span>
                   </button>
                 );
               })()}
               {(() => {
-                const id = localInferenceSettings.ttsModel
-                  || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => m.isCloudModel || modelStatuses[m.id] === 'downloaded')?.id;
+                const id = speakerResolved?.tts?.modelId;
                 const ttsEntry = id ? getManifestEntry(id) : undefined;
-                const ttsReady = id && (ttsEntry?.isCloudModel || modelStatuses[id] === 'downloaded');
                 return (
                   <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
                     <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
-                    <span className={`model-chip-value ${ttsReady ? 'model-ok' : 'model-warn'}`}>
-                      {ttsReady ? (ttsEntry?.name || id) : t('common.none', 'None')}
+                    <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
+                      {id ? (ttsEntry?.name || id) : t('common.none', 'None')}
                     </span>
                   </button>
                 );

@@ -2,14 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle, CircleHelp } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
-import { useLocalNativeSettings, useUpdateLocalNative, type LocalNativeSettings } from '../../../stores/settingsStore';
+import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/settingsStore';
 import {
   nativeAsrCards,
   nativeAsrIncompatibleCards,
   nativeTranslationCards,
   nativeTtsCards,
-  pickNativeTts,
-  resolveNativeTts,
   voiceCapability,
   tierLabel,
   hardwareGated,
@@ -20,8 +18,10 @@ import {
   formatMemMb,
   statusReposFor,
   buildBackendTooltipRows,
+  pinsFromSelections,
   type NativeModelCardSpec,
 } from '../../../lib/local-inference/native/nativeCatalog';
+import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { TierIcon } from './TierIcon';
 import LicenseConsentModal from '../shared/LicenseConsentModal';
@@ -53,8 +53,6 @@ type CardResolved = {
   rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string;
 };
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
-
-type Stage = 'asrModel' | 'translationModel' | 'ttsModel';
 
 // [i18n key, English fallback] per tooltip row key (see buildBackendTooltipRows).
 const TT_LABEL: Record<string, [string, string]> = {
@@ -446,7 +444,7 @@ const NativeModelCard: React.FC<{
  * groups of selectable + downloadable cards, matching LOCAL_INFERENCE's
  * ModelManagementSection. Models live in the sidecar's HF cache.
  *
- * Selecting a card writes the flat settings field directly; auto-select
+ * Selecting a card writes `selections[dir][stage]` directly; auto-select
  * reconciliation for the language pair is owned by the global gate
  * (validateApiKey -> nativeModelStore.ensureSelectionReady), not this panel.
  */
@@ -469,9 +467,22 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
 
   const [showAllAsr, setShowAllAsr] = useState(false);
 
-  // The manual variant pin is a per-model map (settings.translationVariantByModel),
-  // keyed by model id — GENERIC across stages (asr + translation cards both pin
-  // here; ids never collide). Download + load use the same value.
+  const dir = directionKey(settings.sourceLanguage, settings.targetLanguage);
+
+  // Live, resolved view of "what would actually run right now" per stage —
+  // computed from the catalog, current download/hardware state, and the
+  // user's explicit `selections`. Mirrors ModelManagementSection.tsx's
+  // equivalent `resolved` memo (the WASM provider). Card highlighting and the
+  // "auto-selected" badge follow this — an explicit-but-not-yet-downloaded
+  // pick shows the auto fallback as active until it resolves, exactly like
+  // the WASM panel.
+  const resolvedSelection = useMemo(
+    () => useNativeModelStore.getState().resolve(settings.sourceLanguage, settings.targetLanguage, settings.selections),
+    [statuses, catalog, settings.sourceLanguage, settings.targetLanguage, settings.selections],
+  );
+  const selectedAsr = resolvedSelection.asr?.modelId ?? '';
+  const selectedTranslation = resolvedSelection.translation?.modelId ?? '';
+  const selectedTts = resolvedSelection.tts?.modelId ?? '';
 
   const asrCards = useMemo(() => nativeAsrCards(settings.sourceLanguage, catalog), [settings.sourceLanguage, catalog]);
   const asrIncompatibleCards = useMemo(
@@ -514,7 +525,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     return out;
   }, [catalog, t]);
 
-  const reserveTtsId = resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog) || null;
+  const reserveTtsId = selectedTts || null;
 
   // Voice picker: capability (Task 10) drives which control is shown — the
   // built-in shape (none/range/named) and which custom-voice backend applies
@@ -542,9 +553,15 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     () => [...asrCards, ...asrIncompatibleCards, ...translationCards, ...ttsCards]
       .map((c) => c.downloadId).filter((x): x is string => !!x),
     [asrCards, asrIncompatibleCards, translationCards, ttsCards]);
+  // Pins now live on the (direction, stage) that chose them, not a global
+  // per-model map — collect this direction's explicit (modelId, variant)
+  // pairs into the modelId-keyed shape statusReposFor expects.
+  const pins = useMemo(
+    () => pinsFromSelections(settings.selections, [dir]),
+    [settings.selections, dir]);
   const statusRepos = useMemo(
-    () => statusReposFor(allDownloadIds, variantData, settings.translationVariantByModel),
-    [allDownloadIds, variantData, settings.translationVariantByModel],
+    () => statusReposFor(allDownloadIds, variantData, pins),
+    [allDownloadIds, variantData, pins],
   );
   const refreshKey = allDownloadIds.join('|');
   // Variant-aware status: re-check downloaded state whenever the model list or the
@@ -566,23 +583,42 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [refreshKey]);
 
-  // TTS '' (default) highlights the default voice for the target language.
-  const ttsSelected = (selectId: string) =>
-    settings.ttsModel === selectId || (settings.ttsModel === '' && selectId === pickNativeTts(settings.targetLanguage, catalog));
+  // Explicit user selection: write `selections[dir][field] = { modelId }`,
+  // preserving an existing variant pin for that stage ONLY when the modelId
+  // is unchanged (a pin is scoped to the specific model it was chosen for —
+  // switching models must not carry a stale quant choice along). Passing
+  // `variant` writes it directly instead (the quant picker's path below) —
+  // since a pin has nowhere else to live now, choosing one also makes that
+  // model the stage's active selection. Auto-select reconciliation for the
+  // language pair is owned by the global gate (validateApiKey), not this panel.
+  const selectCard = useCallback((field: Stage, selectId: string, variant?: string) => {
+    const current = settings.selections[dir] ?? emptyDirection();
+    const prevStage = current[field];
+    const nextVariant = variant !== undefined ? variant
+      : prevStage.modelId === selectId ? prevStage.variant
+      : undefined;
+    update({
+      selections: {
+        ...settings.selections,
+        [dir]: { ...current, [field]: nextVariant ? { modelId: selectId, variant: nextVariant } : { modelId: selectId } },
+      },
+    });
+  }, [update, settings.selections, dir]);
 
-  // Explicit user selection: write the choice. Auto-select reconciliation is
-  // owned by the global gate (validateApiKey / Task 10), not this panel.
-  const selectCard = (field: Stage, selectId: string) => {
-    const updates: Partial<LocalNativeSettings> = { [field]: selectId };
-    update(updates);
+  // Pick the download quant/variant for a card (asr/translation/tts alike).
+  const handlePinVariant = useCallback((field: Stage, selectId: string, variantId: string) => {
+    selectCard(field, selectId, variantId);
+  }, [selectCard]);
+
+  // The stage's raw stored pin for THIS card, regardless of readiness — the
+  // variant dropdown/download button need to preview a pin for a card that
+  // isn't downloaded (and so isn't the resolve()-driven active selection)
+  // yet, unlike `selected*` above which reflects the resolved, auto-fallback-
+  // aware pick.
+  const pinnedVariantFor = (field: Stage, selectId: string): string | undefined => {
+    const stageSel = settings.selections[dir]?.[field];
+    return stageSel?.modelId === selectId ? stageSel.variant : undefined;
   };
-
-  // Pick the download quant/variant for a card (asr/translation/tts alike) — a
-  // per-model setting only. Does NOT change the active model for its stage (so
-  // the auto-select reconcile never fires on a pick).
-  const handlePinVariant = useCallback((selectId: string, variantId: string) => {
-    update({ translationVariantByModel: { ...settings.translationVariantByModel, [selectId]: variantId } });
-  }, [update, settings.translationVariantByModel]);
 
   // Recommended / Others split via the shared primitive; cards stay native-specific.
   const renderCards = (
@@ -590,26 +626,26 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     isSelected: (c: NativeModelCardSpec) => boolean,
     field: Stage,
     variantMap?: Record<string, { variants: VariantInfo[]; recommended: string }>,
-    onPin?: (selectId: string, variantId: string) => void,
+    onPin?: (field: Stage, selectId: string, variantId: string) => void,
     renderBody?: (c: NativeModelCardSpec) => React.ReactNode,
   ) => {
     // Feed each card the resolved plan for its stage so the active model shows the
     // measured device + speed metric (ASR rtf / translation tok/s or tts rtf).
-    const resolvedForField = field === 'asrModel' ? asrResolved
-      : field === 'translationModel' ? translationResolved
-      : field === 'ttsModel' ? ttsResolved : null;
+    const resolvedForField = field === 'asr' ? asrResolved
+      : field === 'translation' ? translationResolved
+      : field === 'tts' ? ttsResolved : null;
     return (
       <RecommendedOthers
         items={cards}
         isRecommended={(c) => !!c.recommended}
         renderItem={(c) => {
           const vd = variantMap?.[c.selectId];
-          const pinnedVariantId = settings.translationVariantByModel[c.selectId];
+          const pinnedVariantId = pinnedVariantFor(field, c.selectId);
           const vProps: VariantCardProps | undefined = vd ? {
             variants: vd.variants,
             recommendedVariantId: vd.recommended,
             pinnedVariantId,
-            onPinVariant: (id: string) => onPin?.(c.selectId, id),
+            onPinVariant: (id: string) => onPin?.(field, c.selectId, id),
           } : undefined;
           return (
             <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
@@ -688,7 +724,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             );
           })()}
         </div>
-        {renderCards(asrCards, (c) => settings.asrModel === c.selectId, 'asrModel',
+        {renderCards(asrCards, (c) => selectedAsr === c.selectId, 'asr',
           variantData, handlePinVariant)}
         {asrIncompatibleCards.length > 0 && (
           <>
@@ -700,8 +736,8 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
             </button>
             {showAllAsr && asrIncompatibleCards.map((c) => (
               <NativeModelCard key={c.selectId} spec={c} disabled={isSessionActive} incompatible
-                selected={settings.asrModel === c.selectId} autoSelected={false}
-                onSelect={() => selectCard('asrModel', c.selectId)} />
+                selected={selectedAsr === c.selectId} autoSelected={false}
+                onSelect={() => selectCard('asr', c.selectId)} />
             ))}
           </>
         )}
@@ -744,8 +780,8 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
         </div>
         {renderCards(
           translationCards,
-          (c) => settings.translationModel === c.selectId,
-          'translationModel',
+          (c) => selectedTranslation === c.selectId,
+          'translation',
           variantData,
           handlePinVariant,
         )}
@@ -792,8 +828,8 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
           // `capability` reflects the resolved (selected) model's voice capability.
           renderCards(
             ttsCards,
-            (c) => ttsSelected(c.selectId),
-            'ttsModel',
+            (c) => selectedTts === c.selectId,
+            'tts',
             variantData,
             handlePinVariant,
             () => (capability.builtin !== 'none' || capability.custom !== 'none' ? (

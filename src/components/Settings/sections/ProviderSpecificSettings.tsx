@@ -49,7 +49,6 @@ import {
   useLocalParticipantSystemPrompt,
   useLocalUseTemplateMode,
   useGetProcessedLocalPrompt,
-  resolveTranslationWorkerType,
   resolveTranslationWorkerTypeForModelId,
 } from '../../../stores/settingsStore';
 import type { OpenAICompatibleSettingsBase } from '../../../stores/settingsStore';
@@ -293,16 +292,29 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       : null;
   }, [provider, sonioxApiKeyForRegion, sonioxRegion, userId]);
 
+  // Live, resolved view of the speaker (src→tgt) direction — selections is the
+  // only source now, so every reader (worker-type detection, the VAD-support
+  // ASR check below) calls resolve() itself instead of reading a flat field
+  // corrections used to keep in sync.
+  const speakerResolved = useMemo(() => useModelStore.getState().resolve(
+    localInferenceSettings.sourceLanguage,
+    localInferenceSettings.targetLanguage,
+    localInferenceSettings.selections,
+  ), [
+    localInferenceSettings.sourceLanguage,
+    localInferenceSettings.targetLanguage,
+    localInferenceSettings.selections,
+    modelStatuses,
+  ]);
+  const selectedAsr = speakerResolved.asr?.modelId ?? '';
+
   // Custom prompt is supported when EITHER the speaker's or the participant's
   // translation worker is Qwen-family. The participant direction (tgt→src) is
   // a peer of the speaker direction, not a reversal of it: its worker type is
   // derived by resolving its OWN entry in `selections` via modelStore.resolve
   // — the same resolver the participant session config uses — never by
   // borrowing the speaker's chosen model.
-  const speakerWorkerType = useMemo(
-    () => resolveTranslationWorkerType(localInferenceSettings),
-    [localInferenceSettings.translationModel, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage],
-  );
+  const speakerWorkerType = resolveTranslationWorkerTypeForModelId(speakerResolved.translation?.modelId);
   // Subscribe via the modelStatuses selector so the memo recomputes once a
   // participant-direction model finishes downloading.
   const participantWorkerType = useMemo(() => {
@@ -2237,7 +2249,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         />
 
         {/* Show VAD settings for all models except sherpa-onnx streaming (which uses endpoint detection, not VAD) */}
-        {localInferenceSettings.turnDetectionMode === 'Auto' && !(getManifestEntry(localInferenceSettings.asrModel)?.type === 'asr-stream' && !getManifestEntry(localInferenceSettings.asrModel)?.asrWorkerType) && (
+        {localInferenceSettings.turnDetectionMode === 'Auto' && !(getManifestEntry(selectedAsr)?.type === 'asr-stream' && !getManifestEntry(selectedAsr)?.asrWorkerType) && (
           <VadControl
             values={{
               vadThreshold: localInferenceSettings.vadThreshold,
@@ -2245,7 +2257,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               vadMinSpeechDuration: localInferenceSettings.vadMinSpeechDuration,
               // vad-web workers only — the sherpa-onnx engine has its own hysteresis.
               ...(() => {
-                const workerType = getManifestEntry(localInferenceSettings.asrModel)?.asrWorkerType;
+                const workerType = getManifestEntry(selectedAsr)?.asrWorkerType;
                 return workerType && workerType !== 'sherpa-onnx'
                   ? { vadNegativeThreshold: localInferenceSettings.vadNegativeThreshold ?? 0 }
                   : {};

@@ -8,7 +8,6 @@ import { directionKey, type Selections } from '../../../lib/local-inference/sele
 
 const defaultSettings = {
   sourceLanguage: 'en', targetLanguage: 'en',
-  asrModel: '', translationModel: '', ttsModel: '',
   ttsSpeakerId: 0, ttsSpeed: 1, edgeTtsVoice: '',
   selections: {} as Selections,
 };

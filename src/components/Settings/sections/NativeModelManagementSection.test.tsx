@@ -36,13 +36,14 @@ vi.mock('../../../lib/local-inference/voiceStorage', () => ({
 const mockSettings = {
   sourceLanguage: 'ja',
   targetLanguage: 'en',
-  asrModel: 'sense-voice',
-  translationModel: 'hy-mt2-7b',
-  ttsModel: '',
   asrDevice: 'auto' as const,
   translationDevice: 'auto' as const,
   ttsDevice: 'auto' as const,
-  translationVariantByModel: {},
+  // Auto (empty) by default — none of the fixture/download-state-independent
+  // tests below need an explicit pick; individual tests set an entry here
+  // (mirroring the old per-test flat-field mutation) when they need one.
+  selections: {} as Record<string, { asr: { modelId: string; variant?: string };
+    translation: { modelId: string; variant?: string }; tts: { modelId: string; variant?: string } }>,
 };
 
 // Fixture catalog — must start with "mock" so vitest hoists it with vi.mock factories.
@@ -229,6 +230,24 @@ vi.mock('../../../stores/settingsStore', () => ({
   useUpdateLocalNative: () => mockUpdate,
 }));
 
+// Lightweight stand-in for the real selection resolver: an explicit,
+// catalog-known, 'ready' pick resolves (with its variant passed through);
+// anything else (auto, unready, or an id the mock catalog doesn't carry)
+// resolves to null. Mirrors resolveStage's explicit-branch gate closely
+// enough for the UI-wiring behavior these tests exercise (card highlighting,
+// the voice picker's selected-card embedding) without reimplementing
+// language/hardware compatibility.
+const mockResolve = (src: string, tgt: string, selections: typeof mockSettings.selections) => {
+  const catalog = mockCatalogOverride ?? mockCatalog;
+  const d = selections?.[`${src}→${tgt}`];
+  const pick = (stage: 'asr' | 'translation' | 'tts') => {
+    const sel = d?.[stage];
+    if (!sel?.modelId || !catalog[sel.modelId] || mockStatuses[sel.modelId] !== 'ready') return null;
+    return { modelId: sel.modelId, variant: sel.variant, source: 'explicit' as const };
+  };
+  return { asr: pick('asr'), translation: pick('translation'), tts: pick('tts'), notes: [], prunes: [] };
+};
+
 vi.mock('../../../stores/nativeModelStore', () => {
   const mockStoreState = () => ({
     statuses: mockStatuses,
@@ -236,6 +255,7 @@ vi.mock('../../../stores/nativeModelStore', () => {
     progress: {},
     errors: {},
     catalog: mockCatalog,
+    resolve: mockResolve,
     sidecarStatus: mockSidecarStatus,
     download: mockDownload,
     deleteModel: mockDeleteModel,
@@ -337,10 +357,7 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
 
     fireEvent.change(dd, { target: { value: 'q8_0' } });
 
-    expect(mockUpdate).not.toHaveBeenCalledWith(
-      expect.objectContaining({ translationVariantByModel: expect.anything() }));
-    expect(mockUpdate).not.toHaveBeenCalledWith(
-      expect.objectContaining({ translationModel: expect.anything() }));
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it('HY-MT1.5 cards also expose the quant-variant picker (the gate is data-driven variantIds, not a hy-mt2-only special case)', async () => {
@@ -450,19 +467,23 @@ describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', ()
     expect(bf16Row).toHaveTextContent(bf16SizeLabel);
   });
 
-  it('pinning a supported variant on a TTS card writes translationVariantByModel (not the download or active model)', async () => {
+  it('pinning a supported variant on a TTS card writes it into that stage\'s selection', async () => {
     render(<NativeModelManagementSection />);
     const dd = await waitFor(() =>
       within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-dd-qwen3-tts-1.7b'));
 
     fireEvent.change(dd, { target: { value: 'fp32' } });
 
-    // The pin reaches settings via the same generic per-model map ASR/translation use.
-    expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ translationVariantByModel: { 'qwen3-tts-1.7b': 'fp32' } }));
-    // and it must NOT switch the active TTS model
-    expect(mockUpdate).not.toHaveBeenCalledWith(
-      expect.objectContaining({ ttsModel: expect.anything() }));
+    // The pin reaches settings on the (direction, stage) selection alongside
+    // its modelId — there is no separate map for it to live in, so pinning a
+    // variant necessarily also makes that card the stage's active pick.
+    expect(mockUpdate).toHaveBeenCalledWith({
+      selections: {
+        'ja→en': {
+          asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'qwen3-tts-1.7b', variant: 'fp32' },
+        },
+      },
+    });
   });
 
   it('downloads the chosen (recommended BF16) variant repo for a TTS card, not the default', async () => {
@@ -481,9 +502,10 @@ describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', ()
 });
 
 describe('NativeModelManagementSection — TTS model card resolved badge', () => {
-  // The default TTS voice for targetLanguage:'en' (mockSettings) is Amy
-  // (csukuangfj/vits-piper-en_US-amy-low) — first catalog entry for 'en'.
-  // With ttsModel:'' the component treats Amy as selected via pickNativeTts('en', catalog).
+  // The live-resolved badge is driven by ttsResolved (session telemetry)
+  // matching a card's id directly — independent of which card resolve()
+  // currently treats as "selected" — so this describe block needs no
+  // explicit selections entry.
   const AMY_ID = 'csukuangfj/vits-piper-en_US-amy-low';
 
   it('shows the live device badge on the Amy card when ttsResolved matches its id', () => {
@@ -530,11 +552,16 @@ describe('NativeModelManagementSection — sidecar lifecycle states', () => {
 
 describe('NativeModelManagementSection — embedded voice section on the selected MOSS card', () => {
   // moss-tts-nano is voice-cloning capable (clones: true) for en/zh/ja. Selecting it
-  // (ttsModel) makes ttsSelected('moss-tts-nano') true and ttsVoiceCapable true, so the
-  // voice picker is rendered as the selected card's body — not as a separate block below.
+  // (an explicit, 'ready' selections entry — selected state now flows through
+  // resolve(), which only honors a ready candidate) makes it the resolved TTS
+  // pick and ttsVoiceCapable true, so the voice picker is rendered as the
+  // selected card's body — not as a separate block below.
   it('embeds the voice picker inside the selected MOSS card and nowhere else', async () => {
-    const prevTtsModel = mockSettings.ttsModel;
-    mockSettings.ttsModel = 'moss-tts-nano';
+    const prevSelections = mockSettings.selections;
+    mockSettings.selections = {
+      'ja→en': { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'moss-tts-nano' } },
+    };
+    mockStatuses['moss-tts-nano'] = 'ready';
     try {
       render(<NativeModelManagementSection />);
 
@@ -553,7 +580,7 @@ describe('NativeModelManagementSection — embedded voice section on the selecte
       const ttsSection = document.getElementById('model-tts-section')!;
       expect(ttsSection.querySelectorAll('.voice-library-section')).toHaveLength(1);
     } finally {
-      mockSettings.ttsModel = prevTtsModel;
+      mockSettings.selections = prevSelections;
     }
   });
 });
@@ -564,8 +591,11 @@ describe('NativeModelManagementSection — store-driven voice wiring (Task 13)',
   // backend (nativeVoiceStorage). Selecting it must route NativeVoiceSection
   // to the style store and render its imported voices.
   it('renders imported style voices for a selected Supertonic-shaped model', async () => {
-    const prevTtsModel = mockSettings.ttsModel;
-    mockSettings.ttsModel = 'supertonic-3';
+    const prevSelections = mockSettings.selections;
+    mockSettings.selections = {
+      'ja→en': { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'supertonic-3' } },
+    };
+    mockStatuses['supertonic-3'] = 'ready';
     try {
       render(<NativeModelManagementSection />);
       // 'MyVoice' appears both as a <select> option and in the "manage imported
@@ -573,15 +603,17 @@ describe('NativeModelManagementSection — store-driven voice wiring (Task 13)',
       // imported voice reached the UI.
       expect((await screen.findAllByText('MyVoice')).length).toBeGreaterThan(0);
     } finally {
-      mockSettings.ttsModel = prevTtsModel;
+      mockSettings.selections = prevSelections;
     }
   });
 });
 
 describe('NativeModelManagementSection — tier badge tooltip (Task 3)', () => {
-  // sense-voice is the selected ('sense-voice' === mockSettings.asrModel), ja-compatible
-  // ASR card already exercised elsewhere in this file. Give its available tier a known
-  // backend id so the tooltip's row builder resolves a real framework/API label pair.
+  // sense-voice is a ja-compatible ASR card already exercised elsewhere in
+  // this file (its "selected" state is irrelevant here — the tier badge and
+  // its tooltip are driven by the catalog entry alone, not resolve()). Give
+  // its available tier a known backend id so the tooltip's row builder
+  // resolves a real framework/API label pair.
   it('tier badge tooltip lists the inference engine and device', async () => {
     mockCatalogOverride = {
       ...mockCatalog,

@@ -1,5 +1,5 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
-import { getTranslationSourceLanguages, getManifestEntry, getTtsModelsForLanguage, getTranslationModel } from '../../lib/local-inference/modelManifest';
+import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult, PreparePorts, PrepareOutcome } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, LocalInferenceSessionConfig } from '../interfaces/IClient';
@@ -7,15 +7,16 @@ import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalInferenceClient } from '../clients/LocalInferenceClient';
 import { createParticipantLocalInferenceConfig } from './localParticipantConfig';
 import type { Selections } from '../../lib/local-inference/selection/types';
+// localParticipantConfig.ts (imported above) already statically imports
+// modelStore, so this introduces no new import-graph risk — mirrors
+// LocalNativeProviderConfig.ts's static useNativeModelStore import.
+import { useModelStore } from '../../stores/modelStore';
 import i18n from '../../locales';
 
 // Local Inference Settings
 export interface LocalInferenceSettings {
   /** Per-direction model choices, keyed `src→tgt`. '' in any stage means auto. */
   selections: Selections;
-  asrModel: string;
-  translationModel: string; // '' (auto) | 'opus-mt-ja-en' | ...
-  ttsModel: string;        // '' (auto) | 'piper-en' | 'piper-de'
   ttsSpeakerId: number;
   ttsSpeed: number;
   edgeTtsVoice: string;    // Edge TTS voice ShortName (e.g. 'en-US-AvaMultilingualNeural'), '' for auto-select
@@ -33,9 +34,6 @@ export interface LocalInferenceSettings {
 
 export const defaultLocalInferenceSettings: LocalInferenceSettings = {
   selections: {},
-  asrModel: 'sensevoice-int8',
-  translationModel: '',  // Auto-select based on language pair
-  ttsModel: '',  // Auto-select based on target language
   ttsSpeakerId: 0,
   ttsSpeed: 1.0,
   edgeTtsVoice: '',  // Auto-select based on target language
@@ -102,10 +100,15 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
     const settings = slice as LocalInferenceSettings;
-    // Auto-select TTS model: use current if it supports the target language, otherwise find a matching one
-    const currentTtsEntry = settings.ttsModel ? getManifestEntry(settings.ttsModel) : undefined;
-    const isTtsCompatible = currentTtsEntry && (currentTtsEntry.multilingual || currentTtsEntry.languages.includes(settings.targetLanguage));
-    const ttsModelId = isTtsCompatible ? settings.ttsModel : (getTtsModelsForLanguage(settings.targetLanguage)[0]?.id);
+    // Selections is the only source now: resolve() already folds explicit-vs-
+    // auto, language compatibility, download status, and hardware gating into
+    // a single verdict per stage — the ad hoc "current if still compatible,
+    // else first language match" TTS fallback and the translation `||`
+    // fallback this replaced never considered readiness at all; they only
+    // worked because validateApiKey's now-removed corrections kept the flat
+    // fields in sync with the resolver beforehand.
+    const resolved = useModelStore.getState().resolve(
+      settings.sourceLanguage, settings.targetLanguage, settings.selections);
 
     // wrapTranscript must match the instructions actually in use. The default prompt
     // (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions
@@ -123,9 +126,12 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
       instructions: systemInstructions,
       sourceLanguage: settings.sourceLanguage,
       targetLanguage: settings.targetLanguage,
-      asrModelId: settings.asrModel,
-      translationModelId: settings.translationModel || getTranslationModel(settings.sourceLanguage, settings.targetLanguage)?.id,
-      ttsModelId,
+      // asrModelId is non-optional on LocalInferenceSessionConfig — a missing
+      // resolution becomes '' exactly like the old empty-string field did; the
+      // Start gate already blocks a session whose speaker ASR can't resolve.
+      asrModelId: resolved.asr?.modelId ?? '',
+      translationModelId: resolved.translation?.modelId,
+      ttsModelId: resolved.tts?.modelId,
       ttsSpeakerId: settings.ttsSpeakerId,
       ttsSpeed: settings.ttsSpeed,
       edgeTtsVoice: settings.edgeTtsVoice || undefined,

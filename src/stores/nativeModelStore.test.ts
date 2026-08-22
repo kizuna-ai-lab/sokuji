@@ -207,10 +207,15 @@ describe('catalog-derived statusRepos cache (cold-start variant awareness)', () 
   it('an explicit variant pin wins over the recommendation', async () => {
     _asrExtraModels = [FUN_ASR];
     const { default: useSettingsStore } = await import('./settingsStore');
+    // The pin now lives on a (direction, stage) selections entry rather than
+    // a global per-model map — any direction works for this direction-
+    // agnostic catalog-wide cache (catalogStatusRepos collects across every
+    // direction the user has touched).
+    const dir = directionKey('zh', 'en');
     useSettingsStore.setState({
       localNative: {
         ...useSettingsStore.getState().localNative,
-        translationVariantByModel: { 'fun-asr-mlt-nano': 'q6_k' },
+        selections: { [dir]: { ...emptyDirection(), asr: { modelId: 'fun-asr-mlt-nano', variant: 'q6_k' } } },
       },
     } as any);
     await useNativeModelStore.getState().ensureCatalog();
@@ -221,7 +226,7 @@ describe('catalog-derived statusRepos cache (cold-start variant awareness)', () 
     useSettingsStore.setState({
       localNative: {
         ...useSettingsStore.getState().localNative,
-        translationVariantByModel: {},
+        selections: {},
       },
     } as any);
   });
@@ -402,11 +407,10 @@ describe('nativeModelStore resolved plans retain backend and computeType', () =>
 });
 
 describe('ensureSelectionReady (facade)', () => {
-  const SEL = {
-    sourceLanguage: 'zh', targetLanguage: 'en',
-    asrModel: 'sense-voice', translationModel: 'qwen2.5-0.5b', ttsModel: '',
-    translationVariantByModel: {} as Record<string, string>,
-  };
+  // The only fields readiness reads off settings now — model choices and
+  // variant pins live entirely in settingsStore's localNative.selections
+  // (seeded per-test below), not on this object.
+  const SEL = { sourceLanguage: 'zh', targetLanguage: 'en' };
 
   beforeEach(async () => {
     _shouldReject = false;
@@ -438,13 +442,13 @@ describe('ensureSelectionReady (facade)', () => {
     expect(statusWhenRead).toBe('ready');
   });
 
-  it('unavailable sidecar → not ready, reason unavailable, no corrections', async () => {
+  it('unavailable sidecar → not ready, reason unavailable', async () => {
     useNativeModelStore.setState({ sidecarStatus: 'unavailable' });
     // ensureCatalog will try to (re)load; make the catalog fetch reject so it stays unavailable.
     mockModelsCatalogReject();
     const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
     // There is nothing to resolve yet at this lifecycle stage, so notes is empty.
-    expect(r).toEqual({ ready: false, reason: 'unavailable', corrections: null, notes: [] });
+    expect(r).toEqual({ ready: false, reason: 'unavailable', notes: [] });
   });
 
   it('bundle absent → reason engine-absent', async () => {
@@ -477,7 +481,7 @@ describe('ensureSelectionReady (facade)', () => {
     expect(r.reason).toBe('ready');
   });
 
-  it('stale translation for the reversed pair → not ready, reason translation-incompatible', async () => {
+  it('an explicit translation pick that is incompatible for its OWN direction → not ready, reason translation-incompatible', async () => {
     // FakeWS's default translate card (qwen2.5-0.5b) is `languages: ['multi']`,
     // which nativeTranslationCards treats as valid for ANY pair — so autoSelect
     // would always fall back to it and the selection would end up compatible
@@ -495,8 +499,24 @@ describe('ensureSelectionReady (facade)', () => {
       'opus-mt-zh-en': { id: 'opus-mt-zh-en', name: 'Opus MT zh-en', kind: 'translate', languages: ['zh', 'en'],
         recommended: false, tiers: [{ tier: 'cpu', backend: 'opus', available: true }], order: 1, repo: 'opus-mt-zh-en' },
     } as any });
+    // The direction under test is en→zh; ITS OWN selections entry pins the
+    // translation choice to a card that only supports zh→en. resolveStage
+    // finds it in the catalog (so it's not pruned as dead) but not in the
+    // (language-filtered) candidate pool, so it reports lang-incompatible and
+    // falls through to no auto candidate either — a pin can no longer leak
+    // across directions the way a shared flat field once could.
+    const { useSettingsStore } = await import('./settingsStore');
+    const dir = directionKey('en', 'zh');
+    useSettingsStore.setState({
+      localNative: {
+        ...useSettingsStore.getState().localNative,
+        selections: {
+          [dir]: { ...emptyDirection(), asr: { modelId: 'whisper-en' }, translation: { modelId: 'opus-mt-zh-en' } },
+        },
+      },
+    });
     const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
-      selection: { ...SEL, sourceLanguage: 'en', targetLanguage: 'zh', asrModel: 'whisper-en', translationModel: 'opus-mt-zh-en' },
+      selection: { sourceLanguage: 'en', targetLanguage: 'zh' },
       textOnly: false,
     }));
     // opus-mt-zh-en is a card for zh→en, not the reversed en→zh pair — incompatible
@@ -521,9 +541,9 @@ describe('ensureSelectionReady (facade)', () => {
       ],
     } } as any });
     // ensureSelectionReady resolves against settingsStore's localNative.selections
-    // (the structured source of truth), not the flat translationModel field the
-    // read() thunk returns below — without this, the resolver would auto-pick
-    // the recommended qwen2.5-0.5b instead of honoring hy-mt2-1.8b as explicit.
+    // — the read() thunk below only carries the language pair now, so without
+    // this the resolver would auto-pick the recommended qwen2.5-0.5b instead
+    // of honoring hy-mt2-1.8b as explicit.
     const { useSettingsStore } = await import('./settingsStore');
     const dir = directionKey(SEL.sourceLanguage, SEL.targetLanguage);
     useSettingsStore.setState({
@@ -533,7 +553,7 @@ describe('ensureSelectionReady (facade)', () => {
       },
     });
     await useNativeModelStore.getState().ensureSelectionReady(() => ({
-      selection: { ...SEL, translationModel: 'hy-mt2-1.8b' }, textOnly: false,
+      selection: SEL, textOnly: false,
     }));
     expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B-FP8' });
   });
@@ -546,7 +566,11 @@ describe('ensureSelectionReady (facade)', () => {
     // PINNED repo — ensureSelectionReady's second deriveVariantRepos() call
     // historically only listed asrModel/translationModel and silently dropped
     // ttsModel, so this card's status was checked against its default/
-    // recommended repo instead of the one the user actually pinned.
+    // recommended repo instead of the one the user actually pinned. A pin now
+    // lives ON the (direction, stage) selection alongside its modelId — there
+    // is no longer a separate "Auto but still pinned" state to cover
+    // (StageSelection's variant is always absent under auto), so choosing the
+    // pinned variant is itself what makes moss-tts-pro the explicit pick.
     mockModelsCatalogResolve();
     await useNativeModelStore.getState().ensureCatalog();
     const catalog = useNativeModelStore.getState().catalog;
@@ -566,49 +590,17 @@ describe('ensureSelectionReady (facade)', () => {
     useSettingsStore.setState({
       localNative: {
         ...useSettingsStore.getState().localNative,
-        selections: { [dir]: { ...emptyDirection(), tts: { modelId: 'moss-tts-pro' } } },
+        selections: { [dir]: { ...emptyDirection(), tts: { modelId: 'moss-tts-pro', variant: 'fp32' } } },
       },
     });
     await useNativeModelStore.getState().ensureSelectionReady(() => ({
-      selection: { ...SEL, targetLanguage: 'ja', ttsModel: 'moss-tts-pro',
-        translationVariantByModel: { 'moss-tts-pro': 'fp32' } },
+      selection: { ...SEL, targetLanguage: 'ja' },
       textOnly: false,
     }));
     expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'moss-tts-pro': 'org/moss-pro-fp32' });
   });
 
-  it('resolves the PINNED tts variant repo when TTS is on Auto (ttsModel: \'\'), not just an explicit pick', async () => {
-    // Same pin as the test above, but ttsModel is '' (Auto) — the DEFAULT for
-    // most users. requiredNativeModels() resolves Auto through resolveNativeTts()
-    // internally and status-checks the CONCRETE model id it picks, but the
-    // second deriveVariantRepos() call historically fed it effective.ttsModel
-    // RAW ('' for Auto): asCards() maps '' -> catalog[''] -> undefined and
-    // filters it out, so the pinned card never made it into that repo lookup —
-    // the checked model (Auto-resolved) and the pin-looked-up model (none,
-    // since '' was dropped) diverged and the pin was silently ignored for
-    // every Auto-TTS user. Drop the default moss-tts-nano fixture so the
-    // pinned multi-variant card is the SOLE ja-matching TTS candidate — the
-    // one Auto resolves to.
-    mockModelsCatalogResolve();
-    await useNativeModelStore.getState().ensureCatalog();
-    const { 'moss-tts-nano': _dropTts, ...catalogWithoutMossNano } = useNativeModelStore.getState().catalog;
-    useNativeModelStore.setState({ catalog: { ...catalogWithoutMossNano, 'moss-tts-pro': {
-      id: 'moss-tts-pro', name: 'MOSS Pro', kind: 'tts', languages: ['ja', 'zh'], recommended: false,
-      tiers: [], order: 9, repo: '',
-      variants: [
-        { id: 'fp32', sizeBytes: 3e9, repo: 'org/moss-pro-fp32', supported: true, recommended: false },
-        { id: 'bf16', sizeBytes: 1.5e9, repo: 'org/moss-pro-bf16', supported: true, recommended: true },
-      ],
-    } } as any });
-    await useNativeModelStore.getState().ensureSelectionReady(() => ({
-      selection: { ...SEL, targetLanguage: 'ja', ttsModel: '',
-        translationVariantByModel: { 'moss-tts-pro': 'fp32' } },
-      textOnly: false,
-    }));
-    expect((globalThis as any).__lastStatusRepos).toMatchObject({ 'moss-tts-pro': 'org/moss-pro-fp32' });
-  });
-
-  it('sidecar still starting → not ready, reason starting, no corrections', async () => {
+  it('sidecar still starting → not ready, reason starting', async () => {
     // ensureCatalog() early-returns when status is already 'starting' (see its
     // guard: `if (st === 'ready' || st === 'starting') return;`), so the status
     // never advances past 'starting' and refreshBundle() never runs — pin
@@ -618,19 +610,18 @@ describe('ensureSelectionReady (facade)', () => {
     useNativeModelStore.setState({ sidecarStatus: 'starting', bundleStatus: 'unknown' });
     const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
     // There is nothing to resolve yet at this lifecycle stage, so notes is empty.
-    expect(r).toEqual({ ready: false, reason: 'starting', corrections: null, notes: [] });
+    expect(r).toEqual({ ready: false, reason: 'starting', notes: [] });
   });
 
   it('source language with no compatible ASR model → not ready, reason asr-incompatible', async () => {
-    // The fixture catalog's only ASR card (sense-voice) is zh-only. Requesting a
-    // 'en' source leaves nativeAsrCards('en', catalog) empty, so autoSelect's ASR
-    // step (no compatible card, let alone a downloaded one) resets asrModel to ''
-    // — catalog[''] is undefined, so asrCompatible is false regardless of the
-    // translation pairing, and asr precedence (checked first) wins the reason.
+    // The fixture catalog's only ASR card (sense-voice) is zh-only, so
+    // nativeAsrCards('en', catalog) is empty — no candidate for auto to pick
+    // regardless of the translation pairing, and asr precedence (checked
+    // first) wins the reason.
     mockModelsCatalogResolve();
     await useNativeModelStore.getState().ensureCatalog(); // status → ready, catalog seeded
     const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
-      selection: { ...SEL, sourceLanguage: 'en', targetLanguage: 'en', asrModel: 'sense-voice' },
+      selection: { sourceLanguage: 'en', targetLanguage: 'en' },
       textOnly: true,
     }));
     expect(r.ready).toBe(false);
@@ -680,7 +671,7 @@ describe('ensureSelectionReady (facade)', () => {
         recommended: false, tiers: [{ tier: 'cpu', backend: 'opus', available: true }], order: 1, repo: 'opus-mt-zh-en' },
     } as any });
     const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
-      selection: { ...SEL, translationModel: 'opus-mt-zh-en' }, textOnly: false,
+      selection: SEL, textOnly: false,
     }));
     expect(r.ready).toBe(true);
     expect(r.reason).toBe('ready');

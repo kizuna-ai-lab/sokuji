@@ -1,12 +1,12 @@
 /**
  * The LOCAL_NATIVE readiness gate (validateApiKey) is a thin wrapper around
  * nativeModelStore's `ensureSelectionReady` facade: it hands the facade a thunk
- * reading the live localNative selection, applies any corrections it returns, and maps
- * the returned reason to a user-facing message via the module-private
- * `msgForNativeReason` helper. All sidecar warmup / lifecycle-gating /
- * auto-select / variant-repo-resolution behavior now lives in and is tested by
- * Task 3's facade tests (nativeModelStore.test.ts) — this file only pins the
- * wrapper contract and the reason→message mapping.
+ * reading the live localNative selection and maps the returned reason to a
+ * user-facing message via the module-private `msgForNativeReason` helper. All
+ * sidecar warmup / lifecycle-gating / auto-select / variant-repo-resolution
+ * behavior now lives in and is tested by Task 3's facade tests
+ * (nativeModelStore.test.ts) — this file only pins the wrapper contract and
+ * the reason→message mapping.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Provider } from '../types/Provider';
@@ -66,7 +66,7 @@ describe('LOCAL_NATIVE gate delegates to ensureSelectionReady', () => {
   });
 
   it('sets valid + empty message + availableModels when ready', async () => {
-    mockEnsureSelectionReady.mockResolvedValue({ ready: true, reason: 'ready', corrections: null });
+    mockEnsureSelectionReady.mockResolvedValue({ ready: true, reason: 'ready', notes: [] });
     const r = await useSettingsStore.getState().validateApiKey();
     expect(r).toEqual({ valid: true, message: '', validating: false });
     expect(useSettingsStore.getState().isApiKeyValid).toBe(true);
@@ -89,7 +89,7 @@ describe('LOCAL_NATIVE gate delegates to ensureSelectionReady', () => {
         textOnly: true,
       } as any);
       seen = read();
-      return { ready: true, reason: 'ready', corrections: null };
+      return { ready: true, reason: 'ready', notes: [] };
     });
     await useSettingsStore.getState().validateApiKey();
     expect(seen.selection.sourceLanguage).toBe('ja');
@@ -106,7 +106,7 @@ describe('LOCAL_NATIVE gate delegates to ensureSelectionReady', () => {
       let seen: any;
       mockEnsureSelectionReady.mockImplementation(async (read: any) => {
         seen = read();
-        return { ready: true, reason: 'ready', corrections: null };
+        return { ready: true, reason: 'ready', notes: [] };
       });
       await useSettingsStore.getState().validateApiKey();
       return seen.textOnly;
@@ -133,22 +133,9 @@ describe('LOCAL_NATIVE gate delegates to ensureSelectionReady', () => {
     }
   });
 
-  it('applies corrections to localNative', async () => {
-    mockEnsureSelectionReady.mockResolvedValue({ ready: true, reason: 'ready', corrections: { translationModel: 'opus-mt-zh-en' } });
-    await useSettingsStore.getState().validateApiKey();
-    expect(useSettingsStore.getState().localNative.translationModel).toBe('opus-mt-zh-en');
-  });
-
-  it('does not touch localNative when corrections is null', async () => {
-    const before = useSettingsStore.getState().localNative.translationModel;
-    mockEnsureSelectionReady.mockResolvedValue({ ready: false, reason: 'models-missing', corrections: null });
-    await useSettingsStore.getState().validateApiKey();
-    expect(useSettingsStore.getState().localNative.translationModel).toBe(before);
-  });
-
   for (const [reason, expected] of Object.entries(REASON_MESSAGE)) {
     it(`maps reason "${reason}" to its frozen message`, async () => {
-      mockEnsureSelectionReady.mockResolvedValue({ ready: reason === 'ready', reason, corrections: null });
+      mockEnsureSelectionReady.mockResolvedValue({ ready: reason === 'ready', reason, notes: [] });
       const r = await useSettingsStore.getState().validateApiKey();
       expect(r.message).toBe(expected);
       expect(useSettingsStore.getState().validationMessage).toBe(expected);

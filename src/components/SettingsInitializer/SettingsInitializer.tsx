@@ -170,7 +170,11 @@ export function SettingsInitializer() {
   useEffect(() => {
     if (!settingsLoaded) return;
     if (provider !== Provider.LOCAL_INFERENCE) return;
-    if (localInferenceSettings.ttsModel !== 'edge-tts') return;
+    const resolvedTts = useModelStore.getState().resolve(
+      localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage,
+      localInferenceSettings.selections,
+    ).tts?.modelId;
+    if (resolvedTts !== 'edge-tts') return;
 
     let cancelled = false;
     getEdgeTtsVoices()
@@ -189,8 +193,8 @@ export function SettingsInitializer() {
       });
 
     return () => { cancelled = true; };
-  }, [settingsLoaded, provider, localInferenceSettings.ttsModel,
-      localInferenceSettings.targetLanguage, localInferenceSettings.edgeTtsVoice]);
+  }, [settingsLoaded, provider, localInferenceSettings.sourceLanguage, localInferenceSettings.selections,
+      localInferenceSettings.targetLanguage, localInferenceSettings.edgeTtsVoice, modelStatuses]);
 
   // ── LOCAL_INFERENCE: validate when model statuses or language settings change ──
   // validateApiKey() handles everything: model store init, auto-select, readiness check.
@@ -241,8 +245,7 @@ export function SettingsInitializer() {
     return () => { cancelled = true; };
   }, [settingsLoaded, provider,
       localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
-      localNativeSettings.asrModel, localNativeSettings.translationModel,
-      localNativeSettings.ttsModel,
+      localNativeSettings.selections,
       // The two inputs to the effective text-only answer — see their
       // declaration above for why a stale verdict is unrecoverable here.
       audioMode, textOnly,

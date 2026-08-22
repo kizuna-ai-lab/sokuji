@@ -4,7 +4,7 @@
  * config share one source of truth.
  */
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
-import type { ResolutionNote } from '../selection/types';
+import type { ResolutionNote, Selections } from '../selection/types';
 
 /**
  * Aliases between the app's source-language values (src/utils/languages.ts) and
@@ -447,13 +447,6 @@ export function nativeTtsCards(tgt: string, catalog: Record<string, NativeModelI
   }));
 }
 
-/** The per-stage selection (the selectIds written to LocalNativeSettings). */
-export interface NativeSelection {
-  asrModel: string;
-  translationModel: string;
-  ttsModel: string;
-}
-
 /** Why a LOCAL_NATIVE selection is / isn't session-ready. `settingsStore` maps
  * each reason to a user-facing message; the store never owns i18n strings. */
 export type NativeReadinessReason =
@@ -467,15 +460,14 @@ export type NativeReadinessReason =
   | 'translation-incompatible'
   | 'models-missing';
 
-/** The selection fields readiness depends on (a structural subset of
- * LocalNativeSettings, so the settings slice is assignable to it). */
+/** The selection fields readiness depends on. The three per-stage model ids and
+ *  the variant-pin map used to live here too (a structural subset of
+ *  LocalNativeSettings) — now that both are folded into `selections`, resolved
+ *  through the model store's `resolve()` against the language pair below,
+ *  there is nothing left to read off the flat settings shape. */
 export interface NativeReadinessSelection {
   sourceLanguage: string;
   targetLanguage: string;
-  asrModel: string;
-  translationModel: string;
-  ttsModel: string;
-  translationVariantByModel: Record<string, string>;
 }
 
 /** Everything readiness reads out of settings, resolved in one go. Handed to the
@@ -490,8 +482,6 @@ export interface NativeReadinessInput {
 export interface NativeReadinessResult {
   ready: boolean;
   reason: NativeReadinessReason;
-  /** Auto-select's changed fields (null = nothing changed); the caller persists them. */
-  corrections: Partial<NativeSelection> | null;
   /**
    * Every stage note the speaker AND participant direction resolutions
    * produced (blocking or not), for the UI to render in place of the generic
@@ -501,5 +491,30 @@ export interface NativeReadinessResult {
    * 'starting') — there is nothing to resolve yet at that point.
    */
   notes: ResolutionNote[];
+}
+
+/**
+ * Collect every explicit (modelId, variant) pin recorded across the given
+ * directions, keyed by model id — the shape {@link deriveVariantRepos}/
+ * `statusReposFor` expect. Replaces the old global, misnamed
+ * `translationVariantByModel` map: a pin is now scoped to the (direction,
+ * stage) that carries it, so this walks exactly the directions the caller
+ * cares about (never ALL of `selections` unless the caller passes every key)
+ * rather than assuming one pin applies everywhere. A stage only contributes
+ * when its choice is BOTH explicit (non-empty modelId) and carries a variant
+ * — an auto stage's variant is always absent by the `StageSelection`
+ * contract, so there is nothing to collect there.
+ */
+export function pinsFromSelections(selections: Selections, directions: string[]): Record<string, string> {
+  const pins: Record<string, string> = {};
+  for (const dir of directions) {
+    const d = selections[dir];
+    if (!d) continue;
+    for (const stage of ['asr', 'translation', 'tts'] as const) {
+      const sel = d[stage];
+      if (sel?.modelId && sel.variant) pins[sel.modelId] = sel.variant;
+    }
+  }
+  return pins;
 }
 

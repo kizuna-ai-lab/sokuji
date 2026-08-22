@@ -80,46 +80,57 @@ describe('ensureSelectionReady', () => {
     vi.clearAllMocks();
     // Skip the IndexedDB scan — readiness logic is what we're exercising here.
     useModelStore.setState({ initialized: true, webgpuAvailable: false });
-    // ensureSelectionReady() now reads the language pair, flat fields, and
-    // selections off useSettingsStore itself (no snapshot is passed in) — a
-    // leftover value from another describe block would silently change what
-    // these tests are exercising, so every field it reads is reset here.
+    // ensureSelectionReady() now reads the language pair and selections off
+    // useSettingsStore itself (no snapshot is passed in) — a leftover value
+    // from another describe block would silently change what these tests are
+    // exercising, so every field it reads is reset here.
     await useSettingsStore.getState().updateLocalInference({
       selections: {}, sourceLanguage: 'en', targetLanguage: 'ja',
-      asrModel: '', translationModel: '', ttsModel: '',
     });
     mockGetManifestEntry.mockImplementation((id: string) => all.find(m => m.id === id));
     mockGetManifestByType.mockImplementation((type: string) => all.filter(m => m.type === type));
   });
 
-  it('reports ready with no corrections when the flat selection already matches the resolved direction', async () => {
+  it('reports ready when the explicit selection resolves cleanly', async () => {
     useModelStore.setState({
       modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded', 'piper-ja': 'downloaded' },
     });
     await useSettingsStore.getState().updateLocalInference({
-      asrModel: 'sensevoice-int8', translationModel: 'opus-mt-en-ja', ttsModel: 'piper-ja',
+      selections: {
+        [directionKey('en', 'ja')]: {
+          asr: { modelId: 'sensevoice-int8' }, translation: { modelId: 'opus-mt-en-ja' }, tts: { modelId: 'piper-ja' },
+        },
+      },
     });
 
     const result = await useModelStore.getState().ensureSelectionReady();
 
     expect(result.ready).toBe(true);
-    expect(result.corrections).toBeNull();
   });
 
-  it('corrects a stale flat TTS field to what the resolver actually picked', async () => {
+  it('an explicit but language-incompatible TTS choice auto-falls-back to a compatible candidate', async () => {
     useModelStore.setState({
       // piper-en is downloaded but wrong language for targetLanguage 'ja' —
       // resolve()'s TTS pool excludes it entirely, so auto-pick lands on piper-ja.
       modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded', 'piper-ja': 'downloaded', 'piper-en': 'downloaded' },
     });
     await useSettingsStore.getState().updateLocalInference({
-      asrModel: 'sensevoice-int8', translationModel: 'opus-mt-en-ja', ttsModel: 'piper-en',
+      selections: {
+        [directionKey('en', 'ja')]: {
+          asr: { modelId: 'sensevoice-int8' }, translation: { modelId: 'opus-mt-en-ja' }, tts: { modelId: 'piper-en' },
+        },
+      },
     });
 
     const result = await useModelStore.getState().ensureSelectionReady();
 
-    expect(result.corrections?.ttsModel).toBe('piper-ja');
     expect(result.ready).toBe(true);
+    // The stale explicit choice is left untouched in storage (only a dead id
+    // is pruned) — resolve() is the single source of what actually gets used,
+    // and it falls back past the language-incompatible pick to piper-ja.
+    const resolved = useModelStore.getState().resolve(
+      'en', 'ja', useSettingsStore.getState().localInference.selections);
+    expect(resolved.tts?.modelId).toBe('piper-ja');
   });
 
   it('is not ready when nothing downloaded can resolve ASR or translation', async () => {
@@ -135,7 +146,11 @@ describe('ensureSelectionReady', () => {
       modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded' },
     });
     await useSettingsStore.getState().updateLocalInference({
-      asrModel: 'sensevoice-int8', translationModel: 'opus-mt-en-ja', ttsModel: '',
+      selections: {
+        [directionKey('en', 'ja')]: {
+          asr: { modelId: 'sensevoice-int8' }, translation: { modelId: 'opus-mt-en-ja' }, tts: { modelId: '' },
+        },
+      },
     });
 
     const result = await useModelStore.getState().ensureSelectionReady();
@@ -154,7 +169,11 @@ describe('ensureSelectionReady', () => {
       modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded', 'piper-ja': 'downloaded' },
     });
     await useSettingsStore.getState().updateLocalInference({
-      asrModel: 'sensevoice-int8', translationModel: 'opus-mt-en-ja', ttsModel: 'piper-ja',
+      selections: {
+        [directionKey('en', 'ja')]: {
+          asr: { modelId: 'sensevoice-int8' }, translation: { modelId: 'opus-mt-en-ja' }, tts: { modelId: 'piper-ja' },
+        },
+      },
     });
 
     const result = await useModelStore.getState().ensureSelectionReady();

@@ -9,7 +9,7 @@ import {
   SessionConfig,
   LocalNativeSessionConfig,
 } from '../services/interfaces/IClient';
-import { getManifestEntry, getTranslationModel } from '../lib/local-inference/modelManifest';
+import { getManifestEntry } from '../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { type NativeReadinessReason } from '../lib/local-inference/native/nativeCatalog';
 import { useNativeModelStore } from './nativeModelStore';
@@ -464,21 +464,6 @@ export function resolveTranslationWorkerTypeForModelId(modelId: string | null | 
   return entry.translationWorkerType || (entry.multilingual ? 'qwen' : 'opus-mt');
 }
 
-/**
- * Resolve the effective translation worker type for the speaker direction of
- * the current local-inference settings. Considers auto-select fallback (empty
- * translationModel → getTranslationModel lookup).
- *
- * Note: this only looks at speaker direction. The participant direction is a
- * peer, not a reversal — resolve it via `useModelStore.getState().resolve(...)`
- * against its own entry in `settings.selections`.
- */
-export function resolveTranslationWorkerType(settings: LocalInferenceSettings): string {
-  const modelId = settings.translationModel
-    || getTranslationModel(settings.sourceLanguage, settings.targetLanguage)?.id;
-  return resolveTranslationWorkerTypeForModelId(modelId);
-}
-
 // Moved beside the descriptors (their caller since the S2 participant-config
 // seam); re-exported here so existing importers keep working.
 export { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../services/providers/localParticipantConfig';
@@ -841,11 +826,10 @@ const useSettingsStore = create<SettingsStore>()(
       // lifecycle gating, resolving BOTH the speaker and participant
       // directions, and applying the session-gate table (speaker ASR/
       // translation block, speaker TTS and the whole participant direction
-      // never do). This branch only applies the resulting corrections (the
-      // interim bridge to the flat NativeSelection fields buildSessionConfig
-      // still reads) and maps `reason` to a user-facing message; `notes` is
-      // already stashed on nativeModelStore's `lastResolutionNotes` for Plan 2
-      // to render in place of this generic message.
+      // never do). This branch maps `reason` to a user-facing message; `notes`
+      // is already stashed on nativeModelStore's `lastResolutionNotes` for
+      // Plan 2 to render in place of this generic message. resolve() output IS
+      // the answer, so there is nothing left to write back to settings here.
       if (provider === Provider.LOCAL_NATIVE) {
         // Settings go in as a thunk, not a snapshot: the facade warms the sidecar
         // first (seconds, on a cold start) and reads them only after — so a pair
@@ -858,7 +842,7 @@ const useSettingsStore = create<SettingsStore>()(
         // rather than the start path's device-aware `speakerWillStart` — this
         // gate has no business knowing which microphone is selected, and the
         // Start gate refuses a mode whose devices are missing anyway.
-        const { ready, reason, corrections } = await useNativeModelStore.getState()
+        const { ready, reason } = await useNativeModelStore.getState()
           .ensureSelectionReady(() => ({
             selection: get().localNative,
             textOnly: effectiveTextOnly({
@@ -866,7 +850,6 @@ const useSettingsStore = create<SettingsStore>()(
               textOnly: get().textOnly,
             }),
           }));
-        if (corrections) get().updateLocalNative(corrections);
         const message = msgForNativeReason(reason);
         set({
           isApiKeyValid: ready,
@@ -884,16 +867,11 @@ const useSettingsStore = create<SettingsStore>()(
         // modelStore owns readiness: it initializes, resolves BOTH the speaker
         // and participant directions, applies the session-gate table (speaker
         // ASR/translation block; speaker TTS and the whole participant
-        // direction never do), and returns corrections (the interim bridge to
-        // the flat LocalInferenceSettings fields buildSessionConfig still
-        // reads) plus `notes` — already stashed on modelStore's
-        // `lastResolutionNotes` for Plan 2 to render in place of the generic
-        // message below.
-        const { ready, corrections } = await useModelStore.getState().ensureSelectionReady();
-        if (corrections) {
-          console.log('[SettingsStore] Auto-correcting stale model selections:', corrections);
-          get().updateLocalInference(corrections);
-        }
+        // direction never do), and returns `notes` — already stashed on
+        // modelStore's `lastResolutionNotes` for Plan 2 to render in place of
+        // the generic message below. resolve() output IS the answer, so there
+        // is nothing left to write back to settings here.
+        const { ready } = await useModelStore.getState().ensureSelectionReady();
 
         const message = ready ? '' : i18n.t('settings.localInferenceModelsRequired');
         set({
