@@ -57,7 +57,6 @@
     flex: 0 0 128px;
     font-size: vars.$font-caption;
     color: vars.$text-secondary;
-    line-height: 1.3;
   }
 
   &__control {
@@ -72,10 +71,12 @@
   &__select.engine-slot__select {
     // The app-wide .select-dropdown look, one size down from the Provider
     // control (body 13px, not title 14px, tighter padding) so five of these
-    // read as rows, not five heroes — and matching .model-card__name.
+    // read as rows, not five heroes — matching .model-card__name and the
+    // option-row family's rhythm. No explicit line-height anywhere in this
+    // area: the rest of the app's rows ride the browser's normal, and a
+    // hand-set 1.4 made these rows visibly taller than their own labels.
     font-size: vars.$font-body;
-    line-height: 1.4;
-    padding: 7px 10px;
+    padding: 6px 10px;
 
     &.engine-slot__select--missing {
       color: vars.$color-error;
@@ -98,14 +99,14 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      // Same type size and vertical rhythm as the closed control (13px;
-      // 22px min-height + 6px padding = the control's 34px) — the options
-      // were rendering a size up and 6px taller than the control they drop
-      // from (the UA base-select stylesheet pins option min-height at 24px).
+      // Same type size and vertical rhythm as the closed control: 13px on
+      // the browser's normal line-height, min-height freed from the UA
+      // base-select stylesheet's 24px pin, and 1px more vertical padding
+      // than the control to stand in for its border — both land at the same
+      // measured height.
       font-size: vars.$font-body;
-      line-height: 1.4;
-      padding: 6px 10px;
-      min-height: 22px;
+      padding: 7px 10px;
+      min-height: 0;
     }
 
     option:checked {
