@@ -180,6 +180,13 @@
   &__delete {
     background: transparent; border: none; color: vars.$text-muted;
     cursor: pointer; padding: 4px 6px; border-radius: vars.$radius-sm;
+    // Keep the 20px hit target WITHOUT letting it set the row's height:
+    // flex kills the inline line-box around the 12px icon, and the negative
+    // vertical margin cancels the padding out of layout, so the row's height
+    // comes from the 13px text — measured 29px, same as a picker row (it was
+    // 15px taller with this button as the row's tallest box).
+    display: flex; align-items: center;
+    margin: -4px 0;
     transition: color vars.$transition-fast;
 
     &:hover:not(:disabled) { color: vars.$color-error; }
