@@ -65,7 +65,7 @@
     transition: color vars.$transition-fast;
   }
   &__value {
-    font-size: 13px; font-family: ui-monospace, monospace;
+    font-size: 13px;
     margin-left: auto; text-align: right;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
