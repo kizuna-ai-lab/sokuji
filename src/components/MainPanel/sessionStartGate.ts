@@ -197,7 +197,8 @@ export function computeStartGate(input: StartGateInput): StartGate {
   if (!isApiKeyValid) {
     // For LOCAL_INFERENCE, "API key valid" is really "required models are
     // downloaded" (settingsStore.validateApiKey delegates to
-    // modelStore.isProviderReady), so the actionable message differs.
+    // modelStore.ensureSelectionReady's resolver gate), so the actionable
+    // message differs.
     return {
       canStart: false,
       reason: provider === Provider.LOCAL_INFERENCE ? 'local-models-missing' : 'api-key-invalid',

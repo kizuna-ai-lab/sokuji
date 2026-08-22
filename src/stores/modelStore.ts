@@ -10,13 +10,6 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { ModelManager, type DownloadProgress } from '../lib/local-inference/ModelManager';
 import {
   MODEL_MANIFEST,
-  getManifestEntry,
-  getAsrModelsForLanguage,
-  getTranslationModel,
-  getTtsModelsForLanguage,
-  isTranslationModelCompatible,
-  isAstCompatible,
-  modelUsable,
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
 import * as modelStorage from '../lib/local-inference/modelStorage';
@@ -82,20 +75,6 @@ interface ModelStoreState {
   deleteModel: (modelId: string) => Promise<void>;
   /** Delete all downloaded models */
   deleteAllModels: () => Promise<void>;
-  /**
-   * Check if the LOCAL_INFERENCE provider has required models for a language pair.
-   * Returns true when: ASR model for sourceLang + translation model for src→tgt
-   * + TTS model for targetLang are all downloaded.
-   *
-   * When a selected model ID is provided (non-empty string), that specific model
-   * must be downloaded. Otherwise falls back to the default lookup
-   * (any compatible model for ASR/TTS, or getTranslationModel preference for translation).
-   */
-  isProviderReady: (
-    sourceLang: string, targetLang: string,
-    selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string,
-  ) => boolean;
-
   /**
    * Resolve one direction against the WASM manifest and current download
    * statuses. Pure: `selections` comes in as a parameter rather than being
@@ -395,52 +374,6 @@ export const useModelStore = create<ModelStoreState>()(
       });
     },
 
-    isProviderReady: (sourceLang: string, targetLang: string, selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string): boolean => {
-      const { modelStatuses, webgpuAvailable } = get();
-      const ctx = { modelStatuses, webgpuAvailable };
-
-      // 1. ASR: if a specific model is selected, it must be usable (downloaded +
-      //    device-ready) and support sourceLang; otherwise at least 1 ASR model
-      //    for sourceLang must be usable.
-      if (selectedAsrModel) {
-        const asrEntry = getManifestEntry(selectedAsrModel);
-        if (!modelUsable(asrEntry, ctx)) return false;
-        if (asrEntry && !asrEntry.multilingual && !asrEntry.languages.includes(sourceLang)) return false;
-      } else {
-        const hasAsr = getAsrModelsForLanguage(sourceLang).some(m => modelUsable(m, ctx));
-        if (!hasAsr) return false;
-      }
-
-      // 2. Translation: AST short-circuit when translation model === ASR model
-      if (selectedTranslationModel && selectedTranslationModel === selectedAsrModel) {
-        const asrEntry = getManifestEntry(selectedAsrModel);
-        if (!asrEntry || !isAstCompatible(asrEntry, sourceLang, targetLang)) return false;
-      } else if (selectedTranslationModel) {
-        const entry = getManifestEntry(selectedTranslationModel);
-        if (!modelUsable(entry, ctx)) return false;
-        if (entry && !isTranslationModelCompatible(entry, sourceLang, targetLang)) return false;
-      } else {
-        const translationEntry = getTranslationModel(sourceLang, targetLang);
-        if (!modelUsable(translationEntry, ctx)) return false;
-      }
-
-      // 3. TTS: if a specific model is selected, it must be usable and support
-      //    targetLang; otherwise at least 1 TTS model for targetLang must be usable.
-      if (selectedTtsModel) {
-        const ttsEntry = getManifestEntry(selectedTtsModel);
-        if (!modelUsable(ttsEntry, ctx)) return false;
-        // Language compatibility is orthogonal to cloud/local (a cloud model
-        // still can't produce a language it doesn't support). The one current
-        // cloud TTS is multilingual, so this is behavior-identical today.
-        if (ttsEntry && !ttsEntry.multilingual && !ttsEntry.languages.includes(targetLang)) return false;
-      } else {
-        const hasTts = getTtsModelsForLanguage(targetLang).some(m => modelUsable(m, ctx));
-        if (!hasTts) return false;
-      }
-
-      return true;
-    },
-
     /**
      * Resolve one direction. Pure: takes `selections` as a parameter instead
      * of reading settingsStore itself — settingsStore already dynamically
@@ -541,7 +474,6 @@ export const useDownloadErrors = () => useModelStore(s => s.downloadErrors);
 export const useStorageUsedMb = () => useModelStore(s => s.storageUsedMb);
 export const useModelInitialized = () => useModelStore(s => s.initialized);
 export const useModelInitError = () => useModelStore(s => s.initError);
-export const useIsProviderReady = () => useModelStore(s => s.isProviderReady);
 export const useWebGPUAvailable = () => useModelStore(s => s.webgpuAvailable);
 export const useWebGPUSoftwareOnly = () => useModelStore(s => s.webgpuSoftwareOnly);
 export const useDeviceFeatures = () => useModelStore(s => s.deviceFeatures);

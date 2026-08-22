@@ -126,7 +126,7 @@ describe('requiredNativeModels', () => {
     'moss-tts-nano':     { id: 'moss-tts-nano',       name: 'MOSS TTS Nano',     languages: ['ja', 'zh'], recommended: true, tiers: [], order: 0, repo: 'moss-tts-nano',   kind: 'tts'       },
   } as any;
 
-  it('lists asr + translation(+qwen default) + tts when speech on', () => {
+  it('lists asr + translation + tts from explicit choices (empty translation, off tts, and textOnly each omit their stage)', () => {
     // en target -> fixture piper-en TTS; '' translation -> no translation model (empty means nothing chosen)
     expect(requiredNativeModels('sense-voice', '', '', 'es', 'en', FIXTURE_CATALOG)).toEqual([
       'sense-voice', 'piper-en',

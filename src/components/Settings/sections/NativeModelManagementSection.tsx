@@ -198,7 +198,7 @@ const NativeModelCard: React.FC<{
     err && status !== 'downloading' && 'model-card--error',
   ].filter(Boolean).join(' ');
 
-  const handleClick = () => { if (!disabled && !hwGated && ready) onSelect(); };
+  const handleClick = () => { if (!disabled && !incompatible && !hwGated && ready) onSelect(); };
 
   const p = noDownload ? undefined : progress[spec.downloadId as string];
   const percent = p && p.total > 0 ? Math.round((p.downloaded / p.total) * 100) : 0;

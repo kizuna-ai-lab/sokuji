@@ -6,6 +6,7 @@ import { IClient, FilteredModel, SessionConfig, LocalInferenceSessionConfig } fr
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalInferenceClient } from '../clients/LocalInferenceClient';
 import { createParticipantLocalInferenceConfig } from './localParticipantConfig';
+import { guardAstCrossStage } from './astGuard';
 import type { Selections } from '../../lib/local-inference/selection/types';
 // localParticipantConfig.ts (imported above) already statically imports
 // modelStore, so this introduces no new import-graph risk — mirrors
@@ -107,8 +108,16 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
     // fallback this replaced never considered readiness at all; they only
     // worked because validateApiKey's now-removed corrections kept the flat
     // fields in sync with the resolver beforehand.
-    const resolved = useModelStore.getState().resolve(
+    const rawResolved = useModelStore.getState().resolve(
       settings.sourceLanguage, settings.targetLanguage, settings.selections);
+    // AST cross-stage guard: an explicit translation pick that is really an
+    // AST-capable ASR model only stays AST-eligible if it also matches the
+    // resolved ASR — otherwise it would reach LocalInferenceClient as a
+    // translationModelId with no ASR match, silently falling out of AST mode
+    // into a real TranslationEngine built against AST-only files. See
+    // astGuard.ts.
+    const resolved = guardAstCrossStage(
+      settings.sourceLanguage, settings.targetLanguage, settings.selections, rawResolved);
 
     // wrapTranscript must match the instructions actually in use. The default prompt
     // (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions

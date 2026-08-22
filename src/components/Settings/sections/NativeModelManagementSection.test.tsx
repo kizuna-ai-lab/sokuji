@@ -639,3 +639,37 @@ describe('NativeModelManagementSection — tier badge tooltip (Task 3)', () => {
     }
   });
 });
+
+describe('NativeModelManagementSection — incompatible card click guard', () => {
+  // Regression: an incompatible ASR card's click handler used to omit
+  // `incompatible` from its guard, so clicking one under "Show all ASR
+  // models" wrote it into selections despite the card being visibly
+  // unselectable — an invisible no-op that only surfaces later, when
+  // resolution rejects the language-incompatible explicit pick.
+  it('clicking an incompatible ASR card (behind "Show all") does not write a selection', async () => {
+    mockCatalogOverride = {
+      ...mockCatalog,
+      // languages: ['en'] does not include mockSettings.sourceLanguage ('ja'),
+      // so this lands in asrIncompatibleCards, not the primary asrCards list.
+      'whisper-en-only': {
+        id: 'whisper-en-only', name: 'Whisper EN-only', languages: ['en'],
+        recommended: false, tiers: [], order: 5, repo: 'whisper-en-only', kind: 'asr',
+      },
+    };
+    // Downloaded (e.g. from a previous en→x session) so `ready` is already
+    // true — isolating the assertion to the `incompatible` guard rather than
+    // piggybacking on the (also correct) not-downloaded block.
+    mockStatuses['whisper-en-only'] = 'ready';
+    try {
+      render(<NativeModelManagementSection />);
+      fireEvent.click(screen.getByText(/Show all ASR models/));
+      const card = screen.getByTestId('model-card-whisper-en-only');
+      expect(card.className).toContain('model-card--incompatible');
+
+      fireEvent.click(card);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+});

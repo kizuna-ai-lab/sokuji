@@ -208,7 +208,8 @@ export function SettingsInitializer() {
     prevProviderRef.current = provider;
 
     // validateApiKey for LOCAL_INFERENCE is effectively synchronous (no network call),
-    // so no flickering despite being async. It handles autoSelectModels + isProviderReady.
+    // so no flickering despite being async. It handles autoSelectModels +
+    // ensureSelectionReady's resolver gate.
     if (!isValidatingRef.current) {
       isValidatingRef.current = true;
       validateApiKey()

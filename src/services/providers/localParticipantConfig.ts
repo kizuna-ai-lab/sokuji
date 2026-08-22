@@ -2,6 +2,7 @@ import { LocalInferenceSessionConfig, LocalNativeSessionConfig } from '../interf
 import { estimateModelMemoryByDevice } from '../../lib/local-inference/modelManifest';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { useModelStore } from '../../stores/modelStore';
+import { guardAstCrossStage } from './astGuard';
 import type { Selections } from '../../lib/local-inference/selection/types';
 
 /**
@@ -81,7 +82,11 @@ export function createParticipantLocalInferenceConfig(
 ): ParticipantLocalInferenceResult {
   const revSrc = baseConfig.targetLanguage;
   const revTgt = baseConfig.sourceLanguage;
-  const r = useModelStore.getState().resolve(revSrc, revTgt, selections);
+  const rawR = useModelStore.getState().resolve(revSrc, revTgt, selections);
+  // AST cross-stage guard — see astGuard.ts. Applies here too: the
+  // participant direction resolves asr/translation independently just like
+  // the speaker direction does.
+  const r = guardAstCrossStage(revSrc, revTgt, selections, rawR);
 
   if (!r.asr) {
     return { success: false, reason: 'no_asr', detail: `No ASR model available for ${revSrc}` };
