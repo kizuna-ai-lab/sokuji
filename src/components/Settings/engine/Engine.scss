@@ -160,8 +160,41 @@
   &:empty { display: none; }
 }
 
-// Back row: EngineSurface's pushed-page header, reading as a clickable
-// "header-weight" row matching a sibling section's h3.
+// Slide-in transitions for the push stack (B decision, 2026-08-23): only
+// the INCOMING content animates — from the right going deeper, from the
+// left coming back — one directional cue instead of a two-page stack.
+// Reduced-motion users get today's instant swap.
+@media (prefers-reduced-motion: no-preference) {
+  .engine-surface__page--push { animation: engine-page-push 0.22s cubic-bezier(0.25, 0.6, 0.3, 1); }
+  .engine-surface__page--pop  { animation: engine-page-pop  0.22s cubic-bezier(0.25, 0.6, 0.3, 1); }
+}
+@keyframes engine-page-push { from { transform: translateX(60px);  opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes engine-page-pop  { from { transform: translateX(-60px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+// The pushed page's back CHIP: a small pill that names the PARENT page
+// ("← Models") — the destination, iOS-style — while the current page's
+// title stands beside it as plain heading text. Sits inside the h3, so
+// weight/size are reset from the heading's own.
+.engine-back-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: none;
+  border: 1px solid vars.$border-default;
+  border-radius: 999px;
+  color: vars.$text-secondary;
+  font-size: vars.$font-caption;
+  font-weight: vars.$weight-normal;
+  padding: 3px 10px 3px 8px;
+  cursor: pointer;
+  transition: border-color vars.$transition-fast, color vars.$transition-fast;
+
+  &:hover {
+    border-color: vars.$color-primary;
+    color: vars.$color-primary;
+  }
+}
+
+// Back row: SimpleSettings' engine-host exit (its own surface, not the push
+// stack), reading as a clickable "header-weight" row matching an h3.
 .engine-back-row {
   display: flex; align-items: center; gap: 10px; width: 100%;
   background: none; border: none; padding: 0; cursor: pointer;

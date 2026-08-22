@@ -189,7 +189,7 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
 
     const asrSlot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]')!;
     fireEvent.change(asrSlot.querySelector('select')!, { target: { value: '__browse__' } });
-    expect(container.querySelector('.engine-back-row')).not.toBeNull();
+    expect(container.querySelector('.engine-back-chip')).not.toBeNull();
     expect(container.querySelector('.engine-page')).toBeNull();
 
     // A different slot's chip fires while the Library is showing — the surface
@@ -199,7 +199,7 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
       useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'translation' });
     });
 
-    expect(container.querySelector('.engine-back-row')).toBeNull();
+    expect(container.querySelector('.engine-back-chip')).toBeNull();
     const translationSlot = container.querySelector('.engine-slot[data-slot="ja→en:translation"]')!;
     expect(translationSlot.classList.contains('highlight')).toBe(true);
   });

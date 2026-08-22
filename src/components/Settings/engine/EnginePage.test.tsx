@@ -116,13 +116,16 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     expect(asrSelect().value).toBe('');
   });
 
-  it('the back row shows the localized stage label as its VISIBLE text while "Back" survives as its accessible name', () => {
+  it('the back CHIP names the PARENT page while the current page title stands beside it (B, 2026-08-23)', () => {
     surface();
     fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
     const back = screen.getByRole('button', { name: 'Back' });
-    expect(back).toHaveTextContent('Library · ASR');
-    expect(back).not.toHaveTextContent('Back Library');
+    // iOS-style: the chip says where the click LANDS, not where you are.
+    expect(back).toHaveTextContent('Models');
+    expect(back).not.toHaveTextContent('Library');
     expect(back.getAttribute('aria-label')).toBe('Back');
+    // The page's own title is plain heading text next to the chip.
+    expect(screen.getByText('Library · ASR')).toBeInTheDocument();
   });
 
   it('the storage footer pushes the storage page', () => {

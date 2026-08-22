@@ -40,13 +40,29 @@ export const EngineSurface: React.FC<{
   useEffect(() => {
     if (initialSlot) {
       setFlashSlot(initialSlot);
+      if (pushedRef.current) setNavDir('pop');
       setPushed(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSlot]);
+
+  // Last navigation direction, driving the slide-in animation (B decision,
+  // 2026-08-23): the page wrapper below remounts on push/pop (keyed) and
+  // plays a one-way slide+fade for the INCOMING content — from the right
+  // going deeper, from the left coming back. Null on first mount: the
+  // initial render is not a navigation.
+  const [navDir, setNavDir] = useState<null | 'push' | 'pop'>(null);
+  const pushedRef = useRef(pushed);
+  pushedRef.current = pushed;
 
   const push = (page: Pushed) => {
     setFlashSlot(null);
+    setNavDir('push');
     setPushed(page);
+  };
+  const pop = () => {
+    setNavDir('pop');
+    setPushed(null);
   };
 
   // A pending flash dies with the mode that armed it (guarded by a ref so
@@ -76,6 +92,7 @@ export const EngineSurface: React.FC<{
   // TAKES the h3 position (arrow + title) instead of sitting above a second,
   // separate frame — so browsing the Library/Storage feels like one page
   // swapping its content, not a nested mini-page.
+  const pageClass = `engine-surface__page${navDir ? ` engine-surface__page--${navDir}` : ''}`;
   if (pushed) {
     const title = pushed.page === 'library'
       ? t('engineUi.titleLibrary', 'Library · {{stage}}', {
@@ -84,26 +101,34 @@ export const EngineSurface: React.FC<{
       : t('engineUi.titleStorage', 'Storage');
     return (
       <div className="config-section engine-surface">
-        <h3 className="engine-surface__heading">
-          <button type="button" className="engine-back-row" aria-label={t('engineUi.back', 'Back')} onClick={() => setPushed(null)}>
-            <ArrowLeft size={14} />
-            {title}
-          </button>
-        </h3>
-        {pushed.page === 'library' ? renderLibrary(pushed.slot) : renderStorage()}
+        {/* Key remounts the wrapper per page so the slide animation plays on
+            every push/pop; the back CHIP names the PARENT (where the click
+            lands, iOS-style) while the page's own title stands beside it. */}
+        <div key={pushed.page} className={pageClass}>
+          <h3 className="engine-surface__heading">
+            <button type="button" className="engine-back-chip" aria-label={t('engineUi.back', 'Back')} onClick={pop}>
+              <ArrowLeft size={12} />
+              {t('models.management', 'Models')}
+            </button>
+            <span>{title}</span>
+          </h3>
+          {pushed.page === 'library' ? renderLibrary(pushed.slot) : renderStorage()}
+        </div>
       </div>
     );
   }
   return (
     <div className="config-section engine-surface">
-      <h3>
-        <Settings2 size={18} />
-        <span>{t('models.management', 'Models')}</span>
-      </h3>
-      <EnginePage adapter={adapter}
-        flashSlot={flashSlot} effectiveMode={effectiveMode}
-        onBrowse={(slot) => push({ page: 'library', slot })}
-        onStorage={() => push({ page: 'storage' })} />
+      <div key="engine" className={pageClass}>
+        <h3>
+          <Settings2 size={18} />
+          <span>{t('models.management', 'Models')}</span>
+        </h3>
+        <EnginePage adapter={adapter}
+          flashSlot={flashSlot} effectiveMode={effectiveMode}
+          onBrowse={(slot) => push({ page: 'library', slot })}
+          onStorage={() => push({ page: 'storage' })} />
+      </div>
     </div>
   );
 };
