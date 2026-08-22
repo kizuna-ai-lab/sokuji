@@ -40,6 +40,9 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'system-audio': 'audio',
   'participant': 'audio',
   'provider': 'provider',
+  // Engine chips (Task 10) deep-link here to switch to the provider tab
+  // without forcing Advanced mode — see ProviderSection's openSlot handler.
+  'provider-section': 'provider',
   'system-instructions': 'provider',
   'voice-settings': 'provider',
   'turn-detection': 'provider',

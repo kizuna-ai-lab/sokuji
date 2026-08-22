@@ -1,4 +1,4 @@
-import React, { Fragment, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { supportsTranscriptionContext } from '../../../services/providers/openaiTranscriptionContext';
@@ -26,6 +26,8 @@ import {
   useLocalInferenceSettings,
   useLocalNativeSettings,
   useUpdateLocalNative,
+  useEngineSlotTarget,
+  useSetEngineSlotTarget,
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
   useSetUseTemplateMode,
@@ -69,6 +71,7 @@ import { EngineSurface } from '../engine/EngineSurface';
 import { useWasmEngineAdapter } from '../engine/useWasmEngineAdapter';
 import { useNativeEngineAdapter } from '../engine/useNativeEngineAdapter';
 import { StoragePage } from '../engine/StoragePage';
+import type { SlotId } from '../engine/EngineTypes';
 import SonioxVoiceSection from './SonioxVoiceSection';
 import { byokVoiceSource, managedVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
 import { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
@@ -313,6 +316,22 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // LOCAL_NATIVE's EngineAdapter — same reason, hoisted for the LOCAL_NATIVE
   // branch below.
   const nativeAdapter = useNativeEngineAdapter(isSessionActive);
+
+  // One-shot deep-link into the engine surface, fired by an engine chip
+  // (Task 10). Consumed on the render where it's seen: a local provider
+  // opens that slot, and the signal is cleared immediately so it can't be
+  // picked up again by a later switch to a local provider — mirrors
+  // SimpleSettings' consumption of the same signal.
+  const engineSlotTarget = useEngineSlotTarget();
+  const setEngineSlotTarget = useSetEngineSlotTarget();
+  const [engineInitialSlot, setEngineInitialSlot] = useState<SlotId | null>(null);
+  useEffect(() => {
+    if (!engineSlotTarget) return;
+    if (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
+      setEngineInitialSlot(engineSlotTarget);
+    }
+    setEngineSlotTarget(null);
+  }, [engineSlotTarget, provider, setEngineSlotTarget]);
 
   // Custom prompt is supported when EITHER the speaker's or the participant's
   // translation worker is Qwen-family. The participant direction (tgt→src) is
@@ -2106,7 +2125,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             its Engine page via the adapter's `gate` — no standalone <EngineSection/>
             here, or it would render twice. */}
         <EngineSurface
+          key={engineInitialSlot ? `${engineInitialSlot.dir}:${engineInitialSlot.stage}` : 'default'}
           adapter={nativeAdapter}
+          initialSlot={engineInitialSlot}
           renderLibrary={(slot) => (
             <NativeModelManagementSection isSessionActive={isSessionActive}
               stageFilter={slot.stage} compatibilitySplit />
@@ -2224,7 +2245,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     return (
       <>
         <EngineSurface
+          key={engineInitialSlot ? `${engineInitialSlot.dir}:${engineInitialSlot.stage}` : 'default'}
           adapter={wasmAdapter}
+          initialSlot={engineInitialSlot}
           renderLibrary={(slot) => (
             <ModelManagementSection isSessionActive={isSessionActive}
               stageFilter={slot.stage} compatibilitySplit />

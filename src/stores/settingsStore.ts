@@ -1263,7 +1263,7 @@ const useSettingsStore = create<SettingsStore>()(
       set({settingsNavigationTarget: target});
     },
 
-    setEngineSlotTarget: (t) => {
+    setEngineSlotTarget: (t: { dir: string; stage: Stage } | null) => {
       set({engineSlotTarget: t});
     },
   }))
@@ -1332,8 +1332,8 @@ export const useKizunaKeyError = () => useSettingsStore((state) => state.kizunaK
 
 // Navigation
 export const useSettingsNavigationTarget = () => useSettingsStore((state) => state.settingsNavigationTarget);
-export const useEngineSlotTarget = () => useSettingsStore((state) => state.engineSlotTarget);
-export const useSetEngineSlotTarget = () => useSettingsStore((state) => state.setEngineSlotTarget);
+export const useEngineSlotTarget = () => useSettingsStore((state: SettingsStore) => state.engineSlotTarget);
+export const useSetEngineSlotTarget = () => useSettingsStore((state: SettingsStore) => state.setEngineSlotTarget);
 
 // Settings loading state
 export const useSettingsLoaded = () => useSettingsStore((state) => state.settingsLoaded);

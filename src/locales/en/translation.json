@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Report bugs or get help",
     "helpDiscussions": "Discussions",
     "helpDiscussionsTooltip": "Feature requests, feedback, and community discussions",
-    "participantModelHint": "Switch to {{source}} → {{target}} to change Other's models",
     "auto": "Auto",
     "low": "Low",
     "medium": "Medium",

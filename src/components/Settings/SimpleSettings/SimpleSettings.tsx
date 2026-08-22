@@ -130,6 +130,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
 
           {isNative ? (
             <EngineSurface
+              key={engineOpen ? `${engineOpen.dir}:${engineOpen.stage}` : 'default'}
               adapter={nativeAdapter}
               initialSlot={engineOpen}
               renderLibrary={(slot) => (
@@ -140,6 +141,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
             />
           ) : (
             <EngineSurface
+              key={engineOpen ? `${engineOpen.dir}:${engineOpen.stage}` : 'default'}
               adapter={wasmAdapter}
               initialSlot={engineOpen}
               renderLibrary={(slot) => (

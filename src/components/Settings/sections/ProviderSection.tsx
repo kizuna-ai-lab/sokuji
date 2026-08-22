@@ -5,6 +5,7 @@ import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, Zo
 import { PoweredBy } from './PoweredBy';
 import { asSonioxRegion } from '../../../lib/soniox/regions';
 import { sonioxKeyField } from '../../../services/providers/SonioxProviderConfig';
+import { directionKey, type Stage } from '../../../lib/local-inference/selection/types';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
@@ -31,7 +32,9 @@ import {
   useIsKizunaKeyFetching,
   useKizunaKeyError,
   useSetUIMode,
+  useUIMode,
   useNavigateToSettings,
+  useSetEngineSlotTarget,
   useLocalInferenceSettings,
   useLocalNativeSettings,
   useSettingsStore,
@@ -133,7 +136,10 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const isKizunaKeyFetching = useIsKizunaKeyFetching();
   const kizunaKeyError = useKizunaKeyError();
   const setUIMode = useSetUIMode();
+  const uiMode = useUIMode();
+  const isSimpleMode = uiMode === 'basic';
   const navigateToSettings = useNavigateToSettings();
+  const setEngineSlotTarget = useSetEngineSlotTarget();
 
   // Local inference model info
   const localInferenceSettings = useLocalInferenceSettings();
@@ -275,6 +281,17 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     } else {
       window.open(url, '_blank');
     }
+  };
+
+  // Shared by every model chip (both local providers): deep-link the engine
+  // surface straight to this slot instead of the old "flip the language pair"
+  // workflow. Simple mode needs only the target — SimpleSettings' host
+  // reacts to it directly. Advanced mode also has to switch to the provider
+  // tab; no mode switch happens here (that's the whole point — the chip no
+  // longer forces the user into Advanced).
+  const openSlot = (settingsForProvider: { sourceLanguage: string; targetLanguage: string }, stage: Stage) => {
+    setEngineSlotTarget({ dir: directionKey(settingsForProvider.sourceLanguage, settingsForProvider.targetLanguage), stage });
+    if (!isSimpleMode) navigateToSettings('provider-section');
   };
 
   // Get all available providers
@@ -518,7 +535,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                         .find(c => c.selectId === asrId)
                     : undefined;
                   return (
-                    <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                    <button type="button" className="model-chip" onClick={() => openSlot(localNativeSettings, 'asr')}>
                       <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
                       <span className={`model-chip-value ${asrId ? 'model-ok' : 'model-warn'}`}>
                         {asrId ? (asrCard?.name || asrId) : t('common.none', 'None')}
@@ -533,7 +550,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                         .find(c => c.selectId === trId)
                     : undefined;
                   return (
-                    <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                    <button type="button" className="model-chip" onClick={() => openSlot(localNativeSettings, 'translation')}>
                       <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
                       <span className={`model-chip-value ${trId ? 'model-ok' : 'model-warn'}`}>
                         {trId ? (trCard?.name) : t('common.none', 'None')}
@@ -547,7 +564,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                     ? nativeTtsModels(localNativeSettings.targetLanguage, nativeCatalog).find(m => m.id === voiceId)
                     : undefined;
                   return (
-                    <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
+                    <button type="button" className="model-chip" onClick={() => openSlot(localNativeSettings, 'tts')}>
                       <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
                       <span className={`model-chip-value ${voiceId ? 'model-ok' : 'model-warn'}`}>
                         {voiceId ? (ttsVoice?.name || voiceId) : t('common.none', 'None')}
@@ -588,7 +605,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 // check needed.
                 const id = speakerResolved?.asr?.modelId;
                 return (
-                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                  <button type="button" className="model-chip" onClick={() => openSlot(localInferenceSettings, 'asr')}>
                     <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
                     <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
                       {id || t('common.none', 'None')}
@@ -600,7 +617,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 const id = speakerResolved?.translation?.modelId;
                 const translationEntry = id ? getManifestEntry(id) : undefined;
                 return (
-                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                  <button type="button" className="model-chip" onClick={() => openSlot(localInferenceSettings, 'translation')}>
                     <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
                     <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
                       {id ? (translationEntry?.name || id) : t('common.none', 'None')}
@@ -612,7 +629,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 const id = speakerResolved?.tts?.modelId;
                 const ttsEntry = id ? getManifestEntry(id) : undefined;
                 return (
-                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
+                  <button type="button" className="model-chip" onClick={() => openSlot(localInferenceSettings, 'tts')}>
                     <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
                     <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
                       {id ? (ttsEntry?.name || id) : t('common.none', 'None')}
@@ -621,37 +638,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 );
               })()}
             </div>
-            {isParticipantChannelInScope && participantResolved && (
-              <div className="participant-inline">
-                <div className="participant-header">
-                  <span className="participant-label">{t('providers.local_inference.participant', 'Other')}</span>
-                  <span className="participant-hint">
-                    {t('settings.participantModelHint', "Switch to {{source}} → {{target}} to change Other's models", {
-                      source: localInferenceSettings.targetLanguage,
-                      target: localInferenceSettings.sourceLanguage,
-                    })}
-                  </span>
-                </div>
-                <div className="model-inline">
-                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
-                    <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-                    {participantResolved.asr ? (
-                      <span className="model-chip-value model-ok">{participantResolved.asr.modelId}</span>
-                    ) : (
-                      <span className="model-chip-value model-warn">✗</span>
-                    )}
-                  </button>
-                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
-                    <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
-                    {participantResolved.translation ? (
-                      <span className="model-chip-value model-ok">{participantResolved.translation.modelId}</span>
-                    ) : (
-                      <span className="model-chip-value model-warn">✗</span>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
             {memoryEstimate && (memoryEstimate.vramMb > 0 || memoryEstimate.ramMb > 0) && (
               <div className="memory-estimate">
                 <Cpu size={11} />

@@ -14,7 +14,7 @@
  * interpolating `t()` mock, needed here to tell the two rendered direction
  * headings apart ("ja → en" vs "en → ja").
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 
 vi.mock('react-i18next', async (importOriginal) => {
@@ -94,6 +94,10 @@ function directionHeadings(container: HTMLElement): string[] {
   return Array.from(container.querySelectorAll('.engine-direction__title')).map((el) => el.textContent ?? '');
 }
 
+beforeEach(() => {
+  useSettingsStore.setState({ engineSlotTarget: null });
+});
+
 describe('ProviderSpecificSettings — Engine surface composition (Task 7 review carry-over)', () => {
   it('LOCAL_INFERENCE: EngineSurface renders with both direction headings, no engine gate', () => {
     useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
@@ -114,5 +118,23 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
     // Moved into the adapter's `gate` (Task 8) — must render, and only once
     // (the branch's old standalone <EngineSection/> is gone).
     expect(container.querySelectorAll('[data-testid="engine-section-gate"]')).toHaveLength(1);
+  });
+
+  it('a set engineSlotTarget in advanced mode renders the surface with that slot expanded, and clears the signal (Task 10)', () => {
+    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
+    useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
+
+    const { container } = render(
+      <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
+    );
+
+    const slot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]');
+    expect(slot).not.toBeNull();
+    expect(slot?.querySelector('.engine-slot__body')).not.toBeNull();
+    // Every other slot stays collapsed — only the targeted one opens.
+    expect(container.querySelectorAll('.engine-slot__body')).toHaveLength(1);
+
+    // One-shot: consumed immediately, not left around for a later mount.
+    expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
   });
 });
