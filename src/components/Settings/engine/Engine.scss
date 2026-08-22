@@ -129,14 +129,14 @@
   }
 }
 
-// The Models section's storage footer (B2, user decision 2026-08-22): the
-// old ModelStorageFooter shape — top divider + caption-size line — with the
-// whole row as the push-to-StoragePage button and "Manage ›" as its label.
+// The Models section's storage footer (B2, user decision 2026-08-22): a
+// caption-size line in the old ModelStorageFooter's position (divider-less
+// since 2026-08-23), the whole row being the push-to-StoragePage button
+// with "Manage ›" as its label.
 .engine-storage-footer {
   display: flex; align-items: center; gap: 6px; width: 100%;
   margin-top: 8px; padding: 8px 0 0;
   background: none; border: none;
-  border-top: 1px solid vars.$border-subtle;
   font-size: vars.$font-caption; color: vars.$text-muted;
   cursor: pointer; text-align: left;
 
