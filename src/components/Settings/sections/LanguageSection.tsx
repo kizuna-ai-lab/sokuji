@@ -27,7 +27,8 @@ import {
   useUpdateZoomAI,
   useUpdateSoniox,
   useNavigateToSettings,
-  useSetUIMode,
+  useUIMode,
+  useSetEngineSlotTarget,
   useTextOnly,
   useSetTextOnly,
   useKeepReplayAudio,
@@ -43,10 +44,10 @@ import { useLockedMode } from '../../../stores/sessionStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
-import { getTranslationTargetLanguages, getManifestByType, isTranslationModelCompatible, getManifestEntry } from '../../../lib/local-inference/modelManifest';
-import { useModelStatuses, useModelInitialized, useLastResolutionNotes } from '../../../stores/modelStore';
-import { useNativeLastResolutionNotes, useNativeCatalog } from '../../../stores/nativeModelStore';
-import { describeResolutionNote } from '../engine/resolutionNotes';
+import { getTranslationTargetLanguages } from '../../../lib/local-inference/modelManifest';
+import { useModelStatuses, useModelInitialized, useLastResolutionNotes, useModelStore } from '../../../stores/modelStore';
+import { useNativeLastResolutionNotes, useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
+import { directionKey, type Stage } from '../../../lib/local-inference/selection/types';
 
 interface LanguageSectionProps {
   isSessionActive: boolean;
@@ -89,7 +90,8 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const modelStatuses = useModelStatuses();
   const modelInitialized = useModelInitialized();
   const navigateToSettings = useNavigateToSettings();
-  const setUIMode = useSetUIMode();
+  const uiMode = useUIMode();
+  const setEngineSlotTarget = useSetEngineSlotTarget();
 
   const textOnly = useTextOnly();
   const setTextOnly = useSetTextOnly();
@@ -454,36 +456,40 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   const interfaceLanguages = simplifiedInterfaceList ? simplifiedLanguages : fullLanguages;
 
-  // Check which model types are missing for current LOCAL_INFERENCE language pair
-  const missingModelTypes = useMemo(() => {
-    if (provider !== Provider.LOCAL_INFERENCE || !modelInitialized) return [];
-    const missing: { label: string; navTarget: string }[] = [];
-    const src = localInferenceSettings.sourceLanguage;
-    const tgt = localInferenceSettings.targetLanguage;
-
-    // Check ASR models (offline + streaming)
-    const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-    const hasAsr = allAsr.some(m =>
-      (m.multilingual || m.languages.includes(src)) && modelStatuses[m.id] === 'downloaded'
-    );
-    if (!hasAsr) missing.push({ label: t('settings.modelTypeAsr', 'ASR'), navTarget: 'model-asr' });
-
-    // Check Translation models
-    const allTrans = getManifestByType('translation');
-    const hasTrans = allTrans.some(m =>
-      isTranslationModelCompatible(m, src, tgt) && modelStatuses[m.id] === 'downloaded'
-    );
-    if (!hasTrans) missing.push({ label: t('settings.modelTypeTranslation', 'Translation'), navTarget: 'model-translation' });
-
-    // Check TTS models
-    const allTts = getManifestByType('tts');
-    const hasTts = allTts.some(m =>
-      (m.multilingual || m.languages.includes(tgt)) && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
-    );
-    if (!hasTts) missing.push({ label: t('settings.modelTypeTts', 'TTS'), navTarget: 'model-tts' });
-
+  // The ONE blocking warning (2026-08-23 warning-dedup decision): which
+  // mandatory stages have NO candidate at all for the current speaker pair.
+  // Reads the resolver - the single source of truth since the selection
+  // redesign - instead of a parallel hand-rolled manifest scan, and follows
+  // the session gate's own scope: speaker ASR + translation block a session,
+  // TTS never does (subtitles/Edge TTS cover it), so TTS is never "missing".
+  const resolveWasm = useModelStore((state) => state.resolve);
+  const resolveNative = useNativeModelStore((state) => state.resolve);
+  const nativeStatuses = useNativeModelStore((state) => state.statuses);
+  const nativeCatalog = useNativeCatalog();
+  const missingStages = useMemo(() => {
+    if (provider === Provider.LOCAL_INFERENCE) {
+      if (!modelInitialized) return [];
+    } else if (provider === Provider.LOCAL_NATIVE) {
+      // No catalog yet = sidecar not up; EngineSection's gate narrates that
+      // state, and "everything is missing" on top of it would be noise.
+      if (Object.keys(nativeCatalog).length === 0) return [];
+    } else {
+      return [];
+    }
+    const settings = provider === Provider.LOCAL_INFERENCE ? localInferenceSettings : localNativeSettings;
+    const resolve = provider === Provider.LOCAL_INFERENCE ? resolveWasm : resolveNative;
+    const result = resolve(settings.sourceLanguage, settings.targetLanguage, settings.selections);
+    const missing: { stage: Stage; label: string }[] = [];
+    if (!result.asr) missing.push({ stage: 'asr', label: t('settings.modelTypeAsr', 'ASR') });
+    if (!result.translation) missing.push({ stage: 'translation', label: t('settings.modelTypeTranslation', 'Translation') });
     return missing;
-  }, [provider, modelInitialized, modelStatuses, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, t]);
+  }, [
+    provider, modelInitialized, resolveWasm, resolveNative, nativeCatalog, t,
+    localInferenceSettings, localNativeSettings,
+    // resolve() reads candidate pools from its own store; these two make the
+    // memo recompute when a download/delete changes what is resolvable.
+    modelStatuses, nativeStatuses,
+  ]);
 
   // S0: local providers narrate the language pair as a sentence whose verbs
   // follow the current audio mode — "I speak → they hear" (speaker/both) or
@@ -522,11 +528,18 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     provider === Provider.LOCAL_INFERENCE ? wasmNotes
     : provider === Provider.LOCAL_NATIVE ? nativeNotes
     : [];
-  const nativeCatalog = useNativeCatalog();
-  const noteName = (id: string): string =>
-    provider === Provider.LOCAL_NATIVE
-      ? (nativeCatalog[id]?.name ?? id)
-      : (getManifestEntry(id)?.name ?? id);
+  // no-candidate notes are the BLOCKING condition and belong to the
+  // missing-models warning below; everything else is an automatic fallback
+  // the session survives, summarized in one line (2026-08-23 dedup decision).
+  const fallbackNotes = notes.filter((n) => n.reason !== 'no-candidate');
+
+  // Deep-link into the engine surface, same contract as ProviderSection's
+  // chips: a FRESH slot object arms the one-shot signal; simple mode's host
+  // reacts to the signal itself, advanced mode also switches to the tab.
+  const openEngineSlot = (dir: string, stage: Stage) => {
+    setEngineSlotTarget({ dir, stage });
+    if (uiMode !== 'basic') navigateToSettings('provider');
+  };
 
   return (
     <>
@@ -647,14 +660,22 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
           )}
 
-          {notes.length > 0 && (
+          {fallbackNotes.length > 0 && (
             <div className="language-resolution-notes" data-testid="language-resolution-notes">
-              {notes.map((n, i) => (
-                <div key={`${n.direction}-${n.stage}-${i}`} className="language-warning">
-                  <AlertTriangle size={12} />
-                  <span>{describeResolutionNote(n, t, noteName)}</span>
-                </div>
-              ))}
+              <div className="language-warning">
+                <AlertTriangle size={12} />
+                <span>
+                  {t('settings.resolutionNotesSummary', '{{count}} of your selected models are unavailable — automatic fallbacks are in use.', { count: fallbackNotes.length })}
+                  {' '}
+                  <a
+                    className="language-model-warning__link"
+                    data-testid="resolution-notes-review"
+                    onClick={() => openEngineSlot(fallbackNotes[0].direction, fallbackNotes[0].stage)}
+                  >
+                    {t('settings.resolutionNotesReview', 'Review')}
+                  </a>
+                </span>
+              </div>
             </div>
           )}
 
@@ -719,21 +740,24 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             tooltip={t('simpleConfig.keepReplayAudioDesc', 'Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions.')}
           />
 
-          {provider === Provider.LOCAL_INFERENCE && missingModelTypes.length > 0 && (
+          {missingStages.length > 0 && (
             <div className="language-model-warning">
               <AlertTriangle size={14} />
               <span>
-                {t('settings.missingModelsWarning', 'Missing {{types}} model(s) for this language pair.', { types: missingModelTypes.map(m => m.label).join(', ') })}
+                {t('settings.missingModelsWarning', 'Missing {{types}} model(s) for this language pair.', { types: missingStages.map(m => m.label).join(', ') })}
                 {' '}
-                {missingModelTypes.map((m, i) => (
-                  <span key={m.navTarget}>
+                {missingStages.map((m, i) => (
+                  <span key={m.stage}>
                     {i > 0 && ', '}
                     <a
                       className="language-model-warning__link"
-                      onClick={() => {
-                        setUIMode('advanced');
-                        setTimeout(() => navigateToSettings(m.navTarget), 100);
-                      }}
+                      onClick={() => openEngineSlot(
+                        directionKey(
+                          (provider === Provider.LOCAL_NATIVE ? localNativeSettings : localInferenceSettings).sourceLanguage,
+                          (provider === Provider.LOCAL_NATIVE ? localNativeSettings : localInferenceSettings).targetLanguage,
+                        ),
+                        m.stage,
+                      )}
                     >
                       {t('settings.downloadModelType', 'Download {{type}}', { type: m.label })}
                     </a>

@@ -6,7 +6,7 @@ import { PoweredBy } from './PoweredBy';
 import { asSonioxRegion } from '../../../lib/soniox/regions';
 import { sonioxKeyField } from '../../../services/providers/SonioxProviderConfig';
 import { directionKey, type Stage, type DirectionResult } from '../../../lib/local-inference/selection/types';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
   useProvider,
@@ -31,7 +31,6 @@ import {
   useValidationMessage,
   useIsKizunaKeyFetching,
   useKizunaKeyError,
-  useSetUIMode,
   useUIMode,
   useNavigateToSettings,
   useSetEngineSlotTarget,
@@ -136,7 +135,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const validationMessage = useValidationMessage();
   const isKizunaKeyFetching = useIsKizunaKeyFetching();
   const kizunaKeyError = useKizunaKeyError();
-  const setUIMode = useSetUIMode();
   const uiMode = useUIMode();
   const isSimpleMode = uiMode === 'basic';
   const navigateToSettings = useNavigateToSettings();
@@ -976,25 +974,15 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         </div>
       )}
 
-      {validationMessage && (
+      {/* Local providers' "models missing" state is narrated ONCE, by
+          LanguageSection's resolver-backed warning with per-stage download
+          links (2026-08-23 warning-dedup decision) — repeating it here as a
+          validation error was the same sentence twice on one screen. The
+          validation STATE itself is untouched; only the duplicate copy goes. */}
+      {validationMessage
+        && !((provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) && !isApiKeyValid) && (
         <div className={`validation-message ${isApiKeyValid ? 'success' : 'error'}`}>
-          {provider === Provider.LOCAL_INFERENCE && !isApiKeyValid ? (
-            <Trans
-              i18nKey="settings.localInferenceModelsRequired"
-              components={{
-                settingsLink: <a
-                  className="models-link"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setUIMode('advanced');
-                    setTimeout(() => navigateToSettings('model-management'), 100);
-                  }}
-                />
-              }}
-            />
-          ) : (
-            validationMessage
-          )}
+          {validationMessage}
         </div>
       )}
     </div>

@@ -12,14 +12,18 @@
  * exercise non-local providers and must stay green unmodified.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return {
     ...actual,
     useTranslation: () => ({
-      t: (_k: string, def?: string) => def ?? _k,
+      t: (_k: string, def?: any, opts?: any) => {
+        const str = typeof def === 'string' ? def : _k;
+        const o = typeof def === 'object' && def !== null ? def : opts;
+        return str.replace(/\{\{(\w+)\}\}/g, (_m: string, n: string) => String(o?.[n] ?? ''));
+      },
       i18n: { language: 'en' },
     }),
   };
@@ -114,17 +118,43 @@ describe('LanguageSection — mode-verb sentence labels (local providers)', () =
   });
 });
 
-describe('LanguageSection — resolution notes', () => {
-  it('renders one line per note for the local provider, via describeResolutionNote', () => {
+describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () => {
+  it('collapses fallback notes into ONE summary line with a Review link, not one line per note', () => {
     useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
     useModelStore.setState({
       lastResolutionNotes: [
         { direction: 'ja→en', stage: 'translation', from: 'opus-mt-en-ja', to: 'qwen-x', reason: 'lang-incompatible' },
+        { direction: 'ja→en', stage: 'tts', from: 'supertonic-3', to: 'edge-tts', reason: 'not-downloaded' },
       ],
     });
     render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
     const notes = screen.getByTestId('language-resolution-notes');
-    expect(notes.textContent).toContain('does not support this direction');
+    expect(notes.querySelectorAll('.language-warning')).toHaveLength(1);
+    expect(notes.textContent).toContain('2 of your selected models are unavailable');
+    expect(screen.getByTestId('resolution-notes-review')).toBeInTheDocument();
+  });
+
+  it('no-candidate notes are excluded from the summary — they belong to the missing-models warning', () => {
+    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
+    useModelStore.setState({
+      lastResolutionNotes: [
+        { direction: 'ja→en', stage: 'asr', from: null, to: null, reason: 'no-candidate' },
+      ],
+    });
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
+  });
+
+  it('Review arms the engine slot target with the first note\'s slot', () => {
+    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE, engineSlotTarget: null } as any);
+    useModelStore.setState({
+      lastResolutionNotes: [
+        { direction: 'ja→en', stage: 'translation', from: 'a', to: 'b', reason: 'not-downloaded' },
+      ],
+    });
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    fireEvent.click(screen.getByTestId('resolution-notes-review'));
+    expect(useSettingsStore.getState().engineSlotTarget).toMatchObject({ dir: 'ja→en', stage: 'translation' });
   });
 
   it('renders nothing when there are no notes', () => {
@@ -137,10 +167,40 @@ describe('LanguageSection — resolution notes', () => {
     useSettingsStore.setState({ provider: Provider.OPENAI });
     useModelStore.setState({
       lastResolutionNotes: [
-        { direction: 'ja→en', stage: 'asr', from: null, to: null, reason: 'no-candidate' },
+        { direction: 'ja→en', stage: 'asr', from: null, to: null, reason: 'not-downloaded' },
       ],
     });
     render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
     expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
+  });
+});
+
+describe('LanguageSection — the ONE blocking missing-models warning (resolver-backed)', () => {
+  it('names only the stages the RESOLVER cannot fill, with per-stage engine deep links', () => {
+    // Empty statuses: nothing downloaded. The resolver still fills
+    // translation (Bing Translator, cloud, always ready) and TTS (Edge TTS,
+    // cloud — and outside the session gate anyway), so only ASR is truly
+    // missing. The old hand-rolled scan counted downloaded models only and
+    // would have FALSELY listed Translation here — this pin is the point of
+    // the resolver-backed rewrite.
+    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE, engineSlotTarget: null } as any);
+    useModelStore.setState({ initialized: true, statuses: {}, lastResolutionNotes: [] } as any);
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+
+    const warning = document.querySelector('.language-model-warning');
+    expect(warning).toBeInTheDocument();
+    expect(warning!.textContent).toContain('Missing ASR model(s)');
+    expect(warning!.textContent).not.toContain('Translation');
+    expect(warning!.textContent).not.toContain('TTS');
+
+    fireEvent.click(screen.getByText('Download ASR'));
+    expect(useSettingsStore.getState().engineSlotTarget).toMatchObject({ dir: 'ja→en', stage: 'asr' });
+  });
+
+  it('renders no warning while the model store is uninitialized', () => {
+    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
+    useModelStore.setState({ initialized: false, statuses: {} } as any);
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    expect(document.querySelector('.language-model-warning')).not.toBeInTheDocument();
   });
 });
