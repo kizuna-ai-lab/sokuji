@@ -1045,7 +1045,6 @@
   },
   "engineUi": {
     "autoValue": "auto · {{name}}",
-    "autoOption": "Auto (currently {{name}})",
     "autoOptionNone": "Auto",
     "browseLibrary": "Browse library",
     "storageUsedLine": "Storage: {{summary}} used",

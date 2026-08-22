@@ -1,35 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import type { Resolved } from '../../../lib/local-inference/selection/types';
 import type { SlotId } from './EngineTypes';
 import './Engine.scss';
 
 /**
- * One slot of one direction. Collapsed: label + resolved value ("auto · Name"
- * marks a machine pick — the provenance marker the No-migration design leans
- * on). Expanded (single-open, owned by EnginePage): the caller's picker.
+ * One slot of one direction: a label + whatever control the caller renders
+ * (today: EnginePage's model dropdown). Since the 2026-08-23 dropdown
+ * redesign this row has no expand/collapse of its own — its remaining jobs
+ * are layout and the deep-link flash.
  */
 export const SlotRow: React.FC<{
   slot: SlotId;
   label: string;
-  resolved: Resolved | null;
-  displayName: (id: string) => string;
-  expanded: boolean;
-  onToggle: () => void;
   /**
-   * One-shot deep-link signal (Finding 4): the slot a chip click JUST
-   * expanded, so the flash lands on THIS row instead of the whole
-   * ProviderSection (the old, wrong target). Compared by dir+stage, but the
-   * effect below keys on the OBJECT ITSELF — EngineSurface hands it a fresh
-   * object on every deep-link (mirrors its own `initialSlot` contract), so
-   * the same chip fired twice re-flashes rather than no-op'ing. Never set
-   * for a slot the user expanded by hand.
+   * One-shot deep-link signal: the slot a chip click just targeted, so the
+   * flash lands on THIS row. Compared by dir+stage, but the effect below
+   * keys on the OBJECT ITSELF — the owner hands it a fresh object on every
+   * deep-link, so the same chip fired twice re-flashes rather than
+   * no-op'ing, and clears/expires the signal so remounts never replay it
+   * (see EngineSurface's flashSlot lifecycle).
    */
   flashSlot?: SlotId | null;
-  children?: React.ReactNode;
-}> = ({ slot, label, resolved, displayName, expanded, onToggle, flashSlot = null, children }) => {
-  const { t } = useTranslation();
+  children: React.ReactNode;
+}> = ({ slot, label, flashSlot = null, children }) => {
   const [flashing, setFlashing] = useState(false);
 
   useEffect(() => {
@@ -46,21 +38,10 @@ export const SlotRow: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flashSlot]);
 
-  const value = resolved
-    ? (resolved.source === 'auto'
-        ? t('engineUi.autoValue', 'auto · {{name}}', { name: displayName(resolved.modelId) })
-        : displayName(resolved.modelId))
-    : '—';
   return (
     <div className={`engine-slot ${flashing ? 'highlight' : ''}`} data-slot={`${slot.dir}:${slot.stage}`}>
-      <button type="button" className="engine-slot__header" onClick={onToggle} aria-expanded={expanded}>
-        <span className="engine-slot__chevron">
-          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </span>
-        <span className="engine-slot__label">{label}</span>
-        <span className={`engine-slot__value ${resolved ? '' : 'engine-slot__value--missing'}`}>{value}</span>
-      </button>
-      {expanded && <div className="engine-slot__body">{children}</div>}
+      <span className="engine-slot__label">{label}</span>
+      <div className="engine-slot__control">{children}</div>
     </div>
   );
 };

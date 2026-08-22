@@ -46,6 +46,7 @@ import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
 import { getTranslationTargetLanguages, getManifestEntry } from '../../../lib/local-inference/modelManifest';
+import { shortenModelName } from '../../../lib/local-inference/modelName';
 import { useModelStatuses, useModelInitialized, useLastResolutionNotes, useModelStore } from '../../../stores/modelStore';
 import { useNativeLastResolutionNotes, useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
 import { directionKey, emptyDirection, type Stage, type Selections, type ResolutionNote } from '../../../lib/local-inference/selection/types';
@@ -566,10 +567,13 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // Name the picks that failed (deduped: the same deleted model noted in two
   // directions is one name) — a summary that will not say WHICH models it
   // means cannot be acted on.
-  const noteName = (id: string): string =>
-    provider === Provider.LOCAL_NATIVE
-      ? (nativeCatalog[id]?.name ?? id)
-      : (getManifestEntry(id)?.name ?? id);
+  const noteName = (id: string): string => {
+    if (provider === Provider.LOCAL_NATIVE) {
+      return nativeCatalog[id] ? shortenModelName(nativeCatalog[id].name) : id;
+    }
+    const entry = getManifestEntry(id);
+    return entry ? shortenModelName(entry.name, entry.shortName) : id;
+  };
   const staleIds: string[] = [];
   for (const n of fallbackNotes) {
     if (n.from && !staleIds.includes(n.from)) staleIds.push(n.from);

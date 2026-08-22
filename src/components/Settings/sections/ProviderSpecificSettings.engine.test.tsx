@@ -125,7 +125,7 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
     expect(container.querySelectorAll('[data-testid="engine-section-gate"]')).toHaveLength(1);
   });
 
-  it('a set engineSlotTarget in advanced mode renders the surface with that slot expanded, and clears the signal (Task 10)', () => {
+  it('a set engineSlotTarget in advanced mode flashes that slot row, and clears the signal (Task 10, dropdown form)', () => {
     useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
@@ -133,11 +133,12 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
       <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
     );
 
+    // Dropdown form: nothing expands anymore — the deep link's landing is
+    // the flash on the targeted row, and only on it.
     const slot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]');
     expect(slot).not.toBeNull();
-    expect(slot?.querySelector('.engine-slot__body')).not.toBeNull();
-    // Every other slot stays collapsed — only the targeted one opens.
-    expect(container.querySelectorAll('.engine-slot__body')).toHaveLength(1);
+    expect(slot!.classList.contains('highlight')).toBe(true);
+    expect(container.querySelectorAll('.engine-slot.highlight')).toHaveLength(1);
 
     // One-shot: consumed immediately, not left around for a later mount.
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
@@ -150,28 +151,32 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
   // fix makes EngineSurface respond to the PROP's identity via an effect, and
   // every deep-link (openSlot in ProviderSection) allocates a fresh object,
   // so two chip taps on the same model chip are never equal by reference.
-  it('re-firing the same slot target after the user collapsed it re-expands the slot (same chip tapped twice)', () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
-    useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
-
-    const { container } = render(
-      <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
-    );
-
-    const slot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]')!;
-    expect(slot.querySelector('.engine-slot__body')).not.toBeNull();
-
-    // Collapse it via its own header — same as a user closing the picker.
-    fireEvent.click(slot.querySelector('.engine-slot__header')!);
-    expect(slot.querySelector('.engine-slot__body')).toBeNull();
-
-    // The same chip fires again: a FRESH object with the identical dir/stage
-    // (mirrors ProviderSection's openSlot allocating {dir, stage} on every click).
-    act(() => {
+  it('re-firing the same slot target re-flashes the row (same chip tapped twice)', () => {
+    vi.useFakeTimers();
+    try {
+      useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
       useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
-    });
 
-    expect(slot.querySelector('.engine-slot__body')).not.toBeNull();
+      const { container } = render(
+        <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
+      );
+
+      const slot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]')!;
+      expect(slot.classList.contains('highlight')).toBe(true);
+
+      // Let the first flash (and the surface's own 3.5s signal expiry) lapse.
+      act(() => { vi.advanceTimersByTime(3600); });
+      expect(slot.classList.contains('highlight')).toBe(false);
+
+      // The same chip fires again: a FRESH object with the identical
+      // dir/stage (mirrors openSlot allocating {dir, stage} per click).
+      act(() => {
+        useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
+      });
+      expect(slot.classList.contains('highlight')).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a pushed Library page pops back to the Engine page when a NEW slot target fires', () => {
@@ -183,12 +188,12 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
     );
 
     const asrSlot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]')!;
-    fireEvent.click(asrSlot.querySelector('.engine-picker__browse')!);
+    fireEvent.change(asrSlot.querySelector('select')!, { target: { value: '__browse__' } });
     expect(container.querySelector('.engine-back-row')).not.toBeNull();
     expect(container.querySelector('.engine-page')).toBeNull();
 
     // A different slot's chip fires while the Library is showing — the surface
-    // must land back on the Engine page with the NEW slot expanded, not stay
+    // must land back on the Engine page with the NEW slot flashed, not stay
     // pushed on the old Library view.
     act(() => {
       useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'translation' });
@@ -196,6 +201,6 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
 
     expect(container.querySelector('.engine-back-row')).toBeNull();
     const translationSlot = container.querySelector('.engine-slot[data-slot="ja→en:translation"]')!;
-    expect(translationSlot.querySelector('.engine-slot__body')).not.toBeNull();
+    expect(translationSlot.classList.contains('highlight')).toBe(true);
   });
 });

@@ -6,6 +6,7 @@ import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../sto
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
+import { shortenModelName } from '../../../lib/local-inference/modelName';
 import { languageNameFor } from './languageName';
 import type { EngineAdapter } from './EngineTypes';
 
@@ -35,7 +36,12 @@ export function useWasmEngineAdapter(isSessionActive = false): EngineAdapter {
         const [src, tgt] = split(slot.dir);
         return useModelStore.getState().resolve(src, tgt, selections)[slot.stage];
       },
-      displayName: (id) => getManifestEntry(id)?.name ?? id,
+      // Short names on the engine surface (2026-08-23): full names stay in
+      // the Library/Storage cards.
+      displayName: (id) => {
+        const entry = getManifestEntry(id);
+        return entry ? shortenModelName(entry.name, entry.shortName) : id;
+      },
       languageName: languageNameFor,
       readyCandidates: (slot) => {
         const [src, tgt] = split(slot.dir);
@@ -53,7 +59,7 @@ export function useWasmEngineAdapter(isSessionActive = false): EngineAdapter {
             const entry = getManifestEntry(c.id);
             return {
               id: c.id,
-              name: entry?.name ?? c.id,
+              name: entry ? shortenModelName(entry.name, entry.shortName) : c.id,
               sizeLabel: entry && !entry.isCloudModel ? `${getModelSizeMb(entry, deviceFeatures)} MB` : undefined,
             };
           });

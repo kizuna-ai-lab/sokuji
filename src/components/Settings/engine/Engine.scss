@@ -32,87 +32,59 @@
 }
 
 .engine-slot {
-  // Model-group style (user decision, 2026-08-22): the row itself carries no
-  // card frame — the app separates regions with dividers and reserves boxes
-  // for content cards and controls (.config-section has no frame either).
-  // The header row mirrors .model-group__header's plain chevron+title look;
-  // the only boxes are the picker options inside the expanded body.
+  // Dropdown form (2026-08-23 A decision): one row per slot — label +
+  // select-dropdown control, the same family as the Provider selector. No
+  // frame of its own (the app separates regions with dividers and reserves
+  // boxes for content cards and controls) and no expand/collapse anymore.
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
 
-  // A chip click deep-links here and flashes THIS row (not the whole
-  // ProviderSection, the old wrong target). Replicates Settings.scss's
-  // .config-section.highlight / @keyframes pulse-highlight — same look, its
-  // own name since .engine-slot isn't a .config-section.
+  // A chip click deep-links here and flashes THIS row. Replicates
+  // Settings.scss's .config-section.highlight / @keyframes pulse-highlight —
+  // same look, its own name since .engine-slot isn't a .config-section.
   &.highlight {
     animation: engine-pulse-highlight 2s ease-out;
     border-radius: vars.$radius-md;
   }
 
-  &__header {
-    display: flex; align-items: center; gap: 6px; width: 100%;
-    background: none; border: none; padding: 5px 0; cursor: pointer;
-    color: inherit; text-align: left;
+  // Full stage names ("Speech Recognition (ASR)"), matching the standalone
+  // sections' group titles. A fixed basis keeps the select column aligned
+  // across rows; long locale labels wrap to a second line instead of
+  // truncating.
+  &__label {
+    flex: 0 0 128px;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+    line-height: 1.3;
+  }
 
-    &:hover .engine-slot__label {
-      color: vars.$text-primary;
+  &__control {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__select {
+    // Inherit the app-wide .select-dropdown look; only the size steps down a
+    // notch from the Provider control (body, not title, and tighter padding)
+    // so five of these read as rows, not five heroes.
+    font-size: vars.$font-body;
+    padding: 7px 28px 7px 10px;
+
+    &--missing {
+      color: vars.$color-error;
+      border-color: rgba(vars.$color-error, 0.45);
     }
   }
-  &__chevron { display: flex; align-items: center; color: vars.$text-muted; }
-  // Full stage names ("Speech Recognition (ASR)"), matching the standalone
-  // sections' group titles — not the abbreviated ASR/MT/TTS badges. Regular
-  // weight so the semibold direction heading above stays the louder level.
-  &__label {
-    font-size: vars.$font-body;
-    color: vars.$text-secondary; white-space: nowrap;
-    transition: color vars.$transition-fast;
-  }
-  &__value {
-    font-size: 13px;
-    margin-left: auto; text-align: right;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  &__value--missing { color: vars.$color-error; }
-  &__body {
-    display: flex; flex-direction: column; gap: 6px;
-    margin: 4px 0 10px; padding-left: 20px;
-  }
 }
 
-// One picker option (Auto / a candidate) — the shared option-row dialect
-// (_variables.scss), same voice as the audio sections' .device-option rows:
-// the two lists sit in adjacent sections, so they must not speak two
-// dialects. Chosen bordered (over the solid-fill look) on 2026-08-22.
-.engine-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+// Native's per-stage compute-device control, previously inside the expanded
+// accordion body — now a compact always-visible line under its slot row.
+.engine-slot__extras {
+  margin: -4px 0 8px 138px;
 
-.engine-picker__option {
-  @include vars.option-row;
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  box-sizing: border-box;
-  color: inherit; cursor: pointer;
-
-  &:hover:not(:disabled) {
-    @include vars.option-row-hover;
-  }
-
-  &.is-selected {
-    @include vars.option-row-selected;
-  }
-
-  &:focus-visible { @include vars.focus-ring; }
-  &:disabled { opacity: vars.$disabled-opacity; cursor: default; }
-}
-.engine-picker__name {
-  flex: 1; text-align: left;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.engine-picker__meta { font-size: vars.$font-caption; color: vars.$text-muted; flex-shrink: 0; }
-.engine-picker__browse {
-  color: vars.$text-muted;
-  background: none;
-  border: 1px dashed vars.$border-subtle;
+  &:empty { display: none; }
 }
 
 // Back row: EngineSurface's pushed-page header, reading as a clickable
@@ -171,6 +143,7 @@
 
   &__info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
   &__name { font-size: 13px; }
+  &__meta { font-size: vars.$font-caption; color: vars.$text-muted; flex-shrink: 0; }
   &__badge {
     font-size: 10px; padding: 1px 6px; border-radius: 10px;
     background: rgba(16, 163, 127, 0.15); color: vars.$color-primary;

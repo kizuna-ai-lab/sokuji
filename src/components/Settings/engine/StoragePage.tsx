@@ -184,7 +184,7 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
         <div key={row.id} className="engine-storage-row" data-testid={`storage-row-${row.id}`}>
           <div className="engine-storage-row__info">
             <span className="engine-storage-row__name">{row.name}</span>
-            {row.sizeLabel && <span className="engine-picker__meta">{row.sizeLabel}</span>}
+            {row.sizeLabel && <span className="engine-storage-row__meta">{row.sizeLabel}</span>}
             {row.inUse && <span className="engine-storage-row__badge">{t('engineUi.inUse', 'In use')}</span>}
           </div>
           <button

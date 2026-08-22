@@ -39,95 +39,102 @@ const surface = (a = adapter(), effectiveMode: 'speaker' | 'participant' | 'both
     renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>}
     renderStorage={() => <div data-testid="storage" />} />);
 
-describe('EngineSurface / EnginePage', () => {
-  it('renders both directions, speaker with 3 slots, participant with 2', () => {
+const asrSelect = (index = 0) =>
+  screen.getAllByRole('combobox', { name: /ASR/ })[index] as HTMLSelectElement;
+
+describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
+  it('renders both directions in "both" mode: speaker leg 3 selects, participant leg 2', () => {
     surface();
     expect(screen.getByText('ja → en')).toBeInTheDocument();
     expect(screen.getByText('en → ja')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /ASR/ })).toHaveLength(2);
-    expect(screen.getAllByRole('button', { name: /TTS/ })).toHaveLength(1);
+    expect(screen.getAllByRole('combobox', { name: /ASR/ })).toHaveLength(2);
+    expect(screen.getAllByRole('combobox', { name: /TTS/ })).toHaveLength(1);
+    expect(screen.getAllByRole('combobox')).toHaveLength(5);
   });
 
-  it('single-open: expanding one slot collapses the previously open one', () => {
+  it('the select lists Auto (with the resolved name) first, candidates with sizes, Browse library… last', () => {
     surface();
-    const [asrSpeaker, asrParticipant] = screen.getAllByRole('button', { name: /ASR/ });
-    fireEvent.click(asrSpeaker);
-    expect(screen.getAllByRole('radio').length).toBeGreaterThan(0); // picker open
-    fireEvent.click(asrParticipant);
-    // still exactly one expanded body
-    expect(document.querySelectorAll('.engine-slot__body')).toHaveLength(1);
+    const options = Array.from(asrSelect().options).map((o) => o.textContent);
+    expect(options[0]).toBe('auto · Model One');
+    expect(options[1]).toBe('Model One · 10 MB');
+    expect(options[2]).toBe('Model Two');
+    expect(options[3]).toBe('Browse library…');
   });
 
-  it('the expanded picker lists ready candidates + the Auto row, and writes a pick', () => {
+  it('picking a model writes the pick; picking Auto writes the empty string', () => {
     const a = adapter();
     surface(a);
-    fireEvent.click(screen.getAllByRole('button', { name: /ASR/ })[0]);
-    expect(screen.getByRole('radio', { name: /Auto/ })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('radio', { name: /Model Two/ }));
+    fireEvent.change(asrSelect(), { target: { value: 'm2' } });
     expect(a.select).toHaveBeenCalledWith({ dir: 'ja→en', stage: 'asr' }, 'm2');
+    fireEvent.change(asrSelect(), { target: { value: '' } });
+    expect(a.select).toHaveBeenCalledWith({ dir: 'ja→en', stage: 'asr' }, '');
   });
 
-  it('the browse affordance carries no count', () => {
-    surface();
-    fireEvent.click(screen.getAllByRole('button', { name: /ASR/ })[0]);
-    const browse = screen.getByRole('button', { name: /Browse library/ });
-    expect(browse.textContent).not.toMatch(/\d/);
+  it('an explicit pick renders as the select value; auto renders as ""', () => {
+    const a = adapter({
+      resolved: ({ stage }) =>
+        stage === 'translation' ? { modelId: 'm2', source: 'explicit' } : { modelId: 'm1', source: 'auto' },
+    });
+    surface(a);
+    const tr = screen.getAllByRole('combobox', { name: /Translation/ })[0] as HTMLSelectElement;
+    expect(tr.value).toBe('m2');
+    expect(asrSelect().value).toBe('');
   });
 
-  it('browse pushes the library with an in-content back row; back returns', () => {
+  it('a slot with no resolution carries the missing modifier and a plain Auto label', () => {
     surface();
-    fireEvent.click(screen.getAllByRole('button', { name: /ASR/ })[0]);
-    fireEvent.click(screen.getByRole('button', { name: /Browse library/ }));
+    const tts = screen.getAllByRole('combobox', { name: /TTS/ })[0] as HTMLSelectElement;
+    expect(tts.className).toContain('engine-slot__select--missing');
+    expect(tts.options[0].textContent).toBe('Auto');
+  });
+
+  it('the Browse library option pushes the Library for THAT slot and keeps the selection', () => {
+    const a = adapter();
+    surface(a);
+    fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
     expect(screen.getByTestId('library')).toHaveTextContent('asr');
+    expect(a.select).not.toHaveBeenCalled();
+    // Back returns to the engine page with the select back on its value.
     fireEvent.click(screen.getByRole('button', { name: /Back/ }));
-    expect(screen.queryByTestId('library')).not.toBeInTheDocument();
-    expect(screen.getByText('ja → en')).toBeInTheDocument();
+    expect(asrSelect().value).toBe('');
   });
 
-  it('the back row shows the localized stage label as its VISIBLE text (not the word "Back", not the raw stage string), while "Back" survives as its accessible name', () => {
+  it('the back row shows the localized stage label as its VISIBLE text while "Back" survives as its accessible name', () => {
     surface();
-    fireEvent.click(screen.getAllByRole('button', { name: /ASR/ })[0]);
-    fireEvent.click(screen.getByRole('button', { name: /Browse library/ }));
+    fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
     const back = screen.getByRole('button', { name: 'Back' });
     expect(back).toHaveTextContent('Library · ASR');
     expect(back).not.toHaveTextContent('Back Library');
-    expect(back).not.toHaveTextContent('asr');
     expect(back.getAttribute('aria-label')).toBe('Back');
   });
 
-  it('the storage row pushes the storage page', () => {
+  it('the storage footer pushes the storage page', () => {
     surface();
     fireEvent.click(screen.getByRole('button', { name: /Storage/ }));
     expect(screen.getByTestId('storage')).toBeInTheDocument();
   });
 
-  it('disabled adapter renders pickers disabled', () => {
+  it('disabled adapter renders every select disabled', () => {
     surface(adapter({ disabled: true }));
-    fireEvent.click(screen.getAllByRole('button', { name: /ASR/ })[0]);
-    for (const r of screen.getAllByRole('radio')) expect(r).toBeDisabled();
+    for (const c of screen.getAllByRole('combobox')) expect(c).toBeDisabled();
   });
 
-  it('speaker mode shows only the forward direction; participant only the reverse (2026-08-23)', () => {
+  it('speaker mode shows only the forward direction; participant only the reverse', () => {
     surface(adapter(), 'speaker');
     expect(screen.getByText('ja → en')).toBeInTheDocument();
     expect(screen.queryByText('en → ja')).not.toBeInTheDocument();
-    // The forward leg keeps its speaker stage set (TTS included).
-    expect(screen.getAllByRole('button', { name: /TTS/ })).toHaveLength(1);
+    expect(screen.getAllByRole('combobox')).toHaveLength(3);
   });
 
   it('participant mode shows only the reverse direction, with its 2-stage set', () => {
     surface(adapter(), 'participant');
     expect(screen.queryByText('ja → en')).not.toBeInTheDocument();
     expect(screen.getByText('en → ja')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /ASR/ })).toHaveLength(1);
-    expect(screen.queryByRole('button', { name: /TTS/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('combobox')).toHaveLength(2);
+    expect(screen.queryByRole('combobox', { name: /TTS/ })).not.toBeInTheDocument();
   });
 
   it('a mode switch kills a pending flash — revealing a direction later never replays it', () => {
-    // Armed via deep link on the PARTICIPANT slot in 'both'; switching to
-    // speaker unmounts that row, and switching back re-mounts it. The stale
-    // signal used to re-run the fresh row's flash effect (report: speaker ->
-    // participant/both flashed the participant ASR slot).
     const props = {
       adapter: adapter(),
       renderLibrary: (slot: any) => <div data-testid="library">{slot.stage}</div>,
@@ -146,21 +153,16 @@ describe('EngineSurface / EnginePage', () => {
   });
 
   it('returning from a pushed Library does not re-flash the deep-linked slot', () => {
-    // Pushing unmounts the slot rows; if the flash signal were the raw
-    // initialSlot prop, remounting on pop would re-run every row's flash
-    // effect against the still-truthy object and flash the slot again.
     render(
       <EngineSurface adapter={adapter()} initialSlot={{ dir: 'ja→en', stage: 'asr' }} effectiveMode="both"
         renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>}
         renderStorage={() => <div data-testid="storage" />} />);
 
-    // The deep-link itself flashes the target slot…
     expect(document.querySelector('.engine-slot.highlight')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Browse library/ }));
+    fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
-    // …but coming back from the Library must not flash it again.
     expect(document.querySelector('.engine-slot.highlight')).not.toBeInTheDocument();
   });
 });

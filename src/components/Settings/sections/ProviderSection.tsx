@@ -51,6 +51,7 @@ import {
   getManifestEntry,
   estimateModelMemoryByDevice,
 } from '../../../lib/local-inference/modelManifest';
+import { shortenModelName } from '../../../lib/local-inference/modelName';
 import { useNativeModelStatuses, useNativeModelSizes, useNativeModelStore, useNativeCatalog, useNativeAsrResolved, useNativeTranslationResolved, useNativeSidecarStatus } from '../../../stores/nativeModelStore';
 import {
   nativeAsrCards,
@@ -379,13 +380,13 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         <button type="button" className="model-chip" onClick={() => openSlot(dir, 'asr')}>
           <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
           <span className={`model-chip-value ${asrId ? 'model-ok' : 'model-warn'}`}>
-            {asrId ? (asrCard?.name || asrId) : t('common.none', 'None')}
+            {asrId ? shortenModelName(asrCard?.name ?? asrId) : t('common.none', 'None')}
           </span>
         </button>
         <button type="button" className="model-chip" onClick={() => openSlot(dir, 'translation')}>
           <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
           <span className={`model-chip-value ${trId ? 'model-ok' : 'model-warn'}`}>
-            {trId ? (trCard?.name) : t('common.none', 'None')}
+            {trId ? shortenModelName(trCard?.name ?? trId) : t('common.none', 'None')}
           </span>
         </button>
         {includeTts && (() => {
@@ -397,7 +398,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             <button type="button" className="model-chip" onClick={() => openSlot(dir, 'tts')}>
               <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
               <span className={`model-chip-value ${voiceId ? 'model-ok' : 'model-warn'}`}>
-                {voiceId ? (ttsVoice?.name || voiceId) : t('common.none', 'None')}
+                {voiceId ? shortenModelName(ttsVoice?.name ?? voiceId) : t('common.none', 'None')}
               </span>
             </button>
           );
@@ -414,29 +415,31 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     // "ready" — no separate modelStatuses check needed.
     const asrId = resolved?.asr?.modelId;
     const trId = resolved?.translation?.modelId;
-    const trEntry = trId ? getManifestEntry(trId) : undefined;
+    const wasmShort = (id: string): string => {
+      const entry = getManifestEntry(id);
+      return entry ? shortenModelName(entry.name, entry.shortName) : id;
+    };
     return (
       <>
         <button type="button" className="model-chip" onClick={() => openSlot(dir, 'asr')}>
           <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
           <span className={`model-chip-value ${asrId ? 'model-ok' : 'model-warn'}`}>
-            {asrId || t('common.none', 'None')}
+            {asrId ? wasmShort(asrId) : t('common.none', 'None')}
           </span>
         </button>
         <button type="button" className="model-chip" onClick={() => openSlot(dir, 'translation')}>
           <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
           <span className={`model-chip-value ${trId ? 'model-ok' : 'model-warn'}`}>
-            {trId ? (trEntry?.name || trId) : t('common.none', 'None')}
+            {trId ? wasmShort(trId) : t('common.none', 'None')}
           </span>
         </button>
         {includeTts && (() => {
           const id = resolved?.tts?.modelId;
-          const ttsEntry = id ? getManifestEntry(id) : undefined;
           return (
             <button type="button" className="model-chip" onClick={() => openSlot(dir, 'tts')}>
               <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
               <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
-                {id ? (ttsEntry?.name || id) : t('common.none', 'None')}
+                {id ? wasmShort(id) : t('common.none', 'None')}
               </span>
             </button>
           );

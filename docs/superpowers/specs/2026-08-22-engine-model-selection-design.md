@@ -1022,3 +1022,22 @@ visible directions for the same reason the warning is: a note about a hidden
 leg would deep-link to a slot that is not rendered, and the leg becomes
 relevant exactly when the mode does. `ensureSelectionReady` still resolves and
 prunes BOTH directions — only the verdict and the UI scope are mode-aware.
+
+## Amendment (2026-08-23, dropdown form + short names)
+
+The Engine page's accordion (Part 4's slot rows with inline pickers) is
+superseded by the **dropdown form**: each slot is one `label + <select>` row in
+the same `select-dropdown` family as the Provider selector — the two sections
+now share one control language, density, and rhythm. The select lists Auto
+first (showing the resolved pick as `auto · Name`), the ready candidates with
+sizes, and **Browse library…** as its last option (an action: pushes the
+Library for that slot without changing the selection). Deep links flash the
+target row; there is no expand/collapse state anywhere on the page. The
+single-open accordion, its picker option rows, and their styles are gone.
+
+**Short names**: the engine surface (dropdowns, chips, fallback summary) shows
+short model names; full names stay in the Library and Storage cards. Derivation
+strips runtime-qualifier noise from parenthesized groups (WebGPU, quantized,
+int8, "99+ languages") and keeps identity-bearing parens (Opus-MT directions,
+TTS voice language/gender, Online); a manifest-level optional `shortName`
+overrides where derivation would collide (Whisper Tiny WebGPU vs plain).

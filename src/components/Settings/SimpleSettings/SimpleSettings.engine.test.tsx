@@ -70,10 +70,12 @@ describe('SimpleSettings — engine host (Task 9)', () => {
 
     const { container } = render(<SimpleSettings />);
 
-    expect(container.querySelectorAll('.engine-slot__body')).toHaveLength(1);
+    // Dropdown form: the deep link's landing is the flash on the targeted
+    // row — nothing expands anymore.
     const slot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]');
     expect(slot).not.toBeNull();
-    expect(slot?.querySelector('.engine-slot__body')).not.toBeNull();
+    expect(slot!.classList.contains('highlight')).toBe(true);
+    expect(container.querySelectorAll('.engine-slot.highlight')).toHaveLength(1);
 
     // One-shot: consumed immediately, not left around for a later mount.
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();

@@ -22,7 +22,6 @@ export const EngineSurface: React.FC<{
   effectiveMode: AudioMode;
 }> = ({ adapter, renderLibrary, renderStorage, initialSlot = null, effectiveMode }) => {
   const { t } = useTranslation();
-  const [expandedSlot, setExpandedSlot] = useState<SlotId | null>(initialSlot);
   const [pushed, setPushed] = useState<Pushed>(null);
   // The flash signal is a CONSUMED copy of initialSlot, not the prop itself:
   // pushing Library/Storage unmounts the slot rows, so a still-truthy prop
@@ -40,7 +39,6 @@ export const EngineSurface: React.FC<{
   // Storage page — a chip tap always lands back on the Engine page.
   useEffect(() => {
     if (initialSlot) {
-      setExpandedSlot(initialSlot);
       setFlashSlot(initialSlot);
       setPushed(null);
     }
@@ -71,9 +69,6 @@ export const EngineSurface: React.FC<{
     return () => clearTimeout(timer);
   }, [flashSlot]);
 
-  const toggle = (slot: SlotId) =>
-    setExpandedSlot((cur) =>
-      cur && cur.dir === slot.dir && cur.stage === slot.stage ? null : slot);
 
   // Finding 2/3: EngineSurface is a section like any sibling — one
   // `.config-section` shell, one h3-height header row, for BOTH states. Not
@@ -105,7 +100,7 @@ export const EngineSurface: React.FC<{
         <Settings2 size={18} />
         <span>{t('models.management', 'Models')}</span>
       </h3>
-      <EnginePage adapter={adapter} expandedSlot={expandedSlot} onToggleSlot={toggle}
+      <EnginePage adapter={adapter}
         flashSlot={flashSlot} effectiveMode={effectiveMode}
         onBrowse={(slot) => push({ page: 'library', slot })}
         onStorage={() => push({ page: 'storage' })} />

@@ -72,6 +72,10 @@ export interface ModelManifestEntry {
   type: ModelType;
   /** Human-readable name */
   name: string;
+  /** Optional short display name for dropdowns/chips/summaries. When absent,
+   *  the UI derives one by stripping runtime-qualifier noise from the parens
+   *  (see modelName.ts). Set it explicitly where derivation would collide. */
+  shortName?: string;
   /** Languages supported by this model */
   languages: string[];
   /** True for models supporting any pair of their listed languages */
@@ -1070,6 +1074,9 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     id: 'whisper-tiny-webgpu',
     type: 'asr',
     name: 'Whisper Tiny (WebGPU, 99+ languages)',
+    // Derivation would collide with the plain whisper-tiny (both reduce to
+    // 'Whisper Tiny'), so the WebGPU flavor keeps its qualifier explicitly.
+    shortName: 'Whisper Tiny (WebGPU)',
     languages: ['multilingual'],
     multilingual: true,
     hfModelId: 'Xenova/whisper-tiny',

@@ -23,16 +23,24 @@ export const STAGE_FULL_LABEL_KEY: Record<string, [string, string]> = {
   tts: ['models.ttsModels', 'Speech Synthesis (TTS)'],
 };
 
-/** The Engine overview: both directions, three slots each, nothing else. */
+/** The dropdown option value that means "push the Library" — never a model
+ *  id (manifest/catalog ids are lowercase-kebab, this is namespaced). */
+export const BROWSE_OPTION_VALUE = '__browse__';
+
+/**
+ * The Engine overview (dropdown form, 2026-08-23 A decision): per slot one
+ * label + <select> row — the same select-dropdown family the Provider
+ * section uses, replacing the accordion. Auto is the first option and shows
+ * the resolved pick; "Browse library…" is the last option and pushes the
+ * Library without changing the selection.
+ */
 export const EnginePage: React.FC<{
   adapter: EngineAdapter;
-  expandedSlot: SlotId | null;
-  onToggleSlot: (slot: SlotId) => void;
   onBrowse: (slot: SlotId) => void;
   onStorage: () => void;
-  /** One-shot: the slot a chip click just deep-linked open (Finding 4).
-   *  Passed straight through to every SlotRow, which decides for itself
-   *  whether it's the match — see SlotRow's own doc comment. */
+  /** One-shot: the slot a chip click just deep-linked (Finding 4). Passed
+   *  straight through to every SlotRow, which decides for itself whether
+   *  it's the match — see SlotRow's own doc comment. */
   flashSlot?: SlotId | null;
   /** The EFFECTIVE audio mode (host computes `lockedMode ?? mode` — the
    *  same idiom every mode-scoped Settings UI reads). A prop, not a store
@@ -40,10 +48,8 @@ export const EnginePage: React.FC<{
    *  chain into every consumer's test environment (the "Denied ID" trap),
    *  and the hosts all read the stores already. */
   effectiveMode: AudioMode;
-}> = ({ adapter, expandedSlot, onToggleSlot, onBrowse, onStorage, flashSlot = null, effectiveMode }) => {
+}> = ({ adapter, onBrowse, onStorage, flashSlot = null, effectiveMode }) => {
   const { t } = useTranslation();
-  const isOpen = (s: SlotId) =>
-    expandedSlot?.dir === s.dir && expandedSlot?.stage === s.stage;
 
   // Direction visibility follows the effective audio mode (2026-08-23
   // decision): speaker shows only the forward leg, participant only the
@@ -67,47 +73,58 @@ export const EnginePage: React.FC<{
           {adapter.stagesFor(dir, dir === adapter.directions[0]?.dir).map((stage) => {
             const slot: SlotId = { dir, stage };
             const resolved = adapter.resolved(slot);
+            const label = t(STAGE_FULL_LABEL_KEY[stage][0], STAGE_FULL_LABEL_KEY[stage][1]);
+            // Controlled value: explicit picks are the model id, auto is ''.
+            // A stale explicit pick can't reach here as `explicit` — the
+            // resolver only reports explicit when the pick is usable, so the
+            // value always matches one of the rendered options.
+            const value = resolved?.source === 'explicit' ? resolved.modelId : '';
             return (
-              <SlotRow key={stage} slot={slot} label={t(STAGE_FULL_LABEL_KEY[stage][0], STAGE_FULL_LABEL_KEY[stage][1])}
-                resolved={resolved} displayName={adapter.displayName}
-                expanded={isOpen(slot)} onToggle={() => onToggleSlot(slot)} flashSlot={flashSlot}>
-                {adapter.stageExtras?.(slot)}
-                <div className="engine-picker" role="radiogroup">
-                  <button type="button" role="radio" aria-checked={!resolved || resolved.source === 'auto'}
-                    className={`engine-picker__option ${!resolved || resolved.source === 'auto' ? 'is-selected' : ''}`}
+              <React.Fragment key={stage}>
+                <SlotRow slot={slot} label={label} flashSlot={flashSlot}>
+                  <select
+                    className={`select-dropdown engine-slot__select${resolved ? '' : ' engine-slot__select--missing'}`}
+                    value={value}
                     disabled={adapter.disabled}
-                    onClick={() => adapter.select(slot, '')}>
-                    <span className="engine-picker__name">
+                    aria-label={label}
+                    onChange={(e) => {
+                      const picked = e.target.value;
+                      if (picked === BROWSE_OPTION_VALUE) {
+                        // An action, not an option: push the Library and keep
+                        // the selection where it was (the controlled value
+                        // snaps the control back on re-render).
+                        onBrowse(slot);
+                        return;
+                      }
+                      adapter.select(slot, picked);
+                    }}
+                  >
+                    <option value="">
                       {resolved && resolved.source === 'auto'
-                        ? t('engineUi.autoOption', 'Auto (currently {{name}})', { name: adapter.displayName(resolved.modelId) })
+                        ? t('engineUi.autoValue', 'auto · {{name}}', { name: adapter.displayName(resolved.modelId) })
                         : t('engineUi.autoOptionNone', 'Auto')}
-                    </span>
-                  </button>
-                  {adapter.readyCandidates(slot).map((c) => (
-                    <button key={c.id} type="button" role="radio"
-                      aria-checked={resolved?.source === 'explicit' && resolved.modelId === c.id}
-                      className={`engine-picker__option ${resolved?.source === 'explicit' && resolved.modelId === c.id ? 'is-selected' : ''}`}
-                      disabled={adapter.disabled}
-                      onClick={() => adapter.select(slot, c.id)}>
-                      <span className="engine-picker__name">{c.name}</span>
-                      {c.sizeLabel && <span className="engine-picker__meta">{c.sizeLabel}</span>}
-                    </button>
-                  ))}
-                </div>
-                <button type="button" className="engine-picker__option engine-picker__browse"
-                  onClick={() => onBrowse(slot)}>
-                  <span className="engine-picker__name">{t('engineUi.browseLibrary', 'Browse library')}</span>
-                  <ChevronRight size={14} />
-                </button>
-              </SlotRow>
+                    </option>
+                    {adapter.readyCandidates(slot).map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.sizeLabel ? `${c.name} · ${c.sizeLabel}` : c.name}
+                      </option>
+                    ))}
+                    <option value={BROWSE_OPTION_VALUE}>
+                      {t('engineUi.browseLibrary', 'Browse library')}…
+                    </option>
+                  </select>
+                </SlotRow>
+                {adapter.stageExtras && (
+                  <div className="engine-slot__extras">{adapter.stageExtras(slot)}</div>
+                )}
+              </React.Fragment>
             );
           })}
         </div>
       ))}
-      {/* Storage entry as the section's footer (the old ModelStorageFooter
-          shape: top divider + caption text), not another slot-look row —
-          storage is a different kind of thing than the slots above it. The
-          whole footer is the button; "Manage ›" names where it goes. */}
+      {/* Storage entry as the section's footer — storage is a different kind
+          of thing than the slots above it. The whole footer is the button;
+          "Manage ›" names where it goes. */}
       <button type="button" className="engine-storage-footer" onClick={onStorage}>
         <HardDrive size={14} />
         <span>{t('engineUi.storageUsedLine', 'Storage: {{summary}} used', { summary: adapter.storageSummary })}</span>
