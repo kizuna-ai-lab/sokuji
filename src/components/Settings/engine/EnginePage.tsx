@@ -60,9 +60,11 @@ export const EnginePage: React.FC<{
                     className={`engine-picker__option ${!resolved || resolved.source === 'auto' ? 'is-selected' : ''}`}
                     disabled={adapter.disabled}
                     onClick={() => adapter.select(slot, '')}>
-                    {resolved && resolved.source === 'auto'
-                      ? t('engineUi.autoOption', 'Auto (currently {{name}})', { name: adapter.displayName(resolved.modelId) })
-                      : t('engineUi.autoOptionNone', 'Auto')}
+                    <span className="engine-picker__name">
+                      {resolved && resolved.source === 'auto'
+                        ? t('engineUi.autoOption', 'Auto (currently {{name}})', { name: adapter.displayName(resolved.modelId) })
+                        : t('engineUi.autoOptionNone', 'Auto')}
+                    </span>
                   </button>
                   {adapter.readyCandidates(slot).map((c) => (
                     <button key={c.id} type="button" role="radio"
@@ -70,14 +72,14 @@ export const EnginePage: React.FC<{
                       className={`engine-picker__option ${resolved?.source === 'explicit' && resolved.modelId === c.id ? 'is-selected' : ''}`}
                       disabled={adapter.disabled}
                       onClick={() => adapter.select(slot, c.id)}>
-                      {c.name}
+                      <span className="engine-picker__name">{c.name}</span>
                       {c.sizeLabel && <span className="engine-picker__meta">{c.sizeLabel}</span>}
                     </button>
                   ))}
                 </div>
                 <button type="button" className="engine-picker__option engine-picker__browse"
                   onClick={() => onBrowse(slot)}>
-                  {t('engineUi.browseLibrary', 'Browse library')}
+                  <span className="engine-picker__name">{t('engineUi.browseLibrary', 'Browse library')}</span>
                   <ChevronRight size={14} />
                 </button>
               </SlotRow>

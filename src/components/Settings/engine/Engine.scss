@@ -76,41 +76,54 @@
   }
 }
 
-// One picker option (Auto / a candidate) — the look of a compact list row:
-// border, hover, and the same selected-accent fill as .model-card--selected.
+// One picker option (Auto / a candidate) — same list language as the audio
+// sections' .device-option rows (Settings.scss): solid $bg-control fill, no
+// border, green-tinted fill + right-side dot when selected. The two lists
+// sit in adjacent sections, so they must not speak two dialects.
 .engine-picker {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .engine-picker__option {
-  display: flex; align-items: center; gap: 8px; padding: 6px 8px; width: 100%;
-  box-sizing: border-box; // same width:100%+padding+border hazard as the storage row
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid vars.$border-subtle;
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px; width: 100%;
+  box-sizing: border-box;
+  background-color: vars.$bg-control;
+  border: none;
   border-radius: vars.$radius-sm;
-  color: inherit; cursor: pointer; font-size: 13px;
-  transition: border-color vars.$transition-fast, background vars.$transition-fast, color vars.$transition-fast;
+  color: inherit; cursor: pointer; font-size: vars.$font-body;
+  transition: background-color vars.$transition-fast;
 
   &:hover:not(:disabled) {
-    border-color: vars.$border-strong;
-    background: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.05);
   }
 
   &.is-selected {
-    color: vars.$color-primary;
-    background: rgba(vars.$color-primary, 0.08);
-    border-color: rgba(vars.$color-primary, 0.45);
+    background-color: vars.$color-success-bg;
+
+    // .device-option's .selected-indicator, as a pseudo so the markup needs
+    // no extra node. Sits after the meta (name flexes, meta hugs the dot).
+    &::after {
+      content: '';
+      width: 8px; height: 8px; border-radius: 50%;
+      background-color: vars.$color-primary;
+      flex-shrink: 0;
+    }
   }
 
-  &:disabled { opacity: 0.5; cursor: default; }
+  &:focus-visible { @include vars.focus-ring; }
+  &:disabled { opacity: vars.$disabled-opacity; cursor: default; }
 }
-.engine-picker__meta { margin-left: auto; font-size: 11px; color: #9aa0a6; }
+.engine-picker__name {
+  flex: 1; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.engine-picker__meta { font-size: 11px; color: #9aa0a6; flex-shrink: 0; }
 .engine-picker__browse {
   color: vars.$text-muted;
   background: none;
-  border-style: dashed;
+  border: 1px dashed vars.$border-subtle;
 }
 
 // Back row: EngineSurface's pushed-page header, reading as a clickable
