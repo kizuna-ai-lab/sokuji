@@ -4,6 +4,7 @@
  * config share one source of truth.
  */
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
+import type { ResolutionNote } from '../selection/types';
 
 /**
  * Aliases between the app's source-language values (src/utils/languages.ts) and
@@ -491,5 +492,14 @@ export interface NativeReadinessResult {
   reason: NativeReadinessReason;
   /** Auto-select's changed fields (null = nothing changed); the caller persists them. */
   corrections: Partial<NativeSelection> | null;
+  /**
+   * Every stage note the speaker AND participant direction resolutions
+   * produced (blocking or not), for the UI to render in place of the generic
+   * `localNativeModelsRequired`-family strings. Empty before the sidecar has
+   * warmed up far enough to resolve anything (`reason` is one of
+   * 'not-electron' / 'engine-mismatch' / 'engine-absent' / 'unavailable' /
+   * 'starting') — there is nothing to resolve yet at that point.
+   */
+  notes: ResolutionNote[];
 }
 

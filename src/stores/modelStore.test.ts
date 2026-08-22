@@ -76,14 +76,18 @@ describe('ensureSelectionReady', () => {
   const piperEn = { id: 'piper-en', type: 'tts', languages: ['en'], multilingual: false, variants: noSize };
   const all = [sensevoice, opusEnJa, piperJa, piperEn];
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     // Skip the IndexedDB scan — readiness logic is what we're exercising here.
     useModelStore.setState({ initialized: true, webgpuAvailable: false });
-    // No direction has an explicit selection — resolve() reads live off
-    // useSettingsStore, so a leftover selection from another describe block
-    // would silently change what these tests are exercising.
-    useSettingsStore.getState().updateLocalInference({ selections: {} });
+    // ensureSelectionReady() now reads the language pair, flat fields, and
+    // selections off useSettingsStore itself (no snapshot is passed in) — a
+    // leftover value from another describe block would silently change what
+    // these tests are exercising, so every field it reads is reset here.
+    await useSettingsStore.getState().updateLocalInference({
+      selections: {}, sourceLanguage: 'en', targetLanguage: 'ja',
+      asrModel: '', translationModel: '', ttsModel: '',
+    });
     mockGetManifestEntry.mockImplementation((id: string) => all.find(m => m.id === id));
     mockGetManifestByType.mockImplementation((type: string) => all.filter(m => m.type === type));
   });
@@ -92,11 +96,11 @@ describe('ensureSelectionReady', () => {
     useModelStore.setState({
       modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded', 'piper-ja': 'downloaded' },
     });
-
-    const result = await useModelStore.getState().ensureSelectionReady({
-      sourceLanguage: 'en', targetLanguage: 'ja',
+    await useSettingsStore.getState().updateLocalInference({
       asrModel: 'sensevoice-int8', translationModel: 'opus-mt-en-ja', ttsModel: 'piper-ja',
     });
+
+    const result = await useModelStore.getState().ensureSelectionReady();
 
     expect(result.ready).toBe(true);
     expect(result.corrections).toBeNull();
@@ -108,11 +112,11 @@ describe('ensureSelectionReady', () => {
       // resolve()'s TTS pool excludes it entirely, so auto-pick lands on piper-ja.
       modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded', 'piper-ja': 'downloaded', 'piper-en': 'downloaded' },
     });
-
-    const result = await useModelStore.getState().ensureSelectionReady({
-      sourceLanguage: 'en', targetLanguage: 'ja',
+    await useSettingsStore.getState().updateLocalInference({
       asrModel: 'sensevoice-int8', translationModel: 'opus-mt-en-ja', ttsModel: 'piper-en',
     });
+
+    const result = await useModelStore.getState().ensureSelectionReady();
 
     expect(result.corrections?.ttsModel).toBe('piper-ja');
     expect(result.ready).toBe(true);
@@ -121,12 +125,42 @@ describe('ensureSelectionReady', () => {
   it('is not ready when nothing downloaded can resolve ASR or translation', async () => {
     useModelStore.setState({ modelStatuses: {} });
 
-    const result = await useModelStore.getState().ensureSelectionReady({
-      sourceLanguage: 'en', targetLanguage: 'ja',
-      asrModel: '', translationModel: '', ttsModel: '',
-    });
+    const result = await useModelStore.getState().ensureSelectionReady();
 
     expect(result.ready).toBe(false);
+  });
+
+  it('is ready even when TTS cannot resolve — a missing voice degrades to subtitles, it never blocks Start', async () => {
+    useModelStore.setState({
+      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded' },
+    });
+    await useSettingsStore.getState().updateLocalInference({
+      asrModel: 'sensevoice-int8', translationModel: 'opus-mt-en-ja', ttsModel: '',
+    });
+
+    const result = await useModelStore.getState().ensureSelectionReady();
+
+    expect(result.ready).toBe(true);
+    expect(result.notes.some((n) => n.stage === 'tts')).toBe(true);
+  });
+
+  it('includes participant-direction notes without letting them affect readiness', async () => {
+    // piper-en (the participant direction's TTS target, en) is never
+    // downloaded in this test — its ASR and translation both resolve via the
+    // multilingual sensevoice-int8 / mocked-compatible opus-mt-en-ja, but its
+    // TTS stage has no ready candidate. That must surface as a note without
+    // affecting readiness, exactly like the speaker-TTS case above.
+    useModelStore.setState({
+      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded', 'piper-ja': 'downloaded' },
+    });
+    await useSettingsStore.getState().updateLocalInference({
+      asrModel: 'sensevoice-int8', translationModel: 'opus-mt-en-ja', ttsModel: 'piper-ja',
+    });
+
+    const result = await useModelStore.getState().ensureSelectionReady();
+
+    expect(result.ready).toBe(true);
+    expect(result.notes.some((n) => n.direction === 'ja→en' && n.stage === 'tts')).toBe(true);
   });
 });
 

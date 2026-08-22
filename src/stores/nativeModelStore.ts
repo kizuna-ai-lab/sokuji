@@ -4,13 +4,13 @@ import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, H
 import {
   statusReposFor,
   nativeAsrCards, nativeTranslationCards, nativeTtsCards,
-  requiredNativeModels, resolveNativeTts, supportsLanguage,
+  requiredNativeModels, resolveNativeTts,
   type NativeSelection, type NativeReadinessInput, type NativeReadinessResult, type NativeReadinessReason,
 } from '../lib/local-inference/native/nativeCatalog';
 import { isElectron } from '../utils/environment';
 import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
 import { nativeCandidates } from '../lib/local-inference/selection/candidates.native';
-import { directionKey, emptyDirection, type DirectionResult, type Selections, type Stage } from '../lib/local-inference/selection/types';
+import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote, type Selections, type Stage } from '../lib/local-inference/selection/types';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
 
@@ -79,14 +79,26 @@ interface NativeModelStore {
   deleteModel: (model: string, repo?: string) => Promise<void>;
   /** True only if every listed model is cached. */
   isReady: (models: string[]) => boolean;
-  /** Full LOCAL_NATIVE session-readiness gate: warm the sidecar, check the
-   *  lifecycle, refresh the pair's statuses (variant-aware), resolve the
-   *  selection against the catalog, and judge compat + downloaded state.
-   *  Returns ready + a reason and the resolver's corrections (the caller
-   *  persists them). Mirrors the WASM
-   *  useModelStore.ensureSelectionReady in shape (peers, not a shared layer).
-   *  `read` is a thunk, called only once the sidecar is warm — see
-   *  NativeReadinessInput for why a snapshot would be wrong. */
+  /**
+   * Full LOCAL_NATIVE session-readiness gate: warm the sidecar, check the
+   * lifecycle, refresh both directions' candidate statuses (variant-aware),
+   * resolve the speaker (src→tgt) AND participant (tgt→src) directions
+   * against the catalog, and apply the session-gate table:
+   *   - missing speaker ASR or translation → blocks (`ready: false`) — a
+   *     session that can't hear or translate the speaker is pointless.
+   *   - missing speaker TTS → never blocks — a missing voice degrades to
+   *     subtitles.
+   *   - missing participant ASR/translation/TTS → never blocks — that
+   *     channel is simply skipped at connect time.
+   * Returns ready + a reason, the resolver's corrections (the caller
+   * persists them — SPEAKER direction only, mirroring the flat
+   * `NativeSelection` fields there is no participant equivalent for), and
+   * `notes` (both directions, blocking or not) for the UI to render instead
+   * of the generic `localNative*`-family strings. Mirrors the WASM
+   * useModelStore.ensureSelectionReady in shape (peers, not a shared layer).
+   * `read` is a thunk, called only once the sidecar is warm — see
+   * NativeReadinessInput for why a snapshot would be wrong.
+   */
   ensureSelectionReady: (read: () => NativeReadinessInput) => Promise<NativeReadinessResult>;
   /**
    * Resolve one direction against the sidecar catalog and current download
@@ -110,6 +122,11 @@ interface NativeModelStore {
    * Mirrors modelStore.ts's `applyPrunes`, against the `localNative` slice.
    */
   applyPrunes: (prunes: Array<{ direction: string; stage: Stage }>) => Promise<void>;
+  /** Every note the last {@link ensureSelectionReady} call produced (speaker +
+   *  participant directions), for the UI to render in place of the generic
+   *  `localNative*`-family strings. Plan 2 owns the rendering; this store
+   *  only stashes the value so it has somewhere to live in the meantime. */
+  lastResolutionNotes: ResolutionNote[];
   /** True while a native ASR session is loading its model (init→ready). */
   asrLoading: boolean;
   /** The resolved ASR plan from the last session `ready` (device + measured rtf + memory). */
@@ -223,6 +240,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   catalog: {},
   sidecarStatus: 'idle',
   statusRepos: {},
+  lastResolutionNotes: [],
   asrLoading: false,
   asrResolved: null,
   translationResolved: null,
@@ -463,7 +481,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   isReady: (models) => models.length > 0 && models.every((m) => get().statuses[m] === 'ready'),
 
   ensureSelectionReady: async (read) => {
-    if (!isElectron()) return { ready: false, reason: 'not-electron', corrections: null };
+    if (!isElectron()) return { ready: false, reason: 'not-electron', corrections: null, notes: [] };
     await get().ensureCatalog();
     const status = get().sidecarStatus;
     if (status !== 'ready') {
@@ -473,7 +491,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         : (bundle === 'absent' || bundle === 'paused') ? 'engine-absent'
         : status === 'unavailable' ? 'unavailable'
         : 'starting';
-      return { ready: false, reason, corrections: null };
+      return { ready: false, reason, corrections: null, notes: [] };
     }
     // Settings are read HERE, not at the call site: the warmup above can take
     // seconds on a cold start, during which the user may change the pair or
@@ -483,19 +501,26 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     const pins = selection.translationVariantByModel ?? {};
     const asCards = (ids: string[]): NativeModelInfo[] =>
       ids.map((id) => catalog[id]).filter((c): c is NativeModelInfo => !!c);
-    // FIRST refresh: this pair's candidate statuses, variant-aware — so a cold
-    // start doesn't read the default repo and wipe a valid pinned selection.
+    // FIRST refresh: BOTH directions' candidate statuses, variant-aware — so a
+    // cold start doesn't read the default repo and wipe a valid pinned
+    // selection, and so the participant-direction resolve() below (which never
+    // blocks Start, but still needs to be accurate for its notes) isn't
+    // judged against stale statuses either.
     const candidateIds = Array.from(new Set([
       ...nativeAsrCards(selection.sourceLanguage, catalog),
       ...nativeTranslationCards(selection.sourceLanguage, selection.targetLanguage, catalog),
       ...nativeTtsCards(selection.targetLanguage, catalog),
+      ...nativeAsrCards(selection.targetLanguage, catalog),
+      ...nativeTranslationCards(selection.targetLanguage, selection.sourceLanguage, catalog),
+      ...nativeTtsCards(selection.sourceLanguage, catalog),
     ].map((c) => c.downloadId).filter((id): id is string => !!id)));
     const candidateRepos = deriveVariantRepos(asCards(candidateIds), pins);
     await get().refresh(candidateIds, Object.keys(candidateRepos).length > 0 ? candidateRepos : undefined);
 
-    // Resolve the pair against the sidecar catalog + the live download
-    // statuses just refreshed above, then garbage-collect any selection the
-    // resolver found dead (an id the catalog no longer knows about at all).
+    // Resolve BOTH the speaker (src→tgt) and participant (tgt→src) directions
+    // against the sidecar catalog + the live download statuses just refreshed
+    // above, then garbage-collect every id either resolution found dead (an id
+    // the catalog no longer knows about at all) in one combined write.
     // Settings are reached via a dynamic import — same path
     // catalogStatusRepos/revalidateNativeProvider already use in this file —
     // rather than a static one, to avoid a circular static import with
@@ -507,30 +532,30 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       const { useSettingsStore } = await import('./settingsStore');
       selections = useSettingsStore.getState().localNative.selections;
     } catch { /* settings store unavailable — resolve with no explicit selections */ }
-    const result = get().resolve(selection.sourceLanguage, selection.targetLanguage, selections);
-    if (result.prunes.length > 0) {
-      await get().applyPrunes(result.prunes);
+    const speaker = get().resolve(selection.sourceLanguage, selection.targetLanguage, selections);
+    const participant = get().resolve(selection.targetLanguage, selection.sourceLanguage, selections);
+    const prunes = [...speaker.prunes, ...participant.prunes];
+    if (prunes.length > 0) {
+      await get().applyPrunes(prunes);
     }
 
-    // Surface the resolved ids as corrections whenever they differ from the
-    // flat fields the caller passed in — same shape autoSelect used to
-    // produce, now driven by the resolver instead of the catalog reconciler.
-    // Task 14 owns the final {ready, notes} contract this interim bridge
-    // feeds into; for now settingsStore.validateApiKey's native arm keeps
-    // reading this same {ready, reason, corrections} shape.
+    // Surface the SPEAKER direction's resolved ids as corrections whenever
+    // they differ from the flat fields the caller passed in — same shape
+    // autoSelect used to produce, now driven by the resolver instead of the
+    // catalog reconciler. There is no flat-field equivalent for the
+    // participant direction, so it is never a source of corrections. Kept as
+    // the interim bridge to `NativeSelection`'s flat fields; T15 rewires the
+    // remaining reader (buildSessionConfig) to read resolve() output directly
+    // and this bridge goes away.
     const corrections: Partial<NativeSelection> = {};
-    if (result.asr && result.asr.modelId !== selection.asrModel) corrections.asrModel = result.asr.modelId;
-    if (result.translation && result.translation.modelId !== selection.translationModel) {
-      corrections.translationModel = result.translation.modelId;
+    if (speaker.asr && speaker.asr.modelId !== selection.asrModel) corrections.asrModel = speaker.asr.modelId;
+    if (speaker.translation && speaker.translation.modelId !== selection.translationModel) {
+      corrections.translationModel = speaker.translation.modelId;
     }
-    if (result.tts && result.tts.modelId !== selection.ttsModel) corrections.ttsModel = result.tts.modelId;
+    if (speaker.tts && speaker.tts.modelId !== selection.ttsModel) corrections.ttsModel = speaker.tts.modelId;
     const finalCorrections = Object.keys(corrections).length > 0 ? corrections : null;
 
     const effective = finalCorrections ? { ...selection, ...finalCorrections } : selection;
-    const asrOpt = catalog[effective.asrModel];
-    const asrCompatible = !!asrOpt && asrOpt.kind === 'asr' && supportsLanguage(asrOpt, effective.sourceLanguage);
-    const trCompatible = nativeTranslationCards(effective.sourceLanguage, effective.targetLanguage, catalog)
-      .some((c) => c.selectId === effective.translationModel);
     const models = requiredNativeModels(
       effective.asrModel, effective.translationModel, effective.ttsModel,
       effective.sourceLanguage, effective.targetLanguage, catalog, textOnly);
@@ -538,24 +563,33 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     // Includes ttsModel alongside asrModel/translationModel — omitting it here
     // meant a pinned non-recommended TTS variant (e.g. fp32 on a box where bf16
     // is recommended) was checked against the recommended/default repo instead
-    // of the pin, so readiness could report ready/missing against the wrong repo.
-    // effective.ttsModel is resolved through resolveNativeTts FIRST, not passed
-    // raw: '' means Auto, and asCards() below drops '' (catalog[''] is
+    // of the pin, so status tracking could report ready/missing against the
+    // wrong repo. Kept even though TTS no longer gates readiness (below): the
+    // Models UI still needs accurate per-model status for the resolved TTS
+    // pick. effective.ttsModel is resolved through resolveNativeTts FIRST, not
+    // passed raw: '' means Auto, and asCards() below drops '' (catalog[''] is
     // undefined) — passing it raw silently dropped the pin lookup for Auto-TTS
-    // users even though `models` above (via requiredNativeModels) already
-    // status-checks the concrete Auto-resolved id. Mirrors
-    // LocalNativeProviderConfig's ttsModelId resolution (same "not
-    // settings.ttsModel, which can be '' for Auto" reasoning).
+    // users. Mirrors LocalNativeProviderConfig's ttsModelId resolution (same
+    // "not settings.ttsModel, which can be '' for Auto" reasoning).
     const resolvedTtsId = resolveNativeTts(effective.ttsModel, effective.targetLanguage, catalog) ?? '';
     const resolved = deriveVariantRepos(asCards([effective.asrModel, effective.translationModel, resolvedTtsId]), pins);
     const statusRepos = Object.keys(resolved).length > 0 ? resolved : undefined;
     await get().refresh(models, statusRepos);
-    const ready = asrCompatible && trCompatible && get().isReady(models);
+
+    // The session-gate table (deliberately asymmetric — see the doc comment
+    // on the interface member): only the speaker's ASR and translation stages
+    // can block Start. Speaker TTS and the entire participant direction never
+    // do. resolve() already folds language compatibility, download status,
+    // and hardware gating into a single null/non-null verdict per stage (see
+    // resolveStage.ts), so there is no separate compat/download check to run
+    // here anymore.
+    const ready = Boolean(speaker.asr && speaker.translation);
     const reason: NativeReadinessReason = ready ? 'ready'
-      : !asrCompatible ? 'asr-incompatible'
-      : !trCompatible ? 'translation-incompatible'
-      : 'models-missing';
-    return { ready, reason, corrections: finalCorrections };
+      : !speaker.asr ? 'asr-incompatible'
+      : 'translation-incompatible';
+    const notes = [...speaker.notes, ...participant.notes];
+    set({ lastResolutionNotes: notes });
+    return { ready, reason, corrections: finalCorrections, notes };
   },
 
   resolve: (src, tgt, selections) => {

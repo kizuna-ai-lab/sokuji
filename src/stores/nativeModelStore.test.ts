@@ -443,7 +443,8 @@ describe('ensureSelectionReady (facade)', () => {
     // ensureCatalog will try to (re)load; make the catalog fetch reject so it stays unavailable.
     mockModelsCatalogReject();
     const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
-    expect(r).toEqual({ ready: false, reason: 'unavailable', corrections: null });
+    // There is nothing to resolve yet at this lifecycle stage, so notes is empty.
+    expect(r).toEqual({ ready: false, reason: 'unavailable', corrections: null, notes: [] });
   });
 
   it('bundle absent → reason engine-absent', async () => {
@@ -616,7 +617,8 @@ describe('ensureSelectionReady (facade)', () => {
     // bundleStatus from an earlier test in this file can't steal the reason.
     useNativeModelStore.setState({ sidecarStatus: 'starting', bundleStatus: 'unknown' });
     const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
-    expect(r).toEqual({ ready: false, reason: 'starting', corrections: null });
+    // There is nothing to resolve yet at this lifecycle stage, so notes is empty.
+    expect(r).toEqual({ ready: false, reason: 'starting', corrections: null, notes: [] });
   });
 
   it('source language with no compatible ASR model → not ready, reason asr-incompatible', async () => {
@@ -635,23 +637,27 @@ describe('ensureSelectionReady (facade)', () => {
     expect(r.reason).toBe('asr-incompatible');
   });
 
-  it('a required TTS model not yet downloaded → not ready, reason models-missing', async () => {
+  it('a required TTS model not yet downloaded → still ready — a missing voice degrades to subtitles, it never blocks Start', async () => {
     // zh source / ja target: sense-voice (asr) and qwen2.5-0.5b (translate, multi)
     // stay compatible and auto-select keeps them since the FakeWS reports them
     // 'ready'; ttsModel is '' (Auto), so autoSelect's TTS branch never fires
     // (it only revalidates an EXPLICIT choice) and leaves it at Auto, which
-    // resolves to moss-tts-nano (the only 'ja'-capable TTS card in the fixture).
-    // Force just that model 'absent' so the asr+translation pair is fully
-    // compatible and downloaded, but the required set as a whole is not —
-    // landing on 'models-missing' rather than 'asr-incompatible'/'translation-incompatible'.
+    // resolves to moss-tts-nano (the only 'ja'-capable TTS card in the
+    // fixture). Force just that model 'absent': the asr+translation pair
+    // stays fully compatible and downloaded, and per the session-gate table a
+    // missing TTS model never blocks readiness (it did prior to Task 14,
+    // landing on 'models-missing' — that reason is no longer reachable from
+    // this gate).
     mockModelsCatalogResolve();
     mockModelNotReady('moss-tts-nano');
     await useNativeModelStore.getState().ensureCatalog();
     const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
       selection: { ...SEL, targetLanguage: 'ja' }, textOnly: false,
     }));
-    expect(r.ready).toBe(false);
-    expect(r.reason).toBe('models-missing');
+    expect(r.ready).toBe(true);
+    expect(r.reason).toBe('ready');
+    // The missing TTS model still shows up as a note the UI can render.
+    expect(r.notes.some((n) => n.stage === 'tts' && n.reason === 'no-candidate')).toBe(true);
   });
 });
 

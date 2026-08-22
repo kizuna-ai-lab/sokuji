@@ -837,10 +837,15 @@ const useSettingsStore = create<SettingsStore>()(
       const provider = state.provider;
 
       // Native (Electron sidecar) inference: no API key. Readiness is owned by
-      // nativeModelStore's ensureSelectionReady facade (sidecar warmup, lifecycle
-      // gating, auto-select reconciliation, and compat/download checks); this
-      // branch only applies the resulting corrections and maps the reason to a
-      // user-facing message.
+      // nativeModelStore's ensureSelectionReady facade — sidecar warmup,
+      // lifecycle gating, resolving BOTH the speaker and participant
+      // directions, and applying the session-gate table (speaker ASR/
+      // translation block, speaker TTS and the whole participant direction
+      // never do). This branch only applies the resulting corrections (the
+      // interim bridge to the flat NativeSelection fields buildSessionConfig
+      // still reads) and maps `reason` to a user-facing message; `notes` is
+      // already stashed on nativeModelStore's `lastResolutionNotes` for Plan 2
+      // to render in place of this generic message.
       if (provider === Provider.LOCAL_NATIVE) {
         // Settings go in as a thunk, not a snapshot: the facade warms the sidecar
         // first (seconds, on a cold start) and reads them only after — so a pair
@@ -874,12 +879,17 @@ const useSettingsStore = create<SettingsStore>()(
       // Local inference: check model readiness instead of API key.
       // This is the SINGLE authority for LOCAL_INFERENCE session readiness.
       if (provider === Provider.LOCAL_INFERENCE) {
-        const localSettings = get().localInference;
         const { useModelStore } = await import('./modelStore');
 
-        // modelStore owns readiness: it initializes, auto-corrects stale
-        // selections, and judges isProviderReady against the corrected IDs.
-        const { ready, corrections } = await useModelStore.getState().ensureSelectionReady(localSettings);
+        // modelStore owns readiness: it initializes, resolves BOTH the speaker
+        // and participant directions, applies the session-gate table (speaker
+        // ASR/translation block; speaker TTS and the whole participant
+        // direction never do), and returns corrections (the interim bridge to
+        // the flat LocalInferenceSettings fields buildSessionConfig still
+        // reads) plus `notes` — already stashed on modelStore's
+        // `lastResolutionNotes` for Plan 2 to render in place of the generic
+        // message below.
+        const { ready, corrections } = await useModelStore.getState().ensureSelectionReady();
         if (corrections) {
           console.log('[SettingsStore] Auto-correcting stale model selections:', corrections);
           get().updateLocalInference(corrections);

@@ -24,7 +24,7 @@ import { filesToImportMap, type NamedBlob } from '../lib/local-inference/modelIm
 import { checkWebGPU } from '../utils/webgpu';
 import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
 import { wasmCandidates } from '../lib/local-inference/selection/candidates.wasm';
-import { directionKey, emptyDirection, type DirectionResult, type Selections, type Stage } from '../lib/local-inference/selection/types';
+import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote, type Selections, type Stage } from '../lib/local-inference/selection/types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -37,20 +37,11 @@ export interface DownloadState {
   isImport?: boolean;
 }
 
-/**
- * The subset of LOCAL_INFERENCE settings that determine session readiness:
- * the language pair plus the three selected model IDs. Structurally matches
- * `LocalInferenceSettings` so the settings slice can be passed directly.
- */
-export interface LocalSelection {
-  sourceLanguage: string;
-  targetLanguage: string;
-  asrModel: string;
-  translationModel: string;
-  ttsModel: string;
-}
-
-/** Result of {@link ModelStoreState.ensureSelectionReady}: corrected model IDs, or null. */
+/** Result of {@link ModelStoreState.ensureSelectionReady}: corrected model IDs, or null.
+ *  Kept as the interim bridge to `LocalInferenceSettings`'s flat `asrModel`/
+ *  `translationModel`/`ttsModel` fields — `buildSessionConfig` still reads
+ *  those directly rather than the resolver, so a T15 task rewires it to read
+ *  `resolve()` output and this bridge goes away. */
 export type ModelCorrections = { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
 
 interface ModelStoreState {
@@ -75,6 +66,12 @@ interface ModelStoreState {
   deviceFeatures: string[];
   /** Downloaded variant key per model (modelId → variant key) */
   modelVariants: Record<string, string>;
+  /** Every note the last {@link ensureSelectionReady} call produced (speaker +
+   *  participant directions), for the UI to render in place of the generic
+   *  `localInferenceModelsRequired` string. Plan 2 owns the rendering; this
+   *  store only stashes the value so it has somewhere to live in the
+   *  meantime. Cleared to `[]` when nothing is amiss. */
+  lastResolutionNotes: ResolutionNote[];
 
   /** Initialize: scan IndexedDB for existing models */
   initialize: () => Promise<void>;
@@ -127,14 +124,32 @@ interface ModelStoreState {
    */
   applyPrunes: (prunes: Array<{ direction: string; stage: Stage }>) => Promise<void>;
   /**
-   * Full LOCAL_INFERENCE session-readiness check for a selection. Initializes
-   * the store if needed, resolves the direction via {@link resolve}, applies
-   * any prunes the resolution surfaced, and reports readiness against the
-   * resolved stages — WITHOUT persisting. The caller applies the returned
-   * `corrections` to its own settings slice. This is the single readiness
-   * entry point for settingsStore.validateApiKey's LOCAL_INFERENCE arm.
+   * Full LOCAL_INFERENCE session-readiness check. Initializes the store if
+   * needed, reads sourceLanguage/targetLanguage/selections off settingsStore
+   * itself (no snapshot is passed in — this is the single readiness entry
+   * point for settingsStore.validateApiKey's LOCAL_INFERENCE arm, and it owns
+   * its own reads), resolves BOTH the speaker (src→tgt) and participant
+   * (tgt→src) directions via {@link resolve}, and applies every prune either
+   * resolution surfaced — WITHOUT persisting corrections.
+   *
+   * The session-gate table this implements is deliberately asymmetric:
+   *   - missing speaker ASR or translation → blocks (`ready: false`) — a
+   *     session that can't hear or translate the speaker is pointless.
+   *   - missing speaker TTS → never blocks — a missing voice degrades to
+   *     subtitles, and is never even resolved when the session is text-only.
+   *   - missing participant ASR/translation/TTS → never blocks — that
+   *     channel is simply skipped at connect time.
+   *
+   * `notes` carries every stage note from both directions (blocking or not)
+   * for the UI to render instead of the generic `localInferenceModelsRequired`
+   * string. `corrections` is kept only as the interim bridge to the flat
+   * `LocalInferenceSettings.asrModel`/`.translationModel`/`.ttsModel` fields
+   * that `buildSessionConfig` still reads directly; it reflects the SPEAKER
+   * direction only (there is no flat-field equivalent for the participant
+   * direction to correct). The caller applies `corrections` to its own
+   * settings slice.
    */
-  ensureSelectionReady: (selection: LocalSelection) => Promise<{ ready: boolean; corrections: ModelCorrections }>;
+  ensureSelectionReady: () => Promise<{ ready: boolean; notes: ResolutionNote[]; corrections: ModelCorrections }>;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -151,6 +166,7 @@ export const useModelStore = create<ModelStoreState>()(
     webgpuSoftwareOnly: false,
     deviceFeatures: [],
     modelVariants: {},
+    lastResolutionNotes: [],
 
     initialize: async () => {
       if (get().initialized) return;
@@ -481,7 +497,7 @@ export const useModelStore = create<ModelStoreState>()(
       } catch { /* settings store unavailable — nothing to prune */ }
     },
 
-    ensureSelectionReady: async (selection) => {
+    ensureSelectionReady: async () => {
       // Scan IndexedDB for downloaded models before judging readiness.
       if (!get().initialized) {
         await get().initialize();
@@ -489,39 +505,57 @@ export const useModelStore = create<ModelStoreState>()(
       // Dynamic import — same settingsStore-import path nativeModelStore.ts
       // uses — rather than a static one, to avoid a circular static import
       // with settingsStore.ts (which already dynamically imports this
-      // module). Unavailable settings store degrades to "nothing explicit",
-      // i.e. every stage resolves purely from the manifest.
+      // module). Unavailable settings store degrades to "nothing explicit
+      // and no pair", i.e. every stage resolves purely from the manifest
+      // against an empty '→' direction — never ready, but never throws.
+      let sourceLanguage = '';
+      let targetLanguage = '';
+      let asrModel = '';
+      let translationModel = '';
+      let ttsModel = '';
       let selections: Selections = {};
       try {
         const { useSettingsStore } = await import('./settingsStore');
-        selections = useSettingsStore.getState().localInference.selections;
+        const localInference = useSettingsStore.getState().localInference;
+        ({ sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel, selections } = localInference);
       } catch { /* settings store unavailable — resolve with no explicit selections */ }
 
-      // Resolve the speaker direction against the WASM manifest + current
-      // download statuses, then garbage-collect any selection the resolver
-      // found dead (an id the manifest no longer knows about at all).
-      const result = get().resolve(selection.sourceLanguage, selection.targetLanguage, selections);
-      if (result.prunes.length > 0) {
-        await get().applyPrunes(result.prunes);
+      // Resolve BOTH directions against the WASM manifest + current download
+      // statuses. There is deliberately no path by which one direction can
+      // influence the other (see resolveDirection's doc comment).
+      const speaker = get().resolve(sourceLanguage, targetLanguage, selections);
+      const participant = get().resolve(targetLanguage, sourceLanguage, selections);
+
+      // Garbage-collect every id either resolution found dead (an id the
+      // manifest no longer knows about at all) in one combined write.
+      const prunes = [...speaker.prunes, ...participant.prunes];
+      if (prunes.length > 0) {
+        await get().applyPrunes(prunes);
       }
 
-      // Surface the resolved ids as corrections whenever they differ from the
-      // flat fields the caller passed in — same shape the old autoSelectModels
-      // produced, now driven by the resolver instead of a bespoke walk.
+      // Surface the SPEAKER direction's resolved ids as corrections whenever
+      // they differ from the flat fields on settings — same shape the old
+      // autoSelectModels produced, now driven by the resolver instead of a
+      // bespoke walk. There is no flat-field equivalent for the participant
+      // direction, so it is never a source of corrections.
       const corrections: { asrModel?: string; translationModel?: string; ttsModel?: string } = {};
-      if (result.asr && result.asr.modelId !== selection.asrModel) corrections.asrModel = result.asr.modelId;
-      if (result.translation && result.translation.modelId !== selection.translationModel) {
-        corrections.translationModel = result.translation.modelId;
+      if (speaker.asr && speaker.asr.modelId !== asrModel) corrections.asrModel = speaker.asr.modelId;
+      if (speaker.translation && speaker.translation.modelId !== translationModel) {
+        corrections.translationModel = speaker.translation.modelId;
       }
-      if (result.tts && result.tts.modelId !== selection.ttsModel) corrections.ttsModel = result.tts.modelId;
+      if (speaker.tts && speaker.tts.modelId !== ttsModel) corrections.ttsModel = speaker.tts.modelId;
 
-      // Readiness is ASR + translation both resolving to something usable.
-      // TTS is optional (text-only sessions never load a voice); Task 14 owns
-      // the final {ready, notes} contract this will grow into.
-      const ready = result.asr !== null && result.translation !== null;
+      // The session-gate table (deliberately asymmetric — see the doc
+      // comment on the interface member): only the speaker's ASR and
+      // translation stages can block Start. Speaker TTS and the entire
+      // participant direction never do.
+      const ready = Boolean(speaker.asr && speaker.translation);
+      const notes = [...speaker.notes, ...participant.notes];
+      set({ lastResolutionNotes: notes });
 
       return {
         ready,
+        notes,
         corrections: Object.keys(corrections).length > 0 ? corrections : null,
       };
     },
@@ -541,3 +575,4 @@ export const useWebGPUAvailable = () => useModelStore(s => s.webgpuAvailable);
 export const useWebGPUSoftwareOnly = () => useModelStore(s => s.webgpuSoftwareOnly);
 export const useDeviceFeatures = () => useModelStore(s => s.deviceFeatures);
 export const useModelVariants = () => useModelStore(s => s.modelVariants);
+export const useLastResolutionNotes = () => useModelStore(s => s.lastResolutionNotes);
