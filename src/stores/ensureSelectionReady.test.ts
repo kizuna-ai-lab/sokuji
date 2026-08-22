@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getManifestByType } from '../lib/local-inference/modelManifest';
+import { directionKey } from '../lib/local-inference/selection/types';
 
 // ensureSelectionReady() reaches settingsStore via a dynamic import, which
 // drags in its real static import graph — including

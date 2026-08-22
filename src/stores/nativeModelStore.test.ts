@@ -650,6 +650,21 @@ describe('ensureSelectionReady (facade)', () => {
     expect(r.notes.some((n) => n.stage === 'tts' && n.reason === 'no-candidate')).toBe(true);
   });
 
+  it('textOnly mode suppresses TTS notes even when TTS cannot resolve', async () => {
+    // Same setup as above: TTS model missing, so textOnly: false would generate a note.
+    // With textOnly: true, TTS resolution should be skipped entirely (no note generated).
+    mockModelsCatalogResolve();
+    mockModelNotReady('moss-tts-nano');
+    await useNativeModelStore.getState().ensureCatalog();
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
+      selection: { ...SEL, targetLanguage: 'ja' }, textOnly: true,
+    }));
+    expect(r.ready).toBe(true);
+    expect(r.reason).toBe('ready');
+    // With textOnly on, TTS notes should not be present
+    expect(r.notes.some((n) => n.stage === 'tts')).toBe(false);
+  });
+
   it('participant direction language-incompatible for BOTH ASR and translation → still ready, notes surface both', async () => {
     // Directional zh→en-only translation card replaces the default multi
     // qwen2.5-0.5b — compatible for the SPEAKER direction (zh→en) but not the
