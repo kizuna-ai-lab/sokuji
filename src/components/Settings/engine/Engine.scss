@@ -95,6 +95,16 @@
 //   #4 the closed control's 'auto ·' prefix stays muted, name stays bright
 @supports (appearance: base-select) {
   .engine-slot__select.engine-slot__select {
+    // The picker flips above the control only when its FULL preferred height
+    // does not fit below (UA anchor rule: block-end + flip-block) — and the
+    // shared 320px cap made that trigger early in a short side-panel
+    // viewport. Slot pickers hold a handful of candidates, so a tighter cap
+    // keeps them opening downward in most positions; a genuine
+    // does-not-fit still flips, which beats a three-line scroll box.
+    &::picker(select) {
+      max-height: 240px;
+    }
+
     option {
       display: flex;
       align-items: center;
