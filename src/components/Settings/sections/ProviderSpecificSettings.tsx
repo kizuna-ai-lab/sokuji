@@ -2125,14 +2125,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             its Engine page via the adapter's `gate` — no standalone <EngineSection/>
             here, or it would render twice. */}
         <EngineSurface
-          key={engineInitialSlot ? `${engineInitialSlot.dir}:${engineInitialSlot.stage}` : 'default'}
           adapter={nativeAdapter}
           initialSlot={engineInitialSlot}
           renderLibrary={(slot) => (
             <NativeModelManagementSection isSessionActive={isSessionActive}
               stageFilter={slot.stage} compatibilitySplit />
           )}
-          renderStorage={() => <StoragePage provider="native" />}
+          renderStorage={() => <StoragePage provider="native" isSessionActive={isSessionActive} />}
         />
 
         {ttsActive && (
@@ -2245,14 +2244,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     return (
       <>
         <EngineSurface
-          key={engineInitialSlot ? `${engineInitialSlot.dir}:${engineInitialSlot.stage}` : 'default'}
           adapter={wasmAdapter}
           initialSlot={engineInitialSlot}
           renderLibrary={(slot) => (
             <ModelManagementSection isSessionActive={isSessionActive}
               stageFilter={slot.stage} compatibilitySplit />
           )}
-          renderStorage={() => <StoragePage provider="wasm" />}
+          renderStorage={() => <StoragePage provider="wasm" isSessionActive={isSessionActive} />}
         />
 
         {/* Voice / speaker selection now lives inside the selected TTS card

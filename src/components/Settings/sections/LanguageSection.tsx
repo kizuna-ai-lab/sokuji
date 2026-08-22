@@ -494,11 +494,14 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // semantics differ, so it keeps today's plain "My Language"/"Other's
   // Language" labels.
   const sentenceLabels = provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE;
+  // Effective mode — same `lockedMode ?? mode` idiom as speakerChannelInScopeForUi
+  // above: in-session, the sentence must describe the mode the session actually
+  // locked in, not wherever the (still-interactive but inert) picker sits.
   const myLanguageLabel = sentenceLabels
-    ? (mode === 'participant' ? t('settings.langSentence.iRead', 'I read') : t('settings.langSentence.iSpeak', 'I speak'))
+    ? ((lockedMode ?? mode) === 'participant' ? t('settings.langSentence.iRead', 'I read') : t('settings.langSentence.iSpeak', 'I speak'))
     : t('simpleConfig.yourLanguage');
   const theirLanguageLabel = sentenceLabels
-    ? (mode === 'participant' ? t('settings.langSentence.theySpeak', 'they speak') : t('settings.langSentence.theyHear', 'they hear'))
+    ? ((lockedMode ?? mode) === 'participant' ? t('settings.langSentence.theySpeak', 'they speak') : t('settings.langSentence.theyHear', 'they hear'))
     : t('simpleConfig.targetLanguage');
 
   // "Both" mode runs the speaker leg above plus a mirrored participant leg;

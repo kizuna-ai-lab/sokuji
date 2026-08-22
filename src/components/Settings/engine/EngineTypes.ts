@@ -17,6 +17,8 @@ export interface EngineAdapter {
   resolved(slot: SlotId): Resolved | null;
   /** Display name for a model id (chips/library share it). */
   displayName(id: string): string;
+  /** Display name for a language code (falls back to the code itself). */
+  languageName(code: string): string;
   /** READY implementations only — the short list an expanded slot shows. */
   readyCandidates(slot: SlotId): SlotCandidate[];
   /** Write an explicit pick ('' = back to auto). */

@@ -23,6 +23,7 @@ import {
 import { NativeDeviceControl } from './NativeDeviceControl';
 import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceStores';
+import { languageNameFor } from '../engine/languageName';
 import { TierIcon } from './TierIcon';
 import LicenseConsentModal from '../shared/LicenseConsentModal';
 import { hasAcceptedLicense, acceptLicense } from '../../../stores/licenseConsentStore';
@@ -774,7 +775,7 @@ export const NativeModelManagementSection: React.FC<{
           <NativeDeviceControl stage="asr" disabled={isSessionActive} />
           {compatibilitySplit ? (
             renderCompatSplitBody(
-              settings.sourceLanguage,
+              languageNameFor(settings.sourceLanguage),
               asrCards, asrIncompatibleCards,
               (c) => selectedAsr === c.selectId, 'asr',
               variantData, handlePinVariant,
@@ -808,7 +809,10 @@ export const NativeModelManagementSection: React.FC<{
           <NativeDeviceControl stage="translation" disabled={isSessionActive} />
           {compatibilitySplit ? (
             renderCompatSplitBody(
-              t('engineUi.speakerHeading', '{{src}} → {{tgt}}', { src: settings.sourceLanguage, tgt: settings.targetLanguage }),
+              t('engineUi.speakerHeading', '{{src}} → {{tgt}}', {
+                src: languageNameFor(settings.sourceLanguage),
+                tgt: languageNameFor(settings.targetLanguage),
+              }),
               translationCards, [],
               (c) => selectedTranslation === c.selectId, 'translation',
               variantData, handlePinVariant,
@@ -834,7 +838,7 @@ export const NativeModelManagementSection: React.FC<{
             // `capability` reflects the resolved (selected) model's voice capability.
             compatibilitySplit ? (
               renderCompatSplitBody(
-                settings.targetLanguage,
+                languageNameFor(settings.targetLanguage),
                 ttsCards, [],
                 (c) => selectedTts === c.selectId, 'tts',
                 variantData, handlePinVariant, renderTtsBody,
@@ -858,12 +862,17 @@ export const NativeModelManagementSection: React.FC<{
         </ModelGroup>
       )}
 
-      <ModelStorageFooter
-        usedMb={usedMb}
-        hasModels={readyIds.length > 0}
-        onClearAll={() => Promise.all(readyIds.map((id) => deleteModel(id, statusRepos[id])))}
-        disabled={isSessionActive}
-      />
+      {/* Storage owns Clear-all now (StoragePage) — this duplicate footer only
+          belongs on the standalone (prop-less stageFilter) render; the Library
+          push is already scoped to one stage and its gating differs. */}
+      {!stageFilter && (
+        <ModelStorageFooter
+          usedMb={usedMb}
+          hasModels={readyIds.length > 0}
+          onClearAll={() => Promise.all(readyIds.map((id) => deleteModel(id, statusRepos[id])))}
+          disabled={isSessionActive}
+        />
+      )}
     </div>
   );
 };

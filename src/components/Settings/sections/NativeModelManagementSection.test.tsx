@@ -15,6 +15,18 @@ import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { formatMemMb } from '../../../lib/local-inference/native/nativeCatalog';
 import type { VariantInfo, NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
 
+// I3/I5's compatibilitySplit group headers resolve a language NAME via
+// languageNameFor(Provider.LOCAL_NATIVE, ...), which needs LOCAL_NATIVE
+// registered in ProviderConfigFactory's static block (gated on
+// isElectron() && isLocalNativeEnabled() — see localNativeGating.test.ts).
+// Every OTHER test in this file renders without compatibilitySplit, so
+// languageNameFor is never reached and this mock is inert for them.
+vi.mock('../../../utils/environment', async (orig) => ({
+  ...(await orig<any>()),
+  isElectron: () => true,
+  isLocalNativeEnabled: () => true,
+}));
+
 // The Supertonic-shaped style-import path (Task 13) goes through voiceStorage
 // (not nativeVoiceStorage, which backs the MOSS clip-clone path). Mocked so
 // NativeVoiceSection's injected store resolves imported voices without a real
@@ -213,7 +225,15 @@ const mockRetrySidecar = vi.fn();
 // ---------------------------------------------------------------------------
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_k: string, fallback?: string) => fallback ?? _k }),
+  // Interpolating, mirroring StoragePage.test.tsx — needed so a
+  // compatibilitySplit group header's {{lang}} actually resolves to the
+  // language NAME the component passed in, not the raw placeholder (I5/I3).
+  useTranslation: () => ({
+    t: (_k: string, fallback?: string, opts?: Record<string, any>) =>
+      typeof fallback === 'string'
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m, n) => String(opts?.[n] ?? ''))
+        : _k,
+  }),
 }));
 
 // Tooltip uses FloatingPortal which causes jsdom issues; replace with a passthrough
@@ -693,5 +713,77 @@ describe('NativeModelManagementSection — incompatible card click guard', () =>
     } finally {
       mockCatalogOverride = null;
     }
+  });
+});
+
+// I3 (final-review carry-over): the Library surface (stageFilter +
+// compatibilitySplit) had zero dedicated tests here. Covers checklist items
+// 1 and 3 — native's card shape has no availableWhenLang line (item 4, WASM-
+// only) and its translation/tts lists carry no incompatible bucket in the
+// fixture catalog below, so item 2's "two DIFFERENT axes" pin stays with the
+// WASM file (ModelManagementSection.test.tsx), which covers all four.
+describe('NativeModelManagementSection — compatibilitySplit / Library surface (I3)', () => {
+  const asrIncompatibleFixture = {
+    ...mockCatalog,
+    // languages: ['en'] does not include mockSettings.sourceLanguage ('ja') —
+    // same fixture as the click-guard test above, reused for the split view.
+    'whisper-en-only': {
+      id: 'whisper-en-only', name: 'Whisper EN-only', languages: ['en'],
+      recommended: false, tiers: [], order: 5, repo: 'whisper-en-only', kind: 'asr',
+    } as NativeModelInfo,
+  };
+
+  it('renders every ASR model in the catalog, split into a compatible group and a collapsed "Other languages" group', async () => {
+    mockCatalogOverride = asrIncompatibleFixture;
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" compatibilitySplit />);
+      await screen.findByText('ASR (Speech Recognition)');
+
+      // Collapsed by default: absent from the DOM until expanded.
+      expect(screen.queryByTestId('model-card-whisper-en-only')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Other languages'));
+      expect(await screen.findByTestId('model-card-whisper-en-only')).toBeInTheDocument();
+
+      // Every ASR entry in the fixture catalog renders somewhere across the
+      // two groups — nothing silently dropped by the split.
+      const allAsr = Object.values(asrIncompatibleFixture).filter((m) => m.kind === 'asr');
+      for (const m of allAsr) {
+        expect(screen.getByTestId(`model-card-${m.id}`)).toBeInTheDocument();
+      }
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+
+  it('an incompatible model offers Download but clicking it (the "Use" affordance) does not write a selection', async () => {
+    mockCatalogOverride = asrIncompatibleFixture;
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" compatibilitySplit />);
+      fireEvent.click(screen.getByText('Other languages'));
+
+      const card = await screen.findByTestId('model-card-whisper-en-only');
+      expect(within(card).getByRole('button', { name: /Download/i })).toBeEnabled();
+
+      fireEvent.click(card);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+});
+
+// C1 folded finding: Storage (StoragePage) owns Clear-all now — the bottom
+// ModelStorageFooter duplicate must not render on the Library push
+// (stageFilter set), only on the standalone (prop-less) Settings-page render.
+describe('NativeModelManagementSection — ModelStorageFooter only on the standalone render (C1)', () => {
+  it('a Library-view (stageFilter set) render has no ModelStorageFooter', () => {
+    render(<NativeModelManagementSection stageFilter="asr" />);
+    expect(document.querySelector('.model-management__storage')).not.toBeInTheDocument();
+  });
+
+  it('the standalone (prop-less stageFilter) render keeps the footer', () => {
+    render(<NativeModelManagementSection />);
+    expect(document.querySelector('.model-management__storage')).toBeInTheDocument();
   });
 });

@@ -5,7 +5,9 @@ import type { EngineAdapter, SlotId } from './EngineTypes';
 import { SlotRow } from './SlotRow';
 import './Engine.scss';
 
-const STAGE_LABEL_KEY: Record<string, [string, string]> = {
+/** Localized stage labels (ASR / MT / TTS) — shared by the slot rows here and
+ *  the pushed Library title in EngineSurface, so the two can't drift. */
+export const STAGE_LABEL_KEY: Record<string, [string, string]> = {
   asr: ['providers.local_inference.modelAsr', 'ASR'],
   translation: ['providers.local_inference.modelTranslation', 'MT'],
   tts: ['providers.local_inference.modelTts', 'TTS'],
@@ -28,7 +30,9 @@ export const EnginePage: React.FC<{
       {adapter.directions.map(({ dir, src, tgt }, i) => (
         <div key={dir} className="engine-direction">
           <div className="engine-direction__title">
-            {t('engineUi.speakerHeading', '{{src}} → {{tgt}}', { src, tgt })}
+            {t('engineUi.speakerHeading', '{{src}} → {{tgt}}', {
+              src: adapter.languageName(src), tgt: adapter.languageName(tgt),
+            })}
           </div>
           {adapter.stagesFor(dir, i === 0).map((stage) => {
             const slot: SlotId = { dir, stage };

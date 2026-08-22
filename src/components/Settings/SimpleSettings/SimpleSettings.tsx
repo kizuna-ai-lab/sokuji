@@ -130,25 +130,23 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
 
           {isNative ? (
             <EngineSurface
-              key={engineOpen ? `${engineOpen.dir}:${engineOpen.stage}` : 'default'}
               adapter={nativeAdapter}
               initialSlot={engineOpen}
               renderLibrary={(slot) => (
                 <NativeModelManagementSection isSessionActive={isSessionActive}
                   stageFilter={slot.stage} compatibilitySplit />
               )}
-              renderStorage={() => <StoragePage provider="native" />}
+              renderStorage={() => <StoragePage provider="native" isSessionActive={isSessionActive} />}
             />
           ) : (
             <EngineSurface
-              key={engineOpen ? `${engineOpen.dir}:${engineOpen.stage}` : 'default'}
               adapter={wasmAdapter}
               initialSlot={engineOpen}
               renderLibrary={(slot) => (
                 <ModelManagementSection isSessionActive={isSessionActive}
                   stageFilter={slot.stage} compatibilitySplit />
               )}
-              renderStorage={() => <StoragePage provider="wasm" />}
+              renderStorage={() => <StoragePage provider="wasm" isSessionActive={isSessionActive} />}
             />
           )}
         </div>

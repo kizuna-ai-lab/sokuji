@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { EngineSurface } from './EngineSurface';
 import type { EngineAdapter } from './EngineTypes';
@@ -25,6 +25,7 @@ const adapter = (over: Partial<EngineAdapter> = {}): EngineAdapter => ({
   ],
   resolved: ({ stage }) => (stage === 'tts' ? null : { modelId: 'm1', source: 'auto' }),
   displayName: (id) => (id === 'm1' ? 'Model One' : id),
+  languageName: (code) => code,
   readyCandidates: () => [{ id: 'm1', name: 'Model One', sizeLabel: '10 MB' }, { id: 'm2', name: 'Model Two' }],
   select: vi.fn(),
   storageSummary: '796 MB used',
@@ -81,6 +82,17 @@ describe('EngineSurface / EnginePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Back/ }));
     expect(screen.queryByTestId('library')).not.toBeInTheDocument();
     expect(screen.getByText('ja → en')).toBeInTheDocument();
+  });
+
+  it('the back row shows the localized stage label as its VISIBLE text (not the word "Back", not the raw stage string), while "Back" survives as its accessible name', () => {
+    surface();
+    fireEvent.click(screen.getAllByRole('button', { name: /ASR/ })[0]);
+    fireEvent.click(screen.getByRole('button', { name: /Browse library/ }));
+    const back = screen.getByRole('button', { name: 'Back' });
+    expect(back).toHaveTextContent('Library · ASR');
+    expect(back).not.toHaveTextContent('Back Library');
+    expect(back).not.toHaveTextContent('asr');
+    expect(back.getAttribute('aria-label')).toBe('Back');
   });
 
   it('the storage row pushes the storage page', () => {

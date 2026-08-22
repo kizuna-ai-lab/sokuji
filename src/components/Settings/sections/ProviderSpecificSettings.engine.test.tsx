@@ -12,10 +12,11 @@
  * settingsStore/modelStore/nativeModelStore, ServiceFactory mocked, heavy
  * local-provider sections stubbed) combined with StoragePage.test.tsx's
  * interpolating `t()` mock, needed here to tell the two rendered direction
- * headings apart ("ja → en" vs "en → ja").
+ * headings apart ("日本語 → English" vs "English → 日本語" — resolved
+ * language NAMES, not the raw 'ja'/'en' codes, per the languageName spec).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -104,7 +105,7 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
     const { container } = render(
       <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
     );
-    expect(directionHeadings(container)).toEqual(['ja → en', 'en → ja']);
+    expect(directionHeadings(container)).toEqual(['日本語 → English', 'English → 日本語']);
     // The WASM adapter carries no `gate` — EngineSection is a native-only concern.
     expect(container.querySelector('[data-testid="engine-section-gate"]')).toBeNull();
   });
@@ -114,7 +115,7 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
     const { container } = render(
       <ProviderSpecificSettings {...baseProps} config={new LocalNativeProviderConfig().getConfig()} />,
     );
-    expect(directionHeadings(container)).toEqual(['ja → en', 'en → ja']);
+    expect(directionHeadings(container)).toEqual(['日本語 → English', 'English → 日本語']);
     // Moved into the adapter's `gate` (Task 8) — must render, and only once
     // (the branch's old standalone <EngineSection/> is gone).
     expect(container.querySelectorAll('[data-testid="engine-section-gate"]')).toHaveLength(1);
@@ -136,5 +137,61 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
 
     // One-shot: consumed immediately, not left around for a later mount.
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
+  });
+
+  // I1 (final-review carry-over): EngineSurface used to key its host's
+  // useState initializer off `initialSlot`, so re-firing the SAME (dir,
+  // stage) target after the user collapsed that slot's header was a no-op —
+  // the slot string was unchanged, so nothing observed the new object. The
+  // fix makes EngineSurface respond to the PROP's identity via an effect, and
+  // every deep-link (openSlot in ProviderSection) allocates a fresh object,
+  // so two chip taps on the same model chip are never equal by reference.
+  it('re-firing the same slot target after the user collapsed it re-expands the slot (same chip tapped twice)', () => {
+    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
+    useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
+
+    const { container } = render(
+      <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
+    );
+
+    const slot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]')!;
+    expect(slot.querySelector('.engine-slot__body')).not.toBeNull();
+
+    // Collapse it via its own header — same as a user closing the picker.
+    fireEvent.click(slot.querySelector('.engine-slot__header')!);
+    expect(slot.querySelector('.engine-slot__body')).toBeNull();
+
+    // The same chip fires again: a FRESH object with the identical dir/stage
+    // (mirrors ProviderSection's openSlot allocating {dir, stage} on every click).
+    act(() => {
+      useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
+    });
+
+    expect(slot.querySelector('.engine-slot__body')).not.toBeNull();
+  });
+
+  it('a pushed Library page pops back to the Engine page when a NEW slot target fires', () => {
+    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
+    useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
+
+    const { container } = render(
+      <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
+    );
+
+    const asrSlot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]')!;
+    fireEvent.click(asrSlot.querySelector('.engine-picker__browse')!);
+    expect(container.querySelector('.engine-back-row')).not.toBeNull();
+    expect(container.querySelector('.engine-page')).toBeNull();
+
+    // A different slot's chip fires while the Library is showing — the surface
+    // must land back on the Engine page with the NEW slot expanded, not stay
+    // pushed on the old Library view.
+    act(() => {
+      useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'translation' });
+    });
+
+    expect(container.querySelector('.engine-back-row')).toBeNull();
+    const translationSlot = container.querySelector('.engine-slot[data-slot="ja→en:translation"]')!;
+    expect(translationSlot.querySelector('.engine-slot__body')).not.toBeNull();
   });
 });

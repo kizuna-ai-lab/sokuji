@@ -27,6 +27,7 @@ import {
 } from '../../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
+import { languageNameFor } from '../engine/languageName';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 import { ModelImportModal } from './ModelImportModal';
 import { GpuAccelerationNotice } from './GpuAccelerationNotice';
@@ -762,7 +763,7 @@ export function ModelManagementSection({
               {statuses[entry.id] === 'downloaded' && (
                 <div className="model-card__available-when-lang">
                   {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
-                    lang: entry.languages.join(', '),
+                    lang: entry.languages.map((l) => languageNameFor(l)).join(', '),
                   })}
                 </div>
               )}
@@ -780,7 +781,7 @@ export function ModelManagementSection({
       return (
         <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
           {renderCompatSplitBody(
-            sourceLanguage,
+            languageNameFor(sourceLanguage),
             <div className="model-card__no-model-warning">
               <AlertTriangle size={14} />
               {t('settings.noAsrModel', 'No ASR model for {{language}}', { language: sourceLanguage })}
@@ -856,7 +857,10 @@ export function ModelManagementSection({
       return (
         <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}>
           {renderCompatSplitBody(
-            t('engineUi.speakerHeading', '{{src}} → {{tgt}}', { src: sourceLanguage, tgt: targetLanguage }),
+            t('engineUi.speakerHeading', '{{src}} → {{tgt}}', {
+              src: languageNameFor(sourceLanguage),
+              tgt: languageNameFor(targetLanguage),
+            }),
             <div className="model-card__no-model-warning">
               <AlertTriangle size={14} />
               {t('settings.noTranslationModel', 'No translation model for {{source}} → {{target}}', {
@@ -1000,7 +1004,7 @@ export function ModelManagementSection({
       return (
         <ModelGroup id="model-tts" title={t('models.ttsModels', 'TTS (Text-to-Speech)')}>
           {renderCompatSplitBody(
-            targetLanguage,
+            languageNameFor(targetLanguage),
             <div className="model-card__no-model-warning">
               <AlertTriangle size={14} />
               {t('settings.noTtsModel', 'No TTS model for {{language}}', { language: targetLanguage })}
@@ -1082,12 +1086,17 @@ export function ModelManagementSection({
       {(!stageFilter || stageFilter === 'translation') && renderTranslationGroup()}
       {(!stageFilter || stageFilter === 'tts') && renderTtsGroup()}
 
-      <ModelStorageFooter
-        usedMb={storageUsedMb}
-        hasModels={storageUsedMb > 0}
-        onClearAll={deleteAllModels}
-        disabled={isSessionActive}
-      />
+      {/* Storage owns Clear-all now (StoragePage) — this duplicate footer only
+          belongs on the standalone (prop-less stageFilter) render; the Library
+          push is already scoped to one stage and its gating differs. */}
+      {!stageFilter && (
+        <ModelStorageFooter
+          usedMb={storageUsedMb}
+          hasModels={storageUsedMb > 0}
+          onClearAll={deleteAllModels}
+          disabled={isSessionActive}
+        />
+      )}
 
       {importFor && (
         <ModelImportModal

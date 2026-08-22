@@ -132,6 +132,41 @@ describe('StoragePage (wasm)', () => {
     render(<StoragePage provider="native" />);
     expect(screen.queryByRole('button', { name: /Import/ })).not.toBeInTheDocument();
   });
+
+  // C1: StoragePage had no isSessionActive gating at all — its delete /
+  // Clear-all / Import controls were gated in their previous homes (the two
+  // ModelManagementSection variants) but lost that gate on relocation here,
+  // and the stores themselves have no backstop against deleting the model a
+  // running session is actually using.
+  it('isSessionActive disables per-row delete, Clear all, and Import', () => {
+    useModelStore.setState({
+      modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true,
+    });
+    render(<StoragePage provider="wasm" isSessionActive />);
+
+    expect(screen.getByTestId(`storage-delete-${asrId()}`)).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Clear all/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Import/ })).toBeDisabled();
+  });
+
+  // I4: the delete confirm used to render only the (possibly empty) fallback
+  // notes — a model whose delete touches neither live direction (downloaded
+  // but not in use) showed a confirm box with NO question at all.
+  it("a downloaded-but-not-in-use row's confirm shows the lead question", () => {
+    // opus-mt-es-fr (es -> fr) is real, non-multilingual, non-cloud, and
+    // unrelated to the ja<->en directions this suite's beforeEach sets up —
+    // downloading it can never resolve as "in use" for either direction.
+    useModelStore.setState({
+      modelStatuses: { 'opus-mt-es-fr': 'downloaded' }, webgpuAvailable: true,
+    });
+    render(<StoragePage provider="wasm" />);
+    const row = screen.getByTestId('storage-row-opus-mt-es-fr');
+    expect(row).not.toHaveTextContent('In use');
+
+    fireEvent.click(screen.getByTestId('storage-delete-opus-mt-es-fr'));
+    const confirm = screen.getByTestId('storage-confirm');
+    expect(confirm.textContent).toMatch(/Delete .*\?/);
+  });
 });
 
 // Task 7's review carry-over: StoragePage's native half (real hooks, real

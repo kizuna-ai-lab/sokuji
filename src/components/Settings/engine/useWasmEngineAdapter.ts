@@ -6,6 +6,7 @@ import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../sto
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
+import { languageNameFor } from './languageName';
 import type { EngineAdapter } from './EngineTypes';
 
 /** LOCAL_INFERENCE's EngineAdapter — resolve() for display, selections for writes. */
@@ -35,6 +36,7 @@ export function useWasmEngineAdapter(isSessionActive = false): EngineAdapter {
         return useModelStore.getState().resolve(src, tgt, selections)[slot.stage];
       },
       displayName: (id) => getManifestEntry(id)?.name ?? id,
+      languageName: languageNameFor,
       readyCandidates: (slot) => {
         const [src, tgt] = split(slot.dir);
         // Filtered on `autoEligible` too (not just ready && hardwareOk):

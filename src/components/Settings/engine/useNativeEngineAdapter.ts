@@ -5,6 +5,7 @@ import { nativeCandidates } from '../../../lib/local-inference/selection/candida
 import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { EngineSection } from '../sections/EngineSection';
 import { NativeDeviceControl } from '../sections/NativeDeviceControl';
+import { languageNameFor } from './languageName';
 import type { EngineAdapter } from './EngineTypes';
 
 const fmtBytes = (b?: number): string | undefined =>
@@ -45,6 +46,7 @@ export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
         return useNativeModelStore.getState().resolve(src, tgt, selections)[slot.stage];
       },
       displayName: (id) => catalog[id]?.name ?? id,
+      languageName: languageNameFor,
       readyCandidates: (slot) => {
         const [src, tgt] = split(slot.dir);
         return source.pool(slot.stage, src, tgt)
