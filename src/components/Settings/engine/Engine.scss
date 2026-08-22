@@ -77,40 +77,28 @@
   }
 }
 
-// One picker option (Auto / a candidate) — same list language as the audio
-// sections' .device-option rows (Settings.scss): solid $bg-control fill, no
-// border, green-tinted fill + right-side dot when selected. The two lists
-// sit in adjacent sections, so they must not speak two dialects.
+// One picker option (Auto / a candidate) — the shared option-row dialect
+// (_variables.scss), same voice as the audio sections' .device-option rows:
+// the two lists sit in adjacent sections, so they must not speak two
+// dialects. Chosen bordered (over the solid-fill look) on 2026-08-22.
 .engine-picker {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .engine-picker__option {
-  display: flex; align-items: center; gap: 8px; padding: 10px 12px; width: 100%;
+  @include vars.option-row;
+  display: flex; align-items: center; gap: 8px; width: 100%;
   box-sizing: border-box;
-  background-color: vars.$bg-control;
-  border: none;
-  border-radius: vars.$radius-sm;
-  color: inherit; cursor: pointer; font-size: vars.$font-body;
-  transition: background-color vars.$transition-fast;
+  color: inherit; cursor: pointer;
 
   &:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.05);
+    @include vars.option-row-hover;
   }
 
   &.is-selected {
-    background-color: vars.$color-success-bg;
-
-    // .device-option's .selected-indicator, as a pseudo so the markup needs
-    // no extra node. Sits after the meta (name flexes, meta hugs the dot).
-    &::after {
-      content: '';
-      width: 8px; height: 8px; border-radius: 50%;
-      background-color: vars.$color-primary;
-      flex-shrink: 0;
-    }
+    @include vars.option-row-selected;
   }
 
   &:focus-visible { @include vars.focus-ring; }

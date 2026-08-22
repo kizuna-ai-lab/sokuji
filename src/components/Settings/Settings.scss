@@ -633,24 +633,22 @@
 // Device list styles (shared)
 .device-list {
   .device-option {
+    // The shared option-row dialect (see _variables.scss) — same voice as
+    // the engine picker's rows, per the 2026-08-22 unification decision.
+    @include vars.option-row;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px;
-    background-color: vars.$bg-control;
-    border-radius: vars.$radius-sm;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     cursor: pointer;
-    transition: background-color vars.$transition-fast;
     position: relative;
-    font-size: vars.$font-body;
 
     &:hover:not(.disabled) {
-      background-color: rgba(255, 255, 255, 0.05);
+      @include vars.option-row-hover;
     }
 
     &.selected {
-      background-color: vars.$color-success-bg;
+      @include vars.option-row-selected;
     }
 
     &:focus-visible {
@@ -661,7 +659,8 @@
       @include vars.disabled-state;
 
       &:hover {
-        background-color: vars.$bg-control;
+        border-color: vars.$border-subtle;
+        background: rgba(255, 255, 255, 0.02);
       }
     }
 
@@ -678,15 +677,6 @@
 
     .virtual-indicator {
       margin-left: 8px;
-      flex-shrink: 0;
-    }
-
-    .selected-indicator {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: vars.$color-primary;
-      margin-left: 10px;
       flex-shrink: 0;
     }
   }
