@@ -150,18 +150,20 @@
   }
 }
 
-// StoragePage's per-model list row (content card, like .model-card — a div,
-// not a button: only the delete control inside it is interactive).
+// StoragePage's per-model list row — same option-row metrics as the engine
+// picker's rows (user decision, 2026-08-22) so the two lists share one
+// density; not selectable, so no hover/selected states. flex-wrap lets the
+// inline delete-confirm break onto its own full-width line instead of
+// squeezing in as a third column beside the name and the delete button.
 .engine-storage-row {
-  display: flex; align-items: center; gap: 8px; padding: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid vars.$border-subtle;
-  border-radius: vars.$radius-md;
-  margin-bottom: 6px;
+  @include vars.option-row;
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
   // width:100% + padding + border needs border-box or the row overflows the
-  // 450px panel by 22px (verified by rendering; no global reset exists).
+  // 450px panel (verified by rendering; no global reset exists).
   box-sizing: border-box;
-  width: 100%; font-size: 13px;
+  width: 100%;
 
   &:last-child {
     margin-bottom: 0;
@@ -238,6 +240,11 @@
 }
 
 .engine-storage-confirm {
+  // Full row width in BOTH flex-wrap hosts (a storage row's inline delete
+  // confirm, the actions row's clear-all confirm) — without this it sat
+  // beside its siblings at whatever width was left over.
+  flex-basis: 100%;
+  box-sizing: border-box;
   padding: 8px; margin: 4px 0; background: rgba(255, 255, 255, 0.04); border-radius: 6px;
   font-size: 12px;
   p { margin: 0 0 6px; }
