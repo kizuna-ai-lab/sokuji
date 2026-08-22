@@ -18,7 +18,9 @@
     font-size: vars.$font-body;
     font-weight: vars.$weight-semibold;
     color: vars.$text-muted;
-    text-transform: uppercase;
+    // No uppercase: the heading interpolates real language NAMES
+    // (English, Français) and all-caps distorts them; CJK is unaffected
+    // either way, so the transform only ever hurt.
     letter-spacing: 0.5px;
     margin: 14px 0 6px;
 
@@ -78,6 +80,7 @@
 
 .engine-picker__option {
   display: flex; align-items: center; gap: 8px; padding: 6px 8px; width: 100%;
+  box-sizing: border-box; // same width:100%+padding+border hazard as the storage row
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid vars.$border-subtle;
   border-radius: vars.$radius-sm;
@@ -127,6 +130,9 @@
   border-radius: vars.$radius-md;
   margin-bottom: 6px;
   cursor: pointer;
+  // width:100% + padding + border needs border-box or the row overflows the
+  // 450px panel by 22px (verified by rendering; no global reset exists).
+  box-sizing: border-box;
   color: inherit; width: 100%; text-align: left; font-size: 13px;
   transition: border-color vars.$transition-fast;
 
