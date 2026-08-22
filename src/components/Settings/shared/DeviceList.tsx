@@ -122,7 +122,6 @@ const DeviceList: React.FC<DeviceListProps> = ({
         tabIndex={disabled ? -1 : 0}
       >
         <span>{t('common.off', 'Off')}</span>
-        {!isDeviceOn && <div className="selected-indicator" />}
       </div>
 
       {/* Device options */}
@@ -155,7 +154,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
                 <AlertTriangle size={14} />
               </div>
             )}
-            {isSelected && <div className="selected-indicator" />}
+
           </div>
         );
       })}

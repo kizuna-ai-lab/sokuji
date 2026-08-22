@@ -110,7 +110,6 @@
     "helpEmailTooltip": "รายงานข้อบกพร่องหรือขอความช่วยเหลือ",
     "helpDiscussions": "การสนทนา",
     "helpDiscussionsTooltip": "คำขอฟีเจอร์ ข้อเสนอแนะ และการสนทนาในชุมชน",
-    "participantModelHint": "เปลี่ยนเป็น {{source}} → {{target}} เพื่อเปลี่ยนโมเดลของอีกฝ่าย",
     "auto": "อัตโนมัติ",
     "low": "ต่ำ",
     "medium": "ปานกลาง",
@@ -184,10 +183,14 @@
     "sensitivityLow": "ต่ำ",
     "localInferenceModelsRequired": "กรุณาดาวน์โหลดโมเดลที่จำเป็นใน<settingsLink>การตั้งค่า</settingsLink>ก่อน คุณต้องดาวน์โหลดโมเดลการรู้จำเสียงพูด (ASR) การแปล และการสังเคราะห์เสียงพูด (TTS) เพื่อเริ่มต้นใช้งาน",
     "missingModelsWarning": "ขาดโมเดล {{types}} สำหรับคู่ภาษานี้",
+    "resolutionNotesSummary": "โมเดลที่คุณเลือกไว้ {{count}} รายการใช้งานไม่ได้ — กำลังใช้ตัวเลือกสำรองอัตโนมัติ",
+    "resolutionNotesNamed": "{{names}} ใช้งานไม่ได้ — กำลังใช้ตัวเลือกสำรองอัตโนมัติ",
+    "resolutionNotesNamedMore": "{{names}} และอีก {{count}} รายการใช้งานไม่ได้ — กำลังใช้ตัวเลือกสำรองอัตโนมัติ",
+    "resolutionNotesUseAuto": "เปลี่ยนเป็นอัตโนมัติ",
+    "resolutionNotesReview": "ตรวจสอบ",
     "downloadModelType": "ดาวน์โหลด {{type}}",
     "modelTypeAsr": "การรู้จำเสียงพูด (ASR)",
     "modelTypeTranslation": "การแปล",
-    "modelTypeTts": "การสังเคราะห์เสียงพูด (TTS)",
     "edgeTtsVoice": "เสียง",
     "loadingVoices": "กำลังโหลดเสียง...",
     "reasoningEffort": "ระดับการให้เหตุผล",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "การดูตัวอย่างล้มเหลว — ถึงขีดจำกัดอัตราหรือโควตาของ Soniox แล้ว",
     "sonioxVoicePreviewTimeout": "การดูตัวอย่างหมดเวลา — ลองใหม่อีกครั้ง",
     "sonioxRegion": "ภูมิภาค",
-    "sonioxRegionTooltip": "Soniox ให้บริการแยกตามภูมิภาค แต่ละแห่งมีคีย์ API ของตัวเอง เสียงของคุณจะถูกประมวลผลและจัดเก็บในภูมิภาคที่คุณเลือก มีผลตั้งแต่เซสชันถัดไป"
+    "sonioxRegionTooltip": "Soniox ให้บริการแยกตามภูมิภาค แต่ละแห่งมีคีย์ API ของตัวเอง เสียงของคุณจะถูกประมวลผลและจัดเก็บในภูมิภาคที่คุณเลือก มีผลตั้งแต่เซสชันถัดไป",
+    "langSentence": {
+      "iSpeak": "ฉันพูด",
+      "iRead": "ฉันอ่าน",
+      "theyHear": "พวกเขาได้ยิน",
+      "theySpeak": "พวกเขาพูด",
+      "mirror": "พวกเขาพูด {{their}} → ฉันอ่าน {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",
@@ -479,8 +489,7 @@
       "description": "การรู้จำเสียงพูดฟรี (ASR) + แปล + การสังเคราะห์เสียงพูด (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "อีกฝ่าย"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "ฟรี (Native)",
@@ -831,8 +840,9 @@
     "importNow": "นำเข้า {{count}} ตอนนี้",
     "management": "โมเดล",
     "storageUsed": "พื้นที่จัดเก็บ: ใช้แล้ว {{size}} MB",
+    "storageEmpty": "ยังไม่มีโมเดลที่ดาวน์โหลด",
     "asrModels": "การรู้จำเสียงพูด (ASR)",
-    "translationModels": "การแปล",
+    "translationModels": "การแปล (MT)",
     "ttsModels": "การสังเคราะห์เสียงพูด (TTS)",
     "autoSelected": "เลือกอัตโนมัติ",
     "download": "ดาวน์โหลด",
@@ -892,6 +902,20 @@
       "cancel": "ยกเลิก",
       "accept": "เข้าใจแล้ว — ใช้ได้เฉพาะแบบไม่ใช่เชิงพาณิชย์"
     }
+  },
+  "notes": {
+    "stageAsr": "การรู้จำเสียงพูด",
+    "stageTranslation": "การแปลภาษา",
+    "stageTts": "การสังเคราะห์เสียงพูด",
+    "notDownloaded": "{{from}} ยังไม่ได้ดาวน์โหลด ดาวน์โหลดอีกครั้งเพื่อใช้งาน",
+    "notDownloadedWithSub": "{{from}} ยังไม่ได้ดาวน์โหลด — ใช้ {{to}} แทน ดาวน์โหลดอีกครั้งเพื่อใช้งาน",
+    "langIncompatible": "{{from}} ไม่รองรับทิศทางนี้ จะกลับมาใช้ได้เมื่อรองรับทิศทางนี้",
+    "langIncompatibleWithSub": "{{from}} ไม่รองรับทิศทางนี้ — ใช้ {{to}} แทน จะกลับมาใช้ได้เมื่อรองรับทิศทางนี้",
+    "hardwareGated": "{{from}} ไม่สามารถทำงานบนอุปกรณ์นี้ได้",
+    "hardwareGatedWithSub": "{{from}} ไม่สามารถทำงานบนอุปกรณ์นี้ได้ — ใช้ {{to}} แทน",
+    "needsKey": "{{from}} ต้องเข้าสู่ระบบบัญชีก่อนจึงจะใช้งานได้",
+    "notInCatalog": "{{from}} ไม่มีให้ใช้งานแล้วในเวอร์ชันนี้",
+    "noCandidate": "ไม่มีโมเดล{{stage}}ที่ใช้งานได้สำหรับทิศทางนี้"
   },
   "update": {
     "available": "เวอร์ชันใหม่ v{{version}} พร้อมใช้งาน",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "เลือกแอปการประชุมเป็นแหล่งเสียงอีกฝ่ายแทนเสียงระบบ",
     "actionChangeInput": "เลือกไมโครโฟนจริงเป็นอุปกรณ์อินพุต",
     "dismiss": "ปิด"
+  },
+  "engineUi": {
+    "autoValue": "อัตโนมัติ · {{name}}",
+    "autoOptionNone": "อัตโนมัติ",
+    "browseLibrary": "เรียกดูคลังโมเดล",
+    "storageUsedLine": "พื้นที่จัดเก็บ: ใช้ไป {{summary}}",
+    "manageStorage": "จัดการ",
+    "back": "กลับ",
+    "titleLibrary": "คลังโมเดล · {{stage}}",
+    "titleStorage": "พื้นที่จัดเก็บ",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "กำลังใช้งาน",
+    "estimated": "โดยประมาณ",
+    "translationOnCpu": "แปลภาษาบน CPU — VRAM ไม่เพียงพอ",
+    "availableWhenLang": "ดาวน์โหลดแล้ว ใช้งานได้เมื่อภาษาของคุณคือ {{lang}}",
+    "deleteConfirm": "ลบ {{name}} ใช่หรือไม่?",
+    "deleteFallsBack": "การลบ {{name}}: {{stage}}จะเปลี่ยนไปใช้ {{to}} แทน",
+    "deleteNoModel": "การลบ {{name}}: ไม่มีโมเดล{{stage}}เหลืออยู่ — ไม่สามารถเริ่มเซสชันได้",
+    "clearAllKeepsPicks": "ระบบจดจำตัวเลือกของคุณไว้ และจะกลับมาใช้ได้เมื่อดาวน์โหลดโมเดลอีกครั้ง",
+    "importChooseModel": "เลือกโมเดลที่จะนำเข้า"
   }
 }

@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Report bugs or get help",
     "helpDiscussions": "Discussions",
     "helpDiscussionsTooltip": "Feature requests, feedback, and community discussions",
-    "participantModelHint": "Switch to {{source}} → {{target}} to change Other's models",
     "auto": "Auto",
     "low": "Low",
     "medium": "Medium",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Low",
     "localInferenceModelsRequired": "Please download the required models in <settingsLink>Settings</settingsLink> first. You need to download Speech Recognition (ASR), Translation, and Speech Synthesis (TTS) models to get started.",
     "missingModelsWarning": "Missing {{types}} model(s) for this language pair.",
+    "resolutionNotesSummary": "{{count}} of your selected models are unavailable — automatic fallbacks are in use.",
+    "resolutionNotesNamed": "{{names}} unavailable — automatic fallbacks are in use.",
+    "resolutionNotesNamedMore": "{{names}} and {{count}} more unavailable — automatic fallbacks are in use.",
+    "resolutionNotesUseAuto": "Switch to Auto",
+    "resolutionNotesReview": "Review",
     "downloadModelType": "Download {{type}}",
     "modelTypeAsr": "Speech Recognition (ASR)",
     "modelTypeTranslation": "Translation",
-    "modelTypeTts": "Speech Synthesis (TTS)",
     "edgeTtsVoice": "Voice",
     "loadingVoices": "Loading voices...",
     "reasoningEffort": "Reasoning effort",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Preview failed — Soniox rate limit or quota reached",
     "sonioxVoicePreviewTimeout": "Preview timed out — try again",
     "sonioxRegion": "Region",
-    "sonioxRegionTooltip": "Soniox runs a separate deployment per region, each with its own API key. Your audio is processed and stored in the region you pick. Applies from the next session."
+    "sonioxRegionTooltip": "Soniox runs a separate deployment per region, each with its own API key. Your audio is processed and stored in the region you pick. Applies from the next session.",
+    "langSentence": {
+      "iSpeak": "I speak",
+      "iRead": "I read",
+      "theyHear": "they hear",
+      "theySpeak": "they speak",
+      "mirror": "They speak {{their}} → I read {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
@@ -479,8 +489,7 @@
       "description": "Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Other"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Free (Native)",
@@ -831,8 +840,9 @@
     "importNow": "Import {{count}} now",
     "management": "Models",
     "storageUsed": "Storage: {{size}} MB used",
+    "storageEmpty": "No models downloaded yet.",
     "asrModels": "Speech Recognition (ASR)",
-    "translationModels": "Translation",
+    "translationModels": "Translation (MT)",
     "ttsModels": "Speech Synthesis (TTS)",
     "autoSelected": "Auto-selected",
     "download": "Download",
@@ -892,6 +902,20 @@
       "cancel": "Cancel",
       "accept": "I understand — non-commercial only"
     }
+  },
+  "notes": {
+    "stageAsr": "speech recognition",
+    "stageTranslation": "translation",
+    "stageTts": "speech output",
+    "notDownloaded": "{{from}} is not downloaded. Download it again to use it.",
+    "notDownloadedWithSub": "{{from}} is not downloaded — using {{to}} instead. Download it again to use it.",
+    "langIncompatible": "{{from}} does not support this direction. It returns when the direction does.",
+    "langIncompatibleWithSub": "{{from}} does not support this direction — using {{to}} instead. It returns when the direction does.",
+    "hardwareGated": "{{from}} cannot run on this device.",
+    "hardwareGatedWithSub": "{{from}} cannot run on this device — using {{to}} instead.",
+    "needsKey": "{{from}} needs a signed-in account to use.",
+    "notInCatalog": "{{from}} is no longer available in this version.",
+    "noCandidate": "No {{stage}} model is available for this direction."
   },
   "update": {
     "available": "New version v{{version}} available",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Pick the meeting application as Other's audio source instead of system audio.",
     "actionChangeInput": "Pick a physical microphone as the input device.",
     "dismiss": "Dismiss"
+  },
+  "engineUi": {
+    "autoValue": "Auto · {{name}}",
+    "autoOptionNone": "Auto",
+    "browseLibrary": "Browse library",
+    "storageUsedLine": "Storage: {{summary}} used",
+    "manageStorage": "Manage",
+    "back": "Back",
+    "titleLibrary": "Library · {{stage}}",
+    "titleStorage": "Storage",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "In use",
+    "estimated": "Estimated",
+    "translationOnCpu": "Translation on CPU — not enough VRAM",
+    "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",
+    "deleteConfirm": "Delete {{name}}?",
+    "deleteFallsBack": "Deleting {{name}}: {{stage}} falls back to {{to}}.",
+    "deleteNoModel": "Deleting {{name}}: no {{stage}} model remains — sessions cannot start.",
+    "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again.",
+    "importChooseModel": "Choose a model to import"
   }
 }

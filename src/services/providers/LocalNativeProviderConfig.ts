@@ -5,12 +5,11 @@ import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, Part
 import { IClient, FilteredModel, SessionConfig, LocalNativeSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalNativeClient } from '../clients/LocalNativeClient';
-import { resolveNativeTts, resolveNativeTranslation } from '../../lib/local-inference/native/nativeCatalog';
-import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 // nativeModelStore imports no provider modules, so this store read introduces
-// no cycle; the descriptor needs the sidecar catalog for TTS auto-resolution.
+// no cycle; the descriptor needs it for resolve() (catalog + download status).
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { createParticipantLocalNativeConfig } from './localParticipantConfig';
+import type { DirectionResult, Selections } from '../../lib/local-inference/selection/types';
 import i18n from '../../locales';
 
 /**
@@ -19,13 +18,11 @@ import i18n from '../../locales';
  * (speech mode, VAD, prompt, TTS speed) need it.
  */
 export interface LocalNativeSettings {
-  asrModel: string;          // sidecar ASR model id (e.g. 'sense-voice', 'whisper-tiny')
-  translationModel: string;  // '' (auto) | LLM id (e.g. 'qwen2.5-0.5b')
-  // Per-model chosen quant variant (e.g. { 'hy-mt2-1.8b': 'fp8' }). A model with no
-  // entry uses the sidecar's recommended variant. Keyed by model id (global across
-  // language directions); drives which repo the card downloads AND the load pin.
-  translationVariantByModel: Record<string, string>;
-  ttsModel: string;          // '' = Auto (default voice) | a specific piper voice id
+  /** Per-direction model choices, keyed `src→tgt`. '' in any stage means auto,
+   *  and `selections[dir][stage].variant` is the pinned quant for that stage's
+   *  chosen model — the direction/stage-scoped replacement for the old global
+   *  `translationVariantByModel` map. */
+  selections: Selections;
   sourceLanguage: string;
   targetLanguage: string;
   // Parity with LocalInferenceSettings — same fields/defaults so the shared
@@ -44,9 +41,7 @@ export interface LocalNativeSettings {
 }
 
 export const defaultLocalNativeSettings: LocalNativeSettings = {
-  asrModel: 'sense-voice',
-  translationModel: 'qwen2.5-0.5b',  // explicit default LLM; opus-mt selectable per language pair
-  ttsModel: '',          // '' = Auto (default voice for the target); text-only via the textOnly toggle
+  selections: {},
   sourceLanguage: 'ja',
   targetLanguage: 'en',
   ttsSpeed: 1.0,
@@ -60,7 +55,6 @@ export const defaultLocalNativeSettings: LocalNativeSettings = {
   translationDevice: 'auto',
   ttsDevice: 'auto',
   ttsVoice: '',
-  translationVariantByModel: {},
 };
 
 /**
@@ -80,18 +74,19 @@ export function resolveWrapTranscript(
 
 /**
  * Build the native (Electron sidecar) session config. ASR + translation, plus
- * piper TTS when a model is available for the target language. Model lists +
- * resolution live in nativeCatalog. The engine defaults the translate prompt,
- * so instructions are advisory.
+ * piper TTS when a model is available for the target language. `resolved` is
+ * the direction's already-computed `resolve()` output (catalog membership,
+ * download status, and hardware gating all folded in) — this function stays
+ * pure/data-in, no store reads of its own. The engine defaults the translate
+ * prompt, so instructions are advisory.
  */
 export function createLocalNativeSessionConfig(
   settings: LocalNativeSettings,
   systemInstructions: string,
-  catalog: Record<string, NativeModelInfo> = {},
+  resolved: DirectionResult,
 ): LocalNativeSessionConfig {
   const wrapTranscript = resolveWrapTranscript(
     settings.sourceLanguage, settings.targetLanguage, settings.useTemplateMode, systemInstructions);
-  const ttsModelId = resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog);
 
   return {
     provider: 'local_native',
@@ -99,19 +94,21 @@ export function createLocalNativeSessionConfig(
     instructions: systemInstructions,
     sourceLanguage: settings.sourceLanguage,
     targetLanguage: settings.targetLanguage,
-    asrModelId: settings.asrModel,
-    translationModelId: resolveNativeTranslation(settings.translationModel),
+    // asrModelId is non-optional on LocalNativeSessionConfig — a missing
+    // resolution becomes '' exactly like the old empty-string field did; the
+    // Start gate already blocks a session whose speaker ASR can't resolve.
+    asrModelId: resolved.asr?.modelId ?? '',
+    translationModelId: resolved.translation?.modelId,
     // Manual variant pin → load's select_variant(pin=...) so LOAD resolves the same
     // variant DOWNLOAD fetched (else local_files_only load fails on a missing repo).
-    translationVariant: settings.translationVariantByModel[settings.translationModel],
-    // translationVariantByModel is the GENERIC per-model quant-pin map (keyed
-    // by model id — ids never collide across stages); ASR pins live there too.
-    asrVariant: settings.translationVariantByModel[settings.asrModel],
-    ttsModelId,
-    // Same generic per-model quant-pin map as asrVariant above — keyed by the
-    // RESOLVED TTS model id (not settings.ttsModel, which can be '' for Auto),
-    // so the Auto-resolved model's pin (if any) is still picked up.
-    ttsVariant: settings.translationVariantByModel[ttsModelId ?? ''],
+    // resolve() only carries a variant for an EXPLICIT, currently-usable pick
+    // (a stage's variant is always absent under auto) — replaces the old
+    // global `translationVariantByModel[modelId]` lookup.
+    translationVariant: resolved.translation?.variant,
+    // Same per-stage variant contract as translationVariant above.
+    asrVariant: resolved.asr?.variant,
+    ttsModelId: resolved.tts?.modelId,
+    ttsVariant: resolved.tts?.variant,
     ttsSpeed: settings.ttsSpeed,
     vadThreshold: settings.vadThreshold,
     vadMinSilenceDuration: settings.vadMinSilenceDuration,
@@ -175,11 +172,14 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
   }
 
   buildSessionConfig(slice: unknown, systemInstructions: string): SessionConfig {
-    // TTS auto-resolution needs the sidecar's per-machine catalog; read it at
-    // build time — before the sidecar responds it is {} and TTS stays off,
-    // matching the builder's default-catalog semantics.
-    const catalog = useNativeModelStore.getState().catalog;
-    return createLocalNativeSessionConfig(slice as LocalNativeSettings, systemInstructions, catalog);
+    // resolve() needs the sidecar's per-machine catalog + live download status;
+    // read it at build time — before the sidecar responds, catalog/statuses
+    // are both {} and every stage resolves to null, matching the builder's
+    // old default-catalog (TTS-off) semantics.
+    const settings = slice as LocalNativeSettings;
+    const resolved = useNativeModelStore.getState().resolve(
+      settings.sourceLanguage, settings.targetLanguage, settings.selections);
+    return createLocalNativeSessionConfig(settings, systemInstructions, resolved);
   }
 
   buildParticipantSessionConfig(
@@ -193,7 +193,7 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
     // Opus model bakes the direction in; a source-specific ASR only handles one
     // language). Reverse the direction and re-resolve both models for the
     // reversed pair — see createParticipantLocalNativeConfig.
-    const result = createParticipantLocalNativeConfig(base.config as LocalNativeSessionConfig);
+    const result = createParticipantLocalNativeConfig(base.config as LocalNativeSessionConfig, (slice as LocalNativeSettings).selections);
 
     if (!result.success) {
       return { config: null, notices: [{ channel: 'error', message: result.detail }] };

@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Ilmoita virheistä tai pyydä apua",
     "helpDiscussions": "Keskustelut",
     "helpDiscussionsTooltip": "Ominaisuuspyynnöt, palaute ja yhteisökeskustelut",
-    "participantModelHint": "Vaihda kielipari {{source}} → {{target}} muuttaaksesi toisen malleja",
     "auto": "Auto",
     "low": "Matala",
     "medium": "Keskitaso",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Matala",
     "localInferenceModelsRequired": "Lataa ensin tarvittavat mallit <settingsLink>Asetuksista</settingsLink>. Sinun täytyy ladata puheentunnistus (ASR)-, käännös- ja puhesynteesi (TTS) -mallit aloittaaksesi.",
     "missingModelsWarning": "{{types}}-malli(t) puuttuu tälle kieliparille.",
+    "resolutionNotesSummary": "{{count}} valitsemaasi mallia ei ole käytettävissä — automaattiset varamallit ovat käytössä.",
+    "resolutionNotesNamed": "{{names}} ei ole käytettävissä — automaattiset varamallit ovat käytössä.",
+    "resolutionNotesNamedMore": "{{names}} ja {{count}} muuta eivät ole käytettävissä — automaattiset varamallit ovat käytössä.",
+    "resolutionNotesUseAuto": "Vaihda automaattiseen",
+    "resolutionNotesReview": "Tarkista",
     "downloadModelType": "Lataa {{type}}",
     "modelTypeAsr": "Puheentunnistus (ASR)",
     "modelTypeTranslation": "Käännös",
-    "modelTypeTts": "Puhesynteesi (TTS)",
     "edgeTtsVoice": "Ääni",
     "loadingVoices": "Ladataan ääniä...",
     "reasoningEffort": "Päättelytaso",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Esikatselu epäonnistui — Soniox-nopeusrajoitus tai kiintiö saavutettu",
     "sonioxVoicePreviewTimeout": "Esikatselu aikakatkaistiin — yritä uudelleen",
     "sonioxRegion": "Alue",
-    "sonioxRegionTooltip": "Soniox ylläpitää erillistä ympäristöä kullekin alueelle, ja kullakin on oma API-avaimensa. Äänesi käsitellään ja tallennetaan valitsemallasi alueella. Voimassa seuraavasta istunnosta alkaen."
+    "sonioxRegionTooltip": "Soniox ylläpitää erillistä ympäristöä kullekin alueelle, ja kullakin on oma API-avaimensa. Äänesi käsitellään ja tallennetaan valitsemallasi alueella. Voimassa seuraavasta istunnosta alkaen.",
+    "langSentence": {
+      "iSpeak": "Puhun",
+      "iRead": "Luen",
+      "theyHear": "he kuulevat",
+      "theySpeak": "he puhuvat",
+      "mirror": "He puhuvat {{their}} → luen {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
@@ -479,8 +489,7 @@
       "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Toinen"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Ilmainen (Native)",
@@ -831,8 +840,9 @@
     "importNow": "Tuo {{count}} nyt",
     "management": "Mallit",
     "storageUsed": "Tallennustila: {{size}} Mt käytössä",
+    "storageEmpty": "Malleja ei ole vielä ladattu.",
     "asrModels": "Puheentunnistus (ASR)",
-    "translationModels": "Käännös",
+    "translationModels": "Käännös (MT)",
     "ttsModels": "Puhesynteesi (TTS)",
     "autoSelected": "Automaattisesti valittu",
     "download": "Lataa",
@@ -892,6 +902,20 @@
       "cancel": "Peruuta",
       "accept": "Ymmärrän — vain ei-kaupallinen käyttö"
     }
+  },
+  "notes": {
+    "stageAsr": "puheentunnistus",
+    "stageTranslation": "käännös",
+    "stageTts": "puhetulostus",
+    "notDownloaded": "{{from}} ei ole ladattu. Lataa se uudelleen käyttääksesi sitä.",
+    "notDownloadedWithSub": "{{from}} ei ole ladattu — käytetään sen sijaan mallia {{to}}. Lataa se uudelleen käyttääksesi sitä.",
+    "langIncompatible": "{{from}} ei tue tätä suuntaa. Se palautuu käyttöön, kun suunta tukee sitä.",
+    "langIncompatibleWithSub": "{{from}} ei tue tätä suuntaa — käytetään sen sijaan mallia {{to}}. Se palautuu käyttöön, kun suunta tukee sitä.",
+    "hardwareGated": "{{from}} ei toimi tällä laitteella.",
+    "hardwareGatedWithSub": "{{from}} ei toimi tällä laitteella — käytetään sen sijaan mallia {{to}}.",
+    "needsKey": "{{from}} edellyttää kirjautunutta tiliä.",
+    "notInCatalog": "{{from}} ei ole enää saatavilla tässä versiossa.",
+    "noCandidate": "Tälle suunnalle ei ole saatavilla {{stage}}-mallia."
   },
   "update": {
     "available": "Uusi versio v{{version}} saatavilla",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Valitse kokoussovellus toisen äänilähteeksi järjestelmä-äänen sijaan.",
     "actionChangeInput": "Valitse fyysinen mikrofoni äänitulolaitteeksi.",
     "dismiss": "Sulje"
+  },
+  "engineUi": {
+    "autoValue": "Automaattinen · {{name}}",
+    "autoOptionNone": "Automaattinen",
+    "browseLibrary": "Selaa kirjastoa",
+    "storageUsedLine": "Tallennustila: {{summary}} käytössä",
+    "manageStorage": "Hallinnoi",
+    "back": "Takaisin",
+    "titleLibrary": "Kirjasto · {{stage}}",
+    "titleStorage": "Tallennustila",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "Käytössä",
+    "estimated": "Arvioitu",
+    "translationOnCpu": "Käännös suoritetaan CPU:lla — VRAM ei riitä",
+    "availableWhenLang": "Ladattu. Käytettävissä, kun kielesi on {{lang}}.",
+    "deleteConfirm": "Poistetaanko {{name}}?",
+    "deleteFallsBack": "Poistetaan {{name}}: {{stage}} vaihtuu malliin {{to}}.",
+    "deleteNoModel": "Poistetaan {{name}}: {{stage}}-malleja ei jää jäljelle — istuntoja ei voi käynnistää.",
+    "clearAllKeepsPicks": "Valintasi muistetaan ja palautuvat, kun mallit ladataan uudelleen.",
+    "importChooseModel": "Valitse tuotava malli"
   }
 }

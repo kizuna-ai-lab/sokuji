@@ -10,20 +10,15 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { ModelManager, type DownloadProgress } from '../lib/local-inference/ModelManager';
 import {
   MODEL_MANIFEST,
-  getManifestEntry,
-  getManifestByType,
-  getAsrModelsForLanguage,
-  getTranslationModel,
-  getTtsModelsForLanguage,
-  isTranslationModelCompatible,
-  isAstCompatible,
-  modelUsable,
-  pickBestModel,
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
 import * as modelStorage from '../lib/local-inference/modelStorage';
 import { filesToImportMap, type NamedBlob } from '../lib/local-inference/modelImport';
 import { checkWebGPU } from '../utils/webgpu';
+import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
+import { wasmCandidates } from '../lib/local-inference/selection/candidates.wasm';
+import { guardAstCrossStage } from '../services/providers/astGuard';
+import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote, type Selections, type Stage } from '../lib/local-inference/selection/types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -35,31 +30,6 @@ export interface DownloadState {
   /** True while a manual import writes files — imports are not cancelable. */
   isImport?: boolean;
 }
-
-export interface ParticipantModelStatus {
-  asrAvailable: boolean;
-  asrModelId: string | null;
-  asrFallback: boolean;
-  asrOriginalModelId: string;
-  translationAvailable: boolean;
-  translationModelId: string | null;
-}
-
-/**
- * The subset of LOCAL_INFERENCE settings that determine session readiness:
- * the language pair plus the three selected model IDs. Structurally matches
- * `LocalInferenceSettings` so the settings slice can be passed directly.
- */
-export interface LocalSelection {
-  sourceLanguage: string;
-  targetLanguage: string;
-  asrModel: string;
-  translationModel: string;
-  ttsModel: string;
-}
-
-/** Result of {@link ModelStoreState.autoSelectModels}: corrected model IDs, or null. */
-export type ModelCorrections = { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
 
 interface ModelStoreState {
   /** Status of each model by ID */
@@ -83,8 +53,12 @@ interface ModelStoreState {
   deviceFeatures: string[];
   /** Downloaded variant key per model (modelId → variant key) */
   modelVariants: Record<string, string>;
-  /** In-memory model preferences per language pair (key: "src→tgt") */
-  modelPreferences: Record<string, { asrModel: string; translationModel: string; ttsModel: string }>;
+  /** Every note the last {@link ensureSelectionReady} call produced (speaker +
+   *  participant directions), for the UI to render in place of the generic
+   *  `localInferenceModelsRequired` string. Plan 2 owns the rendering; this
+   *  store only stashes the value so it has somewhere to live in the
+   *  meantime. Cleared to `[]` when nothing is amiss. */
+  lastResolutionNotes: ResolutionNote[];
 
   /** Initialize: scan IndexedDB for existing models */
   initialize: () => Promise<void>;
@@ -103,47 +77,55 @@ interface ModelStoreState {
   /** Delete all downloaded models */
   deleteAllModels: () => Promise<void>;
   /**
-   * Check if the LOCAL_INFERENCE provider has required models for a language pair.
-   * Returns true when: ASR model for sourceLang + translation model for src→tgt
-   * + TTS model for targetLang are all downloaded.
+   * Resolve one direction against the WASM manifest and current download
+   * statuses. Pure: `selections` comes in as a parameter rather than being
+   * read from settingsStore, so the result is a computed value with no
+   * dependency of its own on settings — the caller (which already has
+   * settingsStore in scope) decides what "current" selections means. Never
+   * written back — that distinction is what lets the system tell a user's
+   * choice from a machine's guess.
+   */
+  resolve: (src: string, tgt: string, selections: Selections) => DirectionResult;
+  /**
+   * The one write the resolver can cause: an id the manifest no longer knows
+   * can never resolve again, so keeping it only produces a note the user
+   * cannot act on. Garbage collection, not write-back. Async: reaches
+   * settingsStore via a dynamic import (mirrors nativeModelStore.ts's
+   * settingsStore-import path) rather than a static one, to avoid a circular
+   * static import with settingsStore.ts (which already dynamically imports
+   * this module).
+   */
+  applyPrunes: (prunes: Array<{ direction: string; stage: Stage }>) => Promise<void>;
+  /**
+   * Full LOCAL_INFERENCE session-readiness check. Initializes the store if
+   * needed, reads sourceLanguage/targetLanguage/selections off settingsStore
+   * itself (no snapshot is passed in — this is the single readiness entry
+   * point for settingsStore.validateApiKey's LOCAL_INFERENCE arm, and it owns
+   * its own reads), resolves BOTH the speaker (src→tgt) and participant
+   * (tgt→src) directions via {@link resolve}, and applies every prune either
+   * resolution surfaced.
    *
-   * When a selected model ID is provided (non-empty string), that specific model
-   * must be downloaded. Otherwise falls back to the default lookup
-   * (any compatible model for ASR/TTS, or getTranslationModel preference for translation).
+   * The session-gate table this implements is asymmetric AND mode-aware
+   * (2026-08-23): the mandatory leg is the current audio mode's primary
+   * channel.
+   *   - speaker/both: missing speaker ASR or translation → blocks
+   *     (`ready: false`) — a session that can't hear or translate the
+   *     speaker is pointless. The participant leg never blocks here (an
+   *     auxiliary leg in 'both'; skipped at connect time when unresolvable).
+   *   - participant-only: missing PARTICIPANT ASR or translation → blocks —
+   *     that leg is the whole session, and starting without it used to
+   *     produce a session that silently did nothing.
+   *   - missing TTS → never blocks in any mode — a missing voice degrades
+   *     to subtitles, and is never even resolved when the session is
+   *     text-only.
+   *
+   * `notes` carries every stage note from both directions (blocking or not)
+   * for the UI to render instead of the generic `localInferenceModelsRequired`
+   * string. There is nothing left to write back to settings: `resolve()`
+   * output IS the answer, and every reader (buildSessionConfig, the Models UI)
+   * calls `resolve()` itself instead of reading a corrected flat field.
    */
-  isProviderReady: (
-    sourceLang: string, targetLang: string,
-    selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string,
-  ) => boolean;
-
-  /**
-   * Check if reverse-direction models are available for participant mode.
-   * Participant reverses direction: recognizes targetLang (ASR) and translates target→source.
-   * Returns detailed status for each model type (ASR and translation).
-   */
-  getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string) => ParticipantModelStatus;
-
-  /**
-   * Auto-correct stale model selections when languages change.
-   * Returns partial update object with corrected model IDs, or null if no changes needed.
-   * This mirrors the auto-select logic in ModelManagementSection but can run without that component mounted.
-   */
-  autoSelectModels: (
-    sourceLang: string, targetLang: string,
-    currentAsrModel: string, currentTranslationModel: string, currentTtsModel: string,
-  ) => ModelCorrections;
-  /**
-   * Full LOCAL_INFERENCE session-readiness check for a selection. Initializes
-   * the store if needed, auto-corrects stale selections, and reports readiness
-   * against the corrected selection — WITHOUT persisting. The caller applies the
-   * returned `corrections` to its own settings slice. This is the single
-   * readiness entry point for settingsStore.validateApiKey's LOCAL_INFERENCE arm.
-   */
-  ensureSelectionReady: (selection: LocalSelection) => Promise<{ ready: boolean; corrections: ModelCorrections }>;
-  /** Save model selection for a language pair */
-  rememberModels: (sourceLang: string, targetLang: string, asrModel: string, translationModel: string, ttsModel: string) => void;
-  /** Recall saved model selection — per-field degradation if models deleted */
-  recallModels: (sourceLang: string, targetLang: string) => { asrModel: string; translationModel: string; ttsModel: string } | null;
+  ensureSelectionReady: () => Promise<{ ready: boolean; notes: ResolutionNote[] }>;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -160,7 +142,7 @@ export const useModelStore = create<ModelStoreState>()(
     webgpuSoftwareOnly: false,
     deviceFeatures: [],
     modelVariants: {},
-    modelPreferences: {},
+    lastResolutionNotes: [],
 
     initialize: async () => {
       if (get().initialized) return;
@@ -399,287 +381,141 @@ export const useModelStore = create<ModelStoreState>()(
       });
     },
 
-    isProviderReady: (sourceLang: string, targetLang: string, selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string): boolean => {
-      const { modelStatuses, webgpuAvailable } = get();
-      const ctx = { modelStatuses, webgpuAvailable };
-
-      // 1. ASR: if a specific model is selected, it must be usable (downloaded +
-      //    device-ready) and support sourceLang; otherwise at least 1 ASR model
-      //    for sourceLang must be usable.
-      if (selectedAsrModel) {
-        const asrEntry = getManifestEntry(selectedAsrModel);
-        if (!modelUsable(asrEntry, ctx)) return false;
-        if (asrEntry && !asrEntry.multilingual && !asrEntry.languages.includes(sourceLang)) return false;
-      } else {
-        const hasAsr = getAsrModelsForLanguage(sourceLang).some(m => modelUsable(m, ctx));
-        if (!hasAsr) return false;
-      }
-
-      // 2. Translation: AST short-circuit when translation model === ASR model
-      if (selectedTranslationModel && selectedTranslationModel === selectedAsrModel) {
-        const asrEntry = getManifestEntry(selectedAsrModel);
-        if (!asrEntry || !isAstCompatible(asrEntry, sourceLang, targetLang)) return false;
-      } else if (selectedTranslationModel) {
-        const entry = getManifestEntry(selectedTranslationModel);
-        if (!modelUsable(entry, ctx)) return false;
-        if (entry && !isTranslationModelCompatible(entry, sourceLang, targetLang)) return false;
-      } else {
-        const translationEntry = getTranslationModel(sourceLang, targetLang);
-        if (!modelUsable(translationEntry, ctx)) return false;
-      }
-
-      // 3. TTS: if a specific model is selected, it must be usable and support
-      //    targetLang; otherwise at least 1 TTS model for targetLang must be usable.
-      if (selectedTtsModel) {
-        const ttsEntry = getManifestEntry(selectedTtsModel);
-        if (!modelUsable(ttsEntry, ctx)) return false;
-        // Language compatibility is orthogonal to cloud/local (a cloud model
-        // still can't produce a language it doesn't support). The one current
-        // cloud TTS is multilingual, so this is behavior-identical today.
-        if (ttsEntry && !ttsEntry.multilingual && !ttsEntry.languages.includes(targetLang)) return false;
-      } else {
-        const hasTts = getTtsModelsForLanguage(targetLang).some(m => modelUsable(m, ctx));
-        if (!hasTts) return false;
-      }
-
-      return true;
+    /**
+     * Resolve one direction. Pure: takes `selections` as a parameter instead
+     * of reading settingsStore itself — settingsStore already dynamically
+     * imports this module (validateApiKey's LOCAL_INFERENCE arm), so a static
+     * import back would create a circular type dependency. Callers that have
+     * settingsStore in scope pass `useSettingsStore.getState().localInference
+     * .selections` straight through.
+     */
+    resolve: (src, tgt, selections) => {
+      const { modelStatuses, webgpuAvailable, deviceFeatures } = get();
+      return resolveDirection(
+        directionKey(src, tgt),
+        selections,
+        wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures }),
+      );
     },
 
-    getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string): ParticipantModelStatus => {
-      const { modelStatuses, webgpuAvailable } = get();
-      const ctx = { modelStatuses, webgpuAvailable };
-
-      // Participant reverses direction: participant source = user's target
-      const participantSourceLang = targetLang;
-      const participantTargetLang = sourceLang;
-
-      // Check recalled preferences for the reverse direction
-      const recalled = get().recallModels(participantSourceLang, participantTargetLang);
-
-      // 1. ASR: prefer recalled > current model > fallback
-      let asrModelId: string | null = null;
-      let asrFallback = false;
-
-      const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-
-      // Try recalled ASR first
-      if (recalled?.asrModel) {
-        const recalledAsr = allAsrModels.find(m => m.id === recalled.asrModel);
-        if (recalledAsr
-          && (recalledAsr.multilingual || recalledAsr.languages.includes(participantSourceLang))
-          && modelUsable(recalledAsr, ctx)) {
-          asrModelId = recalled.asrModel;
-          asrFallback = recalled.asrModel !== currentAsrModelId;
+    /**
+     * The one write the resolver can cause: an id the manifest no longer knows
+     * can never resolve again, so keeping it only produces a note the user
+     * cannot act on. Garbage collection, not write-back.
+     *
+     * Reaches settingsStore via a dynamic import rather than a static one —
+     * same settingsStore-import path nativeModelStore.ts already uses
+     * (catalogStatusRepos / revalidateNativeProvider) — so a settings-store
+     * failure at this point degrades to "nothing pruned" rather than throwing.
+     */
+    applyPrunes: async (prunes) => {
+      if (prunes.length === 0) return;
+      try {
+        const { useSettingsStore } = await import('./settingsStore');
+        const store = useSettingsStore.getState();
+        const next = { ...store.localInference.selections };
+        for (const { direction, stage } of prunes) {
+          const dir = next[direction] ?? emptyDirection();
+          next[direction] = { ...dir, [stage]: { modelId: '' } };
         }
-      }
-
-      // Try current model
-      if (!asrModelId) {
-        const currentAsr = allAsrModels.find(m => m.id === currentAsrModelId);
-        const currentAsrOk = currentAsr
-          && (currentAsr.multilingual || currentAsr.languages.includes(participantSourceLang))
-          && modelUsable(currentAsr, ctx);
-
-        if (currentAsrOk) {
-          asrModelId = currentAsrModelId;
-        } else {
-          const match = allAsrModels.find(m =>
-            (m.multilingual || m.languages.includes(participantSourceLang))
-            && modelUsable(m, ctx)
-          );
-          if (match) {
-            asrModelId = match.id;
-            asrFallback = true;
-          }
+        // A direction with nothing explicit left carries no information.
+        for (const key of Object.keys(next)) {
+          const d = next[key];
+          if (!d.asr.modelId && !d.translation.modelId && !d.tts.modelId) delete next[key];
         }
+        await store.updateLocalInference({ selections: next });
+      } catch (err) {
+        // settings store unavailable — nothing to prune. Logged (not silently
+        // swallowed) since a prune failure means a dead id survives in
+        // storage and keeps producing a note the user cannot act on.
+        console.error('[Sokuji] [ModelStore] applyPrunes: settings store unavailable, prune skipped:', err);
       }
-
-      // 2. Translation: prefer recalled > current model > fallback
-      //    AST short-circuit: if translation model === ASR model and isAstCompatible, it's valid
-      let translationModelId: string | null = null;
-
-      // Helper: check if a model is valid as translation (standard or AST)
-      const isValidTranslation = (modelId: string, forAsrId: string | null) => {
-        if (!modelId) return false;
-        const entry = getManifestEntry(modelId);
-        if (!modelUsable(entry, ctx)) return false;
-        // AST: translation model === ASR model with AST support
-        if (modelId === forAsrId && isAstCompatible(entry, participantSourceLang, participantTargetLang)) return true;
-        // Standard translation model
-        return isTranslationModelCompatible(entry, participantSourceLang, participantTargetLang);
-      };
-
-      // Try recalled translation first
-      if (recalled?.translationModel && isValidTranslation(recalled.translationModel, asrModelId)) {
-        translationModelId = recalled.translationModel;
-      }
-
-      // Try current model
-      if (!translationModelId && currentTranslationModelId && isValidTranslation(currentTranslationModelId, asrModelId)) {
-        translationModelId = currentTranslationModelId;
-      }
-
-      // Fallback
-      if (!translationModelId) {
-        const match = getManifestByType('translation').find(m =>
-          isTranslationModelCompatible(m, participantSourceLang, participantTargetLang)
-          && modelUsable(m, ctx)
-        );
-        if (match) {
-          translationModelId = match.id;
-        }
-      }
-
-      return {
-        asrAvailable: asrModelId !== null,
-        asrModelId,
-        asrFallback,
-        asrOriginalModelId: currentAsrModelId,
-        translationAvailable: translationModelId !== null,
-        translationModelId,
-      };
     },
 
-    autoSelectModels: (sourceLang, targetLang, currentAsrModel, currentTranslationModel, currentTtsModel) => {
-      const { modelStatuses, webgpuAvailable } = get();
-      const ctx = { modelStatuses, webgpuAvailable };
-      const updates: { asrModel?: string; translationModel?: string; ttsModel?: string } = {};
-
-      // Save original input to detect recall overrides later
-      const inputAsrModel = currentAsrModel;
-      const inputTranslationModel = currentTranslationModel;
-      const inputTtsModel = currentTtsModel;
-
-      // Check recalled preferences — override "current" with recalled values if available
-      const recalled = get().recallModels(sourceLang, targetLang);
-      if (recalled) {
-        if (recalled.asrModel && recalled.asrModel !== currentAsrModel) {
-          currentAsrModel = recalled.asrModel;
-        }
-        if (recalled.translationModel && recalled.translationModel !== currentTranslationModel) {
-          currentTranslationModel = recalled.translationModel;
-        }
-        if (recalled.ttsModel && recalled.ttsModel !== currentTtsModel) {
-          currentTtsModel = recalled.ttsModel;
-        }
-      }
-
-      // ASR: must support sourceLanguage and be downloaded
-      const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-      const currentAsr = currentAsrModel ? allAsrModels.find(m => m.id === currentAsrModel) : null;
-      const asrOk = currentAsr
-        && (currentAsr.multilingual || currentAsr.languages.includes(sourceLang))
-        && modelUsable(currentAsr, ctx);
-      if (!asrOk) {
-        const match = pickBestModel(allAsrModels.filter(m =>
-          (m.multilingual || m.languages.includes(sourceLang)) && modelUsable(m, ctx)
-        ));
-        const newId = match?.id || '';
-        if (newId !== currentAsrModel) updates.asrModel = newId;
-      }
-
-      // Translation: must be compatible with source→target pair, downloaded, and device-ready
-      // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
-      const asrEntryForAst = currentTranslationModel && currentTranslationModel === currentAsrModel
-        ? getManifestEntry(currentTranslationModel) : null;
-      const isAstValid = asrEntryForAst
-        && isAstCompatible(asrEntryForAst, sourceLang, targetLang)
-        && modelUsable(asrEntryForAst, ctx);
-
-      const currentTrans = !isAstValid && currentTranslationModel ? getManifestByType('translation').find(m => m.id === currentTranslationModel) : null;
-      const transOk = isAstValid || (currentTrans
-        && isTranslationModelCompatible(currentTrans, sourceLang, targetLang)
-        && modelUsable(currentTrans, ctx));
-      if (!transOk) {
-        const match = pickBestModel(getManifestByType('translation').filter(m =>
-          isTranslationModelCompatible(m, sourceLang, targetLang)
-          && modelUsable(m, ctx)
-        ));
-        const newId = match?.id || '';
-        if (newId !== currentTranslationModel) updates.translationModel = newId;
-      }
-
-      // TTS: must support targetLanguage and be downloaded (cloud models are always ready)
-      const currentTts = currentTtsModel ? getManifestByType('tts').find(m => m.id === currentTtsModel) : null;
-      const ttsOk = currentTts
-        && (currentTts.multilingual || currentTts.languages.includes(targetLang))
-        && modelUsable(currentTts, ctx);
-      if (!ttsOk) {
-        const match = pickBestModel(getManifestByType('tts').filter(m =>
-          (m.multilingual || m.languages.includes(targetLang))
-          && modelUsable(m, ctx)
-        ));
-        const newId = match?.id || '';
-        if (newId !== currentTtsModel) updates.ttsModel = newId;
-      }
-
-      // Emit updates for recalled overrides that survived validation
-      // (recalled value was used as "current", passed checks, but settings still have the old value)
-      if (!updates.asrModel && currentAsrModel !== inputAsrModel) updates.asrModel = currentAsrModel;
-      if (!updates.translationModel && currentTranslationModel !== inputTranslationModel) updates.translationModel = currentTranslationModel;
-      if (!updates.ttsModel && currentTtsModel !== inputTtsModel) updates.ttsModel = currentTtsModel;
-
-      // Remember the final selection for this language pair
-      const finalAsr = updates.asrModel ?? currentAsrModel;
-      const finalTranslation = updates.translationModel ?? currentTranslationModel;
-      const finalTts = updates.ttsModel ?? currentTtsModel;
-      if (finalAsr) {
-        get().rememberModels(sourceLang, targetLang, finalAsr, finalTranslation, finalTts);
-      }
-
-      return Object.keys(updates).length > 0 ? updates : null;
-    },
-
-    rememberModels: (src, tgt, asr, translation, tts) => {
-      set(state => ({
-        modelPreferences: {
-          ...state.modelPreferences,
-          [`${src}→${tgt}`]: { asrModel: asr, translationModel: translation, ttsModel: tts },
-        },
-      }));
-    },
-
-    recallModels: (src, tgt) => {
-      const { modelPreferences, modelStatuses, webgpuAvailable } = get();
-      const ctx = { modelStatuses, webgpuAvailable };
-      const key = `${src}→${tgt}`;
-      const pref = modelPreferences[key];
-      if (!pref) return null;
-
-      // Check downloaded + device compatibility (cloud models skip the download check)
-      const isUsable = (id: string) => Boolean(id) && modelUsable(getManifestEntry(id), ctx);
-
-      return {
-        asrModel: isUsable(pref.asrModel) ? pref.asrModel : '',
-        translationModel: isUsable(pref.translationModel) ? pref.translationModel : '',
-        ttsModel: isUsable(pref.ttsModel) ? pref.ttsModel : '',
-      };
-    },
-
-    ensureSelectionReady: async (selection) => {
+    ensureSelectionReady: async () => {
       // Scan IndexedDB for downloaded models before judging readiness.
       if (!get().initialized) {
         await get().initialize();
       }
-      // Auto-correct stale selections (e.g. a TTS model for the wrong language
-      // after a language change); readiness is judged against the corrected
-      // selection so a valid setup isn't rejected for a stale stored ID.
-      const corrections = get().autoSelectModels(
-        selection.sourceLanguage,
-        selection.targetLanguage,
-        selection.asrModel,
-        selection.translationModel,
-        selection.ttsModel,
-      );
-      const effective = corrections ? { ...selection, ...corrections } : selection;
-      const ready = get().isProviderReady(
-        effective.sourceLanguage,
-        effective.targetLanguage,
-        effective.asrModel || undefined,
-        effective.translationModel || undefined,
-        effective.ttsModel || undefined,
-      );
-      return { ready, corrections };
+      // Dynamic import — same settingsStore-import path nativeModelStore.ts
+      // uses — rather than a static one, to avoid a circular static import
+      // with settingsStore.ts (which already dynamically imports this
+      // module). Unavailable settings store degrades to "nothing explicit
+      // and no pair", i.e. every stage resolves purely from the manifest
+      // against an empty '→' direction — never ready, but never throws.
+      let sourceLanguage = '';
+      let targetLanguage = '';
+      let selections: Selections = {};
+      let textOnly = false;
+      // Which leg is mandatory follows the AUDIO MODE (2026-08-23 mode-aware
+      // gate decision): current picker position, not sessionStore.lockedMode —
+      // the gate matters at Start time, when nothing is locked yet, and
+      // importing sessionStore here would risk an import cycle for a value
+      // that only differs mid-session, when Start is moot anyway.
+      let audioMode: 'speaker' | 'participant' | 'both' = 'speaker';
+      try {
+        const { useSettingsStore } = await import('./settingsStore');
+        const localInference = useSettingsStore.getState().localInference;
+        ({ sourceLanguage, targetLanguage, selections } = localInference);
+        textOnly = useSettingsStore.getState().textOnly;
+        const { default: useAudioStore } = await import('./audioStore');
+        audioMode = useAudioStore.getState().mode;
+      } catch (err) {
+        // settings store unavailable — resolve with no explicit selections
+        // (never ready, but never throws). Logged so a broken import graph
+        // doesn't silently masquerade as "no selections yet".
+        console.error('[Sokuji] [ModelStore] ensureSelectionReady: settings store unavailable, resolving with no explicit selections:', err);
+      }
+
+      // Helper to strip TTS when textOnly is enabled.
+      const stripTts = (r: DirectionResult): DirectionResult =>
+        ({ ...r, tts: null, notes: r.notes.filter((n) => n.stage !== 'tts') });
+
+      // Resolve BOTH directions against the WASM manifest + current download
+      // statuses. There is deliberately no path by which one direction can
+      // influence the other (see resolveDirection's doc comment).
+      const rawSpeaker = get().resolve(sourceLanguage, targetLanguage, selections);
+      // AST cross-stage guard (see astGuard.ts): buildSessionConfig applies
+      // this same guard to the resolved translation stage before a session
+      // starts, which can downgrade an explicit AST-mismatched pick to auto
+      // (possibly null). Applying it here too — BEFORE computing `ready` —
+      // keeps this gate's verdict from disagreeing with what Start actually
+      // builds. Speaker direction only: AST is a WASM-manifest concept (see
+      // candidates.wasm.ts), and only the speaker leg can block Start.
+      const guardedSpeaker = guardAstCrossStage(
+        sourceLanguage, targetLanguage, selections, rawSpeaker,
+        (masked) => get().resolve(sourceLanguage, targetLanguage, masked));
+      const speaker = textOnly ? stripTts(guardedSpeaker) : guardedSpeaker;
+      const rawParticipant = get().resolve(targetLanguage, sourceLanguage, selections);
+      const participant = textOnly ? stripTts(rawParticipant) : rawParticipant;
+
+      // Garbage-collect every id either resolution found dead (an id the
+      // manifest no longer knows about at all) in one combined write.
+      const prunes = [...speaker.prunes, ...participant.prunes];
+      if (prunes.length > 0) {
+        await get().applyPrunes(prunes);
+      }
+
+      // The session-gate table, mode-aware since 2026-08-23: the mandatory
+      // leg is the one the current audio mode actually RUNS as its primary
+      // channel — speaker/both block on the speaker leg's ASR+translation;
+      // participant-only blocks on the PARTICIPANT leg's (before this, a
+      // participant-only session could start with no participant models and
+      // silently do nothing). TTS never blocks in any mode, and in 'both'
+      // the participant leg stays non-blocking (an auxiliary leg there —
+      // missing models degrade it, with the Settings warning naming them).
+      const mandatory = audioMode === 'participant' ? participant : speaker;
+      const ready = Boolean(mandatory.asr && mandatory.translation);
+      const notes = [...speaker.notes, ...participant.notes];
+      // Skip the write when nothing changes: a fresh [] reference on every
+      // call would re-trigger every subscriber keyed on this field even when
+      // there is nothing new to show — reference identity is what drives
+      // them, not content.
+      if (notes.length > 0 || get().lastResolutionNotes.length > 0) {
+        set({ lastResolutionNotes: notes });
+      }
+
+      return { ready, notes };
     },
   })),
 );
@@ -692,8 +528,8 @@ export const useDownloadErrors = () => useModelStore(s => s.downloadErrors);
 export const useStorageUsedMb = () => useModelStore(s => s.storageUsedMb);
 export const useModelInitialized = () => useModelStore(s => s.initialized);
 export const useModelInitError = () => useModelStore(s => s.initError);
-export const useIsProviderReady = () => useModelStore(s => s.isProviderReady);
 export const useWebGPUAvailable = () => useModelStore(s => s.webgpuAvailable);
 export const useWebGPUSoftwareOnly = () => useModelStore(s => s.webgpuSoftwareOnly);
 export const useDeviceFeatures = () => useModelStore(s => s.deviceFeatures);
 export const useModelVariants = () => useModelStore(s => s.modelVariants);
+export const useLastResolutionNotes = () => useModelStore(s => s.lastResolutionNotes);

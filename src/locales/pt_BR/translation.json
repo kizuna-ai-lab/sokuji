@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Relatar erros ou obter ajuda",
     "helpDiscussions": "Discussões",
     "helpDiscussionsTooltip": "Solicitações de recursos, feedback e discussões da comunidade",
-    "participantModelHint": "Mude para {{source}} → {{target}} para alterar os modelos do outro",
     "auto": "Auto",
     "low": "Baixo",
     "medium": "Médio",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Baixa",
     "localInferenceModelsRequired": "Por favor, baixe primeiro os modelos necessários em <settingsLink>Configurações</settingsLink>. Você precisa baixar modelos de Reconhecimento de fala (ASR), Tradução e Síntese de fala (TTS) para começar.",
     "missingModelsWarning": "Modelo(s) de {{types}} ausente(s) para este par de idiomas.",
+    "resolutionNotesSummary": "{{count}} dos seus modelos selecionados estão indisponíveis — usando substitutos automáticos.",
+    "resolutionNotesNamed": "{{names}} indisponível — usando substitutos automáticos.",
+    "resolutionNotesNamedMore": "{{names}} e mais {{count}} indisponíveis — usando substitutos automáticos.",
+    "resolutionNotesUseAuto": "Mudar para Automático",
+    "resolutionNotesReview": "Revisar",
     "downloadModelType": "Baixar {{type}}",
     "modelTypeAsr": "Reconhecimento de fala (ASR)",
     "modelTypeTranslation": "Tradução",
-    "modelTypeTts": "Síntese de fala (TTS)",
     "edgeTtsVoice": "Voz",
     "loadingVoices": "Carregando vozes...",
     "reasoningEffort": "Esforço de raciocínio",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Falha na visualização — limite de taxa ou cota do Soniox atingido",
     "sonioxVoicePreviewTimeout": "A visualização expirou — tente novamente",
     "sonioxRegion": "Região",
-    "sonioxRegionTooltip": "A Soniox mantém uma implantação separada por região, cada uma com sua própria chave de API. Seu áudio é processado e armazenado na região escolhida. Vale a partir da próxima sessão."
+    "sonioxRegionTooltip": "A Soniox mantém uma implantação separada por região, cada uma com sua própria chave de API. Seu áudio é processado e armazenado na região escolhida. Vale a partir da próxima sessão.",
+    "langSentence": {
+      "iSpeak": "eu falo",
+      "iRead": "eu leio",
+      "theyHear": "eles ouvem",
+      "theySpeak": "eles falam",
+      "mirror": "Eles falam {{their}} → eu leio {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automaticamente através da sua conta",
@@ -479,8 +489,7 @@
       "description": "Reconhecimento de fala gratuito (ASR) + Tradução + Síntese de fala (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Outro"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Gratuito (Native)",
@@ -831,8 +840,9 @@
     "importNow": "Importar {{count}} agora",
     "management": "Modelos",
     "storageUsed": "Armazenamento: {{size}} MB usados",
+    "storageEmpty": "Nenhum modelo baixado ainda.",
     "asrModels": "Reconhecimento de fala (ASR)",
-    "translationModels": "Tradução",
+    "translationModels": "Tradução (MT)",
     "ttsModels": "Síntese de fala (TTS)",
     "autoSelected": "Selecionado automaticamente",
     "download": "Baixar",
@@ -892,6 +902,20 @@
       "cancel": "Cancelar",
       "accept": "Entendi — apenas uso não comercial"
     }
+  },
+  "notes": {
+    "stageAsr": "reconhecimento de fala",
+    "stageTranslation": "tradução",
+    "stageTts": "saída de voz",
+    "notDownloaded": "{{from}} não está baixado. Baixe-o novamente para usá-lo.",
+    "notDownloadedWithSub": "{{from}} não está baixado — usando {{to}} em seu lugar. Baixe-o novamente para usá-lo.",
+    "langIncompatible": "{{from}} não é compatível com esta direção. Ele volta quando a direção mudar.",
+    "langIncompatibleWithSub": "{{from}} não é compatível com esta direção — usando {{to}} em seu lugar. Ele volta quando a direção mudar.",
+    "hardwareGated": "{{from}} não pode ser executado neste dispositivo.",
+    "hardwareGatedWithSub": "{{from}} não pode ser executado neste dispositivo — usando {{to}} em seu lugar.",
+    "needsKey": "{{from}} exige uma conta conectada para ser usado.",
+    "notInCatalog": "{{from}} não está mais disponível nesta versão.",
+    "noCandidate": "Nenhum modelo de {{stage}} disponível para esta direção."
   },
   "update": {
     "available": "Nova versão v{{version}} disponível",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Escolha o aplicativo da reunião como fonte de áudio do outro em vez do áudio do sistema.",
     "actionChangeInput": "Escolha um microfone físico como dispositivo de entrada.",
     "dismiss": "Dispensar"
+  },
+  "engineUi": {
+    "autoValue": "Automático · {{name}}",
+    "autoOptionNone": "Automático",
+    "browseLibrary": "Explorar biblioteca",
+    "storageUsedLine": "Armazenamento: {{summary}} usados",
+    "manageStorage": "Gerenciar",
+    "back": "Voltar",
+    "titleLibrary": "Biblioteca · {{stage}}",
+    "titleStorage": "Armazenamento",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "Em uso",
+    "estimated": "Estimado",
+    "translationOnCpu": "Tradução na CPU — VRAM insuficiente",
+    "availableWhenLang": "Baixado. Disponível quando seu idioma é {{lang}}.",
+    "deleteConfirm": "Excluir {{name}}?",
+    "deleteFallsBack": "Excluindo {{name}}: {{stage}} volta a usar {{to}}.",
+    "deleteNoModel": "Excluindo {{name}}: nenhum modelo de {{stage}} restante — as sessões não podem ser iniciadas.",
+    "clearAllKeepsPicks": "Suas seleções são lembradas e retornam quando os modelos forem baixados novamente.",
+    "importChooseModel": "Escolha um modelo para importar"
   }
 }

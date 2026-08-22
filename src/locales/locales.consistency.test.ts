@@ -150,7 +150,6 @@ describe('the three translation modes are named with one word each', () => {
     'mainPanel.displayMode.participant',
     'logsPanel.participantClient',
     'mainPanel.export.speakerOther',
-    'providers.local_inference.participant',
   ];
   // Both is named twice and drifted too: fil said "Pareho" in the picker and
   // "Parehas" on the display-mode toggle.

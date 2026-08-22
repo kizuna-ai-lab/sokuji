@@ -110,7 +110,6 @@
     "helpEmailTooltip": "דווח על באגים או קבל עזרה",
     "helpDiscussions": "דיונים",
     "helpDiscussionsTooltip": "בקשות לתכונות, משוב ודיוני קהילה",
-    "participantModelHint": "עבור ל-{{source}} → {{target}} כדי לשנות את דגמי הצד השני",
     "auto": "אוטומטי",
     "low": "נמוך",
     "medium": "בינוני",
@@ -184,10 +183,14 @@
     "sensitivityLow": "נמוכה",
     "localInferenceModelsRequired": "אנא הורד תחילה את המודלים הנדרשים ב<settingsLink>הגדרות</settingsLink>. עליך להוריד מודלים של זיהוי דיבור (ASR), תרגום וסינתזת דיבור (TTS) כדי להתחיל.",
     "missingModelsWarning": "חסר/ים מודל/ים של {{types}} עבור צמד שפות זה.",
+    "resolutionNotesSummary": "{{count}} מהמודלים שבחרת אינם זמינים — נעשה שימוש בחלופות אוטומטיות.",
+    "resolutionNotesNamed": "{{names}} אינם זמינים — נעשה שימוש בחלופות אוטומטיות.",
+    "resolutionNotesNamedMore": "{{names}} ועוד {{count}} אינם זמינים — נעשה שימוש בחלופות אוטומטיות.",
+    "resolutionNotesUseAuto": "עבור למצב אוטומטי",
+    "resolutionNotesReview": "סקירה",
     "downloadModelType": "הורד {{type}}",
     "modelTypeAsr": "זיהוי דיבור (ASR)",
     "modelTypeTranslation": "תרגום",
-    "modelTypeTts": "סינתזת דיבור (TTS)",
     "edgeTtsVoice": "קול",
     "loadingVoices": "טוען קולות...",
     "reasoningEffort": "רמת חשיבה",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "התצוגה המקדימה נכשלה — הגעת למגבלת הקצב או למכסה של Soniox",
     "sonioxVoicePreviewTimeout": "פג תוקף התצוגה המקדימה — נסה שוב",
     "sonioxRegion": "אזור",
-    "sonioxRegionTooltip": "‏Soniox מפעילה פריסה נפרדת לכל אזור, לכל אחת מפתח API משלה. האודיו שלך מעובד ומאוחסן באזור שבחרת. חל מהפעלה הבאה."
+    "sonioxRegionTooltip": "‏Soniox מפעילה פריסה נפרדת לכל אזור, לכל אחת מפתח API משלה. האודיו שלך מעובד ומאוחסן באזור שבחרת. חל מהפעלה הבאה.",
+    "langSentence": {
+      "iSpeak": "אני מדבר",
+      "iRead": "אני קורא",
+      "theyHear": "הם שומעים",
+      "theySpeak": "הם מדברים",
+      "mirror": "הם מדברים {{their}} → אני קורא {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",
@@ -479,8 +489,7 @@
       "description": "זיהוי דיבור חינמי (ASR) + תרגום + סינתזת דיבור (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "הצד השני"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "חינמי (Native)",
@@ -831,8 +840,9 @@
     "importNow": "ייבא {{count}} כעת",
     "management": "מודלים",
     "storageUsed": "אחסון: {{size}} מ\"ב בשימוש",
+    "storageEmpty": "עדיין לא הורדו מודלים.",
     "asrModels": "זיהוי דיבור (ASR)",
-    "translationModels": "תרגום",
+    "translationModels": "תרגום (MT)",
     "ttsModels": "סינתזת דיבור (TTS)",
     "autoSelected": "נבחר אוטומטית",
     "download": "הורדה",
@@ -892,6 +902,20 @@
       "cancel": "ביטול",
       "accept": "הבנתי — שימוש לא מסחרי בלבד"
     }
+  },
+  "notes": {
+    "stageAsr": "זיהוי דיבור",
+    "stageTranslation": "תרגום",
+    "stageTts": "פלט קולי",
+    "notDownloaded": "{{from}} אינו מורד. הורד אותו שוב כדי להשתמש בו.",
+    "notDownloadedWithSub": "{{from}} אינו מורד — נעשה שימוש ב-{{to}} במקום. הורד אותו שוב כדי להשתמש בו.",
+    "langIncompatible": "{{from}} אינו תומך בכיוון זה. הוא יחזור כשהכיוון יתאים.",
+    "langIncompatibleWithSub": "{{from}} אינו תומך בכיוון זה — נעשה שימוש ב-{{to}} במקום. הוא יחזור כשהכיוון יתאים.",
+    "hardwareGated": "{{from}} לא יכול לפעול במכשיר זה.",
+    "hardwareGatedWithSub": "{{from}} לא יכול לפעול במכשיר זה — נעשה שימוש ב-{{to}} במקום.",
+    "needsKey": "{{from}} דורש חשבון מחובר כדי לפעול.",
+    "notInCatalog": "{{from}} כבר אינו זמין בגרסה זו.",
+    "noCandidate": "אין מודל {{stage}} זמין לכיוון זה."
   },
   "update": {
     "available": "גרסה חדשה v{{version}} זמינה",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "בחרו את יישום הפגישה כמקור השמע של הצד השני במקום שמע המערכת.",
     "actionChangeInput": "בחרו מיקרופון פיזי כהתקן קלט.",
     "dismiss": "סגירה"
+  },
+  "engineUi": {
+    "autoValue": "אוטומטי · {{name}}",
+    "autoOptionNone": "אוטומטי",
+    "browseLibrary": "עיון בספרייה",
+    "storageUsedLine": "אחסון: {{summary}} בשימוש",
+    "manageStorage": "ניהול",
+    "back": "חזרה",
+    "titleLibrary": "ספרייה · {{stage}}",
+    "titleStorage": "אחסון",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "בשימוש",
+    "estimated": "משוער",
+    "translationOnCpu": "תרגום במעבד (CPU) — אין מספיק VRAM",
+    "availableWhenLang": "הורד. זמין כאשר שפתך היא {{lang}}.",
+    "deleteConfirm": "למחוק את {{name}}?",
+    "deleteFallsBack": "מחיקת {{name}}: {{stage}} יחזור אל {{to}}.",
+    "deleteNoModel": "מחיקת {{name}}: לא נותר מודל {{stage}} — לא ניתן להתחיל הפעלות.",
+    "clearAllKeepsPicks": "הבחירות שלך נשמרות ויחזרו כאשר המודלים יורדו שוב.",
+    "importChooseModel": "בחר מודל לייבוא"
   }
 }

@@ -110,7 +110,6 @@
     "helpEmailTooltip": "बग रिपोर्ट करें या सहायता लें",
     "helpDiscussions": "चर्चाएँ",
     "helpDiscussionsTooltip": "फ़ीचर अनुरोध, फीडबैक और सामुदायिक चर्चाएँ",
-    "participantModelHint": "दूसरे के मॉडल बदलने के लिए {{source}} → {{target}} पर स्विच करें",
     "auto": "स्वतः",
     "low": "कम",
     "medium": "मध्यम",
@@ -184,10 +183,14 @@
     "sensitivityLow": "निम्न",
     "localInferenceModelsRequired": "कृपया पहले <settingsLink>सेटिंग्स</settingsLink> में आवश्यक मॉडल डाउनलोड करें। शुरू करने के लिए वाक् पहचान (ASR), अनुवाद और वाक् संश्लेषण (TTS) मॉडल डाउनलोड करने होंगे।",
     "missingModelsWarning": "इस भाषा जोड़ी के लिए {{types}} मॉडल गायब है/हैं।",
+    "resolutionNotesSummary": "आपके चुने हुए {{count}} मॉडल अनुपलब्ध हैं — स्वचालित फ़ॉलबैक का उपयोग हो रहा है।",
+    "resolutionNotesNamed": "{{names}} अनुपलब्ध — स्वचालित फ़ॉलबैक का उपयोग हो रहा है।",
+    "resolutionNotesNamedMore": "{{names}} और {{count}} अन्य अनुपलब्ध — स्वचालित फ़ॉलबैक का उपयोग हो रहा है।",
+    "resolutionNotesUseAuto": "ऑटो पर स्विच करें",
+    "resolutionNotesReview": "समीक्षा करें",
     "downloadModelType": "{{type}} डाउनलोड करें",
     "modelTypeAsr": "वाक् पहचान (ASR)",
     "modelTypeTranslation": "अनुवाद",
-    "modelTypeTts": "वाक् संश्लेषण (TTS)",
     "edgeTtsVoice": "आवाज़",
     "loadingVoices": "आवाज़ें लोड हो रही हैं...",
     "reasoningEffort": "तर्क स्तर",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "पूर्वावलोकन विफल — Soniox दर सीमा या कोटा पूरा हो गया",
     "sonioxVoicePreviewTimeout": "पूर्वावलोकन का समय समाप्त हो गया — पुनः प्रयास करें",
     "sonioxRegion": "क्षेत्र",
-    "sonioxRegionTooltip": "Soniox हर क्षेत्र के लिए अलग परिनियोजन चलाता है, प्रत्येक की अपनी API कुंजी होती है। आपका ऑडियो आपके चुने हुए क्षेत्र में ही संसाधित और संग्रहीत होता है। अगले सत्र से लागू होगा।"
+    "sonioxRegionTooltip": "Soniox हर क्षेत्र के लिए अलग परिनियोजन चलाता है, प्रत्येक की अपनी API कुंजी होती है। आपका ऑडियो आपके चुने हुए क्षेत्र में ही संसाधित और संग्रहीत होता है। अगले सत्र से लागू होगा।",
+    "langSentence": {
+      "iSpeak": "मैं बोलता/बोलती हूं",
+      "iRead": "मैं पढ़ता/पढ़ती हूं",
+      "theyHear": "वे सुनते हैं",
+      "theySpeak": "वे बोलते हैं",
+      "mirror": "वे {{their}} बोलते हैं → मैं {{mine}} पढ़ता/पढ़ती हूं"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित",
@@ -479,8 +489,7 @@
       "description": "मुफ़्त वाक् पहचान (ASR) + अनुवाद + वाक् संश्लेषण (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "दूसरा"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "मुफ़्त (Native)",
@@ -831,8 +840,9 @@
     "importNow": "अभी {{count}} आयात करें",
     "management": "मॉडल",
     "storageUsed": "संग्रहण: {{size}} MB उपयोग में",
+    "storageEmpty": "अभी तक कोई मॉडल डाउनलोड नहीं हुआ है।",
     "asrModels": "वाक् पहचान (ASR)",
-    "translationModels": "अनुवाद",
+    "translationModels": "अनुवाद (MT)",
     "ttsModels": "वाक् संश्लेषण (TTS)",
     "autoSelected": "स्वतः चयनित",
     "download": "डाउनलोड",
@@ -892,6 +902,20 @@
       "cancel": "रद्द करें",
       "accept": "मैं समझ गया/गई — केवल गैर-व्यावसायिक उपयोग"
     }
+  },
+  "notes": {
+    "stageAsr": "वाक् पहचान",
+    "stageTranslation": "अनुवाद",
+    "stageTts": "वाक् आउटपुट",
+    "notDownloaded": "{{from}} डाउनलोड नहीं है। इसका उपयोग करने के लिए इसे फिर से डाउनलोड करें।",
+    "notDownloadedWithSub": "{{from}} डाउनलोड नहीं है — इसके बजाय {{to}} का उपयोग हो रहा है। इसका उपयोग करने के लिए इसे फिर से डाउनलोड करें।",
+    "langIncompatible": "{{from}} इस दिशा को सपोर्ट नहीं करता। दिशा मेल खाने पर यह वापस आ जाएगा।",
+    "langIncompatibleWithSub": "{{from}} इस दिशा को सपोर्ट नहीं करता — इसके बजाय {{to}} का उपयोग हो रहा है। दिशा मेल खाने पर यह वापस आ जाएगा।",
+    "hardwareGated": "{{from}} इस डिवाइस पर नहीं चल सकता।",
+    "hardwareGatedWithSub": "{{from}} इस डिवाइस पर नहीं चल सकता — इसके बजाय {{to}} का उपयोग हो रहा है।",
+    "needsKey": "{{from}} के लिए साइन-इन खाता आवश्यक है।",
+    "notInCatalog": "{{from}} अब इस वर्शन में उपलब्ध नहीं है।",
+    "noCandidate": "इस दिशा के लिए कोई {{stage}} मॉडल उपलब्ध नहीं है।"
   },
   "update": {
     "available": "नया संस्करण v{{version}} उपलब्ध है",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "सिस्टम ऑडियो के बजाय मीटिंग ऐप्लिकेशन को दूसरे का ऑडियो स्रोत चुनें।",
     "actionChangeInput": "इनपुट डिवाइस के रूप में असली माइक्रोफ़ोन चुनें।",
     "dismiss": "बंद करें"
+  },
+  "engineUi": {
+    "autoValue": "ऑटो · {{name}}",
+    "autoOptionNone": "ऑटो",
+    "browseLibrary": "लाइब्रेरी देखें",
+    "storageUsedLine": "स्टोरेज: {{summary}} उपयोग में",
+    "manageStorage": "प्रबंधित करें",
+    "back": "वापस",
+    "titleLibrary": "लाइब्रेरी · {{stage}}",
+    "titleStorage": "स्टोरेज",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "उपयोग में",
+    "estimated": "अनुमानित",
+    "translationOnCpu": "CPU पर अनुवाद — पर्याप्त VRAM नहीं",
+    "availableWhenLang": "डाउनलोड हो चुका है। आपकी भाषा {{lang}} होने पर उपलब्ध।",
+    "deleteConfirm": "{{name}} हटाएं?",
+    "deleteFallsBack": "{{name}} हटाने पर: {{stage}} {{to}} पर वापस चला जाएगा।",
+    "deleteNoModel": "{{name}} हटाने पर: कोई {{stage}} मॉडल नहीं बचेगा — सत्र शुरू नहीं हो सकेंगे।",
+    "clearAllKeepsPicks": "आपकी चुनी हुई सेटिंग्स याद रखी जाती हैं और मॉडल फिर से डाउनलोड होने पर वापस आ जाती हैं।",
+    "importChooseModel": "आयात करने के लिए एक मॉडल चुनें"
   }
 }

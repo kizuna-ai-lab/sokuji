@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Повідомити про помилку або отримати допомогу",
     "helpDiscussions": "Обговорення",
     "helpDiscussionsTooltip": "Запити функцій, відгуки та обговорення спільноти",
-    "participantModelHint": "Перемкніться на {{source}} → {{target}}, щоб змінити моделі співрозмовника",
     "auto": "Авто",
     "low": "Низький",
     "medium": "Середній",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Низька",
     "localInferenceModelsRequired": "Спочатку завантажте необхідні моделі в <settingsLink>Налаштуваннях</settingsLink>. Для початку роботи потрібно завантажити моделі розпізнавання мовлення (ASR), перекладу та синтезу мовлення (TTS).",
     "missingModelsWarning": "Відсутня модель(і) {{types}} для цієї мовної пари.",
+    "resolutionNotesSummary": "{{count}} вибраних вами моделей недоступні — використовуються автоматичні резервні варіанти.",
+    "resolutionNotesNamed": "{{names}} недоступна — використовуються автоматичні резервні варіанти.",
+    "resolutionNotesNamedMore": "{{names}} і ще {{count}} недоступні — використовуються автоматичні резервні варіанти.",
+    "resolutionNotesUseAuto": "Перемкнути на Авто",
+    "resolutionNotesReview": "Переглянути",
     "downloadModelType": "Завантажити {{type}}",
     "modelTypeAsr": "Розпізнавання мовлення (ASR)",
     "modelTypeTranslation": "Переклад",
-    "modelTypeTts": "Синтез мовлення (TTS)",
     "edgeTtsVoice": "Голос",
     "loadingVoices": "Завантаження голосів...",
     "reasoningEffort": "Рівень міркувань",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Помилка прев'ю — досягнуто ліміту швидкості або квоти Soniox",
     "sonioxVoicePreviewTimeout": "Час очікування прев'ю вичерпано — спробуйте ще раз",
     "sonioxRegion": "Регіон",
-    "sonioxRegionTooltip": "Soniox має окреме розгортання для кожного регіону, кожне зі своїм ключем API. Ваш звук обробляється та зберігається у вибраному регіоні. Діє з наступного сеансу."
+    "sonioxRegionTooltip": "Soniox має окреме розгортання для кожного регіону, кожне зі своїм ключем API. Ваш звук обробляється та зберігається у вибраному регіоні. Діє з наступного сеансу.",
+    "langSentence": {
+      "iSpeak": "Я говорю",
+      "iRead": "Я читаю",
+      "theyHear": "вони чують",
+      "theySpeak": "вони говорять",
+      "mirror": "Вони говорять {{their}} → я читаю {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис",
@@ -479,8 +489,7 @@
       "description": "Безкоштовне розпізнавання мовлення (ASR) + Переклад + синтез мовлення (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Співрозмовник"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Безкоштовний (Native)",
@@ -831,8 +840,9 @@
     "importNow": "Імпортувати {{count}} зараз",
     "management": "Моделі",
     "storageUsed": "Сховище: {{size}} МБ зайнято",
+    "storageEmpty": "Моделей ще не завантажено.",
     "asrModels": "Розпізнавання мовлення (ASR)",
-    "translationModels": "Переклад",
+    "translationModels": "Переклад (MT)",
     "ttsModels": "Синтез мовлення (TTS)",
     "autoSelected": "Автовибір",
     "download": "Завантажити",
@@ -892,6 +902,20 @@
       "cancel": "Скасувати",
       "accept": "Розумію — лише некомерційне використання"
     }
+  },
+  "notes": {
+    "stageAsr": "розпізнавання мовлення",
+    "stageTranslation": "перекладу",
+    "stageTts": "озвучення",
+    "notDownloaded": "{{from}} не завантажено. Завантажте знову, щоб використати.",
+    "notDownloadedWithSub": "{{from}} не завантажено — натомість використовується {{to}}. Завантажте знову, щоб використати.",
+    "langIncompatible": "{{from}} не підтримує цей напрям. Повернеться, коли напрям збігатиметься.",
+    "langIncompatibleWithSub": "{{from}} не підтримує цей напрям — натомість використовується {{to}}. Повернеться, коли напрям збігатиметься.",
+    "hardwareGated": "{{from}} не може працювати на цьому пристрої.",
+    "hardwareGatedWithSub": "{{from}} не може працювати на цьому пристрої — натомість використовується {{to}}.",
+    "needsKey": "Для {{from}} потрібен обліковий запис із входом.",
+    "notInCatalog": "{{from}} більше недоступна в цій версії.",
+    "noCandidate": "Для цього напряму немає доступної моделі для {{stage}}."
   },
   "update": {
     "available": "Доступна нова версія v{{version}}",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Виберіть застосунок зустрічі як джерело аудіо співрозмовника замість системного звуку.",
     "actionChangeInput": "Виберіть фізичний мікрофон як пристрій введення.",
     "dismiss": "Закрити"
+  },
+  "engineUi": {
+    "autoValue": "Авто · {{name}}",
+    "autoOptionNone": "Авто",
+    "browseLibrary": "Переглянути бібліотеку",
+    "storageUsedLine": "Сховище: використано {{summary}}",
+    "manageStorage": "Керувати",
+    "back": "Назад",
+    "titleLibrary": "Бібліотека · {{stage}}",
+    "titleStorage": "Сховище",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "Використовується",
+    "estimated": "Орієнтовно",
+    "translationOnCpu": "Переклад на CPU — недостатньо VRAM",
+    "availableWhenLang": "Завантажено. Доступно, коли ваша мова — {{lang}}.",
+    "deleteConfirm": "Видалити {{name}}?",
+    "deleteFallsBack": "Видалення {{name}}: {{stage}} перейде на {{to}}.",
+    "deleteNoModel": "Видалення {{name}}: моделі для {{stage}} не залишиться — сеанси не зможуть починатися.",
+    "clearAllKeepsPicks": "Ваш вибір збережено — він повернеться після повторного завантаження моделей.",
+    "importChooseModel": "Виберіть модель для імпорту"
   }
 }

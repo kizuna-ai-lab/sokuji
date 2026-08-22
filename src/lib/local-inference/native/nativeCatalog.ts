@@ -4,6 +4,7 @@
  * config share one source of truth.
  */
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
+import type { ResolutionNote, Selections } from '../selection/types';
 
 /**
  * Aliases between the app's source-language values (src/utils/languages.ts) and
@@ -143,13 +144,15 @@ export function resolveNativeTranslation(choice: string): string | undefined {
 /**
  * The native model ids a given config requires (for download/readiness). Always
  * an ASR model + a translation model, plus a TTS model when speech output is on.
- * An empty translation choice falls back to the qwen2.5-0.5b download id.
+ * No substitution: '' now means "resolution found nothing", and the Start gate
+ * must see that rather than a model nobody chose.
  */
 export function requiredNativeModels(
   asrModel: string, translationChoice: string, ttsChoice: string, _src: string, tgt: string,
   catalog: Record<string, NativeModelInfo>, textOnly = false,
 ): string[] {
-  const ids = [asrModel, resolveNativeTranslation(translationChoice) || 'qwen2.5-0.5b'];
+  const ids = [asrModel, resolveNativeTranslation(translationChoice)]
+    .filter((id): id is string => Boolean(id));
   // TTS is only required when speech output is on (text-only skips it entirely).
   if (!textOnly) {
     const tts = resolveNativeTts(ttsChoice, tgt, catalog);
@@ -444,13 +447,6 @@ export function nativeTtsCards(tgt: string, catalog: Record<string, NativeModelI
   }));
 }
 
-/** The per-stage selection (the selectIds written to LocalNativeSettings). */
-export interface NativeSelection {
-  asrModel: string;
-  translationModel: string;
-  ttsModel: string;
-}
-
 /** Why a LOCAL_NATIVE selection is / isn't session-ready. `settingsStore` maps
  * each reason to a user-facing message; the store never owns i18n strings. */
 export type NativeReadinessReason =
@@ -461,18 +457,16 @@ export type NativeReadinessReason =
   | 'unavailable'
   | 'starting'
   | 'asr-incompatible'
-  | 'translation-incompatible'
-  | 'models-missing';
+  | 'translation-incompatible';
 
-/** The selection fields readiness depends on (a structural subset of
- * LocalNativeSettings, so the settings slice is assignable to it). */
+/** The selection fields readiness depends on. The three per-stage model ids and
+ *  the variant-pin map used to live here too (a structural subset of
+ *  LocalNativeSettings) — now that both are folded into `selections`, resolved
+ *  through the model store's `resolve()` against the language pair below,
+ *  there is nothing left to read off the flat settings shape. */
 export interface NativeReadinessSelection {
   sourceLanguage: string;
   targetLanguage: string;
-  asrModel: string;
-  translationModel: string;
-  ttsModel: string;
-  translationVariantByModel: Record<string, string>;
 }
 
 /** Everything readiness reads out of settings, resolved in one go. Handed to the
@@ -487,80 +481,49 @@ export interface NativeReadinessInput {
 export interface NativeReadinessResult {
   ready: boolean;
   reason: NativeReadinessReason;
-  /** Auto-select's changed fields (null = nothing changed); the caller persists them. */
-  corrections: Partial<NativeSelection> | null;
+  /**
+   * Every stage note the speaker AND participant direction resolutions
+   * produced (blocking or not), for the UI to render in place of the generic
+   * `localNativeModelsRequired`-family strings. Empty before the sidecar has
+   * warmed up far enough to resolve anything (`reason` is one of
+   * 'not-electron' / 'engine-mismatch' / 'engine-absent' / 'unavailable' /
+   * 'starting') — there is nothing to resolve yet at that point.
+   */
+  notes: ResolutionNote[];
 }
 
 /**
- * Reconcile the native selection for a language pair — the native twin of
- * LOCAL_INFERENCE's `autoSelectModels`. Steps, in order, mirror that logic:
- *   1. recalled history (per-direction) overrides the current choice;
- *   2. each stage is validated — the chosen card must exist for this pair AND
- *      be downloaded (a null downloadId counts as downloaded);
- *   3. an invalid choice falls back to the best *downloaded* card, else ''
- *      (ASR/translation: nothing until downloaded; TTS: Auto) — an un-downloaded
- *      model is never auto-selected (the UI blocks picking one manually too).
- * Returns only the changed fields (null if nothing changed).
+ * Collect every explicit (modelId, variant) pin recorded across the given
+ * directions, keyed by model id — the shape {@link deriveVariantRepos}/
+ * `statusReposFor` expect. Replaces the old global, misnamed
+ * `translationVariantByModel` map: a pin is now scoped to the (direction,
+ * stage) that carries it, so this walks exactly the directions the caller
+ * cares about (never ALL of `selections` unless the caller passes every key)
+ * rather than assuming one pin applies everywhere. A stage only contributes
+ * when its choice is BOTH explicit (non-empty modelId) and carries a variant
+ * — an auto stage's variant is always absent by the `StageSelection`
+ * contract, so there is nothing to collect there.
+ *
+ * Collision rule: FIRST wins. Two directions can independently pin the same
+ * model id to different variants (e.g. the speaker leg pins Q4_K_M, the
+ * participant leg pins Q8_0 for the same translation model) — the sidecar's
+ * status/repo protocol is keyed by model id alone, not by (direction, model
+ * id), so only one pin can actually apply. Callers list the speaker
+ * direction first specifically so the audible channel's pin wins over the
+ * silent (participant, text-only) one when both exist. True per-direction
+ * variant statuses would remove this collision entirely; that is a
+ * structural follow-up, not fixed here.
  */
-export function autoSelectNative(
-  src: string,
-  tgt: string,
-  current: NativeSelection,
-  isDownloaded: (downloadId: string | null) => boolean,
-  recalled?: Partial<NativeSelection> | null,
-  isHardwareGated: (downloadId: string | null) => boolean = () => false,
-  catalog: Record<string, NativeModelInfo> = {},
-): Partial<NativeSelection> | null {
-  let { asrModel, translationModel, ttsModel } = current;
-  const input = { asrModel, translationModel, ttsModel };
-
-  // 1. recalled history overrides "current" where present and different
-  if (recalled) {
-    if (recalled.asrModel != null && recalled.asrModel !== asrModel) asrModel = recalled.asrModel;
-    if (recalled.translationModel != null && recalled.translationModel !== translationModel) translationModel = recalled.translationModel;
-    if (recalled.ttsModel != null && recalled.ttsModel !== ttsModel) ttsModel = recalled.ttsModel;
+export function pinsFromSelections(selections: Selections, directions: string[]): Record<string, string> {
+  const pins: Record<string, string> = {};
+  for (const dir of directions) {
+    const d = selections[dir];
+    if (!d) continue;
+    for (const stage of ['asr', 'translation', 'tts'] as const) {
+      const sel = d[stage];
+      if (sel?.modelId && sel.variant && !(sel.modelId in pins)) pins[sel.modelId] = sel.variant;
+    }
   }
-
-  const updates: Partial<NativeSelection> = {};
-
-  // 2+3. ASR — compatible with src (cards are pre-filtered), downloaded, AND runnable
-  // on this machine. A GPU-only model on a CPU-only box is hardware-gated; auto-selecting
-  // it passes readiness but then resolves to NoUsablePlan and fails at Start, so skip it.
-  const asrCards = nativeAsrCards(src, catalog);
-  const asrUsable = (c: { downloadId: string | null }) =>
-    isDownloaded(c.downloadId) && !isHardwareGated(c.downloadId);
-  const curAsr = asrCards.find((c) => c.selectId === asrModel);
-  if (!(curAsr && asrUsable(curAsr))) {
-    const best = asrCards.find(asrUsable);
-    const newId = best?.selectId ?? '';
-    if (newId !== asrModel) updates.asrModel = newId;
-  }
-
-  // Translation — directional cards; downloaded, else best downloaded, else ''
-  // (nothing until downloaded — an un-downloaded card must never be auto-selected,
-  // matching the ASR stage and web local inference; the UI blocks picking one too)
-  const trCards = nativeTranslationCards(src, tgt, catalog);
-  const curTr = trCards.find((c) => c.selectId === translationModel);
-  if (!(curTr && isDownloaded(curTr.downloadId))) {
-    const best = trCards.find((c) => isDownloaded(c.downloadId));
-    const newId = best?.selectId ?? '';
-    if (newId !== translationModel) updates.translationModel = newId;
-  }
-
-  // TTS — optional; '' (Auto) = the default voice for tgt. A specific voice must be
-  // valid for tgt AND downloaded; anything else — a cross-language voice, a deleted
-  // (absent) voice, or a legacy 'off' (the Off card was removed — text-only is the
-  // common textOnly toggle now) — resets to Auto.
-  if (ttsModel === 'off' || (ttsModel && ttsModel !== ''
-      && !(nativeTtsModels(tgt, catalog).some((m) => m.id === ttsModel) && isDownloaded(ttsModel)))) {
-    ttsModel = '';
-    if (ttsModel !== input.ttsModel) updates.ttsModel = '';
-  }
-
-  // Surface recalled values that survived validation (current still holds the old value)
-  if (updates.asrModel == null && asrModel !== input.asrModel) updates.asrModel = asrModel;
-  if (updates.translationModel == null && translationModel !== input.translationModel) updates.translationModel = translationModel;
-  if (updates.ttsModel == null && ttsModel !== input.ttsModel) updates.ttsModel = ttsModel;
-
-  return Object.keys(updates).length > 0 ? updates : null;
+  return pins;
 }
+

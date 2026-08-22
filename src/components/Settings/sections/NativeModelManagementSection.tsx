@@ -1,29 +1,29 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle, CircleHelp } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
-import { useLocalNativeSettings, useUpdateLocalNative, type LocalNativeSettings } from '../../../stores/settingsStore';
+import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/settingsStore';
 import {
   nativeAsrCards,
   nativeAsrIncompatibleCards,
   nativeTranslationCards,
   nativeTtsCards,
-  pickNativeTts,
-  resolveNativeTts,
   voiceCapability,
   tierLabel,
   hardwareGated,
-  gpuTierAvailable,
   formatRtf,
   formatTps,
   resolvedTierState,
   formatMemMb,
   statusReposFor,
   buildBackendTooltipRows,
+  pinsFromSelections,
   type NativeModelCardSpec,
-  type NativeSelection,
 } from '../../../lib/local-inference/native/nativeCatalog';
+import { NativeDeviceControl } from './NativeDeviceControl';
+import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceStores';
+import { languageNameFor } from '../engine/languageName';
 import { TierIcon } from './TierIcon';
 import LicenseConsentModal from '../shared/LicenseConsentModal';
 import { hasAcceptedLicense, acceptLicense } from '../../../stores/licenseConsentStore';
@@ -54,8 +54,6 @@ type CardResolved = {
   rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string;
 };
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
-
-type Stage = 'asrModel' | 'translationModel' | 'ttsModel';
 
 // [i18n key, English fallback] per tooltip row key (see buildBackendTooltipRows).
 const TT_LABEL: Record<string, [string, string]> = {
@@ -201,7 +199,7 @@ const NativeModelCard: React.FC<{
     err && status !== 'downloading' && 'model-card--error',
   ].filter(Boolean).join(' ');
 
-  const handleClick = () => { if (!disabled && !hwGated && ready) onSelect(); };
+  const handleClick = () => { if (!disabled && !incompatible && !hwGated && ready) onSelect(); };
 
   const p = noDownload ? undefined : progress[spec.downloadId as string];
   const percent = p && p.total > 0 ? Math.round((p.downloaded / p.total) * 100) : 0;
@@ -447,12 +445,16 @@ const NativeModelCard: React.FC<{
  * groups of selectable + downloadable cards, matching LOCAL_INFERENCE's
  * ModelManagementSection. Models live in the sidecar's HF cache.
  *
- * Auto-select + history parity: an effect calls nativeModelStore.autoSelect on
- * status/language change, which applies the catalog reconciler + per-direction
- * remembered history (so a src↔tgt swap recalls the reverse pair). Selecting a
- * card also records the choice for that direction.
+ * Selecting a card writes `selections[dir][stage]` directly; auto-select
+ * reconciliation for the language pair is owned by the global gate
+ * (validateApiKey -> nativeModelStore.ensureSelectionReady), not this panel.
  */
-export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessionActive = false }) => {
+export const NativeModelManagementSection: React.FC<{
+  isSessionActive?: boolean;
+  /** Render only this stage's group (used by the Engine surface's Library
+   *  push, which is already scoped to one stage). Omitted = all three. */
+  stageFilter?: Stage;
+}> = ({ isSessionActive = false, stageFilter }) => {
   const { t } = useTranslation();
   const settings = useLocalNativeSettings();
   const update = useUpdateLocalNative();
@@ -467,14 +469,26 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
   const refresh = useNativeModelStore((s) => s.refresh);
   const setStatusRepos = useNativeModelStore((s) => s.setStatusRepos);
   const refreshCatalog = useNativeModelStore((s) => s.refreshCatalog);
-  const rememberModels = useNativeModelStore((s) => s.rememberModels);
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
 
   const [showAllAsr, setShowAllAsr] = useState(false);
 
-  // The manual variant pin is a per-model map (settings.translationVariantByModel),
-  // keyed by model id — GENERIC across stages (asr + translation cards both pin
-  // here; ids never collide). Download + load use the same value.
+  const dir = directionKey(settings.sourceLanguage, settings.targetLanguage);
+
+  // Live, resolved view of "what would actually run right now" per stage —
+  // computed from the catalog, current download/hardware state, and the
+  // user's explicit `selections`. Mirrors ModelManagementSection.tsx's
+  // equivalent `resolved` memo (the WASM provider). Card highlighting and the
+  // "auto-selected" badge follow this — an explicit-but-not-yet-downloaded
+  // pick shows the auto fallback as active until it resolves, exactly like
+  // the WASM panel.
+  const resolvedSelection = useMemo(
+    () => useNativeModelStore.getState().resolve(settings.sourceLanguage, settings.targetLanguage, settings.selections),
+    [statuses, catalog, settings.sourceLanguage, settings.targetLanguage, settings.selections],
+  );
+  const selectedAsr = resolvedSelection.asr?.modelId ?? '';
+  const selectedTranslation = resolvedSelection.translation?.modelId ?? '';
+  const selectedTts = resolvedSelection.tts?.modelId ?? '';
 
   const asrCards = useMemo(() => nativeAsrCards(settings.sourceLanguage, catalog), [settings.sourceLanguage, catalog]);
   const asrIncompatibleCards = useMemo(
@@ -517,7 +531,7 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     return out;
   }, [catalog, t]);
 
-  const reserveTtsId = resolveNativeTts(settings.ttsModel, settings.targetLanguage, catalog) || null;
+  const reserveTtsId = selectedTts || null;
 
   // Voice picker: capability (Task 10) drives which control is shown — the
   // built-in shape (none/range/named) and which custom-voice backend applies
@@ -545,9 +559,20 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     () => [...asrCards, ...asrIncompatibleCards, ...translationCards, ...ttsCards]
       .map((c) => c.downloadId).filter((x): x is string => !!x),
     [asrCards, asrIncompatibleCards, translationCards, ttsCards]);
+  // Pins now live on the (direction, stage) that chose them, not a global
+  // per-model map — collect EVERY direction's explicit (modelId, variant)
+  // pairs into the modelId-keyed shape statusReposFor expects, not just the
+  // direction currently on screen (mirrors nativeModelStore.ts's
+  // catalogStatusRepos — a card's status must reflect a pin the user set on
+  // another direction too, since the sidecar's status/repo protocol is keyed
+  // by model id alone; pinsFromSelections's doc comment covers the resulting
+  // collision rule).
+  const pins = useMemo(
+    () => pinsFromSelections(settings.selections, Object.keys(settings.selections)),
+    [settings.selections]);
   const statusRepos = useMemo(
-    () => statusReposFor(allDownloadIds, variantData, settings.translationVariantByModel),
-    [allDownloadIds, variantData, settings.translationVariantByModel],
+    () => statusReposFor(allDownloadIds, variantData, pins),
+    [allDownloadIds, variantData, pins],
   );
   const refreshKey = allDownloadIds.join('|');
   // Variant-aware status: re-check downloaded state whenever the model list or the
@@ -569,29 +594,75 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [refreshKey]);
 
-  // TTS '' (default) highlights the default voice for the target language.
-  const ttsSelected = (selectId: string) =>
-    settings.ttsModel === selectId || (settings.ttsModel === '' && selectId === pickNativeTts(settings.targetLanguage, catalog));
+  // Explicit user selection: write `selections[dir][field] = { modelId }`,
+  // preserving an existing variant pin for that stage ONLY when the modelId
+  // is unchanged (a pin is scoped to the specific model it was chosen for —
+  // switching models must not carry a stale quant choice along). Passing
+  // `variant` writes it directly instead (the quant picker's path below) —
+  // since a pin has nowhere else to live now, choosing one also makes that
+  // model the stage's active selection. Auto-select reconciliation for the
+  // language pair is owned by the global gate (validateApiKey), not this panel.
+  const selectCard = useCallback((field: Stage, selectId: string, variant?: string) => {
+    const current = settings.selections[dir] ?? emptyDirection();
+    const prevStage = current[field];
+    const nextVariant = variant !== undefined ? variant
+      : prevStage.modelId === selectId ? prevStage.variant
+      : undefined;
+    update({
+      selections: {
+        ...settings.selections,
+        [dir]: { ...current, [field]: nextVariant ? { modelId: selectId, variant: nextVariant } : { modelId: selectId } },
+      },
+    });
+  }, [update, settings.selections, dir]);
 
-  // Explicit user selection: write the choice and remember the full selection for
-  // this direction (mirrors ModelManagementSection). Auto-select reconciliation is
-  // owned by the global gate (validateApiKey / Task 10), not this panel.
-  const selectCard = (field: Stage, selectId: string) => {
-    const updates: Partial<LocalNativeSettings> = { [field]: selectId };
-    update(updates);
-    const sel: NativeSelection = {
-      asrModel: settings.asrModel, translationModel: settings.translationModel, ttsModel: settings.ttsModel,
-      [field]: selectId,
-    };
-    rememberModels(settings.sourceLanguage, settings.targetLanguage, sel);
+  // Pick the download quant/variant for a card (asr/translation/tts alike).
+  const handlePinVariant = useCallback((field: Stage, selectId: string, variantId: string) => {
+    selectCard(field, selectId, variantId);
+  }, [selectCard]);
+
+  // The stage's raw stored pin for THIS card, regardless of readiness — the
+  // variant dropdown/download button need to preview a pin for a card that
+  // isn't downloaded (and so isn't the resolve()-driven active selection)
+  // yet, unlike `selected*` above which reflects the resolved, auto-fallback-
+  // aware pick.
+  const pinnedVariantFor = (field: Stage, selectId: string): string | undefined => {
+    const stageSel = settings.selections[dir]?.[field];
+    return stageSel?.modelId === selectId ? stageSel.variant : undefined;
   };
 
-  // Pick the download quant/variant for a card (asr/translation/tts alike) — a
-  // per-model setting only. Does NOT change the active model for its stage (so
-  // the auto-select reconcile never fires on a pick).
-  const handlePinVariant = useCallback((selectId: string, variantId: string) => {
-    update({ translationVariantByModel: { ...settings.translationVariantByModel, [selectId]: variantId } });
-  }, [update, settings.translationVariantByModel]);
+  // One card, shared by the Recommended/Others split (renderCards, below) —
+  // factored out (Task 8) so every render path builds a card identically.
+  const renderCard = (
+    c: NativeModelCardSpec,
+    field: Stage,
+    isSelected: (c: NativeModelCardSpec) => boolean,
+    variantMap?: Record<string, { variants: VariantInfo[]; recommended: string }>,
+    onPin?: (field: Stage, selectId: string, variantId: string) => void,
+    renderBody?: (c: NativeModelCardSpec) => React.ReactNode,
+  ) => {
+    // Feed each card the resolved plan for its stage so the active model shows the
+    // measured device + speed metric (ASR rtf / translation tok/s or tts rtf).
+    const resolvedForField = field === 'asr' ? asrResolved
+      : field === 'translation' ? translationResolved
+      : field === 'tts' ? ttsResolved : null;
+    const vd = variantMap?.[c.selectId];
+    const pinnedVariantId = pinnedVariantFor(field, c.selectId);
+    const vProps: VariantCardProps | undefined = vd ? {
+      variants: vd.variants,
+      recommendedVariantId: vd.recommended,
+      pinnedVariantId,
+      onPinVariant: (id: string) => onPin?.(field, c.selectId, id),
+    } : undefined;
+    return (
+      <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
+        selected={isSelected(c)} autoSelected={false} resolved={resolvedForField}
+        onSelect={() => selectCard(field, c.selectId)}
+        variantProps={vProps}>
+        {renderBody?.(c)}
+      </NativeModelCard>
+    );
+  };
 
   // Recommended / Others split via the shared primitive; cards stay native-specific.
   const renderCards = (
@@ -599,39 +670,15 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     isSelected: (c: NativeModelCardSpec) => boolean,
     field: Stage,
     variantMap?: Record<string, { variants: VariantInfo[]; recommended: string }>,
-    onPin?: (selectId: string, variantId: string) => void,
+    onPin?: (field: Stage, selectId: string, variantId: string) => void,
     renderBody?: (c: NativeModelCardSpec) => React.ReactNode,
-  ) => {
-    // Feed each card the resolved plan for its stage so the active model shows the
-    // measured device + speed metric (ASR rtf / translation tok/s or tts rtf).
-    const resolvedForField = field === 'asrModel' ? asrResolved
-      : field === 'translationModel' ? translationResolved
-      : field === 'ttsModel' ? ttsResolved : null;
-    return (
-      <RecommendedOthers
-        items={cards}
-        isRecommended={(c) => !!c.recommended}
-        renderItem={(c) => {
-          const vd = variantMap?.[c.selectId];
-          const pinnedVariantId = settings.translationVariantByModel[c.selectId];
-          const vProps: VariantCardProps | undefined = vd ? {
-            variants: vd.variants,
-            recommendedVariantId: vd.recommended,
-            pinnedVariantId,
-            onPinVariant: (id: string) => onPin?.(c.selectId, id),
-          } : undefined;
-          return (
-            <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
-              selected={isSelected(c)} autoSelected={false} resolved={resolvedForField}
-              onSelect={() => selectCard(field, c.selectId)}
-              variantProps={vProps}>
-              {renderBody?.(c)}
-            </NativeModelCard>
-          );
-        }}
-      />
-    );
-  };
+  ) => (
+    <RecommendedOthers
+      items={cards}
+      isRecommended={(c) => !!c.recommended}
+      renderItem={(c) => renderCard(c, field, isSelected, variantMap, onPin, renderBody)}
+    />
+  );
 
   // Storage footer: bytes used ≈ sum of download sizes for cached models (deduped by repo id).
   const usedBytes = useMemo(() => {
@@ -657,184 +704,114 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
     return null;
   }
 
+  // Voice picker body for the selected TTS card, embedded via renderCards' renderBody.
+  const renderTtsBody = () => (capability.builtin !== 'none' || capability.custom !== 'none' ? (
+    <NativeVoiceSection
+      capability={capability}
+      numSpeakers={catalog[reserveTtsId || '']?.numSpeakers}
+      builtinVoices={builtinVoices}
+      store={store}
+      selected={settings.ttsVoice}
+      targetLanguage={settings.targetLanguage}
+      isSessionActive={isSessionActive}
+      onSelect={(id) => update({ ttsVoice: id })}
+      // NativeVoiceSection owns and refreshes its own custom-voice list
+      // (via `store`); nothing here needs to react to a change.
+      onCustomChanged={() => {}}
+    />
+  ) : null);
+
   return (
-    <div id="model-management-section" className="settings-section model-management-section">
-      <h2>{t('models.management', 'Models')}</h2>
+    // See ModelManagementSection's identical comment: the Library push
+    // (stageFilter set) already lives inside EngineSurface's own
+    // .config-section shell + h3 header (Finding 3), so this standalone
+    // section chrome (.settings-section + <h2>) would just duplicate it.
+    <div id="model-management-section" className={stageFilter ? 'model-management-section' : 'settings-section model-management-section'}>
+      {!stageFilter && <h2>{t('models.management', 'Models')}</h2>}
 
-      <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
-        <div className="model-group__device-control">
-          <div className="model-group__device-label">
-            {t('models.computeDevice', 'Compute device')}
-            <Tooltip
-              content={t('models.computeDeviceTooltip', 'Which device runs the speech model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.')}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-            </Tooltip>
-          </div>
-          {(() => {
-            const gpuAvail = gpuTierAvailable(catalog);
-            // Coerce a stale 'cuda' to 'auto' for display when no GPU tier is available.
-            const deviceValue = settings.asrDevice === 'cuda' && !gpuAvail ? 'auto' : settings.asrDevice;
-            const opts: Array<['auto' | 'cpu' | 'cuda', string]> = [
-              ['auto', t('models.deviceAuto', 'Auto')],
-              ['cpu', t('models.deviceCpu', 'CPU')],
-              ...(gpuAvail ? [['cuda', t('models.deviceGpu', 'GPU')] as ['cuda', string]] : []),
-            ];
-            return (
-              <div className="segmented-control">
-                {opts.map(([mode, label]) => (
-                  <button
-                    key={mode}
-                    className={`segmented-option ${deviceValue === mode ? 'active' : ''}`}
-                    onClick={() => { if (deviceValue !== mode) update({ asrDevice: mode }); }}
-                    disabled={isSessionActive}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-        {renderCards(asrCards, (c) => settings.asrModel === c.selectId, 'asrModel',
-          variantData, handlePinVariant)}
-        {asrIncompatibleCards.length > 0 && (
-          <>
-            <button className="model-group__show-all" onClick={() => setShowAllAsr(!showAllAsr)}>
-              {showAllAsr ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              {showAllAsr
-                ? t('models.hideOther', 'Hide other models')
-                : t('models.showAllAsr', 'Show all ASR models ({{count}})', { count: asrIncompatibleCards.length })}
-            </button>
-            {showAllAsr && asrIncompatibleCards.map((c) => (
-              <NativeModelCard key={c.selectId} spec={c} disabled={isSessionActive} incompatible
-                selected={settings.asrModel === c.selectId} autoSelected={false}
-                onSelect={() => selectCard('asrModel', c.selectId)} />
-            ))}
-          </>
-        )}
-      </ModelGroup>
+      {(!stageFilter || stageFilter === 'asr') && (
+        <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}
+          bare={!!stageFilter}
+          aboveList={<NativeDeviceControl stage="asr" disabled={isSessionActive} />}>
+          {renderCards(asrCards, (c) => selectedAsr === c.selectId, 'asr',
+            variantData, handlePinVariant)}
+          {asrIncompatibleCards.length > 0 && (
+            <>
+              <button className="model-group__show-all" onClick={() => setShowAllAsr(!showAllAsr)}>
+                {showAllAsr ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                {showAllAsr
+                  ? t('models.hideOther', 'Hide other models')
+                  : t('models.showAllAsr', 'Show all ASR models ({{count}})', { count: asrIncompatibleCards.length })}
+              </button>
+              {showAllAsr && asrIncompatibleCards.map((c) => (
+                <React.Fragment key={c.selectId}>
+                  <NativeModelCard spec={c} disabled={isSessionActive} incompatible
+                    selected={selectedAsr === c.selectId} autoSelected={false}
+                    onSelect={() => selectCard('asr', c.selectId)} />
+                  {c.downloadId && statuses[c.downloadId] === 'ready' && (
+                    <div className="model-card__available-when-lang">
+                      {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
+                        lang: (c.languages || []).map((l) => languageNameFor(l)).join(', '),
+                      })}
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+            </>
+          )}
+        </ModelGroup>
+      )}
 
-      <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}>
-        <div className="model-group__device-control">
-          <div className="model-group__device-label">
-            {t('models.computeDevice', 'Compute device')}
-            <Tooltip
-              content={t('models.computeDeviceTooltipTranslation', 'Which device runs the translation model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.')}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-            </Tooltip>
-          </div>
-          {(() => {
-            const gpuAvail = gpuTierAvailable(catalog);
-            const deviceValue = settings.translationDevice === 'cuda' && !gpuAvail ? 'auto' : settings.translationDevice;
-            const opts: Array<['auto' | 'cpu' | 'cuda', string]> = [
-              ['auto', t('models.deviceAuto', 'Auto')],
-              ['cpu', t('models.deviceCpu', 'CPU')],
-              ...(gpuAvail ? [['cuda', t('models.deviceGpu', 'GPU')] as ['cuda', string]] : []),
-            ];
-            return (
-              <div className="segmented-control">
-                {opts.map(([mode, label]) => (
-                  <button
-                    key={mode}
-                    className={`segmented-option ${deviceValue === mode ? 'active' : ''}`}
-                    onClick={() => { if (deviceValue !== mode) update({ translationDevice: mode }); }}
-                    disabled={isSessionActive}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-        {renderCards(
-          translationCards,
-          (c) => settings.translationModel === c.selectId,
-          'translationModel',
-          variantData,
-          handlePinVariant,
-        )}
-      </ModelGroup>
-
-      <ModelGroup id="model-tts" title={t('models.ttsModels', 'TTS (Text-to-Speech)')}>
-        <div className="model-group__device-control">
-          <div className="model-group__device-label">
-            {t('models.computeDevice', 'Compute device')}
-            <Tooltip
-              content={t('models.computeDeviceTooltipTts', 'Which device runs the speech-synthesis model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.')}
-              position="top"
-            >
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-            </Tooltip>
-          </div>
-          {(() => {
-            const gpuAvail = gpuTierAvailable(catalog);
-            const deviceValue = settings.ttsDevice === 'cuda' && !gpuAvail ? 'auto' : settings.ttsDevice;
-            const opts: Array<['auto' | 'cpu' | 'cuda', string]> = [
-              ['auto', t('models.deviceAuto', 'Auto')],
-              ['cpu', t('models.deviceCpu', 'CPU')],
-              ...(gpuAvail ? [['cuda', t('models.deviceGpu', 'GPU')] as ['cuda', string]] : []),
-            ];
-            return (
-              <div className="segmented-control">
-                {opts.map(([mode, label]) => (
-                  <button
-                    key={mode}
-                    className={`segmented-option ${deviceValue === mode ? 'active' : ''}`}
-                    onClick={() => { if (deviceValue !== mode) update({ ttsDevice: mode }); }}
-                    disabled={isSessionActive}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-        {ttsCards.length > 0 ? (
-          // The voice picker is embedded inside the selected card via renderBody.
-          // NativeModelCard only renders the body when the card is selected, and
-          // `capability` reflects the resolved (selected) model's voice capability.
-          renderCards(
-            ttsCards,
-            (c) => ttsSelected(c.selectId),
-            'ttsModel',
+      {(!stageFilter || stageFilter === 'translation') && (
+        <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}
+          bare={!!stageFilter}
+          aboveList={<NativeDeviceControl stage="translation" disabled={isSessionActive} />}>
+          {renderCards(
+            translationCards,
+            (c) => selectedTranslation === c.selectId,
+            'translation',
             variantData,
             handlePinVariant,
-            () => (capability.builtin !== 'none' || capability.custom !== 'none' ? (
-              <NativeVoiceSection
-                capability={capability}
-                numSpeakers={catalog[reserveTtsId || '']?.numSpeakers}
-                builtinVoices={builtinVoices}
-                store={store}
-                selected={settings.ttsVoice}
-                targetLanguage={settings.targetLanguage}
-                isSessionActive={isSessionActive}
-                onSelect={(id) => update({ ttsVoice: id })}
-                // NativeVoiceSection owns and refreshes its own custom-voice list
-                // (via `store`); nothing here needs to react to a change.
-                onCustomChanged={() => {}}
-              />
-            ) : null),
-          )
-        ) : (
-          <div className="model-card__no-model-warning">
-            <AlertTriangle size={14} />
-            {t('settings.noTtsModel', 'No TTS model for {{language}}', { language: settings.targetLanguage })}
-          </div>
-        )}
-      </ModelGroup>
+          )}
+        </ModelGroup>
+      )}
 
-      <ModelStorageFooter
-        usedMb={usedMb}
-        hasModels={readyIds.length > 0}
-        onClearAll={() => Promise.all(readyIds.map((id) => deleteModel(id, statusRepos[id])))}
-        disabled={isSessionActive}
-      />
+      {(!stageFilter || stageFilter === 'tts') && (
+        <ModelGroup id="model-tts" title={t('models.ttsModels', 'TTS (Text-to-Speech)')}
+          bare={!!stageFilter}
+          aboveList={<NativeDeviceControl stage="tts" disabled={isSessionActive} />}>
+          {ttsCards.length > 0 ? (
+            // The voice picker is embedded inside the selected card via renderBody.
+            // NativeModelCard only renders the body when the card is selected, and
+            // `capability` reflects the resolved (selected) model's voice capability.
+            renderCards(
+              ttsCards,
+              (c) => selectedTts === c.selectId,
+              'tts',
+              variantData,
+              handlePinVariant,
+              renderTtsBody,
+            )
+          ) : (
+            <div className="model-card__no-model-warning">
+              <AlertTriangle size={14} />
+              {t('settings.noTtsModel', 'No TTS model for {{language}}', { language: settings.targetLanguage })}
+            </div>
+          )}
+        </ModelGroup>
+      )}
+
+      {/* Storage owns Clear-all now (StoragePage) — this duplicate footer only
+          belongs on the standalone (prop-less stageFilter) render; the Library
+          push is already scoped to one stage and its gating differs. */}
+      {!stageFilter && (
+        <ModelStorageFooter
+          usedMb={usedMb}
+          hasModels={readyIds.length > 0}
+          onClearAll={() => Promise.all(readyIds.map((id) => deleteModel(id, statusRepos[id])))}
+          disabled={isSessionActive}
+        />
+      )}
     </div>
   );
 };

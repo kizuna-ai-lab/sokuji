@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Rapportera fel eller få hjälp",
     "helpDiscussions": "Diskussioner",
     "helpDiscussionsTooltip": "Funktionsförslag, feedback och communitydiskussioner",
-    "participantModelHint": "Byt till {{source}} → {{target}} för att ändra den andras modeller",
     "auto": "Auto",
     "low": "Låg",
     "medium": "Medel",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Låg",
     "localInferenceModelsRequired": "Ladda först ner de nödvändiga modellerna i <settingsLink>Inställningar</settingsLink>. Du behöver ladda ner modeller för Taligenkänning (ASR), Översättning och Talsyntes (TTS) för att komma igång.",
     "missingModelsWarning": "{{types}}-modell(er) saknas för detta språkpar.",
+    "resolutionNotesSummary": "{{count}} av dina valda modeller är otillgängliga — automatiska reservval används.",
+    "resolutionNotesNamed": "{{names}} otillgänglig — automatiska reservval används.",
+    "resolutionNotesNamedMore": "{{names}} och {{count}} till otillgängliga — automatiska reservval används.",
+    "resolutionNotesUseAuto": "Byt till Auto",
+    "resolutionNotesReview": "Granska",
     "downloadModelType": "Ladda ner {{type}}",
     "modelTypeAsr": "Taligenkänning (ASR)",
     "modelTypeTranslation": "Översättning",
-    "modelTypeTts": "Talsyntes (TTS)",
     "edgeTtsVoice": "Röst",
     "loadingVoices": "Laddar röster...",
     "reasoningEffort": "Resoneringsnivå",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Förhandsgranskning misslyckades — Soniox hastighetsgräns eller kvot uppnådd",
     "sonioxVoicePreviewTimeout": "Förhandsgranskningen tog för lång tid — försök igen",
     "sonioxRegion": "Region",
-    "sonioxRegionTooltip": "Soniox kör en separat driftsättning per region, var och en med en egen API-nyckel. Ditt ljud behandlas och lagras i den region du väljer. Gäller från nästa session."
+    "sonioxRegionTooltip": "Soniox kör en separat driftsättning per region, var och en med en egen API-nyckel. Ditt ljud behandlas och lagras i den region du väljer. Gäller från nästa session.",
+    "langSentence": {
+      "iSpeak": "Jag talar",
+      "iRead": "Jag läser",
+      "theyHear": "de hör",
+      "theySpeak": "de talar",
+      "mirror": "De talar {{their}} → jag läser {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
@@ -479,8 +489,7 @@
       "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Den andra"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Gratis (Native)",
@@ -831,8 +840,9 @@
     "importNow": "Importera {{count}} nu",
     "management": "Modeller",
     "storageUsed": "Lagring: {{size}} MB använt",
+    "storageEmpty": "Inga modeller nedladdade än.",
     "asrModels": "Taligenkänning (ASR)",
-    "translationModels": "Översättning",
+    "translationModels": "Översättning (MT)",
     "ttsModels": "Talsyntes (TTS)",
     "autoSelected": "Automatiskt valt",
     "download": "Ladda ner",
@@ -892,6 +902,20 @@
       "cancel": "Avbryt",
       "accept": "Jag förstår — endast icke-kommersiellt"
     }
+  },
+  "notes": {
+    "stageAsr": "taligenkänning",
+    "stageTranslation": "översättning",
+    "stageTts": "talsyntes",
+    "notDownloaded": "{{from}} är inte nedladdad. Ladda ner den igen för att använda den.",
+    "notDownloadedWithSub": "{{from}} är inte nedladdad — använder {{to}} istället. Ladda ner den igen för att använda den.",
+    "langIncompatible": "{{from}} stöder inte den här riktningen. Den återkommer när riktningen gör det.",
+    "langIncompatibleWithSub": "{{from}} stöder inte den här riktningen — använder {{to}} istället. Den återkommer när riktningen gör det.",
+    "hardwareGated": "{{from}} kan inte köras på den här enheten.",
+    "hardwareGatedWithSub": "{{from}} kan inte köras på den här enheten — använder {{to}} istället.",
+    "needsKey": "{{from}} kräver ett inloggat konto för att användas.",
+    "notInCatalog": "{{from}} är inte längre tillgänglig i den här versionen.",
+    "noCandidate": "Ingen {{stage}}-modell är tillgänglig för den här riktningen."
   },
   "update": {
     "available": "Ny version v{{version}} tillgänglig",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Välj mötesapplikationen som den andras ljudkälla i stället för systemljud.",
     "actionChangeInput": "Välj en fysisk mikrofon som ingångsenhet.",
     "dismiss": "Stäng"
+  },
+  "engineUi": {
+    "autoValue": "Auto · {{name}}",
+    "autoOptionNone": "Auto",
+    "browseLibrary": "Bläddra i biblioteket",
+    "storageUsedLine": "Lagring: {{summary}} använt",
+    "manageStorage": "Hantera",
+    "back": "Tillbaka",
+    "titleLibrary": "Bibliotek · {{stage}}",
+    "titleStorage": "Lagring",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "Används",
+    "estimated": "Uppskattat",
+    "translationOnCpu": "Översättning på CPU — otillräckligt VRAM",
+    "availableWhenLang": "Nedladdad. Tillgänglig när ditt språk är {{lang}}.",
+    "deleteConfirm": "Ta bort {{name}}?",
+    "deleteFallsBack": "Tar bort {{name}}: {{stage}} återgår till {{to}}.",
+    "deleteNoModel": "Tar bort {{name}}: ingen {{stage}}-modell återstår — sessioner kan inte startas.",
+    "clearAllKeepsPicks": "Dina val sparas och återställs när modellerna laddas ner igen.",
+    "importChooseModel": "Välj en modell att importera"
   }
 }

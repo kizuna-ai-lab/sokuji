@@ -9,7 +9,8 @@ import {
   SessionConfig,
   LocalNativeSessionConfig,
 } from '../services/interfaces/IClient';
-import { getManifestEntry, getTranslationModel } from '../lib/local-inference/modelManifest';
+import { getManifestEntry } from '../lib/local-inference/modelManifest';
+import type { Stage } from '../lib/local-inference/selection/types';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { type NativeReadinessReason } from '../lib/local-inference/native/nativeCatalog';
 import { useNativeModelStore } from './nativeModelStore';
@@ -72,7 +73,6 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
     case 'starting': return i18n.t('settings.localNativeStarting', 'Starting the local engine…');
     case 'asr-incompatible': return i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for My language');
     case 'translation-incompatible': return i18n.t('settings.localNativeTranslationIncompatible', 'Select a translation model for this language pair');
-    case 'models-missing': return i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
   }
 }
 
@@ -229,6 +229,11 @@ export interface SettingsStore {
 
   // Navigation state
   settingsNavigationTarget: string | null;
+  /** Ephemeral: fired once by an engine chip (Task 10) to deep-link into the
+   *  engine surface with a given slot pre-expanded. Never persisted — the
+   *  consuming surface (SimpleSettings, ProviderSpecificSettings) reads it,
+   *  opens the slot, and immediately clears it back to null. */
+  engineSlotTarget: { dir: string; stage: Stage } | null;
 
   // Settings loading state
   settingsLoaded: boolean;
@@ -319,6 +324,7 @@ export interface SettingsStore {
   getProcessedLocalPrompt: (forParticipant?: boolean) => string;
   createSessionConfig: (systemInstructions: string) => SessionConfig;
   navigateToSettings: (target: string | null) => void;
+  setEngineSlotTarget: (t: { dir: string; stage: Stage } | null) => void;
 }
 
 // ==================== Helper Functions ====================
@@ -464,21 +470,6 @@ export function resolveTranslationWorkerTypeForModelId(modelId: string | null | 
   return entry.translationWorkerType || (entry.multilingual ? 'qwen' : 'opus-mt');
 }
 
-/**
- * Resolve the effective translation worker type for the speaker direction of
- * the current local-inference settings. Considers auto-select fallback (empty
- * translationModel → getTranslationModel lookup).
- *
- * Note: this only looks at speaker direction. For participant direction, use
- * `useModelStore.getState().getParticipantModelStatus(...)` — that path already
- * consults the modelPreferences recall system for the reversed language pair.
- */
-export function resolveTranslationWorkerType(settings: LocalInferenceSettings): string {
-  const modelId = settings.translationModel
-    || getTranslationModel(settings.sourceLanguage, settings.targetLanguage)?.id;
-  return resolveTranslationWorkerTypeForModelId(modelId);
-}
-
 // Moved beside the descriptors (their caller since the S2 participant-config
 // seam); re-exported here so existing importers keep working.
 export { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../services/providers/localParticipantConfig';
@@ -609,6 +600,7 @@ const useSettingsStore = create<SettingsStore>()(
     kizunaKeyError: null,
 
     settingsNavigationTarget: null,
+    engineSlotTarget: null,
 
     settingsLoaded: false,
     subtitleModeActive: false,
@@ -837,10 +829,14 @@ const useSettingsStore = create<SettingsStore>()(
       const provider = state.provider;
 
       // Native (Electron sidecar) inference: no API key. Readiness is owned by
-      // nativeModelStore's ensureSelectionReady facade (sidecar warmup, lifecycle
-      // gating, auto-select reconciliation, and compat/download checks); this
-      // branch only applies the resulting corrections and maps the reason to a
-      // user-facing message.
+      // nativeModelStore's ensureSelectionReady facade — sidecar warmup,
+      // lifecycle gating, resolving BOTH the speaker and participant
+      // directions, and applying the session-gate table (speaker ASR/
+      // translation block, speaker TTS and the whole participant direction
+      // never do). This branch maps `reason` to a user-facing message; `notes`
+      // is already stashed on nativeModelStore's `lastResolutionNotes` for
+      // Plan 2 to render in place of this generic message. resolve() output IS
+      // the answer, so there is nothing left to write back to settings here.
       if (provider === Provider.LOCAL_NATIVE) {
         // Settings go in as a thunk, not a snapshot: the facade warms the sidecar
         // first (seconds, on a cold start) and reads them only after — so a pair
@@ -853,7 +849,7 @@ const useSettingsStore = create<SettingsStore>()(
         // rather than the start path's device-aware `speakerWillStart` — this
         // gate has no business knowing which microphone is selected, and the
         // Start gate refuses a mode whose devices are missing anyway.
-        const { ready, reason, corrections } = await useNativeModelStore.getState()
+        const { ready, reason } = await useNativeModelStore.getState()
           .ensureSelectionReady(() => ({
             selection: get().localNative,
             textOnly: effectiveTextOnly({
@@ -861,7 +857,6 @@ const useSettingsStore = create<SettingsStore>()(
               textOnly: get().textOnly,
             }),
           }));
-        if (corrections) get().updateLocalNative(corrections);
         const message = msgForNativeReason(reason);
         set({
           isApiKeyValid: ready,
@@ -874,16 +869,16 @@ const useSettingsStore = create<SettingsStore>()(
       // Local inference: check model readiness instead of API key.
       // This is the SINGLE authority for LOCAL_INFERENCE session readiness.
       if (provider === Provider.LOCAL_INFERENCE) {
-        const localSettings = get().localInference;
         const { useModelStore } = await import('./modelStore');
 
-        // modelStore owns readiness: it initializes, auto-corrects stale
-        // selections, and judges isProviderReady against the corrected IDs.
-        const { ready, corrections } = await useModelStore.getState().ensureSelectionReady(localSettings);
-        if (corrections) {
-          console.log('[SettingsStore] Auto-correcting stale model selections:', corrections);
-          get().updateLocalInference(corrections);
-        }
+        // modelStore owns readiness: it initializes, resolves BOTH the speaker
+        // and participant directions, applies the session-gate table (speaker
+        // ASR/translation block; speaker TTS and the whole participant
+        // direction never do), and returns `notes` — already stashed on
+        // modelStore's `lastResolutionNotes` for Plan 2 to render in place of
+        // the generic message below. resolve() output IS the answer, so there
+        // is nothing left to write back to settings here.
+        const { ready } = await useModelStore.getState().ensureSelectionReady();
 
         const message = ready ? '' : i18n.t('settings.localInferenceModelsRequired');
         set({
@@ -1267,6 +1262,10 @@ const useSettingsStore = create<SettingsStore>()(
     navigateToSettings: (target) => {
       set({settingsNavigationTarget: target});
     },
+
+    setEngineSlotTarget: (t: { dir: string; stage: Stage } | null) => {
+      set({engineSlotTarget: t});
+    },
   }))
 );
 
@@ -1333,6 +1332,8 @@ export const useKizunaKeyError = () => useSettingsStore((state) => state.kizunaK
 
 // Navigation
 export const useSettingsNavigationTarget = () => useSettingsStore((state) => state.settingsNavigationTarget);
+export const useEngineSlotTarget = () => useSettingsStore((state: SettingsStore) => state.engineSlotTarget);
+export const useSetEngineSlotTarget = () => useSettingsStore((state: SettingsStore) => state.setEngineSlotTarget);
 
 // Settings loading state
 export const useSettingsLoaded = () => useSettingsStore((state) => state.settingsLoaded);

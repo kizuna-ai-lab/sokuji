@@ -72,6 +72,10 @@ export interface ModelManifestEntry {
   type: ModelType;
   /** Human-readable name */
   name: string;
+  /** Optional short display name for dropdowns/chips/summaries. When absent,
+   *  the UI derives one by stripping runtime-qualifier noise from the parens
+   *  (see modelName.ts). Set it explicitly where derivation would collide. */
+  shortName?: string;
   /** Languages supported by this model */
   languages: string[];
   /** True for models supporting any pair of their listed languages */
@@ -136,6 +140,25 @@ export interface ModelManifestEntry {
 // ─── Variant Selection ──────────────────────────────────────────────────────
 
 /**
+ * Whether a specific variant of a model can run on THIS device: every
+ * `requiredFeature` it lists must be present in `deviceFeatures` (no
+ * requirement, or an empty list, always qualifies). An unknown `variantKey`
+ * is never eligible. Shared by `selectVariant`'s compatibility filter and the
+ * WASM candidate adapter's `supportsVariant` (candidates.wasm.ts) — a pinned
+ * quantization is only honoured while it is both still offered on the entry
+ * AND runnable on this machine.
+ */
+export function isVariantEligible(
+  entry: ModelManifestEntry,
+  variantKey: string,
+  deviceFeatures: string[],
+): boolean {
+  const variant = entry.variants[variantKey];
+  if (!variant) return false;
+  return !variant.requiredFeatures || variant.requiredFeatures.every(f => deviceFeatures.includes(f));
+}
+
+/**
  * Select the best variant for the current device.
  * Prefers variants with more requiredFeatures (more optimized).
  */
@@ -143,8 +166,8 @@ export function selectVariant(
   entry: ModelManifestEntry,
   deviceFeatures: string[],
 ): string {
-  const compatible = Object.entries(entry.variants).filter(([_, v]) =>
-    !v.requiredFeatures || v.requiredFeatures.every(f => deviceFeatures.includes(f))
+  const compatible = Object.entries(entry.variants).filter(([k]) =>
+    isVariantEligible(entry, k, deviceFeatures)
   );
   if (compatible.length === 0) {
     throw new Error(`No compatible variant for model ${entry.id} on this device`);
@@ -1051,6 +1074,9 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     id: 'whisper-tiny-webgpu',
     type: 'asr',
     name: 'Whisper Tiny (WebGPU, 99+ languages)',
+    // Derivation would collide with the plain whisper-tiny (both reduce to
+    // 'Whisper Tiny'), so the WebGPU flavor keeps its qualifier explicitly.
+    shortName: 'Whisper Tiny (WebGPU)',
     languages: ['multilingual'],
     multilingual: true,
     hfModelId: 'Xenova/whisper-tiny',

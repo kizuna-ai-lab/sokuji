@@ -34,7 +34,7 @@ const PLAIN: Array<[string, string, Record<string, unknown>]> = [
   ['updateVolcengineST', 'volcengineST', { accessKeyId: 'a1' }],
   ['updateZoomAI', 'zoomAI', { apiKey: 'z1' }],
   ['updateVolcengineAST2', 'volcengineAST2', { appId: 'p1' }],
-  ['updateLocalInference', 'localInference', { asrModel: 'm1' }],
+  ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
   ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
   ['updateSoniox', 'soniox', { apiKey: 's1' }],
 ];
@@ -113,7 +113,7 @@ describe('provider settings update actions (behavior lock)', () => {
     ['updateZoomAI', 'zoomAI', { apiKey: 'x' }],
     ['updateVolcengineAST2', 'volcengineAST2', { appId: 'x' }],
     ['updateKizunaVolcengineAst2', 'kizunaVolcengineAst2', { sourceLanguage: 'zh' }],
-    ['updateLocalInference', 'localInference', { asrModel: 'x' }],
+    ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
     ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
   ];
 

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { Provider } from '../types/Provider';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
+import { directionKey } from '../lib/local-inference/selection/types';
 
 // Force platform detection so environment-gated providers (notably Volcengine
 // AST 2.0, which requires Electron/Extension) are present in the descriptor
@@ -399,8 +400,29 @@ describe('settingsStore', () => {
 });
 
 describe('createParticipantLocalInferenceConfig', () => {
+  // The participant direction (target→source) is a peer of the speaker
+  // direction, not a reversal of it: it resolves from the real WASM manifest
+  // via modelStore.resolve(), driven by real modelStatuses state and a
+  // `selections` argument passed in directly (mirrors how the descriptor
+  // calls it — no settingsStore access inside this function at all).
+  // 'sensevoice-int8' (multilingual ASR) and 'opus-mt-en-jap' (the real
+  // en→ja Opus-MT entry) are real manifest ids.
+  beforeEach(async () => {
+    const { useModelStore } = await import('./modelStore');
+    useModelStore.setState({ modelStatuses: {} });
+  });
+
+  afterEach(async () => {
+    const { useModelStore } = await import('./modelStore');
+    useModelStore.setState({ modelStatuses: {} });
+  });
+
   it('swaps languages and resolves reverse models', async () => {
     const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
+    const { useModelStore } = await import('./modelStore');
+    useModelStore.setState({
+      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded' },
+    });
 
     const baseConfig = {
       provider: 'local_inference' as const,
@@ -415,37 +437,30 @@ describe('createParticipantLocalInferenceConfig', () => {
       ttsSpeed: 1.0,
     };
 
-    // Mock getParticipantModelStatus on the model store
-    const { useModelStore } = await import('./modelStore');
-    const originalState = useModelStore.getState();
-    vi.spyOn(useModelStore, 'getState').mockReturnValue({
-      ...originalState,
-      getParticipantModelStatus: () => ({
-        asrAvailable: true,
-        asrModelId: 'sensevoice-int8',
-        asrFallback: false,
-        asrOriginalModelId: 'sensevoice-int8',
-        translationAvailable: true,
-        translationModelId: 'opus-mt-en-ja',
-      }),
+    // Explicit selection for the participant's OWN direction (en→ja) — auto
+    // resolution isn't deterministic here since a cloud translation model is
+    // always "ready" and can outrank a downloaded local one.
+    const result = createParticipantLocalInferenceConfig(baseConfig, {
+      [directionKey('en', 'ja')]: {
+        asr: { modelId: 'sensevoice-int8' }, translation: { modelId: 'opus-mt-en-jap' }, tts: { modelId: '' },
+      },
     });
-
-    const result = createParticipantLocalInferenceConfig(baseConfig);
 
     expect(result.success).toBe(true);
     if (!result.success) throw new Error('unexpected');
     expect(result.config.sourceLanguage).toBe('en');
     expect(result.config.targetLanguage).toBe('ja');
     expect(result.config.asrModelId).toBe('sensevoice-int8');
-    expect(result.config.translationModelId).toBe('opus-mt-en-ja');
+    expect(result.config.translationModelId).toBe('opus-mt-en-jap');
     expect(result.config.ttsModelId).toBeUndefined();
-    expect(result.status.translationAvailable).toBe(true);
-
-    vi.restoreAllMocks();
+    expect(result.translationAvailable).toBe(true);
   });
 
   it('returns no_asr when no ASR model is available', async () => {
     const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
+    const { useModelStore } = await import('./modelStore');
+    // Nothing downloaded: the reverse direction cannot resolve an ASR model.
+    useModelStore.setState({ modelStatuses: {} });
 
     const baseConfig = {
       provider: 'local_inference' as const,
@@ -453,36 +468,25 @@ describe('createParticipantLocalInferenceConfig', () => {
       instructions: '',
       sourceLanguage: 'en',
       targetLanguage: 'ja',
-      asrModelId: 'whisper-en',
-      translationModelId: 'opus-mt-en-ja',
+      asrModelId: 'sensevoice-int8',
+      translationModelId: 'opus-mt-en-jap',
       ttsModelId: 'piper-ja',
       ttsSpeakerId: 0,
       ttsSpeed: 1.0,
     };
 
-    const { useModelStore } = await import('./modelStore');
-    vi.spyOn(useModelStore, 'getState').mockReturnValue({
-      ...useModelStore.getState(),
-      getParticipantModelStatus: () => ({
-        asrAvailable: false,
-        asrModelId: null,
-        asrFallback: false,
-        asrOriginalModelId: 'whisper-en',
-        translationAvailable: false,
-        translationModelId: null,
-      }),
-    });
-
-    const result = createParticipantLocalInferenceConfig(baseConfig);
+    const result = createParticipantLocalInferenceConfig(baseConfig, {});
     expect(result.success).toBe(false);
     if (result.success) throw new Error('unexpected');
     expect(result.reason).toBe('no_asr');
-
-    vi.restoreAllMocks();
   });
 
   it('returns memory_exceeded when VRAM budget is exceeded', async () => {
     const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
+    const { useModelStore } = await import('./modelStore');
+    useModelStore.setState({
+      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded' },
+    });
 
     const baseConfig = {
       provider: 'local_inference' as const,
@@ -497,24 +501,15 @@ describe('createParticipantLocalInferenceConfig', () => {
       ttsSpeed: 1.0,
     };
 
-    const { useModelStore } = await import('./modelStore');
-    vi.spyOn(useModelStore, 'getState').mockReturnValue({
-      ...useModelStore.getState(),
-      getParticipantModelStatus: () => ({
-        asrAvailable: true,
-        asrModelId: 'sensevoice-int8',
-        asrFallback: false,
-        asrOriginalModelId: 'sensevoice-int8',
-        translationAvailable: true,
-        translationModelId: 'opus-mt-en-ja',
-      }),
-    });
-
     // Set VRAM budget via localStorage override, then simulate models exceeding it
     localStorage.setItem('debug:vram-budget', '4096');
     mockEstimateMemory.mockReturnValue({ vramMb: 8000, ramMb: 0 });
 
-    const result = createParticipantLocalInferenceConfig(baseConfig);
+    const result = createParticipantLocalInferenceConfig(baseConfig, {
+      [directionKey('en', 'ja')]: {
+        asr: { modelId: 'sensevoice-int8' }, translation: { modelId: 'opus-mt-en-jap' }, tts: { modelId: '' },
+      },
+    });
     expect(result.success).toBe(false);
     if (result.success) throw new Error('unexpected');
     expect(result.reason).toBe('memory_exceeded');
@@ -523,7 +518,6 @@ describe('createParticipantLocalInferenceConfig', () => {
 
     localStorage.removeItem('debug:vram-budget');
     mockEstimateMemory.mockReturnValue({ vramMb: 0, ramMb: 0 });
-    vi.restoreAllMocks();
   });
 });
 

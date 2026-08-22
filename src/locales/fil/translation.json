@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Mag-report ng bug o humingi ng tulong",
     "helpDiscussions": "Mga Talakayan",
     "helpDiscussionsTooltip": "Mga feature request, feedback, at talakayan ng komunidad",
-    "participantModelHint": "Lumipat sa {{source}} → {{target}} para baguhin ang mga modelo ng kausap",
     "auto": "Awtomatiko",
     "low": "Mababa",
     "medium": "Katamtaman",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Mababa",
     "localInferenceModelsRequired": "Mangyaring i-download muna ang mga kinakailangang modelo sa <settingsLink>Mga Setting</settingsLink>. Kailangan mong mag-download ng mga modelo ng pagkilala sa pagsasalita (ASR), pagsasalin, at sintesis ng pagsasalita (TTS) para makapagsimula.",
     "missingModelsWarning": "Nawawalang {{types}} model para sa language pair na ito.",
+    "resolutionNotesSummary": "{{count}} sa mga napili mong modelo ang hindi available — ginagamit ang mga awtomatikong fallback.",
+    "resolutionNotesNamed": "Hindi available ang {{names}} — ginagamit ang mga awtomatikong fallback.",
+    "resolutionNotesNamedMore": "Hindi available ang {{names}} at {{count}} pa — ginagamit ang mga awtomatikong fallback.",
+    "resolutionNotesUseAuto": "Lumipat sa Awtomatiko",
+    "resolutionNotesReview": "Suriin",
     "downloadModelType": "I-download ang {{type}}",
     "modelTypeAsr": "Pagkilala sa pagsasalita (ASR)",
     "modelTypeTranslation": "Pagsasalin",
-    "modelTypeTts": "Sintesis ng pagsasalita (TTS)",
     "edgeTtsVoice": "Boses",
     "loadingVoices": "Naglo-load ng mga boses...",
     "reasoningEffort": "Antas ng pangangatuwiran",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Nabigo ang preview — naabot ang rate limit o quota ng Soniox",
     "sonioxVoicePreviewTimeout": "Nag-timeout ang preview — subukang muli",
     "sonioxRegion": "Rehiyon",
-    "sonioxRegionTooltip": "Nagpapatakbo ang Soniox ng hiwalay na deployment kada rehiyon, bawat isa ay may sariling API key. Pinoproseso at iniimbak ang iyong audio sa rehiyong pipiliin mo. Iiral mula sa susunod na sesyon."
+    "sonioxRegionTooltip": "Nagpapatakbo ang Soniox ng hiwalay na deployment kada rehiyon, bawat isa ay may sariling API key. Pinoproseso at iniimbak ang iyong audio sa rehiyong pipiliin mo. Iiral mula sa susunod na sesyon.",
+    "langSentence": {
+      "iSpeak": "Nagsasalita ako ng",
+      "iRead": "Binabasa ko",
+      "theyHear": "naririnig nila sa",
+      "theySpeak": "nagsasalita sila ng",
+      "mirror": "Nagsasalita sila ng {{their}} → binabasa ko sa {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",
@@ -479,8 +489,7 @@
       "description": "Libreng pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Kausap"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Libre (Native)",
@@ -831,8 +840,9 @@
     "importNow": "I-import ang {{count}} ngayon",
     "management": "Mga Model",
     "storageUsed": "Storage: {{size}} MB ang ginagamit",
+    "storageEmpty": "Wala pang na-download na modelo.",
     "asrModels": "Pagkilala sa pagsasalita (ASR)",
-    "translationModels": "Pagsasalin",
+    "translationModels": "Pagsasalin (MT)",
     "ttsModels": "Sintesis ng pagsasalita (TTS)",
     "autoSelected": "Awtomatikong napili",
     "download": "I-download",
@@ -892,6 +902,20 @@
       "cancel": "Kanselahin",
       "accept": "Nauunawaan ko — hindi pangkomersyo lamang"
     }
+  },
+  "notes": {
+    "stageAsr": "pagkilala sa pagsasalita",
+    "stageTranslation": "pagsasalin",
+    "stageTts": "pag-output ng pagsasalita",
+    "notDownloaded": "Hindi pa na-download ang {{from}}. I-download ulit ito para magamit.",
+    "notDownloadedWithSub": "Hindi pa na-download ang {{from}} — ginagamit sa halip ang {{to}}. I-download ulit ito para magamit.",
+    "langIncompatible": "Hindi suportado ng {{from}} ang direksyong ito. Babalik ito kapag suportado na ang direksyon.",
+    "langIncompatibleWithSub": "Hindi suportado ng {{from}} ang direksyong ito — ginagamit sa halip ang {{to}}. Babalik ito kapag suportado na ang direksyon.",
+    "hardwareGated": "Hindi tumatakbo ang {{from}} sa device na ito.",
+    "hardwareGatedWithSub": "Hindi tumatakbo ang {{from}} sa device na ito — ginagamit sa halip ang {{to}}.",
+    "needsKey": "Kailangan ng naka-sign-in na account para magamit ang {{from}}.",
+    "notInCatalog": "Hindi na available ang {{from}} sa bersyong ito.",
+    "noCandidate": "Walang available na modelo ng {{stage}} para sa direksyong ito."
   },
   "update": {
     "available": "Bagong bersyon v{{version}} ay magagamit na",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Piliin ang meeting application bilang pinagmulan ng audio ng kausap sa halip na system audio.",
     "actionChangeInput": "Pumili ng pisikal na mikropono bilang input device.",
     "dismiss": "Isara"
+  },
+  "engineUi": {
+    "autoValue": "Awtomatiko · {{name}}",
+    "autoOptionNone": "Awtomatiko",
+    "browseLibrary": "Tingnan ang library",
+    "storageUsedLine": "Storage: {{summary}} ang nagamit",
+    "manageStorage": "Pamahalaan",
+    "back": "Bumalik",
+    "titleLibrary": "Library · {{stage}}",
+    "titleStorage": "Storage",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "Ginagamit",
+    "estimated": "Tinatayang",
+    "translationOnCpu": "Pagsasalin sa CPU — kulang ang VRAM",
+    "availableWhenLang": "Na-download na. Magagamit kapag ang wika mo ay {{lang}}.",
+    "deleteConfirm": "Burahin ang {{name}}?",
+    "deleteFallsBack": "Pagbura sa {{name}}: babalik sa {{to}} ang {{stage}}.",
+    "deleteNoModel": "Pagbura sa {{name}}: wala nang matitirang modelo para sa {{stage}} — hindi maaaring magsimula ang mga session.",
+    "clearAllKeepsPicks": "Naaalala ang mga napili mo at babalik ang mga ito kapag na-download muli ang mga modelo.",
+    "importChooseModel": "Pumili ng modelong ii-import"
   }
 }

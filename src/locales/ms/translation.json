@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Laporkan pepijat atau dapatkan bantuan",
     "helpDiscussions": "Perbincangan",
     "helpDiscussionsTooltip": "Permintaan ciri, maklum balas dan perbincangan komuniti",
-    "participantModelHint": "Tukar ke {{source}} → {{target}} untuk menukar model pihak lain",
     "auto": "Automatik",
     "low": "Rendah",
     "medium": "Sederhana",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Rendah",
     "localInferenceModelsRequired": "Sila muat turun model yang diperlukan dalam <settingsLink>Tetapan</settingsLink> terlebih dahulu. Anda perlu memuat turun model Pengecaman pertuturan (ASR), Terjemahan dan Sintesis pertuturan (TTS) untuk bermula.",
     "missingModelsWarning": "Model {{types}} tiada untuk pasangan bahasa ini.",
+    "resolutionNotesSummary": "{{count}} daripada model pilihan anda tidak tersedia — gantian automatik sedang digunakan.",
+    "resolutionNotesNamed": "{{names}} tidak tersedia — gantian automatik sedang digunakan.",
+    "resolutionNotesNamedMore": "{{names}} dan {{count}} lagi tidak tersedia — gantian automatik sedang digunakan.",
+    "resolutionNotesUseAuto": "Tukar kepada Automatik",
+    "resolutionNotesReview": "Semak",
     "downloadModelType": "Muat turun {{type}}",
     "modelTypeAsr": "Pengecaman pertuturan (ASR)",
     "modelTypeTranslation": "Terjemahan",
-    "modelTypeTts": "Sintesis pertuturan (TTS)",
     "edgeTtsVoice": "Suara",
     "loadingVoices": "Memuatkan suara...",
     "reasoningEffort": "Tahap penaakulan",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Pratonton gagal — had kadar atau kuota Soniox dicapai",
     "sonioxVoicePreviewTimeout": "Pratonton tamat masa — cuba lagi",
     "sonioxRegion": "Wilayah",
-    "sonioxRegionTooltip": "Soniox menjalankan penggunaan berasingan bagi setiap wilayah, setiap satu dengan kunci API sendiri. Audio anda diproses dan disimpan di wilayah yang anda pilih. Berkuat kuasa mulai sesi seterusnya."
+    "sonioxRegionTooltip": "Soniox menjalankan penggunaan berasingan bagi setiap wilayah, setiap satu dengan kunci API sendiri. Audio anda diproses dan disimpan di wilayah yang anda pilih. Berkuat kuasa mulai sesi seterusnya.",
+    "langSentence": {
+      "iSpeak": "Saya bertutur",
+      "iRead": "Saya baca",
+      "theyHear": "mereka dengar",
+      "theySpeak": "mereka bertutur",
+      "mirror": "Mereka bertutur {{their}} → Saya baca {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
@@ -479,8 +489,7 @@
       "description": "Pengecaman pertuturan percuma (ASR) + Terjemahan + Sintesis pertuturan (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Pihak lain"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Percuma (Native)",
@@ -831,8 +840,9 @@
     "importNow": "Import {{count}} sekarang",
     "management": "Model",
     "storageUsed": "Storan: {{size}} MB digunakan",
+    "storageEmpty": "Belum ada model dimuat turun.",
     "asrModels": "Pengecaman pertuturan (ASR)",
-    "translationModels": "Terjemahan",
+    "translationModels": "Terjemahan (MT)",
     "ttsModels": "Sintesis pertuturan (TTS)",
     "autoSelected": "Dipilih secara automatik",
     "download": "Muat turun",
@@ -892,6 +902,20 @@
       "cancel": "Batal",
       "accept": "Saya faham — bukan komersial sahaja"
     }
+  },
+  "notes": {
+    "stageAsr": "pengecaman suara",
+    "stageTranslation": "terjemahan",
+    "stageTts": "output suara",
+    "notDownloaded": "{{from}} belum dimuat turun. Muat turun semula untuk menggunakannya.",
+    "notDownloadedWithSub": "{{from}} belum dimuat turun — menggunakan {{to}} sebagai gantinya. Muat turun semula untuk menggunakannya.",
+    "langIncompatible": "{{from}} tidak menyokong arah ini. Ia akan kembali apabila arah ini disokong.",
+    "langIncompatibleWithSub": "{{from}} tidak menyokong arah ini — menggunakan {{to}} sebagai gantinya. Ia akan kembali apabila arah ini disokong.",
+    "hardwareGated": "{{from}} tidak boleh dijalankan pada peranti ini.",
+    "hardwareGatedWithSub": "{{from}} tidak boleh dijalankan pada peranti ini — menggunakan {{to}} sebagai gantinya.",
+    "needsKey": "{{from}} memerlukan akaun yang dilog masuk untuk digunakan.",
+    "notInCatalog": "{{from}} tidak lagi tersedia dalam versi ini.",
+    "noCandidate": "Tiada model {{stage}} tersedia untuk arah ini."
   },
   "update": {
     "available": "Versi baharu v{{version}} tersedia",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Pilih aplikasi mesyuarat sebagai sumber audio pihak lain dan bukannya audio sistem.",
     "actionChangeInput": "Pilih mikrofon fizikal sebagai peranti input.",
     "dismiss": "Tutup"
+  },
+  "engineUi": {
+    "autoValue": "Automatik · {{name}}",
+    "autoOptionNone": "Automatik",
+    "browseLibrary": "Lihat pustaka",
+    "storageUsedLine": "Storan: {{summary}} digunakan",
+    "manageStorage": "Urus",
+    "back": "Kembali",
+    "titleLibrary": "Pustaka · {{stage}}",
+    "titleStorage": "Storan",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "Sedang digunakan",
+    "estimated": "Anggaran",
+    "translationOnCpu": "Terjemahan pada CPU — VRAM tidak mencukupi",
+    "availableWhenLang": "Dimuat turun. Tersedia apabila bahasa anda ialah {{lang}}.",
+    "deleteConfirm": "Padam {{name}}?",
+    "deleteFallsBack": "Memadam {{name}}: {{stage}} beralih semula kepada {{to}}.",
+    "deleteNoModel": "Memadam {{name}}: tiada model {{stage}} yang tinggal — sesi tidak dapat dimulakan.",
+    "clearAllKeepsPicks": "Pilihan anda disimpan dan akan kembali apabila model dimuat turun semula.",
+    "importChooseModel": "Pilih model untuk diimport"
   }
 }

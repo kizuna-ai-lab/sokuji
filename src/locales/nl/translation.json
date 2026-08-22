@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Bugs melden of hulp krijgen",
     "helpDiscussions": "Discussies",
     "helpDiscussionsTooltip": "Functieverzoeken, feedback en communitydiscussies",
-    "participantModelHint": "Schakel naar {{source}} → {{target}} om de modellen van de ander te wijzigen",
     "auto": "Auto",
     "low": "Laag",
     "medium": "Gemiddeld",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Laag",
     "localInferenceModelsRequired": "Download eerst de vereiste modellen in <settingsLink>Instellingen</settingsLink>. U moet Spraakherkenning (ASR)-, Vertaling- en Spraaksynthese (TTS)-modellen downloaden om te beginnen.",
     "missingModelsWarning": "Ontbrekend(e) {{types}}-model(len) voor dit taalpaar.",
+    "resolutionNotesSummary": "{{count}} van je geselecteerde modellen zijn niet beschikbaar — automatische fallbacks zijn actief.",
+    "resolutionNotesNamed": "{{names}} niet beschikbaar — automatische fallbacks zijn actief.",
+    "resolutionNotesNamedMore": "{{names}} en nog {{count}} niet beschikbaar — automatische fallbacks zijn actief.",
+    "resolutionNotesUseAuto": "Overschakelen naar Automatisch",
+    "resolutionNotesReview": "Controleren",
     "downloadModelType": "{{type}} downloaden",
     "modelTypeAsr": "Spraakherkenning (ASR)",
     "modelTypeTranslation": "Vertaling",
-    "modelTypeTts": "Spraaksynthese (TTS)",
     "edgeTtsVoice": "Stem",
     "loadingVoices": "Stemmen laden...",
     "reasoningEffort": "Redeneerinspanning",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Voorbeeld mislukt — Soniox-snelheidslimiet of quotum bereikt",
     "sonioxVoicePreviewTimeout": "Time-out bij voorbeeld — probeer het opnieuw",
     "sonioxRegion": "Regio",
-    "sonioxRegionTooltip": "Soniox draait per regio een aparte omgeving, elk met een eigen API-sleutel. Je audio wordt verwerkt en opgeslagen in de gekozen regio. Geldt vanaf de volgende sessie."
+    "sonioxRegionTooltip": "Soniox draait per regio een aparte omgeving, elk met een eigen API-sleutel. Je audio wordt verwerkt en opgeslagen in de gekozen regio. Geldt vanaf de volgende sessie.",
+    "langSentence": {
+      "iSpeak": "Ik spreek",
+      "iRead": "Ik lees",
+      "theyHear": "horen zij",
+      "theySpeak": "spreken zij",
+      "mirror": "Zij spreken {{their}} → ik lees {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
@@ -479,8 +489,7 @@
       "description": "Gratis spraakherkenning (ASR) + Vertaling + spraaksynthese (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Ander"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Gratis (Native)",
@@ -831,8 +840,9 @@
     "importNow": "{{count}} nu importeren",
     "management": "Modellen",
     "storageUsed": "Opslag: {{size}} MB gebruikt",
+    "storageEmpty": "Nog geen modellen gedownload.",
     "asrModels": "Spraakherkenning (ASR)",
-    "translationModels": "Vertaling",
+    "translationModels": "Vertaling (MT)",
     "ttsModels": "Spraaksynthese (TTS)",
     "autoSelected": "Automatisch geselecteerd",
     "download": "Downloaden",
@@ -892,6 +902,20 @@
       "cancel": "Annuleren",
       "accept": "Begrepen — alleen niet-commercieel"
     }
+  },
+  "notes": {
+    "stageAsr": "spraakherkenning",
+    "stageTranslation": "vertaling",
+    "stageTts": "spraakuitvoer",
+    "notDownloaded": "{{from}} is niet gedownload. Download het opnieuw om het te gebruiken.",
+    "notDownloadedWithSub": "{{from}} is niet gedownload — {{to}} wordt in plaats daarvan gebruikt. Download het opnieuw om het te gebruiken.",
+    "langIncompatible": "{{from}} ondersteunt deze richting niet. Het keert terug zodra de richting dat wel doet.",
+    "langIncompatibleWithSub": "{{from}} ondersteunt deze richting niet — {{to}} wordt in plaats daarvan gebruikt. Het keert terug zodra de richting dat wel doet.",
+    "hardwareGated": "{{from}} kan niet worden uitgevoerd op dit apparaat.",
+    "hardwareGatedWithSub": "{{from}} kan niet worden uitgevoerd op dit apparaat — {{to}} wordt in plaats daarvan gebruikt.",
+    "needsKey": "{{from}} vereist een ingelogd account om te gebruiken.",
+    "notInCatalog": "{{from}} is niet meer beschikbaar in deze versie.",
+    "noCandidate": "Er is geen model voor {{stage}} beschikbaar voor deze richting."
   },
   "update": {
     "available": "Nieuwe versie v{{version}} beschikbaar",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Kies de vergaderapp als audiobron van de ander in plaats van systeemaudio.",
     "actionChangeInput": "Kies een fysieke microfoon als invoerapparaat.",
     "dismiss": "Sluiten"
+  },
+  "engineUi": {
+    "autoValue": "Automatisch · {{name}}",
+    "autoOptionNone": "Automatisch",
+    "browseLibrary": "Bibliotheek doorzoeken",
+    "storageUsedLine": "Opslag: {{summary}} gebruikt",
+    "manageStorage": "Beheren",
+    "back": "Terug",
+    "titleLibrary": "Bibliotheek · {{stage}}",
+    "titleStorage": "Opslag",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "In gebruik",
+    "estimated": "Geschat",
+    "translationOnCpu": "Vertaling op cpu — onvoldoende vram",
+    "availableWhenLang": "Gedownload. Beschikbaar wanneer je taal {{lang}} is.",
+    "deleteConfirm": "{{name}} verwijderen?",
+    "deleteFallsBack": "{{name}} verwijderen: {{stage}} valt terug op {{to}}.",
+    "deleteNoModel": "{{name}} verwijderen: er blijft geen model voor {{stage}} over — sessies kunnen niet starten.",
+    "clearAllKeepsPicks": "Je keuzes worden onthouden en keren terug zodra modellen opnieuw worden gedownload.",
+    "importChooseModel": "Kies een model om te importeren"
   }
 }

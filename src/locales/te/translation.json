@@ -110,7 +110,6 @@
     "helpEmailTooltip": "బగ్‌లను నివేదించండి లేదా సహాయం పొందండి",
     "helpDiscussions": "చర్చలు",
     "helpDiscussionsTooltip": "ఫీచర్ అభ్యర్థనలు, ఫీడ్‌బ్యాక్ మరియు కమ్యూనిటీ చర్చలు",
-    "participantModelHint": "ఇతరుల మోడల్‌లను మార్చడానికి {{source}} → {{target}} కి మారండి",
     "auto": "ఆటో",
     "low": "తక్కువ",
     "medium": "మధ్యస్థం",
@@ -184,10 +183,14 @@
     "sensitivityLow": "తక్కువ",
     "localInferenceModelsRequired": "దయచేసి ముందుగా <settingsLink>సెట్టింగ్‌లలో</settingsLink> అవసరమైన మోడల్‌లను డౌన్‌లోడ్ చేయండి. ప్రారంభించడానికి వాక్ గుర్తింపు (ASR), అనువాదం మరియు వాక్ సంశ్లేషణ (TTS) మోడల్‌లను డౌన్‌లోడ్ చేయాలి.",
     "missingModelsWarning": "ఈ భాషా జంట కోసం {{types}} మోడల్(లు) లేవు.",
+    "resolutionNotesSummary": "మీరు ఎంచుకున్న మోడల్‌లలో {{count}} అందుబాటులో లేవు — స్వయంచాలక ప్రత్యామ్నాయాలు వాడుకలో ఉన్నాయి.",
+    "resolutionNotesNamed": "{{names}} అందుబాటులో లేవు — స్వయంచాలక ప్రత్యామ్నాయాలు వాడుకలో ఉన్నాయి.",
+    "resolutionNotesNamedMore": "{{names}} మరియు మరో {{count}} అందుబాటులో లేవు — స్వయంచాలక ప్రత్యామ్నాయాలు వాడుకలో ఉన్నాయి.",
+    "resolutionNotesUseAuto": "స్వయంచాలకానికి మారండి",
+    "resolutionNotesReview": "సమీక్షించండి",
     "downloadModelType": "{{type}} డౌన్‌లోడ్ చేయండి",
     "modelTypeAsr": "వాక్ గుర్తింపు (ASR)",
     "modelTypeTranslation": "అనువాదం",
-    "modelTypeTts": "వాక్ సంశ్లేషణ (TTS)",
     "edgeTtsVoice": "వాయిస్",
     "loadingVoices": "వాయిస్‌లు లోడ్ అవుతున్నాయి...",
     "reasoningEffort": "తార్కిక స్థాయి",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "ప్రివ్యూ విఫలమైంది — Soniox రేట్ పరిమితి లేదా కోటా చేరుకుంది",
     "sonioxVoicePreviewTimeout": "ప్రివ్యూ సమయం ముగిసింది — మళ్ళీ ప్రయత్నించండి",
     "sonioxRegion": "ప్రాంతం",
-    "sonioxRegionTooltip": "Soniox ప్రతి ప్రాంతానికి వేరుగా అమలు చేస్తుంది, ప్రతి దానికి సొంత API కీ ఉంటుంది. మీ ఆడియో మీరు ఎంచుకున్న ప్రాంతంలోనే ప్రాసెస్ చేయబడి నిల్వ చేయబడుతుంది. తదుపరి సెషన్ నుండి వర్తిస్తుంది."
+    "sonioxRegionTooltip": "Soniox ప్రతి ప్రాంతానికి వేరుగా అమలు చేస్తుంది, ప్రతి దానికి సొంత API కీ ఉంటుంది. మీ ఆడియో మీరు ఎంచుకున్న ప్రాంతంలోనే ప్రాసెస్ చేయబడి నిల్వ చేయబడుతుంది. తదుపరి సెషన్ నుండి వర్తిస్తుంది.",
+    "langSentence": {
+      "iSpeak": "నేను మాట్లాడతాను",
+      "iRead": "నేను చదువుతాను",
+      "theyHear": "వారు వింటారు",
+      "theySpeak": "వారు మాట్లాడతారు",
+      "mirror": "వారు {{their}} మాట్లాడతారు → నేను {{mine}} చదువుతాను"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది",
@@ -479,8 +489,7 @@
       "description": "ఉచిత వాక్ గుర్తింపు (ASR) + అనువాదం + వాక్ సంశ్లేషణ (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "ఇతరులు"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "ఉచిత (Native)",
@@ -831,8 +840,9 @@
     "importNow": "ఇప్పుడే {{count}} దిగుమతి చేయి",
     "management": "మోడల్‌లు",
     "storageUsed": "నిల్వ: {{size}} MB వాడుకలో",
+    "storageEmpty": "ఇంకా ఏ మోడల్‌లు డౌన్‌లోడ్ చేయలేదు.",
     "asrModels": "వాక్ గుర్తింపు (ASR)",
-    "translationModels": "అనువాదం",
+    "translationModels": "అనువాదం (MT)",
     "ttsModels": "వాక్ సంశ్లేషణ (TTS)",
     "autoSelected": "స్వయంచాలకంగా ఎంపిక చేయబడింది",
     "download": "డౌన్‌లోడ్",
@@ -892,6 +902,20 @@
       "cancel": "రద్దు చేయి",
       "accept": "అర్థమైంది — వాణిజ్యేతర వినియోగం మాత్రమే"
     }
+  },
+  "notes": {
+    "stageAsr": "వాక్ గుర్తింపు",
+    "stageTranslation": "అనువాదం",
+    "stageTts": "వాక్ ఔట్‌పుట్",
+    "notDownloaded": "{{from}} డౌన్‌లోడ్ చేయబడలేదు. దీన్ని వాడటానికి మళ్లీ డౌన్‌లోడ్ చేయండి.",
+    "notDownloadedWithSub": "{{from}} డౌన్‌లోడ్ చేయబడలేదు — బదులుగా {{to}} వాడబడుతోంది. దీన్ని వాడటానికి మళ్లీ డౌన్‌లోడ్ చేయండి.",
+    "langIncompatible": "{{from}} ఈ దిశకు మద్దతివ్వదు. దిశ సరిపోయినప్పుడు ఇది తిరిగి వస్తుంది.",
+    "langIncompatibleWithSub": "{{from}} ఈ దిశకు మద్దతివ్వదు — బదులుగా {{to}} వాడబడుతోంది. దిశ సరిపోయినప్పుడు ఇది తిరిగి వస్తుంది.",
+    "hardwareGated": "{{from}} ఈ పరికరంలో అమలు కాదు.",
+    "hardwareGatedWithSub": "{{from}} ఈ పరికరంలో అమలు కాదు — బదులుగా {{to}} వాడబడుతోంది.",
+    "needsKey": "{{from}} వాడటానికి సైన్-ఇన్ చేసిన ఖాతా అవసరం.",
+    "notInCatalog": "{{from}} ఈ వెర్షన్‌లో ఇక అందుబాటులో లేదు.",
+    "noCandidate": "ఈ దిశ కోసం ఏ {{stage}} మోడల్ అందుబాటులో లేదు."
   },
   "update": {
     "available": "కొత్త వెర్షన్ v{{version}} అందుబాటులో ఉంది",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "సిస్టమ్ ఆడియోకు బదులు సమావేశ అప్లికేషన్‌ను ఇతరుల ఆడియో మూలంగా ఎంచుకోండి.",
     "actionChangeInput": "ఇన్‌పుట్ పరికరంగా నిజమైన మైక్రోఫోన్‌ను ఎంచుకోండి.",
     "dismiss": "మూసివేయి"
+  },
+  "engineUi": {
+    "autoValue": "స్వయంచాలక · {{name}}",
+    "autoOptionNone": "స్వయంచాలక",
+    "browseLibrary": "లైబ్రరీని బ్రౌజ్ చేయండి",
+    "storageUsedLine": "నిల్వ: {{summary}} వాడుకలో ఉంది",
+    "manageStorage": "నిర్వహించండి",
+    "back": "వెనుకకు",
+    "titleLibrary": "లైబ్రరీ · {{stage}}",
+    "titleStorage": "నిల్వ",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "వాడుకలో ఉంది",
+    "estimated": "అంచనా",
+    "translationOnCpu": "CPUలో అనువాదం — తగినంత VRAM లేదు",
+    "availableWhenLang": "డౌన్‌లోడ్ చేయబడింది. మీ భాష {{lang}} అయినప్పుడు అందుబాటులో ఉంటుంది.",
+    "deleteConfirm": "{{name}}ని తొలగించాలా?",
+    "deleteFallsBack": "{{name}}ని తొలగిస్తే: {{stage}} {{to}}కి తిరిగి మారుతుంది.",
+    "deleteNoModel": "{{name}}ని తొలగిస్తే: {{stage}} మోడల్ మిగలదు — సెషన్‌లు ప్రారంభం కావు.",
+    "clearAllKeepsPicks": "మీ ఎంపికలు గుర్తుంచుకోబడతాయి మరియు మోడల్‌లను మళ్లీ డౌన్‌లోడ్ చేసినప్పుడు తిరిగి వస్తాయి.",
+    "importChooseModel": "దిగుమతి చేయడానికి ఒక మోడల్‌ను ఎంచుకోండి"
   }
 }

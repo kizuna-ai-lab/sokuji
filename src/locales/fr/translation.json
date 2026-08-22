@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Signaler un bug ou obtenir de l'aide",
     "helpDiscussions": "Discussions",
     "helpDiscussionsTooltip": "Demandes de fonctionnalités, retours et discussions communautaires",
-    "participantModelHint": "Passez à {{source}} → {{target}} pour changer les modèles de l'autre",
     "auto": "Auto",
     "low": "Bas",
     "medium": "Moyen",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Basse",
     "localInferenceModelsRequired": "Veuillez d'abord télécharger les modèles requis dans les <settingsLink>Paramètres</settingsLink>. Vous devez télécharger les modèles de Reconnaissance vocale (ASR), Traduction et Synthèse vocale (TTS) pour commencer.",
     "missingModelsWarning": "Modèle(s) {{types}} manquant(s) pour cette paire de langues.",
+    "resolutionNotesSummary": "{{count}} de vos modèles sélectionnés sont indisponibles — des solutions de repli automatiques sont utilisées.",
+    "resolutionNotesNamed": "{{names}} indisponible — des solutions de repli automatiques sont utilisées.",
+    "resolutionNotesNamedMore": "{{names}} et {{count}} de plus indisponibles — des solutions de repli automatiques sont utilisées.",
+    "resolutionNotesUseAuto": "Passer en Auto",
+    "resolutionNotesReview": "Vérifier",
     "downloadModelType": "Télécharger {{type}}",
     "modelTypeAsr": "Reconnaissance vocale (ASR)",
     "modelTypeTranslation": "Traduction",
-    "modelTypeTts": "Synthèse vocale (TTS)",
     "edgeTtsVoice": "Voix",
     "loadingVoices": "Chargement des voix...",
     "reasoningEffort": "Effort de raisonnement",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Échec de l'aperçu — limite de fréquence ou quota Soniox atteint",
     "sonioxVoicePreviewTimeout": "L'aperçu a expiré — réessayez",
     "sonioxRegion": "Région",
-    "sonioxRegionTooltip": "Soniox exploite un déploiement distinct par région, chacun avec sa propre clé API. Votre audio est traité et stocké dans la région choisie. S'applique à partir de la prochaine session."
+    "sonioxRegionTooltip": "Soniox exploite un déploiement distinct par région, chacun avec sa propre clé API. Votre audio est traité et stocké dans la région choisie. S'applique à partir de la prochaine session.",
+    "langSentence": {
+      "iSpeak": "je parle",
+      "iRead": "je lis",
+      "theyHear": "ils entendent",
+      "theySpeak": "ils parlent",
+      "mirror": "Ils parlent {{their}} → je lis {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Authentifié automatiquement via votre compte",
@@ -479,8 +489,7 @@
       "description": "Reconnaissance vocale gratuite (ASR) + Traduction + Synthèse vocale (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Autre"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Gratuit (Native)",
@@ -831,8 +840,9 @@
     "importNow": "Importer {{count}} maintenant",
     "management": "Modèles",
     "storageUsed": "Stockage : {{size}} Mo utilisés",
+    "storageEmpty": "Aucun modèle téléchargé pour l'instant.",
     "asrModels": "Reconnaissance vocale (ASR)",
-    "translationModels": "Traduction",
+    "translationModels": "Traduction (MT)",
     "ttsModels": "Synthèse vocale (TTS)",
     "autoSelected": "Sélection automatique",
     "download": "Télécharger",
@@ -892,6 +902,20 @@
       "cancel": "Annuler",
       "accept": "J’ai compris — usage non commercial uniquement"
     }
+  },
+  "notes": {
+    "stageAsr": "reconnaissance vocale",
+    "stageTranslation": "traduction",
+    "stageTts": "synthèse vocale",
+    "notDownloaded": "{{from}} n'est pas téléchargé. Téléchargez-le à nouveau pour l'utiliser.",
+    "notDownloadedWithSub": "{{from}} n'est pas téléchargé — {{to}} est utilisé à la place. Téléchargez-le à nouveau pour l'utiliser.",
+    "langIncompatible": "{{from}} ne prend pas en charge cette direction. Il revient dès que la direction le permet.",
+    "langIncompatibleWithSub": "{{from}} ne prend pas en charge cette direction — {{to}} est utilisé à la place. Il revient dès que la direction le permet.",
+    "hardwareGated": "{{from}} ne peut pas fonctionner sur cet appareil.",
+    "hardwareGatedWithSub": "{{from}} ne peut pas fonctionner sur cet appareil — {{to}} est utilisé à la place.",
+    "needsKey": "{{from}} nécessite un compte connecté pour être utilisé.",
+    "notInCatalog": "{{from}} n'est plus disponible dans cette version.",
+    "noCandidate": "Aucun modèle de {{stage}} n'est disponible pour cette direction."
   },
   "update": {
     "available": "Nouvelle version v{{version}} disponible",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Choisissez l'application de réunion comme source audio de l'autre plutôt que l'audio système.",
     "actionChangeInput": "Choisissez un microphone physique comme périphérique d'entrée.",
     "dismiss": "Fermer"
+  },
+  "engineUi": {
+    "autoValue": "Auto · {{name}}",
+    "autoOptionNone": "Auto",
+    "browseLibrary": "Parcourir la bibliothèque",
+    "storageUsedLine": "Stockage : {{summary}} utilisés",
+    "manageStorage": "Gérer",
+    "back": "Retour",
+    "titleLibrary": "Bibliothèque · {{stage}}",
+    "titleStorage": "Stockage",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "En cours d'utilisation",
+    "estimated": "Estimé",
+    "translationOnCpu": "Traduction sur CPU — VRAM insuffisante",
+    "availableWhenLang": "Téléchargé. Disponible lorsque votre langue est {{lang}}.",
+    "deleteConfirm": "Supprimer {{name}} ?",
+    "deleteFallsBack": "Suppression de {{name}} : {{stage}} revient à {{to}}.",
+    "deleteNoModel": "Suppression de {{name}} : aucun modèle de {{stage}} ne reste — les sessions ne peuvent pas démarrer.",
+    "clearAllKeepsPicks": "Vos sélections sont mémorisées et reviennent une fois les modèles retéléchargés.",
+    "importChooseModel": "Choisir un modèle à importer"
   }
 }

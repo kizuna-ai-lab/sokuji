@@ -110,7 +110,6 @@
     "helpEmailTooltip": "报告问题或获取帮助",
     "helpDiscussions": "讨论区",
     "helpDiscussionsTooltip": "功能建议、反馈与社区讨论",
-    "participantModelHint": "切换到 {{source}} → {{target}} 以更改对方模型",
     "auto": "自动",
     "low": "低",
     "medium": "中",
@@ -184,10 +183,14 @@
     "sensitivityLow": "低",
     "localInferenceModelsRequired": "请先在<settingsLink>设置</settingsLink>中下载所需的模型。需要分别下载语音识别（ASR）、翻译和语音合成（TTS）三类模型才能使用。",
     "missingModelsWarning": "缺少此语言对的 {{types}} 模型。",
+    "resolutionNotesSummary": "你所选模型中有 {{count}} 项不可用——已自动使用备用模型。",
+    "resolutionNotesNamed": "{{names}} 不可用——已自动使用备用模型。",
+    "resolutionNotesNamedMore": "{{names}} 及其他 {{count}} 项不可用——已自动使用备用模型。",
+    "resolutionNotesUseAuto": "切换为自动",
+    "resolutionNotesReview": "查看",
     "downloadModelType": "下载 {{type}}",
     "modelTypeAsr": "语音识别（ASR）",
     "modelTypeTranslation": "翻译",
-    "modelTypeTts": "语音合成（TTS）",
     "edgeTtsVoice": "语音",
     "loadingVoices": "正在加载语音...",
     "reasoningEffort": "推理强度",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "预览失败 — 已达到 Soniox 速率限制或配额",
     "sonioxVoicePreviewTimeout": "预览超时 — 请重试",
     "sonioxRegion": "区域",
-    "sonioxRegionTooltip": "Soniox 每个区域是独立部署，各自有独立的 API 密钥。您的音频将在所选区域内处理和存储。下次会话开始生效。"
+    "sonioxRegionTooltip": "Soniox 每个区域是独立部署，各自有独立的 API 密钥。您的音频将在所选区域内处理和存储。下次会话开始生效。",
+    "langSentence": {
+      "iSpeak": "我说",
+      "iRead": "我阅读",
+      "theyHear": "对方听到",
+      "theySpeak": "对方说",
+      "mirror": "对方说 {{their}} → 我阅读 {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",
@@ -479,8 +489,7 @@
       "description": "免费语音识别（ASR）+ 翻译 + 语音合成（TTS）",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "对方"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "免费 (Native)",
@@ -831,8 +840,9 @@
     "importNow": "导入 {{count}} 个",
     "management": "模型",
     "storageUsed": "存储：已使用 {{size}} MB",
+    "storageEmpty": "尚未下载任何模型。",
     "asrModels": "语音识别（ASR）",
-    "translationModels": "翻译",
+    "translationModels": "翻译（MT）",
     "ttsModels": "语音合成（TTS）",
     "autoSelected": "自动选择",
     "download": "下载",
@@ -892,6 +902,20 @@
       "cancel": "取消",
       "accept": "我已了解——仅限非商业用途"
     }
+  },
+  "notes": {
+    "stageAsr": "语音识别",
+    "stageTranslation": "翻译",
+    "stageTts": "语音合成",
+    "notDownloaded": "{{from}} 尚未下载，请重新下载后使用。",
+    "notDownloadedWithSub": "{{from}} 尚未下载——已改用 {{to}}。请重新下载后使用。",
+    "langIncompatible": "{{from}} 不支持此方向，方向匹配后即可恢复使用。",
+    "langIncompatibleWithSub": "{{from}} 不支持此方向——已改用 {{to}}，方向匹配后即可恢复使用。",
+    "hardwareGated": "{{from}} 无法在此设备上运行。",
+    "hardwareGatedWithSub": "{{from}} 无法在此设备上运行——已改用 {{to}}。",
+    "needsKey": "{{from}} 需要登录账户才能使用。",
+    "notInCatalog": "{{from}} 在此版本中已不再提供。",
+    "noCandidate": "没有可用于此方向的{{stage}}模型。"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "请将对方音频来源改为会议应用，而不是系统音频。",
     "actionChangeInput": "请选择真实麦克风作为输入设备。",
     "dismiss": "关闭"
+  },
+  "engineUi": {
+    "autoValue": "自动 · {{name}}",
+    "autoOptionNone": "自动",
+    "browseLibrary": "浏览模型库",
+    "storageUsedLine": "存储：已用 {{summary}}",
+    "manageStorage": "管理",
+    "back": "返回",
+    "titleLibrary": "模型库 · {{stage}}",
+    "titleStorage": "存储",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "使用中",
+    "estimated": "预计",
+    "translationOnCpu": "翻译使用 CPU 运行——显存不足",
+    "availableWhenLang": "已下载。当你的语言为 {{lang}} 时可用。",
+    "deleteConfirm": "删除 {{name}}？",
+    "deleteFallsBack": "删除 {{name}}：{{stage}}将回退到 {{to}}。",
+    "deleteNoModel": "删除 {{name}}：将没有可用的{{stage}}模型——会话将无法开始。",
+    "clearAllKeepsPicks": "你的选择会被记住，模型再次下载后会自动恢复。",
+    "importChooseModel": "选择要导入的模型"
   }
 }

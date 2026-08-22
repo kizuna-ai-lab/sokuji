@@ -110,7 +110,6 @@
     "helpEmailTooltip": "বাগ রিপোর্ট করুন বা সাহায্য নিন",
     "helpDiscussions": "আলোচনা",
     "helpDiscussionsTooltip": "ফিচার অনুরোধ, প্রতিক্রিয়া এবং কমিউনিটি আলোচনা",
-    "participantModelHint": "অন্যের মডেল পরিবর্তন করতে {{source}} → {{target}} এ স্যুইচ করুন",
     "auto": "স্বয়ংক্রিয়",
     "low": "নিম্ন",
     "medium": "মধ্যম",
@@ -184,10 +183,14 @@
     "sensitivityLow": "নিম্ন",
     "localInferenceModelsRequired": "অনুগ্রহ করে প্রথমে <settingsLink>সেটিংস</settingsLink>-এ প্রয়োজনীয় মডেলগুলি ডাউনলোড করুন। শুরু করতে বাক স্বীকৃতি (ASR), অনুবাদ এবং বাক সংশ্লেষণ (TTS) মডেল ডাউনলোড করতে হবে।",
     "missingModelsWarning": "এই ভাষা জোড়ার জন্য {{types}} মডেল অনুপস্থিত।",
+    "resolutionNotesSummary": "আপনার নির্বাচিত {{count}}টি মডেল উপলব্ধ নেই — স্বয়ংক্রিয় বিকল্প ব্যবহার করা হচ্ছে।",
+    "resolutionNotesNamed": "{{names}} উপলব্ধ নেই — স্বয়ংক্রিয় বিকল্প ব্যবহার করা হচ্ছে।",
+    "resolutionNotesNamedMore": "{{names}} এবং আরও {{count}}টি উপলব্ধ নেই — স্বয়ংক্রিয় বিকল্প ব্যবহার করা হচ্ছে।",
+    "resolutionNotesUseAuto": "স্বয়ংক্রিয়-তে পরিবর্তন করুন",
+    "resolutionNotesReview": "পর্যালোচনা",
     "downloadModelType": "{{type}} ডাউনলোড করুন",
     "modelTypeAsr": "বাক স্বীকৃতি (ASR)",
     "modelTypeTranslation": "অনুবাদ",
-    "modelTypeTts": "বাক সংশ্লেষণ (TTS)",
     "edgeTtsVoice": "কণ্ঠস্বর",
     "loadingVoices": "কণ্ঠস্বর লোড হচ্ছে...",
     "reasoningEffort": "যুক্তি স্তর",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "প্রিভিউ ব্যর্থ হয়েছে — Soniox রেট সীমা বা কোটা পৌঁছে গেছে",
     "sonioxVoicePreviewTimeout": "প্রিভিউর সময় শেষ হয়ে গেছে — আবার চেষ্টা করুন",
     "sonioxRegion": "অঞ্চল",
-    "sonioxRegionTooltip": "Soniox প্রতিটি অঞ্চলের জন্য আলাদা স্থাপনা চালায়, প্রতিটির নিজস্ব API কী রয়েছে। আপনার অডিও আপনার নির্বাচিত অঞ্চলেই প্রক্রিয়াজাত ও সংরক্ষিত হয়। পরবর্তী সেশন থেকে কার্যকর।"
+    "sonioxRegionTooltip": "Soniox প্রতিটি অঞ্চলের জন্য আলাদা স্থাপনা চালায়, প্রতিটির নিজস্ব API কী রয়েছে। আপনার অডিও আপনার নির্বাচিত অঞ্চলেই প্রক্রিয়াজাত ও সংরক্ষিত হয়। পরবর্তী সেশন থেকে কার্যকর।",
+    "langSentence": {
+      "iSpeak": "আমি বলি",
+      "iRead": "আমি পড়ি",
+      "theyHear": "তারা শোনে",
+      "theySpeak": "তারা বলে",
+      "mirror": "তারা {{their}} বলে → আমি {{mine}} পড়ি"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত",
@@ -479,8 +489,7 @@
       "description": "বিনামূল্যে বাক স্বীকৃতি (ASR) + অনুবাদ + বাক সংশ্লেষণ (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "অন্য"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "বিনামূল্যে (Native)",
@@ -831,8 +840,9 @@
     "importNow": "এখনই {{count}}টি ইমপোর্ট করুন",
     "management": "মডেল",
     "storageUsed": "স্টোরেজ: {{size}} MB ব্যবহৃত",
+    "storageEmpty": "এখনও কোনো মডেল ডাউনলোড করা হয়নি।",
     "asrModels": "বাক স্বীকৃতি (ASR)",
-    "translationModels": "অনুবাদ",
+    "translationModels": "অনুবাদ (MT)",
     "ttsModels": "বাক সংশ্লেষণ (TTS)",
     "autoSelected": "স্বয়ংক্রিয়ভাবে নির্বাচিত",
     "download": "ডাউনলোড",
@@ -892,6 +902,20 @@
       "cancel": "বাতিল",
       "accept": "আমি বুঝেছি — শুধুমাত্র অবাণিজ্যিক ব্যবহার"
     }
+  },
+  "notes": {
+    "stageAsr": "স্পিচ রিকগনিশন",
+    "stageTranslation": "অনুবাদ",
+    "stageTts": "স্পিচ আউটপুট",
+    "notDownloaded": "{{from}} ডাউনলোড করা নেই। এটি ব্যবহার করতে আবার ডাউনলোড করুন।",
+    "notDownloadedWithSub": "{{from}} ডাউনলোড করা নেই — এর বদলে {{to}} ব্যবহার করা হচ্ছে। এটি ব্যবহার করতে আবার ডাউনলোড করুন।",
+    "langIncompatible": "{{from}} এই দিকনির্দেশনা সমর্থন করে না। দিকনির্দেশনা মিললে এটি আবার ফিরে আসবে।",
+    "langIncompatibleWithSub": "{{from}} এই দিকনির্দেশনা সমর্থন করে না — এর বদলে {{to}} ব্যবহার করা হচ্ছে। দিকনির্দেশনা মিললে এটি আবার ফিরে আসবে।",
+    "hardwareGated": "{{from}} এই ডিভাইসে চালানো যাবে না।",
+    "hardwareGatedWithSub": "{{from}} এই ডিভাইসে চালানো যাবে না — এর বদলে {{to}} ব্যবহার করা হচ্ছে।",
+    "needsKey": "{{from}} ব্যবহার করতে সাইন-ইন করা অ্যাকাউন্ট প্রয়োজন।",
+    "notInCatalog": "{{from}} এই সংস্করণে আর উপলব্ধ নেই।",
+    "noCandidate": "এই দিকনির্দেশনার জন্য কোনো {{stage}} মডেল উপলব্ধ নেই।"
   },
   "update": {
     "available": "নতুন সংস্করণ v{{version}} উপলব্ধ",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "সিস্টেম অডিওর বদলে মিটিং অ্যাপ্লিকেশনটিকে অন্যের অডিও উৎস হিসেবে বেছে নিন।",
     "actionChangeInput": "ইনপুট ডিভাইস হিসেবে একটি বাস্তব মাইক্রোফোন বেছে নিন।",
     "dismiss": "বন্ধ করুন"
+  },
+  "engineUi": {
+    "autoValue": "স্বয়ংক্রিয় · {{name}}",
+    "autoOptionNone": "স্বয়ংক্রিয়",
+    "browseLibrary": "লাইব্রেরি দেখুন",
+    "storageUsedLine": "সংরক্ষণাগার: {{summary}} ব্যবহৃত",
+    "manageStorage": "পরিচালনা",
+    "back": "পেছনে",
+    "titleLibrary": "লাইব্রেরি · {{stage}}",
+    "titleStorage": "সংরক্ষণাগার",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "ব্যবহৃত হচ্ছে",
+    "estimated": "আনুমানিক",
+    "translationOnCpu": "CPU-তে অনুবাদ — পর্যাপ্ত VRAM নেই",
+    "availableWhenLang": "ডাউনলোড হয়ে গেছে। আপনার ভাষা {{lang}} হলে এটি উপলব্ধ থাকবে।",
+    "deleteConfirm": "{{name}} মুছে ফেলবেন?",
+    "deleteFallsBack": "{{name}} মুছে ফেললে: {{stage}} বিকল্প হিসেবে {{to}} ব্যবহার করা হবে।",
+    "deleteNoModel": "{{name}} মুছে ফেললে: কোনো {{stage}} মডেল অবশিষ্ট থাকবে না — সেশন শুরু করা যাবে না।",
+    "clearAllKeepsPicks": "আপনার নির্বাচনগুলো মনে রাখা হয়েছে এবং মডেল আবার ডাউনলোড করলে সেগুলো ফিরে আসবে।",
+    "importChooseModel": "আমদানি করার জন্য একটি মডেল বেছে নিন"
   }
 }

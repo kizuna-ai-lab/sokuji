@@ -15,6 +15,18 @@ import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { formatMemMb } from '../../../lib/local-inference/native/nativeCatalog';
 import type { VariantInfo, NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
 
+// Historically needed so a resolved language NAME (via languageNameFor) saw
+// LOCAL_NATIVE registered in ProviderConfigFactory's static block (gated on
+// isElectron() && isLocalNativeEnabled() — see localNativeGating.test.ts).
+// languageNameFor no longer routes through ProviderConfigFactory (see its own
+// doc comment in languageName.ts), so this is likely inert now, but left in
+// place since nothing else in this file needs it disabled.
+vi.mock('../../../utils/environment', async (orig) => ({
+  ...(await orig<any>()),
+  isElectron: () => true,
+  isLocalNativeEnabled: () => true,
+}));
+
 // The Supertonic-shaped style-import path (Task 13) goes through voiceStorage
 // (not nativeVoiceStorage, which backs the MOSS clip-clone path). Mocked so
 // NativeVoiceSection's injected store resolves imported voices without a real
@@ -36,13 +48,14 @@ vi.mock('../../../lib/local-inference/voiceStorage', () => ({
 const mockSettings = {
   sourceLanguage: 'ja',
   targetLanguage: 'en',
-  asrModel: 'sense-voice',
-  translationModel: 'hy-mt2-7b',
-  ttsModel: '',
   asrDevice: 'auto' as const,
   translationDevice: 'auto' as const,
   ttsDevice: 'auto' as const,
-  translationVariantByModel: {},
+  // Auto (empty) by default — none of the fixture/download-state-independent
+  // tests below need an explicit pick; individual tests set an entry here
+  // (mirroring the old per-test flat-field mutation) when they need one.
+  selections: {} as Record<string, { asr: { modelId: string; variant?: string };
+    translation: { modelId: string; variant?: string }; tts: { modelId: string; variant?: string } }>,
 };
 
 // Fixture catalog — must start with "mock" so vitest hoists it with vi.mock factories.
@@ -212,7 +225,15 @@ const mockRetrySidecar = vi.fn();
 // ---------------------------------------------------------------------------
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_k: string, fallback?: string) => fallback ?? _k }),
+  // Interpolating, mirroring StoragePage.test.tsx — needed so the
+  // availableWhenLang line's {{lang}} actually resolves to the language
+  // NAME the component passed in, not the raw placeholder.
+  useTranslation: () => ({
+    t: (_k: string, fallback?: string, opts?: Record<string, any>) =>
+      typeof fallback === 'string'
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m, n) => String(opts?.[n] ?? ''))
+        : _k,
+  }),
 }));
 
 // Tooltip uses FloatingPortal which causes jsdom issues; replace with a passthrough
@@ -229,6 +250,24 @@ vi.mock('../../../stores/settingsStore', () => ({
   useUpdateLocalNative: () => mockUpdate,
 }));
 
+// Lightweight stand-in for the real selection resolver: an explicit,
+// catalog-known, 'ready' pick resolves (with its variant passed through);
+// anything else (auto, unready, or an id the mock catalog doesn't carry)
+// resolves to null. Mirrors resolveStage's explicit-branch gate closely
+// enough for the UI-wiring behavior these tests exercise (card highlighting,
+// the voice picker's selected-card embedding) without reimplementing
+// language/hardware compatibility.
+const mockResolve = (src: string, tgt: string, selections: typeof mockSettings.selections) => {
+  const catalog = mockCatalogOverride ?? mockCatalog;
+  const d = selections?.[`${src}→${tgt}`];
+  const pick = (stage: 'asr' | 'translation' | 'tts') => {
+    const sel = d?.[stage];
+    if (!sel?.modelId || !catalog[sel.modelId] || mockStatuses[sel.modelId] !== 'ready') return null;
+    return { modelId: sel.modelId, variant: sel.variant, source: 'explicit' as const };
+  };
+  return { asr: pick('asr'), translation: pick('translation'), tts: pick('tts'), notes: [], prunes: [] };
+};
+
 vi.mock('../../../stores/nativeModelStore', () => {
   const mockStoreState = () => ({
     statuses: mockStatuses,
@@ -236,6 +275,7 @@ vi.mock('../../../stores/nativeModelStore', () => {
     progress: {},
     errors: {},
     catalog: mockCatalog,
+    resolve: mockResolve,
     sidecarStatus: mockSidecarStatus,
     download: mockDownload,
     deleteModel: mockDeleteModel,
@@ -244,7 +284,6 @@ vi.mock('../../../stores/nativeModelStore', () => {
     refreshCatalog: vi.fn().mockResolvedValue(undefined),
     setStatusRepos: mockSetStatusRepos,
     autoSelect: vi.fn().mockReturnValue(null),
-    rememberModels: vi.fn(),
     retrySidecar: mockRetrySidecar,
     asrLoading: false,
     asrResolved: null,
@@ -338,10 +377,7 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
 
     fireEvent.change(dd, { target: { value: 'q8_0' } });
 
-    expect(mockUpdate).not.toHaveBeenCalledWith(
-      expect.objectContaining({ translationVariantByModel: expect.anything() }));
-    expect(mockUpdate).not.toHaveBeenCalledWith(
-      expect.objectContaining({ translationModel: expect.anything() }));
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it('HY-MT1.5 cards also expose the quant-variant picker (the gate is data-driven variantIds, not a hy-mt2-only special case)', async () => {
@@ -413,6 +449,28 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     mockCatalogOverride = null;
   });
 
+  it('collects a variant pin from a direction OTHER than the one on screen (matches catalogStatusRepos\'s broader collection)', async () => {
+    // Current direction is 'ja→en' (mockSettings.sourceLanguage/targetLanguage
+    // at the top of this file); the pin lives on 'en→ja' instead. Before the
+    // fix, the statusRepos memo only collected pins from the direction on
+    // screen — this asserts the fix collects from every direction present in
+    // `selections`.
+    const prevSelections = mockSettings.selections;
+    mockSettings.selections = {
+      'en→ja': { asr: { modelId: '' }, translation: { modelId: 'hy-mt2-7b', variant: 'q8_0' }, tts: { modelId: '' } },
+    };
+    try {
+      render(<NativeModelManagementSection />);
+      await waitFor(() => expect(mockRefresh).toHaveBeenCalled());
+      const repoOverrideCall = mockRefresh.mock.calls.find(([, repos]) => repos && 'hy-mt2-7b' in repos);
+      expect(repoOverrideCall?.[1]).toMatchObject({
+        'hy-mt2-7b': 'tencent/Hy-MT2-7B-GGUF/HY-MT2-7B-Q8_0.gguf',
+      });
+    } finally {
+      mockSettings.selections = prevSelections;
+    }
+  });
+
   it('downloads the chosen (recommended Q4_K_M) variant repo, not the default', async () => {
     // Pre-download state for hy-mt2-7b; Q4_K_M is recommended.
     render(<NativeModelManagementSection />);
@@ -451,19 +509,23 @@ describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', ()
     expect(bf16Row).toHaveTextContent(bf16SizeLabel);
   });
 
-  it('pinning a supported variant on a TTS card writes translationVariantByModel (not the download or active model)', async () => {
+  it('pinning a supported variant on a TTS card writes it into that stage\'s selection', async () => {
     render(<NativeModelManagementSection />);
     const dd = await waitFor(() =>
       within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-dd-qwen3-tts-1.7b'));
 
     fireEvent.change(dd, { target: { value: 'fp32' } });
 
-    // The pin reaches settings via the same generic per-model map ASR/translation use.
-    expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ translationVariantByModel: { 'qwen3-tts-1.7b': 'fp32' } }));
-    // and it must NOT switch the active TTS model
-    expect(mockUpdate).not.toHaveBeenCalledWith(
-      expect.objectContaining({ ttsModel: expect.anything() }));
+    // The pin reaches settings on the (direction, stage) selection alongside
+    // its modelId — there is no separate map for it to live in, so pinning a
+    // variant necessarily also makes that card the stage's active pick.
+    expect(mockUpdate).toHaveBeenCalledWith({
+      selections: {
+        'ja→en': {
+          asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'qwen3-tts-1.7b', variant: 'fp32' },
+        },
+      },
+    });
   });
 
   it('downloads the chosen (recommended BF16) variant repo for a TTS card, not the default', async () => {
@@ -482,9 +544,10 @@ describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', ()
 });
 
 describe('NativeModelManagementSection — TTS model card resolved badge', () => {
-  // The default TTS voice for targetLanguage:'en' (mockSettings) is Amy
-  // (csukuangfj/vits-piper-en_US-amy-low) — first catalog entry for 'en'.
-  // With ttsModel:'' the component treats Amy as selected via pickNativeTts('en', catalog).
+  // The live-resolved badge is driven by ttsResolved (session telemetry)
+  // matching a card's id directly — independent of which card resolve()
+  // currently treats as "selected" — so this describe block needs no
+  // explicit selections entry.
   const AMY_ID = 'csukuangfj/vits-piper-en_US-amy-low';
 
   it('shows the live device badge on the Amy card when ttsResolved matches its id', () => {
@@ -531,11 +594,16 @@ describe('NativeModelManagementSection — sidecar lifecycle states', () => {
 
 describe('NativeModelManagementSection — embedded voice section on the selected MOSS card', () => {
   // moss-tts-nano is voice-cloning capable (clones: true) for en/zh/ja. Selecting it
-  // (ttsModel) makes ttsSelected('moss-tts-nano') true and ttsVoiceCapable true, so the
-  // voice picker is rendered as the selected card's body — not as a separate block below.
+  // (an explicit, 'ready' selections entry — selected state now flows through
+  // resolve(), which only honors a ready candidate) makes it the resolved TTS
+  // pick and ttsVoiceCapable true, so the voice picker is rendered as the
+  // selected card's body — not as a separate block below.
   it('embeds the voice picker inside the selected MOSS card and nowhere else', async () => {
-    const prevTtsModel = mockSettings.ttsModel;
-    mockSettings.ttsModel = 'moss-tts-nano';
+    const prevSelections = mockSettings.selections;
+    mockSettings.selections = {
+      'ja→en': { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'moss-tts-nano' } },
+    };
+    mockStatuses['moss-tts-nano'] = 'ready';
     try {
       render(<NativeModelManagementSection />);
 
@@ -554,7 +622,7 @@ describe('NativeModelManagementSection — embedded voice section on the selecte
       const ttsSection = document.getElementById('model-tts-section')!;
       expect(ttsSection.querySelectorAll('.voice-library-section')).toHaveLength(1);
     } finally {
-      mockSettings.ttsModel = prevTtsModel;
+      mockSettings.selections = prevSelections;
     }
   });
 });
@@ -565,8 +633,11 @@ describe('NativeModelManagementSection — store-driven voice wiring (Task 13)',
   // backend (nativeVoiceStorage). Selecting it must route NativeVoiceSection
   // to the style store and render its imported voices.
   it('renders imported style voices for a selected Supertonic-shaped model', async () => {
-    const prevTtsModel = mockSettings.ttsModel;
-    mockSettings.ttsModel = 'supertonic-3';
+    const prevSelections = mockSettings.selections;
+    mockSettings.selections = {
+      'ja→en': { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'supertonic-3' } },
+    };
+    mockStatuses['supertonic-3'] = 'ready';
     try {
       render(<NativeModelManagementSection />);
       // 'MyVoice' appears both as a <select> option and in the "manage imported
@@ -574,15 +645,17 @@ describe('NativeModelManagementSection — store-driven voice wiring (Task 13)',
       // imported voice reached the UI.
       expect((await screen.findAllByText('MyVoice')).length).toBeGreaterThan(0);
     } finally {
-      mockSettings.ttsModel = prevTtsModel;
+      mockSettings.selections = prevSelections;
     }
   });
 });
 
 describe('NativeModelManagementSection — tier badge tooltip (Task 3)', () => {
-  // sense-voice is the selected ('sense-voice' === mockSettings.asrModel), ja-compatible
-  // ASR card already exercised elsewhere in this file. Give its available tier a known
-  // backend id so the tooltip's row builder resolves a real framework/API label pair.
+  // sense-voice is a ja-compatible ASR card already exercised elsewhere in
+  // this file (its "selected" state is irrelevant here — the tier badge and
+  // its tooltip are driven by the catalog entry alone, not resolve()). Give
+  // its available tier a known backend id so the tooltip's row builder
+  // resolves a real framework/API label pair.
   it('tier badge tooltip lists the inference engine and device', async () => {
     mockCatalogOverride = {
       ...mockCatalog,
@@ -606,5 +679,138 @@ describe('NativeModelManagementSection — tier badge tooltip (Task 3)', () => {
     } finally {
       mockCatalogOverride = null;
     }
+  });
+});
+
+describe('NativeModelManagementSection — incompatible card click guard', () => {
+  // Regression: an incompatible ASR card's click handler used to omit
+  // `incompatible` from its guard, so clicking one under "Show all ASR
+  // models" wrote it into selections despite the card being visibly
+  // unselectable — an invisible no-op that only surfaces later, when
+  // resolution rejects the language-incompatible explicit pick.
+  it('clicking an incompatible ASR card (behind "Show all") does not write a selection', async () => {
+    mockCatalogOverride = {
+      ...mockCatalog,
+      // languages: ['en'] does not include mockSettings.sourceLanguage ('ja'),
+      // so this lands in asrIncompatibleCards, not the primary asrCards list.
+      'whisper-en-only': {
+        id: 'whisper-en-only', name: 'Whisper EN-only', languages: ['en'],
+        recommended: false, tiers: [], order: 5, repo: 'whisper-en-only', kind: 'asr',
+      },
+    };
+    // Downloaded (e.g. from a previous en→x session) so `ready` is already
+    // true — isolating the assertion to the `incompatible` guard rather than
+    // piggybacking on the (also correct) not-downloaded block.
+    mockStatuses['whisper-en-only'] = 'ready';
+    try {
+      render(<NativeModelManagementSection />);
+      fireEvent.click(screen.getByText(/Show all ASR models/));
+      const card = screen.getByTestId('model-card-whisper-en-only');
+      expect(card.className).toContain('model-card--incompatible');
+
+      fireEvent.click(card);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+});
+
+// I3 (revised 2026-08-22): the user reviewed the Library push and decided it
+// keeps the ORIGINAL model group list — Recommended/Others subgroups with
+// full model cards and the "Show all N models" collapse for incompatible
+// ones — not a compatible-first "Supports {{lang}}" / "Other languages"
+// split. These cover the Library surface (stageFilter set, no other prop)
+// rendering that same original structure. Native's translation/tts lists
+// carry no incompatible bucket in the fixture catalog, so only ASR (which
+// has a real incompatible list) exercises the show-all + availableWhenLang
+// checks — the WASM file (ModelManagementSection.test.tsx) covers all three
+// stages.
+describe('NativeModelManagementSection — Library surface keeps the original model group list (I3, 2026-08-22)', () => {
+  const asrIncompatibleFixture = {
+    ...mockCatalog,
+    // languages: ['en'] does not include mockSettings.sourceLanguage ('ja') —
+    // same fixture as the click-guard test above, reused here.
+    'whisper-en-only': {
+      id: 'whisper-en-only', name: 'Whisper EN-only', languages: ['en'],
+      recommended: false, tiers: [], order: 5, repo: 'whisper-en-only', kind: 'asr',
+    } as NativeModelInfo,
+  };
+
+  it('renders the Recommended subgroup label for the filtered stage', async () => {
+    // mockCatalog's 'sense-voice' is recommended and ja-compatible (default
+    // mockSettings.sourceLanguage), so the Recommended subgroup renders.
+    // "Recommended" also labels each recommended card's own badge, so this
+    // scopes to the subgroup label specifically rather than getByText.
+    render(<NativeModelManagementSection stageFilter="asr" />);
+    const label = await waitFor(() => {
+      const el = document.querySelector('.model-subgroup__label');
+      expect(el).toBeInTheDocument();
+      return el as HTMLElement;
+    });
+    expect(label).toHaveTextContent('Recommended');
+  });
+
+  it('renders the "Show all ASR models (N)" button carrying the incompatible count, and every ASR model renders somewhere (compatible list or behind the toggle)', async () => {
+    mockCatalogOverride = asrIncompatibleFixture;
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" />);
+      const showAll = await screen.findByText(/Show all ASR models/);
+      expect(showAll.textContent).toMatch(/Show all ASR models \(\d+\)/);
+
+      fireEvent.click(showAll);
+      const allAsr = Object.values(asrIncompatibleFixture).filter((m) => m.kind === 'asr');
+      for (const m of allAsr) {
+        expect(screen.getByTestId(`model-card-${m.id}`)).toBeInTheDocument();
+      }
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+
+  it('an incompatible model (behind show-all) offers Download but clicking it (the "Use" affordance) does not write a selection', async () => {
+    mockCatalogOverride = asrIncompatibleFixture;
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" />);
+      fireEvent.click(await screen.findByText(/Show all ASR models/));
+
+      const card = await screen.findByTestId('model-card-whisper-en-only');
+      expect(within(card).getByRole('button', { name: /Download/i })).toBeEnabled();
+
+      fireEvent.click(card);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+
+  it('a downloaded incompatible model (behind show-all) shows the "available when your language is" line, naming the language', async () => {
+    mockCatalogOverride = asrIncompatibleFixture;
+    mockStatuses['whisper-en-only'] = 'ready';
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" />);
+      fireEvent.click(await screen.findByText(/Show all ASR models/));
+      await screen.findByTestId('model-card-whisper-en-only');
+
+      const line = screen.getByText(/Available when your language is/);
+      expect(line).toHaveTextContent('English');
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+});
+
+// C1 folded finding: Storage (StoragePage) owns Clear-all now — the bottom
+// ModelStorageFooter duplicate must not render on the Library push
+// (stageFilter set), only on the standalone (prop-less) Settings-page render.
+describe('NativeModelManagementSection — ModelStorageFooter only on the standalone render (C1)', () => {
+  it('a Library-view (stageFilter set) render has no ModelStorageFooter', () => {
+    render(<NativeModelManagementSection stageFilter="asr" />);
+    expect(document.querySelector('.model-management__storage')).not.toBeInTheDocument();
+  });
+
+  it('the standalone (prop-less stageFilter) render keeps the footer', () => {
+    render(<NativeModelManagementSection />);
+    expect(document.querySelector('.model-management__storage')).toBeInTheDocument();
   });
 });

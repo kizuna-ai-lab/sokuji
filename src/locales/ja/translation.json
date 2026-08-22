@@ -110,7 +110,6 @@
     "helpEmailTooltip": "バグの報告やヘルプの取得",
     "helpDiscussions": "ディスカッション",
     "helpDiscussionsTooltip": "機能リクエスト、フィードバック、コミュニティでの議論",
-    "participantModelHint": "相手モデルを変更するには {{source}} → {{target}} に切り替えてください",
     "auto": "自動",
     "low": "低",
     "medium": "中",
@@ -184,10 +183,14 @@
     "sensitivityLow": "低",
     "localInferenceModelsRequired": "まず<settingsLink>設定</settingsLink>で必要なモデルをダウンロードしてください。音声認識（ASR）、翻訳、音声合成（TTS）の3種類のモデルのダウンロードが必要です。",
     "missingModelsWarning": "この言語ペアの {{types}} モデルがありません。",
+    "resolutionNotesSummary": "選択したモデルのうち{{count}}件が利用できないため、自動フォールバックを使用しています。",
+    "resolutionNotesNamed": "{{names}}が利用できないため、自動フォールバックを使用しています。",
+    "resolutionNotesNamedMore": "{{names}}と他{{count}}件が利用できないため、自動フォールバックを使用しています。",
+    "resolutionNotesUseAuto": "自動に切り替える",
+    "resolutionNotesReview": "確認",
     "downloadModelType": "{{type}} をダウンロード",
     "modelTypeAsr": "音声認識（ASR）",
     "modelTypeTranslation": "翻訳",
-    "modelTypeTts": "音声合成（TTS）",
     "edgeTtsVoice": "音声",
     "loadingVoices": "音声を読み込み中...",
     "reasoningEffort": "推論レベル",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "プレビューに失敗しました — Soniox のレート制限またはクォータに達しました",
     "sonioxVoicePreviewTimeout": "プレビューがタイムアウトしました — もう一度お試しください",
     "sonioxRegion": "リージョン",
-    "sonioxRegionTooltip": "Soniox はリージョンごとに独立したデプロイで、それぞれ専用の API キーがあります。音声は選択したリージョン内で処理・保存されます。次のセッションから適用されます。"
+    "sonioxRegionTooltip": "Soniox はリージョンごとに独立したデプロイで、それぞれ専用の API キーがあります。音声は選択したリージョン内で処理・保存されます。次のセッションから適用されます。",
+    "langSentence": {
+      "iSpeak": "話す言語",
+      "iRead": "読む言語",
+      "theyHear": "相手が聞く言語",
+      "theySpeak": "相手が話す言語",
+      "mirror": "相手は{{their}}を話す → 自分は{{mine}}で読む"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
@@ -479,8 +489,7 @@
       "description": "無料音声認識（ASR）+ 翻訳 + 音声合成（TTS）",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "相手"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "無料 (Native)",
@@ -831,8 +840,9 @@
     "importNow": "{{count}} 個を今すぐインポート",
     "management": "モデル",
     "storageUsed": "ストレージ: {{size}} MB 使用中",
+    "storageEmpty": "まだダウンロードされたモデルはありません。",
     "asrModels": "音声認識（ASR）",
-    "translationModels": "翻訳",
+    "translationModels": "翻訳（MT）",
     "ttsModels": "音声合成（TTS）",
     "autoSelected": "自動選択",
     "download": "ダウンロード",
@@ -892,6 +902,20 @@
       "cancel": "キャンセル",
       "accept": "理解しました — 非商用のみ"
     }
+  },
+  "notes": {
+    "stageAsr": "音声認識",
+    "stageTranslation": "翻訳",
+    "stageTts": "音声出力",
+    "notDownloaded": "{{from}}はダウンロードされていません。使用するには再度ダウンロードしてください。",
+    "notDownloadedWithSub": "{{from}}はダウンロードされていないため、代わりに{{to}}を使用します。使用するには再度ダウンロードしてください。",
+    "langIncompatible": "{{from}}はこの方向に対応していません。対応する方向になると再度使用できます。",
+    "langIncompatibleWithSub": "{{from}}はこの方向に対応していないため、代わりに{{to}}を使用します。対応する方向になると再度使用できます。",
+    "hardwareGated": "{{from}}はこのデバイスでは実行できません。",
+    "hardwareGatedWithSub": "{{from}}はこのデバイスでは実行できないため、代わりに{{to}}を使用します。",
+    "needsKey": "{{from}}の利用にはサインインが必要です。",
+    "notInCatalog": "{{from}}はこのバージョンでは利用できなくなりました。",
+    "noCandidate": "この方向で利用できる{{stage}}モデルがありません。"
   },
   "update": {
     "available": "新しいバージョン v{{version}} が利用可能です",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "相手の音声ソースにはシステム音声ではなく会議アプリを選んでください。",
     "actionChangeInput": "入力デバイスには物理マイクを選んでください。",
     "dismiss": "閉じる"
+  },
+  "engineUi": {
+    "autoValue": "自動・{{name}}",
+    "autoOptionNone": "自動",
+    "browseLibrary": "ライブラリを見る",
+    "storageUsedLine": "ストレージ：{{summary}} 使用中",
+    "manageStorage": "管理",
+    "back": "戻る",
+    "titleLibrary": "ライブラリ・{{stage}}",
+    "titleStorage": "ストレージ",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "使用中",
+    "estimated": "推定",
+    "translationOnCpu": "CPUで翻訳中 — VRAMが不足しています",
+    "availableWhenLang": "ダウンロード済み。使用言語が{{lang}}のときに利用できます。",
+    "deleteConfirm": "{{name}}を削除しますか？",
+    "deleteFallsBack": "{{name}}を削除すると、{{stage}}は{{to}}にフォールバックします。",
+    "deleteNoModel": "{{name}}を削除すると、{{stage}}モデルがなくなり、セッションを開始できなくなります。",
+    "clearAllKeepsPicks": "選択内容は保存され、モデルを再度ダウンロードすると復元されます。",
+    "importChooseModel": "インポートするモデルを選択"
   }
 }

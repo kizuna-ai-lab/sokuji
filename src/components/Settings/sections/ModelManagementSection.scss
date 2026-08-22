@@ -337,6 +337,12 @@
     color: vars.$color-warning;
   }
 
+  &__available-when-lang {
+    padding: 2px 10px 8px;
+    font-size: vars.$font-caption;
+    color: #9aa0a6;
+  }
+
   &__actions {
     flex: 0 0 auto;
     display: flex;
