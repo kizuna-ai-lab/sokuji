@@ -440,16 +440,22 @@ export const useModelStore = create<ModelStoreState>()(
       let sourceLanguage = '';
       let targetLanguage = '';
       let selections: Selections = {};
+      let textOnly = false;
       try {
         const { useSettingsStore } = await import('./settingsStore');
         const localInference = useSettingsStore.getState().localInference;
         ({ sourceLanguage, targetLanguage, selections } = localInference);
+        textOnly = useSettingsStore.getState().textOnly;
       } catch (err) {
         // settings store unavailable — resolve with no explicit selections
         // (never ready, but never throws). Logged so a broken import graph
         // doesn't silently masquerade as "no selections yet".
         console.error('[Sokuji] [ModelStore] ensureSelectionReady: settings store unavailable, resolving with no explicit selections:', err);
       }
+
+      // Helper to strip TTS when textOnly is enabled.
+      const stripTts = (r: DirectionResult): DirectionResult =>
+        ({ ...r, tts: null, notes: r.notes.filter((n) => n.stage !== 'tts') });
 
       // Resolve BOTH directions against the WASM manifest + current download
       // statuses. There is deliberately no path by which one direction can
@@ -462,10 +468,12 @@ export const useModelStore = create<ModelStoreState>()(
       // keeps this gate's verdict from disagreeing with what Start actually
       // builds. Speaker direction only: AST is a WASM-manifest concept (see
       // candidates.wasm.ts), and only the speaker leg can block Start.
-      const speaker = guardAstCrossStage(
+      const guardedSpeaker = guardAstCrossStage(
         sourceLanguage, targetLanguage, selections, rawSpeaker,
         (masked) => get().resolve(sourceLanguage, targetLanguage, masked));
-      const participant = get().resolve(targetLanguage, sourceLanguage, selections);
+      const speaker = textOnly ? stripTts(guardedSpeaker) : guardedSpeaker;
+      const rawParticipant = get().resolve(targetLanguage, sourceLanguage, selections);
+      const participant = textOnly ? stripTts(rawParticipant) : rawParticipant;
 
       // Garbage-collect every id either resolution found dead (an id the
       // manifest no longer knows about at all) in one combined write.

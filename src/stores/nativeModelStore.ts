@@ -542,12 +542,18 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     const candidateRepos = deriveVariantRepos(asCards(candidateIds), pins);
     await get().refresh(candidateIds, Object.keys(candidateRepos).length > 0 ? candidateRepos : undefined);
 
+    // Helper to strip TTS when textOnly is enabled.
+    const stripTts = (r: DirectionResult): DirectionResult =>
+      ({ ...r, tts: null, notes: r.notes.filter((n) => n.stage !== 'tts') });
+
     // Resolve BOTH the speaker (src→tgt) and participant (tgt→src) directions
     // against the sidecar catalog + the live download statuses just refreshed
     // above, then garbage-collect every id either resolution found dead (an id
     // the catalog no longer knows about at all) in one combined write.
-    const speaker = get().resolve(selection.sourceLanguage, selection.targetLanguage, selections);
-    const participant = get().resolve(selection.targetLanguage, selection.sourceLanguage, selections);
+    const rawSpeaker = get().resolve(selection.sourceLanguage, selection.targetLanguage, selections);
+    const speaker = textOnly ? stripTts(rawSpeaker) : rawSpeaker;
+    const rawParticipant = get().resolve(selection.targetLanguage, selection.sourceLanguage, selections);
+    const participant = textOnly ? stripTts(rawParticipant) : rawParticipant;
     const prunes = [...speaker.prunes, ...participant.prunes];
     if (prunes.length > 0) {
       await get().applyPrunes(prunes);

@@ -40,11 +40,12 @@ const pickIds = (stage: 'asr' | 'translation' | 'tts') => {
 describe('ensureSelectionReady — what blocks Start', () => {
   beforeEach(() => {
     useSettingsStore.setState({
+      textOnly: false,
       localInference: {
         ...useSettingsStore.getState().localInference,
         selections: {}, sourceLanguage: 'ja', targetLanguage: 'en',
       },
-    });
+    } as never);
     // Skip the IndexedDB scan — readiness logic is what these tests exercise,
     // same bypass modelStore.test.ts's ensureSelectionReady coverage uses.
     useModelStore.setState({ initialized: true, webgpuAvailable: true, modelStatuses: {} });
@@ -107,5 +108,16 @@ describe('ensureSelectionReady — what blocks Start', () => {
     });
     await useModelStore.getState().ensureSelectionReady();
     expect(useSettingsStore.getState().localInference.selections['ja→en']).toBeUndefined();
+  });
+
+  it('does not resolve TTS at all under textOnly — no tts notes, still ready', async () => {
+    useSettingsStore.setState({ textOnly: true } as never);
+    // Downloaded: ASR + translation for ja→en, NO tts anywhere.
+    useModelStore.setState({
+      modelStatuses: downloadOnly([...pickIds('asr'), ...pickIds('translation')]),
+    });
+    const r = await useModelStore.getState().ensureSelectionReady();
+    expect(r.ready).toBe(true);
+    expect(r.notes.some((n) => n.stage === 'tts')).toBe(false);
   });
 });
