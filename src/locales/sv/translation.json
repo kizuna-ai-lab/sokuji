@@ -842,7 +842,7 @@
     "storageUsed": "Lagring: {{size}} MB använt",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Taligenkänning (ASR)",
-    "translationModels": "Översättning",
+    "translationModels": "Översättning (MT)",
     "ttsModels": "Talsyntes (TTS)",
     "autoSelected": "Automatiskt valt",
     "download": "Ladda ner",

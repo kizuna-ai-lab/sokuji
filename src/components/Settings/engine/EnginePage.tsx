@@ -20,7 +20,7 @@ export const STAGE_LABEL_KEY: Record<string, [string, string]> = {
  *  Engine page and the Library speak the same words for a stage. */
 export const STAGE_FULL_LABEL_KEY: Record<string, [string, string]> = {
   asr: ['models.asrModels', 'Speech Recognition (ASR)'],
-  translation: ['models.translationModels', 'Translation'],
+  translation: ['models.translationModels', 'Translation (MT)'],
   tts: ['models.ttsModels', 'Speech Synthesis (TTS)'],
 };
 

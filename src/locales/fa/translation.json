@@ -842,7 +842,7 @@
     "storageUsed": "فضای ذخیره‌سازی: {{size}} مگابایت استفاده شده",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "تشخیص گفتار (ASR)",
-    "translationModels": "ترجمه",
+    "translationModels": "ترجمه (MT)",
     "ttsModels": "تبدیل متن به گفتار (TTS)",
     "autoSelected": "انتخاب خودکار",
     "download": "دانلود",

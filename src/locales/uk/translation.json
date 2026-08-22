@@ -842,7 +842,7 @@
     "storageUsed": "Сховище: {{size}} МБ зайнято",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Розпізнавання мовлення (ASR)",
-    "translationModels": "Переклад",
+    "translationModels": "Переклад (MT)",
     "ttsModels": "Синтез мовлення (TTS)",
     "autoSelected": "Автовибір",
     "download": "Завантажити",

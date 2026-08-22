@@ -842,7 +842,7 @@
     "storageUsed": "Storage: {{size}} MB used",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Speech Recognition (ASR)",
-    "translationModels": "Translation",
+    "translationModels": "Translation (MT)",
     "ttsModels": "Speech Synthesis (TTS)",
     "autoSelected": "Auto-selected",
     "download": "Download",

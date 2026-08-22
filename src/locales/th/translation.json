@@ -842,7 +842,7 @@
     "storageUsed": "พื้นที่จัดเก็บ: ใช้แล้ว {{size}} MB",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "การรู้จำเสียงพูด (ASR)",
-    "translationModels": "การแปล",
+    "translationModels": "การแปล (MT)",
     "ttsModels": "การสังเคราะห์เสียงพูด (TTS)",
     "autoSelected": "เลือกอัตโนมัติ",
     "download": "ดาวน์โหลด",

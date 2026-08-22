@@ -842,7 +842,7 @@
     "storageUsed": "Opslag: {{size}} MB gebruikt",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Spraakherkenning (ASR)",
-    "translationModels": "Vertaling",
+    "translationModels": "Vertaling (MT)",
     "ttsModels": "Spraaksynthese (TTS)",
     "autoSelected": "Automatisch geselecteerd",
     "download": "Downloaden",

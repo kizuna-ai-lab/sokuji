@@ -842,7 +842,7 @@
     "storageUsed": "ストレージ: {{size}} MB 使用中",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "音声認識（ASR）",
-    "translationModels": "翻訳",
+    "translationModels": "翻訳（MT）",
     "ttsModels": "音声合成（TTS）",
     "autoSelected": "自動選択",
     "download": "ダウンロード",

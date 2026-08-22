@@ -842,7 +842,7 @@
     "storageUsed": "Penyimpanan: {{size}} MB digunakan",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Pengenalan ucapan (ASR)",
-    "translationModels": "Terjemahan",
+    "translationModels": "Terjemahan (MT)",
     "ttsModels": "Sintesis ucapan (TTS)",
     "autoSelected": "Dipilih otomatis",
     "download": "Unduh",

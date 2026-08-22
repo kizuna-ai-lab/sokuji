@@ -842,7 +842,7 @@
     "storageUsed": "சேமிப்பு: {{size}} MB பயன்படுத்தப்பட்டது",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "பேச்சு அங்கீகாரம் (ASR)",
-    "translationModels": "மொழிபெயர்ப்பு",
+    "translationModels": "மொழிபெயர்ப்பு (MT)",
     "ttsModels": "பேச்சு தொகுப்பு (TTS)",
     "autoSelected": "தானாக தேர்ந்தெடுக்கப்பட்டது",
     "download": "பதிவிறக்கு",

@@ -842,7 +842,7 @@
     "storageUsed": "Хранилище: {{size}} МБ занято",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Распознавание речи (ASR)",
-    "translationModels": "Перевод",
+    "translationModels": "Перевод (MT)",
     "ttsModels": "Синтез речи (TTS)",
     "autoSelected": "Автовыбор",
     "download": "Скачать",

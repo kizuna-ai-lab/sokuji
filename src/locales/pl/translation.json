@@ -842,7 +842,7 @@
     "storageUsed": "Pamięć: {{size}} MB zajęte",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Rozpoznawanie mowy (ASR)",
-    "translationModels": "Tłumaczenie",
+    "translationModels": "Tłumaczenie (MT)",
     "ttsModels": "Synteza mowy (TTS)",
     "autoSelected": "Automatycznie wybrano",
     "download": "Pobierz",

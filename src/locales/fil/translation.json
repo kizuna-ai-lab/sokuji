@@ -842,7 +842,7 @@
     "storageUsed": "Storage: {{size}} MB ang ginagamit",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Pagkilala sa pagsasalita (ASR)",
-    "translationModels": "Pagsasalin",
+    "translationModels": "Pagsasalin (MT)",
     "ttsModels": "Sintesis ng pagsasalita (TTS)",
     "autoSelected": "Awtomatikong napili",
     "download": "I-download",

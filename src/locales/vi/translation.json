@@ -842,7 +842,7 @@
     "storageUsed": "Bộ nhớ: đã dùng {{size}} MB",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Nhận dạng giọng nói (ASR)",
-    "translationModels": "Dịch thuật",
+    "translationModels": "Dịch thuật (MT)",
     "ttsModels": "Tổng hợp giọng nói (TTS)",
     "autoSelected": "Tự động chọn",
     "download": "Tải xuống",

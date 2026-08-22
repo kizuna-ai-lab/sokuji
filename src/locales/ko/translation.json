@@ -842,7 +842,7 @@
     "storageUsed": "저장공간: {{size}} MB 사용 중",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "음성 인식(ASR)",
-    "translationModels": "번역",
+    "translationModels": "번역 (MT)",
     "ttsModels": "음성 합성(TTS)",
     "autoSelected": "자동 선택",
     "download": "다운로드",

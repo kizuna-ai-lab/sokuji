@@ -842,7 +842,7 @@
     "storageUsed": "儲存空間：已使用 {{size}} MB",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "語音辨識（ASR）",
-    "translationModels": "翻譯",
+    "translationModels": "翻譯（MT）",
     "ttsModels": "語音合成（TTS）",
     "autoSelected": "自動選擇",
     "download": "下載",

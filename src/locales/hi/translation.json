@@ -842,7 +842,7 @@
     "storageUsed": "संग्रहण: {{size}} MB उपयोग में",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "वाक् पहचान (ASR)",
-    "translationModels": "अनुवाद",
+    "translationModels": "अनुवाद (MT)",
     "ttsModels": "वाक् संश्लेषण (TTS)",
     "autoSelected": "स्वतः चयनित",
     "download": "डाउनलोड",

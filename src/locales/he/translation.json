@@ -842,7 +842,7 @@
     "storageUsed": "אחסון: {{size}} מ\"ב בשימוש",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "זיהוי דיבור (ASR)",
-    "translationModels": "תרגום",
+    "translationModels": "תרגום (MT)",
     "ttsModels": "סינתזת דיבור (TTS)",
     "autoSelected": "נבחר אוטומטית",
     "download": "הורדה",

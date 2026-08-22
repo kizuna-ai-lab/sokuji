@@ -842,7 +842,7 @@
     "storageUsed": "నిల్వ: {{size}} MB వాడుకలో",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "వాక్ గుర్తింపు (ASR)",
-    "translationModels": "అనువాదం",
+    "translationModels": "అనువాదం (MT)",
     "ttsModels": "వాక్ సంశ్లేషణ (TTS)",
     "autoSelected": "స్వయంచాలకంగా ఎంపిక చేయబడింది",
     "download": "డౌన్‌లోడ్",

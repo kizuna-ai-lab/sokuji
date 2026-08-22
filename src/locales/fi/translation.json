@@ -842,7 +842,7 @@
     "storageUsed": "Tallennustila: {{size}} Mt käytössä",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Puheentunnistus (ASR)",
-    "translationModels": "Käännös",
+    "translationModels": "Käännös (MT)",
     "ttsModels": "Puhesynteesi (TTS)",
     "autoSelected": "Automaattisesti valittu",
     "download": "Lataa",

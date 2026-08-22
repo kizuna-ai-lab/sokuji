@@ -842,7 +842,7 @@
     "storageUsed": "存储：已使用 {{size}} MB",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "语音识别（ASR）",
-    "translationModels": "翻译",
+    "translationModels": "翻译（MT）",
     "ttsModels": "语音合成（TTS）",
     "autoSelected": "自动选择",
     "download": "下载",

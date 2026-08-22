@@ -842,7 +842,7 @@
     "storageUsed": "Depolama: {{size}} MB kullanıldı",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "Konuşma tanıma (ASR)",
-    "translationModels": "Çeviri",
+    "translationModels": "Çeviri (MT)",
     "ttsModels": "Konuşma sentezi (TTS)",
     "autoSelected": "Otomatik seçildi",
     "download": "İndir",

@@ -842,7 +842,7 @@
     "storageUsed": "التخزين: {{size}} ميغابايت مستخدمة",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "التعرف على الكلام (ASR)",
-    "translationModels": "ترجمة",
+    "translationModels": "ترجمة (MT)",
     "ttsModels": "تحويل النص إلى كلام (TTS)",
     "autoSelected": "تحديد تلقائي",
     "download": "تحميل",

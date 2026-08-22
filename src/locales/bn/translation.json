@@ -842,7 +842,7 @@
     "storageUsed": "স্টোরেজ: {{size}} MB ব্যবহৃত",
     "storageEmpty": "No models downloaded yet.",
     "asrModels": "বাক স্বীকৃতি (ASR)",
-    "translationModels": "অনুবাদ",
+    "translationModels": "অনুবাদ (MT)",
     "ttsModels": "বাক সংশ্লেষণ (TTS)",
     "autoSelected": "স্বয়ংক্রিয়ভাবে নির্বাচিত",
     "download": "ডাউনলোড",
