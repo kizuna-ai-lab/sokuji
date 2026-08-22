@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
 
 // Partial mock (not a full replacement, unlike SlotRow.test.tsx): StoragePage
 // renders against the REAL settingsStore, which statically imports
@@ -38,6 +39,7 @@ vi.mock('../../../services/ServiceFactory', () => ({
 
 const { StoragePage } = await import('./StoragePage');
 const { useModelStore } = await import('../../../stores/modelStore');
+const { useNativeModelStore } = await import('../../../stores/nativeModelStore');
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
 const { getManifestByType, isTranslationModelCompatible, getModelSizeMb } =
   await import('../../../lib/local-inference/modelManifest');
@@ -129,5 +131,51 @@ describe('StoragePage (wasm)', () => {
     unmount();
     render(<StoragePage provider="native" />);
     expect(screen.queryByRole('button', { name: /Import/ })).not.toBeInTheDocument();
+  });
+});
+
+// Task 7's review carry-over: StoragePage's native half (real hooks, real
+// resolver) was implemented but never exercised by a test — only the "Import
+// is absent for native" case above touched it, and that needs no catalog at
+// all. These two mirror the wasm suite's in-use-badge and delete-preview
+// cases against a hand-built native fixture catalog (native has no static
+// manifest; the M() idiom is candidates.native.test.ts's).
+describe('StoragePage (native)', () => {
+  const M = (id: string, kind: NativeModelInfo['kind'], languages: string[], order: number,
+             recommended = false, extra: Partial<NativeModelInfo> = {}): NativeModelInfo =>
+    ({ id, name: id, languages, recommended, tiers: [{ tier: 'cpu', backend: 'ct2', available: true }],
+       order, repo: id, kind, ...extra });
+
+  const CATALOG: Record<string, NativeModelInfo> = {
+    'sense-voice': M('sense-voice', 'asr', ['ja', 'en'], 1, true),
+    'qwen2.5-0.5b': M('qwen2.5-0.5b', 'translate', ['multi'], 1, true),
+    'opus-mt-ja-en': M('opus-mt-ja-en', 'translate', ['ja', 'en'], 2, false),
+    'piper-en': M('piper-en', 'tts', ['en'], 1, true),
+  };
+
+  beforeEach(async () => {
+    await useSettingsStore.getState().updateLocalNative({
+      sourceLanguage: 'ja', targetLanguage: 'en', selections: {},
+    });
+    useNativeModelStore.setState({ catalog: {}, statuses: {} });
+  });
+
+  it('lists ready models with an in-use badge on the resolved one', () => {
+    useNativeModelStore.setState({ catalog: CATALOG, statuses: { 'sense-voice': 'ready' } });
+    render(<StoragePage provider="native" />);
+    const row = screen.getByTestId('storage-row-sense-voice');
+    expect(row).toHaveTextContent('In use'); // resolved (auto) ASR for ja→en
+  });
+
+  it('delete confirm previews the fallback via the resolver', () => {
+    // Both ready: qwen2.5-0.5b (recommended) auto-wins translation over
+    // opus-mt-ja-en — deleting it must preview a fallback, not a dead end.
+    useNativeModelStore.setState({
+      catalog: CATALOG,
+      statuses: { 'qwen2.5-0.5b': 'ready', 'opus-mt-ja-en': 'ready' },
+    });
+    render(<StoragePage provider="native" />);
+    fireEvent.click(screen.getByTestId('storage-delete-qwen2.5-0.5b'));
+    expect(screen.getByTestId('storage-confirm').textContent).toMatch(/falls back to/);
   });
 });

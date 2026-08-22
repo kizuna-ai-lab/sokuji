@@ -65,9 +65,9 @@ import { useMode } from '../../../stores/audioStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
-import { EngineSection } from './EngineSection';
 import { EngineSurface } from '../engine/EngineSurface';
 import { useWasmEngineAdapter } from '../engine/useWasmEngineAdapter';
+import { useNativeEngineAdapter } from '../engine/useNativeEngineAdapter';
 import { StoragePage } from '../engine/StoragePage';
 import SonioxVoiceSection from './SonioxVoiceSection';
 import { byokVoiceSource, managedVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
@@ -80,7 +80,7 @@ import { sonioxKeyField, sonioxVoiceField } from '../../../services/providers/So
 import { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
 import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
-import { useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
+import { useNativeCatalog } from '../../../stores/nativeModelStore';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
 
@@ -139,11 +139,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateLocalNativeSettings = useUpdateLocalNative();
   const nativeCatalog = useNativeCatalog();
   const modelStatuses = useModelStatuses();
-  // Engine gate (spec S10): the native model list only renders once the engine
-  // is usable (installed bundle at the right version, or a dev venv checkout).
-  const engineBundleStatus = useNativeModelStore((s) => s.bundleStatus);
-  const engineDevVenv = useNativeModelStore((s) => s.bundleDevVenv);
-  const engineUsable = engineBundleStatus === 'ready' || engineDevVenv;
 
   // Actions from store
   const setSystemInstructions = useSetSystemInstructions();
@@ -315,6 +310,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // run unconditionally) even though it's only rendered in the
   // LOCAL_INFERENCE branch below.
   const wasmAdapter = useWasmEngineAdapter(isSessionActive);
+  // LOCAL_NATIVE's EngineAdapter — same reason, hoisted for the LOCAL_NATIVE
+  // branch below.
+  const nativeAdapter = useNativeEngineAdapter(isSessionActive);
 
   // Custom prompt is supported when EITHER the speaker's or the participant's
   // translation worker is Qwen-family. The participant direction (tgt→src) is
@@ -2104,15 +2102,17 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <>
-        {/* Engine gate first (spec S10), then selection + download cards like LOCAL_INFERENCE. */}
-        <EngineSection isSessionActive={isSessionActive} />
-        {engineUsable ? (
-          <NativeModelManagementSection isSessionActive={isSessionActive} />
-        ) : (
-          <div className="engine-section__models-placeholder">
-            {t('engine.installHint', 'Install the engine to browse and download models')}
-          </div>
-        )}
+        {/* EngineSurface renders the sidecar-bundle gate (spec S10) at the top of
+            its Engine page via the adapter's `gate` — no standalone <EngineSection/>
+            here, or it would render twice. */}
+        <EngineSurface
+          adapter={nativeAdapter}
+          renderLibrary={(slot) => (
+            <NativeModelManagementSection isSessionActive={isSessionActive}
+              stageFilter={slot.stage} compatibilitySplit />
+          )}
+          renderStorage={() => <StoragePage provider="native" />}
+        />
 
         {ttsActive && (
           <TtsSpeedControl
