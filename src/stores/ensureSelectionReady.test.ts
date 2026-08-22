@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getManifestByType } from '../lib/local-inference/modelManifest';
-import { directionKey } from '../lib/local-inference/selection/types';
 
 // ensureSelectionReady() reaches settingsStore via a dynamic import, which
 // drags in its real static import graph — including
@@ -111,14 +110,35 @@ describe('ensureSelectionReady — what blocks Start', () => {
     expect(useSettingsStore.getState().localInference.selections['ja→en']).toBeUndefined();
   });
 
-  it('does not resolve TTS at all under textOnly — no tts notes, still ready', async () => {
-    useSettingsStore.setState({ textOnly: true } as never);
-    // Downloaded: ASR + translation for ja→en, NO tts anywhere.
-    useModelStore.setState({
-      modelStatuses: downloadOnly([...pickIds('asr'), ...pickIds('translation')]),
-    });
+  it('resolves TTS again when textOnly is off — a failed explicit tts pick surfaces its note', async () => {
+    // Pick a real, non-cloud tts id from the manifest that supports English (target language)
+    // and do NOT download it.
+    const localTts = getManifestByType('tts').find((m) => !m.isCloudModel && m.languages.includes('en'))!.id;
+    useSettingsStore.setState({
+      textOnly: false,
+      localInference: {
+        ...useSettingsStore.getState().localInference,
+        selections: { 'ja→en': { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: localTts } } },
+      },
+    } as never);
+    useModelStore.setState({ modelStatuses: downloadOnly([...pickIds('asr'), ...pickIds('translation')]) });
     const r = await useModelStore.getState().ensureSelectionReady();
-    expect(r.ready).toBe(true);
+    expect(r.notes.some((n) => n.stage === 'tts' && n.reason === 'not-downloaded')).toBe(true);
+  });
+
+  it('the same failed explicit tts pick is silenced under textOnly', async () => {
+    // Pick a real, non-cloud tts id from the manifest that supports English (target language)
+    // and do NOT download it.
+    const localTts = getManifestByType('tts').find((m) => !m.isCloudModel && m.languages.includes('en'))!.id;
+    useSettingsStore.setState({
+      textOnly: true,
+      localInference: {
+        ...useSettingsStore.getState().localInference,
+        selections: { 'ja→en': { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: localTts } } },
+      },
+    } as never);
+    useModelStore.setState({ modelStatuses: downloadOnly([...pickIds('asr'), ...pickIds('translation')]) });
+    const r = await useModelStore.getState().ensureSelectionReady();
     expect(r.notes.some((n) => n.stage === 'tts')).toBe(false);
   });
 });
