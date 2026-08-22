@@ -12,12 +12,13 @@
 }
 
 .engine-direction {
-  // A proper sub-header, weight-matched to .model-group__header's title
-  // (ModelManagementSection.scss) instead of a bare muted text line.
+  // A proper sub-header: semibold + brighter than the slot labels below it
+  // ($text-secondary vs their regular weight), so the direction level reads
+  // as the group and the slots as its rows.
   &__title {
     font-size: vars.$font-body;
     font-weight: vars.$weight-semibold;
-    color: vars.$text-muted;
+    color: vars.$text-secondary;
     // No uppercase: the heading interpolates real language NAMES
     // (English, Français) and all-caps distorts them; CJK is unaffected
     // either way, so the transform only ever hurt.
@@ -52,16 +53,16 @@
     color: inherit; text-align: left;
 
     &:hover .engine-slot__label {
-      color: vars.$text-secondary;
+      color: vars.$text-primary;
     }
   }
   &__chevron { display: flex; align-items: center; color: vars.$text-muted; }
   // Full stage names ("Speech Recognition (ASR)"), matching the standalone
-  // sections' group titles — not the abbreviated ASR/MT/TTS badges. Same
-  // weight-and-color voice as .model-group__title, minus the uppercase.
+  // sections' group titles — not the abbreviated ASR/MT/TTS badges. Regular
+  // weight so the semibold direction heading above stays the louder level.
   &__label {
-    font-size: vars.$font-body; font-weight: vars.$weight-semibold;
-    color: vars.$text-muted; white-space: nowrap;
+    font-size: vars.$font-body;
+    color: vars.$text-secondary; white-space: nowrap;
     transition: color vars.$transition-fast;
   }
   &__value {
@@ -119,7 +120,7 @@
   flex: 1; text-align: left;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.engine-picker__meta { font-size: 11px; color: #9aa0a6; flex-shrink: 0; }
+.engine-picker__meta { font-size: vars.$font-caption; color: vars.$text-muted; flex-shrink: 0; }
 .engine-picker__browse {
   color: vars.$text-muted;
   background: none;
@@ -199,9 +200,9 @@
 .engine-storage-page {
   &__summary {
     display: flex; align-items: center; gap: 8px; padding: 8px 4px;
-    font-size: 13px; color: #9aa0a6;
+    font-size: 13px; color: vars.$text-muted;
   }
-  &__empty { padding: 12px 4px; font-size: 13px; color: #9aa0a6; }
+  &__empty { padding: 12px 4px; font-size: 13px; color: vars.$text-muted; }
 
   // Finding 5: the actions row (Clear all / Import) reuses ModelStorageFooter's
   // exact button classes (ModelManagementSection.scss's .model-management__*)
