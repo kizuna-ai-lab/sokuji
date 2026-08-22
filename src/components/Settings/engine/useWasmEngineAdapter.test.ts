@@ -22,6 +22,7 @@ const { useWasmEngineAdapter } = await import('./useWasmEngineAdapter');
 const { useModelStore } = await import('../../../stores/modelStore');
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
 const { getManifestByType } = await import('../../../lib/local-inference/modelManifest');
+const { wasmCandidates } = await import('../../../lib/local-inference/selection/candidates.wasm');
 
 const jaAsr = () => getManifestByType('asr').filter(m => m.multilingual || m.languages.includes('ja'));
 
@@ -47,6 +48,33 @@ describe('useWasmEngineAdapter', () => {
     // an un-downloaded ja-capable ASR is absent
     const notDownloaded = jaAsr().find(m => m.id !== first.id && !m.isCloudModel);
     if (notDownloaded) expect(ids).not.toContain(notDownloaded.id);
+  });
+
+  // AST-capable ASR entries (autoEligible: false in the translation pool)
+  // must stay out of this quick picker even once downloaded: picking one
+  // whose id != the currently-resolved ASR is immediately masked by
+  // guardAstCrossStage (falls back to auto + a note) — a click that
+  // visibly does the opposite of what it says. They're reachable through
+  // the Library's full card flow, never this picker.
+  it('excludes AST-capable (autoEligible: false) ASR entries from the translation quick picker, even when downloaded', () => {
+    const pool = wasmCandidates({ modelStatuses: {}, webgpuAvailable: true, deviceFeatures: [] })
+      .pool('translation', 'ja', 'en');
+    const astCandidate = pool.find((c) => !c.autoEligible);
+    const normalCandidate = pool.find((c) => c.autoEligible);
+    // Manifest fixture assumption: at least one AST-capable ASR entry and one
+    // normal translation model are ja→en compatible today (granite-speech /
+    // opus-mt-ja-en). If the manifest ever drops the AST entry entirely this
+    // assumption — not the filter under test — needs revisiting.
+    expect(astCandidate).toBeDefined();
+    expect(normalCandidate).toBeDefined();
+    useModelStore.setState({
+      modelStatuses: { [astCandidate!.id]: 'downloaded', [normalCandidate!.id]: 'downloaded' },
+      webgpuAvailable: true,
+    });
+    const { result } = renderHook(() => useWasmEngineAdapter());
+    const ids = result.current.readyCandidates({ dir: 'ja→en', stage: 'translation' }).map(c => c.id);
+    expect(ids).not.toContain(astCandidate!.id);
+    expect(ids).toContain(normalCandidate!.id);
   });
 
   it('select writes an explicit pick preserving sibling stages, and "" restores auto', async () => {

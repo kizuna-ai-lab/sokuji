@@ -37,13 +37,16 @@ export function useWasmEngineAdapter(isSessionActive = false): EngineAdapter {
       displayName: (id) => getManifestEntry(id)?.name ?? id,
       readyCandidates: (slot) => {
         const [src, tgt] = split(slot.dir);
-        // NOT filtered on `autoEligible` — that flag only governs whether the
-        // AUTO resolver may land on a candidate; the AST-capable ASR entries
-        // it excludes are, per candidates.wasm.ts's own comment, "reachable
-        // by explicit choice only". This picker IS that explicit choice, so
-        // excluding them here would make them unreachable everywhere.
+        // Filtered on `autoEligible` too (not just ready && hardwareOk):
+        // dropping it would put every downloaded AST-capable ASR entry into
+        // the translation slot's quick picker. Picking one whose id != the
+        // currently-resolved ASR is immediately masked by guardAstCrossStage
+        // (resolves back to auto + a note) — a click that visibly does the
+        // opposite of what it says. That trap is exactly what the AST guard
+        // exists to contain. AST stays reachable through the Library (the
+        // full card flow), not this quick picker.
         return source.pool(slot.stage, src, tgt)
-          .filter((c) => c.ready && c.hardwareOk)
+          .filter((c) => c.ready && c.hardwareOk && c.autoEligible)
           .map((c) => {
             const entry = getManifestEntry(c.id);
             return {
