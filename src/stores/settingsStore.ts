@@ -72,7 +72,6 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
     case 'starting': return i18n.t('settings.localNativeStarting', 'Starting the local engine…');
     case 'asr-incompatible': return i18n.t('settings.localNativeAsrIncompatible', 'Select a speech-recognition model for My language');
     case 'translation-incompatible': return i18n.t('settings.localNativeTranslationIncompatible', 'Select a translation model for this language pair');
-    case 'models-missing': return i18n.t('settings.localNativeModelsRequired', 'Download the native models in settings');
   }
 }
 

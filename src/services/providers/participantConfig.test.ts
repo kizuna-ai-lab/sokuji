@@ -430,13 +430,23 @@ describe('participant resolves the reverse direction as a peer', () => {
   });
 
   it('drops TTS entirely — the participant channel is text-only', () => {
+    // Self-contained: sets its own catalog+statuses rather than relying on
+    // whatever a PRECEDING test in this file happened to leave in the store
+    // (the previous version of this test read state set by the 'reads
+    // selections[tgt→src]...' test above, purely from execution order).
+    useNativeModelStore.setState({
+      catalog: NATIVE_FIXTURE,
+      statuses: { 'whisper-base': 'ready', 'qwen2.5-0.5b': 'ready' },
+    });
     const dir = directionKey('en', 'ja');
     const r = realCreateParticipantLocalNativeConfig(
       { ...BASE, sourceLanguage: 'ja', targetLanguage: 'en' },
       { [dir]: { asr: { modelId: 'whisper-base' }, translation: { modelId: '' }, tts: { modelId: '' } } },
     );
-    expect(r.success && r.config.ttsModelId).toBeUndefined();
-    expect(r.success && r.config.ttsVariant).toBeUndefined();
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    expect(r.config.ttsModelId).toBeUndefined();
+    expect(r.config.ttsVariant).toBeUndefined();
   });
 
   it("fails with no_asr when the reverse direction cannot resolve ASR", () => {

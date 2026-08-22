@@ -136,6 +136,25 @@ export interface ModelManifestEntry {
 // ─── Variant Selection ──────────────────────────────────────────────────────
 
 /**
+ * Whether a specific variant of a model can run on THIS device: every
+ * `requiredFeature` it lists must be present in `deviceFeatures` (no
+ * requirement, or an empty list, always qualifies). An unknown `variantKey`
+ * is never eligible. Shared by `selectVariant`'s compatibility filter and the
+ * WASM candidate adapter's `supportsVariant` (candidates.wasm.ts) — a pinned
+ * quantization is only honoured while it is both still offered on the entry
+ * AND runnable on this machine.
+ */
+export function isVariantEligible(
+  entry: ModelManifestEntry,
+  variantKey: string,
+  deviceFeatures: string[],
+): boolean {
+  const variant = entry.variants[variantKey];
+  if (!variant) return false;
+  return !variant.requiredFeatures || variant.requiredFeatures.every(f => deviceFeatures.includes(f));
+}
+
+/**
  * Select the best variant for the current device.
  * Prefers variants with more requiredFeatures (more optimized).
  */
@@ -143,8 +162,8 @@ export function selectVariant(
   entry: ModelManifestEntry,
   deviceFeatures: string[],
 ): string {
-  const compatible = Object.entries(entry.variants).filter(([_, v]) =>
-    !v.requiredFeatures || v.requiredFeatures.every(f => deviceFeatures.includes(f))
+  const compatible = Object.entries(entry.variants).filter(([k]) =>
+    isVariantEligible(entry, k, deviceFeatures)
   );
   if (compatible.length === 0) {
     throw new Error(`No compatible variant for model ${entry.id} on this device`);

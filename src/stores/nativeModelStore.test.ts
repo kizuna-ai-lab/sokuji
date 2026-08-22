@@ -37,8 +37,9 @@ let _asrExtraModels: any[] = [];
 let _catalogCallCount = 0;
 // Models the FakeWS should report as NOT downloaded on a `model_status` query.
 // The FakeWS reports every queried model 'ready' by default (see below); this
-// lets a test force a specific required model to read 'absent' so it can drive
-// ensureSelectionReady to the 'models-missing' reason.
+// lets a test force a specific required model to read 'absent' — e.g. a
+// missing TTS model, which never blocks readiness (see the session-gate
+// table on ensureSelectionReady's interface doc).
 let _notReadyModels = new Set<string>();
 function mockModelsCatalogResolve() { _shouldReject = false; }
 function mockModelsCatalogReject() { _shouldReject = true; }
@@ -636,9 +637,7 @@ describe('ensureSelectionReady (facade)', () => {
     // resolves to moss-tts-nano (the only 'ja'-capable TTS card in the
     // fixture). Force just that model 'absent': the asr+translation pair
     // stays fully compatible and downloaded, and per the session-gate table a
-    // missing TTS model never blocks readiness (it did prior to Task 14,
-    // landing on 'models-missing' — that reason is no longer reachable from
-    // this gate).
+    // missing TTS model never blocks readiness.
     mockModelsCatalogResolve();
     mockModelNotReady('moss-tts-nano');
     await useNativeModelStore.getState().ensureCatalog();

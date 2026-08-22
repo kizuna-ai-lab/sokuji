@@ -52,7 +52,6 @@ const REASON_MESSAGE: Record<string, string> = {
   'starting': 'Starting the local engine…',
   'asr-incompatible': 'Select a speech-recognition model for My language',
   'translation-incompatible': 'Select a translation model for this language pair',
-  'models-missing': 'Download the native models in settings',
 };
 
 describe('LOCAL_NATIVE gate delegates to ensureSelectionReady', () => {

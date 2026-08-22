@@ -86,7 +86,8 @@ export function createParticipantLocalInferenceConfig(
   // AST cross-stage guard — see astGuard.ts. Applies here too: the
   // participant direction resolves asr/translation independently just like
   // the speaker direction does.
-  const r = guardAstCrossStage(revSrc, revTgt, selections, rawR);
+  const r = guardAstCrossStage(revSrc, revTgt, selections, rawR,
+    (masked) => useModelStore.getState().resolve(revSrc, revTgt, masked));
 
   if (!r.asr) {
     return { success: false, reason: 'no_asr', detail: `No ASR model available for ${revSrc}` };

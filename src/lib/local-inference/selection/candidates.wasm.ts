@@ -1,6 +1,6 @@
 import {
   getManifestByType, getManifestEntry, deviceReady, isTranslationModelCompatible,
-  isAstCompatible, getModelSizeMb,
+  isAstCompatible, getModelSizeMb, isVariantEligible,
   type ModelManifestEntry, type ModelStatus,
 } from '../modelManifest';
 import type { Candidate, CandidateSource, Stage } from './types';
@@ -33,8 +33,10 @@ export function wasmCandidates(ctx: WasmCandidateCtx): CandidateSource {
     needsKey: false,
     autoEligible,
     // WASM chooses its variant from device features; a stored pin is honoured
-    // only while that variant key still exists on this entry.
-    supportsVariant: (v) => v === undefined || v in m.variants,
+    // only while that variant key still exists on this entry AND this
+    // machine can actually run it (isVariantEligible — same requiredFeatures
+    // check selectVariant uses to pick the auto variant).
+    supportsVariant: (v) => v === undefined || isVariantEligible(m, v, ctx.deviceFeatures),
   });
 
   const pool = (stage: Stage, src: string, tgt: string): Candidate[] => {
@@ -58,7 +60,14 @@ export function wasmCandidates(ctx: WasmCandidateCtx): CandidateSource {
     if (!entry) return false;
     if (stage === 'asr') return entry.type === 'asr' || entry.type === 'asr-stream';
     if (stage === 'tts') return entry.type === 'tts';
-    return entry.type === 'translation' || entry.type === 'asr' || entry.type === 'asr-stream';
+    // An asr/asr-stream entry only counts as "in" the translation catalog
+    // when it is AST-capable (has astLanguages) — language-agnostic, exactly
+    // like the rest of `has`; direction filtering stays in `pool`. A plain
+    // (non-AST) ASR id stored as an explicit translation pick is not
+    // revivable — it was never a valid translation candidate to begin with —
+    // so it should prune as 'not-in-catalog', not linger as 'lang-incompatible'.
+    return entry.type === 'translation'
+      || ((entry.type === 'asr' || entry.type === 'asr-stream') && Boolean(entry.astLanguages));
   };
 
   return { pool, has };

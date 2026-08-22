@@ -25,7 +25,13 @@ export function nativeCandidates(ctx: NativeCandidateCtx): CandidateSource {
     // AST is a WASM manifest concept; the sidecar has no equivalent, so every
     // native candidate is auto-eligible.
     autoEligible: true,
-    supportsVariant: (v) => v === undefined || (info.variants ?? []).some((x) => x.id === v),
+    // A pin is honoured only while its variant is both still offered on this
+    // card AND machine-runnable — the sidecar computes `supported` per
+    // variant (machine-aware; see NativeModelInfo.variants in
+    // nativeProtocol.ts), so membership alone isn't enough: a variant the
+    // catalog still lists but this machine can't run (e.g. insufficient
+    // VRAM) must fall back to auto exactly like a missing one does.
+    supportsVariant: (v) => v === undefined || (info.variants ?? []).some((x) => x.id === v && x.supported !== false),
   });
 
   const infos = (stage: Stage, src: string, tgt: string): NativeModelInfo[] => {

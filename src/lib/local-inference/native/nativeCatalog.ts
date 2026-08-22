@@ -457,8 +457,7 @@ export type NativeReadinessReason =
   | 'unavailable'
   | 'starting'
   | 'asr-incompatible'
-  | 'translation-incompatible'
-  | 'models-missing';
+  | 'translation-incompatible';
 
 /** The selection fields readiness depends on. The three per-stage model ids and
  *  the variant-pin map used to live here too (a structural subset of
@@ -504,6 +503,16 @@ export interface NativeReadinessResult {
  * when its choice is BOTH explicit (non-empty modelId) and carries a variant
  * — an auto stage's variant is always absent by the `StageSelection`
  * contract, so there is nothing to collect there.
+ *
+ * Collision rule: FIRST wins. Two directions can independently pin the same
+ * model id to different variants (e.g. the speaker leg pins Q4_K_M, the
+ * participant leg pins Q8_0 for the same translation model) — the sidecar's
+ * status/repo protocol is keyed by model id alone, not by (direction, model
+ * id), so only one pin can actually apply. Callers list the speaker
+ * direction first specifically so the audible channel's pin wins over the
+ * silent (participant, text-only) one when both exist. True per-direction
+ * variant statuses would remove this collision entirely; that is a
+ * structural follow-up, not fixed here.
  */
 export function pinsFromSelections(selections: Selections, directions: string[]): Record<string, string> {
   const pins: Record<string, string> = {};
@@ -512,7 +521,7 @@ export function pinsFromSelections(selections: Selections, directions: string[])
     if (!d) continue;
     for (const stage of ['asr', 'translation', 'tts'] as const) {
       const sel = d[stage];
-      if (sel?.modelId && sel.variant) pins[sel.modelId] = sel.variant;
+      if (sel?.modelId && sel.variant && !(sel.modelId in pins)) pins[sel.modelId] = sel.variant;
     }
   }
   return pins;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { voiceCapability, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
+import { voiceCapability, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, pinsFromSelections, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -294,6 +294,34 @@ describe('nativeCatalog', () => {
     it('falls back to the recommended variant repo when unpinned', () => {
       const repos = statusReposFor(['hy-mt2-1.8b'], vd, {});
       expect(repos).toEqual({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B' });
+    });
+  });
+
+  describe('pinsFromSelections', () => {
+    // A model id is the sidecar's status/repo key, not (direction, model id)
+    // — two directions pinning the SAME model to different variants collide,
+    // and the doc comment on pinsFromSelections says FIRST-wins so the
+    // speaker (audible) leg beats the participant (silent) one when callers
+    // list it first.
+    it('the FIRST direction to pin a given model id wins on a collision', () => {
+      const selections = {
+        'ja→en': { asr: { modelId: '' }, translation: { modelId: 'hy-mt2-7b', variant: 'q4_k_m' }, tts: { modelId: '' } },
+        'en→ja': { asr: { modelId: '' }, translation: { modelId: 'hy-mt2-7b', variant: 'q8_0' }, tts: { modelId: '' } },
+      };
+      expect(pinsFromSelections(selections, ['ja→en', 'en→ja'])).toEqual({ 'hy-mt2-7b': 'q4_k_m' });
+      // Reversing which direction is listed first reverses which pin wins —
+      // pins the collision rule to argument ORDER, not object key order.
+      expect(pinsFromSelections(selections, ['en→ja', 'ja→en'])).toEqual({ 'hy-mt2-7b': 'q8_0' });
+    });
+
+    it('collects non-colliding pins from every listed direction', () => {
+      const selections = {
+        'ja→en': { asr: { modelId: 'sense-voice', variant: 'q4' }, translation: { modelId: '' }, tts: { modelId: '' } },
+        'en→ja': { asr: { modelId: '' }, translation: { modelId: 'hy-mt2-7b', variant: 'q8_0' }, tts: { modelId: '' } },
+      };
+      expect(pinsFromSelections(selections, ['ja→en', 'en→ja'])).toEqual({
+        'sense-voice': 'q4', 'hy-mt2-7b': 'q8_0',
+      });
     });
   });
 

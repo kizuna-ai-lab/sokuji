@@ -511,7 +511,12 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     try {
       const { useSettingsStore } = await import('./settingsStore');
       selections = useSettingsStore.getState().localNative.selections;
-    } catch { /* settings store unavailable — resolve with no explicit selections */ }
+    } catch (err) {
+      // settings store unavailable — resolve with no explicit selections.
+      // Logged so a broken import graph doesn't silently masquerade as "no
+      // selections yet".
+      console.error('[Sokuji] [NativeModelStore] ensureSelectionReady: settings store unavailable, resolving with no explicit selections:', err);
+    }
     const speakerDir = directionKey(selection.sourceLanguage, selection.targetLanguage);
     const participantDir = directionKey(selection.targetLanguage, selection.sourceLanguage);
     // Pins now live on the (direction, stage) that chose them — collect only
@@ -588,7 +593,13 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       : !speaker.asr ? 'asr-incompatible'
       : 'translation-incompatible';
     const notes = [...speaker.notes, ...participant.notes];
-    set({ lastResolutionNotes: notes });
+    // Skip the write when nothing changes: a fresh [] reference on every call
+    // would re-trigger every subscriber keyed on this field even when there
+    // is nothing new to show — reference identity is what drives them, not
+    // content.
+    if (notes.length > 0 || get().lastResolutionNotes.length > 0) {
+      set({ lastResolutionNotes: notes });
+    }
     return { ready, reason, notes };
   },
 
@@ -613,7 +624,12 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         if (!d.asr.modelId && !d.translation.modelId && !d.tts.modelId) delete next[key];
       }
       await store.updateLocalNative({ selections: next });
-    } catch { /* settings store unavailable — nothing to prune */ }
+    } catch (err) {
+      // settings store unavailable — nothing to prune. Logged (not silently
+      // swallowed) since a prune failure means a dead id survives in storage
+      // and keeps producing a note the user cannot act on.
+      console.error('[Sokuji] [NativeModelStore] applyPrunes: settings store unavailable, prune skipped:', err);
+    }
   },
 
   setAsrLoading: (v) => set({ asrLoading: v }),

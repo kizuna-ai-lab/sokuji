@@ -34,6 +34,12 @@ describe('AST cross-stage guard', () => {
   });
 
   describe('guardAstCrossStage (unit)', () => {
+    // Injected in place of a static useModelStore import — see astGuard.ts's
+    // doc comment: the pure function takes re-resolution as a parameter so a
+    // store can apply it (modelStore.ts's ensureSelectionReady) without
+    // creating an import cycle.
+    const reResolve = (masked: Selections) => useModelStore.getState().resolve('ja', 'en', masked);
+
     it('masks the explicit AST-capable translation pick back to auto when it does not match the resolved ASR', () => {
       const selections: Selections = {
         [dir]: { asr: { modelId: '' }, translation: { modelId: 'granite-speech' }, tts: { modelId: '' } },
@@ -48,11 +54,31 @@ describe('AST cross-stage guard', () => {
       // (candidates.wasm.ts), so this can never be granite-speech.
       const autoOnly = useModelStore.getState().resolve('ja', 'en', {});
 
-      const guarded = guardAstCrossStage('ja', 'en', selections, resolved);
+      const guarded = guardAstCrossStage('ja', 'en', selections, resolved, reResolve);
       expect(guarded.translation).toEqual(autoOnly.translation);
       expect(guarded.translation?.modelId).not.toBe('granite-speech');
       expect(guarded.translation?.source).toBe('auto');
       expect(guarded.asr).toEqual(resolved.asr);
+    });
+
+    it('emits a note naming the masked id and its auto replacement when it rewrites', () => {
+      const selections: Selections = {
+        [dir]: { asr: { modelId: '' }, translation: { modelId: 'granite-speech' }, tts: { modelId: '' } },
+      };
+      const resolved = useModelStore.getState().resolve('ja', 'en', selections);
+      const autoOnly = useModelStore.getState().resolve('ja', 'en', {});
+
+      const guarded = guardAstCrossStage('ja', 'en', selections, resolved, reResolve);
+
+      const note = guarded.notes.find((n) => n.stage === 'translation' && n.from === 'granite-speech');
+      expect(note).toBeDefined();
+      expect(note).toMatchObject({
+        direction: dir, stage: 'translation', from: 'granite-speech',
+        to: autoOnly.translation?.modelId ?? null, reason: 'lang-incompatible',
+      });
+      // The rewrite must not silently drop any note the initial resolution
+      // already carried — it is APPENDED, not a replacement of `notes`.
+      expect(guarded.notes.length).toBe(resolved.notes.length + 1);
     });
 
     it('passes AST mode through untouched when the translation selection matches the resolved ASR', () => {
@@ -63,7 +89,7 @@ describe('AST cross-stage guard', () => {
       expect(resolved.asr?.modelId).toBe('granite-speech');
       expect(resolved.translation?.modelId).toBe('granite-speech');
 
-      const guarded = guardAstCrossStage('ja', 'en', selections, resolved);
+      const guarded = guardAstCrossStage('ja', 'en', selections, resolved, reResolve);
       expect(guarded).toEqual(resolved);
     });
   });

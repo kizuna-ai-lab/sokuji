@@ -1,6 +1,5 @@
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
-import { useModelStore } from '../../stores/modelStore';
-import { directionKey, emptyDirection, type DirectionResult, type Selections } from '../../lib/local-inference/selection/types';
+import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote, type Selections } from '../../lib/local-inference/selection/types';
 
 /**
  * Guards the AST cross-stage hazard: `resolve()` resolves the asr and
@@ -25,12 +24,21 @@ import { directionKey, emptyDirection, type DirectionResult, type Selections } f
  * The masked selections object is never written back to settings — the
  * user's explicit choice is still meaningful if applied as the ASR
  * selection instead.
+ *
+ * Pure: the re-resolution is injected as `reResolve` rather than reached via
+ * a static `useModelStore` import — a store importing this module back (see
+ * modelStore.ts's `ensureSelectionReady`, which applies this guard to the
+ * speaker direction before computing readiness) would otherwise cycle.
+ * Callers that already hold a resolver in scope (LocalInferenceProviderConfig,
+ * localParticipantConfig) pass `useModelStore.getState().resolve` bound to
+ * the direction; modelStore.ts passes its own `get().resolve`.
  */
 export function guardAstCrossStage(
   src: string,
   tgt: string,
   selections: Selections,
   resolved: DirectionResult,
+  reResolve: (selections: Selections) => DirectionResult,
 ): DirectionResult {
   const translationId = resolved.translation?.modelId;
   if (!translationId) return resolved;
@@ -44,6 +52,17 @@ export function guardAstCrossStage(
     ...selections,
     [dir]: { ...(selections[dir] ?? emptyDirection()), translation: { modelId: '' } },
   };
-  const reResolved = useModelStore.getState().resolve(src, tgt, masked);
-  return { ...resolved, translation: reResolved.translation };
+  const reResolved = reResolve(masked);
+  // The rewrite is otherwise silent — a masked-back-to-auto substitution the
+  // user never asked for deserves the same note-based visibility as every
+  // other resolveStage rewrite, even though it happens a layer above
+  // resolveStage itself. Reuses 'lang-incompatible' (the existing union is
+  // closed on purpose — see the interface doc) since an AST-capable model
+  // that doesn't match the resolved ASR is, functionally, a translation pick
+  // incompatible with this direction's ASR leg.
+  const note: ResolutionNote = {
+    direction: dir, stage: 'translation', from: translationId, to: reResolved.translation?.modelId ?? null,
+    reason: 'lang-incompatible',
+  };
+  return { ...resolved, translation: reResolved.translation, notes: [...resolved.notes, note] };
 }

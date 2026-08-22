@@ -88,4 +88,23 @@ describe('nativeCandidates', () => {
     expect(c.supportsVariant('int8')).toBe(true);
     expect(c.supportsVariant('bf16')).toBe(false);
   });
+
+  it('rejects a variant the catalog still lists but marks machine-unsupported (insufficient VRAM etc.)', () => {
+    // The sidecar computes `supported` per variant (machine-aware) — a
+    // variant present on the card but flagged unsupported must fall back to
+    // auto exactly like a missing one does, not be honoured as a pin.
+    const withVariants = {
+      ...CATALOG,
+      'qwen2.5-0.5b': M('qwen2.5-0.5b', 'translate', ['multi'], 1, true, {
+        variants: [
+          { id: 'int8', sizeBytes: 1, needBytes: 1, repo: 'r', supported: true, recommended: true },
+          { id: 'bf16', sizeBytes: 2, needBytes: 2, repo: 'r2', supported: false, recommended: false },
+        ],
+      }),
+    };
+    const c = nativeCandidates({ catalog: withVariants, statuses: ready })
+      .pool('translation', 'ja', 'en').find((x) => x.id === 'qwen2.5-0.5b')!;
+    expect(c.supportsVariant('int8')).toBe(true);
+    expect(c.supportsVariant('bf16')).toBe(false);
+  });
 });

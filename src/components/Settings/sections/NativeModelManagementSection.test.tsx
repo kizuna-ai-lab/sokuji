@@ -429,6 +429,28 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     mockCatalogOverride = null;
   });
 
+  it('collects a variant pin from a direction OTHER than the one on screen (matches catalogStatusRepos\'s broader collection)', async () => {
+    // Current direction is 'ja→en' (mockSettings.sourceLanguage/targetLanguage
+    // at the top of this file); the pin lives on 'en→ja' instead. Before the
+    // fix, the statusRepos memo only collected pins from the direction on
+    // screen — this asserts the fix collects from every direction present in
+    // `selections`.
+    const prevSelections = mockSettings.selections;
+    mockSettings.selections = {
+      'en→ja': { asr: { modelId: '' }, translation: { modelId: 'hy-mt2-7b', variant: 'q8_0' }, tts: { modelId: '' } },
+    };
+    try {
+      render(<NativeModelManagementSection />);
+      await waitFor(() => expect(mockRefresh).toHaveBeenCalled());
+      const repoOverrideCall = mockRefresh.mock.calls.find(([, repos]) => repos && 'hy-mt2-7b' in repos);
+      expect(repoOverrideCall?.[1]).toMatchObject({
+        'hy-mt2-7b': 'tencent/Hy-MT2-7B-GGUF/HY-MT2-7B-Q8_0.gguf',
+      });
+    } finally {
+      mockSettings.selections = prevSelections;
+    }
+  });
+
   it('downloads the chosen (recommended Q4_K_M) variant repo, not the default', async () => {
     // Pre-download state for hy-mt2-7b; Q4_K_M is recommended.
     render(<NativeModelManagementSection />);

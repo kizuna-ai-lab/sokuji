@@ -117,7 +117,8 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
     // into a real TranslationEngine built against AST-only files. See
     // astGuard.ts.
     const resolved = guardAstCrossStage(
-      settings.sourceLanguage, settings.targetLanguage, settings.selections, rawResolved);
+      settings.sourceLanguage, settings.targetLanguage, settings.selections, rawResolved,
+      (masked) => useModelStore.getState().resolve(settings.sourceLanguage, settings.targetLanguage, masked));
 
     // wrapTranscript must match the instructions actually in use. The default prompt
     // (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions

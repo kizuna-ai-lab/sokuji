@@ -77,6 +77,21 @@ describe('wasmCandidates', () => {
     expect(gated.length).toBeGreaterThan(0);
   });
 
+  it('supportsVariant rejects a variant this device cannot run, accepts one it can, and always accepts undefined (no pin)', () => {
+    // qwen3-0.6b-translation: 'q4' has no requiredFeatures, 'q4f16' requires
+    // shader-f16 — see modelManifest.ts. Machine without the feature.
+    const noFeature = wasmCandidates({ ...ctx(), deviceFeatures: [] });
+    const c = noFeature.pool('translation', 'ja', 'en').find((x) => x.id === 'qwen3-0.6b-translation')!;
+    expect(c.supportsVariant(undefined)).toBe(true);
+    expect(c.supportsVariant('q4')).toBe(true);
+    expect(c.supportsVariant('q4f16')).toBe(false);
+
+    // Same entry, machine WITH the feature — the pin becomes honourable.
+    const withFeature = wasmCandidates({ ...ctx(), deviceFeatures: ['shader-f16'] });
+    const c2 = withFeature.pool('translation', 'ja', 'en').find((x) => x.id === 'qwen3-0.6b-translation')!;
+    expect(c2.supportsVariant('q4f16')).toBe(true);
+  });
+
   it('adds AST-capable ASR entries to the translation pool as explicit-only', () => {
     const s = wasmCandidates(ctx());
     const ast = s.pool('translation', 'ja', 'en').filter((c) => c.autoEligible === false);
@@ -84,5 +99,19 @@ describe('wasmCandidates', () => {
     for (const c of ast) {
       expect(getManifestByType('translation').some((m) => m.id === c.id)).toBe(false);
     }
+  });
+
+  it('has(translation, id) accepts an AST-capable ASR id but rejects a plain (non-AST) ASR id', () => {
+    const s = wasmCandidates(ctx());
+    // granite-speech: astLanguages present — a legitimate translation-stage
+    // pick (the AST short-circuit), so its id must stay in the catalog.
+    expect(s.has('translation', 'granite-speech')).toBe(true);
+    // sensevoice-int8: a plain ASR entry with no astLanguages. It was never a
+    // valid translation-stage candidate, so an id like this stored under the
+    // translation stage is not revivable — it must prune, not linger as
+    // 'lang-incompatible'.
+    const plainAsr = getManifestByType('asr').find((m) => !m.astLanguages);
+    expect(plainAsr).toBeDefined();
+    expect(s.has('translation', plainAsr!.id)).toBe(false);
   });
 });

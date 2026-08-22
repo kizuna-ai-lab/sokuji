@@ -17,6 +17,7 @@ import { filesToImportMap, type NamedBlob } from '../lib/local-inference/modelIm
 import { checkWebGPU } from '../utils/webgpu';
 import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
 import { wasmCandidates } from '../lib/local-inference/selection/candidates.wasm';
+import { guardAstCrossStage } from '../services/providers/astGuard';
 import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote, type Selections, type Stage } from '../lib/local-inference/selection/types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -417,7 +418,12 @@ export const useModelStore = create<ModelStoreState>()(
           if (!d.asr.modelId && !d.translation.modelId && !d.tts.modelId) delete next[key];
         }
         await store.updateLocalInference({ selections: next });
-      } catch { /* settings store unavailable — nothing to prune */ }
+      } catch (err) {
+        // settings store unavailable — nothing to prune. Logged (not silently
+        // swallowed) since a prune failure means a dead id survives in
+        // storage and keeps producing a note the user cannot act on.
+        console.error('[Sokuji] [ModelStore] applyPrunes: settings store unavailable, prune skipped:', err);
+      }
     },
 
     ensureSelectionReady: async () => {
@@ -438,12 +444,27 @@ export const useModelStore = create<ModelStoreState>()(
         const { useSettingsStore } = await import('./settingsStore');
         const localInference = useSettingsStore.getState().localInference;
         ({ sourceLanguage, targetLanguage, selections } = localInference);
-      } catch { /* settings store unavailable — resolve with no explicit selections */ }
+      } catch (err) {
+        // settings store unavailable — resolve with no explicit selections
+        // (never ready, but never throws). Logged so a broken import graph
+        // doesn't silently masquerade as "no selections yet".
+        console.error('[Sokuji] [ModelStore] ensureSelectionReady: settings store unavailable, resolving with no explicit selections:', err);
+      }
 
       // Resolve BOTH directions against the WASM manifest + current download
       // statuses. There is deliberately no path by which one direction can
       // influence the other (see resolveDirection's doc comment).
-      const speaker = get().resolve(sourceLanguage, targetLanguage, selections);
+      const rawSpeaker = get().resolve(sourceLanguage, targetLanguage, selections);
+      // AST cross-stage guard (see astGuard.ts): buildSessionConfig applies
+      // this same guard to the resolved translation stage before a session
+      // starts, which can downgrade an explicit AST-mismatched pick to auto
+      // (possibly null). Applying it here too — BEFORE computing `ready` —
+      // keeps this gate's verdict from disagreeing with what Start actually
+      // builds. Speaker direction only: AST is a WASM-manifest concept (see
+      // candidates.wasm.ts), and only the speaker leg can block Start.
+      const speaker = guardAstCrossStage(
+        sourceLanguage, targetLanguage, selections, rawSpeaker,
+        (masked) => get().resolve(sourceLanguage, targetLanguage, masked));
       const participant = get().resolve(targetLanguage, sourceLanguage, selections);
 
       // Garbage-collect every id either resolution found dead (an id the
@@ -459,7 +480,13 @@ export const useModelStore = create<ModelStoreState>()(
       // participant direction never do.
       const ready = Boolean(speaker.asr && speaker.translation);
       const notes = [...speaker.notes, ...participant.notes];
-      set({ lastResolutionNotes: notes });
+      // Skip the write when nothing changes: a fresh [] reference on every
+      // call would re-trigger every subscriber keyed on this field even when
+      // there is nothing new to show — reference identity is what drives
+      // them, not content.
+      if (notes.length > 0 || get().lastResolutionNotes.length > 0) {
+        set({ lastResolutionNotes: notes });
+      }
 
       return { ready, notes };
     },

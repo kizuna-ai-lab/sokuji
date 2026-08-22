@@ -175,7 +175,7 @@ rather than naming what is missing.
 | When resolution runs | On every read (Engine page render, readiness check) and **once at Start**, whose result is the session's. Never re-resolved mid-session. |
 | Stale `variant` pin | **Ignored at resolution, not erased.** Falls back to the auto-picked variant, mirroring `deriveVariantRepos` (`nativeModelStore.ts:130-141`); the pin stays in `selections` and revives if its variant returns. |
 | Ranking | One rule for both providers: `recommended` → lower `sortOrder` → smaller size. |
-| Candidate gate | `language-compatible ∧ ready ∧ hardware-capable`. Un-ready implementations never enter the pool (unchanged from today). |
+| Candidate gate | Adapters (`pool`) filter by **language only** — an un-ready or hardware-gated candidate still enters the pool, carrying its `ready`/`hardwareOk` flags. The **resolver** (`resolveStage`'s `usable` filter) is what applies `ready ∧ hardware-capable ∧ autoEligible` for auto-selection. Un-ready candidates must stay in the pool: that is what lets a note distinguish `not-downloaded` (in the pool, not ready) from `no-candidate` (nothing in the pool at all). |
 | Persistence | `selections` lives in each provider's settings slice (persisted via `PROVIDER_SLICE_REGISTRY`), replacing the in-memory `modelPreferences`. |
 | Entries stored | **Only directions with at least one explicit stage.** All-auto directions have no entry. This is the natural cap — no LRU needed. |
 | Quantization pin | Moves from the flat `translationVariantByModel` map into the stage record as `variant`. |

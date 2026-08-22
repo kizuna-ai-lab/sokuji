@@ -554,11 +554,16 @@ export const NativeModelManagementSection: React.FC<{ isSessionActive?: boolean 
       .map((c) => c.downloadId).filter((x): x is string => !!x),
     [asrCards, asrIncompatibleCards, translationCards, ttsCards]);
   // Pins now live on the (direction, stage) that chose them, not a global
-  // per-model map — collect this direction's explicit (modelId, variant)
-  // pairs into the modelId-keyed shape statusReposFor expects.
+  // per-model map — collect EVERY direction's explicit (modelId, variant)
+  // pairs into the modelId-keyed shape statusReposFor expects, not just the
+  // direction currently on screen (mirrors nativeModelStore.ts's
+  // catalogStatusRepos — a card's status must reflect a pin the user set on
+  // another direction too, since the sidecar's status/repo protocol is keyed
+  // by model id alone; pinsFromSelections's doc comment covers the resulting
+  // collision rule).
   const pins = useMemo(
-    () => pinsFromSelections(settings.selections, [dir]),
-    [settings.selections, dir]);
+    () => pinsFromSelections(settings.selections, Object.keys(settings.selections)),
+    [settings.selections]);
   const statusRepos = useMemo(
     () => statusReposFor(allDownloadIds, variantData, pins),
     [allDownloadIds, variantData, pins],

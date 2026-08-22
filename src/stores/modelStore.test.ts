@@ -74,7 +74,18 @@ describe('ensureSelectionReady', () => {
   const opusEnJa = { id: 'opus-mt-en-ja', type: 'translation', languages: ['en', 'ja'], variants: noSize };
   const piperJa = { id: 'piper-ja', type: 'tts', languages: ['ja'], multilingual: false, variants: noSize };
   const piperEn = { id: 'piper-en', type: 'tts', languages: ['en'], multilingual: false, variants: noSize };
-  const all = [sensevoice, opusEnJa, piperJa, piperEn];
+  // AST-capable ASR fixture (mirrors granite-speech's shape): appears in both
+  // the ASR pool (a plain, autoEligible ASR candidate) and, via astLanguages,
+  // the translation pool as an explicit-only (autoEligible: false) candidate
+  // — see candidates.wasm.ts. Listed AFTER sensevoice in `all` so ASR
+  // auto-selection's stable tie-break (equal recommended/sortOrder/size)
+  // picks sensevoice-int8, not this one — required to reproduce the hazard
+  // (explicit translation pick != auto-resolved ASR pick).
+  const astAsr = {
+    id: 'ast-asr', type: 'asr', languages: ['en'], multilingual: false,
+    astLanguages: { transcribe: ['en'], translate: ['ja'] }, variants: noSize,
+  };
+  const all = [sensevoice, opusEnJa, piperJa, piperEn, astAsr];
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -181,6 +192,76 @@ describe('ensureSelectionReady', () => {
     expect(result.ready).toBe(true);
     expect(result.notes.some((n) => n.direction === 'ja→en' && n.stage === 'tts')).toBe(true);
   });
+
+  // Task 1 (external review, PR #436): ensureSelectionReady used to gate on
+  // the RAW resolve() output, while buildSessionConfig separately applied
+  // the AST cross-stage guard (astGuard.ts) afterward — so a hazardous
+  // explicit pick (an AST-capable ASR model chosen as the translation stage,
+  // not matching the resolved ASR) could read `ready: true` here while the
+  // guard downgraded the built session's translationModelId to auto (or
+  // null) at Start. These pin the guard being applied to the SPEAKER
+  // direction BEFORE `ready`/`notes` are computed.
+  describe('AST cross-stage guard applied before readiness (Task 1)', () => {
+    const dir = directionKey('en', 'ja');
+    // ast-asr is downloaded and, picked explicitly for TRANSLATION, resolves
+    // successfully on its own — but auto-ASR (nothing explicit for asr) ties
+    // out to sensevoice-int8 (see the `all` fixture's ordering comment), not
+    // ast-asr. That mismatch is exactly the hazard guardAstCrossStage exists
+    // to catch.
+    const hazardSelections = {
+      [dir]: { asr: { modelId: '' }, translation: { modelId: 'ast-asr' }, tts: { modelId: '' } },
+    };
+
+    it('is not ready when the masked-back-to-auto translation has no downloaded ordinary model to fall back to', async () => {
+      useModelStore.setState({
+        modelStatuses: { 'sensevoice-int8': 'downloaded', 'ast-asr': 'downloaded' }, // opus-mt-en-ja NOT downloaded
+      });
+      await useSettingsStore.getState().updateLocalInference({ selections: hazardSelections });
+
+      // Sanity: the raw (unguarded) resolve() reproduces the hazard — this is
+      // the exact bug the guard exists to close off from the readiness gate.
+      const raw = useModelStore.getState().resolve('en', 'ja', hazardSelections);
+      expect(raw.translation?.modelId).toBe('ast-asr');
+      expect(raw.asr?.modelId).not.toBe('ast-asr');
+
+      const result = await useModelStore.getState().ensureSelectionReady();
+
+      expect(result.ready).toBe(false);
+    });
+
+    it('is ready — and the guarded resolution feeding buildSessionConfig uses the downloaded ordinary model — once one is downloaded', async () => {
+      useModelStore.setState({
+        modelStatuses: {
+          'sensevoice-int8': 'downloaded', 'ast-asr': 'downloaded', 'opus-mt-en-ja': 'downloaded',
+        },
+      });
+      await useSettingsStore.getState().updateLocalInference({ selections: hazardSelections });
+
+      const result = await useModelStore.getState().ensureSelectionReady();
+
+      expect(result.ready).toBe(true);
+      // buildSessionConfig (LocalInferenceProviderConfig.ts) applies the same
+      // guard over this same resolve() call — pinning that the masked
+      // translation stage lands on the downloaded ordinary model, not on
+      // ast-asr or null, is what makes `ready: true` here trustworthy.
+      const guardedTranslationId = result.notes.find((n) => n.stage === 'translation' && n.from === 'ast-asr')?.to;
+      expect(guardedTranslationId).toBe('opus-mt-en-ja');
+    });
+
+    it('emits a note naming the masked pick and its replacement, without dropping the note when there is no replacement', async () => {
+      useModelStore.setState({
+        modelStatuses: { 'sensevoice-int8': 'downloaded', 'ast-asr': 'downloaded' },
+      });
+      await useSettingsStore.getState().updateLocalInference({ selections: hazardSelections });
+
+      const result = await useModelStore.getState().ensureSelectionReady();
+
+      const note = result.notes.find((n) => n.stage === 'translation' && n.from === 'ast-asr');
+      expect(note).toMatchObject({
+        direction: dir, stage: 'translation', from: 'ast-asr', to: null, reason: 'lang-incompatible',
+      });
+    });
+  });
 });
 
 describe('importModel', () => {
@@ -267,7 +348,7 @@ describe('initialize resilience', () => {
 });
 
 describe('modelStore.resolve', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     // Empty manifest by default — later describe blocks in this file leave
     // mockGetManifestByType wired to their own fixtures, and clearAllMocks
@@ -275,7 +356,10 @@ describe('modelStore.resolve', () => {
     mockGetManifestByType.mockReturnValue([]);
     // applyPrunes reaches the real settingsStore via a dynamic import — reset
     // it so a leftover selection from another describe block can't leak in.
-    useSettingsStore.getState().updateLocalInference({ selections: {} });
+    // Awaited: updateLocalInference persists asynchronously (updateProviderSlice),
+    // so an unawaited call here can still be in flight when the next test's
+    // assertions run.
+    await useSettingsStore.getState().updateLocalInference({ selections: {} });
   });
 
   it('resolves a direction from the manifest and current download statuses', () => {
