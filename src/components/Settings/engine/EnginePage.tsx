@@ -85,11 +85,17 @@ export const EnginePage: React.FC<{
           })}
         </div>
       ))}
-      <button type="button" className="engine-storage-row" onClick={onStorage}>
+      {/* Storage entry as the section's footer (the old ModelStorageFooter
+          shape: top divider + caption text), not another slot-look row —
+          storage is a different kind of thing than the slots above it. The
+          whole footer is the button; "Manage ›" names where it goes. */}
+      <button type="button" className="engine-storage-footer" onClick={onStorage}>
         <HardDrive size={14} />
-        {t('engineUi.storageRow', 'Storage')}
-        <span className="engine-picker__meta">{adapter.storageSummary}</span>
-        <ChevronRight size={14} />
+        <span>{t('engineUi.storageUsedLine', 'Storage: {{summary}} used', { summary: adapter.storageSummary })}</span>
+        <span className="engine-storage-footer__manage">
+          {t('engineUi.manageStorage', 'Manage')}
+          <ChevronRight size={12} />
+        </span>
       </button>
     </div>
   );

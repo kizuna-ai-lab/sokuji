@@ -31,39 +31,39 @@
 }
 
 .engine-slot {
-  // A row card, not a bare text line: same resting/hover language as
-  // .model-card (ModelManagementSection.scss), scaled down for a compact row.
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid vars.$border-subtle;
-  border-radius: vars.$radius-md;
-  margin-bottom: 6px;
-  transition: border-color vars.$transition-fast, background vars.$transition-fast;
+  // Model-group style (user decision, 2026-08-22): the row itself carries no
+  // card frame — the app separates regions with dividers and reserves boxes
+  // for content cards and controls (.config-section has no frame either).
+  // The header row mirrors .model-group__header's plain chevron+title look;
+  // the only boxes are the picker options inside the expanded body.
 
-  &:hover {
-    border-color: vars.$border-strong;
-  }
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-
-  // Finding 4: a chip click deep-links here and flashes THIS row (not the
-  // whole ProviderSection, the old wrong target). Replicates Settings.scss's
+  // A chip click deep-links here and flashes THIS row (not the whole
+  // ProviderSection, the old wrong target). Replicates Settings.scss's
   // .config-section.highlight / @keyframes pulse-highlight — same look, its
   // own name since .engine-slot isn't a .config-section.
   &.highlight {
     animation: engine-pulse-highlight 2s ease-out;
+    border-radius: vars.$radius-md;
   }
 
   &__header {
-    display: flex; align-items: center; gap: 8px; width: 100%;
-    background: none; border: none; padding: 10px; cursor: pointer;
-    color: inherit; text-align: left; border-radius: inherit;
+    display: flex; align-items: center; gap: 6px; width: 100%;
+    background: none; border: none; padding: 5px 0; cursor: pointer;
+    color: inherit; text-align: left;
+
+    &:hover .engine-slot__label {
+      color: vars.$text-secondary;
+    }
   }
   &__chevron { display: flex; align-items: center; color: vars.$text-muted; }
   // Full stage names ("Speech Recognition (ASR)"), matching the standalone
-  // sections' group titles — not the abbreviated ASR/MT/TTS badges.
-  &__label { font-size: 12px; color: #9aa0a6; white-space: nowrap; }
+  // sections' group titles — not the abbreviated ASR/MT/TTS badges. Same
+  // weight-and-color voice as .model-group__title, minus the uppercase.
+  &__label {
+    font-size: vars.$font-body; font-weight: vars.$weight-semibold;
+    color: vars.$text-muted; white-space: nowrap;
+    transition: color vars.$transition-fast;
+  }
   &__value {
     font-size: 13px; font-family: ui-monospace, monospace;
     margin-left: auto; text-align: right;
@@ -72,7 +72,7 @@
   &__value--missing { color: vars.$color-error; }
   &__body {
     display: flex; flex-direction: column; gap: 6px;
-    padding: 0 10px 10px 34px;
+    margin: 4px 0 10px; padding-left: 20px;
   }
 }
 
@@ -113,10 +113,8 @@
   border-style: dashed;
 }
 
-// Back row (EngineSurface's pushed-page header) + Storage row (EnginePage's
-// entry point AND, confusingly-but-conveniently, StoragePage's per-model
-// list row share this class — see its own class list below): both read as
-// clickable "header-weight" rows now, matching a sibling section's h3.
+// Back row: EngineSurface's pushed-page header, reading as a clickable
+// "header-weight" row matching a sibling section's h3.
 .engine-back-row {
   display: flex; align-items: center; gap: 10px; width: 100%;
   background: none; border: none; padding: 0; cursor: pointer;
@@ -129,22 +127,39 @@
   }
 }
 
+// The Models section's storage footer (B2, user decision 2026-08-22): the
+// old ModelStorageFooter shape — top divider + caption-size line — with the
+// whole row as the push-to-StoragePage button and "Manage ›" as its label.
+.engine-storage-footer {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  margin-top: 8px; padding: 8px 0 0;
+  background: none; border: none;
+  border-top: 1px solid vars.$border-subtle;
+  font-size: vars.$font-caption; color: vars.$text-muted;
+  cursor: pointer; text-align: left;
+
+  &__manage {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+    transition: color vars.$transition-fast;
+  }
+
+  &:hover .engine-storage-footer__manage {
+    color: vars.$color-primary;
+  }
+}
+
+// StoragePage's per-model list row (content card, like .model-card — a div,
+// not a button: only the delete control inside it is interactive).
 .engine-storage-row {
   display: flex; align-items: center; gap: 8px; padding: 10px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid vars.$border-subtle;
   border-radius: vars.$radius-md;
   margin-bottom: 6px;
-  cursor: pointer;
   // width:100% + padding + border needs border-box or the row overflows the
   // 450px panel by 22px (verified by rendering; no global reset exists).
   box-sizing: border-box;
-  color: inherit; width: 100%; text-align: left; font-size: 13px;
-  transition: border-color vars.$transition-fast;
-
-  &:hover {
-    border-color: vars.$border-strong;
-  }
+  width: 100%; font-size: 13px;
 
   &:last-child {
     margin-bottom: 0;
@@ -218,7 +233,7 @@
 
 @keyframes engine-pulse-highlight {
   0%, 100% {
-    background-color: rgba(255, 255, 255, 0.03); // .engine-slot's own resting background, not transparent
+    background-color: transparent; // frameless rows rest with no background
     box-shadow: none;
     outline: none;
   }
