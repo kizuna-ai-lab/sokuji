@@ -143,13 +143,15 @@ export function resolveNativeTranslation(choice: string): string | undefined {
 /**
  * The native model ids a given config requires (for download/readiness). Always
  * an ASR model + a translation model, plus a TTS model when speech output is on.
- * An empty translation choice falls back to the qwen2.5-0.5b download id.
+ * No substitution: '' now means "resolution found nothing", and the Start gate
+ * must see that rather than a model nobody chose.
  */
 export function requiredNativeModels(
   asrModel: string, translationChoice: string, ttsChoice: string, _src: string, tgt: string,
   catalog: Record<string, NativeModelInfo>, textOnly = false,
 ): string[] {
-  const ids = [asrModel, resolveNativeTranslation(translationChoice) || 'qwen2.5-0.5b'];
+  const ids = [asrModel, resolveNativeTranslation(translationChoice)]
+    .filter((id): id is string => Boolean(id));
   // TTS is only required when speech output is on (text-only skips it entirely).
   if (!textOnly) {
     const tts = resolveNativeTts(ttsChoice, tgt, catalog);

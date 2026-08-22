@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNativeTts, hasNativeTts, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
+import { pickNativeTts, hasNativeTts, voiceCapability, nativeTtsModels, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -379,6 +379,19 @@ describe('nativeCatalog', () => {
   it('passes variantIds through infoToCard', () => {
     const info = M('translategemma-4b', 'translate', ['multi'], 5, false, { variantIds: ['q4_k_m', 'q8_0'] });
     expect(infoToCard(info).variantIds).toEqual(['q4_k_m', 'q8_0']);
+  });
+
+  describe('requiredNativeModels', () => {
+    it('does not substitute a hardcoded translation model for an empty choice', () => {
+      const ids = requiredNativeModels('sense-voice', '', '', 'ja', 'en', TR_CAT, true);
+      expect(ids).not.toContain('qwen2.5-0.5b');
+      expect(ids).toEqual(['sense-voice']);
+    });
+
+    it('still lists a real translation choice', () => {
+      const ids = requiredNativeModels('sense-voice', 'qwen2.5-0.5b', '', 'ja', 'en', TR_CAT, true);
+      expect(ids).toEqual(['sense-voice', 'qwen2.5-0.5b']);
+    });
   });
 });
 

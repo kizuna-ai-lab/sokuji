@@ -127,9 +127,9 @@ describe('requiredNativeModels', () => {
   } as any;
 
   it('lists asr + translation(+qwen default) + tts when speech on', () => {
-    // en target -> fixture piper-en TTS; '' translation -> qwen2.5-0.5b default
+    // en target -> fixture piper-en TTS; '' translation -> no translation model (empty means nothing chosen)
     expect(requiredNativeModels('sense-voice', '', '', 'es', 'en', FIXTURE_CATALOG)).toEqual([
-      'sense-voice', 'qwen2.5-0.5b', 'piper-en',
+      'sense-voice', 'piper-en',
     ]);
     // explicit translation model, ja target -> fixture moss-tts-nano
     expect(requiredNativeModels('whisper-tiny', 'translategemma-4b', '', 'zh', 'ja', FIXTURE_CATALOG)).toEqual([
@@ -143,9 +143,9 @@ describe('requiredNativeModels', () => {
     expect(requiredNativeModels('whisper-tiny', 'translategemma-4b', '', 'zh', 'th', FIXTURE_CATALOG)).toEqual([
       'whisper-tiny', 'translategemma-4b',
     ]);
-    // textOnly=true -> TTS dropped even when language has a voice
+    // textOnly=true -> TTS dropped even when language has a voice; '' translation -> no translation model
     expect(requiredNativeModels('sense-voice', '', '', 'es', 'en', FIXTURE_CATALOG, true)).toEqual([
-      'sense-voice', 'qwen2.5-0.5b',
+      'sense-voice',
     ]);
   });
 });
