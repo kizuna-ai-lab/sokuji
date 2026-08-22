@@ -12,7 +12,7 @@
  * exercise non-local providers and must stay green unmodified.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -130,8 +130,13 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
     render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
     const notes = screen.getByTestId('language-resolution-notes');
     expect(notes.querySelectorAll('.language-warning')).toHaveLength(1);
-    expect(notes.textContent).toContain('2 of your selected models are unavailable');
+    // Names the failed picks (display name when the manifest knows the id,
+    // the raw id otherwise), deduped — never the anonymous count phrase.
+    expect(notes.textContent).toContain('opus-mt-en-ja');
+    expect(notes.textContent).toContain('unavailable');
+    expect(notes.textContent).not.toContain('2 of your selected models');
     expect(screen.getByTestId('resolution-notes-review')).toBeInTheDocument();
+    expect(screen.getByTestId('resolution-notes-use-auto')).toBeInTheDocument();
   });
 
   it('no-candidate notes are excluded from the summary — they belong to the missing-models warning', () => {
@@ -161,6 +166,42 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
     useModelStore.setState({ lastResolutionNotes: [] });
     render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
     expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
+  });
+
+  it('Switch to Auto writes explicit auto into every noted slot and the summary clears', async () => {
+    useSettingsStore.setState((st: any) => ({
+      provider: Provider.LOCAL_INFERENCE,
+      localInference: {
+        ...st.localInference,
+        sourceLanguage: 'ja', targetLanguage: 'en',
+        selections: {
+          'ja→en': { asr: { modelId: 'deleted-x' }, translation: { modelId: '' }, tts: { modelId: '' } },
+          'en→ja': { asr: { modelId: 'deleted-x' }, translation: { modelId: '' }, tts: { modelId: '' } },
+        },
+      },
+    }));
+    useModelStore.setState({
+      initialized: true,
+      statuses: {},
+      lastResolutionNotes: [
+        { direction: 'ja→en', stage: 'asr', from: 'deleted-x', to: 'auto-y', reason: 'not-downloaded' },
+        { direction: 'en→ja', stage: 'asr', from: 'deleted-x', to: 'auto-y', reason: 'not-downloaded' },
+      ],
+    } as any);
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+
+    fireEvent.click(screen.getByTestId('resolution-notes-use-auto'));
+
+    // The write is user-initiated explicit auto ('') — both noted slots.
+    await waitFor(() => {
+      const sel = (useSettingsStore.getState() as any).localInference.selections;
+      expect(sel['ja→en'].asr.modelId).toBe('');
+      expect(sel['en→ja'].asr.modelId).toBe('');
+    });
+    // ensureSelectionReady re-resolved: the stale-pick notes are gone, so the
+    // summary disappears instead of nagging forever.
+    await waitFor(() =>
+      expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument());
   });
 
   it('non-local providers never render the block', () => {

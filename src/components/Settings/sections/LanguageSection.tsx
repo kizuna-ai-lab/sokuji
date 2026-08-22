@@ -29,6 +29,7 @@ import {
   useNavigateToSettings,
   useUIMode,
   useSetEngineSlotTarget,
+  useValidateApiKey,
   useTextOnly,
   useSetTextOnly,
   useKeepReplayAudio,
@@ -44,10 +45,10 @@ import { useLockedMode } from '../../../stores/sessionStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
-import { getTranslationTargetLanguages } from '../../../lib/local-inference/modelManifest';
+import { getTranslationTargetLanguages, getManifestEntry } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelInitialized, useLastResolutionNotes, useModelStore } from '../../../stores/modelStore';
 import { useNativeLastResolutionNotes, useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
-import { directionKey, type Stage } from '../../../lib/local-inference/selection/types';
+import { directionKey, emptyDirection, type Stage, type Selections, type ResolutionNote } from '../../../lib/local-inference/selection/types';
 
 interface LanguageSectionProps {
   isSessionActive: boolean;
@@ -92,6 +93,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const navigateToSettings = useNavigateToSettings();
   const uiMode = useUIMode();
   const setEngineSlotTarget = useSetEngineSlotTarget();
+  const validateApiKey = useValidateApiKey();
 
   const textOnly = useTextOnly();
   const setTextOnly = useSetTextOnly();
@@ -462,7 +464,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // redesign - instead of a parallel hand-rolled manifest scan, and follows
   // the session gate's own scope: speaker ASR + translation block a session,
   // TTS never does (subtitles/Edge TTS cover it), so TTS is never "missing".
-  const resolveWasm = useModelStore((state) => state.resolve);
+  const resolveWasm = useModelStore.getState().resolve;
   const resolveNative = useNativeModelStore((state) => state.resolve);
   const nativeStatuses = useNativeModelStore((state) => state.statuses);
   const nativeCatalog = useNativeCatalog();
@@ -531,7 +533,42 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // no-candidate notes are the BLOCKING condition and belong to the
   // missing-models warning below; everything else is an automatic fallback
   // the session survives, summarized in one line (2026-08-23 dedup decision).
-  const fallbackNotes = notes.filter((n) => n.reason !== 'no-candidate');
+  const fallbackNotes = notes.filter((n: ResolutionNote) => n.reason !== 'no-candidate');
+
+  // Name the picks that failed (deduped: the same deleted model noted in two
+  // directions is one name) — a summary that will not say WHICH models it
+  // means cannot be acted on.
+  const noteName = (id: string): string =>
+    provider === Provider.LOCAL_NATIVE
+      ? (nativeCatalog[id]?.name ?? id)
+      : (getManifestEntry(id)?.name ?? id);
+  const staleIds: string[] = [];
+  for (const n of fallbackNotes) {
+    if (n.from && !staleIds.includes(n.from)) staleIds.push(n.from);
+  }
+  const staleNames = staleIds.map(noteName);
+
+  // "Switch to Auto": accept the current fallbacks by writing an EXPLICIT
+  // auto ('') into every noted slot — a user-initiated write, so it does not
+  // violate the never-write-back-auto rule; the cost is honest too (the old
+  // pick will not return on re-download, which is what this click means).
+  // ensureSelectionReady() then re-resolves so the summary clears at once.
+  const switchNotesToAuto = async () => {
+    const settings = provider === Provider.LOCAL_NATIVE ? localNativeSettings : localInferenceSettings;
+    const next: Selections = { ...settings.selections };
+    for (const n of fallbackNotes) {
+      next[n.direction] = { ...(next[n.direction] ?? emptyDirection()), [n.stage]: { modelId: '' } };
+    }
+    if (provider === Provider.LOCAL_NATIVE) {
+      await updateLocalNativeSettings({ selections: next });
+    } else {
+      await updateLocalInferenceSettings({ selections: next });
+    }
+    // Re-runs ensureSelectionReady through the provider's own validation
+    // wrapper (native's read-thunk included) so lastResolutionNotes — and
+    // with it this summary — refreshes immediately.
+    await validateApiKey();
+  };
 
   // Deep-link into the engine surface, same contract as ProviderSection's
   // chips: a FRESH slot object arms the one-shot signal; simple mode's host
@@ -665,7 +702,11 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               <div className="language-warning">
                 <AlertTriangle size={12} />
                 <span>
-                  {t('settings.resolutionNotesSummary', '{{count}} of your selected models are unavailable — automatic fallbacks are in use.', { count: fallbackNotes.length })}
+                  {staleNames.length === 0
+                    ? t('settings.resolutionNotesSummary', '{{count}} of your selected models are unavailable — automatic fallbacks are in use.', { count: fallbackNotes.length })
+                    : staleNames.length > 2
+                      ? t('settings.resolutionNotesNamedMore', '{{names}} and {{count}} more unavailable — automatic fallbacks are in use.', { names: staleNames.slice(0, 2).join(', '), count: staleNames.length - 2 })
+                      : t('settings.resolutionNotesNamed', '{{names}} unavailable — automatic fallbacks are in use.', { names: staleNames.join(', ') })}
                   {' '}
                   <a
                     className="language-model-warning__link"
@@ -673,6 +714,14 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                     onClick={() => openEngineSlot(fallbackNotes[0].direction, fallbackNotes[0].stage)}
                   >
                     {t('settings.resolutionNotesReview', 'Review')}
+                  </a>
+                  {' · '}
+                  <a
+                    className="language-model-warning__link"
+                    data-testid="resolution-notes-use-auto"
+                    onClick={switchNotesToAuto}
+                  >
+                    {t('settings.resolutionNotesUseAuto', 'Switch to Auto')}
                   </a>
                 </span>
               </div>
