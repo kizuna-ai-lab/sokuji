@@ -65,14 +65,19 @@
     min-width: 0;
   }
 
-  &__select {
-    // Inherit the app-wide .select-dropdown look; only the size steps down a
-    // notch from the Provider control (body, not title, and tighter padding)
-    // so five of these read as rows, not five heroes.
+  // Doubled class beats the base .select-dropdown rule regardless of which
+  // stylesheet lands later in the bundle — plain .engine-slot__select ties
+  // it on specificity and silently loses to import order (measured: the
+  // 14px/8px base values were winning).
+  &__select.engine-slot__select {
+    // The app-wide .select-dropdown look, one size down from the Provider
+    // control (body 13px, not title 14px, tighter padding) so five of these
+    // read as rows, not five heroes — and matching .model-card__name.
     font-size: vars.$font-body;
-    padding: 7px 28px 7px 10px;
+    line-height: 1.4;
+    padding: 7px 10px;
 
-    &--missing {
+    &.engine-slot__select--missing {
       color: vars.$color-error;
       border-color: rgba(vars.$color-error, 0.45);
     }
@@ -88,11 +93,19 @@
 //   #3 the current pick is green in the list (beside the built-in check)
 //   #4 the closed control's 'auto ·' prefix stays muted, name stays bright
 @supports (appearance: base-select) {
-  .engine-slot__select {
+  .engine-slot__select.engine-slot__select {
     option {
       display: flex;
       align-items: center;
       gap: 8px;
+      // Same type size and vertical rhythm as the closed control (13px;
+      // 22px min-height + 6px padding = the control's 34px) — the options
+      // were rendering a size up and 6px taller than the control they drop
+      // from (the UA base-select stylesheet pins option min-height at 24px).
+      font-size: vars.$font-body;
+      line-height: 1.4;
+      padding: 6px 10px;
+      min-height: 22px;
     }
 
     option:checked {

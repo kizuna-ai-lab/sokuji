@@ -15,6 +15,10 @@ export interface EngineAdapter {
   directions: Array<{ dir: string; src: string; tgt: string }>;
   /** Resolved view of one slot (null = nothing usable). */
   resolved(slot: SlotId): Resolved | null;
+  /** What AUTO would pick for this slot right now (the resolver run with
+   *  the slot's explicit selection masked) — the Auto option names it even
+   *  while an explicit pick is active. Null when no candidate is usable. */
+  autoPick(slot: SlotId): string | null;
   /** Display name for a model id (chips/library share it). */
   displayName(id: string): string;
   /** Display name for a language code (falls back to the code itself). */

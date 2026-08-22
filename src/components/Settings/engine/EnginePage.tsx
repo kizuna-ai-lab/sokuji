@@ -111,16 +111,23 @@ export const EnginePage: React.FC<{
                       <button type="button"><selectedcontent /></button>
                     )}
                     <option value="">
-                      {resolved && resolved.source === 'auto'
-                        ? (richSelect ? (
-                            <span className="engine-opt__name">
-                              <span className="engine-opt__auto">{'auto · '}</span>
-                              {adapter.displayName(resolved.modelId)}
-                            </span>
-                          ) : t('engineUi.autoValue', 'auto · {{name}}', { name: adapter.displayName(resolved.modelId) }))
-                        : (richSelect
+                      {(() => {
+                        // The Auto option always names what auto WOULD pick,
+                        // explicit selection active or not — "Auto" alone
+                        // only when nothing is usable.
+                        const autoId = adapter.autoPick(slot);
+                        if (!autoId) {
+                          return richSelect
                             ? <span className="engine-opt__name">{t('engineUi.autoOptionNone', 'Auto')}</span>
-                            : t('engineUi.autoOptionNone', 'Auto'))}
+                            : t('engineUi.autoOptionNone', 'Auto');
+                        }
+                        return richSelect ? (
+                          <span className="engine-opt__name">
+                            <span className="engine-opt__auto">{'Auto · '}</span>
+                            {adapter.displayName(autoId)}
+                          </span>
+                        ) : t('engineUi.autoValue', 'Auto · {{name}}', { name: adapter.displayName(autoId) });
+                      })()}
                     </option>
                     {adapter.readyCandidates(slot).map((c) => (
                       <option key={c.id} value={c.id}>

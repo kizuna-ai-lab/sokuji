@@ -36,6 +36,17 @@ export function useWasmEngineAdapter(isSessionActive = false): EngineAdapter {
         const [src, tgt] = split(slot.dir);
         return useModelStore.getState().resolve(src, tgt, selections)[slot.stage];
       },
+      autoPick: (slot) => {
+        const [src, tgt] = split(slot.dir);
+        // Mask THIS slot's explicit pick so the resolver answers "what would
+        // auto do" — with no explicit pick the mask is a no-op, so the auto
+        // answer and the resolved answer agree by construction.
+        const masked = {
+          ...selections,
+          [slot.dir]: { ...(selections[slot.dir] ?? emptyDirection()), [slot.stage]: { modelId: '' } },
+        };
+        return useModelStore.getState().resolve(src, tgt, masked)[slot.stage]?.modelId ?? null;
+      },
       // Short names on the engine surface (2026-08-23): full names stay in
       // the Library/Storage cards.
       displayName: (id) => {

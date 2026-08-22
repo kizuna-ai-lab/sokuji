@@ -46,6 +46,14 @@ export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
         const [src, tgt] = split(slot.dir);
         return useNativeModelStore.getState().resolve(src, tgt, selections)[slot.stage];
       },
+      autoPick: (slot) => {
+        const [src, tgt] = split(slot.dir);
+        const masked = {
+          ...selections,
+          [slot.dir]: { ...(selections[slot.dir] ?? emptyDirection()), [slot.stage]: { modelId: '' } },
+        };
+        return useNativeModelStore.getState().resolve(src, tgt, masked)[slot.stage]?.modelId ?? null;
+      },
       displayName: (id) => (catalog[id] ? shortenModelName(catalog[id].name) : id),
       languageName: languageNameFor,
       readyCandidates: (slot) => {

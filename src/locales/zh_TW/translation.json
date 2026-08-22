@@ -1044,7 +1044,7 @@
     "dismiss": "關閉"
   },
   "engineUi": {
-    "autoValue": "auto · {{name}}",
+    "autoValue": "Auto · {{name}}",
     "autoOptionNone": "Auto",
     "browseLibrary": "Browse library",
     "storageUsedLine": "Storage: {{summary}} used",

@@ -29,6 +29,7 @@ const adapter = (over: Partial<EngineAdapter> = {}): EngineAdapter => ({
     { dir: 'en→ja', src: 'en', tgt: 'ja' },
   ],
   resolved: ({ stage }) => (stage === 'tts' ? null : { modelId: 'm1', source: 'auto' }),
+  autoPick: ({ stage }) => (stage === 'tts' ? null : 'm1'),
   displayName: (id) => (id === 'm1' ? 'Model One' : id),
   languageName: (code) => code,
   readyCandidates: () => [{ id: 'm1', name: 'Model One', sizeLabel: '10 MB' }, { id: 'm2', name: 'Model Two' }],
@@ -60,7 +61,7 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
   it('the select lists Auto (with the resolved name) first, candidates with sizes, Browse library… last', () => {
     surface();
     const options = Array.from(asrSelect().options).map((o) => o.textContent);
-    expect(options[0]).toBe('auto · Model One');
+    expect(options[0]).toBe('Auto · Model One');
     expect(options[1]).toBe('Model One · 10 MB');
     expect(options[2]).toBe('Model Two');
     expect(options[3]).toBe('Browse library…');
@@ -84,6 +85,17 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     const tr = screen.getAllByRole('combobox', { name: /Translation/ })[0] as HTMLSelectElement;
     expect(tr.value).toBe('m2');
     expect(asrSelect().value).toBe('');
+  });
+
+  it('the Auto option names what auto WOULD pick even while an explicit pick is active', () => {
+    const a = adapter({
+      resolved: ({ stage }) =>
+        stage === 'tts' ? null : { modelId: 'm2', source: 'explicit' },
+      autoPick: ({ stage }) => (stage === 'tts' ? null : 'm1'),
+    });
+    surface(a);
+    expect(asrSelect().value).toBe('m2');
+    expect(asrSelect().options[0].textContent).toBe('Auto · Model One');
   });
 
   it('a slot with no resolution carries the missing modifier and a plain Auto label', () => {
@@ -147,7 +159,7 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
       // Closed-control mirror present.
       expect(select.querySelector('button > selectedcontent')).not.toBeNull();
       // Auto option: muted provenance prefix + name span.
-      expect(select.options[0].querySelector('.engine-opt__auto')?.textContent).toBe('auto · ');
+      expect(select.options[0].querySelector('.engine-opt__auto')?.textContent).toBe('Auto · ');
       // Candidate option: name and right-aligned meta as separate spans.
       const cand = select.options[1];
       expect(cand.querySelector('.engine-opt__name')?.textContent).toBe('Model One');
