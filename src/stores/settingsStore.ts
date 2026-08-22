@@ -10,6 +10,7 @@ import {
   LocalNativeSessionConfig,
 } from '../services/interfaces/IClient';
 import { getManifestEntry } from '../lib/local-inference/modelManifest';
+import type { Stage } from '../lib/local-inference/selection/types';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { type NativeReadinessReason } from '../lib/local-inference/native/nativeCatalog';
 import { useNativeModelStore } from './nativeModelStore';
@@ -228,6 +229,11 @@ export interface SettingsStore {
 
   // Navigation state
   settingsNavigationTarget: string | null;
+  /** Ephemeral: fired once by an engine chip (Task 10) to deep-link into the
+   *  engine surface with a given slot pre-expanded. Never persisted — the
+   *  consuming surface (SimpleSettings, ProviderSpecificSettings) reads it,
+   *  opens the slot, and immediately clears it back to null. */
+  engineSlotTarget: { dir: string; stage: Stage } | null;
 
   // Settings loading state
   settingsLoaded: boolean;
@@ -318,6 +324,7 @@ export interface SettingsStore {
   getProcessedLocalPrompt: (forParticipant?: boolean) => string;
   createSessionConfig: (systemInstructions: string) => SessionConfig;
   navigateToSettings: (target: string | null) => void;
+  setEngineSlotTarget: (t: { dir: string; stage: Stage } | null) => void;
 }
 
 // ==================== Helper Functions ====================
@@ -593,6 +600,7 @@ const useSettingsStore = create<SettingsStore>()(
     kizunaKeyError: null,
 
     settingsNavigationTarget: null,
+    engineSlotTarget: null,
 
     settingsLoaded: false,
     subtitleModeActive: false,
@@ -1254,6 +1262,10 @@ const useSettingsStore = create<SettingsStore>()(
     navigateToSettings: (target) => {
       set({settingsNavigationTarget: target});
     },
+
+    setEngineSlotTarget: (t) => {
+      set({engineSlotTarget: t});
+    },
   }))
 );
 
@@ -1320,6 +1332,8 @@ export const useKizunaKeyError = () => useSettingsStore((state) => state.kizunaK
 
 // Navigation
 export const useSettingsNavigationTarget = () => useSettingsStore((state) => state.settingsNavigationTarget);
+export const useEngineSlotTarget = () => useSettingsStore((state) => state.engineSlotTarget);
+export const useSetEngineSlotTarget = () => useSettingsStore((state) => state.setEngineSlotTarget);
 
 // Settings loading state
 export const useSettingsLoaded = () => useSettingsStore((state) => state.settingsLoaded);
