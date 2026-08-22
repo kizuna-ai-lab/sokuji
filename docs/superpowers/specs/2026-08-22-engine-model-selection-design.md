@@ -986,3 +986,20 @@ the reverse memory if it happens to exist" for everyone who never performed the 
   contract are reserved here.
 - Participant TTS (the sixth slot) — storage exists, UI does not
 - Renaming `local_native`
+
+## Amendment (2026-08-22, post-render review)
+
+The Library push page keeps the **original main-branch model group list**: the
+Recommended / Other models subgroups with full model cards (name + size, per-card
+language tags, Download/Import/In-use/Delete actions) and the existing
+"Show all … models (N)" collapse for language-incompatible entries. The
+compatible-first "Supports {{lang}}" / "Other languages" regrouping described in the
+Decisions table for Part 4 is **superseded** — per-card language tags already carry
+compatibility, and the familiar structure won on sight when both were rendered.
+
+Unchanged invariants: the Library always lists **all** models of its stage (the
+incompatible ones behind the show-all toggle, never filtered out); an incompatible
+model can be downloaded but not selected; a downloaded incompatible model shows the
+"Downloaded. Available when your language is X." line (now rendered inside the
+show-all region). The Library view renders the stage group header-less
+(`ModelGroup bare`) since the surface's own title already names the stage.

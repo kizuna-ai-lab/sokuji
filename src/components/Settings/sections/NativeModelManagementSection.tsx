@@ -454,13 +454,7 @@ export const NativeModelManagementSection: React.FC<{
   /** Render only this stage's group (used by the Engine surface's Library
    *  push, which is already scoped to one stage). Omitted = all three. */
   stageFilter?: Stage;
-  /** Replace each rendered group's Recommended/Others split with a
-   *  language-compatibility split: a "Supports {{lang}}" group (expanded)
-   *  and a collapsed "Other languages" group. ASR has a real incompatible
-   *  list (nativeAsrIncompatibleCards); translation/tts have none today, so
-   *  their "Other languages" group never renders. */
-  compatibilitySplit?: boolean;
-}> = ({ isSessionActive = false, stageFilter, compatibilitySplit = false }) => {
+}> = ({ isSessionActive = false, stageFilter }) => {
   const { t } = useTranslation();
   const settings = useLocalNativeSettings();
   const update = useUpdateLocalNative();
@@ -637,10 +631,8 @@ export const NativeModelManagementSection: React.FC<{
     return stageSel?.modelId === selectId ? stageSel.variant : undefined;
   };
 
-  // One card, shared by the Recommended/Others split (renderCards, below) and
-  // the compatibilitySplit flat lists (renderCompatSplitBody) — factored out
-  // of renderCards (Task 8) so the two rendering strategies can't drift on
-  // how a card is actually built.
+  // One card, shared by the Recommended/Others split (renderCards, below) —
+  // factored out (Task 8) so every render path builds a card identically.
   const renderCard = (
     c: NativeModelCardSpec,
     field: Stage,
@@ -688,42 +680,6 @@ export const NativeModelManagementSection: React.FC<{
     />
   );
 
-  /**
-   * The `compatibilitySplit` body for one stage: a "Supports {{lang}}" group
-   * (expanded, a flat list — no Recommended/Others split) followed by a
-   * collapsed "Other languages" group holding everything incompatible.
-   * Mirrors ModelManagementSection's (WASM) renderCompatSplitBody. Native has
-   * no incompatible list for translation/tts today (nativeTranslationCards/
-   * nativeTtsCards return compatible-only), so those calls pass [] and the
-   * second group simply never renders — same as ASR does today for a
-   * language with zero incompatible entries.
-   */
-  const renderCompatSplitBody = (
-    langLabel: string,
-    compatibleCards: NativeModelCardSpec[],
-    incompatibleCards: NativeModelCardSpec[],
-    isSelected: (c: NativeModelCardSpec) => boolean,
-    field: Stage,
-    variantMap?: Record<string, { variants: VariantInfo[]; recommended: string }>,
-    onPin?: (field: Stage, selectId: string, variantId: string) => void,
-    renderBody?: (c: NativeModelCardSpec) => React.ReactNode,
-  ) => (
-    <>
-      <ModelGroup title={t('engineUi.supportsLang', 'Supports {{lang}}', { lang: langLabel })} defaultExpanded>
-        {compatibleCards.map((c) => renderCard(c, field, isSelected, variantMap, onPin, renderBody))}
-      </ModelGroup>
-      {incompatibleCards.length > 0 && (
-        <ModelGroup title={t('engineUi.otherLanguages', 'Other languages')} defaultExpanded={false}>
-          {incompatibleCards.map((c) => (
-            <NativeModelCard key={c.selectId} spec={c} disabled={isSessionActive} incompatible
-              selected={isSelected(c)} autoSelected={false}
-              onSelect={() => selectCard(field, c.selectId)} />
-          ))}
-        </ModelGroup>
-      )}
-    </>
-  );
-
   // Storage footer: bytes used ≈ sum of download sizes for cached models (deduped by repo id).
   const usedBytes = useMemo(() => {
     const seen = new Set<string>();
@@ -748,8 +704,7 @@ export const NativeModelManagementSection: React.FC<{
     return null;
   }
 
-  // Voice picker body for the selected TTS card — shared by the
-  // Recommended/Others and compatibilitySplit render paths below.
+  // Voice picker body for the selected TTS card, embedded via renderCards' renderBody.
   const renderTtsBody = () => (capability.builtin !== 'none' || capability.custom !== 'none' ? (
     <NativeVoiceSection
       capability={capability}
@@ -775,87 +730,67 @@ export const NativeModelManagementSection: React.FC<{
       {!stageFilter && <h2>{t('models.management', 'Models')}</h2>}
 
       {(!stageFilter || stageFilter === 'asr') && (
-        <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
-          <NativeDeviceControl stage="asr" disabled={isSessionActive} />
-          {compatibilitySplit ? (
-            renderCompatSplitBody(
-              languageNameFor(settings.sourceLanguage),
-              asrCards, asrIncompatibleCards,
-              (c) => selectedAsr === c.selectId, 'asr',
-              variantData, handlePinVariant,
-            )
-          ) : (
+        <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}
+          bare={!!stageFilter}
+          aboveList={<NativeDeviceControl stage="asr" disabled={isSessionActive} />}>
+          {renderCards(asrCards, (c) => selectedAsr === c.selectId, 'asr',
+            variantData, handlePinVariant)}
+          {asrIncompatibleCards.length > 0 && (
             <>
-              {renderCards(asrCards, (c) => selectedAsr === c.selectId, 'asr',
-                variantData, handlePinVariant)}
-              {asrIncompatibleCards.length > 0 && (
-                <>
-                  <button className="model-group__show-all" onClick={() => setShowAllAsr(!showAllAsr)}>
-                    {showAllAsr ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                    {showAllAsr
-                      ? t('models.hideOther', 'Hide other models')
-                      : t('models.showAllAsr', 'Show all ASR models ({{count}})', { count: asrIncompatibleCards.length })}
-                  </button>
-                  {showAllAsr && asrIncompatibleCards.map((c) => (
-                    <NativeModelCard key={c.selectId} spec={c} disabled={isSessionActive} incompatible
-                      selected={selectedAsr === c.selectId} autoSelected={false}
-                      onSelect={() => selectCard('asr', c.selectId)} />
-                  ))}
-                </>
-              )}
+              <button className="model-group__show-all" onClick={() => setShowAllAsr(!showAllAsr)}>
+                {showAllAsr ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                {showAllAsr
+                  ? t('models.hideOther', 'Hide other models')
+                  : t('models.showAllAsr', 'Show all ASR models ({{count}})', { count: asrIncompatibleCards.length })}
+              </button>
+              {showAllAsr && asrIncompatibleCards.map((c) => (
+                <React.Fragment key={c.selectId}>
+                  <NativeModelCard spec={c} disabled={isSessionActive} incompatible
+                    selected={selectedAsr === c.selectId} autoSelected={false}
+                    onSelect={() => selectCard('asr', c.selectId)} />
+                  {c.downloadId && statuses[c.downloadId] === 'ready' && (
+                    <div className="model-card__available-when-lang">
+                      {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
+                        lang: (c.languages || []).map((l) => languageNameFor(l)).join(', '),
+                      })}
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
             </>
           )}
         </ModelGroup>
       )}
 
       {(!stageFilter || stageFilter === 'translation') && (
-        <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}>
-          <NativeDeviceControl stage="translation" disabled={isSessionActive} />
-          {compatibilitySplit ? (
-            renderCompatSplitBody(
-              t('engineUi.speakerHeading', '{{src}} → {{tgt}}', {
-                src: languageNameFor(settings.sourceLanguage),
-                tgt: languageNameFor(settings.targetLanguage),
-              }),
-              translationCards, [],
-              (c) => selectedTranslation === c.selectId, 'translation',
-              variantData, handlePinVariant,
-            )
-          ) : (
-            renderCards(
-              translationCards,
-              (c) => selectedTranslation === c.selectId,
-              'translation',
-              variantData,
-              handlePinVariant,
-            )
+        <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}
+          bare={!!stageFilter}
+          aboveList={<NativeDeviceControl stage="translation" disabled={isSessionActive} />}>
+          {renderCards(
+            translationCards,
+            (c) => selectedTranslation === c.selectId,
+            'translation',
+            variantData,
+            handlePinVariant,
           )}
         </ModelGroup>
       )}
 
       {(!stageFilter || stageFilter === 'tts') && (
-        <ModelGroup id="model-tts" title={t('models.ttsModels', 'TTS (Text-to-Speech)')}>
-          <NativeDeviceControl stage="tts" disabled={isSessionActive} />
+        <ModelGroup id="model-tts" title={t('models.ttsModels', 'TTS (Text-to-Speech)')}
+          bare={!!stageFilter}
+          aboveList={<NativeDeviceControl stage="tts" disabled={isSessionActive} />}>
           {ttsCards.length > 0 ? (
             // The voice picker is embedded inside the selected card via renderBody.
             // NativeModelCard only renders the body when the card is selected, and
             // `capability` reflects the resolved (selected) model's voice capability.
-            compatibilitySplit ? (
-              renderCompatSplitBody(
-                languageNameFor(settings.targetLanguage),
-                ttsCards, [],
-                (c) => selectedTts === c.selectId, 'tts',
-                variantData, handlePinVariant, renderTtsBody,
-              )
-            ) : (
-              renderCards(
-                ttsCards,
-                (c) => selectedTts === c.selectId,
-                'tts',
-                variantData,
-                handlePinVariant,
-                renderTtsBody,
-              )
+            renderCards(
+              ttsCards,
+              (c) => selectedTts === c.selectId,
+              'tts',
+              variantData,
+              handlePinVariant,
+              renderTtsBody,
             )
           ) : (
             <div className="model-card__no-model-warning">

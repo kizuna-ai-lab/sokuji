@@ -4,7 +4,7 @@ import { getLanguageOption } from '../../../utils/languages';
  * Language display name for a code (e.g. 'ja' -> '日本語'), falling back to
  * the raw code when unknown. Shared by both EngineAdapter implementations
  * (useWasmEngineAdapter / useNativeEngineAdapter) and the two Library
- * sections' compatibilitySplit group headers, so every place that turns a
+ * sections' availableWhenLang lines, so every place that turns a
  * language code into a name for the engine UI resolves it identically —
  * mirrors how LanguageSection.tsx derives sourceLanguageName/
  * targetLanguageName (`providerConfig.languages.find(l => l.value ===

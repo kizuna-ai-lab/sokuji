@@ -1053,8 +1053,6 @@
     "inUse": "In use",
     "estimated": "Estimated",
     "translationOnCpu": "Translation on CPU — not enough VRAM",
-    "supportsLang": "Supports {{lang}}",
-    "otherLanguages": "Other languages",
     "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",
     "deleteConfirm": "Delete {{name}}?",
     "deleteFallsBack": "Deleting {{name}}: {{stage}} falls back to {{to}}.",

@@ -2129,7 +2129,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           initialSlot={engineInitialSlot}
           renderLibrary={(slot) => (
             <NativeModelManagementSection isSessionActive={isSessionActive}
-              stageFilter={slot.stage} compatibilitySplit />
+              stageFilter={slot.stage} />
           )}
           renderStorage={() => <StoragePage provider="native" isSessionActive={isSessionActive} />}
         />
@@ -2248,7 +2248,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           initialSlot={engineInitialSlot}
           renderLibrary={(slot) => (
             <ModelManagementSection isSessionActive={isSessionActive}
-              stageFilter={slot.stage} compatibilitySplit />
+              stageFilter={slot.stage} />
           )}
           renderStorage={() => <StoragePage provider="wasm" isSessionActive={isSessionActive} />}
         />

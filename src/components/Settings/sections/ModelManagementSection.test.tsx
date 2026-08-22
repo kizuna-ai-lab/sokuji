@@ -15,9 +15,9 @@ const mockSettings = { ...defaultSettings };
 const mockUpdate = vi.fn();
 
 vi.mock('react-i18next', () => ({
-  // Interpolating, mirroring StoragePage.test.tsx — needed so a
-  // compatibilitySplit group header's {{lang}} actually resolves to the
-  // language NAME the component passed in, not the raw placeholder (I5/I3).
+  // Interpolating, mirroring StoragePage.test.tsx — needed so {{lang}} in
+  // the availableWhenLang line actually resolves to the language NAME the
+  // component passed in, not the raw placeholder (I5/I3).
   useTranslation: () => ({
     t: (_k: string, fb?: string, opts?: Record<string, any>) =>
       typeof fb === 'string'
@@ -203,76 +203,60 @@ describe('ModelManagementSection — selected state comes from resolve(), not se
   });
 });
 
-// I3 (final-review carry-over): the Library surface (stageFilter +
-// compatibilitySplit) had zero dedicated tests — everything above exercises
-// the standalone (Settings-page) render. These four cover the spec's own
-// checklist for that surface.
-describe('ModelManagementSection — compatibilitySplit / Library surface (I3)', () => {
-  it('renders every model of the filtered stage, split into a compatible group and a collapsed "Other languages" group (regression guard against quietly reintroducing a language filter)', async () => {
+// I3 (final-review carry-over, amended 2026-08-22): the Library surface
+// (stageFilter) keeps the ORIGINAL main-branch model group list — the
+// Recommended/Others subgroups plus the "Show all N models" collapse for
+// incompatible ones — per the user's post-render decision (see the spec's
+// Amendment note). These cover that surface's own checklist.
+describe('ModelManagementSection — Library surface keeps the original group list (I3)', () => {
+  it('renders header-less, with the original Recommended subgroup and every model of the filtered stage reachable via the show-all toggle', async () => {
     // moonshine-tiny-ja-quant supports only 'ja' — incompatible with an 'en'
-    // source, so it lands in the "Other languages" group.
+    // source, so it sits behind the show-all toggle.
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
 
-    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" compatibilitySplit />);
-    await screen.findByText('ASR (Speech Recognition)');
+    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" />);
+    await screen.findByRole('button', { name: /Show all ASR models \(\d+\)/ });
 
-    // Collapsed by default: the incompatible model is in the manifest but
-    // absent from the DOM until its group is expanded.
+    // Bare mode: the stage's collapsible group header would duplicate the
+    // Library page title, so it must not render on this surface.
+    expect(document.querySelector('.model-group__header')).not.toBeInTheDocument();
+
+    // The original Recommended/Others subgroup structure is intact.
+    expect(document.querySelector('.model-subgroup__label')).toHaveTextContent('Recommended');
+
+    // Incompatible models are in the manifest but absent from the DOM until
+    // the show-all toggle expands them.
     expect(screen.queryByTestId('model-card-moonshine-tiny-ja-quant')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('Other languages'));
+    fireEvent.click(screen.getByRole('button', { name: /Show all ASR models/ }));
     expect(await screen.findByTestId('model-card-moonshine-tiny-ja-quant')).toBeInTheDocument();
 
-    // Every ASR model in the manifest renders SOMEWHERE across the two groups
-    // — nothing is silently dropped by the split.
+    // Every ASR model in the manifest now renders SOMEWHERE — nothing is
+    // silently dropped by the Library view.
     const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
     for (const m of allAsr) {
       expect(screen.getByTestId(`model-card-${m.id}`)).toBeInTheDocument();
     }
   });
 
-  it('the group header wording keys on the right language axis: ASR reads the source language, TTS reads the target — the two differ for one direction', async () => {
-    mockSettings.sourceLanguage = 'ja';
-    mockSettings.targetLanguage = 'en';
-
-    render(<ModelManagementSection isSessionActive={false} compatibilitySplit />);
-    await screen.findByText('ASR (Speech Recognition)');
-
-    // Scoped to each stage's own ModelGroup, and to the INNER (nested,
-    // compatibilitySplit) "Supports X" title specifically — the outer
-    // ModelGroup carries the stage's plain name ("ASR (Speech Recognition)"),
-    // and the translation group's inner header ALSO reads "Supports
-    // {{lang}}", but its {{lang}} is the full pair sentence ("Supports
-    // 日本語 → English"), which would falsely satisfy a looser "any header
-    // contains the source name" check.
-    const findSupportsHeader = (sectionId: string) =>
-      Array.from(document.querySelectorAll(`#${sectionId}-section .model-group__title`))
-        .find((el) => el.textContent?.startsWith('Supports '));
-    const asrHeader = findSupportsHeader('model-asr');
-    const ttsHeader = findSupportsHeader('model-tts');
-
-    // Resolved NAMES (languageNameFor), not the raw 'ja'/'en' codes — and the
-    // two axes must differ, or a copy-paste bug (both reading source, say)
-    // would pass unnoticed.
-    expect(asrHeader).toHaveTextContent('Supports 日本語');
-    expect(ttsHeader).toHaveTextContent('Supports English');
-    expect(asrHeader?.textContent).not.toBe(ttsHeader?.textContent);
-  });
-
   it('an incompatible model offers Download but clicking it (the "Use" affordance) does not write a selection', async () => {
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';
 
-    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" compatibilitySplit />);
-    fireEvent.click(screen.getByText('Other languages'));
+    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" />);
+    fireEvent.click(await screen.findByRole('button', { name: /Show all ASR models/ }));
 
     const card = await screen.findByTestId('model-card-moonshine-tiny-ja-quant');
     expect(within(card).getByTitle('Download')).toBeInTheDocument();
 
-    // ModelCard's own isCompatible guard blocks selection on click.
+    // ModelCard's own isCompatible guard blocks selection on click. Assert
+    // on selection writes specifically: an unrelated async settings write
+    // (the Edge-TTS default-voice effect posts {edgeTtsVoice} for a 'ja'
+    // target) can land between the awaits above, so "zero calls at all"
+    // is a race, not the invariant.
     fireEvent.click(card);
-    expect(mockUpdate).not.toHaveBeenCalled();
+    const selectionWrites = mockUpdate.mock.calls.filter(([patch]) => patch && 'selections' in patch);
+    expect(selectionWrites).toHaveLength(0);
   });
 
   it('a downloaded incompatible model shows the "available when your language is" line, naming the language', async () => {
@@ -280,8 +264,8 @@ describe('ModelManagementSection — compatibilitySplit / Library surface (I3)',
     mockSettings.targetLanguage = 'ja';
     mockStatuses['moonshine-tiny-ja-quant'] = 'downloaded';
 
-    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" compatibilitySplit />);
-    fireEvent.click(screen.getByText('Other languages'));
+    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" />);
+    fireEvent.click(await screen.findByRole('button', { name: /Show all ASR models/ }));
     await screen.findByTestId('model-card-moonshine-tiny-ja-quant');
 
     const line = screen.getByText(/Available when your language is/);
@@ -297,7 +281,8 @@ describe('ModelManagementSection — compatibilitySplit / Library surface (I3)',
 describe('ModelManagementSection — ModelStorageFooter only on the standalone render (C1)', () => {
   it('a Library-view (stageFilter set) render has no ModelStorageFooter', async () => {
     render(<ModelManagementSection isSessionActive={false} stageFilter="asr" />);
-    await screen.findByText('ASR (Speech Recognition)');
+    // Bare mode has no stage title — anchor on the rendered list instead.
+    await screen.findByRole('button', { name: /Show all ASR models/ });
     expect(document.querySelector('.model-management__storage')).not.toBeInTheDocument();
   });
 

@@ -134,7 +134,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
               initialSlot={engineOpen}
               renderLibrary={(slot) => (
                 <NativeModelManagementSection isSessionActive={isSessionActive}
-                  stageFilter={slot.stage} compatibilitySplit />
+                  stageFilter={slot.stage} />
               )}
               renderStorage={() => <StoragePage provider="native" isSessionActive={isSessionActive} />}
             />
@@ -144,7 +144,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
               initialSlot={engineOpen}
               renderLibrary={(slot) => (
                 <ModelManagementSection isSessionActive={isSessionActive}
-                  stageFilter={slot.stage} compatibilitySplit />
+                  stageFilter={slot.stage} />
               )}
               renderStorage={() => <StoragePage provider="wasm" isSessionActive={isSessionActive} />}
             />
