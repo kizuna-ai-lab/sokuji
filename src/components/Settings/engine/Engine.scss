@@ -193,14 +193,27 @@
   color: vars.$text-secondary;
   font-size: vars.$font-caption;
   font-weight: vars.$weight-normal;
+  // Explicit line-height (not the platform font's `normal`): the chip's
+  // 12px text and the 14px title beside it sag below their flex-centered
+  // boxes by DIFFERENT platform-font-dependent amounts (CJK fallback
+  // metrics), so their visual centers drift apart. Symmetric explicit
+  // line boxes pin both to their box centers; 16+6+2 also makes the pill
+  // an even 24px, dodging half-pixel rounding jumps against the title.
+  line-height: 16px;
   padding: 3px 10px 3px 8px;
   cursor: pointer;
   transition: border-color vars.$transition-fast, color vars.$transition-fast;
+
+  svg { flex: none; }
 
   &:hover {
     border-color: vars.$color-primary;
     color: vars.$color-primary;
   }
+}
+
+.engine-surface__heading > span {
+  line-height: 20px;
 }
 
 // Back row: SimpleSettings' engine-host exit (its own surface, not the push
