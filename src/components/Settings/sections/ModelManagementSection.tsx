@@ -44,6 +44,14 @@ import './ModelManagementSection.scss';
 
 interface ModelManagementSectionProps {
   isSessionActive: boolean;
+  /** Render only this stage's group (used by the Engine surface's Library
+   *  push, which is already scoped to one stage). Omitted = all three. */
+  stageFilter?: Stage;
+  /** Replace each rendered group's Recommended/Others split with a
+   *  language-compatibility split: a "Supports {{lang}}" group (expanded)
+   *  and a collapsed "Other languages" group, instead of the
+   *  compatible-list + "Show all N models" toggle. */
+  compatibilitySplit?: boolean;
 }
 
 // ─── ModelCard ─────────────────────────────────────────────────────────────
@@ -315,6 +323,8 @@ const sortTtsModels = createModelSorter((a, b) =>
 
 export function ModelManagementSection({
   isSessionActive,
+  stageFilter,
+  compatibilitySplit = false,
 }: ModelManagementSectionProps) {
   const { t } = useTranslation();
   const settings = useLocalInferenceSettings();
@@ -704,9 +714,85 @@ export function ModelManagementSection({
     />
   );
 
+  /**
+   * The `compatibilitySplit` body for one stage: a "Supports {{lang}}" group
+   * (expanded, the compatible list — or the stage's no-model warning when
+   * empty) followed by a collapsed "Other languages" group holding
+   * everything else. Replaces `renderSubGroups` + the "Show all N models"
+   * toggle for this stage — compatibilitySplit's whole point is that
+   * incompatible models are always reachable, just collapsed by default.
+   */
+  const renderCompatSplitBody = (
+    langLabel: string,
+    noModelMessage: React.ReactNode,
+    compatibleModels: ModelManifestEntry[],
+    incompatibleModels: ModelManifestEntry[],
+    selectedId: string | undefined,
+    onSelect: (id: string) => void,
+    renderBody?: (entry: ModelManifestEntry) => React.ReactNode,
+  ) => (
+    <>
+      <ModelGroup title={t('engineUi.supportsLang', 'Supports {{lang}}', { lang: langLabel })} defaultExpanded>
+        {compatibleModels.length > 0
+          ? compatibleModels.map((m) => renderCard(m, selectedId, onSelect, renderBody))
+          : noModelMessage}
+      </ModelGroup>
+      {incompatibleModels.length > 0 && (
+        <ModelGroup title={t('engineUi.otherLanguages', 'Other languages')} defaultExpanded={false}>
+          {incompatibleModels.map((entry) => (
+            <React.Fragment key={entry.id}>
+              <ModelCard
+                entry={entry}
+                status={statuses[entry.id] || 'not_downloaded'}
+                download={downloads[entry.id]}
+                isSessionActive={isSessionActive}
+                isSelected={selectedId === entry.id}
+                isCompatible={false}
+                compatibilityHint={
+                  !deviceReady(entry, webgpuAvailable)
+                    ? t('settings.webgpuNotSupported', 'Not available in current environment')
+                    : t('settings.langMismatch', 'language mismatch')
+                }
+                onSelect={() => onSelect(entry.id)}
+                onDownload={() => handleDownload(entry.id)}
+                onCancel={() => cancelDownload(entry.id)}
+                onDelete={() => deleteModel(entry.id)}
+                onImport={() => setImportFor(entry)}
+              />
+              {statuses[entry.id] === 'downloaded' && (
+                <div className="model-card__available-when-lang">
+                  {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
+                    lang: entry.languages.join(', '),
+                  })}
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </ModelGroup>
+      )}
+    </>
+  );
+
   // ── ASR Section ───────────────────────────────────────────────────────
 
   const renderAsrGroup = () => {
+    if (compatibilitySplit) {
+      return (
+        <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
+          {renderCompatSplitBody(
+            sourceLanguage,
+            <div className="model-card__no-model-warning">
+              <AlertTriangle size={14} />
+              {t('settings.noAsrModel', 'No ASR model for {{language}}', { language: sourceLanguage })}
+            </div>,
+            compatibleAsrModels,
+            incompatibleAsrModels,
+            selectedAsr,
+            (id) => selectCard('asr', id),
+          )}
+        </ModelGroup>
+      );
+    }
     return (
       <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
         {compatibleAsrModels.length > 0 ? (
@@ -766,6 +852,26 @@ export function ModelManagementSection({
   // ── Translation Section ───────────────────────────────────────────────
 
   const renderTranslationGroup = () => {
+    if (compatibilitySplit) {
+      return (
+        <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}>
+          {renderCompatSplitBody(
+            t('engineUi.speakerHeading', '{{src}} → {{tgt}}', { src: sourceLanguage, tgt: targetLanguage }),
+            <div className="model-card__no-model-warning">
+              <AlertTriangle size={14} />
+              {t('settings.noTranslationModel', 'No translation model for {{source}} → {{target}}', {
+                source: sourceLanguage,
+                target: targetLanguage,
+              })}
+            </div>,
+            compatibleTranslationModels,
+            incompatibleTranslationModels,
+            selectedTranslation,
+            (id) => selectCard('translation', id),
+          )}
+        </ModelGroup>
+      );
+    }
     return (
       <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}>
         {compatibleTranslationModels.length > 0 ? (
@@ -827,7 +933,87 @@ export function ModelManagementSection({
 
   // ── TTS Section ───────────────────────────────────────────────────────
 
+  // Voice control embedded in the selected TTS card only. The card's
+  // `isSelected && children` gate is the real guard; the id check just
+  // avoids building the body for non-selected cards. Shared by both the
+  // normal and compatibilitySplit render paths below.
+  const renderTtsCardBody = (entry: ModelManifestEntry) => entry.id === selectedTts ? (
+    <>
+      <LocalInferenceVoiceSection
+        ttsModel={entry.id}
+        isSessionActive={isSessionActive}
+        edgeVoices={edgeVoices}
+        edgeVoiceStatus={edgeTtsVoiceStatus}
+        edgeTtsVoice={settings.edgeTtsVoice}
+        supertonicVoices={supertonicVoiceEntries}
+        supertonicSelectedId={supertonicSelectedId}
+        onImportVoice={handleImportVoice}
+        onRenameVoice={handleRenameVoice}
+        onDeleteVoice={handleDeleteVoice}
+        ttsSpeakerId={settings.ttsSpeakerId}
+        numSpeakers={supertonicTtsEntry?.numSpeakers ?? getManifestEntry(entry.id)?.numSpeakers ?? 1}
+        onUpdate={(patch) => updateLocalInference(patch)}
+      />
+      {isSupertonicTts && (
+        <>
+          <div className="voice-library-info">
+            {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
+            <a
+              href="https://supertonic.supertone.ai/voice-builder"
+              onClick={(e) => {
+                e.preventDefault();
+                const url = 'https://supertonic.supertone.ai/voice-builder';
+                if (isElectron() && (window as any).electron?.invoke) {
+                  (window as any).electron.invoke('open-external', url);
+                } else {
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }
+              }}
+            >
+              {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
+              <ExternalLink size={14} />
+            </a>
+            <div className="voice-library-info-sub">
+              {t(
+                'voiceLibrary.voiceBuilderDisclaimer',
+                'Paid Supertone service. Sokuji is not involved in that transaction.',
+              )}
+            </div>
+          </div>
+          {importError && (
+            <div className="setting-item error">
+              {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
+            </div>
+          )}
+          {hasPendingChanges && (
+            <div className="setting-item info">
+              {t('voiceLibrary.restartHint', 'Restart the session to apply imported voice changes.')}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  ) : null;
+
   const renderTtsGroup = () => {
+    if (compatibilitySplit) {
+      return (
+        <ModelGroup id="model-tts" title={t('models.ttsModels', 'TTS (Text-to-Speech)')}>
+          {renderCompatSplitBody(
+            targetLanguage,
+            <div className="model-card__no-model-warning">
+              <AlertTriangle size={14} />
+              {t('settings.noTtsModel', 'No TTS model for {{language}}', { language: targetLanguage })}
+            </div>,
+            compatibleTtsModels,
+            incompatibleTtsModels,
+            selectedTts,
+            (id) => selectCard('tts', id),
+            renderTtsCardBody,
+          )}
+        </ModelGroup>
+      );
+    }
     return (
       <ModelGroup
         id="model-tts"
@@ -838,66 +1024,7 @@ export function ModelManagementSection({
             compatibleTtsModels,
             selectedTts,
             (id) => selectCard('tts', id),
-            // Voice control embedded in the selected TTS card only. The card's
-            // `isSelected && children` gate is the real guard; the id check just
-            // avoids building the body for non-selected cards.
-            (entry) => entry.id === selectedTts ? (
-              <>
-                <LocalInferenceVoiceSection
-                  ttsModel={entry.id}
-                  isSessionActive={isSessionActive}
-                  edgeVoices={edgeVoices}
-                  edgeVoiceStatus={edgeTtsVoiceStatus}
-                  edgeTtsVoice={settings.edgeTtsVoice}
-                  supertonicVoices={supertonicVoiceEntries}
-                  supertonicSelectedId={supertonicSelectedId}
-                  onImportVoice={handleImportVoice}
-                  onRenameVoice={handleRenameVoice}
-                  onDeleteVoice={handleDeleteVoice}
-                  ttsSpeakerId={settings.ttsSpeakerId}
-                  numSpeakers={supertonicTtsEntry?.numSpeakers ?? getManifestEntry(entry.id)?.numSpeakers ?? 1}
-                  onUpdate={(patch) => updateLocalInference(patch)}
-                />
-                {isSupertonicTts && (
-                  <>
-                    <div className="voice-library-info">
-                      {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
-                      <a
-                        href="https://supertonic.supertone.ai/voice-builder"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          const url = 'https://supertonic.supertone.ai/voice-builder';
-                          if (isElectron() && (window as any).electron?.invoke) {
-                            (window as any).electron.invoke('open-external', url);
-                          } else {
-                            window.open(url, '_blank', 'noopener,noreferrer');
-                          }
-                        }}
-                      >
-                        {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
-                        <ExternalLink size={14} />
-                      </a>
-                      <div className="voice-library-info-sub">
-                        {t(
-                          'voiceLibrary.voiceBuilderDisclaimer',
-                          'Paid Supertone service. Sokuji is not involved in that transaction.',
-                        )}
-                      </div>
-                    </div>
-                    {importError && (
-                      <div className="setting-item error">
-                        {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
-                      </div>
-                    )}
-                    {hasPendingChanges && (
-                      <div className="setting-item info">
-                        {t('voiceLibrary.restartHint', 'Restart the session to apply imported voice changes.')}
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            ) : null,
+            renderTtsCardBody,
           )
         ) : (
           <div className="model-card__no-model-warning">
@@ -951,9 +1078,9 @@ export function ModelManagementSection({
 
       <GpuAccelerationNotice />
 
-      {renderAsrGroup()}
-      {renderTranslationGroup()}
-      {renderTtsGroup()}
+      {(!stageFilter || stageFilter === 'asr') && renderAsrGroup()}
+      {(!stageFilter || stageFilter === 'translation') && renderTranslationGroup()}
+      {(!stageFilter || stageFilter === 'tts') && renderTtsGroup()}
 
       <ModelStorageFooter
         usedMb={storageUsedMb}

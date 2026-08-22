@@ -66,6 +66,9 @@ import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { EngineSection } from './EngineSection';
+import { EngineSurface } from '../engine/EngineSurface';
+import { useWasmEngineAdapter } from '../engine/useWasmEngineAdapter';
+import { StoragePage } from '../engine/StoragePage';
 import SonioxVoiceSection from './SonioxVoiceSection';
 import { byokVoiceSource, managedVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
 import { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
@@ -307,6 +310,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     modelStatuses,
   ]);
   const selectedAsr = speakerResolved.asr?.modelId ?? '';
+
+  // LOCAL_INFERENCE's EngineAdapter — hoisted above the return (hooks must
+  // run unconditionally) even though it's only rendered in the
+  // LOCAL_INFERENCE branch below.
+  const wasmAdapter = useWasmEngineAdapter(isSessionActive);
 
   // Custom prompt is supported when EITHER the speaker's or the participant's
   // translation worker is Qwen-family. The participant direction (tgt→src) is
@@ -2215,7 +2223,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <>
-        <ModelManagementSection isSessionActive={isSessionActive} />
+        <EngineSurface
+          adapter={wasmAdapter}
+          renderLibrary={(slot) => (
+            <ModelManagementSection isSessionActive={isSessionActive}
+              stageFilter={slot.stage} compatibilitySplit />
+          )}
+          renderStorage={() => <StoragePage provider="wasm" />}
+        />
 
         {/* Voice / speaker selection now lives inside the selected TTS card
             (see ModelManagementSection → LocalInferenceVoiceSection). */}

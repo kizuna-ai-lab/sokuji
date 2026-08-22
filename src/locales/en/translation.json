@@ -838,6 +838,7 @@
     "importNow": "Import {{count}} now",
     "management": "Models",
     "storageUsed": "Storage: {{size}} MB used",
+    "storageEmpty": "No models downloaded yet.",
     "asrModels": "Speech Recognition (ASR)",
     "translationModels": "Translation",
     "ttsModels": "Speech Synthesis (TTS)",
@@ -1052,6 +1053,13 @@
     "titleStorage": "Storage",
     "speakerHeading": "{{src}} → {{tgt}}",
     "inUse": "In use",
-    "subtitlesOnly": "Subtitles only"
+    "subtitlesOnly": "Subtitles only",
+    "supportsLang": "Supports {{lang}}",
+    "otherLanguages": "Other languages",
+    "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",
+    "deleteFallsBack": "Deleting {{name}}: {{stage}} falls back to {{to}}.",
+    "deleteNoModel": "Deleting {{name}}: no {{stage}} model remains — sessions cannot start.",
+    "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again.",
+    "importChooseModel": "Choose a model to import"
   }
 }

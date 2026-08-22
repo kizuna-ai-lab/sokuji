@@ -26,3 +26,30 @@
 }
 .engine-picker__meta { margin-left: auto; font-size: 11px; color: #9aa0a6; }
 .engine-picker__browse { color: #9aa0a6; }
+
+.engine-storage-page {
+  &__summary {
+    display: flex; align-items: center; gap: 8px; padding: 8px 4px;
+    font-size: 13px; color: #9aa0a6;
+  }
+  &__empty { padding: 12px 4px; font-size: 13px; color: #9aa0a6; }
+  &__actions { display: flex; align-items: center; gap: 8px; padding: 10px 4px; flex-wrap: wrap; }
+}
+.engine-storage-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  &__info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+  &__name { font-size: 13px; }
+  &__badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 10px;
+    background: rgba(16, 163, 127, 0.15); color: #10a37f;
+  }
+  &__delete { background: none; border: none; color: #e74c3c; cursor: pointer; padding: 4px; }
+}
+.engine-storage-confirm {
+  padding: 8px; margin: 4px 0; background: rgba(255, 255, 255, 0.04); border-radius: 6px;
+  font-size: 12px;
+  p { margin: 0 0 6px; }
+  button { margin-right: 8px; }
+}
+.engine-storage-import-picker { padding: 6px 4px; }
