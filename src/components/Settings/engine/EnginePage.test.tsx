@@ -123,6 +123,28 @@ describe('EngineSurface / EnginePage', () => {
     expect(screen.queryByRole('button', { name: /TTS/ })).not.toBeInTheDocument();
   });
 
+  it('a mode switch kills a pending flash — revealing a direction later never replays it', () => {
+    // Armed via deep link on the PARTICIPANT slot in 'both'; switching to
+    // speaker unmounts that row, and switching back re-mounts it. The stale
+    // signal used to re-run the fresh row's flash effect (report: speaker ->
+    // participant/both flashed the participant ASR slot).
+    const props = {
+      adapter: adapter(),
+      renderLibrary: (slot: any) => <div data-testid="library">{slot.stage}</div>,
+      renderStorage: () => <div data-testid="storage" />,
+    };
+    const { rerender } = render(
+      <EngineSurface {...props} initialSlot={{ dir: 'en→ja', stage: 'asr' }} effectiveMode="both" />);
+    expect(document.querySelector('.engine-slot.highlight')).toBeInTheDocument();
+
+    rerender(<EngineSurface {...props} initialSlot={{ dir: 'en→ja', stage: 'asr' }} effectiveMode="speaker" />);
+    expect(screen.queryByText('en → ja')).not.toBeInTheDocument();
+
+    rerender(<EngineSurface {...props} initialSlot={{ dir: 'en→ja', stage: 'asr' }} effectiveMode="both" />);
+    expect(screen.getByText('en → ja')).toBeInTheDocument();
+    expect(document.querySelector('.engine-slot.highlight')).not.toBeInTheDocument();
+  });
+
   it('returning from a pushed Library does not re-flash the deep-linked slot', () => {
     // Pushing unmounts the slot rows; if the flash signal were the raw
     // initialSlot prop, remounting on pop would re-run every row's flash

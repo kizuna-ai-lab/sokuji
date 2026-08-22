@@ -37,9 +37,12 @@ export const SlotRow: React.FC<{
     setFlashing(true);
     // Mirrors Settings.tsx's highlight duration/cleanup discipline: the CSS
     // animation itself runs 2s (see .engine-slot.highlight in Engine.scss),
-    // the class stays a beat longer so it's never clipped mid-cycle.
+    // the class stays a beat longer so it's never clipped mid-cycle. The
+    // cleanup ALSO lowers the flag: when the owner clears the signal early
+    // (mode switch, expiry) this effect re-runs and would otherwise cancel
+    // the timer while leaving the row latched highlighted forever.
     const timer = setTimeout(() => setFlashing(false), 3000);
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); setFlashing(false); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flashSlot]);
 
