@@ -1,0 +1,28 @@
+.engine-slot {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  &__header {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: none; border: none; padding: 8px 4px; cursor: pointer;
+    color: inherit; text-align: left;
+  }
+  &__label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9aa0a6; min-width: 42px; }
+  &__value { font-size: 13px; font-family: ui-monospace, monospace; }
+  &__value--missing { color: #e74c3c; }
+  &__body { padding: 4px 8px 10px 26px; }
+}
+.engine-direction {
+  &__title { font-size: 12px; color: #9aa0a6; margin: 12px 0 2px; }
+}
+.engine-storage-row, .engine-back-row {
+  display: flex; align-items: center; gap: 8px; padding: 10px 4px; cursor: pointer;
+  background: none; border: none; color: inherit; width: 100%; text-align: left; font-size: 13px;
+}
+.engine-back-row { font-weight: 600; }
+.engine-picker__option {
+  display: flex; align-items: center; gap: 8px; padding: 6px 4px; width: 100%;
+  background: none; border: none; color: inherit; cursor: pointer; font-size: 13px;
+  &.is-selected { color: #10a37f; }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+.engine-picker__meta { margin-left: auto; font-size: 11px; color: #9aa0a6; }
+.engine-picker__browse { color: #9aa0a6; }
