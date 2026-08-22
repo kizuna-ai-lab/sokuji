@@ -3,6 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { EngineSurface } from './EngineSurface';
 import type { EngineAdapter } from './EngineTypes';
 
+let mockRichSelect = false;
+vi.mock('../../../utils/supportsBaseSelect', () => ({
+  supportsBaseSelect: () => mockRichSelect,
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, defaultValue?: string, options?: Record<string, string>) => {
@@ -132,6 +137,27 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     expect(screen.getByText('en → ja')).toBeInTheDocument();
     expect(screen.getAllByRole('combobox')).toHaveLength(2);
     expect(screen.queryByRole('combobox', { name: /TTS/ })).not.toBeInTheDocument();
+  });
+
+  it('rich mode (base-select): spans for name/meta, a selectedcontent mirror, and the browse action class', () => {
+    mockRichSelect = true;
+    try {
+      surface();
+      const select = asrSelect();
+      // Closed-control mirror present.
+      expect(select.querySelector('button > selectedcontent')).not.toBeNull();
+      // Auto option: muted provenance prefix + name span.
+      expect(select.options[0].querySelector('.engine-opt__auto')?.textContent).toBe('auto · ');
+      // Candidate option: name and right-aligned meta as separate spans.
+      const cand = select.options[1];
+      expect(cand.querySelector('.engine-opt__name')?.textContent).toBe('Model One');
+      expect(cand.querySelector('.engine-opt__meta')?.textContent).toBe('10 MB');
+      // Browse option carries its action class.
+      const browse = Array.from(select.options).find((o) => o.value === '__browse__')!;
+      expect(browse.classList.contains('engine-opt--browse')).toBe(true);
+    } finally {
+      mockRichSelect = false;
+    }
   });
 
   it('a mode switch kills a pending flash — revealing a direction later never replays it', () => {

@@ -79,6 +79,65 @@
   }
 }
 
+// Rich base-select styling for the slot dropdowns (Chromium 135+; classic
+// popups get plain-text options via the richSelect gate in EnginePage). The
+// shared @supports block in Settings.scss already themes .select-dropdown's
+// picker chrome; this adds the engine-specific option anatomy:
+//   #1 sizes right-aligned in the open list, hidden in the closed control
+//   #2 Browse library… reads as an ACTION row (divider + muted)
+//   #3 the current pick is green in the list (beside the built-in check)
+//   #4 the closed control's 'auto ·' prefix stays muted, name stays bright
+@supports (appearance: base-select) {
+  .engine-slot__select {
+    option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    option:checked {
+      color: vars.$color-primary;
+    }
+
+    option.engine-opt--browse {
+      color: vars.$text-muted;
+      border-top: 1px solid vars.$border-subtle;
+      border-radius: 0;
+      margin-top: 4px;
+    }
+
+    .engine-opt__name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .engine-opt__auto {
+      color: vars.$text-muted;
+    }
+
+    .engine-opt__meta {
+      flex: none;
+      font-size: vars.$font-caption;
+      color: vars.$text-muted;
+    }
+
+    // The closed control is <selectedcontent> — a clone of the chosen
+    // option's markup. Trim it: no size (that detail belongs to the open
+    // list), and the muted auto prefix reads as provenance, not value.
+    selectedcontent {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+
+      .engine-opt__meta { display: none; }
+    }
+  }
+}
+
 // Native's per-stage compute-device control, previously inside the expanded
 // accordion body — now a compact always-visible line under its slot row.
 .engine-slot__extras {

@@ -4,6 +4,7 @@ import { ChevronRight, HardDrive } from 'lucide-react';
 import type { EngineAdapter, SlotId } from './EngineTypes';
 import { SlotRow } from './SlotRow';
 import type { AudioMode } from '../../../stores/audioStore';
+import { supportsBaseSelect } from '../../../utils/supportsBaseSelect';
 import './Engine.scss';
 
 /** Short stage labels (ASR / MT / TTS) — used where space is tight: the
@@ -50,6 +51,10 @@ export const EnginePage: React.FC<{
   effectiveMode: AudioMode;
 }> = ({ adapter, onBrowse, onStorage, flashSlot = null, effectiveMode }) => {
   const { t } = useTranslation();
+  // Rich option markup only where the runtime renders customizable selects
+  // (same gating and reason as ProviderSection's provider-select: classic
+  // OS popups flatten or hide rich children).
+  const richSelect = supportsBaseSelect();
 
   // Direction visibility follows the effective audio mode (2026-08-23
   // decision): speaker shows only the forward leg, participant only the
@@ -99,18 +104,38 @@ export const EnginePage: React.FC<{
                       adapter.select(slot, picked);
                     }}
                   >
+                    {richSelect && (
+                      // The closed control mirrors the selected option's rich
+                      // markup; CSS trims it (hides the size, keeps the muted
+                      // auto prefix) — see .engine-slot__select selectedcontent.
+                      <button type="button"><selectedcontent /></button>
+                    )}
                     <option value="">
                       {resolved && resolved.source === 'auto'
-                        ? t('engineUi.autoValue', 'auto · {{name}}', { name: adapter.displayName(resolved.modelId) })
-                        : t('engineUi.autoOptionNone', 'Auto')}
+                        ? (richSelect ? (
+                            <span className="engine-opt__name">
+                              <span className="engine-opt__auto">{'auto · '}</span>
+                              {adapter.displayName(resolved.modelId)}
+                            </span>
+                          ) : t('engineUi.autoValue', 'auto · {{name}}', { name: adapter.displayName(resolved.modelId) }))
+                        : (richSelect
+                            ? <span className="engine-opt__name">{t('engineUi.autoOptionNone', 'Auto')}</span>
+                            : t('engineUi.autoOptionNone', 'Auto'))}
                     </option>
                     {adapter.readyCandidates(slot).map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.sizeLabel ? `${c.name} · ${c.sizeLabel}` : c.name}
+                        {richSelect ? (
+                          <>
+                            <span className="engine-opt__name">{c.name}</span>
+                            {c.sizeLabel && <span className="engine-opt__meta">{c.sizeLabel}</span>}
+                          </>
+                        ) : (c.sizeLabel ? `${c.name} · ${c.sizeLabel}` : c.name)}
                       </option>
                     ))}
-                    <option value={BROWSE_OPTION_VALUE}>
-                      {t('engineUi.browseLibrary', 'Browse library')}…
+                    <option value={BROWSE_OPTION_VALUE} className="engine-opt--browse">
+                      {richSelect
+                        ? <span className="engine-opt__name">{t('engineUi.browseLibrary', 'Browse library')}…</span>
+                        : `${t('engineUi.browseLibrary', 'Browse library')}…`}
                     </option>
                   </select>
                 </SlotRow>
