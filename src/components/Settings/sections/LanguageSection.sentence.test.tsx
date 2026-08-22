@@ -40,6 +40,7 @@ vi.mock('../../../services/ServiceFactory', () => ({
 
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
 const { default: useAudioStore } = await import('../../../stores/audioStore');
+const { useModelStore } = await import('../../../stores/modelStore');
 const { Provider } = await import('../../../types/Provider');
 const { default: LanguageSection } = await import('./LanguageSection');
 
@@ -110,5 +111,36 @@ describe('LanguageSection — mode-verb sentence labels (local providers)', () =
     expect(screen.getByText('simpleConfig.yourLanguage')).toBeInTheDocument();
     expect(screen.getByText('simpleConfig.targetLanguage')).toBeInTheDocument();
     expect(screen.queryByTestId('language-mirror-line')).not.toBeInTheDocument();
+  });
+});
+
+describe('LanguageSection — resolution notes', () => {
+  it('renders one line per note for the local provider, via describeResolutionNote', () => {
+    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
+    useModelStore.setState({
+      lastResolutionNotes: [
+        { direction: 'ja→en', stage: 'translation', from: 'opus-mt-en-ja', to: 'qwen-x', reason: 'lang-incompatible' },
+      ],
+    });
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    const notes = screen.getByTestId('language-resolution-notes');
+    expect(notes.textContent).toContain('does not support this direction');
+  });
+
+  it('renders nothing when there are no notes', () => {
+    useModelStore.setState({ lastResolutionNotes: [] });
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
+  });
+
+  it('non-local providers never render the block', () => {
+    useSettingsStore.setState({ provider: Provider.OPENAI });
+    useModelStore.setState({
+      lastResolutionNotes: [
+        { direction: 'ja→en', stage: 'asr', from: null, to: null, reason: 'no-candidate' },
+      ],
+    });
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
   });
 });

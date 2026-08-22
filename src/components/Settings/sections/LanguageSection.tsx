@@ -43,8 +43,10 @@ import { useLockedMode } from '../../../stores/sessionStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
-import { getTranslationTargetLanguages, getManifestByType, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
-import { useModelStatuses, useModelInitialized } from '../../../stores/modelStore';
+import { getTranslationTargetLanguages, getManifestByType, isTranslationModelCompatible, getManifestEntry } from '../../../lib/local-inference/modelManifest';
+import { useModelStatuses, useModelInitialized, useLastResolutionNotes } from '../../../stores/modelStore';
+import { useNativeLastResolutionNotes, useNativeCatalog } from '../../../stores/nativeModelStore';
+import { describeResolutionNote } from '../engine/resolutionNotes';
 
 interface LanguageSectionProps {
   isSessionActive: boolean;
@@ -507,6 +509,22 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const targetLanguageName = targetLanguages.find(l => l.value === currentProviderSettings.targetLanguage)?.name
     ?? currentProviderSettings.targetLanguage;
 
+  // S0: surface the last resolution notes (auto-substitutions/fallbacks made
+  // while picking models for this language pair) right where the pair itself
+  // is edited. WASM and native track their own resolvers/catalogs, so both
+  // notes and the id→display-name lookup are selected per provider.
+  const wasmNotes = useLastResolutionNotes();
+  const nativeNotes = useNativeLastResolutionNotes();
+  const notes =
+    provider === Provider.LOCAL_INFERENCE ? wasmNotes
+    : provider === Provider.LOCAL_NATIVE ? nativeNotes
+    : [];
+  const nativeCatalog = useNativeCatalog();
+  const noteName = (id: string): string =>
+    provider === Provider.LOCAL_NATIVE
+      ? (nativeCatalog[id]?.name ?? id)
+      : (getManifestEntry(id)?.name ?? id);
+
   return (
     <>
       {/* Interface Language Section */}
@@ -623,6 +641,17 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 their: targetLanguageName,
                 mine: sourceLanguageName,
               })}
+            </div>
+          )}
+
+          {notes.length > 0 && (
+            <div className="language-resolution-notes" data-testid="language-resolution-notes">
+              {notes.map((n, i) => (
+                <div key={`${n.direction}-${n.stage}-${i}`} className="language-warning">
+                  <AlertTriangle size={12} />
+                  <span>{describeResolutionNote(n, t, noteName)}</span>
+                </div>
+              ))}
             </div>
           )}
 
