@@ -659,6 +659,58 @@ describe('ensureSelectionReady (facade)', () => {
     // The missing TTS model still shows up as a note the UI can render.
     expect(r.notes.some((n) => n.stage === 'tts' && n.reason === 'no-candidate')).toBe(true);
   });
+
+  it('participant direction language-incompatible for BOTH ASR and translation → still ready, notes surface both', async () => {
+    // Directional zh→en-only translation card replaces the default multi
+    // qwen2.5-0.5b — compatible for the SPEAKER direction (zh→en) but not the
+    // reversed PARTICIPANT direction (en→zh). The default sense-voice ASR
+    // card is zh-only, so it fails the participant's 'en' source too. Both
+    // participant stages therefore have NO candidate at all (the pools are
+    // language-filtered before resolveStage ever runs), while the speaker
+    // direction stays fully resolvable. Mirrors ensureSelectionReady.test.ts's
+    // "does NOT block when the participant direction cannot resolve" (gate
+    // table row 4), but exercised through the native facade — not resolve()
+    // directly — since the facade hand-duplicates the same gate formula.
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    const { 'qwen2.5-0.5b': _drop, ...catalogWithoutQwen } = useNativeModelStore.getState().catalog;
+    useNativeModelStore.setState({ catalog: {
+      ...catalogWithoutQwen,
+      'opus-mt-zh-en': { id: 'opus-mt-zh-en', name: 'Opus MT zh-en', kind: 'translate', languages: ['zh', 'en'],
+        recommended: false, tiers: [{ tier: 'cpu', backend: 'opus', available: true }], order: 1, repo: 'opus-mt-zh-en' },
+    } as any });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({
+      selection: { ...SEL, translationModel: 'opus-mt-zh-en' }, textOnly: false,
+    }));
+    expect(r.ready).toBe(true);
+    expect(r.reason).toBe('ready');
+    expect(r.notes.some((n) => n.direction === 'en→zh' && n.stage === 'asr' && n.reason === 'no-candidate')).toBe(true);
+    expect(r.notes.some((n) => n.direction === 'en→zh' && n.stage === 'translation' && n.reason === 'no-candidate')).toBe(true);
+  });
+
+  it('prunes a dead id seeded on the PARTICIPANT-direction selections entry in one ensureSelectionReady() call', async () => {
+    // Mirrors ensureSelectionReady.test.ts's "applies prunes found while
+    // checking" (gate table row 5), but for the direction the facade never
+    // gates Start on — pruning must still happen for it, and in the SAME
+    // call as the speaker-direction resolve, not a second round-trip.
+    mockModelsCatalogResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    const { useSettingsStore } = await import('./settingsStore');
+    const participantDir = directionKey(SEL.targetLanguage, SEL.sourceLanguage); // 'en→zh'
+    useSettingsStore.setState({
+      localNative: {
+        ...useSettingsStore.getState().localNative,
+        selections: {
+          [participantDir]: { asr: { modelId: 'retired-xyz' }, translation: { modelId: '' }, tts: { modelId: '' } },
+        },
+      },
+    });
+    const r = await useNativeModelStore.getState().ensureSelectionReady(() => ({ selection: SEL, textOnly: false }));
+    expect(r.ready).toBe(true);
+    // The dead id is gone, and with nothing else explicit left in the
+    // direction, applyPrunes drops the entry entirely.
+    expect(useSettingsStore.getState().localNative.selections[participantDir]).toBeUndefined();
+  });
 });
 
 describe('nativeModelStore bundle state machine (distribution spec)', () => {

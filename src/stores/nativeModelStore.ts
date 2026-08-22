@@ -661,6 +661,7 @@ export const useNativeModelProgress = () => useNativeModelStore((s) => s.progres
 export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);
 export const useNativeModelErrors = () => useNativeModelStore((s) => s.errors);
 export const useNativeCatalog = () => useNativeModelStore((s) => s.catalog);
+export const useNativeLastResolutionNotes = () => useNativeModelStore((s) => s.lastResolutionNotes);
 export const useNativeAsrLoading = () => useNativeModelStore((s) => s.asrLoading);
 export const useNativeAsrResolved = () => useNativeModelStore((s) => s.asrResolved);
 export const useNativeTranslationResolved = () => useNativeModelStore((s) => s.translationResolved);
