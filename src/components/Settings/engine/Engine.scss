@@ -192,21 +192,14 @@
   }
   &__empty { padding: 12px 4px; font-size: 13px; color: vars.$text-muted; }
 
-  // Finding 5: the actions row (Clear all / Import) reuses ModelStorageFooter's
-  // exact button classes (ModelManagementSection.scss's .model-management__*)
-  // instead of bare unstyled <button>s. .model-management__clear-all normally
-  // sits after "Storage: N MB used" text and rides margin-left:auto to the
-  // right of it; here it's the row's own first control, so that push is undone.
   &__actions {
     display: flex; align-items: center; gap: 8px; padding: 10px 4px; flex-wrap: wrap;
-
-    .model-management__clear-all {
-      margin-left: 0;
-    }
   }
 
-  // Import: same outlined look as .model-card__btn--import.
-  &__import-btn {
+  // ONE outlined shape for both actions (Clear all / Import) — they sat in
+  // the same row wearing two different classes' looks. Clear all keeps its
+  // destructive identity in the hover color only.
+  &__action-btn {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 4px 10px; font-size: vars.$font-caption;
     background: transparent;
@@ -221,7 +214,26 @@
       color: vars.$text-primary;
     }
 
+    &--danger:hover:not(:disabled) {
+      border-color: vars.$color-error;
+      color: vars.$color-error;
+    }
+
     &:disabled { opacity: 0.4; cursor: not-allowed; }
+  }
+
+  // The Import model chooser — a plain <select>, dressed as the standard
+  // form control (control-base) instead of the browser default.
+  .engine-storage-import-picker {
+    width: 100%;
+    padding: 2px 4px 6px;
+
+    select {
+      @include vars.control-base;
+      width: 100%;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
   }
 }
 
@@ -231,7 +243,6 @@
   p { margin: 0 0 6px; }
   button { margin-right: 8px; }
 }
-.engine-storage-import-picker { padding: 6px 4px; }
 
 @keyframes engine-pulse-highlight {
   0%, 100% {

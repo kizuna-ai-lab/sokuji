@@ -221,7 +221,7 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
                 onClick={() => setClearAllPending(false)}>{t('models.confirmNo', 'No')}</button>
             </div>
           ) : (
-            <button type="button" className="model-management__clear-all"
+            <button type="button" className="engine-storage-page__action-btn engine-storage-page__action-btn--danger"
               onClick={() => setClearAllPending(true)} disabled={isSessionActive}>
               <Trash2 size={12} />
               {t('models.clearAll', 'Clear all')}
@@ -230,7 +230,7 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
         )}
 
         {isWasm && (
-          <button type="button" className="engine-storage-page__import-btn"
+          <button type="button" className="engine-storage-page__action-btn"
             onClick={() => setImportOpen((v) => !v)} disabled={isSessionActive}>
             <FolderInput size={14} />
             {t('models.import', 'Import')}
