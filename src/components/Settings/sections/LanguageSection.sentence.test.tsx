@@ -119,6 +119,17 @@ describe('LanguageSection — mode-verb sentence labels (local providers)', () =
 });
 
 describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () => {
+  beforeEach(() => {
+    // Pin the pair AND the audio mode: the summary is scoped to the current
+    // mode's visible directions (ja→en forward under 'speaker'), and earlier
+    // describes leave mode at whatever they last set.
+    useSettingsStore.setState((st: any) => ({
+      provider: Provider.LOCAL_INFERENCE,
+      localInference: { ...st.localInference, sourceLanguage: 'ja', targetLanguage: 'en' },
+    }));
+    useAudioStore.setState({ mode: 'speaker' } as any);
+  });
+
   it('collapses fallback notes into ONE summary line with a Review link, not one line per note', () => {
     useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
     useModelStore.setState({
@@ -168,7 +179,10 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
     expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
   });
 
-  it('Switch to Auto writes explicit auto into every noted slot and the summary clears', async () => {
+  it('Switch to Auto clears every noted (visible) slot and the summary disappears', async () => {
+    // 'both' mode: both directions are visible, so both notes count and both
+    // slots get switched.
+    useAudioStore.setState({ mode: 'both' } as any);
     useSettingsStore.setState((st: any) => ({
       provider: Provider.LOCAL_INFERENCE,
       localInference: {
@@ -192,16 +206,29 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
 
     fireEvent.click(screen.getByTestId('resolution-notes-use-auto'));
 
-    // The write is user-initiated explicit auto ('') — both noted slots.
+    // The stale pick is GONE from both directions. Assert semantics, not
+    // shape: explicit auto ('') and an absent direction mean the same thing,
+    // and applyPrunes canonicalizes all-empty directions away entirely.
     await waitFor(() => {
       const sel = (useSettingsStore.getState() as any).localInference.selections;
-      expect(sel['ja→en'].asr.modelId).toBe('');
-      expect(sel['en→ja'].asr.modelId).toBe('');
+      expect(sel['ja→en']?.asr?.modelId ?? '').toBe('');
+      expect(sel['en→ja']?.asr?.modelId ?? '').toBe('');
     });
     // ensureSelectionReady re-resolved: the stale-pick notes are gone, so the
     // summary disappears instead of nagging forever.
     await waitFor(() =>
       expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument());
+  });
+
+  it('a note about a direction the current mode hides is not counted (mode-scoped, 2026-08-23)', () => {
+    // speaker mode: only ja→en is visible; the en→ja note must not surface.
+    useModelStore.setState({
+      lastResolutionNotes: [
+        { direction: 'en→ja', stage: 'asr', from: 'a', to: 'b', reason: 'not-downloaded' },
+      ],
+    } as any);
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
   });
 
   it('non-local providers never render the block', () => {
@@ -217,6 +244,14 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
 });
 
 describe('LanguageSection — the ONE blocking missing-models warning (resolver-backed)', () => {
+  beforeEach(() => {
+    useSettingsStore.setState((st: any) => ({
+      provider: Provider.LOCAL_INFERENCE,
+      localInference: { ...st.localInference, sourceLanguage: 'ja', targetLanguage: 'en' },
+    }));
+    useAudioStore.setState({ mode: 'speaker' } as any);
+  });
+
   it('names only the stages the RESOLVER cannot fill, with per-stage engine deep links', () => {
     // Empty statuses: nothing downloaded. The resolver still fills
     // translation (Bing Translator, cloud, always ready) and TTS (Edge TTS,

@@ -94,6 +94,36 @@ describe('ensureSelectionReady — what blocks Start', () => {
     expect(r.ready).toBe(true);
   });
 
+  it('participant-only mode blocks on the PARTICIPANT leg, not the speaker leg (mode-aware gate, 2026-08-23)', async () => {
+    const { default: useAudioStore } = await import('./audioStore');
+    useAudioStore.setState({ mode: 'participant' } as never);
+    try {
+      // Nothing downloaded: the participant (en→ja) leg has no ASR → blocks.
+      let r = await useModelStore.getState().ensureSelectionReady();
+      expect(r.ready).toBe(false);
+
+      // Download ONLY en-only ASR (not multilingual, no ja): the participant
+      // leg is whole — its translation rides the always-ready cloud Bing —
+      // while the SPEAKER leg still has no ja-capable ASR. The old
+      // speaker-only gate stayed blocked here; the mode-aware gate is ready.
+      const enOnlyAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')]
+        .filter((m) => !m.multilingual && m.languages.includes('en') && !m.languages.includes('ja'))
+        .map((m) => m.id);
+      expect(enOnlyAsr.length).toBeGreaterThan(0);
+      useModelStore.setState({ modelStatuses: downloadOnly(enOnlyAsr) });
+      r = await useModelStore.getState().ensureSelectionReady();
+      expect(r.ready).toBe(true);
+
+      // Same statuses under speaker mode: blocked again — the verdict
+      // really does follow the mode, not the download set.
+      useAudioStore.setState({ mode: 'speaker' } as never);
+      r = await useModelStore.getState().ensureSelectionReady();
+      expect(r.ready).toBe(false);
+    } finally {
+      useAudioStore.setState({ mode: 'speaker' } as never);
+    }
+  });
+
   it('applies prunes found while checking, so a dead id is cleaned up once', async () => {
     useSettingsStore.setState({
       localInference: {

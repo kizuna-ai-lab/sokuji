@@ -75,7 +75,7 @@ import type { SlotId } from '../engine/EngineTypes';
 import SonioxVoiceSection from './SonioxVoiceSection';
 import { byokVoiceSource, managedVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
 import { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
-import { useSessionIsInitializing } from '../../../stores/sessionStore';
+import { useSessionIsInitializing, useLockedMode } from '../../../stores/sessionStore';
 import {
   SONIOX_REGIONS, SONIOX_REGION_LABELS, asSonioxRegion,
 } from '../../../lib/soniox/regions';
@@ -134,6 +134,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const zoomAISettings = useZoomAISettings();
   const sonioxSettings = useSonioxSettings();
   const mode = useMode();
+  const lockedMode = useLockedMode();
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const kizunaSonioxSettings = useKizunaSonioxSettings();
@@ -2126,6 +2127,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             here, or it would render twice. */}
         <EngineSurface
           adapter={nativeAdapter}
+          effectiveMode={lockedMode ?? mode}
           initialSlot={engineInitialSlot}
           renderLibrary={(slot) => (
             <NativeModelManagementSection isSessionActive={isSessionActive}
@@ -2245,6 +2247,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       <>
         <EngineSurface
           adapter={wasmAdapter}
+          effectiveMode={lockedMode ?? mode}
           initialSlot={engineInitialSlot}
           renderLibrary={(slot) => (
             <ModelManagementSection isSessionActive={isSessionActive}

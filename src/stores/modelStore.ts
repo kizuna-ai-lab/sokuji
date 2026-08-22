@@ -105,13 +105,19 @@ interface ModelStoreState {
    * (tgt→src) directions via {@link resolve}, and applies every prune either
    * resolution surfaced.
    *
-   * The session-gate table this implements is deliberately asymmetric:
-   *   - missing speaker ASR or translation → blocks (`ready: false`) — a
-   *     session that can't hear or translate the speaker is pointless.
-   *   - missing speaker TTS → never blocks — a missing voice degrades to
-   *     subtitles, and is never even resolved when the session is text-only.
-   *   - missing participant ASR/translation/TTS → never blocks — that
-   *     channel is simply skipped at connect time.
+   * The session-gate table this implements is asymmetric AND mode-aware
+   * (2026-08-23): the mandatory leg is the current audio mode's primary
+   * channel.
+   *   - speaker/both: missing speaker ASR or translation → blocks
+   *     (`ready: false`) — a session that can't hear or translate the
+   *     speaker is pointless. The participant leg never blocks here (an
+   *     auxiliary leg in 'both'; skipped at connect time when unresolvable).
+   *   - participant-only: missing PARTICIPANT ASR or translation → blocks —
+   *     that leg is the whole session, and starting without it used to
+   *     produce a session that silently did nothing.
+   *   - missing TTS → never blocks in any mode — a missing voice degrades
+   *     to subtitles, and is never even resolved when the session is
+   *     text-only.
    *
    * `notes` carries every stage note from both directions (blocking or not)
    * for the UI to render instead of the generic `localInferenceModelsRequired`
@@ -441,11 +447,19 @@ export const useModelStore = create<ModelStoreState>()(
       let targetLanguage = '';
       let selections: Selections = {};
       let textOnly = false;
+      // Which leg is mandatory follows the AUDIO MODE (2026-08-23 mode-aware
+      // gate decision): current picker position, not sessionStore.lockedMode —
+      // the gate matters at Start time, when nothing is locked yet, and
+      // importing sessionStore here would risk an import cycle for a value
+      // that only differs mid-session, when Start is moot anyway.
+      let audioMode: 'speaker' | 'participant' | 'both' = 'speaker';
       try {
         const { useSettingsStore } = await import('./settingsStore');
         const localInference = useSettingsStore.getState().localInference;
         ({ sourceLanguage, targetLanguage, selections } = localInference);
         textOnly = useSettingsStore.getState().textOnly;
+        const { default: useAudioStore } = await import('./audioStore');
+        audioMode = useAudioStore.getState().mode;
       } catch (err) {
         // settings store unavailable — resolve with no explicit selections
         // (never ready, but never throws). Logged so a broken import graph
@@ -482,11 +496,16 @@ export const useModelStore = create<ModelStoreState>()(
         await get().applyPrunes(prunes);
       }
 
-      // The session-gate table (deliberately asymmetric — see the doc
-      // comment on the interface member): only the speaker's ASR and
-      // translation stages can block Start. Speaker TTS and the entire
-      // participant direction never do.
-      const ready = Boolean(speaker.asr && speaker.translation);
+      // The session-gate table, mode-aware since 2026-08-23: the mandatory
+      // leg is the one the current audio mode actually RUNS as its primary
+      // channel — speaker/both block on the speaker leg's ASR+translation;
+      // participant-only blocks on the PARTICIPANT leg's (before this, a
+      // participant-only session could start with no participant models and
+      // silently do nothing). TTS never blocks in any mode, and in 'both'
+      // the participant leg stays non-blocking (an auxiliary leg there —
+      // missing models degrade it, with the Settings warning naming them).
+      const mandatory = audioMode === 'participant' ? participant : speaker;
+      const ready = Boolean(mandatory.asr && mandatory.translation);
       const notes = [...speaker.notes, ...participant.notes];
       // Skip the write when nothing changes: a fresh [] reference on every
       // call would re-trigger every subscriber keyed on this field even when

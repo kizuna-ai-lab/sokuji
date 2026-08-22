@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Settings2 } from 'lucide-react';
 import type { EngineAdapter, SlotId } from './EngineTypes';
+import type { AudioMode } from '../../../stores/audioStore';
 import { EnginePage, STAGE_LABEL_KEY } from './EnginePage';
 import './Engine.scss';
 
@@ -17,7 +18,9 @@ export const EngineSurface: React.FC<{
   renderLibrary: (slot: SlotId) => React.ReactNode;
   renderStorage: () => React.ReactNode;
   initialSlot?: SlotId | null;
-}> = ({ adapter, renderLibrary, renderStorage, initialSlot = null }) => {
+  /** Effective audio mode, handed through to EnginePage (see its doc). */
+  effectiveMode: AudioMode;
+}> = ({ adapter, renderLibrary, renderStorage, initialSlot = null, effectiveMode }) => {
   const { t } = useTranslation();
   const [expandedSlot, setExpandedSlot] = useState<SlotId | null>(initialSlot);
   const [pushed, setPushed] = useState<Pushed>(null);
@@ -83,7 +86,7 @@ export const EngineSurface: React.FC<{
         <span>{t('models.management', 'Models')}</span>
       </h3>
       <EnginePage adapter={adapter} expandedSlot={expandedSlot} onToggleSlot={toggle}
-        flashSlot={flashSlot}
+        flashSlot={flashSlot} effectiveMode={effectiveMode}
         onBrowse={(slot) => push({ page: 'library', slot })}
         onStorage={() => push({ page: 'storage' })} />
     </div>

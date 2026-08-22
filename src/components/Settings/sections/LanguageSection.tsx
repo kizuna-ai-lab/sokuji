@@ -480,14 +480,31 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     }
     const settings = provider === Provider.LOCAL_INFERENCE ? localInferenceSettings : localNativeSettings;
     const resolve = provider === Provider.LOCAL_INFERENCE ? resolveWasm : resolveNative;
-    const result = resolve(settings.sourceLanguage, settings.targetLanguage, settings.selections);
-    const missing: { stage: Stage; label: string }[] = [];
-    if (!result.asr) missing.push({ stage: 'asr', label: t('settings.modelTypeAsr', 'ASR') });
-    if (!result.translation) missing.push({ stage: 'translation', label: t('settings.modelTypeTranslation', 'Translation') });
+    // Mode-scoped legs (2026-08-23): speaker checks the forward leg,
+    // participant the reverse, both checks both — the same table the
+    // mode-aware session gate implements (ensureSelectionReady), so this
+    // warning can never disagree with what Start will do.
+    const effectiveMode = lockedMode ?? mode;
+    const fwd = { src: settings.sourceLanguage, tgt: settings.targetLanguage };
+    const rev = { src: settings.targetLanguage, tgt: settings.sourceLanguage };
+    const legs = effectiveMode === 'both' ? [fwd, rev] : effectiveMode === 'participant' ? [rev] : [fwd];
+    const missing: { stage: Stage; dir: string; label: string }[] = [];
+    for (const leg of legs) {
+      const result = resolve(leg.src, leg.tgt, settings.selections);
+      const dir = directionKey(leg.src, leg.tgt);
+      // Dedupe by stage across legs (both mode): one link per stage, aimed
+      // at the FIRST leg missing it.
+      if (!result.asr && !missing.some((m) => m.stage === 'asr')) {
+        missing.push({ stage: 'asr', dir, label: t('settings.modelTypeAsr', 'ASR') });
+      }
+      if (!result.translation && !missing.some((m) => m.stage === 'translation')) {
+        missing.push({ stage: 'translation', dir, label: t('settings.modelTypeTranslation', 'Translation') });
+      }
+    }
     return missing;
   }, [
     provider, modelInitialized, resolveWasm, resolveNative, nativeCatalog, t,
-    localInferenceSettings, localNativeSettings,
+    localInferenceSettings, localNativeSettings, lockedMode, mode,
     // resolve() reads candidate pools from its own store; these two make the
     // memo recompute when a download/delete changes what is resolvable.
     modelStatuses, nativeStatuses,
@@ -533,7 +550,18 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // no-candidate notes are the BLOCKING condition and belong to the
   // missing-models warning below; everything else is an automatic fallback
   // the session survives, summarized in one line (2026-08-23 dedup decision).
-  const fallbackNotes = notes.filter((n: ResolutionNote) => n.reason !== 'no-candidate');
+  // Scoped to the directions the current mode actually shows on the engine
+  // page — a note about a hidden leg would deep-link to a slot that is not
+  // rendered, and the leg becomes relevant exactly when the mode does.
+  const visibleDirs = (() => {
+    const st = provider === Provider.LOCAL_NATIVE ? localNativeSettings : localInferenceSettings;
+    const effectiveMode = lockedMode ?? mode;
+    const fwdKey = directionKey(st.sourceLanguage, st.targetLanguage);
+    const revKey = directionKey(st.targetLanguage, st.sourceLanguage);
+    return new Set(effectiveMode === 'both' ? [fwdKey, revKey] : effectiveMode === 'participant' ? [revKey] : [fwdKey]);
+  })();
+  const fallbackNotes = notes.filter(
+    (n: ResolutionNote) => n.reason !== 'no-candidate' && visibleDirs.has(n.direction));
 
   // Name the picks that failed (deduped: the same deleted model noted in two
   // directions is one name) — a summary that will not say WHICH models it
@@ -800,13 +828,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                     {i > 0 && ', '}
                     <a
                       className="language-model-warning__link"
-                      onClick={() => openEngineSlot(
-                        directionKey(
-                          (provider === Provider.LOCAL_NATIVE ? localNativeSettings : localInferenceSettings).sourceLanguage,
-                          (provider === Provider.LOCAL_NATIVE ? localNativeSettings : localInferenceSettings).targetLanguage,
-                        ),
-                        m.stage,
-                      )}
+                      onClick={() => openEngineSlot(m.dir, m.stage)}
                     >
                       {t('settings.downloadModelType', 'Download {{type}}', { type: m.label })}
                     </a>

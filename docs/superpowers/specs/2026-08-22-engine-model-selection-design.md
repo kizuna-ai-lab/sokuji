@@ -1003,3 +1003,22 @@ model can be downloaded but not selected; a downloaded incompatible model shows 
 "Downloaded. Available when your language is X." line (now rendered inside the
 show-all region). The Library view renders the stage group header-less
 (`ModelGroup bare`) since the surface's own title already names the stage.
+
+## Amendment (2026-08-23, mode-scoped surfaces and gate)
+
+Direction visibility, the missing-models warning, and the session gate now all
+follow the **effective audio mode** (`lockedMode ?? mode` in the UI; the live
+picker mode in the stores), superseding the mode-blind session-gate table and
+the always-both-directions Engine page of the original design:
+
+| Mode | Engine page shows | Warning checks | Gate blocks Start on |
+|---|---|---|---|
+| speaker | forward leg (3 slots) | forward ASR+MT | forward ASR+MT |
+| participant | reverse leg (2 slots) | reverse ASR+MT | **reverse ASR+MT** (new — a participant-only session without participant models used to start and silently do nothing) |
+| both | both legs | both legs' ASR+MT | forward ASR+MT (the participant leg stays non-blocking as an auxiliary leg; its gaps surface in the warning and degrade at connect) |
+
+TTS never blocks in any mode. The fallback-notes summary is scoped to the
+visible directions for the same reason the warning is: a note about a hidden
+leg would deep-link to a slot that is not rendered, and the leg becomes
+relevant exactly when the mode does. `ensureSelectionReady` still resolves and
+prunes BOTH directions — only the verdict and the UI scope are mode-aware.

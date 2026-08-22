@@ -587,16 +587,26 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     const statusRepos = Object.keys(resolved).length > 0 ? resolved : undefined;
     await get().refresh(models, statusRepos);
 
-    // The session-gate table (deliberately asymmetric — see the doc comment
-    // on the interface member): only the speaker's ASR and translation stages
-    // can block Start. Speaker TTS and the entire participant direction never
-    // do. resolve() already folds language compatibility, download status,
-    // and hardware gating into a single null/non-null verdict per stage (see
-    // resolveStage.ts), so there is no separate compat/download check to run
-    // here anymore.
-    const ready = Boolean(speaker.asr && speaker.translation);
+    // The session-gate table, mode-aware since 2026-08-23 (mirrors
+    // modelStore.ensureSelectionReady — peers, not a shared layer): the
+    // mandatory leg is the current audio mode's primary channel — speaker/
+    // both block on the speaker leg, participant-only blocks on the
+    // PARTICIPANT leg (before this, a participant-only session could start
+    // with no participant models and silently do nothing). TTS never blocks.
+    // resolve() already folds language compatibility, download status, and
+    // hardware gating into a single null/non-null verdict per stage.
+    // Audio mode is read directly (dynamic import, same discipline as the
+    // settings read above); the picker position is what Start will use —
+    // lockedMode only differs mid-session, when Start is moot.
+    let audioMode: 'speaker' | 'participant' | 'both' = 'speaker';
+    try {
+      const { default: useAudioStore } = await import('./audioStore');
+      audioMode = useAudioStore.getState().mode;
+    } catch { /* default: speaker */ }
+    const mandatory = audioMode === 'participant' ? participant : speaker;
+    const ready = Boolean(mandatory.asr && mandatory.translation);
     const reason: NativeReadinessReason = ready ? 'ready'
-      : !speaker.asr ? 'asr-incompatible'
+      : !mandatory.asr ? 'asr-incompatible'
       : 'translation-incompatible';
     const notes = [...speaker.notes, ...participant.notes];
     // Skip the write when nothing changes: a fresh [] reference on every call

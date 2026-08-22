@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronRight, HardDrive } from 'lucide-react';
 import type { EngineAdapter, SlotId } from './EngineTypes';
 import { SlotRow } from './SlotRow';
+import type { AudioMode } from '../../../stores/audioStore';
 import './Engine.scss';
 
 /** Short stage labels (ASR / MT / TTS) — used where space is tight: the
@@ -33,21 +34,37 @@ export const EnginePage: React.FC<{
    *  Passed straight through to every SlotRow, which decides for itself
    *  whether it's the match — see SlotRow's own doc comment. */
   flashSlot?: SlotId | null;
-}> = ({ adapter, expandedSlot, onToggleSlot, onBrowse, onStorage, flashSlot = null }) => {
+  /** The EFFECTIVE audio mode (host computes `lockedMode ?? mode` — the
+   *  same idiom every mode-scoped Settings UI reads). A prop, not a store
+   *  read: importing audioStore here would drag the audio-worklet module
+   *  chain into every consumer's test environment (the "Denied ID" trap),
+   *  and the hosts all read the stores already. */
+  effectiveMode: AudioMode;
+}> = ({ adapter, expandedSlot, onToggleSlot, onBrowse, onStorage, flashSlot = null, effectiveMode }) => {
   const { t } = useTranslation();
   const isOpen = (s: SlotId) =>
     expandedSlot?.dir === s.dir && expandedSlot?.stage === s.stage;
+
+  // Direction visibility follows the effective audio mode (2026-08-23
+  // decision): speaker shows only the forward leg, participant only the
+  // reverse, both shows both — a mode that doesn't run a leg has no business
+  // configuring it here (the chips and the LanguageSection warning are
+  // mode-scoped the same way). directions[0] is the speaker (forward) leg
+  // by the adapter contract.
+  const visibleDirections = adapter.directions.filter((_, i) =>
+    effectiveMode === 'both' || (effectiveMode === 'participant' ? i === 1 : i === 0));
+
   return (
     <div className="engine-page">
       {adapter.gate}
-      {adapter.directions.map(({ dir, src, tgt }, i) => (
+      {visibleDirections.map(({ dir, src, tgt }) => (
         <div key={dir} className="engine-direction">
           <div className="engine-direction__title">
             {t('engineUi.speakerHeading', '{{src}} → {{tgt}}', {
               src: adapter.languageName(src), tgt: adapter.languageName(tgt),
             })}
           </div>
-          {adapter.stagesFor(dir, i === 0).map((stage) => {
+          {adapter.stagesFor(dir, dir === adapter.directions[0]?.dir).map((stage) => {
             const slot: SlotId = { dir, stage };
             const resolved = adapter.resolved(slot);
             return (

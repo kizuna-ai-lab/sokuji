@@ -131,6 +131,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           {isNative ? (
             <EngineSurface
               adapter={nativeAdapter}
+              effectiveMode={lockedMode ?? mode}
               initialSlot={engineOpen}
               renderLibrary={(slot) => (
                 <NativeModelManagementSection isSessionActive={isSessionActive}
@@ -141,6 +142,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           ) : (
             <EngineSurface
               adapter={wasmAdapter}
+              effectiveMode={lockedMode ?? mode}
               initialSlot={engineOpen}
               renderLibrary={(slot) => (
                 <ModelManagementSection isSessionActive={isSessionActive}

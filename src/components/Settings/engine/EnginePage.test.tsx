@@ -34,8 +34,8 @@ const adapter = (over: Partial<EngineAdapter> = {}): EngineAdapter => ({
   ...over,
 });
 
-const surface = (a = adapter()) => render(
-  <EngineSurface adapter={a}
+const surface = (a = adapter(), effectiveMode: 'speaker' | 'participant' | 'both' = 'both') => render(
+  <EngineSurface adapter={a} effectiveMode={effectiveMode}
     renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>}
     renderStorage={() => <div data-testid="storage" />} />);
 
@@ -107,12 +107,28 @@ describe('EngineSurface / EnginePage', () => {
     for (const r of screen.getAllByRole('radio')) expect(r).toBeDisabled();
   });
 
+  it('speaker mode shows only the forward direction; participant only the reverse (2026-08-23)', () => {
+    surface(adapter(), 'speaker');
+    expect(screen.getByText('ja → en')).toBeInTheDocument();
+    expect(screen.queryByText('en → ja')).not.toBeInTheDocument();
+    // The forward leg keeps its speaker stage set (TTS included).
+    expect(screen.getAllByRole('button', { name: /TTS/ })).toHaveLength(1);
+  });
+
+  it('participant mode shows only the reverse direction, with its 2-stage set', () => {
+    surface(adapter(), 'participant');
+    expect(screen.queryByText('ja → en')).not.toBeInTheDocument();
+    expect(screen.getByText('en → ja')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /ASR/ })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /TTS/ })).not.toBeInTheDocument();
+  });
+
   it('returning from a pushed Library does not re-flash the deep-linked slot', () => {
     // Pushing unmounts the slot rows; if the flash signal were the raw
     // initialSlot prop, remounting on pop would re-run every row's flash
     // effect against the still-truthy object and flash the slot again.
     render(
-      <EngineSurface adapter={adapter()} initialSlot={{ dir: 'ja→en', stage: 'asr' }}
+      <EngineSurface adapter={adapter()} initialSlot={{ dir: 'ja→en', stage: 'asr' }} effectiveMode="both"
         renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>}
         renderStorage={() => <div data-testid="storage" />} />);
 

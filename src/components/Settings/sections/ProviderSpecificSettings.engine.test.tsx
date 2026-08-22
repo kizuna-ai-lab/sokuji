@@ -76,6 +76,7 @@ vi.mock('./EngineSection', () => ({
 }));
 
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
+const { default: useAudioStore } = await import('../../../stores/audioStore');
 const { Provider } = await import('../../../types/Provider');
 const { LocalInferenceProviderConfig } = await import('../../../services/providers/LocalInferenceProviderConfig');
 const { LocalNativeProviderConfig } = await import('../../../services/providers/LocalNativeProviderConfig');
@@ -97,6 +98,9 @@ function directionHeadings(container: HTMLElement): string[] {
 
 beforeEach(() => {
   useSettingsStore.setState({ engineSlotTarget: null });
+  // Direction visibility is mode-scoped (2026-08-23): these composition
+  // tests assert BOTH legs, so pin 'both' — the store default is 'speaker'.
+  useAudioStore.setState({ mode: 'both' } as never);
 });
 
 describe('ProviderSpecificSettings — Engine surface composition (Task 7 review carry-over)', () => {
