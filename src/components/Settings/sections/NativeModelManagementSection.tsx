@@ -767,8 +767,12 @@ export const NativeModelManagementSection: React.FC<{
   ) : null);
 
   return (
-    <div id="model-management-section" className="settings-section model-management-section">
-      <h2>{t('models.management', 'Models')}</h2>
+    // See ModelManagementSection's identical comment: the Library push
+    // (stageFilter set) already lives inside EngineSurface's own
+    // .config-section shell + h3 header (Finding 3), so this standalone
+    // section chrome (.settings-section + <h2>) would just duplicate it.
+    <div id="model-management-section" className={stageFilter ? 'model-management-section' : 'settings-section model-management-section'}>
+      {!stageFilter && <h2>{t('models.management', 'Models')}</h2>}
 
       {(!stageFilter || stageFilter === 'asr') && (
         <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>

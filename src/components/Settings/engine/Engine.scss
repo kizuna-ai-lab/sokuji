@@ -1,31 +1,160 @@
+@use '../shared/variables' as vars;
+
+// EngineSurface's own outer shell reuses `.config-section` (Settings.scss)
+// for the section chrome (border, spacing, the `.highlight` hook, and —
+// critically — the `h3, h2` header rule that styles EngineSurface's own
+// title AND the pushed-page back row, since the back row occupies the h3
+// slot when a Library/Storage page is pushed — see EngineSurface.tsx).
+// `.engine-surface` itself needs no extra rules beyond that shared frame.
+
+.engine-page {
+  padding-top: 2px;
+}
+
+.engine-direction {
+  // A proper sub-header, weight-matched to .model-group__header's title
+  // (ModelManagementSection.scss) instead of a bare muted text line.
+  &__title {
+    font-size: vars.$font-body;
+    font-weight: vars.$weight-semibold;
+    color: vars.$text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 14px 0 6px;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+}
+
 .engine-slot {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  // A row card, not a bare text line: same resting/hover language as
+  // .model-card (ModelManagementSection.scss), scaled down for a compact row.
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid vars.$border-subtle;
+  border-radius: vars.$radius-md;
+  margin-bottom: 6px;
+  transition: border-color vars.$transition-fast, background vars.$transition-fast;
+
+  &:hover {
+    border-color: vars.$border-strong;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  // Finding 4: a chip click deep-links here and flashes THIS row (not the
+  // whole ProviderSection, the old wrong target). Replicates Settings.scss's
+  // .config-section.highlight / @keyframes pulse-highlight — same look, its
+  // own name since .engine-slot isn't a .config-section.
+  &.highlight {
+    animation: engine-pulse-highlight 2s ease-out;
+  }
+
   &__header {
     display: flex; align-items: center; gap: 8px; width: 100%;
-    background: none; border: none; padding: 8px 4px; cursor: pointer;
-    color: inherit; text-align: left;
+    background: none; border: none; padding: 10px; cursor: pointer;
+    color: inherit; text-align: left; border-radius: inherit;
   }
+  &__chevron { display: flex; align-items: center; color: vars.$text-muted; }
   &__label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9aa0a6; min-width: 42px; }
   &__value { font-size: 13px; font-family: ui-monospace, monospace; }
-  &__value--missing { color: #e74c3c; }
-  &__body { padding: 4px 8px 10px 26px; }
+  &__value--missing { color: vars.$color-error; }
+  &__body {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 0 10px 10px 34px;
+  }
 }
-.engine-direction {
-  &__title { font-size: 12px; color: #9aa0a6; margin: 12px 0 2px; }
+
+// One picker option (Auto / a candidate) — the look of a compact list row:
+// border, hover, and the same selected-accent fill as .model-card--selected.
+.engine-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-.engine-storage-row, .engine-back-row {
-  display: flex; align-items: center; gap: 8px; padding: 10px 4px; cursor: pointer;
-  background: none; border: none; color: inherit; width: 100%; text-align: left; font-size: 13px;
-}
-.engine-back-row { font-weight: 600; }
+
 .engine-picker__option {
-  display: flex; align-items: center; gap: 8px; padding: 6px 4px; width: 100%;
-  background: none; border: none; color: inherit; cursor: pointer; font-size: 13px;
-  &.is-selected { color: #10a37f; }
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px; width: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid vars.$border-subtle;
+  border-radius: vars.$radius-sm;
+  color: inherit; cursor: pointer; font-size: 13px;
+  transition: border-color vars.$transition-fast, background vars.$transition-fast, color vars.$transition-fast;
+
+  &:hover:not(:disabled) {
+    border-color: vars.$border-strong;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &.is-selected {
+    color: vars.$color-primary;
+    background: rgba(vars.$color-primary, 0.08);
+    border-color: rgba(vars.$color-primary, 0.45);
+  }
+
   &:disabled { opacity: 0.5; cursor: default; }
 }
 .engine-picker__meta { margin-left: auto; font-size: 11px; color: #9aa0a6; }
-.engine-picker__browse { color: #9aa0a6; }
+.engine-picker__browse {
+  color: vars.$text-muted;
+  background: none;
+  border-style: dashed;
+}
+
+// Back row (EngineSurface's pushed-page header) + Storage row (EnginePage's
+// entry point AND, confusingly-but-conveniently, StoragePage's per-model
+// list row share this class — see its own class list below): both read as
+// clickable "header-weight" rows now, matching a sibling section's h3.
+.engine-back-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: inherit; text-align: left;
+  font-size: vars.$font-title;
+  font-weight: vars.$weight-semibold;
+
+  &:hover {
+    color: vars.$color-primary;
+  }
+}
+
+.engine-storage-row {
+  display: flex; align-items: center; gap: 8px; padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid vars.$border-subtle;
+  border-radius: vars.$radius-md;
+  margin-bottom: 6px;
+  cursor: pointer;
+  color: inherit; width: 100%; text-align: left; font-size: 13px;
+  transition: border-color vars.$transition-fast;
+
+  &:hover {
+    border-color: vars.$border-strong;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &__info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+  &__name { font-size: 13px; }
+  &__badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 10px;
+    background: rgba(16, 163, 127, 0.15); color: vars.$color-primary;
+  }
+
+  // Finding 5: matches .model-card__btn--delete's look (ModelManagementSection.scss).
+  &__delete {
+    background: transparent; border: none; color: vars.$text-muted;
+    cursor: pointer; padding: 4px 6px; border-radius: vars.$radius-sm;
+    transition: color vars.$transition-fast;
+
+    &:hover:not(:disabled) { color: vars.$color-error; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+}
 
 .engine-storage-page {
   &__summary {
@@ -33,19 +162,40 @@
     font-size: 13px; color: #9aa0a6;
   }
   &__empty { padding: 12px 4px; font-size: 13px; color: #9aa0a6; }
-  &__actions { display: flex; align-items: center; gap: 8px; padding: 10px 4px; flex-wrap: wrap; }
-}
-.engine-storage-row {
-  display: flex; align-items: center; gap: 8px; padding: 8px 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  &__info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-  &__name { font-size: 13px; }
-  &__badge {
-    font-size: 10px; padding: 1px 6px; border-radius: 10px;
-    background: rgba(16, 163, 127, 0.15); color: #10a37f;
+
+  // Finding 5: the actions row (Clear all / Import) reuses ModelStorageFooter's
+  // exact button classes (ModelManagementSection.scss's .model-management__*)
+  // instead of bare unstyled <button>s. .model-management__clear-all normally
+  // sits after "Storage: N MB used" text and rides margin-left:auto to the
+  // right of it; here it's the row's own first control, so that push is undone.
+  &__actions {
+    display: flex; align-items: center; gap: 8px; padding: 10px 4px; flex-wrap: wrap;
+
+    .model-management__clear-all {
+      margin-left: 0;
+    }
   }
-  &__delete { background: none; border: none; color: #e74c3c; cursor: pointer; padding: 4px; }
+
+  // Import: same outlined look as .model-card__btn--import.
+  &__import-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; font-size: vars.$font-caption;
+    background: transparent;
+    color: vars.$text-secondary;
+    border: 1px solid vars.$border-strong;
+    border-radius: vars.$radius-sm;
+    cursor: pointer;
+    transition: border-color vars.$transition-fast, color vars.$transition-fast;
+
+    &:hover:not(:disabled) {
+      border-color: vars.$color-primary;
+      color: vars.$text-primary;
+    }
+
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+  }
 }
+
 .engine-storage-confirm {
   padding: 8px; margin: 4px 0; background: rgba(255, 255, 255, 0.04); border-radius: 6px;
   font-size: 12px;
@@ -53,3 +203,31 @@
   button { margin-right: 8px; }
 }
 .engine-storage-import-picker { padding: 6px 4px; }
+
+@keyframes engine-pulse-highlight {
+  0%, 100% {
+    background-color: rgba(255, 255, 255, 0.03); // .engine-slot's own resting background, not transparent
+    box-shadow: none;
+    outline: none;
+  }
+  20%, 40%, 60% {
+    background-color: rgba(59, 130, 246, 0.25);
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.8),
+                0 0 20px rgba(59, 130, 246, 0.6) inset;
+    outline: 3px solid rgba(59, 130, 246, 0.7);
+    outline-offset: 4px;
+  }
+  30%, 50%, 70% {
+    background-color: rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.6),
+                0 0 10px rgba(59, 130, 246, 0.3) inset;
+    outline: 2px solid rgba(59, 130, 246, 0.5);
+    outline-offset: 3px;
+  }
+  90% {
+    background-color: rgba(59, 130, 246, 0.05);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    outline: 1px solid rgba(59, 130, 246, 0.2);
+    outline-offset: 2px;
+  }
+}

@@ -1845,31 +1845,27 @@
     }
   }
 
-  .participant-inline {
-    margin-top: 4px;
-    padding-top: 4px;
-    border-top: 1px solid vars.$border-subtle;
-  }
-
-  .participant-header {
+  // A labeled chip row (Finding 1: chips follow the audio mode). In 'both'
+  // mode two of these stack — "Me" (speaker, src→tgt) above "Other"
+  // (participant, tgt→src) — so which group is whose is never ambiguous.
+  // The label reuses .model-chip-label's small-caps look.
+  .model-inline-group {
     display: flex;
-    align-items: baseline;
-    gap: 6px;
-    margin-bottom: 4px;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    &:not(:last-child) {
+      margin-bottom: 4px;
+    }
   }
 
-  .participant-label {
+  .model-inline-group__label {
     font-size: 10px;
     color: vars.$text-muted;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     flex-shrink: 0;
-  }
-
-  .participant-hint {
-    font-size: 10px;
-    color: vars.$text-muted;
-    font-style: italic;
   }
 
   .memory-estimate {

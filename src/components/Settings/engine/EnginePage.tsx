@@ -20,7 +20,11 @@ export const EnginePage: React.FC<{
   onToggleSlot: (slot: SlotId) => void;
   onBrowse: (slot: SlotId) => void;
   onStorage: () => void;
-}> = ({ adapter, expandedSlot, onToggleSlot, onBrowse, onStorage }) => {
+  /** One-shot: the slot a chip click just deep-linked open (Finding 4).
+   *  Passed straight through to every SlotRow, which decides for itself
+   *  whether it's the match — see SlotRow's own doc comment. */
+  flashSlot?: SlotId | null;
+}> = ({ adapter, expandedSlot, onToggleSlot, onBrowse, onStorage, flashSlot = null }) => {
   const { t } = useTranslation();
   const isOpen = (s: SlotId) =>
     expandedSlot?.dir === s.dir && expandedSlot?.stage === s.stage;
@@ -40,9 +44,9 @@ export const EnginePage: React.FC<{
             return (
               <SlotRow key={stage} slot={slot} label={t(STAGE_LABEL_KEY[stage][0], STAGE_LABEL_KEY[stage][1])}
                 resolved={resolved} displayName={adapter.displayName}
-                expanded={isOpen(slot)} onToggle={() => onToggleSlot(slot)}>
+                expanded={isOpen(slot)} onToggle={() => onToggleSlot(slot)} flashSlot={flashSlot}>
                 {adapter.stageExtras?.(slot)}
-                <div role="radiogroup">
+                <div className="engine-picker" role="radiogroup">
                   <button type="button" role="radio" aria-checked={!resolved || resolved.source === 'auto'}
                     className={`engine-picker__option ${!resolved || resolved.source === 'auto' ? 'is-selected' : ''}`}
                     disabled={adapter.disabled}

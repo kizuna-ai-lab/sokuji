@@ -6,6 +6,15 @@
  * provider tab via the existing `navigateToSettings` mechanism. It never
  * touches `uiMode` any more (that used to force Advanced on every click).
  *
+ * Finding 1 (UX fix pass): the chips now follow the audio mode
+ * (`lockedMode ?? mode`) instead of always showing the speaker direction's
+ * three models —
+ *   - 'speaker'     → 3 chips (ASR/MT/TTS) for src→tgt.
+ *   - 'participant' → 2 chips (ASR/MT, no TTS) for the REVERSE tgt→src —
+ *     clicking one targets that reverse direction, never the speaker's.
+ *   - 'both'        → both groups, each under a small-caps label ("Me" /
+ *     "Other") so which group is whose is unambiguous.
+ *
  * Follows ProviderSection.select.test.tsx's mount idiom: the real
  * settingsStore (asserted on directly via setState/getState, not spied),
  * ServiceFactory/analytics/auth/supportsBaseSelect mocked. modelStore and
@@ -44,9 +53,14 @@ const useAudioStore = useAudioStoreModule.default;
 const { Provider } = await import('../../../types/Provider');
 const { default: ProviderSection } = await import('./ProviderSection');
 
-// Source order in ProviderSection's model-inline block: ASR, MT, TTS.
+// Source order in ProviderSection's model-inline block: ASR, MT, TTS per
+// group; 'both' mode renders the speaker group's chips (3) before the
+// participant group's (2).
 const chips = (container: HTMLElement) =>
   Array.from(container.querySelectorAll('.model-chip')) as HTMLButtonElement[];
+
+const groupLabels = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll('.model-inline-group__label')).map((el) => el.textContent);
 
 describe('ProviderSection — model chips deep-link to their slot (Task 10)', () => {
   beforeEach(() => {
@@ -98,15 +112,41 @@ describe('ProviderSection — model chips deep-link to their slot (Task 10)', ()
     }
   });
 
-  it('the OTHER/participant row no longer renders for LOCAL_INFERENCE, even when the participant channel is in scope', () => {
-    // 'both' puts the participant channel in scope — the exact condition the
-    // old participant-inline block gated on.
+  it("mode='speaker' (default): LOCAL_INFERENCE shows exactly the 3 speaker chips, no group label (single, unambiguous group)", () => {
+    const { container } = render(<ProviderSection isSessionActive={false} />);
+
+    expect(chips(container)).toHaveLength(3);
+    expect(groupLabels(container)).toHaveLength(0);
+  });
+
+  it("mode='participant': LOCAL_INFERENCE shows 2 chips (ASR/MT, no TTS) for the REVERSE direction, and clicking one targets that reverse dir", () => {
+    useAudioStore.setState({ mode: 'participant' } as never);
+    const { container } = render(<ProviderSection isSessionActive={false} />);
+
+    expect(chips(container)).toHaveLength(2);
+    expect(groupLabels(container)).toHaveLength(0); // single group — no label needed
+
+    fireEvent.click(chips(container)[0]); // ASR
+    expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'en→ja', stage: 'asr' });
+  });
+
+  it("mode='both': LOCAL_INFERENCE shows 5 chips across two labeled groups — 'Me' (speaker, 3) then 'Other' (participant, 2)", () => {
     useAudioStore.setState({ mode: 'both' } as never);
     const { container } = render(<ProviderSection isSessionActive={false} />);
 
-    expect(container.querySelector('.participant-inline')).toBeNull();
-    // Only the three speaker chips remain — no OTHER row's extra ASR/MT pair.
-    expect(chips(container)).toHaveLength(3);
+    expect(chips(container)).toHaveLength(5);
+    expect(groupLabels(container)).toEqual(['Me', 'Other']);
+
+    // Speaker-group chips (first 3) target the forward dir...
+    fireEvent.click(chips(container)[0]); // Me · ASR
+    expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ja→en', stage: 'asr' });
+
+    // ...participant-group chips (last 2) target the reverse dir — each chip
+    // owns its own direction, never the speaker's (Finding 1).
+    fireEvent.click(chips(container)[3]); // Other · ASR
+    expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'en→ja', stage: 'asr' });
+    fireEvent.click(chips(container)[4]); // Other · MT
+    expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'en→ja', stage: 'translation' });
   });
 
   it('LOCAL_NATIVE: the shared handler is wired the same way — sets engineSlotTarget, switches tabs, leaves uiMode alone', () => {
@@ -118,5 +158,24 @@ describe('ProviderSection — model chips deep-link to their slot (Task 10)', ()
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ja→en', stage: 'tts' });
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
     expect(useSettingsStore.getState().uiMode).toBe('advanced');
+  });
+
+  it("LOCAL_NATIVE gets identical mode treatment: mode='participant' shows 2 chips for the reverse direction", () => {
+    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE, uiMode: 'advanced' } as never);
+    useAudioStore.setState({ mode: 'participant' } as never);
+    const { container } = render(<ProviderSection isSessionActive={false} />);
+
+    expect(chips(container)).toHaveLength(2);
+    fireEvent.click(chips(container)[1]); // MT
+    expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'en→ja', stage: 'translation' });
+  });
+
+  it("LOCAL_NATIVE gets identical mode treatment: mode='both' shows 5 chips across the same two labeled groups", () => {
+    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE, uiMode: 'advanced' } as never);
+    useAudioStore.setState({ mode: 'both' } as never);
+    const { container } = render(<ProviderSection isSessionActive={false} />);
+
+    expect(chips(container)).toHaveLength(5);
+    expect(groupLabels(container)).toEqual(['Me', 'Other']);
   });
 });

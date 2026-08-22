@@ -1077,8 +1077,13 @@ export function ModelManagementSection({
   // ── Render ────────────────────────────────────────────────────────────
 
   return (
-    <div id="model-management-section" className="settings-section model-management-section">
-      <h2>{t('models.management', 'Models')}</h2>
+    // The Library push (stageFilter set) already lives inside EngineSurface's
+    // own .config-section shell + h3 header (Finding 3) — dropping
+    // .settings-section and the <h2> here avoids a second, nested section
+    // frame with a redundant title. The standalone (prop-less) render keeps
+    // both: it's the whole standalone Settings page for this section.
+    <div id="model-management-section" className={stageFilter ? 'model-management-section' : 'settings-section model-management-section'}>
+      {!stageFilter && <h2>{t('models.management', 'Models')}</h2>}
 
       <GpuAccelerationNotice />
 

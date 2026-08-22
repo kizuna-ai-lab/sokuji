@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Settings2 } from 'lucide-react';
 import type { EngineAdapter, SlotId } from './EngineTypes';
 import { EnginePage, STAGE_LABEL_KEY } from './EnginePage';
+import './Engine.scss';
 
 type Pushed = null | { page: 'library'; slot: SlotId } | { page: 'storage' };
 
@@ -39,6 +40,12 @@ export const EngineSurface: React.FC<{
     setExpandedSlot((cur) =>
       cur && cur.dir === slot.dir && cur.stage === slot.stage ? null : slot);
 
+  // Finding 2/3: EngineSurface is a section like any sibling — one
+  // `.config-section` shell, one h3-height header row, for BOTH states. Not
+  // pushed: the header is the surface's own title. Pushed: the back row
+  // TAKES the h3 position (arrow + title) instead of sitting above a second,
+  // separate frame — so browsing the Library/Storage feels like one page
+  // swapping its content, not a nested mini-page.
   if (pushed) {
     const title = pushed.page === 'library'
       ? t('engineUi.titleLibrary', 'Library · {{stage}}', {
@@ -46,18 +53,25 @@ export const EngineSurface: React.FC<{
         })
       : t('engineUi.titleStorage', 'Storage');
     return (
-      <div className="engine-surface">
-        <button type="button" className="engine-back-row" aria-label={t('engineUi.back', 'Back')} onClick={() => setPushed(null)}>
-          <ArrowLeft size={14} />
-          {title}
-        </button>
+      <div className="config-section engine-surface">
+        <h3 className="engine-surface__heading">
+          <button type="button" className="engine-back-row" aria-label={t('engineUi.back', 'Back')} onClick={() => setPushed(null)}>
+            <ArrowLeft size={14} />
+            {title}
+          </button>
+        </h3>
         {pushed.page === 'library' ? renderLibrary(pushed.slot) : renderStorage()}
       </div>
     );
   }
   return (
-    <div className="engine-surface">
+    <div className="config-section engine-surface">
+      <h3>
+        <Settings2 size={18} />
+        <span>{t('engineUi.titleEngine', 'Translation engine')}</span>
+      </h3>
       <EnginePage adapter={adapter} expandedSlot={expandedSlot} onToggleSlot={toggle}
+        flashSlot={initialSlot}
         onBrowse={(slot) => setPushed({ page: 'library', slot })}
         onStorage={() => setPushed({ page: 'storage' })} />
     </div>

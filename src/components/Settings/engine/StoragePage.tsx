@@ -200,8 +200,10 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
             <div className="engine-storage-confirm" data-testid="storage-confirm">
               <p>{t('engineUi.deleteConfirm', 'Delete {{name}}?', { name: row.name })}</p>
               {deleteNotesFor(row.id).map((note, i) => <p key={i}>{note}</p>)}
-              <button type="button" onClick={() => doDelete(row.id)} disabled={isSessionActive}>{t('models.confirmYes', 'Yes')}</button>
-              <button type="button" onClick={() => setDeleteTarget(null)}>{t('models.confirmNo', 'No')}</button>
+              <button type="button" className="model-management__clear-btn model-management__clear-btn--yes"
+                onClick={() => doDelete(row.id)} disabled={isSessionActive}>{t('models.confirmYes', 'Yes')}</button>
+              <button type="button" className="model-management__clear-btn model-management__clear-btn--no"
+                onClick={() => setDeleteTarget(null)}>{t('models.confirmNo', 'No')}</button>
             </div>
           )}
         </div>
@@ -213,11 +215,14 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
             <div className="engine-storage-confirm" data-testid="storage-confirm">
               <p>{t('models.confirmClearAll', 'Delete all models?')}</p>
               <p>{t('engineUi.clearAllKeepsPicks', 'Your selections are remembered and return when models are downloaded again.')}</p>
-              <button type="button" onClick={doClearAll} disabled={isSessionActive}>{t('models.confirmYes', 'Yes')}</button>
-              <button type="button" onClick={() => setClearAllPending(false)}>{t('models.confirmNo', 'No')}</button>
+              <button type="button" className="model-management__clear-btn model-management__clear-btn--yes"
+                onClick={doClearAll} disabled={isSessionActive}>{t('models.confirmYes', 'Yes')}</button>
+              <button type="button" className="model-management__clear-btn model-management__clear-btn--no"
+                onClick={() => setClearAllPending(false)}>{t('models.confirmNo', 'No')}</button>
             </div>
           ) : (
-            <button type="button" onClick={() => setClearAllPending(true)} disabled={isSessionActive}>
+            <button type="button" className="model-management__clear-all"
+              onClick={() => setClearAllPending(true)} disabled={isSessionActive}>
               <Trash2 size={12} />
               {t('models.clearAll', 'Clear all')}
             </button>
@@ -225,7 +230,8 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
         )}
 
         {isWasm && (
-          <button type="button" onClick={() => setImportOpen((v) => !v)} disabled={isSessionActive}>
+          <button type="button" className="engine-storage-page__import-btn"
+            onClick={() => setImportOpen((v) => !v)} disabled={isSessionActive}>
             <FolderInput size={14} />
             {t('models.import', 'Import')}
           </button>

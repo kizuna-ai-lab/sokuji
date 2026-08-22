@@ -5,7 +5,7 @@ import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, Zo
 import { PoweredBy } from './PoweredBy';
 import { asSonioxRegion } from '../../../lib/soniox/regions';
 import { sonioxKeyField } from '../../../services/providers/SonioxProviderConfig';
-import { directionKey, type Stage } from '../../../lib/local-inference/selection/types';
+import { directionKey, type Stage, type DirectionResult } from '../../../lib/local-inference/selection/types';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
@@ -46,7 +46,8 @@ import { useAuth } from '../../../lib/auth/hooks';
 import { isElectron } from '../../../utils/environment';
 import { useAnalytics } from '../../../lib/analytics';
 import { useModelStore } from '../../../stores/modelStore';
-import { useIsParticipantChannelInScope } from '../../../stores/audioStore';
+import { useIsParticipantChannelInScope, useMode } from '../../../stores/audioStore';
+import { useLockedMode } from '../../../stores/sessionStore';
 import {
   getManifestEntry,
   estimateModelMemoryByDevice,
@@ -162,13 +163,28 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   }, [provider, localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
     localNativeSettings.selections, nativeModelStatuses, nativeCatalog]);
 
-  // The sidecar download ids the current native selection maps to. Shared by
-  // the status refresh + the memory estimate so both stay in sync with the chips.
+  // The participant (tgt→src) direction is a peer of the speaker direction,
+  // not a reversal of it — resolved against its own `selections` entry, same
+  // as the WASM speakerResolved/participantResolved pair below. Feeds the
+  // participant/both mode chip groups (Finding 1).
+  const nativeParticipantResolved = useMemo(() => {
+    if (provider !== Provider.LOCAL_NATIVE) return null;
+    return useNativeModelStore.getState().resolve(
+      localNativeSettings.targetLanguage, localNativeSettings.sourceLanguage, localNativeSettings.selections);
+  }, [provider, localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
+    localNativeSettings.selections, nativeModelStatuses, nativeCatalog]);
+
+  // The sidecar download ids EITHER direction's current selection maps to —
+  // both, unconditionally, so a mode flip (speaker <-> participant <-> both)
+  // never shows a stale/incorrect chip while status for the other direction's
+  // models catches up. Shared by the status refresh + the memory estimate so
+  // both stay in sync with the chips.
   const nativeActiveDownloadIds = useMemo(() => {
-    if (!nativeSpeakerResolved) return [];
-    return [nativeSpeakerResolved.asr?.modelId, nativeSpeakerResolved.translation?.modelId, nativeSpeakerResolved.tts?.modelId]
-      .filter((x): x is string => !!x);
-  }, [nativeSpeakerResolved]);
+    return [
+      nativeSpeakerResolved?.asr?.modelId, nativeSpeakerResolved?.translation?.modelId, nativeSpeakerResolved?.tts?.modelId,
+      nativeParticipantResolved?.asr?.modelId, nativeParticipantResolved?.translation?.modelId,
+    ].filter((x): x is string => !!x);
+  }, [nativeSpeakerResolved, nativeParticipantResolved]);
 
   // Pull cache status + sizes from the sidecar so the chips and estimate work even
   // when the model-management section isn't mounted (e.g. before opening Advanced).
@@ -212,6 +228,14 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   }, [asrResolved, translationResolved, nativeSpeakerResolved]);
 
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
+  // Effective audio mode — same `lockedMode ?? mode` idiom LanguageSection
+  // uses for every other mode-scoped display: an in-session panel describes
+  // the session that is actually running, not wherever the mode picker
+  // currently sits. Drives which chip groups the model-info block below
+  // renders (Finding 1: chips must follow the audio mode).
+  const mode = useMode();
+  const lockedMode = useLockedMode();
+  const audioMode = lockedMode ?? mode;
   // Read model download statuses reactively so participant status updates when models are downloaded
   const modelStatuses = useModelStore(state => state.modelStatuses);
   // Live, resolved view of the WASM speaker (src→tgt) direction — same
@@ -283,15 +307,144 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     }
   };
 
-  // Shared by every model chip (both local providers): deep-link the engine
-  // surface straight to this slot instead of the old "flip the language pair"
-  // workflow. Simple mode needs only the target — SimpleSettings' host
-  // reacts to it directly. Advanced mode also has to switch to the provider
-  // tab; no mode switch happens here (that's the whole point — the chip no
-  // longer forces the user into Advanced).
-  const openSlot = (settingsForProvider: { sourceLanguage: string; targetLanguage: string }, stage: Stage) => {
-    setEngineSlotTarget({ dir: directionKey(settingsForProvider.sourceLanguage, settingsForProvider.targetLanguage), stage });
+  // Shared by every model chip (both local providers, both speaker/
+  // participant chip groups): deep-link the engine surface straight to this
+  // slot instead of the old "flip the language pair" workflow. Takes the
+  // direction EXPLICITLY rather than deriving it from the provider's stored
+  // src/tgt — a participant-group chip targets the reverse direction, a
+  // speaker-group chip the forward one, and each chip owns its own slot
+  // (Finding 1: clicks target the CHIP'S OWN direction, never a hardcoded
+  // one). Simple mode needs only the target — SimpleSettings' host reacts to
+  // it directly. Advanced mode also has to switch to the provider tab; no
+  // mode switch happens here (that's the whole point — the chip no longer
+  // forces the user into Advanced).
+  const openSlot = (dir: string, stage: Stage) => {
+    setEngineSlotTarget({ dir, stage });
     if (!isSimpleMode) navigateToSettings('provider');
+  };
+
+  // ── Chip groups: mode-aware, shared by both local providers ─────────────
+  //
+  // - 'speaker'     → 3 chips (ASR/MT/TTS) for src→tgt.
+  // - 'participant' → 2 chips (ASR/MT — no TTS) for the REVERSE tgt→src.
+  // - 'both'        → both groups, each under a small-caps label so which
+  //   group is whose is never ambiguous.
+  //
+  // `renderChips` renders one direction's chip row; it differs per provider
+  // (native looks up catalog cards for display names, WASM reads the
+  // manifest directly), so it's injected rather than hard-coded here.
+  const renderChipGroups = (
+    renderChips: (resolved: DirectionResult | null, src: string, tgt: string, includeTts: boolean) => React.ReactNode,
+    speaker: DirectionResult | null,
+    participant: DirectionResult | null,
+    src: string,
+    tgt: string,
+  ): React.ReactNode => {
+    if (audioMode === 'participant') {
+      return <div className="model-inline">{renderChips(participant, tgt, src, false)}</div>;
+    }
+    if (audioMode === 'both') {
+      return (
+        <>
+          <div className="model-inline-group">
+            <span className="model-inline-group__label">{t('modePicker.modeYou', 'Me')}</span>
+            <div className="model-inline">{renderChips(speaker, src, tgt, true)}</div>
+          </div>
+          <div className="model-inline-group">
+            <span className="model-inline-group__label">{t('modePicker.modeParticipants', 'Other')}</span>
+            <div className="model-inline">{renderChips(participant, tgt, src, false)}</div>
+          </div>
+        </>
+      );
+    }
+    // 'speaker' (default)
+    return <div className="model-inline">{renderChips(speaker, src, tgt, true)}</div>;
+  };
+
+  // LOCAL_NATIVE's chip row: card lookups go through the sidecar catalog.
+  const renderNativeChips = (resolved: DirectionResult | null, src: string, tgt: string, includeTts: boolean): React.ReactNode => {
+    const dir = directionKey(src, tgt);
+    // resolve() only returns a stage when it's a usable (ready + hardware-ok)
+    // candidate, so its presence already means "ready" — no separate
+    // nativeModelStatuses check needed.
+    const asrId = resolved?.asr?.modelId;
+    const asrCard = asrId
+      ? [...nativeAsrCards(src, nativeCatalog), ...nativeAsrIncompatibleCards(src, nativeCatalog)]
+          .find(c => c.selectId === asrId)
+      : undefined;
+    const trId = resolved?.translation?.modelId;
+    const trCard = trId
+      ? nativeTranslationCards(src, tgt, nativeCatalog).find(c => c.selectId === trId)
+      : undefined;
+    return (
+      <>
+        <button type="button" className="model-chip" onClick={() => openSlot(dir, 'asr')}>
+          <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+          <span className={`model-chip-value ${asrId ? 'model-ok' : 'model-warn'}`}>
+            {asrId ? (asrCard?.name || asrId) : t('common.none', 'None')}
+          </span>
+        </button>
+        <button type="button" className="model-chip" onClick={() => openSlot(dir, 'translation')}>
+          <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
+          <span className={`model-chip-value ${trId ? 'model-ok' : 'model-warn'}`}>
+            {trId ? (trCard?.name) : t('common.none', 'None')}
+          </span>
+        </button>
+        {includeTts && (() => {
+          const voiceId = resolved?.tts?.modelId;
+          const ttsVoice = voiceId
+            ? nativeTtsModels(tgt, nativeCatalog).find(m => m.id === voiceId)
+            : undefined;
+          return (
+            <button type="button" className="model-chip" onClick={() => openSlot(dir, 'tts')}>
+              <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
+              <span className={`model-chip-value ${voiceId ? 'model-ok' : 'model-warn'}`}>
+                {voiceId ? (ttsVoice?.name || voiceId) : t('common.none', 'None')}
+              </span>
+            </button>
+          );
+        })()}
+      </>
+    );
+  };
+
+  // LOCAL_INFERENCE's chip row: reads the static WASM manifest directly.
+  const renderInferenceChips = (resolved: DirectionResult | null, src: string, tgt: string, includeTts: boolean): React.ReactNode => {
+    const dir = directionKey(src, tgt);
+    // resolve() only returns a stage when it's a usable (ready + hardware-ok,
+    // or always-ready cloud) candidate, so its presence already means
+    // "ready" — no separate modelStatuses check needed.
+    const asrId = resolved?.asr?.modelId;
+    const trId = resolved?.translation?.modelId;
+    const trEntry = trId ? getManifestEntry(trId) : undefined;
+    return (
+      <>
+        <button type="button" className="model-chip" onClick={() => openSlot(dir, 'asr')}>
+          <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+          <span className={`model-chip-value ${asrId ? 'model-ok' : 'model-warn'}`}>
+            {asrId || t('common.none', 'None')}
+          </span>
+        </button>
+        <button type="button" className="model-chip" onClick={() => openSlot(dir, 'translation')}>
+          <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
+          <span className={`model-chip-value ${trId ? 'model-ok' : 'model-warn'}`}>
+            {trId ? (trEntry?.name || trId) : t('common.none', 'None')}
+          </span>
+        </button>
+        {includeTts && (() => {
+          const id = resolved?.tts?.modelId;
+          const ttsEntry = id ? getManifestEntry(id) : undefined;
+          return (
+            <button type="button" className="model-chip" onClick={() => openSlot(dir, 'tts')}>
+              <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
+              <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
+                {id ? (ttsEntry?.name || id) : t('common.none', 'None')}
+              </span>
+            </button>
+          );
+        })()}
+      </>
+    );
   };
 
   // Get all available providers
@@ -524,55 +677,10 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             <div className="model-info local-native-status is-error">{t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}</div>
           ) : (
             <div className="model-info">
-              <div className="model-inline">
-                {(() => {
-                  // resolve() only returns a stage when it's a usable (ready +
-                  // hardware-ok) candidate, so its presence already means "ready" —
-                  // no separate nativeModelStatuses check needed.
-                  const asrId = nativeSpeakerResolved?.asr?.modelId;
-                  const asrCard = asrId
-                    ? [...nativeAsrCards(localNativeSettings.sourceLanguage, nativeCatalog), ...nativeAsrIncompatibleCards(localNativeSettings.sourceLanguage, nativeCatalog)]
-                        .find(c => c.selectId === asrId)
-                    : undefined;
-                  return (
-                    <button type="button" className="model-chip" onClick={() => openSlot(localNativeSettings, 'asr')}>
-                      <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-                      <span className={`model-chip-value ${asrId ? 'model-ok' : 'model-warn'}`}>
-                        {asrId ? (asrCard?.name || asrId) : t('common.none', 'None')}
-                      </span>
-                    </button>
-                  );
-                })()}
-                {(() => {
-                  const trId = nativeSpeakerResolved?.translation?.modelId;
-                  const trCard = trId
-                    ? nativeTranslationCards(localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage, nativeCatalog)
-                        .find(c => c.selectId === trId)
-                    : undefined;
-                  return (
-                    <button type="button" className="model-chip" onClick={() => openSlot(localNativeSettings, 'translation')}>
-                      <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
-                      <span className={`model-chip-value ${trId ? 'model-ok' : 'model-warn'}`}>
-                        {trId ? (trCard?.name) : t('common.none', 'None')}
-                      </span>
-                    </button>
-                  );
-                })()}
-                {(() => {
-                  const voiceId = nativeSpeakerResolved?.tts?.modelId;
-                  const ttsVoice = voiceId
-                    ? nativeTtsModels(localNativeSettings.targetLanguage, nativeCatalog).find(m => m.id === voiceId)
-                    : undefined;
-                  return (
-                    <button type="button" className="model-chip" onClick={() => openSlot(localNativeSettings, 'tts')}>
-                      <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
-                      <span className={`model-chip-value ${voiceId ? 'model-ok' : 'model-warn'}`}>
-                        {voiceId ? (ttsVoice?.name || voiceId) : t('common.none', 'None')}
-                      </span>
-                    </button>
-                  );
-                })()}
-              </div>
+              {renderChipGroups(
+                renderNativeChips, nativeSpeakerResolved, nativeParticipantResolved,
+                localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
+              )}
               {nativeActual ? (
                 <div className="memory-estimate">
                   <Cpu size={11} />
@@ -597,47 +705,10 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       ) : provider === Provider.LOCAL_INFERENCE ? (
         <div className="local-inference-info">
           <div className="model-info">
-            <div className="model-inline">
-              {(() => {
-                // resolve() only returns a stage when it's a usable (ready +
-                // hardware-ok, or always-ready cloud) candidate, so its
-                // presence already means "ready" — no separate modelStatuses
-                // check needed.
-                const id = speakerResolved?.asr?.modelId;
-                return (
-                  <button type="button" className="model-chip" onClick={() => openSlot(localInferenceSettings, 'asr')}>
-                    <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-                    <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
-                      {id || t('common.none', 'None')}
-                    </span>
-                  </button>
-                );
-              })()}
-              {(() => {
-                const id = speakerResolved?.translation?.modelId;
-                const translationEntry = id ? getManifestEntry(id) : undefined;
-                return (
-                  <button type="button" className="model-chip" onClick={() => openSlot(localInferenceSettings, 'translation')}>
-                    <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
-                    <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
-                      {id ? (translationEntry?.name || id) : t('common.none', 'None')}
-                    </span>
-                  </button>
-                );
-              })()}
-              {(() => {
-                const id = speakerResolved?.tts?.modelId;
-                const ttsEntry = id ? getManifestEntry(id) : undefined;
-                return (
-                  <button type="button" className="model-chip" onClick={() => openSlot(localInferenceSettings, 'tts')}>
-                    <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
-                    <span className={`model-chip-value ${id ? 'model-ok' : 'model-warn'}`}>
-                      {id ? (ttsEntry?.name || id) : t('common.none', 'None')}
-                    </span>
-                  </button>
-                );
-              })()}
-            </div>
+            {renderChipGroups(
+              renderInferenceChips, speakerResolved, participantResolved,
+              localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage,
+            )}
             {memoryEstimate && (memoryEstimate.vramMb > 0 || memoryEstimate.ramMb > 0) && (
               <div className="memory-estimate">
                 <Cpu size={11} />

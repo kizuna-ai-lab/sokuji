@@ -83,6 +83,18 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
     if (targetTab && targetTab !== activeTab) {
       setActiveTab(targetTab);
     }
+    // 'provider' is special (Finding 4): it's the engine chips' deep-link
+    // target (see ProviderSection's openSlot), and the section this would
+    // scroll/highlight is id="provider-section" — the WHOLE ProviderSection,
+    // not the slot the chip actually opened. That flash now belongs to
+    // EngineSurface's own expanded SlotRow (its one-shot `flashSlot` prop)
+    // instead. Switch tabs only, and clear the one-shot target immediately
+    // so it can't linger and hijack a later navigation that DOES want the
+    // scroll/highlight.
+    if (settingsNavigationTarget === 'provider') {
+      navigateToSettings(null);
+      return;
+    }
     // Wait for the tab switch + DOM update before scrolling. Cancel the
     // pending scroll on cleanup so flipping modes mid-navigation doesn't
     // fire into an unmounted/stale DOM.

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, d?: any, opts?: any) =>
@@ -50,5 +50,58 @@ describe('SlotRow', () => {
         <div data-testid="picker" />
       </SlotRow>);
     expect(screen.getByTestId('picker')).toBeInTheDocument();
+  });
+
+  // Finding 4: a chip click deep-links into the engine surface and should
+  // flash THIS row, not the whole ProviderSection (the old, wrong target —
+  // see Settings.highlight.test.tsx for the other half of the fix).
+  describe('flashSlot (Finding 4)', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const slot = { dir: 'ja→en', stage: 'asr' as const };
+
+    it('renders the .highlight class when flashSlot matches this row, then drops it after the timeout', () => {
+      const { container } = render(
+        <SlotRow slot={slot} label="ASR" resolved={resolvedAuto} displayName={() => 'SenseVoice'}
+          expanded={false} onToggle={() => {}} flashSlot={{ ...slot }} />);
+
+      expect(container.querySelector('.engine-slot')).toHaveClass('highlight');
+
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(container.querySelector('.engine-slot')).not.toHaveClass('highlight');
+    });
+
+    it('does not flash a row flashSlot does not match (different stage)', () => {
+      const { container } = render(
+        <SlotRow slot={slot} label="ASR" resolved={resolvedAuto} displayName={() => 'SenseVoice'}
+          expanded={false} onToggle={() => {}} flashSlot={{ dir: 'ja→en', stage: 'translation' }} />);
+
+      expect(container.querySelector('.engine-slot')).not.toHaveClass('highlight');
+    });
+
+    it('re-flashes on a FRESH object with the identical dir/stage — the same chip fired twice', () => {
+      const { container, rerender } = render(
+        <SlotRow slot={slot} label="ASR" resolved={resolvedAuto} displayName={() => 'SenseVoice'}
+          expanded={false} onToggle={() => {}} flashSlot={{ ...slot }} />);
+
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(container.querySelector('.engine-slot')).not.toHaveClass('highlight');
+
+      // A NEW object, same dir/stage — mirrors EngineSurface always handing
+      // down a freshly-allocated initialSlot on every deep-link.
+      rerender(
+        <SlotRow slot={slot} label="ASR" resolved={resolvedAuto} displayName={() => 'SenseVoice'}
+          expanded={false} onToggle={() => {}} flashSlot={{ ...slot }} />);
+      expect(container.querySelector('.engine-slot')).toHaveClass('highlight');
+    });
+
+    it('never flashes a slot the user expanded by hand (no flashSlot at all)', () => {
+      const { container } = render(
+        <SlotRow slot={slot} label="ASR" resolved={resolvedAuto} displayName={() => 'SenseVoice'}
+          expanded={true} onToggle={() => {}} />);
+
+      expect(container.querySelector('.engine-slot')).not.toHaveClass('highlight');
+    });
   });
 });
