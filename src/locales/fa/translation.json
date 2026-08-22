@@ -110,7 +110,6 @@
     "helpEmailTooltip": "گزارش اشکال یا دریافت کمک",
     "helpDiscussions": "گفت‌وگوها",
     "helpDiscussionsTooltip": "درخواست ویژگی، بازخورد و گفت‌وگوهای انجمن",
-    "participantModelHint": "برای تغییر مدل‌های طرف مقابل به {{source}} → {{target}} تغییر دهید",
     "auto": "خودکار",
     "low": "کم",
     "medium": "متوسط",
@@ -268,7 +267,14 @@
     "sonioxVoicePreviewQuotaError": "پیش‌نمایش ناموفق بود — محدودیت نرخ یا سهمیه Soniox پر شده است",
     "sonioxVoicePreviewTimeout": "زمان پیش‌نمایش به پایان رسید — دوباره تلاش کنید",
     "sonioxRegion": "منطقه",
-    "sonioxRegionTooltip": "Soniox برای هر منطقه استقرار جداگانه‌ای دارد که هرکدام کلید API مخصوص خود را دارند. صدای شما در منطقه انتخابی پردازش و ذخیره می‌شود. از جلسه بعدی اعمال می‌شود."
+    "sonioxRegionTooltip": "Soniox برای هر منطقه استقرار جداگانه‌ای دارد که هرکدام کلید API مخصوص خود را دارند. صدای شما در منطقه انتخابی پردازش و ذخیره می‌شود. از جلسه بعدی اعمال می‌شود.",
+    "langSentence": {
+      "iSpeak": "I speak",
+      "iRead": "I read",
+      "theyHear": "they hear",
+      "theySpeak": "they speak",
+      "mirror": "They speak {{their}} → I read {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",
@@ -479,8 +485,7 @@
       "description": "تشخیص گفتار رایگان (ASR) + ترجمه + تبدیل متن به گفتار (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "طرف مقابل"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "رایگان (Native)",
@@ -831,6 +836,7 @@
     "importNow": "اکنون {{count}} فایل را وارد کنید",
     "management": "مدل‌ها",
     "storageUsed": "فضای ذخیره‌سازی: {{size}} مگابایت استفاده شده",
+    "storageEmpty": "No models downloaded yet.",
     "asrModels": "تشخیص گفتار (ASR)",
     "translationModels": "ترجمه",
     "ttsModels": "تبدیل متن به گفتار (TTS)",
@@ -892,6 +898,20 @@
       "cancel": "لغو",
       "accept": "متوجه شدم — فقط استفاده غیرتجاری"
     }
+  },
+  "notes": {
+    "stageAsr": "speech recognition",
+    "stageTranslation": "translation",
+    "stageTts": "speech output",
+    "notDownloaded": "{{from}} is not downloaded. Download it again to use it.",
+    "notDownloadedWithSub": "{{from}} is not downloaded — using {{to}} instead. Download it again to use it.",
+    "langIncompatible": "{{from}} does not support this direction. It returns when the direction does.",
+    "langIncompatibleWithSub": "{{from}} does not support this direction — using {{to}} instead. It returns when the direction does.",
+    "hardwareGated": "{{from}} cannot run on this device.",
+    "hardwareGatedWithSub": "{{from}} cannot run on this device — using {{to}} instead.",
+    "needsKey": "{{from}} needs a signed-in account to use.",
+    "notInCatalog": "{{from}} is no longer available in this version.",
+    "noCandidate": "No {{stage}} model is available for this direction."
   },
   "update": {
     "available": "نسخه جدید v{{version}} موجود است",
@@ -1018,5 +1038,27 @@
     "actionPickApp": "به‌جای صدای سیستم، برنامهٔ جلسه را به‌عنوان منبع صدای طرف مقابل انتخاب کنید.",
     "actionChangeInput": "یک میکروفون فیزیکی را به‌عنوان دستگاه ورودی انتخاب کنید.",
     "dismiss": "بستن"
+  },
+  "engineUi": {
+    "autoValue": "auto · {{name}}",
+    "autoOption": "Auto (currently {{name}})",
+    "autoOptionNone": "Auto",
+    "browseLibrary": "Browse library",
+    "storageRow": "Storage",
+    "back": "Back",
+    "titleEngine": "Translation engine",
+    "titleLibrary": "Library · {{stage}}",
+    "titleStorage": "Storage",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "In use",
+    "estimated": "Estimated",
+    "translationOnCpu": "Translation on CPU — not enough VRAM",
+    "supportsLang": "Supports {{lang}}",
+    "otherLanguages": "Other languages",
+    "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",
+    "deleteFallsBack": "Deleting {{name}}: {{stage}} falls back to {{to}}.",
+    "deleteNoModel": "Deleting {{name}}: no {{stage}} model remains — sessions cannot start.",
+    "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again.",
+    "importChooseModel": "Choose a model to import"
   }
 }

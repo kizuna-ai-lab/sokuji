@@ -110,7 +110,6 @@
     "helpEmailTooltip": "பிழைகளைப் புகாரளிக்கவும் அல்லது உதவி பெறவும்",
     "helpDiscussions": "கலந்துரையாடல்கள்",
     "helpDiscussionsTooltip": "அம்ச கோரிக்கைகள், கருத்துகள் மற்றும் சமூக கலந்துரையாடல்கள்",
-    "participantModelHint": "மற்றவரின் மாதிரிகளை மாற்ற {{source}} → {{target}} க்கு மாறவும்",
     "auto": "தானியங்கு",
     "low": "குறைந்தது",
     "medium": "நடுத்தரம்",
@@ -268,7 +267,14 @@
     "sonioxVoicePreviewQuotaError": "முன்னோட்டம் தோல்வியடைந்தது — Soniox வீத வரம்பு அல்லது ஒதுக்கீடு எட்டப்பட்டது",
     "sonioxVoicePreviewTimeout": "முன்னோட்ட நேரம் முடிந்தது — மீண்டும் முயற்சிக்கவும்",
     "sonioxRegion": "பகுதி",
-    "sonioxRegionTooltip": "Soniox ஒவ்வொரு பகுதிக்கும் தனித்தனி வரிசைப்படுத்தலை இயக்குகிறது, ஒவ்வொன்றுக்கும் தனி API சாவி உள்ளது. உங்கள் ஒலி நீங்கள் தேர்ந்தெடுத்த பகுதியிலேயே செயலாக்கப்பட்டு சேமிக்கப்படும். அடுத்த அமர்விலிருந்து பொருந்தும்."
+    "sonioxRegionTooltip": "Soniox ஒவ்வொரு பகுதிக்கும் தனித்தனி வரிசைப்படுத்தலை இயக்குகிறது, ஒவ்வொன்றுக்கும் தனி API சாவி உள்ளது. உங்கள் ஒலி நீங்கள் தேர்ந்தெடுத்த பகுதியிலேயே செயலாக்கப்பட்டு சேமிக்கப்படும். அடுத்த அமர்விலிருந்து பொருந்தும்.",
+    "langSentence": {
+      "iSpeak": "I speak",
+      "iRead": "I read",
+      "theyHear": "they hear",
+      "theySpeak": "they speak",
+      "mirror": "They speak {{their}} → I read {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "உங்கள் கணக்கு மூலம் தானாக அங்கீகரிக்கப்பட்டது",
@@ -479,8 +485,7 @@
       "description": "இலவச பேச்சு அங்கீகாரம் (ASR) + மொழிபெயர்ப்பு + பேச்சு தொகுப்பு (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "மற்றவர்"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "இலவசம் (Native)",
@@ -831,6 +836,7 @@
     "importNow": "{{count}} ஐ இப்போது இறக்குமதி செய்",
     "management": "மாடல்கள்",
     "storageUsed": "சேமிப்பு: {{size}} MB பயன்படுத்தப்பட்டது",
+    "storageEmpty": "No models downloaded yet.",
     "asrModels": "பேச்சு அங்கீகாரம் (ASR)",
     "translationModels": "மொழிபெயர்ப்பு",
     "ttsModels": "பேச்சு தொகுப்பு (TTS)",
@@ -892,6 +898,20 @@
       "cancel": "ரத்துசெய்",
       "accept": "புரிந்தது — வணிகமற்ற பயன்பாடு மட்டுமே"
     }
+  },
+  "notes": {
+    "stageAsr": "speech recognition",
+    "stageTranslation": "translation",
+    "stageTts": "speech output",
+    "notDownloaded": "{{from}} is not downloaded. Download it again to use it.",
+    "notDownloadedWithSub": "{{from}} is not downloaded — using {{to}} instead. Download it again to use it.",
+    "langIncompatible": "{{from}} does not support this direction. It returns when the direction does.",
+    "langIncompatibleWithSub": "{{from}} does not support this direction — using {{to}} instead. It returns when the direction does.",
+    "hardwareGated": "{{from}} cannot run on this device.",
+    "hardwareGatedWithSub": "{{from}} cannot run on this device — using {{to}} instead.",
+    "needsKey": "{{from}} needs a signed-in account to use.",
+    "notInCatalog": "{{from}} is no longer available in this version.",
+    "noCandidate": "No {{stage}} model is available for this direction."
   },
   "update": {
     "available": "புதிய பதிப்பு v{{version}} கிடைக்கிறது",
@@ -1018,5 +1038,27 @@
     "actionPickApp": "கணினி ஒலிக்குப் பதிலாக கூட்டப் பயன்பாட்டை மற்றவரின் ஆடியோ மூலமாகத் தேர்ந்தெடுக்கவும்.",
     "actionChangeInput": "உள்ளீட்டு சாதனமாக உண்மையான மைக்ரோஃபோனைத் தேர்ந்தெடுக்கவும்.",
     "dismiss": "மூடு"
+  },
+  "engineUi": {
+    "autoValue": "auto · {{name}}",
+    "autoOption": "Auto (currently {{name}})",
+    "autoOptionNone": "Auto",
+    "browseLibrary": "Browse library",
+    "storageRow": "Storage",
+    "back": "Back",
+    "titleEngine": "Translation engine",
+    "titleLibrary": "Library · {{stage}}",
+    "titleStorage": "Storage",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "In use",
+    "estimated": "Estimated",
+    "translationOnCpu": "Translation on CPU — not enough VRAM",
+    "supportsLang": "Supports {{lang}}",
+    "otherLanguages": "Other languages",
+    "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",
+    "deleteFallsBack": "Deleting {{name}}: {{stage}} falls back to {{to}}.",
+    "deleteNoModel": "Deleting {{name}}: no {{stage}} model remains — sessions cannot start.",
+    "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again.",
+    "importChooseModel": "Choose a model to import"
   }
 }

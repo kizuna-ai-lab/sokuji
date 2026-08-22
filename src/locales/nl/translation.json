@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Bugs melden of hulp krijgen",
     "helpDiscussions": "Discussies",
     "helpDiscussionsTooltip": "Functieverzoeken, feedback en communitydiscussies",
-    "participantModelHint": "Schakel naar {{source}} → {{target}} om de modellen van de ander te wijzigen",
     "auto": "Auto",
     "low": "Laag",
     "medium": "Gemiddeld",
@@ -268,7 +267,14 @@
     "sonioxVoicePreviewQuotaError": "Voorbeeld mislukt — Soniox-snelheidslimiet of quotum bereikt",
     "sonioxVoicePreviewTimeout": "Time-out bij voorbeeld — probeer het opnieuw",
     "sonioxRegion": "Regio",
-    "sonioxRegionTooltip": "Soniox draait per regio een aparte omgeving, elk met een eigen API-sleutel. Je audio wordt verwerkt en opgeslagen in de gekozen regio. Geldt vanaf de volgende sessie."
+    "sonioxRegionTooltip": "Soniox draait per regio een aparte omgeving, elk met een eigen API-sleutel. Je audio wordt verwerkt en opgeslagen in de gekozen regio. Geldt vanaf de volgende sessie.",
+    "langSentence": {
+      "iSpeak": "I speak",
+      "iRead": "I read",
+      "theyHear": "they hear",
+      "theySpeak": "they speak",
+      "mirror": "They speak {{their}} → I read {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
@@ -479,8 +485,7 @@
       "description": "Gratis spraakherkenning (ASR) + Vertaling + spraaksynthese (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Ander"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Gratis (Native)",
@@ -831,6 +836,7 @@
     "importNow": "{{count}} nu importeren",
     "management": "Modellen",
     "storageUsed": "Opslag: {{size}} MB gebruikt",
+    "storageEmpty": "No models downloaded yet.",
     "asrModels": "Spraakherkenning (ASR)",
     "translationModels": "Vertaling",
     "ttsModels": "Spraaksynthese (TTS)",
@@ -892,6 +898,20 @@
       "cancel": "Annuleren",
       "accept": "Begrepen — alleen niet-commercieel"
     }
+  },
+  "notes": {
+    "stageAsr": "speech recognition",
+    "stageTranslation": "translation",
+    "stageTts": "speech output",
+    "notDownloaded": "{{from}} is not downloaded. Download it again to use it.",
+    "notDownloadedWithSub": "{{from}} is not downloaded — using {{to}} instead. Download it again to use it.",
+    "langIncompatible": "{{from}} does not support this direction. It returns when the direction does.",
+    "langIncompatibleWithSub": "{{from}} does not support this direction — using {{to}} instead. It returns when the direction does.",
+    "hardwareGated": "{{from}} cannot run on this device.",
+    "hardwareGatedWithSub": "{{from}} cannot run on this device — using {{to}} instead.",
+    "needsKey": "{{from}} needs a signed-in account to use.",
+    "notInCatalog": "{{from}} is no longer available in this version.",
+    "noCandidate": "No {{stage}} model is available for this direction."
   },
   "update": {
     "available": "Nieuwe versie v{{version}} beschikbaar",
@@ -1018,5 +1038,27 @@
     "actionPickApp": "Kies de vergaderapp als audiobron van de ander in plaats van systeemaudio.",
     "actionChangeInput": "Kies een fysieke microfoon als invoerapparaat.",
     "dismiss": "Sluiten"
+  },
+  "engineUi": {
+    "autoValue": "auto · {{name}}",
+    "autoOption": "Auto (currently {{name}})",
+    "autoOptionNone": "Auto",
+    "browseLibrary": "Browse library",
+    "storageRow": "Storage",
+    "back": "Back",
+    "titleEngine": "Translation engine",
+    "titleLibrary": "Library · {{stage}}",
+    "titleStorage": "Storage",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "In use",
+    "estimated": "Estimated",
+    "translationOnCpu": "Translation on CPU — not enough VRAM",
+    "supportsLang": "Supports {{lang}}",
+    "otherLanguages": "Other languages",
+    "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",
+    "deleteFallsBack": "Deleting {{name}}: {{stage}} falls back to {{to}}.",
+    "deleteNoModel": "Deleting {{name}}: no {{stage}} model remains — sessions cannot start.",
+    "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again.",
+    "importChooseModel": "Choose a model to import"
   }
 }

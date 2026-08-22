@@ -66,9 +66,9 @@ describe('ProviderSection — model chips deep-link to their slot (Task 10)', ()
     fireEvent.click(chips(container)[1]); // MT (translation)
 
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ja→en', stage: 'translation' });
-    // navigateToSettings('provider-section') — same mechanism the old
-    // model-* targets used, just aimed at the tab itself.
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider-section');
+    // navigateToSettings('provider') — same mechanism the old model-*
+    // targets used, just aimed at the tab itself.
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
     // The old handler forced Advanced via setUIMode; the new one never calls
     // it at all — uiMode must be exactly what it started as.
     expect(useSettingsStore.getState().uiMode).toBe('advanced');
@@ -116,7 +116,7 @@ describe('ProviderSection — model chips deep-link to their slot (Task 10)', ()
     fireEvent.click(chips(container)[2]); // TTS
 
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ja→en', stage: 'tts' });
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider-section');
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
     expect(useSettingsStore.getState().uiMode).toBe('advanced');
   });
 });

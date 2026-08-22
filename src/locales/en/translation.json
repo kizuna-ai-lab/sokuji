@@ -485,8 +485,7 @@
       "description": "Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Other"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Free (Native)",
@@ -1052,7 +1051,8 @@
     "titleStorage": "Storage",
     "speakerHeading": "{{src}} → {{tgt}}",
     "inUse": "In use",
-    "subtitlesOnly": "Subtitles only",
+    "estimated": "Estimated",
+    "translationOnCpu": "Translation on CPU — not enough VRAM",
     "supportsLang": "Supports {{lang}}",
     "otherLanguages": "Other languages",
     "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",

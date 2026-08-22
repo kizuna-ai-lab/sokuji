@@ -110,7 +110,6 @@
     "helpEmailTooltip": "الإبلاغ عن الأخطاء أو الحصول على مساعدة",
     "helpDiscussions": "المناقشات",
     "helpDiscussionsTooltip": "طلبات الميزات والملاحظات ومناقشات المجتمع",
-    "participantModelHint": "قم بالتبديل إلى {{source}} → {{target}} لتغيير نماذج الآخر",
     "auto": "تلقائي",
     "low": "منخفض",
     "medium": "متوسط",
@@ -268,7 +267,14 @@
     "sonioxVoicePreviewQuotaError": "فشلت المعاينة — تم بلوغ حد المعدل أو الحصة في Soniox",
     "sonioxVoicePreviewTimeout": "انتهت مهلة المعاينة — حاول مرة أخرى",
     "sonioxRegion": "المنطقة",
-    "sonioxRegionTooltip": "تشغّل Soniox نشرًا منفصلًا لكل منطقة، ولكل منها مفتاح API خاص بها. تتم معالجة صوتك وتخزينه في المنطقة التي تختارها. يسري ابتداءً من الجلسة التالية."
+    "sonioxRegionTooltip": "تشغّل Soniox نشرًا منفصلًا لكل منطقة، ولكل منها مفتاح API خاص بها. تتم معالجة صوتك وتخزينه في المنطقة التي تختارها. يسري ابتداءً من الجلسة التالية.",
+    "langSentence": {
+      "iSpeak": "I speak",
+      "iRead": "I read",
+      "theyHear": "they hear",
+      "theySpeak": "they speak",
+      "mirror": "They speak {{their}} → I read {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",
@@ -479,8 +485,7 @@
       "description": "التعرف على الكلام المجاني (ASR) + ترجمة + تحويل النص إلى كلام (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "الآخر"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "مجاني (Native)",
@@ -831,6 +836,7 @@
     "importNow": "استيراد {{count}} الآن",
     "management": "النماذج",
     "storageUsed": "التخزين: {{size}} ميغابايت مستخدمة",
+    "storageEmpty": "No models downloaded yet.",
     "asrModels": "التعرف على الكلام (ASR)",
     "translationModels": "ترجمة",
     "ttsModels": "تحويل النص إلى كلام (TTS)",
@@ -892,6 +898,20 @@
       "cancel": "إلغاء",
       "accept": "فهمت — للاستخدام غير التجاري فقط"
     }
+  },
+  "notes": {
+    "stageAsr": "speech recognition",
+    "stageTranslation": "translation",
+    "stageTts": "speech output",
+    "notDownloaded": "{{from}} is not downloaded. Download it again to use it.",
+    "notDownloadedWithSub": "{{from}} is not downloaded — using {{to}} instead. Download it again to use it.",
+    "langIncompatible": "{{from}} does not support this direction. It returns when the direction does.",
+    "langIncompatibleWithSub": "{{from}} does not support this direction — using {{to}} instead. It returns when the direction does.",
+    "hardwareGated": "{{from}} cannot run on this device.",
+    "hardwareGatedWithSub": "{{from}} cannot run on this device — using {{to}} instead.",
+    "needsKey": "{{from}} needs a signed-in account to use.",
+    "notInCatalog": "{{from}} is no longer available in this version.",
+    "noCandidate": "No {{stage}} model is available for this direction."
   },
   "update": {
     "available": "إصدار جديد v{{version}} متاح",
@@ -1018,5 +1038,27 @@
     "actionPickApp": "اختر تطبيق الاجتماع كمصدر صوت الآخر بدلاً من صوت النظام.",
     "actionChangeInput": "اختر ميكروفوناً فعلياً كجهاز إدخال.",
     "dismiss": "إغلاق"
+  },
+  "engineUi": {
+    "autoValue": "auto · {{name}}",
+    "autoOption": "Auto (currently {{name}})",
+    "autoOptionNone": "Auto",
+    "browseLibrary": "Browse library",
+    "storageRow": "Storage",
+    "back": "Back",
+    "titleEngine": "Translation engine",
+    "titleLibrary": "Library · {{stage}}",
+    "titleStorage": "Storage",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "In use",
+    "estimated": "Estimated",
+    "translationOnCpu": "Translation on CPU — not enough VRAM",
+    "supportsLang": "Supports {{lang}}",
+    "otherLanguages": "Other languages",
+    "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",
+    "deleteFallsBack": "Deleting {{name}}: {{stage}} falls back to {{to}}.",
+    "deleteNoModel": "Deleting {{name}}: no {{stage}} model remains — sessions cannot start.",
+    "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again.",
+    "importChooseModel": "Choose a model to import"
   }
 }

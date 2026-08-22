@@ -39,10 +39,13 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'speaker': 'audio',
   'system-audio': 'audio',
   'participant': 'audio',
-  'provider': 'provider',
   // Engine chips (Task 10) deep-link here to switch to the provider tab
   // without forcing Advanced mode — see ProviderSection's openSlot handler.
-  'provider-section': 'provider',
+  // The target IS 'provider' (not a separate 'provider-section' key): the
+  // scroll/highlight lookup below builds `${target}-section` as the DOM id,
+  // and ProviderSection's root carries id="provider-section" — so 'provider'
+  // is the only target string that resolves to a real element.
+  'provider': 'provider',
   'system-instructions': 'provider',
   'voice-settings': 'provider',
   'turn-detection': 'provider',

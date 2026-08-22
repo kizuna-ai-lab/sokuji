@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Zgłoś błędy lub uzyskaj pomoc",
     "helpDiscussions": "Dyskusje",
     "helpDiscussionsTooltip": "Propozycje funkcji, opinie i dyskusje społeczności",
-    "participantModelHint": "Przełącz na {{source}} → {{target}}, aby zmienić modele rozmówcy",
     "auto": "Auto",
     "low": "Niski",
     "medium": "Średni",
@@ -268,7 +267,14 @@
     "sonioxVoicePreviewQuotaError": "Podgląd nie powiódł się — osiągnięto limit szybkości lub limit Soniox",
     "sonioxVoicePreviewTimeout": "Przekroczono czas oczekiwania na podgląd — spróbuj ponownie",
     "sonioxRegion": "Region",
-    "sonioxRegionTooltip": "Soniox utrzymuje osobne wdrożenie dla każdego regionu, każde z własnym kluczem API. Twój dźwięk jest przetwarzany i przechowywany w wybranym regionie. Obowiązuje od następnej sesji."
+    "sonioxRegionTooltip": "Soniox utrzymuje osobne wdrożenie dla każdego regionu, każde z własnym kluczem API. Twój dźwięk jest przetwarzany i przechowywany w wybranym regionie. Obowiązuje od następnej sesji.",
+    "langSentence": {
+      "iSpeak": "I speak",
+      "iRead": "I read",
+      "theyHear": "they hear",
+      "theySpeak": "they speak",
+      "mirror": "They speak {{their}} → I read {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
@@ -479,8 +485,7 @@
       "description": "Darmowe rozpoznawanie mowy (ASR) + Tłumaczenie + synteza mowy (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Rozmówca"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Darmowy (Native)",
@@ -831,6 +836,7 @@
     "importNow": "Importuj teraz {{count}}",
     "management": "Modele",
     "storageUsed": "Pamięć: {{size}} MB zajęte",
+    "storageEmpty": "No models downloaded yet.",
     "asrModels": "Rozpoznawanie mowy (ASR)",
     "translationModels": "Tłumaczenie",
     "ttsModels": "Synteza mowy (TTS)",
@@ -892,6 +898,20 @@
       "cancel": "Anuluj",
       "accept": "Rozumiem — tylko użytek niekomercyjny"
     }
+  },
+  "notes": {
+    "stageAsr": "speech recognition",
+    "stageTranslation": "translation",
+    "stageTts": "speech output",
+    "notDownloaded": "{{from}} is not downloaded. Download it again to use it.",
+    "notDownloadedWithSub": "{{from}} is not downloaded — using {{to}} instead. Download it again to use it.",
+    "langIncompatible": "{{from}} does not support this direction. It returns when the direction does.",
+    "langIncompatibleWithSub": "{{from}} does not support this direction — using {{to}} instead. It returns when the direction does.",
+    "hardwareGated": "{{from}} cannot run on this device.",
+    "hardwareGatedWithSub": "{{from}} cannot run on this device — using {{to}} instead.",
+    "needsKey": "{{from}} needs a signed-in account to use.",
+    "notInCatalog": "{{from}} is no longer available in this version.",
+    "noCandidate": "No {{stage}} model is available for this direction."
   },
   "update": {
     "available": "Nowa wersja v{{version}} dostępna",
@@ -1018,5 +1038,27 @@
     "actionPickApp": "Wybierz aplikację spotkania jako źródło dźwięku rozmówcy zamiast dźwięku systemowego.",
     "actionChangeInput": "Wybierz fizyczny mikrofon jako urządzenie wejściowe.",
     "dismiss": "Zamknij"
+  },
+  "engineUi": {
+    "autoValue": "auto · {{name}}",
+    "autoOption": "Auto (currently {{name}})",
+    "autoOptionNone": "Auto",
+    "browseLibrary": "Browse library",
+    "storageRow": "Storage",
+    "back": "Back",
+    "titleEngine": "Translation engine",
+    "titleLibrary": "Library · {{stage}}",
+    "titleStorage": "Storage",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "In use",
+    "estimated": "Estimated",
+    "translationOnCpu": "Translation on CPU — not enough VRAM",
+    "supportsLang": "Supports {{lang}}",
+    "otherLanguages": "Other languages",
+    "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",
+    "deleteFallsBack": "Deleting {{name}}: {{stage}} falls back to {{to}}.",
+    "deleteNoModel": "Deleting {{name}}: no {{stage}} model remains — sessions cannot start.",
+    "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again.",
+    "importChooseModel": "Choose a model to import"
   }
 }

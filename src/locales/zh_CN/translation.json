@@ -110,7 +110,6 @@
     "helpEmailTooltip": "报告问题或获取帮助",
     "helpDiscussions": "讨论区",
     "helpDiscussionsTooltip": "功能建议、反馈与社区讨论",
-    "participantModelHint": "切换到 {{source}} → {{target}} 以更改对方模型",
     "auto": "自动",
     "low": "低",
     "medium": "中",
@@ -268,7 +267,14 @@
     "sonioxVoicePreviewQuotaError": "预览失败 — 已达到 Soniox 速率限制或配额",
     "sonioxVoicePreviewTimeout": "预览超时 — 请重试",
     "sonioxRegion": "区域",
-    "sonioxRegionTooltip": "Soniox 每个区域是独立部署，各自有独立的 API 密钥。您的音频将在所选区域内处理和存储。下次会话开始生效。"
+    "sonioxRegionTooltip": "Soniox 每个区域是独立部署，各自有独立的 API 密钥。您的音频将在所选区域内处理和存储。下次会话开始生效。",
+    "langSentence": {
+      "iSpeak": "I speak",
+      "iRead": "I read",
+      "theyHear": "they hear",
+      "theySpeak": "they speak",
+      "mirror": "They speak {{their}} → I read {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",
@@ -479,8 +485,7 @@
       "description": "免费语音识别（ASR）+ 翻译 + 语音合成（TTS）",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "对方"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "免费 (Native)",
@@ -831,6 +836,7 @@
     "importNow": "导入 {{count}} 个",
     "management": "模型",
     "storageUsed": "存储：已使用 {{size}} MB",
+    "storageEmpty": "No models downloaded yet.",
     "asrModels": "语音识别（ASR）",
     "translationModels": "翻译",
     "ttsModels": "语音合成（TTS）",
@@ -892,6 +898,20 @@
       "cancel": "取消",
       "accept": "我已了解——仅限非商业用途"
     }
+  },
+  "notes": {
+    "stageAsr": "speech recognition",
+    "stageTranslation": "translation",
+    "stageTts": "speech output",
+    "notDownloaded": "{{from}} is not downloaded. Download it again to use it.",
+    "notDownloadedWithSub": "{{from}} is not downloaded — using {{to}} instead. Download it again to use it.",
+    "langIncompatible": "{{from}} does not support this direction. It returns when the direction does.",
+    "langIncompatibleWithSub": "{{from}} does not support this direction — using {{to}} instead. It returns when the direction does.",
+    "hardwareGated": "{{from}} cannot run on this device.",
+    "hardwareGatedWithSub": "{{from}} cannot run on this device — using {{to}} instead.",
+    "needsKey": "{{from}} needs a signed-in account to use.",
+    "notInCatalog": "{{from}} is no longer available in this version.",
+    "noCandidate": "No {{stage}} model is available for this direction."
   },
   "update": {
     "available": "新版本 v{{version}} 可用",
@@ -1018,5 +1038,27 @@
     "actionPickApp": "请将对方音频来源改为会议应用，而不是系统音频。",
     "actionChangeInput": "请选择真实麦克风作为输入设备。",
     "dismiss": "关闭"
+  },
+  "engineUi": {
+    "autoValue": "auto · {{name}}",
+    "autoOption": "Auto (currently {{name}})",
+    "autoOptionNone": "Auto",
+    "browseLibrary": "Browse library",
+    "storageRow": "Storage",
+    "back": "Back",
+    "titleEngine": "Translation engine",
+    "titleLibrary": "Library · {{stage}}",
+    "titleStorage": "Storage",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "In use",
+    "estimated": "Estimated",
+    "translationOnCpu": "Translation on CPU — not enough VRAM",
+    "supportsLang": "Supports {{lang}}",
+    "otherLanguages": "Other languages",
+    "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",
+    "deleteFallsBack": "Deleting {{name}}: {{stage}} falls back to {{to}}.",
+    "deleteNoModel": "Deleting {{name}}: no {{stage}} model remains — sessions cannot start.",
+    "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again.",
+    "importChooseModel": "Choose a model to import"
   }
 }

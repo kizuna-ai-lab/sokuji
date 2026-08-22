@@ -291,7 +291,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // longer forces the user into Advanced).
   const openSlot = (settingsForProvider: { sourceLanguage: string; targetLanguage: string }, stage: Stage) => {
     setEngineSlotTarget({ dir: directionKey(settingsForProvider.sourceLanguage, settingsForProvider.targetLanguage), stage });
-    if (!isSimpleMode) navigateToSettings('provider-section');
+    if (!isSimpleMode) navigateToSettings('provider');
   };
 
   // Get all available providers
@@ -576,17 +576,17 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
               {nativeActual ? (
                 <div className="memory-estimate">
                   <Cpu size={11} />
-                  <span className="memory-estimate__label">In use</span>
+                  <span className="memory-estimate__label">{t('engineUi.inUse', 'In use')}</span>
                   {nativeActual.vramMb > 0 && <span>VRAM {formatMemMb(nativeActual.vramMb)}</span>}
                   {nativeActual.ramMb > 0 && <span>RAM {formatMemMb(nativeActual.ramMb)}</span>}
                   {nativeActual.degraded && (
-                    <span className="memory-estimate__warn">Translation on CPU — not enough VRAM</span>
+                    <span className="memory-estimate__warn">{t('engineUi.translationOnCpu', 'Translation on CPU — not enough VRAM')}</span>
                   )}
                 </div>
               ) : nativeMemoryEstimate && (nativeMemoryEstimate.vramMb > 0 || nativeMemoryEstimate.ramMb > 0) && (
                 <div className="memory-estimate">
                   <Cpu size={11} />
-                  <span className="memory-estimate__label">Estimated</span>
+                  <span className="memory-estimate__label">{t('engineUi.estimated', 'Estimated')}</span>
                   {nativeMemoryEstimate.vramMb > 0 && <span>VRAM ~{formatMemMb(nativeMemoryEstimate.vramMb)}</span>}
                   {nativeMemoryEstimate.ramMb > 0 && <span>RAM ~{formatMemMb(nativeMemoryEstimate.ramMb)}</span>}
                 </div>
