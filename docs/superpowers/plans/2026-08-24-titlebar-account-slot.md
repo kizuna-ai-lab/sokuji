@@ -31,8 +31,15 @@ react-i18next, lucide-react, Vitest + @testing-library/react, SASS.
 - **Top-up label**: "Top up" (en), 「充值」(zh_CN).
 - **Do not `git push` and do not open a PR.** Commit locally only; jiangzhuo triggers
   anything outward-facing.
-- **Baseline test noise**: a full vitest run in a worktree fails ~12 files on a clean
-  base. A/B against HEAD before blaming your change.
+- **Baseline test noise, measured rather than remembered.** Over
+  `src/services src/stores src/contexts src/utils src/lib` — directories this work
+  does not touch — the tree fails **9 files / 7 tests / 4 errors** before any of it.
+  The failures cluster in provider gating (`kizunaProviderGating`,
+  `descriptorRegistry`), store migrations, and `ModernBrowserAudioService`; several
+  are suite-level import failures rather than assertions. None of it overlaps this
+  work. Treat that as the floor: a red file in those areas is not yours. Do NOT
+  `git stash` to A/B it — the stash stack is shared with the main checkout and with
+  any agent working in this tree.
 - **Working directory**: every command in this plan runs from the worktree root
   `/home/jiangzhuo/Desktop/kizunaai/sokuji/.claude/worktrees/feat+titlebar-account-slot`.
   Never `cd` to the repository root — it is a release behind and its line numbers differ.
