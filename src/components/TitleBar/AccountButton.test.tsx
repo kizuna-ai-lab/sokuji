@@ -1,6 +1,6 @@
 // src/components/TitleBar/AccountButton.test.tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 import AccountButton from './AccountButton';
 
 vi.mock('react-i18next', () => ({
@@ -9,10 +9,17 @@ vi.mock('react-i18next', () => ({
 
 let signedIn = false;
 let authUser: any = null;
+// A fresh function identity on every render, delegating to one spy. That is
+// what better-auth's useSession actually hands back, and it is why the refresh
+// hook keeps refetch in a ref instead of listing it in its effect deps.
+const refetchSpy = vi.fn();
 vi.mock('../../lib/auth/hooks', () => ({
   useAuth: () => ({ isLoaded: true, isSignedIn: signedIn }),
-  useUser: () => ({ isLoaded: true, user: authUser, refetch: vi.fn() }),
+  useUser: () => ({ isLoaded: true, user: authUser, refetch: () => refetchSpy() }),
 }));
+
+const showToast = vi.fn();
+vi.mock('../Toast', () => ({ useToast: () => ({ showToast }) }));
 
 let quota: any = null;
 let kizunaEnabled = true;
@@ -50,6 +57,8 @@ beforeEach(() => {
   providerId = 'openai';
   popoverRequested = false;
   setPopoverRequested.mockClear();
+  refetchSpy.mockClear();
+  showToast.mockClear();
 });
 
 describe('AccountButton', () => {
@@ -228,5 +237,65 @@ describe('AccountButton popover', () => {
 
     expect(screen.getByTestId('account-popover')).toBeTruthy();
     expect(setPopoverRequested).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('AccountButton e-mail verification', () => {
+  const signIn = (emailVerified: boolean) => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified };
+  };
+  const regainFocus = () => act(() => { window.dispatchEvent(new Event('focus')); });
+
+  // The user finishes verifying in a browser and switches back. Nothing in the
+  // app notices on its own: the old polling ran only during the 60-second
+  // resend cooldown, inside a component that is now mounted only while the
+  // popover is open. AccountButton is always mounted, so the listener is here.
+  it('refetches the session when the window regains focus while unverified', () => {
+    signIn(false);
+    render(<AccountButton />);
+    regainFocus();
+    expect(refetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refetch once the e-mail is verified', () => {
+    signIn(true);
+    render(<AccountButton />);
+    regainFocus();
+    expect(refetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('confirms the transition with a toast', () => {
+    // Otherwise the only feedback is a warning disappearing, which is not
+    // feedback: the user cannot tell success from a screen that never updated.
+    signIn(false);
+    const { rerender } = render(<AccountButton />);
+    expect(showToast).not.toHaveBeenCalled();
+
+    signIn(true);
+    rerender(<AccountButton />);
+
+    expect(showToast).toHaveBeenCalledTimes(1);
+    expect(String(showToast.mock.calls[0][0])).toMatch(/verified/i);
+  });
+
+  it('does not toast again on later renders', () => {
+    signIn(false);
+    const { rerender } = render(<AccountButton />);
+    signIn(true);
+    rerender(<AccountButton />);
+    rerender(<AccountButton />);
+    rerender(<AccountButton />);
+    expect(showToast).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not toast when an already-verified session merely finishes loading', () => {
+    // Every app launch looks like this: the session resolves asynchronously, so
+    // the first render has no user at all. Reading "no user yet" as "was
+    // unverified" would congratulate the user on verifying at every startup.
+    const { rerender } = render(<AccountButton />);
+    signIn(true);
+    rerender(<AccountButton />);
+    expect(showToast).not.toHaveBeenCalled();
   });
 });

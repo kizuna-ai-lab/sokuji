@@ -21,13 +21,16 @@ import {
 } from '../../stores/settingsStore';
 import { sonioxManagedMinBalanceMicroUsd } from '../../services/providers/sonioxManagedMinBalance';
 import { compactBalanceLabel } from './compactBalance';
+import { useVerificationRefresh } from './useVerificationRefresh';
+import { useToast } from '../Toast';
 import AccountPopover from './AccountPopover';
 import './AccountButton.scss';
 
 const AccountButton: React.FC = () => {
   const { t } = useTranslation();
   const { isSignedIn } = useAuth();
-  const { user } = useUser();
+  const { user, refetch } = useUser();
+  const { showToast } = useToast();
   const { quota } = useUserProfile();
   const provider = useProvider();
   const textOnly = useTextOnly();
@@ -49,6 +52,28 @@ const AccountButton: React.FC = () => {
       setPopoverRequested(false);
     }
   }, [popoverRequested, setPopoverRequested]);
+
+  // Verification is finished in a BROWSER, so the app only learns about it when
+  // the user comes back. The old polling ran solely during the 60-second resend
+  // cooldown, and it now lives in a component mounted only while the popover is
+  // open — this button is always mounted, so the listener belongs here.
+  useVerificationRefresh(isSignedIn, user?.emailVerified === true, refetch);
+
+  // Confirm it happened — otherwise the only feedback is a warning
+  // disappearing, which is not feedback.
+  //
+  // Tri-state on purpose. `undefined` means "no user loaded yet", which is what
+  // every launch looks like while the session resolves; only an observed FALSE
+  // counts as having seen an unverified account. Seeding this from a mere
+  // absence of a user would congratulate the user on verifying at every start.
+  const wasVerified = useRef<boolean | undefined>(user?.emailVerified);
+  useEffect(() => {
+    const now = user?.emailVerified;
+    if (wasVerified.current === false && now === true) {
+      showToast(t('auth.emailVerifiedToast', 'E-mail verified'), { variant: 'success' });
+    }
+    wasVerified.current = now;
+  }, [user?.emailVerified, showToast, t]);
 
   // A build with the Kizuna gate closed registers no managed provider and has
   // no wallet, so an account buys nothing there — offering to register would
