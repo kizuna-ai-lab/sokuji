@@ -1737,6 +1737,15 @@ export function useVerificationRefresh(
 matching `SubtitleEnterButton`'s usage. Its test file needs
 `vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));`.
 
+Provider coverage is already verified: `shared/index.tsx:180` wraps the whole app in
+`AppProviders`, which contains `ToastProvider`, so the title bar is inside it. Worth
+having checked — `useToast()` outside the provider returns a **no-op** rather than
+throwing (`ToastContext.tsx:60-66`), so a missing provider would have made this toast
+vanish silently with every test still green.
+
+`showToast`'s `variant` already defaults to `'success'` (`ToastContext.tsx:30`), so
+passing it is optional; pass it anyway for the reader.
+
 ```tsx
 const { user, refetch } = useUser();
 useVerificationRefresh(isSignedIn, user?.emailVerified === true, refetch);
