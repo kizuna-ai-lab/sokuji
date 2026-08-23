@@ -97,3 +97,43 @@ describe('advanced step numbering', () => {
     expect(got).toEqual(got.map((_, i) => i + 1));
   });
 });
+
+describe('step numbering across writing systems', () => {
+  // The renumberer has to cope with how the catalogues actually write a step
+  // number, not just how English does. All three shapes below are real, taken
+  // from this repo's own locale files, and the first implementation silently
+  // skipped every one of them — leaving those languages showing a stale number
+  // after a step was removed, with nothing failing anywhere.
+  const shaped = (template: string) => (key: string, fallback?: string) => {
+    const text = fallback ?? key;
+    return /Step \d+:/.test(text) ? template : text;
+  };
+
+  const numbered = (tt: (k: string, d?: string) => string, marker: string) =>
+    createBasicOnboardingSteps(tt as any)
+      .map((s) => String(s.title))
+      .filter((x) => x.includes(marker));
+
+  // ko: "3단계: 언어 선택" — nothing at all precedes the digit.
+  it('renumbers when the digit comes first, as Korean writes it', () => {
+    expect(numbered(shaped('9단계: X'), '단계')).toEqual(
+      ['1단계: X', '2단계: X', '3단계: X', '4단계: X', '5단계: X', '6단계: X', '7단계: X'],
+    );
+  });
+
+  // bn: "ধাপ ৩: …" — Bengali digits, which \d does not match. The replacement
+  // must stay in the same numbering system, not switch the line to ASCII.
+  it('renumbers native digits and keeps them native, as Bengali writes them', () => {
+    expect(numbered(shaped('ধাপ ৯: X'), 'ধাপ')).toEqual(
+      ['ধাপ ১: X', 'ধাপ ২: X', 'ধাপ ৩: X', 'ধাপ ৪: X', 'ধাপ ৫: X', 'ধাপ ৬: X', 'ধাপ ৭: X'],
+    );
+  });
+
+  // fr: "Étape 3 : Choisir les Langues" — the space before the colon is the
+  // French typographic convention and has to survive.
+  it('renumbers when a space separates digit from colon, as French writes it', () => {
+    expect(numbered(shaped('Étape 9 : X'), 'Étape')).toEqual(
+      ['Étape 1 : X', 'Étape 2 : X', 'Étape 3 : X', 'Étape 4 : X', 'Étape 5 : X', 'Étape 6 : X', 'Étape 7 : X'],
+    );
+  });
+});

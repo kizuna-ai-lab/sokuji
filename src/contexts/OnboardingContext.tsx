@@ -50,15 +50,53 @@ const ONBOARDING_VERSION = '1.2.0';
  * The pattern matches across locales: "Step 3:", "步骤 3：", "Schritt 3:" —
  * any prefix, a digit, then a colon in either width.
  */
+/**
+ * Where the step number sits in a title, in any of the shapes the catalogues
+ * actually use:
+ *
+ *   en  "Step 3: Choose Languages"   prefix, ASCII digit, colon straight after
+ *   ko  "3단계: 언어 선택"            NO prefix, and the unit word sits BETWEEN
+ *                                    the digit and the colon
+ *   bn  "ধাপ ৩: ভাষা নির্বাচন করুন"    Bengali digits, which \d does not match
+ *   fr  "Étape 3 : Choisir…"         a space before the colon
+ *
+ * So: the prefix may be empty (ko), the digits are any Unicode decimal (bn),
+ * and whatever sits between the digits and the colon travels with the colon
+ * rather than being assumed away (ko, fr). The first version required English's
+ * shape in all three respects and skipped the others in silence.
+ */
+const STEP_NUMBER = /^(.*?)(\p{Nd}+)([^\p{Nd}]*?[:：])/u;
+
+/** The code point of ZERO in whatever numbering system `ch` belongs to.
+ *  Unicode decimal-digit blocks are ten contiguous code points with zero
+ *  first, so walking back until the predecessor stops being a digit lands on
+ *  it. Bounded at ten steps: a digit is never further than that from its own
+ *  zero, and an unbounded walk would be a hang waiting for bad input. */
+const digitZero = (ch: string): number => {
+  let cp = ch.codePointAt(0) ?? 0x30;
+  for (let i = 0; i < 10 && /\p{Nd}/u.test(String.fromCodePoint(cp - 1)); i++) cp--;
+  return cp;
+};
+
+/** Render `n` using the same digits the catalogue was already written in, so
+ *  renumbering a Bengali title does not leave one ASCII digit in it. */
+const inSameDigits = (n: number, zero: number): string =>
+  String(n)
+    .split('')
+    .map((d) => String.fromCodePoint(zero + Number(d)))
+    .join('');
+
 const renumberSteps = (steps: OnboardingStep[]): OnboardingStep[] => {
   let stepNumber = 0;
   return steps.map((step) => {
-    const stepMatch = String(step.title).match(/^(.+?)(\d+)([:：])/);
+    const title = String(step.title);
+    const stepMatch = title.match(STEP_NUMBER);
     if (!stepMatch) return step;
     stepNumber++;
+    const zero = digitZero(stepMatch[2][0]);
     return {
       ...step,
-      title: `${stepMatch[1]}${stepNumber}${stepMatch[3]}${String(step.title).slice(stepMatch[0].length)}`,
+      title: `${stepMatch[1]}${inSameDigits(stepNumber, zero)}${stepMatch[3]}${title.slice(stepMatch[0].length)}`,
     };
   });
 };
