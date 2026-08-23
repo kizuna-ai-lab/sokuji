@@ -4,7 +4,6 @@ import { useAnalytics } from '../lib/analytics';
 import useSettingsStore, { useProvider } from '../stores/settingsStore';
 import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
 import { Provider } from '../types/Provider';
-import { isKizunaAIEnabled } from '../utils/environment';
 
 // Field names follow react-joyride v3's Step type (steps are passed straight
 // through): per-step theming lives directly on the step (Options fields like
@@ -40,12 +39,7 @@ const USER_TYPE_STORAGE_KEY = 'sokuji_user_type';
 const ONBOARDING_VERSION = '1.2.0';
 
 // Basic mode onboarding steps - simplified for regular users.
-// The account step targets #user-account-section, which AccountSection only
-// renders when isKizunaAIEnabled() — the browser-extension build (and any
-// build with VITE_ENABLE_KIZUNA_AI=false) omits that section, so the step
-// would land on a missing element and Joyride would skip ahead silently.
-// Filter it out at construction time instead so the step list matches reality.
-const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
+export const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
   const allSteps: (OnboardingStep | null)[] = [
   {
     target: 'body',
@@ -67,46 +61,40 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
     title: t('onboarding.basic.steps.settings.title', 'Step 1: Open Settings'),
     placement: 'bottom',
   },
-  isKizunaAIEnabled() ? {
-    target: '#user-account-section',
-    content: t('onboarding.basic.steps.account.content', 'Sign in to use Sokuji\'s built-in translation service, or choose another provider and enter your own API key.'),
-    title: t('onboarding.basic.steps.account.title', 'Step 2: User Account'),
-    placement: 'left',
-  } : null,
   {
     target: '#languages-section',
     content: t('onboarding.basic.steps.languages.content', 'Select your source language (what you speak) and target language (what you want the other party to hear).'),
-    title: t('onboarding.basic.steps.languages.title', 'Step 3: Choose Languages'),
+    title: t('onboarding.basic.steps.languages.title', 'Step 2: Choose Languages'),
     placement: 'left',
   },
   {
     target: '#provider-section',
-    content: t('onboarding.basic.steps.provider.content', 'Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
-    title: t('onboarding.basic.steps.provider.title', 'Step 4: Translation Provider'),
+    content: t('onboarding.basic.steps.provider.content', 'Choose your translation provider. Sokuji has its own built-in service — sign in from the account button in the title bar to use it. It also supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more, where you bring your own API key. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
+    title: t('onboarding.basic.steps.provider.title', 'Step 3: Translation Provider'),
     placement: 'left',
   },
   {
     target: '#microphone-section',
     content: t('onboarding.basic.steps.microphone.content', 'Select your microphone from the list. This is what will capture your voice.'),
-    title: t('onboarding.basic.steps.microphone.title', 'Step 5: Select Microphone'),
+    title: t('onboarding.basic.steps.microphone.title', 'Step 4: Select Microphone'),
     placement: 'left',
   },
   {
     target: '#speaker-section',
     content: t('onboarding.basic.steps.speaker.content', 'Choose a monitoring device to preview the translation. Translated audio is always output to the virtual microphone regardless of monitoring. Select Sokuji Virtual Microphone as the microphone input in your meeting app or website. Headphones are recommended for monitoring to avoid feedback.'),
-    title: t('onboarding.basic.steps.speaker.title', 'Step 6: Select Speaker'),
+    title: t('onboarding.basic.steps.speaker.title', 'Step 5: Select Speaker'),
     placement: 'left',
   },
   {
     target: '#participant-section',
     content: t('onboarding.basic.steps.systemAudio.content', 'This is the participant channel — what other people say, translated for you. Turn it on by choosing Others or Both in the translation mode (it stays off in You mode). In the browser extension, it captures the current tab so you can translate participants in Google Meet, Teams, or Zoom. In the desktop app, it captures all system audio, so you can translate YouTube, Twitch, Netflix, or any source. Participant speech is translated to text only — no speech synthesis. Together with your microphone, this gives full two-way translation.'),
-    title: t('onboarding.basic.steps.systemAudio.title', 'Step 7: Participant Audio'),
+    title: t('onboarding.basic.steps.systemAudio.title', 'Step 6: Participant Audio'),
     placement: 'left',
   },
   {
     target: '.main-action-btn',
     content: t('onboarding.basic.steps.start.content', 'Click "Start" to begin translating! Just speak naturally and hear the translation in real-time.'),
-    title: t('onboarding.basic.steps.start.title', 'Step 8: Start Translating'),
+    title: t('onboarding.basic.steps.start.title', 'Step 7: Start Translating'),
     placement: 'top',
   },
   {
