@@ -1,4 +1,3 @@
-export { default as AccountSection } from './AccountSection';
 export { default as ProviderSection } from './ProviderSection';
 export { default as LanguageSection } from './LanguageSection';
 export { default as AudioDeviceSection } from './AudioDeviceSection';

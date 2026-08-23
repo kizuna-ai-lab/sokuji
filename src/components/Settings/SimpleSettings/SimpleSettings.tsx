@@ -12,7 +12,6 @@ import {
 } from '../../../stores/settingsStore';
 import { Provider } from '../../../types/Provider';
 import {
-  AccountSection,
   ProviderSection,
   LanguageSection,
   AudioDeviceSection,
@@ -165,9 +164,6 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
             <span>{t('settings.sessionActiveNotice')}</span>
           </div>
         )}
-
-        {/* User Account Section */}
-        <AccountSection />
 
         {/* Interface Language - simplified list */}
         <LanguageSection
