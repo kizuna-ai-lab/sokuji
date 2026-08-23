@@ -11,10 +11,11 @@
     "autoDetect": "Deteksi Otomatis",
     "signIn": "Masuk",
     "signUp": "Daftar",
-    "signInRequired": "Silakan masuk untuk menggunakan Kizuna AI sebagai penyedia Anda",
+    "signInRequired": "<signInLink>Masuk atau daftar</signInLink> untuk menggunakan Kizuna AI — tanpa kunci API.",
     "dismiss": "Abaikan",
     "none": "Tidak ada",
-    "retry": "Coba lagi"
+    "retry": "Coba lagi",
+    "topUp": "Isi ulang"
   },
   "settings": {
     "title": "Pengaturan",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "Gagal mengirim email verifikasi. Silakan coba lagi",
     "alreadyVerified": "Email Anda sudah diverifikasi!",
     "cooldownMessage": "Silakan tunggu {{seconds}} detik",
-    "checkYourEmail": "Email verifikasi terkirim. Silakan periksa kotak masuk Anda.",
+    "checkYourEmail": "Email verifikasi terkirim. Selesaikan di kotak masuk Anda lalu kembali — Sokuji akan mendeteksinya secara otomatis.",
+    "emailVerifiedToast": "Email terverifikasi",
     "forgotPassword": "Lupa Kata Sandi?",
     "resetPassword": "Atur Ulang Kata Sandi",
     "enterEmailForReset": "Masukkan alamat email Anda dan kami akan mengirimkan kode verifikasi untuk mengatur ulang kata sandi Anda.",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "Kata sandi berhasil diatur ulang! Anda sekarang dapat masuk dengan kata sandi baru Anda.",
     "backToSignIn": "Kembali ke Masuk",
     "forgotPasswordError": "Gagal mengirim kode verifikasi. Silakan coba lagi.",
-    "resetPasswordError": "Gagal mengatur ulang kata sandi. Silakan coba lagi."
+    "resetPasswordError": "Gagal mengatur ulang kata sandi. Silakan coba lagi.",
+    "signedOut": "Masuk untuk menggunakan layanan terjemahan bawaan Kizuna AI.",
+    "sessionUnavailable": "Sesi Anda tidak lagi valid. Silakan masuk kembali.",
+    "unknown": "Tidak dapat memverifikasi akun Anda. Silakan coba lagi."
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antarmuka",
@@ -406,7 +411,7 @@
     "yourLanguage": "Bahasa saya",
     "userAccount": "Akun Pengguna",
     "userAccountTooltip": "Pengguna teknis dapat menggunakan kunci API mereka sendiri. Akun Pengguna dirancang untuk pengaturan yang disederhanakan.",
-    "signInRequired": "Anda dapat menggunakan kunci API sendiri atau mendaftar untuk layanan kizuna.ai.",
+    "signInRequired": "Daftar untuk menggunakan layanan terjemahan bawaan Sokuji — tanpa kunci API. Anda juga tetap dapat menggunakan penyedia dan kunci Anda sendiri.",
     "targetLanguage": "Bahasa lawan bicara",
     "microphone": "Mikrofon",
     "microphoneDesc": "Pilih mikrofon untuk menangkap ucapan Anda. Berbicara dalam bahasa Anda ke mikrofon ini, dan Sokuji akan menerjemahkan semua yang didengarnya secara real-time.",
@@ -687,10 +692,6 @@
           "title": "Langkah 1: Buka Pengaturan",
           "content": "Klik di sini untuk membuka Pengaturan tempat Anda dapat mengonfigurasi bahasa dan perangkat audio Anda."
         },
-        "account": {
-          "title": "Langkah 2: Akun Pengguna",
-          "content": "Masuk untuk menggunakan layanan terjemahan bawaan Sokuji, atau pilih penyedia lain dan masukkan kunci API Anda sendiri."
-        },
         "languages": {
           "title": "Langkah 3: Pilih Bahasa",
           "content": "Pilih \"Bahasa saya\" (yang Anda ucapkan) dan \"Bahasa lawan bicara\" (yang akan didengar lawan bicara)."
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "Langkah 4: Penyedia Terjemahan",
-          "content": "Pilih penyedia terjemahan Anda. Sokuji mendukung layanan cloud seperti OpenAI, Gemini, Volcengine (Doubao), dan lainnya. Anda juga dapat menggunakan inferensi lokal — tanpa kunci API, gratis dan fokus privasi, cukup unduh model untuk terjemahan sepenuhnya offline."
+          "content": "Pilih penyedia terjemahan Anda. Sokuji memiliki layanan bawaannya sendiri — masuk melalui tombol akun di bilah judul untuk menggunakannya. Sokuji juga mendukung layanan cloud seperti OpenAI, Gemini, Volcengine (Doubao), dan lainnya, di mana Anda menggunakan kunci API Anda sendiri. Anda juga dapat menggunakan inferensi lokal — tanpa kunci API, gratis dan fokus privasi, cukup unduh model untuk terjemahan sepenuhnya offline."
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "Tekan Spasi untuk berbicara"
   },
   "titleBar": {
+    "account": {
+      "label": "Akun",
+      "lowBalance": "Akun — saldo tidak cukup untuk memulai sesi",
+      "unverified": "Akun — email belum diverifikasi"
+    },
     "minimize": "Minimalkan",
     "maximize": "Maksimalkan",
     "close": "Tutup"

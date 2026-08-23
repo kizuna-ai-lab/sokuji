@@ -11,10 +11,11 @@
     "autoDetect": "Kesan Automatik",
     "signIn": "Log Masuk",
     "signUp": "Daftar",
-    "signInRequired": "Sila log masuk untuk menggunakan Kizuna AI sebagai penyedia anda",
+    "signInRequired": "<signInLink>Log masuk atau daftar</signInLink> untuk menggunakan Kizuna AI — tiada kunci API diperlukan.",
     "dismiss": "Ketepikan",
     "none": "Tiada",
-    "retry": "Cuba lagi"
+    "retry": "Cuba lagi",
+    "topUp": "Tambah nilai"
   },
   "settings": {
     "title": "Tetapan",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "Gagal menghantar e-mel pengesahan. Sila cuba lagi",
     "alreadyVerified": "E-mel anda sudah disahkan!",
     "cooldownMessage": "Sila tunggu {{seconds}} saat",
-    "checkYourEmail": "E-mel pengesahan dihantar. Sila semak peti masuk anda.",
+    "checkYourEmail": "E-mel pengesahan dihantar. Selesaikannya dalam peti masuk anda dan kembali — Sokuji akan mengesannya secara automatik.",
+    "emailVerifiedToast": "E-mel disahkan",
     "forgotPassword": "Lupa Kata Laluan?",
     "resetPassword": "Tetapkan Semula Kata Laluan",
     "enterEmailForReset": "Masukkan alamat e-mel anda dan kami akan menghantar kod pengesahan untuk menetapkan semula kata laluan anda.",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "Kata laluan berjaya ditetapkan semula! Anda kini boleh log masuk dengan kata laluan baru anda.",
     "backToSignIn": "Kembali ke Log Masuk",
     "forgotPasswordError": "Gagal menghantar kod pengesahan. Sila cuba lagi.",
-    "resetPasswordError": "Gagal menetapkan semula kata laluan. Sila cuba lagi."
+    "resetPasswordError": "Gagal menetapkan semula kata laluan. Sila cuba lagi.",
+    "signedOut": "Log masuk untuk menggunakan perkhidmatan terjemahan terbina dalam Kizuna AI.",
+    "sessionUnavailable": "Sesi anda tidak lagi sah. Sila log masuk semula.",
+    "unknown": "Akaun anda tidak dapat disahkan. Sila cuba lagi."
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antara Muka",
@@ -406,7 +411,7 @@
     "yourLanguage": "Bahasa saya",
     "userAccount": "Akaun Pengguna",
     "userAccountTooltip": "Pengguna teknikal boleh menggunakan kunci API mereka sendiri. Akaun Pengguna direka untuk persediaan yang dipermudahkan.",
-    "signInRequired": "Anda boleh menggunakan kunci API sendiri atau mendaftar untuk perkhidmatan kizuna.ai.",
+    "signInRequired": "Daftar untuk menggunakan perkhidmatan terjemahan terbina dalam Sokuji — tiada kunci API diperlukan. Anda juga boleh terus menggunakan penyedia dan kunci anda sendiri.",
     "targetLanguage": "Bahasa pihak lain",
     "microphone": "Mikrofon",
     "microphoneDesc": "Pilih mikrofon untuk menangkap pertuturan anda. Bercakap dalam bahasa anda ke mikrofon ini, dan Sokuji akan menterjemah semua yang didengarinya dalam masa nyata.",
@@ -687,10 +692,6 @@
           "title": "Langkah 1: Buka Tetapan",
           "content": "Klik di sini untuk membuka Tetapan di mana anda boleh mengkonfigurasi bahasa dan peranti audio anda."
         },
-        "account": {
-          "title": "Langkah 2: Akaun Pengguna",
-          "content": "Log masuk untuk menggunakan perkhidmatan terjemahan terbina dalam Sokuji, atau pilih penyedia lain dan masukkan kunci API anda sendiri."
-        },
         "languages": {
           "title": "Langkah 3: Pilih Bahasa",
           "content": "Pilih \"Bahasa saya\" (yang anda tuturkan) dan \"Bahasa pihak lain\" (yang pihak lain akan dengar)."
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "Langkah 4: Penyedia Terjemahan",
-          "content": "Pilih penyedia terjemahan anda. Sokuji menyokong perkhidmatan awan seperti OpenAI, Gemini, Volcengine (Doubao) dan banyak lagi. Anda juga boleh menggunakan inferens tempatan — tiada kunci API diperlukan, percuma dan mengutamakan privasi, muat turun model sahaja untuk terjemahan sepenuhnya luar talian."
+          "content": "Pilih penyedia terjemahan anda. Sokuji mempunyai perkhidmatan terbina dalamnya sendiri — log masuk daripada butang akaun pada bar tajuk untuk menggunakannya. Ia juga menyokong perkhidmatan awan seperti OpenAI, Gemini, Volcengine (Doubao) dan banyak lagi, di mana anda menggunakan kunci API anda sendiri. Anda juga boleh menggunakan inferens tempatan — tiada kunci API diperlukan, percuma dan mengutamakan privasi, muat turun model sahaja untuk terjemahan sepenuhnya luar talian."
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "Tekan Bar Ruang untuk bercakap"
   },
   "titleBar": {
+    "account": {
+      "label": "Akaun",
+      "lowBalance": "Akaun — baki terlalu rendah untuk memulakan sesi",
+      "unverified": "Akaun — e-mel belum disahkan"
+    },
     "minimize": "Minimumkan",
     "maximize": "Maksimumkan",
     "close": "Tutup"

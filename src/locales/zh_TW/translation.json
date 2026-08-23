@@ -11,10 +11,11 @@
     "autoDetect": "自動辨識",
     "signIn": "登入",
     "signUp": "註冊",
-    "signInRequired": "請登入以使用Kizuna AI作為您的提供商",
+    "signInRequired": "<signInLink>登入或註冊</signInLink>即可使用 Kizuna AI，無需 API 金鑰。",
     "dismiss": "關閉",
     "none": "無",
-    "retry": "重試"
+    "retry": "重試",
+    "topUp": "儲值"
   },
   "settings": {
     "title": "設定",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "發送驗證郵件失敗。請再試一次",
     "alreadyVerified": "您的電子郵件已經驗證！",
     "cooldownMessage": "請等待 {{seconds}} 秒",
-    "checkYourEmail": "驗證郵件已發送。請檢查您的收件匣。",
+    "checkYourEmail": "驗證郵件已發送。請在收件匣中完成驗證後返回，Sokuji 會自動識別。",
+    "emailVerifiedToast": "電子郵件已驗證",
     "forgotPassword": "忘記密碼？",
     "resetPassword": "重設密碼",
     "enterEmailForReset": "輸入您的電子郵件地址，我們將發送驗證碼以重設您的密碼。",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "密碼重設成功！您現在可以使用新密碼登入。",
     "backToSignIn": "返回登入",
     "forgotPasswordError": "發送驗證碼失敗。請再試一次。",
-    "resetPasswordError": "重設密碼失敗。請再試一次。"
+    "resetPasswordError": "重設密碼失敗。請再試一次。",
+    "signedOut": "登入後即可使用 Kizuna AI 內建的翻譯服務。",
+    "sessionUnavailable": "登入狀態已失效，請重新登入。",
+    "unknown": "無法驗證您的帳戶，請再試一次。"
   },
   "simpleConfig": {
     "interfaceLanguage": "介面語言",
@@ -406,7 +411,7 @@
     "yourLanguage": "我的語言",
     "userAccount": "使用者帳戶",
     "userAccountTooltip": "對於具有技術知識和自己的API金鑰的使用者，無論是否登入都可以使用自己的API金鑰。使用者帳戶是為偏好簡化設定且無需複雜配置的新使用者而設計。",
-    "signInRequired": "您可以在不登入的情況下使用自己的AI提供商和API金鑰，或註冊購買並使用kizuna.ai的API服務。",
+    "signInRequired": "註冊後即可使用 Sokuji 內建的翻譯服務，無需申請任何 API 金鑰。也可以繼續使用您自己的提供商和金鑰。",
     "targetLanguage": "對方語言",
     "microphone": "麥克風",
     "microphoneDesc": "選擇麥克風來捕捉您的語音。對著這個麥克風說您的語言，Sokuji 會即時翻譯它聽到的一切。",
@@ -687,10 +692,6 @@
           "title": "步驟 1：開啟設定",
           "content": "點擊這裡開啟設定，您可以在其中設定語言和音訊裝置。"
         },
-        "account": {
-          "title": "步驟 2：使用者帳戶",
-          "content": "登入以使用 Sokuji 的內建翻譯服務，或選擇其他提供商並輸入您自己的 API 金鑰。"
-        },
         "languages": {
           "title": "步驟 3：選擇語言",
           "content": "選擇「我的語言」（您說的語言）和「對方語言」（您希望對方聽到的語言）。"
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "步驟 4：翻譯提供商",
-          "content": "選擇您的翻譯提供商。Sokuji 支援 OpenAI、Gemini、火山引擎（豆包）等雲端服務。您也可以使用本地推理模式 — 無需 API 金鑰，免費且注重隱私，下載模型後即可完全離線翻譯。"
+          "content": "選擇您的翻譯提供商。Sokuji 有內建的翻譯服務 — 點擊標題列的帳戶按鈕登入即可使用。也支援 OpenAI、Gemini、火山引擎（豆包）等雲端服務，使用這些服務需要您自己的 API 金鑰。您也可以使用本地推理模式 — 無需 API 金鑰，免費且注重隱私，下載模型後即可完全離線翻譯。"
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "按住空白鍵說話"
   },
   "titleBar": {
+    "account": {
+      "label": "帳戶",
+      "lowBalance": "帳戶 — 餘額不足，無法開始工作階段",
+      "unverified": "帳戶 — 電子郵件未驗證"
+    },
     "minimize": "最小化",
     "maximize": "最大化",
     "close": "關閉"

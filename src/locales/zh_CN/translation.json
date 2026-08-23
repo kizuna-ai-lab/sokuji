@@ -11,10 +11,11 @@
     "autoDetect": "自动检测",
     "signIn": "登录",
     "signUp": "注册",
-    "signInRequired": "请登录以使用Kizuna AI作为您的提供商",
+    "signInRequired": "<signInLink>登录或注册</signInLink>即可使用 Kizuna AI，无需 API key。",
     "dismiss": "忽略",
     "none": "无",
-    "retry": "重试"
+    "retry": "重试",
+    "topUp": "充值"
   },
   "settings": {
     "title": "设置",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "发送验证邮件失败。请重试",
     "alreadyVerified": "您的邮箱已经验证！",
     "cooldownMessage": "请等待 {{seconds}} 秒",
-    "checkYourEmail": "验证邮件已发送。请检查您的收件箱。",
+    "checkYourEmail": "验证邮件已发送。请在收件箱中完成验证后返回，Sokuji 会自动识别。",
+    "emailVerifiedToast": "邮箱已验证",
     "forgotPassword": "忘记密码？",
     "resetPassword": "重置密码",
     "enterEmailForReset": "输入您的邮箱地址，我们将发送验证码用于重置密码。",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "密码重置成功！您现在可以使用新密码登录。",
     "backToSignIn": "返回登录",
     "forgotPasswordError": "发送验证码失败。请重试。",
-    "resetPasswordError": "重置密码失败。请重试。"
+    "resetPasswordError": "重置密码失败。请重试。",
+    "signedOut": "登录后即可使用 Kizuna AI 自带的翻译服务。",
+    "sessionUnavailable": "登录状态已失效，请重新登录。",
+    "unknown": "无法验证您的账户，请重试。"
   },
   "simpleConfig": {
     "interfaceLanguage": "界面语言",
@@ -406,7 +411,7 @@
     "yourLanguage": "我的语言",
     "userAccount": "用户账户",
     "userAccountTooltip": "对于拥有技术知识和自己API密钥的用户，无论是否登录都可以使用自己的API密钥。用户账户是为希望简化设置、无需复杂配置的新用户设计的。",
-    "signInRequired": "您可以在不登录的情况下使用自己的AI提供商和API密钥，或者注册购买使用kizuna.ai提供的API服务。",
+    "signInRequired": "注册后即可使用 Sokuji 自带的翻译服务，无需申请任何 API key。也可以继续使用你自己的服务商和密钥。",
     "targetLanguage": "对方语言",
     "microphone": "麦克风",
     "microphoneDesc": "选择用于捕获您语音的麦克风。对着此麦克风说您的语言，Sokuji会实时翻译麦克风接收到的所有内容。",
@@ -687,10 +692,6 @@
           "title": "步骤 1：打开设置",
           "content": "点击这里打开设置，您可以配置语言和音频设备。"
         },
-        "account": {
-          "title": "步骤 2：用户账户",
-          "content": "登录以获得简单体验，或者不登录使用您自己的API密钥。新用户可以注册kizuna.ai的API服务。"
-        },
         "languages": {
           "title": "步骤 3：选择语言",
           "content": "选择「我的语言」（您说的语言）和「对方语言」（您希望对方听到的语言）。"
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "步骤 4：翻译提供商",
-          "content": "选择您的翻译提供商。Sokuji 支持 OpenAI、Gemini、豆包（火山引擎）等云端服务。您也可以选择本地推理模式，无需 API 密钥，免费且注重隐私，下载模型后即可完全离线使用。"
+          "content": "选择您的翻译提供商。Sokuji 自带翻译服务，点击标题栏的账户按钮登录即可使用。同时也支持 OpenAI、Gemini、豆包（火山引擎）等云端服务，使用这些服务需要您自己的 API 密钥。您也可以选择本地推理模式，无需 API 密钥，免费且注重隐私，下载模型后即可完全离线使用。"
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "按住空格说话"
   },
   "titleBar": {
+    "account": {
+      "label": "账户",
+      "lowBalance": "账户 — 余额不足，无法开始会话",
+      "unverified": "账户 — 邮箱未验证"
+    },
     "minimize": "最小化",
     "maximize": "最大化",
     "close": "关闭"

@@ -11,10 +11,11 @@
     "autoDetect": "Automaattinen tunnistus",
     "signIn": "Kirjaudu sisään",
     "signUp": "Rekisteröidy",
-    "signInRequired": "Kirjaudu sisään käyttääksesi Kizuna AI:ta palveluntarjoajana",
+    "signInRequired": "<signInLink>Kirjaudu sisään tai rekisteröidy</signInLink> käyttääksesi Kizuna AI:ta — API-avainta ei tarvita.",
     "dismiss": "Hylkää",
     "none": "Ei mitään",
-    "retry": "Yritä uudelleen"
+    "retry": "Yritä uudelleen",
+    "topUp": "Lataa saldoa"
   },
   "settings": {
     "title": "Asetukset",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "Vahvistussähköpostin lähetys epäonnistui. Yritä uudelleen",
     "alreadyVerified": "Sähköpostisi on jo vahvistettu!",
     "cooldownMessage": "Odota {{seconds}} sekuntia",
-    "checkYourEmail": "Vahvistussähköposti lähetetty. Tarkista saapuneet-kansiosi.",
+    "checkYourEmail": "Vahvistussähköposti lähetetty. Viimeistele se saapuneet-kansiossasi ja palaa takaisin — Sokuji huomaa sen automaattisesti.",
+    "emailVerifiedToast": "Sähköposti vahvistettu",
     "forgotPassword": "Unohditko salasanan?",
     "resetPassword": "Palauta salasana",
     "enterEmailForReset": "Syötä sähköpostiosoitteesi ja lähetämme vahvistuskoodin salasanan palauttamiseksi.",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "Salasana palautettu onnistuneesti! Voit nyt kirjautua sisään uudella salasanallasi.",
     "backToSignIn": "Takaisin kirjautumiseen",
     "forgotPasswordError": "Vahvistuskoodin lähetys epäonnistui. Yritä uudelleen.",
-    "resetPasswordError": "Salasanan palautus epäonnistui. Yritä uudelleen."
+    "resetPasswordError": "Salasanan palautus epäonnistui. Yritä uudelleen.",
+    "signedOut": "Kirjaudu sisään käyttääksesi Kizuna AI:n sisäänrakennettua käännöspalvelua.",
+    "sessionUnavailable": "Istuntosi ei ole enää voimassa. Kirjaudu sisään uudelleen.",
+    "unknown": "Tiliäsi ei voitu vahvistaa. Yritä uudelleen."
   },
   "simpleConfig": {
     "interfaceLanguage": "Käyttöliittymän kieli",
@@ -406,7 +411,7 @@
     "yourLanguage": "Minun kieleni",
     "userAccount": "Käyttäjätili",
     "userAccountTooltip": "Tekniset käyttäjät voivat käyttää omia API-avaimiaan. Käyttäjätili on suunniteltu yksinkertaistettuun asennukseen.",
-    "signInRequired": "Voit käyttää omaa API-avaintasi tai rekisteröityä kizuna.ai-palveluun.",
+    "signInRequired": "Rekisteröidy käyttääksesi Sokujin sisäänrakennettua käännöspalvelua — API-avainta ei tarvita. Voit myös jatkaa oman palveluntarjoajasi ja avaimesi käyttöä.",
     "targetLanguage": "Toisen kieli",
     "microphone": "Mikrofoni",
     "microphoneDesc": "Valitse mikrofoni puheesi kaappaamiseen. Puhu kielelläsi tähän mikrofoniin, niin Sokuji kääntää kaiken mitä se kuulee reaaliajassa.",
@@ -687,10 +692,6 @@
           "title": "Vaihe 1: Avaa asetukset",
           "content": "Napsauta tästä avataksesi Asetukset-paneelin, jossa voit määrittää kielesi ja äänilaitteesi."
         },
-        "account": {
-          "title": "Vaihe 2: Käyttäjätili",
-          "content": "Kirjaudu sisään käyttääksesi Sokujin sisäänrakennettua käännöspalvelua, tai valitse toinen palveluntarjoaja ja syötä oma API-avaimesi."
-        },
         "languages": {
           "title": "Vaihe 3: Valitse Kielet",
           "content": "Valitse 'Minun kieleni' (mitä puhut) ja 'Toisen kieli' (mitä toinen kuulee)."
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "Vaihe 4: Käännöspalveluntarjoaja",
-          "content": "Valitse käännöspalveluntarjoaja. Sokuji tukee pilvipalveluja kuten OpenAI, Gemini, Volcengine (Doubao) ja muita. Voit myös käyttää paikallista päättelyä — ei API-avainta tarvita, ilmainen ja yksityisyyteen keskittyvä, lataa vain mallit täysin offline-käännökseen."
+          "content": "Valitse käännöspalveluntarjoaja. Sokujilla on oma sisäänrakennettu palvelunsa — ota se käyttöön kirjautumalla sisään otsikkopalkin tilipainikkeesta. Se tukee myös pilvipalveluja kuten OpenAI, Gemini, Volcengine (Doubao) ja muita, joissa käytät omaa API-avaintasi. Voit myös käyttää paikallista päättelyä — ei API-avainta tarvita, ilmainen ja yksityisyyteen keskittyvä, lataa vain mallit täysin offline-käännökseen."
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "Paina välilyöntiä puhuaksesi"
   },
   "titleBar": {
+    "account": {
+      "label": "Tili",
+      "lowBalance": "Tili — saldo ei riitä istunnon aloittamiseen",
+      "unverified": "Tili — sähköpostia ei ole vahvistettu"
+    },
     "minimize": "Pienennä",
     "maximize": "Suurenna",
     "close": "Sulje"

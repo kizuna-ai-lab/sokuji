@@ -11,10 +11,11 @@
     "autoDetect": "Tự Động Phát Hiện",
     "signIn": "Đăng nhập",
     "signUp": "Đăng ký",
-    "signInRequired": "Vui lòng đăng nhập để sử dụng Kizuna AI làm nhà cung cấp",
+    "signInRequired": "<signInLink>Đăng nhập hoặc đăng ký</signInLink> để sử dụng Kizuna AI — không cần khóa API.",
     "dismiss": "Bỏ qua",
     "none": "Không có",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "topUp": "Nạp tiền"
   },
   "settings": {
     "title": "Cài đặt",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "Không thể gửi email xác minh. Vui lòng thử lại",
     "alreadyVerified": "Email của bạn đã được xác minh!",
     "cooldownMessage": "Vui lòng đợi {{seconds}} giây",
-    "checkYourEmail": "Đã gửi email xác minh. Vui lòng kiểm tra hộp thư.",
+    "checkYourEmail": "Đã gửi email xác minh. Hãy hoàn tất trong hộp thư rồi quay lại — Sokuji sẽ tự động nhận biết.",
+    "emailVerifiedToast": "Email đã xác minh",
     "forgotPassword": "Quên mật khẩu?",
     "resetPassword": "Đặt lại mật khẩu",
     "enterEmailForReset": "Nhập địa chỉ email và chúng tôi sẽ gửi mã xác minh để đặt lại mật khẩu.",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.",
     "backToSignIn": "Quay lại đăng nhập",
     "forgotPasswordError": "Không thể gửi mã xác minh. Vui lòng thử lại.",
-    "resetPasswordError": "Không thể đặt lại mật khẩu. Vui lòng thử lại."
+    "resetPasswordError": "Không thể đặt lại mật khẩu. Vui lòng thử lại.",
+    "signedOut": "Đăng nhập để sử dụng dịch vụ dịch thuật tích hợp của Kizuna AI.",
+    "sessionUnavailable": "Phiên của bạn không còn hiệu lực. Vui lòng đăng nhập lại.",
+    "unknown": "Không thể xác minh tài khoản của bạn. Vui lòng thử lại."
   },
   "simpleConfig": {
     "interfaceLanguage": "Ngôn Ngữ Giao Diện",
@@ -406,7 +411,7 @@
     "yourLanguage": "Ngôn ngữ của tôi",
     "userAccount": "Tài khoản người dùng",
     "userAccountTooltip": "Người dùng kỹ thuật có thể sử dụng khóa API riêng của họ. Tài khoản người dùng được thiết kế cho cài đặt đơn giản.",
-    "signInRequired": "Sử dụng khóa API riêng của bạn hoặc đăng ký dịch vụ kizuna.ai.",
+    "signInRequired": "Đăng ký để sử dụng dịch vụ dịch thuật tích hợp của Sokuji — không cần khóa API. Bạn cũng có thể tiếp tục dùng nhà cung cấp và khóa của riêng mình.",
     "targetLanguage": "Ngôn ngữ đối phương",
     "microphone": "Microphone",
     "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Sokuji sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
@@ -687,10 +692,6 @@
           "title": "Bước 1: Mở Cài đặt",
           "content": "Nhấp vào đây để mở Cài đặt, nơi bạn có thể cấu hình ngôn ngữ và thiết bị âm thanh của mình."
         },
-        "account": {
-          "title": "Bước 2: Tài khoản người dùng",
-          "content": "Đăng nhập để sử dụng dịch vụ dịch thuật tích hợp của Sokuji, hoặc chọn nhà cung cấp khác và nhập khóa API của bạn."
-        },
         "languages": {
           "title": "Bước 3: Chọn ngôn ngữ",
           "content": "Chọn \"Ngôn ngữ của tôi\" (ngôn ngữ bạn nói) và \"Ngôn ngữ đối phương\" (ngôn ngữ mà đối phương sẽ nghe)."
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "Bước 4: Nhà cung cấp dịch thuật",
-          "content": "Chọn nhà cung cấp dịch thuật của bạn. Sokuji hỗ trợ các dịch vụ đám mây như OpenAI, Gemini, Volcengine (Doubao) và nhiều hơn nữa. Bạn cũng có thể sử dụng suy luận cục bộ — không cần API key, miễn phí và bảo vệ quyền riêng tư, chỉ cần tải mô hình về để dịch hoàn toàn ngoại tuyến."
+          "content": "Chọn nhà cung cấp dịch thuật của bạn. Sokuji có dịch vụ tích hợp riêng — đăng nhập từ nút tài khoản trên thanh tiêu đề để sử dụng. Sokuji cũng hỗ trợ các dịch vụ đám mây như OpenAI, Gemini, Volcengine (Doubao) và nhiều hơn nữa, trong đó bạn dùng khóa API của riêng mình. Bạn cũng có thể sử dụng suy luận cục bộ — không cần API key, miễn phí và bảo vệ quyền riêng tư, chỉ cần tải mô hình về để dịch hoàn toàn ngoại tuyến."
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "Nhấn Phím cách để nói"
   },
   "titleBar": {
+    "account": {
+      "label": "Tài khoản",
+      "lowBalance": "Tài khoản — số dư quá thấp để bắt đầu phiên",
+      "unverified": "Tài khoản — email chưa được xác minh"
+    },
     "minimize": "Thu nhỏ",
     "maximize": "Phóng to",
     "close": "Đóng"
