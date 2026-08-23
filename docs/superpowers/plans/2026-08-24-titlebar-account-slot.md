@@ -1242,8 +1242,20 @@ the heading tooltip's claim is already made by the rewritten `signInRequired`.
 
 **Files:**
 - Delete: `src/components/Settings/sections/AccountSection.tsx`, `AccountSection.test.tsx`
-- Modify: `src/components/Settings/sections/index.ts:1`,
-  `src/components/Settings/SimpleSettings/SimpleSettings.tsx:170`
+- Modify: `src/components/Settings/sections/index.ts:1`
+- Modify: `src/components/Settings/SimpleSettings/SimpleSettings.tsx:15,170` (import + usage)
+- Modify: `src/components/Settings/AdvancedSettings/AdvancedSettings.tsx:19,116` (import + usage)
+- Modify: `src/components/Settings/SimpleSettings/SimpleSettings.engine.test.tsx:42`
+  (drop the `AccountSection` entry from the `../sections` mock — it will otherwise
+  stub a module export that no longer exists)
+
+**Advanced mode is affected too, and that is correct.** `AccountSection` renders in
+BOTH surfaces: `SimpleSettings` and the `general` tab of `AdvancedSettings`. The
+earlier design discussion only ever named the simple panel, so this is stated
+explicitly rather than discovered during execution: advanced users lose the settings
+block as well and use the title-bar entry, which is present in both modes. Nothing
+about the account is mode-specific, so one entry serving both is the consistent
+outcome.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1297,6 +1309,14 @@ panel, which is what the panel is for.
 - Modify: `src/components/Settings/SimpleSettings/SimpleSettings.tsx:173-178`
 - Test: `src/components/Settings/SimpleSettings/SimpleSettings.order.test.tsx` (create)
 
+**Deliberately NOT changed: `AdvancedSettings`.** Its `general` tab also renders an
+interface-language section (`AdvancedSettings.tsx:118-123`, the full 35-language list
+rather than the simplified 12). It is left where it is: advanced mode is tabbed, so
+`general` is already the miscellany drawer rather than the first thing between a user
+and a translation, and the complaint that motivated this move — the setting occupying
+the top of the panel a new user meets — does not apply there. If it should move too,
+that is a separate decision, not an oversight here.
+
 - [ ] **Step 1: Write the failing test**
 
 ```tsx
@@ -1347,7 +1367,11 @@ Step 2 targets `#user-account-section`, which Task 8 deletes. Re-pointing it at
 consecutive steps spotlighting one element reads as a bug.
 
 **Files:**
-- Modify: `src/contexts/OnboardingContext.tsx:71-73` (delete), `:83-85` (copy)
+- Modify: `src/contexts/OnboardingContext.tsx:71-73` (delete the step), `:83-85` (copy),
+  and the stale comment at `:43` explaining why the account step exists
+- Modify: `src/components/Onboarding/Onboarding.tsx:23` — delete the
+  `'#user-account-section': 'user-account'` entry from `TARGET_NAVIGATION_MAP`. It maps
+  a step target that will no longer exist to a settings tab that will no longer exist.
 - Modify: all `src/locales/*/translation.json` (`onboarding.basic.steps.*`)
 - Test: `src/contexts/OnboardingContext.steps.test.ts` (create)
 
