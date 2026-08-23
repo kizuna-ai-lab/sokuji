@@ -1,4 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Importing settingsStore.ts (directly, and via createParticipantLocalNativeConfig
+// below) drags in its real static import graph — including audioStore ->
+// ServiceFactory -> ModernBrowserAudioService -> ModernAudioRecorder -> the
+// @sapphi-red/web-noise-suppressor worklet's `?url` import, which this
+// sandboxed Vite test transform denies outright. Mock ServiceFactory (same
+// fix modelStore.test.ts and nativeModelStore.test.ts already use) so that
+// chain never loads; settingsStore's own persistence goes through this mock
+// instead of a real settings backend.
+vi.mock('../services/ServiceFactory', () => ({
+  ServiceFactory: {
+    getSettingsService: vi.fn(() => ({
+      setSetting: vi.fn().mockResolvedValue(undefined),
+      getSetting: vi.fn(),
+    })),
+  },
+}));
+
 import { createParticipantLocalNativeConfig } from './settingsStore';
 import { useNativeModelStore } from './nativeModelStore';
 import type { LocalNativeSessionConfig } from '../services/interfaces/IClient';
@@ -37,7 +55,6 @@ const seed = (readyIds: string[]) => {
   useNativeModelStore.setState({
     catalog: CATALOG,
     statuses: Object.fromEntries(readyIds.map((id) => [id, 'ready' as const])),
-    modelPreferences: {},
   });
 };
 
@@ -46,9 +63,15 @@ describe('createParticipantLocalNativeConfig', () => {
     seed([]);
   });
 
+  // The participant direction (target→source) is a peer of the speaker
+  // direction, not a reversal of it: it resolves via nativeModelStore's
+  // resolve() against its own `selections` entry, passed in directly (no
+  // settingsStore access inside the function). Every test below passes `{}`
+  // — pure auto-resolution, same as this file exercised before Task 12.
+
   it('reverses languages and reuses a multilingual model (no extra models loaded)', () => {
     seed(['whisper-base', 'qwen2.5-0.5b']);
-    const result = createParticipantLocalNativeConfig(baseConfig({}));
+    const result = createParticipantLocalNativeConfig(baseConfig({}), {});
 
     expect(result.success).toBe(true);
     if (!result.success) return;
@@ -67,7 +90,7 @@ describe('createParticipantLocalNativeConfig', () => {
     // Speaker uses zh→en Opus; only the reverse en→zh Opus is downloaded.
     seed(['whisper-base', 'opus-mt-en-zh']);
     const result = createParticipantLocalNativeConfig(
-      baseConfig({ translationModelId: 'opus-mt-zh-en' }),
+      baseConfig({ translationModelId: 'opus-mt-zh-en' }), {},
     );
 
     expect(result.success).toBe(true);
@@ -81,7 +104,7 @@ describe('createParticipantLocalNativeConfig', () => {
     // Only ASR downloaded; neither the reverse Opus nor any multilingual model is ready.
     seed(['whisper-base']);
     const result = createParticipantLocalNativeConfig(
-      baseConfig({ translationModelId: 'opus-mt-zh-en' }),
+      baseConfig({ translationModelId: 'opus-mt-zh-en' }), {},
     );
 
     expect(result.success).toBe(true);
@@ -96,7 +119,7 @@ describe('createParticipantLocalNativeConfig', () => {
     // multilingual ASR is downloaded, so the participant channel cannot be built.
     seed(['sense-voice']);
     const result = createParticipantLocalNativeConfig(
-      baseConfig({ sourceLanguage: 'zh', targetLanguage: 'de', asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b' }),
+      baseConfig({ sourceLanguage: 'zh', targetLanguage: 'de', asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b' }), {},
     );
 
     expect(result.success).toBe(false);

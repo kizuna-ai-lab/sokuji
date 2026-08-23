@@ -573,7 +573,10 @@ function initSherpaOnnxOnlineRecognizerConfig(config, Module) {
   };
 }
 
-function createOnlineRecognizer(Module, myConfig) {
+// Sokuji patch: upstream ships this as a demo with the model architecture
+// hardcoded (`let type = 0`); our streaming worker passes it as `modelType`
+// (see workers/sherpa-onnx-streaming-asr.worker.js ASR_ENGINE_TYPE_MAP).
+function createOnlineRecognizer(Module, myConfig, modelType) {
   const onlineTransducerModelConfig = {
     encoder: '',
     decoder: '',
@@ -597,7 +600,7 @@ function createOnlineRecognizer(Module, myConfig) {
     model: '',
   };
 
-  let type = 0;
+  let type = modelType || 0;
 
   switch (type) {
     case 0:

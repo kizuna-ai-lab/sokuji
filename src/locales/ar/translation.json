@@ -110,7 +110,6 @@
     "helpEmailTooltip": "الإبلاغ عن الأخطاء أو الحصول على مساعدة",
     "helpDiscussions": "المناقشات",
     "helpDiscussionsTooltip": "طلبات الميزات والملاحظات ومناقشات المجتمع",
-    "participantModelHint": "قم بالتبديل إلى {{source}} → {{target}} لتغيير نماذج الآخر",
     "auto": "تلقائي",
     "low": "منخفض",
     "medium": "متوسط",
@@ -184,10 +183,14 @@
     "sensitivityLow": "منخفضة",
     "localInferenceModelsRequired": "يرجى تنزيل النماذج المطلوبة من <settingsLink>الإعدادات</settingsLink> أولاً. تحتاج إلى تنزيل نماذج التعرف على الكلام (ASR) والترجمة وتحويل النص إلى كلام (TTS) للبدء.",
     "missingModelsWarning": "نموذج/نماذج {{types}} مفقودة لزوج اللغات هذا.",
+    "resolutionNotesSummary": "{{count}} من النماذج التي اخترتها غير متاحة — يجري استخدام بدائل تلقائية.",
+    "resolutionNotesNamed": "{{names}} غير متاح — يجري استخدام بدائل تلقائية.",
+    "resolutionNotesNamedMore": "{{names}} و{{count}} أخرى غير متاحة — يجري استخدام بدائل تلقائية.",
+    "resolutionNotesUseAuto": "التبديل إلى تلقائي",
+    "resolutionNotesReview": "مراجعة",
     "downloadModelType": "تنزيل {{type}}",
     "modelTypeAsr": "التعرف على الكلام (ASR)",
     "modelTypeTranslation": "الترجمة",
-    "modelTypeTts": "تحويل النص إلى كلام (TTS)",
     "edgeTtsVoice": "الصوت",
     "loadingVoices": "جاري تحميل الأصوات...",
     "reasoningEffort": "مستوى التفكير",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "فشلت المعاينة — تم بلوغ حد المعدل أو الحصة في Soniox",
     "sonioxVoicePreviewTimeout": "انتهت مهلة المعاينة — حاول مرة أخرى",
     "sonioxRegion": "المنطقة",
-    "sonioxRegionTooltip": "تشغّل Soniox نشرًا منفصلًا لكل منطقة، ولكل منها مفتاح API خاص بها. تتم معالجة صوتك وتخزينه في المنطقة التي تختارها. يسري ابتداءً من الجلسة التالية."
+    "sonioxRegionTooltip": "تشغّل Soniox نشرًا منفصلًا لكل منطقة، ولكل منها مفتاح API خاص بها. تتم معالجة صوتك وتخزينه في المنطقة التي تختارها. يسري ابتداءً من الجلسة التالية.",
+    "langSentence": {
+      "iSpeak": "أتحدث",
+      "iRead": "أقرأ",
+      "theyHear": "يسمعون",
+      "theySpeak": "يتحدثون",
+      "mirror": "يتحدثون {{their}} ← أقرأ {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",
@@ -479,8 +489,7 @@
       "description": "التعرف على الكلام المجاني (ASR) + ترجمة + تحويل النص إلى كلام (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "الآخر"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "مجاني (Native)",
@@ -831,8 +840,9 @@
     "importNow": "استيراد {{count}} الآن",
     "management": "النماذج",
     "storageUsed": "التخزين: {{size}} ميغابايت مستخدمة",
+    "storageEmpty": "لم يتم تنزيل أي نماذج بعد.",
     "asrModels": "التعرف على الكلام (ASR)",
-    "translationModels": "ترجمة",
+    "translationModels": "ترجمة (MT)",
     "ttsModels": "تحويل النص إلى كلام (TTS)",
     "autoSelected": "تحديد تلقائي",
     "download": "تحميل",
@@ -892,6 +902,20 @@
       "cancel": "إلغاء",
       "accept": "فهمت — للاستخدام غير التجاري فقط"
     }
+  },
+  "notes": {
+    "stageAsr": "التعرف على الكلام",
+    "stageTranslation": "الترجمة",
+    "stageTts": "إخراج الصوت",
+    "notDownloaded": "{{from}} غير مُنزَّل. نزّله مرة أخرى لاستخدامه.",
+    "notDownloadedWithSub": "{{from}} غير مُنزَّل — سيتم استخدام {{to}} بدلًا منه. نزّله مرة أخرى لاستخدامه.",
+    "langIncompatible": "لا يدعم {{from}} هذا الاتجاه. سيعود عند دعم الاتجاه.",
+    "langIncompatibleWithSub": "لا يدعم {{from}} هذا الاتجاه — سيتم استخدام {{to}} بدلًا منه. سيعود عند دعم الاتجاه.",
+    "hardwareGated": "لا يمكن تشغيل {{from}} على هذا الجهاز.",
+    "hardwareGatedWithSub": "لا يمكن تشغيل {{from}} على هذا الجهاز — سيتم استخدام {{to}} بدلًا منه.",
+    "needsKey": "يتطلب {{from}} حسابًا مسجَّل الدخول لاستخدامه.",
+    "notInCatalog": "لم يعد {{from}} متوفرًا في هذا الإصدار.",
+    "noCandidate": "لا يتوفر نموذج {{stage}} لهذا الاتجاه."
   },
   "update": {
     "available": "إصدار جديد v{{version}} متاح",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "اختر تطبيق الاجتماع كمصدر صوت الآخر بدلاً من صوت النظام.",
     "actionChangeInput": "اختر ميكروفوناً فعلياً كجهاز إدخال.",
     "dismiss": "إغلاق"
+  },
+  "engineUi": {
+    "autoValue": "تلقائي · {{name}}",
+    "autoOptionNone": "تلقائي",
+    "browseLibrary": "تصفح المكتبة",
+    "storageUsedLine": "التخزين: {{summary}} مستخدَمة",
+    "manageStorage": "إدارة",
+    "back": "رجوع",
+    "titleLibrary": "المكتبة · {{stage}}",
+    "titleStorage": "التخزين",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "قيد الاستخدام",
+    "estimated": "تقديري",
+    "translationOnCpu": "الترجمة على المعالج (CPU) — ذاكرة VRAM غير كافية",
+    "availableWhenLang": "تم التنزيل. يتوفر عندما تكون لغتك {{lang}}.",
+    "deleteConfirm": "هل تريد حذف {{name}}؟",
+    "deleteFallsBack": "حذف {{name}}: سيعود {{stage}} إلى {{to}}.",
+    "deleteNoModel": "حذف {{name}}: لن يتبقى أي نموذج لـ{{stage}} — لن يمكن بدء الجلسات.",
+    "clearAllKeepsPicks": "اختياراتك محفوظة وتعود عند إعادة تنزيل النماذج.",
+    "importChooseModel": "اختر نموذجًا للاستيراد"
   }
 }

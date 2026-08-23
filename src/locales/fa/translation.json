@@ -110,7 +110,6 @@
     "helpEmailTooltip": "گزارش اشکال یا دریافت کمک",
     "helpDiscussions": "گفت‌وگوها",
     "helpDiscussionsTooltip": "درخواست ویژگی، بازخورد و گفت‌وگوهای انجمن",
-    "participantModelHint": "برای تغییر مدل‌های طرف مقابل به {{source}} → {{target}} تغییر دهید",
     "auto": "خودکار",
     "low": "کم",
     "medium": "متوسط",
@@ -184,10 +183,14 @@
     "sensitivityLow": "پایین",
     "localInferenceModelsRequired": "لطفاً ابتدا مدل‌های مورد نیاز را از <settingsLink>تنظیمات</settingsLink> دانلود کنید. برای شروع باید مدل‌های تشخیص گفتار (ASR)، ترجمه و تبدیل متن به گفتار (TTS) را دانلود کنید.",
     "missingModelsWarning": "مدل(های) {{types}} برای این جفت زبان موجود نیست.",
+    "resolutionNotesSummary": "{{count}} مورد از مدل‌های انتخابی شما در دسترس نیست — از جایگزین‌های خودکار استفاده می‌شود.",
+    "resolutionNotesNamed": "{{names}} در دسترس نیست — از جایگزین‌های خودکار استفاده می‌شود.",
+    "resolutionNotesNamedMore": "{{names}} و {{count}} مورد دیگر در دسترس نیست — از جایگزین‌های خودکار استفاده می‌شود.",
+    "resolutionNotesUseAuto": "تغییر به خودکار",
+    "resolutionNotesReview": "بررسی",
     "downloadModelType": "دانلود {{type}}",
     "modelTypeAsr": "تشخیص گفتار (ASR)",
     "modelTypeTranslation": "ترجمه",
-    "modelTypeTts": "تبدیل متن به گفتار (TTS)",
     "edgeTtsVoice": "صدا",
     "loadingVoices": "در حال بارگذاری صداها...",
     "reasoningEffort": "سطح استدلال",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "پیش‌نمایش ناموفق بود — محدودیت نرخ یا سهمیه Soniox پر شده است",
     "sonioxVoicePreviewTimeout": "زمان پیش‌نمایش به پایان رسید — دوباره تلاش کنید",
     "sonioxRegion": "منطقه",
-    "sonioxRegionTooltip": "Soniox برای هر منطقه استقرار جداگانه‌ای دارد که هرکدام کلید API مخصوص خود را دارند. صدای شما در منطقه انتخابی پردازش و ذخیره می‌شود. از جلسه بعدی اعمال می‌شود."
+    "sonioxRegionTooltip": "Soniox برای هر منطقه استقرار جداگانه‌ای دارد که هرکدام کلید API مخصوص خود را دارند. صدای شما در منطقه انتخابی پردازش و ذخیره می‌شود. از جلسه بعدی اعمال می‌شود.",
+    "langSentence": {
+      "iSpeak": "صحبت می‌کنم",
+      "iRead": "می‌خوانم",
+      "theyHear": "آن‌ها می‌شنوند",
+      "theySpeak": "آن‌ها صحبت می‌کنند",
+      "mirror": "آن‌ها به {{their}} صحبت می‌کنند → من به {{mine}} می‌خوانم"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",
@@ -479,8 +489,7 @@
       "description": "تشخیص گفتار رایگان (ASR) + ترجمه + تبدیل متن به گفتار (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "طرف مقابل"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "رایگان (Native)",
@@ -831,8 +840,9 @@
     "importNow": "اکنون {{count}} فایل را وارد کنید",
     "management": "مدل‌ها",
     "storageUsed": "فضای ذخیره‌سازی: {{size}} مگابایت استفاده شده",
+    "storageEmpty": "هنوز مدلی دانلود نشده است.",
     "asrModels": "تشخیص گفتار (ASR)",
-    "translationModels": "ترجمه",
+    "translationModels": "ترجمه (MT)",
     "ttsModels": "تبدیل متن به گفتار (TTS)",
     "autoSelected": "انتخاب خودکار",
     "download": "دانلود",
@@ -892,6 +902,20 @@
       "cancel": "لغو",
       "accept": "متوجه شدم — فقط استفاده غیرتجاری"
     }
+  },
+  "notes": {
+    "stageAsr": "تشخیص گفتار",
+    "stageTranslation": "ترجمه",
+    "stageTts": "خروجی گفتار",
+    "notDownloaded": "{{from}} دانلود نشده است. برای استفاده، آن را دوباره دانلود کنید.",
+    "notDownloadedWithSub": "{{from}} دانلود نشده است — به‌جای آن از {{to}} استفاده می‌شود. برای استفاده، آن را دوباره دانلود کنید.",
+    "langIncompatible": "{{from}} از این جهت پشتیبانی نمی‌کند. با تغییر جهت، دوباره بازمی‌گردد.",
+    "langIncompatibleWithSub": "{{from}} از این جهت پشتیبانی نمی‌کند — به‌جای آن از {{to}} استفاده می‌شود. با تغییر جهت، دوباره بازمی‌گردد.",
+    "hardwareGated": "{{from}} روی این دستگاه قابل اجرا نیست.",
+    "hardwareGatedWithSub": "{{from}} روی این دستگاه قابل اجرا نیست — به‌جای آن از {{to}} استفاده می‌شود.",
+    "needsKey": "استفاده از {{from}} به حساب واردشده نیاز دارد.",
+    "notInCatalog": "{{from}} دیگر در این نسخه در دسترس نیست.",
+    "noCandidate": "برای این جهت، هیچ مدل {{stage}} در دسترس نیست."
   },
   "update": {
     "available": "نسخه جدید v{{version}} موجود است",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "به‌جای صدای سیستم، برنامهٔ جلسه را به‌عنوان منبع صدای طرف مقابل انتخاب کنید.",
     "actionChangeInput": "یک میکروفون فیزیکی را به‌عنوان دستگاه ورودی انتخاب کنید.",
     "dismiss": "بستن"
+  },
+  "engineUi": {
+    "autoValue": "خودکار · {{name}}",
+    "autoOptionNone": "خودکار",
+    "browseLibrary": "مرور کتابخانه",
+    "storageUsedLine": "فضای ذخیره‌سازی: {{summary}} استفاده شده",
+    "manageStorage": "مدیریت",
+    "back": "بازگشت",
+    "titleLibrary": "کتابخانه · {{stage}}",
+    "titleStorage": "فضای ذخیره‌سازی",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "در حال استفاده",
+    "estimated": "تخمینی",
+    "translationOnCpu": "ترجمه روی CPU — حافظه VRAM کافی نیست",
+    "availableWhenLang": "دانلود شد. زمانی در دسترس است که زبان شما {{lang}} باشد.",
+    "deleteConfirm": "{{name}} حذف شود؟",
+    "deleteFallsBack": "با حذف {{name}}: {{stage}} به {{to}} برمی‌گردد.",
+    "deleteNoModel": "با حذف {{name}}: هیچ مدل {{stage}} باقی نمی‌ماند — جلسه‌ها نمی‌توانند شروع شوند.",
+    "clearAllKeepsPicks": "انتخاب‌های شما ذخیره می‌شوند و با دانلود دوباره مدل‌ها بازمی‌گردند.",
+    "importChooseModel": "یک مدل برای واردکردن انتخاب کنید"
   }
 }

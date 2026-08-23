@@ -16,13 +16,14 @@ import type { NativeModelInfo } from '../../../lib/local-inference/native/native
 const mockSettings = {
   sourceLanguage: 'en',
   targetLanguage: 'en',
-  asrModel: 'lic-asr',
-  translationModel: '',
-  ttsModel: '',
   asrDevice: 'auto' as const,
   translationDevice: 'auto' as const,
   ttsDevice: 'auto' as const,
-  translationVariantByModel: {},
+  selections: {
+    'en→en': {
+      asr: { modelId: 'lic-asr' }, translation: { modelId: '' }, tts: { modelId: '' },
+    },
+  },
 };
 
 // Minimal catalog: a non-commercial-licensed ASR card + a plain (unlicensed) one.
@@ -90,12 +91,28 @@ vi.mock('../../../stores/settingsStore', () => ({
 }));
 
 vi.mock('../../../stores/nativeModelStore', () => {
+  // Lightweight stand-in for the real selection resolver: an explicit,
+  // catalog-known pick resolves; everything else (auto, or an id the mock
+  // catalog doesn't carry) resolves to null. Good enough for these tests,
+  // which only exercise the license-consent gate on the Download button, not
+  // readiness/hardware gating.
+  const mockResolve = (src: string, tgt: string, selections: any) => {
+    const d = selections?.[`${src}→${tgt}`];
+    const pick = (stage: 'asr' | 'translation' | 'tts') => {
+      const sel = d?.[stage];
+      return sel?.modelId && mockCatalog[sel.modelId]
+        ? { modelId: sel.modelId, variant: sel.variant, source: 'explicit' as const }
+        : null;
+    };
+    return { asr: pick('asr'), translation: pick('translation'), tts: pick('tts'), notes: [], prunes: [] };
+  };
   const mockStoreState = () => ({
     statuses: mockStatuses,
     sizes: mockSizes,
     progress: {},
     errors: {},
     catalog: mockCatalog,
+    resolve: mockResolve,
     sidecarStatus: 'ready',
     download: mockDownload,
     deleteModel: vi.fn(),
@@ -104,7 +121,6 @@ vi.mock('../../../stores/nativeModelStore', () => {
     refreshCatalog: vi.fn().mockResolvedValue(undefined),
     setStatusRepos: vi.fn(),
     autoSelect: vi.fn().mockReturnValue(null),
-    rememberModels: vi.fn(),
     retrySidecar: vi.fn(),
     asrLoading: false,
     asrResolved: null,

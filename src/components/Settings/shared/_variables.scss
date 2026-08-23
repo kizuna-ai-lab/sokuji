@@ -130,6 +130,31 @@ $toggle-bg-on:    $color-primary;
   color: $text-primary;
 }
 
+// --- Selectable option row --------------------------------------
+// The single dialect for single-select list rows (settings device
+// lists + the engine picker): transparent fill, hairline border,
+// selected = primary-green text/border/tint. No dot — the green text
+// carries the state.
+@mixin option-row {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid $border-subtle;
+  border-radius: $radius-sm;
+  padding: 6px 8px;
+  font-size: $font-body;
+  transition: border-color $transition-fast, background-color $transition-fast, color $transition-fast;
+}
+
+@mixin option-row-hover {
+  border-color: $border-strong;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@mixin option-row-selected {
+  color: $color-primary;
+  background: rgba($color-primary, 0.08);
+  border-color: rgba($color-primary, 0.45);
+}
+
 @mixin control-base {
   background: $bg-control;
   border: 1px solid $border-default;

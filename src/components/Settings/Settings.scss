@@ -633,24 +633,22 @@
 // Device list styles (shared)
 .device-list {
   .device-option {
+    // The shared option-row dialect (see _variables.scss) — same voice as
+    // the engine picker's rows, per the 2026-08-22 unification decision.
+    @include vars.option-row;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px;
-    background-color: vars.$bg-control;
-    border-radius: vars.$radius-sm;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     cursor: pointer;
-    transition: background-color vars.$transition-fast;
     position: relative;
-    font-size: vars.$font-body;
 
     &:hover:not(.disabled) {
-      background-color: rgba(255, 255, 255, 0.05);
+      @include vars.option-row-hover;
     }
 
     &.selected {
-      background-color: vars.$color-success-bg;
+      @include vars.option-row-selected;
     }
 
     &:focus-visible {
@@ -661,7 +659,8 @@
       @include vars.disabled-state;
 
       &:hover {
-        background-color: vars.$bg-control;
+        border-color: vars.$border-subtle;
+        background: rgba(255, 255, 255, 0.02);
       }
     }
 
@@ -678,15 +677,6 @@
 
     .virtual-indicator {
       margin-left: 8px;
-      flex-shrink: 0;
-    }
-
-    .selected-indicator {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: vars.$color-primary;
-      margin-left: 10px;
       flex-shrink: 0;
     }
   }
@@ -1187,6 +1177,12 @@
   }
 }
 
+.language-mirror-line {
+  margin-top: 6px;
+  font-size: 12px;
+  color: vars.$text-secondary;
+}
+
 .language-swap-btn {
   background: none;
   border: 1px solid vars.$border-default;
@@ -1217,11 +1213,20 @@
   align-items: flex-start;
 
   &__link {
+    // A <button> since 2026-08-23 (href-less anchors are not keyboard
+    // focusable) — reset the UA button chrome so it keeps the link look.
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
     color: vars.$color-warning;
     text-decoration: underline;
     cursor: pointer;
     &:hover {
       opacity: 0.8;
+    }
+    &:focus-visible {
+      @include vars.focus-ring;
     }
   }
 }
@@ -1839,31 +1844,27 @@
     }
   }
 
-  .participant-inline {
-    margin-top: 4px;
-    padding-top: 4px;
-    border-top: 1px solid vars.$border-subtle;
-  }
-
-  .participant-header {
+  // A labeled chip row (Finding 1: chips follow the audio mode). In 'both'
+  // mode two of these stack — "Me" (speaker, src→tgt) above "Other"
+  // (participant, tgt→src) — so which group is whose is never ambiguous.
+  // The label reuses .model-chip-label's small-caps look.
+  .model-inline-group {
     display: flex;
-    align-items: baseline;
-    gap: 6px;
-    margin-bottom: 4px;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    &:not(:last-child) {
+      margin-bottom: 4px;
+    }
   }
 
-  .participant-label {
+  .model-inline-group__label {
     font-size: 10px;
     color: vars.$text-muted;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     flex-shrink: 0;
-  }
-
-  .participant-hint {
-    font-size: 10px;
-    color: vars.$text-muted;
-    font-style: italic;
   }
 
   .memory-estimate {

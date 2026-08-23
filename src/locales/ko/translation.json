@@ -110,7 +110,6 @@
     "helpEmailTooltip": "버그 신고 또는 도움 받기",
     "helpDiscussions": "토론",
     "helpDiscussionsTooltip": "기능 요청, 피드백 및 커뮤니티 토론",
-    "participantModelHint": "상대방 모델을 변경하려면 {{source}} → {{target}}(으)로 전환하세요",
     "auto": "자동",
     "low": "낮음",
     "medium": "중간",
@@ -184,10 +183,14 @@
     "sensitivityLow": "낮음",
     "localInferenceModelsRequired": "먼저 <settingsLink>설정</settingsLink>에서 필요한 모델을 다운로드하세요. 시작하려면 음성 인식(ASR), 번역, 음성 합성(TTS) 모델을 다운로드해야 합니다.",
     "missingModelsWarning": "이 언어 쌍에 대한 {{types}} 모델이 없습니다.",
+    "resolutionNotesSummary": "선택한 모델 중 {{count}}개를 사용할 수 없어 자동 대체가 적용되었습니다.",
+    "resolutionNotesNamed": "{{names}}을(를) 사용할 수 없어 자동 대체가 적용되었습니다.",
+    "resolutionNotesNamedMore": "{{names}} 외 {{count}}개를 사용할 수 없어 자동 대체가 적용되었습니다.",
+    "resolutionNotesUseAuto": "자동으로 전환",
+    "resolutionNotesReview": "검토",
     "downloadModelType": "{{type}} 다운로드",
     "modelTypeAsr": "음성 인식(ASR)",
     "modelTypeTranslation": "번역",
-    "modelTypeTts": "음성 합성(TTS)",
     "edgeTtsVoice": "음성",
     "loadingVoices": "음성 로딩 중...",
     "reasoningEffort": "추론 강도",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "미리듣기 실패 — Soniox 속도 제한 또는 할당량에 도달했습니다",
     "sonioxVoicePreviewTimeout": "미리듣기 시간이 초과되었습니다 — 다시 시도하세요",
     "sonioxRegion": "지역",
-    "sonioxRegionTooltip": "Soniox는 지역마다 별도로 배포되며 각각 고유한 API 키를 사용합니다. 오디오는 선택한 지역에서 처리 및 저장됩니다. 다음 세션부터 적용됩니다."
+    "sonioxRegionTooltip": "Soniox는 지역마다 별도로 배포되며 각각 고유한 API 키를 사용합니다. 오디오는 선택한 지역에서 처리 및 저장됩니다. 다음 세션부터 적용됩니다.",
+    "langSentence": {
+      "iSpeak": "내가 말하는 언어",
+      "iRead": "내가 읽는 언어",
+      "theyHear": "상대방이 듣는 언어",
+      "theySpeak": "상대방이 말하는 언어",
+      "mirror": "상대방은 {{their}}로 말함 → 나는 {{mine}}로 읽음"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",
@@ -479,8 +489,7 @@
       "description": "무료 음성 인식(ASR) + 번역 + 음성 합성(TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "상대방"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "무료 (Native)",
@@ -831,8 +840,9 @@
     "importNow": "지금 {{count}}개 가져오기",
     "management": "모델",
     "storageUsed": "저장공간: {{size}} MB 사용 중",
+    "storageEmpty": "다운로드된 모델이 없습니다.",
     "asrModels": "음성 인식(ASR)",
-    "translationModels": "번역",
+    "translationModels": "번역 (MT)",
     "ttsModels": "음성 합성(TTS)",
     "autoSelected": "자동 선택",
     "download": "다운로드",
@@ -892,6 +902,20 @@
       "cancel": "취소",
       "accept": "이해했습니다 — 비상업적 사용만"
     }
+  },
+  "notes": {
+    "stageAsr": "음성 인식",
+    "stageTranslation": "번역",
+    "stageTts": "음성 출력",
+    "notDownloaded": "{{from}}이(가) 다운로드되지 않았습니다. 사용하려면 다시 다운로드하세요.",
+    "notDownloadedWithSub": "{{from}}이(가) 다운로드되지 않아 대신 {{to}}을(를) 사용합니다. 사용하려면 다시 다운로드하세요.",
+    "langIncompatible": "{{from}}은(는) 이 방향을 지원하지 않습니다. 방향이 바뀌면 다시 사용할 수 있습니다.",
+    "langIncompatibleWithSub": "{{from}}은(는) 이 방향을 지원하지 않아 대신 {{to}}을(를) 사용합니다. 방향이 바뀌면 다시 사용할 수 있습니다.",
+    "hardwareGated": "{{from}}은(는) 이 기기에서 실행할 수 없습니다.",
+    "hardwareGatedWithSub": "{{from}}은(는) 이 기기에서 실행할 수 없어 대신 {{to}}을(를) 사용합니다.",
+    "needsKey": "{{from}}을(를) 사용하려면 로그인이 필요합니다.",
+    "notInCatalog": "{{from}}은(는) 이 버전에서 더 이상 사용할 수 없습니다.",
+    "noCandidate": "이 방향에 사용할 수 있는 {{stage}} 모델이 없습니다."
   },
   "update": {
     "available": "새 버전 v{{version}} 사용 가능",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "시스템 오디오 대신 회의 애플리케이션을 상대방 오디오 소스로 선택하세요.",
     "actionChangeInput": "입력 장치로 실제 마이크를 선택하세요.",
     "dismiss": "닫기"
+  },
+  "engineUi": {
+    "autoValue": "자동 · {{name}}",
+    "autoOptionNone": "자동",
+    "browseLibrary": "라이브러리 보기",
+    "storageUsedLine": "저장 공간: {{summary}} 사용 중",
+    "manageStorage": "관리",
+    "back": "뒤로",
+    "titleLibrary": "라이브러리 · {{stage}}",
+    "titleStorage": "저장 공간",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "사용 중",
+    "estimated": "예상",
+    "translationOnCpu": "CPU에서 번역 — VRAM 부족",
+    "availableWhenLang": "다운로드됨. 언어가 {{lang}}일 때 사용할 수 있습니다.",
+    "deleteConfirm": "{{name}}을(를) 삭제하시겠습니까?",
+    "deleteFallsBack": "{{name}} 삭제 시 {{stage}}이(가) {{to}}(으)로 대체됩니다.",
+    "deleteNoModel": "{{name}} 삭제 시 {{stage}} 모델이 남지 않아 세션을 시작할 수 없습니다.",
+    "clearAllKeepsPicks": "선택 항목은 저장되며, 모델을 다시 다운로드하면 복원됩니다.",
+    "importChooseModel": "가져올 모델 선택"
   }
 }

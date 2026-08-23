@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Laporkan bug atau dapatkan bantuan",
     "helpDiscussions": "Diskusi",
     "helpDiscussionsTooltip": "Permintaan fitur, masukan, dan diskusi komunitas",
-    "participantModelHint": "Beralih ke {{source}} → {{target}} untuk mengubah model lawan bicara",
     "auto": "Otomatis",
     "low": "Rendah",
     "medium": "Sedang",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Rendah",
     "localInferenceModelsRequired": "Silakan unduh model yang diperlukan di <settingsLink>Pengaturan</settingsLink> terlebih dahulu. Anda perlu mengunduh model Pengenalan ucapan (ASR), Terjemahan, dan Sintesis ucapan (TTS) untuk memulai.",
     "missingModelsWarning": "Model {{types}} tidak tersedia untuk pasangan bahasa ini.",
+    "resolutionNotesSummary": "{{count}} model pilihan Anda tidak tersedia — cadangan otomatis sedang digunakan.",
+    "resolutionNotesNamed": "{{names}} tidak tersedia — cadangan otomatis sedang digunakan.",
+    "resolutionNotesNamedMore": "{{names}} dan {{count}} lainnya tidak tersedia — cadangan otomatis sedang digunakan.",
+    "resolutionNotesUseAuto": "Beralih ke Otomatis",
+    "resolutionNotesReview": "Tinjau",
     "downloadModelType": "Unduh {{type}}",
     "modelTypeAsr": "Pengenalan ucapan (ASR)",
     "modelTypeTranslation": "Terjemahan",
-    "modelTypeTts": "Sintesis ucapan (TTS)",
     "edgeTtsVoice": "Suara",
     "loadingVoices": "Memuat suara...",
     "reasoningEffort": "Tingkat penalaran",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Pratinjau gagal — batas laju atau kuota Soniox tercapai",
     "sonioxVoicePreviewTimeout": "Pratinjau habis waktu — coba lagi",
     "sonioxRegion": "Wilayah",
-    "sonioxRegionTooltip": "Soniox menjalankan penerapan terpisah per wilayah, masing-masing dengan kunci API sendiri. Audio Anda diproses dan disimpan di wilayah yang Anda pilih. Berlaku mulai sesi berikutnya."
+    "sonioxRegionTooltip": "Soniox menjalankan penerapan terpisah per wilayah, masing-masing dengan kunci API sendiri. Audio Anda diproses dan disimpan di wilayah yang Anda pilih. Berlaku mulai sesi berikutnya.",
+    "langSentence": {
+      "iSpeak": "Saya berbicara",
+      "iRead": "Saya membaca",
+      "theyHear": "mereka mendengar",
+      "theySpeak": "mereka berbicara",
+      "mirror": "Mereka berbicara {{their}} → saya membaca {{mine}}"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",
@@ -479,8 +489,7 @@
       "description": "Pengenalan ucapan gratis (ASR) + Terjemahan + Sintesis ucapan (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Lawan bicara"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Gratis (Native)",
@@ -831,8 +840,9 @@
     "importNow": "Impor {{count}} sekarang",
     "management": "Model",
     "storageUsed": "Penyimpanan: {{size}} MB digunakan",
+    "storageEmpty": "Belum ada model yang diunduh.",
     "asrModels": "Pengenalan ucapan (ASR)",
-    "translationModels": "Terjemahan",
+    "translationModels": "Terjemahan (MT)",
     "ttsModels": "Sintesis ucapan (TTS)",
     "autoSelected": "Dipilih otomatis",
     "download": "Unduh",
@@ -892,6 +902,20 @@
       "cancel": "Batal",
       "accept": "Saya mengerti — hanya nonkomersial"
     }
+  },
+  "notes": {
+    "stageAsr": "pengenalan suara",
+    "stageTranslation": "terjemahan",
+    "stageTts": "keluaran suara",
+    "notDownloaded": "{{from}} belum diunduh. Unduh kembali untuk menggunakannya.",
+    "notDownloadedWithSub": "{{from}} belum diunduh — menggunakan {{to}} sebagai gantinya. Unduh kembali untuk menggunakannya.",
+    "langIncompatible": "{{from}} tidak mendukung arah ini. Model ini akan kembali tersedia saat arahnya sesuai.",
+    "langIncompatibleWithSub": "{{from}} tidak mendukung arah ini — menggunakan {{to}} sebagai gantinya. Model ini akan kembali tersedia saat arahnya sesuai.",
+    "hardwareGated": "{{from}} tidak dapat berjalan di perangkat ini.",
+    "hardwareGatedWithSub": "{{from}} tidak dapat berjalan di perangkat ini — menggunakan {{to}} sebagai gantinya.",
+    "needsKey": "{{from}} memerlukan akun yang sudah masuk untuk digunakan.",
+    "notInCatalog": "{{from}} tidak lagi tersedia di versi ini.",
+    "noCandidate": "Tidak ada model {{stage}} yang tersedia untuk arah ini."
   },
   "update": {
     "available": "Versi baru v{{version}} tersedia",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Pilih aplikasi rapat sebagai sumber audio lawan bicara alih-alih audio sistem.",
     "actionChangeInput": "Pilih mikrofon fisik sebagai perangkat input.",
     "dismiss": "Tutup"
+  },
+  "engineUi": {
+    "autoValue": "Otomatis · {{name}}",
+    "autoOptionNone": "Otomatis",
+    "browseLibrary": "Jelajahi pustaka",
+    "storageUsedLine": "Penyimpanan: {{summary}} terpakai",
+    "manageStorage": "Kelola",
+    "back": "Kembali",
+    "titleLibrary": "Pustaka · {{stage}}",
+    "titleStorage": "Penyimpanan",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "Sedang digunakan",
+    "estimated": "Perkiraan",
+    "translationOnCpu": "Terjemahan di CPU — VRAM tidak mencukupi",
+    "availableWhenLang": "Sudah diunduh. Tersedia saat bahasa Anda {{lang}}.",
+    "deleteConfirm": "Hapus {{name}}?",
+    "deleteFallsBack": "Menghapus {{name}}: {{stage}} beralih kembali ke {{to}}.",
+    "deleteNoModel": "Menghapus {{name}}: tidak ada model {{stage}} yang tersisa — sesi tidak dapat dimulai.",
+    "clearAllKeepsPicks": "Pilihan Anda akan diingat dan kembali diterapkan saat model diunduh lagi.",
+    "importChooseModel": "Pilih model untuk diimpor"
   }
 }

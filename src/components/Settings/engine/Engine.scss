@@ -1,0 +1,395 @@
+@use '../shared/variables' as vars;
+
+// EngineSurface's own outer shell reuses `.config-section` (Settings.scss)
+// for the section chrome (border, spacing, the `.highlight` hook, and —
+// critically — the `h3, h2` header rule that styles EngineSurface's own
+// title AND the pushed-page back row, since the back row occupies the h3
+// slot when a Library/Storage page is pushed — see EngineSurface.tsx).
+// `.engine-surface` itself needs no extra rules beyond that shared frame.
+
+.engine-page {
+  padding-top: 2px;
+}
+
+.engine-direction {
+  // A proper sub-header: semibold + brighter than the slot labels below it
+  // ($text-secondary vs their regular weight), so the direction level reads
+  // as the group and the slots as its rows.
+  &__title {
+    font-size: vars.$font-body;
+    font-weight: vars.$weight-semibold;
+    color: vars.$text-secondary;
+    // No uppercase: the heading interpolates real language NAMES
+    // (English, Français) and all-caps distorts them; CJK is unaffected
+    // either way, so the transform only ever hurt.
+    letter-spacing: 0.5px;
+    margin: 14px 0 6px;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+}
+
+.engine-slot {
+  // Dropdown form (2026-08-23 A decision): one row per slot — label +
+  // select-dropdown control, the same family as the Provider selector. No
+  // frame of its own (the app separates regions with dividers and reserves
+  // boxes for content cards and controls) and no expand/collapse anymore.
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+
+  // A chip click deep-links here and flashes THIS row. Replicates
+  // Settings.scss's .config-section.highlight / @keyframes pulse-highlight —
+  // same look, its own name since .engine-slot isn't a .config-section.
+  &.highlight {
+    animation: engine-pulse-highlight 2s ease-out;
+    border-radius: vars.$radius-md;
+  }
+
+  // Full stage names ("Speech Recognition (ASR)"), matching the standalone
+  // sections' group titles. A fixed basis keeps the select column aligned
+  // across rows; long locale labels wrap to a second line instead of
+  // truncating.
+  &__label {
+    flex: 0 0 128px;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+  }
+
+  &__control {
+    flex: 1;
+    min-width: 0;
+  }
+
+  // Doubled class beats the base .select-dropdown rule regardless of which
+  // stylesheet lands later in the bundle — plain .engine-slot__select ties
+  // it on specificity and silently loses to import order (measured: the
+  // 14px/8px base values were winning).
+  &__select.engine-slot__select {
+    // The app-wide .select-dropdown look, one size down from the Provider
+    // control (body 13px, not title 14px, tighter padding) so five of these
+    // read as rows, not five heroes — matching .model-card__name and the
+    // option-row family's rhythm. No explicit line-height anywhere in this
+    // area: the rest of the app's rows ride the browser's normal, and a
+    // hand-set 1.4 made these rows visibly taller than their own labels.
+    font-size: vars.$font-body;
+    padding: 6px 10px;
+
+    &.engine-slot__select--missing {
+      color: vars.$color-error;
+      border-color: rgba(vars.$color-error, 0.45);
+    }
+  }
+}
+
+// Rich base-select styling for the slot dropdowns (Chromium 135+; classic
+// popups get plain-text options via the richSelect gate in EnginePage). The
+// shared @supports block in Settings.scss already themes .select-dropdown's
+// picker chrome; this adds the engine-specific option anatomy:
+//   #1 sizes right-aligned in the open list, hidden in the closed control
+//   #2 Browse library… reads as an ACTION row (divider + muted)
+//   #3 the current pick is green in the list (beside the built-in check)
+//   #4 the closed control's 'auto ·' prefix stays muted, name stays bright
+@supports (appearance: base-select) {
+  .engine-slot__select.engine-slot__select {
+    // The picker flips above the control only when its FULL preferred height
+    // does not fit below (UA anchor rule: block-end + flip-block) — and the
+    // shared 320px cap made that trigger early in a short side-panel
+    // viewport. Slot pickers hold a handful of candidates, so a tighter cap
+    // keeps them opening downward in most positions; a genuine
+    // does-not-fit still flips, which beats a three-line scroll box.
+    &::picker(select) {
+      max-height: 240px;
+    }
+
+    option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      // Same type size and vertical rhythm as the closed control: 13px on
+      // the browser's normal line-height, min-height freed from the UA
+      // base-select stylesheet's 24px pin, and 1px more vertical padding
+      // than the control to stand in for its border — both land at the same
+      // measured height.
+      font-size: vars.$font-body;
+      padding: 7px 10px;
+      min-height: 0;
+    }
+
+    option:checked {
+      color: vars.$color-primary;
+    }
+
+    option.engine-opt--browse {
+      color: vars.$text-muted;
+      border-top: 1px solid vars.$border-subtle;
+      border-radius: 0;
+      margin-top: 4px;
+    }
+
+    .engine-opt__name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .engine-opt__auto {
+      color: vars.$text-muted;
+    }
+
+    .engine-opt__meta {
+      flex: none;
+      font-size: vars.$font-caption;
+      color: vars.$text-muted;
+    }
+
+    // The closed control is <selectedcontent> — a clone of the chosen
+    // option's markup. Trim it: no size (that detail belongs to the open
+    // list), and the muted auto prefix reads as provenance, not value.
+    selectedcontent {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+
+      .engine-opt__meta { display: none; }
+    }
+  }
+}
+
+// Native's per-stage compute-device control, previously inside the expanded
+// accordion body — now a compact always-visible line under its slot row.
+.engine-slot__extras {
+  margin: -4px 0 8px 138px;
+
+  &:empty { display: none; }
+}
+
+// Slide-in transitions for the push stack (B decision, 2026-08-23): only
+// the INCOMING content animates — from the right going deeper, from the
+// left coming back — one directional cue instead of a two-page stack.
+// Reduced-motion users get today's instant swap.
+@media (prefers-reduced-motion: no-preference) {
+  .engine-surface__page--push { animation: engine-page-push 0.22s cubic-bezier(0.25, 0.6, 0.3, 1); }
+  .engine-surface__page--pop  { animation: engine-page-pop  0.22s cubic-bezier(0.25, 0.6, 0.3, 1); }
+}
+@keyframes engine-page-push { from { transform: translateX(60px);  opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes engine-page-pop  { from { transform: translateX(-60px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+// The pushed page's back CHIP: a small pill that names the PARENT page
+// ("← Models") — the destination, iOS-style — while the current page's
+// title stands beside it as plain heading text. Sits inside the h3, so
+// weight/size are reset from the heading's own.
+.engine-back-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: none;
+  border: 1px solid vars.$border-default;
+  border-radius: 999px;
+  color: vars.$text-secondary;
+  font-size: vars.$font-caption;
+  font-weight: vars.$weight-normal;
+  // Explicit line-height (not the platform font's `normal`): the chip's
+  // 12px text and the 14px title beside it sag below their flex-centered
+  // boxes by DIFFERENT platform-font-dependent amounts (CJK fallback
+  // metrics), so their visual centers drift apart. Symmetric explicit
+  // line boxes pin both to their box centers; 16+6+2 also makes the pill
+  // an even 24px, dodging half-pixel rounding jumps against the title.
+  line-height: 16px;
+  padding: 3px 10px 3px 8px;
+  cursor: pointer;
+  transition: border-color vars.$transition-fast, color vars.$transition-fast;
+
+  svg { flex: none; }
+
+  &:hover {
+    border-color: vars.$color-primary;
+    color: vars.$color-primary;
+  }
+}
+
+.engine-surface__heading > span {
+  line-height: 20px;
+}
+
+// Back row: SimpleSettings' engine-host exit (its own surface, not the push
+// stack), reading as a clickable "header-weight" row matching an h3.
+.engine-back-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: inherit; text-align: left;
+  font-size: vars.$font-title;
+  font-weight: vars.$weight-semibold;
+
+  &:hover {
+    color: vars.$color-primary;
+  }
+}
+
+// The Models section's storage footer (B2, user decision 2026-08-22): a
+// caption-size line in the old ModelStorageFooter's position (divider-less
+// since 2026-08-23), the whole row being the push-to-StoragePage button
+// with "Manage ›" as its label.
+.engine-storage-footer {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  margin-top: 8px; padding: 8px 0 0;
+  background: none; border: none;
+  font-size: vars.$font-caption; color: vars.$text-muted;
+  cursor: pointer; text-align: left;
+
+  &__manage {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+    transition: color vars.$transition-fast;
+  }
+
+  &:hover .engine-storage-footer__manage {
+    color: vars.$color-primary;
+  }
+}
+
+// StoragePage's per-model list row — same option-row metrics as the engine
+// picker's rows (user decision, 2026-08-22) so the two lists share one
+// density; not selectable, so no hover/selected states. flex-wrap lets the
+// inline delete-confirm break onto its own full-width line instead of
+// squeezing in as a third column beside the name and the delete button.
+.engine-storage-row {
+  @include vars.option-row;
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+  // width:100% + padding + border needs border-box or the row overflows the
+  // 450px panel (verified by rendering; no global reset exists).
+  box-sizing: border-box;
+  width: 100%;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &__info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+  // The name takes the slack so the badge and the size sit at the row's
+  // right edge (same voice as the picker rows), sizes forming a column
+  // across rows next to the delete control.
+  &__name {
+    font-size: 13px; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  &__meta { font-size: vars.$font-caption; color: vars.$text-muted; flex-shrink: 0; }
+  &__badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 10px;
+    background: rgba(16, 163, 127, 0.15); color: vars.$color-primary;
+  }
+
+  // Finding 5: matches .model-card__btn--delete's look (ModelManagementSection.scss).
+  &__delete {
+    background: transparent; border: none; color: vars.$text-muted;
+    cursor: pointer; padding: 4px 6px; border-radius: vars.$radius-sm;
+    // Keep the 20px hit target WITHOUT letting it set the row's height:
+    // flex kills the inline line-box around the 12px icon, and the negative
+    // vertical margin cancels the padding out of layout, so the row's height
+    // comes from the 13px text — measured 29px, same as a picker row (it was
+    // 15px taller with this button as the row's tallest box).
+    display: flex; align-items: center;
+    margin: -4px 0;
+    transition: color vars.$transition-fast;
+
+    &:hover:not(:disabled) { color: vars.$color-error; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+}
+
+.engine-storage-page {
+  &__summary {
+    display: flex; align-items: center; gap: 8px; padding: 8px 4px;
+    font-size: 13px; color: vars.$text-muted;
+  }
+  &__empty { padding: 12px 4px; font-size: 13px; color: vars.$text-muted; }
+
+  &__actions {
+    display: flex; align-items: center; gap: 8px; padding: 10px 4px; flex-wrap: wrap;
+  }
+
+  // ONE outlined shape for both actions (Clear all / Import) — they sat in
+  // the same row wearing two different classes' looks. Clear all keeps its
+  // destructive identity in the hover color only.
+  &__action-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; font-size: vars.$font-caption;
+    background: transparent;
+    color: vars.$text-secondary;
+    border: 1px solid vars.$border-strong;
+    border-radius: vars.$radius-sm;
+    cursor: pointer;
+    transition: border-color vars.$transition-fast, color vars.$transition-fast;
+
+    &:hover:not(:disabled) {
+      border-color: vars.$color-primary;
+      color: vars.$text-primary;
+    }
+
+    &--danger:hover:not(:disabled) {
+      border-color: vars.$color-error;
+      color: vars.$color-error;
+    }
+
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+  }
+
+  // The Import model chooser — a plain <select>, dressed as the standard
+  // form control (control-base) instead of the browser default.
+  .engine-storage-import-picker {
+    width: 100%;
+    padding: 2px 4px 6px;
+
+    select {
+      @include vars.control-base;
+      width: 100%;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+  }
+}
+
+.engine-storage-confirm {
+  // Full row width in BOTH flex-wrap hosts (a storage row's inline delete
+  // confirm, the actions row's clear-all confirm) — without this it sat
+  // beside its siblings at whatever width was left over.
+  flex-basis: 100%;
+  box-sizing: border-box;
+  padding: 8px; margin: 4px 0; background: rgba(255, 255, 255, 0.04); border-radius: 6px;
+  font-size: 12px;
+  p { margin: 0 0 6px; }
+  button { margin-right: 8px; }
+}
+
+@keyframes engine-pulse-highlight {
+  0%, 100% {
+    background-color: transparent; // frameless rows rest with no background
+    box-shadow: none;
+    outline: none;
+  }
+  20%, 40%, 60% {
+    background-color: rgba(59, 130, 246, 0.25);
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.8),
+                0 0 20px rgba(59, 130, 246, 0.6) inset;
+    outline: 3px solid rgba(59, 130, 246, 0.7);
+    outline-offset: 4px;
+  }
+  30%, 50%, 70% {
+    background-color: rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.6),
+                0 0 10px rgba(59, 130, 246, 0.3) inset;
+    outline: 2px solid rgba(59, 130, 246, 0.5);
+    outline-offset: 3px;
+  }
+  90% {
+    background-color: rgba(59, 130, 246, 0.05);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    outline: 1px solid rgba(59, 130, 246, 0.2);
+    outline-offset: 2px;
+  }
+}

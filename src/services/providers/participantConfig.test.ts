@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
@@ -36,6 +36,9 @@ import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { reverseGeminiTranslationDirection } from './geminiTranslateModel';
 import { reverseTranscriptionDirection } from './openaiTranscriptionContext';
 import { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from './localParticipantConfig';
+import { useNativeModelStore } from '../../stores/nativeModelStore';
+import { directionKey } from '../../lib/local-inference/selection/types';
+import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import type {
   GeminiSessionConfig,
   OpenAISessionConfig,
@@ -56,6 +59,28 @@ const DEFAULTS_BY_SLICE_LOCAL: Record<string, unknown> = {
   openai: defaultOpenAISettings,
   openaiCompatible: defaultOpenAICompatibleSettings,
 };
+
+const M = (id: string, kind: NativeModelInfo['kind'], languages: string[], order: number,
+           recommended = false): NativeModelInfo =>
+  ({ id, name: id, languages, recommended, tiers: [{ tier: 'cpu', backend: 'ct2', available: true }],
+     order, repo: id, kind });
+
+const NATIVE_FIXTURE: Record<string, NativeModelInfo> = {
+  'ja-only-asr': M('ja-only-asr', 'asr', ['ja'], 1, true),
+  'en-asr': M('en-asr', 'asr', ['en'], 1, true),
+  'whisper-base': M('whisper-base', 'asr', ['multi'], 5),
+  'qwen2.5-0.5b': M('qwen2.5-0.5b', 'translate', ['multi'], 1, true),
+};
+
+/** Minimal speaker-side session config; each test overrides the language pair. */
+const BASE = {
+  sourceLanguage: 'ja',
+  targetLanguage: 'en',
+  asrModelId: 'ja-only-asr',
+  translationModelId: 'qwen2.5-0.5b',
+  ttsModelId: 'piper-en',
+  ttsVariant: 'int8',
+} as unknown as LocalNativeSessionConfig;
 
 describe('participant config: direction lives in config fields', () => {
   it('soniox swaps sourceLanguage/targetLanguage (twin inherits)', () => {
@@ -257,17 +282,14 @@ describe('participant config: local providers (mocked helpers)', () => {
     mockedLocalNative.mockReset();
   });
 
-  it('local_inference: success with translation available and no ASR fallback maps to config + no notices', () => {
+  it('local_inference: success with translation available maps to config + no notices', () => {
     const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
     const slice = { ...defaultLocalInferenceSettings };
     const resultConfig = { provider: 'local_inference', sourceLanguage: 'en', targetLanguage: 'ja' } as LocalInferenceSessionConfig;
     mockedLocalInference.mockReturnValue({
       success: true,
+      translationAvailable: true,
       config: resultConfig,
-      status: {
-        asrAvailable: true, asrModelId: 'sensevoice-int8', asrFallback: false,
-        asrOriginalModelId: 'sensevoice-int8', translationAvailable: true, translationModelId: 'opus-mt-en-ja',
-      },
     });
 
     const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
@@ -304,31 +326,12 @@ describe('participant config: local providers (mocked helpers)', () => {
     const slice = { ...defaultLocalInferenceSettings, sourceLanguage: 'ja', targetLanguage: 'en' };
     mockedLocalInference.mockReturnValue({
       success: true,
+      translationAvailable: false,
       config: { provider: 'local_inference' } as LocalInferenceSessionConfig,
-      status: {
-        asrAvailable: true, asrModelId: 'sensevoice-int8', asrFallback: false,
-        asrOriginalModelId: 'sensevoice-int8', translationAvailable: false, translationModelId: null,
-      },
     });
 
     const { notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
     expect(notices).toEqual([{ channel: 'warning', message: 'No translation model for en → ja — transcription only' }]);
-  });
-
-  it('local_inference: asrFallback emits the exact info template', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
-    const slice = { ...defaultLocalInferenceSettings };
-    mockedLocalInference.mockReturnValue({
-      success: true,
-      config: { provider: 'local_inference' } as LocalInferenceSessionConfig,
-      status: {
-        asrAvailable: true, asrModelId: 'sensevoice-int8', asrFallback: true,
-        asrOriginalModelId: 'whisper-large', translationAvailable: true, translationModelId: 'opus-mt-ja-en',
-      },
-    });
-
-    const { notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    expect(notices).toEqual([{ channel: 'info', message: 'Using sensevoice-int8 instead of whisper-large for ASR' }]);
   });
 
   it('local_native: failure returns null config + error notice', () => {
@@ -371,11 +374,8 @@ describe('participant config: local providers (mocked helpers)', () => {
     const dInf = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE);
     mockedLocalInference.mockReturnValue({
       success: true,
+      translationAvailable: true,
       config: {} as LocalInferenceSessionConfig,
-      status: {
-        asrAvailable: true, asrModelId: 'x', asrFallback: false,
-        asrOriginalModelId: 'x', translationAvailable: true, translationModelId: 'y',
-      },
     });
     dInf.buildParticipantSessionConfig({ ...defaultLocalInferenceSettings }, 'i', shell);
     const infCalls = mockedLocalInference.mock.calls;
@@ -396,5 +396,78 @@ describe('participant config: local providers (mocked helpers)', () => {
     expect(argNat.textOnly).toBe(true);
     expect(argNat.turnDetection).toEqual({ type: 'semantic_vad', createResponse: true, interruptResponse: false, eagerness: 'high' });
     expect(argNat.keepReplayAudio).toBe(false);
+  });
+});
+
+describe('participant resolves the reverse direction as a peer', () => {
+  // The module-level vi.mock('./localParticipantConfig', ...) above replaces
+  // both exports with vi.fn() for every test in this file (the descriptor
+  // tests above depend on that). These tests exercise the REAL resolver
+  // behaviour instead, so they reach past the mock via vi.importActual —
+  // the only way to get the unmocked function back out of a mocked module.
+  let realCreateParticipantLocalNativeConfig: typeof createParticipantLocalNativeConfig;
+
+  beforeAll(async () => {
+    const actual = await vi.importActual<typeof import('./localParticipantConfig')>('./localParticipantConfig');
+    realCreateParticipantLocalNativeConfig = actual.createParticipantLocalNativeConfig;
+  });
+
+  it('reads selections[tgt→src] rather than borrowing the speaker memory', () => {
+    const dir = directionKey('en', 'ja');
+    useNativeModelStore.setState({
+      catalog: NATIVE_FIXTURE,
+      statuses: { 'whisper-base': 'ready', 'qwen2.5-0.5b': 'ready' },
+    });
+
+    const r = realCreateParticipantLocalNativeConfig(
+      { ...BASE, sourceLanguage: 'ja', targetLanguage: 'en' },
+      { [dir]: { asr: { modelId: 'whisper-base' }, translation: { modelId: '' }, tts: { modelId: '' } } },
+    );
+    expect(r.success).toBe(true);
+    expect(r.success && r.config.sourceLanguage).toBe('en');
+    expect(r.success && r.config.targetLanguage).toBe('ja');
+    expect(r.success && r.config.asrModelId).toBe('whisper-base');
+  });
+
+  it('drops TTS entirely — the participant channel is text-only', () => {
+    // Self-contained: sets its own catalog+statuses rather than relying on
+    // whatever a PRECEDING test in this file happened to leave in the store
+    // (the previous version of this test read state set by the 'reads
+    // selections[tgt→src]...' test above, purely from execution order).
+    useNativeModelStore.setState({
+      catalog: NATIVE_FIXTURE,
+      statuses: { 'whisper-base': 'ready', 'qwen2.5-0.5b': 'ready' },
+    });
+    const dir = directionKey('en', 'ja');
+    const r = realCreateParticipantLocalNativeConfig(
+      { ...BASE, sourceLanguage: 'ja', targetLanguage: 'en' },
+      { [dir]: { asr: { modelId: 'whisper-base' }, translation: { modelId: '' }, tts: { modelId: '' } } },
+    );
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    expect(r.config.ttsModelId).toBeUndefined();
+    expect(r.config.ttsVariant).toBeUndefined();
+  });
+
+  it("fails with no_asr when the reverse direction cannot resolve ASR", () => {
+    useNativeModelStore.setState({ catalog: NATIVE_FIXTURE, statuses: {} });
+    const r = realCreateParticipantLocalNativeConfig({ ...BASE, sourceLanguage: 'ja', targetLanguage: 'en' }, {});
+    expect(r.success).toBe(false);
+    expect(!r.success && r.reason).toBe('no_asr');
+  });
+
+  it('does not inherit the speaker direction: an explicit speaker pick is not copied', () => {
+    const speakerDir = directionKey('ja', 'en');
+    useNativeModelStore.setState({
+      catalog: NATIVE_FIXTURE,
+      statuses: { 'ja-only-asr': 'ready', 'en-asr': 'ready', 'qwen2.5-0.5b': 'ready' },
+    });
+    const r = realCreateParticipantLocalNativeConfig(
+      { ...BASE, sourceLanguage: 'ja', targetLanguage: 'en' },
+      // 'ja-only-asr' is explicitly chosen for the speaker direction. It cannot
+      // serve 'en', so if the participant inherited it we would see it here.
+      { [speakerDir]: { asr: { modelId: 'ja-only-asr' }, translation: { modelId: '' }, tts: { modelId: '' } } },
+    );
+    expect(r.success && r.config.asrModelId).toBe('en-asr');
   });
 });

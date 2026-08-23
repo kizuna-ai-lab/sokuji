@@ -19,9 +19,28 @@ export const ModelGroup: React.FC<{
   title: string;
   subtitle?: string;
   defaultExpanded?: boolean;
+  /** Header-less, always-expanded variant for the Library push view, where
+   *  the surface's own page title already names the stage. */
+  bare?: boolean;
+  /** Rendered at the top of the list (e.g. native's per-stage device
+   *  control) so it survives the header's removal in bare mode. */
+  aboveList?: React.ReactNode;
   children: React.ReactNode;
-}> = ({ id, title, subtitle, defaultExpanded = true, children }) => {
+}> = ({ id, title, subtitle, defaultExpanded = true, bare = false, aboveList, children }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const list = (
+    <div className="model-group__list">
+      {aboveList}
+      {children}
+    </div>
+  );
+  if (bare) {
+    return (
+      <div id={id ? `${id}-section` : undefined} className="model-group">
+        {list}
+      </div>
+    );
+  }
   return (
     <div id={id ? `${id}-section` : undefined} className="model-group">
       <div className="model-group__header" onClick={() => setExpanded(!expanded)}>
@@ -31,7 +50,7 @@ export const ModelGroup: React.FC<{
         <h3 className="model-group__title">{title}</h3>
         {subtitle && <span className="model-group__subtitle">{subtitle}</span>}
       </div>
-      {expanded && <div className="model-group__list">{children}</div>}
+      {expanded && list}
     </div>
   );
 };

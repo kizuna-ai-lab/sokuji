@@ -18,18 +18,16 @@ import {
   getManifestEntry,
   getModelSizeMb,
   isTranslationModelCompatible,
-  isAstCompatible,
-  modelUsable,
   deviceReady,
-  pickBestModel,
   selectVariant,
   getBaselineVariant,
   type ModelManifestEntry,
   type ModelStatus,
   type ModelType,
 } from '../../../lib/local-inference/modelManifest';
-import type { LocalInferenceSettings } from '../../../stores/settingsStore';
+import { directionKey, emptyDirection, splitDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
+import { languageNameFor } from '../engine/languageName';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 import { ModelImportModal } from './ModelImportModal';
 import { GpuAccelerationNotice } from './GpuAccelerationNotice';
@@ -47,6 +45,15 @@ import './ModelManagementSection.scss';
 
 interface ModelManagementSectionProps {
   isSessionActive: boolean;
+  /** Render only this stage's group (used by the Engine surface's Library
+   *  push, which is already scoped to one stage). Omitted = all three. */
+  stageFilter?: Stage;
+  /** The direction ("src→tgt") whose slot opened this Library push. When
+   *  set, compatibility grouping, selected-state resolution, and selection
+   *  writes all target THIS pair — a participant-slot Browse must not read
+   *  or write the forward speaker pair. Omitted = the settings' forward
+   *  pair (the standalone render). */
+  direction?: string;
 }
 
 // ─── ModelCard ─────────────────────────────────────────────────────────────
@@ -318,6 +325,8 @@ const sortTtsModels = createModelSorter((a, b) =>
 
 export function ModelManagementSection({
   isSessionActive,
+  stageFilter,
+  direction,
 }: ModelManagementSectionProps) {
   const { t } = useTranslation();
   const settings = useLocalInferenceSettings();
@@ -371,70 +380,47 @@ export function ModelManagementSection({
     initialize();
   }, [initialize]);
 
-  const { sourceLanguage, targetLanguage, asrModel, ttsModel, translationModel } = settings;
+  // ONE pair drives everything below (compat lists, resolve, writes, the
+  // no-model warnings): the opening slot's direction when this is a Library
+  // push, the settings' forward pair otherwise.
+  const [sourceLanguage, targetLanguage] = direction
+    ? splitDirection(direction)
+    : [settings.sourceLanguage, settings.targetLanguage];
 
-  // Auto-select models: fix incompatible or missing selections after language change / model download
-  useEffect(() => {
-    if (!initialized) return;
-    const updates: Partial<LocalInferenceSettings> = {};
-    const ctx = { modelStatuses: statuses, webgpuAvailable };
+  /**
+   * Live, non-persisted view of "what would actually run right now" per
+   * stage — computed from the manifest, current download/hardware state, and
+   * the user's explicit `selections`. This replaces the two duplicate
+   * auto-select effects that used to shadow-write asrModel/translationModel/
+   * ttsModel on every render (one here, one in ProviderSpecificSettings —
+   * the latter bypassed the deviceReady hardware gate entirely). The gate
+   * now lives once, inside resolve()/resolveStage(), and nothing here writes
+   * settings just to display a value.
+   */
+  const resolved = useMemo(
+    () => useModelStore.getState().resolve(sourceLanguage, targetLanguage, settings.selections),
+    [statuses, webgpuAvailable, deviceFeatures, sourceLanguage, targetLanguage, settings.selections],
+  );
+  const selectedAsr = resolved.asr?.modelId ?? '';
+  const selectedTranslation = resolved.translation?.modelId ?? '';
+  const selectedTts = resolved.tts?.modelId ?? '';
 
-    // ASR: must support sourceLanguage and be usable (includes streaming models)
-    const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-    const currentAsr = asrModel ? allAsrModels.find(m => m.id === asrModel) : null;
-    const asrOk = currentAsr && (currentAsr.multilingual || currentAsr.languages.includes(sourceLanguage)) && modelUsable(currentAsr, ctx);
-    if (!asrOk) {
-      const match = pickBestModel(allAsrModels.filter(m =>
-        (m.multilingual || m.languages.includes(sourceLanguage)) && modelUsable(m, ctx)
-      ));
-      const newId = match?.id || '';
-      if (newId !== asrModel) updates.asrModel = newId;
-    }
-
-    // Translation: must be compatible with source→target pair and usable
-    // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
-    const asrEntryForAst = translationModel && translationModel === asrModel
-      ? getManifestEntry(translationModel) : null;
-    const isAstValid = asrEntryForAst
-      && isAstCompatible(asrEntryForAst, sourceLanguage, targetLanguage)
-      && modelUsable(asrEntryForAst, ctx);
-
-    const currentTrans = !isAstValid && translationModel ? getManifestByType('translation').find(m => m.id === translationModel) : null;
-    const transOk = isAstValid || (currentTrans
-      && isTranslationModelCompatible(currentTrans, sourceLanguage, targetLanguage)
-      && modelUsable(currentTrans, ctx));
-    if (!transOk) {
-      const match = pickBestModel(getManifestByType('translation').filter(m =>
-        isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
-        && modelUsable(m, ctx)
-      ));
-      const newId = match?.id || '';
-      if (newId !== translationModel) updates.translationModel = newId;
-    }
-
-    // TTS: must support targetLanguage and be usable (or be a cloud model)
-    const currentTts = ttsModel ? getManifestByType('tts').find(m => m.id === ttsModel) : null;
-    const ttsOk = currentTts && (currentTts.multilingual || currentTts.languages.includes(targetLanguage)) && modelUsable(currentTts, ctx);
-    if (!ttsOk) {
-      const match = pickBestModel(getManifestByType('tts').filter(m =>
-        (m.multilingual || m.languages.includes(targetLanguage)) && modelUsable(m, ctx)
-      ));
-      const newId = match?.id || '';
-      if (newId !== ttsModel) updates.ttsModel = newId;
-    }
-
-    if (Object.keys(updates).length > 0) {
-      updateLocalInference(updates);
-    }
-
-    // Remember the final model selection for this language pair
-    const finalAsr = updates.asrModel ?? asrModel;
-    const finalTranslation = updates.translationModel ?? translationModel;
-    const finalTts = updates.ttsModel ?? ttsModel;
-    if (finalAsr) {
-      useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, finalAsr, finalTranslation, finalTts);
-    }
-  }, [initialized, statuses, sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel, webgpuAvailable, updateLocalInference]);
+  /**
+   * Writes one explicit pick into `selections`; resolve() picks it up on the
+   * next render (see `resolved` above). Only the id is persisted — never a
+   * variant or source — matching the "auto unless the user explicitly
+   * touched it" contract `selections` is built around.
+   */
+  const selectCard = (stage: Stage, modelId: string) => {
+    const dir = directionKey(sourceLanguage, targetLanguage);
+    const current = settings.selections[dir] ?? emptyDirection();
+    updateLocalInference({
+      selections: {
+        ...settings.selections,
+        [dir]: { ...current, [stage]: { modelId } },
+      },
+    });
+  };
 
   // ── Memoized model lists ──────────────────────────────────────────────
 
@@ -446,8 +432,8 @@ export function ModelManagementSection({
   const translationModels = useMemo(() => {
     const all = [...getManifestByType('translation')];
 
-    // If current ASR model supports AST, add it as a translation option
-    const asrEntry = asrModel ? getManifestEntry(asrModel) : null;
+    // If the resolved ASR model supports AST, add it as a translation option
+    const asrEntry = selectedAsr ? getManifestEntry(selectedAsr) : null;
     if (asrEntry?.astLanguages) {
       all.push({
         ...asrEntry,
@@ -458,7 +444,7 @@ export function ModelManagementSection({
     }
 
     return sortTranslationModels(all);
-  }, [asrModel]);
+  }, [selectedAsr]);
 
   const compatibleTranslationModels = useMemo(
     () => translationModels.filter(m =>
@@ -512,7 +498,7 @@ export function ModelManagementSection({
   // Edge TTS voice picker state
   const [edgeTtsVoices, setEdgeTtsVoices] = useState<Voice[]>([]);
   const [edgeTtsVoiceStatus, setEdgeTtsVoiceStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
-  const isEdgeTtsSelected = settings.ttsModel === 'edge-tts';
+  const isEdgeTtsSelected = selectedTts === 'edge-tts';
 
   useEffect(() => {
     if (!isEdgeTtsSelected) return;
@@ -538,8 +524,8 @@ export function ModelManagementSection({
   }, [isEdgeTtsSelected]);
 
   const filteredVoices = useMemo(
-    () => filterVoicesByLanguage(edgeTtsVoices, settings.targetLanguage),
-    [edgeTtsVoices, settings.targetLanguage],
+    () => filterVoicesByLanguage(edgeTtsVoices, targetLanguage),
+    [edgeTtsVoices, targetLanguage],
   );
 
   // edge voice list shape consumed by LocalInferenceVoiceSection
@@ -553,7 +539,7 @@ export function ModelManagementSection({
   const [importError, setImportError] = useState<string | null>(null);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
-  const isSupertonicTts = getManifestEntry(settings.ttsModel)?.engine === 'supertonic';
+  const isSupertonicTts = getManifestEntry(selectedTts)?.engine === 'supertonic';
 
   const refreshImportedVoices = useCallback(async () => {
     if (!isSupertonicTts) return;
@@ -569,7 +555,7 @@ export function ModelManagementSection({
     void refreshImportedVoices();
   }, [refreshImportedVoices]);
 
-  const supertonicTtsEntry = isSupertonicTts ? getManifestEntry(settings.ttsModel) : undefined;
+  const supertonicTtsEntry = isSupertonicTts ? getManifestEntry(selectedTts) : undefined;
 
   const supertonicVoices = useMemo(() => {
     if (!isSupertonicTts || !supertonicTtsEntry) return [];
@@ -645,15 +631,23 @@ export function ModelManagementSection({
     setHasPendingChanges(true);
   }, [supertonicTtsEntry, settings.ttsSpeakerId, updateLocalInference, refreshImportedVoices]);
 
-  // Auto-select first voice when target language changes or no voice selected
+  // Auto-select first voice when target language changes or no voice selected.
+  // The stored edgeTtsVoice belongs to the FORWARD pair — SettingsInitializer
+  // (always mounted) keeps it valid for the forward target. A Library pushed
+  // for any other direction must never write it: its filteredVoices are for
+  // the reversed target, so the two writers would ping-pong the field forever,
+  // sync-re-rendering the whole app each round (the 2026-08-23 freeze).
+  const ownsVoiceSettings = !direction
+    || direction === directionKey(settings.sourceLanguage, settings.targetLanguage);
   useEffect(() => {
+    if (!ownsVoiceSettings) return;
     if (!isEdgeTtsSelected || filteredVoices.length === 0) return;
     const currentVoice = settings.edgeTtsVoice;
     const isCurrentValid = filteredVoices.some(v => v.ShortName === currentVoice);
     if (!isCurrentValid) {
       updateLocalInference({ edgeTtsVoice: filteredVoices[0].ShortName });
     }
-  }, [isEdgeTtsSelected, filteredVoices, settings.edgeTtsVoice, updateLocalInference]);
+  }, [ownsVoiceSettings, isEdgeTtsSelected, filteredVoices, settings.edgeTtsVoice, updateLocalInference]);
 
   // A failed initialize() (e.g. IndexedDB VersionError when another build
   // upgraded the shared DB in this profile) must surface an actionable error
@@ -739,15 +733,13 @@ export function ModelManagementSection({
 
   const renderAsrGroup = () => {
     return (
-      <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
+      <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}
+        bare={!!stageFilter}>
         {compatibleAsrModels.length > 0 ? (
           renderSubGroups(
             compatibleAsrModels,
-            asrModel,
-            (id) => {
-              updateLocalInference({ asrModel: id });
-              useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, id, translationModel, ttsModel);
-            },
+            selectedAsr,
+            (id) => selectCard('asr', id),
           )
         ) : (
           <div className="model-card__no-model-warning">
@@ -771,28 +763,33 @@ export function ModelManagementSection({
               }
             </button>
             {showAllAsr && incompatibleAsrModels.map(entry => (
-              <ModelCard
-                key={entry.id}
-                entry={entry}
-                status={statuses[entry.id] || 'not_downloaded'}
-                download={downloads[entry.id]}
-                isSessionActive={isSessionActive}
-                isSelected={asrModel === entry.id}
-                isCompatible={false}
-                compatibilityHint={
-                  !deviceReady(entry, webgpuAvailable)
-                    ? t('settings.webgpuNotSupported', 'Not available in current environment')
-                    : t('settings.langMismatch', 'language mismatch')
-                }
-                onSelect={() => {
-                  updateLocalInference({ asrModel: entry.id });
-                  useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, entry.id, translationModel, ttsModel);
-                }}
-                onDownload={() => handleDownload(entry.id)}
-                onCancel={() => cancelDownload(entry.id)}
-                onDelete={() => deleteModel(entry.id)}
-                onImport={() => setImportFor(entry)}
-              />
+              <React.Fragment key={entry.id}>
+                <ModelCard
+                  entry={entry}
+                  status={statuses[entry.id] || 'not_downloaded'}
+                  download={downloads[entry.id]}
+                  isSessionActive={isSessionActive}
+                  isSelected={selectedAsr === entry.id}
+                  isCompatible={false}
+                  compatibilityHint={
+                    !deviceReady(entry, webgpuAvailable)
+                      ? t('settings.webgpuNotSupported', 'Not available in current environment')
+                      : t('settings.langMismatch', 'language mismatch')
+                  }
+                  onSelect={() => selectCard('asr', entry.id)}
+                  onDownload={() => handleDownload(entry.id)}
+                  onCancel={() => cancelDownload(entry.id)}
+                  onDelete={() => deleteModel(entry.id)}
+                  onImport={() => setImportFor(entry)}
+                />
+                {statuses[entry.id] === 'downloaded' && deviceReady(entry, webgpuAvailable) && (
+                  <div className="model-card__available-when-lang">
+                    {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
+                      lang: entry.languages.map((l) => languageNameFor(l)).join(', '),
+                    })}
+                  </div>
+                )}
+              </React.Fragment>
             ))}
           </>
         )}
@@ -804,15 +801,13 @@ export function ModelManagementSection({
 
   const renderTranslationGroup = () => {
     return (
-      <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}>
+      <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}
+        bare={!!stageFilter}>
         {compatibleTranslationModels.length > 0 ? (
           renderSubGroups(
             compatibleTranslationModels,
-            translationModel,
-            (id) => {
-              updateLocalInference({ translationModel: id });
-              useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, id, ttsModel);
-            },
+            selectedTranslation,
+            (id) => selectCard('translation', id),
           )
         ) : (
           <div className="model-card__no-model-warning">
@@ -839,28 +834,33 @@ export function ModelManagementSection({
               }
             </button>
             {showAllTranslation && incompatibleTranslationModels.map(entry => (
-              <ModelCard
-                key={entry.id}
-                entry={entry}
-                status={statuses[entry.id] || 'not_downloaded'}
-                download={downloads[entry.id]}
-                isSessionActive={isSessionActive}
-                isSelected={translationModel === entry.id}
-                isCompatible={false}
-                compatibilityHint={
-                  !deviceReady(entry, webgpuAvailable)
-                    ? t('settings.webgpuNotSupported', 'Not available in current environment')
-                    : t('settings.langMismatch', 'language mismatch')
-                }
-                onSelect={() => {
-                  updateLocalInference({ translationModel: entry.id });
-                  useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, entry.id, ttsModel);
-                }}
-                onDownload={() => handleDownload(entry.id)}
-                onCancel={() => cancelDownload(entry.id)}
-                onDelete={() => deleteModel(entry.id)}
-                onImport={() => setImportFor(entry)}
-              />
+              <React.Fragment key={entry.id}>
+                <ModelCard
+                  entry={entry}
+                  status={statuses[entry.id] || 'not_downloaded'}
+                  download={downloads[entry.id]}
+                  isSessionActive={isSessionActive}
+                  isSelected={selectedTranslation === entry.id}
+                  isCompatible={false}
+                  compatibilityHint={
+                    !deviceReady(entry, webgpuAvailable)
+                      ? t('settings.webgpuNotSupported', 'Not available in current environment')
+                      : t('settings.langMismatch', 'language mismatch')
+                  }
+                  onSelect={() => selectCard('translation', entry.id)}
+                  onDownload={() => handleDownload(entry.id)}
+                  onCancel={() => cancelDownload(entry.id)}
+                  onDelete={() => deleteModel(entry.id)}
+                  onImport={() => setImportFor(entry)}
+                />
+                {statuses[entry.id] === 'downloaded' && deviceReady(entry, webgpuAvailable) && (
+                  <div className="model-card__available-when-lang">
+                    {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
+                      lang: entry.languages.map((l) => languageNameFor(l)).join(', '),
+                    })}
+                  </div>
+                )}
+              </React.Fragment>
             ))}
           </>
         )}
@@ -870,80 +870,84 @@ export function ModelManagementSection({
 
   // ── TTS Section ───────────────────────────────────────────────────────
 
+  // Voice control embedded in the selected TTS card only. The card's
+  // `isSelected && children` gate is the real guard; the id check just
+  // avoids building the body for non-selected cards. The section edits
+  // forward-shared fields (edgeTtsVoice, ttsSpeakerId), so a non-forward
+  // Library render offers no voice editing at all — today's engine page
+  // exposes no reverse TTS slot, but that must stay structural, not
+  // incidental (CodeRabbit R3, follows the 2026-08-23 freeze fix).
+  const renderTtsCardBody = (entry: ModelManifestEntry) => entry.id === selectedTts && ownsVoiceSettings ? (
+    <>
+      <LocalInferenceVoiceSection
+        ttsModel={entry.id}
+        isSessionActive={isSessionActive}
+        edgeVoices={edgeVoices}
+        edgeVoiceStatus={edgeTtsVoiceStatus}
+        edgeTtsVoice={settings.edgeTtsVoice}
+        supertonicVoices={supertonicVoiceEntries}
+        supertonicSelectedId={supertonicSelectedId}
+        onImportVoice={handleImportVoice}
+        onRenameVoice={handleRenameVoice}
+        onDeleteVoice={handleDeleteVoice}
+        ttsSpeakerId={settings.ttsSpeakerId}
+        numSpeakers={supertonicTtsEntry?.numSpeakers ?? getManifestEntry(entry.id)?.numSpeakers ?? 1}
+        onUpdate={(patch) => updateLocalInference(patch)}
+      />
+      {isSupertonicTts && (
+        <>
+          <div className="voice-library-info">
+            {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
+            <a
+              href="https://supertonic.supertone.ai/voice-builder"
+              onClick={(e) => {
+                e.preventDefault();
+                const url = 'https://supertonic.supertone.ai/voice-builder';
+                if (isElectron() && (window as any).electron?.invoke) {
+                  (window as any).electron.invoke('open-external', url);
+                } else {
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }
+              }}
+            >
+              {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
+              <ExternalLink size={14} />
+            </a>
+            <div className="voice-library-info-sub">
+              {t(
+                'voiceLibrary.voiceBuilderDisclaimer',
+                'Paid Supertone service. Sokuji is not involved in that transaction.',
+              )}
+            </div>
+          </div>
+          {importError && (
+            <div className="setting-item error">
+              {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
+            </div>
+          )}
+          {hasPendingChanges && (
+            <div className="setting-item info">
+              {t('voiceLibrary.restartHint', 'Restart the session to apply imported voice changes.')}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  ) : null;
+
   const renderTtsGroup = () => {
     return (
       <ModelGroup
         id="model-tts"
         title={t('models.ttsModels', 'TTS (Text-to-Speech)')}
+        bare={!!stageFilter}
       >
         {compatibleTtsModels.length > 0 ? (
           renderSubGroups(
             compatibleTtsModels,
-            ttsModel,
-            (id) => {
-              updateLocalInference({ ttsModel: id });
-              useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, translationModel, id);
-            },
-            // Voice control embedded in the selected TTS card only. The card's
-            // `isSelected && children` gate is the real guard; the id check just
-            // avoids building the body for non-selected cards.
-            (entry) => entry.id === ttsModel ? (
-              <>
-                <LocalInferenceVoiceSection
-                  ttsModel={ttsModel}
-                  isSessionActive={isSessionActive}
-                  edgeVoices={edgeVoices}
-                  edgeVoiceStatus={edgeTtsVoiceStatus}
-                  edgeTtsVoice={settings.edgeTtsVoice}
-                  supertonicVoices={supertonicVoiceEntries}
-                  supertonicSelectedId={supertonicSelectedId}
-                  onImportVoice={handleImportVoice}
-                  onRenameVoice={handleRenameVoice}
-                  onDeleteVoice={handleDeleteVoice}
-                  ttsSpeakerId={settings.ttsSpeakerId}
-                  numSpeakers={supertonicTtsEntry?.numSpeakers ?? getManifestEntry(ttsModel)?.numSpeakers ?? 1}
-                  onUpdate={(patch) => updateLocalInference(patch)}
-                />
-                {isSupertonicTts && (
-                  <>
-                    <div className="voice-library-info">
-                      {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
-                      <a
-                        href="https://supertonic.supertone.ai/voice-builder"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          const url = 'https://supertonic.supertone.ai/voice-builder';
-                          if (isElectron() && (window as any).electron?.invoke) {
-                            (window as any).electron.invoke('open-external', url);
-                          } else {
-                            window.open(url, '_blank', 'noopener,noreferrer');
-                          }
-                        }}
-                      >
-                        {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
-                        <ExternalLink size={14} />
-                      </a>
-                      <div className="voice-library-info-sub">
-                        {t(
-                          'voiceLibrary.voiceBuilderDisclaimer',
-                          'Paid Supertone service. Sokuji is not involved in that transaction.',
-                        )}
-                      </div>
-                    </div>
-                    {importError && (
-                      <div className="setting-item error">
-                        {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
-                      </div>
-                    )}
-                    {hasPendingChanges && (
-                      <div className="setting-item info">
-                        {t('voiceLibrary.restartHint', 'Restart the session to apply imported voice changes.')}
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            ) : null,
+            selectedTts,
+            (id) => selectCard('tts', id),
+            renderTtsCardBody,
           )
         ) : (
           <div className="model-card__no-model-warning">
@@ -967,24 +971,29 @@ export function ModelManagementSection({
               }
             </button>
             {showAllTts && incompatibleTtsModels.map(entry => (
-              <ModelCard
-                key={entry.id}
-                entry={entry}
-                status={statuses[entry.id] || 'not_downloaded'}
-                download={downloads[entry.id]}
-                isSessionActive={isSessionActive}
-                isSelected={ttsModel === entry.id}
-                isCompatible={false}
-                compatibilityHint={t('settings.langMismatch', 'language mismatch')}
-                onSelect={() => {
-                  updateLocalInference({ ttsModel: entry.id });
-                  useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, translationModel, entry.id);
-                }}
-                onDownload={() => handleDownload(entry.id)}
-                onCancel={() => cancelDownload(entry.id)}
-                onDelete={() => deleteModel(entry.id)}
-                onImport={() => setImportFor(entry)}
-              />
+              <React.Fragment key={entry.id}>
+                <ModelCard
+                  entry={entry}
+                  status={statuses[entry.id] || 'not_downloaded'}
+                  download={downloads[entry.id]}
+                  isSessionActive={isSessionActive}
+                  isSelected={selectedTts === entry.id}
+                  isCompatible={false}
+                  compatibilityHint={t('settings.langMismatch', 'language mismatch')}
+                  onSelect={() => selectCard('tts', entry.id)}
+                  onDownload={() => handleDownload(entry.id)}
+                  onCancel={() => cancelDownload(entry.id)}
+                  onDelete={() => deleteModel(entry.id)}
+                  onImport={() => setImportFor(entry)}
+                />
+                {statuses[entry.id] === 'downloaded' && deviceReady(entry, webgpuAvailable) && (
+                  <div className="model-card__available-when-lang">
+                    {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
+                      lang: entry.languages.map((l) => languageNameFor(l)).join(', '),
+                    })}
+                  </div>
+                )}
+              </React.Fragment>
             ))}
           </>
         )}
@@ -995,21 +1004,31 @@ export function ModelManagementSection({
   // ── Render ────────────────────────────────────────────────────────────
 
   return (
-    <div id="model-management-section" className="settings-section model-management-section">
-      <h2>{t('models.management', 'Models')}</h2>
+    // The Library push (stageFilter set) already lives inside EngineSurface's
+    // own .config-section shell + h3 header (Finding 3) — dropping
+    // .settings-section and the <h2> here avoids a second, nested section
+    // frame with a redundant title. The standalone (prop-less) render keeps
+    // both: it's the whole standalone Settings page for this section.
+    <div id="model-management-section" className={stageFilter ? 'model-management-section' : 'settings-section model-management-section'}>
+      {!stageFilter && <h2>{t('models.management', 'Models')}</h2>}
 
       <GpuAccelerationNotice />
 
-      {renderAsrGroup()}
-      {renderTranslationGroup()}
-      {renderTtsGroup()}
+      {(!stageFilter || stageFilter === 'asr') && renderAsrGroup()}
+      {(!stageFilter || stageFilter === 'translation') && renderTranslationGroup()}
+      {(!stageFilter || stageFilter === 'tts') && renderTtsGroup()}
 
-      <ModelStorageFooter
-        usedMb={storageUsedMb}
-        hasModels={storageUsedMb > 0}
-        onClearAll={deleteAllModels}
-        disabled={isSessionActive}
-      />
+      {/* Storage owns Clear-all now (StoragePage) — this duplicate footer only
+          belongs on the standalone (prop-less stageFilter) render; the Library
+          push is already scoped to one stage and its gating differs. */}
+      {!stageFilter && (
+        <ModelStorageFooter
+          usedMb={storageUsedMb}
+          hasModels={storageUsedMb > 0}
+          onClearAll={deleteAllModels}
+          disabled={isSessionActive}
+        />
+      )}
 
       {importFor && (
         <ModelImportModal

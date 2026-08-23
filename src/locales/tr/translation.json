@@ -110,7 +110,6 @@
     "helpEmailTooltip": "Hataları bildirin veya yardım alın",
     "helpDiscussions": "Tartışmalar",
     "helpDiscussionsTooltip": "Özellik istekleri, geri bildirim ve topluluk tartışmaları",
-    "participantModelHint": "Karşı tarafın modellerini değiştirmek için {{source}} → {{target}} diline geçin",
     "auto": "Otomatik",
     "low": "Düşük",
     "medium": "Orta",
@@ -184,10 +183,14 @@
     "sensitivityLow": "Düşük",
     "localInferenceModelsRequired": "Lütfen önce <settingsLink>Ayarlar</settingsLink>'dan gerekli modelleri indirin. Başlamak için Konuşma tanıma (ASR), Çeviri ve Konuşma sentezi (TTS) modellerini indirmeniz gerekiyor.",
     "missingModelsWarning": "Bu dil çifti için {{types}} modeli eksik.",
+    "resolutionNotesSummary": "Seçtiğiniz modellerden {{count}} tanesi kullanılamıyor — otomatik yedekler kullanılıyor.",
+    "resolutionNotesNamed": "{{names}} kullanılamıyor — otomatik yedekler kullanılıyor.",
+    "resolutionNotesNamedMore": "{{names}} ve {{count}} tane daha kullanılamıyor — otomatik yedekler kullanılıyor.",
+    "resolutionNotesUseAuto": "Otomatik'e geç",
+    "resolutionNotesReview": "İncele",
     "downloadModelType": "{{type}} indir",
     "modelTypeAsr": "Konuşma tanıma (ASR)",
     "modelTypeTranslation": "Çeviri",
-    "modelTypeTts": "Konuşma sentezi (TTS)",
     "edgeTtsVoice": "Ses",
     "loadingVoices": "Sesler yükleniyor...",
     "reasoningEffort": "Akıl yürütme düzeyi",
@@ -268,7 +271,14 @@
     "sonioxVoicePreviewQuotaError": "Önizleme başarısız oldu — Soniox hız sınırına veya kotasına ulaşıldı",
     "sonioxVoicePreviewTimeout": "Önizleme zaman aşımına uğradı — tekrar deneyin",
     "sonioxRegion": "Bölge",
-    "sonioxRegionTooltip": "Soniox her bölge için ayrı bir dağıtım çalıştırır ve her birinin kendi API anahtarı vardır. Sesiniz seçtiğiniz bölgede işlenir ve saklanır. Bir sonraki oturumdan itibaren geçerlidir."
+    "sonioxRegionTooltip": "Soniox her bölge için ayrı bir dağıtım çalıştırır ve her birinin kendi API anahtarı vardır. Sesiniz seçtiğiniz bölgede işlenir ve saklanır. Bir sonraki oturumdan itibaren geçerlidir.",
+    "langSentence": {
+      "iSpeak": "Ben konuşuyorum",
+      "iRead": "Ben okuyorum",
+      "theyHear": "onlar duyuyor",
+      "theySpeak": "onlar konuşuyor",
+      "mirror": "Onlar {{their}} konuşuyor → ben {{mine}} okuyorum"
+    }
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
@@ -479,8 +489,7 @@
       "description": "Ücretsiz konuşma tanıma (ASR) + Çeviri + konuşma sentezi (TTS)",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS",
-      "participant": "Karşı taraf"
+      "modelTts": "TTS"
     },
     "local_native": {
       "name": "Ücretsiz (Native)",
@@ -831,8 +840,9 @@
     "importNow": "{{count}} tanesini şimdi içe aktar",
     "management": "Modeller",
     "storageUsed": "Depolama: {{size}} MB kullanıldı",
+    "storageEmpty": "Henüz indirilen model yok.",
     "asrModels": "Konuşma tanıma (ASR)",
-    "translationModels": "Çeviri",
+    "translationModels": "Çeviri (MT)",
     "ttsModels": "Konuşma sentezi (TTS)",
     "autoSelected": "Otomatik seçildi",
     "download": "İndir",
@@ -892,6 +902,20 @@
       "cancel": "İptal",
       "accept": "Anladım — yalnızca ticari olmayan kullanım"
     }
+  },
+  "notes": {
+    "stageAsr": "konuşma tanıma",
+    "stageTranslation": "çeviri",
+    "stageTts": "ses çıkışı",
+    "notDownloaded": "{{from}} indirilmemiş. Kullanmak için tekrar indirin.",
+    "notDownloadedWithSub": "{{from}} indirilmemiş — bunun yerine {{to}} kullanılıyor. Kullanmak için tekrar indirin.",
+    "langIncompatible": "{{from}} bu yönü desteklemiyor. Yön değiştiğinde tekrar kullanılabilir.",
+    "langIncompatibleWithSub": "{{from}} bu yönü desteklemiyor — bunun yerine {{to}} kullanılıyor. Yön değiştiğinde tekrar kullanılabilir.",
+    "hardwareGated": "{{from}} bu cihazda çalışamaz.",
+    "hardwareGatedWithSub": "{{from}} bu cihazda çalışamaz — bunun yerine {{to}} kullanılıyor.",
+    "needsKey": "{{from}} kullanmak için oturum açmış bir hesap gerekir.",
+    "notInCatalog": "{{from}} bu sürümde artık kullanılamıyor.",
+    "noCandidate": "Bu yön için kullanılabilir {{stage}} modeli yok."
   },
   "update": {
     "available": "Yeni sürüm v{{version}} mevcut",
@@ -1018,5 +1042,25 @@
     "actionPickApp": "Karşı tarafın ses kaynağı olarak sistem sesi yerine toplantı uygulamasını seçin.",
     "actionChangeInput": "Giriş aygıtı olarak fiziksel bir mikrofon seçin.",
     "dismiss": "Kapat"
+  },
+  "engineUi": {
+    "autoValue": "Otomatik · {{name}}",
+    "autoOptionNone": "Otomatik",
+    "browseLibrary": "Kitaplığa göz at",
+    "storageUsedLine": "Depolama: {{summary}} kullanılıyor",
+    "manageStorage": "Yönet",
+    "back": "Geri",
+    "titleLibrary": "Kitaplık · {{stage}}",
+    "titleStorage": "Depolama",
+    "speakerHeading": "{{src}} → {{tgt}}",
+    "inUse": "Kullanımda",
+    "estimated": "Tahmini",
+    "translationOnCpu": "CPU'da çeviri — yeterli VRAM yok",
+    "availableWhenLang": "İndirildi. Diliniz {{lang}} olduğunda kullanılabilir.",
+    "deleteConfirm": "{{name}} silinsin mi?",
+    "deleteFallsBack": "{{name}} siliniyor: {{stage}} için {{to}} kullanılacak.",
+    "deleteNoModel": "{{name}} siliniyor: {{stage}} için model kalmadı — oturumlar başlatılamaz.",
+    "clearAllKeepsPicks": "Seçimleriniz hatırlanır ve modeller tekrar indirildiğinde geri döner.",
+    "importChooseModel": "İçe aktarılacak modeli seçin"
   }
 }

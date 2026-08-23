@@ -27,7 +27,9 @@ import {
   useUpdateZoomAI,
   useUpdateSoniox,
   useNavigateToSettings,
-  useSetUIMode,
+  useUIMode,
+  useSetEngineSlotTarget,
+  useValidateApiKey,
   useTextOnly,
   useSetTextOnly,
   useKeepReplayAudio,
@@ -43,8 +45,11 @@ import { useLockedMode } from '../../../stores/sessionStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
-import { getTranslationTargetLanguages, getManifestByType, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
-import { useModelStatuses, useModelInitialized } from '../../../stores/modelStore';
+import { getTranslationTargetLanguages, getManifestEntry } from '../../../lib/local-inference/modelManifest';
+import { shortenModelName } from '../../../lib/local-inference/modelName';
+import { useModelStatuses, useModelInitialized, useLastResolutionNotes, useModelStore } from '../../../stores/modelStore';
+import { useNativeLastResolutionNotes, useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
+import { directionKey, emptyDirection, type Stage, type Selections, type ResolutionNote } from '../../../lib/local-inference/selection/types';
 
 interface LanguageSectionProps {
   isSessionActive: boolean;
@@ -87,7 +92,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const modelStatuses = useModelStatuses();
   const modelInitialized = useModelInitialized();
   const navigateToSettings = useNavigateToSettings();
-  const setUIMode = useSetUIMode();
+  const uiMode = useUIMode();
+  const setEngineSlotTarget = useSetEngineSlotTarget();
+  const validateApiKey = useValidateApiKey();
 
   const textOnly = useTextOnly();
   const setTextOnly = useSetTextOnly();
@@ -452,36 +459,156 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   const interfaceLanguages = simplifiedInterfaceList ? simplifiedLanguages : fullLanguages;
 
-  // Check which model types are missing for current LOCAL_INFERENCE language pair
-  const missingModelTypes = useMemo(() => {
-    if (provider !== Provider.LOCAL_INFERENCE || !modelInitialized) return [];
-    const missing: { label: string; navTarget: string }[] = [];
-    const src = localInferenceSettings.sourceLanguage;
-    const tgt = localInferenceSettings.targetLanguage;
-
-    // Check ASR models (offline + streaming)
-    const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-    const hasAsr = allAsr.some(m =>
-      (m.multilingual || m.languages.includes(src)) && modelStatuses[m.id] === 'downloaded'
-    );
-    if (!hasAsr) missing.push({ label: t('settings.modelTypeAsr', 'ASR'), navTarget: 'model-asr' });
-
-    // Check Translation models
-    const allTrans = getManifestByType('translation');
-    const hasTrans = allTrans.some(m =>
-      isTranslationModelCompatible(m, src, tgt) && modelStatuses[m.id] === 'downloaded'
-    );
-    if (!hasTrans) missing.push({ label: t('settings.modelTypeTranslation', 'Translation'), navTarget: 'model-translation' });
-
-    // Check TTS models
-    const allTts = getManifestByType('tts');
-    const hasTts = allTts.some(m =>
-      (m.multilingual || m.languages.includes(tgt)) && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
-    );
-    if (!hasTts) missing.push({ label: t('settings.modelTypeTts', 'TTS'), navTarget: 'model-tts' });
-
+  // The ONE blocking warning (2026-08-23 warning-dedup decision): which
+  // mandatory stages have NO candidate at all for the current speaker pair.
+  // Reads the resolver - the single source of truth since the selection
+  // redesign - instead of a parallel hand-rolled manifest scan, and follows
+  // the session gate's own scope: speaker ASR + translation block a session,
+  // TTS never does (subtitles/Edge TTS cover it), so TTS is never "missing".
+  const resolveWasm = useModelStore.getState().resolve;
+  const resolveNative = useNativeModelStore((state) => state.resolve);
+  const nativeStatuses = useNativeModelStore((state) => state.statuses);
+  const nativeCatalog = useNativeCatalog();
+  const missingStages = useMemo(() => {
+    if (provider === Provider.LOCAL_INFERENCE) {
+      if (!modelInitialized) return [];
+    } else if (provider === Provider.LOCAL_NATIVE) {
+      // No catalog yet = sidecar not up; EngineSection's gate narrates that
+      // state, and "everything is missing" on top of it would be noise.
+      if (Object.keys(nativeCatalog).length === 0) return [];
+    } else {
+      return [];
+    }
+    const settings = provider === Provider.LOCAL_INFERENCE ? localInferenceSettings : localNativeSettings;
+    const resolve = provider === Provider.LOCAL_INFERENCE ? resolveWasm : resolveNative;
+    // Mode-scoped legs (2026-08-23): speaker checks the forward leg,
+    // participant the reverse, both checks both — the same table the
+    // mode-aware session gate implements (ensureSelectionReady), so this
+    // warning can never disagree with what Start will do.
+    const effectiveMode = lockedMode ?? mode;
+    const fwd = { src: settings.sourceLanguage, tgt: settings.targetLanguage };
+    const rev = { src: settings.targetLanguage, tgt: settings.sourceLanguage };
+    const legs = effectiveMode === 'both' ? [fwd, rev] : effectiveMode === 'participant' ? [rev] : [fwd];
+    const missing: { stage: Stage; dir: string; label: string }[] = [];
+    for (const leg of legs) {
+      const result = resolve(leg.src, leg.tgt, settings.selections);
+      const dir = directionKey(leg.src, leg.tgt);
+      // Dedupe by stage across legs (both mode): one link per stage, aimed
+      // at the FIRST leg missing it.
+      if (!result.asr && !missing.some((m) => m.stage === 'asr')) {
+        missing.push({ stage: 'asr', dir, label: t('settings.modelTypeAsr', 'ASR') });
+      }
+      if (!result.translation && !missing.some((m) => m.stage === 'translation')) {
+        missing.push({ stage: 'translation', dir, label: t('settings.modelTypeTranslation', 'Translation') });
+      }
+    }
     return missing;
-  }, [provider, modelInitialized, modelStatuses, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, t]);
+  }, [
+    provider, modelInitialized, resolveWasm, resolveNative, nativeCatalog, t,
+    localInferenceSettings, localNativeSettings, lockedMode, mode,
+    // resolve() reads candidate pools from its own store; these two make the
+    // memo recompute when a download/delete changes what is resolvable.
+    modelStatuses, nativeStatuses,
+  ]);
+
+  // S0: local providers narrate the language pair as a sentence whose verbs
+  // follow the current audio mode — "I speak → they hear" (speaker/both) or
+  // "I read ← they speak" (participant). The two selectors underneath never
+  // change meaning: first is always my language (sourceLanguage), second is
+  // always their language (targetLanguage) — only the verbs naming them do.
+  // Scoped to LOCAL_INFERENCE/LOCAL_NATIVE only: every other provider's mode
+  // semantics differ, so it keeps today's plain "My Language"/"Other's
+  // Language" labels.
+  const sentenceLabels = provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE;
+  // Effective mode — same `lockedMode ?? mode` idiom as speakerChannelInScopeForUi
+  // above: in-session, the sentence must describe the mode the session actually
+  // locked in, not wherever the (still-interactive but inert) picker sits.
+  const myLanguageLabel = sentenceLabels
+    ? ((lockedMode ?? mode) === 'participant' ? t('settings.langSentence.iRead', 'I read') : t('settings.langSentence.iSpeak', 'I speak'))
+    : t('simpleConfig.yourLanguage');
+  const theirLanguageLabel = sentenceLabels
+    ? ((lockedMode ?? mode) === 'participant' ? t('settings.langSentence.theySpeak', 'they speak') : t('settings.langSentence.theyHear', 'they hear'))
+    : t('simpleConfig.targetLanguage');
+
+  // "Both" mode runs the speaker leg above plus a mirrored participant leg;
+  // the mirror line states that second leg as plain text derived from the
+  // same two fields — never a third pair of controls.
+  const sourceLanguageName = providerConfig.languages.find(l => l.value === currentProviderSettings.sourceLanguage)?.name
+    ?? currentProviderSettings.sourceLanguage;
+  const targetLanguageName = targetLanguages.find(l => l.value === currentProviderSettings.targetLanguage)?.name
+    ?? currentProviderSettings.targetLanguage;
+
+  // S0: surface the last resolution notes (auto-substitutions/fallbacks made
+  // while picking models for this language pair) right where the pair itself
+  // is edited. WASM and native track their own resolvers/catalogs, so both
+  // notes and the id→display-name lookup are selected per provider.
+  const wasmNotes = useLastResolutionNotes();
+  const nativeNotes = useNativeLastResolutionNotes();
+  const notes =
+    provider === Provider.LOCAL_INFERENCE ? wasmNotes
+    : provider === Provider.LOCAL_NATIVE ? nativeNotes
+    : [];
+  // no-candidate notes are the BLOCKING condition and belong to the
+  // missing-models warning below; everything else is an automatic fallback
+  // the session survives, summarized in one line (2026-08-23 dedup decision).
+  // Scoped to the directions the current mode actually shows on the engine
+  // page — a note about a hidden leg would deep-link to a slot that is not
+  // rendered, and the leg becomes relevant exactly when the mode does.
+  const visibleDirs = (() => {
+    const st = provider === Provider.LOCAL_NATIVE ? localNativeSettings : localInferenceSettings;
+    const effectiveMode = lockedMode ?? mode;
+    const fwdKey = directionKey(st.sourceLanguage, st.targetLanguage);
+    const revKey = directionKey(st.targetLanguage, st.sourceLanguage);
+    return new Set(effectiveMode === 'both' ? [fwdKey, revKey] : effectiveMode === 'participant' ? [revKey] : [fwdKey]);
+  })();
+  const fallbackNotes = notes.filter(
+    (n: ResolutionNote) => n.reason !== 'no-candidate' && visibleDirs.has(n.direction));
+
+  // Name the picks that failed (deduped: the same deleted model noted in two
+  // directions is one name) — a summary that will not say WHICH models it
+  // means cannot be acted on.
+  const noteName = (id: string): string => {
+    if (provider === Provider.LOCAL_NATIVE) {
+      return nativeCatalog[id] ? shortenModelName(nativeCatalog[id].name) : id;
+    }
+    const entry = getManifestEntry(id);
+    return entry ? shortenModelName(entry.name, entry.shortName) : id;
+  };
+  const staleIds: string[] = [];
+  for (const n of fallbackNotes) {
+    if (n.from && !staleIds.includes(n.from)) staleIds.push(n.from);
+  }
+  const staleNames = staleIds.map(noteName);
+
+  // "Switch to Auto": accept the current fallbacks by writing an EXPLICIT
+  // auto ('') into every noted slot — a user-initiated write, so it does not
+  // violate the never-write-back-auto rule; the cost is honest too (the old
+  // pick will not return on re-download, which is what this click means).
+  // ensureSelectionReady() then re-resolves so the summary clears at once.
+  const switchNotesToAuto = async () => {
+    const settings = provider === Provider.LOCAL_NATIVE ? localNativeSettings : localInferenceSettings;
+    const next: Selections = { ...settings.selections };
+    for (const n of fallbackNotes) {
+      next[n.direction] = { ...(next[n.direction] ?? emptyDirection()), [n.stage]: { modelId: '' } };
+    }
+    if (provider === Provider.LOCAL_NATIVE) {
+      await updateLocalNativeSettings({ selections: next });
+    } else {
+      await updateLocalInferenceSettings({ selections: next });
+    }
+    // Re-runs ensureSelectionReady through the provider's own validation
+    // wrapper (native's read-thunk included) so lastResolutionNotes — and
+    // with it this summary — refreshes immediately.
+    await validateApiKey();
+  };
+
+  // Deep-link into the engine surface, same contract as ProviderSection's
+  // chips: a FRESH slot object arms the one-shot signal; simple mode's host
+  // reacts to the signal itself, advanced mode also switches to the tab.
+  const openEngineSlot = (dir: string, stage: Stage) => {
+    setEngineSlotTarget({ dir, stage });
+    if (uiMode !== 'basic') navigateToSettings('provider');
+  };
 
   return (
     <>
@@ -540,7 +667,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
           <div className="language-pair-row">
             <div className="language-select-group">
-              <label>{t('simpleConfig.yourLanguage')}</label>
+              <label>{myLanguageLabel}</label>
               <select
                 value={currentProviderSettings.sourceLanguage || 'auto'}
                 onChange={(e) => updateSourceLanguage(e.target.value)}
@@ -577,7 +704,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
 
             <div className="language-select-group">
-              <label>{t('simpleConfig.targetLanguage')}</label>
+              <label>{theirLanguageLabel}</label>
               <select
                 value={currentProviderSettings.targetLanguage || 'en'}
                 onChange={(e) => updateTargetLanguage(e.target.value)}
@@ -592,6 +719,48 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               </select>
             </div>
           </div>
+
+          {sentenceLabels && (lockedMode ?? mode) === 'both' && (
+            <div className="language-mirror-line" data-testid="language-mirror-line">
+              {t('settings.langSentence.mirror', 'They speak {{their}} → I read {{mine}}', {
+                their: targetLanguageName,
+                mine: sourceLanguageName,
+              })}
+            </div>
+          )}
+
+          {fallbackNotes.length > 0 && (
+            <div className="language-resolution-notes" data-testid="language-resolution-notes">
+              <div className="language-warning">
+                <AlertTriangle size={12} />
+                <span>
+                  {staleNames.length === 0
+                    ? t('settings.resolutionNotesSummary', '{{count}} of your selected models are unavailable — automatic fallbacks are in use.', { count: fallbackNotes.length })
+                    : staleNames.length > 2
+                      ? t('settings.resolutionNotesNamedMore', '{{names}} and {{count}} more unavailable — automatic fallbacks are in use.', { names: staleNames.slice(0, 2).join(', '), count: staleNames.length - 2 })
+                      : t('settings.resolutionNotesNamed', '{{names}} unavailable — automatic fallbacks are in use.', { names: staleNames.join(', ') })}
+                  {' '}
+                  <button
+                    type="button"
+                    className="language-model-warning__link"
+                    data-testid="resolution-notes-review"
+                    onClick={() => openEngineSlot(fallbackNotes[0].direction, fallbackNotes[0].stage)}
+                  >
+                    {t('settings.resolutionNotesReview', 'Review')}
+                  </button>
+                  {' · '}
+                  <button
+                    type="button"
+                    className="language-model-warning__link"
+                    data-testid="resolution-notes-use-auto"
+                    onClick={switchNotesToAuto}
+                  >
+                    {t('settings.resolutionNotesUseAuto', 'Switch to Auto')}
+                  </button>
+                </span>
+              </div>
+            </div>
+          )}
 
           {showTranslateParticipantWarning && (
             <div className="language-warning">
@@ -654,24 +823,22 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             tooltip={t('simpleConfig.keepReplayAudioDesc', 'Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions.')}
           />
 
-          {provider === Provider.LOCAL_INFERENCE && missingModelTypes.length > 0 && (
+          {missingStages.length > 0 && (
             <div className="language-model-warning">
               <AlertTriangle size={14} />
               <span>
-                {t('settings.missingModelsWarning', 'Missing {{types}} model(s) for this language pair.', { types: missingModelTypes.map(m => m.label).join(', ') })}
+                {t('settings.missingModelsWarning', 'Missing {{types}} model(s) for this language pair.', { types: missingStages.map(m => m.label).join(', ') })}
                 {' '}
-                {missingModelTypes.map((m, i) => (
-                  <span key={m.navTarget}>
+                {missingStages.map((m, i) => (
+                  <span key={m.stage}>
                     {i > 0 && ', '}
-                    <a
+                    <button
+                      type="button"
                       className="language-model-warning__link"
-                      onClick={() => {
-                        setUIMode('advanced');
-                        setTimeout(() => navigateToSettings(m.navTarget), 100);
-                      }}
+                      onClick={() => openEngineSlot(m.dir, m.stage)}
                     >
                       {t('settings.downloadModelType', 'Download {{type}}', { type: m.label })}
-                    </a>
+                    </button>
                   </span>
                 ))}
               </span>

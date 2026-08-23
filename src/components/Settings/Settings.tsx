@@ -39,6 +39,12 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'speaker': 'audio',
   'system-audio': 'audio',
   'participant': 'audio',
+  // Engine chips (Task 10) deep-link here to switch to the provider tab
+  // without forcing Advanced mode — see ProviderSection's openSlot handler.
+  // The target IS 'provider' (not a separate 'provider-section' key): the
+  // scroll/highlight lookup below builds `${target}-section` as the DOM id,
+  // and ProviderSection's root carries id="provider-section" — so 'provider'
+  // is the only target string that resolves to a real element.
   'provider': 'provider',
   'system-instructions': 'provider',
   'voice-settings': 'provider',
@@ -76,6 +82,18 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
     const targetTab = NAVIGATION_TAB_MAP[settingsNavigationTarget];
     if (targetTab && targetTab !== activeTab) {
       setActiveTab(targetTab);
+    }
+    // 'provider' is special (Finding 4): it's the engine chips' deep-link
+    // target (see ProviderSection's openSlot), and the section this would
+    // scroll/highlight is id="provider-section" — the WHOLE ProviderSection,
+    // not the slot the chip actually opened. That flash now belongs to
+    // EngineSurface's own expanded SlotRow (its one-shot `flashSlot` prop)
+    // instead. Switch tabs only, and clear the one-shot target immediately
+    // so it can't linger and hijack a later navigation that DOES want the
+    // scroll/highlight.
+    if (settingsNavigationTarget === 'provider') {
+      navigateToSettings(null);
+      return;
     }
     // Wait for the tab switch + DOM update before scrolling. Cancel the
     // pending scroll on cleanup so flipping modes mid-navigation doesn't

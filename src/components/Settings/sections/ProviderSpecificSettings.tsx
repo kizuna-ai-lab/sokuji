@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { supportsTranscriptionContext } from '../../../services/providers/openaiTranscriptionContext';
@@ -26,6 +26,8 @@ import {
   useLocalInferenceSettings,
   useLocalNativeSettings,
   useUpdateLocalNative,
+  useEngineSlotTarget,
+  useSetEngineSlotTarget,
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
   useSetUseTemplateMode,
@@ -49,7 +51,6 @@ import {
   useLocalParticipantSystemPrompt,
   useLocalUseTemplateMode,
   useGetProcessedLocalPrompt,
-  resolveTranslationWorkerType,
   resolveTranslationWorkerTypeForModelId,
 } from '../../../stores/settingsStore';
 import type { OpenAICompatibleSettingsBase } from '../../../stores/settingsStore';
@@ -60,17 +61,21 @@ import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible, kizunaBaseProvider, isKizunaManagedProvider } from '../../../types/Provider';
 import { sonioxUsesSharedBothSession } from '../../../services/providers/SonioxProviderConfig';
-import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
+import { getManifestEntry } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
 import { useMode } from '../../../stores/audioStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
-import { EngineSection } from './EngineSection';
+import { EngineSurface } from '../engine/EngineSurface';
+import { useWasmEngineAdapter } from '../engine/useWasmEngineAdapter';
+import { useNativeEngineAdapter } from '../engine/useNativeEngineAdapter';
+import { StoragePage } from '../engine/StoragePage';
+import type { SlotId } from '../engine/EngineTypes';
 import SonioxVoiceSection from './SonioxVoiceSection';
 import { byokVoiceSource, managedVoiceSource, type VoiceLibrarySource } from './voiceLibrarySource';
 import { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
-import { useSessionIsInitializing } from '../../../stores/sessionStore';
+import { useSessionIsInitializing, useLockedMode } from '../../../stores/sessionStore';
 import {
   SONIOX_REGIONS, SONIOX_REGION_LABELS, asSonioxRegion,
 } from '../../../lib/soniox/regions';
@@ -78,7 +83,7 @@ import { sonioxKeyField, sonioxVoiceField } from '../../../services/providers/So
 import { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
 import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
-import { useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
+import { useNativeCatalog } from '../../../stores/nativeModelStore';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
 
@@ -129,6 +134,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const zoomAISettings = useZoomAISettings();
   const sonioxSettings = useSonioxSettings();
   const mode = useMode();
+  const lockedMode = useLockedMode();
   const kizunaOpenaiTranslateSettings = useKizunaOpenaiTranslateSettings();
   const kizunaVolcengineAst2Settings = useKizunaVolcengineAst2Settings();
   const kizunaSonioxSettings = useKizunaSonioxSettings();
@@ -137,11 +143,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateLocalNativeSettings = useUpdateLocalNative();
   const nativeCatalog = useNativeCatalog();
   const modelStatuses = useModelStatuses();
-  // Engine gate (spec S10): the native model list only renders once the engine
-  // is usable (installed bundle at the right version, or a dev venv checkout).
-  const engineBundleStatus = useNativeModelStore((s) => s.bundleStatus);
-  const engineDevVenv = useNativeModelStore((s) => s.bundleDevVenv);
-  const engineUsable = engineBundleStatus === 'ready' || engineDevVenv;
 
   // Actions from store
   const setSystemInstructions = useSetSystemInstructions();
@@ -293,90 +294,67 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       : null;
   }, [provider, sonioxApiKeyForRegion, sonioxRegion, userId]);
 
-  // Auto-select compatible models when LOCAL_INFERENCE languages change
+  // Live, resolved view of the speaker (src→tgt) direction — selections is the
+  // only source now, so every reader (worker-type detection, the VAD-support
+  // ASR check below) calls resolve() itself instead of reading a flat field
+  // corrections used to keep in sync.
+  const speakerResolved = useMemo(() => useModelStore.getState().resolve(
+    localInferenceSettings.sourceLanguage,
+    localInferenceSettings.targetLanguage,
+    localInferenceSettings.selections,
+  ), [
+    localInferenceSettings.sourceLanguage,
+    localInferenceSettings.targetLanguage,
+    localInferenceSettings.selections,
+    modelStatuses,
+  ]);
+  const selectedAsr = speakerResolved.asr?.modelId ?? '';
+
+  // LOCAL_INFERENCE's EngineAdapter — hoisted above the return (hooks must
+  // run unconditionally) even though it's only rendered in the
+  // LOCAL_INFERENCE branch below.
+  const wasmAdapter = useWasmEngineAdapter(isSessionActive);
+  // LOCAL_NATIVE's EngineAdapter — same reason, hoisted for the LOCAL_NATIVE
+  // branch below.
+  const nativeAdapter = useNativeEngineAdapter(isSessionActive);
+
+  // One-shot deep-link into the engine surface, fired by an engine chip
+  // (Task 10). Consumed on the render where it's seen: a local provider
+  // opens that slot, and the signal is cleared immediately so it can't be
+  // picked up again by a later switch to a local provider — mirrors
+  // SimpleSettings' consumption of the same signal.
+  const engineSlotTarget = useEngineSlotTarget();
+  const setEngineSlotTarget = useSetEngineSlotTarget();
+  const [engineInitialSlot, setEngineInitialSlot] = useState<SlotId | null>(null);
   useEffect(() => {
-    if (provider !== Provider.LOCAL_INFERENCE) return;
-
-    const sourceLang = localInferenceSettings.sourceLanguage;
-    const targetLang = localInferenceSettings.targetLanguage;
-    const updates: Record<string, any> = {};
-
-    // Auto-select ASR model (includes streaming models)
-    const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-    const currentAsr = allAsr.find(m => m.id === localInferenceSettings.asrModel);
-    if (!currentAsr || !(currentAsr.multilingual || currentAsr.languages.includes(sourceLang))) {
-      const firstMatch = pickBestModel(allAsr.filter(m =>
-        (m.multilingual || m.languages.includes(sourceLang)) && modelStatuses[m.id] === 'downloaded'
-      ));
-      updates.asrModel = firstMatch?.id || '';
+    if (!engineSlotTarget) return;
+    if (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
+      setEngineInitialSlot(engineSlotTarget);
     }
-
-    // Auto-select TTS model
-    const allTts = getManifestByType('tts');
-    const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
-    if (!currentTtsEntry || (!currentTtsEntry.multilingual && !currentTtsEntry.languages.includes(targetLang))) {
-      const firstMatch = pickBestModel(allTts.filter(m =>
-        (m.multilingual || m.languages.includes(targetLang)) && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
-      ));
-      updates.ttsModel = firstMatch?.id || '';
-      updates.ttsSpeakerId = 0;
-    }
-
-    // Auto-select translation model
-    // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
-    const transModelId = localInferenceSettings.translationModel;
-    const effectiveAsrId = updates.asrModel ?? localInferenceSettings.asrModel;
-    const asrEntryForAst = transModelId && transModelId === effectiveAsrId
-      ? getManifestEntry(transModelId) : null;
-    const isAstValid = asrEntryForAst
-      && isAstCompatible(asrEntryForAst, sourceLang, targetLang)
-      && modelStatuses[transModelId] === 'downloaded';
-
-    if (!isAstValid) {
-      const allTranslation = getManifestByType('translation');
-      const currentTransEntry = allTranslation.find(m => m.id === transModelId);
-      const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, sourceLang, targetLang);
-      if (!isCurrentTransCompatible) {
-        const firstMatch = pickBestModel(allTranslation.filter(m =>
-          isTranslationModelCompatible(m, sourceLang, targetLang) && modelStatuses[m.id] === 'downloaded'
-        ));
-        updates.translationModel = firstMatch?.id || '';
-      }
-    }
-
-    if (Object.keys(updates).length > 0) {
-      updateLocalInferenceSettings(updates);
-    }
-  }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, modelStatuses]);
+    setEngineSlotTarget(null);
+  }, [engineSlotTarget, provider, setEngineSlotTarget]);
 
   // Custom prompt is supported when EITHER the speaker's or the participant's
-  // translation worker is Qwen-family. Participant's worker type is derived via
-  // modelStore.getParticipantModelStatus, which consults modelPreferences recall
-  // for the reversed language pair (so user's prior choice for tgt→src is honored).
-  const speakerWorkerType = useMemo(
-    () => resolveTranslationWorkerType(localInferenceSettings),
-    [localInferenceSettings.translationModel, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage],
-  );
-  // Subscribe via selectors so the memo recomputes when the user changes their
-  // remembered model preferences (e.g. after picking a model for the reversed
-  // language pair via the temporary-swap workflow) or after WebGPU availability
-  // flips.
-  const modelPreferences = useModelStore(s => s.modelPreferences);
+  // translation worker is Qwen-family. The participant direction (tgt→src) is
+  // a peer of the speaker direction, not a reversal of it: its worker type is
+  // derived by resolving its OWN entry in `selections` via modelStore.resolve
+  // — the same resolver the participant session config uses — never by
+  // borrowing the speaker's chosen model.
+  const speakerWorkerType = resolveTranslationWorkerTypeForModelId(speakerResolved.translation?.modelId);
+  // Subscribe via the modelStatuses selector so the memo recomputes once a
+  // participant-direction model finishes downloading.
   const participantWorkerType = useMemo(() => {
-    const status = useModelStore.getState().getParticipantModelStatus(
-      localInferenceSettings.sourceLanguage,
+    const result = useModelStore.getState().resolve(
       localInferenceSettings.targetLanguage,
-      localInferenceSettings.asrModel,
-      localInferenceSettings.translationModel || undefined,
+      localInferenceSettings.sourceLanguage,
+      localInferenceSettings.selections,
     );
-    return resolveTranslationWorkerTypeForModelId(status.translationModelId);
+    return resolveTranslationWorkerTypeForModelId(result.translation?.modelId);
   }, [
     localInferenceSettings.sourceLanguage,
     localInferenceSettings.targetLanguage,
-    localInferenceSettings.asrModel,
-    localInferenceSettings.translationModel,
+    localInferenceSettings.selections,
     modelStatuses,
-    modelPreferences,
   ]);
   const isQwenFamily = (t: string) => t === 'qwen' || t === 'qwen35';
   const localPromptSupported = isQwenFamily(speakerWorkerType) || isQwenFamily(participantWorkerType);
@@ -2144,15 +2122,20 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <>
-        {/* Engine gate first (spec S10), then selection + download cards like LOCAL_INFERENCE. */}
-        <EngineSection isSessionActive={isSessionActive} />
-        {engineUsable ? (
-          <NativeModelManagementSection isSessionActive={isSessionActive} />
-        ) : (
-          <div className="engine-section__models-placeholder">
-            {t('engine.installHint', 'Install the engine to browse and download models')}
-          </div>
-        )}
+        {/* EngineSurface renders the sidecar-bundle gate (spec S10) at the top of
+            its Engine page via the adapter's `gate` — no standalone <EngineSection/>
+            here, or it would render twice. */}
+        <EngineSurface
+          adapter={nativeAdapter}
+          effectiveMode={lockedMode ?? mode}
+          initialSlot={engineInitialSlot}
+          onInitialSlotConsumed={() => setEngineInitialSlot(null)}
+          renderLibrary={(slot) => (
+            <NativeModelManagementSection isSessionActive={isSessionActive}
+              stageFilter={slot.stage} direction={slot.dir} />
+          )}
+          renderStorage={() => <StoragePage provider="native" isSessionActive={isSessionActive} />}
+        />
 
         {ttsActive && (
           <TtsSpeedControl
@@ -2263,7 +2246,17 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <>
-        <ModelManagementSection isSessionActive={isSessionActive} />
+        <EngineSurface
+          adapter={wasmAdapter}
+          effectiveMode={lockedMode ?? mode}
+          initialSlot={engineInitialSlot}
+          onInitialSlotConsumed={() => setEngineInitialSlot(null)}
+          renderLibrary={(slot) => (
+            <ModelManagementSection isSessionActive={isSessionActive}
+              stageFilter={slot.stage} direction={slot.dir} />
+          )}
+          renderStorage={() => <StoragePage provider="wasm" isSessionActive={isSessionActive} />}
+        />
 
         {/* Voice / speaker selection now lives inside the selected TTS card
             (see ModelManagementSection → LocalInferenceVoiceSection). */}
@@ -2297,7 +2290,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         />
 
         {/* Show VAD settings for all models except sherpa-onnx streaming (which uses endpoint detection, not VAD) */}
-        {localInferenceSettings.turnDetectionMode === 'Auto' && !(getManifestEntry(localInferenceSettings.asrModel)?.type === 'asr-stream' && !getManifestEntry(localInferenceSettings.asrModel)?.asrWorkerType) && (
+        {localInferenceSettings.turnDetectionMode === 'Auto' && !(getManifestEntry(selectedAsr)?.type === 'asr-stream' && !getManifestEntry(selectedAsr)?.asrWorkerType) && (
           <VadControl
             values={{
               vadThreshold: localInferenceSettings.vadThreshold,
@@ -2305,7 +2298,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               vadMinSpeechDuration: localInferenceSettings.vadMinSpeechDuration,
               // vad-web workers only — the sherpa-onnx engine has its own hysteresis.
               ...(() => {
-                const workerType = getManifestEntry(localInferenceSettings.asrModel)?.asrWorkerType;
+                const workerType = getManifestEntry(selectedAsr)?.asrWorkerType;
                 return workerType && workerType !== 'sherpa-onnx'
                   ? { vadNegativeThreshold: localInferenceSettings.vadNegativeThreshold ?? 0 }
                   : {};
