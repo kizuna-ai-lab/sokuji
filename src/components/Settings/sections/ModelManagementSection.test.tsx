@@ -357,6 +357,28 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
     expect(voiceWrites).toHaveLength(0);
   });
 
+  it('a reversed-direction TTS Library hides voice editing entirely (CodeRabbit R3)', async () => {
+    // Unreachable via today's engine page (reverse legs expose no TTS slot),
+    // but nothing structural prevented it: the voice section edits
+    // forward-shared fields (edgeTtsVoice, ttsSpeakerId), so a non-forward
+    // render must not offer it at all.
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+
+    render(<ModelManagementSection isSessionActive={false} stageFilter="tts" direction="ja→en" />);
+    await screen.findByTestId('model-card-edge-tts');
+    expect(screen.queryByText('Voice')).not.toBeInTheDocument();
+  });
+
+  it('the forward-direction TTS Library keeps voice editing', async () => {
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+
+    render(<ModelManagementSection isSessionActive={false} stageFilter="tts" direction="en→ja" />);
+    await screen.findByTestId('model-card-edge-tts');
+    expect(await screen.findByText('Voice')).toBeInTheDocument();
+  });
+
   it('the forward render still auto-fixes an invalid voice', async () => {
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';

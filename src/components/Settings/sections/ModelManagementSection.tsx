@@ -637,17 +637,17 @@ export function ModelManagementSection({
   // for any other direction must never write it: its filteredVoices are for
   // the reversed target, so the two writers would ping-pong the field forever,
   // sync-re-rendering the whole app each round (the 2026-08-23 freeze).
-  const ownsEdgeVoice = !direction
+  const ownsVoiceSettings = !direction
     || direction === directionKey(settings.sourceLanguage, settings.targetLanguage);
   useEffect(() => {
-    if (!ownsEdgeVoice) return;
+    if (!ownsVoiceSettings) return;
     if (!isEdgeTtsSelected || filteredVoices.length === 0) return;
     const currentVoice = settings.edgeTtsVoice;
     const isCurrentValid = filteredVoices.some(v => v.ShortName === currentVoice);
     if (!isCurrentValid) {
       updateLocalInference({ edgeTtsVoice: filteredVoices[0].ShortName });
     }
-  }, [ownsEdgeVoice, isEdgeTtsSelected, filteredVoices, settings.edgeTtsVoice, updateLocalInference]);
+  }, [ownsVoiceSettings, isEdgeTtsSelected, filteredVoices, settings.edgeTtsVoice, updateLocalInference]);
 
   // A failed initialize() (e.g. IndexedDB VersionError when another build
   // upgraded the shared DB in this profile) must surface an actionable error
@@ -872,8 +872,12 @@ export function ModelManagementSection({
 
   // Voice control embedded in the selected TTS card only. The card's
   // `isSelected && children` gate is the real guard; the id check just
-  // avoids building the body for non-selected cards.
-  const renderTtsCardBody = (entry: ModelManifestEntry) => entry.id === selectedTts ? (
+  // avoids building the body for non-selected cards. The section edits
+  // forward-shared fields (edgeTtsVoice, ttsSpeakerId), so a non-forward
+  // Library render offers no voice editing at all — today's engine page
+  // exposes no reverse TTS slot, but that must stay structural, not
+  // incidental (CodeRabbit R3, follows the 2026-08-23 freeze fix).
+  const renderTtsCardBody = (entry: ModelManifestEntry) => entry.id === selectedTts && ownsVoiceSettings ? (
     <>
       <LocalInferenceVoiceSection
         ttsModel={entry.id}
