@@ -51,28 +51,45 @@ openssl req -x509 -newkey rsa:2048 -sha256 -days 7300 -nodes \
   -addext "extendedKeyUsage=critical,codeSigning" >/dev/null 2>&1 \
   || { bad "openssl could not create the certificate"; exit 1; }
 
-openssl pkcs12 -export -out "$WORK/cert.p12" -inkey "$WORK/key.pem" \
-  -in "$WORK/cert.pem" -passout "pass:$KC_PASS" >/dev/null 2>&1
+# OpenSSL 3.x defaults to AES-256/SHA-256 for PKCS#12, which macOS's Security
+# framework cannot import ("MAC verification failed"). -legacy restores the
+# algorithms it understands; LibreSSL (/usr/bin/openssl) does not need it.
+if ! openssl pkcs12 -export -legacy -out "$WORK/cert.p12" -inkey "$WORK/key.pem" \
+     -in "$WORK/cert.pem" -passout "pass:$KC_PASS" >/dev/null 2>&1; then
+  openssl pkcs12 -export -out "$WORK/cert.p12" -inkey "$WORK/key.pem" \
+    -in "$WORK/cert.pem" -passout "pass:$KC_PASS" >/dev/null 2>&1
+fi
 
 security create-keychain -p "$KC_PASS" "$KEYCHAIN" >/dev/null
 security unlock-keychain -p "$KC_PASS" "$KEYCHAIN" >/dev/null
 security set-keychain-settings "$KEYCHAIN"
 security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
-security import "$WORK/cert.p12" -k "$KEYCHAIN" -P "$KC_PASS" \
-  -T /usr/bin/codesign -T /usr/bin/productbuild >/dev/null 2>&1
-security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PASS" "$KEYCHAIN" >/dev/null 2>&1
+IMPORT_OUT="$(security import "$WORK/cert.p12" -k "$KEYCHAIN" -P "$KC_PASS" -A 2>&1)"
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KC_PASS" "$KEYCHAIN" >/dev/null 2>&1
+
+if echo "$IMPORT_OUT" | grep -qi "verification failed"; then
+  bad "PKCS#12 import failed: $IMPORT_OUT"
+else
+  ok "PKCS#12 imported into a throwaway keychain"
+fi
+
+# Two different things: can codesign USE it (what matters), and does
+# electron-builder's discovery SEE it (a CI plumbing detail).
+if security find-identity -p codesigning "$KEYCHAIN" | grep -q "$CERT_CN"; then
+  ok "identity present in the keychain"
+else
+  bad "identity not present at all"
+fi
 
 if security find-identity -v -p codesigning "$KEYCHAIN" | grep -q "$CERT_CN"; then
-  ok "listed as a VALID codesigning identity (no add-trusted-cert needed)"
+  ok "also listed as VALID — electron-builder's discovery will find it"
 else
-  bad "not listed by 'find-identity -v' — CI must run add-trusted-cert"
-  note "retrying with an explicit trust setting..."
-  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$WORK/cert.pem" 2>/dev/null
-  if security find-identity -v -p codesigning "$KEYCHAIN" | grep -q "$CERT_CN"; then
-    note "add-trusted-cert fixes it — add that step to CI"
-  else
-    note "still not valid; investigate before relying on Option S"
-  fi
+  note "NOT listed by 'find-identity -v' (expect CSSMERR_TP_NOT_TRUSTED)."
+  note "codesign still works — see test 3 — but electron-builder discovers"
+  note "identities with 'find-identity -v', so CI needs:"
+  note "  sudo security add-trusted-cert -d -r trustRoot -p codeSign \\"
+  note "       -k /Library/Keychains/System.keychain cert.pem"
+  note "(passwordless on GitHub Actions runners; needs a GUI prompt locally)"
 fi
 echo
 
@@ -82,6 +99,8 @@ echo
 #              DR captured from build A? That is exactly what Squirrel.Mac does.
 # ---------------------------------------------------------------------------
 echo "[3] designated requirement stability (the core of the plan)"
+
+SIGN_ID="$CERT_CN"
 
 make_app() { # $1 = path, $2 = distinguishing payload
   local app="$1"
@@ -107,8 +126,13 @@ EOF
 make_app "$WORK/v1.app" "version one"
 make_app "$WORK/v2.app" "version two, different bytes entirely"
 
-codesign --force --sign "$CERT_CN" --keychain "$KEYCHAIN" "$WORK/v1.app" 2>/dev/null
-codesign --force --sign "$CERT_CN" --keychain "$KEYCHAIN" "$WORK/v2.app" 2>/dev/null
+S1="$(codesign --force --sign "$SIGN_ID" --keychain "$KEYCHAIN" "$WORK/v1.app" 2>&1)"
+S2="$(codesign --force --sign "$SIGN_ID" --keychain "$KEYCHAIN" "$WORK/v2.app" 2>&1)"
+if echo "$S1$S2" | grep -qi "no identity found"; then
+  bad "codesign could not use the self-signed identity: $S1"
+else
+  ok "codesign signed both bundles with the untrusted self-signed identity"
+fi
 
 DR1="$(codesign -d -r- "$WORK/v1.app" 2>&1 | grep '^designated' | sed 's/^designated => //')"
 DR2="$(codesign -d -r- "$WORK/v2.app" 2>&1 | grep '^designated' | sed 's/^designated => //')"
@@ -161,20 +185,46 @@ echo
 #         directory inside /Applications? Decides whether the PKG must chown
 #         the app bundle for Squirrel to be able to swap it.
 # ---------------------------------------------------------------------------
-echo "[2] renaming a root-owned bundle in /Applications (decides the chown)"
+echo "[2] renaming a write-disabled bundle in /Applications (decides the chown)"
+note "/Applications is $(stat -f '%Sp %Su:%Sg' /Applications)"
+if [ -d /Applications/Sokuji.app ]; then
+  note "installed Sokuji.app is $(stat -f '%Sp %Su:%Sg' /Applications/Sokuji.app)"
+fi
+
+# rename(2)'s CONFORMANCE clause is about whether the CALLER can write into the
+# directory being renamed — not about who owns it. So a directory we own but
+# have chmod'd 555 reproduces a root-owned 755 bundle exactly, with no sudo and
+# nothing destructive. The real root-owned case is checked too when sudo is
+# available without a password.
 TESTDIR="/Applications/.sokuji-verify-$$"
-if sudo mkdir -p "$TESTDIR/Contents" && sudo chown -R root:wheel "$TESTDIR" && sudo chmod -R 755 "$TESTDIR"; then
-  note "/Applications is $(stat -f '%Sp %Su:%Sg' /Applications)"
-  note "test bundle is $(stat -f '%Sp %Su:%Sg' "$TESTDIR")"
+if mkdir -p "$TESTDIR/Contents" 2>/dev/null; then
+  chmod 555 "$TESTDIR"
+  note "test bundle is $(stat -f '%Sp %Su:%Sg' "$TESTDIR") (write-disabled for us)"
   if mv "$TESTDIR" "${TESTDIR}-moved" 2>/dev/null; then
-    ok "admin CAN rename a root-owned bundle — no chown needed"
-    sudo rm -rf "${TESTDIR}-moved"
+    ok "a write-disabled bundle CAN be renamed — Squirrel can swap it"
+    chmod 755 "${TESTDIR}-moved" 2>/dev/null; rm -rf "${TESTDIR}-moved"
   else
-    bad "admin CANNOT rename it — the PKG must set ownership (failure mode 12)"
-    sudo rm -rf "$TESTDIR"
+    bad "cannot rename a write-disabled bundle — the PKG must set ownership"
+    chmod 755 "$TESTDIR" 2>/dev/null; rm -rf "$TESTDIR"
   fi
 else
-  note "SKIPPED — needs sudo"
+  note "SKIPPED — cannot create a directory in /Applications"
+fi
+
+# The genuine root-owned case, only if sudo needs no password.
+if sudo -n true 2>/dev/null; then
+  RTEST="/Applications/.sokuji-verify-root-$$"
+  sudo mkdir -p "$RTEST/Contents" && sudo chown -R root:wheel "$RTEST" && sudo chmod -R 755 "$RTEST"
+  if mv "$RTEST" "${RTEST}-moved" 2>/dev/null; then
+    ok "a root-owned bundle CAN be renamed by an admin — no chown needed"
+    sudo rm -rf "${RTEST}-moved"
+  else
+    bad "a root-owned bundle CANNOT be renamed — PKG must set ownership (fm 12)"
+    sudo rm -rf "$RTEST"
+  fi
+else
+  note "root-owned variant SKIPPED — sudo needs a password (the 555 case above"
+  note "exercises the same kernel check)"
 fi
 echo
 
@@ -182,7 +232,28 @@ echo
 # Test 4: does a file downloaded by Node's https (not a browser) carry
 #         com.apple.quarantine? Gates the Option C fallback.
 # ---------------------------------------------------------------------------
-echo "[4] quarantine on a Node-downloaded file"
+echo "[4] quarantine on a file downloaded by a non-LaunchServices process"
+
+# The mechanism is opt-in via LSFileQuarantineEnabled, so check the shipped app
+# directly — this is the real question, not what some other tool does.
+if [ -f /Applications/Sokuji.app/Contents/Info.plist ]; then
+  if plutil -p /Applications/Sokuji.app/Contents/Info.plist 2>/dev/null | grep -qi "LSFileQuarantineEnabled"; then
+    bad "Sokuji.app DECLARES LSFileQuarantineEnabled — its downloads would be quarantined"
+  else
+    ok "Sokuji.app does not declare LSFileQuarantineEnabled"
+  fi
+fi
+
+# curl is Apple's own documented example of a tool that does not quarantine.
+curl -fsSL -o "$WORK/curl.bin" "https://raw.githubusercontent.com/kizuna-ai-lab/sokuji/main/README.md" 2>/dev/null
+if [ -s "$WORK/curl.bin" ]; then
+  if xattr -l "$WORK/curl.bin" 2>/dev/null | grep -q "com.apple.quarantine"; then
+    bad "even curl quarantined the file — the premise is wrong"
+  else
+    ok "curl-downloaded file carries no com.apple.quarantine"
+  fi
+fi
+
 if command -v node >/dev/null 2>&1; then
   cat > "$WORK/dl.js" <<'EOF'
 const https = require('https'); const fs = require('fs');

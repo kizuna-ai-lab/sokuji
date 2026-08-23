@@ -19,6 +19,10 @@ app updates itself". Signing is a prerequisite for that, not the whole of it.
 Squirrel.Mac actually demands is a *stable* signature, not an *Apple* one. See
 §2.5, which is the section to read if you read only one.
 
+**This has been verified on real hardware** (macOS 26.6.1, arm64, 2026-08-24) —
+not just derived from Apple's sources. See §6 for what ran and the one test that
+is still outstanding.
+
 Three things stand in the way today, and all three must go:
 
 1. **The signature is ad-hoc, so it is not stable.** Squirrel.Mac (the engine
@@ -347,6 +351,22 @@ This is the finding that changes the decision. Squirrel.Mac needs a signature
 that is **stable and self-consistent**, not one that chains to Apple. A
 certificate you generate yourself provides exactly that.
 
+> **Verified on hardware, 2026-08-24 — macOS 26.6.1, arm64.** Two deliberately
+> different builds signed with one self-signed certificate produced an identical
+> designated requirement, and the second satisfied the first's DR — the exact
+> check Squirrel.Mac performs:
+>
+> ```
+> v1 DR: identifier "ai.kizunaai.sokuji.verify" and certificate root = H"fc3ac6d0…"
+> v2 DR: identifier "ai.kizunaai.sokuji.verify" and certificate root = H"fc3ac6d0…"
+> codesign --verify --strict -R="<v1 DR>" v2.app   → rc=0
+> codesign --verify --strict v2.app  → "valid on disk", "satisfies its Designated Requirement"
+> spctl -a -vv v2.app                → "rejected"      (Gatekeeper, as expected)
+> ```
+>
+> An ad-hoc-signed control pair correctly failed the same check. Reproduce with
+> `scripts/verify-macos-selfsigned.sh` (9 passed, 0 failed on that machine).
+
 #### 2.5a Verification does not require a trusted anchor
 
 Apple's Code Signing Guide, [Code Signing Tasks](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html):
@@ -446,20 +466,51 @@ when no "Developer ID Application" identity is found it searches for a
 of electron-builder issue #458 — signing with a self-signed certificate is a
 supported configuration, not a hack.
 
-Two CI details to watch:
+Two integration details, both now settled on hardware:
 
-- `createKeychain` (`:120`) runs `security import` but **never**
-  `security add-trusted-cert`, and identity discovery uses
-  `security find-identity -v -p codesigning` — "-v" meaning valid. Whether a
-  self-signed leaf lists as valid without an explicit trust setting is hardware
-  test #6; if not, add `security add-trusted-cert -d -r trustRoot -k <keychain>`
-  before the build.
-- `kSecCSCheckNestedCode | kSecCSStrictValidate` means **all** nested Mach-O
-  must be signed with the same identity — including
-  `Contents/Resources/resources/drivers/SokujiVirtualAudio.driver`, a universal
-  binary currently built with `CODE_SIGNING_REQUIRED=NO`. Code living under
-  `Resources/` is also exactly what strict validation dislikes. This is a
-  prerequisite for *any* signing route, paid or free.
+**(a) The certificate is untrusted, and electron-builder's discovery hides it.**
+A self-signed cert reports `CSSMERR_TP_NOT_TRUSTED`, so
+`security find-identity -v -p codesigning` returns "0 valid identities found".
+`codesign` signs with it regardless — verified — but electron-builder discovers
+identities with exactly that command (`getValidIdentities` runs
+`find-identity -v` and `find-identity -v -p codesigning`), so it would find
+nothing and silently skip signing. Two ways round it:
+
+- Trust the certificate before building:
+  `sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain cert.pem`.
+  Passwordless on GitHub Actions runners; needs a GUI prompt on a local Mac
+  (it fails over SSH with "the authorization was denied since no user
+  interaction was possible"). Trust does not change the DR.
+- Or sign in the `afterPack` hook, which is what
+  `scripts/electron-builder-fuses.js` already does — swap `--sign -` for the
+  identity and skip electron-builder's own signing entirely. This sidesteps
+  discovery, at the cost of doing inside-out signing yourself.
+
+**(b) The HAL driver does *not* have to be signed.** This contradicts an earlier
+draft of this document, and the correction matters because it removes a
+prerequisite. Tested with the real
+`SokujiVirtualAudio.driver` (Info.plist + universal Mach-O) copied into a host
+bundle and its signature explicitly removed:
+
+```
+codesign --remove-signature …/SokujiVirtualAudio.driver   → "code object is not signed at all"
+codesign --force --sign "<self-signed>" host.app          (outer app only)
+codesign --verify --deep --strict host.app                → rc=0, "valid on disk"
+codesign --verify --deep --strict -R="<own DR>" host.app  → rc=0
+```
+
+`kSecCSCheckNestedCode` looks in the nested-code locations — `Frameworks/`,
+`PlugIns/`, `XPCServices/`, `Helpers/` — whereas anything under
+`Contents/Resources/` is sealed as *data*. Signing the driver is still good
+hygiene (and electron-builder's inside-out signing will do it for free), but it
+is not a blocker for the updater.
+
+*Incidental discovery worth writing down:* OpenSSL 3.x exports PKCS#12 with
+AES-256/SHA-256, which macOS's Security framework cannot import — `security
+import` fails with "MAC verification failed during PKCS12 import (wrong
+password?)", and the misleading message costs an hour. Export with
+`openssl pkcs12 -export -legacy`, or use the system LibreSSL at
+`/usr/bin/openssl`.
 
 ---
 
@@ -498,16 +549,20 @@ steps replaced by a certificate you issue yourself (§2.5). Concretely:
    defaults", with a very long validity. Export as `.p12`. Treat it as a
    permanent project secret — rotating it breaks the update chain and resets
    TCC (§2.5d).
+   Export the `.p12` with `openssl pkcs12 -export -legacy` — the OpenSSL 3
+   default cannot be imported by macOS (§2.5e).
 2. **CI**: store as `CSC_LINK` (base64 `.p12`) + `CSC_KEY_PASSWORD`. Drop
    `CSC_IDENTITY_AUTO_DISCOVERY: false` and `mac.identity: null`; set
    `mac.identity` to the certificate's common name. Do **not** set
-   `mac.notarize`. Add `security add-trusted-cert` before the build if hardware
-   test #6 says it is needed (§2.5e).
+   `mac.notarize`. **Add a trust step before the build** —
+   `sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain cert.pem`
+   — because electron-builder discovers identities with `find-identity -v`,
+   which does not list an untrusted certificate (verified; §2.5e(a)).
 3. **Signing**: replace the ad-hoc `codesign --force --deep --sign -` in
    `scripts/electron-builder-fuses.js` with electron-builder's normal
-   inside-out signing, and sign the HAL driver with the same identity (§2.5e).
-   Pin the DR with `codesign -r` using a requirement dumped from
-   `codesign -d -r-`.
+   inside-out signing. Pin the DR with `codesign -r` using a requirement dumped
+   from `codesign -d -r-`. The HAL driver does not need signing for the updater
+   to work (§2.5e(b)), though inside-out signing will cover it anyway.
 4. **Artifacts**: add `zip` alongside `pkg` in `build.mac.target` — required by
    `MacUpdater`, and it makes `latest-mac.yml` machine-generated (§0).
 5. **Ownership**: resolve per hardware test #2 — either `pkgbuild --ownership
@@ -827,15 +882,38 @@ the browser and Terminal from the update loop without any certificate at all.
 
 ---
 
-## 6. Hardware tests (all need a Mac; ranked by what they decide)
+## 6. Hardware tests — run 2026-08-24 on macOS 26.6.1 (arm64)
 
-Everything in §2.5 was verified by reading Apple's own Security sources, but
-reading source is not running it. These are ordered so the two that could sink
-Option S come first.
+Everything in §2.5 was first verified by reading Apple's own Security sources;
+it has since been run. `scripts/verify-macos-selfsigned.sh` reproduces tests
+2–6 on any Mac or from a `macos-26` CI job — 9 passed, 0 failed.
 
-**Tests 2–6 are scripted** in `scripts/verify-macos-selfsigned.sh` — run it on
-any Mac, or from a `macos-26` CI job. Test 1 needs a human, because granting
-microphone access requires clicking the dialog.
+| # | What it decides | Result |
+|---|---|---|
+| 1 | Does TCC keep the microphone grant across a re-sign? | **NOT RUN** — needs a human to click the permission dialog |
+| 2 | Can a write-disabled bundle in `/Applications` be renamed? | **PASS** — yes, so `rename(2)`'s CONFORMANCE clause does not bite on APFS here. The root-owned variant still needs a passworded sudo; see the caveat below |
+| 3 | Is the self-signed DR stable, and does build N+1 satisfy build N's DR? | **PASS** — identical DR, `-R` check rc=0, ad-hoc control correctly fails |
+| 4 | Does a non-LaunchServices download carry quarantine? | **PASS** — `Sokuji.app` does not declare `LSFileQuarantineEnabled`; a curl-fetched file has no `com.apple.quarantine` |
+| 5 | Is the self-signed cert usable for signing? | **PASS to sign, FAIL to discover** — `codesign` works; `find-identity -v` reports 0 valid (see §2.5e(a)) |
+| 6 | Does an unsigned nested driver break strict validation? | **PASS** — it does not (see §2.5e(b)) |
+
+Confirmed in passing: the installed app really is
+`Signature=adhoc, designated => cdhash H"28a2ff42…"`, `/Applications` is
+`drwxrwxr-x root:admin`, and `/Applications/Sokuji.app` is
+`drwxr-xr-x root:wheel`.
+
+**Caveat on test 2.** What passed was a bundle *we own* with mode 555 — the same
+kernel write-permission check, but not literally a root-owned bundle, which
+would have needed a passworded sudo. And renaming is only half of it: Squirrel
+moves the old bundle aside and then deletes it, and deleting a root-owned tree
+as a normal user fails regardless of the rename. So set the ownership in the
+PKG anyway (Option S step 5) — one line makes the outcome deterministic instead
+of resting on this test.
+
+**Test 1 is the only real unknown left**, and it is the one that decides whether
+Option S also fixes the permission re-prompting. Procedure: sign two builds with
+one certificate, install the first, grant microphone access, install the second,
+and see whether macOS asks again.
 
 1. **Does TCC keep microphone permission across a rebuild signed with the same
    self-signed certificate?** Sign two builds with one cert, grant mic access to
@@ -908,9 +986,12 @@ Code signing adds a `_CodeSignature` directory and a signature blob. It changes
 stay put. Every app that has "SokujiVirtualAudio" selected as its microphone —
 Zoom, Meet, Teams — keeps that selection. Signing the driver is safe.
 
-It is also not optional: `kSecCSCheckNestedCode | kSecCSStrictValidate` covers
-the copy inside the app bundle at
-`Contents/Resources/resources/drivers/SokujiVirtualAudio.driver` (§2.5e).
+It is also not *required* — that was an error in an earlier draft of this
+document. Tested on hardware: an unsigned driver bundle under
+`Contents/Resources/` does not break the app's nested/strict validation, because
+content there is sealed as data rather than treated as nested code (§2.5e(b)).
+Sign it anyway if electron-builder's inside-out signing does it for free, but it
+does not gate the updater.
 
 *Cleaner alternative worth considering:* move the driver out of the app bundle
 entirely and ship it as a separate PKG payload. Code under `Resources/` is
