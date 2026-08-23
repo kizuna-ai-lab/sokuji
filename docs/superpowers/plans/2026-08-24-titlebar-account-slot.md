@@ -719,8 +719,7 @@ git commit -m "feat(account): give the wallet a top-up button"
 
 ## Task 5: AccountPopover — signed-in state
 
-Shell copied from `ModeDevicePopover` (`FloatingPortal`, `useDismiss`,
-`offset`/`flip`/`shift`/`size`, `autoUpdate`) and styled with that component's own
+Shell copied from the product's existing popovers, styled with `ModeDevicePopover`'s
 values: `#2a2a2a`, `1px solid #444`, radius `8px`, width `320px`, `font-size 12px`,
 `box-shadow 0 4px 16px rgba(0,0,0,.5)` (`ModeDevicePopover.scss:4-13`).
 
@@ -784,8 +783,8 @@ Expected: FAIL — cannot resolve `./AccountPopover`.
 // panels for sustained configuration, popovers for a glance.
 import React from 'react';
 import {
-  useFloating, useDismiss, useInteractions, FloatingPortal,
-  offset, flip, shift, size, autoUpdate,
+  useFloating, useDismiss, useRole, useInteractions, FloatingPortal,
+  FloatingFocusManager, offset, flip, shift, size, autoUpdate,
 } from '@floating-ui/react';
 import { useAuth } from '../../lib/auth/hooks';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
@@ -818,8 +817,14 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
     whileElementsMounted: autoUpdate,
   });
 
+  // useRole gives the floating element role="dialog" and an accessible name;
+  // FloatingFocusManager moves keyboard focus into the popover and restores it
+  // to the button on close. Without them a keyboard user opens the popover and
+  // then tabs into the page BEHIND it. Both are what ExportButton and
+  // SubtitleBar already do — this is copying the house pattern, not inventing.
   const dismiss = useDismiss(context);
-  const { getFloatingProps } = useInteractions([dismiss]);
+  const role = useRole(context, { role: 'dialog' });
+  const { getFloatingProps } = useInteractions([dismiss, role]);
 
   React.useEffect(() => {
     refs.setReference(anchorEl);
@@ -829,14 +834,16 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
 
   return (
     <FloatingPortal>
-      <div
-        ref={refs.setFloating}
-        style={floatingStyles}
-        className="account-popover"
-        {...getFloatingProps()}
-      >
-        {isSignedIn && <UserAccountInfo />}
-      </div>
+      <FloatingFocusManager context={context} modal={false}>
+        <div
+          ref={refs.setFloating}
+          style={floatingStyles}
+          className="account-popover"
+          {...getFloatingProps()}
+        >
+          {isSignedIn && <UserAccountInfo />}
+        </div>
+      </FloatingFocusManager>
     </FloatingPortal>
   );
 };
@@ -1071,8 +1078,10 @@ const [open, setOpen] = useState(false);
 const btnRef = useRef<HTMLButtonElement | null>(null);
 ```
 
-Give both `<button>` elements `ref={btnRef}`, `onClick={() => setOpen((v) => !v)}` and
-`aria-expanded={open}`, then render after each button:
+Give both `<button>` elements `ref={btnRef}`, `onClick={() => setOpen((v) => !v)}`,
+`aria-haspopup="dialog"` and `aria-expanded={open}` — the button is not floating-ui's
+managed reference in this split, so `useRole` cannot wire those for us and they are
+written by hand. Then render after each button:
 
 ```tsx
 <AccountPopover open={open} anchorEl={btnRef.current} onClose={() => setOpen(false)} />
