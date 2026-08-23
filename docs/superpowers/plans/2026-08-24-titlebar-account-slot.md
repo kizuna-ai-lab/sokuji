@@ -1495,12 +1495,22 @@ consecutive steps spotlighting one element reads as a bug.
 - Modify: `src/contexts/OnboardingContext.tsx:71-73` (delete the step), `:83-85` (copy),
   and the stale comment at `:43` explaining why the account step exists
 - Modify: `src/components/Onboarding/Onboarding.tsx:23` — delete the
-  `'#user-account-section': 'user-account'` entry from `TARGET_NAVIGATION_MAP`. It maps
-  a step target that will no longer exist to a settings tab that will no longer exist.
-- Modify: all `src/locales/*/translation.json` (`onboarding.basic.steps.*`)
+  `'#user-account-section': 'user-account'` entry from `TARGET_NAVIGATION_MAP`. Only the
+  *step target* dies here; `'user-account'` itself is still a live navigation target
+  (`Settings.tsx:36` maps it to the general tab, `sessionStartGate.ts:280` still returns
+  it), so delete this one entry and leave those alone.
+- Modify: `src/locales/en/translation.json` (`onboarding.basic.steps.*`); Task 15 propagates
+- Modify: `src/components/Onboarding/Onboarding.tsx` (the navigation-map entry)
 - Test: `src/contexts/OnboardingContext.steps.test.ts` (create)
 
 - [ ] **Step 1: Write the failing test**
+
+The suite will not even reach its assertions without two mocks: `OnboardingContext`
+statically imports `settingsStore`, which drags in `ServiceFactory` and a worklet
+`?url` import the sandboxed transform denies; and `lib/analytics` re-exports a module
+whose scope calls `ReactDOM.createRoot`. Copy both from
+`ensureSelectionReady.test.ts` and `SystemAudioSection.test.tsx`. Neither touches the
+step list, so the assertions stay honest.
 
 ```ts
 import { describe, it, expect } from 'vitest';
@@ -1556,7 +1566,8 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/contexts/OnboardingContext.tsx src/contexts/OnboardingContext.steps.test.ts src/locales/en
+git add src/contexts/OnboardingContext.tsx src/contexts/OnboardingContext.steps.test.ts \
+        src/components/Onboarding/Onboarding.tsx src/locales/en
 git commit -m "fix(onboarding): drop the step pointing at the removed account section"
 ```
 
@@ -2017,7 +2028,7 @@ here, it may have been refined during implementation):
 | `auth.checkYourEmail` | **Must keep the `{{email}}` interpolation.** Promises automatic pickup — that promise is true because of Task 14, so do not soften it to "click refresh". |
 | `auth.emailVerifiedToast` | Short toast text. |
 | `auth.signedOut`, `auth.sessionUnavailable`, `auth.unknown` | User-facing renderings of the three auth error codes from Task 13. Plain language, not engineering language: these replace strings like "Failed to get auth session". |
-| `onboarding.basic.steps.{languages,provider,microphone,speaker,systemAudio,start}.title` | Mechanical: the "Step N" number shifts down by one in each. Keep each locale's own word for "Step" and its own digit convention — **fa and bn use native digits**; copy the shape already in that catalogue rather than writing ASCII numerals into it. |
+| `onboarding.basic.steps.*.title` | **Do not renumber anything.** `renumberSteps` in `OnboardingContext.tsx` derives the digit from the step's real position, in both lists and across locales, so a catalogue only has to be right about the words. Translate the text and leave whatever number is there. |
 | `onboarding.basic.steps.provider.content` | Extended in Task 11 to introduce the built-in service. |
 
 **Rules that matter more than fluency:**
