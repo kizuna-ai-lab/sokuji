@@ -27,6 +27,12 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
     open,
     onOpenChange: (next) => { if (!next) onClose(); },
     placement: 'bottom-end',
+    // Declarative reference, matching ModeDevicePopover. Setting it from an
+    // effect instead works, but lands one frame after first paint — and since
+    // the anchor is a ref that is null until the click-triggered re-render,
+    // that stray frame would hit EVERY first open, drawing the popover at
+    // translate(0,0) before it corrects.
+    elements: { reference: anchorEl ?? undefined },
     middleware: [
       offset(6),
       flip(),
@@ -34,7 +40,10 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
       size({
         padding: 8,
         apply({ availableHeight, elements }) {
-          elements.floating.style.maxHeight = `${availableHeight}px`;
+          // Clamped because floating-ui can hand back a transient negative
+          // during a reposition — the same guard ModeDevicePopover and
+          // ExportButton both carry.
+          elements.floating.style.maxHeight = `${Math.max(0, availableHeight)}px`;
         },
       }),
     ],
@@ -49,10 +58,6 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
   const dismiss = useDismiss(context);
   const role = useRole(context, { role: 'dialog' });
   const { getFloatingProps } = useInteractions([dismiss, role]);
-
-  React.useEffect(() => {
-    refs.setReference(anchorEl);
-  }, [anchorEl, refs]);
 
   if (!open) return null;
 
