@@ -38,9 +38,34 @@ const ONBOARDING_STORAGE_KEY = 'sokuji_onboarding_completed';
 const USER_TYPE_STORAGE_KEY = 'sokuji_user_type';
 const ONBOARDING_VERSION = '1.2.0';
 
+/**
+ * Renumber the "Step N:" prefixes by the steps' real positions.
+ *
+ * The catalogues carry a number in each title, and those numbers go stale the
+ * moment a step is added or removed — in 30 locales at once. Deriving the
+ * number from position instead means a catalogue only ever has to be right
+ * about the WORDS; the digit is this function's job. Idempotent, so a
+ * catalogue that is already correct survives unchanged.
+ *
+ * The pattern matches across locales: "Step 3:", "步骤 3：", "Schritt 3:" —
+ * any prefix, a digit, then a colon in either width.
+ */
+const renumberSteps = (steps: OnboardingStep[]): OnboardingStep[] => {
+  let stepNumber = 0;
+  return steps.map((step) => {
+    const stepMatch = String(step.title).match(/^(.+?)(\d+)([:：])/);
+    if (!stepMatch) return step;
+    stepNumber++;
+    return {
+      ...step,
+      title: `${stepMatch[1]}${stepNumber}${stepMatch[3]}${String(step.title).slice(stepMatch[0].length)}`,
+    };
+  });
+};
+
 // Basic mode onboarding steps - simplified for regular users.
 export const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
-  const allSteps: (OnboardingStep | null)[] = [
+  const allSteps: OnboardingStep[] = [
   {
     target: 'body',
     content: t('onboarding.basic.steps.welcome.content', 'Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps.'),
@@ -105,12 +130,12 @@ export const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
     skipBeacon: true,
   }
   ];
-  return allSteps.filter((s): s is OnboardingStep => s !== null);
+  return renumberSteps(allSteps);
 };
 
 // Advanced mode onboarding steps - detailed for experienced users
 // Steps are filtered based on current provider capabilities to avoid targeting non-existent DOM elements
-const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode: boolean; hasVoiceSettings: boolean; hasTurnDetection: boolean }): OnboardingStep[] => {
+export const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode: boolean; hasVoiceSettings: boolean; hasTurnDetection: boolean }): OnboardingStep[] => {
   const allSteps: (OnboardingStep | null)[] = [
     {
       target: 'body',
@@ -191,18 +216,7 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
 
   // Filter out null steps (capabilities not available for current provider)
   // and renumber the step titles across all locales
-  const filteredSteps = allSteps.filter((step): step is OnboardingStep => step !== null);
-  let stepNumber = 0;
-  return filteredSteps.map((step) => {
-    // Match step numbering patterns across locales: "Step 3:", "步骤 3：", "Schritt 3:", etc.
-    // Pattern: any prefix text, a digit, then a colon (regular or fullwidth)
-    const stepMatch = step.title.match(/^(.+?)(\d+)([:：])/);
-    if (stepMatch) {
-      stepNumber++;
-      return { ...step, title: `${stepMatch[1]}${stepNumber}${stepMatch[3]}${step.title.slice(stepMatch[0].length)}` };
-    }
-    return step;
-  });
+  return renumberSteps(allSteps.filter((step): step is OnboardingStep => step !== null));
 };
 
 interface OnboardingProviderProps {
