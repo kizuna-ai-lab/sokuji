@@ -81,10 +81,27 @@ describe('validateApiKey auth errors for Kizuna-managed providers', () => {
     expect(useSettingsStore.getState().kizunaKeyError).toBe('auth.unknown');
   });
 
-  it('surfaces a translated validation message, not the internal code or prose', async () => {
+  // ProviderSection already renders a signed-out notice of its own — the
+  // clickable common.signInRequired line, which opens the account popover.
+  // Setting validationMessage here too puts two sentences saying the same
+  // thing one above the other, and the duller of the two is the one that
+  // cannot be clicked.
+  it('leaves the validation message empty when signed out, so the notice is not doubled', async () => {
     await useSettingsStore.getState().validateApiKey(signedOutGetToken, false);
+    const s = useSettingsStore.getState();
+    expect(s.validationMessage).toBe('');
+    // The diagnosis itself is still recorded — only the duplicate display is gone.
+    expect(s.kizunaKeyError).toBe('auth.signedOut');
+    expect(s.isApiKeyValid).toBe(false);
+  });
+
+  // A signed-in user whose token cannot be produced sees NO signed-out notice
+  // from ProviderSection — that branch is gated on being signed out — so here
+  // the validation message is the only thing that can explain the failure.
+  it('still explains a broken session, where nothing else would', async () => {
+    await useSettingsStore.getState().validateApiKey(signedOutGetToken, true);
     const { validationMessage } = useSettingsStore.getState();
-    expect(validationMessage).toBe(i18n.t('auth.signedOut'));
+    expect(validationMessage).toBe(i18n.t('auth.sessionUnavailable'));
     expect(validationMessage).not.toBe('Sign in is required for Kizuna relay providers');
   });
 

@@ -924,13 +924,21 @@ const useSettingsStore = create<SettingsStore>()(
           // kizunaKeyError is a translation key; validationMessage is rendered
           // verbatim, so it has to be resolved here.
           const message: string = i18n.t(errorKey);
+          // ProviderSection renders its own signed-out notice — the clickable
+          // one that opens the account popover — under exactly this condition.
+          // Setting validationMessage too stacks two sentences saying the same
+          // thing, and the duplicate is the one that cannot be clicked. A
+          // broken session is the opposite case: that notice is gated on being
+          // signed OUT, so for a signed-in user with a dead token this message
+          // is the only thing that explains anything.
+          const displayMessage: string = errorKey === 'auth.signedOut' ? '' : message;
           // Signed out or token unavailable: clear any stale validity so a
           // previously-valid signed-in state can't keep Start enabled. Without
           // this reset the UI would only discover the missing auth at connect time.
           set({
             isApiKeyValid: false,
             availableModels: [],
-            validationMessage: message,
+            validationMessage: displayMessage,
             isValidating: false,
             isValidated: false,
             validationError: null
