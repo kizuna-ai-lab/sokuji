@@ -36,8 +36,13 @@ react-i18next, lucide-react, Vitest + @testing-library/react, SASS.
   does not touch — the tree fails **9 files / 7 tests / 4 errors** before any of it.
   The failures cluster in provider gating (`kizunaProviderGating`,
   `descriptorRegistry`), store migrations, and `ModernBrowserAudioService`; several
-  are suite-level import failures rather than assertions. None of it overlaps this
-  work. Treat that as the floor: a red file in those areas is not yours. Do NOT
+  are suite-level import failures rather than assertions. `src/components/MainLayout`
+  belongs on the list too: `MainLayout.keepAlive.test.tsx` is red at `9d81aeca` on a
+  stale `utils/environment` mock that omits `isExtension`, which
+  `ProviderConfigFactory`'s static initializer needs. `components/MainLayout/` also
+  carries **1** pre-existing type error (`MainLayout.tsx(2,1)`, an unused
+  `useTranslation` import) — do not assume a directory is at zero. None of it overlaps
+  this work. Treat that as the floor: a red file in those areas is not yours. Do NOT
   `git stash` to A/B it — the stash stack is shared with the main checkout and with
   any agent working in this tree.
 - **Working directory**: every command in this plan runs from the worktree root
@@ -1208,6 +1213,13 @@ describe('TitleBar', () => {
 });
 ```
 
+**The first test must drive a transition, not a mount.** Mounting straight into
+`'basic'` and asserting on the first render passes even against an effect with empty
+deps — i.e. against an effect that never reacts to the mode changing at all, which is
+the entire behaviour under test. Use `rerender` to go `'advanced'` → `'basic'`, and
+prove the test is sensitive by temporarily changing the effect's deps to `[]` and
+confirming it goes red.
+
 ```tsx
 // src/components/MainLayout/MainLayout.logsMode.test.tsx
 // A logs panel opened in advanced mode must not survive a switch to basic:
@@ -1222,9 +1234,12 @@ describe('useCloseLogsOutsideAdvanced', () => {
   it('closes an open logs panel when the mode becomes basic', () => {
     const setShowLogs = vi.fn();
     sessionStorage.setItem('panelState.showLogs', 'true');
-    renderHook(({ mode }) => useCloseLogsOutsideAdvanced(mode, true, setShowLogs), {
-      initialProps: { mode: 'basic' as const },
-    });
+    const { rerender } = renderHook(
+      ({ mode }) => useCloseLogsOutsideAdvanced(mode, true, setShowLogs),
+      { initialProps: { mode: 'advanced' as string } },
+    );
+    expect(setShowLogs).not.toHaveBeenCalled();
+    rerender({ mode: 'basic' });
     expect(setShowLogs).toHaveBeenCalledWith(false);
     expect(sessionStorage.getItem('panelState.showLogs')).toBe('false');
   });
