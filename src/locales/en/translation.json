@@ -407,7 +407,7 @@
     "yourLanguage": "My Language",
     "userAccount": "User Account",
     "userAccountTooltip": "For users with technical knowledge and their own API keys, you can use your own API key whether logged in or not. User Account is designed for new users who prefer a simplified setup without complex configuration.",
-    "signInRequired": "You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai's API service.",
+    "signInRequired": "Sign up to use Sokuji's built-in translation service — no API key needed. You can also keep using your own provider and key.",
     "targetLanguage": "Other's Language",
     "microphone": "Microphone",
     "microphoneDesc": "Select the microphone to capture your speech. Speak your language into this microphone, and Sokuji will translate everything it hears in real-time.",

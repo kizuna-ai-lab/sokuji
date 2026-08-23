@@ -6,6 +6,8 @@
 // work exists to smooth. The product already splits the two languages:
 // panels for sustained configuration, popovers for a glance.
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   useFloating, useDismiss, useRole, useInteractions, FloatingPortal,
   FloatingFocusManager, offset, flip, shift, size, autoUpdate,
@@ -21,6 +23,8 @@ interface AccountPopoverProps {
 }
 
 const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose }) => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isSignedIn } = useAuth();
 
   const { refs, floatingStyles, context } = useFloating({
@@ -70,7 +74,32 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
           className="account-popover"
           {...getFloatingProps()}
         >
-          {isSignedIn && <UserAccountInfo />}
+          {isSignedIn ? (
+            <UserAccountInfo />
+          ) : (
+            <>
+              <p className="account-popover__msg">
+                {t('simpleConfig.signInRequired',
+                   "Sign up to use Sokuji's built-in translation service — no API key needed. You can also keep using your own provider and key.")}
+              </p>
+              <div className="account-popover__btns">
+                <button
+                  type="button"
+                  className="account-popover__btn account-popover__btn--primary"
+                  onClick={() => { navigate('/sign-up'); onClose(); }}
+                >
+                  {t('common.signUp', 'Sign Up')}
+                </button>
+                <button
+                  type="button"
+                  className="account-popover__btn account-popover__btn--ghost"
+                  onClick={() => { navigate('/sign-in'); onClose(); }}
+                >
+                  {t('common.signIn', 'Sign In')}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </FloatingFocusManager>
     </FloatingPortal>
