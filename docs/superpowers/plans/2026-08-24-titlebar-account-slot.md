@@ -57,7 +57,9 @@ react-i18next, lucide-react, Vitest + @testing-library/react, SASS.
   seven tasks stop competing for the same 30 files, and
   `src/locales/locales.consistency.test.ts` is **expected to fail from Task 2 until
   Task 15 closes it**. Every other test must be green at every task boundary. Do not
-  "fix" that suite by hand-filling catalogues inside another task.
+  "fix" that suite by hand-filling catalogues inside another task. When you add a key,
+  **state its full nested path in your report** — Task 15 has to mirror the same shape
+  into 29 files, and nothing in the test suite enforces key placement.
 
 ---
 
@@ -221,6 +223,8 @@ vi.mock('../../contexts/UserProfileContext', () => ({
   useUserProfile: () => ({ quota, refetchAll: vi.fn() }),
 }));
 
+// This mock is inert in Task 2 — the component does not import the store until
+// Task 3 adds the status dot. Leave it; deleting it only means re-adding it.
 vi.mock('../../stores/settingsStore', () => ({
   useProvider: () => 'openai',
   useTextOnly: () => false,
@@ -300,16 +304,15 @@ const AccountButton: React.FC = () => {
   const { user } = useUser();
   const { quota } = useUserProfile();
 
-  const signedOutLabel = t('titleBar.account.signedOut', 'Account');
-  const signedInLabel = t('titleBar.account.signedIn', 'Account');
+  const accountLabel = t('titleBar.account.label', 'Account');
 
   if (!isSignedIn || !user) {
     return (
       <button
         type="button"
         className="title-bar__action account-button"
-        title={signedOutLabel}
-        aria-label={signedOutLabel}
+        title={accountLabel}
+        aria-label={accountLabel}
       >
         <User size={14} />
       </button>
@@ -323,8 +326,8 @@ const AccountButton: React.FC = () => {
     <button
       type="button"
       className="title-bar__action account-button"
-      title={signedInLabel}
-      aria-label={signedInLabel}
+      title={accountLabel}
+      aria-label={accountLabel}
     >
       <span className="account-button__initial" aria-hidden="true">{initial}</span>
       <span className="title-bar__action-label">{compactBalanceLabel(balance)}</span>
@@ -369,9 +372,12 @@ export default AccountButton;
 
 - [ ] **Step 5: Add the two locale keys to `en` only**
 
-Add `titleBar.account.signedOut` and `titleBar.account.signedIn`, both `Account`, to
-`src/locales/en/translation.json`. Task 15 translates them; see the locale policy in
-Global Constraints for why they do not go into the other 29 here.
+Add **one** key — `titleBar.account.label` = `Account` — to
+`src/locales/en/translation.json`, nested inside the existing `titleBar` object
+alongside `minimize`/`maximize`/`close`. Both states name the same thing to the user,
+so a key per state would only give a translator two chances to render it differently.
+Task 15 mirrors this exact nesting into the other 29; see the locale policy in Global
+Constraints.
 
 - [ ] **Step 6: Run the tests and the locale consistency suite**
 
@@ -1769,8 +1775,7 @@ here, it may have been refined during implementation):
 
 | Key | Note |
 |---|---|
-| `titleBar.account.signedOut` | The word for a user account. Several catalogues already have one under `simpleConfig.userAccount` — reuse it rather than inventing a synonym. |
-| `titleBar.account.signedIn` | Same word as above. |
+| `titleBar.account.label` | The word for a user account, nested inside each catalogue's existing `titleBar` object. Several catalogues already have this word under `simpleConfig.userAccount` — reuse it rather than inventing a synonym. |
 | `common.topUp` | **zh_CN is fixed at 「充值」** — the English label was chosen to match it. Other locales use their own established wording for adding money to a balance. |
 | `simpleConfig.signInRequired` | Two sentences: what signing up gives first, bring-your-own-key as the fallback. **Do not mention purchase in the first sentence** — the whole point of the rewrite. **zh_CN is fixed at** `注册后即可使用 Sokuji 自带的翻译服务，无需申请任何 API key。也可以继续使用你自己的服务商和密钥。` |
 | `common.signInRequired` | **Must keep the `<signInLink>…</signInLink>` markers.** Without them `<Trans>` renders no link and the control silently stops working. **zh_CN is fixed at** `<signInLink>登录或注册</signInLink>即可使用 Kizuna AI，无需 API key。` |
