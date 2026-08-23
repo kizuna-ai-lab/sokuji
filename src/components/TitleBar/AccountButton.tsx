@@ -94,8 +94,18 @@ const AccountButton: React.FC = () => {
   let content: React.ReactNode;
 
   if (!isSignedIn || !user) {
-    label = accountLabel;
-    content = <User size={14} />;
+    // Labelled, like every neighbour in this bar. A bare glyph between two
+    // labelled buttons reads as a missing label, and says nothing about what
+    // the click does — on the one control whose whole job is to be found by
+    // someone who has not signed up yet. The label doubles as the accessible
+    // name so the two never disagree ("label in name").
+    label = t('common.signIn', 'Sign In');
+    content = (
+      <>
+        <User size={14} />
+        <span className="title-bar__action-label">{label}</span>
+      </>
+    );
   } else {
     const initial = (user.name?.[0] ?? user.email[0] ?? '?').toUpperCase();
     const balance = quota?.balance ?? quota?.remaining;

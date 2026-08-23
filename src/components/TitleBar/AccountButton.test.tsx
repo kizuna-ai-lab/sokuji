@@ -299,3 +299,18 @@ describe('AccountButton e-mail verification', () => {
     expect(showToast).not.toHaveBeenCalled();
   });
 });
+
+describe('AccountButton signed-out label', () => {
+  // A bare 14px person glyph sitting between two labelled buttons reads as a
+  // missing label, and says nothing about what clicking it does — on the one
+  // control whose whole job is to be found by someone who has not signed up.
+  it('labels the signed-out entry, like its neighbours', () => {
+    render(<AccountButton />);
+    expect(screen.getByRole('button').textContent).toContain('Sign In');
+  });
+
+  it('still shows no balance while signed out', () => {
+    render(<AccountButton />);
+    expect(screen.queryByText(/\$/)).toBeNull();
+  });
+});

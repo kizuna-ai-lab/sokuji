@@ -86,8 +86,14 @@
 .title-bar__action-label {
   font-size: 12px;
 
-  // Hide labels on narrow windows; icon + tooltip remain
-  @media (max-width: 576px) {
+  // Hide labels on narrow windows; icon + tooltip remain.
+  //
+  // 600, not 576: measured across all 30 locales, Tamil — whose three labels
+  // are the longest in the set — overflows an Electron window between 580 and
+  // 585px, where the labels have just reappeared but the three window buttons
+  // still take 138px. Raising the breakpoint 24px closes that window entirely
+  // and costs nothing a user can perceive.
+  @media (max-width: 600px) {
     display: none;
   }
 }
