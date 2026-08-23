@@ -995,8 +995,7 @@
   },
   "titleBar": {
     "account": {
-      "signedIn": "Account",
-      "signedOut": "Account"
+      "label": "Account"
     },
     "minimize": "Minimize",
     "maximize": "Maximize",

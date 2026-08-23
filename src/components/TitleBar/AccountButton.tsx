@@ -20,16 +20,18 @@ const AccountButton: React.FC = () => {
   const { user } = useUser();
   const { quota } = useUserProfile();
 
-  const signedOutLabel = t('titleBar.account.signedOut', 'Account');
-  const signedInLabel = t('titleBar.account.signedIn', 'Account');
+  // One key, not one per state: both states name the same thing to the user.
+  // Two keys holding an identical string only give a translator two chances to
+  // render it differently, and a reviewer a redundancy to query.
+  const accountLabel = t('titleBar.account.label', 'Account');
 
   if (!isSignedIn || !user) {
     return (
       <button
         type="button"
         className="title-bar__action account-button"
-        title={signedOutLabel}
-        aria-label={signedOutLabel}
+        title={accountLabel}
+        aria-label={accountLabel}
       >
         <User size={14} />
       </button>
@@ -43,8 +45,8 @@ const AccountButton: React.FC = () => {
     <button
       type="button"
       className="title-bar__action account-button"
-      title={signedInLabel}
-      aria-label={signedInLabel}
+      title={accountLabel}
+      aria-label={accountLabel}
     >
       <span className="account-button__initial" aria-hidden="true">{initial}</span>
       <span className="title-bar__action-label">{compactBalanceLabel(balance)}</span>
