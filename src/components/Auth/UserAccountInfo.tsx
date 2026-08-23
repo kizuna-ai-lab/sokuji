@@ -249,7 +249,14 @@ export function UserAccountInfo({
 
     // Open in system browser (Electron) or new tab (browser)
     if (isElectron() && (window as any).electron?.invoke) {
-      (window as any).electron.invoke('open-external', url);
+      // The promise was discarded, so a rejected invoke — main process gone,
+      // handler throwing — surfaced as an unhandled rejection and nothing else.
+      // Every caller of this function was affected, not just one.
+      void (window as any).electron
+        .invoke('open-external', url)
+        .catch((e: unknown) => {
+          console.warn('[UserAccountInfo] Could not open the external page:', e);
+        });
     } else {
       window.open(url, '_blank');
     }

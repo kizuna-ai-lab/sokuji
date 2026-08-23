@@ -23,8 +23,9 @@ vi.mock('../../lib/auth-client', () => ({
   authClient: { oneTimeToken: { generate: async () => ({ data: null, error: 'x' }) } },
 }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
+let electron = false;
 vi.mock('../../utils/environment', () => ({
-  isElectron: () => false,
+  isElectron: () => electron,
   getBackendUrl: () => 'https://sokuji.kizuna.ai',
   getApiUrl: () => 'https://sokuji.kizuna.ai/api',
 }));
@@ -32,6 +33,7 @@ vi.mock('../../utils/environment', () => ({
 beforeEach(() => {
   cleanup();
   invoke.mockClear();
+  electron = false;
   quota = { balance: 12_340_000, last30DaysUsage: 3_420_000, plan: 'free' };
 });
 
@@ -52,5 +54,22 @@ describe('UserAccountInfo top-up', () => {
     quota = null;
     render(<UserAccountInfo />);
     expect(screen.getByRole('button', { name: /top up/i })).toBeTruthy();
+  });
+
+  // The Electron branch fires an IPC call and discards the promise. A rejected
+  // invoke — the main process gone, the handler throwing — became an unhandled
+  // rejection with nothing in the UI to show for it. This covers all three
+  // callers of openExternalWithAuth, not just top-up.
+  it('survives the desktop open-external call rejecting', async () => {
+    electron = true;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    (window as any).electron = {
+      invoke: vi.fn().mockRejectedValue(new Error('no main process')),
+    };
+    render(<UserAccountInfo />);
+    fireEvent.click(screen.getByRole('button', { name: /top up/i }));
+    await waitFor(() => expect(warn).toHaveBeenCalled());
+    delete (window as any).electron;
+    warn.mockRestore();
   });
 });
