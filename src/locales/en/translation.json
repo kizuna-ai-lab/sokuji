@@ -994,6 +994,10 @@
     "pttHint": "Press Space to speak"
   },
   "titleBar": {
+    "account": {
+      "signedIn": "Account",
+      "signedOut": "Account"
+    },
     "minimize": "Minimize",
     "maximize": "Maximize",
     "close": "Close"

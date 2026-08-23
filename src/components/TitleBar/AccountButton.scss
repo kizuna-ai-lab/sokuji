@@ -1,0 +1,27 @@
+// src/components/TitleBar/AccountButton.scss
+//
+// The outlined circle, not a filled disc: rendered side by side, a filled
+// #10a37f disc outweighs every 14px line icon beside it in the title bar.
+// The outline keeps the avatar's circular semantics inside the bar's
+// existing wireframe language. When OAuth lands and a real photograph is
+// available, the circle becomes a filled photo — a photograph earns the
+// weight a flat colour does not.
+.account-button {
+  position: relative;
+
+  &__initial {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1.5px solid currentColor;
+    color: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+}
