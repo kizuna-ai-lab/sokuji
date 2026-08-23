@@ -408,11 +408,16 @@ export function UserAccountInfo({
               </button>
             </div>
 
-            <button className="top-up-button" onClick={handleTopUp}>
-              {t('common.topUp', 'Top up')}
-            </button>
           </>
         )}
+
+        {/* Outside the quota branches on purpose. A failed quota load is one of
+            the likeliest moments for someone to want to add funds, and burying
+            the button inside the success branch left the error state offering
+            no way out of it. */}
+        <button className="top-up-button" onClick={handleTopUp}>
+          {t('common.topUp', 'Top up')}
+        </button>
       </div>
 
     </div>
