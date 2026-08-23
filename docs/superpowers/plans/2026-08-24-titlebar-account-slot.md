@@ -38,19 +38,29 @@ react-i18next, lucide-react, Vitest + @testing-library/react, SASS.
   Never `cd` to the repository root — it is a release behind and its line numbers differ.
 - **Confirm the base before starting**: `git merge-base --is-ancestor 9d81aeca HEAD`
   must exit 0. If it does not, stop and report rather than working on the wrong tree.
-- **Type-check your own files before every commit.** `npx vitest run` does NOT
-  type-check and `npm run build` is a plain esbuild transpile, so without this step
-  nothing in the plan catches a type error. The baseline is dirty — 467 pre-existing
-  errors on clean HEAD — so "tsc is clean" is not achievable and is not the bar. The
-  bar is: **the files YOU touched report zero errors**:
+- **Type-check before every commit — measured as A/B, not as an absolute.** `npx vitest
+  run` does NOT type-check and `npm run build` is a plain esbuild transpile, so without
+  this step nothing in the plan catches a type error. The baseline is dirty (467
+  errors repo-wide) and dirty *unevenly*: `TitleBar/` happens to be clean, but
+  `components/Auth/` carries 8 pre-existing errors, so "the files you touched report
+  nothing" is unachievable there. **The bar is zero NEW errors.** Measure it:
 
   ```bash
-  npx tsc --noEmit 2>&1 | grep -E "<path/you/touched>" || echo "CLEAN"
+  npx tsc --noEmit 2>&1 | grep -cE "<paths/you/touched>"   # after your change
+  git stash && npx tsc --noEmit 2>&1 | grep -cE "<same>"   # baseline
+  git stash pop
   ```
 
-  `tsconfig.json` sets `noUnusedLocals`, so an unused constant or import is a hard
-  error. This is not hypothetical: the first draft of Task 1's code shipped a dead
-  constant that vitest waved straight through.
+  The two counts must match. `tsconfig.json` sets `noUnusedLocals`, so an unused
+  constant or import is a hard error — Task 1's first draft shipped a dead constant
+  that vitest waved straight through, and Task 4's implementation added a `trackEvent`
+  call for an event missing from the closed `AnalyticsEvents` map.
+- **`openExternalWithAuth` is async — assert on it with `await waitFor`.** It awaits
+  one-time-token generation before calling `window.open`, so a synchronous
+  `expect(open).toHaveBeenCalled()` fires before the microtask drains and fails no
+  matter how the mocks are shaped. Any task asserting a click that routes through it
+  (Task 4 did; Task 12's sign-in entry may) needs an `async` test and
+  `await waitFor(() => expect(...))`.
 - **Locale policy — read this before any task that adds a translation key.** Each task
   adds its new keys to `src/locales/en/translation.json` **only**. Task 15 propagates
   every key to the other 29 catalogues in one pass. Consequences, both deliberate:
@@ -591,7 +601,12 @@ The app currently has **no top-up entry at all** — the only route to money is 
 
 **Files:**
 - Modify: `src/components/Auth/UserAccountInfo.tsx`, `src/components/Auth/UserAccountInfo.scss`
-- Modify: all `src/locales/*/translation.json`
+- Modify: `src/lib/analytics.ts` — register `'top_up_clicked': Record<string, never>;`
+  beside `'account_management_clicked'`. `AnalyticsEvents` is a closed map, so a
+  `trackEvent` call for an unregistered event is a hard type error. This was missing
+  from the first draft and read as fine only because the neighbouring
+  `handleFeedbackClick` it was modelled on is already broken the same way on HEAD.
+- Modify: `src/locales/en/translation.json`
 - Test: `src/components/Auth/UserAccountInfo.topUp.test.tsx`
 
 **Interfaces:**
@@ -602,10 +617,13 @@ The app currently has **no top-up entry at all** — the only route to money is 
 
 - [ ] **Step 1: Write the failing test**
 
+The test must be `async`: `openExternalWithAuth` awaits token generation before
+`window.open`, so a synchronous assertion always loses the race.
+
 ```tsx
 // src/components/Auth/UserAccountInfo.topUp.test.tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import { UserAccountInfo } from './UserAccountInfo';
 
 const invoke = vi.fn();
@@ -637,11 +655,11 @@ vi.mock('../../utils/environment', () => ({
 beforeEach(() => { cleanup(); invoke.mockClear(); });
 
 describe('UserAccountInfo top-up', () => {
-  it('offers a top-up button that opens the billing page', () => {
+  it('offers a top-up button that opens the billing page', async () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<UserAccountInfo />);
     fireEvent.click(screen.getByRole('button', { name: /top up/i }));
-    expect(open).toHaveBeenCalled();
+    await waitFor(() => expect(open).toHaveBeenCalled());
     expect(String(open.mock.calls[0][0])).toContain('/dashboard/billing');
     open.mockRestore();
   });
@@ -1503,13 +1521,32 @@ Expected: FAIL — the notice is a `<span>`, not a control.
 
 - [ ] **Step 3: Add the store handshake**
 
-```ts
-// settingsStore.ts — beside settingsNavigationTarget
-accountPopoverRequested: false,
-setAccountPopoverRequested: (next: boolean) => set({ accountPopoverRequested: next }),
-```
+`settingsNavigationTarget` is the pattern to copy, and it occupies **five** places in
+this file — all five need a sibling, or the build fails on the interface alone:
 
-plus the two selector exports.
+| What | Where `settingsNavigationTarget` does it |
+|---|---|
+| state field on the interface | `:231` |
+| action signature on the interface | `:326` |
+| initial value | `:602` |
+| action implementation | `:1262-1264` |
+| selector exports (one per hook) | `:1334`, `:1392` |
+
+```ts
+// on the state interface, beside settingsNavigationTarget
+accountPopoverRequested: boolean;
+// on the action interface
+setAccountPopoverRequested: (next: boolean) => void;
+// in the initial state
+accountPopoverRequested: false,
+// in the store body
+setAccountPopoverRequested: (next) => set({ accountPopoverRequested: next }),
+// at the bottom, beside the other selectors
+export const useAccountPopoverRequested = () =>
+  useSettingsStore((state) => state.accountPopoverRequested);
+export const useSetAccountPopoverRequested = () =>
+  useSettingsStore((state) => state.setAccountPopoverRequested);
+```
 
 - [ ] **Step 4: Render the notice with a link**
 
@@ -1533,6 +1570,25 @@ import { Trans } from 'react-i18next';
     />
   </span>
 </div>
+```
+
+The link is a `<button>` (it opens a popover, it does not navigate), so it needs the
+button chrome reset or it renders as a grey box mid-sentence. `Settings.scss:1723`'s
+`.models-link` is the existing inline-link precedent in this very panel — copy it and
+add the reset:
+
+```scss
+.sign-in-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: vars.$color-primary;
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover { opacity: 0.8; }
+}
 ```
 
 en copy: `<signInLink>Sign in or sign up</signInLink> to use Kizuna AI — no API key needed.`
