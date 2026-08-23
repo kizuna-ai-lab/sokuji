@@ -320,7 +320,7 @@ export interface SettingsStore {
    *  (nothing but a signed-in caller hands over a `getAuthToken` today); pass
    *  it explicitly wherever `useAuth()` is in scope. */
   validateApiKey: (getAuthToken?: () => Promise<string | null>, isSignedIn?: boolean) => Promise<ApiKeyValidationResult>;
-  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>) => Promise<void>;
+  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>, isSignedIn?: boolean) => Promise<void>;
   ensureKizunaApiKey: (getToken: () => Promise<string | null>, isSignedIn: boolean) => Promise<boolean>;
   loadSettings: () => Promise<void>;
   clearCache: () => void;
@@ -1066,9 +1066,13 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    fetchAvailableModels: async (getAuthToken) => {
+    fetchAvailableModels: async (getAuthToken, isSignedIn) => {
       set({loadingModels: true});
-      const result = await get().validateApiKey(getAuthToken);
+      // Forwarded, not defaulted. validateApiKey's optimistic default exists
+      // for the callers that pass no token at all; a caller that DOES pass one
+      // knows the auth state and has to say so, or a signed-out user's null
+      // token is misread as an expired session.
+      await get().validateApiKey(getAuthToken, isSignedIn);
       set({loadingModels: false});
     },
 

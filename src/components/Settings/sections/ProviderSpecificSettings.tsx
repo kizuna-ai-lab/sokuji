@@ -95,7 +95,7 @@ interface ProviderSpecificSettingsProps {
   getProcessedSystemInstructions: () => string;
   availableModels: FilteredModel[];
   loadingModels: boolean;
-  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>) => Promise<void>;
+  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>, isSignedIn?: boolean) => Promise<void>;
 }
 
 /**
@@ -720,7 +720,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         const getAuthToken = isKizunaManagedProvider(provider) && getToken ?
           () => getToken() : undefined;
         
-        await fetchAvailableModels(getAuthToken);
+        // Pass the auth state rather than letting validateApiKey assume it:
+        // getToken is a function whether or not anyone is signed in, so a
+        // signed-out null token would otherwise be read as an expired session.
+        await fetchAvailableModels(getAuthToken, Boolean(userId));
       } catch (error) {
         console.error('[Sokuji][ProviderSpecificSettings] Error refreshing models:', error);
       }
