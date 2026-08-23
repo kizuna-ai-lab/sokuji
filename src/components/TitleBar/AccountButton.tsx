@@ -12,10 +12,9 @@ import { User } from 'lucide-react';
 import { useAuth, useUser } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isKizunaAIEnabled } from '../../utils/environment';
-import { isKizunaManagedProvider } from '../../types/Provider';
+import { isKizunaManagedProvider, Provider } from '../../types/Provider';
 import {
   useProvider,
-  useTextOnly,
   useAccountPopoverRequested,
   useSetAccountPopoverRequested,
 } from '../../stores/settingsStore';
@@ -33,7 +32,6 @@ const AccountButton: React.FC = () => {
   const { showToast } = useToast();
   const { quota } = useUserProfile();
   const provider = useProvider();
-  const textOnly = useTextOnly();
   const [open, setOpen] = useState(false);
   // The popover anchors to the button's own element, so the anchor never
   // travels between components. It is null on the first render and set by the
@@ -114,11 +112,22 @@ const AccountButton: React.FC = () => {
     // wallet funds nothing, so warning them would be noise. E-mail verification
     // is account-level and shows regardless.
     //
-    // bothSplit is deliberately omitted — the Start button derives it from
-    // planBothMode(...) in MainPanel's hot path. The lower floor can only
-    // under-report (no dot while Start is disabled), never show a dot while
-    // Start actually works.
-    const floor = sonioxManagedMinBalanceMicroUsd(Boolean(textOnly));
+    // The floor mirrors sessionStartGate: ONLY managed Soniox has a real one.
+    // Every other provider's floor is 1 — balances are integer micro-USD, so
+    // that is exactly the "> 0" rule. Applying Soniox's floor to the Translate
+    // and Volcengine twins lit a red "too low to start" dot beside a Start
+    // button that was green and worked.
+    //
+    // For Soniox the floor is deliberately the LOWEST of the four: the real one
+    // depends on `effectiveTextOnly` (a participant-only session opens no
+    // synthesis stream) and on `bothSplit`, both of which the Start button
+    // derives from state that lives in MainPanel. Taking the lowest can only
+    // under-report — no dot while Start happens to be disabled — and never the
+    // reverse. A dot that contradicts the button is worse than a missing one.
+    const floor =
+      provider === Provider.KIZUNA_AI_SONIOX
+        ? sonioxManagedMinBalanceMicroUsd(true)
+        : 1;
     const lowBalance =
       isKizunaManagedProvider(provider) && typeof balance === 'number' && balance < floor;
     const unverified = user.emailVerified === false;

@@ -314,3 +314,49 @@ describe('AccountButton signed-out label', () => {
     expect(screen.queryByText(/\$/)).toBeNull();
   });
 });
+
+describe('AccountButton balance floor per provider', () => {
+  const signIn = () => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
+  };
+
+  // sessionStartGate applies the Soniox floor ONLY to managed Soniox; every
+  // other provider's floor is 1, i.e. the plain "> 0" rule. Using the Soniox
+  // number for all of them lights a red "too low to start" dot next to a Start
+  // button that is green and works — the false-positive direction this dot was
+  // specifically designed to avoid.
+  it('does not warn on a balance the Translate twin can actually start with', () => {
+    providerId = 'kizunaai_openai_translate';
+    signIn();
+    quota = { balance: 10_000 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')).toBeNull();
+  });
+
+  it('does not warn on that balance for the Volcengine twin either', () => {
+    providerId = 'kizunaai_volcengine_ast2';
+    signIn();
+    quota = { balance: 10_000 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')).toBeNull();
+  });
+
+  it('still warns those twins at a balance of zero, where Start really is blocked', () => {
+    providerId = 'kizunaai_openai_translate';
+    signIn();
+    quota = { balance: 0 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone'))
+      .toBe('low');
+  });
+
+  it('keeps the real Soniox floor for managed Soniox', () => {
+    providerId = 'kizunaai_soniox';
+    signIn();
+    quota = { balance: 10_000 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone'))
+      .toBe('low');
+  });
+});
