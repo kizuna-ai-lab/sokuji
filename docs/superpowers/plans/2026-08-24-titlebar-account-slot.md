@@ -1577,9 +1577,11 @@ git commit -m "fix(onboarding): drop the step pointing at the removed account se
 
 **Before you start, know the gate you have to keep green.** Unlike the noisy
 directories listed in Global Constraints, `src/components/Settings/sections` is
-**fully green at 28 files / 288 tests**, and `ProviderSection` alone is covered by
-five files — `chips`, `palabraai`, `poweredBy`, `select`, `soniox`. Any red there is
-yours. Run the whole directory, not just your own new test.
+**fully green** — measure the count yourself at the start rather than trusting a
+number written here, which drifts every time a task adds or deletes a file. Any red
+there is yours. `ProviderSection` alone is covered by five files — `chips`,
+`palabraai`, `poweredBy`, `select`, `soniox` — so run the whole directory, not just
+your own new test.
 
 `ProviderSection.tsx:963` states a restriction with nothing to act on. Clicking opens
 the title-bar popover rather than navigating: the sign-in affordance is then
@@ -1589,6 +1591,12 @@ account entry lives.
 **Files:**
 - Modify: `src/stores/settingsStore.ts` (new state + setter + selectors)
 - Modify: `src/components/TitleBar/AccountButton.tsx` (consume the flag)
+- Modify: `src/components/TitleBar/AccountButton.test.tsx` — its `settingsStore` mock
+  lists only `useProvider`/`useTextOnly`, so the two new imports break all of its
+  tests until the mock is extended. Not optional.
+- Modify: `src/components/Settings/Settings.scss` — the `.sign-in-link` block belongs
+  nested inside `.api-key-warning`, whose `span { color: … }` would otherwise beat the
+  link colour.
 - Modify: `src/components/Settings/sections/ProviderSection.tsx:961-964`
 - Modify: all `src/locales/*/translation.json` (`common.signInRequired`)
 - Test: `src/components/Settings/sections/ProviderSection.signIn.test.tsx` (create)
@@ -1598,6 +1606,12 @@ account entry lives.
   `setAccountPopoverRequested(next: boolean): void`,
   `useAccountPopoverRequested()`, `useSetAccountPopoverRequested()` — mirroring the
   existing `settingsNavigationTarget` handshake.
+
+**One test is not enough here, and the plan's own sketch shows why:** stubbing
+`setAccountPopoverRequested` away means the five store edits could all be wrong and
+the test would still pass. Add a second test that drives the **real** store, so the
+handshake itself is covered end to end. Also cover Step 5's `AccountButton` side,
+which the sketch leaves untested — and assert a transition there, not a mount.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1619,8 +1633,13 @@ Expected: FAIL — the notice is a `<span>`, not a control.
 
 - [ ] **Step 3: Add the store handshake**
 
-`settingsNavigationTarget` is the pattern to copy, and it occupies **five** places in
-this file — all five need a sibling, or the build fails on the interface alone:
+`settingsNavigationTarget` shows **where** the five places are, but do not copy its
+*style*: its bare `(state) =>` selectors and untyped action are themselves three of
+this file's 149 `TS7006` implicit-any errors. Copy `engineSlotTarget`'s annotated form
+instead — `(next: boolean)`, `(state: SettingsStore)` — which is clean and sits right
+beside it. Annotating is the only way to hit the zero-new-errors bar here.
+
+The five places:
 
 | What | Where `settingsNavigationTarget` does it |
 |---|---|
@@ -1723,8 +1742,9 @@ git commit -m "feat(settings): make the provider sign-in notice open the account
 
 ## Task 13: Stop showing raw engineering strings to signed-out users
 
-Same gate as Task 12: `src/components/Settings/sections` is fully green (28 files,
-288 tests) and this task edits `ProviderSection`, which five of those files cover.
+Same gate as Task 12: `src/components/Settings/sections` is fully green — measure the
+count yourself, do not trust a number written here — and this task edits
+`ProviderSection`, which five of those files cover.
 `src/stores` is a different story — it carries baseline failures, so A/B there rather
 than assuming.
 
