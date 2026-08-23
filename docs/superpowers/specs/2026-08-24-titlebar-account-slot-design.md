@@ -56,6 +56,7 @@ Settled with jiangzhuo across this session; recorded so the rationale is not los
 | Logs button becomes **advanced-mode only** | It is a diagnostic tool basic users rarely need. A hidden right-click gesture is undiscoverable and would have to be taught during support; `uiMode` is a concept the product already has, with a visible toggle at `src/components/Settings/Settings.tsx:126-145`. |
 | Status dot uses **two colours**, red outranking amber | Blocking and reminding are different states; one colour would flatten them. |
 | Top-up label is **"Top up"** | Matches 「充值」 more closely than "Add funds" or "Recharge". |
+| `ONBOARDING_VERSION` stays at `1.2.0` | Settled 2026-08-24. Bumping it auto-restarts the whole tour for everyone who already finished it (`OnboardingContext.tsx:289-296`), and the only new content is one sentence pointing at the title bar — where a new icon now sits in plain view anyway. Ten forced steps is out of proportion to that. A decision, not an oversight. |
 | Interface language moves to **just above `HelpSection`** | It is set once and never revisited, yet sits second (first whenever `AccountSection` is hidden), directly adjacent to *Translation* languages — two adjacent sections both named "language". Moving it makes translation languages the first thing in the settings list, which is what the panel is for. |
 
 ## Measurements
