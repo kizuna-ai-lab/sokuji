@@ -720,7 +720,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
           </div>
 
-          {sentenceLabels && mode === 'both' && (
+          {sentenceLabels && (lockedMode ?? mode) === 'both' && (
             <div className="language-mirror-line" data-testid="language-mirror-line">
               {t('settings.langSentence.mirror', 'They speak {{their}} → I read {{mine}}', {
                 their: targetLanguageName,
@@ -740,21 +740,23 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                       ? t('settings.resolutionNotesNamedMore', '{{names}} and {{count}} more unavailable — automatic fallbacks are in use.', { names: staleNames.slice(0, 2).join(', '), count: staleNames.length - 2 })
                       : t('settings.resolutionNotesNamed', '{{names}} unavailable — automatic fallbacks are in use.', { names: staleNames.join(', ') })}
                   {' '}
-                  <a
+                  <button
+                    type="button"
                     className="language-model-warning__link"
                     data-testid="resolution-notes-review"
                     onClick={() => openEngineSlot(fallbackNotes[0].direction, fallbackNotes[0].stage)}
                   >
                     {t('settings.resolutionNotesReview', 'Review')}
-                  </a>
+                  </button>
                   {' · '}
-                  <a
+                  <button
+                    type="button"
                     className="language-model-warning__link"
                     data-testid="resolution-notes-use-auto"
                     onClick={switchNotesToAuto}
                   >
                     {t('settings.resolutionNotesUseAuto', 'Switch to Auto')}
-                  </a>
+                  </button>
                 </span>
               </div>
             </div>
@@ -830,12 +832,13 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 {missingStages.map((m, i) => (
                   <span key={m.stage}>
                     {i > 0 && ', '}
-                    <a
+                    <button
+                      type="button"
                       className="language-model-warning__link"
                       onClick={() => openEngineSlot(m.dir, m.stage)}
                     >
                       {t('settings.downloadModelType', 'Download {{type}}', { type: m.label })}
-                    </a>
+                    </button>
                   </span>
                 ))}
               </span>

@@ -101,7 +101,12 @@ export const EnginePage: React.FC<{
                         onBrowse(slot);
                         return;
                       }
-                      adapter.select(slot, picked);
+                      // A settings write can reject (adapter.select is
+                      // async); surface it instead of leaving an unhandled
+                      // rejection with no recovery path.
+                      Promise.resolve(adapter.select(slot, picked)).catch((err) => {
+                        console.error('[Sokuji] [EnginePage] selection write failed:', err);
+                      });
                     }}
                   >
                     {richSelect && (

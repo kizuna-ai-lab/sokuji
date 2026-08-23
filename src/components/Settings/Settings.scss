@@ -1213,11 +1213,20 @@
   align-items: flex-start;
 
   &__link {
+    // A <button> since 2026-08-23 (href-less anchors are not keyboard
+    // focusable) — reset the UA button chrome so it keeps the link look.
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
     color: vars.$color-warning;
     text-decoration: underline;
     cursor: pointer;
     &:hover {
       opacity: 0.8;
+    }
+    &:focus-visible {
+      @include vars.focus-ring;
     }
   }
 }

@@ -184,7 +184,7 @@
     "localInferenceModelsRequired": "Ladda först ner de nödvändiga modellerna i <settingsLink>Inställningar</settingsLink>. Du behöver ladda ner modeller för Taligenkänning (ASR), Översättning och Talsyntes (TTS) för att komma igång.",
     "missingModelsWarning": "{{types}}-modell(er) saknas för detta språkpar.",
     "resolutionNotesSummary": "{{count}} av dina valda modeller är otillgängliga — automatiska reservval används.",
-    "resolutionNotesNamed": "{{names}} otillgänglig — automatiska reservval används.",
+    "resolutionNotesNamed": "{{names}} saknas — automatiska reservlösningar används.",
     "resolutionNotesNamedMore": "{{names}} och {{count}} till otillgängliga — automatiska reservval används.",
     "resolutionNotesUseAuto": "Byt till Auto",
     "resolutionNotesReview": "Granska",

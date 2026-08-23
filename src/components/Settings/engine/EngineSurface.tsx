@@ -18,9 +18,13 @@ export const EngineSurface: React.FC<{
   renderLibrary: (slot: SlotId) => React.ReactNode;
   renderStorage: () => React.ReactNode;
   initialSlot?: SlotId | null;
+  /** Called once per consumed initialSlot, so the HOST can drop its stored
+   *  copy — a stale prop would re-arm the flash on a later remount
+   *  (switching between the two local providers remounts this surface). */
+  onInitialSlotConsumed?: () => void;
   /** Effective audio mode, handed through to EnginePage (see its doc). */
   effectiveMode: AudioMode;
-}> = ({ adapter, renderLibrary, renderStorage, initialSlot = null, effectiveMode }) => {
+}> = ({ adapter, renderLibrary, renderStorage, initialSlot = null, onInitialSlotConsumed, effectiveMode }) => {
   const { t } = useTranslation();
   const [pushed, setPushed] = useState<Pushed>(null);
   // The flash signal is a CONSUMED copy of initialSlot, not the prop itself:
@@ -42,6 +46,7 @@ export const EngineSurface: React.FC<{
       setFlashSlot(initialSlot);
       if (pushedRef.current) setNavDir('pop');
       setPushed(null);
+      onInitialSlotConsumed?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSlot]);

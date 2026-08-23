@@ -1,5 +1,5 @@
 /**
- * Short display names for models (2026-08-23 A+短名 decision): the engine
+ * Short display names for models (2026-08-23 short-name decision): the engine
  * page's dropdowns, the chips, and the fallback summary show SHORT names;
  * full names stay in the Library and Storage cards, where there is room and
  * context for the qualifiers.

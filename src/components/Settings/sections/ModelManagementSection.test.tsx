@@ -239,6 +239,29 @@ describe('ModelManagementSection — Library surface keeps the original group li
     }
   });
 
+  it('a Library opened from the REVERSE direction reads and writes THAT direction (Codex X1)', () => {
+    // Forward pair en→ja. The participant slot's Library passes
+    // direction="ja→en": ja-only moonshine must now be COMPATIBLE (visible
+    // without the show-all toggle), and selecting it must write the ja→en
+    // entry — not the forward en→ja one.
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+    mockStatuses['moonshine-tiny-ja-quant'] = 'downloaded';
+
+    render(<ModelManagementSection isSessionActive={false} stageFilter="asr" direction="ja→en" />);
+
+    const card = screen.getByTestId('model-card-moonshine-tiny-ja-quant');
+    // Compatible under the slot's direction: no show-all toggle needed, and
+    // the card is selectable (not marked incompatible).
+    expect(card.className).not.toContain('model-card--incompatible');
+    fireEvent.click(card);
+
+    expect(mockUpdate).toHaveBeenCalled();
+    const written = mockUpdate.mock.calls[mockUpdate.mock.calls.length - 1][0].selections;
+    expect(written['ja→en'].asr.modelId).toBe('moonshine-tiny-ja-quant');
+    expect(written['en→ja']).toBeUndefined();
+  });
+
   it('an incompatible model offers Download but clicking it (the "Use" affordance) does not write a selection', async () => {
     mockSettings.sourceLanguage = 'en';
     mockSettings.targetLanguage = 'ja';

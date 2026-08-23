@@ -25,7 +25,7 @@ import {
   type ModelStatus,
   type ModelType,
 } from '../../../lib/local-inference/modelManifest';
-import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
+import { directionKey, emptyDirection, splitDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
 import { languageNameFor } from '../engine/languageName';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
@@ -48,6 +48,12 @@ interface ModelManagementSectionProps {
   /** Render only this stage's group (used by the Engine surface's Library
    *  push, which is already scoped to one stage). Omitted = all three. */
   stageFilter?: Stage;
+  /** The direction ("src→tgt") whose slot opened this Library push. When
+   *  set, compatibility grouping, selected-state resolution, and selection
+   *  writes all target THIS pair — a participant-slot Browse must not read
+   *  or write the forward speaker pair. Omitted = the settings' forward
+   *  pair (the standalone render). */
+  direction?: string;
 }
 
 // ─── ModelCard ─────────────────────────────────────────────────────────────
@@ -320,6 +326,7 @@ const sortTtsModels = createModelSorter((a, b) =>
 export function ModelManagementSection({
   isSessionActive,
   stageFilter,
+  direction,
 }: ModelManagementSectionProps) {
   const { t } = useTranslation();
   const settings = useLocalInferenceSettings();
@@ -373,7 +380,12 @@ export function ModelManagementSection({
     initialize();
   }, [initialize]);
 
-  const { sourceLanguage, targetLanguage } = settings;
+  // ONE pair drives everything below (compat lists, resolve, writes, the
+  // no-model warnings): the opening slot's direction when this is a Library
+  // push, the settings' forward pair otherwise.
+  const [sourceLanguage, targetLanguage] = direction
+    ? splitDirection(direction)
+    : [settings.sourceLanguage, settings.targetLanguage];
 
   /**
    * Live, non-persisted view of "what would actually run right now" per
@@ -512,8 +524,8 @@ export function ModelManagementSection({
   }, [isEdgeTtsSelected]);
 
   const filteredVoices = useMemo(
-    () => filterVoicesByLanguage(edgeTtsVoices, settings.targetLanguage),
-    [edgeTtsVoices, settings.targetLanguage],
+    () => filterVoicesByLanguage(edgeTtsVoices, targetLanguage),
+    [edgeTtsVoices, targetLanguage],
   );
 
   // edge voice list shape consumed by LocalInferenceVoiceSection
@@ -762,7 +774,7 @@ export function ModelManagementSection({
                   onDelete={() => deleteModel(entry.id)}
                   onImport={() => setImportFor(entry)}
                 />
-                {statuses[entry.id] === 'downloaded' && (
+                {statuses[entry.id] === 'downloaded' && deviceReady(entry, webgpuAvailable) && (
                   <div className="model-card__available-when-lang">
                     {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
                       lang: entry.languages.map((l) => languageNameFor(l)).join(', '),
@@ -833,7 +845,7 @@ export function ModelManagementSection({
                   onDelete={() => deleteModel(entry.id)}
                   onImport={() => setImportFor(entry)}
                 />
-                {statuses[entry.id] === 'downloaded' && (
+                {statuses[entry.id] === 'downloaded' && deviceReady(entry, webgpuAvailable) && (
                   <div className="model-card__available-when-lang">
                     {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
                       lang: entry.languages.map((l) => languageNameFor(l)).join(', '),
@@ -962,7 +974,7 @@ export function ModelManagementSection({
                   onDelete={() => deleteModel(entry.id)}
                   onImport={() => setImportFor(entry)}
                 />
-                {statuses[entry.id] === 'downloaded' && (
+                {statuses[entry.id] === 'downloaded' && deviceReady(entry, webgpuAvailable) && (
                   <div className="model-card__available-when-lang">
                     {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
                       lang: entry.languages.map((l) => languageNameFor(l)).join(', '),

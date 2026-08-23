@@ -519,11 +519,25 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     }
     const speakerDir = directionKey(selection.sourceLanguage, selection.targetLanguage);
     const participantDir = directionKey(selection.targetLanguage, selection.sourceLanguage);
+    // The mandatory leg follows the audio mode (see the ready verdict below);
+    // read it up front so pin priority and the status refresh judge the SAME
+    // leg the gate does. Picker position, not lockedMode — see the verdict's
+    // own comment.
+    let audioMode: 'speaker' | 'participant' | 'both' = 'speaker';
+    try {
+      const { default: useAudioStore } = await import('./audioStore');
+      audioMode = useAudioStore.getState().mode;
+    } catch { /* default: speaker */ }
+    const mandatoryFirst = audioMode === 'participant'
+      ? [participantDir, speakerDir] : [speakerDir, participantDir];
     // Pins now live on the (direction, stage) that chose them — collect only
     // the two directions this gate actually resolves, not every direction the
     // user has ever touched (catalogStatusRepos does that broader collection
-    // for the direction-agnostic catalog cache).
-    const pins = pinsFromSelections(selections, [speakerDir, participantDir]);
+    // for the direction-agnostic catalog cache). First-wins, so the MANDATORY
+    // leg's variant pin takes priority when both directions pin the same
+    // model differently — the status refresh below must judge the repo the
+    // gate's verdict actually depends on.
+    const pins = pinsFromSelections(selections, mandatoryFirst);
     const asCards = (ids: string[]): NativeModelInfo[] =>
       ids.map((id) => catalog[id]).filter((c): c is NativeModelInfo => !!c);
     // FIRST refresh: BOTH directions' candidate statuses, variant-aware — so a
@@ -564,12 +578,16 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     // language compatibility, download status, and hardware gating into a
     // single verdict per stage, so there is no separate corrections/effective
     // bridge left to build: a null stage simply means "nothing to require".
-    const resolvedAsr = speaker.asr?.modelId ?? '';
-    const resolvedTranslation = speaker.translation?.modelId ?? '';
-    const resolvedTts = speaker.tts?.modelId ?? '';
+    const mandatoryLeg = audioMode === 'participant' ? participant : speaker;
+    const [mandatorySrc, mandatoryTgt] = audioMode === 'participant'
+      ? [selection.targetLanguage, selection.sourceLanguage]
+      : [selection.sourceLanguage, selection.targetLanguage];
+    const resolvedAsr = mandatoryLeg.asr?.modelId ?? '';
+    const resolvedTranslation = mandatoryLeg.translation?.modelId ?? '';
+    const resolvedTts = mandatoryLeg.tts?.modelId ?? '';
     const models = requiredNativeModels(
       resolvedAsr, resolvedTranslation, resolvedTts,
-      selection.sourceLanguage, selection.targetLanguage, catalog, textOnly);
+      mandatorySrc, mandatoryTgt, catalog, textOnly);
     // SECOND refresh: the selected models' chosen variant repos (pin ?? recommended).
     // Includes TTS alongside ASR/translation — omitting it here meant a pinned
     // non-recommended TTS variant (e.g. fp32 on a box where bf16 is
@@ -582,7 +600,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     // passing it raw would silently drop the pin lookup for Auto-TTS users.
     // Mirrors LocalNativeProviderConfig's ttsModelId resolution (same "not the
     // raw stage choice, which can be '' for Auto" reasoning).
-    const resolvedTtsId = resolveNativeTts(resolvedTts, selection.targetLanguage, catalog) ?? '';
+    const resolvedTtsId = resolveNativeTts(resolvedTts, mandatoryTgt, catalog) ?? '';
     const resolved = deriveVariantRepos(asCards([resolvedAsr, resolvedTranslation, resolvedTtsId]), pins);
     const statusRepos = Object.keys(resolved).length > 0 ? resolved : undefined;
     await get().refresh(models, statusRepos);
@@ -595,15 +613,10 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     // with no participant models and silently do nothing). TTS never blocks.
     // resolve() already folds language compatibility, download status, and
     // hardware gating into a single null/non-null verdict per stage.
-    // Audio mode is read directly (dynamic import, same discipline as the
-    // settings read above); the picker position is what Start will use —
-    // lockedMode only differs mid-session, when Start is moot.
-    let audioMode: 'speaker' | 'participant' | 'both' = 'speaker';
-    try {
-      const { default: useAudioStore } = await import('./audioStore');
-      audioMode = useAudioStore.getState().mode;
-    } catch { /* default: speaker */ }
-    const mandatory = audioMode === 'participant' ? participant : speaker;
+    // Audio mode was read up front (pins/refresh use it too); the picker
+    // position is what Start will use — lockedMode only differs mid-session,
+    // when Start is moot.
+    const mandatory = mandatoryLeg;
     const ready = Boolean(mandatory.asr && mandatory.translation);
     const reason: NativeReadinessReason = ready ? 'ready'
       : !mandatory.asr ? 'asr-incompatible'

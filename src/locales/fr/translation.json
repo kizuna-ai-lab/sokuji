@@ -184,7 +184,7 @@
     "localInferenceModelsRequired": "Veuillez d'abord télécharger les modèles requis dans les <settingsLink>Paramètres</settingsLink>. Vous devez télécharger les modèles de Reconnaissance vocale (ASR), Traduction et Synthèse vocale (TTS) pour commencer.",
     "missingModelsWarning": "Modèle(s) {{types}} manquant(s) pour cette paire de langues.",
     "resolutionNotesSummary": "{{count}} de vos modèles sélectionnés sont indisponibles — des solutions de repli automatiques sont utilisées.",
-    "resolutionNotesNamed": "{{names}} indisponible — des solutions de repli automatiques sont utilisées.",
+    "resolutionNotesNamed": "{{names}} indisponible(s) — des solutions de repli automatiques sont utilisées.",
     "resolutionNotesNamedMore": "{{names}} et {{count}} de plus indisponibles — des solutions de repli automatiques sont utilisées.",
     "resolutionNotesUseAuto": "Passer en Auto",
     "resolutionNotesReview": "Vérifier",

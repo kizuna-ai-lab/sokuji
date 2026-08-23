@@ -1407,3 +1407,21 @@ export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state
 
 export { useSettingsStore };
 export default useSettingsStore;
+
+// The local providers' readiness gate is mode-aware (the mandatory leg
+// follows the audio mode — see modelStore/nativeModelStore
+// ensureSelectionReady), so a mode change can flip validity in either
+// direction while nothing else re-runs validation. Revalidate on every mode
+// change while a local provider is active; other providers' validity does
+// not depend on the mode. Lives HERE (not in audioStore): this module
+// already imports audioStore statically, and the reverse import — even a
+// dynamic one — creates a type-level cycle.
+useAudioStore.subscribe(
+  (state) => state.mode,
+  () => {
+    const st = useSettingsStore.getState();
+    if (st.provider === Provider.LOCAL_INFERENCE || st.provider === Provider.LOCAL_NATIVE) {
+      void st.validateApiKey();
+    }
+  },
+);

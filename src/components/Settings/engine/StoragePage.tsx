@@ -50,15 +50,18 @@ function computeDeleteNotes(
       if (beforeId !== id) continue; // this delete doesn't touch this slot
       const afterId = afterResult[stage]?.modelId ?? null;
       const stageNoun = t(STAGE_NOUN_KEY[stage][0], STAGE_NOUN_KEY[stage][1]);
-      out.push(
-        afterId
-          ? t('engineUi.deleteFallsBack', 'Deleting {{name}}: {{stage}} falls back to {{to}}.', {
-              name: displayName(id), stage: stageNoun, to: displayName(afterId),
-            })
-          : t('engineUi.deleteNoModel', 'Deleting {{name}}: no {{stage}} model remains — sessions cannot start.', {
-              name: displayName(id), stage: stageNoun,
-            }),
-      );
+      if (afterId) {
+        out.push(t('engineUi.deleteFallsBack', 'Deleting {{name}}: {{stage}} falls back to {{to}}.', {
+          name: displayName(id), stage: stageNoun, to: displayName(afterId),
+        }));
+      } else if (stage !== 'tts') {
+        // "sessions cannot start" is only true for the gate's mandatory
+        // stages — a missing TTS degrades to subtitles and never blocks, so
+        // claiming otherwise here would be false.
+        out.push(t('engineUi.deleteNoModel', 'Deleting {{name}}: no {{stage}} model remains — sessions cannot start.', {
+          name: displayName(id), stage: stageNoun,
+        }));
+      }
     }
   }
   return out;

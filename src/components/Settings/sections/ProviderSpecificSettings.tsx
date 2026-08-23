@@ -2129,9 +2129,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           adapter={nativeAdapter}
           effectiveMode={lockedMode ?? mode}
           initialSlot={engineInitialSlot}
+          onInitialSlotConsumed={() => setEngineInitialSlot(null)}
           renderLibrary={(slot) => (
             <NativeModelManagementSection isSessionActive={isSessionActive}
-              stageFilter={slot.stage} />
+              stageFilter={slot.stage} direction={slot.dir} />
           )}
           renderStorage={() => <StoragePage provider="native" isSessionActive={isSessionActive} />}
         />
@@ -2249,9 +2250,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           adapter={wasmAdapter}
           effectiveMode={lockedMode ?? mode}
           initialSlot={engineInitialSlot}
+          onInitialSlotConsumed={() => setEngineInitialSlot(null)}
           renderLibrary={(slot) => (
             <ModelManagementSection isSessionActive={isSessionActive}
-              stageFilter={slot.stage} />
+              stageFilter={slot.stage} direction={slot.dir} />
           )}
           renderStorage={() => <StoragePage provider="wasm" isSessionActive={isSessionActive} />}
         />

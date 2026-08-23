@@ -6,7 +6,7 @@
 
 **Architecture:** A push-capable `EngineSurface` hosts three pages (Engine / Library / Storage) inside the provider tab for the two local providers, and as an overlay in simple mode. The Engine page renders both directions' slots from `resolve()` output through a small per-provider `EngineAdapter`; the Library reuses the existing model-management sections constrained to one stage; the Storage page owns deletion with resolver-computed consequence previews. `LanguageSection` gains mode-verb sentence labels and renders `ResolutionNote`s.
 
-**Tech Stack:** React 18 + TypeScript (strict), Zustand, SCSS (colocated), i18next, Vitest + jsdom + @testing-library/react.
+**Tech Stack:** React 19 + TypeScript (strict), Zustand, SCSS (colocated), i18next, Vitest + jsdom + @testing-library/react.
 
 **Spec:** `docs/superpowers/specs/2026-08-22-engine-model-selection-design.md` — this plan implements stages **S0 + S4–S7** (Parts 3–4, the chips row, and the inherited data-layer item "textOnly still resolves TTS"). Stages S1–S3 landed as `docs/superpowers/plans/2026-08-22-selection-storage-and-resolution.md` (PR #436).
 

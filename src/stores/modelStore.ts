@@ -480,14 +480,20 @@ export const useModelStore = create<ModelStoreState>()(
       // starts, which can downgrade an explicit AST-mismatched pick to auto
       // (possibly null). Applying it here too — BEFORE computing `ready` —
       // keeps this gate's verdict from disagreeing with what Start actually
-      // builds. Speaker direction only: AST is a WASM-manifest concept (see
-      // candidates.wasm.ts), and only the speaker leg can block Start.
+      // builds. BOTH legs get it: localParticipantConfig guards the
+      // participant leg at build time, and since the mode-aware gate below
+      // can make the participant leg mandatory, an unguarded participant
+      // resolution here could report ready while the build masks its
+      // translation to null.
       const guardedSpeaker = guardAstCrossStage(
         sourceLanguage, targetLanguage, selections, rawSpeaker,
         (masked) => get().resolve(sourceLanguage, targetLanguage, masked));
       const speaker = textOnly ? stripTts(guardedSpeaker) : guardedSpeaker;
       const rawParticipant = get().resolve(targetLanguage, sourceLanguage, selections);
-      const participant = textOnly ? stripTts(rawParticipant) : rawParticipant;
+      const guardedParticipant = guardAstCrossStage(
+        targetLanguage, sourceLanguage, selections, rawParticipant,
+        (masked) => get().resolve(targetLanguage, sourceLanguage, masked));
+      const participant = textOnly ? stripTts(guardedParticipant) : guardedParticipant;
 
       // Garbage-collect every id either resolution found dead (an id the
       // manifest no longer knows about at all) in one combined write.

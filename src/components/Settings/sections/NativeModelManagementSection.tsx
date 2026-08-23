@@ -21,7 +21,7 @@ import {
   type NativeModelCardSpec,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import { NativeDeviceControl } from './NativeDeviceControl';
-import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
+import { directionKey, emptyDirection, splitDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { languageNameFor } from '../engine/languageName';
 import { TierIcon } from './TierIcon';
@@ -454,7 +454,10 @@ export const NativeModelManagementSection: React.FC<{
   /** Render only this stage's group (used by the Engine surface's Library
    *  push, which is already scoped to one stage). Omitted = all three. */
   stageFilter?: Stage;
-}> = ({ isSessionActive = false, stageFilter }) => {
+  /** The direction ("src→tgt") whose slot opened this Library push — see
+   *  ModelManagementSection's prop of the same name. */
+  direction?: string;
+}> = ({ isSessionActive = false, stageFilter, direction }) => {
   const { t } = useTranslation();
   const settings = useLocalNativeSettings();
   const update = useUpdateLocalNative();
@@ -473,7 +476,13 @@ export const NativeModelManagementSection: React.FC<{
 
   const [showAllAsr, setShowAllAsr] = useState(false);
 
-  const dir = directionKey(settings.sourceLanguage, settings.targetLanguage);
+  // ONE pair drives everything below — the opening slot's direction when
+  // this is a Library push, the settings' forward pair otherwise (see
+  // ModelManagementSection's identical treatment).
+  const [srcLang, tgtLang] = direction
+    ? splitDirection(direction)
+    : [settings.sourceLanguage, settings.targetLanguage];
+  const dir = directionKey(srcLang, tgtLang);
 
   // Live, resolved view of "what would actually run right now" per stage —
   // computed from the catalog, current download/hardware state, and the
@@ -483,20 +492,20 @@ export const NativeModelManagementSection: React.FC<{
   // pick shows the auto fallback as active until it resolves, exactly like
   // the WASM panel.
   const resolvedSelection = useMemo(
-    () => useNativeModelStore.getState().resolve(settings.sourceLanguage, settings.targetLanguage, settings.selections),
-    [statuses, catalog, settings.sourceLanguage, settings.targetLanguage, settings.selections],
+    () => useNativeModelStore.getState().resolve(srcLang, tgtLang, settings.selections),
+    [statuses, catalog, srcLang, tgtLang, settings.selections],
   );
   const selectedAsr = resolvedSelection.asr?.modelId ?? '';
   const selectedTranslation = resolvedSelection.translation?.modelId ?? '';
   const selectedTts = resolvedSelection.tts?.modelId ?? '';
 
-  const asrCards = useMemo(() => nativeAsrCards(settings.sourceLanguage, catalog), [settings.sourceLanguage, catalog]);
+  const asrCards = useMemo(() => nativeAsrCards(srcLang, catalog), [srcLang, catalog]);
   const asrIncompatibleCards = useMemo(
-    () => nativeAsrIncompatibleCards(settings.sourceLanguage, catalog), [settings.sourceLanguage, catalog]);
+    () => nativeAsrIncompatibleCards(srcLang, catalog), [srcLang, catalog]);
   const translationCards = useMemo(
-    () => nativeTranslationCards(settings.sourceLanguage, settings.targetLanguage, catalog),
-    [settings.sourceLanguage, settings.targetLanguage, catalog]);
-  const ttsCards = useMemo(() => nativeTtsCards(settings.targetLanguage, catalog), [settings.targetLanguage, catalog]);
+    () => nativeTranslationCards(srcLang, tgtLang, catalog),
+    [srcLang, tgtLang, catalog]);
+  const ttsCards = useMemo(() => nativeTtsCards(tgtLang, catalog), [tgtLang, catalog]);
 
   // Quant-variant data comes PRECOMPUTED from the models_catalog feed — the
   // sidecar owns the full ladder per card with machine-aware supported flags
@@ -712,7 +721,7 @@ export const NativeModelManagementSection: React.FC<{
       builtinVoices={builtinVoices}
       store={store}
       selected={settings.ttsVoice}
-      targetLanguage={settings.targetLanguage}
+      targetLanguage={tgtLang}
       isSessionActive={isSessionActive}
       onSelect={(id) => update({ ttsVoice: id })}
       // NativeVoiceSection owns and refreshes its own custom-voice list
@@ -795,7 +804,7 @@ export const NativeModelManagementSection: React.FC<{
           ) : (
             <div className="model-card__no-model-warning">
               <AlertTriangle size={14} />
-              {t('settings.noTtsModel', 'No TTS model for {{language}}', { language: settings.targetLanguage })}
+              {t('settings.noTtsModel', 'No TTS model for {{language}}', { language: tgtLang })}
             </div>
           )}
         </ModelGroup>
