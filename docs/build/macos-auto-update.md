@@ -13,45 +13,47 @@ app updates itself". Signing is a prerequisite for that, not the whole of it.
 
 ## TL;DR verdict
 
-**Yes, true in-app auto-update (download + silent install + relaunch, like
-Chrome/VS Code) is technically possible for Sokuji on macOS, and most of the
-plumbing already exists in this repo.** Three things stand in the way, and all
-three must go:
+**Yes — and it does not require paying Apple.** True in-app auto-update
+(download + silent install + relaunch, like Chrome/VS Code) is achievable with a
+**locally created self-signed code-signing certificate**, because what
+Squirrel.Mac actually demands is a *stable* signature, not an *Apple* one. See
+§2.5, which is the section to read if you read only one.
 
-1. **No Developer ID code signature** — the hard blocker, and the only one that
-   costs money. Squirrel.Mac (the engine under both Electron's built-in
-   `autoUpdater` and `electron-updater`'s `MacUpdater`) verifies each downloaded
-   update against the *running* app's code-signing designated requirement, and
-   refuses to install anything that does not match. There is no flag, fork, or
-   configuration escape hatch — the check lives in compiled Objective-C inside
-   Electron itself, not in JS. (§1.3, §5.1)
+Three things stand in the way today, and all three must go:
+
+1. **The signature is ad-hoc, so it is not stable.** Squirrel.Mac (the engine
+   under both Electron's built-in `autoUpdater` and `electron-updater`'s
+   `MacUpdater`) verifies each downloaded update against the *running* app's
+   code-signing designated requirement (DR). An ad-hoc signature's DR is a
+   per-build cdhash, so it can never match. A **self-signed certificate**, by
+   contrast, yields a DR of the form
+   `identifier "…" and certificate root = H"…"`, which is identical across
+   rebuilds — and Squirrel does **not** require a trusted anchor. Cost: $0.
+   (§1.3, §2.5, §5.1)
 2. **No `.zip` asset is published.** `MacUpdater` accepts only a zip and
    explicitly rejects `pkg`/`dmg`; today's releases ship PKGs only, so even a
    correctly signed build would fail with `ERR_UPDATER_ZIP_FILE_NOT_FOUND`.
    (§1.4)
 3. **`/Applications/Sokuji.app` is root-owned.** The PKG installs it as root,
    and Squirrel's installer runs as the invoking user with **no** privilege
-   escalation, so it cannot replace that bundle. Fixing 1 and 2 without fixing
-   this produces an updater that downloads correctly and then fails to install.
-   (failure mode 12)
+   escalation, so it likely cannot replace that bundle. Fixing 1 and 2 without
+   fixing this produces an updater that downloads correctly and then fails to
+   install. (failure mode 12)
 
-- With an Apple Developer Program membership (**USD 99/year**) + a Developer ID
-  Application certificate + notarization, the existing
-  `electron/update-manager.js` + `electron-updater` stack can do full
-  auto-update after roughly: add a `zip` target for mac, add ~6 CI secrets, and
-  delete the darwin "notify-only" branch. Estimated effort: 1–2 days of
-  engineering plus Apple enrollment lead time.
-- Without an Apple account, **silent in-place auto-update is impossible** via
-  any Squirrel-based path (ad-hoc signatures mathematically cannot pass the
-  check — see §5.1). The honest fallbacks are (a) a semi-automatic
-  "download the PKG in-app and launch the installer" flow mirroring the
-  existing Windows path, or (b) embedding the native Sparkle framework with
-  EdDSA-signed updates, which avoids Apple signing for *updates* but is a
-  large, unmaintained-territory integration for Electron and does nothing for
-  the first-install Gatekeeper experience.
-- Signing + notarizing would *also* eliminate today's first-install pain (the
-  "unverified developer" dialog / System Settings "Open Anyway" dance, which
-  macOS Sequoia made strictly worse by removing the Control-click override).
+What the money does and does not buy:
+
+- **Auto-update does not need the USD 99.** A self-signed certificate satisfies
+  Squirrel.Mac and — very probably — TCC, so microphone permission would also
+  stop resetting on every update (§2.5c; this specific point still needs one
+  hardware test).
+- **First-install friction does need it.** Gatekeeper requires *notarization*,
+  which requires the paid membership. No certificate of your own, and no
+  updater, changes the first-run experience: the `sudo xattr -d
+  com.apple.quarantine` step stays. The realistic mitigations there are a
+  Homebrew tap or a documented `curl` installer (§4.4), not a code change.
+- Everything else that gets suggested — Sparkle, `update.electronjs.org`, the
+  free Apple tier, the nonprofit fee waiver — either requires the same money or
+  buys nothing over the self-signed route. See "What does NOT work".
 
 ---
 
@@ -339,6 +341,128 @@ https://github.com/electron-userland/electron-builder/blob/master/packages/elect
 
 ---
 
+### 2.5 The self-signed certificate route — auto-update for $0
+
+This is the finding that changes the decision. Squirrel.Mac needs a signature
+that is **stable and self-consistent**, not one that chains to Apple. A
+certificate you generate yourself provides exactly that.
+
+#### 2.5a Verification does not require a trusted anchor
+
+Apple's Code Signing Guide, [Code Signing Tasks](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html):
+
+> "The simple act of code signing does not require a certificate authority's
+> signature on your certificate…"
+
+> "Except for the explicit `anchor trusted` requirement, the system does not
+> consult its trust settings database when verifying a code requirement.
+> Therefore, as long as you don't add this designated requirement to your code
+> signature, **the anchor certificate you use for signing your code does not
+> have to be introduced to the user's system for validation to succeed.**"
+
+Confirmed in Apple's open-source Security implementation. `CSCommon.h`
+documents the flag as opt-in, and says what the default is:
+
+```c
+kSecCSCheckTrustedAnchors = 1 << 27, /* build certificate chain to system trust
+                                        anchors, not to any self-signed certificate */
+```
+
+and `StaticCode.cpp`'s `verifySignature` installs an *empty* anchor set unless
+that flag is passed. Squirrel.Mac passes
+`kSecCSCheckNestedCode | kSecCSStrictValidate | kSecCSCheckAllArchitectures`
+(§1.3) — `kSecCSCheckTrustedAnchors` is **absent**. Gatekeeper is the subsystem
+that does demand a trusted anchor, and it only engages on quarantined files.
+
+#### 2.5b The DR is stable across rebuilds
+
+Apple's DR generator (`drmaker.cpp`) branches on whether there is a certificate
+at all:
+
+```cpp
+// we can't make an explicit DR for a (proposed) ad-hoc signing because that
+// requires the CodeDirectory (which we ain't got yet)
+if (ctx.certCount() == 0) return NULL;
+```
+
+With a certificate it emits `identifier <id> and <anchor hash>`; `isAppleCA()`
+is false for a self-signed cert, so it takes the `nonAppleAnchor()` branch and
+pins the SHA-1 of the cert. The result reads:
+
+```
+designated => identifier "ai.kizunaai.sokuji" and certificate root = H"<sha1 of your cert>"
+```
+
+Ad-hoc takes the other path — `StaticCode.cpp` returns "a cdhash requirement for
+all architectures", which is why today's builds can never validate each other.
+TN3127 puts it in prose: "Ad hoc signed code… has a DR but it's tied to that
+specific version of the code."
+
+**So a rebuild signed with the same certificate and identifier satisfies the
+previous build's DR, and Squirrel.Mac installs it.**
+
+#### 2.5c TCC very likely stops re-prompting too
+
+TN3127 describes the mechanism using *microphone* as its own example:
+
+> "macOS solves this problem by recording your app's DR in its database of apps
+> authorized to access the microphone. Each time your app tries to access the
+> microphone, macOS checks that this version of the app satisfies the original
+> DR."
+
+A self-signed certificate produces a stable DR (§2.5b), so the recorded DR keeps
+matching. **Caveat, stated honestly:** no Apple document says outright that TCC
+accepts a non-Apple certificate — Apple engineers recommend Apple Development /
+Developer ID identities simply because that is what developers have. This is
+inference from a verified mechanism, and it is hardware test #1.
+
+#### 2.5d What it costs you
+
+- Apple's guidance says **"Do not ship apps signed by self-signed
+  certificates."** The stated reason is that it proves nothing about authorship
+  to the user — which costs Sokuji nothing here, because without notarization
+  the app already proves nothing to Gatekeeper either. This is a real
+  "against Apple's advice" call, made with eyes open, not a loophole: nothing
+  is hidden from the user and Gatekeeper still behaves exactly as before.
+- **First install is completely unchanged** — Gatekeeper wants notarization.
+- **Certificate rotation resets everything**: a new cert means a new DR, which
+  breaks the update chain *and* re-prompts TCC. Issue it with a very long
+  validity and back it up carefully — this becomes a project secret on par with
+  the signing key itself. Expired certs still *verify* (the engine accepts
+  signatures made with expired certificates) but `codesign` refuses to *sign*
+  with one.
+- **Hardened runtime and entitlements are not needed** — those are notarization
+  requirements. Skip them.
+- **Pin the DR explicitly** with `codesign -r` rather than relying on the
+  `nonAppleAnchor()` organization-field heuristic. Do not hand-write the
+  requirement: dump the generated one with `codesign -d -r-` and reuse it
+  verbatim.
+
+#### 2.5e electron-builder already supports non-Apple identities
+
+`app-builder-lib/out/codeSign/macCodeSign.js:234-250` has an explicit fallback:
+when no "Developer ID Application" identity is found it searches for a
+*non-Apple* certificate, skipping every Apple prefix. That path exists because
+of electron-builder issue #458 — signing with a self-signed certificate is a
+supported configuration, not a hack.
+
+Two CI details to watch:
+
+- `createKeychain` (`:120`) runs `security import` but **never**
+  `security add-trusted-cert`, and identity discovery uses
+  `security find-identity -v -p codesigning` — "-v" meaning valid. Whether a
+  self-signed leaf lists as valid without an explicit trust setting is hardware
+  test #6; if not, add `security add-trusted-cert -d -r trustRoot -k <keychain>`
+  before the build.
+- `kSecCSCheckNestedCode | kSecCSStrictValidate` means **all** nested Mach-O
+  must be signed with the same identity — including
+  `Contents/Resources/resources/drivers/SokujiVirtualAudio.driver`, a universal
+  binary currently built with `CODE_SIGNING_REQUIRED=NO`. Code living under
+  `Resources/` is also exactly what strict validation dislikes. This is a
+  prerequisite for *any* signing route, paid or free.
+
+---
+
 ## 3. Cost
 
 | Item | Cost | Source |
@@ -359,7 +483,45 @@ revocation is not).
 
 ## 4. Implementation options, ranked
 
-### Option A (recommended): keep `electron-updater`, add signing + notarization + a mac ZIP
+**Ranking note:** Option S is the recommendation as of the decision not to pay
+Apple. Option A is the same work with a Developer ID instead of a self-signed
+certificate, and remains the answer if first-install friction is ever judged
+more important than the $99.
+
+### Option S (recommended, $0): self-signed certificate + the existing `electron-updater` stack
+
+Identical in shape to Option A below, with the Developer ID and notarization
+steps replaced by a certificate you issue yourself (§2.5). Concretely:
+
+1. **Certificate**: Keychain Access → Certificate Assistant → Create a
+   Certificate → **Self Signed Root** + **Code Signing**, "Let me override
+   defaults", with a very long validity. Export as `.p12`. Treat it as a
+   permanent project secret — rotating it breaks the update chain and resets
+   TCC (§2.5d).
+2. **CI**: store as `CSC_LINK` (base64 `.p12`) + `CSC_KEY_PASSWORD`. Drop
+   `CSC_IDENTITY_AUTO_DISCOVERY: false` and `mac.identity: null`; set
+   `mac.identity` to the certificate's common name. Do **not** set
+   `mac.notarize`. Add `security add-trusted-cert` before the build if hardware
+   test #6 says it is needed (§2.5e).
+3. **Signing**: replace the ad-hoc `codesign --force --deep --sign -` in
+   `scripts/electron-builder-fuses.js` with electron-builder's normal
+   inside-out signing, and sign the HAL driver with the same identity (§2.5e).
+   Pin the DR with `codesign -r` using a requirement dumped from
+   `codesign -d -r-`.
+4. **Artifacts**: add `zip` alongside `pkg` in `build.mac.target` — required by
+   `MacUpdater`, and it makes `latest-mac.yml` machine-generated (§0).
+5. **Ownership**: resolve per hardware test #2 — either `pkgbuild --ownership
+   preserve` / a `chown` in `pkg-scripts/postinstall`, or drag-install.
+6. **App**: delete the darwin refusal branches at `update-manager.js:99-113`
+   and `:194-196` and let darwin share the AppImage path.
+7. **Driver**: version-gate `SokujiVirtualAudio.driver` so the privileged step
+   only runs when it actually changes (it has not changed since 2025-09-17).
+
+Migration is clean: darwin auto-update is disabled today, so users already
+install manually. They do that **one more time** — the release that carries the
+self-signed bundle and the ownership fix — and are automatic from then on.
+
+### Option A (same work, $99/yr): Developer ID + notarization + a mac ZIP
 
 Smallest diff from today's architecture; `UpdateManager` and the renderer
 update store already handle check/download/progress/install states, and the
@@ -460,7 +622,10 @@ Gatekeeper dance for updates (needs one verification pass on real hardware;
 see Open questions). First-time installs keep today's full friction,
 Sequoia-style (§2.4).
 
-### Option D (no Apple account): Sparkle with EdDSA keys — possible, not recommended
+### Option D (superseded by Option S): Sparkle with EdDSA keys
+
+Sparkle genuinely does not need an Apple account — but neither does Option S,
+which reuses a stack this repo already ships. Recorded here for completeness.
 
 Sparkle, the native macOS updater framework, does not hard-require Apple
 signing: its security model is "Sign the published update archive (dmg, zip,
@@ -476,32 +641,65 @@ still fight to launch the app the first time.
 
 ### What does NOT work (verified against source)
 
-- `electron-updater` with unsigned or ad-hoc builds — see §5.1.
+- `electron-updater` with unsigned or **ad-hoc** builds — see §5.1. Note the
+  distinction that matters: this is a statement about ad-hoc signing, *not*
+  about the absence of an Apple certificate. A self-signed certificate works
+  (§2.5).
 - update.electronjs.org / `update-electron-app` without signing — requirement
   is explicit ("Your builds are code signed (macOS and MSIX only)"):
   https://github.com/electron/update-electron-app,
-  https://github.com/electron/update.electronjs.org.
+  https://github.com/electron/update.electronjs.org. (Unverified whether their
+  check would accept a self-signed cert; moot, since Option S needs no service.)
 - Any "disable verification" flag: none exists in `MacUpdater` (no signature
   code at all on mac, §1.4) and none can exist without forking Electron's
   bundled Squirrel.Mac (§1.3).
 - The existing free SignPath arrangement, which is Windows-only in practice —
   see failure mode 14.
+- **Nothing free fixes first install.** The free Apple tier lists
+  "Notarization & Developer ID" under the paid tier only, and the fee waiver
+  requires being "a legal entity with a status as a nonprofit organization,
+  accredited educational institution, or government entity" —
+  https://developer.apple.com/support/membership-fee-waiver/ — which a
+  for-profit company cannot satisfy. There is no Apple open-source signing
+  programme.
+
+### 4.4 First-install friction — the part no certificate fixes
+
+Gatekeeper wants notarization, so the `sudo xattr -d com.apple.quarantine` step
+survives every option on this page. What can legitimately reduce it:
+
+- **A Homebrew tap.** Homebrew Cask's current
+  `Library/Homebrew/cask/quarantine.rb` hardcodes
+  `check_quarantine_support → [:quarantine_unavailable, nil]`, so `available?`
+  can never be true and **casks are not quarantined at all**; correspondingly
+  `--no-quarantine` no longer appears in the manpage. A third-party tap
+  (`brew tap kizuna-ai-lab/sokuji`) is a supported path and sidesteps
+  homebrew-cask's acceptability rules. The HAL driver still needs root, so the
+  cask would carry a `pkg` stanza and prompt once. *(Which Homebrew release
+  changed this was not pinned down — verify before publishing.)*
+- **A documented `curl` installer.** Quarantine is applied by the downloading
+  application by design, and CLI tools deliberately do not set it, so a script
+  the user reads and runs installs without the xattr dance. This is the same
+  security posture the install docs already ask for, with fewer steps — but say
+  plainly in the docs that it bypasses Gatekeeper, and publish checksums.
+
+What not to do: ship anything that silently strips quarantine from a
+browser-downloaded file. The user should always be the one deciding to bypass.
 
 ### Recommended sequence
 
-1. **Now, free: ship Option C.** It removes the browser and the Terminal from
-   the update loop for existing users, and it is the smallest change on this
-   page (roughly the `_downloadUpdate`/`_installUpdate` pair already in
-   `update-manager.js`, pointed at `pkgUrl`). One hardware verification gates it
-   (§6.5).
-2. **Decide on the USD 99.** Given the release cadence (§0) and the likely TCC
-   re-prompting (failure mode 13), this looks like the highest-leverage $99 in
-   the project, and it is the only thing that fixes *first* install.
-3. **After signing lands: Option A**, including the ownership and driver steps.
-   At that point macOS reaches parity with Linux AppImage.
+1. **Run hardware tests #1 and #2** (§6). They are cheap, and between them they
+   decide whether Option S delivers silent updates outright or needs an
+   ownership fix first.
+2. **Ship Option S.** One more manual install for existing macOS users, then
+   parity with Linux AppImage — for $0.
+3. **Separately, decide what to do about first install** (§4.4). It is a
+   distribution/docs problem, not an updater problem, and the only complete fix
+   is the $99.
 
-Steps 1 and 3 are not wasted work relative to each other: the in-app download
-plumbing from C is what a driver-update prompt in A would reuse.
+Option C (in-app PKG download + launch Installer) is still worth knowing about
+as a fallback if Option S fails a hardware test — it is ~40 lines and removes
+the browser and Terminal from the update loop without any certificate at all.
 
 ---
 
@@ -517,6 +715,14 @@ plumbing from C is what a driver-update prompt in A would reuse.
    Sokuji CI ad-hoc signs today (`scripts/electron-builder-fuses.js`,
    `codesign --sign -`), which is why the in-code comment in
    `electron/update-manager.js` correctly rules auto-update out.
+
+   **But note what this is and is not.** That in-code comment says macOS builds
+   "are unsigned (no Apple Developer ID), so electron-updater cannot apply the
+   update — Squirrel.Mac requires the new bundle to share a valid Developer ID
+   signature with the running one". The first half is right; the "Developer ID"
+   part is not. Squirrel requires a *shared, stable* signature, and any
+   certificate — including a self-signed one — supplies that (§2.5). Worth
+   correcting in the source comment when Option S lands.
 2. **No mac ZIP published → instant `ERR_UPDATER_ZIP_FILE_NOT_FOUND`.**
    Current releases ship only PKGs (checked against the v0.38.0 release
    assets); `latest-mac.yml` must list zips (§1.4).
@@ -558,6 +764,20 @@ plumbing from C is what a driver-update prompt in A would reuse.
 11. **Sequoia first-install policy** (§2.4) is a distribution problem
     signing+notarization fixes and nothing else does; it also makes Option C's
     first-install story steadily worse over OS releases.
+12a. **Never modify a bundle in place.** Apple has a document for exactly this
+    failure — [Updating Mac Software](https://developer.apple.com/documentation/security/updating-mac-software),
+    subtitled "Implement Mac software updates without causing code-signing
+    crashes": "macOS caches information about the code's signature in the
+    kernel. It doesn't flush that cache when you modify the file's contents.
+    Modifying the file in place yields a mismatch… which can cause a
+    hard-to-reproduce code-signing crash", and it applies to "executables,
+    frameworks, dynamic libraries, and **bundles**". The fix is write-to-temp
+    plus `rename(2)`: "the in-kernel cache is associated with the old file,
+    which remains unmodified." Squirrel does this correctly; any hand-rolled
+    updater must too. Related trap: `ditto` *merges* into an existing directory
+    rather than replacing it, leaving stale files that then fail
+    `kSecCSStrictValidate` — always extract to a fresh staging directory and
+    swap.
 12. **Root-owned install location defeats a correctly signed updater.**
     Squirrel.Mac's `SQRLInstaller` replaces the bundle with `rename()` as the
     invoking user and contains no `AuthorizationExecuteWithPrivileges` /
@@ -566,8 +786,27 @@ plumbing from C is what a driver-update prompt in A would reuse.
     (https://github.com/Squirrel/Squirrel.Mac/blob/master/Squirrel/SQRLInstaller.m).
     electron-builder invokes `pkgbuild` with no `--ownership` flag
     (`app-builder-lib/out/targets/pkg.js:215`), so the installed
-    `/Applications/Sokuji.app` is root-owned and the update will fail at install
-    time even with a valid Developer ID. See Option A step 3 for the fix.
+    `/Applications/Sokuji.app` is root-owned.
+
+    The precise mechanics are worth getting right, because they decide how much
+    work this is. `/Applications` is **not** SIP-protected (Apple's System
+    Integrity Protection Guide lists it under "Locations Available to
+    Developers") and is mode 0775 `root:admin` with no sticky bit, so an admin
+    user can write *in* it. But `rename(2)`'s CONFORMANCE section adds a
+    directory-specific restriction — "This restriction has been generalized to
+    disallow renaming of any **write-disabled directory**, even when this would
+    not require a change to the `..` entry" — which suggests a root-owned
+    `drwxr-xr-x Sokuji.app` cannot be renamed by an admin user even though its
+    parent is writable. The man page says nothing about APFS, so this is
+    hardware test #2. If it holds, the fix is `pkgbuild --ownership preserve`
+    (Apple's documented escape hatch for special ownership requirements) or a
+    `chown` to the console user in `pkg-scripts/postinstall`. User-owned apps in
+    `/Applications` are unremarkable — Brave, Cursor and Firefox all install
+    that way.
+
+    Not a problem: Ventura's App Management protection applies to *notarized*
+    apps, which Sokuji is not, and `NSUpdateSecurityPolicy` exists precisely to
+    let same-developer updaters modify a bundle.
 13. **TCC permission thrash — the cost nobody logged.** Apple's guidance is
     explicit: "If your code is unsigned or signed ad hoc […] the system can't
     tell that version N+1 of your code is the same as version N, and thus you'll
@@ -588,38 +827,59 @@ plumbing from C is what a driver-update prompt in A would reuse.
 
 ---
 
-## 6. Open questions
+## 6. Hardware tests (all need a Mac; ranked by what they decide)
 
-1. **Enrollment identity**: individual (fast, personal name on the
-   certificate) vs organization "Kizuna AI Lab" (legal-entity verification,
-   D-U-N-S). Who holds the Account Holder role? (Only that role can create the
-   Developer ID certificate, §2.1.)
-2. **Keep PKG or move to DMG+ZIP?** electron-builder can emit
+Everything in §2.5 was verified by reading Apple's own Security sources, but
+reading source is not running it. These are ordered so the two that could sink
+Option S come first.
+
+1. **Does TCC keep microphone permission across a rebuild signed with the same
+   self-signed certificate?** Sign two builds with one cert, grant mic access to
+   the first, install the second, check for a re-prompt. Decides whether Option S
+   fixes the permission thrash or merely the updater (§2.5c).
+2. **Can an admin user rename a root-owned, write-disabled directory inside
+   `/Applications` on APFS?** `sudo mkdir /Applications/T.app && mv
+   /Applications/T.app /Applications/T2.app` as a normal admin user. Decides
+   whether the ownership fix is needed at all (failure mode 12).
+3. **Does Squirrel.Mac accept the self-signed DR end to end?** Run a real update
+   cycle between two self-signed builds. The source says yes (§2.5b); confirm.
+4. **`xattr -l` a Node-downloaded artifact** → expect no `com.apple.quarantine`
+   (gates Option C, and confirms §2.4's reasoning).
+5. **Does `security find-identity -v -p codesigning` list the self-signed cert as
+   valid** in a fresh CI keychain without `add-trusted-cert`? (§2.5e)
+6. **Does the whole bundle pass `codesign --verify --deep --strict` once the HAL
+   driver is signed with the same identity?** `kSecCSCheckNestedCode |
+   kSecCSStrictValidate` is what Squirrel will apply (§2.5e).
+
+## 7. Open questions
+
+1. **Certificate custody.** A self-signed root becomes a permanent project
+   secret: losing or rotating it breaks the update chain for every existing
+   install and resets TCC (§2.5d). Where does it live, who holds the backup, and
+   what is the recovery plan if it leaks? This is the main *governance* cost of
+   Option S, and it is not zero even though the dollar cost is.
+2. **Enrollment identity** (only if the $99 is ever reconsidered for
+   first-install friction): individual vs organization "Kizuna AI Lab"
+   (legal-entity verification, D-U-N-S). Who holds the Account Holder role?
+   (Only that role can create the Developer ID certificate, §2.1.)
+3. **Keep PKG or move to DMG+ZIP?** electron-builder can emit
    `pkg`+`zip` or `dmg`+`zip`. Keeping PKG preserves the current
    BlackHole-driver install scripts (`pkg-scripts/`) and avoids translocation
    by construction; needs a check that a `zip`-installed update keeps whatever
    the PKG postinstall set up. This decision is coupled to failure mode 12: if
-   the PKG stays, `postinstall` must chown the bundle to the console user, and
-   that chown has to survive the *next* PKG run.
-3. **Does the driver actually need reinstalling after a Squirrel update?**
+   the PKG stays, `postinstall` must set the ownership, and that has to survive
+   the *next* PKG run.
+4. **Does the driver actually need reinstalling after a Squirrel update?**
    The driver lives outside the app bundle (`/Library/Audio/Plug-Ins/HAL/`), so
    replacing `Sokuji.app` should leave it untouched — but the app's presence
    check (`electron/macos-audio-utils.js:159`) and the unity-gain helper path
    need confirming against a bundle swapped in place rather than reinstalled.
-4. **Do macOS users really lose microphone permission on each update today?**
-   (failure mode 13) Apple's guidance says they should; nobody has confirmed it
-   against a real install. Worth checking before pricing the $99 decision,
-   because it may be the larger of the two benefits.
-5. **Option C verification** (worth doing regardless, since Option C is the
-   zero-cost interim): confirm
-   on real hardware that a PKG downloaded via Node `https` in the packaged app
-   carries no `com.apple.quarantine` and that Installer.app opens it without
-   Gatekeeper interference on Sequoia/Tahoe.
-6. **Windows parity**: mac work would leave Windows as the only platform on
+5. **Windows parity**: mac work would leave Windows as the only platform on
    the manual `_downloadUpdate()` path (Forge Squirrel.Windows output is not
    electron-updater-compatible, per the comment in
    `electron/update-manager.js`) — worth a separate look at NSIS-via-
    electron-builder to unify, since SignPath signing already exists.
-7. **First signed release migration note**: users on ≤ current ad-hoc builds
-   must manually install the first signed version (failure mode 3); the
-   release notes for that version should say so.
+6. **First signed release migration note**: users on today's ad-hoc builds
+   cannot auto-install the first self-signed version (DR mismatch, failure
+   mode 3). Since darwin auto-update is disabled today this costs nothing in
+   practice, but the release notes for that version should say so.
