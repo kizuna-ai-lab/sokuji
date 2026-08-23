@@ -32,7 +32,32 @@ react-i18next, lucide-react, Vitest + @testing-library/react, SASS.
 - **Do not `git push` and do not open a PR.** Commit locally only; jiangzhuo triggers
   anything outward-facing.
 - **Baseline test noise**: a full vitest run in a worktree fails ~12 files on a clean
-  base. A/B against `git stash`-free HEAD before blaming your change.
+  base. A/B against HEAD before blaming your change.
+- **Working directory**: every command in this plan runs from the worktree root
+  `/home/jiangzhuo/Desktop/kizunaai/sokuji/.claude/worktrees/feat+titlebar-account-slot`.
+  Never `cd` to the repository root — it is a release behind and its line numbers differ.
+- **Confirm the base before starting**: `git merge-base --is-ancestor 9d81aeca HEAD`
+  must exit 0. If it does not, stop and report rather than working on the wrong tree.
+- **Type-check your own files before every commit.** `npx vitest run` does NOT
+  type-check and `npm run build` is a plain esbuild transpile, so without this step
+  nothing in the plan catches a type error. The baseline is dirty — 467 pre-existing
+  errors on clean HEAD — so "tsc is clean" is not achievable and is not the bar. The
+  bar is: **the files YOU touched report zero errors**:
+
+  ```bash
+  npx tsc --noEmit 2>&1 | grep -E "<path/you/touched>" || echo "CLEAN"
+  ```
+
+  `tsconfig.json` sets `noUnusedLocals`, so an unused constant or import is a hard
+  error. This is not hypothetical: the first draft of Task 1's code shipped a dead
+  constant that vitest waved straight through.
+- **Locale policy — read this before any task that adds a translation key.** Each task
+  adds its new keys to `src/locales/en/translation.json` **only**. Task 15 propagates
+  every key to the other 29 catalogues in one pass. Consequences, both deliberate:
+  seven tasks stop competing for the same 30 files, and
+  `src/locales/locales.consistency.test.ts` is **expected to fail from Task 2 until
+  Task 15 closes it**. Every other test must be green at every task boundary. Do not
+  "fix" that suite by hand-filling catalogues inside another task.
 
 ---
 
@@ -121,8 +146,8 @@ Expected: FAIL — `Failed to resolve import "./compactBalance"`.
 // the wallet holds. `< $0.01` understates, and a negative balance floors
 // AWAY from zero so a debt is never shown as smaller than it is.
 
-const MICRO_USD_PER_USD = 1_000_000;
 const MICRO_USD_PER_CENT = 10_000;
+const CENTS_PER_USD = 100;
 
 export function compactBalanceLabel(microUsd: number | null | undefined): string {
   if (typeof microUsd !== 'number' || !Number.isFinite(microUsd)) return '$0.00';
@@ -133,7 +158,7 @@ export function compactBalanceLabel(microUsd: number | null | undefined): string
   // Math.floor on the cent count moves negatives away from zero, which is the
   // conservative direction for a debt as well as for a credit.
   const cents = Math.floor(microUsd / MICRO_USD_PER_CENT);
-  const dollars = Math.abs(cents) / 100;
+  const dollars = Math.abs(cents) / CENTS_PER_USD;
   const sign = cents < 0 ? '-' : '';
   return `${sign}$${dollars.toFixed(2)}`;
 }
@@ -342,22 +367,22 @@ export default AccountButton;
 }
 ```
 
-- [ ] **Step 5: Add the two locale keys to all 30 catalogues**
+- [ ] **Step 5: Add the two locale keys to `en` only**
 
-Add `titleBar.account.signedOut` and `titleBar.account.signedIn` (both "Account" in
-en; use each locale's existing word for an account — several already have one under
-`simpleConfig.userAccount`) to every `src/locales/*/translation.json`.
+Add `titleBar.account.signedOut` and `titleBar.account.signedIn`, both `Account`, to
+`src/locales/en/translation.json`. Task 15 translates them; see the locale policy in
+Global Constraints for why they do not go into the other 29 here.
 
 - [ ] **Step 6: Run the tests and the locale consistency suite**
 
-Run: `npx vitest run src/components/TitleBar/AccountButton.test.tsx src/locales/locales.consistency.test.ts`
-Expected: PASS, 5 component tests plus the consistency suite green.
+Run: `npx vitest run src/components/TitleBar/AccountButton.test.tsx`
+Expected: PASS, 5 component tests. (The consistency suite is expected to be red until Task 15 — see Global Constraints.)
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add src/components/TitleBar/AccountButton.tsx src/components/TitleBar/AccountButton.scss \
-        src/components/TitleBar/AccountButton.test.tsx src/locales
+        src/components/TitleBar/AccountButton.test.tsx src/locales/en
 git commit -m "feat(titlebar): account button with signed-out and signed-in marks"
 ```
 
@@ -645,20 +670,22 @@ and inside `.quota-status-section`, after `.quota-compact-line`:
 }
 ```
 
-- [ ] **Step 5: Add `common.topUp` to all 30 catalogues**
+- [ ] **Step 5: Add `common.topUp` to `en` only**
 
-en `Top up`, zh_CN 「充值」, ja 「チャージ」, and so on for every locale.
+`en`: `Top up`. Task 15 translates it — 「充值」 is the settled zh_CN rendering and the
+one the label was chosen to match, so pass that to Task 15 as a fixed anchor rather
+than letting it be re-derived.
 
 - [ ] **Step 6: Run the tests**
 
-Run: `npx vitest run src/components/Auth/UserAccountInfo.topUp.test.tsx src/locales/locales.consistency.test.ts`
+Run: `npx vitest run src/components/Auth/UserAccountInfo.topUp.test.tsx`
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add src/components/Auth/UserAccountInfo.tsx src/components/Auth/UserAccountInfo.scss \
-        src/components/Auth/UserAccountInfo.topUp.test.tsx src/locales
+        src/components/Auth/UserAccountInfo.topUp.test.tsx src/locales/en
 git commit -m "feat(account): give the wallet a top-up button"
 ```
 
@@ -929,24 +956,26 @@ with `const { t } = useTranslation();` and `const navigate = useNavigate();` add
 }
 ```
 
-- [ ] **Step 5: Rewrite `simpleConfig.signInRequired` in all 30 catalogues**
+- [ ] **Step 5: Rewrite `simpleConfig.signInRequired` in `en` only**
 
 - en: `Sign up to use Sokuji's built-in translation service — no API key needed. You can also keep using your own provider and key.`
 - zh_CN: `注册后即可使用 Sokuji 自带的翻译服务，无需申请任何 API key。也可以继续使用你自己的服务商和密钥。`
-- Every other locale gets the same two-sentence shape: what signing up gives first,
-  bring-your-own-key as the fallback, no mention of purchase in the first sentence.
-  Reuse each catalogue's existing rendering of "API key".
+Only `en` here. Task 15 carries the rule for the other 29: same two-sentence shape —
+what signing up gives first, bring-your-own-key as the fallback, no mention of
+purchase in the first sentence — reusing each catalogue's existing rendering of
+"API key". zh_CN is fixed at
+`注册后即可使用 Sokuji 自带的翻译服务，无需申请任何 API key。也可以继续使用你自己的服务商和密钥。`
 
 - [ ] **Step 6: Run the tests**
 
-Run: `npx vitest run src/components/TitleBar/AccountPopover.test.tsx src/locales/locales.consistency.test.ts`
+Run: `npx vitest run src/components/TitleBar/AccountPopover.test.tsx`
 Expected: PASS, 4 popover tests.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add src/components/TitleBar/AccountPopover.tsx src/components/TitleBar/AccountPopover.scss \
-        src/components/TitleBar/AccountPopover.test.tsx src/locales
+        src/components/TitleBar/AccountPopover.test.tsx src/locales/en
 git commit -m "feat(titlebar): signed-out account popover with both routes"
 ```
 
@@ -1355,20 +1384,21 @@ service is still introduced — English default:
 
 `Choose your translation provider. Sokuji has its own built-in service — sign up from the account button in the title bar and it works with no API key. You can also use OpenAI, Gemini, Volcengine (Doubao), or Local Inference, which needs no key at all.`
 
-- [ ] **Step 4: Renumber "Step N" prefixes in all 30 catalogues**
+- [ ] **Step 4: Renumber "Step N" prefixes in `en` only**
 
 `onboarding.basic.steps.{languages,provider,microphone,speaker,systemAudio,start}.title`
-each shift down by one (Step 3→2, 4→3, …, 8→7).
+each shift down by one (Step 3→2, 4→3, …, 8→7) — in `en` only. This one is mechanical
+in every locale, so Task 15 can do the other 29 by the same shift.
 
 - [ ] **Step 5: Run the tests**
 
-Run: `npx vitest run src/contexts src/locales/locales.consistency.test.ts`
+Run: `npx vitest run src/contexts`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/contexts/OnboardingContext.tsx src/contexts/OnboardingContext.steps.test.ts src/locales
+git add src/contexts/OnboardingContext.tsx src/contexts/OnboardingContext.steps.test.ts src/locales/en
 git commit -m "fix(onboarding): drop the step pointing at the removed account section"
 ```
 
@@ -1458,19 +1488,21 @@ useEffect(() => {
 }, [requested, setRequested]);
 ```
 
-- [ ] **Step 6: Update `common.signInRequired` in all 30 catalogues**
+- [ ] **Step 6: Update `common.signInRequired` in `en` only**
 
-Keep the `<signInLink>` markers. zh_CN: `<signInLink>登录或注册</signInLink>即可使用 Kizuna AI，无需 API key。`
+`en` only, keeping the `<signInLink>` markers — Task 15 must preserve them in every
+translation or `<Trans>` renders no link at all. zh_CN is fixed at
+`<signInLink>登录或注册</signInLink>即可使用 Kizuna AI，无需 API key。`
 
 - [ ] **Step 7: Run the tests**
 
-Run: `npx vitest run src/components/Settings/sections src/components/TitleBar src/locales/locales.consistency.test.ts`
+Run: `npx vitest run src/components/Settings/sections src/components/TitleBar`
 Expected: PASS.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/stores/settingsStore.ts src/components/Settings/sections src/components/TitleBar src/locales
+git add src/stores/settingsStore.ts src/components/Settings/sections src/components/TitleBar src/locales/en
 git commit -m "feat(settings): make the provider sign-in notice open the account popover"
 ```
 
@@ -1531,11 +1563,11 @@ Expected: FAIL — the store holds `'Failed to get auth session'`.
 Change every `set({kizunaKeyError: …})` to store a key (`'auth.signedOut'`,
 `'auth.sessionUnavailable'`, `'auth.unknown'`) and `console.warn` the raw text.
 At `ProviderSection.tsx:952` render `t(kizunaKeyError)` instead of the raw value, and
-add those three keys to all 30 catalogues.
+add those three keys to `en` only; Task 15 translates them.
 
 - [ ] **Step 5: Run the tests**
 
-Run: `npx vitest run src/stores src/components/Settings/sections src/locales/locales.consistency.test.ts`
+Run: `npx vitest run src/stores src/components/Settings/sections`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -1675,33 +1707,132 @@ useEffect(() => {
 }, [user?.emailVerified, showToast, t]);
 ```
 
-- [ ] **Step 5: Update the message copy in all 30 catalogues**
+- [ ] **Step 5: Update the message copy in `en` only**
 
-`auth.checkYourEmail` becomes, en:
+`en` only. `auth.checkYourEmail` becomes
 `Verification e-mail sent to {{email}}. Finish it in your inbox and come back — Sokuji picks it up automatically.`
-Add `auth.emailVerifiedToast` = `E-mail verified`.
+and `auth.emailVerifiedToast` = `E-mail verified`. Task 15 must keep the `{{email}}`
+interpolation intact in every translation.
 
 The "automatically" is only honest because of Step 3 — do not ship this copy without it.
 
 - [ ] **Step 6: Run the tests**
 
-Run: `npx vitest run src/components/TitleBar src/locales/locales.consistency.test.ts`
+Run: `npx vitest run src/components/TitleBar`
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/components/TitleBar src/locales
+git add src/components/TitleBar src/locales/en
 git commit -m "fix(auth): pick up e-mail verification when the user returns to the app"
+```
+
+---
+
+## Task 15: Propagate every new key to the other 29 locales
+
+Tasks 2–14 each added their keys to `en` alone, which is why
+`src/locales/locales.consistency.test.ts` has been red since Task 2. This task closes
+it in one pass and is the last thing to land.
+
+Doing it here rather than seven times over is deliberate: it keeps seven earlier tasks
+from competing for the same 30 files, and it puts all the translation judgement in one
+place where it can be reviewed as a unit.
+
+**Files:**
+- Modify: all of `src/locales/*/translation.json` **except** `en`
+- Test: `src/locales/locales.consistency.test.ts` (existing — it does the checking)
+
+**Interfaces:**
+- Consumes: every key added to `en` by Tasks 2, 4, 6, 11, 12, 13 and 14.
+- Produces: nothing new; it closes an intentionally open gap.
+
+**Keys to translate** (read the current `en` value for each — do not retype it from
+here, it may have been refined during implementation):
+
+| Key | Note |
+|---|---|
+| `titleBar.account.signedOut` | The word for a user account. Several catalogues already have one under `simpleConfig.userAccount` — reuse it rather than inventing a synonym. |
+| `titleBar.account.signedIn` | Same word as above. |
+| `common.topUp` | **zh_CN is fixed at 「充值」** — the English label was chosen to match it. Other locales use their own established wording for adding money to a balance. |
+| `simpleConfig.signInRequired` | Two sentences: what signing up gives first, bring-your-own-key as the fallback. **Do not mention purchase in the first sentence** — the whole point of the rewrite. **zh_CN is fixed at** `注册后即可使用 Sokuji 自带的翻译服务，无需申请任何 API key。也可以继续使用你自己的服务商和密钥。` |
+| `common.signInRequired` | **Must keep the `<signInLink>…</signInLink>` markers.** Without them `<Trans>` renders no link and the control silently stops working. **zh_CN is fixed at** `<signInLink>登录或注册</signInLink>即可使用 Kizuna AI，无需 API key。` |
+| `auth.checkYourEmail` | **Must keep the `{{email}}` interpolation.** Promises automatic pickup — that promise is true because of Task 14, so do not soften it to "click refresh". |
+| `auth.emailVerifiedToast` | Short toast text. |
+| `auth.signedOut`, `auth.sessionUnavailable`, `auth.unknown` | User-facing renderings of the three auth error codes from Task 13. Plain language, not engineering language: these replace strings like "Failed to get auth session". |
+| `onboarding.basic.steps.{languages,provider,microphone,speaker,systemAudio,start}.title` | Mechanical: the "Step N" number shifts down by one in each. Keep each locale's own word for "Step" and its own digit convention — **fa and bn use native digits**; copy the shape already in that catalogue rather than writing ASCII numerals into it. |
+| `onboarding.basic.steps.provider.content` | Extended in Task 11 to introduce the built-in service. |
+
+**Rules that matter more than fluency:**
+
+- Never drop or rename an interpolation (`{{email}}`) or a `<Trans>` component marker
+  (`<signInLink>`). A dropped marker does not fail any test — it silently removes a
+  control from the UI.
+- Reuse the catalogue's own existing terminology. Each of these files already renders
+  "API key", "sign in", "account" in a settled way; matching it beats a fresh
+  translation that reads correctly but differently from the screen around it.
+- `onboarding.basic.steps.account.*` keys are **deleted**, not translated — Task 11
+  removed that step.
+
+- [ ] **Step 1: Confirm the gap is exactly what you think it is**
+
+```bash
+npx vitest run src/locales/locales.consistency.test.ts
+```
+
+Expected: FAIL, listing the missing keys per locale. That list is your worklist — work
+from it, not from the table above, which can drift from what actually shipped.
+
+- [ ] **Step 2: Translate**
+
+Edit each of the 29 non-`en` catalogues. Keep each file's existing key order and
+formatting; add nothing beyond the keys the failure list names.
+
+- [ ] **Step 3: Confirm the suite closes**
+
+```bash
+npx vitest run src/locales/locales.consistency.test.ts
+```
+
+Expected: PASS.
+
+- [ ] **Step 4: Confirm no marker was lost**
+
+```bash
+grep -L "signInLink" src/locales/*/translation.json   # must print nothing
+grep -L "{{email}}" src/locales/*/translation.json    # must print nothing
+```
+
+Both must print nothing. A file listed here has lost its marker and will render a
+broken control.
+
+- [ ] **Step 5: Run the whole suite and compare against baseline**
+
+```bash
+npx vitest run
+```
+
+Expected: only the ~12 pre-existing baseline failures.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/locales
+git commit -m "i18n: translate the account slot's new keys into the remaining locales"
 ```
 
 ---
 
 ## Final verification
 
-- [ ] `npx tsc --noEmit` clean
+- [ ] `npx tsc --noEmit` reports **no errors in any file this work created or
+      modified**. It will still report the 467 pre-existing errors elsewhere; that is
+      the baseline, not a regression, and chasing it is out of scope.
 - [ ] `npx vitest run` — compare failures against the pre-change baseline; ~12 files
       fail on a clean worktree, so only NEW failures count
+- [ ] `npx vitest run` green (Task 15 closes
+      the gap this plan deliberately opens at Task 2)
 - [ ] Launch the app and check by eye: signed-out mark, signed-in circle, both dot
       states, popover in both states, logs button absent in basic mode and present in
       advanced, settings order, onboarding runs to completion
