@@ -1510,11 +1510,24 @@ git commit -m "feat(settings): make the provider sign-in notice open the account
 
 ## Task 13: Stop showing raw engineering strings to signed-out users
 
-**Reproduce first.** The exact path by which a never-signed-in user reaches
-`Failed to get auth session` is unconfirmed — `ProviderSection` builds `getAuthToken`
-as undefined when signed out, which should short-circuit. Follow
-superpowers:systematic-debugging: write a failing test that reproduces what the user
-reported before changing anything. The two defects below stand regardless.
+**Reproduced — this is deterministic, not a race.** The chain, verified by reading it:
+
+1. `SettingsInitializer.tsx:101-110` has a branch whose own comment says it exists for
+   the signed-out case ("Kizuna twin selected but auth is missing (signed out or hook
+   not ready)"). It calls `await validateApiKey(getToken)`.
+2. `getToken` comes from `useAuth()` (`src/lib/auth/hooks.ts:22-26`) and is **always a
+   function**, signed in or not. Signed out it resolves to `null`; it is never
+   undefined. So `validateApiKey`'s `getAuthToken ? … : false` always takes the
+   truthy branch.
+3. `settingsStore.ts:897` then calls `ensureKizunaApiKey(getAuthToken, true)`. The
+   literal `true` skips the guard at `:1051-1055` that exists for exactly this case
+   and would have set `'User not signed in'`.
+4. `await getToken()` returns `null`, so `:1069` stores `'Failed to get auth session'`,
+   and `ProviderSection.tsx:952` renders it verbatim.
+
+So a signed-out user who selects a Kizuna-managed provider **always** sees that
+string. The irony is worth noting in the commit message: the branch was written to
+handle being signed out, and produces a message about a session failure instead.
 
 **Files:**
 - Modify: `src/stores/settingsStore.ts:896-899`, `:1041-1080`
@@ -1522,6 +1535,9 @@ reported before changing anything. The two defects below stand regardless.
 - Test: `src/stores/settingsStore.kizunaAuth.test.ts` (create)
 
 - [ ] **Step 1: Write the failing test**
+
+The failing test reproduces step 2 above — a `getToken` that is present but resolves
+to `null`, which is exactly what a signed-out `useAuth()` hands over:
 
 ```ts
 it('does not store a raw engineering string when the user is signed out', async () => {
