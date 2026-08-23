@@ -833,6 +833,10 @@ Everything in §2.5 was verified by reading Apple's own Security sources, but
 reading source is not running it. These are ordered so the two that could sink
 Option S come first.
 
+**Tests 2–6 are scripted** in `scripts/verify-macos-selfsigned.sh` — run it on
+any Mac, or from a `macos-26` CI job. Test 1 needs a human, because granting
+microphone access requires clicking the dialog.
+
 1. **Does TCC keep microphone permission across a rebuild signed with the same
    self-signed certificate?** Sign two builds with one cert, grant mic access to
    the first, install the second, check for a re-prompt. Decides whether Option S
@@ -851,7 +855,92 @@ Option S come first.
    driver is signed with the same identity?** `kSecCSCheckNestedCode |
    kSecCSStrictValidate` is what Squirrel will apply (§2.5e).
 
-## 7. Open questions
+## 7. What happens to macOS users who already installed
+
+Three changes are on the table — a new app signature, a signed driver, and
+(optionally) a newer BlackHole. They carry very different risk, and they should
+not ship together.
+
+### 7.1 Changing the app signature: ad-hoc → self-signed — low risk
+
+- **The transition build must be installed by hand.** Its DR does not match the
+  installed ad-hoc build, so no updater could apply it. This costs nothing:
+  darwin auto-update is disabled today, so users already install every release
+  by hand. One more time, then never again.
+- **Microphone / system-audio permission: one more prompt.** The code identity
+  changes, so TCC sees a new app. This already happens on *every* update today
+  (failure mode 13), so it is not a regression — and after the transition it
+  should stop, which is the point. Watch for the known stale-row case where
+  System Settings shows the app as allowed but access is denied at runtime; the
+  fix is `tccutil reset Microphone ai.kizunaai.sokuji` or toggling the checkbox.
+  Worth a line in that release's notes.
+- **Sign-in state survives.** `EnableCookieEncryption` is on, so Chromium keeps a
+  "Safe Storage" key in the login keychain whose ACL is bound to the code
+  identity — and TN2206 names the keychain as a DR-based subsystem, so a changed
+  identity can prompt or reset the encrypted cookie store. But better-auth's
+  session does **not** live there: `electron/better-auth-adapter.js:4` puts the
+  cookie jar in `electron-conf`, a plain file under the app's userData. Users
+  stay logged in. And as with TCC, today's ad-hoc builds already churn this key
+  on every single build, so a stable certificate makes it better, not worse.
+- **Ownership change** (if the PKG starts chowning the bundle) is invisible to
+  the user.
+- **Gatekeeper is unchanged.** The PKG is still not notarized, so the
+  `xattr` step stays exactly as it is today.
+
+### 7.2 Signing the driver — safe, and required anyway
+
+The device UID is a compile-time macro. Upstream `BlackHole.c` defines:
+
+```c
+#define kDriver_Name         "BlackHole"     // overridden to "SokujiVirtualAudio"
+#define kDriver_Name_Format  "%ich"
+#define kDevice_UID          kDriver_Name kDriver_Name_Format "_UID"
+#define kNumber_Of_Channels  2               // passed explicitly by our build script
+```
+
+and the shipped binary confirms the resulting literals —
+`SokujiVirtualAudio%ich_UID`, `SokujiVirtualAudio%ich_2_UID`,
+`SokujiVirtualAudio%ich_ModelUID` — which resolve at runtime to
+**`SokujiVirtualAudio2ch_UID`** and friends.
+
+Code signing adds a `_CodeSignature` directory and a signature blob. It changes
+**no string constant**, so the device UID, the device name and the bundle ID all
+stay put. Every app that has "SokujiVirtualAudio" selected as its microphone —
+Zoom, Meet, Teams — keeps that selection. Signing the driver is safe.
+
+It is also not optional: `kSecCSCheckNestedCode | kSecCSStrictValidate` covers
+the copy inside the app bundle at
+`Contents/Resources/resources/drivers/SokujiVirtualAudio.driver` (§2.5e).
+
+*Cleaner alternative worth considering:* move the driver out of the app bundle
+entirely and ship it as a separate PKG payload. Code under `Resources/` is
+precisely what strict validation is unhappy about, and the app only ever uses
+that copy as installer payload — nothing loads it from there.
+
+### 7.3 Bumping the BlackHole version — the actually risky one, and unnecessary
+
+Do not fold this into the signing change. It is a separate decision with its own
+failure modes, and nothing about auto-update requires it — the driver has been
+frozen at BlackHole 0.6.1 / build 596 since 2025-09-17 and works.
+
+- **The device UID could change.** It is derived from `kDriver_Name` plus the
+  channel count. Our build script pins both, so a straight version bump should
+  keep `SokujiVirtualAudio2ch_UID` — but if upstream ever reshapes the
+  `kDevice_UID` macro, or if the channel count changes, the UID changes with it.
+  The symptom is nasty and silent: every app that had the device selected falls
+  back to its default, and users report "translation audio stopped reaching
+  Zoom" with nothing in our logs. Diff the macros before bumping.
+- **`killall coreaudiod` interrupts audio system-wide**, in every running app.
+  The PKG does this on every install today. Doing it mid-meeting is bad; a
+  driver update should be something the user opts into, not a side effect.
+- **Auto-update will not carry the driver.** Squirrel replaces the app bundle;
+  `/Library/Audio/Plug-Ins/HAL/` is outside it and needs root. So once Option S
+  ships, an app update and a driver update are different events — and nothing
+  currently detects the skew, because no code reads the driver's
+  `Contents/Resources/VERSION`. Add that version check *before* you ever need to
+  bump the driver, not after.
+
+## 8. Open questions
 
 1. **Certificate custody.** A self-signed root becomes a permanent project
    secret: losing or rotating it breaks the update chain for every existing
