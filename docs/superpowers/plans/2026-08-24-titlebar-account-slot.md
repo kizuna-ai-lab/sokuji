@@ -2045,14 +2045,35 @@ here, it may have been refined during implementation):
 - `onboarding.basic.steps.account.*` keys are **deleted**, not translated — Task 11
   removed that step.
 
-- [ ] **Step 1: Confirm the gap is exactly what you think it is**
+- [ ] **Step 1: Build the worklist from TWO sources, because the test only sees one**
 
 ```bash
 npx vitest run src/locales/locales.consistency.test.ts
 ```
 
-Expected: FAIL, listing the missing keys per locale. That list is your worklist — work
-from it, not from the table above, which can drift from what actually shipped.
+Expected: FAIL for all 29 non-`en` catalogues. It checks key **presence** in both
+directions, so it gives you the structural half of the job:
+
+| | keys |
+|---|---|
+| missing — add | `common.topUp`, `titleBar.account.label`, `titleBar.account.lowBalance`, `titleBar.account.unverified`, plus whatever Tasks 13–14 added |
+| stale — delete | `onboarding.basic.steps.account.title`, `onboarding.basic.steps.account.content` |
+
+**The test cannot see the other half.** Several keys were *rewritten* rather than
+added: the key still exists in all 30 catalogues, so the suite stays green while 29 of
+them keep the old sentence. Working only from the failure list leaves them stale and
+every test passing. These must be re-translated from `en` by hand:
+
+| key | what changed |
+|---|---|
+| `simpleConfig.signInRequired` | rewritten to lead with what signing up gives (Task 6) |
+| `common.signInRequired` | rewritten and now carries `<signInLink>` markers (Task 12) |
+| `onboarding.basic.steps.provider.content` | extended to introduce the built-in service (Task 11) |
+| `auth.checkYourEmail` | rewritten to promise automatic pickup, carries `{{email}}` (Task 14) |
+
+Re-derive this list before starting rather than trusting it: `git diff 9d81aeca..HEAD
+-- src/locales/en/translation.json` shows every `en` value this branch touched, and
+anything there whose key already existed is a rewrite the test will not catch.
 
 - [ ] **Step 2: Translate**
 
