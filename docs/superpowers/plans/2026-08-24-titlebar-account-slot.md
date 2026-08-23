@@ -49,8 +49,11 @@ react-i18next, lucide-react, Vitest + @testing-library/react, SASS.
   stale `utils/environment` mock that omits `isExtension`, which
   `ProviderConfigFactory`'s static initializer needs. `components/MainLayout/` also
   carries **1** pre-existing type error (`MainLayout.tsx(2,1)`, an unused
-  `useTranslation` import) — do not assume a directory is at zero. None of it overlaps
-  this work. Treat that as the floor: a red file in those areas is not yours. Do NOT
+  `useTranslation` import) — do not assume a directory is at zero.
+  `src/components/SettingsInitializer/` is red too (`validationQueue`, on a vite
+  `Denied ID` resolving an audio worklet through the main checkout's `node_modules`),
+  so measure `src/components/Settings/` **with the trailing slash** or you sweep it in
+  by accident. None of it overlaps this work. Treat that as the floor: a red file in those areas is not yours. Do NOT
   `git stash` to A/B it — the stash stack is shared with the main checkout and with
   any agent working in this tree.
 - **Working directory**: every command in this plan runs from the worktree root
@@ -1442,6 +1445,12 @@ it('puts translation languages first and interface language last, before help', 
   expect(iface).toBeLessThan(help);
 });
 ```
+
+**The `HelpSection` stub must carry `id="help-section"`**, mirroring the real
+component (`HelpSection.tsx:33`). Task 9's stub omits it, and the assertion below
+looks the section up by `el.id || el.className` — without the id the lookup returns
+`-1` and `expect(iface).toBeLessThan(help)` is unsatisfiable no matter what the code
+does. Fix the stub, never the assertion.
 
 This needs the interface instance to be identifiable. **Do not add an `id` prop** —
 `LanguageSection` already accepts `className` and splices it into
