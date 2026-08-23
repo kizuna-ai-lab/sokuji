@@ -255,6 +255,14 @@ export function UserAccountInfo({
     openExternalWithAuth('/dashboard');
   };
 
+  // The only route to money used to be the dashboard's front page, leaving
+  // the user to find Billing themselves. /dashboard/billing is canonical —
+  // /dashboard/wallet redirects to it.
+  const handleTopUp = () => {
+    trackEvent('top_up_clicked', {});
+    openExternalWithAuth('/dashboard/billing');
+  };
+
   // Handle feedback click - open feedback page in system default browser
   const handleFeedbackClick = () => {
     trackEvent('feedback_clicked', {});
@@ -393,6 +401,10 @@ export function UserAccountInfo({
                 <RefreshCw size={14}/>
               </button>
             </div>
+
+            <button className="top-up-button" onClick={handleTopUp}>
+              {t('common.topUp', 'Top up')}
+            </button>
           </>
         )}
       </div>

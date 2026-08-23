@@ -381,7 +381,21 @@
 
 // Quota Status Section
 .quota-status-section {
+  .top-up-button {
+    width: 100%;
+    height: 32px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 5px;
+    background: #10a37f;
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
 
+    &:hover { background: #0e9070; }
+    &:focus-visible { outline: 2px solid #10a37f; outline-offset: 2px; }
+  }
 }
 
 .quota-loading {

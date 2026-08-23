@@ -14,7 +14,8 @@
     "signInRequired": "Please sign in to use Kizuna AI as your provider",
     "dismiss": "Dismiss",
     "none": "None",
-    "retry": "Retry"
+    "retry": "Retry",
+    "topUp": "Top up"
   },
   "settings": {
     "title": "Settings",
