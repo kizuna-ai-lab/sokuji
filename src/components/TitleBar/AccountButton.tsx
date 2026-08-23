@@ -6,14 +6,19 @@
 // The entry renders while SIGNED OUT too. That is the whole point of moving
 // it here — an entry that only appeared after signing in would contribute
 // nothing to registration.
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from 'lucide-react';
 import { useAuth, useUser } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isKizunaAIEnabled } from '../../utils/environment';
 import { isKizunaManagedProvider } from '../../types/Provider';
-import { useProvider, useTextOnly } from '../../stores/settingsStore';
+import {
+  useProvider,
+  useTextOnly,
+  useAccountPopoverRequested,
+  useSetAccountPopoverRequested,
+} from '../../stores/settingsStore';
 import { sonioxManagedMinBalanceMicroUsd } from '../../services/providers/sonioxManagedMinBalance';
 import { compactBalanceLabel } from './compactBalance';
 import AccountPopover from './AccountPopover';
@@ -31,6 +36,19 @@ const AccountButton: React.FC = () => {
   // travels between components. It is null on the first render and set by the
   // time the click-triggered re-render opens the popover.
   const btnRef = useRef<HTMLButtonElement | null>(null);
+
+  // Other surfaces can ask for this popover instead of growing a sign-in
+  // affordance of their own — the provider section's sign-in notice does. The
+  // request is consumed on arrival: leaving it raised would re-open the
+  // popover on the next render and make it impossible to close.
+  const popoverRequested = useAccountPopoverRequested();
+  const setPopoverRequested = useSetAccountPopoverRequested();
+  useEffect(() => {
+    if (popoverRequested) {
+      setOpen(true);
+      setPopoverRequested(false);
+    }
+  }, [popoverRequested, setPopoverRequested]);
 
   // A build with the Kizuna gate closed registers no managed provider and has
   // no wallet, so an account buys nothing there — offering to register would

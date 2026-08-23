@@ -229,6 +229,10 @@ export interface SettingsStore {
 
   // Navigation state
   settingsNavigationTarget: string | null;
+  /** Ephemeral: raised by a surface that wants the title-bar account popover
+   *  opened (the provider sign-in notice does). Never persisted — AccountButton
+   *  reads it, opens the popover, and immediately clears it back to false. */
+  accountPopoverRequested: boolean;
   /** Ephemeral: fired once by an engine chip (Task 10) to deep-link into the
    *  engine surface with a given slot pre-expanded. Never persisted — the
    *  consuming surface (SimpleSettings, ProviderSpecificSettings) reads it,
@@ -325,6 +329,7 @@ export interface SettingsStore {
   createSessionConfig: (systemInstructions: string) => SessionConfig;
   navigateToSettings: (target: string | null) => void;
   setEngineSlotTarget: (t: { dir: string; stage: Stage } | null) => void;
+  setAccountPopoverRequested: (next: boolean) => void;
 }
 
 // ==================== Helper Functions ====================
@@ -601,6 +606,7 @@ const useSettingsStore = create<SettingsStore>()(
 
     settingsNavigationTarget: null,
     engineSlotTarget: null,
+    accountPopoverRequested: false,
 
     settingsLoaded: false,
     subtitleModeActive: false,
@@ -1266,6 +1272,10 @@ const useSettingsStore = create<SettingsStore>()(
     setEngineSlotTarget: (t: { dir: string; stage: Stage } | null) => {
       set({engineSlotTarget: t});
     },
+
+    setAccountPopoverRequested: (next: boolean) => {
+      set({accountPopoverRequested: next});
+    },
   }))
 );
 
@@ -1334,6 +1344,13 @@ export const useKizunaKeyError = () => useSettingsStore((state) => state.kizunaK
 export const useSettingsNavigationTarget = () => useSettingsStore((state) => state.settingsNavigationTarget);
 export const useEngineSlotTarget = () => useSettingsStore((state: SettingsStore) => state.engineSlotTarget);
 export const useSetEngineSlotTarget = () => useSettingsStore((state: SettingsStore) => state.setEngineSlotTarget);
+// Annotated the way the engineSlotTarget pair beside them is: the store's own
+// generic inference is broken in this file, so a bare `(state)` selector is a
+// TS7006 implicit-any under noImplicitAny.
+export const useAccountPopoverRequested = () =>
+  useSettingsStore((state: SettingsStore) => state.accountPopoverRequested);
+export const useSetAccountPopoverRequested = () =>
+  useSettingsStore((state: SettingsStore) => state.setAccountPopoverRequested);
 
 // Settings loading state
 export const useSettingsLoaded = () => useSettingsStore((state) => state.settingsLoaded);

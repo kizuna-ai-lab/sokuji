@@ -11,7 +11,7 @@
     "autoDetect": "Auto Detect",
     "signIn": "Sign In",
     "signUp": "Sign Up",
-    "signInRequired": "Please sign in to use Kizuna AI as your provider",
+    "signInRequired": "<signInLink>Sign in or sign up</signInLink> to use Kizuna AI — no API key needed.",
     "dismiss": "Dismiss",
     "none": "None",
     "retry": "Retry",

@@ -25,9 +25,13 @@ vi.mock('../../contexts/UserProfileContext', () => ({
 }));
 
 let providerId = 'openai';
+let popoverRequested = false;
+const setPopoverRequested = vi.fn((next: boolean) => { popoverRequested = next; });
 vi.mock('../../stores/settingsStore', () => ({
   useProvider: () => providerId,
   useTextOnly: () => false,
+  useAccountPopoverRequested: () => popoverRequested,
+  useSetAccountPopoverRequested: () => setPopoverRequested,
 }));
 
 // The popover itself is covered by AccountPopover.test.tsx; here it stands in
@@ -44,6 +48,8 @@ beforeEach(() => {
   authUser = null;
   quota = null;
   providerId = 'openai';
+  popoverRequested = false;
+  setPopoverRequested.mockClear();
 });
 
 describe('AccountButton', () => {
@@ -206,5 +212,21 @@ describe('AccountButton popover', () => {
     render(<AccountButton />);
     fireEvent.click(screen.getByRole('button'));
     expect(screen.getByTestId('account-popover')).toBeTruthy();
+  });
+
+  it('opens on a request raised elsewhere, and clears the request behind it', () => {
+    // The provider sign-in notice raises the store flag rather than owning a
+    // second sign-in affordance. Asserted as a TRANSITION, not as a mount: a
+    // flag that is already true on the first render would be honoured even by
+    // an effect that ignores its own dependencies, and the flag has to be
+    // cleared or the popover could never be closed again.
+    const { rerender } = render(<AccountButton />);
+    expect(screen.queryByTestId('account-popover')).toBeNull();
+
+    popoverRequested = true;
+    rerender(<AccountButton />);
+
+    expect(screen.getByTestId('account-popover')).toBeTruthy();
+    expect(setPopoverRequested).toHaveBeenCalledWith(false);
   });
 });
