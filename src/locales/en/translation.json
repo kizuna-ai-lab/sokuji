@@ -995,7 +995,9 @@
   },
   "titleBar": {
     "account": {
-      "label": "Account"
+      "label": "Account",
+      "lowBalance": "Account — balance too low to start a session",
+      "unverified": "Account — e-mail not verified"
     },
     "minimize": "Minimize",
     "maximize": "Maximize",

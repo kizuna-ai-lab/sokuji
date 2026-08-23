@@ -61,12 +61,23 @@ const AccountButton: React.FC = () => {
   // Red outranks amber: one blocks a session, the other is a reminder.
   const tone = lowBalance ? 'low' : unverified ? 'unverified' : null;
 
+  // The dot is aria-hidden, so the state has to reach a screen reader through
+  // the label or its early-warning value simply does not exist for one. It
+  // doubles as the hover tooltip, which tells sighted users WHY the dot is
+  // there instead of leaving them to guess.
+  const statusLabel =
+    tone === 'low'
+      ? t('titleBar.account.lowBalance', 'Account — balance too low to start a session')
+      : tone === 'unverified'
+        ? t('titleBar.account.unverified', 'Account — e-mail not verified')
+        : accountLabel;
+
   return (
     <button
       type="button"
       className="title-bar__action account-button"
-      title={accountLabel}
-      aria-label={accountLabel}
+      title={statusLabel}
+      aria-label={statusLabel}
     >
       <span className="account-button__initial" aria-hidden="true">{initial}</span>
       <span className="title-bar__action-label">{compactBalanceLabel(balance)}</span>

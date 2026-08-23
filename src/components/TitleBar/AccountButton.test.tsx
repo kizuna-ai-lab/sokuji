@@ -23,8 +23,6 @@ let providerId = 'openai';
 vi.mock('../../stores/settingsStore', () => ({
   useProvider: () => providerId,
   useTextOnly: () => false,
-  useAccountPopoverRequested: () => false,
-  useSetAccountPopoverRequested: () => vi.fn(),
 }));
 
 beforeEach(() => {
@@ -122,5 +120,37 @@ describe('AccountButton status dot', () => {
     quota = { balance: 12_340_000 };
     render(<AccountButton />);
     expect(document.querySelector('.account-button__dot')).toBeNull();
+  });
+});
+
+describe('AccountButton accessibility', () => {
+  const signIn = (over: Partial<{ emailVerified: boolean }> = {}) => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true, ...over };
+  };
+
+  // The dot is aria-hidden, so without this the entire early-warning value of
+  // the status dot is invisible to a screen reader: the button would just say
+  // "Account" whether or not the session is about to be refused.
+  it('names the low-balance state in the accessible label', () => {
+    providerId = 'kizunaai_soniox';
+    signIn();
+    quota = { balance: 1 };
+    render(<AccountButton />);
+    expect(screen.getByRole('button').getAttribute('aria-label')).toMatch(/balance/i);
+  });
+
+  it('names the unverified state in the accessible label', () => {
+    signIn({ emailVerified: false });
+    quota = { balance: 12_340_000 };
+    render(<AccountButton />);
+    expect(screen.getByRole('button').getAttribute('aria-label')).toMatch(/verif/i);
+  });
+
+  it('says just "Account" when there is nothing to report', () => {
+    signIn();
+    quota = { balance: 12_340_000 };
+    render(<AccountButton />);
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Account');
   });
 });
