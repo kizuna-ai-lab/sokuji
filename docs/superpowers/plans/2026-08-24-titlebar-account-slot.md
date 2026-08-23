@@ -1475,8 +1475,11 @@ describe('basic onboarding steps', () => {
     expect(new Set(elementTargets).size).toBe(elementTargets.length);
   });
 
-  it('has eight steps', () => {
-    expect(createBasicOnboardingSteps(t as any)).toHaveLength(8);
+  it('has ten steps', () => {
+    // Eleven before this task. Counted, not assumed: the list is
+    // body, mode-picker, settings-button, [account], languages, provider,
+    // microphone, speaker, participant, main-action-btn, body.
+    expect(createBasicOnboardingSteps(t as any)).toHaveLength(10);
   });
 });
 ```
@@ -1485,7 +1488,7 @@ describe('basic onboarding steps', () => {
 
 - [ ] **Step 2: Run and watch it fail**
 
-Expected: FAIL — nine steps, one targeting `#user-account-section`.
+Expected: FAIL — eleven steps, one targeting `#user-account-section`.
 
 - [ ] **Step 3: Delete the step and extend step 4's copy**
 
