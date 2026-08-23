@@ -10,6 +10,12 @@
   position: relative;
 
   &__initial {
+    // This repo has no global border-box reset (see the note in
+    // VoiceLibrarySection.scss), so without this the 1.5px border sits OUTSIDE
+    // the 20px and the mark renders 23px wide. That is not just a naming lie:
+    // the extra 3px is what pushed Tamil over the edge at a 580px window, and
+    // the candidate chosen from the rendered comparison was a true 20px.
+    box-sizing: border-box;
     width: 20px;
     height: 20px;
     border-radius: 50%;
