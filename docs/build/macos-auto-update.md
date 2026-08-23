@@ -19,9 +19,10 @@ app updates itself". Signing is a prerequisite for that, not the whole of it.
 Squirrel.Mac actually demands is a *stable* signature, not an *Apple* one. See
 §2.5, which is the section to read if you read only one.
 
-**This has been verified on real hardware** (macOS 26.6.1, arm64, 2026-08-24) —
-not just derived from Apple's sources. See §6 for what ran and the one test that
-is still outstanding.
+**Verified end to end on real hardware** (macOS 26.6.1, arm64, 2026-08-24) — not
+just derived from Apple's sources. Squirrel's signature check passes across
+rebuilds, and TCC keeps the microphone grant, with an ad-hoc control arm failing
+both to prove the tests discriminate. See §6.
 
 Three things stand in the way today, and all three must go:
 
@@ -47,9 +48,8 @@ Three things stand in the way today, and all three must go:
 What the money does and does not buy:
 
 - **Auto-update does not need the USD 99.** A self-signed certificate satisfies
-  Squirrel.Mac and — very probably — TCC, so microphone permission would also
-  stop resetting on every update (§2.5c; this specific point still needs one
-  hardware test).
+  Squirrel.Mac *and* TCC — both measured — so microphone permission also stops
+  resetting on every update (§2.5c).
 - **First-install friction does need it.** Gatekeeper requires *notarization*,
   which requires the paid membership. No certificate of your own, and no
   updater, changes the first-run experience: the `sudo xattr -d
@@ -421,7 +421,7 @@ specific version of the code."
 **So a rebuild signed with the same certificate and identifier satisfies the
 previous build's DR, and Squirrel.Mac installs it.**
 
-#### 2.5c TCC very likely stops re-prompting too
+#### 2.5c TCC keeps the microphone grant — measured
 
 TN3127 describes the mechanism using *microphone* as its own example:
 
@@ -431,10 +431,25 @@ TN3127 describes the mechanism using *microphone* as its own example:
 > DR."
 
 A self-signed certificate produces a stable DR (§2.5b), so the recorded DR keeps
-matching. **Caveat, stated honestly:** no Apple document says outright that TCC
-accepts a non-Apple certificate — Apple engineers recommend Apple Development /
-Developer ID identities simply because that is what developers have. This is
-inference from a verified mechanism, and it is hardware test #1.
+matching. No Apple document says outright that TCC accepts a *non-Apple*
+certificate, so this was measured directly — two arms, same bundle identifier
+within each arm, different code in v1 vs v2, and the signing identity as the only
+variable between arms:
+
+| Arm | v1 status at launch | v2 status at launch | Prompt on v2? |
+|---|---|---|---|
+| **self-signed** | `0` notDetermined | **`3` AUTHORIZED** | **no dialog at all** |
+| **ad-hoc** (control) | `0` notDetermined | **`0` notDetermined** | **yes, prompted again** |
+
+Each app called `AVCaptureDevice.authorizationStatusForMediaType:` on launch and
+logged it before requesting access. The self-signed v2 came up already
+authorized and returned instantly; the ad-hoc v2 blocked on a fresh permission
+dialog. Same machine, same session, minutes apart.
+
+**So a self-signed certificate is a stable enough identity for TCC.** And the
+control arm settles the other half of the question: today's ad-hoc builds really
+do lose microphone permission on every update, which until now was only an
+inference (failure mode 13).
 
 #### 2.5d What it costs you
 
@@ -743,11 +758,13 @@ browser-downloaded file. The user should always be the one deciding to bypass.
 
 ### Recommended sequence
 
-1. **Run hardware tests #1 and #2** (§6). They are cheap, and between them they
-   decide whether Option S delivers silent updates outright or needs an
-   ownership fix first.
-2. **Ship Option S.** One more manual install for existing macOS users, then
-   parity with Linux AppImage — for $0.
+1. **Ship Option S.** The mechanism is verified (§6); what is left is
+   integration. One more manual install for existing macOS users, then parity
+   with Linux AppImage — for $0, and microphone permission stops resetting as a
+   bonus.
+2. **Set the bundle ownership in the PKG** as part of that same release, rather
+   than depending on the rename result (§6, caveat on test 2). One line, and it
+   makes the outcome deterministic.
 3. **Separately, decide what to do about first install** (§4.4). It is a
    distribution/docs problem, not an updater problem, and the only complete fix
    is the $99.
@@ -868,10 +885,12 @@ the browser and Terminal from the update loop without any certificate at all.
     encounter excessive prompts"
     (https://developer.apple.com/forums/thread/730043). With no stable signing
     identity TCC keys on the code directory hash, and every Sokuji build
-    produces a new one — so macOS users very likely re-grant microphone and
-    system-audio-recording permission on *every* update today. A Developer ID
-    signature fixes this as a side effect, arguably a bigger day-to-day win than
-    the updater itself. (Unverified on hardware — see §6.)
+    produces a new one — so macOS users re-grant microphone and
+    system-audio-recording permission on *every* update today. **Confirmed on
+    hardware** (§2.5c): the ad-hoc control arm was prompted again after a
+    rebuild, while the self-signed arm was not. Any stable certificate fixes
+    this — it does not have to be a Developer ID — and it is arguably a bigger
+    day-to-day win than the updater itself.
 14. **The existing SignPath arrangement does not extend to macOS.** SignPath
     (free for OSS, already used for the Windows Authenticode signature) can hold
     and use Apple keys through its macOS CryptoTokenKit provider, but it does
@@ -885,12 +904,18 @@ the browser and Terminal from the update loop without any certificate at all.
 ## 6. Hardware tests — run 2026-08-24 on macOS 26.6.1 (arm64)
 
 Everything in §2.5 was first verified by reading Apple's own Security sources;
-it has since been run. `scripts/verify-macos-selfsigned.sh` reproduces tests
-2–6 on any Mac or from a `macos-26` CI job — 9 passed, 0 failed.
+it has since been run. Two scripts reproduce it:
+
+- `scripts/verify-macos-selfsigned.sh` — tests 2–6, fully headless, runs on any
+  Mac or from a `macos-26` CI job. 9 passed, 0 failed.
+- `scripts/verify-macos-tcc.sh` — test 1, which needs someone to click Allow.
+  `setup <arm>` builds and installs v1, `swap <arm>` replaces it with v2 and
+  prints the log; run it for both the `selfsigned` and `adhoc` arms and compare.
+  `cleanup` removes the test apps, the TCC entries and the throwaway keychain.
 
 | # | What it decides | Result |
 |---|---|---|
-| 1 | Does TCC keep the microphone grant across a re-sign? | **NOT RUN** — needs a human to click the permission dialog |
+| 1 | Does TCC keep the microphone grant across a re-sign? | **PASS** — self-signed v2 launched already `AUTHORIZED` with no dialog; the ad-hoc control arm was prompted again (§2.5c) |
 | 2 | Can a write-disabled bundle in `/Applications` be renamed? | **PASS** — yes, so `rename(2)`'s CONFORMANCE clause does not bite on APFS here. The root-owned variant still needs a passworded sudo; see the caveat below |
 | 3 | Is the self-signed DR stable, and does build N+1 satisfy build N's DR? | **PASS** — identical DR, `-R` check rc=0, ad-hoc control correctly fails |
 | 4 | Does a non-LaunchServices download carry quarantine? | **PASS** — `Sokuji.app` does not declare `LSFileQuarantineEnabled`; a curl-fetched file has no `com.apple.quarantine` |
@@ -910,10 +935,10 @@ as a normal user fails regardless of the rename. So set the ownership in the
 PKG anyway (Option S step 5) — one line makes the outcome deterministic instead
 of resting on this test.
 
-**Test 1 is the only real unknown left**, and it is the one that decides whether
-Option S also fixes the permission re-prompting. Procedure: sign two builds with
-one certificate, install the first, grant microphone access, install the second,
-and see whether macOS asks again.
+**Nothing material is unverified any more.** Test 1 was run interactively on the
+same machine (a human clicked Allow); see §2.5c for the numbers. What remains is
+ordinary integration work, not open questions about whether the approach can
+work.
 
 1. **Does TCC keep microphone permission across a rebuild signed with the same
    self-signed certificate?** Sign two builds with one cert, grant mic access to
