@@ -24,6 +24,14 @@ react-i18next, lucide-react, Vitest + @testing-library/react, SASS.
 - **Language**: all code, comments, and commit messages in English. Conventional
   commits (`feat(titlebar): …`, `fix(auth): …`, `test(...)`, `docs(...)`, `i18n(...)`).
 - **TDD, strictly**: write the failing test, run it, watch it fail, then implement.
+  **If the test does NOT fail before you implement, the test is wrong — stop and fix
+  the test, do not proceed.** This has bitten twice in this plan already, both times
+  in tests the plan itself supplied: Task 8's hook test asserted on a mount instead of
+  a transition, so it passed against an effect that ignored its own dependency; Task
+  9's test was told to copy a mock that stubs out the very element it asserts on, so
+  it passed before the change. A green red-phase is not a lucky head start, it means
+  the test is measuring nothing. Where a test's sensitivity is not obvious, prove it
+  by mutation: break the implementation on purpose and confirm the test notices.
 - **All 30 locales together**: `src/locales/locales.consistency.test.ts` flattens every
   catalogue and diffs against `en`. A key added to `en` alone fails the suite. Never
   defer translations to a follow-up.
@@ -1336,9 +1344,11 @@ the heading tooltip's claim is already made by the rewritten `signInRequired`.
 - Modify: `src/components/Settings/sections/index.ts:1`
 - Modify: `src/components/Settings/SimpleSettings/SimpleSettings.tsx:15,170` (import + usage)
 - Modify: `src/components/Settings/AdvancedSettings/AdvancedSettings.tsx:19,116` (import + usage)
-- Modify: `src/components/Settings/SimpleSettings/SimpleSettings.engine.test.tsx:42`
-  (drop the `AccountSection` entry from the `../sections` mock — it will otherwise
-  stub a module export that no longer exists)
+- Modify: `src/components/Settings/SimpleSettings/SimpleSettings.engine.test.tsx` —
+  drop the `AccountSection` entry from the `../sections` mock (`:42`), **and repoint
+  the two assertions that use `account-section` as the "normal section list is
+  showing" marker** (`:104`, `:108`, `:117`) at `provider-section`. Not
+  `language-section`: it renders twice, so it cannot identify the list.
 
 **Advanced mode is affected too, and that is correct.** `AccountSection` renders in
 BOTH surfaces: `SimpleSettings` and the `general` tab of `AdvancedSettings`. The
@@ -1350,8 +1360,18 @@ outcome.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `src/components/Settings/SimpleSettings/SimpleSettings.account.test.tsx`,
-copying the mock preamble from the neighbouring `SimpleSettings.engine.test.tsx`.
+Create `src/components/Settings/SimpleSettings/SimpleSettings.account.test.tsx`.
+
+**Do NOT copy the `vi.mock('../sections', …)` preamble from the neighbouring
+`SimpleSettings.engine.test.tsx`.** That mock replaces every section with a marker
+`<div data-testid="…"/>` carrying no `#user-account-section`, so the assertion below
+would pass *before* the change — no red phase, and a test that measures nothing
+forever. Render the real sections instead. That needs: a `MemoryRouter` wrapper (the
+real `AccountSection` calls `useNavigate`), a mock for `lib/analytics` (its module
+graph reaches `shared/index.tsx`, which calls `ReactDOM.createRoot` at import time),
+and a `HelpSection` stub (`useOnboarding` throws outside its provider). Add one
+guard assertion that some `.config-section` rendered at all, so the test cannot pass
+by rendering nothing.
 
 ```tsx
 it('renders no account section, whatever the provider', () => {
@@ -1457,7 +1477,8 @@ git commit -m "refactor(settings): move interface language to the bottom of the 
 
 ## Task 11: Onboarding — delete basic step 2, fold it into step 4
 
-Step 2 targets `#user-account-section`, which Task 8 deletes. Re-pointing it at
+Step 2 targets `#user-account-section`, which Task 9 deletes. (Slice C therefore ends
+with one dead onboarding target on purpose; this task closes it.) Re-pointing it at
 `#provider-section` is not viable: step 4 already targets that element, and two
 consecutive steps spotlighting one element reads as a bug.
 
