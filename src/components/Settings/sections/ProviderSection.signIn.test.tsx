@@ -74,3 +74,28 @@ describe('ProviderSection — the sign-in notice is an entry point', () => {
     expect(screen.queryByRole('button', { name: /sign in or sign up/i })).toBeNull();
   });
 });
+
+/**
+ * The other half of the same problem: once signed in, the panel renders
+ * settingsStore's `kizunaKeyError` directly. That value used to be English
+ * prose written for a log line ("Failed to get auth session"); it is now a
+ * translation key, so the panel has to resolve it.
+ */
+describe('ProviderSection — the stored auth error reaches the user translated', () => {
+  beforeEach(() => {
+    cleanup();
+    auth.signedIn = true;
+    useSettingsStore.setState({
+      provider: Provider.KIZUNA_AI_SONIOX,
+      isKizunaKeyFetching: false,
+      kizunaKeyError: 'auth.sessionUnavailable',
+    } as never);
+  });
+
+  it('renders the sentence for the code the store stored, not the code', () => {
+    render(<ProviderSection isSessionActive={false} />);
+
+    expect(screen.getByText(/your session is no longer valid/i)).toBeTruthy();
+    expect(screen.queryByText('auth.sessionUnavailable')).toBeNull();
+  });
+});

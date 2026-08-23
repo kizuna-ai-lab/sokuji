@@ -397,7 +397,10 @@
     "passwordResetSuccess": "Password reset successfully! You can now sign in with your new password.",
     "backToSignIn": "Back to Sign In",
     "forgotPasswordError": "Failed to send verification code. Please try again.",
-    "resetPasswordError": "Failed to reset password. Please try again."
+    "resetPasswordError": "Failed to reset password. Please try again.",
+    "signedOut": "Sign in to use Kizuna AI's built-in translation service.",
+    "sessionUnavailable": "Your session is no longer valid. Please sign in again.",
+    "unknown": "Could not verify your account. Please try again."
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Language",

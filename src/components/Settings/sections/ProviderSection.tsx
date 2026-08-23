@@ -526,7 +526,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     const getAuthToken = isKizunaManagedProvider(provider) && isSignedIn && getToken ?
       () => getToken() : undefined;
 
-    const result = await validateApiKey(getAuthToken);
+    const result = await validateApiKey(getAuthToken, isSignedIn);
 
     trackEvent('api_key_validated', {
       provider: provider,
@@ -951,7 +951,10 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           ) : kizunaKeyError ? (
             <div className="api-key-warning">
               <AlertCircle size={16} className="warning-icon" />
-              <span>{kizunaKeyError}</span>
+              {/* kizunaKeyError is a translation key ('auth.*'), not prose —
+                  the store logs the engineering detail and keeps the UI
+                  translatable. */}
+              <span>{t(kizunaKeyError)}</span>
             </div>
           ) : (
             <div className="api-key-info">

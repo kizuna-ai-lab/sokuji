@@ -315,7 +315,11 @@ export interface SettingsStore {
   updateProviderSlice: (sliceKey: string, patch: Record<string, unknown>) => Promise<void>;
 
   // Async actions
-  validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<ApiKeyValidationResult>;
+  /** `isSignedIn` is the caller's real auth state, not a guess. It defaults to
+   *  `true` so the token probe stays the authority for callers that don't know
+   *  (nothing but a signed-in caller hands over a `getAuthToken` today); pass
+   *  it explicitly wherever `useAuth()` is in scope. */
+  validateApiKey: (getAuthToken?: () => Promise<string | null>, isSignedIn?: boolean) => Promise<ApiKeyValidationResult>;
   fetchAvailableModels: (getAuthToken?: () => Promise<string | null>) => Promise<void>;
   ensureKizunaApiKey: (getToken: () => Promise<string | null>, isSignedIn: boolean) => Promise<boolean>;
   loadSettings: () => Promise<void>;
@@ -830,7 +834,10 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     // === Async Actions ===
-    validateApiKey: async (getAuthToken) => {
+    validateApiKey: async (
+      getAuthToken?: () => Promise<string | null>,
+      isSignedIn: boolean = true,
+    ) => {
       const state = get();
       const provider = state.provider;
 
@@ -900,24 +907,37 @@ const useSettingsStore = create<SettingsStore>()(
 
       // For KizunaAI, ensure we have an API key first
       if (isKizunaManagedProvider(provider)) {
+        // Was hardcoded `true`, which made ensureKizunaApiKey's own signed-out
+        // guard unreachable from this call site. `useAuth().getToken` is ALWAYS
+        // a function — signed out it merely resolves to `null` — so
+        // `getAuthToken` is always truthy and every signed-out user fell
+        // through to the generic session-unavailable branch, indistinguishable
+        // from a signed-in user whose session had expired.
         const hasKey = getAuthToken
-          ? await state.ensureKizunaApiKey(getAuthToken, true)
+          ? await state.ensureKizunaApiKey(getAuthToken, isSignedIn)
           : false;
         if (!hasKey) {
+          // Read the code FRESH: `state` is the snapshot taken before
+          // ensureKizunaApiKey ran, so it still holds the previous attempt's
+          // value (null on a first run), not the one just written.
+          const errorKey: string = get().kizunaKeyError || 'auth.signedOut';
+          // kizunaKeyError is a translation key; validationMessage is rendered
+          // verbatim, so it has to be resolved here.
+          const message: string = i18n.t(errorKey);
           // Signed out or token unavailable: clear any stale validity so a
           // previously-valid signed-in state can't keep Start enabled. Without
           // this reset the UI would only discover the missing auth at connect time.
           set({
             isApiKeyValid: false,
             availableModels: [],
-            validationMessage: state.kizunaKeyError || 'Sign in is required for Kizuna relay providers',
+            validationMessage: message,
             isValidating: false,
             isValidated: false,
             validationError: null
           });
           return {
             valid: false,
-            message: state.kizunaKeyError || 'Failed to fetch Kizuna AI API key',
+            message,
             validating: false
           };
         }
@@ -1055,9 +1075,12 @@ const useSettingsStore = create<SettingsStore>()(
         return false;
       }
 
+      // kizunaKeyError reaches the UI (ProviderSection renders it), so it holds
+      // a TRANSLATION KEY from here on, never prose. The engineering detail
+      // stays in the console, where it was always the more useful half.
       if (!isSignedIn || !getToken) {
         console.log('[SettingsStore] Cannot get token - user not signed in');
-        set({kizunaKeyError: 'User not signed in'});
+        set({kizunaKeyError: 'auth.signedOut'});
         return false;
       }
 
@@ -1072,15 +1095,14 @@ const useSettingsStore = create<SettingsStore>()(
           set({isKizunaKeyFetching: false});
           return true;
         } else {
-          const error = 'Failed to get auth session';
-          console.warn('[SettingsStore] ' + error);
-          set({kizunaKeyError: error, isKizunaKeyFetching: false});
+          console.warn('[SettingsStore] Failed to get auth session');
+          set({kizunaKeyError: 'auth.sessionUnavailable', isKizunaKeyFetching: false});
           return false;
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error getting auth session';
         console.error('[SettingsStore] Error getting auth session for Kizuna AI:', errorMessage);
-        set({kizunaKeyError: errorMessage, isKizunaKeyFetching: false});
+        set({kizunaKeyError: 'auth.unknown', isKizunaKeyFetching: false});
         return false;
       }
     },
