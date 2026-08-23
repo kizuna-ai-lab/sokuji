@@ -24,4 +24,19 @@
     justify-content: center;
     flex-shrink: 0;
   }
+
+  &__dot {
+    position: absolute;
+    right: 6px;
+    top: 3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    // The ring is the bar's own background, so the dot reads as a badge
+    // rather than as a smudge on the icon beneath it.
+    box-shadow: 0 0 0 1.5px #1a1a1a;
+
+    &[data-tone='low'] { background: #e0665c; }
+    &[data-tone='unverified'] { background: #d99231; }
+  }
 }

@@ -19,9 +19,12 @@ vi.mock('../../contexts/UserProfileContext', () => ({
   useUserProfile: () => ({ quota, refetchAll: vi.fn() }),
 }));
 
+let providerId = 'openai';
 vi.mock('../../stores/settingsStore', () => ({
-  useProvider: () => 'openai',
+  useProvider: () => providerId,
   useTextOnly: () => false,
+  useAccountPopoverRequested: () => false,
+  useSetAccountPopoverRequested: () => vi.fn(),
 }));
 
 beforeEach(() => {
@@ -29,6 +32,7 @@ beforeEach(() => {
   signedIn = false;
   authUser = null;
   quota = null;
+  providerId = 'openai';
 });
 
 describe('AccountButton', () => {
@@ -64,5 +68,59 @@ describe('AccountButton', () => {
   it('renders no balance label at all when signed out', () => {
     render(<AccountButton />);
     expect(screen.queryByText(/\$/)).toBeNull();
+  });
+});
+
+describe('AccountButton status dot', () => {
+  const signIn = (over: Partial<{ emailVerified: boolean }> = {}) => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true, ...over };
+  };
+
+  it('shows nothing while signed out, even with no verified e-mail', () => {
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')).toBeNull();
+  });
+
+  it('shows an amber dot for an unverified e-mail on any provider', () => {
+    signIn({ emailVerified: false });
+    quota = { balance: 12_340_000 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone'))
+      .toBe('unverified');
+  });
+
+  it('does NOT warn about a low balance under a BYOK provider', () => {
+    // The wallet funds nothing here, so the balance is not the user's problem.
+    signIn();
+    quota = { balance: 1 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')).toBeNull();
+  });
+
+  it('shows a red dot for a low balance under a managed provider', () => {
+    providerId = 'kizunaai_soniox';
+    signIn();
+    quota = { balance: 1 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone'))
+      .toBe('low');
+  });
+
+  it('lets red outrank amber when both apply', () => {
+    providerId = 'kizunaai_soniox';
+    signIn({ emailVerified: false });
+    quota = { balance: 1 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone'))
+      .toBe('low');
+  });
+
+  it('shows no dot when verified and funded', () => {
+    providerId = 'kizunaai_soniox';
+    signIn();
+    quota = { balance: 12_340_000 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')).toBeNull();
   });
 });
