@@ -76,7 +76,13 @@ export function UserAccountInfo({
 
   // State for resend verification email
   const [isResendingVerification, setIsResendingVerification] = useState(false);
-  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
+  // Tone travels WITH the message. It used to be recovered afterwards by
+  // testing the rendered string for the English word "sent", so every
+  // translation without that ASCII substring was styled as an error. Every
+  // call site below already knows which it is; this just stops throwing that
+  // knowledge away.
+  type VerificationNotice = { text: string; tone: 'success' | 'error' };
+  const [verificationMessage, setVerificationMessage] = useState<VerificationNotice | null>(null);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   // Wall-clock anchor for the cooldown. The countdown ticks are paused while
   // the settings panel is hidden (<Activity> unmounts effects), so deriving
@@ -101,7 +107,7 @@ export function UserAccountInfo({
         const remainingCooldown = 60 - secondsSinceCreation;
         startCooldown(remainingCooldown);
         // Show "check your email" message for new signups
-        setVerificationMessage(t('auth.checkYourEmail'));
+        setVerificationMessage({ text: t('auth.checkYourEmail'), tone: 'success' });
       }
     }
   }, [betterAuthUser?.createdAt, betterAuthUser?.emailVerified, t, startCooldown]);
@@ -169,7 +175,7 @@ export function UserAccountInfo({
       if (session?.data?.user?.emailVerified) {
         // Already verified - refresh local state and show message
         refetchSession?.();
-        setVerificationMessage(t('auth.alreadyVerified'));
+        setVerificationMessage({ text: t('auth.alreadyVerified'), tone: 'success' });
         setTimeout(() => setVerificationMessage(null), 5000);
         return;
       }
@@ -185,11 +191,11 @@ export function UserAccountInfo({
         console.error('Failed to send verification email:', result.error);
         // Check if rate limited by server (status 429 or message contains "Too many")
         if (result.error.status === 429 || result.error.message?.includes('Too many')) {
-          setVerificationMessage(t('auth.rateLimitExceeded'));
+          setVerificationMessage({ text: t('auth.rateLimitExceeded'), tone: 'error' });
           startCooldown(60);
           trackEvent('email_verification_failed', {error_type: 'rate_limit'});
         } else {
-          setVerificationMessage(t('auth.verificationEmailFailed'));
+          setVerificationMessage({ text: t('auth.verificationEmailFailed'), tone: 'error' });
           trackEvent('email_verification_failed', {error_type: 'network'});
         }
         setTimeout(() => setVerificationMessage(null), 5000);
@@ -199,18 +205,18 @@ export function UserAccountInfo({
       // Track verification email sent
       trackEvent('email_verification_sent', {});
 
-      setVerificationMessage(t('auth.verificationEmailSent'));
+      setVerificationMessage({ text: t('auth.verificationEmailSent'), tone: 'success' });
       startCooldown(60); // Start 60-second cooldown
       setTimeout(() => setVerificationMessage(null), 5000);
     } catch (error: any) {
       console.error('Failed to send verification email:', error);
       // Check if rate limited by server
       if (error?.status === 429 || error?.message?.includes('Too many')) {
-        setVerificationMessage(t('auth.rateLimitExceeded'));
+        setVerificationMessage({ text: t('auth.rateLimitExceeded'), tone: 'error' });
         startCooldown(60);
         trackEvent('email_verification_failed', {error_type: 'rate_limit'});
       } else {
-        setVerificationMessage(t('auth.verificationEmailFailed'));
+        setVerificationMessage({ text: t('auth.verificationEmailFailed'), tone: 'error' });
         trackEvent('email_verification_failed', {error_type: 'network'});
       }
       setTimeout(() => setVerificationMessage(null), 5000);
@@ -362,8 +368,8 @@ export function UserAccountInfo({
 
       {/* Email verification message */}
       {verificationMessage && (
-        <div className={`verification-message ${verificationMessage.includes('sent') ? 'success' : 'error'}`}>
-          {verificationMessage}
+        <div className={`verification-message ${verificationMessage.tone}`}>
+          {verificationMessage.text}
         </div>
       )}
 
