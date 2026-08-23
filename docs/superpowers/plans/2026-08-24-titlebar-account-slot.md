@@ -1397,9 +1397,12 @@ it('puts translation languages first and interface language last, before help', 
 });
 ```
 
-This needs the interface instance to be identifiable, so give it
-`id="interface-language-section"` when moving it — it currently has no `id`
-(`LanguageSection.tsx:617`), which is also why onboarding is unaffected.
+This needs the interface instance to be identifiable. **Do not add an `id` prop** —
+`LanguageSection` already accepts `className` and splices it into
+`config-section ${className}` (`LanguageSection.tsx:617`), so passing
+`className="interface-language-section"` identifies it without touching the
+component's signature. That the instance carries no `id` is also exactly why
+onboarding is unaffected by this move; leave it that way.
 
 - [ ] **Step 2: Run and watch it fail**
 
@@ -1408,8 +1411,9 @@ Expected: FAIL — interface language currently precedes translation languages.
 - [ ] **Step 3: Move it**
 
 Cut the first `<LanguageSection showInterfaceLanguage={true} …/>` block and paste it
-immediately before `<HelpSection />`. Add the `id` prop plumbed through to the
-section's root div in `LanguageSection.tsx`.
+immediately before `<HelpSection />`, adding
+`className="interface-language-section"` to it. `LanguageSection.tsx` needs no change
+at all.
 
 - [ ] **Step 4: Run the tests**
 
