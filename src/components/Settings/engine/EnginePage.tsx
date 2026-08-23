@@ -97,8 +97,15 @@ export const EnginePage: React.FC<{
                       if (picked === BROWSE_OPTION_VALUE) {
                         // An action, not an option: push the Library and keep
                         // the selection where it was (the controlled value
-                        // snaps the control back on re-render).
-                        onBrowse(slot);
+                        // snaps the control back on re-render). Deferred one
+                        // task, with an explicit blur first: pushing
+                        // synchronously from inside the change event unmounts
+                        // the select while its top-layer picker is still
+                        // committing its close, and on some Chromium builds
+                        // (Electron's 144) that strands the picker/backdrop
+                        // open, swallowing all input — the frozen-UI bug.
+                        e.currentTarget.blur();
+                        window.setTimeout(() => onBrowse(slot), 0);
                         return;
                       }
                       // A settings write can reject (adapter.select is

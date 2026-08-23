@@ -105,21 +105,24 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     expect(tts.options[0].textContent).toBe('Auto');
   });
 
-  it('the Browse library option pushes the Library for THAT slot and keeps the selection', () => {
+  it('the Browse library option pushes the Library for THAT slot and keeps the selection', async () => {
     const a = adapter();
     surface(a);
     fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
-    expect(screen.getByTestId('library')).toHaveTextContent('asr');
+    // The push is deferred one task (see the change handler: unmounting the
+    // select synchronously strands the top-layer picker on some Chromium
+    // builds), so the Library appears asynchronously.
+    expect(await screen.findByTestId('library')).toHaveTextContent('asr');
     expect(a.select).not.toHaveBeenCalled();
     // Back returns to the engine page with the select back on its value.
     fireEvent.click(screen.getByRole('button', { name: /Back/ }));
     expect(asrSelect().value).toBe('');
   });
 
-  it('the back CHIP names the PARENT page while the current page title stands beside it (B, 2026-08-23)', () => {
+  it('the back CHIP names the PARENT page while the current page title stands beside it (B, 2026-08-23)', async () => {
     surface();
     fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
-    const back = screen.getByRole('button', { name: 'Back' });
+    const back = await screen.findByRole('button', { name: 'Back' });
     // iOS-style: the chip says where the click LANDS, not where you are.
     expect(back).toHaveTextContent('Models');
     expect(back).not.toHaveTextContent('Library');
@@ -193,7 +196,7 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     expect(document.querySelector('.engine-slot.highlight')).not.toBeInTheDocument();
   });
 
-  it('returning from a pushed Library does not re-flash the deep-linked slot', () => {
+  it('returning from a pushed Library does not re-flash the deep-linked slot', async () => {
     render(
       <EngineSurface adapter={adapter()} initialSlot={{ dir: 'ja→en', stage: 'asr' }} effectiveMode="both"
         renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>}
@@ -202,7 +205,7 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     expect(document.querySelector('.engine-slot.highlight')).toBeInTheDocument();
 
     fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Back' }));
 
     expect(document.querySelector('.engine-slot.highlight')).not.toBeInTheDocument();
   });

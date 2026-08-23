@@ -16,7 +16,7 @@
  * language NAMES, not the raw 'ja'/'en' codes, per the languageName spec).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent, act } from '@testing-library/react';
+import { render, fireEvent, act, waitFor } from '@testing-library/react';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -179,7 +179,7 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
     }
   });
 
-  it('a pushed Library page pops back to the Engine page when a NEW slot target fires', () => {
+  it('a pushed Library page pops back to the Engine page when a NEW slot target fires', async () => {
     useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
@@ -189,7 +189,8 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
 
     const asrSlot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]')!;
     fireEvent.change(asrSlot.querySelector('select')!, { target: { value: '__browse__' } });
-    expect(container.querySelector('.engine-back-chip')).not.toBeNull();
+    // The push is deferred one task (top-layer picker close ordering).
+    await waitFor(() => expect(container.querySelector('.engine-back-chip')).not.toBeNull());
     expect(container.querySelector('.engine-page')).toBeNull();
 
     // A different slot's chip fires while the Library is showing — the surface
