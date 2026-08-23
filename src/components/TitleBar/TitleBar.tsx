@@ -4,11 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { Minus, Square, X, Settings, Terminal } from 'lucide-react';
 import { isElectron, isMacOS } from '../../utils/environment';
 import SubtitleEnterButton from '../Subtitle/SubtitleEnterButton';
+import AccountButton from './AccountButton';
 import './TitleBar.scss';
 
 interface TitleBarProps {
   showSettings: boolean;
   showLogs: boolean;
+  // Logs live behind advanced mode. Removing the button from basic mode is
+  // what pays for the account slot: measured, Electron Win/Linux goes from
+  // "safe only above 685px" to "safe above 335px".
+  showLogsButton: boolean;
   onToggleSettings: () => void;
   onToggleLogs: () => void;
 }
@@ -16,6 +21,7 @@ interface TitleBarProps {
 const TitleBar: React.FC<TitleBarProps> = ({
   showSettings,
   showLogs,
+  showLogsButton,
   onToggleSettings,
   onToggleLogs,
 }) => {
@@ -54,6 +60,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
     >
       <span className="title-bar__title">Sokuji</span>
       <div className="title-bar__actions">
+        <AccountButton />
         <SubtitleEnterButton />
         <button
           type="button"
@@ -68,18 +75,20 @@ const TitleBar: React.FC<TitleBarProps> = ({
           <Settings size={14} />
           <span className="title-bar__action-label">{settingsLabel}</span>
         </button>
-        <button
-          type="button"
-          // Keep the legacy `logs-button` class for the same reason as
-          // settings-button above — preserves any selector consumers.
-          className={`title-bar__action logs-button ${showLogs ? 'is-active' : ''}`}
-          onClick={onToggleLogs}
-          title={logsLabel}
-          aria-label={logsLabel}
-        >
-          <Terminal size={14} />
-          <span className="title-bar__action-label">{logsLabel}</span>
-        </button>
+        {showLogsButton && (
+          <button
+            type="button"
+            // Keep the legacy `logs-button` class for the same reason as
+            // settings-button above — preserves any selector consumers.
+            className={`title-bar__action logs-button ${showLogs ? 'is-active' : ''}`}
+            onClick={onToggleLogs}
+            title={logsLabel}
+            aria-label={logsLabel}
+          >
+            <Terminal size={14} />
+            <span className="title-bar__action-label">{logsLabel}</span>
+          </button>
+        )}
       </div>
       {showInAppWindowControls && (
         <div className="title-bar__buttons">

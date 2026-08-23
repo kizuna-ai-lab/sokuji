@@ -8,6 +8,7 @@ import UserTypeSelection from '../UserTypeSelection/UserTypeSelection';
 import TitleBar from '../TitleBar/TitleBar';
 import PanelResizer from './PanelResizer';
 import { clampPanelWidth, maxPanelWidth, readPanelWidth, savePanelWidth, PANEL_MIN_WIDTH } from './panelWidth';
+import { useCloseLogsOutsideAdvanced } from './useCloseLogsOutsideAdvanced';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
@@ -105,6 +106,10 @@ const MainLayout: React.FC = () => {
   };
 
 
+  // The logs button only exists in advanced mode, so a panel left open across
+  // a switch to basic would have nothing to close it with.
+  useCloseLogsOutsideAdvanced(uiMode, showLogs, setShowLogs);
+
   // Re-clamp the saved/active width when the window shrinks so a wide panel
   // can never strand MainPanel below its minimum.
   useEffect(() => {
@@ -201,6 +206,7 @@ const MainLayout: React.FC = () => {
       <TitleBar
         showSettings={showSettings}
         showLogs={showLogs}
+        showLogsButton={uiMode === 'advanced'}
         onToggleSettings={toggleSettings}
         onToggleLogs={toggleLogs}
       />
