@@ -631,15 +631,23 @@ export function ModelManagementSection({
     setHasPendingChanges(true);
   }, [supertonicTtsEntry, settings.ttsSpeakerId, updateLocalInference, refreshImportedVoices]);
 
-  // Auto-select first voice when target language changes or no voice selected
+  // Auto-select first voice when target language changes or no voice selected.
+  // The stored edgeTtsVoice belongs to the FORWARD pair — SettingsInitializer
+  // (always mounted) keeps it valid for the forward target. A Library pushed
+  // for any other direction must never write it: its filteredVoices are for
+  // the reversed target, so the two writers would ping-pong the field forever,
+  // sync-re-rendering the whole app each round (the 2026-08-23 freeze).
+  const ownsEdgeVoice = !direction
+    || direction === directionKey(settings.sourceLanguage, settings.targetLanguage);
   useEffect(() => {
+    if (!ownsEdgeVoice) return;
     if (!isEdgeTtsSelected || filteredVoices.length === 0) return;
     const currentVoice = settings.edgeTtsVoice;
     const isCurrentValid = filteredVoices.some(v => v.ShortName === currentVoice);
     if (!isCurrentValid) {
       updateLocalInference({ edgeTtsVoice: filteredVoices[0].ShortName });
     }
-  }, [isEdgeTtsSelected, filteredVoices, settings.edgeTtsVoice, updateLocalInference]);
+  }, [ownsEdgeVoice, isEdgeTtsSelected, filteredVoices, settings.edgeTtsVoice, updateLocalInference]);
 
   // A failed initialize() (e.g. IndexedDB VersionError when another build
   // upgraded the shared DB in this profile) must surface an actionable error

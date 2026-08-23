@@ -30,6 +30,23 @@ vi.mock('../../../stores/settingsStore', () => ({
   useUpdateLocalInference: () => mockUpdate,
 }));
 
+// Edge TTS voice list — two disjoint locales so the forward/reversed targets
+// disagree about which voice is "valid" (the freeze-bug precondition). The
+// real filterVoicesByLanguage/getVoiceDisplayName stay in play.
+const mockVoice = (ShortName: string, Locale: string) => ({
+  Name: ShortName, ShortName, Gender: 'Female', Locale,
+  SuggestedCodec: '', FriendlyName: ShortName, Status: 'GA',
+  VoiceTag: { ContentCategories: [], VoicePersonalities: [] },
+});
+const mockGetEdgeTtsVoices = vi.fn(async () => [
+  mockVoice('ja-JP-NanamiNeural', 'ja-JP'),
+  mockVoice('en-US-AriaNeural', 'en-US'),
+]);
+vi.mock('../../../lib/edge-tts/voiceList', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getEdgeTtsVoices: () => mockGetEdgeTtsVoices(),
+}));
+
 // Voice storage (Supertonic imported voices) — keep deterministic / IndexedDB-free.
 vi.mock('../../../lib/local-inference/voiceStorage', () => ({
   listVoices: vi.fn(async () => []),
@@ -313,5 +330,44 @@ describe('ModelManagementSection — ModelStorageFooter only on the standalone r
     render(<ModelManagementSection isSessionActive={false} />);
     await screen.findByText('ASR (Speech Recognition)');
     expect(document.querySelector('.model-management__storage')).toBeInTheDocument();
+  });
+});
+
+// Freeze bug (2026-08-23): the Library pushed for a REVERSED direction used
+// to run the Edge-TTS default-voice effect against the slot's (reversed)
+// target while the always-mounted SettingsInitializer ran the same check
+// against the FORWARD target. With disjoint voice lists the two writers
+// ping-pong `edgeTtsVoice` forever — a sync re-render loop that froze the
+// whole app. The voice field belongs to the forward pair only, so a
+// non-forward Library render must never write it.
+describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () => {
+  it('a reversed-direction Library render never writes edgeTtsVoice', async () => {
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+    // Valid for the FORWARD target (ja) — invalid for the reversed leg's (en).
+    mockSettings.edgeTtsVoice = 'ja-JP-NanamiNeural';
+
+    render(<ModelManagementSection isSessionActive={false} stageFilter="translation" direction="ja→en" />);
+
+    await waitFor(() => expect(mockGetEdgeTtsVoices).toHaveBeenCalled());
+    // One extra macrotask so the auto-select effect (if it ran) has flushed.
+    await new Promise((r) => setTimeout(r, 0));
+
+    const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
+    expect(voiceWrites).toHaveLength(0);
+  });
+
+  it('the forward render still auto-fixes an invalid voice', async () => {
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+    mockSettings.edgeTtsVoice = 'en-US-AriaNeural'; // wrong language for target ja
+
+    render(<ModelManagementSection isSessionActive={false} />);
+
+    await waitFor(() => {
+      const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
+      expect(voiceWrites.length).toBeGreaterThan(0);
+      expect(voiceWrites[0][0].edgeTtsVoice).toBe('ja-JP-NanamiNeural');
+    });
   });
 });
