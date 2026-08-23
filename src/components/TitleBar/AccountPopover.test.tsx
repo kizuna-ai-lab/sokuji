@@ -49,3 +49,15 @@ describe('AccountPopover signed out', () => {
     expect(nav).toHaveBeenCalledWith('/sign-in');
   });
 });
+
+describe('AccountPopover accessible name', () => {
+  // useRole gives the floating element role="dialog" but no name, so a screen
+  // reader announces it as an unnamed dialog — the user is told something
+  // opened and not what.
+  it('names the dialog', () => {
+    render(<AccountPopover open anchorEl={document.body} onClose={vi.fn()} />);
+    const dialog = document.querySelector('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog!.getAttribute('aria-label')).toBe('Account');
+  });
+});

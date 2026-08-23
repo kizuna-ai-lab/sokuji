@@ -72,6 +72,10 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
           ref={refs.setFloating}
           style={floatingStyles}
           className="account-popover"
+          // useRole supplies role="dialog" but no name, and an unnamed dialog
+          // tells a screen-reader user that something opened without saying
+          // what. Same key the button uses, so the two agree.
+          aria-label={t('titleBar.account.label', 'Account')}
           {...getFloatingProps()}
         >
           {isSignedIn ? (
