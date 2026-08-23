@@ -1853,7 +1853,10 @@ here, it may have been refined during implementation):
 
 - Never drop or rename an interpolation (`{{email}}`) or a `<Trans>` component marker
   (`<signInLink>`). A dropped marker does not fail any test — it silently removes a
-  control from the UI.
+  control from the UI. There is a working precedent to copy: `providers.poweredBy` is
+  `Powered by <brand>{{name}}</brand>` in en and `<brand>{{name}}</brand> 驱动` in
+  zh_CN — note the marker moves to the front where word order demands it. Move the
+  marker with the words; never strip it to make a sentence flow.
 - Reuse the catalogue's own existing terminology. Each of these files already renders
   "API key", "sign in", "account" in a settled way; matching it beats a fresh
   translation that reads correctly but differently from the screen around it.
