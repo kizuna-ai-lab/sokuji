@@ -15,6 +15,11 @@ vi.mock('../../lib/auth/hooks', () => ({
 }));
 
 let quota: any = null;
+let kizunaEnabled = true;
+vi.mock('../../utils/environment', () => ({
+  isKizunaAIEnabled: () => kizunaEnabled,
+}));
+
 vi.mock('../../contexts/UserProfileContext', () => ({
   useUserProfile: () => ({ quota, refetchAll: vi.fn() }),
 }));
@@ -27,6 +32,7 @@ vi.mock('../../stores/settingsStore', () => ({
 
 beforeEach(() => {
   cleanup();
+  kizunaEnabled = true;
   signedIn = false;
   authUser = null;
   quota = null;
@@ -152,5 +158,26 @@ describe('AccountButton accessibility', () => {
     quota = { balance: 12_340_000 };
     render(<AccountButton />);
     expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Account');
+  });
+});
+
+describe('AccountButton under the Kizuna master gate', () => {
+  // A build with VITE_ENABLE_KIZUNA_AI unset registers no managed provider and
+  // has no wallet, so an account is worth nothing there. Offering to register
+  // would promise a service that build does not contain. AccountSection guarded
+  // on this before it was removed; the guard has to survive the move.
+  it('renders nothing at all when the Kizuna gate is closed', () => {
+    kizunaEnabled = false;
+    const { container } = render(<AccountButton />);
+    expect(container.querySelector('.account-button')).toBeNull();
+  });
+
+  it('still renders nothing when the gate is closed and a user is signed in', () => {
+    kizunaEnabled = false;
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
+    quota = { balance: 12_340_000 };
+    const { container } = render(<AccountButton />);
+    expect(container.querySelector('.account-button')).toBeNull();
   });
 });

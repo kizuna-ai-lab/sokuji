@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { User } from 'lucide-react';
 import { useAuth, useUser } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
+import { isKizunaAIEnabled } from '../../utils/environment';
 import { isKizunaManagedProvider } from '../../types/Provider';
 import { useProvider, useTextOnly } from '../../stores/settingsStore';
 import { sonioxManagedMinBalanceMicroUsd } from '../../services/providers/sonioxManagedMinBalance';
@@ -24,6 +25,13 @@ const AccountButton: React.FC = () => {
   const { quota } = useUserProfile();
   const provider = useProvider();
   const textOnly = useTextOnly();
+
+  // A build with the Kizuna gate closed registers no managed provider and has
+  // no wallet, so an account buys nothing there — offering to register would
+  // promise a service the build does not contain. AccountSection carried this
+  // same guard before it was removed; it has to survive the move, not be lost
+  // in it. Placed after every hook call so the hook order stays unconditional.
+  if (!isKizunaAIEnabled()) return null;
 
   // One key, not one per state: both states name the same thing to the user.
   // Two keys holding an identical string only give a translator two chances to
