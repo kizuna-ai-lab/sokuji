@@ -1534,6 +1534,12 @@ git commit -m "fix(onboarding): drop the step pointing at the removed account se
 
 ## Task 12: Make the provider sign-in line an entry point
 
+**Before you start, know the gate you have to keep green.** Unlike the noisy
+directories listed in Global Constraints, `src/components/Settings/sections` is
+**fully green at 28 files / 288 tests**, and `ProviderSection` alone is covered by
+five files — `chips`, `palabraai`, `poweredBy`, `select`, `soniox`. Any red there is
+yours. Run the whole directory, not just your own new test.
+
 `ProviderSection.tsx:963` states a restriction with nothing to act on. Clicking opens
 the title-bar popover rather than navigating: the sign-in affordance is then
 maintained in one place, and watching the popover open teaches the user where the
@@ -1675,6 +1681,11 @@ git commit -m "feat(settings): make the provider sign-in notice open the account
 ---
 
 ## Task 13: Stop showing raw engineering strings to signed-out users
+
+Same gate as Task 12: `src/components/Settings/sections` is fully green (28 files,
+288 tests) and this task edits `ProviderSection`, which five of those files cover.
+`src/stores` is a different story — it carries baseline failures, so A/B there rather
+than assuming.
 
 **Reproduced — this is deterministic, not a race.** The chain, verified by reading it:
 
