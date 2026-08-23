@@ -49,7 +49,8 @@ What the money does and does not buy:
 
 - **Auto-update does not need the USD 99.** A self-signed certificate satisfies
   Squirrel.Mac *and* TCC — both measured — so microphone permission also stops
-  resetting on every update (§2.5c).
+  resetting on every update (§2.5c), and the keychain prompt users see after
+  every update should stop with it (§7.1).
 - **First-install friction does need it.** Gatekeeper requires *notarization*,
   which requires the paid membership. No certificate of your own, and no
   updater, changes the first-run experience: the `sudo xattr -d
@@ -977,14 +978,41 @@ not ship together.
   System Settings shows the app as allowed but access is denied at runtime; the
   fix is `tccutil reset Microphone ai.kizunaai.sokuji` or toggling the checkbox.
   Worth a line in that release's notes.
-- **Sign-in state survives.** `EnableCookieEncryption` is on, so Chromium keeps a
-  "Safe Storage" key in the login keychain whose ACL is bound to the code
-  identity — and TN2206 names the keychain as a DR-based subsystem, so a changed
-  identity can prompt or reset the encrypted cookie store. But better-auth's
-  session does **not** live there: `electron/better-auth-adapter.js:4` puts the
-  cookie jar in `electron-conf`, a plain file under the app's userData. Users
-  stay logged in. And as with TCC, today's ad-hoc builds already churn this key
-  on every single build, so a stable certificate makes it better, not worse.
+- **The keychain prompt after every update has the same cause — and the same
+  fix.** Users report that Sokuji asks for keychain access after installing an
+  update. That is not the app reading user credentials; it is Chromium reading
+  its own cookie-database encryption key. `EnableCookieEncryption` is on
+  (`forge.config.js:127`, `scripts/electron-builder-fuses.js:34`), which
+  Electron documents as encrypting "the cookie store on disk … using OS level
+  cryptography keys"; on macOS that key lives in the login keychain under a name
+  Electron hardcodes at `shell/browser/electron_browser_main_parts.cc:593`:
+
+  ```cpp
+  KeychainPassword::GetServiceName() = app_name + " Safe Storage";
+  ```
+
+  Confirmed present on a real install: `svce="sokuji Safe Storage"`,
+  `acct="sokuji Key"`. The keychain binds that item's ACL to the creating app's
+  code identity, so an ad-hoc rebuild reads as a *different program* asking for
+  the key — hence the dialog. TN2206 names the keychain explicitly as a
+  DR-based subsystem and says "self-signed identities and homemade certificate
+  authorities (CA) work by default for this case", so a stable certificate
+  should end it. Expect **one last prompt** at the transition (the first
+  self-signed build is still a new identity relative to today's ad-hoc one);
+  answer it with "Always Allow".
+
+  *Not measured directly* — unlike the TCC arm (§2.5c). The reasoning is
+  Apple's own documentation plus our measured DR stability, but the keychain
+  arm itself has not been run.
+
+  **Do not "fix" this by turning the fuse off.** Electron's docs are explicit
+  that the transition is one-way: disabling it after it has been enabled "will
+  make your cookie store corrupt and useless".
+
+- **Sign-in state survives regardless.** better-auth's session does not live in
+  the keychain: `electron/better-auth-adapter.js:4` puts the cookie jar in
+  `electron-conf`, a plain file under the app's userData. Even a denied keychain
+  prompt only affects Chromium's own cookie store.
 - **Ownership change** (if the PKG starts chowning the bundle) is invisible to
   the user.
 - **Gatekeeper is unchanged.** The PKG is still not notarized, so the
