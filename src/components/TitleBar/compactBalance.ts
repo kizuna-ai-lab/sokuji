@@ -10,8 +10,8 @@
 // the wallet holds. `< $0.01` understates, and a negative balance floors
 // AWAY from zero so a debt is never shown as smaller than it is.
 
-const MICRO_USD_PER_USD = 1_000_000;
 const MICRO_USD_PER_CENT = 10_000;
+const CENTS_PER_USD = 100;
 
 export function compactBalanceLabel(microUsd: number | null | undefined): string {
   if (typeof microUsd !== 'number' || !Number.isFinite(microUsd)) return '$0.00';
@@ -22,7 +22,7 @@ export function compactBalanceLabel(microUsd: number | null | undefined): string
   // Math.floor on the cent count moves negatives away from zero, which is the
   // conservative direction for a debt as well as for a credit.
   const cents = Math.floor(microUsd / MICRO_USD_PER_CENT);
-  const dollars = Math.abs(cents) / 100;
+  const dollars = Math.abs(cents) / CENTS_PER_USD;
   const sign = cents < 0 ? '-' : '';
   return `${sign}$${dollars.toFixed(2)}`;
 }
