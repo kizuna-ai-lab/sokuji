@@ -485,9 +485,12 @@ let providerId = 'openai';
 vi.mock('../../stores/settingsStore', () => ({
   useProvider: () => providerId,
   useTextOnly: () => false,
-  useAccountPopoverRequested: () => false,
-  useSetAccountPopoverRequested: () => vi.fn(),
 }));
+
+Do NOT mock `useAccountPopoverRequested` / `useSetAccountPopoverRequested` here — they
+do not exist in the store until Task 12 creates them. (Unlike Task 2's inert mock,
+which names hooks that are real but unused yet, mocking these would be inventing an
+export.)
 ```
 
 and reset `providerId = 'openai'` in `beforeEach`.
@@ -526,6 +529,23 @@ and render it inside the button:
 ```tsx
 {tone && <span className="account-button__dot" data-tone={tone} aria-hidden="true" />}
 ```
+
+**The dot must also reach a screen reader.** It is `aria-hidden`, so unless the state
+appears in the accessible label the dot's entire early-warning value is missing for a
+screen-reader user — the button would just say "Account" whether or not the next
+session is about to be refused. Derive the label from `tone` and use it for BOTH
+`aria-label` and `title`, so hovering also tells sighted users why the dot is there:
+
+```tsx
+const statusLabel =
+  tone === 'low'
+    ? t('titleBar.account.lowBalance', 'Account — balance too low to start a session')
+    : tone === 'unverified'
+      ? t('titleBar.account.unverified', 'Account — e-mail not verified')
+      : accountLabel;
+```
+
+Add `titleBar.account.lowBalance` and `titleBar.account.unverified` to `en` only.
 
 - [ ] **Step 4: Style it**
 
@@ -1809,6 +1829,8 @@ here, it may have been refined during implementation):
 | Key | Note |
 |---|---|
 | `titleBar.account.label` | The word for a user account, nested inside each catalogue's existing `titleBar` object. Several catalogues already have this word under `simpleConfig.userAccount` — reuse it rather than inventing a synonym. |
+| `titleBar.account.lowBalance` | Accessible label AND hover tooltip when the balance is below the session floor. Must name the balance — a screen reader has no other way to learn the dot exists. |
+| `titleBar.account.unverified` | Same, for an unverified e-mail address. |
 | `common.topUp` | **zh_CN is fixed at 「充值」** — the English label was chosen to match it. Other locales use their own established wording for adding money to a balance. |
 | `simpleConfig.signInRequired` | Two sentences: what signing up gives first, bring-your-own-key as the fallback. **Do not mention purchase in the first sentence** — the whole point of the rewrite. **zh_CN is fixed at** `注册后即可使用 Sokuji 自带的翻译服务，无需申请任何 API key。也可以继续使用你自己的服务商和密钥。` |
 | `common.signInRequired` | **Must keep the `<signInLink>…</signInLink>` markers.** Without them `<Trans>` renders no link and the control silently stops working. **zh_CN is fixed at** `<signInLink>登录或注册</signInLink>即可使用 Kizuna AI，无需 API key。` |
