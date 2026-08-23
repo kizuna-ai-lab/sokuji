@@ -271,7 +271,13 @@
   }
 
   &__info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-  &__name { font-size: 13px; }
+  // The name takes the slack so the badge and the size sit at the row's
+  // right edge (same voice as the picker rows), sizes forming a column
+  // across rows next to the delete control.
+  &__name {
+    font-size: 13px; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   &__meta { font-size: vars.$font-caption; color: vars.$text-muted; flex-shrink: 0; }
   &__badge {
     font-size: 10px; padding: 1px 6px; border-radius: 10px;
