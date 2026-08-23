@@ -1,0 +1,14 @@
+// src/components/TitleBar/AccountPopover.scss
+// Values copied from ModeDevicePopover.scss so the two popovers are one
+// control in two places rather than two lookalikes that drift.
+.account-popover {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  width: 320px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  color: #ccc;
+  z-index: 1000;
+  overflow: hidden;
+}
