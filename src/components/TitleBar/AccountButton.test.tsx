@@ -1,6 +1,6 @@
 // src/components/TitleBar/AccountButton.test.tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import AccountButton from './AccountButton';
 
 vi.mock('react-i18next', () => ({
@@ -28,6 +28,13 @@ let providerId = 'openai';
 vi.mock('../../stores/settingsStore', () => ({
   useProvider: () => providerId,
   useTextOnly: () => false,
+}));
+
+// The popover itself is covered by AccountPopover.test.tsx; here it stands in
+// only as a presence signal, so these tests stay about the wiring.
+vi.mock('./AccountPopover', () => ({
+  default: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="account-popover" /> : null,
 }));
 
 beforeEach(() => {
@@ -179,5 +186,25 @@ describe('AccountButton under the Kizuna master gate', () => {
     quota = { balance: 12_340_000 };
     const { container } = render(<AccountButton />);
     expect(container.querySelector('.account-button')).toBeNull();
+  });
+});
+
+describe('AccountButton popover', () => {
+  it('opens the popover on click and closes it on a second click', () => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
+    render(<AccountButton />);
+    const btn = screen.getByRole('button');
+    expect(screen.queryByTestId('account-popover')).toBeNull();
+    fireEvent.click(btn);
+    expect(screen.getByTestId('account-popover')).toBeTruthy();
+    fireEvent.click(btn);
+    expect(screen.queryByTestId('account-popover')).toBeNull();
+  });
+
+  it('opens the popover while signed out too — that is the registration entry', () => {
+    render(<AccountButton />);
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByTestId('account-popover')).toBeTruthy();
   });
 });
