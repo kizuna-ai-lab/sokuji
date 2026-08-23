@@ -1987,10 +1987,15 @@ useVerificationRefresh(isSignedIn, user?.emailVerified === true, refetch);
 
 // Confirm it happened — otherwise the only feedback is a warning disappearing,
 // which is not feedback.
-const wasVerified = useRef(user?.emailVerified === true);
+// Tri-state, and NOT seeded from `=== true`. On the first render the session
+// is still resolving and `user` is null, so `=== true` seeds false; when the
+// session lands verified, false -> true looks exactly like a fresh
+// verification and the toast fires on EVERY launch for every verified user.
+// Only an observed `false` may arm it.
+const wasVerified = useRef<boolean | undefined>(user?.emailVerified);
 useEffect(() => {
   const now = user?.emailVerified === true;
-  if (!wasVerified.current && now) {
+  if (wasVerified.current === false && now) {
     showToast(t('auth.emailVerifiedToast', 'E-mail verified'), { variant: 'success' });
   }
   wasVerified.current = now;
@@ -1999,7 +2004,10 @@ useEffect(() => {
 
 - [ ] **Step 5: Update the message copy in `en` only**
 
-`en` only. `auth.checkYourEmail` becomes
+`en` only, and **without** an `{{email}}` placeholder — the call site passes no
+interpolation options, so it would render literally.
+
+`auth.checkYourEmail` becomes
 `Verification e-mail sent to {{email}}. Finish it in your inbox and come back — Sokuji picks it up automatically.`
 and `auth.emailVerifiedToast` = `E-mail verified`. Task 15 must keep the `{{email}}`
 interpolation intact in every translation.
@@ -2049,7 +2057,7 @@ here, it may have been refined during implementation):
 | `common.topUp` | **zh_CN is fixed at 「充值」** — the English label was chosen to match it. Other locales use their own established wording for adding money to a balance. |
 | `simpleConfig.signInRequired` | Two sentences: what signing up gives first, bring-your-own-key as the fallback. **Do not mention purchase in the first sentence** — the whole point of the rewrite. **zh_CN is fixed at** `注册后即可使用 Sokuji 自带的翻译服务，无需申请任何 API key。也可以继续使用你自己的服务商和密钥。` |
 | `common.signInRequired` | **A different key from `simpleConfig.signInRequired` above — every catalogue carries both, and they mean different things. Edit them by full path, never by the leaf name.** **Must keep the `<signInLink>…</signInLink>` markers.** Without them `<Trans>` renders no link and the control silently stops working. **zh_CN is fixed at** `<signInLink>登录或注册</signInLink>即可使用 Kizuna AI，无需 API key。` |
-| `auth.checkYourEmail` | **Must keep the `{{email}}` interpolation.** Promises automatic pickup — that promise is true because of Task 14, so do not soften it to "click refresh". |
+| `auth.checkYourEmail` | Carries **no** interpolation — its single call site (`UserAccountInfo.tsx:104`) passes no options, so a `{{email}}` placeholder would render literally, and the address is already on screen ten lines above. Promises automatic pickup; that promise is true because of Task 14, so do not soften it to "click refresh". |
 | `auth.emailVerifiedToast` | Short toast text. |
 | `auth.signedOut`, `auth.sessionUnavailable`, `auth.unknown` | User-facing renderings of the three auth error codes from Task 13. Plain language, not engineering language: these replace strings like "Failed to get auth session". |
 | `onboarding.basic.steps.*.title` | **Do not renumber anything.** `renumberSteps` in `OnboardingContext.tsx` derives the digit from the step's real position, in both lists and across locales, so a catalogue only has to be right about the words. Translate the text and leave whatever number is there. |
