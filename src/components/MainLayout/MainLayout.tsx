@@ -46,8 +46,10 @@ const MainLayout: React.FC = () => {
   // Track previous auth state to detect login
   const prevIsSignedInRef = useRef(isSignedIn);
 
-  // Helper function to track panel view events
-  const trackPanelView = (panelName: PanelName | null) => {
+  // Helper function to track panel view events.
+  // useCallback so it can be a dependency of the mode-change effect below
+  // without re-arming it on every render.
+  const trackPanelView = useCallback((panelName: PanelName | null) => {
     // Track closing of previous panel
     if (currentPanelRef.current && panelOpenTimeRef.current) {
       const viewDuration = Date.now() - panelOpenTimeRef.current;
@@ -72,7 +74,7 @@ const MainLayout: React.FC = () => {
       panelOpenTimeRef.current = null;
       currentPanelRef.current = null;
     }
-  };
+  }, [trackEvent]);
 
   // Modify toggle functions to ensure only one panel is displayed at a time
   const toggleLogs = () => {
@@ -108,7 +110,22 @@ const MainLayout: React.FC = () => {
 
   // The logs button only exists in advanced mode, so a panel left open across
   // a switch to basic would have nothing to close it with.
-  useCloseLogsOutsideAdvanced(uiMode, showLogs, setShowLogs);
+  // Closing means all three of these, not just the state: the persisted flag
+  // would otherwise reopen the panel next session, and skipping trackPanelView
+  // would leave the analytics believing logs were still on screen and charge
+  // the next panel's duration to them.
+  const closeLogsPanel = useCallback(() => {
+    setShowLogs(false);
+    sessionStorage.setItem('panelState.showLogs', 'false');
+    trackPanelView(null);
+  }, [trackPanelView]);
+
+  useCloseLogsOutsideAdvanced(uiMode, showLogs, closeLogsPanel);
+
+  // Visibility is derived, not just persisted. showLogs is restored from
+  // sessionStorage during the first render, so a panel saved in advanced mode
+  // would flash once in basic before the effect above could close it.
+  const logsVisible = showLogs && uiMode === 'advanced';
 
   // Re-clamp the saved/active width when the window shrinks so a wide panel
   // can never strand MainPanel below its minimum.
@@ -205,7 +222,7 @@ const MainLayout: React.FC = () => {
     {!electronSubtitleTakeover && (
       <TitleBar
         showSettings={showSettings}
-        showLogs={showLogs}
+        showLogs={logsVisible}
         showLogsButton={uiMode === 'advanced'}
         onToggleSettings={toggleSettings}
         onToggleLogs={toggleLogs}
@@ -215,12 +232,12 @@ const MainLayout: React.FC = () => {
       className="main-layout"
       style={electronSubtitleTakeover ? { display: 'none' } : undefined}
     >
-      <div className={`main-content ${(showLogs || showSettings) ? 'with-panel' : 'full-width'}`}>
+      <div className={`main-content ${(logsVisible || showSettings) ? 'with-panel' : 'full-width'}`}>
         <div className="main-panel-container">
           <MainPanel />
         </div>
       </div>
-      {(showLogs || showSettings) && (
+      {(logsVisible || showSettings) && (
         <PanelResizer
           width={panelWidth}
           min={PANEL_MIN_WIDTH}
@@ -237,10 +254,10 @@ const MainLayout: React.FC = () => {
         className="settings-panel-container"
         style={{
           width: panelWidth,
-          ...((showLogs || showSettings) ? null : { display: 'none' }),
+          ...((logsVisible || showSettings) ? null : { display: 'none' }),
         }}
       >
-        <Activity mode={showLogs ? 'visible' : 'hidden'}>
+        <Activity mode={logsVisible ? 'visible' : 'hidden'}>
           <LogsPanel toggleLogs={toggleLogs} />
         </Activity>
         <Activity mode={showSettings ? 'visible' : 'hidden'}>
