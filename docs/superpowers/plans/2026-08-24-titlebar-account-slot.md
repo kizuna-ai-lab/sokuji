@@ -1898,6 +1898,29 @@ export function useVerificationRefresh(
 }
 ```
 
+**Two hazards specific to where this code lands.**
+
+`AccountButton` now has an early `return null` for the Kizuna master gate. Every hook
+this task adds — `useVerificationRefresh`, the `useRef`, the toast `useEffect` — must
+sit **above** that return, or the hook order becomes conditional and React throws on
+the first gated render.
+
+`refetch` comes from better-auth's `useSession` and is not guaranteed to be
+referentially stable across renders. Listing it in the effect's dependency array would
+tear down and re-add the listeners on every render that happens to produce a new
+function. Keep the latest `refetch` in a ref inside the hook and leave it out of the
+deps, so the subscription survives re-renders:
+
+```ts
+const refetchRef = useRef(refetch);
+refetchRef.current = refetch;
+// …and call refetchRef.current() from the listener; deps stay
+// [isSignedIn, emailVerified]
+```
+
+Adjust the hook's signature and tests accordingly — the tests in Step 1 pass `refetch`
+directly and still work, since they only ever render once per case.
+
 - [ ] **Step 4: Use it in AccountButton and toast the transition**
 
 `AccountButton` does not import the toast yet — add
