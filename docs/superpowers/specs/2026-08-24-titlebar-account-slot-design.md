@@ -344,7 +344,7 @@ Three parts, and they ship together:
    toast (`src/components/Toast`) and drop the amber dot. Without this the only
    feedback is the absence of a warning, which is not feedback.
 3. **Say what to expect.** The popover message names the address and the return trip:
-   `Verification e-mail sent to {{email}}. Finish it in your inbox and come back —
+   `Verification e-mail sent. Finish it in your inbox and come back —
    Sokuji picks it up automatically.`
 
 Part 3's wording is only honest if part 1 ships, which is why they are one change.

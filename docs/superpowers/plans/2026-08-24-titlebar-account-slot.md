@@ -70,10 +70,16 @@ react-i18next, lucide-react, Vitest + @testing-library/react, SASS.
   nothing" is unachievable there. **The bar is zero NEW errors.** Measure it:
 
   ```bash
-  npx tsc --noEmit 2>&1 | grep -cE "<paths/you/touched>"   # after your change
-  git stash && npx tsc --noEmit 2>&1 | grep -cE "<same>"   # baseline
-  git stash pop
+  # BEFORE you edit anything:
+  npx tsc --noEmit 2>&1 | grep -cE "<paths/you/will/touch>"   # baseline
+  # ...make your change...
+  npx tsc --noEmit 2>&1 | grep -cE "<same paths>"            # after
   ```
+
+  Take the baseline **before editing**, never by stashing — the constraint two
+  bullets up forbids `git stash` here, and an example that used it would be this
+  document contradicting itself. If you did not take one first, restore the file
+  from `git show HEAD:<path>` into a scratch copy rather than touching the stash.
 
   The two counts must match. `tsconfig.json` sets `noUnusedLocals`, so an unused
   constant or import is a hard error — Task 1's first draft shipped a dead constant
@@ -2008,9 +2014,10 @@ useEffect(() => {
 interpolation options, so it would render literally.
 
 `auth.checkYourEmail` becomes
-`Verification e-mail sent to {{email}}. Finish it in your inbox and come back — Sokuji picks it up automatically.`
-and `auth.emailVerifiedToast` = `E-mail verified`. Task 15 must keep the `{{email}}`
-interpolation intact in every translation.
+`Verification e-mail sent. Finish it in your inbox and come back — Sokuji picks it up automatically.`
+and `auth.emailVerifiedToast` = `E-mail verified`. **No `{{email}}` placeholder**: the
+single call site passes no interpolation options, so it would render literally, and
+the address is already on screen ten lines above.
 
 The "automatically" is only honest because of Step 3 — do not ship this copy without it.
 
@@ -2101,7 +2108,7 @@ every test passing. These must be re-translated from `en` by hand:
 | `simpleConfig.signInRequired` | rewritten to lead with what signing up gives (Task 6) |
 | `common.signInRequired` | rewritten and now carries `<signInLink>` markers (Task 12) |
 | `onboarding.basic.steps.provider.content` | extended to introduce the built-in service (Task 11) |
-| `auth.checkYourEmail` | rewritten to promise automatic pickup, carries `{{email}}` (Task 14) |
+| `auth.checkYourEmail` | rewritten to promise automatic pickup; carries **no** interpolation (Task 14) |
 
 Re-derive this list before starting rather than trusting it: `git diff 9d81aeca..HEAD
 -- src/locales/en/translation.json` shows every `en` value this branch touched, and
@@ -2125,6 +2132,8 @@ Expected: PASS.
 ```bash
 grep -L "signInLink" src/locales/*/translation.json   # must print nothing
 grep -L "{{email}}" src/locales/*/translation.json    # must print nothing
+# (this one guards auth.otpSentTo, the only key carrying {{email}} —
+#  auth.checkYourEmail deliberately has none)
 ```
 
 Both must print nothing. A file listed here has lost its marker and will render a
