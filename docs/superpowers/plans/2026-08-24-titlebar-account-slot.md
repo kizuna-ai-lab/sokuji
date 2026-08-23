@@ -47,8 +47,9 @@ react-i18next, lucide-react, Vitest + @testing-library/react, SASS.
   must exit 0. If it does not, stop and report rather than working on the wrong tree.
 - **Type-check before every commit — measured as A/B, not as an absolute.** `npx vitest
   run` does NOT type-check and `npm run build` is a plain esbuild transpile, so without
-  this step nothing in the plan catches a type error. The baseline is dirty (467
-  errors repo-wide) and dirty *unevenly*: `TitleBar/` happens to be clean, but
+  this step nothing in the plan catches a type error. The baseline is dirty (mid-460s
+  repo-wide — do not hard-code the number, it moves as tasks land) and dirty
+  *unevenly*: `TitleBar/` happens to be clean, but
   `components/Auth/` carries 8 pre-existing errors, so "the files you touched report
   nothing" is unachievable there. **The bar is zero NEW errors.** Measure it:
 
@@ -774,6 +775,7 @@ vi.mock('../../lib/auth/hooks', () => ({
 vi.mock('../Auth/UserAccountInfo', () => ({
   UserAccountInfo: () => <div data-testid="account-info" />,
 }));
+// Inert in Task 5 — the component gains useNavigate in Task 6. Leave it.
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }));
 
 beforeEach(() => { cleanup(); signedIn = true; });
@@ -828,6 +830,11 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
     open,
     onOpenChange: (next) => { if (!next) onClose(); },
     placement: 'bottom-end',
+    // Declarative, matching ModeDevicePopover. Setting the reference from a
+    // useEffect also works but lands one frame after first paint, and since
+    // Task 7 hands in a ref that is null until the click-triggered re-render,
+    // that stray frame would hit EVERY first open.
+    elements: { reference: anchorEl ?? undefined },
     middleware: [
       offset(6),
       flip(),
@@ -835,7 +842,9 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
       size({
         padding: 8,
         apply({ availableHeight, elements }) {
-          elements.floating.style.maxHeight = `${availableHeight}px`;
+          // Clamped: floating-ui can return a transient negative mid-reposition.
+          // Both sibling popovers carry this guard.
+          elements.floating.style.maxHeight = `${Math.max(0, availableHeight)}px`;
         },
       }),
     ],
@@ -850,10 +859,6 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
   const dismiss = useDismiss(context);
   const role = useRole(context, { role: 'dialog' });
   const { getFloatingProps } = useInteractions([dismiss, role]);
-
-  React.useEffect(() => {
-    refs.setReference(anchorEl);
-  }, [anchorEl, refs]);
 
   if (!open) return null;
 
