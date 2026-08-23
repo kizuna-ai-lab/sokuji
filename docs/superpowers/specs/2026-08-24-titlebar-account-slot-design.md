@@ -426,6 +426,23 @@ Carried out of this session's discussion deliberately, so they are not lost:
 - **Registration page value proposition.** `SignUpForm` is a bare form; nothing on it
   says what signing up gives.
 
+## Discovered, deliberately not done
+
+**Annotating `validateApiKey`'s return type repairs 153 of the repository's 466 type
+errors.** Found while implementing §10: adding `: Promise<ApiKeyValidationResult>` to
+that one action drops repo-wide errors 466 → 337 and `src/stores/` 149 → 33, by
+restoring contextual typing across the whole `create<SettingsStore>()` object literal
+that one un-annotated action was poisoning.
+
+It was left out on purpose. It surfaces three previously-masked errors — including
+that **`isValidated` is written in five places in `settingsStore.ts` and is not
+declared on the `SettingsStore` interface at all** — so landing it inside a bugfix
+task would have blown that task's zero-new-errors bar and invalidated the baselines
+the remaining tasks measure against.
+
+It deserves its own change: one line of annotation, a 33% cut in the repository's
+type errors, and a genuine missing field brought to light.
+
 ## Open questions
 
 None outstanding. Status-dot colours (red outranking amber) and the "Top up" label

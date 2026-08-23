@@ -1769,6 +1769,10 @@ handle being signed out, and produces a message about a session failure instead.
 
 **Files:**
 - Modify: `src/stores/settingsStore.ts:896-899`, `:1041-1080`
+- Modify: `src/components/SettingsInitializer/SettingsInitializer.tsx:97,110` — thread
+  the real `isSignedIn` through. These are the only two callers besides
+  `ProviderSection` that pass a token at all; the other eight call `validateApiKey()`
+  with no arguments and cannot reach the Kizuna branch.
 - Modify: `src/components/Settings/sections/ProviderSection.tsx:952`
 - Test: `src/stores/settingsStore.kizunaAuth.test.ts` (create)
 
