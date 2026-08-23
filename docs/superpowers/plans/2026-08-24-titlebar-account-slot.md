@@ -1114,22 +1114,33 @@ const [open, setOpen] = useState(false);
 const btnRef = useRef<HTMLButtonElement | null>(null);
 ```
 
-Give both `<button>` elements `ref={btnRef}`, `onClick={() => setOpen((v) => !v)}`,
+Restructure so the signed-out and signed-in branches decide only their **inner
+content**, then fall through to a single shared tail: one `<button>` and one
+`<AccountPopover>` inside one fragment. Rendering the popover inside each branch
+would mount it twice.
+
+The shared button carries `ref={btnRef}`, `onClick={() => setOpen((v) => !v)}`,
 `aria-haspopup="dialog"` and `aria-expanded={open}` — the button is not floating-ui's
-managed reference in this split, so `useRole` cannot wire those for us and they are
-written by hand. Then render after each button:
+managed reference in this split, so `useRole` cannot wire those and they are written
+by hand.
 
 ```tsx
 <AccountPopover open={open} anchorEl={btnRef.current} onClose={() => setOpen(false)} />
 ```
 
-Restructure so the two branches differ only in their inner content and share one
-wrapping fragment — duplicating the popover in both branches would mount it twice.
+The `isKizunaAIEnabled()` early `return null` stays above all of this and renders
+nothing at all, popover included.
+
+Clicking the button while the popover is open toggles **once**, not twice:
+`AccountPopover` passes the button as `elements.reference`, which becomes floating-ui's
+`domReference`, and `useDismiss`'s outside-press handler early-returns for events
+inside it. So `onClose` does not fire before `onClick` runs.
 
 - [ ] **Step 4: Run the tests**
 
 Run: `npx vitest run src/components/TitleBar/AccountButton.test.tsx`
-Expected: PASS, 13 tests.
+Expected: PASS, 18 tests. (The file grew past the plan's original count when the
+status-dot accessibility tests and the master-gate tests landed.)
 
 - [ ] **Step 5: Commit**
 
