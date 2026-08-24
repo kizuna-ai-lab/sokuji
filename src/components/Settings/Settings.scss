@@ -1963,37 +1963,81 @@
 // type-ahead for free — but sheds every visual sign of being a form control,
 // so it sits level with "Restart Setup Guide" beside it rather than towering
 // over it.
+// The picker keeps a link's weight — no border, no filled background, the
+// same muted colour as the links beside it — but it must still read as
+// something you can open, so it keeps its chevron. `.help-link__select` joins
+// the shared base-select layer below, which themes the popup and, because a
+// base-select control lays out to its SELECTED option rather than its longest
+// one, also sizes it correctly: measured at 54px for 日本語 against 148px for
+// the same list drawn as a classic OS widget.
 .help-link--picker {
-  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 
-  // A native <select> is as wide as its LONGEST option, not its chosen one, so
-  // picking 日本語 out of a list containing "Português (Portugal)" left the
-  // control padded with twenty characters of empty space — enough to push the
-  // next link onto another line. The visible name below sets the width, and
-  // the select is laid over it transparently: full native behaviour, no
-  // phantom width.
   .help-link__select {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    appearance: none;
+    background: transparent;
     border: none;
+    border-radius: 3px;
+    padding: 1px 2px;
     margin: 0;
-    padding: 0;
+    color: inherit;
     font: inherit;
     cursor: pointer;
-    // The option list is painted by the OS, which does not inherit this panel's
-    // theme; without this the popup can come up as light text on light ground.
+
+    &:disabled { cursor: not-allowed; }
+
+    // Classic fallback (Chrome 116–134): the popup is drawn by the OS and
+    // ignores this theme past the option colours. Chevron comes from the
+    // shared `.language-select` background-image in that path; here the row is
+    // borderless, so a plain caret keeps it recognisable without one.
     option { color: initial; background: initial; }
   }
+}
 
-  // The select is invisible, so the focus ring has to be drawn by the row.
-  &:focus-within {
-    outline: 1px solid vars.$color-primary;
-    outline-offset: 2px;
-    border-radius: 2px;
+@supports (appearance: base-select) {
+  .help-link--picker .help-link__select {
+    &,
+    &::picker(select) { appearance: base-select; }
+
+    // Same themed popup as every other select in Settings.
+    &::picker(select) {
+      background: vars.$bg-surface;
+      border: 1px solid vars.$border-default;
+      border-radius: vars.$radius-md;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      padding: 4px;
+      margin-top: 4px;
+      max-height: 320px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    &::picker-icon { color: vars.$text-muted; }
+
+    &:hover { color: vars.$color-primary; }
+    &:open { color: vars.$color-primary; }
+
+    option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: vars.$radius-sm;
+      font-size: vars.$font-title;
+      color: vars.$text-primary;
+      background: transparent;
+      cursor: pointer;
+
+      &:hover,
+      &:focus { background: vars.$bg-control; }
+
+      &::checkmark {
+        color: vars.$color-primary;
+        order: 1;
+        margin-left: auto;
+      }
+    }
   }
 }
 

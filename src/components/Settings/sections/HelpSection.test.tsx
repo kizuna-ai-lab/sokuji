@@ -89,17 +89,21 @@ describe('interface language in Help', () => {
     expect(picker().getAttribute('aria-label')).toMatch(/interface language/i);
   });
 
-  // A native <select> takes its width from its LONGEST option, not from the
-  // chosen one. With "Português (Portugal)" in the list, picking 日本語 left
-  // the control holding twenty characters' worth of empty space, which pushed
-  // the next link onto another line. The visible name is rendered separately
-  // so the width follows what is actually selected; the select itself is
-  // overlaid transparently and keeps its native behaviour.
-  it('shows the selected language as text, so the width fits it', () => {
+  // Settings themes every one of its dropdowns through one shared
+  // `appearance: base-select` layer, keyed off these class names. Joining it
+  // is what gives this control the app's own popup instead of the OS one, the
+  // chevron that marks it as openable, and — because a base-select control
+  // lays out to its selected option rather than its longest — a width that
+  // follows the chosen language. Measured: 54px for 日本語 against 148px for
+  // the same list as a classic OS widget.
+  //
+  // The width itself is a CSS property that jsdom cannot observe; what this
+  // pins is the hook the stylesheet selects on, which is what would silently
+  // break if the class were renamed.
+  it('joins the shared select styling rather than rolling its own', () => {
     render(<HelpSection />);
-    const shown = document.querySelector('#help-section .help-link__value');
-    expect(shown).not.toBeNull();
-    expect(shown!.textContent).toBe('English');
+    expect(picker().classList.contains('help-link__select')).toBe(true);
+    expect(picker().closest('.help-link--picker')).not.toBeNull();
   });
 
   it('offers every interface language, not a shortened list', () => {
