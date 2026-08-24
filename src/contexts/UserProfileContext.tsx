@@ -172,6 +172,12 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
   useEffect(() => {
     if (isSignedIn && userId) {
       fetchQuota();
+    } else {
+      // fetchQuota has a signed-out branch that clears the quota, but it was
+      // unreachable: this effect only ever called it while signed in, so a
+      // sign-out left the previous user's balance on screen. That stale balance
+      // is the reason sign-out reached for window.location.reload().
+      setQuota(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, userId]); // Depend on stable values, not the function
