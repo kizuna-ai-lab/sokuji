@@ -9,10 +9,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 
-const changeLanguageWithLoad = vi.fn(async () => undefined);
+const changeLanguageWithLoad = vi.fn<(lang: string) => Promise<void>>();
 vi.mock('../../../locales', () => ({ changeLanguageWithLoad }));
 
-const setUILanguage = vi.fn();
+const setUILanguage = vi.fn<(lang: string) => Promise<void>>();
 vi.mock('../../../stores/settingsStore', () => ({
   useSetUILanguage: () => setUILanguage,
 }));
@@ -66,8 +66,10 @@ const { INTERFACE_LANGUAGES } = await import('./interfaceLanguages');
 beforeEach(() => {
   cleanup();
   electron = false;
-  changeLanguageWithLoad.mockClear();
-  setUILanguage.mockClear();
+  changeLanguageWithLoad.mockReset();
+  changeLanguageWithLoad.mockResolvedValue(undefined);
+  setUILanguage.mockReset();
+  setUILanguage.mockResolvedValue(undefined);
   trackEvent.mockClear();
 });
 
@@ -174,6 +176,61 @@ describe('interface language in Help', () => {
     await vi.waitFor(() => expect(lastSuppressed()).toBe(true));
     fireEvent.blur(picker());
     await vi.waitFor(() => expect(lastSuppressed()).toBe(false));
+  });
+
+  // A <select> fires change on every arrow-key step, so holding a direction
+  // walks the list and starts one catalogue load per language passed. Each is
+  // independently async: an earlier one finishing last would leave the app
+  // speaking a language the user only scrolled through.
+  it('ignores a language load that finishes after a newer one', async () => {
+    const finish: Record<string, () => void> = {};
+    changeLanguageWithLoad.mockImplementation(
+      (lang: string) => new Promise<void>((res) => { finish[lang] = () => res(); }),
+    );
+
+    render(<HelpSection />);
+    fireEvent.change(picker(), { target: { value: 'ja' } });
+    fireEvent.change(picker(), { target: { value: 'zh_CN' } });
+
+    // The newer choice lands first, then the older one straggles in.
+    finish['zh_CN']();
+    await vi.waitFor(() => expect(setUILanguage).toHaveBeenCalledWith('zh_CN'));
+    finish['ja']();
+
+    // Give the stale continuation a chance to misbehave before asserting.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(setUILanguage).not.toHaveBeenCalledWith('ja');
+    expect(setUILanguage).toHaveBeenCalledTimes(1);
+  });
+
+  // setUILanguage writes through the settings service. Left unawaited, a
+  // failure there surfaced as an unhandled rejection while analytics recorded
+  // a change that was never persisted.
+  it('does not report a change it failed to persist', async () => {
+    setUILanguage.mockRejectedValueOnce(new Error('disk full'));
+    render(<HelpSection />);
+    fireEvent.change(picker(), { target: { value: 'ja' } });
+
+    await vi.waitFor(() => expect(setUILanguage).toHaveBeenCalledWith('ja'));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(trackEvent).not.toHaveBeenCalledWith(
+      'language_changed',
+      expect.objectContaining({ to_language: 'ja' }),
+    );
+  });
+
+  it('survives a catalogue that fails to load', async () => {
+    changeLanguageWithLoad.mockRejectedValueOnce(new Error('offline'));
+    render(<HelpSection />);
+    fireEvent.change(picker(), { target: { value: 'ja' } });
+
+    await new Promise((r) => setTimeout(r, 0));
+    // Nothing persisted, nothing reported, and no unhandled rejection.
+    expect(setUILanguage).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalledWith(
+      'language_changed',
+      expect.objectContaining({ to_language: 'ja' }),
+    );
   });
 
   it('leaves the other help links in place', () => {

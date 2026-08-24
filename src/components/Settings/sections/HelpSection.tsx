@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { HelpCircle, RefreshCw, Mail, MessageSquare, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -29,6 +29,9 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
   // reports no open/close, but it always takes focus to open — and suppressing
   // on focus also keeps the tooltip out of the way of keyboard users.
   const [pickerFocused, setPickerFocused] = useState(false);
+
+  // Serial number of the newest language request; see the change handler.
+  const languageRequestRef = useRef(0);
 
   const openExternalUrl = (url: string) => {
     if (isElectron() && (window as any).electron?.invoke) {
@@ -107,13 +110,36 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
             onChange={async (e) => {
               const oldLanguage = i18n.language;
               const newLanguage = e.target.value;
-              await changeLanguageWithLoad(newLanguage);
-              setUILanguage(newLanguage);
-              trackEvent('language_changed', {
-                from_language: oldLanguage,
-                to_language: newLanguage,
-                language_type: 'ui',
-              });
+
+              // A <select> fires change on every arrow-key step, so holding a
+              // direction walks the list and starts one catalogue load per
+              // language passed. Each is independently async, so an earlier
+              // one can finish last and leave the app speaking a language the
+              // user only scrolled through. Only the newest request may write.
+              const request = ++languageRequestRef.current;
+
+              try {
+                await changeLanguageWithLoad(newLanguage);
+                if (request !== languageRequestRef.current) return;
+
+                // Awaited: this writes through the settings service, and
+                // unawaited a failure became an unhandled rejection while the
+                // event below reported a change that was never saved.
+                await setUILanguage(newLanguage);
+                if (request !== languageRequestRef.current) return;
+
+                trackEvent('language_changed', {
+                  from_language: oldLanguage,
+                  to_language: newLanguage,
+                  language_type: 'ui',
+                });
+              } catch (err) {
+                // The catalogue or the settings service failed. The language
+                // is left as it was and nothing is reported as changed.
+                // TODO(#441): route this through logStore once the repo-wide
+                // logging convention lands, so the user can see it in Logs.
+                console.error('[HelpSection] Could not change the interface language:', err);
+              }
             }}
           >
             {INTERFACE_LANGUAGES.map((lang) => (

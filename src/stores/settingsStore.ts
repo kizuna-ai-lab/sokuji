@@ -272,7 +272,10 @@ export interface SettingsStore {
   // === Actions ===
   // Common settings actions
   setProvider: (provider: ProviderType) => void;
-  setUILanguage: (lang: string) => void;
+  // Async: it writes through the settings service. Declared void, callers
+  // had no way to know they should await it — a failed write surfaced as an
+  // unhandled rejection with the UI already changed.
+  setUILanguage: (lang: string) => Promise<void>;
   setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;

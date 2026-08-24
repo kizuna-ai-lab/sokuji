@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
-import { Languages, ArrowLeftRight, CircleHelp, AlertTriangle, VolumeX } from 'lucide-react';
+import { Languages, ArrowLeftRight, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
