@@ -13,8 +13,12 @@ vi.mock('../../lib/auth/hooks', () => ({
 vi.mock('../Auth/UserAccountInfo', () => ({
   UserAccountInfo: () => <div data-testid="account-info" />,
 }));
-let navigateImpl = vi.fn();
-vi.mock('react-router-dom', () => ({ useNavigate: () => navigateImpl }));
+// The popover no longer navigates: authentication is an overlay now, so the
+// buttons raise a store flag and the app stays where it is.
+let setAuthOverlay = vi.fn();
+vi.mock('../../stores/settingsStore', () => ({
+  useSetAuthOverlay: () => setAuthOverlay,
+}));
 
 beforeEach(() => { cleanup(); signedIn = true; });
 
@@ -38,15 +42,15 @@ describe('AccountPopover signed out', () => {
     expect(screen.getByRole('button', { name: /sign in/i })).toBeTruthy();
   });
 
-  it('navigates to the right route from each button', () => {
+  it('raises the right overlay from each button', () => {
     signedIn = false;
     const nav = vi.fn();
-    navigateImpl = nav;
+    setAuthOverlay = nav;
     render(<AccountPopover open anchorEl={document.body} onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
-    expect(nav).toHaveBeenCalledWith('/sign-up');
+    expect(nav).toHaveBeenCalledWith('sign-up');
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
-    expect(nav).toHaveBeenCalledWith('/sign-in');
+    expect(nav).toHaveBeenCalledWith('sign-in');
   });
 });
 

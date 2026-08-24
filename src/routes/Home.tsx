@@ -7,6 +7,7 @@ import { useLoadSettings } from '../stores/settingsStore';
 import { useSubtitleStore } from '../stores/subtitleStore';
 import { useConversationDisplayStore } from '../stores/conversationDisplayStore';
 import { SettingsInitializer } from '../components/SettingsInitializer/SettingsInitializer';
+import AuthOverlay from '../components/Auth/AuthOverlay';
 
 export function Home() {
   const initializeAudioService = useInitializeAudioService();
@@ -33,6 +34,10 @@ export function Home() {
       <OnboardingProvider>
         <SettingsInitializer />
         <MainLayout />
+        {/* Over the app, not instead of it: MainLayout and every provider above
+            it stay mounted while the user signs in, so a running translation
+            session survives the round trip. */}
+        <AuthOverlay />
       </OnboardingProvider>
     </UserProfileProvider>
   );

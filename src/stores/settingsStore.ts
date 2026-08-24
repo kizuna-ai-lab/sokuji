@@ -111,6 +111,9 @@ export interface CommonSettings {
 }
 
 // Transport type moved to the services layer; re-exported for existing importers.
+/** The authentication forms that can sit over the app. */
+export type AuthOverlayKind = 'sign-in' | 'sign-up' | 'forgot-password' | null;
+
 export type { TransportType } from '../services/providers/ProviderDescriptor';
 
 // Cache Entry
@@ -233,6 +236,11 @@ export interface SettingsStore {
    *  opened (the provider sign-in notice does). Never persisted — AccountButton
    *  reads it, opens the popover, and immediately clears it back to false. */
   accountPopoverRequested: boolean;
+  /** Which authentication form is showing over the app, or null for none.
+   *  Authentication is an OVERLAY, not a route: SignIn used to be a sibling of
+   *  Home, so reaching for the account unmounted the whole tree — and any live
+   *  translation session with it — before the user had typed anything. */
+  authOverlay: AuthOverlayKind;
   /** Ephemeral: fired once by an engine chip (Task 10) to deep-link into the
    *  engine surface with a given slot pre-expanded. Never persisted — the
    *  consuming surface (SimpleSettings, ProviderSpecificSettings) reads it,
@@ -334,6 +342,7 @@ export interface SettingsStore {
   navigateToSettings: (target: string | null) => void;
   setEngineSlotTarget: (t: { dir: string; stage: Stage } | null) => void;
   setAccountPopoverRequested: (next: boolean) => void;
+  setAuthOverlay: (next: AuthOverlayKind) => void;
 }
 
 // ==================== Helper Functions ====================
@@ -611,6 +620,7 @@ const useSettingsStore = create<SettingsStore>()(
     settingsNavigationTarget: null,
     engineSlotTarget: null,
     accountPopoverRequested: false,
+    authOverlay: null,
 
     settingsLoaded: false,
     subtitleModeActive: false,
@@ -1302,6 +1312,10 @@ const useSettingsStore = create<SettingsStore>()(
       set({engineSlotTarget: t});
     },
 
+    setAuthOverlay: (next: AuthOverlayKind) => {
+      set({authOverlay: next});
+    },
+
     setAccountPopoverRequested: (next: boolean) => {
       set({accountPopoverRequested: next});
     },
@@ -1380,6 +1394,10 @@ export const useAccountPopoverRequested = () =>
   useSettingsStore((state: SettingsStore) => state.accountPopoverRequested);
 export const useSetAccountPopoverRequested = () =>
   useSettingsStore((state: SettingsStore) => state.setAccountPopoverRequested);
+export const useAuthOverlay = () =>
+  useSettingsStore((state: SettingsStore) => state.authOverlay);
+export const useSetAuthOverlay = () =>
+  useSettingsStore((state: SettingsStore) => state.setAuthOverlay);
 
 // Settings loading state
 export const useSettingsLoaded = () => useSettingsStore((state) => state.settingsLoaded);

@@ -6,13 +6,13 @@
 // work exists to smooth. The product already splits the two languages:
 // panels for sustained configuration, popovers for a glance.
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   useFloating, useDismiss, useRole, useInteractions, FloatingPortal,
   FloatingFocusManager, offset, flip, shift, size, autoUpdate,
 } from '@floating-ui/react';
 import { useAuth } from '../../lib/auth/hooks';
+import { useSetAuthOverlay } from '../../stores/settingsStore';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
 import './AccountPopover.scss';
 
@@ -24,7 +24,7 @@ interface AccountPopoverProps {
 
 const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const setAuthOverlay = useSetAuthOverlay();
   const { isSignedIn } = useAuth();
 
   const { refs, floatingStyles, context } = useFloating({
@@ -90,14 +90,14 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
                 <button
                   type="button"
                   className="account-popover__btn account-popover__btn--primary"
-                  onClick={() => { navigate('/sign-up'); onClose(); }}
+                  onClick={() => { setAuthOverlay('sign-up'); onClose(); }}
                 >
                   {t('common.signUp', 'Sign Up')}
                 </button>
                 <button
                   type="button"
                   className="account-popover__btn account-popover__btn--ghost"
-                  onClick={() => { navigate('/sign-in'); onClose(); }}
+                  onClick={() => { setAuthOverlay('sign-in'); onClose(); }}
                 >
                   {t('common.signIn', 'Sign In')}
                 </button>

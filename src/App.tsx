@@ -5,9 +5,6 @@ import './locales'; // Initialize i18n
 import { NativeTtsProto } from './components/dev/NativeTtsProto';
 import { RootLayout } from './layouts/RootLayout';
 import { Home } from './routes/Home';
-import { SignIn } from './routes/SignIn';
-import { SignUp } from './routes/SignUp';
-import { ForgotPassword } from './routes/ForgotPassword';
 
 // Create the memory router for Chrome extension
 // Memory router is recommended for Chrome extensions as they don't have a URL bar
@@ -19,18 +16,6 @@ const router = createMemoryRouter([
       {
         index: true,
         element: <Home />,
-      },
-      {
-        path: 'sign-in/*',
-        element: <SignIn />,
-      },
-      {
-        path: 'sign-up/*',
-        element: <SignUp />,
-      },
-      {
-        path: 'forgot-password',
-        element: <ForgotPassword />,
       },
     ],
   },

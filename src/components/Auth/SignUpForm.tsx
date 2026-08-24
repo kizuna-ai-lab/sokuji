@@ -5,7 +5,7 @@
  */
 
 import React, { useState, FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useSetAuthOverlay } from '../../stores/settingsStore';
 import { authClient } from '../../lib/auth-client';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
@@ -13,7 +13,7 @@ import './SignUpForm.scss';
 
 export function SignUpForm() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const setAuthOverlay = useSetAuthOverlay();
   const { trackEvent, identifyUser } = useAnalytics();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -99,7 +99,7 @@ export function SignUpForm() {
 
     // Navigate to home on successful sign up
     setLoading(false);
-    navigate('/', { replace: true });
+    setAuthOverlay(null);
   };
 
   return (
@@ -193,9 +193,16 @@ export function SignUpForm() {
       <div className="form-footer">
         <p>
           {t('auth.haveAccount', 'Already have an account?')}{' '}
-          <Link to="/sign-in" onClick={() => trackEvent('sign_in_link_clicked', {})}>
+          <button
+            type="button"
+            className="auth-inline-link"
+            onClick={() => {
+              trackEvent('sign_in_link_clicked', {});
+              setAuthOverlay('sign-in');
+            }}
+          >
             {t('auth.signIn', 'Sign In')}
-          </Link>
+          </button>
         </p>
       </div>
     </div>
