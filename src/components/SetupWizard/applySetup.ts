@@ -19,7 +19,7 @@ export interface ApplySetupDeps {
   setSpeakerDisplayMode: (m: 'source' | 'translation' | 'both') => Promise<void> | void;
   setParticipantDisplayMode: (m: 'source' | 'translation' | 'both') => Promise<void> | void;
   updateProviderSlice: (sliceKey: string, patch: Record<string, unknown>) => Promise<void>;
-  setProvider: (p: ProviderType) => void;
+  setProvider: (p: ProviderType) => void | Promise<void>;
   completeSetup: (r: { scenario: ScenarioId; providerPath: ProviderPath; provider: string }) => Promise<void>;
   /** settingsStore.validateApiKey, bound by the caller with its auth getter. */
   validateApiKey: () => Promise<unknown>;
@@ -40,13 +40,20 @@ export async function applySetupDraft(draft: SetupDraft, deps: ApplySetupDeps): 
   const credentials = providerPath === 'own-key' && !draft.credentialsPending ? draft.credentials : {};
   await deps.updateProviderSlice(deps.sliceKeyFor(provider), { sourceLanguage, targetLanguage, ...credentials });
 
-  deps.setProvider(provider);
+  // Awaited: a rejected persist has to reach Finish's error path rather than
+  // becoming an unhandled rejection behind a "done" wizard.
+  await deps.setProvider(provider);
   await deps.completeSetup({ scenario, providerPath, provider });
 
-  // SettingsInitializer re-validates on a provider change, and on credential
-  // changes for every API provider EXCEPT Soniox's regional keys. Only the
-  // "same provider, new key" re-run can slip through; cover exactly that.
-  if (providerPath === 'own-key' && provider === deps.currentProvider) {
+  // settingsStore.setProvider clears the validation cache unconditionally —
+  // even when the provider it is handed is the one already selected. On an
+  // unchanged provider SettingsInitializer's effects do not re-fire, so
+  // readiness would stay cleared until something else validated: the managed
+  // path lands on "managed-key-unavailable", the offline path on an
+  // un-validated engine. Re-derive it here for EVERY path when the provider
+  // did not change. (Secondary reason: SettingsInitializer also misses
+  // credential changes for Soniox's regional keys.)
+  if (provider === deps.currentProvider) {
     await deps.validateApiKey();
   }
 }

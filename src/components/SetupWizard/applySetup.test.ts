@@ -8,7 +8,11 @@ import { Provider } from '../../types/Provider';
 function deps(overrides: Partial<ApplySetupDeps> = {}): ApplySetupDeps {
   return {
     currentProvider: Provider.OPENAI,
-    sliceKeyFor: (p) => (p === Provider.SONIOX ? 'soniox' : p === Provider.OPENAI ? 'openai' : 'kizunaSoniox'),
+    sliceKeyFor: (p) =>
+      p === Provider.SONIOX ? 'soniox'
+        : p === Provider.OPENAI ? 'openai'
+          : p === Provider.LOCAL_INFERENCE ? 'localInference'
+            : 'kizunaSoniox',
     setMode: vi.fn(),
     setTextOnly: vi.fn(),
     setSpeakerDisplayMode: vi.fn(),
@@ -61,6 +65,10 @@ describe('applySetupDraft (spec §1.5)', () => {
     const managed = deps();
     await applySetupDraft(draft({ providerPath: 'managed', provider: Provider.KIZUNA_AI_SONIOX, credentials: {} }), managed);
     expect(managed.updateProviderSlice).toHaveBeenCalledWith('kizunaSoniox', { sourceLanguage: 'en', targetLanguage: 'ja' });
+
+    const offline = deps();
+    await applySetupDraft(draft({ providerPath: 'offline', provider: Provider.LOCAL_INFERENCE, credentials: { apiKey: 'sk-1' } }), offline);
+    expect(offline.updateProviderSlice).toHaveBeenCalledWith('localInference', { sourceLanguage: 'en', targetLanguage: 'ja' });
   });
 
   it('sets participant display for the listening scenario and leaves the speaker one alone', async () => {
@@ -72,7 +80,7 @@ describe('applySetupDraft (spec §1.5)', () => {
     expect(d.setSpeakerDisplayMode).not.toHaveBeenCalled();
   });
 
-  it('re-validates only on own-key when the provider did not change (the Soniox-keys gap)', async () => {
+  it('re-validates whenever the provider did not change (setProvider clears the cache regardless)', async () => {
     const same = deps({ currentProvider: Provider.SONIOX });
     await applySetupDraft(draft({}), same);
     expect(same.validateApiKey).toHaveBeenCalledTimes(1);
@@ -84,7 +92,17 @@ describe('applySetupDraft (spec §1.5)', () => {
 
     const managedSame = deps({ currentProvider: Provider.KIZUNA_AI_SONIOX });
     await applySetupDraft(draft({ providerPath: 'managed', provider: Provider.KIZUNA_AI_SONIOX, credentials: {} }), managedSame);
-    expect(managedSame.validateApiKey).not.toHaveBeenCalled();
+    expect(managedSame.validateApiKey).toHaveBeenCalledTimes(1);
+
+    const offlineSame = deps({ currentProvider: Provider.LOCAL_INFERENCE });
+    await applySetupDraft(draft({ providerPath: 'offline', provider: Provider.LOCAL_INFERENCE, credentials: {} }), offlineSame);
+    expect(offlineSame.validateApiKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('awaits setProvider so a rejected persist surfaces to the caller', async () => {
+    const d = deps({ setProvider: vi.fn(async () => { throw new Error('persist failed'); }) });
+    await expect(applySetupDraft(draft({}), d)).rejects.toThrow(/persist failed/);
+    expect(d.completeSetup).not.toHaveBeenCalled();
   });
 
   it('refuses an incomplete draft', async () => {
