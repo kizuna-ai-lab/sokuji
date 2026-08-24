@@ -382,6 +382,7 @@
     "cooldownMessage": "Poczekaj {{seconds}} sekund",
     "checkYourEmail": "E-mail weryfikacyjny wysłany. Dokończ weryfikację w swojej skrzynce odbiorczej i wróć — Sokuji wykryje to automatycznie.",
     "emailVerifiedToast": "E-mail zweryfikowany",
+    "sessionExpired": "Twoja sesja wygasła. Zaloguj się ponownie.",
     "forgotPassword": "Zapomniałeś hasła?",
     "resetPassword": "Zresetuj hasło",
     "enterEmailForReset": "Wprowadź swój adres e-mail, a wyślemy Ci kod weryfikacyjny do zresetowania hasła.",

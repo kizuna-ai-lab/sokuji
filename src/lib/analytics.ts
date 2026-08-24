@@ -267,6 +267,11 @@ export interface AnalyticsEvents {
   'sign_out_clicked': Record<string, never>;
   'sign_out_succeeded': Record<string, never>;
   'sign_out_failed': { error_code?: number };
+  // The server rejected a session the app still believed in — almost always
+  // because the user signed out in the dashboard tab the app opened, which
+  // drops the shared cookie. Worth counting: it is invisible to the user
+  // until something fails, and the rate tells us how often that path is hit.
+  'session_expired_detected': { source: 'one_time_token' };
 
   // Password reset events
   'password_reset_initiated': Record<string, never>;

@@ -1,16 +1,26 @@
-// src/components/TitleBar/useVerificationRefresh.ts
+// src/components/TitleBar/useSessionRefreshOnReturn.ts
 //
-// The user finishes verifying in a BROWSER and switches back to Sokuji.
-// Nothing else notices: the old polling ran only during the 60-second resend
-// cooldown, and it lived in a component that is now mounted only while the
-// popover is open. AccountButton is always mounted, so the listener lives here.
+// Whatever happened to the session while the user was away, the app finds out
+// when they come back.
+//
+// Two things change the session from outside this window, and neither notifies
+// it. The user finishes verifying their e-mail in a browser. And the user signs
+// out in the dashboard tab that Top up / Manage account opened for them, which
+// drops the session cookie this app is still holding — after which every
+// authenticated request 401s while the UI happily goes on showing an avatar and
+// a balance.
+//
+// The only signal either one gives is that focus comes back. So refetch then,
+// and let the session hook decide what is true.
+//
+// This listener has to outlive the popover, so it lives here with the
+// always-mounted AccountButton rather than in UserAccountInfo.
 import { useEffect, useRef } from 'react';
 
 const THROTTLE_MS = 10_000;
 
-export function useVerificationRefresh(
+export function useSessionRefreshOnReturn(
   isSignedIn: boolean,
-  emailVerified: boolean,
   refetch: () => void,
 ): void {
   const lastRef = useRef(0);
@@ -23,7 +33,7 @@ export function useVerificationRefresh(
   refetchRef.current = refetch;
 
   useEffect(() => {
-    if (!isSignedIn || emailVerified) return;
+    if (!isSignedIn) return;
 
     const maybeRefetch = () => {
       const now = Date.now();
@@ -39,5 +49,5 @@ export function useVerificationRefresh(
       window.removeEventListener('focus', maybeRefetch);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [isSignedIn, emailVerified]);
+  }, [isSignedIn]);
 }

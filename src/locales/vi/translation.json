@@ -382,6 +382,7 @@
     "cooldownMessage": "Vui lòng đợi {{seconds}} giây",
     "checkYourEmail": "Đã gửi email xác minh. Hãy hoàn tất trong hộp thư rồi quay lại — Sokuji sẽ tự động nhận biết.",
     "emailVerifiedToast": "Email đã xác minh",
+    "sessionExpired": "Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.",
     "forgotPassword": "Quên mật khẩu?",
     "resetPassword": "Đặt lại mật khẩu",
     "enterEmailForReset": "Nhập địa chỉ email và chúng tôi sẽ gửi mã xác minh để đặt lại mật khẩu.",

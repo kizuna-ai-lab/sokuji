@@ -20,7 +20,7 @@ import {
 } from '../../stores/settingsStore';
 import { sonioxManagedMinBalanceMicroUsd } from '../../services/providers/sonioxManagedMinBalance';
 import { compactBalanceLabel } from './compactBalance';
-import { useVerificationRefresh } from './useVerificationRefresh';
+import { useSessionRefreshOnReturn } from './useSessionRefreshOnReturn';
 import { useToast } from '../Toast';
 import AccountPopover from './AccountPopover';
 import './AccountButton.scss';
@@ -55,7 +55,7 @@ const AccountButton: React.FC = () => {
   // the user comes back. The old polling ran solely during the 60-second resend
   // cooldown, and it now lives in a component mounted only while the popover is
   // open — this button is always mounted, so the listener belongs here.
-  useVerificationRefresh(isSignedIn, user?.emailVerified === true, refetch);
+  useSessionRefreshOnReturn(isSignedIn, refetch);
 
   // Confirm it happened — otherwise the only feedback is a warning
   // disappearing, which is not feedback.

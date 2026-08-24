@@ -382,6 +382,7 @@
     "cooldownMessage": "Sila tunggu {{seconds}} saat",
     "checkYourEmail": "E-mel pengesahan dihantar. Selesaikannya dalam peti masuk anda dan kembali — Sokuji akan mengesannya secara automatik.",
     "emailVerifiedToast": "E-mel disahkan",
+    "sessionExpired": "Sesi anda telah tamat. Sila log masuk semula.",
     "forgotPassword": "Lupa Kata Laluan?",
     "resetPassword": "Tetapkan Semula Kata Laluan",
     "enterEmailForReset": "Masukkan alamat e-mel anda dan kami akan menghantar kod pengesahan untuk menetapkan semula kata laluan anda.",

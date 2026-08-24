@@ -382,6 +382,7 @@
     "cooldownMessage": "{{seconds}}초 기다려 주세요",
     "checkYourEmail": "인증 이메일을 보냈습니다. 받은편지함에서 인증을 완료하고 돌아오세요 — Sokuji가 자동으로 인식합니다.",
     "emailVerifiedToast": "이메일 인증됨",
+    "sessionExpired": "세션이 만료되었습니다. 다시 로그인해 주세요.",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "resetPassword": "비밀번호 재설정",
     "enterEmailForReset": "이메일 주소를 입력하시면 비밀번호 재설정을 위한 인증 코드를 보내드립니다.",
