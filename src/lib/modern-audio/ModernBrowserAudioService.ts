@@ -291,7 +291,7 @@ export class ModernBrowserAudioService implements IAudioService {
         permissionUrl = chrome.runtime.getURL('permission.html');
       }
       
-      errorMessage += 'Please allow microphone access to use this extension. ';
+      errorMessage += 'Please allow microphone access to use Sokuji. ';
       
       if (permissionUrl) {
         errorMessage += `<a href="${permissionUrl}" target="_blank" style="color: white; text-decoration: underline; font-weight: bold;">Click here</a> to grant microphone permission, or `;
@@ -322,24 +322,29 @@ export class ModernBrowserAudioService implements IAudioService {
     if (!notification) {
       notification = document.createElement('div');
       notification.id = 'sokuji-mic-error';
+      // z-index 1400 keeps this above ordinary content but BELOW the setup
+      // wizard (1500) and the auth overlay (2000): on a fresh install the
+      // permission toast used to paint over "Set up Sokuji / Step N of 6".
       notification.style.cssText = 'position:fixed; top:10px; left:50%; transform:translateX(-50%); '
-        + 'background:#f44336; color:white; padding:12px 24px; border-radius:4px; z-index:9999; '
+        + 'background:#f44336; color:white; padding:12px 24px; border-radius:4px; z-index:1400; '
         + 'max-width:80%; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.3); font-family:sans-serif;';
-      
-      // Add close button
-      const closeBtn = document.createElement('button');
-      closeBtn.innerHTML = '&times;';
-      closeBtn.style.cssText = 'background:none; border:none; color:white; font-size:20px; '
-        + 'position:absolute; right:5px; top:5px; cursor:pointer; padding:0 5px;';
-      closeBtn.onclick = () => notification?.remove();
-      notification.appendChild(closeBtn);
-      
+
       document.body.appendChild(notification);
     }
-    
-    // Add message content
+
+    // Message FIRST: assigning innerHTML replaces every child, so a close
+    // button appended before this line is discarded — which is why the button
+    // used to be dead and only the 15 s timer could dismiss the toast.
     notification.innerHTML = `<div>${errorMessage}</div>`;
-    
+
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.setAttribute('aria-label', 'Dismiss');
+    closeBtn.style.cssText = 'background:none; border:none; color:white; font-size:20px; '
+      + 'position:absolute; right:5px; top:5px; cursor:pointer; padding:0 5px;';
+    closeBtn.onclick = () => notification?.remove();
+    notification.appendChild(closeBtn);
+
     // Auto-hide after 15 seconds
     setTimeout(() => notification?.remove(), 15000);
   }
