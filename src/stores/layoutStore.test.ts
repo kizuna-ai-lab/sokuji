@@ -22,3 +22,13 @@ describe('layoutStore', () => {
     expect(readShowSettingsFromSession()).toBe(false);
   });
 });
+
+describe('layoutStore.setupWizardOpen', () => {
+  it('is an ephemeral flag — not persisted', () => {
+    useLayoutStore.getState().setSetupWizardOpen(true);
+    expect(useLayoutStore.getState().setupWizardOpen).toBe(true);
+    expect(sessionStorage.length).toBe(0);
+    useLayoutStore.getState().setSetupWizardOpen(false);
+    expect(useLayoutStore.getState().setupWizardOpen).toBe(false);
+  });
+});

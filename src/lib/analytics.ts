@@ -137,6 +137,18 @@ export interface AnalyticsEvents {
     user_type: 'regular' | 'experienced';
     ui_mode: 'basic' | 'advanced';
   };
+  // Setup wizard (spec §1.7)
+  'setup_started': { variant: 'first-run' | 'rerun' };
+  'setup_step_viewed': { step: number; step_id: string };
+  'setup_abandoned': { step: number };
+  'setup_completed': {
+    scenario: string;
+    provider_path: string;
+    provider: string;
+    source_language: string;
+    target_language: string;
+    credentials_pending: boolean;
+  };
   'push_to_talk_used': {
     session_id: string;
     hold_duration_ms: number;

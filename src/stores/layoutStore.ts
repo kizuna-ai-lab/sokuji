@@ -31,6 +31,10 @@ function writeSession(value: boolean): void {
 export interface LayoutStore {
   showSettings: boolean;
   setShowSettings: (value: boolean) => void;
+  /** Ephemeral: Help's "Run setup again" raises it; MainLayout mounts the
+   *  wizard as an overlay while it is true. Never persisted. */
+  setupWizardOpen: boolean;
+  setSetupWizardOpen: (value: boolean) => void;
 }
 
 export const useLayoutStore = create<LayoutStore>()((set) => ({
@@ -39,7 +43,11 @@ export const useLayoutStore = create<LayoutStore>()((set) => ({
     writeSession(value);
     set({ showSettings: value });
   },
+  setupWizardOpen: false,
+  setSetupWizardOpen: (value) => set({ setupWizardOpen: value }),
 }));
 
 export const useShowSettings = () => useLayoutStore((s) => s.showSettings);
 export const useSetShowSettings = () => useLayoutStore((s) => s.setShowSettings);
+export const useSetupWizardOpen = () => useLayoutStore((s) => s.setupWizardOpen);
+export const useSetSetupWizardOpen = () => useLayoutStore((s) => s.setSetupWizardOpen);
