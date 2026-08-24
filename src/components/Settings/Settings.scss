@@ -2023,17 +2023,18 @@
       scrollbar-width: thin;
     }
 
-    // The chevron is a flex item of the select and, left at its normal line
-    // box, stands 17.3px against the 13.85px of the text beside it — enough to
-    // set the height of the whole select, and through it the whole row, taller
-    // than every other link in Help. `line-height: 1` takes it down to the
-    // glyph, which is all this needs to be.
+    // `inherit`, not the $text-muted the other selects give their chevron:
+    // those sit in bordered form controls, this one sits in a row of links
+    // whose lucide icons are all `stroke="currentColor"` and light up with the
+    // row. A fixed colour here left the chevron behind on hover, the one part
+    // of the control that did not react.
     &::picker-icon {
-      color: vars.$text-muted;
+      color: inherit;
       line-height: 1;
     }
 
-    &:hover { color: vars.$color-primary; }
+    // Hover colour comes from `.help-link:hover`, shared with every link in
+    // the row. Only the open state is this control's own.
     &:open { color: vars.$color-primary; }
 
     option {
