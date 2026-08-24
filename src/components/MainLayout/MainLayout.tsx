@@ -13,6 +13,7 @@ import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
+import { useShowSettings, useSetShowSettings, useLayoutStore } from '../../stores/layoutStore';
 import SubtitleApp from '../Subtitle/SubtitleApp';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
@@ -34,9 +35,19 @@ const MainLayout: React.FC = () => {
   const [showLogs, setShowLogs] = useState(() => {
     return sessionStorage.getItem('panelState.showLogs') === 'true';
   });
-  const [showSettings, setShowSettings] = useState(() => {
-    return sessionStorage.getItem('panelState.showSettings') === 'true';
+  // showSettings lives in a process-wide store singleton now, not a
+  // component-local useState — that's the whole point, so the tour (outside
+  // MainLayout's tree) can flip it without a synthetic click. But that means
+  // it no longer resets itself the way the old per-mount useState initializer
+  // did. MainLayout mounts exactly once in production, so this resync is a
+  // no-op there; it matters only for a harness that mounts more than one
+  // MainLayout instance in the same process against a freshly cleared
+  // sessionStorage and expects each instance to start from that clean slate.
+  useState(() => {
+    useLayoutStore.setState({ showSettings: useLayoutStore.getState().readInitial() });
   });
+  const showSettings = useShowSettings();
+  const setShowSettings = useSetShowSettings();
   const [panelWidth, setPanelWidth] = useState(() => clampPanelWidth(readPanelWidth(), window.innerWidth));
 
   // Track panel view times
@@ -87,7 +98,6 @@ const MainLayout: React.FC = () => {
       setShowLogs(true);
       setShowSettings(false);
       sessionStorage.setItem('panelState.showLogs', 'true');
-      sessionStorage.setItem('panelState.showSettings', 'false');
       trackPanelView('logs');
     }
   };
@@ -96,12 +106,10 @@ const MainLayout: React.FC = () => {
     // If already shown, close it; otherwise open it and close other panels
     if (showSettings) {
       setShowSettings(false);
-      sessionStorage.setItem('panelState.showSettings', 'false');
       trackPanelView(null);
     } else {
       setShowSettings(true);
       setShowLogs(false);
-      sessionStorage.setItem('panelState.showSettings', 'true');
       sessionStorage.setItem('panelState.showLogs', 'false');
       trackPanelView('settings');
     }
@@ -150,12 +158,10 @@ const MainLayout: React.FC = () => {
       // Open settings panel when navigation is requested
       setShowSettings(true);
       setShowLogs(false);
-      // Save to sessionStorage when programmatically opening settings
-      sessionStorage.setItem('panelState.showSettings', 'true');
       sessionStorage.setItem('panelState.showLogs', 'false');
       trackPanelView('settings');
     }
-  }, [settingsNavigationTarget]);
+  }, [settingsNavigationTarget, setShowSettings]);
 
   // Handle user type selection
   const handleUserTypeSelection = useCallback((type: 'regular' | 'experienced') => {
