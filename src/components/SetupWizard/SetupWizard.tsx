@@ -5,6 +5,7 @@
 // `variant="rerun"` is an overlay Help opens over the running app.
 import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useFloating, useDismiss, useRole, useInteractions, FloatingFocusManager } from '@floating-ui/react';
 import { X } from 'lucide-react';
 import { useAuth } from '../../lib/auth/hooks';
 import { useAnalytics } from '../../lib/analytics';
@@ -92,62 +93,88 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
   };
 
   const close = () => {
+    // Finish is already writing settings and the record; abandoning halfway
+    // would leave the app in a state neither the wizard nor the user chose.
+    if (finishing) return;
     trackEvent('setup_abandoned', { step: draft.step });
     onClose?.();
   };
 
-  const onKeyDown = onClose
-    ? (e: React.KeyboardEvent<HTMLDivElement>) => { if (e.key === 'Escape') close(); }
-    : undefined;
+  // Only the rerun overlay is modal, and only it needs the machinery: it sits
+  // over a running app, so Tab must not walk the app behind it and Escape has
+  // to work before the user has tabbed in (a React onKeyDown on the card is
+  // dead while focus is on <body>, which is where Help leaves it). Keeping
+  // `open` false on first run also keeps useDismiss from turning a stray
+  // Escape into a setup_abandoned event that closes nothing.
+  const isModal = variant === 'rerun';
+  const { refs, context } = useFloating({
+    open: isModal,
+    onOpenChange: (isOpen) => { if (!isOpen) close(); },
+  });
+  const dismiss = useDismiss(context, { escapeKey: true, outsidePress: false });
+  const role = useRole(context, { role: 'dialog' });
+  const { getFloatingProps } = useInteractions([dismiss, role]);
+
+  const card = (
+    <div
+      ref={refs.setFloating}
+      className="setup-wizard__card"
+      role="dialog"
+      aria-modal={isModal}
+      aria-labelledby="setup-wizard-title"
+      tabIndex={-1}
+      {...(isModal ? getFloatingProps() : {})}
+    >
+      <header className="setup-wizard__header">
+        <h1 id="setup-wizard-title">{t('setup.title', 'Set up Sokuji')}</h1>
+        <span className="setup-wizard__progress" aria-live="polite">
+          {t('setup.stepOf', 'Step {{current}} of {{total}}', { current: draft.step + 1, total: LAST_STEP + 1 })}
+        </span>
+        {onClose && (
+          <button type="button" className="setup-wizard__close" onClick={close} aria-label={t('setup.close', 'Close')}>
+            <X size={16} />
+          </button>
+        )}
+      </header>
+
+      <main className="setup-wizard__body">
+        {draft.step === 0 && <StepLanguage />}
+        {draft.step === 1 && <StepScenario draft={draft} dispatch={dispatch} />}
+        {draft.step === 2 && <StepProviderPath draft={draft} dispatch={dispatch} />}
+        {draft.step === 3 && <StepCredentials draft={draft} dispatch={dispatch} />}
+        {draft.step === 4 && <StepLanguagePair draft={draft} dispatch={dispatch} />}
+        {draft.step === 5 && <StepFinish draft={draft} isSignedIn={isSignedIn} error={finishError} />}
+      </main>
+
+      <footer className="setup-wizard__footer">
+        {draft.step > 0 && (
+          <Button variant="secondary" onClick={() => dispatch({ type: 'back' })} disabled={finishing}>
+            {t('setup.back', 'Back')}
+          </Button>
+        )}
+        <span className="setup-wizard__spacer" />
+        {draft.step < LAST_STEP ? (
+          <Button variant="primary" onClick={() => dispatch({ type: 'next' })} disabled={!advance}>
+            {t('setup.next', 'Next')}
+          </Button>
+        ) : (
+          <Button variant="primary" onClick={finish} loading={finishing} disabled={finishing}>
+            {t('setup.finish', 'Finish')}
+          </Button>
+        )}
+      </footer>
+    </div>
+  );
 
   return (
-    <div
-      className={`setup-wizard setup-wizard--${variant}`}
-      role="dialog"
-      aria-modal={variant === 'rerun'}
-      aria-labelledby="setup-wizard-title"
-      onKeyDown={onKeyDown}
-    >
-      <div className="setup-wizard__card">
-        <header className="setup-wizard__header">
-          <h1 id="setup-wizard-title">{t('setup.title', 'Set up Sokuji')}</h1>
-          <span className="setup-wizard__progress" aria-live="polite">
-            {t('setup.stepOf', 'Step {{current}} of {{total}}', { current: draft.step + 1, total: LAST_STEP + 1 })}
-          </span>
-          {onClose && (
-            <button type="button" className="setup-wizard__close" onClick={close} aria-label={t('setup.close', 'Close')}>
-              <X size={16} />
-            </button>
-          )}
-        </header>
-
-        <main className="setup-wizard__body">
-          {draft.step === 0 && <StepLanguage />}
-          {draft.step === 1 && <StepScenario draft={draft} dispatch={dispatch} />}
-          {draft.step === 2 && <StepProviderPath draft={draft} dispatch={dispatch} />}
-          {draft.step === 3 && <StepCredentials draft={draft} dispatch={dispatch} />}
-          {draft.step === 4 && <StepLanguagePair draft={draft} dispatch={dispatch} />}
-          {draft.step === 5 && <StepFinish draft={draft} isSignedIn={isSignedIn} error={finishError} />}
-        </main>
-
-        <footer className="setup-wizard__footer">
-          {draft.step > 0 && (
-            <Button variant="secondary" onClick={() => dispatch({ type: 'back' })} disabled={finishing}>
-              {t('setup.back', 'Back')}
-            </Button>
-          )}
-          <span className="setup-wizard__spacer" />
-          {draft.step < LAST_STEP ? (
-            <Button variant="primary" onClick={() => dispatch({ type: 'next' })} disabled={!advance}>
-              {t('setup.next', 'Next')}
-            </Button>
-          ) : (
-            <Button variant="primary" onClick={finish} loading={finishing} disabled={finishing}>
-              {t('setup.finish', 'Finish')}
-            </Button>
-          )}
-        </footer>
-      </div>
+    <div className={`setup-wizard setup-wizard--${variant}`}>
+      {isModal
+        ? (
+          <FloatingFocusManager context={context} modal returnFocus initialFocus={refs.floating}>
+            {card}
+          </FloatingFocusManager>
+        )
+        : card}
     </div>
   );
 };

@@ -25,7 +25,12 @@ vi.mock('../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: (...args: unknown[]) => trackSpy(...args) }),
 }));
 const applied: unknown[] = [];
-vi.mock('./useApplySetup', () => ({ useApplySetup: () => async (draft: unknown) => { applied.push(draft); } }));
+// A test can hold Finish open by parking a promise here, which is how the
+// "cannot abandon an in-flight Finish" case gets a window to press Escape in.
+let applyGate: Promise<void> | null = null;
+vi.mock('./useApplySetup', () => ({
+  useApplySetup: () => async (draft: unknown) => { if (applyGate) await applyGate; applied.push(draft); },
+}));
 vi.mock('../../stores/settingsStore', () => ({
   useUILanguage: () => 'en',
   useSetUILanguage: () => vi.fn(async () => {}),
@@ -43,7 +48,7 @@ import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFa
 import { Provider } from '../../types/Provider';
 import { matchLanguage } from './languageDefaults';
 
-beforeEach(() => { cleanup(); applied.length = 0; signedIn = false; uiLanguage = 'en'; setAuthOverlay.mockClear(); trackSpy.mockClear(); });
+beforeEach(() => { cleanup(); applied.length = 0; applyGate = null; signedIn = false; uiLanguage = 'en'; setAuthOverlay.mockClear(); trackSpy.mockClear(); });
 
 const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 const back = () => fireEvent.click(screen.getByRole('button', { name: 'Back' }));
@@ -158,13 +163,39 @@ describe('SetupWizard', () => {
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
   });
 
-  it('rerun variant shows a close control', () => {
+  it('rerun variant shows a close control, and takes focus off the app behind it', async () => {
     const onClose = vi.fn();
     render(<SetupWizard variant="rerun" onClose={onClose} />);
+    // Help closes the settings panel on its way here, so focus is on <body>
+    // unless the overlay claims it — and a dead Escape handler is worse than
+    // none. FloatingFocusManager moves focus in a rAF, hence waitFor.
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body));
+    expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalled();
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('will not abandon setup while Finish is in flight', async () => {
+    let release!: () => void;
+    applyGate = new Promise<void>((r) => { release = r; });
+    const onClose = vi.fn();
+    render(<SetupWizard variant="rerun" onClose={onClose} />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next(); next(); next();                           // credentials, language pair, finish
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(trackSpy.mock.calls.some((c) => c[0] === 'setup_abandoned')).toBe(false);
+
+    release();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
   it('emits setup_started once and setup_step_viewed once per step, never on a keystroke', () => {
