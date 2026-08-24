@@ -511,24 +511,43 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     modelStatuses, nativeStatuses,
   ]);
 
-  // S0: local providers narrate the language pair as a sentence whose verbs
-  // follow the current audio mode — "I speak → they hear" (speaker/both) or
-  // "I read ← they speak" (participant). The two selectors underneath never
-  // change meaning: first is always my language (sourceLanguage), second is
-  // always their language (targetLanguage) — only the verbs naming them do.
-  // Scoped to LOCAL_INFERENCE/LOCAL_NATIVE only: every other provider's mode
-  // semantics differ, so it keeps today's plain "My Language"/"Other's
-  // Language" labels.
-  const sentenceLabels = provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE;
+  // S0: the language pair narrates as a sentence whose verbs follow the
+  // current audio mode — "I speak → they hear" (speaker/both) or "I read ←
+  // they speak" (participant). The two selectors underneath never change
+  // meaning: first is always my language (sourceLanguage), second is always
+  // their language (targetLanguage) — only the verbs naming them do.
+  //
+  // Provider-wide since 2026-08-24. It first shipped for LOCAL_INFERENCE and
+  // LOCAL_NATIVE only, on the premise that other providers' mode semantics
+  // differ. They do not: `mode` lives in audioStore and is global, and every
+  // descriptor's buildParticipantSessionConfig forces textOnly (a
+  // registry-wide invariant pinned by descriptorRegistry.test.ts), so the
+  // participant reading holds for every provider.
+  //
   // Effective mode — same `lockedMode ?? mode` idiom as speakerChannelInScopeForUi
   // above: in-session, the sentence must describe the mode the session actually
   // locked in, not wherever the (still-interactive but inert) picker sits.
-  const myLanguageLabel = sentenceLabels
-    ? ((lockedMode ?? mode) === 'participant' ? t('settings.langSentence.iRead', 'I read') : t('settings.langSentence.iSpeak', 'I speak'))
-    : t('simpleConfig.yourLanguage');
-  const theirLanguageLabel = sentenceLabels
-    ? ((lockedMode ?? mode) === 'participant' ? t('settings.langSentence.theySpeak', 'they speak') : t('settings.langSentence.theyHear', 'they hear'))
-    : t('simpleConfig.targetLanguage');
+  const sentenceMode = lockedMode ?? mode;
+  // Does the forward leg actually SPEAK? That decides "they hear" vs "they
+  // read", and the provider's capability decides it — NOT the raw toggle.
+  // `textOnly` is one global preference shared across providers, so a user who
+  // turned it on under Gemini and switched to Palabra ('never') still gets
+  // speech; reading the toggle here would print the opposite of what the
+  // session does. Only 'optional' providers honour it, and they do so through
+  // the same effectiveTextOnly() the Text Only switch below renders.
+  const textOnlyCapability = providerConfig.capabilities.textOnlyCapability;
+  const speakerLegTextOnly =
+    textOnlyCapability === 'always' ? true
+    : textOnlyCapability === 'never' ? false
+    : effectiveTextOnly({ speakerLegRuns: speakerChannelInScopeForUi, textOnly });
+  const myLanguageLabel = sentenceMode === 'participant'
+    ? t('settings.langSentence.iRead', 'I read')
+    : t('settings.langSentence.iSpeak', 'I speak');
+  const theirLanguageLabel = sentenceMode === 'participant'
+    ? t('settings.langSentence.theySpeak', 'they speak')
+    : speakerLegTextOnly
+      ? t('settings.langSentence.theyRead', 'they read')
+      : t('settings.langSentence.theyHear', 'they hear');
 
   // "Both" mode runs the speaker leg above plus a mirrored participant leg;
   // the mirror line states that second leg as plain text derived from the
@@ -537,6 +556,18 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     ?? currentProviderSettings.sourceLanguage;
   const targetLanguageName = targetLanguages.find(l => l.value === currentProviderSettings.targetLanguage)?.name
     ?? currentProviderSettings.targetLanguage;
+  // ...but only once the source language is pinned. 'auto' is a hand-written
+  // extra <option> on the source select, absent from every provider's
+  // `languages`, so the lookup above falls through to the raw token — and
+  // localizing it would not help, because the mirror's whole job is to name
+  // the language I read on the reverse leg and auto-detect names none. For
+  // the providers that reverse direction THROUGH sourceLanguage (Soniox,
+  // Gemini's translate models) the pair cannot even start — see
+  // sessionStartGate's autoSourceParticipantBlocked, whose warning renders
+  // just below — so the line would describe a session the app refuses to run.
+  // Unreachable before the sentence went provider-wide: the two local
+  // providers never offer 'auto'.
+  const mirrorLanguagesResolved = currentProviderSettings.sourceLanguage !== 'auto';
 
   // S0: surface the last resolution notes (auto-substitutions/fallbacks made
   // while picking models for this language pair) right where the pair itself
@@ -720,7 +751,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
           </div>
 
-          {sentenceLabels && (lockedMode ?? mode) === 'both' && (
+          {sentenceMode === 'both' && mirrorLanguagesResolved && (
             <div className="language-mirror-line" data-testid="language-mirror-line">
               {t('settings.langSentence.mirror', 'They speak {{their}} → I read {{mine}}', {
                 their: targetLanguageName,

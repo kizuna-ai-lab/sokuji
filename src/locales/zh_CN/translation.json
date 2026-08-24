@@ -277,6 +277,7 @@
       "iSpeak": "我说",
       "iRead": "我阅读",
       "theyHear": "对方听到",
+      "theyRead": "对方读到",
       "theySpeak": "对方说",
       "mirror": "对方说 {{their}} → 我阅读 {{mine}}"
     }

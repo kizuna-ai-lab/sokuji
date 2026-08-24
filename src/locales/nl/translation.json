@@ -277,6 +277,7 @@
       "iSpeak": "Ik spreek",
       "iRead": "Ik lees",
       "theyHear": "horen zij",
+      "theyRead": "lezen zij",
       "theySpeak": "spreken zij",
       "mirror": "Zij spreken {{their}} → ik lees {{mine}}"
     }

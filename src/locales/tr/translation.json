@@ -277,6 +277,7 @@
       "iSpeak": "Ben konuşuyorum",
       "iRead": "Ben okuyorum",
       "theyHear": "onlar duyuyor",
+      "theyRead": "onlar okuyor",
       "theySpeak": "onlar konuşuyor",
       "mirror": "Onlar {{their}} konuşuyor → ben {{mine}} okuyorum"
     }

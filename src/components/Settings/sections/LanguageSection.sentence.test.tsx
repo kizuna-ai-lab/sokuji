@@ -1,15 +1,25 @@
 /**
  * S0 — the language pair reads as a sentence whose verbs follow the current
- * audio mode, for the two local providers only (LOCAL_INFERENCE, LOCAL_NATIVE).
+ * audio mode, for EVERY provider.
  *
  * The two selectors are the SAME two fields in every mode — first is always
  * MY language (sourceLanguage), second is always THEIRS (targetLanguage);
- * only the verbs labeling them change with mode. "Both" mode additionally
- * renders one derived plain-text mirror line for the reverse leg, never a
- * third pair of controls. Every other provider keeps today's plain
- * "My Language"/"Other's Language" labels regardless of mode — see
- * LanguageSection.soniox.test.tsx / LanguageSection.textOnly.test.tsx, which
- * exercise non-local providers and must stay green unmodified.
+ * only the verbs labeling them change. "Both" mode additionally renders one
+ * derived plain-text mirror line for the reverse leg, never a third pair of
+ * controls.
+ *
+ * Originally scoped to LOCAL_INFERENCE/LOCAL_NATIVE on the assumption that
+ * other providers' mode semantics differ. They do not: `mode` lives in
+ * audioStore and is global, and every descriptor's
+ * buildParticipantSessionConfig forces textOnly (a registry-wide invariant
+ * pinned by descriptorRegistry.test.ts), so "I read ← they speak" is true
+ * provider-wide.
+ *
+ * What DOES vary is whether the speaker leg produces speech, which decides
+ * "they hear" vs "they read". That is the provider's textOnlyCapability, not
+ * the raw toggle: 'never' providers ignore the (global, cross-provider)
+ * toggle and always speak, 'always' providers never do, and only 'optional'
+ * providers follow it.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
@@ -106,15 +116,94 @@ describe('LanguageSection — mode-verb sentence labels (local providers)', () =
     expect(screen.queryByTestId('language-mirror-line')).not.toBeInTheDocument();
   });
 
-  it('non-local providers keep the plain labels regardless of mode', () => {
+  it('speaker mode with Text Only on: they READ, not hear', () => {
+    // The verb has to track what the session actually produces. Local
+    // providers are textOnlyCapability 'optional', so the toggle decides.
+    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE, textOnly: true } as any);
+    useAudioStore.setState({ mode: 'speaker' } as any);
+    renderSection();
+    expect(screen.getByText('I speak')).toBeInTheDocument();
+    expect(screen.getByText('they read')).toBeInTheDocument();
+    expect(screen.queryByText('they hear')).not.toBeInTheDocument();
+  });
+});
+
+describe('LanguageSection — the sentence labels apply to EVERY provider', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ textOnly: false } as any);
+  });
+
+  it('a non-local provider gets the same speaker-mode sentence', () => {
+    useSettingsStore.setState({ provider: Provider.GEMINI, textOnly: false } as any);
+    useAudioStore.setState({ mode: 'speaker' } as any);
+    renderSection();
+    expect(screen.getByText('I speak')).toBeInTheDocument();
+    expect(screen.getByText('they hear')).toBeInTheDocument();
+    // The plain labels this surface used to show are gone.
+    expect(screen.queryByText('simpleConfig.yourLanguage')).not.toBeInTheDocument();
+    expect(screen.queryByText('simpleConfig.targetLanguage')).not.toBeInTheDocument();
+  });
+
+  it('a non-local provider gets the same participant-mode sentence', () => {
     useSettingsStore.setState({ provider: Provider.GEMINI, textOnly: false } as any);
     useAudioStore.setState({ mode: 'participant' } as any);
     renderSection();
-    expect(screen.queryByText('I read')).not.toBeInTheDocument();
-    expect(screen.queryByText('they speak')).not.toBeInTheDocument();
-    expect(screen.getByText('simpleConfig.yourLanguage')).toBeInTheDocument();
-    expect(screen.getByText('simpleConfig.targetLanguage')).toBeInTheDocument();
-    expect(screen.queryByTestId('language-mirror-line')).not.toBeInTheDocument();
+    expect(screen.getByText('I read')).toBeInTheDocument();
+    expect(screen.getByText('they speak')).toBeInTheDocument();
+  });
+
+  it('a non-local provider renders the mirror line in both mode', () => {
+    useSettingsStore.setState({ provider: Provider.GEMINI, textOnly: false } as any);
+    useAudioStore.setState({ mode: 'both' } as any);
+    renderSection();
+    const mirror = screen.getByTestId('language-mirror-line');
+    expect(mirror.textContent).toContain('They speak');
+    expect(mirror.textContent).toContain('I read');
+    // Still a derived line, never a third control.
+    const pair = within(document.getElementById('languages-section')!);
+    expect(pair.getAllByRole('combobox')).toHaveLength(2);
+  });
+
+  it("an 'optional' provider follows the Text Only toggle", () => {
+    useSettingsStore.setState({ provider: Provider.GEMINI, textOnly: true } as any);
+    useAudioStore.setState({ mode: 'speaker' } as any);
+    renderSection();
+    expect(screen.getByText('they read')).toBeInTheDocument();
+    expect(screen.queryByText('they hear')).not.toBeInTheDocument();
+  });
+
+  it("an 'always' text-only provider reads, with the toggle off", () => {
+    // Zoom AI never synthesizes audio; the toggle is irrelevant to it.
+    useSettingsStore.setState({ provider: Provider.ZOOM_AI, textOnly: false } as any);
+    useAudioStore.setState({ mode: 'speaker' } as any);
+    renderSection();
+    expect(screen.getByText('I speak')).toBeInTheDocument();
+    expect(screen.getByText('they read')).toBeInTheDocument();
+    expect(screen.queryByText('they hear')).not.toBeInTheDocument();
+  });
+
+  it("a 'never' text-only provider hears, even with the toggle left on", () => {
+    // textOnly is ONE global preference shared across providers: a user who
+    // turned it on under Gemini and switched to Palabra still gets speech,
+    // because Palabra ignores the toggle. Reading the raw toggle here would
+    // print the opposite of what the session does.
+    useSettingsStore.setState({ provider: Provider.PALABRA_AI, textOnly: true } as any);
+    useAudioStore.setState({ mode: 'speaker' } as any);
+    renderSection();
+    expect(screen.getByText('I speak')).toBeInTheDocument();
+    expect(screen.getByText('they hear')).toBeInTheDocument();
+    expect(screen.queryByText('they read')).not.toBeInTheDocument();
+  });
+
+  it('participant mode reads regardless of capability — the reverse leg never speaks', () => {
+    // 'never' provider, participant mode: the participant leg is textOnly
+    // for every descriptor, so the verb is "I read" whatever the provider
+    // does on the forward leg.
+    useSettingsStore.setState({ provider: Provider.PALABRA_AI, textOnly: false } as any);
+    useAudioStore.setState({ mode: 'participant' } as any);
+    renderSection();
+    expect(screen.getByText('I read')).toBeInTheDocument();
+    expect(screen.getByText('they speak')).toBeInTheDocument();
   });
 });
 
@@ -278,5 +367,44 @@ describe('LanguageSection — the ONE blocking missing-models warning (resolver-
     useModelStore.setState({ initialized: false, statuses: {} } as any);
     render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
     expect(document.querySelector('.language-model-warning')).not.toBeInTheDocument();
+  });
+});
+
+describe('LanguageSection — the mirror line needs a pinned source language', () => {
+  // Reachable only since the sentence went provider-wide: 'auto' is an option
+  // the two local providers never offer, so no mirror line could meet it
+  // before. It is NOT in any provider's `languages` list either — the source
+  // <select> renders it as a hand-written extra <option> — so the name lookup
+  // behind the mirror falls through to the raw settings value.
+  beforeEach(() => {
+    useAudioStore.setState({ mode: 'both' } as any);
+    useSettingsStore.setState({ provider: Provider.SONIOX, textOnly: false } as any);
+  });
+
+  it('renders no mirror line while the source language is auto-detect', () => {
+    // Soniox ships sourceLanguage: 'auto' by default, so this is the state a
+    // user lands in, not a contrived one. The line would have to name the
+    // language I read on the reverse leg, and 'auto' names none: Soniox
+    // reverses direction through sourceLanguage, so this pair cannot even
+    // start (sessionStartGate's autoSourceParticipantBlocked) and the
+    // blocking warning below says so. Stating the leg anyway would describe
+    // a session the app refuses to run.
+    useSettingsStore.setState((s: any) => ({
+      soniox: { ...s.soniox, sourceLanguage: 'auto', targetLanguage: 'en' },
+    }));
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    expect(screen.queryByTestId('language-mirror-line')).not.toBeInTheDocument();
+  });
+
+  it('renders it, with resolved names, once the source language is concrete', () => {
+    useSettingsStore.setState((s: any) => ({
+      soniox: { ...s.soniox, sourceLanguage: 'ja', targetLanguage: 'en' },
+    }));
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    const mirror = screen.getByTestId('language-mirror-line');
+    expect(mirror.textContent).toContain('They speak');
+    // Display names, never the raw settings tokens.
+    expect(mirror.textContent).not.toContain('auto');
+    expect(mirror.textContent).not.toMatch(/\bja\b/);
   });
 });

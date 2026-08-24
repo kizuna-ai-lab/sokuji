@@ -277,6 +277,7 @@
       "iSpeak": "אני מדבר",
       "iRead": "אני קורא",
       "theyHear": "הם שומעים",
+      "theyRead": "הם קוראים",
       "theySpeak": "הם מדברים",
       "mirror": "הם מדברים {{their}} → אני קורא {{mine}}"
     }

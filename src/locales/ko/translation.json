@@ -277,6 +277,7 @@
       "iSpeak": "내가 말하는 언어",
       "iRead": "내가 읽는 언어",
       "theyHear": "상대방이 듣는 언어",
+      "theyRead": "상대방이 읽는 언어",
       "theySpeak": "상대방이 말하는 언어",
       "mirror": "상대방은 {{their}}로 말함 → 나는 {{mine}}로 읽음"
     }

@@ -277,6 +277,7 @@
       "iSpeak": "Saya berbicara",
       "iRead": "Saya membaca",
       "theyHear": "mereka mendengar",
+      "theyRead": "mereka membaca",
       "theySpeak": "mereka berbicara",
       "mirror": "Mereka berbicara {{their}} → saya membaca {{mine}}"
     }

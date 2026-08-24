@@ -277,6 +277,7 @@
       "iSpeak": "Nagsasalita ako ng",
       "iRead": "Binabasa ko",
       "theyHear": "naririnig nila sa",
+      "theyRead": "binabasa nila sa",
       "theySpeak": "nagsasalita sila ng",
       "mirror": "Nagsasalita sila ng {{their}} → binabasa ko sa {{mine}}"
     }
