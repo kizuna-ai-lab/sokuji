@@ -540,7 +540,7 @@
     "initProgress": "Ladataan ({{completed}}/{{total}})...",
     "stopDebug": "Lopeta virheenkorjaus",
     "debug": "Virheenkorjaus",
-    "apiKeyRequired": "Lisää ensin kelvollinen OpenAI API-avain asetuksiin",
+    "apiKeyRequired": "Lisää ensin kelvollinen API-avain asetuksiin",
     "modelsRequired": "Malleja tarvitaan. Vahvista ensin API-avaimesi ladataksesi käytettävissä olevat mallit.",
     "modelsLoading": "Ladataan käytettävissä olevia malleja, odota hetki...",
     "typeMessage": "Käännettävä teksti...",

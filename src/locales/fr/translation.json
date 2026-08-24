@@ -540,7 +540,7 @@
     "initProgress": "Chargement ({{completed}}/{{total}})...",
     "stopDebug": "Arrêter le débogage",
     "debug": "Déboguer",
-    "apiKeyRequired": "Veuillez d'abord ajouter une clé API OpenAI valide dans les paramètres",
+    "apiKeyRequired": "Veuillez d'abord ajouter une clé API valide dans les paramètres",
     "modelsRequired": "Des modèles sont requis. Veuillez d'abord valider votre clé API pour charger les modèles disponibles.",
     "modelsLoading": "Chargement des modèles disponibles, veuillez patienter...",
     "typeMessage": "Texte à traduire...",

@@ -540,7 +540,7 @@
     "initProgress": "Memuatkan ({{completed}}/{{total}})...",
     "stopDebug": "Henti nyahpepijat",
     "debug": "Nyahpepijat",
-    "apiKeyRequired": "Sila tambah kunci API OpenAI yang sah dalam tetapan terlebih dahulu",
+    "apiKeyRequired": "Sila tambah kunci API yang sah dalam tetapan terlebih dahulu",
     "modelsRequired": "Model diperlukan. Sila sahkan kunci API anda terlebih dahulu untuk memuatkan model yang tersedia.",
     "modelsLoading": "Memuatkan model yang tersedia, sila tunggu...",
     "typeMessage": "Teks untuk diterjemah...",
