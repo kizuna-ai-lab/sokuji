@@ -168,7 +168,6 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
         {/* Translation Languages */}
         <LanguageSection
           isSessionActive={isSessionActive}
-          showInterfaceLanguage={false}
           showTranslationLanguages={true}
         />
 
@@ -200,21 +199,8 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           isLocked={lockParticipant}
         />
 
-        {/* Interface Language - simplified list. Last because it is set once
-            and never revisited; the panel leads with translation languages,
-            which is what it is for. It carries a className rather than an id:
-            `#languages-section` is the translation instance's, and onboarding
-            targets ids, so this move leaves onboarding untouched. */}
-        <LanguageSection
-          className="interface-language-section"
-          isSessionActive={isSessionActive}
-          showInterfaceLanguage={true}
-          showTranslationLanguages={false}
-          simplifiedInterfaceList={true}
-        />
-
         {/* Help & Updates */}
-        <HelpSection />
+        <HelpSection isSessionActive={isSessionActive} />
       </div>
     </div>
   );

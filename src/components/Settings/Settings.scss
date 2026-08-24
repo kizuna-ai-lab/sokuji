@@ -1957,6 +1957,35 @@
   }
 }
 
+// Interface language: a picker that has to read as a link, because that is the
+// weight it now carries. The <select> keeps its native behaviour — the list is
+// 30 long and the platform renders it outside this panel, with keyboard and
+// type-ahead for free — but sheds every visual sign of being a form control,
+// so it sits level with "Restart Setup Guide" beside it rather than towering
+// over it.
+.help-link--picker {
+  position: relative;
+
+  .help-link__select {
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 0 2px;
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    cursor: inherit;
+    // The option list is painted by the OS, which does not inherit this panel's
+    // theme; without this the popup can come up as light text on light ground.
+    option { color: initial; background: initial; }
+
+    &:focus-visible {
+      outline: 1px solid vars.$color-primary;
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+  }
+}
 
 .version-label {
   margin-left: auto;

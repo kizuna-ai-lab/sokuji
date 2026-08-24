@@ -60,7 +60,7 @@ const { default: LanguageSection } = await import('./LanguageSection');
 
 const renderSection = () =>
   render(
-    <LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />
+    <LanguageSection isSessionActive={false} showTranslationLanguages={true} />
   );
 
 describe('LanguageSection — mode-verb sentence labels (local providers)', () => {
@@ -227,7 +227,7 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
         { direction: 'ja→en', stage: 'tts', from: 'supertonic-3', to: 'edge-tts', reason: 'not-downloaded' },
       ],
     });
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
     const notes = screen.getByTestId('language-resolution-notes');
     expect(notes.querySelectorAll('.language-warning')).toHaveLength(1);
     // Names the failed picks (display name when the manifest knows the id,
@@ -246,7 +246,7 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
         { direction: 'ja→en', stage: 'asr', from: null, to: null, reason: 'no-candidate' },
       ],
     });
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
     expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
   });
 
@@ -257,14 +257,14 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
         { direction: 'ja→en', stage: 'translation', from: 'a', to: 'b', reason: 'not-downloaded' },
       ],
     });
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
     fireEvent.click(screen.getByTestId('resolution-notes-review'));
     expect(useSettingsStore.getState().engineSlotTarget).toMatchObject({ dir: 'ja→en', stage: 'translation' });
   });
 
   it('renders nothing when there are no notes', () => {
     useModelStore.setState({ lastResolutionNotes: [] });
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
     expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
   });
 
@@ -291,7 +291,7 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
         { direction: 'en→ja', stage: 'asr', from: 'deleted-x', to: 'auto-y', reason: 'not-downloaded' },
       ],
     } as any);
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
 
     fireEvent.click(screen.getByTestId('resolution-notes-use-auto'));
 
@@ -316,7 +316,7 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
         { direction: 'en→ja', stage: 'asr', from: 'a', to: 'b', reason: 'not-downloaded' },
       ],
     } as any);
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
     expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
   });
 
@@ -327,7 +327,7 @@ describe('LanguageSection — resolution notes summary (2026-08-23 dedup)', () =
         { direction: 'ja→en', stage: 'asr', from: null, to: null, reason: 'not-downloaded' },
       ],
     });
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
     expect(screen.queryByTestId('language-resolution-notes')).not.toBeInTheDocument();
   });
 });
@@ -350,7 +350,7 @@ describe('LanguageSection — the ONE blocking missing-models warning (resolver-
     // the resolver-backed rewrite.
     useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE, engineSlotTarget: null } as any);
     useModelStore.setState({ initialized: true, statuses: {}, lastResolutionNotes: [] } as any);
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
 
     const warning = document.querySelector('.language-model-warning');
     expect(warning).toBeInTheDocument();
@@ -365,7 +365,7 @@ describe('LanguageSection — the ONE blocking missing-models warning (resolver-
   it('renders no warning while the model store is uninitialized', () => {
     useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
     useModelStore.setState({ initialized: false, statuses: {} } as any);
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
     expect(document.querySelector('.language-model-warning')).not.toBeInTheDocument();
   });
 });
@@ -392,7 +392,7 @@ describe('LanguageSection — the mirror line needs a pinned source language', (
     useSettingsStore.setState((s: any) => ({
       soniox: { ...s.soniox, sourceLanguage: 'auto', targetLanguage: 'en' },
     }));
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
     expect(screen.queryByTestId('language-mirror-line')).not.toBeInTheDocument();
   });
 
@@ -400,7 +400,7 @@ describe('LanguageSection — the mirror line needs a pinned source language', (
     useSettingsStore.setState((s: any) => ({
       soniox: { ...s.soniox, sourceLanguage: 'ja', targetLanguage: 'en' },
     }));
-    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    render(<LanguageSection isSessionActive={false} showTranslationLanguages={true} />);
     const mirror = screen.getByTestId('language-mirror-line');
     expect(mirror.textContent).toContain('They speak');
     // Display names, never the raw settings tokens.

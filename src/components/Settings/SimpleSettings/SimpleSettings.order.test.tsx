@@ -1,8 +1,14 @@
 /**
- * Interface language is set once and never revisited, so it belongs at the
- * bottom of the panel rather than at the top next to *Translation* languages -
- * two adjacent sections both named "language". Translation languages lead
- * instead, which is what the panel is for.
+ * Interface language is no longer a section of this panel at all.
+ *
+ * It was a full `config-section` at the top, next to *Translation* languages -
+ * two adjacent blocks both called "language" - then moved to the bottom, and
+ * now lives inside HelpSection at the weight of a link, alongside the version
+ * number and the update check. It is set once, never revisited, and by its own
+ * description does not affect what can be translated.
+ *
+ * So this file's contract changed: it used to pin the interface section's
+ * position, and now pins its ABSENCE, plus the order of what remains.
  *
  * Follows `SimpleSettings.account.test.tsx`'s mount idiom (real stores,
  * ServiceFactory and analytics mocked, an interpolating `t()`) and, for the
@@ -12,12 +18,8 @@
  * `HelpSection` is the one section still stubbed - it calls `useOnboarding`
  * and throws outside an `OnboardingProvider`. The stub reproduces the real
  * element's `config-section` / `id="help-section"` shell so the order it
- * takes part in is the real one.
- *
- * The interface instance is identified by `className`, which `LanguageSection`
- * splices into `config-section ${className}`. It deliberately carries no `id`:
- * `#languages-section` belongs to the translation instance, and onboarding
- * targets ids, which is why this move leaves onboarding untouched.
+ * takes part in is the real one. HelpSection's own contents, the language
+ * picker included, are covered by `sections/HelpSection.test.tsx`.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render } from '@testing-library/react';
@@ -69,15 +71,26 @@ beforeEach(() => {
   useSettingsStore.setState({ engineSlotTarget: null, provider: Provider.OPENAI });
 });
 
+const sectionIds = () => {
+  const { container } = render(<MemoryRouter><SimpleSettings /></MemoryRouter>);
+  return Array.from(container.querySelectorAll('.config-section'))
+    .map((el) => el.id || el.className);
+};
+
 describe('SimpleSettings - section order', () => {
-  it('puts translation languages first and interface language last, before help', () => {
-    const { container } = render(<MemoryRouter><SimpleSettings /></MemoryRouter>);
-    const ids = Array.from(container.querySelectorAll('.config-section'))
-      .map((el) => el.id || el.className);
+  it('leads with translation languages and ends with help', () => {
+    const ids = sectionIds();
     const translation = ids.findIndex((x) => x.includes('languages-section'));
     const help = ids.findIndex((x) => x.includes('help'));
-    const iface = ids.findIndex((x) => x.includes('interface-language'));
-    expect(translation).toBeLessThan(iface);
-    expect(iface).toBeLessThan(help);
+    expect(translation).toBeGreaterThanOrEqual(0);
+    expect(translation).toBeLessThan(help);
+    expect(help).toBe(ids.length - 1);
+  });
+
+  // The move's whole point: interface language no longer occupies a section of
+  // this panel. It is a link inside Help now, so nothing here should carry it.
+  it('gives interface language no section of its own', () => {
+    const ids = sectionIds();
+    expect(ids.some((x) => x.includes('interface-language'))).toBe(false);
   });
 });
