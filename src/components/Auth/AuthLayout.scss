@@ -3,15 +3,23 @@
 // form is most of the reason authentication stopped being a route. The form
 // card carries its own solid background (.sign-in-form and friends), so the
 // text underneath never shows through the part you read.
-.auth-overlay {
-  position: fixed;
-  inset: 0;
+// FloatingOverlay supplies position:fixed, inset:0 and the scroll lock; this
+// adds the look and the centring.
+.auth-overlay-scrim {
   z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.66);
   overflow-y: auto;
+}
+
+// The dialog itself, inside the scrim.
+.auth-overlay {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .auth-layout {
