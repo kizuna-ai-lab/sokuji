@@ -5,7 +5,7 @@
  */
 
 import React, { useState, FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useSetAuthOverlay } from '../../stores/settingsStore';
 import { authClient } from '../../lib/auth-client';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
@@ -13,7 +13,7 @@ import './SignInForm.scss';
 
 export function SignInForm() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const setAuthOverlay = useSetAuthOverlay();
   const { trackEvent, identifyUser } = useAnalytics();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,9 +76,10 @@ export function SignInForm() {
       identifyUser(data.user.id, data.user.email, { name: data.user.name });
     }
 
-    // Navigate to home on successful sign in
+    // Close the overlay. There is nowhere to navigate to: the app was never
+    // replaced, it has been behind this form the whole time.
     setLoading(false);
-    navigate('/', { replace: true });
+    setAuthOverlay(null);
   };
 
   return (
@@ -120,13 +121,16 @@ export function SignInForm() {
             disabled={loading}
             placeholder={t('auth.passwordPlaceholder', 'Enter your password')}
           />
-          <Link
-            to="/forgot-password"
+          <button
+            type="button"
             className="forgot-password-link"
-            onClick={() => trackEvent('forgot_password_link_clicked', {})}
+            onClick={() => {
+              trackEvent('forgot_password_link_clicked', {});
+              setAuthOverlay('forgot-password');
+            }}
           >
             {t('auth.forgotPassword', 'Forgot Password?')}
-          </Link>
+          </button>
         </div>
 
         <button
@@ -145,9 +149,16 @@ export function SignInForm() {
       <div className="form-footer">
         <p>
           {t('auth.noAccount', "Don't have an account?")}{' '}
-          <Link to="/sign-up" onClick={() => trackEvent('sign_up_link_clicked', {})}>
+          <button
+            type="button"
+            className="auth-inline-link"
+            onClick={() => {
+              trackEvent('sign_up_link_clicked', {});
+              setAuthOverlay('sign-up');
+            }}
+          >
             {t('auth.signUp', 'Sign Up')}
-          </Link>
+          </button>
         </p>
       </div>
     </div>

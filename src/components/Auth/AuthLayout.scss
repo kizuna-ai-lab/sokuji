@@ -1,10 +1,33 @@
+// The overlay itself: fixed over the app, never in place of it. The scrim is
+// translucent on purpose — seeing the provider you were configuring behind the
+// form is most of the reason authentication stopped being a route. The form
+// card carries its own solid background (.sign-in-form and friends), so the
+// text underneath never shows through the part you read.
+// FloatingOverlay supplies position:fixed, inset:0 and the scroll lock; this
+// adds the look and the centring.
+.auth-overlay-scrim {
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.66);
+  overflow-y: auto;
+}
+
+// The dialog itself, inside the scrim.
+.auth-overlay {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .auth-layout {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  width: 100%;
   padding: 2rem;
-  background: #0d0d0d;
 
   .auth-container {
     width: 100%;
@@ -62,4 +85,20 @@
       padding-top: 1rem;
     }
   }
+}
+
+// Four router Links became buttons when authentication stopped being a route.
+// Without the reset they render as grey boxes mid-sentence.
+.auth-inline-link,
+.forgot-password-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: #10a37f;
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover { opacity: 0.8; }
+  &:focus-visible { outline: 2px solid #10a37f; outline-offset: 2px; }
 }

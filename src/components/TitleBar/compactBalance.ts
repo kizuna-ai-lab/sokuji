@@ -13,8 +13,13 @@
 const MICRO_USD_PER_CENT = 10_000;
 const CENTS_PER_USD = 100;
 
-export function compactBalanceLabel(microUsd: number | null | undefined): string {
-  if (typeof microUsd !== 'number' || !Number.isFinite(microUsd)) return '$0.00';
+// Returns null when there is no balance to show. An unloaded wallet used to
+// render as '$0.00', so signing in flashed a zero balance before the real one
+// arrived — and $0.00 is the one number a user cannot help but act on. "Not
+// known yet" and "empty" have to look different, because they mean opposite
+// things.
+export function compactBalanceLabel(microUsd: number | null | undefined): string | null {
+  if (typeof microUsd !== 'number' || !Number.isFinite(microUsd)) return null;
   if (microUsd === 0) return '$0.00';
 
   if (microUsd > 0 && microUsd < MICRO_USD_PER_CENT) return '< $0.01';

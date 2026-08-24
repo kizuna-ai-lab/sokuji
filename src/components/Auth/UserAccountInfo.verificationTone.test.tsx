@@ -41,6 +41,10 @@ vi.mock('../../lib/auth-client', () => ({
   },
 }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
+// Not decoration: the real settingsStore pulls in the audio stack, which vite
+// refuses to resolve under a worktree, and the suite fails to load at all.
+vi.mock('../../stores/settingsStore', () => ({ useSetAuthOverlay: () => vi.fn() }));
+vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock('../../utils/environment', () => ({
   isElectron: () => false,
   getBackendUrl: () => 'https://sokuji.kizuna.ai',

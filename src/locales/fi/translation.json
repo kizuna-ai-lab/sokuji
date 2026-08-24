@@ -383,6 +383,7 @@
     "cooldownMessage": "Odota {{seconds}} sekuntia",
     "checkYourEmail": "Vahvistussähköposti lähetetty. Viimeistele se saapuneet-kansiossasi ja palaa takaisin — Sokuji huomaa sen automaattisesti.",
     "emailVerifiedToast": "Sähköposti vahvistettu",
+    "sessionExpired": "Istuntosi on vanhentunut. Kirjaudu sisään uudelleen.",
     "forgotPassword": "Unohditko salasanan?",
     "resetPassword": "Palauta salasana",
     "enterEmailForReset": "Syötä sähköpostiosoitteesi ja lähetämme vahvistuskoodin salasanan palauttamiseksi.",

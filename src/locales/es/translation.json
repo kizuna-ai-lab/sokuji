@@ -383,6 +383,7 @@
     "cooldownMessage": "Por favor, espera {{seconds}} segundos",
     "checkYourEmail": "Correo de verificación enviado. Complétalo en tu bandeja de entrada y vuelve — Sokuji lo detecta automáticamente.",
     "emailVerifiedToast": "Correo verificado",
+    "sessionExpired": "Tu sesión ha expirado. Inicia sesión de nuevo.",
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "resetPassword": "Restablecer contraseña",
     "enterEmailForReset": "Ingresa tu correo electrónico y te enviaremos un código de verificación para restablecer tu contraseña.",

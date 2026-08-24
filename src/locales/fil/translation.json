@@ -383,6 +383,7 @@
     "cooldownMessage": "Pakihintay ng {{seconds}} segundo",
     "checkYourEmail": "Naipadala na ang verification email. Kumpletuhin ang pag-verify sa iyong inbox at bumalik — awtomatikong malalaman ni Sokuji kapag nakumpirma na ito.",
     "emailVerifiedToast": "Na-verify na ang email",
+    "sessionExpired": "Nag-expire na ang iyong session. Mag-sign in ulit.",
     "forgotPassword": "Nakalimutan ang Password?",
     "resetPassword": "I-reset ang Password",
     "enterEmailForReset": "Ilagay ang iyong email address at padadalhan ka namin ng verification code para i-reset ang iyong password.",

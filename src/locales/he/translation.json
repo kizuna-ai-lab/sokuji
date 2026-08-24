@@ -383,6 +383,7 @@
     "cooldownMessage": "אנא המתן {{seconds}} שניות",
     "checkYourEmail": "אימייל אימות נשלח. השלם את האימות בתיבת הדואר הנכנס וחזור — Sokuji יזהה זאת אוטומטית.",
     "emailVerifiedToast": "האימייל אומת",
+    "sessionExpired": "פג תוקף ההפעלה שלך. יש להתחבר שוב.",
     "forgotPassword": "שכחת סיסמה?",
     "resetPassword": "איפוס סיסמה",
     "enterEmailForReset": "הזן את כתובת האימייל שלך ונשלח לך קוד אימות לאיפוס הסיסמה.",

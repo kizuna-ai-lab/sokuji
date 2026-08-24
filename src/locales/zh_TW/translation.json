@@ -383,6 +383,7 @@
     "cooldownMessage": "請等待 {{seconds}} 秒",
     "checkYourEmail": "驗證郵件已發送。請在收件匣中完成驗證後返回，Sokuji 會自動識別。",
     "emailVerifiedToast": "電子郵件已驗證",
+    "sessionExpired": "登入狀態已失效，請重新登入。",
     "forgotPassword": "忘記密碼？",
     "resetPassword": "重設密碼",
     "enterEmailForReset": "輸入您的電子郵件地址，我們將發送驗證碼以重設您的密碼。",

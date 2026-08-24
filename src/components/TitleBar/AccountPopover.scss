@@ -12,10 +12,15 @@
   z-index: 1000;
   overflow: hidden;
 
-  &__msg { padding: 13px 14px 4px; font-size: 12px; line-height: 1.55; color: #bdbdbd; }
+  // 13px is $font-body from Settings/shared/_variables.scss, not a nudge.
+  // These values came over from ModeDevicePopover, where 12px ($font-caption)
+  // is right because its content is a list of device options. This is prose —
+  // the only explanation in the popover, and the copy the whole sign-up entry
+  // rests on — so it takes the body size the rest of the app gives prose.
+  &__msg { padding: 13px 14px 4px; font-size: 13px; line-height: 1.5; color: #bdbdbd; }
   &__btns { display: flex; gap: 8px; padding: 11px 14px 14px; }
   &__btn {
-    flex: 1; height: 32px; border-radius: 5px; font-size: 12.5px; font-weight: 600;
+    flex: 1; height: 32px; border-radius: 5px; font-size: 13px; font-weight: 600;
     cursor: pointer; border: 1px solid transparent; font-family: inherit;
 
     &--primary { background: #10a37f; color: #fff; &:hover { background: #0e9070; } }

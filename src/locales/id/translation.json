@@ -383,6 +383,7 @@
     "cooldownMessage": "Silakan tunggu {{seconds}} detik",
     "checkYourEmail": "Email verifikasi terkirim. Selesaikan di kotak masuk Anda lalu kembali — Sokuji akan mendeteksinya secara otomatis.",
     "emailVerifiedToast": "Email terverifikasi",
+    "sessionExpired": "Sesi Anda telah berakhir. Silakan masuk lagi.",
     "forgotPassword": "Lupa Kata Sandi?",
     "resetPassword": "Atur Ulang Kata Sandi",
     "enterEmailForReset": "Masukkan alamat email Anda dan kami akan mengirimkan kode verifikasi untuk mengatur ulang kata sandi Anda.",

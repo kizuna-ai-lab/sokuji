@@ -258,11 +258,16 @@ describe('AccountButton e-mail verification', () => {
     expect(refetchSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('does not refetch once the e-mail is verified', () => {
+  // This used to stop once the e-mail was verified. Verified users are exactly
+  // the ones moving between the app and the dashboard, so they are the ones
+  // most likely to have signed out over there — dropping the session cookie
+  // this app shares. Refetching on return is what lets the app notice, instead
+  // of showing an avatar and a balance for a session the server has forgotten.
+  it('keeps refetching after the e-mail is verified', () => {
     signIn(true);
     render(<AccountButton />);
     regainFocus();
-    expect(refetchSpy).not.toHaveBeenCalled();
+    expect(refetchSpy).toHaveBeenCalledTimes(1);
   });
 
   it('confirms the transition with a toast', () => {

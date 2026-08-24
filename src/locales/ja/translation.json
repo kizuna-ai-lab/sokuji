@@ -383,6 +383,7 @@
     "cooldownMessage": "{{seconds}}秒お待ちください",
     "checkYourEmail": "認証メールを送信しました。受信トレイで認証を完了して戻ってきてください — Sokujiが自動的に検知します。",
     "emailVerifiedToast": "メール認証済み",
+    "sessionExpired": "セッションの有効期限が切れました。もう一度サインインしてください。",
     "forgotPassword": "パスワードをお忘れですか？",
     "resetPassword": "パスワードをリセット",
     "enterEmailForReset": "メールアドレスを入力してください。パスワードリセット用の認証コードを送信します。",

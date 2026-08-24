@@ -383,6 +383,7 @@
     "cooldownMessage": "Lütfen {{seconds}} saniye bekleyin",
     "checkYourEmail": "Doğrulama e-postası gönderildi. Gelen kutunuzdan doğrulamayı tamamlayıp geri dönün — Sokuji bunu otomatik olarak algılar.",
     "emailVerifiedToast": "E-posta doğrulandı",
+    "sessionExpired": "Oturumunuzun süresi doldu. Lütfen tekrar oturum açın.",
     "forgotPassword": "Şifrenizi mi unuttunuz?",
     "resetPassword": "Şifreyi Sıfırla",
     "enterEmailForReset": "E-posta adresinizi girin ve şifrenizi sıfırlamak için size bir doğrulama kodu göndereceğiz.",

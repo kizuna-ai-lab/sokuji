@@ -10,6 +10,7 @@ import {
   AlertCircle,
   ChartColumn,
   CheckCircle,
+  Loader2,
   LogOut,
   Mail,
   MessageCircleQuestion,
@@ -21,6 +22,8 @@ import {formatUsd, formatUsdFloor} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
 import {isElectron, getBackendUrl, getApiUrl} from '../../utils/environment';
+import {useToast} from '../Toast';
+import {useSetAuthOverlay} from '../../stores/settingsStore';
 import './UserAccountInfo.scss';
 
 interface UserAccountInfoProps {
@@ -34,9 +37,26 @@ export function UserAccountInfo({
   const {trackEvent} = useAnalytics();
   const {isLoaded, isSignedIn} = useAuth();
   const {user: betterAuthUser, refetch: refetchSession} = useUser();
+  const {showToast} = useToast();
+  const setAuthOverlay = useSetAuthOverlay();
+
+  // Signing out is a network round-trip. Without this the button looked
+  // identical before and during the request, so the screen sat still and the
+  // user had no way to tell whether their click had registered.
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Get user profile and quota
-  const {user, quota, isLoading: quotaLoading, refetchAll} = useUserProfile();
+  const {user, quota, isLoading: quotaLoading, error: quotaError, refetchAll} = useUserProfile();
+
+  // isLoading starts false while quota starts null, so there is a frame — the
+  // one before the effect that starts the request has even run — reading "not
+  // loading, no data". Treating that as failure is what made signing in flash
+  // an error row, then a spinner, then the real balance: three states for one
+  // request, none of which the user asked to see.
+  //
+  // Derived during render, not in an effect, because an effect is exactly one
+  // frame too late to prevent the flash.
+  const quotaPending = quotaLoading || (!quota && !quotaError);
 
   if (!isLoaded) {
     return (
@@ -236,11 +256,38 @@ export function UserAccountInfo({
     if (isSignedIn) {
       try {
         const {data, error} = await authClient.oneTimeToken.generate();
+
+        // A 401 here is not a token problem, it is the session being gone.
+        // The likeliest way to get one: the user opened the dashboard from this
+        // very panel and signed out over there, dropping the cookie the app
+        // shares with it. Nothing pushes that back to the app, so without this
+        // the panel goes on showing an avatar and a balance for a session the
+        // server has forgotten, and every button here silently opens a login
+        // page instead of the thing that was asked for.
+        if ((error as {status?: number} | null)?.status === 401) {
+          trackEvent('session_expired_detected', {source: 'one_time_token'});
+          // Let the session hook establish the truth; the whole signed-out UI
+          // — this panel, the title-bar mark, the provider notice — follows
+          // from isSignedIn on its own.
+          refetchSession?.();
+          showToast(
+            t('auth.sessionExpired', 'Your session has expired. Please sign in again.'),
+            {variant: 'error'},
+          );
+          setAuthOverlay('sign-in');
+          // Deliberately do NOT open the page: it would only show a login form
+          // in a browser, which is neither what was asked for nor where the
+          // user can act on it.
+          return;
+        }
+
         if (data?.token && !error) {
           // Use our GET wrapper endpoint that internally calls POST /api/auth/one-time-token/verify
           // The after hook sets the signed cookie, and this endpoint forwards it with redirect
           url = `${apiUrl}/ott/verify?token=${data.token}&redirect=${encodeURIComponent(targetPath)}`;
         }
+        // Any other failure — the token endpoint down, a network blip — is not
+        // evidence about the session. Fall through and open the plain URL.
       } catch (e) {
         // Token generation failed, use original URL (user needs to sign in manually)
         console.warn('Failed to generate OTT token:', e);
@@ -342,7 +389,10 @@ export function UserAccountInfo({
           <button
             className="action-button-compact sign-out"
             title="Sign Out"
+            disabled={isSigningOut}
             onClick={async () => {
+              if (isSigningOut) return;
+              setIsSigningOut(true);
               // Track sign out click
               trackEvent('sign_out_clicked', {});
               try {
@@ -356,19 +406,22 @@ export function UserAccountInfo({
                 // Even if backend returns 403 or other errors, clear frontend state
                 // This ensures users can always "log out"
               } finally {
-                // Reload in place, never navigate to '/'. Only the dev server
-                // serves the app at the site root: the packaged desktop app is
-                // loaded from file://…/build/index.html, where '/' is the
-                // filesystem root (the window went blank), and the extension
-                // panel is chrome-extension://<id>/fullpage.html, where '/' is
-                // the extension root with no document (ERR_FILE_NOT_FOUND).
-                // reload() re-runs the current document on every surface, which
-                // is all the "clear all state" here ever needed.
-                window.location.reload();
+                // No reload. Every piece of state it used to clear now clears
+                // itself: authClient.signOut() ends the session, the profile
+                // context drops the quota when isSignedIn goes false, and
+                // SettingsInitializer re-validates and clears isApiKeyValid and
+                // availableModels for a managed provider. Reloading also took
+                // any running translation session with it, which is the whole
+                // reason this is being unwound.
+                refetchSession?.();
+                // On success this component goes away with the session, so
+                // this matters only when signing out failed — and then the
+                // user needs the button back to try again.
+                setIsSigningOut(false);
               }
             }}
           >
-            <LogOut size={14}/>
+            {isSigningOut ? <Loader2 size={14} className="spinning"/> : <LogOut size={14}/>}
           </button>
         </div>
       </div>
@@ -382,7 +435,7 @@ export function UserAccountInfo({
 
       {/* Quota Status Section */}
       <div className="quota-status-section">
-        {quotaLoading ? (
+        {quotaPending ? (
           <div className="quota-loading">
             <div className="loading-spinner"/>
           </div>

@@ -25,9 +25,18 @@ describe('compactBalanceLabel', () => {
     expect(compactBalanceLabel(-1_552)).toBe('-$0.01');
   });
 
-  it('falls back to zero for absent or non-finite input', () => {
-    expect(compactBalanceLabel(null)).toBe('$0.00');
-    expect(compactBalanceLabel(undefined)).toBe('$0.00');
-    expect(compactBalanceLabel(NaN)).toBe('$0.00');
+  // This used to return '$0.00' for an absent balance, which is how signing in
+  // produced a title bar reading $0.00 before the wallet had loaded — the one
+  // number a user is guaranteed to misread, and the reading is "I am broke".
+  // Not knowing yet is not a balance, so it gets no label at all.
+  it('reports no label when the balance is not known yet', () => {
+    expect(compactBalanceLabel(null)).toBeNull();
+    expect(compactBalanceLabel(undefined)).toBeNull();
+    expect(compactBalanceLabel(NaN)).toBeNull();
+  });
+
+  // A wallet that really is empty still says so.
+  it('still shows an actual zero balance', () => {
+    expect(compactBalanceLabel(0)).toBe('$0.00');
   });
 });

@@ -383,6 +383,7 @@
     "cooldownMessage": "Wacht {{seconds}} seconden",
     "checkYourEmail": "Verificatie-e-mail verzonden. Rond het af in je inbox en kom terug — Sokuji pikt het automatisch op.",
     "emailVerifiedToast": "E-mail geverifieerd",
+    "sessionExpired": "Je sessie is verlopen. Log opnieuw in.",
     "forgotPassword": "Wachtwoord vergeten?",
     "resetPassword": "Wachtwoord resetten",
     "enterEmailForReset": "Voer je e-mailadres in en we sturen je een verificatiecode om je wachtwoord te resetten.",

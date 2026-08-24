@@ -79,16 +79,40 @@
   }
 }
 
-// Full account view
+// Full account view.
+//
+// This was a standalone card in the settings panel, so it carried its own
+// ground, border and radius. Its only container now is the account popover,
+// which is already a card — #2a2a2a, 1px #444, radius 8px. Keeping both nested
+// a second card inside the first: the signed-in popover had two backgrounds,
+// two borders and two rounded corners where the signed-out one had one, so the
+// same control looked like two different controls depending on session state.
+//
+// The popover supplies the card. This supplies only its own spacing.
 .user-account {
-  padding: 16px;
-  background: #1a1a1a;
-  border-radius: 8px;
-  border: 1px solid #333;
-  
+  padding: 14px;
+  background: transparent;
+
   &.user-account-compact-layout {
     padding: 12px;
   }
+}
+
+// Sign-out is a network round-trip, and the button used to look identical
+// before and during it. The spinner is the only thing telling the user their
+// click landed.
+.action-button-compact.sign-out {
+  .spinning { animation: spin 1s linear infinite; }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .user-header {
@@ -389,7 +413,9 @@
     border-radius: 5px;
     background: #10a37f;
     color: #fff;
-    font-size: 12.5px;
+    // Same size as the popover's signed-out buttons ($font-body). These are
+    // the same control at the same level, one shown per session state.
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
 

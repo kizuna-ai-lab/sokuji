@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useSetAuthOverlay } from '../../stores/settingsStore';
 import { authClient } from '../../lib/auth-client';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
@@ -17,7 +17,7 @@ type Step = 'email' | 'otp';
 
 export function ForgotPasswordForm() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const setAuthOverlay = useSetAuthOverlay();
   const { trackEvent } = useAnalytics();
 
   // Track password reset initiated on component mount
@@ -185,10 +185,10 @@ export function ForgotPasswordForm() {
 
     // Success - redirect to sign in
     setLoading(false);
-    navigate('/sign-in', {
-      replace: true,
-      state: { message: t('auth.passwordResetSuccess') }
-    });
+    // The success message used to ride along in router state that SignInForm
+    // never read — it has never once been shown. Dropped rather than carried
+    // over; if it should be shown, that is its own change.
+    setAuthOverlay('sign-in');
   };
 
   return (
@@ -341,9 +341,16 @@ export function ForgotPasswordForm() {
 
       <div className="form-footer">
         <p>
-          <Link to="/sign-in" onClick={() => trackEvent('sign_in_link_clicked', {})}>
+          <button
+            type="button"
+            className="auth-inline-link"
+            onClick={() => {
+              trackEvent('sign_in_link_clicked', {});
+              setAuthOverlay('sign-in');
+            }}
+          >
             {t('auth.backToSignIn')}
-          </Link>
+          </button>
         </p>
       </div>
     </div>
