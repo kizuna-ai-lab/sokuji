@@ -387,7 +387,7 @@ export function migrateLegacyKizunaProvider(p: Provider | string): Provider {
     return p as Provider;
   }
 
-  return ProviderConfigFactory.getDefaultManagedProvider() ?? Provider.KIZUNA_AI_OPENAI_TRANSLATE;
+  return ProviderConfigFactory.getDefaultManagedProvider() ?? Provider.KIZUNA_AI_SONIOX;
 }
 
 /** Migrate persisted PalabraAI language codes that the API rejects.

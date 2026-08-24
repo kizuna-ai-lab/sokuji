@@ -148,15 +148,14 @@ export class ProviderConfigFactory {
    * longer implies any particular one exists — a caller that hardcoded the
    * Translate twin would set a provider `getDescriptor` then throws on.
    *
-   * The preference order preserves the previous behaviour where the twins are
-   * available (Translate first) and falls through to whatever else is
-   * registered, so a build offering only Soniox lands on Soniox.
-   */
+   * The managed provider a fresh sign-in lands on. Soniox first: it is the
+   * only managed provider open in production, and the wallet page states its
+   * rates. The twins stay as fallbacks for builds that register them alone. */
   static getDefaultManagedProvider(): ProviderType | null {
     const preferred = [
+      Provider.KIZUNA_AI_SONIOX,
       Provider.KIZUNA_AI_OPENAI_TRANSLATE,
       Provider.KIZUNA_AI_VOLCENGINE_AST2,
-      Provider.KIZUNA_AI_SONIOX,
     ];
     return preferred.find((p) => this.configs.has(p)) ?? null;
   }

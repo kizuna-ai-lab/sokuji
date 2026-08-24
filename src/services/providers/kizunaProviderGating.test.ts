@@ -160,12 +160,20 @@ describe('the sign-in default must be a provider this build registered', () => {
     expect(() => factory.getDescriptor(target!)).not.toThrow();
   });
 
-  it('keeps preferring the Translate twin where it is registered', async () => {
+  it('prefers managed Soniox where it is registered alongside the twins', async () => {
     const factory = await factoryWith({
       soniox: true,
       openaiTranslate: true,
       volcengineAst2: true,
     });
+    const target = factory.getDefaultManagedProvider();
+
+    expect(target).toBe(Provider.KIZUNA_AI_SONIOX);
+    expect(() => factory.getDescriptor(target!)).not.toThrow();
+  });
+
+  it('falls back to the Translate twin only when Soniox is not registered', async () => {
+    const factory = await factoryWith({ openaiTranslate: true, volcengineAst2: true });
     const target = factory.getDefaultManagedProvider();
 
     expect(target).toBe(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
@@ -215,7 +223,7 @@ describe('the legacy kizunaai migration must land on a registered provider', () 
     expect(ProviderConfigFactory.isProviderSupported(migrated)).toBe(true);
   });
 
-  it('still prefers the Translate twin where it is registered', async () => {
+  it('sends a legacy user to managed Soniox even where the twins are registered', async () => {
     const { migrateLegacyKizunaProvider, ProviderConfigFactory } = await migrateWith({
       soniox: true,
       openaiTranslate: true,
@@ -223,7 +231,7 @@ describe('the legacy kizunaai migration must land on a registered provider', () 
     });
     const migrated = migrateLegacyKizunaProvider('kizunaai');
 
-    expect(migrated).toBe(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
+    expect(migrated).toBe(Provider.KIZUNA_AI_SONIOX);
     expect(ProviderConfigFactory.isProviderSupported(migrated)).toBe(true);
   });
 
