@@ -4,7 +4,6 @@ import { useAnalytics } from '../lib/analytics';
 import useSettingsStore, { useProvider } from '../stores/settingsStore';
 import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
 import { Provider } from '../types/Provider';
-import { isKizunaAIEnabled } from '../utils/environment';
 
 // Field names follow react-joyride v3's Step type (steps are passed straight
 // through): per-step theming lives directly on the step (Options fields like
@@ -39,14 +38,72 @@ const ONBOARDING_STORAGE_KEY = 'sokuji_onboarding_completed';
 const USER_TYPE_STORAGE_KEY = 'sokuji_user_type';
 const ONBOARDING_VERSION = '1.2.0';
 
+/**
+ * Renumber the "Step N:" prefixes by the steps' real positions.
+ *
+ * The catalogues carry a number in each title, and those numbers go stale the
+ * moment a step is added or removed — in 30 locales at once. Deriving the
+ * number from position instead means a catalogue only ever has to be right
+ * about the WORDS; the digit is this function's job. Idempotent, so a
+ * catalogue that is already correct survives unchanged.
+ *
+ * The pattern matches across locales: "Step 3:", "步骤 3：", "Schritt 3:" —
+ * any prefix, a digit, then a colon in either width.
+ */
+/**
+ * Where the step number sits in a title, in any of the shapes the catalogues
+ * actually use:
+ *
+ *   en  "Step 3: Choose Languages"   prefix, ASCII digit, colon straight after
+ *   ko  "3단계: 언어 선택"            NO prefix, and the unit word sits BETWEEN
+ *                                    the digit and the colon
+ *   bn  "ধাপ ৩: ভাষা নির্বাচন করুন"    Bengali digits, which \d does not match
+ *   fr  "Étape 3 : Choisir…"         a space before the colon
+ *
+ * So: the prefix may be empty (ko), the digits are any Unicode decimal (bn),
+ * and whatever sits between the digits and the colon travels with the colon
+ * rather than being assumed away (ko, fr). The first version required English's
+ * shape in all three respects and skipped the others in silence.
+ */
+const STEP_NUMBER = /^(.*?)(\p{Nd}+)([^\p{Nd}]*?[:：])/u;
+
+/** The code point of ZERO in whatever numbering system `ch` belongs to.
+ *  Unicode decimal-digit blocks are ten contiguous code points with zero
+ *  first, so walking back until the predecessor stops being a digit lands on
+ *  it. Bounded at ten steps: a digit is never further than that from its own
+ *  zero, and an unbounded walk would be a hang waiting for bad input. */
+const digitZero = (ch: string): number => {
+  let cp = ch.codePointAt(0) ?? 0x30;
+  for (let i = 0; i < 10 && /\p{Nd}/u.test(String.fromCodePoint(cp - 1)); i++) cp--;
+  return cp;
+};
+
+/** Render `n` using the same digits the catalogue was already written in, so
+ *  renumbering a Bengali title does not leave one ASCII digit in it. */
+const inSameDigits = (n: number, zero: number): string =>
+  String(n)
+    .split('')
+    .map((d) => String.fromCodePoint(zero + Number(d)))
+    .join('');
+
+const renumberSteps = (steps: OnboardingStep[]): OnboardingStep[] => {
+  let stepNumber = 0;
+  return steps.map((step) => {
+    const title = String(step.title);
+    const stepMatch = title.match(STEP_NUMBER);
+    if (!stepMatch) return step;
+    stepNumber++;
+    const zero = digitZero(stepMatch[2][0]);
+    return {
+      ...step,
+      title: `${stepMatch[1]}${inSameDigits(stepNumber, zero)}${stepMatch[3]}${title.slice(stepMatch[0].length)}`,
+    };
+  });
+};
+
 // Basic mode onboarding steps - simplified for regular users.
-// The account step targets #user-account-section, which AccountSection only
-// renders when isKizunaAIEnabled() — the browser-extension build (and any
-// build with VITE_ENABLE_KIZUNA_AI=false) omits that section, so the step
-// would land on a missing element and Joyride would skip ahead silently.
-// Filter it out at construction time instead so the step list matches reality.
-const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
-  const allSteps: (OnboardingStep | null)[] = [
+export const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
+  const allSteps: OnboardingStep[] = [
   {
     target: 'body',
     content: t('onboarding.basic.steps.welcome.content', 'Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps.'),
@@ -67,46 +124,40 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
     title: t('onboarding.basic.steps.settings.title', 'Step 1: Open Settings'),
     placement: 'bottom',
   },
-  isKizunaAIEnabled() ? {
-    target: '#user-account-section',
-    content: t('onboarding.basic.steps.account.content', 'Sign in to use Sokuji\'s built-in translation service, or choose another provider and enter your own API key.'),
-    title: t('onboarding.basic.steps.account.title', 'Step 2: User Account'),
-    placement: 'left',
-  } : null,
   {
     target: '#languages-section',
     content: t('onboarding.basic.steps.languages.content', 'Select your source language (what you speak) and target language (what you want the other party to hear).'),
-    title: t('onboarding.basic.steps.languages.title', 'Step 3: Choose Languages'),
+    title: t('onboarding.basic.steps.languages.title', 'Step 2: Choose Languages'),
     placement: 'left',
   },
   {
     target: '#provider-section',
-    content: t('onboarding.basic.steps.provider.content', 'Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
-    title: t('onboarding.basic.steps.provider.title', 'Step 4: Translation Provider'),
+    content: t('onboarding.basic.steps.provider.content', 'Choose your translation provider. Sokuji has its own built-in service — sign in from the account button in the title bar to use it. It also supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more, where you bring your own API key. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
+    title: t('onboarding.basic.steps.provider.title', 'Step 3: Translation Provider'),
     placement: 'left',
   },
   {
     target: '#microphone-section',
     content: t('onboarding.basic.steps.microphone.content', 'Select your microphone from the list. This is what will capture your voice.'),
-    title: t('onboarding.basic.steps.microphone.title', 'Step 5: Select Microphone'),
+    title: t('onboarding.basic.steps.microphone.title', 'Step 4: Select Microphone'),
     placement: 'left',
   },
   {
     target: '#speaker-section',
     content: t('onboarding.basic.steps.speaker.content', 'Choose a monitoring device to preview the translation. Translated audio is always output to the virtual microphone regardless of monitoring. Select Sokuji Virtual Microphone as the microphone input in your meeting app or website. Headphones are recommended for monitoring to avoid feedback.'),
-    title: t('onboarding.basic.steps.speaker.title', 'Step 6: Select Speaker'),
+    title: t('onboarding.basic.steps.speaker.title', 'Step 5: Select Speaker'),
     placement: 'left',
   },
   {
     target: '#participant-section',
     content: t('onboarding.basic.steps.systemAudio.content', 'This is the participant channel — what other people say, translated for you. Turn it on by choosing Others or Both in the translation mode (it stays off in You mode). In the browser extension, it captures the current tab so you can translate participants in Google Meet, Teams, or Zoom. In the desktop app, it captures all system audio, so you can translate YouTube, Twitch, Netflix, or any source. Participant speech is translated to text only — no speech synthesis. Together with your microphone, this gives full two-way translation.'),
-    title: t('onboarding.basic.steps.systemAudio.title', 'Step 7: Participant Audio'),
+    title: t('onboarding.basic.steps.systemAudio.title', 'Step 6: Participant Audio'),
     placement: 'left',
   },
   {
     target: '.main-action-btn',
     content: t('onboarding.basic.steps.start.content', 'Click "Start" to begin translating! Just speak naturally and hear the translation in real-time.'),
-    title: t('onboarding.basic.steps.start.title', 'Step 8: Start Translating'),
+    title: t('onboarding.basic.steps.start.title', 'Step 7: Start Translating'),
     placement: 'top',
   },
   {
@@ -117,12 +168,12 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => {
     skipBeacon: true,
   }
   ];
-  return allSteps.filter((s): s is OnboardingStep => s !== null);
+  return renumberSteps(allSteps);
 };
 
 // Advanced mode onboarding steps - detailed for experienced users
 // Steps are filtered based on current provider capabilities to avoid targeting non-existent DOM elements
-const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode: boolean; hasVoiceSettings: boolean; hasTurnDetection: boolean }): OnboardingStep[] => {
+export const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode: boolean; hasVoiceSettings: boolean; hasTurnDetection: boolean }): OnboardingStep[] => {
   const allSteps: (OnboardingStep | null)[] = [
     {
       target: 'body',
@@ -203,18 +254,7 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
 
   // Filter out null steps (capabilities not available for current provider)
   // and renumber the step titles across all locales
-  const filteredSteps = allSteps.filter((step): step is OnboardingStep => step !== null);
-  let stepNumber = 0;
-  return filteredSteps.map((step) => {
-    // Match step numbering patterns across locales: "Step 3:", "步骤 3：", "Schritt 3:", etc.
-    // Pattern: any prefix text, a digit, then a colon (regular or fullwidth)
-    const stepMatch = step.title.match(/^(.+?)(\d+)([:：])/);
-    if (stepMatch) {
-      stepNumber++;
-      return { ...step, title: `${stepMatch[1]}${stepNumber}${stepMatch[3]}${step.title.slice(stepMatch[0].length)}` };
-    }
-    return step;
-  });
+  return renumberSteps(allSteps.filter((step): step is OnboardingStep => step !== null));
 };
 
 interface OnboardingProviderProps {

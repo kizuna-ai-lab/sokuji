@@ -229,6 +229,10 @@ export interface SettingsStore {
 
   // Navigation state
   settingsNavigationTarget: string | null;
+  /** Ephemeral: raised by a surface that wants the title-bar account popover
+   *  opened (the provider sign-in notice does). Never persisted — AccountButton
+   *  reads it, opens the popover, and immediately clears it back to false. */
+  accountPopoverRequested: boolean;
   /** Ephemeral: fired once by an engine chip (Task 10) to deep-link into the
    *  engine surface with a given slot pre-expanded. Never persisted — the
    *  consuming surface (SimpleSettings, ProviderSpecificSettings) reads it,
@@ -311,8 +315,12 @@ export interface SettingsStore {
   updateProviderSlice: (sliceKey: string, patch: Record<string, unknown>) => Promise<void>;
 
   // Async actions
-  validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<ApiKeyValidationResult>;
-  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>) => Promise<void>;
+  /** `isSignedIn` is the caller's real auth state, not a guess. It defaults to
+   *  `true` so the token probe stays the authority for callers that don't know
+   *  (nothing but a signed-in caller hands over a `getAuthToken` today); pass
+   *  it explicitly wherever `useAuth()` is in scope. */
+  validateApiKey: (getAuthToken?: () => Promise<string | null>, isSignedIn?: boolean) => Promise<ApiKeyValidationResult>;
+  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>, isSignedIn?: boolean) => Promise<void>;
   ensureKizunaApiKey: (getToken: () => Promise<string | null>, isSignedIn: boolean) => Promise<boolean>;
   loadSettings: () => Promise<void>;
   clearCache: () => void;
@@ -325,6 +333,7 @@ export interface SettingsStore {
   createSessionConfig: (systemInstructions: string) => SessionConfig;
   navigateToSettings: (target: string | null) => void;
   setEngineSlotTarget: (t: { dir: string; stage: Stage } | null) => void;
+  setAccountPopoverRequested: (next: boolean) => void;
 }
 
 // ==================== Helper Functions ====================
@@ -601,6 +610,7 @@ const useSettingsStore = create<SettingsStore>()(
 
     settingsNavigationTarget: null,
     engineSlotTarget: null,
+    accountPopoverRequested: false,
 
     settingsLoaded: false,
     subtitleModeActive: false,
@@ -824,7 +834,10 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     // === Async Actions ===
-    validateApiKey: async (getAuthToken) => {
+    validateApiKey: async (
+      getAuthToken?: () => Promise<string | null>,
+      isSignedIn: boolean = true,
+    ) => {
       const state = get();
       const provider = state.provider;
 
@@ -894,24 +907,45 @@ const useSettingsStore = create<SettingsStore>()(
 
       // For KizunaAI, ensure we have an API key first
       if (isKizunaManagedProvider(provider)) {
+        // Was hardcoded `true`, which made ensureKizunaApiKey's own signed-out
+        // guard unreachable from this call site. `useAuth().getToken` is ALWAYS
+        // a function — signed out it merely resolves to `null` — so
+        // `getAuthToken` is always truthy and every signed-out user fell
+        // through to the generic session-unavailable branch, indistinguishable
+        // from a signed-in user whose session had expired.
         const hasKey = getAuthToken
-          ? await state.ensureKizunaApiKey(getAuthToken, true)
+          ? await state.ensureKizunaApiKey(getAuthToken, isSignedIn)
           : false;
         if (!hasKey) {
+          // Read the code FRESH: `state` is the snapshot taken before
+          // ensureKizunaApiKey ran, so it still holds the previous attempt's
+          // value (null on a first run), not the one just written.
+          const errorKey: string = get().kizunaKeyError || 'auth.signedOut';
+          // kizunaKeyError is a translation key; validationMessage is rendered
+          // verbatim, so it has to be resolved here.
+          const message: string = i18n.t(errorKey);
+          // ProviderSection renders its own signed-out notice — the clickable
+          // one that opens the account popover — under exactly this condition.
+          // Setting validationMessage too stacks two sentences saying the same
+          // thing, and the duplicate is the one that cannot be clicked. A
+          // broken session is the opposite case: that notice is gated on being
+          // signed OUT, so for a signed-in user with a dead token this message
+          // is the only thing that explains anything.
+          const displayMessage: string = errorKey === 'auth.signedOut' ? '' : message;
           // Signed out or token unavailable: clear any stale validity so a
           // previously-valid signed-in state can't keep Start enabled. Without
           // this reset the UI would only discover the missing auth at connect time.
           set({
             isApiKeyValid: false,
             availableModels: [],
-            validationMessage: state.kizunaKeyError || 'Sign in is required for Kizuna relay providers',
+            validationMessage: displayMessage,
             isValidating: false,
             isValidated: false,
             validationError: null
           });
           return {
             valid: false,
-            message: state.kizunaKeyError || 'Failed to fetch Kizuna AI API key',
+            message,
             validating: false
           };
         }
@@ -1032,9 +1066,13 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    fetchAvailableModels: async (getAuthToken) => {
+    fetchAvailableModels: async (getAuthToken, isSignedIn) => {
       set({loadingModels: true});
-      const result = await get().validateApiKey(getAuthToken);
+      // Forwarded, not defaulted. validateApiKey's optimistic default exists
+      // for the callers that pass no token at all; a caller that DOES pass one
+      // knows the auth state and has to say so, or a signed-out user's null
+      // token is misread as an expired session.
+      await get().validateApiKey(getAuthToken, isSignedIn);
       set({loadingModels: false});
     },
 
@@ -1049,9 +1087,12 @@ const useSettingsStore = create<SettingsStore>()(
         return false;
       }
 
+      // kizunaKeyError reaches the UI (ProviderSection renders it), so it holds
+      // a TRANSLATION KEY from here on, never prose. The engineering detail
+      // stays in the console, where it was always the more useful half.
       if (!isSignedIn || !getToken) {
         console.log('[SettingsStore] Cannot get token - user not signed in');
-        set({kizunaKeyError: 'User not signed in'});
+        set({kizunaKeyError: 'auth.signedOut'});
         return false;
       }
 
@@ -1066,15 +1107,14 @@ const useSettingsStore = create<SettingsStore>()(
           set({isKizunaKeyFetching: false});
           return true;
         } else {
-          const error = 'Failed to get auth session';
-          console.warn('[SettingsStore] ' + error);
-          set({kizunaKeyError: error, isKizunaKeyFetching: false});
+          console.warn('[SettingsStore] Failed to get auth session');
+          set({kizunaKeyError: 'auth.sessionUnavailable', isKizunaKeyFetching: false});
           return false;
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error getting auth session';
         console.error('[SettingsStore] Error getting auth session for Kizuna AI:', errorMessage);
-        set({kizunaKeyError: errorMessage, isKizunaKeyFetching: false});
+        set({kizunaKeyError: 'auth.unknown', isKizunaKeyFetching: false});
         return false;
       }
     },
@@ -1266,6 +1306,10 @@ const useSettingsStore = create<SettingsStore>()(
     setEngineSlotTarget: (t: { dir: string; stage: Stage } | null) => {
       set({engineSlotTarget: t});
     },
+
+    setAccountPopoverRequested: (next: boolean) => {
+      set({accountPopoverRequested: next});
+    },
   }))
 );
 
@@ -1334,6 +1378,13 @@ export const useKizunaKeyError = () => useSettingsStore((state) => state.kizunaK
 export const useSettingsNavigationTarget = () => useSettingsStore((state) => state.settingsNavigationTarget);
 export const useEngineSlotTarget = () => useSettingsStore((state: SettingsStore) => state.engineSlotTarget);
 export const useSetEngineSlotTarget = () => useSettingsStore((state: SettingsStore) => state.setEngineSlotTarget);
+// Annotated the way the engineSlotTarget pair beside them is: the store's own
+// generic inference is broken in this file, so a bare `(state)` selector is a
+// TS7006 implicit-any under noImplicitAny.
+export const useAccountPopoverRequested = () =>
+  useSettingsStore((state: SettingsStore) => state.accountPopoverRequested);
+export const useSetAccountPopoverRequested = () =>
+  useSettingsStore((state: SettingsStore) => state.setAccountPopoverRequested);
 
 // Settings loading state
 export const useSettingsLoaded = () => useSettingsStore((state) => state.settingsLoaded);

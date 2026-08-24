@@ -11,10 +11,11 @@
     "autoDetect": "자동 감지",
     "signIn": "로그인",
     "signUp": "가입",
-    "signInRequired": "Kizuna AI를 제공업체로 사용하려면 로그인하세요",
+    "signInRequired": "<signInLink>로그인 또는 회원가입</signInLink> 후 API 키 없이 Kizuna AI를 사용하세요.",
     "dismiss": "닫기",
     "none": "없음",
-    "retry": "재시도"
+    "retry": "재시도",
+    "topUp": "충전"
   },
   "settings": {
     "title": "설정",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "인증 이메일을 보내지 못했습니다. 다시 시도해 주세요",
     "alreadyVerified": "이메일이 이미 인증되었습니다!",
     "cooldownMessage": "{{seconds}}초 기다려 주세요",
-    "checkYourEmail": "인증 이메일을 보냈습니다. 받은편지함을 확인하세요.",
+    "checkYourEmail": "인증 이메일을 보냈습니다. 받은편지함에서 인증을 완료하고 돌아오세요 — Sokuji가 자동으로 인식합니다.",
+    "emailVerifiedToast": "이메일 인증됨",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "resetPassword": "비밀번호 재설정",
     "enterEmailForReset": "이메일 주소를 입력하시면 비밀번호 재설정을 위한 인증 코드를 보내드립니다.",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "비밀번호가 성공적으로 재설정되었습니다! 새 비밀번호로 로그인할 수 있습니다.",
     "backToSignIn": "로그인으로 돌아가기",
     "forgotPasswordError": "인증 코드를 보내지 못했습니다. 다시 시도해 주세요.",
-    "resetPasswordError": "비밀번호를 재설정하지 못했습니다. 다시 시도해 주세요."
+    "resetPasswordError": "비밀번호를 재설정하지 못했습니다. 다시 시도해 주세요.",
+    "signedOut": "Kizuna AI의 내장 번역 서비스를 사용하려면 로그인하세요.",
+    "sessionUnavailable": "세션이 더 이상 유효하지 않습니다. 다시 로그인해 주세요.",
+    "unknown": "계정을 확인할 수 없습니다. 다시 시도해 주세요."
   },
   "simpleConfig": {
     "interfaceLanguage": "인터페이스 언어",
@@ -406,7 +411,7 @@
     "yourLanguage": "내 언어",
     "userAccount": "사용자 계정",
     "userAccountTooltip": "기술적 지식과 자신의 API 키를 가진 사용자의 경우, 로그인 여부와 관계없이 자신의 API 키를 사용할 수 있습니다. 사용자 계정은 복잡한 구성 없이 간단한 설정을 선호하는 신규 사용자를 위해 설계되었습니다.",
-    "signInRequired": "로그인하지 않고도 자신의 AI 제공업체와 API 키를 사용할 수 있거나, kizuna.ai의 API 서비스를 구매하여 사용하려면 가입하십시오.",
+    "signInRequired": "회원가입하면 API 키 없이 Sokuji의 내장 번역 서비스를 사용할 수 있습니다. 기존처럼 자신의 제공업체와 API 키를 계속 사용해도 됩니다.",
     "targetLanguage": "상대방 언어",
     "microphone": "마이크",
     "microphoneDesc": "음성을 캡처할 마이크를 선택하세요. 이 마이크에 당신의 언어로 말하면, Sokuji가 들리는 모든 것을 실시간으로 번역합니다.",
@@ -687,10 +692,6 @@
           "title": "1단계: 설정 열기",
           "content": "여기를 클릭하여 언어와 오디오 장치를 구성할 수 있는 설정을 여세요."
         },
-        "account": {
-          "title": "2단계: 사용자 계정",
-          "content": "Sokuji의 내장 번역 서비스를 사용하려면 로그인하거나, 다른 제공업체를 선택하고 API 키를 입력하세요."
-        },
         "languages": {
           "title": "3단계: 언어 선택",
           "content": "내 언어(내가 말하는 언어)와 상대방 언어(상대방이 듣게 될 언어)를 선택하세요."
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "4단계: 번역 제공업체",
-          "content": "번역 제공업체를 선택하세요. Sokuji는 OpenAI, Gemini, 화산엔진(더우바오) 등 클라우드 서비스를 지원합니다. 로컬 추론도 사용 가능합니다 — API 키 불필요, 무료이며 개인정보 보호 중심, 모델을 다운로드하면 완전 오프라인 번역이 가능합니다."
+          "content": "번역 제공업체를 선택하세요. Sokuji에는 자체 내장 서비스가 있습니다 — 사용하려면 제목 표시줄의 계정 버튼에서 로그인하세요. OpenAI, Gemini, 화산엔진(더우바오) 등 클라우드 서비스도 지원하며, 이 경우 자신의 API 키를 사용합니다. 로컬 추론도 사용 가능합니다 — API 키 불필요, 무료이며 개인정보 보호 중심, 모델을 다운로드하면 완전 오프라인 번역이 가능합니다."
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "스페이스바를 눌러 말하세요"
   },
   "titleBar": {
+    "account": {
+      "label": "계정",
+      "lowBalance": "계정 — 잔액이 부족하여 세션을 시작할 수 없습니다",
+      "unverified": "계정 — 이메일이 인증되지 않았습니다"
+    },
     "minimize": "최소화",
     "maximize": "최대화",
     "close": "닫기"

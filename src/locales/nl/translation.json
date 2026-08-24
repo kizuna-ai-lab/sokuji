@@ -11,10 +11,11 @@
     "autoDetect": "Automatische Detectie",
     "signIn": "Inloggen",
     "signUp": "Aanmelden",
-    "signInRequired": "Log in om Kizuna AI als uw provider te gebruiken",
+    "signInRequired": "<signInLink>Log in of registreer</signInLink> om Kizuna AI te gebruiken — geen API-sleutel nodig.",
     "dismiss": "Sluiten",
     "none": "Geen",
-    "retry": "Opnieuw proberen"
+    "retry": "Opnieuw proberen",
+    "topUp": "Opwaarderen"
   },
   "settings": {
     "title": "Instellingen",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "Kon verificatie-e-mail niet verzenden. Probeer het opnieuw",
     "alreadyVerified": "Je e-mail is al geverifieerd!",
     "cooldownMessage": "Wacht {{seconds}} seconden",
-    "checkYourEmail": "Verificatie-e-mail verzonden. Controleer je inbox.",
+    "checkYourEmail": "Verificatie-e-mail verzonden. Rond het af in je inbox en kom terug — Sokuji pikt het automatisch op.",
+    "emailVerifiedToast": "E-mail geverifieerd",
     "forgotPassword": "Wachtwoord vergeten?",
     "resetPassword": "Wachtwoord resetten",
     "enterEmailForReset": "Voer je e-mailadres in en we sturen je een verificatiecode om je wachtwoord te resetten.",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "Wachtwoord succesvol gereset! Je kunt nu inloggen met je nieuwe wachtwoord.",
     "backToSignIn": "Terug naar inloggen",
     "forgotPasswordError": "Kon verificatiecode niet verzenden. Probeer het opnieuw.",
-    "resetPasswordError": "Kon wachtwoord niet resetten. Probeer het opnieuw."
+    "resetPasswordError": "Kon wachtwoord niet resetten. Probeer het opnieuw.",
+    "signedOut": "Log in om de ingebouwde vertaalservice van Kizuna AI te gebruiken.",
+    "sessionUnavailable": "Uw sessie is niet langer geldig. Log opnieuw in.",
+    "unknown": "Uw account kon niet worden geverifieerd. Probeer het opnieuw."
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Taal",
@@ -406,7 +411,7 @@
     "yourLanguage": "Mijn taal",
     "userAccount": "Gebruikersaccount",
     "userAccountTooltip": "Technische gebruikers kunnen hun eigen API-sleutels gebruiken. Gebruikersaccount is ontworpen voor vereenvoudigde setup.",
-    "signInRequired": "U kunt uw eigen API-sleutel gebruiken of zich registreren voor de kizuna.ai-service.",
+    "signInRequired": "Registreer om de ingebouwde vertaalservice van Sokuji te gebruiken — geen API-sleutel nodig. U kunt ook gewoon uw eigen provider en sleutel blijven gebruiken.",
     "targetLanguage": "Taal van de ander",
     "microphone": "Microfoon",
     "microphoneDesc": "Selecteer de microfoon om uw spraak op te vangen. Spreek uw taal in deze microfoon, en Sokuji zal alles wat het hoort in realtime vertalen.",
@@ -687,10 +692,6 @@
           "title": "Stap 1: Instellingen openen",
           "content": "Klik hier om Instellingen te openen, waar u uw talen en audioapparaten kunt configureren."
         },
-        "account": {
-          "title": "Stap 2: Gebruikersaccount",
-          "content": "Meld u aan om de ingebouwde vertaalservice van Sokuji te gebruiken, of kies een andere provider en voer uw eigen API-sleutel in."
-        },
         "languages": {
           "title": "Stap 3: Talen Kiezen",
           "content": "Selecteer 'Mijn taal' (wat u spreekt) en 'Taal van de ander' (wat de ander zal horen)."
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "Stap 4: Vertaalprovider",
-          "content": "Kies uw vertaalprovider. Sokuji ondersteunt clouddiensten zoals OpenAI, Gemini, Volcengine (Doubao) en meer. U kunt ook lokale inferentie gebruiken — geen API-sleutel nodig, gratis en privacygericht, download eenvoudig modellen voor volledig offline vertaling."
+          "content": "Kies uw vertaalprovider. Sokuji heeft een eigen ingebouwde service — meld u aan via de accountknop in de titelbalk om die te gebruiken. Daarnaast worden clouddiensten zoals OpenAI, Gemini, Volcengine (Doubao) en meer ondersteund, waarbij u uw eigen API-sleutel gebruikt. U kunt ook lokale inferentie gebruiken — geen API-sleutel nodig, gratis en privacygericht, download eenvoudig modellen voor volledig offline vertaling."
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "Druk op Spatie om te spreken"
   },
   "titleBar": {
+    "account": {
+      "label": "Account",
+      "lowBalance": "Account — saldo te laag om een sessie te starten",
+      "unverified": "Account — e-mail niet geverifieerd"
+    },
     "minimize": "Minimaliseren",
     "maximize": "Maximaliseren",
     "close": "Sluiten"

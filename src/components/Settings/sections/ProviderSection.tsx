@@ -6,7 +6,7 @@ import { PoweredBy } from './PoweredBy';
 import { asSonioxRegion } from '../../../lib/soniox/regions';
 import { sonioxKeyField } from '../../../services/providers/SonioxProviderConfig';
 import { directionKey, type Stage, type DirectionResult } from '../../../lib/local-inference/selection/types';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
   useProvider,
@@ -34,6 +34,7 @@ import {
   useUIMode,
   useNavigateToSettings,
   useSetEngineSlotTarget,
+  useSetAccountPopoverRequested,
   useLocalInferenceSettings,
   useLocalNativeSettings,
   useSettingsStore,
@@ -140,6 +141,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const isSimpleMode = uiMode === 'basic';
   const navigateToSettings = useNavigateToSettings();
   const setEngineSlotTarget = useSetEngineSlotTarget();
+  const setAccountPopoverRequested = useSetAccountPopoverRequested();
 
   // Local inference model info
   const localInferenceSettings = useLocalInferenceSettings();
@@ -524,7 +526,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     const getAuthToken = isKizunaManagedProvider(provider) && isSignedIn && getToken ?
       () => getToken() : undefined;
 
-    const result = await validateApiKey(getAuthToken);
+    const result = await validateApiKey(getAuthToken, isSignedIn);
 
     trackEvent('api_key_validated', {
       provider: provider,
@@ -949,7 +951,10 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           ) : kizunaKeyError ? (
             <div className="api-key-warning">
               <AlertCircle size={16} className="warning-icon" />
-              <span>{kizunaKeyError}</span>
+              {/* kizunaKeyError is a translation key ('auth.*'), not prose —
+                  the store logs the engineering detail and keeps the UI
+                  translatable. */}
+              <span>{t(kizunaKeyError)}</span>
             </div>
           ) : (
             <div className="api-key-info">
@@ -960,7 +965,25 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         ) : (
           <div className="api-key-warning">
             <AlertCircle size={16} className="warning-icon" />
-            <span>{t('common.signInRequired', 'Please sign in to use Kizuna AI as your provider')}</span>
+            <span>
+              {/* An entry point rather than a statement: the sentence used to
+                  name a restriction with nothing to act on. Clicking opens the
+                  title-bar account popover instead of navigating, so the
+                  sign-in affordance lives in exactly one place and the click
+                  itself shows where the account entry is. */}
+              <Trans
+                i18nKey="common.signInRequired"
+                components={{
+                  signInLink: (
+                    <button
+                      type="button"
+                      className="sign-in-link"
+                      onClick={() => setAccountPopoverRequested(true)}
+                    />
+                  ),
+                }}
+              />
+            </span>
           </div>
         )
       )}

@@ -16,7 +16,6 @@ import { Provider } from '../../../types/Provider';
 import WarningModal from '../shared/WarningModal';
 import { WarningType } from '../shared/hooks';
 import {
-  AccountSection,
   ProviderSection,
   LanguageSection,
   AudioDeviceSection,
@@ -112,9 +111,6 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
       >
         {activeTab === 'general' && (
           <>
-            {/* User Account Section */}
-            <AccountSection />
-
             {/* Interface Language - full list */}
             <LanguageSection
               isSessionActive={isSessionActive}

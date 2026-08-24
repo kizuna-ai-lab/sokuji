@@ -20,7 +20,6 @@ const TARGET_NAVIGATION_MAP: Record<string, string | 'close-settings'> = {
   // Mode picker lives in the footer — keep settings closed so it's visible.
   '.mode-picker': 'close-settings',
   // Basic mode (ID selectors)
-  '#user-account-section': 'user-account',
   '#provider-section': 'provider',
   '#languages-section': 'languages',
   '#microphone-section': 'microphone',

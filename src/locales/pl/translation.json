@@ -11,10 +11,11 @@
     "autoDetect": "Automatyczne Wykrywanie",
     "signIn": "Zaloguj się",
     "signUp": "Zarejestruj się",
-    "signInRequired": "Zaloguj się, aby używać Kizuna AI jako dostawcy",
+    "signInRequired": "<signInLink>Zaloguj się lub zarejestruj</signInLink>, aby używać Kizuna AI — bez klucza API.",
     "dismiss": "Odrzuć",
     "none": "Brak",
-    "retry": "Ponów"
+    "retry": "Ponów",
+    "topUp": "Doładuj"
   },
   "settings": {
     "title": "Ustawienia",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "Nie udało się wysłać e-maila weryfikacyjnego. Spróbuj ponownie",
     "alreadyVerified": "Twój e-mail jest już zweryfikowany!",
     "cooldownMessage": "Poczekaj {{seconds}} sekund",
-    "checkYourEmail": "E-mail weryfikacyjny wysłany. Sprawdź swoją skrzynkę odbiorczą.",
+    "checkYourEmail": "E-mail weryfikacyjny wysłany. Dokończ weryfikację w swojej skrzynce odbiorczej i wróć — Sokuji wykryje to automatycznie.",
+    "emailVerifiedToast": "E-mail zweryfikowany",
     "forgotPassword": "Zapomniałeś hasła?",
     "resetPassword": "Zresetuj hasło",
     "enterEmailForReset": "Wprowadź swój adres e-mail, a wyślemy Ci kod weryfikacyjny do zresetowania hasła.",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "Hasło zresetowane pomyślnie! Możesz teraz zalogować się nowym hasłem.",
     "backToSignIn": "Powrót do logowania",
     "forgotPasswordError": "Nie udało się wysłać kodu weryfikacyjnego. Spróbuj ponownie.",
-    "resetPasswordError": "Nie udało się zresetować hasła. Spróbuj ponownie."
+    "resetPasswordError": "Nie udało się zresetować hasła. Spróbuj ponownie.",
+    "signedOut": "Zaloguj się, aby korzystać z wbudowanej usługi tłumaczenia Kizuna AI.",
+    "sessionUnavailable": "Twoja sesja nie jest już ważna. Zaloguj się ponownie.",
+    "unknown": "Nie udało się zweryfikować Twojego konta. Spróbuj ponownie."
   },
   "simpleConfig": {
     "interfaceLanguage": "Język Interfejsu",
@@ -406,7 +411,7 @@
     "yourLanguage": "Mój język",
     "userAccount": "Konto Użytkownika",
     "userAccountTooltip": "Użytkownicy techniczni mogą używać własnych kluczy API. Konto Użytkownika jest zaprojektowane dla uproszczonej konfiguracji.",
-    "signInRequired": "Możesz użyć własnego klucza API lub zarejestrować się w usłudze kizuna.ai.",
+    "signInRequired": "Zarejestruj się, aby korzystać z wbudowanej usługi tłumaczenia Sokuji — bez klucza API. Możesz też nadal używać własnego dostawcy i klucza.",
     "targetLanguage": "Język rozmówcy",
     "microphone": "Mikrofon",
     "microphoneDesc": "Wybierz mikrofon do przechwytywania swojej mowy. Mów w swoim języku do tego mikrofonu, a Sokuji będzie tłumaczyć wszystko co usłyszy w czasie rzeczywistym.",
@@ -687,10 +692,6 @@
           "title": "Krok 1: Otwórz Ustawienia",
           "content": "Kliknij tutaj, aby otworzyć Ustawienia, gdzie możesz skonfigurować swoje języki i urządzenia audio."
         },
-        "account": {
-          "title": "Krok 2: Konto Użytkownika",
-          "content": "Zaloguj się, aby korzystać z wbudowanej usługi tłumaczenia Sokuji, lub wybierz innego dostawcę i wprowadź własny klucz API."
-        },
         "languages": {
           "title": "Krok 3: Wybierz Języki",
           "content": "Wybierz „Mój język” (którym mówisz) i „Język rozmówcy” (który usłyszy rozmówca)."
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "Krok 4: Dostawca Tłumaczenia",
-          "content": "Wybierz dostawcę tłumaczenia. Sokuji obsługuje usługi chmurowe: OpenAI, Gemini, Volcengine (Doubao) i więcej. Możesz także użyć lokalnego wnioskowania — bez klucza API, za darmo i z dbałością o prywatność, wystarczy pobrać modele do tłumaczenia w pełni offline."
+          "content": "Wybierz dostawcę tłumaczenia. Sokuji ma własną wbudowaną usługę — zaloguj się przyciskiem konta na pasku tytułu, aby z niej skorzystać. Obsługuje też usługi chmurowe: OpenAI, Gemini, Volcengine (Doubao) i więcej, w których używasz własnego klucza API. Możesz także użyć lokalnego wnioskowania — bez klucza API, za darmo i z dbałością o prywatność, wystarczy pobrać modele do tłumaczenia w pełni offline."
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "Naciśnij spację, aby mówić"
   },
   "titleBar": {
+    "account": {
+      "label": "Konto",
+      "lowBalance": "Konto — saldo zbyt niskie, aby rozpocząć sesję",
+      "unverified": "Konto — e-mail niezweryfikowany"
+    },
     "minimize": "Minimalizuj",
     "maximize": "Maksymalizuj",
     "close": "Zamknij"

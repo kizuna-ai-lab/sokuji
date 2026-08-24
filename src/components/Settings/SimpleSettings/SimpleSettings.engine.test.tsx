@@ -39,7 +39,6 @@ vi.mock('../../../services/ServiceFactory', () => ({
 // is stubbed to a recognizable marker so "back returns to the normal list"
 // has something concrete to assert on.
 vi.mock('../sections', () => ({
-  AccountSection: () => <div data-testid="account-section" />,
   ProviderSection: () => <div data-testid="provider-section" />,
   LanguageSection: () => <div data-testid="language-section" />,
   AudioDeviceSection: () => <div data-testid="audio-device-section" />,
@@ -102,11 +101,11 @@ describe('SimpleSettings — engine host (Task 9)', () => {
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
     render(<SimpleSettings />);
-    expect(screen.queryByTestId('account-section')).toBeNull();
+    expect(screen.queryByTestId('provider-section')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Models' }));
 
-    expect(screen.getByTestId('account-section')).not.toBeNull();
+    expect(screen.getByTestId('provider-section')).not.toBeNull();
   });
 
   it('a non-local provider ignores a set engineSlotTarget: the normal list renders, and the signal is still cleared', () => {
@@ -115,7 +114,7 @@ describe('SimpleSettings — engine host (Task 9)', () => {
 
     render(<SimpleSettings />);
 
-    expect(screen.getByTestId('account-section')).not.toBeNull();
+    expect(screen.getByTestId('provider-section')).not.toBeNull();
     // Cleared rather than left stale — a later switch to a local provider
     // must not suddenly pop the engine surface from this old target.
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();

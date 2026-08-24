@@ -11,10 +11,11 @@
     "autoDetect": "Awtomatikong Detekta",
     "signIn": "Mag-sign In",
     "signUp": "Mag-sign Up",
-    "signInRequired": "Mag-sign in para gamitin ang Kizuna AI bilang inyong provider",
+    "signInRequired": "<signInLink>Mag-sign in o mag-sign up</signInLink> para gamitin ang Kizuna AI — hindi kailangan ng API key.",
     "dismiss": "I-dismiss",
     "none": "Wala",
-    "retry": "Subukang muli"
+    "retry": "Subukang muli",
+    "topUp": "Mag-top up"
   },
   "settings": {
     "title": "Mga Setting",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "Hindi naipadala ang verification email. Pakisubukang muli",
     "alreadyVerified": "Na-verify na ang iyong email!",
     "cooldownMessage": "Pakihintay ng {{seconds}} segundo",
-    "checkYourEmail": "Naipadala na ang verification email. Pakisuri ang iyong inbox.",
+    "checkYourEmail": "Naipadala na ang verification email. Kumpletuhin ang pag-verify sa iyong inbox at bumalik — awtomatikong malalaman ni Sokuji kapag nakumpirma na ito.",
+    "emailVerifiedToast": "Na-verify na ang email",
     "forgotPassword": "Nakalimutan ang Password?",
     "resetPassword": "I-reset ang Password",
     "enterEmailForReset": "Ilagay ang iyong email address at padadalhan ka namin ng verification code para i-reset ang iyong password.",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "Matagumpay na na-reset ang password! Maaari ka nang mag-sign in gamit ang bagong password mo.",
     "backToSignIn": "Bumalik sa Pag-sign In",
     "forgotPasswordError": "Hindi naipadala ang verification code. Pakisubukang muli.",
-    "resetPasswordError": "Hindi na-reset ang password. Pakisubukang muli."
+    "resetPasswordError": "Hindi na-reset ang password. Pakisubukang muli.",
+    "signedOut": "Mag-sign in para gamitin ang built-in na serbisyo ng pagsasalin ng Kizuna AI.",
+    "sessionUnavailable": "Hindi na wasto ang iyong session. Mangyaring mag-sign in muli.",
+    "unknown": "Hindi ma-verify ang iyong account. Subukang muli."
   },
   "simpleConfig": {
     "interfaceLanguage": "Wika ng Interface",
@@ -406,7 +411,7 @@
     "yourLanguage": "Aking wika",
     "userAccount": "Account ng User",
     "userAccountTooltip": "Ang mga technical na user ay pwedeng gumamit ng sarili nilang API keys. Ang User Account ay ginawa para sa simplified na setup.",
-    "signInRequired": "Pwede ninyong gamitin ang sarili ninyong API key o mag-sign up sa kizuna.ai na serbisyo.",
+    "signInRequired": "Mag-sign up para gamitin ang built-in na serbisyo ng pagsasalin ng Sokuji — hindi kailangan ng API key. Maaari mo ring ipagpatuloy ang paggamit ng sarili mong provider at key.",
     "targetLanguage": "Wika ng kausap",
     "microphone": "Microphone",
     "microphoneDesc": "Piliin ang microphone para ma-capture ang inyong pagsasalita. Magsalita sa inyong wika sa microphone na ito, at i-translate ng Sokuji ang lahat ng maririnig niya nang real-time.",
@@ -687,10 +692,6 @@
           "title": "Hakbang 1: Buksan ang Mga Setting",
           "content": "I-click dito para buksan ang Mga Setting kung saan mo mai-configure ang iyong mga wika at audio device."
         },
-        "account": {
-          "title": "Hakbang 2: Account ng User",
-          "content": "Mag-sign in para gamitin ang built-in na serbisyo ng pagsasalin ng Sokuji, o pumili ng ibang provider at ilagay ang iyong sariling API key."
-        },
         "languages": {
           "title": "Hakbang 3: Pumili ng mga Wika",
           "content": "Piliin ang \"Aking wika\" (ang wika na sinasalita ninyo) at \"Wika ng kausap\" (ang maririnig ng kausap)."
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "Hakbang 4: Translation Provider",
-          "content": "Piliin ang iyong translation provider. Sinusuportahan ng Sokuji ang mga cloud service tulad ng OpenAI, Gemini, Volcengine (Doubao), at iba pa. Maaari ka ring gumamit ng Local Inference — hindi kailangan ng API key, libre at nakatuon sa privacy, mag-download lang ng mga model para sa ganap na offline na pagsasalin."
+          "content": "Piliin ang iyong translation provider. May sariling built-in na serbisyo ang Sokuji — mag-sign in mula sa account button sa title bar para gamitin ito. Sinusuportahan din nito ang mga cloud service tulad ng OpenAI, Gemini, Volcengine (Doubao), at iba pa, kung saan ikaw ang nagdadala ng sarili mong API key. Maaari ka ring gumamit ng Local Inference — hindi kailangan ng API key, libre at nakatuon sa privacy, mag-download lang ng mga model para sa ganap na offline na pagsasalin."
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "Pindutin ang Space upang magsalita"
   },
   "titleBar": {
+    "account": {
+      "label": "Account",
+      "lowBalance": "Account — masyadong mababa ang balanse para magsimula ng session",
+      "unverified": "Account — hindi pa na-verify ang email"
+    },
     "minimize": "I-minimize",
     "maximize": "I-maximize",
     "close": "Isara"

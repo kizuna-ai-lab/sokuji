@@ -11,10 +11,11 @@
     "autoDetect": "Rilevamento Automatico",
     "signIn": "Accedi",
     "signUp": "Registrati",
-    "signInRequired": "Si prega di accedere per utilizzare Kizuna AI come fornitore",
+    "signInRequired": "<signInLink>Accedi o registrati</signInLink> per utilizzare Kizuna AI — nessuna chiave API necessaria.",
     "dismiss": "Ignora",
     "none": "Nessuno",
-    "retry": "Riprova"
+    "retry": "Riprova",
+    "topUp": "Ricarica"
   },
   "settings": {
     "title": "Impostazioni",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "Impossibile inviare l'email di verifica. Riprova",
     "alreadyVerified": "La tua email è già verificata!",
     "cooldownMessage": "Attendi {{seconds}} secondi",
-    "checkYourEmail": "Email di verifica inviata. Controlla la tua casella di posta.",
+    "checkYourEmail": "Email di verifica inviata. Completala dalla tua casella di posta e torna qui — Sokuji la rileva automaticamente.",
+    "emailVerifiedToast": "Email verificata",
     "forgotPassword": "Password dimenticata?",
     "resetPassword": "Reimposta password",
     "enterEmailForReset": "Inserisci il tuo indirizzo email e ti invieremo un codice di verifica per reimpostare la password.",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "Password reimpostata con successo! Ora puoi accedere con la tua nuova password.",
     "backToSignIn": "Torna all'accesso",
     "forgotPasswordError": "Impossibile inviare il codice di verifica. Riprova.",
-    "resetPasswordError": "Impossibile reimpostare la password. Riprova."
+    "resetPasswordError": "Impossibile reimpostare la password. Riprova.",
+    "signedOut": "Accedi per utilizzare il servizio di traduzione integrato di Kizuna AI.",
+    "sessionUnavailable": "La tua sessione non è più valida. Accedi di nuovo.",
+    "unknown": "Impossibile verificare il tuo account. Riprova."
   },
   "simpleConfig": {
     "interfaceLanguage": "Lingua dell'Interfaccia",
@@ -406,7 +411,7 @@
     "yourLanguage": "La mia lingua",
     "userAccount": "Account Utente",
     "userAccountTooltip": "Per gli utenti con conoscenze tecniche e le proprie chiavi API, potete utilizzare la vostra chiave API sia che siate collegati o meno. L'Account Utente è progettato per i nuovi utenti che preferiscono una configurazione semplificata senza configurazioni complesse.",
-    "signInRequired": "Potete utilizzare il vostro fornitore di AI e la chiave API senza accedere, oppure registrarvi per acquistare e utilizzare il servizio API di kizuna.ai.",
+    "signInRequired": "Registrati per utilizzare il servizio di traduzione integrato di Sokuji — nessuna chiave API necessaria. Puoi anche continuare a usare il tuo fornitore e la tua chiave.",
     "targetLanguage": "Lingua dell'altro",
     "microphone": "Microfono",
     "microphoneDesc": "Seleziona il microfono per catturare il tuo parlato. Parla nella tua lingua in questo microfono, e Sokuji tradurrà tutto ciò che sente in tempo reale.",
@@ -687,10 +692,6 @@
           "title": "Passaggio 1: Apri le Impostazioni",
           "content": "Fai clic qui per aprire le Impostazioni, dove puoi configurare le lingue e i dispositivi audio."
         },
-        "account": {
-          "title": "Passaggio 2: Account Utente",
-          "content": "Accedi per utilizzare il servizio di traduzione integrato di Sokuji, oppure scegli un altro provider e inserisci la tua chiave API."
-        },
         "languages": {
           "title": "Passaggio 3: Scegli le Lingue",
           "content": "Seleziona «La mia lingua» (quella che parli) e «Lingua dell'altro» (quella che l'altro sentirà)."
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "Passaggio 4: Provider di Traduzione",
-          "content": "Scegli il tuo provider di traduzione. Sokuji supporta servizi cloud come OpenAI, Gemini, Volcengine (Doubao) e altro. Puoi anche usare l'inferenza locale — nessuna chiave API necessaria, gratuito e orientato alla privacy, scarica semplicemente i modelli per la traduzione completamente offline."
+          "content": "Scegli il tuo provider di traduzione. Sokuji ha un proprio servizio integrato — accedi dal pulsante dell'account nella barra del titolo per usarlo. Supporta anche servizi cloud come OpenAI, Gemini, Volcengine (Doubao) e altro, dove usi la tua chiave API. Puoi anche usare l'inferenza locale — nessuna chiave API necessaria, gratuito e orientato alla privacy, scarica semplicemente i modelli per la traduzione completamente offline."
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "Premi Spazio per parlare"
   },
   "titleBar": {
+    "account": {
+      "label": "Account",
+      "lowBalance": "Account — saldo insufficiente per avviare una sessione",
+      "unverified": "Account — email non verificata"
+    },
     "minimize": "Riduci a icona",
     "maximize": "Ingrandisci",
     "close": "Chiudi"

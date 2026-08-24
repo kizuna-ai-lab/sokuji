@@ -11,10 +11,11 @@
     "autoDetect": "Otomatik Algılama",
     "signIn": "Giriş Yap",
     "signUp": "Kayıt Ol",
-    "signInRequired": "Sağlayıcı olarak Kizuna AI kullanmak için lütfen giriş yapın",
+    "signInRequired": "<signInLink>Giriş yapın veya kayıt olun</signInLink> — API anahtarı olmadan Kizuna AI kullanın.",
     "dismiss": "Kapat",
     "none": "Yok",
-    "retry": "Yeniden dene"
+    "retry": "Yeniden dene",
+    "topUp": "Bakiye yükle"
   },
   "settings": {
     "title": "Ayarlar",
@@ -379,7 +380,8 @@
     "verificationEmailFailed": "Doğrulama e-postası gönderilemedi. Lütfen tekrar deneyin",
     "alreadyVerified": "E-postanız zaten doğrulandı!",
     "cooldownMessage": "Lütfen {{seconds}} saniye bekleyin",
-    "checkYourEmail": "Doğrulama e-postası gönderildi. Lütfen gelen kutunuzu kontrol edin.",
+    "checkYourEmail": "Doğrulama e-postası gönderildi. Gelen kutunuzdan doğrulamayı tamamlayıp geri dönün — Sokuji bunu otomatik olarak algılar.",
+    "emailVerifiedToast": "E-posta doğrulandı",
     "forgotPassword": "Şifrenizi mi unuttunuz?",
     "resetPassword": "Şifreyi Sıfırla",
     "enterEmailForReset": "E-posta adresinizi girin ve şifrenizi sıfırlamak için size bir doğrulama kodu göndereceğiz.",
@@ -396,7 +398,10 @@
     "passwordResetSuccess": "Şifre başarıyla sıfırlandı! Artık yeni şifrenizle giriş yapabilirsiniz.",
     "backToSignIn": "Giriş Yap'a Dön",
     "forgotPasswordError": "Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.",
-    "resetPasswordError": "Şifre sıfırlanamadı. Lütfen tekrar deneyin."
+    "resetPasswordError": "Şifre sıfırlanamadı. Lütfen tekrar deneyin.",
+    "signedOut": "Kizuna AI'nin yerleşik çeviri hizmetini kullanmak için giriş yapın.",
+    "sessionUnavailable": "Oturumunuz artık geçerli değil. Lütfen tekrar giriş yapın.",
+    "unknown": "Hesabınız doğrulanamadı. Lütfen tekrar deneyin."
   },
   "simpleConfig": {
     "interfaceLanguage": "Arayüz Dili",
@@ -406,7 +411,7 @@
     "yourLanguage": "Benim dilim",
     "userAccount": "Kullanıcı Hesabı",
     "userAccountTooltip": "Teknik kullanıcılar kendi API anahtarlarını kullanabilir. Kullanıcı hesabı basitleştirilmiş kurulum için tasarlanmıştır.",
-    "signInRequired": "Kendi API anahtarınızı kullanın veya kizuna.ai hizmeti için kaydolun.",
+    "signInRequired": "Sokuji'nin yerleşik çeviri hizmetini kullanmak için kayıt olun — API anahtarı gerekmez. Dilerseniz kendi sağlayıcınızı ve anahtarınızı kullanmaya devam edebilirsiniz.",
     "targetLanguage": "Karşı tarafın dili",
     "microphone": "Mikrofon",
     "microphoneDesc": "Konuşmanızı yakalamak için mikrofonu seçin. Bu mikrofona dilinizle konuşun, Sokuji duyduğu her şeyi gerçek zamanda çevirecektir.",
@@ -687,10 +692,6 @@
           "title": "Adım 1: Ayarları Açın",
           "content": "Dillerinizi ve ses cihazlarınızı yapılandırabileceğiniz Ayarlar'ı açmak için buraya tıklayın."
         },
-        "account": {
-          "title": "Adım 2: Kullanıcı Hesabı",
-          "content": "Sokuji'nin yerleşik çeviri hizmetini kullanmak için giriş yapın veya başka bir sağlayıcı seçip kendi API anahtarınızı girin."
-        },
         "languages": {
           "title": "Adım 3: Dilleri Seçin",
           "content": "\"Benim dilim\" (konuştuğunuz dil) ve \"Karşı tarafın dili\" (karşı tarafın duyacağı dil) seçeneklerini belirleyin."
@@ -717,7 +718,7 @@
         },
         "provider": {
           "title": "Adım 4: Çeviri Sağlayıcı",
-          "content": "Çeviri sağlayıcınızı seçin. Sokuji OpenAI, Gemini, Volcengine (Doubao) gibi bulut hizmetlerini destekler. Yerel çıkarımı da kullanabilirsiniz — API anahtarı gerekmez, ücretsiz ve gizlilik odaklı, modelleri indirerek tamamen çevrimdışı çeviri yapabilirsiniz."
+          "content": "Çeviri sağlayıcınızı seçin. Sokuji'nin kendi yerleşik hizmeti vardır — kullanmak için başlık çubuğundaki hesap düğmesinden giriş yapın. Ayrıca OpenAI, Gemini, Volcengine (Doubao) gibi bulut hizmetlerini de destekler; bunlarda kendi API anahtarınızı kullanırsınız. Yerel çıkarımı da kullanabilirsiniz — API anahtarı gerekmez, ücretsiz ve gizlilik odaklı, modelleri indirerek tamamen çevrimdışı çeviri yapabilirsiniz."
         }
       }
     },
@@ -994,6 +995,11 @@
     "pttHint": "Konuşmak için Boşluk tuşuna basın"
   },
   "titleBar": {
+    "account": {
+      "label": "Hesap",
+      "lowBalance": "Hesap — oturum başlatmak için bakiye çok düşük",
+      "unverified": "Hesap — e-posta doğrulanmadı"
+    },
     "minimize": "Küçült",
     "maximize": "Büyüt",
     "close": "Kapat"

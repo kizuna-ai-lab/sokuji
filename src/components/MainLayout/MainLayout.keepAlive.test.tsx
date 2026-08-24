@@ -43,7 +43,11 @@ vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false }) 
 vi.mock('../../contexts/OnboardingContext', () => ({
   useOnboarding: () => ({ userTypeSelected: true, setUserType: vi.fn() }),
 }));
-vi.mock('../../utils/environment', () => ({
+// Spread the real module rather than enumerating exports: MainLayout pulls in
+// ProviderConfigFactory, whose static initializer reads every feature flag, so
+// a hand-listed mock goes stale the moment a new provider flag is added.
+vi.mock('../../utils/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/environment')>()),
   isElectron: () => false,
   isKizunaAIEnabled: () => false,
 }));

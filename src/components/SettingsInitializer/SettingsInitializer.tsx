@@ -94,7 +94,7 @@ export function SettingsInitializer() {
           isValidatingRef.current = true;
           console.log('[SettingsInitializer] KizunaAI API key obtained, validating...');
           try {
-            await validateApiKey(getToken);
+            await validateApiKey(getToken, isSignedIn);
           } finally {
             isValidatingRef.current = false;
           }
@@ -104,10 +104,15 @@ export function SettingsInitializer() {
         // Re-run validation so the store clears isApiKeyValid/availableModels;
         // otherwise a stale signed-in validity would keep Start enabled until a
         // later connect attempt fails with an empty session token.
+        //
+        // `isSignedIn` has to travel with the token getter: getToken is always
+        // a function here (it just resolves to null when signed out), so the
+        // store cannot infer this branch's meaning from the argument alone —
+        // and this branch exists precisely FOR the signed-out case.
         isValidatingRef.current = true;
         console.log('[SettingsInitializer] KizunaAI provider selected without auth, clearing validity...');
         try {
-          await validateApiKey(getToken);
+          await validateApiKey(getToken, isSignedIn);
         } finally {
           isValidatingRef.current = false;
         }

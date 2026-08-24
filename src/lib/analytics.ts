@@ -288,6 +288,7 @@ export interface AnalyticsEvents {
   'user_profile_loaded': { has_subscription: boolean; email_verified: boolean };
   'user_profile_refresh_clicked': Record<string, never>;
   'account_management_clicked': Record<string, never>;
+  'top_up_clicked': Record<string, never>;
   'subscription_management_clicked': Record<string, never>;
 
   // Navigation events
