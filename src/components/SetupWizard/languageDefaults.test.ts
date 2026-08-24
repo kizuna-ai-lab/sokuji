@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { matchLanguage, defaultLanguagePair } from './languageDefaults';
+import { LANGUAGE_PRIORITY } from '../../utils/languages';
 
 const opt = (value: string) => ({ value, name: value, englishName: value });
 const L = ['en', 'zh_CN', 'ja-JP', 'es'].map(opt);
@@ -38,9 +39,25 @@ describe('defaultLanguagePair (spec §1.2 step 4)', () => {
   it('never defaults to translating a language into itself', () => {
     // English UI, English-first provider default: source and target both want
     // to be English, and the old fallback chain happily returned en -> en.
-    const S = ['en', 'ja-JP', 'es'].map(opt);
+    // Only one non-English candidate: this case is about avoiding en -> en,
+    // not about which of several candidates the priority list would pick
+    // (that is exercised separately below).
+    const S = ['en', 'ja-JP'].map(opt);
     expect(defaultLanguagePair({ sources: S, targetsFor: () => S, uiLanguage: 'en', providerDefault: { source: 'auto', target: 'en' } }))
       .toEqual({ source: 'en', target: 'ja-JP' });
+  });
+
+  it('picks the non-source fallback by LANGUAGE_PRIORITY, not by list order (spec residual R2)', () => {
+    // Alphabetical-ish list with Afrikaans first — the old list-order .find()
+    // picked 'af' for an English UI on an English-defaulting provider.
+    const sources = ['en', 'af', 'zh_CN', 'ja-JP'].map(opt);
+    const targets = ['af', 'en', 'zh_CN', 'ja-JP'].map(opt);
+    const result = defaultLanguagePair({
+      sources, targetsFor: () => targets, uiLanguage: 'en', providerDefault: { source: 'auto', target: 'en' },
+    });
+    const expected = LANGUAGE_PRIORITY.indexOf('zh') < LANGUAGE_PRIORITY.indexOf('ja') ? 'zh_CN' : 'ja-JP';
+    expect(result).toEqual({ source: 'en', target: expected });
+    expect(result.target).not.toBe('af');
   });
 
   it('keeps the coinciding target when the list offers no other language', () => {
