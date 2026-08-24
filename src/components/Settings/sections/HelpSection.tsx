@@ -30,8 +30,10 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
   // on focus also keeps the tooltip out of the way of keyboard users.
   const [pickerFocused, setPickerFocused] = useState(false);
 
-  // Serial number of the newest language request; see the change handler.
-  const languageRequestRef = useRef(0);
+  // The language the user last asked for, and the chain the requests run on.
+  // See the change handler for why serialising is what this needs.
+  const wantedLanguageRef = useRef<string | null>(null);
+  const languageChainRef = useRef<Promise<void>>(Promise.resolve());
 
   const openExternalUrl = (url: string) => {
     if (isElectron() && (window as any).electron?.invoke) {
@@ -107,39 +109,71 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
             disabled={isSessionActive}
             onFocus={() => setPickerFocused(true)}
             onBlur={() => setPickerFocused(false)}
-            onChange={async (e) => {
+            onChange={(e) => {
               const oldLanguage = i18n.language;
               const newLanguage = e.target.value;
+              wantedLanguageRef.current = newLanguage;
 
               // A <select> fires change on every arrow-key step, so holding a
-              // direction walks the list and starts one catalogue load per
-              // language passed. Each is independently async, so an earlier
-              // one can finish last and leave the app speaking a language the
-              // user only scrolled through. Only the newest request may write.
-              const request = ++languageRequestRef.current;
+              // direction walks the list and starts one request per language
+              // passed. Checking only before the WRITES would be too late:
+              // changeLanguageWithLoad calls i18n.changeLanguage() itself, so
+              // a stale request allowed to run changes the visible language on
+              // its way to being discarded — leaving the app showing one
+              // language and having saved another.
+              //
+              // So the requests are serialised on a chain, and each asks
+              // whether it is still wanted before doing anything at all. A
+              // language the user scrolled past is never loaded.
+              languageChainRef.current = languageChainRef.current.then(async () => {
+                if (wantedLanguageRef.current !== newLanguage) return;
 
-              try {
-                await changeLanguageWithLoad(newLanguage);
-                if (request !== languageRequestRef.current) return;
+                // Split deliberately: these two failures need opposite
+                // treatment, and one catch around both would have to guess.
+                // TODO(#441): both console lines belong in logStore once the
+                // repo-wide logging convention lands.
+                try {
+                  await changeLanguageWithLoad(newLanguage);
+                } catch (err) {
+                  // The catalogue never loaded, so i18n never switched. There
+                  // is nothing to undo, and trying to "restore" would kick off
+                  // another load for a language that was never left.
+                  console.error('[HelpSection] Could not load the interface language:', err);
+                  return;
+                }
 
-                // Awaited: this writes through the settings service, and
-                // unawaited a failure became an unhandled rejection while the
-                // event below reported a change that was never saved.
-                await setUILanguage(newLanguage);
-                if (request !== languageRequestRef.current) return;
+                try {
+                  // Awaited: this writes through the settings service, and
+                  // unawaited a failure became an unhandled rejection while
+                  // the event below reported a change that was never saved.
+                  await setUILanguage(newLanguage);
+                } catch (err) {
+                  // Here the visible language HAS changed, and the store
+                  // applied its value before awaiting the service — so the app
+                  // is wearing a language it could not save. Put it back,
+                  // unless the user has since asked for something else and a
+                  // later link in the chain is about to set it anyway.
+                  console.error('[HelpSection] Could not save the interface language:', err);
+                  if (wantedLanguageRef.current === newLanguage) {
+                    wantedLanguageRef.current = oldLanguage;
+                    try {
+                      await changeLanguageWithLoad(oldLanguage);
+                      await setUILanguage(oldLanguage);
+                    } catch {
+                      // Best effort: the service is evidently unwell. The
+                      // store's value is restored regardless, since it is
+                      // applied before the write that rejects.
+                    }
+                  }
+                  return;
+                }
 
                 trackEvent('language_changed', {
                   from_language: oldLanguage,
                   to_language: newLanguage,
                   language_type: 'ui',
                 });
-              } catch (err) {
-                // The catalogue or the settings service failed. The language
-                // is left as it was and nothing is reported as changed.
-                // TODO(#441): route this through logStore once the repo-wide
-                // logging convention lands, so the user can see it in Logs.
-                console.error('[HelpSection] Could not change the interface language:', err);
-              }
+              });
             }}
           >
             {INTERFACE_LANGUAGES.map((lang) => (

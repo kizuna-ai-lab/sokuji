@@ -134,7 +134,8 @@ describe('interface language in Help', () => {
   it('applies a chosen language and remembers it', async () => {
     render(<HelpSection />);
     fireEvent.change(picker(), { target: { value: 'ja' } });
-    expect(changeLanguageWithLoad).toHaveBeenCalledWith('ja');
+    // The work runs on a serialising chain, so it lands a microtask later.
+    await vi.waitFor(() => expect(changeLanguageWithLoad).toHaveBeenCalledWith('ja'));
     // Loading the catalogue is not the same as persisting the preference;
     // without the store write the choice is lost on the next launch.
     await vi.waitFor(() => expect(setUILanguage).toHaveBeenCalledWith('ja'));
@@ -179,28 +180,51 @@ describe('interface language in Help', () => {
   });
 
   // A <select> fires change on every arrow-key step, so holding a direction
-  // walks the list and starts one catalogue load per language passed. Each is
-  // independently async: an earlier one finishing last would leave the app
-  // speaking a language the user only scrolled through.
-  it('ignores a language load that finishes after a newer one', async () => {
+  // walks the list and starts one request per language passed.
+  //
+  // Guarding only the writes is not enough, and this is the trap: the loader
+  // calls i18n.changeLanguage() ITSELF, before any check the caller could make
+  // afterwards. A stale request allowed to run would change the visible
+  // language back on its way to being discarded, leaving the app showing one
+  // language and having saved another. The requests are serialised instead,
+  // and each checks whether it is still wanted before doing anything at all.
+  it('never loads a language the user has already moved on from', async () => {
+    const started: string[] = [];
     const finish: Record<string, () => void> = {};
-    changeLanguageWithLoad.mockImplementation(
-      (lang: string) => new Promise<void>((res) => { finish[lang] = () => res(); }),
-    );
+    changeLanguageWithLoad.mockImplementation((lang: string) => {
+      started.push(lang);
+      return new Promise<void>((res) => { finish[lang] = () => res(); });
+    });
 
     render(<HelpSection />);
     fireEvent.change(picker(), { target: { value: 'ja' } });
     fireEvent.change(picker(), { target: { value: 'zh_CN' } });
 
-    // The newer choice lands first, then the older one straggles in.
-    finish['zh_CN']();
-    await vi.waitFor(() => expect(setUILanguage).toHaveBeenCalledWith('zh_CN'));
-    finish['ja']();
-
-    // Give the stale continuation a chance to misbehave before asserting.
+    // Whichever ran first, let it settle, then let everything drain.
     await new Promise((r) => setTimeout(r, 0));
+    Object.values(finish).forEach((f) => f());
+    await new Promise((r) => setTimeout(r, 0));
+    Object.values(finish).forEach((f) => f());
+    await new Promise((r) => setTimeout(r, 0));
+
+    // ja was superseded before it could run, so it must never have been loaded
+    // — a load is a visible language change, not just a write.
+    expect(started).not.toContain('ja');
     expect(setUILanguage).not.toHaveBeenCalledWith('ja');
-    expect(setUILanguage).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(setUILanguage).toHaveBeenCalledWith('zh_CN'));
+  });
+
+  // The loader has already changed the visible language by the time the write
+  // fails, and the store's own setter applies its value before awaiting the
+  // settings service. Left alone the app keeps a language it failed to save.
+  it('puts the language back when the write fails', async () => {
+    setUILanguage.mockRejectedValueOnce(new Error('disk full'));
+    render(<HelpSection />);
+    fireEvent.change(picker(), { target: { value: 'ja' } });
+
+    await vi.waitFor(() => expect(setUILanguage).toHaveBeenCalledWith('ja'));
+    // Rolled back to what it was before the attempt.
+    await vi.waitFor(() => expect(changeLanguageWithLoad).toHaveBeenLastCalledWith('en'));
   });
 
   // setUILanguage writes through the settings service. Left unawaited, a
