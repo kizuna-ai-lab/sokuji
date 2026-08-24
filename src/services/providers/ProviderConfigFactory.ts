@@ -140,17 +140,18 @@ export class ProviderConfigFactory {
    * @returns ProviderDescriptor instance
    */
   /**
-   * The Kizuna-managed provider to put a Basic-mode user on when they sign in,
-   * or null when this build offers none.
+   * The Kizuna-managed provider to put a Basic-mode user on when they sign
+   * in, or null when this build offers none.
    *
    * Derived from what is REGISTERED rather than from a feature flag. The
    * managed providers are gated independently, so `isKizunaAIEnabled()` no
    * longer implies any particular one exists — a caller that hardcoded the
    * Translate twin would set a provider `getDescriptor` then throws on.
    *
-   * The managed provider a fresh sign-in lands on. Soniox first: it is the
-   * only managed provider open in production, and the wallet page states its
-   * rates. The twins stay as fallbacks for builds that register them alone. */
+   * Soniox first: it is the only managed provider open in production, and
+   * the wallet page states its rates. The twins stay as fallbacks for
+   * builds that register them alone.
+   */
   static getDefaultManagedProvider(): ProviderType | null {
     const preferred = [
       Provider.KIZUNA_AI_SONIOX,

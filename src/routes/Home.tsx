@@ -20,7 +20,7 @@ export function Home() {
     initializeAudioService();
 
     console.info('[Home] Loading settings');
-    // Hydrate settingsStore, subtitleStore, and conversationDisplayStore in parallel from persisted storage.
+    // Hydrate settingsStore, subtitleStore, conversationDisplayStore, and setup in parallel from persisted storage.
     Promise.all([
       loadSettings(),
       useSubtitleStore.getState().hydrate(),
