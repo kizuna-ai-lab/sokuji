@@ -413,7 +413,9 @@
     border-radius: 5px;
     background: #10a37f;
     color: #fff;
-    font-size: 12.5px;
+    // Same size as the popover's signed-out buttons ($font-body). These are
+    // the same control at the same level, one shown per session state.
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
 
