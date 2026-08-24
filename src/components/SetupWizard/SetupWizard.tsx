@@ -1,0 +1,125 @@
+// src/components/SetupWizard/SetupWizard.tsx
+//
+// First-run setup (spec §1). Six steps over one draft; nothing is written until
+// Finish. `variant="first-run"` fills the window in place of MainLayout;
+// `variant="rerun"` is an overlay Help opens over the running app.
+import React, { useEffect, useReducer, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { X } from 'lucide-react';
+import { useAuth } from '../../lib/auth/hooks';
+import { useAnalytics } from '../../lib/analytics';
+import { useIsApiKeyValid, useProvider } from '../../stores/settingsStore';
+import { useSetupRecord } from '../../stores/setupStore';
+import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
+import type { ProviderType } from '../../types/Provider';
+import { initialDraft, draftFromRecord, setupReducer, canAdvance, LAST_STEP } from './setupDraft';
+import type { SetupDraft } from './setupDraft';
+import { useApplySetup } from './useApplySetup';
+import StepLanguage from './steps/StepLanguage';
+import StepScenario from './steps/StepScenario';
+import StepProviderPath from './steps/StepProviderPath';
+import StepCredentials from './steps/StepCredentials';
+import StepLanguagePair from './steps/StepLanguagePair';
+import StepFinish from './steps/StepFinish';
+import Button from '../Settings/shared/Button';
+import './SetupWizard.scss';
+
+const STEP_IDS = ['language', 'scenario', 'path', 'credentials', 'language-pair', 'finish'] as const;
+
+interface SetupWizardProps {
+  variant: 'first-run' | 'rerun';
+  onClose?: () => void;
+}
+
+const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
+  const { t } = useTranslation();
+  const { isSignedIn } = useAuth();
+  const { trackEvent } = useAnalytics();
+  const record = useSetupRecord();
+  const currentProvider = useProvider();
+  const apiKeyValid = useIsApiKeyValid();
+  const apply = useApplySetup();
+
+  const [draft, dispatch] = useReducer(setupReducer, undefined, (): SetupDraft =>
+    variant === 'rerun' && record && record.provider && ProviderConfigFactory.isProviderSupported(record.provider as ProviderType)
+      ? draftFromRecord({ ...record, provider: record.provider || currentProvider }, { credentialsAlreadyValid: apiKeyValid === true })
+      : initialDraft());
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
+
+  useEffect(() => { trackEvent('setup_started', { variant }); }, [trackEvent, variant]);
+  useEffect(() => { trackEvent('setup_step_viewed', { step: draft.step, step_id: STEP_IDS[draft.step] }); }, [draft.step, trackEvent]);
+
+  const advance = canAdvance(draft, { isSignedIn });
+
+  const finish = async () => {
+    setFinishing(true);
+    setFinishError(null);
+    try {
+      trackEvent('setup_completed', {
+        scenario: draft.scenario ?? '', provider_path: draft.providerPath ?? '', provider: draft.provider ?? '',
+        source_language: draft.sourceLanguage ?? '', target_language: draft.targetLanguage ?? '',
+        credentials_pending: draft.credentialsPending,
+      });
+      await apply(draft);
+      onClose?.();
+    } catch (err) {
+      console.error('[SetupWizard] Finish failed:', err);
+      setFinishError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setFinishing(false);
+    }
+  };
+
+  const close = () => {
+    trackEvent('setup_abandoned', { step: draft.step });
+    onClose?.();
+  };
+
+  return (
+    <div className={`setup-wizard setup-wizard--${variant}`} role="dialog" aria-labelledby="setup-wizard-title">
+      <div className="setup-wizard__card">
+        <header className="setup-wizard__header">
+          <h1 id="setup-wizard-title">{t('setup.title', 'Set up Sokuji')}</h1>
+          <span className="setup-wizard__progress" aria-live="polite">
+            {t('setup.stepOf', 'Step {{current}} of {{total}}', { current: draft.step + 1, total: LAST_STEP + 1 })}
+          </span>
+          {onClose && (
+            <button type="button" className="setup-wizard__close" onClick={close} aria-label={t('setup.close', 'Close')}>
+              <X size={16} />
+            </button>
+          )}
+        </header>
+
+        <main className="setup-wizard__body">
+          {draft.step === 0 && <StepLanguage />}
+          {draft.step === 1 && <StepScenario draft={draft} dispatch={dispatch} />}
+          {draft.step === 2 && <StepProviderPath draft={draft} dispatch={dispatch} />}
+          {draft.step === 3 && <StepCredentials draft={draft} dispatch={dispatch} />}
+          {draft.step === 4 && <StepLanguagePair draft={draft} dispatch={dispatch} />}
+          {draft.step === 5 && <StepFinish draft={draft} isSignedIn={isSignedIn} error={finishError} />}
+        </main>
+
+        <footer className="setup-wizard__footer">
+          {draft.step > 0 && (
+            <Button variant="secondary" onClick={() => dispatch({ type: 'back' })} disabled={finishing}>
+              {t('setup.back', 'Back')}
+            </Button>
+          )}
+          <span className="setup-wizard__spacer" />
+          {draft.step < LAST_STEP ? (
+            <Button variant="primary" onClick={() => dispatch({ type: 'next' })} disabled={!advance}>
+              {t('setup.next', 'Next')}
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={finish} loading={finishing} disabled={finishing}>
+              {t('setup.finish', 'Finish')}
+            </Button>
+          )}
+        </footer>
+      </div>
+    </div>
+  );
+};
+
+export default SetupWizard;

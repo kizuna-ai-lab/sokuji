@@ -1,0 +1,38 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { INTERFACE_LANGUAGES } from '../../Settings/sections/interfaceLanguages';
+import { changeLanguageWithLoad } from '../../../locales';
+import { useSetUILanguage, useUILanguage } from '../../../stores/settingsStore';
+
+// The one setting applied DURING the wizard (spec §1.2 step 0): the rest of it
+// has to be read in the chosen language.
+const StepLanguage: React.FC = () => {
+  const { t } = useTranslation();
+  const uiLanguage = useUILanguage();
+  const setUILanguage = useSetUILanguage();
+
+  const onChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const next = e.target.value;
+    try {
+      await changeLanguageWithLoad(next);
+      await setUILanguage(next);
+    } catch (err) {
+      console.error('[SetupWizard] Could not change the interface language:', err);
+    }
+  };
+
+  return (
+    <section className="setup-step">
+      <h2>{t('setup.steps.language.title', 'Which language should Sokuji speak to you in?')}</h2>
+      <p>{t('setup.steps.language.desc', 'This is the language of menus and buttons. You choose the languages to translate between later.')}</p>
+      <label className="setup-field">
+        <span>{t('setup.steps.language.label', 'Interface language')}</span>
+        <select value={uiLanguage} onChange={onChange} aria-label={t('setup.steps.language.label', 'Interface language')}>
+          {INTERFACE_LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+        </select>
+      </label>
+    </section>
+  );
+};
+
+export default StepLanguage;

@@ -1,0 +1,89 @@
+@use '../Settings/shared/variables' as vars;
+
+.setup-wizard {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: vars.$bg-page;
+  z-index: 1500; // above panels, below .auth-overlay-scrim (2000) so sign-in paints over it
+
+  &--rerun { background: rgba(0, 0, 0, 0.66); }
+
+  &__card {
+    width: min(720px, 100%);
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: vars.$bg-surface;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-lg;
+    overflow: hidden;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-3;
+    padding: vars.$space-4 vars.$space-5;
+    border-bottom: 1px solid vars.$border-subtle;
+    h1 { margin: 0; font-size: 16px; font-weight: vars.$weight-semibold; color: vars.$text-primary; }
+  }
+  &__progress { margin-left: auto; font-size: vars.$font-caption; color: vars.$text-muted; }
+  &__close {
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid vars.$border-default; border-radius: vars.$radius-md; background: transparent; color: vars.$text-secondary; cursor: pointer;
+    &:hover { border-color: vars.$color-primary; color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+  &__body { padding: vars.$space-5; overflow-y: auto; }
+  &__footer {
+    display: flex; align-items: center; gap: vars.$space-2;
+    padding: vars.$space-3 vars.$space-5; border-top: 1px solid vars.$border-subtle;
+  }
+  &__spacer { flex: 1; }
+}
+
+.setup-step {
+  h2 { margin: 0 0 vars.$space-2; font-size: vars.$font-title; color: vars.$text-primary; }
+  > p { margin: 0 0 vars.$space-4; font-size: vars.$font-body; color: vars.$text-secondary; }
+}
+
+.setup-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: vars.$space-3;
+  margin-bottom: vars.$space-4;
+  &--compact { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
+
+.setup-card {
+  @include vars.option-row;
+  display: flex; flex-direction: column; gap: vars.$space-1;
+  padding: vars.$space-3; cursor: pointer;
+  input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  &:hover { @include vars.option-row-hover; }
+  &.is-selected { @include vars.option-row-selected; }
+  &.is-disabled { @include vars.disabled-state; }
+  &:has(input:focus-visible) { @include vars.focus-ring; }
+  &__title { font-weight: vars.$weight-medium; color: vars.$text-primary; display: flex; align-items: center; gap: vars.$space-2; }
+  &__badge { font-style: normal; font-size: 10px; padding: 1px 6px; border-radius: 10px; background: rgba(vars.$color-primary, 0.15); color: vars.$color-primary; }
+  &__desc { font-size: vars.$font-caption; color: vars.$text-secondary; }
+  &__sets, &__cost, &__reason { font-size: vars.$font-caption; color: vars.$text-muted; }
+  &__reason { color: vars.$color-warning; }
+}
+
+.setup-field {
+  display: flex; flex-direction: column; gap: vars.$space-1; margin-bottom: vars.$space-3;
+  > span { font-size: vars.$font-caption; color: vars.$text-secondary; }
+  select { @include vars.control-base; padding: 6px 8px; }
+}
+
+.setup-actions { display: flex; gap: vars.$space-2; margin: vars.$space-3 0; flex-wrap: wrap; }
+
+.setup-summary {
+  display: grid; grid-template-columns: max-content 1fr; gap: vars.$space-1 vars.$space-4; margin: 0 0 vars.$space-4;
+  dt { color: vars.$text-muted; font-size: vars.$font-caption; }
+  dd { margin: 0; color: vars.$text-primary; font-size: vars.$font-body; }
+}
