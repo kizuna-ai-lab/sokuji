@@ -1957,6 +1957,115 @@
   }
 }
 
+// Interface language: a picker that has to read as a link, because that is the
+// weight it now carries. The <select> keeps its native behaviour — the list is
+// 30 long and the platform renders it outside this panel, with keyboard and
+// type-ahead for free — but sheds every visual sign of being a form control,
+// so it sits level with "Restart Setup Guide" beside it rather than towering
+// over it.
+// The picker keeps a link's weight — no border, no filled background, the
+// same muted colour as the links beside it — but it must still read as
+// something you can open, so it keeps its chevron. `.help-link__select` joins
+// the shared base-select layer below, which themes the popup and, because a
+// base-select control lays out to its SELECTED option rather than its longest
+// one, also sizes it correctly: measured at 54px for 日本語 against 148px for
+// the same list drawn as a classic OS widget.
+.help-link--picker {
+  // Layout comes from .help-link; only the select's own box needs correcting.
+
+  .help-link__select {
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    padding: 0 2px;
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    // A base-select control carries a UA minimum height of 24px — a touch
+    // target — against the 13.85px of text in the links beside it, and its
+    // chevron holds a full line box on top of that. The row's boxes were
+    // centred on each other either way, but the eye aligns a line of links on
+    // their TEXT, and a taller box centres its text somewhere else.
+    //
+    // `1lh` is exactly the line box the neighbouring spans occupy, so the
+    // select's text sits on their baseline instead of floating above it.
+    min-height: 0;
+    height: 1lh;
+    align-items: center;
+
+    &:disabled { cursor: not-allowed; }
+
+    // Classic fallback (Chrome 116–134, the extension's floor): the popup is
+    // drawn by the OS and ignores this theme past the option colours.
+    //
+    // Known difference, accepted rather than worked around: a classic select
+    // is as wide as its longest option, so on those versions picking 日本語
+    // still reserves the width of "Português (Portugal)" and can push a link
+    // onto another line. Sizing it correctly there needs a mirrored span with
+    // the select overlaid transparently on top — which this file carried for
+    // one commit and which also hides the chevron, the thing that tells a
+    // borderless control it can be opened. On a path where the popup is
+    // already unthemed, a wide control is the smaller cost.
+    option { color: initial; background: initial; }
+  }
+}
+
+@supports (appearance: base-select) {
+  .help-link--picker .help-link__select {
+    &,
+    &::picker(select) { appearance: base-select; }
+
+    // Same themed popup as every other select in Settings.
+    &::picker(select) {
+      background: vars.$bg-surface;
+      border: 1px solid vars.$border-default;
+      border-radius: vars.$radius-md;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      padding: 4px;
+      margin-top: 4px;
+      max-height: 320px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    // `inherit`, not the $text-muted the other selects give their chevron:
+    // those sit in bordered form controls, this one sits in a row of links
+    // whose lucide icons are all `stroke="currentColor"` and light up with the
+    // row. A fixed colour here left the chevron behind on hover, the one part
+    // of the control that did not react.
+    &::picker-icon {
+      color: inherit;
+      line-height: 1;
+    }
+
+    // Hover colour comes from `.help-link:hover`, shared with every link in
+    // the row. Only the open state is this control's own.
+    &:open { color: vars.$color-primary; }
+
+    option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: vars.$radius-sm;
+      font-size: vars.$font-title;
+      color: vars.$text-primary;
+      background: transparent;
+      cursor: pointer;
+
+      &:hover,
+      &:focus { background: vars.$bg-control; }
+
+      &::checkmark {
+        color: vars.$color-primary;
+        order: 1;
+        margin-left: auto;
+      }
+    }
+  }
+}
 
 .version-label {
   margin-left: auto;

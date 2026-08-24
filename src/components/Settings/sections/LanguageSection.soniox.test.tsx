@@ -52,7 +52,7 @@ describe('LanguageSection — Soniox language wiring (regression for C2)', () =>
 
   it('writes the source language to the soniox slice when the source select changes', () => {
     render(
-      <LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />
+      <LanguageSection isSessionActive={false} showTranslationLanguages={true} />
     );
     const selects = screen.getAllByRole('combobox');
     // Only the translation-language pair is rendered (interface language hidden):
@@ -63,7 +63,7 @@ describe('LanguageSection — Soniox language wiring (regression for C2)', () =>
 
   it('writes the target language to the soniox slice when the target select changes', () => {
     render(
-      <LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />
+      <LanguageSection isSessionActive={false} showTranslationLanguages={true} />
     );
     const selects = screen.getAllByRole('combobox');
     fireEvent.change(selects[1], { target: { value: 'ja' } });

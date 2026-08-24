@@ -111,18 +111,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
       >
         {activeTab === 'general' && (
           <>
-            {/* Interface Language - full list */}
-            <LanguageSection
-              isSessionActive={isSessionActive}
-              showInterfaceLanguage={true}
-              showTranslationLanguages={false}
-              simplifiedInterfaceList={false}
-            />
-
             {/* Translation Languages - same as Simple mode */}
             <LanguageSection
               isSessionActive={isSessionActive}
-              showInterfaceLanguage={false}
               showTranslationLanguages={true}
             />
 
@@ -132,7 +123,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
             />
 
             {/* Help & Updates */}
-            <HelpSection toggleSettings={toggleSettings} />
+            <HelpSection toggleSettings={toggleSettings} isSessionActive={isSessionActive} />
           </>
         )}
 

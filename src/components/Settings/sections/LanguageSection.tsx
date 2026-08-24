@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
-import { Globe, Languages, ArrowLeftRight, CircleHelp, AlertTriangle, VolumeX } from 'lucide-react';
+import { Languages, ArrowLeftRight, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
@@ -11,7 +11,6 @@ import {
   useLocalNativeSettings,
   useVolcengineAST2Settings,
   useZoomAISettings,
-  useSetUILanguage,
   useUpdateOpenAI,
   useUpdateGemini,
   useUpdateOpenAICompatible,
@@ -43,7 +42,6 @@ import { resolveAST2LanguagePair } from '../../../services/providers/volcengineA
 import { useIsParticipantChannelInScope, useMode, speakerChannelInScope } from '../../../stores/audioStore';
 import { useLockedMode } from '../../../stores/sessionStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
-import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
 import { getTranslationTargetLanguages, getManifestEntry } from '../../../lib/local-inference/modelManifest';
 import { shortenModelName } from '../../../lib/local-inference/modelName';
@@ -53,24 +51,18 @@ import { directionKey, emptyDirection, type Stage, type Selections, type Resolut
 
 interface LanguageSectionProps {
   isSessionActive: boolean;
-  /** Show interface language selector */
-  showInterfaceLanguage?: boolean;
   /** Show translation languages selector */
   showTranslationLanguages?: boolean;
-  /** Use simplified language list for interface (12 languages) */
-  simplifiedInterfaceList?: boolean;
   /** Additional class name */
   className?: string;
 }
 
 const LanguageSection: React.FC<LanguageSectionProps> = ({
   isSessionActive,
-  showInterfaceLanguage = true,
   showTranslationLanguages = true,
-  simplifiedInterfaceList = false,
   className = ''
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
 
   // Settings store
@@ -102,7 +94,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const keepReplayAudio = useKeepReplayAudio();
   const setKeepReplayAudio = useSetKeepReplayAudio();
 
-  const setUILanguage = useSetUILanguage();
   const updateOpenAISettings = useUpdateOpenAI();
   const updateGeminiSettings = useUpdateGemini();
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
@@ -408,56 +399,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   }, [effectiveProvider, isParticipantChannelInScope, currentProviderSettings.sourceLanguage, currentProviderSettings.model]);
 
   // Simplified interface language list (12 most common languages)
-  const simplifiedLanguages = [
-    { value: 'en', label: 'English' },
-    { value: 'zh_CN', label: '中文 (简体)' },
-    { value: 'zh_TW', label: '中文 (繁體)' },
-    { value: 'ja', label: '日本語' },
-    { value: 'ko', label: '한국어' },
-    { value: 'es', label: 'Español' },
-    { value: 'fr', label: 'Français' },
-    { value: 'de', label: 'Deutsch' },
-    { value: 'pt_BR', label: 'Português (Brasil)' },
-    { value: 'pt_PT', label: 'Português (Portugal)' },
-    { value: 'vi', label: 'Tiếng Việt' },
-    { value: 'hi', label: 'हिन्दी' }
-  ];
-
-  // Full interface language list (35 languages)
-  const fullLanguages = [
-    { value: 'en', label: 'English' },
-    { value: 'zh_CN', label: '中文 (简体)' },
-    { value: 'hi', label: 'हिन्दी' },
-    { value: 'es', label: 'Español' },
-    { value: 'fr', label: 'Français' },
-    { value: 'ar', label: 'العربية' },
-    { value: 'bn', label: 'বাংলা' },
-    { value: 'pt_BR', label: 'Português (Brasil)' },
-    { value: 'ru', label: 'Русский' },
-    { value: 'ja', label: '日本語' },
-    { value: 'de', label: 'Deutsch' },
-    { value: 'ko', label: '한국어' },
-    { value: 'fa', label: 'فارسی' },
-    { value: 'tr', label: 'Türkçe' },
-    { value: 'vi', label: 'Tiếng Việt' },
-    { value: 'it', label: 'Italiano' },
-    { value: 'th', label: 'ไทย' },
-    { value: 'pl', label: 'Polski' },
-    { value: 'id', label: 'Bahasa Indonesia' },
-    { value: 'ms', label: 'Bahasa Melayu' },
-    { value: 'nl', label: 'Nederlands' },
-    { value: 'zh_TW', label: '中文 (繁體)' },
-    { value: 'pt_PT', label: 'Português (Portugal)' },
-    { value: 'uk', label: 'Українська' },
-    { value: 'ta', label: 'தமிழ்' },
-    { value: 'te', label: 'తెలుగు' },
-    { value: 'he', label: 'עברית' },
-    { value: 'fil', label: 'Filipino' },
-    { value: 'sv', label: 'Svenska' },
-    { value: 'fi', label: 'Suomi' }
-  ];
-
-  const interfaceLanguages = simplifiedInterfaceList ? simplifiedLanguages : fullLanguages;
 
   // The ONE blocking warning (2026-08-23 warning-dedup decision): which
   // mandatory stages have NO candidate at all for the current speaker pair.
@@ -643,45 +584,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   return (
     <>
-      {/* Interface Language Section */}
-      {showInterfaceLanguage && (
-        <div className={`config-section ${className}`}>
-          <h3>
-            <Globe size={18} />
-            <span>{t('simpleConfig.interfaceLanguage')}</span>
-            <Tooltip
-              content={t('simpleConfig.interfaceLanguageDesc')}
-              position="top"
-              icon="help"
-            />
-          </h3>
-
-          <div className="setting-row">
-            <select
-              value={i18n.language}
-              onChange={async (e) => {
-                const oldLanguage = i18n.language;
-                const newLanguage = e.target.value;
-                await changeLanguageWithLoad(newLanguage);
-                setUILanguage(newLanguage);
-                trackEvent('language_changed', {
-                  from_language: oldLanguage,
-                  to_language: newLanguage,
-                  language_type: 'ui'
-                });
-              }}
-              disabled={isSessionActive}
-              className="language-select"
-            >
-              {interfaceLanguages.map((lang) => (
-                <option key={lang.value} value={lang.value}>
-                  {lang.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      )}
+      {/* Interface language now lives in HelpSection, at the weight of a link:
+          it is set once and never revisited, and does not affect what can be
+          translated. This section is about translation languages only. */}
 
       {/* Translation Languages Section */}
       {showTranslationLanguages && (

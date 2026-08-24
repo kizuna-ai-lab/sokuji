@@ -52,7 +52,7 @@ const textOnlySwitch = () =>
 
 const renderSection = () =>
   render(
-    <LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />
+    <LanguageSection isSessionActive={false} showTranslationLanguages={true} />
   );
 
 describe('LanguageSection — Text Only toggle vs the channel matrix', () => {
