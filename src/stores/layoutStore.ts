@@ -9,7 +9,10 @@ import { create } from 'zustand';
 
 export const SHOW_SETTINGS_SESSION_KEY = 'panelState.showSettings';
 
-function readSession(): boolean {
+/** Reads the persisted panel state directly from sessionStorage. Exported so
+ *  the store's initial value and callers that need a fresh read (tests) share
+ *  one implementation. */
+export function readShowSettingsFromSession(): boolean {
   try {
     return sessionStorage.getItem(SHOW_SETTINGS_SESSION_KEY) === 'true';
   } catch {
@@ -28,17 +31,14 @@ function writeSession(value: boolean): void {
 export interface LayoutStore {
   showSettings: boolean;
   setShowSettings: (value: boolean) => void;
-  /** Exposed for tests; the store seeds itself from it at module load. */
-  readInitial: () => boolean;
 }
 
 export const useLayoutStore = create<LayoutStore>()((set) => ({
-  showSettings: readSession(),
+  showSettings: readShowSettingsFromSession(),
   setShowSettings: (value) => {
     writeSession(value);
     set({ showSettings: value });
   },
-  readInitial: readSession,
 }));
 
 export const useShowSettings = () => useLayoutStore((s) => s.showSettings);

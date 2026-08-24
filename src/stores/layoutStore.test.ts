@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useLayoutStore, SHOW_SETTINGS_SESSION_KEY } from './layoutStore';
+import { useLayoutStore, SHOW_SETTINGS_SESSION_KEY, readShowSettingsFromSession } from './layoutStore';
 
 beforeEach(() => {
   sessionStorage.clear();
@@ -17,8 +17,8 @@ describe('layoutStore', () => {
 
   it('initialises from sessionStorage', () => {
     sessionStorage.setItem(SHOW_SETTINGS_SESSION_KEY, 'true');
-    expect(useLayoutStore.getState().readInitial()).toBe(true);
+    expect(readShowSettingsFromSession()).toBe(true);
     sessionStorage.removeItem(SHOW_SETTINGS_SESSION_KEY);
-    expect(useLayoutStore.getState().readInitial()).toBe(false);
+    expect(readShowSettingsFromSession()).toBe(false);
   });
 });
