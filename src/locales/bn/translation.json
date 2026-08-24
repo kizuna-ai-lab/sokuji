@@ -277,6 +277,7 @@
       "iSpeak": "আমি বলি",
       "iRead": "আমি পড়ি",
       "theyHear": "তারা শোনে",
+      "theyRead": "তারা পড়ে",
       "theySpeak": "তারা বলে",
       "mirror": "তারা {{their}} বলে → আমি {{mine}} পড়ি"
     }

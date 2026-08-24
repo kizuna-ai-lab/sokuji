@@ -277,6 +277,7 @@
       "iSpeak": "Ich spreche",
       "iRead": "Ich lese",
       "theyHear": "sie hören",
+      "theyRead": "sie lesen",
       "theySpeak": "sie sprechen",
       "mirror": "Sie sprechen {{their}} → ich lese {{mine}}"
     }

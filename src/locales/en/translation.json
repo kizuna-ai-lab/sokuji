@@ -277,6 +277,7 @@
       "iSpeak": "I speak",
       "iRead": "I read",
       "theyHear": "they hear",
+      "theyRead": "they read",
       "theySpeak": "they speak",
       "mirror": "They speak {{their}} → I read {{mine}}"
     }

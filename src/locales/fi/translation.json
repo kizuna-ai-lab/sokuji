@@ -277,6 +277,7 @@
       "iSpeak": "Puhun",
       "iRead": "Luen",
       "theyHear": "he kuulevat",
+      "theyRead": "he lukevat",
       "theySpeak": "he puhuvat",
       "mirror": "He puhuvat {{their}} → luen {{mine}}"
     }

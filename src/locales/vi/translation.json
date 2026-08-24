@@ -277,6 +277,7 @@
       "iSpeak": "Tôi nói",
       "iRead": "Tôi đọc",
       "theyHear": "họ nghe",
+      "theyRead": "họ đọc",
       "theySpeak": "họ nói",
       "mirror": "Họ nói {{their}} → tôi đọc {{mine}}"
     }
