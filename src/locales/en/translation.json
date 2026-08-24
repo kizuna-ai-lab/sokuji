@@ -679,6 +679,89 @@
       "action": "Start with Advanced Mode"
     }
   },
+  "setup": {
+    "title": "Set up Sokuji",
+    "stepOf": "Step {{current}} of {{total}}",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "close": "Close",
+    "skipForNow": "Skip for now",
+    "rerun": "Run setup again",
+    "steps": {
+      "language": {
+        "title": "Which language should Sokuji speak to you in?",
+        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
+        "label": "Interface language"
+      },
+      "scenario": { "title": "What do you want to do?", "desc": "Pick the closest match. You can change any of this later." },
+      "path": { "title": "What do you have?" },
+      "credentials": {
+        "offlineTitle": "Nothing to enter",
+        "managedTitle": "Your Kizuna AI account",
+        "ownKeyTitle": "Your API key"
+      },
+      "languagePair": { "title": "Which languages?", "desc": "What you (or they) speak, and what it should become." },
+      "finish": { "title": "Ready" }
+    },
+    "scenarios": {
+      "sets": "Sets: mode {{mode}} · {{output}}",
+      "understand-others": { "title": "Understand what others say", "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear." },
+      "be-heard": { "title": "Be understood in a meeting", "desc": "They hear your translated voice through a virtual microphone." },
+      "subtitle-myself": { "title": "Subtitle my own speech", "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated." },
+      "two-way-voice": { "title": "Two-way online conversation", "desc": "They hear your translated voice; you read their subtitles." },
+      "two-way-text": { "title": "Two-way online conversation, subtitles only", "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice." }
+    },
+    "modes": { "speaker": "Me", "participant": "Others", "both": "Both" },
+    "output": { "voice": "spoken", "subtitles": "subtitles" },
+    "paths": {
+      "recommended": "Recommended",
+      "pickProvider": "Which provider?",
+      "offlineFlavor": "Which engine?",
+      "managed": { "title": "Start right away", "desc": "Sokuji runs the translation for you.", "cost": "Needs a Kizuna AI account (email) with a balance. New accounts get a trial credit." },
+      "own-key": { "title": "I have my own API key", "desc": "Use OpenAI, Gemini, Soniox and others directly.", "cost": "You pay the provider for usage." },
+      "offline": {
+        "title": "Free, offline",
+        "desc": "Runs on your own machine. Nothing leaves it.",
+        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
+        "native": "Native engine — faster, uses your GPU where available.",
+        "wasm": "In-app engine — works everywhere, slower."
+      }
+    },
+    "fit": {
+      "cannotSpeak": "This provider cannot produce spoken translation.",
+      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+    },
+    "credentials": {
+      "apiKey": "API key",
+      "endpoint": "Endpoint URL",
+      "endpointPlaceholder": "https://api.example.com/v1",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key",
+      "appId": "App ID",
+      "accessToken": "Access Token",
+      "apiSecret": "API Secret",
+      "validate": "Validate",
+      "valid": "Key accepted.",
+      "invalid": "The key was rejected.",
+      "signIn": "Sign in",
+      "createAccount": "Create account",
+      "signedIn": "Signed in. You can continue.",
+      "managedDesc": "Sign in or create an account. Translation is billed from your balance; new accounts get a trial credit.",
+      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
+      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
+      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then."
+    },
+    "languagePair": { "source": "From", "target": "To" },
+    "summary": {
+      "scenario": "Scenario",
+      "mode": "Mode",
+      "provider": "Provider",
+      "languages": "Languages",
+      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
+      "pendingSignIn": "Not signed in — sign in from the account button before you start."
+    }
+  },
   "onboarding": {
     "basic": {
       "steps": {
