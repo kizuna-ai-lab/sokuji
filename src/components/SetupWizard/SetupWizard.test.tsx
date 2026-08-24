@@ -32,10 +32,14 @@ vi.mock('./useApplySetup', () => ({
   useApplySetup: () => async (draft: unknown) => { if (applyGate) await applyGate; applied.push(draft); },
 }));
 let apiKeyValid: boolean | null = null;
+// Mutable so a test can simulate the sign-in overlay opening from step 3 and
+// claiming Escape before the wizard's own useDismiss does.
+let authOverlayState: 'sign-in' | 'sign-up' | 'forgot-password' | null = null;
 vi.mock('../../stores/settingsStore', () => ({
   useUILanguage: () => 'en',
   useSetUILanguage: () => vi.fn(async () => {}),
   useSetAuthOverlay: () => setAuthOverlay,
+  useAuthOverlay: () => authOverlayState,
   useProvider: () => 'openai',
   useIsApiKeyValid: () => apiKeyValid,
   useSettingsStore: Object.assign((sel: (s: any) => unknown) => sel({ openai: { apiKey: '' }, soniox: { apiKey: '', region: 'us' } }), {
@@ -55,7 +59,7 @@ import { matchLanguage } from './languageDefaults';
 beforeEach(() => {
   cleanup();
   applied.length = 0; applyGate = null; signedIn = false; uiLanguage = 'en';
-  apiKeyValid = null; setupRecord = null;
+  apiKeyValid = null; setupRecord = null; authOverlayState = null;
   setAuthOverlay.mockClear(); trackSpy.mockClear();
 });
 
@@ -228,6 +232,22 @@ describe('SetupWizard', () => {
 
     release();
     await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it('keeps the rerun wizard open while the auth overlay owns Escape', () => {
+    const onClose = vi.fn();
+    const { rerender } = render(<SetupWizard variant="rerun" onClose={onClose} />);
+
+    authOverlayState = 'sign-in';
+    rerender(<SetupWizard variant="rerun" onClose={onClose} />);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(trackSpy.mock.calls.some((c) => c[0] === 'setup_abandoned')).toBe(false);
+
+    authOverlayState = null;
+    rerender(<SetupWizard variant="rerun" onClose={onClose} />);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('emits setup_started once and setup_step_viewed once per step, never on a keystroke', () => {

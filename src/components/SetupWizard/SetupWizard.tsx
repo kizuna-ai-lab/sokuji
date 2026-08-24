@@ -9,7 +9,7 @@ import { useFloating, useDismiss, useRole, useInteractions, FloatingFocusManager
 import { X } from 'lucide-react';
 import { useAuth } from '../../lib/auth/hooks';
 import { useAnalytics } from '../../lib/analytics';
-import { useIsApiKeyValid } from '../../stores/settingsStore';
+import { useIsApiKeyValid, useAuthOverlay } from '../../stores/settingsStore';
 import { useSetupRecord } from '../../stores/setupStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import type { ProviderType } from '../../types/Provider';
@@ -38,6 +38,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
   const { trackEvent } = useAnalytics();
   const record = useSetupRecord();
   const apiKeyValid = useIsApiKeyValid();
+  const authOverlay = useAuthOverlay();
   const apply = useApplySetup();
 
   const [draft, dispatch] = useReducer(setupReducer, undefined, (): SetupDraft =>
@@ -111,7 +112,12 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
     open: isModal,
     onOpenChange: (isOpen) => { if (!isOpen) close(); },
   });
-  const dismiss = useDismiss(context, { escapeKey: true, outsidePress: false });
+  // AuthOverlay is a sibling of MainLayout in Home, not inside this component's
+  // React tree and not in a shared FloatingTree — its own Escape handler is
+  // document-level, same as this one. Without this guard, Escape aimed at the
+  // sign-in form opened from step 3 also runs this wizard's close(), emitting
+  // a spurious setup_abandoned and discarding the draft.
+  const dismiss = useDismiss(context, { escapeKey: authOverlay === null, outsidePress: false });
   const role = useRole(context, { role: 'dialog' });
   const { getFloatingProps } = useInteractions([dismiss, role]);
 
