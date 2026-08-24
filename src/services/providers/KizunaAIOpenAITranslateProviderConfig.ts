@@ -29,7 +29,7 @@ export class KizunaAIOpenAITranslateProviderConfig extends OpenAITranslateProvid
 
   // Backend-managed twin: no user-facing credentials to collect — the setup
   // wizard has nothing to ask for this provider.
-  readonly credentialFields: CredentialField[] = [];
+  readonly credentialFields: readonly CredentialField[] = [];
 
   // Backend-managed twin: credentials are a Better Auth session token fetched
   // from ctx, not a persisted settings-slice field.

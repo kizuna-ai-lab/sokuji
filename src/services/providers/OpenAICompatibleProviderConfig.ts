@@ -25,7 +25,7 @@ export class OpenAICompatibleProviderConfig extends OpenAIProviderConfig {
   readonly settingsSliceKey = 'openaiCompatible';
   readonly i18nKey = 'openaiCompatible';
   readonly supportsWebRTC = true;
-  readonly credentialFields: CredentialField[] = [
+  readonly credentialFields: readonly CredentialField[] = [
     { key: 'customEndpoint', labelKey: 'setup.credentials.endpoint', secret: false, placeholderKey: 'setup.credentials.endpointPlaceholder' },
     { key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true },
   ];

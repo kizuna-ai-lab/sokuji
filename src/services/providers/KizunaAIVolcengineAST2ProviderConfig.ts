@@ -19,7 +19,7 @@ export class KizunaAIVolcengineAST2ProviderConfig extends VolcengineAST2Provider
 
   // Backend-managed twin: no user-facing credentials to collect — overrides
   // the parent's appId/accessToken fields, which do not apply here.
-  readonly credentialFields: CredentialField[] = [];
+  readonly credentialFields: readonly CredentialField[] = [];
 
   // Backend-managed twin: credentials are a Better Auth session token fetched
   // from ctx, not the parent's appId/accessToken settings-slice fields.

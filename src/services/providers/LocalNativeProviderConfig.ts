@@ -130,7 +130,7 @@ export function createLocalNativeSessionConfig(
 export class LocalNativeProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'localNative';
   readonly supportsWebRTC = false;
-  readonly credentialFields: CredentialField[] = [];
+  readonly credentialFields: readonly CredentialField[] = [];
 
   // LocalNative has no credentials by design — settingsStore's LOCAL_NATIVE
   // arm short-circuits validateApiKey before extractCredentials is ever called

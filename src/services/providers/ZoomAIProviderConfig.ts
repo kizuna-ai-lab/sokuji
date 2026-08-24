@@ -27,7 +27,7 @@ export const defaultZoomAISettings: ZoomAISettings = {
 export class ZoomAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'zoomAI';
   readonly supportsWebRTC = false;
-  readonly credentialFields: CredentialField[] = [
+  readonly credentialFields: readonly CredentialField[] = [
     { key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true },
     { key: 'apiSecret', labelKey: 'setup.credentials.apiSecret', secret: true },
   ];

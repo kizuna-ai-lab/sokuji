@@ -44,7 +44,7 @@ export const defaultPalabraAISettings: PalabraAISettings = {
 export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'palabraai';
   readonly supportsWebRTC = false;
-  readonly credentialFields: CredentialField[] = [
+  readonly credentialFields: readonly CredentialField[] = [
     { key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true },
   ];
 

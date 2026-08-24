@@ -232,7 +232,7 @@ export interface ProviderDescriptor {
 
   /** Slice keys a user must fill for extractCredentials to succeed (spec §1.8).
    *  descriptorRegistry.test.ts proves the list is complete for every provider. */
-  readonly credentialFields: CredentialField[];
+  readonly credentialFields: readonly CredentialField[];
 
   createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient;
   validateAndFetchModels(creds: Credentials): Promise<{
@@ -330,7 +330,7 @@ export abstract class BaseProviderDescriptor implements ProviderDescriptor {
   abstract readonly settingsSliceKey: string;
   readonly i18nKey?: string;
   readonly supportsWebRTC: boolean = false;
-  readonly credentialFields: CredentialField[] = [
+  readonly credentialFields: readonly CredentialField[] = [
     { key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true },
   ];
 

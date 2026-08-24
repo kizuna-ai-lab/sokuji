@@ -44,7 +44,7 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
 
   // Backend-managed twin: no user-facing credentials to collect — overrides
   // the parent's apiKey field, which does not apply here.
-  readonly credentialFields: CredentialField[] = [];
+  readonly credentialFields: readonly CredentialField[] = [];
 
   // Backend-managed twin: credentials are a Better Auth session token fetched
   // from ctx, not the parent's apiKey settings-slice field.

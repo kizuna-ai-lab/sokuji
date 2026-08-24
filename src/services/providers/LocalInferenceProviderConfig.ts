@@ -59,7 +59,7 @@ export const defaultLocalInferenceSettings: LocalInferenceSettings = {
 export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'localInference';
   readonly supportsWebRTC = false;
-  readonly credentialFields: CredentialField[] = [];
+  readonly credentialFields: readonly CredentialField[] = [];
 
   // LocalInference has no credentials by design — settingsStore's LOCAL_INFERENCE
   // arm short-circuits validateApiKey before extractCredentials is ever called

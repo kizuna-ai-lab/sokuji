@@ -192,7 +192,7 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
   // Default region is 'us' → sonioxKeyField('us') === 'apiKey', which matches
   // the base default already. Made explicit so a future default-region change
   // fails descriptorRegistry.test.ts's invariant loudly rather than silently.
-  readonly credentialFields: CredentialField[] = [
+  readonly credentialFields: readonly CredentialField[] = [
     { key: sonioxKeyField(DEFAULT_SONIOX_REGION), labelKey: 'setup.credentials.apiKey', secret: true },
   ];
 

@@ -33,7 +33,7 @@ export const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
 export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'volcengineAST2';
   readonly supportsWebRTC = false;
-  readonly credentialFields: CredentialField[] = [
+  readonly credentialFields: readonly CredentialField[] = [
     { key: 'appId', labelKey: 'setup.credentials.appId', secret: false },
     { key: 'accessToken', labelKey: 'setup.credentials.accessToken', secret: true },
   ];
