@@ -15,7 +15,8 @@ vi.mock('../../locales', () => ({ changeLanguageWithLoad: vi.fn(async (l: string
 let signedIn = false;
 const setAuthOverlay = vi.fn();
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: signedIn, getToken: async () => null }) }));
-vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
+const trackEvent = vi.fn();
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
 const applied: unknown[] = [];
 vi.mock('./useApplySetup', () => ({ useApplySetup: () => async (draft: unknown) => { applied.push(draft); } }));
 vi.mock('../../stores/settingsStore', () => ({
@@ -32,7 +33,7 @@ vi.mock('../../stores/setupStore', () => ({ useSetupRecord: () => null }));
 
 import SetupWizard from './SetupWizard';
 
-beforeEach(() => { cleanup(); applied.length = 0; signedIn = false; setAuthOverlay.mockClear(); });
+beforeEach(() => { cleanup(); applied.length = 0; signedIn = false; setAuthOverlay.mockClear(); trackEvent.mockClear(); });
 
 const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 const back = () => fireEvent.click(screen.getByRole('button', { name: 'Back' }));
@@ -116,5 +117,28 @@ describe('SetupWizard', () => {
     render(<SetupWizard variant="rerun" onClose={onClose} />);
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('emits setup_started once and setup_step_viewed once per step, never on a keystroke', () => {
+    render(<SetupWizard variant="first-run" />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Subtitle my own speech/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /I have my own API key/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /^OpenAI$/ }));
+    next();
+
+    const apiKeyInput = screen.getByLabelText('apiKey');
+    fireEvent.change(apiKeyInput, { target: { value: 'a' } });
+    fireEvent.change(apiKeyInput, { target: { value: 'ab' } });
+    fireEvent.change(apiKeyInput, { target: { value: 'abc' } });
+
+    const startedCalls = trackEvent.mock.calls.filter((c) => c[0] === 'setup_started');
+    const stepViewedCalls = trackEvent.mock.calls.filter((c) => c[0] === 'setup_step_viewed');
+    expect(startedCalls).toHaveLength(1);
+    expect(stepViewedCalls).toHaveLength(4);
+    expect(stepViewedCalls[stepViewedCalls.length - 1][1]).toEqual({ step: 3, step_id: 'credentials' });
   });
 });

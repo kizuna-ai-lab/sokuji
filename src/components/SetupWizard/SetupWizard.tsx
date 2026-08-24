@@ -3,12 +3,12 @@
 // First-run setup (spec §1). Six steps over one draft; nothing is written until
 // Finish. `variant="first-run"` fills the window in place of MainLayout;
 // `variant="rerun"` is an overlay Help opens over the running app.
-import React, { useEffect, useReducer, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { useAuth } from '../../lib/auth/hooks';
 import { useAnalytics } from '../../lib/analytics';
-import { useIsApiKeyValid, useProvider } from '../../stores/settingsStore';
+import { useIsApiKeyValid } from '../../stores/settingsStore';
 import { useSetupRecord } from '../../stores/setupStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import type { ProviderType } from '../../types/Provider';
@@ -36,19 +36,35 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
   const { isSignedIn } = useAuth();
   const { trackEvent } = useAnalytics();
   const record = useSetupRecord();
-  const currentProvider = useProvider();
   const apiKeyValid = useIsApiKeyValid();
   const apply = useApplySetup();
 
   const [draft, dispatch] = useReducer(setupReducer, undefined, (): SetupDraft =>
     variant === 'rerun' && record && record.provider && ProviderConfigFactory.isProviderSupported(record.provider as ProviderType)
-      ? draftFromRecord({ ...record, provider: record.provider || currentProvider }, { credentialsAlreadyValid: apiKeyValid === true })
+      ? draftFromRecord(record, { credentialsAlreadyValid: apiKeyValid === true })
       : initialDraft());
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
 
-  useEffect(() => { trackEvent('setup_started', { variant }); }, [trackEvent, variant]);
-  useEffect(() => { trackEvent('setup_step_viewed', { step: draft.step, step_id: STEP_IDS[draft.step] }); }, [draft.step, trackEvent]);
+  // trackEvent is a fresh closure every render (useAnalytics is not memoized),
+  // so it cannot sit in an effect's dependency array without refiring on every
+  // keystroke that re-renders the frame (e.g. typing a credential). Read the
+  // latest one through a ref instead, keeping the step-tracking effect's own
+  // deps down to the one thing that should actually retrigger it: the step.
+  const trackRef = useRef(trackEvent);
+  useEffect(() => { trackRef.current = trackEvent; });
+
+  const lastStepRef = useRef(-1);
+  useEffect(() => {
+    if (lastStepRef.current === -1) {
+      trackRef.current('setup_started', { variant });
+    }
+    if (draft.step !== lastStepRef.current) {
+      trackRef.current('setup_step_viewed', { step: draft.step, step_id: STEP_IDS[draft.step] });
+    }
+    lastStepRef.current = draft.step;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.step]);
 
   const advance = canAdvance(draft, { isSignedIn });
 
@@ -56,12 +72,12 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
     setFinishing(true);
     setFinishError(null);
     try {
+      await apply(draft);
       trackEvent('setup_completed', {
         scenario: draft.scenario ?? '', provider_path: draft.providerPath ?? '', provider: draft.provider ?? '',
         source_language: draft.sourceLanguage ?? '', target_language: draft.targetLanguage ?? '',
         credentials_pending: draft.credentialsPending,
       });
-      await apply(draft);
       onClose?.();
     } catch (err) {
       console.error('[SetupWizard] Finish failed:', err);
@@ -76,8 +92,18 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
     onClose?.();
   };
 
+  const onKeyDown = onClose
+    ? (e: React.KeyboardEvent<HTMLDivElement>) => { if (e.key === 'Escape') close(); }
+    : undefined;
+
   return (
-    <div className={`setup-wizard setup-wizard--${variant}`} role="dialog" aria-labelledby="setup-wizard-title">
+    <div
+      className={`setup-wizard setup-wizard--${variant}`}
+      role="dialog"
+      aria-modal={variant === 'rerun'}
+      aria-labelledby="setup-wizard-title"
+      onKeyDown={onKeyDown}
+    >
       <div className="setup-wizard__card">
         <header className="setup-wizard__header">
           <h1 id="setup-wizard-title">{t('setup.title', 'Set up Sokuji')}</h1>
