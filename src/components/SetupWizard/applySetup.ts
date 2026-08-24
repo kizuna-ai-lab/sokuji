@@ -1,0 +1,52 @@
+// src/components/SetupWizard/applySetup.ts
+//
+// The one place the wizard writes anything (spec §1.5). Store actions come in
+// as an argument so this stays testable without the stores' import graph, and
+// so the ORDER is a fact of this file rather than of whichever component calls
+// it: slice before provider (SettingsInitializer's validation effect then fires
+// once, over final values), record last.
+import { getScenario } from '../../lib/setup/scenarios';
+import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
+import type { ProviderType } from '../../types/Provider';
+import type { SetupDraft } from './setupDraft';
+
+export interface ApplySetupDeps {
+  /** settingsStore.provider BEFORE the writes — decides the re-validate gap. */
+  currentProvider: ProviderType;
+  sliceKeyFor: (p: ProviderType) => string;
+  setMode: (m: 'speaker' | 'participant' | 'both') => void;
+  setTextOnly: (v: boolean) => void;
+  setSpeakerDisplayMode: (m: 'source' | 'translation' | 'both') => Promise<void> | void;
+  setParticipantDisplayMode: (m: 'source' | 'translation' | 'both') => Promise<void> | void;
+  updateProviderSlice: (sliceKey: string, patch: Record<string, unknown>) => Promise<void>;
+  setProvider: (p: ProviderType) => void;
+  completeSetup: (r: { scenario: ScenarioId; providerPath: ProviderPath; provider: string }) => Promise<void>;
+  /** settingsStore.validateApiKey, bound by the caller with its auth getter. */
+  validateApiKey: () => Promise<unknown>;
+}
+
+export async function applySetupDraft(draft: SetupDraft, deps: ApplySetupDeps): Promise<void> {
+  const { scenario, providerPath, provider, sourceLanguage, targetLanguage } = draft;
+  if (!scenario || !providerPath || !provider || !sourceLanguage || !targetLanguage) {
+    throw new Error('applySetupDraft: draft is incomplete');
+  }
+  const preset = getScenario(scenario);
+
+  deps.setMode(preset.mode);
+  deps.setTextOnly(preset.textOnly);
+  if (preset.speakerDisplayMode) await deps.setSpeakerDisplayMode(preset.speakerDisplayMode);
+  if (preset.participantDisplayMode) await deps.setParticipantDisplayMode(preset.participantDisplayMode);
+
+  const credentials = providerPath === 'own-key' && !draft.credentialsPending ? draft.credentials : {};
+  await deps.updateProviderSlice(deps.sliceKeyFor(provider), { sourceLanguage, targetLanguage, ...credentials });
+
+  deps.setProvider(provider);
+  await deps.completeSetup({ scenario, providerPath, provider });
+
+  // SettingsInitializer re-validates on a provider change, and on credential
+  // changes for every API provider EXCEPT Soniox's regional keys. Only the
+  // "same provider, new key" re-run can slip through; cover exactly that.
+  if (providerPath === 'own-key' && provider === deps.currentProvider) {
+    await deps.validateApiKey();
+  }
+}
