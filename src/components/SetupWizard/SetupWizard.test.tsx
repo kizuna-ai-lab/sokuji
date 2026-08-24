@@ -31,24 +31,33 @@ let applyGate: Promise<void> | null = null;
 vi.mock('./useApplySetup', () => ({
   useApplySetup: () => async (draft: unknown) => { if (applyGate) await applyGate; applied.push(draft); },
 }));
+let apiKeyValid: boolean | null = null;
 vi.mock('../../stores/settingsStore', () => ({
   useUILanguage: () => 'en',
   useSetUILanguage: () => vi.fn(async () => {}),
   useSetAuthOverlay: () => setAuthOverlay,
   useProvider: () => 'openai',
-  useIsApiKeyValid: () => null,
+  useIsApiKeyValid: () => apiKeyValid,
   useSettingsStore: Object.assign((sel: (s: any) => unknown) => sel({ openai: { apiKey: '' }, soniox: { apiKey: '', region: 'us' } }), {
     getState: () => ({ openai: { apiKey: '' }, soniox: { apiKey: '', region: 'us' } }),
   }),
 }));
-vi.mock('../../stores/setupStore', () => ({ useSetupRecord: () => null }));
+// The record a Help re-run pre-fills from. Mutable: with it fixed at null the
+// isProviderSupported-guarded prefill branch never ran in any test.
+let setupRecord: { version: number; scenario: string; providerPath: string; provider: string; completedAt: string } | null = null;
+vi.mock('../../stores/setupStore', () => ({ useSetupRecord: () => setupRecord }));
 
 import SetupWizard from './SetupWizard';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { Provider } from '../../types/Provider';
 import { matchLanguage } from './languageDefaults';
 
-beforeEach(() => { cleanup(); applied.length = 0; applyGate = null; signedIn = false; uiLanguage = 'en'; setAuthOverlay.mockClear(); trackSpy.mockClear(); });
+beforeEach(() => {
+  cleanup();
+  applied.length = 0; applyGate = null; signedIn = false; uiLanguage = 'en';
+  apiKeyValid = null; setupRecord = null;
+  setAuthOverlay.mockClear(); trackSpy.mockClear();
+});
 
 const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 const back = () => fireEvent.click(screen.getByRole('button', { name: 'Back' }));
@@ -173,8 +182,31 @@ describe('SetupWizard', () => {
     expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalled();
+    expect(trackSpy).toHaveBeenCalledWith('setup_abandoned', { step: 0 });
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('pre-fills a re-run from the stored record', () => {
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'openai', completedAt: 'x' };
+    apiKeyValid = true;
+    render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
+    next();
+    expect(screen.getByRole('radio', { name: /Be understood in a meeting/ })).toBeChecked();
+    next();
+    expect(screen.getByRole('radio', { name: /I have my own API key/ })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /^OpenAI$/ })).toBeChecked();
+    next();
+    // credentialsAlreadyValid carried over from a valid live key: nothing to re-enter.
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+  });
+
+  it('starts blank when the stored record names a provider this build does not have', () => {
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'not-a-provider', completedAt: 'x' };
+    apiKeyValid = true;
+    render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
+    next();
+    expect(screen.queryAllByRole('radio', { checked: true })).toHaveLength(0);
   });
 
   it('will not abandon setup while Finish is in flight', async () => {
