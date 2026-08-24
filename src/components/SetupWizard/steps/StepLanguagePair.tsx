@@ -20,7 +20,10 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   // Seed once from the provider's lists (spec §1.2 step 4); Back/Next keeps the
   // user's picks because the draft already holds them.
   useEffect(() => {
-    if (draft.sourceLanguage && draft.targetLanguage) return;
+    // !== null, not truthiness: when a source offers no targets at all `keep`
+    // lands on '', and a truthiness guard would read that as unseeded and
+    // re-seed on the next render, throwing away the source the user just picked.
+    if (draft.sourceLanguage !== null && draft.targetLanguage !== null) return;
     const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore] as { sourceLanguage?: string; targetLanguage?: string };
     const pair = defaultLanguagePair({
       sources, targetsFor, uiLanguage,

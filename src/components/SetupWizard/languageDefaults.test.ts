@@ -35,6 +35,20 @@ describe('defaultLanguagePair (spec §1.2 step 4)', () => {
     expect(defaultLanguagePair({ sources: L, targetsFor: only, uiLanguage: 'en', providerDefault })).toEqual({ source: 'en', target: 'ja-JP' });
   });
 
+  it('never defaults to translating a language into itself', () => {
+    // English UI, English-first provider default: source and target both want
+    // to be English, and the old fallback chain happily returned en -> en.
+    const S = ['en', 'ja-JP', 'es'].map(opt);
+    expect(defaultLanguagePair({ sources: S, targetsFor: () => S, uiLanguage: 'en', providerDefault: { source: 'auto', target: 'en' } }))
+      .toEqual({ source: 'en', target: 'ja-JP' });
+  });
+
+  it('keeps the coinciding target when the list offers no other language', () => {
+    const onlyEn = () => [opt('en')];
+    expect(defaultLanguagePair({ sources: L, targetsFor: onlyEn, uiLanguage: 'en', providerDefault: { source: 'es', target: 'en' } }))
+      .toEqual({ source: 'en', target: 'en' });
+  });
+
   it('picks the first target the list offers when neither English nor the default is in it', () => {
     const onlyEs = () => [opt('es')];
     expect(defaultLanguagePair({ sources: L, targetsFor: onlyEs, uiLanguage: 'ja', providerDefault })).toEqual({ source: 'ja-JP', target: 'es' });

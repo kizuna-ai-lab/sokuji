@@ -8,6 +8,9 @@ import type { LanguageOption } from '../../services/providers/ProviderConfig';
 const norm = (code: string) => code.toLowerCase().replace(/_/g, '-');
 const primary = (code: string) => norm(code).split('-')[0];
 
+/** Same language, whatever the region: 'en' vs 'en-US', 'zh_CN' vs 'zh-cn'. */
+const sameLanguage = (a: string, b: string) => primary(a) === primary(b);
+
 export function matchLanguage(options: LanguageOption[], code: string): string | null {
   const exact = options.find((o) => o.value === code);
   if (exact) return exact.value;
@@ -31,6 +34,15 @@ export function defaultLanguagePair(args: {
   const targets = args.targetsFor(source);
   const english = matchLanguage(targets, 'en');
   const fallback = matchLanguage(targets, args.providerDefault.target) ?? targets[0]?.value ?? args.providerDefault.target;
-  const target = english && english !== source ? english : fallback;
+  const preferred = english && !sameLanguage(english, source) ? english : fallback;
+
+  // Translating a language into itself is not a translation, and it is exactly
+  // what an English UI on an English-defaulting provider used to produce: the
+  // English target is rejected for coinciding with the source, and the provider
+  // default it falls back to is English too. Take the first target that is a
+  // different language; keep the coincidence only if the list offers nothing else.
+  const target = sameLanguage(preferred, source)
+    ? targets.find((o) => !sameLanguage(o.value, source))?.value ?? preferred
+    : preferred;
   return { source, target };
 }
