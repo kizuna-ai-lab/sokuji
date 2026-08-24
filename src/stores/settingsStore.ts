@@ -834,10 +834,15 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     // === Async Actions ===
+    // The return type is annotated deliberately, not decoratively. Without it
+    // this one action's inferred type poisons contextual typing across the
+    // whole create<SettingsStore>() literal, and roughly a third of the
+    // repository's type errors are downstream of that. See the commit that
+    // added this line for the before/after numbers.
     validateApiKey: async (
       getAuthToken?: () => Promise<string | null>,
       isSignedIn: boolean = true,
-    ) => {
+    ): Promise<ApiKeyValidationResult> => {
       const state = get();
       const provider = state.provider;
 
@@ -940,8 +945,6 @@ const useSettingsStore = create<SettingsStore>()(
             availableModels: [],
             validationMessage: displayMessage,
             isValidating: false,
-            isValidated: false,
-            validationError: null
           });
           return {
             valid: false,
@@ -967,8 +970,6 @@ const useSettingsStore = create<SettingsStore>()(
           availableModels: [],
           validationMessage: '',
           isValidating: false,
-          isValidated: false,
-          validationError: null
         });
         return {valid: false, message: '', validating: false};
       }
@@ -983,8 +984,6 @@ const useSettingsStore = create<SettingsStore>()(
           availableModels: cached.models,
           validationMessage: cached.validation.message,
           isValidating: false,
-          isValidated: true,
-          validationError: cached.validation.valid ? null : cached.validation.message,
           cacheTimestamp: cached.timestamp
         });
         return cached.validation;
@@ -1017,8 +1016,6 @@ const useSettingsStore = create<SettingsStore>()(
           validationMessage: result.validation.message,
           validationCache: newCache,
           isValidating: false,
-          isValidated: true,
-          validationError: result.validation.valid ? null : result.validation.message,
           cacheTimestamp: Date.now()
         });
 
@@ -1059,8 +1056,6 @@ const useSettingsStore = create<SettingsStore>()(
           availableModels: [],
           validationMessage: message,
           isValidating: false,
-          isValidated: false,
-          validationError: message
         });
         return {valid: false, message, validating: false};
       }

@@ -55,9 +55,7 @@ describe('settingsStore', () => {
     // Reset the store before each test
     useSettingsStore.setState({
       provider: Provider.OPENAI,
-      isValidated: false,
       isValidating: false,
-      validationError: null,
       cacheTimestamp: null,
     });
     vi.clearAllMocks();
@@ -100,9 +98,12 @@ describe('settingsStore', () => {
         useSettingsStore.setState({ isValidating: true });
         useSettingsStore.setState({
           isValidating: false,
-          isValidated: true,
-          validationError: null,
         });
+        // The real action resolves to a result its callers read. The stub used
+        // to resolve to undefined, which only type-checked because the store's
+        // inference was broken; a caller awaiting this got undefined where the
+        // contract promised an object.
+        return { valid: true, message: '', validating: false };
       });
 
       // Switch to a Kizuna-managed (relay) provider
