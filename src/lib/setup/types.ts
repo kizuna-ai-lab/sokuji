@@ -29,7 +29,10 @@ export interface SetupRecord {
   /** null for users migrated from the pre-wizard app (spec §3.1). */
   scenario: ScenarioId | null;
   providerPath: ProviderPath | null;
-  /** Provider id at the time the wizard finished (or the persisted one, when migrated). */
+  /** Provider id at the time the wizard finished. Informational only: for a
+   *  migrated user this is the raw persisted id and may name a retired or
+   *  gated-out provider — read the live settings store for the current one.
+   *  Never a behavioural input. */
   provider: string;
   completedAt: string;
   migratedFrom?: 'legacy';

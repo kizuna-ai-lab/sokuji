@@ -9,7 +9,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { SETUP_VERSION, TOUR_VERSION } from '../lib/setup/types';
 import type { ProviderPath, ScenarioId, SetupRecord, TourChapter, TourRecord } from '../lib/setup/types';
-import { planSetupMigration, LEGACY_USER_TYPE_KEY, LEGACY_ONBOARDING_KEY } from '../lib/setup/setupMigration';
+import { planSetupMigration, LEGACY_USER_TYPE_KEY, LEGACY_ONBOARDING_KEY, LEGACY_KEYS_RETIRED } from '../lib/setup/setupMigration';
 
 export const SETUP_STORAGE_KEY = 'settings.setup';
 export const TOUR_STORAGE_KEY = 'settings.tour';
@@ -66,7 +66,7 @@ export const useSetupStore = create<SetupStore>()(
         });
         if (plan.setup) await service.setSetting(SETUP_STORAGE_KEY, plan.setup);
         if (plan.tour) await service.setSetting(TOUR_STORAGE_KEY, plan.tour);
-        if (plan.clearLegacyKeys) {
+        if (plan.clearLegacyKeys && LEGACY_KEYS_RETIRED) {
           removeLocal(LEGACY_USER_TYPE_KEY);
           removeLocal(LEGACY_ONBOARDING_KEY);
         }

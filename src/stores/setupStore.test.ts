@@ -46,8 +46,10 @@ describe('setupStore.hydrate', () => {
     expect(s.tour).toMatchObject({ version: TOUR_VERSION, completedChapters: ['basics'], method: 'migrated' });
     expect(store.get(SETUP_STORAGE_KEY)).toEqual(s.setup);
     expect(store.get(TOUR_STORAGE_KEY)).toEqual(s.tour);
-    expect(localStorage.getItem(LEGACY_USER_TYPE_KEY)).toBeNull();
-    expect(localStorage.getItem(LEGACY_ONBOARDING_KEY)).toBeNull();
+    // LEGACY_KEYS_RETIRED is false: OnboardingContext still reads these keys
+    // until the tour replaces it, so hydrate must not clear them yet.
+    expect(localStorage.getItem(LEGACY_USER_TYPE_KEY)).toBe('regular');
+    expect(localStorage.getItem(LEGACY_ONBOARDING_KEY)).toBe(JSON.stringify({ completed: true }));
   });
 });
 

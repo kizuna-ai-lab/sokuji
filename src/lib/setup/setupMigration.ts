@@ -11,6 +11,11 @@ import type { SetupRecord, TourRecord } from './types';
 export const LEGACY_USER_TYPE_KEY = 'sokuji_user_type';
 export const LEGACY_ONBOARDING_KEY = 'sokuji_onboarding_completed';
 
+/** Spec §3.1 removes the legacy localStorage keys, but OnboardingContext still
+ *  reads them until the tour replaces it (spec §3.2). Flip this to true in the
+ *  same change that deletes OnboardingContext; until then the keys stay. */
+export const LEGACY_KEYS_RETIRED = false;
+
 export interface LegacyEvidence {
   /** Raw `settings.common.uiMode` from SettingsService, null when absent.
    *  Every user of the old choice screen wrote it, and in the extension it
