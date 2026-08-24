@@ -1155,6 +1155,8 @@ The grep must print nothing except test mocks, which you now fix:
 
 Confirm `package.json` no longer lists `react-joyride` and `git diff --stat package-lock.json` shows only removals.
 
+**Retire the legacy localStorage keys in this same commit.** Plan 1's final review found that `setupStore.hydrate` must not delete `sokuji_user_type` / `sokuji_onboarding_completed` while `OnboardingContext` still reads them, so Plan 1 gated the removal behind `LEGACY_KEYS_RETIRED = false` in `src/lib/setup/setupMigration.ts`. `OnboardingContext` dies here, so: flip the constant to `true` (and reword its comment to say the reader is gone), and change `src/stores/setupStore.test.ts`'s migration test back to asserting both keys are **removed** (`localStorage.getItem(LEGACY_USER_TYPE_KEY)` → `null`, likewise the onboarding key) — TDD: flip the test first, watch it fail, then flip the constant. Run `npx vitest run -c vitest.worktree.config.ts src/stores/setupStore.test.ts src/lib/setup`.
+
 - [ ] **Step 6: Run everything this task touches**
 
 Run: `npx vitest run -c vitest.worktree.config.ts src/components/Tour src/components/MainLayout src/components/Settings/ src/components/SetupWizard src/routes`

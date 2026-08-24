@@ -434,6 +434,13 @@ provider migrations at `settingsStore.ts:380-420`), if `settings.setup` is absen
 Migrated users keep whatever `uiMode` they had. Their `TourCtx.scenario` is `null`, which
 §2.2's mode-driven predicates handle.
 
+**Sequencing note (from Plan 1's final review).** The two legacy `localStorage` keys are
+removed only in the change that deletes `OnboardingContext` (delivery slice 3), because
+that context still reads them until then; slice 1 records the decision
+(`clearLegacyKeys`) but gates its application behind `LEGACY_KEYS_RETIRED`. A migrated
+user's `settings.setup.provider` is the raw persisted id and is informational only —
+`settingsStore.loadSettings` normalises the live value separately.
+
 ### 3.2 Deletions
 
 - `src/components/UserTypeSelection/` (tsx, scss)
