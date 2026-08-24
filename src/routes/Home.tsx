@@ -6,6 +6,7 @@ import { useInitializeAudioService } from '../stores/audioStore';
 import { useLoadSettings } from '../stores/settingsStore';
 import { useSubtitleStore } from '../stores/subtitleStore';
 import { useConversationDisplayStore } from '../stores/conversationDisplayStore';
+import { useSetupStore } from '../stores/setupStore';
 import { SettingsInitializer } from '../components/SettingsInitializer/SettingsInitializer';
 import AuthOverlay from '../components/Auth/AuthOverlay';
 
@@ -24,8 +25,9 @@ export function Home() {
       loadSettings(),
       useSubtitleStore.getState().hydrate(),
       useConversationDisplayStore.getState().hydrate(),
+      useSetupStore.getState().hydrate(),
     ]).catch((err) => {
-      console.warn('[Home] Settings/subtitle/conversationDisplay hydration error:', err);
+      console.warn('[Home] Settings/subtitle/conversationDisplay/setup hydration error:', err);
     });
   }, []); // Empty dependency array - only run once on mount
 
