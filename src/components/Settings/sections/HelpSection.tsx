@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { HelpCircle, RefreshCw, Mail, MessageSquare, Globe } from 'lucide-react';
+import { HelpCircle, RefreshCw, Mail, MessageSquare, Globe, Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import { isElectron } from '../../../utils/environment';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
+import { useSetSetupWizardOpen } from '../../../stores/layoutStore';
 import { useUpdateStatus, useCheckForUpdates, useOpenUpdateDialog } from '../../../stores/updateStore';
 import { useSetUILanguage } from '../../../stores/settingsStore';
 import { useAnalytics } from '../../../lib/analytics';
@@ -18,6 +19,7 @@ interface HelpSectionProps {
 const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActive = false }) => {
   const { t, i18n } = useTranslation();
   const { startOnboarding } = useOnboarding();
+  const setSetupWizardOpen = useSetSetupWizardOpen();
   const updateStatus = useUpdateStatus();
   const checkForUpdates = useCheckForUpdates();
   const openUpdateDialog = useOpenUpdateDialog();
@@ -58,6 +60,15 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
         <a className="help-link" onClick={() => { startOnboarding(); if (toggleSettings) toggleSettings(); }}>
           <HelpCircle size={13} />
           <span>{t('onboarding.restartTour', 'Restart Setup Guide')}</span>
+        </a>
+        <a
+          className={`help-link${isSessionActive ? ' is-disabled' : ''}`}
+          aria-disabled={isSessionActive}
+          title={isSessionActive ? t('settings.sessionActiveNotice') : undefined}
+          onClick={() => { if (isSessionActive) return; setSetupWizardOpen(true); if (toggleSettings) toggleSettings(); }}
+        >
+          <Wand2 size={13} />
+          <span>{t('setup.rerun', 'Run setup again')}</span>
         </a>
         {isElectron() && (
           <a

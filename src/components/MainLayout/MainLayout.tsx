@@ -4,18 +4,18 @@ import MainPanel from '../MainPanel/MainPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
 import { Settings as SettingsComponent } from '../Settings';
 import Onboarding from '../Onboarding/Onboarding';
-import UserTypeSelection from '../UserTypeSelection/UserTypeSelection';
+import SetupWizard from '../SetupWizard/SetupWizard';
 import TitleBar from '../TitleBar/TitleBar';
 import PanelResizer from './PanelResizer';
 import { clampPanelWidth, maxPanelWidth, readPanelWidth, savePanelWidth, PANEL_MIN_WIDTH } from './panelWidth';
 import { useCloseLogsOutsideAdvanced } from './useCloseLogsOutsideAdvanced';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
-import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
+import { useProvider, useUIMode, useSetProvider, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
-import { useShowSettings, useSetShowSettings } from '../../stores/layoutStore';
+import { useShowSettings, useSetShowSettings, useSetupWizardOpen, useSetSetupWizardOpen } from '../../stores/layoutStore';
 import SubtitleApp from '../Subtitle/SubtitleApp';
-import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useSetupLoaded, useSetupComplete } from '../../stores/setupStore';
 import { useAuth } from '../../lib/auth/hooks';
 import { isKizunaManagedProvider } from '../../types/Provider';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
@@ -27,9 +27,11 @@ const MainLayout: React.FC = () => {
   const provider = useProvider();
   const uiMode = useUIMode();
   const setProvider = useSetProvider();
-  const setUIMode = useSetUIMode();
   const settingsNavigationTarget = useSettingsNavigationTarget();
-  const { userTypeSelected, setUserType } = useOnboarding();
+  const setupLoaded = useSetupLoaded();
+  const setupComplete = useSetupComplete();
+  const setupWizardOpen = useSetupWizardOpen();
+  const setSetupWizardOpen = useSetSetupWizardOpen();
   const { isSignedIn } = useAuth();
   const subtitleActive = useSubtitleModeActive();
   const [showLogs, setShowLogs] = useState(() => {
@@ -152,21 +154,6 @@ const MainLayout: React.FC = () => {
     }
   }, [settingsNavigationTarget, setShowSettings]);
 
-  // Handle user type selection
-  const handleUserTypeSelection = useCallback((type: 'regular' | 'experienced') => {
-    // Set UI mode based on user type
-    const newMode = type === 'regular' ? 'basic' : 'advanced';
-    setUIMode(newMode);
-
-    // Call the onboarding context to handle the selection
-    setUserType(type);
-
-    trackEvent('user_type_applied', {
-      user_type: type,
-      ui_mode: newMode
-    });
-  }, [setUIMode, setUserType, trackEvent]);
-
   // Auto-switch to KizunaAI when Basic Mode users log in
   useEffect(() => {
     // Check if user just logged in (was false, now true)
@@ -200,10 +187,10 @@ const MainLayout: React.FC = () => {
     prevIsSignedInRef.current = isSignedIn;
   }, [isSignedIn, uiMode, provider, setProvider, trackEvent]);
 
-  // Show user type selection if not selected yet
-  if (!userTypeSelected) {
-    return <UserTypeSelection onSelectUserType={handleUserTypeSelection} />;
-  }
+  // Nothing until setup state is known: a migrated user must never see the
+  // wizard flash. Then the wizard in place of the layout on a fresh install.
+  if (!setupLoaded) return null;
+  if (!setupComplete) return <SetupWizard variant="first-run" />;
 
   // In Electron subtitle mode the main process reshapes the BrowserWindow
   // into a tiny bar. Hide TitleBar and the main-layout tree (display:none
@@ -264,6 +251,7 @@ const MainLayout: React.FC = () => {
       </div>
       <Onboarding />
     </div>
+    {setupWizardOpen && <SetupWizard variant="rerun" onClose={() => setSetupWizardOpen(false)} />}
     {electronSubtitleTakeover && <SubtitleApp />}
     </>
   );

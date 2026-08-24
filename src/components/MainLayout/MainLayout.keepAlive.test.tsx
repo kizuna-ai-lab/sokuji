@@ -17,7 +17,7 @@ const CounterStub = ({ label }: { label: string }) => {
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => null }));
 vi.mock('../Onboarding/Onboarding', () => ({ default: () => null }));
 vi.mock('../Subtitle/SubtitleApp', () => ({ default: () => null }));
-vi.mock('../UserTypeSelection/UserTypeSelection', () => ({ default: () => null }));
+vi.mock('../SetupWizard/SetupWizard', () => ({ default: () => null }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));
 
 vi.mock('../LogsPanel/LogsPanel', () => ({
@@ -41,8 +41,11 @@ vi.mock('../TitleBar/TitleBar', () => ({
 
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false }) }));
-vi.mock('../../contexts/OnboardingContext', () => ({
-  useOnboarding: () => ({ userTypeSelected: true, setUserType: vi.fn() }),
+vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => true, useSetupComplete: () => true }));
+vi.mock('../../stores/layoutStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../stores/layoutStore')>()),
+  useSetupWizardOpen: () => false,
+  useSetSetupWizardOpen: () => vi.fn(),
 }));
 // Spread the real module rather than enumerating exports: MainLayout pulls in
 // ProviderConfigFactory, whose static initializer reads every feature flag, so

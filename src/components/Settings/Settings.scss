@@ -1955,6 +1955,14 @@
     cursor: not-allowed;
     pointer-events: none;
   }
+
+  // Unlike `.disabled` above, hover must still work here: the link stays
+  // clickable-looking so its title attribute (the session-active notice)
+  // can be read on hover, and the click handler itself no-ops instead.
+  &.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 // Interface language: a picker that has to read as a link, because that is the
