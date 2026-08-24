@@ -137,7 +137,7 @@ export interface AnalyticsEvents {
     user_type: 'regular' | 'experienced';
     ui_mode: 'basic' | 'advanced';
   };
-  // Setup wizard (spec §1.7)
+  // Setup wizard (spec §1.9)
   'setup_started': { variant: 'first-run' | 'rerun' };
   'setup_step_viewed': { step: number; step_id: string };
   'setup_abandoned': { step: number };

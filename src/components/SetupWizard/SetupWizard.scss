@@ -30,6 +30,13 @@
     border-bottom: 1px solid vars.$border-subtle;
     h1 { margin: 0; font-size: 16px; font-weight: vars.$weight-semibold; color: vars.$text-primary; }
   }
+
+  // Electron's window is frameless (electron/main.js: frame: false) and the only
+  // drag region lives in TitleBar, which MainLayout does not render while the
+  // first-run wizard is up. Without this the window cannot be moved at all
+  // before setup is finished.
+  &--first-run &__header { -webkit-app-region: drag; }
+  &__close, &__header select { -webkit-app-region: no-drag; }
   &__progress { margin-left: auto; font-size: vars.$font-caption; color: vars.$text-muted; }
   &__close {
     width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
@@ -37,10 +44,14 @@
     &:hover { border-color: vars.$color-primary; color: vars.$text-primary; }
     &:focus-visible { @include vars.focus-ring; }
   }
-  &__body { padding: vars.$space-5; overflow-y: auto; }
+  // The extra bottom padding (the shorthand above already supplies $space-5)
+  // keeps the last card off the footer's edge when the body is scrolled to the
+  // end; the footer's upward shadow is the cue that there is more above it.
+  &__body { padding: vars.$space-5; padding-bottom: vars.$space-6; overflow-y: auto; }
   &__footer {
     display: flex; align-items: center; gap: vars.$space-2;
     padding: vars.$space-3 vars.$space-5; border-top: 1px solid vars.$border-subtle;
+    box-shadow: 0 -8px 12px -8px rgba(0, 0, 0, 0.5);
   }
   &__spacer { flex: 1; }
 }
@@ -77,7 +88,9 @@
 .setup-field {
   display: flex; flex-direction: column; gap: vars.$space-1; margin-bottom: vars.$space-3;
   > span { font-size: vars.$font-caption; color: vars.$text-secondary; }
-  select { @include vars.control-base; padding: 6px 8px; }
+  // 100% + border-box: there is no global box-sizing reset, so a padded
+  // full-width control would otherwise overflow its own row by padding+border.
+  select { @include vars.control-base; padding: 6px 8px; width: 100%; box-sizing: border-box; }
 }
 
 .setup-actions { display: flex; gap: vars.$space-2; margin: vars.$space-3 0; flex-wrap: wrap; }
