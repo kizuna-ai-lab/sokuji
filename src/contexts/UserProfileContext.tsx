@@ -3,7 +3,7 @@
  * Provides user data from Better Auth and quota information from backend API
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth, useUser } from '../lib/auth/hooks';
 import { useIsSessionActive } from '../stores/sessionStore';
 import { getApiUrl } from '../utils/environment';
@@ -75,6 +75,15 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Which session the state currently belongs to, so a response can be checked
+  // against it before being written. Both fetches await a network round-trip
+  // and then call setQuota; without this, a sign-out mid-flight is undone by
+  // the response landing afterwards, and signing in as someone else shows the
+  // previous account's balance — which also gates managed sessions, so it is
+  // more than a display problem. Updated in the same effect that clears the
+  // quota, so the two can never disagree.
+  const activeSessionRef = useRef<string | null>(null);
+
   // Extract stable user ID to prevent infinite loops
   const userId = betterAuthUser?.id;
 
@@ -98,6 +107,10 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       return;
     }
 
+    // Captured now, compared after every await. See activeSessionRef.
+    const requestedFor = userId ?? null;
+    const stale = () => activeSessionRef.current !== requestedFor;
+
     setIsLoading(true);
     setError(null);
 
@@ -115,6 +128,8 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
         },
       });
 
+      if (stale()) return;
+
       if (!response.ok) {
         const errorMessage = `Failed to fetch quota: ${response.status} ${response.statusText}`;
         setError(errorMessage);
@@ -123,15 +138,20 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       }
 
       const raw = await response.json();
+      if (stale()) return;
+
       setQuota(mapWalletStatusToQuota(raw));
       setError(null);
     } catch (err: any) {
+      if (stale()) return;
       const errorMessage = err.message || 'Failed to fetch quota';
       setError(errorMessage);
       console.error('[UserProfileContext] Error fetching quota:', err);
       setQuota(null);
     } finally {
-      setIsLoading(false);
+      // The loading flag belongs to whoever owns the state now. A stale request
+      // clearing it would report the current session's fetch as finished.
+      if (!stale()) setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, userId]); // Use userId instead of betterAuthUser to prevent infinite loops
@@ -139,6 +159,11 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
   // Function to refresh only quota data silently (for periodic updates during sessions)
   const fetchQuotaSilently = useCallback(async () => {
     if (!isSignedIn || !betterAuthUser) return;
+
+    // Same guard as fetchQuota: polling runs on a timer, so a tick can easily
+    // still be in flight when the session ends.
+    const requestedFor = userId ?? null;
+    const stale = () => activeSessionRef.current !== requestedFor;
 
     try {
       const token = await getToken();
@@ -157,6 +182,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
 
       if (response.ok) {
         const raw = await response.json();
+        if (stale()) return;
         setQuota(mapWalletStatusToQuota(raw));
         setError(null);
       } else {
@@ -170,6 +196,10 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
 
   // Fetch quota on mount and when user changes
   useEffect(() => {
+    // Stamp the session BEFORE dispatching, so any response already in flight
+    // for a previous session fails its check when it lands.
+    activeSessionRef.current = isSignedIn && userId ? userId : null;
+
     if (isSignedIn && userId) {
       fetchQuota();
     } else {
