@@ -15,8 +15,12 @@ vi.mock('../../locales', () => ({ changeLanguageWithLoad: vi.fn(async (l: string
 let signedIn = false;
 const setAuthOverlay = vi.fn();
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: signedIn, getToken: async () => null }) }));
-const trackEvent = vi.fn();
-vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
+const trackSpy = vi.fn();
+vi.mock('../../lib/analytics', () => ({
+  // A new function object per render, like the real hook — the identity churn
+  // that made the effects re-fire is what this test must reproduce.
+  useAnalytics: () => ({ trackEvent: (...args: unknown[]) => trackSpy(...args) }),
+}));
 const applied: unknown[] = [];
 vi.mock('./useApplySetup', () => ({ useApplySetup: () => async (draft: unknown) => { applied.push(draft); } }));
 vi.mock('../../stores/settingsStore', () => ({
@@ -33,7 +37,7 @@ vi.mock('../../stores/setupStore', () => ({ useSetupRecord: () => null }));
 
 import SetupWizard from './SetupWizard';
 
-beforeEach(() => { cleanup(); applied.length = 0; signedIn = false; setAuthOverlay.mockClear(); trackEvent.mockClear(); });
+beforeEach(() => { cleanup(); applied.length = 0; signedIn = false; setAuthOverlay.mockClear(); trackSpy.mockClear(); });
 
 const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 const back = () => fireEvent.click(screen.getByRole('button', { name: 'Back' }));
@@ -135,8 +139,8 @@ describe('SetupWizard', () => {
     fireEvent.change(apiKeyInput, { target: { value: 'ab' } });
     fireEvent.change(apiKeyInput, { target: { value: 'abc' } });
 
-    const startedCalls = trackEvent.mock.calls.filter((c) => c[0] === 'setup_started');
-    const stepViewedCalls = trackEvent.mock.calls.filter((c) => c[0] === 'setup_step_viewed');
+    const startedCalls = trackSpy.mock.calls.filter((c) => c[0] === 'setup_started');
+    const stepViewedCalls = trackSpy.mock.calls.filter((c) => c[0] === 'setup_step_viewed');
     expect(startedCalls).toHaveLength(1);
     expect(stepViewedCalls).toHaveLength(4);
     expect(stepViewedCalls[stepViewedCalls.length - 1][1]).toEqual({ step: 3, step_id: 'credentials' });
