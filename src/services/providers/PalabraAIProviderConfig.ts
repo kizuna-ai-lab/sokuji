@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, PalabraAISessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { PalabraAIClient, PalabraCredentials } from '../clients/PalabraAIClient';
@@ -44,6 +44,9 @@ export const defaultPalabraAISettings: PalabraAISettings = {
 export class PalabraAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'palabraai';
   readonly supportsWebRTC = false;
+  readonly credentialFields: CredentialField[] = [
+    { key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true },
+  ];
 
   async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
     const s = slice as PalabraAISettings;

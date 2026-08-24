@@ -1,6 +1,6 @@
 import { VolcengineAST2ProviderConfig, VolcengineAST2Settings, defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { ProviderConfig } from './ProviderConfig';
-import { Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { Credentials, CredentialCtx, ClientOptions, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
@@ -16,6 +16,10 @@ export const defaultKizunaVolcengineAst2Settings: VolcengineAST2Settings = { ...
  */
 export class KizunaAIVolcengineAST2ProviderConfig extends VolcengineAST2ProviderConfig {
   readonly settingsSliceKey: string = 'kizunaVolcengineAst2';
+
+  // Backend-managed twin: no user-facing credentials to collect — overrides
+  // the parent's appId/accessToken fields, which do not apply here.
+  readonly credentialFields: CredentialField[] = [];
 
   // Backend-managed twin: credentials are a Better Auth session token fetched
   // from ctx, not the parent's appId/accessToken settings-slice fields.

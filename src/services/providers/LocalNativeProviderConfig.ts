@@ -1,7 +1,7 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
 import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult, PreparePorts, PrepareOutcome } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult, PreparePorts, PrepareOutcome, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, LocalNativeSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalNativeClient } from '../clients/LocalNativeClient';
@@ -130,6 +130,7 @@ export function createLocalNativeSessionConfig(
 export class LocalNativeProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'localNative';
   readonly supportsWebRTC = false;
+  readonly credentialFields: CredentialField[] = [];
 
   // LocalNative has no credentials by design — settingsStore's LOCAL_NATIVE
   // arm short-circuits validateApiKey before extractCredentials is ever called

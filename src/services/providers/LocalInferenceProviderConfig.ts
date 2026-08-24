@@ -1,7 +1,7 @@
 import { ProviderConfig, ModelOption } from './ProviderConfig';
 import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult, PreparePorts, PrepareOutcome } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantNotice, ParticipantSessionResult, PreparePorts, PrepareOutcome, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, LocalInferenceSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { LocalInferenceClient } from '../clients/LocalInferenceClient';
@@ -59,6 +59,7 @@ export const defaultLocalInferenceSettings: LocalInferenceSettings = {
 export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'localInference';
   readonly supportsWebRTC = false;
+  readonly credentialFields: CredentialField[] = [];
 
   // LocalInference has no credentials by design — settingsStore's LOCAL_INFERENCE
   // arm short-circuits validateApiKey before extractCredentials is ever called

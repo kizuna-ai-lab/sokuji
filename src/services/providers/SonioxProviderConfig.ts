@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult, BothModePlan } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult, BothModePlan, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, SonioxSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
@@ -189,6 +189,12 @@ export function sonioxVoiceField(region: SonioxRegion): 'voice' | 'voiceEu' | 'v
 export class SonioxProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'soniox';
   readonly supportsWebRTC = false;
+  // Default region is 'us' → sonioxKeyField('us') === 'apiKey', which matches
+  // the base default already. Made explicit so a future default-region change
+  // fails descriptorRegistry.test.ts's invariant loudly rather than silently.
+  readonly credentialFields: CredentialField[] = [
+    { key: sonioxKeyField(DEFAULT_SONIOX_REGION), labelKey: 'setup.credentials.apiKey', secret: true },
+  ];
 
   /**
    * Pick the ACTIVE region's key, and carry the region in `endpoint`.
