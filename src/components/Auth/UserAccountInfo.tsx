@@ -46,7 +46,17 @@ export function UserAccountInfo({
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Get user profile and quota
-  const {user, quota, isLoading: quotaLoading, refetchAll} = useUserProfile();
+  const {user, quota, isLoading: quotaLoading, error: quotaError, refetchAll} = useUserProfile();
+
+  // isLoading starts false while quota starts null, so there is a frame — the
+  // one before the effect that starts the request has even run — reading "not
+  // loading, no data". Treating that as failure is what made signing in flash
+  // an error row, then a spinner, then the real balance: three states for one
+  // request, none of which the user asked to see.
+  //
+  // Derived during render, not in an effect, because an effect is exactly one
+  // frame too late to prevent the flash.
+  const quotaPending = quotaLoading || (!quota && !quotaError);
 
   if (!isLoaded) {
     return (
@@ -425,7 +435,7 @@ export function UserAccountInfo({
 
       {/* Quota Status Section */}
       <div className="quota-status-section">
-        {quotaLoading ? (
+        {quotaPending ? (
           <div className="quota-loading">
             <div className="loading-spinner"/>
           </div>

@@ -145,10 +145,17 @@ const AccountButton: React.FC = () => {
           ? t('titleBar.account.unverified', 'Account — e-mail not verified')
           : accountLabel;
 
+    // Null until the wallet loads. Rendering the span anyway would reserve an
+    // empty gap that fills a moment later, which is the same flicker with the
+    // number taken out; omitting it lets the button size to what it knows.
+    const balanceLabel = compactBalanceLabel(balance);
+
     content = (
       <>
         <span className="account-button__initial" aria-hidden="true">{initial}</span>
-        <span className="title-bar__action-label">{compactBalanceLabel(balance)}</span>
+        {balanceLabel !== null && (
+          <span className="title-bar__action-label">{balanceLabel}</span>
+        )}
         {tone && <span className="account-button__dot" data-tone={tone} aria-hidden="true" />}
       </>
     );
