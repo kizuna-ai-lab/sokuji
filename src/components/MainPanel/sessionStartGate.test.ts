@@ -474,14 +474,17 @@ describe('reasonToSettingsTarget', () => {
     expect(reasonToSettingsTarget('insufficient-balance')).toBe('user-account');
   });
 
-  it('routes a signed-out managed provider to the account section', () => {
-    expect(reasonToSettingsTarget('sign-in-required')).toBe('user-account');
-  });
-
-  // Not 'user-account': ProviderSection is where the specific auth failure
-  // (settingsStore's kizunaKeyError) is rendered, and the account section
-  // offers a signed-in user nothing to do but sign out.
-  it('routes a signed-in managed provider with no key to the provider section', () => {
+  // NOT 'user-account'. The account entry was deliberately moved out of the
+  // settings panel to the title bar's AccountButton, and two tests pin its
+  // absence there (SimpleSettings.account.test.tsx, OnboardingContext.steps).
+  // Settings.tsx resolves a target by looking up `${target}-section`, so
+  // 'user-account' matches no element: the Fix button would switch to the
+  // General tab, scroll nowhere, and leave the user with nothing to click.
+  // ProviderSection is the one place both managed states have an affordance —
+  // the sign-in link that opens the account popover, and the specific
+  // kizunaKeyError for a signed-in user whose key never arrived.
+  it('routes both managed-provider blockers to the provider section', () => {
+    expect(reasonToSettingsTarget('sign-in-required')).toBe('provider');
     expect(reasonToSettingsTarget('managed-key-unavailable')).toBe('provider');
   });
 

@@ -233,7 +233,8 @@ export function computeStartGate(input: StartGateInput): StartGate {
     // out is by far the common case and is what settingsStore already reports
     // as `kizunaKeyError: 'auth.signedOut'`; signed in with no key is a
     // session or backend failure, whose specific detail ProviderSection
-    // renders — which is why the two carry different settings targets.
+    // renders. The two differ in wording, not in destination — ProviderSection
+    // carries the affordance for both (see `reasonToSettingsTarget`).
     if (kizunaManaged) {
       return {
         canStart: false,
@@ -314,13 +315,20 @@ export function reasonToSettingsTarget(
       return 'model-management';
     case 'api-key-invalid':
     case 'no-models':
-      return 'provider';
-    // Deliberately NOT 'user-account': the account section offers a signed-in
-    // user nothing but a sign-out, while ProviderSection is where the specific
-    // auth failure behind the missing key is spelled out.
+    // Both managed-provider blockers, deliberately NOT 'user-account': the
+    // account entry was moved out of the settings panel to the title bar's
+    // AccountButton, and Settings.tsx resolves a target by looking up
+    // `${target}-section`, so 'user-account' matches no element — the Fix
+    // button would switch to the General tab, scroll nowhere, and leave the
+    // user with nothing to click. ProviderSection is where BOTH states have an
+    // affordance: the sign-in link that opens the account popover, and the
+    // specific `kizunaKeyError` for a signed-in user whose key never arrived.
+    case 'sign-in-required':
     case 'managed-key-unavailable':
       return 'provider';
-    case 'sign-in-required':
+    // Pre-existing, and left alone here: 'user-account' is dead for these two
+    // as well, but where a wallet top-up should land is a separate question
+    // from what this gate reports.
     case 'wallet-frozen':
     case 'insufficient-balance':
       return 'user-account';
