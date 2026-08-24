@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { HelpCircle, RefreshCw, Mail, MessageSquare, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -23,6 +23,12 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
   const openUpdateDialog = useOpenUpdateDialog();
   const setUILanguage = useSetUILanguage();
   const { trackEvent } = useAnalytics();
+
+  // Opening the picker puts its list exactly where the tooltip sits, so the
+  // tooltip would cover the thing the user just asked to see. A native select
+  // reports no open/close, but it always takes focus to open — and suppressing
+  // on focus also keeps the tooltip out of the way of keyboard users.
+  const [pickerFocused, setPickerFocused] = useState(false);
 
   const openExternalUrl = (url: string) => {
     if (isElectron() && (window as any).electron?.invoke) {
@@ -68,8 +74,12 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
           and the platform renders it outside this panel's bounds, with its own
           keyboard handling and type-ahead, at no cost here.
         */}
-        <Tooltip content={t('simpleConfig.interfaceLanguageDesc')} position="top">
-        <label className={`help-link help-link--picker ${isSessionActive ? 'disabled' : ''}`}>
+        <Tooltip
+          content={t('simpleConfig.interfaceLanguageDesc')}
+          position="top"
+          suppressed={pickerFocused}
+        >
+        <label className={['help-link', 'help-link--picker', isSessionActive ? 'disabled' : ''].filter(Boolean).join(' ')}>
           <Globe size={13} />
           {/*
             The language's own name is the whole label. Every other entry here
@@ -92,6 +102,8 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
             aria-label={t('simpleConfig.interfaceLanguage', 'Interface Language')}
             value={i18n.language}
             disabled={isSessionActive}
+            onFocus={() => setPickerFocused(true)}
+            onBlur={() => setPickerFocused(false)}
             onChange={async (e) => {
               const oldLanguage = i18n.language;
               const newLanguage = e.target.value;

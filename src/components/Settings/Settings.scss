@@ -1971,19 +1971,29 @@
 // one, also sizes it correctly: measured at 54px for 日本語 against 148px for
 // the same list drawn as a classic OS widget.
 .help-link--picker {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  // Layout comes from .help-link; only the select's own box needs correcting.
 
   .help-link__select {
     background: transparent;
     border: none;
     border-radius: 3px;
-    padding: 1px 2px;
+    padding: 0 2px;
     margin: 0;
     color: inherit;
     font: inherit;
     cursor: pointer;
+
+    // A base-select control carries a UA minimum height of 24px — a touch
+    // target — against the 13.85px of text in the links beside it, and its
+    // chevron holds a full line box on top of that. The row's boxes were
+    // centred on each other either way, but the eye aligns a line of links on
+    // their TEXT, and a taller box centres its text somewhere else.
+    //
+    // `1lh` is exactly the line box the neighbouring spans occupy, so the
+    // select's text sits on their baseline instead of floating above it.
+    min-height: 0;
+    height: 1lh;
+    align-items: center;
 
     &:disabled { cursor: not-allowed; }
 
@@ -2013,7 +2023,15 @@
       scrollbar-width: thin;
     }
 
-    &::picker-icon { color: vars.$text-muted; }
+    // The chevron is a flex item of the select and, left at its normal line
+    // box, stands 17.3px against the 13.85px of the text beside it — enough to
+    // set the height of the whole select, and through it the whole row, taller
+    // than every other link in Help. `line-height: 1` takes it down to the
+    // glyph, which is all this needs to be.
+    &::picker-icon {
+      color: vars.$text-muted;
+      line-height: 1;
+    }
 
     &:hover { color: vars.$color-primary; }
     &:open { color: vars.$color-primary; }

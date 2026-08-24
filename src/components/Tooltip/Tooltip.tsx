@@ -29,6 +29,12 @@ interface TooltipProps {
   maxWidth?: number;
   /** Hover open delay in ms (default 100). Pass 0 for an instant tooltip. */
   openDelay?: number;
+  /**
+   * Force the tooltip shut regardless of hover. For triggers that open
+   * something of their own — a select's picker, a menu — where a tooltip
+   * left hanging over the thing the user just opened is in the way.
+   */
+  suppressed?: boolean;
 }
 
 const Tooltip: React.FC<TooltipProps> = ({
@@ -38,7 +44,8 @@ const Tooltip: React.FC<TooltipProps> = ({
   trigger = 'hover',
   icon = 'help',
   maxWidth = 250,
-  openDelay = 100
+  openDelay = 100,
+  suppressed = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -151,7 +158,7 @@ const Tooltip: React.FC<TooltipProps> = ({
         </span>
       )}
       <FloatingPortal>
-        {isOpen && (
+        {isOpen && !suppressed && (
           <div
             ref={refs.setFloating}
             style={{

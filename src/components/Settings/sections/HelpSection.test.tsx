@@ -40,8 +40,21 @@ vi.mock('../../../stores/updateStore', () => ({
   useOpenUpdateDialog: () => vi.fn(),
 }));
 
+// Records suppression so the picker's interaction with it can be asserted;
+// renders children either way, as the real one does.
+//
+// Only the tooltips that are actually controlled are recorded. Help renders
+// three — the picker's, support's and Discussions' — and the last two pass no
+// `suppressed` at all, so recording every render would leave the reader of
+// this array looking at Discussions' constant false.
+const tooltipSuppressed: boolean[] = [];
+// `.at(-1)` needs ES2022; this project targets ES2020.
+const lastSuppressed = () => tooltipSuppressed[tooltipSuppressed.length - 1];
 vi.mock('../../Tooltip/Tooltip', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  default: ({ children, suppressed }: { children: React.ReactNode; suppressed?: boolean }) => {
+    if (suppressed !== undefined) tooltipSuppressed.push(suppressed);
+    return <>{children}</>;
+  },
 }));
 
 // Injected by vite's `define` at build time, so it does not exist here.
@@ -142,6 +155,25 @@ describe('interface language in Help', () => {
   it('is disabled while a session is running', () => {
     render(<HelpSection isSessionActive />);
     expect(picker().disabled).toBe(true);
+  });
+
+  // Opening the picker puts a list right where the tooltip is; leaving the
+  // tooltip up means it covers the thing the user just asked to see. Focus is
+  // the signal available here — a native select gives no open/close event —
+  // and it covers both opening by mouse and arriving by keyboard.
+  it('drops the tooltip once the picker takes focus', async () => {
+    render(<HelpSection />);
+    tooltipSuppressed.length = 0;
+    fireEvent.focus(picker());
+    await vi.waitFor(() => expect(lastSuppressed()).toBe(true));
+  });
+
+  it('restores the tooltip when the picker is left', async () => {
+    render(<HelpSection />);
+    fireEvent.focus(picker());
+    await vi.waitFor(() => expect(lastSuppressed()).toBe(true));
+    fireEvent.blur(picker());
+    await vi.waitFor(() => expect(lastSuppressed()).toBe(false));
   });
 
   it('leaves the other help links in place', () => {
