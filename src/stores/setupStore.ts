@@ -7,6 +7,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { ServiceFactory } from '../services/ServiceFactory';
+import type { ISettingsService } from '../services/interfaces/ISettingsService';
 import { SETUP_VERSION, TOUR_VERSION } from '../lib/setup/types';
 import type { ProviderPath, ScenarioId, SetupRecord, TourChapter, TourRecord } from '../lib/setup/types';
 import { planSetupMigration, LEGACY_USER_TYPE_KEY, LEGACY_ONBOARDING_KEY, LEGACY_KEYS_RETIRED } from '../lib/setup/setupMigration';
@@ -42,6 +43,17 @@ function removeLocal(key: string): void {
   }
 }
 
+/** Persists a setup/tour record and logs when SettingsService reports
+ *  failure (e.g. chrome-storage quota, lastError) — otherwise a failed
+ *  persist is silent and the only symptom is the wizard reappearing next
+ *  launch. */
+async function persist(service: ISettingsService, key: string, value: unknown): Promise<void> {
+  const result = await service.setSetting(key, value);
+  if (!result.success) {
+    console.error(`[SetupStore] Failed to persist ${key}:`, result.error ?? result.message);
+  }
+}
+
 export const useSetupStore = create<SetupStore>()(
   subscribeWithSelector((set, get) => ({
     setup: null,
@@ -64,8 +76,8 @@ export const useSetupStore = create<SetupStore>()(
           persistedProvider: await service.getSetting<string>('settings.common.provider', 'openai'),
           now: new Date().toISOString(),
         });
-        if (plan.setup) await service.setSetting(SETUP_STORAGE_KEY, plan.setup);
-        if (plan.tour) await service.setSetting(TOUR_STORAGE_KEY, plan.tour);
+        if (plan.setup) await persist(service, SETUP_STORAGE_KEY, plan.setup);
+        if (plan.tour) await persist(service, TOUR_STORAGE_KEY, plan.tour);
         if (plan.clearLegacyKeys && LEGACY_KEYS_RETIRED) {
           removeLocal(LEGACY_USER_TYPE_KEY);
           removeLocal(LEGACY_ONBOARDING_KEY);
@@ -86,7 +98,7 @@ export const useSetupStore = create<SetupStore>()(
         completedAt: new Date().toISOString(),
       };
       set({ setup: record });
-      await ServiceFactory.getSettingsService().setSetting(SETUP_STORAGE_KEY, record);
+      await persist(ServiceFactory.getSettingsService(), SETUP_STORAGE_KEY, record);
     },
 
     completeTour: async (chapter, method) => {
@@ -99,7 +111,7 @@ export const useSetupStore = create<SetupStore>()(
         method,
       };
       set({ tour: record });
-      await ServiceFactory.getSettingsService().setSetting(TOUR_STORAGE_KEY, record);
+      await persist(ServiceFactory.getSettingsService(), TOUR_STORAGE_KEY, record);
     },
   })),
 );

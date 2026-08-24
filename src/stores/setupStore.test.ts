@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { SettingsOperationResult } from '../services/interfaces/ISettingsService';
 
 const store = new Map<string, unknown>();
 const mockGetSetting = vi.fn(async (key: string, dflt: unknown) => (store.has(key) ? store.get(key) : dflt));
-const mockSetSetting = vi.fn(async (key: string, value: unknown) => { store.set(key, value); return { success: true }; });
+const mockSetSetting = vi.fn(async (key: string, value: unknown): Promise<SettingsOperationResult> => { store.set(key, value); return { success: true }; });
 vi.mock('../services/ServiceFactory', () => ({
   ServiceFactory: { getSettingsService: () => ({ getSetting: mockGetSetting, setSetting: mockSetSetting }) },
 }));
@@ -70,5 +71,17 @@ describe('setupStore.completeSetup / completeTour', () => {
     expect(rec.method).toBe('finished');
     expect(rec.version).toBe(TOUR_VERSION);
     expect(store.get(TOUR_STORAGE_KEY)).toEqual(rec);
+  });
+
+  it('logs when persisting the setup record fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockSetSetting.mockResolvedValueOnce({ success: false, error: 'quota' });
+
+    await useSetupStore.getState().completeSetup({ scenario: 'two-way-text', providerPath: 'own-key', provider: 'openai' });
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy.mock.calls[0][0]).toContain('settings.setup');
+
+    errorSpy.mockRestore();
   });
 });
