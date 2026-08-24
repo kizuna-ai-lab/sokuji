@@ -369,3 +369,42 @@ describe('LanguageSection — the ONE blocking missing-models warning (resolver-
     expect(document.querySelector('.language-model-warning')).not.toBeInTheDocument();
   });
 });
+
+describe('LanguageSection — the mirror line needs a pinned source language', () => {
+  // Reachable only since the sentence went provider-wide: 'auto' is an option
+  // the two local providers never offer, so no mirror line could meet it
+  // before. It is NOT in any provider's `languages` list either — the source
+  // <select> renders it as a hand-written extra <option> — so the name lookup
+  // behind the mirror falls through to the raw settings value.
+  beforeEach(() => {
+    useAudioStore.setState({ mode: 'both' } as any);
+    useSettingsStore.setState({ provider: Provider.SONIOX, textOnly: false } as any);
+  });
+
+  it('renders no mirror line while the source language is auto-detect', () => {
+    // Soniox ships sourceLanguage: 'auto' by default, so this is the state a
+    // user lands in, not a contrived one. The line would have to name the
+    // language I read on the reverse leg, and 'auto' names none: Soniox
+    // reverses direction through sourceLanguage, so this pair cannot even
+    // start (sessionStartGate's autoSourceParticipantBlocked) and the
+    // blocking warning below says so. Stating the leg anyway would describe
+    // a session the app refuses to run.
+    useSettingsStore.setState((s: any) => ({
+      soniox: { ...s.soniox, sourceLanguage: 'auto', targetLanguage: 'en' },
+    }));
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    expect(screen.queryByTestId('language-mirror-line')).not.toBeInTheDocument();
+  });
+
+  it('renders it, with resolved names, once the source language is concrete', () => {
+    useSettingsStore.setState((s: any) => ({
+      soniox: { ...s.soniox, sourceLanguage: 'ja', targetLanguage: 'en' },
+    }));
+    render(<LanguageSection isSessionActive={false} showInterfaceLanguage={false} showTranslationLanguages={true} />);
+    const mirror = screen.getByTestId('language-mirror-line');
+    expect(mirror.textContent).toContain('They speak');
+    // Display names, never the raw settings tokens.
+    expect(mirror.textContent).not.toContain('auto');
+    expect(mirror.textContent).not.toMatch(/\bja\b/);
+  });
+});

@@ -556,6 +556,18 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     ?? currentProviderSettings.sourceLanguage;
   const targetLanguageName = targetLanguages.find(l => l.value === currentProviderSettings.targetLanguage)?.name
     ?? currentProviderSettings.targetLanguage;
+  // ...but only once the source language is pinned. 'auto' is a hand-written
+  // extra <option> on the source select, absent from every provider's
+  // `languages`, so the lookup above falls through to the raw token — and
+  // localizing it would not help, because the mirror's whole job is to name
+  // the language I read on the reverse leg and auto-detect names none. For
+  // the providers that reverse direction THROUGH sourceLanguage (Soniox,
+  // Gemini's translate models) the pair cannot even start — see
+  // sessionStartGate's autoSourceParticipantBlocked, whose warning renders
+  // just below — so the line would describe a session the app refuses to run.
+  // Unreachable before the sentence went provider-wide: the two local
+  // providers never offer 'auto'.
+  const mirrorLanguagesResolved = currentProviderSettings.sourceLanguage !== 'auto';
 
   // S0: surface the last resolution notes (auto-substitutions/fallbacks made
   // while picking models for this language pair) right where the pair itself
@@ -739,7 +751,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
           </div>
 
-          {sentenceMode === 'both' && (
+          {sentenceMode === 'both' && mirrorLanguagesResolved && (
             <div className="language-mirror-line" data-testid="language-mirror-line">
               {t('settings.langSentence.mirror', 'They speak {{their}} → I read {{mine}}', {
                 their: targetLanguageName,
