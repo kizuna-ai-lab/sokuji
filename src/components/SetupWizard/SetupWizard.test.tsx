@@ -8,8 +8,11 @@ vi.mock('../../utils/environment', async (orig) => ({
   isPalabraAIEnabled: () => true, isLocalNativeEnabled: () => true,
   isElectron: () => true, isExtension: () => false, getRelayWsUrl: () => 'wss://r.example/v1',
 }));
+// The detected interface language, as i18next reports it. Mutable so a test can
+// render the wizard "in Japanese" the way a first-run user in Japan gets it.
+let uiLanguage = 'en';
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string, d?: string | object) => (typeof d === 'string' ? d : k), i18n: { language: 'en' } }),
+  useTranslation: () => ({ t: (k: string, d?: string | object) => (typeof d === 'string' ? d : k), i18n: { language: uiLanguage } }),
 }));
 vi.mock('../../locales', () => ({ changeLanguageWithLoad: vi.fn(async (l: string) => l) }));
 let signedIn = false;
@@ -36,8 +39,11 @@ vi.mock('../../stores/settingsStore', () => ({
 vi.mock('../../stores/setupStore', () => ({ useSetupRecord: () => null }));
 
 import SetupWizard from './SetupWizard';
+import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
+import { Provider } from '../../types/Provider';
+import { matchLanguage } from './languageDefaults';
 
-beforeEach(() => { cleanup(); applied.length = 0; signedIn = false; setAuthOverlay.mockClear(); trackSpy.mockClear(); });
+beforeEach(() => { cleanup(); applied.length = 0; signedIn = false; uiLanguage = 'en'; setAuthOverlay.mockClear(); trackSpy.mockClear(); });
 
 const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 const back = () => fireEvent.click(screen.getByRole('button', { name: 'Back' }));
@@ -103,6 +109,23 @@ describe('SetupWizard', () => {
     signedIn = true;
     rerender(<SetupWizard variant="first-run" />);
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+  });
+
+  it('takes the interface language from i18next, and seeds the pair from it', () => {
+    uiLanguage = 'ja';
+    render(<SetupWizard variant="first-run" />);
+    expect(screen.getByRole('combobox', { name: 'Interface language' })).toHaveValue('ja');
+
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next();                                           // credentials: nothing to enter offline
+    next();                                           // language pair
+    const jaSource = matchLanguage(ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).resolveSourceLanguages(), 'ja');
+    // If the local engine offered no Japanese source there would be nothing to
+    // assert about the pair; the interface-language assertion above still holds.
+    if (jaSource) expect(screen.getByRole('combobox', { name: 'From' })).toHaveValue(jaSource);
   });
 
   it('shows the hardware notice on the offline path and needs nothing else', () => {

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-import { useSettingsStore, useUILanguage } from '../../../stores/settingsStore';
+import { useSettingsStore } from '../../../stores/settingsStore';
 import type { SettingsStore } from '../../../stores/settingsStore';
 import { defaultLanguagePair } from '../languageDefaults';
 import type { SetupAction, SetupDraft } from '../setupDraft';
@@ -9,8 +9,10 @@ import type { SetupAction, SetupDraft } from '../setupDraft';
 interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
 
 const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
-  const { t } = useTranslation();
-  const uiLanguage = useUILanguage();
+  // The language in effect (see StepLanguage), not settingsStore.uiLanguage:
+  // the default pair should start from the language the user is reading.
+  const { t, i18n } = useTranslation();
+  const uiLanguage = i18n.language;
   const descriptor = ProviderConfigFactory.getDescriptor(draft.provider!);
   const sources = useMemo(() => descriptor.resolveSourceLanguages(), [descriptor]);
   const targetsFor = (s: string) => descriptor.resolveTargetLanguages(s);

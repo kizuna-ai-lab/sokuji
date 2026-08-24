@@ -2,13 +2,16 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { INTERFACE_LANGUAGES } from '../../Settings/sections/interfaceLanguages';
 import { changeLanguageWithLoad } from '../../../locales';
-import { useSetUILanguage, useUILanguage } from '../../../stores/settingsStore';
+import { useSetUILanguage } from '../../../stores/settingsStore';
 
 // The one setting applied DURING the wizard (spec §1.2 step 0): the rest of it
 // has to be read in the chosen language.
 const StepLanguage: React.FC = () => {
-  const { t } = useTranslation();
-  const uiLanguage = useUILanguage();
+  // i18n.language is the language actually in effect — what the detector chose
+  // on a first run, or what a previous change set. settingsStore.uiLanguage is
+  // only ever written (by this step and by Help); reading it here would show
+  // every first-run user "English" no matter what they see on screen.
+  const { t, i18n } = useTranslation();
   const setUILanguage = useSetUILanguage();
 
   const onChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -27,7 +30,7 @@ const StepLanguage: React.FC = () => {
       <p>{t('setup.steps.language.desc', 'This is the language of menus and buttons. You choose the languages to translate between later.')}</p>
       <label className="setup-field">
         <span>{t('setup.steps.language.label', 'Interface language')}</span>
-        <select value={uiLanguage} onChange={onChange} aria-label={t('setup.steps.language.label', 'Interface language')}>
+        <select value={i18n.language} onChange={onChange} aria-label={t('setup.steps.language.label', 'Interface language')}>
           {INTERFACE_LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
         </select>
       </label>
