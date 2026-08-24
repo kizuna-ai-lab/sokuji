@@ -68,6 +68,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
 
   const advance = canAdvance(draft, { isSignedIn });
 
+  // Same rule as StepFinish's pending line: on the managed path the draft's
+  // "Skip for now" flag is stale the moment the user signs in from the overlay.
+  const credentialsPending = draft.providerPath === 'managed' ? !isSignedIn : draft.credentialsPending;
+
   const finish = async () => {
     setFinishing(true);
     setFinishError(null);
@@ -76,7 +80,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
       trackEvent('setup_completed', {
         scenario: draft.scenario ?? '', provider_path: draft.providerPath ?? '', provider: draft.provider ?? '',
         source_language: draft.sourceLanguage ?? '', target_language: draft.targetLanguage ?? '',
-        credentials_pending: draft.credentialsPending,
+        credentials_pending: credentialsPending,
       });
       onClose?.();
     } catch (err) {

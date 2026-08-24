@@ -111,6 +111,25 @@ describe('SetupWizard', () => {
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
   });
 
+  it('stops calling a managed user pending once they have signed in', async () => {
+    const { rerender } = render(<SetupWizard variant="first-run" />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Start right away/ }));
+    next();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));   // pending, for now
+    signedIn = true;
+    rerender(<SetupWizard variant="first-run" />);
+    next();                                           // language pair
+    next();                                           // finish
+    expect(screen.queryByText(/Not signed in/)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    await waitFor(() => expect(trackSpy.mock.calls.some((c) => c[0] === 'setup_completed')).toBe(true));
+    expect(trackSpy.mock.calls.find((c) => c[0] === 'setup_completed')![1]).toMatchObject({ credentials_pending: false });
+  });
+
   it('takes the interface language from i18next, and seeds the pair from it', () => {
     uiLanguage = 'ja';
     render(<SetupWizard variant="first-run" />);

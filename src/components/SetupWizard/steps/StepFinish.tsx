@@ -16,7 +16,10 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
   const modeLabel = t(`setup.modes.${preset.mode}`, preset.mode === 'speaker' ? 'Me' : preset.mode === 'participant' ? 'Others' : 'Both');
   const output = preset.textOnly ? t('setup.output.subtitles', 'subtitles') : t('setup.output.voice', 'spoken');
 
-  const pending = draft.credentialsPending || (draft.providerPath === 'managed' && !isSignedIn);
+  // On the managed path sign-in state is the whole truth: a user who took
+  // "Skip for now" and then signed in from the overlay is no longer pending,
+  // and one who never signed in is — whatever the draft's flag says.
+  const pending = draft.providerPath === 'managed' ? !isSignedIn : draft.credentialsPending;
 
   return (
     <section className="setup-step">
