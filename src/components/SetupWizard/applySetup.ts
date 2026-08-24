@@ -54,6 +54,15 @@ export async function applySetupDraft(draft: SetupDraft, deps: ApplySetupDeps): 
   // did not change. (Secondary reason: SettingsInitializer also misses
   // credential changes for Soniox's regional keys.)
   if (provider === deps.currentProvider) {
-    await deps.validateApiKey();
+    // Best-effort: on the offline path this routes into model-readiness checks
+    // that can reject. A rejection here must not cost Finish its completion —
+    // the setup record is already written. SettingsInitializer re-derives the
+    // readiness verdict on the next change, and the Start gate shows its own
+    // message in the meantime.
+    try {
+      await deps.validateApiKey();
+    } catch (err) {
+      console.warn('[applySetup] Post-finish validation failed:', err);
+    }
   }
 }

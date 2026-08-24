@@ -105,6 +105,15 @@ describe('applySetupDraft (spec §1.5)', () => {
     expect(d.completeSetup).not.toHaveBeenCalled();
   });
 
+  it('tolerates a rejected post-finish re-validation instead of swallowing completion', async () => {
+    const d = deps({
+      currentProvider: Provider.SONIOX,
+      validateApiKey: vi.fn(async () => { throw new Error('boom'); }),
+    });
+    await expect(applySetupDraft(draft({}), d)).resolves.toBeUndefined();
+    expect(d.completeSetup).toHaveBeenCalled();
+  });
+
   it('refuses an incomplete draft', async () => {
     await expect(applySetupDraft(draft({ scenario: null }), deps())).rejects.toThrow(/incomplete/);
     await expect(applySetupDraft(draft({ targetLanguage: null }), deps())).rejects.toThrow(/incomplete/);
