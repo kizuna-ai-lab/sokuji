@@ -540,7 +540,7 @@
     "initProgress": "Ładowanie ({{completed}}/{{total}})...",
     "stopDebug": "Zatrzymaj debugowanie",
     "debug": "Debuguj",
-    "apiKeyRequired": "Proszę najpierw dodać ważny klucz API OpenAI w ustawieniach",
+    "apiKeyRequired": "Proszę najpierw dodać ważny klucz API w ustawieniach",
     "modelsRequired": "Wymagane są modele. Proszę najpierw zweryfikować klucz API, aby załadować dostępne modele.",
     "modelsLoading": "Ładowanie dostępnych modeli, proszę czekać...",
     "typeMessage": "Tekst do przetłumaczenia...",

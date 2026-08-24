@@ -540,7 +540,7 @@
     "initProgress": "Memuat ({{completed}}/{{total}})...",
     "stopDebug": "Hentikan debug",
     "debug": "Debug",
-    "apiKeyRequired": "Silakan tambahkan kunci API OpenAI yang valid di pengaturan terlebih dahulu",
+    "apiKeyRequired": "Silakan tambahkan kunci API yang valid di pengaturan terlebih dahulu",
     "modelsRequired": "Model diperlukan. Silakan validasi kunci API Anda terlebih dahulu untuk memuat model yang tersedia.",
     "modelsLoading": "Memuat model yang tersedia, harap tunggu...",
     "typeMessage": "Teks untuk diterjemahkan...",

@@ -682,8 +682,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // balance floor roughly doubles. Same derived value the session wiring
       // uses, so the button and the session cannot disagree.
       sonioxBothSplit,
+      // Never changes whether Start is enabled — only how a managed provider's
+      // blocker is worded, since its key comes from the account rather than a
+      // settings field. Raw, like ProviderSection's own signed-out notice: both
+      // read false while the session is still loading, so they agree.
+      isSignedIn,
     }),
-    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, autoSourceParticipantBlocked, textOnly, speakerWillStart, sonioxBothSplit],
+    [isApiKeyValid, availableModels.length, loadingModels, isInitializing, provider, quota, missingDeviceForMode, autoSourceParticipantBlocked, textOnly, speakerWillStart, sonioxBothSplit, isSignedIn],
   );
   const canStartSession = startGate.canStart;
 

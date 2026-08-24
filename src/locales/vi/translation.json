@@ -540,7 +540,7 @@
     "initProgress": "Đang tải ({{completed}}/{{total}})...",
     "stopDebug": "Dừng gỡ lỗi",
     "debug": "Gỡ lỗi",
-    "apiKeyRequired": "Vui lòng thêm khóa API OpenAI hợp lệ trong cài đặt trước",
+    "apiKeyRequired": "Vui lòng thêm khóa API hợp lệ trong cài đặt trước",
     "modelsRequired": "Cần có các mô hình. Vui lòng xác thực khóa API của bạn trước để tải các mô hình có sẵn.",
     "modelsLoading": "Đang tải các mô hình có sẵn, vui lòng đợi...",
     "typeMessage": "Văn bản cần dịch...",

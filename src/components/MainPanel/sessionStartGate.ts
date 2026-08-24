@@ -22,6 +22,8 @@ export type StartBlockReason =
   | 'auto-source-participant'
   | 'local-models-missing'
   | 'api-key-invalid'
+  | 'sign-in-required'
+  | 'managed-key-unavailable'
   | 'no-models'
   | 'loading-models'
   | 'wallet-frozen'
@@ -95,6 +97,19 @@ export interface StartGateInput {
    */
   speakerWillStart?: boolean;
   /**
+   * Is the user signed in to their Kizuna account?
+   *
+   * Read ONLY to word the blocker for a Kizuna-managed provider, whose key is
+   * issued by the backend: signed out is a sign-in prompt, signed in with no
+   * key is an account failure. It never affects `canStart` — whether the key
+   * actually arrived is already answered by `isApiKeyValid`.
+   *
+   * Optional, defaulting to signed IN. A caller that has not been taught about
+   * auth then gets the neutral account message instead of telling a signed-in
+   * user to sign in, which is the worse of the two wrong answers.
+   */
+  isSignedIn?: boolean;
+  /**
    * Will the session about to start run Both mode as TWO Soniox streams (one
    * per audio source) rather than one shared mixed stream?
    *
@@ -127,6 +142,7 @@ export function computeStartGate(input: StartGateInput): StartGate {
     textOnly,
     speakerWillStart,
     sonioxBothSplit,
+    isSignedIn = true,
   } = input;
 
   const kizunaManaged = isKizunaManagedProvider(provider);
@@ -195,14 +211,39 @@ export function computeStartGate(input: StartGateInput): StartGate {
     return { canStart: false, reason: 'auto-source-participant' };
   }
   if (!isApiKeyValid) {
-    // For LOCAL_INFERENCE, "API key valid" is really "required models are
-    // downloaded" (settingsStore.validateApiKey delegates to
-    // modelStore.ensureSelectionReady's resolver gate), so the actionable
-    // message differs.
-    return {
-      canStart: false,
-      reason: provider === Provider.LOCAL_INFERENCE ? 'local-models-missing' : 'api-key-invalid',
-    };
+    // `isApiKeyValid` is the readiness flag for every provider, but only some
+    // of them are ready by way of an API key the user pastes. This branch was
+    // a two-way split that sent everything except LOCAL_INFERENCE to
+    // 'api-key-invalid', whose message told the user to add an OpenAI key —
+    // shown verbatim to a Gemini user, to a local engine that has no key at
+    // all, and to a signed-out managed user who cannot supply one. Each group
+    // gets the instruction it can actually act on.
+
+    // Local engines: "valid" means the required models are downloaded.
+    // settingsStore.validateApiKey routes BOTH of them through their model
+    // store's ensureSelectionReady resolver gate — modelStore for
+    // LOCAL_INFERENCE, nativeModelStore for LOCAL_NATIVE — and neither ever
+    // sees a credential.
+    if (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
+      return { canStart: false, reason: 'local-models-missing' };
+    }
+
+    // Kizuna-managed: the key is issued by the backend against the user's
+    // account (ApiKeyService), so there is no field to paste one into. Signed
+    // out is by far the common case and is what settingsStore already reports
+    // as `kizunaKeyError: 'auth.signedOut'`; signed in with no key is a
+    // session or backend failure, whose specific detail ProviderSection
+    // renders. The two differ in wording, not in destination — ProviderSection
+    // carries the affordance for both (see `reasonToSettingsTarget`).
+    if (kizunaManaged) {
+      return {
+        canStart: false,
+        reason: isSignedIn ? 'managed-key-unavailable' : 'sign-in-required',
+      };
+    }
+
+    // Everything left really does hold a user-supplied credential.
+    return { canStart: false, reason: 'api-key-invalid' };
   }
   if (loadingModels) return { canStart: false, reason: 'loading-models' };
   if (availableModelCount === 0) return { canStart: false, reason: 'no-models' };
@@ -274,7 +315,20 @@ export function reasonToSettingsTarget(
       return 'model-management';
     case 'api-key-invalid':
     case 'no-models':
+    // Both managed-provider blockers, deliberately NOT 'user-account': the
+    // account entry was moved out of the settings panel to the title bar's
+    // AccountButton, and Settings.tsx resolves a target by looking up
+    // `${target}-section`, so 'user-account' matches no element — the Fix
+    // button would switch to the General tab, scroll nowhere, and leave the
+    // user with nothing to click. ProviderSection is where BOTH states have an
+    // affordance: the sign-in link that opens the account popover, and the
+    // specific `kizunaKeyError` for a signed-in user whose key never arrived.
+    case 'sign-in-required':
+    case 'managed-key-unavailable':
       return 'provider';
+    // Pre-existing, and left alone here: 'user-account' is dead for these two
+    // as well, but where a wallet top-up should land is a separate question
+    // from what this gate reports.
     case 'wallet-frozen':
     case 'insufficient-balance':
       return 'user-account';
@@ -315,7 +369,23 @@ export function reasonToI18n(
     case 'local-models-missing':
       return { key: 'mainPanel.localModelsRequired', defaultValue: 'Please download the required models in Settings to start.' };
     case 'api-key-invalid':
-      return { key: 'mainPanel.apiKeyRequired', defaultValue: 'Please add a valid OpenAI API Key in settings first' };
+      // Provider-neutral on purpose. This string named OpenAI in all 30
+      // catalogs and was the catch-all blocker, so every other provider's
+      // users were told to fix a service they had not selected. Naming the
+      // right one instead would mean interpolating a display name that is
+      // itself localized — and i18next will not resolve a `$t()` arriving
+      // through interpolation (skipOnVariables) -- for a sentence whose
+      // Fix button already opens the selected provider's own settings.
+      return { key: 'mainPanel.apiKeyRequired', defaultValue: 'Please add a valid API key in settings first' };
+    case 'sign-in-required':
+      // The same sentence ProviderSection shows under this exact condition,
+      // and the one settingsStore stores as the signed-out `kizunaKeyError`.
+      return { key: 'auth.signedOut', defaultValue: "Sign in to use Kizuna AI's built-in translation service." };
+    case 'managed-key-unavailable':
+      // Deliberately NOT auth.sessionUnavailable ("please sign in again"): the
+      // key can also fail to arrive because the backend call did, and sending
+      // a signed-in user to re-authenticate for a network blip is a dead end.
+      return { key: 'auth.unknown', defaultValue: 'Could not verify your account. Please try again.' };
     case 'no-models':
       return { key: 'mainPanel.modelsRequired', defaultValue: 'Models are required. Please validate your API key first to load available models.' };
     case 'loading-models':

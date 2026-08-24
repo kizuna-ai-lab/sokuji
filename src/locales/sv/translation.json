@@ -540,7 +540,7 @@
     "initProgress": "Laddar ({{completed}}/{{total}})...",
     "stopDebug": "Stoppa felsökning",
     "debug": "Felsök",
-    "apiKeyRequired": "Lägg först till en giltig OpenAI API-nyckel i inställningarna",
+    "apiKeyRequired": "Lägg först till en giltig API-nyckel i inställningarna",
     "modelsRequired": "Modeller krävs. Vänligen validera din API-nyckel först för att ladda tillgängliga modeller.",
     "modelsLoading": "Laddar tillgängliga modeller, vänligen vänta...",
     "typeMessage": "Text att översätta...",

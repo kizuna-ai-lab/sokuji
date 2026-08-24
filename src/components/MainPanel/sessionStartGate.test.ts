@@ -50,6 +50,77 @@ describe('computeStartGate', () => {
     });
   });
 
+  // The blocker has to name a problem the user can act on. 'api-key-invalid'
+  // used to be the catch-all for every provider whose readiness check failed,
+  // and its message told the user to paste an API key — advice that is
+  // impossible to follow on a managed provider (the key comes from the
+  // backend) and meaningless on a local engine (there is no key at all).
+  it('treats an invalid key on LOCAL_NATIVE as missing models, like LOCAL_INFERENCE', () => {
+    expect(
+      computeStartGate({ ...ready, isApiKeyValid: false, provider: Provider.LOCAL_NATIVE }),
+    ).toEqual({ canStart: false, reason: 'local-models-missing' });
+  });
+
+  it('asks a signed-out managed provider to sign in, not to paste a key it cannot accept', () => {
+    expect(
+      computeStartGate({
+        ...ready,
+        isApiKeyValid: false,
+        provider: Provider.KIZUNA_AI_SONIOX,
+        isSignedIn: false,
+        quota: { balance: 10_000_000, frozen: false },
+      }),
+    ).toEqual({ canStart: false, reason: 'sign-in-required' });
+  });
+
+  it('reports a signed-in managed provider whose key never arrived as an account problem', () => {
+    expect(
+      computeStartGate({
+        ...ready,
+        isApiKeyValid: false,
+        provider: Provider.KIZUNA_AI_SONIOX,
+        isSignedIn: true,
+        quota: { balance: 10_000_000, frozen: false },
+      }),
+    ).toEqual({ canStart: false, reason: 'managed-key-unavailable' });
+  });
+
+  // Both managed reasons beat the generic key complaint, but neither may
+  // outrank the blockers that are more specific still.
+  it('still reports the missing device on a signed-out managed provider', () => {
+    expect(
+      computeStartGate({
+        ...ready,
+        isApiKeyValid: false,
+        provider: Provider.KIZUNA_AI_SONIOX,
+        isSignedIn: false,
+        missingDeviceForMode: 'speaker',
+      }),
+    ).toEqual({ canStart: false, reason: 'missing-device', deviceScope: 'speaker' });
+  });
+
+  // A caller that has not been taught about auth gets the neutral account
+  // message rather than being told to sign in — telling a signed-in user to
+  // sign in is the worse of the two wrong answers.
+  it('defaults an omitted isSignedIn to signed in', () => {
+    expect(
+      computeStartGate({
+        ...ready,
+        isApiKeyValid: false,
+        provider: Provider.KIZUNA_AI_OPENAI_TRANSLATE,
+        quota: { balance: 10_000_000, frozen: false },
+      }),
+    ).toEqual({ canStart: false, reason: 'managed-key-unavailable' });
+  });
+
+  // isSignedIn is read ONLY to word the managed-provider blocker. A
+  // self-managed provider's key lives in settings either way.
+  it('ignores isSignedIn for a provider that carries its own key', () => {
+    expect(
+      computeStartGate({ ...ready, isApiKeyValid: false, isSignedIn: false }),
+    ).toEqual({ canStart: false, reason: 'api-key-invalid' });
+  });
+
   it('reports no-models when the model list came back empty', () => {
     expect(computeStartGate({ ...ready, availableModelCount: 0 })).toEqual({
       canStart: false,
@@ -403,6 +474,20 @@ describe('reasonToSettingsTarget', () => {
     expect(reasonToSettingsTarget('insufficient-balance')).toBe('user-account');
   });
 
+  // NOT 'user-account'. The account entry was deliberately moved out of the
+  // settings panel to the title bar's AccountButton, and two tests pin its
+  // absence there (SimpleSettings.account.test.tsx, OnboardingContext.steps).
+  // Settings.tsx resolves a target by looking up `${target}-section`, so
+  // 'user-account' matches no element: the Fix button would switch to the
+  // General tab, scroll nowhere, and leave the user with nothing to click.
+  // ProviderSection is the one place both managed states have an affordance —
+  // the sign-in link that opens the account popover, and the specific
+  // kizunaKeyError for a signed-in user whose key never arrived.
+  it('routes both managed-provider blockers to the provider section', () => {
+    expect(reasonToSettingsTarget('sign-in-required')).toBe('provider');
+    expect(reasonToSettingsTarget('managed-key-unavailable')).toBe('provider');
+  });
+
   it('offers no destination for the transient loading state', () => {
     expect(reasonToSettingsTarget('loading-models')).toBeNull();
   });
@@ -416,14 +501,36 @@ describe('reasonToI18n', () => {
   it('maps every reason to an existing translation key', () => {
     const reasons = [
       'missing-device', 'auto-source-participant', 'local-models-missing',
-      'api-key-invalid', 'no-models', 'loading-models', 'wallet-frozen',
+      'api-key-invalid', 'sign-in-required', 'managed-key-unavailable',
+      'no-models', 'loading-models', 'wallet-frozen',
       'insufficient-balance', 'quota-unknown',
     ] as const;
     for (const reason of reasons) {
       const entry = reasonToI18n(reason);
-      expect(entry.key).toMatch(/^(mainPanel|modePicker|tokenUsage|settings)\./);
+      expect(entry.key).toMatch(/^(mainPanel|modePicker|tokenUsage|settings|auth)\./);
       expect(entry.defaultValue.length).toBeGreaterThan(0);
     }
+  });
+
+  // The bug this guards: every provider whose readiness check failed showed
+  // "Please add a valid OpenAI API Key in settings first", so a Gemini user
+  // was told to fix a service they had not selected. The gate now words the
+  // managed and local cases separately, which leaves this message free to be
+  // provider-neutral rather than naming the wrong one.
+  it('does not name a provider in the API-key message', () => {
+    expect(reasonToI18n('api-key-invalid').defaultValue).not.toMatch(/openai/i);
+  });
+
+  it('points a signed-out managed provider at signing in', () => {
+    expect(reasonToI18n('sign-in-required').key).toBe('auth.signedOut');
+  });
+
+  it('reports a missing managed key as an account problem, not a missing session', () => {
+    // Deliberately NOT auth.sessionUnavailable ("sign in again"): a key can
+    // also fail to arrive because the backend call did, and telling a
+    // signed-in user their session died would send them to re-authenticate
+    // for nothing.
+    expect(reasonToI18n('managed-key-unavailable').key).toBe('auth.unknown');
   });
 
   // The wallet is micro-USD and this branch removed token vocabulary

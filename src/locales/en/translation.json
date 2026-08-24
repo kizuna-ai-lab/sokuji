@@ -540,7 +540,7 @@
     "initProgress": "Loading ({{completed}}/{{total}})...",
     "stopDebug": "Stop Debug",
     "debug": "Debug",
-    "apiKeyRequired": "Please add a valid OpenAI API Key in settings first",
+    "apiKeyRequired": "Please add a valid API key in settings first",
     "modelsRequired": "Models are required. Please validate your API key first to load available models.",
     "modelsLoading": "Loading available models, please wait...",
     "typeMessage": "Text to translate...",

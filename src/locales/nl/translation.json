@@ -540,7 +540,7 @@
     "initProgress": "Laden ({{completed}}/{{total}})...",
     "stopDebug": "Debug stoppen",
     "debug": "Debug",
-    "apiKeyRequired": "Voeg eerst een geldige OpenAI API sleutel toe in de instellingen",
+    "apiKeyRequired": "Voeg eerst een geldige API-sleutel toe in de instellingen",
     "modelsRequired": "Modellen zijn vereist. Valideer eerst uw API-sleutel om beschikbare modellen te laden.",
     "modelsLoading": "Beschikbare modellen laden, even geduld...",
     "typeMessage": "Te vertalen tekst...",
