@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { useState } from 'react';
 import MainLayout from './MainLayout';
+import { useLayoutStore } from '../../stores/layoutStore';
 
 // Stateful stub: proves whether a panel's component state survives
 // panel switches. Pre-keep-alive, switching panels unmounted the
@@ -64,6 +65,7 @@ describe('MainLayout panel keep-alive', () => {
   beforeEach(() => {
     sessionStorage.clear();
     localStorage.clear();
+    useLayoutStore.setState({ showSettings: false });
   });
 
   it('preserves panel state across settings -> logs -> settings', () => {

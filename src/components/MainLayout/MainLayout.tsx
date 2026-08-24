@@ -13,7 +13,7 @@ import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
-import { useShowSettings, useSetShowSettings, useLayoutStore } from '../../stores/layoutStore';
+import { useShowSettings, useSetShowSettings } from '../../stores/layoutStore';
 import SubtitleApp from '../Subtitle/SubtitleApp';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
@@ -34,17 +34,6 @@ const MainLayout: React.FC = () => {
   const subtitleActive = useSubtitleModeActive();
   const [showLogs, setShowLogs] = useState(() => {
     return sessionStorage.getItem('panelState.showLogs') === 'true';
-  });
-  // showSettings lives in a process-wide store singleton now, not a
-  // component-local useState — that's the whole point, so the tour (outside
-  // MainLayout's tree) can flip it without a synthetic click. But that means
-  // it no longer resets itself the way the old per-mount useState initializer
-  // did. MainLayout mounts exactly once in production, so this resync is a
-  // no-op there; it matters only for a harness that mounts more than one
-  // MainLayout instance in the same process against a freshly cleared
-  // sessionStorage and expects each instance to start from that clean slate.
-  useState(() => {
-    useLayoutStore.setState({ showSettings: useLayoutStore.getState().readInitial() });
   });
   const showSettings = useShowSettings();
   const setShowSettings = useSetShowSettings();
