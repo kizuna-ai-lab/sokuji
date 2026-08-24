@@ -89,6 +89,19 @@ describe('interface language in Help', () => {
     expect(picker().getAttribute('aria-label')).toMatch(/interface language/i);
   });
 
+  // A native <select> takes its width from its LONGEST option, not from the
+  // chosen one. With "Português (Portugal)" in the list, picking 日本語 left
+  // the control holding twenty characters' worth of empty space, which pushed
+  // the next link onto another line. The visible name is rendered separately
+  // so the width follows what is actually selected; the select itself is
+  // overlaid transparently and keeps its native behaviour.
+  it('shows the selected language as text, so the width fits it', () => {
+    render(<HelpSection />);
+    const shown = document.querySelector('#help-section .help-link__value');
+    expect(shown).not.toBeNull();
+    expect(shown!.textContent).toBe('English');
+  });
+
   it('offers every interface language, not a shortened list', () => {
     render(<HelpSection />);
     expect(picker().options).toHaveLength(INTERFACE_LANGUAGES.length);

@@ -78,7 +78,18 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
             the row, long enough to push Discussions onto a third line. The
             globe carries the meaning; the tooltip carries the caveat that this
             is not the translation language.
+
+            The name is rendered here rather than left to the <select>, because
+            a native select is as wide as its LONGEST option. With "Português
+            (Portugal)" in the list, choosing 日本語 left the control padded
+            out with twenty characters of nothing. This span sets the width to
+            the chosen name; the select is laid transparently over it and keeps
+            every native behaviour — the OS-drawn list, keyboard, type-ahead.
           */}
+          <span className="help-link__value">
+            {INTERFACE_LANGUAGES.find((l) => l.value === i18n.language)?.label
+              ?? i18n.language}
+          </span>
           <select
             className="help-link__select"
             aria-label={t('simpleConfig.interfaceLanguage', 'Interface Language')}
