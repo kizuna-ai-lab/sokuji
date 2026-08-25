@@ -559,9 +559,19 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // (see richSelect) lives in exactly one place.
   const renderProviderOption = (id: ProviderType, disabled = false) => {
     const optionInfo = getProviderInfoById(id);
+    // Whatever the wizard's managed card recommends, this list recommends —
+    // same function, so the two surfaces cannot name different providers.
+    const recommended = id === ProviderConfigFactory.getDefaultManagedProvider();
+    const recommendedLabel = t('simpleSettings.recommended', 'Recommended');
     if (!richSelect) {
+      // Chrome below 135 renders <option>{text}</option> and drops every child
+      // element, so on the extension's floor (116) the claim has to be text.
       return (
-        <option key={id} value={id} disabled={disabled}>{optionInfo.name}</option>
+        <option key={id} value={id} disabled={disabled}>
+          {recommended
+            ? t('simpleSettings.recommendedOption', '{{name}} ({{label}})', { name: optionInfo.name, label: recommendedLabel })
+            : optionInfo.name}
+        </option>
       );
     }
     return (
@@ -576,6 +586,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           <span className="provider-name-line">
             <span className="provider-select__name">{optionInfo.name}</span>
             <PoweredBy provider={id} />
+            {recommended && <em className="provider-recommended">{recommendedLabel}</em>}
           </span>
           <span className="provider-select__description">{optionInfo.description}</span>
         </span>

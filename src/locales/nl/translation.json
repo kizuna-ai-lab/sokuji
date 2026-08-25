@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Voer uw API sleutel in",
     "setupGuide": "Installatiehandleiding",
     "validate": "Valideren",
-    "apiKeyHelpTooltip2": "Stap-voor-stap gids:"
+    "apiKeyHelpTooltip2": "Stap-voor-stap gids:",
+    "recommended": "Aanbevolen",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Audio instellingen",

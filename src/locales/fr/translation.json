@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Entrez votre clé API",
     "setupGuide": "Guide de configuration",
     "validate": "Valider",
-    "apiKeyHelpTooltip2": "Guide étape par étape :"
+    "apiKeyHelpTooltip2": "Guide étape par étape :",
+    "recommended": "Recommandé",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Paramètres audio",

@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "మీ API కీని నమోదు చేయండి",
     "setupGuide": "సెటప్ గైడ్",
     "validate": "ధృవీకరించు",
-    "apiKeyHelpTooltip2": "దశల వారీ గైడ్:"
+    "apiKeyHelpTooltip2": "దశల వారీ గైడ్:",
+    "recommended": "సిఫార్సు చేయబడింది",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "ఆడియో సెట్టింగ్‌లు",

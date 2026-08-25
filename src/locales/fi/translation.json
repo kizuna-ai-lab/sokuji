@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Syötä API-avaimesi",
     "setupGuide": "Asennusopas",
     "validate": "Vahvista",
-    "apiKeyHelpTooltip2": "Vaihe vaiheelta -opas:"
+    "apiKeyHelpTooltip2": "Vaihe vaiheelta -opas:",
+    "recommended": "Suositeltu",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Ääniasetukset",

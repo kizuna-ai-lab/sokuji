@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "کلید API خود را وارد کنید",
     "setupGuide": "راهنمای راه‌اندازی",
     "validate": "اعتبارسنجی",
-    "apiKeyHelpTooltip2": "راهنمای قدم به قدم:"
+    "apiKeyHelpTooltip2": "راهنمای قدم به قدم:",
+    "recommended": "پیشنهادی",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "تنظیمات صدا",

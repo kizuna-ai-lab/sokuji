@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Ange din API nyckel",
     "setupGuide": "Installationsguide",
     "validate": "Validera",
-    "apiKeyHelpTooltip2": "Steg-för-steg guide:"
+    "apiKeyHelpTooltip2": "Steg-för-steg guide:",
+    "recommended": "Rekommenderas",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Ljudinställningar",

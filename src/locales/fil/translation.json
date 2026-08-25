@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Ilagay ang inyong API key",
     "setupGuide": "Gabay sa pag-setup",
     "validate": "I-validate",
-    "apiKeyHelpTooltip2": "Step-by-step na guide:"
+    "apiKeyHelpTooltip2": "Step-by-step na guide:",
+    "recommended": "Inirerekomenda",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Mga Setting ng Audio",

@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "ป้อน API key ของคุณ",
     "setupGuide": "คู่มือการตั้งค่า",
     "validate": "ตรวจสอบ",
-    "apiKeyHelpTooltip2": "คู่มือทีละขั้นตอน:"
+    "apiKeyHelpTooltip2": "คู่มือทีละขั้นตอน:",
+    "recommended": "แนะนำ",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "การตั้งค่าเสียง",

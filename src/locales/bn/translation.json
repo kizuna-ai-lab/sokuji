@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "আপনার API কী প্রবেশ করান",
     "setupGuide": "সেটআপ গাইড",
     "validate": "যাচাই",
-    "apiKeyHelpTooltip2": "ধাপে ধাপে গাইড:"
+    "apiKeyHelpTooltip2": "ধাপে ধাপে গাইড:",
+    "recommended": "প্রস্তাবিত",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "অডিও সেটিংস",

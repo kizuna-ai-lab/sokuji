@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "APIキーを入力してください",
     "setupGuide": "セットアップガイド",
     "validate": "検証",
-    "apiKeyHelpTooltip2": "ステップバイステップガイド："
+    "apiKeyHelpTooltip2": "ステップバイステップガイド：",
+    "recommended": "おすすめ",
+    "recommendedOption": "{{name}}（{{label}}）"
   },
   "audioPanel": {
     "title": "オーディオ設定",

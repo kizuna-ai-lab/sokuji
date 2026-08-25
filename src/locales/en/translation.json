@@ -288,6 +288,8 @@
     "provider": "AI Service Provider",
     "apiKeyPlaceholder": "Enter your API key",
     "setupGuide": "Setup guide",
+    "recommended": "Recommended",
+    "recommendedOption": "{{name}} ({{label}})",
     "validate": "Validate",
     "apiKeyHelpTooltip2": "Step-by-step guide:"
   },

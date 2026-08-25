@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "अपनी API की दर्ज करें",
     "setupGuide": "सेटअप गाइड",
     "validate": "सत्यापित करें",
-    "apiKeyHelpTooltip2": "कदम-दर-कदम गाइड:"
+    "apiKeyHelpTooltip2": "कदम-दर-कदम गाइड:",
+    "recommended": "अनुशंसित",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "ऑडियो सेटिंग्स",

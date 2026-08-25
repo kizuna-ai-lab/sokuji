@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "הזן את מפתח ה-API שלך",
     "setupGuide": "מדריך הגדרה",
     "validate": "אמת",
-    "apiKeyHelpTooltip2": "מדריך שלב אחר שלב:"
+    "apiKeyHelpTooltip2": "מדריך שלב אחר שלב:",
+    "recommended": "מומלץ",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "הגדרות שמע",

@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Masukkan kunci API Anda",
     "setupGuide": "Panduan pengaturan",
     "validate": "Validasi",
-    "apiKeyHelpTooltip2": "Panduan langkah demi langkah:"
+    "apiKeyHelpTooltip2": "Panduan langkah demi langkah:",
+    "recommended": "Direkomendasikan",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Pengaturan audio",

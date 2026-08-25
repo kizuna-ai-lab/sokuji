@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "API 키를 입력하세요",
     "setupGuide": "설정 가이드",
     "validate": "검증",
-    "apiKeyHelpTooltip2": "단계별 가이드:"
+    "apiKeyHelpTooltip2": "단계별 가이드:",
+    "recommended": "추천",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "오디오 설정",

@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "உங்கஷ் API விசையை உள்ளிடவும்",
     "setupGuide": "அமைப்பு வழிகாட்டி",
     "validate": "சரிபார்",
-    "apiKeyHelpTooltip2": "படிப்படியான வழிகாட்டி:"
+    "apiKeyHelpTooltip2": "படிப்படியான வழிகாட்டி:",
+    "recommended": "பரிந்துரைக்கப்பட்டது",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "ஆடியோ அமைப்புகள்",

@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Nhập khóa API của bạn",
     "setupGuide": "Hướng dẫn cài đặt",
     "validate": "Xác thực",
-    "apiKeyHelpTooltip2": "Hướng dẫn từng bước:"
+    "apiKeyHelpTooltip2": "Hướng dẫn từng bước:",
+    "recommended": "Được đề xuất",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",

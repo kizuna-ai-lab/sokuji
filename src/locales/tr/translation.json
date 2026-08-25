@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "API anahtarınızı girin",
     "setupGuide": "Kurulum kılavuzu",
     "validate": "Doğrula",
-    "apiKeyHelpTooltip2": "Adım adım kılavuz:"
+    "apiKeyHelpTooltip2": "Adım adım kılavuz:",
+    "recommended": "Önerilen",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Ses Ayarları",

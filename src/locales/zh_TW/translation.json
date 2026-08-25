@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "輸入您的 API 金鑰",
     "setupGuide": "設定指南",
     "validate": "驗證",
-    "apiKeyHelpTooltip2": "逐步指南："
+    "apiKeyHelpTooltip2": "逐步指南：",
+    "recommended": "推薦",
+    "recommendedOption": "{{name}}（{{label}}）"
   },
   "audioPanel": {
     "title": "音訊設定",

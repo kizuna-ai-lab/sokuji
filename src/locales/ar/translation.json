@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "أدخل مفتاح API الخاص بك",
     "setupGuide": "دليل الإعداد",
     "validate": "تحقق",
-    "apiKeyHelpTooltip2": "دليل خطوة بخطوة:"
+    "apiKeyHelpTooltip2": "دليل خطوة بخطوة:",
+    "recommended": "موصى به",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "إعدادات الصوت",

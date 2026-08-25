@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Введіть свій API-ключ",
     "setupGuide": "Посібник з налаштування",
     "validate": "Перевірити",
-    "apiKeyHelpTooltip2": "Покрокова інструкція:"
+    "apiKeyHelpTooltip2": "Покрокова інструкція:",
+    "recommended": "Рекомендовано",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Налаштування аудіо",
