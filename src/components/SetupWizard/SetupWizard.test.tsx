@@ -28,8 +28,15 @@ const applied: unknown[] = [];
 // A test can hold Finish open by parking a promise here, which is how the
 // "cannot abandon an in-flight Finish" case gets a window to press Escape in.
 let applyGate: Promise<void> | null = null;
+// Parked here, a rejection makes the next Finish fail exactly once — the case
+// where settings were never written and the tour must not start over them.
+let applyError: Error | null = null;
 vi.mock('./useApplySetup', () => ({
-  useApplySetup: () => async (draft: unknown) => { if (applyGate) await applyGate; applied.push(draft); },
+  useApplySetup: () => async (draft: unknown) => {
+    if (applyGate) await applyGate;
+    if (applyError) { const err = applyError; applyError = null; throw err; }
+    applied.push(draft);
+  },
 }));
 let apiKeyValid: boolean | null = null;
 // Mutable so a test can simulate the sign-in overlay opening from step 3 and
@@ -61,7 +68,7 @@ import { matchLanguage } from './languageDefaults';
 
 beforeEach(() => {
   cleanup();
-  applied.length = 0; applyGate = null; signedIn = false; uiLanguage = 'en';
+  applied.length = 0; applyGate = null; applyError = null; signedIn = false; uiLanguage = 'en';
   apiKeyValid = null; setupRecord = null; authOverlayState = null;
   setAuthOverlay.mockClear(); trackSpy.mockClear(); startTourSpy.mockClear();
 });
@@ -153,6 +160,29 @@ describe('SetupWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(trackSpy.mock.calls.some((c) => c[0] === 'setup_completed')).toBe(true));
     expect(trackSpy.mock.calls.find((c) => c[0] === 'setup_completed')![1]).toMatchObject({ credentials_pending: false });
+    // The tour is seeded from the draft, so the managed path hands it
+    // apiKeyValid: null — the key is the backend's business, not the user's,
+    // and "false" would send the tour down the "add your key" copy.
+    expect(startTourSpy).toHaveBeenCalledTimes(1);
+    expect(startTourSpy).toHaveBeenCalledWith(expect.objectContaining({ providerPath: 'managed', apiKeyValid: null, isSignedIn: true }));
+  });
+
+  it('does not start the tour when Finish fails', async () => {
+    applyError = new Error('could not write settings');
+    render(<SetupWizard variant="first-run" />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next(); next(); next();                           // credentials, language pair, finish
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+
+    // Nothing was applied, so there is no app behind the tour to tour: the
+    // wizard stays put and says why.
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('could not write settings'));
+    expect(applied).toHaveLength(0);
+    expect(startTourSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeEnabled();
   });
 
   it('takes the interface language from i18next, and seeds the pair from it', () => {
