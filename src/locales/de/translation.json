@@ -659,130 +659,6 @@
     "noMic": "Mikrofon Erforderlich",
     "reconnecting": "Verbindung wird wiederhergestellt..."
   },
-  "userTypeSelection": {
-    "title": "Willkommen bei Sokuji",
-    "subtitle": "Bitte wählen Sie Ihren Benutzertyp aus, um zu beginnen",
-    "regular": {
-      "title": "Normaler Benutzer",
-      "description": "Ich bin neu bei KI-Diensten oder bevorzuge eine einfache Erfahrung",
-      "feature1": "Keine API-Schlüssel-Kenntnisse erforderlich",
-      "feature2": "Einfache und intuitive Benutzeroberfläche",
-      "feature3": "Geführter Einrichtungsprozess",
-      "action": "Mit dem Basismodus beginnen"
-    },
-    "experienced": {
-      "title": "Erfahrener Benutzer",
-      "description": "Ich habe meine eigenen API-Schlüssel und verstehe KI-Dienste",
-      "feature1": "Besitze OpenAI oder Gemini API-Schlüssel",
-      "feature2": "Zugang zu Echtzeit-API-Funktionen",
-      "feature3": "Vollständige Kontrolle über alle Einstellungen",
-      "action": "Mit dem erweiterten Modus beginnen"
-    }
-  },
-  "onboarding": {
-    "basic": {
-      "steps": {
-        "welcome": {
-          "title": "Willkommen bei Sokuji",
-          "content": "Willkommen bei Sokuji! Diese einfache Anleitung hilft Ihnen dabei, die Echtzeit-Übersetzung in nur wenigen Schritten zu nutzen."
-        },
-        "mode": {
-          "content": "Wählen Sie, was Sokuji übersetzt: Ich — Ihre eigene Stimme (damit Ihr Gegenüber Sie versteht); Gegenüber — was Ihr Gegenüber sagt (damit Sie es verstehen); oder Beides für Übersetzung in beide Richtungen. Dies legt fest, welches Audio erfasst wird — wählen Sie Gegenüber oder Beides, um das Audio des Gegenübers einzuschalten.",
-          "title": "Übersetzungsmodus"
-        },
-        "settings": {
-          "title": "Schritt 1: Einstellungen öffnen",
-          "content": "Klicken Sie hier, um die Einstellungen zu öffnen, wo Sie Ihre Sprachen und Audiogeräte konfigurieren können."
-        },
-        "languages": {
-          "title": "Schritt 3: Sprachen auswählen",
-          "content": "Wählen Sie „Meine Sprache“ (was Sie sprechen) und „Sprache des Gegenübers“ (was Ihr Gegenüber hören soll)."
-        },
-        "microphone": {
-          "title": "Schritt 5: Mikrofon auswählen",
-          "content": "Wählen Sie Ihr Mikrofon aus der Liste aus. Dies ist das Gerät, das Ihre Stimme aufnimmt."
-        },
-        "speaker": {
-          "title": "Schritt 6: Lautsprecher auswählen",
-          "content": "Wählen Sie ein Monitoring-Gerät zur Vorschau der Übersetzung. Die übersetzte Audioausgabe wird unabhängig vom Monitoring immer an das virtuelle Mikrofon ausgegeben. Wählen Sie in Ihrer Konferenz-App oder Website das Sokuji Virtual Microphone als Mikrofoneingabe. Kopfhörer werden zur Überwachung empfohlen, um Rückkopplungen zu vermeiden."
-        },
-        "systemAudio": {
-          "title": "Schritt 7: Audio des Gegenübers",
-          "content": "Dies ist der Kanal des Gegenübers — was andere sagen, für Sie übersetzt. Schalten Sie ihn ein, indem Sie im Übersetzungsmodus Gegenüber oder Beides wählen (im Modus Ich bleibt er aus). In der Browser-Erweiterung erfasst er den aktuellen Tab, sodass Sie Ihr Gegenüber in Google Meet, Teams oder Zoom übersetzen können. In der Desktop-App erfasst er das gesamte System-Audio, sodass Sie YouTube, Twitch, Netflix oder jede Quelle übersetzen können. Die Sprache des Gegenübers wird nur in Text übersetzt — keine Sprachsynthese. Zusammen mit Ihrem Mikrofon ergibt das eine vollständige bidirektionale Übersetzung."
-        },
-        "start": {
-          "title": "Schritt 8: Übersetzen starten",
-          "content": "Klicken Sie auf Start, um mit der Übersetzung zu beginnen! Sprechen Sie einfach natürlich und hören Sie die Übersetzung in Echtzeit."
-        },
-        "complete": {
-          "title": "Alles bereit!",
-          "content": "Perfekt! Sie sind bereit, Sokuji zu verwenden. Klicken Sie auf Start und beginnen Sie zu sprechen, um Echtzeit-Übersetzungen zu hören."
-        },
-        "provider": {
-          "title": "Schritt 4: Übersetzungsanbieter",
-          "content": "Wählen Sie Ihren Übersetzungsanbieter. Sokuji hat einen eigenen integrierten Dienst — melden Sie sich über die Kontoschaltfläche in der Titelleiste an, um ihn zu nutzen. Außerdem werden Cloud-Dienste wie OpenAI, Gemini, Volcengine (Doubao) und mehr unterstützt, bei denen Sie Ihren eigenen API-Schlüssel mitbringen. Sie können auch die lokale Inferenz nutzen — kein API-Schlüssel nötig, kostenlos und datenschutzfreundlich, laden Sie einfach Modelle für vollständig offline Übersetzung herunter."
-        }
-      }
-    },
-    "back": "Zurück",
-    "close": "Schließen",
-    "finish": "Fertig",
-    "next": "Weiter",
-    "nextWithProgress": "Weiter ({step}/{steps})",
-    "open": "Dialog öffnen",
-    "skip": "Tour überspringen",
-    "restartTour": "Setup-Anleitung neu starten",
-    "steps": {
-      "welcome": {
-        "title": "Willkommen bei Sokuji",
-        "content": "Willkommen bei Sokuji! Diese Anleitung hilft Ihnen dabei, die Erweiterung für Live-Sprachübersetzung einzurichten. Lassen Sie uns beginnen!"
-      },
-      "mode": {
-        "content": "Wählen Sie, was Sokuji übersetzt: Ich — Ihre eigene Stimme (damit Ihr Gegenüber Sie versteht); Gegenüber — was Ihr Gegenüber sagt (damit Sie es verstehen); oder Beides für Übersetzung in beide Richtungen. Dies legt fest, welches Audio erfasst wird — wählen Sie Gegenüber oder Beides, um das Audio des Gegenübers einzuschalten.",
-        "title": "Übersetzungsmodus"
-      },
-      "settings": {
-        "title": "Schritt 1: Einstellungen öffnen",
-        "content": "Zunächst konfigurieren wir Ihre Einstellungen. Klicken Sie hier, um das Einstellungspanel zu öffnen, Ihren Übersetzungsanbieter zu wählen und die Einstellungen anzupassen."
-      },
-      "apiKey": {
-        "title": "Schritt 2: Übersetzungsanbieter",
-        "content": "Wählen Sie Ihren Übersetzungsanbieter. Sokuji unterstützt Cloud-Dienste wie OpenAI, Gemini, Volcengine (Doubao) und mehr. Sie können auch die lokale Inferenz nutzen — kein API-Schlüssel nötig, kostenlos und datenschutzfreundlich, laden Sie einfach Modelle für vollständig offline Übersetzung herunter."
-      },
-      "systemInstructions": {
-        "title": "Schritt 3: Systemanweisungen",
-        "content": "Passen Sie die Systemanweisungen an, um zu steuern, wie die KI antwortet. Sie können hier das Übersetzungsverhalten ändern und spezifische Anforderungen hinzufügen."
-      },
-      "voiceSettings": {
-        "title": "Schritt 4: Spracheinstellungen",
-        "content": "Konfigurieren Sie den Stimmtyp, der für die Sprachsynthese verwendet wird. Wählen Sie aus verschiedenen Stimmoptionen entsprechend Ihrer Präferenz."
-      },
-      "turnDetection": {
-        "title": "Schritt 5: Wendeerkennung",
-        "content": "Konfigurieren Sie die automatischen Wendeerkennungseinstellungen einschließlich Erkennungsmodus, Schwellenwert und Audioparameter für optimale Spracherkennungsleistung."
-      },
-      "microphoneSetup": {
-        "title": "Schritt 6: Mikrofon-Setup",
-        "content": "Wählen Sie hier Ihr Mikrofongerät aus. Stellen Sie sicher, dass Sie das richtige Eingabegerät für die beste Audioqualität auswählen."
-      },
-      "speakerSetup": {
-        "title": "Schritt 7: Lautsprecher-Setup",
-        "content": "Wählen Sie ein Überwachungsgerät aus, um die übersetzte Audio anzuhören und zu überprüfen, ob sie Ihren Anforderungen entspricht. Es wird empfohlen, Kopfhörer für die Überwachung zu verwenden, um Interferenzen mit der Mikrofoneingabe zu vermeiden. Wenn Sie der Meinung sind, dass die Übersetzungseinstellungen Ihren Anforderungen entsprechen, wird empfohlen, die Überwachung auszuschalten, damit Sie sich mehr auf Ihren Ausdruck konzentrieren können und die Mikrofoneingabe nicht stören."
-      },
-      "systemAudio": {
-        "title": "Schritt 8: Audio des Gegenübers",
-        "content": "Dies ist der Kanal des Gegenübers — was andere sagen, für Sie übersetzt. Schalten Sie ihn ein, indem Sie im Übersetzungsmodus Gegenüber oder Beides wählen (im Modus Ich bleibt er aus). In der Browser-Erweiterung erfasst er den aktuellen Tab, sodass Sie Ihr Gegenüber in Google Meet, Teams oder Zoom übersetzen können. In der Desktop-App erfasst er das gesamte System-Audio, sodass Sie YouTube, Twitch, Netflix oder jede Quelle übersetzen können. Die Sprache des Gegenübers wird nur in Text übersetzt — keine Sprachsynthese. Zusammen mit Ihrem Mikrofon ergibt das eine vollständige bidirektionale Übersetzung."
-      },
-      "startSession": {
-        "title": "Schritt 9: Sitzung starten",
-        "content": "Klicken Sie auf die Schaltfläche \"Sitzung starten\", um mit der Verwendung von Sokuji zu beginnen. Nach dem Start können Sie natürlich sprechen für Live-Übersetzung. Wenn die automatische Wendeerkennung deaktiviert ist, verwenden Sie \"Drücken zum Sprechen\" (Leertaste) zum Sprechen."
-      },
-      "complete": {
-        "title": "Setup-Anleitung abgeschlossen!",
-        "content": "Großartig! Alles ist eingerichtet. Bitte gewähren Sie die Mikrofonberechtigung, wenn Sie dazu aufgefordert werden. Sie können diese Anleitung jederzeit in den Einstellungen neu starten."
-      }
-    }
-  },
   "tokenUsage": {
     "unableToLoadQuota": "Kontingentinformationen können nicht geladen werden",
     "upgradeToPremium": "Auf Premium upgraden"
@@ -1070,5 +946,198 @@
     "deleteNoModel": "{{name}} wird gelöscht: Kein Modell für {{stage}} bleibt übrig — Sitzungen können nicht gestartet werden.",
     "clearAllKeepsPicks": "Ihre Auswahl wird gespeichert und kehrt zurück, sobald die Modelle erneut heruntergeladen werden.",
     "importChooseModel": "Modell zum Importieren auswählen"
+  },
+  "setup": {
+    "title": "Set up Sokuji",
+    "stepOf": "Step {{current}} of {{total}}",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "close": "Close",
+    "skipForNow": "Skip for now",
+    "rerun": "Run setup again",
+    "steps": {
+      "language": {
+        "title": "Which language should Sokuji speak to you in?",
+        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
+        "label": "Interface language"
+      },
+      "scenario": {
+        "title": "What do you want to do?",
+        "desc": "Pick the closest match. You can change any of this later."
+      },
+      "path": {
+        "title": "What do you have?"
+      },
+      "credentials": {
+        "offlineTitle": "Nothing to enter",
+        "managedTitle": "Your Kizuna AI account",
+        "ownKeyTitle": "Your API key"
+      },
+      "languagePair": {
+        "title": "Which languages?",
+        "desc": "What you (or they) speak, and what it should become."
+      },
+      "finish": {
+        "title": "Ready"
+      }
+    },
+    "scenarios": {
+      "sets": "Sets: mode {{mode}} · {{output}}",
+      "understand-others": {
+        "title": "Understand what others say",
+        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+      },
+      "be-heard": {
+        "title": "Be understood in a meeting",
+        "desc": "They hear your translated voice through a virtual microphone."
+      },
+      "subtitle-myself": {
+        "title": "Subtitle my own speech",
+        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+      },
+      "two-way-voice": {
+        "title": "Two-way online conversation",
+        "desc": "They hear your translated voice; you read their subtitles."
+      },
+      "two-way-text": {
+        "title": "Two-way online conversation, subtitles only",
+        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+      }
+    },
+    "modes": {
+      "speaker": "Me",
+      "participant": "Others",
+      "both": "Both"
+    },
+    "output": {
+      "voice": "spoken",
+      "subtitles": "subtitles"
+    },
+    "paths": {
+      "recommended": "Recommended",
+      "pickProvider": "Which provider?",
+      "offlineFlavor": "Which engine?",
+      "managed": {
+        "title": "Start right away",
+        "desc": "Sokuji runs the translation for you.",
+        "cost": "Needs a Kizuna AI account (email) with a balance. New accounts get a trial credit."
+      },
+      "own-key": {
+        "title": "I have my own API key",
+        "desc": "Use OpenAI, Gemini, Soniox and others directly.",
+        "cost": "You pay the provider for usage."
+      },
+      "offline": {
+        "title": "Free, offline",
+        "desc": "Runs on your own machine. Nothing leaves it.",
+        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
+        "native": "Native engine — faster, uses your GPU where available.",
+        "wasm": "In-app engine — works everywhere, slower."
+      }
+    },
+    "fit": {
+      "cannotSpeak": "This provider cannot produce spoken translation.",
+      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+    },
+    "credentials": {
+      "apiKey": "API key",
+      "endpoint": "Endpoint URL",
+      "endpointPlaceholder": "https://api.example.com/v1",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key",
+      "appId": "App ID",
+      "accessToken": "Access Token",
+      "apiSecret": "API Secret",
+      "validate": "Validate",
+      "valid": "Key accepted.",
+      "invalid": "The key was rejected.",
+      "signIn": "Sign in",
+      "createAccount": "Create account",
+      "signedIn": "Signed in. You can continue.",
+      "managedDesc": "Sign in or create an account. Translation is billed from your balance; new accounts get a trial credit.",
+      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
+      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
+      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then."
+    },
+    "languagePair": {
+      "source": "From",
+      "target": "To"
+    },
+    "summary": {
+      "scenario": "Scenario",
+      "mode": "Mode",
+      "provider": "Provider",
+      "languages": "Languages",
+      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
+      "pendingSignIn": "Not signed in — sign in from the account button before you start."
+    }
+  },
+  "tour": {
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "finish": "Finish",
+    "restart": "Restart Setup Guide",
+    "steps": {
+      "welcome": {
+        "title": "You're set up",
+        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+      },
+      "mode-picker": {
+        "title": "Translation mode",
+        "content": "This is set for you. Switch it any time; switching also changes whether the translation is spoken or shown as subtitles."
+      },
+      "microphone": {
+        "title": "Your microphone",
+        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+      },
+      "monitor": {
+        "title": "Hear yourself translated",
+        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+      },
+      "output-routing": {
+        "title": "How the other side hears you",
+        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
+        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
+        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
+        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+      },
+      "participant-source": {
+        "title": "The other side's voice",
+        "content": "Sokuji listens to the other side here.",
+        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
+        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+      },
+      "subtitle": {
+        "title": "Subtitle mode",
+        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+      },
+      "account": {
+        "title": "Your account",
+        "content": "Your balance and top-up live here.",
+        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+      },
+      "provider-settings": {
+        "title": "Provider settings",
+        "content": "Change your key or switch provider here.",
+        "content_pending": "Paste your API key here. Start unlocks once it validates."
+      },
+      "models": {
+        "title": "Models",
+        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+      },
+      "start": {
+        "title": "Start",
+        "content": "Press here to start translating.",
+        "content_offline": "This lights up once your models are ready.",
+        "content_signedOut": "This lights up once you sign in.",
+        "content_pendingKey": "This lights up once your API key validates."
+      },
+      "done": {
+        "title": "That's it",
+        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help."
+      }
+    }
   }
 }
