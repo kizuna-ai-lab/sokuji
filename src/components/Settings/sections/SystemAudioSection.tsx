@@ -84,6 +84,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     <div
       className={`config-section system-audio-section ${className}`}
       id="participant-section"
+      data-tour="participant-section"
       data-section-aliases="system-audio-section"
     >
       <h3>

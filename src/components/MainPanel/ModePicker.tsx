@@ -63,7 +63,7 @@ const ModePicker: React.FC<ModePickerProps> = ({ mode, locked, missingDeviceForM
   };
 
   return (
-    <div className={`mode-picker${locked ? ' mode-picker--locked' : ''}`} role="group" aria-label={t('modePicker.groupLabel', 'Translation mode')}>
+    <div className={`mode-picker${locked ? ' mode-picker--locked' : ''}`} role="group" data-tour="mode-picker" aria-label={t('modePicker.groupLabel', 'Translation mode')}>
       {SEGMENTS.map((seg) => {
         const isActive = mode === seg;
         const isWarn =

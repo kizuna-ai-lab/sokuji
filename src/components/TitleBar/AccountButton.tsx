@@ -166,6 +166,7 @@ const AccountButton: React.FC = () => {
       <button
         ref={btnRef}
         type="button"
+        data-tour="account-button"
         className="title-bar__action account-button"
         title={label}
         aria-label={label}

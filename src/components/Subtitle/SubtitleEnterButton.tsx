@@ -68,6 +68,7 @@ const SubtitleEnterButton: React.FC = () => {
   return (
     <button
       type="button"
+      data-tour="subtitle-enter"
       className={`title-bar__action ${subtitleActive ? 'is-active' : ''}`}
       onClick={onClick}
       disabled={disabled}

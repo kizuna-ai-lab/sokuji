@@ -601,7 +601,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   };
 
   return (
-    <div className={`config-section provider-section ${className}`} id="provider-section">
+    <div className={`config-section provider-section ${className}`} id="provider-section" data-tour="provider-section">
       <h3>
         <Cpu size={18} />
         <span>{t('simpleSettings.provider', 'Provider')}</span>
@@ -679,7 +679,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           ) : nativeStatus === 'unavailable' ? (
             <div className="model-info local-native-status is-error">{t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}</div>
           ) : (
-            <div className="model-info">
+            <div className="model-info" data-tour="engine-chips">
               {renderChipGroups(
                 renderNativeChips, nativeSpeakerResolved, nativeParticipantResolved,
                 localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
@@ -707,7 +707,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         </div>
       ) : provider === Provider.LOCAL_INFERENCE ? (
         <div className="local-inference-info">
-          <div className="model-info">
+          <div className="model-info" data-tour="engine-chips">
             {renderChipGroups(
               renderInferenceChips, speakerResolved, participantResolved,
               localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage,

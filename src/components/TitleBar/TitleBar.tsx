@@ -64,9 +64,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
         <SubtitleEnterButton />
         <button
           type="button"
-          // Keep the legacy `settings-button` class so onboarding's
-          // `.settings-button` step target keeps matching after the
-          // button moved from main-panel-header into the TitleBar.
+          data-tour="settings-button"
           className={`title-bar__action settings-button ${showSettings ? 'is-active' : ''}`}
           onClick={onToggleSettings}
           title={settingsLabel}

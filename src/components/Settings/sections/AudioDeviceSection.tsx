@@ -164,7 +164,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
 
       {/* Microphone Section */}
       {showMicrophone && (
-        <div className={`config-section microphone-section ${className}`} id="microphone-section">
+        <div className={`config-section microphone-section ${className}`} id="microphone-section" data-tour="microphone-section">
           <h3>
             <Mic size={18} />
             <span>{t('simpleConfig.microphone')}</span>
@@ -242,7 +242,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
 
       {/* Speaker Section */}
       {showSpeaker && (
-        <div className={`config-section speaker-section ${className}`} id="speaker-section">
+        <div className={`config-section speaker-section ${className}`} id="speaker-section" data-tour="speaker-section">
           <h3>
             <Volume2 size={18} />
             <span>{t('simpleConfig.speaker')}</span>
