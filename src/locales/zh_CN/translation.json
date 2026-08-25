@@ -979,7 +979,8 @@
         "desc": "你（或对方）说的语言，以及要翻译成的语言。"
       },
       "finish": {
-        "title": "准备就绪"
+        "title": "准备就绪",
+        "persistFailed": "无法保存设置，请重试。"
       }
     },
     "scenarios": {

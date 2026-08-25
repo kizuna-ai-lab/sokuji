@@ -8,7 +8,7 @@ vi.mock('../services/ServiceFactory', () => ({
   ServiceFactory: { getSettingsService: () => ({ getSetting: mockGetSetting, setSetting: mockSetSetting }) },
 }));
 
-const { useSetupStore, SETUP_STORAGE_KEY, TOUR_STORAGE_KEY } = await import('./setupStore');
+const { useSetupStore, SetupPersistError, SETUP_STORAGE_KEY, TOUR_STORAGE_KEY } = await import('./setupStore');
 const { SETUP_VERSION, TOUR_VERSION } = await import('../lib/setup/types');
 const { LEGACY_USER_TYPE_KEY, LEGACY_ONBOARDING_KEY } = await import('../lib/setup/setupMigration');
 
@@ -99,7 +99,7 @@ describe('setupStore.completeSetup / completeTour', () => {
     // Committing in memory first would unmount the wizard over a setup that was
     // never written: the record only becomes real once the write succeeded.
     await expect(useSetupStore.getState().completeSetup({ scenario: 'two-way-text', providerPath: 'own-key', provider: 'openai' }))
-      .rejects.toThrow(/save/i);
+      .rejects.toThrow(SetupPersistError);
 
     expect(useSetupStore.getState().setup).toBeNull();
     expect(errorSpy).toHaveBeenCalledTimes(1);

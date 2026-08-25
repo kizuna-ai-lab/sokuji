@@ -56,7 +56,18 @@ vi.mock('../../stores/settingsStore', () => ({
 // The record a Help re-run pre-fills from. Mutable: with it fixed at null the
 // isProviderSupported-guarded prefill branch never ran in any test.
 let setupRecord: { version: number; scenario: string; providerPath: string; provider: string; completedAt: string } | null = null;
-vi.mock('../../stores/setupStore', () => ({ useSetupRecord: () => setupRecord }));
+// SetupPersistError is redeclared rather than re-exported from the real module:
+// the point of mocking setupStore here is to keep ServiceFactory's import graph
+// out, and `instanceof` only has to agree between this file and the component,
+// which both read the class from this mock.
+const MockSetupPersistError = vi.hoisted(() => class SetupPersistError extends Error {
+  readonly code = 'SETUP_PERSIST_FAILED' as const;
+  constructor() { super('Setup record could not be persisted'); this.name = 'SetupPersistError'; }
+});
+vi.mock('../../stores/setupStore', () => ({
+  useSetupRecord: () => setupRecord,
+  SetupPersistError: MockSetupPersistError,
+}));
 // The tour the first-run wizard hands off to on Finish.
 const startTourSpy = vi.fn();
 vi.mock('../Tour/TourProvider', () => ({ useTour: () => ({ start: startTourSpy }) }));
@@ -183,6 +194,23 @@ describe('SetupWizard', () => {
     expect(applied).toHaveLength(0);
     expect(startTourSpy).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Finish' })).toBeEnabled();
+  });
+
+  it('shows the translated copy when the setup record could not be written', async () => {
+    // The store's Error carries a code, not user-facing prose: every string the
+    // wizard shows has to come from the catalogue.
+    applyError = new MockSetupPersistError();
+    render(<SetupWizard variant="first-run" />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next(); next(); next();
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Could not save your setup. Please try again.'));
+    expect(screen.getByRole('alert')).not.toHaveTextContent('Setup record could not be persisted');
+    expect(startTourSpy).not.toHaveBeenCalled();
   });
 
   it('takes the interface language from i18next, and seeds the pair from it', () => {

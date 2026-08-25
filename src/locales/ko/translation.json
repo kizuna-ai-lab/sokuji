@@ -979,7 +979,8 @@
         "desc": "What you (or they) speak, and what it should become."
       },
       "finish": {
-        "title": "Ready"
+        "title": "Ready",
+        "persistFailed": "Could not save your setup. Please try again."
       }
     },
     "scenarios": {

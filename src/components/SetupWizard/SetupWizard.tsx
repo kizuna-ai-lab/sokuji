@@ -10,7 +10,7 @@ import { X } from 'lucide-react';
 import { useAuth } from '../../lib/auth/hooks';
 import { useAnalytics } from '../../lib/analytics';
 import { useIsApiKeyValid, useAuthOverlay } from '../../stores/settingsStore';
-import { useSetupRecord } from '../../stores/setupStore';
+import { useSetupRecord, SetupPersistError } from '../../stores/setupStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { getScenario } from '../../lib/setup/scenarios';
 import { buildTourCtx } from '../Tour/tourContext';
@@ -105,7 +105,14 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
       onClose?.();
     } catch (err) {
       console.error('[SetupWizard] Finish failed:', err);
-      setFinishError(err instanceof Error ? err.message : String(err));
+      // A failed write is the one failure with copy of its own; everything else
+      // reaching here is a store/provider error whose message is the best
+      // description available.
+      setFinishError(
+        err instanceof SetupPersistError
+          ? t('setup.steps.finish.persistFailed', 'Could not save your setup. Please try again.')
+          : err instanceof Error ? err.message : String(err),
+      );
     } finally {
       setFinishing(false);
     }

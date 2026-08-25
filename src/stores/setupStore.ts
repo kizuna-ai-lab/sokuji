@@ -43,9 +43,16 @@ function removeLocal(key: string): void {
   }
 }
 
-/** Message the wizard's Finish shows when the record could not be written.
- *  Stable so the failure reads the same wherever it surfaces. */
-export const SETUP_PERSIST_FAILED_MESSAGE = 'Could not save your setup. Please try again.';
+/** The setup record could not be written. Typed rather than a bare Error so the
+ *  wizard can tell this apart from whatever else Finish may throw and show a
+ *  translated line: this message is a diagnostic for the console, never copy. */
+export class SetupPersistError extends Error {
+  readonly code = 'SETUP_PERSIST_FAILED' as const;
+  constructor() {
+    super('Setup record could not be persisted');
+    this.name = 'SetupPersistError';
+  }
+}
 
 /** Persists a setup/tour record, reporting whether the write landed. Returns
  *  false (and logs) when SettingsService reports failure (e.g. chrome-storage
@@ -124,7 +131,7 @@ export const useSetupStore = create<SetupStore>()(
       // wizard, and a wizard that is gone can neither report the failure nor
       // offer a retry. Throwing here reaches SetupWizard's Finish error path.
       if (!(await persist(ServiceFactory.getSettingsService(), SETUP_STORAGE_KEY, record))) {
-        throw new Error(SETUP_PERSIST_FAILED_MESSAGE);
+        throw new SetupPersistError();
       }
       set({ setup: record });
     },

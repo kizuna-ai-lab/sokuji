@@ -682,7 +682,7 @@
         "ownKeyTitle": "Your API key"
       },
       "languagePair": { "title": "Which languages?", "desc": "What you (or they) speak, and what it should become." },
-      "finish": { "title": "Ready" }
+      "finish": { "title": "Ready", "persistFailed": "Could not save your setup. Please try again." }
     },
     "scenarios": {
       "sets": "Sets: mode {{mode}} · {{output}}",
