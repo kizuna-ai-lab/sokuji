@@ -762,6 +762,52 @@
       "pendingSignIn": "Not signed in — sign in from the account button before you start."
     }
   },
+  "tour": {
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "finish": "Finish",
+    "restart": "Restart Setup Guide",
+    "steps": {
+      "welcome": { "title": "You're set up", "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute." },
+      "mode-picker": { "title": "Translation mode", "content": "This is set for you. Switch it any time; switching also changes whether the translation is spoken or shown as subtitles." },
+      "microphone": { "title": "Your microphone", "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app." },
+      "monitor": { "title": "Hear yourself translated", "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it." },
+      "output-routing": {
+        "title": "How the other side hears you",
+        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
+        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
+        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
+        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+      },
+      "participant-source": {
+        "title": "The other side's voice",
+        "content": "Sokuji listens to the other side here.",
+        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
+        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+      },
+      "subtitle": { "title": "Subtitle mode", "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it." },
+      "account": {
+        "title": "Your account",
+        "content": "Your balance and top-up live here.",
+        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+      },
+      "provider-settings": {
+        "title": "Provider settings",
+        "content": "Change your key or switch provider here.",
+        "content_pending": "Paste your API key here. Start unlocks once it validates."
+      },
+      "models": { "title": "Models", "content": "Download models here — one per stage. Try a few; the first pick is not the only good one." },
+      "start": {
+        "title": "Start",
+        "content": "Press here to start translating.",
+        "content_offline": "This lights up once your models are ready.",
+        "content_signedOut": "This lights up once you sign in.",
+        "content_pendingKey": "This lights up once your API key validates."
+      },
+      "done": { "title": "That's it", "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help." }
+    }
+  },
   "onboarding": {
     "basic": {
       "steps": {
