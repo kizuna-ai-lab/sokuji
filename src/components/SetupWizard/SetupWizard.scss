@@ -1,0 +1,137 @@
+@use '../Settings/shared/variables' as vars;
+
+.setup-wizard {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: vars.$bg-page;
+  z-index: 1500; // above panels, below .auth-overlay-scrim (2000) so sign-in paints over it
+  // A window narrower than the card used to press it against all four edges,
+  // which reads as a broken layout rather than a dialog. The padding is the
+  // card's minimum breathing room; `100%` below resolves against this padded
+  // content box, so the gap survives at every width.
+  padding: vars.$space-4;
+  box-sizing: border-box;
+
+  &--rerun { background: rgba(0, 0, 0, 0.66); }
+
+  &__card {
+    width: min(720px, 100%);
+    max-height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    background: vars.$bg-surface;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-lg;
+    overflow: hidden;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-3;
+    padding: vars.$space-4 vars.$space-5;
+    border-bottom: 1px solid vars.$border-subtle;
+    h1 { margin: 0; font-size: 16px; font-weight: vars.$weight-semibold; color: vars.$text-primary; }
+  }
+
+  // Electron's window is frameless (electron/main.js: frame: false) and the only
+  // drag region lives in TitleBar, which MainLayout does not render while the
+  // first-run wizard is up. Without this the window cannot be moved at all
+  // before setup is finished.
+  &--first-run &__header { -webkit-app-region: drag; }
+  &__close, &__header select { -webkit-app-region: no-drag; }
+  &__progress { margin-left: auto; font-size: vars.$font-caption; color: vars.$text-muted; }
+  &__close {
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid vars.$border-default; border-radius: vars.$radius-md; background: transparent; color: vars.$text-secondary; cursor: pointer;
+    &:hover { border-color: vars.$color-primary; color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+  // The extra bottom padding (the shorthand above already supplies $space-5)
+  // keeps the last card off the footer's edge when the body is scrolled to the
+  // end; the footer's upward shadow is the cue that there is more above it.
+  &__body { padding: vars.$space-5; padding-bottom: vars.$space-6; overflow-y: auto; }
+  &__footer {
+    display: flex; align-items: center; gap: vars.$space-2;
+    padding: vars.$space-3 vars.$space-5; border-top: 1px solid vars.$border-subtle;
+    box-shadow: 0 -8px 12px -8px rgba(0, 0, 0, 0.5);
+  }
+  &__spacer { flex: 1; }
+}
+
+.setup-step {
+  h2 { margin: 0 0 vars.$space-2; font-size: vars.$font-title; color: vars.$text-primary; }
+  > p { margin: 0 0 vars.$space-4; font-size: vars.$font-body; color: vars.$text-secondary; }
+  // A line that introduces the control under it, not the step: lighter than the
+  // step's own lede so the two do not read as one paragraph.
+  > p.setup-step__note { font-size: vars.$font-caption; color: vars.$text-muted; margin: 0 0 vars.$space-2; }
+}
+
+.setup-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: vars.$space-3;
+  margin-bottom: vars.$space-4;
+  &--compact { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
+
+.setup-card {
+  @include vars.option-row;
+  display: flex; flex-direction: column; gap: vars.$space-1;
+  padding: vars.$space-3; cursor: pointer;
+  input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  &:hover { @include vars.option-row-hover; }
+  &.is-selected { @include vars.option-row-selected; }
+  &.is-disabled { @include vars.disabled-state; }
+  &:has(input:focus-visible) { @include vars.focus-ring; }
+  &__title { font-weight: vars.$weight-medium; color: vars.$text-primary; display: flex; align-items: center; gap: vars.$space-2; }
+  &__badge { font-style: normal; font-size: 10px; padding: 1px 6px; border-radius: 10px; background: rgba(vars.$color-primary, 0.15); color: vars.$color-primary; }
+  &__desc { font-size: vars.$font-caption; color: vars.$text-secondary; }
+  &__sets, &__cost, &__reason { font-size: vars.$font-caption; color: vars.$text-muted; }
+  &__reason { color: vars.$color-warning; }
+}
+
+.setup-field {
+  display: flex; flex-direction: column; gap: vars.$space-2; margin-bottom: vars.$space-3;
+  > span { font-size: vars.$font-caption; color: vars.$text-secondary; }
+  // Same control as Settings' .language-select: the OS-drawn arrow sits hard
+  // against the right border and cannot be moved, so the app draws its own and
+  // reserves room for it on the right (Settings.scss:1235).
+  // 100% + border-box: there is no global box-sizing reset, so a padded
+  // full-width control would otherwise overflow its own row by padding+border.
+  select {
+    @include vars.control-base;
+    width: 100%; box-sizing: border-box; cursor: pointer;
+    padding: 8px 32px 8px 10px;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+  }
+}
+
+// The provider guide, at link weight: it leaves the app, so it never competes
+// with Validate for the eye.
+.setup-link {
+  display: inline-flex; align-items: center; gap: vars.$space-1;
+  font-size: vars.$font-caption; color: vars.$color-primary; cursor: pointer; text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+// The mirrored leg, stated rather than edited — same weight as the note above
+// a control, since it is a consequence of the two fields, not a third one.
+.setup-mirror { margin: 0 0 vars.$space-3; font-size: vars.$font-caption; color: vars.$text-muted; }
+
+.setup-actions { display: flex; gap: vars.$space-2; margin: vars.$space-3 0; flex-wrap: wrap; }
+
+.setup-summary {
+  display: grid; grid-template-columns: max-content 1fr; gap: vars.$space-1 vars.$space-4; margin: 0 0 vars.$space-4;
+  dt { color: vars.$text-muted; font-size: vars.$font-caption; }
+  dd { margin: 0; color: vars.$text-primary; font-size: vars.$font-body; }
+  &__mirror { margin-top: 2px; font-size: vars.$font-caption; color: vars.$text-muted; }
+}

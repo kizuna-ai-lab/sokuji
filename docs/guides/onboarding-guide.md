@@ -1,166 +1,44 @@
-# Sokuji Onboarding Guide
+# Sokuji First-Run Guide: Setup Wizard and Tour
 
-## Overview
+Design: `docs/superpowers/specs/2026-08-25-first-run-setup-and-tour-design.md`.
 
-Sokuji now includes a comprehensive first-time user onboarding system, implemented using the `react-joyride` library. This feature helps new users understand and configure the extension's various settings.
+## Two surfaces
 
-## Features
+| Surface | When | What it does | Writes settings? |
+|---|---|---|---|
+| **Setup wizard** (`src/components/SetupWizard/`) | Once, on a fresh install; again from Help → "Run setup again" | Asks what the user wants to do (five scenarios), what they have (managed account / own API key / free offline), collects credentials or lets the user skip them, picks a language pair, and applies everything on **Finish**. | Yes — once, on Finish (`applySetup.ts`, in the order the spec fixes). |
+| **Tour** (`src/components/Tour/`) | Right after the wizard finishes; again from Help → "Restart Setup Guide" | A spotlight walk over the real interface: mode picker, the devices the scenario uses, subtitle mode, the account / provider / models entry for the chosen path, and Start. 5–9 steps. The app underneath is not operable while a step is showing: the spotlight cutout itself is `pointer-events: none`, but a transparent `.tour-blocker` layer underneath it blocks the app on anchored steps, and a full `.tour-scrim` blocks it on centred steps. Escape ends the tour; Enter advances to the next step. | Never. |
 
-### Automatic Triggering
-- The tour starts automatically after the first installation.
-- It begins after a 1-second delay to ensure the interface is fully loaded.
+Everyone starts in Basic mode; Advanced stays a setting behind the toggle at the top of Settings. There is no first-launch "Regular / Experienced" choice any more.
 
-### Onboarding Steps
+The tour is started only from two places: the setup wizard's Finish button (first-run only — a re-run of the wizard from Help does not restart it) and Settings → Help → "Restart Setup Guide".
 
-The tour covers the following key steps:
+## Persistence
 
-1.  **Welcome Screen** - Introduces the features of Sokuji.
-2.  **Settings Panel** - Guides the user to open the settings.
-3.  **API Key Configuration** - Instructs on how to set up the API key for the selected provider (OpenAI or Gemini).
-4.  **System Instructions** - Explains how to customize system instructions.
-5.  **Audio Settings** - Guides the user to open the audio panel.
-6.  **Microphone Setup** - How to select an input device.
-7.  **Speaker Setup** - How to select an output device.
-8.  **Voice Configuration** - Configuring voice settings and detection parameters.
-9.  **Main Interface Introduction** - Showcases the main functional areas.
-10. **Completion** - Summary and next steps.
+- `settings.setup` — `{ version, scenario, providerPath, provider, completedAt, migratedFrom? }` via `SettingsService` (roams with `chrome.storage.sync` in the extension). Its presence is the only thing that decides "the wizard has been done".
+- `settings.tour` — `{ version, completedChapters, completedAt, method }`. A `TOUR_VERSION` bump never restarts the tour by itself.
+- Users of the pre-wizard app are migrated on first hydration (`src/lib/setup/setupMigration.ts`): a persisted `uiMode` or the old `sokuji_user_type` localStorage key marks them as set up (`migratedFrom: 'legacy'`, `scenario: null`); a completed legacy tour becomes a completed `basics` chapter; the old localStorage keys (`sokuji_user_type`, `sokuji_onboarding_completed`) are removed. They never see the wizard.
 
-### User Control
-- **Skip** - Users can skip the tour at any time.
-- **Navigation** - Back and Next buttons.
-- **Restart** - The tour can be restarted from the settings panel.
+## Scenarios (`src/lib/setup/scenarios.ts`)
 
-## Technical Implementation
+| Id | Mode | Text-only | Display modes |
+|---|---|---|---|
+| `understand-others` | Others | forced | participant: translation |
+| `be-heard` | Me | off | speaker: both |
+| `subtitle-myself` | Me | on | speaker: translation |
+| `two-way-voice` | Both | off | both: both |
+| `two-way-text` | Both | on | both: both |
 
-### Core Components
+A provider is greyed out (with the reason) when its `textOnlyCapability` cannot serve the scenario: `'always'` providers cannot speak (#2, #4); `'never'` providers cannot run subtitles-only (#3, #5).
 
-#### OnboardingContext
-```typescript
-interface OnboardingContextType {
-  isOnboardingActive: boolean;
-  currentStepIndex: number;
-  steps: OnboardingStep[];
-  startOnboarding: () => void;
-  stopOnboarding: () => void;
-  nextStep: () => void;
-  prevStep: () => void;
-  skipOnboarding: () => void;
-  isFirstTimeUser: boolean;
-  markOnboardingComplete: () => void;
-}
-```
+The wizard also picks a starting language pair; its default source and target differ whenever the provider offers more than one target language (the fallback target is ranked by `LANGUAGE_PRIORITY`).
 
-#### Onboarding Component
-- Uses the `react-joyride` library.
-- Custom styling and theming.
-- Responsive design.
-- Internationalization support.
+## Tour catalogue (`src/components/Tour/steps.ts`)
 
-### Data Persistence
-- Uses `localStorage` to store the completion status.
-- Version control allows re-triggering the tour after updates.
-- Storage key: `sokuji_onboarding_completed`
+One catalogue; each step carries a `when` predicate over `TourCtx` (mode, textOnly, providerPath, platform, os, sign-in and key state) and optional `copyVariant` for platform- or readiness-specific text. Steps target elements by `data-tour="<anchor>"`; `anchors.test.ts` fails if a catalogue anchor has no element. A step whose anchor does not appear within 1.5 s is skipped (never wedges) and reported as `onboarding_step_skipped` with `reason: 'target-missing'` — the same reason is reported when a step's own `prepare` callback throws before the anchor is even looked for, since the tour treats that failure as a missing target too.
 
-### Style Customization
-- Primary color: `#007bff`
-- Custom tooltip styles.
-- Animations and transitions.
-- Responsive adjustments.
+To add a step: add the entry to `BASICS_STEPS`, put `data-tour` on the element, add `tour.steps.<id>.{title,content}` to **all 30** catalogues — write the English copy in `src/locales/en/translation.json` and run `node scripts/sync-locale-keys.mjs` to fill the other 29 catalogues with English placeholders (it never rewrites `en`) — and extend `steps.test.ts`.
 
-## Configuration Options
+## Re-entry
 
-### Step Configuration
-Each step includes:
-- `target` - A CSS selector.
-- `content` - Explanatory text.
-- `title` - The title of the step.
-- `placement` - Tooltip position.
-- `spotlightClicks` - Whether clicks on the highlighted element are allowed.
-
-### Style Configuration
-```typescript
-styles: {
-  options: {
-    primaryColor: '#007bff',
-    backgroundColor: '#ffffff',
-    textColor: '#333333',
-    overlayColor: 'rgba(0, 0, 0, 0.4)',
-    spotlightShadow: '0 0 15px rgba(0, 0, 0, 0.5)',
-    beaconSize: 36,
-    zIndex: 10000,
-  }
-}
-```
-
-## Internationalization
-
-Supported language keys:
-- `onboarding.back` - Back button
-- `onboarding.close` - Close button
-- `onboarding.finish` - Finish button
-- `onboarding.next` - Next button
-- `onboarding.skip` - Skip button
-- `onboarding.restartTour` - Restart Tour
-
-## How to Use
-
-### For Developers
-1. The tour will start automatically on the first visit.
-2. It can be manually started via the "Restart Tour" button in the settings panel.
-3. The onboarding state is managed via the Context API.
-
-### For End-Users
-1. The tour will appear automatically after installing the extension.
-2. Users can skip or complete the tour.
-3. The tour can be revisited from the settings.
-
-## Extension and Customization
-
-### Adding New Steps
-Add new steps to the `onboardingSteps` array in `OnboardingContext.tsx`:
-
-```typescript
-{
-  target: '.new-element',
-  content: 'Description of the new feature.',
-  title: 'Step Title',
-  placement: 'bottom',
-}
-```
-
-### Modifying Styles
-Add custom styles in `Onboarding.scss` or modify the `styles` configuration in `Onboarding.tsx`.
-
-### Updating Text
-Add new key-value pairs for translations in the corresponding language files.
-
-## Best Practices
-
-1.  **Be Concise** - Each step's explanation should be brief and easy to understand.
-2.  **Logical Order** - Arrange steps according to the user's natural workflow.
-3.  **Allow Skipping** - Always provide an option to skip the tour.
-4.  **Be Responsive** - Ensure it works correctly on different screen sizes.
-5.  **Use Versioning** - Update the version number on major updates to re-show the tour.
-
-## Troubleshooting
-
-### Common Issues
-
-1.  **Tour does not appear**
-    -   Check if it's already marked as completed in `localStorage`.
-    -   Clear the `sokuji_onboarding_completed` key.
-
-2.  **Target element not found**
-    -   Ensure the CSS selector is correct.
-    -   Check if the element has been rendered.
-
-3.  **Styling issues**
-    -   Check the `z-index` settings.
-    -   Ensure there are no CSS conflicts.
-
-### Debugging
-Run the following in the browser console:
-```javascript
-localStorage.removeItem('sokuji_onboarding_completed');
-```
-Then refresh the page to re-trigger the tour. 
+Settings → Help: **Run setup again** (overlay wizard, pre-filled, disabled during a session) and **Restart Setup Guide** (tour, built from the live stores).

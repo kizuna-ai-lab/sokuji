@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "API anahtarınızı girin",
     "setupGuide": "Kurulum kılavuzu",
     "validate": "Doğrula",
-    "apiKeyHelpTooltip2": "Adım adım kılavuz:"
+    "apiKeyHelpTooltip2": "Adım adım kılavuz:",
+    "recommended": "Önerilen",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Ses Ayarları",
@@ -659,130 +661,6 @@
     "noMic": "Mikrofon Gerekli",
     "reconnecting": "Yeniden bağlanıyor..."
   },
-  "userTypeSelection": {
-    "title": "Sokuji'ye Hoş Geldiniz",
-    "subtitle": "Başlamak için lütfen kullanıcı türünüzü seçin",
-    "regular": {
-      "title": "Normal Kullanıcı",
-      "description": "AI hizmetlerinde yeniyim veya basit bir deneyim tercih ediyorum",
-      "feature1": "API anahtarı bilgisi gerekmez",
-      "feature2": "Basit ve sezgisel arayüz",
-      "feature3": "Rehberli kurulum süreci",
-      "action": "Temel Mod ile Başla"
-    },
-    "experienced": {
-      "title": "Deneyimli Kullanıcı",
-      "description": "Kendi API anahtarlarım var ve AI hizmetlerini anlıyorum",
-      "feature1": "OpenAI veya Gemini API anahtarlarına sahip",
-      "feature2": "Gerçek zamanlı API özelliklerine erişim",
-      "feature3": "Tüm ayarlar üzerinde tam kontrol",
-      "action": "Gelişmiş Mod ile Başla"
-    }
-  },
-  "onboarding": {
-    "basic": {
-      "steps": {
-        "welcome": {
-          "title": "Sokuji'ye Hoş Geldiniz",
-          "content": "Sokuji'ye hoş geldiniz! Bu basit kılavuz, yalnızca birkaç adımda gerçek zamanlı çeviriyi kullanmaya başlamanıza yardımcı olacak."
-        },
-        "mode": {
-          "content": "Sokuji'nin neyi çevireceğini seçin: Ben — kendi sesinizi (böylece karşı taraf sizi anlar); Karşı taraf — karşı tarafın söylediklerini (böylece onu anlarsınız); ya da çift yönlü çeviri için Her ikisi. Bu, hangi sesin yakalanacağını belirler — karşı tarafın sesini açmak için Karşı taraf veya Her ikisi'ni seçin.",
-          "title": "Çeviri modu"
-        },
-        "settings": {
-          "title": "Adım 1: Ayarları Açın",
-          "content": "Dillerinizi ve ses cihazlarınızı yapılandırabileceğiniz Ayarlar'ı açmak için buraya tıklayın."
-        },
-        "languages": {
-          "title": "Adım 3: Dilleri Seçin",
-          "content": "\"Benim dilim\" (konuştuğunuz dil) ve \"Karşı tarafın dili\" (karşı tarafın duyacağı dil) seçeneklerini belirleyin."
-        },
-        "microphone": {
-          "title": "Adım 5: Mikrofon Seçin",
-          "content": "Mikrofonunuzu listeden seçin. Sesinizi yakalayacak olan cihaz budur."
-        },
-        "speaker": {
-          "title": "Adım 6: Hoparlör Seçin",
-          "content": "Çeviriyi önizlemek için bir izleme cihazı seçin. Çevrilmiş ses, izleme durumuna bakılmaksızın her zaman sanal mikrofona gönderilir. Toplantı uygulamanızda veya web sitenizde Sokuji Virtual Microphone'u mikrofon girişi olarak seçin. Geri bildirimi önlemek için izleme sırasında kulaklık kullanılması önerilir."
-        },
-        "systemAudio": {
-          "title": "Adım 7: Karşı Tarafın Sesi",
-          "content": "Bu, karşı tarafın kanalıdır — diğer kişilerin söyledikleri, sizin için çevrilir. Çeviri modunda Karşı taraf veya Her ikisi'ni seçerek açın (Ben modunda kapalı kalır). Tarayıcı eklentisinde geçerli sekmeyi yakalar, böylece Google Meet, Teams veya Zoom'daki karşı tarafı çevirebilirsiniz. Masaüstü uygulamasında tüm sistem sesini yakalar, böylece YouTube, Twitch, Netflix veya herhangi bir kaynağı çevirebilirsiniz. Karşı tarafın konuşması yalnızca metne çevrilir — konuşma sentezi yapılmaz. Mikrofonunuzla birlikte bu, tam çift yönlü çeviri sağlar."
-        },
-        "start": {
-          "title": "Adım 8: Çeviriye Başlayın",
-          "content": "Çevirmeye başlamak için 'Başlat'a tıklayın! Doğal bir şekilde konuşmanız yeterli, çeviriyi gerçek zamanlı olarak duyun."
-        },
-        "complete": {
-          "title": "Her Şey Hazır!",
-          "content": "Harika! Sokuji'yi kullanmaya hazırsınız. Başlat'a tıklayın ve konuşmaya başlayarak gerçek zamanlı çevirileri duyun."
-        },
-        "provider": {
-          "title": "Adım 4: Çeviri Sağlayıcı",
-          "content": "Çeviri sağlayıcınızı seçin. Sokuji'nin kendi yerleşik hizmeti vardır — kullanmak için başlık çubuğundaki hesap düğmesinden giriş yapın. Ayrıca OpenAI, Gemini, Volcengine (Doubao) gibi bulut hizmetlerini de destekler; bunlarda kendi API anahtarınızı kullanırsınız. Yerel çıkarımı da kullanabilirsiniz — API anahtarı gerekmez, ücretsiz ve gizlilik odaklı, modelleri indirerek tamamen çevrimdışı çeviri yapabilirsiniz."
-        }
-      }
-    },
-    "back": "Geri",
-    "close": "Kapat",
-    "finish": "Bitir",
-    "next": "İleri",
-    "nextWithProgress": "İleri ({step}/{steps})",
-    "open": "Aç",
-    "skip": "Atla",
-    "restartTour": "Kurulum kılavuzunu yeniden başlat",
-    "steps": {
-      "welcome": {
-        "title": "Sokuji'ye hoş geldiniz!",
-        "content": "Gerçek zamanlı ses çeviri uygulamasına hoş geldiniz! En iyi deneyim için sisteminizi hızlıca kuralım."
-      },
-      "mode": {
-        "content": "Sokuji'nin neyi çevireceğini seçin: Ben — kendi sesinizi (böylece karşı taraf sizi anlar); Karşı taraf — karşı tarafın söylediklerini (böylece onu anlarsınız); ya da çift yönlü çeviri için Her ikisi. Bu, hangi sesin yakalanacağını belirler — karşı tarafın sesini açmak için Karşı taraf veya Her ikisi'ni seçin.",
-        "title": "Çeviri modu"
-      },
-      "settings": {
-        "title": "Adım 1: Ayarları Açın",
-        "content": "Önce ayarlarınızı yapılandıralım. Çeviri sağlayıcınızı seçebileceğiniz ve ayarları özelleştirebileceğiniz Ayarlar panelini açmak için buraya tıklayın."
-      },
-      "apiKey": {
-        "title": "Adım 2: Çeviri Sağlayıcı",
-        "content": "Çeviri sağlayıcınızı seçin. Sokuji OpenAI, Gemini, Volcengine (Doubao) gibi bulut hizmetlerini destekler. Yerel çıkarımı da kullanabilirsiniz — API anahtarı gerekmez, ücretsiz ve gizlilik odaklı, modelleri indirerek tamamen çevrimdışı çeviri yapabilirsiniz."
-      },
-      "systemInstructions": {
-        "title": "Sistem talimatlarını özelleştir",
-        "content": "Ton, stil veya özel gereksinimler gibi çeviri davranışını özelleştirmek için burada belirli talimatlar ekleyin."
-      },
-      "voiceSettings": {
-        "title": "Ses ayarları",
-        "content": "Tercih ettiğiniz ses modelini ve ayarları seçin. Bu ayarlar çevirinin kalitesini ve hızını etkileyecektir."
-      },
-      "turnDetection": {
-        "title": "Sıra algılama",
-        "content": "Sistemin ne zaman dinlemeye başlayıp durduğunu kontrol etmek için otomatik sıra algılama ayarlarını yapılandırın."
-      },
-      "microphoneSetup": {
-        "title": "Mikrofon cihazını seç",
-        "content": "Listeden gerçek fiziksel mikrofon cihazınızı seçin. Sanal cihazları seçmekten kaçının çünkü bunlar konferans uygulamaları içindir."
-      },
-      "speakerSetup": {
-        "title": "Monitör cihazı kurulumu",
-        "content": "Çeviri çıktısını duymak için bir monitör cihazı (kulaklık veya hoparlör gibi) seçin. Ses geri beslemesini önlemek için kulaklık kullanılması önerilir. Toplantıya odaklanmak ve monitörleme tarafından dikkatinizin dağılmasını istemiyorsanız, monitörleme özelliğini kapatabilirsiniz."
-      },
-      "systemAudio": {
-        "title": "Adım 8: Karşı Tarafın Sesi",
-        "content": "Bu, karşı tarafın kanalıdır — diğer kişilerin söyledikleri, sizin için çevrilir. Çeviri modunda Karşı taraf veya Her ikisi'ni seçerek açın (Ben modunda kapalı kalır). Tarayıcı eklentisinde geçerli sekmeyi yakalar, böylece Google Meet, Teams veya Zoom'daki karşı tarafı çevirebilirsiniz. Masaüstü uygulamasında tüm sistem sesini yakalar, böylece YouTube, Twitch, Netflix veya herhangi bir kaynağı çevirebilirsiniz. Karşı tarafın konuşması yalnızca metne çevrilir — konuşma sentezi yapılmaz. Mikrofonunuzla birlikte bu, tam çift yönlü çeviri sağlar."
-      },
-      "startSession": {
-        "title": "Oturumunuzu başlatın",
-        "content": "Her şey hazır! Gerçek zamanlı çeviriyi başlatmak için \"Oturumu başlat\" düğmesine tıklayın. Konferans uygulamanızda giriş cihazı olarak Sokuji sanal mikrofonunu seçmeyi unutmayın."
-      },
-      "complete": {
-        "title": "Kurulum Kılavuzu Tamamlandı!",
-        "content": "Harika! Her şey hazır. İstendiğinde mikrofon izinlerini vermeyi unutmayın. Bu kılavuzu istediğiniz zaman ayarlardan yeniden başlatabilirsiniz."
-      }
-    }
-  },
   "tokenUsage": {
     "unableToLoadQuota": "Kota bilgileri yüklenemiyor",
     "upgradeToPremium": "Premium'a Yükselt"
@@ -1070,5 +948,200 @@
     "deleteNoModel": "{{name}} siliniyor: {{stage}} için model kalmadı — oturumlar başlatılamaz.",
     "clearAllKeepsPicks": "Seçimleriniz hatırlanır ve modeller tekrar indirildiğinde geri döner.",
     "importChooseModel": "İçe aktarılacak modeli seçin"
+  },
+  "setup": {
+    "title": "Sokuji kurulumu",
+    "stepOf": "Adım {{current}} / {{total}}",
+    "back": "Geri",
+    "next": "İleri",
+    "finish": "Bitir",
+    "close": "Kapat",
+    "skipForNow": "Şimdilik atla",
+    "rerun": "Kurulumu tekrar çalıştır",
+    "steps": {
+      "language": {
+        "title": "Sokuji sizinle hangi dilde konuşsun?",
+        "desc": "Bu, menülerin ve düğmelerin dilidir. Aralarında çeviri yapılacak dilleri daha sonra seçersiniz.",
+        "label": "Arayüz dili"
+      },
+      "scenario": {
+        "title": "Ne yapmak istiyorsunuz?",
+        "desc": "En yakın seçeneği belirleyin. Bunların hepsini daha sonra değiştirebilirsiniz."
+      },
+      "path": {
+        "title": "Bir yapay zeka hizmet sağlayıcısı seçin"
+      },
+      "credentials": {
+        "offlineTitle": "Girecek bir şey yok",
+        "managedTitle": "Kizuna AI hesabınız",
+        "ownKeyTitle": "API anahtarınız"
+      },
+      "languagePair": {
+        "title": "Hangi diller?",
+        "desc": "Sizin (veya onların) konuştuğu dil ve bunun hangi dile dönüşeceği."
+      },
+      "finish": {
+        "title": "Hazır",
+        "persistFailed": "Kurulumunuz kaydedilemedi. Lütfen tekrar deneyin."
+      }
+    },
+    "scenarios": {
+      "sets": "Ayar: {{mode}} modu · {{output}}",
+      "understand-others": {
+        "title": "Başkalarının söylediklerini anlamak",
+        "desc": "Çevrimiçi toplantılar, dersler, konuşmalar, videolar, yayınlar — duyduklarınızın canlı çevirisini okuyun."
+      },
+      "be-heard": {
+        "title": "Toplantıda anlaşılmak",
+        "desc": "Çevrilmiş sesinizi bir sanal mikrofon üzerinden duyarlar."
+      },
+      "subtitle-myself": {
+        "title": "Kendi konuşmamı altyazılamak",
+        "desc": "Konuşmalar, yayınlar, sunumlar — izleyicileriniz çevrilmiş altyazıları okur; ses üretilmez."
+      },
+      "two-way-voice": {
+        "title": "Çevrimiçi karşılıklı konuşma",
+        "desc": "Onlar çevrilmiş sesinizi duyar; siz de onların söylediklerinden üretilen altyazıları okursunuz."
+      },
+      "two-way-text": {
+        "title": "Çevrimiçi karşılıklı konuşma, yalnızca altyazı",
+        "desc": "İki dilli altyazılar, toplantı notları — her iki taraf da metin olarak, yapay ses yok."
+      }
+    },
+    "output": {
+      "voice": "ses ve altyazı",
+      "subtitles": "yalnızca altyazı"
+    },
+    "paths": {
+      "recommended": "Önerilen",
+      "pickProvider": "Hangi sağlayıcı?",
+      "offlineFlavor": "Hangi motor?",
+      "managed": {
+        "title": "Hemen başlayın",
+        "desc": "Çeviriyi Kizuna AI sizin için çalıştırır.",
+        "cost": "E-posta adresinizle kayıt olun ve doğrulayın — doğrulanmış hesaplar deneme kredisi kazanır. Ardından bakiyenizi yüklersiniz ve çeviri, kullandığınız miktara göre faturalandırılır."
+      },
+      "own-key": {
+        "title": "Kendi API anahtarım var",
+        "desc": "OpenAI, Gemini, Doubao (Volcengine) ve diğerlerinden kendi anahtarınızı getirin.",
+        "cost": "Anahtarınız bu cihazda kalır ve buradan doğrudan sağlayıcıya ulaşır. Onların müşterisi sizsiniz: kullandığınız kadar onlara ödersiniz ve hiçbir şey Kizuna AI üzerinden geçmez."
+      },
+      "offline": {
+        "title": "Ücretsiz, çevrimdışı",
+        "desc": "Kendi makinenizde çalışır. Hiçbir şey dışarı çıkmaz.",
+        "cost": "Modelleri diskinize indirir (gigabaytlarca). GPU ve yeterli VRAM ile iyi çalışır; yalnızca CPU'da belirgin şekilde daha yavaştır.",
+        "native": "Yerel motor — daha hızlı, mümkün olduğunda GPU'nuzu kullanır.",
+        "wasm": "Uygulama içi motor — her yerde çalışır, daha yavaş."
+      },
+      "ownKeyNote": "Hesabınızın olduğu sağlayıcıyı seçin. Her biri kendi anahtarını verir:",
+      "ownKeyGuides": "her sağlayıcı için kılavuzlar"
+    },
+    "fit": {
+      "cannotSpeak": "Bu sağlayıcı sesli çeviri üretemez.",
+      "cannotBeTextOnly": "Bu sağlayıcı her zaman konuşur; yalnızca altyazı modunda çalışamaz."
+    },
+    "credentials": {
+      "apiKey": "API anahtarı",
+      "endpoint": "Uç nokta URL'si",
+      "endpointPlaceholder": "https://api.example.com/v1",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key",
+      "appId": "App ID",
+      "accessToken": "Access Token",
+      "apiSecret": "API Secret",
+      "validate": "Doğrula",
+      "valid": "Anahtar kabul edildi.",
+      "invalid": "Anahtar reddedildi.",
+      "signIn": "Giriş Yap",
+      "createAccount": "Kayıt Ol",
+      "signedIn": "Giriş yapıldı. Devam edebilirsiniz.",
+      "managedDesc": "E-posta adresinizle kayıt olun ve gelen kutunuzdan doğrulayın; doğrulanmış hesaplar deneme kredisi kazanır. Ardından bakiyenizi yüklersiniz ve yalnızca kullandığınız kadar ödersiniz.",
+      "offlineNotice": "Modeller kurulumdan sonra Ayarlar'dan indirilir. Diskte gigabaytlarca yer kaplarlar. Sokuji, GPU ve yeterli VRAM ile iyi çalışır; yalnızca CPU'da belirgin şekilde daha yavaştır.",
+      "pendingKey": "Anahtarı daha sonra Ayarlar → Sağlayıcı bölümünden ekleyebilirsiniz. Doğrulanana kadar Başlat kilitli kalır.",
+      "pendingSignIn": "Daha sonra hesap düğmesinden giriş yapabilirsiniz. O zamana kadar Başlat kilitli kalır.",
+      "ownKeyDesc": "Bu anahtar yalnızca bu cihazda saklanır ve uygulama sağlayıcıyı doğrudan buradan çağırır — Kizuna AI'ye asla ulaşmaz. Kullandığınız için sağlayıcıya ödeme yaparsınız.",
+      "guide": "Bu anahtarı nasıl alırım",
+      "verifyEmail": "Giriş yapıldı. Adresinizi doğrulamak için size e-postayla gönderdiğimiz bağlantıyı açın — doğruladığınızda deneme kredisi hesabınıza geçer.",
+      "onFile": "Zaten kayıtlı bir anahtar var — onu korumak için bu alanı boş bırakın."
+    },
+    "summary": {
+      "scenario": "Senaryo",
+      "mode": "Mod",
+      "provider": "Sağlayıcı",
+      "languages": "Diller",
+      "pendingKey": "Henüz API anahtarı yok — başlamadan önce Ayarlar → Sağlayıcı bölümünden ekleyin.",
+      "pendingSignIn": "Giriş yapılmadı — başlamadan önce hesap düğmesinden giriş yapın.",
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    }
+  },
+  "tour": {
+    "back": "Geri",
+    "next": "İleri",
+    "skip": "Atla",
+    "finish": "Bitir",
+    "restart": "Kurulum rehberini yeniden başlat",
+    "steps": {
+      "welcome": {
+        "title": "Kurulumunuz tamam",
+        "content": "Sokuji senaryonuza göre yapılandırıldı. İşte kısa bir tur — bir dakikadan az sürer."
+      },
+      "mode-picker": {
+        "title": "Çeviri modu",
+        "content": "Bu sizin için ayarlanmıştır ve istediğiniz zaman değiştirebilirsiniz. Çeviri burada her zaman metin olarak görünür; mod, Yalnızca metin anahtarıyla birlikte, ayrıca sesli okunup okunmayacağını belirler.",
+        "modeMe": "Ben — söylediğiniz karşı taraf için çevrilir.",
+        "modeOthers": "Karşı taraf — onların söyledikleri sizin için çevrilir.",
+        "modeBoth": "Her ikisi — iki yön birden."
+      },
+      "microphone": {
+        "title": "Mikrofonunuz",
+        "content": "Konuşmanız buradan alınır. Sistem varsayılanı zaten seçili. Sokuji sanal mikrofonunu seçmeyin — o, toplantı uygulamanız içindir."
+      },
+      "monitor": {
+        "title": "Kendi çevirinizi duyun",
+        "content": "Nasıl duyulduğunu kontrol edebilmeniz için çevrilmiş sesi kendi kulaklığınıza çalın. İhtiyacınız yoksa kapatabilirsiniz."
+      },
+      "output-routing": {
+        "title": "Karşı taraf sizi nasıl duyar",
+        "content": "Çevrilmiş sesiniz bir sanal mikrofona gider; toplantı uygulamanızda mikrofon olarak onu seçin.",
+        "content_extension": "Google Meet, Zoom veya Teams'te mikrofon olarak \"Sokuji Virtual Microphone\" öğesini seçin. Sokuji bunu desteklenen toplantı sitelerine otomatik olarak ekler.",
+        "content_electronLinux": "Sokuji bu sistemde bir sanal mikrofon oluşturdu. Toplantı uygulamanızda mikrofon olarak onu seçin.",
+        "content_electronOther": "Bir sanal ses kablosuna ihtiyacınız var (örneğin VB-Cable). Sokuji'nin çıkışını buna gönderin ve toplantı uygulamanızda mikrofon olarak onu seçin."
+      },
+      "participant-source": {
+        "title": "Karşı tarafın sesi",
+        "content": "Sokuji karşı tarafı burada dinler.",
+        "content_electron": "Çevrilecek uygulamayı veya tüm sistem sesini seçin. Onların orijinal sesi her zamanki gibi çalmaya devam eder.",
+        "content_extension": "Sokuji geçerli sekmenin sesini çevirir. Onların orijinal sesi her zamanki gibi çalmaya devam eder."
+      },
+      "subtitle": {
+        "title": "Altyazı modu",
+        "content": "Yüzen bir altyazı görünümü açar — masaüstünde bir pencere, uzantıda ise sayfa üzerinde bir katman. OBS ve ekran paylaşımı bunu yakalayabilir."
+      },
+      "account": {
+        "title": "Hesabınız",
+        "content": "Bakiyeniz ve bakiye yükleme burada.",
+        "content_signedOut": "Hesabınız burada. Başlat'ın kilidini açmak için turdan sonra giriş yapın."
+      },
+      "provider-settings": {
+        "title": "Sağlayıcı ayarları",
+        "content": "Anahtarınızı buradan değiştirin veya sağlayıcı değiştirin.",
+        "content_pending": "API anahtarınızı buraya yapıştırın. Doğrulandığında Başlat'ın kilidi açılır."
+      },
+      "models": {
+        "title": "Modeller",
+        "content": "Modelleri buradan indirin — her aşama için bir tane. Birkaçını deneyin; ilk seçtiğiniz tek iyi seçenek olmak zorunda değil."
+      },
+      "start": {
+        "title": "Başlat",
+        "content": "Çeviriye başlamak için buraya basın. Düğme gri kalmaya devam ederse üzerine gelin: not, neyin eksik olduğunu ve nerede düzeltileceğini belirtir.",
+        "content_offline": "Modelleriniz hazır olduğunda bu yanar. Gri iken üzerine gelerek neyi beklediğini görün.",
+        "content_signedOut": "Giriş yaptığınızda bu yanar. Gri iken üzerine gelerek neyi beklediğini görün.",
+        "content_pendingKey": "API anahtarınız doğrulandığında bu yanar. Gri iken üzerine gelerek neyi beklediğini görün."
+      },
+      "done": {
+        "title": "Hepsi bu",
+        "content": "Gelişmiş ayarlar — konuşma algılama, prompt'lar, sesler, günlükler — Ayarlar'ın sağ üstündeki Gelişmiş anahtarının arkasında bulunur. Bu rehberi istediğiniz zaman Yardım'dan tekrar oynatabilirsiniz."
+      }
+    }
   }
 }

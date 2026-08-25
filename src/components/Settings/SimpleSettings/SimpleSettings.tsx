@@ -3,7 +3,7 @@ import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
 import { useMode } from '../../../stores/audioStore';
-import {
+import useSettingsStore, {
   useNavigateToSettings,
   useSettingsNavigationTarget,
   useProvider,
@@ -87,23 +87,63 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
   // drift apart in a locale.
   const monitorLockedReason = t('audioPanel.monitorLockedByMode', { mode: t('modePicker.modeYou') });
 
-  // Handle scrolling and highlighting when highlightSection or settingsNavigationTarget changes
+  // Handle scrolling and highlighting when highlightSection or
+  // settingsNavigationTarget changes. Mirrors Settings.tsx:101-121 (advanced
+  // mode's own scroll/highlight effect): keep the outer/inner timer handles
+  // and the highlighted element in local variables so cleanup can cancel a
+  // pending highlight and strip the ring from whichever element it was
+  // applied to. Without this, retargeting within the 3s window (e.g. the
+  // tour stepping from the microphone card to the participant card) left the
+  // OLD element wearing `.highlight` until its own timer eventually fired —
+  // and that stale timer then called navigateToSettings(null) on top of the
+  // new target's state.
   useEffect(() => {
     const targetSection = highlightSection || settingsNavigationTarget;
-    if (targetSection) {
-      setTimeout(() => {
-        const sectionId = `${targetSection}-section`;
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.classList.add('highlight');
-          setTimeout(() => {
-            element.classList.remove('highlight');
-            navigateToSettings(null);
-          }, 3000);
-        }
-      }, 100);
-    }
+    if (!targetSection) return;
+    let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+    let highlightedEl: HTMLElement | null = null;
+    const scrollTimer = setTimeout(() => {
+      const sectionId = `${targetSection}-section`;
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.classList.add('highlight');
+        highlightedEl = element;
+        highlightTimer = setTimeout(() => {
+          element.classList.remove('highlight');
+          highlightedEl = null;
+          navigateToSettings(null);
+        }, 3000);
+      }
+    }, 100);
+    return () => {
+      clearTimeout(scrollTimer);
+      if (highlightTimer) clearTimeout(highlightTimer);
+      // The DOM persists across panel hides, so a highlight interrupted
+      // mid-animation must be removed here, not just its timer. Capture
+      // whether THIS effect actually applied a highlight before nulling it
+      // out via the optional chain below — the store-clear guard needs it.
+      const wasHighlighted = highlightedEl !== null;
+      highlightedEl?.classList.remove('highlight');
+      // The store has no other writer that clears settingsNavigationTarget:
+      // an early exit here (panel hidden via <Activity>, or component
+      // unmount) would otherwise leave it still pointing at this section, so
+      // the NEXT time settings opens it immediately re-scrolls/re-highlights
+      // a step that already finished. Only clear it if it still holds THIS
+      // exact target — a cleanup firing because the target already moved on
+      // to something newer (the normal retarget path above) must not
+      // clobber that newer value. AND only if this effect actually applied
+      // the highlight: React StrictMode's dev-only simulated remount runs
+      // this cleanup before the 100ms scrollTimer ever fires (highlightedEl
+      // still null), and since highlightSection IS settingsNavigationTarget
+      // in production (MainLayout.tsx:248 -> Settings.tsx:171), clearing
+      // the store here would make the re-created effect's own targetSection
+      // read null and bail immediately — silently dropping the highlight in
+      // dev. Production is unaffected (no double-invoke there).
+      if (wasHighlighted && useSettingsStore.getState().settingsNavigationTarget === targetSection) {
+        navigateToSettings(null);
+      }
+    };
   }, [highlightSection, settingsNavigationTarget, navigateToSettings]);
 
   // Local provider + an expanded slot: host the engine surface INSTEAD of

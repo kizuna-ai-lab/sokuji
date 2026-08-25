@@ -7,22 +7,14 @@ export interface AnalyticsEvents {
   'app_startup': {}; // version and platform are now in Super Properties
   'app_shutdown': { session_duration: number };
   
-  // Onboarding events
-  'onboarding_started': { 
-    is_first_time_user: boolean;
-    onboarding_version: string;
-  };
-  'onboarding_completed': { 
-    completion_method: 'finished' | 'skipped';
-    steps_completed: number;
-    total_steps: number;
-    duration_ms: number;
-    onboarding_version: string;
-  };
-  'onboarding_step_viewed': {
-    step_index: number;
-    step_target: string;
-    step_title: string;
+  // Tour events (spec §2.3).
+  'onboarding_started': { chapter: string; is_first_time_user: boolean; onboarding_version: number };
+  'onboarding_completed': { chapter: string; completion_method: 'finished' | 'skipped'; steps_completed: number; total_steps: number; duration_ms: number; onboarding_version: number };
+  'onboarding_step_viewed': { chapter: string; step_index: number; step_id: string };
+  'onboarding_step_skipped': {
+    chapter: string;
+    step_id: string;
+    reason: 'target-missing';
   };
   
   // Translation sessions
@@ -129,13 +121,17 @@ export interface AnalyticsEvents {
     from_mode: 'basic' | 'advanced';
     to_mode: 'basic' | 'advanced';
   };
-  'user_type_selected': {
-    user_type: 'regular' | 'experienced';
-    is_first_time_user: boolean;
-  };
-  'user_type_applied': {
-    user_type: 'regular' | 'experienced';
-    ui_mode: 'basic' | 'advanced';
+  // Setup wizard (spec §1.9)
+  'setup_started': { variant: 'first-run' | 'rerun' };
+  'setup_step_viewed': { step: number; step_id: string };
+  'setup_abandoned': { step: number };
+  'setup_completed': {
+    scenario: string;
+    provider_path: string;
+    provider: string;
+    source_language: string;
+    target_language: string;
+    credentials_pending: boolean;
   };
   'push_to_talk_used': {
     session_id: string;

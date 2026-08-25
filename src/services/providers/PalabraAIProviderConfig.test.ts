@@ -99,3 +99,20 @@ describe('validateAndFetchModels', () => {
     expect(spy).toHaveBeenCalledWith({ kind: 'clientCredentials', clientId: 'id-1', clientSecret: 'sec-1' });
   });
 });
+
+
+describe('credentialFieldsFor', () => {
+  it('asks for the pair app mode actually validates, not the platform key', () => {
+    // extractCredentials reads clientId+clientSecret in app mode; a wizard that
+    // rendered `apiKey` there would collect a credential nothing checks and
+    // leave the real one untouched.
+    const fields = descriptor.credentialFieldsFor(appSlice);
+    expect(fields.map((f) => f.key)).toEqual(['clientId', 'clientSecret']);
+    expect(fields.every((f) => f.secret)).toBe(true);
+  });
+
+  it('keeps the platform key for platform mode and for an unseen slice', () => {
+    expect(descriptor.credentialFieldsFor(platformSlice).map((f) => f.key)).toEqual(['apiKey']);
+    expect(descriptor.credentialFieldsFor({})).toEqual(descriptor.credentialFields);
+  });
+});

@@ -44,6 +44,25 @@ describe('parseVocabularyTranslations', () => {
   });
 });
 
+describe('SonioxProviderConfig.credentialFieldsFor', () => {
+  const descriptor = new SonioxProviderConfig();
+
+  it('points the wizard at the configured region\'s key slot, label unchanged', () => {
+    // The single "API key" input has to write the slot extractCredentials will
+    // read, or a Help re-run by an eu/jp user fills the US slot and validates
+    // against a key that is not there.
+    expect(descriptor.credentialFieldsFor({ ...defaultSonioxSettings, region: 'eu' }))
+      .toEqual([{ key: 'apiKeyEu', labelKey: 'setup.credentials.apiKey', secret: true }]);
+    expect(descriptor.credentialFieldsFor({ ...defaultSonioxSettings, region: 'jp' })[0].key).toBe('apiKeyJp');
+    expect(descriptor.credentialFieldsFor({ ...defaultSonioxSettings, region: 'us' })[0].key).toBe('apiKey');
+  });
+
+  it('falls back to the default region for an absent or unknown region', () => {
+    expect(descriptor.credentialFieldsFor({})).toEqual(descriptor.credentialFields);
+    expect(descriptor.credentialFieldsFor({ region: 'mars' })[0].key).toBe('apiKey');
+  });
+});
+
 describe('SonioxProviderConfig.buildSessionConfig', () => {
   const descriptor = new SonioxProviderConfig();
   const build = (patch: Partial<typeof defaultSonioxSettings>) =>

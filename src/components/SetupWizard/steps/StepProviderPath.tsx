@@ -1,0 +1,123 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { ExternalLink } from 'lucide-react';
+import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
+import { AI_PROVIDERS_DOCS_URL } from '../../../services/providers/tutorialUrls';
+import { openExternalUrl } from '../../../utils/openExternalUrl';
+import { Provider } from '../../../types/Provider';
+import type { ProviderType } from '../../../types/Provider';
+import type { ProviderPath } from '../../../lib/setup/types';
+import { availablePaths, managedProvider, managedOption, ownKeyOptions, offlineOptions } from '../providerPaths';
+import type { SetupAction, SetupDraft } from '../setupDraft';
+
+interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
+
+const PATH_COPY: Record<ProviderPath, { title: string; desc: string; cost: string }> = {
+  managed: {
+    title: 'Start right away',
+    desc: 'Kizuna AI runs the translation for you.',
+    cost: 'Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use.',
+  },
+  'own-key': {
+    title: 'I have my own API key',
+    desc: 'Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.',
+    cost: 'Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI.',
+  },
+  offline: {
+    title: 'Free, offline',
+    desc: 'Runs on your own machine. Nothing leaves it.',
+    cost: 'Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.',
+  },
+};
+
+const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
+  const { t } = useTranslation();
+  const scenario = draft.scenario!;
+  const nameOf = (id: ProviderType) => {
+    const key = ProviderConfigFactory.getDescriptor(id).i18nKey ?? id;
+    return t(`providers.${key}.name`, ProviderConfigFactory.getConfig(id).displayName);
+  };
+  const reasonOf = (reason: 'cannot-speak' | 'cannot-be-text-only') => reason === 'cannot-speak'
+    ? t('setup.fit.cannotSpeak', 'This provider cannot produce spoken translation.')
+    : t('setup.fit.cannotBeTextOnly', 'This provider always speaks; it cannot run subtitles-only.');
+
+  // Only the managed path resolves to one fixed provider, so it is the only
+  // path whose fitness for the scenario is known before the user picks it.
+  const managedFit = managedOption(scenario)?.fit ?? { ok: true as const };
+
+  const choosePath = (path: ProviderPath) => {
+    if (path === 'managed') dispatch({ type: 'setPath', path, provider: managedProvider() });
+    else if (path === 'offline') dispatch({ type: 'setPath', path, provider: Provider.LOCAL_INFERENCE });
+    else dispatch({ type: 'setPath', path, provider: null });
+  };
+
+  return (
+    <section className="setup-step">
+      <h2>{t('setup.steps.path.title', 'Choose an AI service provider')}</h2>
+      <div className="setup-cards" role="radiogroup" aria-label={t('setup.steps.path.title', 'Choose an AI service provider')}>
+        {availablePaths().map((path) => {
+          const unfit = path === 'managed' && !managedFit.ok ? managedFit : null;
+          return (
+            <label key={path} className={`setup-card${draft.providerPath === path ? ' is-selected' : ''}${unfit ? ' is-disabled' : ''}`}>
+              <input type="radio" name="path" value={path} checked={draft.providerPath === path} disabled={!!unfit}
+                onChange={() => choosePath(path)} />
+              <span className="setup-card__title">
+                {t(`setup.paths.${path}.title`, PATH_COPY[path].title)}
+                {path === 'managed' && !unfit && <em className="setup-card__badge">{t('setup.paths.recommended', 'Recommended')}</em>}
+              </span>
+              <span className="setup-card__desc">{t(`setup.paths.${path}.desc`, PATH_COPY[path].desc)}</span>
+              <span className="setup-card__cost">{t(`setup.paths.${path}.cost`, PATH_COPY[path].cost)}</span>
+              {unfit && <span className="setup-card__reason">{reasonOf(unfit.reason)}</span>}
+            </label>
+          );
+        })}
+      </div>
+
+      {draft.providerPath === 'own-key' && (
+        <>
+        <p className="setup-step__note">
+          {t('setup.paths.ownKeyNote', 'Pick the provider you have an account with. Each one issues its own key:')}
+          {' '}
+          <a
+            className="setup-link"
+            href={AI_PROVIDERS_DOCS_URL}
+            onClick={(e) => { e.preventDefault(); openExternalUrl(AI_PROVIDERS_DOCS_URL); }}
+          >
+            <ExternalLink size={12} />
+            {t('setup.paths.ownKeyGuides', 'guides for every provider')}
+          </a>
+        </p>
+        <div className="setup-cards setup-cards--compact" role="radiogroup" aria-label={t('setup.paths.pickProvider', 'Which provider?')}>
+          {ownKeyOptions(scenario).map(({ id, fit }) => (
+            <label key={id} className={`setup-card${draft.provider === id ? ' is-selected' : ''}${fit.ok ? '' : ' is-disabled'}`}>
+              <input type="radio" name="provider" value={id} checked={draft.provider === id} disabled={!fit.ok}
+                onChange={() => dispatch({ type: 'setProvider', provider: id })} />
+              <span className="setup-card__title">{nameOf(id)}</span>
+              {!fit.ok && <span className="setup-card__reason">{reasonOf(fit.reason)}</span>}
+            </label>
+          ))}
+        </div>
+        </>
+      )}
+
+      {draft.providerPath === 'offline' && offlineOptions().length > 1 && (
+        <div className="setup-cards setup-cards--compact" role="radiogroup" aria-label={t('setup.paths.offlineFlavor', 'Which engine?')}>
+          {offlineOptions().map((id) => (
+            <label key={id} className={`setup-card${draft.provider === id ? ' is-selected' : ''}`}>
+              <input type="radio" name="provider" value={id} checked={draft.provider === id}
+                onChange={() => dispatch({ type: 'setProvider', provider: id })} />
+              <span className="setup-card__title">{nameOf(id)}</span>
+              <span className="setup-card__desc">
+                {id === Provider.LOCAL_NATIVE
+                  ? t('setup.paths.offline.native', 'Native engine — faster, uses your GPU where available.')
+                  : t('setup.paths.offline.wasm', 'In-app engine — works everywhere, slower.')}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+};
+
+export default StepProviderPath;

@@ -1,7 +1,7 @@
 import { ProviderConfig } from './ProviderConfig';
 import { OpenAIProviderConfig, OpenAICompatibleSettingsBase, defaultOpenAICompatibleSettingsBase } from './OpenAIProviderConfig';
 import { Provider } from '../../types/Provider';
-import { Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { Credentials, CredentialCtx, ClientOptions, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAIClient } from '../clients/OpenAIClient';
@@ -25,6 +25,10 @@ export class OpenAICompatibleProviderConfig extends OpenAIProviderConfig {
   readonly settingsSliceKey = 'openaiCompatible';
   readonly i18nKey = 'openaiCompatible';
   readonly supportsWebRTC = true;
+  readonly credentialFields: readonly CredentialField[] = [
+    { key: 'customEndpoint', labelKey: 'setup.credentials.endpoint', secret: false, placeholderKey: 'setup.credentials.endpointPlaceholder' },
+    { key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true },
+  ];
 
   async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
     const s = slice as OpenAICompatibleSettings;

@@ -42,8 +42,9 @@ import {
 import type { SettingsStore } from '../../../stores/settingsStore';
 import { Provider, ProviderType, isKizunaManagedProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
+import { TUTORIAL_URLS } from '../../../services/providers/tutorialUrls';
+import { openExternalUrl } from '../../../utils/openExternalUrl';
 import { useAuth } from '../../../lib/auth/hooks';
-import { isElectron } from '../../../utils/environment';
 import { useAnalytics } from '../../../lib/analytics';
 import { useModelStore } from '../../../stores/modelStore';
 import { useIsParticipantChannelInScope, useMode } from '../../../stores/audioStore';
@@ -86,16 +87,6 @@ const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: 
 };
 const DefaultProviderIcon = HelpCircle;
 
-const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
-  [Provider.OPENAI]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
-  [Provider.GEMINI]: 'https://sokuji.kizuna.ai/docs/tutorials/gemini-setup',
-  [Provider.PALABRA_AI]: 'https://sokuji.kizuna.ai/docs/tutorials/palabraai-setup',
-  [Provider.OPENAI_COMPATIBLE]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-compatible-setup',
-  [Provider.VOLCENGINE_AST2]: 'https://sokuji.kizuna.ai/docs/tutorials/volcengine-ast2-setup',
-  [Provider.SONIOX]: 'https://sokuji.kizuna.ai/docs/tutorials/soniox-setup',
-  [Provider.LOCAL_INFERENCE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-inference-setup',
-  [Provider.LOCAL_NATIVE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-native-setup',
-};
 
 const DISMISSED_KEY = 'sokuji-dismissed-tutorials';
 
@@ -299,14 +290,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   };
 
   const tutorialUrl = TUTORIAL_URLS[provider];
-
-  const openExternalUrl = (url: string) => {
-    if (isElectron() && (window as any).electron?.invoke) {
-      (window as any).electron.invoke('open-external', url);
-    } else {
-      window.open(url, '_blank');
-    }
-  };
 
   // Shared by every model chip (both local providers, both speaker/
   // participant chip groups): deep-link the engine surface straight to this
@@ -576,9 +559,19 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // (see richSelect) lives in exactly one place.
   const renderProviderOption = (id: ProviderType, disabled = false) => {
     const optionInfo = getProviderInfoById(id);
+    // Whatever the wizard's managed card recommends, this list recommends —
+    // same function, so the two surfaces cannot name different providers.
+    const recommended = id === ProviderConfigFactory.getDefaultManagedProvider();
+    const recommendedLabel = t('simpleSettings.recommended', 'Recommended');
     if (!richSelect) {
+      // Chrome below 135 renders <option>{text}</option> and drops every child
+      // element, so on the extension's floor (116) the claim has to be text.
       return (
-        <option key={id} value={id} disabled={disabled}>{optionInfo.name}</option>
+        <option key={id} value={id} disabled={disabled}>
+          {recommended
+            ? t('simpleSettings.recommendedOption', '{{name}} ({{label}})', { name: optionInfo.name, label: recommendedLabel })
+            : optionInfo.name}
+        </option>
       );
     }
     return (
@@ -593,6 +586,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           <span className="provider-name-line">
             <span className="provider-select__name">{optionInfo.name}</span>
             <PoweredBy provider={id} />
+            {recommended && <em className="provider-recommended">{recommendedLabel}</em>}
           </span>
           <span className="provider-select__description">{optionInfo.description}</span>
         </span>
@@ -601,7 +595,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   };
 
   return (
-    <div className={`config-section provider-section ${className}`} id="provider-section">
+    <div className={`config-section provider-section ${className}`} id="provider-section" data-tour="provider-section">
       <h3>
         <Cpu size={18} />
         <span>{t('simpleSettings.provider', 'Provider')}</span>
@@ -673,7 +667,10 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
       {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
       {provider === Provider.LOCAL_NATIVE ? (
-        <div className="local-inference-info">
+        // data-tour sits on the wrapper, not the chip row: the tour's `models`
+        // step runs while the sidecar may still be 'starting', and only the
+        // wrapper is present in every native state.
+        <div className="local-inference-info" data-tour="engine-chips">
           {(nativeStatus === 'starting' || nativeStatus === 'idle') ? (
             <div className="model-info local-native-status is-loading">{t('settings.localNativeStarting', 'Starting the local engine')}</div>
           ) : nativeStatus === 'unavailable' ? (
@@ -706,7 +703,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           )}
         </div>
       ) : provider === Provider.LOCAL_INFERENCE ? (
-        <div className="local-inference-info">
+        // Same anchor placement as the native branch above, for the same reason.
+        <div className="local-inference-info" data-tour="engine-chips">
           <div className="model-info">
             {renderChipGroups(
               renderInferenceChips, speakerResolved, participantResolved,

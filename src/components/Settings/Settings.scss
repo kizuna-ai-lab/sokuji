@@ -1358,6 +1358,13 @@
       align-items: center;
       gap: 12px;
       min-width: 0;
+
+      // The closed control is a clone of the chosen option. Once the user has
+      // chosen the provider we recommend, saying so again argues with someone
+      // already persuaded — and the row is tighter without it.
+      .provider-recommended {
+        display: none;
+      }
     }
 
     &::picker(select) {
@@ -1419,6 +1426,20 @@
   .provider-select__name {
     margin-bottom: 0;
   }
+}
+
+// The one provider we recommend, marked in the list. Last in the name line so
+// it never pushes the engine credit away from the name it qualifies, and
+// nowrap so the two-word label breaks the line rather than itself.
+.provider-recommended {
+  font-style: normal;
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 1.5;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(vars.$color-primary, 0.15);
+  color: vars.$color-primary;
 }
 
 .powered-by {
@@ -1946,6 +1967,21 @@
   text-decoration: none;
   transition: color vars.$transition-fast;
 
+  // These are <button>s: an <a> with no href is not keyboard-focusable, so
+  // none of these actions could be reached without a mouse. Shed the control
+  // chrome so they still read as the links they look like.
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    @include vars.focus-ring;
+  }
+
   &:hover {
     color: vars.$color-primary;
   }
@@ -1954,6 +1990,14 @@
     opacity: vars.$disabled-opacity;
     cursor: not-allowed;
     pointer-events: none;
+  }
+
+  // Unlike `.disabled` above, hover must still work here: the link stays
+  // clickable-looking so its title attribute (the session-active notice)
+  // can be read on hover, and the click handler itself no-ops instead.
+  &.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 

@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "输入您的API密钥",
     "setupGuide": "设置指南",
     "validate": "验证",
-    "apiKeyHelpTooltip2": "分步指南："
+    "apiKeyHelpTooltip2": "分步指南：",
+    "recommended": "推荐",
+    "recommendedOption": "{{name}}（{{label}}）"
   },
   "audioPanel": {
     "title": "音频设置",
@@ -659,130 +661,6 @@
     "noMic": "需要麦克风",
     "reconnecting": "重新连接中..."
   },
-  "userTypeSelection": {
-    "title": "欢迎使用 Sokuji",
-    "subtitle": "请选择您的用户类型以开始使用",
-    "regular": {
-      "title": "普通用户",
-      "description": "我是AI服务新手或希望简单体验",
-      "feature1": "无需了解API密钥",
-      "feature2": "简单直观的界面",
-      "feature3": "引导式设置流程",
-      "action": "以基础模式开始"
-    },
-    "experienced": {
-      "title": "高级用户",
-      "description": "我有自己的API密钥并了解AI服务",
-      "feature1": "拥有OpenAI或Gemini API密钥",
-      "feature2": "可访问实时API功能",
-      "feature3": "完全控制所有设置",
-      "action": "以高级模式开始"
-    }
-  },
-  "onboarding": {
-    "basic": {
-      "steps": {
-        "welcome": {
-          "title": "欢迎使用 Sokuji",
-          "content": "欢迎使用 Sokuji！这个简单的指南将帮助您在几个步骤内开始使用实时翻译。"
-        },
-        "mode": {
-          "content": "选择 Sokuji 翻译什么：我 — 您自己的语音（让对方听懂您）；对方 — 对方说的话（让您看懂他们）；或两者，进行双向翻译。这决定了捕获哪一路音频 — 选择「对方」或「两者」即可开启对方音频。",
-          "title": "翻译模式"
-        },
-        "settings": {
-          "title": "步骤 1：打开设置",
-          "content": "点击这里打开设置，您可以配置语言和音频设备。"
-        },
-        "languages": {
-          "title": "步骤 3：选择语言",
-          "content": "选择「我的语言」（您说的语言）和「对方语言」（您希望对方听到的语言）。"
-        },
-        "microphone": {
-          "title": "步骤 5：选择麦克风",
-          "content": "从列表中选择您的麦克风。这将捕获您的声音。"
-        },
-        "speaker": {
-          "title": "步骤 6：选择扬声器",
-          "content": "选择监听设备来试听翻译效果。无论是否开启监听，翻译后的语音都会输出到虚拟麦克风。您需要在会议软件或网站上选择 Sokuji 虚拟麦克风作为麦克风输入。推荐使用耳机监听，避免干扰麦克风收音。"
-        },
-        "systemAudio": {
-          "title": "步骤 7：对方音频",
-          "content": "这是对方通道 — 对方说的话，翻译给您看。在翻译模式中选择「对方」或「两者」即可开启（在「我」模式下保持关闭）。在浏览器扩展中，它会捕获当前标签页，让您可以翻译 Google Meet、Teams 或 Zoom 中对方的发言。在桌面应用中，它会捕获所有系统声音，让您可以翻译 YouTube、Twitch、Netflix 或任何来源。对方语音仅翻译为文字 — 不会进行语音合成。与您的麦克风配合，即可实现完整的双向翻译。"
-        },
-        "start": {
-          "title": "步骤 8：开始翻译",
-          "content": "点击'开始'开始翻译！自然地说话，实时听到翻译。"
-        },
-        "complete": {
-          "title": "设置完成！",
-          "content": "完美！您已准备好使用 Sokuji。点击开始并开始说话以听到实时翻译。"
-        },
-        "provider": {
-          "title": "步骤 4：翻译提供商",
-          "content": "选择您的翻译提供商。Sokuji 自带翻译服务，点击标题栏的账户按钮登录即可使用。同时也支持 OpenAI、Gemini、豆包（火山引擎）等云端服务，使用这些服务需要您自己的 API 密钥。您也可以选择本地推理模式，无需 API 密钥，免费且注重隐私，下载模型后即可完全离线使用。"
-        }
-      }
-    },
-    "back": "返回",
-    "close": "关闭",
-    "finish": "完成",
-    "next": "下一步",
-    "nextWithProgress": "下一步 ({step}/{steps})",
-    "open": "打开对话框",
-    "skip": "跳过向导",
-    "restartTour": "重新开始设置向导",
-    "steps": {
-      "welcome": {
-        "title": "欢迎使用Sokuji",
-        "content": "欢迎使用Sokuji！本指南将帮助您设置实时语音翻译应用程序。让我们开始吧！"
-      },
-      "mode": {
-        "content": "选择 Sokuji 翻译什么：我 — 您自己的语音（让对方听懂您）；对方 — 对方说的话（让您看懂他们）；或两者，进行双向翻译。这决定了捕获哪一路音频 — 选择「对方」或「两者」即可开启对方音频。",
-        "title": "翻译模式"
-      },
-      "settings": {
-        "title": "步骤1：打开设置",
-        "content": "首先，让我们配置您的设置。点击这里打开设置面板，您可以选择翻译提供商并自定义设置。"
-      },
-      "apiKey": {
-        "title": "步骤2：翻译提供商",
-        "content": "选择您的翻译提供商。Sokuji 支持 OpenAI、Gemini、豆包（火山引擎）等云端服务。您也可以选择本地推理模式，无需 API 密钥，免费且注重隐私，下载模型后即可完全离线使用。"
-      },
-      "systemInstructions": {
-        "title": "步骤3：系统指令",
-        "content": "自定义系统指令以控制AI的响应方式。您可以在此处修改翻译行为并添加特定要求。"
-      },
-      "voiceSettings": {
-        "title": "步骤4：语音设置",
-        "content": "配置用于语音合成的语音类型。从不同的语音选项中选择以符合您的偏好。"
-      },
-      "turnDetection": {
-        "title": "步骤5：轮换检测",
-        "content": "配置自动轮换检测设置，包括检测模式、阈值和音频参数，以获得最佳的语音识别性能。"
-      },
-      "microphoneSetup": {
-        "title": "步骤6：麦克风设置",
-        "content": "在此处选择您的麦克风设备。请确保选择正确的输入设备以获得最佳音频质量。"
-      },
-      "speakerSetup": {
-        "title": "步骤7：扬声器设置",
-        "content": "选择监听设备来试听翻译效果。无论是否开启监听，翻译后的语音都会输出到虚拟麦克风。您需要在会议软件或网站上选择 Sokuji 虚拟麦克风作为麦克风输入。推荐使用耳机监听，避免干扰麦克风收音。"
-      },
-      "systemAudio": {
-        "title": "步骤 8：对方音频",
-        "content": "这是对方通道 — 对方说的话，翻译给您看。在翻译模式中选择「对方」或「两者」即可开启（在「我」模式下保持关闭）。在浏览器扩展中，它会捕获当前标签页，让您可以翻译 Google Meet、Teams 或 Zoom 中对方的发言。在桌面应用中，它会捕获所有系统声音，让您可以翻译 YouTube、Twitch、Netflix 或任何来源。对方语音仅翻译为文字 — 不会进行语音合成。与您的麦克风配合，即可实现完整的双向翻译。"
-      },
-      "startSession": {
-        "title": "步骤9：开始会话",
-        "content": "点击\"开始会话\"按钮开始使用Sokuji。启动后，您可以自然说话进行实时翻译。如果禁用了自动轮换检测，请使用\"按住说话\"（空格键）来说话。"
-      },
-      "complete": {
-        "title": "设置指南完成！",
-        "content": "太棒了！设置完成。请在提示时授予麦克风权限。您可以随时从设置中重新启动此指南。"
-      }
-    }
-  },
   "tokenUsage": {
     "unableToLoadQuota": "无法加载配额信息",
     "upgradeToPremium": "升级到高级版"
@@ -1070,5 +948,200 @@
     "deleteNoModel": "删除 {{name}}：将没有可用的{{stage}}模型——会话将无法开始。",
     "clearAllKeepsPicks": "你的选择会被记住，模型再次下载后会自动恢复。",
     "importChooseModel": "选择要导入的模型"
+  },
+  "setup": {
+    "title": "设置 Sokuji",
+    "stepOf": "第 {{current}} 步，共 {{total}} 步",
+    "back": "上一步",
+    "next": "下一步",
+    "finish": "完成",
+    "close": "关闭",
+    "skipForNow": "先跳过，稍后设置",
+    "rerun": "重新运行设置向导",
+    "steps": {
+      "language": {
+        "title": "Sokuji 用什么语言和你交流？",
+        "desc": "这是菜单和按钮的语言。翻译用的语言稍后再选。",
+        "label": "界面语言"
+      },
+      "scenario": {
+        "title": "你想用 Sokuji 做什么？",
+        "desc": "选最接近的一个，之后都可以改。"
+      },
+      "path": {
+        "title": "请选择 AI 服务提供商"
+      },
+      "credentials": {
+        "offlineTitle": "无需填写",
+        "managedTitle": "你的 Kizuna AI 账号",
+        "ownKeyTitle": "你的 API 密钥"
+      },
+      "languagePair": {
+        "title": "翻译哪两种语言？",
+        "desc": "你（或对方）说的语言，以及要翻译成的语言。"
+      },
+      "finish": {
+        "title": "准备就绪",
+        "persistFailed": "无法保存设置，请重试。"
+      }
+    },
+    "scenarios": {
+      "sets": "将设置：{{mode}}模式 · {{output}}",
+      "understand-others": {
+        "title": "听懂对方",
+        "desc": "在线会议、网课、讲座、视频、直播——实时阅读你听到内容的翻译。"
+      },
+      "be-heard": {
+        "title": "让对方在会议里听懂我",
+        "desc": "对方通过虚拟麦克风听到你翻译后的语音。"
+      },
+      "subtitle-myself": {
+        "title": "给我的发言配字幕",
+        "desc": "演讲、直播、演示——观众阅读翻译字幕，不生成语音。"
+      },
+      "two-way-voice": {
+        "title": "在线双向对话",
+        "desc": "对方听到你的翻译语音；你阅读根据对方发言生成的字幕。"
+      },
+      "two-way-text": {
+        "title": "在线双向对话，只要字幕",
+        "desc": "双语字幕、会议记录——双方都以文字呈现，不使用合成语音。"
+      }
+    },
+    "output": {
+      "voice": "出声＋字幕",
+      "subtitles": "只有字幕"
+    },
+    "paths": {
+      "recommended": "推荐",
+      "pickProvider": "选择哪家服务？",
+      "offlineFlavor": "选择哪个引擎？",
+      "managed": {
+        "title": "直接开始",
+        "desc": "由 Kizuna AI 为你运行翻译。",
+        "cost": "用邮箱注册 Kizuna AI 账号并完成邮箱验证——验证后即可获得试用额度。之后自行充值，按用量计费。"
+      },
+      "own-key": {
+        "title": "我有自己的 API 密钥",
+        "desc": "自备 OpenAI、Gemini、豆包（火山引擎）等服务的 API 密钥。",
+        "cost": "密钥只保存在这台设备上，由本机直接访问该服务。你是该服务的客户，按用量直接付费给它，不经过 Kizuna AI。"
+      },
+      "offline": {
+        "title": "免费离线",
+        "desc": "在你自己的电脑上运行，数据不外传。",
+        "cost": "需要下载模型到硬盘（数 GB）。有 GPU 和足够显存时运行流畅；仅用 CPU 会明显变慢。",
+        "native": "原生引擎——更快，可利用 GPU。",
+        "wasm": "内置引擎——到处能用，速度较慢。"
+      },
+      "ownKeyNote": "选择你已有账号的服务，密钥要到各家自己的控制台申请：",
+      "ownKeyGuides": "各家服务的申请指南"
+    },
+    "fit": {
+      "cannotSpeak": "该服务不能生成语音翻译。",
+      "cannotBeTextOnly": "该服务始终出声，不支持仅字幕。"
+    },
+    "credentials": {
+      "apiKey": "API 密钥",
+      "endpoint": "接口地址",
+      "endpointPlaceholder": "示例：https://api.example.com/v1",
+      "accessKeyId": "访问密钥 ID（Access Key ID）",
+      "secretAccessKey": "秘密访问密钥（Secret Access Key）",
+      "appId": "应用 ID（App ID）",
+      "accessToken": "访问令牌（Access Token）",
+      "apiSecret": "API 秘密密钥（API Secret）",
+      "validate": "校验",
+      "valid": "密钥可用。",
+      "invalid": "密钥被拒绝。",
+      "signIn": "登录",
+      "createAccount": "注册账号",
+      "signedIn": "已登录，可以继续。",
+      "managedDesc": "用邮箱注册或登录，并到邮箱完成验证；验证后即可获得试用额度。之后自行充值，按用量计费。",
+      "offlineNotice": "模型在设置完成后从「设置」里下载，会占用数 GB 硬盘。有 GPU 和足够显存时运行流畅；仅用 CPU 会明显变慢。",
+      "pendingKey": "可以稍后在「设置 → 提供商」里添加密钥。密钥校验通过前无法开始。",
+      "pendingSignIn": "可以稍后从账户按钮登录。登录前无法开始。",
+      "verifyEmail": "已登录。请到邮箱打开我们发送的链接完成验证——验证后试用额度才会到账。",
+      "ownKeyDesc": "密钥只保存在这台设备上，由本机直接调用该服务，不会传给 Kizuna AI。用量费用由你直接付给该服务。",
+      "guide": "如何获取这个密钥",
+      "onFile": "已保存密钥——留空即沿用。"
+    },
+    "summary": {
+      "scenario": "场景",
+      "mode": "模式",
+      "provider": "服务",
+      "languages": "语言",
+      "pendingKey": "尚未设置 API 密钥——开始前请在「设置 → 提供商」里添加。",
+      "pendingSignIn": "尚未登录——开始前请从账户按钮登录。",
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    }
+  },
+  "tour": {
+    "back": "上一步",
+    "next": "下一步",
+    "skip": "跳过",
+    "finish": "完成",
+    "restart": "重新开始引导",
+    "steps": {
+      "welcome": {
+        "title": "设置完成",
+        "content": "Sokuji 已按你的场景配置好。下面用不到一分钟认一下界面。"
+      },
+      "mode-picker": {
+        "title": "翻译模式",
+        "content": "已经为你设好，随时可以切换。翻译始终会以文字显示在这里；是否还出声，由模式和「仅文字」开关共同决定。",
+        "modeMe": "「我」——把你说的话翻译给对方。",
+        "modeOthers": "「对方」——把对方说的话翻译给你。",
+        "modeBoth": "「两者」——同时翻译两个方向。"
+      },
+      "microphone": {
+        "title": "你的麦克风",
+        "content": "你的声音从这里进来，已选好系统默认设备。不要选 Sokuji 虚拟麦克风——那个是给会议软件用的。"
+      },
+      "monitor": {
+        "title": "听一听翻译后的自己",
+        "content": "把翻译语音播放到你自己的耳机，检查效果。不需要可以关掉。"
+      },
+      "output-routing": {
+        "title": "对方怎么听到你",
+        "content": "你的翻译语音会送到一个虚拟麦克风；在会议软件里把它选为麦克风。",
+        "content_extension": "在 Google Meet、Zoom 或 Teams 里，把麦克风选为「Sokuji Virtual Microphone」。Sokuji 会自动把它加到支持的会议网站。",
+        "content_electronLinux": "Sokuji 已在本机创建了虚拟麦克风。在会议软件里把它选为麦克风。",
+        "content_electronOther": "需要一个虚拟声卡（例如 VB-Cable）。把 Sokuji 的输出接到它，再在会议软件里把它选为麦克风。"
+      },
+      "participant-source": {
+        "title": "对方的声音",
+        "content": "Sokuji 在这里听对方说话。",
+        "content_electron": "选择要翻译的应用，或整个系统音频。对方的原声照常播放。",
+        "content_extension": "Sokuji 翻译当前标签页的声音。对方的原声照常播放。"
+      },
+      "subtitle": {
+        "title": "字幕模式",
+        "content": "打开悬浮字幕——桌面端是一个窗口，扩展里是页面上的覆盖层。OBS 和屏幕共享都能捕获它。"
+      },
+      "account": {
+        "title": "你的账户",
+        "content": "余额和充值在这里。",
+        "content_signedOut": "你的账户在这里。引导结束后登录即可开始。"
+      },
+      "provider-settings": {
+        "title": "服务设置",
+        "content": "在这里换密钥或换服务。",
+        "content_pending": "把 API 密钥粘贴在这里。校验通过后才能开始。"
+      },
+      "models": {
+        "title": "模型",
+        "content": "模型在这里下载，每个阶段一个。多试几个——第一个选择未必最合适。"
+      },
+      "start": {
+        "title": "开始",
+        "content": "按这里开始翻译。如果按钮是灰的，把鼠标停在上面：提示会说明还缺什么、该去哪里补上。",
+        "content_offline": "模型准备好后这里就会亮起。灰着的时候把鼠标停在上面，可以看到它在等什么。",
+        "content_signedOut": "登录后这里就会亮起。灰着的时候把鼠标停在上面，可以看到它在等什么。",
+        "content_pendingKey": "API 密钥校验通过后这里就会亮起。灰着的时候把鼠标停在上面，可以看到它在等什么。"
+      },
+      "done": {
+        "title": "就这些",
+        "content": "高级设置——说话检测、提示词、语音、日志——在「设置」右上角的高级模式开关后面。随时可以在「帮助」里重看本引导。"
+      }
+    }
   }
 }

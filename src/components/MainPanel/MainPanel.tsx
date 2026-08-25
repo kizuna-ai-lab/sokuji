@@ -4287,6 +4287,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 </button>
               )}
               <button
+                data-tour="main-action"
                 className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
                 onClick={isSessionActive || isInitializing ? disconnectConversation : connectConversation}
                 disabled={!canStartSession && !isSessionActive && !isInitializing}
@@ -4403,6 +4404,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 </button>
               )}
               <button
+                data-tour="main-action"
                 className={`session-button ${isSessionActive ? 'active' : ''}`}
                 onClick={() => {
                   trackEvent('session_control_clicked', {

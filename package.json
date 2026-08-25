@@ -179,7 +179,6 @@
     "react-dom": "^19.2.7",
     "react-i18next": "^15.5.2",
     "react-icons": "^5.6.0",
-    "react-joyride": "^3.2.0",
     "react-router-dom": "^7.18.1",
     "sass": "^1.101.6",
     "tsx": "^4.23.1",

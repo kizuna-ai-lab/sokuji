@@ -3,18 +3,19 @@ import { useTranslation } from 'react-i18next';
 import MainPanel from '../MainPanel/MainPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
 import { Settings as SettingsComponent } from '../Settings';
-import Onboarding from '../Onboarding/Onboarding';
-import UserTypeSelection from '../UserTypeSelection/UserTypeSelection';
+import TourOverlay from '../Tour/TourOverlay';
+import SetupWizard from '../SetupWizard/SetupWizard';
 import TitleBar from '../TitleBar/TitleBar';
 import PanelResizer from './PanelResizer';
 import { clampPanelWidth, maxPanelWidth, readPanelWidth, savePanelWidth, PANEL_MIN_WIDTH } from './panelWidth';
 import { useCloseLogsOutsideAdvanced } from './useCloseLogsOutsideAdvanced';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
-import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
+import { useProvider, useUIMode, useSetProvider, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
+import { useShowSettings, useSetShowSettings, useSetupWizardOpen, useSetSetupWizardOpen } from '../../stores/layoutStore';
 import SubtitleApp from '../Subtitle/SubtitleApp';
-import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useSetupLoaded, useSetupComplete } from '../../stores/setupStore';
 import { useAuth } from '../../lib/auth/hooks';
 import { isKizunaManagedProvider } from '../../types/Provider';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
@@ -26,17 +27,18 @@ const MainLayout: React.FC = () => {
   const provider = useProvider();
   const uiMode = useUIMode();
   const setProvider = useSetProvider();
-  const setUIMode = useSetUIMode();
   const settingsNavigationTarget = useSettingsNavigationTarget();
-  const { userTypeSelected, setUserType } = useOnboarding();
+  const setupLoaded = useSetupLoaded();
+  const setupComplete = useSetupComplete();
+  const setupWizardOpen = useSetupWizardOpen();
+  const setSetupWizardOpen = useSetSetupWizardOpen();
   const { isSignedIn } = useAuth();
   const subtitleActive = useSubtitleModeActive();
   const [showLogs, setShowLogs] = useState(() => {
     return sessionStorage.getItem('panelState.showLogs') === 'true';
   });
-  const [showSettings, setShowSettings] = useState(() => {
-    return sessionStorage.getItem('panelState.showSettings') === 'true';
-  });
+  const showSettings = useShowSettings();
+  const setShowSettings = useSetShowSettings();
   const [panelWidth, setPanelWidth] = useState(() => clampPanelWidth(readPanelWidth(), window.innerWidth));
 
   // Track panel view times
@@ -87,7 +89,6 @@ const MainLayout: React.FC = () => {
       setShowLogs(true);
       setShowSettings(false);
       sessionStorage.setItem('panelState.showLogs', 'true');
-      sessionStorage.setItem('panelState.showSettings', 'false');
       trackPanelView('logs');
     }
   };
@@ -96,12 +97,10 @@ const MainLayout: React.FC = () => {
     // If already shown, close it; otherwise open it and close other panels
     if (showSettings) {
       setShowSettings(false);
-      sessionStorage.setItem('panelState.showSettings', 'false');
       trackPanelView(null);
     } else {
       setShowSettings(true);
       setShowLogs(false);
-      sessionStorage.setItem('panelState.showSettings', 'true');
       sessionStorage.setItem('panelState.showLogs', 'false');
       trackPanelView('settings');
     }
@@ -150,32 +149,27 @@ const MainLayout: React.FC = () => {
       // Open settings panel when navigation is requested
       setShowSettings(true);
       setShowLogs(false);
-      // Save to sessionStorage when programmatically opening settings
-      sessionStorage.setItem('panelState.showSettings', 'true');
       sessionStorage.setItem('panelState.showLogs', 'false');
       trackPanelView('settings');
     }
-  }, [settingsNavigationTarget]);
-
-  // Handle user type selection
-  const handleUserTypeSelection = useCallback((type: 'regular' | 'experienced') => {
-    // Set UI mode based on user type
-    const newMode = type === 'regular' ? 'basic' : 'advanced';
-    setUIMode(newMode);
-
-    // Call the onboarding context to handle the selection
-    setUserType(type);
-
-    trackEvent('user_type_applied', {
-      user_type: type,
-      ui_mode: newMode
-    });
-  }, [setUIMode, setUserType, trackEvent]);
+  }, [settingsNavigationTarget, setShowSettings]);
 
   // Auto-switch to KizunaAI when Basic Mode users log in
   useEffect(() => {
-    // Check if user just logged in (was false, now true)
-    if (!prevIsSignedInRef.current && isSignedIn) {
+    // The user just logged in (was false, now true) — but not underneath the
+    // setup wizard. Signing in from its step 3 is part of a draft the user has
+    // not committed yet: Finish writes the provider itself on the managed path,
+    // and backing out must leave the provider exactly as it was (spec §1.1).
+    // The ref below still advances, so a switch skipped here does not fire late
+    // when the overlay closes.
+    //
+    // BOTH wizards, not just the rerun: `setupWizardOpen` is the rerun
+    // overlay's own flag, and the first-run wizard renders below on the
+    // strength of `!setupComplete` without ever setting it. Gating on the same
+    // condition that puts the wizard on screen is what makes "nothing is
+    // written until Finish" true for a first-time user too.
+    const wizardOnScreen = setupWizardOpen || !setupComplete;
+    if (!prevIsSignedInRef.current && isSignedIn && !wizardOnScreen) {
       // User just logged in. The target is derived from what is REGISTERED, not
       // from a feature flag: the managed providers are gated independently now,
       // so isKizunaAIEnabled() no longer implies the Translate twin exists. In
@@ -203,12 +197,12 @@ const MainLayout: React.FC = () => {
 
     // Update the ref for next render
     prevIsSignedInRef.current = isSignedIn;
-  }, [isSignedIn, uiMode, provider, setProvider, trackEvent]);
+  }, [isSignedIn, uiMode, provider, setProvider, trackEvent, setupWizardOpen, setupComplete]);
 
-  // Show user type selection if not selected yet
-  if (!userTypeSelected) {
-    return <UserTypeSelection onSelectUserType={handleUserTypeSelection} />;
-  }
+  // Nothing until setup state is known: a migrated user must never see the
+  // wizard flash. Then the wizard in place of the layout on a fresh install.
+  if (!setupLoaded) return null;
+  if (!setupComplete) return <SetupWizard variant="first-run" />;
 
   // In Electron subtitle mode the main process reshapes the BrowserWindow
   // into a tiny bar. Hide TitleBar and the main-layout tree (display:none
@@ -267,8 +261,13 @@ const MainLayout: React.FC = () => {
           />
         </Activity>
       </div>
-      <Onboarding />
     </div>
+    {setupWizardOpen && <SetupWizard variant="rerun" onClose={() => setSetupWizardOpen(false)} />}
+    {/* The gate, not the placement, is what matters: TourOverlay portals to
+        document.body, so it would escape the main-layout subtree (and its
+        takeover display:none) wherever it sat. During an Electron subtitle
+        takeover the anchored UI is gone, so the tour does not render at all. */}
+    {!electronSubtitleTakeover && <TourOverlay />}
     {electronSubtitleTakeover && <SubtitleApp />}
     </>
   );

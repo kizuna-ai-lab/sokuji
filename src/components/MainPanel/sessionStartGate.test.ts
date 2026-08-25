@@ -476,7 +476,7 @@ describe('reasonToSettingsTarget', () => {
 
   // NOT 'user-account'. The account entry was deliberately moved out of the
   // settings panel to the title bar's AccountButton, and two tests pin its
-  // absence there (SimpleSettings.account.test.tsx, OnboardingContext.steps).
+  // absence there (SimpleSettings.account.test.tsx).
   // Settings.tsx resolves a target by looking up `${target}-section`, so
   // 'user-account' matches no element: the Fix button would switch to the
   // General tab, scroll nowhere, and leave the user with nothing to click.

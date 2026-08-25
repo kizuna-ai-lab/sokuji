@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "輸入您的 API 金鑰",
     "setupGuide": "設定指南",
     "validate": "驗證",
-    "apiKeyHelpTooltip2": "逐步指南："
+    "apiKeyHelpTooltip2": "逐步指南：",
+    "recommended": "推薦",
+    "recommendedOption": "{{name}}（{{label}}）"
   },
   "audioPanel": {
     "title": "音訊設定",
@@ -659,130 +661,6 @@
     "noMic": "需要麥克風",
     "reconnecting": "重新連線中..."
   },
-  "userTypeSelection": {
-    "title": "歡迎使用 Sokuji",
-    "subtitle": "請選擇您的使用者類型以開始使用",
-    "regular": {
-      "title": "一般使用者",
-      "description": "我是AI服務新手或希望簡單體驗",
-      "feature1": "無需瞭解API金鑰",
-      "feature2": "簡單直觀的介面",
-      "feature3": "引導式設定流程",
-      "action": "以基礎模式開始"
-    },
-    "experienced": {
-      "title": "經驗使用者",
-      "description": "我有自己的API金鑰並瞭解AI服務",
-      "feature1": "擁有OpenAI或Gemini API金鑰",
-      "feature2": "存取即時API功能",
-      "feature3": "完全控制所有設定",
-      "action": "以進階模式開始"
-    }
-  },
-  "onboarding": {
-    "basic": {
-      "steps": {
-        "welcome": {
-          "title": "歡迎使用 Sokuji",
-          "content": "歡迎使用 Sokuji！這份簡易指南將協助您在幾個步驟內開始使用即時翻譯。"
-        },
-        "mode": {
-          "content": "選擇 Sokuji 翻譯什麼：我 — 您自己的語音（讓對方聽懂您）；對方 — 對方說的話（讓您看懂他們）；或兩者，進行雙向翻譯。這決定了擷取哪一路音訊 — 選擇「對方」或「兩者」即可開啟對方音訊。",
-          "title": "翻譯模式"
-        },
-        "settings": {
-          "title": "步驟 1：開啟設定",
-          "content": "點擊這裡開啟設定，您可以在其中設定語言和音訊裝置。"
-        },
-        "languages": {
-          "title": "步驟 3：選擇語言",
-          "content": "選擇「我的語言」（您說的語言）和「對方語言」（您希望對方聽到的語言）。"
-        },
-        "microphone": {
-          "title": "步驟 5：選擇麥克風",
-          "content": "從清單中選擇您的麥克風。它將負責擷取您的聲音。"
-        },
-        "speaker": {
-          "title": "步驟 6：選擇喇叭",
-          "content": "選擇監聽裝置來試聽翻譯效果。無論是否開啟監聽，翻譯後的語音都會輸出到虛擬麥克風。您需要在會議軟體或網站上選擇 Sokuji 虛擬麥克風作為麥克風輸入。建議使用耳機監聽，避免干擾麥克風收音。"
-        },
-        "systemAudio": {
-          "title": "步驟 7：對方音訊",
-          "content": "這是對方通道 — 對方說的話，翻譯給您看。在翻譯模式中選擇「對方」或「兩者」即可開啟（在「我」模式下保持關閉）。在瀏覽器擴充功能中，它會擷取目前分頁，讓您可以翻譯 Google Meet、Teams 或 Zoom 中對方的發言。在桌面應用程式中，它會擷取所有系統聲音，讓您可以翻譯 YouTube、Twitch、Netflix 或任何來源。對方語音僅翻譯為文字 — 不會進行語音合成。與您的麥克風配合，即可實現完整的雙向翻譯。"
-        },
-        "start": {
-          "title": "步驟 8：開始翻譯",
-          "content": "點擊「開始」即可開始翻譯！自然地說話，就能即時聽到翻譯。"
-        },
-        "complete": {
-          "title": "設定完成！",
-          "content": "太好了！您已可以開始使用 Sokuji。點擊「開始」並開口說話，即可聽到即時翻譯。"
-        },
-        "provider": {
-          "title": "步驟 4：翻譯提供商",
-          "content": "選擇您的翻譯提供商。Sokuji 有內建的翻譯服務 — 點擊標題列的帳戶按鈕登入即可使用。也支援 OpenAI、Gemini、火山引擎（豆包）等雲端服務，使用這些服務需要您自己的 API 金鑰。您也可以使用本地推理模式 — 無需 API 金鑰，免費且注重隱私，下載模型後即可完全離線翻譯。"
-        }
-      }
-    },
-    "back": "返回",
-    "close": "關閉",
-    "finish": "完成",
-    "next": "下一步",
-    "nextWithProgress": "下一步 ({step}/{steps})",
-    "open": "開啟",
-    "skip": "跳過",
-    "restartTour": "重新開始設定指南",
-    "steps": {
-      "welcome": {
-        "title": "歡迎使用 Sokuji！",
-        "content": "歡迎使用即時語音翻譯應用程式！讓我們快速設定您的系統，以獲得最佳體驗。"
-      },
-      "mode": {
-        "content": "選擇 Sokuji 翻譯什麼：我 — 您自己的語音（讓對方聽懂您）；對方 — 對方說的話（讓您看懂他們）；或兩者，進行雙向翻譯。這決定了擷取哪一路音訊 — 選擇「對方」或「兩者」即可開啟對方音訊。",
-        "title": "翻譯模式"
-      },
-      "settings": {
-        "title": "步驟 1：開啟設定",
-        "content": "首先，讓我們來設定。點擊這裡開啟設定面板，您可以在其中選擇翻譯提供商並自訂設定。"
-      },
-      "apiKey": {
-        "title": "步驟 2：翻譯提供商",
-        "content": "選擇您的翻譯提供商。Sokuji 支援 OpenAI、Gemini、火山引擎（豆包）等雲端服務。您也可以使用本地推理模式 — 無需 API 金鑰，免費且注重隱私，下載模型後即可完全離線翻譯。"
-      },
-      "systemInstructions": {
-        "title": "自訂系統指令",
-        "content": "在此處新增任何特定指令以自訂翻譯行為，例如語調、風格或特殊要求。"
-      },
-      "voiceSettings": {
-        "title": "語音設定",
-        "content": "選擇您偏好的語音模型和設定。這些設定將影響翻譯的品質和速度。"
-      },
-      "turnDetection": {
-        "title": "輪換偵測",
-        "content": "配置自動輪換偵測設定，以控制系統何時開始和停止聆聽。"
-      },
-      "microphoneSetup": {
-        "title": "選擇麥克風裝置",
-        "content": "從清單中選擇您的實際麥克風裝置。避免選擇虛擬裝置，因為這些是供會議應用程式使用的。"
-      },
-      "speakerSetup": {
-        "title": "監控裝置設定",
-        "content": "選擇監控裝置（如耳機或揚聲器）來聽取翻譯輸出。建議使用耳機以避免音訊回饋。如果您想專注於會議而不被監控分心，可以關閉監控功能。"
-      },
-      "systemAudio": {
-        "title": "步驟 8：對方音訊",
-        "content": "這是對方通道 — 對方說的話，翻譯給您看。在翻譯模式中選擇「對方」或「兩者」即可開啟（在「我」模式下保持關閉）。在瀏覽器擴充功能中，它會擷取目前分頁，讓您可以翻譯 Google Meet、Teams 或 Zoom 中對方的發言。在桌面應用程式中，它會擷取所有系統聲音，讓您可以翻譯 YouTube、Twitch、Netflix 或任何來源。對方語音僅翻譯為文字 — 不會進行語音合成。與您的麥克風配合，即可實現完整的雙向翻譯。"
-      },
-      "startSession": {
-        "title": "開始您的工作階段",
-        "content": "一切設定完成！點擊「開始工作階段」按鈕開始即時翻譯。記住在您的會議應用程式中選擇 Sokuji 虛擬麥克風作為輸入裝置。"
-      },
-      "complete": {
-        "title": "設定指南完成！",
-        "content": "太好了！您已完成所有設定。請記得在系統提示時授予麥克風權限。您隨時可以從設定中重新開始這個指南。"
-      }
-    }
-  },
   "tokenUsage": {
     "unableToLoadQuota": "無法載入配額資訊",
     "upgradeToPremium": "升級到高級版"
@@ -1070,5 +948,200 @@
     "deleteNoModel": "刪除 {{name}}：已無可用的{{stage}}模型 — 無法開始會話。",
     "clearAllKeepsPicks": "您的選擇會被記住，再次下載模型後會自動套用。",
     "importChooseModel": "選擇要匯入的模型"
+  },
+  "setup": {
+    "title": "設定 Sokuji",
+    "stepOf": "第 {{current}} 步，共 {{total}} 步",
+    "back": "返回",
+    "next": "下一步",
+    "finish": "完成",
+    "close": "關閉",
+    "skipForNow": "暫時跳過",
+    "rerun": "重新開始設定",
+    "steps": {
+      "language": {
+        "title": "您希望 Sokuji 用哪種語言與您溝通？",
+        "desc": "這是選單和按鈕使用的語言。要翻譯的語言稍後再選擇。",
+        "label": "介面語言"
+      },
+      "scenario": {
+        "title": "您想用 Sokuji 做什麼？",
+        "desc": "選擇最接近的選項，之後都可以再更改。"
+      },
+      "path": {
+        "title": "請選擇 AI 服務提供商"
+      },
+      "credentials": {
+        "offlineTitle": "無需輸入",
+        "managedTitle": "您的 Kizuna AI 帳戶",
+        "ownKeyTitle": "您的 API 金鑰"
+      },
+      "languagePair": {
+        "title": "翻譯哪兩種語言？",
+        "desc": "您（或對方）說的語言，以及要翻譯成的語言。"
+      },
+      "finish": {
+        "title": "準備就緒",
+        "persistFailed": "無法儲存您的設定，請再試一次。"
+      }
+    },
+    "scenarios": {
+      "sets": "將設定：{{mode}}模式 · {{output}}",
+      "understand-others": {
+        "title": "聽懂對方在說什麼",
+        "desc": "線上會議、課程、演講、影片、直播 — 即時閱讀您聽到內容的翻譯。"
+      },
+      "be-heard": {
+        "title": "讓對方在會議中聽懂我",
+        "desc": "對方會透過虛擬麥克風聽到您翻譯後的語音。"
+      },
+      "subtitle-myself": {
+        "title": "為我的發言加上字幕",
+        "desc": "演講、直播、簡報 — 您的觀眾閱讀翻譯字幕；不會產生語音。"
+      },
+      "two-way-voice": {
+        "title": "線上雙向對話",
+        "desc": "對方會聽到您翻譯後的語音；您則閱讀由對方發言產生的字幕。"
+      },
+      "two-way-text": {
+        "title": "線上雙向對話，只有字幕",
+        "desc": "雙語字幕、會議記錄 — 雙方都以文字呈現，不使用合成語音。"
+      }
+    },
+    "output": {
+      "voice": "語音與字幕",
+      "subtitles": "只有字幕"
+    },
+    "paths": {
+      "recommended": "推薦",
+      "pickProvider": "選擇哪個提供商？",
+      "offlineFlavor": "選擇哪個引擎？",
+      "managed": {
+        "title": "立即開始",
+        "desc": "由 Kizuna AI 為您執行翻譯。",
+        "cost": "使用電子郵件註冊並完成驗證 — 驗證後的帳戶會取得試用額度。之後您可以儲值餘額，翻譯依實際用量計費。"
+      },
+      "own-key": {
+        "title": "我有自己的 API 金鑰",
+        "desc": "自備 OpenAI、Gemini、豆包（火山引擎）等服務的 API 金鑰。",
+        "cost": "您的金鑰只會留在這台裝置上，並直接連線到該提供商。您是該提供商的客戶：依實際用量直接付費給對方，完全不經過 Kizuna AI。"
+      },
+      "offline": {
+        "title": "免費，離線",
+        "desc": "在您自己的電腦上執行，資料不會外流。",
+        "cost": "需要下載模型到磁碟（數 GB）。有 GPU 且顯示記憶體充足時執行順暢；僅用 CPU 會明顯較慢。",
+        "native": "原生引擎 — 速度更快，若有 GPU 會自動使用。",
+        "wasm": "內建引擎 — 到處都能執行，速度較慢。"
+      },
+      "ownKeyNote": "選擇您已有帳號的提供商，各家都會核發自己的金鑰：",
+      "ownKeyGuides": "各提供商的申請指南"
+    },
+    "fit": {
+      "cannotSpeak": "此提供商無法產生語音翻譯。",
+      "cannotBeTextOnly": "此提供商一律會發聲，無法僅顯示字幕。"
+    },
+    "credentials": {
+      "apiKey": "API 金鑰",
+      "endpoint": "端點網址",
+      "endpointPlaceholder": "https://api.example.com/v1",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key",
+      "appId": "App ID",
+      "accessToken": "Access Token",
+      "apiSecret": "API Secret",
+      "validate": "驗證",
+      "valid": "金鑰驗證通過。",
+      "invalid": "金鑰未通過驗證。",
+      "signIn": "登入",
+      "createAccount": "註冊",
+      "signedIn": "已登入，可以繼續。",
+      "managedDesc": "使用電子郵件註冊，並在收件匣完成驗證；驗證後的帳戶會取得試用額度。之後您可以儲值餘額，僅需為實際用量付費。",
+      "offlineNotice": "模型會在設定完成後於「設定」中下載，需要數 GB 的磁碟空間。有 GPU 且顯示記憶體充足時執行順暢；僅用 CPU 會明顯較慢。",
+      "pendingKey": "您可以稍後在「設定 → 提供商」新增金鑰。金鑰通過驗證前，「開始」會保持鎖定。",
+      "pendingSignIn": "您可以稍後從帳戶按鈕登入。在那之前，「開始」會保持鎖定。",
+      "ownKeyDesc": "此金鑰只會儲存在這台裝置上，應用程式會直接從這裡呼叫該提供商 — 不會經過 Kizuna AI。您依實際用量直接付費給該提供商。",
+      "guide": "如何取得此金鑰",
+      "verifyEmail": "已登入。請開啟我們寄給您的驗證信連結以完成信箱驗證 — 完成後即可取得試用額度。",
+      "onFile": "已儲存金鑰 — 留空即可沿用。"
+    },
+    "summary": {
+      "scenario": "場景",
+      "mode": "模式",
+      "provider": "提供商",
+      "languages": "語言",
+      "pendingKey": "尚未設定 API 金鑰 — 開始前請先在「設定 → 提供商」中新增。",
+      "pendingSignIn": "尚未登入 — 開始前請先從帳戶按鈕登入。",
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    }
+  },
+  "tour": {
+    "back": "返回",
+    "next": "下一步",
+    "skip": "跳過",
+    "finish": "完成",
+    "restart": "重新開始導覽",
+    "steps": {
+      "welcome": {
+        "title": "設定完成",
+        "content": "Sokuji 已依您的場景完成設定。接下來簡單看看主要功能 — 不到一分鐘。"
+      },
+      "mode-picker": {
+        "title": "翻譯模式",
+        "content": "這已經幫您設定好了，隨時都能切換。翻譯內容一定會以文字顯示在這裡；是否會再加上語音朗讀，則由模式和「僅文字」開關共同決定。",
+        "modeMe": "我 — 把您說的話翻譯給對方。",
+        "modeOthers": "對方 — 把對方說的話翻譯給您。",
+        "modeBoth": "兩者 — 同時翻譯兩個方向。"
+      },
+      "microphone": {
+        "title": "您的麥克風",
+        "content": "您的聲音會從這裡輸入。系統預設裝置已經選好。請不要選擇 Sokuji 虛擬麥克風 — 那是給您的會議應用程式用的。"
+      },
+      "monitor": {
+        "title": "聽聽翻譯後的自己",
+        "content": "把翻譯後的語音播放到您自己的耳機，方便您確認效果。不需要的話可以關閉。"
+      },
+      "output-routing": {
+        "title": "對方如何聽到您",
+        "content": "您翻譯後的語音會送到一個虛擬麥克風；請在您的會議應用程式中選擇它作為麥克風。",
+        "content_extension": "在 Google Meet、Zoom 或 Teams 中，將麥克風選為「Sokuji Virtual Microphone」。Sokuji 會自動將它加入支援的會議網站。",
+        "content_electronLinux": "Sokuji 已在此系統上建立虛擬麥克風。請在您的會議應用程式中選擇它作為麥克風。",
+        "content_electronOther": "您需要一個虛擬音訊纜線（例如 VB-Cable）。將 Sokuji 的輸出傳送到該裝置，再於您的會議應用程式中選擇它作為麥克風。"
+      },
+      "participant-source": {
+        "title": "對方的聲音",
+        "content": "Sokuji 會在這裡聆聽對方的聲音。",
+        "content_electron": "選擇要翻譯的應用程式，或整個系統音訊。對方的原聲會照常播放。",
+        "content_extension": "Sokuji 會翻譯目前分頁的音訊。對方的原聲會照常播放。"
+      },
+      "subtitle": {
+        "title": "字幕模式",
+        "content": "開啟浮動字幕檢視 — 桌面版是一個獨立視窗，瀏覽器擴充功能版則是頁面上的浮層。OBS 與螢幕分享都能擷取到它。"
+      },
+      "account": {
+        "title": "您的帳戶",
+        "content": "您的餘額與儲值入口都在這裡。",
+        "content_signedOut": "您的帳戶在這裡。導覽結束後登入即可解鎖「開始」。"
+      },
+      "provider-settings": {
+        "title": "提供商設定",
+        "content": "在這裡更換金鑰或切換提供商。",
+        "content_pending": "在這裡貼上您的 API 金鑰。通過驗證後即可解鎖「開始」。"
+      },
+      "models": {
+        "title": "模型",
+        "content": "在這裡下載模型 — 每個階段各一個。可以多試幾個，第一次選的不一定是唯一適合的。"
+      },
+      "start": {
+        "title": "開始",
+        "content": "按這裡開始翻譯。如果按鈕維持灰色，把滑鼠移到上面：提示會說明還缺少什麼、該去哪裡補上。",
+        "content_offline": "模型準備好後這裡就會亮起。灰色時把滑鼠移到上面，可以看到它在等什麼。",
+        "content_signedOut": "登入後這裡就會亮起。灰色時把滑鼠移到上面，可以看到它在等什麼。",
+        "content_pendingKey": "API 金鑰通過驗證後這裡就會亮起。灰色時把滑鼠移到上面，可以看到它在等什麼。"
+      },
+      "done": {
+        "title": "就是這樣",
+        "content": "進階設定 — 語音偵測、提示詞、語音、日誌 — 都在「設定」右上角的「進階」開關後面。隨時可以在「說明」中重看本導覽。"
+      }
+    }
   }
 }

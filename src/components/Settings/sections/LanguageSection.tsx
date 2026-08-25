@@ -42,6 +42,7 @@ import { resolveAST2LanguagePair } from '../../../services/providers/volcengineA
 import { useIsParticipantChannelInScope, useMode, speakerChannelInScope } from '../../../stores/audioStore';
 import { useLockedMode } from '../../../stores/sessionStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
+import { pairSentence } from '../../SetupWizard/languageSentence';
 import { useAnalytics } from '../../../lib/analytics';
 import { getTranslationTargetLanguages, getManifestEntry } from '../../../lib/local-inference/modelManifest';
 import { shortenModelName } from '../../../lib/local-inference/modelName';
@@ -477,18 +478,18 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // session does. Only 'optional' providers honour it, and they do so through
   // the same effectiveTextOnly() the Text Only switch below renders.
   const textOnlyCapability = providerConfig.capabilities.textOnlyCapability;
-  const speakerLegTextOnly =
-    textOnlyCapability === 'always' ? true
-    : textOnlyCapability === 'never' ? false
-    : effectiveTextOnly({ speakerLegRuns: speakerChannelInScopeForUi, textOnly });
-  const myLanguageLabel = sentenceMode === 'participant'
-    ? t('settings.langSentence.iRead', 'I read')
-    : t('settings.langSentence.iSpeak', 'I speak');
-  const theirLanguageLabel = sentenceMode === 'participant'
-    ? t('settings.langSentence.theySpeak', 'they speak')
-    : speakerLegTextOnly
-      ? t('settings.langSentence.theyRead', 'they read')
-      : t('settings.langSentence.theyHear', 'they hear');
+  // The sentence itself is shared with the setup wizard, which prints it over
+  // the same two fields on two of its steps. Only the resolution of `textOnly`
+  // differs by surface, so it is resolved here and handed in.
+  const sentence = pairSentence({
+    mode: sentenceMode,
+    textOnly: effectiveTextOnly({ speakerLegRuns: speakerChannelInScopeForUi, textOnly }),
+    capability: textOnlyCapability,
+    source: currentProviderSettings.sourceLanguage ?? null,
+    target: currentProviderSettings.targetLanguage ?? null,
+  });
+  const myLanguageLabel = t(sentence.my.key, sentence.my.fallback);
+  const theirLanguageLabel = t(sentence.their.key, sentence.their.fallback);
 
   // "Both" mode runs the speaker leg above plus a mirrored participant leg;
   // the mirror line states that second leg as plain text derived from the
@@ -497,18 +498,16 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     ?? currentProviderSettings.sourceLanguage;
   const targetLanguageName = targetLanguages.find(l => l.value === currentProviderSettings.targetLanguage)?.name
     ?? currentProviderSettings.targetLanguage;
-  // ...but only once the source language is pinned. 'auto' is a hand-written
-  // extra <option> on the source select, absent from every provider's
-  // `languages`, so the lookup above falls through to the raw token — and
-  // localizing it would not help, because the mirror's whole job is to name
-  // the language I read on the reverse leg and auto-detect names none. For
-  // the providers that reverse direction THROUGH sourceLanguage (Soniox,
-  // Gemini's translate models) the pair cannot even start — see
-  // sessionStartGate's autoSourceParticipantBlocked, whose warning renders
-  // just below — so the line would describe a session the app refuses to run.
-  // Unreachable before the sentence went provider-wide: the two local
-  // providers never offer 'auto'.
-  const mirrorLanguagesResolved = currentProviderSettings.sourceLanguage !== 'auto';
+  // ...and only once the source language is pinned — `pairSentence`'s
+  // showMirror withholds the line for 'auto'. That is a hand-written extra
+  // <option> on the source select, absent from every provider's `languages`,
+  // so the lookup above falls through to the raw token; localizing it would
+  // not help, because the mirror's whole job is to name the language I read on
+  // the reverse leg and auto-detect names none. For the providers that reverse
+  // direction THROUGH sourceLanguage (Soniox, Gemini's translate models) the
+  // pair cannot even start — see sessionStartGate's
+  // autoSourceParticipantBlocked, whose warning renders just below — so the
+  // line would describe a session the app refuses to run.
 
   // S0: surface the last resolution notes (auto-substitutions/fallbacks made
   // while picking models for this language pair) right where the pair itself
@@ -656,7 +655,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
           </div>
 
-          {sentenceMode === 'both' && mirrorLanguagesResolved && (
+          {sentence.showMirror && (
             <div className="language-mirror-line" data-testid="language-mirror-line">
               {t('settings.langSentence.mirror', 'They speak {{their}} → I read {{mine}}', {
                 their: targetLanguageName,

@@ -644,3 +644,46 @@ describe('S6 acquireSessionResources', () => {
     expect(ProviderConfigFactory.getDescriptor(Provider.SONIOX).acquireSessionResources).toBeUndefined();
   });
 });
+
+describe('credentialFields (spec §1.8)', () => {
+  const ctx = { getAuthToken: async () => 'session-token' };
+
+  it('every descriptor declares the fields a user must fill, and filling exactly those completes its credentials', async () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      expect(Array.isArray(d.credentialFields), `${id} credentialFields`).toBe(true);
+      // Reuses DEFAULTS_BY_SLICE (declared above for the buildSessionConfig
+      // sweep) as the mirror of settingsStore's PROVIDER_SLICE_REGISTRY
+      // defaults — do NOT import settingsStore here (its import graph is the
+      // Denied-ID blast radius this file's header warns about). Its value
+      // type is `unknown`; the cast is required to spread it below (each
+      // entry is a plain default*Settings data object, never anything else).
+      const defaults = DEFAULTS_BY_SLICE[d.settingsSliceKey] as Record<string, unknown> | undefined;
+      expect(defaults, `${id}: DEFAULTS_BY_SLICE lacks '${d.settingsSliceKey}' — add that provider's default*Settings export above`).toBeDefined();
+
+      const filled: Record<string, unknown> = { ...defaults };
+      for (const f of d.credentialFields) {
+        expect(typeof f.key, `${id} field key`).toBe('string');
+        expect(f.labelKey.startsWith('setup.credentials.'), `${id} ${f.key} labelKey`).toBe(true);
+        filled[f.key] = f.secret ? 'sk-test-value' : 'https://example.test/v1';
+      }
+      const withFields = await d.extractCredentials(filled, ctx);
+      expect(withFields.ok, `${id}: filling ${d.credentialFields.map((f) => f.key).join(',')} should complete credentials`).toBe(true);
+
+      if (d.credentialFields.length > 0) {
+        const bare = await d.extractCredentials({ ...defaults }, ctx);
+        expect(bare.ok, `${id}: defaults alone must NOT be complete when fields are declared`).toBe(false);
+      }
+    }
+  });
+
+  it('credentialFieldsFor falls back to the declared fields when the slice says nothing', () => {
+    // Descriptors whose slot depends on other settings (Soniox's region) may
+    // vary the key, but never for a slice that carries no such setting — the
+    // declared list stays the answer every other caller can rely on.
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      expect(d.credentialFieldsFor({}), `${id} credentialFieldsFor({})`).toEqual(d.credentialFields);
+    }
+  });
+});

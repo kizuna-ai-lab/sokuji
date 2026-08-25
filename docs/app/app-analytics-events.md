@@ -90,70 +90,37 @@ trackEvent('translation_session_end', {
 });
 ```
 
-### 🎯 Onboarding Events
+### 🎯 Setup wizard events
+
+#### `setup_started`
+**Properties**: `variant` (`'first-run' | 'rerun'`)
+**Implementation**: `src/components/SetupWizard/SetupWizard.tsx`
+
+#### `setup_step_viewed`
+**Properties**: `step` (number, 0-based), `step_id` (`language | scenario | path | credentials | language-pair | finish`)
+
+#### `setup_abandoned`
+**Properties**: `step` (number) — fired when the re-run overlay is closed before Finish (best effort; a first-run wizard cannot be abandoned except by quitting).
+
+#### `setup_completed`
+**Properties**: `scenario`, `provider_path`, `provider`, `source_language`, `target_language` (strings), `credentials_pending` (boolean — "Skip for now" was taken)
+
+Removed: `user_type_selected` and `user_type_applied` went away with the user-type page; `setup_completed` carries the equivalent information.
+
+### 🎯 Tour events
 
 #### `onboarding_started`
-**Description**: Triggered when the user starts the onboarding process.
-
-**Properties**:
-- `is_first_time_user` (boolean): Whether this is a first-time user
-- `onboarding_version` (string): Version of the onboarding flow
-
-**Implementation**: `src/contexts/OnboardingContext.tsx`
-
-**Example**:
-```typescript
-trackEvent('onboarding_started', {
-  is_first_time_user: true,
-  onboarding_version: '1.0.0'
-});
-```
-
----
-
-#### `onboarding_completed`
-**Description**: Triggered when the user completes or skips the onboarding process.
-
-**Properties**:
-- `completion_method` ('finished' | 'skipped'): How the onboarding was completed
-- `steps_completed` (number): Number of steps the user went through
-- `total_steps` (number): Total number of steps in the onboarding
-- `duration_ms` (number): Time spent in onboarding in milliseconds
-- `onboarding_version` (string): Version of the onboarding flow
-
-**Implementation**: `src/contexts/OnboardingContext.tsx`
-
-**Example**:
-```typescript
-trackEvent('onboarding_completed', {
-  completion_method: 'finished',
-  steps_completed: 10,
-  total_steps: 10,
-  duration_ms: 180000, // 3 minutes
-  onboarding_version: '1.0.0'
-});
-```
-
----
+**Properties**: `chapter` (`'basics'`), `is_first_time_user` (boolean — false for migrated users), `onboarding_version` (number, `TOUR_VERSION`)
+**Implementation**: `src/components/Tour/TourProvider.tsx`
 
 #### `onboarding_step_viewed`
-**Description**: Triggered when the user views a specific onboarding step.
+**Properties**: `chapter`, `step_index` (number, 0-based within the visible list), `step_id` (catalogue id)
 
-**Properties**:
-- `step_index` (number): Index of the step being viewed (0-based)
-- `step_target` (string): CSS selector or target of the step
-- `step_title` (string): Title of the onboarding step
+#### `onboarding_step_skipped`
+**Properties**: `chapter`, `step_id`, `reason` (`'target-missing'` — also reported when a step's `prepare` callback throws, which the tour treats as a missing target)
 
-**Implementation**: `src/contexts/OnboardingContext.tsx`
-
-**Example**:
-```typescript
-trackEvent('onboarding_step_viewed', {
-  step_index: 2,
-  step_target: '.api-key-section',
-  step_title: 'Step 2: Configure API Key'
-});
-```
+#### `onboarding_completed`
+**Properties**: `chapter`, `completion_method` (`'finished' | 'skipped'`), `steps_completed`, `total_steps`, `duration_ms`, `onboarding_version`
 
 ### 🔊 Audio Handling Events
 
@@ -559,9 +526,14 @@ trackEvent('popup_site_navigation_clicked', {
 - `app_shutdown` - Session duration tracking
 - `translation_session_start` - Translation session initiation
 - `translation_session_end` - Translation session completion with metrics
-- `onboarding_started` - Onboarding process initiation tracking
-- `onboarding_completed` - Onboarding completion/skip tracking with metrics
-- `onboarding_step_viewed` - Individual onboarding step tracking
+- `setup_started` - Setup wizard initiation tracking
+- `setup_step_viewed` - Individual setup wizard step tracking
+- `setup_abandoned` - Re-run setup wizard closed before Finish
+- `setup_completed` - Setup wizard completion tracking with metrics
+- `onboarding_started` - Tour initiation tracking
+- `onboarding_step_viewed` - Individual tour step tracking
+- `onboarding_step_skipped` - Tour step skipped (missing anchor or a `prepare` failure)
+- `onboarding_completed` - Tour completion/skip tracking with metrics
 - `popup_opened` - Extension popup opening tracking
 - `popup_supported_state_shown` - Popup supported site state display
 - `popup_unsupported_state_shown` - Popup unsupported site state display
@@ -666,11 +638,13 @@ src/
 ├── lib/
 │   └── analytics.ts              # Event definitions and analytics utilities
 ├── App.tsx                       # App lifecycle events
-├── components/
-│   └── MainPanel/
-│       └── MainPanel.tsx         # Translation session events
-└── contexts/
-    └── OnboardingContext.tsx     # Onboarding events
+└── components/
+    ├── MainPanel/
+    │   └── MainPanel.tsx         # Translation session events
+    ├── SetupWizard/
+    │   └── SetupWizard.tsx       # Setup wizard events
+    └── Tour/
+        └── TourProvider.tsx      # Tour events
 
 extension/
 ├── popup.js                      # Extension popup events (uses local posthog-js)

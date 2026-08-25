@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Masukkan kunci API Anda",
     "setupGuide": "Panduan pengaturan",
     "validate": "Validasi",
-    "apiKeyHelpTooltip2": "Panduan langkah demi langkah:"
+    "apiKeyHelpTooltip2": "Panduan langkah demi langkah:",
+    "recommended": "Direkomendasikan",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Pengaturan audio",
@@ -659,130 +661,6 @@
     "noMic": "Perlu Mikrofon",
     "reconnecting": "Menghubungkan kembali..."
   },
-  "userTypeSelection": {
-    "title": "Selamat datang di Sokuji",
-    "subtitle": "Silakan pilih jenis pengguna Anda untuk memulai",
-    "regular": {
-      "title": "Pengguna Biasa",
-      "description": "Saya baru dalam layanan AI atau lebih suka pengalaman sederhana",
-      "feature1": "Tidak perlu pengetahuan kunci API",
-      "feature2": "Antarmuka sederhana dan intuitif",
-      "feature3": "Proses pengaturan terpandu",
-      "action": "Mulai dengan Mode Dasar"
-    },
-    "experienced": {
-      "title": "Pengguna Berpengalaman",
-      "description": "Saya memiliki kunci API sendiri dan memahami layanan AI",
-      "feature1": "Memiliki kunci API OpenAI atau Gemini",
-      "feature2": "Akses ke fitur API waktu nyata",
-      "feature3": "Kontrol penuh atas semua pengaturan",
-      "action": "Mulai dengan Mode Lanjutan"
-    }
-  },
-  "onboarding": {
-    "basic": {
-      "steps": {
-        "welcome": {
-          "title": "Selamat datang di Sokuji",
-          "content": "Selamat datang di Sokuji! Panduan sederhana ini akan membantu Anda mulai menggunakan terjemahan real-time hanya dalam beberapa langkah."
-        },
-        "mode": {
-          "content": "Pilih apa yang diterjemahkan Sokuji: Saya — suara Anda sendiri (agar lawan bicara memahami Anda); Lawan bicara — apa yang dikatakan lawan bicara (agar Anda memahaminya); atau Keduanya untuk terjemahan dua arah. Ini menentukan audio mana yang ditangkap — pilih Lawan bicara atau Keduanya untuk mengaktifkan audio lawan bicara.",
-          "title": "Mode terjemahan"
-        },
-        "settings": {
-          "title": "Langkah 1: Buka Pengaturan",
-          "content": "Klik di sini untuk membuka Pengaturan tempat Anda dapat mengonfigurasi bahasa dan perangkat audio Anda."
-        },
-        "languages": {
-          "title": "Langkah 3: Pilih Bahasa",
-          "content": "Pilih \"Bahasa saya\" (yang Anda ucapkan) dan \"Bahasa lawan bicara\" (yang akan didengar lawan bicara)."
-        },
-        "microphone": {
-          "title": "Langkah 5: Pilih Mikrofon",
-          "content": "Pilih mikrofon Anda dari daftar. Perangkat inilah yang akan menangkap suara Anda."
-        },
-        "speaker": {
-          "title": "Langkah 6: Pilih Speaker",
-          "content": "Pilih perangkat pemantauan untuk melihat pratinjau terjemahan. Audio terjemahan selalu dikirim ke mikrofon virtual terlepas dari pemantauan. Pilih Sokuji Virtual Microphone sebagai input mikrofon di aplikasi rapat atau situs web Anda. Headphone disarankan untuk pemantauan guna menghindari umpan balik."
-        },
-        "systemAudio": {
-          "title": "Langkah 7: Audio Lawan Bicara",
-          "content": "Ini adalah saluran lawan bicara — apa yang dikatakan orang lain, diterjemahkan untuk Anda. Aktifkan dengan memilih Lawan bicara atau Keduanya pada mode terjemahan (tetap nonaktif dalam mode Saya). Pada ekstensi browser, ini menangkap tab saat ini sehingga Anda dapat menerjemahkan lawan bicara di Google Meet, Teams, atau Zoom. Pada aplikasi desktop, ini menangkap semua audio sistem, sehingga Anda dapat menerjemahkan YouTube, Twitch, Netflix, atau sumber apa pun. Ucapan lawan bicara hanya diterjemahkan ke teks — tanpa sintesis suara. Bersama mikrofon Anda, ini memberikan terjemahan dua arah yang lengkap."
-        },
-        "start": {
-          "title": "Langkah 8: Mulai Menerjemahkan",
-          "content": "Klik 'Mulai' untuk mulai menerjemahkan! Cukup bicara secara alami dan dengarkan terjemahannya secara real-time."
-        },
-        "complete": {
-          "title": "Semuanya Siap!",
-          "content": "Sempurna! Anda siap menggunakan Sokuji. Klik Mulai dan mulailah berbicara untuk mendengar terjemahan real-time."
-        },
-        "provider": {
-          "title": "Langkah 4: Penyedia Terjemahan",
-          "content": "Pilih penyedia terjemahan Anda. Sokuji memiliki layanan bawaannya sendiri — masuk melalui tombol akun di bilah judul untuk menggunakannya. Sokuji juga mendukung layanan cloud seperti OpenAI, Gemini, Volcengine (Doubao), dan lainnya, di mana Anda menggunakan kunci API Anda sendiri. Anda juga dapat menggunakan inferensi lokal — tanpa kunci API, gratis dan fokus privasi, cukup unduh model untuk terjemahan sepenuhnya offline."
-        }
-      }
-    },
-    "back": "Kembali",
-    "close": "Tutup",
-    "finish": "Selesai",
-    "next": "Selanjutnya",
-    "nextWithProgress": "Selanjutnya ({step}/{steps})",
-    "open": "Buka",
-    "skip": "Lewati",
-    "restartTour": "Mulai ulang panduan pengaturan",
-    "steps": {
-      "welcome": {
-        "title": "Selamat datang di Sokuji!",
-        "content": "Selamat datang di aplikasi terjemahan suara real-time! Mari kita atur sistem Anda dengan cepat untuk pengalaman terbaik."
-      },
-      "mode": {
-        "content": "Pilih apa yang diterjemahkan Sokuji: Saya — suara Anda sendiri (agar lawan bicara memahami Anda); Lawan bicara — apa yang dikatakan lawan bicara (agar Anda memahaminya); atau Keduanya untuk terjemahan dua arah. Ini menentukan audio mana yang ditangkap — pilih Lawan bicara atau Keduanya untuk mengaktifkan audio lawan bicara.",
-        "title": "Mode terjemahan"
-      },
-      "settings": {
-        "title": "Langkah 1: Buka Pengaturan",
-        "content": "Pertama, mari konfigurasikan pengaturan Anda. Klik di sini untuk membuka panel Pengaturan tempat Anda dapat memilih penyedia terjemahan dan menyesuaikan pengaturan."
-      },
-      "apiKey": {
-        "title": "Langkah 2: Penyedia Terjemahan",
-        "content": "Pilih penyedia terjemahan Anda. Sokuji mendukung layanan cloud seperti OpenAI, Gemini, Volcengine (Doubao), dan lainnya. Anda juga dapat menggunakan inferensi lokal — tanpa kunci API, gratis dan fokus privasi, cukup unduh model untuk terjemahan sepenuhnya offline."
-      },
-      "systemInstructions": {
-        "title": "Kustomisasi instruksi sistem",
-        "content": "Tambahkan instruksi khusus di sini untuk menyesuaikan perilaku terjemahan, seperti nada, gaya, atau persyaratan khusus."
-      },
-      "voiceSettings": {
-        "title": "Pengaturan suara",
-        "content": "Pilih model suara dan pengaturan yang Anda sukai. Pengaturan ini akan mempengaruhi kualitas dan kecepatan terjemahan."
-      },
-      "turnDetection": {
-        "title": "Deteksi giliran",
-        "content": "Konfigurasikan pengaturan deteksi giliran otomatis untuk mengontrol kapan sistem mulai dan berhenti mendengarkan."
-      },
-      "microphoneSetup": {
-        "title": "Pilih perangkat mikrofon",
-        "content": "Pilih perangkat mikrofon fisik Anda dari daftar. Hindari memilih perangkat virtual karena ini digunakan untuk aplikasi konferensi."
-      },
-      "speakerSetup": {
-        "title": "Pengaturan perangkat monitor",
-        "content": "Pilih perangkat monitor (seperti headphone atau speaker) untuk mendengar output terjemahan. Disarankan menggunakan headphone untuk menghindari umpan balik audio. Jika Anda ingin fokus pada rapat tanpa gangguan monitoring, Anda dapat mematikan fitur monitoring."
-      },
-      "systemAudio": {
-        "title": "Langkah 8: Audio Lawan Bicara",
-        "content": "Ini adalah saluran lawan bicara — apa yang dikatakan orang lain, diterjemahkan untuk Anda. Aktifkan dengan memilih Lawan bicara atau Keduanya pada mode terjemahan (tetap nonaktif dalam mode Saya). Pada ekstensi browser, ini menangkap tab saat ini sehingga Anda dapat menerjemahkan lawan bicara di Google Meet, Teams, atau Zoom. Pada aplikasi desktop, ini menangkap semua audio sistem, sehingga Anda dapat menerjemahkan YouTube, Twitch, Netflix, atau sumber apa pun. Ucapan lawan bicara hanya diterjemahkan ke teks — tanpa sintesis suara. Bersama mikrofon Anda, ini memberikan terjemahan dua arah yang lengkap."
-      },
-      "startSession": {
-        "title": "Mulai sesi Anda",
-        "content": "Semuanya sudah siap! Klik tombol \"Mulai sesi\" untuk memulai terjemahan real-time. Ingat untuk memilih mikrofon virtual Sokuji sebagai perangkat input di aplikasi konferensi Anda."
-      },
-      "complete": {
-        "title": "Panduan Pengaturan Selesai!",
-        "content": "Bagus! Semuanya sudah siap. Ingat untuk memberikan izin mikrofon saat diminta. Anda dapat memulai ulang panduan ini kapan saja dari pengaturan."
-      }
-    }
-  },
   "tokenUsage": {
     "unableToLoadQuota": "Tidak dapat memuat informasi kuota",
     "upgradeToPremium": "Tingkatkan ke Premium"
@@ -1070,5 +948,200 @@
     "deleteNoModel": "Menghapus {{name}}: tidak ada model {{stage}} yang tersisa — sesi tidak dapat dimulai.",
     "clearAllKeepsPicks": "Pilihan Anda akan diingat dan kembali diterapkan saat model diunduh lagi.",
     "importChooseModel": "Pilih model untuk diimpor"
+  },
+  "setup": {
+    "title": "Siapkan Sokuji",
+    "stepOf": "Langkah {{current}} dari {{total}}",
+    "back": "Kembali",
+    "next": "Lanjut",
+    "finish": "Selesai",
+    "close": "Tutup",
+    "skipForNow": "Lewati dulu",
+    "rerun": "Jalankan pengaturan lagi",
+    "steps": {
+      "language": {
+        "title": "Sokuji berbicara dalam bahasa apa kepada Anda?",
+        "desc": "Ini adalah bahasa menu dan tombol. Anda memilih bahasa untuk diterjemahkan nanti.",
+        "label": "Bahasa Antarmuka"
+      },
+      "scenario": {
+        "title": "Apa yang ingin Anda lakukan?",
+        "desc": "Pilih yang paling sesuai. Anda dapat mengubah semua ini nanti."
+      },
+      "path": {
+        "title": "Pilih penyedia layanan AI"
+      },
+      "credentials": {
+        "offlineTitle": "Tidak ada yang perlu diisi",
+        "managedTitle": "Akun Kizuna AI Anda",
+        "ownKeyTitle": "Kunci API Anda"
+      },
+      "languagePair": {
+        "title": "Bahasa apa saja?",
+        "desc": "Bahasa yang Anda (atau mereka) gunakan, dan bahasa hasil terjemahannya."
+      },
+      "finish": {
+        "title": "Siap",
+        "persistFailed": "Tidak dapat menyimpan pengaturan Anda. Silakan coba lagi."
+      }
+    },
+    "scenarios": {
+      "sets": "Mengatur: mode {{mode}} · {{output}}",
+      "understand-others": {
+        "title": "Memahami apa yang dikatakan orang lain",
+        "desc": "Rapat online, kelas, ceramah, video, streaming — baca terjemahan langsung dari apa yang Anda dengar."
+      },
+      "be-heard": {
+        "title": "Dipahami dalam rapat",
+        "desc": "Mereka mendengar suara terjemahan Anda melalui mikrofon virtual."
+      },
+      "subtitle-myself": {
+        "title": "Subtitle ucapan saya sendiri",
+        "desc": "Ceramah, streaming, presentasi — audiens Anda membaca subtitle terjemahan; tidak ada audio yang dihasilkan."
+      },
+      "two-way-voice": {
+        "title": "Percakapan online dua arah",
+        "desc": "Mereka mendengar suara terjemahan Anda; Anda membaca subtitle yang dihasilkan dari apa yang mereka katakan."
+      },
+      "two-way-text": {
+        "title": "Percakapan online dua arah, hanya subtitle",
+        "desc": "Teks dwibahasa, notulen rapat — kedua sisi sebagai teks, tanpa suara sintetis."
+      }
+    },
+    "output": {
+      "voice": "suara dan subtitle",
+      "subtitles": "hanya subtitle"
+    },
+    "paths": {
+      "recommended": "Direkomendasikan",
+      "pickProvider": "Penyedia mana?",
+      "offlineFlavor": "Mesin mana?",
+      "managed": {
+        "title": "Langsung mulai",
+        "desc": "Kizuna AI menjalankan penerjemahan untuk Anda.",
+        "cost": "Daftar dengan alamat email Anda dan verifikasi — akun yang terverifikasi mendapat kredit uji coba. Setelah itu, Anda mengisi ulang saldo, dan biaya penerjemahan dihitung berdasarkan seberapa banyak Anda menggunakannya."
+      },
+      "own-key": {
+        "title": "Saya punya kunci API sendiri",
+        "desc": "Gunakan kunci Anda sendiri dari OpenAI, Gemini, Doubao (Volcengine), dan lainnya.",
+        "cost": "Kunci Anda tetap berada di perangkat ini dan menjangkau penyedia langsung dari sini. Anda adalah pelanggan mereka: Anda membayar mereka sesuai penggunaan Anda, dan tidak ada yang melalui Kizuna AI."
+      },
+      "offline": {
+        "title": "Gratis, offline",
+        "desc": "Berjalan di perangkat Anda sendiri. Tidak ada yang keluar darinya.",
+        "cost": "Mengunduh model ke disk Anda (beberapa gigabyte). Berjalan baik dengan GPU dan VRAM yang cukup; hanya dengan CPU terasa jauh lebih lambat.",
+        "native": "Mesin native — lebih cepat, menggunakan GPU Anda jika tersedia.",
+        "wasm": "Mesin dalam aplikasi — berjalan di mana saja, lebih lambat."
+      },
+      "ownKeyNote": "Pilih penyedia tempat Anda memiliki akun. Masing-masing menerbitkan kuncinya sendiri:",
+      "ownKeyGuides": "panduan untuk setiap penyedia"
+    },
+    "fit": {
+      "cannotSpeak": "Penyedia ini tidak dapat menghasilkan terjemahan suara.",
+      "cannotBeTextOnly": "Penyedia ini selalu menghasilkan suara; tidak dapat dijalankan hanya dengan subtitle."
+    },
+    "credentials": {
+      "apiKey": "API key",
+      "endpoint": "Endpoint URL",
+      "endpointPlaceholder": "https://api.example.com/v1",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key",
+      "appId": "App ID",
+      "accessToken": "Access Token",
+      "apiSecret": "API Secret",
+      "validate": "Validasi",
+      "valid": "Kunci diterima.",
+      "invalid": "Kunci ditolak.",
+      "signIn": "Masuk",
+      "createAccount": "Buat akun",
+      "signedIn": "Sudah masuk. Anda dapat melanjutkan.",
+      "managedDesc": "Daftar dengan alamat email Anda dan verifikasi melalui kotak masuk Anda; akun yang terverifikasi mendapat kredit uji coba. Setelah itu, Anda mengisi ulang saldo dan hanya membayar sesuai penggunaan Anda.",
+      "offlineNotice": "Anda akan mengunduh model dari Pengaturan setelah menyelesaikan langkah-langkah ini. Ukurannya bisa mencapai beberapa gigabyte di disk. Sokuji berjalan baik dengan GPU dan VRAM yang cukup; jika hanya menggunakan CPU, kecepatannya terasa lebih lambat.",
+      "pendingKey": "Anda dapat menambahkan kunci ini nanti di Pengaturan → Penyedia. Mulai akan tetap terkunci hingga kunci divalidasi.",
+      "pendingSignIn": "Anda dapat masuk nanti melalui tombol Akun. Mulai akan tetap terkunci sampai saat itu.",
+      "ownKeyDesc": "Kunci ini hanya disimpan di perangkat ini, dan aplikasi memanggil penyedia langsung dari sini — kunci ini tidak pernah sampai ke Kizuna AI. Anda membayar penyedia sesuai penggunaan Anda.",
+      "guide": "Cara mendapatkan kunci ini",
+      "verifyEmail": "Sudah masuk. Buka tautan yang kami kirim ke email Anda untuk memverifikasi alamat Anda — kredit uji coba akan diberikan setelah itu.",
+      "onFile": "Kunci sudah tersimpan — biarkan kosong untuk mempertahankannya."
+    },
+    "summary": {
+      "scenario": "Skenario",
+      "mode": "Mode",
+      "provider": "Penyedia",
+      "languages": "Bahasa",
+      "pendingKey": "Belum ada kunci API — tambahkan di Pengaturan → Penyedia sebelum Anda memulai.",
+      "pendingSignIn": "Belum masuk — masuk melalui tombol Akun sebelum Anda memulai.",
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    }
+  },
+  "tour": {
+    "back": "Kembali",
+    "next": "Lanjut",
+    "skip": "Lewati",
+    "finish": "Selesai",
+    "restart": "Mulai ulang panduan pengaturan",
+    "steps": {
+      "welcome": {
+        "title": "Anda sudah siap",
+        "content": "Sokuji sudah dikonfigurasi sesuai skenario Anda. Berikut tur singkat — kurang dari satu menit."
+      },
+      "mode-picker": {
+        "title": "Mode terjemahan",
+        "content": "Ini sudah diatur otomatis untuk Anda, dan Anda dapat menggantinya kapan saja. Terjemahan selalu muncul di sini sebagai teks; mode ini, bersama sakelar Teks saja, menentukan apakah terjemahan juga diucapkan.",
+        "modeMe": "Saya — apa yang Anda katakan diterjemahkan untuk lawan bicara.",
+        "modeOthers": "Lawan bicara — apa yang dikatakan lawan bicara diterjemahkan untuk Anda.",
+        "modeBoth": "Keduanya — kedua arah sekaligus."
+      },
+      "microphone": {
+        "title": "Mikrofon Anda",
+        "content": "Ucapan Anda masuk di sini. Perangkat default sistem sudah dipilih. Jangan pilih mikrofon virtual Sokuji — itu digunakan untuk aplikasi rapat Anda."
+      },
+      "monitor": {
+        "title": "Dengarkan suara terjemahan Anda",
+        "content": "Putar suara terjemahan ke headphone Anda sendiri agar Anda bisa memeriksa bagaimana suaranya. Matikan jika Anda tidak membutuhkannya."
+      },
+      "output-routing": {
+        "title": "Bagaimana lawan bicara mendengar Anda",
+        "content": "Suara terjemahan Anda dikirim ke mikrofon virtual; pilih itu sebagai mikrofon di aplikasi rapat Anda.",
+        "content_extension": "Di Google Meet, Zoom, atau Teams, pilih \"Sokuji Virtual Microphone\" sebagai mikrofon Anda. Sokuji menambahkannya secara otomatis ke situs rapat yang didukung.",
+        "content_electronLinux": "Sokuji membuat mikrofon virtual di sistem ini. Pilih itu sebagai mikrofon di aplikasi rapat Anda.",
+        "content_electronOther": "Anda memerlukan kabel audio virtual (misalnya VB-Cable). Arahkan output Sokuji ke situ, lalu pilih itu sebagai mikrofon di aplikasi rapat Anda."
+      },
+      "participant-source": {
+        "title": "Suara lawan bicara",
+        "content": "Sokuji mendengarkan lawan bicara di sini.",
+        "content_electron": "Pilih aplikasi yang akan diterjemahkan, atau seluruh audio sistem. Suara asli mereka tetap diputar seperti biasa.",
+        "content_extension": "Sokuji menerjemahkan audio dari tab saat ini. Suara asli mereka tetap diputar seperti biasa."
+      },
+      "subtitle": {
+        "title": "Mode subtitle",
+        "content": "Membuka tampilan subtitle mengambang — berupa jendela di desktop, overlay di halaman pada ekstensi. OBS dan berbagi layar dapat menangkapnya."
+      },
+      "account": {
+        "title": "Akun Anda",
+        "content": "Saldo dan isi ulang Anda ada di sini.",
+        "content_signedOut": "Akun Anda ada di sini. Masuk setelah panduan ini selesai agar tombol Mulai aktif."
+      },
+      "provider-settings": {
+        "title": "Pengaturan Penyedia",
+        "content": "Ubah kunci Anda atau ganti penyedia di sini.",
+        "content_pending": "Tempel kunci API Anda di sini. Tombol Mulai aktif setelah kunci divalidasi."
+      },
+      "models": {
+        "title": "Model",
+        "content": "Unduh model di sini — satu untuk tiap tahap. Coba beberapa; pilihan pertama bukan satu-satunya yang bagus."
+      },
+      "start": {
+        "title": "Mulai",
+        "content": "Klik di sini untuk mulai menerjemahkan. Jika tombol tetap abu-abu, arahkan kursor ke sana: catatan itu akan menyebutkan apa yang masih kurang dan di mana Anda perlu melengkapinya.",
+        "content_offline": "Tombol ini menyala setelah model Anda siap. Arahkan kursor ke tombol saat masih abu-abu untuk melihat apa yang masih ditunggu.",
+        "content_signedOut": "Tombol ini menyala setelah Anda masuk. Arahkan kursor ke tombol saat masih abu-abu untuk melihat apa yang masih ditunggu.",
+        "content_pendingKey": "Tombol ini menyala setelah kunci API Anda divalidasi. Arahkan kursor ke tombol saat masih abu-abu untuk melihat apa yang masih ditunggu."
+      },
+      "done": {
+        "title": "Sekian",
+        "content": "Pengaturan lanjutan — deteksi ucapan, prompt, suara, log — ada di balik sakelar Lanjutan di pojok kanan atas Pengaturan. Putar ulang panduan ini kapan saja dari Bantuan."
+      }
+    }
   }
 }

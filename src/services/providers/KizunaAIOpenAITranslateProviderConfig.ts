@@ -1,6 +1,6 @@
 import { OpenAITranslateProviderConfig, OpenAITranslateSettings, defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
 import { ProviderConfig } from './ProviderConfig';
-import { Credentials, CredentialCtx, ClientOptions } from './ProviderDescriptor';
+import { Credentials, CredentialCtx, ClientOptions, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
@@ -26,6 +26,10 @@ export class KizunaAIOpenAITranslateProviderConfig extends OpenAITranslateProvid
   // no-audio session. Pre-refactor, ClientFactory.supportsWebRTC's switch
   // returned false for this provider; this restores that behavior.
   readonly supportsWebRTC: boolean = false;
+
+  // Backend-managed twin: no user-facing credentials to collect — the setup
+  // wizard has nothing to ask for this provider.
+  readonly credentialFields: readonly CredentialField[] = [];
 
   // Backend-managed twin: credentials are a Better Auth session token fetched
   // from ctx, not a persisted settings-slice field.

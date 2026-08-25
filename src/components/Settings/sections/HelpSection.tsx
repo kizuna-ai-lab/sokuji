@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { HelpCircle, RefreshCw, Mail, MessageSquare, Globe } from 'lucide-react';
+import { HelpCircle, RefreshCw, Mail, MessageSquare, Globe, Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import { isElectron } from '../../../utils/environment';
-import { useOnboarding } from '../../../contexts/OnboardingContext';
+import { useStartBasicsTour } from '../../Tour/useStartBasicsTour';
+import { useSetSetupWizardOpen } from '../../../stores/layoutStore';
 import { useUpdateStatus, useCheckForUpdates, useOpenUpdateDialog } from '../../../stores/updateStore';
 import { useSetUILanguage } from '../../../stores/settingsStore';
 import { useAnalytics } from '../../../lib/analytics';
@@ -17,7 +18,8 @@ interface HelpSectionProps {
 
 const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActive = false }) => {
   const { t, i18n } = useTranslation();
-  const { startOnboarding } = useOnboarding();
+  const startTour = useStartBasicsTour();
+  const setSetupWizardOpen = useSetSetupWizardOpen();
   const updateStatus = useUpdateStatus();
   const checkForUpdates = useCheckForUpdates();
   const openUpdateDialog = useOpenUpdateDialog();
@@ -55,18 +57,29 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
         <span className="version-label">v{__APP_VERSION__}</span>
       </h3>
       <div className="help-links">
-        <a className="help-link" onClick={() => { startOnboarding(); if (toggleSettings) toggleSettings(); }}>
+        <button
+          type="button"
+          className={`help-link${isSessionActive ? ' is-disabled' : ''}`}
+          aria-disabled={isSessionActive}
+          title={isSessionActive ? t('settings.sessionActiveNotice') : undefined}
+          onClick={() => { if (isSessionActive) return; setSetupWizardOpen(true); if (toggleSettings) toggleSettings(); }}
+        >
+          <Wand2 size={13} />
+          <span>{t('setup.rerun', 'Run setup again')}</span>
+        </button>
+        <button type="button" className="help-link" onClick={() => { startTour(); if (toggleSettings) toggleSettings(); }}>
           <HelpCircle size={13} />
-          <span>{t('onboarding.restartTour', 'Restart Setup Guide')}</span>
-        </a>
+          <span>{t('tour.restart', 'Restart Setup Guide')}</span>
+        </button>
         {isElectron() && (
-          <a
+          <button
+            type="button"
             className={`help-link ${updateStatus === 'checking' ? 'disabled' : ''}`}
             onClick={() => { if (updateStatus !== 'checking') checkForUpdates(); }}
           >
             <RefreshCw size={13} className={updateStatus === 'checking' ? 'spinning' : ''} />
             <span>{updateStatus === 'checking' ? t('update.checking') : t('update.checkButton')}</span>
-          </a>
+          </button>
         )}
         {/*
           Interface language, at the weight of a link rather than a section of
@@ -183,16 +196,16 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
         </label>
         </Tooltip>
         <Tooltip content={t('settings.helpEmailTooltip', 'Report bugs or get help')} position="top">
-          <a className="help-link" onClick={() => openExternalUrl('mailto:support@kizuna.ai')}>
+          <button type="button" className="help-link" onClick={() => openExternalUrl('mailto:support@kizuna.ai')}>
             <Mail size={13} />
             <span>support@kizuna.ai</span>
-          </a>
+          </button>
         </Tooltip>
         <Tooltip content={t('settings.helpDiscussionsTooltip', 'Feature requests, feedback, and community discussions')} position="top">
-          <a className="help-link" onClick={() => openExternalUrl('https://github.com/kizuna-ai-lab/sokuji/discussions')}>
+          <button type="button" className="help-link" onClick={() => openExternalUrl('https://github.com/kizuna-ai-lab/sokuji/discussions')}>
             <MessageSquare size={13} />
             <span>{t('settings.helpDiscussions', 'Discussions')}</span>
-          </a>
+          </button>
         </Tooltip>
       </div>
     </div>

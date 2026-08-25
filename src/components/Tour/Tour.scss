@@ -1,0 +1,70 @@
+@use '../Settings/shared/variables' as vars;
+
+// Swallows every pointer event under an anchored step. The spotlight below
+// cannot do it: its scrim is a box-shadow, which is not hit-testable, and the
+// cutout itself must let clicks through to nothing rather than to the app.
+// Sits below the tour's own layers and below the auth overlay (2000).
+.tour-blocker {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 1800;
+}
+
+// The cutout: a box over the target whose enormous box-shadow IS the scrim.
+.tour-spotlight {
+  position: fixed;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 1801;
+  transition: top 0.15s ease, left 0.15s ease, width 0.15s ease, height 0.15s ease;
+}
+
+.tour-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1800;
+}
+
+.tour-popover {
+  position: fixed;
+  z-index: 1802;
+  // Without border-box the padding is added to the width, so the "360px" card
+  // renders 370px and overflows the 360px side panel outright.
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 24px));
+  background: vars.$bg-surface;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-lg;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  padding: vars.$space-4;
+  color: vars.$text-primary;
+
+  &--centred { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  // Transparent and inert rather than `visibility: hidden`: a hidden popover
+  // drops keyboard focus to <body> for the whole anchor wait.
+  &.is-resolving { opacity: 0; pointer-events: none; }
+
+  &__title { margin: 0 0 vars.$space-2; font-size: vars.$font-title; font-weight: vars.$weight-semibold; }
+  &__body { margin: 0 0 vars.$space-3; font-size: vars.$font-body; color: vars.$text-secondary; line-height: 1.45; }
+  // One option per line, tight against the body it belongs to: the point of the
+  // list is that each mode can be read on its own.
+  &__list {
+    margin: 0 0 vars.$space-3; padding: 0 0 0 vars.$space-4;
+    font-size: vars.$font-caption; color: vars.$text-secondary; line-height: 1.45;
+    li + li { margin-top: 2px; }
+  }
+  &__footer { display: flex; align-items: center; gap: vars.$space-2; }
+  &__progress { font-size: vars.$font-caption; color: vars.$text-muted; }
+  &__spacer { flex: 1; }
+  &__btn {
+    @include vars.control-base;
+    box-sizing: border-box;
+    padding: 5px 10px; cursor: pointer;
+    &--ghost { background: transparent; border-color: transparent; color: vars.$text-muted; }
+    &--primary { @include vars.state-selected-fill; border-color: vars.$color-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+}

@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, ZoomAISessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { ZoomAIClient } from '../clients/ZoomAIClient';
@@ -27,6 +27,10 @@ export const defaultZoomAISettings: ZoomAISettings = {
 export class ZoomAIProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'zoomAI';
   readonly supportsWebRTC = false;
+  readonly credentialFields: readonly CredentialField[] = [
+    { key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true },
+    { key: 'apiSecret', labelKey: 'setup.credentials.apiSecret', secret: true },
+  ];
 
   async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
     const s = slice as ZoomAISettings;

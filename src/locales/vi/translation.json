@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Nhập khóa API của bạn",
     "setupGuide": "Hướng dẫn cài đặt",
     "validate": "Xác thực",
-    "apiKeyHelpTooltip2": "Hướng dẫn từng bước:"
+    "apiKeyHelpTooltip2": "Hướng dẫn từng bước:",
+    "recommended": "Được đề xuất",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",
@@ -659,130 +661,6 @@
     "noMic": "Cần Microphone",
     "reconnecting": "Đang kết nối lại..."
   },
-  "userTypeSelection": {
-    "title": "Chào mừng đến với Sokuji",
-    "subtitle": "Vui lòng chọn loại người dùng của bạn để bắt đầu",
-    "regular": {
-      "title": "Người dùng thông thường",
-      "description": "Tôi mới sử dụng các dịch vụ AI hoặc thích trải nghiệm đơn giản",
-      "feature1": "Không cần biết về khóa API",
-      "feature2": "Giao diện đơn giản và trực quan",
-      "feature3": "Quy trình thiết lập có hướng dẫn",
-      "action": "Bắt đầu với chế độ cơ bản"
-    },
-    "experienced": {
-      "title": "Người dùng có kinh nghiệm",
-      "description": "Tôi có khóa API riêng và hiểu về các dịch vụ AI",
-      "feature1": "Có khóa API OpenAI hoặc Gemini",
-      "feature2": "Truy cập tính năng API thời gian thực",
-      "feature3": "Kiểm soát đầy đủ tất cả cài đặt",
-      "action": "Bắt đầu với chế độ nâng cao"
-    }
-  },
-  "onboarding": {
-    "basic": {
-      "steps": {
-        "welcome": {
-          "title": "Chào mừng đến với Sokuji",
-          "content": "Chào mừng đến với Sokuji! Hướng dẫn đơn giản này sẽ giúp bạn bắt đầu sử dụng dịch thời gian thực chỉ trong vài bước."
-        },
-        "mode": {
-          "content": "Chọn những gì Sokuji dịch: Tôi — giọng của chính bạn (để đối phương hiểu bạn); Đối phương — những gì đối phương nói (để bạn hiểu họ); hoặc Cả hai để dịch hai chiều. Điều này quyết định âm thanh nào được thu — chọn Đối phương hoặc Cả hai để bật âm thanh đối phương.",
-          "title": "Chế độ dịch"
-        },
-        "settings": {
-          "title": "Bước 1: Mở Cài đặt",
-          "content": "Nhấp vào đây để mở Cài đặt, nơi bạn có thể cấu hình ngôn ngữ và thiết bị âm thanh của mình."
-        },
-        "languages": {
-          "title": "Bước 3: Chọn ngôn ngữ",
-          "content": "Chọn \"Ngôn ngữ của tôi\" (ngôn ngữ bạn nói) và \"Ngôn ngữ đối phương\" (ngôn ngữ mà đối phương sẽ nghe)."
-        },
-        "microphone": {
-          "title": "Bước 5: Chọn micrô",
-          "content": "Chọn micrô của bạn từ danh sách. Đây là thiết bị sẽ thu giọng nói của bạn."
-        },
-        "speaker": {
-          "title": "Bước 6: Chọn loa",
-          "content": "Chọn thiết bị giám sát để xem trước bản dịch. Âm thanh đã dịch luôn được gửi đến micrô ảo bất kể có giám sát hay không. Chọn Sokuji Virtual Microphone làm đầu vào micrô trong ứng dụng họp hoặc trang web của bạn. Nên sử dụng tai nghe để giám sát nhằm tránh phản hồi."
-        },
-        "systemAudio": {
-          "title": "Bước 7: Âm thanh đối phương",
-          "content": "Đây là kênh đối phương — những gì người khác nói, được dịch cho bạn. Bật nó bằng cách chọn Đối phương hoặc Cả hai trong chế độ dịch (nó vẫn tắt ở chế độ Tôi). Trong tiện ích mở rộng trình duyệt, nó thu tab hiện tại để bạn có thể dịch đối phương trong Google Meet, Teams hoặc Zoom. Trong ứng dụng máy tính, nó thu toàn bộ âm thanh hệ thống, nên bạn có thể dịch YouTube, Twitch, Netflix hoặc bất kỳ nguồn nào. Lời nói của đối phương chỉ được dịch sang văn bản — không có tổng hợp giọng nói. Kết hợp với micrô của bạn, điều này mang lại dịch hai chiều hoàn chỉnh."
-        },
-        "start": {
-          "title": "Bước 8: Bắt đầu dịch",
-          "content": "Nhấp vào 'Bắt đầu' để bắt đầu dịch! Chỉ cần nói tự nhiên và nghe bản dịch theo thời gian thực."
-        },
-        "complete": {
-          "title": "Đã sẵn sàng!",
-          "content": "Tuyệt vời! Bạn đã sẵn sàng sử dụng Sokuji. Nhấp vào Bắt đầu và nói để nghe bản dịch thời gian thực."
-        },
-        "provider": {
-          "title": "Bước 4: Nhà cung cấp dịch thuật",
-          "content": "Chọn nhà cung cấp dịch thuật của bạn. Sokuji có dịch vụ tích hợp riêng — đăng nhập từ nút tài khoản trên thanh tiêu đề để sử dụng. Sokuji cũng hỗ trợ các dịch vụ đám mây như OpenAI, Gemini, Volcengine (Doubao) và nhiều hơn nữa, trong đó bạn dùng khóa API của riêng mình. Bạn cũng có thể sử dụng suy luận cục bộ — không cần API key, miễn phí và bảo vệ quyền riêng tư, chỉ cần tải mô hình về để dịch hoàn toàn ngoại tuyến."
-        }
-      }
-    },
-    "back": "Quay lại",
-    "close": "Đóng",
-    "finish": "Hoàn thành",
-    "next": "Tiếp theo",
-    "nextWithProgress": "Tiếp theo ({step}/{steps})",
-    "open": "Mở",
-    "skip": "Bỏ qua",
-    "restartTour": "Khởi động lại hướng dẫn thiết lập",
-    "steps": {
-      "welcome": {
-        "title": "Chào mừng đến với Sokuji!",
-        "content": "Chào mừng bạn đến với ứng dụng dịch giọng nói thời gian thực! Hãy thiết lập hệ thống của bạn nhanh chóng để có trải nghiệm tốt nhất."
-      },
-      "mode": {
-        "content": "Chọn những gì Sokuji dịch: Tôi — giọng của chính bạn (để đối phương hiểu bạn); Đối phương — những gì đối phương nói (để bạn hiểu họ); hoặc Cả hai để dịch hai chiều. Điều này quyết định âm thanh nào được thu — chọn Đối phương hoặc Cả hai để bật âm thanh đối phương.",
-        "title": "Chế độ dịch"
-      },
-      "settings": {
-        "title": "Bước 1: Mở Cài đặt",
-        "content": "Trước tiên, hãy cấu hình cài đặt của bạn. Nhấp vào đây để mở bảng Cài đặt, nơi bạn có thể chọn nhà cung cấp dịch thuật và tùy chỉnh các cài đặt."
-      },
-      "apiKey": {
-        "title": "Bước 2: Nhà cung cấp dịch thuật",
-        "content": "Chọn nhà cung cấp dịch thuật của bạn. Sokuji hỗ trợ các dịch vụ đám mây như OpenAI, Gemini, Volcengine (Doubao) và nhiều hơn nữa. Bạn cũng có thể sử dụng suy luận cục bộ — không cần API key, miễn phí và bảo vệ quyền riêng tư, chỉ cần tải mô hình về để dịch hoàn toàn ngoại tuyến."
-      },
-      "systemInstructions": {
-        "title": "Tùy chỉnh hướng dẫn hệ thống",
-        "content": "Thêm bất kỳ hướng dẫn cụ thể nào ở đây để tùy chỉnh hành vi dịch, chẳng hạn như giọng điệu, phong cách hoặc yêu cầu đặc biệt."
-      },
-      "voiceSettings": {
-        "title": "Cài đặt giọng nói",
-        "content": "Chọn mô hình giọng nói và cài đặt ưa thích của bạn. Những cài đặt này sẽ ảnh hưởng đến chất lượng và tốc độ dịch."
-      },
-      "turnDetection": {
-        "title": "Phát hiện lượt",
-        "content": "Cấu hình cài đặt phát hiện lượt tự động để kiểm soát khi nào hệ thống bắt đầu và dừng nghe."
-      },
-      "microphoneSetup": {
-        "title": "Chọn thiết bị microphone",
-        "content": "Chọn thiết bị microphone vật lý thực của bạn từ danh sách. Tránh chọn thiết bị ảo vì chúng được sử dụng cho ứng dụng hội nghị."
-      },
-      "speakerSetup": {
-        "title": "Thiết lập thiết bị giám sát",
-        "content": "Chọn thiết bị giám sát (như tai nghe hoặc loa) để nghe đầu ra dịch. Khuyến nghị sử dụng tai nghe để tránh phản hồi âm thanh. Nếu bạn muốn tập trung vào cuộc họp mà không bị phân tâm bởi giám sát, bạn có thể tắt tính năng giám sát."
-      },
-      "systemAudio": {
-        "title": "Bước 8: Âm thanh đối phương",
-        "content": "Đây là kênh đối phương — những gì người khác nói, được dịch cho bạn. Bật nó bằng cách chọn Đối phương hoặc Cả hai trong chế độ dịch (nó vẫn tắt ở chế độ Tôi). Trong tiện ích mở rộng trình duyệt, nó thu tab hiện tại để bạn có thể dịch đối phương trong Google Meet, Teams hoặc Zoom. Trong ứng dụng máy tính, nó thu toàn bộ âm thanh hệ thống, nên bạn có thể dịch YouTube, Twitch, Netflix hoặc bất kỳ nguồn nào. Lời nói của đối phương chỉ được dịch sang văn bản — không có tổng hợp giọng nói. Kết hợp với micrô của bạn, điều này mang lại dịch hai chiều hoàn chỉnh."
-      },
-      "startSession": {
-        "title": "Bắt đầu phiên của bạn",
-        "content": "Mọi thứ đã sẵn sàng! Nhấp vào nút \"Bắt đầu phiên\" để bắt đầu dịch thời gian thực. Nhớ chọn microphone ảo Sokuji làm thiết bị đầu vào trong ứng dụng hội nghị của bạn."
-      },
-      "complete": {
-        "title": "Hoàn tất hướng dẫn thiết lập!",
-        "content": "Tuyệt vời! Bạn đã thiết lập xong. Nhớ cấp quyền micro khi được yêu cầu. Bạn có thể khởi động lại hướng dẫn này bất cứ lúc nào từ cài đặt."
-      }
-    }
-  },
   "tokenUsage": {
     "unableToLoadQuota": "Không thể tải thông tin hạn ngạch",
     "upgradeToPremium": "Nâng cấp lên Premium"
@@ -1070,5 +948,200 @@
     "deleteNoModel": "Xóa {{name}}: không còn mô hình {{stage}} nào — không thể bắt đầu phiên.",
     "clearAllKeepsPicks": "Lựa chọn của bạn được ghi nhớ và sẽ quay lại khi mô hình được tải xuống lần nữa.",
     "importChooseModel": "Chọn một mô hình để nhập"
+  },
+  "setup": {
+    "title": "Cài đặt Sokuji",
+    "stepOf": "Bước {{current}}/{{total}}",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "finish": "Hoàn tất",
+    "close": "Đóng",
+    "skipForNow": "Để sau",
+    "rerun": "Chạy lại cài đặt",
+    "steps": {
+      "language": {
+        "title": "Sokuji nên nói với bạn bằng ngôn ngữ nào?",
+        "desc": "Đây là ngôn ngữ của menu và nút. Bạn sẽ chọn các ngôn ngữ để dịch giữa sau.",
+        "label": "Ngôn ngữ giao diện"
+      },
+      "scenario": {
+        "title": "Bạn muốn làm gì?",
+        "desc": "Chọn phương án gần đúng nhất. Bạn có thể thay đổi bất kỳ lúc nào sau này."
+      },
+      "path": {
+        "title": "Chọn nhà cung cấp dịch vụ AI"
+      },
+      "credentials": {
+        "offlineTitle": "Không cần nhập gì",
+        "managedTitle": "Tài khoản Kizuna AI của bạn",
+        "ownKeyTitle": "Khóa API của bạn"
+      },
+      "languagePair": {
+        "title": "Ngôn ngữ nào?",
+        "desc": "Ngôn ngữ bạn (hoặc họ) nói, và ngôn ngữ cần dịch sang."
+      },
+      "finish": {
+        "title": "Sẵn sàng",
+        "persistFailed": "Không thể lưu thiết lập của bạn. Vui lòng thử lại."
+      }
+    },
+    "scenarios": {
+      "sets": "Thiết lập: chế độ {{mode}} · {{output}}",
+      "understand-others": {
+        "title": "Hiểu những gì họ nói",
+        "desc": "Cuộc họp trực tuyến, lớp học, buổi nói chuyện, video, livestream — đọc bản dịch trực tiếp của những gì bạn nghe."
+      },
+      "be-heard": {
+        "title": "Được hiểu trong cuộc họp",
+        "desc": "Họ nghe giọng nói đã dịch của bạn qua micro ảo."
+      },
+      "subtitle-myself": {
+        "title": "Phụ đề cho lời nói của tôi",
+        "desc": "Buổi nói chuyện, livestream, thuyết trình — khán giả của bạn đọc phụ đề đã dịch; không có âm thanh nào được tạo ra."
+      },
+      "two-way-voice": {
+        "title": "Trò chuyện trực tuyến hai chiều",
+        "desc": "Họ nghe giọng nói đã dịch của bạn; bạn đọc phụ đề được tạo từ những gì họ nói."
+      },
+      "two-way-text": {
+        "title": "Trò chuyện trực tuyến hai chiều, chỉ phụ đề",
+        "desc": "Phụ đề song ngữ, biên bản cuộc họp — cả hai bên đều ở dạng văn bản, không có giọng nói tổng hợp."
+      }
+    },
+    "output": {
+      "voice": "giọng nói và phụ đề",
+      "subtitles": "chỉ phụ đề"
+    },
+    "paths": {
+      "recommended": "Được đề xuất",
+      "pickProvider": "Nhà cung cấp nào?",
+      "offlineFlavor": "Công cụ nào?",
+      "managed": {
+        "title": "Bắt đầu ngay",
+        "desc": "Kizuna AI thực hiện việc dịch giúp bạn.",
+        "cost": "Đăng ký bằng địa chỉ email và xác minh — tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư, và việc dịch sẽ được tính phí theo mức sử dụng."
+      },
+      "own-key": {
+        "title": "Tôi có khóa API riêng",
+        "desc": "Mang khóa riêng của bạn từ OpenAI, Gemini, Doubao (Volcengine) và các nhà cung cấp khác.",
+        "cost": "Khóa của bạn ở lại trên thiết bị này và gửi thẳng đến nhà cung cấp từ đây. Bạn là khách hàng của họ: bạn trả tiền cho họ theo mức sử dụng, và không có gì đi qua Kizuna AI."
+      },
+      "offline": {
+        "title": "Miễn phí, ngoại tuyến",
+        "desc": "Chạy trên chính máy của bạn. Không có gì rời khỏi máy.",
+        "cost": "Tải mô hình xuống ổ đĩa của bạn (vài GB). Chạy tốt với GPU và đủ VRAM; chỉ dùng CPU sẽ chậm hơn rõ rệt.",
+        "native": "Công cụ Native — nhanh hơn, dùng GPU nếu có.",
+        "wasm": "Công cụ trong ứng dụng — hoạt động mọi nơi, chậm hơn."
+      },
+      "ownKeyNote": "Chọn nhà cung cấp mà bạn đã có tài khoản. Mỗi nhà cung cấp cấp một khóa riêng:",
+      "ownKeyGuides": "hướng dẫn cho từng nhà cung cấp"
+    },
+    "fit": {
+      "cannotSpeak": "Nhà cung cấp này không thể tạo bản dịch bằng giọng nói.",
+      "cannotBeTextOnly": "Nhà cung cấp này luôn tạo giọng nói; không thể chạy ở chế độ chỉ phụ đề."
+    },
+    "credentials": {
+      "apiKey": "Khóa API",
+      "endpoint": "Endpoint URL",
+      "endpointPlaceholder": "https://api.example.com/v1",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key",
+      "appId": "App ID",
+      "accessToken": "Access Token",
+      "apiSecret": "API Secret",
+      "validate": "Xác thực",
+      "valid": "Đã chấp nhận khóa.",
+      "invalid": "Khóa đã bị từ chối.",
+      "signIn": "Đăng nhập",
+      "createAccount": "Tạo tài khoản",
+      "signedIn": "Đã đăng nhập. Bạn có thể tiếp tục.",
+      "managedDesc": "Đăng ký bằng địa chỉ email và xác minh qua hộp thư của bạn; tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư và chỉ trả tiền theo mức sử dụng.",
+      "offlineNotice": "Các mô hình được tải xuống sau khi cài đặt, từ Cài đặt. Chúng chiếm vài GB dung lượng ổ đĩa. Sokuji chạy tốt với GPU và đủ VRAM; chỉ dùng CPU sẽ chậm hơn rõ rệt.",
+      "pendingKey": "Bạn có thể thêm khóa sau trong Cài đặt → Nhà cung cấp. Bắt đầu vẫn bị khóa cho đến khi khóa được xác thực.",
+      "pendingSignIn": "Bạn có thể đăng nhập sau từ nút tài khoản. Bắt đầu vẫn bị khóa cho đến khi đó.",
+      "ownKeyDesc": "Khóa này chỉ được lưu trên thiết bị này, và ứng dụng gọi trực tiếp đến nhà cung cấp từ đây — không bao giờ đi qua Kizuna AI. Bạn trả tiền cho nhà cung cấp theo mức sử dụng.",
+      "guide": "Cách lấy khóa này",
+      "verifyEmail": "Đã đăng nhập. Hãy mở liên kết chúng tôi đã gửi qua email để xác minh địa chỉ của bạn — tín dụng dùng thử sẽ được cấp ngay khi bạn hoàn tất.",
+      "onFile": "Đã có một khóa được lưu — để trống nếu muốn giữ nguyên."
+    },
+    "summary": {
+      "scenario": "Kịch bản",
+      "mode": "Chế độ",
+      "provider": "Nhà cung cấp",
+      "languages": "Ngôn ngữ",
+      "pendingKey": "Chưa có khóa API — hãy thêm trong Cài đặt → Nhà cung cấp trước khi bắt đầu.",
+      "pendingSignIn": "Chưa đăng nhập — hãy đăng nhập từ nút tài khoản trước khi bắt đầu.",
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    }
+  },
+  "tour": {
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "skip": "Bỏ qua",
+    "finish": "Hoàn tất",
+    "restart": "Khởi động lại Hướng dẫn cài đặt",
+    "steps": {
+      "welcome": {
+        "title": "Bạn đã sẵn sàng",
+        "content": "Sokuji đã được cấu hình theo kịch bản của bạn. Đây là một vòng giới thiệu ngắn — chưa đến một phút."
+      },
+      "mode-picker": {
+        "title": "Chế độ dịch",
+        "content": "Chế độ này đã được đặt sẵn cho bạn, và bạn có thể chuyển đổi bất cứ lúc nào. Bản dịch luôn hiển thị ở đây dưới dạng văn bản; chế độ, cùng với công tắc Chỉ văn bản, quyết định liệu nó có được đọc to hay không.",
+        "modeMe": "Tôi — những gì bạn nói được dịch cho đối phương.",
+        "modeOthers": "Đối phương — những gì họ nói được dịch cho bạn.",
+        "modeBoth": "Cả hai — cả hai chiều cùng lúc."
+      },
+      "microphone": {
+        "title": "Micro của bạn",
+        "content": "Giọng nói của bạn được thu ở đây. Thiết bị mặc định của hệ thống đã được chọn sẵn. Đừng chọn micro ảo Sokuji — đó là dành cho ứng dụng họp của bạn."
+      },
+      "monitor": {
+        "title": "Nghe giọng đã dịch của bạn",
+        "content": "Phát giọng nói đã dịch qua tai nghe của bạn để bạn có thể kiểm tra âm thanh. Tắt nếu bạn không cần."
+      },
+      "output-routing": {
+        "title": "Cách đối phương nghe bạn",
+        "content": "Giọng nói đã dịch của bạn được gửi đến micro ảo; hãy chọn nó làm micro trong ứng dụng họp của bạn.",
+        "content_extension": "Trong Google Meet, Zoom hoặc Teams, hãy chọn \"Sokuji Virtual Microphone\" làm micro của bạn. Sokuji tự động thêm nó vào các trang họp được hỗ trợ.",
+        "content_electronLinux": "Sokuji đã tạo một micro ảo trên hệ thống này. Hãy chọn nó làm micro trong ứng dụng họp của bạn.",
+        "content_electronOther": "Bạn cần một cáp âm thanh ảo (ví dụ VB-Cable). Gửi đầu ra của Sokuji đến đó, và chọn nó làm micro trong ứng dụng họp của bạn."
+      },
+      "participant-source": {
+        "title": "Giọng nói của đối phương",
+        "content": "Sokuji lắng nghe đối phương ở đây.",
+        "content_electron": "Chọn ứng dụng cần dịch, hoặc toàn bộ âm thanh hệ thống. Giọng nói gốc của họ vẫn phát bình thường.",
+        "content_extension": "Sokuji dịch âm thanh của tab hiện tại. Giọng nói gốc của họ vẫn phát bình thường."
+      },
+      "subtitle": {
+        "title": "Chế độ phụ đề",
+        "content": "Mở một khung phụ đề nổi — một cửa sổ riêng trên máy tính, hoặc lớp phủ trên trang khi dùng tiện ích mở rộng. OBS và chia sẻ màn hình đều có thể ghi lại nó."
+      },
+      "account": {
+        "title": "Tài khoản của bạn",
+        "content": "Số dư và nạp tiền của bạn ở đây.",
+        "content_signedOut": "Tài khoản của bạn ở đây. Hãy đăng nhập sau khi xem hướng dẫn để mở khóa Bắt đầu."
+      },
+      "provider-settings": {
+        "title": "Cài đặt nhà cung cấp",
+        "content": "Thay đổi khóa hoặc chuyển nhà cung cấp ở đây.",
+        "content_pending": "Dán khóa API của bạn vào đây. Bắt đầu sẽ mở khóa khi khóa được xác thực."
+      },
+      "models": {
+        "title": "Mô hình",
+        "content": "Tải mô hình xuống ở đây — mỗi mô hình cho một giai đoạn. Hãy thử vài mô hình; lựa chọn đầu tiên không phải là lựa chọn tốt duy nhất."
+      },
+      "start": {
+        "title": "Bắt đầu",
+        "content": "Nhấn vào đây để bắt đầu dịch. Nếu nút vẫn xám, hãy di chuột qua nó: ghi chú sẽ cho biết điều gì còn thiếu và cách khắc phục.",
+        "content_offline": "Nút này sẽ sáng lên khi mô hình của bạn đã sẵn sàng. Di chuột qua khi nó còn xám để xem nó đang chờ gì.",
+        "content_signedOut": "Nút này sẽ sáng lên khi bạn đăng nhập. Di chuột qua khi nó còn xám để xem nó đang chờ gì.",
+        "content_pendingKey": "Nút này sẽ sáng lên khi khóa API của bạn được xác thực. Di chuột qua khi nó còn xám để xem nó đang chờ gì."
+      },
+      "done": {
+        "title": "Vậy là xong",
+        "content": "Cài đặt nâng cao — phát hiện giọng nói, prompt, giọng nói, nhật ký — nằm sau công tắc Nâng cao ở góc trên bên phải của Cài đặt. Xem lại hướng dẫn này bất cứ lúc nào từ Trợ giúp."
+      }
+    }
   }
 }

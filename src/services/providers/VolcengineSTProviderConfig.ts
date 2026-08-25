@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, VolcengineSTSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { VolcengineSTClient } from '../clients/VolcengineSTClient';
@@ -22,6 +22,10 @@ export const defaultVolcengineSTSettings: VolcengineSTSettings = {
 export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'volcengineST';
   readonly supportsWebRTC = false;
+  readonly credentialFields: readonly CredentialField[] = [
+    { key: 'accessKeyId', labelKey: 'setup.credentials.accessKeyId', secret: false },
+    { key: 'secretAccessKey', labelKey: 'setup.credentials.secretAccessKey', secret: true },
+  ];
 
   async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
     const s = slice as VolcengineSTSettings;

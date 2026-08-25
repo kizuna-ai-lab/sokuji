@@ -1,5 +1,5 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
-import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult, BothModePlan } from './ProviderDescriptor';
+import { BaseProviderDescriptor, Credentials, CredentialCtx, ClientOptions, ParticipantSessionResult, BothModePlan, type CredentialField } from './ProviderDescriptor';
 import { IClient, FilteredModel, SessionConfig, SonioxSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { SonioxClient } from '../clients/SonioxClient';
@@ -189,6 +189,21 @@ export function sonioxVoiceField(region: SonioxRegion): 'voice' | 'voiceEu' | 'v
 export class SonioxProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'soniox';
   readonly supportsWebRTC = false;
+  // Default region is 'us' → sonioxKeyField('us') === 'apiKey', which matches
+  // the base default already. Made explicit so a future default-region change
+  // fails descriptorRegistry.test.ts's invariant loudly rather than silently.
+  readonly credentialFields: readonly CredentialField[] = [
+    { key: sonioxKeyField(DEFAULT_SONIOX_REGION), labelKey: 'setup.credentials.apiKey', secret: true },
+  ];
+
+  /** One key per region, and extractCredentials reads the ACTIVE region's slot
+   *  — so the input the wizard renders has to write that same slot. Mapping the
+   *  declared list (rather than returning a fresh one) keeps the managed twin,
+   *  which declares no fields at all, declaring none here too. */
+  credentialFieldsFor(settings: unknown): readonly CredentialField[] {
+    const key = sonioxKeyField(asSonioxRegion((settings as SonioxSettings | null)?.region));
+    return this.credentialFields.map((f) => ({ ...f, key }));
+  }
 
   /**
    * Pick the ACTIVE region's key, and carry the region in `endpoint`.

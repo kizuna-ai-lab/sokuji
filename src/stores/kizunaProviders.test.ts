@@ -17,8 +17,8 @@ describe("KizunaAI relay providers — session config", () => {
 });
 
 describe("legacy kizunaai provider migration", () => {
-  it("migrates a legacy 'kizunaai' provider to the translate twin", () => {
-    expect(migrateLegacyKizunaProvider("kizunaai" as any)).toBe(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
+  it("migrates a legacy 'kizunaai' provider to managed Soniox", () => {
+    expect(migrateLegacyKizunaProvider("kizunaai" as any)).toBe(Provider.KIZUNA_AI_SONIOX);
   });
   it("leaves other providers unchanged", () => {
     expect(migrateLegacyKizunaProvider(Provider.OPENAI)).toBe(Provider.OPENAI);

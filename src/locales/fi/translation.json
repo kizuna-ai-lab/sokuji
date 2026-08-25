@@ -289,7 +289,9 @@
     "apiKeyPlaceholder": "Syötä API-avaimesi",
     "setupGuide": "Asennusopas",
     "validate": "Vahvista",
-    "apiKeyHelpTooltip2": "Vaihe vaiheelta -opas:"
+    "apiKeyHelpTooltip2": "Vaihe vaiheelta -opas:",
+    "recommended": "Suositeltu",
+    "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
     "title": "Ääniasetukset",
@@ -659,130 +661,6 @@
     "noMic": "Mikrofoni vaaditaan",
     "reconnecting": "Yhdistetään uudelleen..."
   },
-  "userTypeSelection": {
-    "title": "Tervetuloa Sokuji:iin",
-    "subtitle": "Valitse käyttäjätyyppi aloittaaksesi",
-    "regular": {
-      "title": "Tavallinen käyttäjä",
-      "description": "Olen uusi tekoälypalveluissa tai haluan yksinkertaisen kokemuksen",
-      "feature1": "Ei tarvetta API-avaimen tuntemukseen",
-      "feature2": "Yksinkertainen ja intuitiivinen käyttöliittymä",
-      "feature3": "Opastettu asennusprosessi",
-      "action": "Aloita perustilassa"
-    },
-    "experienced": {
-      "title": "Kokenut käyttäjä",
-      "description": "Minulla on omat API-avaimet ja ymmärrän tekoälypalvelut",
-      "feature1": "Omistan OpenAI tai Gemini API-avaimet",
-      "feature2": "Pääsy reaaliaikaisen API:n ominaisuuksiin",
-      "feature3": "Täysi hallinta kaikkiin asetuksiin",
-      "action": "Aloita edistyneessä tilassa"
-    }
-  },
-  "onboarding": {
-    "basic": {
-      "steps": {
-        "welcome": {
-          "title": "Tervetuloa Sokuji:iin",
-          "content": "Tervetuloa Sokuji:iin! Tämä yksinkertainen opas auttaa sinua aloittamaan reaaliaikaisen kääntämisen muutamassa vaiheessa."
-        },
-        "mode": {
-          "content": "Valitse, mitä Sokuji kääntää: Minä — oma äänesi (jotta toinen ymmärtää sinua); Toinen — mitä toinen sanoo (jotta ymmärrät häntä); tai Molemmat kaksisuuntaiseen käännökseen. Tämä ratkaisee, mikä ääni kaapataan — valitse Toinen tai Molemmat ottaaksesi toisen äänen käyttöön.",
-          "title": "Käännöstila"
-        },
-        "settings": {
-          "title": "Vaihe 1: Avaa asetukset",
-          "content": "Napsauta tästä avataksesi Asetukset-paneelin, jossa voit määrittää kielesi ja äänilaitteesi."
-        },
-        "languages": {
-          "title": "Vaihe 3: Valitse Kielet",
-          "content": "Valitse 'Minun kieleni' (mitä puhut) ja 'Toisen kieli' (mitä toinen kuulee)."
-        },
-        "microphone": {
-          "title": "Vaihe 5: Valitse Mikrofoni",
-          "content": "Valitse mikrofonisi luettelosta. Tämä laite kaappaa äänesi."
-        },
-        "speaker": {
-          "title": "Vaihe 6: Valitse Kaiutin",
-          "content": "Valitse seurantalaite käännöksen esikatseluun. Käännetty ääni lähetetään aina virtuaalimikrofoniin seurannasta riippumatta. Valitse Sokuji Virtual Microphone mikrofonisyötteeksi kokoussovelluksessasi tai verkkosivustolla. Kuulokkeet ovat suositeltavia seurantaan palautteen välttämiseksi."
-        },
-        "systemAudio": {
-          "title": "Vaihe 7: Toisen ääni",
-          "content": "Tämä on toisen kanava — mitä muut sanovat, käännettynä sinulle. Ota se käyttöön valitsemalla käännöstilassa Toinen tai Molemmat (se pysyy pois päältä Minä-tilassa). Selainlaajennuksessa se kaappaa nykyisen välilehden, jotta voit kääntää toista Google Meetissä, Teamsissa tai Zoomissa. Työpöytäsovelluksessa se kaappaa kaiken järjestelmän äänen, jotta voit kääntää YouTubea, Twitchiä, Netflixiä tai mitä tahansa lähdettä. Toisen puhe käännetään vain tekstiksi — ei puhesynteesiä. Yhdessä mikrofonisi kanssa tämä antaa täyden kaksisuuntaisen käännöksen."
-        },
-        "start": {
-          "title": "Vaihe 8: Aloita Kääntäminen",
-          "content": "Napsauta \"Aloita\" aloittaaksesi kääntämisen! Puhu vain luonnollisesti ja kuule käännös reaaliajassa."
-        },
-        "complete": {
-          "title": "Kaikki valmista!",
-          "content": "Hienoa! Olet valmis käyttämään Sokujia. Napsauta Aloita ja ala puhua kuullaksesi reaaliaikaisia käännöksiä."
-        },
-        "provider": {
-          "title": "Vaihe 4: Käännöspalveluntarjoaja",
-          "content": "Valitse käännöspalveluntarjoaja. Sokujilla on oma sisäänrakennettu palvelunsa — ota se käyttöön kirjautumalla sisään otsikkopalkin tilipainikkeesta. Se tukee myös pilvipalveluja kuten OpenAI, Gemini, Volcengine (Doubao) ja muita, joissa käytät omaa API-avaintasi. Voit myös käyttää paikallista päättelyä — ei API-avainta tarvita, ilmainen ja yksityisyyteen keskittyvä, lataa vain mallit täysin offline-käännökseen."
-        }
-      }
-    },
-    "back": "Takaisin",
-    "close": "Sulje",
-    "finish": "Valmis",
-    "next": "Seuraava",
-    "nextWithProgress": "Seuraava ({step}/{steps})",
-    "open": "Avaa",
-    "skip": "Ohita",
-    "restartTour": "Käynnistä asennusopas uudelleen",
-    "steps": {
-      "welcome": {
-        "title": "Tervetuloa Sokuji:iin!",
-        "content": "Tervetuloa reaaliaikaiseen äänenkäännössovellukseen! Määritetään järjestelmäsi nopeasti parhaan kokemuksen saamiseksi."
-      },
-      "mode": {
-        "content": "Valitse, mitä Sokuji kääntää: Minä — oma äänesi (jotta toinen ymmärtää sinua); Toinen — mitä toinen sanoo (jotta ymmärrät häntä); tai Molemmat kaksisuuntaiseen käännökseen. Tämä ratkaisee, mikä ääni kaapataan — valitse Toinen tai Molemmat ottaaksesi toisen äänen käyttöön.",
-        "title": "Käännöstila"
-      },
-      "settings": {
-        "title": "Vaihe 1: Avaa asetukset",
-        "content": "Määritetään ensin asetuksesi. Napsauta tästä avataksesi Asetukset-paneelin, jossa voit valita käännöspalveluntarjoajan ja mukauttaa asetuksia."
-      },
-      "apiKey": {
-        "title": "Vaihe 2: Käännöspalveluntarjoaja",
-        "content": "Valitse käännöspalveluntarjoaja. Sokuji tukee pilvipalveluja kuten OpenAI, Gemini, Volcengine (Doubao) ja muita. Voit myös käyttää paikallista päättelyä — ei API-avainta tarvita, ilmainen ja yksityisyyteen keskittyvä, lataa vain mallit täysin offline-käännökseen."
-      },
-      "systemInstructions": {
-        "title": "Mukauta järjestelmäohjeita",
-        "content": "Lisää tähän erityisiä ohjeita käännöskäyttäytymisen mukauttamiseksi, kuten sävy, tyyli tai erityisvaatimukset."
-      },
-      "voiceSettings": {
-        "title": "Ääniasetukset",
-        "content": "Valitse haluamasi äänimalli ja asetukset. Nämä asetukset vaikuttavat käännöksen laatuun ja nopeuteen."
-      },
-      "turnDetection": {
-        "title": "Vuoron tunnistus",
-        "content": "Määritä automaattisen vuoron tunnistuksen asetukset hallitaksesi, milloin järjestelmä alkaa ja lopettaa kuuntelun."
-      },
-      "microphoneSetup": {
-        "title": "Valitse mikrofonilaitteesi",
-        "content": "Valitse todellinen fyysinen mikrofonilaitteesi luettelosta. Vältä virtuaalisten laitteiden valitsemista, koska ne on tarkoitettu konferenssisovelluksille."
-      },
-      "speakerSetup": {
-        "title": "Monitorilaitteen asennus",
-        "content": "Valitse monitorilaitteesi (kuten kuulokkeet tai kaiuttimet) kuullaksesi käännöksen tulosteen. Kuulokkeiden käyttöä suositellaan äänipalautteiden välttämiseksi. Jos haluat keskittyä kokoukseen ilman monitoroinnin häiriöitä, voit poistaa monitorointitoiminnon käytöstä."
-      },
-      "systemAudio": {
-        "title": "Vaihe 8: Toisen ääni",
-        "content": "Tämä on toisen kanava — mitä muut sanovat, käännettynä sinulle. Ota se käyttöön valitsemalla käännöstilassa Toinen tai Molemmat (se pysyy pois päältä Minä-tilassa). Selainlaajennuksessa se kaappaa nykyisen välilehden, jotta voit kääntää toista Google Meetissä, Teamsissa tai Zoomissa. Työpöytäsovelluksessa se kaappaa kaiken järjestelmän äänen, jotta voit kääntää YouTubea, Twitchiä, Netflixiä tai mitä tahansa lähdettä. Toisen puhe käännetään vain tekstiksi — ei puhesynteesiä. Yhdessä mikrofonisi kanssa tämä antaa täyden kaksisuuntaisen käännöksen."
-      },
-      "startSession": {
-        "title": "Aloita istuntosi",
-        "content": "Kaikki on valmista! Napsauta \"Aloita istunto\" -painiketta aloittaaksesi reaaliaikaisen käännöksen. Muista valita Sokuji-virtuaalimikrofoni syöttölaitteeksi konferenssisovelluksessasi."
-      },
-      "complete": {
-        "title": "Asennusopas valmis!",
-        "content": "Hienoa! Kaikki on valmista. Muista myöntää mikrofonin käyttöoikeudet, kun sitä pyydetään. Voit käynnistää tämän oppaan uudelleen milloin tahansa asetuksista."
-      }
-    }
-  },
   "tokenUsage": {
     "unableToLoadQuota": "Kiintiötietoja ei voitu ladata",
     "upgradeToPremium": "Päivitä Premiumiin"
@@ -1070,5 +948,200 @@
     "deleteNoModel": "Poistetaan {{name}}: {{stage}}-malleja ei jää jäljelle — istuntoja ei voi käynnistää.",
     "clearAllKeepsPicks": "Valintasi muistetaan ja palautuvat, kun mallit ladataan uudelleen.",
     "importChooseModel": "Valitse tuotava malli"
+  },
+  "setup": {
+    "title": "Määritä Sokuji",
+    "stepOf": "Vaihe {{current}}/{{total}}",
+    "back": "Takaisin",
+    "next": "Seuraava",
+    "finish": "Valmis",
+    "close": "Sulje",
+    "skipForNow": "Ohita toistaiseksi",
+    "rerun": "Käynnistä asennus uudelleen",
+    "steps": {
+      "language": {
+        "title": "Millä kielellä Sokujin tulisi puhua sinulle?",
+        "desc": "Tämä on valikoiden ja painikkeiden kieli. Valitset myöhemmin kielet, joiden välillä käännät.",
+        "label": "Käyttöliittymän kieli"
+      },
+      "scenario": {
+        "title": "Mitä haluat tehdä?",
+        "desc": "Valitse lähimmin sopiva vaihtoehto. Voit muuttaa tätä myöhemmin."
+      },
+      "path": {
+        "title": "Valitse tekoälypalvelun tarjoaja"
+      },
+      "credentials": {
+        "offlineTitle": "Ei mitään syötettävää",
+        "managedTitle": "Kizuna AI -tilisi",
+        "ownKeyTitle": "API-avaimesi"
+      },
+      "languagePair": {
+        "title": "Mitkä kielet?",
+        "desc": "Mitä sinä puhut tai he puhuvat, ja mihin se käännetään."
+      },
+      "finish": {
+        "title": "Valmis",
+        "persistFailed": "Asetuksia ei voitu tallentaa. Yritä uudelleen."
+      }
+    },
+    "scenarios": {
+      "sets": "Asettaa: {{mode}}-tila · {{output}}",
+      "understand-others": {
+        "title": "Ymmärrä, mitä muut sanovat",
+        "desc": "Verkkokokoukset, oppitunnit, puheet, videot, striimit — lue reaaliaikainen käännös siitä, mitä kuulet."
+      },
+      "be-heard": {
+        "title": "Tule ymmärretyksi kokouksessa",
+        "desc": "He kuulevat käännetyn äänesi virtuaalimikrofonin kautta."
+      },
+      "subtitle-myself": {
+        "title": "Tekstitä oma puheeni",
+        "desc": "Puheet, striimit, esitykset — yleisösi lukee käännettyjä tekstityksiä; ääntä ei tuoteta."
+      },
+      "two-way-voice": {
+        "title": "Kaksisuuntainen verkkokeskustelu",
+        "desc": "He kuulevat käännetyn äänesi; luet tekstityksiä siitä, mitä he sanovat."
+      },
+      "two-way-text": {
+        "title": "Kaksisuuntainen verkkokeskustelu, vain tekstitys",
+        "desc": "Kaksikieliset tekstitykset, kokousmuistiot — molemmat puolet tekstinä, ei synteettistä ääntä."
+      }
+    },
+    "output": {
+      "voice": "ääni ja tekstitys",
+      "subtitles": "vain tekstitys"
+    },
+    "paths": {
+      "recommended": "Suositeltu",
+      "pickProvider": "Mikä tarjoaja?",
+      "offlineFlavor": "Mikä moottori?",
+      "managed": {
+        "title": "Aloita heti",
+        "desc": "Kizuna AI hoitaa kääntämisen puolestasi.",
+        "cost": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se — vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa, ja kääntäminen laskutetaan käyttösi mukaan."
+      },
+      "own-key": {
+        "title": "Minulla on oma API-avain",
+        "desc": "Tuo oma avaimesi palveluista OpenAI, Gemini, Doubao (Volcengine) ja muista.",
+        "cost": "Avaimesi pysyy tällä laitteella ja välittyy tarjoajalle suoraan sieltä. Olet heidän asiakkaansa: maksat heille käytöstäsi, eikä mikään kulje Kizuna AI:n kautta."
+      },
+      "offline": {
+        "title": "Ilmainen, offline",
+        "desc": "Toimii omalla koneellasi. Mikään ei poistu siitä.",
+        "cost": "Lataa malleja levyllesi (gigatavuja). Toimii hyvin GPU:lla ja riittävällä VRAM-määrällä; pelkällä CPU:lla huomattavasti hitaampi.",
+        "native": "Native-moottori — nopeampi, käyttää GPU:ta, jos saatavilla.",
+        "wasm": "Sovelluksen sisäinen moottori — toimii kaikkialla, hitaampi."
+      },
+      "ownKeyNote": "Valitse tarjoaja, jonka luona sinulla on tili. Jokainen myöntää oman avaimensa:",
+      "ownKeyGuides": "ohjeet jokaiselle tarjoajalle"
+    },
+    "fit": {
+      "cannotSpeak": "Tämä tarjoaja ei pysty tuottamaan puhuttua käännöstä.",
+      "cannotBeTextOnly": "Tämä tarjoaja puhuu aina; se ei voi toimia vain tekstityksellä."
+    },
+    "credentials": {
+      "apiKey": "API-avain",
+      "endpoint": "Päätepiste-URL",
+      "endpointPlaceholder": "https://api.example.com/v1",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key",
+      "appId": "App ID",
+      "accessToken": "Access Token",
+      "apiSecret": "API-salainen avain",
+      "validate": "Vahvista",
+      "valid": "Avain hyväksytty.",
+      "invalid": "Avain hylättiin.",
+      "signIn": "Kirjaudu sisään",
+      "createAccount": "Luo tili",
+      "signedIn": "Kirjauduttu sisään. Voit jatkaa.",
+      "managedDesc": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se saapuneet-kansiostasi; vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa ja maksat vain käytöstäsi.",
+      "offlineNotice": "Mallit ladataan asennuksen jälkeen Asetuksista. Ne vievät gigatavuja levytilaa. Sokuji toimii hyvin GPU:lla ja riittävällä VRAM-määrällä; pelkällä CPU:lla huomattavasti hitaampi.",
+      "pendingKey": "Voit lisätä avaimen myöhemmin kohdassa Asetukset → Tarjoaja. Aloita pysyy lukittuna, kunnes avain vahvistuu.",
+      "pendingSignIn": "Voit kirjautua sisään myöhemmin tilipainikkeesta. Aloita pysyy lukittuna siihen asti.",
+      "ownKeyDesc": "Tämä avain tallennetaan vain tälle laitteelle, ja sovellus ottaa yhteyttä tarjoajaan suoraan täältä — se ei koskaan kulje Kizuna AI:n kautta. Maksat tarjoajalle käytöstäsi.",
+      "guide": "Näin hankit tämän avaimen",
+      "verifyEmail": "Kirjauduttu sisään. Avaa sähköpostitse lähettämämme linkki vahvistaaksesi osoitteesi — kokeilusaldo tulee voimaan, kun teet niin.",
+      "onFile": "Avain on jo tallennettu — jätä tämä tyhjäksi säilyttääksesi sen."
+    },
+    "summary": {
+      "scenario": "Skenaario",
+      "mode": "Tila",
+      "provider": "Tarjoaja",
+      "languages": "Kielet",
+      "pendingKey": "Ei vielä API-avainta — lisää se kohdassa Asetukset → Tarjoaja ennen aloittamista.",
+      "pendingSignIn": "Et ole kirjautunut sisään — kirjaudu sisään tilipainikkeesta ennen aloittamista.",
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    }
+  },
+  "tour": {
+    "back": "Takaisin",
+    "next": "Seuraava",
+    "skip": "Ohita",
+    "finish": "Valmis",
+    "restart": "Käynnistä asennusopas uudelleen",
+    "steps": {
+      "welcome": {
+        "title": "Olet valmis",
+        "content": "Sokuji on määritetty skenaariosi mukaan. Tässä lyhyt kierros — se kestää alle minuutin."
+      },
+      "mode-picker": {
+        "title": "Käännöstila",
+        "content": "Tämä on asetettu sinulle valmiiksi, ja voit vaihtaa sitä milloin tahansa. Käännös näkyy täällä aina tekstinä; tila yhdessä Vain teksti -kytkimen kanssa määrää, luetaanko se myös ääneen.",
+        "modeMe": "Minä — se, mitä sanot, käännetään toiselle.",
+        "modeOthers": "Toinen — se, mitä he sanovat, käännetään sinulle.",
+        "modeBoth": "Molemmat — molemmat suunnat samanaikaisesti."
+      },
+      "microphone": {
+        "title": "Mikrofonisi",
+        "content": "Puheesi tulee tänne. Järjestelmän oletuslaite on jo valittuna. Älä valitse Sokujin virtuaalimikrofonia — se on tarkoitettu kokoussovellukseesi."
+      },
+      "monitor": {
+        "title": "Kuuntele itseäsi käännettynä",
+        "content": "Toista käännetty ääni omiin kuulokkeisiisi, jotta voit tarkistaa, miltä se kuulostaa. Kytke pois päältä, jos et tarvitse sitä."
+      },
+      "output-routing": {
+        "title": "Miten toinen osapuoli kuulee sinut",
+        "content": "Käännetty äänesi ohjautuu virtuaalimikrofoniin; valitse se mikrofoniksi kokoussovelluksessasi.",
+        "content_extension": "Valitse Google Meetissä, Zoomissa tai Teamsissa mikrofoniksi \"Sokuji Virtual Microphone\". Sokuji lisää sen automaattisesti tuettuihin kokoussivustoihin.",
+        "content_electronLinux": "Sokuji loi virtuaalimikrofonin tähän järjestelmään. Valitse se mikrofoniksi kokoussovelluksessasi.",
+        "content_electronOther": "Tarvitset virtuaalisen äänikaapelin (esimerkiksi VB-Cable). Ohjaa Sokujin äänilähtö siihen ja valitse se mikrofoniksi kokoussovelluksessasi."
+      },
+      "participant-source": {
+        "title": "Toisen osapuolen ääni",
+        "content": "Sokuji kuuntelee toista osapuolta täältä.",
+        "content_electron": "Valitse käännettävä sovellus tai koko järjestelmän ääni. Heidän alkuperäinen äänensä jatkuu normaalisti.",
+        "content_extension": "Sokuji kääntää nykyisen välilehden äänen. Heidän alkuperäinen äänensä jatkuu normaalisti."
+      },
+      "subtitle": {
+        "title": "Tekstitystila",
+        "content": "Avaa kelluvan tekstitysnäkymän — työpöydällä ikkunana, laajennuksessa sivun päällä olevana peittokuvana. OBS ja näytönjako voivat kaapata sen."
+      },
+      "account": {
+        "title": "Tilisi",
+        "content": "Saldosi ja saldon lataus löytyvät täältä.",
+        "content_signedOut": "Tilisi löytyy täältä. Kirjaudu sisään opastuksen jälkeen avataksesi Aloita-painikkeen."
+      },
+      "provider-settings": {
+        "title": "Tarjoajan asetukset",
+        "content": "Vaihda avaimesi tai tarjoajasi täältä.",
+        "content_pending": "Liitä API-avaimesi tähän. Aloita vapautuu, kun avain vahvistuu."
+      },
+      "models": {
+        "title": "Mallit",
+        "content": "Lataa mallit täältä — yksi jokaista vaihetta kohden. Kokeile muutamaa; ensimmäinen valinta ei ole ainoa hyvä vaihtoehto."
+      },
+      "start": {
+        "title": "Aloita",
+        "content": "Paina tästä aloittaaksesi kääntämisen. Jos painike pysyy harmaana, vie hiiri sen päälle: huomautus kertoo, mitä vielä puuttuu ja mistä sen voi korjata.",
+        "content_offline": "Tämä syttyy, kun mallisi ovat valmiit. Vie hiiri sen päälle, kun se on harmaa, nähdäksesi, mitä se odottaa.",
+        "content_signedOut": "Tämä syttyy, kun kirjaudut sisään. Vie hiiri sen päälle, kun se on harmaa, nähdäksesi, mitä se odottaa.",
+        "content_pendingKey": "Tämä syttyy, kun API-avaimesi vahvistuu. Vie hiiri sen päälle, kun se on harmaa, nähdäksesi, mitä se odottaa."
+      },
+      "done": {
+        "title": "Siinä kaikki",
+        "content": "Lisäasetukset — puheen käsittely, promptit, äänet, lokit — löytyvät Edistynyt-kytkimen takaa Asetusten oikeasta yläkulmasta. Voit toistaa tämän oppaan milloin tahansa Ohje-valikosta."
+      }
+    }
   }
 }
