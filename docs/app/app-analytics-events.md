@@ -90,70 +90,37 @@ trackEvent('translation_session_end', {
 });
 ```
 
-### 🎯 Onboarding Events
+### 🎯 Setup wizard events
+
+#### `setup_started`
+**Properties**: `variant` (`'first-run' | 'rerun'`)
+**Implementation**: `src/components/SetupWizard/SetupWizard.tsx`
+
+#### `setup_step_viewed`
+**Properties**: `step` (number, 0-based), `step_id` (`language | scenario | path | credentials | language-pair | finish`)
+
+#### `setup_abandoned`
+**Properties**: `step` (number) — fired when the re-run overlay is closed before Finish (best effort; a first-run wizard cannot be abandoned except by quitting).
+
+#### `setup_completed`
+**Properties**: `scenario`, `provider_path`, `provider`, `source_language`, `target_language` (strings), `credentials_pending` (boolean — "Skip for now" was taken)
+
+### 🎯 Tour events
 
 #### `onboarding_started`
-**Description**: Triggered when the user starts the onboarding process.
-
-**Properties**:
-- `is_first_time_user` (boolean): Whether this is a first-time user
-- `onboarding_version` (string): Version of the onboarding flow
-
-**Implementation**: `src/contexts/OnboardingContext.tsx`
-
-**Example**:
-```typescript
-trackEvent('onboarding_started', {
-  is_first_time_user: true,
-  onboarding_version: '1.0.0'
-});
-```
-
----
-
-#### `onboarding_completed`
-**Description**: Triggered when the user completes or skips the onboarding process.
-
-**Properties**:
-- `completion_method` ('finished' | 'skipped'): How the onboarding was completed
-- `steps_completed` (number): Number of steps the user went through
-- `total_steps` (number): Total number of steps in the onboarding
-- `duration_ms` (number): Time spent in onboarding in milliseconds
-- `onboarding_version` (string): Version of the onboarding flow
-
-**Implementation**: `src/contexts/OnboardingContext.tsx`
-
-**Example**:
-```typescript
-trackEvent('onboarding_completed', {
-  completion_method: 'finished',
-  steps_completed: 10,
-  total_steps: 10,
-  duration_ms: 180000, // 3 minutes
-  onboarding_version: '1.0.0'
-});
-```
-
----
+**Properties**: `chapter` (`'basics'`), `is_first_time_user` (boolean — false for migrated users), `onboarding_version` (number, `TOUR_VERSION`)
+**Implementation**: `src/components/Tour/TourProvider.tsx`
 
 #### `onboarding_step_viewed`
-**Description**: Triggered when the user views a specific onboarding step.
+**Properties**: `chapter`, `step_index` (number, 0-based within the visible list), `step_id` (catalogue id)
 
-**Properties**:
-- `step_index` (number): Index of the step being viewed (0-based)
-- `step_target` (string): CSS selector or target of the step
-- `step_title` (string): Title of the onboarding step
+#### `onboarding_step_skipped`
+**Properties**: `chapter`, `step_id`, `reason` (`'target-missing'` — also reported when a step's `prepare` callback throws, which the tour treats as a missing target)
 
-**Implementation**: `src/contexts/OnboardingContext.tsx`
+#### `onboarding_completed`
+**Properties**: `chapter`, `completion_method` (`'finished' | 'skipped'`), `steps_completed`, `total_steps`, `duration_ms`, `onboarding_version`
 
-**Example**:
-```typescript
-trackEvent('onboarding_step_viewed', {
-  step_index: 2,
-  step_target: '.api-key-section',
-  step_title: 'Step 2: Configure API Key'
-});
-```
+Retired: `user_type_selected`, `user_type_applied` (the first-launch user-type screen no longer exists).
 
 ### 🔊 Audio Handling Events
 
