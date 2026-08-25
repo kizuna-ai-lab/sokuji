@@ -2,14 +2,16 @@
 //
 // Draws the current tour step (spec §2.1): a scrim with a cutout over the
 // target, or a full scrim with a centred card when the step has no anchor,
-// plus the popover with title, body, progress and controls. The target is not
-// interactive during the tour — the tour teaches, it does not operate.
+// plus the popover with title, body, progress and controls. The spotlight
+// ignores pointer events, so the app underneath stays clickable on anchored
+// steps — whether it should be is settled by rendering, in Task 8.
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useFloating, useDismiss, useRole, useInteractions, FloatingFocusManager, FloatingPortal,
   offset, flip, shift, autoUpdate,
 } from '@floating-ui/react';
+import { useAuthOverlay } from '../../stores/settingsStore';
 import { useTour } from './TourProvider';
 import { contentKey, titleKey } from './steps';
 import './Tour.scss';
@@ -22,10 +24,18 @@ const TourOverlay: React.FC = () => {
   const { active, step, ctx, index, steps, target, resolving } = tour;
   const [rect, setRect] = useState<DOMRect | null>(null);
 
-  // Keep the cutout glued to the target through scrolls and resizes.
+  // Keep the cutout glued to the target through scrolls and resizes. autoUpdate
+  // fires on every scroll frame, so only commit a rect that actually moved —
+  // an identical DOMRect would re-render the whole overlay for nothing.
   useLayoutEffect(() => {
     if (!target) { setRect(null); return; }
-    return autoUpdate(target, document.body, () => setRect(target.getBoundingClientRect()));
+    return autoUpdate(target, document.body, () => {
+      const next = target.getBoundingClientRect();
+      setRect((prev) => (prev
+        && prev.top === next.top && prev.left === next.left
+        && prev.width === next.width && prev.height === next.height
+        ? prev : next));
+    });
   }, [target]);
 
   const { refs, floatingStyles, context } = useFloating({
@@ -36,7 +46,11 @@ const TourOverlay: React.FC = () => {
     middleware: [offset(12), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
   });
-  const dismiss = useDismiss(context, { escapeKey: true, outsidePress: false });
+  // The `account` step sends a signed-out user to the sign-in overlay mid-tour.
+  // Escape there must close that form, not silently skip (and persist as
+  // "skipped") the tour behind it. Same rule as SetupWizard's own useDismiss.
+  const authOverlay = useAuthOverlay();
+  const dismiss = useDismiss(context, { escapeKey: authOverlay === null, outsidePress: false });
   const role = useRole(context, { role: 'dialog' });
   const { getFloatingProps } = useInteractions([dismiss, role]);
 
@@ -47,7 +61,10 @@ const TourOverlay: React.FC = () => {
   if (!active || !step || !ctx) return null;
 
   const isLast = index >= steps.length - 1;
-  const centred = !target;
+  // Keyed off the step, NOT the target: while an anchored step's anchor is
+  // still being awaited, `target` is null too, and treating that as "centred"
+  // would black the viewport out for the whole wait.
+  const centred = !step.anchor;
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') { e.preventDefault(); tour.next(); }
   };
@@ -56,7 +73,9 @@ const TourOverlay: React.FC = () => {
     <FloatingPortal>
       {centred
         ? <div className="tour-scrim tour-scrim--full" />
-        : rect && (
+        : rect && !resolving && (
+          // Nothing at all while resolving: the previous step's rect is stale
+          // and a scrim would darken the very panel `prepare` is revealing.
           <div
             className="tour-spotlight"
             style={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }}

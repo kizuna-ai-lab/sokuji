@@ -98,7 +98,17 @@ export const TourProvider: React.FC<{ children: React.ReactNode; waitOptions?: W
     while (i >= 0 && i < s.steps.length) {
       const step = s.steps[i];
       commit({ ...s, index: i, target: null, resolving: Boolean(step.anchor) });
-      step.prepare?.(s.ctx!, actions);
+      // A throwing `prepare` costs its own step, never the tour: without this
+      // the rejection escapes goTo and the state is left stuck on `resolving`,
+      // where next() and back() are both no-ops — a permanently wedged tour.
+      try {
+        step.prepare?.(s.ctx!, actions);
+      } catch (err) {
+        console.warn(`[Tour] prepare failed for step "${step.id}":`, err);
+        trackEvent('onboarding_step_skipped', { chapter: CHAPTER, step_id: step.id, reason: 'target-missing' });
+        i += dir;
+        continue;
+      }
       const target = step.anchor ? await waitForAnchor(step.anchor, waitOptions) : null;
       if (gen !== generation.current) return;
       if (step.anchor && !target) {

@@ -113,6 +113,21 @@ describe('TourProvider', () => {
     expect(viewedStep1).toHaveLength(1);
   });
 
+  it('skips a step whose prepare throws, and says so', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mount();
+    anchors(['mode-picker', 'participant-section', 'subtitle-enter']);
+    // participant-source's prepare opens settings; a store that throws there
+    // must cost that one step, not the rest of the tour.
+    navigateToSettings.mockImplementationOnce(() => { throw new Error('panel exploded'); });
+    fireEvent.click(screen.getByText('start')); await flush();
+    fireEvent.click(screen.getByText('next')); await flush();      // mode-picker
+    fireEvent.click(screen.getByText('next')); await flush();
+    expect(state()).toBe('3:subtitle:on');
+    expect(trackEvent).toHaveBeenCalledWith('onboarding_step_skipped', { chapter: 'basics', step_id: 'participant-source', reason: 'target-missing' });
+    expect(warn).toHaveBeenCalledWith('[Tour] prepare failed for step "participant-source":', expect.any(Error));
+  });
+
   it('back goes to the previous visible step', async () => {
     mount();
     anchors(['mode-picker']);

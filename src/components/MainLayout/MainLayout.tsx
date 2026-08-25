@@ -251,9 +251,10 @@ const MainLayout: React.FC = () => {
       </div>
     </div>
     {setupWizardOpen && <SetupWizard variant="rerun" onClose={() => setSetupWizardOpen(false)} />}
-    {/* Outside the main-layout div: the Electron subtitle takeover hides that
-        subtree with display:none, which would swallow a running tour's
-        popover. The tour simply does not render during takeover. */}
+    {/* The gate, not the placement, is what matters: TourOverlay portals to
+        document.body, so it would escape the main-layout subtree (and its
+        takeover display:none) wherever it sat. During an Electron subtitle
+        takeover the anchored UI is gone, so the tour does not render at all. */}
     {!electronSubtitleTakeover && <TourOverlay />}
     {electronSubtitleTakeover && <SubtitleApp />}
     </>
