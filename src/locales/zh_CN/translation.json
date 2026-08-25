@@ -967,7 +967,7 @@
         "desc": "选最接近的一个，之后都可以改。"
       },
       "path": {
-        "title": "你有什么？"
+        "title": "请选择 AI 服务提供商"
       },
       "credentials": {
         "offlineTitle": "无需填写",

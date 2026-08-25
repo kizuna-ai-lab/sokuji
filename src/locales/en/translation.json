@@ -675,7 +675,7 @@
         "label": "Interface language"
       },
       "scenario": { "title": "What do you want to do?", "desc": "Pick the closest match. You can change any of this later." },
-      "path": { "title": "What do you have?" },
+      "path": { "title": "Choose an AI service provider" },
       "credentials": {
         "offlineTitle": "Nothing to enter",
         "managedTitle": "Your Kizuna AI account",

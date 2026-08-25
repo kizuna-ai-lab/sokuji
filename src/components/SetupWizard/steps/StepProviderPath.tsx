@@ -49,8 +49,8 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
 
   return (
     <section className="setup-step">
-      <h2>{t('setup.steps.path.title', 'What do you have?')}</h2>
-      <div className="setup-cards" role="radiogroup" aria-label={t('setup.steps.path.title', 'What do you have?')}>
+      <h2>{t('setup.steps.path.title', 'Choose an AI service provider')}</h2>
+      <div className="setup-cards" role="radiogroup" aria-label={t('setup.steps.path.title', 'Choose an AI service provider')}>
         {availablePaths().map((path) => (
           <label key={path} className={`setup-card${draft.providerPath === path ? ' is-selected' : ''}`}>
             <input type="radio" name="path" value={path} checked={draft.providerPath === path} onChange={() => choosePath(path)} />
