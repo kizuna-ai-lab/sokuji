@@ -3,7 +3,7 @@ import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
 import { useMode } from '../../../stores/audioStore';
-import {
+import useSettingsStore, {
   useNavigateToSettings,
   useSettingsNavigationTarget,
   useProvider,
@@ -122,6 +122,17 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
       // The DOM persists across panel hides, so a highlight interrupted
       // mid-animation must be removed here, not just its timer.
       highlightedEl?.classList.remove('highlight');
+      // The store has no other writer that clears settingsNavigationTarget:
+      // an early exit here (panel hidden via <Activity>, or component
+      // unmount) would otherwise leave it still pointing at this section, so
+      // the NEXT time settings opens it immediately re-scrolls/re-highlights
+      // a step that already finished. Only clear it if it still holds THIS
+      // exact target — a cleanup firing because the target already moved on
+      // to something newer (the normal retarget path above) must not
+      // clobber that newer value.
+      if (useSettingsStore.getState().settingsNavigationTarget === targetSection) {
+        navigateToSettings(null);
+      }
     };
   }, [highlightSection, settingsNavigationTarget, navigateToSettings]);
 

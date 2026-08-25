@@ -15,6 +15,14 @@
  * brief — they're stubbed to plain `<div id="…-section">` markers instead;
  * only AudioDeviceSection and SystemAudioSection matter here since the effect
  * targets 'microphone' and 'participant'.
+ *
+ * Fix round 1 (R2): the cleanup above only cancelled the pending timers and
+ * stripped the ring — it never touched `settingsStore`'s own
+ * `settingsNavigationTarget`. Hiding the panel (<Activity mode="hidden">
+ * unmounts effects — MainLayout.tsx:245) or unmounting inside the 3s window
+ * left the store still pointing at this section, so the NEXT time settings
+ * opened it immediately re-scrolled/re-highlighted a step that had already
+ * finished. See the two tests below.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, act } from '@testing-library/react';
@@ -32,8 +40,12 @@ vi.mock('../../../stores/audioStore', () => ({
   useMode: () => 'speaker',
 }));
 
-const navigateToSettings = vi.fn();
 let settingsNavigationTarget: string | null = null;
+// Mirrors the real store's navigateToSettings (settingsStore.ts:1310-1311,
+// `set({ settingsNavigationTarget: target })`): the fix under test reads the
+// target back via `useSettingsStore.getState()`, so the mock must actually
+// write through, not just record calls.
+const navigateToSettings = vi.fn((target: string | null) => { settingsNavigationTarget = target; });
 
 vi.mock('../../../stores/settingsStore', () => ({
   useNavigateToSettings: () => navigateToSettings,
@@ -41,11 +53,19 @@ vi.mock('../../../stores/settingsStore', () => ({
   useProvider: () => 'openai',
   useEngineSlotTarget: () => null,
   useSetEngineSlotTarget: () => vi.fn(),
+  // getState() rather than the hook: the fix's cleanup reads the store
+  // directly (it must see whatever the LATEST navigation set, not the
+  // value this component instance was rendered with).
+  default: { getState: () => ({ settingsNavigationTarget }) },
 }));
 
 // Real child sections pull in ServiceFactory/TourProvider/per-provider
-// wiring this effect doesn't touch — stub them to id-bearing markers so the
-// highlight assertions can find the real section ids the component targets.
+// wiring this effect doesn't touch — stub them to id-bearing markers instead.
+// Only 'microphone' and 'participant' matter here since that's what this
+// effect targets; ids verified against the real sections:
+// AudioDeviceSection.tsx:167 (`id="microphone-section"`) and
+// SystemAudioSection.tsx:86 (`id="participant-section"`) — re-check these
+// line numbers if either section is restructured.
 vi.mock('../sections', () => ({
   ProviderSection: () => null,
   LanguageSection: () => null,
@@ -124,5 +144,36 @@ describe('SimpleSettings — highlight ring cleanup (F2)', () => {
     unmount();
     expect(() => { act(() => { vi.advanceTimersByTime(3000); }); }).not.toThrow();
     expect(navigateToSettings).not.toHaveBeenCalled();
+  });
+
+  // R2: mirrors production wiring (Settings.tsx:171 / MainLayout.tsx:248),
+  // where highlightSection IS settingsNavigationTarget — so the store
+  // actually holds this section's name, not null, while the effect runs.
+  it('clears the stored navigation target on unmount if it still points at this section', () => {
+    settingsNavigationTarget = 'participant';
+    const { unmount } = render(<SimpleSettings highlightSection="participant" />);
+    act(() => { vi.advanceTimersByTime(100); });
+    expect(participantHighlighted()).toBe(true);
+
+    unmount();
+
+    expect(settingsNavigationTarget).toBeNull();
+    expect(navigateToSettings).toHaveBeenCalledWith(null);
+  });
+
+  // Control for the above: if something else already moved the store on to
+  // a DIFFERENT target before this cleanup runs (e.g. a fresh tour step),
+  // the cleanup must leave that newer value alone rather than clobbering it
+  // with null.
+  it('leaves a newer navigation target alone if the store already moved on before unmount', () => {
+    settingsNavigationTarget = 'participant';
+    const { unmount } = render(<SimpleSettings highlightSection="participant" />);
+    act(() => { vi.advanceTimersByTime(100); });
+    expect(participantHighlighted()).toBe(true);
+
+    settingsNavigationTarget = 'microphone';
+    unmount();
+
+    expect(settingsNavigationTarget).toBe('microphone');
   });
 });
