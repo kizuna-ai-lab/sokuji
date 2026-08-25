@@ -7,7 +7,7 @@ import { openExternalUrl } from '../../../utils/openExternalUrl';
 import { Provider } from '../../../types/Provider';
 import type { ProviderType } from '../../../types/Provider';
 import type { ProviderPath } from '../../../lib/setup/types';
-import { availablePaths, managedProvider, ownKeyOptions, offlineOptions } from '../providerPaths';
+import { availablePaths, managedProvider, managedOption, ownKeyOptions, offlineOptions } from '../providerPaths';
 import type { SetupAction, SetupDraft } from '../setupDraft';
 
 interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
@@ -41,6 +41,10 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
     ? t('setup.fit.cannotSpeak', 'This provider cannot produce spoken translation.')
     : t('setup.fit.cannotBeTextOnly', 'This provider always speaks; it cannot run subtitles-only.');
 
+  // Only the managed path resolves to one fixed provider, so it is the only
+  // path whose fitness for the scenario is known before the user picks it.
+  const managedFit = managedOption(scenario)?.fit ?? { ok: true as const };
+
   const choosePath = (path: ProviderPath) => {
     if (path === 'managed') dispatch({ type: 'setPath', path, provider: managedProvider() });
     else if (path === 'offline') dispatch({ type: 'setPath', path, provider: Provider.LOCAL_INFERENCE });
@@ -51,17 +55,22 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
     <section className="setup-step">
       <h2>{t('setup.steps.path.title', 'Choose an AI service provider')}</h2>
       <div className="setup-cards" role="radiogroup" aria-label={t('setup.steps.path.title', 'Choose an AI service provider')}>
-        {availablePaths().map((path) => (
-          <label key={path} className={`setup-card${draft.providerPath === path ? ' is-selected' : ''}`}>
-            <input type="radio" name="path" value={path} checked={draft.providerPath === path} onChange={() => choosePath(path)} />
-            <span className="setup-card__title">
-              {t(`setup.paths.${path}.title`, PATH_COPY[path].title)}
-              {path === 'managed' && <em className="setup-card__badge">{t('setup.paths.recommended', 'Recommended')}</em>}
-            </span>
-            <span className="setup-card__desc">{t(`setup.paths.${path}.desc`, PATH_COPY[path].desc)}</span>
-            <span className="setup-card__cost">{t(`setup.paths.${path}.cost`, PATH_COPY[path].cost)}</span>
-          </label>
-        ))}
+        {availablePaths().map((path) => {
+          const unfit = path === 'managed' && !managedFit.ok ? managedFit : null;
+          return (
+            <label key={path} className={`setup-card${draft.providerPath === path ? ' is-selected' : ''}${unfit ? ' is-disabled' : ''}`}>
+              <input type="radio" name="path" value={path} checked={draft.providerPath === path} disabled={!!unfit}
+                onChange={() => choosePath(path)} />
+              <span className="setup-card__title">
+                {t(`setup.paths.${path}.title`, PATH_COPY[path].title)}
+                {path === 'managed' && !unfit && <em className="setup-card__badge">{t('setup.paths.recommended', 'Recommended')}</em>}
+              </span>
+              <span className="setup-card__desc">{t(`setup.paths.${path}.desc`, PATH_COPY[path].desc)}</span>
+              <span className="setup-card__cost">{t(`setup.paths.${path}.cost`, PATH_COPY[path].cost)}</span>
+              {unfit && <span className="setup-card__reason">{reasonOf(unfit.reason)}</span>}
+            </label>
+          );
+        })}
       </div>
 
       {draft.providerPath === 'own-key' && (

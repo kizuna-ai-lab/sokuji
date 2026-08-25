@@ -99,6 +99,27 @@ describe('sign-in auto-switch vs the setup wizard', () => {
     expect(setProvider).toHaveBeenCalledWith('kizunaai_soniox');
   });
 
+  it('leaves the provider alone while first-run setup is still on screen', () => {
+    // Reviewers on #444 (Codex P2, CodeRabbit major): setupWizardOpen is the
+    // RERUN overlay's flag, so it is false while MainLayout is rendering the
+    // first-run wizard in place of the layout. Signing in from that wizard's
+    // account step used to write the provider behind a draft the user had not
+    // committed — against the wizard's own "nothing is written until Finish".
+    complete = false;
+    const { rerender } = render(<MainLayout />);
+    signedIn = true;
+    rerender(<MainLayout />);
+    expect(setProvider).not.toHaveBeenCalled();
+
+    // Once Finish writes the record, a later sign-in switches normally.
+    complete = true;
+    signedIn = false;
+    rerender(<MainLayout />);
+    signedIn = true;
+    rerender(<MainLayout />);
+    expect(setProvider).toHaveBeenCalledWith('kizunaai_soniox');
+  });
+
   it('leaves the provider alone while the rerun wizard is open, and after it closes', () => {
     // Backing out of the wizard must touch nothing (spec §1.1); Finish writes
     // the provider itself on the managed path, so nothing is lost by skipping.

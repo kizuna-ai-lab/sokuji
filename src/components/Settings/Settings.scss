@@ -1967,6 +1967,21 @@
   text-decoration: none;
   transition: color vars.$transition-fast;
 
+  // These are <button>s: an <a> with no href is not keyboard-focusable, so
+  // none of these actions could be reached without a mouse. Shed the control
+  // chrome so they still read as the links they look like.
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    @include vars.focus-ring;
+  }
+
   &:hover {
     color: vars.$color-primary;
   }

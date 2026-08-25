@@ -31,7 +31,7 @@
 - Modify: all 29 `src/locales/<lang>/translation.json` (mechanically) and `src/locales/en/translation.json` (deletions only)
 
 **Interfaces:**
-- Produces: `node scripts/sync-locale-keys.mjs --delete userTypeSelection --delete onboarding` — for every catalogue: deletes the named top-level keys; for every non-`en` catalogue: adds any key present in `en` but missing there, with `en`'s value; removes any key absent from `en`; preserves the existing key order of the target file and appends new top-level objects in `en`'s position. Prints a per-file summary and a final list of keys that were filled with English.
+- Produces: `node scripts/sync-locale-keys.mjs --delete userTypeSelection --delete onboarding` — for every non-`en` catalogue: deletes the named top-level keys (the script never edits `en` — its hand formatting must survive, so `en`'s own copies are removed by a targeted edit first, and the script warns if they are still there); adds any key present in `en` but missing there, with `en`'s value; removes any key absent from `en`; preserves the existing key order of the target file and appends new top-level objects in `en`'s position. Prints a per-file summary and a final list of keys that were filled with English.
 
 - [ ] **Step 1: Prove the sweep is needed (the red state)**
 

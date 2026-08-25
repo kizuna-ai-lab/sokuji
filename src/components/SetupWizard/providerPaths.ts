@@ -34,6 +34,23 @@ export function providerFits(provider: ProviderType, scenario: ScenarioId): bool
   return providerFitForScenario(cap, getScenario(scenario)).ok;
 }
 
+/** The managed provider with its fit for the scenario, or null in a build that
+ *  registers none. Judged the same way the own-key list judges its options: a
+ *  build can ship a managed twin that cannot run subtitles-only, and offering
+ *  "start right away" for a subtitles-only scenario would hand the user a
+ *  session the app then refuses to start. */
+export function managedOption(scenario: ScenarioId): ProviderOption | null {
+  const id = managedProvider();
+  if (!id) return null;
+  return {
+    id,
+    fit: providerFitForScenario(
+      ProviderConfigFactory.getConfig(id).capabilities.textOnlyCapability,
+      getScenario(scenario),
+    ),
+  };
+}
+
 /** User-managed providers in registration order, each with its fit for the
  *  scenario — unfit ones are shown greyed with the reason, never hidden. */
 export function ownKeyOptions(scenario: ScenarioId): ProviderOption[] {

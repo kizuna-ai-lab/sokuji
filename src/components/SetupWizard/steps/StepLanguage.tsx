@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { INTERFACE_LANGUAGES } from '../../Settings/sections/interfaceLanguages';
 import { changeLanguageWithLoad } from '../../../locales';
@@ -14,10 +14,17 @@ const StepLanguage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const setUILanguage = useSetUILanguage();
 
+  // Each pick loads a catalogue over the network, and a native <select> fires
+  // change once per option while the user arrows through the list — so several
+  // loads can be in flight at once and they do not finish in order. Only the
+  // most recent pick is allowed to write; the rest resolve into nothing.
+  const pick = useRef(0);
   const onChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const next = e.target.value;
+    const mine = ++pick.current;
     try {
       await changeLanguageWithLoad(next);
+      if (mine !== pick.current) return;
       await setUILanguage(next);
     } catch (err) {
       console.error('[SetupWizard] Could not change the interface language:', err);

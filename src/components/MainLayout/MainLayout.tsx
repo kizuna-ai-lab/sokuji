@@ -162,7 +162,14 @@ const MainLayout: React.FC = () => {
     // and backing out must leave the provider exactly as it was (spec §1.1).
     // The ref below still advances, so a switch skipped here does not fire late
     // when the overlay closes.
-    if (!prevIsSignedInRef.current && isSignedIn && !setupWizardOpen) {
+    //
+    // BOTH wizards, not just the rerun: `setupWizardOpen` is the rerun
+    // overlay's own flag, and the first-run wizard renders below on the
+    // strength of `!setupComplete` without ever setting it. Gating on the same
+    // condition that puts the wizard on screen is what makes "nothing is
+    // written until Finish" true for a first-time user too.
+    const wizardOnScreen = setupWizardOpen || !setupComplete;
+    if (!prevIsSignedInRef.current && isSignedIn && !wizardOnScreen) {
       // User just logged in. The target is derived from what is REGISTERED, not
       // from a feature flag: the managed providers are gated independently now,
       // so isKizunaAIEnabled() no longer implies the Translate twin exists. In
@@ -190,7 +197,7 @@ const MainLayout: React.FC = () => {
 
     // Update the ref for next render
     prevIsSignedInRef.current = isSignedIn;
-  }, [isSignedIn, uiMode, provider, setProvider, trackEvent, setupWizardOpen]);
+  }, [isSignedIn, uiMode, provider, setProvider, trackEvent, setupWizardOpen, setupComplete]);
 
   // Nothing until setup state is known: a migrated user must never see the
   // wizard flash. Then the wizard in place of the layout on a fresh install.

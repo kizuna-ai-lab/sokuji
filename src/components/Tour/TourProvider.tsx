@@ -10,7 +10,7 @@
 // `goTo`/`finish` do outward side effects (analytics, persistence, store
 // calls) that must fire exactly once per user action; reading a ref outside
 // the updater keeps that.
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAnalytics } from '../../lib/analytics';
 import { useSetupStore } from '../../stores/setupStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -57,8 +57,12 @@ export const TourProvider: React.FC<{ children: React.ReactNode; waitOptions?: W
   const [state, setState] = useState<State>(idle);
   // Mirrors `state` for the action callbacks below, which need the latest
   // value without depending on (and re-creating on) every state change.
+  // commit() writes this synchronously and is the only writer of `state`, so
+  // the effect below is a belt for anything React reconciles by other means —
+  // and keeping it in an effect rather than in the render body means a render
+  // React discards can never leave the ref ahead of the committed state.
   const stateRef = useRef<State>(state);
-  stateRef.current = state;
+  useEffect(() => { stateRef.current = state; }, [state]);
   // Guards a stale resolution from a step the user already left.
   const generation = useRef(0);
 

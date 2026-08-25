@@ -261,6 +261,20 @@ describe('interface language in Help', () => {
     expect(screen.getByText('support@kizuna.ai')).toBeTruthy();
   });
 
+  it('makes every help action reachable from the keyboard', () => {
+    // Raised on #444: these were anchors without href, which are not
+    // focusable, so a keyboard user could not open the wizard or the tour.
+    const { container } = render(<HelpSection />);
+    // The picker wears the same class to sit level with them, but it is a
+    // <select> in a wrapper and reaches the keyboard on its own.
+    const actions = Array.from(container.querySelectorAll('.help-links .help-link:not(.help-link--picker)'));
+    expect(actions.length).toBeGreaterThan(1);
+    actions.forEach((el) => {
+      const focusable = el.tagName === 'BUTTON' || el.hasAttribute('href');
+      expect(focusable, `${el.textContent?.trim()} must be focusable`).toBe(true);
+    });
+  });
+
   it('offers setup before the guided tour of what setup produced', () => {
     const { container } = render(<HelpSection />);
     const links = Array.from(container.querySelectorAll('.help-links .help-link')).map((a) => a.textContent ?? '');
