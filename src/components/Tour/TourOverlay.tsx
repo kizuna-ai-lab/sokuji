@@ -5,7 +5,7 @@
 // plus the popover with title, body, progress and controls. The spotlight
 // ignores pointer events, so the app underneath stays clickable on anchored
 // steps — whether it should be is settled by rendering, in Task 8.
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useFloating, useDismiss, useRole, useInteractions, FloatingFocusManager, FloatingPortal,
@@ -23,6 +23,7 @@ const TourOverlay: React.FC = () => {
   const tour = useTour();
   const { active, step, ctx, index, steps, target, resolving } = tour;
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const primaryRef = useRef<HTMLButtonElement>(null);
 
   // Keep the cutout glued to the target through scrolls and resizes. autoUpdate
   // fires on every scroll frame, so only commit a rect that actually moved —
@@ -58,6 +59,13 @@ const TourOverlay: React.FC = () => {
   // and a missing scroll must never take the whole overlay down.
   useEffect(() => { if (active && target) target.scrollIntoView?.({ block: 'center', inline: 'nearest' }); }, [active, target]);
 
+  // Keyboard focus across the resolving state. While a step resolves the
+  // popover goes inert, which can drop the active element to <body>; once the
+  // anchor lands, put focus back on the primary button so Enter works without
+  // a Tab first. Also covers stepping between steps, where the popover stays
+  // mounted and a mount-time `autoFocus` would never fire again.
+  useEffect(() => { if (active && !resolving) primaryRef.current?.focus(); }, [active, index, resolving]);
+
   if (!active || !step || !ctx) return null;
 
   const isLast = index >= steps.length - 1;
@@ -65,8 +73,14 @@ const TourOverlay: React.FC = () => {
   // still being awaited, `target` is null too, and treating that as "centred"
   // would black the viewport out for the whole wait.
   const centred = !step.anchor;
+  // Enter is the popover's own "advance" shortcut, but only when no button owns
+  // it: with Skip or Back focused, Enter must run that button's native
+  // activation, so the handler stands down and lets the click through.
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') { e.preventDefault(); tour.next(); }
+    if (e.key !== 'Enter') return;
+    if ((e.target as HTMLElement | null)?.closest?.('button')) return;
+    e.preventDefault();
+    tour.next();
   };
 
   return (
@@ -81,7 +95,7 @@ const TourOverlay: React.FC = () => {
             style={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }}
           />
         )}
-      <FloatingFocusManager context={context} modal returnFocus>
+      <FloatingFocusManager context={context} modal returnFocus initialFocus={primaryRef}>
         <div
           ref={refs.setFloating}
           className={`tour-popover${centred ? ' tour-popover--centred' : ''}${resolving ? ' is-resolving' : ''}`}
@@ -102,7 +116,7 @@ const TourOverlay: React.FC = () => {
             {index > 0 && (
               <button type="button" className="tour-popover__btn" onClick={tour.back}>{t('tour.back', 'Back')}</button>
             )}
-            <button type="button" className="tour-popover__btn tour-popover__btn--primary" onClick={tour.next} autoFocus>
+            <button ref={primaryRef} type="button" className="tour-popover__btn tour-popover__btn--primary" onClick={tour.next}>
               {isLast ? t('tour.finish', 'Finish') : t('tour.next', 'Next')}
             </button>
           </div>
