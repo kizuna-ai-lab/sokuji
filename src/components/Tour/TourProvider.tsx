@@ -4,12 +4,12 @@
 // the context, which one is current, the resolved target element, and the
 // persistence + analytics on finish/skip. Rendering is TourOverlay's job.
 //
-// `next`/`back`/`skip` read the latest state from a ref (kept in sync via a
-// render-time assignment, not an effect — see `stateRef.current = state`
-// below) rather than from inside a `setState` updater. React may invoke a
-// `setState` updater twice (StrictMode/dev), and `goTo`/`finish` do outward
-// side effects (analytics, persistence, store calls) that must fire exactly
-// once per user action; reading a ref outside the updater keeps that.
+// `next`/`back`/`skip` read the latest state from a ref (written synchronously
+// by `commit`, not from an effect) rather than from inside a `setState`
+// updater. React may invoke a `setState` updater twice (StrictMode/dev), and
+// `goTo`/`finish` do outward side effects (analytics, persistence, store
+// calls) that must fire exactly once per user action; reading a ref outside
+// the updater keeps that.
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { useAnalytics } from '../../lib/analytics';
 import { useSetupStore } from '../../stores/setupStore';
@@ -62,6 +62,15 @@ export const TourProvider: React.FC<{ children: React.ReactNode; waitOptions?: W
   // Guards a stale resolution from a step the user already left.
   const generation = useRef(0);
 
+  // Every state write goes through here: the ref is updated *synchronously* so
+  // a second click landing in the same turn (before React re-renders) already
+  // sees the new index/resolving flag. The render-time mirror above stays as a
+  // belt for state React reconciles by other means.
+  const commit = useCallback((nextState: State) => {
+    stateRef.current = nextState;
+    setState(nextState);
+  }, []);
+
   const actions = useMemo<TourActions>(() => ({
     openSettings: (target) => {
       useLayoutStore.getState().setShowSettings(true);
@@ -72,14 +81,14 @@ export const TourProvider: React.FC<{ children: React.ReactNode; waitOptions?: W
 
   const finish = useCallback((method: 'finished' | 'skipped', s: State) => {
     generation.current += 1;
-    setState(idle);
+    commit(idle);
     trackEvent('onboarding_completed', {
       chapter: CHAPTER, completion_method: method,
       steps_completed: method === 'finished' ? s.steps.length : Math.max(0, s.index),
       total_steps: s.steps.length, duration_ms: Date.now() - s.startedAt, onboarding_version: TOUR_VERSION,
     });
     useSetupStore.getState().completeTour(CHAPTER, method).catch((err) => console.error('[Tour] Could not persist tour completion:', err));
-  }, [trackEvent]);
+  }, [commit, trackEvent]);
 
   // Move to `index`, resolving its anchor; on a missing anchor, keep moving in
   // `dir` until a step resolves or the catalogue runs out.
@@ -88,7 +97,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode; waitOptions?: W
     let i = index;
     while (i >= 0 && i < s.steps.length) {
       const step = s.steps[i];
-      setState({ ...s, index: i, target: null, resolving: Boolean(step.anchor) });
+      commit({ ...s, index: i, target: null, resolving: Boolean(step.anchor) });
       step.prepare?.(s.ctx!, actions);
       const target = step.anchor ? await waitForAnchor(step.anchor, waitOptions) : null;
       if (gen !== generation.current) return;
@@ -98,13 +107,13 @@ export const TourProvider: React.FC<{ children: React.ReactNode; waitOptions?: W
         i += dir;
         continue;
       }
-      setState({ ...s, index: i, target, resolving: false });
+      commit({ ...s, index: i, target, resolving: false });
       trackEvent('onboarding_step_viewed', { chapter: CHAPTER, step_index: i, step_id: step.id });
       return;
     }
     // Ran off either end: treat as finished (forward) or stay put (backward).
-    if (dir === 1) finish('finished', s); else setState({ ...s, resolving: false });
-  }, [actions, finish, trackEvent, waitOptions]);
+    if (dir === 1) finish('finished', s); else commit({ ...s, resolving: false });
+  }, [actions, commit, finish, trackEvent, waitOptions]);
 
   const start = useCallback((ctx: TourCtx) => {
     const steps = visibleSteps(ctx);
@@ -115,14 +124,16 @@ export const TourProvider: React.FC<{ children: React.ReactNode; waitOptions?: W
 
   const next = useCallback(() => {
     const s = stateRef.current;
-    if (!s.ctx) return;
+    // A step whose anchor is still being awaited owns the tour: dropping the
+    // click is better than advancing twice and silently skipping a step.
+    if (!s.ctx || s.resolving) return;
     if (s.index >= s.steps.length - 1) { finish('finished', s); return; }
     void goTo(s, s.index + 1, 1);
   }, [finish, goTo]);
 
   const back = useCallback(() => {
     const s = stateRef.current;
-    if (!s.ctx || s.index <= 0) return;
+    if (!s.ctx || s.resolving || s.index <= 0) return;
     void goTo(s, s.index - 1, -1);
   }, [goTo]);
 

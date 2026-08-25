@@ -99,6 +99,20 @@ describe('TourProvider', () => {
     expect(trackEvent).toHaveBeenCalledWith('onboarding_step_skipped', { chapter: 'basics', step_id: 'participant-source', reason: 'target-missing' });
   });
 
+  it('ignores a second Next while the current step is still resolving', async () => {
+    mount();
+    anchors(['mode-picker']);
+    fireEvent.click(screen.getByText('start')); await flush();
+    // Two clicks in the same synchronous turn: the anchor for step 1 has not
+    // resolved yet, so the second must be a no-op rather than a double-advance.
+    fireEvent.click(screen.getByText('next'));
+    fireEvent.click(screen.getByText('next'));
+    await flush();
+    expect(state()).toBe('1:mode-picker:on');
+    const viewedStep1 = trackEvent.mock.calls.filter(([name, payload]) => name === 'onboarding_step_viewed' && payload.step_index === 1);
+    expect(viewedStep1).toHaveLength(1);
+  });
+
   it('back goes to the previous visible step', async () => {
     mount();
     anchors(['mode-picker']);
