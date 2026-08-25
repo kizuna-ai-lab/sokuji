@@ -239,6 +239,32 @@ describe('SetupWizard', () => {
     if (jaSource) expect(screen.getByRole('combobox', { name: 'I read' })).toHaveValue(jaSource);
   });
 
+  it('states the mirrored leg on both the pair step and the summary in both mode', () => {
+    render(<SetupWizard variant="first-run" />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /you read subtitles generated/ }));   // two-way voice: both, spoken
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next();
+    next();                                           // language pair
+    // The interpolation is inert under the test's `t`, so the template itself
+    // is the evidence that the mirrored leg is stated at all.
+    expect(screen.getAllByText(/They speak .* I read/)).toHaveLength(1);
+    next();                                           // finish
+    expect(screen.getByText(/They speak .* I read/)).toBeInTheDocument();
+  });
+
+  it('leaves the mirrored leg out of a one-way scenario', () => {
+    render(<SetupWizard variant="first-run" />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Be understood in a meeting/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next();
+    next();
+    expect(screen.queryByText(/They speak .* I read/)).toBeNull();
+  });
+
   it('labels the language pair the way the chosen scenario will run it', () => {
     render(<SetupWizard variant="first-run" />);
     next();

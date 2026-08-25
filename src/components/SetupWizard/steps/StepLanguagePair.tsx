@@ -4,6 +4,7 @@ import { ProviderConfigFactory } from '../../../services/providers/ProviderConfi
 import { useSettingsStore } from '../../../stores/settingsStore';
 import type { SettingsStore } from '../../../stores/settingsStore';
 import { getScenario } from '../../../lib/setup/scenarios';
+import { pairSentence } from '../languageSentence';
 import { defaultLanguagePair } from '../languageDefaults';
 import type { SetupAction, SetupDraft } from '../setupDraft';
 
@@ -36,22 +37,17 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   const source = draft.sourceLanguage ?? '';
   const targets = source ? targetsFor(source) : [];
 
-  // The same sentence Settings' language pair prints (LanguageSection.tsx:484),
-  // over the same two fields: whichever way round a provider runs the legs, the
-  // user should meet one vocabulary for them. Mode and text-only come from the
-  // scenario the wizard just applied, except where the provider overrules the
-  // toggle — a provider that always speaks makes "they read" a lie.
+  // The same sentence Settings' language pair prints, over the same two fields:
+  // whichever way round a provider runs the legs, the user should meet one
+  // vocabulary for them.
   const preset = getScenario(draft.scenario!);
-  const capability = ProviderConfigFactory.getConfig(draft.provider!).capabilities.textOnlyCapability;
-  const speakerLegTextOnly = capability === 'always' ? true : capability === 'never' ? false : preset.textOnly;
-  const myLabel = preset.mode === 'participant'
-    ? t('settings.langSentence.iRead', 'I read')
-    : t('settings.langSentence.iSpeak', 'I speak');
-  const theirLabel = preset.mode === 'participant'
-    ? t('settings.langSentence.theySpeak', 'they speak')
-    : speakerLegTextOnly
-      ? t('settings.langSentence.theyRead', 'they read')
-      : t('settings.langSentence.theyHear', 'they hear');
+  const sentence = pairSentence(
+    preset.mode, preset.textOnly,
+    ProviderConfigFactory.getConfig(draft.provider!).capabilities.textOnlyCapability,
+  );
+  const myLabel = t(sentence.my.key, sentence.my.fallback);
+  const theirLabel = t(sentence.their.key, sentence.their.fallback);
+  const nameOf = (list: { value: string; name: string }[], v: string) => list.find((o) => o.value === v)?.name ?? v;
 
   const setSource = (s: string) => {
     const nextTargets = targetsFor(s);
@@ -75,6 +71,16 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
           {targets.map((o) => <option key={o.value} value={o.value}>{o.name}</option>)}
         </select>
       </label>
+      {/* Both mode runs a mirrored second leg off the same two fields. There
+          are no controls for it — here or in Settings — so it is stated. */}
+      {sentence.showMirror && draft.targetLanguage && (
+        <p className="setup-mirror">
+          {t('settings.langSentence.mirror', 'They speak {{their}} → I read {{mine}}', {
+            their: nameOf(targets, draft.targetLanguage),
+            mine: nameOf(sources, source),
+          })}
+        </p>
+      )}
     </section>
   );
 };

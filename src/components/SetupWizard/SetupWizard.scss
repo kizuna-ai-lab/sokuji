@@ -123,10 +123,15 @@
   &:hover { text-decoration: underline; }
 }
 
+// The mirrored leg, stated rather than edited — same weight as the note above
+// a control, since it is a consequence of the two fields, not a third one.
+.setup-mirror { margin: 0 0 vars.$space-3; font-size: vars.$font-caption; color: vars.$text-muted; }
+
 .setup-actions { display: flex; gap: vars.$space-2; margin: vars.$space-3 0; flex-wrap: wrap; }
 
 .setup-summary {
   display: grid; grid-template-columns: max-content 1fr; gap: vars.$space-1 vars.$space-4; margin: 0 0 vars.$space-4;
   dt { color: vars.$text-muted; font-size: vars.$font-caption; }
   dd { margin: 0; color: vars.$text-primary; font-size: vars.$font-body; }
+  &__mirror { margin-top: 2px; font-size: vars.$font-caption; color: vars.$text-muted; }
 }

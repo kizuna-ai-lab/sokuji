@@ -1007,8 +1007,8 @@
       }
     },
     "output": {
-      "voice": "出声",
-      "subtitles": "字幕"
+      "voice": "出声＋字幕",
+      "subtitles": "只有字幕"
     },
     "paths": {
       "recommended": "推荐",
@@ -1016,13 +1016,13 @@
       "offlineFlavor": "选择哪个引擎？",
       "managed": {
         "title": "直接开始",
-        "desc": "由 Sokuji 为你运行翻译。",
+        "desc": "由 Kizuna AI 为你运行翻译。",
         "cost": "用邮箱注册 Kizuna AI 账号并完成邮箱验证——验证后即可获得试用额度。之后自行充值，按用量计费。"
       },
       "own-key": {
         "title": "我有自己的 API 密钥",
         "desc": "自备 OpenAI、Gemini、豆包（火山引擎）等服务的 API 密钥。",
-        "cost": "Sokuji 用你的密钥直接与该服务通信。费用由你与服务方结算，Sokuji 不额外收费。"
+        "cost": "密钥只保存在这台设备上，由本机直接访问该服务。你是该服务的客户，按用量直接付费给它，不经过 Kizuna AI。"
       },
       "offline": {
         "title": "免费离线",
@@ -1058,7 +1058,7 @@
       "pendingKey": "可以稍后在「设置 → 提供商」里添加密钥。密钥校验通过前无法开始。",
       "pendingSignIn": "可以稍后从账户按钮登录。登录前无法开始。",
       "verifyEmail": "已登录。请到邮箱打开我们发送的链接完成验证——验证后试用额度才会到账。",
-      "ownKeyDesc": "Sokuji 用这个密钥直接与服务方通信，不额外收费，用量由你与服务方结算。",
+      "ownKeyDesc": "密钥只保存在这台设备上，由本机直接调用该服务，不会传给 Kizuna AI。用量费用由你直接付给该服务。",
       "guide": "如何获取这个密钥",
       "onFile": "已保存密钥——留空即沿用。"
     },
@@ -1068,7 +1068,8 @@
       "provider": "服务",
       "languages": "语言",
       "pendingKey": "尚未设置 API 密钥——开始前请在「设置 → 提供商」里添加。",
-      "pendingSignIn": "尚未登录——开始前请从账户按钮登录。"
+      "pendingSignIn": "尚未登录——开始前请从账户按钮登录。",
+      "langLine": "{{label}}：{{name}}"
     }
   },
   "tour": {
@@ -1084,7 +1085,7 @@
       },
       "mode-picker": {
         "title": "翻译模式",
-        "content": "已经为你设好。随时可以切换；切换也会改变翻译是出声还是显示为字幕。",
+        "content": "已经为你设好，随时可以切换。翻译始终会以文字显示在这里；模式决定它是否还会出声。",
         "modeMe": "「我」——把你说的话翻译给对方。",
         "modeOthers": "「对方」——把对方说的话翻译给你。",
         "modeBoth": "「两者」——同时翻译两个方向。"
@@ -1130,10 +1131,10 @@
       },
       "start": {
         "title": "开始",
-        "content": "按这里开始翻译。",
-        "content_offline": "模型就绪后这里会亮起。",
-        "content_signedOut": "登录后这里会亮起。",
-        "content_pendingKey": "API 密钥校验通过后这里会亮起。"
+        "content": "按这里开始翻译。如果按钮是灰的，把鼠标停在上面：提示会说明还缺什么，到「设置」里改好即可。",
+        "content_offline": "模型准备好后这里就会亮起。灰着的时候把鼠标停在上面，可以看到它在等什么。",
+        "content_signedOut": "登录后这里就会亮起。灰着的时候把鼠标停在上面，可以看到它在等什么。",
+        "content_pendingKey": "API 密钥校验通过后这里就会亮起。灰着的时候把鼠标停在上面，可以看到它在等什么。"
       },
       "done": {
         "title": "就这些",

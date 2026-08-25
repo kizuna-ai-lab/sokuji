@@ -15,13 +15,13 @@ interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
 const PATH_COPY: Record<ProviderPath, { title: string; desc: string; cost: string }> = {
   managed: {
     title: 'Start right away',
-    desc: 'Sokuji runs the translation for you.',
+    desc: 'Kizuna AI runs the translation for you.',
     cost: 'Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use.',
   },
   'own-key': {
     title: 'I have my own API key',
     desc: 'Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.',
-    cost: 'Sokuji talks to that provider directly with your key. You pay them for what you use; Sokuji adds nothing.',
+    cost: 'Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI.',
   },
   offline: {
     title: 'Free, offline',

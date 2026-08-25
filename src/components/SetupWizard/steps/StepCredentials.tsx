@@ -116,7 +116,7 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
   return (
     <section className="setup-step">
       <h2>{t('setup.steps.credentials.ownKeyTitle', 'Your API key')}</h2>
-      <p>{t('setup.credentials.ownKeyDesc', 'Sokuji talks to the provider directly with this key, and takes no cut — you pay them for what you use.')}</p>
+      <p>{t('setup.credentials.ownKeyDesc', 'This key is stored on this device only, and the app calls the provider straight from here — it never reaches Kizuna AI. You pay the provider for what you use.')}</p>
       <CredentialPrefill draft={draft} dispatch={dispatch} slice={slice} fieldKeys={fields.map((f) => f.key)} />
       {fields.map((f) => (
         <label key={f.key} className="setup-field">

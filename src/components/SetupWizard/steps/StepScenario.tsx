@@ -31,7 +31,9 @@ const StepScenario: React.FC<Props> = ({ draft, dispatch }) => {
   const modeLabel = (m: string) => m === 'speaker'
     ? t('modePicker.modeYou', 'Me')
     : m === 'participant' ? t('modePicker.modeParticipants', 'Other') : t('modePicker.modeBoth', 'Both');
-  const outputLabel = (textOnly: boolean) => (textOnly ? t('setup.output.subtitles', 'subtitles') : t('setup.output.voice', 'spoken'));
+  // Text is always on screen; the toggle only decides whether the forward leg
+  // is ALSO spoken, so "spoken" alone read as "no subtitles" (feedback 2026-08-25).
+  const outputLabel = (textOnly: boolean) => (textOnly ? t('setup.output.subtitles', 'subtitles only') : t('setup.output.voice', 'voice and subtitles'));
 
   return (
     <section className="setup-step">
