@@ -120,8 +120,6 @@ trackEvent('translation_session_end', {
 #### `onboarding_completed`
 **Properties**: `chapter`, `completion_method` (`'finished' | 'skipped'`), `steps_completed`, `total_steps`, `duration_ms`, `onboarding_version`
 
-Retired: `user_type_selected`, `user_type_applied` (the first-launch user-type screen no longer exists).
-
 ### 🔊 Audio Handling Events
 
 #### `audio_device_changed`
@@ -526,9 +524,14 @@ trackEvent('popup_site_navigation_clicked', {
 - `app_shutdown` - Session duration tracking
 - `translation_session_start` - Translation session initiation
 - `translation_session_end` - Translation session completion with metrics
-- `onboarding_started` - Onboarding process initiation tracking
-- `onboarding_completed` - Onboarding completion/skip tracking with metrics
-- `onboarding_step_viewed` - Individual onboarding step tracking
+- `setup_started` - Setup wizard initiation tracking
+- `setup_step_viewed` - Individual setup wizard step tracking
+- `setup_abandoned` - Re-run setup wizard closed before Finish
+- `setup_completed` - Setup wizard completion tracking with metrics
+- `onboarding_started` - Tour initiation tracking
+- `onboarding_step_viewed` - Individual tour step tracking
+- `onboarding_step_skipped` - Tour step skipped (missing anchor or a `prepare` failure)
+- `onboarding_completed` - Tour completion/skip tracking with metrics
 - `popup_opened` - Extension popup opening tracking
 - `popup_supported_state_shown` - Popup supported site state display
 - `popup_unsupported_state_shown` - Popup unsupported site state display
@@ -633,11 +636,13 @@ src/
 ├── lib/
 │   └── analytics.ts              # Event definitions and analytics utilities
 ├── App.tsx                       # App lifecycle events
-├── components/
-│   └── MainPanel/
-│       └── MainPanel.tsx         # Translation session events
-└── contexts/
-    └── OnboardingContext.tsx     # Onboarding events
+└── components/
+    ├── MainPanel/
+    │   └── MainPanel.tsx         # Translation session events
+    ├── SetupWizard/
+    │   └── SetupWizard.tsx       # Setup wizard events
+    └── Tour/
+        └── TourProvider.tsx      # Tour events
 
 extension/
 ├── popup.js                      # Extension popup events (uses local posthog-js)

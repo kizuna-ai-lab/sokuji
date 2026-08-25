@@ -7,7 +7,7 @@ Design: `docs/superpowers/specs/2026-08-25-first-run-setup-and-tour-design.md`.
 | Surface | When | What it does | Writes settings? |
 |---|---|---|---|
 | **Setup wizard** (`src/components/SetupWizard/`) | Once, on a fresh install; again from Help → "Run setup again" | Asks what the user wants to do (five scenarios), what they have (managed account / own API key / free offline), collects credentials or lets the user skip them, picks a language pair, and applies everything on **Finish**. | Yes — once, on Finish (`applySetup.ts`, in the order the spec fixes). |
-| **Tour** (`src/components/Tour/`) | Right after the wizard finishes; again from Help → "Restart Setup Guide" | A spotlight walk over the real interface: mode picker, the devices the scenario uses, subtitle mode, the account / provider / models entry for the chosen path, and Start. 5–9 steps. While a step is anchored to an element, the app underneath is not operable — the spotlight and its scrim swallow pointer events. Escape ends the tour; Enter advances to the next step. | Never. |
+| **Tour** (`src/components/Tour/`) | Right after the wizard finishes; again from Help → "Restart Setup Guide" | A spotlight walk over the real interface: mode picker, the devices the scenario uses, subtitle mode, the account / provider / models entry for the chosen path, and Start. 5–9 steps. The app underneath is not operable while a step is showing: the spotlight cutout itself is `pointer-events: none`, but a transparent `.tour-blocker` layer underneath it blocks the app on anchored steps, and a full `.tour-scrim` blocks it on centred steps. Escape ends the tour; Enter advances to the next step. | Never. |
 
 Everyone starts in Basic mode; Advanced stays a setting behind the toggle at the top of Settings. There is no first-launch "Regular / Experienced" choice any more.
 
@@ -31,7 +31,7 @@ The tour is started only from two places: the setup wizard's Finish button (firs
 
 A provider is greyed out (with the reason) when its `textOnlyCapability` cannot serve the scenario: `'always'` providers cannot speak (#2, #4); `'never'` providers cannot run subtitles-only (#3, #5).
 
-The wizard also picks a starting language pair; its default source/target never coincide — when the provider's language-appropriate default target would equal the source (e.g. an English UI on a provider that defaults to English), the wizard instead falls back to the provider's other targets, ranked by `LANGUAGE_PRIORITY`.
+The wizard also picks a starting language pair; its default source and target differ whenever the provider offers more than one target language (the fallback target is ranked by `LANGUAGE_PRIORITY`).
 
 ## Tour catalogue (`src/components/Tour/steps.ts`)
 
