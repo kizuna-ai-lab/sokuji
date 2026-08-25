@@ -7,19 +7,10 @@ export interface AnalyticsEvents {
   'app_startup': {}; // version and platform are now in Super Properties
   'app_shutdown': { session_duration: number };
   
-  // Onboarding / tour events. Transitional: the legacy OnboardingContext still
-  // fires the first member of each union until the tour replaces it; the
-  // second member is the tour's shape (spec §2.3). Narrowed to the tour shape
-  // in the change that deletes OnboardingContext.
-  'onboarding_started':
-    | { is_first_time_user: boolean; onboarding_version: string }
-    | { chapter: string; is_first_time_user: boolean; onboarding_version: number };
-  'onboarding_completed':
-    | { completion_method: 'finished' | 'skipped'; steps_completed: number; total_steps: number; duration_ms: number; onboarding_version: string }
-    | { chapter: string; completion_method: 'finished' | 'skipped'; steps_completed: number; total_steps: number; duration_ms: number; onboarding_version: number };
-  'onboarding_step_viewed':
-    | { step_index: number; step_target: string; step_title: string }
-    | { chapter: string; step_index: number; step_id: string };
+  // Tour events (spec §2.3).
+  'onboarding_started': { chapter: string; is_first_time_user: boolean; onboarding_version: number };
+  'onboarding_completed': { chapter: string; completion_method: 'finished' | 'skipped'; steps_completed: number; total_steps: number; duration_ms: number; onboarding_version: number };
+  'onboarding_step_viewed': { chapter: string; step_index: number; step_id: string };
   'onboarding_step_skipped': {
     chapter: string;
     step_id: string;
@@ -129,14 +120,6 @@ export interface AnalyticsEvents {
   'ui_mode_toggled': {
     from_mode: 'basic' | 'advanced';
     to_mode: 'basic' | 'advanced';
-  };
-  'user_type_selected': {
-    user_type: 'regular' | 'experienced';
-    is_first_time_user: boolean;
-  };
-  'user_type_applied': {
-    user_type: 'regular' | 'experienced';
-    ui_mode: 'basic' | 'advanced';
   };
   // Setup wizard (spec §1.9)
   'setup_started': { variant: 'first-run' | 'rerun' };

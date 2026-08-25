@@ -13,8 +13,8 @@
  * section still rendered - a test that can never fail. The real sections
  * render instead, which is what makes the assertion mean anything.
  *
- * `HelpSection` is the one section still stubbed: it calls `useOnboarding`
- * and throws outside an `OnboardingProvider`.
+ * `HelpSection` is the one section still stubbed: it calls `useStartBasicsTour`
+ * and throws outside a `TourProvider`.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render } from '@testing-library/react';

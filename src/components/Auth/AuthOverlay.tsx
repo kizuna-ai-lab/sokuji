@@ -3,7 +3,7 @@
  *
  * SignIn, SignUp and ForgotPassword used to be siblings of Home in the router.
  * Navigating to one unmounted the entire tree — UserProfileProvider,
- * OnboardingProvider, SettingsInitializer, MainLayout, MainPanel — and took any
+ * TourProvider, SettingsInitializer, MainLayout, MainPanel — and took any
  * running translation session with it, before the user had typed a character.
  * Signing in successfully then mounted all of it again from scratch.
  *

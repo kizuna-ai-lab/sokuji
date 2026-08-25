@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import MainLayout from '../components/MainLayout/MainLayout';
 import { UserProfileProvider } from '../contexts/UserProfileContext';
-import { OnboardingProvider } from '../contexts/OnboardingContext';
+import { TourProvider } from '../components/Tour/TourProvider';
 import { useInitializeAudioService } from '../stores/audioStore';
 import { useLoadSettings } from '../stores/settingsStore';
 import { useSubtitleStore } from '../stores/subtitleStore';
@@ -33,14 +33,14 @@ export function Home() {
 
   return (
     <UserProfileProvider>
-      <OnboardingProvider>
+      <TourProvider>
         <SettingsInitializer />
         <MainLayout />
         {/* Over the app, not instead of it: MainLayout and every provider above
             it stay mounted while the user signs in, so a running translation
             session survives the round trip. */}
         <AuthOverlay />
-      </OnboardingProvider>
+      </TourProvider>
     </UserProfileProvider>
   );
 }

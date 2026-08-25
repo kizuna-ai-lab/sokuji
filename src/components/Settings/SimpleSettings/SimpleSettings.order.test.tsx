@@ -15,8 +15,8 @@
  * same reason, does NOT stub the `../sections` barrel: marker `<div>`s would
  * carry none of the ids and class names this test reads the order from.
  *
- * `HelpSection` is the one section still stubbed - it calls `useOnboarding`
- * and throws outside an `OnboardingProvider`. The stub reproduces the real
+ * `HelpSection` is the one section still stubbed - it calls `useStartBasicsTour`
+ * and throws outside a `TourProvider`. The stub reproduces the real
  * element's `config-section` / `id="help-section"` shell so the order it
  * takes part in is the real one. HelpSection's own contents, the language
  * picker included, are covered by `sections/HelpSection.test.tsx`.

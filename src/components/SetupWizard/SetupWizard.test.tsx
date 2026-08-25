@@ -50,6 +50,9 @@ vi.mock('../../stores/settingsStore', () => ({
 // isProviderSupported-guarded prefill branch never ran in any test.
 let setupRecord: { version: number; scenario: string; providerPath: string; provider: string; completedAt: string } | null = null;
 vi.mock('../../stores/setupStore', () => ({ useSetupRecord: () => setupRecord }));
+// The tour the first-run wizard hands off to on Finish.
+const startTourSpy = vi.fn();
+vi.mock('../Tour/TourProvider', () => ({ useTour: () => ({ start: startTourSpy }) }));
 
 import SetupWizard from './SetupWizard';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
@@ -60,7 +63,7 @@ beforeEach(() => {
   cleanup();
   applied.length = 0; applyGate = null; signedIn = false; uiLanguage = 'en';
   apiKeyValid = null; setupRecord = null; authOverlayState = null;
-  setAuthOverlay.mockClear(); trackSpy.mockClear();
+  setAuthOverlay.mockClear(); trackSpy.mockClear(); startTourSpy.mockClear();
 });
 
 const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next' }));
@@ -112,6 +115,10 @@ describe('SetupWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(applied).toHaveLength(1));
     expect(applied[0]).toMatchObject({ scenario: 'subtitle-myself', providerPath: 'own-key', provider: 'openai', credentialsPending: true });
+    // First-run Finish hands straight off to the tour, seeded with the outcome
+    // the store does not know yet: the key was skipped, so apiKeyValid is false.
+    expect(startTourSpy).toHaveBeenCalledTimes(1);
+    expect(startTourSpy).toHaveBeenCalledWith(expect.objectContaining({ providerPath: 'own-key', apiKeyValid: false, mode: 'speaker', textOnly: true }));
   });
 
   it('opens the sign-in overlay from the managed path and passes once signed in', () => {
@@ -189,6 +196,7 @@ describe('SetupWizard', () => {
     expect(trackSpy).toHaveBeenCalledWith('setup_abandoned', { step: 0 });
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(2);
+    expect(startTourSpy).not.toHaveBeenCalled();     // the tour is a first-run affair
   });
 
   it('pre-fills a re-run from the stored record', () => {

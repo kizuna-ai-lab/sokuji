@@ -12,6 +12,10 @@ import { useAnalytics } from '../../lib/analytics';
 import { useIsApiKeyValid, useAuthOverlay } from '../../stores/settingsStore';
 import { useSetupRecord } from '../../stores/setupStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
+import { getScenario } from '../../lib/setup/scenarios';
+import { buildTourCtx } from '../Tour/tourContext';
+import { useTour } from '../Tour/TourProvider';
+import { isElectron, isLinux, isMacOS, isWindows } from '../../utils/environment';
 import type { ProviderType } from '../../types/Provider';
 import { initialDraft, draftFromRecord, setupReducer, canAdvance, LAST_STEP } from './setupDraft';
 import type { SetupDraft } from './setupDraft';
@@ -40,6 +44,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
   const apiKeyValid = useIsApiKeyValid();
   const authOverlay = useAuthOverlay();
   const apply = useApplySetup();
+  const { start: startTour } = useTour();
 
   const [draft, dispatch] = useReducer(setupReducer, undefined, (): SetupDraft =>
     variant === 'rerun' && record && record.provider && ProviderConfigFactory.isProviderSupported(record.provider as ProviderType)
@@ -79,6 +84,19 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
     setFinishError(null);
     try {
       await apply(draft);
+      // Hand off to the tour before the wizard unmounts. The ctx is seeded from
+      // the draft, not the stores: only the draft knows whether the user
+      // actually supplied a key or pressed "Skip for now".
+      if (variant === 'first-run') {
+        const preset = getScenario(draft.scenario!);
+        startTour(buildTourCtx({
+          record: { scenario: draft.scenario, providerPath: draft.providerPath },
+          provider: draft.provider!,
+          mode: preset.mode, textOnly: preset.textOnly, isSignedIn,
+          apiKeyValid: draft.providerPath === 'own-key' ? !draft.credentialsPending : null,
+          env: { isElectron: isElectron(), isLinux: isLinux(), isMacOS: isMacOS(), isWindows: isWindows() },
+        }));
+      }
       trackEvent('setup_completed', {
         scenario: draft.scenario ?? '', provider_path: draft.providerPath ?? '', provider: draft.provider ?? '',
         source_language: draft.sourceLanguage ?? '', target_language: draft.targetLanguage ?? '',

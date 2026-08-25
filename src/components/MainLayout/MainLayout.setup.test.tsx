@@ -3,7 +3,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import MainLayout from './MainLayout';
 
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => <div data-testid="main-panel" /> }));
-vi.mock('../Onboarding/Onboarding', () => ({ default: () => null }));
+vi.mock('../Tour/TourOverlay', () => ({ default: () => null }));
 vi.mock('../Subtitle/SubtitleApp', () => ({ default: () => null }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));
 vi.mock('../LogsPanel/LogsPanel', () => ({ default: () => null }));
@@ -12,7 +12,6 @@ vi.mock('../TitleBar/TitleBar', () => ({ default: () => <div data-testid="title-
 vi.mock('../SetupWizard/SetupWizard', () => ({ default: ({ variant }: { variant: string }) => <div data-testid={`wizard-${variant}`} /> }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false }) }));
-vi.mock('../../contexts/OnboardingContext', () => ({ useOnboarding: () => ({}) }));
 vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isElectron: () => false, isKizunaAIEnabled: () => false,

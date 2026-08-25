@@ -7,14 +7,14 @@
 import { SETUP_VERSION, TOUR_VERSION } from './types';
 import type { SetupRecord, TourRecord } from './types';
 
-/** localStorage keys the pre-wizard OnboardingContext wrote. */
+/** localStorage keys the pre-wizard onboarding context wrote. */
 export const LEGACY_USER_TYPE_KEY = 'sokuji_user_type';
 export const LEGACY_ONBOARDING_KEY = 'sokuji_onboarding_completed';
 
-/** Spec §3.1 removes the legacy localStorage keys, but OnboardingContext still
- *  reads them until the tour replaces it (spec §3.2). Flip this to true in the
- *  same change that deletes OnboardingContext; until then the keys stay. */
-export const LEGACY_KEYS_RETIRED = false;
+/** Spec §3.1 removes the legacy localStorage keys once nothing reads them.
+ *  The old onboarding context was their last reader and is gone (spec §3.2),
+ *  so the migration that consumes them now also clears them. */
+export const LEGACY_KEYS_RETIRED = true;
 
 export interface LegacyEvidence {
   /** Raw `settings.common.uiMode` from SettingsService, null when absent.

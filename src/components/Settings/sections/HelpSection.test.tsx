@@ -27,9 +27,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../../../contexts/OnboardingContext', () => ({
-  useOnboarding: () => ({ startOnboarding: vi.fn() }),
-}));
+vi.mock('../../Tour/useStartBasicsTour', () => ({ useStartBasicsTour: () => vi.fn() }));
 
 let electron = false;
 vi.mock('../../../utils/environment', () => ({ isElectron: () => electron }));

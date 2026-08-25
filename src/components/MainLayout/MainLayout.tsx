@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import MainPanel from '../MainPanel/MainPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
 import { Settings as SettingsComponent } from '../Settings';
-import Onboarding from '../Onboarding/Onboarding';
+import TourOverlay from '../Tour/TourOverlay';
 import SetupWizard from '../SetupWizard/SetupWizard';
 import TitleBar from '../TitleBar/TitleBar';
 import PanelResizer from './PanelResizer';
@@ -249,9 +249,12 @@ const MainLayout: React.FC = () => {
           />
         </Activity>
       </div>
-      <Onboarding />
     </div>
     {setupWizardOpen && <SetupWizard variant="rerun" onClose={() => setSetupWizardOpen(false)} />}
+    {/* Outside the main-layout div: the Electron subtitle takeover hides that
+        subtree with display:none, which would swallow a running tour's
+        popover. The tour simply does not render during takeover. */}
+    {!electronSubtitleTakeover && <TourOverlay />}
     {electronSubtitleTakeover && <SubtitleApp />}
     </>
   );

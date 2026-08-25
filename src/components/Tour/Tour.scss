@@ -1,0 +1,46 @@
+@use '../Settings/shared/variables' as vars;
+
+// The cutout: a box over the target whose enormous box-shadow IS the scrim.
+.tour-spotlight {
+  position: fixed;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 1800;
+  transition: top 0.15s ease, left 0.15s ease, width 0.15s ease, height 0.15s ease;
+}
+
+.tour-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1800;
+}
+
+.tour-popover {
+  position: fixed;
+  z-index: 1801;
+  width: min(360px, calc(100vw - 24px));
+  background: vars.$bg-surface;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-lg;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  padding: vars.$space-4;
+  color: vars.$text-primary;
+
+  &--centred { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  &.is-resolving { visibility: hidden; }
+
+  &__title { margin: 0 0 vars.$space-2; font-size: vars.$font-title; font-weight: vars.$weight-semibold; }
+  &__body { margin: 0 0 vars.$space-3; font-size: vars.$font-body; color: vars.$text-secondary; line-height: 1.45; }
+  &__footer { display: flex; align-items: center; gap: vars.$space-2; }
+  &__progress { font-size: vars.$font-caption; color: vars.$text-muted; }
+  &__spacer { flex: 1; }
+  &__btn {
+    @include vars.control-base;
+    padding: 5px 10px; cursor: pointer;
+    &--ghost { background: transparent; border-color: transparent; color: vars.$text-muted; }
+    &--primary { @include vars.state-selected-fill; border-color: vars.$color-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+}
