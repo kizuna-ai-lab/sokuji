@@ -31,6 +31,9 @@
 .tour-popover {
   position: fixed;
   z-index: 1802;
+  // Without border-box the padding is added to the width, so the "360px" card
+  // renders 370px and overflows the 360px side panel outright.
+  box-sizing: border-box;
   width: min(360px, calc(100vw - 24px));
   background: vars.$bg-surface;
   border: 1px solid vars.$border-default;
@@ -51,6 +54,7 @@
   &__spacer { flex: 1; }
   &__btn {
     @include vars.control-base;
+    box-sizing: border-box;
     padding: 5px 10px; cursor: pointer;
     &--ghost { background: transparent; border-color: transparent; color: vars.$text-muted; }
     &--primary { @include vars.state-selected-fill; border-color: vars.$color-primary; }

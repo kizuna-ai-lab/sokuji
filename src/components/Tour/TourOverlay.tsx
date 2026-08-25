@@ -6,7 +6,7 @@
 // tour is clickable: centred steps are covered by the full scrim, anchored ones
 // by a transparent blocker under the spotlight (whose box-shadow "scrim" is not
 // itself hit-testable). Only the popover takes input.
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useFloating, useDismiss, useRole, useInteractions, FloatingFocusManager, FloatingPortal,
@@ -25,6 +25,8 @@ const TourOverlay: React.FC = () => {
   const { active, step, ctx, index, steps, target, resolving } = tour;
   const [rect, setRect] = useState<DOMRect | null>(null);
   const primaryRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const bodyId = useId();
 
   // Keep the cutout glued to the target through scrolls and resizes. autoUpdate
   // fires on every scroll frame, so only commit a rect that actually moved —
@@ -44,8 +46,16 @@ const TourOverlay: React.FC = () => {
     open: active,
     onOpenChange: (isOpen) => { if (!isOpen) tour.skip(); },
     placement: step?.placement ?? 'bottom',
+    // `fixed` to match the stylesheet (and the spotlight): with the default
+    // absolute strategy floatingStyles are offset by the page scroll the
+    // position: fixed rule then ignores.
+    strategy: 'fixed',
     elements: { reference: target ?? undefined },
-    middleware: [offset(12), flip(), shift({ padding: 8 })],
+    // fallbackAxisSideDirection: every settings step asks for 'left', which
+    // cannot fit beside a ~330px section in the 360px side panel. Plain flip()
+    // only tries the opposite side, leaving shift() to park the popover on top
+    // of the element it is pointing at; this lets it fall through to top/bottom.
+    middleware: [offset(12), flip({ fallbackAxisSideDirection: 'start' }), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
   });
   // The `account` step sends a signed-out user to the sign-in overlay mid-tour.
@@ -106,13 +116,16 @@ const TourOverlay: React.FC = () => {
           ref={refs.setFloating}
           className={`tour-popover${centred ? ' tour-popover--centred' : ''}${resolving ? ' is-resolving' : ''}`}
           style={centred ? undefined : floatingStyles}
-          aria-label={t(titleKey(step), step.id)}
           // onKeyDown goes *through* getFloatingProps: useDismiss returns its
           // own onKeyDown (Escape), and spreading over ours would drop Enter.
+          // The aria wiring comes after the spread so useRole's own (empty)
+          // labelling cannot clear it.
           {...getFloatingProps({ onKeyDown })}
+          aria-labelledby={titleId}
+          aria-describedby={bodyId}
         >
-          <h2 className="tour-popover__title">{t(titleKey(step), step.id)}</h2>
-          <p className="tour-popover__body">{t(contentKey(step, ctx), '')}</p>
+          <h2 id={titleId} className="tour-popover__title">{t(titleKey(step), step.id)}</h2>
+          <p id={bodyId} className="tour-popover__body">{t(contentKey(step, ctx), '')}</p>
           <div className="tour-popover__footer">
             <span className="tour-popover__progress">{`${index + 1} / ${steps.length}`}</span>
             <span className="tour-popover__spacer" />

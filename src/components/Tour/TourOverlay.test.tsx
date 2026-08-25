@@ -26,6 +26,15 @@ describe('TourOverlay', () => {
     expect(document.querySelector('.tour-scrim, .tour-spotlight')).toBeNull();
   });
 
+  it('names and describes the dialog from its own heading and body', () => {
+    render(<TourOverlay />);
+    // aria-labelledby/-describedby rather than a duplicated aria-label string:
+    // a screen reader reads the heading and the body it can already see.
+    const dialog = screen.getByRole('dialog', { name: 'welcome' });
+    expect(dialog.getAttribute('aria-labelledby')).toBe(document.querySelector('.tour-popover__title')!.id);
+    expect(dialog.getAttribute('aria-describedby')).toBe(document.querySelector('.tour-popover__body')!.id);
+  });
+
   it('shows a centred card with progress, no Back on the first step', () => {
     render(<TourOverlay />);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
