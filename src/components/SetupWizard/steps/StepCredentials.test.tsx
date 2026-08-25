@@ -90,6 +90,15 @@ describe('StepCredentials (own key)', () => {
     expect(container.querySelector('input')).not.toHaveClass('settings-input--valid');
   });
 
+  it('does not flash the on-file notice while the prefill is landing', () => {
+    // The saved key is in the slice for the first render too; only a credential
+    // the wizard cannot show at all deserves the notice.
+    sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+    render(<StepCredentials draft={ownKeyDraft({ credentialsValidated: true })} dispatch={vi.fn()} />);
+
+    expect(screen.queryByText('setup.credentials.onFile')).not.toBeInTheDocument();
+  });
+
   it('marks a validated field valid', () => {
     const draft = ownKeyDraft({ credentialsValidated: true, credentials: { apiKey: 'sk-typed' } });
     const { container } = render(<StepCredentials draft={draft} dispatch={vi.fn()} />);

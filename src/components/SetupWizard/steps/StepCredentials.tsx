@@ -86,8 +86,11 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
   // A re-run arrives already validated, and normally the prefill below fills
   // the boxes to match. When it cannot — a provider whose validated credential
   // is not among the fields this surface renders — an empty box painted green
-  // would claim a key that is not there. Say what is true instead.
-  const keyOnFile = draft.credentialsValidated && fields.some((f) => !draft.credentials[f.key]);
+  // would claim a key that is not there. Say what is true instead. The slice is
+  // consulted too, so the notice does not flash for the one render between the
+  // re-run's first paint and the prefill landing.
+  const keyOnFile = draft.credentialsValidated
+    && fields.some((f) => !draft.credentials[f.key] && !slice?.[f.key]);
 
   const validate = async () => {
     setValidating(true);
