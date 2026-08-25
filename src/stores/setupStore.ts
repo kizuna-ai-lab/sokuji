@@ -43,14 +43,33 @@ function removeLocal(key: string): void {
   }
 }
 
-/** Persists a setup/tour record and logs when SettingsService reports
- *  failure (e.g. chrome-storage quota, lastError) — otherwise a failed
- *  persist is silent and the only symptom is the wizard reappearing next
- *  launch. */
-async function persist(service: ISettingsService, key: string, value: unknown): Promise<void> {
+/** Message the wizard's Finish shows when the record could not be written.
+ *  Stable so the failure reads the same wherever it surfaces. */
+export const SETUP_PERSIST_FAILED_MESSAGE = 'Could not save your setup. Please try again.';
+
+/** Persists a setup/tour record, reporting whether the write landed. Returns
+ *  false (and logs) when SettingsService reports failure (e.g. chrome-storage
+ *  quota, lastError); a service that throws instead — chrome.storage.sync.set
+ *  can throw synchronously — rejects, and the caller decides. Swallowing
+ *  either would leave a failed persist silent, its only symptom the wizard
+ *  reappearing next launch. */
+async function persist(service: ISettingsService, key: string, value: unknown): Promise<boolean> {
   const result = await service.setSetting(key, value);
   if (!result.success) {
     console.error(`[SetupStore] Failed to persist ${key}:`, result.error ?? result.message);
+    return false;
+  }
+  return true;
+}
+
+/** persist() for the callers that must carry on regardless: a rejected write
+ *  is logged and reported as failure rather than propagated. */
+async function tryPersist(service: ISettingsService, key: string, value: unknown): Promise<boolean> {
+  try {
+    return await persist(service, key, value);
+  } catch (error) {
+    console.error(`[SetupStore] Failed to persist ${key}:`, error);
+    return false;
   }
 }
 
@@ -76,9 +95,13 @@ export const useSetupStore = create<SetupStore>()(
           persistedProvider: await service.getSetting<string>('settings.common.provider', 'openai'),
           now: new Date().toISOString(),
         });
-        if (plan.setup) await persist(service, SETUP_STORAGE_KEY, plan.setup);
-        if (plan.tour) await persist(service, TOUR_STORAGE_KEY, plan.tour);
-        if (plan.clearLegacyKeys && LEGACY_KEYS_RETIRED) {
+        // The migrated record goes into state either way: a write that failed is
+        // no reason to ask an existing user to set the app up again this launch.
+        const setupWritten = plan.setup ? await tryPersist(service, SETUP_STORAGE_KEY, plan.setup) : true;
+        if (plan.tour) await tryPersist(service, TOUR_STORAGE_KEY, plan.tour);
+        // The legacy keys are the only evidence a failed write leaves behind, so
+        // they may only be dropped once the record they produced is safely stored.
+        if (plan.clearLegacyKeys && LEGACY_KEYS_RETIRED && setupWritten) {
           removeLocal(LEGACY_USER_TYPE_KEY);
           removeLocal(LEGACY_ONBOARDING_KEY);
         }
@@ -97,8 +120,13 @@ export const useSetupStore = create<SetupStore>()(
         provider,
         completedAt: new Date().toISOString(),
       };
+      // Persist BEFORE committing in memory: the in-memory record unmounts the
+      // wizard, and a wizard that is gone can neither report the failure nor
+      // offer a retry. Throwing here reaches SetupWizard's Finish error path.
+      if (!(await persist(ServiceFactory.getSettingsService(), SETUP_STORAGE_KEY, record))) {
+        throw new Error(SETUP_PERSIST_FAILED_MESSAGE);
+      }
       set({ setup: record });
-      await persist(ServiceFactory.getSettingsService(), SETUP_STORAGE_KEY, record);
     },
 
     completeTour: async (chapter, method) => {
@@ -110,8 +138,11 @@ export const useSetupStore = create<SetupStore>()(
         completedAt: new Date().toISOString(),
         method,
       };
+      // The opposite trade-off to completeSetup: a failed write must never trap
+      // the user in the tour, so the record lands in memory regardless and the
+      // cost of the failure is at worst one re-run on the next launch.
       set({ tour: record });
-      await persist(ServiceFactory.getSettingsService(), TOUR_STORAGE_KEY, record);
+      await tryPersist(ServiceFactory.getSettingsService(), TOUR_STORAGE_KEY, record);
     },
   })),
 );

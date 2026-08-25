@@ -52,6 +52,25 @@ describe('setupStore.hydrate', () => {
     expect(localStorage.getItem(LEGACY_USER_TYPE_KEY)).toBeNull();
     expect(localStorage.getItem(LEGACY_ONBOARDING_KEY)).toBeNull();
   });
+
+  it('keeps the migrated record in memory but spares the legacy keys when the persist fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    store.set('settings.common.uiMode', 'basic');
+    store.set('settings.common.provider', 'gemini');
+    localStorage.setItem(LEGACY_USER_TYPE_KEY, 'regular');
+    mockSetSetting.mockRejectedValueOnce(new Error('storage unavailable'));
+
+    await useSetupStore.getState().hydrate();
+
+    // Not re-asked this launch...
+    const s = useSetupStore.getState();
+    expect(s.loaded).toBe(true);
+    expect(s.setup).toMatchObject({ provider: 'gemini', migratedFrom: 'legacy' });
+    // ...and the evidence survives, so the next launch can migrate again.
+    expect(localStorage.getItem(LEGACY_USER_TYPE_KEY)).toBe('regular');
+
+    errorSpy.mockRestore();
+  });
 });
 
 describe('setupStore.completeSetup / completeTour', () => {
@@ -73,14 +92,44 @@ describe('setupStore.completeSetup / completeTour', () => {
     expect(store.get(TOUR_STORAGE_KEY)).toEqual(rec);
   });
 
-  it('logs when persisting the setup record fails', async () => {
+  it('rejects and keeps the record out of memory when the service reports failure', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockSetSetting.mockResolvedValueOnce({ success: false, error: 'quota' });
 
-    await useSetupStore.getState().completeSetup({ scenario: 'two-way-text', providerPath: 'own-key', provider: 'openai' });
+    // Committing in memory first would unmount the wizard over a setup that was
+    // never written: the record only becomes real once the write succeeded.
+    await expect(useSetupStore.getState().completeSetup({ scenario: 'two-way-text', providerPath: 'own-key', provider: 'openai' }))
+      .rejects.toThrow(/save/i);
 
+    expect(useSetupStore.getState().setup).toBeNull();
     expect(errorSpy).toHaveBeenCalledTimes(1);
     expect(errorSpy.mock.calls[0][0]).toContain('settings.setup');
+
+    errorSpy.mockRestore();
+  });
+
+  it('rejects and keeps the record out of memory when the service throws', async () => {
+    // The extension path: chrome.storage.sync.set can throw synchronously, which
+    // the service's own try/catch does not convert into { success: false }.
+    mockSetSetting.mockRejectedValueOnce(new Error('storage unavailable'));
+
+    await expect(useSetupStore.getState().completeSetup({ scenario: 'two-way-text', providerPath: 'own-key', provider: 'openai' }))
+      .rejects.toThrow('storage unavailable');
+
+    expect(useSetupStore.getState().setup).toBeNull();
+  });
+
+  it('still marks the tour done in memory when its persist fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockSetSetting.mockRejectedValueOnce(new Error('storage unavailable'));
+
+    // A failed write must never trap the user in the tour; re-running it on the
+    // next launch is the accepted cost.
+    await expect(useSetupStore.getState().completeTour('basics', 'finished')).resolves.toBeUndefined();
+
+    expect(useSetupStore.getState().tour).toMatchObject({ completedChapters: ['basics'], method: 'finished' });
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy.mock.calls[0][0]).toContain('settings.tour');
 
     errorSpy.mockRestore();
   });
