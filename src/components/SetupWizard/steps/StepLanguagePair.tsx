@@ -41,10 +41,12 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   // whichever way round a provider runs the legs, the user should meet one
   // vocabulary for them.
   const preset = getScenario(draft.scenario!);
-  const sentence = pairSentence(
-    preset.mode, preset.textOnly,
-    ProviderConfigFactory.getConfig(draft.provider!).capabilities.textOnlyCapability,
-  );
+  const sentence = pairSentence({
+    mode: preset.mode,
+    textOnly: preset.textOnly,
+    capability: ProviderConfigFactory.getConfig(draft.provider!).capabilities.textOnlyCapability,
+    source, target: draft.targetLanguage,
+  });
   const myLabel = t(sentence.my.key, sentence.my.fallback);
   const theirLabel = t(sentence.their.key, sentence.their.fallback);
   const nameOf = (list: { value: string; name: string }[], v: string) => list.find((o) => o.value === v)?.name ?? v;
@@ -73,10 +75,10 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
       </label>
       {/* Both mode runs a mirrored second leg off the same two fields. There
           are no controls for it — here or in Settings — so it is stated. */}
-      {sentence.showMirror && draft.targetLanguage && (
+      {sentence.showMirror && (
         <p className="setup-mirror">
           {t('settings.langSentence.mirror', 'They speak {{their}} → I read {{mine}}', {
-            their: nameOf(targets, draft.targetLanguage),
+            their: nameOf(targets, draft.targetLanguage ?? ''),
             mine: nameOf(sources, source),
           })}
         </p>

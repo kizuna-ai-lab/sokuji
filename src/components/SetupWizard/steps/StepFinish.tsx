@@ -18,7 +18,12 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
   const targetName = nameOf(descriptor.resolveTargetLanguages(draft.sourceLanguage ?? ''), draft.targetLanguage);
   // The pair reads as the sentence the pair step and Settings both print,
   // rather than as a bare arrow that says nothing about who hears what.
-  const sentence = pairSentence(preset.mode, preset.textOnly, ProviderConfigFactory.getConfig(draft.provider!).capabilities.textOnlyCapability);
+  const sentence = pairSentence({
+    mode: preset.mode,
+    textOnly: preset.textOnly,
+    capability: ProviderConfigFactory.getConfig(draft.provider!).capabilities.textOnlyCapability,
+    source: draft.sourceLanguage, target: draft.targetLanguage,
+  });
   const langLine = (label: { key: string; fallback: string }, name: string) =>
     t('setup.summary.langLine', '{{label}}: {{name}}', { label: t(label.key, label.fallback), name });
   // Same source as the scenario cards and the ModePicker itself.

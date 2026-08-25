@@ -12,7 +12,19 @@ vi.mock('../../utils/environment', async (orig) => ({
 // render the wizard "in Japanese" the way a first-run user in Japan gets it.
 let uiLanguage = 'en';
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string, d?: string | object) => (typeof d === 'string' ? d : k), i18n: { language: uiLanguage } }),
+  // Interpolating, not just default-returning: the mirror line's whole content
+  // is its two interpolated language names, and a mock that dropped them let a
+  // swapped `their`/`mine` pass.
+  useTranslation: () => ({
+    t: (k: string, d?: string | object, opts?: Record<string, unknown>) => {
+      const params = (typeof d === 'object' && d !== null ? d : opts) as Record<string, unknown> | undefined;
+      const text = typeof d === 'string' ? d : k;
+      return params
+        ? text.replace(/{{(\w+)}}/g, (m, name) => (params[name] === undefined ? m : String(params[name])))
+        : text;
+    },
+    i18n: { language: uiLanguage },
+  }),
 }));
 vi.mock('../../locales', () => ({ changeLanguageWithLoad: vi.fn(async (l: string) => l) }));
 let signedIn = false;
@@ -247,11 +259,20 @@ describe('SetupWizard', () => {
     fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
     next();
     next();                                           // language pair
-    // The interpolation is inert under the test's `t`, so the template itself
-    // is the evidence that the mirrored leg is stated at all.
-    expect(screen.getAllByText(/They speak .* I read/)).toHaveLength(1);
+    const source = (screen.getByRole('combobox', { name: 'I speak' }) as HTMLSelectElement).value;
+    const target = (screen.getByRole('combobox', { name: 'they hear' }) as HTMLSelectElement).value;
+    const sources = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).resolveSourceLanguages();
+    const targets = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).resolveTargetLanguages(source);
+    const sourceName = sources.find((o) => o.value === source)!.name;
+    const targetName = targets.find((o) => o.value === target)!.name;
+    // The reverse leg reads the pair the other way round: they speak what the
+    // forward leg targets, I read what it sources. Asserting the names is what
+    // catches the two being swapped.
+    expect(screen.getByText(`They speak ${targetName} → I read ${sourceName}`)).toBeInTheDocument();
     next();                                           // finish
-    expect(screen.getByText(/They speak .* I read/)).toBeInTheDocument();
+    expect(screen.getByText(`They speak ${targetName} → I read ${sourceName}`)).toBeInTheDocument();
+    // ...and the summary states the forward leg as the same sentence.
+    expect(screen.getByText(`I speak: ${sourceName} · they hear: ${targetName}`)).toBeInTheDocument();
   });
 
   it('leaves the mirrored leg out of a one-way scenario', () => {

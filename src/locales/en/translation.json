@@ -754,7 +754,7 @@
     "restart": "Restart Setup Guide",
     "steps": {
       "welcome": { "title": "You're set up", "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute." },
-      "mode-picker": { "title": "Translation mode", "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode decides whether it is also spoken aloud.",
+      "mode-picker": { "title": "Translation mode", "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode, together with the Text Only switch, decides whether it is also spoken aloud.",
         "modeMe": "Me — what you say is translated for the other side.",
         "modeOthers": "Other — what they say is translated for you.",
         "modeBoth": "Both — both directions at once." },
@@ -787,7 +787,7 @@
       "models": { "title": "Models", "content": "Download models here — one per stage. Try a few; the first pick is not the only good one." },
       "start": {
         "title": "Start",
-        "content": "Press here to start translating. If the button stays greyed out, hover it: the note says what is still missing, and Settings is where you fix it.",
+        "content": "Press here to start translating. If the button stays greyed out, hover it: the note names what is still missing and where to put it right.",
         "content_offline": "This lights up once your models are ready. Hover it while it is grey to see what it is waiting for.",
         "content_signedOut": "This lights up once you sign in. Hover it while it is grey to see what it is waiting for.",
         "content_pendingKey": "This lights up once your API key validates. Hover it while it is grey to see what it is waiting for."
