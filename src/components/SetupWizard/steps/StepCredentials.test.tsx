@@ -113,16 +113,32 @@ describe('StepCredentials (own key)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'setup.skipForNow' }));
 
-    expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'skipCredentials' });
+    // Nothing is saved, so "later" really does leave the provider without a key.
+    expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'skipCredentials', keepExisting: false });
     expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'next' });
   });
 
-  it('leaves the box alone after Skip, so Back does not contradict the summary', () => {
+  it('treats Skip as "leave it as it is" when the saved key already validates', () => {
     sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
     const dispatch = vi.fn();
-    render(<StepCredentials draft={ownKeyDraft({ credentialsPending: true })} dispatch={dispatch} />);
+    render(<StepCredentials draft={ownKeyDraft({ credentialsValidated: true })} dispatch={dispatch} />);
 
-    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'prefillCredentials' }));
+    fireEvent.click(screen.getByRole('button', { name: 'setup.skipForNow' }));
+
+    // The prefill effect dispatches first, so match on the action, not on the
+    // call index.
+    expect(dispatch).toHaveBeenCalledWith({ type: 'skipCredentials', keepExisting: true });
+  });
+
+  it('does not call a saved-but-unvalidated key good enough to skip on', () => {
+    sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ownKeyDraft()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup.skipForNow' }));
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'skipCredentials', keepExisting: false });
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'skipCredentials', keepExisting: true });
   });
 
   it('links the provider tutorial so the user can find out how to get a key', () => {
@@ -156,7 +172,9 @@ describe('StepCredentials (managed)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'setup.skipForNow' }));
 
-    expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'skipCredentials' });
+    // The managed key belongs to the account, so there is never anything on
+    // file here to keep.
+    expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'skipCredentials', keepExisting: false });
     expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'next' });
   });
 });

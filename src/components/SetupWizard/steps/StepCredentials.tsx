@@ -25,12 +25,12 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
   // "Later" has to LEAVE the step. It reads as a button and sits beside one, so
   // a version that only set a flag looked broken — the warning it raised is on
   // the summary, a step the user only reaches by moving on (feedback 2026-08-25).
-  const skipAndContinue = () => {
-    dispatch({ type: 'skipCredentials' });
+  const skipAndContinue = (keepExisting: boolean) => {
+    dispatch({ type: 'skipCredentials', keepExisting });
     dispatch({ type: 'next' });
   };
-  const skip = (
-    <Button variant="ghost" onClick={skipAndContinue}>
+  const skipButton = (keepExisting: boolean) => (
+    <Button variant="ghost" onClick={() => skipAndContinue(keepExisting)}>
       {t('setup.skipForNow', 'Skip for now')}
     </Button>
   );
@@ -64,7 +64,9 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
             <div className="setup-actions">
               <Button variant="primary" onClick={() => setAuthOverlay('sign-in')}>{t('setup.credentials.signIn', 'Sign in')}</Button>
               <Button variant="secondary" onClick={() => setAuthOverlay('sign-up')}>{t('setup.credentials.createAccount', 'Create account')}</Button>
-              {skip}
+              {/* The managed path has nothing on file to keep: its key is the
+                  account's, and the summary derives pending from sign-in. */}
+              {skipButton(false)}
             </div>
             {draft.credentialsPending && <StatusMessage variant="warning">{t('setup.credentials.pendingSignIn', 'You can sign in later from the account button. Start stays locked until then.')}</StatusMessage>}
           </>
@@ -91,6 +93,12 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
   // re-run's first paint and the prefill landing.
   const keyOnFile = draft.credentialsValidated
     && fields.some((f) => !draft.credentials[f.key] && !slice?.[f.key]);
+  // Skipping is only harmless when settings already hold a credential this
+  // provider validated: then "later" changes nothing, and the summary must not
+  // report a key that is right there as missing.
+  const keptOnSkip = draft.credentialsValidated
+    && fields.length > 0
+    && fields.every((f) => typeof slice?.[f.key] === 'string' && slice[f.key] !== '');
 
   const validate = async () => {
     setValidating(true);
@@ -149,7 +157,7 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
         <Button variant="primary" onClick={validate} loading={validating} disabled={validating || fields.some((f) => !draft.credentials[f.key])}>
           {t('setup.credentials.validate', 'Validate')}
         </Button>
-        {skip}
+        {skipButton(keptOnSkip)}
       </div>
       {message && <StatusMessage variant={message.ok ? 'success' : 'error'}>{message.text}</StatusMessage>}
       {draft.credentialsPending && <StatusMessage variant="warning">{t('setup.credentials.pendingKey', 'You can add the key later in Settings → Provider. Start stays locked until it validates.')}</StatusMessage>}
@@ -175,10 +183,7 @@ const CredentialPrefill: React.FC<{
     // provider clears `credentials`, which re-arms this for the new one, and a
     // keystroke (or an explicit clear, which leaves the key present but empty)
     // must never be overwritten by what is still in settings.
-    // `credentialsPending` too: "Skip for now" clears the draft's credentials,
-    // so a user who skipped and pressed Back would otherwise find the saved key
-    // back in the box while the summary still says there is none.
-    if (touched || draft.credentialsPending) return;
+    if (touched) return;
     const values = JSON.parse(saved) as string[];
     const credentials: Record<string, string> = {};
     fieldKeys.forEach((k, i) => { if (values[i]) credentials[k] = values[i]; });
@@ -186,7 +191,7 @@ const CredentialPrefill: React.FC<{
     // fieldKeys is a fresh array every render; `saved` carries both it and the
     // values it resolved to, as a stable string.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [touched, saved, dispatch, draft.credentialsPending]);
+  }, [touched, saved, dispatch]);
   return null;
 };
 

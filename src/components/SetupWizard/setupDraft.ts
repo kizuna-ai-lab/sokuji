@@ -32,7 +32,7 @@ export type SetupAction =
   | { type: 'setCredential'; key: string; value: string }
   | { type: 'prefillCredentials'; credentials: Record<string, string> }
   | { type: 'credentialsValidated' }
-  | { type: 'skipCredentials' }
+  | { type: 'skipCredentials'; keepExisting?: boolean }
   | { type: 'setLanguages'; source: string; target: string }
   | { type: 'next' }
   | { type: 'back' };
@@ -119,7 +119,14 @@ export function setupReducer(d: SetupDraft, a: SetupAction): SetupDraft {
     case 'credentialsValidated':
       return { ...d, credentialsValidated: true, credentialsPending: false };
     case 'skipCredentials':
-      return { ...d, credentials: {}, credentialsValidated: false, credentialsPending: true };
+      // With a usable credential already in settings, skipping means "leave it
+      // as it is": the draft drops whatever was typed (the step refills it from
+      // settings) and nothing is pending, because nothing is missing. Reported
+      // 2026-08-25 — the old branch called a saved key absent and blanked the
+      // box the user had just seen it in.
+      return a.keepExisting
+        ? { ...d, credentials: {}, credentialsPending: false }
+        : { ...d, credentials: {}, credentialsValidated: false, credentialsPending: true };
     case 'setLanguages':
       return { ...d, sourceLanguage: a.source, targetLanguage: a.target };
     case 'next':

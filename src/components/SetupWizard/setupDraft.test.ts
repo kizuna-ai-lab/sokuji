@@ -82,6 +82,15 @@ describe('setupReducer — clearing rules (spec §1.4)', () => {
     expect(seeded).toMatchObject({ credentials: { apiKey: 'saved' }, credentialsValidated: true });
   });
 
+  it('skipping over a saved key keeps it valid and reports nothing pending', () => {
+    const validated = run(base, { type: 'credentialsValidated' });
+    const kept = run(validated, { type: 'skipCredentials', keepExisting: true });
+    expect(kept).toMatchObject({ credentialsValidated: true, credentialsPending: false, credentials: {} });
+
+    const dropped = run(validated, { type: 'skipCredentials', keepExisting: false });
+    expect(dropped).toMatchObject({ credentialsValidated: false, credentialsPending: true, credentials: {} });
+  });
+
   it('editing a credential invalidates a previous validation and un-skips', () => {
     const skipped = run(base, { type: 'skipCredentials' });
     expect(skipped).toMatchObject({ credentialsPending: true, credentials: {} });

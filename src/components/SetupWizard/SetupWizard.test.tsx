@@ -56,6 +56,9 @@ vi.mock('./useApplySetup', () => ({
   },
 }));
 let apiKeyValid: boolean | null = null;
+// The provider slices the wizard reads: what a credential field is prefilled
+// from, and what "skip" is deciding whether to keep. Mutable per test.
+let sliceState: Record<string, unknown> = {};
 // Mutable so a test can simulate the sign-in overlay opening from step 3 and
 // claiming Escape before the wizard's own useDismiss does.
 let authOverlayState: 'sign-in' | 'sign-up' | 'forgot-password' | null = null;
@@ -66,9 +69,7 @@ vi.mock('../../stores/settingsStore', () => ({
   useAuthOverlay: () => authOverlayState,
   useProvider: () => 'openai',
   useIsApiKeyValid: () => apiKeyValid,
-  useSettingsStore: Object.assign((sel: (s: any) => unknown) => sel({ openai: { apiKey: '' }, soniox: { apiKey: '', region: 'us' } }), {
-    getState: () => ({ openai: { apiKey: '' }, soniox: { apiKey: '', region: 'us' } }),
-  }),
+  useSettingsStore: Object.assign((sel: (s: any) => unknown) => sel(sliceState), { getState: () => sliceState }),
 }));
 // The record a Help re-run pre-fills from. Mutable: with it fixed at null the
 // isProviderSupported-guarded prefill branch never ran in any test.
@@ -98,6 +99,7 @@ beforeEach(() => {
   cleanup();
   applied.length = 0; applyGate = null; applyError = null; signedIn = false; uiLanguage = 'en';
   apiKeyValid = null; setupRecord = null; authOverlayState = null;
+  sliceState = { openai: { apiKey: '' }, soniox: { apiKey: '', region: 'us' } };
   setAuthOverlay.mockClear(); trackSpy.mockClear(); startTourSpy.mockClear();
 });
 
@@ -131,6 +133,25 @@ describe('SetupWizard', () => {
     const zoom = screen.getByRole('radio', { name: /Zoom AI Services/ });
     expect(zoom).toBeDisabled();
     expect(zoom.closest('label')?.textContent).toMatch(/cannot produce spoken translation/);
+  });
+
+  it('keeps showing a saved key after Skip and Back, and does not call it missing', async () => {
+    // Reported 2026-08-25: skipping cleared the box for a key that is still in
+    // settings. Skipping when a validated key is already saved means "leave it
+    // as it is", not "I have no key".
+    sliceState = { openai: { apiKey: 'sk-saved' }, soniox: { apiKey: '', region: 'us' } };
+    apiKeyValid = true;
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'openai', completedAt: 'x' };
+    render(<SetupWizard variant="rerun" onClose={() => {}} />);
+    next(); next(); next();                           // language → scenario → path → credentials
+    expect(screen.getByLabelText('apiKey')).toHaveValue('sk-saved');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    back();
+    expect(screen.getByLabelText('apiKey')).toHaveValue('sk-saved');
+
+    next(); next();                                   // language pair → finish
+    expect(screen.queryByText(/No API key yet/)).toBeNull();
   });
 
   it('lets an own-key user skip the credentials for now and finish', async () => {
