@@ -7,22 +7,23 @@ export interface AnalyticsEvents {
   'app_startup': {}; // version and platform are now in Super Properties
   'app_shutdown': { session_duration: number };
   
-  // Onboarding events
-  'onboarding_started': { 
-    is_first_time_user: boolean;
-    onboarding_version: string;
-  };
-  'onboarding_completed': { 
-    completion_method: 'finished' | 'skipped';
-    steps_completed: number;
-    total_steps: number;
-    duration_ms: number;
-    onboarding_version: string;
-  };
-  'onboarding_step_viewed': {
-    step_index: number;
-    step_target: string;
-    step_title: string;
+  // Onboarding / tour events. Transitional: the legacy OnboardingContext still
+  // fires the first member of each union until the tour replaces it; the
+  // second member is the tour's shape (spec §2.3). Narrowed to the tour shape
+  // in the change that deletes OnboardingContext.
+  'onboarding_started':
+    | { is_first_time_user: boolean; onboarding_version: string }
+    | { chapter: string; is_first_time_user: boolean; onboarding_version: number };
+  'onboarding_completed':
+    | { completion_method: 'finished' | 'skipped'; steps_completed: number; total_steps: number; duration_ms: number; onboarding_version: string }
+    | { chapter: string; completion_method: 'finished' | 'skipped'; steps_completed: number; total_steps: number; duration_ms: number; onboarding_version: number };
+  'onboarding_step_viewed':
+    | { step_index: number; step_target: string; step_title: string }
+    | { chapter: string; step_index: number; step_id: string };
+  'onboarding_step_skipped': {
+    chapter: string;
+    step_id: string;
+    reason: 'target-missing';
   };
   
   // Translation sessions
