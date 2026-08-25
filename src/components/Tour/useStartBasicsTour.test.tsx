@@ -16,7 +16,7 @@ vi.mock('../../stores/setupStore', () => ({
 vi.mock('../../stores/audioStore', () => ({ default: { getState: () => ({ mode: 'speaker' }) } }));
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: true }) }));
 vi.mock('../../utils/environment', () => ({
-  isElectron: () => true, isLinux: () => true, isMacOS: () => false, isWindows: () => false,
+  isElectron: () => true, isExtension: () => false, isLinux: () => true, isMacOS: () => false, isWindows: () => false,
 }));
 const setShowSettings = vi.fn();
 vi.mock('../../stores/layoutStore', () => ({ useLayoutStore: { getState: () => ({ setShowSettings }) } }));

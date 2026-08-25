@@ -15,7 +15,7 @@ import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFa
 import { getScenario } from '../../lib/setup/scenarios';
 import { buildTourCtx } from '../Tour/tourContext';
 import { useTour } from '../Tour/TourProvider';
-import { isElectron, isLinux, isMacOS, isWindows } from '../../utils/environment';
+import { isElectron, isExtension, isLinux, isMacOS, isWindows } from '../../utils/environment';
 import type { ProviderType } from '../../types/Provider';
 import { initialDraft, draftFromRecord, setupReducer, canAdvance, LAST_STEP } from './setupDraft';
 import type { SetupDraft } from './setupDraft';
@@ -94,7 +94,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
           provider: draft.provider!,
           mode: preset.mode, textOnly: preset.textOnly, isSignedIn,
           apiKeyValid: draft.providerPath === 'own-key' ? !draft.credentialsPending : null,
-          env: { isElectron: isElectron(), isLinux: isLinux(), isMacOS: isMacOS(), isWindows: isWindows() },
+          env: { isElectron: isElectron(), isExtension: isExtension(), isLinux: isLinux(), isMacOS: isMacOS(), isWindows: isWindows() },
         }));
       }
       trackEvent('setup_completed', {

@@ -7,7 +7,7 @@ import { useSetupStore } from '../../stores/setupStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useLayoutStore } from '../../stores/layoutStore';
 import useAudioStore from '../../stores/audioStore';   // default export only
-import { isElectron, isLinux, isMacOS, isWindows } from '../../utils/environment';
+import { isElectron, isExtension, isLinux, isMacOS, isWindows } from '../../utils/environment';
 import { buildTourCtx } from './tourContext';
 import { useTour } from './TourProvider';
 
@@ -28,7 +28,7 @@ export function useStartBasicsTour(): () => void {
       textOnly: s.textOnly,
       isSignedIn,
       apiKeyValid: s.isApiKeyValid,
-      env: { isElectron: isElectron(), isLinux: isLinux(), isMacOS: isMacOS(), isWindows: isWindows() },
+      env: { isElectron: isElectron(), isExtension: isExtension(), isLinux: isLinux(), isMacOS: isMacOS(), isWindows: isWindows() },
     }));
   }, [isSignedIn, start]);
 }

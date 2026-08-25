@@ -35,14 +35,19 @@ export const BASICS_STEPS: readonly TourStep[] = [
   { id: 'monitor', anchor: 'speaker-section', when: (c) => c.mode === 'speaker' && !c.textOnly, prepare: (_c, a) => a.openSettings('speaker'), placement: 'left' },
   {
     id: 'output-routing', when: speaks,
-    copyVariant: (c) => (c.platform === 'extension' ? 'extension' : c.os === 'linux' ? 'electronLinux' : 'electronOther'),
+    // Electron is the only platform whose routing depends on the OS; web reads
+    // the extension wording rather than a desktop's.
+    copyVariant: (c) => (c.platform !== 'electron' ? 'extension' : c.os === 'linux' ? 'electronLinux' : 'electronOther'),
   },
   {
     id: 'participant-source', anchor: 'participant-section', when: hasParticipant,
     prepare: (_c, a) => a.openSettings('participant'), placement: 'left',
-    copyVariant: (c) => c.platform,
+    // Only two copies exist; web takes the extension one.
+    copyVariant: (c) => (c.platform === 'electron' ? 'electron' : 'extension'),
   },
-  { id: 'subtitle', anchor: 'subtitle-enter', prepare: (_c, a) => a.closeSettings(), placement: 'bottom' },
+  // SubtitleEnterButton renders on Electron and in the extension only, and an
+  // absent anchor costs the step its full timeout before it skips itself.
+  { id: 'subtitle', anchor: 'subtitle-enter', when: (c) => c.platform !== 'web', prepare: (_c, a) => a.closeSettings(), placement: 'bottom' },
   {
     id: 'account', anchor: 'account-button', when: (c) => c.providerPath === 'managed', placement: 'bottom',
     copyVariant: (c) => (c.isSignedIn ? null : 'signedOut'),

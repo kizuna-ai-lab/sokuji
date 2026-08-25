@@ -11,7 +11,7 @@ export interface TourCtx {
   scenario: ScenarioId | null;
   providerPath: ProviderPath | null;
   provider: ProviderType;
-  platform: 'electron' | 'extension';
+  platform: 'electron' | 'extension' | 'web';
   os: 'linux' | 'mac' | 'windows' | 'other';
   mode: 'speaker' | 'participant' | 'both';
   textOnly: boolean;
@@ -27,17 +27,18 @@ export function buildTourCtx(i: {
   textOnly: boolean;
   isSignedIn: boolean;
   apiKeyValid: boolean | null;
-  env: { isElectron: boolean; isLinux: boolean; isMacOS: boolean; isWindows: boolean };
+  env: { isElectron: boolean; isExtension: boolean; isLinux: boolean; isMacOS: boolean; isWindows: boolean };
 }): TourCtx {
   const os: TourCtx['os'] = i.env.isLinux ? 'linux' : i.env.isMacOS ? 'mac' : i.env.isWindows ? 'windows' : 'other';
   return {
     scenario: i.record?.scenario ?? null,
     providerPath: i.record?.providerPath ?? null,
     provider: i.provider,
-    // Two platforms, not three: a plain web build (`!isElectron`) maps to
-    // 'extension', so dev-in-browser shows extension copy and skips the
-    // `subtitle` step — whose button does not render on web either.
-    platform: i.env.isElectron ? 'electron' : 'extension',
+    // Three, because a plain browser build is neither host: it renders no
+    // subtitle button and no extension surfaces, so steps that need them
+    // exclude it by predicate rather than waiting out an anchor timeout. Copy
+    // variants still fall back to the extension wording — see steps.ts.
+    platform: i.env.isElectron ? 'electron' : i.env.isExtension ? 'extension' : 'web',
     os,
     mode: i.mode,
     textOnly: i.textOnly,

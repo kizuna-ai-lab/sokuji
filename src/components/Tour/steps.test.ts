@@ -5,8 +5,10 @@ import type { TourCtx } from './tourContext';
 import { getScenario, SCENARIOS } from '../../lib/setup/scenarios';
 import { Provider } from '../../types/Provider';
 
-const electron = { isElectron: true, isLinux: true, isMacOS: false, isWindows: false };
-const extension = { isElectron: false, isLinux: false, isMacOS: false, isWindows: true };
+const electron = { isElectron: true, isExtension: false, isLinux: true, isMacOS: false, isWindows: false };
+const extension = { isElectron: false, isExtension: true, isLinux: false, isMacOS: false, isWindows: true };
+/** A dev build served in a plain browser: neither host, and no subtitle button. */
+const web = { isElectron: false, isExtension: false, isLinux: true, isMacOS: false, isWindows: false };
 
 function ctxFor(scenarioId: TourCtx['scenario'], providerPath: TourCtx['providerPath'], env = electron, extra: Partial<TourCtx> = {}): TourCtx {
   const preset = scenarioId ? getScenario(scenarioId) : { mode: 'speaker' as const, textOnly: false };
@@ -43,8 +45,16 @@ describe('visibleSteps — the spec §2.2 table', () => {
     expect(ids(ctxFor(null, null, electron, { mode: 'both', textOnly: true }))).toEqual(['welcome', 'mode-picker', 'microphone', 'participant-source', 'subtitle', 'start', 'done']);
   });
 
+  it('drops the subtitle step on web, where its button never renders', () => {
+    // Without the predicate the step waits out the anchor timeout — a blank
+    // popover over a blocked app, then a spurious skip event.
+    expect(ids(ctxFor('understand-others', 'managed', web))).not.toContain('subtitle');
+    expect(ids(ctxFor('understand-others', 'managed', extension))).toContain('subtitle');
+    expect(ids(ctxFor('understand-others', 'managed', electron))).toContain('subtitle');
+  });
+
   it('covers every scenario × path × platform without throwing and always ends with start, done', () => {
-    for (const s of SCENARIOS) for (const p of ['managed', 'own-key', 'offline'] as const) for (const env of [electron, extension]) {
+    for (const s of SCENARIOS) for (const p of ['managed', 'own-key', 'offline'] as const) for (const env of [electron, extension, web]) {
       const list = ids(ctxFor(s.id, p, env));
       expect(list.slice(0, 2)).toEqual(['welcome', 'mode-picker']);
       expect(list.slice(-2)).toEqual(['start', 'done']);
@@ -58,12 +68,16 @@ describe('contentKey — copy variants', () => {
   it('output-routing varies by platform and OS', () => {
     expect(contentKey(step('output-routing'), ctxFor('be-heard', 'managed', extension))).toBe('tour.steps.output-routing.content_extension');
     expect(contentKey(step('output-routing'), ctxFor('be-heard', 'managed', electron))).toBe('tour.steps.output-routing.content_electronLinux');
-    expect(contentKey(step('output-routing'), ctxFor('be-heard', 'managed', { isElectron: true, isLinux: false, isMacOS: true, isWindows: false }))).toBe('tour.steps.output-routing.content_electronOther');
+    expect(contentKey(step('output-routing'), ctxFor('be-heard', 'managed', { isElectron: true, isExtension: false, isLinux: false, isMacOS: true, isWindows: false }))).toBe('tour.steps.output-routing.content_electronOther');
+    // Web has no copy of its own: it reads the extension wording, not a Linux
+    // desktop's — and never a `content_web` key nothing declares.
+    expect(contentKey(step('output-routing'), ctxFor('be-heard', 'managed', web))).toBe('tour.steps.output-routing.content_extension');
   });
 
   it('participant-source varies by platform', () => {
     expect(contentKey(step('participant-source'), ctxFor('understand-others', 'managed', extension))).toBe('tour.steps.participant-source.content_extension');
     expect(contentKey(step('participant-source'), ctxFor('understand-others', 'managed', electron))).toBe('tour.steps.participant-source.content_electron');
+    expect(contentKey(step('participant-source'), ctxFor('understand-others', 'managed', web))).toBe('tour.steps.participant-source.content_extension');
   });
 
   it('account, provider-settings and start vary by readiness', () => {
@@ -86,6 +100,6 @@ describe('buildTourCtx', () => {
   it('maps environment flags to platform and os', () => {
     const c = buildTourCtx({ record: null, provider: Provider.OPENAI, mode: 'speaker', textOnly: false, isSignedIn: false, apiKeyValid: null, env: extension });
     expect(c).toMatchObject({ scenario: null, providerPath: null, platform: 'extension', os: 'windows' });
-    expect(buildTourCtx({ ...c, record: null, env: { isElectron: true, isLinux: false, isMacOS: false, isWindows: false } }).os).toBe('other');
+    expect(buildTourCtx({ ...c, record: null, env: { isElectron: true, isExtension: false, isLinux: false, isMacOS: false, isWindows: false } }).os).toBe('other');
   });
 });
