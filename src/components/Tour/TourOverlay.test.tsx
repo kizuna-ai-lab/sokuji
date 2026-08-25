@@ -105,4 +105,20 @@ describe('TourOverlay', () => {
     expect(document.querySelector('.tour-spotlight')).not.toBeNull();
     expect(document.querySelector('.tour-scrim--full')).toBeNull();
   });
+
+  it('keeps the app inoperable under the spotlight (spec 2.1)', () => {
+    // The spotlight ignores pointer events and its box-shadow is not
+    // hit-testable, so without a blocker the whole app stays clickable behind
+    // an anchored step — including the very control the step is describing.
+    document.body.innerHTML = '<div data-tour="mode-picker"></div>';
+    api.index = 1; api.step = { id: 'mode-picker', anchor: 'mode-picker' }; api.target = document.querySelector('[data-tour="mode-picker"]') as HTMLElement;
+    render(<TourOverlay />);
+    expect(document.querySelector('.tour-blocker')).not.toBeNull();
+  });
+
+  it('needs no blocker on a centred step: the full scrim already blocks', () => {
+    render(<TourOverlay />);
+    expect(document.querySelector('.tour-scrim--full')).not.toBeNull();
+    expect(document.querySelector('.tour-blocker')).toBeNull();
+  });
 });

@@ -2,9 +2,10 @@
 //
 // Draws the current tour step (spec §2.1): a scrim with a cutout over the
 // target, or a full scrim with a centred card when the step has no anchor,
-// plus the popover with title, body, progress and controls. The spotlight
-// ignores pointer events, so the app underneath stays clickable on anchored
-// steps — whether it should be is settled by rendering, in Task 8.
+// plus the popover with title, body, progress and controls. Nothing under the
+// tour is clickable: centred steps are covered by the full scrim, anchored ones
+// by a transparent blocker under the spotlight (whose box-shadow "scrim" is not
+// itself hit-testable). Only the popover takes input.
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -85,16 +86,21 @@ const TourOverlay: React.FC = () => {
 
   return (
     <FloatingPortal>
-      {centred
-        ? <div className="tour-scrim tour-scrim--full" />
-        : rect && !resolving && (
-          // Nothing at all while resolving: the previous step's rect is stale
-          // and a scrim would darken the very panel `prepare` is revealing.
-          <div
-            className="tour-spotlight"
-            style={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }}
-          />
-        )}
+      {centred ? <div className="tour-scrim tour-scrim--full" /> : (
+        <>
+          {/* Transparent, and rendered even while the anchor resolves: the app
+              must be inoperable for the whole step, not only once it is lit. */}
+          <div className="tour-blocker" />
+          {rect && !resolving && (
+            // No spotlight at all while resolving: the previous step's rect is
+            // stale and its scrim would darken the very panel `prepare` reveals.
+            <div
+              className="tour-spotlight"
+              style={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }}
+            />
+          )}
+        </>
+      )}
       <FloatingFocusManager context={context} modal returnFocus initialFocus={primaryRef}>
         <div
           ref={refs.setFloating}
