@@ -130,7 +130,16 @@ export const useSetupStore = create<SetupStore>()(
       // Persist BEFORE committing in memory: the in-memory record unmounts the
       // wizard, and a wizard that is gone can neither report the failure nor
       // offer a retry. Throwing here reaches SetupWizard's Finish error path.
-      if (!(await persist(ServiceFactory.getSettingsService(), SETUP_STORAGE_KEY, record))) {
+      // A rejecting service (the extension's storage can throw) is the same
+      // failure as a reported one, so it surfaces as the same typed error and
+      // the wizard shows its translated message rather than a raw stack line.
+      let written = false;
+      try {
+        written = await persist(ServiceFactory.getSettingsService(), SETUP_STORAGE_KEY, record);
+      } catch (error) {
+        console.error('[setupStore] Setup record write threw:', error);
+      }
+      if (!written) {
         throw new SetupPersistError();
       }
       set({ setup: record });

@@ -114,7 +114,7 @@ describe('setupStore.completeSetup / completeTour', () => {
     mockSetSetting.mockRejectedValueOnce(new Error('storage unavailable'));
 
     await expect(useSetupStore.getState().completeSetup({ scenario: 'two-way-text', providerPath: 'own-key', provider: 'openai' }))
-      .rejects.toThrow('storage unavailable');
+      .rejects.toThrow(SetupPersistError);
 
     expect(useSetupStore.getState().setup).toBeNull();
   });
