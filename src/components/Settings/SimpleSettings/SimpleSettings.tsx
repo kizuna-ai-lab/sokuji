@@ -120,7 +120,10 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
       clearTimeout(scrollTimer);
       if (highlightTimer) clearTimeout(highlightTimer);
       // The DOM persists across panel hides, so a highlight interrupted
-      // mid-animation must be removed here, not just its timer.
+      // mid-animation must be removed here, not just its timer. Capture
+      // whether THIS effect actually applied a highlight before nulling it
+      // out via the optional chain below — the store-clear guard needs it.
+      const wasHighlighted = highlightedEl !== null;
       highlightedEl?.classList.remove('highlight');
       // The store has no other writer that clears settingsNavigationTarget:
       // an early exit here (panel hidden via <Activity>, or component
@@ -129,8 +132,15 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
       // a step that already finished. Only clear it if it still holds THIS
       // exact target — a cleanup firing because the target already moved on
       // to something newer (the normal retarget path above) must not
-      // clobber that newer value.
-      if (useSettingsStore.getState().settingsNavigationTarget === targetSection) {
+      // clobber that newer value. AND only if this effect actually applied
+      // the highlight: React StrictMode's dev-only simulated remount runs
+      // this cleanup before the 100ms scrollTimer ever fires (highlightedEl
+      // still null), and since highlightSection IS settingsNavigationTarget
+      // in production (MainLayout.tsx:248 -> Settings.tsx:171), clearing
+      // the store here would make the re-created effect's own targetSection
+      // read null and bail immediately — silently dropping the highlight in
+      // dev. Production is unaffected (no double-invoke there).
+      if (wasHighlighted && useSettingsStore.getState().settingsNavigationTarget === targetSection) {
         navigateToSettings(null);
       }
     };

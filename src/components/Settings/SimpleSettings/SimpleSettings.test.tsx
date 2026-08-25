@@ -176,4 +176,25 @@ describe('SimpleSettings — highlight ring cleanup (F2)', () => {
 
     expect(settingsNavigationTarget).toBe('microphone');
   });
+
+  // R6 (fix round 2): React StrictMode's dev-only simulated effect remount
+  // runs this cleanup BEFORE the 100ms scrollTimer ever fires, i.e. before
+  // the highlight was ever applied. Since highlightSection IS
+  // settingsNavigationTarget in production (MainLayout.tsx:248 ->
+  // Settings.tsx:171), the round-1 guard alone still saw the store holding
+  // this exact target and cleared it — so the re-created effect's own
+  // targetSection immediately read null and bailed via
+  // `if (!targetSection) return;`, silently dropping the highlight in dev.
+  it('leaves the stored navigation target alone when the highlight never applied (unmount before the 100ms scroll timer fires)', () => {
+    settingsNavigationTarget = 'participant';
+    const { unmount } = render(<SimpleSettings highlightSection="participant" />);
+
+    // No `act(() => vi.advanceTimersByTime(100))` here: unmount happens
+    // strictly before the scrollTimer's callback runs, so `highlightedEl`
+    // was never set and the highlight was never applied.
+    unmount();
+
+    expect(settingsNavigationTarget).toBe('participant');
+    expect(navigateToSettings).not.toHaveBeenCalled();
+  });
 });
