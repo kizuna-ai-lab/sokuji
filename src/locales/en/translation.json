@@ -724,6 +724,7 @@
       "validate": "Validate",
       "valid": "Key accepted.",
       "invalid": "The key was rejected.",
+      "onFile": "A key is already saved — leave this blank to keep it.",
       "signIn": "Sign in",
       "createAccount": "Create account",
       "signedIn": "Signed in. You can continue.",

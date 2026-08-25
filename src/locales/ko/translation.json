@@ -1058,7 +1058,8 @@
       "managedDesc": "Sign in or create an account. Translation is billed from your balance; new accounts get a trial credit.",
       "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
       "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then."
+      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
+      "onFile": "A key is already saved — leave this blank to keep it."
     },
     "languagePair": {
       "source": "From",

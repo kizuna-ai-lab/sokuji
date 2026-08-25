@@ -1052,6 +1052,7 @@
       "validate": "校验",
       "valid": "密钥可用。",
       "invalid": "密钥被拒绝。",
+      "onFile": "已保存密钥——留空即沿用。",
       "signIn": "登录",
       "createAccount": "注册账号",
       "signedIn": "已登录，可以继续。",

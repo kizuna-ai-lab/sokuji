@@ -65,6 +65,10 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
   // wizard that covers the app can change it while this step is on screen.
   const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore] as Record<string, unknown>;
   const fields = descriptor.credentialFieldsFor(slice);
+  // A re-run seeds credentialsValidated from the key already in settings, which
+  // the draft deliberately does not carry: the fields are empty and staying
+  // empty keeps that key. Saying so beats a green box over an empty password.
+  const keyOnFile = draft.credentialsValidated && fields.some((f) => !draft.credentials[f.key]);
 
   const validate = async () => {
     setValidating(true);
@@ -98,10 +102,15 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
             value={draft.credentials[f.key] ?? ''}
             placeholder={f.placeholderKey ? t(f.placeholderKey, '') : ''}
             onChange={(e) => dispatch({ type: 'setCredential', key: f.key, value: e.target.value })}
-            status={draft.credentialsValidated ? 'valid' : message && !message.ok ? 'invalid' : null}
+            status={keyOnFile ? null : draft.credentialsValidated ? 'valid' : message && !message.ok ? 'invalid' : null}
           />
         </label>
       ))}
+      {keyOnFile && (
+        <StatusMessage variant="info">
+          {t('setup.credentials.onFile', 'A key is already saved — leave this blank to keep it.')}
+        </StatusMessage>
+      )}
       <div className="setup-actions">
         <Button variant="primary" onClick={validate} loading={validating} disabled={validating || fields.some((f) => !draft.credentials[f.key])}>
           {t('setup.credentials.validate', 'Validate')}

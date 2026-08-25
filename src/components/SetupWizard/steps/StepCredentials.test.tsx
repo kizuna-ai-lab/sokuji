@@ -48,6 +48,23 @@ describe('StepCredentials (own key)', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'setCredential', key: 'apiKeyJp', value: 'sk-jp' });
   });
 
+  it('shows the key-on-file notice instead of marking an empty field valid', () => {
+    // A Help re-run seeds credentialsValidated from the live key, which is in
+    // settings, not in the draft: a green empty password box claims otherwise.
+    const { container } = render(<StepCredentials draft={ownKeyDraft({ credentialsValidated: true })} dispatch={vi.fn()} />);
+
+    expect(screen.getByText('setup.credentials.onFile')).toBeInTheDocument();
+    expect(container.querySelector('input')).not.toHaveClass('settings-input--valid');
+  });
+
+  it('marks a freshly validated field valid, with no notice', () => {
+    const draft = ownKeyDraft({ credentialsValidated: true, credentials: { apiKey: 'sk-typed' } });
+    const { container } = render(<StepCredentials draft={draft} dispatch={vi.fn()} />);
+
+    expect(screen.queryByText('setup.credentials.onFile')).not.toBeInTheDocument();
+    expect(container.querySelector('input')).toHaveClass('settings-input--valid');
+  });
+
   it('keeps the US slot for the default region', () => {
     const dispatch = vi.fn();
     render(<StepCredentials draft={ownKeyDraft()} dispatch={dispatch} />);
