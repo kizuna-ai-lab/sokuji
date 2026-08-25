@@ -132,50 +132,99 @@ describe('TourOverlay', () => {
   });
 
   describe('synchronous focusin fallback (F1: rapid Tab can outrun FloatingFocusManager)', () => {
-    // jsdom does not dispatch `focusin` from `element.focus()` in every setup;
-    // this helper covers both so the tests keep working either way (see the
-    // brief's note).
-    const focusAndBubble = (el: HTMLElement) => {
-      el.focus();
-      el.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    // jsdom dispatches `focusin` natively from `element.focus()` in this
+    // setup (confirmed by the first, pre-fix run of the test below actually
+    // failing on the real listener path) — no synthetic dispatch needed.
+    // Every element this suite parks in document.body outside the render
+    // container (outside buttons, the focus-guard span) is tracked here and
+    // swept up afterwards so a failing assertion can't leave a stray
+    // focusable node for a later test to trip over.
+    let extraEls: HTMLElement[] = [];
+    const appendOutside = (tag: string = 'button') => {
+      const el = document.createElement(tag);
+      if (tag === 'button') el.textContent = 'outside';
+      document.body.appendChild(el);
+      extraEls.push(el);
+      return el;
     };
+    afterEach(() => {
+      extraEls.forEach((el) => el.remove());
+      extraEls = [];
+    });
 
     it('pulls focus back onto the primary button when an outside element is focused', () => {
       render(<TourOverlay />);
-      const outside = document.createElement('button');
-      outside.textContent = 'outside';
-      document.body.appendChild(outside);
+      const outside = appendOutside();
 
-      focusAndBubble(outside);
+      outside.focus();
 
       expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next' }));
-      outside.remove();
     });
 
-    it('leaves focus on the outside element while the auth overlay is open', () => {
-      authOverlayState = 'sign-in';
+    // Covers the containment check itself: if `refs.floating.current.contains(...)`
+    // regressed to always-false, this would fail because focus would get
+    // yanked from Skip back onto Next even though Skip is inside the popover.
+    it('leaves focus alone on a button already inside the popover (Skip)', () => {
       render(<TourOverlay />);
-      const outside = document.createElement('button');
-      outside.textContent = 'outside';
-      document.body.appendChild(outside);
+      const skip = screen.getByRole('button', { name: 'Skip' });
 
-      focusAndBubble(outside);
+      skip.focus();
 
-      expect(document.activeElement).toBe(outside);
-      outside.remove();
+      expect(document.activeElement).toBe(skip);
     });
 
-    it('stops pulling focus back after unmount', () => {
+    // Covers the focus-guard ignore rule: if the `[data-floating-ui-focus-guard]`
+    // check regressed, this would fail because the guard span would get
+    // pulled back onto Next instead of being left for floating-ui's own wrap.
+    it("leaves focus alone on floating-ui's own focus guard", () => {
+      render(<TourOverlay />);
+      const guard = appendOutside('span');
+      guard.setAttribute('data-floating-ui-focus-guard', '');
+      guard.tabIndex = 0;
+
+      guard.focus();
+
+      expect(document.activeElement).toBe(guard);
+    });
+
+    it('leaves focus on the outside element while the auth overlay is open, and resumes pulling it back once the overlay closes', () => {
+      authOverlayState = 'sign-in';
+      const { rerender } = render(<TourOverlay />);
+      const outside = appendOutside();
+
+      outside.focus();
+      expect(document.activeElement).toBe(outside);
+
+      // Positive control: closing the overlay must re-arm the fallback on
+      // the SAME mounted overlay, not just prove the listener never ran.
+      authOverlayState = null;
+      rerender(<TourOverlay />);
+      // Move focus onto the primary button first: re-focusing an element
+      // that's already `document.activeElement` doesn't fire a new
+      // `focusin` event, so the pull-back can't be observed by re-focusing
+      // `outside` while it's still the (unchanged) active element.
+      screen.getByRole('button', { name: 'Next' }).focus();
+      outside.focus();
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next' }));
+    });
+
+    it('stops pulling focus back after unmount, and a fresh mount resumes it', () => {
       const { unmount } = render(<TourOverlay />);
       unmount();
-      const outside = document.createElement('button');
-      outside.textContent = 'outside';
-      document.body.appendChild(outside);
+      const outside = appendOutside();
 
-      focusAndBubble(outside);
-
+      outside.focus();
       expect(document.activeElement).toBe(outside);
-      outside.remove();
+
+      // Positive control: a fresh TourOverlay instance must still pull focus
+      // back, so the prior assertion is proof the LISTENER was removed, not
+      // that focusin handling is broken outright.
+      render(<TourOverlay />);
+      // Same reasoning as above: force a genuine focus change onto the
+      // fresh instance's primary button before re-focusing `outside`.
+      screen.getByRole('button', { name: 'Next' }).focus();
+      outside.focus();
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next' }));
     });
   });
 });
