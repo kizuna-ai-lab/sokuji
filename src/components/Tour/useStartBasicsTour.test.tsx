@@ -18,6 +18,8 @@ vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: true }) }
 vi.mock('../../utils/environment', () => ({
   isElectron: () => true, isLinux: () => true, isMacOS: () => false, isWindows: () => false,
 }));
+const setShowSettings = vi.fn();
+vi.mock('../../stores/layoutStore', () => ({ useLayoutStore: { getState: () => ({ setShowSettings }) } }));
 const startSpy = vi.fn();
 vi.mock('./TourProvider', () => ({ useTour: () => ({ start: startSpy }) }));
 
@@ -28,7 +30,7 @@ const Probe: React.FC = () => {
   return <button type="button" onClick={startTour}>restart</button>;
 };
 
-beforeEach(() => { cleanup(); startSpy.mockClear(); });
+beforeEach(() => { cleanup(); startSpy.mockClear(); setShowSettings.mockClear(); });
 
 describe('useStartBasicsTour', () => {
   it('builds the ctx from the live stores, not from the stored setup record', () => {
@@ -44,5 +46,16 @@ describe('useStartBasicsTour', () => {
       provider: 'openai', mode: 'speaker', textOnly: false,
       isSignedIn: true, apiKeyValid: true, platform: 'electron', os: 'linux',
     }));
+  });
+
+  it('closes the settings panel before starting, wherever it was invoked from', () => {
+    // SimpleSettings renders HelpSection without a toggleSettings prop, so the
+    // link alone leaves the panel open under the restarted tour. Closing here
+    // covers every caller; the steps that need the panel reopen it in prepare.
+    render(<Probe />);
+    fireEvent.click(screen.getByRole('button', { name: 'restart' }));
+
+    expect(setShowSettings).toHaveBeenCalledWith(false);
+    expect(setShowSettings.mock.invocationCallOrder[0]).toBeLessThan(startSpy.mock.invocationCallOrder[0]);
   });
 });
