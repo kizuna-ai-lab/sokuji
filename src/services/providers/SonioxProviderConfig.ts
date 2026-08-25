@@ -196,6 +196,15 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     { key: sonioxKeyField(DEFAULT_SONIOX_REGION), labelKey: 'setup.credentials.apiKey', secret: true },
   ];
 
+  /** One key per region, and extractCredentials reads the ACTIVE region's slot
+   *  — so the input the wizard renders has to write that same slot. Mapping the
+   *  declared list (rather than returning a fresh one) keeps the managed twin,
+   *  which declares no fields at all, declaring none here too. */
+  credentialFieldsFor(settings: unknown): readonly CredentialField[] {
+    const key = sonioxKeyField(asSonioxRegion((settings as SonioxSettings | null)?.region));
+    return this.credentialFields.map((f) => ({ ...f, key }));
+  }
+
   /**
    * Pick the ACTIVE region's key, and carry the region in `endpoint`.
    *

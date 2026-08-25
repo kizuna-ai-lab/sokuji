@@ -234,6 +234,13 @@ export interface ProviderDescriptor {
    *  descriptorRegistry.test.ts proves the list is complete for every provider. */
   readonly credentialFields: readonly CredentialField[];
 
+  /** The same fields, resolved against a settings slice. Every UI that renders
+   *  or writes a credential must go through this rather than reading
+   *  `credentialFields` directly: a provider whose slot depends on another
+   *  setting (Soniox keeps one key per region) would otherwise be written to
+   *  the default region's slot while extractCredentials reads the active one. */
+  credentialFieldsFor(settings: unknown): readonly CredentialField[];
+
   createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient;
   validateAndFetchModels(creds: Credentials): Promise<{
     validation: ApiKeyValidationResult; models: FilteredModel[];
@@ -333,6 +340,11 @@ export abstract class BaseProviderDescriptor implements ProviderDescriptor {
   readonly credentialFields: readonly CredentialField[] = [
     { key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true },
   ];
+
+  /** The slice changes nothing for the common case. */
+  credentialFieldsFor(_settings: unknown): readonly CredentialField[] {
+    return this.credentialFields;
+  }
 
   abstract createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient;
   abstract validateAndFetchModels(creds: Credentials): Promise<{

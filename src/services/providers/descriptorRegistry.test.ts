@@ -676,4 +676,14 @@ describe('credentialFields (spec §1.8)', () => {
       }
     }
   });
+
+  it('credentialFieldsFor falls back to the declared fields when the slice says nothing', () => {
+    // Descriptors whose slot depends on other settings (Soniox's region) may
+    // vary the key, but never for a slice that carries no such setting — the
+    // declared list stays the answer every other caller can rely on.
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const d = ProviderConfigFactory.getDescriptor(id);
+      expect(d.credentialFieldsFor({}), `${id} credentialFieldsFor({})`).toEqual(d.credentialFields);
+    }
+  });
 });

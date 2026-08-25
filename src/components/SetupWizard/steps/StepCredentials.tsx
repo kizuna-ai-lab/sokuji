@@ -59,15 +59,18 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
   // own-key
   const provider = draft.provider!;
   const descriptor = ProviderConfigFactory.getDescriptor(provider);
-  const fields = descriptor.credentialFields;
+  // The live slice stands in for the provider's defaults (untouched on a fresh
+  // install) and decides which slot a field writes to — Soniox keeps one key
+  // per region. Read once per render rather than subscribed: nothing behind a
+  // wizard that covers the app can change it while this step is on screen.
+  const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore] as Record<string, unknown>;
+  const fields = descriptor.credentialFieldsFor(slice);
 
   const validate = async () => {
     setValidating(true);
     setMessage(null);
     try {
-      // The live slice stands in for the provider's defaults (untouched on a
-      // fresh install); the draft overlays it. Nothing is written.
-      const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore] as Record<string, unknown>;
+      // The draft overlays the slice. Nothing is written.
       const creds = await descriptor.extractCredentials({ ...slice, ...draft.credentials }, { getAuthToken: getToken });
       if (!creds.ok) { setMessage({ ok: false, text: creds.missing }); return; }
       const { validation } = await descriptor.validateAndFetchModels(creds);
