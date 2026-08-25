@@ -770,7 +770,7 @@
       "account": {
         "title": "Your account",
         "content": "Your balance and top-up live here.",
-        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+        "content_signedOut": "Your account lives here. Sign in after the tour to unlock Start."
       },
       "provider-settings": {
         "title": "Provider settings",
@@ -785,7 +785,7 @@
         "content_signedOut": "This lights up once you sign in.",
         "content_pendingKey": "This lights up once your API key validates."
       },
-      "done": { "title": "That's it", "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help." }
+      "done": { "title": "That's it", "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top-right of Settings. Replay this guide any time from Help." }
     }
   },
   "tokenUsage": {
