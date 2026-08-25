@@ -87,23 +87,42 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
   // drift apart in a locale.
   const monitorLockedReason = t('audioPanel.monitorLockedByMode', { mode: t('modePicker.modeYou') });
 
-  // Handle scrolling and highlighting when highlightSection or settingsNavigationTarget changes
+  // Handle scrolling and highlighting when highlightSection or
+  // settingsNavigationTarget changes. Mirrors Settings.tsx:101-121 (advanced
+  // mode's own scroll/highlight effect): keep the outer/inner timer handles
+  // and the highlighted element in local variables so cleanup can cancel a
+  // pending highlight and strip the ring from whichever element it was
+  // applied to. Without this, retargeting within the 3s window (e.g. the
+  // tour stepping from the microphone card to the participant card) left the
+  // OLD element wearing `.highlight` until its own timer eventually fired —
+  // and that stale timer then called navigateToSettings(null) on top of the
+  // new target's state.
   useEffect(() => {
     const targetSection = highlightSection || settingsNavigationTarget;
-    if (targetSection) {
-      setTimeout(() => {
-        const sectionId = `${targetSection}-section`;
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.classList.add('highlight');
-          setTimeout(() => {
-            element.classList.remove('highlight');
-            navigateToSettings(null);
-          }, 3000);
-        }
-      }, 100);
-    }
+    if (!targetSection) return;
+    let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+    let highlightedEl: HTMLElement | null = null;
+    const scrollTimer = setTimeout(() => {
+      const sectionId = `${targetSection}-section`;
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.classList.add('highlight');
+        highlightedEl = element;
+        highlightTimer = setTimeout(() => {
+          element.classList.remove('highlight');
+          highlightedEl = null;
+          navigateToSettings(null);
+        }, 3000);
+      }
+    }, 100);
+    return () => {
+      clearTimeout(scrollTimer);
+      if (highlightTimer) clearTimeout(highlightTimer);
+      // The DOM persists across panel hides, so a highlight interrupted
+      // mid-animation must be removed here, not just its timer.
+      highlightedEl?.classList.remove('highlight');
+    };
   }, [highlightSection, settingsNavigationTarget, navigateToSettings]);
 
   // Local provider + an expanded slot: host the engine surface INSTEAD of
