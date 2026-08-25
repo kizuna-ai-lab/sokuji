@@ -83,6 +83,11 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
   const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore] as Record<string, unknown>;
   const fields = descriptor.credentialFieldsFor(slice);
   const tutorialUrl = TUTORIAL_URLS[provider];
+  // A re-run arrives already validated, and normally the prefill below fills
+  // the boxes to match. When it cannot — a provider whose validated credential
+  // is not among the fields this surface renders — an empty box painted green
+  // would claim a key that is not there. Say what is true instead.
+  const keyOnFile = draft.credentialsValidated && fields.some((f) => !draft.credentials[f.key]);
 
   const validate = async () => {
     setValidating(true);
@@ -118,10 +123,15 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
             value={draft.credentials[f.key] ?? ''}
             placeholder={f.placeholderKey ? t(f.placeholderKey, '') : ''}
             onChange={(e) => dispatch({ type: 'setCredential', key: f.key, value: e.target.value })}
-            status={draft.credentialsValidated ? 'valid' : message && !message.ok ? 'invalid' : null}
+            status={keyOnFile ? null : draft.credentialsValidated ? 'valid' : message && !message.ok ? 'invalid' : null}
           />
         </label>
       ))}
+      {keyOnFile && (
+        <StatusMessage variant="info">
+          {t('setup.credentials.onFile', 'A key is already saved — leave this blank to keep it.')}
+        </StatusMessage>
+      )}
       {tutorialUrl && (
         <a
           className="setup-link"
@@ -162,7 +172,10 @@ const CredentialPrefill: React.FC<{
     // provider clears `credentials`, which re-arms this for the new one, and a
     // keystroke (or an explicit clear, which leaves the key present but empty)
     // must never be overwritten by what is still in settings.
-    if (touched) return;
+    // `credentialsPending` too: "Skip for now" clears the draft's credentials,
+    // so a user who skipped and pressed Back would otherwise find the saved key
+    // back in the box while the summary still says there is none.
+    if (touched || draft.credentialsPending) return;
     const values = JSON.parse(saved) as string[];
     const credentials: Record<string, string> = {};
     fieldKeys.forEach((k, i) => { if (values[i]) credentials[k] = values[i]; });
@@ -170,7 +183,7 @@ const CredentialPrefill: React.FC<{
     // fieldKeys is a fresh array every render; `saved` carries both it and the
     // values it resolved to, as a stable string.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [touched, saved, dispatch]);
+  }, [touched, saved, dispatch, draft.credentialsPending]);
   return null;
 };
 

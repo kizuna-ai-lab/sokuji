@@ -725,6 +725,7 @@
       "validate": "Validate",
       "valid": "Key accepted.",
       "invalid": "The key was rejected.",
+      "onFile": "A key is already saved — leave this blank to keep it.",
       "ownKeyDesc": "Sokuji talks to the provider directly with this key, and takes no cut — you pay them for what you use.",
       "guide": "How to get this key",
       "signIn": "Sign in",

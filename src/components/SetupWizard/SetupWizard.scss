@@ -68,7 +68,7 @@
   > p { margin: 0 0 vars.$space-4; font-size: vars.$font-body; color: vars.$text-secondary; }
   // A line that introduces the control under it, not the step: lighter than the
   // step's own lede so the two do not read as one paragraph.
-  &__note { font-size: vars.$font-caption; color: vars.$text-muted; margin: 0 0 vars.$space-2 !important; }
+  > p.setup-step__note { font-size: vars.$font-caption; color: vars.$text-muted; margin: 0 0 vars.$space-2; }
 }
 
 .setup-cards {

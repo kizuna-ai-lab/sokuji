@@ -81,10 +81,20 @@ describe('StepCredentials (own key)', () => {
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'prefillCredentials' }));
   });
 
+  it('says the key is on file when the validated one is not in a rendered field', () => {
+    // Palabra in app mode validates clientId+clientSecret; a provider whose
+    // rendered field stays empty must not be painted green over nothing.
+    const { container } = render(<StepCredentials draft={ownKeyDraft({ credentialsValidated: true })} dispatch={vi.fn()} />);
+
+    expect(screen.getByText('setup.credentials.onFile')).toBeInTheDocument();
+    expect(container.querySelector('input')).not.toHaveClass('settings-input--valid');
+  });
+
   it('marks a validated field valid', () => {
     const draft = ownKeyDraft({ credentialsValidated: true, credentials: { apiKey: 'sk-typed' } });
     const { container } = render(<StepCredentials draft={draft} dispatch={vi.fn()} />);
 
+    expect(screen.queryByText('setup.credentials.onFile')).not.toBeInTheDocument();
     expect(container.querySelector('input')).toHaveClass('settings-input--valid');
   });
 
@@ -96,6 +106,14 @@ describe('StepCredentials (own key)', () => {
 
     expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'skipCredentials' });
     expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'next' });
+  });
+
+  it('leaves the box alone after Skip, so Back does not contradict the summary', () => {
+    sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ownKeyDraft({ credentialsPending: true })} dispatch={dispatch} />);
+
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'prefillCredentials' }));
   });
 
   it('links the provider tutorial so the user can find out how to get a key', () => {

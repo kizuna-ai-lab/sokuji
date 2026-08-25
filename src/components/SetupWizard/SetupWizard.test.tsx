@@ -133,7 +133,9 @@ describe('SetupWizard', () => {
     // Skip carries the user forward itself; it is a button beside a button and
     // a version that only set a flag looked broken.
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();   // language pair, defaults filled
+    // The language-pair step itself, not just an enabled Next: skipping also
+    // sets credentialsPending, which enables Next on the credential step too.
+    expect(screen.getByRole('combobox', { name: 'they read' })).toBeInTheDocument();
     next();                                           // finish
     expect(screen.getByText(/No API key yet/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));

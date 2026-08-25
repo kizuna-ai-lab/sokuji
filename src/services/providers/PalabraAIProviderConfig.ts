@@ -48,6 +48,22 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     { key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true },
   ];
 
+  /** App mode validates a client id and secret, not the platform key (see
+   *  extractCredentials below). A surface that rendered the declared `apiKey`
+   *  there would collect a credential nothing checks, and report the account
+   *  as already valid over an empty box. Labels reuse the placeholders the
+   *  provider section already shows for the same two fields. */
+  credentialFieldsFor(settings: unknown): readonly CredentialField[] {
+    const s = settings as PalabraAISettings | undefined;
+    if (s?.authMode && s.authMode !== 'platform') {
+      return [
+        { key: 'clientId', labelKey: 'providers.palabraai.clientIdPlaceholder', secret: true },
+        { key: 'clientSecret', labelKey: 'providers.palabraai.clientSecretPlaceholder', secret: true },
+      ];
+    }
+    return this.credentialFields;
+  }
+
   async extractCredentials(slice: unknown, _ctx: CredentialCtx): Promise<Credentials> {
     const s = slice as PalabraAISettings;
     if (s?.authMode === 'platform') {

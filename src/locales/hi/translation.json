@@ -984,7 +984,7 @@
       }
     },
     "scenarios": {
-      "sets": "Sets: mode {{mode}} · {{output}}",
+      "sets": "Sets: {{mode}} mode · {{output}}",
       "understand-others": {
         "title": "Understand what others say",
         "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
@@ -999,7 +999,7 @@
       },
       "two-way-voice": {
         "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you read their subtitles."
+        "desc": "They hear your translated voice; you read subtitles generated from what they say."
       },
       "two-way-text": {
         "title": "Two-way online conversation, subtitles only",
@@ -1017,12 +1017,12 @@
       "managed": {
         "title": "Start right away",
         "desc": "Sokuji runs the translation for you.",
-        "cost": "Needs a Kizuna AI account (email) with a balance. New accounts get a trial credit."
+        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
       },
       "own-key": {
         "title": "I have my own API key",
-        "desc": "Use OpenAI, Gemini, Soniox and others directly.",
-        "cost": "You pay the provider for usage."
+        "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.",
+        "cost": "Sokuji talks to that provider directly with your key. You pay them for what you use; Sokuji adds nothing."
       },
       "offline": {
         "title": "Free, offline",
@@ -1053,13 +1053,14 @@
       "signIn": "Sign in",
       "createAccount": "Create account",
       "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign in or create an account. Translation is billed from your balance; new accounts get a trial credit.",
+      "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
       "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
       "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
       "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
       "ownKeyDesc": "Sokuji talks to the provider directly with this key, and takes no cut — you pay them for what you use.",
       "guide": "How to get this key",
-      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do."
+      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
+      "onFile": "A key is already saved — leave this blank to keep it."
     },
     "summary": {
       "scenario": "Scenario",

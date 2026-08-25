@@ -43,8 +43,8 @@ import type { SettingsStore } from '../../../stores/settingsStore';
 import { Provider, ProviderType, isKizunaManagedProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { TUTORIAL_URLS } from '../../../services/providers/tutorialUrls';
+import { openExternalUrl } from '../../../utils/openExternalUrl';
 import { useAuth } from '../../../lib/auth/hooks';
-import { isElectron } from '../../../utils/environment';
 import { useAnalytics } from '../../../lib/analytics';
 import { useModelStore } from '../../../stores/modelStore';
 import { useIsParticipantChannelInScope, useMode } from '../../../stores/audioStore';
@@ -290,14 +290,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   };
 
   const tutorialUrl = TUTORIAL_URLS[provider];
-
-  const openExternalUrl = (url: string) => {
-    if (isElectron() && (window as any).electron?.invoke) {
-      (window as any).electron.invoke('open-external', url);
-    } else {
-      window.open(url, '_blank');
-    }
-  };
 
   // Shared by every model chip (both local providers, both speaker/
   // participant chip groups): deep-link the engine surface straight to this
