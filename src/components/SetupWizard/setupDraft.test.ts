@@ -70,6 +70,18 @@ describe('setupReducer — clearing rules (spec §1.4)', () => {
     expect(viaProvider).toMatchObject({ provider: Provider.GEMINI, credentials: {}, credentialsValidated: false, sourceLanguage: null });
   });
 
+  it('prefills only the slots the user has not touched, leaving the flags alone', () => {
+    const validated = run(base, { type: 'credentialsValidated' }, { type: 'setCredential', key: 'apiKey', value: 'typed' });
+    const filled = run(validated, { type: 'prefillCredentials', credentials: { apiKey: 'saved', apiKeyEu: 'saved-eu' } });
+    expect(filled.credentials).toEqual({ apiKey: 'typed', apiKeyEu: 'saved-eu' });
+    // setCredential above already cleared it; prefilling must not flip it back.
+    expect(filled.credentialsValidated).toBe(false);
+
+    // A re-run arrives validated (the record says so) with an empty draft.
+    const seeded = run({ ...base, credentials: {} }, { type: 'prefillCredentials', credentials: { apiKey: 'saved' } });
+    expect(seeded).toMatchObject({ credentials: { apiKey: 'saved' }, credentialsValidated: true });
+  });
+
   it('editing a credential invalidates a previous validation and un-skips', () => {
     const skipped = run(base, { type: 'skipCredentials' });
     expect(skipped).toMatchObject({ credentialsPending: true, credentials: {} });

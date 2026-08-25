@@ -260,4 +260,13 @@ describe('interface language in Help', () => {
     expect(screen.getByText(/restart setup guide/i)).toBeTruthy();
     expect(screen.getByText('support@kizuna.ai')).toBeTruthy();
   });
+
+  it('offers setup before the guided tour of what setup produced', () => {
+    const { container } = render(<HelpSection />);
+    const links = Array.from(container.querySelectorAll('.help-links .help-link')).map((a) => a.textContent ?? '');
+    const setup = links.findIndex((x) => /run setup again/i.test(x));
+    const tour = links.findIndex((x) => /restart setup guide/i.test(x));
+    expect(setup).toBeGreaterThanOrEqual(0);
+    expect(setup).toBeLessThan(tour);
+  });
 });

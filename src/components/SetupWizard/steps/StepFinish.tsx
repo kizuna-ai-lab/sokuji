@@ -13,7 +13,10 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
   const descriptor = ProviderConfigFactory.getDescriptor(draft.provider!);
   const providerName = t(`providers.${descriptor.i18nKey ?? draft.provider}.name`, ProviderConfigFactory.getConfig(draft.provider!).displayName);
   const nameOf = (list: { value: string; name: string }[], v: string | null) => list.find((o) => o.value === v)?.name ?? v ?? '';
-  const modeLabel = t(`setup.modes.${preset.mode}`, preset.mode === 'speaker' ? 'Me' : preset.mode === 'participant' ? 'Others' : 'Both');
+  // Same source as the scenario cards and the ModePicker itself.
+  const modeLabel = preset.mode === 'speaker'
+    ? t('modePicker.modeYou', 'Me')
+    : preset.mode === 'participant' ? t('modePicker.modeParticipants', 'Other') : t('modePicker.modeBoth', 'Both');
   const output = preset.textOnly ? t('setup.output.subtitles', 'subtitles') : t('setup.output.voice', 'spoken');
 
   // On the managed path sign-in state is the whole truth: a user who took

@@ -49,6 +49,13 @@
 
   &__title { margin: 0 0 vars.$space-2; font-size: vars.$font-title; font-weight: vars.$weight-semibold; }
   &__body { margin: 0 0 vars.$space-3; font-size: vars.$font-body; color: vars.$text-secondary; line-height: 1.45; }
+  // One option per line, tight against the body it belongs to: the point of the
+  // list is that each mode can be read on its own.
+  &__list {
+    margin: 0 0 vars.$space-3; padding: 0 0 0 vars.$space-4;
+    font-size: vars.$font-caption; color: vars.$text-secondary; line-height: 1.45;
+    li + li { margin-top: 2px; }
+  }
   &__footer { display: flex; align-items: center; gap: vars.$space-2; }
   &__progress { font-size: vars.$font-caption; color: vars.$text-muted; }
   &__spacer { flex: 1; }

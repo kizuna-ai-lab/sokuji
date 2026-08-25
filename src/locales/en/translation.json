@@ -685,21 +685,22 @@
       "finish": { "title": "Ready", "persistFailed": "Could not save your setup. Please try again." }
     },
     "scenarios": {
-      "sets": "Sets: mode {{mode}} · {{output}}",
+      "sets": "Sets: {{mode}} mode · {{output}}",
       "understand-others": { "title": "Understand what others say", "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear." },
       "be-heard": { "title": "Be understood in a meeting", "desc": "They hear your translated voice through a virtual microphone." },
       "subtitle-myself": { "title": "Subtitle my own speech", "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated." },
-      "two-way-voice": { "title": "Two-way online conversation", "desc": "They hear your translated voice; you read their subtitles." },
+      "two-way-voice": { "title": "Two-way online conversation", "desc": "They hear your translated voice; you read subtitles generated from what they say." },
       "two-way-text": { "title": "Two-way online conversation, subtitles only", "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice." }
     },
-    "modes": { "speaker": "Me", "participant": "Others", "both": "Both" },
     "output": { "voice": "spoken", "subtitles": "subtitles" },
     "paths": {
       "recommended": "Recommended",
       "pickProvider": "Which provider?",
+      "ownKeyNote": "Pick the provider you have an account with. Each one issues its own key:",
+      "ownKeyGuides": "guides for every provider",
       "offlineFlavor": "Which engine?",
-      "managed": { "title": "Start right away", "desc": "Sokuji runs the translation for you.", "cost": "Needs a Kizuna AI account (email) with a balance. New accounts get a trial credit." },
-      "own-key": { "title": "I have my own API key", "desc": "Use OpenAI, Gemini, Soniox and others directly.", "cost": "You pay the provider for usage." },
+      "managed": { "title": "Start right away", "desc": "Sokuji runs the translation for you.", "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use." },
+      "own-key": { "title": "I have my own API key", "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.", "cost": "Sokuji talks to that provider directly with your key. You pay them for what you use; Sokuji adds nothing." },
       "offline": {
         "title": "Free, offline",
         "desc": "Runs on your own machine. Nothing leaves it.",
@@ -724,16 +725,17 @@
       "validate": "Validate",
       "valid": "Key accepted.",
       "invalid": "The key was rejected.",
-      "onFile": "A key is already saved — leave this blank to keep it.",
+      "ownKeyDesc": "Sokuji talks to the provider directly with this key, and takes no cut — you pay them for what you use.",
+      "guide": "How to get this key",
       "signIn": "Sign in",
       "createAccount": "Create account",
       "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign in or create an account. Translation is billed from your balance; new accounts get a trial credit.",
+      "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
+      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
       "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
       "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
       "pendingSignIn": "You can sign in later from the account button. Start stays locked until then."
     },
-    "languagePair": { "source": "From", "target": "To" },
     "summary": {
       "scenario": "Scenario",
       "mode": "Mode",
@@ -751,7 +753,10 @@
     "restart": "Restart Setup Guide",
     "steps": {
       "welcome": { "title": "You're set up", "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute." },
-      "mode-picker": { "title": "Translation mode", "content": "This is set for you. Switch it any time; switching also changes whether the translation is spoken or shown as subtitles." },
+      "mode-picker": { "title": "Translation mode", "content": "This is set for you. Switch it any time; switching also changes whether the translation is spoken or shown as subtitles.",
+        "modeMe": "Me — what you say is translated for the other side.",
+        "modeOthers": "Other — what they say is translated for you.",
+        "modeBoth": "Both — both directions at once." },
       "microphone": { "title": "Your microphone", "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app." },
       "monitor": { "title": "Hear yourself translated", "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it." },
       "output-routing": {

@@ -14,7 +14,11 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }
 // The descriptor registry drags the clients in, and one of them imports the
 // i18n singleton — which cannot initialise against the mocked react-i18next.
 vi.mock('../../../locales', () => ({ default: { t: (k: string) => k }, changeLanguageWithLoad: vi.fn() }));
-vi.mock('../../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false, getToken: async () => null }) }));
+let authState = { isSignedIn: false, emailVerified: false as boolean | null };
+vi.mock('../../../lib/auth/hooks', () => ({
+  useAuth: () => ({ isSignedIn: authState.isSignedIn, getToken: async () => null }),
+  useUser: () => ({ isLoaded: true, user: authState.isSignedIn ? { emailVerified: authState.emailVerified } : null }),
+}));
 // The live slice the wizard reads to resolve the credential field and to stand
 // in for the provider's defaults during Validate. Mutable per test.
 let sliceState: Record<string, unknown> = {};
@@ -31,9 +35,13 @@ import { Provider } from '../../../types/Provider';
 const ownKeyDraft = (patch: Partial<SetupDraft> = {}): SetupDraft => ({
   ...initialDraft(), step: 3, providerPath: 'own-key', provider: Provider.SONIOX, ...patch,
 });
+const managedDraft = (patch: Partial<SetupDraft> = {}): SetupDraft => ({
+  ...initialDraft(), step: 3, providerPath: 'managed', provider: Provider.KIZUNA_AI_SONIOX, ...patch,
+});
 
 beforeEach(() => {
   cleanup();
+  authState = { isSignedIn: false, emailVerified: false };
   sliceState = { soniox: { apiKey: '', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
 });
 
@@ -48,23 +56,6 @@ describe('StepCredentials (own key)', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'setCredential', key: 'apiKeyJp', value: 'sk-jp' });
   });
 
-  it('shows the key-on-file notice instead of marking an empty field valid', () => {
-    // A Help re-run seeds credentialsValidated from the live key, which is in
-    // settings, not in the draft: a green empty password box claims otherwise.
-    const { container } = render(<StepCredentials draft={ownKeyDraft({ credentialsValidated: true })} dispatch={vi.fn()} />);
-
-    expect(screen.getByText('setup.credentials.onFile')).toBeInTheDocument();
-    expect(container.querySelector('input')).not.toHaveClass('settings-input--valid');
-  });
-
-  it('marks a freshly validated field valid, with no notice', () => {
-    const draft = ownKeyDraft({ credentialsValidated: true, credentials: { apiKey: 'sk-typed' } });
-    const { container } = render(<StepCredentials draft={draft} dispatch={vi.fn()} />);
-
-    expect(screen.queryByText('setup.credentials.onFile')).not.toBeInTheDocument();
-    expect(container.querySelector('input')).toHaveClass('settings-input--valid');
-  });
-
   it('keeps the US slot for the default region', () => {
     const dispatch = vi.fn();
     render(<StepCredentials draft={ownKeyDraft()} dispatch={dispatch} />);
@@ -72,5 +63,73 @@ describe('StepCredentials (own key)', () => {
     fireEvent.change(screen.getByLabelText('setup.credentials.apiKey'), { target: { value: 'sk-us' } });
 
     expect(dispatch).toHaveBeenCalledWith({ type: 'setCredential', key: 'apiKey', value: 'sk-us' });
+  });
+
+  it('prefills the key already in settings so a re-run shows what is saved', () => {
+    sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ownKeyDraft({ credentialsValidated: true })} dispatch={dispatch} />);
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'prefillCredentials', credentials: { apiKey: 'sk-saved' } });
+  });
+
+  it('does not prefill over a value the user is typing', () => {
+    sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ownKeyDraft({ credentials: { apiKey: 'sk-typing' } })} dispatch={dispatch} />);
+
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'prefillCredentials' }));
+  });
+
+  it('marks a validated field valid', () => {
+    const draft = ownKeyDraft({ credentialsValidated: true, credentials: { apiKey: 'sk-typed' } });
+    const { container } = render(<StepCredentials draft={draft} dispatch={vi.fn()} />);
+
+    expect(container.querySelector('input')).toHaveClass('settings-input--valid');
+  });
+
+  it('moves on when the key is left for later, instead of sitting on the step', () => {
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ownKeyDraft()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup.skipForNow' }));
+
+    expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'skipCredentials' });
+    expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'next' });
+  });
+
+  it('links the provider tutorial so the user can find out how to get a key', () => {
+    render(<StepCredentials draft={ownKeyDraft()} dispatch={vi.fn()} />);
+
+    expect(screen.getByRole('link', { name: /setup.credentials.guide/ }))
+      .toHaveAttribute('href', 'https://sokuji.kizuna.ai/docs/tutorials/soniox-setup');
+  });
+});
+
+describe('StepCredentials (managed)', () => {
+  it('tells a signed-in user with an unverified address to finish verification', () => {
+    authState = { isSignedIn: true, emailVerified: false };
+    render(<StepCredentials draft={managedDraft()} dispatch={vi.fn()} />);
+
+    expect(screen.getByText('setup.credentials.verifyEmail')).toBeInTheDocument();
+    expect(screen.queryByText('setup.credentials.signedIn')).not.toBeInTheDocument();
+  });
+
+  it('confirms a verified account', () => {
+    authState = { isSignedIn: true, emailVerified: true };
+    render(<StepCredentials draft={managedDraft()} dispatch={vi.fn()} />);
+
+    expect(screen.getByText('setup.credentials.signedIn')).toBeInTheDocument();
+    expect(screen.queryByText('setup.credentials.verifyEmail')).not.toBeInTheDocument();
+  });
+
+  it('moves on when sign-in is left for later', () => {
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={managedDraft()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup.skipForNow' }));
+
+    expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'skipCredentials' });
+    expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'next' });
   });
 });

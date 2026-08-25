@@ -1,6 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { ExternalLink } from 'lucide-react';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
+import { AI_PROVIDERS_DOCS_URL } from '../../../services/providers/tutorialUrls';
+import { openExternalUrl } from '../../../utils/openExternalUrl';
 import { Provider } from '../../../types/Provider';
 import type { ProviderType } from '../../../types/Provider';
 import type { ProviderPath } from '../../../lib/setup/types';
@@ -13,12 +16,12 @@ const PATH_COPY: Record<ProviderPath, { title: string; desc: string; cost: strin
   managed: {
     title: 'Start right away',
     desc: 'Sokuji runs the translation for you.',
-    cost: 'Needs a Kizuna AI account (email) with a balance. New accounts get a trial credit.',
+    cost: 'Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use.',
   },
   'own-key': {
     title: 'I have my own API key',
-    desc: 'Use OpenAI, Gemini, Soniox and others directly.',
-    cost: 'You pay the provider for usage.',
+    desc: 'Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.',
+    cost: 'Sokuji talks to that provider directly with your key. You pay them for what you use; Sokuji adds nothing.',
   },
   offline: {
     title: 'Free, offline',
@@ -62,6 +65,19 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
       </div>
 
       {draft.providerPath === 'own-key' && (
+        <>
+        <p className="setup-step__note">
+          {t('setup.paths.ownKeyNote', 'Pick the provider you have an account with. Each one issues its own key:')}
+          {' '}
+          <a
+            className="setup-link"
+            href={AI_PROVIDERS_DOCS_URL}
+            onClick={(e) => { e.preventDefault(); openExternalUrl(AI_PROVIDERS_DOCS_URL); }}
+          >
+            <ExternalLink size={12} />
+            {t('setup.paths.ownKeyGuides', 'guides for every provider')}
+          </a>
+        </p>
         <div className="setup-cards setup-cards--compact" role="radiogroup" aria-label={t('setup.paths.pickProvider', 'Which provider?')}>
           {ownKeyOptions(scenario).map(({ id, fit }) => (
             <label key={id} className={`setup-card${draft.provider === id ? ' is-selected' : ''}${fit.ok ? '' : ' is-disabled'}`}>
@@ -72,6 +88,7 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
             </label>
           ))}
         </div>
+        </>
       )}
 
       {draft.providerPath === 'offline' && offlineOptions().length > 1 && (

@@ -22,6 +22,10 @@ export interface TourStep {
   prepare?: (ctx: TourCtx, actions: TourActions) => void;
   placement?: Placement;
   copyVariant?: (ctx: TourCtx) => string | null;
+  /** i18n suffixes under tour.steps.<id>., rendered one per line under the
+   *  body. For a control whose options each need naming — a paragraph listing
+   *  three modes reads as one blur (feedback 2026-08-25). */
+  bullets?: readonly string[];
 }
 
 const speaks = (c: TourCtx) => c.mode !== 'participant' && !c.textOnly;
@@ -30,7 +34,7 @@ const hasParticipant = (c: TourCtx) => c.mode !== 'speaker';
 
 export const BASICS_STEPS: readonly TourStep[] = [
   { id: 'welcome' },
-  { id: 'mode-picker', anchor: 'mode-picker', placement: 'top' },
+  { id: 'mode-picker', anchor: 'mode-picker', placement: 'top', bullets: ['modeMe', 'modeOthers', 'modeBoth'] },
   { id: 'microphone', anchor: 'microphone-section', when: hasMic, prepare: (_c, a) => a.openSettings('microphone'), placement: 'left' },
   { id: 'monitor', anchor: 'speaker-section', when: (c) => c.mode === 'speaker' && !c.textOnly, prepare: (_c, a) => a.openSettings('speaker'), placement: 'left' },
   {
@@ -75,6 +79,11 @@ export function visibleSteps(ctx: TourCtx, catalogue: readonly TourStep[] = BASI
 
 export function titleKey(step: TourStep): string {
   return `tour.steps.${step.id}.title`;
+}
+
+/** Key for one of a step's bullet lines. */
+export function bulletKey(step: TourStep, bullet: string): string {
+  return `tour.steps.${step.id}.${bullet}`;
 }
 
 export function contentKey(step: TourStep, ctx: TourCtx): string {

@@ -8,12 +8,19 @@
   justify-content: center;
   background: vars.$bg-page;
   z-index: 1500; // above panels, below .auth-overlay-scrim (2000) so sign-in paints over it
+  // A window narrower than the card used to press it against all four edges,
+  // which reads as a broken layout rather than a dialog. The padding is the
+  // card's minimum breathing room; `100%` below resolves against this padded
+  // content box, so the gap survives at every width.
+  padding: vars.$space-4;
+  box-sizing: border-box;
 
   &--rerun { background: rgba(0, 0, 0, 0.66); }
 
   &__card {
     width: min(720px, 100%);
     max-height: 100%;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     background: vars.$bg-surface;
@@ -59,6 +66,9 @@
 .setup-step {
   h2 { margin: 0 0 vars.$space-2; font-size: vars.$font-title; color: vars.$text-primary; }
   > p { margin: 0 0 vars.$space-4; font-size: vars.$font-body; color: vars.$text-secondary; }
+  // A line that introduces the control under it, not the step: lighter than the
+  // step's own lede so the two do not read as one paragraph.
+  &__note { font-size: vars.$font-caption; color: vars.$text-muted; margin: 0 0 vars.$space-2 !important; }
 }
 
 .setup-cards {
@@ -86,11 +96,31 @@
 }
 
 .setup-field {
-  display: flex; flex-direction: column; gap: vars.$space-1; margin-bottom: vars.$space-3;
+  display: flex; flex-direction: column; gap: vars.$space-2; margin-bottom: vars.$space-3;
   > span { font-size: vars.$font-caption; color: vars.$text-secondary; }
+  // Same control as Settings' .language-select: the OS-drawn arrow sits hard
+  // against the right border and cannot be moved, so the app draws its own and
+  // reserves room for it on the right (Settings.scss:1235).
   // 100% + border-box: there is no global box-sizing reset, so a padded
   // full-width control would otherwise overflow its own row by padding+border.
-  select { @include vars.control-base; padding: 6px 8px; width: 100%; box-sizing: border-box; }
+  select {
+    @include vars.control-base;
+    width: 100%; box-sizing: border-box; cursor: pointer;
+    padding: 8px 32px 8px 10px;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+  }
+}
+
+// The provider guide, at link weight: it leaves the app, so it never competes
+// with Validate for the eye.
+.setup-link {
+  display: inline-flex; align-items: center; gap: vars.$space-1;
+  font-size: vars.$font-caption; color: vars.$color-primary; cursor: pointer; text-decoration: none;
+  &:hover { text-decoration: underline; }
 }
 
 .setup-actions { display: flex; gap: vars.$space-2; margin: vars.$space-3 0; flex-wrap: wrap; }

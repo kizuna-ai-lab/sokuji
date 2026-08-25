@@ -19,13 +19,18 @@ const DESCS: Record<string, string> = {
   'understand-others': 'Online meetings, classes, talks, videos, streams — read a live translation of what you hear.',
   'be-heard': 'They hear your translated voice through a virtual microphone.',
   'subtitle-myself': 'Talks, streams, presentations — your audience reads translated subtitles; no audio is generated.',
-  'two-way-voice': 'They hear your translated voice; you read their subtitles.',
+  'two-way-voice': 'They hear your translated voice; you read subtitles generated from what they say.',
   'two-way-text': 'Bilingual captions, meeting minutes — both sides as text, no synthetic voice.',
 };
 
 const StepScenario: React.FC<Props> = ({ draft, dispatch }) => {
   const { t } = useTranslation();
-  const modeLabel = (m: string) => t(`setup.modes.${m}`, m === 'speaker' ? 'Me' : m === 'participant' ? 'Others' : 'Both');
+  // The picker's own labels, not a second set: this line promises what the
+  // ModePicker will show once setup is done, so it has to read the same
+  // ("Others mode", not "participant") — feedback 2026-08-25.
+  const modeLabel = (m: string) => m === 'speaker'
+    ? t('modePicker.modeYou', 'Me')
+    : m === 'participant' ? t('modePicker.modeParticipants', 'Other') : t('modePicker.modeBoth', 'Both');
   const outputLabel = (textOnly: boolean) => (textOnly ? t('setup.output.subtitles', 'subtitles') : t('setup.output.voice', 'spoken'));
 
   return (
@@ -45,7 +50,7 @@ const StepScenario: React.FC<Props> = ({ draft, dispatch }) => {
             <span className="setup-card__title">{t(`setup.scenarios.${s.id}.title`, TITLES[s.id])}</span>
             <span className="setup-card__desc">{t(`setup.scenarios.${s.id}.desc`, DESCS[s.id])}</span>
             <span className="setup-card__sets">
-              {t('setup.scenarios.sets', 'Sets: mode {{mode}} · {{output}}', { mode: modeLabel(s.mode), output: outputLabel(s.textOnly) })}
+              {t('setup.scenarios.sets', 'Sets: {{mode}} mode · {{output}}', { mode: modeLabel(s.mode), output: outputLabel(s.textOnly) })}
             </span>
           </label>
         ))}

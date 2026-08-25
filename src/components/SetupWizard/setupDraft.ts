@@ -30,6 +30,7 @@ export type SetupAction =
   | { type: 'setPath'; path: ProviderPath; provider: ProviderType | null }
   | { type: 'setProvider'; provider: ProviderType }
   | { type: 'setCredential'; key: string; value: string }
+  | { type: 'prefillCredentials'; credentials: Record<string, string> }
   | { type: 'credentialsValidated' }
   | { type: 'skipCredentials' }
   | { type: 'setLanguages'; source: string; target: string }
@@ -109,6 +110,12 @@ export function setupReducer(d: SetupDraft, a: SetupAction): SetupDraft {
         credentialsValidated: false,
         credentialsPending: false,
       };
+    // The key already in settings, mirrored into the draft so a re-run shows
+    // what is saved instead of an empty box. Unlike a keystroke it says nothing
+    // new about the key, so it must not disturb the validated/pending flags the
+    // record seeded (spec §1.6).
+    case 'prefillCredentials':
+      return { ...d, credentials: { ...a.credentials, ...d.credentials } };
     case 'credentialsValidated':
       return { ...d, credentialsValidated: true, credentialsPending: false };
     case 'skipCredentials':

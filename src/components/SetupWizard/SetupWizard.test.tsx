@@ -17,7 +17,12 @@ vi.mock('react-i18next', () => ({
 vi.mock('../../locales', () => ({ changeLanguageWithLoad: vi.fn(async (l: string) => l) }));
 let signedIn = false;
 const setAuthOverlay = vi.fn();
-vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: signedIn, getToken: async () => null }) }));
+vi.mock('../../lib/auth/hooks', () => ({
+  useAuth: () => ({ isSignedIn: signedIn, getToken: async () => null }),
+  // Verified: the account step's unverified branch is StepCredentials' own
+  // test; here it would only add a warning box to every managed assertion.
+  useUser: () => ({ isLoaded: true, user: signedIn ? { emailVerified: true } : null }),
+}));
 const trackSpy = vi.fn();
 vi.mock('../../lib/analytics', () => ({
   // A new function object per render, like the real hook — the identity churn
@@ -125,9 +130,10 @@ describe('SetupWizard', () => {
     fireEvent.click(screen.getByRole('radio', { name: /^OpenAI$/ }));
     next();
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    // Skip carries the user forward itself; it is a button beside a button and
+    // a version that only set a flag looked broken.
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
-    next();                                           // language pair, defaults filled
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();   // language pair, defaults filled
     next();                                           // finish
     expect(screen.getByText(/No API key yet/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
@@ -161,10 +167,9 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Start right away/ }));
     next();
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));   // pending, for now
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));   // pending, and on to the pair
     signedIn = true;
     rerender(<SetupWizard variant="first-run" />);
-    next();                                           // language pair
     next();                                           // finish
     expect(screen.queryByText(/Not signed in/)).toBeNull();
 
@@ -227,7 +232,21 @@ describe('SetupWizard', () => {
     const jaSource = matchLanguage(ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).resolveSourceLanguages(), 'ja');
     // If the local engine offered no Japanese source there would be nothing to
     // assert about the pair; the interface-language assertion above still holds.
-    if (jaSource) expect(screen.getByRole('combobox', { name: 'From' })).toHaveValue(jaSource);
+    // Labelled by the same sentence Settings prints, not "From"/"To": this
+    // scenario translates the other side, so the first field is what I read.
+    if (jaSource) expect(screen.getByRole('combobox', { name: 'I read' })).toHaveValue(jaSource);
+  });
+
+  it('labels the language pair the way the chosen scenario will run it', () => {
+    render(<SetupWizard variant="first-run" />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Be understood in a meeting/ }));   // speaker, spoken
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next();
+    next();
+    expect(screen.getByRole('combobox', { name: 'I speak' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'they hear' })).toBeInTheDocument();
   });
 
   it('shows the hardware notice on the offline path and needs nothing else', () => {

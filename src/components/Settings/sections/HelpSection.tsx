@@ -57,10 +57,6 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
         <span className="version-label">v{__APP_VERSION__}</span>
       </h3>
       <div className="help-links">
-        <a className="help-link" onClick={() => { startTour(); if (toggleSettings) toggleSettings(); }}>
-          <HelpCircle size={13} />
-          <span>{t('tour.restart', 'Restart Setup Guide')}</span>
-        </a>
         <a
           className={`help-link${isSessionActive ? ' is-disabled' : ''}`}
           aria-disabled={isSessionActive}
@@ -69,6 +65,10 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
         >
           <Wand2 size={13} />
           <span>{t('setup.rerun', 'Run setup again')}</span>
+        </a>
+        <a className="help-link" onClick={() => { startTour(); if (toggleSettings) toggleSettings(); }}>
+          <HelpCircle size={13} />
+          <span>{t('tour.restart', 'Restart Setup Guide')}</span>
         </a>
         {isElectron() && (
           <a

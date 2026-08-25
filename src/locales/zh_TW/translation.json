@@ -1006,11 +1006,6 @@
         "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
       }
     },
-    "modes": {
-      "speaker": "Me",
-      "participant": "Others",
-      "both": "Both"
-    },
     "output": {
       "voice": "spoken",
       "subtitles": "subtitles"
@@ -1035,7 +1030,9 @@
         "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
         "native": "Native engine — faster, uses your GPU where available.",
         "wasm": "In-app engine — works everywhere, slower."
-      }
+      },
+      "ownKeyNote": "Pick the provider you have an account with. Each one issues its own key:",
+      "ownKeyGuides": "guides for every provider"
     },
     "fit": {
       "cannotSpeak": "This provider cannot produce spoken translation.",
@@ -1060,11 +1057,9 @@
       "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
       "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
       "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
-      "onFile": "A key is already saved — leave this blank to keep it."
-    },
-    "languagePair": {
-      "source": "From",
-      "target": "To"
+      "ownKeyDesc": "Sokuji talks to the provider directly with this key, and takes no cut — you pay them for what you use.",
+      "guide": "How to get this key",
+      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do."
     },
     "summary": {
       "scenario": "Scenario",
@@ -1088,7 +1083,10 @@
       },
       "mode-picker": {
         "title": "Translation mode",
-        "content": "This is set for you. Switch it any time; switching also changes whether the translation is spoken or shown as subtitles."
+        "content": "This is set for you. Switch it any time; switching also changes whether the translation is spoken or shown as subtitles.",
+        "modeMe": "Me — what you say is translated for the other side.",
+        "modeOthers": "Other — what they say is translated for you.",
+        "modeBoth": "Both — both directions at once."
       },
       "microphone": {
         "title": "Your microphone",

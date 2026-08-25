@@ -42,6 +42,7 @@ import {
 import type { SettingsStore } from '../../../stores/settingsStore';
 import { Provider, ProviderType, isKizunaManagedProvider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
+import { TUTORIAL_URLS } from '../../../services/providers/tutorialUrls';
 import { useAuth } from '../../../lib/auth/hooks';
 import { isElectron } from '../../../utils/environment';
 import { useAnalytics } from '../../../lib/analytics';
@@ -86,16 +87,6 @@ const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: 
 };
 const DefaultProviderIcon = HelpCircle;
 
-const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
-  [Provider.OPENAI]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
-  [Provider.GEMINI]: 'https://sokuji.kizuna.ai/docs/tutorials/gemini-setup',
-  [Provider.PALABRA_AI]: 'https://sokuji.kizuna.ai/docs/tutorials/palabraai-setup',
-  [Provider.OPENAI_COMPATIBLE]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-compatible-setup',
-  [Provider.VOLCENGINE_AST2]: 'https://sokuji.kizuna.ai/docs/tutorials/volcengine-ast2-setup',
-  [Provider.SONIOX]: 'https://sokuji.kizuna.ai/docs/tutorials/soniox-setup',
-  [Provider.LOCAL_INFERENCE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-inference-setup',
-  [Provider.LOCAL_NATIVE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-native-setup',
-};
 
 const DISMISSED_KEY = 'sokuji-dismissed-tutorials';
 

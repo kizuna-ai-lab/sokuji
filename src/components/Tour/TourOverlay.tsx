@@ -14,7 +14,7 @@ import {
 } from '@floating-ui/react';
 import { useAuthOverlay } from '../../stores/settingsStore';
 import { useTour } from './TourProvider';
-import { contentKey, titleKey } from './steps';
+import { bulletKey, contentKey, titleKey } from './steps';
 import './Tour.scss';
 
 const PAD = 6;
@@ -151,6 +151,11 @@ const TourOverlay: React.FC = () => {
         >
           <h2 id={titleId} className="tour-popover__title">{t(titleKey(step), step.id)}</h2>
           <p id={bodyId} className="tour-popover__body">{t(contentKey(step, ctx), '')}</p>
+          {step.bullets && (
+            <ul className="tour-popover__list">
+              {step.bullets.map((b) => <li key={b}>{t(bulletKey(step, b), '')}</li>)}
+            </ul>
+          )}
           <div className="tour-popover__footer">
             <span className="tour-popover__progress">{`${index + 1} / ${steps.length}`}</span>
             <span className="tour-popover__spacer" />
