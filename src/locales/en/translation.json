@@ -741,7 +741,7 @@
       "scenario": "Scenario",
       "mode": "Mode",
       "provider": "Provider",
-      "languages": "Languages", "langLine": "{{label}}: {{name}}",
+      "languages": "Languages", "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
       "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
       "pendingSignIn": "Not signed in — sign in from the account button before you start."
     }

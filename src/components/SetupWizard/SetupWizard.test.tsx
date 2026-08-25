@@ -271,8 +271,9 @@ describe('SetupWizard', () => {
     expect(screen.getByText(`They speak ${targetName} → I read ${sourceName}`)).toBeInTheDocument();
     next();                                           // finish
     expect(screen.getByText(`They speak ${targetName} → I read ${sourceName}`)).toBeInTheDocument();
-    // ...and the summary states the forward leg as the same sentence.
-    expect(screen.getByText(`I speak: ${sourceName} · they hear: ${targetName}`)).toBeInTheDocument();
+    // ...and the summary states the forward leg as a sentence of the same
+    // shape, rather than as a label/value row.
+    expect(screen.getByText(`I speak ${sourceName} → they hear ${targetName}`)).toBeInTheDocument();
   });
 
   it('leaves the mirrored leg out of a one-way scenario', () => {

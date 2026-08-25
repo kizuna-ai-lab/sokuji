@@ -1069,7 +1069,7 @@
       "languages": "Languages",
       "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
       "pendingSignIn": "Not signed in — sign in from the account button before you start.",
-      "langLine": "{{label}}: {{name}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
     }
   },
   "tour": {

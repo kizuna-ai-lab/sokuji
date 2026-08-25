@@ -1069,7 +1069,7 @@
       "languages": "语言",
       "pendingKey": "尚未设置 API 密钥——开始前请在「设置 → 提供商」里添加。",
       "pendingSignIn": "尚未登录——开始前请从账户按钮登录。",
-      "langLine": "{{label}}：{{name}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
     }
   },
   "tour": {

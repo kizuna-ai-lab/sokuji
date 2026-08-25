@@ -1069,7 +1069,7 @@
       "languages": "言語",
       "pendingKey": "API キー未設定——開始前に「設定 → プロバイダー」で追加してください。",
       "pendingSignIn": "未サインイン——開始前にアカウントボタンからサインインしてください。",
-      "langLine": "{{label}}：{{name}}"
+      "langSentence": "{{myLabel}}は{{myLanguage}} → {{theirLabel}}は{{theirLanguage}}"
     }
   },
   "tour": {

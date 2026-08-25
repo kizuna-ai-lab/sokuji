@@ -24,8 +24,13 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
     capability: ProviderConfigFactory.getConfig(draft.provider!).capabilities.textOnlyCapability,
     source: draft.sourceLanguage, target: draft.targetLanguage,
   });
-  const langLine = (label: { key: string; fallback: string }, name: string) =>
-    t('setup.summary.langLine', '{{label}}: {{name}}', { label: t(label.key, label.fallback), name });
+  // One sentence, shaped like the mirror line below it — a label, its language,
+  // an arrow. Joining the two halves with a colon and a dot read as a table
+  // row rather than as the session it describes (feedback 2026-08-25).
+  const forwardLine = t('setup.summary.langSentence', '{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}', {
+    myLabel: t(sentence.my.key, sentence.my.fallback), myLanguage: sourceName,
+    theirLabel: t(sentence.their.key, sentence.their.fallback), theirLanguage: targetName,
+  });
   // Same source as the scenario cards and the ModePicker itself.
   const modeLabel = preset.mode === 'speaker'
     ? t('modePicker.modeYou', 'Me')
@@ -46,7 +51,7 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
         <dt>{t('setup.summary.provider', 'Provider')}</dt><dd>{providerName}</dd>
         <dt>{t('setup.summary.languages', 'Languages')}</dt>
         <dd>
-          {langLine(sentence.my, sourceName)} · {langLine(sentence.their, targetName)}
+          {forwardLine}
           {/* Both mode's mirrored leg has no controls anywhere; the pair step
               states it too, and the summary must not quietly drop half the
               session. */}
