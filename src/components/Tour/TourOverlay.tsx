@@ -77,6 +77,31 @@ const TourOverlay: React.FC = () => {
   // mounted and a mount-time `autoFocus` would never fire again.
   useEffect(() => { if (active && !resolving) primaryRef.current?.focus(); }, [active, index, resolving]);
 
+  // Belt-and-braces on top of FloatingFocusManager's `modal` trap (F1): its
+  // wrap-around focus runs through floating-ui's `enqueueFocus`, which
+  // schedules via requestAnimationFrame — asynchronous. Two Tabs landing in
+  // the same frame (e.g. an automated/rapid Tab burst) can have the first Tab
+  // reach the trailing focus guard and the second Tab move on from the guard
+  // into the app before that rAF-scheduled wrap runs, escaping the popover.
+  // A synchronous `focusin` listener catches that: if focus lands outside the
+  // popover (and outside floating-ui's own guards, and outside the auth
+  // overlay), snap it straight back to the primary button. Not a replacement
+  // for FloatingFocusManager — that still owns the normal Tab/Shift+Tab wrap.
+  useEffect(() => {
+    if (!active) return;
+    const onFocusIn = (event: FocusEvent) => {
+      const targetNode = event.target as Node | null;
+      if (!targetNode) return;
+      if (authOverlay !== null) return;
+      if (refs.floating.current?.contains(targetNode)) return;
+      if (targetNode instanceof Element && targetNode.closest('[data-floating-ui-focus-guard]')) return;
+      if (targetNode instanceof Element && targetNode.closest('.auth-overlay')) return;
+      primaryRef.current?.focus({ preventScroll: true });
+    };
+    document.addEventListener('focusin', onFocusIn);
+    return () => document.removeEventListener('focusin', onFocusIn);
+  }, [active, authOverlay, refs.floating]);
+
   if (!active || !step || !ctx) return null;
 
   const isLast = index >= steps.length - 1;

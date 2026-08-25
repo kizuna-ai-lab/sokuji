@@ -130,4 +130,52 @@ describe('TourOverlay', () => {
     expect(document.querySelector('.tour-scrim--full')).not.toBeNull();
     expect(document.querySelector('.tour-blocker')).toBeNull();
   });
+
+  describe('synchronous focusin fallback (F1: rapid Tab can outrun FloatingFocusManager)', () => {
+    // jsdom does not dispatch `focusin` from `element.focus()` in every setup;
+    // this helper covers both so the tests keep working either way (see the
+    // brief's note).
+    const focusAndBubble = (el: HTMLElement) => {
+      el.focus();
+      el.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    };
+
+    it('pulls focus back onto the primary button when an outside element is focused', () => {
+      render(<TourOverlay />);
+      const outside = document.createElement('button');
+      outside.textContent = 'outside';
+      document.body.appendChild(outside);
+
+      focusAndBubble(outside);
+
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next' }));
+      outside.remove();
+    });
+
+    it('leaves focus on the outside element while the auth overlay is open', () => {
+      authOverlayState = 'sign-in';
+      render(<TourOverlay />);
+      const outside = document.createElement('button');
+      outside.textContent = 'outside';
+      document.body.appendChild(outside);
+
+      focusAndBubble(outside);
+
+      expect(document.activeElement).toBe(outside);
+      outside.remove();
+    });
+
+    it('stops pulling focus back after unmount', () => {
+      const { unmount } = render(<TourOverlay />);
+      unmount();
+      const outside = document.createElement('button');
+      outside.textContent = 'outside';
+      document.body.appendChild(outside);
+
+      focusAndBubble(outside);
+
+      expect(document.activeElement).toBe(outside);
+      outside.remove();
+    });
+  });
 });
