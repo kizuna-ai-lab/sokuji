@@ -105,6 +105,8 @@ trackEvent('translation_session_end', {
 #### `setup_completed`
 **Properties**: `scenario`, `provider_path`, `provider`, `source_language`, `target_language` (strings), `credentials_pending` (boolean — "Skip for now" was taken)
 
+Removed: `user_type_selected` and `user_type_applied` went away with the user-type page; `setup_completed` carries the equivalent information.
+
 ### 🎯 Tour events
 
 #### `onboarding_started`
