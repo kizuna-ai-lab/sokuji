@@ -673,13 +673,16 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
       {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
       {provider === Provider.LOCAL_NATIVE ? (
-        <div className="local-inference-info">
+        // data-tour sits on the wrapper, not the chip row: the tour's `models`
+        // step runs while the sidecar may still be 'starting', and only the
+        // wrapper is present in every native state.
+        <div className="local-inference-info" data-tour="engine-chips">
           {(nativeStatus === 'starting' || nativeStatus === 'idle') ? (
             <div className="model-info local-native-status is-loading">{t('settings.localNativeStarting', 'Starting the local engine')}</div>
           ) : nativeStatus === 'unavailable' ? (
             <div className="model-info local-native-status is-error">{t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}</div>
           ) : (
-            <div className="model-info" data-tour="engine-chips">
+            <div className="model-info">
               {renderChipGroups(
                 renderNativeChips, nativeSpeakerResolved, nativeParticipantResolved,
                 localNativeSettings.sourceLanguage, localNativeSettings.targetLanguage,
@@ -706,8 +709,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           )}
         </div>
       ) : provider === Provider.LOCAL_INFERENCE ? (
-        <div className="local-inference-info">
-          <div className="model-info" data-tour="engine-chips">
+        // Same anchor placement as the native branch above, for the same reason.
+        <div className="local-inference-info" data-tour="engine-chips">
+          <div className="model-info">
             {renderChipGroups(
               renderInferenceChips, speakerResolved, participantResolved,
               localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage,

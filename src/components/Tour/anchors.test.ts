@@ -30,4 +30,9 @@ describe('tour anchors', () => {
     const src = readFileSync(join(process.cwd(), 'src/components/MainPanel/MainPanel.tsx'), 'utf8');
     expect(src.match(/data-tour="main-action"/g)?.length).toBe(2);
   });
+
+  it('engine-chips is declared once per local branch (native and wasm)', () => {
+    const src = readFileSync(join(process.cwd(), 'src/components/Settings/sections/ProviderSection.tsx'), 'utf8');
+    expect(src.match(/data-tour="engine-chips"/g)?.length).toBe(2);
+  });
 });

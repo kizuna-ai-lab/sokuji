@@ -34,6 +34,9 @@ export function buildTourCtx(i: {
     scenario: i.record?.scenario ?? null,
     providerPath: i.record?.providerPath ?? null,
     provider: i.provider,
+    // Two platforms, not three: a plain web build (`!isElectron`) maps to
+    // 'extension', so dev-in-browser shows extension copy and skips the
+    // `subtitle` step — whose button does not render on web either.
     platform: i.env.isElectron ? 'electron' : 'extension',
     os,
     mode: i.mode,

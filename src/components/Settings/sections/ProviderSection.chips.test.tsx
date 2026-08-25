@@ -170,6 +170,19 @@ describe('ProviderSection — model chips deep-link to their slot (Task 10)', ()
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'en→ja', stage: 'translation' });
   });
 
+  it("LOCAL_NATIVE: the tour's engine-chips anchor is there while the sidecar is still starting", () => {
+    // The offline tour's `models` step runs seconds after the wizard selected
+    // LOCAL_NATIVE, with the sidecar still 'starting' and the chip row replaced
+    // by a loading notice. Anchoring on the chip row means the step is skipped
+    // for exactly the users the offline path just sent here.
+    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE, uiMode: 'advanced' } as never);
+    useNativeModelStore.setState({ sidecarStatus: 'starting' } as never);
+    const { container } = render(<ProviderSection isSessionActive={false} />);
+
+    expect(chips(container)).toHaveLength(0);            // the loading notice, not the chips
+    expect(container.querySelector('[data-tour="engine-chips"]')).not.toBeNull();
+  });
+
   it("LOCAL_NATIVE gets identical mode treatment: mode='both' shows 5 chips across the same two labeled groups", () => {
     useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE, uiMode: 'advanced' } as never);
     useAudioStore.setState({ mode: 'both' } as never);
