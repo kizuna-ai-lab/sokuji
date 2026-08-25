@@ -948,197 +948,197 @@
     "importChooseModel": "దిగుమతి చేయడానికి ఒక మోడల్‌ను ఎంచుకోండి"
   },
   "setup": {
-    "title": "Set up Sokuji",
-    "stepOf": "Step {{current}} of {{total}}",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "close": "Close",
-    "skipForNow": "Skip for now",
-    "rerun": "Run setup again",
+    "title": "Sokujiని సెటప్ చేయండి",
+    "stepOf": "దశ {{current}}/{{total}}",
+    "back": "వెనుకకు",
+    "next": "తదుపరి",
+    "finish": "ముగించు",
+    "close": "మూసివేయి",
+    "skipForNow": "ప్రస్తుతానికి దాటవేయి",
+    "rerun": "సెటప్‌ను మళ్ళీ అమలు చేయండి",
     "steps": {
       "language": {
-        "title": "Which language should Sokuji speak to you in?",
-        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
-        "label": "Interface language"
+        "title": "Sokuji మీతో ఏ భాషలో మాట్లాడాలి?",
+        "desc": "ఇది మెనులు మరియు బటన్ల భాష. మీరు అనువదించాల్సిన భాషలను తర్వాత ఎంచుకుంటారు.",
+        "label": "ఇంటర్ఫేస్ భాష"
       },
       "scenario": {
-        "title": "What do you want to do?",
-        "desc": "Pick the closest match. You can change any of this later."
+        "title": "మీరు ఏం చేయాలనుకుంటున్నారు?",
+        "desc": "అత్యంత దగ్గరగా సరిపోయేదాన్ని ఎంచుకోండి. దీన్ని మీరు తర్వాత ఎప్పుడైనా మార్చుకోవచ్చు."
       },
       "path": {
-        "title": "What do you have?"
+        "title": "మీ దగ్గర ఏమి ఉంది?"
       },
       "credentials": {
-        "offlineTitle": "Nothing to enter",
-        "managedTitle": "Your Kizuna AI account",
-        "ownKeyTitle": "Your API key"
+        "offlineTitle": "నమోదు చేయాల్సింది ఏమీ లేదు",
+        "managedTitle": "మీ Kizuna AI ఖాతా",
+        "ownKeyTitle": "మీ API కీ"
       },
       "languagePair": {
-        "title": "Which languages?",
-        "desc": "What you (or they) speak, and what it should become."
+        "title": "ఏ భాషలు?",
+        "desc": "మీరు (లేదా వారు) ఏం మాట్లాడతారు, మరియు అది ఏమిగా మారాలి."
       },
       "finish": {
-        "title": "Ready",
-        "persistFailed": "Could not save your setup. Please try again."
+        "title": "సిద్ధం",
+        "persistFailed": "మీ సెటప్‌ను సేవ్ చేయలేకపోయాము. దయచేసి మళ్ళీ ప్రయత్నించండి."
       }
     },
     "scenarios": {
-      "sets": "Sets: {{mode}} mode · {{output}}",
+      "sets": "సెట్ చేస్తుంది: {{mode}} మోడ్ · {{output}}",
       "understand-others": {
-        "title": "Understand what others say",
-        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+        "title": "ఇతరులు చెప్పేది అర్థం చేసుకోండి",
+        "desc": "ఆన్‌లైన్ మీటింగ్‌లు, తరగతులు, ప్రసంగాలు, వీడియోలు, స్ట్రీమ్‌లు — మీరు వినేదాని ప్రత్యక్ష అనువాదాన్ని చదవండి."
       },
       "be-heard": {
-        "title": "Be understood in a meeting",
-        "desc": "They hear your translated voice through a virtual microphone."
+        "title": "మీటింగ్‌లో మీరు అర్థమయ్యేలా చేసుకోండి",
+        "desc": "వర్చువల్ మైక్రోఫోన్ ద్వారా వారు మీ అనువదించిన వాయిస్‌ను వింటారు."
       },
       "subtitle-myself": {
-        "title": "Subtitle my own speech",
-        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+        "title": "నా స్వంత ప్రసంగానికి సబ్‌టైటిల్స్ ఇవ్వండి",
+        "desc": "ప్రసంగాలు, స్ట్రీమ్‌లు, ప్రజెంటేషన్‌లు — మీ ప్రేక్షకులు అనువదించిన సబ్‌టైటిల్స్‌ను చదువుతారు; ఆడియో ఏదీ సృష్టించబడదు."
       },
       "two-way-voice": {
-        "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you read subtitles generated from what they say."
+        "title": "ద్విముఖ ఆన్‌లైన్ సంభాషణ",
+        "desc": "వారు మీ అనువదించిన వాయిస్‌ను వింటారు; వారు చెప్పేదాని నుండి సృష్టించిన సబ్‌టైటిల్స్‌ను మీరు చదువుతారు."
       },
       "two-way-text": {
-        "title": "Two-way online conversation, subtitles only",
-        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+        "title": "ద్విముఖ ఆన్‌లైన్ సంభాషణ, సబ్‌టైటిల్స్ మాత్రమే",
+        "desc": "ద్విభాషా క్యాప్షన్‌లు, మీటింగ్ మినిట్స్ — రెండు వైపులా టెక్స్ట్‌గా, సింథటిక్ వాయిస్ లేదు."
       }
     },
     "output": {
-      "voice": "voice and subtitles",
-      "subtitles": "subtitles only"
+      "voice": "వాయిస్ మరియు సబ్‌టైటిల్స్",
+      "subtitles": "సబ్‌టైటిల్స్ మాత్రమే"
     },
     "paths": {
-      "recommended": "Recommended",
-      "pickProvider": "Which provider?",
-      "offlineFlavor": "Which engine?",
+      "recommended": "సిఫార్సు చేయబడింది",
+      "pickProvider": "ఏ ప్రదాత?",
+      "offlineFlavor": "ఏ ఇంజిన్?",
       "managed": {
-        "title": "Start right away",
-        "desc": "Kizuna AI runs the translation for you.",
-        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
+        "title": "వెంటనే ప్రారంభించండి",
+        "desc": "Kizuna AI మీ కోసం అనువాదాన్ని నడుపుతుంది.",
+        "cost": "మీ ఇమెయిల్ చిరునామాతో సైన్ అప్ చేసి దాన్ని ధృవీకరించండి — ధృవీకరించిన ఖాతాలకు ట్రయల్ క్రెడిట్ లభిస్తుంది. ఆ తర్వాత మీరు మీ బ్యాలెన్స్‌ను టాప్ అప్ చేసుకుంటారు, మీరు ఎంత వాడితే అంతకు అనువాదం బిల్ చేయబడుతుంది."
       },
       "own-key": {
-        "title": "I have my own API key",
-        "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.",
-        "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI."
+        "title": "నా దగ్గర సొంత API కీ ఉంది",
+        "desc": "OpenAI, Gemini, Doubao (Volcengine) మరియు ఇతరుల నుండి మీ సొంత కీని తీసుకురండి.",
+        "cost": "మీ కీ ఈ పరికరంలోనే ఉంటుంది మరియు దాని నుండి నేరుగా ప్రదాతను చేరుతుంది. మీరు వారి కస్టమర్: మీరు వాడినదానికి వారికే చెల్లిస్తారు, ఏదీ Kizuna AI ద్వారా వెళ్ళదు."
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
-        "native": "Native engine — faster, uses your GPU where available.",
-        "wasm": "In-app engine — works everywhere, slower."
+        "title": "ఉచితం, ఆఫ్‌లైన్",
+        "desc": "మీ సొంత మెషిన్‌లో నడుస్తుంది. దాని నుండి ఏమీ బయటకు వెళ్ళదు.",
+        "cost": "మోడల్‌లను మీ డిస్క్‌లోకి డౌన్‌లోడ్ చేస్తుంది (గిగాబైట్లు). తగినంత VRAM ఉన్న GPUతో బాగా నడుస్తుంది; CPU మాత్రమే అయితే గమనించదగ్గంత నెమ్మదిగా ఉంటుంది.",
+        "native": "నేటివ్ ఇంజిన్ — వేగవంతమైనది, అందుబాటులో ఉన్నచోట మీ GPUని వాడుతుంది.",
+        "wasm": "అంతర్నిర్మిత ఇంజిన్ — ప్రతిచోటా పనిచేస్తుంది, నెమ్మదిగా ఉంటుంది."
       },
-      "ownKeyNote": "Pick the provider you have an account with. Each one issues its own key:",
-      "ownKeyGuides": "guides for every provider"
+      "ownKeyNote": "మీకు ఖాతా ఉన్న ప్రదాతను ఎంచుకోండి. ప్రతి ఒక్కటి దాని స్వంత కీని జారీ చేస్తుంది:",
+      "ownKeyGuides": "ప్రతి ప్రదాతకు గైడ్‌లు"
     },
     "fit": {
-      "cannotSpeak": "This provider cannot produce spoken translation.",
-      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+      "cannotSpeak": "ఈ ప్రదాత మాట్లాడే అనువాదాన్ని అందించదు.",
+      "cannotBeTextOnly": "ఈ ప్రదాత ఎల్లప్పుడూ మాట్లాడుతుంది; ఇది సబ్‌టైటిల్స్-మాత్రమే మోడ్‌లో నడవదు."
     },
     "credentials": {
-      "apiKey": "API key",
-      "endpoint": "Endpoint URL",
+      "apiKey": "API కీ",
+      "endpoint": "ఎండ్‌పాయింట్ URL",
       "endpointPlaceholder": "https://api.example.com/v1",
-      "accessKeyId": "Access Key ID",
-      "secretAccessKey": "Secret Access Key",
-      "appId": "App ID",
-      "accessToken": "Access Token",
-      "apiSecret": "API Secret",
-      "validate": "Validate",
-      "valid": "Key accepted.",
-      "invalid": "The key was rejected.",
-      "signIn": "Sign in",
-      "createAccount": "Create account",
-      "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
-      "ownKeyDesc": "This key is stored on this device only, and the app calls the provider straight from here — it never reaches Kizuna AI. You pay the provider for what you use.",
-      "guide": "How to get this key",
-      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
-      "onFile": "A key is already saved — leave this blank to keep it."
+      "accessKeyId": "యాక్సెస్ కీ ID",
+      "secretAccessKey": "సీక్రెట్ యాక్సెస్ కీ",
+      "appId": "యాప్ ID",
+      "accessToken": "యాక్సెస్ టోకెన్",
+      "apiSecret": "API సీక్రెట్",
+      "validate": "ధృవీకరించు",
+      "valid": "కీ ఆమోదించబడింది.",
+      "invalid": "కీ తిరస్కరించబడింది.",
+      "signIn": "సైన్ ఇన్",
+      "createAccount": "ఖాతా సృష్టించండి",
+      "signedIn": "సైన్ ఇన్ అయ్యారు. మీరు కొనసాగవచ్చు.",
+      "managedDesc": "మీ ఇమెయిల్ చిరునామాతో సైన్ అప్ చేసి మీ ఇన్‌బాక్స్ నుండి దాన్ని ధృవీకరించండి; ధృవీకరించిన ఖాతాలకు ట్రయల్ క్రెడిట్ లభిస్తుంది. ఆ తర్వాత మీరు మీ బ్యాలెన్స్‌ను టాప్ అప్ చేసుకుని మీరు వాడినదానికి మాత్రమే చెల్లిస్తారు.",
+      "offlineNotice": "సెటప్ తర్వాత మోడల్‌లు సెట్టింగ్స్ నుండి డౌన్‌లోడ్ అవుతాయి. అవి గిగాబైట్ల డిస్క్ స్థలాన్ని తీసుకుంటాయి. తగినంత VRAM ఉన్న GPUతో Sokuji బాగా నడుస్తుంది; CPU మాత్రమే అయితే గమనించదగ్గంత నెమ్మదిగా ఉంటుంది.",
+      "pendingKey": "మీరు తర్వాత సెట్టింగ్స్ → ప్రదాత లో కీని జోడించవచ్చు. అది ధృవీకరించబడే వరకు ప్రారంభం లాక్‌గా ఉంటుంది.",
+      "pendingSignIn": "మీరు తర్వాత ఖాతా బటన్ నుండి సైన్ ఇన్ చేయవచ్చు. అప్పటి వరకు ప్రారంభం లాక్‌గా ఉంటుంది.",
+      "ownKeyDesc": "ఈ కీ ఈ పరికరంలో మాత్రమే నిల్వ చేయబడుతుంది, మరియు యాప్ ఇక్కడి నుండి నేరుగా ప్రదాతను సంప్రదిస్తుంది — ఇది Kizuna AIని ఎప్పటికీ చేరదు. మీరు వాడినదానికి ప్రదాతకు చెల్లిస్తారు.",
+      "guide": "ఈ కీని ఎలా పొందాలి",
+      "verifyEmail": "సైన్ ఇన్ అయ్యారు. మీ చిరునామాను ధృవీకరించడానికి మేము మీకు ఇమెయిల్ చేసిన లింక్‌ను తెరవండి — మీరు అలా చేసిన వెంటనే ట్రయల్ క్రెడిట్ మీకు అందుతుంది.",
+      "onFile": "ఒక కీ ఇప్పటికే సేవ్ చేయబడింది — దాన్ని అలాగే ఉంచడానికి దీన్ని ఖాళీగా వదిలేయండి."
     },
     "summary": {
-      "scenario": "Scenario",
-      "mode": "Mode",
-      "provider": "Provider",
-      "languages": "Languages",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start.",
+      "scenario": "సన్నివేశం",
+      "mode": "మోడ్",
+      "provider": "ప్రదాత",
+      "languages": "భాషలు",
+      "pendingKey": "ఇంకా API కీ లేదు — ప్రారంభించే ముందు దీన్ని సెట్టింగ్స్ → ప్రదాత లో జోడించండి.",
+      "pendingSignIn": "సైన్ ఇన్ కాలేదు — ప్రారంభించే ముందు ఖాతా బటన్ నుండి సైన్ ఇన్ అవ్వండి.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
     }
   },
   "tour": {
-    "back": "Back",
-    "next": "Next",
-    "skip": "Skip",
-    "finish": "Finish",
-    "restart": "Restart Setup Guide",
+    "back": "వెనుకకు",
+    "next": "తదుపరి",
+    "skip": "దాటవేయి",
+    "finish": "ముగించు",
+    "restart": "సెటప్ గైడ్‌ను పునఃప్రారంభించు",
     "steps": {
       "welcome": {
-        "title": "You're set up",
-        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+        "title": "మీ సెటప్ పూర్తయింది",
+        "content": "Sokuji మీ సన్నివేశానికి అనుగుణంగా కాన్ఫిగర్ చేయబడింది. ఇప్పుడు క్లుప్తంగా చుట్టూ చూద్దాం — ఇది ఒక నిమిషం లోపే పూర్తవుతుంది."
       },
       "mode-picker": {
-        "title": "Translation mode",
-        "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode, together with the Text Only switch, decides whether it is also spoken aloud.",
-        "modeMe": "Me — what you say is translated for the other side.",
-        "modeOthers": "Other — what they say is translated for you.",
-        "modeBoth": "Both — both directions at once."
+        "title": "అనువాద మోడ్",
+        "content": "ఇది మీ కోసం సెట్ చేయబడింది, మీరు దీన్ని ఎప్పుడైనా మార్చుకోవచ్చు. అనువాదం ఎల్లప్పుడూ ఇక్కడ టెక్స్ట్‌గా కనిపిస్తుంది; మోడ్, టెక్స్ట్ మాత్రమే స్విచ్‌తో కలిసి, అది వాయిస్‌గా కూడా వినిపిస్తుందా అనేది నిర్ణయిస్తుంది.",
+        "modeMe": "నేను — మీరు చెప్పేది ఇతరుల కోసం అనువదించబడుతుంది.",
+        "modeOthers": "ఇతరులు — వారు చెప్పేది మీ కోసం అనువదించబడుతుంది.",
+        "modeBoth": "రెండూ — రెండు దిశలు ఒకేసారి."
       },
       "microphone": {
-        "title": "Your microphone",
-        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+        "title": "మీ మైక్రోఫోన్",
+        "content": "మీ ప్రసంగం ఇక్కడ నుండి వస్తుంది. సిస్టమ్ డిఫాల్ట్ ఇప్పటికే ఎంచుకోబడింది. Sokuji వర్చువల్ మైక్రోఫోన్‌ను ఎంచుకోవద్దు — అది మీ మీటింగ్ యాప్ కోసం."
       },
       "monitor": {
-        "title": "Hear yourself translated",
-        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+        "title": "మీ అనువదించిన స్వరాన్ని వినండి",
+        "content": "ఎలా వినిపిస్తుందో తనిఖీ చేసుకోవడానికి అనువదించిన వాయిస్‌ను మీ స్వంత హెడ్‌ఫోన్‌లకు ప్లే చేయండి. అవసరం లేకపోతే దీన్ని ఆఫ్ చేయండి."
       },
       "output-routing": {
-        "title": "How the other side hears you",
-        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
-        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
-        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
-        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+        "title": "ఇతరులు మిమ్మల్ని ఎలా వింటారు",
+        "content": "మీ అనువదించిన వాయిస్ వర్చువల్ మైక్రోఫోన్‌కు వెళుతుంది; దాన్ని మీ మీటింగ్ యాప్‌లో మైక్‌గా ఎంచుకోండి.",
+        "content_extension": "Google Meet, Zoom లేదా Teams‌లో, \"Sokuji Virtual Microphone\"ను మీ మైక్రోఫోన్‌గా ఎంచుకోండి. Sokuji దీన్ని మద్దతిచ్చే మీటింగ్ సైట్‌లకు స్వయంచాలకంగా జోడిస్తుంది.",
+        "content_electronLinux": "Sokuji ఈ సిస్టమ్‌లో ఒక వర్చువల్ మైక్రోఫోన్‌ను సృష్టించింది. దాన్ని మీ మీటింగ్ యాప్‌లో మైక్రోఫోన్‌గా ఎంచుకోండి.",
+        "content_electronOther": "మీకు ఒక వర్చువల్ ఆడియో కేబుల్ (ఉదాహరణకు VB-Cable) అవసరం. Sokuji అవుట్‌పుట్‌ను దానికి పంపి, మీ మీటింగ్ యాప్‌లో దాన్ని మైక్రోఫోన్‌గా ఎంచుకోండి."
       },
       "participant-source": {
-        "title": "The other side's voice",
-        "content": "Sokuji listens to the other side here.",
-        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
-        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+        "title": "ఇతరుల స్వరం",
+        "content": "Sokuji ఇక్కడ ఇతరుల మాటలను వింటుంది.",
+        "content_electron": "అనువదించాల్సిన అప్లికేషన్‌ను ఎంచుకోండి, లేదా మొత్తం సిస్టమ్ ఆడియోను ఎంచుకోండి. వారి అసలు స్వరం మామూలుగానే ప్లే అవుతూ ఉంటుంది.",
+        "content_extension": "Sokuji ప్రస్తుత ట్యాబ్ ఆడియోను అనువదిస్తుంది. వారి అసలు స్వరం మామూలుగానే ప్లే అవుతూ ఉంటుంది."
       },
       "subtitle": {
-        "title": "Subtitle mode",
-        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+        "title": "సబ్‌టైటిల్ మోడ్",
+        "content": "ఇది ఒక తేలియాడే సబ్‌టైటిల్ వీక్షణను తెరుస్తుంది — డెస్క్‌టాప్‌లో ఒక విండో, ఎక్స్‌టెన్షన్‌లో పేజీపై ఒక ఓవర్‌లే. దీన్ని OBS మరియు స్క్రీన్ షేరింగ్ క్యాప్చర్ చేయగలవు."
       },
       "account": {
-        "title": "Your account",
-        "content": "Your balance and top-up live here.",
-        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+        "title": "మీ ఖాతా",
+        "content": "మీ బ్యాలెన్స్ మరియు టాప్ అప్ ఇక్కడ ఉంటాయి.",
+        "content_signedOut": "మీ ఖాతా ఇక్కడ ఉంటుంది. ప్రారంభం అన్‌లాక్ చేయడానికి గైడ్ తర్వాత సైన్ ఇన్ చేయండి."
       },
       "provider-settings": {
-        "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
-        "content_pending": "Paste your API key here. Start unlocks once it validates."
+        "title": "ప్రదాత సెట్టింగ్‌లు",
+        "content": "ఇక్కడ మీ కీని మార్చండి లేదా ప్రదాతను మార్చండి.",
+        "content_pending": "మీ API కీని ఇక్కడ పేస్ట్ చేయండి. అది ధృవీకరించబడిన వెంటనే ప్రారంభం అన్‌లాక్ అవుతుంది."
       },
       "models": {
-        "title": "Models",
-        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+        "title": "మోడల్‌లు",
+        "content": "ఇక్కడ మోడల్‌లను డౌన్‌లోడ్ చేయండి — ప్రతి దశకు ఒకటి. కొన్ని ప్రయత్నించండి; మొదట ఎంచుకున్నదే ఏకైక మంచి ఎంపిక కాదు."
       },
       "start": {
-        "title": "Start",
-        "content": "Press here to start translating. If the button stays greyed out, hover it: the note names what is still missing and where to put it right.",
-        "content_offline": "This lights up once your models are ready. Hover it while it is grey to see what it is waiting for.",
-        "content_signedOut": "This lights up once you sign in. Hover it while it is grey to see what it is waiting for.",
-        "content_pendingKey": "This lights up once your API key validates. Hover it while it is grey to see what it is waiting for."
+        "title": "ప్రారంభం",
+        "content": "అనువాదం ప్రారంభించడానికి ఇక్కడ నొక్కండి. బటన్ బూడిదరంగులో ఉండిపోతే, దానిపై హోవర్ చేయండి: ఇంకా ఏమి లోపిస్తుందో మరియు దాన్ని ఎక్కడ సరిచేయాలో గమనిక చెబుతుంది.",
+        "content_offline": "మీ మోడల్‌లు సిద్ధమైన వెంటనే ఇది వెలుగుతుంది. అది దేని కోసం వేచి ఉందో చూడటానికి బూడిదరంగులో ఉన్నప్పుడు దానిపై హోవర్ చేయండి.",
+        "content_signedOut": "మీరు సైన్ ఇన్ అయిన వెంటనే ఇది వెలుగుతుంది. అది దేని కోసం వేచి ఉందో చూడటానికి బూడిదరంగులో ఉన్నప్పుడు దానిపై హోవర్ చేయండి.",
+        "content_pendingKey": "మీ API కీ ధృవీకరించబడిన వెంటనే ఇది వెలుగుతుంది. అది దేని కోసం వేచి ఉందో చూడటానికి బూడిదరంగులో ఉన్నప్పుడు దానిపై హోవర్ చేయండి."
       },
       "done": {
-        "title": "That's it",
-        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help."
+        "title": "అంతే",
+        "content": "అధునాతన సెట్టింగ్‌లు — ప్రసంగ గుర్తింపు, ప్రాంప్ట్‌లు, వాయిస్‌లు, లాగ్స్ — సెట్టింగ్స్ ఎగువ-కుడి మూలలో ఉన్న అధునాతన స్విచ్ వెనుక ఉంటాయి. ఈ గైడ్‌ను సహాయం నుండి ఎప్పుడైనా మళ్ళీ చూడవచ్చు."
       }
     }
   }

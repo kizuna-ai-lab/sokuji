@@ -948,197 +948,197 @@
     "importChooseModel": "আমদানি করার জন্য একটি মডেল বেছে নিন"
   },
   "setup": {
-    "title": "Set up Sokuji",
-    "stepOf": "Step {{current}} of {{total}}",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "close": "Close",
-    "skipForNow": "Skip for now",
-    "rerun": "Run setup again",
+    "title": "Sokuji সেটআপ করুন",
+    "stepOf": "ধাপ {{current}}/{{total}}",
+    "back": "পেছনে",
+    "next": "পরবর্তী",
+    "finish": "সম্পন্ন করুন",
+    "close": "বন্ধ",
+    "skipForNow": "আপাতত এড়িয়ে যান",
+    "rerun": "সেটআপ আবার চালান",
     "steps": {
       "language": {
-        "title": "Which language should Sokuji speak to you in?",
-        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
-        "label": "Interface language"
+        "title": "Sokuji আপনার সাথে কোন ভাষায় কথা বলবে?",
+        "desc": "এটি মেনু এবং বোতামের ভাষা। কোন ভাষার মধ্যে অনুবাদ করতে হবে তা আপনি পরে বেছে নেবেন।",
+        "label": "ইন্টারফেস ভাষা"
       },
       "scenario": {
-        "title": "What do you want to do?",
-        "desc": "Pick the closest match. You can change any of this later."
+        "title": "আপনি কী করতে চান?",
+        "desc": "সবচেয়ে কাছাকাছি বিকল্পটি বেছে নিন। আপনি পরে এর যেকোনোটি পরিবর্তন করতে পারবেন।"
       },
       "path": {
-        "title": "What do you have?"
+        "title": "আপনার কাছে কী আছে?"
       },
       "credentials": {
-        "offlineTitle": "Nothing to enter",
-        "managedTitle": "Your Kizuna AI account",
-        "ownKeyTitle": "Your API key"
+        "offlineTitle": "প্রবেশ করানোর কিছু নেই",
+        "managedTitle": "আপনার Kizuna AI অ্যাকাউন্ট",
+        "ownKeyTitle": "আপনার API কী"
       },
       "languagePair": {
-        "title": "Which languages?",
-        "desc": "What you (or they) speak, and what it should become."
+        "title": "কোন ভাষাগুলো?",
+        "desc": "আপনি (বা তারা) কী বলেন, এবং তা কী হওয়া উচিত।"
       },
       "finish": {
-        "title": "Ready",
-        "persistFailed": "Could not save your setup. Please try again."
+        "title": "প্রস্তুত",
+        "persistFailed": "আপনার সেটআপ সংরক্ষণ করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।"
       }
     },
     "scenarios": {
-      "sets": "Sets: {{mode}} mode · {{output}}",
+      "sets": "সেট করে: {{mode}} মোড · {{output}}",
       "understand-others": {
-        "title": "Understand what others say",
-        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+        "title": "অন্যরা যা বলে তা বুঝুন",
+        "desc": "অনলাইন মিটিং, ক্লাস, আলোচনা, ভিডিও, স্ট্রিম — আপনি যা শোনেন তার লাইভ অনুবাদ পড়ুন।"
       },
       "be-heard": {
-        "title": "Be understood in a meeting",
-        "desc": "They hear your translated voice through a virtual microphone."
+        "title": "মিটিংয়ে নিজেকে বোঝান",
+        "desc": "তারা একটি ভার্চুয়াল মাইক্রোফোনের মাধ্যমে আপনার অনূদিত কণ্ঠস্বর শুনতে পায়।"
       },
       "subtitle-myself": {
-        "title": "Subtitle my own speech",
-        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+        "title": "নিজের বক্তৃতায় সাবটাইটেল দিন",
+        "desc": "বক্তৃতা, স্ট্রিম, উপস্থাপনা — আপনার দর্শক অনূদিত সাবটাইটেল পড়ে; কোনো অডিও তৈরি হয় না।"
       },
       "two-way-voice": {
-        "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you read subtitles generated from what they say."
+        "title": "দ্বিমুখী অনলাইন কথোপকথন",
+        "desc": "তারা আপনার অনূদিত কণ্ঠস্বর শোনে; আপনি তারা যা বলে তা থেকে তৈরি সাবটাইটেল পড়েন।"
       },
       "two-way-text": {
-        "title": "Two-way online conversation, subtitles only",
-        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+        "title": "দ্বিমুখী অনলাইন কথোপকথন, শুধুমাত্র সাবটাইটেল",
+        "desc": "দ্বিভাষিক ক্যাপশন, মিটিং মিনিটস — উভয় পক্ষই টেক্সট আকারে, কোনো কৃত্রিম কণ্ঠস্বর নেই।"
       }
     },
     "output": {
-      "voice": "voice and subtitles",
-      "subtitles": "subtitles only"
+      "voice": "কণ্ঠস্বর ও সাবটাইটেল",
+      "subtitles": "শুধুমাত্র সাবটাইটেল"
     },
     "paths": {
-      "recommended": "Recommended",
-      "pickProvider": "Which provider?",
-      "offlineFlavor": "Which engine?",
+      "recommended": "প্রস্তাবিত",
+      "pickProvider": "কোন প্রদানকারী?",
+      "offlineFlavor": "কোন ইঞ্জিন?",
       "managed": {
-        "title": "Start right away",
-        "desc": "Kizuna AI runs the translation for you.",
-        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
+        "title": "এখনই শুরু করুন",
+        "desc": "Kizuna AI আপনার হয়ে অনুবাদ করে।",
+        "cost": "আপনার ইমেইল ঠিকানা দিয়ে সাইন আপ করুন এবং তা যাচাই করুন — যাচাইকৃত অ্যাকাউন্ট একটি ট্রায়াল ক্রেডিট পায়। এরপর আপনি আপনার ব্যালেন্স টপ আপ করেন, এবং আপনি যত ব্যবহার করেন তার ভিত্তিতে অনুবাদের বিল করা হয়।"
       },
       "own-key": {
-        "title": "I have my own API key",
-        "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.",
-        "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI."
+        "title": "আমার নিজস্ব API কী আছে",
+        "desc": "OpenAI, Gemini, Doubao (Volcengine) এবং অন্যান্য থেকে নিজের কী ব্যবহার করুন।",
+        "cost": "আপনার কী এই ডিভাইসেই থাকে এবং সরাসরি এখান থেকে প্রদানকারীর কাছে পৌঁছায়। আপনি তাদের গ্রাহক: আপনি যা ব্যবহার করেন তার জন্য তাদের অর্থ দেন, এবং কিছুই Kizuna AI-এর মধ্য দিয়ে যায় না।"
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
-        "native": "Native engine — faster, uses your GPU where available.",
-        "wasm": "In-app engine — works everywhere, slower."
+        "title": "বিনামূল্যে, অফলাইন",
+        "desc": "আপনার নিজের মেশিনে চলে। কিছুই বাইরে যায় না।",
+        "cost": "আপনার ডিস্কে মডেল ডাউনলোড করে (গিগাবাইট পরিমাণ)। GPU এবং পর্যাপ্ত VRAM থাকলে ভালো চলে; শুধু CPU-তে লক্ষণীয়ভাবে ধীর।",
+        "native": "নেটিভ ইঞ্জিন — দ্রুততর, উপলব্ধ থাকলে আপনার GPU ব্যবহার করে।",
+        "wasm": "ইন-অ্যাপ ইঞ্জিন — সব জায়গায় কাজ করে, ধীরগতির।"
       },
-      "ownKeyNote": "Pick the provider you have an account with. Each one issues its own key:",
-      "ownKeyGuides": "guides for every provider"
+      "ownKeyNote": "যে প্রদানকারীর সাথে আপনার অ্যাকাউন্ট আছে তা বেছে নিন। প্রতিটি নিজস্ব কী প্রদান করে:",
+      "ownKeyGuides": "প্রতিটি প্রদানকারীর জন্য গাইড"
     },
     "fit": {
-      "cannotSpeak": "This provider cannot produce spoken translation.",
-      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+      "cannotSpeak": "এই প্রদানকারী কথ্য অনুবাদ তৈরি করতে পারে না।",
+      "cannotBeTextOnly": "এই প্রদানকারী সবসময় কথা বলে; এটি শুধুমাত্র সাবটাইটেল মোডে চলতে পারে না।"
     },
     "credentials": {
-      "apiKey": "API key",
-      "endpoint": "Endpoint URL",
+      "apiKey": "API কী",
+      "endpoint": "এন্ডপয়েন্ট URL",
       "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
       "accessToken": "Access Token",
       "apiSecret": "API Secret",
-      "validate": "Validate",
-      "valid": "Key accepted.",
-      "invalid": "The key was rejected.",
-      "signIn": "Sign in",
-      "createAccount": "Create account",
-      "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
-      "ownKeyDesc": "This key is stored on this device only, and the app calls the provider straight from here — it never reaches Kizuna AI. You pay the provider for what you use.",
-      "guide": "How to get this key",
-      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
-      "onFile": "A key is already saved — leave this blank to keep it."
+      "validate": "যাচাই",
+      "valid": "কী গৃহীত হয়েছে।",
+      "invalid": "কী প্রত্যাখ্যাত হয়েছে।",
+      "signIn": "সাইন ইন",
+      "createAccount": "অ্যাকাউন্ট তৈরি করুন",
+      "signedIn": "সাইন ইন করা হয়েছে। আপনি চালিয়ে যেতে পারেন।",
+      "managedDesc": "আপনার ইমেইল ঠিকানা দিয়ে সাইন আপ করুন এবং আপনার ইনবক্স থেকে তা যাচাই করুন; যাচাইকৃত অ্যাকাউন্ট একটি ট্রায়াল ক্রেডিট পায়। এরপর আপনি আপনার ব্যালেন্স টপ আপ করেন এবং শুধুমাত্র যা ব্যবহার করেন তার জন্য অর্থ প্রদান করেন।",
+      "offlineNotice": "সেটআপের পরে সেটিংস থেকে মডেল ডাউনলোড করা হয়। সেগুলো ডিস্কের কয়েক গিগাবাইট জায়গা নেয়। GPU এবং পর্যাপ্ত VRAM থাকলে Sokuji ভালো চলে; শুধু CPU-তে লক্ষণীয়ভাবে ধীর।",
+      "pendingKey": "আপনি পরে সেটিংস → প্রদানকারীতে কী যোগ করতে পারেন। এটি যাচাই না হওয়া পর্যন্ত \"শুরু\" লক থাকবে।",
+      "pendingSignIn": "আপনি পরে অ্যাকাউন্ট বোতাম থেকে সাইন ইন করতে পারেন। ততক্ষণ পর্যন্ত \"শুরু\" লক থাকবে।",
+      "ownKeyDesc": "এই কী শুধুমাত্র এই ডিভাইসে সংরক্ষিত থাকে, এবং অ্যাপটি সরাসরি এখান থেকে প্রদানকারীকে কল করে — এটি কখনও Kizuna AI-এ পৌঁছায় না। আপনি যা ব্যবহার করেন তার জন্য প্রদানকারীকে অর্থ দেন।",
+      "guide": "এই কী কীভাবে পাবেন",
+      "verifyEmail": "সাইন ইন করা হয়েছে। আপনার ঠিকানা যাচাই করতে আমরা যে লিংক ইমেইল করেছি তা খুলুন — যাচাই সম্পন্ন হলেই ট্রায়াল ক্রেডিট যোগ হবে।",
+      "onFile": "একটি কী ইতিমধ্যে সংরক্ষিত আছে — সেটি রাখতে এটি খালি রাখুন।"
     },
     "summary": {
-      "scenario": "Scenario",
-      "mode": "Mode",
-      "provider": "Provider",
-      "languages": "Languages",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start.",
+      "scenario": "দৃশ্যকল্প",
+      "mode": "মোড",
+      "provider": "প্রদানকারী",
+      "languages": "ভাষা",
+      "pendingKey": "এখনও কোনো API কী নেই — শুরু করার আগে সেটিংস → প্রদানকারীতে এটি যোগ করুন।",
+      "pendingSignIn": "সাইন ইন করা হয়নি — শুরু করার আগে অ্যাকাউন্ট বোতাম থেকে সাইন ইন করুন।",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
     }
   },
   "tour": {
-    "back": "Back",
-    "next": "Next",
-    "skip": "Skip",
-    "finish": "Finish",
-    "restart": "Restart Setup Guide",
+    "back": "পেছনে",
+    "next": "পরবর্তী",
+    "skip": "এড়িয়ে যান",
+    "finish": "সম্পন্ন করুন",
+    "restart": "সেটআপ গাইড পুনরায় শুরু করুন",
     "steps": {
       "welcome": {
-        "title": "You're set up",
-        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+        "title": "সেটআপ সম্পন্ন",
+        "content": "Sokuji আপনার দৃশ্যকল্প অনুযায়ী কনফিগার করা হয়েছে। এখানে একটি সংক্ষিপ্ত ঘুরে দেখা রইল — এক মিনিটেরও কম সময় লাগবে।"
       },
       "mode-picker": {
-        "title": "Translation mode",
-        "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode, together with the Text Only switch, decides whether it is also spoken aloud.",
-        "modeMe": "Me — what you say is translated for the other side.",
-        "modeOthers": "Other — what they say is translated for you.",
-        "modeBoth": "Both — both directions at once."
+        "title": "অনুবাদ মোড",
+        "content": "এটি আপনার জন্য সেট করা আছে, এবং আপনি যেকোনো সময় এটি পরিবর্তন করতে পারেন। অনুবাদ সবসময় এখানে টেক্সট হিসেবে দেখা যায়; মোড, \"শুধু পাঠ্য\" সুইচের সাথে একত্রে, তা জোরে বলা হবে কিনা তা ঠিক করে।",
+        "modeMe": "আমি — আপনি যা বলেন তা অন্য পক্ষের জন্য অনুবাদ করা হয়।",
+        "modeOthers": "অন্য — তারা যা বলে তা আপনার জন্য অনুবাদ করা হয়।",
+        "modeBoth": "উভয় — একসাথে উভয় দিক।"
       },
       "microphone": {
-        "title": "Your microphone",
-        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+        "title": "আপনার মাইক্রোফোন",
+        "content": "আপনার কথা এখানে প্রবেশ করে। সিস্টেম ডিফল্ট ইতিমধ্যে নির্বাচিত আছে। Sokuji ভার্চুয়াল মাইক্রোফোন বেছে নেবেন না — সেটি আপনার মিটিং অ্যাপের জন্য।"
       },
       "monitor": {
-        "title": "Hear yourself translated",
-        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+        "title": "নিজের অনূদিত কণ্ঠ শুনুন",
+        "content": "অনূদিত কণ্ঠস্বর আপনার নিজের হেডফোনে চালান যাতে আপনি শুনে দেখতে পারেন এটি কেমন শোনাচ্ছে। প্রয়োজন না হলে এটি বন্ধ করে দিন।"
       },
       "output-routing": {
-        "title": "How the other side hears you",
-        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
-        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
-        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
-        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+        "title": "অন্য পক্ষ কীভাবে আপনাকে শোনে",
+        "content": "আপনার অনূদিত কণ্ঠস্বর একটি ভার্চুয়াল মাইক্রোফোনে যায়; এটিকে আপনার মিটিং অ্যাপে মাইক হিসেবে বেছে নিন।",
+        "content_extension": "Google Meet, Zoom বা Teams-এ, আপনার মাইক্রোফোন হিসেবে \"Sokuji Virtual Microphone\" বেছে নিন। Sokuji এটি সমর্থিত মিটিং সাইটগুলিতে স্বয়ংক্রিয়ভাবে যোগ করে দেয়।",
+        "content_electronLinux": "Sokuji এই সিস্টেমে একটি ভার্চুয়াল মাইক্রোফোন তৈরি করেছে। এটিকে আপনার মিটিং অ্যাপে মাইক্রোফোন হিসেবে বেছে নিন।",
+        "content_electronOther": "আপনার একটি ভার্চুয়াল অডিও কেবল প্রয়োজন (উদাহরণস্বরূপ VB-Cable)। Sokuji-এর আউটপুট সেটিতে পাঠান, এবং এটিকে আপনার মিটিং অ্যাপে মাইক্রোফোন হিসেবে বেছে নিন।"
       },
       "participant-source": {
-        "title": "The other side's voice",
-        "content": "Sokuji listens to the other side here.",
-        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
-        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+        "title": "অন্য পক্ষের কণ্ঠস্বর",
+        "content": "Sokuji এখানে অন্য পক্ষের কথা শোনে।",
+        "content_electron": "অনুবাদ করতে অ্যাপ বেছে নিন, অথবা সম্পূর্ণ সিস্টেম অডিও। তাদের মূল কণ্ঠস্বর যথারীতি বাজতে থাকে।",
+        "content_extension": "Sokuji বর্তমান ট্যাবের অডিও অনুবাদ করে। তাদের মূল কণ্ঠস্বর যথারীতি বাজতে থাকে।"
       },
       "subtitle": {
-        "title": "Subtitle mode",
-        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+        "title": "সাবটাইটেল মোড",
+        "content": "একটি ভাসমান সাবটাইটেল ভিউ খোলে — ডেস্কটপে একটি উইন্ডো, এক্সটেনশনে পেজের উপর একটি ওভারলে। OBS এবং স্ক্রিন শেয়ারিং এটি ধারণ করতে পারে।"
       },
       "account": {
-        "title": "Your account",
-        "content": "Your balance and top-up live here.",
-        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+        "title": "আপনার অ্যাকাউন্ট",
+        "content": "আপনার ব্যালেন্স এবং টপ আপ এখানে থাকে।",
+        "content_signedOut": "আপনার অ্যাকাউন্ট এখানে থাকে। \"শুরু\" আনলক করতে ট্যুরের পরে সাইন ইন করুন।"
       },
       "provider-settings": {
-        "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
-        "content_pending": "Paste your API key here. Start unlocks once it validates."
+        "title": "প্রদানকারী সেটিংস",
+        "content": "এখানে আপনার কী পরিবর্তন করুন বা প্রদানকারী পরিবর্তন করুন।",
+        "content_pending": "এখানে আপনার API কী পেস্ট করুন। এটি যাচাই হয়ে গেলে \"শুরু\" আনলক হবে।"
       },
       "models": {
-        "title": "Models",
-        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+        "title": "মডেল",
+        "content": "এখানে মডেল ডাউনলোড করুন — প্রতিটি ধাপের জন্য একটি করে। কয়েকটি চেষ্টা করুন; প্রথম পছন্দটিই একমাত্র ভালো বিকল্প নয়।"
       },
       "start": {
-        "title": "Start",
-        "content": "Press here to start translating. If the button stays greyed out, hover it: the note names what is still missing and where to put it right.",
-        "content_offline": "This lights up once your models are ready. Hover it while it is grey to see what it is waiting for.",
-        "content_signedOut": "This lights up once you sign in. Hover it while it is grey to see what it is waiting for.",
-        "content_pendingKey": "This lights up once your API key validates. Hover it while it is grey to see what it is waiting for."
+        "title": "শুরু",
+        "content": "অনুবাদ শুরু করতে এখানে চাপুন। বোতামটি ধূসর হয়ে থাকলে তার উপর হোভার করুন: নোটে কী এখনও অনুপস্থিত এবং তা কোথায় ঠিক করতে হবে তা লেখা থাকবে।",
+        "content_offline": "আপনার মডেল প্রস্তুত হয়ে গেলে এটি জ্বলে উঠবে। এটি ধূসর থাকা অবস্থায় হোভার করে দেখুন এটি কীসের জন্য অপেক্ষা করছে।",
+        "content_signedOut": "আপনি সাইন ইন করলে এটি জ্বলে উঠবে। এটি ধূসর থাকা অবস্থায় হোভার করে দেখুন এটি কীসের জন্য অপেক্ষা করছে।",
+        "content_pendingKey": "আপনার API কী যাচাই হয়ে গেলে এটি জ্বলে উঠবে। এটি ধূসর থাকা অবস্থায় হোভার করে দেখুন এটি কীসের জন্য অপেক্ষা করছে।"
       },
       "done": {
-        "title": "That's it",
-        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help."
+        "title": "এটুকুই",
+        "content": "উন্নত সেটিংস — বক্তৃতা শনাক্তকরণ, প্রম্পট, কণ্ঠস্বর, লগ — সেটিংসের উপরে ডানদিকে \"উন্নত\" টগলের আড়ালে থাকে। সাহায্য থেকে যেকোনো সময় এই গাইডটি আবার দেখতে পারবেন।"
       }
     }
   }

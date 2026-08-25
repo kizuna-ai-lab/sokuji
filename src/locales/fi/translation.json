@@ -948,197 +948,197 @@
     "importChooseModel": "Valitse tuotava malli"
   },
   "setup": {
-    "title": "Set up Sokuji",
-    "stepOf": "Step {{current}} of {{total}}",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "close": "Close",
-    "skipForNow": "Skip for now",
-    "rerun": "Run setup again",
+    "title": "Määritä Sokuji",
+    "stepOf": "Vaihe {{current}}/{{total}}",
+    "back": "Takaisin",
+    "next": "Seuraava",
+    "finish": "Valmis",
+    "close": "Sulje",
+    "skipForNow": "Ohita toistaiseksi",
+    "rerun": "Käynnistä asennus uudelleen",
     "steps": {
       "language": {
-        "title": "Which language should Sokuji speak to you in?",
-        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
-        "label": "Interface language"
+        "title": "Millä kielellä Sokujin tulisi puhua sinulle?",
+        "desc": "Tämä on valikoiden ja painikkeiden kieli. Valitset myöhemmin kielet, joiden välillä käännät.",
+        "label": "Käyttöliittymän kieli"
       },
       "scenario": {
-        "title": "What do you want to do?",
-        "desc": "Pick the closest match. You can change any of this later."
+        "title": "Mitä haluat tehdä?",
+        "desc": "Valitse lähimmin sopiva vaihtoehto. Voit muuttaa tätä myöhemmin."
       },
       "path": {
-        "title": "What do you have?"
+        "title": "Mikä sinulla on?"
       },
       "credentials": {
-        "offlineTitle": "Nothing to enter",
-        "managedTitle": "Your Kizuna AI account",
-        "ownKeyTitle": "Your API key"
+        "offlineTitle": "Ei mitään syötettävää",
+        "managedTitle": "Kizuna AI -tilisi",
+        "ownKeyTitle": "API-avaimesi"
       },
       "languagePair": {
-        "title": "Which languages?",
-        "desc": "What you (or they) speak, and what it should become."
+        "title": "Mitkä kielet?",
+        "desc": "Mitä sinä puhut tai he puhuvat, ja mihin se käännetään."
       },
       "finish": {
-        "title": "Ready",
-        "persistFailed": "Could not save your setup. Please try again."
+        "title": "Valmis",
+        "persistFailed": "Asetuksia ei voitu tallentaa. Yritä uudelleen."
       }
     },
     "scenarios": {
-      "sets": "Sets: {{mode}} mode · {{output}}",
+      "sets": "Asettaa: {{mode}}-tila · {{output}}",
       "understand-others": {
-        "title": "Understand what others say",
-        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+        "title": "Ymmärrä, mitä muut sanovat",
+        "desc": "Verkkokokoukset, oppitunnit, puheet, videot, striimit — lue reaaliaikainen käännös siitä, mitä kuulet."
       },
       "be-heard": {
-        "title": "Be understood in a meeting",
-        "desc": "They hear your translated voice through a virtual microphone."
+        "title": "Tule ymmärretyksi kokouksessa",
+        "desc": "He kuulevat käännetyn äänesi virtuaalimikrofonin kautta."
       },
       "subtitle-myself": {
-        "title": "Subtitle my own speech",
-        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+        "title": "Tekstitä oma puheeni",
+        "desc": "Puheet, striimit, esitykset — yleisösi lukee käännettyjä tekstityksiä; ääntä ei tuoteta."
       },
       "two-way-voice": {
-        "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you read subtitles generated from what they say."
+        "title": "Kaksisuuntainen verkkokeskustelu",
+        "desc": "He kuulevat käännetyn äänesi; luet tekstityksiä siitä, mitä he sanovat."
       },
       "two-way-text": {
-        "title": "Two-way online conversation, subtitles only",
-        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+        "title": "Kaksisuuntainen verkkokeskustelu, vain tekstitys",
+        "desc": "Kaksikieliset tekstitykset, kokousmuistiot — molemmat puolet tekstinä, ei synteettistä ääntä."
       }
     },
     "output": {
-      "voice": "voice and subtitles",
-      "subtitles": "subtitles only"
+      "voice": "ääni ja tekstitys",
+      "subtitles": "vain tekstitys"
     },
     "paths": {
-      "recommended": "Recommended",
-      "pickProvider": "Which provider?",
-      "offlineFlavor": "Which engine?",
+      "recommended": "Suositeltu",
+      "pickProvider": "Mikä tarjoaja?",
+      "offlineFlavor": "Mikä moottori?",
       "managed": {
-        "title": "Start right away",
-        "desc": "Kizuna AI runs the translation for you.",
-        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
+        "title": "Aloita heti",
+        "desc": "Kizuna AI hoitaa kääntämisen puolestasi.",
+        "cost": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se — vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa, ja kääntäminen laskutetaan käyttösi mukaan."
       },
       "own-key": {
-        "title": "I have my own API key",
-        "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.",
-        "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI."
+        "title": "Minulla on oma API-avain",
+        "desc": "Tuo oma avaimesi palveluista OpenAI, Gemini, Doubao (Volcengine) ja muista.",
+        "cost": "Avaimesi pysyy tällä laitteella ja välittyy tarjoajalle suoraan sieltä. Olet heidän asiakkaansa: maksat heille käytöstäsi, eikä mikään kulje Kizuna AI:n kautta."
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
-        "native": "Native engine — faster, uses your GPU where available.",
-        "wasm": "In-app engine — works everywhere, slower."
+        "title": "Ilmainen, offline",
+        "desc": "Toimii omalla koneellasi. Mikään ei poistu siitä.",
+        "cost": "Lataa malleja levyllesi (gigatavuja). Toimii hyvin GPU:lla ja riittävällä VRAM-määrällä; pelkällä CPU:lla huomattavasti hitaampi.",
+        "native": "Native-moottori — nopeampi, käyttää GPU:ta, jos saatavilla.",
+        "wasm": "Sovelluksen sisäinen moottori — toimii kaikkialla, hitaampi."
       },
-      "ownKeyNote": "Pick the provider you have an account with. Each one issues its own key:",
-      "ownKeyGuides": "guides for every provider"
+      "ownKeyNote": "Valitse tarjoaja, jonka luona sinulla on tili. Jokainen myöntää oman avaimensa:",
+      "ownKeyGuides": "ohjeet jokaiselle tarjoajalle"
     },
     "fit": {
-      "cannotSpeak": "This provider cannot produce spoken translation.",
-      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+      "cannotSpeak": "Tämä tarjoaja ei pysty tuottamaan puhuttua käännöstä.",
+      "cannotBeTextOnly": "Tämä tarjoaja puhuu aina; se ei voi toimia vain tekstityksellä."
     },
     "credentials": {
-      "apiKey": "API key",
-      "endpoint": "Endpoint URL",
+      "apiKey": "API-avain",
+      "endpoint": "Päätepiste-URL",
       "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
       "accessToken": "Access Token",
-      "apiSecret": "API Secret",
-      "validate": "Validate",
-      "valid": "Key accepted.",
-      "invalid": "The key was rejected.",
-      "signIn": "Sign in",
-      "createAccount": "Create account",
-      "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
-      "ownKeyDesc": "This key is stored on this device only, and the app calls the provider straight from here — it never reaches Kizuna AI. You pay the provider for what you use.",
-      "guide": "How to get this key",
-      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
-      "onFile": "A key is already saved — leave this blank to keep it."
+      "apiSecret": "API-salainen avain",
+      "validate": "Vahvista",
+      "valid": "Avain hyväksytty.",
+      "invalid": "Avain hylättiin.",
+      "signIn": "Kirjaudu sisään",
+      "createAccount": "Luo tili",
+      "signedIn": "Kirjauduttu sisään. Voit jatkaa.",
+      "managedDesc": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se saapuneet-kansiostasi; vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa ja maksat vain käytöstäsi.",
+      "offlineNotice": "Mallit ladataan asennuksen jälkeen Asetuksista. Ne vievät gigatavuja levytilaa. Sokuji toimii hyvin GPU:lla ja riittävällä VRAM-määrällä; pelkällä CPU:lla huomattavasti hitaampi.",
+      "pendingKey": "Voit lisätä avaimen myöhemmin kohdassa Asetukset → Tarjoaja. Aloita pysyy lukittuna, kunnes avain vahvistuu.",
+      "pendingSignIn": "Voit kirjautua sisään myöhemmin tilipainikkeesta. Aloita pysyy lukittuna siihen asti.",
+      "ownKeyDesc": "Tämä avain tallennetaan vain tälle laitteelle, ja sovellus ottaa yhteyttä tarjoajaan suoraan täältä — se ei koskaan kulje Kizuna AI:n kautta. Maksat tarjoajalle käytöstäsi.",
+      "guide": "Näin hankit tämän avaimen",
+      "verifyEmail": "Kirjauduttu sisään. Avaa sähköpostitse lähettämämme linkki vahvistaaksesi osoitteesi — kokeilusaldo tulee voimaan, kun teet niin.",
+      "onFile": "Avain on jo tallennettu — jätä tämä tyhjäksi säilyttääksesi sen."
     },
     "summary": {
-      "scenario": "Scenario",
-      "mode": "Mode",
-      "provider": "Provider",
-      "languages": "Languages",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start.",
+      "scenario": "Skenaario",
+      "mode": "Tila",
+      "provider": "Tarjoaja",
+      "languages": "Kielet",
+      "pendingKey": "Ei vielä API-avainta — lisää se kohdassa Asetukset → Tarjoaja ennen aloittamista.",
+      "pendingSignIn": "Et ole kirjautunut sisään — kirjaudu sisään tilipainikkeesta ennen aloittamista.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
     }
   },
   "tour": {
-    "back": "Back",
-    "next": "Next",
-    "skip": "Skip",
-    "finish": "Finish",
-    "restart": "Restart Setup Guide",
+    "back": "Takaisin",
+    "next": "Seuraava",
+    "skip": "Ohita",
+    "finish": "Valmis",
+    "restart": "Käynnistä asennusopas uudelleen",
     "steps": {
       "welcome": {
-        "title": "You're set up",
-        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+        "title": "Olet valmis",
+        "content": "Sokuji on määritetty skenaariosi mukaan. Tässä lyhyt kierros — se kestää alle minuutin."
       },
       "mode-picker": {
-        "title": "Translation mode",
-        "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode, together with the Text Only switch, decides whether it is also spoken aloud.",
-        "modeMe": "Me — what you say is translated for the other side.",
-        "modeOthers": "Other — what they say is translated for you.",
-        "modeBoth": "Both — both directions at once."
+        "title": "Käännöstila",
+        "content": "Tämä on asetettu sinulle valmiiksi, ja voit vaihtaa sitä milloin tahansa. Käännös näkyy täällä aina tekstinä; tila yhdessä Vain teksti -kytkimen kanssa määrää, luetaanko se myös ääneen.",
+        "modeMe": "Minä — se, mitä sanot, käännetään toiselle.",
+        "modeOthers": "Toinen — se, mitä he sanovat, käännetään sinulle.",
+        "modeBoth": "Molemmat — molemmat suunnat samanaikaisesti."
       },
       "microphone": {
-        "title": "Your microphone",
-        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+        "title": "Mikrofonisi",
+        "content": "Puheesi tulee tänne. Järjestelmän oletuslaite on jo valittuna. Älä valitse Sokujin virtuaalimikrofonia — se on tarkoitettu kokoussovellukseesi."
       },
       "monitor": {
-        "title": "Hear yourself translated",
-        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+        "title": "Kuuntele itseäsi käännettynä",
+        "content": "Toista käännetty ääni omiin kuulokkeisiisi, jotta voit tarkistaa, miltä se kuulostaa. Kytke pois päältä, jos et tarvitse sitä."
       },
       "output-routing": {
-        "title": "How the other side hears you",
-        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
-        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
-        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
-        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+        "title": "Miten toinen osapuoli kuulee sinut",
+        "content": "Käännetty äänesi ohjautuu virtuaalimikrofoniin; valitse se mikrofoniksi kokoussovelluksessasi.",
+        "content_extension": "Valitse Google Meetissä, Zoomissa tai Teamsissa mikrofoniksi \"Sokuji Virtual Microphone\". Sokuji lisää sen automaattisesti tuettuihin kokoussivustoihin.",
+        "content_electronLinux": "Sokuji loi virtuaalimikrofonin tähän järjestelmään. Valitse se mikrofoniksi kokoussovelluksessasi.",
+        "content_electronOther": "Tarvitset virtuaalisen äänikaapelin (esimerkiksi VB-Cable). Ohjaa Sokujin äänilähtö siihen ja valitse se mikrofoniksi kokoussovelluksessasi."
       },
       "participant-source": {
-        "title": "The other side's voice",
-        "content": "Sokuji listens to the other side here.",
-        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
-        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+        "title": "Toisen osapuolen ääni",
+        "content": "Sokuji kuuntelee toista osapuolta täältä.",
+        "content_electron": "Valitse käännettävä sovellus tai koko järjestelmän ääni. Heidän alkuperäinen äänensä jatkuu normaalisti.",
+        "content_extension": "Sokuji kääntää nykyisen välilehden äänen. Heidän alkuperäinen äänensä jatkuu normaalisti."
       },
       "subtitle": {
-        "title": "Subtitle mode",
-        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+        "title": "Tekstitystila",
+        "content": "Avaa kelluvan tekstitysnäkymän — työpöydällä ikkunana, laajennuksessa sivun päällä olevana peittokuvana. OBS ja näytönjako voivat kaapata sen."
       },
       "account": {
-        "title": "Your account",
-        "content": "Your balance and top-up live here.",
-        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+        "title": "Tilisi",
+        "content": "Saldosi ja saldon lataus löytyvät täältä.",
+        "content_signedOut": "Tilisi löytyy täältä. Kirjaudu sisään opastuksen jälkeen avataksesi Aloita-painikkeen."
       },
       "provider-settings": {
-        "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
-        "content_pending": "Paste your API key here. Start unlocks once it validates."
+        "title": "Tarjoajan asetukset",
+        "content": "Vaihda avaimesi tai tarjoajasi täältä.",
+        "content_pending": "Liitä API-avaimesi tähän. Aloita vapautuu, kun avain vahvistuu."
       },
       "models": {
-        "title": "Models",
-        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+        "title": "Mallit",
+        "content": "Lataa mallit täältä — yksi jokaista vaihetta kohden. Kokeile muutamaa; ensimmäinen valinta ei ole ainoa hyvä vaihtoehto."
       },
       "start": {
-        "title": "Start",
-        "content": "Press here to start translating. If the button stays greyed out, hover it: the note names what is still missing and where to put it right.",
-        "content_offline": "This lights up once your models are ready. Hover it while it is grey to see what it is waiting for.",
-        "content_signedOut": "This lights up once you sign in. Hover it while it is grey to see what it is waiting for.",
-        "content_pendingKey": "This lights up once your API key validates. Hover it while it is grey to see what it is waiting for."
+        "title": "Aloita",
+        "content": "Paina tästä aloittaaksesi kääntämisen. Jos painike pysyy harmaana, vie hiiri sen päälle: huomautus kertoo, mitä vielä puuttuu ja mistä sen voi korjata.",
+        "content_offline": "Tämä syttyy, kun mallisi ovat valmiit. Vie hiiri sen päälle, kun se on harmaa, nähdäksesi, mitä se odottaa.",
+        "content_signedOut": "Tämä syttyy, kun kirjaudut sisään. Vie hiiri sen päälle, kun se on harmaa, nähdäksesi, mitä se odottaa.",
+        "content_pendingKey": "Tämä syttyy, kun API-avaimesi vahvistuu. Vie hiiri sen päälle, kun se on harmaa, nähdäksesi, mitä se odottaa."
       },
       "done": {
-        "title": "That's it",
-        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help."
+        "title": "Siinä kaikki",
+        "content": "Lisäasetukset — puheen käsittely, promptit, äänet, lokit — löytyvät Edistynyt-kytkimen takaa Asetusten oikeasta yläkulmasta. Voit toistaa tämän oppaan milloin tahansa Ohje-valikosta."
       }
     }
   }

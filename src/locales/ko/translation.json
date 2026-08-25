@@ -948,197 +948,197 @@
     "importChooseModel": "가져올 모델 선택"
   },
   "setup": {
-    "title": "Set up Sokuji",
-    "stepOf": "Step {{current}} of {{total}}",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "close": "Close",
-    "skipForNow": "Skip for now",
-    "rerun": "Run setup again",
+    "title": "Sokuji 설정",
+    "stepOf": "{{current}}/{{total}}단계",
+    "back": "뒤로",
+    "next": "다음",
+    "finish": "완료",
+    "close": "닫기",
+    "skipForNow": "지금은 건너뛰기",
+    "rerun": "설정 다시 실행",
     "steps": {
       "language": {
-        "title": "Which language should Sokuji speak to you in?",
-        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
-        "label": "Interface language"
+        "title": "Sokuji가 어떤 언어로 안내할까요?",
+        "desc": "메뉴와 버튼에 사용되는 언어입니다. 번역할 언어는 나중에 선택합니다.",
+        "label": "인터페이스 언어"
       },
       "scenario": {
-        "title": "What do you want to do?",
-        "desc": "Pick the closest match. You can change any of this later."
+        "title": "무엇을 하고 싶으신가요?",
+        "desc": "가장 가까운 것을 선택하세요. 나중에 언제든 변경할 수 있습니다."
       },
       "path": {
-        "title": "What do you have?"
+        "title": "무엇을 가지고 계신가요?"
       },
       "credentials": {
-        "offlineTitle": "Nothing to enter",
-        "managedTitle": "Your Kizuna AI account",
-        "ownKeyTitle": "Your API key"
+        "offlineTitle": "입력할 내용 없음",
+        "managedTitle": "내 Kizuna AI 계정",
+        "ownKeyTitle": "내 API 키"
       },
       "languagePair": {
-        "title": "Which languages?",
-        "desc": "What you (or they) speak, and what it should become."
+        "title": "어떤 언어인가요?",
+        "desc": "내가(또는 상대방이) 말하는 언어와, 번역될 언어입니다."
       },
       "finish": {
-        "title": "Ready",
-        "persistFailed": "Could not save your setup. Please try again."
+        "title": "준비 완료",
+        "persistFailed": "설정을 저장하지 못했습니다. 다시 시도해 주세요."
       }
     },
     "scenarios": {
-      "sets": "Sets: {{mode}} mode · {{output}}",
+      "sets": "설정: {{mode}} 모드 · {{output}}",
       "understand-others": {
-        "title": "Understand what others say",
-        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+        "title": "상대방의 말 이해하기",
+        "desc": "온라인 회의, 수업, 강연, 영상, 스트리밍 — 듣는 내용을 실시간 번역으로 읽습니다."
       },
       "be-heard": {
-        "title": "Be understood in a meeting",
-        "desc": "They hear your translated voice through a virtual microphone."
+        "title": "회의에서 내 말 전달하기",
+        "desc": "상대방은 가상 마이크를 통해 번역된 내 목소리를 듣습니다."
       },
       "subtitle-myself": {
-        "title": "Subtitle my own speech",
-        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+        "title": "내 말에 자막 달기",
+        "desc": "강연, 스트리밍, 발표 — 청중이 번역된 자막을 읽습니다. 음성은 생성되지 않습니다."
       },
       "two-way-voice": {
-        "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you read subtitles generated from what they say."
+        "title": "양방향 온라인 대화",
+        "desc": "상대방은 번역된 내 목소리를 듣고, 나는 상대방 말에서 생성된 자막을 읽습니다."
       },
       "two-way-text": {
-        "title": "Two-way online conversation, subtitles only",
-        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+        "title": "양방향 온라인 대화, 자막만",
+        "desc": "이중 언어 자막, 회의록 — 양쪽 모두 텍스트로, 합성 음성 없음."
       }
     },
     "output": {
-      "voice": "voice and subtitles",
-      "subtitles": "subtitles only"
+      "voice": "음성 및 자막",
+      "subtitles": "자막만"
     },
     "paths": {
-      "recommended": "Recommended",
-      "pickProvider": "Which provider?",
-      "offlineFlavor": "Which engine?",
+      "recommended": "추천",
+      "pickProvider": "어떤 제공자인가요?",
+      "offlineFlavor": "어떤 엔진을 사용할까요?",
       "managed": {
-        "title": "Start right away",
-        "desc": "Kizuna AI runs the translation for you.",
-        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
+        "title": "바로 시작하기",
+        "desc": "Kizuna AI가 번역을 대신 처리합니다.",
+        "cost": "이메일 주소로 가입하고 인증하세요 — 인증된 계정에는 체험 크레딧이 제공됩니다. 이후에는 잔액을 충전하며, 번역은 사용량에 따라 청구됩니다."
       },
       "own-key": {
-        "title": "I have my own API key",
-        "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.",
-        "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI."
+        "title": "내 API 키 사용하기",
+        "desc": "OpenAI, Gemini, Doubao (Volcengine) 등 자신의 키를 사용하세요.",
+        "cost": "키는 이 기기에만 저장되며 여기서 제공업체로 직접 전달됩니다. 이때 사용자는 해당 제공업체의 고객이 되어 사용한 만큼 직접 요금을 지불하며, Kizuna AI는 거치지 않습니다."
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
-        "native": "Native engine — faster, uses your GPU where available.",
-        "wasm": "In-app engine — works everywhere, slower."
+        "title": "무료, 오프라인",
+        "desc": "내 컴퓨터에서 실행됩니다. 외부로 전송되는 데이터가 없습니다.",
+        "cost": "모델을 디스크에 다운로드합니다(수 기가바이트). GPU와 충분한 VRAM이 있으면 원활하게 작동하며, CPU만 사용하면 눈에 띄게 느려집니다.",
+        "native": "네이티브 엔진 — 더 빠르며, 가능한 경우 GPU를 사용합니다.",
+        "wasm": "앱 내장 엔진 — 어디서나 작동하지만 더 느립니다."
       },
-      "ownKeyNote": "Pick the provider you have an account with. Each one issues its own key:",
-      "ownKeyGuides": "guides for every provider"
+      "ownKeyNote": "계정이 있는 제공자를 선택하세요. 각 제공자가 별도의 키를 발급합니다:",
+      "ownKeyGuides": "모든 제공자 안내"
     },
     "fit": {
-      "cannotSpeak": "This provider cannot produce spoken translation.",
-      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+      "cannotSpeak": "이 제공자는 음성 번역을 생성할 수 없습니다.",
+      "cannotBeTextOnly": "이 제공자는 항상 음성으로 말하므로 '자막만'으로는 실행할 수 없습니다."
     },
     "credentials": {
-      "apiKey": "API key",
-      "endpoint": "Endpoint URL",
+      "apiKey": "API 키",
+      "endpoint": "엔드포인트 URL",
       "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
       "accessToken": "Access Token",
-      "apiSecret": "API Secret",
-      "validate": "Validate",
-      "valid": "Key accepted.",
-      "invalid": "The key was rejected.",
-      "signIn": "Sign in",
-      "createAccount": "Create account",
-      "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
-      "ownKeyDesc": "This key is stored on this device only, and the app calls the provider straight from here — it never reaches Kizuna AI. You pay the provider for what you use.",
-      "guide": "How to get this key",
-      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
-      "onFile": "A key is already saved — leave this blank to keep it."
+      "apiSecret": "API 시크릿",
+      "validate": "검증",
+      "valid": "키가 승인되었습니다.",
+      "invalid": "키가 거부되었습니다.",
+      "signIn": "로그인",
+      "createAccount": "회원가입",
+      "signedIn": "로그인되었습니다. 계속 진행할 수 있습니다.",
+      "managedDesc": "이메일 주소로 가입한 후 받은편지함에서 인증하세요. 인증된 계정에는 체험 크레딧이 제공됩니다. 이후에는 잔액을 충전하고 사용한 만큼만 결제합니다.",
+      "offlineNotice": "모델은 초기 설정을 마친 후 '설정'에서 다운로드합니다. 디스크 용량을 수 기가바이트 차지합니다. GPU와 충분한 VRAM이 있으면 Sokuji가 원활하게 작동하며, CPU만 사용하면 눈에 띄게 느려집니다.",
+      "pendingKey": "키는 나중에 설정 → 제공자에서 추가할 수 있습니다. 검증 전까지는 시작이 잠겨 있습니다.",
+      "pendingSignIn": "나중에 계정 버튼에서 로그인할 수 있습니다. 그때까지는 시작이 잠겨 있습니다.",
+      "ownKeyDesc": "이 키는 이 기기에만 저장되며, 앱이 여기서 제공업체에 직접 요청합니다 — Kizuna AI로는 전달되지 않습니다. 사용한 만큼 제공업체에 직접 결제합니다.",
+      "guide": "이 키를 받는 방법",
+      "verifyEmail": "로그인되었습니다. 이메일로 보내드린 링크를 열어 주소를 인증하세요 — 인증하면 체험 크레딧이 지급됩니다.",
+      "onFile": "이미 저장된 키가 있습니다 — 그대로 두면 유지됩니다."
     },
     "summary": {
-      "scenario": "Scenario",
-      "mode": "Mode",
-      "provider": "Provider",
-      "languages": "Languages",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start.",
+      "scenario": "시나리오",
+      "mode": "모드",
+      "provider": "제공자",
+      "languages": "언어",
+      "pendingKey": "아직 API 키가 없습니다 — 시작 전에 설정 → 제공자에서 추가하세요.",
+      "pendingSignIn": "로그인하지 않았습니다 — 시작 전에 계정 버튼에서 로그인하세요.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
     }
   },
   "tour": {
-    "back": "Back",
-    "next": "Next",
-    "skip": "Skip",
-    "finish": "Finish",
-    "restart": "Restart Setup Guide",
+    "back": "뒤로",
+    "next": "다음",
+    "skip": "건너뛰기",
+    "finish": "완료",
+    "restart": "설정 가이드 다시 보기",
     "steps": {
       "welcome": {
-        "title": "You're set up",
-        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+        "title": "설정이 완료되었습니다",
+        "content": "Sokuji가 선택한 시나리오에 맞게 설정되었습니다. 짧게 둘러보겠습니다 — 1분이 채 걸리지 않습니다."
       },
       "mode-picker": {
-        "title": "Translation mode",
-        "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode, together with the Text Only switch, decides whether it is also spoken aloud.",
-        "modeMe": "Me — what you say is translated for the other side.",
-        "modeOthers": "Other — what they say is translated for you.",
-        "modeBoth": "Both — both directions at once."
+        "title": "번역 모드",
+        "content": "이 설정은 자동으로 되어 있으며 언제든 전환할 수 있습니다. 번역은 항상 이곳에 텍스트로 표시되며, 모드와 '텍스트만' 스위치가 함께 음성으로도 출력할지를 결정합니다.",
+        "modeMe": "나 — 내가 하는 말이 상대방을 위해 번역됩니다.",
+        "modeOthers": "상대방 — 상대방이 하는 말이 나를 위해 번역됩니다.",
+        "modeBoth": "모두 — 양방향을 동시에 번역합니다."
       },
       "microphone": {
-        "title": "Your microphone",
-        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+        "title": "내 마이크",
+        "content": "내 음성이 여기로 들어옵니다. 시스템 기본 장치가 이미 선택되어 있습니다. Sokuji 가상 마이크는 선택하지 마세요 — 이것은 회의 앱용입니다."
       },
       "monitor": {
-        "title": "Hear yourself translated",
-        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+        "title": "번역된 내 목소리 듣기",
+        "content": "번역된 음성을 내 헤드폰으로 재생해 어떻게 들리는지 확인할 수 있습니다. 필요 없으면 꺼도 됩니다."
       },
       "output-routing": {
-        "title": "How the other side hears you",
-        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
-        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
-        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
-        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+        "title": "상대방이 내 목소리를 듣는 방법",
+        "content": "번역된 내 목소리는 가상 마이크로 전송됩니다. 회의 앱에서 이를 마이크로 선택하세요.",
+        "content_extension": "Google Meet, Zoom, Teams에서 \"Sokuji Virtual Microphone\"을 마이크로 선택하세요. Sokuji가 지원되는 회의 사이트에 자동으로 추가합니다.",
+        "content_electronLinux": "Sokuji가 이 시스템에 가상 마이크를 생성했습니다. 회의 앱에서 이를 마이크로 선택하세요.",
+        "content_electronOther": "가상 오디오 케이블(예: VB-Cable)이 필요합니다. Sokuji의 출력을 여기로 보낸 후, 회의 앱에서 이를 마이크로 선택하세요."
       },
       "participant-source": {
-        "title": "The other side's voice",
-        "content": "Sokuji listens to the other side here.",
-        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
-        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+        "title": "상대방의 목소리",
+        "content": "Sokuji가 여기서 상대방의 소리를 듣습니다.",
+        "content_electron": "번역할 앱을 선택하거나 전체 시스템 오디오를 선택하세요. 상대방의 원음은 평소처럼 계속 재생됩니다.",
+        "content_extension": "Sokuji는 현재 탭의 오디오를 번역합니다. 상대방의 원음은 평소처럼 계속 재생됩니다."
       },
       "subtitle": {
-        "title": "Subtitle mode",
-        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+        "title": "자막 모드",
+        "content": "떠 있는 자막 화면을 엽니다 — 데스크톱에서는 창으로, 확장 프로그램에서는 페이지 위 오버레이로 표시됩니다. OBS와 화면 공유로 캡처할 수 있습니다."
       },
       "account": {
-        "title": "Your account",
-        "content": "Your balance and top-up live here.",
-        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+        "title": "내 계정",
+        "content": "잔액과 충전은 여기에 있습니다.",
+        "content_signedOut": "계정은 여기에 있습니다. 둘러보기가 끝난 후 로그인하면 시작이 활성화됩니다."
       },
       "provider-settings": {
-        "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
-        "content_pending": "Paste your API key here. Start unlocks once it validates."
+        "title": "제공자 설정",
+        "content": "여기서 키를 변경하거나 제공자를 전환할 수 있습니다.",
+        "content_pending": "여기에 API 키를 붙여넣으세요. 검증되면 시작이 활성화됩니다."
       },
       "models": {
-        "title": "Models",
-        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+        "title": "모델",
+        "content": "여기서 모델을 다운로드하세요 — 단계마다 하나씩입니다. 여러 개를 시도해 보세요. 처음 선택한 것만 정답은 아닙니다."
       },
       "start": {
-        "title": "Start",
-        "content": "Press here to start translating. If the button stays greyed out, hover it: the note names what is still missing and where to put it right.",
-        "content_offline": "This lights up once your models are ready. Hover it while it is grey to see what it is waiting for.",
-        "content_signedOut": "This lights up once you sign in. Hover it while it is grey to see what it is waiting for.",
-        "content_pendingKey": "This lights up once your API key validates. Hover it while it is grey to see what it is waiting for."
+        "title": "시작",
+        "content": "여기를 눌러 번역을 시작하세요. 버튼이 계속 회색으로 표시되면 마우스를 올려 보세요 — 무엇이 빠졌는지, 어디서 해결할 수 있는지 안내가 표시됩니다.",
+        "content_offline": "모델이 준비되면 활성화됩니다. 회색으로 표시된 동안 마우스를 올리면 무엇을 기다리는지 확인할 수 있습니다.",
+        "content_signedOut": "로그인하면 활성화됩니다. 회색으로 표시된 동안 마우스를 올리면 무엇을 기다리는지 확인할 수 있습니다.",
+        "content_pendingKey": "API 키가 검증되면 활성화됩니다. 회색으로 표시된 동안 마우스를 올리면 무엇을 기다리는지 확인할 수 있습니다."
       },
       "done": {
-        "title": "That's it",
-        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help."
+        "title": "여기까지입니다",
+        "content": "음성 감지, 프롬프트, 음성, 로그 등 고급 설정은 설정 화면 오른쪽 위의 고급 토글 뒤에 있습니다. 이 가이드는 도움말에서 언제든 다시 볼 수 있습니다."
       }
     }
   }

@@ -948,197 +948,197 @@
     "importChooseModel": "اختر نموذجًا للاستيراد"
   },
   "setup": {
-    "title": "Set up Sokuji",
-    "stepOf": "Step {{current}} of {{total}}",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "close": "Close",
-    "skipForNow": "Skip for now",
-    "rerun": "Run setup again",
+    "title": "إعداد Sokuji",
+    "stepOf": "الخطوة {{current}} من {{total}}",
+    "back": "رجوع",
+    "next": "التالي",
+    "finish": "إنهاء",
+    "close": "إغلاق",
+    "skipForNow": "تخطي الآن",
+    "rerun": "تشغيل الإعداد مرة أخرى",
     "steps": {
       "language": {
-        "title": "Which language should Sokuji speak to you in?",
-        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
-        "label": "Interface language"
+        "title": "بأي لغة يجب أن يتحدث Sokuji معك؟",
+        "desc": "هذه لغة القوائم والأزرار. تختار لغات الترجمة لاحقاً.",
+        "label": "لغة الواجهة"
       },
       "scenario": {
-        "title": "What do you want to do?",
-        "desc": "Pick the closest match. You can change any of this later."
+        "title": "ماذا تريد أن تفعل؟",
+        "desc": "اختر الأقرب لحالتك. يمكنك تغيير أي من هذا لاحقاً."
       },
       "path": {
-        "title": "What do you have?"
+        "title": "ما الذي تملكه؟"
       },
       "credentials": {
-        "offlineTitle": "Nothing to enter",
-        "managedTitle": "Your Kizuna AI account",
-        "ownKeyTitle": "Your API key"
+        "offlineTitle": "لا شيء لإدخاله",
+        "managedTitle": "حسابك في Kizuna AI",
+        "ownKeyTitle": "مفتاح API الخاص بك"
       },
       "languagePair": {
-        "title": "Which languages?",
-        "desc": "What you (or they) speak, and what it should become."
+        "title": "ما هي اللغات؟",
+        "desc": "ما تتحدثه (أو يتحدثه الآخر)، وما يجب أن يصبح عليه."
       },
       "finish": {
-        "title": "Ready",
-        "persistFailed": "Could not save your setup. Please try again."
+        "title": "جاهز",
+        "persistFailed": "تعذّر حفظ إعدادك. يرجى المحاولة مرة أخرى."
       }
     },
     "scenarios": {
-      "sets": "Sets: {{mode}} mode · {{output}}",
+      "sets": "يضبط: وضع {{mode}} · {{output}}",
       "understand-others": {
-        "title": "Understand what others say",
-        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+        "title": "افهم ما يقوله الآخرون",
+        "desc": "اجتماعات عبر الإنترنت، محاضرات، ندوات، فيديوهات، بث مباشر — اقرأ ترجمة فورية لما تسمعه."
       },
       "be-heard": {
-        "title": "Be understood in a meeting",
-        "desc": "They hear your translated voice through a virtual microphone."
+        "title": "كي تُفهَم في اجتماع",
+        "desc": "يسمعون صوتك المترجم عبر ميكروفون افتراضي."
       },
       "subtitle-myself": {
-        "title": "Subtitle my own speech",
-        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+        "title": "ترجمة كلامي إلى نص",
+        "desc": "محاضرات وبث مباشر وعروض تقديمية — يقرأ جمهورك ترجمة نصية؛ لا يُنشأ أي صوت."
       },
       "two-way-voice": {
-        "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you read subtitles generated from what they say."
+        "title": "محادثة عبر الإنترنت بالاتجاهين",
+        "desc": "يسمعون صوتك المترجم، وتقرأ أنت نصاً مترجَماً مما يقولونه."
       },
       "two-way-text": {
-        "title": "Two-way online conversation, subtitles only",
-        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+        "title": "محادثة عبر الإنترنت بالاتجاهين، نص فقط",
+        "desc": "ترجمة نصية ثنائية اللغة، محاضر اجتماعات — كلا الجانبين كنص، بدون صوت اصطناعي."
       }
     },
     "output": {
-      "voice": "voice and subtitles",
-      "subtitles": "subtitles only"
+      "voice": "صوت ونص",
+      "subtitles": "نص فقط"
     },
     "paths": {
-      "recommended": "Recommended",
-      "pickProvider": "Which provider?",
-      "offlineFlavor": "Which engine?",
+      "recommended": "موصى به",
+      "pickProvider": "أي مزود؟",
+      "offlineFlavor": "أي محرك؟",
       "managed": {
-        "title": "Start right away",
-        "desc": "Kizuna AI runs the translation for you.",
-        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
+        "title": "ابدأ فوراً",
+        "desc": "يُشغّل Kizuna AI الترجمة نيابة عنك.",
+        "cost": "سجّل باستخدام بريدك الإلكتروني وتحقق منه — الحسابات التي تم التحقق منها تحصل على رصيد تجريبي. بعد ذلك تشحن رصيدك، وتُحتسب الترجمة حسب استخدامك."
       },
       "own-key": {
-        "title": "I have my own API key",
-        "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.",
-        "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI."
+        "title": "لدي مفتاح API خاص بي",
+        "desc": "استخدم مفتاحك الخاص من OpenAI أو Gemini أو Doubao (Volcengine) وغيرها.",
+        "cost": "يبقى مفتاحك على هذا الجهاز ويصل إلى المزود مباشرة منه. أنت عميله: تدفع له مقابل ما تستخدمه، ولا يمر شيء عبر Kizuna AI."
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
-        "native": "Native engine — faster, uses your GPU where available.",
-        "wasm": "In-app engine — works everywhere, slower."
+        "title": "مجاني، بدون إنترنت",
+        "desc": "يعمل على جهازك الخاص. لا يغادره شيء.",
+        "cost": "يُنزّل النماذج إلى قرصك (بالغيغابايت). يعمل جيداً مع GPU وذاكرة VRAM كافية؛ الاعتماد على CPU وحده أبطأ بشكل ملحوظ.",
+        "native": "المحرك الأصلي — أسرع، ويستخدم GPU عند توفره.",
+        "wasm": "محرك داخل التطبيق — يعمل في كل مكان، لكنه أبطأ."
       },
-      "ownKeyNote": "Pick the provider you have an account with. Each one issues its own key:",
-      "ownKeyGuides": "guides for every provider"
+      "ownKeyNote": "اختر المزود الذي لديك حساب معه. كل مزود يُصدر مفتاحه الخاص:",
+      "ownKeyGuides": "أدلة لكل مزود"
     },
     "fit": {
-      "cannotSpeak": "This provider cannot produce spoken translation.",
-      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+      "cannotSpeak": "هذا المزود لا يمكنه إنتاج ترجمة منطوقة.",
+      "cannotBeTextOnly": "هذا المزود يتحدث دائماً؛ لا يمكن تشغيله في وضع نص فقط."
     },
     "credentials": {
-      "apiKey": "API key",
-      "endpoint": "Endpoint URL",
+      "apiKey": "مفتاح API",
+      "endpoint": "عنوان نقطة النهاية",
       "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
       "accessToken": "Access Token",
       "apiSecret": "API Secret",
-      "validate": "Validate",
-      "valid": "Key accepted.",
-      "invalid": "The key was rejected.",
-      "signIn": "Sign in",
-      "createAccount": "Create account",
-      "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
-      "ownKeyDesc": "This key is stored on this device only, and the app calls the provider straight from here — it never reaches Kizuna AI. You pay the provider for what you use.",
-      "guide": "How to get this key",
-      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
-      "onFile": "A key is already saved — leave this blank to keep it."
+      "validate": "تحقق",
+      "valid": "تم قبول المفتاح.",
+      "invalid": "تم رفض المفتاح.",
+      "signIn": "تسجيل الدخول",
+      "createAccount": "إنشاء حساب",
+      "signedIn": "تم تسجيل الدخول. يمكنك المتابعة.",
+      "managedDesc": "سجّل باستخدام بريدك الإلكتروني وتحقق منه من صندوق الوارد؛ الحسابات التي تم التحقق منها تحصل على رصيد تجريبي. بعد ذلك تشحن رصيدك وتدفع فقط مقابل ما تستخدمه.",
+      "offlineNotice": "يتم تنزيل النماذج بعد الإعداد، من الإعدادات. تستهلك غيغابايتات من مساحة القرص. يعمل Sokuji جيداً مع GPU وذاكرة VRAM كافية؛ على CPU وحده يكون أبطأ بشكل ملحوظ.",
+      "pendingKey": "يمكنك إضافة المفتاح لاحقاً من الإعدادات → المزود. يبقى «بدء الجلسة» مقفلاً حتى يتم التحقق منه.",
+      "pendingSignIn": "يمكنك تسجيل الدخول لاحقاً من زر الحساب. يبقى «بدء الجلسة» مقفلاً حتى ذلك الحين.",
+      "ownKeyDesc": "يُخزَّن هذا المفتاح على هذا الجهاز فقط، ويتصل التطبيق بالمزود مباشرة من هنا — لا يصل أبداً إلى Kizuna AI. أنت تدفع للمزود مقابل ما تستخدمه.",
+      "guide": "دليل الحصول على هذا المفتاح",
+      "verifyEmail": "تم تسجيل الدخول. افتح الرابط الذي أرسلناه إلى بريدك الإلكتروني للتحقق من عنوانك — يصل الرصيد التجريبي بمجرد أن تفعل.",
+      "onFile": "يوجد مفتاح محفوظ بالفعل — اترك هذا فارغاً للاحتفاظ به."
     },
     "summary": {
-      "scenario": "Scenario",
-      "mode": "Mode",
-      "provider": "Provider",
-      "languages": "Languages",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "scenario": "السيناريو",
+      "mode": "الوضع",
+      "provider": "المزود",
+      "languages": "اللغات",
+      "pendingKey": "لا يوجد مفتاح API بعد — أضفه في الإعدادات → المزود قبل أن تبدأ.",
+      "pendingSignIn": "لم يتم تسجيل الدخول — سجّل الدخول من زر الحساب قبل أن تبدأ.",
+      "langSentence": "{{myLabel}} {{myLanguage}} ← {{theirLabel}} {{theirLanguage}}"
     }
   },
   "tour": {
-    "back": "Back",
-    "next": "Next",
-    "skip": "Skip",
-    "finish": "Finish",
-    "restart": "Restart Setup Guide",
+    "back": "رجوع",
+    "next": "التالي",
+    "skip": "تخطي",
+    "finish": "إنهاء",
+    "restart": "إعادة تشغيل دليل الإعداد",
     "steps": {
       "welcome": {
-        "title": "You're set up",
-        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+        "title": "أنت جاهز",
+        "content": "تم ضبط Sokuji وفق سيناريوك. إليك جولة سريعة — تستغرق أقل من دقيقة."
       },
       "mode-picker": {
-        "title": "Translation mode",
-        "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode, together with the Text Only switch, decides whether it is also spoken aloud.",
-        "modeMe": "Me — what you say is translated for the other side.",
-        "modeOthers": "Other — what they say is translated for you.",
-        "modeBoth": "Both — both directions at once."
+        "title": "وضع الترجمة",
+        "content": "تم ضبط هذا نيابة عنك، ويمكنك تبديله في أي وقت. تظهر الترجمة هنا دائماً كنص؛ ويحدد الوضع، إلى جانب مفتاح «نص فقط»، ما إذا كانت تُنطق أيضاً بصوت مسموع.",
+        "modeMe": "أنا — يُترجَم ما تقوله للآخر.",
+        "modeOthers": "الآخر — يُترجَم ما يقوله لك.",
+        "modeBoth": "الكل — كلا الاتجاهين في آن واحد."
       },
       "microphone": {
-        "title": "Your microphone",
-        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+        "title": "ميكروفونك",
+        "content": "صوتك يدخل من هنا. جهاز الإدخال الافتراضي للنظام محدد بالفعل. لا تختر ميكروفون Sokuji الافتراضي — فهو مخصص لتطبيق اجتماعك."
       },
       "monitor": {
-        "title": "Hear yourself translated",
-        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+        "title": "اسمع نفسك مترجَماً",
+        "content": "شغّل الصوت المترجم في سماعتك الخاصة لتتحقق من طريقة سماعه. أوقفه إذا لم تكن بحاجة إليه."
       },
       "output-routing": {
-        "title": "How the other side hears you",
-        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
-        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
-        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
-        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+        "title": "كيف يسمعك الآخر",
+        "content": "يذهب صوتك المترجم إلى ميكروفون افتراضي؛ اخترْه كميكروفون في تطبيق اجتماعك.",
+        "content_extension": "في Google Meet أو Zoom أو Teams، اختر «Sokuji Virtual Microphone» كميكروفون لك. يضيفه Sokuji تلقائياً إلى مواقع الاجتماعات المدعومة.",
+        "content_electronLinux": "أنشأ Sokuji ميكروفوناً افتراضياً على هذا النظام. اخترْه كميكروفون في تطبيق اجتماعك.",
+        "content_electronOther": "تحتاج إلى كابل صوت افتراضي (مثل VB-Cable). أرسل مخرجات Sokuji إليه، واخترْه كميكروفون في تطبيق اجتماعك."
       },
       "participant-source": {
-        "title": "The other side's voice",
-        "content": "Sokuji listens to the other side here.",
-        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
-        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+        "title": "صوت الآخر",
+        "content": "يستمع Sokuji إلى الآخر من هنا.",
+        "content_electron": "اختر التطبيق المراد ترجمته، أو كل صوت النظام. يستمر صوتهم الأصلي بالتشغيل كالمعتاد.",
+        "content_extension": "يترجم Sokuji صوت علامة التبويب الحالية. يستمر صوتهم الأصلي بالتشغيل كالمعتاد."
       },
       "subtitle": {
-        "title": "Subtitle mode",
-        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+        "title": "وضع الترجمة",
+        "content": "يفتح عرض ترجمة عائم — نافذة على سطح المكتب، وطبقة فوق الصفحة في الإضافة. يمكن لـ OBS ومشاركة الشاشة التقاطه."
       },
       "account": {
-        "title": "Your account",
-        "content": "Your balance and top-up live here.",
-        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+        "title": "حسابك",
+        "content": "رصيدك وخيار شحنه موجودان هنا.",
+        "content_signedOut": "حسابك هنا. سجّل الدخول بعد الجولة لفتح «بدء الجلسة»."
       },
       "provider-settings": {
-        "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
-        "content_pending": "Paste your API key here. Start unlocks once it validates."
+        "title": "إعدادات المزود",
+        "content": "غيّر مفتاحك أو بدّل المزود من هنا.",
+        "content_pending": "الصق مفتاح API هنا. يُفتح «بدء الجلسة» بمجرد التحقق منه."
       },
       "models": {
-        "title": "Models",
-        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+        "title": "النماذج",
+        "content": "نزّل النماذج من هنا — نموذج واحد لكل مرحلة. جرّب عدة نماذج؛ الاختيار الأول ليس الوحيد الجيد."
       },
       "start": {
-        "title": "Start",
-        "content": "Press here to start translating. If the button stays greyed out, hover it: the note names what is still missing and where to put it right.",
-        "content_offline": "This lights up once your models are ready. Hover it while it is grey to see what it is waiting for.",
-        "content_signedOut": "This lights up once you sign in. Hover it while it is grey to see what it is waiting for.",
-        "content_pendingKey": "This lights up once your API key validates. Hover it while it is grey to see what it is waiting for."
+        "title": "بدء الجلسة",
+        "content": "اضغط هنا لبدء الترجمة. إذا بقي الزر رمادياً، مرّر المؤشر فوقه: تُبيّن الملاحظة ما هو ناقص وأين يمكنك إصلاحه.",
+        "content_offline": "يضيء هذا بمجرد أن تصبح نماذجك جاهزة. مرّر المؤشر فوقه وهو رمادي لمعرفة ما ينتظره.",
+        "content_signedOut": "يضيء هذا بمجرد أن تسجّل الدخول. مرّر المؤشر فوقه وهو رمادي لمعرفة ما ينتظره.",
+        "content_pendingKey": "يضيء هذا بمجرد أن يتم التحقق من مفتاح API الخاص بك. مرّر المؤشر فوقه وهو رمادي لمعرفة ما ينتظره."
       },
       "done": {
-        "title": "That's it",
-        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help."
+        "title": "هذا كل شيء",
+        "content": "الإعدادات المتقدمة — كشف الكلام، الموجّهات، الأصوات، السجلات — تقع خلف مفتاح «متقدم» أعلى يمين الإعدادات. أعد تشغيل هذا الدليل في أي وقت من مساعدة."
       }
     }
   }

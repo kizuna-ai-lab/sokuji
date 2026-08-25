@@ -948,197 +948,197 @@
     "importChooseModel": "இறக்குமதி செய்ய ஒரு மாதிரியைத் தேர்ந்தெடுக்கவும்"
   },
   "setup": {
-    "title": "Set up Sokuji",
-    "stepOf": "Step {{current}} of {{total}}",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "close": "Close",
-    "skipForNow": "Skip for now",
-    "rerun": "Run setup again",
+    "title": "Sokuji-ஐ அமைக்கவும்",
+    "stepOf": "படி {{current}}/{{total}}",
+    "back": "பின்செல்",
+    "next": "அடுத்து",
+    "finish": "முடி",
+    "close": "மூடு",
+    "skipForNow": "இப்போதைக்கு தவிர்",
+    "rerun": "அமைப்பை மீண்டும் இயக்கு",
     "steps": {
       "language": {
-        "title": "Which language should Sokuji speak to you in?",
-        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
-        "label": "Interface language"
+        "title": "Sokuji எந்த மொழியில் உங்களிடம் பேச வேண்டும்?",
+        "desc": "இது மெனுக்கள் மற்றும் பட்டன்களின் மொழி. நீங்கள் மொழிபெயர்க்கும் மொழிகளை பின்னர் தேர்ந்தெடுக்கலாம்.",
+        "label": "இடைமுக மொழி"
       },
       "scenario": {
-        "title": "What do you want to do?",
-        "desc": "Pick the closest match. You can change any of this later."
+        "title": "நீங்கள் என்ன செய்ய விரும்புகிறீர்கள்?",
+        "desc": "மிக நெருக்கமான பொருத்தத்தைத் தேர்ந்தெடுக்கவும். இதில் எதையும் நீங்கள் பின்னர் மாற்றலாம்."
       },
       "path": {
-        "title": "What do you have?"
+        "title": "உங்களிடம் என்ன இருக்கிறது?"
       },
       "credentials": {
-        "offlineTitle": "Nothing to enter",
-        "managedTitle": "Your Kizuna AI account",
-        "ownKeyTitle": "Your API key"
+        "offlineTitle": "எதுவும் உள்ளிட வேண்டாம்",
+        "managedTitle": "உங்கள் Kizuna AI கணக்கு",
+        "ownKeyTitle": "உங்கள் API விசை"
       },
       "languagePair": {
-        "title": "Which languages?",
-        "desc": "What you (or they) speak, and what it should become."
+        "title": "எந்த மொழிகள்?",
+        "desc": "நீங்கள் (அல்லது அவர்கள்) பேசுவது, மற்றும் அது எதுவாக மாற வேண்டும் என்பது."
       },
       "finish": {
-        "title": "Ready",
-        "persistFailed": "Could not save your setup. Please try again."
+        "title": "தயார்",
+        "persistFailed": "உங்கள் அமைப்பைச் சேமிக்க முடியவில்லை. தயவுசெய்து மீண்டும் முயற்சிக்கவும்."
       }
     },
     "scenarios": {
-      "sets": "Sets: {{mode}} mode · {{output}}",
+      "sets": "அமைக்கிறது: {{mode}} பயன்முறை · {{output}}",
       "understand-others": {
-        "title": "Understand what others say",
-        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+        "title": "மற்றவர்கள் சொல்வதைப் புரிந்துகொள்ளுங்கள்",
+        "desc": "ஆன்லைன் கூட்டங்கள், வகுப்புகள், பேச்சுகள், வீடியோக்கள், ஸ்ட்ரீம்கள் — நீங்கள் கேட்பதன் நேரடி மொழிபெயர்ப்பைப் படியுங்கள்."
       },
       "be-heard": {
-        "title": "Be understood in a meeting",
-        "desc": "They hear your translated voice through a virtual microphone."
+        "title": "கூட்டத்தில் உங்களைப் புரிந்துகொள்ளச் செய்யுங்கள்",
+        "desc": "மெய்நிகர் மைக்ரோஃபோன் மூலம் அவர்கள் உங்கள் மொழிபெயர்க்கப்பட்ட குரலைக் கேட்கிறார்கள்."
       },
       "subtitle-myself": {
-        "title": "Subtitle my own speech",
-        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+        "title": "எனது சொந்த பேச்சுக்கு துணைத்தலைப்பு இடு",
+        "desc": "பேச்சுகள், ஸ்ட்ரீம்கள், விளக்கக்காட்சிகள் — உங்கள் பார்வையாளர்கள் மொழிபெயர்க்கப்பட்ட துணைத்தலைப்புகளைப் படிக்கிறார்கள்; ஒலி எதுவும் உருவாக்கப்படாது."
       },
       "two-way-voice": {
-        "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you read subtitles generated from what they say."
+        "title": "இருவழி ஆன்லைன் உரையாடல்",
+        "desc": "அவர்கள் உங்கள் மொழிபெயர்க்கப்பட்ட குரலைக் கேட்கிறார்கள்; அவர்கள் சொல்வதிலிருந்து உருவாக்கப்பட்ட துணைத்தலைப்புகளை நீங்கள் படிக்கிறீர்கள்."
       },
       "two-way-text": {
-        "title": "Two-way online conversation, subtitles only",
-        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+        "title": "இருவழி ஆன்லைன் உரையாடல், துணைத்தலைப்பு மட்டும்",
+        "desc": "இருமொழி துணைத்தலைப்புகள், கூட்டக் குறிப்புகள் — இரு தரப்பும் உரையாக, செயற்கைக் குரல் இல்லை."
       }
     },
     "output": {
-      "voice": "voice and subtitles",
-      "subtitles": "subtitles only"
+      "voice": "குரல் மற்றும் துணைத்தலைப்பு",
+      "subtitles": "துணைத்தலைப்பு மட்டும்"
     },
     "paths": {
-      "recommended": "Recommended",
-      "pickProvider": "Which provider?",
-      "offlineFlavor": "Which engine?",
+      "recommended": "பரிந்துரைக்கப்பட்டது",
+      "pickProvider": "எந்த வழங்குநர்?",
+      "offlineFlavor": "எந்த இயந்திரம்?",
       "managed": {
-        "title": "Start right away",
-        "desc": "Kizuna AI runs the translation for you.",
-        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
+        "title": "உடனடியாகத் தொடங்குங்கள்",
+        "desc": "Kizuna AI உங்களுக்காக மொழிபெயர்ப்பை இயக்குகிறது.",
+        "cost": "உங்கள் மின்னஞ்சல் முகவரியுடன் பதிவு செய்து அதைச் சரிபார்க்கவும் — சரிபார்க்கப்பட்ட கணக்குகளுக்கு சோதனை கிரெடிட் கிடைக்கும். அதன் பிறகு உங்கள் இருப்பை நிரப்புகிறீர்கள், மொழிபெயர்ப்புக்கு நீங்கள் பயன்படுத்தும் அளவுக்கேற்ப கட்டணம் விதிக்கப்படும்."
       },
       "own-key": {
-        "title": "I have my own API key",
-        "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.",
-        "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI."
+        "title": "என்னிடம் எனது சொந்த API விசை உள்ளது",
+        "desc": "OpenAI, Gemini, Doubao (Volcengine) மற்றும் பிற வழங்குநர்களிடமிருந்து உங்கள் சொந்த விசையைக் கொண்டு வாருங்கள்.",
+        "cost": "உங்கள் விசை இந்தச் சாதனத்திலேயே இருக்கும், அதிலிருந்து நேரடியாக வழங்குநரை அடைகிறது. நீங்கள் அவர்களின் வாடிக்கையாளர்: நீங்கள் பயன்படுத்துவதற்கு அவர்களுக்குக் கட்டணம் செலுத்துகிறீர்கள், மேலும் எதுவும் Kizuna AI வழியாகச் செல்லாது."
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
-        "native": "Native engine — faster, uses your GPU where available.",
-        "wasm": "In-app engine — works everywhere, slower."
+        "title": "இலவசம், ஆஃப்லைன்",
+        "desc": "உங்கள் சொந்தக் கணினியில் இயங்குகிறது. அதிலிருந்து எதுவும் வெளியேறாது.",
+        "cost": "மாதிரிகளை உங்கள் வட்டில் பதிவிறக்குகிறது (பல ஜிகாபைட்). GPU மற்றும் போதுமான VRAM இருந்தால் நன்றாக இயங்கும்; CPU மட்டும் எனில் குறிப்பிடத்தக்க அளவு மெதுவாக இருக்கும்.",
+        "native": "நேட்டிவ் இயந்திரம் — வேகமானது, கிடைக்கும் இடத்தில் உங்கள் GPU ஐப் பயன்படுத்துகிறது.",
+        "wasm": "செயலிக்குள் இயந்திரம் — எல்லா இடங்களிலும் வேலை செய்யும், மெதுவாக இருக்கும்."
       },
-      "ownKeyNote": "Pick the provider you have an account with. Each one issues its own key:",
-      "ownKeyGuides": "guides for every provider"
+      "ownKeyNote": "நீங்கள் கணக்கு வைத்திருக்கும் வழங்குநரைத் தேர்ந்தெடுக்கவும். ஒவ்வொன்றும் அதன் சொந்த விசையை வழங்கும்:",
+      "ownKeyGuides": "ஒவ்வொரு வழங்குநருக்குமான வழிகாட்டிகள்"
     },
     "fit": {
-      "cannotSpeak": "This provider cannot produce spoken translation.",
-      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+      "cannotSpeak": "இந்த வழங்குநரால் பேசும் மொழிபெயர்ப்பை உருவாக்க முடியாது.",
+      "cannotBeTextOnly": "இந்த வழங்குநர் எப்போதும் பேசும்; இது துணைத்தலைப்பு மட்டும் பயன்முறையில் இயங்க முடியாது."
     },
     "credentials": {
-      "apiKey": "API key",
-      "endpoint": "Endpoint URL",
+      "apiKey": "API விசை",
+      "endpoint": "எண்ட்பாயிண்ட் URL",
       "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
       "accessToken": "Access Token",
       "apiSecret": "API Secret",
-      "validate": "Validate",
-      "valid": "Key accepted.",
-      "invalid": "The key was rejected.",
-      "signIn": "Sign in",
-      "createAccount": "Create account",
-      "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
-      "ownKeyDesc": "This key is stored on this device only, and the app calls the provider straight from here — it never reaches Kizuna AI. You pay the provider for what you use.",
-      "guide": "How to get this key",
-      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
-      "onFile": "A key is already saved — leave this blank to keep it."
+      "validate": "சரிபார்",
+      "valid": "விசை ஏற்றுக்கொள்ளப்பட்டது.",
+      "invalid": "விசை நிராகரிக்கப்பட்டது.",
+      "signIn": "உள்நுழை",
+      "createAccount": "கணக்கை உருவாக்கு",
+      "signedIn": "உள்நுழைந்துவிட்டீர்கள். தொடரலாம்.",
+      "managedDesc": "உங்கள் மின்னஞ்சல் முகவரியுடன் பதிவு செய்து, உங்கள் இன்பாக்ஸிலிருந்து அதைச் சரிபார்க்கவும்; சரிபார்க்கப்பட்ட கணக்குகளுக்கு சோதனை கிரெடிட் கிடைக்கும். அதன் பிறகு உங்கள் இருப்பை நிரப்பி, நீங்கள் பயன்படுத்துவதற்கு மட்டும் கட்டணம் செலுத்துவீர்கள்.",
+      "offlineNotice": "அமைப்புக்குப் பிறகு, அமைப்புகளில் இருந்து மாதிரிகள் பதிவிறக்கப்படும். அவை பல ஜிகாபைட் வட்டு இடத்தை எடுத்துக்கொள்ளும். GPU மற்றும் போதுமான VRAM இருந்தால் Sokuji நன்றாக இயங்கும்; CPU மட்டும் இருந்தால் குறிப்பிடத்தக்க அளவு மெதுவாக இருக்கும்.",
+      "pendingKey": "நீங்கள் பின்னர் அமைப்புகள் → வழங்குநர் இல் விசையைச் சேர்க்கலாம். அது சரிபார்க்கப்படும் வரை துவங்கு பூட்டப்பட்டிருக்கும்.",
+      "pendingSignIn": "நீங்கள் பின்னர் கணக்கு பட்டனிலிருந்து உள்நுழையலாம். அதுவரை துவங்கு பூட்டப்பட்டிருக்கும்.",
+      "ownKeyDesc": "இந்த விசை இந்தச் சாதனத்தில் மட்டுமே சேமிக்கப்படுகிறது, மேலும் பயன்பாடு நேரடியாக இங்கிருந்தே வழங்குநரை அழைக்கிறது — இது Kizuna AI-ஐ ஒருபோதும் சென்றடையாது. நீங்கள் பயன்படுத்துவதற்கு வழங்குநருக்கு கட்டணம் செலுத்துகிறீர்கள்.",
+      "guide": "இந்த விசையை எப்படிப் பெறுவது",
+      "verifyEmail": "உள்நுழைந்துவிட்டீர்கள். உங்கள் முகவரியைச் சரிபார்க்க நாங்கள் அனுப்பிய மின்னஞ்சலில் உள்ள இணைப்பைத் திறக்கவும் — நீங்கள் அதைச் செய்தவுடன் சோதனை கிரெடிட் கிடைக்கும்.",
+      "onFile": "ஒரு விசை ஏற்கனவே சேமிக்கப்பட்டுள்ளது — அதை வைத்திருக்க இதை காலியாக விடவும்."
     },
     "summary": {
-      "scenario": "Scenario",
-      "mode": "Mode",
-      "provider": "Provider",
-      "languages": "Languages",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start.",
+      "scenario": "சூழ்நிலை",
+      "mode": "பயன்முறை",
+      "provider": "வழங்குநர்",
+      "languages": "மொழிகள்",
+      "pendingKey": "இன்னும் API விசை இல்லை — தொடங்குவதற்கு முன் அமைப்புகள் → வழங்குநர் இல் அதைச் சேர்க்கவும்.",
+      "pendingSignIn": "உள்நுழையவில்லை — தொடங்குவதற்கு முன் கணக்கு பட்டனிலிருந்து உள்நுழையவும்.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
     }
   },
   "tour": {
-    "back": "Back",
-    "next": "Next",
-    "skip": "Skip",
-    "finish": "Finish",
-    "restart": "Restart Setup Guide",
+    "back": "பின்செல்",
+    "next": "அடுத்து",
+    "skip": "தவிர்",
+    "finish": "முடி",
+    "restart": "அமைப்பு வழிகாட்டியை மீண்டும் தொடங்கு",
     "steps": {
       "welcome": {
-        "title": "You're set up",
-        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+        "title": "நீங்கள் அமைந்துவிட்டீர்கள்",
+        "content": "Sokuji உங்கள் சூழ்நிலைக்கேற்ப உள்ளமைக்கப்பட்டுள்ளது. இதோ ஒரு சுருக்கமான சுற்றுப்பயணம் — இது ஒரு நிமிடத்திற்குள் முடியும்."
       },
       "mode-picker": {
-        "title": "Translation mode",
-        "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode, together with the Text Only switch, decides whether it is also spoken aloud.",
-        "modeMe": "Me — what you say is translated for the other side.",
-        "modeOthers": "Other — what they say is translated for you.",
-        "modeBoth": "Both — both directions at once."
+        "title": "மொழிபெயர்ப்பு பயன்முறை",
+        "content": "இது உங்களுக்காக அமைக்கப்பட்டுள்ளது, மேலும் நீங்கள் எப்போது வேண்டுமானாலும் அதை மாற்றலாம். மொழிபெயர்ப்பு எப்போதும் இங்கே உரையாகத் தோன்றும்; பயன்முறையும் \"உரை மட்டும்\" சுவிட்சும் சேர்ந்து, அது சத்தமாகப் பேசப்படுமா என்பதை முடிவு செய்கின்றன.",
+        "modeMe": "நான் — நீங்கள் சொல்வது மறுபக்கத்திற்காக மொழிபெயர்க்கப்படுகிறது.",
+        "modeOthers": "மற்றவர் — அவர்கள் சொல்வது உங்களுக்காக மொழிபெயர்க்கப்படுகிறது.",
+        "modeBoth": "இரண்டும் — இரண்டு திசைகளும் ஒரே நேரத்தில்."
       },
       "microphone": {
-        "title": "Your microphone",
-        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+        "title": "உங்கள் மைக்ரோஃபோன்",
+        "content": "உங்கள் பேச்சு இங்கே வருகிறது. கணினியின் இயல்புநிலை ஏற்கனவே தேர்ந்தெடுக்கப்பட்டுள்ளது. Sokuji மெய்நிகர் மைக்ரோஃபோனைத் தேர்ந்தெடுக்க வேண்டாம் — அது உங்கள் வீடியோ மாநாட்டு பயன்பாட்டுக்கானது."
       },
       "monitor": {
-        "title": "Hear yourself translated",
-        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+        "title": "மொழிபெயர்க்கப்பட்ட உங்களைக் கேளுங்கள்",
+        "content": "அது எப்படி ஒலிக்கிறது என்பதைச் சரிபார்க்க மொழிபெயர்க்கப்பட்ட குரலை உங்கள் சொந்த ஹெட்ஃபோன்களில் இயக்கவும். உங்களுக்குத் தேவையில்லை என்றால் அதை அணைக்கவும்."
       },
       "output-routing": {
-        "title": "How the other side hears you",
-        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
-        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
-        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
-        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+        "title": "மறுபக்கம் உங்களை எப்படிக் கேட்கிறது",
+        "content": "உங்கள் மொழிபெயர்க்கப்பட்ட குரல் ஒரு மெய்நிகர் மைக்ரோஃபோனுக்குச் செல்கிறது; உங்கள் வீடியோ மாநாட்டு பயன்பாட்டில் அதை மைக்காகத் தேர்ந்தெடுக்கவும்.",
+        "content_extension": "Google Meet, Zoom அல்லது Teams-இல், \"Sokuji Virtual Microphone\" ஐ உங்கள் மைக்ரோஃபோனாகத் தேர்ந்தெடுக்கவும். Sokuji இதை ஆதரிக்கப்படும் கூட்டத் தளங்களில் தானாகவே சேர்க்கும்.",
+        "content_electronLinux": "Sokuji இந்தக் கணினியில் ஒரு மெய்நிகர் மைக்ரோஃபோனை உருவாக்கியது. உங்கள் வீடியோ மாநாட்டு பயன்பாட்டில் அதை மைக்ரோஃபோனாகத் தேர்ந்தெடுக்கவும்.",
+        "content_electronOther": "உங்களுக்கு ஒரு மெய்நிகர் ஆடியோ கேபிள் (எடுத்துக்காட்டாக VB-Cable) தேவை. Sokuji-இன் வெளியீட்டை அதற்கு அனுப்பி, உங்கள் வீடியோ மாநாட்டு பயன்பாட்டில் அதை மைக்ரோஃபோனாகத் தேர்ந்தெடுக்கவும்."
       },
       "participant-source": {
-        "title": "The other side's voice",
-        "content": "Sokuji listens to the other side here.",
-        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
-        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+        "title": "மறுபக்கத்தின் குரல்",
+        "content": "Sokuji இங்கே மறுபக்கத்தைக் கேட்கிறது.",
+        "content_electron": "மொழிபெயர்க்க வேண்டிய பயன்பாட்டைத் தேர்ந்தெடுக்கவும், அல்லது அனைத்து கணினி ஆடியோவையும். அவர்களின் அசல் குரல் வழக்கம் போல் ஒலித்துக்கொண்டே இருக்கும்.",
+        "content_extension": "Sokuji செயலில் உள்ள தாவலின் ஆடியோவை மொழிபெயர்க்கிறது. அவர்களின் அசல் குரல் வழக்கம் போல் ஒலித்துக்கொண்டே இருக்கும்."
       },
       "subtitle": {
-        "title": "Subtitle mode",
-        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+        "title": "துணைத்தலைப்பு பயன்முறை",
+        "content": "மிதக்கும் துணைத்தலைப்புக் காட்சியைத் திறக்கிறது — டெஸ்க்டாப்பில் ஒரு சாளரம், நீட்டிப்பில் பக்கத்தின் மேல் ஒரு ஓவர்லே. OBS மற்றும் திரைப் பகிர்வு இதைப் பதிவு செய்யலாம்."
       },
       "account": {
-        "title": "Your account",
-        "content": "Your balance and top-up live here.",
-        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+        "title": "உங்கள் கணக்கு",
+        "content": "உங்கள் இருப்பும் இருப்பு நிரப்புதலும் இங்கே இருக்கும்.",
+        "content_signedOut": "உங்கள் கணக்கு இங்கே இருக்கும். துவங்கு-ஐத் திறக்க இந்த வழிகாட்டிக்குப் பிறகு உள்நுழையவும்."
       },
       "provider-settings": {
-        "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
-        "content_pending": "Paste your API key here. Start unlocks once it validates."
+        "title": "வழங்குநர் அமைப்புகள்",
+        "content": "இங்கே உங்கள் விசையை மாற்றவும் அல்லது வழங்குநரை மாற்றவும்.",
+        "content_pending": "இங்கே உங்கள் API விசையை ஒட்டவும். அது சரிபார்க்கப்பட்டதும் துவங்கு திறக்கும்."
       },
       "models": {
-        "title": "Models",
-        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+        "title": "மாதிரிகள்",
+        "content": "மாதிரிகளை இங்கே பதிவிறக்கவும் — ஒவ்வொரு கட்டத்திற்கும் ஒன்று. சிலவற்றை முயற்சிக்கவும்; முதலில் தேர்ந்தெடுத்தது மட்டும் நல்லதல்ல."
       },
       "start": {
-        "title": "Start",
-        "content": "Press here to start translating. If the button stays greyed out, hover it: the note names what is still missing and where to put it right.",
-        "content_offline": "This lights up once your models are ready. Hover it while it is grey to see what it is waiting for.",
-        "content_signedOut": "This lights up once you sign in. Hover it while it is grey to see what it is waiting for.",
-        "content_pendingKey": "This lights up once your API key validates. Hover it while it is grey to see what it is waiting for."
+        "title": "துவங்கு",
+        "content": "மொழிபெயர்க்கத் தொடங்க இங்கே அழுத்தவும். பொத்தான் சாம்பல் நிறத்திலேயே இருந்தால், அதன் மீது சுட்டியை வையுங்கள்: இன்னும் என்ன குறைவாக உள்ளது, அதை எங்கே சரிசெய்வது என்பதைக் குறிப்பு காட்டும்.",
+        "content_offline": "உங்கள் மாதிரிகள் தயாரானதும் இது ஒளிரும். அது சாம்பல் நிறத்தில் இருக்கும்போது, என்ன காத்திருக்கிறது என்பதைப் பார்க்க அதன் மீது சுட்டியை வையுங்கள்.",
+        "content_signedOut": "நீங்கள் உள்நுழைந்ததும் இது ஒளிரும். அது சாம்பல் நிறத்தில் இருக்கும்போது, என்ன காத்திருக்கிறது என்பதைப் பார்க்க அதன் மீது சுட்டியை வையுங்கள்.",
+        "content_pendingKey": "உங்கள் API விசை சரிபார்க்கப்பட்டதும் இது ஒளிரும். அது சாம்பல் நிறத்தில் இருக்கும்போது, என்ன காத்திருக்கிறது என்பதைப் பார்க்க அதன் மீது சுட்டியை வையுங்கள்."
       },
       "done": {
-        "title": "That's it",
-        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help."
+        "title": "அவ்வளவுதான்",
+        "content": "மேம்பட்ட அமைப்புகள் — பேச்சு கண்டறிதல், பிரம்ட்கள், குரல்கள், பதிவுகள் — அமைப்புகளின் மேல்-வலது மூலையில் உள்ள மேம்பட்ட சுவிட்சுக்குப் பின்னால் இருக்கும். இந்த வழிகாட்டியை உதவி-இலிருந்து எப்போது வேண்டுமானாலும் மீண்டும் இயக்கலாம்."
       }
     }
   }

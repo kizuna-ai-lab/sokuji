@@ -948,98 +948,98 @@
     "importChooseModel": "Chọn một mô hình để nhập"
   },
   "setup": {
-    "title": "Set up Sokuji",
-    "stepOf": "Step {{current}} of {{total}}",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "close": "Close",
-    "skipForNow": "Skip for now",
-    "rerun": "Run setup again",
+    "title": "Cài đặt Sokuji",
+    "stepOf": "Bước {{current}}/{{total}}",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "finish": "Hoàn tất",
+    "close": "Đóng",
+    "skipForNow": "Để sau",
+    "rerun": "Chạy lại cài đặt",
     "steps": {
       "language": {
-        "title": "Which language should Sokuji speak to you in?",
-        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
-        "label": "Interface language"
+        "title": "Sokuji nên nói với bạn bằng ngôn ngữ nào?",
+        "desc": "Đây là ngôn ngữ của menu và nút. Bạn sẽ chọn các ngôn ngữ để dịch giữa sau.",
+        "label": "Ngôn ngữ giao diện"
       },
       "scenario": {
-        "title": "What do you want to do?",
-        "desc": "Pick the closest match. You can change any of this later."
+        "title": "Bạn muốn làm gì?",
+        "desc": "Chọn phương án gần đúng nhất. Bạn có thể thay đổi bất kỳ lúc nào sau này."
       },
       "path": {
-        "title": "What do you have?"
+        "title": "Bạn có gì?"
       },
       "credentials": {
-        "offlineTitle": "Nothing to enter",
-        "managedTitle": "Your Kizuna AI account",
-        "ownKeyTitle": "Your API key"
+        "offlineTitle": "Không cần nhập gì",
+        "managedTitle": "Tài khoản Kizuna AI của bạn",
+        "ownKeyTitle": "Khóa API của bạn"
       },
       "languagePair": {
-        "title": "Which languages?",
-        "desc": "What you (or they) speak, and what it should become."
+        "title": "Ngôn ngữ nào?",
+        "desc": "Ngôn ngữ bạn (hoặc họ) nói, và ngôn ngữ cần dịch sang."
       },
       "finish": {
-        "title": "Ready",
-        "persistFailed": "Could not save your setup. Please try again."
+        "title": "Sẵn sàng",
+        "persistFailed": "Không thể lưu thiết lập của bạn. Vui lòng thử lại."
       }
     },
     "scenarios": {
-      "sets": "Sets: {{mode}} mode · {{output}}",
+      "sets": "Thiết lập: chế độ {{mode}} · {{output}}",
       "understand-others": {
-        "title": "Understand what others say",
-        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+        "title": "Hiểu những gì họ nói",
+        "desc": "Cuộc họp trực tuyến, lớp học, buổi nói chuyện, video, livestream — đọc bản dịch trực tiếp của những gì bạn nghe."
       },
       "be-heard": {
-        "title": "Be understood in a meeting",
-        "desc": "They hear your translated voice through a virtual microphone."
+        "title": "Được hiểu trong cuộc họp",
+        "desc": "Họ nghe giọng nói đã dịch của bạn qua micro ảo."
       },
       "subtitle-myself": {
-        "title": "Subtitle my own speech",
-        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+        "title": "Phụ đề cho lời nói của tôi",
+        "desc": "Buổi nói chuyện, livestream, thuyết trình — khán giả của bạn đọc phụ đề đã dịch; không có âm thanh nào được tạo ra."
       },
       "two-way-voice": {
-        "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you read subtitles generated from what they say."
+        "title": "Trò chuyện trực tuyến hai chiều",
+        "desc": "Họ nghe giọng nói đã dịch của bạn; bạn đọc phụ đề được tạo từ những gì họ nói."
       },
       "two-way-text": {
-        "title": "Two-way online conversation, subtitles only",
-        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+        "title": "Trò chuyện trực tuyến hai chiều, chỉ phụ đề",
+        "desc": "Phụ đề song ngữ, biên bản cuộc họp — cả hai bên đều ở dạng văn bản, không có giọng nói tổng hợp."
       }
     },
     "output": {
-      "voice": "voice and subtitles",
-      "subtitles": "subtitles only"
+      "voice": "giọng nói và phụ đề",
+      "subtitles": "chỉ phụ đề"
     },
     "paths": {
-      "recommended": "Recommended",
-      "pickProvider": "Which provider?",
-      "offlineFlavor": "Which engine?",
+      "recommended": "Được đề xuất",
+      "pickProvider": "Nhà cung cấp nào?",
+      "offlineFlavor": "Công cụ nào?",
       "managed": {
-        "title": "Start right away",
-        "desc": "Kizuna AI runs the translation for you.",
-        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
+        "title": "Bắt đầu ngay",
+        "desc": "Kizuna AI thực hiện việc dịch giúp bạn.",
+        "cost": "Đăng ký bằng địa chỉ email và xác minh — tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư, và việc dịch sẽ được tính phí theo mức sử dụng."
       },
       "own-key": {
-        "title": "I have my own API key",
-        "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.",
-        "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI."
+        "title": "Tôi có khóa API riêng",
+        "desc": "Mang khóa riêng của bạn từ OpenAI, Gemini, Doubao (Volcengine) và các nhà cung cấp khác.",
+        "cost": "Khóa của bạn ở lại trên thiết bị này và gửi thẳng đến nhà cung cấp từ đây. Bạn là khách hàng của họ: bạn trả tiền cho họ theo mức sử dụng, và không có gì đi qua Kizuna AI."
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
-        "native": "Native engine — faster, uses your GPU where available.",
-        "wasm": "In-app engine — works everywhere, slower."
+        "title": "Miễn phí, ngoại tuyến",
+        "desc": "Chạy trên chính máy của bạn. Không có gì rời khỏi máy.",
+        "cost": "Tải mô hình xuống ổ đĩa của bạn (vài GB). Chạy tốt với GPU và đủ VRAM; chỉ dùng CPU sẽ chậm hơn rõ rệt.",
+        "native": "Công cụ Native — nhanh hơn, dùng GPU nếu có.",
+        "wasm": "Công cụ trong ứng dụng — hoạt động mọi nơi, chậm hơn."
       },
-      "ownKeyNote": "Pick the provider you have an account with. Each one issues its own key:",
-      "ownKeyGuides": "guides for every provider"
+      "ownKeyNote": "Chọn nhà cung cấp mà bạn đã có tài khoản. Mỗi nhà cung cấp cấp một khóa riêng:",
+      "ownKeyGuides": "hướng dẫn cho từng nhà cung cấp"
     },
     "fit": {
-      "cannotSpeak": "This provider cannot produce spoken translation.",
-      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+      "cannotSpeak": "Nhà cung cấp này không thể tạo bản dịch bằng giọng nói.",
+      "cannotBeTextOnly": "Nhà cung cấp này luôn tạo giọng nói; không thể chạy ở chế độ chỉ phụ đề."
     },
     "credentials": {
-      "apiKey": "API key",
+      "apiKey": "Khóa API",
       "endpoint": "Endpoint URL",
       "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
@@ -1047,98 +1047,98 @@
       "appId": "App ID",
       "accessToken": "Access Token",
       "apiSecret": "API Secret",
-      "validate": "Validate",
-      "valid": "Key accepted.",
-      "invalid": "The key was rejected.",
-      "signIn": "Sign in",
-      "createAccount": "Create account",
-      "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
-      "ownKeyDesc": "This key is stored on this device only, and the app calls the provider straight from here — it never reaches Kizuna AI. You pay the provider for what you use.",
-      "guide": "How to get this key",
-      "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
-      "onFile": "A key is already saved — leave this blank to keep it."
+      "validate": "Xác thực",
+      "valid": "Đã chấp nhận khóa.",
+      "invalid": "Khóa đã bị từ chối.",
+      "signIn": "Đăng nhập",
+      "createAccount": "Tạo tài khoản",
+      "signedIn": "Đã đăng nhập. Bạn có thể tiếp tục.",
+      "managedDesc": "Đăng ký bằng địa chỉ email và xác minh qua hộp thư của bạn; tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư và chỉ trả tiền theo mức sử dụng.",
+      "offlineNotice": "Các mô hình được tải xuống sau khi cài đặt, từ Cài đặt. Chúng chiếm vài GB dung lượng ổ đĩa. Sokuji chạy tốt với GPU và đủ VRAM; chỉ dùng CPU sẽ chậm hơn rõ rệt.",
+      "pendingKey": "Bạn có thể thêm khóa sau trong Cài đặt → Nhà cung cấp. Bắt đầu vẫn bị khóa cho đến khi khóa được xác thực.",
+      "pendingSignIn": "Bạn có thể đăng nhập sau từ nút tài khoản. Bắt đầu vẫn bị khóa cho đến khi đó.",
+      "ownKeyDesc": "Khóa này chỉ được lưu trên thiết bị này, và ứng dụng gọi trực tiếp đến nhà cung cấp từ đây — không bao giờ đi qua Kizuna AI. Bạn trả tiền cho nhà cung cấp theo mức sử dụng.",
+      "guide": "Cách lấy khóa này",
+      "verifyEmail": "Đã đăng nhập. Hãy mở liên kết chúng tôi đã gửi qua email để xác minh địa chỉ của bạn — tín dụng dùng thử sẽ được cấp ngay khi bạn hoàn tất.",
+      "onFile": "Đã có một khóa được lưu — để trống nếu muốn giữ nguyên."
     },
     "summary": {
-      "scenario": "Scenario",
-      "mode": "Mode",
-      "provider": "Provider",
-      "languages": "Languages",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start.",
+      "scenario": "Kịch bản",
+      "mode": "Chế độ",
+      "provider": "Nhà cung cấp",
+      "languages": "Ngôn ngữ",
+      "pendingKey": "Chưa có khóa API — hãy thêm trong Cài đặt → Nhà cung cấp trước khi bắt đầu.",
+      "pendingSignIn": "Chưa đăng nhập — hãy đăng nhập từ nút tài khoản trước khi bắt đầu.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
     }
   },
   "tour": {
-    "back": "Back",
-    "next": "Next",
-    "skip": "Skip",
-    "finish": "Finish",
-    "restart": "Restart Setup Guide",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "skip": "Bỏ qua",
+    "finish": "Hoàn tất",
+    "restart": "Khởi động lại Hướng dẫn cài đặt",
     "steps": {
       "welcome": {
-        "title": "You're set up",
-        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+        "title": "Bạn đã sẵn sàng",
+        "content": "Sokuji đã được cấu hình theo kịch bản của bạn. Đây là một vòng giới thiệu ngắn — chưa đến một phút."
       },
       "mode-picker": {
-        "title": "Translation mode",
-        "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode, together with the Text Only switch, decides whether it is also spoken aloud.",
-        "modeMe": "Me — what you say is translated for the other side.",
-        "modeOthers": "Other — what they say is translated for you.",
-        "modeBoth": "Both — both directions at once."
+        "title": "Chế độ dịch",
+        "content": "Chế độ này đã được đặt sẵn cho bạn, và bạn có thể chuyển đổi bất cứ lúc nào. Bản dịch luôn hiển thị ở đây dưới dạng văn bản; chế độ, cùng với công tắc Chỉ văn bản, quyết định liệu nó có được đọc to hay không.",
+        "modeMe": "Tôi — những gì bạn nói được dịch cho đối phương.",
+        "modeOthers": "Đối phương — những gì họ nói được dịch cho bạn.",
+        "modeBoth": "Cả hai — cả hai chiều cùng lúc."
       },
       "microphone": {
-        "title": "Your microphone",
-        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+        "title": "Micro của bạn",
+        "content": "Giọng nói của bạn được thu ở đây. Thiết bị mặc định của hệ thống đã được chọn sẵn. Đừng chọn micro ảo Sokuji — đó là dành cho ứng dụng họp của bạn."
       },
       "monitor": {
-        "title": "Hear yourself translated",
-        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+        "title": "Nghe giọng đã dịch của bạn",
+        "content": "Phát giọng nói đã dịch qua tai nghe của bạn để bạn có thể kiểm tra âm thanh. Tắt nếu bạn không cần."
       },
       "output-routing": {
-        "title": "How the other side hears you",
-        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
-        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
-        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
-        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+        "title": "Cách đối phương nghe bạn",
+        "content": "Giọng nói đã dịch của bạn được gửi đến micro ảo; hãy chọn nó làm micro trong ứng dụng họp của bạn.",
+        "content_extension": "Trong Google Meet, Zoom hoặc Teams, hãy chọn \"Sokuji Virtual Microphone\" làm micro của bạn. Sokuji tự động thêm nó vào các trang họp được hỗ trợ.",
+        "content_electronLinux": "Sokuji đã tạo một micro ảo trên hệ thống này. Hãy chọn nó làm micro trong ứng dụng họp của bạn.",
+        "content_electronOther": "Bạn cần một cáp âm thanh ảo (ví dụ VB-Cable). Gửi đầu ra của Sokuji đến đó, và chọn nó làm micro trong ứng dụng họp của bạn."
       },
       "participant-source": {
-        "title": "The other side's voice",
-        "content": "Sokuji listens to the other side here.",
-        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
-        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+        "title": "Giọng nói của đối phương",
+        "content": "Sokuji lắng nghe đối phương ở đây.",
+        "content_electron": "Chọn ứng dụng cần dịch, hoặc toàn bộ âm thanh hệ thống. Giọng nói gốc của họ vẫn phát bình thường.",
+        "content_extension": "Sokuji dịch âm thanh của tab hiện tại. Giọng nói gốc của họ vẫn phát bình thường."
       },
       "subtitle": {
-        "title": "Subtitle mode",
-        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+        "title": "Chế độ phụ đề",
+        "content": "Mở một khung phụ đề nổi — một cửa sổ riêng trên máy tính, hoặc lớp phủ trên trang khi dùng tiện ích mở rộng. OBS và chia sẻ màn hình đều có thể ghi lại nó."
       },
       "account": {
-        "title": "Your account",
-        "content": "Your balance and top-up live here.",
-        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+        "title": "Tài khoản của bạn",
+        "content": "Số dư và nạp tiền của bạn ở đây.",
+        "content_signedOut": "Tài khoản của bạn ở đây. Hãy đăng nhập sau khi xem hướng dẫn để mở khóa Bắt đầu."
       },
       "provider-settings": {
-        "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
-        "content_pending": "Paste your API key here. Start unlocks once it validates."
+        "title": "Cài đặt nhà cung cấp",
+        "content": "Thay đổi khóa hoặc chuyển nhà cung cấp ở đây.",
+        "content_pending": "Dán khóa API của bạn vào đây. Bắt đầu sẽ mở khóa khi khóa được xác thực."
       },
       "models": {
-        "title": "Models",
-        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+        "title": "Mô hình",
+        "content": "Tải mô hình xuống ở đây — mỗi mô hình cho một giai đoạn. Hãy thử vài mô hình; lựa chọn đầu tiên không phải là lựa chọn tốt duy nhất."
       },
       "start": {
-        "title": "Start",
-        "content": "Press here to start translating. If the button stays greyed out, hover it: the note names what is still missing and where to put it right.",
-        "content_offline": "This lights up once your models are ready. Hover it while it is grey to see what it is waiting for.",
-        "content_signedOut": "This lights up once you sign in. Hover it while it is grey to see what it is waiting for.",
-        "content_pendingKey": "This lights up once your API key validates. Hover it while it is grey to see what it is waiting for."
+        "title": "Bắt đầu",
+        "content": "Nhấn vào đây để bắt đầu dịch. Nếu nút vẫn xám, hãy di chuột qua nó: ghi chú sẽ cho biết điều gì còn thiếu và cách khắc phục.",
+        "content_offline": "Nút này sẽ sáng lên khi mô hình của bạn đã sẵn sàng. Di chuột qua khi nó còn xám để xem nó đang chờ gì.",
+        "content_signedOut": "Nút này sẽ sáng lên khi bạn đăng nhập. Di chuột qua khi nó còn xám để xem nó đang chờ gì.",
+        "content_pendingKey": "Nút này sẽ sáng lên khi khóa API của bạn được xác thực. Di chuột qua khi nó còn xám để xem nó đang chờ gì."
       },
       "done": {
-        "title": "That's it",
-        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help."
+        "title": "Vậy là xong",
+        "content": "Cài đặt nâng cao — phát hiện giọng nói, prompt, giọng nói, nhật ký — nằm sau công tắc Nâng cao ở góc trên bên phải của Cài đặt. Xem lại hướng dẫn này bất cứ lúc nào từ Trợ giúp."
       }
     }
   }
