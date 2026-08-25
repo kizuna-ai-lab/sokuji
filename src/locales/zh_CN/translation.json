@@ -948,195 +948,195 @@
     "importChooseModel": "选择要导入的模型"
   },
   "setup": {
-    "title": "Set up Sokuji",
-    "stepOf": "Step {{current}} of {{total}}",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "close": "Close",
-    "skipForNow": "Skip for now",
-    "rerun": "Run setup again",
+    "title": "设置 Sokuji",
+    "stepOf": "第 {{current}} 步，共 {{total}} 步",
+    "back": "上一步",
+    "next": "下一步",
+    "finish": "完成",
+    "close": "关闭",
+    "skipForNow": "先跳过，稍后设置",
+    "rerun": "重新运行设置向导",
     "steps": {
       "language": {
-        "title": "Which language should Sokuji speak to you in?",
-        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
-        "label": "Interface language"
+        "title": "Sokuji 用什么语言和你交流？",
+        "desc": "这是菜单和按钮的语言。翻译用的语言稍后再选。",
+        "label": "界面语言"
       },
       "scenario": {
-        "title": "What do you want to do?",
-        "desc": "Pick the closest match. You can change any of this later."
+        "title": "你想用 Sokuji 做什么？",
+        "desc": "选最接近的一个，之后都可以改。"
       },
       "path": {
-        "title": "What do you have?"
+        "title": "你有什么？"
       },
       "credentials": {
-        "offlineTitle": "Nothing to enter",
-        "managedTitle": "Your Kizuna AI account",
-        "ownKeyTitle": "Your API key"
+        "offlineTitle": "无需填写",
+        "managedTitle": "你的 Kizuna AI 账号",
+        "ownKeyTitle": "你的 API 密钥"
       },
       "languagePair": {
-        "title": "Which languages?",
-        "desc": "What you (or they) speak, and what it should become."
+        "title": "翻译哪两种语言？",
+        "desc": "你（或对方）说的语言，以及要翻译成的语言。"
       },
       "finish": {
-        "title": "Ready"
+        "title": "准备就绪"
       }
     },
     "scenarios": {
-      "sets": "Sets: mode {{mode}} · {{output}}",
+      "sets": "将设置：模式 {{mode}} · {{output}}",
       "understand-others": {
-        "title": "Understand what others say",
-        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+        "title": "听懂对方",
+        "desc": "在线会议、网课、讲座、视频、直播——实时阅读你听到内容的翻译。"
       },
       "be-heard": {
-        "title": "Be understood in a meeting",
-        "desc": "They hear your translated voice through a virtual microphone."
+        "title": "让对方在会议里听懂我",
+        "desc": "对方通过虚拟麦克风听到你翻译后的语音。"
       },
       "subtitle-myself": {
-        "title": "Subtitle my own speech",
-        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+        "title": "给我的发言配字幕",
+        "desc": "演讲、直播、演示——观众阅读翻译字幕，不生成语音。"
       },
       "two-way-voice": {
-        "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you read their subtitles."
+        "title": "在线双向对话",
+        "desc": "对方听到你的翻译语音，你阅读对方的字幕。"
       },
       "two-way-text": {
-        "title": "Two-way online conversation, subtitles only",
-        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+        "title": "在线双向对话，只要字幕",
+        "desc": "双语字幕、会议记录——双方都以文字呈现，不使用合成语音。"
       }
     },
     "modes": {
-      "speaker": "Me",
-      "participant": "Others",
-      "both": "Both"
+      "speaker": "我",
+      "participant": "对方",
+      "both": "双向"
     },
     "output": {
-      "voice": "spoken",
-      "subtitles": "subtitles"
+      "voice": "出声",
+      "subtitles": "字幕"
     },
     "paths": {
-      "recommended": "Recommended",
-      "pickProvider": "Which provider?",
-      "offlineFlavor": "Which engine?",
+      "recommended": "推荐",
+      "pickProvider": "选择哪家服务？",
+      "offlineFlavor": "选择哪个引擎？",
       "managed": {
-        "title": "Start right away",
-        "desc": "Sokuji runs the translation for you.",
-        "cost": "Needs a Kizuna AI account (email) with a balance. New accounts get a trial credit."
+        "title": "直接开始",
+        "desc": "由 Sokuji 为你运行翻译。",
+        "cost": "需要注册 Kizuna AI 账号（邮箱）并充值；新账号有试用额度。"
       },
       "own-key": {
-        "title": "I have my own API key",
-        "desc": "Use OpenAI, Gemini, Soniox and others directly.",
-        "cost": "You pay the provider for usage."
+        "title": "我有自己的 API 密钥",
+        "desc": "直接使用 OpenAI、Gemini、Soniox 等服务。",
+        "cost": "按用量向服务商付费。"
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
-        "native": "Native engine — faster, uses your GPU where available.",
-        "wasm": "In-app engine — works everywhere, slower."
+        "title": "免费离线",
+        "desc": "在你自己的电脑上运行，数据不外传。",
+        "cost": "需要下载模型到硬盘（数 GB）。有 GPU 和足够显存时运行流畅；仅用 CPU 会明显变慢。",
+        "native": "原生引擎——更快，可利用 GPU。",
+        "wasm": "内置引擎——到处能用，速度较慢。"
       }
     },
     "fit": {
-      "cannotSpeak": "This provider cannot produce spoken translation.",
-      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+      "cannotSpeak": "该服务不能生成语音翻译。",
+      "cannotBeTextOnly": "该服务始终出声，不支持仅字幕。"
     },
     "credentials": {
-      "apiKey": "API key",
-      "endpoint": "Endpoint URL",
+      "apiKey": "API 密钥",
+      "endpoint": "接口地址",
       "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
       "accessToken": "Access Token",
       "apiSecret": "API Secret",
-      "validate": "Validate",
-      "valid": "Key accepted.",
-      "invalid": "The key was rejected.",
-      "signIn": "Sign in",
-      "createAccount": "Create account",
-      "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign in or create an account. Translation is billed from your balance; new accounts get a trial credit.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then."
+      "validate": "校验",
+      "valid": "密钥可用。",
+      "invalid": "密钥被拒绝。",
+      "signIn": "登录",
+      "createAccount": "注册账号",
+      "signedIn": "已登录，可以继续。",
+      "managedDesc": "登录或注册账号。翻译费用从余额扣除；新账号有试用额度。",
+      "offlineNotice": "模型在设置完成后从「设置」里下载，会占用数 GB 硬盘。有 GPU 和足够显存时运行流畅；仅用 CPU 会明显变慢。",
+      "pendingKey": "可以稍后在「设置 → Provider」里添加密钥。密钥校验通过前无法开始。",
+      "pendingSignIn": "可以稍后从账户按钮登录。登录前无法开始。"
     },
     "languagePair": {
-      "source": "From",
-      "target": "To"
+      "source": "从",
+      "target": "到"
     },
     "summary": {
-      "scenario": "Scenario",
-      "mode": "Mode",
-      "provider": "Provider",
-      "languages": "Languages",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start."
+      "scenario": "场景",
+      "mode": "模式",
+      "provider": "服务",
+      "languages": "语言",
+      "pendingKey": "尚未设置 API 密钥——开始前请在「设置 → Provider」里添加。",
+      "pendingSignIn": "尚未登录——开始前请从账户按钮登录。"
     }
   },
   "tour": {
-    "back": "Back",
-    "next": "Next",
-    "skip": "Skip",
-    "finish": "Finish",
-    "restart": "Restart Setup Guide",
+    "back": "上一步",
+    "next": "下一步",
+    "skip": "跳过",
+    "finish": "完成",
+    "restart": "重新开始引导",
     "steps": {
       "welcome": {
-        "title": "You're set up",
-        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+        "title": "设置完成",
+        "content": "Sokuji 已按你的场景配置好。下面用不到一分钟认一下界面。"
       },
       "mode-picker": {
-        "title": "Translation mode",
-        "content": "This is set for you. Switch it any time; switching also changes whether the translation is spoken or shown as subtitles."
+        "title": "翻译模式",
+        "content": "已经为你设好。随时可以切换；切换也会改变翻译是出声还是显示为字幕。"
       },
       "microphone": {
-        "title": "Your microphone",
-        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+        "title": "你的麦克风",
+        "content": "你的声音从这里进来，已选好系统默认设备。不要选 Sokuji 虚拟麦克风——那个是给会议软件用的。"
       },
       "monitor": {
-        "title": "Hear yourself translated",
-        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+        "title": "听一听翻译后的自己",
+        "content": "把翻译语音播放到你自己的耳机，检查效果。不需要可以关掉。"
       },
       "output-routing": {
-        "title": "How the other side hears you",
-        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
-        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
-        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
-        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+        "title": "对方怎么听到你",
+        "content": "你的翻译语音会送到一个虚拟麦克风；在会议软件里把它选为麦克风。",
+        "content_extension": "在 Google Meet、Zoom 或 Teams 里，把麦克风选为「Sokuji Virtual Microphone」。Sokuji 会自动把它加到支持的会议网站。",
+        "content_electronLinux": "Sokuji 已在本机创建了虚拟麦克风。在会议软件里把它选为麦克风。",
+        "content_electronOther": "需要一个虚拟声卡（例如 VB-Cable）。把 Sokuji 的输出接到它，再在会议软件里把它选为麦克风。"
       },
       "participant-source": {
-        "title": "The other side's voice",
-        "content": "Sokuji listens to the other side here.",
-        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
-        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+        "title": "对方的声音",
+        "content": "Sokuji 在这里听对方说话。",
+        "content_electron": "选择要翻译的应用，或整个系统音频。对方的原声照常播放。",
+        "content_extension": "Sokuji 翻译当前标签页的声音。对方的原声照常播放。"
       },
       "subtitle": {
-        "title": "Subtitle mode",
-        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+        "title": "字幕模式",
+        "content": "打开悬浮字幕——桌面端是一个窗口，扩展里是页面上的覆盖层。OBS 和屏幕共享都能捕获它。"
       },
       "account": {
-        "title": "Your account",
-        "content": "Your balance and top-up live here.",
-        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+        "title": "你的账户",
+        "content": "余额和充值在这里。",
+        "content_signedOut": "在这里登录。登录后才能开始。"
       },
       "provider-settings": {
-        "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
-        "content_pending": "Paste your API key here. Start unlocks once it validates."
+        "title": "服务设置",
+        "content": "在这里换密钥或换服务。",
+        "content_pending": "把 API 密钥粘贴在这里。校验通过后才能开始。"
       },
       "models": {
-        "title": "Models",
-        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+        "title": "模型",
+        "content": "模型在这里下载，每个阶段一个。多试几个——第一个选择未必最合适。"
       },
       "start": {
-        "title": "Start",
-        "content": "Press here to start translating.",
-        "content_offline": "This lights up once your models are ready.",
-        "content_signedOut": "This lights up once you sign in.",
-        "content_pendingKey": "This lights up once your API key validates."
+        "title": "开始",
+        "content": "按这里开始翻译。",
+        "content_offline": "模型就绪后这里会亮起。",
+        "content_signedOut": "登录后这里会亮起。",
+        "content_pendingKey": "API 密钥校验通过后这里会亮起。"
       },
       "done": {
-        "title": "That's it",
-        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help."
+        "title": "就这些",
+        "content": "高级设置——说话检测、提示词、音色、日志——在「设置」顶部的高级模式开关后面。随时可以在「帮助」里重看本引导。"
       }
     }
   }

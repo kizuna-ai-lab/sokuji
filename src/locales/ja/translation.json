@@ -948,195 +948,195 @@
     "importChooseModel": "インポートするモデルを選択"
   },
   "setup": {
-    "title": "Set up Sokuji",
-    "stepOf": "Step {{current}} of {{total}}",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "close": "Close",
-    "skipForNow": "Skip for now",
-    "rerun": "Run setup again",
+    "title": "Sokuji のセットアップ",
+    "stepOf": "ステップ {{current}} / {{total}}",
+    "back": "戻る",
+    "next": "次へ",
+    "finish": "完了",
+    "close": "閉じる",
+    "skipForNow": "今はスキップ",
+    "rerun": "セットアップをやり直す",
     "steps": {
       "language": {
-        "title": "Which language should Sokuji speak to you in?",
-        "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
-        "label": "Interface language"
+        "title": "Sokuji の表示言語は？",
+        "desc": "メニューやボタンの言語です。翻訳する言語は後で選びます。",
+        "label": "表示言語"
       },
       "scenario": {
-        "title": "What do you want to do?",
-        "desc": "Pick the closest match. You can change any of this later."
+        "title": "何をしたいですか？",
+        "desc": "いちばん近いものを選んでください。あとから変更できます。"
       },
       "path": {
-        "title": "What do you have?"
+        "title": "お持ちのものは？"
       },
       "credentials": {
-        "offlineTitle": "Nothing to enter",
-        "managedTitle": "Your Kizuna AI account",
-        "ownKeyTitle": "Your API key"
+        "offlineTitle": "入力は不要です",
+        "managedTitle": "Kizuna AI アカウント",
+        "ownKeyTitle": "API キー"
       },
       "languagePair": {
-        "title": "Which languages?",
-        "desc": "What you (or they) speak, and what it should become."
+        "title": "どの言語を？",
+        "desc": "あなた（または相手）が話す言語と、翻訳先の言語です。"
       },
       "finish": {
-        "title": "Ready"
+        "title": "準備完了"
       }
     },
     "scenarios": {
-      "sets": "Sets: mode {{mode}} · {{output}}",
+      "sets": "設定内容：モード {{mode}} · {{output}}",
       "understand-others": {
-        "title": "Understand what others say",
-        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+        "title": "相手の話を理解する",
+        "desc": "オンライン会議・授業・講演・動画・配信——聞こえる内容の翻訳をリアルタイムで読みます。"
       },
       "be-heard": {
-        "title": "Be understood in a meeting",
-        "desc": "They hear your translated voice through a virtual microphone."
+        "title": "会議で自分の話を伝える",
+        "desc": "相手には仮想マイク経由で翻訳音声が届きます。"
       },
       "subtitle-myself": {
-        "title": "Subtitle my own speech",
-        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+        "title": "自分の話に字幕を付ける",
+        "desc": "講演・配信・プレゼン——視聴者は翻訳字幕を読みます。音声は生成しません。"
       },
       "two-way-voice": {
-        "title": "Two-way online conversation",
-        "desc": "They hear your translated voice; you read their subtitles."
+        "title": "オンラインで双方向に会話",
+        "desc": "相手はあなたの翻訳音声を聞き、あなたは相手の字幕を読みます。"
       },
       "two-way-text": {
-        "title": "Two-way online conversation, subtitles only",
-        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+        "title": "オンラインで双方向に会話（字幕のみ）",
+        "desc": "二か国語字幕や議事録——双方ともテキストで、合成音声は使いません。"
       }
     },
     "modes": {
-      "speaker": "Me",
-      "participant": "Others",
-      "both": "Both"
+      "speaker": "自分",
+      "participant": "相手",
+      "both": "双方向"
     },
     "output": {
-      "voice": "spoken",
-      "subtitles": "subtitles"
+      "voice": "音声あり",
+      "subtitles": "字幕のみ"
     },
     "paths": {
-      "recommended": "Recommended",
-      "pickProvider": "Which provider?",
-      "offlineFlavor": "Which engine?",
+      "recommended": "おすすめ",
+      "pickProvider": "どのプロバイダーを使いますか？",
+      "offlineFlavor": "どのエンジンを使いますか？",
       "managed": {
-        "title": "Start right away",
-        "desc": "Sokuji runs the translation for you.",
-        "cost": "Needs a Kizuna AI account (email) with a balance. New accounts get a trial credit."
+        "title": "すぐに始める",
+        "desc": "翻訳は Sokuji 側で実行します。",
+        "cost": "Kizuna AI アカウント（メールアドレス）と残高が必要です。新規アカウントにはお試しクレジットがあります。"
       },
       "own-key": {
-        "title": "I have my own API key",
-        "desc": "Use OpenAI, Gemini, Soniox and others directly.",
-        "cost": "You pay the provider for usage."
+        "title": "自分の API キーがある",
+        "desc": "OpenAI、Gemini、Soniox などを直接利用します。",
+        "cost": "利用量に応じて各プロバイダーに支払います。"
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
-        "native": "Native engine — faster, uses your GPU where available.",
-        "wasm": "In-app engine — works everywhere, slower."
+        "title": "無料・オフライン",
+        "desc": "お使いのパソコン上で動作し、データは外に出ません。",
+        "cost": "モデルをディスクにダウンロードします（数 GB）。GPU と十分な VRAM があれば快適ですが、CPU のみでは明らかに遅くなります。",
+        "native": "ネイティブエンジン——高速で、GPU があれば活用します。",
+        "wasm": "内蔵エンジン——どこでも動きますが、遅めです。"
       }
     },
     "fit": {
-      "cannotSpeak": "This provider cannot produce spoken translation.",
-      "cannotBeTextOnly": "This provider always speaks; it cannot run subtitles-only."
+      "cannotSpeak": "このプロバイダーは音声翻訳を生成できません。",
+      "cannotBeTextOnly": "このプロバイダーは常に音声を出すため、字幕のみでは使えません。"
     },
     "credentials": {
-      "apiKey": "API key",
-      "endpoint": "Endpoint URL",
+      "apiKey": "API キー",
+      "endpoint": "エンドポイント URL",
       "endpointPlaceholder": "https://api.example.com/v1",
       "accessKeyId": "Access Key ID",
       "secretAccessKey": "Secret Access Key",
       "appId": "App ID",
       "accessToken": "Access Token",
       "apiSecret": "API Secret",
-      "validate": "Validate",
-      "valid": "Key accepted.",
-      "invalid": "The key was rejected.",
-      "signIn": "Sign in",
-      "createAccount": "Create account",
-      "signedIn": "Signed in. You can continue.",
-      "managedDesc": "Sign in or create an account. Translation is billed from your balance; new accounts get a trial credit.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then."
+      "validate": "検証",
+      "valid": "キーが受け付けられました。",
+      "invalid": "キーが拒否されました。",
+      "signIn": "サインイン",
+      "createAccount": "アカウント作成",
+      "signedIn": "サインイン済みです。続行できます。",
+      "managedDesc": "サインインするかアカウントを作成してください。翻訳の費用は残高から引かれます。新規アカウントにはお試しクレジットがあります。",
+      "offlineNotice": "モデルはセットアップ後に「設定」からダウンロードします。数 GB のディスク容量が必要です。GPU と十分な VRAM があれば快適ですが、CPU のみでは明らかに遅くなります。",
+      "pendingKey": "キーは後で「設定 → プロバイダー」から追加できます。検証が通るまで開始できません。",
+      "pendingSignIn": "後でアカウントボタンからサインインできます。それまで開始できません。"
     },
     "languagePair": {
-      "source": "From",
-      "target": "To"
+      "source": "翻訳元",
+      "target": "翻訳先"
     },
     "summary": {
-      "scenario": "Scenario",
-      "mode": "Mode",
-      "provider": "Provider",
-      "languages": "Languages",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start."
+      "scenario": "シナリオ",
+      "mode": "モード",
+      "provider": "プロバイダー",
+      "languages": "言語",
+      "pendingKey": "API キー未設定——開始前に「設定 → プロバイダー」で追加してください。",
+      "pendingSignIn": "未サインイン——開始前にアカウントボタンからサインインしてください。"
     }
   },
   "tour": {
-    "back": "Back",
-    "next": "Next",
-    "skip": "Skip",
-    "finish": "Finish",
-    "restart": "Restart Setup Guide",
+    "back": "戻る",
+    "next": "次へ",
+    "skip": "スキップ",
+    "finish": "完了",
+    "restart": "ガイドをもう一度見る",
     "steps": {
       "welcome": {
-        "title": "You're set up",
-        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+        "title": "セットアップ完了",
+        "content": "Sokuji はあなたのシナリオに合わせて設定されました。1 分足らずで画面を案内します。"
       },
       "mode-picker": {
-        "title": "Translation mode",
-        "content": "This is set for you. Switch it any time; switching also changes whether the translation is spoken or shown as subtitles."
+        "title": "翻訳モード",
+        "content": "すでに設定済みです。いつでも切り替えられます。切り替えると、翻訳を音声で出すか字幕で出すかも変わります。"
       },
       "microphone": {
-        "title": "Your microphone",
-        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+        "title": "あなたのマイク",
+        "content": "あなたの声はここから入ります。システム既定のデバイスが選ばれています。Sokuji 仮想マイクは選ばないでください——それは会議アプリ用です。"
       },
       "monitor": {
-        "title": "Hear yourself translated",
-        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+        "title": "翻訳された自分の声を聞く",
+        "content": "翻訳音声を自分のヘッドホンに流して確認できます。不要ならオフにしてください。"
       },
       "output-routing": {
-        "title": "How the other side hears you",
-        "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
-        "content_extension": "In Google Meet, Zoom or Teams, choose \"Sokuji Virtual Microphone\" as your microphone. Sokuji adds it to supported meeting sites automatically.",
-        "content_electronLinux": "Sokuji created a virtual microphone on this system. Choose it as the microphone in your meeting app.",
-        "content_electronOther": "You need a virtual audio cable (for example VB-Cable). Send Sokuji's output to it, and choose it as the microphone in your meeting app."
+        "title": "相手にはどう聞こえるか",
+        "content": "翻訳音声は仮想マイクに送られます。会議アプリでそれをマイクとして選んでください。",
+        "content_extension": "Google Meet、Zoom、Teams で「Sokuji Virtual Microphone」をマイクに選んでください。対応する会議サイトには Sokuji が自動で追加します。",
+        "content_electronLinux": "Sokuji がこのシステムに仮想マイクを作成しました。会議アプリでそれをマイクに選んでください。",
+        "content_electronOther": "仮想オーディオケーブル（例：VB-Cable）が必要です。Sokuji の出力をそこへ送り、会議アプリでそれをマイクに選んでください。"
       },
       "participant-source": {
-        "title": "The other side's voice",
-        "content": "Sokuji listens to the other side here.",
-        "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
-        "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
+        "title": "相手の声",
+        "content": "Sokuji はここで相手の声を聞きます。",
+        "content_electron": "翻訳するアプリ、またはシステム音声全体を選びます。相手の元の声はそのまま流れます。",
+        "content_extension": "現在のタブの音声を翻訳します。相手の元の声はそのまま流れます。"
       },
       "subtitle": {
-        "title": "Subtitle mode",
-        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+        "title": "字幕モード",
+        "content": "フローティング字幕を開きます——デスクトップでは別ウィンドウ、拡張機能ではページ上のオーバーレイです。OBS や画面共有でキャプチャできます。"
       },
       "account": {
-        "title": "Your account",
-        "content": "Your balance and top-up live here.",
-        "content_signedOut": "Sign in here. Start unlocks once you are signed in."
+        "title": "アカウント",
+        "content": "残高とチャージはここです。",
+        "content_signedOut": "ここからサインインします。サインインすると開始できます。"
       },
       "provider-settings": {
-        "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
-        "content_pending": "Paste your API key here. Start unlocks once it validates."
+        "title": "プロバイダー設定",
+        "content": "キーの変更やプロバイダーの切り替えはここです。",
+        "content_pending": "ここに API キーを貼り付けてください。検証が通ると開始できます。"
       },
       "models": {
-        "title": "Models",
-        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+        "title": "モデル",
+        "content": "モデルはここでダウンロードします——段階ごとに 1 つ。いくつか試してみてください。最初の選択が最適とは限りません。"
       },
       "start": {
-        "title": "Start",
-        "content": "Press here to start translating.",
-        "content_offline": "This lights up once your models are ready.",
-        "content_signedOut": "This lights up once you sign in.",
-        "content_pendingKey": "This lights up once your API key validates."
+        "title": "開始",
+        "content": "ここを押して翻訳を始めます。",
+        "content_offline": "モデルの準備ができると点灯します。",
+        "content_signedOut": "サインインすると点灯します。",
+        "content_pendingKey": "API キーの検証が通ると点灯します。"
       },
       "done": {
-        "title": "That's it",
-        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top of Settings. Replay this guide any time from Help."
+        "title": "以上です",
+        "content": "高度な設定——発話検出、プロンプト、声、ログ——は「設定」上部の詳細モード切り替えの先にあります。このガイドは「ヘルプ」からいつでも見直せます。"
       }
     }
   }
