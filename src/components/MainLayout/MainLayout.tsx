@@ -156,8 +156,13 @@ const MainLayout: React.FC = () => {
 
   // Auto-switch to KizunaAI when Basic Mode users log in
   useEffect(() => {
-    // Check if user just logged in (was false, now true)
-    if (!prevIsSignedInRef.current && isSignedIn) {
+    // The user just logged in (was false, now true) — but not underneath the
+    // setup wizard. Signing in from its step 3 is part of a draft the user has
+    // not committed yet: Finish writes the provider itself on the managed path,
+    // and backing out must leave the provider exactly as it was (spec §1.1).
+    // The ref below still advances, so a switch skipped here does not fire late
+    // when the overlay closes.
+    if (!prevIsSignedInRef.current && isSignedIn && !setupWizardOpen) {
       // User just logged in. The target is derived from what is REGISTERED, not
       // from a feature flag: the managed providers are gated independently now,
       // so isKizunaAIEnabled() no longer implies the Translate twin exists. In
@@ -185,7 +190,7 @@ const MainLayout: React.FC = () => {
 
     // Update the ref for next render
     prevIsSignedInRef.current = isSignedIn;
-  }, [isSignedIn, uiMode, provider, setProvider, trackEvent]);
+  }, [isSignedIn, uiMode, provider, setProvider, trackEvent, setupWizardOpen]);
 
   // Nothing until setup state is known: a migrated user must never see the
   // wizard flash. Then the wizard in place of the layout on a fresh install.

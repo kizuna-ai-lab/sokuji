@@ -11,7 +11,14 @@ vi.mock('../Settings', () => ({ Settings: () => null }));
 vi.mock('../TitleBar/TitleBar', () => ({ default: () => <div data-testid="title-bar" /> }));
 vi.mock('../SetupWizard/SetupWizard', () => ({ default: ({ variant }: { variant: string }) => <div data-testid={`wizard-${variant}`} /> }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
-vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false }) }));
+let signedIn = false;
+vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: signedIn }) }));
+// The sign-in auto-switch needs a managed provider to switch TO, and the real
+// factory registers none under this file's feature flags.
+const setProvider = vi.hoisted(() => vi.fn());
+vi.mock('../../services/providers/ProviderConfigFactory', () => ({
+  ProviderConfigFactory: { getDefaultManagedProvider: () => 'kizunaai_soniox' },
+}));
 // Both halves of the tour's render gate are mutable: only Electron reshapes
 // its window for subtitle mode, so the takeover needs the pair to be true.
 // vi.hoisted, not a plain `let`: ProviderConfigFactory's static initializer
@@ -23,7 +30,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isElectron: () => flags.electron, isKizunaAIEnabled: () => false,
 }));
 vi.mock('../../stores/settingsStore', () => ({
-  useProvider: () => 'openai', useUIMode: () => 'basic', useSetProvider: () => vi.fn(),
+  useProvider: () => 'openai', useUIMode: () => 'basic', useSetProvider: () => setProvider,
   useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => flags.subtitleActive,
 }));
 let loaded = true; let complete = true; let wizardOpen = false;
@@ -33,7 +40,12 @@ vi.mock('../../stores/layoutStore', () => ({
   useSetupWizardOpen: () => wizardOpen, useSetSetupWizardOpen: () => vi.fn(),
 }));
 
-beforeEach(() => { cleanup(); loaded = true; complete = true; wizardOpen = false; flags.electron = false; flags.subtitleActive = false; });
+beforeEach(() => {
+  cleanup();
+  loaded = true; complete = true; wizardOpen = false; signedIn = false;
+  flags.electron = false; flags.subtitleActive = false;
+  setProvider.mockClear();
+});
 
 describe('MainLayout first-run gating (spec §1.1)', () => {
   it('renders nothing until setup state has loaded — no wizard flash for migrated users', () => {
@@ -76,5 +88,29 @@ describe('MainLayout first-run gating (spec §1.1)', () => {
     render(<MainLayout />);
     expect(screen.queryByTestId('tour-overlay')).toBeNull();
     expect(screen.queryByTestId('title-bar')).toBeNull();
+  });
+});
+
+describe('sign-in auto-switch vs the setup wizard', () => {
+  it('switches a Basic-mode user to the managed provider on sign-in', () => {
+    const { rerender } = render(<MainLayout />);
+    signedIn = true;
+    rerender(<MainLayout />);
+    expect(setProvider).toHaveBeenCalledWith('kizunaai_soniox');
+  });
+
+  it('leaves the provider alone while the rerun wizard is open, and after it closes', () => {
+    // Backing out of the wizard must touch nothing (spec §1.1); Finish writes
+    // the provider itself on the managed path, so nothing is lost by skipping.
+    wizardOpen = true;
+    const { rerender } = render(<MainLayout />);
+    signedIn = true;
+    rerender(<MainLayout />);
+    expect(setProvider).not.toHaveBeenCalled();
+
+    // And the skipped switch must not fire late once the overlay goes away.
+    wizardOpen = false;
+    rerender(<MainLayout />);
+    expect(setProvider).not.toHaveBeenCalled();
   });
 });
