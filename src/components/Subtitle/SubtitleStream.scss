@@ -1,7 +1,13 @@
 .subtitle-stream {
   flex: 1;
   min-height: 0;
-  padding: 12px 24px 16px;
+
+  // 12px horizontal matches `.conversation-display` in MainPanel.scss. The
+  // subtitle surface used to carry 24px — double the side panel's rail on a
+  // surface that is narrower (the extension overlay floors at MIN_W = 320px)
+  // and shorter, so the gutter cost far more of the line here than it does
+  // in the panel.
+  padding: 8px 12px 10px;
   display: flex;
   flex-direction: column;
   scroll-behavior: smooth;
@@ -88,6 +94,19 @@
   &.expanded {
     overflow-y: auto;
     justify-content: flex-end;
+
+    // Drop ConversationRow's 30px hanging indent (the avatar column, see
+    // ConversationRow.scss > .row-body). It buys alignment under the header's
+    // name, but on this surface a header only appears when the speaker
+    // switches, and the stream is pinned to its bottom edge in a 140-200px
+    // window — so the header is usually scrolled out of view and the indent
+    // aligns to nothing while costing 30px of every line. The lang badge
+    // still forms the left rail, so the rows stay in a column.
+    // Four classes deep on purpose: `.conversation-row.grouped .row-body`
+    // in ConversationRow.scss ties on specificity at three.
+    .conversation-row .row-body {
+      padding-left: 0;
+    }
   }
 }
 
