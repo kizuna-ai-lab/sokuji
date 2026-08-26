@@ -25,6 +25,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import ts from 'typescript';
 
 const REPO_ROOT = resolve(__dirname, '../../..');
 
@@ -81,73 +82,44 @@ const scannedFiles = (): string[] => {
 const read = (rel: string) => readFileSync(join(REPO_ROOT, rel), 'utf-8');
 
 /**
- * Blank out comments and string bodies, so only code is counted.
+ * Count real `console.error(...)` / `console.warn(...)` calls, via the compiler's
+ * own parser.
  *
- * Requiring the trailing `(` is not enough on its own: a doc comment that shows
- * the old shape it replaced (`.catch(e => console.error(...))`) reads as a call.
- * That inflated a row twice while this ledger was being written — once from
- * prose in `UserProfileContext`, once from `persistSetting`'s own header — and
- * each time it sends a reader hunting for a call that is not there.
+ * A regex over raw text counts prose: a doc comment showing the shape it
+ * replaced (`.catch(e => console.error(...))`) reads as a call, which inflated a
+ * row twice while this ledger was being written and sent a reader hunting for
+ * something that was not there.
  *
- * Replaces characters rather than deleting them, so the count is unaffected by
- * how much was blanked.
+ * Blanking comments and strings by hand fixed that but leaked the other way:
+ * a template literal's `${...}` is executable, so `${console.error('x')}` was
+ * invisible; and once interpolations were scanned, a `}` inside a string
+ * literal within one ended it early. Each patch revealed the next hole, because
+ * the real requirement is a JavaScript lexer — strings, comments, template
+ * nesting, regex literals — and the repo already depends on one.
+ *
+ * `ts.forEachChild` is correct by construction here: comments are trivia and
+ * never nodes, string and template *text* is never a CallExpression, and an
+ * interpolation is an ordinary expression subtree, so a call inside one is
+ * found like any other.
  */
-function stripCommentsAndStrings(source: string): string {
-  let out = '';
-  let i = 0;
-  const n = source.length;
-  while (i < n) {
-    const c = source[i];
-    const next = source[i + 1];
-    if (c === '/' && next === '/') {
-      while (i < n && source[i] !== '\n') { out += ' '; i++; }
-    } else if (c === '/' && next === '*') {
-      out += '  '; i += 2;
-      while (i < n && !(source[i] === '*' && source[i + 1] === '/')) {
-        out += source[i] === '\n' ? '\n' : ' ';
-        i++;
-      }
-      out += '  '; i += 2;
-    } else if (c === '`') {
-      // Template literals keep their `${...}` interpolations as CODE. Blanking
-      // the whole literal would hide `${console.error('x')}` from the scan, so
-      // the guard could be bypassed by a call that still runs.
-      out += ' '; i++;
-      let depth = 0;
-      while (i < n) {
-        if (depth === 0 && source[i] === '`') break;
-        if (source[i] === '\\') { out += '  '; i += 2; continue; }
-        if (source[i] === '$' && source[i + 1] === '{') {
-          depth++; out += '  '; i += 2; continue;
-        }
-        if (depth > 0) {
-          // Inside an interpolation: copy verbatim so calls are counted.
-          if (source[i] === '}') depth--;
-          out += source[i]; i++;
-          continue;
-        }
-        out += source[i] === '\n' ? '\n' : ' ';
-        i++;
-      }
-      out += ' '; i++;
-    } else if (c === '"' || c === "'") {
-      const quote = c;
-      out += ' '; i++;
-      while (i < n && source[i] !== quote) {
-        if (source[i] === '\\') { out += '  '; i += 2; continue; }
-        out += source[i] === '\n' ? '\n' : ' ';
-        i++;
-      }
-      out += ' '; i++;
-    } else {
-      out += c; i++;
+function countConsoleCalls(source: string, fileName = 'scan.tsx'): number {
+  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let count = 0;
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === 'console' &&
+      (node.expression.name.text === 'error' || node.expression.name.text === 'warn')
+    ) {
+      count++;
     }
-  }
-  return out;
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sf, visit);
+  return count;
 }
-
-const countConsoleCalls = (source: string): number =>
-  (stripCommentsAndStrings(source).match(/console\.(?:error|warn)\(/g) ?? []).length;
 
 /**
  * Exact remaining `console.error(` / `console.warn(` per file.
@@ -214,13 +186,23 @@ describe('console ledger', () => {
     // ...and code after a comment still must.
     expect(countConsoleCalls('/* console.warn( */ console.error(x);')).toBe(1);
     expect(countConsoleCalls('// note\nconsole.warn(x);')).toBe(1);
-    // A template literal's TEXT is not code, but its interpolations are — a call
-    // there still runs, so blanking the whole literal would be a way past the guard.
+    // A template literal's TEXT is not code, but its interpolations are: a call
+    // there runs, so it has to be counted.
     expect(countConsoleCalls('const m = `a ${console.error("x")} b`;')).toBe(1);
     expect(countConsoleCalls('const m = `plain console.error( text`;')).toBe(0);
     expect(countConsoleCalls('const m = `${a} console.error( ${b}`;')).toBe(0);
-    // Nested braces inside an interpolation must not end it early.
+    // The cases a hand-rolled scanner kept getting wrong, and why this uses the
+    // compiler's parser instead: a brace inside a string within an
+    // interpolation, and a nested template inside one.
+    expect(countConsoleCalls("const m = `${'}'; console.error('x')}`;")).toBe(1);
+    expect(countConsoleCalls('const m = `${ `${console.warn(y)}` }`;')).toBe(1);
     expect(countConsoleCalls('const m = `${ f({ k: 1 }) } ${console.warn(y)}`;')).toBe(1);
+    // A regex literal containing a quote must not swallow the rest of the file.
+    expect(countConsoleCalls("const re = /['\"]/; console.error(x);")).toBe(1);
+    // Only console.error/warn, and only on `console`.
+    expect(countConsoleCalls('logger.error(x); console.debug(y); console.info(z);')).toBe(0);
+    // JSX must parse (the scan covers .tsx).
+    expect(countConsoleCalls('const el = <div onClick={() => console.warn(1)} />;')).toBe(1);
   });
 
   // #441's own scope, now finished: src/stores, src/services and src/contexts

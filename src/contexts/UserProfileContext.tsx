@@ -146,6 +146,11 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
 
       setQuota(mapWalletStatusToQuota(raw));
       setError(null);
+      // The latch is shared with the silent poll, so every path that proves the
+      // balance endpoint is answering has to clear it. Clearing it only on the
+      // poll's own success meant a manual refresh could fix the symptom while
+      // leaving the next poll failure suppressed as a repeat.
+      pollFailingRef.current = false;
     } catch (err: any) {
       if (stale()) return;
       // describeCause, not `err.message`: the latter is `any` (so it would not
