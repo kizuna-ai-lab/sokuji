@@ -138,11 +138,6 @@ const countConsoleCalls = (source: string): number =>
  * PR2 takes the persistence seam, PR3 the client contract, PR4 the remainder.
  */
 const LEDGER: Record<string, number> = {
-  // --- PR4 — provider config and onboarding ---
-  'src/services/providers/localParticipantConfig.ts': 2,
-  'src/services/providers/managedVoicePrep.ts': 2,
-  'src/contexts/OnboardingContext.tsx': 1,
-  'src/services/providers/SonioxProviderConfig.ts': 1,
   // --- Later, under the ledger: components ---
   'src/components/MainPanel/MainPanel.tsx': 44,
   'src/components/Auth/UserAccountInfo.tsx': 5,
@@ -193,6 +188,21 @@ describe('console ledger', () => {
     // ...and code after a comment still must.
     expect(countConsoleCalls('/* console.warn( */ console.error(x);')).toBe(1);
     expect(countConsoleCalls('// note\nconsole.warn(x);')).toBe(1);
+  });
+
+  // #441's own scope, now finished: src/stores, src/services and src/contexts
+  // hold no console.error/warn at all. Asserted as a rule rather than by the
+  // absence of ledger rows, so re-adding one fails here with the reason instead
+  // of quietly earning a new baseline entry.
+  it('the roots #441 covered stay at zero', () => {
+    const CLEARED = ['src/stores/', 'src/services/', 'src/contexts/'];
+    const offenders = scannedFiles()
+      .filter((f) => CLEARED.some((root) => f.startsWith(root)))
+      .filter((f) => countConsoleCalls(read(f)) > 0);
+    expect(
+      offenders,
+      'these roots are finished: use reportError/reportWarning, or handlers.onDiagnostic inside a client',
+    ).toEqual([]);
   });
 
   it('every ledger row names a file that exists', () => {

@@ -175,11 +175,13 @@ reportWarning('AudioStore', 'No real microphone available', { dedupeKey: 'mic.mi
 - **Contexts that cannot import the store** — web workers, AudioWorklets,
   `extension/`, `electron/`, `sidecar/` — keep their existing message/IPC channel,
   and the renderer-side caller reports. They are outside this policy.
-- **Remaining `console.error` / `console.warn`** are tracked file-by-file in
-  `src/lib/diagnostics/consoleLedger.consistency.test.ts` and lowered in dedicated
-  PRs, not in passing. The counts are exact: removing a call means lowering its
-  row in the same diff. See `docs/superpowers/specs/2026-08-25-diagnostics-reporting-design.md`
-  for the full design and the migration plan (#441).
+- **`src/stores`, `src/services` and `src/contexts` are finished**: they contain no
+  `console.error` / `console.warn`, and `consoleLedger.consistency.test.ts` fails if
+  one comes back. Elsewhere (`src/components`, `src/lib`, `shared/`) the remaining
+  calls are tracked file-by-file in that same test and lowered in dedicated PRs,
+  not in passing. Those counts are exact: removing a call means lowering its row in
+  the same diff. See `docs/superpowers/specs/2026-08-25-diagnostics-reporting-design.md`
+  for the full design (#441).
 
 ### Platform-Specific Code
 Use centralized utilities from `src/utils/environment.ts`:

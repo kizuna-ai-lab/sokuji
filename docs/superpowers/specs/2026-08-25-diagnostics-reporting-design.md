@@ -488,3 +488,72 @@ Two process notes worth keeping:
   the general rule claiming the three legacy-key writes before the `silent` rule
   could. Both were caught by asserting on the shape, never by the replacement
   count, which was right in both broken runs.
+
+
+## 13. PR3 and PR4 as landed — #441's scope is closed
+
+Ledger 244 → **155 calls, 30 files**. `src/stores`, `src/services` and
+`src/contexts` — the three roots the issue named — contain **zero**
+`console.error`/`console.warn`, asserted as a rule rather than by the absence of
+baseline rows, so re-adding one fails with a reason instead of quietly earning a
+new entry. What remains is `src/components` (60), `src/lib` (90) and
+`shared/index.tsx` (4), all under the ledger and out of #441's scope.
+
+Deviations from the plan, each after reading the code:
+
+- **`onEvent` stays optional on `ProviderDescriptor`.** The design said make it
+  required so a diagnostic cannot be silently dropped. There is exactly one
+  production construction site (`KizunaAISonioxProviderConfig.ts:166`) and it
+  already wires it; requiring it would have churned 14 test constructions for a
+  hazard that does not exist in the tree. Widened its closed union with
+  `'session.notify_failed'` instead, and `EventData` with it, so MainPanel's
+  forward is not a lie behind a cast.
+- **`describeCause` moved to its own leaf module.** Clients need it to build a
+  diagnostic message, but importing it from `report` would pull in the store —
+  which the ledger's own assertion forbids clients from doing. `report`
+  re-exports it, so nothing else changed.
+- **`SonioxProviderConfig`'s truncation notice calls `reportWarning` directly**
+  rather than returning `notices`. It is a provider-config module, not a client,
+  so it may report; threading a notice channel through a pure string-fitting
+  helper would have been a larger change than the line deserved.
+- **Two per-message Volcengine protocol traces became `console.debug`**, and
+  Gemini's model-fallback notice became `console.info`. Nothing failed in either
+  case, so `warn` was the wrong level to begin with; `debug`/`info` keep them in a
+  live trace and out of the ledger honestly.
+
+Things the sweep had to fix rather than move:
+
+- **Both WebRTC clients forwarded a raw `RTCErrorEvent` to `onError`.** It has no
+  `message`, so `clientErrorMessage()` yields `"Unknown error"` — the console line
+  was carrying the only readable version of that failure, and deleting it would
+  have left the bubble and the `api_error` saying nothing. Both emit sites now
+  normalise to `{ code: 'data_channel_error', message }`. This is the case the
+  design flagged; it was real.
+- **MainPanel's two connect catches disagreed with each other.** The speaker
+  emitted `session.init_error` plus `error_occurred`; the participant emitted
+  `participant.error` with no channel tag — so `logStore`'s old default filed a
+  participant-leg failure under the "Me" tab — and no analytics at all. Both now
+  go through `onConnectFailed`.
+- **The speaker's handler set is hand-picked, not spread.** `onDiagnostic` is
+  optional, so omitting it there would have dropped every speaker diagnostic with
+  nothing failing. Named explicitly, and `participantTelemetryWiring.test.ts`
+  covers both legs.
+- **`ManagedSonioxSession`'s refusal report was deliberately said twice**, in the
+  console and on the timeline, and two tests asserted on the console half. The
+  event is now the single record and the tests assert that it carries the
+  diagnosis on its own.
+
+One measurement worth keeping: **normalising line numbers is not enough when
+diffing `tsc` output.** Widening `EventData` by three members changed
+`"... 125 more ..."` to `"... 128 more ..."` inside a dozen unrelated error
+messages, which read as new errors until the count itself was normalised too.
+Final: 536 errors, none new against a clean `main` checkout's 571.
+
+### What is left
+
+- `src/components` (60) and `src/lib` (90), file-by-file when touched.
+- The basic-mode surfaces in §6, filed as their own issue: LogsPanel is
+  advanced-mode only, so a user in basic mode still sees nothing for an audio-init
+  or settings-load failure. The seams are named (`audioStore.lastError`,
+  `settingsStore.loadError`).
+- The `Problems only` filter chip, which needs a locale key in all 30 catalogs.

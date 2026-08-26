@@ -107,7 +107,8 @@ export function createParticipantLocalInferenceConfig(
   const vramBudgetMb = readDebugNumber('debug:vram-budget');
   if (vramBudgetMb !== null && vramMb > vramBudgetMb) {
     const detail = `Total VRAM ~${vramMb}MB exceeds budget ~${vramBudgetMb}MB`;
-    console.warn('[LocalInference] Participant skipped — VRAM budget exceeded:', detail);
+    // No log line: `detail` is returned, and LocalInferenceProviderConfig turns
+    // it into a ParticipantNotice the user actually sees.
     return { success: false, reason: 'memory_exceeded', detail };
   }
 
@@ -118,7 +119,7 @@ export function createParticipantLocalInferenceConfig(
   const ramBudgetMb = Math.round(deviceMemoryGb * RAM_BUDGET_RATIO * 1024);
   if (ramMb > ramBudgetMb) {
     const detail = `Total RAM ~${ramMb}MB exceeds budget ~${ramBudgetMb}MB (device memory: ${deviceMemoryGb}GB)`;
-    console.warn('[LocalInference] Participant skipped — RAM budget exceeded:', detail);
+    // Same: the returned detail becomes a ParticipantNotice.
     return { success: false, reason: 'memory_exceeded', detail };
   }
 
