@@ -4,6 +4,7 @@
  */
 
 import { RealtimeEvent } from '../../stores/logStore';
+import type { ClientDiagnostic } from '../../lib/diagnostics/clientDiagnostics';
 import { ProviderType } from '../../types/Provider';
 
 export interface ConversationItem {
@@ -384,7 +385,18 @@ export interface ResponseConfig {
 export interface ClientEventHandlers {
   onOpen?: () => void;
   onClose?: (event: any) => void;
+  /** The session is broken: raises a conversation bubble and an api_error. */
   onError?: (error: any) => void;
+  /**
+   * The session continues, degraded.
+   *
+   * For failures that used to become a `console.error` inside a client, where
+   * they were invisible to the user and mis-attributed in analytics — a frame
+   * that would not parse, a cleanup step that threw, TTS falling back. No
+   * bubble, no api_error: `participantTelemetry` gives the code a channel and
+   * the severity from CLIENT_DIAGNOSTICS, and files one panel entry.
+   */
+  onDiagnostic?: (diagnostic: ClientDiagnostic) => void;
   onConversationUpdated?: (data: { item: ConversationItem; delta?: any }) => void;
   onConversationInterrupted?: () => void;
   onRealtimeEvent?: (event: RealtimeEvent) => void;

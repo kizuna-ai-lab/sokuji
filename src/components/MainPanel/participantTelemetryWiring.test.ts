@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { buildChannelTelemetryHandlers } from './participantTelemetry';
+import { settleReports } from '../../lib/diagnostics/report';
+import useLogStore from '../../stores/logStore';
 import {
   NO_CHANNELS_RECONNECTING,
   isAnyChannelReconnecting,
@@ -134,5 +136,112 @@ describe('per-channel telemetry handlers', () => {
     });
     expect(w.apiErrors[0].error_message).toBe('service unavailable');
     spy.mockRestore();
+  });
+  // --- onDiagnostic: session continues, degraded ------------------------------
+  //
+  // Clients cannot know which leg they are on, so a failure that leaves the
+  // session running (a frame that would not parse, a cleanup step that threw,
+  // TTS falling back) is emitted as a code and given its channel here.
+
+  it('routes a client diagnostic to the panel tagged with its channel', async () => {
+    const w = makeWorld();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const participant = buildChannelTelemetryHandlers('participant', w.portsFor());
+
+    participant.onDiagnostic({ code: 'parse_error', message: 'unexpected frame' });
+    await settleReports();
+
+    const entries = useLogStore.getState().allLogs;
+    expect(entries).toHaveLength(1);
+    expect(entries[0].clientId).toBe('participant');
+    expect(entries[0].type).toBe('warning');
+    expect(entries[0].message).toContain('parse_error: unexpected frame');
+    warn.mockRestore();
+  });
+
+  it('takes the severity from the code table, not the call site', async () => {
+    const w = makeWorld();
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const speaker = buildChannelTelemetryHandlers('speaker', w.portsFor());
+
+    speaker.onDiagnostic({ code: 'input_pipeline_failed', message: 'worklet gone' });
+    await settleReports();
+
+    expect(useLogStore.getState().allLogs[0].type).toBe('error');
+    err.mockRestore();
+  });
+
+  it('does not raise a bubble or an api_error for a diagnostic', () => {
+    const w = makeWorld();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const speaker = buildChannelTelemetryHandlers('speaker', w.portsFor());
+
+    speaker.onDiagnostic({ code: 'cleanup_failed', message: 'socket already closed' });
+
+    // onError is the "session is broken" path; a diagnostic must not borrow it.
+    expect(w.apiErrors).toHaveLength(0);
+    expect(w.logs).toHaveLength(0);
+    warn.mockRestore();
+  });
+
+  it('collapses a burst of the same diagnostic code', async () => {
+    const w = makeWorld();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const speaker = buildChannelTelemetryHandlers('speaker', w.portsFor());
+
+    for (let i = 0; i < 5; i++) {
+      speaker.onDiagnostic({ code: 'parse_error', message: `bad frame ${i}` });
+    }
+    await settleReports();
+
+    expect(useLogStore.getState().allLogs).toHaveLength(1);
+    // The console still saw every one.
+    expect(warn).toHaveBeenCalledTimes(5);
+    warn.mockRestore();
+  });
+
+  // --- onConnectFailed: the session never started -----------------------------
+  //
+  // Session-start failures never reach onError: clients throw out of connect()
+  // and MainPanel's own catch blocks handled them, with different row types,
+  // no channel tag (so a participant failure filed under the speaker tab) and
+  // analytics for the speaker only.
+
+  it('tags the speaker connect failure and reports it to analytics', () => {
+    const w = makeWorld();
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const speaker = buildChannelTelemetryHandlers('speaker', w.portsFor());
+
+    speaker.onConnectFailed(new Error('401 invalid api key'));
+
+    expect(w.logs).toEqual([{ type: 'session.init_error', clientId: 'speaker' }]);
+    expect(w.apiErrors).toHaveLength(1);
+    expect(w.apiErrors[0]).toMatchObject({ error_message: '401 invalid api key' });
+    err.mockRestore();
+  });
+
+  it('files the participant connect failure under the participant tab', () => {
+    const w = makeWorld();
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const participant = buildChannelTelemetryHandlers('participant', w.portsFor());
+
+    participant.onConnectFailed(new Error('402 payment required'));
+
+    // Previously this row carried no clientId at all, and logStore defaulted it
+    // to 'speaker' — so a participant-leg failure was filed under "Me".
+    expect(w.logs).toEqual([{ type: 'participant.error', clientId: 'participant' }]);
+    // Previously the participant leg produced no analytics event whatsoever.
+    expect(w.apiErrors).toHaveLength(1);
+    err.mockRestore();
+  });
+
+  it('returns the readable message so the caller can raise the bubble', () => {
+    const w = makeWorld();
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const speaker = buildChannelTelemetryHandlers('speaker', w.portsFor());
+
+    expect(speaker.onConnectFailed({ error: { message: 'quota exceeded' } }))
+      .toBe('quota exceeded');
+    err.mockRestore();
   });
 });

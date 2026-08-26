@@ -10,6 +10,8 @@ import {
 } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
+import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
+import { describeCause } from '../../lib/diagnostics/describeCause';
 
 /**
  * Volcengine ST Real-time Speech Translation response subtitle
@@ -304,6 +306,17 @@ export class VolcengineSTClient implements IClient {
   private signer: VolcengineV4Signer;
   private websocket: WebSocket | null = null;
   private eventHandlers: ClientEventHandlers = {};
+
+  /**
+   * Emit a diagnostic: the session continues, degraded.
+   *
+   * A client cannot know which session leg it is on, so it names a condition and
+   * MainPanel's participantTelemetry gives it a channel and a severity.
+   */
+  private diagnose(code: ClientDiagnosticCode, message: string, cause?: unknown): void {
+    this.eventHandlers.onDiagnostic?.({ code, message, cause });
+  }
+
   private conversationItems: ConversationItem[] = [];
   private isConnectedState = false;
   private instanceId: string;
@@ -415,7 +428,8 @@ export class VolcengineSTClient implements IClient {
       // Check for authentication errors
       if (result.ResponseMetadata?.Error) {
         const error = result.ResponseMetadata.Error;
-        console.error('[VolcengineSTClient] API validation error:', error);
+        // No log line: the message returned below becomes `validationMessage`,
+        // rendered next to the field the user just typed in.
 
         // Authentication error codes (credentials are invalid)
         const authErrorCodes = [
@@ -477,7 +491,8 @@ export class VolcengineSTClient implements IClient {
         ]
       };
     } catch (error: any) {
-      console.error('[VolcengineSTClient] API key validation error:', error);
+      // No log line: the message returned below becomes `validationMessage`,
+      // rendered next to the field the user just typed in.
       return {
         validation: {
           valid: false,
@@ -561,7 +576,8 @@ export class VolcengineSTClient implements IClient {
 
           this.websocket.onerror = (error) => {
             clearTimeout(connectionTimer);
-            console.error('[VolcengineSTClient] WebSocket error:', error);
+            // No log line: emitted as onError immediately below, and
+            // participantTelemetry is the single sink for that stream.
             this.eventHandlers.onError?.(error);
             reject(error);
           };
@@ -588,7 +604,8 @@ export class VolcengineSTClient implements IClient {
           this.eventHandlers.onClose?.(event);
         };
         } catch (error) {
-          console.error('[VolcengineSTClient] Connection error:', error);
+          // Rejected into MainPanel's session-start catch, which owns the
+          // console line, the channel-tagged row and the api_error.
           reject(error);
         }
       };
@@ -661,7 +678,7 @@ export class VolcengineSTClient implements IClient {
         this.eventHandlers.onConversationUpdated?.({ item: errorItem });
       }
     } catch (error) {
-      console.error('[VolcengineSTClient] Error parsing message:', error, data);
+      this.diagnose('parse_error', `frame could not be parsed: ${describeCause(error)}`, error);
     }
   }
 
@@ -768,7 +785,7 @@ export class VolcengineSTClient implements IClient {
 
   updateSession(config: Partial<SessionConfig>): void {
     // Volcengine doesn't support session updates - configuration is set at connection time
-    console.warn('[VolcengineSTClient] Session updates are not supported. Reconnect to change configuration.');
+    // Unreachable: no capability advertises runtime session updates.
   }
 
   reset(): void {
@@ -785,7 +802,8 @@ export class VolcengineSTClient implements IClient {
    */
   appendInputAudio(audioData: Int16Array): void {
     if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
-      console.warn('[VolcengineSTClient] Cannot send audio - WebSocket not connected');
+      // Per-frame guard: returns silently rather than logging thousands of
+      // lines a minute. A socket that stays down surfaces via onClose.
       return;
     }
 
@@ -816,7 +834,7 @@ export class VolcengineSTClient implements IClient {
    * Text input is not supported for Volcengine speech translation
    */
   appendInputText(text: string): void {
-    console.warn('[VolcengineSTClient] Text input is not supported for speech translation');
+    // Unreachable: MainPanel gates text input on capabilities.supportsTextInput.
   }
 
   /**
@@ -831,7 +849,7 @@ export class VolcengineSTClient implements IClient {
    * Cancel response is not supported
    */
   cancelResponse(trackId?: string, offset?: number): void {
-    console.warn('[VolcengineSTClient] Cancel response is not supported');
+    // Unreachable: no capability advertises response cancellation.
   }
 
   getConversationItems(): ConversationItem[] {

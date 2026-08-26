@@ -1,6 +1,11 @@
 import type { AnalyticsEvents } from '../../lib/analytics';
 import type { ClientId, EventData, RealtimeEventSource } from '../../stores/logStore';
 import { buildApiErrorProps, clientErrorMessage, type ClientErrorEvent } from '../../lib/apiErrorProps';
+import { reportError, reportWarning, describeCause } from '../../lib/diagnostics/report';
+import {
+  CLIENT_DIAGNOSTICS,
+  type ClientDiagnostic,
+} from '../../lib/diagnostics/clientDiagnostics';
 import {
   channelReconnecting,
   channelReconnected,
@@ -43,6 +48,15 @@ export interface ChannelTelemetryPorts {
 
 export interface ChannelTelemetryHandlers {
   onError: (event: ClientErrorEvent) => void;
+  /** Session continues, degraded. No bubble, no api_error — one panel entry. */
+  onDiagnostic: (diagnostic: ClientDiagnostic) => void;
+  /**
+   * The session never started: the client threw out of `connect()`.
+   *
+   * @returns the readable message, so the caller can raise its bubble from the
+   *   same string this filed.
+   */
+  onConnectFailed: (error: unknown) => string;
   onReconnecting: () => void;
   onReconnected: () => void;
 }
@@ -72,6 +86,40 @@ export function buildChannelTelemetryHandlers(
       // error_message decides whether outages group at all, and `message`
       // above is the possibly-localized one the UI renders.
       ports.trackApiError(buildApiErrorProps(event, ports.provider, channel));
+    },
+
+    onDiagnostic: (diagnostic: ClientDiagnostic) => {
+      const { severity } = CLIENT_DIAGNOSTICS[diagnostic.code];
+      const report = severity === 'error' ? reportError : reportWarning;
+      // dedupeKey is the code, not the message: a burst of parse failures
+      // varies its text per frame but is one condition, and this runs on the
+      // socket callback path.
+      report(`Client:${ports.provider}`, `${diagnostic.code}: ${diagnostic.message}`, {
+        cause: diagnostic.cause,
+        clientId: channel,
+        dedupeKey: diagnostic.code,
+      });
+    },
+
+    onConnectFailed: (error: unknown) => {
+      const message = describeCause(error);
+      // Both legs, one shape. MainPanel used to handle these in two separate
+      // catch blocks: the speaker emitted `session.init_error` plus an
+      // `error_occurred` event, while the participant emitted
+      // `participant.error` with NO channel tag — so logStore's old default
+      // filed it under the speaker tab — and no analytics at all.
+      console.error(`[Sokuji] [MainPanel] [${channel}] connect failed:`, error);
+      ports.addRealtimeEvent(
+        {
+          type: channel === 'speaker' ? 'session.init_error' : 'participant.error',
+          data: { message },
+        },
+        'client',
+        channel === 'speaker' ? 'session.init_error' : 'participant.error',
+        channel
+      );
+      ports.trackApiError(buildApiErrorProps({ message }, ports.provider, channel));
+      return message;
     },
 
     onReconnecting: () => {

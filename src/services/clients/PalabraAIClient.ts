@@ -1,5 +1,7 @@
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, PalabraAISessionConfig, isPalabraAISessionConfig, ResponseConfig } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
+import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
+import { describeCause } from '../../lib/diagnostics/describeCause';
 import i18n from '../../locales';
 import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, LocalAudioTrack, setLogLevel } from 'livekit-client';
 import { isExtension, hasChromeRuntime } from '../../utils/environment';
@@ -120,6 +122,17 @@ export class PalabraAIClient implements IClient {
   private credentials: PalabraCredentials;
   private room: Room | null = null;
   private eventHandlers: ClientEventHandlers = {};
+
+  /**
+   * Emit a diagnostic: the session continues, degraded.
+   *
+   * A client cannot know which session leg it is on, so it names a condition
+   * and MainPanel's participantTelemetry gives it a channel and a severity.
+   * Optional-chained because the handler set is installed after construction.
+   */
+  private diagnose(code: ClientDiagnosticCode, message: string, cause?: unknown): void {
+    this.eventHandlers.onDiagnostic?.({ code, message, cause });
+  }
   private conversationItems: ConversationItem[] = [];
   private isConnectedState = false;
   private sessionConfig: PalabraAIApiSessionConfig | null = null;
@@ -192,7 +205,8 @@ export class PalabraAIClient implements IClient {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.warn("[Sokuji] [PalabraAIClient] Validation failed:", errorData);
+        // No log line: the message below becomes `validationMessage`, which the
+        // provider section renders next to the field the user just typed in.
         // Palabra's error shape is { ok: false, errors: [{ title, detail, ... }] };
         // the flat error.message form is kept as a fallback for older responses.
         const firstError = errorData?.errors?.[0];
@@ -214,7 +228,7 @@ export class PalabraAIClient implements IClient {
       };
 
     } catch (error: any) {
-      console.error("[Sokuji] [PalabraAIClient] Validation error:", error);
+      // Same: the returned message is the record the user sees.
       return {
         valid: false,
         message: error.message || i18n.t('settings.errorValidatingApiKey'),
@@ -253,7 +267,8 @@ export class PalabraAIClient implements IClient {
       console.info("[Sokuji] [PalabraAIClient] Connected successfully");
       
     } catch (error) {
-      console.error("[Sokuji] [PalabraAIClient] Connection error:", error);
+      // Rethrown into MainPanel's session-start catch, which owns the
+      // console line, the panel row and the analytics event for this failure.
       throw error;
     }
   }
@@ -284,7 +299,7 @@ export class PalabraAIClient implements IClient {
           await this.room.localParticipant.publishData(message, { reliable: true });
           console.info("[Sokuji] [PalabraAIClient] End task sent");
         } catch (error) {
-          console.warn("[Sokuji] [PalabraAIClient] Error sending end_task:", error);
+          this.diagnose('cleanup_failed', `end_task not delivered: ${describeCause(error)}`, error);
         }
       }
       
@@ -309,7 +324,8 @@ export class PalabraAIClient implements IClient {
       console.info("[Sokuji] [PalabraAIClient] Disconnected successfully");
       
     } catch (error) {
-      console.error("[Sokuji] [PalabraAIClient] Disconnect error:", error);
+      // Rethrown: MainPanel's disconnectConversation owns the report, so
+      // logging here as well would file one teardown failure twice.
       throw error;
     }
   }
@@ -335,10 +351,10 @@ export class PalabraAIClient implements IClient {
   }
 
   appendInputAudio(audioData: Int16Array): void {
-    if (!this.audioContext || !this.audioDestination) {
-      console.warn("[Sokuji] [PalabraAIClient] Audio context not initialized");
-      return;
-    }
+    // Per-frame guards return silently: this runs once per audio chunk, and a
+    // line each would be thousands a minute on the audio thread. A pipeline
+    // that is actually broken reports once from the catch below.
+    if (!this.audioContext || !this.audioDestination) return;
     
     try {
       // Handle different input types - cast to any to allow type checking
@@ -360,15 +376,11 @@ export class PalabraAIClient implements IClient {
         // Handle Uint8Array or other TypedArray
         int16Array = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
       } else {
-        console.warn("[Sokuji] [PalabraAIClient] Invalid audio data type:", typeof data, data);
         return;
       }
       
       // Check if we have valid audio data
-      if (!int16Array || int16Array.length === 0) {
-        console.warn("[Sokuji] [PalabraAIClient] Empty audio data received");
-        return;
-      }
+      if (!int16Array || int16Array.length === 0) return;
       
       // Optional: log input audio buffer length for troubleshooting
       
@@ -388,13 +400,15 @@ export class PalabraAIClient implements IClient {
       source.start();
       
     } catch (error) {
-      console.error("[Sokuji] [PalabraAIClient] Error processing audio data:", error);
+      // Throttled by code in participantTelemetry, so a persistently broken
+      // pipeline is one entry rather than one per frame.
+      this.diagnose('input_pipeline_failed', `audio could not be forwarded: ${describeCause(error)}`, error);
     }
   }
 
-  appendInputText(text: string): void {
-    // PalabraAI doesn't support text input - it's audio-only
-    console.warn('[PalabraAIClient] Text input not supported');
+  appendInputText(_text: string): void {
+    // Audio-only provider. Unreachable: MainPanel gates text input on
+    // `capabilities.supportsTextInput`, which this provider does not set.
   }
 
   createResponse(_config?: ResponseConfig): void {
@@ -666,7 +680,13 @@ export class PalabraAIClient implements IClient {
             }
           };
         } catch (error) {
-          console.error("[Sokuji] [PalabraAIClient] Failed to set up audio worklet:", error);
+          // Session-breaking for output: the socket stays up but no translated
+          // audio can ever play, so this is onError (bubble + api_error), not a
+          // degradation notice.
+          this.eventHandlers.onError?.({
+            code: 'audio_worklet_failed',
+            message: `Translated audio cannot play: ${describeCause(error)}`,
+          });
         }
       };
 
@@ -719,8 +739,8 @@ export class PalabraAIClient implements IClient {
           });
       }
     } catch (error: any) {
-      console.error("[Sokuji] [PalabraAIClient] Error parsing data:", error);
-      // Notify about parsing error
+      // No log line: the realtime event emitted immediately below is already
+      // a panel row for this failure.
       this.eventHandlers.onRealtimeEvent?.({
         source: 'server',
         event: {
@@ -1004,8 +1024,6 @@ export class PalabraAIClient implements IClient {
       }
     });
 
-    console.error("[Sokuji] [PalabraAIClient] Received error:", errorData);
-
     // Create error ConversationItem for display in UI
     const errorType = errorData.type || errorData.code || 'error';
     const errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
@@ -1092,10 +1110,9 @@ export class PalabraAIClient implements IClient {
         }
       });
 
-      if (!response.ok) {
-        console.warn("[Sokuji] [PalabraAIClient] Failed to get sessions:", response.statusText);
-        return [];
-      }
+      // Housekeeping: every failure path returns [] and the caller carries on.
+      // A cleanup that never ran shows up as the connect failure it causes.
+      if (!response.ok) return [];
 
       const data = await response.json();
       // Raw API responses omitted from routine logs
@@ -1116,7 +1133,6 @@ export class PalabraAIClient implements IClient {
         // This handles {"data": {"sessions": [...]}} and {"data": {"sessions": null}}
         sessions = data.data.sessions;
       } else {
-        console.warn("[Sokuji] [PalabraAIClient] Unexpected response structure:", data);
         return [];
       }
       
@@ -1124,7 +1140,6 @@ export class PalabraAIClient implements IClient {
       return sessions || [];
       
     } catch (error) {
-      console.error("[Sokuji] [PalabraAIClient] Error getting sessions:", error);
       return [];
     }
   }
@@ -1144,10 +1159,10 @@ export class PalabraAIClient implements IClient {
       if (response.ok || response.status === 204) {
         console.info("[Sokuji] [PalabraAIClient] Session deleted successfully:", sessionId);
       } else {
-        console.warn("[Sokuji] [PalabraAIClient] Failed to delete session:", sessionId, response.statusText);
+        this.diagnose('cleanup_failed', `stale session ${sessionId} not deleted: ${response.statusText}`);
       }
     } catch (error) {
-      console.error("[Sokuji] [PalabraAIClient] Error deleting session:", sessionId, error);
+      this.diagnose('cleanup_failed', `stale session ${sessionId} not deleted: ${describeCause(error)}`, error);
     }
   }
 
@@ -1170,7 +1185,6 @@ export class PalabraAIClient implements IClient {
         if (session && session.id) {
           return this.deleteSession(session.id);
         } else {
-          console.warn("[Sokuji] [PalabraAIClient] Invalid session object:", session);
           return Promise.resolve();
         }
       });
@@ -1179,8 +1193,8 @@ export class PalabraAIClient implements IClient {
       console.info("[Sokuji] [PalabraAIClient] Cleanup completed");
       
     } catch (error) {
-      console.error("[Sokuji] [PalabraAIClient] Error during cleanup:", error);
-      // Don't throw here, allow connection to continue
+      // Not thrown: the connection continues, possibly with stale sessions.
+      this.diagnose('cleanup_failed', `stale sessions not cleared: ${describeCause(error)}`, error);
     }
   }
 

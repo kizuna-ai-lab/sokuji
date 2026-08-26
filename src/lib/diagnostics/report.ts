@@ -24,7 +24,16 @@
  * only MainPanel knows which channel (speaker/participant) it is.
  */
 import useLogStore, { type ClientId } from '../../stores/logStore';
-import { redact } from './redact';
+// Redaction is applied at the sink (`logStore.addLog`), not here, so it also
+// covers any caller that reaches the store without going through report().
+import { describeCause } from './describeCause';
+
+/**
+ * Re-exported so a caller that already imports `report` needs one import, not
+ * two. Clients must import it from `./describeCause` directly instead — this
+ * module reaches the store, and they are not allowed to.
+ */
+export { describeCause };
 
 /** True only for `any`, which is the one non-string that `string` would accept. */
 type IsAny<T> = 0 extends 1 & T ? true : false;
@@ -120,51 +129,6 @@ export function reportError<T>(scope: string, message: Message<T>, opts?: Report
 /** It happened, or will: a fallback ran, a retry is pending, state is in memory but unpersisted. */
 export function reportWarning<T>(scope: string, message: Message<T>, opts?: ReportOptions): void {
   emit('warning', scope, message as string, opts);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-/**
- * One readable sentence for a caught value — never a serialisation of it.
- *
- * Handles the shapes this codebase actually throws, because "anything else →
- * unknown error" on its own would erase the message from most of them:
- * `ClientEventHandlers.onError` payloads are plain `{message|error}` objects
- * (`apiErrorProps.ts:8-38`), Palabra wraps errors in `{errors:[{title,detail}]}`
- * (`PalabraAIClient.ts:194-201`), and OpenAI in `{error:{message}}`
- * (`EphemeralTokenService.ts:183`).
- */
-export function describeCause(cause: unknown): string {
-  return redact(describeCauseRaw(cause));
-}
-
-function describeCauseRaw(cause: unknown): string {
-  if (typeof cause === 'string') return cause;
-  if (cause instanceof DOMException) return `${cause.name}: ${cause.message}`;
-  if (cause instanceof Error) return cause.message || cause.name;
-  if (!isRecord(cause)) return 'unknown error';
-
-  // Palabra: { errors: [{ title, detail }] }
-  const errors = cause.errors;
-  if (Array.isArray(errors) && errors.length > 0 && isRecord(errors[0])) {
-    const first = errors[0];
-    const detail = typeof first.detail === 'string' ? first.detail : undefined;
-    const title = typeof first.title === 'string' ? first.title : undefined;
-    if (detail || title) return (detail || title) as string;
-  }
-
-  // OpenAI: { error: { message } }
-  if (isRecord(cause.error) && typeof cause.error.message === 'string') {
-    return cause.error.message;
-  }
-
-  // Client error event: { message } | { error }
-  if (typeof cause.message === 'string' && cause.message) return cause.message;
-  if (typeof cause.error === 'string' && cause.error) return cause.error;
-
-  return 'unknown error';
 }
 
 /**

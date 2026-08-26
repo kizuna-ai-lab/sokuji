@@ -139,10 +139,6 @@ const countConsoleCalls = (source: string): number =>
  */
 const LEDGER: Record<string, number> = {
   // --- PR3 — the client contract (onError / onDiagnostic / onConnectFailed) ---
-  'src/services/clients/PalabraAIClient.ts': 20,
-  'src/services/clients/VolcengineAST2Client.ts': 12,
-  'src/services/clients/GeminiClient.ts': 11,
-  'src/services/clients/VolcengineSTClient.ts': 9,
   'src/services/clients/LocalInferenceClient.ts': 7,
   'src/services/clients/SonioxClient.ts': 7,
   'src/services/clients/OpenAIWebRTCClient.ts': 5,
@@ -158,17 +154,17 @@ const LEDGER: Record<string, number> = {
   'src/contexts/OnboardingContext.tsx': 1,
   'src/services/providers/SonioxProviderConfig.ts': 1,
   // --- Later, under the ledger: components ---
-  'src/components/MainPanel/MainPanel.tsx': 45,
+  'src/components/MainPanel/MainPanel.tsx': 44,
   'src/components/Auth/UserAccountInfo.tsx': 5,
   'src/components/Settings/sections/VoiceLibrarySection.tsx': 5,
   'shared/index.tsx': 4,
   'src/components/SettingsInitializer/SettingsInitializer.tsx': 3,
   'src/components/Auth/ForgotPasswordForm.tsx': 2,
+  'src/components/MainPanel/participantTelemetry.ts': 2,
   'src/components/Settings/sections/ModelManagementSection.tsx': 2,
   'src/components/Settings/sections/ProviderSpecificSettings.tsx': 2,
   'src/components/Auth/SignInForm.tsx': 1,
   'src/components/Auth/SignUpForm.tsx': 1,
-  'src/components/MainPanel/participantTelemetry.ts': 1,
   'src/components/Onboarding/Onboarding.tsx': 1,
   'src/components/Settings/AdvancedSettings/AdvancedSettings.tsx': 1,
   'src/components/Settings/engine/EnginePage.tsx': 1,

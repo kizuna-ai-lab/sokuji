@@ -39,6 +39,8 @@ import { Provider, ProviderType } from '../../types/Provider';
 import { isElectron, isExtension } from '../../utils/environment';
 // @ts-ignore - generated proto file
 import { data } from './volcengine-ast2/ast2-proto.js';
+import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
+import { describeCause } from '../../lib/diagnostics/describeCause';
 
 const TranslateRequest = data.speech.ast.TranslateRequest;
 const TranslateResponse = data.speech.ast.TranslateResponse;
@@ -86,6 +88,17 @@ export class VolcengineAST2Client implements IClient {
   private isConnectedState = false;
   private websocket: WebSocket | null = null;
   private eventHandlers: ClientEventHandlers = {};
+
+  /**
+   * Emit a diagnostic: the session continues, degraded.
+   *
+   * A client cannot know which session leg it is on, so it names a condition and
+   * MainPanel's participantTelemetry gives it a channel and a severity.
+   */
+  private diagnose(code: ClientDiagnosticCode, message: string, cause?: unknown): void {
+    this.eventHandlers.onDiagnostic?.({ code, message, cause });
+  }
+
   private conversationItems: ConversationItem[] = [];
   private currentConfig: VolcengineAST2SessionConfig | null = null;
   private sessionId: string = '';
@@ -284,7 +297,8 @@ export class VolcengineAST2Client implements IClient {
         this.websocket = new WebSocket(WS_ENDPOINT);
         this.wireWebSocket(resolve, reject);
       } catch (error) {
-        console.error('[VolcengineAST2Client] Connection error:', error);
+        // Rejected into MainPanel's session-start catch, which owns the
+        // console line, the channel-tagged row and the api_error.
         reject(error);
       }
     });
@@ -299,7 +313,8 @@ export class VolcengineAST2Client implements IClient {
         this.websocket = new WebSocket(this.relay!.wsUrl, ['sokuji-auth.' + this.relay!.sessionToken]);
         this.wireWebSocket(resolve, reject);
       } catch (error) {
-        console.error('[VolcengineAST2Client] Connection error:', error);
+        // Rejected into MainPanel's session-start catch, which owns the
+        // console line, the channel-tagged row and the api_error.
         reject(error);
       }
     });
@@ -340,7 +355,8 @@ export class VolcengineAST2Client implements IClient {
           clearTimeout(connectionTimer);
           const url = (event.target as WebSocket)?.url || WS_ENDPOINT;
           const error = new Error(`WebSocket connection to ${url} failed`);
-          console.error('[VolcengineAST2Client] WebSocket error:', error.message);
+            // No log line: emitted as onError immediately below, and
+            // participantTelemetry is the single sink for that stream.
           this.eventHandlers.onError?.(error);
           reject(error);
         };
@@ -482,7 +498,8 @@ export class VolcengineAST2Client implements IClient {
       const statusCode = response.responseMeta?.StatusCode;
       if (statusCode && statusCode !== 0 && statusCode !== 20000000) {
         const errorMsg = response.responseMeta?.Message || `Status code: ${response.responseMeta?.StatusCode}`;
-        console.error('[VolcengineAST2Client] Server error:', errorMsg);
+        // No log line: rejected into connect() below, and MainPanel's
+        // session-start catch owns that failure.
 
         if (this.sessionStartedReject) {
           this.sessionStartedReject(new Error(errorMsg));
@@ -506,7 +523,9 @@ export class VolcengineAST2Client implements IClient {
       // Validate SessionID matches current session
       const responseSessionId = response.responseMeta?.SessionID;
       if (responseSessionId && responseSessionId !== this.sessionId) {
-        console.warn('[VolcengineAST2Client] SessionID mismatch - expected:', this.sessionId, 'got:', responseSessionId);
+        // Protocol trace, not a failure, and it fires per message: debug keeps
+        // it available in a live trace without filling the panel.
+        console.debug('[VolcengineAST2Client] SessionID mismatch - expected:', this.sessionId, 'got:', responseSessionId);
         return;
       }
 
@@ -515,7 +534,7 @@ export class VolcengineAST2Client implements IClient {
       const responseSeq = response.responseMeta?.Sequence;
       if (responseSeq != null && responseSeq > 0) {
         if (responseSeq < this.lastResponseSequence) {
-          console.warn('[VolcengineAST2Client] Out-of-order response - last:', this.lastResponseSequence, 'got:', responseSeq, 'event:', EventType[eventType]);
+          console.debug('[VolcengineAST2Client] Out-of-order response - last:', this.lastResponseSequence, 'got:', responseSeq, 'event:', EventType[eventType]);
         }
         this.lastResponseSequence = responseSeq;
       }
@@ -530,7 +549,7 @@ export class VolcengineAST2Client implements IClient {
           break;
 
         case EventType.SessionFailed:
-          console.error('[VolcengineAST2Client] Session failed:', response.responseMeta?.Message);
+          // No log line: rejected into connect() below.
           if (this.sessionStartedReject) {
             this.sessionStartedReject(new Error(response.responseMeta?.Message || 'Session failed'));
             this.sessionStartedResolve = null;
@@ -597,7 +616,7 @@ export class VolcengineAST2Client implements IClient {
           break;
       }
     } catch (error) {
-      console.error('[VolcengineAST2Client] Error parsing message:', error);
+      this.diagnose('parse_error', `frame could not be parsed: ${describeCause(error)}`, error);
     }
   }
 
@@ -834,7 +853,7 @@ export class VolcengineAST2Client implements IClient {
         });
       }
     } catch (error) {
-      console.error('[VolcengineAST2Client] Failed to decode TTS Opus audio:', error);
+      this.diagnose('tts_degraded', `a TTS chunk could not be decoded: ${describeCause(error)}`, error);
     }
   }
 
@@ -899,7 +918,7 @@ export class VolcengineAST2Client implements IClient {
   }
 
   updateSession(config: Partial<SessionConfig>): void {
-    console.warn('[VolcengineAST2Client] Session updates are not supported. Reconnect to change configuration.');
+    // Unreachable: no capability advertises runtime session updates.
   }
 
   reset(): void {
@@ -958,7 +977,7 @@ export class VolcengineAST2Client implements IClient {
   }
 
   appendInputText(text: string): void {
-    console.warn('[VolcengineAST2Client] Text input is not supported for speech translation');
+    // Unreachable: MainPanel gates text input on capabilities.supportsTextInput.
   }
 
   createResponse(config?: ResponseConfig): void {
@@ -966,7 +985,7 @@ export class VolcengineAST2Client implements IClient {
   }
 
   cancelResponse(trackId?: string, offset?: number): void {
-    console.warn('[VolcengineAST2Client] Cancel response is not supported');
+    // Unreachable: no capability advertises response cancellation.
   }
 
   getConversationItems(): ConversationItem[] {
