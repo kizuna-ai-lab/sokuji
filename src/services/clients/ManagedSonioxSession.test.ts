@@ -556,7 +556,7 @@ describe('ManagedSonioxSession: a refused session-started is REPORTED, not dropp
     return fn;
   }
 
-  it('puts the backend’s reason on the debug timeline and in the console', async () => {
+  it('puts the backend’s reason on the debug timeline', async () => {
     refusingStartedFetch(400, { error: 'Role not issued for this lease', reason: 'role_not_issued' });
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const events: Array<{ type: string; data: any }> = [];
@@ -572,7 +572,9 @@ describe('ManagedSonioxSession: a refused session-started is REPORTED, not dropp
       reason: 'role_not_issued',
       role: 'mix_stt',
     });
-    expect(consoleError.mock.calls.flat().join(' ')).toContain('role_not_issued');
+    // The reason used to be said twice — here and in a console line. The event
+    // is now the single record, so it must carry the diagnosis itself.
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it('says so even when the body carries no reason at all', async () => {
@@ -591,7 +593,9 @@ describe('ManagedSonioxSession: a refused session-started is REPORTED, not dropp
       status: 500,
       reason: null,
     });
-    expect(consoleError).toHaveBeenCalled();
+    // No console half any more: the event above is the record, and it says
+    // the lease was not extended even with nothing parseable in the body.
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it('stays silent on the 200 the backend answers for a stale lease', async () => {

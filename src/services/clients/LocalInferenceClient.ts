@@ -25,6 +25,8 @@ import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { splitSentences } from '../../utils/splitSentences';
 import i18n from '../../locales';
+import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
+import { describeCause } from '../../lib/diagnostics/describeCause';
 
 /**
  * Error thrown when GPU runs out of memory during WebGPU model initialization.
@@ -146,9 +148,19 @@ export class LocalInferenceClient implements IClient {
     // synthesis still works. Just log — do NOT call onError, which MainPanel
     // treats as a hard session failure (would spuriously surface as a red
     // banner every reconnect for a user who just deleted an imported voice).
-    console.warn(
-      `[LocalInference] Configured ttsSpeakerId=${config.ttsSpeakerId} is not in the loaded Supertonic voices; worker will fall back to default sid. Update your selection in settings.`,
+    this.diagnose(
+      'voice_fallback',
+      `Configured voice ${config.ttsSpeakerId} is not loaded; using the model default. Update the selection in settings.`,
     );
+  }
+
+
+  /**
+   * Emit a diagnostic: the session continues, degraded. participantTelemetry
+   * gives the code its channel and severity.
+   */
+  private diagnose(code: ClientDiagnosticCode, message: string, cause?: unknown): void {
+    this.handlers.onDiagnostic?.({ code, message, cause });
   }
 
   async connect(config: SessionConfig): Promise<void> {
@@ -192,7 +204,7 @@ export class LocalInferenceClient implements IClient {
         };
 
         engine.onError = (error) => {
-          console.error('[LocalInference] Streaming ASR error:', error);
+          // No log line: emitted as local.asr.error and onError immediately below.
           this.emitEvent('local.asr.error', 'server', { error });
           this.handlers.onError?.(new Error(`ASR: ${error}`));
         };
@@ -220,7 +232,7 @@ export class LocalInferenceClient implements IClient {
         };
 
         engine.onError = (error) => {
-          console.error('[LocalInference] ASR error:', error);
+          // No log line: emitted as local.asr.error and onError immediately below.
           this.emitEvent('local.asr.error', 'server', { error });
           this.handlers.onError?.(new Error(`ASR: ${error}`));
         };
@@ -293,7 +305,7 @@ export class LocalInferenceClient implements IClient {
             this.reconcileSupertonicSidIfNeeded(config, ready);
             return ready;
           }).catch((error) => {
-            console.warn('[LocalInference] TTS init failed, continuing without TTS:', error);
+            this.diagnose('tts_degraded', `TTS unavailable, continuing without it: ${describeCause(error)}`, error);
             this.handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
             this.ttsEngine?.dispose();
             this.ttsEngine = null;
@@ -340,7 +352,7 @@ export class LocalInferenceClient implements IClient {
 
       // Surface a user-friendly message when GPU runs out of memory
       if (isGpuOutOfMemoryError(error)) {
-        console.error('[LocalInference] GPU out of memory detected:', error);
+        // No log line: rethrown as GpuOutOfMemoryError into the connect catch.
         throw new GpuOutOfMemoryError(i18n.t('errors.gpuOutOfMemory'));
       }
       throw error;
@@ -752,7 +764,7 @@ export class LocalInferenceClient implements IClient {
               });
             }
           } catch (ttsError) {
-            console.warn(`[LocalInference] TTS failed for sentence ${i + 1}/${sentences.length}, skipping:`, ttsError);
+            this.diagnose('tts_degraded', `a sentence could not be spoken: ${describeCause(ttsError)}`, ttsError);
             this.emitEvent('local.tts.error', 'server', {
               error: ttsError instanceof Error ? ttsError.message : String(ttsError),
               sentenceIndex: i,
@@ -776,7 +788,7 @@ export class LocalInferenceClient implements IClient {
       // Session ending — expected, not an error
       if (this.disposed) return;
 
-      console.error('[LocalInference] Pipeline error:', error);
+      // No log line: emitted as local.pipeline.error immediately below.
       const userMessage = humanizeTranslationError(error);
       this.emitEvent('local.pipeline.error', 'server', {
         error: error instanceof Error ? error.message : String(error),

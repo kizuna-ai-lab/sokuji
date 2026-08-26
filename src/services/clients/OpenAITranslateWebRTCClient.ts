@@ -36,6 +36,8 @@ import { Provider, ProviderType } from '../../types/Provider';
 import { EphemeralTokenService } from '../EphemeralTokenService';
 import { WebRTCAudioBridge, BufferedAudioMetadata } from '../../lib/modern-audio/WebRTCAudioBridge';
 import { OpenAITranslateGAClient, computeRms } from './OpenAITranslateGAClient';
+import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
+import { describeCause } from '../../lib/diagnostics/describeCause';
 
 const TRANSLATE_CALLS_ENDPOINT_PATH = '/v1/realtime/translations/calls';
 const SILENCE_TIMEOUT_MS = 1500;
@@ -73,6 +75,23 @@ export class OpenAITranslateWebRTCClient implements IClient {
   private dc: RTCDataChannel | null = null;
   private audioBridge: WebRTCAudioBridge;
   private eventHandlers: ClientEventHandlers = {};
+
+  /**
+   * Latches once a frame has failed to parse, so a server sending garbage
+   * reports once rather than once per frame. Cleared by the next frame that
+   * parses. The panel throttles as well, but the console line fires on every
+   * call by design — this is what bounds it.
+   */
+  private parseFailed: boolean = false;
+
+  /**
+   * Emit a diagnostic: the session continues, degraded. participantTelemetry
+   * gives the code its channel and severity.
+   */
+  private diagnose(code: ClientDiagnosticCode, message: string, cause?: unknown): void {
+    this.eventHandlers.onDiagnostic?.({ code, message, cause });
+  }
+
   private connected: boolean = false;
 
   // Pairing state machine — mirrors OpenAITranslateGAClient verbatim.
@@ -479,7 +498,7 @@ export class OpenAITranslateWebRTCClient implements IClient {
 
       console.info('[OpenAITranslateWebRTCClient] WebRTC connection established');
     } catch (error) {
-      console.error('[OpenAITranslateWebRTCClient] Connection failed:', error);
+      // Rethrown into MainPanel's session-start catch, which owns the report.
       this.cleanup();
       throw error;
     }
@@ -571,15 +590,23 @@ export class OpenAITranslateWebRTCClient implements IClient {
     this.dc.onmessage = (event) => {
       try {
         const serverEvent: ServerEvent = JSON.parse(event.data);
+        this.parseFailed = false;
         this.handleServerEvent(serverEvent);
       } catch (error) {
-        console.error('[OpenAITranslateWebRTCClient] Failed to parse server event:', error);
+        if (!this.parseFailed) {
+          this.parseFailed = true;
+          this.diagnose('parse_error', `server event could not be parsed: ${describeCause(error)}`, error);
+        }
       }
     };
 
     this.dc.onerror = (error) => {
-      console.error('[OpenAITranslateWebRTCClient] Data channel error:', error);
-      this.eventHandlers.onError?.(error);
+      // Normalised for the same reason as OpenAIWebRTCClient: a raw
+      // RTCErrorEvent reads as 'Unknown error' downstream.
+      this.eventHandlers.onError?.({
+        code: 'data_channel_error',
+        message: `Data channel error: ${describeCause((error as RTCErrorEvent).error ?? error)}`,
+      });
     };
 
     this.dc.onclose = () => {

@@ -5,10 +5,11 @@ import type {
   FormattedItem
 } from 'openai-realtime-api';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, ResponseConfig } from '../interfaces/IClient';
-import { RealtimeEvent } from '../../stores/logStore';
+import type { RealtimeEvent } from '../../stores/logStore';
 import { Provider, ProviderType } from '../../types/Provider';
 import { unwrapTranslationText } from '../../utils/textUtils';
 import i18n from '../../locales';
+import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 
 /**
  * OpenAI model information interface
@@ -29,6 +30,15 @@ export class OpenAIClient implements IClient {
 
   private client: RealtimeClient;
   private eventHandlers: ClientEventHandlers = {};
+
+  /**
+   * Emit a diagnostic: the session continues, degraded. participantTelemetry
+   * gives the code its channel and severity.
+   */
+  private diagnose(code: ClientDiagnosticCode, message: string, cause?: unknown): void {
+    this.eventHandlers.onDiagnostic?.({ code, message, cause });
+  }
+
   private apiKey: string;
   private apiHost: string;
   private deltaSequenceNumber: number = 0; // Track delta sequence for ordering
@@ -651,7 +661,7 @@ export class OpenAIClient implements IClient {
    */
   private reportSendFailure(operation: string, error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
-    console.warn(`[Sokuji] [OpenAIClient] Failed to send ${operation}:`, message);
+    this.diagnose('send_dropped', `${operation} was not sent: ${message}`);
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
       event: {
@@ -708,7 +718,7 @@ export class OpenAIClient implements IClient {
 
   appendInputText(text: string): void {
     if (!text.trim()) {
-      console.warn('[OpenAIClient] Empty text input, ignoring');
+      // Nothing to send.
       return;
     }
 

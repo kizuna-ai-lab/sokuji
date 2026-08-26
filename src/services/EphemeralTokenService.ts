@@ -1,4 +1,3 @@
-import useLogStore from '../stores/logStore';
 
 /**
  * EphemeralTokenService
@@ -104,9 +103,11 @@ export class EphemeralTokenService {
 
       return tokenValue;
     } catch (error) {
-      console.error('[EphemeralTokenService] Error fetching ephemeral token:', error);
-      const message = error instanceof Error ? error.message : String(error);
-      useLogStore.getState().addLog(`Failed to fetch OpenAI Realtime client secret: ${message}`, 'error');
+      // No report here. This is only ever called from OpenAIWebRTCClient's
+      // connect(), which rethrows into MainPanel's session-start catch — and
+      // that owns the console line, the channel-tagged row and the api_error.
+      // describeCause on the rethrown error preserves this message, so the
+      // second entry added nothing but a duplicate.
       throw error;
     }
   }
@@ -197,12 +198,21 @@ export class EphemeralTokenService {
         : data.client_secret?.value;
       const secret = flatValue ?? nestedValue;
       if (!secret) {
-        console.error('[Sokuji] [EphemeralTokenService] Unexpected client_secret response shape:', data);
-        throw new Error('Translation client_secret missing from response');
+        // Key names only, and carried on the thrown Error rather than reported
+        // here: the catch below is the one sink for this function, so reporting
+        // in both places would put two lines in the panel for one failure.
+        //
+        // `data` is a client-secret response. This used to hand the whole body
+        // to console.error; the panel is user-visible and has a copy button.
+        // The key list is what diagnoses a shape change — the values never do.
+        throw new Error(
+          `Translation client_secret missing from response (keys: ${Object.keys(data).join(', ')})`,
+        );
       }
       return secret;
     } catch (error) {
-      console.error('[Sokuji] [EphemeralTokenService] Error minting translation client secret:', error);
+      // Same: only reached from OpenAITranslateWebRTCClient's connect(), whose
+      // rethrow is reported once by MainPanel.
       throw error;
     }
   }

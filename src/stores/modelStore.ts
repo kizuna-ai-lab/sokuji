@@ -19,6 +19,7 @@ import { resolveDirection } from '../lib/local-inference/selection/resolveStage'
 import { wasmCandidates } from '../lib/local-inference/selection/candidates.wasm';
 import { guardAstCrossStage } from '../services/providers/astGuard';
 import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote, type Selections, type Stage } from '../lib/local-inference/selection/types';
+import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -199,7 +200,7 @@ export const useModelStore = create<ModelStoreState>()(
         // (IndexedDB VersionError from a newer-schema profile, storage
         // estimate failures, corrupt model metadata).
         const message = err instanceof Error ? err.message : String(err);
-        console.error('[Sokuji] [ModelStore] initialize failed:', err);
+        reportError('ModelStore', `Failed to initialize the model library: ${message}`, { cause: err });
         set({ initError: message });
       }
     },
@@ -428,7 +429,7 @@ export const useModelStore = create<ModelStoreState>()(
         // settings store unavailable — nothing to prune. Logged (not silently
         // swallowed) since a prune failure means a dead id survives in
         // storage and keeps producing a note the user cannot act on.
-        console.error('[Sokuji] [ModelStore] applyPrunes: settings store unavailable, prune skipped:', err);
+        reportWarning('ModelStore', `applyPrunes: settings store unavailable, prune skipped: ${describeCause(err)}`, { cause: err });
       }
     },
 
@@ -464,7 +465,7 @@ export const useModelStore = create<ModelStoreState>()(
         // settings store unavailable — resolve with no explicit selections
         // (never ready, but never throws). Logged so a broken import graph
         // doesn't silently masquerade as "no selections yet".
-        console.error('[Sokuji] [ModelStore] ensureSelectionReady: settings store unavailable, resolving with no explicit selections:', err);
+        reportWarning('ModelStore', `ensureSelectionReady: settings store unavailable, resolving with no explicit selections: ${describeCause(err)}`, { cause: err });
       }
 
       // Helper to strip TTS when textOnly is enabled.

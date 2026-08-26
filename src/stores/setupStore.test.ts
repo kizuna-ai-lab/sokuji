@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { SettingsOperationResult } from '../services/interfaces/ISettingsService';
+import useLogStore from './logStore';
+import { settleReports } from '../lib/diagnostics/report';
 
 const store = new Map<string, unknown>();
 const mockGetSetting = vi.fn(async (key: string, dflt: unknown) => (store.has(key) ? store.get(key) : dflt));
@@ -93,7 +95,7 @@ describe('setupStore.completeSetup / completeTour', () => {
   });
 
   it('rejects and keeps the record out of memory when the service reports failure', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockSetSetting.mockResolvedValueOnce({ success: false, error: 'quota' });
 
     // Committing in memory first would unmount the wizard over a setup that was
@@ -102,10 +104,15 @@ describe('setupStore.completeSetup / completeTour', () => {
       .rejects.toThrow(SetupPersistError);
 
     expect(useSetupStore.getState().setup).toBeNull();
-    expect(errorSpy).toHaveBeenCalledTimes(1);
-    expect(errorSpy.mock.calls[0][0]).toContain('settings.setup');
+    // persistSetting reports a refused write as a warning — the value is live
+    // in memory, just not stored — and files it where the user can read it.
+    await settleReports();
+    expect(useLogStore.getState().allLogs.map((l) => l.message)).toEqual([
+      '[Settings] Could not save settings.setup: quota',
+    ]);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
 
-    errorSpy.mockRestore();
+    warnSpy.mockRestore();
   });
 
   it('rejects and keeps the record out of memory when the service throws', async () => {
@@ -120,7 +127,7 @@ describe('setupStore.completeSetup / completeTour', () => {
   });
 
   it('still marks the tour done in memory when its persist fails', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockSetSetting.mockRejectedValueOnce(new Error('storage unavailable'));
 
     // A failed write must never trap the user in the tour; re-running it on the
@@ -128,9 +135,13 @@ describe('setupStore.completeSetup / completeTour', () => {
     await expect(useSetupStore.getState().completeTour('basics', 'finished')).resolves.toBeUndefined();
 
     expect(useSetupStore.getState().tour).toMatchObject({ completedChapters: ['basics'], method: 'finished' });
-    expect(errorSpy).toHaveBeenCalledTimes(1);
-    expect(errorSpy.mock.calls[0][0]).toContain('settings.tour');
+    // The rejecting channel lands in the same place as the refusing one.
+    await settleReports();
+    expect(useLogStore.getState().allLogs.map((l) => l.message)).toEqual([
+      '[Settings] Could not save settings.tour: storage unavailable',
+    ]);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
 
-    errorSpy.mockRestore();
+    warnSpy.mockRestore();
   });
 });

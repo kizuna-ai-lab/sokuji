@@ -143,7 +143,7 @@ export class ZoomAIClient implements IClient {
   }
 
   appendInputText(_text: string): void {
-    console.warn('[ZoomAIClient] Text input is not supported');
+    // Unreachable: MainPanel gates text input on capabilities.supportsTextInput.
   }
 
   async disconnect(): Promise<void> {
@@ -159,7 +159,7 @@ export class ZoomAIClient implements IClient {
   isConnected(): boolean { return this.connected; }
 
   updateSession(_config: Partial<SessionConfig>): void {
-    console.warn('[ZoomAIClient] Session updates are not supported. Reconnect to change languages.');
+    // Unreachable: no capability advertises runtime session updates.
   }
 
   reset(): void { this.conversationItems = []; this.itemCounter = 0; }

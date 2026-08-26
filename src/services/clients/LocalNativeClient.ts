@@ -12,6 +12,8 @@ import { voiceStoreFor } from '../../lib/local-inference/native/nativeVoiceStore
 import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import { splitSentences } from '../../utils/splitSentences';
 import { useNativeModelStore, nativeListTtsVoices, nativeHardwareInfo } from '../../stores/nativeModelStore';
+import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
+import { describeCause } from '../../lib/diagnostics/describeCause';
 
 interface Deps {
   asr?: NativeAsrClient | any;
@@ -46,6 +48,15 @@ export class LocalNativeClient implements IClient {
     this.asr = deps.asr ?? new NativeAsrClient();
     this.translate = deps.translate ?? new NativeTranslateClient();
     this.tts = deps.tts ?? new NativeTtsClient();
+  }
+
+
+  /**
+   * Emit a diagnostic: the session continues, degraded. participantTelemetry
+   * gives the code its channel and severity.
+   */
+  private diagnose(code: ClientDiagnosticCode, message: string, cause?: unknown): void {
+    this.handlers.onDiagnostic?.({ code, message, cause });
   }
 
   async connect(config: SessionConfig): Promise<void> {
@@ -393,7 +404,7 @@ export class LocalNativeClient implements IClient {
         } catch (ttsError) {
           // Mirror LocalInferenceClient lines 751-757: log + skip failed sentence,
           // loop continues so the item still reaches status='completed'.
-          console.warn('[LocalNative] TTS failed for sentence, skipping:', ttsError);
+          this.diagnose('tts_degraded', `a sentence could not be spoken: ${describeCause(ttsError)}`, ttsError);
           this.emitEvent('local.native.tts.error', 'server', {
             error: ttsError instanceof Error ? ttsError.message : String(ttsError),
             sentenceIndex: i,

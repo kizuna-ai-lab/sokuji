@@ -223,7 +223,8 @@ export class GeminiClient implements IClient {
    * Handle API key validation errors
    */
   private static handleValidationError(error: any): ApiKeyValidationResult {
-    console.error("[Sokuji] [GeminiClient] API key validation error:", error);
+    // No log line: the message returned below becomes `validationMessage`,
+    // rendered next to the field the user just typed in.
     return {
       valid: false,
       message: error.message || i18n.t('settings.errorValidatingApiKey'),
@@ -235,7 +236,8 @@ export class GeminiClient implements IClient {
    * Handle model fetching errors
    */
   private static handleModelFetchError(error: any): never {
-    console.error("[Sokuji] [GeminiClient] Error fetching models:", error);
+    // No log line: the message returned below becomes `validationMessage`,
+    // rendered next to the field the user just typed in.
     throw error;
   }
 
@@ -335,7 +337,8 @@ export class GeminiClient implements IClient {
 
     // If no models found from API, return fallback models
     if (relevantModels.length === 0) {
-      console.warn("[Sokuji] [GeminiClient] No suitable models found from API, using fallback models");
+      // Not a failure: the fallback list is a supported outcome.
+      console.info("[Sokuji] [GeminiClient] No suitable models found from API, using fallback models");
       return this.getFallbackModels();
     }
 
@@ -501,7 +504,8 @@ export class GeminiClient implements IClient {
           },
           onerror: (error: ErrorEvent) => {
             if (token !== this.connectionToken) return;  // stale callback
-            console.error('[Sokuji] [GeminiClient] Session error:', error);
+            // No log line: emitted as onError immediately below, and
+            // participantTelemetry is the single sink for that stream.
             this.eventHandlers.onRealtimeEvent?.({
               source: 'client',
               event: {
@@ -1150,7 +1154,7 @@ export class GeminiClient implements IClient {
     //   new sessionResumptionUpdate). Treat it as a permanent disconnect so the
     //   user knows the session ended instead of getting garbled translations.
     if (!this.savedResumptionHandle && this.hasLocalSessionState()) {
-      console.warn('[Sokuji] [GeminiClient] Cannot fresh-reconnect: local state present, no handle. Treating as disconnect.');
+      // No log line: firePermanentDisconnect below is the report.
       this.firePermanentDisconnect('lost handle with active local state');
       return;
     }
@@ -1205,7 +1209,8 @@ export class GeminiClient implements IClient {
             }
           }
         });
-        console.warn(`[Sokuji] [GeminiClient] Reconnection attempt ${attempt}/${maxRetries} failed`, error);
+        // No log line: the `session.reconnect_failed` event emitted just above
+        // is already this attempt's panel row.
       }
     }
 
@@ -1261,7 +1266,7 @@ export class GeminiClient implements IClient {
   updateSession(config: Partial<SessionConfig>): void {
     // Gemini Live API doesn't support runtime session updates like OpenAI
     // This would require reconnecting with new configuration
-    console.warn('[GeminiClient] Runtime session updates not supported. Reconnection required.');
+    // Unreachable: no capability advertises runtime session updates.
   }
 
   reset(): void {
@@ -1276,7 +1281,7 @@ export class GeminiClient implements IClient {
 
   appendInputAudio(audioData: Int16Array): void {
     if (!this.session) {
-      console.warn('[GeminiClient] No active session for audio input');
+      // Per-frame guard: silent. A dead session surfaces via onClose.
       return;
     }
 
@@ -1301,12 +1306,12 @@ export class GeminiClient implements IClient {
 
   appendInputText(text: string): void {
     if (!this.session) {
-      console.warn('[GeminiClient] No active session for text input');
+      // Guard: silent, as above.
       return;
     }
 
     if (!text.trim()) {
-      console.warn('[GeminiClient] Empty text input, ignoring');
+      // Nothing to send.
       return;
     }
 
@@ -1395,7 +1400,7 @@ export class GeminiClient implements IClient {
 
   cancelResponse(trackId?: string, offset?: number): void {
     // Gemini Live API doesn't support response cancellation in the same way as OpenAI
-    console.warn('[GeminiClient] Response cancellation not supported');
+    // Unreachable: no capability advertises response cancellation.
   }
 
   getConversationItems(): ConversationItem[] {

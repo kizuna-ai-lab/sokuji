@@ -7,6 +7,7 @@ import { byokCredentials } from '../clients/ManagedSonioxSession';
 import { SONIOX_VOICES, SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
 import { sonioxBothModePlan, SonioxBothModeScope } from './sonioxBothMode';
 import { asSonioxRegion, DEFAULT_SONIOX_REGION, type SonioxRegion } from '../../lib/soniox/regions';
+import { reportWarning } from '../../lib/diagnostics/report';
 
 // Soniox Settings — single BYOK API key (extractCredentials inherited from base)
 export interface SonioxSettings {
@@ -149,10 +150,12 @@ function fitContextToBudget(
     dropped.terms++;
   }
   if (dropped.terms || dropped.translationTerms || dropped.textChars) {
-    console.warn(
-      `[SonioxProviderConfig] Custom vocabulary/background exceeds the Soniox context size limit — ` +
-      `truncated ${dropped.textChars} background char(s), dropped ${dropped.translationTerms} translation(s) ` +
-      `and ${dropped.terms} term(s) from the end`
+    // The user typed this vocabulary and it was silently cut to fit the
+    // provider's context budget, which changes what gets recognised.
+    reportWarning(
+      'SonioxConfig',
+      `Custom vocabulary exceeds the Soniox context limit — truncated ${dropped.textChars} background char(s), ` +
+      `dropped ${dropped.translationTerms} translation(s) and ${dropped.terms} term(s) from the end`
     );
   }
   return { terms, translationTerms, text };

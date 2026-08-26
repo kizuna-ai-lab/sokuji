@@ -8,6 +8,7 @@ import { useAuth, useUser } from '../lib/auth/hooks';
 import { useIsSessionActive } from '../stores/sessionStore';
 import { getApiUrl } from '../utils/environment';
 import { mapWalletStatusToQuota } from '../utils/walletQuota';
+import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 
 export interface QuotaData {
   // Core wallet data (new fields)
@@ -132,8 +133,11 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
 
       if (!response.ok) {
         const errorMessage = `Failed to fetch quota: ${response.status} ${response.statusText}`;
+        // Two surfaces, deliberately: `setError` is what a basic-mode user sees
+        // where the balance should be, `reportError` is what a bug report can
+        // quote. LogsPanel alone would be invisible outside advanced mode.
         setError(errorMessage);
-        console.error('[UserProfileContext]', errorMessage);
+        reportError('UserProfile', errorMessage);
         return;
       }
 
@@ -142,11 +146,19 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
 
       setQuota(mapWalletStatusToQuota(raw));
       setError(null);
+      // The latch is shared with the silent poll, so every path that proves the
+      // balance endpoint is answering has to clear it. Clearing it only on the
+      // poll's own success meant a manual refresh could fix the symptom while
+      // leaving the next poll failure suppressed as a repeat.
+      pollFailingRef.current = false;
     } catch (err: any) {
       if (stale()) return;
-      const errorMessage = err.message || 'Failed to fetch quota';
+      // describeCause, not `err.message`: the latter is `any` (so it would not
+      // typecheck as a report message) and is empty for the non-Error shapes
+      // fetch and the auth layer throw.
+      const errorMessage = describeCause(err);
       setError(errorMessage);
-      console.error('[UserProfileContext] Error fetching quota:', err);
+      reportError('UserProfile', `Failed to fetch quota: ${errorMessage}`, { cause: err });
       setQuota(null);
     } finally {
       // The loading flag belongs to whoever owns the state now. A stale request
@@ -155,6 +167,26 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, userId]); // Use userId instead of betterAuthUser to prevent infinite loops
+
+  /**
+   * Whether the balance poll is currently in a failing run.
+   *
+   * The poll ticks for as long as a session lasts, so reporting each failed
+   * tick would fill the panel with one identical line per interval for a
+   * condition the user cannot act on. Reporting the ok -> failing transition
+   * says the same thing once, and a recovery silently clears it.
+   */
+  const pollFailingRef = useRef(false);
+
+  const reportPollFailure = useCallback((detail: string, cause?: unknown, stale?: () => boolean) => {
+    // A tick dispatched for the previous account can land after the new one has
+    // taken over. Without this it would latch the new session as failing, and
+    // suppress that account's first real failure indefinitely.
+    if (stale?.()) return;
+    if (pollFailingRef.current) return;
+    pollFailingRef.current = true;
+    reportWarning('UserProfile', `Balance refresh failing: ${detail}`, { cause });
+  }, []);
 
   // Function to refresh only quota data silently (for periodic updates during sessions)
   const fetchQuotaSilently = useCallback(async () => {
@@ -168,7 +200,9 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     try {
       const token = await getToken();
       if (!token) {
-        console.warn('[UserProfileContext] No token available for silent fetch');
+        // Not a failure: the poll runs on a timer and can tick before the token
+        // is ready or after sign-out. The visible fetch throws on the same
+        // condition and reports there.
         return;
       }
 
@@ -185,11 +219,12 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
         if (stale()) return;
         setQuota(mapWalletStatusToQuota(raw));
         setError(null);
+        pollFailingRef.current = false;
       } else {
-        console.warn('[UserProfileContext] Silent fetch failed:', response.status, response.statusText);
+        reportPollFailure(`${response.status} ${response.statusText}`, undefined, stale);
       }
     } catch (err: any) {
-      console.warn('[UserProfileContext] Silent fetch error:', err);
+      reportPollFailure(describeCause(err), err, stale);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, userId]); // Use userId instead of betterAuthUser to prevent infinite loops
@@ -199,6 +234,10 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     // Stamp the session BEFORE dispatching, so any response already in flight
     // for a previous session fails its check when it lands.
     activeSessionRef.current = isSignedIn && userId ? userId : null;
+    // The latch belongs to the session that set it. Carrying it across a
+    // sign-out or an account switch would silence the new account's first
+    // failure — the provider stays mounted, so nothing else would clear it.
+    pollFailingRef.current = false;
 
     if (isSignedIn && userId) {
       fetchQuota();
@@ -228,15 +267,11 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, isSessionActive, userId]); // Depend on stable values, not the function
 
-  // Function to refresh user profile from Better Auth
-  const refetchProfile = useCallback(async () => {
-    try {
-      // Better Auth session is automatically refreshed
-      // No manual reload needed
-    } catch (error) {
-      console.error('[UserProfileContext] Error refreshing profile:', error);
-    }
-  }, []);
+  // Better Auth refreshes the session itself, so there is nothing to do here.
+  // Kept as a no-op because it is part of the context's public shape; the
+  // try/catch it used to carry could not throw and its console.error could not
+  // fire.
+  const refetchProfile = useCallback(async () => {}, []);
 
   // Function to refresh both profile and quota
   const refetchAll = useCallback(async () => {

@@ -3,6 +3,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
 import { useMemo } from 'react';
 import { sanitizeEvent } from './sanitizeEvent';
+import { redact } from '../lib/diagnostics/redact';
 
 // Define the core event data structure
 export interface EventData {
@@ -20,6 +21,10 @@ export interface EventData {
     | 'session.webrtc_fallback'
     // Participant/local inference status types
     | 'participant.error'
+    // Managed-lease notifications (ProviderDescriptor.onEvent)
+    | 'session.retry'
+    | 'session.started_refused'
+    | 'session.notify_failed'
     | 'participant.warning'
     | 'participant.info'
     // Gemini-specific top-level message types
@@ -157,6 +162,14 @@ export type ClientId = 'speaker' | 'participant';
 
 // Define the log entry type
 export interface LogEntry {
+  /**
+   * Stable identity, monotonic across the store's lifetime.
+   *
+   * LogsPanel keys rows by this rather than by array index: entries are trimmed
+   * from the front at MAX_LOG_ENTRIES, which shifts every index and would
+   * migrate an expanded <Event>'s open/JSON state onto a different entry.
+   */
+  id: number;
   timestamp: string;
   message: string;
   type?: 'info' | 'success' | 'warning' | 'error' | 'token';
@@ -164,7 +177,12 @@ export interface LogEntry {
   source?: RealtimeEventSource; // To identify if it's a client or server event
   eventType?: string; // The type of the event (e.g., 'session.created', 'response.text.delta')
   groupingKey?: string; // Custom grouping key for specific event types
-  clientId?: ClientId; // To identify which client generated the log (speaker or participant)
+  /**
+   * Which session leg produced this, or undefined for an app-scope failure
+   * (settings, auth, devices, models). LogsPanel shows undefined under BOTH
+   * tabs; it is not a synonym for 'speaker'.
+   */
+  clientId?: ClientId;
 }
 
 interface LogStore {
@@ -181,6 +199,52 @@ interface LogStore {
 // Batch update configuration - increased for better performance
 const BATCH_DELAY_MS = 150; // Batch updates every 150ms for better performance
 
+/**
+ * Hard ceiling on retained entries; oldest are dropped first in flush.
+ *
+ * A session runs for hours and every realtime event lands here, so without a cap
+ * `allLogs` grows for as long as the app is open — and each write spreads the
+ * whole array. Session separators are derived per entry in LogsPanel, so
+ * trimming cannot orphan one.
+ */
+const MAX_LOG_ENTRIES = 2000;
+
+let nextLogId = 0;
+const takeLogId = (): number => ++nextLogId;
+
+/**
+ * Schedule a flush unless one is already pending.
+ *
+ * THROTTLE, not debounce. This used to clear the pending timeout on every write
+ * and set a fresh one, so any write stream spaced closer than BATCH_DELAY_MS —
+ * audio deltas during a live session, the settings burst at boot — pushed the
+ * flush forever into the future: `pendingLogs` grew without bound and
+ * MAX_LOG_ENTRIES, enforced in flush, would never have run. Scheduling only when
+ * no timer exists guarantees a flush every <=150ms. Grouping is unaffected: it
+ * looks up the last entry for a client, not the timer state.
+ */
+function scheduleFlush(
+  state: { batchTimer: NodeJS.Timeout | null },
+  flush: () => void,
+): NodeJS.Timeout {
+  if (state.batchTimer) return state.batchTimer;
+  return setTimeout(flush, BATCH_DELAY_MS);
+}
+
+/**
+ * Severity for a realtime event, from its type name.
+ *
+ * Every event row used to be stamped 'info', so a session failure rendered
+ * exactly like a transcript delta and the `.error`/`.warning` rules in
+ * LogsPanel.scss were unreachable for events. Suffix-anchored on purpose:
+ * `session.error_recovered` is not a failure.
+ */
+function severityForEventType(eventType: string): LogEntry['type'] {
+  if (/(?:^|[._])(?:error|failed)$/.test(eventType)) return 'error';
+  if (/(?:^|[._])warning$/.test(eventType)) return 'warning';
+  return 'info';
+}
+
 // Create the Zustand store
 const useLogStore = create<LogStore>(
   subscribeWithSelector((set, get) => ({
@@ -191,32 +255,43 @@ const useLogStore = create<LogStore>(
 
     flushPendingLogs: () => {
       const state = get();
+      if (state.batchTimer) {
+        clearTimeout(state.batchTimer);
+      }
       if (state.pendingLogs.length > 0) {
-        const newLogs = [...state.logs, ...state.pendingLogs];
+        const merged = [...state.logs, ...state.pendingLogs];
+        // Oldest first. With the throttle above, `pendingLogs` holds at most
+        // 150ms of traffic, so every spread below is bounded by MAX_LOG_ENTRIES.
+        const newLogs = merged.length > MAX_LOG_ENTRIES
+          ? merged.slice(merged.length - MAX_LOG_ENTRIES)
+          : merged;
         set({
           logs: newLogs,
           pendingLogs: [],
           allLogs: newLogs, // Update combined logs
           batchTimer: null
         });
+      } else {
+        set({ batchTimer: null });
       }
     },
 
     addLog: (message: string, type: LogEntry['type'] = 'info', clientId?: ClientId) => {
       const now = new Date();
       const timestamp = now.toLocaleTimeString();
-      const newLog: LogEntry = { timestamp, message, type, clientId: clientId || 'speaker' };
+      const newLog: LogEntry = {
+        id: takeLogId(),
+        timestamp,
+        // Redacted at the sink, not at the call site: this also covers the
+        // legacy addLog callers and any future bypass. Panel text is
+        // clipboard-exportable straight into a bug report.
+        message: redact(message),
+        type,
+        clientId,
+      };
 
       set(state => {
-        // Clear existing timer
-        if (state.batchTimer) {
-          clearTimeout(state.batchTimer);
-        }
-
-        // Set new timer to flush batch
-        const timer = setTimeout(() => {
-          get().flushPendingLogs();
-        }, BATCH_DELAY_MS);
+        const timer = scheduleFlush(state, () => get().flushPendingLogs());
 
         const newPendingLogs = [...state.pendingLogs, newLog];
         const newAllLogs = [...state.logs, ...newPendingLogs];
@@ -232,7 +307,10 @@ const useLogStore = create<LogStore>(
     addRealtimeEvent: (event: EventData, source: RealtimeEventSource, eventType: string, clientId?: ClientId) => {
       const now = new Date();
       const timestamp = now.toLocaleTimeString();
-      const logClientId = clientId || 'speaker';
+      // Undefined stays undefined: an app-scope event (MainPanel's
+      // session.init_error / participant.error connect rows) is not a speaker
+      // event, and LogsPanel already shows undefined under both tabs.
+      const logClientId = clientId;
       
       // Sanitize the event to remove binary audio data
       const sanitizedEvent = sanitizeEvent(event);
@@ -397,15 +475,7 @@ const useLogStore = create<LogStore>(
             events: [...(lastLogForClient.events || []), sanitizedEvent]
           };
 
-          // Clear existing timer
-          if (state.batchTimer) {
-            clearTimeout(state.batchTimer);
-          }
-
-          // Set new timer to flush batch
-          const timer = setTimeout(() => {
-            get().flushPendingLogs();
-          }, BATCH_DELAY_MS);
+          const timer = scheduleFlush(state, () => get().flushPendingLogs());
 
           if (isInPendingLogs) {
             // Update in pendingLogs
@@ -437,9 +507,10 @@ const useLogStore = create<LogStore>(
         
         // If not a consecutive identical event, add a new log entry to pending
         const newLog: LogEntry = {
+          id: takeLogId(),
           timestamp,
           message,
-          type: 'info' as const,
+          type: severityForEventType(eventType),
           events: [sanitizedEvent], // Initialize events array with the sanitized event
           source,
           eventType,
@@ -447,16 +518,8 @@ const useLogStore = create<LogStore>(
           clientId: logClientId
         };
         
-        // Clear existing timer
-        if (state.batchTimer) {
-          clearTimeout(state.batchTimer);
-        }
-        
-        // Set new timer to flush batch
-        const timer = setTimeout(() => {
-          get().flushPendingLogs();
-        }, BATCH_DELAY_MS);
-        
+        const timer = scheduleFlush(state, () => get().flushPendingLogs());
+
         const newPendingLogs = [...state.pendingLogs, newLog];
         const newAllLogs = [...state.logs, ...newPendingLogs];
         return {

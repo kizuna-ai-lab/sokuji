@@ -3,6 +3,7 @@ import { FilteredModel } from './interfaces/IClient';
 import { ClientOperations } from './ClientOperations';
 import { ProviderType } from '../types/Provider';
 import i18n from '../locales';
+import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 
 /**
  * Unified Settings Service implementation
@@ -25,14 +26,22 @@ export class SettingsService implements ISettingsService {
   async getSetting<T>(key: string, defaultValue: T): Promise<T> {
     try {
       if (this.usesChromeStorage) {
-        // Browser Extension: Use Chrome Storage API
-        return new Promise<T>((resolve) => {
+        // Browser Extension: Use Chrome Storage API.
+        //
+        // `return await` for the same reason as setSetting below: a bare return
+        // adopts the promise's rejection without passing through the catch, so a
+        // synchronous throw in the executor would skip both the defaultValue
+        // fallback and the report, and surface as an unhandled rejection in a
+        // caller that reasonably assumed a getter with a default cannot fail.
+        return await new Promise<T>((resolve) => {
           // @ts-ignore - Chrome API is defined in global scope for extensions
           chrome.storage.sync.get(key, (result: Record<string, any>) => {
             // @ts-ignore - Chrome API is defined in global scope for extensions
             if (chrome.runtime.lastError) {
               // @ts-ignore - Chrome API is defined in global scope for extensions
-              console.error(`[Sokuji] [SettingsService] Error getting setting ${key}:`, chrome.runtime.lastError);
+              // One key shares the dedupe key with the rest: a storage backend
+              // that is down fails for every key in the boot burst at once.
+              reportWarning('SettingsService', `Could not read ${key}: ${chrome.runtime.lastError?.message ?? 'unknown error'}`, { dedupeKey: 'settings.get' });
               resolve(defaultValue);
             } else {
               resolve(result[key] !== undefined ? result[key] : defaultValue);
@@ -53,7 +62,7 @@ export class SettingsService implements ISettingsService {
         return defaultValue;
       }
     } catch (error) {
-      console.error(`[Sokuji] [SettingsService] Error getting setting ${key}:`, error);
+      reportWarning('SettingsService', `Could not read ${key}: ${describeCause(error)}`, { cause: error, dedupeKey: 'settings.get' });
       return defaultValue;
     }
   }
@@ -64,8 +73,15 @@ export class SettingsService implements ISettingsService {
   async setSetting<T>(key: string, value: T): Promise<SettingsOperationResult> {
     try {
       if (this.usesChromeStorage) {
-        // Browser Extension: Use Chrome Storage API
-        return new Promise<SettingsOperationResult>((resolve) => {
+        // Browser Extension: Use Chrome Storage API.
+        //
+        // `return await`, not a bare `return`: returning the promise from
+        // inside `try` adopts its rejection WITHOUT passing through the catch
+        // below, so a synchronous throw in the executor — `chrome.storage`
+        // gone after "Extension context invalidated" — used to reject past a
+        // signature that promises a result. Callers may not read
+        // `result.success` AND catch; the contract has to be one of the two.
+        return await new Promise<SettingsOperationResult>((resolve) => {
           // @ts-ignore - Chrome API is defined in global scope for extensions
           chrome.storage.sync.set({ [key]: value }, () => {
             // @ts-ignore - Chrome API is defined in global scope for extensions
@@ -99,107 +115,7 @@ export class SettingsService implements ISettingsService {
       };
     }
   }
-  
-  /**
-   * Load all settings at once
-   */
-  async loadAllSettings<T extends object>(defaultSettings: T): Promise<T> {
-    try {
-      if (this.usesChromeStorage) {
-        // Browser Extension: Use Chrome Storage API
-        const keys = Object.keys(defaultSettings).map(key => `settings.${key}`);
-        
-        return new Promise<T>((resolve) => {
-          // @ts-ignore - Chrome API is defined in global scope for extensions
-          chrome.storage.sync.get(keys, (result: Record<string, any>) => {
-            // @ts-ignore - Chrome API is defined in global scope for extensions
-            if (chrome.runtime.lastError) {
-              // @ts-ignore - Chrome API is defined in global scope for extensions
-              console.error('[Sokuji] [SettingsService] Error loading all settings:', chrome.runtime.lastError);
-              resolve(defaultSettings);
-            } else {
-              const settings = { ...defaultSettings };
-              
-              // Map from 'settings.key' back to just 'key' in our result object
-              for (const key of Object.keys(defaultSettings)) {
-                const fullKey = `settings.${key}`;
-                const defaultValue = (defaultSettings as any)[key];
-                (settings as any)[key] = result[fullKey] !== undefined ? result[fullKey] : defaultValue;
-              }
-              
-              resolve(settings);
-            }
-          });
-        });
-      } else {
-        // Electron: Use localStorage
-        const settings = { ...defaultSettings };
-        
-        for (const key of Object.keys(defaultSettings)) {
-          const fullKey = `settings.${key}`;
-          const defaultValue = (defaultSettings as any)[key];
-          (settings as any)[key] = await this.getSetting(fullKey, defaultValue);
-        }
-        
-        return settings;
-      }
-    } catch (error) {
-      console.error('[Sokuji] [SettingsService] Error loading all settings:', error);
-      return defaultSettings;
-    }
-  }
-  
-  /**
-   * Save all settings at once
-   */
-  async saveAllSettings<T extends object>(settings: T): Promise<SettingsOperationResult> {
-    try {
-      if (this.usesChromeStorage) {
-        // Browser Extension: Use Chrome Storage API
-        const storageObject: Record<string, any> = {};
-        for (const key of Object.keys(settings)) {
-          storageObject[`settings.${key}`] = (settings as any)[key];
-        }
-        
-        return new Promise<SettingsOperationResult>((resolve) => {
-          // @ts-ignore - Chrome API is defined in global scope for extensions
-          chrome.storage.sync.set(storageObject, () => {
-            // @ts-ignore - Chrome API is defined in global scope for extensions
-            if (chrome.runtime.lastError) {
-              resolve({
-                success: false,
-                // @ts-ignore - Chrome API is defined in global scope for extensions
-                error: chrome.runtime.lastError.message || i18n.t('settings.failedToSaveSettings')
-              });
-            } else {
-              resolve({
-                success: true,
-                message: i18n.t('settings.settingsSavedSuccessfully')
-              });
-            }
-          });
-        });
-      } else {
-        // Electron: Use localStorage
-        for (const key of Object.keys(settings)) {
-          const fullKey = `settings.${key}`;
-          const value = (settings as any)[key];
-          await this.setSetting(fullKey, value);
-        }
-        
-        return {
-          success: true,
-          message: i18n.t('settings.settingsSavedSuccessfully')
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || i18n.t('settings.failedToSaveSettings')
-      };
-    }
-  }
-  
+
   /**
    * Get the path to the settings file (if applicable to the platform)
    */
@@ -233,7 +149,7 @@ export class SettingsService implements ISettingsService {
         customEndpoint
       );
     } catch (error: any) {
-      console.error(`[Sokuji] [SettingsService] Error validating API key and fetching models for ${provider}:`, error);
+      reportError('SettingsService', `Failed to validate the API key for ${provider}: ${describeCause(error)}`, { cause: error });
       return {
         validation: {
           valid: false,

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { isElectron } from '../utils/environment';
+import { reportError, describeCause } from '../lib/diagnostics/report';
 
 export type AudioSystemStatus = 'unknown' | 'ok' | 'unavailable';
 export type AudioSystemReason = 'pactl-missing' | 'pulseaudio-unavailable' | 'other' | null;
@@ -41,7 +42,11 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
       // Result also arrives via the 'audio-status' push below; this just
       // guards against a broken IPC round trip leaving the spinner stuck.
     } catch (error) {
-      console.error('[Sokuji] [AudioSystemStore] Failed to retry virtual speaker creation:', error);
+      reportError(
+        'AudioSystemStore',
+        `Failed to retry virtual speaker creation: ${describeCause(error)}`,
+        { cause: error },
+      );
     } finally {
       set({ retrying: false });
     }

@@ -1440,6 +1440,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           formatted: { text: clientErrorMessage(event) },
         }]);
       },
+      // Named explicitly because this handler set is hand-picked rather than
+      // spread like the participant's. `onDiagnostic` is optional on
+      // ClientEventHandlers, so omitting it here would silently drop every
+      // speaker-leg diagnostic with nothing failing.
+      onDiagnostic: speakerTelemetry.onDiagnostic,
       onReconnecting: speakerTelemetry.onReconnecting,
       onReconnected: speakerTelemetry.onReconnected,
       onClose: async (event: any) => {
@@ -2161,21 +2166,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
               console.info('[Sokuji] [MainPanel] WebSocket fallback connection established');
             } catch (fallbackError: any) {
-              // Track fallback connection failure
-              trackEvent('api_error', {
-                provider: provider || Provider.OPENAI,
-                error_message: fallbackError.message || 'Fallback connection failed',
-                error_type: 'network'
-              });
+              // No api_error here: this rethrows into the session-start catch,
+              // whose onConnectFailed is the single sink for it. Emitting one
+              // here too counted every failed connect twice.
               throw fallbackError;
             }
           } else {
-            // Track connection failure (no fallback available)
-            trackEvent('api_error', {
-              provider: provider || Provider.OPENAI,
-              error_message: connectError.message || 'Connection failed',
-              error_type: 'network'
-            });
+            // Same: onConnectFailed downstream owns the api_error.
             throw connectError;
           }
         }
@@ -2442,9 +2439,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             }
           }
         } catch (error: any) {
-          console.error('[Sokuji] [MainPanel] Failed to start participant audio client:', error);
-          // GPU OOM is fatal — propagate so the session doesn't start
+          // GPU OOM is fatal — propagate so the session doesn't start. Checked
+          // before reporting: the speaker's own catch below owns that failure,
+          // and reporting here too would file it twice.
           if (error?.isGpuOom) {
+            // Rethrown to the session-start catch, which reports it as the
+            // session-level failure it is. A line here as well logged one GPU
+            // OOM twice.
             throw error;
           }
           // Other participant errors are non-fatal — the session continues on
@@ -2464,11 +2465,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Under split, a participant leg that fails here never reached a
           // frame, so no par_stt bit was ever set and the lease is not waiting
           // on it.
-          participantErrorMessage = error?.message || t('mainPanel.participantChannelFailed', "Failed to start Other's audio channel.");
-          addRealtimeEvent(
-            { type: 'participant.error', data: { message: participantErrorMessage } },
-            'client', 'participant.error'
-          );
+          // One sink for both legs: it writes the console line, the
+          // channel-tagged `participant.error` row (previously untagged, so it
+          // filed under the speaker tab) and the api_error this leg never sent,
+          // and hands back the message for the bubble below.
+          const reported = buildChannelTelemetryHandlers('participant', telemetryPortsFor())
+            .onConnectFailed(error);
+          participantErrorMessage = error?.message
+            || (reported !== 'unknown error' ? reported : '')
+            || t('mainPanel.participantChannelFailed', "Failed to start Other's audio channel.");
           splitParticipantFailure = 'participant-connect-failed';
         }
       }
@@ -2786,8 +2791,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const wasCancelled = startAbort?.signal.aborted ?? false;
       if (wasCancelled) {
         console.info('[Sokuji] [MainPanel] Session init unwound by a cancelled Start (rejection expected, not a failure):', error);
-      } else {
-        console.error('[Sokuji] [MainPanel] Failed to initialize session:', error);
       }
 
       const errorMessage = error.message || 'Network connection error';
@@ -2796,10 +2799,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // cancel is not — only report to the user and analytics when this
       // was a genuine failure.
       if (!wasCancelled) {
-        addRealtimeEvent(
-          { type: 'session.init_error', data: { message: errorMessage, error: String(error) } },
-          'client', 'session.init_error'
-        );
+        // Same sink as the participant leg: console line, channel-tagged
+        // `session.init_error` row, api_error. The `error_occurred` event below
+        // is kept alongside it because dashboards already query that name for
+        // session-start failures specifically.
+        buildChannelTelemetryHandlers('speaker', telemetryPortsFor()).onConnectFailed(error);
 
         trackEvent('error_occurred', {
           error_type: 'session_initialization',

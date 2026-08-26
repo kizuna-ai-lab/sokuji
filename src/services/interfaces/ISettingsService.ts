@@ -28,19 +28,13 @@ export interface ISettingsService {
    * @param key The setting key to save
    * @param value The value to save
    */
+  /**
+   * Resolves a result; does not reject. Callers read `result.success` — or,
+   * better, go through `persistSetting`, which owns both that check and the
+   * reporting. (`loadAllSettings`/`saveAllSettings` used to sit here too and
+   * were removed: no caller ever used either.)
+   */
   setSetting<T>(key: string, value: T): Promise<SettingsOperationResult>;
-  
-  /**
-   * Load all settings at once
-   * @param defaultSettings Default settings object to use for missing values
-   */
-  loadAllSettings<T extends object>(defaultSettings: T): Promise<T>;
-  
-  /**
-   * Save all settings at once
-   * @param settings The complete settings object to save
-   */
-  saveAllSettings<T extends object>(settings: T): Promise<SettingsOperationResult>;
   
   /**
    * Get the path to the settings file (if applicable to the platform)

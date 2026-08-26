@@ -197,3 +197,29 @@ describe('sanitizeEvent', () => {
     });
   });
 });
+
+
+describe('sanitizeEvent — credential redaction', () => {
+  // participantTelemetry.ts:65-70 puts the whole client error event into a
+  // `session.error` row; GeminiClient forwards `filename` and `error.toString()`.
+  // LogsPanel exports events to the clipboard, so a credential landing in one
+  // ships with a copy button next to it.
+  it('redacts credentials in provider-text fields', () => {
+    const out = sanitizeEvent({
+      type: 'session.error',
+      data: { message: 'rejected: Bearer sess_abcdef123456' },
+    });
+    expect(out.data.message).toBe('rejected: Bearer [REDACTED]');
+  });
+
+  it('redacts a signed URL', () => {
+    const out = sanitizeEvent({ url: 'wss://relay/v1?access_token=abcdefghijkl&x=1' });
+    expect(out.url).toBe('wss://relay/v1?access_token=[REDACTED]&x=1');
+  });
+
+  it('leaves transcript text untouched', () => {
+    const out = sanitizeEvent({ transcript: 'my key is not a secret', delta: 'hello' });
+    expect(out.transcript).toBe('my key is not a secret');
+    expect(out.delta).toBe('hello');
+  });
+});

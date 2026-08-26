@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { ServiceFactory } from '../services/ServiceFactory';
+import { persistSetting } from '../services/persistSetting';
 
 interface ConversationDisplayState {
   // Typography
@@ -44,18 +45,12 @@ function clamp(n: number, min: number, max: number): number {
 
 const KEY = (suffix: string) => `settings.common.conversationDisplay.${suffix}`;
 
-async function persist(
-  keySuffix: string,
-  value: unknown,
-  fieldNameForLog: string,
-): Promise<{ ok: boolean }> {
-  try {
-    await ServiceFactory.getSettingsService().setSetting(KEY(keySuffix), value);
-    return { ok: true };
-  } catch (error) {
-    console.error(`[ConversationDisplayStore] Error persisting ${fieldNameForLog}:`, error);
-    return { ok: false };
-  }
+// The former local body caught a rejection but never read `result.success`, so
+// the failure the service actually reports was dropped. `persistSetting` owns
+// both channels; `fieldNameForLog` is gone because the key it derives from is
+// already in the message.
+async function persist(keySuffix: string, value: unknown): Promise<{ ok: boolean }> {
+  return { ok: await persistSetting(KEY(keySuffix), value) };
 }
 
 export const useConversationDisplayStore = create<ConversationDisplayState>()(
@@ -66,31 +61,31 @@ export const useConversationDisplayStore = create<ConversationDisplayState>()(
       const clamped = clamp(Math.round(n), CONVERSATION_FONT_SIZE_MIN, CONVERSATION_FONT_SIZE_MAX);
       const previous = get().fontSize;
       set({ fontSize: clamped });
-      const { ok } = await persist('fontSize', clamped, 'fontSize');
+      const { ok } = await persist('fontSize', clamped);
       if (!ok) set({ fontSize: previous });
     },
     setCompactMode: async (b) => {
       const previous = get().compactMode;
       set({ compactMode: b });
-      const { ok } = await persist('compactMode', b, 'compactMode');
+      const { ok } = await persist('compactMode', b);
       if (!ok) set({ compactMode: previous });
     },
     setBgColor: async (s) => {
       const previous = get().bgColor;
       set({ bgColor: s });
-      const { ok } = await persist('bgColor', s, 'bgColor');
+      const { ok } = await persist('bgColor', s);
       if (!ok) set({ bgColor: previous });
     },
     setSourceTextColor: async (s) => {
       const previous = get().sourceTextColor;
       set({ sourceTextColor: s });
-      const { ok } = await persist('sourceTextColor', s, 'sourceTextColor');
+      const { ok } = await persist('sourceTextColor', s);
       if (!ok) set({ sourceTextColor: previous });
     },
     setTranslationTextColor: async (s) => {
       const previous = get().translationTextColor;
       set({ translationTextColor: s });
-      const { ok } = await persist('translationTextColor', s, 'translationTextColor');
+      const { ok } = await persist('translationTextColor', s);
       if (!ok) set({ translationTextColor: previous });
     },
 

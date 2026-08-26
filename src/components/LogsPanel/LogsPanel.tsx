@@ -16,7 +16,7 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [jsonString, setJsonString] = useState<string | null>(null);
-  const { events, source, timestamp, eventType } = logEntry;
+  const { events, source, timestamp, eventType, type } = logEntry;
 
   if (!events || !events.length || !source) return null;
 
@@ -44,7 +44,10 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
   }, [isExpanded, jsonString, events, latestEvent, hasMultipleEvents]);
 
   return (
-    <div className="event-entry">
+    // Severity comes from the event type (logStore.severityForEventType), so a
+    // `session.error` row is visually a failure instead of looking exactly like
+    // a transcript delta.
+    <div className={`event-entry ${type && type !== 'info' ? type : ''}`.trim()}>
       <div
         className="event-header"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -90,8 +93,11 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison function for memo
+  // Custom comparison function for memo. `id` first: timestamps have
+  // one-second resolution, so without it two different entries sharing a second,
+  // an event type and a count compare equal and the row renders stale content.
   return (
+    prevProps.logEntry.id === nextProps.logEntry.id &&
     prevProps.logEntry.timestamp === nextProps.logEntry.timestamp &&
     prevProps.logEntry.eventType === nextProps.logEntry.eventType &&
     prevProps.logEntry.source === nextProps.logEntry.source &&
@@ -196,7 +202,13 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
     setAutoScroll(prev => !prev);
   }, []);
 
-  // Copy filtered logs to clipboard as NDJSON
+  // Copy filtered logs to clipboard as NDJSON.
+  //
+  // Plain entries are included. This used to iterate `log.events` only, so
+  // everything written through addLog — i.e. every caught failure routed to the
+  // panel — was silently missing from the text a user pastes into a bug report,
+  // which is the one moment those entries exist for. Safe to export: both
+  // sinks (addLog and sanitizeEvent) redact before storing.
   const handleCopyLogs = useCallback(() => {
     const lines: string[] = [];
     for (const log of filteredLogs) {
@@ -204,6 +216,14 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
         for (const event of log.events) {
           lines.push(JSON.stringify(event));
         }
+      } else {
+        lines.push(JSON.stringify({
+          id: log.id,
+          ts: log.timestamp,
+          level: log.type,
+          clientId: log.clientId,
+          message: log.message,
+        }));
       }
     }
     const text = lines.join('\n');
@@ -213,39 +233,43 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
     });
   }, [filteredLogs, t]);
 
-  // Memoized function to render regular log entry
-  const renderLogEntry = useCallback((log: LogEntry, index: number) => {
+  // Memoized function to render regular log entry.
+  //
+  // Keyed by `log.id`, not by array position: logStore trims from the front at
+  // MAX_LOG_ENTRIES, and under index keys that shift moves an expanded
+  // <Event>'s open/JSON state onto whatever entry inherits its index.
+  const renderLogEntry = useCallback((log: LogEntry) => {
     const elements: React.ReactNode[] = [];
-    
+
     // Check if this is a session end marker
-    const isSessionEnd = log.eventType === 'session.closed' || 
+    const isSessionEnd = log.eventType === 'session.closed' ||
                         (log.message && log.message.includes('session.closed'));
-    
+
     // Render the log entry itself
     if (log.events && log.events.length > 0 && log.source) {
-      elements.push(<Event key={`event-${index}`} logEntry={log} />);
+      elements.push(<Event key={`event-${log.id}`} logEntry={log} />);
     } else {
       // Regular application log
       elements.push(
-        <div className={`log-entry ${log.type || ''}`} key={`log-${index}`}>
+        <div className={`log-entry ${log.type || ''}`} key={`log-${log.id}`}>
           <span className="log-timestamp">{log.timestamp}</span>
           <span className="log-message">{log.message}</span>
         </div>
       );
     }
-    
+
     // Add session separator after session end
     if (isSessionEnd) {
       elements.push(
-        <div key={`separator-${index}`} className="session-separator">
+        <div key={`separator-${log.id}`} className="session-separator">
           <div className="separator-line"></div>
           <span className="separator-text">{t('logsPanel.sessionEnded')}</span>
           <div className="separator-line"></div>
         </div>
       );
     }
-    
-    return <React.Fragment key={`fragment-${index}`}>{elements}</React.Fragment>;
+
+    return <React.Fragment key={`fragment-${log.id}`}>{elements}</React.Fragment>;
   }, [t]);
   
   // Memoize visible logs
@@ -319,9 +343,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
             {spacerTop > 0 && <div style={{ height: spacerTop }} />}
 
             {/* Render only visible logs */}
-            {visibleLogs.map((log, index) =>
-              renderLogEntry(log, visibleRange.start + index)
-            )}
+            {visibleLogs.map((log) => renderLogEntry(log))}
 
             {/* Bottom spacer for virtual scrolling */}
             {spacerBottom > 0 && <div style={{ height: spacerBottom }} />}

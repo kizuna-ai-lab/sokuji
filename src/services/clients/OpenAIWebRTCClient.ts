@@ -20,7 +20,7 @@ import {
   isOpenAISessionConfig,
   ResponseConfig
 } from '../interfaces/IClient';
-import useLogStore, { RealtimeEvent } from '../../stores/logStore';
+import type { RealtimeEvent } from '../../stores/logStore';
 import { Provider, ProviderType } from '../../types/Provider';
 import { unwrapTranslationText } from '../../utils/textUtils';
 import { EphemeralTokenService } from '../EphemeralTokenService';
@@ -31,6 +31,8 @@ import {
   buildOpenAIRealtimeSession,
   buildOpenAIRealtimeSessionUpdate
 } from './openAIRealtimeSession';
+import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
+import { describeCause } from '../../lib/diagnostics/describeCause';
 
 interface WebRTCClientOptions {
   /** User's API key for ephemeral token generation */
@@ -65,6 +67,23 @@ export class OpenAIWebRTCClient implements IClient {
   private dc: RTCDataChannel | null = null;
   private audioBridge: WebRTCAudioBridge;
   private eventHandlers: ClientEventHandlers = {};
+
+  /**
+   * Latches once a frame has failed to parse, so a server sending garbage
+   * reports once rather than once per frame. Cleared by the next frame that
+   * parses. The panel throttles as well, but the console line fires on every
+   * call by design — this is what bounds it.
+   */
+  private parseFailed: boolean = false;
+
+  /**
+   * Emit a diagnostic: the session continues, degraded. participantTelemetry
+   * gives the code its channel and severity.
+   */
+  private diagnose(code: ClientDiagnosticCode, message: string, cause?: unknown): void {
+    this.eventHandlers.onDiagnostic?.({ code, message, cause });
+  }
+
 
   private conversationItems: ConversationItem[] = [];
   private itemCreatedAtMap: Map<string, number> = new Map();
@@ -208,7 +227,7 @@ export class OpenAIWebRTCClient implements IClient {
       console.info('[OpenAIWebRTCClient] WebRTC connection established');
 
     } catch (error) {
-      console.error('[OpenAIWebRTCClient] Connection failed:', error);
+      // Rethrown into MainPanel's session-start catch, which owns the report.
       this.cleanup();
       throw error;
     }
@@ -295,8 +314,11 @@ export class OpenAIWebRTCClient implements IClient {
 
       return await response.text();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      useLogStore.getState().addLog(`OpenAI WebRTC connection failed: ${message}`, 'error');
+      // No panel entry here. This rethrows into connect(), which rethrows into
+      // MainPanel's session-start catch — and that already writes the
+      // `session.init_error` row, the conversation bubble and the analytics
+      // event for exactly this failure. A second line for one failure is the
+      // duplicate the review bot keeps finding.
       throw error;
     }
   }
@@ -310,15 +332,24 @@ export class OpenAIWebRTCClient implements IClient {
     this.dc.onmessage = (event) => {
       try {
         const serverEvent: ServerEvent = JSON.parse(event.data);
+        this.parseFailed = false;
         this.handleServerEvent(serverEvent);
       } catch (error) {
-        console.error('[OpenAIWebRTCClient] Failed to parse server event:', error);
+        if (!this.parseFailed) {
+          this.parseFailed = true;
+          this.diagnose('parse_error', `server event could not be parsed: ${describeCause(error)}`, error);
+        }
       }
     };
 
     this.dc.onerror = (error) => {
-      console.error('[OpenAIWebRTCClient] Data channel error:', error);
-      this.eventHandlers.onError?.(error);
+      // Normalised, not forwarded raw: an RTCErrorEvent has no `message`, so
+      // clientErrorMessage() would render 'Unknown error' in the bubble and
+      // in analytics once the console line is gone.
+      this.eventHandlers.onError?.({
+        code: 'data_channel_error',
+        message: `Data channel error: ${describeCause((error as RTCErrorEvent).error ?? error)}`,
+      });
     };
 
     this.dc.onclose = () => {
@@ -391,7 +422,8 @@ export class OpenAIWebRTCClient implements IClient {
       default:
         // Log unhandled events for debugging
         if (event.type.includes('error')) {
-          console.warn('[OpenAIWebRTCClient] Unhandled error event:', event);
+          // A server event this client does not model. Developer trace only.
+          console.debug('[OpenAIWebRTCClient] Unhandled error event:', event);
         }
     }
   }
@@ -568,7 +600,7 @@ export class OpenAIWebRTCClient implements IClient {
    */
   private sendEvent(event: any): void {
     if (!this.dc || this.dc.readyState !== 'open') {
-      console.warn('[OpenAIWebRTCClient] Cannot send event, data channel not open');
+      // Per-send guard: silent. A channel that stays shut surfaces via onClose.
       return;
     }
 

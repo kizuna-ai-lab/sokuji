@@ -14,6 +14,43 @@ permissions:
   issues: write
 
 jobs:
+  # No workflow ran vitest before this one, so `npm run build` (plain
+  # `vite build`, no tsc) was the only gate and a consistency test could not
+  # fail CI. That is what let the LogsPanel copy-export defect and the
+  # console/logStore drift in #441 survive.
+  #
+  # Deliberately scoped rather than the whole suite: the full run has
+  # pre-existing failures unrelated to these files, and a job that is red on
+  # arrival gets ignored. Widen it as suites are cleaned up — the value is in
+  # the diagnostics guards running on every PR, starting now.
+  test:
+    name: test (diagnostics)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # `npm ci` runs lifecycle scripts from this checkout, and this job does
+          # no git work, so the token has nothing to do here.
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run diagnostics and log-surface tests
+        run: >-
+          npx vitest run
+          src/lib/diagnostics
+          src/lib/errorTracking.test.ts
+          src/stores/logStore.test.ts
+          src/stores/sanitizeEvent.test.ts
+          src/components/LogsPanel
+
   build:
     name: build (${{ matrix.name }})
     strategy:

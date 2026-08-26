@@ -250,6 +250,23 @@ export class ManagedSonioxSession {
 
   private readonly sessionToken: string;
   private readonly onEvent?: (type: string, data: unknown) => void;
+
+  /**
+   * A lease notification never reached the backend.
+   *
+   * Not a session failure — the stream is up and the user can do nothing — but
+   * it means the lease was not extended, which later presents as a session
+   * dying at its start window with a generic "connection closed". Routed to the
+   * debug timeline via onEvent rather than to `report()`: this class has no
+   * handler set and cannot know which session leg it belongs to.
+   */
+  private notifyFailed(step: string, error: unknown): void {
+    this.onEvent?.('session.notify_failed', {
+      provider: 'soniox',
+      step,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
   private request: ManagedSessionRequest | null = null;
   private readonly bundles = new Map<SonioxStreamRole, SonioxCredentialBundle>();
   private leaseIdValue: string | null = null;
@@ -500,7 +517,7 @@ export class ManagedSonioxSession {
       // design (routine, and nothing the client can act on), so silence here
       // still means silence for it.
       .then((response) => (response.ok ? null : this.reportStartedRefusal(response, role)))
-      .catch((error) => console.error('[ManagedSonioxSession] session-started notify failed:', error));
+      .catch((error) => this.notifyFailed('session-started', error));
   }
 
   /**
@@ -521,11 +538,8 @@ export class ManagedSonioxSession {
     } catch {
       // Not JSON — the status carries the news on its own.
     }
-    console.error(
-      `[ManagedSonioxSession] session-started was REFUSED for role ${role} ` +
-      `(HTTP ${response.status}${reason ? `, reason ${reason}` : ''}). The lease was NOT ` +
-      `extended: this session will expire at its start window while its Soniox keys stay valid.`
-    );
+    // The onEvent below carries this to the debug timeline; it used to be said
+    // twice, here and there.
     this.onEvent?.('session.started_refused', {
       provider: 'soniox',
       status: response.status,
@@ -552,7 +566,7 @@ export class ManagedSonioxSession {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ leaseId }),
-    }).catch((error) => console.error('[ManagedSonioxSession] session-end notify failed:', error));
+    }).catch((error) => this.notifyFailed('session-end', error));
   }
 
   /**

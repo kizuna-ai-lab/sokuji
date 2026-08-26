@@ -22,6 +22,7 @@
 // Moved beside its caller (KizunaAISonioxProviderConfig.prepareToStart, S5); deliberately React-, store- and i18n-free — a descriptor calls it without cycles.
 import type { ManagedVoicesClient } from '../../services/clients/ManagedVoicesClient';
 import { SonioxVoicesError } from '../../services/clients/SonioxVoicesClient';
+import { reportError, describeCause } from '../../lib/diagnostics/report';
 
 export type VoicePrepFailure = 'clip_required' | 'pool_exhausted' | 'voice_failed' | 'unavailable';
 
@@ -123,7 +124,10 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
       if (voice.status === 'failed') return { ok: false, reason: 'voice_failed' };
     }
   } catch (error) {
-    console.error('[Sokuji] [prepareManagedVoice] Unexpected failure:', error);
+    // The returned reason is a category ('unavailable'); the cause it came from
+    // survives nowhere else, and the user only sees that their voice did not
+    // prepare.
+    reportError('ManagedVoice', `Voice preparation failed: ${describeCause(error)}`, { cause: error });
     return { ok: false, reason: 'unavailable' };
   }
 
@@ -149,7 +153,7 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
       return { ok: true, value };
     } catch (error) {
       if (!(error instanceof SonioxVoicesError)) {
-        console.error('[Sokuji] [prepareManagedVoice] ensure failed:', error);
+        reportError('ManagedVoice', `Voice ensure failed: ${describeCause(error)}`, { cause: error });
         return { ok: false, reason: 'unavailable' };
       }
       if (error.errorType === 'clip_required' && !opts.retriedClip) {
