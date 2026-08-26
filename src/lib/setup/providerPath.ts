@@ -16,6 +16,10 @@ import type { ProviderPath } from './types';
  *  machine. Also the list the wizard excludes from its own-key options. */
 export const OFFLINE_PROVIDERS: readonly ProviderType[] = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
 
+/** The path `provider` belongs to: 'managed' for Kizuna AI's backend-managed
+ *  twins, 'offline' for the local engines, 'own-key' for every service the user
+ *  holds a key to. `providerPath.test.ts` pins the answer for each member of the
+ *  enum, so a new provider has to be classified here deliberately. */
 export function providerPathFor(provider: ProviderType): ProviderPath {
   if (isKizunaManagedProvider(provider)) return 'managed';
   if (OFFLINE_PROVIDERS.includes(provider)) return 'offline';
