@@ -13,6 +13,8 @@ import {
 import { Provider, ProviderType } from '../../types/Provider';
 import { OpenAIClient } from './OpenAIClient';
 import i18n from '../../locales';
+import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
+import { describeCause } from '../../lib/diagnostics/describeCause';
 
 const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
 /** Default silence threshold for both user (input) and assistant (output) timers. */
@@ -76,6 +78,15 @@ export class OpenAITranslateGAClient implements IClient {
   private apiKey: string;
   private ws: WebSocket | null = null;
   private eventHandlers: ClientEventHandlers = {};
+
+  /**
+   * Emit a diagnostic: the session continues, degraded. participantTelemetry
+   * gives the code its channel and severity.
+   */
+  private diagnose(code: ClientDiagnosticCode, message: string, cause?: unknown): void {
+    this.eventHandlers.onDiagnostic?.({ code, message, cause });
+  }
+
   private connected: boolean = false;
 
   // Independent state machines for user (input) and assistant (output) sides.
@@ -536,7 +547,7 @@ export class OpenAITranslateGAClient implements IClient {
         const data = JSON.parse(event.data);
         this.handleServerEvent(data);
       } catch (err) {
-        console.error('[OpenAITranslateGAClient] Failed to parse server message:', err);
+        this.diagnose('parse_error', `server message could not be parsed: ${describeCause(err)}`, err);
       }
     };
     this.ws.onerror = (event) => {

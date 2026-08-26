@@ -205,10 +205,12 @@ export interface AcquireSessionResourcesContext {
   };
   /** Session-lifecycle events for the realtime log. Closed vocabulary — the
    *  managed lease emits 'session.retry' (409 on acquire) and
-   *  'session.started_refused' (a refused session-started report). MainPanel
+   *  'session.started_refused' (a refused session-started report) and
+ *  'session.notify_failed' (a lease notification that never reached the
+ *  backend). MainPanel
    *  forwards these to addRealtimeEvent; the log renders unknown types
    *  generically. */
-  onEvent: (type: 'session.retry' | 'session.started_refused', data: unknown) => void;
+  onEvent: (type: 'session.retry' | 'session.started_refused' | 'session.notify_failed', data: unknown) => void;
 }
 
 /**

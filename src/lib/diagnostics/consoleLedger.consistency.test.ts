@@ -138,16 +138,6 @@ const countConsoleCalls = (source: string): number =>
  * PR2 takes the persistence seam, PR3 the client contract, PR4 the remainder.
  */
 const LEDGER: Record<string, number> = {
-  // --- PR3 — the client contract (onError / onDiagnostic / onConnectFailed) ---
-  'src/services/clients/LocalInferenceClient.ts': 7,
-  'src/services/clients/SonioxClient.ts': 7,
-  'src/services/clients/OpenAIWebRTCClient.ts': 5,
-  'src/services/clients/ManagedSonioxSession.ts': 3,
-  'src/services/clients/OpenAITranslateWebRTCClient.ts': 3,
-  'src/services/clients/OpenAIClient.ts': 2,
-  'src/services/clients/ZoomAIClient.ts': 2,
-  'src/services/clients/LocalNativeClient.ts': 1,
-  'src/services/clients/OpenAITranslateGAClient.ts': 1,
   // --- PR4 — provider config and onboarding ---
   'src/services/providers/localParticipantConfig.ts': 2,
   'src/services/providers/managedVoicePrep.ts': 2,

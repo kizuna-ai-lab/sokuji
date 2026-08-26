@@ -21,6 +21,10 @@ export interface EventData {
     | 'session.webrtc_fallback'
     // Participant/local inference status types
     | 'participant.error'
+    // Managed-lease notifications (ProviderDescriptor.onEvent)
+    | 'session.retry'
+    | 'session.started_refused'
+    | 'session.notify_failed'
     | 'participant.warning'
     | 'participant.info'
     // Gemini-specific top-level message types

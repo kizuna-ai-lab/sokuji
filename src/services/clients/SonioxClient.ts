@@ -19,6 +19,8 @@ import type { SonioxSessionLeg, SonioxSessionOutcomeNotice } from './SonioxSessi
 import { PcmMixer } from './PcmMixer';
 import { SonioxSideTracker } from './SonioxSideTracker';
 import i18n from '../../locales';
+import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
+import { describeCause } from '../../lib/diagnostics/describeCause';
 
 /**
  * Soniox speech-to-speech translation client.
@@ -88,6 +90,15 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
   private stt: SonioxSttStream | null = null;
   private tts: SonioxTtsStream | null = null;
   private eventHandlers: ClientEventHandlers = {};
+
+  /**
+   * Emit a diagnostic: the session continues, degraded. participantTelemetry
+   * gives the code its channel and severity.
+   */
+  private diagnose(code: ClientDiagnosticCode, message: string, cause?: unknown): void {
+    this.eventHandlers.onDiagnostic?.({ code, message, cause });
+  }
+
   private conversationItems: ConversationItem[] = [];
   private isConnectedState = false;
   // Monotonic session generation. connect() stamps a new one; disconnect()
@@ -378,7 +389,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       } catch (error) {
         // Best-effort: never fail the session because TTS is unavailable.
         // feedTts will retry the connection on the first translation.
-        console.error('[SonioxClient] TTS initial connect failed — will reconnect on demand:', error);
+        this.diagnose('tts_degraded', `TTS connect failed, will retry on demand: ${describeCause(error)}`, error);
         this.tts = null;
       }
     }
@@ -609,7 +620,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
         this.eventHandlers.onReconnected?.();
         return;
       } catch (error) {
-        console.error('[SonioxClient] STT resume attempt failed:', error);
+        this.diagnose('resume_attempt_failed', `STT resume failed: ${describeCause(error)}`, error);
         if (gen !== this.generation) return; // disconnect() ran during the failed connect await
       }
     }
@@ -1241,7 +1252,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
    * the managed-403 cutoff, nor a resumable 503, nor a recoverable outage).
    */
   private surfaceSttError(code: string, message: string): void {
-    console.error(`[SonioxClient] STT error ${code}: ${message}`);
+    // No log line: emitSystemNotice and onError below are both records of this.
     this.emitSystemNotice(`[Soniox ${code}] ${message}`);
     this.eventHandlers.onError?.({ code, message });
   }
@@ -1258,7 +1269,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
    * the one item emitted here.
    */
   private surfaceRecoverableOutage(code: string, message: string): void {
-    console.warn(`[SonioxClient] STT connection lost (${code}): ${message}`);
+    // No log line: the session.connection_lost event below is the panel row.
     this.emitRealtime('client', 'session.connection_lost', { provider: 'soniox', code, message });
     const text = i18n.t(
       'mainPanel.sonioxConnectionLost',
@@ -1296,7 +1307,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     // raising the error is deliberately unchanged — only its visibility is.
     if (!this.ttsFailedOnce) {
       this.ttsFailedOnce = true;
-      console.error(`[SonioxClient] TTS error ${code}: ${message} — spoken translation degraded`);
+      // No log line: the tts.degraded event below is the panel row.
       this.emitRealtime('client', 'tts.degraded', { code, message });
       this.eventHandlers.onError?.({
         // Namespaced so a UI branching on `code` cannot confuse a degraded-TTS
@@ -1408,7 +1419,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
   }
 
   updateSession(_config: Partial<SessionConfig>): void {
-    console.warn('[SonioxClient] Session updates are not supported. Reconnect to change configuration.');
+    // Unreachable: no capability advertises runtime session updates.
   }
 
   reset(): void {
@@ -1479,7 +1490,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
   }
 
   appendInputText(_text: string): void {
-    console.warn('[SonioxClient] Text input is not supported for speech translation');
+    // Unreachable: MainPanel gates text input on capabilities.supportsTextInput.
   }
 
   // Continuous streaming: responses are generated automatically by the server.
