@@ -86,11 +86,13 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
       await apply(draft);
       // Hand off to the tour before the wizard unmounts. The ctx is seeded from
       // the draft, not the stores: only the draft knows whether the user
-      // actually supplied a key or pressed "Skip for now".
+      // actually supplied a key or pressed "Skip for now". The provider path is
+      // not passed — buildTourCtx derives it from the provider, which on this
+      // path is the one the draft just wrote.
       if (variant === 'first-run') {
         const preset = getScenario(draft.scenario!);
         startTour(buildTourCtx({
-          record: { scenario: draft.scenario, providerPath: draft.providerPath },
+          record: { scenario: draft.scenario },
           provider: draft.provider!,
           mode: preset.mode, textOnly: preset.textOnly, isSignedIn,
           apiKeyValid: draft.providerPath === 'own-key' ? !draft.credentialsPending : null,

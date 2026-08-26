@@ -10,11 +10,13 @@ const extension = { isElectron: false, isExtension: true, isLinux: false, isMacO
 /** A dev build served in a plain browser: neither host, and no subtitle button. */
 const web = { isElectron: false, isExtension: false, isLinux: true, isMacOS: false, isWindows: false };
 
+/** `providerPath` picks the representative provider, because that is now the
+ *  only thing the path is read from — the setup record no longer supplies it. */
 function ctxFor(scenarioId: TourCtx['scenario'], providerPath: TourCtx['providerPath'], env = electron, extra: Partial<TourCtx> = {}): TourCtx {
   const preset = scenarioId ? getScenario(scenarioId) : { mode: 'speaker' as const, textOnly: false };
   return {
     ...buildTourCtx({
-      record: { scenario: scenarioId, providerPath },
+      record: { scenario: scenarioId },
       provider: providerPath === 'managed' ? Provider.KIZUNA_AI_SONIOX : providerPath === 'offline' ? Provider.LOCAL_INFERENCE : Provider.OPENAI,
       mode: preset.mode, textOnly: preset.textOnly, isSignedIn: true, apiKeyValid: true, env,
     }),
@@ -39,10 +41,13 @@ describe('visibleSteps — the spec §2.2 table', () => {
     expect(ids(ctxFor('understand-others', 'offline'))).not.toContain('account');
   });
 
-  it('a migrated user (no scenario) gets device steps from the current mode', () => {
-    expect(ids(ctxFor(null, null, electron, { mode: 'speaker', textOnly: false }))).toEqual(['welcome', 'mode-picker', 'microphone', 'monitor', 'output-routing', 'subtitle', 'start', 'done']);
-    expect(ids(ctxFor(null, null, electron, { mode: 'participant', textOnly: true }))).toEqual(['welcome', 'mode-picker', 'participant-source', 'subtitle', 'start', 'done']);
-    expect(ids(ctxFor(null, null, electron, { mode: 'both', textOnly: true }))).toEqual(['welcome', 'mode-picker', 'microphone', 'participant-source', 'subtitle', 'start', 'done']);
+  it('a migrated user (no scenario) gets device steps from the current mode, and the provider step their provider implies', () => {
+    // The record a migration writes has no path at all. Deriving it from the
+    // live provider is what stops these users from being the one group the
+    // tour says nothing to about keys, sign-in or models.
+    expect(ids(ctxFor(null, 'own-key', electron, { mode: 'speaker', textOnly: false }))).toEqual(['welcome', 'mode-picker', 'microphone', 'monitor', 'output-routing', 'subtitle', 'provider-settings', 'start', 'done']);
+    expect(ids(ctxFor(null, 'managed', electron, { mode: 'participant', textOnly: true }))).toEqual(['welcome', 'mode-picker', 'participant-source', 'subtitle', 'account', 'start', 'done']);
+    expect(ids(ctxFor(null, 'offline', electron, { mode: 'both', textOnly: true }))).toEqual(['welcome', 'mode-picker', 'microphone', 'participant-source', 'subtitle', 'models', 'start', 'done']);
   });
 
   it('drops the subtitle step on web, where its button never renders', () => {
@@ -99,7 +104,7 @@ describe('contentKey — copy variants', () => {
 describe('buildTourCtx', () => {
   it('maps environment flags to platform and os', () => {
     const c = buildTourCtx({ record: null, provider: Provider.OPENAI, mode: 'speaker', textOnly: false, isSignedIn: false, apiKeyValid: null, env: extension });
-    expect(c).toMatchObject({ scenario: null, providerPath: null, platform: 'extension', os: 'windows' });
+    expect(c).toMatchObject({ scenario: null, providerPath: 'own-key', platform: 'extension', os: 'windows' });
     expect(buildTourCtx({ ...c, record: null, env: { isElectron: true, isExtension: false, isLinux: false, isMacOS: false, isWindows: false } }).os).toBe('other');
   });
 });
