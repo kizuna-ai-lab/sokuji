@@ -57,6 +57,7 @@ import {
 import { defaultKizunaOpenaiTranslateSettings } from '../services/providers/KizunaAIOpenAITranslateProviderConfig';
 import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
 import { defaultKizunaSonioxSettings } from '../services/providers/KizunaAISonioxProviderConfig';
+import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 import {
   SonioxSettings, defaultSonioxSettings,
 } from '../services/providers/SonioxProviderConfig';
@@ -765,7 +766,7 @@ const useSettingsStore = create<SettingsStore>()(
       // subtitleEnterGate.ts) so the button can never be enabled while this
       // guard silently refuses the entry it triggers.
       if (!canEnterSubtitleMode(useSessionStore.getState().isSessionActive)) {
-        console.warn('[SettingsStore] enterSubtitleMode ignored — no active session');
+        reportWarning('SettingsStore', 'enterSubtitleMode ignored — no active session');
         return;
       }
       // Claim the slot synchronously so a concurrent call (double-click,
@@ -777,7 +778,7 @@ const useSettingsStore = create<SettingsStore>()(
       try {
         await getSubtitleSurface().enter();
       } catch (error) {
-        console.error('[SettingsStore] enterSubtitleMode failed:', error);
+        reportError('SettingsStore', `enterSubtitleMode failed: ${describeCause(error)}`, { cause: error });
         set({ subtitleModeActive: false });
         // Re-throw so the caller (e.g. SubtitleEnterButton) can show a
         // user-facing toast for actionable failure modes such as a stale
@@ -796,7 +797,7 @@ const useSettingsStore = create<SettingsStore>()(
       try {
         await getSubtitleSurface().exit();
       } catch (error) {
-        console.error('[SettingsStore] exitSubtitleMode failed:', error);
+        reportError('SettingsStore', `exitSubtitleMode failed: ${describeCause(error)}`, { cause: error });
       }
     },
 
@@ -814,7 +815,7 @@ const useSettingsStore = create<SettingsStore>()(
         // Swallow (unlike enterSubtitleMode, which re-throws so the entry
         // button can toast): a fullscreen-toggle failure is non-actionable
         // for the caller, and reverting the flag re-syncs the bar button.
-        console.error('[SettingsStore] setSubtitleFullscreen failed:', error);
+        reportError('SettingsStore', `setSubtitleFullscreen failed: ${describeCause(error)}`, { cause: error });
         set({ subtitleFullscreen: previous });
       }
     },
@@ -1115,13 +1116,18 @@ const useSettingsStore = create<SettingsStore>()(
           set({isKizunaKeyFetching: false});
           return true;
         } else {
-          console.warn('[SettingsStore] Failed to get auth session');
+          // `kizunaKeyError` is the user-facing half (rendered as a localized
+          // message by the provider section); this is the diagnostic half.
+          reportWarning('SettingsStore', 'No auth session available for Kizuna AI');
           set({kizunaKeyError: 'auth.sessionUnavailable', isKizunaKeyFetching: false});
           return false;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error getting auth session';
-        console.error('[SettingsStore] Error getting auth session for Kizuna AI:', errorMessage);
+        reportError(
+          'SettingsStore',
+          `Failed to get auth session for Kizuna AI: ${describeCause(error)}`,
+          { cause: error },
+        );
         set({kizunaKeyError: 'auth.unknown', isKizunaKeyFetching: false});
         return false;
       }
@@ -1212,7 +1218,11 @@ const useSettingsStore = create<SettingsStore>()(
 
         console.info('[SettingsStore] Settings loaded successfully');
       } catch (error) {
-        console.error('[SettingsStore] Error loading settings:', error);
+        // `settingsLoaded` stays false forever after this, so the app runs on
+        // defaults with no indication that the user's saved settings were not
+        // applied. The panel entry is the only record until the basic-mode
+        // banner lands (see the design's user-facing tier).
+        reportError('SettingsStore', `Failed to load settings: ${describeCause(error)}`, { cause: error });
       }
     },
 
@@ -1236,7 +1246,13 @@ const useSettingsStore = create<SettingsStore>()(
       try {
         return ProviderConfigFactory.getConfig(state.provider);
       } catch (error) {
-        console.warn(`[SettingsStore] Unknown provider: ${state.provider}, falling back to OpenAI`);
+        // Reached synchronously from JSX (ProviderSpecificSettings.tsx calls
+        // getProcessedSystemInstructions() during render), so a report here
+        // would be a setState-during-render if it wrote the store eagerly.
+        // `report()` defers the panel write to a microtask, which is what makes
+        // this call site legal at all — and why the fallback can stay a
+        // fallback rather than becoming a throw that crashes a render.
+        reportWarning('SettingsStore', `Unknown provider: ${state.provider}, falling back to OpenAI`, { cause: error });
         return ProviderConfigFactory.getConfig(Provider.OPENAI);
       }
     },

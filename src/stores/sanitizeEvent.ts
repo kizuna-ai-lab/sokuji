@@ -1,3 +1,5 @@
+import { redact } from '../lib/diagnostics/redact';
+
 /** Format byte count as human-readable string: "512B", "45.0KB", "2.5MB" */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
@@ -31,6 +33,19 @@ function isLikelyBase64(str: string): boolean {
 
 const AUDIO_FIELD_NAMES = new Set([
   'audio', 'audioData', 'audio_data', 'pcmData', 'buffer', 'wav', 'pcm'
+]);
+
+/**
+ * String fields that carry provider-supplied text into a panel event, and so
+ * can carry a credential with it.
+ *
+ * Deliberately a small allowlist rather than "every string": `sanitizeEvent`
+ * runs on every realtime event, including per-frame transcript deltas, and
+ * running five regexes over transcript text would put the cost on the audio
+ * thread for no benefit.
+ */
+const REDACTED_FIELD_NAMES = new Set([
+  'message', 'error', 'rawMessage', 'url', 'filename', 'reason', 'detail', 'title'
 ]);
 
 /** Sanitize event data by removing large binary/base64 audio payloads. */
@@ -109,6 +124,19 @@ export function sanitizeEvent(event: any): any {
     // Layer 2: generic base64 detection on string values
     if (typeof value === 'string' && isLikelyBase64(value)) {
       sanitized[key] = `<base64:${formatBytes(base64ByteSize(value))}>`;
+      continue;
+    }
+
+    // Layer 4: credential redaction on the fields that carry provider text.
+    //
+    // Key-scoped and strings only, so per-frame transcript deltas never touch
+    // the regexes. These are the fields a failure travels in: participantTelemetry
+    // embeds the whole error event in a `session.error` row, and GeminiClient
+    // forwards `filename` and `error.toString()`. Panel events are
+    // clipboard-exportable, so a signed URL or Bearer header reaching one is a
+    // leak with a copy button next to it.
+    if (typeof value === 'string' && REDACTED_FIELD_NAMES.has(key)) {
+      sanitized[key] = redact(value);
       continue;
     }
 

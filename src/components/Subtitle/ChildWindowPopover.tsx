@@ -1,7 +1,7 @@
 // src/components/Subtitle/ChildWindowPopover.tsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import useLogStore from '../../stores/logStore';
+import { reportError, describeCause } from '../../lib/diagnostics/report';
 
 /**
  * Hosts a popover in its own frameless, transparent OS window instead of
@@ -70,9 +70,10 @@ function setNativeVisibility(name: string, visible: boolean): void {
       // A rejection leaves the popover in the wrong visibility state; there
       // is no recovery beyond the user toggling again, but it must not be
       // silent (and never an unhandled rejection).
-      useLogStore.getState().addLog(
-        `[ChildWindowPopover] set-visible(${visible}) failed for ${name}: ${String(error)}`,
-        'error',
+      reportError(
+        'ChildWindowPopover',
+        `set-visible(${visible}) failed for ${name}: ${describeCause(error)}`,
+        { cause: error },
       );
     }
   })();

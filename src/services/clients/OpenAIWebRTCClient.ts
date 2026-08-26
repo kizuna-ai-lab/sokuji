@@ -20,7 +20,7 @@ import {
   isOpenAISessionConfig,
   ResponseConfig
 } from '../interfaces/IClient';
-import useLogStore, { RealtimeEvent } from '../../stores/logStore';
+import type { RealtimeEvent } from '../../stores/logStore';
 import { Provider, ProviderType } from '../../types/Provider';
 import { unwrapTranslationText } from '../../utils/textUtils';
 import { EphemeralTokenService } from '../EphemeralTokenService';
@@ -295,8 +295,11 @@ export class OpenAIWebRTCClient implements IClient {
 
       return await response.text();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      useLogStore.getState().addLog(`OpenAI WebRTC connection failed: ${message}`, 'error');
+      // No panel entry here. This rethrows into connect(), which rethrows into
+      // MainPanel's session-start catch — and that already writes the
+      // `session.init_error` row, the conversation bubble and the analytics
+      // event for exactly this failure. A second line for one failure is the
+      // duplicate the review bot keeps finding.
       throw error;
     }
   }

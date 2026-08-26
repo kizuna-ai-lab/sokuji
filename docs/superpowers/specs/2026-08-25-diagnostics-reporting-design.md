@@ -382,3 +382,50 @@ all are folded into the text above:
 | Plain-entry `'info'` left reachable | §4 type narrowing |
 | Nothing said `report()` never reaches PostHog | §8 |
 | Over-reach: four throttle knobs; four LogsPanel UX features in PR1; seam-wide debounce; unsourced redaction patterns; PR5 inside #441 | §3.5, §4, §7, §3.4, §6 respectively |
+
+
+## 11. PR1 as landed — deviations from the design above
+
+PR1 is implemented. Two decisions were changed while building it, both after
+checking the code rather than the design:
+
+**Redaction writes `[REDACTED]`, not `[REDACTED:<kind>]`** (§3.4 said the latter).
+`errorTracking.ts` already emitted the bare form and six of its tests assert on
+it; a second format for the same act would have meant either churning those tests
+or shipping two conventions. The surrounding text already names what was removed
+(`Bearer [REDACTED]`, `?key=[REDACTED]`), so the suffix was redundant.
+
+**`getCurrentProviderConfig` keeps its OpenAI fallback** (§3.6 said: throw like
+its sibling). The design's own argument for the throw was that the site is
+unreachable because `loadSettings` validates the provider — but a site that is
+unreachable in theory is exactly the wrong place to install a crash, and this one
+is on a render path (`ProviderSpecificSettings.tsx:2377` calls it synchronously
+during render). It now calls `reportWarning` and keeps the fallback, which is
+possible *because* `report()` defers the panel write to a microtask. The render
+hazard the design worried about is what the mechanism removed.
+
+Also worth recording, found while building:
+
+- **`allLogs` is capped at 2000 + one batch, not 2000.** `allLogs` is
+  `logs` + the unflushed batch, so the exact-cap assertion in §3.7 was wrong. The
+  invariant is on `logs`; `allLogs` peaks a batch above it (~15 entries at a
+  10 ms write rate), which is still bounded — the point of the throttle fix.
+- **The ledger regex must require the trailing `(`.** A comment in
+  `UserProfileContext.tsx` containing the words "console.error" inflated its row
+  by one during development. `console\.(?:error|warn)\(` is the pattern, and the
+  self-guard test pins that prose does not count.
+- **`OpenAIClient.ts` imported `RealtimeEvent` as a value import**, which the
+  "clients never import the store as a value" assertion caught on its first run.
+  Changed to `import type`. The client never wrote to the store; the import was
+  simply not marked type-only.
+- **`tsc --noEmit` is not a gate here**: `main` has 571 pre-existing errors, so
+  the `@ts-expect-error` assertions on `Message<T>` are documentation rather than
+  something CI verifies. `Message<T>` itself was verified empirically against the
+  repo's own tsc: it rejects `any`, `unknown`, `string | undefined`, objects and
+  numbers, and accepts string literals, `string`, template literals and
+  `Error['message']`.
+- **The vitest CI job is scoped, not full-suite.** The open question in §9 is
+  answered by measurement: the full suite has 11 failing files / 7 failing tests
+  on a clean `main` checkout in a worktree, identical before and after this PR.
+  A job that is red on arrival gets ignored, so the job runs the diagnostics and
+  log-surface tests only, and widens as suites are cleaned up.

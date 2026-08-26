@@ -1,4 +1,5 @@
 import type PostHog from 'posthog-js-lite';
+import { redact } from './diagnostics/redact';
 
 export interface StackFrame {
   platform: string;
@@ -53,11 +54,14 @@ export function parseStackTrace(stack: string): StackFrame[] {
   return frames;
 }
 
-// Matches common API key patterns: sk-..., AIza..., key-...
-const API_KEY_RE = /\b(sk-[a-zA-Z0-9_-]{10,}|AIza[a-zA-Z0-9_-]{10,}|key-[a-zA-Z0-9_-]{10,})\b/g;
-
+/**
+ * Kept as a named export because this module's own tests and `captureError`
+ * use it; the pattern list now lives in `diagnostics/redact` so PostHog and
+ * LogsPanel redact the same shapes. A credential that one surface strips and
+ * the other does not is the failure mode worth avoiding.
+ */
 export function redactSensitiveData(message: string): string {
-  return message.replace(API_KEY_RE, '[REDACTED]');
+  return redact(message);
 }
 
 const DEDUP_WINDOW_MS = 5000;

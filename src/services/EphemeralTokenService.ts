@@ -1,4 +1,4 @@
-import useLogStore from '../stores/logStore';
+import { reportError, describeCause } from '../lib/diagnostics/report';
 
 /**
  * EphemeralTokenService
@@ -104,9 +104,11 @@ export class EphemeralTokenService {
 
       return tokenValue;
     } catch (error) {
-      console.error('[EphemeralTokenService] Error fetching ephemeral token:', error);
-      const message = error instanceof Error ? error.message : String(error);
-      useLogStore.getState().addLog(`Failed to fetch OpenAI Realtime client secret: ${message}`, 'error');
+      reportError(
+        'EphemeralTokenService',
+        `Failed to fetch OpenAI Realtime client secret: ${describeCause(error)}`,
+        { cause: error },
+      );
       throw error;
     }
   }
@@ -197,12 +199,24 @@ export class EphemeralTokenService {
         : data.client_secret?.value;
       const secret = flatValue ?? nestedValue;
       if (!secret) {
-        console.error('[Sokuji] [EphemeralTokenService] Unexpected client_secret response shape:', data);
-        throw new Error('Translation client_secret missing from response');
+        // Key names only, and carried on the thrown Error rather than reported
+        // here: the catch below is the one sink for this function, so reporting
+        // in both places would put two lines in the panel for one failure.
+        //
+        // `data` is a client-secret response. This used to hand the whole body
+        // to console.error; the panel is user-visible and has a copy button.
+        // The key list is what diagnoses a shape change — the values never do.
+        throw new Error(
+          `Translation client_secret missing from response (keys: ${Object.keys(data).join(', ')})`,
+        );
       }
       return secret;
     } catch (error) {
-      console.error('[Sokuji] [EphemeralTokenService] Error minting translation client secret:', error);
+      reportError(
+        'EphemeralTokenService',
+        `Failed to mint translation client secret: ${describeCause(error)}`,
+        { cause: error },
+      );
       throw error;
     }
   }

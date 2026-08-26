@@ -128,9 +128,58 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 - `src/contexts/` - React Context providers (OnboardingContext, UserProfileContext)
 
 ### Error Handling
-- All API calls wrapped in try-catch blocks
-- Errors logged to logStore for user visibility via LogsPanel
-- Graceful degradation when features unavailable
+
+All API calls are wrapped in try-catch, and features degrade gracefully when
+unavailable. Where a caught failure is *recorded* is decided here, once, rather
+than at each call site:
+
+**Record it with `reportError` / `reportWarning` from `src/lib/diagnostics/report.ts`,
+never with `console.error` / `console.warn`.** One call writes both surfaces: the
+console line fires synchronously with the raw `cause` (developer surface, keeps
+the stack), and a redacted one-sentence message reaches LogsPanel one microtask
+later (user-diagnostic surface — advanced mode only, English, pasted into bug
+reports). The deferral makes it safe to call from any stack, including a Zustand
+getter React reaches during render.
+
+```typescript
+import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
+
+reportError('SettingsStore', `Failed to load settings: ${describeCause(error)}`, { cause: error });
+reportWarning('AudioStore', 'No real microphone available', { dedupeKey: 'mic.missing' });
+```
+
+- **Severity.** `error` = what the user asked for did not happen. `warning` = it
+  happened or will (a fallback ran, a retry is pending, state is in memory but
+  unpersisted). `info` is not a failure — leave it on `console.info`.
+- **The message is a string, always.** `Message<T>` rejects `any`, `unknown`,
+  `string | undefined` and objects, so a parsed response body cannot become a log
+  line. The caught value goes in `cause`, which never leaves the console. Use
+  `describeCause(err)` for one readable sentence from any thrown shape.
+- **`report()` never shows UI.** A failure the user must act on becomes state on
+  the owning store and a component renders it — LogsPanel is closed outside
+  advanced mode, so it is never the basic-mode surface.
+- **Don't record the same failure twice.** If it already reaches the panel by
+  another route (`handlers.onError`, `onRealtimeEvent`, a rethrow into MainPanel's
+  session-start catch, `validationMessage`, descriptor `notices`), add nothing.
+- **Inside an `IClient` session**, clients use `handlers.onError` (session broken),
+  `handlers.onRealtimeEvent` (wire traffic), or throw out of `connect()` — never
+  `report()` and never `console.*`. Only MainPanel knows which channel
+  (speaker/participant) a client is on.
+- **Hot paths** (per-audio-chunk, per-frame, per-poll-tick) never log per
+  occurrence: return silently, or report the ok → failing transition. Bursts pass
+  `dedupeKey`; the panel throttles per key on a 5s window while the console still
+  sees every call.
+- **Secrets are redacted at the sinks** (`logStore.addLog`, `sanitizeEvent`) from
+  one list in `src/lib/diagnostics/redact.ts`, shared with PostHog error tracking.
+  Panel text is clipboard-exportable, so this is not optional.
+- **Contexts that cannot import the store** — web workers, AudioWorklets,
+  `extension/`, `electron/`, `sidecar/` — keep their existing message/IPC channel,
+  and the renderer-side caller reports. They are outside this policy.
+- **Remaining `console.error` / `console.warn`** are tracked file-by-file in
+  `src/lib/diagnostics/consoleLedger.consistency.test.ts` and lowered in dedicated
+  PRs, not in passing. The counts are exact: removing a call means lowering its
+  row in the same diff. See `docs/superpowers/specs/2026-08-25-diagnostics-reporting-design.md`
+  for the full design and the migration plan (#441).
 
 ### Platform-Specific Code
 Use centralized utilities from `src/utils/environment.ts`:

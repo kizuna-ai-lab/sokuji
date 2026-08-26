@@ -37,7 +37,7 @@ import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
 import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-inference/sidMapping';
 import { getEdgeTtsVoices, filterVoicesByLanguage, getVoiceDisplayName } from '../../../lib/edge-tts/voiceList';
 import type { Voice } from '../../../lib/edge-tts/edgeTts';
-import useLogStore from '../../../stores/logStore';
+import { reportError, describeCause } from '../../../lib/diagnostics/report';
 import { isElectron } from '../../../utils/environment';
 import './ModelManagementSection.scss';
 
@@ -512,12 +512,7 @@ export function ModelManagementSection({
       })
       .catch(err => {
         if (cancelled) return;
-        const message = err instanceof Error ? err.message : String(err);
-        console.warn('[EdgeTTS] Failed to fetch voice list:', err);
-        useLogStore.getState().addLog(
-          `Failed to fetch Edge TTS voice list: ${message}`,
-          'error',
-        );
+        reportError('EdgeTTS', `Failed to fetch voice list: ${describeCause(err)}`, { cause: err });
         setEdgeTtsVoiceStatus('error');
       });
     return () => { cancelled = true; };
