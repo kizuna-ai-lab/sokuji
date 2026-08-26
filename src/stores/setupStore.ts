@@ -7,10 +7,11 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { ServiceFactory } from '../services/ServiceFactory';
-import type { ISettingsService } from '../services/interfaces/ISettingsService';
 import { SETUP_VERSION, TOUR_VERSION } from '../lib/setup/types';
 import type { ProviderPath, ScenarioId, SetupRecord, TourChapter, TourRecord } from '../lib/setup/types';
 import { planSetupMigration, LEGACY_USER_TYPE_KEY, LEGACY_ONBOARDING_KEY, LEGACY_KEYS_RETIRED } from '../lib/setup/setupMigration';
+import { persistSetting } from '../services/persistSetting';
+import { reportError, describeCause } from '../lib/diagnostics/report';
 
 export const SETUP_STORAGE_KEY = 'settings.setup';
 export const TOUR_STORAGE_KEY = 'settings.tour';
@@ -54,31 +55,17 @@ export class SetupPersistError extends Error {
   }
 }
 
-/** Persists a setup/tour record, reporting whether the write landed. Returns
- *  false (and logs) when SettingsService reports failure (e.g. chrome-storage
- *  quota, lastError); a service that throws instead — chrome.storage.sync.set
- *  can throw synchronously — rejects, and the caller decides. Swallowing
- *  either would leave a failed persist silent, its only symptom the wizard
- *  reappearing next launch. */
-async function persist(service: ISettingsService, key: string, value: unknown): Promise<boolean> {
-  const result = await service.setSetting(key, value);
-  if (!result.success) {
-    console.error(`[SetupStore] Failed to persist ${key}:`, result.error ?? result.message);
-    return false;
-  }
-  return true;
-}
-
-/** persist() for the callers that must carry on regardless: a rejected write
- *  is logged and reported as failure rather than propagated. */
-async function tryPersist(service: ISettingsService, key: string, value: unknown): Promise<boolean> {
-  try {
-    return await persist(service, key, value);
-  } catch (error) {
-    console.error(`[SetupStore] Failed to persist ${key}:`, error);
-    return false;
-  }
-}
+/* Writes go through `persistSetting` (src/services/persistSetting.ts).
+ *
+ * This module arrived with its own `persist`/`tryPersist` pair that read
+ * `result.success` and caught rejection — the same two channels, derived
+ * independently while the seam was in flight. Both are the seam's behaviour
+ * exactly, including for the caller that wrapped `persist` in its own
+ * try/catch, so they are gone: a failed write returns false, files one panel
+ * warning per key, and never rejects. Swallowing it silently would leave the
+ * wizard reappearing next launch with no explanation, which is what the
+ * original comment here was guarding against.
+ */
 
 export const useSetupStore = create<SetupStore>()(
   subscribeWithSelector((set, get) => ({
@@ -104,8 +91,8 @@ export const useSetupStore = create<SetupStore>()(
         });
         // The migrated record goes into state either way: a write that failed is
         // no reason to ask an existing user to set the app up again this launch.
-        const setupWritten = plan.setup ? await tryPersist(service, SETUP_STORAGE_KEY, plan.setup) : true;
-        if (plan.tour) await tryPersist(service, TOUR_STORAGE_KEY, plan.tour);
+        const setupWritten = plan.setup ? await persistSetting(SETUP_STORAGE_KEY, plan.setup) : true;
+        if (plan.tour) await persistSetting(TOUR_STORAGE_KEY, plan.tour);
         // The legacy keys are the only evidence a failed write leaves behind, so
         // they may only be dropped once the record they produced is safely stored.
         if (plan.clearLegacyKeys && LEGACY_KEYS_RETIRED && setupWritten) {
@@ -114,7 +101,9 @@ export const useSetupStore = create<SetupStore>()(
         }
         set({ setup: plan.setup, tour: plan.tour ?? tour, loaded: true });
       } catch (error) {
-        console.error('[SetupStore] Error hydrating setup state:', error);
+        // The app carries on with no setup record, which presents as the wizard
+        // appearing for a user who already finished it.
+        reportError('SetupStore', `Setup state could not be read: ${describeCause(error)}`, { cause: error });
         set({ loaded: true });
       }
     },
@@ -133,13 +122,10 @@ export const useSetupStore = create<SetupStore>()(
       // A rejecting service (the extension's storage can throw) is the same
       // failure as a reported one, so it surfaces as the same typed error and
       // the wizard shows its translated message rather than a raw stack line.
-      let written = false;
-      try {
-        written = await persist(ServiceFactory.getSettingsService(), SETUP_STORAGE_KEY, record);
-      } catch (error) {
-        console.error('[setupStore] Setup record write threw:', error);
-      }
-      if (!written) {
+      // persistSetting absorbs both failure channels, so a rejecting service
+      // (the extension's storage can throw) reaches the wizard as the same
+      // typed error as a refused write, not as a raw stack line.
+      if (!await persistSetting(SETUP_STORAGE_KEY, record)) {
         throw new SetupPersistError();
       }
       set({ setup: record });
@@ -158,7 +144,7 @@ export const useSetupStore = create<SetupStore>()(
       // the user in the tour, so the record lands in memory regardless and the
       // cost of the failure is at worst one re-run on the next launch.
       set({ tour: record });
-      await tryPersist(ServiceFactory.getSettingsService(), TOUR_STORAGE_KEY, record);
+      await persistSetting(TOUR_STORAGE_KEY, record);
     },
   })),
 );
