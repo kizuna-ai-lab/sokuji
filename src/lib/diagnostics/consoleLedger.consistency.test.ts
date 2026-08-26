@@ -103,7 +103,13 @@ const read = (rel: string) => readFileSync(join(REPO_ROOT, rel), 'utf-8');
  * found like any other.
  */
 function countConsoleCalls(source: string, fileName = 'scan.tsx'): number {
-  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  // Script kind from the extension, not TSX for everything. In a `.tsx` parse an
+  // angle-bracket type assertion — `const v = <string>value;`, legal in `.ts` —
+  // is read as an unclosed JSX element, and everything after it, including a
+  // real `console.error`, disappears from the tree. Verified against this
+  // compiler: TSX counts 0 for that source where TS counts 1.
+  const kind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, kind);
   let count = 0;
   const visit = (node: ts.Node): void => {
     if (
@@ -203,6 +209,14 @@ describe('console ledger', () => {
     expect(countConsoleCalls('logger.error(x); console.debug(y); console.info(z);')).toBe(0);
     // JSX must parse (the scan covers .tsx).
     expect(countConsoleCalls('const el = <div onClick={() => console.warn(1)} />;')).toBe(1);
+    // ...and a .ts file must NOT be parsed as JSX: an angle-bracket assertion is
+    // legal there, but reads as an unclosed JSX element under ScriptKind.TSX and
+    // swallows every call after it.
+    const assertion = "const v = <string>someValue;\nconsole.error('after');";
+    expect(countConsoleCalls(assertion, 'src/x.ts')).toBe(1);
+    // The same source genuinely is ambiguous as .tsx — this pins WHY the kind
+    // has to follow the extension rather than defaulting to TSX.
+    expect(countConsoleCalls(assertion, 'src/x.tsx')).toBe(0);
   });
 
   // #441's own scope, now finished: src/stores, src/services and src/contexts
@@ -213,7 +227,7 @@ describe('console ledger', () => {
     const CLEARED = ['src/stores/', 'src/services/', 'src/contexts/'];
     const offenders = scannedFiles()
       .filter((f) => CLEARED.some((root) => f.startsWith(root)))
-      .filter((f) => countConsoleCalls(read(f)) > 0);
+      .filter((f) => countConsoleCalls(read(f), f) > 0);
     expect(
       offenders,
       'these roots are finished: use reportError/reportWarning, or handlers.onDiagnostic inside a client',
@@ -229,7 +243,7 @@ describe('console ledger', () => {
   it('console.error/warn per file equals the ledger exactly', () => {
     const offenders: string[] = [];
     for (const file of scannedFiles()) {
-      const actual = countConsoleCalls(read(file));
+      const actual = countConsoleCalls(read(file), file);
       const allowed = LEDGER[file] ?? 0;
       if (actual === allowed) continue;
       offenders.push(
