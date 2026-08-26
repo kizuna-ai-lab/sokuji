@@ -1,6 +1,7 @@
 .subtitle-stream {
   flex: 1;
   min-height: 0;
+
   // 12px horizontal matches `.conversation-display` in MainPanel.scss. The
   // subtitle surface used to carry 24px — double the side panel's rail on a
   // surface that is narrower (the extension overlay floors at MIN_W = 320px)
