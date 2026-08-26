@@ -161,10 +161,19 @@ reportWarning('AudioStore', 'No real microphone available', { dedupeKey: 'mic.mi
 - **Don't record the same failure twice.** If it already reaches the panel by
   another route (`handlers.onError`, `onRealtimeEvent`, a rethrow into MainPanel's
   session-start catch, `validationMessage`, descriptor `notices`), add nothing.
-- **Inside an `IClient` session**, clients use `handlers.onError` (session broken),
-  `handlers.onRealtimeEvent` (wire traffic), or throw out of `connect()` — never
-  `report()` and never `console.*`. Only MainPanel knows which channel
-  (speaker/participant) a client is on.
+- **Inside an `IClient` session**, clients never call `report()` and never
+  `console.*` — only MainPanel knows which channel (speaker/participant) a client
+  is on. Pick by what the failure did to the session:
+  - `handlers.onError` — the session is broken. Raises a conversation bubble and
+    an `api_error`.
+  - `handlers.onDiagnostic({ code, message, cause })` — the session continues,
+    degraded: a frame that would not parse, a cleanup step that threw, TTS falling
+    back. `code` comes from `CLIENT_DIAGNOSTICS`
+    (`src/lib/diagnostics/clientDiagnostics.ts`), which also decides the severity,
+    so a client never picks one. No bubble, no `api_error`.
+  - `handlers.onRealtimeEvent` — wire traffic, not a failure.
+  - throw out of `connect()` — the session never started; MainPanel's
+    `onConnectFailed` reports it once, for whichever leg it was.
 - **Hot paths** (per-audio-chunk, per-frame, per-poll-tick) never log per
   occurrence: return silently, or report the ok → failing transition. Bursts pass
   `dedupeKey`; the panel throttles per key on a 5s window while the console still

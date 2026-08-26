@@ -36,6 +36,27 @@ describe('redact', () => {
     expect(redact('wss://r/?access_token=zzzzzzzzzzzz')).toBe('wss://r/?access_token=[REDACTED]');
   });
 
+  // VolcengineSTClient.ts:79-86 signs the WebSocket URL SigV4-style, and
+  // `X-Credential` carries the account's access key id verbatim. The rule is
+  // anchored on `[?&]`, so a bare `signature` alternative does not reach
+  // `?X-Signature=` — the `X-` prefix sits between the delimiter and the name.
+  // The original fixtures used invented URLs and missed this entirely.
+  it('redacts Volcengine signed-URL credentials', () => {
+    const url =
+      'wss://openspeech.bytedance.com/api/v3/sauc?Action=Sauc&X-Algorithm=HMAC-SHA256' +
+      '&X-Credential=AKLTabc123def456%2F20260827%2Fcn-north-1%2Fsauc%2Frequest' +
+      '&X-Date=20260827T000000Z&X-Signature=9f8e7d6c5b4a3210';
+    const out = redact(url);
+    expect(out).not.toContain('AKLTabc123def456');
+    expect(out).not.toContain('9f8e7d6c5b4a3210');
+    // The parameter names survive, so the reader still knows which call failed.
+    expect(out).toContain('X-Credential=[REDACTED]');
+    expect(out).toContain('X-Signature=[REDACTED]');
+    // Non-credential parameters are untouched.
+    expect(out).toContain('X-Algorithm=HMAC-SHA256');
+    expect(out).toContain('X-Date=20260827T000000Z');
+  });
+
   it('redacts Bearer tokens but keeps the scheme', () => {
     expect(redact('Authorization: Bearer sess_abcdef123456'))
       .toBe('Authorization: Bearer [REDACTED]');

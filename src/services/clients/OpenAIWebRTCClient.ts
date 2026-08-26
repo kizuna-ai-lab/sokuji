@@ -69,6 +69,14 @@ export class OpenAIWebRTCClient implements IClient {
   private eventHandlers: ClientEventHandlers = {};
 
   /**
+   * Latches once a frame has failed to parse, so a server sending garbage
+   * reports once rather than once per frame. Cleared by the next frame that
+   * parses. The panel throttles as well, but the console line fires on every
+   * call by design — this is what bounds it.
+   */
+  private parseFailed: boolean = false;
+
+  /**
    * Emit a diagnostic: the session continues, degraded. participantTelemetry
    * gives the code its channel and severity.
    */
@@ -324,9 +332,13 @@ export class OpenAIWebRTCClient implements IClient {
     this.dc.onmessage = (event) => {
       try {
         const serverEvent: ServerEvent = JSON.parse(event.data);
+        this.parseFailed = false;
         this.handleServerEvent(serverEvent);
       } catch (error) {
-        this.diagnose('parse_error', `server event could not be parsed: ${describeCause(error)}`, error);
+        if (!this.parseFailed) {
+          this.parseFailed = true;
+          this.diagnose('parse_error', `server event could not be parsed: ${describeCause(error)}`, error);
+        }
       }
     };
 

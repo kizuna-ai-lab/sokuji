@@ -1,4 +1,3 @@
-import { reportError, describeCause } from '../lib/diagnostics/report';
 
 /**
  * EphemeralTokenService
@@ -104,11 +103,11 @@ export class EphemeralTokenService {
 
       return tokenValue;
     } catch (error) {
-      reportError(
-        'EphemeralTokenService',
-        `Failed to fetch OpenAI Realtime client secret: ${describeCause(error)}`,
-        { cause: error },
-      );
+      // No report here. This is only ever called from OpenAIWebRTCClient's
+      // connect(), which rethrows into MainPanel's session-start catch — and
+      // that owns the console line, the channel-tagged row and the api_error.
+      // describeCause on the rethrown error preserves this message, so the
+      // second entry added nothing but a duplicate.
       throw error;
     }
   }
@@ -212,11 +211,8 @@ export class EphemeralTokenService {
       }
       return secret;
     } catch (error) {
-      reportError(
-        'EphemeralTokenService',
-        `Failed to mint translation client secret: ${describeCause(error)}`,
-        { cause: error },
-      );
+      // Same: only reached from OpenAITranslateWebRTCClient's connect(), whose
+      // rethrow is reported once by MainPanel.
       throw error;
     }
   }

@@ -308,6 +308,14 @@ export class VolcengineSTClient implements IClient {
   private eventHandlers: ClientEventHandlers = {};
 
   /**
+   * Latches once a frame has failed to parse, so a server sending garbage
+   * reports once rather than once per frame. Cleared by the next frame that
+   * parses. The panel throttles as well, but the console line fires on every
+   * call by design — this is what bounds it.
+   */
+  private parseFailed: boolean = false;
+
+  /**
    * Emit a diagnostic: the session continues, degraded.
    *
    * A client cannot know which session leg it is on, so it names a condition and
@@ -644,6 +652,7 @@ export class VolcengineSTClient implements IClient {
   private handleMessage(data: string): void {
     try {
       const message = JSON.parse(data);
+      this.parseFailed = false;
 
       this.eventHandlers.onRealtimeEvent?.({
         source: 'server',
@@ -678,7 +687,10 @@ export class VolcengineSTClient implements IClient {
         this.eventHandlers.onConversationUpdated?.({ item: errorItem });
       }
     } catch (error) {
-      this.diagnose('parse_error', `frame could not be parsed: ${describeCause(error)}`, error);
+      if (!this.parseFailed) {
+        this.parseFailed = true;
+        this.diagnose('parse_error', `frame could not be parsed: ${describeCause(error)}`, error);
+      }
     }
   }
 

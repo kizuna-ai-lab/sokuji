@@ -110,7 +110,12 @@ function emit(
   if (opts?.cause === undefined) write(line);
   else write(line, opts.cause);
 
-  if (!passesThrottle(`${scope}|${opts?.dedupeKey ?? message}`)) return;
+  // The channel is part of the identity, not just of the entry. In a split
+  // session both legs share a provider scope and a diagnostic code, so without
+  // it the participant's `tts_degraded` would be swallowed by the speaker's —
+  // and it belongs to a different LogsPanel tab, so the user would see nothing
+  // for that leg at all.
+  if (!passesThrottle(`${opts?.clientId ?? 'global'}|${scope}|${opts?.dedupeKey ?? message}`)) return;
 
   // Deferred unconditionally. `report()` is reachable from Zustand getters that
   // React calls during render (settingsStore.ts:1236 ←

@@ -108,7 +108,29 @@ function stripCommentsAndStrings(source: string): string {
         i++;
       }
       out += '  '; i += 2;
-    } else if (c === '"' || c === "'" || c === '`') {
+    } else if (c === '`') {
+      // Template literals keep their `${...}` interpolations as CODE. Blanking
+      // the whole literal would hide `${console.error('x')}` from the scan, so
+      // the guard could be bypassed by a call that still runs.
+      out += ' '; i++;
+      let depth = 0;
+      while (i < n) {
+        if (depth === 0 && source[i] === '`') break;
+        if (source[i] === '\\') { out += '  '; i += 2; continue; }
+        if (source[i] === '$' && source[i + 1] === '{') {
+          depth++; out += '  '; i += 2; continue;
+        }
+        if (depth > 0) {
+          // Inside an interpolation: copy verbatim so calls are counted.
+          if (source[i] === '}') depth--;
+          out += source[i]; i++;
+          continue;
+        }
+        out += source[i] === '\n' ? '\n' : ' ';
+        i++;
+      }
+      out += ' '; i++;
+    } else if (c === '"' || c === "'") {
       const quote = c;
       out += ' '; i++;
       while (i < n && source[i] !== quote) {
@@ -139,7 +161,7 @@ const countConsoleCalls = (source: string): number =>
  */
 const LEDGER: Record<string, number> = {
   // --- Later, under the ledger: components ---
-  'src/components/MainPanel/MainPanel.tsx': 44,
+  'src/components/MainPanel/MainPanel.tsx': 43,
   'src/components/Auth/UserAccountInfo.tsx': 5,
   'src/components/Settings/sections/VoiceLibrarySection.tsx': 5,
   'shared/index.tsx': 4,
@@ -192,6 +214,13 @@ describe('console ledger', () => {
     // ...and code after a comment still must.
     expect(countConsoleCalls('/* console.warn( */ console.error(x);')).toBe(1);
     expect(countConsoleCalls('// note\nconsole.warn(x);')).toBe(1);
+    // A template literal's TEXT is not code, but its interpolations are — a call
+    // there still runs, so blanking the whole literal would be a way past the guard.
+    expect(countConsoleCalls('const m = `a ${console.error("x")} b`;')).toBe(1);
+    expect(countConsoleCalls('const m = `plain console.error( text`;')).toBe(0);
+    expect(countConsoleCalls('const m = `${a} console.error( ${b}`;')).toBe(0);
+    // Nested braces inside an interpolation must not end it early.
+    expect(countConsoleCalls('const m = `${ f({ k: 1 }) } ${console.warn(y)}`;')).toBe(1);
   });
 
   // #441's own scope, now finished: src/stores, src/services and src/contexts

@@ -2166,21 +2166,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
               console.info('[Sokuji] [MainPanel] WebSocket fallback connection established');
             } catch (fallbackError: any) {
-              // Track fallback connection failure
-              trackEvent('api_error', {
-                provider: provider || Provider.OPENAI,
-                error_message: fallbackError.message || 'Fallback connection failed',
-                error_type: 'network'
-              });
+              // No api_error here: this rethrows into the session-start catch,
+              // whose onConnectFailed is the single sink for it. Emitting one
+              // here too counted every failed connect twice.
               throw fallbackError;
             }
           } else {
-            // Track connection failure (no fallback available)
-            trackEvent('api_error', {
-              provider: provider || Provider.OPENAI,
-              error_message: connectError.message || 'Connection failed',
-              error_type: 'network'
-            });
+            // Same: onConnectFailed downstream owns the api_error.
             throw connectError;
           }
         }
@@ -2451,7 +2443,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // before reporting: the speaker's own catch below owns that failure,
           // and reporting here too would file it twice.
           if (error?.isGpuOom) {
-            console.error('[Sokuji] [MainPanel] [participant] GPU OOM, propagating:', error);
+            // Rethrown to the session-start catch, which reports it as the
+            // session-level failure it is. A line here as well logged one GPU
+            // OOM twice.
             throw error;
           }
           // Other participant errors are non-fatal — the session continues on

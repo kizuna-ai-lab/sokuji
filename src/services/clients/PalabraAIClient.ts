@@ -124,6 +124,14 @@ export class PalabraAIClient implements IClient {
   private eventHandlers: ClientEventHandlers = {};
 
   /**
+   * Latches once the input pipeline has failed, so a pipeline that stays
+   * broken reports once instead of once per audio chunk. Cleared by the next
+   * chunk that gets through. The panel throttles too, but the console line
+   * fires on every call by design — that is what this bounds.
+   */
+  private inputPipelineFailed: boolean = false;
+
+  /**
    * Emit a diagnostic: the session continues, degraded.
    *
    * A client cannot know which session leg it is on, so it names a condition
@@ -398,11 +406,15 @@ export class PalabraAIClient implements IClient {
       source.buffer = audioBuffer;
       source.connect(this.audioDestination);
       source.start();
-      
+      this.inputPipelineFailed = false;
+
     } catch (error) {
-      // Throttled by code in participantTelemetry, so a persistently broken
-      // pipeline is one entry rather than one per frame.
-      this.diagnose('input_pipeline_failed', `audio could not be forwarded: ${describeCause(error)}`, error);
+      // Transition only: this runs per audio chunk, so reporting each one
+      // would write thousands of console lines a minute for one condition.
+      if (!this.inputPipelineFailed) {
+        this.inputPipelineFailed = true;
+        this.diagnose('input_pipeline_failed', `audio could not be forwarded: ${describeCause(error)}`, error);
+      }
     }
   }
 

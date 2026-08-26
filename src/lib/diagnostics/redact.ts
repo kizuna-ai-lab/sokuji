@@ -23,10 +23,15 @@ const REDACTED = '[REDACTED]';
  * collapsing to an anonymous `[REDACTED]`.
  */
 const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
-  // `${MODELS_ENDPOINT}?key=${apiKey}` — GeminiClient.ts:138-139. Also covers the
-  // token/secret parameter names used by the relay and Volcengine signed URLs.
+  // `${MODELS_ENDPOINT}?key=${apiKey}` — GeminiClient.ts:138-139.
+  //
+  // `X-Credential` and `X-Signature` are the Volcengine SigV4-style query
+  // parameters (VolcengineSTClient.ts:84), and `X-Credential` carries the
+  // account's access key id verbatim. They need naming explicitly: the rule is
+  // anchored on `[?&]`, so a bare `signature` alternative does NOT match
+  // `?X-Signature=` — the `X-` prefix sits between the delimiter and the name.
   [
-    /([?&](?:key|api_key|apikey|token|access_token|accessToken|secret|signature)=)[^&\s"']+/gi,
+    /([?&](?:key|api_key|apikey|token|access_token|accessToken|secret|signature|x-credential|x-signature|x-security-token)=)[^&\s"']+/gi,
     `$1${REDACTED}`,
   ],
   // `Authorization: Bearer <token>` on every provider fetch.

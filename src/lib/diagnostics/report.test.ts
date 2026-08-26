@@ -108,6 +108,31 @@ describe('report', () => {
       expect(errorSpy).toHaveBeenCalledTimes(5);
     });
 
+    // Split sessions run both legs against the same provider, so scope and code
+    // are identical; only the channel distinguishes them, and they render on
+    // different LogsPanel tabs.
+    it('keeps the two session legs apart', async () => {
+      reportWarning('Client:soniox', 'tts_degraded: no audio', {
+        clientId: 'speaker', dedupeKey: 'tts_degraded',
+      });
+      reportWarning('Client:soniox', 'tts_degraded: no audio', {
+        clientId: 'participant', dedupeKey: 'tts_degraded',
+      });
+      await settleReports();
+      expect(useLogStore.getState().allLogs.map((l) => l.clientId))
+        .toEqual(['speaker', 'participant']);
+    });
+
+    it('still collapses repeats within one leg', async () => {
+      for (let i = 0; i < 3; i++) {
+        reportWarning('Client:soniox', 'tts_degraded: no audio', {
+          clientId: 'speaker', dedupeKey: 'tts_degraded',
+        });
+      }
+      await settleReports();
+      expect(panelMessages()).toHaveLength(1);
+    });
+
     it('keeps distinct messages apart', async () => {
       reportError('AudioStore', 'Failed to persist mode');
       reportError('AudioStore', 'Failed to persist volume');

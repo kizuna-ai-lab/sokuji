@@ -22,6 +22,37 @@ const withChromeStorage = (set: (key: unknown, cb: () => void) => void) => {
   };
 };
 
+describe('SettingsService.getSetting', () => {
+  afterEach(() => {
+    delete (globalThis as Record<string, unknown>).chrome;
+    vi.restoreAllMocks();
+  });
+
+  // The same un-awaited-promise shape as setSetting had. A getter that takes a
+  // default must not be able to reject: every caller treats it as total.
+  it('falls back to the default when chrome.storage throws synchronously', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    (globalThis as Record<string, unknown>).chrome = {
+      storage: { sync: { get: () => { throw new Error('Extension context invalidated.'); }, set: (_k: unknown, cb: () => void) => cb() } },
+      runtime: { lastError: undefined },
+    };
+
+    await expect(new SettingsService().getSetting('settings.common.textOnly', true))
+      .resolves.toBe(true);
+  });
+
+  it('falls back to the default when the chrome.storage binding is gone', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    (globalThis as Record<string, unknown>).chrome = {
+      storage: { sync: { get: undefined, set: (_k: unknown, cb: () => void) => cb() } },
+      runtime: { lastError: undefined },
+    };
+
+    await expect(new SettingsService().getSetting('settings.common.textOnly', 'fallback'))
+      .resolves.toBe('fallback');
+  });
+});
+
 describe('SettingsService.setSetting', () => {
   afterEach(() => {
     delete (globalThis as Record<string, unknown>).chrome;

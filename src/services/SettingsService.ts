@@ -26,8 +26,14 @@ export class SettingsService implements ISettingsService {
   async getSetting<T>(key: string, defaultValue: T): Promise<T> {
     try {
       if (this.usesChromeStorage) {
-        // Browser Extension: Use Chrome Storage API
-        return new Promise<T>((resolve) => {
+        // Browser Extension: Use Chrome Storage API.
+        //
+        // `return await` for the same reason as setSetting below: a bare return
+        // adopts the promise's rejection without passing through the catch, so a
+        // synchronous throw in the executor would skip both the defaultValue
+        // fallback and the report, and surface as an unhandled rejection in a
+        // caller that reasonably assumed a getter with a default cannot fail.
+        return await new Promise<T>((resolve) => {
           // @ts-ignore - Chrome API is defined in global scope for extensions
           chrome.storage.sync.get(key, (result: Record<string, any>) => {
             // @ts-ignore - Chrome API is defined in global scope for extensions

@@ -173,7 +173,11 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
    */
   const pollFailingRef = useRef(false);
 
-  const reportPollFailure = useCallback((detail: string, cause?: unknown) => {
+  const reportPollFailure = useCallback((detail: string, cause?: unknown, stale?: () => boolean) => {
+    // A tick dispatched for the previous account can land after the new one has
+    // taken over. Without this it would latch the new session as failing, and
+    // suppress that account's first real failure indefinitely.
+    if (stale?.()) return;
     if (pollFailingRef.current) return;
     pollFailingRef.current = true;
     reportWarning('UserProfile', `Balance refresh failing: ${detail}`, { cause });
@@ -212,10 +216,10 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
         setError(null);
         pollFailingRef.current = false;
       } else {
-        reportPollFailure(`${response.status} ${response.statusText}`);
+        reportPollFailure(`${response.status} ${response.statusText}`, undefined, stale);
       }
     } catch (err: any) {
-      reportPollFailure(describeCause(err), err);
+      reportPollFailure(describeCause(err), err, stale);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, userId]); // Use userId instead of betterAuthUser to prevent infinite loops
@@ -225,6 +229,10 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     // Stamp the session BEFORE dispatching, so any response already in flight
     // for a previous session fails its check when it lands.
     activeSessionRef.current = isSignedIn && userId ? userId : null;
+    // The latch belongs to the session that set it. Carrying it across a
+    // sign-out or an account switch would silence the new account's first
+    // failure — the provider stays mounted, so nothing else would clear it.
+    pollFailingRef.current = false;
 
     if (isSignedIn && userId) {
       fetchQuota();
