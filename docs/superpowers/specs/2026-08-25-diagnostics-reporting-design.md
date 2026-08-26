@@ -429,3 +429,62 @@ Also worth recording, found while building:
   on a clean `main` checkout in a worktree, identical before and after this PR.
   A job that is red on arrival gets ignored, so the job runs the diagnostics and
   log-surface tests only, and widens as suites are cleaned up.
+
+
+## 12. PR2 as landed — the persistence seam
+
+Ledger: 55 files / 292 calls → **47 files / 244 calls**. Eight files reached zero
+(`audioStore` 29, `settingsStore` 6, `SettingsService` 5, `modelStore` 3,
+`nativeModelStore` 2, `subtitleStore`, `conversationDisplayStore`,
+`audioSystemStore`). Full suite: 11 failing files / 7 failing tests, byte-identical
+to a clean `main` checkout. `tsc` total fell 571 → 537.
+
+What the code actually turned out to be, beyond the design:
+
+- **The `.catch` wrappers were guarding the wrong channel, and the rollbacks were
+  dead.** `setSetting` resolves `{success:false}` for the failures that really
+  happen (quota, `chrome.runtime.lastError`), and *no* call site read it. The four
+  optimistic setters in `settingsStore` (`textOnly`, `keepReplayAudio`,
+  `speakerDisplayMode`, `participantDisplayMode`) rolled their state back only on a
+  rejection — which the Electron build never produces — so a refused write left the
+  UI showing a value that was never saved. Reading `persistSetting`'s boolean makes
+  those rollbacks real on both platforms. That is a behaviour fix, not just a
+  logging change.
+- **`persistErrors: 'throw' | 'swallow'` was decorative.** Verified before removing
+  it: none of the six "throw" actions is awaited or caught anywhere — they are
+  typed `void` (`settingsStore.ts:304-307`) and every caller is fire-and-forget —
+  so "throw" meant an unhandled rejection that `errorTracking.ts:112` forwarded to
+  PostHog, and "swallow" meant a console line. Neither was user-visible and the
+  6/6 split was arbitrary. All twelve slices now go through the seam.
+- **`SettingsService.setSetting` needed fixing before the seam could be trusted.**
+  `return new Promise(...)` inside `try` adopts the rejection without passing
+  through the catch, so the extension build could reject past a signature that
+  promises a result. `return await` plus five contract tests (synchronous executor
+  throw, missing binding, `lastError`, success, localStorage throw). The seam still
+  catches rejection anyway, so a mocked or future implementation cannot regress it.
+- **`loadAllSettings` / `saveAllSettings` had zero callers** and were deleted from
+  both the class and `ISettingsService`, taking 2 more ledger entries with them.
+- **The virtual-devices branch in `refreshDevices` was unreachable.** The sole
+  `IAudioService` implementation hard-returns `false` from
+  `supportsVirtualDevices()` (`ModernBrowserAudioService.ts:451-453`). Deleted
+  rather than migrated: a diagnostic on a dead path reads as if the path is live.
+- **`SliceUpdateSpec.defaults` was typed `Record<string, unknown>`**, which every
+  concrete settings interface fails (no implicit index signature). Widening it to
+  `object` — only `Object.keys` is read — removed 33 pre-existing `tsc` errors.
+
+Two process notes worth keeping:
+
+- **The ledger regex was fooled by its own documentation, twice.** Prose in
+  `UserProfileContext` and then the doc comment in `persistSetting` (which shows
+  the `.catch(e => console.error(...))` shape it replaces) both counted as calls.
+  Requiring the trailing `(` is not enough. `countConsoleCalls` now blanks
+  comments and string bodies before matching, with self-tests pinning both
+  directions, and the ledger-generation script mirrors the same stripper so the
+  two cannot disagree.
+- **Mechanical migration needs assertions, not counts.** The first pass at
+  `audioStore` produced correct replacements at column 0 for every site whose
+  optional `const service = …` prefix was absent — the leading `[ \t]*` sat
+  outside the optional group and ate the indentation. A separate assertion caught
+  the general rule claiming the three legacy-key writes before the `silent` rule
+  could. Both were caught by asserting on the shape, never by the replacement
+  count, which was right in both broken runs.

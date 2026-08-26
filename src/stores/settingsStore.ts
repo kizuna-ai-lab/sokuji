@@ -58,6 +58,7 @@ import { defaultKizunaOpenaiTranslateSettings } from '../services/providers/Kizu
 import { defaultKizunaVolcengineAst2Settings } from '../services/providers/KizunaAIVolcengineAST2ProviderConfig';
 import { defaultKizunaSonioxSettings } from '../services/providers/KizunaAISonioxProviderConfig';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
+import { persistSetting } from '../services/persistSetting';
 import {
   SonioxSettings, defaultSonioxSettings,
 } from '../services/providers/SonioxProviderConfig';
@@ -521,15 +522,17 @@ export function createLocalNativeSessionConfig(
 // `settings.<sliceKey>.<field>` — the sliceKey doubles as the storage prefix.
 
 type SliceUpdateSpec = {
-  defaults: Record<string, unknown>;
+  /**
+   * `object`, not `Record<string, unknown>`: every row's value is a concrete
+   * settings interface, and interfaces have no implicit index signature, so the
+   * stricter type made each row fail its own `satisfies` check. Only
+   * `Object.keys` is read from it.
+   */
+  defaults: object;
   /** Transform an incoming patch before it is merged AND persisted. */
   transformPatch?: (patch: Record<string, unknown>) => Record<string, unknown>;
   /** Fields applied to in-memory state but never written to settings storage. */
   neverPersist?: readonly string[];
-  /** 'throw' propagates persistence errors to the caller; 'swallow' logs and
-   *  keeps the in-memory update. The 6/6 split below preserves each action's
-   *  pre-registry behavior exactly — flip a row deliberately, not by accident. */
-  persistErrors: 'throw' | 'swallow';
 };
 
 // WebRTC transport: the server truncates audio on user speech (API design),
@@ -540,23 +543,23 @@ const forceWebrtcTurnDetectionOff = (patch: Record<string, unknown>): Record<str
   patch.transportType === 'webrtc' ? { ...patch, turnDetectionMode: 'Disabled' } : patch;
 
 const PROVIDER_SLICE_REGISTRY = {
-  openai: { defaults: defaultOpenAISettings, transformPatch: forceWebrtcTurnDetectionOff, persistErrors: 'throw' },
-  gemini: { defaults: defaultGeminiSettings, persistErrors: 'throw' },
-  openaiCompatible: { defaults: defaultOpenAICompatibleSettings, transformPatch: forceWebrtcTurnDetectionOff, persistErrors: 'throw' },
-  palabraai: { defaults: defaultPalabraAISettings, persistErrors: 'throw' },
-  openaiTranslate: { defaults: defaultOpenAITranslateSettings, persistErrors: 'throw' },
-  volcengineST: { defaults: defaultVolcengineSTSettings, persistErrors: 'swallow' },
-  zoomAI: { defaults: defaultZoomAISettings, persistErrors: 'swallow' },
-  volcengineAST2: { defaults: defaultVolcengineAST2Settings, persistErrors: 'swallow' },
-  soniox: { defaults: defaultSonioxSettings, persistErrors: 'swallow' },
+  openai: { defaults: defaultOpenAISettings, transformPatch: forceWebrtcTurnDetectionOff },
+  gemini: { defaults: defaultGeminiSettings },
+  openaiCompatible: { defaults: defaultOpenAICompatibleSettings, transformPatch: forceWebrtcTurnDetectionOff },
+  palabraai: { defaults: defaultPalabraAISettings },
+  openaiTranslate: { defaults: defaultOpenAITranslateSettings },
+  volcengineST: { defaults: defaultVolcengineSTSettings },
+  zoomAI: { defaults: defaultZoomAISettings },
+  volcengineAST2: { defaults: defaultVolcengineAST2Settings },
+  soniox: { defaults: defaultSonioxSettings },
   // Relay twins authenticate through the relay with a short-lived Better Auth
   // session token; the user-managed credential fields must never be persisted
   // (stale/sensitive values). See each descriptor's extractCredentials.
-  kizunaOpenaiTranslate: { defaults: defaultKizunaOpenaiTranslateSettings, neverPersist: ['apiKey'], persistErrors: 'throw' },
-  kizunaVolcengineAst2: { defaults: defaultKizunaVolcengineAst2Settings, neverPersist: ['appId', 'accessToken'], persistErrors: 'swallow' },
-  kizunaSoniox: { defaults: defaultKizunaSonioxSettings, neverPersist: ['apiKey', 'apiKeyEu', 'apiKeyJp'], persistErrors: 'swallow' },
-  localInference: { defaults: defaultLocalInferenceSettings, persistErrors: 'swallow' },
-  localNative: { defaults: defaultLocalNativeSettings, persistErrors: 'swallow' },
+  kizunaOpenaiTranslate: { defaults: defaultKizunaOpenaiTranslateSettings, neverPersist: ['apiKey'] },
+  kizunaVolcengineAst2: { defaults: defaultKizunaVolcengineAst2Settings, neverPersist: ['appId', 'accessToken'] },
+  kizunaSoniox: { defaults: defaultKizunaSonioxSettings, neverPersist: ['apiKey', 'apiKeyEu', 'apiKeyJp'] },
+  localInference: { defaults: defaultLocalInferenceSettings },
+  localNative: { defaults: defaultLocalNativeSettings },
 } satisfies Record<string, SliceUpdateSpec>;
 
 export type ProviderSliceKey = keyof typeof PROVIDER_SLICE_REGISTRY;
@@ -573,21 +576,16 @@ async function updateProviderSlice(
   const effective = spec.transformPatch ? spec.transformPatch(patch) : patch;
   set((state) => ({ [sliceKey]: { ...(state as any)[sliceKey], ...effective } }) as Partial<SettingsStore>);
 
-  const persist = async () => {
-    const service = ServiceFactory.getSettingsService();
-    for (const [key, value] of Object.entries(effective)) {
-      if (spec.neverPersist?.includes(key)) continue;
-      await service.setSetting(`settings.${sliceKey}.${key}`, value);
-    }
-  };
-  if (spec.persistErrors === 'swallow') {
-    try {
-      await persist();
-    } catch (error) {
-      console.error(`[SettingsStore] Error persisting ${sliceKey} settings:`, error);
-    }
-  } else {
-    await persist();
+  // One seam for every slice. The registry used to carry
+  // `persistErrors: 'throw' | 'swallow'`, split 6/6, but none of the six
+  // "throw" actions is awaited or caught anywhere — they are typed `void` and
+  // every caller is fire-and-forget — so "throw" meant an unhandled rejection
+  // routed to PostHog and "swallow" meant a console line. Neither reached the
+  // user, and which slice got which was arbitrary. `persistSetting` reports
+  // the failure once per key instead.
+  for (const [key, value] of Object.entries(effective)) {
+    if (spec.neverPersist?.includes(key)) continue;
+    await persistSetting(`settings.${sliceKey}.${key}`, value);
   }
 }
 
@@ -662,14 +660,10 @@ const useSettingsStore = create<SettingsStore>()(
         set((s) => ({
           openaiTranslate: { ...s.openaiTranslate, apiKey: openaiKey }
         }));
-        try {
-          await service.setSetting('settings.openaiTranslate.apiKey', openaiKey);
-        } catch (e) {
-          // Best-effort prefill: if persistence fails the in-memory copy is
-          // still usable for this session; user can re-trigger by setting
-          // the key manually.
-          console.warn('[SettingsStore] Failed to persist openaiTranslate prefilled key:', e);
-        }
+        // Best-effort prefill: if persistence fails the in-memory copy is
+        // still usable for this session; the user can re-trigger by setting
+        // the key manually. persistSetting still files the one panel line.
+        await persistSetting('settings.openaiTranslate.apiKey', openaiKey);
         // Fire-and-forget validation so the freshly-prefilled key is verified
         // in the background without blocking the provider switch.
         void get().validateApiKey();
@@ -715,11 +709,7 @@ const useSettingsStore = create<SettingsStore>()(
     setTextOnly: async (textOnly) => {
       const previous = get().textOnly;
       set({textOnly});
-      try {
-        const service = ServiceFactory.getSettingsService();
-        await service.setSetting('settings.common.textOnly', textOnly);
-      } catch (error) {
-        console.error('[SettingsStore] Error persisting textOnly setting:', error);
+      if (!await persistSetting('settings.common.textOnly', textOnly)) {
         set({textOnly: previous});
       }
     },
@@ -727,11 +717,7 @@ const useSettingsStore = create<SettingsStore>()(
     setKeepReplayAudio: async (keepReplayAudio) => {
       const previous = get().keepReplayAudio;
       set({keepReplayAudio});
-      try {
-        const service = ServiceFactory.getSettingsService();
-        await service.setSetting('settings.common.keepReplayAudio', keepReplayAudio);
-      } catch (error) {
-        console.error('[SettingsStore] Error persisting keepReplayAudio setting:', error);
+      if (!await persistSetting('settings.common.keepReplayAudio', keepReplayAudio)) {
         set({keepReplayAudio: previous});
       }
     },
@@ -739,11 +725,7 @@ const useSettingsStore = create<SettingsStore>()(
     setSpeakerDisplayMode: async (speakerDisplayMode) => {
       const previous = get().speakerDisplayMode;
       set({speakerDisplayMode});
-      try {
-        const service = ServiceFactory.getSettingsService();
-        await service.setSetting('settings.common.speakerDisplayMode', speakerDisplayMode);
-      } catch (error) {
-        console.error('[SettingsStore] Error persisting speakerDisplayMode setting:', error);
+      if (!await persistSetting('settings.common.speakerDisplayMode', speakerDisplayMode)) {
         set({speakerDisplayMode: previous});
       }
     },
@@ -751,11 +733,7 @@ const useSettingsStore = create<SettingsStore>()(
     setParticipantDisplayMode: async (participantDisplayMode) => {
       const previous = get().participantDisplayMode;
       set({participantDisplayMode});
-      try {
-        const service = ServiceFactory.getSettingsService();
-        await service.setSetting('settings.common.participantDisplayMode', participantDisplayMode);
-      } catch (error) {
-        console.error('[SettingsStore] Error persisting participantDisplayMode setting:', error);
+      if (!await persistSetting('settings.common.participantDisplayMode', participantDisplayMode)) {
         set({participantDisplayMode: previous});
       }
     },

@@ -11,6 +11,7 @@ import { isElectron } from '../utils/environment';
 import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
 import { nativeCandidates } from '../lib/local-inference/selection/candidates.native';
 import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote, type Selections, type Stage } from '../lib/local-inference/selection/types';
+import { reportWarning, describeCause } from '../lib/diagnostics/report';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
 
@@ -515,7 +516,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       // settings store unavailable — resolve with no explicit selections.
       // Logged so a broken import graph doesn't silently masquerade as "no
       // selections yet".
-      console.error('[Sokuji] [NativeModelStore] ensureSelectionReady: settings store unavailable, resolving with no explicit selections:', err);
+      reportWarning('NativeModelStore', `ensureSelectionReady: settings store unavailable, resolving with no explicit selections: ${describeCause(err)}`, { cause: err });
     }
     const speakerDir = directionKey(selection.sourceLanguage, selection.targetLanguage);
     const participantDir = directionKey(selection.targetLanguage, selection.sourceLanguage);
@@ -657,7 +658,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       // settings store unavailable — nothing to prune. Logged (not silently
       // swallowed) since a prune failure means a dead id survives in storage
       // and keeps producing a note the user cannot act on.
-      console.error('[Sokuji] [NativeModelStore] applyPrunes: settings store unavailable, prune skipped:', err);
+      reportWarning('NativeModelStore', `applyPrunes: settings store unavailable, prune skipped: ${describeCause(err)}`, { cause: err });
     }
   },
 

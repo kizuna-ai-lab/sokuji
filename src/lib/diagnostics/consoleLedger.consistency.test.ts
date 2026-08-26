@@ -81,14 +81,51 @@ const scannedFiles = (): string[] => {
 const read = (rel: string) => readFileSync(join(REPO_ROOT, rel), 'utf-8');
 
 /**
- * Count real calls.
+ * Blank out comments and string bodies, so only code is counted.
  *
- * The trailing `(` matters: prose in a comment ("its console.error could not
- * fire") would otherwise inflate a row and send someone hunting for a call that
- * does not exist. Verified against exactly that case in UserProfileContext.
+ * Requiring the trailing `(` is not enough on its own: a doc comment that shows
+ * the old shape it replaced (`.catch(e => console.error(...))`) reads as a call.
+ * That inflated a row twice while this ledger was being written — once from
+ * prose in `UserProfileContext`, once from `persistSetting`'s own header — and
+ * each time it sends a reader hunting for a call that is not there.
+ *
+ * Replaces characters rather than deleting them, so the count is unaffected by
+ * how much was blanked.
  */
+function stripCommentsAndStrings(source: string): string {
+  let out = '';
+  let i = 0;
+  const n = source.length;
+  while (i < n) {
+    const c = source[i];
+    const next = source[i + 1];
+    if (c === '/' && next === '/') {
+      while (i < n && source[i] !== '\n') { out += ' '; i++; }
+    } else if (c === '/' && next === '*') {
+      out += '  '; i += 2;
+      while (i < n && !(source[i] === '*' && source[i + 1] === '/')) {
+        out += source[i] === '\n' ? '\n' : ' ';
+        i++;
+      }
+      out += '  '; i += 2;
+    } else if (c === '"' || c === "'" || c === '`') {
+      const quote = c;
+      out += ' '; i++;
+      while (i < n && source[i] !== quote) {
+        if (source[i] === '\\') { out += '  '; i += 2; continue; }
+        out += source[i] === '\n' ? '\n' : ' ';
+        i++;
+      }
+      out += ' '; i++;
+    } else {
+      out += c; i++;
+    }
+  }
+  return out;
+}
+
 const countConsoleCalls = (source: string): number =>
-  (source.match(/console\.(?:error|warn)\(/g) ?? []).length;
+  (stripCommentsAndStrings(source).match(/console\.(?:error|warn)\(/g) ?? []).length;
 
 /**
  * Exact remaining `console.error(` / `console.warn(` per file.
@@ -101,15 +138,6 @@ const countConsoleCalls = (source: string): number =>
  * PR2 takes the persistence seam, PR3 the client contract, PR4 the remainder.
  */
 const LEDGER: Record<string, number> = {
-  // --- PR2 — the persistence seam (persistSetting) ---
-  'src/stores/audioStore.ts': 29,
-  'src/stores/settingsStore.ts': 6,
-  'src/services/SettingsService.ts': 5,
-  'src/stores/modelStore.ts': 3,
-  'src/stores/nativeModelStore.ts': 2,
-  'src/stores/audioSystemStore.ts': 1,
-  'src/stores/conversationDisplayStore.ts': 1,
-  'src/stores/subtitleStore.ts': 1,
   // --- PR3 — the client contract (onError / onDiagnostic / onConnectFailed) ---
   'src/services/clients/PalabraAIClient.ts': 20,
   'src/services/clients/VolcengineAST2Client.ts': 12,
@@ -172,8 +200,13 @@ describe('console ledger', () => {
     expect(files.length).toBeGreaterThan(150);
     expect(files).toContain('src/stores/logStore.ts');
     expect(countConsoleCalls('a; console.error("x"); console.warn(y); console.info(z)')).toBe(2);
-    // Prose must not count.
-    expect(countConsoleCalls('// its console.error could not fire')).toBe(0);
+    // Prose must not count — in a line comment, a block comment, or a string.
+    expect(countConsoleCalls('// its console.error( could not fire')).toBe(0);
+    expect(countConsoleCalls('/** was .catch(e => console.error(e)) */')).toBe(0);
+    expect(countConsoleCalls('const help = "use console.error( for this";')).toBe(0);
+    // ...and code after a comment still must.
+    expect(countConsoleCalls('/* console.warn( */ console.error(x);')).toBe(1);
+    expect(countConsoleCalls('// note\nconsole.warn(x);')).toBe(1);
   });
 
   it('every ledger row names a file that exists', () => {

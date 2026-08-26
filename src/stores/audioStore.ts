@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useMemo } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
+import { persistSetting } from '../services/persistSetting';
+import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 import { IAudioService, AudioOperationResult } from '../services/interfaces/IAudioService';
 import { isVirtualDevice } from '../components/Settings/shared/hooks';
 import { isLoopbackInput } from '../utils/audioDevices';
@@ -197,29 +199,21 @@ const useAudioStore = create<AudioStore>()(
       // not fall back to a stale value loaded at startup.
       set({ selectedParticipantSource: source, persistedParticipantAppKey: source.appKey ?? null });
       // Persist the stable key, not the deviceId: its pid is gone next launch.
-      const settingsService = ServiceFactory.getSettingsService();
-      settingsService.setSetting(
-        STORAGE_KEYS.SELECTED_PARTICIPANT_APP_KEY,
-        source.appKey ?? ''
-      ).catch((e) => console.warn('[Sokuji] [AudioStore] Failed to persist participant source:', e));
+      void persistSetting(STORAGE_KEYS.SELECTED_PARTICIPANT_APP_KEY, source.appKey ?? '');
     },
     selectInputDevice: (device) => {
       console.info(`[Sokuji] [AudioStore] Selected input device: ${device.label} (${device.deviceId})`);
       set({ selectedInputDevice: device });
 
       // Persist the selected device ID
-      const service = ServiceFactory.getSettingsService();
-      service.setSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, device.deviceId)
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save input device preference:', error));
+      void persistSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, device.deviceId);
     },
     selectMonitorDevice: (device) => {
       console.info(`[Sokuji] [AudioStore] Selected monitor device: ${device.label} (${device.deviceId})`);
       set({ selectedMonitorDevice: device });
 
       // Persist the selected device ID
-      const settingsService = ServiceFactory.getSettingsService();
-      settingsService.setSetting(STORAGE_KEYS.SELECTED_MONITOR_DEVICE_ID, device.deviceId)
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save monitor device preference:', error));
+      void persistSetting(STORAGE_KEYS.SELECTED_MONITOR_DEVICE_ID, device.deviceId);
 
       // Connect to the selected monitor device
       const { audioService } = get();
@@ -229,11 +223,11 @@ const useAudioStore = create<AudioStore>()(
             if (result.success) {
               console.info('[Sokuji] [AudioStore] Connected to monitor device:', device.label);
             } else {
-              console.error('[Sokuji] [AudioStore] Failed to connect to monitor device:', result.error);
+              reportError('AudioStore', `Failed to connect to monitor device: ${result.error ?? 'unknown error'}`);
             }
           })
           .catch(error => {
-            console.error('[Sokuji] [AudioStore] Error connecting to monitor device:', error);
+            reportError('AudioStore', `Error connecting to monitor device: ${describeCause(error)}`, { cause: error });
           });
       }
     },
@@ -243,9 +237,7 @@ const useAudioStore = create<AudioStore>()(
       set((state) => {
         const newState = !state.isRealVoicePassthroughEnabled;
         console.info('[Sokuji] [AudioStore] Toggling real voice passthrough:', newState);
-        const settingsService = ServiceFactory.getSettingsService();
-        settingsService.setSetting(STORAGE_KEYS.IS_REAL_VOICE_PASSTHROUGH_ENABLED, newState)
-          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save real voice passthrough state:', error));
+        void persistSetting(STORAGE_KEYS.IS_REAL_VOICE_PASSTHROUGH_ENABLED, newState);
         return { isRealVoicePassthroughEnabled: newState };
       });
     },
@@ -255,23 +247,18 @@ const useAudioStore = create<AudioStore>()(
       const clampedVolume = Math.max(0, Math.min(0.6, volume));
       console.info('[Sokuji] [AudioStore] Setting real voice passthrough volume:', clampedVolume);
       set({ realVoicePassthroughVolume: clampedVolume });
-      const settingsService = ServiceFactory.getSettingsService();
-      settingsService.setSetting(STORAGE_KEYS.REAL_VOICE_PASSTHROUGH_VOLUME, clampedVolume)
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save real voice passthrough volume:', error));
+      void persistSetting(STORAGE_KEYS.REAL_VOICE_PASSTHROUGH_VOLUME, clampedVolume);
     },
 
     setNoiseSuppressionMode: (mode) => {
       console.info('[Sokuji] [AudioStore] Setting noise suppression mode:', mode);
       set({ noiseSuppressionMode: mode });
-      const settingsService = ServiceFactory.getSettingsService();
-      settingsService.setSetting(STORAGE_KEYS.NOISE_SUPPRESSION_MODE, mode)
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save noise suppression mode:', error));
+      void persistSetting(STORAGE_KEYS.NOISE_SUPPRESSION_MODE, mode);
     },
 
     // Mode + per-channel mute setters
 
     setMode: (target) => {
-      const settingsService = ServiceFactory.getSettingsService();
       set((state) => {
         const prev = state.mode;
         const prevSpeakerInScope = prev === 'speaker' || prev === 'both';
@@ -321,22 +308,18 @@ const useAudioStore = create<AudioStore>()(
             d => !isVirtualDevice(d as any) && !isLoopbackInput(d as any));
           if (realMic) {
             patch.selectedInputDevice = realMic;
-            settingsService.setSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, realMic.deviceId)
-              .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist auto-picked input device:', error));
+            void persistSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, realMic.deviceId);
           } else {
-            console.warn('[Sokuji] [AudioStore] No real microphone available; leaving input unselected rather than auto-picking a loopback/virtual device');
+            reportWarning('AudioStore', 'No real microphone available; leaving input unselected rather than auto-picking a loopback/virtual device');
           }
         }
 
-        settingsService.setSetting(STORAGE_KEYS.MODE, target)
-          .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist mode:', error));
+        void persistSetting(STORAGE_KEYS.MODE, target);
         if ('isMicMuted' in patch) {
-          settingsService.setSetting(STORAGE_KEYS.IS_MIC_MUTED, patch.isMicMuted)
-            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isMicMuted:', error));
+          void persistSetting(STORAGE_KEYS.IS_MIC_MUTED, patch.isMicMuted);
         }
         if ('isParticipantMuted' in patch) {
-          settingsService.setSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, patch.isParticipantMuted)
-            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isParticipantMuted:', error));
+          void persistSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, patch.isParticipantMuted);
         }
 
         return patch;
@@ -344,16 +327,12 @@ const useAudioStore = create<AudioStore>()(
     },
 
     setMicMuted: (muted) => {
-      const settingsService = ServiceFactory.getSettingsService();
-      settingsService.setSetting(STORAGE_KEYS.IS_MIC_MUTED, muted)
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isMicMuted:', error));
+      void persistSetting(STORAGE_KEYS.IS_MIC_MUTED, muted);
       set({ isMicMuted: muted });
     },
 
     setMonitorMuted: (muted) => {
-      const settingsService = ServiceFactory.getSettingsService();
-      settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_MUTED, muted)
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isMonitorMuted:', error));
+      void persistSetting(STORAGE_KEYS.IS_MONITOR_MUTED, muted);
       set((state) => {
         const { audioService } = state;
         if (audioService) audioService.setMonitorVolume(!muted);
@@ -362,9 +341,7 @@ const useAudioStore = create<AudioStore>()(
     },
 
     setParticipantMuted: (muted) => {
-      const settingsService = ServiceFactory.getSettingsService();
-      settingsService.setSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, muted)
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist isParticipantMuted:', error));
+      void persistSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, muted);
       set({ isParticipantMuted: muted });
     },
 
@@ -405,7 +382,7 @@ const useAudioStore = create<AudioStore>()(
             }
             get().setParticipantSources(await listSources.call(service));
           } catch (error) {
-            console.warn('[Sokuji] [AudioStore] Failed to list participant sources:', error);
+            reportWarning('AudioStore', `Failed to list participant sources: ${describeCause(error)}`, { cause: error });
           }
         }
 
@@ -431,7 +408,7 @@ const useAudioStore = create<AudioStore>()(
             const migratedMode: NoiseSuppressionMode = oldEnabled ? 'standard' : 'off';
             console.info('[Sokuji] [AudioStore] Migrated noise suppression:', oldEnabled, '→', migratedMode);
             set({ noiseSuppressionMode: migratedMode });
-            settingsService.setSetting(STORAGE_KEYS.NOISE_SUPPRESSION_MODE, migratedMode).catch(() => {});
+            void persistSetting(STORAGE_KEYS.NOISE_SUPPRESSION_MODE, migratedMode, { silent: true });
           }
         }
 
@@ -461,8 +438,7 @@ const useAudioStore = create<AudioStore>()(
             partOn ? 'participant' :
             'speaker'; // includes "all off" — default to speaker per spec
           set({ mode: derived });
-          settingsService.setSetting(STORAGE_KEYS.MODE, derived)
-            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist initial mode:', error));
+          void persistSetting(STORAGE_KEYS.MODE, derived);
 
           // Once new keys are written, set the legacy on-disk keys to null
           // so a future cleanup pass can grep for residue. We don't delete
@@ -471,12 +447,9 @@ const useAudioStore = create<AudioStore>()(
           // The storage key constants are retained here for the null-out to
           // compile; they will be removed in a future release once the
           // adoption window has closed.
-          settingsService.setSetting(STORAGE_KEYS.IS_INPUT_DEVICE_ON, null)
-            .catch(error => console.warn('[Sokuji] [AudioStore] Failed to null legacy isInputDeviceOn key:', error));
-          settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, null)
-            .catch(error => console.warn('[Sokuji] [AudioStore] Failed to null legacy isMonitorDeviceOn key:', error));
-          settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, null)
-            .catch(error => console.warn('[Sokuji] [AudioStore] Failed to null legacy isSystemAudioCaptureEnabled key:', error));
+          void persistSetting(STORAGE_KEYS.IS_INPUT_DEVICE_ON, null, { silent: true });
+          void persistSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, null, { silent: true });
+          void persistSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, null, { silent: true });
         }
 
         const savedIsMicMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MIC_MUTED, null);
@@ -485,8 +458,7 @@ const useAudioStore = create<AudioStore>()(
         } else {
           const derivedMicMuted = savedInputDeviceOn === false;
           set({ isMicMuted: derivedMicMuted });
-          settingsService.setSetting(STORAGE_KEYS.IS_MIC_MUTED, derivedMicMuted)
-            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist derived isMicMuted:', error));
+          void persistSetting(STORAGE_KEYS.IS_MIC_MUTED, derivedMicMuted);
         }
 
         const savedIsMonitorMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MONITOR_MUTED, null);
@@ -495,8 +467,7 @@ const useAudioStore = create<AudioStore>()(
         } else {
           const derivedMonitorMuted = savedMonitorDeviceOn !== true;
           set({ isMonitorMuted: derivedMonitorMuted });
-          settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_MUTED, derivedMonitorMuted)
-            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist derived isMonitorMuted:', error));
+          void persistSetting(STORAGE_KEYS.IS_MONITOR_MUTED, derivedMonitorMuted);
         }
 
         const savedIsParticipantMuted = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_PARTICIPANT_MUTED, null);
@@ -505,8 +476,7 @@ const useAudioStore = create<AudioStore>()(
         } else {
           const derivedParticipantMuted = savedSystemAudioCaptureEnabled === false;
           set({ isParticipantMuted: derivedParticipantMuted });
-          settingsService.setSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, derivedParticipantMuted)
-            .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist derived isParticipantMuted:', error));
+          void persistSetting(STORAGE_KEYS.IS_PARTICIPANT_MUTED, derivedParticipantMuted);
         }
 
         // Try to restore saved input device, or select default
@@ -542,9 +512,8 @@ const useAudioStore = create<AudioStore>()(
               const currentlyMuted = get().isMicMuted;
               set({ selectedInputDevice: null, isMicMuted: true });
               if (!currentlyMuted) {
-                console.warn('[Sokuji] [AudioStore] No real microphone found — clearing selection and turning mic off.');
-                settingsService.setSetting(STORAGE_KEYS.IS_MIC_MUTED, true)
-                  .catch(error => console.error('[Sokuji] [AudioStore] Failed to persist auto-muted mic state:', error));
+                reportWarning('AudioStore', 'No real microphone found — clearing selection and turning mic off');
+                void persistSetting(STORAGE_KEYS.IS_MIC_MUTED, true);
               }
             }
           }
@@ -585,38 +554,21 @@ const useAudioStore = create<AudioStore>()(
           }
         }
         
-        // Check if virtual audio device support
+        // Note the virtual device if one is already present. The former
+        // `else if (service.supportsVirtualDevices())` branch — which created
+        // devices and re-read the device list — was unreachable: the sole
+        // IAudioService implementation hard-returns false
+        // (ModernBrowserAudioService.ts:451-453), because the extension reaches
+        // its virtual microphone through messaging instead. Removed rather than
+        // migrated to report(): a diagnostic on a dead path reads as if the
+        // path is live.
         if (devices.outputs.some(device => device.isVirtual)) {
           console.info('[Sokuji] [AudioStore] Virtual audio device detected');
-        } else if (service.supportsVirtualDevices()) {
-          console.info('[Sokuji] [AudioStore] Creating virtual audio devices...');
-          const result = await service.createVirtualDevices?.();
-          if (result && result.success) {
-            console.info('[Sokuji] [AudioStore] Successfully created virtual audio devices:', result.message);
-            
-            // Get updated device list
-            const updatedDevices = await service.getDevices();
-            set({ 
-              audioInputDevices: updatedDevices.inputs,
-              audioMonitorDevices: updatedDevices.outputs 
-            });
-            
-            // Update selected devices if needed
-            if (updatedDevices.outputs.length > 0 && !get().selectedMonitorDevice) {
-              const nonVirtualOutputs = updatedDevices.outputs.filter(device => !device.isVirtual);
-              if (nonVirtualOutputs.length > 0) {
-                defaultMonitorDevice = nonVirtualOutputs[0];
-                set({ selectedMonitorDevice: defaultMonitorDevice });
-              }
-            }
-          } else {
-            console.error('[Sokuji] [AudioStore] Failed to create virtual audio devices:', result?.error);
-          }
         }
-        
+
         return { defaultInputDevice: null, defaultMonitorDevice };
       } catch (error) {
-        console.error('[Sokuji] [AudioStore] Error refreshing audio devices:', error);
+        reportError('AudioStore', `Failed to refresh audio devices: ${describeCause(error)}`, { cause: error });
         return { defaultInputDevice: null, defaultMonitorDevice: null };
       } finally {
         set({ isLoading: false });
@@ -672,7 +624,7 @@ const useAudioStore = create<AudioStore>()(
         }
 
       } catch (error) {
-        console.error('[Sokuji] [AudioStore] Error initializing audio service:', error);
+        reportError('AudioStore', `Failed to initialize the audio service: ${describeCause(error)}`, { cause: error });
       }
     },
   }))

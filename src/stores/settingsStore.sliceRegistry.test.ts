@@ -101,14 +101,26 @@ describe('provider settings update actions (behavior lock)', () => {
     expect(setSetting).toHaveBeenCalledWith('settings.kizunaVolcengineAst2.sourceLanguage', 'zh');
   });
 
-  // Every registry row's error policy, pinned individually: a single flipped
-  // `persistErrors` value (the easy typo when adding a provider) fails here.
-  const THROW_SLICES: Array<[string, Record<string, unknown>]> = [
-    ['updateOpenAI', { apiKey: 'x' }], ['updateGemini', { apiKey: 'x' }],
-    ['updateOpenAICompatible', { apiKey: 'x' }], ['updatePalabraAI', { clientId: 'x' }],
-    ['updateOpenAITranslate', { apiKey: 'x' }], ['updateKizunaOpenaiTranslate', { sourceLanguage: 'ja' }],
-  ];
-  const SWALLOW_SLICES: Array<[string, string, Record<string, unknown>]> = [
+  // The registry used to carry `persistErrors: 'throw' | 'swallow'`, split 6/6,
+  // and this pinned each row. What the split actually did in production: none
+  // of the six "throw" actions was awaited or caught by any caller — they are
+  // typed `void` and every call site (ProviderSection.tsx:486,
+  // LanguageSection.tsx:155, ProviderSpecificSettings.tsx:368) is
+  // fire-and-forget — so "throw" meant an unhandled rejection that
+  // errorTracking.ts:112 forwarded to PostHog, and "swallow" meant a console
+  // line. Neither was visible to the user, and which slice got which was
+  // arbitrary.
+  //
+  // All twelve now go through `persistSetting`: state is applied, the promise
+  // resolves, and the failure becomes one panel entry per key. Both failure
+  // channels are exercised because the service can produce either.
+  const ALL_SLICES: Array<[string, string, Record<string, unknown>]> = [
+    ['updateOpenAI', 'openai', { apiKey: 'x' }],
+    ['updateGemini', 'gemini', { apiKey: 'x' }],
+    ['updateOpenAICompatible', 'openaiCompatible', { apiKey: 'x' }],
+    ['updatePalabraAI', 'palabraai', { clientId: 'x' }],
+    ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'x' }],
+    ['updateKizunaOpenaiTranslate', 'kizunaOpenaiTranslate', { sourceLanguage: 'ja' }],
     ['updateVolcengineST', 'volcengineST', { accessKeyId: 'x' }],
     ['updateZoomAI', 'zoomAI', { apiKey: 'x' }],
     ['updateVolcengineAST2', 'volcengineAST2', { appId: 'x' }],
@@ -117,20 +129,40 @@ describe('provider settings update actions (behavior lock)', () => {
     ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
   ];
 
-  it('all 6 throw-policy slices propagate a persistence error', async () => {
-    for (const [action, patch] of THROW_SLICES) {
-      setSetting.mockRejectedValue(new Error('disk full'));
-      await expect((useSettingsStore.getState() as any)[action](patch), action).rejects.toThrow('disk full');
-    }
-  });
-
-  it('all 6 swallow-policy slices resolve on a persistence error but still apply state', async () => {
-    for (const [action, sliceKey, patch] of SWALLOW_SLICES) {
-      setSetting.mockRejectedValue(new Error('disk full'));
+  it('every slice resolves and still applies state when the write is refused', async () => {
+    for (const [action, sliceKey, patch] of ALL_SLICES) {
+      setSetting.mockResolvedValue({ success: false, error: 'disk full' } as never);
       await expect((useSettingsStore.getState() as any)[action](patch), action).resolves.toBeUndefined();
       const [k, v] = Object.entries(patch)[0];
       expect((useSettingsStore.getState() as any)[sliceKey][k], action).toBe(v);
     }
+  });
+
+  it('every slice resolves and still applies state when the write rejects', async () => {
+    for (const [action, sliceKey, patch] of ALL_SLICES) {
+      setSetting.mockRejectedValue(new Error('disk full') as never);
+      await expect((useSettingsStore.getState() as any)[action](patch), action).resolves.toBeUndefined();
+      const [k, v] = Object.entries(patch)[0];
+      expect((useSettingsStore.getState() as any)[sliceKey][k], action).toBe(v);
+    }
+  });
+
+  it('files one panel entry per refused key', async () => {
+    const { default: useLogStore } = await import('./logStore');
+    const { settleReports, resetReportThrottle } = await import('../lib/diagnostics/report');
+    useLogStore.getState().clearLogs();
+    resetReportThrottle();
+    setSetting.mockResolvedValue({ success: false, error: 'disk full' } as never);
+
+    await (useSettingsStore.getState() as any).updateGemini({ apiKey: 'x', sourceLanguage: 'ja' });
+    await settleReports();
+
+    const messages = useLogStore.getState().allLogs.map((l) => l.message);
+    expect(messages).toEqual([
+      '[Settings] Could not save settings.gemini.apiKey: disk full',
+      '[Settings] Could not save settings.gemini.sourceLanguage: disk full',
+    ]);
+    useLogStore.getState().clearLogs();
   });
 
   it('loadSettings hydrates every slice from settings.<sliceKey>.<field> with its default', async () => {
