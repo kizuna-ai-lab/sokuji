@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Förhandsgranskning misslyckades — Soniox hastighetsgräns eller kvot uppnådd",
     "sonioxVoicePreviewTimeout": "Förhandsgranskningen tog för lång tid — försök igen",
     "sonioxRegion": "Region",
-    "sonioxRegionTooltip": "Soniox kör en separat driftsättning per region, var och en med en egen API-nyckel. Ditt ljud behandlas och lagras i den region du väljer. Gäller från nästa session.",
+    "sonioxRegionTooltip": "Soniox kör en separat driftsättning per region. Ditt ljud behandlas i den region du väljer. Gäller från nästa session.",
+    "sonioxRegionTooltipOwnKey": "Soniox kör en separat driftsättning per region, och varje region är ett eget Soniox-projekt med en egen API-nyckel. Ditt ljud behandlas i den region du väljer. Gäller från nästa session.",
     "langSentence": {
       "iSpeak": "Jag talar",
       "iRead": "Jag läser",

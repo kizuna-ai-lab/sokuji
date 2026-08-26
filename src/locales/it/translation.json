@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Anteprima non riuscita — limite di frequenza o quota Soniox raggiunti",
     "sonioxVoicePreviewTimeout": "Anteprima scaduta — riprova",
     "sonioxRegion": "Regione",
-    "sonioxRegionTooltip": "Soniox esegue un'implementazione separata per regione, ciascuna con la propria chiave API. Il tuo audio viene elaborato e archiviato nella regione scelta. Si applica dalla prossima sessione.",
+    "sonioxRegionTooltip": "Soniox esegue un'implementazione separata per regione. Il tuo audio viene elaborato nella regione scelta. Si applica dalla prossima sessione.",
+    "sonioxRegionTooltipOwnKey": "Soniox esegue un'implementazione separata per regione, e ciascuna è un progetto Soniox distinto con la propria chiave API. Il tuo audio viene elaborato nella regione scelta. Si applica dalla prossima sessione.",
     "langSentence": {
       "iSpeak": "Io parlo",
       "iRead": "Io leggo",
