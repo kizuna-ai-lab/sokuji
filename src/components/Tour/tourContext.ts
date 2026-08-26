@@ -3,13 +3,19 @@
 // What the catalogue's predicates and copy variants read (spec §2.2). Built
 // once at tour start from the setup record and the live stores; predicates
 // read `mode`/`textOnly`, never the scenario id, so a migrated user with
-// `scenario: null` still gets the right device steps.
+// `scenario: null` still gets the right device steps. For the same reason the
+// provider path is derived from the live provider rather than taken from the
+// record: only the record's `scenario` is read here.
+import { providerPathFor } from '../../lib/setup/providerPath';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import type { ProviderType } from '../../types/Provider';
 
 export interface TourCtx {
   scenario: ScenarioId | null;
-  providerPath: ProviderPath | null;
+  /** Derived from `provider`, never from the setup record: the record's path is
+   *  wizard-time history, while every step this gates points at a surface the
+   *  LIVE provider renders. See providerPathFor. */
+  providerPath: ProviderPath;
   provider: ProviderType;
   platform: 'electron' | 'extension' | 'web';
   os: 'linux' | 'mac' | 'windows' | 'other';
@@ -21,7 +27,7 @@ export interface TourCtx {
 }
 
 export function buildTourCtx(i: {
-  record: { scenario: ScenarioId | null; providerPath: ProviderPath | null } | null;
+  record: { scenario: ScenarioId | null } | null;
   provider: ProviderType;
   mode: TourCtx['mode'];
   textOnly: boolean;
@@ -32,7 +38,7 @@ export function buildTourCtx(i: {
   const os: TourCtx['os'] = i.env.isLinux ? 'linux' : i.env.isMacOS ? 'mac' : i.env.isWindows ? 'windows' : 'other';
   return {
     scenario: i.record?.scenario ?? null,
-    providerPath: i.record?.providerPath ?? null,
+    providerPath: providerPathFor(i.provider),
     provider: i.provider,
     // Three, because a plain browser build is neither host: it renders no
     // subtitle button and no extension surfaces, so steps that need them

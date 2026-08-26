@@ -1,17 +1,21 @@
 // The seam Help's "Restart Setup Guide" goes through. The wizard seeds its own
 // ctx from the draft it just applied; this hook has to build one from the live
 // stores instead — and the stored setup record is months old by then, so every
-// field that can drift must come from the store, not the record.
+// field that can drift must come from the store, not the record. Only the
+// scenario is read from the record.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 
 vi.mock('../../stores/settingsStore', () => ({
-  useSettingsStore: { getState: () => ({ provider: 'openai', textOnly: false, isApiKeyValid: true }) },
+  useSettingsStore: { getState: () => ({ provider: 'kizunaai_soniox', textOnly: false, isApiKeyValid: true }) },
 }));
-// `provider` here is deliberately stale — the user has since switched to
-// OpenAI. buildTourCtx must read the store's provider and ignore this one.
+// The record is deliberately stale, and by no fault of the user: they finished
+// the wizard on the offline path, then signed in, and MainLayout's Basic-mode
+// rule auto-switched them to the managed provider. Reading `providerPath` off
+// this record put the `models` step in the tour, whose engine-chips anchor the
+// managed ProviderSection never renders — it stalled, then skipped itself.
 vi.mock('../../stores/setupStore', () => ({
-  useSetupStore: { getState: () => ({ setup: { scenario: 'be-heard', providerPath: 'own-key', provider: 'kizunaai_soniox' } }) },
+  useSetupStore: { getState: () => ({ setup: { scenario: 'be-heard', providerPath: 'offline', provider: 'local_inference' } }) },
 }));
 vi.mock('../../stores/audioStore', () => ({ default: { getState: () => ({ mode: 'speaker' }) } }));
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: true }) }));
@@ -39,11 +43,13 @@ describe('useStartBasicsTour', () => {
 
     expect(startSpy).toHaveBeenCalledTimes(1);
     expect(startSpy).toHaveBeenCalledWith(expect.objectContaining({
-      // From the record: only the two fields nothing else can supply.
-      scenario: 'be-heard', providerPath: 'own-key',
-      // From the stores and the environment — provider above all, which the
-      // record still has as kizunaai_soniox.
-      provider: 'openai', mode: 'speaker', textOnly: false,
+      // From the record: the scenario, and nothing else — it is the one field
+      // no live store can supply.
+      scenario: 'be-heard',
+      // Everything else from the stores and the environment, the provider path
+      // included: derived from the live provider, never from the record's.
+      providerPath: 'managed',
+      provider: 'kizunaai_soniox', mode: 'speaker', textOnly: false,
       isSignedIn: true, apiKeyValid: true, platform: 'electron', os: 'linux',
     }));
   });
