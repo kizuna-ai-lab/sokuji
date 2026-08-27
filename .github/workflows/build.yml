@@ -217,8 +217,28 @@ jobs:
             -passin "pass:$MACOS_CSC_KEY_PASSWORD" -out "$RUNNER_TEMP/signing.pem"
           sudo security add-trusted-cert -d -r trustRoot -p codeSign \
             -k /Library/Keychains/System.keychain "$RUNNER_TEMP/signing.pem"
+          # Prove the trust actually took, in the same shape electron-builder
+          # will see it: import into a scratch keychain and ask for VALID
+          # identities. Checking the default search list here would always say
+          # "0 valid identities found" -- nothing is imported into it, since
+          # electron-builder makes its own keychain from CSC_LINK at build time.
+          SCRATCH="$RUNNER_TEMP/trust-check.keychain"
+          security create-keychain -p check "$SCRATCH"
+          security unlock-keychain -p check "$SCRATCH"
+          security set-keychain-settings "$SCRATCH"
+          security import "$RUNNER_TEMP/signing.p12" -k "$SCRATCH" \
+            -P "$MACOS_CSC_KEY_PASSWORD" -T /usr/bin/codesign >/dev/null
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k check "$SCRATCH" >/dev/null 2>&1
+          echo "valid identities visible to electron-builder:"
+          security find-identity -v -p codesigning "$SCRATCH" | sed 's/^/  /'
+          if ! security find-identity -v -p codesigning "$SCRATCH" | grep -q "Sokuji Code Signing"; then
+            echo "FAIL: the certificate is still not a valid identity after trusting it." >&2
+            security delete-keychain "$SCRATCH" || true
+            exit 1
+          fi
+          security delete-keychain "$SCRATCH"
           rm -f "$RUNNER_TEMP/signing.p12" "$RUNNER_TEMP/signing.pem"
-          security find-identity -v -p codesigning | sed 's/^/  /'
 
       - name: Build macOS PKG (electron-builder)
         if: runner.os == 'macOS'
@@ -238,6 +258,13 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MACOS_CSC_LINK != '' && 'true' || 'false' }}
           CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          # electron-builder refuses to sign pull-request builds unless this is
+          # set, so that untrusted forks cannot get at signing credentials. That
+          # protection is redundant here -- GitHub does not pass secrets to fork
+          # PRs at all, so HAS_MAC_CERT is false and CSC_LINK is empty there --
+          # while leaving it off means no PR can ever verify the signing chain,
+          # which is the whole point of running this on a PR.
+          CSC_FOR_PULL_REQUEST: ${{ env.HAS_MAC_CERT }}
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
