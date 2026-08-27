@@ -41,6 +41,12 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    # `secrets` cannot be referenced from a step-level `if`; hoisting it here
+    # makes the macOS signing steps conditional without tripping the workflow
+    # validator (an invalid file fails the whole run before anything executes).
+    env:
+      HAS_MAC_CERT: ${{ secrets.MACOS_CSC_LINK != '' }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -195,7 +201,7 @@ jobs:
       # to give the app a signing identity that stays the same between builds, which
       # is what Squirrel.Mac and TCC key on.
       - name: Trust the self-signed signing certificate (macOS)
-        if: runner.os == 'macOS' && secrets.MACOS_CSC_LINK != ''
+        if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
         env:
           MACOS_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
           MACOS_CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
@@ -250,7 +256,7 @@ jobs:
       # An ad-hoc signature yields a cdhash DR, which is exactly what stops
       # Squirrel.Mac from ever accepting an update -- fail loudly instead.
       - name: Verify the app carries a stable signing identity (macOS)
-        if: runner.os == 'macOS' && secrets.MACOS_CSC_LINK != ''
+        if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
         run: |
           set -euo pipefail
           APP=$(find out/make-mac -name 'Sokuji.app' -maxdepth 3 | head -1)
