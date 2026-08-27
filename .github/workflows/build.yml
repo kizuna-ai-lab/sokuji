@@ -240,7 +240,7 @@ jobs:
           security delete-keychain "$SCRATCH"
           rm -f "$RUNNER_TEMP/signing.p12" "$RUNNER_TEMP/signing.pem"
 
-      - name: Build macOS PKG (electron-builder)
+      - name: Build macOS artifacts (electron-builder)
         if: runner.os == 'macOS'
         # --publish never: release job uploads artifacts via softprops/action-gh-release
         # to avoid duplicate releases.
@@ -248,7 +248,11 @@ jobs:
         # globally set to out/make-linux for the Linux build).
         # The afterPack hook (scripts/electron-builder-fuses.js) ad-hoc signs the .app
         # since CSC_IDENTITY_AUTO_DISCOVERY=false skips signing entirely.
-        run: npx electron-builder --mac pkg --${{ matrix.arch }} --publish never -c.directories.output=out/make-mac
+        # Targets must be listed here: a target on the CLI overrides build.mac.target
+        # entirely, so `--mac pkg` alone would silently drop the zip -- and with it
+        # latest-mac.yml and the blockmap, leaving auto-update dead while everything
+        # still looks green. The zip is what electron-updater actually installs.
+        run: npx electron-builder --mac pkg zip --${{ matrix.arch }} --publish never -c.directories.output=out/make-mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
@@ -282,7 +286,7 @@ jobs:
       # cannot find an identity, so an unsigned release would look like a success.
       # An ad-hoc signature yields a cdhash DR, which is exactly what stops
       # Squirrel.Mac from ever accepting an update -- fail loudly instead.
-      - name: Verify the app carries a stable signing identity (macOS)
+      - name: Verify the macOS update artifacts (signature + zip + manifest)
         if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
         run: |
           set -euo pipefail
@@ -306,6 +310,20 @@ jobs:
           esac
           codesign --verify --deep --strict "$APP"
           echo "OK: bundle passes strict nested validation."
+
+          # MacUpdater installs the zip and nothing else -- it rejects pkg and dmg
+          # outright -- and only the zip target emits latest-mac.yml plus the
+          # blockmap. Missing either one leaves auto-update dead with a green build.
+          ZIP=$(find out/make-mac -maxdepth 1 -name '*.zip' | head -1)
+          YML=out/make-mac/latest-mac.yml
+          [ -n "$ZIP" ] || { echo "FAIL: no macOS .zip produced; electron-updater has nothing to install." >&2; exit 1; }
+          [ -f "$YML" ] || { echo "FAIL: no latest-mac.yml produced." >&2; exit 1; }
+          echo "OK: $(basename "$ZIP")"
+          echo "--- latest-mac.yml ---"
+          cat "$YML"
+          grep -q "$(basename "$ZIP")" "$YML" || {
+            echo "FAIL: latest-mac.yml does not reference $(basename "$ZIP")." >&2; exit 1; }
+          echo "OK: manifest references the zip."
 
       - name: Build Chrome Extension
         if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
