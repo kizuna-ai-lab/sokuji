@@ -245,6 +245,35 @@ jobs:
           VITE_ENABLE_ZOOM_AI: ${{ vars.VITE_ENABLE_ZOOM_AI }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
 
+      # electron-builder logs "skipped macOS code signing" and carries on when it
+      # cannot find an identity, so an unsigned release would look like a success.
+      # An ad-hoc signature yields a cdhash DR, which is exactly what stops
+      # Squirrel.Mac from ever accepting an update -- fail loudly instead.
+      - name: Verify the app carries a stable signing identity (macOS)
+        if: runner.os == 'macOS' && secrets.MACOS_CSC_LINK != ''
+        run: |
+          set -euo pipefail
+          APP=$(find out/make-mac -name 'Sokuji.app' -maxdepth 3 | head -1)
+          if [ -z "$APP" ]; then
+            echo "No Sokuji.app found under out/make-mac" >&2
+            exit 1
+          fi
+          DR=$(codesign -d -r- "$APP" 2>&1 | grep 'designated =>' | sed 's/^#* *designated => //')
+          echo "designated requirement: $DR"
+          case "$DR" in
+            *"certificate root = H"*|*"certificate leaf = H"*)
+              echo "OK: stable, certificate-pinned designated requirement." ;;
+            *cdhash*)
+              echo "FAIL: ad-hoc signature (cdhash DR). Signing was skipped --" >&2
+              echo "the certificate was probably not discoverable via find-identity -v." >&2
+              exit 1 ;;
+            *)
+              echo "FAIL: unrecognised designated requirement." >&2
+              exit 1 ;;
+          esac
+          codesign --verify --deep --strict "$APP"
+          echo "OK: bundle passes strict nested validation."
+
       - name: Build Chrome Extension
         if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
         run: |
