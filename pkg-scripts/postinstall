@@ -5,10 +5,26 @@
 
 echo "Sokuji postinstall: Starting installation..."
 
-# Set correct permissions on the installed app
+# Set correct permissions on the installed app.
+#
+# Ownership matters for auto-update, not just for permissions. The installer
+# runs as root, so without this the bundle lands as root:wheel and Squirrel.Mac
+# -- which runs as the invoking user and never escalates privileges -- cannot
+# replace it. Handing it to the console user is what drag-installed apps look
+# like anyway (Brave, Cursor and Firefox all install user-owned).
+# See docs/build/macos-auto-update.md.
 if [ -d "/Applications/Sokuji.app" ]; then
     echo "Sokuji postinstall: Setting app permissions..."
     chmod -R 755 /Applications/Sokuji.app
+
+    CONSOLE_USER=$(stat -f%Su /dev/console 2>/dev/null)
+    if [ -n "$CONSOLE_USER" ] && [ "$CONSOLE_USER" != "root" ]; then
+        echo "Sokuji postinstall: Handing the app bundle to $CONSOLE_USER so updates can replace it..."
+        chown -R "$CONSOLE_USER" /Applications/Sokuji.app || \
+            echo "Sokuji postinstall: WARNING - chown failed; in-app updates will not be able to replace the bundle"
+    else
+        echo "Sokuji postinstall: WARNING - no console user found; leaving the bundle root-owned"
+    fi
 fi
 
 # Install the virtual audio driver from the app bundle

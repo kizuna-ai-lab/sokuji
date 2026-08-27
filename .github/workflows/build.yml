@@ -186,6 +186,34 @@ jobs:
           VITE_ENABLE_ZOOM_AI: ${{ vars.VITE_ENABLE_ZOOM_AI }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
 
+      # electron-builder discovers signing identities with `security find-identity -v`,
+      # and a self-signed certificate is reported CSSMERR_TP_NOT_TRUSTED, so it would
+      # be invisible and signing would be silently skipped. Trusting it makes it
+      # discoverable. Verified on macOS 26.6.1; see docs/build/macos-auto-update.md.
+      #
+      # This is NOT notarization and buys nothing with Gatekeeper. Its only job is
+      # to give the app a signing identity that stays the same between builds, which
+      # is what Squirrel.Mac and TCC key on.
+      - name: Trust the self-signed signing certificate (macOS)
+        if: runner.os == 'macOS' && secrets.MACOS_CSC_LINK != ''
+        env:
+          MACOS_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          MACOS_CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "$MACOS_CSC_LINK" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          # Extract the certificate alone (no private key) for the trust store.
+          # OpenSSL 3 needs -legacy to read a p12 exported with legacy algorithms;
+          # LibreSSL does not have the flag, so try plain first.
+          openssl pkcs12 -in "$RUNNER_TEMP/signing.p12" -clcerts -nokeys \
+            -passin "pass:$MACOS_CSC_KEY_PASSWORD" -out "$RUNNER_TEMP/signing.pem" 2>/dev/null || \
+          openssl pkcs12 -legacy -in "$RUNNER_TEMP/signing.p12" -clcerts -nokeys \
+            -passin "pass:$MACOS_CSC_KEY_PASSWORD" -out "$RUNNER_TEMP/signing.pem"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign \
+            -k /Library/Keychains/System.keychain "$RUNNER_TEMP/signing.pem"
+          rm -f "$RUNNER_TEMP/signing.p12" "$RUNNER_TEMP/signing.pem"
+          security find-identity -v -p codesigning | sed 's/^/  /'
+
       - name: Build macOS PKG (electron-builder)
         if: runner.os == 'macOS'
         # --publish never: release job uploads artifacts via softprops/action-gh-release
@@ -198,7 +226,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # With no certificate configured the build stays ad-hoc signed and
+          # macOS auto-update stays off; scripts/electron-builder-fuses.js
+          # ad-hoc signs in that case.
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MACOS_CSC_LINK != '' && 'true' || 'false' }}
+          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -303,6 +336,9 @@ jobs:
           name: ${{ matrix.artifact_name }}-artifacts
           path: |
             out/make-mac/*.pkg
+            out/make-mac/*.zip
+            out/make-mac/*.blockmap
+            out/make-mac/latest-mac.yml
 
   sign-windows:
     name: Sign Windows artifacts
@@ -426,6 +462,13 @@ jobs:
           find windows-nupkg -name "*.nupkg" -exec cp {} release-assets/ \;
           find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           find macos-x64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
+          # The zip is what electron-updater installs on macOS: MacUpdater accepts
+          # only a zip and rejects pkg/dmg outright. The blockmap next to it is what
+          # makes subsequent updates differential.
+          find macos-arm64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find macos-x64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find macos-arm64-artifacts -name "*.blockmap" -exec cp {} release-assets/ \;
+          find macos-x64-artifacts -name "*.blockmap" -exec cp {} release-assets/ \;
           # Squirrel generates filenames with spaces (e.g. "Sokuji-0.15.12 Setup.exe").
           # Rename to use dots so asset names are consistent and latest.yml URLs match.
           cd release-assets
@@ -466,51 +509,40 @@ jobs:
           echo "=== latest.yml ==="
           cat release-assets/latest.yml
 
-      - name: Generate latest-mac.yml for auto-updater
-        # electron-builder's PKG target does not emit latest-mac.yml on its own
-        # (only zip/dmg targets set isWriteUpdateInfo=true), so generate it the
-        # same way Windows latest.yml is built above. Notify-only context:
-        # update-manager.js darwin branch only reads `version` and constructs
-        # its own pkgUrl, so files[] just enumerates the per-arch PKGs.
-        # electron-updater on macOS always fetches a single latest-mac.yml
-        # (no arch suffix), hence one combined file with both arches in files[].
+      - name: Merge the per-arch latest-mac.yml files
+        # The zip target sets isWriteUpdateInfo, so electron-builder now writes a
+        # correct latest-mac.yml itself -- no hand-rolled sha512 loop any more.
+        # But each arch runner writes its own, and electron-updater fetches a
+        # single latest-mac.yml (no arch suffix), so the two files[] lists have
+        # to be combined. MacUpdater then picks the entry matching process.arch.
         run: |
-          PKGS=()
-          while IFS= read -r p; do PKGS+=("$p"); done < <(find release-assets -name "Sokuji-*-*.pkg" | sort)
-          if [ ${#PKGS[@]} -eq 0 ]; then
-            echo "Warning: No .pkg found, skipping latest-mac.yml generation"
+          set -euo pipefail
+          ARM=$(find macos-arm64-artifacts -name latest-mac.yml | head -1)
+          X64=$(find macos-x64-artifacts -name latest-mac.yml | head -1)
+          if [ -z "$ARM" ] && [ -z "$X64" ]; then
+            echo "No latest-mac.yml produced -- macOS auto-update will not work."
+            echo "That is expected when MACOS_CSC_LINK is unset (unsigned build)."
             exit 0
           fi
-
-          VERSION=${GITHUB_REF_NAME#v}
-          DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
-
-          # Prefer arm64 for the legacy top-level path/sha512 fields, matching
-          # the previous PyYAML merge behavior.
-          PRIMARY=""
-          for PKG in "${PKGS[@]}"; do
-            case "$PKG" in *-arm64.pkg) PRIMARY="$PKG"; break ;; esac
-          done
-          [ -z "$PRIMARY" ] && PRIMARY="${PKGS[0]}"
-          PRIMARY_NAME=$(basename "$PRIMARY")
-          PRIMARY_SHA=$(openssl dgst -sha512 -binary "$PRIMARY" | openssl base64 -A)
-
-          {
-            echo "version: ${VERSION}"
-            echo "files:"
-            for PKG in "${PKGS[@]}"; do
-              NAME=$(basename "$PKG")
-              SHA=$(openssl dgst -sha512 -binary "$PKG" | openssl base64 -A)
-              SIZE=$(stat -c%s "$PKG")
-              echo "  - url: ${NAME}"
-              echo "    sha512: ${SHA}"
-              echo "    size: ${SIZE}"
-            done
-            echo "path: ${PRIMARY_NAME}"
-            echo "sha512: ${PRIMARY_SHA}"
-            echo "releaseDate: '${DATE}'"
-          } > release-assets/latest-mac.yml
-
+          python3 -c "import yaml" 2>/dev/null || pip3 install --quiet pyyaml
+          python3 - "$ARM" "$X64" <<'PY'
+          import sys, yaml
+          paths = [p for p in sys.argv[1:3] if p]
+          docs = [yaml.safe_load(open(p)) for p in paths]
+          # Prefer arm64 for the top-level path/sha512 fields, matching what the
+          # previous hand-rolled step produced.
+          primary = next((d for p, d in zip(paths, docs) if 'arm64' in p), docs[0])
+          seen, files = set(), []
+          for d in docs:
+              for f in d.get('files', []):
+                  if f['url'] not in seen:
+                      seen.add(f['url'])
+                      files.append(f)
+          merged = dict(primary)
+          merged['files'] = files
+          with open('release-assets/latest-mac.yml', 'w') as fh:
+              yaml.safe_dump(merged, fh, default_flow_style=False, sort_keys=False)
+          PY
           echo "=== latest-mac.yml ==="
           cat release-assets/latest-mac.yml
 

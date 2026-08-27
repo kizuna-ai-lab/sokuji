@@ -156,6 +156,7 @@ export default defineConfig(({ command, mode }) => {
             'subtitle-window': 'electron/subtitle-window.js',
             'popover-windows': 'electron/popover-windows.js',
             'update-manager': 'electron/update-manager.js',
+            'update-payload': 'electron/update-payload.js',
             'window-caption-dblclick': 'electron/window-caption-dblclick.js'
           },
           onstart(args) {
