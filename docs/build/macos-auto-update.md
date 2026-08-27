@@ -1018,7 +1018,7 @@ not ship together.
 - **Gatekeeper is unchanged.** The PKG is still not notarized, so the
   `xattr` step stays exactly as it is today.
 
-### 7.2 Signing the driver — safe, and required anyway
+### 7.2 Signing the driver — safe, and not actually required
 
 The device UID is a compile-time macro. Upstream `BlackHole.c` defines:
 
@@ -1051,28 +1051,58 @@ entirely and ship it as a separate PKG payload. Code under `Resources/` is
 precisely what strict validation is unhappy about, and the app only ever uses
 that copy as installer payload — nothing loads it from there.
 
-### 7.3 Bumping the BlackHole version — the actually risky one, and unnecessary
+### 7.3 Bumping the BlackHole version — verified, and the answer is "not now"
 
-Do not fold this into the signing change. It is a separate decision with its own
-failure modes, and nothing about auto-update requires it — the driver has been
-frozen at BlackHole 0.6.1 / build 596 since 2025-09-17 and works.
+Researched against upstream directly (2026-08-28). The pinned submodule commit
+`4fdd55ca` **is** tag `v0.6.1` (2025-02-06); upstream is at `v0.7.1` plus 4
+commits, **21 commits and ~18 months ahead**.
 
-- **The device UID could change.** It is derived from `kDriver_Name` plus the
-  channel count. Our build script pins both, so a straight version bump should
-  keep `SokujiVirtualAudio2ch_UID` — but if upstream ever reshapes the
-  `kDevice_UID` macro, or if the channel count changes, the UID changes with it.
-  The symptom is nasty and silent: every app that had the device selected falls
-  back to its default, and users report "translation audio stopped reaching
-  Zoom" with nothing in our logs. Diff the macros before bumping.
-- **`killall coreaudiod` interrupts audio system-wide**, in every running app.
-  The PKG does this on every install today. Doing it mid-meeting is bad; a
-  driver update should be something the user opts into, not a side effect.
-- **Auto-update will not carry the driver.** Squirrel replaces the app bundle;
-  `/Library/Audio/Plug-Ins/HAL/` is outside it and needs root. So once Option S
-  ships, an app update and a driver update are different events — and nothing
-  currently detects the skew, because no code reads the driver's
-  `Contents/Resources/VERSION`. Add that version check *before* you ever need to
-  bump the driver, not after.
+**The UID risk I originally flagged does not exist.** Fetching
+`BlackHole/BlackHole.c` at both revisions and diffing the macro block shows it
+byte-for-byte identical, at the same line numbers (152–197):
+`kDriver_Name_Format "%ich"`, `kDevice_UID`, `kDevice2_UID`, `kBox_UID`,
+`kDevice_ModelUID`, `kDevice_Name`, and the `#ifndef`-guarded
+`kNumber_Of_Channels = 2`. So `SokujiVirtualAudio2ch_UID` survives a bump and
+device selections in Zoom/Meet/Teams would not drop. `BlackHole.plist` is
+untouched, and `project.pbxproj` differs only by three `MARKETING_VERSION`
+lines — `scripts/build-sokuji-driver.sh` would work unmodified, PlistBuddy
+targets included.
+
+**But the ledger still says don't.** The entire functional diff over 18 months
+is: 24 kHz added to `kSampleRates`, an `#ifndef` guard around
+`kLatency_Frame_Size`, and firmware version read from the plist. Nothing about
+clock drift, latency, crashes, Apple Silicon or macOS 15/26 — issue #889
+("Broken on macOS 26 Tahoe") was closed by its reporter with no fix shipped.
+
+And 0.7.1 **adds** a regression: commit `60374d35` reads
+`CFBundleGetBundleWithIdentifier(...)` and `CFBundleGetValueForInfoDictionaryKey(...)`
+and passes the result straight to `CFRetain` with no null check
+(`BlackHole.c:1946-1950` on master). `CFRetain(NULL)` crashes *inside
+`coreaudiod`*, taking all system audio down until launchd restarts it, and
+Audio MIDI Setup reads the firmware version on a normal user path. Upstream
+PR #901 guards it and is **still unmerged**. Our exposure is probably lower
+than upstream's own — the crash likely arises because upstream's default
+`kPlugIn_BundleID` does not match its `PRODUCT_BUNDLE_IDENTIFIER`, whereas our
+build script sets both to `com.sokuji.virtualaudio` — but "probably" is not a
+reason to take on an unfixed `coreaudiod` crash.
+
+**The one gain is available without bumping.** `kSampleRates` is
+`#ifndef`-guarded in the pinned revision too, so 24 kHz can be added through
+the existing `GCC_PREPROCESSOR_DEFINITIONS` in `scripts/build-sokuji-driver.sh`.
+That is worth doing on its own merits: Sokuji's entire audio pipeline runs at
+24000 Hz (`ModernAudioPlayer.js:18`, which even errors on a sample-rate
+mismatch at `:253`), while the 0.6.1 device advertises 8000/16000/44100/48000
+and up — so the output leg into the virtual device is being resampled for no
+reason. Escaping the comma-separated list through `xcodebuild` needs care.
+
+**Revisit when PR #901 merges.** If bumping then, keep `kPlugIn_BundleID` and
+`PRODUCT_BUNDLE_IDENTIFIER` in sync (we already do) and re-run the UID check,
+since the UID is assembled at runtime from `kDriver_Name` + channel count.
+
+One non-technical note: upstream added a trademark clarification to `LICENSE`
+(commit `fd5190ca`) asking third-party builds not to use the BlackHole name or
+branding. Sokuji already complies by rebranding wholesale. The GPLv3
+source-offer obligation for the shipped driver binary is unchanged either way.
 
 ## 8. Open questions
 
