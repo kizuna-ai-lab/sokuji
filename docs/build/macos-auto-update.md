@@ -496,7 +496,19 @@ nothing and silently skip signing. Two ways round it:
   `sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain cert.pem`.
   Passwordless on GitHub Actions runners; needs a GUI prompt on a local Mac
   (it fails over SSH with "the authorization was denied since no user
-  interaction was possible"). Trust does not change the DR.
+  interaction was possible"). Trust does not change the DR. **Verified with the
+  real project certificate on 2026-08-28**: an electron-builder-shaped temp
+  keychain showed "0 valid identities found" before the trust step and
+  `92E86A47B9D0179E060C7E7CEA61B8F9D4F3C350 "Sokuji Code Signing"` after it.
+  `scripts/../verify-trust.sh` (kept out of the repo; it takes the private key's
+  password) reproduces this.
+
+  **Pin `mac.identity` by name.** Without a qualifier, `_findIdentity`'s
+  "find non-Apple certificate" fallback takes *any* non-Apple certificate in the
+  keychain — the verification machine already had an unrelated
+  "Sokuji Development Certificate" that it would have picked. That build would
+  carry a different designated requirement and break the update chain with
+  nothing looking wrong.
 - Or sign in the `afterPack` hook, which is what
   `scripts/electron-builder-fuses.js` already does — swap `--sign -` for the
   identity and skip electron-builder's own signing entirely. This sidesteps
@@ -920,7 +932,7 @@ it has since been run. Two scripts reproduce it:
 | 2 | Can a write-disabled bundle in `/Applications` be renamed? | **PASS** — yes, so `rename(2)`'s CONFORMANCE clause does not bite on APFS here. The root-owned variant still needs a passworded sudo; see the caveat below |
 | 3 | Is the self-signed DR stable, and does build N+1 satisfy build N's DR? | **PASS** — identical DR, `-R` check rc=0, ad-hoc control correctly fails |
 | 4 | Does a non-LaunchServices download carry quarantine? | **PASS** — `Sokuji.app` does not declare `LSFileQuarantineEnabled`; a curl-fetched file has no `com.apple.quarantine` |
-| 5 | Is the self-signed cert usable for signing? | **PASS to sign, FAIL to discover** — `codesign` works; `find-identity -v` reports 0 valid (see §2.5e(a)) |
+| 5 | Is the self-signed cert usable for signing? | **PASS** — `codesign` signs with it untrusted; and trusting it makes it discoverable, verified with the real project certificate: `find-identity -v` went 0 → 1 (`92E86A47… "Sokuji Code Signing"`) across `security add-trusted-cert`. See §2.5e(a) |
 | 6 | Does an unsigned nested driver break strict validation? | **PASS** — it does not (see §2.5e(b)) |
 
 Confirmed in passing: the installed app really is

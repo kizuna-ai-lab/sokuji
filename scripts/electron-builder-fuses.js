@@ -49,6 +49,13 @@ module.exports = async function afterPack(context) {
   console.log(`[electron-builder-fuses] Applied Fuses to ${execPath}`);
 
   if (isDarwin && appBundlePath) {
+    // Keyed on the environment, not on build.mac.identity: that is pinned to a
+    // name, and pinning it says nothing about whether the certificate is
+    // actually in this machine's keychain. A developer without it would
+    // otherwise get a bundle that is neither ad-hoc signed here nor signed by
+    // electron-builder afterwards -- and an unsigned arm64 app will not launch.
+    // When the certificate IS present locally, electron-builder simply replaces
+    // this ad-hoc signature on its own pass.
     const hasRealIdentity = Boolean(process.env.CSC_NAME || process.env.CSC_LINK);
     if (hasRealIdentity) {
       console.log('[electron-builder-fuses] Real signing identity configured; ' +
