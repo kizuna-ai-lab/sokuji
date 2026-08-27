@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Podgląd nie powiódł się — osiągnięto limit szybkości lub limit Soniox",
     "sonioxVoicePreviewTimeout": "Przekroczono czas oczekiwania na podgląd — spróbuj ponownie",
     "sonioxRegion": "Region",
-    "sonioxRegionTooltip": "Soniox utrzymuje osobne wdrożenie dla każdego regionu, każde z własnym kluczem API. Twój dźwięk jest przetwarzany i przechowywany w wybranym regionie. Obowiązuje od następnej sesji.",
+    "sonioxRegionTooltip": "Soniox utrzymuje osobne wdrożenie dla każdego regionu. Twój dźwięk jest przetwarzany w wybranym regionie. Obowiązuje od następnej sesji.",
+    "sonioxRegionTooltipOwnKey": "Soniox utrzymuje osobne wdrożenie dla każdego regionu, a każdy z nich to oddzielny projekt Soniox z własnym kluczem API. Twój dźwięk jest przetwarzany w wybranym regionie. Obowiązuje od następnej sesji.",
     "langSentence": {
       "iSpeak": "Ja mówię",
       "iRead": "Ja czytam",

@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Pratonton gagal — had kadar atau kuota Soniox dicapai",
     "sonioxVoicePreviewTimeout": "Pratonton tamat masa — cuba lagi",
     "sonioxRegion": "Wilayah",
-    "sonioxRegionTooltip": "Soniox menjalankan penggunaan berasingan bagi setiap wilayah, setiap satu dengan kunci API sendiri. Audio anda diproses dan disimpan di wilayah yang anda pilih. Berkuat kuasa mulai sesi seterusnya.",
+    "sonioxRegionTooltip": "Soniox menjalankan penggunaan berasingan bagi setiap wilayah. Audio anda diproses di wilayah yang anda pilih. Berkuat kuasa mulai sesi seterusnya.",
+    "sonioxRegionTooltipOwnKey": "Soniox menjalankan penggunaan berasingan bagi setiap wilayah, dan setiap wilayah ialah projek Soniox berasingan dengan kunci API sendiri. Audio anda diproses di wilayah yang anda pilih. Berkuat kuasa mulai sesi seterusnya.",
     "langSentence": {
       "iSpeak": "Saya bertutur",
       "iRead": "Saya baca",

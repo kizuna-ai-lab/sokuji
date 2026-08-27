@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "プレビューに失敗しました — Soniox のレート制限またはクォータに達しました",
     "sonioxVoicePreviewTimeout": "プレビューがタイムアウトしました — もう一度お試しください",
     "sonioxRegion": "リージョン",
-    "sonioxRegionTooltip": "Soniox はリージョンごとに独立したデプロイで、それぞれ専用の API キーがあります。音声は選択したリージョン内で処理・保存されます。次のセッションから適用されます。",
+    "sonioxRegionTooltip": "Soniox はリージョンごとに独立したデプロイです。音声は選択したリージョン内で処理されます。次のセッションから適用されます。",
+    "sonioxRegionTooltipOwnKey": "Soniox はリージョンごとに独立したデプロイで、それぞれが別個の Soniox プロジェクトとして専用の API キーを持ちます。音声は選択したリージョン内で処理されます。次のセッションから適用されます。",
     "langSentence": {
       "iSpeak": "話す言語",
       "iRead": "読む言語",

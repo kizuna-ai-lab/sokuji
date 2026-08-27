@@ -209,3 +209,55 @@ describe('the three translation modes are named with one word each', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('the region tooltip only names an API key where one exists', () => {
+  // One region control serves two audiences. A BYOK account holds a separate
+  // Soniox project per region and so a separate key — switching region swaps
+  // the key field under it, which is worth saying. A Kizuna-managed account
+  // has no key field at all: the backend leases a temporary one per stream.
+  // The two shipped as ONE string that named the key, so every managed user
+  // was told to mind a credential that does not exist for them.
+  //
+  // The component picks between these by `managed`; only this test sees the
+  // catalogs, because the component tests assert t()'s inline English default
+  // and would not notice a translation reintroducing the key on its own.
+  //
+  // "API" is the one token every catalog keeps in Latin script — the word for
+  // "key" is translated everywhere, the initialism nowhere — so it is the only
+  // thing that can be matched across all 30.
+  it('managed copy names no key, in any locale', () => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      const s = cat['settings.sonioxRegionTooltip'];
+      if (typeof s !== 'string') continue; // key parity is another test's job
+      if (/API/i.test(s)) offenders.push(`${lang}: ${JSON.stringify(s)}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('BYOK copy does name one, in every locale', () => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      const s = cat['settings.sonioxRegionTooltipOwnKey'];
+      if (typeof s !== 'string') continue;
+      if (!/API/i.test(s)) offenders.push(`${lang}: ${JSON.stringify(s)}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  // Neither variant may say the region is where audio is KEPT. Soniox's
+  // data-residency page speaks for Soniox's own retention; this app stores no
+  // audio, and a tooltip claiming otherwise reads as our policy. The negative
+  // is un-assertable across scripts — no shared token to match on — so this
+  // pins en, where the sentence that carried the claim was written, and the
+  // translations are derived from it.
+  it.each(['settings.sonioxRegionTooltip', 'settings.sonioxRegionTooltipOwnKey'])(
+    '%s does not claim en audio is stored',
+    (key) => {
+      expect(EN[key]).toBeTypeOf('string');
+      expect(EN[key]).not.toMatch(/stor(ed|age|es)/i);
+      // Positive half: dropping the claim must not drop the sentence.
+      expect(EN[key]).toMatch(/processed/i);
+    }
+  );
+});

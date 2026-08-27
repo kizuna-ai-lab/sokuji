@@ -1873,8 +1873,20 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="settings-section" id="soniox-region-section">
           <h2>
             {t('settings.sonioxRegion', 'Region')}
+            {/* One control, two audiences. The region is the same choice for
+                both, but "each region has its own API key" is true only of a
+                BYOK Soniox account: a managed user never sees a key field, so
+                naming one describes a thing that does not exist for them. Two
+                whole sentences rather than a base plus an appended clause —
+                a fragment has no one safe word order across 30 catalogs,
+                several of them RTL. Neither one says where audio is STORED:
+                Soniox's data-residency page speaks for Soniox's retention,
+                not ours, and what this control decides is where the audio is
+                processed. */}
             <Tooltip
-              content={t('settings.sonioxRegionTooltip', 'Soniox runs a separate deployment per region, each with its own API key. Your audio is processed and stored in the region you pick. Applies from the next session.')}
+              content={managed
+                ? t('settings.sonioxRegionTooltip', 'Soniox runs a separate deployment per region. Your audio is processed in the region you pick. Applies from the next session.')
+                : t('settings.sonioxRegionTooltipOwnKey', 'Soniox runs a separate deployment per region, and each one is a separate Soniox project with its own API key. Your audio is processed in the region you pick. Applies from the next session.')}
               position="top"
             >
               <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />

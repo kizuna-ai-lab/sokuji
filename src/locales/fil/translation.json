@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Nabigo ang preview — naabot ang rate limit o quota ng Soniox",
     "sonioxVoicePreviewTimeout": "Nag-timeout ang preview — subukang muli",
     "sonioxRegion": "Rehiyon",
-    "sonioxRegionTooltip": "Nagpapatakbo ang Soniox ng hiwalay na deployment kada rehiyon, bawat isa ay may sariling API key. Pinoproseso at iniimbak ang iyong audio sa rehiyong pipiliin mo. Iiral mula sa susunod na sesyon.",
+    "sonioxRegionTooltip": "Nagpapatakbo ang Soniox ng hiwalay na deployment kada rehiyon. Pinoproseso ang iyong audio sa rehiyong pipiliin mo. Iiral mula sa susunod na sesyon.",
+    "sonioxRegionTooltipOwnKey": "Nagpapatakbo ang Soniox ng hiwalay na deployment kada rehiyon, at bawat rehiyon ay hiwalay na proyekto sa Soniox na may sariling API key. Pinoproseso ang iyong audio sa rehiyong pipiliin mo. Iiral mula sa susunod na sesyon.",
     "langSentence": {
       "iSpeak": "Nagsasalita ako ng",
       "iRead": "Binabasa ko",

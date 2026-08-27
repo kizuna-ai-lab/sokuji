@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Falha na pré-visualização — limite de taxa ou quota do Soniox atingido",
     "sonioxVoicePreviewTimeout": "A pré-visualização expirou — tente novamente",
     "sonioxRegion": "Região",
-    "sonioxRegionTooltip": "A Soniox mantém uma implementação separada por região, cada uma com a sua própria chave de API. O seu áudio é processado e armazenado na região escolhida. Aplica-se a partir da próxima sessão.",
+    "sonioxRegionTooltip": "A Soniox mantém uma implementação separada por região. O seu áudio é processado na região escolhida. Aplica-se a partir da próxima sessão.",
+    "sonioxRegionTooltipOwnKey": "A Soniox mantém uma implementação separada por região, e cada uma é um projeto Soniox distinto com a sua própria chave de API. O seu áudio é processado na região escolhida. Aplica-se a partir da próxima sessão.",
     "langSentence": {
       "iSpeak": "Eu falo",
       "iRead": "Eu leio",

@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "התצוגה המקדימה נכשלה — הגעת למגבלת הקצב או למכסה של Soniox",
     "sonioxVoicePreviewTimeout": "פג תוקף התצוגה המקדימה — נסה שוב",
     "sonioxRegion": "אזור",
-    "sonioxRegionTooltip": "‏Soniox מפעילה פריסה נפרדת לכל אזור, לכל אחת מפתח API משלה. האודיו שלך מעובד ומאוחסן באזור שבחרת. חל מהפעלה הבאה.",
+    "sonioxRegionTooltip": "‏Soniox מפעילה פריסה נפרדת לכל אזור. האודיו שלך מעובד באזור שבחרת. חל מהפעלה הבאה.",
+    "sonioxRegionTooltipOwnKey": "‏Soniox מפעילה פריסה נפרדת לכל אזור, וכל אזור הוא פרויקט נפרד ב-Soniox עם מפתח API משלו. האודיו שלך מעובד באזור שבחרת. חל מהפעלה הבאה.",
     "langSentence": {
       "iSpeak": "אני מדבר",
       "iRead": "אני קורא",

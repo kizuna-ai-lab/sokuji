@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Xem trước không thành công — đã đạt giới hạn tốc độ hoặc hạn mức của Soniox",
     "sonioxVoicePreviewTimeout": "Xem trước đã hết thời gian chờ — hãy thử lại",
     "sonioxRegion": "Khu vực",
-    "sonioxRegionTooltip": "Soniox vận hành triển khai riêng cho từng khu vực, mỗi khu vực có khóa API riêng. Âm thanh của bạn được xử lý và lưu trữ trong khu vực bạn chọn. Áp dụng từ phiên tiếp theo.",
+    "sonioxRegionTooltip": "Soniox vận hành triển khai riêng cho từng khu vực. Âm thanh của bạn được xử lý trong khu vực bạn chọn. Áp dụng từ phiên tiếp theo.",
+    "sonioxRegionTooltipOwnKey": "Soniox vận hành triển khai riêng cho từng khu vực, và mỗi khu vực là một dự án Soniox riêng với khóa API riêng. Âm thanh của bạn được xử lý trong khu vực bạn chọn. Áp dụng từ phiên tiếp theo.",
     "langSentence": {
       "iSpeak": "Tôi nói",
       "iRead": "Tôi đọc",

@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Önizleme başarısız oldu — Soniox hız sınırına veya kotasına ulaşıldı",
     "sonioxVoicePreviewTimeout": "Önizleme zaman aşımına uğradı — tekrar deneyin",
     "sonioxRegion": "Bölge",
-    "sonioxRegionTooltip": "Soniox her bölge için ayrı bir dağıtım çalıştırır ve her birinin kendi API anahtarı vardır. Sesiniz seçtiğiniz bölgede işlenir ve saklanır. Bir sonraki oturumdan itibaren geçerlidir.",
+    "sonioxRegionTooltip": "Soniox her bölge için ayrı bir dağıtım çalıştırır. Sesiniz seçtiğiniz bölgede işlenir. Bir sonraki oturumdan itibaren geçerlidir.",
+    "sonioxRegionTooltipOwnKey": "Soniox her bölge için ayrı bir dağıtım çalıştırır ve her biri kendi API anahtarına sahip ayrı bir Soniox projesidir. Sesiniz seçtiğiniz bölgede işlenir. Bir sonraki oturumdan itibaren geçerlidir.",
     "langSentence": {
       "iSpeak": "Ben konuşuyorum",
       "iRead": "Ben okuyorum",

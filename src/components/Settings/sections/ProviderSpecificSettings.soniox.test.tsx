@@ -440,4 +440,55 @@ describe('region selector', () => {
       .buildSessionConfig(useSettingsStore.getState().soniox, '');
     expect(session).toMatchObject({ voice: 'jp-voice' });
   });
+
+  // One control, two audiences. A BYOK account holds a separate Soniox key per
+  // region -- switching region swaps the key field under it, so the tooltip
+  // has to say so. A managed account never sees a key field at all, and the
+  // shared tooltip used to tell it about one anyway.
+  //
+  // Content lives behind the tooltip's open state and only reaches the DOM
+  // through a FloatingPortal, hence document-level querying. `useFocus` is
+  // wired for every trigger type, so focusing opens it with no 100ms hover
+  // delay to flush.
+  function regionTooltipText(container: HTMLElement): string {
+    const trigger = container.querySelector(
+      '#soniox-region-section .tooltip-trigger'
+    ) as HTMLElement;
+    expect(trigger).not.toBeNull();
+    act(() => { fireEvent.focus(trigger); });
+    const bodies = document.querySelectorAll('.tooltip-body');
+    // Exactly one: focusing a second trigger would make "the tooltip text"
+    // ambiguous and quietly assert against the wrong control's copy.
+    expect(bodies).toHaveLength(1);
+    return bodies[0].textContent ?? '';
+  }
+
+  // The i18n mock at the top of this file returns each t() call's English
+  // default, so these assert the shipped copy verbatim.
+  it('names the per-region API key for a BYOK account', () => {
+    const { container } = mount();
+    const text = regionTooltipText(container);
+    expect(text).toContain('its own API key');
+    expect(text).toContain('processed in the region you pick');
+  });
+
+  it('never mentions an API key to a managed account, which has none', () => {
+    act(() => { useSettingsStore.setState({ provider: Provider.KIZUNA_AI_SONIOX }); });
+    const { container } = mount();
+    const text = regionTooltipText(container);
+    expect(text).not.toContain('API key');
+    expect(text).toContain('processed in the region you pick');
+  });
+
+  // Soniox's data-residency page speaks for Soniox's own retention, not for
+  // ours; nothing this app does stores the audio. Neither variant may claim
+  // the region is where it is KEPT.
+  it.each([
+    ['BYOK', Provider.SONIOX],
+    ['managed', Provider.KIZUNA_AI_SONIOX],
+  ])('does not tell a %s account its audio is stored anywhere', (_label, provider) => {
+    act(() => { useSettingsStore.setState({ provider }); });
+    const { container } = mount();
+    expect(regionTooltipText(container)).not.toContain('stored');
+  });
 });

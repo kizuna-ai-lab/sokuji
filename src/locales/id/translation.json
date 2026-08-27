@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Pratinjau gagal — batas laju atau kuota Soniox tercapai",
     "sonioxVoicePreviewTimeout": "Pratinjau habis waktu — coba lagi",
     "sonioxRegion": "Wilayah",
-    "sonioxRegionTooltip": "Soniox menjalankan penerapan terpisah per wilayah, masing-masing dengan kunci API sendiri. Audio Anda diproses dan disimpan di wilayah yang Anda pilih. Berlaku mulai sesi berikutnya.",
+    "sonioxRegionTooltip": "Soniox menjalankan penerapan terpisah per wilayah. Audio Anda diproses di wilayah yang Anda pilih. Berlaku mulai sesi berikutnya.",
+    "sonioxRegionTooltipOwnKey": "Soniox menjalankan penerapan terpisah per wilayah, dan setiap wilayah adalah proyek Soniox tersendiri dengan kunci API sendiri. Audio Anda diproses di wilayah yang Anda pilih. Berlaku mulai sesi berikutnya.",
     "langSentence": {
       "iSpeak": "Saya berbicara",
       "iRead": "Saya membaca",

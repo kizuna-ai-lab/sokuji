@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Vorschau fehlgeschlagen — Soniox-Ratenlimit oder Kontingent erreicht",
     "sonioxVoicePreviewTimeout": "Zeitüberschreitung bei der Vorschau — versuchen Sie es erneut",
     "sonioxRegion": "Region",
-    "sonioxRegionTooltip": "Soniox betreibt pro Region eine eigene Bereitstellung mit jeweils eigenem API-Schlüssel. Ihr Audio wird in der gewählten Region verarbeitet und gespeichert. Gilt ab der nächsten Sitzung.",
+    "sonioxRegionTooltip": "Soniox betreibt pro Region eine eigene Bereitstellung. Ihr Audio wird in der gewählten Region verarbeitet. Gilt ab der nächsten Sitzung.",
+    "sonioxRegionTooltipOwnKey": "Soniox betreibt pro Region eine eigene Bereitstellung; jede ist ein eigenes Soniox-Projekt mit eigenem API-Schlüssel. Ihr Audio wird in der gewählten Region verarbeitet. Gilt ab der nächsten Sitzung.",
     "langSentence": {
       "iSpeak": "Ich spreche",
       "iRead": "Ich lese",

@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "预览失败 — 已达到 Soniox 速率限制或配额",
     "sonioxVoicePreviewTimeout": "预览超时 — 请重试",
     "sonioxRegion": "区域",
-    "sonioxRegionTooltip": "Soniox 每个区域是独立部署，各自有独立的 API 密钥。您的音频将在所选区域内处理和存储。下次会话开始生效。",
+    "sonioxRegionTooltip": "Soniox 在每个区域都有独立部署。您的音频将在所选区域内处理。下次会话开始生效。",
+    "sonioxRegionTooltipOwnKey": "Soniox 在每个区域都有独立部署，每个区域是一个独立的 Soniox 项目，有自己的 API 密钥。您的音频将在所选区域内处理。下次会话开始生效。",
     "langSentence": {
       "iSpeak": "我说",
       "iRead": "我阅读",

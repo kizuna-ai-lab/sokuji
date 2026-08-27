@@ -272,7 +272,8 @@
     "sonioxVoicePreviewQuotaError": "Esikatselu epäonnistui — Soniox-nopeusrajoitus tai kiintiö saavutettu",
     "sonioxVoicePreviewTimeout": "Esikatselu aikakatkaistiin — yritä uudelleen",
     "sonioxRegion": "Alue",
-    "sonioxRegionTooltip": "Soniox ylläpitää erillistä ympäristöä kullekin alueelle, ja kullakin on oma API-avaimensa. Äänesi käsitellään ja tallennetaan valitsemallasi alueella. Voimassa seuraavasta istunnosta alkaen.",
+    "sonioxRegionTooltip": "Soniox ylläpitää erillistä ympäristöä kullekin alueelle. Äänesi käsitellään valitsemallasi alueella. Voimassa seuraavasta istunnosta alkaen.",
+    "sonioxRegionTooltipOwnKey": "Soniox ylläpitää erillistä ympäristöä kullekin alueelle, ja jokainen alue on oma Soniox-projektinsa omalla API-avaimellaan. Äänesi käsitellään valitsemallasi alueella. Voimassa seuraavasta istunnosta alkaen.",
     "langSentence": {
       "iSpeak": "Puhun",
       "iRead": "Luen",
