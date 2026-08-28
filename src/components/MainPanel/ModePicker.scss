@@ -50,7 +50,7 @@
 
     &--active {
       background: tk.$color-primary;
-      color: #fff;
+      color: tk.$color-on-primary;
     }
 
     &--warn {

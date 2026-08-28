@@ -25,7 +25,7 @@
     flex: 1; height: 32px; border-radius: 5px; font-size: 13px; font-weight: 600;
     cursor: pointer; border: 1px solid transparent; font-family: inherit;
 
-    &--primary { background: tk.$color-primary; color: #fff; &:hover { background: tk.$color-primary-hover; } }
+    &--primary { background: tk.$color-primary; color: tk.$color-on-primary; &:hover { background: tk.$color-primary-hover; } }
     &--ghost {
       background: transparent; color: #ccc; border-color: #555;
       &:hover { background: rgba(255, 255, 255, 0.07); border-color: #6a6a6a; }

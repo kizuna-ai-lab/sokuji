@@ -103,7 +103,7 @@
 
         &.active {
           background: vars.$color-primary;
-          color: #fff;
+          color: vars.$color-on-primary;
           font-weight: vars.$weight-medium;
         }
 

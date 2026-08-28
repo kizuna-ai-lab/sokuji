@@ -266,7 +266,7 @@
     .send-btn {
       background: tk.$color-primary;
       border: none;
-      color: #fff;
+      color: tk.$color-on-primary;
       width: 36px;
       height: 36px;
       border-radius: 50%;
@@ -462,7 +462,7 @@
   .main-action-btn {
     background: tk.$color-primary;
     border: none;
-    color: #fff;
+    color: tk.$color-on-primary;
     padding: 6px 16px;
     border-radius: 4px;
     font-size: 12px;
@@ -490,7 +490,7 @@
   .session-button {
     background: tk.$color-primary;
     border: none;
-    color: #fff;
+    color: tk.$color-on-primary;
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 13px;

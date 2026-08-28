@@ -65,7 +65,7 @@
         // Theme color fill
         border-color: tk.$color-primary;
         background: tk.$color-primary;
-        color: #fff;
+        color: tk.$color-on-primary;
 
         // Shadow effect
         box-shadow: 0 2px 8px rgba(tk.$color-primary, 0.3);
