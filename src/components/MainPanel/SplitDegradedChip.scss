@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 // ── Split-degraded indicator (rendered in both control footers) ──
 //
 // Persistent footer chrome, not a conversation bubble: a split Both session
@@ -16,9 +18,9 @@
   flex-shrink: 0;
   padding: 2px 7px;
   border-radius: 10px;
-  background: rgba(243, 156, 18, 0.15);
-  border: 1px solid rgba(243, 156, 18, 0.45);
-  color: #f39c12;
+  background: rgba(tk.$color-degraded, 0.15);
+  border: 1px solid rgba(tk.$color-degraded, 0.45);
+  color: tk.$color-degraded;
   font-size: 11px;
   line-height: 1.4;
   white-space: nowrap;

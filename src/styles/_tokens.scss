@@ -27,6 +27,17 @@ $color-speaker:      $color-primary;       // read: badges, translated text
 $color-speaker-fill: $color-primary-fill;  // filled: the avatar disc, which carries a glyph
 $color-participant: #f39c12;        // the other side
 
+// ── The amber region ──
+// Four hexes were sharing this space with no rule about which meant what, and
+// #f39c12 was doing two unrelated jobs at once — the person on the other end,
+// and a session in trouble. Same problem the accent had. Named apart here so
+// either can move without dragging the other; values are unchanged, so this
+// costs nothing to adopt.
+$color-degraded: #f39c12;  // reconnecting, split degraded — the session is unwell
+$color-usage:       #e67e22;  // spending, quota, an unverified account
+$color-usage-hover: #f39c12;  // the hover those controls already used
+$color-usage-deep:  #d35400;  // the far stop of the high-usage gradient
+
 // ── "It worked" ──
 // A validated key, a connected session, a finished download, credit in.
 // Green is the right colour for this and is not the brand's to take.
