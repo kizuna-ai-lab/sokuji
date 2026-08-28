@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 // src/components/TitleBar/TitleBar.scss
 .title-bar {
   height: 36px;
@@ -73,7 +75,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid #10a37f;
+    outline: 2px solid tk.$color-primary;
     outline-offset: -1px;
   }
 

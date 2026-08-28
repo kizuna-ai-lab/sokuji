@@ -1,4 +1,6 @@
+@use './tokens' as tk;
+
 .karaoke-played {
-  color: var(--karaoke-played-color, #10a37f);
+  color: var(--karaoke-played-color, #{tk.$color-speaker});
   transition: color 80ms ease-out;
 }

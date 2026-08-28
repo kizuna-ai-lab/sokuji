@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 .update-dialog-overlay {
   position: fixed;
   top: 0;
@@ -64,11 +66,11 @@
       color: #999;
 
       .arrow {
-        color: #10a37f;
+        color: tk.$color-primary;
       }
 
       .new-version {
-        color: #10a37f;
+        color: tk.$color-primary;
         font-weight: 600;
       }
     }
@@ -92,7 +94,7 @@
       }
 
       h3 {
-        color: #10a37f;
+        color: tk.$color-primary;
         font-size: 13px;
         font-weight: 600;
         margin: 0 0 8px 0;
@@ -122,7 +124,7 @@
       }
 
       a {
-        color: #10a37f;
+        color: tk.$color-primary;
         text-decoration: none;
 
         &:hover {
@@ -142,7 +144,7 @@
 
         .progress-fill {
           height: 100%;
-          background-color: #10a37f;
+          background-color: tk.$color-primary;
           border-radius: 3px;
           transition: width 0.3s ease;
         }
@@ -168,7 +170,7 @@
       margin: 12px 0;
       padding: 12px;
       border-radius: 6px;
-      background: rgba(16, 163, 127, 0.08);
+      background: rgba(tk.$color-primary, 0.08);
       color: #b8d4c9;
       font-size: 0.9em;
       line-height: 1.5;
@@ -183,7 +185,7 @@
     border-top: 1px solid #333;
 
     .primary-button {
-      background-color: #10a37f;
+      background-color: tk.$color-primary;
       color: #fff;
       border: none;
       border-radius: 4px;

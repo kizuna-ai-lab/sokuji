@@ -1,4 +1,5 @@
 @use '../shared/variables' as vars;
+@use '../../../styles/tokens' as tk;
 
 .model-management-section {
   .model-group {
@@ -290,7 +291,7 @@
   }
 
   &__lang-tag--live { border: 1px solid currentColor; font-weight: 600; }  // highlighted (neutral): chosen-CPU
-  &__lang-tag--accel { border-color: #10a37f; color: #10a37f; }  // GPU live
+  &__lang-tag--accel { border-color: tk.$color-success; color: tk.$color-success; }  // GPU live
   &__lang-tag--warn  { border-color: #e74c3c; color: #e74c3c; }  // degraded CPU
 
   &__recommended-badge {

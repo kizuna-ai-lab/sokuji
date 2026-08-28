@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 .logs-panel {
   display: flex;
   flex-direction: column;
@@ -34,11 +36,11 @@
       }
 
       &.active {
-        background-color: rgba(16, 163, 127, 0.1);
-        color: #10a37f;
+        background-color: rgba(tk.$color-primary, 0.1);
+        color: tk.$color-primary;
 
         &:hover {
-          background-color: rgba(16, 163, 127, 0.2);
+          background-color: rgba(tk.$color-primary, 0.2);
         }
       }
     }
@@ -126,7 +128,7 @@
       
       &.success {
         .log-message {
-          color: #10a37f;
+          color: tk.$color-success;
         }
       }
       
@@ -221,7 +223,7 @@
         }
         
         .server-icon {
-          color: #10a37f; // Green for server events
+          color: tk.$color-success; // Green for server events
         }
         
         .event-info {

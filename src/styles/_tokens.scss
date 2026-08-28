@@ -1,0 +1,26 @@
+// App-wide colour tokens.
+//
+// One hex (#10a37f) used to carry three unrelated meanings: the brand accent,
+// who is speaking, and "it worked". That made changing the accent impossible
+// to do safely with a find-and-replace — success states would have followed
+// the brand, and the speaker/participant pair would have collapsed into one
+// colour. The meanings are separated here so each can move on its own.
+
+// ── Brand and primary action ──
+// Buttons, focus rings, active segments, progress, links.
+$color-primary:       #10a37f;
+$color-primary-hover: #0e8f6f;
+
+// ── Who is speaking ──
+// A pair, and it only works as a pair: these two must stay clearly
+// distinguishable from each other. Speaker is pointed at the brand here as a
+// deliberate choice, not an inherited one — change this line alone to give the
+// conversation its own colours. Participant had to move regardless: the old
+// amber sat too close to the new accent to read as a different person.
+$color-speaker:     $color-primary;  // your own voice carries the brand
+$color-participant: #f39c12;        // the other side
+
+// ── "It worked" ──
+// A validated key, a connected session, a finished download, credit in.
+// Green is the right colour for this and is not the brand's to take.
+$color-success: #10a37f;

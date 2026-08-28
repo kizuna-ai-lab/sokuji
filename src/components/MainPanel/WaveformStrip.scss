@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 // Flat tinted background matching the project's existing visualization
 // panels (.visualization-canvas style from the pre-refactor advanced footer).
 // No gradient, no in-canvas label — color tint alone identifies the channel.
@@ -32,5 +34,5 @@
 
   &--mic    { background: rgba(0, 153, 255, 0.10); }
   &--system { background: rgba(245, 158, 11, 0.10); }
-  &--output { background: rgba(16, 163, 127, 0.10); }
+  &--output { background: rgba(tk.$color-primary, 0.10); }
 }

@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 .toast-stack {
   position: fixed;
   bottom: 24px;
@@ -23,7 +25,7 @@
   animation: toast-in 150ms ease-out;
 
   &.toast-success {
-    border-color: #10a37f;
+    border-color: tk.$color-success;
   }
   &.toast-error {
     border-color: #e74c3c;

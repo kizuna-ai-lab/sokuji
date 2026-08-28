@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 .subtitle-stream {
   flex: 1;
   min-height: 0;
@@ -58,7 +60,7 @@
     }
     .subtitle-stream__line--speaker {
       padding-left: 6px;
-      border-left: 2px solid rgba(16, 163, 127, 0.6);
+      border-left: 2px solid rgba(tk.$color-primary, 0.6);
     }
   }
 

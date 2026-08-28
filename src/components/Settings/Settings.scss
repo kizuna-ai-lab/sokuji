@@ -1,4 +1,5 @@
 @use 'shared/variables' as vars;
+@use '../../styles/tokens' as tk;
 
 .settings-container {
   display: flex;
@@ -38,8 +39,8 @@
       align-items: flex-start;
       gap: 8px;
       padding: 12px;
-      background: rgba(16, 163, 127, 0.1);
-      border: 1px solid rgba(16, 163, 127, 0.3);
+      background: rgba(tk.$color-primary, 0.1);
+      border: 1px solid rgba(tk.$color-primary, 0.3);
       border-radius: 6px;
       font-size: 13px;
       line-height: 1.4;
@@ -47,7 +48,7 @@
       svg {
         flex-shrink: 0;
         margin-top: 2px;
-        color: #10a37f;
+        color: tk.$color-primary;
       }
     }
   }
@@ -2159,7 +2160,7 @@
       }
 
       &.active {
-        background: #10a37f;
+        background: tk.$color-primary;
         color: #fff;
         font-weight: 500;
       }
