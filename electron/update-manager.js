@@ -1,4 +1,5 @@
 const { autoUpdater } = require('electron-updater');
+const { buildUpdatePayload, usesNativeUpdaterFlow } = require('./update-payload');
 const { app, ipcMain, shell } = require('electron');
 const https = require('https');
 const fs = require('fs');
@@ -63,55 +64,11 @@ class UpdateManager {
     });
 
     autoUpdater.on('update-available', (info) => {
-      // With fullChangelog=true, releaseNotes is an array of {version, note} objects
-      // where note is already HTML (rendered by GitHub). Sorted newest-first.
-      let releaseNotes;
-      if (Array.isArray(info.releaseNotes)) {
-        releaseNotes = info.releaseNotes;
-      } else if (typeof info.releaseNotes === 'string') {
-        releaseNotes = info.releaseNotes;
-      } else {
-        releaseNotes = '';
-      }
-
-      const payload = {
-        status: 'available',
-        version: info.version,
-        releaseNotes,
-      };
-
-      if (process.platform === 'linux') {
-        const version = info.version;
-        // electron-builder names AppImage artifacts with `x86_64` (not `x64`) for
-        // x64 Linux builds, and `arm64` for arm64. Translate Node's process.arch.
-        const appImageArch = process.arch === 'x64' ? 'x86_64' : 'arm64';
-        const debArch = process.arch === 'x64' ? 'amd64' : 'arm64';
-        const base = `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}`;
-
-        payload.supportsAutoUpdate = this.isAppImage;
-        payload.appImageUrl = `${base}/Sokuji-${version}-${appImageArch}.AppImage`;
-        payload.debUrl = `${base}/sokuji_${version}_${debArch}.deb`;
-        payload.releasePageUrl = `https://github.com/kizuna-ai-lab/sokuji/releases/tag/v${version}`;
-        // Legacy field kept for Windows / backward compat callers of updateStore:
-        if (!this.isAppImage) {
-          payload.downloadUrl = payload.releasePageUrl;
-        }
-      } else if (process.platform === 'darwin') {
-        // macOS builds are unsigned (no Apple Developer ID), so electron-updater
-        // cannot apply the update — Squirrel.Mac requires the new bundle to share
-        // a valid Developer ID signature with the running one. We surface the
-        // notification, then send the user to the GitHub release to download
-        // the PKG manually. See update-download handler below for the matching
-        // refusal path.
-        const version = info.version;
-        const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
-        const base = `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}`;
-
-        payload.supportsAutoUpdate = false;
-        payload.pkgUrl = `${base}/Sokuji-${version}-${arch}.pkg`;
-        payload.releasePageUrl = `https://github.com/kizuna-ai-lab/sokuji/releases/tag/v${version}`;
-        payload.downloadUrl = payload.pkgUrl;
-      }
+      const payload = buildUpdatePayload(info, {
+        platform: process.platform,
+        arch: process.arch,
+        isAppImage: this.isAppImage,
+      });
 
       this._updateInfo = info;
       this._sendStatus(payload);
@@ -148,8 +105,9 @@ class UpdateManager {
         return { success: false, error: 'No update available' };
       }
 
-      // Linux AppImage: use electron-updater's native AppImageUpdater flow
-      if (process.platform === 'linux' && this.isAppImage) {
+      // Platforms electron-updater can install in place: Linux AppImage, and
+      // macOS now that builds carry a stable signature (docs/build/macos-auto-update.md).
+      if (usesNativeUpdaterFlow({ platform: process.platform, isAppImage: this.isAppImage })) {
         if (this._downloadPromise) return this._downloadPromise;
 
         // Hook download-progress events from autoUpdater to IPC
@@ -170,7 +128,7 @@ class UpdateManager {
             await autoUpdater.downloadUpdate();
             // `update-downloaded` event is what flips status to 'downloaded';
             // it also populates this.downloadPath implicitly via electron-updater.
-            this.downloadPath = '__appimage__'; // sentinel so install handler proceeds
+            this.downloadPath = '__native__'; // sentinel so install handler proceeds
             return { success: true };
           } catch (err) {
             this._sendStatus({ status: 'error', message: err.message || String(err) });
@@ -186,12 +144,7 @@ class UpdateManager {
       }
 
       // Non-AppImage Linux: no auto-download; renderer opens links manually
-      if (process.platform === 'linux' && !this.isAppImage) {
-        return { success: false, error: 'auto-update-not-supported' };
-      }
-
-      // macOS: same notify-only path as non-AppImage Linux.
-      if (process.platform === 'darwin') {
+      if (process.platform === 'linux') {
         return { success: false, error: 'auto-update-not-supported' };
       }
 
@@ -218,8 +171,10 @@ class UpdateManager {
         return { success: false, error: 'No downloaded update' };
       }
 
-      // Linux AppImage: native quitAndInstall replaces the AppImage in place
-      if (process.platform === 'linux' && this.isAppImage) {
+      // Native flow: quitAndInstall replaces the AppImage / .app bundle in place.
+      // On macOS electron-updater hands the downloaded zip to Squirrel.Mac,
+      // which swaps the bundle after the app quits.
+      if (usesNativeUpdaterFlow({ platform: process.platform, isAppImage: this.isAppImage })) {
         try {
           autoUpdater.quitAndInstall();
           return { success: true };

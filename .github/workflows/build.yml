@@ -78,6 +78,12 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    # `secrets` cannot be referenced from a step-level `if`; hoisting it here
+    # makes the macOS signing steps conditional without tripping the workflow
+    # validator (an invalid file fails the whole run before anything executes).
+    env:
+      HAS_MAC_CERT: ${{ secrets.MACOS_CSC_LINK != '' }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -223,7 +229,55 @@ jobs:
           VITE_ENABLE_ZOOM_AI: ${{ vars.VITE_ENABLE_ZOOM_AI }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
 
-      - name: Build macOS PKG (electron-builder)
+      # electron-builder discovers signing identities with `security find-identity -v`,
+      # and a self-signed certificate is reported CSSMERR_TP_NOT_TRUSTED, so it would
+      # be invisible and signing would be silently skipped. Trusting it makes it
+      # discoverable. Verified on macOS 26.6.1; see docs/build/macos-auto-update.md.
+      #
+      # This is NOT notarization and buys nothing with Gatekeeper. Its only job is
+      # to give the app a signing identity that stays the same between builds, which
+      # is what Squirrel.Mac and TCC key on.
+      - name: Trust the self-signed signing certificate (macOS)
+        if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
+        env:
+          MACOS_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          MACOS_CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "$MACOS_CSC_LINK" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          # Extract the certificate alone (no private key) for the trust store.
+          # OpenSSL 3 needs -legacy to read a p12 exported with legacy algorithms;
+          # LibreSSL does not have the flag, so try plain first.
+          openssl pkcs12 -in "$RUNNER_TEMP/signing.p12" -clcerts -nokeys \
+            -passin "pass:$MACOS_CSC_KEY_PASSWORD" -out "$RUNNER_TEMP/signing.pem" 2>/dev/null || \
+          openssl pkcs12 -legacy -in "$RUNNER_TEMP/signing.p12" -clcerts -nokeys \
+            -passin "pass:$MACOS_CSC_KEY_PASSWORD" -out "$RUNNER_TEMP/signing.pem"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign \
+            -k /Library/Keychains/System.keychain "$RUNNER_TEMP/signing.pem"
+          # Prove the trust actually took, in the same shape electron-builder
+          # will see it: import into a scratch keychain and ask for VALID
+          # identities. Checking the default search list here would always say
+          # "0 valid identities found" -- nothing is imported into it, since
+          # electron-builder makes its own keychain from CSC_LINK at build time.
+          SCRATCH="$RUNNER_TEMP/trust-check.keychain"
+          security create-keychain -p check "$SCRATCH"
+          security unlock-keychain -p check "$SCRATCH"
+          security set-keychain-settings "$SCRATCH"
+          security import "$RUNNER_TEMP/signing.p12" -k "$SCRATCH" \
+            -P "$MACOS_CSC_KEY_PASSWORD" -T /usr/bin/codesign >/dev/null
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k check "$SCRATCH" >/dev/null 2>&1
+          echo "valid identities visible to electron-builder:"
+          security find-identity -v -p codesigning "$SCRATCH" | sed 's/^/  /'
+          if ! security find-identity -v -p codesigning "$SCRATCH" | grep -q "Sokuji Code Signing"; then
+            echo "FAIL: the certificate is still not a valid identity after trusting it." >&2
+            security delete-keychain "$SCRATCH" || true
+            exit 1
+          fi
+          security delete-keychain "$SCRATCH"
+          rm -f "$RUNNER_TEMP/signing.p12" "$RUNNER_TEMP/signing.pem"
+
+      - name: Build macOS artifacts (electron-builder)
         if: runner.os == 'macOS'
         # --publish never: release job uploads artifacts via softprops/action-gh-release
         # to avoid duplicate releases.
@@ -231,11 +285,27 @@ jobs:
         # globally set to out/make-linux for the Linux build).
         # The afterPack hook (scripts/electron-builder-fuses.js) ad-hoc signs the .app
         # since CSC_IDENTITY_AUTO_DISCOVERY=false skips signing entirely.
-        run: npx electron-builder --mac pkg --${{ matrix.arch }} --publish never -c.directories.output=out/make-mac
+        # Targets must be listed here: a target on the CLI overrides build.mac.target
+        # entirely, so `--mac pkg` alone would silently drop the zip -- and with it
+        # latest-mac.yml and the blockmap, leaving auto-update dead while everything
+        # still looks green. The zip is what electron-updater actually installs.
+        run: npx electron-builder --mac pkg zip --${{ matrix.arch }} --publish never -c.directories.output=out/make-mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # With no certificate configured the build stays ad-hoc signed and
+          # macOS auto-update stays off; scripts/electron-builder-fuses.js
+          # ad-hoc signs in that case.
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MACOS_CSC_LINK != '' && 'true' || 'false' }}
+          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          # electron-builder refuses to sign pull-request builds unless this is
+          # set, so that untrusted forks cannot get at signing credentials. That
+          # protection is redundant here -- GitHub does not pass secrets to fork
+          # PRs at all, so HAS_MAC_CERT is false and CSC_LINK is empty there --
+          # while leaving it off means no PR can ever verify the signing chain,
+          # which is the whole point of running this on a PR.
+          CSC_FOR_PULL_REQUEST: ${{ env.HAS_MAC_CERT }}
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -248,6 +318,49 @@ jobs:
           VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
           VITE_ENABLE_ZOOM_AI: ${{ vars.VITE_ENABLE_ZOOM_AI }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
+
+      # electron-builder logs "skipped macOS code signing" and carries on when it
+      # cannot find an identity, so an unsigned release would look like a success.
+      # An ad-hoc signature yields a cdhash DR, which is exactly what stops
+      # Squirrel.Mac from ever accepting an update -- fail loudly instead.
+      - name: Verify the macOS update artifacts (signature + zip + manifest)
+        if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
+        run: |
+          set -euo pipefail
+          APP=$(find out/make-mac -name 'Sokuji.app' -maxdepth 3 | head -1)
+          if [ -z "$APP" ]; then
+            echo "No Sokuji.app found under out/make-mac" >&2
+            exit 1
+          fi
+          DR=$(codesign -d -r- "$APP" 2>&1 | grep 'designated =>' | sed 's/^#* *designated => //')
+          echo "designated requirement: $DR"
+          case "$DR" in
+            *"certificate root = H"*|*"certificate leaf = H"*)
+              echo "OK: stable, certificate-pinned designated requirement." ;;
+            *cdhash*)
+              echo "FAIL: ad-hoc signature (cdhash DR). Signing was skipped --" >&2
+              echo "the certificate was probably not discoverable via find-identity -v." >&2
+              exit 1 ;;
+            *)
+              echo "FAIL: unrecognised designated requirement." >&2
+              exit 1 ;;
+          esac
+          codesign --verify --deep --strict "$APP"
+          echo "OK: bundle passes strict nested validation."
+
+          # MacUpdater installs the zip and nothing else -- it rejects pkg and dmg
+          # outright -- and only the zip target emits latest-mac.yml plus the
+          # blockmap. Missing either one leaves auto-update dead with a green build.
+          ZIP=$(find out/make-mac -maxdepth 1 -name '*.zip' | head -1)
+          YML=out/make-mac/latest-mac.yml
+          [ -n "$ZIP" ] || { echo "FAIL: no macOS .zip produced; electron-updater has nothing to install." >&2; exit 1; }
+          [ -f "$YML" ] || { echo "FAIL: no latest-mac.yml produced." >&2; exit 1; }
+          echo "OK: $(basename "$ZIP")"
+          echo "--- latest-mac.yml ---"
+          cat "$YML"
+          grep -q "$(basename "$ZIP")" "$YML" || {
+            echo "FAIL: latest-mac.yml does not reference $(basename "$ZIP")." >&2; exit 1; }
+          echo "OK: manifest references the zip."
 
       - name: Build Chrome Extension
         if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
@@ -340,6 +453,9 @@ jobs:
           name: ${{ matrix.artifact_name }}-artifacts
           path: |
             out/make-mac/*.pkg
+            out/make-mac/*.zip
+            out/make-mac/*.blockmap
+            out/make-mac/latest-mac.yml
 
   sign-windows:
     name: Sign Windows artifacts
@@ -463,6 +579,13 @@ jobs:
           find windows-nupkg -name "*.nupkg" -exec cp {} release-assets/ \;
           find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           find macos-x64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
+          # The zip is what electron-updater installs on macOS: MacUpdater accepts
+          # only a zip and rejects pkg/dmg outright. The blockmap next to it is what
+          # makes subsequent updates differential.
+          find macos-arm64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find macos-x64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find macos-arm64-artifacts -name "*.blockmap" -exec cp {} release-assets/ \;
+          find macos-x64-artifacts -name "*.blockmap" -exec cp {} release-assets/ \;
           # Squirrel generates filenames with spaces (e.g. "Sokuji-0.15.12 Setup.exe").
           # Rename to use dots so asset names are consistent and latest.yml URLs match.
           cd release-assets
@@ -503,51 +626,40 @@ jobs:
           echo "=== latest.yml ==="
           cat release-assets/latest.yml
 
-      - name: Generate latest-mac.yml for auto-updater
-        # electron-builder's PKG target does not emit latest-mac.yml on its own
-        # (only zip/dmg targets set isWriteUpdateInfo=true), so generate it the
-        # same way Windows latest.yml is built above. Notify-only context:
-        # update-manager.js darwin branch only reads `version` and constructs
-        # its own pkgUrl, so files[] just enumerates the per-arch PKGs.
-        # electron-updater on macOS always fetches a single latest-mac.yml
-        # (no arch suffix), hence one combined file with both arches in files[].
+      - name: Merge the per-arch latest-mac.yml files
+        # The zip target sets isWriteUpdateInfo, so electron-builder now writes a
+        # correct latest-mac.yml itself -- no hand-rolled sha512 loop any more.
+        # But each arch runner writes its own, and electron-updater fetches a
+        # single latest-mac.yml (no arch suffix), so the two files[] lists have
+        # to be combined. MacUpdater then picks the entry matching process.arch.
         run: |
-          PKGS=()
-          while IFS= read -r p; do PKGS+=("$p"); done < <(find release-assets -name "Sokuji-*-*.pkg" | sort)
-          if [ ${#PKGS[@]} -eq 0 ]; then
-            echo "Warning: No .pkg found, skipping latest-mac.yml generation"
+          set -euo pipefail
+          ARM=$(find macos-arm64-artifacts -name latest-mac.yml | head -1)
+          X64=$(find macos-x64-artifacts -name latest-mac.yml | head -1)
+          if [ -z "$ARM" ] && [ -z "$X64" ]; then
+            echo "No latest-mac.yml produced -- macOS auto-update will not work."
+            echo "That is expected when MACOS_CSC_LINK is unset (unsigned build)."
             exit 0
           fi
-
-          VERSION=${GITHUB_REF_NAME#v}
-          DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
-
-          # Prefer arm64 for the legacy top-level path/sha512 fields, matching
-          # the previous PyYAML merge behavior.
-          PRIMARY=""
-          for PKG in "${PKGS[@]}"; do
-            case "$PKG" in *-arm64.pkg) PRIMARY="$PKG"; break ;; esac
-          done
-          [ -z "$PRIMARY" ] && PRIMARY="${PKGS[0]}"
-          PRIMARY_NAME=$(basename "$PRIMARY")
-          PRIMARY_SHA=$(openssl dgst -sha512 -binary "$PRIMARY" | openssl base64 -A)
-
-          {
-            echo "version: ${VERSION}"
-            echo "files:"
-            for PKG in "${PKGS[@]}"; do
-              NAME=$(basename "$PKG")
-              SHA=$(openssl dgst -sha512 -binary "$PKG" | openssl base64 -A)
-              SIZE=$(stat -c%s "$PKG")
-              echo "  - url: ${NAME}"
-              echo "    sha512: ${SHA}"
-              echo "    size: ${SIZE}"
-            done
-            echo "path: ${PRIMARY_NAME}"
-            echo "sha512: ${PRIMARY_SHA}"
-            echo "releaseDate: '${DATE}'"
-          } > release-assets/latest-mac.yml
-
+          python3 -c "import yaml" 2>/dev/null || pip3 install --quiet pyyaml
+          python3 - "$ARM" "$X64" <<'PY'
+          import sys, yaml
+          paths = [p for p in sys.argv[1:3] if p]
+          docs = [yaml.safe_load(open(p)) for p in paths]
+          # Prefer arm64 for the top-level path/sha512 fields, matching what the
+          # previous hand-rolled step produced.
+          primary = next((d for p, d in zip(paths, docs) if 'arm64' in p), docs[0])
+          seen, files = set(), []
+          for d in docs:
+              for f in d.get('files', []):
+                  if f['url'] not in seen:
+                      seen.add(f['url'])
+                      files.append(f)
+          merged = dict(primary)
+          merged['files'] = files
+          with open('release-assets/latest-mac.yml', 'w') as fh:
+              yaml.safe_dump(merged, fh, default_flow_style=False, sort_keys=False)
+          PY
           echo "=== latest-mac.yml ==="
           cat release-assets/latest-mac.yml
 
