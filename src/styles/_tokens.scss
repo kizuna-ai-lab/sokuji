@@ -9,6 +9,7 @@
 // ── Brand and primary action ──
 // Buttons, focus rings, active segments, progress, links.
 $color-primary:       #10a37f;
+$color-primary-fill:  $color-primary;  // the accent when it sits behind a label
 $color-on-primary:    #fff;             // that label
 $color-primary-hover: #0e8f6f;
 
@@ -18,7 +19,8 @@ $color-primary-hover: #0e8f6f;
 // deliberate choice, not an inherited one — change this line alone to give the
 // conversation its own colours. Participant had to move regardless: the old
 // amber sat too close to the new accent to read as a different person.
-$color-speaker:     $color-primary;  // your own voice carries the brand
+$color-speaker:      $color-primary;       // read: badges, translated text
+$color-speaker-fill: $color-primary-fill;  // filled: the avatar disc, which carries a glyph
 $color-participant: #f39c12;        // the other side
 
 // ── "It worked" ──

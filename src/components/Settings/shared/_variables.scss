@@ -12,6 +12,7 @@
 // Brand
 $color-primary:       tk.$color-primary;
 $color-primary-hover: tk.$color-primary-hover;
+$color-primary-fill:  tk.$color-primary-fill;
 $color-on-primary:    tk.$color-on-primary;
 
 // Status
@@ -132,7 +133,7 @@ $toggle-bg-on:    $color-primary;
   // The app's segmented → fill selection form. It is the accent *behind a
   // label*, so it takes the fill value rather than the bright accent: a
   // brighter accent cannot carry legible white text.
-  background: $color-primary;
+  background: $color-primary-fill;
   color: $color-on-primary;
 }
 

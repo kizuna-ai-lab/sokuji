@@ -25,13 +25,13 @@
 
   &__bar { height: 6px; border-radius: 3px; background: #333; overflow: hidden; }
   &__bar-fill {
-    height: 100%; background: tk.$color-primary; transition: width 0.2s ease;
+    height: 100%; background: tk.$color-primary-fill; transition: width 0.2s ease;
     &--busy { width: 100%; animation: engine-busy 1.2s linear infinite; }
   }
 
   &__action {
     align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
-    background: tk.$color-primary; color: tk.$color-on-primary; border: none; border-radius: 6px;
+    background: tk.$color-primary-fill; color: tk.$color-on-primary; border: none; border-radius: 6px;
     padding: 6px 12px; font-size: 12px; cursor: pointer;
     &:hover { background: #0e9271; }
     &:disabled { opacity: 0.5; cursor: default; }
