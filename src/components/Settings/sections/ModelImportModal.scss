@@ -241,10 +241,12 @@
   &--sm { padding: 5px 9px; font-size: 11.5px; }
 
   &--primary {
-    background: var(--import-accent);
-    border-color: var(--import-accent);
-    color: #fff;
-    &:hover:not(:disabled) { background: vars.$color-primary-fill-hover; border-color: vars.$color-primary-hover; }
+    // --import-accent is the read weight, correct for this modal's icons,
+    // borders and text. A filled button with a label on it is the other job.
+    background: vars.$color-primary-fill;
+    border-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
+    &:hover:not(:disabled) { background: vars.$color-primary-fill-hover; border-color: vars.$color-primary-fill-hover; }
     &:disabled { opacity: 0.45; }
   }
 }
