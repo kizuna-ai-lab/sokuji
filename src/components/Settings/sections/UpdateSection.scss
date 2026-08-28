@@ -1,3 +1,5 @@
+@use '../../../styles/tokens' as tk;
+
 .check-update-button {
   display: flex;
   align-items: center;
@@ -21,8 +23,8 @@
   }
 
   &.up-to-date {
-    color: #10a37f;
-    border-color: #10a37f;
+    color: tk.$color-primary;
+    border-color: tk.$color-primary;
   }
 
   .spinning {

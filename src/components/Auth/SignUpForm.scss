@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 .sign-up-form {
   width: 100%;
   max-width: 400px;
@@ -50,7 +52,7 @@
 
         &:focus {
           outline: none;
-          border-color: #10a37f;
+          border-color: tk.$color-primary;
         }
 
         &:disabled {
@@ -72,10 +74,10 @@
     .submit-button {
       padding: 0.75rem;
       margin-top: 0.5rem;
-      background: #10a37f;
+      background: tk.$color-primary-fill;
       border: none;
       border-radius: 4px;
-      color: #fff;
+      color: tk.$color-on-primary;
       font-size: 1rem;
       font-weight: 500;
       cursor: pointer;
@@ -86,7 +88,7 @@
       min-height: 44px;
 
       &:hover:not(:disabled) {
-        background: #0e8f6f;
+        background: tk.$color-primary-fill-hover;
       }
 
       &:disabled {
@@ -115,7 +117,7 @@
       color: #ccc;
 
       a {
-        color: #10a37f;
+        color: tk.$color-primary;
         text-decoration: none;
         font-weight: 500;
 

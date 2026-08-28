@@ -1,4 +1,5 @@
 @use '../shared/variables' as vars;
+@use '../../../styles/tokens' as tk;
 
 .model-management-section {
   .model-group {
@@ -101,8 +102,8 @@
         }
 
         &.active {
-          background: vars.$color-primary;
-          color: #fff;
+          background: vars.$color-primary-fill;
+          color: vars.$color-on-primary;
           font-weight: vars.$weight-medium;
         }
 
@@ -290,7 +291,7 @@
   }
 
   &__lang-tag--live { border: 1px solid currentColor; font-weight: 600; }  // highlighted (neutral): chosen-CPU
-  &__lang-tag--accel { border-color: #10a37f; color: #10a37f; }  // GPU live
+  &__lang-tag--accel { border-color: tk.$color-success; color: tk.$color-success; }  // GPU live
   &__lang-tag--warn  { border-color: #e74c3c; color: #e74c3c; }  // degraded CPU
 
   &__recommended-badge {
@@ -367,11 +368,11 @@
     }
 
     &--download {
-      background: vars.$color-primary;
-      color: vars.$text-primary;
+      background: vars.$color-primary-fill;
+      color: vars.$color-on-primary;
 
       &:hover:not(:disabled) {
-        background: vars.$color-primary-hover;
+        background: vars.$color-primary-fill-hover;
       }
     }
 
@@ -763,15 +764,15 @@
     padding: 6px 14px;
     border: none;
     border-radius: vars.$radius-sm;
-    background: vars.$color-primary;
-    color: vars.$text-primary;
+    background: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
     font-size: vars.$font-caption;
     font-weight: vars.$weight-medium;
     cursor: pointer;
     transition: background vars.$transition-fast;
 
     &:hover {
-      background: vars.$color-primary-hover;
+      background: vars.$color-primary-fill-hover;
     }
   }
 }

@@ -1,4 +1,5 @@
 @use 'shared/variables' as vars;
+@use '../../styles/tokens' as tk;
 
 .settings-container {
   display: flex;
@@ -38,8 +39,8 @@
       align-items: flex-start;
       gap: 8px;
       padding: 12px;
-      background: rgba(16, 163, 127, 0.1);
-      border: 1px solid rgba(16, 163, 127, 0.3);
+      background: rgba(tk.$color-primary, 0.1);
+      border: 1px solid rgba(tk.$color-primary, 0.3);
       border-radius: 6px;
       font-size: 13px;
       line-height: 1.4;
@@ -47,7 +48,7 @@
       svg {
         flex-shrink: 0;
         margin-top: 2px;
-        color: #10a37f;
+        color: tk.$color-primary;
       }
     }
   }
@@ -166,11 +167,11 @@
     }
 
     .sign-in-button {
-      background: vars.$color-primary;
-      color: vars.$text-primary;
+      background: vars.$color-primary-fill;
+      color: vars.$color-on-primary;
 
       &:hover {
-        background: vars.$color-primary-hover;
+        background: vars.$color-primary-fill-hover;
       }
     }
 
@@ -717,8 +718,8 @@
     width: 100%;
     padding: 10px 20px;
     margin-top: 15px;
-    background-color: vars.$color-primary;
-    color: white;
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
     border: none;
     border-radius: vars.$radius-sm;
     cursor: pointer;
@@ -726,7 +727,7 @@
     transition: background-color vars.$transition-fast;
 
     &:hover {
-      background-color: vars.$color-primary-hover;
+      background-color: vars.$color-primary-fill-hover;
     }
 
     // The acknowledge button becomes secondary when a real action is offered.
@@ -746,8 +747,8 @@
     width: 100%;
     padding: 10px 20px;
     margin-top: 15px;
-    background-color: vars.$color-primary;
-    color: white;
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
     border: none;
     border-radius: vars.$radius-sm;
     cursor: pointer;
@@ -755,7 +756,7 @@
     transition: background-color vars.$transition-fast;
 
     &:hover {
-      background-color: vars.$color-primary-hover;
+      background-color: vars.$color-primary-fill-hover;
     }
   }
 }
@@ -809,11 +810,11 @@
   }
 
   &__accept {
-    background-color: vars.$color-primary;
-    color: white;
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
 
     &:hover {
-      background-color: vars.$color-primary-hover;
+      background-color: vars.$color-primary-fill-hover;
     }
   }
 }
@@ -896,13 +897,13 @@
     padding: 0;
     border: none;
     border-radius: 50%;
-    background-color: vars.$color-primary;
-    color: vars.$text-primary;
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
     cursor: pointer;
     transition: background-color vars.$transition-fast;
 
     &:hover {
-      background-color: vars.$color-primary-hover;
+      background-color: vars.$color-primary-fill-hover;
     }
   }
 
@@ -1055,12 +1056,12 @@
   }
 
   &__accept {
-    background-color: vars.$color-primary;
+    background-color: vars.$color-primary-fill;
     border-color: vars.$color-primary;
-    color: white;
+    color: vars.$color-on-primary;
 
     &:hover:not(:disabled) {
-      background-color: vars.$color-primary-hover;
+      background-color: vars.$color-primary-fill-hover;
       border-color: vars.$color-primary-hover;
     }
   }
@@ -1501,9 +1502,9 @@
   }
 
   .validate-button {
-    background: vars.$color-primary;
+    background: vars.$color-primary-fill;
     border: none;
-    color: vars.$text-primary;
+    color: vars.$color-on-primary;
     padding: 8px 16px;
     border-radius: vars.$radius-sm;
     font-size: vars.$font-title;
@@ -1515,7 +1516,7 @@
     gap: 6px;
 
     &:hover:not(:disabled) {
-      background: vars.$color-primary-hover;
+      background: vars.$color-primary-fill-hover;
     }
 
     &:disabled {
@@ -1620,8 +1621,8 @@
       }
 
       &.active {
-        background: vars.$color-primary;
-        color: #fff;
+        background: vars.$color-primary-fill;
+        color: vars.$color-on-primary;
       }
 
       &:disabled {
@@ -2159,8 +2160,8 @@
       }
 
       &.active {
-        background: #10a37f;
-        color: #fff;
+        background: tk.$color-primary-fill;
+        color: tk.$color-on-primary;
         font-weight: 500;
       }
     }

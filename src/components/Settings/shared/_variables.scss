@@ -1,3 +1,5 @@
+@use '../../../styles/tokens' as tk;
+
 // ============================================================
 // Settings Design Tokens
 // ============================================================
@@ -8,11 +10,14 @@
 // --- Color Palette -------------------------------------------
 
 // Brand
-$color-primary:       #10a37f;
-$color-primary-hover: #0e8f6f;
+$color-primary:       tk.$color-primary;
+$color-primary-hover: tk.$color-primary-hover;
+$color-primary-fill:  tk.$color-primary-fill;
+$color-primary-fill-hover: tk.$color-primary-fill-hover;
+$color-on-primary:    tk.$color-on-primary;
 
 // Status
-$color-success: #10a37f;
+$color-success: tk.$color-success;
 $color-warning: #ffc107;
 $color-error:   #ff4444;
 $color-info:    #4285f4;
@@ -126,8 +131,11 @@ $toggle-bg-on:    $color-primary;
 }
 
 @mixin state-selected-fill {
-  background: $color-primary;
-  color: $text-primary;
+  // The app's segmented → fill selection form. It is the accent *behind a
+  // label*, so it takes the fill value rather than the bright accent: a
+  // brighter accent cannot carry legible white text.
+  background: $color-primary-fill;
+  color: $color-on-primary;
 }
 
 // --- Selectable option row --------------------------------------

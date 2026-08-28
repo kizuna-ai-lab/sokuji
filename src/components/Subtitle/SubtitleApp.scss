@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 // src/components/Subtitle/SubtitleApp.scss
 .subtitle-app {
   display: flex;
@@ -82,8 +84,8 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: #10a37f;
-    color: #fff;
+    background: tk.$color-primary-fill;
+    color: tk.$color-on-primary;
     border: none;
     border-radius: 8px;
     padding: 9px 20px;

@@ -21,11 +21,11 @@
   // --- Variants ---
 
   &--primary {
-    background: vars.$color-primary;
-    color: vars.$text-primary;
+    background: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
 
     &:hover:not(:disabled) {
-      background: vars.$color-primary-hover;
+      background: vars.$color-primary-fill-hover;
     }
   }
 

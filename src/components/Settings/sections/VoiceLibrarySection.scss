@@ -1,3 +1,5 @@
+@use '../../../styles/tokens' as tk;
+
 .voice-library-section {
   display: flex;
   flex-direction: column;
@@ -11,14 +13,14 @@
   // body; without this it hugs the manage details directly above it.
   margin-top: 12px;
   padding: 10px;
-  background: rgba(16, 163, 127, 0.08);
-  border: 1px solid rgba(16, 163, 127, 0.25);
+  background: rgba(tk.$color-primary, 0.08);
+  border: 1px solid rgba(tk.$color-primary, 0.25);
   border-radius: 4px;
   font-size: 13px;
   line-height: 1.4;
 
   a {
-    color: #10a37f;
+    color: tk.$color-primary;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
@@ -69,8 +71,8 @@
   transition: background 0.15s ease, border-color 0.15s ease;
 
   &.dragging {
-    background: rgba(16, 163, 127, 0.12);
-    border: 1px dashed #10a37f;
+    background: rgba(tk.$color-primary, 0.12);
+    border: 1px dashed tk.$color-primary;
   }
 }
 
@@ -112,7 +114,7 @@
 
   &:focus {
     outline: none;
-    border-color: #10a37f;
+    border-color: tk.$color-primary;
   }
 }
 
@@ -127,8 +129,8 @@
   gap: 4px;
   padding: 4px 10px;
   font-size: 12px;
-  color: #ffffff;
-  background: #10a37f;
+  color: tk.$color-on-primary;
+  background: tk.$color-primary-fill;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -201,7 +203,7 @@
   font-size: 12px;
   background: transparent;
   border: none;
-  color: #10a37f;
+  color: tk.$color-primary;
   cursor: pointer;
   &:hover { text-decoration: underline; }
 }
@@ -219,7 +221,7 @@
 }
 
 .voice-manage-row.selected {
-  background: rgba(16, 163, 127, 0.16);
+  background: rgba(tk.$color-primary, 0.16);
   color: #ffffff;
 }
 
@@ -301,7 +303,7 @@
   font-size: 13px;
   color: #ffffff;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid #10a37f;
+  border: 1px solid tk.$color-primary;
   border-radius: 3px;
 }
 

@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 // src/components/Subtitle/SubtitleBar.scss
 .subtitle-bar {
   // Float above the subtitle area instead of pinning to the top of the
@@ -52,7 +54,7 @@
 
   .subtitle-bar__logo {
     font-weight: 600;
-    color: #10a37f;
+    color: tk.$color-primary;
   }
 
   .subtitle-bar__quota {
@@ -87,8 +89,8 @@
     }
 
     &.active {
-      color: #10a37f;
-      background: rgba(16, 163, 127, 0.15);
+      color: tk.$color-primary;
+      background: rgba(tk.$color-primary, 0.15);
     }
 
     &:disabled {
@@ -143,7 +145,7 @@
     -webkit-app-region: no-drag;
     transition: background 120ms ease, opacity 120ms ease;
 
-    &.is-start { background: #10a37f; }
+    &.is-start { background: tk.$color-primary; }
     &.is-stop  { background: #e74c3c; }
 
     &:disabled {

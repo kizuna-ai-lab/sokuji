@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 // Styles for the in-app HSV picker. Kept self-contained (no reliance on the
 // popover's selectors) so the component can be dropped anywhere.
 
@@ -23,7 +25,7 @@
       linear-gradient(to right, #ffffff, rgba(255, 255, 255, 0));
 
     &:focus-visible {
-      outline: 2px solid #10a37f;
+      outline: 2px solid tk.$color-primary;
       outline-offset: 2px;
     }
   }
@@ -62,7 +64,7 @@
     );
 
     &:focus-visible {
-      outline: 2px solid #10a37f;
+      outline: 2px solid tk.$color-primary;
       outline-offset: 2px;
     }
 
@@ -120,7 +122,7 @@
 
     &:focus {
       outline: none;
-      border-color: #10a37f;
+      border-color: tk.$color-primary;
     }
   }
 }

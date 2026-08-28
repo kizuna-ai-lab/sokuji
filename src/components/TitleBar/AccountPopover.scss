@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 // src/components/TitleBar/AccountPopover.scss
 // Values copied from ModeDevicePopover.scss so the two popovers are one
 // control in two places rather than two lookalikes that drift.
@@ -23,7 +25,7 @@
     flex: 1; height: 32px; border-radius: 5px; font-size: 13px; font-weight: 600;
     cursor: pointer; border: 1px solid transparent; font-family: inherit;
 
-    &--primary { background: #10a37f; color: #fff; &:hover { background: #0e9070; } }
+    &--primary { background: tk.$color-primary-fill; color: tk.$color-on-primary; &:hover { background: tk.$color-primary-fill-hover; } }
     &--ghost {
       background: transparent; color: #ccc; border-color: #555;
       &:hover { background: rgba(255, 255, 255, 0.07); border-color: #6a6a6a; }

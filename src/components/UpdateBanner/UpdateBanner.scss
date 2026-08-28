@@ -1,11 +1,13 @@
+@use '../../styles/tokens' as tk;
+
 .update-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
   font-size: 12px;
-  color: #fff;
-  background-color: #10a37f;
+  color: tk.$color-on-primary;
+  background-color: tk.$color-primary-fill;
   cursor: default;
   flex-shrink: 0;
 
