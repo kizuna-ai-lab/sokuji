@@ -27,7 +27,11 @@ KC="$WORK/tcc.keychain"
 KCP="tcc-test-pass"
 CN="Sokuji TCC Test Cert"
 # Populated only while the search list is mutated, so the trap can restore it.
+# Capture success is tracked separately from the contents: an empty capture is
+# a real state that still needs restoring, while never having captured means
+# the list must be left alone.
 ORIG_KEYCHAINS=()
+KEYCHAINS_CAPTURED=0
 
 ensure_cert() {
   [ -f "$WORK/cert.p12" ] && return 0
@@ -70,12 +74,19 @@ read_keychains() {
     # could have left it there, and we would otherwise add it twice.
     [ -n "$line" ] && [ "$line" != "$KC" ] && ORIG_KEYCHAINS+=("$line")
   done < <(security list-keychains -d user)
+  KEYCHAINS_CAPTURED=1
 }
 
 restore_keychains() {
-  if [ ${#ORIG_KEYCHAINS[@]} -gt 0 ]; then
-    security list-keychains -d user -s "${ORIG_KEYCHAINS[@]}" 2>/dev/null
+  if [ "$KEYCHAINS_CAPTURED" = 1 ]; then
+    # Restore even when the captured list is empty -- otherwise an interrupted
+    # run that left only $KC behind (read_keychains filters it out, yielding an
+    # empty capture) would keep a path pointing at a keychain we then delete.
+    # ${a[@]+"${a[@]}"} because bash 3.2 -- what macOS ships -- treats a bare
+    # "${a[@]}" on an empty array as an unbound variable under `set -u`.
+    security list-keychains -d user -s ${ORIG_KEYCHAINS[@]+"${ORIG_KEYCHAINS[@]}"} 2>/dev/null
     ORIG_KEYCHAINS=()
+    KEYCHAINS_CAPTURED=0
   fi
 }
 trap restore_keychains EXIT

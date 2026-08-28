@@ -22,13 +22,19 @@ CERT_CN="Sokuji Self-Signed Test"
 PASS=0
 FAIL=0
 # Populated before the search list is touched, so cleanup can put it back.
+# The flag is tracked separately from the array: an empty capture is a real
+# state ("the list was empty") and must still be restored, whereas never having
+# captured means we must not touch the list at all.
 ORIG_KEYCHAINS=()
+KEYCHAINS_CAPTURED=0
 
 cleanup() {
   # Restore the user's keychain search list. Leaving our temporary keychain in
   # it would strand a dead path once that keychain is deleted below.
-  if [ ${#ORIG_KEYCHAINS[@]} -gt 0 ]; then
-    security list-keychains -d user -s "${ORIG_KEYCHAINS[@]}" 2>/dev/null
+  if [ "$KEYCHAINS_CAPTURED" = 1 ]; then
+    # ${a[@]+"${a[@]}"} because bash 3.2 -- what macOS ships -- treats a bare
+    # "${a[@]}" on an empty array as an unbound variable under `set -u`.
+    security list-keychains -d user -s ${ORIG_KEYCHAINS[@]+"${ORIG_KEYCHAINS[@]}"} 2>/dev/null
   fi
   security delete-keychain "$KEYCHAIN" 2>/dev/null
   sudo rm -rf "/Applications/.sokuji-verify-$$" 2>/dev/null
@@ -47,6 +53,7 @@ read_keychains() {
     line="${line#\"}"                          # strip leading quote
     [ -n "$line" ] && ORIG_KEYCHAINS+=("$line")
   done < <(security list-keychains -d user)
+  KEYCHAINS_CAPTURED=1
 }
 
 ok()   { echo "  PASS  $1"; PASS=$((PASS+1)); }
