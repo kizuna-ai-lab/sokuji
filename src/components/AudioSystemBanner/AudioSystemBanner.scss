@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as tk;
+
 .audio-system-banner {
   display: flex;
   align-items: center;
@@ -6,7 +8,10 @@
   padding: 6px 12px;
   font-size: 12px;
   color: #fff;
-  background-color: #e67e22;
+  // NOTE: this is a degraded state wearing the usage amber. Left on the same
+  // value so this commit stays a no-op; which colour it should be is a
+  // separate decision.
+  background-color: tk.$color-usage;
   flex-shrink: 0;
 
   .audio-system-banner-content {

@@ -323,13 +323,13 @@
       flex-shrink: 0;
       &.active { background: tk.$color-primary; }
       &.reconnecting {
-        background: #f39c12;
+        background: tk.$color-degraded;
         animation: pulse 1s ease-in-out infinite;
       }
     }
 
     .reconnecting-label {
-      color: #f39c12;
+      color: tk.$color-degraded;
       font-size: 12px;
       animation: pulse 1s ease-in-out infinite;
       flex-shrink: 0;

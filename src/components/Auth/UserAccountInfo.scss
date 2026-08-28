@@ -185,12 +185,12 @@
   
   &.refresh-account {
     background: transparent;
-    color: #e67e22; // Match usage section color
-    border: 1px solid #e67e22;
+    color: tk.$color-usage; // the usage section it belongs to
+    border: 1px solid tk.$color-usage;
 
     &:hover {
       background: rgba(231, 123, 34, 0.1);
-      border-color: #f39c12;
+      border-color: tk.$color-usage-hover;
     }
 
     &:active svg {
@@ -277,17 +277,17 @@
         gap: 4px;
         padding: 2px 6px;
         font-size: 10px;
-        color: #e67e22;
-        background: rgba(230, 126, 34, 0.1);
-        border: 1px solid rgba(230, 126, 34, 0.3);
+        color: tk.$color-usage;
+        background: rgba(tk.$color-usage, 0.1);
+        border: 1px solid rgba(tk.$color-usage, 0.3);
         border-radius: 3px;
         cursor: pointer;
         transition: all 0.2s;
         flex-shrink: 0;
 
         &:hover:not(:disabled) {
-          background: rgba(230, 126, 34, 0.2);
-          border-color: rgba(230, 126, 34, 0.5);
+          background: rgba(tk.$color-usage, 0.2);
+          border-color: rgba(tk.$color-usage, 0.5);
         }
 
         &:disabled,
@@ -467,9 +467,9 @@
   }
   
   &.warning-critical {
-    background: rgba(230, 126, 34, 0.1);
-    color: #e67e22;
-    border: 1px solid rgba(230, 126, 34, 0.2);
+    background: rgba(tk.$color-usage, 0.1);
+    color: tk.$color-usage;
+    border: 1px solid rgba(tk.$color-usage, 0.2);
   }
   
   &.warning-exceeded {
@@ -504,7 +504,7 @@
   }
   
   .usage-icon {
-    color: #e67e22; // Match the usage section color (amber for spending)
+    color: tk.$color-usage; // the usage section it belongs to (amber for spending)
     flex-shrink: 0;
   }
   
@@ -515,7 +515,7 @@
   }
   
   .usage-section {
-    color: #e67e22;  // Amber for spending
+    color: tk.$color-usage;  // spending
     font-size: 13px;
     display: flex;
     align-items: center;
@@ -576,7 +576,7 @@
       transition: width 0.3s ease;
       
       &.high-usage {
-        background: linear-gradient(90deg, #e67e22, #d35400);
+        background: linear-gradient(90deg, tk.$color-usage, tk.$color-usage-deep);
       }
     }
   }
