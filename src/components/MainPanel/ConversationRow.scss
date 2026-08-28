@@ -102,9 +102,9 @@
     }
 
     &.source-participant {
-      background: rgba(243, 156, 18, 0.2);
-      color: #f39c12;
-      border: 1px solid rgba(243, 156, 18, 0.4);
+      background: rgba(tk.$color-participant, 0.2);
+      color: tk.$color-participant;
+      border: 1px solid rgba(tk.$color-participant, 0.4);
     }
   }
 }
@@ -167,7 +167,7 @@
   }
 
   &.source-participant {
-    background: #f39c12;
+    background: tk.$color-participant;
   }
 }
 

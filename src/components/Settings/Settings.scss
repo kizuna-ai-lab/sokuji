@@ -167,11 +167,11 @@
     }
 
     .sign-in-button {
-      background: vars.$color-primary;
-      color: vars.$text-primary;
+      background: vars.$color-primary-fill;
+      color: vars.$color-on-primary;
 
       &:hover {
-        background: vars.$color-primary-hover;
+        background: vars.$color-primary-fill-hover;
       }
     }
 
@@ -718,8 +718,8 @@
     width: 100%;
     padding: 10px 20px;
     margin-top: 15px;
-    background-color: vars.$color-primary;
-    color: white;
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
     border: none;
     border-radius: vars.$radius-sm;
     cursor: pointer;
@@ -727,7 +727,7 @@
     transition: background-color vars.$transition-fast;
 
     &:hover {
-      background-color: vars.$color-primary-hover;
+      background-color: vars.$color-primary-fill-hover;
     }
 
     // The acknowledge button becomes secondary when a real action is offered.
@@ -747,8 +747,8 @@
     width: 100%;
     padding: 10px 20px;
     margin-top: 15px;
-    background-color: vars.$color-primary;
-    color: white;
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
     border: none;
     border-radius: vars.$radius-sm;
     cursor: pointer;
@@ -756,7 +756,7 @@
     transition: background-color vars.$transition-fast;
 
     &:hover {
-      background-color: vars.$color-primary-hover;
+      background-color: vars.$color-primary-fill-hover;
     }
   }
 }
@@ -810,11 +810,11 @@
   }
 
   &__accept {
-    background-color: vars.$color-primary;
-    color: white;
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
 
     &:hover {
-      background-color: vars.$color-primary-hover;
+      background-color: vars.$color-primary-fill-hover;
     }
   }
 }
@@ -897,13 +897,13 @@
     padding: 0;
     border: none;
     border-radius: 50%;
-    background-color: vars.$color-primary;
-    color: vars.$text-primary;
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
     cursor: pointer;
     transition: background-color vars.$transition-fast;
 
     &:hover {
-      background-color: vars.$color-primary-hover;
+      background-color: vars.$color-primary-fill-hover;
     }
   }
 
@@ -1056,12 +1056,12 @@
   }
 
   &__accept {
-    background-color: vars.$color-primary;
+    background-color: vars.$color-primary-fill;
     border-color: vars.$color-primary;
-    color: white;
+    color: vars.$color-on-primary;
 
     &:hover:not(:disabled) {
-      background-color: vars.$color-primary-hover;
+      background-color: vars.$color-primary-fill-hover;
       border-color: vars.$color-primary-hover;
     }
   }
@@ -1502,9 +1502,9 @@
   }
 
   .validate-button {
-    background: vars.$color-primary;
+    background: vars.$color-primary-fill;
     border: none;
-    color: vars.$text-primary;
+    color: vars.$color-on-primary;
     padding: 8px 16px;
     border-radius: vars.$radius-sm;
     font-size: vars.$font-title;
@@ -1516,7 +1516,7 @@
     gap: 6px;
 
     &:hover:not(:disabled) {
-      background: vars.$color-primary-hover;
+      background: vars.$color-primary-fill-hover;
     }
 
     &:disabled {

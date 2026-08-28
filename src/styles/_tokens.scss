@@ -10,6 +10,10 @@
 // Buttons, focus rings, active segments, progress, links.
 $color-primary:       #0fbb8f;
 $color-primary-fill:  #008261;  // the accent when it sits behind a label
+// Hover deepens rather than brightens: it lifts the label from 4.8:1 to 6.3:1.
+// The rest state already carries the 3:1 the component needs to be identified,
+// and a hover is a transient state on something the pointer is already on.
+$color-primary-fill-hover: #006e52;
 $color-on-primary:    #fff;             // that label
 $color-primary-hover: #0da77f;
 

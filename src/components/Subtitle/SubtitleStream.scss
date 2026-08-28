@@ -56,11 +56,11 @@
     // apart when both are on screen.
     .subtitle-stream__line--participant {
       padding-left: 6px;
-      border-left: 2px solid rgba(243, 156, 18, 0.6);
+      border-left: 2px solid rgba(tk.$color-participant, 0.6);
     }
     .subtitle-stream__line--speaker {
       padding-left: 6px;
-      border-left: 2px solid rgba(tk.$color-primary, 0.6);
+      border-left: 2px solid rgba(tk.$color-speaker, 0.6);
     }
   }
 

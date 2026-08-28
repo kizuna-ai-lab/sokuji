@@ -368,11 +368,11 @@
     }
 
     &--download {
-      background: vars.$color-primary;
-      color: vars.$text-primary;
+      background: vars.$color-primary-fill;
+      color: vars.$color-on-primary;
 
       &:hover:not(:disabled) {
-        background: vars.$color-primary-hover;
+        background: vars.$color-primary-fill-hover;
       }
     }
 
@@ -764,15 +764,15 @@
     padding: 6px 14px;
     border: none;
     border-radius: vars.$radius-sm;
-    background: vars.$color-primary;
-    color: vars.$text-primary;
+    background: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
     font-size: vars.$font-caption;
     font-weight: vars.$weight-medium;
     cursor: pointer;
     transition: background vars.$transition-fast;
 
     &:hover {
-      background: vars.$color-primary-hover;
+      background: vars.$color-primary-fill-hover;
     }
   }
 }

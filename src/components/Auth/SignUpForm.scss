@@ -88,7 +88,7 @@
       min-height: 44px;
 
       &:hover:not(:disabled) {
-        background: tk.$color-primary-hover;
+        background: tk.$color-primary-fill-hover;
       }
 
       &:disabled {

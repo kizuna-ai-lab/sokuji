@@ -244,7 +244,7 @@
     background: var(--import-accent);
     border-color: var(--import-accent);
     color: #fff;
-    &:hover:not(:disabled) { background: vars.$color-primary-hover; border-color: vars.$color-primary-hover; }
+    &:hover:not(:disabled) { background: vars.$color-primary-fill-hover; border-color: vars.$color-primary-hover; }
     &:disabled { opacity: 0.45; }
   }
 }

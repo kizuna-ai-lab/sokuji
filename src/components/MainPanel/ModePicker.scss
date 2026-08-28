@@ -7,7 +7,7 @@
 //   - Each option fills with var --bg-secondary (#1a1a1a)
 //   - Options separated by border-right (not a gap)
 //   - Hover var --bg-hover (#252525)
-//   - Active tokens.$color-primary / #fff
+//   - Active tk.$color-primary-fill / tk.$color-on-primary
 //
 // Deviation from noise-suppression: NO font-weight change on active.
 // Active state is differentiated by bg + text color only — keeps segment
