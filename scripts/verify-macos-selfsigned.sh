@@ -21,13 +21,33 @@ KC_PASS="verify-$$"
 CERT_CN="Sokuji Self-Signed Test"
 PASS=0
 FAIL=0
+# Populated before the search list is touched, so cleanup can put it back.
+ORIG_KEYCHAINS=()
 
 cleanup() {
+  # Restore the user's keychain search list. Leaving our temporary keychain in
+  # it would strand a dead path once that keychain is deleted below.
+  if [ ${#ORIG_KEYCHAINS[@]} -gt 0 ]; then
+    security list-keychains -d user -s "${ORIG_KEYCHAINS[@]}" 2>/dev/null
+  fi
   security delete-keychain "$KEYCHAIN" 2>/dev/null
   sudo rm -rf "/Applications/.sokuji-verify-$$" 2>/dev/null
   rm -rf "$WORK"
 }
 trap cleanup EXIT
+
+# Read the current search list into an array so that paths containing spaces
+# survive; the obvious unquoted $(...) splat does not handle them.
+read_keychains() {
+  local line
+  ORIG_KEYCHAINS=()
+  while IFS= read -r line; do
+    line="${line#"${line%%[![:space:]]*}"}"   # strip leading blanks
+    line="${line%\"}"                          # strip trailing quote
+    line="${line#\"}"                          # strip leading quote
+    [ -n "$line" ] && ORIG_KEYCHAINS+=("$line")
+  done < <(security list-keychains -d user)
+}
 
 ok()   { echo "  PASS  $1"; PASS=$((PASS+1)); }
 bad()  { echo "  FAIL  $1"; FAIL=$((FAIL+1)); }
@@ -63,7 +83,12 @@ fi
 security create-keychain -p "$KC_PASS" "$KEYCHAIN" >/dev/null
 security unlock-keychain -p "$KC_PASS" "$KEYCHAIN" >/dev/null
 security set-keychain-settings "$KEYCHAIN"
-security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+# Putting the keychain in the search list is load-bearing, not cosmetic:
+# `codesign --keychain <kc>` on its own does NOT resolve an identity by common
+# name -- it reports "no identity found" and leaves the bundle ad-hoc signed
+# (verified on macOS 26.6.1). cleanup() restores the previous list.
+read_keychains
+security list-keychains -d user -s "$KEYCHAIN" "${ORIG_KEYCHAINS[@]}"
 IMPORT_OUT="$(security import "$WORK/cert.p12" -k "$KEYCHAIN" -P "$KC_PASS" -A 2>&1)"
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KC_PASS" "$KEYCHAIN" >/dev/null 2>&1
 

@@ -26,28 +26,84 @@ APP="/Applications/$APPNAME.app"
 KC="$WORK/tcc.keychain"
 KCP="tcc-test-pass"
 CN="Sokuji TCC Test Cert"
+# Populated only while the search list is mutated, so the trap can restore it.
+ORIG_KEYCHAINS=()
 
 ensure_cert() {
   [ -f "$WORK/cert.p12" ] && return 0
-  mkdir -p "$WORK"
-  /opt/homebrew/bin/openssl req -x509 -newkey rsa:2048 -sha256 -days 7300 -nodes \
+  mkdir -p "$WORK" || return 1
+
+  # Resolve through PATH: the Homebrew prefix differs on Intel (/usr/local) and
+  # is absent entirely on a machine without Homebrew, where the system LibreSSL
+  # at /usr/bin/openssl does the job.
+  local openssl
+  openssl="$(command -v openssl)" || { echo "openssl not found on PATH" >&2; return 1; }
+
+  "$openssl" req -x509 -newkey rsa:2048 -sha256 -days 7300 -nodes \
     -keyout "$WORK/key.pem" -out "$WORK/cert.pem" \
     -subj "/CN=$CN/O=Sokuji TCC Verify" \
     -addext "basicConstraints=critical,CA:false" \
     -addext "keyUsage=critical,digitalSignature" \
-    -addext "extendedKeyUsage=critical,codeSigning" >/dev/null 2>&1
-  /opt/homebrew/bin/openssl pkcs12 -export -legacy -out "$WORK/cert.p12" \
-    -inkey "$WORK/key.pem" -in "$WORK/cert.pem" -passout "pass:$KCP" >/dev/null 2>&1
+    -addext "extendedKeyUsage=critical,codeSigning" >/dev/null 2>&1 \
+    || { echo "openssl could not create the certificate" >&2; return 1; }
+
+  # -legacy is an OpenSSL 3 flag and the export fails without it there, because
+  # macOS cannot import the AES-256/SHA-256 default. LibreSSL has no such flag
+  # and already writes something importable, so fall back to a plain export.
+  "$openssl" pkcs12 -export -legacy -out "$WORK/cert.p12" \
+    -inkey "$WORK/key.pem" -in "$WORK/cert.pem" -passout "pass:$KCP" >/dev/null 2>&1 \
+    || "$openssl" pkcs12 -export -out "$WORK/cert.p12" \
+       -inkey "$WORK/key.pem" -in "$WORK/cert.pem" -passout "pass:$KCP" >/dev/null 2>&1 \
+    || { echo "openssl could not export the PKCS#12 bundle" >&2; return 1; }
 }
 
+# Read the current search list into an array so that paths containing spaces
+# survive; the obvious unquoted $(...) splat does not handle them.
+read_keychains() {
+  local line
+  ORIG_KEYCHAINS=()
+  while IFS= read -r line; do
+    line="${line#"${line%%[![:space:]]*}"}"   # strip leading blanks
+    line="${line%\"}"                          # strip trailing quote
+    line="${line#\"}"                          # strip leading quote
+    # Skip our own keychain: a previous run that died before its trap fired
+    # could have left it there, and we would otherwise add it twice.
+    [ -n "$line" ] && [ "$line" != "$KC" ] && ORIG_KEYCHAINS+=("$line")
+  done < <(security list-keychains -d user)
+}
+
+restore_keychains() {
+  if [ ${#ORIG_KEYCHAINS[@]} -gt 0 ]; then
+    security list-keychains -d user -s "${ORIG_KEYCHAINS[@]}" 2>/dev/null
+    ORIG_KEYCHAINS=()
+  fi
+}
+trap restore_keychains EXIT
+
 ensure_keychain() {
-  security find-certificate -c "$CN" "$KC" >/dev/null 2>&1 && return 0
-  security create-keychain -p "$KCP" "$KC" >/dev/null 2>&1
-  security unlock-keychain -p "$KCP" "$KC" >/dev/null 2>&1
-  security set-keychain-settings "$KC"
-  security import "$WORK/cert.p12" -k "$KC" -P "$KCP" -A >/dev/null 2>&1
-  security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KCP" "$KC" >/dev/null 2>&1
-  security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+  # Create and populate only once; the certificate has to be the same across
+  # both builds or the experiment measures nothing.
+  if ! security find-certificate -c "$CN" "$KC" >/dev/null 2>&1; then
+    security create-keychain -p "$KCP" "$KC" >/dev/null 2>&1 \
+      || { echo "could not create $KC" >&2; return 1; }
+    security unlock-keychain -p "$KCP" "$KC" >/dev/null 2>&1 \
+      || { echo "could not unlock $KC" >&2; return 1; }
+    security set-keychain-settings "$KC"
+    security import "$WORK/cert.p12" -k "$KC" -P "$KCP" -A >/dev/null 2>&1 \
+      || { echo "could not import the certificate into $KC" >&2; return 1; }
+    security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KCP" "$KC" >/dev/null 2>&1
+  else
+    security unlock-keychain -p "$KCP" "$KC" >/dev/null 2>&1
+  fi
+
+  # Outside the branch above on purpose. The EXIT trap restores the search list
+  # when the script ends, so a second `setup` run would otherwise sign against a
+  # keychain that is no longer searchable. `codesign --keychain <kc>` alone does
+  # NOT resolve an identity by common name -- it reports "no identity found" and
+  # leaves the bundle ad-hoc signed, which is exactly the state this script
+  # exists to tell apart from a real signature. Verified on macOS 26.6.1.
+  read_keychains
+  security list-keychains -d user -s "$KC" "${ORIG_KEYCHAINS[@]}"
 }
 
 build_app() { # $1 = dest .app, $2 = build tag (must differ between builds)
@@ -129,7 +185,11 @@ show_dr() { codesign -d -r- "$1" 2>&1 | grep 'designated =>' | sed 's/^#* *desig
 
 case "$MODE" in
 setup)
-  ensure_cert; ensure_keychain
+  # Stop here rather than build and "sign" against a certificate that was never
+  # created -- that would silently produce ad-hoc bundles and quietly invalidate
+  # the whole experiment.
+  ensure_cert || { echo "certificate setup failed" >&2; exit 1; }
+  ensure_keychain || { echo "keychain setup failed" >&2; exit 1; }
   rm -f "$LOG"
   echo "=== arm: $ARM   bundle id: $BID ==="
   build_app "$WORK/v1.app" "V1"
