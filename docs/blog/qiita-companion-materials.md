@@ -378,7 +378,7 @@ While integrating it into Sokuji (an open-source real-time translation app I wor
 
 Full write-up with working code (Japanese, code is universal): [Qiita link]
 
-Sokuji is MIT-licensed: https://github.com/kizuna-ai-lab/sokuji — implementation lives in `OpenAITranslateGAClient.ts` and `OpenAITranslateWebRTCClient.ts` under `src/services/clients/`.
+Sokuji is AGPL-3.0 licensed: https://github.com/kizuna-ai-lab/sokuji — implementation lives in `OpenAITranslateGAClient.ts` and `OpenAITranslateWebRTCClient.ts` under `src/services/clients/`.
 
 Happy to answer questions about the implementation or real-time voice agent patterns generally.
 ```
