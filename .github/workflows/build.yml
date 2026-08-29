@@ -27,14 +27,14 @@ jobs:
     name: test (diagnostics)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # `npm ci` runs lifecycle scripts from this checkout, and this job does
           # no git work, so the token has nothing to do here.
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: 'npm'
@@ -86,14 +86,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Full history for releases (changelog generation). Use string '0'
           # because numeric 0 is falsy in GitHub Actions expressions.
           fetch-depth: ${{ startsWith(github.ref, 'refs/tags/v') && '0' || 1 }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: 'npm'
@@ -425,7 +425,7 @@ jobs:
 
       - name: Upload Linux x64 artifacts
         if: startsWith(github.ref, 'refs/tags/v') && matrix.name == 'linux-x64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-x64-artifacts
           path: |
@@ -437,7 +437,7 @@ jobs:
 
       - name: Upload Linux ARM64 artifacts
         if: startsWith(github.ref, 'refs/tags/v') && matrix.name == 'linux-arm64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-arm64-artifacts
           path: |
@@ -447,21 +447,21 @@ jobs:
 
       - name: Upload unsigned Windows installer for signing
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-unsigned
           path: out/make/squirrel.windows/x64/*Setup*.exe
 
       - name: Upload Windows nupkg for release
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-nupkg
           path: out/make/squirrel.windows/x64/*.nupkg
 
       - name: Upload macOS artifacts
         if: startsWith(github.ref, 'refs/tags/v') && runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact_name }}-artifacts
           path: |
@@ -481,10 +481,10 @@ jobs:
       actions: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download unsigned artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: windows-unsigned
           path: unsigned/
@@ -494,7 +494,7 @@ jobs:
       # and artifact IDs cannot be passed across jobs without explicit output wiring.
       - name: Upload for SignPath
         id: upload-for-signing
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-to-sign
           path: unsigned/
@@ -515,7 +515,7 @@ jobs:
           wait-for-completion-timeout-in-seconds: 3600
 
       - name: Upload signed artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-signed
           path: signed/
@@ -528,37 +528,37 @@ jobs:
 
     steps:
       - name: Download Linux x64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: linux-x64-artifacts
           path: linux-x64-artifacts
 
       - name: Download Linux ARM64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: linux-arm64-artifacts
           path: linux-arm64-artifacts
 
       - name: Download signed Windows installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: windows-signed
           path: windows-signed
 
       - name: Download Windows nupkg
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: windows-nupkg
           path: windows-nupkg
 
       - name: Download macOS ARM64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: macos-arm64-artifacts
           path: macos-arm64-artifacts
 
       - name: Download macOS x64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: macos-x64-artifacts
           path: macos-x64-artifacts
@@ -677,7 +677,7 @@ jobs:
           cat release-assets/latest-mac.yml
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: release-assets/*
           body_path: linux-x64-artifacts/CHANGELOG.md
