@@ -289,7 +289,20 @@ jobs:
         # entirely, so `--mac pkg` alone would silently drop the zip -- and with it
         # latest-mac.yml and the blockmap, leaving auto-update dead while everything
         # still looks green. The zip is what electron-updater actually installs.
-        run: npx electron-builder --mac pkg zip --${{ matrix.arch }} --publish never -c.directories.output=out/make-mac
+        run: |
+          set -euo pipefail
+          # The signing pair is exported here instead of being declared in `env:`
+          # below, because an empty-but-defined CSC_LINK is not "unset" to
+          # electron-builder: getCscLink() keeps "" on purpose ("allow to specify
+          # as empty string"), macPackager guards only `cscLink == null`, and the
+          # pkg target forces the keychain open even when the .app itself skips
+          # signing. loadCscLink("") then resolves the empty path against the
+          # project dir and the build dies with "<projectDir> not a file" -- which
+          # is every fork PR, since GitHub passes it no secrets at all (#453).
+          if [ "$HAS_MAC_CERT" = 'true' ]; then
+            export CSC_LINK="$MACOS_CSC_LINK" CSC_KEY_PASSWORD="$MACOS_CSC_KEY_PASSWORD"
+          fi
+          npx electron-builder --mac pkg zip --${{ matrix.arch }} --publish never -c.directories.output=out/make-mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
@@ -297,12 +310,12 @@ jobs:
           # macOS auto-update stays off; scripts/electron-builder-fuses.js
           # ad-hoc signs in that case.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MACOS_CSC_LINK != '' && 'true' || 'false' }}
-          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          MACOS_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          MACOS_CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
           # electron-builder refuses to sign pull-request builds unless this is
           # set, so that untrusted forks cannot get at signing credentials. That
           # protection is redundant here -- GitHub does not pass secrets to fork
-          # PRs at all, so HAS_MAC_CERT is false and CSC_LINK is empty there --
+          # PRs at all, so HAS_MAC_CERT is false and CSC_LINK stays unset there --
           # while leaving it off means no PR can ever verify the signing chain,
           # which is the whole point of running this on a PR.
           CSC_FOR_PULL_REQUEST: ${{ env.HAS_MAC_CERT }}
