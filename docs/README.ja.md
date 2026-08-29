@@ -58,7 +58,7 @@ graph LR
 | | |
 |---|---|
 | **プロバイダー** | 9 — OpenAI、Gemini、Palabra.ai、Kizuna AI、豆包 AST 2.0、Soniox、Zoom AI、OpenAI互換、ローカル推論 |
-| **ローカルモデル** | ASR 50モデル、翻訳 55以上の言語ペア、TTS 136ボイス |
+| **ローカルモデル** | ASR 44モデル、翻訳 75モデル、TTS 137モデル |
 | **言語** | 99以上（音声認識）· 55以上（翻訳）· 53（音声合成） |
 | **プラットフォーム** | Linux · Windows · macOS · Chrome · Edge |
 | **プライバシー** | ローカル推論 = 100%オンデバイス、APIキー不要、インターネット不要 |
@@ -149,9 +149,9 @@ npm run electron:build      # 本番ビルド
 
 すべてをデバイス上で実行 — APIキー不要、インターネット不要、高価なGPU不要、完全なプライバシー。WASMとWebGPUにより、既存のCPUと内蔵グラフィックスで効率的に動作。
 
-- **50 ASRモデル**（オフライン32 + ストリーミング10 + WebGPU 8：Whisper、Cohere Transcribe、Voxtral Mini 4Bを含む）99以上の言語をカバー
-- **55以上の翻訳ペア** Opus-MT + 5つの多言語LLM（Qwen 2.5 / 3 / 3.5、GemmaTranslate）WebGPU対応
-- **136 TTSボイス** 53言語（Piper、Piper-Plus、Coqui、Mimic3、Matchaエンジン）
+- **44 ASRモデル**（オフライン23 + ストリーミング10 + WebGPU 11：Whisper、Cohere Transcribe、Voxtral、Granite Speechを含む）99以上の言語をカバー
+- **75 翻訳モデル** — Opus-MT の69言語ペア + 6つの多言語LLM（Qwen 2.5 / 3 / 3.5、Hunyuan-MT 1.5、TranslateGemma）WebGPU対応
+- **137 TTSモデル** 53言語（Piper、Piper-Plus、Coqui、Mimic3、Matcha、MMS、VITS、Supertonicエンジン）
 - ワンクリックモデルダウンロード、IndexedDBキャッシュ
 
 ### クラウドプロバイダー
@@ -236,7 +236,7 @@ npm run electron:build      # 本番ビルド
 - **クラウドAPI**: [OpenAI](https://openai.com), [Google Gemini](https://ai.google.dev), [Volcengine](https://www.volcengine.com)
 - **ASR**: [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx), [OpenAI Whisper](https://github.com/openai/whisper), [SenseVoice](https://github.com/FunAudioLLM/SenseVoice), [Moonshine](https://github.com/usefulsensors/moonshine), [Cohere Transcribe](https://cohere.com), [Voxtral Mini 4B](https://github.com/mistralai)
 - **TTS**: [Piper](https://github.com/rhasspy/piper), [Piper-Plus](https://github.com/ayutaz/piper-plus), [Matcha-TTS](https://github.com/shivammehta25/Matcha-TTS), [Coqui TTS](https://github.com/coqui-ai/TTS), [Mimic 3](https://github.com/MycroftAI/mimic3)
-- **翻訳**: [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT), [Qwen](https://github.com/QwenLM/Qwen), [GemmaTranslate](https://github.com/google-research/translate-gemma)
+- **翻訳**: [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT), [Qwen](https://github.com/QwenLM/Qwen), [TranslateGemma](https://github.com/google-research/translate-gemma)
 - **インフラ**: [Transformers.js](https://github.com/huggingface/transformers.js), [ONNX Runtime](https://github.com/microsoft/onnxruntime), [Electron](https://www.electronjs.org), [React](https://react.dev)
 
 モデルライセンスの詳細は[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)をご参照ください。

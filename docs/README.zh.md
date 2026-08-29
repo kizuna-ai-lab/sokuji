@@ -58,7 +58,7 @@ graph LR
 | | |
 |---|---|
 | **服务商** | 9 — OpenAI、Gemini、Palabra.ai、Kizuna AI、豆包 AST 2.0、Soniox、Zoom AI、OpenAI 兼容、本地推理 |
-| **本地模型** | 50 个 ASR 模型、55+ 翻译语言对、136 个 TTS 语音 |
+| **本地模型** | 44 个 ASR 模型、75 个翻译模型、137 个 TTS 模型 |
 | **语言** | 99+（语音识别）· 55+（翻译）· 53（语音合成） |
 | **平台** | Linux · Windows · macOS · Chrome · Edge |
 | **隐私** | 本地推理 = 100% 设备端运行，无需 API 密钥，无需联网 |
@@ -132,9 +132,9 @@ npm run electron:build      # 生产构建
 
 一切在设备上运行 — 无需 API 密钥，无需联网，无需昂贵的 GPU，完全保护隐私。通过 WASM 和 WebGPU，Sokuji 使用您现有的 CPU 和集成显卡即可高效运行。
 
-- **50 个 ASR 模型**（32 个离线 + 10 个流式 + 8 个 WebGPU，包括 Whisper、Cohere Transcribe、Voxtral Mini 4B）覆盖 99+ 种语言
-- **55+ 翻译语言对** 通过 Opus-MT + 5 个多语言 LLM（Qwen 2.5 / 3 / 3.5、GemmaTranslate）支持 WebGPU
-- **136 个 TTS 语音** 覆盖 53 种语言（Piper、Piper-Plus、Coqui、Mimic3、Matcha 引擎）
+- **44 个 ASR 模型**（23 个离线 + 10 个流式 + 11 个 WebGPU，包括 Whisper、Cohere Transcribe、Voxtral、Granite Speech）覆盖 99+ 种语言
+- **75 个翻译模型** — Opus-MT 的 69 个语言对 + 6 个多语言 LLM（Qwen 2.5 / 3 / 3.5、Hunyuan-MT 1.5、TranslateGemma）支持 WebGPU
+- **137 个 TTS 模型** 覆盖 53 种语言（Piper、Piper-Plus、Coqui、Mimic3、Matcha、MMS、VITS、Supertonic 引擎）
 - 一键模型下载，IndexedDB 缓存
 
 ### 云端服务商
@@ -219,7 +219,7 @@ npm run electron:build      # 生产构建
 - **云端 API**: [OpenAI](https://openai.com), [Google Gemini](https://ai.google.dev), [Volcengine](https://www.volcengine.com)
 - **ASR**: [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx), [OpenAI Whisper](https://github.com/openai/whisper), [SenseVoice](https://github.com/FunAudioLLM/SenseVoice), [Moonshine](https://github.com/usefulsensors/moonshine), [Cohere Transcribe](https://cohere.com), [Voxtral Mini 4B](https://github.com/mistralai)
 - **TTS**: [Piper](https://github.com/rhasspy/piper), [Piper-Plus](https://github.com/ayutaz/piper-plus), [Matcha-TTS](https://github.com/shivammehta25/Matcha-TTS), [Coqui TTS](https://github.com/coqui-ai/TTS), [Mimic 3](https://github.com/MycroftAI/mimic3)
-- **翻译**: [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT), [Qwen](https://github.com/QwenLM/Qwen), [GemmaTranslate](https://github.com/google-research/translate-gemma)
+- **翻译**: [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT), [Qwen](https://github.com/QwenLM/Qwen), [TranslateGemma](https://github.com/google-research/translate-gemma)
 - **基础设施**: [Transformers.js](https://github.com/huggingface/transformers.js), [ONNX Runtime](https://github.com/microsoft/onnxruntime), [Electron](https://www.electronjs.org), [React](https://react.dev)
 
 模型许可证详情请参阅 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)。
