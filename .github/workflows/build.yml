@@ -91,6 +91,10 @@ jobs:
           # Full history for releases (changelog generation). Use string '0'
           # because numeric 0 is falsy in GitHub Actions expressions.
           fetch-depth: ${{ startsWith(github.ref, 'refs/tags/v') && '0' || 1 }}
+          # This job runs `npm ci` and `npm run build` on the checked-out tree,
+          # so lifecycle scripts from a dependency could read a token left in
+          # .git/config. It does no git work itself. Same reason as the test job.
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -482,6 +486,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # This job only signs artifacts downloaded from the build job;
+          # it does no git work, so the token has nothing to do here.
+          persist-credentials: false
 
       - name: Download unsigned artifacts
         uses: actions/download-artifact@v7
