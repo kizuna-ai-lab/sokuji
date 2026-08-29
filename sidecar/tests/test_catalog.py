@@ -92,10 +92,70 @@ def test_cohere_asr_row():
 def test_roster_is_wer_ranked():
     ids = [m.id for m in catalog.asr_models()]
     assert ids[0] == "cohere-transcribe-03-2026"           # WER 1.25, benchmark best
-    assert len(ids) == 64
+    assert len(ids) == 67
     orders = [m.sort_order for m in catalog.asr_models()]
     assert orders == sorted(orders)                        # rows stay rank-ordered
     assert sum(1 for m in catalog.asr_models() if m.recommended) == 7
+
+
+# transcribe-cpp 0.2.2 (2026-08-30): the three families that landed upstream
+# after our 0.1.3 pin. Each needs the 0.2 runtime — 0.1.3 rejects the GGUFs.
+def test_parakeet_primeline_row():
+    m = catalog.asr_model("parakeet-primeline")
+    assert m is not None
+    assert m.name == "Parakeet Primeline (de)"
+    v3 = catalog.asr_model("parakeet-tdt-0.6b-v3")
+    assert m.languages == v3.languages        # a v3 fine-tune: same 25 languages
+    assert m.recommended is False
+    assert m.sort_order == 81                 # slotted right after its base v3
+    assert m.deployments[0].backend == "transcribe_cpp"
+    assert m.deployments[0].compute_type == "q8_0"
+    assert m.deployments[0].artifact == ("handy-computer/parakeet-primeline-gguf/"
+                                         "parakeet-primeline-Q8_0.gguf")
+    assert m.size_bytes == 739508640
+
+
+def test_moss_transcribe_diarize_row():
+    m = catalog.asr_model("moss-transcribe-diarize")
+    assert m is not None
+    assert m.name == "MOSS Transcribe (0.9B)"
+    assert m.languages == ("en", "zh")
+    assert m.recommended is False
+    assert m.sort_order == 85                 # WER 1.93 @ Q8_0
+    assert m.deployments[0].backend == "transcribe_cpp"   # batch-only upstream
+    assert m.deployments[0].compute_type == "q8_0"
+    # Upstream capitalises this base name; the ladder ships BF16 too, which we
+    # skip (F16 is the listed-only top rung everywhere else).
+    assert m.deployments[0].artifact == ("handy-computer/moss-transcribe-diarize-gguf/"
+                                         "MOSS-Transcribe-Diarize-Q8_0.gguf")
+    assert m.size_bytes == 986899616
+    ct_rank = {d.compute_type: d.rank for d in m.deployments}
+    assert ct_rank == {"q8_0": 2.0, "f16": 0.5, "q6_k": 1.0, "q5_k_m": 0.5, "q4_k_m": 1.0}
+
+
+def test_multitalker_parakeet_streaming_row():
+    m = catalog.asr_model("multitalker-parakeet-streaming-0.6b-v1")
+    assert m is not None
+    assert m.name == "Parakeet Multitalker Streaming 0.6B (en)"
+    assert m.languages == ("en",)
+    assert m.recommended is False
+    assert m.sort_order == 114                # WER 2.18 @ Q8_0
+    d = m.deployments[0]
+    assert d.backend == "transcribe_cpp_stream"
+    assert d.compute_type == "q8_0"
+    # The ROOT GGUF (single-speaker streaming), not the bundle/ one that embeds
+    # the Sortformer diarizer — multitalker output is offline-API only upstream.
+    assert d.artifact == ("handy-computer/multitalker-parakeet-streaming-0.6b-v1-gguf/"
+                          "multitalker-parakeet-streaming-0.6b-v1-Q8_0.gguf")
+    assert m.size_bytes == 734123712
+
+
+def test_whisper_large_v3_turbo_sizes_match_the_2026_07_21_reupload():
+    m = catalog.asr_model("whisper-large-v3-turbo")
+    sizes = {d.compute_type: d.est_bytes for d in m.deployments}
+    assert sizes == {"q8_0": 886381760, "f16": 1625935520, "q6_k": 692536928,
+                     "q5_k_m": 619628128, "q4_k_m": 536069728}
+    assert m.size_bytes == 886381760
 
 
 def test_voxtral_realtime_row():

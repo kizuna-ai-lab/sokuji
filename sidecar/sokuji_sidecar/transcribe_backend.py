@@ -1,7 +1,8 @@
 """transcribe.cpp ASR backend — THE torch-free runtime for every ASR catalog
 model (2026-07-04 decision). ggml family: official GGUFs per model, Vulkan/
-Metal/CPU backends from the stock PyPI wheel (CUDA needs the optional native
-runtime; we ship Vulkan which already covers NVIDIA at 100x realtime).
+Metal/CPU backends from the stock `transcribe-cpp-native` provider wheel (a
+CUDA provider is only a PyPI placeholder as of 0.2.2; we ship Vulkan, which
+already covers NVIDIA at 100x realtime).
 
 model_ref is an upstream artifact path "org/repo/file.gguf" (same shape as the
 llamacpp translate cards); the file must already be in the HF cache (the

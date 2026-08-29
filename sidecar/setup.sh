@@ -36,8 +36,9 @@ echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, 
 # Stage runtimes (torch-free since 2026-07-04):
 #   ASR       -> transcribe-cpp (pinned in requirements.txt — the single
 #                source for that pin; ggml family: CPU+Vulkan bundled on
-#                linux/win, Metal on macOS — the stock wheel accelerates
-#                NVIDIA/AMD/Intel through Vulkan, no CUDA runtime needed)
+#                linux/win, Metal on macOS via the transcribe-cpp-native
+#                provider wheel it depends on — accelerates NVIDIA/AMD/Intel
+#                through Vulkan, no CUDA runtime needed)
 #   Translate -> llama-server binary (downloaded on demand) + Opus CTranslate2
 #   TTS       -> onnxruntime (MOSS/Supertonic/Qwen3-TTS) + sherpa-onnx (piper)
 #                + mlx-audio (Qwen3-TTS / MOSS on Apple Silicon macOS; installed

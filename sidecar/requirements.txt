@@ -27,8 +27,14 @@ nltk==3.10.0
 # ja G2P. Pulls sudachipy + sudachidict_core (~212MB) — kept deliberately
 # (kanji homograph readings); quality follow-up tracked in issue #322.
 pyopenjtalk-plus==0.4.1.post8
-# ASR runtime (ggml family; CPU+Vulkan wheels on linux/win, Metal on macOS)
-transcribe-cpp==0.1.3
+# ASR runtime (ggml family). Since 0.2 the binding is pure-python and pulls
+# the platform wheel of `transcribe-cpp-native` (CPU+Vulkan on linux/win,
+# Metal on macOS) through a `transcribe_cpp.native` entry point; the two must
+# stay on the same version (the binding refuses a mismatched provider). 0.2.0
+# is a breaking API change (integer gpu_device -> opaque device handles) that
+# we never depended on; it also brought the Parakeet multitalker, MOSS
+# Transcribe-Diarize and Parakeet Primeline families the catalog lists.
+transcribe-cpp==0.2.2
 # macOS MLX TTS lane (spec D5): Apple-Silicon-only mlx-audio wheel. The
 # environment marker keeps it out of the Linux/Windows venvs (mlx_tts.py
 # lazy-imports mlx_audio, so those platforms stay importable). Metal-only.

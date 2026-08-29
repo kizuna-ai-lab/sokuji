@@ -191,11 +191,32 @@ ASR_MODELS: list[AsrModel] = [
             80, {"F16": 1255869856, "Q8_0": 739508576, "Q6_K": 610342240,
                  "Q5_K_M": 548946272, "Q4_K_M": 485425504},
             default="Q8_0", recommended=True),
+    # German fine-tune of v3 (primeline, CC-BY-4.0; transcribe.cpp >= 0.2.0):
+    # FLEURS-de WER 6.00 vs NeMo's 5.98 — not a librispeech figure, so it sits
+    # right behind its base rather than in the WER order. Keeps the other 24
+    # v3 languages usable. Inherits v3's `ss`-for-`ß` orthography quirk.
+    _tc_row("parakeet-primeline", "Parakeet Primeline (de)",
+            ("bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
+             "hu", "it", "lv", "lt", "mt", "pl", "pt", "ro", "ru", "sk", "sl",
+             "es", "sv", "uk"),
+            "handy-computer/parakeet-primeline-gguf", "parakeet-primeline",
+            81, {"F16": 1255869920, "Q8_0": 739508640, "Q6_K": 610342304,
+                 "Q5_K_M": 548946336, "Q4_K_M": 485425568}, default="Q8_0"),
+    # WER 1.93 @ Q8_0 — en/zh audio-LLM (Whisper-medium encoder + Qwen3-0.6B;
+    # Apache-2.0; transcribe.cpp >= 0.2.0). Batch-only upstream, and its
+    # optional inline speaker markers stay OFF (session.run's diarize default),
+    # so it transcribes like any other card. Q4_K_M degrades to 2.59 and the
+    # author warns of edge-case failures below Q5_K_M — Q8_0 is the default.
+    _tc_row("moss-transcribe-diarize", "MOSS Transcribe (0.9B)", ("en", "zh"),
+            "handy-computer/moss-transcribe-diarize-gguf", "MOSS-Transcribe-Diarize",
+            85, {"F16": 1833665696, "Q8_0": 986899616, "Q6_K": 768151712,
+                 "Q5_K_M": 700313760, "Q4_K_M": 617345184}, default="Q8_0"),
     # WER 2.01 — 99-language mainstay: ~large-v3 quality at 4x the speed.
+    # Sizes are the 2026-07-21 re-upload of the repo (64 bytes shorter per file).
     _tc_row("whisper-large-v3-turbo", "Whisper large-v3 turbo", ("multi",),
             "handy-computer/whisper-large-v3-turbo-gguf", "whisper-large-v3-turbo",
-            90, {"F16": 1636749024, "Q8_0": 886381824, "Q6_K": 692536992,
-                 "Q5_K_M": 619628192, "Q4_K_M": 536069792},
+            90, {"F16": 1625935520, "Q8_0": 886381760, "Q6_K": 692536928,
+                 "Q5_K_M": 619628128, "Q4_K_M": 536069728},
             default="Q8_0", recommended=True),
     # WER 2.07 — heavy streaming flagship (committed/tentative partials).
     _tc_row("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
@@ -216,6 +237,17 @@ ASR_MODELS: list[AsrModel] = [
     _tc_row("moonshine-streaming-medium", "Moonshine Streaming Medium", ("en",),
             "handy-computer/moonshine-streaming-medium-gguf", "moonshine-streaming-medium",
             113, {"F16": 533781408, "Q8_0": 295793568},
+            default="Q8_0", backend="transcribe_cpp_stream"),
+    # WER 2.18 @ Q8_0 — en-only cache-aware STREAMING, cased+punct (NVIDIA
+    # Open Model License; transcribe.cpp >= 0.2.0). The ROOT GGUFs: the repo's
+    # bundle/ twins embed a Sortformer diarizer whose multi-speaker output is
+    # offline-API only upstream — the stream API is single-speaker either way.
+    _tc_row("multitalker-parakeet-streaming-0.6b-v1",
+            "Parakeet Multitalker Streaming 0.6B (en)", ("en",),
+            "handy-computer/multitalker-parakeet-streaming-0.6b-v1-gguf",
+            "multitalker-parakeet-streaming-0.6b-v1",
+            114, {"F16": 1246058304, "Q8_0": 734123712, "Q6_K": 603878080,
+                  "Q5_K_M": 541890240, "Q4_K_M": 477812416},
             default="Q8_0", backend="transcribe_cpp_stream"),
     # WER 2.25 — Taiwanese Mandarin + zh/en code-switching (Whisper-large-v2
     # ft); the quant ladder is WER-flat so the smallest curated rung wins.
