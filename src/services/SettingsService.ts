@@ -52,6 +52,12 @@ export class SettingsService implements ISettingsService {
         // Electron: Use localStorage
         const value = localStorage.getItem(key);
         if (value !== null) {
+          // setSetting stores strings as raw localStorage values. Return them
+          // before JSON parsing so opaque values such as API keys "123456",
+          // "true", or "null" do not change type across an app restart.
+          if (typeof defaultValue === 'string') {
+            return value as unknown as T;
+          }
           try {
             return JSON.parse(value);
           } catch {

@@ -53,6 +53,47 @@ describe('SettingsService.getSetting', () => {
   });
 });
 
+describe('SettingsService localStorage round trips', () => {
+  afterEach(() => {
+    localStorage.clear();
+    delete (globalThis as Record<string, unknown>).chrome;
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    '123456',
+    'true',
+    'false',
+    'null',
+    '[]',
+    '{}',
+    '"quoted"',
+  ])('preserves the JSON-looking string %j exactly', async (value) => {
+    const service = new SettingsService();
+    const key = 'settings.test.opaqueString';
+
+    await expect(service.setSetting(key, value)).resolves.toMatchObject({ success: true });
+    expect(localStorage.getItem(key)).toBe(value);
+
+    const restored = await service.getSetting(key, '');
+    expect(restored).toBe(value);
+    expect(typeof restored).toBe('string');
+  });
+
+  it.each([
+    ['boolean', true],
+    ['number', 123456],
+    ['array', ['one', 'two']],
+    ['object', { enabled: true }],
+  ])('keeps parsing a stored %s value', async (_label, value) => {
+    const service = new SettingsService();
+    const key = 'settings.test.structuredValue';
+
+    await expect(service.setSetting(key, value)).resolves.toMatchObject({ success: true });
+    await expect(service.getSetting(key, null)).resolves.toEqual(value);
+  });
+});
+
 describe('SettingsService.setSetting', () => {
   afterEach(() => {
     delete (globalThis as Record<string, unknown>).chrome;
