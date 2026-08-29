@@ -9,11 +9,19 @@
 name: sidecar-metal-smoke
 on: workflow_dispatch
 
+# Stated rather than inherited, as sidecar-bundles.yml states it: the
+# repository default is already read, but that is a setting somewhere else
+# and this job only ever needs to read the tree.
+permissions:
+  contents: read
+
 jobs:
   metal-smoke:
     runs-on: macos-14   # M-series, Metal-capable
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with: { python-version: '3.11' }
       - name: Install sidecar deps (CPU onnxruntime)
