@@ -77,17 +77,17 @@ def test_bad_device_index_raises():
 
 @needs_tree
 def test_second_init_log_keeps_first_trampoline_alive():
-    # Controller Ruling 15: sk_init only stores the callback pointer on its first
-    # successful call, so a later init(log=...) must not drop the only Python reference
-    # to the trampoline native code still holds.
-    first_lines = []
-    second_lines = []
-    sokuji_native.init(log=lambda level, msg: first_lines.append((level, msg)))
-    first_trampoline = sokuji_native._log_refs[0]
+    # sk_init stores the callback pointer from its first successful call only, so that
+    # trampoline must stay referenced for the life of the process, and a later
+    # init(log=...) must neither replace it nor pile up trampolines native never saw.
+    def trampolines():
+        return [o for o in sokuji_native._state.keepalive if isinstance(o, _ffi.LOG_CB)]
 
-    sokuji_native.init(log=lambda level, msg: second_lines.append((level, msg)))
+    sokuji_native.init(log=lambda level, msg: None)      # already initialised by an earlier test, or now
+    assert len(trampolines()) == 1
+    first = trampolines()[0]
 
-    sokuji_native.init()  # a third call must not crash despite the dangling-pointer risk
+    sokuji_native.init(log=lambda level, msg: None)      # a different sink: ignored, nothing retained
+    sokuji_native.init()                                  # and a third call without one
 
-    assert len(sokuji_native._log_refs) >= 2
-    assert sokuji_native._log_refs[0] is first_trampoline
+    assert trampolines() == [first]

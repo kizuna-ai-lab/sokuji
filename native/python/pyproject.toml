@@ -20,3 +20,7 @@ sokuji_native = ["_native/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Import the package from this source tree, not from a sokuji_native wheel that happens
+# to be installed in the interpreter (which is what a bare `pytest native/python/tests`
+# from the repo root would otherwise test).
+pythonpath = ["."]

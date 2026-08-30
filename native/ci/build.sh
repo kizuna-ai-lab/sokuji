@@ -27,6 +27,10 @@ if [ "$(uname -s)" = "Linux" ]; then
     "$PYTHON" "$ROOT/ci/check_linux_deps.py" "$BUILD/stage" "$PLAT"
 fi
 cp -r "$BUILD/stage" "$ROOT/python/sokuji_native/_native"
+# The binding's own tests, against the SOURCE package (PYTHONPATH) and this stage — not
+# against whatever sokuji_native happens to be installed in this interpreter.
+"$PYTHON" -m pip install -q pytest numpy
+PYTHONPATH="$ROOT/python" SOKUJI_NATIVE_DIR="$BUILD/stage" "$PYTHON" -m pytest "$ROOT/python/tests" "$ROOT/tests/parity" -q
 ( cd "$ROOT/python" && rm -rf dist && SOKUJI_NATIVE_PLAT="$PLAT" "$PYTHON" -m pip wheel . --no-deps -w dist )
 ls -la "$ROOT/python/dist"
 # Import the wheel we just built, from a clean interpreter, and print the device table.

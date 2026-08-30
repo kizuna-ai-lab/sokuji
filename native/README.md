@@ -21,6 +21,10 @@ Developer loop without a wheel:
     cmake -S native -B native/build/cpu -DSOKUJI_GPU=none && cmake --build native/build/cpu -j
     cmake --install native/build/cpu --prefix native/build/cpu/stage --component sokuji
     SOKUJI_NATIVE_DIR=$PWD/native/build/cpu/stage python -c "import sokuji_native as s; s.init(); print(s.devices())"
+    SOKUJI_NATIVE_DIR=$PWD/native/build/cpu/stage python -m pytest native/python/tests native/tests/parity -q
+
+The package tests import `sokuji_native` from `native/python` (pytest `pythonpath`), never
+from an installed wheel; `build.sh` / `build.ps1` run both suites against the fresh stage.
 
 The `--component sokuji` flag is mandatory: without it the upstreams' own install rules dump headers and static libs into the stage.
 

@@ -35,12 +35,22 @@ class Device:
     mem_free: int
 
 
+class _State:
+    """Process-wide binding state, one instance (`_state`)."""
+    lib: ctypes.CDLL | None = None
+    contract: dict | None = None
+    initialised = False     # sk_init succeeded once; later init() calls return without calling native
+
+    def __init__(self) -> None:
+        # Objects native code or the OS loader keeps a pointer to for the life of the
+        # process, held here so Python never collects them: the log trampoline sk_init
+        # installed, and on Windows the os.add_dll_directory() handle (the directory is
+        # on the DLL search path only while that handle lives).
+        self.keepalive: list = []
+
+
 _lock = threading.Lock()
-_lib: ctypes.CDLL | None = None
-_contract: dict | None = None
-_dll_dir = None          # Windows: os.add_dll_directory() handle — the directory is on the search path only while it lives
-_initialised = False     # sk_init succeeded once in this process; later init() calls return without calling native
-_log_refs: list = []     # the one trampoline sk_init installed; native keeps it forever, so it may never be collected
+_state = _State()
 
 
 def native_dir() -> pathlib.Path:
@@ -66,19 +76,18 @@ def _library_name() -> str:
 
 
 def _load() -> ctypes.CDLL:
-    global _lib, _contract, _dll_dir
     with _lock:
-        if _lib is not None:
-            return _lib
+        if _state.lib is not None:
+            return _state.lib
         d = native_dir()
-        _contract = _check_contract(d / "contract.json")
+        _state.contract = _check_contract(d / "contract.json")
         if platform.system() == "Windows":
-            _dll_dir = os.add_dll_directory(str(d))
+            _state.keepalive.append(os.add_dll_directory(str(d)))
         lib = _ffi.bind(ctypes.CDLL(str(d / _library_name())))
         if lib.sk_abi_version() != _ffi.SK_ABI_VERSION:
             raise NativeError(_ffi.SK_ERR_INVALID_ARGUMENT,
                               f"library ABI {lib.sk_abi_version()} != binding ABI {_ffi.SK_ABI_VERSION}")
-        _lib = lib
+        _state.lib = lib
         return lib
 
 
@@ -89,7 +98,7 @@ def _raise(lib: ctypes.CDLL, status: int, what: str) -> None:
 
 def contract() -> dict:
     _load()
-    return dict(_contract or {})
+    return dict(_state.contract or {})
 
 
 def version() -> str:
@@ -111,10 +120,9 @@ def init(n_threads: int = 0, log=None) -> None:
     the sink passed to the FIRST successful init is honoured — the native side installs it
     once; later calls return at once and ignore a different `log`. A failed init (no
     backend modules, say) leaves the process uninitialised, so a retry is a real retry."""
-    global _initialised
     lib = _load()
     with _lock:
-        if _initialised:
+        if _state.initialised:
             return
         opts = _ffi.sk_init_options()
         opts.abi_version = _ffi.SK_ABI_VERSION
@@ -134,8 +142,8 @@ def init(n_threads: int = 0, log=None) -> None:
         if status != _ffi.SK_OK:
             _raise(lib, status, "sk_init")
         if trampoline is not None:
-            _log_refs.append(trampoline)   # native now holds this pointer for the life of the process
-        _initialised = True
+            _state.keepalive.append(trampoline)   # native now holds this pointer for the life of the process
+        _state.initialised = True
 
 
 def devices() -> list[Device]:

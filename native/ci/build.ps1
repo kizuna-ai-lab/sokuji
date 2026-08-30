@@ -23,6 +23,15 @@ Remove-Item -Recurse -Force "$Build\stage", "$Root\python\sokuji_native\_native"
 cmake --install $Build --config Release --prefix "$Build\stage" --component sokuji
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Copy-Item -Recurse "$Build\stage" "$Root\python\sokuji_native\_native"
+# The binding's own tests, against the SOURCE package (PYTHONPATH) and this stage — not
+# against whatever sokuji_native happens to be installed in this interpreter.
+& $Python -m pip install -q pytest numpy
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+$env:PYTHONPATH = "$Root\python"
+$env:SOKUJI_NATIVE_DIR = "$Build\stage"
+& $Python -m pytest "$Root\python\tests" "$Root\tests\parity" -q
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+Remove-Item Env:PYTHONPATH, Env:SOKUJI_NATIVE_DIR
 Push-Location "$Root\python"
 Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
 $env:SOKUJI_NATIVE_PLAT = $Plat
