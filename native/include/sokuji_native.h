@@ -75,6 +75,10 @@ typedef struct sk_device {
 } sk_device;
 
 SK_API sk_status   sk_init(const sk_init_options *options);              /* idempotent; first call wins (see top) */
+/* sk_devices lists placement targets only: CPU and GPU devices. ggml accelerator devices
+ * (the Accelerate BLAS backend on macOS) are not listed — they are not something a stage
+ * is placed on and they report no memory — but they remain loaded and the engines use
+ * them on their own. Every listed device reports mem_total > 0 and mem_free > 0. */
 SK_API int32_t     sk_devices(sk_device *out, int32_t capacity);        /* returns count written; 0 before sk_init */
 SK_API sk_status   sk_device_free_mem(int32_t index, uint64_t *bytes);  /* SK_ERR_NOT_INITIALISED before sk_init */
 SK_API int32_t     sk_abi_version(void);

@@ -120,13 +120,31 @@ SK_API sk_status sk_init(const sk_init_options *options) {
     std::string dir = options->module_dir && options->module_dir[0] ? options->module_dir : own_directory();
     ggml_backend_load_all_from_path(dir.c_str());
 
+    /* Only devices a stage can be placed on are listed: CPU and (integrated) GPU. ggml also
+     * registers accelerator devices — the Accelerate BLAS backend on macOS is one — which
+     * are not placement targets and report no memory at all (free = total = 0). They stay
+     * in ggml's registry, where llama.cpp's scheduler still picks them up on its own. */
     g_devices.clear();
-    for (size_t i = 0; i < ggml_backend_dev_count(); ++i) g_devices.push_back(ggml_backend_dev_get(i));
+    size_t skipped = 0;
+    for (size_t i = 0; i < ggml_backend_dev_count(); ++i) {
+        ggml_backend_dev_t dev = ggml_backend_dev_get(i);
+        switch (ggml_backend_dev_type(dev)) {
+            case GGML_BACKEND_DEVICE_TYPE_CPU:
+            case GGML_BACKEND_DEVICE_TYPE_GPU:
+            case GGML_BACKEND_DEVICE_TYPE_IGPU:
+                g_devices.push_back(dev);
+                break;
+            default:   /* ACCEL, META */
+                ++skipped;
+                break;
+        }
+    }
     if (g_devices.empty()) {
         set_error("sk_init: no ggml backend modules found in " + dir);
         return SK_ERR_BACKEND;
     }
-    log_line(1, ("sk_init: " + std::to_string(g_devices.size()) + " device(s), modules from " + dir +
+    log_line(1, ("sk_init: " + std::to_string(g_devices.size()) + " device(s), " +
+                 std::to_string(skipped) + " accelerator(s) not listed, modules from " + dir +
                  ", " + std::to_string(g_threads) + " threads").c_str());
     g_initialised = true;
     t_last_error.clear();

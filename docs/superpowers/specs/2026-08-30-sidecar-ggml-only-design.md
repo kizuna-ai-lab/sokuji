@@ -208,6 +208,7 @@ Surface (final names may gain arguments during implementation, not lose these):
 ```c
 sk_status sk_init(const sk_init_options *);                 // threads, log callback, module dir
 int       sk_devices(sk_device *out, int cap);             // kind cpu|vulkan|metal, name, mem_total, mem_free
+                                                           // CPU + GPU devices only; ggml accelerators (macOS BLAS) are not listed
 sk_status sk_device_free_mem(int device, uint64_t *bytes);
 const char *sk_version(void);  const char *sk_last_error(void);  void sk_free(void *);
 

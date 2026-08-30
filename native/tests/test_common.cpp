@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
         assert(devs[i].index == i);
         assert(devs[i].name[0] != '\0');
         if (devs[i].kind == SK_DEVICE_CPU) saw_cpu = true;
+        assert(devs[i].mem_total > 0);                               // accelerators (0/0) are never listed
         uint64_t free_bytes = 0;
         assert(sk_device_free_mem(i, &free_bytes) == SK_OK);
         assert(free_bytes > 0);
