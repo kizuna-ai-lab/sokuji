@@ -283,13 +283,27 @@ https://github.com/electron-userland/electron-builder/blob/master/packages/elect
     whether the app may record audio using the built-in microphone and access
     audio input using Core Audio."
     — https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.security.device.audio-input
-- `@electron/osx-sign` (used by both Forge's `osxSign` and electron-builder)
-  already ships default entitlements covering this:
-  `entitlements/default.darwin.plist` contains `com.apple.security.cs.allow-jit`
-  and `com.apple.security.device.audio-input` (plus camera, bluetooth, etc.).
-  — https://github.com/electron/osx-sign/blob/main/entitlements/default.darwin.plist
-  So no custom entitlements file is strictly needed to start; trimming the
-  defaults to just JIT + audio-input is optional hygiene.
+- `@electron/osx-sign` ships default entitlements that *would* cover this
+  (`entitlements/default.darwin.plist` has `allow-jit` and `device.audio-input`,
+  plus camera, bluetooth, etc.
+  — https://github.com/electron/osx-sign/blob/main/entitlements/default.darwin.plist),
+  **but electron-builder does not use them.** It hands osx-sign its own
+  `app-builder-lib/templates/entitlements.mac.plist` — `allow-jit`,
+  `allow-unsigned-executable-memory`, `disable-library-validation`, nothing
+  else — for the app and every helper, unless `mac.entitlements` /
+  `mac.entitlementsInherit` say otherwise (`MacTargetHelper.getOptionsForFile`).
+  An earlier revision of this section assumed the osx-sign defaults applied,
+  and the hardware tests in §6 signed with bare `codesign` (no
+  `--options runtime`), so neither caught it: v0.39.1, the first
+  certificate-signed release, shipped with the Hardened Runtime and no
+  audio-input entitlement (verified on the release zip: `flags=0x10000(runtime)`,
+  three entitlements), and from Finder the microphone was denied with no prompt
+  at all — #458. From a terminal it worked, because TCC attributes the request
+  to the already-granted Terminal. Sokuji now ships
+  `electron/entitlements.mac.plist` (the three template entitlements plus
+  `device.audio-input`) for app and helpers alike, pinned by
+  `electron/macos-entitlements.consistency.test.js` and verified on the signed
+  artifact in `build.yml`.
 - TCC prompt text: microphone access also needs `NSMicrophoneUsageDescription`
   in `Info.plist`. Sokuji's Forge/electron-builder configs do not set one
   (`grep NSMicrophoneUsageDescription` finds nothing in `forge.config.js` /

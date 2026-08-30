@@ -365,6 +365,32 @@ jobs:
           codesign --verify --deep --strict "$APP"
           echo "OK: bundle passes strict nested validation."
 
+          # The Hardened Runtime (electron-builder's default, so every
+          # certificate-signed build has it) denies the microphone outright --
+          # no TCC prompt, no error, getUserMedia just rejects -- unless the
+          # bundle carries com.apple.security.device.audio-input. electron-builder's
+          # own entitlements template does not, which is how v0.39.1 shipped with
+          # a microphone that could not be turned on from Finder (#458). Check
+          # every nested bundle: the renderer helper is the process that actually
+          # opens the device.
+          # Captured first, then grepped: under `pipefail` a `codesign | grep -q`
+          # pipeline fails whenever grep matches early and codesign takes the
+          # SIGPIPE, so a passing bundle would be reported as FAIL at random.
+          SIGNATURE=$(codesign -dv "$APP" 2>&1)
+          grep -Eq 'flags=0x[0-9a-f]+\([^)]*runtime' <<<"$SIGNATURE" || {
+            echo "FAIL: the app is not signed with the Hardened Runtime; build.mac.hardenedRuntime drifted." >&2
+            echo "$SIGNATURE" >&2
+            exit 1; }
+          for BUNDLE in "$APP" "$APP"/Contents/Frameworks/*.app; do
+            ENTITLEMENTS=$(codesign -d --entitlements - "$BUNDLE" 2>/dev/null)
+            if ! grep -q 'com.apple.security.device.audio-input' <<<"$ENTITLEMENTS"; then
+              echo "FAIL: $(basename "$BUNDLE") lacks com.apple.security.device.audio-input --" >&2
+              echo "the microphone would be denied with no prompt (#458)." >&2
+              exit 1
+            fi
+          done
+          echo "OK: Hardened Runtime with the audio-input entitlement on every bundle."
+
           # MacUpdater installs the zip and nothing else -- it rejects pkg and dmg
           # outright -- and only the zip target emits latest-mac.yml plus the
           # blockmap. Missing either one leaves auto-update dead with a green build.
