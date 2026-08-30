@@ -68,7 +68,7 @@ def test_fit_walk(sized, budget, downloaded, expected):
 # Mirrors tests/test_characterization.py's four-machine matrix (not imported
 # from there — that file is frozen and must stay standalone).
 _ALL_BACKENDS = frozenset({
-    "transcribe_cpp", "transcribe_cpp_stream", "sherpa_tts", "moss_onnx",
+    "native_asr", "native_asr_stream", "sherpa_tts", "moss_onnx",
     "supertonic", "qwen3tts_onnx", "onnx", "llamacpp_qwen", "llamacpp_hunyuan",
     "llamacpp_gemma", "ct2_opus_translate",
 })
@@ -103,7 +103,7 @@ ARM_NV = accel.Machine(
     # Linux/aarch64 NVIDIA box (DGX Spark shape): Vulkan-capable, no sbsa
     # onnxruntime-gpu wheel installed (ort_cuda=False).
     os="Linux", arch="aarch64", cpu_cores=20, apple_silicon=False,
-    dml_adapters=(), installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream", "llamacpp_qwen"}),
+    dml_adapters=(), installed=frozenset({"native_asr", "native_asr_stream", "llamacpp_qwen"}),
     fingerprint="p-arm-nv", tc_kinds=("cpu", "vulkan"),
     gpus=(("vulkan", "NVIDIA GB10", 97 << 30),), ort_cuda=False,
 )
@@ -266,8 +266,8 @@ def _model_cpu_and_cuda():
     # synthetic rows exercising the generic resolver mechanics (tier ranking,
     # override pinning) — backend name only needs to be in `installed`.
     return catalog.AsrModel("m", "M", ("multi",), (
-        catalog.Deployment("transcribe_cpp", "gpu-cuda", "float16", "large-v3", 1.0),
-        catalog.Deployment("transcribe_cpp", "cpu", "int8", "large-v3", 1.0),
+        catalog.Deployment("native_asr", "gpu-cuda", "float16", "large-v3", 1.0),
+        catalog.Deployment("native_asr", "cpu", "int8", "large-v3", 1.0),
     ))
 
 
@@ -333,7 +333,7 @@ def test_resolve_whisper_base_tier_and_override(machine, override, expected_devi
     plans = planner.resolve("whisper-base", override, machine=machine, platform="linux",
                             cache={}, downloaded=set())
     assert [p.device for p in plans] == expected_devices
-    assert all(p.backend == "transcribe_cpp" for p in plans)
+    assert all(p.backend == "native_asr" for p in plans)
     if expected_quant is not None:
         assert all(p.compute_type == expected_quant for p in plans)
 
@@ -355,8 +355,8 @@ def test_resolve_leads_with_vulkan_from_tc_probe_alone_no_nvidia():
 def test_resolve_demotes_gpu_when_bench_cache_says_slower():
     m = CUDA_12GB
     cache = {
-        planner._bench_key(m.fingerprint, "whisper-base", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
-        planner._bench_key(m.fingerprint, "whisper-base", "transcribe_cpp", "cpu", "q8_0"): 0.3,
+        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
+        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
     }
     plans = planner.resolve("whisper-base", machine=m, platform="linux", cache=cache, downloaded=set())
     assert plans[0].device == "cpu"    # demoted: measured slower on GPU than CPU
@@ -365,8 +365,8 @@ def test_resolve_demotes_gpu_when_bench_cache_says_slower():
 def test_resolve_override_beats_bench_demotion():
     m = CUDA_12GB
     cache = {
-        planner._bench_key(m.fingerprint, "whisper-base", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
-        planner._bench_key(m.fingerprint, "whisper-base", "transcribe_cpp", "cpu", "q8_0"): 0.3,
+        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
+        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
     }
     # UI sends 'cuda' for GPU — it pins ANY accelerator tier (vulkan here);
     # the benchmark never overrides the user's forced device.
@@ -380,12 +380,12 @@ def test_resolve_override_beats_bench_demotion():
     "cohere-transcribe-03-2026", "fun-asr-mlt-nano",
 ])
 def test_resolve_speech_llm_family_vulkan_then_cpu_on_nvidia(model_id):
-    # granite/qwen3-asr/voxtral/cohere/fun-asr all share the transcribe_cpp
+    # granite/qwen3-asr/voxtral/cohere/fun-asr all share the native_asr
     # rows — on an NVIDIA box they resolve vulkan first with a cpu floor.
     m = _machine(gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12288 << 20),))
     plans = planner.resolve(model_id, machine=m, platform="linux", cache={}, downloaded=set())
     assert [p.device for p in plans] == ["vulkan", "cpu"]
-    assert all(p.backend.startswith("transcribe_cpp") for p in plans)
+    assert all(p.backend.startswith("native_asr") for p in plans)
 
 
 def test_resolve_arm_nvidia_leads_with_vulkan():
@@ -472,9 +472,9 @@ def test_resolve_asr_bench_demotion_uses_quant_keyed_entries():
     m = _nv_machine(12282)
     cache = {
         planner._bench_key(m.fingerprint, "cohere-transcribe-03-2026",
-                           "transcribe_cpp", "vulkan", "q4_k_m"): 0.9,
+                           "native_asr", "vulkan", "q4_k_m"): 0.9,
         planner._bench_key(m.fingerprint, "cohere-transcribe-03-2026",
-                           "transcribe_cpp", "cpu", "q4_k_m"): 0.2,
+                           "native_asr", "cpu", "q4_k_m"): 0.2,
     }
     plans = planner.resolve("cohere-transcribe-03-2026", machine=m, platform="linux",
                             cache=cache, downloaded={"q4_k_m"})
@@ -922,7 +922,7 @@ def test_resolve_arm_ort_cuda_resolves_tts_cuda():
     # With the sbsa wheel installed (ort_cuda=True), ORT TTS leads with cuda
     # on aarch64.
     m = _arm_nv_ort_cuda(installed=frozenset({
-        "transcribe_cpp", "transcribe_cpp_stream", "llamacpp_qwen", "qwen3tts_onnx"}))
+        "native_asr", "native_asr_stream", "llamacpp_qwen", "qwen3tts_onnx"}))
     tts = planner.resolve_tts("qwen3-tts-0.6b", machine=m, platform="linux", cache={})
     assert tts[0].device == "cuda"
 

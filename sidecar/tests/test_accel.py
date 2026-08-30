@@ -98,11 +98,11 @@ def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
     monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_asr"}))
     monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu",))   # no accelerator
     accel.probe(force=True)
     plans = accel.resolve("sense-voice")
-    assert plans[0].backend == "transcribe_cpp" and plans[0].device == "cpu"
+    assert plans[0].backend == "native_asr" and plans[0].device == "cpu"
 
 
 def _plan(device):
@@ -291,7 +291,7 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_asr"}))
     monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu",))
     accel.probe(force=True)
     st = {"handlers": {}}
@@ -303,9 +303,9 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     assert by_id["sense-voice"]["languages"] == ["zh", "en", "ja", "ko", "yue"]
     sv_tiers = by_id["sense-voice"]["tiers"]
     assert sv_tiers == [
-        {"tier": "gpu-vulkan", "backend": "transcribe_cpp", "available": False},
-        {"tier": "gpu-metal", "backend": "transcribe_cpp", "available": False},
-        {"tier": "cpu", "backend": "transcribe_cpp", "available": True},
+        {"tier": "gpu-vulkan", "backend": "native_asr", "available": False},
+        {"tier": "gpu-metal", "backend": "native_asr", "available": False},
+        {"tier": "cpu", "backend": "native_asr", "available": True},
     ]
     # 2026-07-05 roster: the whisper star moved to large-v3-turbo
     assert by_id["whisper-large-v3-turbo"]["recommended"] is True
@@ -469,13 +469,13 @@ def test_installed_find_spec_raise_does_not_nuke_whole_set(monkeypatch):
     real = iu.find_spec
 
     def raising_find_spec(name, *a, **k):
-        if name == "transcribe_cpp":
-            raise ModuleNotFoundError("no module named transformers.models.qwen3_asr")
+        if name == "sokuji_native":
+            raise ModuleNotFoundError("no module named sokuji_native")
         return real(name, *a, **k)
 
     monkeypatch.setattr(accel.importlib.util, "find_spec", raising_find_spec)
     result = accel._installed()          # must NOT raise
-    assert "transcribe_cpp" not in result   # the raising entry is excluded …
+    assert "native_asr" not in result   # the raising entry is excluded …
     assert "sherpa_tts" in result           # … but other present backends survive
 
 
@@ -1036,7 +1036,7 @@ def test_load_measured_claims_into_ledger(monkeypatch):
     class _B:
         def load(self, a, d, c, config=None): pass
     monkeypatch.setattr(accel, "make_backend", lambda name: _B())
-    plans = [accel.Plan("transcribe_cpp", "gpu-vulkan", "vulkan", "q8_0", "org/r/f.gguf", 1.0)]
+    plans = [accel.Plan("native_asr", "gpu-vulkan", "vulkan", "q8_0", "org/r/f.gguf", 1.0)]
     _b, plan, _n, mem = accel.load_measured(plans, stage="asr")
     assert mem == 2 << 30                          # vulkan delta measured (not cuda-only)
     assert accel.ledger_other("translate") == 2 << 30
@@ -1050,7 +1050,7 @@ def test_load_measured_cpu_claims_zero(monkeypatch):
     class _B:
         def load(self, a, d, c, config=None): pass
     monkeypatch.setattr(accel, "make_backend", lambda name: _B())
-    plans = [accel.Plan("transcribe_cpp", "cpu", "cpu", "q8_0", "org/r/f.gguf", 1.0)]
+    plans = [accel.Plan("native_asr", "cpu", "cpu", "q8_0", "org/r/f.gguf", 1.0)]
     accel.load_measured(plans, stage="asr")
     assert accel.ledger_other("translate") == 0    # present but holds no VRAM
     assert "asr" in accel._LEDGER

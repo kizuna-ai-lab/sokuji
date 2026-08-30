@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "transcribe_cpp" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "mlx_audio_tts" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "ct2_opus_translate"
+    backend: str        # backend NAME: "native_asr" | "native_asr_stream" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "mlx_audio_tts" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "ct2_opus_translate"
     tier: str           # "cpu" | "gpu-vulkan" | "gpu-metal" | "gpu-cuda" | "gpu-dml"
     compute_type: str   # quant/dtype label ("q4_k_m", "q8_0", "int8", ...)
     artifact: str       # backend.load() model_ref (repo id or "org/repo/file.gguf")
@@ -68,7 +68,7 @@ _TC_CURATED_MIN_RANK = 1.0
 
 
 def _tc_row(mid, name, langs, repo, base, order, quants, default,
-            recommended=False, backend="transcribe_cpp", tiers=_TC_TIERS):
+            recommended=False, backend="native_asr", tiers=_TC_TIERS):
     """One transcribe.cpp ASR card with its FULL quant ladder. `quants` maps
     QUANT (filename token, e.g. "Q8_0") -> size_bytes; `default` names the
     curated default. The same GGUF serves every tier. Deployments are ordered
@@ -224,7 +224,7 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf", "Voxtral-Mini-4B-Realtime-2602",
             100, {"F16": 8879114528, "Q8_0": 4731791648, "Q6_K": 3661018912,
                   "Q5_K_M": 3281439008, "Q4_K_M": 2830493984},
-            default="Q4_K_M", recommended=True, backend="transcribe_cpp_stream"),
+            default="Q4_K_M", recommended=True, backend="native_asr_stream"),
     # WER 2.10 — light CJK quality rung.
     _tc_row("qwen3-asr-0.6b", "Qwen3-ASR 0.6B",
             ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
@@ -237,7 +237,7 @@ ASR_MODELS: list[AsrModel] = [
     _tc_row("moonshine-streaming-medium", "Moonshine Streaming Medium", ("en",),
             "handy-computer/moonshine-streaming-medium-gguf", "moonshine-streaming-medium",
             113, {"F16": 533781408, "Q8_0": 295793568},
-            default="Q8_0", backend="transcribe_cpp_stream"),
+            default="Q8_0", backend="native_asr_stream"),
     # WER 2.18 @ Q8_0 — en-only cache-aware STREAMING, cased+punct (NVIDIA
     # Open Model License; transcribe.cpp >= 0.2.0). The ROOT GGUFs: the repo's
     # bundle/ twins embed a Sortformer diarizer whose multi-speaker output is
@@ -248,7 +248,7 @@ ASR_MODELS: list[AsrModel] = [
             "multitalker-parakeet-streaming-0.6b-v1",
             114, {"F16": 1246058304, "Q8_0": 734123712, "Q6_K": 603878080,
                   "Q5_K_M": 541890240, "Q4_K_M": 477812416},
-            default="Q8_0", backend="transcribe_cpp_stream"),
+            default="Q8_0", backend="native_asr_stream"),
     # WER 2.25 — Taiwanese Mandarin + zh/en code-switching (Whisper-large-v2
     # ft); the quant ladder is WER-flat so the smallest curated rung wins.
     _tc_row("breeze-asr-25", "Breeze ASR 25", ("zh", "en"),
@@ -263,7 +263,7 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf", "nemotron-3.5-asr-streaming-0.6b",
             128, {"F16": 1277750240, "Q8_0": 751094240, "Q6_K": 621356512,
                   "Q5_K_M": 559647200, "Q4_K_M": 495831520},
-            default="Q8_0", recommended=True, backend="transcribe_cpp_stream"),
+            default="Q8_0", recommended=True, backend="native_asr_stream"),
     # WER 3.13 at RTF 289 (metal) — fastest/lightest CJK+yue (no ITN/punct).
     _tc_row("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
             "handy-computer/SenseVoiceSmall-gguf", "SenseVoiceSmall",
@@ -340,7 +340,7 @@ ASR_MODELS: list[AsrModel] = [
     # WER 2.29 — en-only cache-aware STREAMING (NVIDIA Open Model License)
     _tc_row("nemotron-speech-streaming-en", "Nemotron Speech Streaming (en)", ("en",),
             "handy-computer/nemotron-speech-streaming-en-0.6b-gguf", "nemotron-speech-streaming-en-0.6b",
-            117, {"F16": 1237652608, "Q8_0": 729650176, "Q6_K": 600420352, "Q5_K_M": 538989568, "Q4_K_M": 475436032}, default="Q8_0", backend="transcribe_cpp_stream"),
+            117, {"F16": 1237652608, "Q8_0": 729650176, "Q6_K": 600420352, "Q5_K_M": 538989568, "Q4_K_M": 475436032}, default="Q8_0", backend="native_asr_stream"),
     # WER 2.43 — en, small/fast, cased+punct
     _tc_row("parakeet-tdt_ctc-110m", "Parakeet TDT-CTC 110M", ("en",),
             "handy-computer/parakeet-tdt_ctc-110m-gguf", "parakeet-tdt_ctc-110m",
@@ -352,7 +352,7 @@ ASR_MODELS: list[AsrModel] = [
     # WER 2.53 — en STREAMING 123M (F16/Q8_0 only)
     _tc_row("moonshine-streaming-small", "Moonshine Streaming Small", ("en",),
             "handy-computer/moonshine-streaming-small-gguf", "moonshine-streaming-small",
-            121, {"F16": 282092128, "Q8_0": 198506848}, default="Q8_0", backend="transcribe_cpp_stream"),
+            121, {"F16": 282092128, "Q8_0": 198506848}, default="Q8_0", backend="native_asr_stream"),
     # WER 2.59 — 99-lang 769M
     _tc_row("whisper-medium", "Whisper medium", ("multi",),
             "handy-computer/whisper-medium-gguf", "whisper-medium",
@@ -384,7 +384,7 @@ ASR_MODELS: list[AsrModel] = [
     # WER 4.52 — en STREAMING 34M (F16/Q8_0 only)
     _tc_row("moonshine-streaming-tiny", "Moonshine Streaming Tiny", ("en",),
             "handy-computer/moonshine-streaming-tiny-gguf", "moonshine-streaming-tiny",
-            134, {"F16": 89784416, "Q8_0": 50462816}, default="Q8_0", backend="transcribe_cpp_stream"),
+            134, {"F16": 89784416, "Q8_0": 50462816}, default="Q8_0", backend="native_asr_stream"),
     # WER 4.58 — en OFFLINE 27M (F16/Q8_0 only)
     _tc_row("moonshine-tiny", "Moonshine Tiny", ("en",),
             "handy-computer/moonshine-tiny-gguf", "moonshine-tiny",

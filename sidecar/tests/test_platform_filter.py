@@ -81,7 +81,7 @@ def test_linux_real_card_resolution_unchanged(monkeypatch):
     # whisper-base's tiers are (gpu-vulkan, gpu-metal, cpu); on an NVIDIA-Linux
     # box gpu-vulkan is available (has_nvidia), gpu-metal is not → vulkan, cpu.
     monkeypatch.setattr(accel, "current_platform", lambda: "linux")
-    m = _machine(gpus=_NV_GPUS, installed=frozenset({"transcribe_cpp"}))
+    m = _machine(gpus=_NV_GPUS, installed=frozenset({"native_asr"}))
     plans = accel.resolve("whisper-base", machine=m)
     assert [p.device for p in plans] == ["vulkan", "cpu"]
 

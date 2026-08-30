@@ -33,12 +33,24 @@ echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, 
 # scipy.io.wavfile); it is NOT in requirements.txt so bundles never ship it.
 "$PY" -m pip install -q -r requirements.txt pytest scipy
 
+# sokuji-native: local wheel until a release exists (spec §4.6). Build it with
+#   native/ci/build.sh none <plat>     (CPU)   or   native/ci/build.sh vulkan <plat>
+# or point SOKUJI_NATIVE_WHEEL at a wheel file / URL.
+NATIVE_WHEEL="${SOKUJI_NATIVE_WHEEL:-}"
+if [ -z "$NATIVE_WHEEL" ]; then
+    NATIVE_WHEEL="$(ls "$(dirname "$0")"/../native/python/dist/sokuji_native-*.whl 2>/dev/null | head -1 || true)"
+fi
+if [ -n "$NATIVE_WHEEL" ]; then
+    echo "[setup] stage runtimes: sokuji-native ($NATIVE_WHEEL)"
+    "$PY" -m pip install -q --force-reinstall "$NATIVE_WHEEL"
+else
+    echo "[setup] WARNING: no sokuji-native wheel found; ASR/VAD will not be available (see native/README.md)" >&2
+fi
+
 # Stage runtimes (torch-free since 2026-07-04):
-#   ASR       -> transcribe-cpp (pinned in requirements.txt — the single
-#                source for that pin; ggml family: CPU+Vulkan bundled on
-#                linux/win, Metal on macOS via the transcribe-cpp-native
-#                provider wheel it depends on — accelerates NVIDIA/AMD/Intel
-#                through Vulkan, no CUDA runtime needed)
+#   ASR       -> sokuji-native (local wheel installed above; ggml family:
+#                CPU+Vulkan bundled on linux/win, Metal on macOS — accelerates
+#                NVIDIA/AMD/Intel through Vulkan, no CUDA runtime needed)
 #   Translate -> llama-server binary (downloaded on demand) + Opus CTranslate2
 #   TTS       -> onnxruntime (MOSS/Supertonic/Qwen3-TTS) + sherpa-onnx (piper)
 #                + mlx-audio (Qwen3-TTS / MOSS on Apple Silicon macOS; installed

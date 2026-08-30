@@ -633,7 +633,7 @@ def test_resolves_to_streaming_real_method_threads_pin(monkeypatch):
 
     def fake_resolve(model_id, override="auto", machine=None, pin=None):
         seen["model"], seen["pin"] = model_id, pin
-        return [type("P", (), {"backend": "transcribe_cpp_stream"})()]
+        return [type("P", (), {"backend": "native_asr_stream"})()]
 
     monkeypatch.setattr(accel, "resolve", fake_resolve)
     eng = ae.AsrEngine()

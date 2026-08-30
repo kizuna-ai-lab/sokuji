@@ -70,7 +70,7 @@ def _plan_config(model) -> PlanConfig:
 
 
 def has_nvidia(machine: Machine) -> bool:
-    """NVIDIA presence, from the transcribe.cpp probe: any accelerator device
+    """NVIDIA presence, from the native library's device probe: any accelerator device
     whose description names NVIDIA (case-insensitive substring — the D7
     contract). Replaces the removed NVML enumeration; the tc probe is the
     single all-vendor device-truth source."""
@@ -115,7 +115,7 @@ def _tier_available(tier: str, machine: Machine, backend: str | None = None) -> 
     if tier == "gpu-dml":
         return bool(machine.dml_adapters)
     if tier == "gpu-vulkan":
-        # transcribe.cpp's own probe is authoritative (sees AMD/Intel Vulkan
+        # the native library's own probe is authoritative (sees AMD/Intel Vulkan
         # devices); NVIDIA-by-description is the fallback. DML is deliberately
         # NOT a signal here: a DirectX12 adapter doesn't imply a usable Vulkan
         # runtime, llama.cpp has no DML flavor, and the vulkan binary is fetched
@@ -124,7 +124,7 @@ def _tier_available(tier: str, machine: Machine, backend: str | None = None) -> 
         # vulkan plan on DML-only boxes (P5). A genuinely Vulkan-capable box
         # already reports "vulkan" in tc_kinds. Arch-gated to hosts whose vulkan
         # binaries actually exist: x86_64 everywhere, plus Linux/aarch64 (the
-        # transcribe-cpp aarch64 wheel bundles the ggml Vulkan backend and
+        # sokuji-native aarch64 wheel bundles the ggml Vulkan backend and
         # llama.cpp ships ubuntu-vulkan-arm64 — the DGX Spark / Jetson lane).
         # Other arches (Windows-on-ARM) are never offered an unrunnable plan.
         return (("vulkan" in machine.tc_kinds or has_nvidia(machine))
@@ -160,7 +160,7 @@ def resolve_deployments(model, machine: Machine, override: str = "auto",
     if override != "auto":
         # The renderer's device control is auto/cpu/GPU and sends 'cuda' for
         # GPU — treat it as "any accelerator tier" so it also pins
-        # vulkan/metal deployments (transcribe.cpp cards have no cuda rows).
+        # vulkan/metal deployments (native ASR cards have no cuda rows).
         def _pinned(d):
             return TIER_DEVICE.get(d.tier) == override or (override == "cuda" and d.tier != "cpu")
         pinned = [d for d in usable if _pinned(d)]
@@ -222,7 +222,7 @@ _TC_RESIDENT_FACTOR = 1.15
 
 def _quant_budget_bytes(machine: Machine):
     """The STABLE per-machine basis for quant selection: the primary device's
-    TOTAL memory, from the transcribe.cpp probe (all vendors). Quant choice
+    TOTAL memory, from the native library's device probe (all vendors). Quant choice
     only decides WHICH FILE we recommend the user download — and we always run
     exactly the file the user downloaded — so the basis must never flap with
     transient VRAM pressure (that would recommend re-downloads). Runtime
@@ -238,7 +238,7 @@ def _quant_budget_bytes(machine: Machine):
 
 def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
                    downloaded: set | None = None) -> str:
-    """Quant for a multi-quant transcribe.cpp card. pin wins; on a GPU-capable
+    """Quant for a multi-quant native ASR card. pin wins; on a GPU-capable
     machine walk quality-descending (largest first) and take the first that
     fits FULLY resident within the budget, else the rank-default; without a
     GPU the smallest quant wins (CPU is bandwidth-bound: smaller = faster)."""
@@ -284,7 +284,7 @@ def resolve(model_id: str, override: str = "auto", *, machine: Machine, platform
     model = catalog.asr_model(model_id)
     if model is None:
         raise ValueError(f"unknown asr model: {model_id}")
-    # Multi-quant ladder (big transcribe.cpp cards): narrow to ONE quant before
+    # Multi-quant ladder (big native ASR cards): narrow to ONE quant before
     # the generic tier resolution, so plans stay one-per-tier.
     if len({d.compute_type for d in model.deployments}) > 1:
         # Quant = the DOWNLOAD recommendation (stable, total-memory basis),

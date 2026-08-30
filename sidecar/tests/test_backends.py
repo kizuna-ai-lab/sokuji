@@ -1,5 +1,5 @@
 """Backend registry + shared contract. Per-backend coverage lives in
-test_transcribe_backend.py (ASR), test_tts_backends.py / test_qwen3_backend.py
+test_asr_backend.py (ASR), test_tts_backends.py / test_qwen3_backend.py
 (TTS) and test_translate_backends.py — the torch-era ASR backends
 (ctranslate2/sherpa/transformers/qwen3asr/voxtral/funasr) are gone with the
 2026-07-04 transcribe.cpp decision."""

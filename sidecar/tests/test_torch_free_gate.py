@@ -8,8 +8,10 @@ import pathlib
 # adopts it as the Opus-MT translation runtime. It is a standalone C++ engine
 # whose wheel depends only on numpy/pyyaml/setuptools — no torch — so it does
 # not reintroduce the torch-era bloat this gate guards against.
+# gone in slice 2: ASR runs through sokuji_native (sherpa_onnx follows in
+# slice 4, onnxruntime in slice 5)
 BANNED = {"torch", "torchaudio", "transformers", "funasr", "librosa",
-          "faster_whisper", "modelscope", "mistral_common"}
+          "faster_whisper", "modelscope", "mistral_common", "transcribe_cpp"}
 PKG = pathlib.Path(__file__).resolve().parents[1] / "sokuji_sidecar"
 
 

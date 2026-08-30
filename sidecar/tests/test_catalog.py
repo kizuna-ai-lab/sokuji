@@ -6,7 +6,7 @@ def test_models_have_deployments_and_languages():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
         for d in m.deployments:
-            assert d.backend in ("transcribe_cpp", "transcribe_cpp_stream")
+            assert d.backend in ("native_asr", "native_asr_stream")
             assert d.tier in {"gpu-vulkan", "gpu-metal", "cpu"}
 
 
@@ -32,15 +32,15 @@ def test_language_regression_fixtures():
     assert catalog.asr_model("whisper-large-v3").languages == ("multi",)
 
 
-def test_every_asr_row_is_transcribe_cpp_gguf():
+def test_every_asr_row_is_native_asr_gguf():
     for m in catalog.asr_models():
         for d in m.deployments:
-            assert d.backend.startswith("transcribe_cpp")
+            assert d.backend in ("native_asr", "native_asr_stream")
             repo, fname = catalog.split_artifact(d.artifact)
             assert repo.startswith("handy-computer/") and fname.endswith(".gguf")
 
 
-def test_sense_voice_row_transcribe_cpp_q8():
+def test_sense_voice_row_native_asr_q8():
     m = catalog.asr_model("sense-voice")
     assert m.recommended is False and m.sort_order == 130
     # full ladder now: default (q8_0, rank 2.0) first, then f16 (listed-only,
@@ -65,7 +65,7 @@ def test_qwen3_asr_row():
     assert m.sort_order == 40   # WER 1.61 rank
     d = m.deployments[0]
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("transcribe_cpp", "gpu-vulkan", "q4_k_m",
+        ("native_asr", "gpu-vulkan", "q4_k_m",
          "handy-computer/Qwen3-ASR-1.7B-gguf/Qwen3-ASR-1.7B-Q4_K_M.gguf")
 
 
@@ -108,7 +108,7 @@ def test_parakeet_primeline_row():
     assert m.languages == v3.languages        # a v3 fine-tune: same 25 languages
     assert m.recommended is False
     assert m.sort_order == 81                 # slotted right after its base v3
-    assert m.deployments[0].backend == "transcribe_cpp"
+    assert m.deployments[0].backend == "native_asr"
     assert m.deployments[0].compute_type == "q8_0"
     assert m.deployments[0].artifact == ("handy-computer/parakeet-primeline-gguf/"
                                          "parakeet-primeline-Q8_0.gguf")
@@ -122,7 +122,7 @@ def test_moss_transcribe_diarize_row():
     assert m.languages == ("en", "zh")
     assert m.recommended is False
     assert m.sort_order == 85                 # WER 1.93 @ Q8_0
-    assert m.deployments[0].backend == "transcribe_cpp"   # batch-only upstream
+    assert m.deployments[0].backend == "native_asr"   # batch-only upstream
     assert m.deployments[0].compute_type == "q8_0"
     # Upstream capitalises this base name; the ladder ships BF16 too, which we
     # skip (F16 is the listed-only top rung everywhere else).
@@ -141,7 +141,7 @@ def test_multitalker_parakeet_streaming_row():
     assert m.recommended is False
     assert m.sort_order == 114                # WER 2.18 @ Q8_0
     d = m.deployments[0]
-    assert d.backend == "transcribe_cpp_stream"
+    assert d.backend == "native_asr_stream"
     assert d.compute_type == "q8_0"
     # The ROOT GGUF (single-speaker streaming), not the bundle/ one that embeds
     # the Sortformer diarizer — multitalker output is offline-API only upstream.
@@ -169,7 +169,7 @@ def test_voxtral_realtime_row():
     # Streaming twin: routes through asr_engine's streaming loop via the
     # session.stream() committed/tentative adapter.
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
-        ("transcribe_cpp_stream", "gpu-vulkan", "q4_k_m",
+        ("native_asr_stream", "gpu-vulkan", "q4_k_m",
          "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf/Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf")
 
 
