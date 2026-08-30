@@ -523,7 +523,10 @@ app.whenReady().then(async () => {
   // Create the application menu
   createApplicationMenu();
 
-  // Request microphone permission on macOS before creating window
+  // Request microphone permission on macOS before creating window. Under the
+  // Hardened Runtime this prompt (and the renderer's getUserMedia) is denied
+  // with no dialog at all unless the bundle carries the audio-input
+  // entitlement -- see electron/entitlements.mac.plist (#458).
   if (process.platform === 'darwin') {
     const micStatus = systemPreferences.getMediaAccessStatus('microphone');
     console.log('[Sokuji] [Main] Microphone permission status:', micStatus);
