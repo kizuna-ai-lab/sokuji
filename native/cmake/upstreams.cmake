@@ -2,6 +2,13 @@ include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
 
 # Pins are commit SHAs, not tag names: a tag can be moved, a commit cannot.
+#
+# GIT_SHALLOW with a SHA: CMake clones `--depth 1 --no-single-branch` (every branch tip
+# and every tag, one commit deep) and then checks the SHA out. That works only while each
+# pin is a commit some tag or branch tip points at — all four below are release-tag
+# commits, which is what the pin comments record. A mid-history SHA fails at configure
+# with "Failed to checkout tag: '<sha>'"; if a pin ever has to be one, drop GIT_SHALLOW
+# for that upstream. Kept because a full llama.cpp history is several hundred MB per lane.
 set(_ggml_patch "")
 if(SOKUJI_GGML_PATCH_SPEC)
     set(_ggml_patch
@@ -18,6 +25,14 @@ set(SOKUJI_GGML_VERSION "0.22.0")
 
 FetchContent_MakeAvailable(ggml)
 set(SOKUJI_GGML_SOURCE_DIR "${ggml_SOURCE_DIR}")
+# ggml gives its two shared libraries VERSION/SOVERSION, i.e. libggml.so.0.22.0 plus the
+# libggml.so.0 and libggml.so symlinks (same on macOS). A wheel is a zip: it cannot carry
+# symlinks, so each link became a full third copy of the library. Nothing outside this
+# wheel ever links these — the engines are static inside libsokuji_native and the backend
+# modules are dlopened — so the plain unversioned name is all that is needed. The
+# properties are unset, not blanked: an empty SOVERSION still yields "libggml.so." .
+set_property(TARGET ggml ggml-base PROPERTY VERSION)
+set_property(TARGET ggml ggml-base PROPERTY SOVERSION)
 
 # Two patches (native/patches/transcribe.cpp.json): reuse our ggml if already
 # present instead of transcribe.cpp building its own copy, and fix transcribe's

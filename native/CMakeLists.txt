@@ -25,6 +25,18 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 find_package(Python3 COMPONENTS Interpreter REQUIRED)         # for patch_upstream.py
 
+# Every shared object ships in one flat directory and finds its siblings there, so the
+# rpath is $ORIGIN / @loader_path for every target this project builds — including the
+# upstream ggml libraries and backend modules, and already at build time
+# (CMAKE_BUILD_WITH_INSTALL_RPATH): the modules reach the stage by file copy, so an
+# install-time rewrite would never touch them and a build-tree path would ship instead.
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+if(APPLE)
+    set(CMAKE_INSTALL_RPATH "@loader_path")
+else()
+    set(CMAKE_INSTALL_RPATH "$ORIGIN")
+endif()
+
 include(cmake/ggml_options.cmake)
 include(cmake/upstreams.cmake)
 
@@ -71,12 +83,7 @@ target_include_directories(sokuji_native PRIVATE ${audiocpp_SOURCE_DIR}/include)
 
 set_target_properties(sokuji_native PROPERTIES
     CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN ON
-    BUILD_RPATH "$ORIGIN"
-    INSTALL_RPATH "$ORIGIN")
-if(APPLE)
-    set_target_properties(sokuji_native PROPERTIES BUILD_RPATH "@loader_path" INSTALL_RPATH "@loader_path")
-endif()
+    VISIBILITY_INLINES_HIDDEN ON)   # rpath: the project-wide CMAKE_INSTALL_RPATH above
 if(NOT WIN32)
     target_link_libraries(sokuji_native PRIVATE ${CMAKE_DL_LIBS})
 endif()

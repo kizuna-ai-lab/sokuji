@@ -235,7 +235,7 @@ void      sk_translate_unload(sk_translate *);
 
 /* TTS (audio.cpp) */
 sk_status sk_tts_load(const char *family, const char *path, const sk_device *, sk_tts **);
-sk_status sk_tts_info(sk_tts *, sk_tts_info *);            // sample_rate, streaming, clones, transcript_required
+sk_status sk_tts_capabilities(sk_tts *, sk_tts_caps *);    // sample_rate, streaming, clones, transcript_required (mirrors sk_asr_capabilities)
 int       sk_tts_presets(sk_tts *, sk_string *out, int cap);
 sk_status sk_tts_set_voice(sk_tts *, const float *ref, size_t n, int sr, const char *ref_text);
 sk_status sk_tts_set_preset(sk_tts *, const char *name);
@@ -342,7 +342,7 @@ deleted from `planner.py`, `accel.py` and `catalog.py`.
   `llama_runtime.py` (binary acquisition, checksums, process management) and
   `ct2_opus.py` are deleted.
 - **TTS:** one `NativeTtsBackend` replaces nine classes. The family comes from the
-  catalog row; `STREAMING` / `CLONES` / native sample rate come from `sk_tts_info`;
+  catalog row; `STREAMING` / `CLONES` / native sample rate come from `sk_tts_capabilities`;
   `set_voice` → `sk_tts_set_voice` (reference text passed for Qwen3/MOSS),
   `set_builtin_voice` → `sk_tts_set_preset`, `list_tts_voices` → `sk_tts_presets`.
   `set_style_voice` and `set_speaker` are removed with their wire variants.

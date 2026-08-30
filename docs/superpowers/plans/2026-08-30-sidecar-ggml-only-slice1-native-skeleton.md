@@ -10,6 +10,30 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md` — §4 (native layer) is what this plan implements; §10 slice 1 is its scope.
 
+> **Executed 2026-08-30 (PR #459).** The code under `native/` is the authority; this plan
+> is the argument it was built from, and these parts of it were superseded during
+> execution (each ruling is in the per-task review in the PR history). Do not re-execute
+> the snippets below as written:
+> - Platforms: the Linux lanes build on `ubuntu-24.04` / `ubuntu-24.04-arm` and tag
+>   `manylinux_2_39_*` (22.04 packages no `glslc`); the spec table says the same.
+> - `TRANSCRIBE_GGML_BACKEND_DL` is OFF — transcribe.cpp v0.2.2 refuses DL with a static
+>   build. `sk_init` loads the ggml modules for every engine.
+> - `AUDIOCPP_MODELS` does not list `silero_vad`: audio.cpp's VAD loaders are always
+>   compiled and are not selectable. `sk_audio_families()` reports every compiled family
+>   unfiltered (eight at v0.7.0); support is decided by the sidecar catalog, and
+>   `contract.json` carries no family list.
+> - `sk_audio_families()` reads `ModelRegistry::families()`; there is no `loaders()`.
+> - `audiocpp_compat.h` reproduces the fork's im2col graph (`ggml_im2col` in `a->type` →
+>   `ggml_mul_mat` → reshape), not `ggml_conv_1d`.
+> - `patch_upstream.py` reports "already patched" only when `new` is present AND `old`
+>   occurs nowhere outside it (a patch may wrap the original line); `old` surviving
+>   elsewhere is an error.
+> - The wheel version is read from the staged `contract.json` (`setup.py:
+>   native_version()`), never a literal, and a build without a staged payload is refused.
+> - `_load()` keeps the `os.add_dll_directory()` handle alive at module scope.
+> - `compare_pcm.py` keeps the channel layout and rejects sample-rate mismatches; it
+>   never downmixes.
+
 ## Global Constraints
 
 - Upstream pins (spec §4.1) — never vendored, always by commit:

@@ -8,7 +8,8 @@ import pathlib
 import pytest
 
 import sokuji_native
-from sokuji_native import _ffi
+
+_ffi = sokuji_native._ffi
 
 HAVE_TREE = bool(os.environ.get("SOKUJI_NATIVE_DIR")) or (pathlib.Path(sokuji_native.__file__).parent / "_native" / "contract.json").exists()
 needs_tree = pytest.mark.skipif(not HAVE_TREE, reason="no built native tree")

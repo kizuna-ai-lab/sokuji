@@ -13,7 +13,8 @@ Apple Silicon). Design: `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-des
 
 Requires CMake ≥ 3.28, a C++17 compiler, Python 3.10+, and for the Vulkan lane
 `libvulkan-dev` + `glslc` (Ubuntu) or the LunarG SDK (Windows). Output: a wheel in
-`native/python/dist/`; the staged binaries in `native/build/<lane>/stage/`.
+`native/python/dist/`; the staged binaries in `native/build/<lane>/stage/`
+(`native/build/cpu/stage/` for `none`).
 
 Developer loop without a wheel:
 
@@ -36,6 +37,10 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   aliasing a nearby upstream call; read the header comment before touching it.
 - `src/sokuji_native.map` / `src/sokuji_native.exports` — the exported-symbol lists
   (Linux / macOS) that keep everything but `sk_*` inside the library.
+- `ci/check_linux_deps.py` — run by `build.sh` on Linux before the wheel is built: every
+  staged shared object may depend only on glibc/libstdc++/libgcc, the system Vulkan loader
+  and its siblings, and may reference no glibc symbol newer than the wheel tag's floor.
+  (The Vulkan loader is external by design, which is why `auditwheel` is not the gate.)
 - `src/sk_selftest.cpp` — `sk_audio_families()`, reporting every family compiled in (companions such as `marblenet_vad` / `moss_tts_local` ride along with the selected ones; the sidecar catalog decides what is supported).
 - `python/` — the `sokuji_native` package; `_ffi.py` mirrors the header.
 - `tests/` — CTest smoke and the parity comparator.

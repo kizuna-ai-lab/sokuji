@@ -27,3 +27,27 @@ def test_length_mismatch_fails():
     x = np.zeros(100, np.float32)
     with pytest.raises(ValueError):
         compare(x, np.zeros(101, np.float32))
+
+
+def test_channel_count_mismatch_fails():
+    mono = np.zeros(100, np.float32)
+    stereo = np.zeros((100, 2), np.float32)
+    with pytest.raises(ValueError):
+        compare(mono, stereo)
+
+
+def test_swapped_stereo_channels_are_not_exact():
+    # Downmixing would turn [1, -1] and [-1, 1] into the same zero — the comparator must not.
+    ref = np.tile(np.array([[1.0, -1.0]], np.float32), (100, 1))
+    got = ref[:, ::-1].copy()
+    r = compare(ref, got)
+    assert r.max_abs == 2.0
+    assert verdict(r, exact=True) is False
+
+
+def test_cli_rejects_sample_rate_mismatch(monkeypatch):
+    import compare_pcm
+    x = np.zeros(100, np.float32)
+    monkeypatch.setattr(compare_pcm, "_read_wav", lambda path: (x, 16000 if path == "ref.wav" else 24000))
+    with pytest.raises(ValueError, match="sample-rate mismatch"):
+        compare_pcm.main(["ref.wav", "got.wav", "--exact"])

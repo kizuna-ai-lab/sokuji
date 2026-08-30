@@ -21,6 +21,11 @@ cmake --install "$BUILD" --prefix "$BUILD/stage" --component sokuji
 if command -v strip >/dev/null && [ "$(uname -s)" != "Darwin" ]; then
     find "$BUILD/stage" -name '*.so*' -exec strip --strip-unneeded {} +
 fi
+# Linux: the manylinux tag promises a glibc floor and no stray runtime dependencies;
+# check both on the staged tree (see the script's docstring for why not auditwheel).
+if [ "$(uname -s)" = "Linux" ]; then
+    "$PYTHON" "$ROOT/ci/check_linux_deps.py" "$BUILD/stage" "$PLAT"
+fi
 cp -r "$BUILD/stage" "$ROOT/python/sokuji_native/_native"
 ( cd "$ROOT/python" && rm -rf dist && SOKUJI_NATIVE_PLAT="$PLAT" "$PYTHON" -m pip wheel . --no-deps -w dist )
 ls -la "$ROOT/python/dist"

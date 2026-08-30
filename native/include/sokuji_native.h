@@ -8,7 +8,8 @@
  *   - Nothing works before sk_init() succeeds. Any call that needs a live library
  *     returns SK_ERR_NOT_INITIALISED and sets sk_last_error(); the exceptions are the
  *     pure accessors below (sk_abi_version, sk_version, sk_engine_versions,
- *     sk_last_error, sk_free) and sk_devices(), which reports 0 devices.
+ *     sk_last_error, sk_free, and sk_audio_families — compile-time data, no backend
+ *     needed) and sk_devices(), which reports 0 devices.
  *   - sk_init() is idempotent, and only the FIRST successful call decides the log sink
  *     and the thread count: a later sk_init() with a different sk_init_options.log
  *     returns SK_OK and changes nothing. The caller must keep that first callback (and

@@ -6,12 +6,15 @@ usage: patch_upstream.py <source_dir> <spec.json>
 text>, "new": <exact text>} objects. JSON strings carry real newlines, so a
 patch can span multiple lines with no CMake/shell escaping needed.
 
-For each entry: if <new> is already present in the file, it is left alone
-(idempotent re-run, prints "already patched"). Otherwise <old> must occur in
-the file exactly once and is replaced with <new> — zero or multiple
-occurrences fails loudly with the count, since that means the upstream pin
-moved and the patch must be revisited. All entries are attempted; the script
-exits non-zero if any entry failed.
+For each entry: if <new> is present and <old> occurs nowhere outside <new>
+(a patch may wrap the original line, e.g. in an if() guard), the file is left
+alone (idempotent re-run, prints "already patched"). If <new> is present but
+<old> also survives elsewhere the entry fails: <new> occurring by chance would
+otherwise hide an unpatched site. Otherwise <old> must occur in the file
+exactly once and is replaced with <new> — zero or multiple occurrences fails
+loudly with the count, since that means the upstream pin moved and the patch
+must be revisited. All entries are attempted; the script exits non-zero if any
+entry failed.
 """
 import json
 import sys
@@ -28,7 +31,13 @@ def main():
         old, new = entry["old"], entry["new"]
         text = path.read_text(encoding="utf-8")
         if new in text:
-            print(f"patch_upstream: {entry['file']}: already patched")
+            residual = text.replace(new, "").count(old)   # <old> outside every <new> occurrence
+            if residual == 0:
+                print(f"patch_upstream: {entry['file']}: already patched")
+            else:
+                print(f"patch_upstream: {entry['file']}: new text present but {old!r} still occurs "
+                      f"{residual}x outside it — ambiguous, revisit the patch")
+                ok = False
             continue
         count = text.count(old)
         if count != 1:

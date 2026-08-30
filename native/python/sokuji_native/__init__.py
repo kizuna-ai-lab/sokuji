@@ -38,7 +38,9 @@ class Device:
 _lock = threading.Lock()
 _lib: ctypes.CDLL | None = None
 _contract: dict | None = None
-_log_refs: list = []     # every trampoline ever handed to sk_init; native keeps the first one forever, so none may be collected
+_dll_dir = None          # Windows: os.add_dll_directory() handle — the directory is on the search path only while it lives
+_initialised = False     # sk_init succeeded once in this process; later init() calls return without calling native
+_log_refs: list = []     # the one trampoline sk_init installed; native keeps it forever, so it may never be collected
 
 
 def native_dir() -> pathlib.Path:
@@ -64,14 +66,14 @@ def _library_name() -> str:
 
 
 def _load() -> ctypes.CDLL:
-    global _lib, _contract
+    global _lib, _contract, _dll_dir
     with _lock:
         if _lib is not None:
             return _lib
         d = native_dir()
         _contract = _check_contract(d / "contract.json")
         if platform.system() == "Windows":
-            os.add_dll_directory(str(d))
+            _dll_dir = os.add_dll_directory(str(d))
         lib = _ffi.bind(ctypes.CDLL(str(d / _library_name())))
         if lib.sk_abi_version() != _ffi.SK_ABI_VERSION:
             raise NativeError(_ffi.SK_ERR_INVALID_ARGUMENT,
@@ -107,26 +109,33 @@ def engine_versions() -> dict[str, str]:
 def init(n_threads: int = 0, log=None) -> None:
     """Idempotent. `log(level, message)` receives ggml and sokuji-native log lines. Only
     the sink passed to the FIRST successful init is honoured — the native side installs it
-    once; later calls keep the library initialised and ignore a different `log`."""
+    once; later calls return at once and ignore a different `log`. A failed init (no
+    backend modules, say) leaves the process uninitialised, so a retry is a real retry."""
+    global _initialised
     lib = _load()
-    opts = _ffi.sk_init_options()
-    opts.abi_version = _ffi.SK_ABI_VERSION
-    opts.n_threads = int(n_threads)
-    opts.module_dir = str(native_dir()).encode()
-    if log is not None:
-        def _cb(level, msg, _user):
-            try:
-                log(int(level), (msg or b"").decode("utf-8", "replace"))
-            except Exception:
-                pass
-            return True
-        trampoline = _ffi.LOG_CB(_cb)
-        with _lock:
-            _log_refs.append(trampoline)
-        opts.log = trampoline
-    status = lib.sk_init(ctypes.byref(opts))
-    if status != _ffi.SK_OK:
-        _raise(lib, status, "sk_init")
+    with _lock:
+        if _initialised:
+            return
+        opts = _ffi.sk_init_options()
+        opts.abi_version = _ffi.SK_ABI_VERSION
+        opts.n_threads = int(n_threads)
+        opts.module_dir = str(native_dir()).encode()
+        trampoline = None
+        if log is not None:
+            def _cb(level, msg, _user):
+                try:
+                    log(int(level), (msg or b"").decode("utf-8", "replace"))
+                except Exception:
+                    pass   # a log sink must never raise into the C caller; the line is lost, nothing else
+                return True
+            trampoline = _ffi.LOG_CB(_cb)
+            opts.log = trampoline
+        status = lib.sk_init(ctypes.byref(opts))
+        if status != _ffi.SK_OK:
+            _raise(lib, status, "sk_init")
+        if trampoline is not None:
+            _log_refs.append(trampoline)   # native now holds this pointer for the life of the process
+        _initialised = True
 
 
 def devices() -> list[Device]:

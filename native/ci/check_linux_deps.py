@@ -1,0 +1,60 @@
+"""Gate for the Linux wheels: what the staged shared objects may depend on.
+
+usage: check_linux_deps.py <stage_dir> <wheel platform tag>
+
+The wheels are tagged manylinux_2_<N>_* (the glibc floor of the runner that built
+them). Two things would make that tag a lie, and neither is visible from a green
+build: a DT_NEEDED on a library that is not on every glibc-2.<N> system, or a
+versioned glibc symbol newer than 2.<N>. This checks both with readelf, on the
+staged tree, before the wheel is built.
+
+The Vulkan loader (libvulkan.so.1) is allowed: ggml's Vulkan backend links it, as
+every Vulkan program does, and a machine without it simply gets no Vulkan device
+(ggml skips a module it cannot dlopen). auditwheel cannot be the gate here for that
+reason — it has no "known external" allowance for `show`, only `repair --exclude`.
+"""
+import pathlib
+import re
+import subprocess
+import sys
+
+ALLOWED = {"libc.so.6", "libm.so.6", "libdl.so.2", "libpthread.so.0", "librt.so.1",
+           "libgcc_s.so.1", "libstdc++.so.6", "libvulkan.so.1"}
+ALLOWED_PREFIXES = ("ld-linux-",)
+
+
+def readelf(*args: str) -> str:
+    return subprocess.run(["readelf", "-W", *args], check=True, capture_output=True, text=True).stdout
+
+
+def main() -> int:
+    stage = pathlib.Path(sys.argv[1])
+    plat = sys.argv[2]
+    m = re.match(r"manylinux_(\d+)_(\d+)_", plat)
+    if not m:
+        print(f"check_linux_deps: not a manylinux tag, nothing to check: {plat}")
+        return 0
+    floor = (int(m.group(1)), int(m.group(2)))
+
+    elves = sorted(p for p in stage.rglob("*") if p.is_file() and ".so" in p.name)
+    shipped = {p.name for p in elves}
+    problems: list[str] = []
+    for path in elves:
+        needed = re.findall(r"\(NEEDED\)\s+Shared library: \[([^\]]+)\]", readelf("-d", str(path)))
+        for lib in needed:
+            if lib in ALLOWED or lib in shipped or lib.startswith(ALLOWED_PREFIXES):
+                continue
+            problems.append(f"{path.name}: needs {lib}, which is neither shipped nor a system library on every host")
+        versions = {tuple(int(x) for x in v.split(".")) for v in re.findall(r"@+GLIBC_(\d+\.\d+)", readelf("--dyn-syms", str(path)))}
+        too_new = sorted(v for v in versions if v > floor)
+        if too_new:
+            problems.append(f"{path.name}: references GLIBC_{'.'.join(map(str, too_new[-1]))} > tag floor {floor[0]}.{floor[1]}")
+
+    print(f"check_linux_deps: {len(elves)} shared objects, glibc floor {floor[0]}.{floor[1]} ({plat})")
+    for p in problems:
+        print("  " + p)
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
