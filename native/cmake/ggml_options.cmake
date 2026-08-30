@@ -23,18 +23,25 @@ else()
 endif()
 message(STATUS "sokuji-native GPU lane: ${SOKUJI_GPU_RESOLVED}")
 
-# ggml 0.22.0 hard-codes two armv9.2 (+sme) CPU variants on Linux/aarch64. GCC 11/13
-# reject `+sme`; when the compiler cannot build them we comment those two lines out of
-# ggml's src/CMakeLists.txt at fetch time (see upstreams.cmake). SME kernels only matter
-# with KleidiAI, which this project does not enable, and the GB10 dev box loads the
-# armv8.6_2 module in practice.
-set(SOKUJI_DROP_SME_VARIANTS OFF)
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
-    include(CheckCXXCompilerFlag)
-    check_cxx_compiler_flag("-march=armv9.2-a+sme" SOKUJI_CXX_HAS_SME)
-    if(NOT SOKUJI_CXX_HAS_SME)
-        set(SOKUJI_DROP_SME_VARIANTS ON)
-        message(STATUS "sokuji-native: compiler lacks +sme; dropping ggml armv9.2 CPU variants")
+# ggml 0.22.0 hard-codes SME CPU variants on arm64: two armv9.2 ones on Linux and
+# apple_m4 on macOS. GCC 11/13 reject `+sme` outright, and Apple clang (Xcode 15 and 16)
+# accepts the flag but then rejects the SVE intrinsics ggml's SME paths use under
+# `+nosve`. When a variant cannot be built we comment its line out of ggml's
+# src/CMakeLists.txt at fetch time (see upstreams.cmake; specs in native/patches/).
+# SME kernels only matter with KleidiAI, which this project does not enable: an M4 then
+# loads the apple_m2_m3 module and the GB10 dev box loads armv8.6_2, losing nothing we use.
+set(SOKUJI_GGML_PATCH_SPEC "")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        include(CheckCXXCompilerFlag)
+        check_cxx_compiler_flag("-march=armv9.2-a+sme" SOKUJI_CXX_HAS_SME)
+        if(NOT SOKUJI_CXX_HAS_SME)
+            set(SOKUJI_GGML_PATCH_SPEC "ggml-drop-sme.json")
+            message(STATUS "sokuji-native: compiler lacks +sme; dropping ggml armv9.2 CPU variants")
+        endif()
+    elseif(APPLE)
+        set(SOKUJI_GGML_PATCH_SPEC "ggml-drop-sme-apple.json")
+        message(STATUS "sokuji-native: dropping ggml apple_m4 CPU variant (SME unsupported by Apple clang)")
     endif()
 endif()
 

@@ -3,10 +3,10 @@ set(FETCHCONTENT_QUIET OFF)
 
 # Pins are commit SHAs, not tag names: a tag can be moved, a commit cannot.
 set(_ggml_patch "")
-if(SOKUJI_DROP_SME_VARIANTS)
+if(SOKUJI_GGML_PATCH_SPEC)
     set(_ggml_patch
         PATCH_COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
-                      <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/ggml-drop-sme.json)
+                      <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/${SOKUJI_GGML_PATCH_SPEC})
 endif()
 FetchContent_Declare(ggml
     GIT_REPOSITORY https://github.com/ggml-org/ggml.git

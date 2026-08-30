@@ -1,0 +1,7 @@
+[
+  {
+    "file": "src/CMakeLists.txt",
+    "old": "ggml_add_cpu_backend_variant(apple_m4             DOTPROD MATMUL_INT8 NOSVE SME)",
+    "new": "# apple_m4 dropped by sokuji-native: Apple clang rejects ggml's SME/SVE paths under +nosve"
+  }
+]

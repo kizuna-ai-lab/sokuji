@@ -25,10 +25,12 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
 
 ## Layout
 
-- `cmake/upstreams.cmake` — the four commit pins and three JSON patch specs in `native/patches/`:
-  - `ggml-drop-sme.json` — drops armv9.2 +sme CPU variants when the compiler cannot build them
+- `cmake/upstreams.cmake` — the four commit pins and the JSON patch specs in `native/patches/`:
+  - `ggml-drop-sme.json` — drops the Linux armv9.2 +sme CPU variants when the compiler cannot build them
+  - `ggml-drop-sme-apple.json` — drops the apple_m4 (+sme) CPU variant; Apple clang cannot build it
   - `transcribe.cpp.json` — makes transcribe.cpp reuse our ggml target instead of building its own copy
-  - `audio.cpp.json` — makes audio.cpp reuse our ggml target instead of building its own copy
+  - `audio.cpp.json` — makes audio.cpp reuse our ggml target instead of building its own copy, and
+    keeps its trace-log formatter off `std::to_chars(double)` (macOS 13.3+; the wheels target 11.0)
 - `src/audiocpp_compat.h` — the eight symbols audio.cpp's fork adds to ggml, provided on
   upstream ggml. Two of them reproduce the fork's graph node for node rather than
   aliasing a nearby upstream call; read the header comment before touching it.
