@@ -14,7 +14,6 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)         # for patch_upstre
 include(cmake/ggml_options.cmake)
 include(cmake/upstreams.cmake)
 
-set(SOKUJI_AUDIOCPP_VERSION "")      # filled by Task 5
 configure_file(src/version.h.in ${CMAKE_BINARY_DIR}/generated/version.h @ONLY)
 
 set(BUILD_SHARED_LIBS OFF)           # everything after ggml is static — engines fold into libsokuji_native
@@ -29,6 +28,27 @@ target_link_libraries(sokuji_native PRIVATE transcribe)
 target_include_directories(sokuji_native PRIVATE ${transcribe_SOURCE_DIR}/include)
 target_link_libraries(sokuji_native PRIVATE llama)
 target_include_directories(sokuji_native PRIVATE ${llama_SOURCE_DIR}/include)
+
+# audio.cpp: link the runtime (six families) and inject the compatibility header into every
+# engine object target. The header needs ggml-impl.h from the ggml *source* tree.
+set(_audiocpp_engine_targets engine_core engine_runtime)
+foreach(_fam moss_tts_nano qwen3_tts omnivoice pocket_tts supertonic silero_vad)
+    if(TARGET engine_model_${_fam})
+        list(APPEND _audiocpp_engine_targets engine_model_${_fam})
+    endif()
+endforeach()
+foreach(_t IN LISTS _audiocpp_engine_targets)
+    target_include_directories(${_t} PRIVATE ${SOKUJI_GGML_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    if(MSVC)
+        target_compile_options(${_t} PRIVATE /FI${CMAKE_CURRENT_SOURCE_DIR}/src/audiocpp_compat.h)
+    else()
+        target_compile_options(${_t} PRIVATE -include ${CMAKE_CURRENT_SOURCE_DIR}/src/audiocpp_compat.h)
+    endif()
+endforeach()
+target_sources(sokuji_native PRIVATE src/sk_selftest.cpp)
+target_link_libraries(sokuji_native PRIVATE engine_runtime)
+target_include_directories(sokuji_native PRIVATE ${audiocpp_SOURCE_DIR}/include)
+
 set_target_properties(sokuji_native PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON

@@ -55,6 +55,18 @@ int main(int argc, char **argv) {
     char *buf = static_cast<char *>(std::malloc(4));
     sk_free(buf);                                                     // must accept malloc'd memory
     sk_free(nullptr);                                                 // and null
+
+    assert(std::strstr(sk_engine_versions(), "audiocpp=0.7.0") != nullptr);
+    const char *fams[16];
+    int nf = sk_audio_families(fams, 16);
+    assert(nf == 6);
+    const char *want[] = {"moss_tts_nano", "omnivoice", "pocket_tts", "qwen3_tts", "silero_vad", "supertonic"};
+    for (const char *w : want) {
+        bool found = false;
+        for (int i = 0; i < nf; ++i) if (std::strcmp(fams[i], w) == 0) found = true;
+        assert(found);
+    }
+
     std::printf("test_common: %d devices, %d log lines\n", n, g_log_calls);
     return 0;
 }

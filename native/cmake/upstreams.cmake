@@ -64,3 +64,59 @@ set(LLAMA_CURL OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_COMMON OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF)   # engines are static; ggml above was added while this was ON
 FetchContent_MakeAvailable(llama)
+
+# audio.cpp's CMake adds AUDIOCPP_GGML_SOURCE_DIR as a subdirectory unconditionally
+# (CMakeLists.txt line 283 at v0.7.0); the JSON patch guards that one line with
+# `if(NOT TARGET ggml)` so it reuses our ggml target instead of building its own copy.
+# The directory-exists check just above that line stays satisfied because we point
+# AUDIOCPP_GGML_SOURCE_DIR at our already-fetched upstream tree below.
+FetchContent_Declare(audiocpp
+    GIT_REPOSITORY https://github.com/0xShug0/audio.cpp.git
+    GIT_TAG        d2ff37009c69d464bcab6aa4a44a13746e84a914   # v0.7.0
+    GIT_SHALLOW    TRUE
+    GIT_PROGRESS   TRUE
+    PATCH_COMMAND  ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
+                   <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/audio.cpp.json)
+set(SOKUJI_AUDIOCPP_VERSION "0.7.0")
+
+set(AUDIOCPP_GGML_SOURCE_DIR "${SOKUJI_GGML_SOURCE_DIR}" CACHE PATH "" FORCE)
+set(AUDIOCPP_MODEL_SET "custom" CACHE STRING "" FORCE)
+# "silero_vad" is NOT in this list: audio.cpp keeps silero_vad (and marblenet_vad)
+# outside the selectable model composite - they are always compiled in and always
+# registered by engine::runtime::make_default_registry() regardless of AUDIOCPP_MODELS
+# (see CMakeLists.txt around its "kept outside the selectable composite list for now"
+# comment, and src/framework/runtime/registry.cpp). Listing "silero_vad" here would hit
+# `message(FATAL_ERROR "Unknown AUDIOCPP_MODELS entry: silero_vad")` since it was never
+# registered via audiocpp_add_model(). sk_selftest.cpp filters the registry down to our
+# six supported families at run time instead (see its comment for the full story,
+# including "moss_tts_nano" sharing its CMake target/loader list with "moss_tts_local").
+set(AUDIOCPP_MODELS "moss_tts_nano;qwen3_tts;omnivoice;pocket_tts;supertonic" CACHE STRING "" FORCE)
+set(AUDIOCPP_DEPLOYMENT_BUILD ON CACHE BOOL "" FORCE)        # model specs compiled in: no runtime JSON dir to ship
+set(AUDIOCPP_BUILD_NATIVE_MODEL_MANAGER OFF CACHE BOOL "" FORCE)
+set(ENGINE_ENABLE_CPU_ALL_VARIANTS OFF CACHE BOOL "" FORCE)  # we own the ggml knobs (ggml_options.cmake)
+set(ENGINE_ENABLE_NATIVE_CPU OFF CACHE BOOL "" FORCE)
+set(ENGINE_ENABLE_CUDA OFF CACHE BOOL "" FORCE)
+set(ENGINE_ENABLE_HIP OFF CACHE BOOL "" FORCE)
+set(ENGINE_ENABLE_VULKAN ${GGML_VULKAN} CACHE BOOL "" FORCE)
+set(ENGINE_ENABLE_METAL ${GGML_METAL} CACHE BOOL "" FORCE)
+if(APPLE)
+    set(ENGINE_ENABLE_OPENMP OFF CACHE BOOL "" FORCE)         # Apple clang ships no OpenMP
+else()
+    set(ENGINE_ENABLE_OPENMP ON CACHE BOOL "" FORCE)
+endif()
+set(ENGINE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(ENGINE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ENGINE_BUILD_WARMBENCH OFF CACHE BOOL "" FORCE)
+FetchContent_GetProperties(audiocpp)
+if(NOT audiocpp_POPULATED)
+    FetchContent_Populate(audiocpp)
+    # EXCLUDE_FROM_ALL: audio.cpp declares its CLI/server/converter executables unconditionally;
+    # we only ever build the targets sokuji_native links, so the rest is never compiled.
+    add_subdirectory(${audiocpp_SOURCE_DIR} ${audiocpp_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+# Re-assert ggml knobs audio.cpp force-set behind our back (they only affect a *future*
+# configure of ggml, but we keep the cache honest so re-configures stay deterministic).
+set(GGML_BACKEND_DL ON CACHE BOOL "" FORCE)
+set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+set(GGML_CPU_ALL_VARIANTS ON CACHE BOOL "" FORCE)

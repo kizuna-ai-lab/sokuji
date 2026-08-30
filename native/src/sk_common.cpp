@@ -85,6 +85,7 @@ SK_API const char *sk_engine_versions(void) {
     static const std::string s = std::string("ggml=") + SK_GGML_VERSION +
                                  ";transcribe=" + transcribe_version() +
                                  ";llama=" + SK_LLAMA_VERSION + "(" + std::to_string(llama_max_devices()) + " max devices)" +
+                                 ";audiocpp=" + SK_AUDIOCPP_VERSION +
                                  ";lane=" + SK_LANE;
     return s.c_str();
 }

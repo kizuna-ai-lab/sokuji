@@ -1,0 +1,7 @@
+[
+  {
+    "file": "CMakeLists.txt",
+    "old": "add_subdirectory(\"${AUDIOCPP_GGML_SOURCE_DIR}\" \"${CMAKE_CURRENT_BINARY_DIR}/ggml\")",
+    "new": "if(NOT TARGET ggml)\n    add_subdirectory(\"${AUDIOCPP_GGML_SOURCE_DIR}\" \"${CMAKE_CURRENT_BINARY_DIR}/ggml\")\nendif()"
+  }
+]

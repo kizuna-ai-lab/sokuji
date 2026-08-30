@@ -70,6 +70,10 @@ SK_API const char *sk_engine_versions(void);                            /* "ggml
 SK_API const char *sk_last_error(void);                                 /* thread-local, "" when none */
 SK_API void        sk_free(void *p);
 
+/* Names of the audio.cpp model families compiled into this library, sorted. Diagnostic
+ * only: the sidecar's catalog is the source of truth for what a user can pick. */
+SK_API int32_t sk_audio_families(const char **out, int32_t capacity);
+
 #ifdef __cplusplus
 }
 #endif
