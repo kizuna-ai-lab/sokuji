@@ -77,7 +77,7 @@ foreach(_t IN LISTS _audiocpp_engine_targets)
         target_compile_options(${_t} PRIVATE -include ${CMAKE_CURRENT_SOURCE_DIR}/src/audiocpp_compat.h)
     endif()
 endforeach()
-target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp)
+target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_vad.cpp)
 target_link_libraries(sokuji_native PRIVATE engine_runtime)
 target_include_directories(sokuji_native PRIVATE ${audiocpp_SOURCE_DIR}/include)
 
@@ -140,3 +140,7 @@ install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/
             PATTERN "libggml*" PATTERN "ggml*.dll" PATTERN "libggml*.dylib"
             PATTERN "*.a" EXCLUDE PATTERN "*.lib" EXCLUDE PATTERN "test_*" EXCLUDE)
 install(FILES ${CMAKE_BINARY_DIR}/contract.json DESTINATION . COMPONENT sokuji)
+# silero VAD weights: audio.cpp reads them from disk (safetensors, not GGUF); the wheel carries
+# the file next to the library and sk_vad_open finds it there when no path is given (Ruling H).
+install(FILES ${audiocpp_SOURCE_DIR}/assets/framework/models/silero_vad/silero_vad_16k.safetensors
+        DESTINATION . COMPONENT sokuji)
