@@ -38,7 +38,10 @@ echo "[setup] base requirements (onnxruntime, numpy, websockets, sentencepiece, 
 # or point SOKUJI_NATIVE_WHEEL at a wheel file / URL.
 NATIVE_WHEEL="${SOKUJI_NATIVE_WHEEL:-}"
 if [ -z "$NATIVE_WHEEL" ]; then
-    NATIVE_WHEEL="$(ls "$(dirname "$0")"/../native/python/dist/sokuji_native-*.whl 2>/dev/null | head -1 || true)"
+    # cwd is already sidecar/ (the `cd "$(dirname "$0")"` above) — go cwd-relative,
+    # not $0-relative: $0 doesn't track that cd, so re-deriving dirname("$0") here
+    # double-counts "sidecar/" when invoked as `bash sidecar/setup.sh` from the repo root.
+    NATIVE_WHEEL="$(ls ../native/python/dist/sokuji_native-*.whl 2>/dev/null | head -1 || true)"
 fi
 if [ -n "$NATIVE_WHEEL" ]; then
     echo "[setup] stage runtimes: sokuji-native ($NATIVE_WHEEL)"
