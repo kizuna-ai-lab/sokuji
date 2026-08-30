@@ -8,10 +8,10 @@ Apple Silicon). Design: `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-des
 
 ## Build
 
-    native/ci/build.sh vulkan manylinux_2_28_x86_64     # Linux/macOS: <none|vulkan|metal> <wheel plat tag>
+    native/ci/build.sh vulkan manylinux_2_39_x86_64     # Linux/macOS: <none|vulkan|metal> <wheel plat tag>
     native\ci\build.ps1 -Lane vulkan -Plat win_amd64    # Windows
 
-Requires CMake ≥ 3.24, a C++17 compiler, Python 3.10+, and for the Vulkan lane
+Requires CMake ≥ 3.28, a C++17 compiler, Python 3.10+, and for the Vulkan lane
 `libvulkan-dev` + `glslc` (Ubuntu) or the LunarG SDK (Windows). Output: a wheel in
 `native/python/dist/`; the staged binaries in `native/build/<lane>/stage/`.
 
@@ -30,7 +30,10 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   - `transcribe.cpp.json` — makes transcribe.cpp reuse our ggml target instead of building its own copy
   - `audio.cpp.json` — makes audio.cpp reuse our ggml target instead of building its own copy
 - `src/audiocpp_compat.h` — the eight symbols audio.cpp's fork adds to ggml, provided on
-  upstream ggml. See the header comment before touching it.
+  upstream ggml. Two of them reproduce the fork's graph node for node rather than
+  aliasing a nearby upstream call; read the header comment before touching it.
+- `src/sokuji_native.map` / `src/sokuji_native.exports` — the exported-symbol lists
+  (Linux / macOS) that keep everything but `sk_*` inside the library.
 - `src/sk_selftest.cpp` — `sk_audio_families()`, reporting every family compiled in (companions such as `marblenet_vad` / `moss_tts_local` ride along with the selected ones; the sidecar catalog decides what is supported).
 - `python/` — the `sokuji_native` package; `_ffi.py` mirrors the header.
 - `tests/` — CTest smoke and the parity comparator.
@@ -40,4 +43,5 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
 1. Change the commit SHA (and the version string beside it) in `cmake/upstreams.cmake`.
 2. Rebuild; if `patch_upstream.py` fails, the anchored text in `native/patches/<upstream>.json` moved — fix the spec.
 3. Run the parity suite (slice 4 onward) — a bump that fails parity is not shipped.
-4. Bump `project(sokuji_native VERSION …)` and `python/pyproject.toml`, tag `native-vX.Y.Z`.
+4. Bump `project(sokuji_native VERSION …)` in `CMakeLists.txt` — the only place a version
+   is written; the wheel's comes from the staged `contract.json` — and tag `native-vX.Y.Z`.

@@ -173,7 +173,17 @@ audio.cpp `v0.7.0`. Bumping any pin is a `native-v` release.
   server, no embedded WebUI or demo voices; `audiocpp_compat.h` force-included.
 - `libsokuji_native` links the three engines statically and `ggml`/`ggml-base`
   dynamically, rpath `$ORIGIN` (Linux), `@loader_path` (macOS); on Windows the DLLs sit
-  in the same directory and `sk_init` adds it to the DLL search path.
+  in the same directory. Windows has no rpath, so the module directory is added to the
+  DLL search path by the Python loader (`os.add_dll_directory` in `sokuji_native._load`,
+  before `CDLL`) rather than by `sk_init` — by the time `sk_init` runs, the DLL and its
+  dependencies have already been resolved.
+- Only `sk_*` is exported: a version script on Linux (`src/sokuji_native.map`) plus
+  `-Wl,--exclude-libs,ALL`, an exported-symbols list on macOS
+  (`src/sokuji_native.exports`), `__declspec(dllexport)` on Windows. The three engines
+  are static archives compiled with default visibility, so without this their symbols
+  would leak into the host process. Linux also links `-static-libstdc++ -static-libgcc`
+  with `-Wl,--no-undefined`, and macOS pins `CMAKE_OSX_DEPLOYMENT_TARGET=11.0` to match
+  the `macosx_11_0_*` wheel tags.
 - Release builds with symbols stripped; a separate debug-symbol artifact is kept per
   release for crash triage.
 
@@ -246,9 +256,9 @@ eight symbols its framework references but upstream ggml lacks, without touching
 | fork symbol | provided as |
 |---|---|
 | `ggml_col2im_1d` | upstream (0.20.2+), no shim |
-| `ggml_conv_1d_fast_1d_im2col` | `ggml_conv_1d` with the same stride/padding/dilation |
+| `ggml_conv_1d_fast_1d_im2col` | the fork's own `im2col` → `mul_mat` → `reshape_3d` graph, spelled out with upstream ops (not `ggml_conv_1d`, which materialises im2col in F16 where the fork uses the kernel dtype) |
 | `ggml_mul_mat_pack4` | `ggml_mul_mat` (only reachable on CUDA upstream; never on our backends) |
-| `ggml_flash_attn_ext_with_bias_mask` | `ggml_flash_attn_ext` with the mask argument |
+| `ggml_flash_attn_ext_with_bias_mask` | `ggml_flash_attn_ext` over an effective mask built as the fork builds it: `scale(bias, scale)`, plus the F32-promoted mask broadcast to its shape, cast to F16 |
 | `ggml_graph_set_n_nodes` | inline setter over `ggml_cgraph` (needs `ggml-impl.h`) |
 | `ggml_sage_attn2`, `ggml_sage_attn2_i8`, `ggml_convrot_linear` | `GGML_ABORT("not built")` — MiniMax-H3 only, family not compiled |
 
@@ -268,18 +278,26 @@ to it.
 
 ### 4.6 Platforms and CI
 
-| SKU | runner | GPU lane |
-|---|---|---|
-| linux-x64 | `ubuntu-22.04` | Vulkan |
-| linux-arm64 | `ubuntu-22.04-arm` (fallback: self-hosted GB10) | Vulkan |
-| win-x64 | `windows-2022` (MSVC) | Vulkan |
-| mac-arm64 | `macos-14` | Metal |
-| mac-x64 | `macos-15-intel` | CPU only (ggml Metal does not support Intel Macs) |
+| SKU | runner | GPU lane | wheel tag |
+|---|---|---|---|
+| linux-x64 | `ubuntu-24.04` | Vulkan | `manylinux_2_39_x86_64` |
+| linux-arm64 | `ubuntu-24.04-arm` (fallback: self-hosted GB10) | Vulkan | `manylinux_2_39_aarch64` |
+| win-x64 | `windows-2022` (MSVC) | Vulkan | `win_amd64` |
+| mac-arm64 | `macos-14` | Metal | `macosx_11_0_arm64` |
+| mac-x64 | `macos-15-intel` | CPU only (ggml Metal does not support Intel Macs) | `macosx_11_0_x86_64` |
+
+Linux builds on 24.04, not 22.04: `glslc` is only packaged from 24.04 on, and
+`sidecar-bundles.yml` already builds the Linux sidecar on 24.04 runners — so the glibc
+2.39 floor the `manylinux_2_39_*` tags declare is the floor Sokuji users already have.
 
 `native-build.yml` runs on `native-v*` tags: build, strip, run CTest, run the parity
-suite on CPU, assemble five wheels + `contract.json`, publish as release assets. Linux and
-Windows runners install the Vulkan SDK (glslc). Wheel URLs are pinned in
-`sidecar/requirements.txt` with `sys_platform` / `platform_machine` markers.
+suite on CPU, assemble five wheels + `contract.json`, publish as release assets. Linux
+runners install `libvulkan-dev` + `glslc` from apt; Windows installs the LunarG SDK.
+Wheel URLs are pinned in `sidecar/requirements.txt` with `sys_platform` /
+`platform_machine` markers — the two Linux markers point at the `manylinux_2_39_*`
+wheels above. The wheel version is not written in `pyproject.toml`: `setup.py` reads it
+from the staged `contract.json`, so `project(sokuji_native VERSION …)` in
+`native/CMakeLists.txt` is the one place a release version is edited.
 
 Expected uncompressed size per wheel: ggml core + CPU variants ~20 MB, Vulkan shaders
 ~50 MB (none on macOS), engines ~30 MB; zstd ~35–45 MB.
