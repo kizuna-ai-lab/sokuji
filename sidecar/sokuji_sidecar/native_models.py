@@ -1,30 +1,13 @@
 """Model download/status registry for the LOCAL_NATIVE provider.
 
-Each native model id maps to a set of HuggingFace repos (+ the VAD url). status
-checks they're fully cached; download fetches them file-by-file with progress.
-Mirrors LOCAL_INFERENCE's manage-before-use UX, but server-side (HF cache).
-
-The silero VAD (silero_vad.onnx) is a shared runtime dependency of EVERY ASR
-model: AsrEngine._init_vad() loads it for both the offline and streaming paths,
-independent of which recognizer runs. So download_specs() appends it for any
-ASR-catalog model (not just SenseVoice), guaranteeing a single-model offline
-install is self-sufficient. It's a 643KB global singleton at sokuji-vad/, so
-delete_model() never removes it — another installed model may still need it.
+Each native model id maps to a set of HuggingFace repos. status checks they're
+fully cached; download fetches them file-by-file with progress. Mirrors
+LOCAL_INFERENCE's manage-before-use UX, but server-side (HF cache).
 """
 import fnmatch
 import os
 
 from .catalog import asr_model as _asr_model, split_artifact
-
-# NativeVad (sidecar/sokuji_sidecar/vad.py) gets its silero weights from the
-# sokuji_native wheel itself now, so AsrEngine._init_vad() no longer downloads
-# this file — but this registry's download/size accounting hasn't been updated
-# for that yet (out of scope for the ASR/VAD task that dropped the download from
-# asr_engine.py). Kept here, unchanged, purely so this module still imports;
-# revisit whether download_specs()/size accounting should still append it at all.
-VAD_URL = os.environ.get(
-    "SOKUJI_VAD_URL",
-    "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx")
 
 # The exact CTranslate2 export files the ct2_opus_translate backend reads
 # (see ct2_opus.Ct2OpusSession). Our jiangzhuo9357/opus-mt-*-ct2 repos mirror
@@ -40,13 +23,8 @@ def _ignored(filename, patterns):
     `tf_model.h5` matches only itself. Used to filter the download + size file set."""
     return any(fnmatch.fnmatch(filename, p) for p in patterns)
 
-def _vad_cache_path():
-    cache = os.path.join(os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface")), "sokuji-vad")
-    return os.path.join(cache, "silero_vad.onnx")
-
-
 def _base_specs(model_id):
-    """Per-model repos/ignore, WITHOUT the shared VAD (download_specs adds that)."""
+    """Per-model repos/ignore for a model id."""
     from .catalog import tts_model as _tts_model
     _tm = _tts_model(model_id) if model_id else None
     if _tm is not None:
@@ -101,14 +79,9 @@ def _base_specs(model_id):
 def download_specs(model_id, repo=None):
     """Map a model id to its download sources: {repos: [..], urls: [..]}.
 
-    Every ASR-catalog model gets the shared silero VAD appended (see module
-    docstring); non-ASR ids (translation, TTS) do not. The id is matched against
-    the ASR catalog by exact id, so a bare HF repo id (e.g. the raw SenseVoice
-    repo passed to model_status) is treated as non-ASR and gets no VAD.
-
     `repo` overrides the model's default repo with a chosen variant's repo (the
-    variant id resolves to a sibling repo). Variants are translation-only and
-    never need the VAD, so the override short-circuits before the VAD logic.
+    variant id resolves to a sibling repo) — variants are translation-only, so
+    the override short-circuits before the per-catalog dispatch in _base_specs.
 
     A variant `repo` is now often an upstream artifact ("org/repo/file.gguf"),
     not a bare repo id — split it the same way the catalog rows are split, so
@@ -118,10 +91,7 @@ def download_specs(model_id, repo=None):
         if fname:
             return {"repos": [], "urls": [], "files": [(repo2, fname)]}
         return {"repos": [repo], "urls": []}
-    spec = _base_specs(model_id)
-    if _asr_model(model_id) is not None and VAD_URL not in spec["urls"]:
-        spec = {**spec, "urls": [*spec["urls"], VAD_URL]}
-    return spec
+    return _base_specs(model_id)
 
 
 def _needs_llama_binary(model_id) -> bool:
@@ -133,7 +103,6 @@ def _needs_llama_binary(model_id) -> bool:
     return tm is not None and tm.deployments[0].backend.startswith("llamacpp_")
 
 
-_SILERO_VAD_BYTES = 643854  # silero_vad.onnx (k2-fsa release)
 _SIZE_CACHE = {}
 
 
@@ -170,7 +139,6 @@ def model_size(model_id):
                 total += sum((s.size or 0) for s in (info.siblings or []) if not _ignored(s.rfilename, ignore))
             except Exception:
                 pass
-        total += len(specs["urls"]) * _SILERO_VAD_BYTES
     _SIZE_CACHE[model_id] = total
     return total
 
@@ -302,9 +270,6 @@ def model_status(model_id, repo=None):
             from huggingface_hub import hf_hub_download
             for r, fname in specs["files"]:
                 hf_hub_download(r, fname, local_files_only=True)
-        for _url in specs["urls"]:
-            if not os.path.exists(_vad_cache_path()):
-                return "absent"
         if _needs_llama_binary(model_id):
             from . import llama_runtime
             if any(llama_runtime.binary_path(f) is None
@@ -326,10 +291,6 @@ def delete_model(model_id, repo=None):
     scanner so we only touch fully-managed revisions; a repo shared with another
     still-needed model is deleted here too — callers should only delete models
     the user explicitly removed.
-
-    The shared silero VAD (sokuji-vad/) is deliberately NOT removed: every ASR
-    model depends on it, so deleting one model must not strand the others
-    offline. It's a 643KB singleton — cheaper to keep than to refcount.
 
     The llama-server binary (see llama_runtime) is likewise NOT removed here:
     it's shared by every llamacpp_* translate card, so deleting one card must
@@ -380,14 +341,6 @@ def _incomplete_bytes(repo):
                    for f in os.listdir(d) if f.endswith(".incomplete"))
     except Exception:
         return 0
-
-
-def _download_url(url):
-    import urllib.request
-    dst = _vad_cache_path()
-    os.makedirs(os.path.dirname(dst), exist_ok=True)
-    if not os.path.exists(dst):
-        urllib.request.urlretrieve(url, dst)
 
 
 async def download(model_id, send, should_cancel=None, repo=None):
@@ -453,14 +406,6 @@ async def download(model_id, send, should_cancel=None, repo=None):
         size = model_size(model_id if not repo else repo)
     except Exception:
         size = None
-    if size and VAD_URL in specs["urls"]:
-        # Catalog size_bytes covers the model files only — add the shared VAD.
-        # Guarded on size_bytes being SET: for a (hypothetical) catalog row
-        # without it, model_size()'s live-lookup fallback already counted the
-        # VAD via specs["urls"], and adding it here would double-count.
-        cat = _asr_model(model_id)
-        if cat is not None and cat.size_bytes:
-            size += _SILERO_VAD_BYTES
     total_bytes = (size + _LLAMA_FLAVOR_EST_BYTES * len(llama_flavors)) if size else None
 
     done_units = 0
@@ -510,17 +455,12 @@ async def download(model_id, send, should_cancel=None, repo=None):
         done_units += 1
         return result
 
-    is_last_stage = not specs["urls"] and not llama_flavors
+    is_last_stage = not llama_flavors
     for i, (r, fname) in enumerate(files):
         if cancelled():
             return "cancelled"
         await _fetch(hf_hub_download, r, fname, poll_repo=r)
         await progress(final=is_last_stage and i == len(files) - 1)
-    for i, url in enumerate(specs["urls"]):
-        if cancelled():
-            return "cancelled"
-        await _fetch(_download_url, url, est=_SILERO_VAD_BYTES)
-        await progress(final=not llama_flavors and i == len(specs["urls"]) - 1)
     for i, flavor in enumerate(llama_flavors):
         if cancelled():
             return "cancelled"

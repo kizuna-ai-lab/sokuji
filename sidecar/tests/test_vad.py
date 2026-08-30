@@ -30,8 +30,13 @@ class _ScriptedVad:
         return ev
 
     def finalize(self):
+        # Honest fake semantics: the real native finalize() dedupes internally (segments
+        # already reported are filtered by its own last_end bookkeeping) and always
+        # resets, so an idle finalize() returns None. Model that by handing back the
+        # scripted tail exactly once, then going idle.
+        tail, self.tail = self.tail, None
         self.k = 0
-        return self.tail
+        return tail
 
     def reset(self):
         self.resets += 1

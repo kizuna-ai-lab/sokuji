@@ -56,12 +56,13 @@ class NativeVad:
 
     def flush(self) -> None:
         """End of audio: close an open segment (the native side reports it as END) and
-        return to the idle state. Queued segments stay until popped. Only asks the native
-        side to finalize when a segment is actually open — the native handle has no
-        record of whether we've already drained it, so calling finalize() with nothing
-        open could otherwise hand back a stale/duplicate event."""
-        if self._speech:
-            self._apply(self._vad.finalize())
+        return to the idle state. Queued segments stay until popped. Always calls the
+        native finalize(), even when idle: on an idle VAD it returns None and still
+        resets the native side's internal sample cursor — skipping it would leave that
+        cursor running while `_fed` restarts at 0 below, so the next utterance's
+        seg_start/seg_end (native-absolute) would disagree with `origin = _fed -
+        buf.size` in `_slice`."""
+        self._apply(self._vad.finalize())
         self._speech = False
         self._audio.clear()
         self._fed = 0

@@ -22,7 +22,7 @@ def test_download_specs_mapping(monkeypatch):
     assert nm.download_specs('csukuangfj/vits-piper-en_US-amy-low')['repos'] == ['csukuangfj/vits-piper-en_US-amy-low']
     sv = nm.download_specs('sense-voice')
     assert sv['files'] == [('handy-computer/SenseVoiceSmall-gguf', 'SenseVoiceSmall-Q8_0.gguf')]
-    assert sv['urls'] == [nm.VAD_URL]
+    assert sv['urls'] == []
     # Speech-LLM ids map to their handy-computer GGUF (one pinned file each).
     assert nm.download_specs('granite-speech-4.1-2b')['files'] == \
         [('handy-computer/granite-speech-4.1-2b-gguf', 'granite-speech-4.1-2b-Q4_K_M.gguf')]
@@ -31,40 +31,30 @@ def test_download_specs_mapping(monkeypatch):
 
 
 def test_download_specs_cohere():
-    # One pinned GGUF (the repo ships 6 quants). ASR model -> shared VAD appended.
-    import sokuji_sidecar.native_models as nm
+    # One pinned GGUF (the repo ships 6 quants); no separate urls asset.
     spec = native_models.download_specs("cohere-transcribe-03-2026")
-    assert spec["repos"] == [] and spec["urls"] == [nm.VAD_URL]
+    assert spec["repos"] == [] and spec["urls"] == []
     assert spec["files"] == [("handy-computer/cohere-transcribe-03-2026-gguf",
                               "cohere-transcribe-03-2026-Q4_K_M.gguf")]
 
 
-def test_download_specs_appends_shared_vad_for_asr_models():
-    """The silero VAD is a shared dependency of EVERY ASR model (AsrEngine._init_vad
-    loads it for offline + streaming). download_specs must append it for any ASR
-    model, not just SenseVoice; non-ASR ids (translation/TTS) must NOT get it."""
+def test_download_specs_returns_no_urls_for_any_model():
+    """silero now ships inside the sokuji_native wheel (not a downloadable file), so
+    download_specs must never populate `urls` for ASR ids or anything else — this
+    pins that invariant for both. (Formerly asserted ASR ids got a shared VAD url
+    appended; that mechanism is gone — see native_models.py module history.)"""
     for asr_id in ('sense-voice', 'fun-asr-mlt-nano', 'whisper-base', 'qwen3-asr-1.7b',
                    'voxtral-mini-4b-realtime', 'granite-speech-4.1-2b'):
-        assert nm.download_specs(asr_id)['urls'] == [nm.VAD_URL], asr_id
+        assert nm.download_specs(asr_id)['urls'] == [], asr_id
     for non_asr in ('', 'qwen', 'translategemma-4b', 'csukuangfj/vits-piper-en_US-amy-low'):
         assert nm.download_specs(non_asr)['urls'] == [], non_asr
     # single-GGUF specs never need an ignore list
     assert 'ignore' not in nm.download_specs('voxtral-mini-4b-realtime')
 
 
-def test_delete_model_keeps_shared_vad(monkeypatch, tmp_path):
-    """Deleting an ASR model must NOT remove the shared silero VAD — another
-    installed ASR model still depends on it."""
-    vad = tmp_path / 'silero_vad.onnx'
-    vad.write_bytes(b'x' * 16)
-
-    def _no_cache():
-        raise RuntimeError('no HF cache in this env')
-
-    monkeypatch.setattr(nm, '_vad_cache_path', lambda: str(vad))
-    monkeypatch.setattr('huggingface_hub.scan_cache_dir', _no_cache)
-    nm.delete_model('fun-asr-mlt-nano')
-    assert vad.exists()  # VAD survives the delete
+# test_delete_model_keeps_shared_vad was removed here: its premise (silero is a
+# shared downloadable file that delete_model must not strand other models
+# without) is gone now that silero ships inside the sokuji_native wheel.
 
 
 def test_download_specs_qwen25_ignores_stale_translate_model_env(monkeypatch):
@@ -252,7 +242,7 @@ def test_download_specs_voxtral_single_gguf():
     spec = nm.download_specs("voxtral-mini-4b-realtime")
     assert spec["files"] == [("handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf",
                               "Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf")]
-    assert spec["urls"] == [nm.VAD_URL]  # ASR model → shared VAD appended
+    assert spec["urls"] == []  # no separate download — silero ships inside sokuji_native
 
 
 def test_existing_specs_have_no_ignore_key():
@@ -363,9 +353,8 @@ def test_download_specs_fun_asr_mlt_nano():
     spec = nm.download_specs('fun-asr-mlt-nano')
     assert spec['files'] == [('handy-computer/Fun-ASR-MLT-Nano-2512-gguf',
                               'Fun-ASR-MLT-Nano-2512-Q6_K.gguf')]
-    # AsrEngine._init_vad() loads silero for the offline path too, so a Nano-only
-    # offline install must pre-fetch the shared VAD (not rely on a session-time download).
-    assert spec['urls'] == [nm.VAD_URL]
+    # silero ships inside the sokuji_native wheel now — no separate VAD download.
+    assert spec['urls'] == []
 def _file_spec(mid, quant):
     """Helper: the expected files-shaped download_specs entry for an LLM translate card."""
     from sokuji_sidecar import catalog
@@ -803,26 +792,11 @@ def test_download_reports_byte_progress(monkeypatch, tmp_path):
     assert prog[-1] == (1000, 1000)    # completion pinned to exactly total
 
 
-def test_download_byte_total_includes_shared_vad(monkeypatch, tmp_path):
-    """Catalog ASR rows download the GGUF plus the shared silero VAD; the
-    byte total must count both (model_size covers the model files only)."""
-    import huggingface_hub
-
-    f1 = tmp_path / "a.gguf"
-    f1.write_bytes(b"x" * 600)
-    monkeypatch.setattr(nm, "download_specs",
-                        lambda mid, repo=None: {"repos": [], "urls": [nm.VAD_URL],
-                                                "files": [("org/r", "a.gguf")]})
-    monkeypatch.setattr(nm, "model_size", lambda mid: 600)
-    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda r, f: str(f1))
-    monkeypatch.setattr(nm, "_download_url", lambda url: None)
-
-    sent = []
-    async def send(m): sent.append(m)
-    assert asyncio.run(nm.download("whisper-base", send)) == "ready"
-    prog = [(m["downloaded"], m["total"]) for m in sent if m["type"] == "model_progress"]
-    total = 600 + nm._SILERO_VAD_BYTES
-    assert prog[-1] == (total, total)
+# test_download_byte_total_includes_shared_vad was removed here: its premise (the
+# byte total must add the shared silero VAD's size on top of model_size) is gone
+# now that silero ships inside the sokuji_native wheel — download_specs never
+# returns a VAD url to add, so there is nothing left to assert here that
+# test_download_reports_byte_progress above doesn't already cover.
 
 
 def test_download_streams_incomplete_blob_growth(monkeypatch, tmp_path):
@@ -887,9 +861,6 @@ def test_model_status_ready_when_any_ladder_quant_cached(monkeypatch, tmp_path):
             return str(tmp_path / fname)
         raise FileNotFoundError(fname)
     monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
-    vad = tmp_path / "silero_vad.onnx"
-    vad.write_bytes(b"vad")
-    monkeypatch.setattr(native_models, "_vad_cache_path", lambda: str(vad))
 
     # default rung (Q6_K) absent, Q8_0 cached -> runnable
     assert native_models.model_status("fun-asr-mlt-nano") == "ready"
