@@ -141,3 +141,5 @@ native/audio-host/*/out/
 native/build/
 native/python/sokuji_native/_native/
 native/python/dist/
+native/python/build/
+native/python/*.egg-info/

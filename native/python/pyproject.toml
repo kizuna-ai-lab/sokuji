@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sokuji-native"
+version = "0.1.0"
+description = "One native library for the Sokuji sidecar: transcribe.cpp, llama.cpp and audio.cpp on one ggml, behind one C ABI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+
+[tool.setuptools]
+packages = ["sokuji_native"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+sokuji_native = ["_native/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
