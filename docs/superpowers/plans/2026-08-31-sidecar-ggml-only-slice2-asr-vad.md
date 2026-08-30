@@ -104,7 +104,10 @@ typedef struct sk_asr_caps {
 
 /* Called by sk_asr_run: with text == NULL between decode steps (return false to cancel),
  * and once with the transcript when the run completes. Called by sk_asr_stream_finalize
- * once with the final committed text. `text` is valid only during the call. */
+ * once with the stream's FINAL text — the post-finalize full hypothesis, not the
+ * committed display prefix (transcribe.cpp documents committed_text as best-effort
+ * append-only, never rolled back; on some families it ends stale while full_text is
+ * correct — Ruling N). `text` is valid only during the call. */
 typedef bool (*sk_text_cb)(const char *text, void *user);
 
 typedef struct sk_stream_text {
@@ -807,12 +810,27 @@ SK_API sk_status sk_asr_stream_finalize(sk_asr_stream *s, sk_text_cb cb, void *u
     transcribe_stream_update u;
     transcribe_stream_update_init(&u);
     transcribe_status st = transcribe_stream_finalize(m->session, &u);
-    sk_status rc = (st == TRANSCRIBE_OK || st == TRANSCRIBE_ERR_OUTPUT_TRUNCATED) ? snapshot_text(m, "sk_asr_stream_finalize")
-                                                                                  : fail("sk_asr_stream_finalize", st);
+    sk_status rc;
+    if (st == TRANSCRIBE_OK || st == TRANSCRIBE_ERR_OUTPUT_TRUNCATED) {
+        // Ruling N: the final text is the post-finalize FULL hypothesis. committed_text is
+        // a best-effort append-only display prefix that transcribe.cpp never rolls back —
+        // on moonshine-streaming-tiny it demonstrably ends stale while full_text is right.
+        transcribe_stream_text t;
+        transcribe_stream_text_init(&t);
+        transcribe_status gt = transcribe_stream_get_text(m->session, &t);
+        if (gt == TRANSCRIBE_OK) {
+            m->run_text.assign(t.full_text ? t.full_text : "", t.full_text ? t.full_text_bytes : 0);
+            rc = SK_OK;
+        } else {
+            rc = fail("sk_asr_stream_finalize", gt);
+        }
+    } else {
+        rc = fail("sk_asr_stream_finalize", st);
+    }
     transcribe_stream_reset(m->session);                              // back to idle either way (Ruling F)
     m->stream_open = false;
     if (rc != SK_OK) return rc;
-    if (cb) cb(m->committed.c_str(), user);
+    if (cb) cb(m->run_text.c_str(), user);
     return SK_OK;
 }
 
@@ -1159,7 +1177,7 @@ install(FILES ${audiocpp_SOURCE_DIR}/assets/framework/models/silero_vad/silero_v
       def unload(self) -> None                    # idempotent; also __del__
   class AsrStream:
       def feed(self, pcm) -> StreamText
-      def finalize(self) -> str                   # final committed text; stream is closed afterwards
+      def finalize(self) -> str                   # the stream's final text (Ruling N); closed afterwards
       def close(self) -> None                     # idempotent; abandon without finalize
   class Vad:
       def feed(self, pcm512) -> VadEvent | None
