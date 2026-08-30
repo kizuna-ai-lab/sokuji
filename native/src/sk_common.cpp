@@ -4,6 +4,7 @@
 
 #include "ggml-backend.h"
 #include "ggml.h"
+#include "transcribe.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -80,7 +81,9 @@ SK_API const char *sk_last_error(void) { return t_last_error.c_str(); }
 SK_API void sk_free(void *p) { std::free(p); }
 
 SK_API const char *sk_engine_versions(void) {
-    static const std::string s = std::string("ggml=") + SK_GGML_VERSION + ";lane=" + SK_LANE;
+    static const std::string s = std::string("ggml=") + SK_GGML_VERSION +
+                                 ";transcribe=" + transcribe_version() +
+                                 ";lane=" + SK_LANE;
     return s.c_str();
 }
 

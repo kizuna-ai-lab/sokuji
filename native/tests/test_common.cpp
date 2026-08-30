@@ -16,6 +16,7 @@ int main(int argc, char **argv) {
     assert(sk_abi_version() == SK_ABI_VERSION);
     assert(std::string(sk_version()).rfind("0.", 0) == 0);          // "0.1.0"
     assert(std::strstr(sk_engine_versions(), "ggml=0.22.0") != nullptr);
+    assert(std::strstr(sk_engine_versions(), "transcribe=0.2.2") != nullptr);
     assert(std::string(sk_last_error()).empty());
 
     sk_device before[8];
