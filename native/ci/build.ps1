@@ -9,7 +9,9 @@ $Python = if ($env:PYTHON) { $env:PYTHON } else { "python" }
 $BuildDirName = if ($Lane -eq "none") { "cpu" } else { $Lane }
 $Build = Join-Path $Root "build\$BuildDirName"
 
-cmake -S $Root -B $Build -G "Visual Studio 17 2022" -A x64 -DSOKUJI_GPU=$Lane
+# Quoted on purpose: PowerShell hands a bare `-DSOKUJI_GPU=$Lane` token to native commands
+# verbatim, without expanding $Lane (dry run 3 configured with the literal string "$Lane").
+cmake -S $Root -B $Build -G "Visual Studio 17 2022" -A x64 "-DSOKUJI_GPU=$Lane"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 cmake --build $Build --config Release --parallel
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
@@ -30,5 +32,8 @@ Pop-Location
 Get-ChildItem "$Root\python\dist"
 & $Python -m pip install -q --force-reinstall (Get-ChildItem "$Root\python\dist\*.whl").FullName
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
-& $Python -c "import sokuji_native as s; s.init(); print(s.version(), s.engine_versions(), [(d.kind, d.description) for d in s.devices()])"
+# The wheel must report the lane that was asked for; a GPU backend that quietly failed to
+# build would otherwise ship as a CPU-only wheel under a Vulkan/Metal name.
+$WantLane = @{ none = "cpu"; vulkan = "cpu-vulkan"; metal = "metal" }[$Lane]
+& $Python -c "import sys, sokuji_native as s; s.init(); ev = s.engine_versions(); lane = ev['lane']; assert lane == sys.argv[1], ('built lane', lane, 'wanted', sys.argv[1]); print(s.version(), ev, [(d.kind, d.description) for d in s.devices()])" $WantLane
 if ($LASTEXITCODE) { exit $LASTEXITCODE }

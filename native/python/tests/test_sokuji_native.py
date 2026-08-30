@@ -48,6 +48,11 @@ def test_init_and_devices():
     for d in devs:
         assert d.name and d.mem_total > 0
         assert sokuji_native.device_free_mem(d.index) > 0
+    # A Metal build always has a Metal device (every Apple-Silicon Mac, the macos-14 runner
+    # included) and it must be reported as such, not as "other". Vulkan cannot be asserted
+    # the same way: the Linux/Windows CI runners have no Vulkan device at all.
+    if sokuji_native.engine_versions()["lane"] == "metal":
+        assert any(d.kind == "metal" for d in devs), devs
     assert lines, "sk_init logs at least one line"
 
 

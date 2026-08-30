@@ -25,5 +25,13 @@ cp -r "$BUILD/stage" "$ROOT/python/sokuji_native/_native"
 ( cd "$ROOT/python" && rm -rf dist && SOKUJI_NATIVE_PLAT="$PLAT" "$PYTHON" -m pip wheel . --no-deps -w dist )
 ls -la "$ROOT/python/dist"
 # Import the wheel we just built, from a clean interpreter, and print the device table.
+# The wheel must report the lane that was asked for; a GPU backend that quietly failed to
+# build would otherwise ship as a CPU-only wheel under a Vulkan/Metal name.
+case "$LANE" in
+    none)   WANT_LANE=cpu ;;
+    vulkan) WANT_LANE=cpu-vulkan ;;
+    metal)  WANT_LANE=metal ;;
+    *)      echo "unknown lane: $LANE"; exit 1 ;;
+esac
 "$PYTHON" -m pip install -q --force-reinstall "$ROOT"/python/dist/*.whl
-"$PYTHON" -c "import sokuji_native as s; s.init(); print(s.version(), s.engine_versions(), [(d.kind, d.description) for d in s.devices()])"
+"$PYTHON" -c "import sys, sokuji_native as s; s.init(); ev = s.engine_versions(); lane = ev['lane']; assert lane == sys.argv[1], ('built lane', lane, 'wanted', sys.argv[1]); print(s.version(), ev, [(d.kind, d.description) for d in s.devices()])" "$WANT_LANE"

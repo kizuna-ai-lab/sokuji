@@ -73,8 +73,8 @@ int32_t kind_of(ggml_backend_dev_t dev) {
     if (ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU) return SK_DEVICE_CPU;
     ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
     std::string reg_name = reg ? ggml_backend_reg_name(reg) : "";
-    if (reg_name == "Vulkan") return SK_DEVICE_VULKAN;
-    if (reg_name == "Metal")  return SK_DEVICE_METAL;
+    if (reg_name == "Vulkan") return SK_DEVICE_VULKAN;   // GGML_VK_NAME
+    if (reg_name == "MTL")    return SK_DEVICE_METAL;    // GGML_METAL_NAME is "MTL", not "Metal"
     return SK_DEVICE_OTHER;
 }
 

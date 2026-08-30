@@ -4,6 +4,10 @@
 # never win over this file.
 set(SOKUJI_GPU "auto" CACHE STRING "GPU lane: auto | none | vulkan | metal")
 set_property(CACHE SOKUJI_GPU PROPERTY STRINGS auto none vulkan metal)
+if(NOT SOKUJI_GPU MATCHES "^(auto|none|vulkan|metal)$")
+    # A typo (or an unexpanded shell variable) must not fall through to a CPU-only build.
+    message(FATAL_ERROR "SOKUJI_GPU must be one of auto|none|vulkan|metal, got '${SOKUJI_GPU}'")
+endif()
 
 if(SOKUJI_GPU STREQUAL "auto")
     if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
