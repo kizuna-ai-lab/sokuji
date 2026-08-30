@@ -1,4 +1,5 @@
 import { BaseAudioRecorder } from './BaseAudioRecorder';
+import { MicrophoneCaptureError } from './microphoneCaptureError';
 import { DEBUG_CONFIG, AUDIO_CONSTRAINT_PROFILES } from '../config/performance.js';
 
 // Vite ?url imports for AudioWorklet and WASM assets
@@ -249,8 +250,40 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
 
       return true;
     } catch (err) {
-      console.error(`${this.getLogPrefix()} Could not start audio recording`, err);
-      return false;
+      // Whatever was acquired before the failure -- a live capture stream, an
+      // AudioContext, half a processing graph -- is released so the next
+      // attempt starts clean, and the failure is THROWN. Returning `false` here
+      // left the caller to trip over record()'s "please call .begin() first",
+      // which is what a user whose microphone macOS had silently denied got to
+      // read (#458). No console line of its own: the session-start path reports
+      // the error once, with this `cause` attached.
+      await this.abortBegin();
+      throw new MicrophoneCaptureError(err);
+    }
+  }
+
+  /**
+   * Undo a `begin()` that failed part-way. Mirrors the teardown in `end()`,
+   * minus the save: nothing was recorded. Best effort -- the failure that got
+   * us here is the one worth surfacing, not a hiccup while cleaning up.
+   */
+  private async abortBegin(): Promise<void> {
+    try {
+      this.mediaRecorder = null;
+      if (this.rnnoiseNode) {
+        this.rnnoiseNode.disconnect();
+        this.rnnoiseNode.destroy();
+        this.rnnoiseNode = null;
+      }
+      this.rnnoiseModuleLoaded = false;
+      this._disconnectGtcrnWorker();
+      if (this.analyser) {
+        this.analyser.disconnect();
+        this.analyser = null;
+      }
+      await this.cleanup();
+    } catch {
+      // See above.
     }
   }
 

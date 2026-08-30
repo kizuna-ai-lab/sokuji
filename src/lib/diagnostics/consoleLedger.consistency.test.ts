@@ -164,7 +164,7 @@ const LEDGER: Record<string, number> = {
   'src/lib/modern-audio/ModernBrowserAudioService.ts': 29,
   'src/lib/modern-audio/WebRTCAudioBridge.ts': 10,
   'src/lib/modern-audio/AppAudioRecorder.ts': 9,
-  'src/lib/modern-audio/ModernAudioRecorder.ts': 9,
+  'src/lib/modern-audio/ModernAudioRecorder.ts': 8,
   'src/lib/analytics.ts': 6,
   'src/lib/modern-audio/LoopbackRecorder.ts': 6,
   'src/lib/modern-audio/BaseAudioRecorder.ts': 2,
