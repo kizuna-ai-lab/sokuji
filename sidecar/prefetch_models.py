@@ -20,11 +20,6 @@ TRANSLATE = _gguf_artifact("qwen2.5-0.5b", "q8_0")
 # Catalog default ASR row: sense-voice via transcribe.cpp — one pinned GGUF.
 from sokuji_sidecar.catalog import asr_model as _asr_model
 ASR_ARTIFACT = _asr_model("sense-voice").deployments[0].artifact
-# silero VAD: no clean HF mirror matches sherpa-onnx's expected signature; the canonical
-# file lives in the k2-fsa release (same source family as scripts/download-sherpa-wasm.sh).
-VAD_URL = os.environ.get(
-    "SOKUJI_VAD_URL",
-    "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx")
 
 
 def fetch(name, **kw):
@@ -58,19 +53,6 @@ def main():
         print(f"  OK  asr: {path}")
     except Exception as e:  # one model failing must not abort the others
         print(f"  FAIL asr: {type(e).__name__}: {e}", file=sys.stderr)
-
-    print(f"\nASR VAD ({VAD_URL}):")
-    try:
-        import urllib.request
-        cache = os.path.join(
-            os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface")), "sokuji-vad")
-        os.makedirs(cache, exist_ok=True)
-        dst = os.path.join(cache, "silero_vad.onnx")
-        if not os.path.exists(dst):
-            urllib.request.urlretrieve(VAD_URL, dst)
-        print(f"  OK  vad: {dst}")
-    except Exception as e:
-        print(f"  FAIL vad: {type(e).__name__}: {e}", file=sys.stderr)
 
     if pocket_root:
         print("\nFor the model-gated Pocket pytest (sidecar/tests):")

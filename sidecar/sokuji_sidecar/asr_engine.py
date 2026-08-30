@@ -1,5 +1,4 @@
 import asyncio
-import os
 import queue
 import time
 import numpy as np
@@ -10,13 +9,6 @@ SRC_RATE = 24000
 # onset (threshold ramp + min_speech_duration) — keep this much audio to
 # replay into a fresh stream so utterances don't lose their first words.
 PREROLL_SAMPLES = int(0.7 * TARGET_RATE)
-
-# sherpa-onnx silero VAD is documented in the k2-fsa releases (the same GitHub-release
-# source as scripts/download-sherpa-wasm.sh). No clean HuggingFace mirror matches the
-# exact signature sherpa expects, so resolve it from the release (override via env).
-VAD_URL = os.environ.get(
-    "SOKUJI_VAD_URL",
-    "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx")
 
 
 def _downsample_int16_to_f32_16k(int16_bytes, src_rate=SRC_RATE):
@@ -35,26 +27,9 @@ def _downsample_int16_to_f32_16k(int16_bytes, src_rate=SRC_RATE):
     return (a + (b - a) * frac).astype(np.float32)
 
 
-def _resolve_vad_model(model_dir=None):
-    """Order: explicit SOKUJI_VAD_FILE → silero_vad.onnx shipped in the model dir →
-    download the canonical file from the k2-fsa release into the HF cache."""
-    explicit = os.environ.get("SOKUJI_VAD_FILE")
-    if explicit and os.path.exists(explicit):
-        return explicit
-    if model_dir and os.path.exists(f"{model_dir}/silero_vad.onnx"):
-        return f"{model_dir}/silero_vad.onnx"
-    import urllib.request
-    cache = os.path.join(
-        os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface")), "sokuji-vad")
-    os.makedirs(cache, exist_ok=True)
-    dst = os.path.join(cache, "silero_vad.onnx")
-    if not os.path.exists(dst):
-        urllib.request.urlretrieve(VAD_URL, dst)
-    return dst
-
-
 class AsrEngine:
-    """silero VAD segmentation + a pluggable recognizer. Feed Int16 bytes, get text per VAD segment.
+    """audio.cpp silero VAD (via sokuji_native) segmentation + a pluggable recognizer. Feed
+    Int16 bytes, get text per VAD segment.
 
     The silero VAD must be fed in fixed window_size (512-sample @16k) chunks, so feed()
     buffers the downsampled audio and only consumes whole windows; the remainder carries
@@ -76,20 +51,23 @@ class AsrEngine:
         self._preroll_len = 0
 
     def _init_vad(self, sample_rate, vad_threshold, vad_min_silence, vad_min_speech):
-        import sherpa_onnx  # lazy: native lib pulled here
+        from .vad import NativeVad    # lazy: the native library is loaded here
         self._src_rate = int(sample_rate)
-        vad_cfg = sherpa_onnx.VadModelConfig()
-        vad_cfg.silero_vad.model = _resolve_vad_model()
+        kw = {}
         if vad_threshold is not None:
-            vad_cfg.silero_vad.threshold = float(vad_threshold)
+            kw["threshold"] = float(vad_threshold)
         if vad_min_silence is not None:
-            vad_cfg.silero_vad.min_silence_duration = float(vad_min_silence)
+            kw["min_silence_s"] = float(vad_min_silence)
         if vad_min_speech is not None:
-            vad_cfg.silero_vad.min_speech_duration = float(vad_min_speech)
-        vad_cfg.sample_rate = TARGET_RATE
-        self._window = vad_cfg.silero_vad.window_size
+            kw["min_speech_s"] = float(vad_min_speech)
+        if self._vad is not None:
+            try:
+                self._vad.close()
+            except Exception:
+                pass
+        self._vad = NativeVad(**kw)
+        self._window = self._vad.window
         self._buf = np.zeros(0, np.float32)
-        self._vad = sherpa_onnx.VoiceActivityDetector(vad_cfg, buffer_size_in_seconds=30)
 
     def init(self, model_id=None, language="", sample_rate=SRC_RATE,
              vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto",
@@ -152,6 +130,12 @@ class AsrEngine:
                 backend.unload()
             except Exception:
                 pass
+        if self._vad is not None:
+            try:
+                self._vad.close()
+            except Exception:
+                pass
+            self._vad = None
 
     def _drain(self):
         out = []

@@ -292,6 +292,7 @@ def test_offline_init_stores_memory_and_fallback_reason(monkeypatch):
                         lambda plans, **kw: (_FakeBackend(), fake_plan, "cuda skipped; using CPU", 4_200_000_000))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
     eng = asr_engine.AsrEngine()
+    monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     eng.init("sense-voice", "en", 16000, None, None, None, "auto")
     assert eng.resolved["memoryBytes"] == 4_200_000_000
     assert "using CPU" in eng.resolved["fallbackReason"]
@@ -455,6 +456,7 @@ def _streaming_engine(monkeypatch, fake_stream, vad_segments):
     monkeypatch.setattr(eng, "_resolve_streaming_backend",
                         lambda model, device, *a, **kw: (backend, fake_plan, None, None))
     monkeypatch.setattr(eng, "_vad_events", lambda samples: vad_segments)  # ['start'|'speech'|'end']
+    monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     return eng
 
 

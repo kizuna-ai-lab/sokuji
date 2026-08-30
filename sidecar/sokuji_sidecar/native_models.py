@@ -14,8 +14,17 @@ delete_model() never removes it — another installed model may still need it.
 import fnmatch
 import os
 
-from .asr_engine import VAD_URL
 from .catalog import asr_model as _asr_model, split_artifact
+
+# NativeVad (sidecar/sokuji_sidecar/vad.py) gets its silero weights from the
+# sokuji_native wheel itself now, so AsrEngine._init_vad() no longer downloads
+# this file — but this registry's download/size accounting hasn't been updated
+# for that yet (out of scope for the ASR/VAD task that dropped the download from
+# asr_engine.py). Kept here, unchanged, purely so this module still imports;
+# revisit whether download_specs()/size accounting should still append it at all.
+VAD_URL = os.environ.get(
+    "SOKUJI_VAD_URL",
+    "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx")
 
 # The exact CTranslate2 export files the ct2_opus_translate backend reads
 # (see ct2_opus.Ct2OpusSession). Our jiangzhuo9357/opus-mt-*-ct2 repos mirror
