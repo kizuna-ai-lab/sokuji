@@ -185,3 +185,18 @@ def test_asr_stream_prefix_and_finalize():
     st2.close()                                 # abandon
     assert "ask not" in m.run(pcm, "en").lower()
     m.unload()
+
+
+@needs_stream
+def test_stream_keeps_model_alive():
+    import gc
+    sokuji_native.init()
+    m = sokuji_native.asr_load(STREAM_GGUF)
+    st = m.open_stream("en")
+    pcm = _jfk()
+    del m
+    gc.collect()                                # the only remaining Python reference to the model is
+    st.feed(pcm[:8000])                         # st._model; a dangling C handle here would crash
+    st.close()
+    del st
+    gc.collect()                                # closing releases st._model too; this must not crash either

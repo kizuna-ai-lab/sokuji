@@ -219,9 +219,10 @@ class AsrStream:
     the chunk; finalize() returns the final committed text and closes the stream; close()
     abandons it. Both are idempotent."""
 
-    def __init__(self, lib, handle):
+    def __init__(self, lib, handle, model):
         self._lib = lib
         self._h = handle
+        self._model = model     # keeps the AsrModel (and its C handle) alive for as long as this stream is
 
     def feed(self, pcm) -> StreamText:
         if self._h is None:
@@ -249,6 +250,7 @@ class AsrStream:
         h, self._h = self._h, None
         if h is not None:
             self._lib.sk_asr_stream_close(h)
+        self._model = None
 
     def __del__(self):
         try:
@@ -291,7 +293,7 @@ class AsrModel:
         status = self._lib.sk_asr_stream_open(self._h, language.encode() if language else None, ctypes.byref(out))
         if status != _ffi.SK_OK:
             _raise(self._lib, status, "sk_asr_stream_open")
-        return AsrStream(self._lib, out.value)
+        return AsrStream(self._lib, out.value, self)
 
     def unload(self) -> None:
         h, self._h = self._h, None
