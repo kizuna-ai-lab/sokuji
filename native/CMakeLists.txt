@@ -6,6 +6,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)   # Windows DLLs land beside the .so/.dylib equivalents
+# Multi-config generators (Visual Studio) ignore the single-config vars above and would
+# otherwise scatter output into lib/Release, lib/Debug, ...; pin every configuration to
+# the same flat lib/ directory so the MSVC build matches the Ninja/Makefiles layout.
+foreach(_cfg Debug Release RelWithDebInfo MinSizeRel)
+    string(TOUPPER ${_cfg} _CFG)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${_CFG} ${CMAKE_BINARY_DIR}/lib)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${_CFG} ${CMAKE_BINARY_DIR}/lib)
+endforeach()
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
 endif()

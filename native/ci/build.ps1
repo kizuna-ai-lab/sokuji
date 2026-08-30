@@ -1,0 +1,36 @@
+# Windows twin of build.sh. Usage: native\ci\build.ps1 -Lane vulkan -Plat win_amd64
+param([Parameter(Mandatory)][string]$Lane, [Parameter(Mandatory)][string]$Plat)
+$ErrorActionPreference = "Stop"
+$Root = Resolve-Path (Join-Path $PSScriptRoot "..")
+$Python = if ($env:PYTHON) { $env:PYTHON } else { "python" }
+# Lane `none` reuses the pre-existing `build\cpu` tree (the developer default from before
+# this script existed) instead of building a fresh `build\none` from scratch — ggml plus
+# all three engines takes ~30 minutes. CI lane names stay as-is (build\vulkan, build\metal).
+$BuildDirName = if ($Lane -eq "none") { "cpu" } else { $Lane }
+$Build = Join-Path $Root "build\$BuildDirName"
+
+cmake -S $Root -B $Build -G "Visual Studio 17 2022" -A x64 -DSOKUJI_GPU=$Lane
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+cmake --build $Build --config Release --parallel
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+ctest --test-dir $Build -C Release --output-on-failure
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+Remove-Item -Recurse -Force "$Build\stage", "$Root\python\sokuji_native\_native" -ErrorAction SilentlyContinue
+# Only the sokuji component: the fetched upstreams carry their own install() rules
+# (headers, static libs, cmake configs) in the default component, which must not run.
+cmake --install $Build --config Release --prefix "$Build\stage" --component sokuji
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+Copy-Item -Recurse "$Build\stage" "$Root\python\sokuji_native\_native"
+# README.md is written in a later task; copy it in once it exists, skip quietly until then.
+if (Test-Path "$Root\README.md") { Copy-Item "$Root\README.md" "$Root\python\README.md" }
+Push-Location "$Root\python"
+Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
+$env:SOKUJI_NATIVE_PLAT = $Plat
+& $Python -m pip wheel . --no-deps -w dist
+if ($LASTEXITCODE) { Pop-Location; exit $LASTEXITCODE }
+Pop-Location
+Get-ChildItem "$Root\python\dist"
+& $Python -m pip install -q --force-reinstall (Get-ChildItem "$Root\python\dist\*.whl").FullName
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+& $Python -c "import sokuji_native as s; s.init(); print(s.version(), s.engine_versions(), [(d.kind, d.description) for d in s.devices()])"
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
