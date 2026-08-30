@@ -84,8 +84,10 @@ else()
 endif()
 configure_file(cmake/contract.json.in ${CMAKE_BINARY_DIR}/contract.json @ONLY)
 
-install(TARGETS sokuji_native COMPONENT sokuji
-        LIBRARY DESTINATION . RUNTIME DESTINATION . ARCHIVE DESTINATION .)
+install(TARGETS sokuji_native
+        LIBRARY DESTINATION . COMPONENT sokuji
+        RUNTIME DESTINATION . COMPONENT sokuji
+        ARCHIVE DESTINATION lib COMPONENT sokuji_dev)
 # ggml, ggml-base and the backend modules all land in ${CMAKE_BINARY_DIR}/lib; copy them by
 # name (symlink chains preserved) rather than installing targets owned by other directories.
 install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/
