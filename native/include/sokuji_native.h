@@ -113,7 +113,9 @@ typedef struct sk_asr_caps {
 
 /* Called by sk_asr_run: with text == NULL between decode steps (return false to cancel),
  * and once with the transcript when the run completes. Called by sk_asr_stream_finalize
- * once with the final committed text. `text` is valid only during the call. */
+ * once with the stream's FINAL text — the post-finalize full hypothesis, not the committed
+ * display prefix (committed_text is best-effort append-only and never rolled back). `text`
+ * is valid only during the call. */
 typedef bool (*sk_text_cb)(const char *text, void *user);
 
 typedef struct sk_stream_text {

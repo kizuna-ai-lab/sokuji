@@ -81,6 +81,23 @@ bool abort_poll(void *p) {                       // transcribe.cpp polls this be
 
 }  // namespace
 
+struct sk_asr_stream {
+    sk_asr_model *model;
+};
+
+namespace {
+// Copy the session's committed/tentative view into the model's buffers (caller holds m->mutex).
+sk_status snapshot_text(sk_asr_model *m, const char *fn) {
+    transcribe_stream_text t;
+    transcribe_stream_text_init(&t);
+    transcribe_status st = transcribe_stream_get_text(m->session, &t);
+    if (st != TRANSCRIBE_OK) return fail(fn, st);
+    m->committed.assign(t.committed_text ? t.committed_text : "", t.committed_text ? t.committed_text_bytes : 0);
+    m->tentative.assign(t.tentative_text ? t.tentative_text : "", t.tentative_text ? t.tentative_text_bytes : 0);
+    return SK_OK;
+}
+}  // namespace
+
 extern "C" {
 
 SK_API sk_status sk_asr_load(const char *gguf, const sk_device *device, sk_asr_model **out) {
@@ -179,6 +196,89 @@ SK_API sk_status sk_asr_run(sk_asr_model *m, const float *pcm, size_t n, const c
     m->run_text = text ? text : "";
     if (cb) cb(m->run_text.c_str(), user);
     return SK_OK;
+}
+
+SK_API sk_status sk_asr_stream_open(sk_asr_model *m, const char *lang, sk_asr_stream **out) {
+    if (out) *out = nullptr;
+    if (!m || !out) { sk::set_error("sk_asr_stream_open: model and out-pointer are required"); return SK_ERR_INVALID_ARGUMENT; }
+    std::lock_guard<std::mutex> lock(m->mutex);
+    if (!m->caps.supports_streaming) { sk::set_error("sk_asr_stream_open: this model does not support streaming"); return SK_ERR_INVALID_ARGUMENT; }
+    if (m->stream_open) { sk::set_error("sk_asr_stream_open: a stream is already open on this model"); return SK_ERR_INVALID_ARGUMENT; }
+
+    transcribe_run_params rp;
+    transcribe_run_params_init(&rp);
+    rp.language = (lang && *lang) ? lang : nullptr;
+    transcribe_stream_params sp;
+    transcribe_stream_params_init(&sp);                              // family defaults, AUTO commit policy
+    transcribe_status st = transcribe_stream_begin(m->session, &rp, &sp);
+    if (st != TRANSCRIBE_OK) return fail("sk_asr_stream_open", st);
+
+    m->stream_open = true;
+    m->committed.clear();
+    m->tentative.clear();
+    *out = new sk_asr_stream{m};
+    return SK_OK;
+}
+
+SK_API sk_status sk_asr_stream_feed(sk_asr_stream *s, const float *pcm, size_t n, sk_stream_text *out) {
+    if (!s || !s->model || (!pcm && n > 0) || n > static_cast<size_t>(INT32_MAX)) {
+        sk::set_error("sk_asr_stream_feed: stream and pcm (n <= INT32_MAX) are required");
+        return SK_ERR_INVALID_ARGUMENT;
+    }
+    sk_asr_model *m = s->model;
+    std::lock_guard<std::mutex> lock(m->mutex);
+    if (!m->stream_open) { sk::set_error("sk_asr_stream_feed: the stream is finalized or closed"); return SK_ERR_INVALID_ARGUMENT; }
+    if (n > 0) {
+        transcribe_stream_update u;
+        transcribe_stream_update_init(&u);
+        transcribe_status st = transcribe_stream_feed(m->session, pcm, static_cast<int>(n), &u);
+        if (st != TRANSCRIBE_OK) return fail("sk_asr_stream_feed", st);
+    }
+    sk_status rc = snapshot_text(m, "sk_asr_stream_feed");
+    if (rc != SK_OK) return rc;
+    if (out) { out->committed = m->committed.c_str(); out->tentative = m->tentative.c_str(); }
+    return SK_OK;
+}
+
+SK_API sk_status sk_asr_stream_finalize(sk_asr_stream *s, sk_text_cb cb, void *user) {
+    if (!s || !s->model) { sk::set_error("sk_asr_stream_finalize: stream is required"); return SK_ERR_INVALID_ARGUMENT; }
+    sk_asr_model *m = s->model;
+    std::lock_guard<std::mutex> lock(m->mutex);
+    if (!m->stream_open) { sk::set_error("sk_asr_stream_finalize: the stream is finalized or closed"); return SK_ERR_INVALID_ARGUMENT; }
+    transcribe_stream_update u;
+    transcribe_stream_update_init(&u);
+    transcribe_status st = transcribe_stream_finalize(m->session, &u);
+    sk_status rc;
+    if (st == TRANSCRIBE_OK || st == TRANSCRIBE_ERR_OUTPUT_TRUNCATED) {
+        // Ruling N: the final text is the post-finalize FULL hypothesis. committed_text is
+        // a best-effort append-only display prefix that transcribe.cpp never rolls back —
+        // on moonshine-streaming-tiny it demonstrably ends stale while full_text is right.
+        transcribe_stream_text t;
+        transcribe_stream_text_init(&t);
+        transcribe_status gt = transcribe_stream_get_text(m->session, &t);
+        if (gt == TRANSCRIBE_OK) {
+            m->run_text.assign(t.full_text ? t.full_text : "", t.full_text ? t.full_text_bytes : 0);
+            rc = SK_OK;
+        } else {
+            rc = fail("sk_asr_stream_finalize", gt);
+        }
+    } else {
+        rc = fail("sk_asr_stream_finalize", st);
+    }
+    transcribe_stream_reset(m->session);                              // back to idle either way (Ruling F)
+    m->stream_open = false;
+    if (rc != SK_OK) return rc;
+    if (cb) cb(m->run_text.c_str(), user);
+    return SK_OK;
+}
+
+SK_API void sk_asr_stream_close(sk_asr_stream *s) {
+    if (!s) return;
+    if (sk_asr_model *m = s->model) {
+        std::lock_guard<std::mutex> lock(m->mutex);
+        if (m->stream_open) { transcribe_stream_reset(m->session); m->stream_open = false; }   // abandon
+    }
+    delete s;
 }
 
 SK_API void sk_asr_unload(sk_asr_model *m) {
