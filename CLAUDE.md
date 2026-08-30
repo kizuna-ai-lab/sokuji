@@ -117,7 +117,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 
 6. **Native runtime (`native/`)**
    - One CMake super-project builds transcribe.cpp, llama.cpp and audio.cpp on a single upstream ggml into `libsokuji_native` (C ABI `sk_*`, Python package `sokuji_native`)
-   - Design: `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md`; build: `native/README.md`
+   - Design: `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md`; build: `native/README.md`; ASR + VAD go through `sokuji_sidecar/native.py` → `asr_backend.py` / `vad.py`
 
 ## Important Patterns and Conventions
 
