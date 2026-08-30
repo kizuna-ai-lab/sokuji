@@ -285,6 +285,7 @@ SK_API void sk_asr_unload(sk_asr_model *m) {
     if (!m) return;
     {
         std::lock_guard<std::mutex> lock(m->mutex);
+        m->stream_open = false;                                 // keep the flag truthful during teardown
         if (m->session) transcribe_session_free(m->session);   // tears down any stream state too
         if (m->model)   transcribe_model_free(m->model);
         m->session = nullptr;

@@ -98,7 +98,10 @@ SK_API int32_t sk_audio_families(const char **out, int32_t capacity);
  * sk_asr_stream_feed and sk_asr_stream_finalize on the same model never overlap (the
  * engine's 0.x contract). A model has at most one open stream. Pointers in sk_asr_caps
  * belong to the model (valid until sk_asr_unload); pointers in sk_stream_text belong to
- * the stream and are valid until the next call on that stream. */
+ * the model and are valid until the next call on the stream that returned them. A
+ * stream never outlives its model: finalize or close every stream before sk_asr_unload
+ * — unload tears the session down beneath the handle, and any later call on it is
+ * undefined. */
 typedef struct sk_asr_model  sk_asr_model;
 typedef struct sk_asr_stream sk_asr_stream;
 
@@ -119,7 +122,9 @@ typedef struct sk_asr_caps {
 typedef bool (*sk_text_cb)(const char *text, void *user);
 
 typedef struct sk_stream_text {
-    const char *committed;   /* append-only prefix; owned by the stream, valid until the next call on it */
+    const char *committed;   /* append-only prefix; owned by the stream's model and reused
+                               * by whichever stream is open; valid until the next call on
+                               * that stream */
     const char *tentative;   /* volatile suffix; same lifetime */
 } sk_stream_text;
 
