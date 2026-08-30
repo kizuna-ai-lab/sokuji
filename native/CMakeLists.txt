@@ -29,14 +29,20 @@ target_include_directories(sokuji_native PRIVATE ${transcribe_SOURCE_DIR}/includ
 target_link_libraries(sokuji_native PRIVATE llama)
 target_include_directories(sokuji_native PRIVATE ${llama_SOURCE_DIR}/include)
 
-# audio.cpp: link the runtime (six families) and inject the compatibility header into every
-# engine object target. The header needs ggml-impl.h from the ggml *source* tree.
+# audio.cpp: link the runtime and inject the compatibility header into every engine object
+# target. The header needs ggml-impl.h from the ggml *source* tree. audio.cpp declares one
+# OBJECT target per *build target*, not per family (e.g. the `moss` target carries both
+# moss_tts_nano and moss_tts_local), so enumerate the targets it created instead of guessing
+# names from the family list. Extra engine_model_* targets are EXCLUDE_FROM_ALL and only
+# compile when engine_runtime links them.
 set(_audiocpp_engine_targets engine_core engine_runtime)
-foreach(_fam moss_tts_nano qwen3_tts omnivoice pocket_tts supertonic silero_vad)
-    if(TARGET engine_model_${_fam})
-        list(APPEND _audiocpp_engine_targets engine_model_${_fam})
+get_property(_audiocpp_dir_targets DIRECTORY ${audiocpp_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
+foreach(_t IN LISTS _audiocpp_dir_targets)
+    if(_t MATCHES "^engine_model_")
+        list(APPEND _audiocpp_engine_targets ${_t})
     endif()
 endforeach()
+message(STATUS "sokuji-native: compat header injected into: ${_audiocpp_engine_targets}")
 foreach(_t IN LISTS _audiocpp_engine_targets)
     target_include_directories(${_t} PRIVATE ${SOKUJI_GGML_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src)
     if(MSVC)
