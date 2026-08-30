@@ -51,8 +51,8 @@ int main(int argc, char **argv) {
     assert(saw_en);
     assert(caps.supports_streaming == false);                          // whisper: batch only
     assert(sk_asr_capabilities(nullptr, &caps) == SK_ERR_INVALID_ARGUMENT);
-    sk_asr_unload(m);
-    sk_asr_unload(nullptr);                                            // must accept null
     std::printf("test_asr: load/capabilities ok (arch=%s, %d languages)\n", caps.arch, caps.n_languages);
+    sk_asr_unload(m);   // caps.arch/languages point into m's storage — print before this call
+    sk_asr_unload(nullptr);                                            // must accept null
     return 0;
 }
