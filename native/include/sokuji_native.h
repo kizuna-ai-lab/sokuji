@@ -141,7 +141,11 @@ SK_API void      sk_asr_unload(sk_asr_model *);
  * A VAD runs on the CPU device, at 16 kHz, on exactly 512-sample chunks fed in order.
  * Events are edge-triggered: START once when speech begins (sample = padded start), END
  * once when it ends (with the finished segment), NONE otherwise. sk_vad_finalize reports a
- * trailing open segment as END and resets. A VAD is not thread-safe; one caller at a time. */
+ * trailing open segment as END and resets. A VAD is not thread-safe; one caller at a time.
+ * A failed sk_vad_feed consumes nothing — the engine does not advance its internal sample
+ * cursor. Recover by retrying the SAME 512 samples, or by calling sk_vad_reset. Feeding the
+ * NEXT chunk after a failure instead silently drops those 512 samples and permanently skews
+ * every later sample index the VAD reports. */
 typedef struct sk_vad sk_vad;
 
 typedef struct sk_vad_options {

@@ -67,6 +67,23 @@ int main(int argc, char **argv) {
         if (ev.kind == SK_VAD_SPEECH_START) first_again = ev.sample;
     }
     assert(first_again == first_start);
+
+    // speech_pad_ms = 0: the one asymmetric default rule (< 0 = default 30 ms pad, 0 = no
+    // pad, a valid value in its own right). Same weights and other options as `o`.
+    sk_vad_options o0 = o;
+    o0.speech_pad_ms = 0;
+    sk_vad *v0 = nullptr;
+    assert(sk_vad_open(&o0, &v0) == SK_OK && v0 != nullptr);
+    int64_t first_pad0 = -1;
+    sk_vad_event ev0 = {};
+    for (size_t off = 0; off + 512 <= jfk.size() && first_pad0 < 0; off += 512) {
+        assert(sk_vad_feed(v0, jfk.data() + off, &ev0) == SK_OK);
+        if (ev0.kind == SK_VAD_SPEECH_START) first_pad0 = ev0.sample;
+    }
+    assert(first_pad0 > first_start);                  // no pad subtracted -> a later reported start
+    assert(first_pad0 - first_start <= 512 + 480);      // pad-30 subtracts 480 samples; tolerate one chunk
+    sk_vad_close(v0);
+
     assert(sk_vad_feed(nullptr, jfk.data(), &ev) == SK_ERR_INVALID_ARGUMENT);
     sk_vad_close(v);
     sk_vad_close(nullptr);
