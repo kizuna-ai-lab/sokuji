@@ -30,9 +30,15 @@ int  g_threads = 0;
 sk_log_cb g_log = nullptr;
 void *g_log_user = nullptr;
 std::vector<ggml_backend_dev_t> g_devices;
-std::string g_engine_versions;
 
 void set_error(const std::string &msg) { t_last_error = msg; }
+
+/* Every entry point that needs a live library calls this first. Caller holds g_mutex. */
+bool require_init(const char *what) {
+    if (g_initialised) return true;
+    set_error(std::string(what) + ": sk_init has not succeeded");
+    return false;
+}
 
 void log_line(int32_t level, const char *msg) {
     if (g_log) g_log(level, msg, g_log_user);
@@ -82,9 +88,15 @@ SK_API const char *sk_last_error(void) { return t_last_error.c_str(); }
 SK_API void sk_free(void *p) { std::free(p); }
 
 SK_API const char *sk_engine_versions(void) {
+    /* Slice 1 links llama.cpp but calls nothing from it; llama_max_devices() is the one
+     * reference that keeps the static archive in the link. Its value is not part of the
+     * version string (that string is parsed key=value by the Python side), so it is
+     * parked in a volatile the optimiser may not drop. */
+    static volatile size_t llama_linked = llama_max_devices();
+    (void)llama_linked;
     static const std::string s = std::string("ggml=") + SK_GGML_VERSION +
                                  ";transcribe=" + transcribe_version() +
-                                 ";llama=" + SK_LLAMA_VERSION + "(" + std::to_string(llama_max_devices()) + " max devices)" +
+                                 ";llama=" + SK_LLAMA_VERSION +
                                  ";audiocpp=" + SK_AUDIOCPP_VERSION +
                                  ";lane=" + SK_LANE;
     return s.c_str();
@@ -142,6 +154,7 @@ SK_API int32_t sk_devices(sk_device *out, int32_t capacity) {
 
 SK_API sk_status sk_device_free_mem(int32_t index, uint64_t *bytes) {
     std::lock_guard<std::mutex> lock(g_mutex);
+    if (!require_init("sk_device_free_mem")) return SK_ERR_NOT_INITIALISED;
     if (!bytes || index < 0 || static_cast<size_t>(index) >= g_devices.size()) {
         set_error("sk_device_free_mem: bad index or NULL out-pointer");
         return SK_ERR_INVALID_ARGUMENT;

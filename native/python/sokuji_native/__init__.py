@@ -95,12 +95,12 @@ def version() -> str:
 
 
 def engine_versions() -> dict[str, str]:
-    raw = _load().sk_engine_versions().decode()
+    raw = _load().sk_engine_versions().decode()   # "ggml=0.22.0;transcribe=0.2.2;...;lane=cpu"
     out: dict[str, str] = {}
     for seg in raw.split(";"):
         key, _, val = seg.partition("=")
         if key:
-            out[key] = val.split("(")[0]      # "v0.3.0(2 max devices)" -> "v0.3.0"
+            out[key] = val
     return out
 
 

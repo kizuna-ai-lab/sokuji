@@ -17,12 +17,15 @@ int main(int argc, char **argv) {
     assert(std::string(sk_version()).rfind("0.", 0) == 0);          // "0.1.0"
     assert(std::strstr(sk_engine_versions(), "ggml=0.22.0") != nullptr);
     assert(std::strstr(sk_engine_versions(), "transcribe=0.2.2") != nullptr);
-    assert(std::strstr(sk_engine_versions(), "llama=") != nullptr);
+    assert(std::strstr(sk_engine_versions(), "llama=0.3.0;") != nullptr);   // normalised: no "v", no suffix
     assert(std::string(sk_last_error()).empty());
 
     sk_device before[8];
     assert(sk_devices(before, 8) == 0);                              // nothing before init
-    assert(sk_device_free_mem(0, nullptr) == SK_ERR_INVALID_ARGUMENT);
+    uint64_t before_bytes = 0;                                       // pre-init, argument shape is irrelevant:
+    assert(sk_device_free_mem(0, nullptr) == SK_ERR_NOT_INITIALISED);// the library is not initialised
+    assert(sk_device_free_mem(0, &before_bytes) == SK_ERR_NOT_INITIALISED);
+    assert(std::strstr(sk_last_error(), "sk_init") != nullptr);
 
     sk_init_options wrong = {};
     wrong.abi_version = SK_ABI_VERSION + 1;

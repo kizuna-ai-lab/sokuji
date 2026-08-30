@@ -1,9 +1,22 @@
 /* sokuji-native — the one C ABI the sidecar talks to.
  * Conventions: opaque handles; every call returns sk_status (0 ok, negative error) and
  * sk_last_error() carries a thread-local UTF-8 message; callbacks take a void *user and
- * return bool — false cancels; memory the library hands out is released with sk_free();
- * threads are configured once in sk_init(). Prefixes name the stage (sk_asr_, sk_vad_,
- * sk_translate_, sk_tts_), never the engine behind it. */
+ * return bool — false cancels; threads are configured once in sk_init(). Prefixes name
+ * the stage (sk_asr_, sk_vad_, sk_translate_, sk_tts_), never the engine behind it.
+ *
+ * Three rules that hold for every call in this header, now and in later slices:
+ *   - Nothing works before sk_init() succeeds. Any call that needs a live library
+ *     returns SK_ERR_NOT_INITIALISED and sets sk_last_error(); the exceptions are the
+ *     pure accessors below (sk_abi_version, sk_version, sk_engine_versions,
+ *     sk_last_error, sk_free) and sk_devices(), which reports 0 devices.
+ *   - sk_init() is idempotent, and only the FIRST successful call decides the log sink
+ *     and the thread count: a later sk_init() with a different sk_init_options.log
+ *     returns SK_OK and changes nothing. The caller must keep that first callback (and
+ *     its log_user) alive for the life of the process.
+ *   - Strings and buffers this library hands back through an out-parameter are
+ *     malloc-allocated and owned by the caller, who releases each one with sk_free().
+ *     Pointers RETURNED directly (sk_version, sk_last_error, sk_engine_versions, the
+ *     sk_audio_families entries) are static or thread-local storage: never freed. */
 #ifndef SOKUJI_NATIVE_H
 #define SOKUJI_NATIVE_H
 
@@ -61,9 +74,9 @@ typedef struct sk_device {
     uint64_t mem_free;         /* snapshot at enumeration time; use sk_device_free_mem for fresh values */
 } sk_device;
 
-SK_API sk_status   sk_init(const sk_init_options *options);
+SK_API sk_status   sk_init(const sk_init_options *options);              /* idempotent; first call wins (see top) */
 SK_API int32_t     sk_devices(sk_device *out, int32_t capacity);        /* returns count written; 0 before sk_init */
-SK_API sk_status   sk_device_free_mem(int32_t index, uint64_t *bytes);
+SK_API sk_status   sk_device_free_mem(int32_t index, uint64_t *bytes);  /* SK_ERR_NOT_INITIALISED before sk_init */
 SK_API int32_t     sk_abi_version(void);
 SK_API const char *sk_version(void);                                    /* "0.1.0" */
 SK_API const char *sk_engine_versions(void);                            /* "ggml=0.22.0;transcribe=0.2.2;..." */

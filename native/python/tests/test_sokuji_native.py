@@ -35,7 +35,7 @@ def test_version_and_engines():
     assert ev["ggml"] == "0.22.0"
     assert ev["transcribe"] == "0.2.2"
     assert ev["audiocpp"] == "0.7.0"
-    assert "llama" in ev
+    assert ev["llama"] == "0.3.0"       # normalised: the upstream tag is v0.3.0
 
 
 @needs_tree
