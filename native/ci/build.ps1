@@ -29,9 +29,10 @@ Copy-Item -Recurse "$Build\stage" "$Root\python\sokuji_native\_native"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 $env:PYTHONPATH = "$Root\python"
 $env:SOKUJI_NATIVE_DIR = "$Build\stage"
+$env:SK_TEST_SAMPLE_WAV = "$Build\_deps\transcribe-src\samples\jfk.wav"
 & $Python -m pytest "$Root\python\tests" "$Root\tests\parity" -q
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
-Remove-Item Env:PYTHONPATH, Env:SOKUJI_NATIVE_DIR
+Remove-Item Env:PYTHONPATH, Env:SOKUJI_NATIVE_DIR, Env:SK_TEST_SAMPLE_WAV
 Push-Location "$Root\python"
 Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
 $env:SOKUJI_NATIVE_PLAT = $Plat

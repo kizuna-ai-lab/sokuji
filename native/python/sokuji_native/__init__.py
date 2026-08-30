@@ -16,7 +16,8 @@ from dataclasses import dataclass
 from . import _ffi
 
 __all__ = ["NativeError", "Device", "init", "devices", "device_free_mem", "version",
-           "engine_versions", "contract", "audio_families", "native_dir"]
+           "engine_versions", "contract", "audio_families", "native_dir",
+           "AsrCaps", "AsrModel", "AsrStream", "StreamText", "VadEvent", "Vad", "asr_load", "vad_open"]
 
 
 class NativeError(RuntimeError):
@@ -168,3 +169,225 @@ def audio_families() -> list[str]:
     buf = (ctypes.c_char_p * 64)()
     n = lib.sk_audio_families(buf, 64)
     return [buf[i].decode() for i in range(n)]
+
+
+def _pcm(x):
+    """(ctypes float32 array, n) from a C-contiguous float32 buffer (zero copy: a numpy
+    float32 array), any other buffer-protocol object, or a plain sequence of floats."""
+    try:
+        mv = memoryview(x)
+    except TypeError:
+        vals = [float(v) for v in x]
+        return (ctypes.c_float * len(vals))(*vals), len(vals)
+    if mv.format == "f" and mv.c_contiguous:
+        n = mv.nbytes // 4
+        arr = (ctypes.c_float * n).from_buffer_copy(mv) if mv.readonly else (ctypes.c_float * n).from_buffer(mv)
+        return arr, n
+    flat = mv.tolist()
+    while flat and isinstance(flat[0], list):        # ndim > 1: flatten row-major
+        flat = [v for row in flat for v in row]
+    vals = [float(v) for v in flat]
+    return (ctypes.c_float * len(vals))(*vals), len(vals)
+
+
+@dataclass(frozen=True)
+class AsrCaps:
+    languages: tuple[str, ...]
+    supports_streaming: bool
+    supports_language_detect: bool
+    native_sample_rate: int
+    arch: str
+
+
+@dataclass(frozen=True)
+class StreamText:
+    committed: str
+    tentative: str
+
+
+@dataclass(frozen=True)
+class VadEvent:
+    kind: str            # "start" | "end"
+    sample: int
+    probability: float
+    seg_start: int
+    seg_end: int
+
+
+class AsrStream:
+    """One open stream on an AsrModel. feed() returns the committed/tentative view after
+    the chunk; finalize() returns the final committed text and closes the stream; close()
+    abandons it. Both are idempotent."""
+
+    def __init__(self, lib, handle):
+        self._lib = lib
+        self._h = handle
+
+    def feed(self, pcm) -> StreamText:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_INVALID_ARGUMENT, "sk_asr_stream_feed: stream is closed")
+        arr, n = _pcm(pcm)
+        out = _ffi.sk_stream_text()
+        status = self._lib.sk_asr_stream_feed(self._h, ctypes.cast(arr, ctypes.POINTER(ctypes.c_float)), n, ctypes.byref(out))
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_asr_stream_feed")
+        return StreamText((out.committed or b"").decode("utf-8", "replace"), (out.tentative or b"").decode("utf-8", "replace"))
+
+    def finalize(self) -> str:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_INVALID_ARGUMENT, "sk_asr_stream_finalize: stream is closed")
+        got: list[str] = []
+        cb = _ffi.TEXT_CB(lambda text, _user: (got.append((text or b"").decode("utf-8", "replace")), True)[1])
+        status = self._lib.sk_asr_stream_finalize(self._h, cb, None)
+        if status != _ffi.SK_OK:
+            self.close()
+            _raise(self._lib, status, "sk_asr_stream_finalize")
+        self.close()
+        return got[0] if got else ""
+
+    def close(self) -> None:
+        h, self._h = self._h, None
+        if h is not None:
+            self._lib.sk_asr_stream_close(h)
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
+class AsrModel:
+    """A loaded ASR model. Compute on one model is serialised by the library."""
+
+    def __init__(self, lib, handle, caps: AsrCaps):
+        self._lib = lib
+        self._h = handle
+        self.capabilities = caps
+
+    def run(self, pcm, language: str | None = None, on_poll=None) -> str:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_NOT_INITIALISED, "sk_asr_run: model is unloaded")
+        arr, n = _pcm(pcm)
+        got: list[str] = []
+
+        def _cb(text, _user):
+            if text is None:
+                return True if on_poll is None else bool(on_poll())
+            got.append(text.decode("utf-8", "replace"))
+            return True
+
+        cb = _ffi.TEXT_CB(_cb)
+        status = self._lib.sk_asr_run(self._h, ctypes.cast(arr, ctypes.POINTER(ctypes.c_float)), n,
+                                      language.encode() if language else None, cb, None)
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_asr_run")
+        return got[0] if got else ""
+
+    def open_stream(self, language: str | None = None) -> AsrStream:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_NOT_INITIALISED, "sk_asr_stream_open: model is unloaded")
+        out = ctypes.c_void_p()
+        status = self._lib.sk_asr_stream_open(self._h, language.encode() if language else None, ctypes.byref(out))
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_asr_stream_open")
+        return AsrStream(self._lib, out.value)
+
+    def unload(self) -> None:
+        h, self._h = self._h, None
+        if h is not None:
+            self._lib.sk_asr_unload(h)
+
+    def __del__(self):
+        try:
+            self.unload()
+        except Exception:
+            pass
+
+
+def asr_load(path: str, device: Device | None = None) -> AsrModel:
+    lib = _load()
+    out = ctypes.c_void_p()
+    dev = None
+    if device is not None:
+        dev = _ffi.sk_device()
+        dev.index = int(device.index)
+    status = lib.sk_asr_load(str(path).encode(), ctypes.byref(dev) if dev is not None else None, ctypes.byref(out))
+    if status != _ffi.SK_OK:
+        _raise(lib, status, "sk_asr_load")
+    raw = _ffi.sk_asr_caps()
+    status = lib.sk_asr_capabilities(out.value, ctypes.byref(raw))
+    if status != _ffi.SK_OK:
+        lib.sk_asr_unload(out.value)
+        _raise(lib, status, "sk_asr_capabilities")
+    langs = tuple(raw.languages[i].decode() for i in range(raw.n_languages)) if raw.languages else ()
+    caps = AsrCaps(langs, bool(raw.supports_streaming), bool(raw.supports_language_detect),
+                   int(raw.native_sample_rate), (raw.arch or b"").decode())
+    return AsrModel(lib, out.value, caps)
+
+
+class Vad:
+    """One silero VAD instance: feed exactly 512 float32 samples at 16 kHz per call."""
+
+    def __init__(self, lib, handle):
+        self._lib = lib
+        self._h = handle
+
+    def _event(self, ev) -> VadEvent | None:
+        kind = _ffi.VAD_KIND.get(ev.kind)
+        if kind is None:
+            return None
+        return VadEvent(kind, int(ev.sample), float(ev.probability), int(ev.seg_start), int(ev.seg_end))
+
+    def feed(self, pcm512) -> VadEvent | None:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_INVALID_ARGUMENT, "sk_vad_feed: vad is closed")
+        arr, n = _pcm(pcm512)
+        if n != 512:
+            raise ValueError(f"sk_vad_feed: exactly 512 samples per call, got {n}")
+        ev = _ffi.sk_vad_event()
+        status = self._lib.sk_vad_feed(self._h, ctypes.cast(arr, ctypes.POINTER(ctypes.c_float)), ctypes.byref(ev))
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_vad_feed")
+        return self._event(ev)
+
+    def finalize(self) -> VadEvent | None:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_INVALID_ARGUMENT, "sk_vad_finalize: vad is closed")
+        ev = _ffi.sk_vad_event()
+        status = self._lib.sk_vad_finalize(self._h, ctypes.byref(ev))
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_vad_finalize")
+        return self._event(ev)
+
+    def reset(self) -> None:
+        if self._h is not None:
+            self._lib.sk_vad_reset(self._h)
+
+    def close(self) -> None:
+        h, self._h = self._h, None
+        if h is not None:
+            self._lib.sk_vad_close(h)
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
+def vad_open(*, weights: str | None = None, threshold: float = 0.5, min_speech_ms: int = 250,
+             min_silence_ms: int = 100, speech_pad_ms: int = 30, max_speech_s: float = 0.0) -> Vad:
+    lib = _load()
+    o = _ffi.sk_vad_options()
+    o.weights = weights.encode() if weights else None
+    o.threshold = float(threshold)
+    o.min_speech_ms = int(min_speech_ms)
+    o.min_silence_ms = int(min_silence_ms)
+    o.speech_pad_ms = int(speech_pad_ms)
+    o.max_speech_s = float(max_speech_s)
+    out = ctypes.c_void_p()
+    status = lib.sk_vad_open(ctypes.byref(o), ctypes.byref(out))
+    if status != _ffi.SK_OK:
+        _raise(lib, status, "sk_vad_open")
+    return Vad(lib, out.value)

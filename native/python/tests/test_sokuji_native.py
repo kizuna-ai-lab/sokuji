@@ -5,6 +5,7 @@ import json
 import os
 import pathlib
 
+import numpy as np
 import pytest
 
 import sokuji_native
@@ -91,3 +92,96 @@ def test_second_init_log_keeps_first_trampoline_alive():
     sokuji_native.init()                                  # and a third call without one
 
     assert trampolines() == [first]
+
+
+ASR_GGUF = os.environ.get("SK_TEST_ASR_GGUF")
+STREAM_GGUF = os.environ.get("SK_TEST_ASR_STREAM_GGUF")
+needs_asr = pytest.mark.skipif(not (HAVE_TREE and ASR_GGUF), reason="needs a built tree and SK_TEST_ASR_GGUF")
+needs_stream = pytest.mark.skipif(not (HAVE_TREE and STREAM_GGUF), reason="needs a built tree and SK_TEST_ASR_STREAM_GGUF")
+
+
+def _jfk() -> np.ndarray:
+    import wave
+    path = os.environ.get("SK_TEST_SAMPLE_WAV") or str(
+        pathlib.Path(__file__).resolve().parents[2] / "build" / "cpu" / "_deps" / "transcribe-src" / "samples" / "jfk.wav")
+    with wave.open(path, "rb") as w:
+        assert w.getframerate() == 16000 and w.getnchannels() == 1
+        return np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
+
+
+@needs_tree
+def test_vad_events_on_speech():
+    sokuji_native.init()
+    v = sokuji_native.vad_open(min_silence_ms=500, min_speech_ms=250)
+    pcm = _jfk()
+    kinds = []
+    for off in range(0, len(pcm) - 512 + 1, 512):
+        ev = v.feed(pcm[off:off + 512])
+        if ev is not None:
+            kinds.append(ev.kind)
+            if ev.kind == "end":
+                assert ev.seg_end > ev.seg_start
+    tail = v.finalize()
+    if tail is not None:
+        kinds.append(tail.kind)
+    assert kinds and kinds[0] == "start" and "end" in kinds
+    with pytest.raises(ValueError):
+        v.feed(pcm[:100])                       # not 512 samples
+    v.close()
+    v.close()                                   # idempotent
+
+
+@needs_tree
+def test_vad_default_weights_live_next_to_the_library():
+    sokuji_native.init()
+    v = sokuji_native.vad_open()                # no path: <native_dir>/silero_vad_16k.safetensors
+    v.close()
+
+
+@needs_asr
+def test_asr_load_run_cancel():
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    m = sokuji_native.asr_load(ASR_GGUF, cpu)
+    assert m.capabilities.native_sample_rate == 16000 and "en" in m.capabilities.languages
+    assert m.capabilities.supports_streaming is False
+    pcm = _jfk()
+    text = m.run(pcm, "en")
+    assert "ask not" in text.lower()
+    assert m.run(pcm[:0], "en") == ""
+    polls = []
+    with pytest.raises(sokuji_native.NativeError) as e:
+        m.run(pcm, None, on_poll=lambda: (polls.append(1), False)[1])
+    assert e.value.status == sokuji_native._ffi.SK_ERR_CANCELLED and polls
+    with pytest.raises(sokuji_native.NativeError):
+        m.open_stream("en")                     # whisper cannot stream
+    m.unload()
+    m.unload()
+    with pytest.raises(sokuji_native.NativeError):
+        sokuji_native.asr_load("/nonexistent.gguf")
+
+
+@needs_stream
+def test_asr_stream_prefix_and_finalize():
+    sokuji_native.init()
+    m = sokuji_native.asr_load(STREAM_GGUF)
+    assert m.capabilities.supports_streaming
+    pcm = _jfk()
+    st = m.open_stream("en")
+    with pytest.raises(sokuji_native.NativeError):
+        m.open_stream("en")                     # one stream per model
+    last = ""
+    for off in range(0, len(pcm), 8000):
+        t = st.feed(pcm[off:off + 8000])
+        assert t.committed.startswith(last)
+        last = t.committed
+    final = st.finalize()
+    assert "country" in final.lower()
+    with pytest.raises(sokuji_native.NativeError):
+        st.feed(pcm[:8000])                     # closed after finalize
+    st.close()
+    st2 = m.open_stream()
+    st2.feed(pcm[:8000])
+    st2.close()                                 # abandon
+    assert "ask not" in m.run(pcm, "en").lower()
+    m.unload()
