@@ -38,7 +38,7 @@ class Device:
 _lock = threading.Lock()
 _lib: ctypes.CDLL | None = None
 _contract: dict | None = None
-_log_ref = None          # keeps the ctypes callback alive for the life of the process
+_log_refs: list = []     # every trampoline ever handed to sk_init; native keeps the first one forever, so none may be collected
 
 
 def native_dir() -> pathlib.Path:
@@ -105,8 +105,9 @@ def engine_versions() -> dict[str, str]:
 
 
 def init(n_threads: int = 0, log=None) -> None:
-    """Idempotent. `log(level, message)` receives ggml and sokuji-native log lines."""
-    global _log_ref
+    """Idempotent. `log(level, message)` receives ggml and sokuji-native log lines. Only
+    the sink passed to the FIRST successful init is honoured — the native side installs it
+    once; later calls keep the library initialised and ignore a different `log`."""
     lib = _load()
     opts = _ffi.sk_init_options()
     opts.abi_version = _ffi.SK_ABI_VERSION
@@ -119,8 +120,10 @@ def init(n_threads: int = 0, log=None) -> None:
             except Exception:
                 pass
             return True
-        _log_ref = _ffi.LOG_CB(_cb)
-        opts.log = _log_ref
+        trampoline = _ffi.LOG_CB(_cb)
+        with _lock:
+            _log_refs.append(trampoline)
+        opts.log = trampoline
     status = lib.sk_init(ctypes.byref(opts))
     if status != _ffi.SK_OK:
         _raise(lib, status, "sk_init")

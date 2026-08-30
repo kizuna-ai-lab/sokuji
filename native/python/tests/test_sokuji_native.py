@@ -67,3 +67,21 @@ def test_bad_device_index_raises():
     sokuji_native.init()
     with pytest.raises(sokuji_native.NativeError):
         sokuji_native.device_free_mem(999)
+
+
+@needs_tree
+def test_second_init_log_keeps_first_trampoline_alive():
+    # Controller Ruling 15: sk_init only stores the callback pointer on its first
+    # successful call, so a later init(log=...) must not drop the only Python reference
+    # to the trampoline native code still holds.
+    first_lines = []
+    second_lines = []
+    sokuji_native.init(log=lambda level, msg: first_lines.append((level, msg)))
+    first_trampoline = sokuji_native._log_refs[0]
+
+    sokuji_native.init(log=lambda level, msg: second_lines.append((level, msg)))
+
+    sokuji_native.init()  # a third call must not crash despite the dangling-pointer risk
+
+    assert len(sokuji_native._log_refs) >= 2
+    assert sokuji_native._log_refs[0] is first_trampoline
