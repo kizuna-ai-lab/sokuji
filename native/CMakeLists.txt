@@ -71,6 +71,9 @@ enable_testing()
 add_subdirectory(tests)
 
 # ---- install: one flat directory, exactly what the wheel ships -------------------------
+# Everything here is COMPONENT sokuji. The fetched upstreams carry their own install()
+# rules (headers, static libs, cmake configs) in the default component; installing with
+# `cmake --install <build> --prefix <dir> --component sokuji` runs only ours.
 set(SK_ABI_VERSION_NUM 1)
 if(GGML_VULKAN)
     set(SOKUJI_BACKENDS_JSON "[\"vulkan\", \"cpu\"]")
@@ -81,12 +84,14 @@ else()
 endif()
 configure_file(cmake/contract.json.in ${CMAKE_BINARY_DIR}/contract.json @ONLY)
 
-install(TARGETS sokuji_native ggml ggml-base
+install(TARGETS sokuji_native COMPONENT sokuji
         LIBRARY DESTINATION . RUNTIME DESTINATION . ARCHIVE DESTINATION .)
-# Backend modules are MODULE libraries created inside ggml's own CMake; install them by glob
-# from the build output so we do not depend on their target names.
+# ggml, ggml-base and the backend modules all land in ${CMAKE_BINARY_DIR}/lib; copy them by
+# name (symlink chains preserved) rather than installing targets owned by other directories.
 install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/
         DESTINATION .
-        FILES_MATCHING PATTERN "*ggml-cpu*" PATTERN "*ggml-vulkan*" PATTERN "*ggml-metal*" PATTERN "*ggml-blas*"
-        PATTERN "*.a" EXCLUDE PATTERN "*.lib" EXCLUDE)
-install(FILES ${CMAKE_BINARY_DIR}/contract.json DESTINATION .)
+        COMPONENT sokuji
+        FILES_MATCHING
+            PATTERN "libggml*" PATTERN "ggml*.dll" PATTERN "libggml*.dylib"
+            PATTERN "*.a" EXCLUDE PATTERN "*.lib" EXCLUDE PATTERN "test_*" EXCLUDE)
+install(FILES ${CMAKE_BINARY_DIR}/contract.json DESTINATION . COMPONENT sokuji)
