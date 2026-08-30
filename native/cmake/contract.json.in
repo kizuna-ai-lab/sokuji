@@ -6,6 +6,5 @@
   "llama": "@SOKUJI_LLAMA_VERSION@",
   "audiocpp": "@SOKUJI_AUDIOCPP_VERSION@",
   "backends": @SOKUJI_BACKENDS_JSON@,
-  "lane": "@SOKUJI_LANE@",
-  "families": ["moss_tts_nano", "omnivoice", "pocket_tts", "qwen3_tts", "silero_vad", "supertonic"]
+  "lane": "@SOKUJI_LANE@"
 }

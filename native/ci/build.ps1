@@ -21,8 +21,6 @@ Remove-Item -Recurse -Force "$Build\stage", "$Root\python\sokuji_native\_native"
 cmake --install $Build --config Release --prefix "$Build\stage" --component sokuji
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Copy-Item -Recurse "$Build\stage" "$Root\python\sokuji_native\_native"
-# README.md is written in a later task; copy it in once it exists, skip quietly until then.
-if (Test-Path "$Root\README.md") { Copy-Item "$Root\README.md" "$Root\python\README.md" }
 Push-Location "$Root\python"
 Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
 $env:SOKUJI_NATIVE_PLAT = $Plat

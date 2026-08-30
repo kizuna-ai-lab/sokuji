@@ -22,8 +22,6 @@ if command -v strip >/dev/null && [ "$(uname -s)" != "Darwin" ]; then
     find "$BUILD/stage" -name '*.so*' -exec strip --strip-unneeded {} +
 fi
 cp -r "$BUILD/stage" "$ROOT/python/sokuji_native/_native"
-# README.md is written in a later task; copy it in once it exists, skip quietly until then.
-[ -f "$ROOT/README.md" ] && cp "$ROOT/README.md" "$ROOT/python/README.md"
 ( cd "$ROOT/python" && rm -rf dist && SOKUJI_NATIVE_PLAT="$PLAT" "$PYTHON" -m pip wheel . --no-deps -w dist )
 ls -la "$ROOT/python/dist"
 # Import the wheel we just built, from a clean interpreter, and print the device table.

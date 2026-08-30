@@ -1,12 +1,13 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=70.1", "wheel"]     # 70.1 is where setuptools.command.bdist_wheel landed
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "sokuji-native"
-version = "0.1.0"
+# The version is the native library's own, read by setup.py out of the staged
+# _native/contract.json: native/CMakeLists.txt is the single place it is written.
+dynamic = ["version"]
 description = "One native library for the Sokuji sidecar: transcribe.cpp, llama.cpp and audio.cpp on one ggml, behind one C ABI"
-readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 
