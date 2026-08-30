@@ -5,6 +5,7 @@
 #include "ggml-backend.h"
 #include "ggml.h"
 #include "transcribe.h"
+#include "llama.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -83,6 +84,7 @@ SK_API void sk_free(void *p) { std::free(p); }
 SK_API const char *sk_engine_versions(void) {
     static const std::string s = std::string("ggml=") + SK_GGML_VERSION +
                                  ";transcribe=" + transcribe_version() +
+                                 ";llama=" + SK_LLAMA_VERSION + "(" + std::to_string(llama_max_devices()) + " max devices)" +
                                  ";lane=" + SK_LANE;
     return s.c_str();
 }

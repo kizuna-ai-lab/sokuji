@@ -14,7 +14,6 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)         # for patch_upstre
 include(cmake/ggml_options.cmake)
 include(cmake/upstreams.cmake)
 
-set(SOKUJI_LLAMA_VERSION "")         # filled by Task 4
 set(SOKUJI_AUDIOCPP_VERSION "")      # filled by Task 5
 configure_file(src/version.h.in ${CMAKE_BINARY_DIR}/generated/version.h @ONLY)
 
@@ -28,6 +27,8 @@ target_compile_definitions(sokuji_native PRIVATE SOKUJI_NATIVE_BUILD=1)
 target_link_libraries(sokuji_native PRIVATE ggml)
 target_link_libraries(sokuji_native PRIVATE transcribe)
 target_include_directories(sokuji_native PRIVATE ${transcribe_SOURCE_DIR}/include)
+target_link_libraries(sokuji_native PRIVATE llama)
+target_include_directories(sokuji_native PRIVATE ${llama_SOURCE_DIR}/include)
 set_target_properties(sokuji_native PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON

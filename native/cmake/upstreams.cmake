@@ -46,3 +46,21 @@ set(TRANSCRIBE_VULKAN OFF CACHE BOOL "" FORCE)   # backends come from the shared
 set(TRANSCRIBE_METAL  OFF CACHE BOOL "" FORCE)
 set(TRANSCRIBE_CUDA   OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(transcribe)
+
+# llama.cpp already guards with `if (NOT TARGET ggml AND NOT LLAMA_USE_SYSTEM_GGML)`,
+# so it reuses our ggml target above instead of building its own copy: no patch needed.
+FetchContent_Declare(llama
+    GIT_REPOSITORY https://github.com/ggml-org/llama.cpp.git
+    GIT_TAG        c1d0e7a004015f23bc0233470b747b596f29b264   # v0.3.0 (in-tree ggml 0.22.0)
+    GIT_SHALLOW    TRUE
+    GIT_PROGRESS   TRUE)
+set(SOKUJI_LLAMA_VERSION "v0.3.0")
+
+set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
+set(LLAMA_CURL OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_COMMON OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF)   # engines are static; ggml above was added while this was ON
+FetchContent_MakeAvailable(llama)
