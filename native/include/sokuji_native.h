@@ -93,6 +93,43 @@ SK_API void        sk_free(void *p);
  * sidecar's catalog decides what is supported. */
 SK_API int32_t sk_audio_families(const char **out, int32_t capacity);
 
+/* ---- ASR (transcribe.cpp) ----
+ * A model is loaded once per (GGUF, device) and serialises its own compute: sk_asr_run,
+ * sk_asr_stream_feed and sk_asr_stream_finalize on the same model never overlap (the
+ * engine's 0.x contract). A model has at most one open stream. Pointers in sk_asr_caps
+ * belong to the model (valid until sk_asr_unload); pointers in sk_stream_text belong to
+ * the stream and are valid until the next call on that stream. */
+typedef struct sk_asr_model  sk_asr_model;
+typedef struct sk_asr_stream sk_asr_stream;
+
+typedef struct sk_asr_caps {
+    int32_t            n_languages;
+    const char *const *languages;          /* owned by the model; valid until sk_asr_unload */
+    bool               supports_streaming;
+    bool               supports_language_detect;
+    int32_t            native_sample_rate;  /* 16000 for every family the catalog lists */
+    const char        *arch;                /* e.g. "whisper"; owned by the model */
+} sk_asr_caps;
+
+/* Called by sk_asr_run: with text == NULL between decode steps (return false to cancel),
+ * and once with the transcript when the run completes. Called by sk_asr_stream_finalize
+ * once with the final committed text. `text` is valid only during the call. */
+typedef bool (*sk_text_cb)(const char *text, void *user);
+
+typedef struct sk_stream_text {
+    const char *committed;   /* append-only prefix; owned by the stream, valid until the next call on it */
+    const char *tentative;   /* volatile suffix; same lifetime */
+} sk_stream_text;
+
+SK_API sk_status sk_asr_load(const char *gguf, const sk_device *device, sk_asr_model **out);   /* device NULL = auto */
+SK_API sk_status sk_asr_capabilities(sk_asr_model *, sk_asr_caps *out);
+SK_API sk_status sk_asr_run(sk_asr_model *, const float *pcm, size_t n, const char *lang, sk_text_cb, void *user);
+SK_API sk_status sk_asr_stream_open(sk_asr_model *, const char *lang, sk_asr_stream **out);
+SK_API sk_status sk_asr_stream_feed(sk_asr_stream *, const float *pcm, size_t n, sk_stream_text *out);
+SK_API sk_status sk_asr_stream_finalize(sk_asr_stream *, sk_text_cb, void *user);
+SK_API void      sk_asr_stream_close(sk_asr_stream *);
+SK_API void      sk_asr_unload(sk_asr_model *);
+
 #ifdef __cplusplus
 }
 #endif
