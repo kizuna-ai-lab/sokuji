@@ -8,6 +8,8 @@ set_tests_properties(test_common PROPERTIES ENVIRONMENT "GGML_BACKEND_PATH=${CMA
 # exit code 77 = skipped, so a developer without the models still gets a green ctest.
 add_executable(test_asr test_asr.cpp)
 target_link_libraries(test_asr PRIVATE sokuji_native)
+target_include_directories(test_asr PRIVATE ${transcribe_SOURCE_DIR}/examples/common)   # dr_wav.h
+target_compile_definitions(test_asr PRIVATE SK_TEST_SAMPLE_WAV="${transcribe_SOURCE_DIR}/samples/jfk.wav")
 add_test(NAME test_asr COMMAND test_asr ${CMAKE_BINARY_DIR}/lib)
 set_tests_properties(test_asr PROPERTIES
     ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib"

@@ -7,7 +7,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <vector>
 #include "sokuji_native.h"
+#include "wav.h"
 
 static const char *env_or_skip(const char *name) {
     const char *v = std::getenv(name);
@@ -51,6 +53,37 @@ int main(int argc, char **argv) {
     assert(saw_en);
     assert(caps.supports_streaming == false);                          // whisper: batch only
     assert(sk_asr_capabilities(nullptr, &caps) == SK_ERR_INVALID_ARGUMENT);
+
+    // ---- Task 2: batch run + cancellation ----
+    std::vector<float> jfk = read_wav_16k_mono(SK_TEST_SAMPLE_WAV);      // "ask not what your country…", 11 s
+    struct Collect { std::string text; int polls = 0; bool cancel_at_first_poll = false; };
+    auto on_text = [](const char *text, void *user) -> bool {
+        auto *c = static_cast<Collect *>(user);
+        if (text == nullptr) { ++c->polls; return !c->cancel_at_first_poll; }   // progress poll
+        c->text = text;
+        return true;
+    };
+    Collect c;
+    assert(sk_asr_run(m, jfk.data(), jfk.size(), "en", on_text, &c) == SK_OK);
+    std::printf("test_asr: run -> %s\n", c.text.c_str());
+    assert(c.text.find("ask not") != std::string::npos || c.text.find("Ask not") != std::string::npos);
+    assert(c.polls > 0);                                                 // the poll fired at least once
+
+    Collect empty;
+    assert(sk_asr_run(m, jfk.data(), 0, "en", on_text, &empty) == SK_OK); // n == 0 short-circuits
+    assert(empty.text.empty() && empty.polls == 0);
+
+    Collect cancelled;
+    cancelled.cancel_at_first_poll = true;
+    assert(sk_asr_run(m, jfk.data(), jfk.size(), nullptr, on_text, &cancelled) == SK_ERR_CANCELLED);
+    assert(cancelled.text.empty());                                      // no transcript after a cancel
+    assert(std::strstr(sk_last_error(), "cancel") != nullptr);
+
+    Collect again;                                                       // the model is reusable after a cancel
+    assert(sk_asr_run(m, jfk.data(), jfk.size(), "en", on_text, &again) == SK_OK);
+    assert(!again.text.empty());
+    assert(sk_asr_run(nullptr, jfk.data(), jfk.size(), "en", on_text, &again) == SK_ERR_INVALID_ARGUMENT);
+
     std::printf("test_asr: load/capabilities ok (arch=%s, %d languages)\n", caps.arch, caps.n_languages);
     sk_asr_unload(m);   // caps.arch/languages point into m's storage — print before this call
     sk_asr_unload(nullptr);                                            // must accept null

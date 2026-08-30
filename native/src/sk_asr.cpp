@@ -33,7 +33,12 @@ sk_status map_status(transcribe_status st) {
         case TRANSCRIBE_ERR_BAD_STRUCT_SIZE:
         case TRANSCRIBE_ERR_UNSUPPORTED_LANGUAGE:
         case TRANSCRIBE_ERR_NOT_IMPLEMENTED:
-        case TRANSCRIBE_ERR_INPUT_TOO_LONG:         return SK_ERR_INVALID_ARGUMENT;
+        case TRANSCRIBE_ERR_INPUT_TOO_LONG:
+        case TRANSCRIBE_ERR_SAMPLE_RATE:
+        case TRANSCRIBE_ERR_UNSUPPORTED_TASK:
+        case TRANSCRIBE_ERR_UNSUPPORTED_TIMESTAMPS:
+        case TRANSCRIBE_ERR_UNSUPPORTED_PNC:
+        case TRANSCRIBE_ERR_UNSUPPORTED_ITN:         return SK_ERR_INVALID_ARGUMENT;
         case TRANSCRIBE_ERR_ABORTED:                return SK_ERR_CANCELLED;
         case TRANSCRIBE_ERR_OOM:
         case TRANSCRIBE_ERR_BACKEND:
@@ -58,6 +63,20 @@ transcribe_backend_request backend_for(int32_t kind) {
         case SK_DEVICE_METAL:  return TRANSCRIBE_BACKEND_METAL;
         default:               return TRANSCRIBE_BACKEND_AUTO;
     }
+}
+
+struct run_ctx {
+    sk_text_cb cb;
+    void *user;
+    bool cancelled;
+};
+
+bool abort_poll(void *p) {                       // transcribe.cpp polls this between decode steps
+    auto *c = static_cast<run_ctx *>(p);
+    if (!c->cb) return false;
+    if (c->cb(nullptr, c->user)) return false;   // keep going
+    c->cancelled = true;
+    return true;                                 // abort
 }
 
 }  // namespace
@@ -131,6 +150,34 @@ SK_API sk_status sk_asr_capabilities(sk_asr_model *m, sk_asr_caps *out) {
     if (!m || !out) { sk::set_error("sk_asr_capabilities: model and out-pointer are required"); return SK_ERR_INVALID_ARGUMENT; }
     std::lock_guard<std::mutex> lock(m->mutex);
     *out = m->caps;
+    return SK_OK;
+}
+
+SK_API sk_status sk_asr_run(sk_asr_model *m, const float *pcm, size_t n, const char *lang, sk_text_cb cb, void *user) {
+    if (!m || (!pcm && n > 0) || n > static_cast<size_t>(INT32_MAX)) {
+        sk::set_error("sk_asr_run: model and pcm (n <= INT32_MAX) are required");
+        return SK_ERR_INVALID_ARGUMENT;
+    }
+    std::lock_guard<std::mutex> lock(m->mutex);
+    if (m->stream_open) { sk::set_error("sk_asr_run: a stream is open on this model"); return SK_ERR_INVALID_ARGUMENT; }
+    m->run_text.clear();
+    if (n == 0) { if (cb) cb("", user); return SK_OK; }
+
+    transcribe_run_params rp;
+    transcribe_run_params_init(&rp);
+    rp.language = (lang && *lang) ? lang : nullptr;              // NULL = autodetect (transcribe.h:1041)
+
+    run_ctx ctx{cb, user, false};
+    transcribe_set_abort_callback(m->session, abort_poll, &ctx);
+    transcribe_status st = transcribe_run(m->session, pcm, static_cast<int>(n), &rp);
+    transcribe_set_abort_callback(m->session, nullptr, nullptr);
+
+    if (st == TRANSCRIBE_ERR_ABORTED || ctx.cancelled) { sk::set_error("sk_asr_run: cancelled by the callback"); return SK_ERR_CANCELLED; }
+    if (st != TRANSCRIBE_OK && st != TRANSCRIBE_ERR_OUTPUT_TRUNCATED) return fail("sk_asr_run", st);
+
+    const char *text = transcribe_full_text(m->session);
+    m->run_text = text ? text : "";
+    if (cb) cb(m->run_text.c_str(), user);
     return SK_OK;
 }
 
