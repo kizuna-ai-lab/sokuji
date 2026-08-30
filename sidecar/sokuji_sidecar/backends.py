@@ -39,6 +39,6 @@ TARGET_RATE = 16000
 
 
 # Import at module bottom (after the registry + base classes exist) so the
-# transcribe.cpp backend self-registers for make_backend() in production, where
+# native ASR backends self-register for make_backend() in production, where
 # nothing else imports the module explicitly.
-from . import transcribe_backend  # noqa: E402,F401
+from . import asr_backend  # noqa: E402,F401
