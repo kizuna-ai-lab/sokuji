@@ -69,3 +69,24 @@ endif()
 
 enable_testing()
 add_subdirectory(tests)
+
+# ---- install: one flat directory, exactly what the wheel ships -------------------------
+set(SK_ABI_VERSION_NUM 1)
+if(GGML_VULKAN)
+    set(SOKUJI_BACKENDS_JSON "[\"vulkan\", \"cpu\"]")
+elseif(GGML_METAL)
+    set(SOKUJI_BACKENDS_JSON "[\"metal\", \"cpu\"]")
+else()
+    set(SOKUJI_BACKENDS_JSON "[\"cpu\"]")
+endif()
+configure_file(cmake/contract.json.in ${CMAKE_BINARY_DIR}/contract.json @ONLY)
+
+install(TARGETS sokuji_native ggml ggml-base
+        LIBRARY DESTINATION . RUNTIME DESTINATION . ARCHIVE DESTINATION .)
+# Backend modules are MODULE libraries created inside ggml's own CMake; install them by glob
+# from the build output so we do not depend on their target names.
+install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/
+        DESTINATION .
+        FILES_MATCHING PATTERN "*ggml-cpu*" PATTERN "*ggml-vulkan*" PATTERN "*ggml-metal*" PATTERN "*ggml-blas*"
+        PATTERN "*.a" EXCLUDE PATTERN "*.lib" EXCLUDE)
+install(FILES ${CMAKE_BINARY_DIR}/contract.json DESTINATION .)
