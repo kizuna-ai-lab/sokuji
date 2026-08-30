@@ -25,7 +25,7 @@ class Machine:
     dml_adapters: tuple[str, ...]
     installed: frozenset
     fingerprint: str
-    # Accelerator kinds transcribe.cpp reports on this machine ("vulkan",
+    # Accelerator kinds the native library reports on this machine ("vulkan",
     # "metal", "cuda", "cpu") — the ground truth for the gpu-vulkan/gpu-metal
     # tiers (covers AMD/Intel via Vulkan).
     tc_kinds: tuple[str, ...] = ()
@@ -65,37 +65,35 @@ def _dml_adapters() -> tuple[str, ...]:
     return ("dml",) if "DmlExecutionProvider" in onnxruntime.get_available_providers() else ()
 
 
-def _tc_devices():
-    """transcribe.cpp's device list — the vendor-agnostic ground truth (sees
-    AMD/Intel/Apple where NVML can't). Raises when the wheel is absent
+def _native_devices():
+    """sokuji_native's device list — one process, one ggml registry, the vendor-agnostic
+    ground truth (sees AMD/Intel/Apple where NVML can't). Raises when the wheel is absent
     (probe() degrades via _safe)."""
-    import transcribe_cpp
-    return list(transcribe_cpp.backends())
+    from . import native
+    return native.devices()
 
 
-def _tc_kinds() -> tuple[str, ...]:
-    """Accelerator kinds transcribe.cpp can actually use here. Sorted for a
-    stable fingerprint; () when the wheel is absent (probe degrades)."""
-    return tuple(sorted({b.kind for b in _tc_devices()}))
+def _native_kinds() -> tuple[str, ...]:
+    """Accelerator kinds the native library can actually use here. Sorted for a stable
+    fingerprint; () when the wheel is absent (probe degrades)."""
+    return tuple(sorted({d.kind for d in _native_devices()}))
 
 
-def _tc_gpus() -> tuple[tuple[str, str, int], ...]:
+def _native_gpus() -> tuple[tuple[str, str, int], ...]:
     """Stable identity of the non-cpu devices: (kind, name, mem_total)."""
-    # Coerce description to str at the source (like memory_total): a None from
-    # the native lib would otherwise crash every has_nvidia/_gpu_vendor consumer.
-    return tuple((b.kind, b.description or "", int(b.memory_total or 0))
-                 for b in _tc_devices() if getattr(b, "device_type", "gpu") != "cpu")
+    return tuple((d.kind, d.description or "", int(d.mem_total or 0))
+                 for d in _native_devices() if d.kind != "cpu")
 
 
 def device_free_bytes():
-    """FRESH free memory (bytes) of the primary accelerator device, or None
-    when there is none (tc wheel absent, or no accelerator device). Volatile
-    by design — call at plan/load time, never cache in Machine. Callers treat
-    None as 'skip VRAM gating/measurement'."""
+    """FRESH free memory (bytes) of the primary accelerator device, or None when there is
+    none (wheel absent, or no accelerator device). Volatile by design — call at plan/load
+    time, never cache in Machine. Callers treat None as 'skip VRAM gating/measurement'."""
     try:
-        for b in _tc_devices():
-            if getattr(b, "device_type", "gpu") != "cpu":
-                free = int(b.memory_free or 0)
+        from . import native
+        for d in _native_devices():
+            if d.kind != "cpu":
+                free = int(native.module().device_free_mem(d.index) or 0)
                 if free > 0:
                     return free
     except Exception:
@@ -122,8 +120,8 @@ def _has_mod(mod: str) -> bool:
 
 
 def _installed() -> frozenset:
-    mods = {"transcribe_cpp": "transcribe_cpp",
-            "transcribe_cpp_stream": "transcribe_cpp",
+    mods = {"native_asr": "sokuji_native",
+            "native_asr_stream": "sokuji_native",
             "sherpa_tts": "sherpa_onnx",
             "moss_onnx": "onnxruntime",
             "supertonic": "onnxruntime",
@@ -176,8 +174,8 @@ def probe(force: bool = False) -> Machine:
     apple = _safe(_apple_silicon, False)
     dml = _safe(_dml_adapters, ())
     installed = _safe(_installed, frozenset())
-    tc_kinds = _safe(_tc_kinds, ())
-    tc_gpus = _safe(_tc_gpus, ())
+    tc_kinds = _safe(_native_kinds, ())
+    tc_gpus = _safe(_native_gpus, ())
     ort_cuda = _safe(_ort_cuda, False)
     fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
               f"{','.join(sorted(dml))}|{','.join(sorted(installed))}|"

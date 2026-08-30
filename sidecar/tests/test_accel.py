@@ -14,8 +14,8 @@ os.environ.setdefault("SOKUJI_BENCH_DIR", tempfile.mkdtemp())
 
 
 def test_probe_assembles_machine(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "vulkan"))
-    monkeypatch.setattr(accel, "_tc_gpus",
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "vulkan"))
+    monkeypatch.setattr(accel, "_native_gpus",
                         lambda: (("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
@@ -29,8 +29,8 @@ def test_probe_assembles_machine(monkeypatch):
 
 def test_probe_degrades_when_detector_throws(monkeypatch):
     def boom(): raise RuntimeError("probe broken")
-    monkeypatch.setattr(accel, "_tc_gpus", boom)
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ())
+    monkeypatch.setattr(accel, "_native_gpus", boom)
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset())
@@ -39,18 +39,18 @@ def test_probe_degrades_when_detector_throws(monkeypatch):
 
 
 def test_probe_is_cached(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ())
+    monkeypatch.setattr(accel, "_native_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset())
     first = accel.probe(force=True)
-    monkeypatch.setattr(accel, "_tc_gpus",
+    monkeypatch.setattr(accel, "_native_gpus",
                         lambda: (("vulkan", "NVIDIA x", 1 << 30),))
     assert accel.probe() is first  # cached: no re-probe without force
 
 
-def _machine(*, apple=False, dml=(), installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream"}), tc=(), gpus=()):
+def _machine(*, apple=False, dml=(), installed=frozenset({"native_asr", "native_asr_stream"}), tc=(), gpus=()):
     return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
                          apple_silicon=apple, dml_adapters=dml, installed=installed,
                          fingerprint="test", tc_kinds=tc, gpus=gpus)
@@ -77,16 +77,15 @@ def test_has_nvidia_false_for_amd():
     assert accel.has_nvidia(m) is False
 
 
-def test_tc_gpus_coerces_none_description(monkeypatch):
+def test_native_gpus_coerces_none_description(monkeypatch):
     # A None description from the native lib must not reach has_nvidia/_gpu_vendor
-    # (they call .lower()/`in`) — _tc_gpus coerces it to "" at the source.
+    # (they call .lower()/`in`) — _native_gpus coerces it to "" at the source.
     class B:
         kind = "vulkan"
         description = None
-        memory_total = 8 << 30
-        device_type = "gpu"
-    monkeypatch.setattr(accel, "_tc_devices", lambda: [B()])
-    gpus = accel._tc_gpus()
+        mem_total = 8 << 30
+    monkeypatch.setattr(accel, "_native_devices", lambda: [B()])
+    gpus = accel._native_gpus()
     assert gpus == (("vulkan", "", 8 << 30),)
     assert accel.has_nvidia(_machine(gpus=gpus)) is False   # no AttributeError
 
@@ -96,11 +95,11 @@ def test_has_nvidia_false_without_devices():
 
 
 def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))   # no accelerator
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu",))   # no accelerator
     accel.probe(force=True)
     plans = accel.resolve("sense-voice")
     assert plans[0].backend == "transcribe_cpp" and plans[0].device == "cpu"
@@ -254,9 +253,9 @@ def test_load_measured_omits_nonpositive_delta(monkeypatch):
 
 
 def test_hardware_info_handler(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_gpus",
+    monkeypatch.setattr(accel, "_native_gpus",
                         lambda: (("cuda", "NVIDIA GeForce RTX 4070", 12288 << 20),))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "cuda"))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "cuda"))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
@@ -275,9 +274,9 @@ def test_hardware_info_handler(monkeypatch):
 def test_hardware_info_reports_amd_gpu_from_tc_probe(monkeypatch):
     # THE D7 bugfix: gpus[] used to come from NVML, so mac/AMD boxes reported
     # an empty list. The tc probe sees every vendor.
-    monkeypatch.setattr(accel, "_tc_gpus",
+    monkeypatch.setattr(accel, "_native_gpus",
                         lambda: (("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "vulkan"))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "vulkan"))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset())
@@ -289,11 +288,11 @@ def test_hardware_info_reports_amd_gpu_from_tc_probe(monkeypatch):
 
 
 def test_models_catalog_handler_cpu_machine(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu",))
     accel.probe(force=True)
     st = {"handlers": {}}
     accel.register(st)
@@ -316,7 +315,7 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
 
 
 def test_models_catalog_filter_narrows_results(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
@@ -877,7 +876,7 @@ def test_models_catalog_variant_ids(monkeypatch):
     assert by_id["opus-mt-ja-en"]["variantIds"] == ["int8"]
 
 
-def test_asr_unavailable_without_transcribe_cpp():
+def test_asr_unavailable_without_native():
     # wheel missing → no ASR model resolves (installed gate)
     m = _machine(installed=frozenset())
     import pytest as _pytest
@@ -888,42 +887,40 @@ def test_asr_unavailable_without_transcribe_cpp():
 # ── Phase E1: GPU identity + fresh memory reads ──────────────────────────────
 
 
-class _FakeTcDev:
-    def __init__(self, kind, desc, total, free, device_type="gpu"):
-        self.kind = kind
-        self.description = desc
-        self.memory_total = total
-        self.memory_free = free
-        self.device_type = device_type
+class _FakeDev:
+    def __init__(self, index, kind, desc, total, free):
+        self.index, self.kind, self.name = index, kind, f"{kind}{index}"
+        self.description, self.mem_total, self.mem_free = desc, total, free
 
 
-def _fake_tc_module(devs):
-    import types
-    mod = types.ModuleType("transcribe_cpp")
-    mod.backends = lambda: devs
+def _fake_native_module(monkeypatch, devs):
+    import sys, types
+    from sokuji_sidecar import native
+    mod = types.ModuleType("sokuji_native")
+    mod.init = lambda n_threads=0, log=None: None
+    mod.devices = lambda: list(devs)
+    mod.device_free_mem = lambda i: next(d.mem_free for d in devs if d.index == i)
+    monkeypatch.setitem(sys.modules, "sokuji_native", mod)
+    native.reset_for_tests()
     return mod
 
 
 def test_machine_gpus_stable_identity(monkeypatch):
-    import sys
-    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
-        _FakeTcDev("vulkan", "AMD Radeon RX 7800 XT", 16 << 30, 15 << 30),
-        _FakeTcDev("cpu", "Ryzen 7", 64 << 30, 60 << 30, device_type="cpu"),
-    ]))
+    _fake_native_module(monkeypatch, [
+        _FakeDev(0, "vulkan", "AMD Radeon RX 7800 XT", 16 << 30, 15 << 30),
+        _FakeDev(1, "cpu", "Ryzen 7", 64 << 30, 60 << 30),
+    ])
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_asr"}))
     m = accel.probe(force=True)
-    # gpus: STABLE identity only (kind, name, mem_total) — no volatile free
     assert m.gpus == (("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),)
     assert m.tc_kinds == ("cpu", "vulkan")
 
 
 def test_fingerprint_ignores_volatile_free(monkeypatch):
-    import sys
     def probe_with_free(free):
-        monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
-            _FakeTcDev("vulkan", "RTX 4070", 12 << 30, free)]))
+        _fake_native_module(monkeypatch, [_FakeDev(0, "vulkan", "RTX 4070", 12 << 30, free)])
         monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
         monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
         monkeypatch.setattr(accel, "_installed", lambda: frozenset())
@@ -931,23 +928,21 @@ def test_fingerprint_ignores_volatile_free(monkeypatch):
     assert probe_with_free(10 << 30) == probe_with_free(2 << 30)
 
 
-def test_device_free_bytes_prefers_tc(monkeypatch):
-    import sys
-    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
-        _FakeTcDev("vulkan", "RTX 4070", 12 << 30, 9 << 30)]))
+def test_device_free_bytes_prefers_native(monkeypatch):
+    _fake_native_module(monkeypatch, [_FakeDev(0, "vulkan", "RTX 4070", 12 << 30, 9 << 30)])
     assert accel.device_free_bytes() == 9 << 30
 
 
-def test_device_free_bytes_none_without_tc(monkeypatch):
+def test_device_free_bytes_none_without_native(monkeypatch):
     import sys
-    monkeypatch.setitem(sys.modules, "transcribe_cpp", None)   # import fails
-    assert accel.device_free_bytes() is None   # no NVML fallback: degrade to None
+    from sokuji_sidecar import native
+    monkeypatch.setitem(sys.modules, "sokuji_native", None)   # import fails
+    native.reset_for_tests()
+    assert accel.device_free_bytes() is None
 
 
 def test_device_free_bytes_none_without_gpu(monkeypatch):
-    import sys
-    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
-        _FakeTcDev("cpu", "Ryzen", 64 << 30, 60 << 30, device_type="cpu")]))
+    _fake_native_module(monkeypatch, [_FakeDev(0, "cpu", "Ryzen", 64 << 30, 60 << 30)])
     assert accel.device_free_bytes() is None
 
 
@@ -974,9 +969,9 @@ def test_list_variants_recommends_on_stable_total(monkeypatch):
 def test_models_catalog_exposes_asr_variant_ids_and_deduped_tiers(monkeypatch):
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp", "transcribe_cpp_stream"}))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_asr", "native_asr_stream"}))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu",))
+    monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     accel.probe(force=True)
     st = {"handlers": {}}
     accel.register(st)
@@ -1069,9 +1064,9 @@ def _catalog_reply(monkeypatch, gpus=(), kind="asr", models=None):
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed",
-                        lambda: frozenset({"transcribe_cpp", "transcribe_cpp_stream", "llamacpp_gemma"}))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "vulkan") if gpus else ("cpu",))
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: gpus)
+                        lambda: frozenset({"native_asr", "native_asr_stream", "llamacpp_gemma"}))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "vulkan") if gpus else ("cpu",))
+    monkeypatch.setattr(accel, "_native_gpus", lambda: gpus)
     accel.probe(force=True)
     st = {"handlers": {}}
     accel.register(st)
