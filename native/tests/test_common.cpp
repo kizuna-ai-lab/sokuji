@@ -59,14 +59,18 @@ int main(int argc, char **argv) {
     assert(std::strstr(sk_engine_versions(), "audiocpp=0.7.0") != nullptr);
     const char *fams[16];
     int nf = sk_audio_families(fams, 16);
-    assert(nf == 6);
+    assert(nf >= 6);                                                  // may include companion families too
     const char *want[] = {"moss_tts_nano", "omnivoice", "pocket_tts", "qwen3_tts", "silero_vad", "supertonic"};
     for (const char *w : want) {
         bool found = false;
         for (int i = 0; i < nf; ++i) if (std::strcmp(fams[i], w) == 0) found = true;
         assert(found);
     }
+    for (int i = 1; i < nf; ++i) assert(std::strcmp(fams[i - 1], fams[i]) < 0);   // sorted, no duplicates
 
-    std::printf("test_common: %d devices, %d log lines\n", n, g_log_calls);
+    std::string family_list;
+    for (int i = 0; i < nf; ++i) { if (i) family_list += ","; family_list += fams[i]; }
+    std::printf("test_common: %d devices, %d log lines, %d audio families [%s]\n",
+                n, g_log_calls, nf, family_list.c_str());
     return 0;
 }
