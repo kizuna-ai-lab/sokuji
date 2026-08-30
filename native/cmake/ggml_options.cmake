@@ -23,6 +23,21 @@ else()
 endif()
 message(STATUS "sokuji-native GPU lane: ${SOKUJI_GPU_RESOLVED}")
 
+# ggml 0.22.0 hard-codes two armv9.2 (+sme) CPU variants on Linux/aarch64. GCC 11/13
+# reject `+sme`; when the compiler cannot build them we comment those two lines out of
+# ggml's src/CMakeLists.txt at fetch time (see upstreams.cmake). SME kernels only matter
+# with KleidiAI, which this project does not enable, and the GB10 dev box loads the
+# armv8.6_2 module in practice.
+set(SOKUJI_DROP_SME_VARIANTS OFF)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-march=armv9.2-a+sme" SOKUJI_CXX_HAS_SME)
+    if(NOT SOKUJI_CXX_HAS_SME)
+        set(SOKUJI_DROP_SME_VARIANTS ON)
+        message(STATUS "sokuji-native: compiler lacks +sme; dropping ggml armv9.2 CPU variants")
+    endif()
+endif()
+
 set(BUILD_SHARED_LIBS ON)                                   # ggml itself is shared …
 set(GGML_BACKEND_DL ON  CACHE BOOL "" FORCE)                # … and its backends are modules
 set(GGML_NATIVE OFF     CACHE BOOL "" FORCE)                # portable wheels, never -march=native
