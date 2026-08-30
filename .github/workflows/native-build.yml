@@ -23,8 +23,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sku: linux-x64,   runner: ubuntu-22.04,     lane: vulkan, plat: manylinux_2_28_x86_64 }
-          - { sku: linux-arm64, runner: ubuntu-22.04-arm, lane: vulkan, plat: manylinux_2_28_aarch64 }
+          # 24.04, not 22.04: glslc is only packaged from 24.04 on, and the repo's
+          # sidecar-bundles.yml already builds Linux on 24.04 runners, so the glibc floor
+          # this implies (2.39) is the one users already have.
+          - { sku: linux-x64,   runner: ubuntu-24.04,     lane: vulkan, plat: manylinux_2_39_x86_64 }
+          - { sku: linux-arm64, runner: ubuntu-24.04-arm, lane: vulkan, plat: manylinux_2_39_aarch64 }
           - { sku: win-x64,     runner: windows-2022,     lane: vulkan, plat: win_amd64 }
           - { sku: mac-arm64,   runner: macos-14,         lane: metal,  plat: macosx_11_0_arm64 }
           - { sku: mac-x64,     runner: macos-15-intel,   lane: none,   plat: macosx_11_0_x86_64 }
@@ -46,14 +49,15 @@ jobs:
         if: runner.os == 'Linux' && matrix.lane == 'vulkan'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libvulkan-dev glslc ninja-build
+          sudo apt-get install -y libvulkan-dev glslc
       - name: Vulkan SDK (Windows)
         if: runner.os == 'Windows' && matrix.lane == 'vulkan'
         shell: pwsh
         run: |
-          $url = "https://sdk.lunarg.com/sdk/download/$env:VULKAN_SDK_VERSION/windows/VulkanSDK-$env:VULKAN_SDK_VERSION-Installer.exe"
-          Invoke-WebRequest -Uri $url -OutFile VulkanSDK.exe
-          Start-Process -Wait -FilePath .\VulkanSDK.exe -ArgumentList '--accept-licenses','--default-answer','--confirm-command','install'
+          # LunarG renamed the installer: VulkanSDK-<ver>-Installer.exe now 404s.
+          $url = "https://sdk.lunarg.com/sdk/download/$env:VULKAN_SDK_VERSION/windows/vulkansdk-windows-X64-$env:VULKAN_SDK_VERSION.exe"
+          Invoke-WebRequest -Uri $url -OutFile vulkansdk-windows-X64.exe
+          Start-Process -Wait -FilePath .\vulkansdk-windows-X64.exe -ArgumentList '--accept-licenses','--default-answer','--confirm-command','install'
           "VULKAN_SDK=C:\VulkanSDK\$env:VULKAN_SDK_VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
           "C:\VulkanSDK\$env:VULKAN_SDK_VERSION\Bin" | Out-File -FilePath $env:GITHUB_PATH -Append
       - name: Build, test, wheel (POSIX)
