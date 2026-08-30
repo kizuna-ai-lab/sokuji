@@ -275,6 +275,9 @@ class AsrModel:
 
         def _cb(text, _user):
             if text is None:
+                # An exception raised here propagates into ctypes, which swallows it and
+                # returns the default False instead — the run then cancels and surfaces as
+                # SK_ERR_CANCELLED. Callers should not raise from on_poll.
                 return True if on_poll is None else bool(on_poll())
             got.append(text.decode("utf-8", "replace"))
             return True

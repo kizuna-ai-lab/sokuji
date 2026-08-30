@@ -1,8 +1,11 @@
 """Voice activity detection for the ASR stage (spec §5.1: VAD is an ASR-side capability
 implemented by audio.cpp). NativeVad wraps one sokuji_native.Vad behind the protocol
 asr_engine.py has always driven — sherpa-onnx's VoiceActivityDetector shape:
-is_speech_detected() / accept_waveform(window) / empty() / front / pop() / flush() — so
-the engine's edge detection, pre-roll and 20 s cap did not have to move."""
+is_speech_detected() / accept_waveform(window) / empty() / front / pop() / flush() — but
+audio.cpp's STREAMING path implements neither the 20 s force-split nor min_speech
+suppression on live edges (only its offline path applies them), so this adapter now
+enforces both itself: it force-cuts at max_speech_s and drops end-edges shorter than
+min_speech_s, matching what the old sherpa-onnx VAD did for asr_engine.py."""
 from dataclasses import dataclass
 
 import numpy as np
@@ -27,10 +30,13 @@ class NativeVad:
                                              min_speech_ms=int(round(min_speech_s * 1000)),
                                              min_silence_ms=int(round(min_silence_s * 1000)),
                                              max_speech_s=float(max_speech_s))
+        self._min_speech_s = float(min_speech_s)
+        self._max_speech_s = float(max_speech_s)
         self._speech = False
         self._queue: list[Segment] = []
         self._audio: list[np.ndarray] = []   # every window since reset, for segment extraction
         self._fed = 0
+        self._speech_samples = 0             # consecutive in-speech samples since the last "start"
 
     # ── the protocol ────────────────────────────────────────────────────────
     def is_speech_detected(self) -> bool:
@@ -43,6 +49,24 @@ class NativeVad:
         self._audio.append(pcm)
         self._fed += WINDOW
         self._apply(self._vad.feed(pcm))
+        if self._speech:
+            self._speech_samples += WINDOW
+            if self._max_speech_s > 0 and self._speech_samples >= self._max_speech_s * 16000:
+                self._force_cut()
+
+    def _force_cut(self) -> None:
+        """audio.cpp's streaming path ignores max_speech_s entirely (only its offline path
+        applies it), so the adapter enforces the 20 s cap itself: finalize() closes the open
+        segment through the normal event path and resets the native side's cursor. The cut
+        always lands right after a feed (a window boundary), so rebasing `_audio`/`_fed` to a
+        fresh scale here — exactly like `flush()` does — loses no audio; the next real speech
+        re-triggers a fresh "start" from the reset native detector, same as sherpa's forced
+        endpoint."""
+        self._apply(self._vad.finalize())
+        self._speech = False
+        self._speech_samples = 0
+        self._audio.clear()
+        self._fed = 0
 
     def empty(self) -> bool:
         return not self._queue
@@ -64,12 +88,14 @@ class NativeVad:
         buf.size` in `_slice`."""
         self._apply(self._vad.finalize())
         self._speech = False
+        self._speech_samples = 0
         self._audio.clear()
         self._fed = 0
 
     def reset(self) -> None:
         self._vad.reset()
         self._speech = False
+        self._speech_samples = 0
         self._queue.clear()
         self._audio.clear()
         self._fed = 0
@@ -81,13 +107,22 @@ class NativeVad:
 
     # ── event → state ──────────────────────────────────────────────────────
     def _apply(self, ev) -> None:
+        """audio.cpp's streaming path emits start/end edges with no min_speech gating (only
+        its offline path applies it), so an "end" whose segment is shorter than min_speech_s
+        is dropped here rather than queued — same suppression the old sherpa-onnx VAD gave
+        asr_engine.py for free. `_slice` still runs unconditionally so the audio buffer stays
+        trimmed regardless of whether the segment gets queued."""
         if ev is None:
             return
         if ev.kind == "start":
             self._speech = True
+            self._speech_samples = 0
         elif ev.kind == "end":
             self._speech = False
-            self._queue.append(Segment(self._slice(ev.seg_start, ev.seg_end), int(ev.seg_start)))
+            self._speech_samples = 0
+            segment = self._slice(ev.seg_start, ev.seg_end)
+            if (ev.seg_end - ev.seg_start) >= self._min_speech_s * 16000:
+                self._queue.append(Segment(segment, int(ev.seg_start)))
 
     def _slice(self, start: int, end: int) -> np.ndarray:
         """The audio of [start, end) in absolute samples-since-reset. Audio before `end` is

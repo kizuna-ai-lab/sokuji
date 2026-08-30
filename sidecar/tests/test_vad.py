@@ -22,6 +22,7 @@ class _ScriptedVad:
         self.tail = None
         self.resets = 0
         self.closed = False
+        self.finalize_calls = 0
 
     def feed(self, pcm512):
         assert len(pcm512) == 512
@@ -34,6 +35,7 @@ class _ScriptedVad:
         # already reported are filtered by its own last_end bookkeeping) and always
         # resets, so an idle finalize() returns None. Model that by handing back the
         # scripted tail exactly once, then going idle.
+        self.finalize_calls += 1
         tail, self.tail = self.tail, None
         self.k = 0
         return tail
@@ -77,8 +79,10 @@ def test_options_are_passed_in_milliseconds(scripted):
 def test_edges_and_segment_queue(scripted):
     from sokuji_sidecar.vad import NativeVad
     # window 1 starts speech at (padded) sample 400; window 4 ends it: segment [400, 2048)
+    # (1648 samples, shorter than the default min_speech_s=0.25 window — min_speech_s=0
+    # keeps this test about edge detection and slicing, not the suppression feature)
     scripted["script"] = {1: _Ev("start", sample=400), 4: _Ev("end", sample=2048, seg_start=400, seg_end=2048)}
-    v = NativeVad()
+    v = NativeVad(min_speech_s=0.0)
     assert v.window == 512 and v.empty() and not v.is_speech_detected()
     seen = []
     for w in _windows(6):
@@ -100,7 +104,9 @@ def test_flush_closes_open_segment_and_resets(scripted):
     from sokuji_sidecar.vad import NativeVad
     scripted["script"] = {0: _Ev("start", sample=0)}
     scripted["tail"] = _Ev("end", sample=1024, seg_start=0, seg_end=1024)
-    v = NativeVad()
+    # 1024 samples is shorter than the default min_speech_s=0.25 window; min_speech_s=0
+    # keeps this test about flush()/reset semantics, not the suppression feature.
+    v = NativeVad(min_speech_s=0.0)
     for w in _windows(2):
         v.accept_waveform(w)
     assert v.is_speech_detected() and v.empty()
@@ -110,6 +116,56 @@ def test_flush_closes_open_segment_and_resets(scripted):
     v.pop()
     v.flush()                                       # nothing open: no segment, no error
     assert v.empty()
+
+
+def test_forced_cut_at_max_speech_and_scale_rebase(scripted):
+    """audio.cpp's streaming path never applies max_speech_s itself, so NativeVad must force
+    the cut: no "end" is scripted before the cap, only a finalize() tail that closes the
+    still-open segment. max_speech_s=0.128 s = 2048 samples = 4 windows."""
+    from sokuji_sidecar.vad import NativeVad
+    scripted["script"] = {0: _Ev("start", sample=0)}
+    scripted["tail"] = _Ev("end", sample=2048, seg_start=0, seg_end=2048)
+    v = NativeVad(max_speech_s=0.128, min_speech_s=0.0)
+    windows = _windows(6)
+    for w in windows[:4]:
+        v.accept_waveform(w)
+    assert not v.is_speech_detected()               # forced cut fired right after window 3
+    assert not v.empty()
+    seg = v.front
+    assert seg.start == 0 and len(seg.samples) == 2048
+    assert seg.samples[0] == pytest.approx(0.0)      # window 0's value
+    assert seg.samples[-1] == pytest.approx(0.03)    # window 3's value
+    assert scripted["vad"].finalize_calls == 1
+    v.pop()
+    assert v.empty()
+
+    # A scripted later "start" still works: finalize() reset the fake's feed() cursor to 0,
+    # so the very next feed() call replays script[0] as a fresh start — and the adapter's own
+    # rebase (_audio/_fed cleared in the forced cut) keeps the new segment's scale correct.
+    # (the fake's `.tail` was already captured at construction, so re-arm it on the instance.)
+    scripted["vad"].tail = _Ev("end", sample=1024, seg_start=0, seg_end=1024)
+    for w in windows[4:6]:
+        v.accept_waveform(w)
+    assert v.is_speech_detected()
+    v.flush()
+    assert not v.is_speech_detected()
+    seg2 = v.front
+    assert seg2.start == 0 and len(seg2.samples) == 1024
+    assert seg2.samples[0] == pytest.approx(0.04)    # window 4's value
+    assert seg2.samples[-1] == pytest.approx(0.05)   # window 5's value
+
+
+def test_min_speech_suppresses_micro_segment(scripted):
+    """audio.cpp's streaming path emits end edges with no min_speech gating; the adapter
+    drops anything shorter than min_speech_s itself, the way the old sherpa-onnx VAD did."""
+    from sokuji_sidecar.vad import NativeVad
+    # start at window 0, end at window 1: segment [0, 400) = 400 samples = 25 ms < 250 ms.
+    scripted["script"] = {0: _Ev("start", sample=0), 1: _Ev("end", sample=400, seg_start=0, seg_end=400)}
+    v = NativeVad()                                  # default min_speech_s=0.25
+    for w in _windows(2):
+        v.accept_waveform(w)
+    assert v.empty()                                 # the micro-segment was dropped
+    assert not v.is_speech_detected()                # but the edge still flipped state
 
 
 def test_reset_and_close(scripted):
@@ -136,10 +192,15 @@ def test_wrong_window_size_rejected(scripted):
 def test_native_vad_matches_sherpa_within_one_frame():
     """Spec §9.4 / §10 row 2: measures drift between audio.cpp's bundled silero conversion
     and sherpa-onnx's official silero_vad.onnx on the same recording. ≤1-frame (32 ms)
-    agreement on every speech-start/speech-end edge is expected only once the two sides run
-    the same silero weights (Ruling Q, slice-2: accepted as weight-conversion drift, not a
-    wrapper defect); until then this xfails with the measured edge lists, and flips to a
-    real pass the day the weights are aligned."""
+    agreement on every speech-start/speech-end edge does NOT hold, for two independent
+    reasons (Ruling Q, slice-2): (a) algorithmic — audio.cpp's streaming path emits start
+    edges with no min_speech gating, so our starts lead sherpa's by a constant ~8 frames
+    (≈250 ms = min_speech_s) on every edge, not a per-recording drift; (b) weight-conversion
+    drift between audio.cpp's bundled silero conversion and sherpa-onnx's official
+    silero_vad.onnx, which also merges a pause the reference keeps split. Aligning the two
+    sides' weights alone addresses only (b) and cannot make this gate pass — (a) is a
+    structural difference in what the two streaming paths gate on, not a numeric one. This
+    xfails with the measured edge lists until both are addressed."""
     import wave
     import sherpa_onnx
     native.reset_for_tests()
@@ -164,4 +225,7 @@ def test_native_vad_matches_sherpa_within_one_frame():
                and all(up1 == up2 and abs(k1 - k2) <= 1
                        for (k1, up1), (k2, up2) in zip(ref_edges, our_edges)))
     if not aligned:
-        pytest.xfail(f"known silero weight-conversion drift (Ruling Q, slice-2): ref={ref_edges} native={our_edges}")
+        pytest.xfail("known drift, two causes (Ruling Q, slice-2): (a) algorithmic — no "
+                     "min_speech gating on live start edges, constant ~8-frame lead; "
+                     "(b) silero weight-conversion drift (merged pause). Weight alignment "
+                     f"alone cannot pass this gate. ref={ref_edges} native={our_edges}")

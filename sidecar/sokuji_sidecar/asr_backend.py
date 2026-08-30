@@ -6,8 +6,8 @@ model_ref is an upstream artifact path "org/repo/file.gguf"; the file must alrea
 the HF cache (the manager downloads it first). Batch mode: one AsrModel.run() per VAD
 segment. The streaming variant adapts AsrStream's committed/tentative view to asr_engine's
 stream contract: drain() emits committed-prefix DELTAS only (tentative text can be revised,
-so it never enters the append-only partial), and end() finalizes + returns the whole
-utterance's committed text."""
+so it never enters the append-only partial), and end() finalizes + returns the post-finalize
+FULL hypothesis (Ruling N)."""
 import numpy as np
 
 from . import native
@@ -120,8 +120,8 @@ class _NativeStream:
         return []
 
     def end(self) -> str:
-        """Finalize and return the WHOLE utterance's committed text (the engine replaces
-        the accumulated partial with this)."""
+        """Finalize and return the post-finalize FULL hypothesis (Ruling N) — the engine
+        replaces the accumulated partial with this."""
         if self._done:
             return self._committed.strip()
         try:

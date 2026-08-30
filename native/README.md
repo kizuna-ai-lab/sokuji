@@ -57,12 +57,14 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
 
 ## ASR and VAD (slice 2)
 
-**ASR** — four entry points, one model per (GGUF, device): `sk_asr_load` opens a GGUF and
+**ASR** — eight entry points, one model per (GGUF, device): `sk_asr_load` opens a GGUF and
 returns capabilities (`languages`, `supports_streaming`, `arch`); `sk_asr_run` transcribes a
 whole PCM buffer, polling `sk_text_cb(NULL, …)` between decode steps so the caller can cancel;
 `sk_asr_stream_open/feed/finalize/close` is the incremental path — `stream_feed` returns the
 committed/tentative text after each chunk, `stream_finalize` delivers the final full text and
-closes the stream, `stream_close` abandons it early; a model has at most one open stream and
+ends streaming mode, returning the session to idle (the model itself stays loaded and can
+open a new stream); `sk_asr_stream_close` still must be called to free the stream handle —
+it also abandons an unfinalized stream early; a model has at most one open stream and
 must outlive it. Python: `sokuji_native.asr_load()` returns an `AsrModel`
 (`.run()`, `.open_stream()` → `AsrStream` with `.feed()`/`.finalize()`/`.close()`, `.unload()`).
 The sidecar never imports `sokuji_native` directly — `sokuji_sidecar/native.py` is the one

@@ -39,15 +39,15 @@ def resolve_model(ref: str) -> str:
     return hf_hub_download(repo, fname)
 
 
-def run_once(model, pcm, stream: bool, chunk: int) -> tuple[float, str]:
+def run_once(model, pcm, stream: bool, chunk: int, lang: str) -> tuple[float, str]:
     t0 = time.perf_counter()
     if stream:
-        st = model.open_stream("en")
+        st = model.open_stream(lang)
         for off in range(0, len(pcm), chunk):
             st.feed(pcm[off:off + chunk])
         text = st.finalize()
     else:
-        text = model.run(pcm, "en")
+        text = model.run(pcm, lang)
     return time.perf_counter() - t0, text
 
 
@@ -59,6 +59,7 @@ def main(argv=None) -> int:
     p.add_argument("--runs", type=int, default=3)
     p.add_argument("--stream", action="store_true")
     p.add_argument("--chunk-ms", type=int, default=500)
+    p.add_argument("--lang", default="en")
     a = p.parse_args(argv)
 
     pcm = read_wav(a.wav)
@@ -70,10 +71,10 @@ def main(argv=None) -> int:
         print(f"{a.model}: no streaming support (arch={caps.arch})", file=sys.stderr)
         return 2
     chunk = a.chunk_ms * 16
-    warm, _ = run_once(model, pcm, a.stream, chunk)              # cold: shader compile + graph build
+    warm, _ = run_once(model, pcm, a.stream, chunk, a.lang)      # cold: shader compile + graph build
     times, text = [], ""
     for _ in range(a.runs):
-        t, text = run_once(model, pcm, a.stream, chunk)
+        t, text = run_once(model, pcm, a.stream, chunk, a.lang)
         times.append(t)
     rtf = [t / clip_s for t in times]
     print(f"model={a.model} device={a.device} arch={caps.arch} mode={'stream' if a.stream else 'batch'}")
