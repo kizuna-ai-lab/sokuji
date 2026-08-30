@@ -14,4 +14,30 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)         # for patch_upstre
 include(cmake/ggml_options.cmake)
 include(cmake/upstreams.cmake)
 
-# Engines are added by Tasks 3–5; libsokuji_native by Task 2.
+set(SOKUJI_TRANSCRIBE_VERSION "" )   # filled by Task 3
+set(SOKUJI_LLAMA_VERSION "")         # filled by Task 4
+set(SOKUJI_AUDIOCPP_VERSION "")      # filled by Task 5
+configure_file(src/version.h.in ${CMAKE_BINARY_DIR}/generated/version.h @ONLY)
+
+set(BUILD_SHARED_LIBS OFF)           # everything after ggml is static — engines fold into libsokuji_native
+add_library(sokuji_native SHARED
+    src/sk_common.cpp)
+target_include_directories(sokuji_native
+    PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_BINARY_DIR}/generated)
+target_compile_definitions(sokuji_native PRIVATE SOKUJI_NATIVE_BUILD=1)
+target_link_libraries(sokuji_native PRIVATE ggml)
+set_target_properties(sokuji_native PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+    BUILD_RPATH "$ORIGIN"
+    INSTALL_RPATH "$ORIGIN")
+if(APPLE)
+    set_target_properties(sokuji_native PROPERTIES BUILD_RPATH "@loader_path" INSTALL_RPATH "@loader_path")
+endif()
+if(NOT WIN32)
+    target_link_libraries(sokuji_native PRIVATE ${CMAKE_DL_LIBS})
+endif()
+
+enable_testing()
+add_subdirectory(tests)
