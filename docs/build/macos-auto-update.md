@@ -939,9 +939,13 @@ it has since been run. Two scripts reproduce it:
   `setup <arm>` builds and installs v1, `swap <arm>` replaces it with v2 and
   prints the log; run it for both the `selfsigned` and `adhoc` arms and compare.
   `cleanup` removes the test apps, the TCC entries and the throwaway keychain.
+- `scripts/verify-macos-hardened-mic.sh` — test 7, added 2026-08-31 after #458.
+  Headless (ad-hoc signed, no keychain needed); the `ent` arm leaves a real
+  microphone dialog on screen for a minute.
 
 | # | What it decides | Result |
 |---|---|---|
+| 7 | Does the Hardened Runtime deny the microphone with no prompt unless `com.apple.security.device.audio-input` is present? (2026-08-31) | **YES** — without it `requestAccess` returned in 0.00 s with `granted=0`, status `denied`, no dialog, and tccd logged "requires entitlement com.apple.security.device.audio-input but it is missing … Policy disallows prompt"; with it, tccd logged `AUTHREQ_PROMPTING` and the dialog appeared. Reproduced on the installed 0.39.1 (`Microphone permission status: not-determined` → `granted: false` with no dialog) and on a branch build with `electron/entitlements.mac.plist`, launched through `open`, which prompted |
 | 1 | Does TCC keep the microphone grant across a re-sign? | **PASS** — self-signed v2 launched already `AUTHORIZED` with no dialog; the ad-hoc control arm was prompted again (§2.5c) |
 | 2 | Can a write-disabled bundle in `/Applications` be renamed? | **PASS** — yes, so `rename(2)`'s CONFORMANCE clause does not bite on APFS here. The root-owned variant still needs a passworded sudo; see the caveat below |
 | 3 | Is the self-signed DR stable, and does build N+1 satisfy build N's DR? | **PASS** — identical DR, `-R` check rc=0, ad-hoc control correctly fails |
