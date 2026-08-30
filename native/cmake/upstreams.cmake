@@ -54,7 +54,7 @@ FetchContent_Declare(llama
     GIT_TAG        c1d0e7a004015f23bc0233470b747b596f29b264   # v0.3.0 (in-tree ggml 0.22.0)
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE)
-set(SOKUJI_LLAMA_VERSION "v0.3.0")
+set(SOKUJI_LLAMA_VERSION "0.3.0")   # upstream tag is v0.3.0; the string is normalised like the other three
 
 set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -75,6 +75,9 @@ FetchContent_Declare(audiocpp
     GIT_TAG        d2ff37009c69d464bcab6aa4a44a13746e84a914   # v0.7.0
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
+    # audio.cpp declares its CLI/server/converter executables unconditionally; we only
+    # ever build the targets sokuji_native links, so the rest is never compiled.
+    EXCLUDE_FROM_ALL
     PATCH_COMMAND  ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
                    <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/audio.cpp.json)
 set(SOKUJI_AUDIOCPP_VERSION "0.7.0")
@@ -99,24 +102,16 @@ set(ENGINE_ENABLE_CUDA OFF CACHE BOOL "" FORCE)
 set(ENGINE_ENABLE_HIP OFF CACHE BOOL "" FORCE)
 set(ENGINE_ENABLE_VULKAN ${GGML_VULKAN} CACHE BOOL "" FORCE)
 set(ENGINE_ENABLE_METAL ${GGML_METAL} CACHE BOOL "" FORCE)
-if(APPLE)
-    set(ENGINE_ENABLE_OPENMP OFF CACHE BOOL "" FORCE)         # Apple clang ships no OpenMP
-else()
-    set(ENGINE_ENABLE_OPENMP ON CACHE BOOL "" FORCE)
-endif()
+set(ENGINE_ENABLE_OPENMP OFF CACHE BOOL "" FORCE)            # matches GGML_OPENMP=OFF: no libgomp anywhere
+# audio.cpp force-sets GGML_LLAMAFILE from this; give it the value ggml_options.cmake
+# already decided so that force is a no-op and a re-configure changes nothing.
+set(ENGINE_ENABLE_LLAMAFILE ${GGML_LLAMAFILE} CACHE BOOL "" FORCE)
 set(ENGINE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(ENGINE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ENGINE_BUILD_WARMBENCH OFF CACHE BOOL "" FORCE)
-FetchContent_GetProperties(audiocpp)
-if(NOT audiocpp_POPULATED)
-    FetchContent_Populate(audiocpp)
-    # EXCLUDE_FROM_ALL: audio.cpp declares its CLI/server/converter executables unconditionally;
-    # we only ever build the targets sokuji_native links, so the rest is never compiled.
-    add_subdirectory(${audiocpp_SOURCE_DIR} ${audiocpp_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
-
-# Re-assert ggml knobs audio.cpp force-set behind our back (they only affect a *future*
-# configure of ggml, but we keep the cache honest so re-configures stay deterministic).
-set(GGML_BACKEND_DL ON CACHE BOOL "" FORCE)
-set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
-set(GGML_CPU_ALL_VARIANTS ON CACHE BOOL "" FORCE)
+# EXCLUDE_FROM_ALL rides on the FetchContent_Declare above (CMake 3.28+), so this is a
+# plain MakeAvailable rather than the deprecated Populate + add_subdirectory pair.
+# audio.cpp force-sets several GGML_* cache entries from here on; every one of them is
+# decided in ggml_options.cmake, which runs before ggml is configured on every
+# configure — so there is nothing to re-assert afterwards.
+FetchContent_MakeAvailable(audiocpp)

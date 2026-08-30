@@ -1,4 +1,10 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.28)   # FetchContent_Declare(EXCLUDE_FROM_ALL)
+# The macOS wheels are tagged macosx_11_0_*; pin the deployment target to match, before
+# project() reads it. CMAKE_HOST_APPLE is one of the few variables CMake defines that
+# early (we never cross-compile to macOS, so host == target here).
+if(CMAKE_HOST_APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version" FORCE)
+endif()
 project(sokuji_native VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -52,7 +58,7 @@ foreach(_t IN LISTS _audiocpp_dir_targets)
 endforeach()
 message(STATUS "sokuji-native: compat header injected into: ${_audiocpp_engine_targets}")
 foreach(_t IN LISTS _audiocpp_engine_targets)
-    target_include_directories(${_t} PRIVATE ${SOKUJI_GGML_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_include_directories(${_t} PRIVATE ${SOKUJI_GGML_SOURCE_DIR}/src)
     if(MSVC)
         target_compile_options(${_t} PRIVATE /FI${CMAKE_CURRENT_SOURCE_DIR}/src/audiocpp_compat.h)
     else()
@@ -73,6 +79,28 @@ if(APPLE)
 endif()
 if(NOT WIN32)
     target_link_libraries(sokuji_native PRIVATE ${CMAKE_DL_LIBS})
+endif()
+
+# Exported surface: sk_* and nothing else. The three engines are static archives compiled
+# with default visibility, so without this their symbols (transcribe_*, llama_*, engine::*)
+# would be exported from our .so and could shadow another copy loaded by the host process.
+# Windows needs nothing: only __declspec(dllexport) is exported there.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    # Also the glibc/libstdc++ floor: the wheels must run on distributions older than the
+    # build runner, and --no-undefined turns a missing symbol into a link error here
+    # instead of a dlopen failure on a user's machine.
+    target_link_options(sokuji_native PRIVATE
+        -static-libstdc++ -static-libgcc
+        -Wl,--no-undefined
+        -Wl,--exclude-libs,ALL
+        -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/sokuji_native.map)
+    set_property(TARGET sokuji_native APPEND PROPERTY
+                 LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/sokuji_native.map)
+elseif(APPLE)
+    target_link_options(sokuji_native PRIVATE
+        -Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/src/sokuji_native.exports)
+    set_property(TARGET sokuji_native APPEND PROPERTY
+                 LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/sokuji_native.exports)
 endif()
 
 enable_testing()

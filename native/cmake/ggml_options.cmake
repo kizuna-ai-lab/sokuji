@@ -46,6 +46,20 @@ set(GGML_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GGML_BUILD_TESTS OFF    CACHE BOOL "" FORCE)
 set(GGML_CUDA OFF CACHE BOOL "" FORCE)
 set(GGML_HIP  OFF CACHE BOOL "" FORCE)
+# The four knobs below exist here only because audio.cpp's CMake FORCEs them into the
+# cache when it is added (its CMakeLists.txt lines 263-269 at v0.7.0) — long after ggml
+# has been configured. Left to audio.cpp, configure #1 would build ggml with ggml's own
+# defaults and configure #2 with audio.cpp's leftovers: two different sets of CPU
+# kernels from the same source tree. Deciding them here, before ggml, makes a
+# re-configure a no-op.
+if(MSVC)
+    set(GGML_LLAMAFILE OFF CACHE BOOL "" FORCE)              # llama.cpp's own default on MSVC
+else()
+    set(GGML_LLAMAFILE ON CACHE BOOL "" FORCE)               # llama.cpp's own default elsewhere
+endif()
+set(GGML_OPENMP OFF CACHE BOOL "" FORCE)                     # no libgomp runtime dependency in the wheel
+set(GGML_CCACHE OFF CACHE BOOL "" FORCE)
+set(GGML_ALL_WARNINGS OFF CACHE BOOL "" FORCE)
 set(GGML_VULKAN OFF CACHE BOOL "" FORCE)
 set(GGML_METAL  OFF CACHE BOOL "" FORCE)
 if(SOKUJI_GPU_RESOLVED STREQUAL "vulkan")

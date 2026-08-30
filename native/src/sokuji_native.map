@@ -1,0 +1,10 @@
+/* Linker version script (GNU ld / lld). Only the sk_* C ABI leaves libsokuji_native:
+ * transcribe.cpp, llama.cpp and audio.cpp are linked in as static archives compiled with
+ * default visibility, and would otherwise export their own symbols into the host process.
+ * Paired with -Wl,--exclude-libs,ALL in native/CMakeLists.txt. */
+{
+    global:
+        sk_*;
+    local:
+        *;
+};
