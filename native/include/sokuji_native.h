@@ -137,6 +137,33 @@ SK_API sk_status sk_asr_stream_finalize(sk_asr_stream *, sk_text_cb, void *user)
 SK_API void      sk_asr_stream_close(sk_asr_stream *);
 SK_API void      sk_asr_unload(sk_asr_model *);
 
+/* ---- Translation (llama.cpp) ----
+ * One loaded GGUF chat model per handle. Requests are stateless: each call clears the
+ * KV memory, evaluates the prompt, and greedily decodes up to max_tokens, invoking
+ * sk_text_cb once per decoded token piece (UTF-8, may split multibyte chars across
+ * pieces — concatenate before display). The callback returning false cancels the
+ * request (SK_ERR_CANCELLED). Calls on one handle are serialised internally.
+ * sk_translate_chat renders the messages through the GGUF's own chat template
+ * (llama_chat_apply_template, add_assistant=true) and then appends
+ * gen->assistant_prefill verbatim when non-NULL — the mechanism for forcing an empty
+ * think block on Qwen3-family models. A GGUF whose template the legacy formatter does
+ * not know yields SK_ERR_INVALID_ARGUMENT with a "chat template not supported" message;
+ * callers fall back to sk_translate_complete with a self-rendered prompt. */
+typedef struct sk_translate sk_translate;
+typedef struct sk_translate_options { int32_t n_ctx; /* 0 = 4096 */ } sk_translate_options;
+typedef struct sk_message { const char *role; const char *content; } sk_message;
+typedef struct sk_gen_options {
+    int32_t max_tokens;            /* <= 0 = 512 */
+    const char *assistant_prefill; /* NULL = none */
+} sk_gen_options;
+SK_API sk_status sk_translate_load(const char *gguf_path, const sk_device *device,
+                                   const sk_translate_options *opts, sk_translate **out);
+SK_API sk_status sk_translate_chat(sk_translate *, const sk_message *msgs, int32_t n_msgs,
+                                   const sk_gen_options *, sk_text_cb on_token, void *user);
+SK_API sk_status sk_translate_complete(sk_translate *, const char *prompt,
+                                       const sk_gen_options *, sk_text_cb on_token, void *user);
+SK_API void      sk_translate_unload(sk_translate *);
+
 #ifdef __cplusplus
 }
 #endif

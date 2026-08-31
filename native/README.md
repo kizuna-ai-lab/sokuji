@@ -52,6 +52,7 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   device table, `own_directory()`, the log sink); never installed.
 - `src/sk_asr.cpp` — `sk_asr_load/capabilities/run/stream_open/stream_feed/stream_finalize/stream_close/unload`
   over transcribe.cpp.
+- `src/sk_translate.cpp` — `sk_translate_load/chat/complete/unload` over llama.cpp.
 - `python/` — the `sokuji_native` package; `_ffi.py` mirrors the header.
 - `tests/` — CTest smoke and the parity comparator; `tests/wav.h` is the shared 16 kHz mono
   WAV reader (over transcribe.cpp's vendored `dr_wav.h`) used by `test_asr.cpp`.
@@ -83,6 +84,34 @@ CTest needs real models for `test_asr` (skips with exit code 77 when absent):
 
 `SK_TEST_SAMPLE_WAV` is set by CMake to transcribe.cpp's vendored `samples/jfk.wav` (11 s,
 "ask not what your country…"); it is not meant to be overridden by hand.
+
+## Translation (slice 3)
+
+**Translation** — four entry points, one loaded GGUF chat model per handle: `sk_translate_load`
+opens a GGUF on a device (`NULL` = llama's own default placement); `sk_translate_chat` and
+`sk_translate_complete` both funnel into one stateless greedy-decode loop that clears the KV
+memory before every call, so a handle carries no conversation state between requests. Both
+entry points stream UTF-8 token pieces through `sk_text_cb` as they are decoded (a piece may
+split a multibyte character — concatenate before display) and cancel on the callback returning
+false (`SK_ERR_CANCELLED`, stopped before the next decode step); `sk_translate_unload` frees the
+sampler chain, context and model.
+
+`sk_translate_chat` renders `sk_message[]` through the GGUF's own chat template
+(`llama_chat_apply_template`, `add_ass=true`) and then appends `sk_gen_options.assistant_prefill`
+verbatim — the mechanism for forcing an empty `<think></think>` block on Qwen3-family models to
+kill their default thinking mode. A GGUF whose template the legacy (non-Jinja) formatter does
+not recognise — `llama_model_chat_template` returns `NULL`, or `llama_chat_apply_template`
+reports failure — fails with `SK_ERR_INVALID_ARGUMENT` ("chat template not supported by the
+legacy formatter; render the prompt and use sk_translate_complete"); callers fall back to
+`sk_translate_complete` with a self-rendered prompt. Python: `sokuji_native.translate_load()`
+returns a `Translator` (`.chat()`, `.complete()`, `.unload()`).
+
+CTest needs a real chat GGUF for `test_translate` (skips with exit code 77 when absent):
+
+    curl -L -o ~/.cache/sokuji-native-tests/Qwen3-0.6B-Q8_0.gguf https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf
+
+    SK_TEST_TRANSLATE_GGUF=~/.cache/sokuji-native-tests/Qwen3-0.6B-Q8_0.gguf \
+    ctest --test-dir native/build/cpu --output-on-failure -R 'test_translate'
 
 ## Bumping a pin
 
