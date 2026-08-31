@@ -230,8 +230,8 @@ def _quant_budget_bytes(machine: Machine):
     only decides WHICH FILE we recommend the user download — and we always run
     exactly the file the user downloaded — so the basis must never flap with
     transient VRAM pressure (that would recommend re-downloads). Runtime
-    pressure is placement's job (--fit / cpu fallback), never a silent switch
-    to a different model file."""
+    pressure is placement's job (load_with_fallback's GPU->cpu tier
+    fallback), never a silent switch to a different model file."""
     # Largest-device basis: correct for the ~universal single-GPU case. On a rare
     # dual-DISCRETE-vendor box (AMD + NVIDIA) this can budget a gpu-cuda download
     # against the non-CUDA card's VRAM — accepted as a documented limitation
@@ -317,8 +317,10 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
     if override == "auto":
         # Same STABLE basis as the download recommendation (_h_list_variants):
         # we always run exactly the file the user downloaded, so choose it the
-        # same way we recommended it. Runtime VRAM pressure is handled by
-        # llama-server's --fit at placement, never by switching files.
+        # same way we recommended it. reserved_bytes only sizes THIS quant
+        # selection; an over-budget GPU load fails cleanly at load time and
+        # the resolver falls to the cpu plan below — never a silent switch to
+        # a different downloaded file.
         chosen = select_variant(model, machine, reserved_bytes, pin,
                                 budget_bytes=_quant_budget_bytes(machine),
                                 downloaded=downloaded, est_bytes=est_bytes,

@@ -165,7 +165,14 @@ class NativeTranslateBackend:
                     raise BackendLoadError(
                         f"native_translate needs an 'org/repo/file.gguf' artifact, got {model_ref!r}")
                 path = hf_hub_download(repo, fname, local_files_only=True)
-            dev = native.device_for(device) if device != "cpu" else None
+            # Always resolve an explicit device — including "cpu": passing NULL to
+            # sk_translate_load leaves llama's defaults (n_gpu_layers=-1, all
+            # devices), which fully offloads a cpu-resolved plan to the GPU on the
+            # Vulkan/Metal wheels — breaking the resolver's GPU->CPU fallback and
+            # corrupting the VRAM ledger (a cpu plan is supposed to claim 0).
+            # native.device_for("cpu") returns the explicit CPU device, which
+            # makes sk_translate_load's CPU branch set n_gpu_layers=0.
+            dev = native.device_for(device)
             self._config = config or PlanConfig()
             # Unknown/missing prompt_family defaults to the qwen shape (plain
             # system+user messages) — the safest generic default among the three.

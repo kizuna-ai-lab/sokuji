@@ -51,10 +51,13 @@ def native_env(monkeypatch, tmp_path):
     log = []
     gguf = tmp_path / "w.gguf"
     gguf.write_bytes(b"GGUF")
+    # A distinct, non-None sentinel per kind — including "cpu" — so a test can
+    # tell a real (if fake) device object apart from a NULL that was never
+    # resolved at all (see test_load_cpu_passes_explicit_cpu_device_not_null).
     mod = types.SimpleNamespace(translate_load=lambda path, device=None, n_ctx=0:
-                                (log.append(("load", path)) or _FakeTranslator(log)))
+                                (log.append(("load", path, device)) or _FakeTranslator(log)))
     monkeypatch.setattr(native, "module", lambda: mod)
-    monkeypatch.setattr(native, "device_for", lambda kind: None if kind in ("cpu", "vulkan", "metal")
+    monkeypatch.setattr(native, "device_for", lambda kind: f"dev:{kind}" if kind in ("cpu", "vulkan", "metal")
                         else (_ for _ in ()).throw(backends.BackendLoadError(f"no {kind} device")))
     return str(gguf), log
 
@@ -147,6 +150,22 @@ def test_device_fallback_raises_backend_load_error(native_env):
     b = backends.make_backend("native_translate")
     with pytest.raises(backends.BackendLoadError):
         b.load(gguf, "cuda", "q4_k_m", config=PlanConfig(prompt_family="qwen"))
+
+
+def test_load_cpu_passes_explicit_cpu_device_not_null(native_env):
+    """Regression (final-review F1): passing NULL to sk_translate_load for a
+    cpu-resolved plan leaves llama's defaults (n_gpu_layers=-1, all devices),
+    which fully offloads to the GPU on the Vulkan/Metal wheels — breaking the
+    resolver's GPU->CPU fallback and corrupting the VRAM ledger (a cpu plan is
+    supposed to claim 0 device bytes). device="cpu" must resolve and pass an
+    explicit CPU device, exactly like vulkan/metal do, never skip straight to
+    None."""
+    gguf, log = native_env
+    b = backends.make_backend("native_translate")
+    b.load(gguf, "cpu", "q8_0", config=PlanConfig(prompt_family="qwen"))
+    load_entry = next(entry for entry in log if entry[0] == "load")
+    assert load_entry[2] is not None
+    assert load_entry[2] == "dev:cpu"
 
 
 def test_empty_or_unknown_prompt_family_dispatches_to_qwen(native_env):
