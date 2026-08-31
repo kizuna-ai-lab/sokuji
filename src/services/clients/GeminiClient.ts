@@ -165,7 +165,15 @@ export class GeminiClient implements IClient {
    */
   private static isRealtimeCapableModel(model: any): boolean {
     const modelName = model.name?.toLowerCase() || '';
-    
+
+    // STT-only transcription models (gemini-3.5-transcribe-live) carry "live"
+    // in the name but require TEXT response modality and produce no
+    // translation or audio output — a dialogue session on them silently
+    // yields no translated audio.
+    if (modelName.includes('transcribe')) {
+      return false;
+    }
+
     // Check for models with "audio" or "live" in the name
     return modelName.includes('audio') || modelName.includes('live');
   }
