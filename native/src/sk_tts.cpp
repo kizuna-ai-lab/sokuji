@@ -206,8 +206,17 @@ sk_status synth_streaming(sk_tts *t, const rt::TaskRequest &request, sk_audio_cb
         rc = fail("sk_tts_synth", ex.what());
     }
     // Every request (success/cancel/failure) leaves the stream reset so the next request on
-    // this handle starts clean (report §2's reset() contract).
-    t->streaming->reset();
+    // this handle starts clean (report §2's reset() contract). reset() is a plain
+    // IStreamingVoiceTaskSession method, not exempt from the "audio.cpp throws
+    // std::exception" rule — letting it escape this extern "C" boundary would std::terminate
+    // the whole process from inside ctypes, so it gets its own try/catch. A prior failure
+    // takes priority in the returned status; a reset() failure only surfaces when the request
+    // itself had otherwise succeeded.
+    try {
+        t->streaming->reset();
+    } catch (const std::exception &ex) {
+        if (rc == SK_OK) rc = fail("sk_tts_synth: reset", ex.what());
+    }
     return rc;
 }
 
@@ -251,6 +260,11 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
 
     auto *h = new sk_tts();
     try {
+        // No other thread can reach h yet (it isn't published to *out until the very end), so
+        // this lock is uncontended — held anyway so "all access is serialised per handle"
+        // (header contract) covers load-time session construction too, not just post-load
+        // calls.
+        std::lock_guard<std::mutex> lock(h->mutex);
         rt::ModelRegistry registry = rt::make_default_registry();   // cheap; not retained (report §1)
 
         rt::ModelLoadRequest load_request;
@@ -291,8 +305,18 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
             }
             std::sort(h->preset_names.begin(), h->preset_names.end());
         } else if (std::strcmp(info->name, "pocket_tts") == 0) {
+            // Presets live in embeddings/*.safetensors next to the GGUF FILE ON DISK, not
+            // under inspection.model_root: for a GGUF with embedded sidecars, model_root is
+            // the materialized $TMPDIR snapshot (config/tokenizer only — see the README's
+            // model-directory note), which never contains embeddings/. audio.cpp itself
+            // resolves voice presets against tensor_source->source_path().parent_path()
+            // (voice_asset_root, pocket_tts/assets.cpp:153, consumed at session.cpp:347) —
+            // mirror that here instead of the materialized root.
             std::error_code ec;
-            const std::filesystem::path emb_dir = inspection.model_root / "embeddings";
+            const bool model_is_file = std::filesystem::is_regular_file(load_request.model_path, ec);
+            const std::filesystem::path gguf_parent_dir =
+                model_is_file ? load_request.model_path.parent_path() : load_request.model_path;
+            const std::filesystem::path emb_dir = gguf_parent_dir / "embeddings";
             if (std::filesystem::is_directory(emb_dir, ec)) {
                 for (const auto &entry : std::filesystem::directory_iterator(emb_dir, ec)) {
                     if (entry.path().extension() == ".safetensors")
@@ -368,6 +392,23 @@ SK_API sk_status sk_tts_set_voice(sk_tts *t, const float *ref_pcm, size_t n, int
 SK_API sk_status sk_tts_set_preset(sk_tts *t, const char *name) {
     if (!t || !name || !*name) { sk::set_error("sk_tts_set_preset: handle and name are required"); return SK_ERR_INVALID_ARGUMENT; }
     std::lock_guard<std::mutex> lock(t->mutex);
+    // supertonic and pocket_tts advertise a COMPLETE, authoritative preset list (report §3:
+    // supertonic's fixed style set via inspect(), pocket_tts's embeddings/ directory) —
+    // validate against it so a typo fails immediately with a helpful message instead of
+    // surfacing later as an opaque "unsupported speaker"-style exception at synth time.
+    // qwen3_tts (CustomVoice speaker names are not enumerable through this API, report §3),
+    // moss_tts_nano and omnivoice have no discoverable preset list at all, so stay permissive
+    // there and let the engine's own request validation apply at synth.
+    if (t->family == "supertonic" || t->family == "pocket_tts") {
+        const bool known = std::find(t->preset_names.begin(), t->preset_names.end(), name) != t->preset_names.end();
+        if (!known) {
+            std::string available;
+            for (const auto &n : t->preset_names) { if (!available.empty()) available += ", "; available += n; }
+            sk::set_error(std::string("sk_tts_set_preset: unknown preset '") + name + "' for family '" + t->family +
+                          "'; available: " + (available.empty() ? "(none)" : available));
+            return SK_ERR_INVALID_ARGUMENT;
+        }
+    }
     t->preset_name = name;
     t->has_preset  = true;
     // "clears any clone state" (header contract).
@@ -380,6 +421,12 @@ SK_API sk_status sk_tts_set_preset(sk_tts *t, const char *name) {
 SK_API sk_status sk_tts_synth(sk_tts *t, const char *text, const char *language, float speed,
                                sk_audio_cb on_audio, void *user) {
     if (!t || !text) { sk::set_error("sk_tts_synth: handle and text are required"); return SK_ERR_INVALID_ARGUMENT; }
+    if (!(speed > 0.0f)) {   // catches <= 0 and NaN (NaN > 0.0f is false); supertonic's own
+                              // speaking_rate check throws for this, which would otherwise
+                              // classify as SK_ERR_BACKEND rather than a caller error
+        sk::set_error("sk_tts_synth: speed must be positive");
+        return SK_ERR_INVALID_ARGUMENT;
+    }
     std::lock_guard<std::mutex> lock(t->mutex);
     const rt::TaskRequest request = build_request(t, text, language, speed);
     return t->streaming_family ? synth_streaming(t, request, on_audio, user)

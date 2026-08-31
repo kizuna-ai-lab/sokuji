@@ -175,7 +175,10 @@ SK_API void      sk_translate_unload(sk_translate *);
  * (streaming) or discards the result (offline, which cannot be interrupted mid-run).
  * The authoritative sample rate rides every callback; caps.sample_rate is the family's
  * expected rate for pre-synth UI. Errors are audio.cpp exceptions mapped to sk_status
- * with sk_last_error carrying ex.what(). */
+ * with sk_last_error carrying ex.what(). The per-handle lock is NOT recursive: calling any
+ * sk_tts_* function on the same handle from inside sk_audio_cb (or sk_text_cb passed to
+ * sk_tts_presets) deadlocks the calling thread — the callback may only read its own
+ * arguments and touch caller-owned state. */
 typedef struct sk_tts sk_tts;
 typedef struct sk_tts_options {
     const char *family;    /* required: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic */
@@ -193,7 +196,8 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
                       const sk_tts_options *opts, sk_tts **out);
 SK_API sk_status sk_tts_capabilities(sk_tts *, sk_tts_caps *);
 SK_API sk_status sk_tts_presets(sk_tts *, sk_text_cb on_name, void *user);   /* one call per preset name; supertonic + pocket only, others succeed with zero calls */
-SK_API sk_status sk_tts_set_voice(sk_tts *, const float *ref_pcm, size_t n, int32_t sample_rate,
+SK_API sk_status sk_tts_set_voice(sk_tts *, const float *ref_pcm /* MONO f32 PCM; no channels param */,
+                           size_t n /* sample count, not byte count */, int32_t sample_rate,
                            const char *ref_text /* NULL ok except omnivoice */);
 SK_API sk_status sk_tts_set_preset(sk_tts *, const char *name);              /* clears any clone state */
 SK_API sk_status sk_tts_synth(sk_tts *, const char *text, const char *language, float speed,

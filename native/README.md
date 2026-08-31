@@ -146,15 +146,25 @@ offline families, which cannot be interrupted mid-run. `speed` only affects `sup
 `.unload()`).
 
 Model directories: `sk_tts_load`'s `model_path` may be a `.gguf` file directly, or a
-directory holding exactly one — audio.cpp's newer GGUF packages (including every family
-downloaded from `audio-cpp/audio.cpp-gguf` on Hugging Face) embed their config/voice-style
-sidecar files as GGUF metadata and materialize them into a temp directory automatically at
-load time, so **a single downloaded `.gguf` is self-sufficient**; nothing else needs to live
-alongside it (`prepare_model_directory` / `materialize_gguf_sidecars`,
-`src/framework/assets/tensor_source.cpp`). This also means the snapshot-symlink note from
-ASR/translation applies unchanged here: pass the HF cache's `snapshots/.../*.gguf` symlink
-path as given (it has the right `.gguf` extension and audio.cpp's existence check follows
-symlinks) — never resolve it down to the extension-less `blobs/<hash>` file.
+directory holding exactly one. Self-sufficiency is a **per-file** property, not a per-family
+one: a GGUF built with `audiocpp.embedded_files.*` metadata carries its own config/voice-style
+sidecars, and on first load audio.cpp materializes them into
+`$TMPDIR/audiocpp-gguf/<fingerprint>/` (re-verified, not re-extracted, on every later load;
+`TMPDIR` must be writable) — `prepare_model_directory` / `materialize_gguf_sidecars`,
+`src/framework/assets/tensor_source.cpp`. Every GGUF downloaded from `audio-cpp/audio.cpp-gguf`
+on Hugging Face for `supertonic`, `moss_tts_nano`, `omnivoice` and `qwen3_tts` carries this
+metadata, so **a single downloaded `.gguf` is self-sufficient for those four families**
+(supertonic's materialized snapshot is ~57MB); nothing else needs to live alongside it. This is
+**not** true for `pocket_tts`: its GGUF embeds only `tokenizer.model`, and its voice presets
+resolve against `embeddings/*.safetensors` living NEXT TO THE GGUF FILE ON DISK, never
+materialized (`pocket_tts/assets.cpp`'s `voice_asset_root =
+tensor_source->source_path().parent_path()`, consumed at `session.cpp:347`) — the `english`
+package ships `embeddings/alba.safetensors` beside its `.gguf`, while `de`/`it`/`pt`/`es`
+package no embeddings at all (clone-only for those languages; `sk_tts_presets` correctly
+reports zero names). This also means the snapshot-symlink note from ASR/translation applies
+unchanged here: pass the HF cache's `snapshots/.../*.gguf` symlink path as given (it has the
+right `.gguf` extension and audio.cpp's existence check follows symlinks) — never resolve it
+down to the extension-less `blobs/<hash>` file.
 
 CTest needs two real model directories for `test_tts` (skips with exit code 77 when absent).
 Note: supertonic's Q8_0 GGUF is not currently viable (audio.cpp `docs/gguf.md`: "Q8 blockers

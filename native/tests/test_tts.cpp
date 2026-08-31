@@ -110,8 +110,16 @@ int main(int argc, char **argv) {
     for (auto &n : names.names) { if (!preset_list.empty()) preset_list += ","; preset_list += n; }
     std::fprintf(stderr, "supertonic presets: [%s]\n", preset_list.c_str());
 
+    // CQ-2: an unknown preset name is rejected against the cached (authoritative for
+    // supertonic) list, not silently accepted and left to fail opaquely at synth time.
+    sk_status bad_preset_rc = sk_tts_set_preset(st, "NO_SUCH");
+    if (bad_preset_rc != SK_ERR_INVALID_ARGUMENT) {
+        std::fprintf(stderr, "expected SK_ERR_INVALID_ARGUMENT for an unknown preset, got %d\n", bad_preset_rc);
+        return 1;
+    }
+
     if (sk_tts_set_preset(st, "M1") != SK_OK) {
-        std::fprintf(stderr, "supertonic set_preset failed: %s\n", sk_last_error());
+        std::fprintf(stderr, "supertonic set_preset failed after a rejected preset: %s\n", sk_last_error());
         return 1;
     }
 
