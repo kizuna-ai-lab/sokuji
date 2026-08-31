@@ -1,7 +1,8 @@
 # sokuji-native
 
 One native library for the Sokuji sidecar: **transcribe.cpp** (ASR), **llama.cpp**
-(translation) and **audio.cpp** (TTS, six families) linked into `libsokuji_native`
+(translation) and **audio.cpp** (TTS, five families: moss_tts_nano, qwen3_tts, omnivoice,
+pocket_tts, supertonic) linked into `libsokuji_native`
 behind the `sk_*` C ABI in `include/sokuji_native.h`, on top of one pristine upstream ggml
 with dynamically loaded backends (CPU per-ISA modules, Vulkan on Linux/Windows, Metal on
 Apple Silicon). Design: `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md`.
@@ -53,6 +54,8 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
 - `src/sk_asr.cpp` — `sk_asr_load/capabilities/run/stream_open/stream_feed/stream_finalize/stream_close/unload`
   over transcribe.cpp.
 - `src/sk_translate.cpp` — `sk_translate_load/chat/complete/unload` over llama.cpp.
+- `src/sk_tts.cpp` — `sk_tts_load/capabilities/presets/set_voice/set_preset/synth/unload`
+  over audio.cpp.
 - `python/` — the `sokuji_native` package; `_ffi.py` mirrors the header.
 - `tests/` — CTest smoke and the parity comparator; `tests/wav.h` is the shared 16 kHz mono
   WAV reader (over transcribe.cpp's vendored `dr_wav.h`) used by `test_asr.cpp`.
@@ -112,6 +115,59 @@ CTest needs a real chat GGUF for `test_translate` (skips with exit code 77 when 
 
     SK_TEST_TRANSLATE_GGUF=~/.cache/sokuji-native-tests/Qwen3-0.6B-Q8_0.gguf \
     ctest --test-dir native/build/cpu --output-on-failure -R 'test_translate'
+
+## TTS (slice 4)
+
+**TTS** — seven entry points, one loaded model per handle, over audio.cpp's five kept
+families (`moss_tts_nano`, `qwen3_tts`, `omnivoice`, `pocket_tts`, `supertonic`):
+`sk_tts_load` opens a model with a REQUIRED `family` (audio.cpp's `family_hint` — always
+pass it explicitly, family auto-detection is fragile and order-dependent) and creates one
+long-lived session at load time, offline or streaming depending on the family
+(`sk_tts_capabilities().streaming`: only `omnivoice` and `supertonic` stream, the other
+three are offline-only); `sk_tts_capabilities` reports streaming/clones/transcript_required
+and the family's default sample rate (48000 moss / 24000 qwen3+omnivoice+pocket / 44100
+supertonic — always read the rate off each `sk_audio_cb` call too, these are technically
+config-driven per checkpoint); `sk_tts_presets` lists named preset voices (supertonic's
+fixed `M1`-`M5`/`F1`-`F5` style set, or pocket_tts's `embeddings/*.safetensors` — the other
+three families have no enumerable presets and return zero names); `sk_tts_set_voice` stores
+a reference clip (+ optional transcript, mandatory for `omnivoice`) and `sk_tts_set_preset`
+stores a preset id — both apply to every subsequent `sk_tts_synth` call on the handle until
+the other is set (each clears the other); `sk_tts_synth` runs greedy/deterministic synthesis
+(`seed=0`, `do_sample=false`, always) and delivers f32 interleaved PCM through `sk_audio_cb`:
+offline families call it exactly once with the whole buffer, streaming families call it once
+per pulled chunk (audio.cpp's streaming is "pull text-chunks, not push audio-frames" — one
+event per ~300-codepoint text chunk, not low-latency frame streaming); the callback
+returning `false` cancels between chunks for streaming families (`SK_ERR_CANCELLED`, the
+session resets and is ready for the next request) or discards an already-complete result for
+offline families, which cannot be interrupted mid-run. `speed` only affects `supertonic`
+(mapped to its `speaking_rate` request option when != 1.0); every other family ignores it.
+`sk_tts_unload` frees the session and model. Python: `sokuji_native.tts_load()` returns a
+`TtsModel` (`.capabilities`, `.presets()`, `.set_voice()`, `.set_preset()`, `.synth()`,
+`.unload()`).
+
+Model directories: `sk_tts_load`'s `model_path` may be a `.gguf` file directly, or a
+directory holding exactly one — audio.cpp's newer GGUF packages (including every family
+downloaded from `audio-cpp/audio.cpp-gguf` on Hugging Face) embed their config/voice-style
+sidecar files as GGUF metadata and materialize them into a temp directory automatically at
+load time, so **a single downloaded `.gguf` is self-sufficient**; nothing else needs to live
+alongside it (`prepare_model_directory` / `materialize_gguf_sidecars`,
+`src/framework/assets/tensor_source.cpp`). This also means the snapshot-symlink note from
+ASR/translation applies unchanged here: pass the HF cache's `snapshots/.../*.gguf` symlink
+path as given (it has the right `.gguf` extension and audio.cpp's existence check follows
+symlinks) — never resolve it down to the extension-less `blobs/<hash>` file.
+
+CTest needs two real model directories for `test_tts` (skips with exit code 77 when absent).
+Note: supertonic's Q8_0 GGUF is not currently viable (audio.cpp `docs/gguf.md`: "Q8 blockers
+unresolved" in the text/vector graph paths) — F16 is the smallest quant with a passing test
+status, so that is what CI and this recipe use, not Q8_0:
+
+    mkdir -p ~/.cache/sokuji-native-tests/tts/supertonic-3 ~/.cache/sokuji-native-tests/tts/moss-tts-nano
+    curl -L -o ~/.cache/sokuji-native-tests/tts/supertonic-3/supertonic-3-f16.gguf https://huggingface.co/audio-cpp/audio.cpp-gguf/resolve/main/Supertonic-3-GGUF/supertonic-3-f16.gguf
+    curl -L -o ~/.cache/sokuji-native-tests/tts/moss-tts-nano/moss-tts-nano-100m-q8_0.gguf https://huggingface.co/audio-cpp/audio.cpp-gguf/resolve/main/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf
+
+    SK_TEST_TTS_SUPERTONIC_DIR=~/.cache/sokuji-native-tests/tts/supertonic-3 \
+    SK_TEST_TTS_MOSS_DIR=~/.cache/sokuji-native-tests/tts/moss-tts-nano \
+    ctest --test-dir native/build/cpu --output-on-failure -R 'test_tts'
 
 ## Bumping a pin
 

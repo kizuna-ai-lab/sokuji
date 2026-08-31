@@ -164,6 +164,42 @@ SK_API sk_status sk_translate_complete(sk_translate *, const char *prompt,
                                        const sk_gen_options *, sk_text_cb on_token, void *user);
 SK_API void      sk_translate_unload(sk_translate *);
 
+/* ---- TTS (audio.cpp) ----
+ * One loaded model per handle; family is REQUIRED and passed as audio.cpp's family_hint
+ * string. One long-lived session per handle (offline or streaming per the family);
+ * all access is serialised per handle (audio.cpp sessions are not thread-safe).
+ * Voice state (clone clip + reference text, or a preset id) is stored on the handle and
+ * applied to every subsequent synth. sk_tts_synth delivers f32 PCM through sk_audio_cb:
+ * offline families call it exactly once with the whole buffer; streaming families call
+ * it once per pulled chunk. The callback returning false cancels between chunks
+ * (streaming) or discards the result (offline, which cannot be interrupted mid-run).
+ * The authoritative sample rate rides every callback; caps.sample_rate is the family's
+ * expected rate for pre-synth UI. Errors are audio.cpp exceptions mapped to sk_status
+ * with sk_last_error carrying ex.what(). */
+typedef struct sk_tts sk_tts;
+typedef struct sk_tts_options {
+    const char *family;    /* required: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic */
+    const char *language;  /* pocket_tts load-time language package ("english", ...); ignored elsewhere; NULL ok */
+} sk_tts_options;
+typedef struct sk_tts_caps {
+    bool streaming;            /* omnivoice, supertonic */
+    bool clones;               /* moss_tts_nano, qwen3_tts (Base), omnivoice, pocket_tts */
+    bool transcript_required;  /* omnivoice: reference_text is mandatory with a ref clip */
+    int32_t sample_rate;       /* family default: 48000 moss / 24000 qwen3+omnivoice+pocket / 44100 supertonic */
+} sk_tts_caps;
+typedef bool (*sk_audio_cb)(const float *pcm, size_t n_samples, int32_t sample_rate,
+                            int32_t channels, void *user);
+SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
+                      const sk_tts_options *opts, sk_tts **out);
+SK_API sk_status sk_tts_capabilities(sk_tts *, sk_tts_caps *);
+SK_API sk_status sk_tts_presets(sk_tts *, sk_text_cb on_name, void *user);   /* one call per preset name; supertonic + pocket only, others succeed with zero calls */
+SK_API sk_status sk_tts_set_voice(sk_tts *, const float *ref_pcm, size_t n, int32_t sample_rate,
+                           const char *ref_text /* NULL ok except omnivoice */);
+SK_API sk_status sk_tts_set_preset(sk_tts *, const char *name);              /* clears any clone state */
+SK_API sk_status sk_tts_synth(sk_tts *, const char *text, const char *language, float speed,
+                       sk_audio_cb on_audio, void *user);
+SK_API void      sk_tts_unload(sk_tts *);
+
 #ifdef __cplusplus
 }
 #endif

@@ -19,6 +19,8 @@ env:
   SK_TEST_ASR_GGUF: ${{ github.workspace }}/native/build/models/whisper-tiny-Q8_0.gguf
   SK_TEST_ASR_STREAM_GGUF: ${{ github.workspace }}/native/build/models/moonshine-streaming-tiny-Q8_0.gguf
   SK_TEST_TRANSLATE_GGUF: ${{ github.workspace }}/native/build/models/Qwen3-0.6B-Q8_0.gguf
+  SK_TEST_TTS_SUPERTONIC_DIR: ${{ github.workspace }}/native/build/models/tts/supertonic-3
+  SK_TEST_TTS_MOSS_DIR: ${{ github.workspace }}/native/build/models/tts/moss-tts-nano
 
 jobs:
   build:
@@ -48,21 +50,27 @@ jobs:
           [ "$WANT" = "$HAVE" ] || { echo "tag $WANT != CMake project version $HAVE"; exit 1; }
       - uses: actions/setup-python@v6
         with: { python-version: '3.12' }
-      - name: CTest models (whisper-tiny Q8_0, moonshine-streaming-tiny Q8_0, Qwen3-0.6B Q8_0)
+      - name: CTest models (whisper-tiny Q8_0, moonshine-streaming-tiny Q8_0, Qwen3-0.6B Q8_0, supertonic-3 F16, MOSS-TTS-Nano Q8_0)
         id: models
         uses: actions/cache@v4
         with:
           path: native/build/models
-          key: ctest-models-v2-whisper-tiny-Q8_0-moonshine-streaming-tiny-Q8_0-qwen3-0.6b-Q8_0
+          key: ctest-models-v3-whisper-tiny-Q8_0-moonshine-streaming-tiny-Q8_0-qwen3-0.6b-Q8_0-supertonic-3-f16-moss-tts-nano-q8_0
       - name: Download CTest models
         if: steps.models.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          mkdir -p native/build/models
+          mkdir -p native/build/models native/build/models/tts/supertonic-3 native/build/models/tts/moss-tts-nano
           curl -sSL -o native/build/models/whisper-tiny-Q8_0.gguf https://huggingface.co/handy-computer/whisper-tiny-gguf/resolve/main/whisper-tiny-Q8_0.gguf
           curl -sSL -o native/build/models/moonshine-streaming-tiny-Q8_0.gguf https://huggingface.co/handy-computer/moonshine-streaming-tiny-gguf/resolve/main/moonshine-streaming-tiny-Q8_0.gguf
           curl -sSL -o native/build/models/Qwen3-0.6B-Q8_0.gguf https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf
-          ls -la native/build/models
+          # supertonic Q8_0 is not viable (audio.cpp docs/gguf.md: "Q8 blockers unresolved" in
+          # the text/vector graph paths) — F16 is the smallest tested-passing quant. Each
+          # directory holds only the .gguf: audio.cpp materializes the family's
+          # config/voice-style sidecars from the GGUF's own embedded metadata at load time.
+          curl -sSL -o native/build/models/tts/supertonic-3/supertonic-3-f16.gguf https://huggingface.co/audio-cpp/audio.cpp-gguf/resolve/main/Supertonic-3-GGUF/supertonic-3-f16.gguf
+          curl -sSL -o native/build/models/tts/moss-tts-nano/moss-tts-nano-100m-q8_0.gguf https://huggingface.co/audio-cpp/audio.cpp-gguf/resolve/main/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf
+          ls -la native/build/models native/build/models/tts/supertonic-3 native/build/models/tts/moss-tts-nano
       - name: Vulkan SDK (Linux)
         if: runner.os == 'Linux' && matrix.lane == 'vulkan'
         run: |

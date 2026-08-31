@@ -23,3 +23,14 @@ add_test(NAME test_translate COMMAND test_translate ${CMAKE_BINARY_DIR}/lib)
 set_tests_properties(test_translate PROPERTIES
     ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib"
     SKIP_RETURN_CODE 77)
+
+# Slice 4: TTS surface. Needs SK_TEST_TTS_SUPERTONIC_DIR and SK_TEST_TTS_MOSS_DIR (each a
+# directory holding one .gguf; audio.cpp materializes the family's config/voice-style
+# sidecars from the GGUF's own embedded metadata); exit code 77 = skipped, so a developer
+# without the models still gets a green ctest.
+add_executable(test_tts test_tts.cpp)
+target_link_libraries(test_tts PRIVATE sokuji_native)
+add_test(NAME test_tts COMMAND test_tts ${CMAKE_BINARY_DIR}/lib)
+set_tests_properties(test_tts PROPERTIES
+    ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib"
+    SKIP_RETURN_CODE 77)
