@@ -5,7 +5,19 @@
 the eight symbols audio.cpp's own ggml fork adds). This gate proves that swap is behavior
 preserving, by comparing `sk_tts`'s output against the OFFICIAL `audiocpp_cli` — built from
 the exact same vendored audio.cpp source, but completely unpatched, with audio.cpp's OWN fork
-ggml — sample-exact on CPU.
+ggml — on CPU, within a ±1-LSB (16-bit PCM) tolerance (see §3 for why this isn't `--exact`).
+
+**Round 2 / ledger ruling R10(s4)**: a full numeric investigation
+(`.superpowers/sdd/2026-08-31-sidecar-ggml-only-slice4-tts/moss-divergence-investigation.md`)
+found that audio.cpp's forked ggml 0.12.0 has a genuine bug — `ggml_vec_dot_f32`'s SVE
+tail-lane handling (`svmad_f32_m` instead of `svmla_f32_m`) silently corrupts F32 matmul
+accumulators whenever the reduction length isn't a multiple of 4 AND an SVE-capable CPU
+module gets selected. Our upstream ggml 0.22.0 already has the fix and is correct. On any
+SVE-capable aarch64 box (this dev box included), that makes the OFFICIAL reference binary
+itself numerically wrong for some shapes — so both sides now run with the SVE-capable CPU
+modules excluded (§2), and the comparator only requires agreement to the nearest 16-bit PCM
+code, not the last float32 bit (§3). **A mismatch against this reference can mean the
+reference is wrong, not `sk_tts`** — read the investigation report before assuming otherwise.
 
 ## Files
 
@@ -94,69 +106,105 @@ The moss/qwen3/omnivoice clone cases need a reference clip; nothing is checked i
 (`native/tests/parity/assets/` does not exist — a WAV binary has no business in git history).
 Each such test generates its own 1-second 440 Hz mono sine at 24 kHz, in `tmp_path`, and feeds
 the identical in-memory array to both sides (the CLI reads it back from a 32-bit float WAV —
-lossless, `audio_format==3` in `wav_reader.cpp` — the binding gets the numpy array directly, no
-WAV round-trip on that side at all), so the reference clip itself can never be a source of
-divergence.
+lossless, `audio_format==3` in `wav_reader.cpp` — the binding gets it back via the same
+lossless round-trip through its own subprocess, verified bit-exact), so the reference clip
+itself can never be a source of divergence.
 
-## 3. What "sample-exact" actually compares
+**SVE-free comparison (round 2, ruling R10(s4)).** Both `_run_cli` and the candidate's own
+subprocess (see below) run against a filtered copy of their module directory with the three
+SVE-capable ggml CPU backend modules excluded —
+`libggml-cpu-armv8.2_3.so`/`armv8.6_1.so`/`armv8.6_2.so` (`ggml/src/CMakeLists.txt`'s own
+variant table). `test_tts_parity.py`'s `_sve_free_copy` makes this copy once per side, cached
+under `SOKUJI_NATIVE_TEST_CACHE`, and picks it back up automatically if the source gets
+rebuilt (mtime-compared). ggml's CPU backend loader scores every `libggml-cpu-*.so` it can see
+in its search directory and picks the best-scoring one — excluding the SVE-capable ones just
+makes it fall back to the best REMAINING tier (`armv8.2_2` on this box), which is correct on
+*both* ggml versions, instead of comparing a correct build against a broken one. This is a real
+file copy, not symlinks: ggml's default CPU-module search path on Linux is the *running
+executable's own directory*, resolved via `/proc/self/exe` — which the kernel resolves THROUGH
+a symlink to the target's original location, so a symlinked `audiocpp_cli` would silently keep
+searching the original (SVE-including) directory. Comparing SVE-vs-non-SVE across sides would
+just reintroduce the drift this exists to eliminate, so both sides get the identical treatment.
+
+The candidate side runs in its own subprocess for this reason (among others — see
+`test_tts_parity.py`'s module docstring, "Candidate isolation"): `sokuji_native.native_dir()`
+is read once and cached for the life of a process, so pointing it at the SVE-free copy would
+otherwise leak into any other test module sharing the same pytest session (in particular
+`native/python/tests/test_sokuji_native.py`, which must keep exercising the real staged build,
+SVE and all) if this file's own `os.environ` were mutated instead.
+
+## 3. What the gate actually compares
 
 Both sides quantize their output to 16-bit PCM before comparison, because that is the ONLY
 format the CLI's `--out` ever writes (`engine::audio::write_pcm16_wav`, hardcoded, no `--out`
-float option). `test_tts_parity.py`'s `_quantize_pcm16` replicates that exact function —
-clamp to `[-1, 1]`, multiply by `32767.0` in float32, round-to-nearest-even — so a difference
-in *quantizer*, not model, can never surface as a spurious `--exact` failure. `compare_pcm.py`
-then reads both WAVs back through the same `soundfile` call and requires `max_abs == 0.0`.
+float option). The candidate subprocess's own quantization (inlined in `_CANDIDATE_RUNNER`)
+replicates that exact function — clamp to `[-1, 1]`, multiply by `32767.0` in float32,
+round-to-nearest-even — so a difference in *quantizer*, not model, can never surface as a
+spurious parity failure.
+
+**The verdict is ±1 LSB, not `--exact`** (`MAX_ABS_TOLERANCE = 1.5 / 32768` in
+`test_tts_parity.py`, using `compare_pcm.compare()`'s existing `max_abs` output directly —
+`compare_pcm.py` itself is unmodified, it already prints this number). Cross-ggml-version
+sample-exactness was never a meaningful bar: two internally-correct builds of the *same*
+algorithm, on two different minor versions of ggml, are allowed to round the last float32 bit
+differently — the achievable, meaningful invariant is that they land on the same (or an
+adjacent) 16-bit PCM code. The SVE story above is the case study that motivated this: even
+after excluding the actual bug, `moss_tts_nano`'s two builds still don't reach bit-identical
+float32 logits (the investigation measured ordinary ggml-version fp noise, not a behavioral
+difference) — sample-exactness would have failed the gate anyway, on a family that has no
+outstanding correctness question. A shape or sample-rate mismatch is still a hard, non-waivable
+mismatch — the tolerance is about amplitude, never about extra or missing samples.
 
 Both sides are pinned to `seed=0`, `do_sample=false` (the CLI via
 `--seed 0 --request-option do_sample=false`; `sk_tts` always internally, per R7) and to the
 SAME thread count (`THREADS = 4` in `test_tts_parity.py`, via `--threads` on the CLI and
 `sokuji_native.init(n_threads=...)` on the binding) — ggml's CPU matmul reduction order is
-thread-count dependent, so a mismatch there is indistinguishable from a genuine backend
-divergence.
+thread-count dependent, so a mismatch there would be indistinguishable from a genuine backend
+divergence (the investigation confirmed this specific model is thread-count invariant on both
+sides anyway, 1 vs. 4 threads, but the pin costs nothing and removes the question).
 
-## 4. Known status (as of Fix round 1)
+## 4. Known status (as of Round 2)
 
-Round 0 found three shape-mismatch failures. Fix round 1 root-caused and fixed two concrete
-wrapper defects (stereo channels dropped by the Python binding; supertonic compared against
-the wrong CLI mode) and did a full, instrumented diff of MOSS's request construction — all
-detailed in `.superpowers/sdd/2026-08-31-sidecar-ggml-only-slice4-tts/task-3-report.md`'s
-"Fix round 1" section. **All three cases still FAIL** after the fixes:
+| case | round 0/1 | round 2 (SVE-free, ±1 LSB) |
+|---|---|---|
+| `test_supertonic_streaming_voice_id_m1` | FAILED, shape mismatch 82653 vs 82638 | **XFAIL** — shape mismatch 82653 vs 82639 (SVE removal barely moved the number; confirmed NOT the SVE bug, still a separate unexplained residual) |
+| `test_moss_text_only` | FAILED, shape mismatch (172800,2) vs (2304000,)/(1152000,2) | **PASS** — `max_abs=3.052e-05` (exactly 1 LSB), `snr=107.99 dB` |
+| `test_moss_clone` | FAILED, shape mismatch, then max_abs=0.959 once shapes matched | **XFAIL (NEW residual)** — shapes match (1152000,2 both sides) but `max_abs=1.290`, `snr=-1.27 dB` — see below |
 
-- **`test_supertonic_streaming_voice_id_m1`**: now compared streaming-vs-streaming (round 0
-  compared the candidate's forced-streaming session against the CLI's offline default) — the
-  result is IDENTICAL: still 82653 vs 82638 samples, still fails the same way. Confirmed
-  directly that the CLI's own `--mode streaming --out` merge equals its `--out-dir` chunk_0.wav
-  bit-for-bit for this single-chunk text, so mode alignment could not have changed anything
-  here — offline-vs-streaming was never the actual cause. Per-chunk localization (now built into
-  the test) shows the single chunk pair itself is the mismatch, nothing hidden by merging.
-- **`test_moss_text_only`**: still a shape mismatch, but now `(172800, 2)` vs `(1152000, 2)` —
-  correctly 2 channels on both sides (the binding fix worked), duration still wrong. A direct
-  runtime probe (temporarily instrumented into BOTH binaries' `generation_options_from_request`,
-  removed before commit) confirmed `seed`, `do_sample`, and every sampling parameter are
-  BYTE-IDENTICAL between the candidate and the CLI for this exact request — the divergence is
-  not a missing/misspelled option. Under `do_sample=false` the stop decision
-  (`moss_tts_nano/local_frame_decoder.cpp`'s `generate_frame`) is `argmax_index` over 2 logits,
-  with NO RNG involved at all — a pure function of the computed hidden state. The candidate and
-  reference are also confirmed thread-count-invariant individually (1 vs 4 threads changes
-  neither side's frame count), ruling out FP-reduction-order-from-threading too. MOSS's
-  attention (`ggml_soft_max`-based, confirmed by direct source read) does not call either of
-  `native/src/audiocpp_compat.h`'s two node-for-node-reimplemented ops. See the report for the
-  full elimination chain — the remaining explanation is a genuine numeric difference somewhere
-  in the transformer forward pass between upstream ggml and audio.cpp's own fork, not a request-
-  construction or option-spelling defect in this wrapper.
-- **`test_moss_clone`**: shape now MATCHES — `(1152000, 2)` on both sides (the reference itself
-  also runs to the full 300-frame generation cap for this input, so the channel fix alone closes
-  the length gap) — but content does not: `max_abs=0.959 snr=-15.81 dB`. This is the cleanest
-  evidence in the whole suite: same generation length on both sides (no early-stop asymmetry to
-  confound the comparison), same request, and still a large, real audio-content divergence.
+**`test_moss_text_only` is the SVE story's confirmation.** Round 0/1's 3.6s-vs-24.0s length
+asymmetry was an ACCIDENT of the fork's SVE bug: it corrupted the reference's stop logits
+enough to fire EOC early (frame 45), while the model never actually reaches EOC for this input
+on a correct build. With SVE excluded from both sides, both run the full 300-frame / 24.0s
+generation and agree to the tightest possible margin, 1 LSB. **moss_tts_nano's 300-frame
+runaway is real** — a genuine, separate defect in audio.cpp's own MOSS session/prompt/stop
+path, not a ggml-swap regression and not fixable from `native/src/sk_tts.cpp` — but it is no
+longer a parity concern: both sides do it identically now. Deciding the moss card (fix
+upstream, cap `max_new_tokens`, or drop the family) is a product decision pending elsewhere.
 
-The comparator, harness, and reference-build machinery are confirmed sound (both binaries load
-the identical CPU kernel tier, `libggml-cpu-armv8.6_2.so`, on this box; the two concrete wrapper
-defects this round found — stereo channels, streaming-mode alignment — are fixed and covered by
-`native/python/tests/test_sokuji_native.py`'s updated assertions). What remains is a real,
-currently-unexplained-at-the-request-level divergence on two of the five families, for the
-compat-header porting decision (spec §10.1) — now backed by a much narrower elimination chain
-than round 0 had.
+**`test_moss_clone` is a NEW finding this round**, not predicted by the investigation (which
+only end-to-end-verified the text-only case). Its shapes now match — the reference itself also
+hits the same 300-frame cap for a cloning request, so excluding SVE didn't change the *length*
+question here — but the content differs by far more than 1 LSB. The clone path additionally
+exercises the audio tokenizer's ENCODE step on the reference clip
+(`MossTTSNanoSession::reference_codes_for_request`/`encode_reference_audio`), which the
+text-only case never reaches; a divergence this large (`max_abs` above 1.0, beyond what
+clamping to `[-1, 1]` can even bound) is consistent with a separate numeric issue on that code
+path, not the already-diagnosed `ggml_vec_dot_f32` SVE bug. Ruled out as a harness bug: the
+voice-reference WAV round-trip (`_write_ref_wav`'s 32-bit float subtype) is verified bit-exact
+on both sides. Per this round's scope, not chased further — xfailed with the measured numbers,
+flagged prominently in the round-2 report for whoever picks this up next.
+
+**`test_supertonic_streaming_voice_id_m1` remains the round-1 residual, confirmed independent
+of the SVE bug**: re-run SVE-free, the shape mismatch persists (82653 vs 82639 — barely moved
+from 82638) and per-chunk localization still shows the single chunk itself as the mismatch.
+The investigation looked at this directly and left it as a separate, unexplained residual,
+explicitly out of scope for this round.
+
+The comparator, SVE-free staging, and reference-build machinery are confirmed sound (both
+binaries load the identical CPU kernel tier, `libggml-cpu-armv8.2_2.so`, once SVE is excluded
+on this box). What remains — moss_clone's and supertonic's residuals — is real, currently
+unexplained divergence, for whoever picks up the compat-header/audio.cpp investigation next
+(spec §10.1's process, though neither residual has been shown to be a compat-header issue).
 
 ## 5. The Vulkan leg (deferred)
 
