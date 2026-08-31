@@ -5,7 +5,8 @@
 the eight symbols audio.cpp's own ggml fork adds). This gate proves that swap is behavior
 preserving, by comparing `sk_tts`'s output against the OFFICIAL `audiocpp_cli` — built from
 the exact same vendored audio.cpp source, but completely unpatched, with audio.cpp's OWN fork
-ggml — on CPU, within a ±1-LSB (16-bit PCM) tolerance (see §3 for why this isn't `--exact`).
+ggml — on CPU, sample-exact where that is achievable and within a ±1-LSB (16-bit PCM)
+tolerance otherwise (see §3 for which case gets which, and why).
 
 **Round 2 / ledger ruling R10(s4)**: a full numeric investigation
 (`.superpowers/sdd/2026-08-31-sidecar-ggml-only-slice4-tts/moss-divergence-investigation.md`)
@@ -142,7 +143,15 @@ replicates that exact function — clamp to `[-1, 1]`, multiply by `32767.0` in 
 round-to-nearest-even — so a difference in *quantizer*, not model, can never surface as a
 spurious parity failure.
 
-**The verdict is ±1 LSB, not `--exact`** (`MAX_ABS_TOLERANCE = 1.5 / 32768` in
+**Two verdicts, chosen per case** (round 3, rulings R11/R12): `_compare_exact` where
+sample-exactness is provably achievable — currently only supertonic, a fixed-step decoder with
+no autoregressive loop — and `_compare_lsb_tolerant` everywhere else. The split is deliberate:
+a tolerance band is the natural hiding place for a precision-losing bug, and R11 was exactly
+that (an F16 im2col buffer costing ~1.2e-4 relative, which only became visible because
+supertonic's duration predictor turns precision into output *length*). Where a family can be
+held to zero, it is.
+
+**The default verdict is ±1 LSB, not `--exact`** (`MAX_ABS_TOLERANCE = 1.5 / 32768` in
 `test_tts_parity.py`, using `compare_pcm.compare()`'s existing `max_abs` output directly —
 `compare_pcm.py` itself is unmodified, it already prints this number). Cross-ggml-version
 sample-exactness was never a meaningful bar: two internally-correct builds of the *same*
@@ -163,13 +172,59 @@ thread-count dependent, so a mismatch there would be indistinguishable from a ge
 divergence (the investigation confirmed this specific model is thread-count invariant on both
 sides anyway, 1 vs. 4 threads, but the pin costs nothing and removes the question).
 
-## 4. Known status (as of Round 2)
+## 4. Known status (as of Round 3, rulings R11/R12)
 
-| case | round 0/1 | round 2 (SVE-free, ±1 LSB) |
+| case | round 2 | round 3 (conv shims landed) |
 |---|---|---|
-| `test_supertonic_streaming_voice_id_m1` | FAILED, shape mismatch 82653 vs 82638 | **XFAIL** — shape mismatch 82653 vs 82639 (SVE removal barely moved the number; confirmed NOT the SVE bug, still a separate unexplained residual) |
-| `test_moss_text_only` | FAILED, shape mismatch (172800,2) vs (2304000,)/(1152000,2) | **PASS** — `max_abs=3.052e-05` (exactly 1 LSB), `snr=107.99 dB` |
-| `test_moss_clone` | FAILED, shape mismatch, then max_abs=0.959 once shapes matched | **XFAIL (NEW residual)** — shapes match (1152000,2 both sides) but `max_abs=1.290`, `snr=-1.27 dB` — see below |
+| `test_supertonic_streaming_voice_id_m1` | XFAIL — shape mismatch 82653 vs 82639 | **PASS, SAMPLE-EXACT** — `max_abs = 0`, every 16-bit code identical (gated with `_compare_exact`) |
+| `test_moss_text_only` | PASS — `max_abs=3.052e-05` (1 LSB), `snr=107.99 dB` | **PASS**, unchanged — the conv shims do not touch this path |
+| `test_moss_clone` | XFAIL (new residual), `max_abs=1.290`, `snr=-1.27 dB` | **XFAIL, permanently and by design (R12)** — same numbers, now fully explained |
+
+Run: `8 passed, 3 skipped, 1 xfailed` (the three skips are qwen3/pocket/omnivoice, no models).
+
+### R11 — supertonic: a real divergence on our side, now fixed
+
+Two rounds of "unexplained 14-sample shape mismatch" had a mundane cause. Upstream ggml's
+conv constructors materialise their im2col buffer in F16 (`a->type == BF16 ? F32 : F16`)
+where audio.cpp's fork uses the kernel's dtype, so our build was running every F32 conv with
+half-precision activations — ~1.2e-4 RMS relative error against an F32 path's ~1e-7. Nothing
+linked wrong and nothing warned, because the two ggml versions agree on the function's name
+and signature and differ only inside the body.
+
+It surfaced here and not elsewhere because supertonic's duration predictor is a regression
+whose output *is* the sample count (`runtime.cpp`: `trim = duration_seconds * sample_rate`),
+so a 1.77e-4 relative error in one scalar became 14 missing samples. `native/src/audiocpp_compat.h`
+now shims `ggml_conv_1d`, `ggml_conv_1d_dw`, `ggml_conv_2d` and `ggml_conv_3d` back to the
+fork's dtype semantics; the whole waveform then matches bit-for-bit. `ggml_conv_1d_dw` is on
+qwen3_tts's decoder path, so that family is covered before its model even lands.
+
+### R12 — moss_clone: not a divergence anyone can fix
+
+The round-2 suspicion (the clone-only reference-audio ENCODE step) was wrong: the encoder
+input, its latent, and all 16 RVQ codebooks are **bit-identical** on both sides, so both
+builds condition the LM on the same reference codes. The actual difference is one entry of
+ggml's 65536-entry fp16 GELU lookup table — at `x = -1.9990234`, one fp16 ULP apart, with the
+true value sitting within 2e-8 of the midpoint between the two codes (|err| vs a float64
+reference: 1.525e-05 fork, 1.527e-05 upstream, against the table's own 9.7e-04 quantization
+error). Neither ggml is more correct, and both versions' source for the GELU formula and the
+table build is identical.
+
+MOSS amplifies it: that 3.05e-05 appears in layer 4 of the global transformer at decode step 1,
+reaches ~1.2e-2 in the hidden by layer 11, and flips 4 of the 16 codebook argmax decisions in
+frame 1 (margins 0.0025-0.064; the run makes 4800 such decisions, 7 with a margin under 1e-2).
+From frame 1 the trajectories are independent, so `max_abs > 1.0` is the expected outcome.
+
+`moss_text_only` passes at 1 LSB only because it flips later (step ~39), by which point the
+model has collapsed into a repeating frame and the two streams differ only in that
+repetition's phase. Same model, same graph, same class of drift — different luck.
+
+**This is not waivable by widening `MAX_ABS_TOLERANCE`.** No amplitude band separates "same
+model, different chaotic trajectory" from "broken". Waveform parity is simply the wrong
+invariant for a 300-step argmax decoder: `moss_text_only` carries the family's numeric signal,
+and functional quality for the clone path is gated by the TTS→ASR loopback, which asks the
+only question that matters — does it say the right words. The invariant that *is* meaningful
+and *does* hold bit-exactly (identical reference codes) has no test hook today; exposing one
+would need a C-ABI or test-only accessor.
 
 **`test_moss_text_only` is the SVE story's confirmation.** Round 0/1's 3.6s-vs-24.0s length
 asymmetry was an ACCIDENT of the fork's SVE bug: it corrupted the reference's stop logits
@@ -181,30 +236,12 @@ path, not a ggml-swap regression and not fixable from `native/src/sk_tts.cpp` �
 longer a parity concern: both sides do it identically now. Deciding the moss card (fix
 upstream, cap `max_new_tokens`, or drop the family) is a product decision pending elsewhere.
 
-**`test_moss_clone` is a NEW finding this round**, not predicted by the investigation (which
-only end-to-end-verified the text-only case). Its shapes now match — the reference itself also
-hits the same 300-frame cap for a cloning request, so excluding SVE didn't change the *length*
-question here — but the content differs by far more than 1 LSB. The clone path additionally
-exercises the audio tokenizer's ENCODE step on the reference clip
-(`MossTTSNanoSession::reference_codes_for_request`/`encode_reference_audio`), which the
-text-only case never reaches; a divergence this large (`max_abs` above 1.0, beyond what
-clamping to `[-1, 1]` can even bound) is consistent with a separate numeric issue on that code
-path, not the already-diagnosed `ggml_vec_dot_f32` SVE bug. Ruled out as a harness bug: the
-voice-reference WAV round-trip (`_write_ref_wav`'s 32-bit float subtype) is verified bit-exact
-on both sides. Per this round's scope, not chased further — xfailed with the measured numbers,
-flagged prominently in the round-2 report for whoever picks this up next.
-
-**`test_supertonic_streaming_voice_id_m1` remains the round-1 residual, confirmed independent
-of the SVE bug**: re-run SVE-free, the shape mismatch persists (82653 vs 82639 — barely moved
-from 82638) and per-chunk localization still shows the single chunk itself as the mismatch.
-The investigation looked at this directly and left it as a separate, unexplained residual,
-explicitly out of scope for this round.
-
 The comparator, SVE-free staging, and reference-build machinery are confirmed sound (both
 binaries load the identical CPU kernel tier, `libggml-cpu-armv8.2_2.so`, once SVE is excluded
-on this box). What remains — moss_clone's and supertonic's residuals — is real, currently
-unexplained divergence, for whoever picks up the compat-header/audio.cpp investigation next
-(spec §10.1's process, though neither residual has been shown to be a compat-header issue).
+on this box). As of round 3 no unexplained divergence remains among the runnable cases:
+supertonic was ours and is fixed (R11), moss_clone is neither side's and is documented (R12).
+qwen3/pocket/omnivoice are still untested for want of models — and per R11, qwen3_tts's
+speech decoder calls `ggml_conv_1d_dw`, so it is the next family that would have hit this.
 
 ## 5. The Vulkan leg (deferred)
 

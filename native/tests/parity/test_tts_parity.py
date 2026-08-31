@@ -25,6 +25,24 @@ consequences, both implemented below:
    that proves the distinction matters: two builds can each be internally correct and still
    not agree to the last float32 ULP.
 
+Round 3 / rulings R11 and R12
+(.superpowers/sdd/2026-08-31-sidecar-ggml-only-slice4-tts/residuals-investigation.md) closed
+the two residuals round 2 left, in opposite directions — which is why the gate is no longer
+one uniform tolerance:
+
+3. R11, supertonic: a REAL divergence on our side. Upstream ggml's conv constructors
+   materialise their im2col buffer in F16 where audio.cpp's fork uses the kernel's dtype,
+   so our build ran supertonic's duration predictor at half precision and mispredicted its
+   own output length by 14 samples. native/src/audiocpp_compat.h now shims the four conv
+   entry points; the case is sample-exact and gated with _compare_exact, NOT the tolerance.
+   Precision-losing bugs of this shape hide inside a tolerance band — so where exactness is
+   provably achievable, this file demands it.
+4. R12, moss_clone: NOT a divergence anyone can fix. A single fp16 GELU lookup-table entry
+   rounds differently between the two ggml versions, and MOSS's 4800 argmax decisions turn
+   that one ULP into a different (equally valid) trajectory from frame 1. Permanently
+   xfailed; see the case for the full chain. Waveform parity is the wrong invariant for a
+   chaotic decoder, and no tolerance can distinguish it from a real break.
+
 Every case is gated on two independent things, so each one skips on its own:
   - the reference CLI existing at all (native/tests/parity/build_reference_cli.sh must have
     been run first — this file never builds it itself: that is a ~15 minute, network-using
@@ -297,6 +315,35 @@ def _compare_lsb_tolerant(ref_wav: pathlib.Path, got_wav: pathlib.Path) -> str:
     return ""
 
 
+def _compare_exact(ref_wav: pathlib.Path, got_wav: pathlib.Path) -> str:
+    """Same contract as _compare_lsb_tolerant, but requires max_abs == 0 — every 16-bit PCM
+    code identical.
+
+    Only supertonic uses this. The ±1-LSB tolerance exists for families whose output goes
+    through a long autoregressive loop, where two ggml versions legitimately disagree in the
+    last float bits (see §3 of the README). Supertonic has no such loop: it is a fixed-step
+    flow-matching decode, and since ruling R11 landed the conv-family im2col shims it agrees
+    with the reference on every sample. Holding it to `== 0` is what turns a future
+    reintroduction of that class of bug into an immediate, unambiguous failure instead of a
+    quiet drift inside a tolerance band."""
+    import soundfile as sf
+
+    ref, ref_rate = sf.read(str(ref_wav), dtype="float32", always_2d=False)
+    got, got_rate = sf.read(str(got_wav), dtype="float32", always_2d=False)
+    if ref_rate != got_rate:
+        return f"sample-rate mismatch: reference={ref_rate} candidate={got_rate}"
+    try:
+        r = compare(ref, got)
+    except ValueError as e:
+        return str(e)
+    if r.max_abs != 0.0:
+        return (
+            f"parity FAILED (exact gate): n={r.n} max_abs={r.max_abs:.3e} snr={r.snr_db:.2f} dB "
+            f"(reference {len(ref)} samples @ {ref_rate}, candidate {len(got)} samples @ {got_rate})"
+        )
+    return ""
+
+
 @needs_cli
 @needs_tree
 @needs_supertonic
@@ -330,15 +377,21 @@ def test_supertonic_streaming_voice_id_m1(tmp_path):
         text=text, language="en", preset="M1", out_wav=got_wav, chunk_dir=got_chunk_dir,
     )
 
-    failure = _compare_lsb_tolerant(ref_wav, got_wav)
+    failure = _compare_exact(ref_wav, got_wav)
     if not failure:
         return
 
-    # Round 2 (ruling R10(s4)): even with the SVE bug excluded from BOTH sides — which is
-    # what fixed moss below — supertonic still does not agree. The investigation confirmed
-    # this directly (re-ran supertonic SVE-free: still a shape mismatch, 82653 vs 82639) and
-    # left it as a separate, unexplained residual, explicitly out of scope for this round.
-    # xfail with per-chunk localization; not chased further.
+    # Ruling R11: this case is SAMPLE-EXACT and is gated as such, not at ±1 LSB.
+    #
+    # It was an xfail for two rounds (shape mismatch, 82653 vs 82639 samples, and unmoved by
+    # excluding the SVE modules that explained moss). residuals-investigation.md found why:
+    # upstream ggml's ggml_conv_1d materialises its im2col buffer in F16 where audio.cpp's
+    # fork uses the kernel's dtype, so our build ran supertonic's duration predictor with
+    # half-precision activations. That predictor's output IS the output length
+    # (runtime.cpp: trim = duration_seconds * sample_rate), so ~1.2e-4 of fp16 rounding
+    # became 14 missing samples. native/src/audiocpp_compat.h now shims the four conv
+    # entry points back to the fork's dtype semantics, and the whole waveform matches
+    # bit-for-bit — hence _compare_exact above, and a hard failure rather than an xfail.
     import soundfile as sf
 
     ref_chunk_paths = sorted(ref_chunk_dir.glob("chunk_*.wav"), key=lambda p: p.name)
@@ -358,7 +411,14 @@ def test_supertonic_streaming_voice_id_m1(tmp_path):
             continue
         r = compare(ref_c, got_c)
         lines.append(f"  chunk {i}: n={r.n} max_abs={r.max_abs:.3e} snr={r.snr_db:.2f} dB")
-    pytest.xfail("\n".join(lines))
+    lines += [
+        "",
+        "This case passed sample-exact when ruling R11 landed. A regression here is most",
+        "likely a ggml bump that reintroduced a constructor-level behaviour change like the",
+        "im2col dtype default — re-run the fork-vs-upstream scan documented in",
+        "native/src/audiocpp_compat.h before assuming sk_tts is at fault.",
+    ]
+    pytest.fail("\n".join(lines))
 
 
 @needs_cli
@@ -436,21 +496,33 @@ def test_moss_clone(tmp_path):
     if not failure:
         return
 
-    # NEW finding this round, NOT predicted by moss-divergence-investigation.md (which only
-    # end-to-end-verified the TEXT-ONLY case's SVE-free agreement): the clone path additionally
-    # exercises the audio tokenizer's ENCODE step on the reference clip
-    # (MossTTSNanoSession::reference_codes_for_request/encode_reference_audio), which the
-    # text-only case never reaches — a large divergence here (max_abs comfortably above 1.0,
-    # i.e. beyond what clamping to [-1, 1] can even bound) is consistent with a SEPARATE
-    # numeric issue on that code path, not the already-diagnosed SVE ggml_vec_dot_f32 bug
-    # (shapes match here, ruling out the length-only symptom that bug produces). Ruled out as
-    # a harness bug: the reference clip's WAV round-trip (_write_ref_wav's 32-bit float
-    # subtype, read back via soundfile) is verified bit-exact, so both sides condition on an
-    # identical clip. Per this round's "do not chase further" scope for any residual beyond
-    # the already-explained SVE story, xfail with the measured numbers rather than
-    # investigating the audio tokenizer path — flagged prominently in the round-2 report for
-    # whoever picks this up next.
-    pytest.xfail(f"NEW residual (not the SVE bug — shapes match, only content diverges): {failure}")
+    # Ruling R12 — PERMANENT xfail, and not a defect in anything this repo owns.
+    #
+    # residuals-investigation.md traced this end to end. The reference-audio ENCODE path the
+    # round-2 comment below suspected is innocent: the encoder input, its latent, and all 16
+    # RVQ codebooks are BIT-IDENTICAL on both sides, so both builds condition the LM on the
+    # same reference codes. The real divergence is one entry of ggml's 65536-entry fp16 GELU
+    # lookup table, at x = -1.9990234, differing by a single fp16 ULP — a rounding coin flip
+    # at the midpoint (|err| vs a float64 reference: 1.525e-05 fork, 1.527e-05 upstream,
+    # against the table's own 9.7e-04 quantization error). Neither ggml is more correct, and
+    # the two versions' source for both the GELU formula and the table build is identical.
+    #
+    # MOSS then amplifies it: that 3.05e-05 lands in layer 4 of the global transformer at
+    # decode step 1, reaches ~1.2e-2 in the hidden by layer 11, and flips 4 of the 16
+    # codebook argmax decisions in frame 1 (margins 0.0025-0.064; the run makes 4800 such
+    # decisions, 7 of them with a margin under 1e-2). From frame 1 the two trajectories are
+    # independent, so max_abs > 1.0 is expected, not alarming.
+    #
+    # This is therefore NOT waivable by widening MAX_ABS_TOLERANCE — no amplitude band
+    # separates "same model, different chaotic trajectory" from "broken". Waveform parity is
+    # simply the wrong invariant for a 300-step argmax decoder. moss_text_only carries the
+    # family's numeric signal (it is the same model and the same graph, and it passes at 1
+    # LSB); functional quality for the clone path is gated by the TTS->ASR loopback, which
+    # asks the only question that actually matters here — does it say the right words.
+    pytest.xfail(
+        "R12: single-ULP GELU LUT rounding difference amplified through 4800 argmax "
+        f"decisions — expected, not a defect; quality gated by the TTS->ASR loopback. {failure}"
+    )
 
 
 @needs_cli

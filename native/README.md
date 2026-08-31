@@ -39,9 +39,26 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   - `transcribe.cpp.json` — makes transcribe.cpp reuse our ggml target instead of building its own copy
   - `audio.cpp.json` — makes audio.cpp reuse our ggml target instead of building its own copy, and
     keeps its trace-log formatter off `std::to_chars(double)` (macOS 13.3+; the wheels target 11.0)
-- `src/audiocpp_compat.h` — the eight symbols audio.cpp's fork adds to ggml, provided on
-  upstream ggml. Two of them reproduce the fork's graph node for node rather than
-  aliasing a nearby upstream call; read the header comment before touching it.
+- `src/audiocpp_compat.h` — the bridge between audio.cpp's forked ggml (base 0.12.0) and the
+  pristine upstream ggml we build on. Two kinds of difference, and the second is the dangerous
+  one; read the header comment before touching it.
+  - the **eight symbols the fork adds**, provided here. Two of them reproduce the fork's
+    graph node for node rather than aliasing a nearby upstream call.
+  - **four shared symbols whose behaviour upstream changed** (`ggml_conv_1d`,
+    `ggml_conv_1d_dw`, `ggml_conv_2d`, `ggml_conv_3d`, ruling R11). Upstream materialises
+    the conv's im2col buffer in F16 where the fork uses the kernel's dtype — same name, same
+    signature, so nothing fails to link and nothing warns, but every F32 conv silently runs
+    its activations at half precision. That cost supertonic 14 samples of output length and
+    two rounds of "unexplained" parity residual; the header shims all four back to the fork's
+    semantics. `ggml_conv_1d_dw` is on qwen3_tts's decoder path.
+  - **when bumping the ggml pin, re-run the scan the header documents** (diff the two
+    `ggml.h` symbol sets both ways; then diff the `ggml.c` body of every shared symbol and
+    triage the ones that differ). At the 0.12→0.22 gap that was 20 differing bodies, of which
+    only the conv family changed values at a reachable call site — the rest were asserts,
+    predicate refactors, training/quantization-time code, or zero-call-site ops.
+    `ggml_conv_2d_dw` diverges the *other* way (upstream is equal-or-better) and is
+    deliberately not shimmed; `ggml_clamp` became out-of-place upstream but every audio.cpp
+    call site clamps a throwaway temporary, so the values are unaffected.
 - `src/sokuji_native.map` / `src/sokuji_native.exports` — the exported-symbol lists
   (Linux / macOS) that keep everything but `sk_*` inside the library.
 - `ci/check_linux_deps.py` — run by `build.sh` on Linux before the wheel is built: every
