@@ -9,6 +9,8 @@ SRC_RATE = 24000
 # onset (threshold ramp + min_speech_duration) — keep this much audio to
 # replay into a fresh stream so utterances don't lose their first words.
 PREROLL_SAMPLES = int(0.7 * TARGET_RATE)
+RING_SAMPLES = int(0.7 * TARGET_RATE)       # offline pre-roll (start-mark skew absorber)
+OFFLINE_CAP_SAMPLES = 30 * TARGET_RATE      # backstop against a lost end mark (client cuts at 20s)
 
 
 def _downsample_int16_to_f32_16k(int16_bytes, src_rate=SRC_RATE):
@@ -28,12 +30,12 @@ def _downsample_int16_to_f32_16k(int16_bytes, src_rate=SRC_RATE):
 
 
 class AsrEngine:
-    """audio.cpp silero VAD (via sokuji_native) segmentation + a pluggable recognizer. Feed
-    Int16 bytes, get text per VAD segment.
+    """Mark-driven ASR: the client's vad-web worker owns segmentation and sends
+    `start`/`end`/`cancel` edges via mark(); the offline path buffers audio between
+    marks and transcribes once per segment. A pluggable recognizer produces the text.
 
-    The silero VAD must be fed in fixed window_size (512-sample @16k) chunks, so feed()
-    buffers the downsampled audio and only consumes whole windows; the remainder carries
-    over to the next feed().
+    The streaming half (STREAMING backends only) still gates itself with the native
+    silero VAD for endpointing — that segmentation moves to marks in a later task.
     """
 
     def __init__(self):
@@ -41,12 +43,17 @@ class AsrEngine:
         self._backend = None
         self._language = None
         self.resolved = None
-        self._window = 512
-        self._buf = np.zeros(0, np.float32)
         self._src_rate = SRC_RATE
-        # Pre-roll ring (gated streaming): the last ~0.7s of audio, replayed
-        # into a fresh stream at silero's rising edge — detection lags the true
-        # onset by 300-600ms and that audio used to be silently dropped.
+        self._streaming = False
+        # Offline (mark-driven) segmentation state:
+        self._in_speech = False
+        self._seg = []              # np.float32 chunks of the open segment
+        self._seg_len = 0
+        self._seg_start = 0         # first sample index of the open segment (16k, since init)
+        self._fed_total = 0         # every 16k sample ever fed since init
+        self._ring = []             # pre-roll ring, only fed while NOT in speech
+        self._ring_len = 0
+        # Streaming pre-roll ring (unchanged, used by the streaming half):
         self._preroll = []
         self._preroll_len = 0
 
@@ -69,16 +76,16 @@ class AsrEngine:
         self._window = self._vad.window
         self._buf = np.zeros(0, np.float32)
 
-    def init(self, model_id=None, language="", sample_rate=SRC_RATE,
-             vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto",
-             pin=None):
+    def init(self, model_id=None, language="", sample_rate=SRC_RATE, device="auto", pin=None):
         from . import accel
         t0 = time.time()
         # Free any previously-loaded model BEFORE loading the next. The engine is a
         # process singleton reused across sessions; without this, re-init piles a second
         # model into VRAM (PyTorch's caching allocator never returns it) and usage climbs.
         self.close()
-        self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
+        self._src_rate = int(sample_rate)
+        self._streaming = False
+        self._reset_offline()
         # Resolve the fastest available backend+device; CPU floor guaranteed.
         plans = accel.resolve(model_id or "sense-voice", override=device or "auto", pin=pin)
         self._backend, plan, notice, mem = accel.load_measured(plans, stage="asr")
@@ -101,6 +108,12 @@ class AsrEngine:
               + (f" rtf={rtf:.3f} (~{1 / rtf:.0f}x realtime)" if rtf else "")
               + f"  [requested device={device or 'auto'}]", file=sys.stderr, flush=True)
         return int((time.time() - t0) * 1000)
+
+    def _reset_offline(self):
+        self._in_speech = False
+        self._seg, self._seg_len, self._seg_start = [], 0, 0
+        self._fed_total = 0
+        self._ring, self._ring_len = [], 0
 
     def close(self):
         """Free the loaded ASR model and its GPU memory. Idempotent — called at the start
@@ -130,44 +143,75 @@ class AsrEngine:
                 backend.unload()
             except Exception:
                 pass
-        if self._vad is not None:
-            try:
-                self._vad.close()
-            except Exception:
-                pass
-            self._vad = None
-
-    def _drain(self):
-        out = []
-        while not self._vad.empty():
-            seg = self._vad.front
-            samples = np.asarray(seg.samples, dtype=np.float32)
-            t0 = time.time()
-            text = self._backend.transcribe(samples, self._language).text
-            self._vad.pop()
-            if text:
-                out.append({"type": "result", "text": text,
-                            "startSample": int(seg.start),
-                            "durationMs": int(len(seg.samples) / TARGET_RATE * 1000),
-                            "recognitionTimeMs": int((time.time() - t0) * 1000)})
-        return out
+        self._reset_offline()
+        self._streaming = False
 
     def feed(self, int16_bytes):
-        self._buf = np.concatenate([self._buf, _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)])
-        out = []
-        while len(self._buf) >= self._window:
-            was_detected = self._vad.is_speech_detected()
-            self._vad.accept_waveform(self._buf[:self._window])
-            self._buf = self._buf[self._window:]
-            if not was_detected and self._vad.is_speech_detected():
-                out.append({"type": "speech_start"})
-            out.extend(self._drain())
-        return out
+        """Buffer downsampled audio for the offline (mark-driven) path: while NOT in
+        speech it rolls into the pre-roll ring; while in speech it appends to the open
+        segment. Never emits speech_start — that edge now comes from the client's mark."""
+        x = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
+        self._fed_total += len(x)
+        if not self._in_speech:
+            self._ring.append(x)
+            self._ring_len += len(x)
+            while len(self._ring) > 1 and self._ring_len - len(self._ring[0]) >= RING_SAMPLES:
+                self._ring_len -= len(self._ring.pop(0))
+            return []
+        self._seg.append(x)
+        self._seg_len += len(x)
+        if self._seg_len >= OFFLINE_CAP_SAMPLES:
+            # Lost end mark: transcribe what we have and keep going in-speech.
+            out = self._cut()
+            self._seg_start = self._fed_total
+            return out
+        return []
+
+    def mark(self, event):
+        """A client VAD edge. Offline: act now, return events to push. Streaming:
+        enqueue a sentinel so the mark stays ordered against the queued audio."""
+        if self._streaming:
+            self._audio_q.put_nowait(("mark", event))
+            return []
+        if event == "start":
+            self._seg = list(self._ring)
+            self._seg_len = self._ring_len
+            self._seg_start = max(0, self._fed_total - self._ring_len)
+            self._ring, self._ring_len = [], 0
+            self._in_speech = True
+            return []
+        if event == "end":
+            if not self._in_speech:
+                return []
+            self._in_speech = False
+            self._ring, self._ring_len = [], 0     # never re-seed with this utterance's tail
+            return self._cut()
+        if event == "cancel":
+            self._in_speech = False
+            self._seg, self._seg_len = [], 0
+            self._ring, self._ring_len = [], 0
+            return []
+        return []
+
+    def _cut(self):
+        """Transcribe the open segment buffer; emits at most one result."""
+        if not self._seg:
+            return []
+        samples = np.concatenate(self._seg)
+        self._seg, self._seg_len = [], 0
+        t0 = time.time()
+        text = self._backend.transcribe(samples, self._language).text
+        if not text:
+            return []
+        return [{"type": "result", "text": text,
+                 "startSample": int(self._seg_start),
+                 "durationMs": int(len(samples) / TARGET_RATE * 1000),
+                 "recognitionTimeMs": int((time.time() - t0) * 1000)}]
 
     def flush(self):
-        self._buf = np.zeros(0, np.float32)   # drop the <32ms sub-window tail
-        self._vad.flush()
-        return self._drain()
+        if self._in_speech:
+            return self.mark("end")
+        return []
 
     # ── Streaming branch (STREAMING backends only; offline path above is unchanged) ──
 
@@ -536,9 +580,6 @@ async def _h_asr_init(state, msg, _b, conn=None):
     device = msg.get("device", "auto")
     language = msg.get("language", "")
     sample_rate = msg.get("sampleRate", SRC_RATE)
-    vad_threshold = msg.get("vadThreshold")
-    vad_min_silence = msg.get("vadMinSilenceDuration")
-    vad_min_speech = msg.get("vadMinSpeechDuration")
     pin = msg.get("variant")   # user-pinned quant (renderer variant picker)
 
     # Cheap pre-check: resolve the backend NAME without loading the model, then read
@@ -548,17 +589,16 @@ async def _h_asr_init(state, msg, _b, conn=None):
 
     if is_streaming:
         # Streaming path: init_streaming resolves+loads the backend once.
-        eng.init_streaming(model, language, sample_rate,
-                           vad_threshold, vad_min_silence, vad_min_speech, device, pin=pin)
+        eng.init_streaming(model, language, sample_rate, device=device, pin=pin)
         if conn is not None:
             conn.ctx["on_binary"] = eng.feed_stream
             conn.ctx["stream_task"] = asyncio.create_task(eng.run_stream(conn.send))
             conn.on_close(lambda: _asr_teardown(state, conn))
         ms = 0
     else:
-        # Offline path (unchanged Phase 1 behaviour): init() loads the model once.
-        ms = eng.init(model, language, sample_rate,
-                      vad_threshold, vad_min_silence, vad_min_speech, device, pin=pin)
+        # Offline path: init() loads the model once. Segmentation is client-driven
+        # (vad_mark), so no VAD params are forwarded here.
+        ms = eng.init(model, language, sample_rate, device=device, pin=pin)
         if conn is not None:
             conn.ctx["on_binary"] = eng.feed
             conn.on_close(lambda: _asr_teardown(state, conn))
@@ -577,6 +617,15 @@ async def _h_asr_flush(state, msg, _b, conn=None):
     return {"type": "ok", "id": msg.get("id")}, None
 
 
+async def _h_vad_mark(state, msg, _b, conn=None):
+    """Client VAD edge (fire-and-forget: no id, no reply). Push whatever the
+    engine produced (an end mark can complete a segment -> one result)."""
+    for out in state["asr_engine"].mark(msg.get("event", "")):
+        if conn is not None:
+            await conn.send(out)
+    return None, None
+
+
 def register(state: dict):
     state.setdefault("handlers", {}).update(
-        {"asr_init": _h_asr_init, "asr_flush": _h_asr_flush})
+        {"asr_init": _h_asr_init, "asr_flush": _h_asr_flush, "vad_mark": _h_vad_mark})

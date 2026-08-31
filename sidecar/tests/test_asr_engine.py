@@ -13,17 +13,20 @@ class _FakeWS:
 
 
 class FakeAsr:
-    def init(self, model_id=None, language="", sample_rate=24000,
-             vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto", **kw):
+    def __init__(self):
+        self.marks = []
+
+    def init(self, model_id=None, language="", sample_rate=24000, device="auto", **kw):
         self.sample_rate = sample_rate
-        self.vad = (vad_threshold, vad_min_silence, vad_min_speech)
         return 33
 
     def feed(self, int16_bytes):
-        n = len(np.frombuffer(int16_bytes, dtype=np.int16))
-        if n >= 24000:
-            return [{"type": "speech_start"},
-                    {"type": "result", "text": "hello", "startSample": 0,
+        return []
+
+    def mark(self, event):
+        self.marks.append(event)
+        if event == "end":
+            return [{"type": "result", "text": "hello", "startSample": 0,
                      "durationMs": 1000, "recognitionTimeMs": 5}]
         return []
 
@@ -47,22 +50,28 @@ def test_asr_init_sets_binary_router_and_replies_ready():
     assert callable(conn.ctx.get("on_binary"))
 
 
-def test_asr_init_forwards_vad_params():
+def test_asr_init_ignores_stale_vad_params():
+    """A stale client may still send the three vad* fields; init must not crash
+    and must not try to forward them anywhere."""
     st, conn = make()
-    asyncio.run(server.handle_message(st, json.dumps({
+    reply, _ = asyncio.run(server.handle_message(st, json.dumps({
         "type": "asr_init", "id": 1, "model": "sense-voice",
         "vadThreshold": 0.3, "vadMinSilenceDuration": 1.4, "vadMinSpeechDuration": 0.4,
     }), None, conn))
-    assert st["asr_engine"].vad == (0.3, 1.4, 0.4)
+    assert reply["type"] == "ready"
 
 
-def test_binary_router_emits_results():
+def test_vad_mark_routes_to_engine_and_pushes_results():
     st, conn = make()
     asyncio.run(server.handle_message(st, json.dumps({"type": "asr_init", "id": 1}), None, conn))
-    audio = np.zeros(24000, np.int16).tobytes()
-    out = conn.ctx["on_binary"](audio)
-    types = [m["type"] for m in out]
-    assert types == ["speech_start", "result"] and out[1]["text"] == "hello"
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({"type": "vad_mark", "event": "start"}), None, conn))
+    assert reply is None                       # fire-and-forget: no reply at all
+    reply, _ = asyncio.run(server.handle_message(
+        st, json.dumps({"type": "vad_mark", "event": "end"}), None, conn))
+    assert reply is None
+    assert st["asr_engine"].marks == ["start", "end"]
+    assert any('"hello"' in s for s in conn._ws.sent)   # the end-mark's result was pushed
 
 
 def test_asr_flush_drains():
@@ -87,14 +96,103 @@ def test_downsample_empty_bytes_with_non_default_rate():
     assert out.dtype == np.float32 and len(out) == 0
 
 
+def _offline_engine():
+    """An AsrEngine in offline mode with a fake backend — no native lib, no model."""
+    eng = asr_engine.AsrEngine()
+    eng._src_rate = 16000
+    eng._backend = _EchoBackend()
+    return eng
+
+
+class _EchoBackend:
+    def __init__(self):
+        self.calls = []          # the sample arrays transcribe() saw
+
+    def transcribe(self, samples, language):
+        from sokuji_sidecar.backends import AsrResult
+        self.calls.append(np.asarray(samples))
+        return AsrResult("seg-text")
+
+
+def test_offline_segment_buffered_between_marks_and_transcribed_on_end():
+    eng = _offline_engine()
+    assert eng.feed(np.zeros(1600, np.int16).tobytes()) == []   # silence: no events ever
+    assert eng.mark("start") == []
+    eng.feed((np.ones(1600, np.int16) * 1000).tobytes())
+    out = eng.mark("end")
+    assert [m["type"] for m in out] == ["result"]
+    assert out[0]["text"] == "seg-text"
+    # the segment contains the fed speech plus the pre-roll ring (the earlier silence)
+    assert len(eng._backend.calls) == 1
+    assert len(eng._backend.calls[0]) >= 1600
+
+
+def test_offline_preroll_ring_seeds_the_segment_and_is_capped():
+    eng = _offline_engine()
+    # feed 2s of pre-speech audio; ring must cap at 0.7s (11200 samples @16k)
+    for _ in range(20):
+        eng.feed(np.ones(1600, np.int16).tobytes())
+    eng.mark("start")
+    eng.mark("end")
+    (seg,) = eng._backend.calls
+    # The ring pops whole chunks: after capping it holds >= RING_SAMPLES and
+    # < RING_SAMPLES + one chunk (1600 here).
+    assert asr_engine.RING_SAMPLES <= len(seg) <= asr_engine.RING_SAMPLES + 1600
+
+
+def test_offline_cancel_drops_the_segment():
+    eng = _offline_engine()
+    eng.mark("start")
+    eng.feed(np.ones(1600, np.int16).tobytes())
+    assert eng.mark("cancel") == []
+    assert eng.mark("end") == []                # nothing left to transcribe
+    assert eng._backend.calls == []
+
+
+def test_offline_end_without_start_is_a_noop():
+    eng = _offline_engine()
+    assert eng.mark("end") == []
+    assert eng._backend.calls == []
+
+
+def test_offline_flush_finalizes_open_segment():
+    eng = _offline_engine()
+    eng.mark("start")
+    eng.feed(np.ones(1600, np.int16).tobytes())
+    out = eng.flush()
+    assert [m["type"] for m in out] == ["result"]
+    assert eng.flush() == []                    # idempotent once closed
+
+
+def test_offline_ring_cleared_after_end_no_tail_duplication():
+    eng = _offline_engine()
+    eng.mark("start")
+    eng.feed(np.ones(1600, np.int16).tobytes())
+    eng.mark("end")
+    eng.mark("start")                           # immediate restart
+    eng.mark("end")
+    assert len(eng._backend.calls) == 1         # second segment was empty -> no transcribe
+
+
+def test_offline_backstop_cuts_a_runaway_segment():
+    eng = _offline_engine()
+    eng.mark("start")
+    out = []
+    chunk = np.ones(16000, np.int16).tobytes()  # 1s @16k src rate
+    for _ in range(31):
+        out += eng.feed(chunk)
+    assert [m["type"] for m in out] == ["result"]   # the 30s backstop fired once
+    out2 = eng.mark("end")                          # remainder still transcribes
+    assert [m["type"] for m in out2] == ["result"]
+
+
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_ASR_MODEL"),
-                    reason="set SOKUJI_RUN_ASR_MODEL=1 (downloads sherpa-onnx model + VAD)")
+                    reason="set SOKUJI_RUN_ASR_MODEL=1 (downloads model + test wav)")
 def test_real_engine_transcribes_test_wav():
     from huggingface_hub import snapshot_download
     d = snapshot_download("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17")
     w = wave.open(f"{d}/test_wavs/en.wav", "rb")
     pcm16k = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
-    # AsrEngine.feed expects Int16@24k; upsample the 16k test wav to 24k.
     ratio = 24000 / 16000
     n = round(len(pcm16k) * ratio)
     pos = np.arange(n) / ratio
@@ -104,11 +202,12 @@ def test_real_engine_transcribes_test_wav():
     eng = asr_engine.AsrEngine()
     eng.init()
     results = []
+    results += [m["text"] for m in eng.mark("start") if m["type"] == "result"]
     for i in range(0, len(pcm24k), 4096):
         for m in eng.feed(pcm24k[i:i + 4096].tobytes()):
             if m["type"] == "result":
                 results.append(m["text"])
-    for m in eng.flush():
+    for m in eng.mark("end"):
         if m["type"] == "result":
             results.append(m["text"])
     text = " ".join(results).lower()
@@ -124,8 +223,6 @@ class _FakeBackend:
 def test_engine_init_uses_resolver(monkeypatch):
     from sokuji_sidecar import asr_engine as ae, accel
     eng = ae.AsrEngine()
-    # Stub VAD so no model/native lib is needed.
-    monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
@@ -133,44 +230,8 @@ def test_engine_init_uses_resolver(monkeypatch):
     ms = eng.init(model_id="whisper-base", language="en", device="auto")
     assert isinstance(ms, int)
     assert eng.resolved == {"backend": "ctranslate2", "device": "cpu", "computeType": "int8"}
-    # _drain uses the resolved backend's transcribe().text
+    # _cut uses the resolved backend's transcribe().text
     assert eng._backend.transcribe(np.zeros(4, np.float32), "en").text == "resolved-text"
-
-
-class _DrainBackend:
-    def transcribe(self, samples, language):
-        from sokuji_sidecar.backends import AsrResult
-        return AsrResult("drained-text")
-
-
-class _FakeVad:
-    def __init__(self, seg):
-        self._segs = [seg]
-
-    def empty(self):
-        return not self._segs
-
-    @property
-    def front(self):
-        return self._segs[0]
-
-    def pop(self):
-        self._segs.pop(0)
-
-
-def test_drain_routes_through_resolved_backend():
-    import types
-    from sokuji_sidecar import asr_engine as ae
-    eng = ae.AsrEngine()
-    eng._backend = _DrainBackend()
-    eng._language = None
-    seg = types.SimpleNamespace(samples=np.zeros(16000, np.float32), start=0)
-    eng._vad = _FakeVad(seg)
-    out = eng._drain()
-    assert len(out) == 1
-    assert out[0]["type"] == "result" and out[0]["text"] == "drained-text"
-    assert out[0]["startSample"] == 0
-    assert out[0]["durationMs"] == 1000  # 16000 samples / 16000 Hz * 1000ms
 
 
 class _ResolvedAsr(FakeAsr):
@@ -201,7 +262,6 @@ def test_ready_unchanged_when_engine_has_no_resolved():
 def test_engine_init_measures_and_stores_rtf(monkeypatch):
     from sokuji_sidecar import asr_engine as ae, accel
     eng = ae.AsrEngine()
-    monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "gpu-cuda", "cuda", "float16", "tiny", 1.0)
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
@@ -214,7 +274,6 @@ def test_engine_init_measures_and_stores_rtf(monkeypatch):
 def test_engine_init_omits_rtf_when_benchmark_returns_none(monkeypatch):
     from sokuji_sidecar import asr_engine as ae, accel
     eng = ae.AsrEngine()
-    monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
@@ -261,7 +320,6 @@ def test_engine_frees_old_model_on_reinit_and_close(monkeypatch):
     # loading the next (no pileup), and close() must free the current one.
     from sokuji_sidecar import asr_engine as ae, accel
     eng = ae.AsrEngine()
-    monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
     fake_plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     backends = []
 
@@ -292,8 +350,7 @@ def test_offline_init_stores_memory_and_fallback_reason(monkeypatch):
                         lambda plans, **kw: (_FakeBackend(), fake_plan, "cuda skipped; using CPU", 4_200_000_000))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
     eng = asr_engine.AsrEngine()
-    monkeypatch.setattr(eng, "_init_vad", lambda *a, **k: None)
-    eng.init("sense-voice", "en", 16000, None, None, None, "auto")
+    eng.init("sense-voice", "en", 16000, "auto")
     assert eng.resolved["memoryBytes"] == 4_200_000_000
     assert "using CPU" in eng.resolved["fallbackReason"]
 
