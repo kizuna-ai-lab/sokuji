@@ -2,7 +2,7 @@
 
 Loads libsokuji_native from the packaged _native/ directory (or SOKUJI_NATIVE_DIR for a
 development tree), refuses a contract.json whose ABI differs from _ffi.SK_ABI_VERSION,
-and exposes the C surface as plain Python. Slices 2–4 add asr / translate / tts."""
+and exposes the C surface as plain Python. Slice 4 adds tts."""
 from __future__ import annotations
 
 import ctypes
@@ -17,7 +17,8 @@ from . import _ffi
 
 __all__ = ["NativeError", "Device", "init", "devices", "device_free_mem", "version",
            "engine_versions", "contract", "audio_families", "native_dir",
-           "AsrCaps", "AsrModel", "AsrStream", "StreamText", "asr_load"]
+           "AsrCaps", "AsrModel", "AsrStream", "StreamText", "asr_load",
+           "Translator", "translate_load"]
 
 
 class NativeError(RuntimeError):
@@ -328,3 +329,90 @@ def asr_load(path: str, device: Device | None = None) -> AsrModel:
     caps = AsrCaps(langs, bool(raw.supports_streaming), bool(raw.supports_language_detect),
                    int(raw.native_sample_rate), (raw.arch or b"").decode())
     return AsrModel(lib, out.value, caps)
+
+
+class Translator:
+    """A loaded GGUF chat model (llama.cpp). Requests are stateless — chat()/complete()
+    each clear the KV cache before evaluating their own prompt from scratch — and calls on
+    one handle are serialised by the library. chat() renders `messages` through the GGUF's
+    own chat template and appends `assistant_prefill` verbatim (the Qwen3 empty-think-block
+    trick); a model whose template the legacy formatter does not know raises NativeError and
+    callers should fall back to complete() with a self-rendered prompt."""
+
+    def __init__(self, lib, handle):
+        self._lib = lib
+        self._h = handle
+
+    def _make_cb(self, on_token):
+        got: list[str] = []
+
+        def _cb(text, _user):
+            piece = (text or b"").decode("utf-8", "replace")
+            got.append(piece)
+            if on_token is None:
+                return True
+            # An exception raised here propagates into ctypes, which swallows it and
+            # returns the default False instead — the request then cancels and surfaces as
+            # SK_ERR_CANCELLED. Callers should not raise from on_token.
+            return on_token(piece) is not False
+
+        return _ffi.TEXT_CB(_cb), got
+
+    def chat(self, messages, max_tokens: int = 512, assistant_prefill: str | None = None, on_token=None) -> str:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_NOT_INITIALISED, "sk_translate_chat: model is unloaded")
+        # ctypes keeps no reference from a Structure's c_char_p field, so the encoded bytes
+        # must be kept alive here (in `encoded`, `prefill`) for the duration of the call.
+        encoded = [(m["role"].encode(), m["content"].encode()) for m in messages]
+        msgs = (_ffi.sk_message * len(encoded))()
+        for i, (role, content) in enumerate(encoded):
+            msgs[i].role = role
+            msgs[i].content = content
+        gen = _ffi.sk_gen_options()
+        gen.max_tokens = int(max_tokens)
+        prefill = assistant_prefill.encode() if assistant_prefill is not None else None
+        gen.assistant_prefill = prefill
+        cb, got = self._make_cb(on_token)
+        status = self._lib.sk_translate_chat(self._h, msgs, len(encoded), ctypes.byref(gen), cb, None)
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_translate_chat")
+        return "".join(got)
+
+    def complete(self, prompt: str, max_tokens: int = 512, on_token=None) -> str:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_NOT_INITIALISED, "sk_translate_complete: model is unloaded")
+        gen = _ffi.sk_gen_options()
+        gen.max_tokens = int(max_tokens)
+        gen.assistant_prefill = None
+        cb, got = self._make_cb(on_token)
+        status = self._lib.sk_translate_complete(self._h, prompt.encode(), ctypes.byref(gen), cb, None)
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_translate_complete")
+        return "".join(got)
+
+    def unload(self) -> None:
+        h, self._h = self._h, None
+        if h is not None:
+            self._lib.sk_translate_unload(h)
+
+    def __del__(self):
+        try:
+            self.unload()
+        except Exception:
+            pass
+
+
+def translate_load(path: str, device: Device | None = None, n_ctx: int = 0) -> Translator:
+    lib = _load()
+    out = ctypes.c_void_p()
+    dev = None
+    if device is not None:
+        dev = _ffi.sk_device()
+        dev.index = int(device.index)
+    opts = _ffi.sk_translate_options()
+    opts.n_ctx = int(n_ctx)
+    status = lib.sk_translate_load(str(path).encode(), ctypes.byref(dev) if dev is not None else None,
+                                   ctypes.byref(opts), ctypes.byref(out))
+    if status != _ffi.SK_OK:
+        _raise(lib, status, "sk_translate_load")
+    return Translator(lib, out.value)

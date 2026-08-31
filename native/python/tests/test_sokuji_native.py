@@ -99,8 +99,10 @@ def test_second_init_log_keeps_first_trampoline_alive():
 
 ASR_GGUF = os.environ.get("SK_TEST_ASR_GGUF")
 STREAM_GGUF = os.environ.get("SK_TEST_ASR_STREAM_GGUF")
+TRANSLATE_GGUF = os.environ.get("SK_TEST_TRANSLATE_GGUF")
 needs_asr = pytest.mark.skipif(not (HAVE_TREE and ASR_GGUF), reason="needs a built tree and SK_TEST_ASR_GGUF")
 needs_stream = pytest.mark.skipif(not (HAVE_TREE and STREAM_GGUF), reason="needs a built tree and SK_TEST_ASR_STREAM_GGUF")
+needs_translate = pytest.mark.skipif(not (HAVE_TREE and TRANSLATE_GGUF), reason="needs a built tree and SK_TEST_TRANSLATE_GGUF")
 
 
 def _jfk() -> np.ndarray:
@@ -194,3 +196,43 @@ def test_binding_lock_is_reentrant():
     _load() then re-acquires _lock on the same thread — RLock or deadlock."""
     with sokuji_native._lock:
         assert sokuji_native.version()
+
+
+@needs_translate
+def test_translate_chat_streams_and_suppresses_thinking():
+    sokuji_native.init()
+    t = sokuji_native.translate_load(TRANSLATE_GGUF, n_ctx=2048)
+    pieces = []
+    out = t.chat([{"role": "system", "content": "Translate the user's text from English to French. Output only the translation."},
+                  {"role": "user", "content": "Good morning."}],
+                 max_tokens=64, assistant_prefill="<think>\n\n</think>\n\n",
+                 on_token=lambda p: pieces.append(p))
+    assert out and "".join(pieces) == out
+    assert "<think>" not in out
+    t.unload()
+
+
+@needs_translate
+def test_translate_cancel_via_on_token():
+    sokuji_native.init()
+    t = sokuji_native.translate_load(TRANSLATE_GGUF, n_ctx=2048)
+    seen = []
+    def stop_after_two(p):
+        seen.append(p)
+        return len(seen) < 2
+    with pytest.raises(sokuji_native.NativeError):
+        t.chat([{"role": "user", "content": "Count from one to fifty in words."}],
+               max_tokens=256, on_token=stop_after_two)
+    assert len(seen) == 2
+    # the handle survives a cancelled request
+    out = t.complete("The capital of France is", max_tokens=8)
+    assert out
+    t.unload()
+
+
+@needs_translate
+def test_translate_unload_idempotent_and_del_safe():
+    sokuji_native.init()
+    t = sokuji_native.translate_load(TRANSLATE_GGUF)
+    t.unload()
+    t.unload()

@@ -37,6 +37,18 @@ class sk_stream_text(Structure):
     _fields_ = [("committed", c_char_p), ("tentative", c_char_p)]
 
 
+class sk_translate_options(Structure):
+    _fields_ = [("n_ctx", c_int32)]
+
+
+class sk_message(Structure):
+    _fields_ = [("role", c_char_p), ("content", c_char_p)]
+
+
+class sk_gen_options(Structure):
+    _fields_ = [("max_tokens", c_int32), ("assistant_prefill", c_char_p)]
+
+
 TEXT_CB = CFUNCTYPE(c_bool, c_char_p, c_void_p)
 
 
@@ -75,4 +87,12 @@ def bind(lib: CDLL) -> CDLL:
     lib.sk_asr_stream_close.restype = None
     lib.sk_asr_unload.argtypes = [c_void_p]
     lib.sk_asr_unload.restype = None
+    lib.sk_translate_load.argtypes = [c_char_p, POINTER(sk_device), POINTER(sk_translate_options), POINTER(c_void_p)]
+    lib.sk_translate_load.restype = c_int32
+    lib.sk_translate_chat.argtypes = [c_void_p, POINTER(sk_message), c_int32, POINTER(sk_gen_options), TEXT_CB, c_void_p]
+    lib.sk_translate_chat.restype = c_int32
+    lib.sk_translate_complete.argtypes = [c_void_p, c_char_p, POINTER(sk_gen_options), TEXT_CB, c_void_p]
+    lib.sk_translate_complete.restype = c_int32
+    lib.sk_translate_unload.argtypes = [c_void_p]
+    lib.sk_translate_unload.restype = None
     return lib
