@@ -61,6 +61,10 @@ def main(argv=None) -> int:
     p.add_argument("--chunk-ms", type=int, default=500)
     p.add_argument("--lang", default="en")
     a = p.parse_args(argv)
+    if a.runs < 1:
+        p.error("--runs must be at least 1")
+    if a.stream and a.chunk_ms < 1:
+        p.error("--chunk-ms must be positive when --stream is set")
 
     pcm = read_wav(a.wav)
     clip_s = len(pcm) / 16000

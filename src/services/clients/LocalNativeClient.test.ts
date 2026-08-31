@@ -886,6 +886,14 @@ describe('LocalNativeClient native-vad worker wiring', () => {
     expect(worker.posted.some((m) => m.type === 'dispose')).toBe(true);
     expect(worker.posted.some((m) => m.type === '__terminated')).toBe(true);
   });
+
+  it('a worker error after ready surfaces via handlers.onError', () => {
+    const errs: string[] = [];
+    client.setEventHandlers({ onError: (e: any) => errs.push(String(e)) } as any);
+    worker.onerror?.({ message: 'wasm crashed' });
+    expect(errs).toHaveLength(1);
+    expect(errs[0]).toContain('VAD worker');
+  });
 });
 
 describe('LocalNativeClient native-vad worker (no worker available)', () => {

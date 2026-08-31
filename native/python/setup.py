@@ -10,6 +10,7 @@ install but could never load, and a 0.0.0 version would only hide that."""
 import json
 import os
 import pathlib
+import sys
 import sysconfig
 
 from setuptools import setup
@@ -20,10 +21,22 @@ NATIVE = pathlib.Path(__file__).parent / "sokuji_native" / "_native"
 CONTRACT = NATIVE / "contract.json"
 
 
+def _library_name() -> str:
+    if sys.platform == "win32":
+        return "sokuji_native.dll"
+    if sys.platform == "darwin":
+        return "libsokuji_native.dylib"
+    return "libsokuji_native.so"
+
+
 def native_version() -> str:
     if not CONTRACT.is_file():
         raise SystemExit(f"setup.py: no staged native payload at {NATIVE} — run native/ci/build.sh "
                          "(or cmake --install … --component sokuji) before building the wheel")
+    lib = NATIVE / _library_name()
+    if not lib.is_file():
+        raise SystemExit(f"setup.py: staged payload at {NATIVE} has contract.json but no {lib.name} — "
+                         "a partial stage would build a wheel that cannot load")
     with CONTRACT.open(encoding="utf-8") as fh:
         return json.load(fh)["version"]
 

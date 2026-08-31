@@ -174,3 +174,23 @@ def test_stream_keeps_model_alive():
     st.close()
     del st
     gc.collect()                                # closing releases st._model too; this must not crash either
+
+
+@needs_stream
+def test_unload_with_open_stream_closes_it_first():
+    """An explicit m.unload() while a stream is open must close the stream (header
+    contract: a stream never outlives its model) — not leave a dangling C handle."""
+    sokuji_native.init()
+    m = sokuji_native.asr_load(STREAM_GGUF)
+    st = m.open_stream("en")
+    m.unload()
+    with pytest.raises(sokuji_native.NativeError):
+        st.feed(_jfk()[:8000])                  # closed, not use-after-free
+    st.close()                                  # idempotent
+
+
+def test_binding_lock_is_reentrant():
+    """sk_init's log callback may call back into the binding (version(), say);
+    _load() then re-acquires _lock on the same thread — RLock or deadlock."""
+    with sokuji_native._lock:
+        assert sokuji_native.version()

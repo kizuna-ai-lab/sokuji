@@ -212,7 +212,8 @@ ASR_MODELS: list[AsrModel] = [
             85, {"F16": 1833665696, "Q8_0": 986899616, "Q6_K": 768151712,
                  "Q5_K_M": 700313760, "Q4_K_M": 617345184}, default="Q8_0"),
     # WER 2.01 — 99-language mainstay: ~large-v3 quality at 4x the speed.
-    # Sizes are the 2026-07-21 re-upload of the repo (64 bytes shorter per file).
+    # Sizes are the 2026-07-21 re-upload of the repo (quants 64 bytes shorter per
+    # file; F16 was re-encoded, ~10.8 MB smaller) — all five match the live tree.
     _tc_row("whisper-large-v3-turbo", "Whisper large-v3 turbo", ("multi",),
             "handy-computer/whisper-large-v3-turbo-gguf", "whisper-large-v3-turbo",
             90, {"F16": 1625935520, "Q8_0": 886381760, "Q6_K": 692536928,

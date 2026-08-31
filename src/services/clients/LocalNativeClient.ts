@@ -194,7 +194,12 @@ export class LocalNativeClient implements IClient {
           else { clearTimeout(timer); reject(new Error(msg.message)); }
         }
       };
-      worker.onerror = (err) => { clearTimeout(timer); reject(err as any); };
+      worker.onerror = (err) => {
+        // Post-ready the connect promise is settled — reject() would be a silent
+        // no-op and the session would keep feeding a dead segmenter. Surface it.
+        if (this.vadReady) { this.handlers.onError?.(`VAD worker: ${(err as ErrorEvent)?.message ?? err}`); return; }
+        clearTimeout(timer); reject(err as any);
+      };
       worker.postMessage({
         type: 'init',
         ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,

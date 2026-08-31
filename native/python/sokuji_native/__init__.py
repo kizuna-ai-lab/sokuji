@@ -50,7 +50,7 @@ class _State:
         self.keepalive: list = []
 
 
-_lock = threading.Lock()
+_lock = threading.RLock()   # reentrant: sk_init's log callback may call back into version()/_load()
 _state = _State()
 
 
@@ -241,6 +241,8 @@ class AsrStream:
         h, self._h = self._h, None
         if h is not None:
             self._lib.sk_asr_stream_close(h)
+        if self._model is not None and getattr(self._model, "_stream", None) is self:
+            self._model._stream = None
         self._model = None
 
     def __del__(self):
@@ -257,6 +259,7 @@ class AsrModel:
         self._lib = lib
         self._h = handle
         self.capabilities = caps
+        self._stream = None     # the at-most-one open stream (a stream must never outlive its model)
 
     def run(self, pcm, language: str | None = None, on_poll=None) -> str:
         if self._h is None:
@@ -287,9 +290,14 @@ class AsrModel:
         status = self._lib.sk_asr_stream_open(self._h, language.encode() if language else None, ctypes.byref(out))
         if status != _ffi.SK_OK:
             _raise(self._lib, status, "sk_asr_stream_open")
-        return AsrStream(self._lib, out.value, self)
+        st = AsrStream(self._lib, out.value, self)
+        self._stream = st
+        return st
 
     def unload(self) -> None:
+        st, self._stream = self._stream, None
+        if st is not None:
+            st.close()          # an explicit unload with a live stream must close it, not dangle it
         h, self._h = self._h, None
         if h is not None:
             self._lib.sk_asr_unload(h)
