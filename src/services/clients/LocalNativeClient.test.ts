@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LocalNativeClient } from './LocalNativeClient';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 
+// Worker is not available in jsdom — stub the module that creates it. Tests
+// that need a real (fake) worker instance inject one via deps.vadWorker instead.
+vi.mock('./createNativeVadWorker', () => ({ createNativeVadWorker: () => null }));
+
 const LOCAL_NATIVE_CONFIG: any = {
   provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
   asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
@@ -9,8 +13,13 @@ const LOCAL_NATIVE_CONFIG: any = {
 
 function mocks() {
   const asr: any = {
-    onResult: null, onSpeechStart: null, onStatus: null, onError: null, onPartialResult: null,
-    init: vi.fn().mockResolvedValue({ loadTimeMs: 1 }), feedAudio: vi.fn(), flush: vi.fn(), dispose: vi.fn(),
+    onResult: null, onStatus: null, onError: null, onPartialResult: null,
+    marks: [] as string[], fed: [] as Int16Array[], flushed: false,
+    init: vi.fn().mockResolvedValue({ loadTimeMs: 1 }),
+    feedAudio: vi.fn((pcm: Int16Array) => { asr.fed.push(pcm); }),
+    flush: vi.fn(() => { asr.flushed = true; }),
+    dispose: vi.fn(),
+    sendVadMark: vi.fn((e: string) => { asr.marks.push(e); }),
   };
   const translate: any = {
     onError: null, init: vi.fn().mockResolvedValue({ loadTimeMs: 1 }),
@@ -807,5 +816,84 @@ describe('LocalNativeClient enriched log fields', () => {
     expect(err).toBeDefined();
     expect(err.data.modelId).toBe('qwen2.5-0.5b');
     expect(err.data.error).toContain('translate boom');
+  });
+});
+
+// ── Task 4: native-vad worker drives sidecar segmentation via vad_mark ───────
+
+class FakeVadWorker {
+  posted: any[] = [];
+  onmessage: ((e: { data: any }) => void) | null = null;
+  onerror: ((e: any) => void) | null = null;
+  postMessage(m: any) {
+    this.posted.push(m);
+    if (m.type === 'init') queueMicrotask(() => this.onmessage?.({ data: { type: 'ready' } }));
+  }
+  terminate() { this.posted.push({ type: '__terminated' }); }
+  emit(data: any) { this.onmessage?.({ data }); }
+}
+
+const VAD_LOCAL_NATIVE_CONFIG: any = {
+  ...LOCAL_NATIVE_CONFIG,
+  vadThreshold: 0.35, vadMinSilenceDuration: 1.2, vadMinSpeechDuration: 0.5,
+};
+
+describe('LocalNativeClient native-vad worker wiring', () => {
+  let worker: FakeVadWorker;
+  let fakeAsr: ReturnType<typeof mocks>['asr'];
+  let client: LocalNativeClient;
+
+  beforeEach(async () => {
+    const m = mocks();
+    fakeAsr = m.asr;
+    worker = new FakeVadWorker();
+    client = new LocalNativeClient({ ...m, vadWorker: () => worker as unknown as Worker });
+    client.setEventHandlers({});
+    await client.connect({ ...VAD_LOCAL_NATIVE_CONFIG });
+  });
+
+  it('connect() boots the VAD worker with the session vad knobs', () => {
+    const init = worker.posted.find((m) => m.type === 'init');
+    expect(init.vadConfig).toEqual({
+      threshold: VAD_LOCAL_NATIVE_CONFIG.vadThreshold,
+      minSilenceDuration: VAD_LOCAL_NATIVE_CONFIG.vadMinSilenceDuration,
+      minSpeechDuration: VAD_LOCAL_NATIVE_CONFIG.vadMinSpeechDuration,
+    });
+  });
+
+  it('worker edges become vad_mark sends (start/end/cancel)', () => {
+    worker.emit({ type: 'speech_start' });
+    worker.emit({ type: 'speech_end' });
+    worker.emit({ type: 'speech_cancel' });
+    expect(fakeAsr.marks).toEqual(['start', 'end', 'cancel']);
+  });
+
+  it('appendInputAudio() feeds both the sidecar and the worker', () => {
+    const pcm = new Int16Array(2400);
+    client.appendInputAudio(pcm);
+    expect(fakeAsr.fed).toHaveLength(1);
+    expect(worker.posted.some((m) => m.type === 'audio' && m.pcm === pcm)).toBe(true);
+  });
+
+  it('createResponse() flushes the worker before the sidecar flush', () => {
+    client.createResponse();
+    expect(worker.posted.some((m) => m.type === 'flush')).toBe(true);
+    expect(fakeAsr.flushed).toBe(true);
+  });
+
+  it('disconnect() disposes and terminates the worker', async () => {
+    await client.disconnect();
+    expect(worker.posted.some((m) => m.type === 'dispose')).toBe(true);
+    expect(worker.posted.some((m) => m.type === '__terminated')).toBe(true);
+  });
+});
+
+describe('LocalNativeClient native-vad worker (no worker available)', () => {
+  it('a null worker factory (test env) still connects', async () => {
+    const m = mocks();
+    const client = new LocalNativeClient({ ...m, vadWorker: () => null });
+    client.setEventHandlers({});
+    await expect(client.connect({ ...VAD_LOCAL_NATIVE_CONFIG })).resolves.toBeUndefined();
+    expect(() => client.appendInputAudio(new Int16Array(10))).not.toThrow();
   });
 });

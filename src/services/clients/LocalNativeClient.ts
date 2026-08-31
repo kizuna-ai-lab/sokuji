@@ -14,11 +14,13 @@ import { splitSentences } from '../../utils/splitSentences';
 import { useNativeModelStore, nativeListTtsVoices, nativeHardwareInfo } from '../../stores/nativeModelStore';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { createNativeVadWorker } from './createNativeVadWorker';
 
 interface Deps {
   asr?: NativeAsrClient | any;
   translate?: NativeTranslateClient | any;
   tts?: NativeTtsClient | any;
+  vadWorker?: () => Worker | null;
 }
 
 /**
@@ -43,11 +45,15 @@ export class LocalNativeClient implements IClient {
   private keepReplayAudio: boolean = false;
   private queue: Promise<void> = Promise.resolve();
   private partialUserItem: ConversationItem | null = null;
+  private vadWorkerFactory: () => Worker | null;
+  private vadWorker: Worker | null = null;
+  private vadReady = false;
 
   constructor(deps: Deps = {}) {
     this.asr = deps.asr ?? new NativeAsrClient();
     this.translate = deps.translate ?? new NativeTranslateClient();
     this.tts = deps.tts ?? new NativeTtsClient();
+    this.vadWorkerFactory = deps.vadWorker ?? createNativeVadWorker;
   }
 
 
@@ -169,6 +175,38 @@ export class LocalNativeClient implements IClient {
         store.setTtsLoading(false);
       }
     }
+    await new Promise<void>((resolve, reject) => {
+      const worker = this.vadWorkerFactory();
+      if (!worker) { resolve(); return; }               // test/no-worker env
+      this.vadWorker = worker;
+      const timer = setTimeout(() => reject(new Error('VAD worker init timeout')), 15000);
+      worker.onmessage = (e: MessageEvent) => {
+        const msg = e.data;
+        if (msg.type === 'ready') { clearTimeout(timer); resolve(); }
+        else if (msg.type === 'speech_start') {
+          this.asr.sendVadMark?.('start');
+          this.emitEvent('local.native.speech_start', 'client', {});
+        }
+        else if (msg.type === 'speech_end') { this.asr.sendVadMark?.('end'); }
+        else if (msg.type === 'speech_cancel') { this.asr.sendVadMark?.('cancel'); }
+        else if (msg.type === 'error') {
+          if (this.vadReady) { this.handlers.onError?.(`VAD worker: ${msg.message}`); }
+          else { clearTimeout(timer); reject(new Error(msg.message)); }
+        }
+      };
+      worker.onerror = (err) => { clearTimeout(timer); reject(err as any); };
+      worker.postMessage({
+        type: 'init',
+        ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+        vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
+        vadConfig: {
+          threshold: config.vadThreshold,
+          minSilenceDuration: config.vadMinSilenceDuration,
+          minSpeechDuration: config.vadMinSpeechDuration,
+        },
+      });
+    });
+    this.vadReady = true;
     this.connected = true;
     this.emitEvent('local.native.init.ready', 'client', { ttsEnabled: this.ttsEnabled });
     this.handlers.onOpen?.();
@@ -419,14 +457,25 @@ export class LocalNativeClient implements IClient {
     this.emit(item);
   }
 
-  appendInputAudio(audioData: Int16Array): void { if (this.connected) this.asr.feedAudio(audioData, 24000); }
+  appendInputAudio(audioData: Int16Array): void {
+    if (!this.connected) return;
+    this.asr.feedAudio(audioData, 24000);
+    this.vadWorker?.postMessage({ type: 'audio', pcm: audioData, sampleRate: 24000 });
+  }
   appendInputText(text: string): void { this.onAsrResult({ text }); }
-  createResponse(_config?: ResponseConfig): void { this.asr.flush?.(); }
+  createResponse(_config?: ResponseConfig): void {
+    this.vadWorker?.postMessage({ type: 'flush' });
+    this.asr.flush?.();
+  }
   cancelResponse(): void { try { this.tts?.cancel?.(); } catch (_) {} }
   async disconnect(): Promise<void> {
     this.connected = false;
     this.partialUserItem = null;
     this.emitEvent('local.native.session.closed', 'client', { reason: 'user_disconnect' });
+    this.vadWorker?.postMessage({ type: 'dispose' });
+    this.vadWorker?.terminate();
+    this.vadWorker = null;
+    this.vadReady = false;
     this.asr.dispose?.(); this.translate.dispose?.(); this.tts.dispose?.();
     this.handlers.onClose?.({});
   }
