@@ -167,8 +167,9 @@ def test_offline_preroll_ring_seeds_the_segment_and_is_capped():
     eng.mark("start")
     eng.mark("end")
     (seg,) = eng._backend.calls
-    assert len(seg) <= asr_engine.RING_SAMPLES
-    assert len(seg) >= asr_engine.RING_SAMPLES - 1600   # nearly full ring
+    # The ring pops whole chunks: after capping it holds >= RING_SAMPLES and
+    # < RING_SAMPLES + one chunk (1600 here).
+    assert asr_engine.RING_SAMPLES <= len(seg) <= asr_engine.RING_SAMPLES + 1600
 
 
 def test_offline_cancel_drops_the_segment():
@@ -543,6 +544,9 @@ if isinstance(data, tuple) and data and data[0] == "mark":
         await self._mark_utterance(send, ev)
     continue
 ```
+The SAME dispatch goes into `_drive_once` (the test seam drains the same queue and
+must handle `("mark", ev)` items identically — factor a small
+`async def _dispatch(self, send, data)` used by both loops rather than duplicating).
 4. New mark handlers:
 ```python
 async def _mark_always(self, send, ev):
