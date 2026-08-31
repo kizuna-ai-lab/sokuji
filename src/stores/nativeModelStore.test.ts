@@ -70,8 +70,8 @@ class FakeWS {
       let models;
       if (msg.kind === 'translate') {
         models = [{ id: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', kind: 'translate', languages: ['multi'], recommended: true,
-             tiers: [{ tier: 'gpu-cuda', backend: 'llamacpp_qwen', available: true },
-                     { tier: 'cpu', backend: 'llamacpp_qwen', available: true }], sizeBytes: 999604126 }];
+             tiers: [{ tier: 'gpu-cuda', backend: 'native_translate', available: true },
+                     { tier: 'cpu', backend: 'native_translate', available: true }], sizeBytes: 999604126 }];
       } else if (msg.kind === 'tts') {
         models = [{ id: 'moss-tts-nano', name: 'MOSS TTS Nano', kind: 'tts', languages: ['ja', 'zh'], recommended: true,
              tiers: [{ tier: 'cpu', backend: 'moss_tts', available: true }], sizeBytes: 763206064 }];
@@ -400,8 +400,8 @@ describe('nativeModelStore resolved plans retain backend and computeType', () =>
     const s = useNativeModelStore.getState();
     s.setAsrResolved({ model: 'a', device: 'cuda', backend: 'moss_onnx', computeType: 'int8', rtf: 0.02 });
     expect(useNativeModelStore.getState().asrResolved).toMatchObject({ backend: 'moss_onnx', computeType: 'int8' });
-    s.setTranslationResolved({ model: 't', device: 'cpu', backend: 'ct2_opus_translate', computeType: 'int8', tokensPerSec: 120 });
-    expect(useNativeModelStore.getState().translationResolved).toMatchObject({ backend: 'ct2_opus_translate', computeType: 'int8' });
+    s.setTranslationResolved({ model: 't', device: 'cpu', backend: 'native_translate', computeType: 'int8', tokensPerSec: 120 });
+    expect(useNativeModelStore.getState().translationResolved).toMatchObject({ backend: 'native_translate', computeType: 'int8' });
     s.setTtsResolved({ model: 'v', device: 'metal', backend: 'mlx_audio_tts', computeType: 'fp32' });
     expect(useNativeModelStore.getState().ttsResolved).toMatchObject({ backend: 'mlx_audio_tts', computeType: 'fp32' });
   });

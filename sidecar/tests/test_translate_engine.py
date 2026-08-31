@@ -224,12 +224,22 @@ def test_translate_init_forwards_reserved_bytes(monkeypatch):
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_TRANSLATE_MODEL"),
-                    reason="set SOKUJI_RUN_TRANSLATE_MODEL=1 (downloads ~1GB + needs torch)")
-def test_real_llm_translates():
+                    reason="set SOKUJI_RUN_TRANSLATE_MODEL=1 (downloads GGUFs: "
+                           "qwen3-0.6b ~0.6GB, hy-mt2-1.8b ~1.1GB, translategemma-4b ~2.5GB)")
+@pytest.mark.parametrize("model_id", ["qwen3-0.6b", "hy-mt2-1.8b", "translategemma-4b"])
+def test_real_llm_translates(model_id):
+    """Live gate (spec rollout row 3): one real sentence per prompt family, through
+    the actual sokuji_native llama.cpp runtime — not a fake. Asserts the output is
+    non-empty and never leaks a <think> block (R5(s3): if the legacy chat-template
+    formatter rejects a family's template, _chatml_fallback fires or the model
+    output degrades to garbage; either is a STOP-and-report condition, not
+    something this test papers over)."""
     eng = translate_engine.TranslateEngine()
-    eng.init(source_lang="Spanish", target_lang="English")
+    eng.init(model_id=model_id, source_lang="Spanish", target_lang="English")
     out, ms = eng.translate("Hola, ¿cómo estás?")
+    print(f"[live-gate] {model_id}: {out!r} ({ms}ms)")
     assert isinstance(out, str) and len(out) > 0 and ms >= 0
+    assert "<think>" not in out
 
 
 def test_translate_init_reserve_is_ledger_aware(monkeypatch):

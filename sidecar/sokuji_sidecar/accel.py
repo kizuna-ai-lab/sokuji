@@ -131,7 +131,7 @@ def _installed() -> frozenset:
             "gpt_sovits_onnx": "onnxruntime",
             "pocket_onnx": ("onnxruntime", "sentencepiece"),
             "mlx_audio_tts": ("mlx_audio",),
-            "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
+            "onnx": "onnxruntime", "mlx": "mlx_lm",
             # Translation runs in-process through sokuji_native (llama.cpp
             # in-process, spec §4.3) — one backend for every prompt family
             # (qwen/hunyuan/gemma), gated on the same wheel as ASR.

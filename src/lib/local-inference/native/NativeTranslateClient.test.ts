@@ -12,7 +12,7 @@ describe('NativeTranslateClient', () => {
     const sent = conn.sent[0];
     expect(sent).toMatchObject({ type: 'translate_init', sourceLang: 'en', targetLang: 'ja', model: 'qwen2.5-0.5b', device: 'cuda', asrModel: 'sense-voice', variant: 'q8' });
     expect(conn.requestOpts[0]?.timeoutMs).toBe(INIT_REQUEST_TIMEOUT_MS);
-    conn.emit({ type: 'ready', id: sent.id, loadTimeMs: 7, backend: 'llamacpp_qwen', device: 'cuda', computeType: 'q8', tokensPerSec: 42 });
+    conn.emit({ type: 'ready', id: sent.id, loadTimeMs: 7, backend: 'native_translate', device: 'cuda', computeType: 'q8', tokensPerSec: 42 });
     await expect(p).resolves.toMatchObject({ loadTimeMs: 7, device: 'cuda', tokensPerSec: 42 });
   });
 

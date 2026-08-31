@@ -661,7 +661,7 @@ describe('NativeModelManagementSection — tier badge tooltip (Task 3)', () => {
       ...mockCatalog,
       'sense-voice': {
         ...mockCatalog['sense-voice'],
-        tiers: [{ tier: 'gpu-vulkan', backend: 'llamacpp_gemma', available: true }],
+        tiers: [{ tier: 'gpu-vulkan', backend: 'native_translate', available: true }],
       },
     };
     try {

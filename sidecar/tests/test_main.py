@@ -7,8 +7,9 @@ def test_install_exit_handlers_replaces_default_handlers(monkeypatch):
     """When SIGTERM/SIGINT are at their default (SIG_DFL) — the normal state
     for SIGTERM in a freshly started process — _install_exit_handlers must
     replace both with a handler that calls sys.exit(0), so atexit cleanups
-    (LlamaServerProc.stop killing the llama-server child) run on a plain
-    process kill instead of being skipped."""
+    (kept as defensive infrastructure since slice 3 moved translation
+    in-process, per __main__._install_exit_handlers' docstring) run on a
+    plain process kill instead of being skipped."""
     monkeypatch.setattr(sidecar_main.signal, "getsignal", lambda sig: sidecar_main.signal.SIG_DFL)
     installed = {}
     monkeypatch.setattr(sidecar_main.signal, "signal",

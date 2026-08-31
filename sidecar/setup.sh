@@ -54,15 +54,16 @@ fi
 #   ASR       -> sokuji-native (local wheel installed above; ggml family:
 #                CPU+Vulkan bundled on linux/win, Metal on macOS — accelerates
 #                NVIDIA/AMD/Intel through Vulkan, no CUDA runtime needed)
-#   Translate -> llama-server binary (downloaded on demand) + Opus CTranslate2
+#   Translate -> sokuji-native (same wheel as ASR; in-process llama.cpp, slice 3)
 #   TTS       -> onnxruntime (MOSS/Supertonic/Qwen3-TTS) + sherpa-onnx (piper)
 #                + mlx-audio (Qwen3-TTS / MOSS on Apple Silicon macOS; installed
 #                via requirements.txt's platform-marked pin — a no-op elsewhere)
 echo "[setup] stage runtimes: sherpa-onnx"
 "$PY" -m pip install -q sherpa-onnx
 
-# onnxruntime flavor (TTS + Opus translate). NVIDIA on Win/Linux x86_64 uses
-# onnxruntime-gpu with ORT's official cuDNN/cuBLAS extras; NVIDIA on aarch64
+# onnxruntime flavor (TTS only — translate is sokuji-native, not onnxruntime).
+# NVIDIA on Win/Linux x86_64 uses onnxruntime-gpu with ORT's official
+# cuDNN/cuBLAS extras; NVIDIA on aarch64
 # (DGX Spark, Jetson-class sbsa) auto-installs the matching sbsa build from the
 # jetson-ai-lab index (PyPI ships no aarch64 GPU wheel). __main__'s
 # _preload_cuda_dlls() (onnxruntime.preload_dlls) pins them at startup — no

@@ -295,10 +295,7 @@ export type BackendTooltipRow = { key: string; value: string; warn?: boolean };
 const FRAMEWORK_LABELS: Record<string, string> = {
   transcribe_cpp: 'transcribe.cpp',
   transcribe_cpp_stream: 'transcribe.cpp',
-  ct2_opus_translate: 'CTranslate2',
-  llamacpp_qwen: 'llama.cpp',
-  llamacpp_hunyuan: 'llama.cpp',
-  llamacpp_gemma: 'llama.cpp',
+  native_translate: 'llama.cpp',
   moss_onnx: 'ONNXRuntime',
   qwen3tts_onnx: 'ONNXRuntime',
   sherpa_tts: 'sherpa-onnx',
@@ -307,10 +304,9 @@ const FRAMEWORK_LABELS: Record<string, string> = {
 };
 
 /** Engine/library label for a sidecar backend id. Falls back by prefix so a new
- *  llamacpp_X, X_onnx, or transcribe_cpp_X id still resolves, else echoes the raw id. */
+ *  X_onnx or transcribe_cpp_X id still resolves, else echoes the raw id. */
 export function frameworkLabel(backendId: string): string {
   if (FRAMEWORK_LABELS[backendId]) return FRAMEWORK_LABELS[backendId];
-  if (backendId.startsWith('llamacpp_')) return 'llama.cpp';
   if (backendId.startsWith('transcribe_cpp')) return 'transcribe.cpp';
   if (backendId.endsWith('_onnx')) return 'ONNXRuntime';
   return backendId;

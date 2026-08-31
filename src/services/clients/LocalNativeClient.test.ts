@@ -328,8 +328,8 @@ describe('LocalNativeClient load order', () => {
         'voxtral-mini-4b-realtime': { id: 'voxtral-mini-4b-realtime', name: '', languages: [], recommended: false,
           tiers: [{ tier: 'gpu-cuda', backend: 'voxtral_realtime', available: true }] },
         'qwen3.5-2b': { id: 'qwen3.5-2b', name: '', languages: [], recommended: false,
-          tiers: [{ tier: 'gpu-cuda', backend: 'llamacpp_qwen', available: true },
-                  { tier: 'cpu', backend: 'llamacpp_qwen', available: true }] },
+          tiers: [{ tier: 'gpu-cuda', backend: 'native_translate', available: true },
+                  { tier: 'cpu', backend: 'native_translate', available: true }] },
       },
     } as any);
     const order: string[] = [];
@@ -813,7 +813,7 @@ describe('LocalNativeClient enriched log fields', () => {
     };
     const translate = {
       onError: null as any,
-      init: async () => ({ loadTimeMs: 9, device: 'cpu', backend: 'llamacpp', computeType: 'q4', tokensPerSec: 12.5, memoryBytes: 4_000_000_000, fallbackReason: 'cuda skipped; using CPU' }),
+      init: async () => ({ loadTimeMs: 9, device: 'cpu', backend: 'native_translate', computeType: 'q4', tokensPerSec: 12.5, memoryBytes: 4_000_000_000, fallbackReason: 'cuda skipped; using CPU' }),
       translate: async () => ({ translatedText: 'x', inferenceTimeMs: 1 }), dispose() {},
     };
     const c = new LocalNativeClient({ asr, translate, tts: fakeTts() });
@@ -825,7 +825,7 @@ describe('LocalNativeClient enriched log fields', () => {
     const asrReady = events.find((e) => e.type === 'local.native.init.asr.ready');
     expect(asrReady.data).toMatchObject({ model: 'granite', device: 'cuda', backend: 'ort', computeType: 'fp16', rtf: 0.02, memoryBytes: 8_000_000_000, loadTimeMs: 5 });
     const trReady = events.find((e) => e.type === 'local.native.init.translation.ready');
-    expect(trReady.data).toMatchObject({ model: 'q', device: 'cpu', backend: 'llamacpp', tokensPerSec: 12.5, loadTimeMs: 9 });
+    expect(trReady.data).toMatchObject({ model: 'q', device: 'cpu', backend: 'native_translate', tokensPerSec: 12.5, loadTimeMs: 9 });
     const fb = events.find((e) => e.type === 'local.native.init.translation.fallback');
     expect(fb.data).toMatchObject({ model: 'q', fallbackReason: 'cuda skipped; using CPU' });
   });

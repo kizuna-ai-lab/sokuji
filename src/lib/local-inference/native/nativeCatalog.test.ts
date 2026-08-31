@@ -428,10 +428,7 @@ describe('frameworkLabel', () => {
     const cases: Record<string, string> = {
       transcribe_cpp: 'transcribe.cpp',
       transcribe_cpp_stream: 'transcribe.cpp',
-      ct2_opus_translate: 'CTranslate2',
-      llamacpp_qwen: 'llama.cpp',
-      llamacpp_hunyuan: 'llama.cpp',
-      llamacpp_gemma: 'llama.cpp',
+      native_translate: 'llama.cpp',
       moss_onnx: 'ONNXRuntime',
       qwen3tts_onnx: 'ONNXRuntime',
       sherpa_tts: 'sherpa-onnx',
@@ -441,7 +438,6 @@ describe('frameworkLabel', () => {
     for (const [id, label] of Object.entries(cases)) expect(frameworkLabel(id)).toBe(label);
   });
   it('derives future ids by prefix, else echoes the raw id', () => {
-    expect(frameworkLabel('llamacpp_newmodel')).toBe('llama.cpp');
     expect(frameworkLabel('foo_onnx')).toBe('ONNXRuntime');
     expect(frameworkLabel('transcribe_cpp_x')).toBe('transcribe.cpp');
     expect(frameworkLabel('brand_new_backend')).toBe('brand_new_backend');
@@ -462,7 +458,7 @@ describe('accelApiLabel', () => {
 describe('buildBackendTooltipRows', () => {
   it('idle GPU tier: framework/device/api/size/repo, no runtime rows', () => {
     const rows = buildBackendTooltipRows({
-      tier: 'gpu-vulkan', backendId: 'llamacpp_gemma', resolved: null, sizeMb: 1843, repo: 'org/model',
+      tier: 'gpu-vulkan', backendId: 'native_translate', resolved: null, sizeMb: 1843, repo: 'org/model',
     });
     expect(rows.map((r) => r.key)).toEqual(['framework', 'device', 'api', 'size', 'repo']);
     expect(rows[0]).toEqual({ key: 'framework', value: 'llama.cpp' });
@@ -471,10 +467,10 @@ describe('buildBackendTooltipRows', () => {
     expect(rows.find((r) => r.key === 'size')?.value).toBe('1.8 GB');
   });
   it('idle CPU tier: no api row, still has framework/device/size', () => {
-    const rows = buildBackendTooltipRows({ tier: 'cpu', backendId: 'ct2_opus_translate', resolved: null, sizeMb: 300 });
+    const rows = buildBackendTooltipRows({ tier: 'cpu', backendId: 'native_translate', resolved: null, sizeMb: 300 });
     expect(rows.map((r) => r.key)).toEqual(['framework', 'device', 'size']);
     expect(rows[1]).toEqual({ key: 'device', value: 'CPU' });
-    expect(rows[0].value).toBe('CTranslate2');
+    expect(rows[0].value).toBe('llama.cpp');
   });
   it('active tier adds precision/speed/memory from the resolved plan', () => {
     const rows = buildBackendTooltipRows({
@@ -488,13 +484,13 @@ describe('buildBackendTooltipRows', () => {
     expect(byKey.memory).toBe('3.2 GB');
   });
   it('translate speed uses tok/s; empty tps omits the speed row', () => {
-    const withTps = buildBackendTooltipRows({ tier: 'cpu', backendId: 'ct2_opus_translate', resolved: { tokensPerSec: 131 } });
+    const withTps = buildBackendTooltipRows({ tier: 'cpu', backendId: 'native_translate', resolved: { tokensPerSec: 131 } });
     expect(withTps.find((r) => r.key === 'speed')?.value).toBe('131 tok/s');
-    const zeroTps = buildBackendTooltipRows({ tier: 'cpu', backendId: 'ct2_opus_translate', resolved: { tokensPerSec: 0 } });
+    const zeroTps = buildBackendTooltipRows({ tier: 'cpu', backendId: 'native_translate', resolved: { tokensPerSec: 0 } });
     expect(zeroTps.find((r) => r.key === 'speed')).toBeUndefined();
   });
   it('fallbackReason becomes a trailing warn row', () => {
-    const rows = buildBackendTooltipRows({ tier: 'cpu', backendId: 'llamacpp_gemma', resolved: { fallbackReason: 'Low VRAM → CPU' } });
+    const rows = buildBackendTooltipRows({ tier: 'cpu', backendId: 'native_translate', resolved: { fallbackReason: 'Low VRAM → CPU' } });
     const last = rows[rows.length - 1];
     expect(last).toEqual({ key: 'fallback', value: 'Low VRAM → CPU', warn: true });
   });
