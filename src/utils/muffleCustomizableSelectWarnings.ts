@@ -29,8 +29,8 @@ const MUFFLED_PAIRS: Array<[child: string, parent: string]> = [
   ['<span>', '<option>'],
   // <legend> is how a customizable select labels an <optgroup> in a way CSS
   // can reach (the `label` attribute is UA-painted black and unstylable).
-  // React's `case "optgroup"` still allows only option/#text — verified in
-  // react-dom 19.2.8.
+  // React's `case "optgroup"` still allows only option/#text — read out of
+  // the react-dom this repo pins, 19.2.7.
   ['<legend>', '<optgroup>'],
 ];
 

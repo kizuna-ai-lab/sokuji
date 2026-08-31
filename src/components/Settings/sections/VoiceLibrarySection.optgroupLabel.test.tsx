@@ -18,7 +18,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within, cleanup } from '@testing-library/react';
 import VoiceLibrarySection from './VoiceLibrarySection';
 
-const baseSelect = { supported: true };
+// vi.hoisted, like ProviderSection.select.test.tsx does for this same mock:
+// vi.mock's factory is hoisted above a plain module-level const, and this file
+// imports the component statically, so the factory runs first. It only closes
+// over the state rather than reading it, which is why the plain form worked —
+// hoisting removes the dependency on that detail.
+const baseSelect = vi.hoisted(() => ({ supported: true }));
 vi.mock('../../../utils/supportsBaseSelect', () => ({
   supportsBaseSelect: () => baseSelect.supported,
 }));
