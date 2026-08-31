@@ -64,6 +64,9 @@ def test_audio_families():
     # This build compiles in every audio.cpp family, including companions that ride
     # along with a selected one (controller Ruling 8), so the exact list is longer than
     # our six targets — assert the six required names are present and the list is sorted.
+    # "silero_vad" stays in this set even though sokuji-native dropped sk_vad_*: audio.cpp
+    # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
+    # the family rides along unused, reported by sk_audio_families() but never called.
     required = {"moss_tts_nano", "omnivoice", "pocket_tts", "qwen3_tts", "silero_vad", "supertonic"}
     assert required <= set(families)
     assert families == sorted(families)
@@ -107,35 +110,6 @@ def _jfk() -> np.ndarray:
     with wave.open(path, "rb") as w:
         assert w.getframerate() == 16000 and w.getnchannels() == 1
         return np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
-
-
-@needs_tree
-def test_vad_events_on_speech():
-    sokuji_native.init()
-    v = sokuji_native.vad_open(min_silence_ms=500, min_speech_ms=250)
-    pcm = _jfk()
-    kinds = []
-    for off in range(0, len(pcm) - 512 + 1, 512):
-        ev = v.feed(pcm[off:off + 512])
-        if ev is not None:
-            kinds.append(ev.kind)
-            if ev.kind == "end":
-                assert ev.seg_end > ev.seg_start
-    tail = v.finalize()
-    if tail is not None:
-        kinds.append(tail.kind)
-    assert kinds and kinds[0] == "start" and "end" in kinds
-    with pytest.raises(ValueError):
-        v.feed(pcm[:100])                       # not 512 samples
-    v.close()
-    v.close()                                   # idempotent
-
-
-@needs_tree
-def test_vad_default_weights_live_next_to_the_library():
-    sokuji_native.init()
-    v = sokuji_native.vad_open()                # no path: <native_dir>/silero_vad_16k.safetensors
-    v.close()
 
 
 @needs_asr

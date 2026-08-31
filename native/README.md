@@ -1,10 +1,12 @@
 # sokuji-native
 
 One native library for the Sokuji sidecar: **transcribe.cpp** (ASR), **llama.cpp**
-(translation) and **audio.cpp** (TTS + VAD, six families) linked into `libsokuji_native`
+(translation) and **audio.cpp** (TTS, six families) linked into `libsokuji_native`
 behind the `sk_*` C ABI in `include/sokuji_native.h`, on top of one pristine upstream ggml
 with dynamically loaded backends (CPU per-ISA modules, Vulkan on Linux/Windows, Metal on
 Apple Silicon). Design: `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md`.
+VAD lives in the renderer (a Web Worker running Silero VAD over ONNX Runtime), not here —
+see Amendment A1 in the client-VAD-unification spec.
 
 ## Build
 
@@ -50,12 +52,11 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   device table, `own_directory()`, the log sink); never installed.
 - `src/sk_asr.cpp` — `sk_asr_load/capabilities/run/stream_open/stream_feed/stream_finalize/stream_close/unload`
   over transcribe.cpp.
-- `src/sk_vad.cpp` — `sk_vad_open/feed/finalize/reset/close` over audio.cpp's bundled silero VAD.
 - `python/` — the `sokuji_native` package; `_ffi.py` mirrors the header.
 - `tests/` — CTest smoke and the parity comparator; `tests/wav.h` is the shared 16 kHz mono
-  WAV reader (over transcribe.cpp's vendored `dr_wav.h`) used by `test_asr.cpp` / `test_vad.cpp`.
+  WAV reader (over transcribe.cpp's vendored `dr_wav.h`) used by `test_asr.cpp`.
 
-## ASR and VAD (slice 2)
+## ASR (slice 2)
 
 **ASR** — eight entry points, one model per (GGUF, device): `sk_asr_load` opens a GGUF and
 returns capabilities (`languages`, `supports_streaming`, `arch`); `sk_asr_run` transcribes a
@@ -71,31 +72,17 @@ The sidecar never imports `sokuji_native` directly — `sokuji_sidecar/native.py
 door in, and `asr_backend.py`'s `NativeAsrBackend` / `NativeAsrStreamBackend` (registered as
 `native_asr` / `native_asr_stream`) are what the catalog and `asr_engine.py` talk to.
 
-**VAD** — `sk_vad_open/feed/reset/close` over audio.cpp's silero VAD; `feed` takes exactly 512
-float32 samples at 16 kHz per call and returns at most one `sk_vad_event` (`kind`, `sample`,
-`probability`, `seg_start`, `seg_end`) for a start/end edge crossed inside that chunk.
-`sk_vad_finalize` (no PCM) flushes a still-open segment at end-of-stream into a synthetic end
-event — audio.cpp's own API has no such call; Ruling G added it because a stream that ends
-mid-utterance otherwise reports no end for its last segment. `sk_vad_options.weights = NULL`
-resolves to `<library dir>/silero_vad_16k.safetensors` (the `_native/` package data directory
-in the wheel) — audio.cpp's own bundled conversion, not sherpa-onnx's `silero_vad.onnx`.
-Python: `sokuji_native.vad_open()` returns a `Vad` (`.feed()`, `.finalize()`, `.reset()`,
-`.close()`); the sidecar's `NativeVad` (`vad.py`) wraps it with the `window`,
-`is_speech_detected`, `accept_waveform`, `empty`/`front`/`pop`, `flush` shape `asr_engine.py`
-expects, keeping the same thresholds/min-durations/pre-roll the old sherpa-onnx VAD used.
-
-CTest needs real models for `test_asr` (skips with exit code 77 when absent) and ships its
-own weights for `test_vad`:
+CTest needs real models for `test_asr` (skips with exit code 77 when absent):
 
     curl -L -o ~/.cache/sokuji-native-tests/whisper-tiny-Q8_0.gguf https://huggingface.co/handy-computer/whisper-tiny-gguf/resolve/main/whisper-tiny-Q8_0.gguf
     curl -L -o ~/.cache/sokuji-native-tests/moonshine-streaming-tiny-Q8_0.gguf https://huggingface.co/handy-computer/moonshine-streaming-tiny-gguf/resolve/main/moonshine-streaming-tiny-Q8_0.gguf
 
     SK_TEST_ASR_GGUF=~/.cache/sokuji-native-tests/whisper-tiny-Q8_0.gguf \
     SK_TEST_ASR_STREAM_GGUF=~/.cache/sokuji-native-tests/moonshine-streaming-tiny-Q8_0.gguf \
-    ctest --test-dir native/build/cpu --output-on-failure -R 'test_asr|test_vad'
+    ctest --test-dir native/build/cpu --output-on-failure -R 'test_asr'
 
 `SK_TEST_SAMPLE_WAV` is set by CMake to transcribe.cpp's vendored `samples/jfk.wav` (11 s,
-"ask not what your country…") for both tests; it is not meant to be overridden by hand.
+"ask not what your country…"); it is not meant to be overridden by hand.
 
 ## Bumping a pin
 

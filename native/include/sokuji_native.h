@@ -2,7 +2,7 @@
  * Conventions: opaque handles; every call returns sk_status (0 ok, negative error) and
  * sk_last_error() carries a thread-local UTF-8 message; callbacks take a void *user and
  * return bool — false cancels; threads are configured once in sk_init(). Prefixes name
- * the stage (sk_asr_, sk_vad_, sk_translate_, sk_tts_), never the engine behind it.
+ * the stage (sk_asr_, sk_translate_, sk_tts_), never the engine behind it.
  *
  * Three rules that hold for every call in this header, now and in later slices:
  *   - Nothing works before sk_init() succeeds. Any call that needs a live library
@@ -136,42 +136,6 @@ SK_API sk_status sk_asr_stream_feed(sk_asr_stream *, const float *pcm, size_t n,
 SK_API sk_status sk_asr_stream_finalize(sk_asr_stream *, sk_text_cb, void *user);
 SK_API void      sk_asr_stream_close(sk_asr_stream *);
 SK_API void      sk_asr_unload(sk_asr_model *);
-
-/* ---- VAD (audio.cpp silero_vad) ----
- * A VAD runs on the CPU device, at 16 kHz, on exactly 512-sample chunks fed in order.
- * Events are edge-triggered: START once when speech begins (sample = padded start), END
- * once when it ends (with the finished segment), NONE otherwise. sk_vad_finalize reports a
- * trailing open segment as END and resets. A VAD is not thread-safe; one caller at a time.
- * A failed sk_vad_feed consumes nothing — the engine does not advance its internal sample
- * cursor. Recover by retrying the SAME 512 samples, or by calling sk_vad_reset. Feeding the
- * NEXT chunk after a failure instead silently drops those 512 samples and permanently skews
- * every later sample index the VAD reports. */
-typedef struct sk_vad sk_vad;
-
-typedef struct sk_vad_options {
-    const char *weights;        /* NULL = silero_vad_16k.safetensors next to this library */
-    float       threshold;      /* <= 0 = 0.5 */
-    int32_t     min_speech_ms;  /* <= 0 = 250 */
-    int32_t     min_silence_ms; /* <= 0 = 100 */
-    int32_t     speech_pad_ms;  /* < 0 = 30 (0 is a valid value) */
-    float       max_speech_s;   /* <= 0 = unbounded */
-} sk_vad_options;
-
-enum sk_vad_kind { SK_VAD_NONE = 0, SK_VAD_SPEECH_START = 1, SK_VAD_SPEECH_END = 2 };
-
-typedef struct sk_vad_event {
-    int32_t kind;          /* sk_vad_kind */
-    int64_t sample;        /* START: padded start sample; END: end sample */
-    float   probability;   /* the probability at the transition */
-    int64_t seg_start;     /* END only: the finished segment [seg_start, seg_end) in samples */
-    int64_t seg_end;
-} sk_vad_event;
-
-SK_API sk_status sk_vad_open(const sk_vad_options *, sk_vad **out);      /* options NULL = all defaults */
-SK_API sk_status sk_vad_feed(sk_vad *, const float *pcm512, sk_vad_event *out);   /* exactly 512 samples @ 16 kHz */
-SK_API sk_status sk_vad_finalize(sk_vad *, sk_vad_event *out);           /* end of audio: closes an open segment (END or NONE), then resets */
-SK_API void      sk_vad_reset(sk_vad *);
-SK_API void      sk_vad_close(sk_vad *);
 
 #ifdef __cplusplus
 }

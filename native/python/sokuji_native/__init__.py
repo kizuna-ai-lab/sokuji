@@ -2,7 +2,7 @@
 
 Loads libsokuji_native from the packaged _native/ directory (or SOKUJI_NATIVE_DIR for a
 development tree), refuses a contract.json whose ABI differs from _ffi.SK_ABI_VERSION,
-and exposes the C surface as plain Python. Slices 2–4 add asr / vad / translate / tts."""
+and exposes the C surface as plain Python. Slices 2–4 add asr / translate / tts."""
 from __future__ import annotations
 
 import ctypes
@@ -17,7 +17,7 @@ from . import _ffi
 
 __all__ = ["NativeError", "Device", "init", "devices", "device_free_mem", "version",
            "engine_versions", "contract", "audio_families", "native_dir",
-           "AsrCaps", "AsrModel", "AsrStream", "StreamText", "VadEvent", "Vad", "asr_load", "vad_open"]
+           "AsrCaps", "AsrModel", "AsrStream", "StreamText", "asr_load"]
 
 
 class NativeError(RuntimeError):
@@ -205,15 +205,6 @@ class StreamText:
     tentative: str
 
 
-@dataclass(frozen=True)
-class VadEvent:
-    kind: str            # "start" | "end"
-    sample: int
-    probability: float
-    seg_start: int
-    seg_end: int
-
-
 class AsrStream:
     """One open stream on an AsrModel. feed() returns the committed/tentative view after
     the chunk; finalize() returns the final committed text and closes the stream; close()
@@ -329,70 +320,3 @@ def asr_load(path: str, device: Device | None = None) -> AsrModel:
     caps = AsrCaps(langs, bool(raw.supports_streaming), bool(raw.supports_language_detect),
                    int(raw.native_sample_rate), (raw.arch or b"").decode())
     return AsrModel(lib, out.value, caps)
-
-
-class Vad:
-    """One silero VAD instance: feed exactly 512 float32 samples at 16 kHz per call."""
-
-    def __init__(self, lib, handle):
-        self._lib = lib
-        self._h = handle
-
-    def _event(self, ev) -> VadEvent | None:
-        kind = _ffi.VAD_KIND.get(ev.kind)
-        if kind is None:
-            return None
-        return VadEvent(kind, int(ev.sample), float(ev.probability), int(ev.seg_start), int(ev.seg_end))
-
-    def feed(self, pcm512) -> VadEvent | None:
-        if self._h is None:
-            raise NativeError(_ffi.SK_ERR_INVALID_ARGUMENT, "sk_vad_feed: vad is closed")
-        arr, n = _pcm(pcm512)
-        if n != 512:
-            raise ValueError(f"sk_vad_feed: exactly 512 samples per call, got {n}")
-        ev = _ffi.sk_vad_event()
-        status = self._lib.sk_vad_feed(self._h, ctypes.cast(arr, ctypes.POINTER(ctypes.c_float)), ctypes.byref(ev))
-        if status != _ffi.SK_OK:
-            _raise(self._lib, status, "sk_vad_feed")
-        return self._event(ev)
-
-    def finalize(self) -> VadEvent | None:
-        if self._h is None:
-            raise NativeError(_ffi.SK_ERR_INVALID_ARGUMENT, "sk_vad_finalize: vad is closed")
-        ev = _ffi.sk_vad_event()
-        status = self._lib.sk_vad_finalize(self._h, ctypes.byref(ev))
-        if status != _ffi.SK_OK:
-            _raise(self._lib, status, "sk_vad_finalize")
-        return self._event(ev)
-
-    def reset(self) -> None:
-        if self._h is not None:
-            self._lib.sk_vad_reset(self._h)
-
-    def close(self) -> None:
-        h, self._h = self._h, None
-        if h is not None:
-            self._lib.sk_vad_close(h)
-
-    def __del__(self):
-        try:
-            self.close()
-        except Exception:
-            pass
-
-
-def vad_open(*, weights: str | None = None, threshold: float = 0.5, min_speech_ms: int = 250,
-             min_silence_ms: int = 100, speech_pad_ms: int = 30, max_speech_s: float = 0.0) -> Vad:
-    lib = _load()
-    o = _ffi.sk_vad_options()
-    o.weights = weights.encode() if weights else None
-    o.threshold = float(threshold)
-    o.min_speech_ms = int(min_speech_ms)
-    o.min_silence_ms = int(min_silence_ms)
-    o.speech_pad_ms = int(speech_pad_ms)
-    o.max_speech_s = float(max_speech_s)
-    out = ctypes.c_void_p()
-    status = lib.sk_vad_open(ctypes.byref(o), ctypes.byref(out))
-    if status != _ffi.SK_OK:
-        _raise(lib, status, "sk_vad_open")
-    return Vad(lib, out.value)

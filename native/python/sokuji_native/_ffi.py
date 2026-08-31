@@ -1,6 +1,6 @@
 """ctypes declarations for the slice-1 surface of sokuji_native.h. Keep in lock-step with
 the header; SK_ABI_VERSION here is compared against contract.json and sk_abi_version()."""
-from ctypes import (CDLL, CFUNCTYPE, POINTER, Structure, c_bool, c_char, c_char_p, c_float, c_int32, c_int64,
+from ctypes import (CDLL, CFUNCTYPE, POINTER, Structure, c_bool, c_char, c_char_p, c_float, c_int32,
                      c_size_t, c_uint64, c_void_p)
 
 SK_ABI_VERSION = 1
@@ -37,17 +37,7 @@ class sk_stream_text(Structure):
     _fields_ = [("committed", c_char_p), ("tentative", c_char_p)]
 
 
-class sk_vad_options(Structure):
-    _fields_ = [("weights", c_char_p), ("threshold", c_float), ("min_speech_ms", c_int32), ("min_silence_ms", c_int32),
-                ("speech_pad_ms", c_int32), ("max_speech_s", c_float)]
-
-
-class sk_vad_event(Structure):
-    _fields_ = [("kind", c_int32), ("sample", c_int64), ("probability", c_float), ("seg_start", c_int64), ("seg_end", c_int64)]
-
-
 TEXT_CB = CFUNCTYPE(c_bool, c_char_p, c_void_p)
-VAD_KIND = {1: "start", 2: "end"}
 
 
 def bind(lib: CDLL) -> CDLL:
@@ -85,14 +75,4 @@ def bind(lib: CDLL) -> CDLL:
     lib.sk_asr_stream_close.restype = None
     lib.sk_asr_unload.argtypes = [c_void_p]
     lib.sk_asr_unload.restype = None
-    lib.sk_vad_open.argtypes = [POINTER(sk_vad_options), POINTER(c_void_p)]
-    lib.sk_vad_open.restype = c_int32
-    lib.sk_vad_feed.argtypes = [c_void_p, POINTER(c_float), POINTER(sk_vad_event)]
-    lib.sk_vad_feed.restype = c_int32
-    lib.sk_vad_finalize.argtypes = [c_void_p, POINTER(sk_vad_event)]
-    lib.sk_vad_finalize.restype = c_int32
-    lib.sk_vad_reset.argtypes = [c_void_p]
-    lib.sk_vad_reset.restype = None
-    lib.sk_vad_close.argtypes = [c_void_p]
-    lib.sk_vad_close.restype = None
     return lib
