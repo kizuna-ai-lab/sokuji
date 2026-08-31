@@ -1,8 +1,10 @@
 import asyncio
 import json
+import threading
+
 import numpy as np
 import pytest
-from sokuji_sidecar import tts_engine, accel, server
+from sokuji_sidecar import accel, server, tts_engine
 
 
 def test_resample_48k_stereo_to_24k_mono():
@@ -19,46 +21,102 @@ def test_resample_16k_mono_to_24k():
     assert abs(len(np.frombuffer(pcm, np.int16)) - 24000) <= 2
 
 
-def test_importing_tts_engine_registers_tts_backends():
-    # Production startup imports tts_engine (__main__.py:10) and never imports
-    # tts_backends directly; that import must register sherpa_tts + moss_onnx so
-    # make_backend() can find them at load time. Run in a subprocess so sibling
-    # test modules that import tts_backends directly cannot mask the wiring.
-    import subprocess, sys
-    code = (
-        "from sokuji_sidecar import tts_engine\n"
-        "from sokuji_sidecar import backends\n"
-        "names = set(backends._BACKENDS)\n"
-        "assert 'sherpa_tts' in names, names\n"
-        "assert 'moss_onnx' in names, names\n"
-        "print('ok')\n"
-    )
-    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
-    assert r.returncode == 0, r.stderr
+def test_resample_44100_to_24000_sample_count():
+    # Regression for defect 3: Supertonic's native rate (44100) downsampling
+    # through the shared resample path, now via soxr instead of unantialiased
+    # linear interpolation.
+    x = np.zeros(44100, np.float32)                    # 1.0s @ 44100
+    pcm = tts_engine._to_int16_24k_mono(x, 44100)
+    assert abs(len(np.frombuffer(pcm, np.int16)) - 24000) <= 2
+
+
+def test_resample_uses_soxr(monkeypatch):
+    calls = []
+
+    def spy(x, sr_in, sr_out):
+        calls.append((sr_in, sr_out))
+        return np.zeros(sr_out, np.float32)
+
+    monkeypatch.setattr(tts_engine.soxr, "resample", spy)
+    tts_engine._to_int16_24k_mono(np.zeros(44100, np.float32), 44100)
+    assert calls == [(44100, 24000)]
 
 
 class _FakeOneShot:
-    NAME = "fake_oneshot"; STREAMING = False; CLONES = False; sample_rate = 16000
-    def __init__(self): self._loaded = True
-    def set_voice(self, a, sr): raise AssertionError("one-shot has no set_voice")
-    def generate(self, text, speed=1.0): return np.ones(16000, np.float32), 50
-    def unload(self): self._loaded = False
+    """New native_tts-shaped one-shot backend: no set_speaker/set_style_voice
+    (those methods and their wire dispatch die with the ONNX Supertonic/MOSS
+    backends — spec §5.3/§5.5), set_voice always takes ref_text, cancel() exists
+    but is meaningless for a one-shot family (never called by generate())."""
+    NAME = "fake_oneshot"
+    STREAMING = False
+    CLONES = False
+    sample_rate = 16000
+
+    def __init__(self):
+        self._loaded = True
+        self.language = None
+        self.builtin_voice = None
+
+    def set_language(self, lang):
+        self.language = lang
+
+    def set_voice(self, a, sr, ref_text=""):
+        raise AssertionError("one-shot has no set_voice")
+
+    def set_builtin_voice(self, name):
+        self.builtin_voice = name
+
+    def list_builtin_voices(self):
+        return ["Ava", "Bella"]
+
+    def generate(self, text, speed=1.0):
+        return np.ones(16000, np.float32), 50
+
+    def cancel(self):
+        raise AssertionError("one-shot generation is never cancelled")
+
+    def unload(self):
+        self._loaded = False
+
     @property
-    def is_loaded(self): return self._loaded
+    def is_loaded(self):
+        return self._loaded
 
 
 class _FakeStream:
-    NAME = "fake_stream"; STREAMING = True; CLONES = True; sample_rate = 24000
-    def __init__(self): self._loaded = True; self.voice = None
-    def set_voice(self, a, sr): self.voice = (len(a), sr)
+    NAME = "fake_stream"
+    STREAMING = True
+    CLONES = True
+    sample_rate = 24000
+
+    def __init__(self):
+        self._loaded = True
+        self.voice = None
+        self.builtin_voice = None
+        self.cancel_calls = 0
+
+    def set_voice(self, a, sr, ref_text=""):
+        self.voice = (len(a), sr, ref_text)
+
+    def set_builtin_voice(self, name):
+        self.builtin_voice = name
+
+    def cancel(self):
+        self.cancel_calls += 1
+
     def generate(self, text, speed=1.0):
         return np.concatenate(list(self.generate_stream(text, speed))), 30
+
     def generate_stream(self, text, speed=1.0):
         for _ in range(3):
             yield np.ones(8000, np.float32)            # 3 chunks @ 24k
-    def unload(self): self._loaded = False
+
+    def unload(self):
+        self._loaded = False
+
     @property
-    def is_loaded(self): return self._loaded
+    def is_loaded(self):
+        return self._loaded
 
 
 def _patch(monkeypatch, backend, model_id):
@@ -74,6 +132,15 @@ def test_init_oneshot_reports_resolved_and_24k(monkeypatch):
     eng.init("piper-en-amy")
     assert eng.sample_rate == 24000 and eng.streaming is False and eng.clones is False
     assert eng.resolved["backend"] == "fake_oneshot"
+    assert eng.model_id == "piper-en-amy"
+    assert eng.is_loaded is True
+
+
+def test_close_clears_model_id_and_loaded_state(monkeypatch):
+    b = _FakeOneShot(); _patch(monkeypatch, b, "piper-en-amy")
+    eng = tts_engine.TtsEngine(); eng.init("piper-en-amy")
+    eng.close()
+    assert eng.model_id is None and eng.is_loaded is False and b.is_loaded is False
 
 
 def test_generate_oneshot_returns_24k_pcm(monkeypatch):
@@ -81,6 +148,53 @@ def test_generate_oneshot_returns_24k_pcm(monkeypatch):
     eng = tts_engine.TtsEngine(); eng.init("piper-en-amy")
     pcm, ms = eng.generate("hello")
     assert abs(len(np.frombuffer(pcm, np.int16)) - 24000) <= 2  # 16k->24k
+
+
+def test_set_voice_defaults_ref_text_to_empty_string(monkeypatch):
+    b = _FakeStream(); _patch(monkeypatch, b, "moss-tts-nano")
+    eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
+    eng.set_voice(np.ones(2400, np.float32), 24000)
+    assert b.voice == (2400, 24000, "")
+
+
+def test_set_voice_passes_explicit_ref_text(monkeypatch):
+    b = _FakeStream(); _patch(monkeypatch, b, "moss-tts-nano")
+    eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
+    eng.set_voice(np.ones(2400, np.float32), 24000, ref_text="hello")
+    assert b.voice == (2400, 24000, "hello")
+
+
+def test_set_builtin_voice_and_list_builtin_voices_passthrough(monkeypatch):
+    b = _FakeOneShot(); _patch(monkeypatch, b, "piper-en-amy")
+    eng = tts_engine.TtsEngine(); eng.init("piper-en-amy")
+    eng.set_builtin_voice("Ava")
+    assert b.builtin_voice == "Ava"
+    assert eng.list_builtin_voices() == ["Ava", "Bella"]
+
+
+def test_list_builtin_voices_degrades_to_empty_when_backend_lacks_it(monkeypatch):
+    # Pre-Task-5 regression guard: MOSS's ONNX backend (still resolvable via the
+    # catalog until the native_tts rewire) has no list_builtin_voices() at all --
+    # this must degrade to [], not raise AttributeError, when the engine happens
+    # to have it loaded when list_tts_voices is asked about it.
+    class _NoVoiceListing(_FakeStream):
+        pass
+    b = _NoVoiceListing(); assert not hasattr(b, "list_builtin_voices")
+    _patch(monkeypatch, b, "moss-tts-nano")
+    eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
+    assert eng.list_builtin_voices() == []
+
+
+def test_cancel_active_reaches_backend_cancel(monkeypatch):
+    b = _FakeStream(); _patch(monkeypatch, b, "moss-tts-nano")
+    eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
+    eng.cancel_active()
+    assert b.cancel_calls == 1
+
+
+def test_cancel_active_is_noop_when_nothing_loaded():
+    eng = tts_engine.TtsEngine()
+    eng.cancel_active()  # must not raise
 
 
 def test_generate_stream_emits_chunks_then_done(monkeypatch):
@@ -95,7 +209,7 @@ def test_generate_stream_emits_chunks_then_done(monkeypatch):
     assert done[0]["id"] == "m1" and done[0]["totalSamples"] == 3 * 8000
 
 
-def test_generate_stream_honors_cancel(monkeypatch):
+def test_generate_stream_honors_client_side_cancel(monkeypatch):
     b = _FakeStream(); _patch(monkeypatch, b, "moss-tts-nano")
     eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
     sent = []
@@ -117,6 +231,121 @@ def _state(backend, monkeypatch, model_id):
     tts_engine.register(st)
     return st
 
+
+# ── defect 1: blocking calls move off the event loop ──────────────────────
+
+def _spy_executor(monkeypatch):
+    """Record every loop.run_in_executor(None, func, ...) call while still
+    running it for real, so a handler under test both proves it went through
+    the executor AND keeps working end to end."""
+    calls = []
+    orig = asyncio.BaseEventLoop.run_in_executor
+
+    def spy(self, executor, func, *args):
+        calls.append(func)
+        return orig(self, executor, func, *args)
+
+    monkeypatch.setattr(asyncio.BaseEventLoop, "run_in_executor", spy)
+    return calls
+
+
+def test_handler_tts_init_runs_off_the_event_loop(monkeypatch):
+    st = _state(_FakeOneShot(), monkeypatch, "piper-en-amy")
+    calls = _spy_executor(monkeypatch)
+    conn = _FakeConn()
+    reply, _ = asyncio.run(st["handlers"]["tts_init"](
+        st, {"type": "tts_init", "id": 1, "model": "piper-en-amy"}, None, conn))
+    assert reply["type"] == "ready"
+    assert len(calls) == 1  # eng.init(...) ran via run_in_executor
+
+
+def test_handler_set_voice_builtin_name_runs_off_the_event_loop(monkeypatch):
+    st = _state(_FakeOneShot(), monkeypatch, "piper-en-amy")
+    conn = _FakeConn()
+    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                "model": "piper-en-amy"}, None, conn))
+    calls = _spy_executor(monkeypatch)
+    reply, _ = asyncio.run(st["handlers"]["set_voice"](
+        st, {"type": "set_voice", "id": 2, "voice": "Ava"}, None, conn))
+    assert reply == {"type": "ok", "id": 2}
+    assert st["tts_engine"]._backend.builtin_voice == "Ava"
+    assert len(calls) == 1
+
+
+def test_handler_set_voice_clone_runs_off_the_event_loop(monkeypatch):
+    st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
+    conn = _FakeConn()
+    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                "model": "moss-tts-nano"}, None, conn))
+    calls = _spy_executor(monkeypatch)
+    ref = np.ones(2400, np.float32).tobytes()
+    reply, _ = asyncio.run(st["handlers"]["set_voice"](
+        st, {"type": "set_voice", "id": 2, "sampleRate": 24000, "refText": "hi"}, ref, conn))
+    assert reply["type"] == "ok"
+    assert st["tts_engine"]._backend.voice == (2400, 24000, "hi")
+    assert len(calls) == 1
+
+
+def test_handler_set_voice_sid_runs_off_the_event_loop(monkeypatch):
+    class _FakeRangeBackend(_FakeOneShot):
+        def __init__(self):
+            super().__init__()
+            self.sid = None
+
+        def set_speaker(self, sid):
+            self.sid = sid
+
+    st = _state(_FakeRangeBackend(), monkeypatch, "piper-en-amy")
+    conn = _FakeConn()
+    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                "model": "piper-en-amy"}, None, conn))
+    calls = _spy_executor(monkeypatch)
+    reply, _ = asyncio.run(st["handlers"]["set_voice"](
+        st, {"type": "set_voice", "id": 3, "sid": 5}, None, conn))
+    assert reply == {"type": "ok", "id": 3}
+    assert st["tts_engine"]._backend.sid == 5
+    assert len(calls) == 1
+
+
+def test_handler_set_voice_style_variant_runs_off_the_event_loop(monkeypatch):
+    class _FakeStyleBackend(_FakeOneShot):
+        def __init__(self):
+            super().__init__()
+            self.style = None
+
+        def set_style_voice(self, ttl, dp):
+            self.style = (ttl, dp)
+
+    st = _state(_FakeStyleBackend(), monkeypatch, "supertonic-3")
+    conn = _FakeConn()
+    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                "model": "supertonic-3"}, None, conn))
+    calls = _spy_executor(monkeypatch)
+    ttl = np.arange(50 * 256, dtype=np.float32)
+    dp = np.arange(8 * 16, dtype=np.float32)
+    msg = {"type": "set_voice", "id": 4, "styleVoice": {"ttlDims": [1, 50, 256], "dpDims": [1, 8, 16]}}
+    reply, _ = asyncio.run(st["handlers"]["set_voice"](st, msg, ttl.tobytes() + dp.tobytes(), conn))
+    assert reply == {"type": "ok", "id": 4}
+    style_ttl, style_dp = st["tts_engine"]._backend.style
+    assert style_ttl.shape == (1, 50, 256) and style_dp.shape == (1, 8, 16)
+    assert len(calls) == 1
+
+
+def test_handler_tts_generate_oneshot_runs_off_the_event_loop(monkeypatch):
+    st = _state(_FakeOneShot(), monkeypatch, "piper-en-amy")
+    conn = _FakeConn()
+    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                "model": "piper-en-amy"}, None, conn))
+    calls = _spy_executor(monkeypatch)
+    reply, binary = asyncio.run(st["handlers"]["tts_generate"](
+        st, {"type": "tts_generate", "id": "g2", "text": "hello"}, None, conn))
+    assert reply["type"] == "tts_generate_result" and reply["id"] == "g2"
+    assert reply["sampleRate"] == 24000 and binary is not None
+    assert reply["samples"] == len(binary) // 2
+    assert len(calls) == 1
+
+
+# ── handler behaviour (unchanged surface) ──────────────────────────────────
 
 def test_handler_tts_init_ready_registers_teardown(monkeypatch):
     st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
@@ -149,18 +378,6 @@ def test_handler_tts_init_passes_variant_as_pin(monkeypatch):
     assert seen["pin"] == "bf16"
 
 
-def test_handler_set_voice_buffers_binary(monkeypatch):
-    st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
-    conn = _FakeConn()
-    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
-                "model": "moss-tts-nano"}, None, conn))
-    ref = np.ones(2400, np.float32).tobytes()
-    reply, _ = asyncio.run(st["handlers"]["set_voice"](
-        st, {"type": "set_voice", "id": 2, "sampleRate": 24000}, ref, conn))
-    assert reply["type"] == "ok"
-    assert st["tts_engine"]._backend.voice == (2400, 24000)
-
-
 def test_handler_tts_generate_streaming_pushes_chunks(monkeypatch):
     """Handler dispatches a background task and pushes chunks via that task."""
     st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
@@ -179,18 +396,6 @@ def test_handler_tts_generate_streaming_pushes_chunks(monkeypatch):
     assert kinds.count("tts_chunk") == 3 and kinds.count("tts_done") == 1
 
 
-def test_handler_tts_generate_oneshot_returns_tts_generate_result(monkeypatch):
-    st = _state(_FakeOneShot(), monkeypatch, "piper-en-amy")
-    conn = _FakeConn()
-    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
-                "model": "piper-en-amy"}, None, conn))
-    reply, binary = asyncio.run(st["handlers"]["tts_generate"](
-        st, {"type": "tts_generate", "id": "g2", "text": "hello"}, None, conn))
-    assert reply["type"] == "tts_generate_result" and reply["id"] == "g2"
-    assert reply["sampleRate"] == 24000 and binary is not None
-    assert reply["samples"] == len(binary) // 2
-
-
 def test_tts_generate_streaming_dispatches_task_and_returns_immediately(monkeypatch):
     """Streaming handler returns (None, None) immediately and stores an asyncio.Task
     in conn.ctx['tts_stream_task']; awaiting that task delivers all chunks + done."""
@@ -206,6 +411,7 @@ def test_tts_generate_streaming_dispatches_task_and_returns_immediately(monkeypa
         assert reply is None and binary is None
         task = conn.ctx.get("tts_stream_task")
         assert task is not None and isinstance(task, asyncio.Task)
+        assert conn.ctx.get("tts_stream_mid") == "g3"
         # Await to completion and verify the task ran the full stream
         await task
         kinds = [o.get("type") for o, _ in conn.sent if o]
@@ -216,12 +422,10 @@ def test_tts_generate_streaming_dispatches_task_and_returns_immediately(monkeypa
 
 
 def test_h_set_voice_builtin_name_path():
-    import asyncio
-    from sokuji_sidecar import tts_engine
     called = {}
     class FakeEng:
         def set_builtin_voice(self, n): called["builtin"] = n
-        def set_voice(self, a, sr): called["clip"] = (len(a), sr)
+        def set_voice(self, a, sr, ref_text=""): called["clip"] = (len(a), sr, ref_text)
     state = {"tts_engine": FakeEng()}; tts_engine.register(state)
     reply, _ = asyncio.run(state["handlers"]["set_voice"](state, {"id": 1, "voice": "Ava"}, None, None))
     assert reply["type"] == "ok" and called == {"builtin": "Ava"}
@@ -232,7 +436,7 @@ def test_set_voice_sid_form_routes_to_set_speaker():
     class _Eng:
         def set_speaker(self, sid): seen["sid"] = sid
         def set_builtin_voice(self, name): seen["name"] = name
-        def set_voice(self, audio, sr): seen["clip"] = (len(audio), sr)
+        def set_voice(self, audio, sr, ref_text=""): seen["clip"] = (len(audio), sr, ref_text)
     state = {"tts_engine": _Eng(), "handlers": {}}
     tts_engine.register(state)
     reply, _ = asyncio.run(state["handlers"]["set_voice"](
@@ -241,28 +445,123 @@ def test_set_voice_sid_form_routes_to_set_speaker():
     assert reply == {"type": "ok", "id": 3}
 
 
-def test_list_tts_voices_returns_descriptors(monkeypatch):
-    monkeypatch.setattr("sokuji_sidecar.tts_voices.list_builtin_voices",
-                        lambda model=None: [{"name": "Ava", "language": "en",
-                                             "curated": True, "unstable": False, "default": True}])
-    state = {}; tts_engine.register(state)
+def test_h_set_voice_clone_path_defaults_missing_ref_text_to_none():
+    called = {}
+    class FakeEng:
+        def set_builtin_voice(self, n): called["builtin"] = n
+        def set_voice(self, a, sr, ref_text=""): called["clip"] = (len(a), sr, ref_text)
+    state = {"tts_engine": FakeEng(), "handlers": {}}
+    tts_engine.register(state)
+    ref = np.ones(240, np.float32).tobytes()
+    reply, _ = asyncio.run(state["handlers"]["set_voice"](
+        state, {"id": 3, "type": "set_voice", "sampleRate": 24000}, ref, None))
+    assert called["clip"] == (240, 24000, None)
+    assert reply == {"type": "ok", "id": 3}
+
+
+def test_list_tts_voices_passes_model_and_engine_through(monkeypatch):
+    seen = {}
+    def fake_list(model=None, engine=None):
+        seen["model"] = model
+        seen["engine"] = engine
+        return ["Ava", "Bella"]
+    monkeypatch.setattr("sokuji_sidecar.tts_voices.list_builtin_voices", fake_list)
+    eng = tts_engine.TtsEngine()
+    state = {"tts_engine": eng}; tts_engine.register(state)
     reply, _ = asyncio.run(state["handlers"]["list_tts_voices"](
-        state, {"id": 1, "type": "list_tts_voices"}, None, None))
-    assert reply["voices"] == [{"name": "Ava", "language": "en",
-                                "curated": True, "unstable": False, "default": True}]
+        state, {"id": 1, "type": "list_tts_voices", "model": "moss-tts-nano"}, None, None))
+    assert reply["voices"] == ["Ava", "Bella"]
+    assert seen == {"model": "moss-tts-nano", "engine": eng}
 
 
-def test_tts_cancel_stops_inflight_stream(monkeypatch):
-    """tts_cancel flips the cancel flag while the stream task runs; the stream task
-    respects the flag and stops early, then still emits tts_done.
+def test_tts_cancel_sets_flag_and_calls_engine_cancel_active():
+    calls = []
+    class FakeEng:
+        def cancel_active(self): calls.append(1)
+    state = {"tts_engine": FakeEng(), "tts_cancels": {"g4": False}, "handlers": {}}
+    tts_engine.register(state)
+    reply, _ = asyncio.run(state["handlers"]["tts_cancel"](
+        state, {"type": "tts_cancel", "id": "g4"}, None, None))
+    assert reply == {"type": "ok", "id": "g4"}
+    assert state["tts_cancels"]["g4"] is True
+    assert calls == [1]
 
-    The fake backend gates between chunk 0 and chunk 1 via a threading.Event so the
-    cancel is injected deterministically: the test waits until chunk 0 is done
-    (before_gate fires), then sets the cancel flag and releases the gate.  The worker
+
+def test_tts_cancel_with_unknown_id_still_calls_engine_cancel_active():
+    calls = []
+    class FakeEng:
+        def cancel_active(self): calls.append(1)
+    state = {"tts_engine": FakeEng(), "handlers": {}}
+    tts_engine.register(state)
+    reply, _ = asyncio.run(state["handlers"]["tts_cancel"](
+        state, {"type": "tts_cancel", "id": "unknown"}, None, None))
+    assert reply == {"type": "ok", "id": "unknown"}
+    assert calls == [1]
+
+
+# ── defect 2: supersede stops the OLD generation, not just its asyncio Task ──
+
+class _FakeTask:
+    def __init__(self):
+        self.cancel_called = False
+
+    def done(self):
+        return False
+
+    def cancel(self):
+        self.cancel_called = True
+
+
+class _FakeEngineForSupersede:
+    streaming = True
+    sample_rate = 24000
+
+    def __init__(self):
+        self.cancel_active_calls = 0
+        self.generate_stream_calls = []
+
+    def cancel_active(self):
+        self.cancel_active_calls += 1
+
+    async def generate_stream(self, text, speed, send, should_cancel, msg_id):
+        self.generate_stream_calls.append(msg_id)
+        await send({"type": "tts_done", "id": msg_id, "totalSamples": 0, "generationTimeMs": 0})
+
+
+def test_supersede_sets_prior_cancel_flag_and_calls_engine_cancel_active():
+    eng = _FakeEngineForSupersede()
+    state = {"tts_engine": eng, "handlers": {}, "tts_cancels": {"prior-id": False}}
+    tts_engine.register(state)
+    conn = _FakeConn()
+    prior_task = _FakeTask()
+    conn.ctx["tts_stream_task"] = prior_task
+    conn.ctx["tts_stream_mid"] = "prior-id"
+
+    async def run():
+        reply, binary = await state["handlers"]["tts_generate"](
+            state, {"type": "tts_generate", "id": "new-id", "text": "hi"}, None, conn)
+        assert reply is None and binary is None
+        new_task = conn.ctx.get("tts_stream_task")
+        assert isinstance(new_task, asyncio.Task) and new_task is not prior_task
+        await new_task
+
+    asyncio.run(run())
+    assert state["tts_cancels"]["prior-id"] is True     # client-side flag, still set
+    assert eng.cancel_active_calls == 1                 # reaches the backend itself
+    assert prior_task.cancel_called is True             # asyncio Task detached last
+    assert eng.generate_stream_calls == ["new-id"]
+
+
+def test_tts_cancel_stops_inflight_stream_end_to_end(monkeypatch):
+    """tts_cancel flips the cancel flag AND calls eng.cancel_active() (which
+    reaches backend.cancel()) while the stream task runs; the stream task
+    respects should_cancel() and stops early, still emitting tts_done.
+
+    The fake backend gates between chunk 0 and chunk 1 via a threading.Event so
+    the cancel is injected deterministically: the test waits until chunk 0 is
+    done (before_gate fires), then cancels and releases the gate. The worker
     thread sees should_cancel()=True before yielding chunk 1 and breaks.
     """
-    import threading
-
     class _FakePausedStream:
         NAME = "fake_paused_stream"
         STREAMING = True
@@ -271,15 +570,19 @@ def test_tts_cancel_stops_inflight_stream(monkeypatch):
 
         def __init__(self):
             self._loaded = True
-            self.gate = threading.Event()         # released by test to allow chunk 1+
-            self.before_gate = threading.Event()  # set just before gate.wait()
+            self.cancel_calls = 0
+            self.gate = threading.Event()
+            self.before_gate = threading.Event()
 
         def generate_stream(self, text, speed=1.0):
             yield np.ones(8000, np.float32)   # chunk 0 — always produced
-            self.before_gate.set()             # signal: chunk 0 queued, about to block
-            self.gate.wait()                   # block until test releases
-            yield np.ones(8000, np.float32)   # chunk 1 (skipped when cancelled)
-            yield np.ones(8000, np.float32)   # chunk 2 (skipped when cancelled)
+            self.before_gate.set()
+            self.gate.wait()
+            yield np.ones(8000, np.float32)   # chunk 1 (skipped once cancelled)
+            yield np.ones(8000, np.float32)   # chunk 2 (skipped once cancelled)
+
+        def cancel(self):
+            self.cancel_calls += 1
 
         def unload(self):
             self._loaded = False
@@ -298,22 +601,17 @@ def test_tts_cancel_stops_inflight_stream(monkeypatch):
         task = conn.ctx.get("tts_stream_task")
         assert task is not None and isinstance(task, asyncio.Task)
 
-        # Wait (off the event loop via executor) until chunk 0 is queued
-        # and the fake is about to block on gate — cancel flag can now be set safely.
         await loop.run_in_executor(None, b.before_gate.wait)
 
-        # Set the cancel flag via the handler (this is what the real client sends)
         await st["handlers"]["tts_cancel"](
             st, {"type": "tts_cancel", "id": "g4"}, None, conn)
         assert st.get("tts_cancels", {}).get("g4") is True
+        assert b.cancel_calls == 1          # reached the backend, not just the flag
 
-        # Release the gate: worker resumes, checks should_cancel()=True, breaks
         b.gate.set()
-
         await asyncio.wait_for(task, timeout=5.0)
 
         kinds = [o.get("type") for o, _ in conn.sent if o]
-        # Fewer than 3 chunks (cancel stopped chunk 1 and 2); tts_done always fires
         assert kinds.count("tts_chunk") < 3
         assert kinds.count("tts_done") == 1
 
@@ -326,9 +624,8 @@ def test_conn_close_frees_tts_model():
     test_conn_close_frees_asr_model.
 
     Uses a fake engine for the same reason that test does: the real TtsEngine.init()
-    calls close() itself for VRAM hygiene (tts_engine.py:46), so a real engine would
-    count two closes for one tts_init and could not show whether the DISCONNECT closed
-    the model."""
+    calls close() itself for VRAM hygiene, so a real engine would count two closes
+    for one tts_init and could not show whether the DISCONNECT closed the model."""
     closed = {"n": 0}
 
     class Eng:

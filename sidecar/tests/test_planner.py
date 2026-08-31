@@ -1136,6 +1136,24 @@ def test_plan_config_qwen25_05b_is_fully_inert():
     assert planner._plan_config(card) == planner.PlanConfig(prompt_family="qwen")
 
 
+def test_plan_config_reads_tts_family_and_load_language(monkeypatch):
+    # TtsModel gains family/load_language in the slice-4 catalog task (not yet); a
+    # card shaped that way already threads through today via the same defensive
+    # getattr _plan_config uses for the translate-only fields.
+    import types
+    card = types.SimpleNamespace(family="pocket_tts", load_language="english")
+    assert planner._plan_config(card) == planner.PlanConfig(
+        tts_family="pocket_tts", tts_language="english")
+
+
+def test_plan_config_tts_fields_default_inert_for_translate_cards():
+    # A TranslateModel card has neither attribute; both PlanConfig fields fall
+    # back to their all-inert "" default, same as the thinking flags do today.
+    card = catalog.translate_model("qwen2.5-0.5b")
+    cfg = planner._plan_config(card)
+    assert cfg.tts_family == "" and cfg.tts_language == ""
+
+
 def test_resolve_translate_propagates_qwen3_thinking_config():
     # Resolve-level propagation: a real resolve() call, not a hand-built Plan,
     # must carry the card's derived PlanConfig through to the Plan it returns.

@@ -37,11 +37,16 @@ if TYPE_CHECKING:
 class PlanConfig:
     """Declarative per-load hints, read from the resolved catalog card and
     consumed by backends at load time: native_translate reads the two thinking
-    flags and prompt_family (which of its three prompt strategies to use).
-    All-inert defaults so a bare `PlanConfig()` changes no behavior."""
+    flags and prompt_family (which of its three prompt strategies to use);
+    native_tts reads tts_family (sk_tts_load's required family_hint) and
+    tts_language (pocket_tts's load-time language package, e.g. "english";
+    ignored by every other family). All-inert defaults so a bare
+    `PlanConfig()` changes no behavior."""
     disable_thinking: bool = False
     append_no_think: bool = False
     prompt_family: str = ""
+    tts_family: str = ""
+    tts_language: str = ""
 
 
 @dataclass(frozen=True)
@@ -64,11 +69,16 @@ def _plan_config(model) -> PlanConfig:
     """Build a Plan's PlanConfig from its resolved catalog card. Card types
     differ (an AsrModel and a TtsModel have no thinking flags), so every
     field is read defensively via getattr with an inert default — this stays
-    correct for any current or future card shape."""
+    correct for any current or future card shape. `family`/`load_language`
+    land on TtsModel in slice 4's catalog task; reading them defensively now
+    means native_tts's backend already gets tts_family/tts_language the
+    moment those catalog fields exist, with no further planner change."""
     return PlanConfig(
         disable_thinking=getattr(model, "disable_thinking", False),
         append_no_think=getattr(model, "append_no_think", False),
         prompt_family=getattr(model, "prompt_family", ""),
+        tts_family=getattr(model, "family", ""),
+        tts_language=getattr(model, "load_language", ""),
     )
 
 
