@@ -157,7 +157,8 @@ export default defineConfig(({ command, mode }) => {
             'popover-windows': 'electron/popover-windows.js',
             'update-manager': 'electron/update-manager.js',
             'update-payload': 'electron/update-payload.js',
-            'window-caption-dblclick': 'electron/window-caption-dblclick.js'
+            'window-caption-dblclick': 'electron/window-caption-dblclick.js',
+            'window-caption-menu': 'electron/window-caption-menu.js'
           },
           onstart(args) {
             // Override default [".", "--no-sandbox"] to fix DevTools crash on Linux
