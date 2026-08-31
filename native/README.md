@@ -179,6 +179,11 @@ status, so that is what CI and this recipe use, not Q8_0:
     SK_TEST_TTS_MOSS_DIR=~/.cache/sokuji-native-tests/tts/moss-tts-nano \
     ctest --test-dir native/build/cpu --output-on-failure -R 'test_tts'
 
+CTest only exercises `sk_tts` in isolation, against nothing. The parity gate that compares its
+output to the official `audiocpp_cli`, sample-exact on CPU, lives at
+`native/tests/parity/` — see `native/tests/parity/README.md` for how to build the reference
+binary and run the suite.
+
 ## Bumping a pin
 
 1. Change the commit SHA (and the version string beside it) in `cmake/upstreams.cmake`.
