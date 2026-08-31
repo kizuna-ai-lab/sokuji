@@ -662,12 +662,18 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
                   recommended=False, extra_files=(), license=None):
     """One native_tts card. `quants` maps QUANT token (the filename's own
     suffix, e.g. "q8_0") -> (filename, bytes) under `dir_` in
-    `_AUDIOCPP_GGUF_REPO`; `default_quant` is the curated default (rank 2.0),
-    any other listed quant is rank 1.0 — exactly `_llm_translate_row`'s
-    two-rung shape. `extra_files` are (relative-to-`dir_` filename, bytes)
-    sidecar assets sk_tts_presets discovers next to the loaded gguf (only
-    pocket-tts-en has one: embeddings/alba.safetensors) — downloaded
-    alongside every quant and counted once in size_bytes."""
+    `_AUDIOCPP_GGUF_REPO`; `default_quant` gets rank 2.0, any other listed
+    quant gets rank 1.0 — exactly `_llm_translate_row`'s two-rung shape,
+    INCLUDING that shape's quant-picking semantics (fix round 1: this is not
+    simply "the curated default always wins"): `default_quant` is the RANK
+    default — the pin-absent/no-budget-known/nothing-fits fallback
+    (`planner._llamacpp_quant`) — while `resolve_tts`'s real auto path
+    (`_llamacpp_variant_row`) picks the LARGEST quant that fits the machine's
+    budget, which is routinely the bigger, rank-1.0 alt quant (e.g. bf16 over
+    the "default" q8_0) once it fits. `extra_files` are (relative-to-`dir_`
+    filename, bytes) sidecar assets sk_tts_presets discovers next to the
+    loaded gguf (only pocket-tts-en has one: embeddings/alba.safetensors) —
+    downloaded alongside every quant and counted once in size_bytes."""
     deps = []
     order_keys = [default_quant] + [q for q in quants if q != default_quant]
     for i, q in enumerate(order_keys):

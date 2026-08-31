@@ -4,22 +4,29 @@ none of the old ONNX stack's editorial language/gender/curated metadata (any suc
 curation now lives, if anywhere, in the renderer).
 
 If the requested model is the one currently loaded on the given engine, ask its
-backend directly (mirrors .presets() on the live handle). Otherwise, a load-free
-path resolves the model's catalog card and reads preset names straight off its
-local HF snapshot -- no session needed: supertonic ships `voice_styles/*.json`,
-pocket_tts ships `embeddings/*.safetensors`. moss_tts_nano / qwen3_tts / omnivoice
-have no load-free listing (voice cloning only, or no bundled catalogue) and report
-[]. TtsModel.family doesn't exist yet (it lands with the slice-4 catalog task); the
-`getattr` default below just means every current card falls through to [] until
-then, same pattern as planner._plan_config's defensive reads."""
+backend directly (mirrors .presets() on the live handle) -- always authoritative
+when available. Otherwise, a load-free path serves what it can without a
+session: supertonic's ten presets (F1-F5/M1-M5) are baked INTO the GGUF itself
+(registry.inspect().discovered_configs, not a sibling directory the downloaded
+snapshot ships separately -- see native/README.md's "GGUF-embedded sidecars"
+note and native/tests/test_tts.cpp's own CTest, which enumerates exactly this
+list), so they are hardcoded here (fix round 1, CQ-4) -- mirroring the old ONNX
+SupertonicBackend's own hardcoded list, which likewise needed no download.
+pocket_tts ships a REAL sibling `embeddings/*.safetensors` directory in its HF
+snapshot, read straight off disk. moss_tts_nano / qwen3_tts / omnivoice have no
+load-free listing (voice cloning only, or no bundled catalogue) and report []."""
 from pathlib import Path
 
 from .catalog import split_artifact
 
+# audio.cpp's fixed supertonic preset roster (Task 1's sk_tts_presets() CTest
+# against the shipped GGUF) -- a stable, small, hardcoded set, not something
+# to read off disk. Checked before _LOAD_FREE_PRESETS below.
+_SUPERTONIC_PRESETS = ("F1", "F2", "F3", "F4", "F5", "M1", "M2", "M3", "M4", "M5")
+
 # family -> (sub-directory inside the model's package dir, file suffix) for the
 # load-free preset listing. Every other family has nothing to list without a load.
 _LOAD_FREE_PRESETS = {
-    "supertonic": ("voice_styles", ".json"),
     "pocket_tts": ("embeddings", ".safetensors"),
 }
 
@@ -37,7 +44,10 @@ def list_builtin_voices(model_id: str | None = None, engine=None) -> list:
         return engine.list_builtin_voices()
     from . import catalog
     m = catalog.tts_model(model_id) if model_id else None
-    layout = _LOAD_FREE_PRESETS.get(getattr(m, "family", ""))
+    family = getattr(m, "family", "")
+    if family == "supertonic":
+        return list(_SUPERTONIC_PRESETS)
+    layout = _LOAD_FREE_PRESETS.get(family)
     if layout is None or not getattr(m, "deployments", None):
         return []
     sub, suffix = layout

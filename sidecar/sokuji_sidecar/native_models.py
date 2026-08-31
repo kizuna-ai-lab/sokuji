@@ -172,6 +172,32 @@ def _ladder_artifacts(model_id):
     return arts if len(arts) > 1 else []
 
 
+def _extra_files_present(model_id) -> bool:
+    """True if every one of a TTS card's `extra_files` (pocket-tts-en's
+    embeddings/alba.safetensors) is already cached, or the card has none.
+
+    Fix round 1, CQ-2: `_ladder_artifacts`'s any-rung relaxation only ever
+    looks at each quant's PRIMARY artifact file — a card whose extra_files
+    sidecar is missing still read 'ready' as long as one gguf rung was cached.
+    Checked unconditionally (both the bare and repo-override `model_status`
+    paths) in addition to, not instead of, the existing ladder/files check —
+    for an override, `specs["files"]` already lists the extras too (see
+    `download_specs`), so this is a cheap, harmless re-check there and the
+    only thing that actually closes the gap on the bare (ladder) path."""
+    from .catalog import tts_model as _tts_model
+    m = _tts_model(model_id) if model_id else None
+    if m is None or not m.extra_files:
+        return True
+    from huggingface_hub import hf_hub_download
+    repo, fname = split_artifact(m.deployments[0].artifact)
+    for extra in _tts_extra_files(m, fname):
+        try:
+            hf_hub_download(repo, extra, local_files_only=True)
+        except Exception:
+            return False
+    return True
+
+
 def model_status(model_id, repo=None):
     """'ready' only if every repo + url is cached locally AND complete, else 'absent'.
 
@@ -184,6 +210,8 @@ def model_status(model_id, repo=None):
     (or, for pocket-tts-en, single-file-plus-sidecar) artifact, so there is no
     per-kind status branch left — TTS used to need one (a whole-repo,
     any-variant-cached check) before its artifacts became single-file GGUFs.
+    A card's `extra_files` sidecar (see _extra_files_present) is required in
+    addition to the ladder/files check, on both the bare and override paths.
 
     Translate cards (native_translate) need nothing beyond their GGUF file —
     translation runs in-process through sokuji_native, the same wheel ASR and
@@ -209,43 +237,119 @@ def model_status(model_id, repo=None):
             from huggingface_hub import hf_hub_download
             for r, fname in specs["files"]:
                 hf_hub_download(r, fname, local_files_only=True)
+        if not _extra_files_present(model_id):
+            return "absent"
         return "ready"
     except Exception:
         return "absent"
 
 
+def _repo_owner_cards(repo: str) -> set:
+    """Card ids (across ASR/translate/TTS) whose deployments reference `repo`
+    (the repo half of split_artifact). Distinguishes a genuinely per-card
+    upstream repo — every ASR/translate card today: the repo IS the card, so
+    its other cached quants are that SAME card's siblings — from a repo
+    several DIFFERENT cards share: every TTS card downloads from
+    audio-cpp/audio.cpp-gguf. Only the latter needs file-level delete (see
+    delete_model) — deleting one card must never touch another's files."""
+    from .catalog import asr_models, translate_models, tts_models
+    owners = set()
+    for m in list(asr_models()) + list(translate_models()) + list(tts_models()):
+        if any(split_artifact(d.artifact)[0] == repo for d in m.deployments):
+            owners.add(m.id)
+    return owners
+
+
+def _delete_shared_repo_files(cache, repo: str, fnames) -> int:
+    """Remove exactly `fnames` (relative snapshot paths within `repo`) from
+    the HF cache — used when `_repo_owner_cards(repo)` says more than one
+    catalog card shares `repo` (fix round 1, CQ-1). huggingface_hub's cache
+    scanner has no file-level delete API, only whole-revision
+    (`delete_revisions`), which would remove every OTHER card's cached files
+    from the same shared snapshot too (a reviewer-caught bug: deleting one
+    TTS card freed several GB of other cards' downloads).
+
+    Deletes each matched file's snapshot symlink, and its underlying blob
+    ONLY when no file OUTSIDE `fnames` in the same repo still points at that
+    blob (HF's cache is content-addressed by hash, so a blob is shared only
+    when two files are byte-identical — never true for distinct per-card
+    GGUFs in practice, but checked to be safe rather than assumed). Returns
+    the bytes actually reclaimed (blobs deleted; symlinks are ~0 bytes)."""
+    wanted = set(fnames)
+    repo_info = next((r for r in cache.repos
+                      if r.repo_id == repo and r.repo_type == "model"), None)
+    if repo_info is None:
+        return 0
+    all_files = [f for revision in repo_info.revisions for f in revision.files]
+    matched = [f for f in all_files if f.file_name in wanted]
+    kept_blobs = {f.blob_path for f in all_files if f.file_name not in wanted}
+    freed = 0
+    for f in matched:
+        try:
+            os.remove(f.file_path)
+        except OSError:
+            pass
+        if f.blob_path not in kept_blobs:
+            try:
+                freed += os.path.getsize(f.blob_path)
+                os.remove(f.blob_path)
+            except OSError:
+                pass
+    return freed
+
+
 def delete_model(model_id, repo=None):
-    """Remove a model's cached repos from the HF cache.
+    """Remove a model's cached files from the HF cache.
 
     `repo` overrides the model's default repo with a chosen variant's repo
     (mirrors download_specs / model_status), so deleting an FP8-only HY-MT card
     actually frees the FP8 cache instead of the unused bf16 default.
 
-    Returns the number of bytes freed. Repos are deleted via the hub's cache
-    scanner so we only touch fully-managed revisions; a repo shared with another
-    still-needed model is deleted here too — callers should only delete models
-    the user explicitly removed.
+    Returns the number of bytes freed.
 
-    Upstream-sourced cards (files-shaped specs) are deleted by their upstream
-    repo, same as a repos entry — deleting one such card removes ALL cached
-    files of that upstream repo, including the sibling quant if it was also
-    downloaded (both quants of a card share one upstream GGUF repo). That's
-    acceptable: they're per-card siblings, not shared across different cards.
+    `specs["repos"]` entries (whole-repo cards — today only the unknown-id
+    fallback) are always deleted via the hub's cache scanner's whole-revision
+    delete, so we only touch fully-managed revisions.
+
+    `specs["files"]` entries are deleted per-repo, gated on `_repo_owner_cards`:
+    a repo used by exactly one catalog card (every ASR/translate card, and
+    the common case for TTS before slice 4) is STILL deleted by whole
+    revision — its other cached quants are that same card's siblings, so
+    removing all of them together is the correct "delete this model"
+    behavior. A repo SHARED by more than one card (every TTS card shares
+    audio-cpp/audio.cpp-gguf) is instead pruned file-by-file
+    (`_delete_shared_repo_files`) so deleting one card can never remove
+    another's cached files from the same shared snapshot (fix round 1, CQ-1
+    — this claim used to read "per-card siblings, not shared across
+    different cards", which is no longer true for TTS).
     """
     from huggingface_hub import scan_cache_dir
     specs = download_specs(model_id, repo)
-    wanted = set(specs["repos"]) | {r for r, _fname in specs.get("files", [])}
-    freed = 0
+    wanted_repos = set(specs["repos"])
+    files_by_repo: dict = {}
+    for r, fname in specs.get("files", []):
+        files_by_repo.setdefault(r, []).append(fname)
+
     try:
         cache = scan_cache_dir()
     except Exception:
         cache = None
-    if cache is not None:
+    if cache is None:
+        return 0
+
+    freed = 0
+    for r, fnames in files_by_repo.items():
+        if len(_repo_owner_cards(r)) > 1:
+            freed += _delete_shared_repo_files(cache, r, fnames)
+        else:
+            wanted_repos.add(r)
+
+    if wanted_repos:
         revisions = []
-        for repo in cache.repos:
-            if repo.repo_id in wanted:
-                freed += repo.size_on_disk
-                revisions.extend(rev.commit_hash for rev in repo.revisions)
+        for repo_info in cache.repos:
+            if repo_info.repo_id in wanted_repos:
+                freed += repo_info.size_on_disk
+                revisions.extend(rev.commit_hash for rev in repo_info.revisions)
         if revisions:
             cache.delete_revisions(*revisions).execute()
     return freed
@@ -258,7 +362,19 @@ _PROGRESS_POLL_S = 0.5
 def _incomplete_bytes(repo):
     """Bytes of the repo's in-flight `.incomplete` blobs — hf_hub_download
     streams into `<cache>/models--org--repo/blobs/<etag>.incomplete`, so their
-    combined size IS the current file's downloaded byte count. Best-effort."""
+    combined size IS the current file's downloaded byte count. Best-effort.
+
+    Fix round 1, CQ-3 (reviewer-judged cosmetic, left as-is): for a repo
+    SHARED by multiple cards (every TTS card downloads from
+    audio-cpp/audio.cpp-gguf — see _repo_owner_cards), this sums the
+    `.incomplete` blobs of the WHOLE repo, not just the file this download
+    call is polling for. Two TTS downloads racing against the same repo would
+    each see the other's in-flight bytes bleed into their progress bar for a
+    moment. `.incomplete` files are named by content-etag, not target
+    filename, so there is no cheap way to scope this to one file without an
+    extra HF API round-trip per poll tick; harmless beyond a transient
+    progress-bar glitch (download() still awaits the correct file's own
+    result), so left un-scoped rather than over-engineered."""
     try:
         from huggingface_hub import constants
         d = os.path.join(constants.HF_HUB_CACHE,

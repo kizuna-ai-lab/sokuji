@@ -139,6 +139,111 @@ def test_delete_model_honors_variant_repo(monkeypatch):
     assert seen["repo"] == "tencent/Hy-MT2-7B-FP8"   # the variant repo, not the bf16 default
 
 
+class _StubFile:
+    def __init__(self, file_name, file_path, blob_path):
+        self.file_name = file_name
+        self.file_path = file_path
+        self.blob_path = blob_path
+
+
+class _StubRevision:
+    def __init__(self, files, commit_hash="rev1"):
+        self.files = files
+        self.commit_hash = commit_hash
+
+
+class _StubRepo:
+    def __init__(self, repo_id, revisions, repo_type="model", size_on_disk=0):
+        self.repo_id = repo_id
+        self.repo_type = repo_type
+        self.revisions = revisions
+        self.size_on_disk = size_on_disk
+
+
+def test_delete_model_shared_repo_removes_only_this_cards_files(monkeypatch, tmp_path):
+    """Regression (fix round 1, CQ-1 — reviewer-caught): all 10 TTS cards
+    share the audio-cpp/audio.cpp-gguf repo. Deleting one card must free
+    ONLY its own files (blob + symlink); the old whole-revision delete wiped
+    every OTHER card's cached files too (reviewer probed it: deleting
+    pocket-tts-de freed 5GB of other cards' files)."""
+    from sokuji_sidecar import native_models as nm
+
+    def _blob_and_link(tag, size):
+        blob = tmp_path / f"blob-{tag}"
+        blob.write_bytes(b"x" * size)
+        link = tmp_path / f"link-{tag}"
+        link.symlink_to(blob)
+        return link, blob
+
+    moss_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    super_fname = "Supertonic-3-GGUF/supertonic-3-f16.gguf"
+    qwen_fname = "Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf"
+
+    moss_link, moss_blob = _blob_and_link("moss", 111)
+    super_link, super_blob = _blob_and_link("super", 222)
+    qwen_link, qwen_blob = _blob_and_link("qwen", 333)
+
+    files = [
+        _StubFile(moss_fname, moss_link, moss_blob),
+        _StubFile(super_fname, super_link, super_blob),
+        _StubFile(qwen_fname, qwen_link, qwen_blob),
+    ]
+    repo_info = _StubRepo("audio-cpp/audio.cpp-gguf", [_StubRevision(files)],
+                          size_on_disk=sum(f.stat().st_size for f in (moss_blob, super_blob, qwen_blob)))
+
+    delete_revisions_calls = []
+
+    class _StubCache:
+        repos = [repo_info]
+
+        def delete_revisions(self, *hashes):
+            delete_revisions_calls.append(hashes)
+            class _Bundle:
+                def execute(self_inner):
+                    pass
+            return _Bundle()
+
+    monkeypatch.setattr("huggingface_hub.scan_cache_dir", lambda: _StubCache())
+
+    freed = nm.delete_model("moss-tts-nano")
+
+    assert freed == 111
+    assert not moss_link.exists() and not moss_blob.exists()
+    assert super_link.exists() and super_blob.exists()
+    assert qwen_link.exists() and qwen_blob.exists()
+    assert delete_revisions_calls == []   # whole-revision delete must NEVER fire for a shared repo
+
+
+def test_delete_model_asr_single_card_repo_still_deletes_whole_revision(monkeypatch):
+    """A repo used by exactly one card (every ASR/translate card today, and
+    the pre-slice-4 TTS shape) keeps the old whole-revision delete — CQ-1's
+    file-level path only applies to a repo _repo_owner_cards says is shared
+    by more than one card."""
+    from sokuji_sidecar import native_models as nm
+
+    repo_info = _StubRepo("handy-computer/whisper-base-gguf",
+                          [_StubRevision([], commit_hash="rev1")], size_on_disk=12345)
+
+    executed = []
+
+    class _StubCache:
+        repos = [repo_info]
+
+        def delete_revisions(self, *hashes):
+            assert hashes == ("rev1",)
+            class _Bundle:
+                def execute(self_inner):
+                    executed.append(True)
+            return _Bundle()
+
+    monkeypatch.setattr("huggingface_hub.scan_cache_dir", lambda: _StubCache())
+
+    freed = nm.delete_model("whisper-base")
+
+    assert freed == 12345
+    assert executed == [True]
+
+
 def test_h_model_delete_forwards_repo(monkeypatch):
     """The model_delete handler threads the per-card chosen-variant repo through
     to delete_model (mirrors model_status's repo override)."""
@@ -775,6 +880,29 @@ def test_model_status_tts_ready_when_any_ladder_quant_cached(monkeypatch, tmp_pa
     assert native_models.model_status("moss-tts-nano") == "ready"
     cached.clear()
     assert native_models.model_status("moss-tts-nano") == "absent"
+
+
+def test_model_status_tts_bare_path_also_requires_the_sidecar_file(monkeypatch, tmp_path):
+    """Regression (fix round 1, CQ-2): the ladder's any-rung relaxation only
+    ever checked each quant's PRIMARY gguf file — a card whose extra_files
+    sidecar (pocket-tts-en's embeddings/alba.safetensors) is missing still
+    read 'ready' from a BARE (no repo override) status query as long as one
+    gguf rung was cached. The override path was already correct (its
+    `specs["files"]` already lists the extras) — see
+    test_model_status_tts_repo_override_requires_the_sidecar_file_too."""
+    import huggingface_hub
+
+    cached = {"pocket-tts-english-q8_0.gguf"}   # embeddings/alba.safetensors missing
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname.rsplit("/", 1)[-1] in cached:
+            return str(tmp_path / fname.rsplit("/", 1)[-1])
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+
+    assert native_models.model_status("pocket-tts-en") == "absent"
+    cached.add("alba.safetensors")
+    assert native_models.model_status("pocket-tts-en") == "ready"
 
 
 def test_model_status_tts_repo_override_keeps_specific_quant_semantics(monkeypatch, tmp_path):

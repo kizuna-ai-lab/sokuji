@@ -38,16 +38,28 @@ def _fake_card(family, artifact="acme/repo/pocket_tts-en/model.gguf"):
         family=family, deployments=[types.SimpleNamespace(artifact=artifact)])
 
 
-def test_supertonic_load_free_listing_reads_voice_styles(monkeypatch, tmp_path):
+def test_supertonic_load_free_listing_returns_fixed_names(monkeypatch):
+    # fix round 1 (CQ-4): supertonic's presets are baked into the GGUF, not a
+    # sibling `voice_styles/` directory on the HF repo -- the load-free path
+    # must never touch the snapshot for this family at all.
     card = _fake_card("supertonic", artifact="acme/repo/supertonic/model.gguf")
     monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
-    vdir = tmp_path / "supertonic" / "voice_styles"
-    vdir.mkdir(parents=True)
-    (vdir / "Robert.json").write_text("{}")
-    (vdir / "Sarah.json").write_text("{}")
-    monkeypatch.setattr(tts_voices, "_scoped_snapshot_dir", lambda repo, subdir: tmp_path)
+
+    def _boom(repo, subdir):
+        raise AssertionError("supertonic's load-free path must not touch the snapshot")
+    monkeypatch.setattr(tts_voices, "_scoped_snapshot_dir", _boom)
+
     out = tts_voices.list_builtin_voices("supertonic-3", None)
-    assert out == ["Robert", "Sarah"]
+    assert out == ["F1", "F2", "F3", "F4", "F5", "M1", "M2", "M3", "M4", "M5"]
+
+
+def test_supertonic_load_free_listing_needs_no_deployments(monkeypatch):
+    # The fixed list is returned even for a card with no deployments at all --
+    # unlike pocket_tts, supertonic's load-free path never inspects them.
+    card = types.SimpleNamespace(family="supertonic", deployments=())
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
+    assert tts_voices.list_builtin_voices("supertonic-3", None) == \
+        ["F1", "F2", "F3", "F4", "F5", "M1", "M2", "M3", "M4", "M5"]
 
 
 def test_pocket_load_free_listing_reads_embeddings(monkeypatch, tmp_path):
@@ -84,21 +96,23 @@ def test_families_without_load_free_presets_return_empty(monkeypatch):
 
 
 def test_no_deployments_returns_empty(monkeypatch):
-    card = types.SimpleNamespace(family="supertonic", deployments=())
+    # pocket_tts (unlike supertonic, fix round 1) still needs a real snapshot
+    # lookup, so its own deployments-missing guard still applies.
+    card = types.SimpleNamespace(family="pocket_tts", deployments=())
     monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
-    assert tts_voices.list_builtin_voices("supertonic-3", None) == []
+    assert tts_voices.list_builtin_voices("pocket-tts-en", None) == []
 
 
 def test_snapshot_resolution_failure_returns_empty(monkeypatch):
-    card = _fake_card("supertonic")
+    card = _fake_card("pocket_tts")
     monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
     monkeypatch.setattr(tts_voices, "_scoped_snapshot_dir", lambda repo, subdir: None)
-    assert tts_voices.list_builtin_voices("supertonic-3", None) == []
+    assert tts_voices.list_builtin_voices("pocket-tts-en", None) == []
 
 
 def test_missing_voices_dir_returns_empty(monkeypatch, tmp_path):
-    card = _fake_card("supertonic", artifact="acme/repo/supertonic/model.gguf")
+    card = _fake_card("pocket_tts", artifact="acme/repo/pocket_tts-en/model.gguf")
     monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
     monkeypatch.setattr(tts_voices, "_scoped_snapshot_dir", lambda repo, subdir: tmp_path)
-    # tmp_path/supertonic/voice_styles was never created.
-    assert tts_voices.list_builtin_voices("supertonic-3", None) == []
+    # tmp_path/pocket_tts-en/embeddings was never created.
+    assert tts_voices.list_builtin_voices("pocket-tts-en", None) == []
