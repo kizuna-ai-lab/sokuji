@@ -150,6 +150,31 @@ def test_generate_oneshot_returns_24k_pcm(monkeypatch):
     assert abs(len(np.frombuffer(pcm, np.int16)) - 24000) <= 2  # 16k->24k
 
 
+def test_generate_downmixes_2d_stereo_samples_end_to_end(monkeypatch):
+    """Review round 1, CQ-7: MOSS-shaped backends return real 2-D (frames,
+    channels) samples (native/python/sokuji_native's TtsModel.synth() reshapes
+    to that shape for a multi-channel family) -- the ENGINE, not the backend,
+    must downmix to mono before resampling/quantizing to the wire's Int16@24k
+    contract. Distinct L/R values make a real mean-based downmix provably
+    exercised, not an accidental no-op."""
+    class _FakeStereoOneShot(_FakeOneShot):
+        sample_rate = 24000
+
+        def generate(self, text, speed=1.0):
+            stereo = np.zeros((24000, 2), np.float32)
+            stereo[:, 0] = 1.0
+            stereo[:, 1] = -1.0
+            return stereo, 42
+
+    b = _FakeStereoOneShot(); _patch(monkeypatch, b, "moss-tts-nano")
+    eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
+    pcm, ms = eng.generate("hello")
+    samples = np.frombuffer(pcm, np.int16)
+    assert ms == 42
+    assert abs(len(samples) - 24000) <= 2
+    assert samples.max() == 0 and samples.min() == 0   # mean(1.0, -1.0) == 0.0 exactly
+
+
 def test_set_voice_defaults_ref_text_to_empty_string(monkeypatch):
     b = _FakeStream(); _patch(monkeypatch, b, "moss-tts-nano")
     eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
@@ -217,6 +242,26 @@ def test_generate_stream_honors_client_side_cancel(monkeypatch):
     asyncio.run(eng.generate_stream("hi", 1.0, send, lambda: True, msg_id="m2"))
     chunks = [o for o, _ in sent if o and o.get("type") == "tts_chunk"]
     assert len(chunks) == 0  # cancelled before first emit
+
+
+def test_generate_stream_backend_failure_emits_error_not_done(monkeypatch):
+    """Review round 1, CQ-2: a real backend failure must surface as an "error"
+    push, and must NOT also get a trailing tts_done -- that would misreport a
+    failed request as a (merely short) success."""
+    class _FakeBoomingStream(_FakeStream):
+        def generate_stream(self, text, speed=1.0):
+            yield np.ones(8000, np.float32)
+            raise RuntimeError("decoder blew up")
+
+    b = _FakeBoomingStream(); _patch(monkeypatch, b, "moss-tts-nano")
+    eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
+    sent = []
+    async def send(obj=None, binary=None): sent.append((obj, binary))
+    asyncio.run(eng.generate_stream("hi", 1.0, send, lambda: False, msg_id="m3"))
+    kinds = [o.get("type") for o, _ in sent if o]
+    assert kinds.count("tts_chunk") == 1
+    assert kinds.count("error") == 1
+    assert "tts_done" not in kinds
 
 
 class _FakeConn:
@@ -474,6 +519,20 @@ def test_list_tts_voices_passes_model_and_engine_through(monkeypatch):
     assert seen == {"model": "moss-tts-nano", "engine": eng}
 
 
+def test_handler_list_tts_voices_runs_off_the_event_loop(monkeypatch):
+    # Review round 1, CQ-5: reaches TtsModel.presets(), which takes the same
+    # native mutex a synth() in flight holds -- must not block the event loop.
+    monkeypatch.setattr("sokuji_sidecar.tts_voices.list_builtin_voices",
+                        lambda model=None, engine=None: ["Ava", "Bella"])
+    calls = _spy_executor(monkeypatch)
+    eng = tts_engine.TtsEngine()
+    state = {"tts_engine": eng}; tts_engine.register(state)
+    reply, _ = asyncio.run(state["handlers"]["list_tts_voices"](
+        state, {"id": 1, "type": "list_tts_voices", "model": "moss-tts-nano"}, None, None))
+    assert reply["voices"] == ["Ava", "Bella"]
+    assert len(calls) == 1
+
+
 def test_tts_cancel_sets_flag_and_calls_engine_cancel_active():
     calls = []
     class FakeEng:
@@ -616,6 +675,34 @@ def test_tts_cancel_stops_inflight_stream_end_to_end(monkeypatch):
         assert kinds.count("tts_done") == 1
 
     asyncio.run(run())
+
+
+def test_teardown_cancels_active_generation_before_closing():
+    """Review round 1, CQ-4: _tts_teardown must call eng.cancel_active() BEFORE
+    eng.close(), so an in-flight generation is signalled to stop as early as
+    possible rather than relying solely on close()->backend.unload()'s own
+    (also correct, but later) cancel+join."""
+    order = []
+    class FakeEng:
+        def cancel_active(self): order.append("cancel_active")
+        def close(self): order.append("close")
+    state = {"tts_engine": FakeEng()}
+    class FakeConn:
+        ctx = {}
+    tts_engine._tts_teardown(state, FakeConn())
+    assert order == ["cancel_active", "close"]
+
+
+def test_teardown_close_still_runs_if_cancel_active_raises():
+    order = []
+    class FakeEng:
+        def cancel_active(self): raise RuntimeError("boom")
+        def close(self): order.append("close")
+    state = {"tts_engine": FakeEng()}
+    class FakeConn:
+        ctx = {}
+    tts_engine._tts_teardown(state, FakeConn())   # must not raise
+    assert order == ["close"]
 
 
 def test_conn_close_frees_tts_model():

@@ -167,20 +167,27 @@ class TtsEngine:
         t0 = time.time()
         seq = 0
         total = 0
+        errored = False
         while True:
             kind, payload = await loop.run_in_executor(None, q.get)
             if kind is SENTINEL:
                 break
             if kind == "error":
                 await send({"type": "error", "id": msg_id, "message": payload})
+                errored = True
                 break
             pcm = _to_int16_24k_mono(payload, self._native_sr)
             total += len(pcm) // 2
             await send({"type": "tts_chunk", "id": msg_id, "seq": seq}, binary=pcm)
             seq += 1
         await fut
-        await send({"type": "tts_done", "id": msg_id, "totalSamples": total,
-                    "generationTimeMs": int((time.time() - t0) * 1000)})
+        # A genuine failure already got its own "error" push (review round 1,
+        # CQ-2) -- a tts_done on top of that would misreport the failed request
+        # as a (merely short) success. should_cancel()-driven early stops are
+        # NOT an error and still report tts_done as before.
+        if not errored:
+            await send({"type": "tts_done", "id": msg_id, "totalSamples": total,
+                        "generationTimeMs": int((time.time() - t0) * 1000)})
 
     def close(self):
         from . import accel
@@ -206,6 +213,15 @@ def _tts_teardown(state, conn):
         task.cancel()
     eng = state.get("tts_engine")
     if eng is not None:
+        # Cancel the backend's own in-flight generation BEFORE closing the
+        # engine (review round 1, CQ-4): close() -> backend.unload() cancels and
+        # joins the streaming worker itself, but reaching into cancel_active()
+        # first signals it to stop as early as possible rather than relying on
+        # unload()'s own (also correct, but later) cancel+join.
+        try:
+            eng.cancel_active()
+        except Exception:
+            pass
         try:
             eng.close()
         except Exception:
@@ -329,7 +345,14 @@ async def _h_tts_cancel(state, msg, _b, conn=None):
 
 async def _h_list_tts_voices(state, msg, _b, conn=None):
     from . import tts_voices
-    voices = tts_voices.list_builtin_voices(msg.get("model"), state.get("tts_engine"))
+    loop = asyncio.get_running_loop()
+    # Off the event loop (review round 1, CQ-5): when the requested model is the
+    # one currently loaded, this reaches TtsModel.presets(), which takes the
+    # same per-handle native mutex a synth() in flight holds -- blocking here
+    # would stall this connection's ASR/translate traffic exactly like the
+    # other one-shot calls defect 1 already fixed.
+    voices = await loop.run_in_executor(
+        None, lambda: tts_voices.list_builtin_voices(msg.get("model"), state.get("tts_engine")))
     return {"type": "list_tts_voices_result", "id": msg.get("id"), "voices": voices}, None
 
 

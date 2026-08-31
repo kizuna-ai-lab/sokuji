@@ -25,7 +25,30 @@ that queue. cancel() sets a threading.Event the callback checks before queuing e
 chunk — that closes the loop all the way to the native session (sk_tts_synth's
 on_audio returning false between chunks cancels there, per sk_tts.cpp), which is what
 makes a superseding tts_generate or an explicit tts_cancel actually stop generation
-instead of merely detaching the old asyncio Task (tts_engine.py defect 2)."""
+instead of merely detaching the old asyncio Task (tts_engine.py defect 2).
+
+generate_stream() itself is a PLAIN function, not a generator: it creates the queue,
+the cancel Event, and the worker thread -- and assigns self._cancel_event/
+self._worker_thread -- EAGERLY, before returning, then hands back a small inner
+generator that only drains the queue. If generate_stream() were itself the generator
+(the `yield` inside its own body), none of that setup would run until the caller's
+first next()/iteration -- a cancel() called in the window between create_task() and
+the first poll would target whatever self._cancel_event happened to hold from a
+PRIOR stream (or None) and be silently lost (review round 1, CQ-6).
+
+A real (non-cancelled) synth() failure is re-raised out of the drain generator, not
+swallowed -- tts_engine's own `for chunk in generate_stream(...)` loop already wraps
+that iteration in a try/except that turns any raised exception into an "error" push
+on the wire; swallowing it here would instead surface as a truncated stream ending in
+a normal tts_done (review round 1, CQ-2). A cancelled synth's own exception (raised
+because on_chunk returned False) IS still swallowed -- that is our own cancellation
+taking effect, not a failure.
+
+The drain generator wraps its loop in try/finally: cancelled.set(), so a consumer
+that abandons it early (break, .close(), garbage collection) raises GeneratorExit at
+the suspended yield, which the finally block turns into the same cancellation any
+other stop takes -- otherwise the worker thread and its native synth() call would run
+to completion unobserved (review round 1, CQ-3)."""
 import queue
 import threading
 import time
@@ -54,6 +77,7 @@ class NativeTtsBackend:
         self._model = None
         self._language = None
         self._cancel_event = None
+        self._worker_thread = None
 
     def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self.unload()
@@ -102,30 +126,51 @@ class NativeTtsBackend:
             raise BackendLoadError("native_tts not loaded")
         q: "queue.Queue" = queue.Queue()
         cancelled = threading.Event()
+        # Bind BEFORE starting the thread and BEFORE returning to the caller: a
+        # cancel() arriving before the first pull must still land on THIS stream's
+        # event, not be dropped (see the module docstring, CQ-6).
         self._cancel_event = cancelled
 
         def on_chunk(pcm, _sr):
-            q.put(np.asarray(pcm, dtype=np.float32))
+            q.put(("chunk", np.asarray(pcm, dtype=np.float32)))
             return not cancelled.is_set()
 
         def worker():
             try:
                 self._model.synth(text, language=self._language, speed=speed, on_chunk=on_chunk)
-            except Exception:
-                # A cancelled synth raises NativeError(CANCELLED) from the binding
-                # (on_chunk returned False) — not a failure the caller needs to
-                # see; tts_engine's should_cancel already decided to stop, and the
-                # sentinel below ends the generator either way.
-                pass
+            except Exception as exc:
+                if not cancelled.is_set():
+                    # A REAL failure, not our own cancellation: must reach the
+                    # caller as a raised exception (see the drain generator
+                    # below), not vanish into a silently-truncated stream.
+                    q.put(("error", exc))
+                # else: a cancelled synth raises NativeError(CANCELLED) from the
+                # binding (on_chunk returned False) -- that IS this cancellation
+                # taking effect, not a failure; swallow it.
             finally:
                 q.put(_SENTINEL)
 
-        threading.Thread(target=worker, daemon=True).start()
-        while True:
-            item = q.get()
-            if item is _SENTINEL:
-                break
-            yield item
+        thread = threading.Thread(target=worker, daemon=True)
+        self._worker_thread = thread
+        thread.start()
+
+        def _drain():
+            try:
+                while True:
+                    item = q.get()
+                    if item is _SENTINEL:
+                        break
+                    kind, payload = item
+                    if kind == "error":
+                        raise payload
+                    yield payload
+            finally:
+                # Covers a consumer abandoning the stream early (break, .close(),
+                # GC) as well as normal/error completion: either way, nothing
+                # after this point should keep the native session running.
+                cancelled.set()
+
+        return _drain()
 
     def cancel(self) -> None:
         """Stop the in-flight generate_stream() at its next chunk boundary — the
@@ -159,8 +204,24 @@ class NativeTtsBackend:
         return self._model.presets()
 
     def unload(self) -> None:
-        model, self._model = self._model, None
+        # Cancel and JOIN the streaming worker BEFORE touching the model at all:
+        # sk_tts_unload takes the same per-handle mutex a synth() in flight is
+        # holding, so unloading first would either block this call on that mutex
+        # (an event-loop stall when unload runs on a connection teardown) or --
+        # worse -- free the handle out from under the worker thread's still-live
+        # `self._model.synth(...)` call (use-after-free). Cancel signals the
+        # worker to stop between chunks; join waits for it to actually have
+        # stopped, bounded so a wedged native call can't hang teardown forever
+        # (review round 1, CQ-4).
+        ev = self._cancel_event
+        if ev is not None:
+            ev.set()
+        thread = self._worker_thread
+        if thread is not None:
+            thread.join(timeout=10.0)
         self._cancel_event = None
+        self._worker_thread = None
+        model, self._model = self._model, None
         if model is not None:
             try:
                 model.unload()

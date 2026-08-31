@@ -44,3 +44,11 @@ TARGET_RATE = 16000
 from . import asr_backend  # noqa: E402,F401
 from . import translate_backend  # noqa: E402,F401
 from . import tts_backend  # noqa: E402,F401
+# The nine ONNX/sherpa/MLX TTS backends (sherpa_tts, moss_onnx, supertonic,
+# qwen3tts_onnx, cosyvoice3_onnx, omnivoice_onnx, gpt_sovits_onnx, pocket_onnx,
+# mlx_audio_tts) still back every TTS catalog row until Task 5 rewires the
+# catalog onto native_tts — this import (moved here from tts_engine.py's old
+# top-level `from . import tts_backends`) is what registers them for
+# make_backend(); without it every tts_init fails AllPlansFailed. Deleted in
+# Task 5 with the module.
+from . import tts_backends  # noqa: E402,F401
