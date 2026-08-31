@@ -857,12 +857,9 @@ def test_asr_init_offline_path_unchanged():
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
-                    reason="set SOKUJI_RUN_GPU=1 (uses cached Voxtral-Mini-4B-Realtime; needs CUDA)")
+                    reason="set SOKUJI_RUN_GPU=1 (uses cached Voxtral-Mini-4B-Realtime; needs a GPU lane)")
 def test_streaming_end_to_end_real_gpu():
     import wave, asyncio, glob
-    from huggingface_hub import snapshot_download
-    snapshot_download("mistralai/Voxtral-Mini-4B-Realtime-2602",
-                      ignore_patterns=["consolidated.safetensors", "*.gitattributes"])
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     wav = os.path.join(root, "benchmark", "test-speech-silence-speech.wav")
     if not os.path.exists(wav):
@@ -872,7 +869,7 @@ def test_streaming_end_to_end_real_gpu():
     sr = w.getframerate()
     pcm = w.readframes(w.getnframes())
     eng = AsrEngine()
-    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", sample_rate=sr, device="cuda")
+    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", sample_rate=sr, device="auto")
     opens = {"n": 0}
     _orig = eng._backend.open_stream
     eng._backend.open_stream = lambda language=None: (opens.__setitem__("n", opens["n"] + 1) or _orig(language))
