@@ -13,10 +13,6 @@ on:
   workflow_dispatch:
   push:
     tags: ['native-v*']
-    # Temporary while the workflow only exists on this branch: workflow_dispatch cannot
-    # target a workflow file absent from the default branch, so branch pushes are the dry run.
-    # Remove before merging to main.
-    branches: ['refactor/sidecar-ggml-only-slice2']
 
 env:
   VULKAN_SDK_VERSION: 1.4.321.1
