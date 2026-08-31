@@ -1305,6 +1305,39 @@
       scrollbar-width: thin;
     }
 
+    // Group headers ("Presets" / "My Voices" in the voice dropdown). The UA
+    // paints an <optgroup>'s `label` attribute in BLACK — 1.4:1 against the
+    // $bg-surface picker, so it reads as a missing header — and gives it no
+    // box we can align, leaving it a few px left of the option text. The
+    // customizable-select spec's stylable replacement is a <legend> child,
+    // which Chromium renders INSTEAD of the attribute; VoiceLibrarySection
+    // emits one behind supportsBaseSelect().
+    //
+    // The optgroup rules still land on a group carrying only the attribute,
+    // which keeps it legible. They must stay VERTICAL-only, though: options
+    // are the optgroup's children, so horizontal padding here would indent
+    // them too. The label's own inset belongs on the legend.
+    optgroup {
+      padding: 10px 0 4px;
+      font-size: vars.$font-caption;
+      font-weight: vars.$weight-semibold;
+      color: vars.$text-muted;
+
+      // The first group opens the picker, where the picker's own 4px padding
+      // is already the separation a later group needs 10px to get.
+      &:first-of-type {
+        padding-top: 4px;
+      }
+
+      legend {
+        display: block;
+        margin: 0;
+        // Matches the option's horizontal padding so the header and the names
+        // under it share one left edge.
+        padding: 0 10px;
+      }
+    }
+
     option {
       display: flex;
       align-items: center;
