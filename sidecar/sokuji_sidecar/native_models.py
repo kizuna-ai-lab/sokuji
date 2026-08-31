@@ -269,6 +269,16 @@ def _delete_shared_repo_files(cache, repo: str, fnames) -> int:
     from the same shared snapshot too (a reviewer-caught bug: deleting one
     TTS card freed several GB of other cards' downloads).
 
+    Matching is done on each file's path RELATIVE TO ITS OWN REVISION'S
+    SNAPSHOT ROOT (`CachedRevisionInfo.snapshot_path`) — fix round 2:
+    `CachedFileInfo.file_name` is the BASENAME only (huggingface_hub's own
+    `_scan_cached_repo` sets it to `file_path.name`), never the dir-prefixed
+    relative path (e.g. "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-
+    q8_0.gguf") our `fnames`/`wanted` hold — round 1 matched on `file_name`,
+    which is NEVER equal to a dir-prefixed `fnames` entry, so `matched` was
+    always empty and this function was a silent, total no-op in production
+    (verified via the library source and a live repro).
+
     Deletes each matched file's snapshot symlink, and its underlying blob
     ONLY when no file OUTSIDE `fnames` in the same repo still points at that
     blob (HF's cache is content-addressed by hash, so a blob is shared only
@@ -280,9 +290,14 @@ def _delete_shared_repo_files(cache, repo: str, fnames) -> int:
                       if r.repo_id == repo and r.repo_type == "model"), None)
     if repo_info is None:
         return 0
-    all_files = [f for revision in repo_info.revisions for f in revision.files]
-    matched = [f for f in all_files if f.file_name in wanted]
-    kept_blobs = {f.blob_path for f in all_files if f.file_name not in wanted}
+    # (relative_path, CachedFileInfo) pairs across every revision of the repo.
+    all_pairs = [
+        (f.file_path.relative_to(revision.snapshot_path).as_posix(), f)
+        for revision in repo_info.revisions
+        for f in revision.files
+    ]
+    matched = [f for rel, f in all_pairs if rel in wanted]
+    kept_blobs = {f.blob_path for rel, f in all_pairs if rel not in wanted}
     freed = 0
     for f in matched:
         try:

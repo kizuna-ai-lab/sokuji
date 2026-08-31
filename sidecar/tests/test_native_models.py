@@ -139,13 +139,6 @@ def test_delete_model_honors_variant_repo(monkeypatch):
     assert seen["repo"] == "tencent/Hy-MT2-7B-FP8"   # the variant repo, not the bf16 default
 
 
-class _StubFile:
-    def __init__(self, file_name, file_path, blob_path):
-        self.file_name = file_name
-        self.file_path = file_path
-        self.blob_path = blob_path
-
-
 class _StubRevision:
     def __init__(self, files, commit_hash="rev1"):
         self.files = files
@@ -160,50 +153,69 @@ class _StubRepo:
         self.size_on_disk = size_on_disk
 
 
-def test_delete_model_shared_repo_removes_only_this_cards_files(monkeypatch, tmp_path):
-    """Regression (fix round 1, CQ-1 — reviewer-caught): all 10 TTS cards
-    share the audio-cpp/audio.cpp-gguf repo. Deleting one card must free
-    ONLY its own files (blob + symlink); the old whole-revision delete wiped
-    every OTHER card's cached files too (reviewer probed it: deleting
-    pocket-tts-de freed 5GB of other cards' files)."""
-    from sokuji_sidecar import native_models as nm
+def _real_hf_cache_repo(tmp_path, repo_id, commit_hash="rev1"):
+    """Build a REAL on-disk HF cache layout for one repo — blobs/ +
+    snapshots/<rev>/ + refs/main — and return (blobs_dir, snapshot_dir) so a
+    test can add files with plain Path/symlink calls. `tmp_path` itself is
+    the cache ROOT (multiple repos can share it); point
+    huggingface_hub.utils._cache_manager.HF_HUB_CACHE at `tmp_path` to make
+    the PUBLIC, un-mocked `scan_cache_dir()` (called with no args by
+    delete_model) scan this fixture — the only way to exercise the real
+    `CachedFileInfo`/`CachedRevisionInfo` shapes `_delete_shared_repo_files`
+    actually receives in production (fix round 2: a hand-built stub cannot
+    catch a bug in what shape those objects really have — see
+    test_delete_model_shared_repo_removes_only_this_cards_files)."""
+    repo_dir = tmp_path / f"models--{repo_id.replace('/', '--')}"
+    blobs_dir = repo_dir / "blobs"
+    snap_dir = repo_dir / "snapshots" / commit_hash
+    refs_dir = repo_dir / "refs"
+    blobs_dir.mkdir(parents=True)
+    snap_dir.mkdir(parents=True)
+    refs_dir.mkdir(parents=True)
+    (refs_dir / "main").write_text(commit_hash)
+    return blobs_dir, snap_dir
 
-    def _blob_and_link(tag, size):
-        blob = tmp_path / f"blob-{tag}"
-        blob.write_bytes(b"x" * size)
-        link = tmp_path / f"link-{tag}"
-        link.symlink_to(blob)
-        return link, blob
+
+def test_delete_model_shared_repo_removes_only_this_cards_files(monkeypatch, tmp_path):
+    """Regression (fix round 2 — re-reviewer verified via the library source
+    AND a live repro): `CachedFileInfo.file_name` is the BASENAME only
+    (huggingface_hub's own `_scan_cached_repo` sets it to `file_path.name`),
+    never the dir-prefixed relative path (e.g. "MOSS-TTS-Nano-100M-GGUF/
+    moss-tts-nano-100m-q8_0.gguf") our `wanted` set holds — fix round 1's
+    file_name-based matching was therefore ALWAYS empty in production,
+    making delete_model() on every TTS card a silent no-op (freed=0, nothing
+    removed; reviewer's original probe — deleting pocket-tts-de freed 5GB of
+    OTHER cards' files — was actually a symptom of the round-0 bug never
+    even engaging the fix). Round 1's regression test only passed because
+    its hand-built `_StubFile` fabricated `file_name` as the full relative
+    path, a cache shape that does not exist in the real library.
+
+    This test instead builds a REAL on-disk HF cache (blobs/ + snapshots/
+    <rev>/<dir>/<file> symlinks + refs/main) for 3 TTS cards sharing one
+    repo, points `HF_HUB_CACHE` at it, and drives the PUBLIC, un-mocked
+    `huggingface_hub.scan_cache_dir()` through `delete_model()` — the only
+    way to actually catch what `CachedFileInfo.file_name` contains."""
+    from sokuji_sidecar import native_models as nm
 
     moss_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
     super_fname = "Supertonic-3-GGUF/supertonic-3-f16.gguf"
     qwen_fname = "Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf"
 
-    moss_link, moss_blob = _blob_and_link("moss", 111)
-    super_link, super_blob = _blob_and_link("super", 222)
-    qwen_link, qwen_blob = _blob_and_link("qwen", 333)
+    blobs_dir, snap_dir = _real_hf_cache_repo(tmp_path, "audio-cpp/audio.cpp-gguf")
 
-    files = [
-        _StubFile(moss_fname, moss_link, moss_blob),
-        _StubFile(super_fname, super_link, super_blob),
-        _StubFile(qwen_fname, qwen_link, qwen_blob),
-    ]
-    repo_info = _StubRepo("audio-cpp/audio.cpp-gguf", [_StubRevision(files)],
-                          size_on_disk=sum(f.stat().st_size for f in (moss_blob, super_blob, qwen_blob)))
+    def _add(rel_path, blob_name, size):
+        blob = blobs_dir / blob_name
+        blob.write_bytes(b"x" * size)
+        link = snap_dir / rel_path
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(blob)
+        return link, blob
 
-    delete_revisions_calls = []
+    moss_link, moss_blob = _add(moss_fname, "blob-moss", 111)
+    super_link, super_blob = _add(super_fname, "blob-super", 222)
+    qwen_link, qwen_blob = _add(qwen_fname, "blob-qwen", 333)
 
-    class _StubCache:
-        repos = [repo_info]
-
-        def delete_revisions(self, *hashes):
-            delete_revisions_calls.append(hashes)
-            class _Bundle:
-                def execute(self_inner):
-                    pass
-            return _Bundle()
-
-    monkeypatch.setattr("huggingface_hub.scan_cache_dir", lambda: _StubCache())
+    monkeypatch.setattr("huggingface_hub.utils._cache_manager.HF_HUB_CACHE", str(tmp_path))
 
     freed = nm.delete_model("moss-tts-nano")
 
@@ -211,14 +223,48 @@ def test_delete_model_shared_repo_removes_only_this_cards_files(monkeypatch, tmp
     assert not moss_link.exists() and not moss_blob.exists()
     assert super_link.exists() and super_blob.exists()
     assert qwen_link.exists() and qwen_blob.exists()
-    assert delete_revisions_calls == []   # whole-revision delete must NEVER fire for a shared repo
+
+
+def test_delete_model_shared_repo_keeps_a_blob_still_referenced_elsewhere(monkeypatch, tmp_path):
+    """Edge case (fix round 2): two cards' files symlinked to the SAME blob
+    (HF's cache is content-addressed — this only happens for byte-identical
+    content, never true for distinct per-card GGUFs in practice, but the
+    kept-blob refcount guard must still hold). Deleting one card removes
+    only its own symlink; the shared blob survives because the other card's
+    file still points at it, and freed bytes must NOT count it."""
+    from sokuji_sidecar import native_models as nm
+
+    moss_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    super_fname = "Supertonic-3-GGUF/supertonic-3-f16.gguf"
+
+    blobs_dir, snap_dir = _real_hf_cache_repo(tmp_path, "audio-cpp/audio.cpp-gguf")
+    shared_blob = blobs_dir / "blob-shared"
+    shared_blob.write_bytes(b"x" * 555)
+
+    moss_link = snap_dir / moss_fname
+    moss_link.parent.mkdir(parents=True, exist_ok=True)
+    moss_link.symlink_to(shared_blob)
+
+    super_link = snap_dir / super_fname
+    super_link.parent.mkdir(parents=True, exist_ok=True)
+    super_link.symlink_to(shared_blob)
+
+    monkeypatch.setattr("huggingface_hub.utils._cache_manager.HF_HUB_CACHE", str(tmp_path))
+
+    freed = nm.delete_model("moss-tts-nano")
+
+    assert freed == 0                # the blob is still referenced by supertonic-3's file
+    assert not moss_link.exists()    # moss's own symlink IS removed
+    assert super_link.exists()       # supertonic's symlink survives
+    assert shared_blob.exists()      # ... and so does the shared blob
 
 
 def test_delete_model_asr_single_card_repo_still_deletes_whole_revision(monkeypatch):
     """A repo used by exactly one card (every ASR/translate card today, and
     the pre-slice-4 TTS shape) keeps the old whole-revision delete — CQ-1's
     file-level path only applies to a repo _repo_owner_cards says is shared
-    by more than one card."""
+    by more than one card. This path never depended on the file_name-vs-
+    relative-path shape (round 2's fix), so a stub is fine here."""
     from sokuji_sidecar import native_models as nm
 
     repo_info = _StubRepo("handy-computer/whisper-base-gguf",
