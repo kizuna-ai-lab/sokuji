@@ -186,76 +186,77 @@ def test_fun_asr_mlt_nano_row():
     assert {d.compute_type for d in m.deployments} == {"q6_k", "f16", "q8_0", "q5_k_m", "q4_k_m"}
 
 
-def test_tts_models_have_deployments_languages_and_repos():
-    assert catalog.tts_models(), "no tts models"
+TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.7b",
+                "omnivoice-0.6b", "pocket-tts-en", "pocket-tts-de", "pocket-tts-es",
+                "pocket-tts-it", "pocket-tts-pt")
+
+
+def test_tts_models_are_the_ten_native_tts_cards():
+    # 68 rows -> 10, slice 4 (spec §5.4 corrected 2026-08-31): every ONNX/
+    # sherpa/MLX backend and its cards died with the ONNX/sherpa/MLX stacks.
+    ids = [m.id for m in catalog.tts_models()]
+    assert set(ids) == set(TTS_CARD_IDS)
+    assert len(ids) == len(set(ids)) == 10
+
+
+def test_tts_models_have_deployments_languages_and_family():
     for m in catalog.tts_models():
         assert m.deployments, f"{m.id} has no deployments"
         assert m.languages, f"{m.id} has no languages"
-        assert m.repos, f"{m.id} has no download repos"
+        assert m.family, f"{m.id} has no family"
         for d in m.deployments:
-            assert d.backend in {"sherpa_tts", "moss_onnx", "supertonic",
-                                 "qwen3tts_onnx", "mlx_audio_tts",
-                                 "gpt_sovits_onnx", "pocket_onnx", "cosyvoice3_onnx",
-                                 "omnivoice_onnx"}
+            assert d.backend == "native_tts"
+            assert d.tier in {"gpu-metal", "gpu-vulkan", "cpu"}
 
 
-# The realtime bar decides which tiers exist (issue #323): CosyVoice3's CPU
-# RTF ~3.5 is unusable, so it is the first deliberately GPU-only TTS card.
-# OmniVoice (issue #351) is GPU-only for the same reason (fp16/int4 backbone
-# tuned for CUDA; no cpu deployment row is shipped).
-GPU_ONLY_TTS_IDS = {"cosyvoice3-0.5b", "omnivoice-0.6b"}
+def test_tts_artifacts_are_audiocpp_gguf_files():
+    for m in catalog.tts_models():
+        for d in m.deployments:
+            assert d.artifact.startswith("audio-cpp/audio.cpp-gguf/"), (m.id, d.artifact)
+            assert d.artifact.endswith(".gguf"), (m.id, d.artifact)
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
+    # Every card ships the uniform gpu-metal/gpu-vulkan/cpu tier set (slice 4
+    # — no more GPU-only ONNX cards): a cpu floor always exists.
     ids = [m.id for m in catalog.tts_models()]
     assert len(ids) == len(set(ids)), "duplicate tts model ids"
     for m in catalog.tts_models():
-        if m.id in GPU_ONLY_TTS_IDS:
-            assert all(d.tier != "cpu" for d in m.deployments), \
-                f"{m.id} is declared GPU-only but ships a cpu row"
-            continue
         assert any(d.tier == "cpu" for d in m.deployments), f"{m.id} has no cpu floor"
 
 
-def test_cosyvoice3_card_shape():
-    m = catalog.tts_model("cosyvoice3-0.5b")
-    assert m is not None
-    assert m.clones and m.named_voices and m.transcript_required
-    assert not m.streaming
-    assert m.sample_rate == 24000 and m.num_speakers == 1
-    assert set(m.languages) == {"zh", "en", "ja", "ko", "de", "es", "fr", "it", "ru"}
-    tiers = {d.tier for d in m.deployments}
-    assert tiers == {"gpu-cuda"}
-    assert all(d.backend == "cosyvoice3_onnx" for d in m.deployments)
-    assert m.size_bytes > 3_000_000_000
+def test_tts_quant_ladder_shape():
+    # Every card follows _llm_translate_row's two-rung shape: the default
+    # quant is rank 2.0, any alt is rank 1.0, and EVERY quant carries the
+    # SAME three tiers (unlike the old catalog's per-precision/per-platform
+    # row variation).
+    for m in catalog.tts_models():
+        by_ct = {}
+        for d in m.deployments:
+            by_ct.setdefault(d.compute_type, set()).add(d.tier)
+        for ct, tiers in by_ct.items():
+            assert tiers == {"gpu-metal", "gpu-vulkan", "cpu"}, (m.id, ct)
+        ranks = {d.compute_type: d.rank for d in m.deployments}
+        assert sorted(ranks.values(), reverse=True)[0] == 2.0, m.id
+        assert set(ranks.values()) <= {1.0, 2.0}, m.id
 
 
 def test_omnivoice_card_shape():
     m = catalog.tts_model("omnivoice-0.6b")
     assert m is not None
+    assert m.family == "omnivoice"
     assert m.languages == ("multi",)
     assert m.clones
-    assert m.transcript_required is False
-    assert m.named_voices is True  # curated presets (voices/manifest.json) — issue #351 follow-up
-    assert not m.streaming
-    assert m.sample_rate == 24000 and m.num_speakers == 1
-    tiers = {d.tier for d in m.deployments}
-    assert tiers == {"gpu-cuda"}
-    assert all(d.backend == "omnivoice_onnx" for d in m.deployments)
-    # Three llm precisions, each in its OWN self-contained repo; bf16 default.
-    cts = [d.compute_type for d in m.deployments]
-    assert set(cts) == {"bf16", "fp32", "int4"}
-    assert "fp16" not in cts  # naive fp16 is CUDA-broken (RMSNorm x^2 overflow) — intentionally absent
-    assert max(m.deployments, key=lambda d: d.rank).compute_type == "bf16"
-    # distinct per-variant repos → only the chosen variant downloads
-    arts = [d.artifact for d in m.deployments]
-    assert len(set(arts)) == 3
-    assert all(a.startswith("jiangzhuo9357/omnivoice-onnx-bidi-") for a in arts)
-    by_ct = {d.compute_type: d for d in m.deployments}
-    assert by_ct["bf16"].artifact == m.repos[0]  # default repo = bf16 variant
-    assert (by_ct["bf16"].est_bytes, by_ct["fp32"].est_bytes, by_ct["int4"].est_bytes) == \
-        (1_995_363_769, 3_207_687_266, 1_352_217_204)
-    assert m.size_bytes == 1_995_363_769  # default (bf16) variant download
+    assert m.transcript_required is True   # the ONLY family whose ref_text is mandatory
+    assert m.named_voices is False         # no discoverable presets
+    assert m.streaming is True             # omnivoice + supertonic are the streaming families (R5)
+    assert m.sample_rate == 24000
+    cts = {d.compute_type for d in m.deployments}
+    assert cts == {"q8_0", "bf16"}
+    default = next(d for d in m.deployments if d.rank == 2.0)
+    assert default.compute_type == "q8_0"
+    assert default.artifact == "audio-cpp/audio.cpp-gguf/OmniVoice-GGUF/omnivoice-q8_0.gguf"
+    assert m.size_bytes == 1_350_288_416
 
 
 def test_omnivoice_license():
@@ -268,26 +269,32 @@ def test_omnivoice_license():
     assert lic is not None
     assert lic.spdx == "CC-BY-NC-4.0"
     assert lic.non_commercial is True
-    assert lic.source_repo == "jiangzhuo9357/omnivoice-onnx-bidi-bf16"
+    assert lic.source_repo == "audio-cpp/audio.cpp-gguf"
     assert lic.attribution == "k2-fsa/OmniVoice"
     assert catalog.license_dict(m) == {
         "spdx": "CC-BY-NC-4.0",
         "name": "Creative Commons Attribution-NonCommercial 4.0 International",
         "url": "https://creativecommons.org/licenses/by-nc/4.0/",
         "nonCommercial": True,
-        "sourceRepo": "jiangzhuo9357/omnivoice-onnx-bidi-bf16",
+        "sourceRepo": "audio-cpp/audio.cpp-gguf",
         "attribution": "k2-fsa/OmniVoice",
     }
     # Every other card has no license — license_dict is a plain pass-through
     # None, not a default-constructed License.
-    assert catalog.tts_model("cosyvoice3-0.5b").license is None
-    assert catalog.license_dict(catalog.tts_model("cosyvoice3-0.5b")) is None
+    assert catalog.tts_model("moss-tts-nano").license is None
+    assert catalog.license_dict(catalog.tts_model("moss-tts-nano")) is None
 
 
-def test_tts_moss_nano_is_streaming_cloning():
+def test_tts_moss_nano_is_offline_cloning():
+    # R5: MOSS loses streaming (audio.cpp's moss_tts_nano is offline-only) —
+    # a real behaviour change from the old ONNX backend's streaming support.
     m = catalog.tts_model("moss-tts-nano")
-    assert m is not None and m.streaming and m.clones
-    assert len(m.repos) == 2  # LM ONNX + audio-tokenizer ONNX
+    assert m is not None
+    assert m.family == "moss_tts_nano"
+    assert m.streaming is False and m.clones is True
+    assert m.named_voices is False   # sk_tts_presets() == [] for moss (Task 2's own CTest)
+    assert m.recommended is True     # stays per spec — the MOSS product question is out of scope here
+    assert m.sample_rate == 48000
 
 
 def test_tts_model_unknown_returns_none():
@@ -298,19 +305,11 @@ def test_resolve_tts_card_static_id_returns_catalog_row():
     assert catalog.resolve_tts_card("moss-tts-nano") is catalog.tts_model("moss-tts-nano")
 
 
-def test_resolve_tts_card_uncatalogued_sherpa_id_synthesises_card():
-    mid = "csukuangfj/vits-piper-xx-yy"
-    m = catalog.resolve_tts_card(mid)
-    assert m is not None
-    assert m.id == mid
-    assert m.name == mid
-    assert m.languages == ("multi",)
-    assert m.deployments == (catalog.Deployment("sherpa_tts", "cpu", "fp32", mid, 1.0),)
-    assert m.repos == (mid,)
-    assert m.sample_rate == 16000
-
-
-def test_resolve_tts_card_unknown_non_sherpa_id_returns_none():
+def test_resolve_tts_card_unknown_id_returns_none():
+    # The sherpa-onnx ad-hoc community-voice synthesis (piper/vits/matcha/
+    # kokoro/icefall) died with sherpa_tts.py (slice 4) — every unknown id,
+    # "piper"-flavored or not, is now just None.
+    assert catalog.resolve_tts_card("csukuangfj/vits-piper-xx-yy") is None
     assert catalog.resolve_tts_card("totally-unknown-xyz") is None
 
 
@@ -343,10 +342,10 @@ def test_llm_vulkan_tier_ranks_above_cpu():
     # longer exists as a deployment row at all (R2).
     from sokuji_sidecar import accel
     m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                      apple_silicon=False, dml_adapters=(),
+                      apple_silicon=False,
                       installed=frozenset({"native_translate"}),
                       fingerprint="t", tc_kinds=("cpu", "vulkan"),
-                      gpus=(("cuda", "NVIDIA x", 12288),))
+                      gpus=(("vulkan", "NVIDIA x", 12288),))
     plans = accel.resolve_deployments(catalog.translate_model("translategemma-4b"), m)
     seen = []
     for p in plans:
@@ -414,20 +413,26 @@ def test_translate_row_count_and_no_opus():
     assert catalog.translate_model("opus-mt-ja-en") is None
 
 
-def test_tts_models_use_repo_path_ids_and_have_num_speakers():
-    tts = {m.id: m for m in catalog.tts_models()}
-    # MOSS keeps its short id; piper models are keyed by their HF repo path.
-    assert "moss-tts-nano" in tts
-    assert "csukuangfj/vits-piper-en_US-amy-low" in tts
-    assert "csukuangfj/vits-piper-de_DE-thorsten-low" in tts
-    # Every TTS model carries num_speakers >= 1, and a piper id IS its repo.
-    for m in catalog.tts_models():
-        assert m.num_speakers >= 1, f"{m.id} num_speakers"
-    amy = tts["csukuangfj/vits-piper-en_US-amy-low"]
-    assert amy.repos == ("csukuangfj/vits-piper-en_US-amy-low",)
-    assert amy.num_speakers == 1
-    # A multi-speaker model exposes a range.
-    assert tts["csukuangfj/vits-piper-en_US-libritts_r-medium"].num_speakers > 1
+def test_tts_pocket_cards_have_load_language_and_only_english_has_presets():
+    # R9: model_specs/pocket_tts.json's OWN package list only wires the
+    # "alba" preset into the english package — german/italian/portuguese/
+    # spanish are clone-only BY DESIGN, even though the audio-cpp/
+    # audio.cpp-gguf mirror happens to also host (verified different, not
+    # copy-pasted) embeddings under those language directories too.
+    langs = {"pocket-tts-en": "english", "pocket-tts-de": "german",
+             "pocket-tts-es": "spanish", "pocket-tts-it": "italian",
+             "pocket-tts-pt": "portuguese"}
+    for mid, load_language in langs.items():
+        m = catalog.tts_model(mid)
+        assert m is not None and m.family == "pocket_tts"
+        assert m.load_language == load_language
+        assert m.clones is True and m.streaming is False
+        if mid == "pocket-tts-en":
+            assert m.named_voices is True
+            assert m.extra_files == (("embeddings/alba.safetensors", 6194424),)
+        else:
+            assert m.named_voices is False
+            assert m.extra_files == ()
 
 
 def test_tts_languages_cover_the_renderer_set():
@@ -447,172 +452,65 @@ def test_every_model_exposes_size_bytes_field():
 
 
 def test_size_bytes_regression_values():
-    # Frozen facts moved verbatim from the old hardcoded-sizes dict (native_models.py) —
-    # must never silently regress.
+    # Frozen facts verified 2026-09-01 via the HF tree API (audio-cpp/
+    # audio.cpp-gguf) — must never silently regress.
     assert catalog.asr_model("sense-voice").size_bytes == 252684608
-    assert catalog.tts_model("csukuangfj/vits-piper-en_US-amy-low").size_bytes == 81105784
-    # aishell3 repoints to the existing HF repo with its measured kept-size
-    # (the old vits-icefall id 404'd on HF and was never downloadable).
-    assert catalog.tts_model("csukuangfj/vits-zh-aishell3").size_bytes == 123663994
+    assert catalog.tts_model("moss-tts-nano").size_bytes == 193337984
+    assert catalog.tts_model("supertonic-3").size_bytes == 312784196
+    # pocket-tts-en's size includes its embeddings/alba.safetensors sidecar.
+    assert catalog.tts_model("pocket-tts-en").size_bytes == 127856704 + 6194424
+    assert catalog.tts_model("pocket-tts-de").size_bytes == 127857184
 
 
 def test_voice_capability_map():
     cap = catalog.voice_capability
-    assert cap(catalog.tts_model("moss-tts-nano")) == {"builtin": "named", "custom": "clip"}
-    assert cap(catalog.tts_model("supertonic-3")) == {"builtin": "named", "custom": "style"}
-    assert cap(catalog.tts_model("csukuangfj/vits-zh-aishell3")) == {"builtin": "range", "custom": "none"}
-    assert cap(catalog.tts_model("csukuangfj/vits-piper-en_US-amy-low")) == {"builtin": "none", "custom": "none"}
+    assert cap(catalog.tts_model("moss-tts-nano")) == {"builtin": "none", "custom": "clip"}
+    assert cap(catalog.tts_model("supertonic-3")) == {"builtin": "named", "custom": "none"}
+    assert cap(catalog.tts_model("pocket-tts-en")) == {"builtin": "named", "custom": "clip"}
+    assert cap(catalog.tts_model("pocket-tts-de")) == {"builtin": "none", "custom": "clip"}
+    assert cap(catalog.tts_model("omnivoice-0.6b")) == {"builtin": "none", "custom": "clip",
+                                                        "transcriptRequired": True}
 
 
 def test_supertonic_row():
     m = catalog.tts_model("supertonic-3")
-    assert m and m.num_speakers == 10 and m.sample_rate == 44100
-    assert m.clones is False and m.style_voices is True and m.named_voices is True
-    assert m.repos == ("Supertone/supertonic-3",)
-    assert {d.backend for d in m.deployments} == {"supertonic"}
-    assert {d.tier for d in m.deployments} == {"gpu-cuda", "gpu-dml", "cpu"}
+    assert m and m.sample_rate == 44100
+    assert m.clones is False and m.named_voices is True
+    assert m.family == "supertonic"
+    assert {d.backend for d in m.deployments} == {"native_tts"}
+    assert {d.tier for d in m.deployments} == {"gpu-metal", "gpu-vulkan", "cpu"}
+    # Single quant only: Q8 is upstream-broken for supertonic (docs/gguf.md);
+    # the repo's own "-q8_0.gguf" is in fact a byte-identical copy of "-orig.gguf".
+    assert {d.compute_type for d in m.deployments} == {"f16"}
 
 
 def test_qwen3_rows_and_capability():
-    for mid, rec in (("qwen3-tts-0.6b", True), ("qwen3-tts-1.7b", False)):
+    for mid, rec in (("qwen3-tts-0.6b", False), ("qwen3-tts-1.7b", False)):
         m = catalog.tts_model(mid)
         assert m and m.clones is True and m.streaming is False and m.sample_rate == 24000
-        assert m.transcript_required is True and m.recommended is rec
-        assert {d.backend for d in m.deployments} == {"qwen3tts_onnx", "mlx_audio_tts"}
-        assert catalog.voice_capability(m) == {"builtin": "named", "custom": "clip", "transcriptRequired": True}
-    # MOSS capability unchanged (no extra key)
-    assert catalog.voice_capability(catalog.tts_model("moss-tts-nano")) == {"builtin": "named", "custom": "clip"}
-
-
-def test_sherpa_tts_rows_are_cpu_only():
-    # Stock sherpa-onnx wheel is CPU-only (its bundled ORT exposes just
-    # CPUExecutionProvider, runtime-verified) — a gpu-cuda row shows a false
-    # GPU badge and claims phantom VRAM in the cross-stage ledger (D11).
-    for m in catalog.tts_models():
-        for d in m.deployments:
-            if d.backend == "sherpa_tts":
-                assert d.tier == "cpu", m.id
+        # Unlike the old ONNX qwen3tts_onnx backend, sk_tts_set_voice's
+        # ref_text is NOT mandatory for qwen3_tts (only omnivoice requires it).
+        assert m.transcript_required is False and m.recommended is rec
+        assert {d.backend for d in m.deployments} == {"native_tts"}
+        assert catalog.voice_capability(m) == {"builtin": "none", "custom": "clip"}
+    # Only supertonic-3 and moss-tts-nano stay recommended (per spec §11).
+    assert catalog.tts_model("moss-tts-nano").recommended is True
+    assert catalog.tts_model("supertonic-3").recommended is True
 
 
 def test_deployment_platform_defaults():
-    # D9: every deployment is all-platforms + no Apple-Silicon requirement unless
-    # a card opts in. Positional construction (backend, tier, compute_type,
-    # artifact, rank) still works with the two new trailing fields.
+    # D9: every deployment is all-platforms unless a card opts in.
+    # requires_apple_silicon died with the MLX lane (slice 4).
     d = catalog.Deployment("be", "cpu", "int8", "repo", 1.0)
     assert d.platforms == ("linux", "windows", "macos")
-    assert d.requires_apple_silicon is False
+    assert not hasattr(d, "requires_apple_silicon")
 
 
-def test_deployment_platform_fields_are_settable():
-    d = catalog.Deployment("be", "gpu-dml", "fp32", "repo", 1.0,
-                           platforms=("windows",), requires_apple_silicon=False)
-    assert d.platforms == ("windows",)
-    mlx = catalog.Deployment("be", "gpu-metal", "fp16", "repo", 1.0,
-                             platforms=("macos",), requires_apple_silicon=True)
-    assert mlx.requires_apple_silicon is True
-
-
-def test_shipped_deployments_are_all_platform_except_gpu_dml():
-    # P3 default is all-three; P5 carved out the windows-only gpu-dml rows; P6
-    # adds the macOS-only, Apple-Silicon MLX TTS rows. Those are the ONLY two
-    # kinds of platform-restricted shipped deployment — everything else stays
+def test_shipped_deployments_are_all_platform():
+    # Every platform-restricted shipped deployment (windows-only gpu-dml,
+    # macOS-only Apple-Silicon MLX TTS) died in slice 4 along with the ONNX/
+    # MLX backends that were their only consumers — every row is now
     # all-platform.
     for m in catalog.asr_models() + catalog.translate_models() + catalog.tts_models():
         for d in m.deployments:
-            if d.tier == "gpu-dml":
-                assert d.platforms == ("windows",), (m.id, d.tier)
-                assert d.requires_apple_silicon is False, (m.id, d.tier)
-            elif d.backend == "mlx_audio_tts":
-                assert d.platforms == ("macos",), (m.id, d.tier)      # Apple-Silicon MLX (D5)
-                assert d.requires_apple_silicon is True, (m.id, d.tier)
-            else:
-                assert d.platforms == ("linux", "windows", "macos"), (m.id, d.tier)
-                assert d.requires_apple_silicon is False, (m.id, d.tier)
-
-
-def test_heavy_tts_cards_have_windows_only_gpu_dml_rows():
-    for mid, backend in (("moss-tts-nano", "moss_onnx"),
-                         ("supertonic-3", "supertonic"),
-                         ("qwen3-tts-0.6b", "qwen3tts_onnx"),
-                         ("qwen3-tts-1.7b", "qwen3tts_onnx")):
-        m = catalog.tts_model(mid)
-        by_tier = {}
-        for d in m.deployments:
-            by_tier.setdefault(d.tier, []).append(d)
-        assert "gpu-dml" in by_tier, mid
-        assert len(by_tier["gpu-dml"]) == 1, mid
-        d = by_tier["gpu-dml"][0]
-        assert d.backend == backend
-        assert d.platforms == ("windows",), mid           # DirectML SKU is Windows-only
-        assert d.compute_type == "fp32"
-        # Same artifact as the fp32 CUDA row: DML runs the identical graphs
-        # (spec D2). The qwen3-tts cards carry a SECOND, bf16, gpu-cuda row
-        # (P7 multi-variant ladder) — compare against the fp32 one by name,
-        # not by tier-list position.
-        cuda_fp32 = next(x for x in by_tier["gpu-cuda"] if x.compute_type == "fp32")
-        assert d.artifact == cuda_fp32.artifact
-
-
-def test_sherpa_tts_cards_have_no_gpu_dml_row():
-    # spec D11: the stock sherpa-onnx wheel is CPU-only; no DirectML tier.
-    for m in catalog.tts_models():
-        if any(d.backend == "sherpa_tts" for d in m.deployments):
-            assert all(d.tier != "gpu-dml" for d in m.deployments), m.id
-
-
-def test_mlx_tts_deployment_rows():
-    # spec D5 / P6: each MLX-lane card gains ONE Apple-Silicon macOS metal row,
-    # pointed at the mlx-community repo, reusing the card's compute_type. moss
-    # is single-variant, so it still exposes exactly one compute_type overall;
-    # the qwen3-tts cards are now multi-variant (P7: fp32 + bf16 ONNX rows) —
-    # the mlx row's fp32 just needs to be ONE of the card's onnx compute_types.
-    expect = {
-        "moss-tts-nano": "mlx-community/MOSS-TTS-Nano-100M",
-        "qwen3-tts-0.6b": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit",
-        "qwen3-tts-1.7b": "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit",
-    }
-    single_variant = {"moss-tts-nano"}
-    for mid, repo in expect.items():
-        m = catalog.tts_model(mid)
-        mlx = [d for d in m.deployments if d.backend == "mlx_audio_tts"]
-        assert len(mlx) == 1, mid
-        d = mlx[0]
-        assert d.tier == "gpu-metal"
-        assert d.artifact == repo
-        assert d.platforms == ("macos",)
-        assert d.requires_apple_silicon is True
-        # compute_type reused from the card's ONNX rows → not a brand-new one
-        onnx_cts = {x.compute_type for x in m.deployments if x.backend != "mlx_audio_tts"}
-        assert d.compute_type in onnx_cts
-        if mid in single_variant:
-            assert len({x.compute_type for x in m.deployments}) == 1, mid
-
-
-def test_mlx_cards_keep_onnx_cpu_fallback_rows():
-    # The ONNX cpu row survives on every MLX-lane card (the mac fallback + the
-    # runnable row on Linux/Windows/Intel-Mac).
-    for mid in ("moss-tts-nano", "qwen3-tts-0.6b", "qwen3-tts-1.7b"):
-        m = catalog.tts_model(mid)
-        assert any(d.tier == "cpu" and d.backend != "mlx_audio_tts"
-                   for d in m.deployments), mid
-
-
-def test_qwen3_tts_cards_carry_per_variant_onnx_repos():
-    # Multi-variant shipping ladder (int8 was CUT after validating slower on
-    # both aarch64 and x86 — only fp32 + bf16 ship): each variant is its OWN
-    # self-contained repo (the repo IS the variant), not a subdir/file inside
-    # one shared repo. bf16 is CUDA-only (no cpu/dml row); fp32 covers
-    # cpu + gpu-cuda + gpu-dml.
-    for mid in ("qwen3-tts-0.6b", "qwen3-tts-1.7b"):
-        card = catalog.tts_model(mid)
-        onnx = [d for d in card.deployments if d.backend == "qwen3tts_onnx"]
-        cts = {d.compute_type for d in onnx}
-        assert cts == {"fp32", "bf16"}
-        for d in onnx:
-            assert d.artifact.endswith(f"-{d.compute_type}"), (mid, d.compute_type, d.artifact)
-            assert d.est_bytes, f"{mid}/{d.compute_type} missing est_bytes"
-        assert all(d.tier == "gpu-cuda" for d in onnx if d.compute_type == "bf16")
-        assert {d.tier for d in onnx if d.compute_type == "fp32"} == {"cpu", "gpu-cuda", "gpu-dml"}
-        fp32_repo = next(d.artifact for d in onnx if d.compute_type == "fp32")
-        assert card.repos == (fp32_repo,)
-        assert card.size_bytes == next(d.est_bytes for d in onnx if d.compute_type == "fp32")
+            assert d.platforms == ("linux", "windows", "macos"), (m.id, d.tier)

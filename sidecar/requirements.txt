@@ -1,36 +1,18 @@
-# onnxruntime is installed by setup.sh (CPU 'onnxruntime' vs 'onnxruntime-gpu')
-# so it can track the torch CUDA build — see the ONNXRUNTIME_PACKAGE block there.
 numpy==2.1.3
 websockets==13.1
-sentencepiece==0.2.1
-# Platform-split pin: mlx-audio (darwin/arm64, below) requires >=1.0, while
-# linux/windows keep the field-tested 0.26.2. The sidecar only calls
-# snapshot_download/hf_hub_download with repo_id/allow_patterns - stable in 1.x.
-huggingface_hub==0.26.2 ; sys_platform != "darwin" or platform_machine != "arm64"
-huggingface_hub>=1.0,<2 ; sys_platform == "darwin" and platform_machine == "arm64"
+# The mlx-audio-forced platform split (>=1.0,<2 on darwin/arm64 vs 0.26.2
+# elsewhere) died with mlx-audio itself (slice 4) — one universal pin. The
+# sidecar only calls snapshot_download/hf_hub_download with
+# repo_id/allow_patterns, stable across this range.
+huggingface_hub==0.26.2
 psutil
 zstandard==0.23.0
-tokenizers>=0.20
 # torch-free audio io / resample (2026-07-04 torch-free spec). GPU probing is
 # NVML-free since 2026-07-06 (D7): device truth = the transcribe.cpp probe.
 soundfile>=0.13
 soxr>=0.5
-# GPT-SoVITS (vendored Genie-TTS runtime) G2P dependencies — issue #322.
-# jieba (pure python) replaces upstream's jieba_fast: identical API surface
-# (posseg.lcut / cut_for_search / setLogLevel), no C build on aarch64.
-jieba==0.42.1
-pypinyin==0.55.0
-g2pM==0.1.2.5
-nltk==3.10.0
-# ja G2P. Pulls sudachipy + sudachidict_core (~212MB) — kept deliberately
-# (kanji homograph readings); quality follow-up tracked in issue #322.
-pyopenjtalk-plus==0.4.1.post8
-# ASR (and, from slices 3-4, translation + TTS) run in-process through the
+# ASR, translation, and — since slice 4 — TTS all run in-process through the
 # sokuji-native wheel built from native/ (one ggml, one C ABI). It is not on PyPI and has
 # no published release yet, so setup.sh installs it from native/python/dist/ (built by
 # native/ci/build.sh) or from $SOKUJI_NATIVE_WHEEL; the pinned per-platform URLs from the
 # design (spec §4.6) replace that once a native-vX.Y.Z release exists.
-# macOS MLX TTS lane (spec D5): Apple-Silicon-only mlx-audio wheel. The
-# environment marker keeps it out of the Linux/Windows venvs (mlx_tts.py
-# lazy-imports mlx_audio, so those platforms stay importable). Metal-only.
-mlx-audio==0.4.4 ; sys_platform == "darwin" and platform_machine == "arm64"

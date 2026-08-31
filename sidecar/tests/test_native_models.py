@@ -485,46 +485,57 @@ def test_h_model_status_applies_repos_map(monkeypatch):
     assert reply["statuses"] == {"hy-mt2-1.8b": "ready", "sense-voice": "ready"}
 
 
-def test_download_specs_for_tts_moss_nano_has_two_repos_no_vad(monkeypatch):
+def test_download_specs_for_tts_moss_nano_is_single_file_no_extras(monkeypatch):
+    # TTS artifacts are single-file audio.cpp GGUFs (exactly ASR/translate's
+    # shape, slice 4): {"repos": [], "urls": [], "files": [(repo, fname)]} —
+    # no whole-repo download, no ONNX/audio-tokenizer sibling repo, no VAD url.
     from sokuji_sidecar import native_models, accel
     monkeypatch.setattr(accel, "current_platform", lambda: "linux")  # deterministic on any host
     spec = native_models.download_specs("moss-tts-nano")
-    assert len(spec["repos"]) == 2
-    assert any("MOSS-TTS-Nano-100M-ONNX" in r for r in spec["repos"])
-    assert any("MOSS-Audio-Tokenizer-Nano-ONNX" in r for r in spec["repos"])
-    assert spec["urls"] == []          # TTS gets no silero VAD
+    assert spec["repos"] == [] and spec["urls"] == []
+    assert spec["files"] == [
+        ("audio-cpp/audio.cpp-gguf", "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf")]
 
 
-def test_download_specs_for_tts_sherpa_single_repo():
+def test_download_specs_for_tts_pocket_en_includes_the_embeddings_sidecar():
+    # pocket-tts-en is the one TTS card with a real sidecar asset
+    # (extra_files): the download spec must list BOTH the gguf and the
+    # embeddings/alba.safetensors preset next to it, same repo.
     from sokuji_sidecar import native_models
-    spec = native_models.download_specs("piper-en-amy")
-    assert spec["repos"] == ["csukuangfj/vits-piper-en_US-amy-low"]
-    assert spec["urls"] == []
+    spec = native_models.download_specs("pocket-tts-en")
+    assert spec["files"] == [
+        ("audio-cpp/audio.cpp-gguf", "PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf"),
+        ("audio-cpp/audio.cpp-gguf", "PocketTTS-GGUF/english/embeddings/alba.safetensors"),
+    ]
 
 
-def test_supertonic_download_ignores_samples_and_images():
-    # The Supertonic HF repo ships ~14MB of audio_samples/*.wav + img/*.png
-    # the runtime never loads — download_specs must skip them.
-    spec = native_models.download_specs("supertonic-3")
-    assert "Supertone/supertonic-3" in spec["repos"]
-    assert "audio_samples/*" in spec.get("ignore", []) and "img/*" in spec.get("ignore", [])
+def test_download_specs_for_tts_pocket_de_has_no_sidecar():
+    # german/italian/portuguese/spanish are clone-only by design (R9) — no
+    # extra_files, so no embeddings entry in the download spec.
+    from sokuji_sidecar import native_models
+    spec = native_models.download_specs("pocket-tts-de")
+    assert spec["files"] == [
+        ("audio-cpp/audio.cpp-gguf", "PocketTTS-GGUF/german/pocket-tts-german-q8_0.gguf")]
 
 
-def test_base_specs_ignore_is_read_from_the_card():
-    # _base_specs derives spec["ignore"] from the TtsModel card's download_ignore
-    # field (populated in catalog.py), not from model-id string branches. Assert
-    # the exact list value + order for both cards that carry ignore patterns.
-    assert native_models._base_specs("supertonic-3")["ignore"] == [
-        "audio_samples/*", "img/*"]
-    assert native_models._base_specs("csukuangfj/vits-zh-aishell3")["ignore"] == [
-        "G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx"]
+def test_download_specs_for_tts_variant_override_keeps_the_sidecar():
+    # Choosing a non-default quant (bf16) via the `repo` override must still
+    # carry pocket-tts-en's embeddings sidecar alongside the chosen quant.
+    from sokuji_sidecar import native_models, catalog
+    m = catalog.tts_model("pocket-tts-en")
+    bf16_artifact = next(d.artifact for d in m.deployments if d.compute_type == "bf16")
+    spec = native_models.download_specs("pocket-tts-en", repo=bf16_artifact)
+    assert spec["files"] == [
+        ("audio-cpp/audio.cpp-gguf", "PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf"),
+        ("audio-cpp/audio.cpp-gguf", "PocketTTS-GGUF/english/embeddings/alba.safetensors"),
+    ]
 
 
-def test_base_specs_omits_ignore_key_when_card_has_none():
-    # A TTS card with an empty download_ignore (the default) must not gain an
-    # "ignore" key — consumers use .get("ignore", []), so a stray empty list
-    # would be harmless, but the key's mere presence is still worth pinning.
-    spec = native_models._base_specs("csukuangfj/vits-piper-en_US-amy-low")
+def test_base_specs_omits_ignore_key_for_tts_cards():
+    # No TTS card sets download_ignore anymore (single-file downloads have
+    # nothing to filter) — consumers use .get("ignore", []), so the key's
+    # mere absence is still worth pinning.
+    spec = native_models._base_specs("moss-tts-nano")
     assert "ignore" not in spec
     # Non-TTS ids (ASR/translate) must not raise (tts_model() returns None for
     # them) and also get no ignore key.
@@ -544,7 +555,7 @@ def test_model_size_hardcoded_returns_without_network(monkeypatch):
     nm._SIZE_CACHE.clear()
     assert nm.model_size("sense-voice") == 252684608
     assert nm.model_size("hy-mt2-1.8b") == 1133080448
-    assert nm.model_size("csukuangfj/vits-piper-en_US-amy-low") == 81105784
+    assert nm.model_size("moss-tts-nano") == 193337984
 
 
 def test_model_size_file_artifact_uses_get_paths_info(monkeypatch):
@@ -569,68 +580,19 @@ def test_model_size_file_artifact_uses_get_paths_info(monkeypatch):
     assert nm.model_size("unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf") == 811843840
 
 
-def test_qwen3_download_specs_point_at_per_size_repos(monkeypatch):
-    from sokuji_sidecar import accel, catalog
-    monkeypatch.setattr(accel, "current_platform", lambda: "linux")  # deterministic on any host
-    # Exact repo id, not a loose substring: the auto (fresh-recommendation)
-    # download spec must point at the fp32 variant specifically — fp32 is the
-    # only compute_type with a cpu row, so it's the one every CPU-only user
-    # (and every fresh recommendation, per _tts_pick_quant's runnable
-    # narrowing) can actually load. A substring check would also pass for the
-    # cuda-only bf16 repo, silently missing a regression that swapped in bf16.
-    assert native_models.download_specs("qwen3-tts-0.6b")["repos"][0] == catalog._QWEN3_TTS_06B_FP32
-    assert native_models.download_specs("qwen3-tts-1.7b")["repos"][0] == catalog._QWEN3_TTS_17B_FP32
-
-
-def test_download_specs_moss_mlx_on_apple_silicon(monkeypatch):
-    import types
+def test_download_specs_tts_never_probes_hardware(monkeypatch):
+    # The macOS/Apple-Silicon MLX repo-swap special case (and its accel.probe()
+    # call) died with the MLX lane (slice 4) — _base_specs' TTS branch is now
+    # a pure catalog lookup, on every platform.
     from sokuji_sidecar import native_models as nm, accel
-    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
-    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=True))
-    spec = nm.download_specs("moss-tts-nano")
-    assert spec["repos"] == ["mlx-community/MOSS-TTS-Nano-100M"]
-    assert spec["urls"] == []
-
-
-def test_download_specs_qwen_mlx_on_apple_silicon(monkeypatch):
-    import types
-    from sokuji_sidecar import native_models as nm, accel
-    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
-    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=True))
-    assert nm.download_specs("qwen3-tts-0.6b")["repos"] == \
-        ["mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit"]
-    assert nm.download_specs("qwen3-tts-1.7b")["repos"] == \
-        ["mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit"]
-
-
-def test_download_specs_moss_onnx_on_intel_mac(monkeypatch):
-    import types
-    from sokuji_sidecar import native_models as nm, accel
-    # Intel Mac: platform is macos but NOT Apple Silicon → the MLX row isn't the
-    # runnable one, so download the ONNX assets (both repos), same as elsewhere.
-    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
-    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=False))
-    spec = nm.download_specs("moss-tts-nano")
-    assert len(spec["repos"]) == 2
-    assert any("MOSS-TTS-Nano-100M-ONNX" in r for r in spec["repos"])
-
-
-def test_download_specs_moss_onnx_on_linux_without_probing(monkeypatch):
-    from sokuji_sidecar import native_models as nm, accel
-    monkeypatch.setattr(accel, "current_platform", lambda: "linux")
 
     def boom(force=False):
-        raise AssertionError("probe() must not run on non-macOS (short-circuit)")
+        raise AssertionError("probe() must not run for a TTS download spec")
     monkeypatch.setattr(accel, "probe", boom)
-    spec = nm.download_specs("moss-tts-nano")
-    assert len(spec["repos"]) == 2   # ONNX assets; probe was short-circuited
-
-
-def test_aishell3_download_ignores_unused_large_files():
-    spec = native_models.download_specs("csukuangfj/vits-zh-aishell3")
-    assert spec["repos"] == ["csukuangfj/vits-zh-aishell3"]
-    for pat in ("G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx"):
-        assert pat in spec.get("ignore", [])
+    for platform in ("linux", "windows", "macos"):
+        monkeypatch.setattr(accel, "current_platform", lambda platform=platform: platform)
+        spec = nm.download_specs("moss-tts-nano")
+        assert spec["files"], platform
 
 
 import pytest
@@ -793,103 +755,64 @@ def test_model_status_repo_override_keeps_specific_quant_semantics(monkeypatch, 
 # ── TTS multi-variant status: any cached variant repo satisfies the card ─────
 
 
-def _tts_variant_card():
-    # Mirrors test_accel.py's synthetic multi-variant TTS card: 3 deployments
-    # (bf16/fp32/int8), all non-mlx, so len(unique artifacts) > 1 exercises the
-    # any-variant status branch without depending on the production catalog
-    # shape (which currently ships fp32/bf16 only, int8 cut — see catalog.py).
-    return catalog.TtsModel(
-        "fake-tts", "Fake TTS", ("en",),
-        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000)),
-        repos=("org/fake-fp32",), clones=True, streaming=False)
+def test_model_status_tts_ready_when_any_ladder_quant_cached(monkeypatch, tmp_path):
+    """TTS artifacts are single-file GGUFs (exactly ASR/translate's shape,
+    slice 4) — a multi-quant card (moss-tts-nano: q8_0 default + bf16 alt) is
+    RUNNABLE when ANY rung is cached, sharing _ladder_artifacts with ASR/
+    translate (see test_model_status_ready_when_any_ladder_quant_cached
+    above) — no TTS-specific status branch is left at all."""
+    import huggingface_hub
+
+    cached = {"moss-tts-nano-100m-bf16.gguf"}
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname.rsplit("/", 1)[-1] in cached:
+            return str(tmp_path / fname.rsplit("/", 1)[-1])
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+
+    # default rung (q8_0) absent, bf16 cached -> runnable
+    assert native_models.model_status("moss-tts-nano") == "ready"
+    cached.clear()
+    assert native_models.model_status("moss-tts-nano") == "absent"
 
 
-def test_model_status_tts_any_variant_repo_counts(monkeypatch):
-    """A multi-variant TTS card (fp32/bf16 self-contained repos, e.g. qwen3-tts)
-    is 'ready' when ANY variant repo is fully cached — mirrors the ASR/translate
-    any-rung ladder semantics above, but per-whole-repo rather than per-file,
-    since load-time resolution (accel.resolve_tts) only ever loads a downloaded
-    variant, not necessarily the card's default repos[0]."""
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
-    cached = {"org/fake-int8"}
-    monkeypatch.setattr(native_models, "_repos_cached",
-                        lambda specs: all(r in cached for r in specs["repos"]))
-    assert native_models.model_status("fake-tts") == "ready"
-
-
-def test_model_status_tts_any_variant_survives_a_repo_raising(monkeypatch):
-    """A LATER cached variant repo must still report 'ready' even when an
-    EARLIER variant's _repos_cached call raises — which is exactly what the
-    real _repos_cached does via snapshot_download(local_files_only=True) for
-    an uncached repo (raises rather than returning False). Regression for a
-    bug where `any(_repos_cached({"repos": [r]}) for r in variant_repos)` let
-    that exception escape the generator, abort the any(), and fall through to
-    the outer try/except -> 'absent', even though a later variant WAS cached
-    (the normal post-download state: e.g. fp32 absent + bf16 cached)."""
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
-
-    def _repos_cached(specs):
-        r = specs["repos"][0]
-        if r == "org/fake-bf16":
-            raise RuntimeError("simulated snapshot_download(local_files_only=True) miss")
-        return r == "org/fake-fp32"
-    monkeypatch.setattr(native_models, "_repos_cached", _repos_cached)
-    assert native_models.model_status("fake-tts") == "ready"
-
-
-def test_model_status_tts_single_variant_card_unaffected(monkeypatch):
-    """A single-variant TTS card (moss/supertonic/pocket/gpt-sovits — every
-    non-mlx deployment shares one artifact) must NOT take the any-variant
-    branch: status stays gated on the card's one real repos entry, same as
-    before this feature existed."""
-    single = catalog.TtsModel(
-        "fake-single-tts", "Fake Single TTS", ("en",),
-        (catalog.Deployment("moss_onnx", "gpu-cuda", "fp32", "org/fake-only", 1.0),
-         catalog.Deployment("moss_onnx", "cpu", "fp32", "org/fake-only", 1.0)),
-        repos=("org/fake-only",))
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: single)
-    monkeypatch.setattr(native_models, "_repos_cached", lambda specs: False)
-    assert native_models.model_status("fake-single-tts") == "absent"
-
-
-def test_model_status_tts_any_variant_on_macos_mlx_lane_checks_mlx_repo(monkeypatch):
-    """On macOS/Apple Silicon, _base_specs swaps a multi-variant TTS card's
-    download to the single MLX repo (see _base_specs docstring) — the ONNX
-    variant_repos are never fetched there. The any-rung branch must therefore
-    NOT apply on that lane (checking only the ONNX repos would report a
-    permanently-absent card even with the MLX repo fully cached); status must
-    fall through to the normal _repos_cached(specs) check, which correctly
-    evaluates the MLX repo. Regression for a reviewer-caught defect where
-    qwen3-tts-0.6b/1.7b read 'absent' forever on macOS despite the MLX repo
-    being fully cached."""
-    import types
-    from sokuji_sidecar import accel
-    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
-    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=True))
-    mlx_repo = "mlx-community/fake-mlx"
-    card = catalog.TtsModel(
-        "fake-tts-mlx", "Fake TTS MLX", ("en",),
-        (catalog.Deployment("mlx_audio_tts", "gpu-metal", "fp32", mlx_repo, 1.0,
-                             platforms=("macos",), requires_apple_silicon=True),
-         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
-        repos=("org/fake-fp32",), clones=True, streaming=False)
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
-    # Only the MLX repo is cached; both ONNX variant repos are absent.
-    monkeypatch.setattr(native_models, "_repos_cached",
-                        lambda specs: specs["repos"] == [mlx_repo])
-    assert native_models.model_status("fake-tts-mlx") == "ready"
-
-
-def test_model_status_tts_repo_override_keeps_specific_variant_semantics(monkeypatch):
-    """With an explicit repo override (the download button's 'is THIS variant
-    downloaded?' question) the any-variant relaxation must NOT apply — mirrors
+def test_model_status_tts_repo_override_keeps_specific_quant_semantics(monkeypatch, tmp_path):
+    """With an explicit repo override (the download button's 'is THIS quant
+    downloaded?' question) the any-rung relaxation must NOT apply — mirrors
     test_model_status_repo_override_keeps_specific_quant_semantics above."""
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
-    cached = {"org/fake-int8"}
-    monkeypatch.setattr(native_models, "_repos_cached",
-                        lambda specs: all(r in cached for r in specs["repos"]))
-    assert native_models.model_status("fake-tts", repo="org/fake-bf16") == "absent"
-    assert native_models.model_status("fake-tts", repo="org/fake-int8") == "ready"
+    import huggingface_hub
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname.endswith("bf16.gguf"):
+            return str(tmp_path / fname.rsplit("/", 1)[-1])
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+
+    q8_0 = "audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    bf16 = "audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf"
+    assert native_models.model_status("moss-tts-nano", repo=q8_0) == "absent"
+    assert native_models.model_status("moss-tts-nano", repo=bf16) == "ready"
+
+
+def test_model_status_tts_repo_override_requires_the_sidecar_file_too(monkeypatch, tmp_path):
+    """With an explicit repo override the ladder's any-rung relaxation does
+    NOT apply (repo is not None -> ladder=[]) — model_status falls to the
+    generic files-shape check, which requires ALL files in `specs["files"]`.
+    pocket-tts-en's extra_files sidecar (embeddings/alba.safetensors) makes
+    this the interesting case: with only the gguf cached, the pinned q8_0
+    override must report 'absent' until the sidecar is cached too."""
+    import huggingface_hub
+
+    cached = {"pocket-tts-english-q8_0.gguf"}   # embeddings/alba.safetensors missing
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname.rsplit("/", 1)[-1] in cached:
+            return str(tmp_path / fname.rsplit("/", 1)[-1])
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+
+    q8_0 = "audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf"
+    assert native_models.model_status("pocket-tts-en", repo=q8_0) == "absent"
+    cached.add("alba.safetensors")
+    assert native_models.model_status("pocket-tts-en", repo=q8_0) == "ready"

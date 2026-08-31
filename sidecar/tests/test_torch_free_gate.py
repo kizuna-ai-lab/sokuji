@@ -4,13 +4,17 @@ mentioning the names stay allowed."""
 import ast
 import pathlib
 
-# gone in slice 2: ASR runs through sokuji_native (sherpa_onnx follows in
-# slice 4, onnxruntime in slice 5). gone in slice 3: translation runs through
-# sokuji_native too — the D3 CTranslate2/Opus-MT adoption is over, its
-# dependency and the ct2_opus_translate/llamacpp_* backends are deleted.
+# gone in slice 2: ASR runs through sokuji_native (onnxruntime follows in
+# slice 5). gone in slice 3: translation runs through sokuji_native too — the
+# D3 CTranslate2/Opus-MT adoption is over, its dependency and the
+# ct2_opus_translate/llamacpp_* backends are deleted. gone in slice 4: TTS
+# runs through sokuji_native too — sherpa_onnx (the sherpa_tts backend) and
+# the GPT-SoVITS G2P stack's dependencies (jieba/pypinyin/g2pM/nltk/
+# pyopenjtalk) are freed along with the nine ONNX/sherpa/MLX TTS backends.
 BANNED = {"torch", "torchaudio", "transformers", "funasr", "librosa",
           "faster_whisper", "modelscope", "mistral_common", "transcribe_cpp",
-          "ctranslate2"}
+          "ctranslate2", "sherpa_onnx", "jieba", "pypinyin", "g2pM", "nltk",
+          "pyopenjtalk"}
 PKG = pathlib.Path(__file__).resolve().parents[1] / "sokuji_sidecar"
 
 

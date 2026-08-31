@@ -16,30 +16,29 @@ def _ignored(filename, patterns):
     `tf_model.h5` matches only itself. Used to filter the download + size file set."""
     return any(fnmatch.fnmatch(filename, p) for p in patterns)
 
+def _tts_extra_files(_tm, fname):
+    """(repo-relative) sidecar asset paths for a TTS card's `extra_files`
+    (pocket-tts-en's embeddings/alba.safetensors), resolved next to `fname`'s
+    own directory — the same directory every quant of that card shares."""
+    if not _tm.extra_files:
+        return []
+    dirpath = fname.rsplit("/", 1)[0] if "/" in fname else ""
+    return [f"{dirpath}/{name}" if dirpath else name for name, _size in _tm.extra_files]
+
+
 def _base_specs(model_id):
     """Per-model repos/ignore for a model id."""
     from .catalog import tts_model as _tts_model
     _tm = _tts_model(model_id) if model_id else None
     if _tm is not None:
-        repos = list(_tm.repos)
-        # macOS on Apple Silicon runs the MLX lane (spec D5): fetch the single
-        # self-contained mlx-community repo (the mlx_audio_tts deployment's
-        # artifact) instead of the multi-GB ONNX assets. Every other platform —
-        # Linux, Windows, and Intel Macs (where requires_apple_silicon drops the
-        # MLX row) — keeps the ONNX repos. current_platform() is checked first,
-        # so the non-macOS path never probes hardware.
-        mlx = next((d for d in _tm.deployments if d.backend == "mlx_audio_tts"), None)
-        if mlx is not None:
-            from . import accel
-            if accel.current_platform() == "macos" and accel.probe().apple_silicon:
-                repos = [mlx.artifact]
-        spec = {"repos": repos, "urls": list(_tm.urls)}
-        if _tm.download_ignore:
-            # Per-card fnmatch patterns for HF-repo cruft the runtime never
-            # loads (demo assets, unused torch checkpoints, duplicate quants
-            # the backend can't disambiguate) — see catalog.py TTS_MODELS.
-            spec["ignore"] = list(_tm.download_ignore)
-        return spec
+        # Every TTS card is a single-file audio.cpp GGUF — exactly the ASR/
+        # translate shape: artifact "org/repo/dir/file.gguf" -> one pinned
+        # file. pocket-tts-en additionally ships a same-directory preset
+        # asset (embeddings/alba.safetensors) that sk_tts_presets discovers
+        # next to the loaded gguf, listed via TtsModel.extra_files.
+        repo, fname = split_artifact(_tm.deployments[0].artifact)
+        files = [(repo, fname)] + [(repo, extra) for extra in _tts_extra_files(_tm, fname)]
+        return {"repos": [], "urls": [], "files": files}
     from .catalog import translate_model as _translate_model
     _trm = _translate_model(model_id) if model_id else _translate_model("qwen2.5-0.5b")
     if _trm is not None:
@@ -58,9 +57,10 @@ def _base_specs(model_id):
         if fname:
             return {"repos": [], "urls": [], "files": [(repo, fname)]}
         return {"repos": [repo], "urls": []}
-    if "piper" in model_id or "vits" in model_id:
-        from .sherpa_tts import PIPER_REPOS
-        return {"repos": [PIPER_REPOS.get(model_id, model_id)], "urls": []}
+    # Unknown id (not a catalog card): treat it as a bare repo id. The
+    # sherpa-onnx piper/vits community-voice aliasing that used to live here
+    # died with sherpa_tts.py (slice 4) — every id is now a catalog id or
+    # this generic fallback.
     return {"repos": [model_id], "urls": []}
 
 
@@ -77,7 +77,11 @@ def download_specs(model_id, repo=None):
     if repo:
         repo2, fname = split_artifact(repo)
         if fname:
-            return {"repos": [], "urls": [], "files": [(repo2, fname)]}
+            from .catalog import tts_model as _tts_model
+            _tm = _tts_model(model_id) if model_id else None
+            extra = _tts_extra_files(_tm, fname) if _tm is not None else []
+            files = [(repo2, fname)] + [(repo2, e) for e in extra]
+            return {"repos": [], "urls": [], "files": files}
         return {"repos": [repo], "urls": []}
     return _base_specs(model_id)
 
@@ -155,6 +159,9 @@ def _ladder_artifacts(model_id):
         from .catalog import translate_model as _translate_model
         m = _translate_model(model_id) if model_id else None
     if m is None:
+        from .catalog import tts_model as _tts_model
+        m = _tts_model(model_id) if model_id else None
+    if m is None:
         return []
     arts, seen = [], set()
     for d in m.deployments:
@@ -172,61 +179,17 @@ def model_status(model_id, repo=None):
     download_specs), so status reflects the variant the card actually downloads.
     WITHOUT an override, a multi-quant card's file requirement is satisfied by
     ANY cached rung of its ladder (see _ladder_artifacts) — the override form
-    keeps per-quant semantics for the download buttons.
-
-    A multi-variant TTS card (qwen3-tts's self-contained fp32/bf16 repos —
-    see catalog.py) applies the analogous any-rung relaxation, but per-repo
-    rather than per-file: WITHOUT an override, the card is 'ready' when ANY
-    of its unique deployment-artifact repos is fully cached, since load-time
-    resolution (accel.resolve_tts) only ever picks a downloaded variant. This
-    branch only checks repos — it intentionally skips the urls/files checks
-    below (fine today, since no any-rung TTS card carries either; a future
-    multi-variant card with a shared `urls` asset, e.g. a shared vocoder,
-    must revisit this). The branch is further gated on the platform's default
-    download repo (`specs["repos"][0]`, already computed above) actually
-    being one of the ONNX variant repos: on macOS/Apple Silicon, _base_specs
-    swaps the download to the single MLX repo, which is never one of the
-    ONNX variant_repos, so any-rung over them would report a permanently
-    absent card even with the MLX repo fully cached. On that lane the branch
-    is skipped and the normal _repos_cached(specs) check below correctly
-    evaluates the MLX repo.
+    keeps per-quant semantics for the download buttons. This covers every
+    catalog kind uniformly (ASR, translate, TTS): every card is a single-file
+    (or, for pocket-tts-en, single-file-plus-sidecar) artifact, so there is no
+    per-kind status branch left — TTS used to need one (a whole-repo,
+    any-variant-cached check) before its artifacts became single-file GGUFs.
 
     Translate cards (native_translate) need nothing beyond their GGUF file —
     translation runs in-process through sokuji_native, the same wheel ASR and
     TTS already require, so there is no separate runtime binary to install."""
     specs = download_specs(model_id, repo)
     try:
-        from .catalog import tts_model as _tts_card
-        tcard = _tts_card(model_id) if repo is None else None
-        if tcard is not None:
-            variant_repos = list(dict.fromkeys(
-                d.artifact for d in tcard.deployments if d.backend != "mlx_audio_tts"))
-            if (len(variant_repos) > 1 and specs.get("repos")
-                    and specs["repos"][0] in variant_repos):
-                # Multi-variant TTS: ANY fully-cached variant repo satisfies the
-                # card (we load whichever the user downloaded); per-variant
-                # semantics stay available via the explicit `repo` override.
-                # Gated on the platform's default download repo actually being
-                # one of the ONNX variants (see docstring) — on the macOS MLX
-                # lane this condition is false and we fall through to the
-                # normal _repos_cached(specs) check below.
-                #
-                # Per-repo try/except (not a bare `any(_repos_cached(...) for
-                # r in variant_repos)`): _repos_cached calls snapshot_download
-                # (local_files_only=True), which RAISES for an uncached repo
-                # rather than returning False. Letting that exception escape
-                # the generator would abort `any()` on the FIRST absent
-                # variant and fall into the outer try/except -> 'absent',
-                # even when a LATER variant is fully cached (the normal
-                # post-download state, e.g. fp32 absent + bf16 cached).
-                def _variant_cached(repo):
-                    try:
-                        return _repos_cached({"repos": [repo]})
-                    except Exception:
-                        return False
-                if any(_variant_cached(r) for r in variant_repos):
-                    return "ready"
-                return "absent"
         if not _repos_cached(specs):
             return "absent"
         ladder = _ladder_artifacts(model_id) if repo is None else []

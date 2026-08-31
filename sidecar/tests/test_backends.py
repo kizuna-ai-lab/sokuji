@@ -37,12 +37,13 @@ def test_asr_result_defaults():
     assert r.text == "hello" and r.language is None
 
 
-def test_registry_still_has_the_old_onnx_tts_backends():
-    # TASK-5 DELETES THIS TEST along with tts_backends.py itself: the catalog
-    # doesn't route to native_tts until Task 5 rewires it, so every TTS card
-    # today still resolves through these nine names. If this regresses,
-    # tts_init fails AllPlansFailed for every model (SPEC-1, review round 1).
+def test_registry_has_native_tts_not_the_old_onnx_backends():
+    # Slice 4: the nine ONNX/sherpa/MLX TTS backends are gone; every TTS card
+    # now resolves through the one native_tts backend (backends.py's bottom
+    # import list — asr_backend/translate_backend/tts_backend only).
+    assert backends.make_backend("native_tts") is not None
     for name in ("sherpa_tts", "moss_onnx", "supertonic", "qwen3tts_onnx",
                  "cosyvoice3_onnx", "omnivoice_onnx", "gpt_sovits_onnx",
                  "pocket_onnx", "mlx_audio_tts"):
-        assert backends.make_backend(name) is not None, name
+        with pytest.raises(backends.BackendLoadError):
+            backends.make_backend(name)
