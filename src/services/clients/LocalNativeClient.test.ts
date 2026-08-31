@@ -177,6 +177,68 @@ describe('LocalNativeClient', () => {
     expect(new Set(userItems.map((i) => i.id)).size).toBe(1);  // one user item across partials+final
   });
 
+  it('streams translate_partial into one live assistant item, then finalizes it on resolve', async () => {
+    const asr: any = { init: async () => ({ device: 'cuda' }), feedAudio() {}, flush() {}, dispose() {}, onResult: null, onPartialResult: null, onError: null };
+    const translate: any = {
+      onError: null, onPartial: null,
+      init: async () => ({ device: 'cpu' }),
+      translate: vi.fn(async () => {
+        translate.onPartial?.('Bon');
+        translate.onPartial?.('Bonjour');
+        return { translatedText: 'Bonjour !', inferenceTimeMs: 1 };
+      }),
+      dispose() {},
+    };
+    const client = new LocalNativeClient({ asr, translate });
+    const items: any[] = [];
+    client.setEventHandlers({ onConversationUpdated: ({ item }) => items.push({ id: item.id, status: item.status, text: item.formatted?.transcript }) });
+    await client.connect(LOCAL_NATIVE_CONFIG);
+    expect(typeof translate.onPartial).toBe('function'); // wired in connect(), next to onError
+
+    await asr.onResult({ text: 'bonjour', durationMs: 1, recognitionTimeMs: 1 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const assistantItems = items.filter((i) => i.id.startsWith('asst'));
+    // Two partial emissions with growing transcripts...
+    expect(assistantItems[0].text).toBe('Bon');
+    expect(assistantItems[1].text).toBe('Bonjour');
+    // ...and a final completed item whose transcript is the resolved text.
+    const last = assistantItems[assistantItems.length - 1];
+    expect(last.status).toBe('completed');
+    expect(last.text).toBe('Bonjour !');
+    // Same item reused throughout — no separate item created on resolve.
+    expect(new Set(assistantItems.map((i) => i.id)).size).toBe(1);
+  });
+
+  it('finalizes a streamed item as completed (with the last partial text) when translate() rejects', async () => {
+    const asr: any = { init: async () => ({ device: 'cuda' }), feedAudio() {}, flush() {}, dispose() {}, onResult: null, onPartialResult: null, onError: null };
+    const translate: any = {
+      onError: null, onPartial: null,
+      init: async () => ({ device: 'cpu' }),
+      translate: vi.fn(async () => {
+        translate.onPartial?.('Bon');
+        throw new Error('backend crashed');
+      }),
+      dispose() {},
+    };
+    const client = new LocalNativeClient({ asr, translate });
+    const items: any[] = [];
+    const errors: string[] = [];
+    client.setEventHandlers({
+      onConversationUpdated: ({ item }) => items.push({ id: item.id, status: item.status, text: item.formatted?.transcript }),
+      onError: (e: any) => errors.push(String(e)),
+    });
+    await client.connect(LOCAL_NATIVE_CONFIG);
+    await asr.onResult({ text: 'bonjour', durationMs: 1, recognitionTimeMs: 1 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(errors).toContain('backend crashed'); // existing error surfacing preserved
+    const assistantItems = items.filter((i) => i.id.startsWith('asst'));
+    const last = assistantItems[assistantItems.length - 1];
+    expect(last.status).toBe('completed'); // a half-streamed bubble beats a vanishing one
+    expect(last.text).toBe('Bon');
+  });
+
   it('drops the stale partial after clearConversationItems so the next final still lands', async () => {
     const translate = { init: async () => ({ device: 'cpu' }), translate: vi.fn(async () => ({ translatedText: 'T', inferenceTimeMs: 1 })), onError: null, dispose() {} };
     const asr: any = { init: async () => ({ device: 'cuda' }), feedAudio() {}, flush() {}, dispose() {}, onResult: null, onPartialResult: null, onError: null };

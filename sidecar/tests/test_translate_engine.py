@@ -83,6 +83,35 @@ def test_h_translate_reports_partial_send_failure_once(capsys):
     assert err.count("translate_partial send failed") == 1
 
 
+def test_h_translate_sends_partial_push_before_reply():
+    """The wire is live now (Task 4 landed translate_partial in wire_schema.json
+    + ServerMsg): a Fake conn captures every send, the fake engine fires one
+    partial mid-generation, and the push must reach the connection strictly
+    before the final translate_result reply."""
+    class FakeTranslateStreaming:
+        def translate(self, text, system_prompt="", wrap_transcript=False, on_partial=None):
+            if on_partial is not None:
+                on_partial("Bon")
+            return "Bonjour.", 3
+
+    class FakeConn:
+        def __init__(self):
+            self.sent = []
+
+        async def send(self, obj):
+            self.sent.append(obj)
+
+    state = {"translate_engine": FakeTranslateStreaming()}
+    msg = {"type": "translate", "id": 5, "text": "hello", "systemPrompt": "",
+           "wrapTranscript": False}
+    conn = FakeConn()
+    reply, binary = asyncio.run(translate_engine._h_translate(state, msg, None, conn=conn))
+    assert binary is None
+    assert reply == {"type": "translate_result", "id": 5,
+                     "sourceText": "hello", "translatedText": "Bonjour.", "inferenceTimeMs": 3}
+    assert conn.sent == [{"type": "translate_partial", "text": "Bon"}]
+
+
 def test_translate_init_echoes_device_and_resolved():
     st = make_state()
     reply, _ = asyncio.run(server.handle_message(

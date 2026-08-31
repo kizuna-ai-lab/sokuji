@@ -46,6 +46,15 @@ describe('NativeTranslateClient', () => {
     expect(errs).toEqual([]);
   });
 
+  it('routes an id-less translate_partial push to onPartial', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeTranslateClient(conn);
+    const partials: string[] = [];
+    c.onPartial = (text) => partials.push(text);
+    conn.emit({ type: 'translate_partial', text: 'Bon' });
+    expect(partials).toEqual(['Bon']);
+  });
+
   it('dispose() rejects an unsettled request', async () => {
     const conn = new FakeSidecarConnection();
     const c = new NativeTranslateClient(conn);

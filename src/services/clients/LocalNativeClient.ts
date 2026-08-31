@@ -45,6 +45,10 @@ export class LocalNativeClient implements IClient {
   private keepReplayAudio: boolean = false;
   private queue: Promise<void> = Promise.resolve();
   private partialUserItem: ConversationItem | null = null;
+  /** The assistant item created on the first translate_partial of the job
+   *  currently running, cleared once that job finishes (success or failure).
+   *  The job queue serializes runJob calls, so one field suffices. */
+  private currentTranslateItem: ConversationItem | null = null;
   private vadWorkerFactory: () => Worker | null;
   private vadWorker: Worker | null = null;
   private vadReady = false;
@@ -72,6 +76,7 @@ export class LocalNativeClient implements IClient {
     this.asr.onPartialResult = (text: string) => this.onAsrPartial(text);
     this.asr.onError = (e: string) => this.handlers.onError?.(e);
     this.translate.onError = (e: string) => this.handlers.onError?.(e);
+    this.translate.onPartial = (text: string) => this.onTranslatePartial(text);
     this.tts.onError = (e: string) => this.handlers.onError?.(e);
     this.emitEvent('local.native.init.start', 'client', {
       asr: config.asrModelId, translation: config.translationModelId, tts: config.ttsModelId,
@@ -307,6 +312,33 @@ export class LocalNativeClient implements IClient {
     }
   }
 
+  /**
+   * Live-update the assistant bubble as translate() streams tokens: create the
+   * item lazily on the first partial, then update transcript in place — mirrors
+   * onAsrPartial's cadence (one emit per push). translate_partial is id-less and
+   * one in-flight translate per connection is the job queue's guarantee, so
+   * currentTranslateItem never sees two jobs interleave.
+   * Cadence note: the sidecar pushes one partial per generated token (up to
+   * 512/translation); at that rate an emit-per-partial is cheap for the UI to
+   * render (same as ASR partials, which already update per chunk). If token-level
+   * updates ever overwhelm the renderer, throttle here (e.g. only emit every Nth
+   * partial or batch on rAF) — the sidecar side deliberately does not throttle.
+   */
+  private onTranslatePartial(text: string): void {
+    this.emitEvent('local.native.translation.partial', 'server', { text });
+    if (!this.currentTranslateItem) {
+      this.currentTranslateItem = {
+        id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'in_progress',
+        createdAt: Date.now(), formatted: { transcript: text },
+      };
+      this.items.push(this.currentTranslateItem);
+      this.emit(this.currentTranslateItem);
+    } else {
+      this.currentTranslateItem.formatted!.transcript = text;
+      this.emit(this.currentTranslateItem, { transcript: text });
+    }
+  }
+
   private onAsrResult(r: { text: string; durationMs?: number; recognitionTimeMs?: number; startSample?: number }): void {
     if (!r.text?.trim()) return;
     // rtf = compute time / audio duration — the single "can it keep up with
@@ -358,6 +390,15 @@ export class LocalNativeClient implements IClient {
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);
       this.emitEvent('local.native.error', 'client', { stage: 'translation', modelId: this.cfg?.translationModelId, sourceText: text, error });
+      // A half-streamed bubble beats a vanishing one: if partials already reached
+      // the renderer, finalize the item with what we have instead of leaving it
+      // stuck in_progress forever (or discarding it).
+      if (this.currentTranslateItem) {
+        const streamedItem = this.currentTranslateItem;
+        this.currentTranslateItem = null;
+        streamedItem.status = 'completed';
+        this.emit(streamedItem);
+      }
       this.handlers.onError?.(error);
       return;
     }
@@ -365,11 +406,22 @@ export class LocalNativeClient implements IClient {
       sourceText: tr.sourceText ?? text, translatedText: tr.translatedText,
       inferenceTimeMs: tr.inferenceTimeMs, modelId: this.cfg?.translationModelId,
     });
-    const item: ConversationItem = {
-      id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'in_progress',
-      createdAt: Date.now(), formatted: { transcript: tr.translatedText },
-    };
-    this.items.push(item);
+    let item: ConversationItem;
+    if (this.currentTranslateItem) {
+      // Reuse the item partials already streamed into — the renderer bubble
+      // keeps its identity across the last token and the final resolved text.
+      item = this.currentTranslateItem;
+      this.currentTranslateItem = null;
+      item.formatted!.transcript = tr.translatedText;
+    } else {
+      // No partial ever arrived (e.g. a fake translate in tests, or a job that
+      // resolved before its first token push) — create the item as before.
+      item = {
+        id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'in_progress',
+        createdAt: Date.now(), formatted: { transcript: tr.translatedText },
+      };
+      this.items.push(item);
+    }
     this.emit(item);
     if (this.ttsEnabled) {
       const displayText = tr.translatedText;
@@ -476,6 +528,7 @@ export class LocalNativeClient implements IClient {
   async disconnect(): Promise<void> {
     this.connected = false;
     this.partialUserItem = null;
+    this.currentTranslateItem = null;
     this.emitEvent('local.native.session.closed', 'client', { reason: 'user_disconnect' });
     this.vadWorker?.postMessage({ type: 'dispose' });
     this.vadWorker?.terminate();
@@ -486,9 +539,9 @@ export class LocalNativeClient implements IClient {
   }
   isConnected(): boolean { return this.connected; }
   updateSession(_config: Partial<SessionConfig>): void {}
-  reset(): void { this.items = []; this.partialUserItem = null; }
+  reset(): void { this.items = []; this.partialUserItem = null; this.currentTranslateItem = null; }
   getConversationItems(): ConversationItem[] { return [...this.items]; }  // fresh ref so setItems() re-renders
-  clearConversationItems(): void { this.items = []; this.partialUserItem = null; }  // drop the in-progress partial too, else the next final mutates a detached item
+  clearConversationItems(): void { this.items = []; this.partialUserItem = null; this.currentTranslateItem = null; }  // drop in-progress partials too, else the next final mutates a detached item
   setEventHandlers(handlers: ClientEventHandlers): void { this.handlers = handlers; }
   getProvider(): ProviderType { return Provider.LOCAL_NATIVE; }
 }

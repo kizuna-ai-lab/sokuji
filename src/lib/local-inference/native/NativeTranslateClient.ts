@@ -9,16 +9,22 @@ export interface NativeTranslationResult { sourceText: string; translatedText: s
 export class NativeTranslateClient {
   onStatus: ((m: string) => void) | null = null;
   onError: ((e: string) => void) | null = null;
+  /** Fires once per token during translate() generation, id-less push from the
+   *  sidecar; text is the cleaned full accumulation so far, not a delta. */
+  onPartial: ((text: string) => void) | null = null;
   private conn: ISidecarConnection;
 
   constructor(conn: ISidecarConnection = new SidecarConnection()) {
     this.conn = conn;
+    this.conn.onMessage((msg) => this.onPush(msg));
+  }
+
+  private onPush(msg: ServerMsg): void {
+    if (msg.type === 'translate_partial') { this.onPartial?.(msg.text); return; }
     // Surface only genuinely id-less push errors. Translate RPCs all carry ids, so
     // callers see failures via request() reject; an id-carrying error reaching here is
     // a late reply to an already-rejected timed-out request — don't double-signal it.
-    this.conn.onMessage((msg) => {
-      if (msg.type === 'error' && (msg as { id?: number }).id === undefined) this.onError?.(msg.message);
-    });
+    if (msg.type === 'error' && (msg as { id?: number }).id === undefined) this.onError?.(msg.message);
   }
 
   async init(

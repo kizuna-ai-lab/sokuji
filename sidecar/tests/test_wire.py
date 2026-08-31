@@ -15,9 +15,9 @@ from sokuji_sidecar import wire
 
 
 def test_schema_covers_every_type_and_shapes_are_sane():
-    # 17 ServerMsg members + pong. The renderer-side field test pins the schema
+    # 18 ServerMsg members + pong. The renderer-side field test pins the schema
     # against nativeProtocol.ts; this end just guards the file's basic shape.
-    assert len(wire.SCHEMA) == 18
+    assert len(wire.SCHEMA) == 19
     assert "pong" in wire.SCHEMA
     for mtype, spec in wire.SCHEMA.items():
         assert set(spec) == {"required", "optional"}, mtype
@@ -34,6 +34,7 @@ def test_valid_messages_pass_in_strict_mode(monkeypatch):
     wire.validate_outbound({"type": "partial", "text": "hi"})              # required field only
     wire.validate_outbound({"type": "result", "text": "hi",
                             "durationMs": 10, "recognitionTimeMs": 2})
+    wire.validate_outbound({"type": "translate_partial", "text": "hi"})    # required field only
 
 
 @pytest.mark.parametrize("bad, match", [
