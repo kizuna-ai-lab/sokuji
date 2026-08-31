@@ -1,10 +1,11 @@
 /**
  * Tests for NativeVoiceSection — the native adapter over the generalized
- * VoiceLibrarySection. It switches on the selected TTS model's
- * VoiceCapability: `builtin === 'range'` renders the classic speaker-id
- * slider; otherwise it composes a VoiceLibrarySection from `builtinVoices` +
- * the injected `store`'s custom voices, wiring import/record/rename/delete
- * to the store and surfacing capture errors inline.
+ * VoiceLibrarySection. It composes a VoiceLibrarySection from `builtinVoices`
+ * + the injected `store`'s custom voices, wiring import/record/rename/delete
+ * to the store and surfacing capture errors inline. (The old speaker-id
+ * slider for a `builtin === 'range'` capability died with the ONNX backends
+ * that were its only producers — Task 5's catalog rewire onto native_tts,
+ * swept out of this component in Task 7 — R4.)
  *
  * The real VoiceLibrarySection is used (not mocked) so these tests also
  * exercise the capability wiring (dropdown presentation, upload-only vs
@@ -62,26 +63,10 @@ describe('NativeVoiceSection', () => {
     vi.clearAllMocks();
   });
 
-  it('range renders the speaker slider', () => {
-    render(<NativeVoiceSection capability={{ builtin: 'range', custom: 'none' }} builtinVoices={[]} store={null}
-      selected="sid:2" targetLanguage="en" numSpeakers={174} onSelect={() => {}} onCustomChanged={() => {}} />);
-    expect(screen.getByRole('slider')).toBeInTheDocument();
-  });
-
   it('renders nothing when the model has neither built-in nor custom voices', () => {
     const { container } = render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'none' }}
       builtinVoices={[]} store={null} selected="" targetLanguage="en" onSelect={() => {}} onCustomChanged={() => {}} />);
     expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders a speaker-id slider for a range model and writes sid:<n>', () => {
-    const onSelect = vi.fn();
-    render(<NativeVoiceSection {...baseProps} capability={{ builtin: 'range', custom: 'none' }}
-      store={null} numSpeakers={904} selected="sid:3" onSelect={onSelect} builtinVoices={[]} />);
-    const slider = screen.getByRole('slider');
-    expect(slider).toHaveAttribute('max', '903');
-    fireEvent.change(slider, { target: { value: '7' } });
-    expect(onSelect).toHaveBeenCalledWith('sid:7');
   });
 
   it('lists builtin voices and writes ttsVoice on select', async () => {

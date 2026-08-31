@@ -106,8 +106,10 @@ class NativeHostManager {
         devCwd: path.join(__dirname, '..', 'sidecar'),
         existsSync: fs.existsSync,
       });
-      // No CUDA/cuDNN LD_LIBRARY_PATH surgery: the sidecar pins them in-process
-      // via onnxruntime.preload_dlls() at startup (spec D8).
+      // No CUDA/cuDNN LD_LIBRARY_PATH surgery: onnxruntime (the sole prior
+      // CUDA consumer, via preload_dlls() at startup, spec D8) is gone —
+      // every stage (ASR/translate/TTS) runs through sokuji-native, which
+      // accelerates NVIDIA/AMD/Intel through Vulkan and needs no CUDA runtime.
       const env = { ...process.env, HF_HOME: hfHome };
       const spawnedAt = Date.now();
       const child = spawn(launch.python, ['-m', 'sokuji_sidecar'], {

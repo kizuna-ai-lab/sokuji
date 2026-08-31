@@ -375,8 +375,10 @@ def load_measured(plans: list, stage: str | None = None):
 
 # Weight files dominate a model's GPU footprint; the rest (config/tokenizer) is
 # negligible. .gguf/.pt cover llama.cpp / raw-torch artifacts alongside HF
-# safetensors; .onnx.data is the external-data payload of >2GB ONNX graphs
-# (e.g. the qwen3-tts 1.7B talker) — its .onnx proto alone is tiny.
+# safetensors. .onnx/.onnx.data (the external-data payload of a >2GB ONNX
+# graph, proto alone tiny) have no current producer — every ONNX backend
+# (including qwen3-tts, now audio.cpp/GGUF via native_tts) died in slice 4 —
+# kept as a harmless no-op match for whatever a future/local model ships.
 _WEIGHT_EXTS = (".safetensors", ".bin", ".pt", ".gguf", ".onnx", ".onnx.data")
 
 

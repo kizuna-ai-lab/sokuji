@@ -47,14 +47,13 @@ const TR_CAT: Record<string, NativeModelInfo> = {
 /**
  * TTS-specific fixture catalog for voiceCapability / nativeTtsCards / resolveNativeTts tests.
  * Exercises: named+clip (clones), none (single speaker, no clones), ordering.
- * numSpeakers is carried on the two piper entries only as period-accurate
- * leftover data (the field died server-side in Task 5/6, see voiceCapability) —
- * it no longer changes what voiceCapability derives for either of them.
+ * numSpeakers died server-side (Task 5/6) and was removed from NativeModelInfo
+ * in Task 7's sweep (R4) — these fixtures no longer carry it.
  */
 const TTS_CAT: Record<string, NativeModelInfo> = {
-  'moss-tts-nano': M('moss-tts-nano', 'tts', ['en', 'ja'], 0, true, { clones: true, streaming: true, numSpeakers: 1 }),
-  'csukuangfj/vits-piper-en_US-amy-low': M('csukuangfj/vits-piper-en_US-amy-low', 'tts', ['en'], 10, false, { clones: false, numSpeakers: 1 }),
-  'csukuangfj/vits-piper-en_US-libritts_r-medium': M('csukuangfj/vits-piper-en_US-libritts_r-medium', 'tts', ['en'], 11, false, { clones: false, numSpeakers: 904 }),
+  'moss-tts-nano': M('moss-tts-nano', 'tts', ['en', 'ja'], 0, true, { clones: true, streaming: true }),
+  'csukuangfj/vits-piper-en_US-amy-low': M('csukuangfj/vits-piper-en_US-amy-low', 'tts', ['en'], 10, false, { clones: false }),
+  'csukuangfj/vits-piper-en_US-libritts_r-medium': M('csukuangfj/vits-piper-en_US-libritts_r-medium', 'tts', ['en'], 11, false, { clones: false }),
 };
 
 describe('nativeCatalog', () => {
@@ -148,11 +147,12 @@ describe('nativeCatalog', () => {
 
   it('maps hardware tiers to display labels', () => {
     expect(tierLabel('cpu')).toEqual({ label: 'CPU', accel: false });
-    expect(tierLabel('gpu-cuda')).toEqual({ label: 'GPU · CUDA', accel: true });
     expect(tierLabel('gpu-metal')).toEqual({ label: 'GPU · Metal', accel: true });
-    expect(tierLabel('gpu-dml')).toEqual({ label: 'GPU · DirectML', accel: true });
     expect(tierLabel('gpu-vulkan')).toEqual({ label: 'GPU · Vulkan', accel: true });
-    // unknown tier → echo the raw string, not accelerated
+    // gpu-cuda/gpu-dml died with the ONNX/MLX TTS backends that were their
+    // last catalog producers (slice 4 — R4); an unrecognized tier (including
+    // those two now) echoes the raw string, not accelerated.
+    expect(tierLabel('gpu-cuda')).toEqual({ label: 'gpu-cuda', accel: false });
     expect(tierLabel('mystery')).toEqual({ label: 'mystery', accel: false });
   });
 
@@ -161,18 +161,18 @@ describe('nativeCatalog', () => {
     expect(gpuTierAvailable({ a: { id: 'a', name: 'A', languages: ['en'], recommended: false,
       tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] } } as any)).toBe(false);
     expect(gpuTierAvailable({ g: { id: 'g', name: 'G', languages: ['en'], recommended: false,
-      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: true }] } } as any)).toBe(true);
+      tiers: [{ tier: 'gpu-vulkan', backend: 'transformers', available: true }] } } as any)).toBe(true);
     expect(gpuTierAvailable({ g: { id: 'g', name: 'G', languages: ['en'], recommended: false,
-      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: false }] } } as any)).toBe(false);
+      tiers: [{ tier: 'gpu-vulkan', backend: 'transformers', available: false }] } } as any)).toBe(false);
   });
 
   it('hardwareGated is true only when a model has tiers but none are available', () => {
     expect(hardwareGated(undefined)).toBe(false);                       // unknown → not gated
     expect(hardwareGated({ id: 'x', name: 'X', languages: ['en'], recommended: false, tiers: [] } as any)).toBe(false);
     expect(hardwareGated({ id: 'g', name: 'G', languages: ['en'], recommended: false,
-      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: false }] } as any)).toBe(true);   // GPU-only, no GPU
+      tiers: [{ tier: 'gpu-vulkan', backend: 'transformers', available: false }] } as any)).toBe(true);   // GPU-only, no GPU
     expect(hardwareGated({ id: 'g', name: 'G', languages: ['en'], recommended: false,
-      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: true }] } as any)).toBe(false);   // GPU present
+      tiers: [{ tier: 'gpu-vulkan', backend: 'transformers', available: true }] } as any)).toBe(false);   // GPU present
     expect(hardwareGated({ id: 's', name: 'S', languages: ['en'], recommended: false,
       tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] } as any)).toBe(false);              // CPU floor
   });
@@ -198,9 +198,9 @@ describe('nativeCatalog', () => {
     const info = (id: string, tiers: { tier: string; backend: string; available: boolean }[]): NativeModelInfo =>
       ({ id, name: id, languages: [], recommended: false, tiers });
     const gpuCatalog = {
-      voxtral: info('voxtral', [tier('gpu-cuda')]),                 // GPU-only, available
-      qwen: info('qwen', [tier('gpu-cuda'), tier('cpu')]),          // GPU + CPU floor
-      cpuonly: info('cpuonly', [tier('cpu')]),                      // CPU-only
+      voxtral: info('voxtral', [tier('gpu-vulkan')]),                 // GPU-only, available
+      qwen: info('qwen', [tier('gpu-vulkan'), tier('cpu')]),          // GPU + CPU floor
+      cpuonly: info('cpuonly', [tier('cpu')]),                        // CPU-only
     };
 
     it('routes auto GPU-capable models to VRAM and CPU-only models to RAM', () => {
@@ -227,7 +227,7 @@ describe('nativeCatalog', () => {
     });
 
     it('treats auto models with no usable GPU tier as RAM (CPU-only machine)', () => {
-      const cpuOnly = { qwen: info('qwen', [tier('gpu-cuda', false), tier('cpu', true)]) };
+      const cpuOnly = { qwen: info('qwen', [tier('gpu-vulkan', false), tier('cpu', true)]) };
       const est = estimateNativeMemoryByDevice(
         [{ id: 'qwen', device: 'auto' }], { qwen: 4000 * MB }, cpuOnly,
       );
@@ -329,10 +329,9 @@ describe('nativeCatalog', () => {
   });
 
   it('voiceCapability derives builtin/custom for named/none TTS models', () => {
-    // numSpeakers no longer drives a 'range' builtin -- that field died
-    // server-side with the ONNX range-model backends (Task 5/6); a model
-    // with no `clones` and no `voice` field is just 'none' now, regardless
-    // of how many numSpeakers the fixture still (harmlessly) carries.
+    // A model with no `clones` and no `voice` field is just 'none' -- the old
+    // numSpeakers-driven 'range' builtin died with the ONNX range-model
+    // backends (Task 5/6) and the field itself was removed in Task 7's sweep.
     expect(voiceCapability(TTS_CAT['moss-tts-nano'])).toEqual({ builtin: 'named', custom: 'clip' });
     expect(voiceCapability(TTS_CAT['csukuangfj/vits-piper-en_US-libritts_r-medium'])).toEqual({ builtin: 'none', custom: 'none' });
     expect(voiceCapability(TTS_CAT['csukuangfj/vits-piper-en_US-amy-low'])).toEqual({ builtin: 'none', custom: 'none' });
@@ -392,8 +391,9 @@ describe('nativeCatalog', () => {
   });
   it('voiceCapability falls back to derive when voice is absent', () => {
     expect(voiceCapability({ clones: true } as any)).toEqual({ builtin: 'named', custom: 'clip' });
-    // numSpeakers died server-side (Task 5/6) -- it no longer drives a 'range'
-    // builtin, even when a stale/legacy value is present on the model.
+    // numSpeakers died server-side (Task 5/6) and was removed from
+    // NativeModelInfo (Task 7's sweep, R4) -- a stale/legacy payload still
+    // carrying it derives 'none', same as any other unrecognized shape.
     expect(voiceCapability({ numSpeakers: 174 } as any)).toEqual({ builtin: 'none', custom: 'none' });
     expect(voiceCapability({} as any)).toEqual({ builtin: 'none', custom: 'none' });
   });
@@ -451,11 +451,12 @@ describe('frameworkLabel', () => {
 
 describe('accelApiLabel', () => {
   it('names the GPU API and returns null for cpu/unknown', () => {
-    expect(accelApiLabel('gpu-cuda')).toBe('CUDA');
     expect(accelApiLabel('gpu-metal')).toBe('Metal');
     expect(accelApiLabel('gpu-vulkan')).toBe('Vulkan');
-    expect(accelApiLabel('gpu-dml')).toBe('DirectML');
     expect(accelApiLabel('cpu')).toBeNull();
+    // gpu-cuda/gpu-dml died with the ONNX/MLX TTS backends that were their
+    // last catalog producers (slice 4 — R4); both are now unknown tiers.
+    expect(accelApiLabel('gpu-cuda')).toBeNull();
     expect(accelApiLabel('weird')).toBeNull();
   });
 });
@@ -479,7 +480,7 @@ describe('buildBackendTooltipRows', () => {
   });
   it('active tier adds precision/speed/memory from the resolved plan', () => {
     const rows = buildBackendTooltipRows({
-      tier: 'gpu-cuda', backendId: 'moss_onnx',
+      tier: 'gpu-vulkan', backendId: 'moss_onnx',
       resolved: { computeType: 'int8', rtf: 0.02, memoryBytes: 3_400_000_000 },
       sizeMb: 100, repo: 'org/tts',
     });
@@ -504,7 +505,7 @@ describe('buildBackendTooltipRows', () => {
     expect(rows.find((r) => r.key === 'framework')).toBeUndefined();
   });
   it('omits the speed row for an unmeasured (zero) rtf, like zero tps', () => {
-    const rows = buildBackendTooltipRows({ tier: 'gpu-cuda', backendId: 'moss_onnx', resolved: { rtf: 0 } });
+    const rows = buildBackendTooltipRows({ tier: 'gpu-vulkan', backendId: 'moss_onnx', resolved: { rtf: 0 } });
     expect(rows.find((r) => r.key === 'speed')).toBeUndefined();
   });
   it('shows the repo row for every current backend (the MLX ONNX TTS tiers this once hid it for are gone)', () => {

@@ -9,8 +9,8 @@ export interface NativeTier { tier: string; backend: string; available: boolean;
 export interface NativeModelInfo {
   id: string; name: string; languages: string[]; recommended: boolean; tiers: NativeTier[];
   order: number; repo: string; kind: 'asr' | 'translate' | 'tts';
-  numSpeakers?: number; clones?: boolean; streaming?: boolean;   // tts only
-  voice?: { builtin: 'none' | 'range' | 'named'; custom: 'none' | 'clip'; transcriptRequired?: boolean };   // tts only; native_tts has no style-vector custom voice equivalent
+  clones?: boolean; streaming?: boolean;   // tts only
+  voice?: { builtin: 'none' | 'named'; custom: 'none' | 'clip'; transcriptRequired?: boolean };   // tts only; native_tts has no style-vector custom voice equivalent
   license?: { spdx: string; name: string; url: string; nonCommercial: boolean; sourceRepo: string; attribution: string };  // non-commercial / restricted models only
   sizeBytes?: number;   // total download size; 0/absent = unknown
   variantIds?: string[];   // quant variants (default first), >1 → show the picker

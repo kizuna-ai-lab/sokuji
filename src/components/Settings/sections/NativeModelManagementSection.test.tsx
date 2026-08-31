@@ -117,7 +117,6 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 0,
     repo: 'csukuangfj/vits-piper-en_US-amy-low',
     kind: 'tts',
-    numSpeakers: 1,
     sizeBytes: 81105784,
   },
   'moss-tts-nano': {
@@ -129,7 +128,6 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 1,
     repo: 'moss-tts-nano',
     kind: 'tts',
-    numSpeakers: 1,
     clones: true,
     streaming: true,
     sizeBytes: 763206064,
@@ -160,7 +158,6 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 3,
     repo: 'qwen3-tts-1.7b',
     kind: 'tts',
-    numSpeakers: 1,
     sizeBytes: 3600000000,
     variantIds: ['bf16', 'fp32', 'int8'],
     variants: [

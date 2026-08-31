@@ -5,8 +5,6 @@ import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import {
   curatedBuiltinVoices,
   defaultTtsVoice,
-  sidFromTtsVoice,
-  ttsVoiceForSid,
   type VoiceCapability,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import type { NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -25,11 +23,14 @@ export type { ClipValidationError };
 /**
  * Native (Electron sidecar) adapter over the generalized VoiceLibrarySection.
  * Switches on the selected TTS model's `VoiceCapability` (Task 10):
- *   - `builtin === 'range'` → the classic speaker-id slider (`sid:<n>`).
- *   - otherwise            → VoiceLibrarySection composed from the sidecar's
- *     built-in voice list (`builtin:<Name>` entries, curated-first) plus the
- *     injected `store`'s custom voices (`custom:<id>` entries, removable).
  *   - `{builtin:'none', custom:'none'}` → nothing to render.
+ *   - otherwise                        → VoiceLibrarySection composed from
+ *     the sidecar's built-in voice list (`builtin:<Name>` entries,
+ *     curated-first) plus the injected `store`'s custom voices
+ *     (`custom:<id>` entries, removable). The old speaker-id slider
+ *     (`builtin === 'range'`, `sid:<n>`) died with the ONNX backends that
+ *     were its only producers (Task 5's catalog rewire onto native_tts;
+ *     swept in Task 7 — R4).
  *
  * The `store` (from `voiceStoreFor`, Task 11) abstracts over the native
  * custom-voice backend — clip cloning (MOSS and the other native_tts clone-
@@ -49,8 +50,6 @@ export type { ClipValidationError };
 export interface NativeVoiceSectionProps {
   /** The selected TTS model's voice capability (built-in shape + custom-voice kind). */
   capability: VoiceCapability;
-  /** Total speaker count for a 'range' model (the slider runs 0 .. numSpeakers-1). */
-  numSpeakers?: number;
   /** Built-in voice descriptors from the sidecar (empty when the model isn't downloaded). */
   builtinVoices: NativeVoiceInfo[];
   /** Custom-voice backend for this model; null when `capability.custom === 'none'`. */
@@ -73,7 +72,6 @@ const DEFAULT_LIBRARY_CAPABILITY: VoiceLibraryCapability = {
 
 const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   capability,
-  numSpeakers,
   builtinVoices,
   store,
   selected,
@@ -219,22 +217,6 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   }, [builtinVoices, customVoices, targetLanguage, capability.transcriptRequired]);
 
   if (capability.builtin === 'none' && capability.custom === 'none') return null;
-
-  if (capability.builtin === 'range') {
-    const max = Math.max(1, (numSpeakers ?? 1) - 1);
-    const sid = Math.min(sidFromTtsVoice(selected), max);
-    return (
-      <div className="setting-item">
-        <div className="setting-label">
-          <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
-          <span className="setting-value">{sid}</span>
-        </div>
-        <input type="range" min="0" max={max} step="1" value={sid}
-          onChange={(e) => onSelect(ttsVoiceForSid(parseInt(e.target.value, 10)))}
-          className="slider" disabled={isSessionActive} />
-      </div>
-    );
-  }
 
   // Reconcile for display: an empty choice shows the language default as selected.
   const selectedId = selected || defaultTtsVoice(targetLanguage, builtinVoices);

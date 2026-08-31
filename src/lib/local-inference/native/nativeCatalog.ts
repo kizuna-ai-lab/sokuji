@@ -54,7 +54,7 @@ export function nativeAsrForLanguage(srcLang: string, current: string, catalog: 
   return (catalogModels(catalog, 'asr').filter((m) => supportsLanguage(m, srcLang))[0])?.id || current;
 }
 
-export type VoiceBuiltin = 'none' | 'range' | 'named';
+export type VoiceBuiltin = 'none' | 'named';
 export type VoiceCustom = 'none' | 'clip';
 export interface VoiceCapability { builtin: VoiceBuiltin; custom: VoiceCustom; transcriptRequired?: boolean; }
 
@@ -311,13 +311,14 @@ export function frameworkLabel(backendId: string): string {
   return backendId;
 }
 
-/** Hardware acceleration API for a GPU tier; null for cpu/unknown (no API row). */
+/** Hardware acceleration API for a GPU tier; null for cpu/unknown (no API row).
+ *  gpu-cuda/gpu-dml died with the ONNX/MLX TTS backends that were their last
+ *  catalog producers (slice 4 — R4): every sidecar tier is now cpu/gpu-metal/
+ *  gpu-vulkan. */
 export function accelApiLabel(tier: string): string | null {
   switch (tier) {
-    case 'gpu-cuda': return 'CUDA';
     case 'gpu-metal': return 'Metal';
     case 'gpu-vulkan': return 'Vulkan';
-    case 'gpu-dml': return 'DirectML';
     default: return null;
   }
 }
@@ -359,20 +360,14 @@ export function buildBackendTooltipRows(input: {
   return rows;
 }
 
-/** sid encoded as the suffix of a `sid:<n>` ttsVoice ('sid:5' → 5; anything else → 0). */
-export function sidFromTtsVoice(v: string): number {
-  return v.startsWith('sid:') ? (Number(v.slice(4)) || 0) : 0;
-}
-export function ttsVoiceForSid(n: number): string { return `sid:${n}`; }
-
-/** Display label for a hardware tier string from the sidecar models_catalog. */
+/** Display label for a hardware tier string from the sidecar models_catalog.
+ *  gpu-cuda/gpu-dml died with the ONNX/MLX TTS backends that were their last
+ *  catalog producers (slice 4 — R4). */
 export function tierLabel(tier: string): { label: string; accel: boolean } {
   switch (tier) {
     case 'cpu': return { label: 'CPU', accel: false };
-    case 'gpu-cuda': return { label: 'GPU · CUDA', accel: true };
     case 'gpu-metal': return { label: 'GPU · Metal', accel: true };
     case 'gpu-vulkan': return { label: 'GPU · Vulkan', accel: true };
-    case 'gpu-dml': return { label: 'GPU · DirectML', accel: true };
     default: return { label: tier, accel: false };
   }
 }
