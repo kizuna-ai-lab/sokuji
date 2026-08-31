@@ -236,3 +236,67 @@ def test_translate_unload_idempotent_and_del_safe():
     t = sokuji_native.translate_load(TRANSLATE_GGUF)
     t.unload()
     t.unload()
+
+
+TTS_SUPERTONIC_DIR = os.environ.get("SK_TEST_TTS_SUPERTONIC_DIR")
+TTS_MOSS_DIR = os.environ.get("SK_TEST_TTS_MOSS_DIR")
+needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
+needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
+
+
+@needs_tts_supertonic
+def test_tts_supertonic_streams_presets_and_cancel():
+    sokuji_native.init()
+    t = sokuji_native.tts_load(TTS_SUPERTONIC_DIR, "supertonic")
+    caps = t.capabilities
+    assert caps.streaming and not caps.clones and caps.sample_rate == 44100
+    names = t.presets()
+    assert "M1" in names and len(names) >= 10
+    t.set_preset("M1")
+    chunks = []
+    # Deviation from the brief's literal "Hello from the binding." (native/tests/test_tts.cpp
+    # and task-1-report.md deviation 3): supertonic's default English text-chunk budget is
+    # 300 codepoints (supertonic/session.cpp:build_chunk_requests), and streaming yields one
+    # event per text chunk, so anything shorter than that is exactly 1 chunk regardless of
+    # on_chunk — the len(chunks) >= 2 assertion below is unreachable with a short sentence.
+    # Reusing the CTest's already-verified >300-char text here for parity between the two
+    # test suites.
+    samples, rate = t.synth(
+        "Hello from the parity gate. This sentence is intentionally long enough to span more than "
+        "one streaming chunk, so the cancel-and-resume test can exercise a genuine multi-chunk pull "
+        "loop end to end, matching the exact chunk boundaries audio.cpp itself produces for an "
+        "ordinary paragraph of prose sent through this interface.",
+        language="en", on_chunk=lambda pcm, sr: chunks.append((len(pcm), sr)))
+    assert rate == 44100 and len(samples) > 0 and len(chunks) >= 2
+    assert sum(n for n, _ in chunks) == len(samples)
+    seen = []
+    def stop_after_one(pcm, sr):
+        seen.append(len(pcm))
+        return False
+    with pytest.raises(sokuji_native.NativeError):
+        t.synth(
+            "A longer sentence, long enough that a second streaming chunk would surely follow after the "
+            "first one, is used here to make sure the callback returning false actually interrupts the "
+            "pull loop before the remaining audio chunks are ever produced, rather than merely finishing "
+            "a synthesis run that was always going to be a single chunk anyway.",
+            language="en", on_chunk=stop_after_one)
+    assert len(seen) == 1
+    samples2, _ = t.synth("Still alive.", language="en")
+    assert len(samples2) > 0
+    t.unload()
+
+
+@needs_tts_moss
+def test_tts_moss_offline_and_clone():
+    sokuji_native.init()
+    t = sokuji_native.tts_load(TTS_MOSS_DIR, "moss_tts_nano")
+    assert not t.capabilities.streaming and t.capabilities.clones
+    assert t.presets() == []
+    samples, rate = t.synth("Hello from MOSS.")
+    assert rate == 48000 and len(samples) > 0
+    ref = np.sin(np.linspace(0, 2 * np.pi * 440, 24000)).astype(np.float32)
+    t.set_voice(ref, 24000, ref_text="test")
+    samples2, _ = t.synth("Hello again.")
+    assert len(samples2) > 0
+    t.unload()
+    t.unload()

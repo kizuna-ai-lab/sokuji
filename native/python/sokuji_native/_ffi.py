@@ -51,6 +51,17 @@ class sk_gen_options(Structure):
 
 TEXT_CB = CFUNCTYPE(c_bool, c_char_p, c_void_p)
 
+AUDIO_CB = CFUNCTYPE(c_bool, POINTER(c_float), c_size_t, c_int32, c_int32, c_void_p)
+
+
+class sk_tts_options(Structure):
+    _fields_ = [("family", c_char_p), ("language", c_char_p)]
+
+
+class sk_tts_caps(Structure):
+    _fields_ = [("streaming", c_bool), ("clones", c_bool), ("transcript_required", c_bool),
+                ("sample_rate", c_int32)]
+
 
 def bind(lib: CDLL) -> CDLL:
     lib.sk_init.argtypes = [POINTER(sk_init_options)]
@@ -95,4 +106,18 @@ def bind(lib: CDLL) -> CDLL:
     lib.sk_translate_complete.restype = c_int32
     lib.sk_translate_unload.argtypes = [c_void_p]
     lib.sk_translate_unload.restype = None
+    lib.sk_tts_load.argtypes = [c_char_p, POINTER(sk_device), POINTER(sk_tts_options), POINTER(c_void_p)]
+    lib.sk_tts_load.restype = c_int32
+    lib.sk_tts_capabilities.argtypes = [c_void_p, POINTER(sk_tts_caps)]
+    lib.sk_tts_capabilities.restype = c_int32
+    lib.sk_tts_presets.argtypes = [c_void_p, TEXT_CB, c_void_p]
+    lib.sk_tts_presets.restype = c_int32
+    lib.sk_tts_set_voice.argtypes = [c_void_p, POINTER(c_float), c_size_t, c_int32, c_char_p]
+    lib.sk_tts_set_voice.restype = c_int32
+    lib.sk_tts_set_preset.argtypes = [c_void_p, c_char_p]
+    lib.sk_tts_set_preset.restype = c_int32
+    lib.sk_tts_synth.argtypes = [c_void_p, c_char_p, c_char_p, c_float, AUDIO_CB, c_void_p]
+    lib.sk_tts_synth.restype = c_int32
+    lib.sk_tts_unload.argtypes = [c_void_p]
+    lib.sk_tts_unload.restype = None
     return lib

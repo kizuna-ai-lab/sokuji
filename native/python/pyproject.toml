@@ -10,6 +10,9 @@ dynamic = ["version"]
 description = "One native library for the Sokuji sidecar: transcribe.cpp, llama.cpp and audio.cpp on one ggml, behind one C ABI"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
+# numpy: TtsModel.synth()/on_chunk hand back real np.float32 arrays (slice 4's contract),
+# not just anything satisfying the buffer protocol like the ASR/translate PCM helper.
+dependencies = ["numpy"]
 
 [tool.setuptools]
 packages = ["sokuji_native"]

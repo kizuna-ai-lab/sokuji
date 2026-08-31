@@ -13,12 +13,15 @@ import platform
 import threading
 from dataclasses import dataclass
 
+import numpy as np
+
 from . import _ffi
 
 __all__ = ["NativeError", "Device", "init", "devices", "device_free_mem", "version",
            "engine_versions", "contract", "audio_families", "native_dir",
            "AsrCaps", "AsrModel", "AsrStream", "StreamText", "asr_load",
-           "Translator", "translate_load"]
+           "Translator", "translate_load",
+           "TtsCaps", "TtsModel", "tts_load"]
 
 
 class NativeError(RuntimeError):
@@ -416,3 +419,130 @@ def translate_load(path: str, device: Device | None = None, n_ctx: int = 0) -> T
     if status != _ffi.SK_OK:
         _raise(lib, status, "sk_translate_load")
     return Translator(lib, out.value)
+
+
+@dataclass(frozen=True)
+class TtsCaps:
+    streaming: bool
+    clones: bool
+    transcript_required: bool
+    sample_rate: int
+
+
+def _copy_audio_cb_pcm(pcm, n_samples: int) -> np.ndarray:
+    """`pcm` points at a buffer that audio.cpp owns and may free or overwrite the instant
+    the callback returns — this MUST run inside the callback and produce an independent,
+    owned array before that happens. `n_samples` is the total float count of the
+    (possibly multi-channel interleaved) buffer, already channel-inclusive."""
+    if not n_samples or not pcm:
+        return np.empty(0, dtype=np.float32)
+    return np.ctypeslib.as_array(pcm, shape=(int(n_samples),)).copy()
+
+
+class TtsModel:
+    """A loaded TTS model (audio.cpp): one family, one long-lived session per handle
+    (offline or streaming per the family), calls serialised by the library. Voice state
+    (a preset id or a cloned reference clip) lives on the handle and applies to every
+    subsequent synth(); set_preset()/set_voice() overwrite each other. The per-handle lock
+    is not recursive: calling another method on this same handle from inside on_chunk (or
+    from a presets() callback) deadlocks the calling thread — on_chunk may only read its
+    own arguments and touch caller-owned state."""
+
+    def __init__(self, lib, handle, caps: TtsCaps):
+        self._lib = lib
+        self._h = handle
+        self.capabilities = caps
+
+    def presets(self) -> list[str]:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_NOT_INITIALISED, "sk_tts_presets: model is unloaded")
+        got: list[str] = []
+        cb = _ffi.TEXT_CB(lambda text, _user: (got.append((text or b"").decode("utf-8", "replace")), True)[1])
+        status = self._lib.sk_tts_presets(self._h, cb, None)
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_tts_presets")
+        return got
+
+    def set_voice(self, pcm, sample_rate: int, ref_text: str | None = None) -> None:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_NOT_INITIALISED, "sk_tts_set_voice: model is unloaded")
+        arr, n = _pcm(pcm)
+        # ctypes keeps no reference from a plain call argument here either; `text` is kept
+        # alive as a local for the duration of the call below.
+        text = ref_text.encode() if ref_text is not None else None
+        status = self._lib.sk_tts_set_voice(self._h, ctypes.cast(arr, ctypes.POINTER(ctypes.c_float)), n,
+                                            int(sample_rate), text)
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_tts_set_voice")
+
+    def set_preset(self, name: str) -> None:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_NOT_INITIALISED, "sk_tts_set_preset: model is unloaded")
+        status = self._lib.sk_tts_set_preset(self._h, name.encode())
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_tts_set_preset")
+
+    def synth(self, text: str, language: str | None = None, speed: float = 1.0,
+             on_chunk=None) -> tuple[np.ndarray, int]:
+        if self._h is None:
+            raise NativeError(_ffi.SK_ERR_NOT_INITIALISED, "sk_tts_synth: model is unloaded")
+        chunks: list[np.ndarray] = []
+        last_rate = self.capabilities.sample_rate
+
+        def _cb(pcm, n_samples, sample_rate, _channels, _user):
+            nonlocal last_rate
+            copy = _copy_audio_cb_pcm(pcm, n_samples)
+            chunks.append(copy)
+            last_rate = int(sample_rate)
+            if on_chunk is None:
+                return True
+            # An exception raised here propagates into ctypes, which swallows it and
+            # returns the default False instead — the request then cancels and surfaces as
+            # SK_ERR_CANCELLED. Callers should not raise from on_chunk.
+            return on_chunk(copy, int(sample_rate)) is not False
+
+        cb = _ffi.AUDIO_CB(_cb)
+        status = self._lib.sk_tts_synth(self._h, text.encode(), language.encode() if language else None,
+                                        float(speed), cb, None)
+        if status != _ffi.SK_OK:
+            _raise(self._lib, status, "sk_tts_synth")
+        samples = np.concatenate(chunks) if chunks else np.empty(0, dtype=np.float32)
+        return samples, last_rate
+
+    def unload(self) -> None:
+        h, self._h = self._h, None
+        if h is not None:
+            self._lib.sk_tts_unload(h)
+
+    def __del__(self):
+        try:
+            self.unload()
+        except Exception:
+            pass
+
+
+def tts_load(path: str, family: str, device: Device | None = None, language: str | None = None) -> TtsModel:
+    lib = _load()
+    out = ctypes.c_void_p()
+    dev = None
+    if device is not None:
+        dev = _ffi.sk_device()
+        dev.index = int(device.index)
+    # ctypes keeps no reference from a Structure's c_char_p field, so the encoded bytes
+    # must be kept alive here for the duration of the call.
+    family_b = family.encode()
+    language_b = language.encode() if language is not None else None
+    opts = _ffi.sk_tts_options()
+    opts.family = family_b
+    opts.language = language_b
+    status = lib.sk_tts_load(str(path).encode(), ctypes.byref(dev) if dev is not None else None,
+                             ctypes.byref(opts), ctypes.byref(out))
+    if status != _ffi.SK_OK:
+        _raise(lib, status, "sk_tts_load")
+    raw = _ffi.sk_tts_caps()
+    status = lib.sk_tts_capabilities(out.value, ctypes.byref(raw))
+    if status != _ffi.SK_OK:
+        lib.sk_tts_unload(out.value)
+        _raise(lib, status, "sk_tts_capabilities")
+    caps = TtsCaps(bool(raw.streaming), bool(raw.clones), bool(raw.transcript_required), int(raw.sample_rate))
+    return TtsModel(lib, out.value, caps)
