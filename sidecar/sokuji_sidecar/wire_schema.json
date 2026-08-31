@@ -14,7 +14,6 @@
   "pong": {"required": ["id"], "optional": []},
   "ready": {"required": ["id", "loadTimeMs"], "optional": ["sampleRate", "backend", "device", "computeType", "rtf", "tokensPerSec", "memoryBytes", "fallbackReason", "streaming", "clones"]},
   "result": {"required": ["text", "durationMs", "recognitionTimeMs"], "optional": ["startSample"]},
-  "speech_start": {"required": [], "optional": []},
   "translate_result": {"required": ["id", "sourceText", "translatedText", "inferenceTimeMs"], "optional": []},
   "tts_chunk": {"required": ["id", "seq"], "optional": []},
   "tts_done": {"required": ["id", "totalSamples", "generationTimeMs"], "optional": []},

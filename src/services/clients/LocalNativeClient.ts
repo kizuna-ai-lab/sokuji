@@ -101,11 +101,8 @@ export class LocalNativeClient implements IClient {
     const initAsr = async () => {
       store.setAsrLoading(true);
       try {
-        const res = await this.asr.init(config.sourceLanguage, config.asrModelId, 24000, {
-          threshold: config.vadThreshold,
-          minSilence: config.vadMinSilenceDuration,
-          minSpeech: config.vadMinSpeechDuration,
-        }, config.asrDevice, config.asrVariant);
+        const res = await this.asr.init(config.sourceLanguage, config.asrModelId, 24000,
+          config.asrDevice, config.asrVariant);
         store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', backend: res.backend, computeType: res.computeType, rtf: res.rtf, memoryBytes: res.memoryBytes, fallbackReason: res.fallbackReason });
         this.emitInitReady('asr', config.asrModelId ?? '', res);
       } finally {

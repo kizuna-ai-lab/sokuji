@@ -6,7 +6,6 @@ export interface NativeAsrResult { text: string; startSample?: number; durationM
 export class NativeAsrClient {
   onResult: ((r: NativeAsrResult) => void) | null = null;
   onPartialResult: ((text: string) => void) | null = null;
-  onSpeechStart: (() => void) | null = null;
   onStatus: ((m: string) => void) | null = null;
   onError: ((e: string) => void) | null = null;
   private conn: ISidecarConnection;
@@ -17,7 +16,6 @@ export class NativeAsrClient {
   }
 
   private onPush(msg: ServerMsg): void {
-    if (msg.type === 'speech_start') { this.onSpeechStart?.(); return; }
     if (msg.type === 'partial') { this.onPartialResult?.(msg.text); return; }
     // ASR results are pushed without an id — they are not replies to a request.
     if (msg.type === 'result') {
@@ -31,14 +29,11 @@ export class NativeAsrClient {
   }
 
   async init(
-    language = '', modelId?: string, sampleRate = 24000,
-    vad?: { threshold?: number; minSilence?: number; minSpeech?: number },
-    device?: string, variant?: string,
+    language = '', modelId?: string, sampleRate = 24000, device?: string, variant?: string,
   ): Promise<{ loadTimeMs: number; backend?: string; device?: string; computeType?: string; rtf?: number; memoryBytes?: number; fallbackReason?: string }> {
     this.onStatus?.('[native-asr] init…');
     const msg = await this.conn.request({
       type: 'asr_init', language, model: modelId, sampleRate, device, variant,
-      vadThreshold: vad?.threshold, vadMinSilenceDuration: vad?.minSilence, vadMinSpeechDuration: vad?.minSpeech,
     }, { timeoutMs: INIT_REQUEST_TIMEOUT_MS });
     const r = msg as Extract<ServerMsg, { type: 'ready' }>;
     return { loadTimeMs: r.loadTimeMs, backend: r.backend, device: r.device, computeType: r.computeType, rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason };
@@ -46,6 +41,12 @@ export class NativeAsrClient {
 
   feedAudio(samples: Int16Array, _sampleRate: number): void {
     this.conn.sendBinary(samples);   // server is in asr binary mode after init; pass the view so a subarray isn't over-sent
+  }
+
+  /** Forward a client-VAD edge to the sidecar (fire-and-forget; interleaves
+   *  with the binary PCM in connection order). */
+  sendVadMark(event: 'start' | 'end' | 'cancel'): void {
+    this.conn.send({ type: 'vad_mark', event });
   }
 
   async flush(): Promise<void> { await this.conn.request({ type: 'asr_flush' }); }
