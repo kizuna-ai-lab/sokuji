@@ -142,6 +142,45 @@ class _BoomingStreamModel(_FakeTtsModel):
         raise RuntimeError("decoder blew up")
 
 
+class _MultiStreamTrackingModel(_FakeTtsModel):
+    """Tracks how many synth() calls are concurrently inside on_chunk-driven
+    generation (active/max_active), and gates each call INDEPENDENTLY (one
+    threading.Event pair per call, not shared) so a test can reproduce two
+    overlapping streams -- an active one and a superseded orphan -- and
+    control each one's progress deterministically. Reproduces review round
+    2's regression: a single _cancel_event/_worker_thread slot lost track of
+    a superseded stream's worker the moment a newer stream registered."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.active = 0
+        self.max_active = 0
+        self._count_lock = threading.Lock()
+        self.calls: list[dict] = []   # one entry per synth() call, in order
+
+    def synth(self, text, language=None, speed=1.0, on_chunk=None):
+        if on_chunk is None:
+            return super().synth(text, language, speed, on_chunk)
+        self._check_loaded("sk_tts_synth")
+        call = {"before_gate": threading.Event(), "gate": threading.Event(), "text": text}
+        self.calls.append(call)
+        with self._count_lock:
+            self.active += 1
+            self.max_active = max(self.max_active, self.active)
+        try:
+            if on_chunk(self.chunks[0], self.capabilities.sample_rate) is False:
+                raise NativeError(-7, "sk_tts_synth: cancelled")
+            call["before_gate"].set()
+            call["gate"].wait(timeout=5)
+            for chunk in self.chunks[1:]:
+                if on_chunk(chunk, self.capabilities.sample_rate) is False:
+                    raise NativeError(-7, "sk_tts_synth: cancelled")
+            return np.concatenate(self.chunks), self.capabilities.sample_rate
+        finally:
+            with self._count_lock:
+                self.active -= 1
+
+
 def _caps(streaming=False, clones=True, transcript_required=False, sample_rate=24000):
     return types.SimpleNamespace(streaming=streaming, clones=clones,
                                  transcript_required=transcript_required, sample_rate=sample_rate)
@@ -566,3 +605,87 @@ def test_load_error_wraps_native_error_from_the_binding(native_env, monkeypatch)
     b = backends.make_backend("native_tts")
     with pytest.raises(backends.BackendLoadError, match="unknown family"):
         b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="bogus_family"))
+
+
+# ── review round 2: unload() must join EVERY outstanding worker ─────────────
+
+def test_unload_joins_every_outstanding_worker_including_a_superseded_orphan(native_env):
+    """Reproduces the round-2 regression: _cancel_event/_worker_thread were
+    single slots, so a SUPERSEDED stream's worker (the "orphan") escaped
+    unload()'s cancel+join entirely the moment a newer stream's
+    generate_stream() overwrote those slots. The reviewer proved this
+    reachable via tts_init -> tts_generate -> supersede tts_generate ->
+    teardown: model.unload() fired while the orphan was still inside
+    self._model.synth(...), with two synth() calls concurrently active on one
+    backend. This reproduces that exact shape directly against the backend."""
+    created, log = native_env
+    created["caps"] = _caps(streaming=True)
+    created["model_factory"] = lambda *a: _MultiStreamTrackingModel(
+        *a, chunks=[np.ones(10, np.float32), np.ones(10, np.float32)])
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    model = created["model"]
+
+    # Stream A: the one about to be superseded ("the orphan").
+    gen_a = b.generate_stream("first")
+    next(gen_a)
+    call_a = model.calls[0]
+    assert call_a["before_gate"].wait(timeout=5)
+
+    # Supersede, exactly like _h_tts_generate's ordering: cancel the CURRENT
+    # stream (A) BEFORE starting the new one (B).
+    b.cancel()
+    gen_b = b.generate_stream("second")
+    next(gen_b)
+    call_b = model.calls[1]
+    assert call_b["before_gate"].wait(timeout=5)
+
+    # A's cancel flag is set, but A is still gated -- it hasn't noticed the
+    # cancellation yet. This IS the "orphan still inside synth()" window the
+    # bug report describes: both calls are concurrently active right now.
+    assert model.active == 2
+    documented_max_concurrency = model.max_active   # reported below, not asserted tightly
+
+    order = []
+    orig_unload = model.unload
+
+    def tracked_unload():
+        order.append(("model.unload", model.active))
+        orig_unload()
+
+    model.unload = tracked_unload
+
+    unload_thread = threading.Thread(target=b.unload)
+    unload_thread.start()
+    time.sleep(0.1)
+    assert unload_thread.is_alive()       # blocked joining outstanding workers
+    assert order == []                    # model.unload() not reached yet
+
+    # Release BOTH gates: A observes its (already-set) cancel flag on its next
+    # chunk and stops; B (the active stream) runs its own remaining chunk and
+    # completes normally.
+    call_a["gate"].set()
+    call_b["gate"].set()
+    unload_thread.join(timeout=5)
+
+    assert not unload_thread.is_alive()
+    # zero synth() calls active at the moment model.unload() actually fired --
+    # both workers were fully joined first, regardless of which one started
+    # first or which one was "current" when unload() was called.
+    assert order == [("model.unload", 0)]
+    assert documented_max_concurrency >= 2   # sanity: the race was genuinely exercised
+    assert b.is_loaded is False
+
+
+def test_registry_self_cleans_up_after_a_completed_stream(native_env):
+    """After a stream drains to completion (no supersede, no crash), its
+    (thread, event) entry must not linger in the registry -- otherwise
+    unload() would keep joining already-finished threads forever (harmless
+    but unbounded) and the registry would grow across the process lifetime."""
+    created, log = native_env
+    created["caps"] = _caps(streaming=True)
+    created["model_factory"] = lambda *a: _FakeTtsModel(*a, chunks=[np.ones(10, np.float32)])
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    list(b.generate_stream("hello"))   # drain to completion
+    assert b._workers == []

@@ -28,13 +28,25 @@ makes a superseding tts_generate or an explicit tts_cancel actually stop generat
 instead of merely detaching the old asyncio Task (tts_engine.py defect 2).
 
 generate_stream() itself is a PLAIN function, not a generator: it creates the queue,
-the cancel Event, and the worker thread -- and assigns self._cancel_event/
-self._worker_thread -- EAGERLY, before returning, then hands back a small inner
-generator that only drains the queue. If generate_stream() were itself the generator
-(the `yield` inside its own body), none of that setup would run until the caller's
-first next()/iteration -- a cancel() called in the window between create_task() and
-the first poll would target whatever self._cancel_event happened to hold from a
-PRIOR stream (or None) and be silently lost (review round 1, CQ-6).
+the cancel Event, and the worker thread -- and registers the (thread, event) pair in
+self._workers -- EAGERLY, before returning, then hands back a small inner generator
+that only drains the queue. If generate_stream() were itself the generator (the
+`yield` inside its own body), none of that setup would run until the caller's first
+next()/iteration -- a cancel() called in the window between create_task() and the
+first poll would target whatever was registered from a PRIOR stream (or nothing) and
+be silently lost (review round 1, CQ-6).
+
+self._workers is a LIST of every (thread, event) pair whose stream hasn't finished
+self-cleanup yet, not a single slot -- a single slot let a SUPERSEDED stream's worker
+become an orphan invisible to unload(): tts_generate's supersede path cancels the
+CURRENT stream and starts a new one without waiting for the old one to actually stop,
+so the old worker can still be inside self._model.synth(...) when the new stream
+overwrites what unload() would join. unload() must therefore join EVERY outstanding
+worker, not just the most recent (review round 2). cancel() still only ever needs to
+target the most recently started entry: tts_engine's supersede path always calls
+cancel_active() BEFORE starting the new stream (never after), so at the moment
+cancel() reads self._workers[-1] it can only be the stream actually being superseded
+-- the new one hasn't registered yet.
 
 A real (non-cancelled) synth() failure is re-raised out of the drain generator, not
 swallowed -- tts_engine's own `for chunk in generate_stream(...)` loop already wraps
@@ -76,8 +88,13 @@ class NativeTtsBackend:
     def __init__(self):
         self._model = None
         self._language = None
-        self._cancel_event = None
-        self._worker_thread = None
+        # Every (threading.Thread, threading.Event) pair for a stream that hasn't
+        # finished self-cleanup yet, oldest first. Guarded by _workers_lock since
+        # generate_stream() (append), _drain()'s finally (remove, from whatever
+        # thread is draining it), cancel() (read the tail), and unload() (snapshot
+        # + clear) can all run concurrently on different threads.
+        self._workers: list[tuple[threading.Thread, threading.Event]] = []
+        self._workers_lock = threading.Lock()
 
     def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self.unload()
@@ -126,10 +143,6 @@ class NativeTtsBackend:
             raise BackendLoadError("native_tts not loaded")
         q: "queue.Queue" = queue.Queue()
         cancelled = threading.Event()
-        # Bind BEFORE starting the thread and BEFORE returning to the caller: a
-        # cancel() arriving before the first pull must still land on THIS stream's
-        # event, not be dropped (see the module docstring, CQ-6).
-        self._cancel_event = cancelled
 
         def on_chunk(pcm, _sr):
             q.put(("chunk", np.asarray(pcm, dtype=np.float32)))
@@ -151,7 +164,14 @@ class NativeTtsBackend:
                 q.put(_SENTINEL)
 
         thread = threading.Thread(target=worker, daemon=True)
-        self._worker_thread = thread
+        entry = (thread, cancelled)
+        # Register BEFORE starting the thread and BEFORE returning to the caller:
+        # a cancel() arriving before the first pull must still land on THIS
+        # stream's event, not be dropped (review round 1, CQ-6), and unload()
+        # must be able to find this worker even if a later stream supersedes it
+        # before this one has finished cleaning up after itself (review round 2).
+        with self._workers_lock:
+            self._workers.append(entry)
         thread.start()
 
         def _drain():
@@ -169,16 +189,22 @@ class NativeTtsBackend:
                 # GC) as well as normal/error completion: either way, nothing
                 # after this point should keep the native session running.
                 cancelled.set()
+                with self._workers_lock:
+                    if entry in self._workers:
+                        self._workers.remove(entry)
 
         return _drain()
 
     def cancel(self) -> None:
-        """Stop the in-flight generate_stream() at its next chunk boundary — the
-        native session cannot be interrupted mid-chunk, only between sk_audio_cb
-        calls (see the module docstring)."""
-        ev = self._cancel_event
-        if ev is not None:
-            ev.set()
+        """Stop the MOST RECENTLY STARTED generate_stream() at its next chunk
+        boundary -- the native session cannot be interrupted mid-chunk, only
+        between sk_audio_cb calls (see the module docstring). Safe to call as
+        the supersede step for a new stream: tts_engine always calls this
+        BEFORE starting the new stream, so self._workers[-1] can only be the
+        stream being superseded, never the one about to replace it."""
+        with self._workers_lock:
+            if self._workers:
+                self._workers[-1][1].set()
 
     def set_voice(self, audio, sr, ref_text: str = "") -> None:
         if self._model is None:
@@ -204,23 +230,32 @@ class NativeTtsBackend:
         return self._model.presets()
 
     def unload(self) -> None:
-        # Cancel and JOIN the streaming worker BEFORE touching the model at all:
-        # sk_tts_unload takes the same per-handle mutex a synth() in flight is
-        # holding, so unloading first would either block this call on that mutex
-        # (an event-loop stall when unload runs on a connection teardown) or --
-        # worse -- free the handle out from under the worker thread's still-live
-        # `self._model.synth(...)` call (use-after-free). Cancel signals the
-        # worker to stop between chunks; join waits for it to actually have
-        # stopped, bounded so a wedged native call can't hang teardown forever
-        # (review round 1, CQ-4).
-        ev = self._cancel_event
-        if ev is not None:
+        # Cancel and JOIN every OUTSTANDING streaming worker BEFORE touching the
+        # model at all -- not just the most recently started one: a superseded
+        # stream's worker can still be an "orphan" here, cancelled but not yet
+        # actually stopped, and a single _cancel_event/_worker_thread slot would
+        # lose track of it the moment a newer stream registered (review round 2
+        # regression: unload() calling model.unload() while an orphan was still
+        # inside self._model.synth(...), or two synth() calls concurrently
+        # active on one backend). sk_tts_unload takes the same per-handle mutex
+        # a synth() in flight is holding, so unloading before every worker has
+        # actually stopped would either block this call on that mutex (an
+        # event-loop stall when unload runs on a connection teardown) or --
+        # worse -- free the handle out from under a still-live synth() call
+        # (use-after-free).
+        #
+        # Snapshot-then-clear under the lock so a concurrent generate_stream()
+        # can't observe a half-cleared registry; cancel every entry, then join
+        # every thread against ONE shared deadline (not 10s each) so unload()'s
+        # total worst case doesn't grow with the number of outstanding orphans.
+        with self._workers_lock:
+            workers = list(self._workers)
+            self._workers.clear()
+        for _thread, ev in workers:
             ev.set()
-        thread = self._worker_thread
-        if thread is not None:
-            thread.join(timeout=10.0)
-        self._cancel_event = None
-        self._worker_thread = None
+        deadline = time.monotonic() + 10.0
+        for thread, _ev in workers:
+            thread.join(timeout=max(0.0, deadline - time.monotonic()))
         model, self._model = self._model, None
         if model is not None:
             try:
