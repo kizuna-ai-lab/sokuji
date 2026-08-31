@@ -10,7 +10,8 @@ Rebuild the local-inference sidecar's runtime layer on the ggml family only:
 
 - **ASR** — transcribe.cpp (unchanged engine; already the only ASR runtime since 2026-07-04)
 - **Translation** — llama.cpp, used **as a library** (no `llama-server` child process)
-- **TTS + VAD** — audio.cpp's engine, used **as a library** (no `audiocpp_server`)
+- **TTS** — audio.cpp's engine, used **as a library** (no `audiocpp_server`); VAD runs
+  in the renderer, not in the native layer (Amendment A1)
 
 All three engines are linked into **one shared library, `libsokuji_native`**, behind
 **one C ABI we own**, on top of **one pristine upstream ggml**. The Python sidecar
@@ -41,8 +42,8 @@ and their G2P dependency chains, and the on-demand `llama-server` binary downloa
    installer); TTS speed is not a gate (the catalog lists what runs, users choose);
    correctness gates are in §9.
 7. **Stage vocabulary:** modules, classes, backend names and C-API prefixes use the stage
-   names `asr` / `translate` / `tts`, plus `vad` as an ASR-side capability — never the
-   implementing technology.
+   names `asr` / `translate` / `tts` — never the implementing technology. (VAD left the
+   sidecar in Amendment A1; segmentation is the renderer's job.)
 8. The sidecar itself stays Python. Moving the WebSocket server out of Python is a
    possible later step that this design deliberately keeps open (§3.2), not part of it.
 
@@ -109,7 +110,7 @@ sokuji_sidecar (Python: ws server · catalog · planner · downloads · engines)
 libsokuji_native.so          ← our C ABI (sk_*), our code, ~1,000 lines C++
   ├─ transcribe.cpp (static) ← sk_asr_*
   ├─ llama.cpp      (static) ← sk_translate_*
-  └─ audio.cpp      (static, 6 families + compat header) ← sk_tts_*, sk_vad_*
+  └─ audio.cpp      (static, 6 families + compat header) ← sk_tts_*
         │  dynamic
         ▼
 libggml / libggml-base + backend modules (ggml-cpu-<isa>, ggml-vulkan | ggml-metal)
@@ -142,7 +143,6 @@ native/
   src/
     sk_common.cpp                sk_init, devices, memory, logging, errors, threads
     sk_asr.cpp                   over transcribe.cpp
-    sk_vad.cpp                   over audio.cpp silero_vad session
     sk_translate.cpp             over llama.cpp
     sk_tts.cpp                   over audio.cpp TTS sessions
     audiocpp_compat.h            fork-op → upstream-ggml bridge (§4.4)
@@ -196,7 +196,7 @@ Conventions, applied uniformly:
 - Every callback receives `void * user` and **returns `bool`; `false` cancels** — the
   one cancellation mechanism for ASR streaming, translation token streaming and TTS chunk
   streaming.
-- PCM is `float32`; ASR and VAD input is 16 kHz mono; TTS output carries its own sample
+- PCM is `float32`; ASR input is 16 kHz mono; TTS output carries its own sample
   rate. Strings are UTF-8. Memory allocated by the library is released with `sk_free`.
 - Threads are configured once in `sk_init` (audio.cpp's engine defaults to 1 thread when
   unconfigured — this is why the setting is mandatory).
@@ -221,11 +221,6 @@ sk_status sk_asr_stream_feed(sk_asr_stream *, const float *pcm, size_t n, sk_str
 sk_status sk_asr_stream_finalize(sk_asr_stream *, sk_text_cb, void *);
 void      sk_asr_stream_close(sk_asr_stream *);
 void      sk_asr_unload(sk_asr_model *);
-
-/* VAD (audio.cpp silero, bundled weights) */
-sk_status sk_vad_open(const sk_vad_options *, sk_vad **);   // thresholds, min speech/silence
-sk_status sk_vad_feed(sk_vad *, const float *pcm512, sk_vad_event *out);
-void      sk_vad_reset(sk_vad *);  void sk_vad_close(sk_vad *);
 
 /* Translation (llama.cpp) */
 sk_status sk_translate_load(const char *gguf, const sk_device *, const sk_translate_options *, sk_translate **);
@@ -312,11 +307,11 @@ Expected uncompressed size per wheel: ggml core + CPU variants ~20 MB, Vulkan sh
 | backend module | `asr_backend.py` | `translate_backend.py` | `tts_backend.py` |
 | backend classes | `NativeAsrBackend`, `NativeAsrStreamBackend` | `NativeTranslateBackend` (+ Qwen / Hunyuan / Gemma prompt strategies) | `NativeTtsBackend` |
 | backend `NAME` | `native_asr`, `native_asr_stream` | `native_translate` | `native_tts` |
-| C prefix | `sk_asr_*`, `sk_vad_*` | `sk_translate_*` | `sk_tts_*` |
+| C prefix | `sk_asr_*` | `sk_translate_*` | `sk_tts_*` |
 | engine | `asr_engine.py` | `translate_engine.py` | `tts_engine.py` |
 
-VAD is an ASR-side capability implemented by audio.cpp; it keeps its own prefix because
-it is a distinct capability, but it belongs to the ASR stage.
+VAD is not a sidecar capability: segmentation happens in the renderer's vad-web worker
+and reaches the ASR stage as `vad_mark` wire events (Amendment A1).
 
 ### 5.2 Entry point and accel
 
@@ -333,9 +328,10 @@ deleted from `planner.py`, `accel.py` and `catalog.py`.
 
 - **ASR:** the two classes in today's `transcribe_backend.py` move to `asr_backend.py`
   over `sk_asr_*`; `_match_language` and the committed-delta stream adapter
-  (`_TcStream`) keep their logic. `asr_engine.py` replaces sherpa-onnx's
-  `VoiceActivityDetector` with `sk_vad_*`, keeping thresholds, minimum speech/silence
-  durations and the pre-roll behaviour.
+  (`_TcStream`) keep their logic. `asr_engine.py` drops its VAD entirely: segment
+  edges arrive from the renderer as `vad_mark` events (Amendment A1) — the offline
+  path buffers between marks over a pre-roll ring; the streaming path keeps the
+  always-stream/degrade architecture with marks replacing the local VAD edges.
 - **Translation:** `translate_backend.py` keeps the three prompt-strategy classes and
   swaps `LlamaServerProc.chat()` for `sk_translate_chat()`; tokens stream to the
   renderer as they are produced; cancellation is the callback returning `false`.
@@ -373,8 +369,12 @@ deleted from `planner.py`, `accel.py` and `catalog.py`.
 ### 5.5 Wire protocol
 
 Unchanged except: the `styleVoice` variant of `set_voice` is removed; `ready` gains
-`family`. `list_tts_voices` returns preset names. Errors keep the `BackendLoadError` →
-resolver-fallback rule and the diagnostics policy in `CLAUDE.md`.
+`family`. `list_tts_voices` returns preset names. The asr leg is v2 (Amendment A1):
+`asr_init` loses the three `vad*` fields, the client sends
+`{"type": "vad_mark", "event": "start" | "end" | "cancel"}` control messages
+interleaved with the binary PCM, and the sidecar's `speech_start` push is removed.
+Errors keep the `BackendLoadError` → resolver-fallback rule and the diagnostics
+policy in `CLAUDE.md`.
 
 ## 6. Removal list
 
@@ -419,7 +419,9 @@ repositories.
 - **Electron:** `sidecar-sku.js` selects on `process.platform` + `process.arch` only;
   the `hasNvidia` probe is removed from `native-host-manager.js` and `main.js`;
   `nativeModelStore.ts` SKU strings are renamed. `prefetch_models.py` no longer fetches
-  `silero_vad.onnx` (silero ships inside the native library).
+  `silero_vad.onnx` (no silero artifact ships in the sidecar or the wheel at all —
+  Amendment A1; the renderer's `public/wasm/vad/silero_vad_v5.onnx` already ships in
+  both the Electron and extension builds).
 - **CI:** `native-build.yml` (new, §4.6); `sidecar-bundles.yml` matrix becomes the five
   runners with only `pip install -r requirements.txt`; every CUDA / DirectML / sbsa step
   is deleted. Release flow is unchanged: `package.json.sidecarVersion` →
@@ -452,7 +454,7 @@ repositories.
 
 Per-engine CPU smoke with small models cached via `actions/cache`: `sk_asr_run` on
 whisper-tiny Q8, `sk_translate_chat` on Qwen3-0.6B, `sk_tts_synth` on Supertonic and
-MOSS-Nano, `sk_vad_feed` on the bundled silero. Plus: ABI/contract consistency; a
+MOSS-Nano. Plus: ABI/contract consistency; a
 cancellation test asserting that all three streaming paths stop before the next chunk once
 the callback returns `false`.
 
@@ -475,8 +477,8 @@ tests follow the tier and backend renames.
 ### 9.4 Live smoke matrix (per SKU, before a release; optional CI job)
 
 Existing ASR loopback; one translation per prompt family; TTS→ASR loopback for the six
-families; VAD segmentation against sherpa-silero on the same recording within one frame
-(32 ms). RTF is measured after a warm-up, always.
+families. RTF is measured after a warm-up, always. (The VAD-vs-sherpa comparison gate
+is void — Amendment A1 removed the sidecar VAD.)
 
 ### 9.5 Renderer
 
@@ -495,7 +497,7 @@ against recorded numbers.
 |---|---|---|---|
 | 0 | transcribe-cpp 0.2.2 + 3 ASR cards | done (`7aaadc07`) | — |
 | 1 | native skeleton | `native/` super-project, `libsokuji_native` with `sk_init` / `sk_devices` / `sk_version`, CTest, `native-build.yml` for 5 platforms, `native-v0.1.0`, parity scaffold | 5 wheels green; `sk_devices` lists Vulkan + CPU on GB10 |
-| 2 | ASR + VAD | `sk_asr_*`, `sk_vad_*`, `asr_backend.py`, VAD swap, requirements drop transcribe-cpp + sherpa-onnx | ASR loopback; VAD ≤ 1 frame; RTF on par with the PyPI wheel |
+| 2 | ASR + client VAD | `sk_asr_*`, `asr_backend.py`, wire v2 (`vad_mark`), `native-vad.worker.ts`, requirements drop transcribe-cpp | ASR loopback; RTF on par with the PyPI wheel; both engine paths driven by marks under test fakes (Amendment A1) |
 | 3 | translation | `sk_translate_*`, `translate_backend.py`, delete `llama_runtime.py` / `ct2_opus.py` / Opus rows / CTranslate2 | one sentence per prompt family; token streaming and cancel work |
 | 4 | TTS | `sk_tts_*`, `tts_backend.py`, `tts_engine.py` fixes, catalog 68→11, single-file downloads + hard-links, parity suite, delete the nine backends / five packages / conversion scripts | parity (CPU exact, Vulkan ≥ 60 dB); TTS→ASR loopback |
 | 5 | cleanup | tiers, one requirements file, `setup.sh`, SKU table, `sidecar-sku.js`, `nativeModelStore`, renderer touchpoints, workflows, `test_runtime_gate.py` | pytest + vitest green; five bundles built with sizes printed |
@@ -524,10 +526,61 @@ nothing here pre-approves an outward act.
 1. `sokuji_sidecar/` has no import of onnxruntime, torch, sherpa_onnx, ctranslate2,
    transcribe_cpp or mlx; `requirements.txt` is the eight-package allowlist (§9.3).
 2. One ggml on disk per bundle (`libggml*` appears once); no child inference processes.
-3. Parity, loopback and VAD gates in §9 pass on the five SKUs.
+3. Parity and loopback gates in §9 pass on the five SKUs.
 4. Bundle sizes are reported per SKU; the number, not a threshold, is the deliverable.
 5. The catalog lists 67 ASR, 9 translation and 11 TTS cards; Supertonic 3 and
    MOSS-TTS-Nano are recommended.
+
+## Amendment A1 (2026-08-31) — VAD moves to the renderer
+
+Decided by jiangzhuo on 2026-08-31, after slice 2's implementation measured audio.cpp's
+streaming silero against sherpa-onnx and missed the ≤1-frame gate for algorithmic
+reasons (its streaming path applies no min-speech gating to live start edges and
+ignores `max_speech_duration_s`; on top of that its bundled safetensors weights drift
+from the official onnx export).
+
+**The deciding fact:** the renderer already carries a complete client-side VAD stack
+that cannot be removed — `@ricky0123/vad-web`'s FrameProcessor over the official
+`silero_vad_v5.onnx` via onnxruntime-web WASM, shared by the whisper-webgpu,
+voxtral-webgpu and zoom-vad workers (the browser/extension lane §1.2 leaves untouched,
+plus the Zoom cascade provider on every platform). A second silero in the sidecar
+(different weights AND different edge semantics) means the desktop lane and the
+browser lane segment speech differently forever. local_native's user-facing VAD
+defaults (0.3 / 1.4 s / 0.4 s in `LocalNativeProviderConfig`) were already copied
+from the vad-web lane for settings-UI parity; feeding them into a sherpa-tuned engine
+(0.5 / 0.5 s / 0.25 s native defaults) was a semantic mismatch from day one.
+
+**Consequences (authoritative over the amended sections above):**
+
+- **One VAD product-wide.** Segmentation for the local_native provider runs in the
+  renderer: `native-vad.worker.ts` mirrors `zoom-vad.worker.ts`'s ORT + FrameProcessor
+  loop but emits edge events only (`speech_start` / `speech_end` / `speech_cancel`,
+  no utterance audio transfer). The user's three VAD knobs configure this worker
+  (threshold → `resolveVadThresholds`; minSilence → `redemptionMs`;
+  minSpeech → `minSpeechMs`), exactly as the voxtral worker maps them. The 20 s
+  max-speech cap lives in the worker (`endSegment`), as it does for Zoom.
+- **Wire protocol (asr leg) v2.** Binary PCM stays continuous Int16@24k in both
+  modes. `asr_init` loses `vadThreshold` / `vadMinSilenceDuration` /
+  `vadMinSpeechDuration`. New client→sidecar control message
+  `{"type": "vad_mark", "event": "start" | "end" | "cancel"}` — fire-and-forget,
+  no `id`, no reply; its ordering against the binary frames is the WS connection's
+  ordering. `cancel` is vad-web's VADMisfire (a start that never reached
+  min-speech). The sidecar's `speech_start` push is removed — the renderer knew
+  first; `partial` / `result` / `asr_flush` are unchanged.
+- **`asr_engine.py`.** Offline path: a ~0.7 s pre-roll ring, a segment buffer opened
+  at `start` (seeded with the ring), transcribed at `end` or flush, dropped at
+  `cancel`. Streaming path: keeps the always-stream/degrade architecture; marks are
+  enqueued into the audio queue as sentinels (order-exact with the audio the feeder
+  saw) and replace `_vad_state` / `_vad_events`; the 20 s run-on cap stays as a
+  sample-counting backstop against lost marks. `vad.py` (`NativeVad`) is deleted.
+- **Native layer.** `sk_vad_*` leaves the ABI: `sk_vad.cpp`, the header block, the
+  ctypes surface, `test_vad`, and the bundled `silero_vad_16k.safetensors` are all
+  removed; audio.cpp remains for TTS only. `project(sokuji_native VERSION)` bumps
+  0.2.0 → 0.3.0 (nothing has been released; version numbers are cheap).
+- **Skew tolerance.** Marks trail the audio they refer to by worker latency plus
+  silero's threshold ramp (~100–300 ms): the pre-roll ring absorbs the start skew,
+  and a late `end` only appends trailing silence, which transcription tolerates.
+  This is the same lag the sidecar VAD itself had.
 
 ## Appendix A — measured facts referenced above
 
