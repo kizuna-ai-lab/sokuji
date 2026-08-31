@@ -593,6 +593,8 @@ def test_always_stream_cancel_does_not_cut(monkeypatch):
     assert not [m for m in sent if m["type"] == "result"]   # no cut on cancel
     assert opened["n"] == 0                                  # stream NOT reopened
     assert eng._in_speech is False
+    assert eng._speech_samples == 0   # cancelled stretch must not feed the run-on cap
+                                       # or keep the shutdown flush condition alive
 
 
 def test_always_stream_cuts_on_endpoint_with_complete_tail(monkeypatch):
@@ -877,10 +879,25 @@ def test_streaming_end_to_end_real_gpu():
     sent = []
     async def send(m): sent.append(m)
     step = int(0.1 * sr) * 2     # 100ms of int16 bytes
+    # Client vad-web mark schedule tuned to benchmark/test-speech-silence-speech.wav's
+    # known layout (speech ~0-3.75s, silence ~3.75-5.9s, speech ~5.9-9.69s): open before
+    # the first speech region, close mid-pause, reopen before the second speech region,
+    # close at EOF. Segmentation is entirely mark-driven now — there is no VAD left in
+    # the sidecar to do this on its own.
+    mark_schedule = [(0.0, "start"), (4.5, "end"), (5.6, "start")]
+    mark_bytes = [(int(t * sr) * 2, ev) for t, ev in mark_schedule]
     async def feeder():
+        mi = 0
         for i in range(0, len(pcm), step):
+            while mi < len(mark_bytes) and i >= mark_bytes[mi][0]:
+                eng.mark(mark_bytes[mi][1])
+                mi += 1
             eng.feed_stream(pcm[i:i + step])
             await asyncio.sleep(0.1)
+        while mi < len(mark_bytes):          # flush any marks scheduled past the last chunk
+            eng.mark(mark_bytes[mi][1])
+            mi += 1
+        eng.mark("end")                      # EOF: close the second utterance
         eng.feed_stream(None)
     async def drive():
         await asyncio.gather(feeder(), eng.run_stream(send))
@@ -891,11 +908,12 @@ def test_streaming_end_to_end_real_gpu():
     # tail-hold fix: the first sentence ends with "country" and it must be IN a final,
     # not dropped/leaked onto the next utterance.
     assert "ask" in full and "country" in full, f"unexpected: {results!r}"
-    # endpoint segmentation: the mid-clip pause should cut at least one final mid-clip,
-    # so >1 final (not one clump) and >1 stream opened (each utterance ended at its pause).
+    # mark-driven segmentation: the mid-clip end/start pair should cut at least one final
+    # mid-clip, so >1 final (not one clump) and >1 stream opened (each utterance ended at
+    # its mark).
     print(f"pause-seg e2e: {len([m for m in sent if m['type']=='partial'])} partials, "
           f"{len(results)} finals, stream opens={opens['n']}, finals={results!r}")
-    assert len(results) >= 2, f"expected the pause to segment into >=2 finals, got {results!r}"
+    assert len(results) >= 2, f"expected the marks to segment into >=2 finals, got {results!r}"
     eng.close()
 
 
@@ -994,6 +1012,53 @@ def test_backpressure_degrades_to_per_utterance(monkeypatch):
     # client hasn't sent an end mark yet, so no new "start" mark would ever
     # arrive) so the engine must keep the utterance alive on its own.
     assert eng._stream is not None
+
+
+def test_degrade_continuation_resets_utt_fed():
+    """REGRESSION: the backpressure-degrade branch opens a gated continuation stream
+    without resetting _utt_fed, and _utt_fed is never initialized elsewhere on this
+    path — since the engine is a process singleton reused across sessions, a stale
+    _utt_fed (e.g. left over from an earlier gated utterance) survives the degrade and
+    can trip the 20s backstop on the very first post-degrade buffer, emitting a
+    spurious final."""
+    import asyncio
+    from sokuji_sidecar.asr_engine import AsrEngine
+
+    class _SlowStream:      # never emits deltas -> processed audio stays 0 -> lag grows
+        def feed(self, samples): pass
+        def drain(self): return []
+        def abort(self): pass
+        def end(self): return "should not fire"
+
+    eng = AsrEngine()
+    eng._mode = "always_stream"; eng._src_rate = 16000
+    eng._stream = _SlowStream()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: _SlowStream()})()
+    eng._pending = ""
+    eng._sample_cursor = 0; eng._utt_start_sample = 0
+    import queue as _q; eng._audio_q = _q.Queue()
+    eng._in_speech = True
+    eng._speech_samples = 0
+    eng._utt_fed = 19 * 16000   # stale carryover from a PRIOR gated utterance/session
+
+    sent = []
+    async def send(m): sent.append(m)
+    buf = b"\x00\x00" * 16000     # 1s of audio per call
+    for _ in range(4):            # >3s backlog forces the backpressure degrade
+        eng._audio_q.put_nowait(buf)
+    asyncio.run(eng._drive_always(send, buf))   # degrades: always_stream -> per_utterance,
+                                                 # a gated continuation stream opens
+    assert eng._mode == "per_utterance"
+    assert eng._stream is not None
+    assert eng._utt_fed == 0   # must be reset by the degrade branch itself
+
+    # drain the backlog the lag computation above needed; isolate the next assertion
+    # to exactly one fresh 1s buffer fed through the reopened gated stream.
+    while not eng._audio_q.empty():
+        eng._audio_q.get_nowait()
+    eng._audio_q.put_nowait(buf)
+    asyncio.run(eng._drive_once(send))
+    assert not [m for m in sent if m["type"] == "result"]   # no spurious cut from stale _utt_fed
 
 
 def test_silence_never_degrades_always_stream(monkeypatch):
@@ -1170,3 +1235,43 @@ def test_gated_fast_utterance_recovers_to_always():
     assert any(m["type"] == "result" and m["text"] == "quick" for m in sent)
     assert eng._mode == "always_stream"                      # recovered
     assert eng._stream is not None                           # lossless session reopened
+
+
+def test_gated_backstop_cuts_and_reopens_in_place():
+    """A 20s per-utterance backstop (the client's end mark is lost): _drive_utterance
+    must finalize + reopen IN PLACE — the utterance continues gated, mid-utterance —
+    resetting _utt_fed and advancing _utt_start_sample so the next segment's duration
+    doesn't double-count the portion the backstop already finalized."""
+    import asyncio
+    import numpy as np
+    from sokuji_sidecar.asr_engine import AsrEngine
+
+    class _RecStream:
+        def feed(self, s): pass
+        def drain(self): return []
+        def end(self): return "backstop cut"
+        def abort(self): pass
+
+    eng = AsrEngine()
+    eng._mode = "per_utterance"; eng._src_rate = 16000
+    eng._stream = None; eng._sample_cursor = 0; eng._utt_start_sample = 0; eng._partial_acc = []
+    eng._in_speech = False
+    eng._preroll = []; eng._preroll_len = 0
+    eng._streaming = True
+    import queue as _q; eng._audio_q = _q.Queue()
+    eng._backend = type("B", (), {"open_stream": lambda self, language=None: _RecStream()})()
+
+    sent = []
+    async def send(m): sent.append(m)
+    eng.mark("start")
+    buf = np.zeros(16000, np.int16).tobytes()   # 1s buffers
+    for _ in range(21):                          # >20s fed, no end mark: trips the backstop
+        eng.feed_stream(buf)
+    asyncio.run(eng._drive_once(send))
+
+    results = [m for m in sent if m["type"] == "result"]
+    assert len(results) == 1                      # exactly one mid-utterance cut
+    assert results[0]["text"] == "backstop cut"
+    assert eng._stream is not None                 # reopened in place, utterance continues
+    assert eng._utt_fed == 16000                   # reset at the cut, then fed one more buffer
+    assert eng._utt_start_sample == 19 * 16000     # advanced past the finalized portion

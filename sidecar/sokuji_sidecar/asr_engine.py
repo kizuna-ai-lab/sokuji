@@ -203,7 +203,6 @@ class AsrEngine:
         import queue as _queue
         self.close()
         self._src_rate = int(sample_rate)
-        self._streaming = True
         self._in_speech = False
         self._backend, plan, notice, mem = self._resolve_streaming_backend(model_id, device, pin)
         self.resolved = {"backend": plan.backend, "device": plan.device,
@@ -214,6 +213,8 @@ class AsrEngine:
             self.resolved["fallbackReason"] = notice
         self._language = language or None
         self._audio_q = _queue.Queue()
+        self._streaming = True       # flip only after _audio_q exists: a vad_mark racing this
+                                      # call must never enqueue into a missing/stale queue
         self._mode = "always_stream"
         self._stream = self._open_stream()   # always-stream: one long-lived session
         self._preroll = []
@@ -222,7 +223,7 @@ class AsrEngine:
         self._partial_acc = []       # per-utterance fallback accumulator
         self._utt_start_sample = 0
         self._sample_cursor = 0
-        self._utt_samples = 0        # per-utterance fallback (its own cap)
+        self._utt_fed = 0            # per-utterance backstop counter (gated mode)
         self._speech_samples = 0     # speech in the current stream (20s run-on cap)
         self._stop = False
 
@@ -308,6 +309,8 @@ class AsrEngine:
             return
         if ev == "cancel":
             self._in_speech = False
+            self._speech_samples = 0   # a cancelled stretch must not feed the run-on cap
+                                        # or keep the shutdown flush condition alive
             return
         if ev == "end":
             self._in_speech = False
@@ -369,13 +372,15 @@ class AsrEngine:
         samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
         if self._in_speech and self._stream is not None:
             self._stream.feed(samples)
-            self._utt_fed = getattr(self, "_utt_fed", 0) + len(samples)
+            self._utt_fed += len(samples)
             deltas = self._stream.drain()
             if deltas:
                 self._partial_acc += deltas
                 await send({"type": "partial", "text": "".join(self._partial_acc)})
             if self._utt_fed >= 20 * TARGET_RATE:   # lost end mark: cut, keep going
                 await self._finalize(send)
+                self._utt_start_sample = self._sample_cursor   # exclude the just-finalized
+                                                                 # portion from the next segment
                 self._stream = self._open_stream()
                 self._utt_fed = 0
         else:
@@ -489,6 +494,9 @@ class AsrEngine:
                 # utterance would be dropped. Open it now and replay the ring.
                 self._utt_start_sample = max(0, self._sample_cursor - self._preroll_len)
                 self._partial_acc = []
+                self._utt_fed = 0   # this engine is a process singleton reused across
+                                     # sessions — a stale value here would trip the gated
+                                     # 20s backstop on the very next buffer
                 self._stream = self._open_stream()
                 pre = self._preroll_take()
                 if pre is not None:
