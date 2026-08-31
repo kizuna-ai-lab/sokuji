@@ -114,43 +114,49 @@ SAME thread count (`THREADS = 4` in `test_tts_parity.py`, via `--threads` on the
 thread-count dependent, so a mismatch there is indistinguishable from a genuine backend
 divergence.
 
-## 4. Known status (as of Task 3, first CPU run on the GB10 dev box)
+## 4. Known status (as of Fix round 1)
 
-Both currently-runnable cases FAILED — not close-but-inexact, but shape mismatches
-(`compare_pcm.compare()` refuses to diff differently-shaped arrays, so `--exact` can't even be
-evaluated for two of the three):
+Round 0 found three shape-mismatch failures. Fix round 1 root-caused and fixed two concrete
+wrapper defects (stereo channels dropped by the Python binding; supertonic compared against
+the wrong CLI mode) and did a full, instrumented diff of MOSS's request construction — all
+detailed in `.superpowers/sdd/2026-08-31-sidecar-ggml-only-slice4-tts/task-3-report.md`'s
+"Fix round 1" section. **All three cases still FAIL** after the fixes:
 
-- **`test_supertonic_offline_voice_id_m1`**: shapes differ by 15 samples (82653 vs 82638 @
-  44100 Hz, both ~1.874s) — close on duration, but a head- and tail-aligned diagnostic compare
-  (trimming to the shorter length from either end) shows large `max_abs` (~0.48-0.50) and
-  negative SNR both ways, so this is not merely a boundary-padding offset; the candidate's
-  audio content genuinely differs from the reference's. The leading hypothesis (not chased
-  further, per task-3-report.md) is `sk_tts.cpp` always constructing supertonic's session as
-  STREAMING (report §2/`native/README.md`: supertonic is one of only two streaming-capable
-  families) where the reference CLI ran OFFLINE (no `--mode` flag): the two session types take
-  structurally different code paths (offline: one `run()` call, no text-chunking machinery at
-  all; streaming: pull-loop over `runtime::chunk_text_request`-produced chunks), and there is
-  no way to request an offline session for a streaming-capable family through the current
-  `sk_tts_*` C surface.
-- **`test_moss_text_only`** and **`test_moss_clone`**: large divergence, not a rounding issue.
-  The candidate produced exactly **2304000** total float samples in BOTH cases regardless of
-  input (text-only vs. clone, different text/reference) — matching `native/tests/test_tts.cpp`'s
-  own CTest output from Task 1 ("moss synth: 1 call(s), 2304000 samples, 48000 Hz") for the
-  first time compared against real reference output. The reference CLI instead produced
-  variable, content-appropriate durations (3.6s / 172800 frames for text-only, 24.0s / 1152000
-  frames for the clone) — AND reported 2 channels, where the candidate's `TtsModel.synth()`
-  (`native/python/sokuji_native/__init__.py`) discards the `channels` value the C ABI's
-  `sk_audio_cb` already provides correctly and always returns a flat array. Two independent
-  gaps, but the fixed 2304000-float count regardless of input is the dominant one: even
-  reinterpreted as stereo, it does not track the reference's actual (also variable) durations.
+- **`test_supertonic_streaming_voice_id_m1`**: now compared streaming-vs-streaming (round 0
+  compared the candidate's forced-streaming session against the CLI's offline default) — the
+  result is IDENTICAL: still 82653 vs 82638 samples, still fails the same way. Confirmed
+  directly that the CLI's own `--mode streaming --out` merge equals its `--out-dir` chunk_0.wav
+  bit-for-bit for this single-chunk text, so mode alignment could not have changed anything
+  here — offline-vs-streaming was never the actual cause. Per-chunk localization (now built into
+  the test) shows the single chunk pair itself is the mismatch, nothing hidden by merging.
+- **`test_moss_text_only`**: still a shape mismatch, but now `(172800, 2)` vs `(1152000, 2)` —
+  correctly 2 channels on both sides (the binding fix worked), duration still wrong. A direct
+  runtime probe (temporarily instrumented into BOTH binaries' `generation_options_from_request`,
+  removed before commit) confirmed `seed`, `do_sample`, and every sampling parameter are
+  BYTE-IDENTICAL between the candidate and the CLI for this exact request — the divergence is
+  not a missing/misspelled option. Under `do_sample=false` the stop decision
+  (`moss_tts_nano/local_frame_decoder.cpp`'s `generate_frame`) is `argmax_index` over 2 logits,
+  with NO RNG involved at all — a pure function of the computed hidden state. The candidate and
+  reference are also confirmed thread-count-invariant individually (1 vs 4 threads changes
+  neither side's frame count), ruling out FP-reduction-order-from-threading too. MOSS's
+  attention (`ggml_soft_max`-based, confirmed by direct source read) does not call either of
+  `native/src/audiocpp_compat.h`'s two node-for-node-reimplemented ops. See the report for the
+  full elimination chain — the remaining explanation is a genuine numeric difference somewhere
+  in the transformer forward pass between upstream ggml and audio.cpp's own fork, not a request-
+  construction or option-spelling defect in this wrapper.
+- **`test_moss_clone`**: shape now MATCHES — `(1152000, 2)` on both sides (the reference itself
+  also runs to the full 300-frame generation cap for this input, so the channel fix alone closes
+  the length gap) — but content does not: `max_abs=0.959 snr=-15.81 dB`. This is the cleanest
+  evidence in the whole suite: same generation length on both sides (no early-stop asymmetry to
+  confound the comparison), same request, and still a large, real audio-content divergence.
 
-Per the plan's Task 3 design, this task did not chase either divergence further — see
-`.superpowers/sdd/2026-08-31-sidecar-ggml-only-slice4-tts/task-3-report.md` for the full
-evidence and exact `compare_pcm` numbers. The comparator, harness, and reference-build
-machinery themselves are confirmed working (both binaries load the identical CPU kernel tier,
-`libggml-cpu-armv8.6_2.so`, on this box) — what they found is a real, currently-unresolved
-parity gap between `sk_tts` and the official CLI on two of the five families, left for the
-compat-header porting decision (spec §10.1).
+The comparator, harness, and reference-build machinery are confirmed sound (both binaries load
+the identical CPU kernel tier, `libggml-cpu-armv8.6_2.so`, on this box; the two concrete wrapper
+defects this round found — stereo channels, streaming-mode alignment — are fixed and covered by
+`native/python/tests/test_sokuji_native.py`'s updated assertions). What remains is a real,
+currently-unexplained-at-the-request-level divergence on two of the five families, for the
+compat-header porting decision (spec §10.1) — now backed by a much narrower elimination chain
+than round 0 had.
 
 ## 5. The Vulkan leg (deferred)
 

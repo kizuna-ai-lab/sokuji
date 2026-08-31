@@ -141,35 +141,72 @@ def _assert_exact(ref_wav: pathlib.Path, got_wav: pathlib.Path) -> None:
 @needs_cli
 @needs_tree
 @needs_supertonic
-def test_supertonic_offline_voice_id_m1(tmp_path):
+def test_supertonic_streaming_voice_id_m1(tmp_path):
     text = "Hello from Supertonic."
     ref_wav = tmp_path / "ref.wav"
     got_wav = tmp_path / "got.wav"
+    ref_chunk_dir = tmp_path / "ref_chunks"
+    ref_chunk_dir.mkdir()
 
-    # Verbatim shape from the report §7 example, --backend cuda swapped for --backend cpu,
-    # plus the determinism/thread flags this gate pins. No --mode: offline is the CLI default,
-    # and supertonic's session in sk_tts.cpp is ALWAYS created streaming (report/task-1: only
-    # omnivoice+supertonic stream) — a text this short (well under the ~300-codepoint
-    # text-chunk budget, native/tests/test_tts.cpp) falls inside a single chunk on both sides
-    # regardless, so offline-vs-streaming session construction is not expected to matter here.
+    # Fix round 1: mode-aligned with the candidate. sk_tts.cpp's session for supertonic is
+    # ALWAYS created streaming (report/task-1: only omnivoice+supertonic stream) — round 0
+    # compared that against the CLI's OFFLINE default, a genuine mode mismatch. --mode
+    # streaming here makes both sides run the identical session type. --out-dir captures the
+    # per-chunk WAVs the streaming pull loop produces (report §7); --out captures the SAME
+    # run's merged result (main.cpp's run_streaming(): the final emit_task_result() call uses
+    # finish_stream()'s own merged buffer, independent of --out-dir) — for supertonic the
+    # merge is plain accumulation, so this must equal a concatenation of the per-chunk files
+    # (verified directly: for this single-chunk text, merged.wav == chunk_0.wav bit-for-bit).
     _run_cli([
         "--task", "tts", "--family", "supertonic", "--model", str(SUPERTONIC_DIR),
-        "--backend", "cpu", "--threads", str(THREADS),
+        "--backend", "cpu", "--threads", str(THREADS), "--mode", "streaming",
         "--language", "en", "--text", text, "--voice-id", "M1",
         "--seed", "0", "--request-option", "do_sample=false",
-        "--out", str(ref_wav),
+        "--out", str(ref_wav), "--out-dir", str(ref_chunk_dir),
     ])
 
     sokuji_native.init(n_threads=THREADS)
     t = sokuji_native.tts_load(SUPERTONIC_DIR, "supertonic")
+    got_chunks: list[np.ndarray] = []
     try:
         t.set_preset("M1")
-        samples, rate = t.synth(text, language="en")
+        samples, rate = t.synth(text, language="en", on_chunk=lambda pcm, sr: got_chunks.append(pcm))
     finally:
         t.unload()
     _write_pcm16_wav(got_wav, rate, samples)
 
-    _assert_exact(ref_wav, got_wav)
+    try:
+        _assert_exact(ref_wav, got_wav)
+    except (AssertionError, ValueError) as merged_failure:
+        # ValueError: compare_pcm.compare() itself refuses to diff differently-shaped
+        # arrays (a shape mismatch IS a non-exact verdict, just one that never reaches the
+        # assert below) — caught here too so a chunk-count mismatch still gets localized.
+        # Per-chunk localization (not chased further than this — see the parity README and
+        # task-3-report.md "Fix round 1"): compare each candidate chunk against the CLI's own
+        # --out-dir chunk_<i>.wav, so a merged-length mismatch (different chunk COUNT) is
+        # distinguished from a same-length, different-content mismatch (same chunk count,
+        # some/all chunks differ).
+        import soundfile as sf
+
+        ref_chunk_paths = sorted(ref_chunk_dir.glob("chunk_*.wav"), key=lambda p: p.name)
+        lines = [f"merged compare failed: {merged_failure}", "", "per-chunk localization:"]
+        for i in range(max(len(ref_chunk_paths), len(got_chunks))):
+            if i >= len(ref_chunk_paths):
+                lines.append(f"  chunk {i}: candidate produced it, reference did not (reference: {len(ref_chunk_paths)} chunk(s))")
+                continue
+            if i >= len(got_chunks):
+                lines.append(f"  chunk {i}: reference produced it, candidate did not (candidate: {len(got_chunks)} chunk(s))")
+                continue
+            got_chunk_wav = tmp_path / f"got_chunk_{i}.wav"
+            _write_pcm16_wav(got_chunk_wav, rate, got_chunks[i])
+            ref_c, ref_c_rate = sf.read(str(ref_chunk_paths[i]), dtype="float32", always_2d=False)
+            got_c, got_c_rate = sf.read(str(got_chunk_wav), dtype="float32", always_2d=False)
+            if ref_c_rate != got_c_rate or ref_c.shape != got_c.shape:
+                lines.append(f"  chunk {i}: shape/rate mismatch ref={ref_c.shape}@{ref_c_rate} got={got_c.shape}@{got_c_rate}")
+                continue
+            r = compare(ref_c, got_c)
+            lines.append(f"  chunk {i}: n={r.n} max_abs={r.max_abs:.3e} snr={r.snr_db:.2f} dB")
+        raise AssertionError("\n".join(lines)) from merged_failure
 
 
 @needs_cli

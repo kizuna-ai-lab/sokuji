@@ -429,14 +429,20 @@ class TtsCaps:
     sample_rate: int
 
 
-def _copy_audio_cb_pcm(pcm, n_samples: int) -> np.ndarray:
+def _copy_audio_cb_pcm(pcm, n_samples: int, channels: int = 1) -> np.ndarray:
     """`pcm` points at a buffer that audio.cpp owns and may free or overwrite the instant
     the callback returns — this MUST run inside the callback and produce an independent,
     owned array before that happens. `n_samples` is the total float count of the
-    (possibly multi-channel interleaved) buffer, already channel-inclusive."""
+    (possibly multi-channel interleaved) buffer, already channel-inclusive. Shape is
+    numpy-natural: 1-D `(frames,)` for mono, 2-D `(frames, channels)` for anything else —
+    moss_tts_nano's audio tokenizer is stereo, and `channels` here is the C ABI's own
+    value (native/src/sk_tts.cpp forwards `audio.channels` verbatim at every sk_audio_cb
+    call site; it was already correct, only this binding was dropping it)."""
     if not n_samples or not pcm:
         return np.empty(0, dtype=np.float32)
-    return np.ctypeslib.as_array(pcm, shape=(int(n_samples),)).copy()
+    flat = np.ctypeslib.as_array(pcm, shape=(int(n_samples),)).copy()
+    ch = int(channels)
+    return flat.reshape(-1, ch) if ch > 1 else flat
 
 
 class TtsModel:
@@ -489,9 +495,9 @@ class TtsModel:
         chunks: list[np.ndarray] = []
         last_rate = self.capabilities.sample_rate
 
-        def _cb(pcm, n_samples, sample_rate, _channels, _user):
+        def _cb(pcm, n_samples, sample_rate, channels, _user):
             nonlocal last_rate
-            copy = _copy_audio_cb_pcm(pcm, n_samples)
+            copy = _copy_audio_cb_pcm(pcm, n_samples, channels)
             chunks.append(copy)
             last_rate = int(sample_rate)
             if on_chunk is None:
@@ -506,7 +512,9 @@ class TtsModel:
                                         float(speed), cb, None)
         if status != _ffi.SK_OK:
             _raise(self._lib, status, "sk_tts_synth")
-        samples = np.concatenate(chunks) if chunks else np.empty(0, dtype=np.float32)
+        # axis=0 concatenates along the frame axis for both shapes _copy_audio_cb_pcm can
+        # produce: 1-D (frames,) mono chunks, or 2-D (frames, channels) multi-channel ones.
+        samples = np.concatenate(chunks, axis=0) if chunks else np.empty(0, dtype=np.float32)
         return samples, last_rate
 
     def unload(self) -> None:

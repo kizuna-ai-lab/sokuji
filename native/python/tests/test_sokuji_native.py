@@ -268,6 +268,7 @@ def test_tts_supertonic_streams_presets_and_cancel():
         "ordinary paragraph of prose sent through this interface.",
         language="en", on_chunk=lambda pcm, sr: chunks.append((len(pcm), sr)))
     assert rate == 44100 and len(samples) > 0 and len(chunks) >= 2
+    assert samples.ndim == 1   # mono: numpy-natural 1-D, not a (frames, 1) column
     assert sum(n for n, _ in chunks) == len(samples)
     seen = []
     def stop_after_one(pcm, sr):
@@ -294,9 +295,14 @@ def test_tts_moss_offline_and_clone():
     assert t.presets() == []
     samples, rate = t.synth("Hello from MOSS.")
     assert rate == 48000 and len(samples) > 0
+    # moss_tts_nano's audio tokenizer output is stereo (confirmed against the official
+    # audiocpp_cli's own --metrics output, native/tests/parity/): synth() must hand back a
+    # numpy-natural 2-D (frames, channels) array, not a flat buffer mislabeled as mono.
+    assert samples.ndim == 2 and samples.shape[1] == 2
     ref = np.sin(np.linspace(0, 2 * np.pi * 440, 24000)).astype(np.float32)
     t.set_voice(ref, 24000, ref_text="test")
     samples2, _ = t.synth("Hello again.")
     assert len(samples2) > 0
+    assert samples2.ndim == 2 and samples2.shape[1] == 2
     t.unload()
     t.unload()
