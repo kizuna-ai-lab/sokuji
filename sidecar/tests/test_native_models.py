@@ -353,7 +353,7 @@ def test_download_specs_fun_asr_mlt_nano():
     spec = nm.download_specs('fun-asr-mlt-nano')
     assert spec['files'] == [('handy-computer/Fun-ASR-MLT-Nano-2512-gguf',
                               'Fun-ASR-MLT-Nano-2512-Q6_K.gguf')]
-    # silero ships inside the sokuji_native wheel now — no separate VAD download.
+    # VAD runs in the renderer (spec Amendment A1) — no VAD artifact anywhere in the sidecar.
     assert spec['urls'] == []
 def _file_spec(mid, quant):
     """Helper: the expected files-shaped download_specs entry for an LLM translate card."""

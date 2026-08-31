@@ -3,7 +3,7 @@ PyPI binding now wrap sokuji_native's AsrModel — same load()/transcribe()/unlo
 contract, same stream adapter contract (feed/drain/end/abort), same language mapping.
 
 model_ref is an upstream artifact path "org/repo/file.gguf"; the file must already be in
-the HF cache (the manager downloads it first). Batch mode: one AsrModel.run() per VAD
+the HF cache (the manager downloads it first). Batch mode: one AsrModel.run() per client-marked
 segment. The streaming variant adapts AsrStream's committed/tentative view to asr_engine's
 stream contract: drain() emits committed-prefix DELTAS only (tentative text can be revised,
 so it never enters the append-only partial), and end() finalizes + returns the post-finalize
@@ -97,8 +97,8 @@ class NativeAsrBackend:
 
 class _NativeStream:
     """asr_engine stream adapter over one sokuji_native AsrStream. Lifecycle: the engine
-    opens at speech start, feed()s audio, drain()s partial deltas, end()s at the VAD
-    endpoint (or abort()s on teardown). The committed view refreshes on every feed(); drain()
+    opens at speech start, feed()s audio, drain()s partial deltas, end()s at the client's
+    end mark (or abort()s on teardown). The committed view refreshes on every feed(); drain()
     diffs it against what it already emitted (Ruling I)."""
 
     def __init__(self, model, language=None):

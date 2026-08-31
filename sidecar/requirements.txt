@@ -27,7 +27,7 @@ nltk==3.10.0
 # ja G2P. Pulls sudachipy + sudachidict_core (~212MB) — kept deliberately
 # (kanji homograph readings); quality follow-up tracked in issue #322.
 pyopenjtalk-plus==0.4.1.post8
-# ASR + VAD (and, from slices 3-4, translation + TTS) run in-process through the
+# ASR (and, from slices 3-4, translation + TTS) run in-process through the
 # sokuji-native wheel built from native/ (one ggml, one C ABI). It is not on PyPI and has
 # no published release yet, so setup.sh installs it from native/python/dist/ (built by
 # native/ci/build.sh) or from $SOKUJI_NATIVE_WHEEL; the pinned per-platform URLs from the

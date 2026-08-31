@@ -31,15 +31,12 @@ def _downsample_int16_to_f32_16k(int16_bytes, src_rate=SRC_RATE):
 
 class AsrEngine:
     """Mark-driven ASR: the client's vad-web worker owns segmentation and sends
-    `start`/`end`/`cancel` edges via mark(); the offline path buffers audio between
-    marks and transcribes once per segment. A pluggable recognizer produces the text.
-
-    The streaming half (STREAMING backends only) still gates itself with the native
-    silero VAD for endpointing — that segmentation moves to marks in a later task.
+    `start`/`end`/`cancel` edges via mark(); both the offline and streaming halves
+    buffer/gate audio between marks and transcribe (or feed) accordingly. A
+    pluggable recognizer produces the text.
     """
 
     def __init__(self):
-        self._vad = None
         self._backend = None
         self._language = None
         self.resolved = None
@@ -56,25 +53,6 @@ class AsrEngine:
         # Streaming pre-roll ring (unchanged, used by the streaming half):
         self._preroll = []
         self._preroll_len = 0
-
-    def _init_vad(self, sample_rate, vad_threshold, vad_min_silence, vad_min_speech):
-        from .vad import NativeVad    # lazy: the native library is loaded here
-        self._src_rate = int(sample_rate)
-        kw = {}
-        if vad_threshold is not None:
-            kw["threshold"] = float(vad_threshold)
-        if vad_min_silence is not None:
-            kw["min_silence_s"] = float(vad_min_silence)
-        if vad_min_speech is not None:
-            kw["min_speech_s"] = float(vad_min_speech)
-        if self._vad is not None:
-            try:
-                self._vad.close()
-            except Exception:
-                pass
-        self._vad = NativeVad(**kw)
-        self._window = self._vad.window
-        self._buf = np.zeros(0, np.float32)
 
     def init(self, model_id=None, language="", sample_rate=SRC_RATE, device="auto", pin=None):
         from . import accel
@@ -149,7 +127,7 @@ class AsrEngine:
     def feed(self, int16_bytes):
         """Buffer downsampled audio for the offline (mark-driven) path: while NOT in
         speech it rolls into the pre-roll ring; while in speech it appends to the open
-        segment. Never emits speech_start — that edge now comes from the client's mark."""
+        segment. Emits no session-start event of its own — that edge comes from the client's mark."""
         x = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
         self._fed_total += len(x)
         if not self._in_speech:
@@ -218,14 +196,15 @@ class AsrEngine:
     def is_streaming(self):
         return bool(getattr(self._backend, "STREAMING", False))
 
-    def init_streaming(self, model_id=None, language="", sample_rate=SRC_RATE,
-                       vad_threshold=None, vad_min_silence=None, vad_min_speech=None, device="auto",
-                       pin=None):
-        """Like init(), but for a STREAMING backend: resolve+load, set up VAD for
-        endpointing, and prepare the audio queue + always-stream state (default mode)."""
+    def init_streaming(self, model_id=None, language="", sample_rate=SRC_RATE, device="auto", pin=None):
+        """Like init(), but for a STREAMING backend: resolve+load, and prepare the
+        audio queue + always-stream state (default mode). Segmentation is entirely
+        client-driven — the client's marks toggle _in_speech; no VAD setup here."""
         import queue as _queue
         self.close()
-        self._init_vad(sample_rate, vad_threshold, vad_min_silence, vad_min_speech)
+        self._src_rate = int(sample_rate)
+        self._streaming = True
+        self._in_speech = False
         self._backend, plan, notice, mem = self._resolve_streaming_backend(model_id, device, pin)
         self.resolved = {"backend": plan.backend, "device": plan.device,
                          "computeType": plan.compute_type}
@@ -277,8 +256,9 @@ class AsrEngine:
         return []
 
     async def run_stream(self, send):
-        """The asyncio streaming loop (Approach A). Owns VAD endpointing, the stream
-        session lifecycle, and pushes speech_start/partial/result via `send`."""
+        """The asyncio streaming loop (Approach A). Dispatches queued marks and audio
+        via _dispatch, owns the stream session lifecycle, and pushes partial/result via
+        `send`. Endpointing is entirely client-driven (see _mark_always/_mark_utterance)."""
         loop = asyncio.get_running_loop()
         while not self._stop:
             try:
@@ -287,10 +267,7 @@ class AsrEngine:
                 continue
             if data is None:
                 break
-            if self._mode == "always_stream":
-                await self._drive_always(send, data)
-            else:
-                await self._drive_utterance(send, data)
+            await self._dispatch(send, data)
         if self._mode == "always_stream":
             # Flush the last stream if it saw speech (its tail text may still be held by the
             # model with _pending empty) — gating on speech, not _pending, mirrors the pause-cut.
@@ -305,24 +282,45 @@ class AsrEngine:
         elif self._stream is not None:
             await self._finalize(send)
 
-    async def _drive_utterance(self, send, int16_bytes):
-        """Process one audio buffer: VAD → manage session → emit events. Factored so
-        tests can call _drive_once with scripted VAD. Feeds the buffer to the stream
-        ONCE per call — a single buffer spans several VAD windows, so feeding per-event
-        would duplicate the audio and scramble the streaming model's features.
+    async def _dispatch(self, send, data):
+        """Route one queued item to its handler: a ('mark', event) sentinel goes to
+        _mark_always/_mark_utterance, a raw audio buffer to _drive_always/_drive_utterance.
+        Shared by run_stream and the _drive_once test seam so marks are handled
+        identically in both."""
+        if isinstance(data, tuple) and data and data[0] == "mark":
+            ev = data[1]
+            if self._mode == "always_stream":
+                await self._mark_always(send, ev)
+            else:
+                await self._mark_utterance(send, ev)
+            return
+        if self._mode == "always_stream":
+            await self._drive_always(send, data)
+        else:
+            await self._drive_utterance(send, data)
 
-        Silero's rising edge lags the true onset by 300-600ms (threshold ramp +
-        min_speech_duration): the pre-roll ring replays that audio into the fresh
-        stream so utterances keep their first words. A fast utterance (recognition
-        quicker than realtime) flips the engine back to the lossless always-stream
-        mode — a degrade is not a one-way door."""
-        samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
-        events = self._vad_events(samples)
-        if "start" in events:
-            # Defensive: in practice _stream is already None here (an "end" precedes every
-            # "start", and degrade nulls it) — abort + reopen guards against a stale stream
-            # from any source.
-            if self._stream is not None:
+    async def _mark_always(self, send, ev):
+        """Always-stream mode: marks own the endpoint. "start"/"cancel" just toggle
+        _in_speech (the stream is already open and fed continuously); "end" cuts via
+        _end_and_reopen when the stream has actually seen speech."""
+        if ev == "start":
+            self._in_speech = True
+            return
+        if ev == "cancel":
+            self._in_speech = False
+            return
+        if ev == "end":
+            self._in_speech = False
+            if self._stream is not None and self._speech_samples > 0:
+                await self._end_and_reopen(send)
+
+    async def _mark_utterance(self, send, ev):
+        """Gated (per-utterance) mode: marks open/close the session; _drive_utterance
+        only feeds audio while _in_speech. A fast utterance (recognition quicker than
+        realtime) flips the engine back to the lossless always-stream mode — a degrade
+        is not a one-way door."""
+        if ev == "start":
+            if self._stream is not None:            # stale stream from any source
                 try:
                     self._stream.abort()
                 except Exception:
@@ -333,19 +331,27 @@ class AsrEngine:
             self._stream = self._open_stream()
             pre = self._preroll_take()
             if pre is not None:
-                self._stream.feed(pre)     # onset audio silero's latency would drop
-            await send({"type": "speech_start"})
-        if self._stream is not None and "speech" in events:
-            self._stream.feed(samples)
-            deltas = self._stream.drain()
-            if deltas:
-                self._partial_acc += deltas
-                await send({"type": "partial", "text": "".join(self._partial_acc)})
-        ended = False
-        if "end" in events and self._stream is not None:
+                self._stream.feed(pre)
+            self._in_speech = True
+            self._utt_fed = 0
+            return
+        if ev == "cancel":
+            if self._stream is not None:
+                try:
+                    self._stream.abort()
+                except Exception:
+                    pass
+                self._stream = None
+                self._partial_acc = []
+            self._in_speech = False
+            self._preroll, self._preroll_len = [], 0
+            return
+        if ev == "end":
+            self._in_speech = False
+            if self._stream is None:
+                return
             dur_ms, rec_ms = await self._finalize(send)
-            ended = True
-            self._preroll, self._preroll_len = [], 0   # ring restarts post-utterance
+            self._preroll, self._preroll_len = [], 0
             if rec_ms < dur_ms:
                 import sys
                 print("[sokuji-sidecar] streaming caught up — back to always-stream mode",
@@ -354,12 +360,27 @@ class AsrEngine:
                 self._pending = ""
                 self._speech_samples = 0
                 self._stream = self._open_stream()
-        self._sample_cursor += len(samples)
-        if not ended:
-            # Ring holds strictly-previous buffers at "start" time; the buffer
-            # that ENDED an utterance is excluded so the next pre-roll can't
-            # replay the previous utterance's tail.
+
+    async def _drive_utterance(self, send, int16_bytes):
+        """Audio in gated mode. Marks arrive separately (see _mark_utterance); this
+        only feeds the open stream while in speech and keeps the pre-roll ring warm
+        while out of it. A 20s per-utterance backstop finalizes and reopens in place
+        if the client's end mark is lost."""
+        samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
+        if self._in_speech and self._stream is not None:
+            self._stream.feed(samples)
+            self._utt_fed = getattr(self, "_utt_fed", 0) + len(samples)
+            deltas = self._stream.drain()
+            if deltas:
+                self._partial_acc += deltas
+                await send({"type": "partial", "text": "".join(self._partial_acc)})
+            if self._utt_fed >= 20 * TARGET_RATE:   # lost end mark: cut, keep going
+                await self._finalize(send)
+                self._stream = self._open_stream()
+                self._utt_fed = 0
+        else:
             self._preroll_push(samples)
+        self._sample_cursor += len(samples)
 
     async def _finalize(self, send):
         """end() the stream and emit the result. Returns (dur_ms, rec_ms) so the
@@ -383,32 +404,7 @@ class AsrEngine:
         """Test seam: drive exactly the buffers currently queued, once."""
         while not self._audio_q.empty():
             data = self._audio_q.get_nowait()
-            if self._mode == "always_stream":
-                await self._drive_always(send, data)
-            else:
-                await self._drive_utterance(send, data)
-
-    def _vad_state(self, samples):
-        """Run silero VAD over `samples` for STATE only (always-stream): return
-        (had_speech, rising, falling). `falling` = silero's endpoint (is_speech_detected
-        True->False this buffer), governed by the user's min_silence_duration. Does not
-        gate input."""
-        had_speech = False
-        rising = False
-        falling = False
-        self._buf = np.concatenate([self._buf, samples])
-        while len(self._buf) >= self._window:
-            was = self._vad.is_speech_detected()
-            self._vad.accept_waveform(self._buf[:self._window])
-            self._buf = self._buf[self._window:]
-            now = self._vad.is_speech_detected()
-            if now:
-                had_speech = True
-            if not was and now:
-                rising = True
-            if was and not now:
-                falling = True
-        return had_speech, rising, falling
+            await self._dispatch(send, data)
 
     def _result_event(self, text):
         """A `result` envelope. startSample/durationMs are approximate in always-stream."""
@@ -434,20 +430,15 @@ class AsrEngine:
         self._speech_samples = 0
 
     async def _drive_always(self, send, int16_bytes):
-        """Always-stream: feed every buffer (no gating); cut a final on silero's endpoint
-        (the falling edge, governed by the user's min_silence_duration) — or a 20s run-on
-        cap — via end()+reopen, which flushes the COMPLETE held tail. Continuous feed means
-        no leading loss."""
+        """Always-stream: feed every buffer (no gating). The client's marks own the
+        endpoint (_mark_always cuts via _end_and_reopen on "end"); this only tracks
+        speech extent for that decision and forces a cut at the 20s run-on cap as a
+        backstop against a lost end mark. Continuous feed means no leading loss."""
         samples = _downsample_int16_to_f32_16k(int16_bytes, self._src_rate)
         self._sample_cursor += len(samples)
         self._preroll_push(samples)          # rolling onset copy (consumed at degrade)
         self._stream.feed(samples)                       # continuous, never gated
-        try:
-            had_speech, rising, falling = self._vad_state(samples)
-        except Exception:                                # VAD failure -> assume speech, no edges
-            had_speech, rising, falling = True, False, False
-        if rising:
-            await send({"type": "speech_start"})
+        had_speech = self._in_speech
         if had_speech:
             self._speech_samples += len(samples)
         deltas = self._stream.drain()
@@ -464,11 +455,9 @@ class AsrEngine:
             self._stream = self._open_stream()
             self._pending = ""; self._speech_samples = 0
             return
-        # Cut on the silero endpoint (or the run-on cap) whenever this stream has SEEN SPEECH —
-        # NOT when _pending has text. The model can hold a short utterance's text until end(),
-        # so gating on _pending would drop/merge short or slow-first-token utterances. end()
-        # flushes the held text and _end_and_reopen's `if final.strip()` skips truly-empty finals.
-        if (falling or self._speech_samples >= 20 * TARGET_RATE) and self._speech_samples > 0:
+        # Run-on cap backstop: the client's "end" mark normally owns the endpoint (see
+        # _mark_always); this only forces a cut if that mark is lost or badly delayed.
+        if self._speech_samples >= 20 * TARGET_RATE and self._speech_samples > 0:
             await self._end_and_reopen(send)
             return
         # Backpressure = un-processed audio backed up in the queue. This is the
@@ -482,7 +471,7 @@ class AsrEngine:
         if self._mode == "always_stream" and lag > 3.0:
             import sys
             print(f"[sokuji-sidecar] streaming has {lag:.1f}s of audio backed up — "
-                  "degrading to VAD-gated mode", file=sys.stderr, flush=True)
+                  "degrading to client-gated mode", file=sys.stderr, flush=True)
             if self._pending.strip():
                 await send(self._result_event(self._pending))
             try:
@@ -495,16 +484,15 @@ class AsrEngine:
             if had_speech:
                 # Backlog usually builds while the model chews on SPEECH, so
                 # the degrade typically lands mid-utterance. Without a
-                # continuation stream the VAD stays in-speech and no rising
-                # edge would ever open one — the rest of the utterance would
-                # be dropped. Open it now and replay the ring.
+                # continuation stream the client stays in-speech (no new
+                # "start" mark would ever arrive) and the rest of the
+                # utterance would be dropped. Open it now and replay the ring.
                 self._utt_start_sample = max(0, self._sample_cursor - self._preroll_len)
                 self._partial_acc = []
                 self._stream = self._open_stream()
                 pre = self._preroll_take()
                 if pre is not None:
                     self._stream.feed(pre)
-                await send({"type": "speech_start"})
 
     def resolves_to_streaming(self, model_id, device, pin=None):
         """Cheap pre-check (no model load): does this model resolve to a STREAMING backend?
@@ -531,30 +519,6 @@ class AsrEngine:
         from . import accel
         plans = accel.resolve(model_id or "voxtral-mini-4b-realtime", override=device or "auto", pin=pin)
         return accel.load_measured(plans, stage="asr")   # (backend, plan, notice, memory_bytes)
-
-    def _vad_events(self, samples):
-        """Feed `samples` to silero VAD; yield 'start' on rising edge, 'speech' while
-        active, 'end' on endpoint (silence) or the 20s max-utterance cap (bounds VRAM)."""
-        events = []
-        cap = 20 * TARGET_RATE
-        self._buf = np.concatenate([self._buf, samples])
-        while len(self._buf) >= self._window:
-            was = self._vad.is_speech_detected()
-            self._vad.accept_waveform(self._buf[:self._window])
-            self._buf = self._buf[self._window:]
-            now = self._vad.is_speech_detected()
-            if not was and now:
-                self._utt_samples = 0
-                events.append("start")
-            if now:
-                self._utt_samples += self._window
-                events.append("speech")
-                if self._utt_samples >= cap:          # force endpoint to bound VRAM
-                    events.append("end")
-                    self._utt_samples = 0
-            if was and not now:
-                events.append("end")
-        return events
 
 
 def _asr_teardown(state, conn):
