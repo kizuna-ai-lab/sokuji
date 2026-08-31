@@ -406,8 +406,10 @@ LLAMACPP_VARIANT_ROW_PIN_MATRIX = [
 @pytest.mark.parametrize("machine, expected", LLAMACPP_VARIANT_ROW_PIN_MATRIX)
 def test_llamacpp_variant_row_pin_wins_over_budget(machine, expected):
     # A pin to the (rank 1.0, non-default) q4_k_m quant is honored
-    # unconditionally -- the user's will, --fit copes with memory -- even
-    # though q8_0 is the rank-default for qwen3-0.6b.
+    # unconditionally -- the user's will -- even though q8_0 is the
+    # rank-default for qwen3-0.6b. If the pinned quant doesn't actually fit,
+    # that's a load-time question, not a quant-picking one: the GPU load
+    # fails cleanly and load_with_fallback demotes to the cpu floor.
     budget = accel._quant_budget_bytes(machine)
     d = accel._llamacpp_variant_row(_QWEN06, machine, "q4_k_m", 0, budget)
     assert (d.backend, d.tier, d.compute_type, d.artifact, d.rank) == expected

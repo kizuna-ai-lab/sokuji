@@ -65,13 +65,17 @@ def test_resolve_translate_auto_drops_off_platform(monkeypatch):
     # through resolve_deployments, so it needs the up-front filter. Without it the
     # first cpu deployment (r-win) would be picked as the floor and the resolve
     # would return the off-platform ["r-win"] instead of falling back to r-all.
+    # A synthetic non-GGUF-LLM backend name (matches the "hunyuan_translate"
+    # label test_accel.py/test_planner.py use for the same purpose): this
+    # exercises select_variant's generic, cpu-only candidate() path, which
+    # native_translate's own GGUF-LLM dispatch (_is_gguf_llm) would bypass.
     monkeypatch.setattr(accel, "current_platform", lambda: "linux")
     model = catalog.TranslateModel("syn", "Syn", ("multi",), (
-        catalog.Deployment("ct2_opus_translate", "cpu", "int8", "r-win", 1.0, platforms=("windows",)),
-        catalog.Deployment("ct2_opus_translate", "cpu", "int8", "r-all", 1.0),
+        catalog.Deployment("hunyuan_translate", "cpu", "int8", "r-win", 1.0, platforms=("windows",)),
+        catalog.Deployment("hunyuan_translate", "cpu", "int8", "r-all", 1.0),
     ))
     monkeypatch.setattr(catalog, "translate_model", lambda mid: model if mid == "syn" else None)
-    m = _machine(installed=frozenset({"ct2_opus_translate"}))
+    m = _machine(installed=frozenset({"hunyuan_translate"}))
     plans = accel.resolve_translate("syn", "auto", m)
     assert [p.artifact for p in plans] == ["r-all"]
 

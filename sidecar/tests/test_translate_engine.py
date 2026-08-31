@@ -54,6 +54,35 @@ def test_h_translate_final_reply_with_conn_none():
                      "sourceText": "hola", "translatedText": "<hola>", "inferenceTimeMs": 8}
 
 
+def test_h_translate_reports_partial_send_failure_once(capsys):
+    """An exception raised inside conn.send while pushing a partial (e.g. a
+    strict-mode wire-schema violation before Task 4 lands translate_partial)
+    must not vanish silently: run_coroutine_threadsafe's Future is otherwise
+    never awaited or inspected. It must also not stop the final reply from
+    arriving, and must be reported at most once per request even though two
+    partials fail here."""
+    class FakeTranslateStreaming:
+        def translate(self, text, system_prompt="", wrap_transcript=False, on_partial=None):
+            if on_partial is not None:
+                on_partial("Bon")
+                on_partial("Bonjour.")
+            return "Bonjour.", 3
+
+    class FakeConn:
+        async def send(self, obj):
+            raise RuntimeError("boom")
+
+    state = {"translate_engine": FakeTranslateStreaming()}
+    msg = {"type": "translate", "id": 4, "text": "hello", "systemPrompt": "",
+           "wrapTranscript": False}
+    reply, binary = asyncio.run(translate_engine._h_translate(state, msg, None, conn=FakeConn()))
+    assert binary is None
+    assert reply == {"type": "translate_result", "id": 4,
+                     "sourceText": "hello", "translatedText": "Bonjour.", "inferenceTimeMs": 3}
+    err = capsys.readouterr().err
+    assert err.count("translate_partial send failed") == 1
+
+
 def test_translate_init_echoes_device_and_resolved():
     st = make_state()
     reply, _ = asyncio.run(server.handle_message(
@@ -134,7 +163,7 @@ def test_translate_passes_on_partial_through_to_backend():
 def test_init_stores_memory_and_fallback_reason(monkeypatch):
     from sokuji_sidecar import accel
     from unittest.mock import MagicMock
-    fake_plan = MagicMock(backend="llamacpp_qwen", device="cpu", compute_type="float32")
+    fake_plan = MagicMock(backend="native_translate", device="cpu", compute_type="float32")
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured",
                         lambda plans, **kw: (MagicMock(), fake_plan, "cuda skipped (needs ~6.1 GiB, 2.1 GiB free); using CPU", 4_200_000_000))

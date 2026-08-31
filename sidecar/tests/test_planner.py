@@ -921,7 +921,7 @@ def test_resolve_arm_ort_cuda_resolves_tts_cuda():
     # With the sbsa wheel installed (ort_cuda=True), ORT TTS leads with cuda
     # on aarch64.
     m = _arm_nv_ort_cuda(installed=frozenset({
-        "native_asr", "native_asr_stream", "llamacpp_qwen", "qwen3tts_onnx"}))
+        "native_asr", "native_asr_stream", "qwen3tts_onnx"}))
     tts = planner.resolve_tts("qwen3-tts-0.6b", machine=m, platform="linux", cache={})
     assert tts[0].device == "cuda"
 

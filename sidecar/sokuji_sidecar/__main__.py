@@ -63,19 +63,19 @@ async def _run():
 
 
 def _install_exit_handlers():
-    """Make SIGTERM/SIGINT run atexit cleanups (notably LlamaServerProc.stop,
-    which kills the llama-server child).
+    """Make SIGTERM/SIGINT run atexit cleanups.
 
-    Python's default handling of a raw signal kill (as opposed to a normal
-    sys.exit()/return-from-main exit) skips atexit entirely. Electron's
+    Historically this existed for LlamaServerProc.stop (killing the
+    llama-server child process on shutdown); slice 3 moved translation
+    in-process through sokuji_native, so there is no separate child process
+    to clean up here anymore. Kept as defensive infrastructure: Python's
+    default handling of a raw signal kill (as opposed to a normal
+    sys.exit()/return-from-main exit) skips atexit entirely, and Electron's
     native-host-manager stops this sidecar with SIGTERM (POSIX) /
-    TerminateProcess (Windows) at ordinary app shutdown — not KeyboardInterrupt.
-    On Linux, LlamaServerProc.start()'s PDEATHSIG saves us regardless (the
-    child dies with its parent); macOS has no such mechanism, so translate
-    SIGTERM/SIGINT into a clean sys.exit(0) here so atexit runs there too.
-    SIGTERM is mostly theoretical on Windows (TerminateProcess bypasses
-    signal handling outright) — that platform instead relies on the Job
-    Object installed in LlamaServerProc.start().
+    TerminateProcess (Windows) at ordinary app shutdown — not
+    KeyboardInterrupt — so any future atexit-registered cleanup (in-process
+    model unload, temp files, etc.) still needs this translation into a clean
+    sys.exit(0) to actually run.
 
     Guarded to only replace the default handler (SIG_DFL): this must not
     clobber a handler something else in the process already installed."""

@@ -63,7 +63,7 @@ def test_qwen_plain_no_wrap_flags(native_env):
     gguf, log = native_env
     b = backends.make_backend("native_translate")
     b.load(gguf, "cpu", "q8_0", config=PlanConfig(prompt_family="qwen"))
-    text, n = b.translate("hello", "", "English", "Chinese", True)
+    text, n = b.translate("hello", "", "English", "Chinese", False)
     assert text == "Bonjour." and n == 3
     kind, messages, max_tokens, prefill = log[-1]
     assert kind == "chat"
@@ -71,7 +71,7 @@ def test_qwen_plain_no_wrap_flags(native_env):
     assert "You are a translator" in messages[0]["content"]
     assert "/no_think" not in messages[0]["content"]
     assert messages[1]["role"] == "user"
-    assert messages[1]["content"] == "<transcript>hello</transcript>"
+    assert messages[1]["content"] == "hello"
     assert prefill is None
     b.unload()
     assert not b.is_loaded
@@ -147,6 +147,87 @@ def test_device_fallback_raises_backend_load_error(native_env):
     b = backends.make_backend("native_translate")
     with pytest.raises(backends.BackendLoadError):
         b.load(gguf, "cuda", "q4_k_m", config=PlanConfig(prompt_family="qwen"))
+
+
+def test_empty_or_unknown_prompt_family_dispatches_to_qwen(native_env):
+    gguf, log = native_env
+    b = backends.make_backend("native_translate")
+    # An unrecognized family name falls back to the qwen shape.
+    b.load(gguf, "cpu", "q8_0", config=PlanConfig(prompt_family="some-future-family"))
+    b.translate("hello", "", "English", "French", False)
+    kind, messages, _max_tokens, _prefill = log[-1]
+    assert kind == "chat"
+    assert messages[0]["role"] == "system"
+    assert "You are a translator" in messages[0]["content"]
+    assert messages[1]["content"] == "hello"
+
+    # A bare PlanConfig() (empty prompt_family) takes the same default path.
+    b.load(gguf, "cpu", "q8_0", config=PlanConfig())
+    b.translate("hi", "", "English", "French", False)
+    kind2, messages2, _mt2, _pf2 = log[-1]
+    assert kind2 == "chat"
+    assert "You are a translator" in messages2[0]["content"]
+
+
+def test_on_partial_exception_costs_one_partial_not_the_translation(native_env):
+    """A raise inside on_partial must not propagate into the native token
+    callback (which would be swallowed by ctypes into False and cancel the
+    whole generation) — it costs exactly the one partial, not the translation."""
+    gguf, log = native_env
+    b = backends.make_backend("native_translate")
+    b.load(gguf, "cpu", "q8_0", config=PlanConfig(prompt_family="qwen"))
+    seen = []
+    calls = [0]
+
+    def flaky(text):
+        calls[0] += 1
+        if calls[0] == 2:
+            raise RuntimeError("consumer broke")
+        seen.append(text)
+
+    text, n = b.translate("hello", "", "en", "fr", False, on_partial=flaky)
+    assert text == "Bonjour." and n == 3          # full translation unaffected
+    assert seen == ["Bon", "Bonjour."]             # only the 2nd partial was lost
+
+
+def test_chatml_fallback_carries_prefill_through(native_env, monkeypatch):
+    gguf, log = native_env
+    from sokuji_sidecar import native
+
+    class _RejectingTranslator(_FakeTranslator):
+        def chat(self, messages, max_tokens=512, assistant_prefill=None, on_token=None):
+            self.log.append(("chat-attempt", messages, max_tokens, assistant_prefill))
+            raise RuntimeError("chat template not supported by the legacy formatter")
+
+    mod = types.SimpleNamespace(translate_load=lambda path, device=None, n_ctx=0:
+                                (log.append(("load", path)) or _RejectingTranslator(log)))
+    monkeypatch.setattr(native, "module", lambda: mod)
+    b = backends.make_backend("native_translate")
+    b.load(gguf, "cpu", "q8_0",
+           config=PlanConfig(prompt_family="qwen", disable_thinking=True, append_no_think=True))
+    b.translate("hi", "", "en", "zh", False)
+    complete_call = next(entry for entry in log if entry[0] == "complete")
+    prompt = complete_call[1]
+    assert prompt.endswith("<think>\n\n</think>\n\n")
+
+
+def test_chat_exception_without_template_marker_propagates(native_env, monkeypatch):
+    gguf, log = native_env
+    from sokuji_sidecar import native
+
+    class _BoomTranslator(_FakeTranslator):
+        def chat(self, messages, max_tokens=512, assistant_prefill=None, on_token=None):
+            self.log.append(("chat-attempt", messages, max_tokens, assistant_prefill))
+            raise RuntimeError("some other native failure")
+
+    mod = types.SimpleNamespace(translate_load=lambda path, device=None, n_ctx=0:
+                                (log.append(("load", path)) or _BoomTranslator(log)))
+    monkeypatch.setattr(native, "module", lambda: mod)
+    b = backends.make_backend("native_translate")
+    b.load(gguf, "cpu", "q8_0", config=PlanConfig(prompt_family="qwen"))
+    with pytest.raises(RuntimeError, match="some other native failure"):
+        b.translate("hi", "", "en", "zh", False)
+    assert not any(entry[0] == "complete" for entry in log)   # no fallback attempted
 
 
 def test_unknown_template_falls_back_to_chatml(native_env, monkeypatch):

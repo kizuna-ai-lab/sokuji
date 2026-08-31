@@ -190,7 +190,14 @@ class NativeTranslateBackend:
             acc.append(piece)
             n[0] += 1
             if on_partial is not None:
-                on_partial(_clean_output("".join(acc)))
+                try:
+                    on_partial(_clean_output("".join(acc)))
+                except Exception:
+                    # Per the binding's documented semantics, a raise escaping this
+                    # callback is swallowed by ctypes into False and CANCELS the
+                    # whole generation (SK_ERR_CANCELLED) — a broken partial
+                    # consumer must cost one partial, not the entire translation.
+                    pass
             return True
 
         # A generation failure here is not a load failure: it is not wrapped into
@@ -203,6 +210,9 @@ class NativeTranslateBackend:
             except Exception as e:
                 if "chat template not supported" not in str(e):
                     raise
+                # sk_translate.cpp validates the chat template BEFORE decoding the
+                # first token, so this fallback always fires token-free — no
+                # already-streamed partial can ever regress when acc/n reset here.
                 acc.clear()
                 n[0] = 0
                 prompt = _chatml_fallback(payload, prefill)

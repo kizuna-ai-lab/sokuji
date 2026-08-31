@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import time
 
 
@@ -91,10 +92,30 @@ async def _h_translate(state, msg, _b, conn=None):
     loop = asyncio.get_running_loop()
     on_partial = None
     if conn is not None:
+        reported = [False]  # latch: only the FIRST partial-send failure logs per request
+
+        def _report_partial_failure(fut):
+            # run_coroutine_threadsafe's Future is otherwise never awaited or
+            # inspected, so an exception raised inside conn.send (e.g. a
+            # strict-mode wire-schema violation) would vanish with no log and
+            # every remaining partial would silently stop arriving while the
+            # final reply still shows up. Surface it once; never raise from here.
+            if reported[0]:
+                return
+            try:
+                e = fut.exception()
+            except Exception:
+                return
+            if e is not None:
+                reported[0] = True
+                print(f"[sokuji-sidecar] translate_partial send failed: {e!r}",
+                      file=sys.stderr, flush=True)
+
         def on_partial(acc):
             # Called from the executor thread below: hop back to the loop for the send.
-            asyncio.run_coroutine_threadsafe(
+            fut = asyncio.run_coroutine_threadsafe(
                 conn.send({"type": "translate_partial", "text": acc}), loop)
+            fut.add_done_callback(_report_partial_failure)
     # Off the event loop: a multi-second generation must not stall this connection's
     # ASR traffic (same defect class the spec fixes for TTS in slice 4).
     translated, ms = await loop.run_in_executor(
