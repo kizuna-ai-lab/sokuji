@@ -353,18 +353,23 @@ deleted from `planner.py`, `accel.py` and `catalog.py`.
 - ASR: 67 rows, backend names only.
 - Translation: the 13 `ct2_opus_translate` rows are removed; 9 llama.cpp rows remain,
   backend `native_translate`.
-- TTS: 68 rows become 11 — `moss-tts-nano`, `qwen3-tts-0.6b`, `qwen3-tts-1.7b`,
+- TTS: 68 rows become 10 (correction 2026-08-31: both "11"s in this spec were an
+  arithmetic slip — the enumerated list below is and was authoritative) — `moss-tts-nano`, `qwen3-tts-0.6b`, `qwen3-tts-1.7b`,
   `omnivoice-0.6b`, `supertonic-3`, `pocket-tts-{en,de,es,it,pt}` — each with a single-file
   artifact `audio-cpp/audio.cpp-gguf/<dir>/<file>.gguf` and a quant ladder (`q8_0`
   default rank 2.0; `f16`/`bf16` listed-only rank 0.5), exactly the ASR row shape.
   `TtsModel` loses `style_voices` and `num_speakers`; keeps `clones`, `streaming`,
   `named_voices`, `transcript_required`, `license` (OmniVoice's CC-BY-NC gate keeps
   working). `Deployment.requires_apple_silicon` goes with the MLX lane.
-- Downloads: TTS uses the single-file path ASR already uses; the multi-file snapshot and
-  sibling-layout code goes. Because audio.cpp judges a model file by its extension after
-  `realpath`, and Hugging Face cache files are extension-less blobs behind symlinks, the
-  loader hard-links the blob to `<cache>/native-links/<name>.gguf` before `sk_tts_load`
-  (the existing MOSS `_link_tree` trick, generalised).
+- Downloads (corrected 2026-08-31 after reading the vendored source): audio.cpp's
+  `is_gguf_file` checks the extension on the path AS GIVEN (no realpath), so the HF
+  snapshot's `.gguf` symlink is loadable directly — no hard-link staging is needed.
+  What IS needed: each TTS model is a `.gguf` plus small sibling assets in the same
+  directory (`config.json`, tokenizer files; supertonic's `voice_styles/*.json`;
+  pocket's `embeddings/*.safetensors`), so a TTS download is a SCOPED snapshot of the
+  artifact's directory (`allow_patterns=["<dir>/*"]`, quant ladder ggufs sharing the
+  siblings), and `sk_tts_load` receives the snapshot's `.gguf` symlink path. The
+  whole-repo multi-variant snapshot machinery and `hf_symlinks.py` still go.
 
 ### 5.5 Wire protocol
 
@@ -499,7 +504,7 @@ against recorded numbers.
 | 1 | native skeleton | `native/` super-project, `libsokuji_native` with `sk_init` / `sk_devices` / `sk_version`, CTest, `native-build.yml` for 5 platforms, `native-v0.1.0`, parity scaffold | 5 wheels green; `sk_devices` lists Vulkan + CPU on GB10 |
 | 2 | ASR + client VAD | `sk_asr_*`, `asr_backend.py`, wire v2 (`vad_mark`), `native-vad.worker.ts`, requirements drop transcribe-cpp | ASR loopback; RTF on par with the PyPI wheel; both engine paths driven by marks under test fakes (Amendment A1) |
 | 3 | translation | `sk_translate_*`, `translate_backend.py`, delete `llama_runtime.py` / `ct2_opus.py` / Opus rows / CTranslate2 | one sentence per prompt family; token streaming and cancel work |
-| 4 | TTS | `sk_tts_*`, `tts_backend.py`, `tts_engine.py` fixes, catalog 68→11, single-file downloads + hard-links, parity suite, delete the nine backends / five packages / conversion scripts | parity (CPU exact, Vulkan ≥ 60 dB); TTS→ASR loopback |
+| 4 | TTS | `sk_tts_*`, `tts_backend.py`, `tts_engine.py` fixes, catalog 68→10, scoped-snapshot downloads, parity suite, delete the nine backends / five packages / conversion scripts | parity (CPU exact, Vulkan ≥ 60 dB); TTS→ASR loopback |
 | 5 | cleanup | tiers, one requirements file, `setup.sh`, SKU table, `sidecar-sku.js`, `nativeModelStore`, renderer touchpoints, workflows, `test_runtime_gate.py` | pytest + vitest green; five bundles built with sizes printed |
 | 6 | release | `native-v1.0.0`, `sidecar-vX.Y.0`, CHANGELOG, CLAUDE.md sidecar section, memory | five-SKU live smoke matrix |
 
@@ -528,7 +533,7 @@ nothing here pre-approves an outward act.
 2. One ggml on disk per bundle (`libggml*` appears once); no child inference processes.
 3. Parity and loopback gates in §9 pass on the five SKUs.
 4. Bundle sizes are reported per SKU; the number, not a threshold, is the deliverable.
-5. The catalog lists 67 ASR, 9 translation and 11 TTS cards; Supertonic 3 and
+5. The catalog lists 67 ASR, 9 translation and 10 TTS cards; Supertonic 3 and
    MOSS-TTS-Nano are recommended.
 
 ## Amendment A1 (2026-08-31) — VAD moves to the renderer
