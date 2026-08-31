@@ -24,38 +24,62 @@ struct sk_translate {
 
 namespace {
 
-bool g_llama_backend_ready = false;   // guarded by sk::mutex(); llama_backend_init() runs once/process
+bool g_llama_backend_ready = false;   // guarded by sk::mutex(); llama_backend_init()/llama_log_set() run once/process
 
 sk_status fail(const char *fn, const std::string &detail) {
     sk::set_error(std::string(fn) + ": llama: " + detail);
     return SK_ERR_BACKEND;
 }
 
+// Mirrors sk_common.cpp's ggml_log_bridge: forwards llama's own logger (GGUF metadata dumps,
+// tensor-by-tensor load progress, load-failure reasons) into the sk_init log sink instead of
+// llama's default of printing straight to stderr. Installed once per process, alongside
+// llama_backend_init().
+void llama_log_bridge(enum ggml_log_level level, const char *text, void *) {
+    int32_t mapped = level >= GGML_LOG_LEVEL_ERROR ? 3 : level == GGML_LOG_LEVEL_WARN ? 2 : level == GGML_LOG_LEVEL_INFO ? 1 : 0;
+    std::string line(text ? text : "");
+    while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
+    if (!line.empty()) sk::log_line(mapped, line.c_str());
+}
+
 sk_status fail_decode(const char *fn, int32_t rc) {
-    std::string what;
-    switch (rc) {
-        case 1:  what = "no KV cache slot available (context full)"; break;
-        case 2:  what = "aborted"; break;
-        case -1: what = "invalid input batch"; break;
-        default: what = "fatal decode error (rc=" + std::to_string(rc) + ")"; break;
+    if (rc == 1) {
+        // Not an engine bug: the prompt plus what's been generated so far no longer fits in
+        // n_ctx. Caller-configurable (raise n_ctx or shorten the prompt), so this is
+        // SK_ERR_INVALID_ARGUMENT rather than SK_ERR_BACKEND — the sidecar can act on the
+        // status without string-matching sk_last_error().
+        sk::set_error(std::string(fn) + ": context full (prompt + generation exceed n_ctx)");
+        return SK_ERR_INVALID_ARGUMENT;
     }
+    // rc == 2 and any other positive value are llama's own warnings (2 == "aborted"; the
+    // engine reserves other positive codes for future use) rather than a hard failure, but
+    // without a specific recovery for them we conservatively surface every one as a backend
+    // error. Negative rc (other than the invalid-input-batch case below) is always fatal.
+    std::string what = (rc == 2) ? "aborted" : (rc == -1) ? "invalid input batch"
+                                              : "fatal decode error (rc=" + std::to_string(rc) + ")";
     return fail(fn, what);
 }
 
 // Tokenize `text`; grows the buffer once on the negative-size-needed signal from
-// llama_tokenize and retries (that second call is guaranteed to fit).
-bool tokenize(const llama_vocab *vocab, const std::string &text, std::vector<llama_token> &out) {
+// llama_tokenize and retries (that second call is guaranteed to fit). A return so negative
+// it signals llama_tokenize's own int32 overflow (rather than "needed size") is reported as
+// SK_ERR_INVALID_ARGUMENT instead of negated — negating INT32_MIN is undefined behaviour.
+sk_status tokenize(const llama_vocab *vocab, const std::string &text, std::vector<llama_token> &out) {
     out.resize(text.size() + 8);   // generous guess: plus a few for BOS/special tokens
     int32_t n = llama_tokenize(vocab, text.c_str(), static_cast<int32_t>(text.size()),
                                 out.data(), static_cast<int32_t>(out.size()), true, true);
     if (n < 0) {
+        if (n < -(1 << 28)) {   // overflow guard: llama_tokenize returned INT32_MIN, not a needed-size
+            sk::set_error("sk_translate: prompt too large");
+            return SK_ERR_INVALID_ARGUMENT;
+        }
         out.resize(static_cast<size_t>(-n));
         n = llama_tokenize(vocab, text.c_str(), static_cast<int32_t>(text.size()),
                             out.data(), static_cast<int32_t>(out.size()), true, true);
-        if (n < 0) return false;
+        if (n < 0) { sk::set_error("sk_translate: tokenize: failed"); return SK_ERR_BACKEND; }
     }
     out.resize(static_cast<size_t>(n));
-    return true;
+    return SK_OK;
 }
 
 // Renders one decoded token as UTF-8; grows the buffer once on the negative-size-needed
@@ -78,9 +102,20 @@ sk_status generate(sk_translate *t, const std::string &prompt, const sk_gen_opti
     llama_memory_clear(llama_get_memory(t->ctx), true);
 
     std::vector<llama_token> tokens;
-    if (!tokenize(vocab, prompt, tokens)) return fail("sk_translate: tokenize", "failed");
+    sk_status trc = tokenize(vocab, prompt, tokens);
+    if (trc != SK_OK) return trc;
+    if (tokens.empty()) {
+        // e.g. an empty prompt on a model with add_bos_token=false (Qwen3): zero tokens means
+        // no llama_decode call happens below, so llama_sampler_sample would read logits that
+        // were never produced (GGML_ASSERT(logits != nullptr), a process-killing abort).
+        sk::set_error("sk_translate: prompt tokenized to zero tokens");
+        return SK_ERR_INVALID_ARGUMENT;
+    }
 
-    const int32_t n_batch = 512;   // matches the context's n_batch from sk_translate_load
+    // llama clamps the context's actual batch size to min(n_ctx, requested n_batch) at
+    // sk_translate_load time, so a small sk_translate_options.n_ctx can make it smaller than
+    // the literal 512 we requested — read it back rather than assuming our own request stuck.
+    const int32_t n_batch = static_cast<int32_t>(llama_n_batch(t->ctx));
     for (int32_t off = 0; off < static_cast<int32_t>(tokens.size()); off += n_batch) {
         int32_t chunk = std::min(n_batch, static_cast<int32_t>(tokens.size()) - off);
         llama_batch batch = llama_batch_get_one(tokens.data() + off, chunk);
@@ -126,7 +161,11 @@ SK_API sk_status sk_translate_load(const char *gguf_path, const sk_device *devic
         std::lock_guard<std::mutex> lock(sk::mutex());
         if (!sk::require_init("sk_translate_load")) { delete h; return SK_ERR_NOT_INITIALISED; }
         threads = sk::threads();
-        if (!g_llama_backend_ready) { llama_backend_init(); g_llama_backend_ready = true; }
+        if (!g_llama_backend_ready) {
+            llama_log_set(llama_log_bridge, nullptr);   // before init, so init's own log lines route too
+            llama_backend_init();
+            g_llama_backend_ready = true;
+        }
         if (device) {
             const auto &devs = sk::devices();
             if (device->index < 0 || static_cast<size_t>(device->index) >= devs.size()) {
@@ -200,7 +239,12 @@ SK_API sk_status sk_translate_chat(sk_translate *t, const sk_message *msgs, int3
                      + std::strlen(chat[static_cast<size_t>(i)].content);
     }
 
-    int32_t buf_size = static_cast<int32_t>(2 * total_bytes + 1024);
+    size_t needed = 2 * total_bytes + 1024;   // computed in size_t: total_bytes can approach SIZE_MAX
+    if (needed > static_cast<size_t>(INT32_MAX)) {
+        sk::set_error("sk_translate_chat: messages too large");
+        return SK_ERR_INVALID_ARGUMENT;
+    }
+    int32_t buf_size = static_cast<int32_t>(needed);
     std::vector<char> buf(static_cast<size_t>(buf_size));
     int32_t n = llama_chat_apply_template(tmpl, chat.data(), static_cast<size_t>(n_msgs), true,
                                            buf.data(), buf_size);

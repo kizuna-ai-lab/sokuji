@@ -33,9 +33,19 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    // Explicit CPU device, exactly as test_asr.cpp does: device == NULL leaves llama's own
+    // default (all available devices, n_gpu_layers == -1), which on a GPU lane (e.g. CI's
+    // mac-arm64 Metal build) would run this test on the GPU instead of pinning CPU like every
+    // other native test.
+    sk_device devs[8];
+    int n_devs = sk_devices(devs, 8);
+    const sk_device *cpu = nullptr;
+    for (int i = 0; i < n_devs; ++i) if (devs[i].kind == SK_DEVICE_CPU) cpu = &devs[i];
+    if (!cpu) { std::fprintf(stderr, "no CPU device reported by sk_devices\n"); return 1; }
+
     sk_translate *t = nullptr;
     sk_translate_options topt{}; topt.n_ctx = 2048;
-    if (sk_translate_load(gguf, nullptr /* default cpu device as test_asr does */, &topt, &t) != SK_OK) {
+    if (sk_translate_load(gguf, cpu, &topt, &t) != SK_OK) {
         std::fprintf(stderr, "load failed: %s\n", sk_last_error()); return 1;
     }
     // A longer sentence than a bare greeting: greedy decoding of "Good morning." alone
@@ -65,6 +75,43 @@ int main(int argc, char **argv) {
     }
     std::fprintf(stderr, "complete: %s\n", out2.c_str());
     if (out2.empty()) return 1;
+
+    // Round-1 review finding 1: a prompt that tokenizes to zero tokens (add_bos_token=false on
+    // Qwen3, so an empty prompt has nothing to tokenize) must not reach llama_sampler_sample —
+    // it asserts on missing logits and SIGABRTs the whole process. Confirm the guard rejects it
+    // cleanly, then confirm the handle is still usable afterwards.
+    std::string empty_out;
+    sk_status empty_st = sk_translate_complete(t, "", &gen2, collect, &empty_out);
+    if (empty_st != SK_ERR_INVALID_ARGUMENT) {
+        std::fprintf(stderr, "expected SK_ERR_INVALID_ARGUMENT for an empty prompt, got %d\n", empty_st);
+        return 1;
+    }
+    std::string out3;
+    if (sk_translate_complete(t, "The capital of Germany is", &gen2, collect, &out3) != SK_OK) {
+        std::fprintf(stderr, "complete after empty-prompt guard failed: %s\n", sk_last_error()); return 1;
+    }
+    if (out3.empty()) { std::fprintf(stderr, "process survived but produced nothing\n"); return 1; }
+    std::fprintf(stderr, "complete after empty-prompt guard: %s\n", out3.c_str());
+
+    // Round-1 review finding 2: llama clamps a context's actual batch size to
+    // min(n_ctx, requested n_batch); a hardcoded n_batch=512 chunk loop desyncs from that when
+    // n_ctx < 512 and overruns it, aborting the process. Load a second, small-context handle and
+    // feed it a prompt long enough to exceed n_ctx — must fail cleanly (not SK_OK), not abort.
+    sk_translate *small = nullptr;
+    sk_translate_options small_opt{}; small_opt.n_ctx = 256;
+    if (sk_translate_load(gguf, cpu, &small_opt, &small) != SK_OK) {
+        std::fprintf(stderr, "small-context load failed: %s\n", sk_last_error()); return 1;
+    }
+    std::string long_prompt;
+    for (int i = 0; i < 400; ++i) long_prompt += "The quick brown fox jumps over the lazy dog. ";
+    std::string overflow_out;
+    sk_gen_options gen3{}; gen3.max_tokens = 8;
+    sk_status overflow_st = sk_translate_complete(small, long_prompt.c_str(), &gen3, collect, &overflow_out);
+    if (overflow_st == SK_OK) {
+        std::fprintf(stderr, "expected a non-SK_OK status for a prompt exceeding n_ctx=256\n"); return 1;
+    }
+    std::fprintf(stderr, "overflow prompt vs n_ctx=256: status=%d (%s)\n", overflow_st, sk_last_error());
+    sk_translate_unload(small);
 
     sk_translate_unload(t);
     std::puts("test_translate ok");
