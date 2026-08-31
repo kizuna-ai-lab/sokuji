@@ -321,29 +321,30 @@ def test_llm_translate_rows_shape():
     assert quants == {"q4_k_m", "q8_0"}
     tiers = {(d.compute_type, d.tier) for d in m.deployments}
     for q in quants:
-        assert {(q, "gpu-cuda"), (q, "gpu-metal"),
-                (q, "gpu-vulkan"), (q, "cpu")} <= tiers
+        assert {(q, "gpu-metal"), (q, "gpu-vulkan"), (q, "cpu")} <= tiers
+    # gpu-cuda died with slice 3 (R2): no probe ever reports a "cuda" device
+    # kind, so the tier was unreachable.
+    assert not any(d.tier == "gpu-cuda" for d in m.deployments)
     # default quant (rank 2.0) is q4_k_m for the 4B card
     default = max(m.deployments, key=lambda d: d.rank)
     assert default.compute_type == "q4_k_m"
-    assert all(d.backend == "llamacpp_gemma" for d in m.deployments)
+    assert all(d.backend == "native_translate" for d in m.deployments)
+    assert m.prompt_family == "gemma"
     # same artifact across tiers of one quant (a GGUF is tier-agnostic)
     per_quant = {q: {d.artifact for d in m.deployments if d.compute_type == q}
                  for q in quants}
     assert all(len(a) == 1 for a in per_quant.values())
 
 
-def test_llm_vulkan_tier_ranks_between_cuda_and_cpu():
-    # gpu-vulkan (TIER_RANK 2.5) resolves below gpu-cuda/gpu-metal (3.0) and
-    # above cpu (1.0). Ordering comes from accel.TIER_RANK, not the order of
-    # the tiers tuple in _llm_translate_row.
+def test_llm_vulkan_tier_ranks_above_cpu():
+    # gpu-vulkan (TIER_RANK 2.5) resolves above cpu (1.0). Ordering comes from
+    # accel.TIER_RANK, not the order of the tiers tuple in _llm_translate_row.
+    # gpu-metal is filtered out (no Apple/Metal on this machine); gpu-cuda no
+    # longer exists as a deployment row at all (R2).
     from sokuji_sidecar import accel
-    # Post-P2 Machine shape: NVIDIA presence comes from `gpus` descriptions via
-    # accel.has_nvidia (no `nvidia` field / accel.Gpu class). gpu-cuda is
-    # available (has_nvidia), gpu-vulkan via "vulkan" in tc_kinds, gpu-metal not.
     m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
                       apple_silicon=False, dml_adapters=(),
-                      installed=frozenset({"llamacpp_gemma"}),
+                      installed=frozenset({"native_translate"}),
                       fingerprint="t", tc_kinds=("cpu", "vulkan"),
                       gpus=(("cuda", "NVIDIA x", 12288),))
     plans = accel.resolve_deployments(catalog.translate_model("translategemma-4b"), m)
@@ -351,7 +352,7 @@ def test_llm_vulkan_tier_ranks_between_cuda_and_cpu():
     for p in plans:
         if p.tier not in seen:
             seen.append(p.tier)
-    assert seen == ["gpu-cuda", "gpu-vulkan", "cpu"]   # gpu-metal filtered (no Apple/Metal)
+    assert seen == ["gpu-vulkan", "cpu"]
 
 
 def test_small_qwen_defaults_to_q8():
@@ -359,22 +360,16 @@ def test_small_qwen_defaults_to_q8():
         m = catalog.translate_model(mid)
         default = max(m.deployments, key=lambda d: d.rank)
         assert default.compute_type == "q8_0", mid
-        assert all(d.backend == "llamacpp_qwen" for d in m.deployments)
+        assert all(d.backend == "native_translate" for d in m.deployments)
+        assert m.prompt_family == "qwen"
 
 
 def test_hunyuan_backend_and_no_fp8():
     for mid in ("hy-mt2-1.8b", "hy-mt2-7b", "hy-mt15-1.8b", "hy-mt15-7b"):
         m = catalog.translate_model(mid)
-        assert all(d.backend == "llamacpp_hunyuan" for d in m.deployments)
+        assert all(d.backend == "native_translate" for d in m.deployments)
         assert all(d.compute_type in ("q4_k_m", "q8_0") for d in m.deployments)
-
-
-def test_opus_rows_cpu_only():
-    m = catalog.translate_model("opus-mt-ja-en")
-    assert len(m.deployments) == 1
-    d = m.deployments[0]
-    assert (d.backend, d.tier, d.compute_type) == ("ct2_opus_translate", "cpu", "int8")
-    assert d.artifact == "jiangzhuo9357/opus-mt-ja-en-ct2"
+        assert m.prompt_family == "hunyuan"
 
 
 def test_gguf_artifact_naming():
@@ -394,8 +389,8 @@ def test_split_artifact():
         "mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf") == (
         "mradermacher/translategemma-4b-it-GGUF", "translategemma-4b-it.Q4_K_M.gguf")
     # plain 2-segment repo id: no filename.
-    assert catalog.split_artifact("jiangzhuo9357/opus-mt-ja-en-ct2") == (
-        "jiangzhuo9357/opus-mt-ja-en-ct2", None)
+    assert catalog.split_artifact("Qwen/Qwen3-0.6B-GGUF") == (
+        "Qwen/Qwen3-0.6B-GGUF", None)
     # deep path (filename itself contains a slash, e.g. an onnx/ subdir).
     assert catalog.split_artifact("org/repo/onnx/model.onnx") == ("org/repo", "onnx/model.onnx")
 
@@ -403,11 +398,20 @@ def test_split_artifact():
 def test_all_translate_backends_installed_names():
     from sokuji_sidecar import accel
     installed = accel._installed()
-    for name in ("llamacpp_qwen", "llamacpp_hunyuan", "llamacpp_gemma"):
-        assert name in installed
+    assert "native_translate" in installed
     for old in ("qwen_translate", "qwen35_translate", "hunyuan_translate",
-                "gemma_translate", "opus_translate"):
+                "gemma_translate", "opus_translate", "llamacpp_qwen",
+                "llamacpp_hunyuan", "llamacpp_gemma", "ct2_opus_translate"):
         assert old not in installed
+
+
+def test_translate_row_count_and_no_opus():
+    # The 13 Opus-MT rows are gone (slice 3): 9 GGUF LLM cards remain, all on
+    # native_translate.
+    models = catalog.translate_models()
+    assert len(models) == 9
+    assert all(d.backend == "native_translate" for m in models for d in m.deployments)
+    assert catalog.translate_model("opus-mt-ja-en") is None
 
 
 def test_tts_models_use_repo_path_ids_and_have_num_speakers():

@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "native_asr" | "native_asr_stream" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "mlx_audio_tts" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "ct2_opus_translate"
+    backend: str        # backend NAME: "native_asr" | "native_asr_stream" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "mlx_audio_tts" | "native_translate"
     tier: str           # "cpu" | "gpu-vulkan" | "gpu-metal" | "gpu-cuda" | "gpu-dml"
     compute_type: str   # quant/dtype label ("q4_k_m", "q8_0", "int8", ...)
     artifact: str       # backend.load() model_ref (repo id or "org/repo/file.gguf")
@@ -462,13 +462,17 @@ def asr_model(model_id: str) -> AsrModel | None:
 
 @dataclass(frozen=True)
 class TranslateModel(_ModelBase):
-    # Qwen3/Qwen3.5 chat-template thinking-mode kill switch (mirrors the
-    # substring checks in translate_backends.LlamaCppQwenBackend._payload):
-    # disable_thinking sends chat_template_kwargs.enable_thinking=false,
-    # append_no_think additionally appends the "/no_think" soft switch to the
-    # system prompt (plain Qwen3 only, belt-and-braces per Qwen3's own docs).
+    # Qwen3/Qwen3.5 chat-template thinking-mode kill switch (mirrors
+    # translate_backend.QwenStrategy.build): disable_thinking forces an empty
+    # <think></think> block as the assistant's prefill, append_no_think
+    # additionally appends the "/no_think" soft switch to the system prompt
+    # (plain Qwen3 only, belt-and-braces per Qwen3's own docs).
     disable_thinking: bool = False
     append_no_think: bool = False
+    # Which of translate_backend.STRATEGIES to build the prompt with
+    # ("qwen" | "hunyuan" | "gemma"); read off the card by
+    # planner._plan_config into PlanConfig.prompt_family.
+    prompt_family: str = ""
 
 
 def split_artifact(artifact: str) -> tuple[str, str | None]:
@@ -512,53 +516,34 @@ def _gguf_artifact(mid: str, quant: str) -> str:
     return f"{repo}/{fname}"
 
 
-def _opus_repo(mid: str) -> str:
-    return f"jiangzhuo9357/{mid}-ct2"
-
-
 def _llm_translate_row(mid, name, family, sort_order, default_quant, default_bytes,
                        alt_quant, alt_bytes, recommended=False,
                        disable_thinking=False, append_no_think=False):
-    """An LLM card: one llamacpp backend, two GGUF quant variants, four tiers
-    each (gpu-cuda / gpu-metal / gpu-vulkan / cpu). The same GGUF serves every
-    tier; rank 2.0 marks the default quant. Plan ORDER across tiers is decided
-    by accel.TIER_RANK (gpu-cuda/gpu-metal 3.0 > gpu-vulkan 2.5 > cpu 1.0), not
-    by the order of this tuple."""
-    backend = f"llamacpp_{family}"
+    """A GGUF LLM translate card: the native_translate backend (sokuji_native's
+    in-process llama.cpp runtime, spec §4.3), two GGUF quant variants, three
+    tiers each (gpu-metal / gpu-vulkan / cpu — no gpu-cuda: post-A1 no probe
+    ever reports a "cuda" device kind, so that tier was unreachable). The same
+    GGUF serves every tier; rank 2.0 marks the default quant. Plan ORDER across
+    tiers is decided by accel.TIER_RANK (gpu-metal 3.0 > gpu-vulkan 2.5 >
+    cpu 1.0), not by the order of this tuple. `family` selects the prompt
+    strategy (translate_backend.STRATEGIES) via PlanConfig.prompt_family."""
     deps = []
     for quant, nbytes, rank in ((default_quant, default_bytes, 2.0),
                                 (alt_quant, alt_bytes, 1.0)):
         artifact = _gguf_artifact(mid, quant)
-        deps += [Deployment(backend, tier, quant, artifact, rank, est_bytes=nbytes)
-                 for tier in ("gpu-cuda", "gpu-metal", "gpu-vulkan", "cpu")]
+        deps += [Deployment("native_translate", tier, quant, artifact, rank, est_bytes=nbytes)
+                 for tier in ("gpu-metal", "gpu-vulkan", "cpu")]
     return TranslateModel(mid, name, ("multi",), tuple(deps),
                           recommended=recommended, sort_order=sort_order,
                           size_bytes=default_bytes, disable_thinking=disable_thinking,
-                          append_no_think=append_no_think)
-
-
-def _opus_row(src, tgt, sort_order, size_bytes=115_000_000):
-    mid = f"opus-mt-{src}-{tgt}"
-    name = f"Opus-MT ({_opus_disp(src)} → {_opus_disp(tgt)})"
-    return TranslateModel(mid, name, (src, tgt), (
-        Deployment("ct2_opus_translate", "cpu", "int8", _opus_repo(mid), 1.0),
-    ), sort_order=sort_order, size_bytes=size_bytes)
-
-
-# Opus-MT display: the en→ja repo keeps Helsinki's "jap" token, but the card
-# should read "ja". Only this one code is remapped for the label.
-_OPUS_DISP = {"jap": "ja"}
-
-
-def _opus_disp(code):
-    return _OPUS_DISP.get(code, code)
+                          append_no_think=append_no_think, prompt_family=family)
 
 
 # Sizes are the exact upstream GGUF file byte counts (HF API size fetch,
-# 2026-07-03 — see _GGUF_SOURCES). Opus size_bytes are the 5-file CT2 sums
-# (config.json + model.bin + shared_vocabulary.json + source.spm + target.spm)
-# of the jiangzhuo9357/opus-mt-*-ct2 repos, HF API fetch 2026-07-06 (see
-# OPUS_FILES in native_models.py).
+# 2026-07-03 — see _GGUF_SOURCES). The 13 Opus-MT (CTranslate2) rows that used
+# to live here were removed in slice 3 along with the ct2_opus_translate
+# backend and the ctranslate2 dependency: translation now runs entirely
+# through native_translate (sokuji_native's in-process llama.cpp runtime).
 TRANSLATE_MODELS: list[TranslateModel] = [
     _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B", "qwen", 1,
                        "q8_0", 675710816, "q4_k_m", 491400032, recommended=True),
@@ -581,13 +566,6 @@ TRANSLATE_MODELS: list[TranslateModel] = [
                        "q4_k_m", 1133080512, "q8_0", 1908528288),
     _llm_translate_row("hy-mt15-7b", "Hunyuan-MT1.5 7B", "hunyuan", 9,
                        "q4_k_m", 4624649312, "q8_0", 7981929344),
-    _opus_row("ru", "en", 20, 82459917), _opus_row("zh", "en", 21, 82483063),
-    _opus_row("en", "zh", 22, 82482780), _opus_row("hu", "en", 23, 81185270),
-    _opus_row("en", "es", 24, 82471554), _opus_row("en", "ar", 25, 81957408),
-    _opus_row("en", "ru", 26, 82459917), _opus_row("es", "en", 27, 82471554),
-    _opus_row("en", "vi", 28, 76183416), _opus_row("ar", "en", 29, 81988818),
-    _opus_row("ja", "en", 30, 80132256), _opus_row("en", "jap", 31, 72783549),
-    _opus_row("ko", "en", 32, 82628751),
 ]
 
 

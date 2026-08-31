@@ -11,8 +11,6 @@ huggingface_hub>=1.0,<2 ; sys_platform == "darwin" and platform_machine == "arm6
 psutil
 zstandard==0.23.0
 tokenizers>=0.20
-# Opus-MT translation runtime (CPU int8; ~11x the old ORT numpy loop)
-ctranslate2==4.8.1
 # torch-free audio io / resample (2026-07-04 torch-free spec). GPU probing is
 # NVML-free since 2026-07-06 (D7): device truth = the transcribe.cpp probe.
 soundfile>=0.13

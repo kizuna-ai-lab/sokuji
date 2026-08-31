@@ -9,10 +9,10 @@ class FakeTranslate:
              reserved_bytes=0, pin=None, **kw):
         self.langs = (source_lang, target_lang)
         self.device = device
-        self.resolved = {"backend": "llamacpp_qwen", "device": "cuda", "computeType": "q8_0"}
+        self.resolved = {"backend": "native_translate", "device": "cuda", "computeType": "q8_0"}
         return 21
 
-    def translate(self, text, system_prompt="", wrap_transcript=False):
+    def translate(self, text, system_prompt="", wrap_transcript=False, on_partial=None):
         return f"<{text}>", 8
 
 
@@ -39,13 +39,28 @@ def test_translate_returns_translate_result():
                      "sourceText": "hola", "translatedText": "<hola>", "inferenceTimeMs": 8}
 
 
+def test_h_translate_final_reply_with_conn_none():
+    """`_h_translate` moves generation into the executor and (per the brief for
+    this task) only builds an `on_partial` callback when `conn` is given —
+    wire_schema.json doesn't carry `translate_partial` yet (Task 4 adds it with
+    the TS side atomically), so `conn=None` must still produce the correct
+    final reply without ever touching the partial-push path."""
+    state = {"translate_engine": FakeTranslate()}
+    msg = {"type": "translate", "id": 3, "text": "hola", "systemPrompt": "",
+           "wrapTranscript": False}
+    reply, binary = asyncio.run(translate_engine._h_translate(state, msg, None, conn=None))
+    assert binary is None
+    assert reply == {"type": "translate_result", "id": 3,
+                     "sourceText": "hola", "translatedText": "<hola>", "inferenceTimeMs": 8}
+
+
 def test_translate_init_echoes_device_and_resolved():
     st = make_state()
     reply, _ = asyncio.run(server.handle_message(
         st, json.dumps({"type": "translate_init", "id": 1, "sourceLang": "ja",
                         "targetLang": "en", "device": "cuda"})))
     assert reply["type"] == "ready" and reply["id"] == 1 and reply["loadTimeMs"] == 21
-    assert reply["backend"] == "llamacpp_qwen"
+    assert reply["backend"] == "native_translate"
     assert reply["device"] == "cuda"
     assert reply["computeType"] == "q8_0"
     assert st["translate_engine"].device == "cuda"
@@ -54,7 +69,7 @@ def test_translate_init_echoes_device_and_resolved():
 def test_init_uses_resolver_and_sets_resolved(monkeypatch):
     from sokuji_sidecar import accel
     fake_backend = MagicMock()
-    fake_plan = MagicMock(backend="llamacpp_qwen", device="cuda", compute_type="q8_0")
+    fake_plan = MagicMock(backend="native_translate", device="cuda", compute_type="q8_0")
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (fake_backend, fake_plan, None, None))
     # Isolate from the real tps benchmark/cache so resolved is deterministic here.
@@ -62,19 +77,19 @@ def test_init_uses_resolver_and_sets_resolved(monkeypatch):
 
     eng = translate_engine.TranslateEngine()
     eng.init(model_id="qwen2.5-0.5b", source_lang="ja", target_lang="en", device="cuda")
-    assert eng.resolved == {"backend": "llamacpp_qwen", "device": "cuda", "computeType": "q8_0"}
+    assert eng.resolved == {"backend": "native_translate", "device": "cuda", "computeType": "q8_0"}
     assert eng._backend is fake_backend
 
     fake_backend.translate.return_value = ("hola->hi", 5)   # (text, generated-token count)
     out, ms = eng.translate("hola", wrap_transcript=True)
-    fake_backend.translate.assert_called_once_with("hola", "", "ja", "en", True)
+    fake_backend.translate.assert_called_once_with("hola", "", "ja", "en", True, on_partial=None)
     assert out == "hola->hi" and ms >= 0
 
 
 def test_close_unloads_prior_backend_before_reinit(monkeypatch):
     from sokuji_sidecar import accel
     first, second = MagicMock(), MagicMock()
-    plan = MagicMock(backend="llamacpp_qwen", device="cpu", compute_type="float32")
+    plan = MagicMock(backend="native_translate", device="cpu", compute_type="float32")
     backends_iter = iter([(first, plan, None, None), (second, plan, None, None)])
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: next(backends_iter))
@@ -92,8 +107,28 @@ def test_translate_delegates_to_backend_when_loaded():
     eng._backend.translate.return_value = ("translated", 5)   # (text, generated-token count)
     eng._src, eng._tgt = "Japanese", "English"
     out, _ = eng.translate("hello", wrap_transcript=True)
-    eng._backend.translate.assert_called_once_with("hello", "", "Japanese", "English", True)
+    eng._backend.translate.assert_called_once_with("hello", "", "Japanese", "English", True, on_partial=None)
     assert out == "translated"
+
+
+def test_translate_passes_on_partial_through_to_backend():
+    """The engine is a thin passthrough for streaming: on_partial reaches the
+    backend unchanged, and every piece the backend reports during generation
+    reaches the caller's collector in order."""
+    eng = translate_engine.TranslateEngine()
+    eng._backend = MagicMock()
+
+    def fake_translate(text, system_prompt, src, tgt, wrap, on_partial=None):
+        on_partial("Bon")
+        on_partial("Bonjour.")
+        return "Bonjour.", 3
+    eng._backend.translate.side_effect = fake_translate
+    eng._src, eng._tgt = "English", "French"
+
+    seen = []
+    out, _ = eng.translate("hello", on_partial=seen.append)
+    assert seen == ["Bon", "Bonjour."]
+    assert out == "Bonjour."
 
 
 def test_init_stores_memory_and_fallback_reason(monkeypatch):

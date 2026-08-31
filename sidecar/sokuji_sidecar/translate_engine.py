@@ -1,5 +1,5 @@
+import asyncio
 import time
-from . import translate_backends  # noqa: F401 — registers the llamacpp_*/ct2_opus_translate backends
 
 
 def _translate_teardown(state):
@@ -41,11 +41,12 @@ class TranslateEngine:
             self.resolved["fallbackReason"] = notice
         return int((time.time() - t0) * 1000)
 
-    def translate(self, text, system_prompt="", wrap_transcript=False):
+    def translate(self, text, system_prompt="", wrap_transcript=False, on_partial=None):
         t0 = time.time()
         if not text.strip():
             return "", 0
-        out, _n_tokens = self._backend.translate(text, system_prompt, self._src, self._tgt, wrap_transcript)
+        out, _n_tokens = self._backend.translate(text, system_prompt, self._src, self._tgt,
+                                                 wrap_transcript, on_partial=on_partial)
         return out, int((time.time() - t0) * 1000)
 
     def close(self):
@@ -87,8 +88,19 @@ async def _h_translate_init(state, msg, _b, conn=None):
 
 async def _h_translate(state, msg, _b, conn=None):
     text = msg.get("text", "")
-    translated, ms = state["translate_engine"].translate(
-        text, msg.get("systemPrompt", ""), bool(msg.get("wrapTranscript", False)))
+    loop = asyncio.get_running_loop()
+    on_partial = None
+    if conn is not None:
+        def on_partial(acc):
+            # Called from the executor thread below: hop back to the loop for the send.
+            asyncio.run_coroutine_threadsafe(
+                conn.send({"type": "translate_partial", "text": acc}), loop)
+    # Off the event loop: a multi-second generation must not stall this connection's
+    # ASR traffic (same defect class the spec fixes for TTS in slice 4).
+    translated, ms = await loop.run_in_executor(
+        None, lambda: state["translate_engine"].translate(
+            text, msg.get("systemPrompt", ""), bool(msg.get("wrapTranscript", False)),
+            on_partial=on_partial))
     return {"type": "translate_result", "id": msg.get("id"),
             "sourceText": text, "translatedText": translated, "inferenceTimeMs": ms}, None
 

@@ -36,10 +36,12 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class PlanConfig:
     """Declarative per-load hints, read from the resolved catalog card and
-    consumed by backends at load time: llama.cpp reads the two thinking flags.
+    consumed by backends at load time: native_translate reads the two thinking
+    flags and prompt_family (which of its three prompt strategies to use).
     All-inert defaults so a bare `PlanConfig()` changes no behavior."""
     disable_thinking: bool = False
     append_no_think: bool = False
+    prompt_family: str = ""
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,7 @@ def _plan_config(model) -> PlanConfig:
     return PlanConfig(
         disable_thinking=getattr(model, "disable_thinking", False),
         append_no_think=getattr(model, "append_no_think", False),
+        prompt_family=getattr(model, "prompt_family", ""),
     )
 
 
@@ -93,10 +96,11 @@ def _tier_available(tier: str, machine: Machine, backend: str | None = None) -> 
         if machine.arch in ("x86_64", "AMD64"):
             return True
         # Linux/aarch64 (DGX Spark, Jetson) splits by backend family:
-        #   llamacpp_* -> allowed. Its cuda lane is the llama bucket binary,
-        #     and the b9940+ buckets ship sm_121 builds with a correct probe
-        #     (llama-install.sh #60; the pre-fix bucket handed GB10 an
-        #     sm_120-only binary that crashed with "no kernel image").
+        #   native_translate -> allowed. Its cuda lane would be the llama
+        #     bucket binary's sm_121 builds (llama-install.sh #60) — moot
+        #     today since no catalog row offers native_translate a gpu-cuda
+        #     tier at all (R2: the rows died with no probe ever reporting
+        #     "cuda"), kept as a defensive no-op for a future cuda row.
         #   ORT backends -> need the CUDA EP in the RUNNING onnxruntime:
         #     PyPI has no aarch64 onnxruntime-gpu, so this means NVIDIA's
         #     hand-installed sbsa wheel. Field-tested on a GB10: Qwen3-TTS
@@ -106,7 +110,7 @@ def _tier_available(tier: str, machine: Machine, backend: str | None = None) -> 
         if machine.os == "Linux" and machine.arch == "aarch64":
             if backend is None:
                 return False
-            if backend.startswith("llamacpp"):
+            if backend == "native_translate":
                 return True
             return machine.ort_cuda
         return False
@@ -347,13 +351,13 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
                 plans = [plans[1], plans[0]]
         return plans
     # Explicit device override: unchanged tier-pinning path, EXCEPT a quant
-    # `pin` (llamacpp cards only) must still be honored — otherwise a pinned
+    # `pin` (GGUF LLM cards only) must still be honored — otherwise a pinned
     # q8_0 silently resolves through whatever quant _resolve_model's plain
     # tier-pin ranking picks by default (the highest-rank row across ALL
     # quants), ignoring the user's pin entirely. Filter the model down to just
     # the pinned (or rank-default, if the pin is invalid) quant's rows first,
     # then run the existing tier-pinned resolution over that narrowed model.
-    if pin is not None and _is_llamacpp(model):
+    if pin is not None and _is_gguf_llm(model):
         quant = _llamacpp_quant(model, pin)
         model = dataclasses.replace(
             model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
@@ -514,12 +518,12 @@ def _weight_factor(compute_type: str) -> float:
 _VARIANT_QUALITY = {"bfloat16": 3.0, "float16": 3.0, "fp8": 2.0, "int4": 1.5, "nvfp4": 1.8}
 
 
-def _is_llamacpp(model) -> bool:
-    return model.deployments[0].backend.startswith("llamacpp_")
+def _is_gguf_llm(model) -> bool:
+    return model.deployments[0].backend == "native_translate"
 
 
 def _llamacpp_quant(model, pin: str | None) -> str:
-    """Which compute_type (quant) to use for a llamacpp model: `pin` when it
+    """Which compute_type (quant) to use for a GGUF LLM card: `pin` when it
     names one of the model's available quants, else the rank-default quant
     (the compute_type of the highest-rank deployment row). Shared by
     _llamacpp_variant_row (the auto path's tier selection) and
@@ -546,16 +550,24 @@ _LLAMA_MIN_FIT_FRACTION = 0.5
 def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
                           reserved_bytes: int = 0, budget_bytes: int | None = None,
                           downloaded: set | None = None, *, est_bytes):
-    """Pick (quant, tier) for a llamacpp card.
+    """Pick (quant, tier) for a GGUF LLM card.
 
-    pin → that quant unconditionally (user's will; --fit copes with memory).
+    This is a pre-load DOWNLOAD/PLACEMENT heuristic, not a runtime memory
+    manager — the "--fit"/partial-offload language below is historical
+    (llama-server's own memory placement, which no partial-offload
+    replacement exists for in sokuji_native's sk_translate_load: a GPU tier
+    either loads fully or fails, and load_with_fallback's tier fallback to
+    cpu is the only runtime safety net today).
+
+    pin → that quant unconditionally (the user's will).
     budget known → the LARGEST quant that fits FULLY resident
         (est_bytes x 1.1 <= budget - reserved): a fully-resident smaller quant
-        beats a partially-offloaded bigger one. Nothing fits → keep the GPU
-        tier with the rank-default quant via --fit only while the budget still
-        covers ≥50% of the smallest quant; below that, fully-CPU is faster.
+        beats a bigger one that wouldn't fit. Nothing fits → keep the GPU
+        tier with the rank-default quant while the budget still covers ≥50%
+        of the smallest quant (historically --fit's partial-offload territory);
+        below that, fully-CPU is faster.
     budget unknown (no GPU memory reading) → the rank-default quant, best tier
-        (previous behavior; --fit is the safety net).
+        (previous behavior).
 
     `est_bytes` is an injected callable (Deployment -> int | None): the
     caller's estimate of a deployment's on-disk/VRAM weight size.
@@ -622,14 +634,15 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
     format's runtime is missing. `pin` (a compute_type) forces that variant when
     it's valid.
 
-    llamacpp-backed models (all current LLM translate cards) take a separate,
-    VRAM-math-free path: llama-server's --fit handles memory via partial offload,
-    so quant/tier selection is purely rank + tier-availability, never a byte budget.
+    GGUF LLM models (native_translate, all current LLM translate cards) take a
+    separate, VRAM-math-free path: sokuji_native's llama.cpp runtime loads the
+    whole GGUF (no partial-offload placement math today), so quant/tier
+    selection is purely rank + tier-availability, never a byte budget.
 
     `est_bytes` (Deployment -> int | None) and `format_ready` (compute_type ->
     bool) are injected callables — the caller's VRAM-footprint estimate and
     runtime-importability check, respectively."""
-    if _is_llamacpp(model):
+    if _is_gguf_llm(model):
         return _llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
                                      downloaded=downloaded, est_bytes=est_bytes)
     total = _quant_budget_bytes(machine)

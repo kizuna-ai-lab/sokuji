@@ -39,6 +39,7 @@ TARGET_RATE = 16000
 
 
 # Import at module bottom (after the registry + base classes exist) so the
-# native ASR backends self-register for make_backend() in production, where
-# nothing else imports the module explicitly.
+# native ASR/translate backends self-register for make_backend() in
+# production, where nothing else imports these modules explicitly.
 from . import asr_backend  # noqa: E402,F401
+from . import translate_backend  # noqa: E402,F401

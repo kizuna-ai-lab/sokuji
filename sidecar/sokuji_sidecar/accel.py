@@ -132,14 +132,10 @@ def _installed() -> frozenset:
             "pocket_onnx": ("onnxruntime", "sentencepiece"),
             "mlx_audio_tts": ("mlx_audio",),
             "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
-            # llamacpp_* backends run an external llama-server binary — a
-            # downloadable artifact, not a Python runtime. Always "installed";
-            # a missing binary fails at load() with a clear error instead of
-            # being silently filtered out of the plans.
-            "llamacpp_qwen": None,
-            "llamacpp_hunyuan": None,
-            "llamacpp_gemma": None,
-            "ct2_opus_translate": ("ctranslate2", "sentencepiece")}
+            # Translation runs in-process through sokuji_native (llama.cpp
+            # in-process, spec §4.3) — one backend for every prompt family
+            # (qwen/hunyuan/gemma), gated on the same wheel as ASR.
+            "native_translate": "sokuji_native"}
 
     def _ready(spec):
         if spec is None:
@@ -195,8 +191,8 @@ def probe(force: bool = False) -> Machine:
 # import of this module). Imported back here (a) so this module's own Loader
 # code (load_measured, the _h_* RPC handlers below) can keep calling the
 # genuinely pure names unqualified, and (b) so `accel.<name>` keeps resolving
-# for every external caller of the pre-split surface (engines, llama_runtime,
-# and the test suite — including the frozen characterisation suite, which
+# for every external caller of the pre-split surface (engines, and the test
+# suite — including the frozen characterisation suite, which
 # calls accel.resolve/accel.resolve_translate/accel.resolve_tts/
 # accel._tc_pick_quant/accel.select_variant/accel._llamacpp_variant_row
 # directly). This is an intentional re-export, not a smell.
@@ -211,7 +207,7 @@ from .planner import (  # noqa: E402,F401
     Plan, NoUsablePlan, has_nvidia, TIER_RANK, TIER_DEVICE,
     _tier_available, _platform_ok, _bench_key,
     _TC_RESIDENT_FACTOR, _quant_budget_bytes, _tc_pick_quant,
-    _VRAM_CONTEXT_BYTES, _weight_factor, _is_llamacpp,
+    _VRAM_CONTEXT_BYTES, _weight_factor, _is_gguf_llm,
     _LLAMA_RESIDENT_FACTOR,
 )
 
@@ -268,15 +264,9 @@ def resolve(model_id, override="auto", machine=None, pin=None):
 
 
 def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0, pin=None):
-    from . import catalog as _cat, llama_runtime
+    from . import catalog as _cat
     m = machine or probe()
     model = _cat.translate_model(model_id)
-    if model is not None:
-        # Set regardless of override branch: the explicit device path loads a
-        # llamacpp backend exactly like the auto path, so --fit-target must be
-        # sized off the same reserved-VRAM figure. Kept in this Loader wrapper
-        # (not the pure planner) so planner.resolve_translate stays side-effect-free.
-        llama_runtime.set_reserved_bytes(reserved_bytes)
     downloaded = (_downloaded_quants(model)
                  if override == "auto" and model is not None else set())
     return planner.resolve_translate(
@@ -485,13 +475,15 @@ def load_with_fallback(plans: list):
         # proactive gate and the honest OOM message reuse them. Capture free
         # BEFORE the load: a failed load can leave allocator caches/fragments
         # that make an after-the-fact reading meaningless.
-        # llamacpp plans are exempt from the proactive gate: llama-server's --fit
-        # handles memory itself via partial offload, so a rough weights-vs-free-VRAM
-        # guess here would only wrongly route a fittable model to CPU.
-        is_llamacpp = plan.backend.startswith("llamacpp_")
-        free = device_free_bytes() if (plan.device == "cuda" and not is_llamacpp) else None
+        # native_translate plans are exempt from the proactive gate (no catalog
+        # row offers it a gpu-cuda tier at all today, but the exemption itself
+        # is kept as a defensive no-op — see planner._tier_available's
+        # aarch64 comment): a rough weights-vs-free-VRAM guess here would only
+        # wrongly route a fittable model to CPU.
+        is_gguf_llm = plan.backend == "native_translate"
+        free = device_free_bytes() if (plan.device == "cuda" and not is_gguf_llm) else None
         need = (_model_weight_bytes(plan.artifact)
-                if (plan.device == "cuda" and not is_llamacpp) else None)
+                if (plan.device == "cuda" and not is_gguf_llm) else None)
         budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
         if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
             if free < budget:
@@ -662,11 +654,12 @@ async def _h_list_variants(state, msg, _b, conn=None):
     # resolve_translate guards the same case) — never dereference chosen.compute_type then.
     if chosen is None:
         return {"type": "error", "id": msg.get("id"), "message": "no runnable variant"}, None
-    if _is_llamacpp(model):
-        # llamacpp quants are cross-tier (the same GGUF serves gpu-cuda/gpu-metal/cpu);
-        # dedupe by compute_type instead of listing one row per (tier, compute_type)
-        # pair, and skip the VRAM-based supported/reason math entirely (no VRAM math
-        # for llamacpp — see select_variant/_llamacpp_variant_row).
+    if _is_gguf_llm(model):
+        # native_translate quants are cross-tier (the same GGUF serves
+        # gpu-metal/gpu-vulkan/cpu); dedupe by compute_type instead of listing
+        # one row per (tier, compute_type) pair, and skip the VRAM-based
+        # supported/reason math entirely (no VRAM math for a GGUF LLM card —
+        # see select_variant/_llamacpp_variant_row).
         seen = {}
         for d in model.deployments:
             if d.compute_type not in seen:
@@ -815,7 +808,7 @@ async def _h_models_catalog(state, msg, _b, conn=None):
                 entry["variants"] = variants
                 entry["deviceMemBytes"] = budget
             else:
-                is_llama = _is_llamacpp(mdl)
+                is_llama = _is_gguf_llm(mdl)
                 if is_llama:
                     chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
                     rec = chosen.compute_type if chosen is not None else None
@@ -826,7 +819,7 @@ async def _h_models_catalog(state, msg, _b, conn=None):
                 for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
                     need = int(size * factor)                  # fit-check figure, for UI reasons
                     if is_llama:
-                        supported = True                       # --fit always runs
+                        supported = True                       # tier fallback (GPU->cpu) handles capacity
                     elif budget is None:
                         supported = True                       # no GPU → CPU runs anything
                     else:

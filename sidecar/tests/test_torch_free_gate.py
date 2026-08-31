@@ -4,14 +4,13 @@ mentioning the names stay allowed."""
 import ast
 import pathlib
 
-# ctranslate2 is intentionally NOT banned: the multiplatform-accel spec (D3)
-# adopts it as the Opus-MT translation runtime. It is a standalone C++ engine
-# whose wheel depends only on numpy/pyyaml/setuptools — no torch — so it does
-# not reintroduce the torch-era bloat this gate guards against.
 # gone in slice 2: ASR runs through sokuji_native (sherpa_onnx follows in
-# slice 4, onnxruntime in slice 5)
+# slice 4, onnxruntime in slice 5). gone in slice 3: translation runs through
+# sokuji_native too — the D3 CTranslate2/Opus-MT adoption is over, its
+# dependency and the ct2_opus_translate/llamacpp_* backends are deleted.
 BANNED = {"torch", "torchaudio", "transformers", "funasr", "librosa",
-          "faster_whisper", "modelscope", "mistral_common", "transcribe_cpp"}
+          "faster_whisper", "modelscope", "mistral_common", "transcribe_cpp",
+          "ctranslate2"}
 PKG = pathlib.Path(__file__).resolve().parents[1] / "sokuji_sidecar"
 
 

@@ -489,14 +489,17 @@ def test_voxtral_model_unavailable_without_runtime():
 
 def test_models_catalog_kind_translate_returns_qwen_rows(monkeypatch):
     monkeypatch.setattr(accel, "probe", lambda force=False: _machine(
-        gpus=_nv_gpus(), installed=frozenset({"llamacpp_qwen"})))
+        gpus=_nv_gpus(), installed=frozenset({"native_translate"})))
     reply, _ = asyncio.run(accel._h_models_catalog(
         {}, {"type": "models_catalog", "id": 1, "kind": "translate"}, None))
     ids = [m["id"] for m in reply["models"]]
     assert "qwen2.5-0.5b" in ids and "qwen3-0.6b" in ids
     row = next(m for m in reply["models"] if m["id"] == "qwen2.5-0.5b")
     tiers = {t["tier"]: t["available"] for t in row["tiers"]}
-    assert tiers["gpu-cuda"] is True and tiers["cpu"] is True
+    # No gpu-cuda tier row exists for native_translate at all (R2); the NVIDIA
+    # device this fixture reports is seen via Vulkan.
+    assert "gpu-cuda" not in tiers
+    assert tiers["gpu-vulkan"] is True and tiers["cpu"] is True
 
 
 def test_models_catalog_kind_defaults_to_asr(monkeypatch):
@@ -514,15 +517,15 @@ def test_new_translate_backends_installed_and_resolvable():
     # reverted by monkeypatch teardown) — this test wants the ACTUAL host's
     # installed set, not whatever an earlier test's fixture happened to leave.
     accel.probe(force=True)
-    # llamacpp_* backends run an external binary, not a Python runtime → always "installed".
+    # native_translate self-gates on the sokuji_native wheel — the dev venv's
+    # installed wheel (see module docstring) makes it always "installed" here.
     inst = accel._installed()
-    assert "llamacpp_gemma" in inst
-    assert "llamacpp_hunyuan" in inst
+    assert "native_translate" in inst
     # and the resolver now produces plans instead of raising NoUsablePlan
     plans = accel.resolve_translate("hy-mt2-1.8b", "auto")
-    assert any(p.backend == "llamacpp_hunyuan" for p in plans)
+    assert any(p.backend == "native_translate" for p in plans)
     g = accel.resolve_translate("translategemma-4b", "auto")
-    assert any(p.backend == "llamacpp_gemma" for p in g)
+    assert any(p.backend == "native_translate" for p in g)
 
 
 def test_cosyvoice3_backend_installed_and_resolvable():
@@ -573,12 +576,12 @@ def _gpu_machine(vram_mb, installed=("hunyuan_translate",)):
 
 
 def _hymt2_7b():
-    """Synthetic (non-catalog) TranslateModel replicating the pre-llamacpp shape of
-    hy-mt2-7b: a gpu-cuda bf16 variant, a cpu float32 floor, and a gpu-cuda fp8
-    variant. The real hy-mt2-7b catalog row moved to llamacpp/GGUF quants
-    (Task 9), which bypasses this VRAM/format-aware logic entirely (see
-    _is_llamacpp in accel.py) — this fixture keeps select_variant's still-live
-    generic (non-llamacpp) path under test."""
+    """Synthetic (non-catalog) TranslateModel replicating the pre-native_translate
+    shape of hy-mt2-7b: a gpu-cuda bf16 variant, a cpu float32 floor, and a
+    gpu-cuda fp8 variant. The real hy-mt2-7b catalog row moved to native_translate
+    GGUF quants (Task 9 / slice 3), which bypasses this VRAM/format-aware logic
+    entirely (see planner._is_gguf_llm) — this fixture keeps select_variant's
+    still-live generic (non-GGUF-LLM) path under test."""
     from sokuji_sidecar import catalog
     return catalog.TranslateModel("hy-mt2-7b-synthetic", "Hunyuan-MT2 7B (synthetic)", ("multi",), (
         catalog.Deployment("hunyuan_translate", "gpu-cuda", "bfloat16", "tencent/Hy-MT2-7B", 1.0),
@@ -587,26 +590,13 @@ def _hymt2_7b():
     ))
 
 
-def test_resolve_translate_override_cuda_sets_reserved(monkeypatch):
-    # Regression: set_reserved_bytes used to run only on the 'auto' branch,
-    # leaving the explicit device-override path (translationDevice: cuda|cpu,
-    # a first-class UI control) with a stale/zero reserved-bytes figure, so
-    # --fit-target would be sized wrong for a llamacpp cuda load.
-    from sokuji_sidecar import llama_runtime as rt
-    m = _machine(gpus=_nv_gpus(12288),
-                 installed=frozenset({"llamacpp_qwen"}))
-    accel.resolve_translate("qwen3-0.6b", override="cuda", reserved_bytes=654321, machine=m)
-    assert rt.get_reserved_bytes() == 654321
-    rt.set_reserved_bytes(0)
-
-
 def test_list_variants_marks_supported_and_recommended(monkeypatch):
-    # hy-mt2-7b's real catalog row moved to llamacpp/GGUF quants (Task 9), which
-    # bypasses the VRAM-based supported/reason math via the _is_llamacpp dedupe
-    # branch (see test_list_variants_dedupes_llamacpp). This test keeps the
-    # generic (non-llamacpp) list_variants branch under test via a synthetic model,
-    # monkeypatching catalog.translate_model since _h_list_variants looks models up
-    # by id.
+    # hy-mt2-7b's real catalog row moved to native_translate GGUF quants
+    # (Task 9 / slice 3), which bypasses the VRAM-based supported/reason math
+    # via the _is_gguf_llm dedupe branch (see test_list_variants_dedupes_llamacpp).
+    # This test keeps the generic (non-GGUF-LLM) list_variants branch under
+    # test via a synthetic model, monkeypatching catalog.translate_model since
+    # _h_list_variants looks models up by id.
     from sokuji_sidecar import native_models as nm
     model = _hymt2_7b()
     monkeypatch.setattr(catalog, "translate_model", lambda mid: model if mid == model.id else None)
@@ -637,26 +627,6 @@ def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
     backend, plan, notice = accel.load_with_fallback([fp8_plan, cpu_pl])
     assert plan.device == "cpu" and attempted == ["cpu"]
     assert notice and "CPU" in notice
-
-
-def test_opus_translate_self_gates_on_ctranslate2_and_sentencepiece(monkeypatch):
-    from sokuji_sidecar import accel
-    real = accel.importlib.util.find_spec
-
-    def present(name, *a, **k):
-        if name in ("ctranslate2", "sentencepiece"):
-            return object()
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
-    assert "ct2_opus_translate" in accel._installed()
-
-    # ...and gates OFF when a required dep is missing — this half fails if the
-    # dependency map names the wrong module, which the present-only check
-    # (deps happen to be installed in the dev venv) would silently pass.
-    def hide_ct2(name, *a, **k):
-        return None if name == "ctranslate2" else object()
-    monkeypatch.setattr(accel.importlib.util, "find_spec", hide_ct2)
-    assert "ct2_opus_translate" not in accel._installed()
 
 
 def test_supertonic_installed_and_resolvable():
@@ -820,7 +790,7 @@ def test_models_catalog_carries_size_bytes_per_model():
     assert amy["repo"] == "csukuangfj/vits-piper-en_US-amy-low"
 
 
-# ── llamacpp-aware resolution/variant selection (Task 10) ──────────────────
+# ── GGUF-LLM-aware resolution/variant selection (Task 10 / slice 3) ─────────
 # Named `_llm_machine` (not `_machine`) — the file already has a `_machine`
 # helper with a different (kwargs-of-tuples) signature; redefining `_machine`
 # here would silently replace it for the whole module and break every earlier
@@ -832,17 +802,10 @@ def _llm_machine(gpu=False, apple=False):
                     apple=apple, installed=accel._installed())
 
 
-def test_resolve_translate_sets_reserved(monkeypatch):
-    from sokuji_sidecar import llama_runtime as rt
-    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(gpu=True))
-    accel.resolve_translate("qwen2.5-0.5b", reserved_bytes=123456)
-    assert rt.get_reserved_bytes() == 123456
-    rt.set_reserved_bytes(0)
-
-
 def test_vram_gate_skipped_for_llamacpp(monkeypatch):
-    """The proactive free-VRAM check must not pre-skip llamacpp cuda plans —
-    llama-server's --fit handles memory by partial offload."""
+    """The proactive free-VRAM check must not pre-skip native_translate cuda
+    plans (a defensive no-op today: no catalog row offers native_translate a
+    gpu-cuda tier at all, see planner._tier_available's aarch64 comment)."""
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)  # 1 GiB free
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 << 30)
     loaded = []
@@ -851,8 +814,8 @@ def test_vram_gate_skipped_for_llamacpp(monkeypatch):
         def load(self, ref, device, ct, config=None):
             loaded.append(device)
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
-    plans = [accel.Plan("llamacpp_gemma", "gpu-cuda", "cuda", "q4_k_m", "repo", 2.0),
-             accel.Plan("llamacpp_gemma", "cpu", "cpu", "q4_k_m", "repo", 2.0)]
+    plans = [accel.Plan("native_translate", "gpu-cuda", "cuda", "q4_k_m", "repo", 2.0),
+             accel.Plan("native_translate", "cpu", "cpu", "q4_k_m", "repo", 2.0)]
     _b, plan, notice = accel.load_with_fallback(plans)
     assert plan.device == "cuda" and notice is None
     assert loaded == ["cuda"]
@@ -873,7 +836,6 @@ def test_models_catalog_variant_ids(monkeypatch):
     reply, _ = asyncio.run(accel._h_models_catalog({}, {"kind": "translate"}, None, None))
     by_id = {m["id"]: m for m in reply["models"]}
     assert by_id["translategemma-4b"]["variantIds"] == ["q4_k_m", "q8_0"]
-    assert by_id["opus-mt-ja-en"]["variantIds"] == ["int8"]
 
 
 def test_asr_unavailable_without_native():
@@ -954,7 +916,7 @@ def test_ram_free_bytes_positive():
 def test_list_variants_recommends_on_stable_total(monkeypatch):
     # recommendation keys on mem_total (12GB → q8 recommended) even when the
     # transient free is tiny — download advice must not flap session-to-session.
-    m = _machine(gpus=_nv_gpus(12288), installed=frozenset({"llamacpp_gemma"}))
+    m = _machine(gpus=_nv_gpus(12288), installed=frozenset({"native_translate"}))
     monkeypatch.setattr(accel, "probe", lambda force=False: m)
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)
     import asyncio as _a, json as _j
@@ -1064,7 +1026,7 @@ def _catalog_reply(monkeypatch, gpus=(), kind="asr", models=None):
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed",
-                        lambda: frozenset({"native_asr", "native_asr_stream", "llamacpp_gemma"}))
+                        lambda: frozenset({"native_asr", "native_asr_stream", "native_translate"}))
     monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "vulkan") if gpus else ("cpu",))
     monkeypatch.setattr(accel, "_native_gpus", lambda: gpus)
     accel.probe(force=True)
@@ -1105,12 +1067,11 @@ def test_catalog_variants_cpu_only_recommends_smallest(monkeypatch):
 
 
 def test_catalog_variants_translate_kind_included(monkeypatch):
-    # translate needs an NVIDIA/Metal machine (no vulkan llama flavor yet)
     by_id = _catalog_reply(monkeypatch, gpus=_nv_gpus(12288),
                            kind="translate", models=["translategemma-4b"])
     v = by_id["translategemma-4b"]["variants"]
     assert [x["id"] for x in v] == ["q8_0", "q4_k_m"]
-    assert all(x["supported"] for x in v)     # llama always runs via --fit
+    assert all(x["supported"] for x in v)     # tier fallback (GPU->cpu) handles capacity
     assert [x["id"] for x in v if x["recommended"]] == ["q8_0"]
 
 

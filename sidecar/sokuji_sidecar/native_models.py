@@ -9,13 +9,6 @@ import os
 
 from .catalog import asr_model as _asr_model, split_artifact
 
-# The exact CTranslate2 export files the ct2_opus_translate backend reads
-# (see ct2_opus.Ct2OpusSession). Our jiangzhuo9357/opus-mt-*-ct2 repos mirror
-# the gaudi/opus-mt-*-ctranslate2 layout; pin the file set instead of
-# snapshotting the repo.
-OPUS_FILES = ["config.json", "model.bin", "shared_vocabulary.json",
-              "source.spm", "target.spm"]
-
 
 def _ignored(filename, patterns):
     """True if `filename` matches any ignore pattern. fnmatch globs (`*` spans
@@ -53,14 +46,9 @@ def _base_specs(model_id):
         # Default-variant artifact = first deployment (rank ordering puts the
         # default quant first). A pinned variant arrives via the `repo`
         # override in download_specs, exactly like the old FP8 flow.
+        # Every translate card (native_translate) is a GGUF LLM: artifact is
+        # an "org/repo/filename.gguf" upstream path — exactly one file to fetch.
         default_artifact = _trm.deployments[0].artifact
-        if _trm.deployments[0].backend == "ct2_opus_translate":
-            # Opus artifact is a plain "jiangzhuo9357/opus-mt-xx-yy-ct2" repo
-            # id — the backend only needs the 5 CTranslate2 export files.
-            return {"repos": [], "urls": [],
-                    "files": [(default_artifact, f) for f in OPUS_FILES]}
-        # LLM cards: artifact is an "org/repo/filename.gguf" upstream path —
-        # exactly one file to fetch.
         return {"repos": [], "urls": [], "files": [split_artifact(default_artifact)]}
     am = _asr_model(model_id)
     if am is not None:
@@ -92,15 +80,6 @@ def download_specs(model_id, repo=None):
             return {"repos": [], "urls": [], "files": [(repo2, fname)]}
         return {"repos": [repo], "urls": []}
     return _base_specs(model_id)
-
-
-def _needs_llama_binary(model_id) -> bool:
-    """True when `model_id` resolves to a catalog translate row served by a
-    llamacpp_* backend — those need the shared llama-server binary installed
-    alongside the GGUF weights (see download() / model_status())."""
-    from .catalog import translate_model as _translate_model
-    tm = _translate_model(model_id) if model_id else None
-    return tm is not None and tm.deployments[0].backend.startswith("llamacpp_")
 
 
 _SIZE_CACHE = {}
@@ -164,8 +143,8 @@ def _repos_cached(specs) -> bool:
 
 
 def _ladder_artifacts(model_id):
-    """Every quant rung's artifact for a multi-quant catalog card (ASR or
-    llamacpp translate), [] for single-variant/unknown ids. model_status's
+    """Every quant rung's artifact for a multi-quant catalog card (ASR or a
+    GGUF LLM translate card), [] for single-variant/unknown ids. model_status's
     no-override path treats a card as RUNNABLE when ANY rung is cached —
     load-time resolution only ever loads downloaded quants (accel's
     downloaded= restriction), so runnability must not depend on the static
@@ -212,12 +191,9 @@ def model_status(model_id, repo=None):
     is skipped and the normal _repos_cached(specs) check below correctly
     evaluates the MLX repo.
 
-    llamacpp_* translate cards additionally need the shared llama-server binary
-    installed for EVERY required flavor (see download() / llama_runtime.
-    required_flavors) — the machine's default flavor AND the tiny cpu floor;
-    without both, the card can't load on every device the UI exposes even
-    with every GGUF file cached, so status must report 'absent' until all
-    required flavors land."""
+    Translate cards (native_translate) need nothing beyond their GGUF file —
+    translation runs in-process through sokuji_native, the same wheel ASR and
+    TTS already require, so there is no separate runtime binary to install."""
     specs = download_specs(model_id, repo)
     try:
         from .catalog import tts_model as _tts_card
@@ -270,11 +246,6 @@ def model_status(model_id, repo=None):
             from huggingface_hub import hf_hub_download
             for r, fname in specs["files"]:
                 hf_hub_download(r, fname, local_files_only=True)
-        if _needs_llama_binary(model_id):
-            from . import llama_runtime
-            if any(llama_runtime.binary_path(f) is None
-                   for f in llama_runtime.required_flavors()):
-                return "absent"
         return "ready"
     except Exception:
         return "absent"
@@ -291,11 +262,6 @@ def delete_model(model_id, repo=None):
     scanner so we only touch fully-managed revisions; a repo shared with another
     still-needed model is deleted here too — callers should only delete models
     the user explicitly removed.
-
-    The llama-server binary (see llama_runtime) is likewise NOT removed here:
-    it's shared by every llamacpp_* translate card, so deleting one card must
-    not strand the others without a runtime. It's small next to the GGUF
-    weights — cheaper to keep installed than to refcount across cards.
 
     Upstream-sourced cards (files-shaped specs) are deleted by their upstream
     repo, same as a repos entry — deleting one such card removes ALL cached
@@ -324,9 +290,6 @@ def delete_model(model_id, repo=None):
 
 # Poll interval for streaming a big file's in-flight bytes (tests shrink it).
 _PROGRESS_POLL_S = 0.5
-# Display-only estimate for one llama-server flavor install (the real asset
-# size isn't cheaply known before the fetch; only weights the progress bar).
-_LLAMA_FLAVOR_EST_BYTES = 30_000_000
 
 
 def _incomplete_bytes(repo):
@@ -375,7 +338,7 @@ async def download(model_id, send, should_cancel=None, repo=None):
             files.extend((r, f) for f in api.list_repo_files(r) if not _ignored(f, ignore))
         except Exception:
             pass
-    # Files-shaped specs (GGUF/Opus cards) name their exact (repo, filename) pairs
+    # Files-shaped specs (GGUF cards) name their exact (repo, filename) pairs
     # statically — no listing round-trip needed. Merged into the same `files` work
     # list so the no-op guard and progress `total` below count them for free.
     files.extend(specs.get("files", []))
@@ -386,27 +349,14 @@ async def download(model_id, send, should_cancel=None, repo=None):
         raise RuntimeError(
             f"no downloadable files for {model_id} (repos {specs['repos']} unreachable)")
     total_units = len(files) + len(specs["urls"])
-    # llamacpp cards need EVERY required llama-server flavor installed (the
-    # machine's default flavor for a normal load, plus the tiny cpu floor for
-    # device=cpu / the gpu->cpu fallback — see llama_runtime.required_flavors).
-    # Each missing flavor counts as one more download unit up front so the
-    # renderer's progress bar covers it; a flavor an earlier download already
-    # installed is a no-op here.
-    llama_flavors = []
-    if _needs_llama_binary(model_id):
-        from . import llama_runtime
-        llama_flavors = [f for f in llama_runtime.required_flavors()
-                         if llama_runtime.binary_path(f) is None]
-        total_units += len(llama_flavors)
 
-    # Byte mode when the total size is known (all catalog cards). Flavor
-    # installs weight in at a nominal estimate; the final event pins to total.
+    # Byte mode when the total size is known (all catalog cards).
     size = None
     try:
         size = model_size(model_id if not repo else repo)
     except Exception:
         size = None
-    total_bytes = (size + _LLAMA_FLAVOR_EST_BYTES * len(llama_flavors)) if size else None
+    total_bytes = size or None
 
     done_units = 0
     done_bytes = 0
@@ -455,18 +405,11 @@ async def download(model_id, send, should_cancel=None, repo=None):
         done_units += 1
         return result
 
-    is_last_stage = not llama_flavors
     for i, (r, fname) in enumerate(files):
         if cancelled():
             return "cancelled"
         await _fetch(hf_hub_download, r, fname, poll_repo=r)
-        await progress(final=is_last_stage and i == len(files) - 1)
-    for i, flavor in enumerate(llama_flavors):
-        if cancelled():
-            return "cancelled"
-        from . import llama_runtime
-        await _fetch(llama_runtime.ensure_binary, flavor, est=_LLAMA_FLAVOR_EST_BYTES)
-        await progress(final=i == len(llama_flavors) - 1)
+        await progress(final=i == len(files) - 1)
     return "ready"
 
 

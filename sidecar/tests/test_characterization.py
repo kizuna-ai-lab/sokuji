@@ -45,8 +45,7 @@ from sokuji_sidecar import accel, catalog
 # mlx/mlx_audio_tts which only ever run on Apple Silicon in practice.
 _ALL_BACKENDS = frozenset({
     "native_asr", "native_asr_stream", "sherpa_tts", "moss_onnx",
-    "supertonic", "qwen3tts_onnx", "pocket_onnx", "onnx", "llamacpp_qwen",
-    "llamacpp_hunyuan", "llamacpp_gemma", "ct2_opus_translate",
+    "supertonic", "qwen3tts_onnx", "pocket_onnx", "onnx", "native_translate",
 })
 _APPLE_BACKENDS = _ALL_BACKENDS | {"mlx_audio_tts", "mlx"}
 
@@ -143,30 +142,24 @@ def test_resolve_asr_matrix(model_id, machine, override, expected, monkeypatch):
 
 
 TRANSLATE_MATRIX = [
-    ('qwen3-0.6b', CPU_ONLY, 'auto', [('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0)]),
-    ('qwen3-0.6b', CPU_ONLY, 'cpu', [('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)]),
-    ('qwen3-0.6b', CUDA_12GB, 'auto', [('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0)]),
-    ('qwen3-0.6b', CUDA_12GB, 'cpu', [('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0), ('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0), ('llamacpp_qwen', 'gpu-vulkan', 'vulkan', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'gpu-vulkan', 'vulkan', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)]),
-    ('qwen3-0.6b', CUDA_24GB, 'auto', [('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0)]),
-    ('qwen3-0.6b', CUDA_24GB, 'cpu', [('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0), ('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0), ('llamacpp_qwen', 'gpu-vulkan', 'vulkan', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'gpu-vulkan', 'vulkan', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)]),
-    ('qwen3-0.6b', APPLE_SILICON, 'auto', [('llamacpp_qwen', 'gpu-metal', 'metal', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0)]),
-    ('qwen3-0.6b', APPLE_SILICON, 'cpu', [('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0), ('llamacpp_qwen', 'gpu-metal', 'metal', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('llamacpp_qwen', 'gpu-metal', 'metal', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)]),
-    ('qwen3.5-0.8b', CPU_ONLY, 'auto', [('llamacpp_qwen', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)]),
-    ('qwen3.5-0.8b', CPU_ONLY, 'cpu', [('llamacpp_qwen', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
-    ('qwen3.5-0.8b', CUDA_12GB, 'auto', [('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
-    ('qwen3.5-0.8b', CUDA_12GB, 'cpu', [('llamacpp_qwen', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('llamacpp_qwen', 'gpu-vulkan', 'vulkan', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('llamacpp_qwen', 'gpu-vulkan', 'vulkan', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
-    ('qwen3.5-0.8b', CUDA_24GB, 'auto', [('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
-    ('qwen3.5-0.8b', CUDA_24GB, 'cpu', [('llamacpp_qwen', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('llamacpp_qwen', 'gpu-cuda', 'cuda', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('llamacpp_qwen', 'gpu-vulkan', 'vulkan', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('llamacpp_qwen', 'gpu-vulkan', 'vulkan', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
-    ('qwen3.5-0.8b', APPLE_SILICON, 'auto', [('llamacpp_qwen', 'gpu-metal', 'metal', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
-    ('qwen3.5-0.8b', APPLE_SILICON, 'cpu', [('llamacpp_qwen', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('llamacpp_qwen', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('llamacpp_qwen', 'gpu-metal', 'metal', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('llamacpp_qwen', 'gpu-metal', 'metal', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
-    ('opus-mt-en-zh', CPU_ONLY, 'auto', [('ct2_opus_translate', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/opus-mt-en-zh-ct2', 1.0)]),
-    ('opus-mt-en-zh', CPU_ONLY, 'cpu', [('ct2_opus_translate', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/opus-mt-en-zh-ct2', 1.0)]),
-    ('opus-mt-en-zh', CUDA_12GB, 'auto', [('ct2_opus_translate', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/opus-mt-en-zh-ct2', 1.0)]),
-    ('opus-mt-en-zh', CUDA_12GB, 'cpu', [('ct2_opus_translate', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/opus-mt-en-zh-ct2', 1.0)]),
-    ('opus-mt-en-zh', CUDA_24GB, 'auto', [('ct2_opus_translate', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/opus-mt-en-zh-ct2', 1.0)]),
-    ('opus-mt-en-zh', CUDA_24GB, 'cpu', [('ct2_opus_translate', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/opus-mt-en-zh-ct2', 1.0)]),
-    ('opus-mt-en-zh', APPLE_SILICON, 'auto', [('ct2_opus_translate', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/opus-mt-en-zh-ct2', 1.0)]),
-    ('opus-mt-en-zh', APPLE_SILICON, 'cpu', [('ct2_opus_translate', 'cpu', 'cpu', 'int8', 'jiangzhuo9357/opus-mt-en-zh-ct2', 1.0)]),
+    ('qwen3-0.6b', CPU_ONLY, 'auto', [('native_translate', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0)]),
+    ('qwen3-0.6b', CPU_ONLY, 'cpu', [('native_translate', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)]),
+    ('qwen3-0.6b', CUDA_12GB, 'auto', [('native_translate', 'gpu-vulkan', 'vulkan', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0)]),
+    ('qwen3-0.6b', CUDA_12GB, 'cpu', [('native_translate', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0), ('native_translate', 'gpu-vulkan', 'vulkan', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('native_translate', 'gpu-vulkan', 'vulkan', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)]),
+    ('qwen3-0.6b', CUDA_24GB, 'auto', [('native_translate', 'gpu-vulkan', 'vulkan', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0)]),
+    ('qwen3-0.6b', CUDA_24GB, 'cpu', [('native_translate', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0), ('native_translate', 'gpu-vulkan', 'vulkan', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('native_translate', 'gpu-vulkan', 'vulkan', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)]),
+    ('qwen3-0.6b', APPLE_SILICON, 'auto', [('native_translate', 'gpu-metal', 'metal', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0)]),
+    ('qwen3-0.6b', APPLE_SILICON, 'cpu', [('native_translate', 'cpu', 'cpu', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0), ('native_translate', 'gpu-metal', 'metal', 'q8_0', 'Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf', 2.0), ('native_translate', 'gpu-metal', 'metal', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)]),
+    ('qwen3.5-0.8b', CPU_ONLY, 'auto', [('native_translate', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)]),
+    ('qwen3.5-0.8b', CPU_ONLY, 'cpu', [('native_translate', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
+    ('qwen3.5-0.8b', CUDA_12GB, 'auto', [('native_translate', 'gpu-vulkan', 'vulkan', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('native_translate', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
+    ('qwen3.5-0.8b', CUDA_12GB, 'cpu', [('native_translate', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('native_translate', 'gpu-vulkan', 'vulkan', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('native_translate', 'gpu-vulkan', 'vulkan', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
+    ('qwen3.5-0.8b', CUDA_24GB, 'auto', [('native_translate', 'gpu-vulkan', 'vulkan', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('native_translate', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
+    ('qwen3.5-0.8b', CUDA_24GB, 'cpu', [('native_translate', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('native_translate', 'gpu-vulkan', 'vulkan', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('native_translate', 'gpu-vulkan', 'vulkan', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
+    ('qwen3.5-0.8b', APPLE_SILICON, 'auto', [('native_translate', 'gpu-metal', 'metal', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('native_translate', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
+    ('qwen3.5-0.8b', APPLE_SILICON, 'cpu', [('native_translate', 'cpu', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('native_translate', 'cpu', 'cpu', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0), ('native_translate', 'gpu-metal', 'metal', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0), ('native_translate', 'gpu-metal', 'metal', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)]),
+    # Opus-MT rows are gone (slice 3): the 13 ct2_opus_translate cards and the
+    # backend that served them were deleted along with ctranslate2.
 ]
 
 
@@ -273,8 +266,8 @@ def test_resolve_translate_prefers_downloaded_quant_over_fresh_recommendation(mo
     monkeypatch.setattr(accel, "current_platform", lambda: "linux")
     plans = accel.resolve_translate("translategemma-4b", "auto", machine=CUDA_12GB)
     assert _plan_tuples(plans) == [
-        ('llamacpp_gemma', 'gpu-cuda', 'cuda', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0),
-        ('llamacpp_gemma', 'cpu', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0),
+        ('native_translate', 'gpu-vulkan', 'vulkan', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0),
+        ('native_translate', 'cpu', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0),
     ]
 
 
@@ -318,14 +311,14 @@ _GEMMA = catalog.translate_model("translategemma-4b")
 _GEMMA_ALL_QUANTS = {"q4_k_m", "q8_0"}
 
 SELECT_VARIANT_MATRIX = [
-    (CPU_ONLY, frozenset(), ('llamacpp_gemma', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
-    (CPU_ONLY, _GEMMA_ALL_QUANTS, ('llamacpp_gemma', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
-    (CUDA_12GB, frozenset(), ('llamacpp_gemma', 'gpu-cuda', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
-    (CUDA_12GB, _GEMMA_ALL_QUANTS, ('llamacpp_gemma', 'gpu-cuda', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
-    (CUDA_24GB, frozenset(), ('llamacpp_gemma', 'gpu-cuda', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
-    (CUDA_24GB, _GEMMA_ALL_QUANTS, ('llamacpp_gemma', 'gpu-cuda', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
-    (APPLE_SILICON, frozenset(), ('llamacpp_gemma', 'gpu-metal', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
-    (APPLE_SILICON, _GEMMA_ALL_QUANTS, ('llamacpp_gemma', 'gpu-metal', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
+    (CPU_ONLY, frozenset(), ('native_translate', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
+    (CPU_ONLY, _GEMMA_ALL_QUANTS, ('native_translate', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
+    (CUDA_12GB, frozenset(), ('native_translate', 'gpu-vulkan', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
+    (CUDA_12GB, _GEMMA_ALL_QUANTS, ('native_translate', 'gpu-vulkan', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
+    (CUDA_24GB, frozenset(), ('native_translate', 'gpu-vulkan', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
+    (CUDA_24GB, _GEMMA_ALL_QUANTS, ('native_translate', 'gpu-vulkan', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
+    (APPLE_SILICON, frozenset(), ('native_translate', 'gpu-metal', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
+    (APPLE_SILICON, _GEMMA_ALL_QUANTS, ('native_translate', 'gpu-metal', 'q8_0', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q8_0.gguf', 1.0)),
 ]
 
 
@@ -336,21 +329,21 @@ def test_select_variant_matrix(machine, downloaded, expected):
     assert (d.backend, d.tier, d.compute_type, d.artifact, d.rank) == expected
 
 
-# select_variant's non-llamacpp (generic ONNX candidate()) branch is currently
-# UNREACHABLE via the real catalog: every TranslateModel is either llamacpp_*
-# (multi-tier) or ct2_opus_translate (a single cpu-only deployment, which
-# candidate() always excludes via `d.tier == "cpu"`). Not exercised here —
-# there is no real model id that would take that branch.
+# select_variant's non-GGUF-LLM (generic ONNX candidate()) branch is currently
+# UNREACHABLE via the real catalog: every TranslateModel is native_translate
+# (multi-tier, since slice 3 removed the ct2_opus_translate single-cpu-tier
+# alternative). Not exercised here — there is no real model id that would
+# take that branch.
 
 
 SELECT_VARIANT_TINY_BUDGET_MATRIX = [
-    (CPU_ONLY, ('llamacpp_gemma', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
-    (CUDA_12GB, ('llamacpp_gemma', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
-    (CUDA_24GB, ('llamacpp_gemma', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
+    (CPU_ONLY, ('native_translate', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
+    (CUDA_12GB, ('native_translate', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
+    (CUDA_24GB, ('native_translate', 'cpu', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
     # Apple Silicon is UNIFIED memory: moving to cpu frees nothing and loses
     # Metal throughput, so a tiny budget still keeps the gpu-metal tier
-    # (--fit is left to manage the pressure) instead of falling to CPU.
-    (APPLE_SILICON, ('llamacpp_gemma', 'gpu-metal', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
+    # instead of falling to CPU.
+    (APPLE_SILICON, ('native_translate', 'gpu-metal', 'q4_k_m', 'mradermacher/translategemma-4b-it-GGUF/translategemma-4b-it.Q4_K_M.gguf', 2.0)),
 ]
 
 
@@ -364,14 +357,14 @@ _QWEN35 = catalog.translate_model("qwen3.5-0.8b")
 _QWEN35_ALL_QUANTS = {"q4_k_m", "q8_0"}
 
 LLAMACPP_VARIANT_ROW_MATRIX = [
-    (CPU_ONLY, frozenset(), ('llamacpp_qwen', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
-    (CPU_ONLY, _QWEN35_ALL_QUANTS, ('llamacpp_qwen', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
-    (CUDA_12GB, frozenset(), ('llamacpp_qwen', 'gpu-cuda', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
-    (CUDA_12GB, _QWEN35_ALL_QUANTS, ('llamacpp_qwen', 'gpu-cuda', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
-    (CUDA_24GB, frozenset(), ('llamacpp_qwen', 'gpu-cuda', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
-    (CUDA_24GB, _QWEN35_ALL_QUANTS, ('llamacpp_qwen', 'gpu-cuda', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
-    (APPLE_SILICON, frozenset(), ('llamacpp_qwen', 'gpu-metal', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
-    (APPLE_SILICON, _QWEN35_ALL_QUANTS, ('llamacpp_qwen', 'gpu-metal', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
+    (CPU_ONLY, frozenset(), ('native_translate', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
+    (CPU_ONLY, _QWEN35_ALL_QUANTS, ('native_translate', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
+    (CUDA_12GB, frozenset(), ('native_translate', 'gpu-vulkan', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
+    (CUDA_12GB, _QWEN35_ALL_QUANTS, ('native_translate', 'gpu-vulkan', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
+    (CUDA_24GB, frozenset(), ('native_translate', 'gpu-vulkan', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
+    (CUDA_24GB, _QWEN35_ALL_QUANTS, ('native_translate', 'gpu-vulkan', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
+    (APPLE_SILICON, frozenset(), ('native_translate', 'gpu-metal', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
+    (APPLE_SILICON, _QWEN35_ALL_QUANTS, ('native_translate', 'gpu-metal', 'q8_0', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf', 1.0)),
 ]
 
 
@@ -384,13 +377,13 @@ def test_llamacpp_variant_row_matrix(machine, downloaded, expected):
 
 LLAMACPP_VARIANT_ROW_TINY_BUDGET_MATRIX = [
     # Discrete GPUs: budget below _LLAMA_MIN_FIT_FRACTION (50%) of the
-    # smallest quant -> --fit offload would be slower than pure CPU, so the
-    # row drops fully to the cpu tier at the rank-default quant.
-    (CPU_ONLY, ('llamacpp_qwen', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
-    (CUDA_12GB, ('llamacpp_qwen', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
-    (CUDA_24GB, ('llamacpp_qwen', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
+    # smallest quant -> the row drops fully to the cpu tier at the
+    # rank-default quant.
+    (CPU_ONLY, ('native_translate', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
+    (CUDA_12GB, ('native_translate', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
+    (CUDA_24GB, ('native_translate', 'cpu', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
     # Apple Silicon: unified memory -> stays on gpu-metal regardless of budget.
-    (APPLE_SILICON, ('llamacpp_qwen', 'gpu-metal', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
+    (APPLE_SILICON, ('native_translate', 'gpu-metal', 'q4_k_m', 'unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf', 2.0)),
 ]
 
 
@@ -403,10 +396,10 @@ def test_llamacpp_variant_row_tiny_budget(machine, expected):
 _QWEN06 = catalog.translate_model("qwen3-0.6b")
 
 LLAMACPP_VARIANT_ROW_PIN_MATRIX = [
-    (CPU_ONLY, ('llamacpp_qwen', 'cpu', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)),
-    (CUDA_12GB, ('llamacpp_qwen', 'gpu-cuda', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)),
-    (CUDA_24GB, ('llamacpp_qwen', 'gpu-cuda', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)),
-    (APPLE_SILICON, ('llamacpp_qwen', 'gpu-metal', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)),
+    (CPU_ONLY, ('native_translate', 'cpu', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)),
+    (CUDA_12GB, ('native_translate', 'gpu-vulkan', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)),
+    (CUDA_24GB, ('native_translate', 'gpu-vulkan', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)),
+    (APPLE_SILICON, ('native_translate', 'gpu-metal', 'q4_k_m', 'unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf', 1.0)),
 ]
 
 

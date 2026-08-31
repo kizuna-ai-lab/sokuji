@@ -1,6 +1,7 @@
 """macOS MLX TTS backend (spec D5). mlx-audio is Apple-Silicon-only, so it is
-faked via sys.modules (mirrors test_ct2_opus's stub pattern); every test runs
-green on the Linux dev box."""
+faked via sys.modules (the same stub-module pattern used throughout this test
+suite for platform/hardware-gated dependencies); every test runs green on the
+Linux dev box."""
 import os
 import sys
 import types

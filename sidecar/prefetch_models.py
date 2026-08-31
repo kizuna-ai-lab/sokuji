@@ -14,7 +14,7 @@ from sokuji_sidecar.catalog import _gguf_artifact, split_artifact
 
 # The english Pocket mirror (flat model repo staged by scripts/mirror_pocket_tts.py).
 POCKET_REPO = os.environ.get("SOKUJI_POCKET_TTS_EN_REPO", "jiangzhuo9357/pocket-tts-en-onnx")
-# Catalog default translate row: qwen2.5-0.5b GGUF, q8_0 quant (llamacpp_qwen backend).
+# Catalog default translate row: qwen2.5-0.5b GGUF, q8_0 quant (native_translate backend).
 # Upstream-sourced (Task 14b): an "org/repo/file.gguf" artifact, not a snapshot-able repo.
 TRANSLATE = _gguf_artifact("qwen2.5-0.5b", "q8_0")
 # Catalog default ASR row: sense-voice via transcribe.cpp — one pinned GGUF.
