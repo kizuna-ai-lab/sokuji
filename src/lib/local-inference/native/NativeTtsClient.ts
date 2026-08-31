@@ -24,6 +24,7 @@ export interface TtsReady {
   sampleRate: number; loadTimeMs: number;
   backend?: string; device?: string; computeType?: string; rtf?: number;
   streaming: boolean; clones: boolean; memoryBytes?: number; fallbackReason?: string;
+  family?: string;   // the resolved card's family (moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic)
 }
 
 interface StreamDone { resolve: (m: ServerMsg) => void; reject: (e: Error) => void; bump: () => void; }
@@ -99,32 +100,16 @@ export class NativeTtsClient {
       sampleRate: this.sampleRate, loadTimeMs: r.loadTimeMs,
       backend: r.backend, device: r.device, computeType: r.computeType, rtf: r.rtf,
       streaming: !!r.streaming, clones: !!r.clones, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason,
+      family: r.family,
     };
   }
 
   /** Select a built-in voice by name (applies to subsequent generate calls). */
   async setVoice(name: string): Promise<void> { await this.conn.request({ type: 'set_voice', voice: name }); }
 
-  /** Select a numeric speaker id (range models). */
-  async setSpeaker(sid: number): Promise<void> { await this.conn.request({ type: 'set_voice', sid }); }
-
   async setReferenceVoice(audio: Float32Array, sampleRate: number, refText?: string): Promise<void> {
     this.conn.sendBinary(audio);                         // binary frame precedes the control message; pass the view so a subarray isn't over-sent
     await this.conn.request({ type: 'set_voice', sampleRate, ...(refText ? { refText } : {}) });
-  }
-
-  /** Select a style-cloned voice (e.g. Supertonic) from precomputed style-conditioning vectors. */
-  async setStyleVoice(styleTtl: { dims: number[]; data: number[] },
-                      styleDp: { dims: number[]; data: number[] }): Promise<void> {
-    // Voice JSON `data` is nested per dims — flatten it (mirrors the WASM worker's
-    // jsonToFloat32Tensor) before packing; otherwise Float32Array.from over the outer
-    // array yields the wrong length and the sidecar's reshape fails.
-    const f32 = (d: number[]) => Float32Array.from((d as unknown[]).flat(Infinity) as number[]);
-    const ttl = f32(styleTtl.data), dp = f32(styleDp.data);
-    const buf = new Float32Array(ttl.length + dp.length);
-    buf.set(ttl, 0); buf.set(dp, ttl.length);
-    this.conn.sendBinary(buf);                           // binary frame precedes the control message; pass the view so a subarray isn't over-sent
-    await this.conn.request({ type: 'set_voice', styleVoice: { ttlDims: styleTtl.dims, dpDims: styleDp.dims } });
   }
 
   async generate(text: string, speed = 1.0, onChunk?: (pcm: Float32Array, seq: number) => void): Promise<NativeTtsResult> {

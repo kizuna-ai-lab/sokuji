@@ -31,16 +31,20 @@ export type { ClipValidationError };
  *     injected `store`'s custom voices (`custom:<id>` entries, removable).
  *   - `{builtin:'none', custom:'none'}` → nothing to render.
  *
- * The `store` (from `voiceStoreFor`, Task 11) abstracts over the two custom
- * -voice backends — clip cloning (MOSS) vs style import (Supertonic-shaped
- * native models) — so this component no longer needs to know which one it's
- * talking to. It owns loading/refreshing the custom list locally (via
+ * The `store` (from `voiceStoreFor`, Task 11) abstracts over the native
+ * custom-voice backend — clip cloning (MOSS and the other native_tts clone-
+ * capable families) — so this component doesn't need its own store-specific
+ * branches. The old style-import backend (Supertonic-shaped native models,
+ * uploaded style-vector JSON) died with the ONNX Supertonic backend (Task 5's
+ * catalog rewire onto native_tts) and the renderer's setStyleVoice sender
+ * (Task 6). It owns loading/refreshing the custom list locally (via
  * `store.list()`) and calls the parent's `onCustomChanged` after a
  * successful mutation so any parent-side cache stays in sync.
  *
- * Capture errors (`VoiceCaptureError` from the clip store, `VoiceImportError`
- * from the style store) are caught here and surfaced inline; nothing is
- * written to the voice list when validation fails.
+ * Capture errors (`VoiceCaptureError` from the clip store; `VoiceImportError`
+ * is a shared error type any store could in principle throw) are caught here
+ * and surfaced inline; nothing is written to the voice list when validation
+ * fails.
  */
 export interface NativeVoiceSectionProps {
   /** The selected TTS model's voice capability (built-in shape + custom-voice kind). */
@@ -111,9 +115,9 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   }, [t, store]);
 
   // Turn a capture failure into a user-facing message: clip validation errors
-  // (record/upload on the clip store) map by code; style-import failures
-  // (VoiceImportError) show their own message; anything else falls back to a
-  // generic "couldn't read that file" notice.
+  // (record/upload on the clip store) map by code; a VoiceImportError (the
+  // shared error type from voiceStorage.ts) shows its own message; anything
+  // else falls back to a generic "couldn't read that file" notice.
   const captureErrorMessage = useCallback((err: unknown): string => {
     if (err instanceof VoiceCaptureError) return clipErrorMessage(err.code);
     if (err instanceof VoiceImportError) return err.message;

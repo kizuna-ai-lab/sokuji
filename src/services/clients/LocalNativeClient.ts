@@ -7,7 +7,7 @@ import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTr
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { reconcileTtsVoice } from '../../lib/local-inference/native/nativeTtsVoiceReconciliation';
-import { sidFromTtsVoice, voiceCapability } from '../../lib/local-inference/native/nativeCatalog';
+import { voiceCapability } from '../../lib/local-inference/native/nativeCatalog';
 import { voiceStoreFor } from '../../lib/local-inference/native/nativeVoiceStores';
 import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import { splitSentences } from '../../utils/splitSentences';
@@ -141,7 +141,8 @@ export class LocalNativeClient implements IClient {
           rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason });
         this.emitInitReady('tts', config.ttsModelId!, r);
         // Apply the selected voice (next-session semantics), driven by the
-        // model's capability (built-in named/range and/or custom clip/style)
+        // model's capability (built-in named and/or custom clip — native_tts
+        // has no range/style equivalent, see nativeCatalog.voiceCapability)
         // rather than a MOSS-specific "clones" flag, so any current or future
         // voice-capable model resolves through the same path. Custom ids
         // resolve against the capability's own store; a missing/deleted
@@ -168,11 +169,10 @@ export class LocalNativeClient implements IClient {
         } else if (voice.startsWith('custom:') && voiceStore) {
           const payload = await voiceStore.resolveApply(Number(voice.slice('custom:'.length)));
           if (payload?.kind === 'clip') await this.tts.setReferenceVoice(payload.audio, payload.sampleRate, payload.transcript);
-          else if (payload?.kind === 'style') await this.tts.setStyleVoice(payload.styleTtl, payload.styleDp);
-        } else if (voice.startsWith('sid:')) {
-          await this.tts.setSpeaker(sidFromTtsVoice(voice));
         }
-        // else single-voice model with no selection: send nothing (backend uses speaker 0)
+        // else: single-voice model with no selection, or a stale sid:<n> setting
+        // from before native_tts (which has no speaker-id equivalent) — send
+        // nothing (backend uses speaker 0).
       } catch (e) {
         this.ttsEnabled = false;
         this.handlers.onError?.(`native TTS init failed: ${e}`);

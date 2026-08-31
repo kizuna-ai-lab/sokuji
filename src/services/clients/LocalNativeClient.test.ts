@@ -26,7 +26,7 @@ function mocks() {
     translate: vi.fn().mockResolvedValue({ sourceText: 'hola', translatedText: 'hello', inferenceTimeMs: 2 }),
     dispose: vi.fn(),
   };
-  const tts: any = { onError: null, init: vi.fn(), generate: vi.fn(), dispose: vi.fn(), setVoice: vi.fn(), setSpeaker: vi.fn() };
+  const tts: any = { onError: null, init: vi.fn(), generate: vi.fn(), dispose: vi.fn(), setVoice: vi.fn() };
   return { asr, translate, tts };
 }
 
@@ -677,14 +677,15 @@ describe('LocalNativeClient voice selection', () => {
     expect(m.tts.setVoice).toHaveBeenCalledWith('Ava');
   });
 
-  it('sid: voice calls setSpeaker on a range (multi-speaker) model', async () => {
+  it('a stale sid:<n> voice (native_tts has no speaker-id equivalent) sends no voice command', async () => {
+    // The setSpeaker sender died with the ONNX range-model backends (Task 5's
+    // catalog rewire onto native_tts) and its NativeTtsClient method (Task 6) --
+    // a leftover sid:<n> settings value now just falls through untouched.
     const m = mocks();
     m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, clones: false });
-    m.tts.setSpeaker = vi.fn().mockResolvedValue(undefined);
     const c = new LocalNativeClient(m);
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: 'piper-en', ttsVoice: 'sid:3' } as any);
-    expect(m.tts.setSpeaker).toHaveBeenCalledWith(3);
     expect(m.tts.setVoice).not.toHaveBeenCalled();
   });
 
@@ -695,7 +696,6 @@ describe('LocalNativeClient voice selection', () => {
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: 'piper-en-amy' } as any);
     expect(m.tts.setVoice).not.toHaveBeenCalled();
-    expect(m.tts.setSpeaker).not.toHaveBeenCalled();
   });
 
   it('applies a custom cloned voice via setReferenceVoice', async () => {

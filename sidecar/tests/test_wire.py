@@ -30,6 +30,8 @@ def test_valid_messages_pass_in_strict_mode(monkeypatch):
     wire.validate_outbound({"type": "ok", "id": 3})
     wire.validate_outbound({"type": "ready", "id": 1, "loadTimeMs": 5,
                             "backend": "moss_onnx", "rtf": 0.2})
+    wire.validate_outbound({"type": "ready", "id": 2, "loadTimeMs": 5,
+                            "backend": "native_tts", "family": "moss_tts_nano"})
     wire.validate_outbound({"type": "error", "message": "boom"})          # id optional
     wire.validate_outbound({"type": "partial", "text": "hi"})              # required field only
     wire.validate_outbound({"type": "result", "text": "hi",

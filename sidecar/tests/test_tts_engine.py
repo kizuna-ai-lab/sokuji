@@ -4,7 +4,7 @@ import threading
 
 import numpy as np
 import pytest
-from sokuji_sidecar import accel, server, tts_engine
+from sokuji_sidecar import accel, planner, server, tts_engine
 
 
 def test_resample_48k_stereo_to_24k_mono():
@@ -134,6 +134,45 @@ def test_init_oneshot_reports_resolved_and_24k(monkeypatch):
     assert eng.resolved["backend"] == "fake_oneshot"
     assert eng.model_id == "piper-en-amy"
     assert eng.is_loaded is True
+
+
+def test_init_reports_family_from_plan_config(monkeypatch):
+    # ready.family (Task 6): the engine exposes the resolved card's family
+    # straight off Plan.config.tts_family -- the same value native_tts's
+    # backend.load() reads (planner._plan_config, TtsModel.family).
+    b = _FakeOneShot()
+    plan = accel.Plan(b.NAME, "cpu", "cpu", "fp32", "repo", 1.0,
+                       config=planner.PlanConfig(tts_family="moss_tts_nano"))
+    monkeypatch.setattr(accel, "resolve_tts", lambda *a, **k: [plan])
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (b, plan, None, None))
+    monkeypatch.setattr(accel, "measure_rtf_tts", lambda *a, **k: 0.1)
+    eng = tts_engine.TtsEngine()
+    eng.init("moss-tts-nano")
+    assert eng.resolved["family"] == "moss_tts_nano"
+
+
+def test_init_omits_family_when_plan_config_has_none(monkeypatch):
+    # A bare PlanConfig() (tts_family == "") must not add a misleading empty
+    # `family` key -- same pattern as rtf/memoryBytes/fallbackReason above.
+    b = _FakeOneShot(); _patch(monkeypatch, b, "piper-en-amy")
+    eng = tts_engine.TtsEngine()
+    eng.init("piper-en-amy")
+    assert "family" not in eng.resolved
+
+
+def test_handler_tts_init_reply_includes_family(monkeypatch):
+    b = _FakeOneShot()
+    plan = accel.Plan(b.NAME, "cpu", "cpu", "fp32", "repo", 1.0,
+                       config=planner.PlanConfig(tts_family="supertonic"))
+    monkeypatch.setattr(accel, "resolve_tts", lambda *a, **k: [plan])
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (b, plan, None, None))
+    monkeypatch.setattr(accel, "measure_rtf_tts", lambda *a, **k: 0.1)
+    st = {"tts_engine": tts_engine.TtsEngine(), "handlers": {}}
+    tts_engine.register(st)
+    conn = _FakeConn()
+    reply, _ = asyncio.run(st["handlers"]["tts_init"](
+        st, {"type": "tts_init", "id": 1, "model": "supertonic-3"}, None, conn))
+    assert reply["family"] == "supertonic"
 
 
 def test_close_clears_model_id_and_loaded_state(monkeypatch):
@@ -331,51 +370,6 @@ def test_handler_set_voice_clone_runs_off_the_event_loop(monkeypatch):
     assert len(calls) == 1
 
 
-def test_handler_set_voice_sid_runs_off_the_event_loop(monkeypatch):
-    class _FakeRangeBackend(_FakeOneShot):
-        def __init__(self):
-            super().__init__()
-            self.sid = None
-
-        def set_speaker(self, sid):
-            self.sid = sid
-
-    st = _state(_FakeRangeBackend(), monkeypatch, "piper-en-amy")
-    conn = _FakeConn()
-    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
-                "model": "piper-en-amy"}, None, conn))
-    calls = _spy_executor(monkeypatch)
-    reply, _ = asyncio.run(st["handlers"]["set_voice"](
-        st, {"type": "set_voice", "id": 3, "sid": 5}, None, conn))
-    assert reply == {"type": "ok", "id": 3}
-    assert st["tts_engine"]._backend.sid == 5
-    assert len(calls) == 1
-
-
-def test_handler_set_voice_style_variant_runs_off_the_event_loop(monkeypatch):
-    class _FakeStyleBackend(_FakeOneShot):
-        def __init__(self):
-            super().__init__()
-            self.style = None
-
-        def set_style_voice(self, ttl, dp):
-            self.style = (ttl, dp)
-
-    st = _state(_FakeStyleBackend(), monkeypatch, "supertonic-3")
-    conn = _FakeConn()
-    asyncio.run(st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
-                "model": "supertonic-3"}, None, conn))
-    calls = _spy_executor(monkeypatch)
-    ttl = np.arange(50 * 256, dtype=np.float32)
-    dp = np.arange(8 * 16, dtype=np.float32)
-    msg = {"type": "set_voice", "id": 4, "styleVoice": {"ttlDims": [1, 50, 256], "dpDims": [1, 8, 16]}}
-    reply, _ = asyncio.run(st["handlers"]["set_voice"](st, msg, ttl.tobytes() + dp.tobytes(), conn))
-    assert reply == {"type": "ok", "id": 4}
-    style_ttl, style_dp = st["tts_engine"]._backend.style
-    assert style_ttl.shape == (1, 50, 256) and style_dp.shape == (1, 8, 16)
-    assert len(calls) == 1
-
-
 def test_handler_tts_generate_oneshot_runs_off_the_event_loop(monkeypatch):
     st = _state(_FakeOneShot(), monkeypatch, "piper-en-amy")
     conn = _FakeConn()
@@ -476,20 +470,6 @@ def test_h_set_voice_builtin_name_path():
     assert reply["type"] == "ok" and called == {"builtin": "Ava"}
 
 
-def test_set_voice_sid_form_routes_to_set_speaker():
-    seen = {}
-    class _Eng:
-        def set_speaker(self, sid): seen["sid"] = sid
-        def set_builtin_voice(self, name): seen["name"] = name
-        def set_voice(self, audio, sr, ref_text=""): seen["clip"] = (len(audio), sr, ref_text)
-    state = {"tts_engine": _Eng(), "handlers": {}}
-    tts_engine.register(state)
-    reply, _ = asyncio.run(state["handlers"]["set_voice"](
-        state, {"id": 3, "type": "set_voice", "sid": 5}, None, None))
-    assert seen == {"sid": 5}
-    assert reply == {"type": "ok", "id": 3}
-
-
 def test_h_set_voice_clone_path_defaults_missing_ref_text_to_none():
     called = {}
     class FakeEng:
@@ -502,6 +482,26 @@ def test_h_set_voice_clone_path_defaults_missing_ref_text_to_none():
         state, {"id": 3, "type": "set_voice", "sampleRate": 24000}, ref, None))
     assert called["clip"] == (240, 24000, None)
     assert reply == {"type": "ok", "id": 3}
+
+
+def test_h_set_voice_ignores_sid_and_style_fields_falls_to_clone_path():
+    """The style-vector and numeric-speaker-id set_voice forms died with the
+    ONNX Supertonic/sherpa backends (Task 5's catalog rewire) and their
+    renderer senders (Task 6: NativeTtsClient.setSpeaker/setStyleVoice) --
+    native_tts has no equivalent for either. A message carrying only a stale
+    `sid`/`styleVoice` field (no `voice` name) is no longer special-cased and
+    falls through to the clone-from-clip branch like any other name-less
+    request."""
+    called = {}
+    class FakeEng:
+        def set_builtin_voice(self, n): called["builtin"] = n
+        def set_voice(self, a, sr, ref_text=None): called["clip"] = (len(a), sr, ref_text)
+    state = {"tts_engine": FakeEng(), "handlers": {}}
+    tts_engine.register(state)
+    reply, _ = asyncio.run(state["handlers"]["set_voice"](
+        state, {"id": 9, "type": "set_voice", "sid": 5}, None, None))
+    assert reply == {"type": "ok", "id": 9}
+    assert called == {"clip": (0, 24000, None)}
 
 
 def test_list_tts_voices_passes_model_and_engine_through(monkeypatch):
@@ -533,7 +533,52 @@ def test_handler_list_tts_voices_runs_off_the_event_loop(monkeypatch):
     assert len(calls) == 1
 
 
-def test_tts_cancel_sets_flag_and_calls_engine_cancel_active():
+def test_tts_cancel_matching_active_stream_sets_flag_and_calls_engine_cancel_active():
+    """CQ-8: tts_cancel only reaches into the backend (via cancel_active()) when
+    the cancelled id IS the connection's currently active stream (conn.ctx's
+    'tts_stream_mid', set by _h_tts_generate's streaming branch) -- this is the
+    matching case."""
+    calls = []
+    class FakeEng:
+        def cancel_active(self): calls.append(1)
+    state = {"tts_engine": FakeEng(), "tts_cancels": {"g4": False}, "handlers": {}}
+    tts_engine.register(state)
+    conn = _FakeConn()
+    conn.ctx["tts_stream_mid"] = "g4"
+    reply, _ = asyncio.run(state["handlers"]["tts_cancel"](
+        state, {"type": "tts_cancel", "id": "g4"}, None, conn))
+    assert reply == {"type": "ok", "id": "g4"}
+    assert state["tts_cancels"]["g4"] is True
+    assert calls == [1]
+
+
+def test_tts_cancel_stale_id_sets_flag_but_does_not_call_engine_cancel_active():
+    """CQ-8 (the bug this fixes): a cancel for an id that is NOT the
+    connection's active stream -- e.g. it already completed, or a newer stream
+    has since superseded it -- must not reach into the backend at all.
+    Unconditionally calling cancel_active() would stop backend.cancel()'s
+    target (tts_backend.py's self._workers[-1], the MOST RECENTLY STARTED
+    stream), i.e. whatever IS currently active -- not the stale id the caller
+    actually meant. The client-side cancels-dict flag (the relay's own
+    should_cancel() poll) is still set unconditionally -- that part was never
+    the bug."""
+    calls = []
+    class FakeEng:
+        def cancel_active(self): calls.append(1)
+    state = {"tts_engine": FakeEng(), "tts_cancels": {"stale-id": False}, "handlers": {}}
+    tts_engine.register(state)
+    conn = _FakeConn()
+    conn.ctx["tts_stream_mid"] = "current-stream"
+    reply, _ = asyncio.run(state["handlers"]["tts_cancel"](
+        state, {"type": "tts_cancel", "id": "stale-id"}, None, conn))
+    assert reply == {"type": "ok", "id": "stale-id"}
+    assert state["tts_cancels"]["stale-id"] is True   # relay flag still set
+    assert calls == []                                # backend NOT touched
+
+
+def test_tts_cancel_without_conn_context_does_not_call_engine_cancel_active():
+    """No conn (or no tracked active stream) means there is nothing to confirm
+    a match against -- must not guess and reach into the backend."""
     calls = []
     class FakeEng:
         def cancel_active(self): calls.append(1)
@@ -543,19 +588,7 @@ def test_tts_cancel_sets_flag_and_calls_engine_cancel_active():
         state, {"type": "tts_cancel", "id": "g4"}, None, None))
     assert reply == {"type": "ok", "id": "g4"}
     assert state["tts_cancels"]["g4"] is True
-    assert calls == [1]
-
-
-def test_tts_cancel_with_unknown_id_still_calls_engine_cancel_active():
-    calls = []
-    class FakeEng:
-        def cancel_active(self): calls.append(1)
-    state = {"tts_engine": FakeEng(), "handlers": {}}
-    tts_engine.register(state)
-    reply, _ = asyncio.run(state["handlers"]["tts_cancel"](
-        state, {"type": "tts_cancel", "id": "unknown"}, None, None))
-    assert reply == {"type": "ok", "id": "unknown"}
-    assert calls == [1]
+    assert calls == []
 
 
 # ── defect 2: supersede stops the OLD generation, not just its asyncio Task ──

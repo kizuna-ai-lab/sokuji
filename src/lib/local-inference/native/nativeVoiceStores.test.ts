@@ -9,14 +9,6 @@ vi.mock('../nativeVoiceStorage', () => ({
   renameNativeVoice: vi.fn(),
   deleteNativeVoice: vi.fn(),
 }));
-vi.mock('../voiceStorage', () => ({
-  listVoices: vi.fn().mockResolvedValue([{ id: 2, name: 'Style', jsonData: new Blob([JSON.stringify({ style_ttl: { dims: [1], data: [3] }, style_dp: { dims: [1], data: [4] } })]) }]),
-  getVoice: vi.fn().mockImplementation(async () => ({ id: 2, name: 'Style', jsonData: new Blob([JSON.stringify({ style_ttl: { dims: [1], data: [3] }, style_dp: { dims: [1], data: [4] } })]) })),
-  addVoice: vi.fn(),
-  renameVoice: vi.fn(),
-  deleteVoice: vi.fn(),
-  VoiceImportError: class extends Error {},
-}));
 
 describe('voiceStoreFor', () => {
   it('clip store resolves audio payload', async () => {
@@ -28,17 +20,16 @@ describe('voiceStoreFor', () => {
     expect(p).toEqual({ kind: 'clip', audio: new Float32Array([0.5]), sampleRate: 24000, transcript: undefined });
   });
 
-  it('style store resolves style payload', async () => {
-    const s = voiceStoreFor('style', 'supertonic-3')!;
-    expect(s.kind).toBe('style');
-    expect(s.capability.importModes).toEqual(['upload']);
-    expect((await s.list())[0]).toEqual({ id: 2, name: 'Style' });
-    const p = await s.resolveApply(2);
-    expect(p).toEqual({ kind: 'style', styleTtl: { dims: [1], data: [3] }, styleDp: { dims: [1], data: [4] } });
-  });
-
   it('none -> null', () => {
     expect(voiceStoreFor('none', 'x')).toBeNull();
+  });
+
+  it('the old style-vector store is gone: an unrecognized custom value resolves to null', () => {
+    // 'style' died with the ONNX Supertonic backend (Task 5's catalog rewire)
+    // and the renderer's setStyleVoice sender (Task 6) -- voiceCapability()
+    // can no longer produce it, but the switch's default branch still
+    // degrades safely for any legacy/unexpected value rather than throwing.
+    expect(voiceStoreFor('style' as never, 'supertonic-3')).toBeNull();
   });
 
   it('clip store surfaces transcripts', async () => {

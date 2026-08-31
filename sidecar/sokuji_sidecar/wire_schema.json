@@ -12,7 +12,7 @@
   "ok": {"required": ["id"], "optional": []},
   "partial": {"required": ["text"], "optional": []},
   "pong": {"required": ["id"], "optional": []},
-  "ready": {"required": ["id", "loadTimeMs"], "optional": ["sampleRate", "backend", "device", "computeType", "rtf", "tokensPerSec", "memoryBytes", "fallbackReason", "streaming", "clones"]},
+  "ready": {"required": ["id", "loadTimeMs"], "optional": ["sampleRate", "backend", "device", "computeType", "rtf", "tokensPerSec", "memoryBytes", "fallbackReason", "streaming", "clones", "family"]},
   "result": {"required": ["text", "durationMs", "recognitionTimeMs"], "optional": ["startSample"]},
   "translate_partial": {"required": ["text"], "optional": []},
   "translate_result": {"required": ["id", "sourceText", "translatedText", "inferenceTimeMs"], "optional": []},

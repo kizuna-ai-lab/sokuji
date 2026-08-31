@@ -1,17 +1,21 @@
 import React from 'react';
-import { SiNvidia, SiApple } from 'react-icons/si';
+import { SiApple } from 'react-icons/si';
 import { Gpu } from 'lucide-react';
 
 type Entry = { Icon: React.ComponentType<{ size?: number; 'aria-hidden'?: boolean }>; label: string };
 
+// gpu-cuda/gpu-dml (NVIDIA CUDA, DirectML) died with the last catalog rows
+// that ever produced them — the ONNX/MLX TTS deployments removed in Task 5's
+// catalog rewire onto native_tts (inventory §4.4: every gpu-cuda/gpu-dml tier
+// string outside catalog.py's Deployment docstring belonged to a TTS row; ASR
+// and translate only ever use gpu-vulkan/gpu-metal/cpu). Either tier now
+// falls through to the generic gpu-* fallback below.
 const TIER_ICONS: Record<string, Entry> = {
-  'gpu-cuda': { Icon: SiNvidia, label: 'NVIDIA CUDA' },
   'gpu-metal': { Icon: SiApple, label: 'Apple Metal' },
   // NOT SiVulkan: Simple Icons' Vulkan mark is the horizontal "VULKAN"
   // wordmark — unreadable at tag size. The tag text already names the API,
   // so vendor-neutral APIs get lucide's graphics-card glyph instead.
   'gpu-vulkan': { Icon: Gpu, label: 'Vulkan' },
-  'gpu-dml': { Icon: Gpu, label: 'DirectML' },
 };
 
 /** Brand/API mark for a sidecar hardware tier — monochrome (inherits currentColor).

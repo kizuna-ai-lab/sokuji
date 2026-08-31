@@ -72,6 +72,8 @@ class TtsEngine:
         self.resolved = {"backend": plan.backend, "device": plan.device,
                          "computeType": plan.compute_type,
                          "streaming": self.streaming, "clones": self.clones}
+        if plan.config.tts_family:
+            self.resolved["family"] = plan.config.tts_family
         rtf = accel.measure_rtf_tts(self._backend, plan, mid, accel.probe())
         if rtf is not None:
             self.resolved["rtf"] = round(rtf, 3)
@@ -97,20 +99,6 @@ class TtsEngine:
 
     def set_builtin_voice(self, name):
         self._backend.set_builtin_voice(name)
-
-    def set_speaker(self, sid):
-        # Still reachable pre-Task-5: the catalog doesn't route to native_tts until
-        # then, and the ONNX sherpa_tts/moss_onnx/supertonic backends this engine
-        # still resolves to today implement set_speaker (range or documented
-        # no-op). native_tts has no equivalent (spec §5.3/§5.5 drops num_speakers
-        # with the ONNX backends) -- dies together with this method once the
-        # catalog no longer has anything that needs it.
-        self._backend.set_speaker(int(sid))
-
-    def set_style_voice(self, ttl, dp):
-        # Same story as set_speaker: Supertonic-only, still live until the catalog
-        # rewire (Task 5) and the renderer's styleVoice sender (Task 6) both land.
-        self._backend.set_style_voice(ttl, dp)
 
     def list_builtin_voices(self):
         """Delegate to the loaded backend's own list_builtin_voices() when it has
@@ -254,30 +242,19 @@ async def _h_tts_init(state, msg, _b, conn=None):
 
 
 async def _h_set_voice(state, msg, binary_in, conn=None):
-    """Every branch is one of: a Supertonic style-vector pair, a built-in preset by
-    name, a numeric speaker id (range models), or a custom clone from a reference
-    clip (raw Float32 PCM in `binary_in`, optional refText). The style-vector and
-    numeric-sid forms belong to backends native_tts doesn't have an equivalent for
-    (spec §5.3/§5.5) -- they stay wired here because the catalog still resolves to
-    the ONNX sherpa_tts/moss_onnx/supertonic backends until Task 5 rewires it onto
-    native_tts, and the renderer still sends them until Task 6 removes those
-    senders; this handler goes on serving whatever the loaded backend supports."""
+    """Two forms: a built-in preset by name, or a custom clone from a reference
+    clip (raw Float32 PCM in `binary_in`, optional refText). The style-vector
+    (Supertonic) and numeric-speaker-id (range models) forms native_tts has no
+    equivalent for (spec §5.3/§5.5) died with the ONNX Supertonic/sherpa/MOSS
+    backends in Task 5's catalog rewire and the renderer's setStyleVoice/
+    setSpeaker senders in Task 6 -- a stray `styleVoice`/`sid` field on an
+    incoming message is simply not looked at anymore; a message with no `voice`
+    name falls through to the clone-from-clip branch, same as before."""
     eng = state["tts_engine"]
     loop = asyncio.get_running_loop()
-    style = msg.get("styleVoice")
-    if style is not None:                     # Supertonic style-vector pair (ttl + dp)
-        buf = np.frombuffer(binary_in or b"", dtype=np.float32)
-        n = int(np.prod(style["ttlDims"]))
-        ttl = buf[:n].reshape(style["ttlDims"]).astype(np.float32)
-        dp = buf[n:n + int(np.prod(style["dpDims"]))].reshape(style["dpDims"]).astype(np.float32)
-        await loop.run_in_executor(None, lambda: eng.set_style_voice(ttl, dp))
-        return {"type": "ok", "id": msg.get("id")}, None
     name = msg.get("voice")
-    sid = msg.get("sid")
     if name:                                  # built-in by name (no binary frame)
         await loop.run_in_executor(None, eng.set_builtin_voice, str(name))
-    elif sid is not None:                     # numeric speaker id (range models)
-        await loop.run_in_executor(None, eng.set_speaker, int(sid))
     else:                                      # custom clone from clip
         audio = np.frombuffer(binary_in, dtype=np.float32) if binary_in else np.zeros(0, np.float32)
         sr = int(msg.get("sampleRate", 24000))
@@ -333,12 +310,22 @@ async def _h_tts_generate(state, msg, _b, conn=None):
 
 
 async def _h_tts_cancel(state, msg, _b, conn=None):
+    """Review CQ-8: reaching into the backend (cancel_active() -> backend.cancel())
+    must be gated on `mid` naming the connection's CURRENTLY active stream
+    (conn.ctx['tts_stream_mid'], set/cleared by _h_tts_generate's streaming
+    branch) -- backend.cancel() always targets whatever stream is most recently
+    started (tts_backend.py's self._workers[-1]), so calling it unconditionally
+    for a stale/already-completed/superseded id would stop a DIFFERENT, still-
+    wanted stream instead of doing nothing. The client-side relay flag
+    (state["tts_cancels"], polled by generate_stream's should_cancel()) has no
+    such ambiguity -- it is keyed by id and stays set unconditionally."""
     cancels = state.get("tts_cancels") or {}
     mid = msg.get("id")
     if mid in cancels:
         cancels[mid] = True
     eng = state.get("tts_engine")
-    if eng is not None:
+    active_mid = conn.ctx.get("tts_stream_mid") if conn is not None else None
+    if eng is not None and mid is not None and mid == active_mid:
         eng.cancel_active()
     return {"type": "ok", "id": mid}, None
 

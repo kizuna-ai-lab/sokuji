@@ -46,7 +46,10 @@ const TR_CAT: Record<string, NativeModelInfo> = {
 
 /**
  * TTS-specific fixture catalog for voiceCapability / nativeTtsCards / resolveNativeTts tests.
- * Exercises: named+clip (clones), range (numSpeakers>1), none (single speaker, no clones), ordering.
+ * Exercises: named+clip (clones), none (single speaker, no clones), ordering.
+ * numSpeakers is carried on the two piper entries only as period-accurate
+ * leftover data (the field died server-side in Task 5/6, see voiceCapability) —
+ * it no longer changes what voiceCapability derives for either of them.
  */
 const TTS_CAT: Record<string, NativeModelInfo> = {
   'moss-tts-nano': M('moss-tts-nano', 'tts', ['en', 'ja'], 0, true, { clones: true, streaming: true, numSpeakers: 1 }),
@@ -325,9 +328,13 @@ describe('nativeCatalog', () => {
     });
   });
 
-  it('voiceCapability derives builtin/custom for named/range/none TTS models', () => {
+  it('voiceCapability derives builtin/custom for named/none TTS models', () => {
+    // numSpeakers no longer drives a 'range' builtin -- that field died
+    // server-side with the ONNX range-model backends (Task 5/6); a model
+    // with no `clones` and no `voice` field is just 'none' now, regardless
+    // of how many numSpeakers the fixture still (harmlessly) carries.
     expect(voiceCapability(TTS_CAT['moss-tts-nano'])).toEqual({ builtin: 'named', custom: 'clip' });
-    expect(voiceCapability(TTS_CAT['csukuangfj/vits-piper-en_US-libritts_r-medium'])).toEqual({ builtin: 'range', custom: 'none' });
+    expect(voiceCapability(TTS_CAT['csukuangfj/vits-piper-en_US-libritts_r-medium'])).toEqual({ builtin: 'none', custom: 'none' });
     expect(voiceCapability(TTS_CAT['csukuangfj/vits-piper-en_US-amy-low'])).toEqual({ builtin: 'none', custom: 'none' });
     expect(voiceCapability(undefined)).toEqual({ builtin: 'none', custom: 'none' });
   });
@@ -381,11 +388,13 @@ describe('nativeCatalog', () => {
     expect(curated.every((v) => all.map((x) => x.name).includes(v.name))).toBe(true);
   });
   it('voiceCapability reads the capability from the sidecar voice field', () => {
-    expect(voiceCapability({ voice: { builtin: 'named', custom: 'style' } } as any)).toEqual({ builtin: 'named', custom: 'style' });
+    expect(voiceCapability({ voice: { builtin: 'named', custom: 'clip' } } as any)).toEqual({ builtin: 'named', custom: 'clip' });
   });
   it('voiceCapability falls back to derive when voice is absent', () => {
     expect(voiceCapability({ clones: true } as any)).toEqual({ builtin: 'named', custom: 'clip' });
-    expect(voiceCapability({ numSpeakers: 174 } as any)).toEqual({ builtin: 'range', custom: 'none' });
+    // numSpeakers died server-side (Task 5/6) -- it no longer drives a 'range'
+    // builtin, even when a stale/legacy value is present on the model.
+    expect(voiceCapability({ numSpeakers: 174 } as any)).toEqual({ builtin: 'none', custom: 'none' });
     expect(voiceCapability({} as any)).toEqual({ builtin: 'none', custom: 'none' });
   });
 
@@ -429,11 +438,7 @@ describe('frameworkLabel', () => {
       transcribe_cpp: 'transcribe.cpp',
       transcribe_cpp_stream: 'transcribe.cpp',
       native_translate: 'llama.cpp',
-      moss_onnx: 'ONNXRuntime',
-      qwen3tts_onnx: 'ONNXRuntime',
-      sherpa_tts: 'sherpa-onnx',
-      supertonic: 'Supertonic',
-      mlx_audio_tts: 'MLX',
+      native_tts: 'audio.cpp',
     };
     for (const [id, label] of Object.entries(cases)) expect(frameworkLabel(id)).toBe(label);
   });
@@ -502,10 +507,13 @@ describe('buildBackendTooltipRows', () => {
     const rows = buildBackendTooltipRows({ tier: 'gpu-cuda', backendId: 'moss_onnx', resolved: { rtf: 0 } });
     expect(rows.find((r) => r.key === 'speed')).toBeUndefined();
   });
-  it('hides the repo row on MLX tiers (info.repo is the ONNX repo, would mislabel)', () => {
-    const mlx = buildBackendTooltipRows({ tier: 'gpu-metal', backendId: 'mlx_audio_tts', resolved: null, repo: 'org/onnx-assets' });
-    expect(mlx.find((r) => r.key === 'repo')).toBeUndefined();
-    // non-MLX still shows repo
+  it('shows the repo row for every current backend (the MLX ONNX TTS tiers this once hid it for are gone)', () => {
+    // The #287 MLX repo-hiding guard keyed off frameworkLabel(id) === 'MLX' --
+    // no id maps to 'MLX' anymore now that mlx_audio_tts died with the other
+    // ONNX/MLX TTS backends (Task 5's catalog rewire onto native_tts), so the
+    // guard is permanently inert and the repo row is shown unconditionally.
+    const nativeTts = buildBackendTooltipRows({ tier: 'gpu-metal', backendId: 'native_tts', resolved: null, repo: 'org/model' });
+    expect(nativeTts.find((r) => r.key === 'repo')?.value).toBe('org/model');
     const onnx = buildBackendTooltipRows({ tier: 'cpu', backendId: 'moss_onnx', resolved: null, repo: 'org/onnx-assets' });
     expect(onnx.find((r) => r.key === 'repo')?.value).toBe('org/onnx-assets');
   });

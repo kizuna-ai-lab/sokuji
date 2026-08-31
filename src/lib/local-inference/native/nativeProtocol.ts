@@ -3,13 +3,14 @@ export interface ReadyMsg {
   type: 'ready'; id: number; sampleRate?: number; loadTimeMs: number;   // sampleRate only on audio (ASR/TTS) ready; translate_init omits it
   backend?: string; device?: string; computeType?: string; rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string;
   streaming?: boolean; clones?: boolean;
+  family?: string;   // native_tts only: the resolved card's family (moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic)
 }
 export interface NativeTier { tier: string; backend: string; available: boolean; }
 export interface NativeModelInfo {
   id: string; name: string; languages: string[]; recommended: boolean; tiers: NativeTier[];
   order: number; repo: string; kind: 'asr' | 'translate' | 'tts';
   numSpeakers?: number; clones?: boolean; streaming?: boolean;   // tts only
-  voice?: { builtin: 'none' | 'range' | 'named'; custom: 'none' | 'clip' | 'style'; transcriptRequired?: boolean };   // tts only
+  voice?: { builtin: 'none' | 'range' | 'named'; custom: 'none' | 'clip'; transcriptRequired?: boolean };   // tts only; native_tts has no style-vector custom voice equivalent
   license?: { spdx: string; name: string; url: string; nonCommercial: boolean; sourceRepo: string; attribution: string };  // non-commercial / restricted models only
   sizeBytes?: number;   // total download size; 0/absent = unknown
   variantIds?: string[];   // quant variants (default first), >1 → show the picker

@@ -55,18 +55,21 @@ export function nativeAsrForLanguage(srcLang: string, current: string, catalog: 
 }
 
 export type VoiceBuiltin = 'none' | 'range' | 'named';
-export type VoiceCustom = 'none' | 'clip' | 'style';
+export type VoiceCustom = 'none' | 'clip';
 export interface VoiceCapability { builtin: VoiceBuiltin; custom: VoiceCustom; transcriptRequired?: boolean; }
 
 /** A TTS model's voice capability: which built-in voice control it exposes
- *  (none/range/named) and which custom-voice mechanism it supports
- *  (none/clip clone/style prompt). Reads the sidecar-reported `voice` field
- *  when present; otherwise derives a safe approximation from `clones` /
- *  `numSpeakers`. */
+ *  (none/named) and which custom-voice mechanism it supports (none/clip
+ *  clone). Reads the sidecar-reported `voice` field when present; otherwise
+ *  derives a safe approximation from `clones`. The old range/style axes (a
+ *  sid-range slider, Supertonic's uploaded style-vector JSON) died with the
+ *  ONNX backends that were their only producers (Task 5's catalog rewire
+ *  onto native_tts) — `numSpeakers` no longer carries meaningful data, so it
+ *  is not read here. */
 export function voiceCapability(model: NativeModelInfo | undefined): VoiceCapability {
   if (model?.voice) return model.voice;
   const custom: VoiceCustom = model?.clones ? 'clip' : 'none';
-  const builtin: VoiceBuiltin = model?.clones ? 'named' : (model?.numSpeakers ?? 1) > 1 ? 'range' : 'none';
+  const builtin: VoiceBuiltin = model?.clones ? 'named' : 'none';
   return { builtin, custom };
 }
 
@@ -296,11 +299,7 @@ const FRAMEWORK_LABELS: Record<string, string> = {
   transcribe_cpp: 'transcribe.cpp',
   transcribe_cpp_stream: 'transcribe.cpp',
   native_translate: 'llama.cpp',
-  moss_onnx: 'ONNXRuntime',
-  qwen3tts_onnx: 'ONNXRuntime',
-  sherpa_tts: 'sherpa-onnx',
-  supertonic: 'Supertonic',
-  mlx_audio_tts: 'MLX',
+  native_tts: 'audio.cpp',
 };
 
 /** Engine/library label for a sidecar backend id. Falls back by prefix so a new

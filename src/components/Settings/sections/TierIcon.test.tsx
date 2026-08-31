@@ -6,10 +6,13 @@ describe('TierIcon', () => {
   // Query the wrapper span by its data-tier and assert aria-label + that a glyph rendered.
   // (Robust against react-icons/lucide a11y quirks — avoids ambiguous getByRole('img').)
   const cases: [string, string][] = [
-    ['gpu-cuda', 'NVIDIA CUDA'],
     ['gpu-metal', 'Apple Metal'],
     ['gpu-vulkan', 'Vulkan'],
-    ['gpu-dml', 'DirectML'],
+    // gpu-cuda/gpu-dml died with the last catalog rows that ever produced
+    // them (the ONNX/MLX TTS deployments removed in Task 5/6) -- both now
+    // fall through to the same neutral gpu-* chip fallback as gpu-rocm.
+    ['gpu-cuda', 'GPU'],
+    ['gpu-dml', 'GPU'],
     ['gpu-rocm', 'GPU'],            // unknown gpu-* -> neutral chip fallback
   ];
   it.each(cases)('renders tier %s labeled "%s"', (tier, label) => {

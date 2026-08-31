@@ -38,20 +38,6 @@ function makeClipStore(overrides: Partial<NativeVoiceStore> = {}): NativeVoiceSt
   };
 }
 
-/** A minimal style-store double (upload only, throws VoiceImportError on invalid files). */
-function makeStyleStore(overrides: Partial<NativeVoiceStore> = {}): NativeVoiceStore {
-  return {
-    kind: 'style',
-    capability: { importModes: ['upload'], curation: false, presentation: 'dropdown' },
-    list: vi.fn().mockResolvedValue([{ id: 3, name: 'MyVoice' }]),
-    onImport: vi.fn().mockResolvedValue(undefined),
-    rename: vi.fn().mockResolvedValue(undefined),
-    delete: vi.fn().mockResolvedValue(undefined),
-    resolveApply: vi.fn().mockResolvedValue(null),
-    ...overrides,
-  };
-}
-
 const baseProps = {
   capability: { builtin: 'named' as const, custom: 'clip' as const },
   builtinVoices,
@@ -74,19 +60,6 @@ describe('validateVoiceClip', () => {
 describe('NativeVoiceSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('named+style renders presets + custom voices via VoiceLibrarySection', async () => {
-    const styleStore = makeStyleStore();
-    render(<NativeVoiceSection capability={{ builtin: 'named', custom: 'style' }}
-      builtinVoices={[{ name: 'Sarah', curated: true, unstable: false, default: false } as any]}
-      store={styleStore} selected="" targetLanguage="en" numSpeakers={10}
-      onSelect={() => {}} onCustomChanged={() => {}} />);
-    expect(await screen.findByText('Sarah')).toBeInTheDocument();
-    // 'MyVoice' appears twice in dropdown presentation (the <select> option AND the
-    // "manage imported voices" row) — both are custom-voice presence, so any match suffices.
-    expect((await screen.findAllByText('MyVoice')).length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: /record/i })).toBeNull(); // upload-only
   });
 
   it('range renders the speaker slider', () => {
@@ -141,14 +114,17 @@ describe('NativeVoiceSection', () => {
     expect(onCustomChanged).not.toHaveBeenCalled();
   });
 
-  it('surfaces the store-provided message when a style import fails validation', async () => {
-    const store = makeStyleStore({
+  it('surfaces a VoiceImportError message from a clip store (shared error type with the WASM lane)', async () => {
+    // VoiceImportError itself lives in the shared voiceStorage.ts (the WASM
+    // lane's own error type) — NativeVoiceSection imports only the type, not
+    // a style-import flow, so any store can in principle throw it. The old
+    // style-store producer of this error died in Task 5/6.
+    const store = makeClipStore({
       onImport: vi.fn().mockRejectedValue(new VoiceImportError('not_json', 'Not a valid JSON file')),
     });
     const onCustomChanged = vi.fn();
-    render(<NativeVoiceSection capability={{ builtin: 'named', custom: 'style' }}
-      builtinVoices={[]} store={store} selected="" targetLanguage="en"
-      onSelect={() => {}} onCustomChanged={onCustomChanged} />);
+    render(<NativeVoiceSection {...baseProps} store={store} onCustomChanged={onCustomChanged} />);
+    await screen.findByText('Ava');
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File([new Uint8Array(8)], 'voice.json');
     fireEvent.change(fileInput, { target: { files: [file] } });
