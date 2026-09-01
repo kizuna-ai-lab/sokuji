@@ -11,9 +11,15 @@ set(FETCHCONTENT_QUIET OFF)
 # for that upstream. Kept because a full llama.cpp history is several hundred MB per lane.
 set(_ggml_patch "")
 if(SOKUJI_GGML_PATCH_SPEC)
+    # SOKUJI_GGML_PATCH_SPEC is a LIST. Interpolating it inside the path would prefix
+    # only its first element, so the arguments are built one spec at a time.
+    set(_ggml_patch_specs "")
+    foreach(_spec IN LISTS SOKUJI_GGML_PATCH_SPEC)
+        list(APPEND _ggml_patch_specs ${CMAKE_CURRENT_LIST_DIR}/../patches/${_spec})
+    endforeach()
     set(_ggml_patch
         PATCH_COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
-                      <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/${SOKUJI_GGML_PATCH_SPEC})
+                      <SOURCE_DIR> ${_ggml_patch_specs})
 endif()
 FetchContent_Declare(ggml
     GIT_REPOSITORY https://github.com/ggml-org/ggml.git

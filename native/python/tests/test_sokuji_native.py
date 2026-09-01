@@ -4,6 +4,8 @@ contract logic is exercised."""
 import json
 import os
 import pathlib
+import subprocess
+import sys
 
 import numpy as np
 import pytest
@@ -240,6 +242,9 @@ def test_translate_unload_idempotent_and_del_safe():
 
 TTS_SUPERTONIC_DIR = os.environ.get("SK_TEST_TTS_SUPERTONIC_DIR")
 TTS_MOSS_DIR = os.environ.get("SK_TEST_TTS_MOSS_DIR")
+TTS_QWEN3_DIR = os.environ.get("SK_TEST_TTS_QWEN3_DIR")
+TTS_POCKET_DIR = os.environ.get("SK_TEST_TTS_POCKET_DIR")
+TTS_OMNIVOICE_DIR = os.environ.get("SK_TEST_TTS_OMNIVOICE_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
 
@@ -323,3 +328,151 @@ def test_tts_moss_offline_and_clone():
     assert samples2.shape[0] / rate2 < 10.0
     t.unload()
     t.unload()
+
+
+# --------------------------------------------------------------------------------------
+# TTS on a real GPU device.
+#
+# Every TTS test above pins the CPU device on purpose (R19). This one is the opposite gate,
+# and it exists because a green suite is not evidence a GPU lane works: the slice-4
+# mac-arm64/metal lane shipped a wheel while three of the five families aborted the process
+# on Metal, precisely because nothing here ever placed a TTS session on a Metal device
+# (.superpowers/metal-tts-validation.md §1, .superpowers/metal-fix-experiments.md §1).
+#
+# Gating, three independent conditions so the test disappears where it cannot mean anything:
+#   - SK_TEST_TTS_GPU=1 (opt-in: this loads models onto a GPU, which a plain dev run
+#     of the binding tests should not do behind the developer's back);
+#   - the family's own SK_TEST_TTS_<FAMILY>_DIR, same pattern as the CPU tests above —
+#     CI caches only supertonic and moss, so the other three simply skip there;
+#   - devices() reporting a non-CPU device at all. The Linux/Windows CI runners are
+#     headless with no Vulkan device, so they skip; the mac-arm64 runner always has Metal.
+#
+# One subprocess per family. A backend that lacks a kernel does not raise: ggml logs
+# "unsupported op '<OP>'" and calls GGML_ABORT, i.e. SIGABRT of the whole process, so an
+# in-process failure would take the pytest session with it and report nothing. The child
+# registers NO log sink, exactly like the rest of this file — the abort line reaching its
+# stderr is sk_common.cpp's warn/error fallback doing its job, and that fallback is the only
+# reason the assertion below can name the missing op instead of an anonymous exit −6.
+#
+# The bar is deliberately model-free: non-empty audio of a sane duration. Intelligibility is
+# the TTS->ASR loopback's job (sidecar/tests/test_tts_engine.py); pulling whisper in here
+# would make a TTS backend gate depend on an ASR model being present too.
+
+TTS_GPU = os.environ.get("SK_TEST_TTS_GPU") == "1"
+GPU_TTS_TEXT = "The quick brown fox jumps over the lazy dog."
+GPU_TTS_MIN_SECONDS, GPU_TTS_MAX_SECONDS = 0.5, 30.0
+
+# family -> (env var name, model dir, preset or None, clones?). supertonic/pocket_tts select
+# a named preset; moss_tts_nano has a usable built-in voice; qwen3_tts (base checkpoint) and
+# omnivoice are clone-only and additionally require the reference's transcript, so the
+# child synthesizes its own reference clip with supertonic on the CPU device first and
+# clones it with that clip's exact text.
+GPU_TTS_FAMILIES = {
+    "supertonic": ("SK_TEST_TTS_SUPERTONIC_DIR", TTS_SUPERTONIC_DIR, "M1", False),
+    "pocket_tts": ("SK_TEST_TTS_POCKET_DIR", TTS_POCKET_DIR, "alba", False),
+    "moss_tts_nano": ("SK_TEST_TTS_MOSS_DIR", TTS_MOSS_DIR, None, False),
+    "qwen3_tts": ("SK_TEST_TTS_QWEN3_DIR", TTS_QWEN3_DIR, None, True),
+    "omnivoice": ("SK_TEST_TTS_OMNIVOICE_DIR", TTS_OMNIVOICE_DIR, None, True),
+}
+
+_GPU_TTS_RUNNER = r'''
+import json, os, sys, time
+
+cfg = json.loads(os.environ["SK_GPU_TTS_CONFIG"])
+sys.path.insert(0, cfg["native_python_dir"])
+import numpy as np
+import sokuji_native as s
+
+s.init()
+device = next(d for d in s.devices() if d.index == cfg["device_index"])
+
+voice = None
+if cfg["clones"]:
+    # A clone reference has to be real speech (a sine wave is not one), so supertonic
+    # makes one on the CPU device in this same process; its text is the ref_text, which
+    # both clone-only families require.
+    cpu = next(d for d in s.devices() if d.kind == "cpu")
+    ref = s.tts_load(cfg["supertonic_dir"], "supertonic", cpu)
+    try:
+        ref.set_preset("M1")
+        pcm, rate = ref.synth(cfg["text"], language="en")
+        if pcm.ndim > 1:
+            pcm = pcm.mean(axis=1)
+        voice = (np.ascontiguousarray(pcm, dtype=np.float32), int(rate))
+    finally:
+        ref.unload()
+
+t0 = time.perf_counter()
+model = s.tts_load(cfg["model_dir"], cfg["family"], device)
+load_s = time.perf_counter() - t0
+try:
+    if cfg["preset"]:
+        model.set_preset(cfg["preset"])
+    if voice is not None:
+        model.set_voice(voice[0], voice[1], ref_text=cfg["text"])
+    t0 = time.perf_counter()
+    samples, rate = model.synth(cfg["text"], language="en")
+    synth_s = time.perf_counter() - t0
+finally:
+    model.unload()
+
+frames = int(samples.shape[0])
+print("SK_GPU_TTS_RESULT " + json.dumps({
+    "device": f"{device.kind}/{device.name}",
+    "frames": frames,
+    "channels": int(samples.shape[1]) if samples.ndim > 1 else 1,
+    "rate": int(rate),
+    "seconds": round(frames / rate, 3) if rate else 0.0,
+    "peak": float(np.max(np.abs(samples))) if frames else 0.0,
+    "load_s": round(load_s, 3),
+    "synth_s": round(synth_s, 3),
+}))
+'''
+
+
+def _gpu_device():
+    """The first non-CPU device, or None. `devices()` alone never touches a backend graph,
+    so this is safe to call in the pytest process itself."""
+    sokuji_native.init()
+    return next((d for d in sokuji_native.devices() if d.kind != "cpu"), None)
+
+
+@pytest.mark.parametrize("family", sorted(GPU_TTS_FAMILIES))
+def test_tts_synthesises_on_a_gpu_device(family):
+    env_name, model_dir, preset, clones = GPU_TTS_FAMILIES[family]
+    if not (HAVE_TREE and TTS_GPU):
+        pytest.skip("needs a built tree and SK_TEST_TTS_GPU=1")
+    if not model_dir:
+        pytest.skip(f"needs {env_name}")
+    if clones and not TTS_SUPERTONIC_DIR:
+        pytest.skip(f"{family} is clone-only and needs SK_TEST_TTS_SUPERTONIC_DIR for a reference clip")
+    device = _gpu_device()
+    if device is None:
+        pytest.skip(f"no non-CPU device on this box: {sokuji_native.devices()}")
+
+    cfg = {
+        "native_python_dir": str(pathlib.Path(sokuji_native.__file__).resolve().parents[1]),
+        "device_index": device.index,
+        "family": family,
+        "model_dir": model_dir,
+        "preset": preset,
+        "clones": clones,
+        "supertonic_dir": TTS_SUPERTONIC_DIR,
+        "text": GPU_TTS_TEXT,
+    }
+    env = dict(os.environ, SK_GPU_TTS_CONFIG=json.dumps(cfg))
+    proc = subprocess.run([sys.executable, "-c", _GPU_TTS_RUNNER],
+                          capture_output=True, text=True, timeout=1800, env=env)
+    tail = "\n".join((proc.stderr or "").strip().splitlines()[-25:])
+    assert proc.returncode == 0, (
+        f"{family} on {device.kind} device {device.index} ({device.name}) failed: exit {proc.returncode}"
+        f"{' (SIGABRT — a missing backend kernel aborts the process)' if proc.returncode in (-6, 134) else ''}\n"
+        f"--- stderr tail ---\n{tail}\n--- stdout ---\n{proc.stdout}")
+
+    line = next((l for l in proc.stdout.splitlines() if l.startswith("SK_GPU_TTS_RESULT ")), None)
+    assert line, f"{family}: runner produced no result line\n--- stdout ---\n{proc.stdout}\n--- stderr tail ---\n{tail}"
+    got = json.loads(line[len("SK_GPU_TTS_RESULT "):])
+    print(f"  gpu-tts {family:14s} {got['device']:16s} {got['seconds']:6.2f}s audio  "
+          f"{got['load_s']:7.2f}s load  {got['synth_s']:7.2f}s synth  peak={got['peak']:.3f}")
+    assert got["frames"] > 0 and got["rate"] > 0, got
+    assert GPU_TTS_MIN_SECONDS <= got["seconds"] <= GPU_TTS_MAX_SECONDS, got

@@ -1,6 +1,9 @@
 """Apply a JSON-specified list of exact-text patches to files under a source tree.
 
-usage: patch_upstream.py <source_dir> <spec.json>
+usage: patch_upstream.py <source_dir> <spec.json> [<spec.json> ...]
+
+Several specs may be given; their entries are concatenated in order, so one
+upstream can carry both an always-on portability patch and a lane-specific one.
 
 <spec.json> is a list of {"file": <path relative to source_dir>, "old": <exact
 text>, "new": <exact text>} objects. JSON strings carry real newlines, so a
@@ -23,7 +26,9 @@ from pathlib import Path
 
 def main():
     source_dir = Path(sys.argv[1])
-    entries = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+    entries = []
+    for spec in sys.argv[2:]:
+        entries += json.loads(Path(spec).read_text(encoding="utf-8"))
 
     ok = True
     for entry in entries:

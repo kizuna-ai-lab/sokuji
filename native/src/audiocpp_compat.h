@@ -258,8 +258,18 @@ static inline struct ggml_tensor *ggml_convrot_linear(
  * On q == 0 that src0 is the bare permuted view — ne=[T,1024], nb=[4096,4] — so
  * nb00 = 4096 != 4 and upstream aborts the whole process (SIGABRT, not a catchable
  * NativeError) the moment a real speech clip is cloned. q >= 1 is fine: the SUB output
- * is a freshly allocated contiguous tensor. src1 needs nothing — upstream's
- * vec_binary_op_non_contiguous strides src1 through nb10 correctly.
+ * is a freshly allocated contiguous tensor.
+ *
+ * src1 needs the same clause, but the need is visible only on Metal — R13 had no Apple
+ * GPU to see it. Upstream's CPU kernel strides src1 through nb10 in
+ * vec_binary_op_non_contiguous, so CPU (and Vulkan) accept a permuted src1; ggml's Metal
+ * backend does not. Its ADD/SUB/MUL/DIV/ADD_ID case requires ggml_is_contiguous_rows()
+ * of BOTH operands (ggml-metal-device.m), so a permuted src1 falls through supports_op
+ * and ggml_metal_op_encode_impl aborts the process with "unsupported op 'SUB'". In this
+ * same RVQ loop `quantized_bct` is a freshly permuted view on EVERY codebook iteration
+ * (audio_tokenizer.cpp:1926), so it is non-row-contiguous every time — measured on an
+ * Apple M4: with this clause omnivoice synthesises on Metal, without it the process dies
+ * during clone setup.
  *
  * Restoring the FORK's behaviour here would be a bug, not a fix. Measured on this exact
  * node (60x1024, both operands transposed), the fork does not abort but computes the
@@ -277,12 +287,16 @@ static inline struct ggml_tensor *ggml_convrot_linear(
  * qwen3_tts, omnivoice, pocket_tts) fired the guard exactly ONCE — this ggml_sub, this
  * node. ggml_add / ggml_mul / ggml_div never see a non-row-contiguous src0, so they are
  * left alone; should one ever start, upstream aborts loudly the same way, which is a
- * discoverable failure rather than a silent one. The guard itself is inert on a
- * row-contiguous src0: it returns `a` untouched and adds no node. */
+ * discoverable failure rather than a silent one. The guard itself is inert on
+ * row-contiguous operands: it returns them untouched and adds no node, so the CPU and
+ * Vulkan lanes build exactly the graph they built before. */
 static inline struct ggml_tensor *sokuji_ggml_sub(
         struct ggml_context *ctx, struct ggml_tensor *a, struct ggml_tensor *b) {
     if (a->nb[0] != ggml_type_size(a->type)) {
         a = ggml_cont(ctx, a);
+    }
+    if (b->nb[0] != ggml_type_size(b->type)) {
+        b = ggml_cont(ctx, b);
     }
     return ggml_sub(ctx, a, b);
 }

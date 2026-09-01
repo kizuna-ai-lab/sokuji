@@ -41,8 +41,21 @@ bool require_init(const char *what) {
     return false;
 }
 
+/* Warnings and errors survive even when the caller registered no sink. ggml names the
+ * op it cannot run ("unsupported op 'DIAG_MASK_INF'") through this path immediately
+ * before GGML_ABORT kills the process; with g_log NULL that line was dropped, which is
+ * the sole reason the slice-4 metal-lane CI abort reached the log with no op name.
+ * info/debug stay silent so a sink-less caller is not spammed by ggml's load-time
+ * chatter. Levels are the ones ggml_log_bridge below maps to: 3 error, 2 warn, 1 info,
+ * 0 debug. */
 void log_line(int32_t level, const char *msg) {
-    if (g_log) g_log(level, msg, g_log_user);
+    if (g_log) {
+        g_log(level, msg, g_log_user);
+        return;
+    }
+    if (level >= 2) {
+        std::fprintf(stderr, "[sokuji_native] %s\n", msg);
+    }
 }
 
 void ggml_log_bridge(enum ggml_log_level level, const char *text, void *) {

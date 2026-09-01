@@ -36,6 +36,10 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
 - `cmake/upstreams.cmake` — the four commit pins and the JSON patch specs in `native/patches/`:
   - `ggml-drop-sme.json` — drops the Linux armv9.2 +sme CPU variants when the compiler cannot build them
   - `ggml-drop-sme-apple.json` — drops the apple_m4 (+sme) CPU variant; Apple clang cannot build it
+  - `ggml-metal-diag-mask-inf.json`, `ggml-metal-pad-leading.json` — metal lane only; see
+    [Metal (Apple Silicon)](#metal-apple-silicon). `SOKUJI_GGML_PATCH_SPEC` (set in
+    `cmake/ggml_options.cmake`) is a **list**: ggml can carry an always-on portability spec
+    and lane-specific ones at once, and `patch_upstream.py` concatenates every spec it is given.
   - `transcribe.cpp.json` — makes transcribe.cpp reuse our ggml target instead of building its own copy
   - `audio.cpp.json` — makes audio.cpp reuse our ggml target instead of building its own copy, and
     keeps its trace-log formatter off `std::to_chars(double)` (macOS 13.3+; the wheels target 11.0)
@@ -207,6 +211,69 @@ CTest only exercises `sk_tts` in isolation, against nothing. The parity gate tha
 output to the official `audiocpp_cli`, sample-exact on CPU, lives at
 `native/tests/parity/` — see `native/tests/parity/README.md` for how to build the reference
 binary and run the suite.
+
+## Metal (Apple Silicon)
+
+The metal lane patches **two op kernels back into our vendored upstream ggml**, through the
+same `native/patches/*.json` mechanism the SME drops use, and only when
+`SOKUJI_GPU_RESOLVED` is `metal` (both specs touch `src/ggml-metal/`, which no other lane
+compiles):
+
+- **`ggml-metal-diag-mask-inf.json`** — ggml 0.22.0's Metal backend implements
+  `GGML_OP_DIAG_MASK_INF` *not at all*: no `supports_op` case, no kernel. ggml-cpu,
+  ggml-vulkan and ggml-cuda all have it; Metal is the only backend that dropped it, because
+  llama.cpp itself moved to masked `soft_max_ext` and stopped needing it. audio.cpp did not:
+  every attention block it reaches without an explicit mask builds the op (17 call sites; of
+  our five families the live ones are `moss_tts_nano`'s global transformer and `qwen3_tts`'s
+  talker). The spec restores the kernel Metal used to carry — it is still in audio.cpp's own
+  fork — so it puts back an op every other backend has rather than inventing one.
+- **`ggml-metal-pad-leading.json`** — ggml 0.22.0's Metal `GGML_OP_PAD` pads only at the END
+  of an axis (`supports_op` rejects any non-zero leading pad), while ggml-cpu and ggml-vulkan
+  implement the full lp/rp form `ggml_pad_ext` builds. `qwen3_tts`'s speech-tokenizer decoder
+  pads *causally* (`left_pad = kernel_extent - stride`, `tokenizer_speech_decoder.cpp`'s
+  `causal_conv1d`), so every one of its depthwise convs is a leading pad. The spec teaches
+  `kernel_pad_impl` the leading pads with exactly ggml-cpu's non-circular semantics —
+  including walking `src0` through `nb00` instead of assuming an element stride of
+  `sizeof(T)`, which a permuted `src0` really does reach here; circular padding stays
+  unimplemented, as upstream leaves it. Both kernels were checked against the CPU reference
+  with ggml's own `test-backend-ops` (DIAG_MASK_INF 3/3, PAD 21/21 non-circular).
+
+**Why a single missing kernel is fatal here and nowhere else.** transcribe.cpp and llama.cpp
+drive ggml through `ggml_backend_sched`, which splits an unsupported node onto CPU. audio.cpp
+0.7.0 has **zero** references to it: every runtime pins weights plus its `ggml_gallocr`
+compute buffer to one backend and calls `ggml_backend_graph_compute` directly, so
+`ggml_metal_op_encode_impl` logs `unsupported op '<OP>'` and calls `GGML_ABORT` — SIGABRT of
+the whole process, not a catchable `NativeError`. That structural gap is not closed by these
+patches; they close the two holes our five families actually hit.
+
+Two supporting changes ride along: `sokuji_ggml_sub` (in `src/audiocpp_compat.h`) now
+`ggml_cont`s **`src1`** as well as `src0` — Metal's `supports_op` demands
+`ggml_is_contiguous_rows` of both operands where the CPU kernel strides `src1` through
+`nb10`, which is why `omnivoice`'s RVQ loop aborted on Metal and nowhere else — and
+`log_line` (in `src/sk_common.cpp`) now forwards warn/error to stderr when the caller
+registered no log sink, which is the only reason an abort names its op in a CI log.
+
+**M1 vs M4.** All five families were proved on an Apple **M4** (`MTLGPUFamilyApple9`,
+`has_bfloat = true`). CI's `macos-14` arm64 runners are Apple **M1** (`Apple7`,
+`has_bfloat = false`), and `ggml_metal_device_supports_op` rejects any node with a BF16 dst
+or src on such a device — three of the five checkpoints carry BF16 tensors
+(`pocket-tts-english-q8_0`, `moss-tts-nano-100m-q8_0`, `qwen3-tts-12hz-0.6b-base-q8_0`). So a
+green M4 is not a green M1. What closes it is `test_tts_synthesises_on_a_gpu_device` in
+`python/tests/test_sokuji_native.py`: gated on `SK_TEST_TTS_GPU=1` (set for every lane in
+`.github/workflows/native-build.yml`), it places each family whose model dir is set on the
+**first non-CPU device** and synthesizes there, one subprocess per family so an abort is a
+named per-family failure instead of a dead pytest run. It skips itself where `devices()`
+reports no non-CPU device, so in practice only the mac-arm64/metal lane runs it — on the two
+families CI caches (supertonic, moss); the other three are multi-GB and stay local. Nothing
+before it ever put a TTS session on a GPU device, which is exactly how the slice-4 metal lane
+went green while three of five families aborted on Metal.
+
+Background and measurements: `.superpowers/metal-tts-validation.md` (diagnosis) and
+`.superpowers/metal-fix-experiments.md` (the fixes, `test-backend-ops` runs, CPU
+bit-identity A/B, per-family timings). One caveat carried from there:
+`moss_tts_nano` is the one family that samples its stop decision (R23), so its Metal wording
+can differ from its CPU wording while both are correct — the GPU test asserts duration and
+non-emptiness, never a transcript.
 
 ## Bumping a pin
 

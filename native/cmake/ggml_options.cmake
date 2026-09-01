@@ -34,7 +34,7 @@ message(STATUS "sokuji-native GPU lane: ${SOKUJI_GPU_RESOLVED}")
 # src/CMakeLists.txt at fetch time (see upstreams.cmake; specs in native/patches/).
 # SME kernels only matter with KleidiAI, which this project does not enable: an M4 then
 # loads the apple_m2_m3 module and the GB10 dev box loads armv8.6_2, losing nothing we use.
-set(SOKUJI_GGML_PATCH_SPEC "")
+set(SOKUJI_GGML_PATCH_SPEC)          # a LIST of spec filenames under native/patches/
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         include(CheckCXXCompilerFlag)
@@ -47,6 +47,28 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
         set(SOKUJI_GGML_PATCH_SPEC "ggml-drop-sme-apple.json")
         message(STATUS "sokuji-native: dropping ggml apple_m4 CPU variant (SME unsupported by Apple clang)")
     endif()
+endif()
+
+# ggml 0.22.0's Metal backend implements no GGML_OP_DIAG_MASK_INF at all - no supports_op
+# case, no kernel - while ggml-cpu, ggml-vulkan and ggml-cuda all do. Every audio.cpp
+# attention block reached without an explicit mask builds that op (17 call sites; on our
+# five families the live ones are moss_tts_nano and qwen3_tts), and audio.cpp never uses
+# ggml_backend_sched, so there is no per-node CPU fallback: the single missing kernel
+# aborts the process. The patch re-adds the kernel ggml's own Metal backend carried until
+# llama.cpp moved to masked soft_max_ext, so it restores an op every other backend has
+# rather than inventing one. Metal lane only: it touches src/ggml-metal/, which no other
+# lane compiles.
+#
+# The second Metal gap on the same families: ggml 0.22.0's Metal GGML_OP_PAD pads only at
+# the END of an axis (its supports_op rejects any non-zero leading pad), while ggml-cpu and
+# ggml-vulkan both implement the full lp/rp form ggml_pad_ext builds. qwen3_tts's speech
+# tokenizer decoder pads causally - left_pad = kernel_extent - stride, in
+# tokenizer_speech_decoder.cpp's causal_conv1d - so every one of its depthwise convs is a
+# leading pad. The patch teaches kernel_pad_impl the leading pads with exactly ggml-cpu's
+# non-circular semantics; circular padding stays unimplemented, as upstream leaves it.
+if(SOKUJI_GPU_RESOLVED STREQUAL "metal")
+    list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-metal-diag-mask-inf.json")
+    list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-metal-pad-leading.json")
 endif()
 
 set(BUILD_SHARED_LIBS ON)                                   # ggml itself is shared …
