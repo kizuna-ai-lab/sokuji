@@ -239,6 +239,59 @@ static inline struct ggml_tensor *ggml_convrot_linear(
     GGML_ABORT("ggml_convrot_linear: MiniMax-H3 op, not built in sokuji-native");
 }
 
+/* ===== (C) ggml_sub — upstream requires a row-contiguous src0, ruling R13 ==========
+ *
+ * Like the conv family in (B), ggml_sub exists on both ggml versions with the same
+ * name, signature and *constructor* body (fork ggml.c:2200-2221 vs upstream
+ * ggml.c:2226-2247 are identical). Only the CPU kernel's contract differs:
+ *
+ *     fork      GGML_ASSERT(nb00 % sizeof(src0_t) == 0)   binary-ops.cpp:80
+ *     upstream  GGML_ASSERT(nb00 == sizeof(src0_t))       binary-ops.cpp:59
+ *
+ * OmniVoice's audio tokenizer walks straight into that. Its residual-vector-quantizer
+ * loop (models/omnivoice/audio_tokenizer.cpp:1924-1928) subtracts in BCT layout:
+ *
+ *     residual_bct = transpose_btc_to_bct(ctx, embeddings_btc);   // a PERMUTE view
+ *     for (q = 0; q < num_codebooks; ++q) { ...
+ *         residual_bct = ggml_sub(ctx, residual_bct.tensor, quantized_bct.tensor); }
+ *
+ * On q == 0 that src0 is the bare permuted view — ne=[T,1024], nb=[4096,4] — so
+ * nb00 = 4096 != 4 and upstream aborts the whole process (SIGABRT, not a catchable
+ * NativeError) the moment a real speech clip is cloned. q >= 1 is fine: the SUB output
+ * is a freshly allocated contiguous tensor. src1 needs nothing — upstream's
+ * vec_binary_op_non_contiguous strides src1 through nb10 correctly.
+ *
+ * Restoring the FORK's behaviour here would be a bug, not a fix. Measured on this exact
+ * node (60x1024, both operands transposed), the fork does not abort but computes the
+ * WRONG VALUES: with is_src0_full_shape true it falls into vec_binary_op_non_contiguous,
+ * which indexes src0 as `x[i]` — a contiguous walk across a tensor whose first-dim
+ * stride is 4096 bytes. 60416 of 61440 elements come out wrong (max abs err 5.9e4).
+ * So the fork silently corrupts every codebook after the first; upstream's stricter
+ * assert exposed a latent audio.cpp defect rather than introducing one. ggml_cont()
+ * gives the mathematically correct residual, which is a deliberate, documented
+ * divergence from the official CLI's output for omnivoice cloning, not a parity break
+ * to chase: our clone transcribes cleanly where the official CLI's drifts.
+ *
+ * Scope, measured rather than assumed: with a diagnostic wrapper on all four binary
+ * builders, a full five-family TTS->ASR loopback run (moss_tts_nano, supertonic,
+ * qwen3_tts, omnivoice, pocket_tts) fired the guard exactly ONCE — this ggml_sub, this
+ * node. ggml_add / ggml_mul / ggml_div never see a non-row-contiguous src0, so they are
+ * left alone; should one ever start, upstream aborts loudly the same way, which is a
+ * discoverable failure rather than a silent one. The guard itself is inert on a
+ * row-contiguous src0: it returns `a` untouched and adds no node. */
+static inline struct ggml_tensor *sokuji_ggml_sub(
+        struct ggml_context *ctx, struct ggml_tensor *a, struct ggml_tensor *b) {
+    if (a->nb[0] != ggml_type_size(a->type)) {
+        a = ggml_cont(ctx, a);
+    }
+    return ggml_sub(ctx, a, b);
+}
+
+/* Object-like, and placed after the definition so the body above still spells the real
+ * ggml_sub. Same force-include scoping as the conv family: engine targets only, so
+ * ggml's own translation units keep the unwrapped builder. */
+#define ggml_sub sokuji_ggml_sub
+
 #ifdef __cplusplus
 }
 #endif

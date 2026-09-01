@@ -1,6 +1,5 @@
 import asyncio
 import json
-import multiprocessing as mp
 import os
 import threading
 import time
@@ -825,35 +824,19 @@ def _loopback_hit(transcript: str) -> bool:
     return any(m in low for m in _LOOPBACK_MARKERS)
 
 
-# omnivoice's audio-tokenizer path crashes the WHOLE process (GGML_ASSERT,
-# SIGABRT -- not a catchable NativeError) when its reference clip is real
-# synthesized speech rather than a stub/sine (live-verified below, both with
-# a ~2s and a ~9s reference clip -- length is not the trigger). No live
-# omnivoice-with-real-audio path has ever been exercised anywhere in this
-# repo's history (task-3-report.md: omnivoice cleanly SKIPPED the whole
-# parity investigation for lack of a model). This is a genuine, newly
-# discovered native-layer defect, not a harness mistake -- isolate it in a
-# subprocess so it cannot take the rest of this gate down with it, matching
-# native/tests/parity/test_tts_parity.py's own "candidate runs in its own
-# subprocess" precedent for exactly this class of risk.
-def _omnivoice_child(model_dir, ref_pcm, ref_rate, ref_text, asr_gguf, out_queue):
-    try:
-        sn = native.module()
-        asr = sn.asr_load(asr_gguf)
-        model = sn.tts_load(model_dir, "omnivoice")
-        try:
-            model.set_voice(ref_pcm, ref_rate, ref_text)
-            t0 = time.monotonic()
-            samples, rate = model.synth(_LOOPBACK_TEXT, language="en")
-            elapsed = time.monotonic() - t0
-        finally:
-            model.unload()
-        transcript = _loopback_transcribe(asr, samples, rate)
-        seconds = _loopback_mono(samples).shape[0] / rate if rate else 0.0
-        out_queue.put(dict(ok=True, seconds=round(seconds, 2), synth_s=round(elapsed, 2),
-                            transcript=transcript, hit=_loopback_hit(transcript)))
-    except Exception as e:      # noqa: BLE001 -- reporting the child's own failure back, not swallowing it
-        out_queue.put(dict(ok=False, error=f"{type(e).__name__}: {e}"))
+# omnivoice's audio-tokenizer RVQ loop used to crash the WHOLE process
+# (GGML_ASSERT nb00 == sizeof(src0_t), binary-ops.cpp:59, SIGABRT -- not a
+# catchable NativeError) whenever its reference clip was real synthesized
+# speech, live-verified independent of clip length (a ~3s and a ~9s clip
+# both crashed). Root-caused: audio.cpp hands ggml_sub a non-row-contiguous
+# src0 (a bare permute view) that upstream ggml correctly rejects -- the
+# fork ggml this model was developed against silently accepted it and
+# computed most output elements WRONG instead. Fixed by the ggml_sub
+# compat shim in native/src/audiocpp_compat.h (ruling R13; see
+# ../../.superpowers/sdd/2026-08-31-sidecar-ggml-only-slice4-tts/
+# omnivoice-crash-investigation.md for the full proof). With the shim in
+# place omnivoice runs inline below like every other family -- no
+# subprocess isolation needed anymore.
 
 
 @pytest.mark.skipif(
@@ -918,13 +901,13 @@ def test_tts_asr_loopback_per_family():
     if supertonic_dir:
         attempt("supertonic", supertonic_dir, lambda m: m.set_preset("M1"))
         # Also synthesize the reference clip qwen3_tts/omnivoice clone below.
-        # Dedicated, LONGER sentence than _LOOPBACK_TEXT (~2s): a sub-3s clip
-        # is below the renderer's own MIN_CLIP_SECONDS=3 (nativeVoiceStores.ts)
-        # -- live-verified below that threshold, omnivoice's audio tokenizer
-        # crashes the whole process on a too-short reference (GGML_ASSERT
-        # nb00 == sizeof(src0_t), binary-ops.cpp:59) instead of raising a
-        # catchable error; the app's own UI validation is the only thing
-        # that keeps a real user from ever hitting this native-layer gap.
+        # Dedicated, longer sentence than _LOOPBACK_TEXT so the clone
+        # reference encoders have a few real seconds of speech to copy.
+        # (A previous revision of this comment blamed omnivoice's crash on
+        # this clip being below the renderer's MIN_CLIP_SECONDS=3 -- that was
+        # wrong; the crash was a graph-shape defect in audio.cpp's RVQ loop,
+        # reproduced independent of clip length, and is fixed by the
+        # ggml_sub compat shim -- see the header comment above.)
         ref_model = sn.tts_load(supertonic_dir, "supertonic")
         ref_model.set_preset("M1")
         ref_text = ("This short recording exists only to give the voice-cloning models a "
@@ -966,38 +949,16 @@ def test_tts_asr_loopback_per_family():
     # omnivoice: streaming, clone-only, transcript_required -- a sine wave is
     # not a usable speech reference here, so it clones the same longer
     # supertonic-synthesized reference qwen3_tts uses above (a real voice,
-    # with its exact text as ref_text). Isolated in its OWN subprocess (see
-    # _omnivoice_child's docstring-comment): this family is KNOWN to crash
-    # the whole process on a real reference clip, live-verified and NOT yet
-    # root-caused -- an open finding for controller review (task-7-report.md),
-    # not something this task chases into audio.cpp/native/src/sk_tts.cpp.
+    # with its exact text as ref_text). Used to crash the whole process on
+    # exactly this path (ggml_sub non-contiguous src0, see the header
+    # comment above); fixed by the ggml_sub compat shim (ruling R13), so it
+    # now runs inline like every other family, no subprocess isolation
+    # needed.
     omnivoice_dir = family_dir("SK_TEST_TTS_OMNIVOICE_DIR")
     if omnivoice_dir and supertonic_ref:
         ref_samples, ref_rate, ref_text = supertonic_ref
-        q = mp.Queue()
-        p = mp.Process(target=_omnivoice_child,
-                        args=(omnivoice_dir, _loopback_mono(ref_samples), ref_rate, ref_text,
-                              _LOOPBACK_ASR_GGUF, q))
-        p.start()
-        p.join(timeout=180)
-        if p.is_alive():
-            p.terminate()
-            p.join()
-            results.append(dict(family="omnivoice", seconds=0.0, synth_s=0.0, transcript="", ok=False,
-                                 note="CRASH/HANG: child process did not exit within 180s (killed)"))
-        elif p.exitcode != 0:
-            results.append(dict(family="omnivoice", seconds=0.0, synth_s=0.0, transcript="", ok=False,
-                                 note=f"CRASH: child process exited with code {p.exitcode} "
-                                      "(negative = killed by that signal, e.g. -6 = SIGABRT/GGML_ASSERT); "
-                                      "OPEN FINDING, see task-7-report.md"))
-        else:
-            r = q.get()
-            if r.get("ok"):
-                results.append(dict(family="omnivoice", seconds=r["seconds"], synth_s=r["synth_s"],
-                                     transcript=r["transcript"], ok=r["hit"], note=""))
-            else:
-                results.append(dict(family="omnivoice", seconds=0.0, synth_s=0.0, transcript="", ok=False,
-                                     note=f"CRASH (caught): {r.get('error')}"))
+        attempt("omnivoice", omnivoice_dir,
+                lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate, ref_text))
     else:
         skipped.append("omnivoice" if omnivoice_dir else "omnivoice (needs supertonic for a reference clip)")
 
@@ -1019,12 +980,9 @@ def test_tts_asr_loopback_per_family():
         print(f"  {s:16s} SKIPPED (no local model)")
 
     assert results, "no TTS family had a locally-downloaded model -- nothing to gate"
-    # omnivoice's crash (see _omnivoice_child) is a documented, OPEN native-
-    # layer defect discovered by this gate, not a harness bug -- excluded
-    # from the hard assertion the same way native/tests/parity/
-    # test_tts_parity.py xfails moss_clone's own open residual, so this test
-    # stays a useful green signal for the four families that DO pass while
-    # that finding awaits a controller decision.
-    KNOWN_OPEN_FINDINGS = {"omnivoice"}
-    failures = [r for r in results if not r["ok"] and r["family"] not in KNOWN_OPEN_FINDINGS]
+    # All attempted families are hard-asserted here. omnivoice's former
+    # crash (ggml_sub non-contiguous src0, ruling R13) is fixed, so unlike
+    # native/tests/parity/test_tts_parity.py's still-open moss_clone xfail,
+    # there is no remaining open finding to exempt.
+    failures = [r for r in results if not r["ok"]]
     assert not failures, f"missed marker words for: {[r['family'] for r in failures]} -- {failures}"

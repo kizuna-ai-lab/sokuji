@@ -64,8 +64,8 @@ export interface VoiceCapability { builtin: VoiceBuiltin; custom: VoiceCustom; t
  *  derives a safe approximation from `clones`. The old range/style axes (a
  *  sid-range slider, Supertonic's uploaded style-vector JSON) died with the
  *  ONNX backends that were their only producers (Task 5's catalog rewire
- *  onto native_tts) — `numSpeakers` no longer carries meaningful data, so it
- *  is not read here. */
+ *  onto native_tts) — the `numSpeakers` field they relied on is gone from
+ *  the model info entirely, so there is nothing to read here. */
 export function voiceCapability(model: NativeModelInfo | undefined): VoiceCapability {
   if (model?.voice) return model.voice;
   const custom: VoiceCustom = model?.clones ? 'clip' : 'none';
