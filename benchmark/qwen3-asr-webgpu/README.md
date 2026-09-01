@@ -23,7 +23,7 @@ be reproduced and so the worker implementation can start from working code.
 | `to_q4f16_ort.py` | fp16-activation variant of the int4 graphs via ORT's converter |
 | `fetch_clips2.py`, `dump_ref.py`, `check_js.mjs` | test clips (FLEURS ja/zh through datasets-server / parquet range reads), JS-vs-Python cross-checks |
 | `summarize.py` | tables + medians from the RESULT logs and CPU JSON |
-| `upload_hf.py` | pushes the chosen files to a Hub repo (README in the spike's tmp dir) |
+| `upload_hf.py`, `hf_README.md`, `rename_ext.py` | pushes the chosen files + model card to the Hub (`jiangzhuo9357/Qwen3-ASR-0.6B-ONNX`); `rename_ext.py` renames a model together with its external-data file |
 | `qwen3-asr-onnx-last-token-logits.patch` | the one change applied to andrewleech/qwen3-asr-onnx before exporting |
 
 ## Reproduce

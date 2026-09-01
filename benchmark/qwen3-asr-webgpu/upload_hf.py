@@ -1,9 +1,10 @@
 """Upload the validated Qwen3-ASR-0.6B ONNX artifacts to the Hugging Face Hub.
 
-usage: python upload_hf.py --repo kizuna-ai-lab/Qwen3-ASR-0.6B-ONNX --dir qwen3-asr-onnx/output/qwen3-asr-0.6b [--private]
+usage: python upload_hf.py --repo jiangzhuo9357/Qwen3-ASR-0.6B-ONNX --dir qwen3-asr-onnx/output/qwen3-asr-0.6b [--private]
 
-Requires a token that can write to the target namespace (the kizuna-ai-lab org must
-exist and include the token's user). Uploads only the browser-relevant files.
+Requires a token that can write to the target namespace. Uploads only the browser-relevant
+files plus hf_README.md as the model card. The q4f16 files must be the working (norm-in-fp32,
+deduplicated) build — see to_q4f16_ort.py, dedupe_values.py and rename_ext.py.
 """
 import argparse
 import os
@@ -17,7 +18,7 @@ FILES = [
     "decoder_step.int4.onnx", "decoder_step.int4.onnx.data",
     "decoder_init.q4f16.onnx", "decoder_init.q4f16.onnx.data",
     "decoder_step.q4f16.onnx", "decoder_step.q4f16.onnx.data",
-    "embed_tokens.fp16.bin",
+    "embed_tokens.fp16.bin", "mel_filters.json",
 ]
 
 ap = argparse.ArgumentParser()

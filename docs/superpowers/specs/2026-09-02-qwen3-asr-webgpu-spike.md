@@ -167,8 +167,11 @@ that was expected and does not change with any quantization.
    step lookup, prefix-forcing prompt support, `q4f16` (block 32) for `shader-f16` devices with
    `q4` fallback, fp16 encoder; fuse RMSNorm (`optimize_graphs.py`) before quantizing and
    re-measure the Mac prefill; re-run the token-exact validation and the 13-clip CER sweep per
-   variant. Upload to `kizuna-ai-lab/Qwen3-ASR-0.6B-ONNX` (`upload_hf.py`, README drafted) —
-   **the org does not exist on the Hub yet and the local token belongs to `jiangzhuo9357`**.
+   variant. The spike artifacts are on the Hub at
+   [`jiangzhuo9357/Qwen3-ASR-0.6B-ONNX`](https://huggingface.co/jiangzhuo9357/Qwen3-ASR-0.6B-ONNX)
+   (uploaded private on 2026-09-02 with `upload_hf.py`; the `kizuna-ai-lab` org does not
+   exist on the Hub, jiangzhuo chose the personal namespace); the production layout replaces
+   it in the same repo.
 2. **Worker** (`src/lib/local-inference/workers/qwen3-asr-webgpu.worker.ts`, 2–3 days): clone
    the Granite worker's VAD + message plumbing; replace `generate()` with the prefill/step loop
    from `www/main.js`; mel from `mel.js` (a radix FFT instead of the 400-point DFT if the
