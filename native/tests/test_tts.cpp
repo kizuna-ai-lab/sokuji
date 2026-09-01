@@ -204,6 +204,18 @@ int main(int argc, char **argv) {
                       moss_out.calls, moss_out.rate, moss_out.samples.size());
         return 1;
     }
+    // Ruling R23 (.superpowers/moss-eoc-verdict.md): moss_tts_nano now samples instead of
+    // arg-maxing its stop decision, so a short utterance must reach real end-of-content
+    // well under audio.cpp's 300-frame/24.000s max_new_frames cap (measured: 2.6-3.7s).
+    // This replaces what would otherwise be a cap-shaped expectation (~24s, every time).
+    {
+        const double moss_duration_s =
+            static_cast<double>(moss_out.samples.size()) / moss_out.channels / moss_out.rate;
+        if (moss_duration_s >= 10.0) {
+            std::fprintf(stderr, "moss synth ran away: duration=%.3fs (want <10s, R23)\n", moss_duration_s);
+            return 1;
+        }
+    }
     std::fprintf(stderr, "moss synth: %d call(s), %zu samples, %d Hz\n",
                  moss_out.calls, moss_out.samples.size(), moss_out.rate);
 
@@ -228,6 +240,15 @@ int main(int argc, char **argv) {
         std::fprintf(stderr, "moss clone synth unexpected: calls=%d samples=%zu\n",
                       moss_out2.calls, moss_out2.samples.size());
         return 1;
+    }
+    // Same R23 regression guard as the non-clone case above.
+    {
+        const double moss_clone_duration_s =
+            static_cast<double>(moss_out2.samples.size()) / moss_out2.channels / moss_out2.rate;
+        if (moss_clone_duration_s >= 10.0) {
+            std::fprintf(stderr, "moss clone synth ran away: duration=%.3fs (want <10s, R23)\n", moss_clone_duration_s);
+            return 1;
+        }
     }
     std::fprintf(stderr, "moss clone synth: %d call(s), %zu samples, %d Hz\n",
                  moss_out2.calls, moss_out2.samples.size(), moss_out2.rate);

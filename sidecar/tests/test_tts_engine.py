@@ -1196,18 +1196,21 @@ def test_tts_asr_loopback_per_family():
             elapsed = time.monotonic() - t0
             transcript = _loopback_transcribe(asr, samples, rate)
             ok = _loopback_hit(transcript)
-            if family == "moss_tts_nano" and not ok:
-                # moss is a KNOWN-defective model in audio.cpp itself (deep
-                # investigation, ruling R10(s4)): it never emits end-of-content
-                # and runs to its ~24s/300-frame cap with a degenerate tail
-                # after the real speech. Retry against just the leading 8s,
-                # where the real speech lives, before failing outright.
-                mono = _loopback_mono(samples)
-                head = mono[: int(8 * rate)]
-                transcript2 = _loopback_transcribe(asr, head, rate)
-                if _loopback_hit(transcript2):
-                    transcript, ok = transcript2, True
-                    note = (note + "; " if note else "") + "retried on leading 8s (full-buffer transcript missed the markers)"
+            # moss_tts_nano used to need an 8s-retry fallback here: greedy decode
+            # (ruling R10(s4)) never emitted end-of-content and ran to its
+            # ~24s/300-frame cap with a degenerate tail after the real speech,
+            # which diluted the full-buffer transcript enough to miss the marker
+            # words. Ruling R23 (.superpowers/moss-eoc-verdict.md,
+            # native/src/sk_tts.cpp's `sample_decode` family flag) switched
+            # moss_tts_nano to sampled decode, which reaches real end-of-content
+            # in a couple of seconds instead -- live-verified here across two
+            # consecutive full loopback runs: both produced a 2.56s clip whose
+            # FULL-BUFFER transcript already contains both marker words ("Quick
+            # Brown Fox jumps over the lazy dog."), with the retry path never
+            # triggering. The fallback is removed rather than kept dormant: a
+            # model that still needed it would now fail this leg outright,
+            # which is the correct signal (the loopback's job is to catch a
+            # runaway, not paper over one).
             seconds = _loopback_mono(samples).shape[0] / rate if rate else 0.0
             results.append(dict(family=family, seconds=round(seconds, 2), synth_s=round(elapsed, 2),
                                  transcript=transcript, ok=ok, note=note))

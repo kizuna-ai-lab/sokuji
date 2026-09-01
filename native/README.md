@@ -151,7 +151,13 @@ a reference clip (+ optional transcript, mandatory for `omnivoice` and `qwen3_tt
 R15(s4): qwen3_tts's ICL clone mode requires it too) and `sk_tts_set_preset`
 stores a preset id — both apply to every subsequent `sk_tts_synth` call on the handle until
 the other is set (each clears the other); `sk_tts_synth` runs greedy/deterministic synthesis
-(`seed=0`, `do_sample=false`, always) and delivers f32 interleaved PCM through `sk_audio_cb`:
+(`seed=0`, `do_sample=false`) for every family EXCEPT `moss_tts_nano`, which runs sampled
+decoding (`seed=0`, `do_sample=true` — Ruling R23, `.superpowers/moss-eoc-verdict.md`: greedy
+argmax decode never reaches this checkpoint's own end-of-content token for ordinary input,
+running to the 300-frame/24.000s `max_new_frames` cap instead; sampling reaches real EOC in
+2.6-3.7s). The fixed seed keeps output deterministic per build either way — sampling only
+changes argmax-vs-sample for the stop decision, not run-to-run reproducibility. Either way,
+`sk_tts_synth` delivers f32 interleaved PCM through `sk_audio_cb`:
 offline families call it exactly once with the whole buffer, streaming families call it once
 per pulled chunk (audio.cpp's streaming is "pull text-chunks, not push audio-frames" — one
 event per ~300-codepoint text chunk, not low-latency frame streaming); the callback

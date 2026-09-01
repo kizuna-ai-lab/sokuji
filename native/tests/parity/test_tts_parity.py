@@ -43,6 +43,24 @@ one uniform tolerance:
    xfailed; see the case for the full chain. Waveform parity is the wrong invariant for a
    chaotic decoder, and no tolerance can distinguish it from a real break.
 
+Round 4 / ruling R23 (jiangzhuo 2026-09-01, .superpowers/moss-eoc-verdict.md): moss_tts_nano
+switched from greedy to SAMPLED decode in production (native/src/sk_tts.cpp's `sample_decode`
+family flag) because greedy argmax never reaches this checkpoint's own end-of-content token
+for ordinary input — it runs to audio.cpp's 300-frame/24.000s `max_new_frames` cap instead
+(measured 3/3), while sampling reaches real EOC in 2.6-3.7s (measured 3/3). Seed stays fixed
+at "0" either way, so both `test_moss_text_only` and `test_moss_clone` below now pass
+`--request-option do_sample=true` to the reference CLI to match what the candidate binding
+does internally. Measured directly for this file's two fixed test inputs: both cases
+reproduce BIT-EXACT (max_abs=0.0) and repeatably across reruns — R12's argmax-tie fragility
+does not reproduce for these specific inputs under sampling. It is NOT eliminated as a class,
+though: the same investigation found a different sentence against the same voice-clone
+reference diverges into a different frame count entirely under sampling too (chaotic
+autoregressive amplification doesn't care whether the fragile decision was an argmax tie or
+a sampled draw). `test_moss_clone` therefore keeps its existing soft xfail-on-failure shape
+(assert only if the comparison actually fails) with its reason string updated to describe
+sampling-draw amplification rather than argmax-tie amplification — not flipped to a hard
+assert, since a clean pass on today's fixed input is not evidence the class of risk is gone.
+
 Every case is gated on two independent things, so each one skips on its own:
   - the reference CLI existing at all (native/tests/parity/build_reference_cli.sh must have
     been run first — this file never builds it itself: that is a ~15 minute, network-using
@@ -50,9 +68,12 @@ Every case is gated on two independent things, so each one skips on its own:
   - the family's model directory env var (SK_TEST_TTS_<FAMILY>_DIR) being set, mirroring
     native/python/tests/test_sokuji_native.py's needs_tts_* pattern.
 
-Determinism: both sides fix seed=0 and do_sample=false — the CLI explicitly
-(`--seed 0 --request-option do_sample=false`, report §7), our binding always internally (R7,
-native/README.md's TTS section). Both sides are pinned to the SAME thread count (THREADS
+Determinism: both sides fix seed=0 — the CLI explicitly (`--seed 0`), our binding always
+internally (R7, native/README.md's TTS section). do_sample is do_sample=false on both sides
+for every family EXCEPT moss_tts_nano, which is do_sample=true on both sides (Ruling R23,
+Round 4 above) — the CLI's `--request-option do_sample=...` is set per-case below to match
+whichever mode the candidate binding will use for that family, never mixed across sides.
+Both sides are pinned to the SAME thread count (THREADS
 below) via `--threads` on the CLI and `sokuji_native.init(n_threads=...)` on the binding —
 ggml's CPU matmul reduction order (and therefore floating-point rounding) is thread-count
 dependent, so a mismatch here would be indistinguishable from a genuine backend divergence.
@@ -433,7 +454,7 @@ def test_moss_text_only(tmp_path):
         "--task", "tts", "--family", "moss_tts_nano", "--model", str(MOSS_DIR),
         "--backend", "cpu", "--threads", str(THREADS),
         "--text", text,
-        "--seed", "0", "--request-option", "do_sample=false",
+        "--seed", "0", "--request-option", "do_sample=true",
         "--out", str(ref_wav),
     ])
 
@@ -442,16 +463,24 @@ def test_moss_text_only(tmp_path):
         text=text, out_wav=got_wav,
     )
 
-    # Round 2 (ruling R10(s4)): rounds 0/1's 3.6s-vs-24.0s length asymmetry was an ACCIDENT
-    # of the SVE bug — it corrupted the OFFICIAL reference's stop logits enough that EOC fired
-    # early (frame 45), while the candidate (which happened to load the same broken SVE
-    # module in rounds 0/1 too, just diverging differently) ran to the cap. The model never
-    # actually reaches EOC for this input on EITHER correct build — moss_tts_nano's 300-frame
-    # runaway is a real, separate defect in audio.cpp's own session/prompt/stop path, not a
-    # ggml-swap regression and not something native/src/sk_tts.cpp can fix (product decision
-    # — fix upstream, cap max_new_frames, or drop the family — pending elsewhere). With SVE
-    # excluded from both sides here, BOTH run the full 300-frame / 24.0s generation and are
-    # expected to agree to within ±1 LSB.
+    # Round 2 (ruling R10(s4)) established that under the OLD greedy configuration, rounds
+    # 0/1's 3.6s-vs-24.0s length asymmetry was an SVE-bug accident, and with SVE excluded both
+    # correct builds instead ran the full 300-frame/24.0s cap and agreed to within ±1 LSB.
+    #
+    # Round 4 / Ruling R23 (jiangzhuo 2026-09-01, .superpowers/moss-eoc-verdict.md): moss's own
+    # greedy-decode stop logic never reaches real end-of-content for ordinary input — it is a
+    # genuine defect in audio.cpp's own session/prompt/stop path (E1 there: 300-frame/24.000s
+    # cap, 3/3, transcript "The quick."), not a ggml-swap regression and not something
+    # native/src/sk_tts.cpp could fix by staying greedy. Sampling reaches real EOC instead (E2:
+    # 3/3, 2.6-3.7s, full correct transcript), so moss_tts_nano now runs do_sample=true in
+    # production (native/src/sk_tts.cpp's `sample_decode` family flag) and this case's CLI
+    # invocation was updated to match (do_sample=true, seed still "0"). Measured directly for
+    # this text ("Hello from MOSS-TTS-Nano."): both sides reproduce BIT-EXACT (max_abs=0.0),
+    # repeatably across reruns — the same-seed sampled RNG draw and the underlying non-SVE
+    # arithmetic are apparently identical between the two ggml versions for this input. This is
+    # NOT a general guarantee (see test_moss_clone's updated R12 comment for a case where a
+    # different sentence diverges under sampling too); it is what this file's own fixed input
+    # measures today.
     failure = _compare_lsb_tolerant(ref_wav, got_wav)
     assert not failure, failure
 
@@ -477,13 +506,18 @@ def test_moss_clone(tmp_path):
     # same prepare()/run() path as a Clon-tagged one given the same reference.
     #
     # Round 2 (ruling R10(s4)): this case already hit the SAME 300-frame/24.0s cap on BOTH
-    # sides even in rounds 0/1 (the SVE bug's corruption wasn't enough to trigger early EOC
-    # for this input either way), so the shapes were expected to (and do) match here.
+    # sides even in rounds 0/1 under the OLD greedy configuration (the SVE bug's corruption
+    # wasn't enough to trigger early EOC for this input either way), so the shapes were
+    # expected to (and did) match here.
+    #
+    # Round 4 / Ruling R23: do_sample=true now, matching moss_tts_nano's production
+    # configuration (native/src/sk_tts.cpp's `sample_decode` family flag) — see
+    # test_moss_text_only's comment and .superpowers/moss-eoc-verdict.md for why.
     _run_cli([
         "--task", "clon", "--family", "moss_tts_nano", "--model", str(MOSS_DIR),
         "--backend", "cpu", "--threads", str(THREADS),
         "--text", text, "--voice-ref", str(ref_clip_wav), "--reference-text", REFERENCE_TEXT,
-        "--seed", "0", "--request-option", "do_sample=false",
+        "--seed", "0", "--request-option", "do_sample=true",
         "--out", str(ref_wav),
     ])
 
@@ -496,32 +530,48 @@ def test_moss_clone(tmp_path):
     if not failure:
         return
 
-    # Ruling R12 — PERMANENT xfail, and not a defect in anything this repo owns.
+    # Ruling R12 — PERMANENT xfail, and not a defect in anything this repo owns. Re-examined
+    # under Ruling R23 (Round 4, jiangzhuo 2026-09-01, .superpowers/moss-eoc-verdict.md) when
+    # moss_tts_nano switched from greedy to sampled decode: the ORIGINAL mechanics no longer
+    # apply verbatim (there is no argmax tie to flip once the stop decision is a softmax draw
+    # instead), but the underlying chaos was NOT eliminated, and this xfail therefore stays as
+    # a soft safety net (assert only if the comparison actually fails — same shape as before),
+    # not a hard assert.
     #
-    # residuals-investigation.md traced this end to end. The reference-audio ENCODE path the
-    # round-2 comment below suspected is innocent: the encoder input, its latent, and all 16
-    # RVQ codebooks are BIT-IDENTICAL on both sides, so both builds condition the LM on the
-    # same reference codes. The real divergence is one entry of ggml's 65536-entry fp16 GELU
-    # lookup table, at x = -1.9990234, differing by a single fp16 ULP — a rounding coin flip
-    # at the midpoint (|err| vs a float64 reference: 1.525e-05 fork, 1.527e-05 upstream,
-    # against the table's own 9.7e-04 quantization error). Neither ggml is more correct, and
-    # the two versions' source for both the GELU formula and the table build is identical.
+    # residuals-investigation.md traced the ORIGINAL (greedy) mechanics end to end: the
+    # reference-audio ENCODE path the round-2 comment suspected was innocent — the encoder
+    # input, its latent, and all 16 RVQ codebooks are BIT-IDENTICAL on both sides. The real
+    # divergence was one entry of ggml's 65536-entry fp16 GELU lookup table, at x = -1.9990234,
+    # differing by a single fp16 ULP — a rounding coin flip at the midpoint (|err| vs a
+    # float64 reference: 1.525e-05 fork, 1.527e-05 upstream, against the table's own 9.7e-04
+    # quantization error). Neither ggml is more correct, and the two versions' source for both
+    # the GELU formula and the table build is identical. Under GREEDY decode that 3.05e-05
+    # landed in layer 4 of the global transformer at decode step 1, reached ~1.2e-2 in the
+    # hidden by layer 11, and flipped 4 of the 16 codebook argmax decisions in frame 1
+    # (margins 0.0025-0.064; the run made 4800 such decisions, 7 with a margin under 1e-2).
     #
-    # MOSS then amplifies it: that 3.05e-05 lands in layer 4 of the global transformer at
-    # decode step 1, reaches ~1.2e-2 in the hidden by layer 11, and flips 4 of the 16
-    # codebook argmax decisions in frame 1 (margins 0.0025-0.064; the run makes 4800 such
-    # decisions, 7 of them with a margin under 1e-2). From frame 1 the two trajectories are
-    # independent, so max_abs > 1.0 is expected, not alarming.
-    #
-    # This is therefore NOT waivable by widening MAX_ABS_TOLERANCE — no amplitude band
-    # separates "same model, different chaotic trajectory" from "broken". Waveform parity is
-    # simply the wrong invariant for a 300-step argmax decoder. moss_text_only carries the
-    # family's numeric signal (it is the same model and the same graph, and it passes at 1
-    # LSB); functional quality for the clone path is gated by the TTS->ASR loopback, which
+    # Directly re-measured under SAMPLED decode (this case's do_sample=true, R23): for THIS
+    # test's exact input (text "Hello from MOSS-TTS-Nano.", the 1s 440Hz sine reference), both
+    # builds reproduce BIT-EXACT and repeatably — the class of ULP that used to flip an argmax
+    # tie apparently does not flip this input's sampled draws. That is NOT evidence the
+    # divergence risk is gone: the same re-examination found that swapping in a different
+    # sentence ("The quick brown fox jumps over the lazy dog.") against the SAME voice-clone
+    # reference, still do_sample=true seed=0, diverges into a DIFFERENT FRAME COUNT entirely
+    # (157440 vs 168960 samples) — a bigger break than the original max_abs>1.0, and further
+    # proof that chaotic autoregressive amplification doesn't care whether the fragile
+    # decision was an argmax tie or a sampled draw. This is therefore still NOT waivable by
+    # widening MAX_ABS_TOLERANCE — no amplitude band (and no shape check) separates "same
+    # model, different chaotic trajectory" from "broken". Waveform parity is simply the wrong
+    # invariant for a 300-step autoregressive decoder, greedy or sampled. moss_text_only
+    # carries the family's numeric signal (same model, same graph, passes at 1 LSB for its own
+    # input); functional quality for the clone path is gated by the TTS->ASR loopback, which
     # asks the only question that actually matters here — does it say the right words.
     pytest.xfail(
-        "R12: single-ULP GELU LUT rounding difference amplified through 4800 argmax "
-        f"decisions — expected, not a defect; quality gated by the TTS->ASR loopback. {failure}"
+        "R12/R23: chaotic autoregressive amplification of a per-build floating-point "
+        "difference (originally an argmax-tie flip under greedy decode; moss_tts_nano is now "
+        "sampled per R23, and a DIFFERENT input was directly measured to diverge into a "
+        "different frame count under sampling too) — expected, not a defect; quality gated by "
+        f"the TTS->ASR loopback. {failure}"
     )
 
 

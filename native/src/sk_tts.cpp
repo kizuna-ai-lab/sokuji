@@ -31,6 +31,7 @@ struct sk_tts {
     bool    streaming_family    = false;
     bool    clones               = false;
     bool    transcript_required  = false;
+    bool    sample_decode        = false;
     int32_t default_rate         = 0;
     std::vector<std::string> preset_names;   // cached at load; see report §3
 
@@ -51,6 +52,7 @@ struct FamilyInfo {
     bool        clones;
     bool        transcript_required;
     int32_t     default_rate;
+    bool        sample_decode;
 };
 
 // Baked-in per report §3/§4: streaming = omnivoice+supertonic only (report §2); clones =
@@ -64,12 +66,28 @@ struct FamilyInfo {
 // flows caps -> wire -> renderer transcript gating automatically. default_rate per
 // report §4 (always re-read the actual result rate too — these families are
 // config-driven and could differ from a future checkpoint).
+//
+// sample_decode (Ruling R23, jiangzhuo 2026-09-01, .superpowers/moss-eoc-verdict.md):
+// moss_tts_nano ONLY. That investigation measured, on audio.cpp's own fork ggml with
+// SVE excluded (so the matmul is provably correct on both sides), that greedy/argmax
+// decoding of moss_tts_nano's end-of-content decision reaches audio.cpp's 300-frame /
+// 24.000s max_new_frames cap 3/3 for a plain sentence ("The quick brown fox jumps over
+// the lazy dog."), producing a truncated transcript ("The quick."/"They quick.") —
+// while audio.cpp's own DOCUMENTED DEFAULT (do_sample=true) reached the model's real
+// end-of-content token 3/3 in 2.6-3.7s with the full sentence transcribed correctly.
+// The runaway lives in local_frame_decoder.cpp's argmax-vs-sample choice between the
+// "continue" and "stop" logits, not in anything native/src/sk_tts.cpp or the ggml swap
+// introduced. MOSS is staying in the recommended roster (controller ruling, same date),
+// so it must not run away in production: sample instead of argmax for this family only.
+// Seed stays fixed at "0" regardless (see build_request) — sampling here means "not
+// argmax", not "not reproducible": a fixed seed still makes a given build's RNG stream,
+// and therefore its output, deterministic run to run.
 constexpr FamilyInfo kFamilies[] = {
-    {"moss_tts_nano", false, true,  false, 48000},
-    {"qwen3_tts",      false, true,  true,  24000},
-    {"omnivoice",      true,  true,  true,  24000},
-    {"pocket_tts",     false, true,  false, 24000},
-    {"supertonic",     true,  false, false, 44100},
+    {"moss_tts_nano", false, true,  false, 48000, true},
+    {"qwen3_tts",      false, true,  true,  24000, false},
+    {"omnivoice",      true,  true,  true,  24000, false},
+    {"pocket_tts",     false, true,  false, 24000, false},
+    {"supertonic",     true,  false, false, 44100, false},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -153,9 +171,15 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
         req.options["speaking_rate"] = std::to_string(speed);
     }
 
-    // Ruling R7(s4): deterministic synthesis always — product behavior AND the parity
-    // harness's precondition (Task 3 compares this binding's output against the official CLI).
-    req.options["do_sample"] = "false";
+    // Ruling R7(s4): deterministic synthesis by default — product behavior AND the parity
+    // harness's precondition (Task 3 compares this binding's output against the official
+    // CLI) — EXCEPT moss_tts_nano (Ruling R23, .superpowers/moss-eoc-verdict.md): greedy
+    // decode never reaches this checkpoint's own end-of-content token for ordinary input
+    // (measured: 300-frame/24.000s cap, 3/3), while sampling does (measured: real EOC,
+    // 2.6-3.7s, 3/3, full correct transcript). Seed stays "0" for every family either way —
+    // t->sample_decode only picks argmax vs. sample for the two-logit stop decision, it does
+    // not reintroduce nondeterminism.
+    req.options["do_sample"] = t->sample_decode ? "true" : "false";
     req.options["seed"] = "0";
     return req;
 }
@@ -349,6 +373,7 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
         h->clones              = info->clones;
         h->transcript_required = info->transcript_required;
         h->default_rate        = info->default_rate;
+        h->sample_decode       = info->sample_decode;
     } catch (const std::exception &ex) {
         const sk_status rc = fail("sk_tts_load", ex.what());
         delete h;

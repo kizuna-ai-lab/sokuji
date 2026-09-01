@@ -309,10 +309,17 @@ def test_tts_moss_offline_and_clone():
     # audiocpp_cli's own --metrics output, native/tests/parity/): synth() must hand back a
     # numpy-natural 2-D (frames, channels) array, not a flat buffer mislabeled as mono.
     assert samples.ndim == 2 and samples.shape[1] == 2
+    # Ruling R23 (.superpowers/moss-eoc-verdict.md): moss_tts_nano samples its stop decision
+    # instead of arg-maxing it, so a short utterance reaches real end-of-content well under
+    # audio.cpp's 300-frame/24.000s max_new_frames cap (measured there: 2.6-3.7s). This
+    # duration<10s check replaces what a greedy build would otherwise show as a cap-shaped
+    # ~24.0s expectation, every time.
+    assert samples.shape[0] / rate < 10.0
     ref = np.sin(np.linspace(0, 2 * np.pi * 440, 24000)).astype(np.float32)
     t.set_voice(ref, 24000, ref_text="test")
-    samples2, _ = t.synth("Hello again.")
+    samples2, rate2 = t.synth("Hello again.")
     assert len(samples2) > 0
     assert samples2.ndim == 2 and samples2.shape[1] == 2
+    assert samples2.shape[0] / rate2 < 10.0
     t.unload()
     t.unload()
