@@ -1,7 +1,0 @@
-# Sidecar bundle SKU: macOS (Apple Silicon) - ggml/Metal lane (spec D10).
--r requirements.txt
-# onnxruntime / sherpa-onnx / mlx-audio all died with the ONNX/sherpa/MLX TTS
-# backends (slice 4) — GPU acceleration for every remaining backend (ASR,
-# translate, TTS) is the ggml/Metal lane through sokuji-native. This file is
-# now equivalent to the base requirements.txt; full consolidation to one
-# requirements file is slice 5's job.

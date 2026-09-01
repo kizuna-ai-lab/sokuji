@@ -1,8 +1,0 @@
-# Sidecar bundle SKU: DirectML - non-NVIDIA Windows (spec D1/D2/D10).
-# Requires Python >= 3.11; the bundle ships CPython 3.12 (spec D12).
--r requirements.txt
-# onnxruntime-directml / sherpa-onnx died with the ONNX/sherpa TTS backends
-# (slice 4) — GPU acceleration for every remaining backend (ASR, translate,
-# TTS) is the ggml/Vulkan lane through sokuji-native, identical across SKUs.
-# This file is now equivalent to the base requirements.txt; full consolidation
-# to one requirements file is slice 5's job.

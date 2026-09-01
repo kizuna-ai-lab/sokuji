@@ -1,7 +1,0 @@
-# Sidecar bundle SKU: linux-arm64 (aarch64) - ggml/Vulkan lane (spec D6).
--r requirements.txt
-# onnxruntime / sherpa-onnx died with the ONNX/sherpa TTS backends (slice 4)
-# — NVIDIA/AMD/Intel GPU acceleration for every remaining backend (ASR,
-# translate, TTS) comes from the ggml family through Vulkan already. This
-# file is now equivalent to the base requirements.txt; full consolidation to
-# one requirements file is slice 5's job.
