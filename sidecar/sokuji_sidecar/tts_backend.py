@@ -60,7 +60,41 @@ The drain generator wraps its loop in try/finally: cancelled.set(), so a consume
 that abandons it early (break, .close(), garbage collection) raises GeneratorExit at
 the suspended yield, which the finally block turns into the same cancellation any
 other stop takes -- otherwise the worker thread and its native synth() call would run
-to completion unobserved (review round 1, CQ-3)."""
+to completion unobserved (review round 1, CQ-3).
+
+Fix wave (2026-09-01), three more defects:
+
+I3 -- self._workers ALSO tracks a one-shot generate() while it is inside
+self._model.synth(...), not just streaming workers: entry is (threading.current_thread(),
+None) -- registered on entry, deregistered on exit via try/finally, no cancel Event
+needed because an offline family cannot be interrupted mid-run anyway (tts_engine.py's
+own comment on this). Before this fix, unload() only joined streaming workers, so a
+one-shot generate() running on another executor thread could still be mid-sk_tts_synth
+when unload() nulled the model handle and freed it underneath it -- a native
+use-after-free. unload()'s existing cancel-then-join loop already tolerates a None
+event (skips the .set()) and joins the thread like any other entry, so one-shot and
+streaming workers share one registry and one shared deadline. cancel() also tolerates a
+None event (a one-shot at self._workers[-1] makes cancel() a harmless no-op, matching
+"one-shot generation is never cancelled").
+
+R16 -- qwen3_tts and omnivoice have NO usable default voice: a synth() attempted with
+neither set_voice() nor set_builtin_voice() called first fails deep inside audio.cpp
+with a none-too-friendly, native-layer-specific message (live-verified,
+task-7-report.md §3: "Qwen3 base TTS requires voice clone reference audio").
+_ensure_voice_ready() raises a clear, family-named BackendLoadError here, BEFORE ever
+reaching the native layer, so the wire error is deterministic and readable regardless
+of what audio.cpp happens to throw that day. moss_tts_nano and pocket_tts also report
+CLONES=True but are NOT gated -- both ship a working built-in default voice (moss:
+native/tests/test_tts.cpp's own case synths before ever calling set_voice; pocket:
+every package can run clone-free).
+
+I2 -- the per-synth ACTUAL sample rate (audio.cpp's own returned rate, which can differ
+from the family's advertised caps.sample_rate) is now forwarded end-to-end instead of
+discarded: generate() returns it as its own return value, and generate_stream()'s
+on_chunk callback forwards it into each queued/yielded chunk. tts_engine resamples with
+whichever rate accompanies each result/chunk, not the caps-table default -- the default
+stays valid for planning/UI (it's what the family's own capabilities/tts_init reply
+report before any synth has actually run)."""
 import queue
 import threading
 import time
@@ -73,6 +107,12 @@ from .catalog import split_artifact
 from .planner import PlanConfig
 
 _SENTINEL = object()
+
+# R16: families whose native default voice raises when synth() is attempted with no
+# clone/preset set first -- live-verified only for these two (task-7-report.md §3).
+# moss_tts_nano/pocket_tts also report CLONES=True but are NOT included: both ship a
+# working built-in default and must stay callable without a voice ever being set.
+_VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice"})
 
 
 @register_backend
@@ -88,13 +128,27 @@ class NativeTtsBackend:
     def __init__(self):
         self._model = None
         self._language = None
-        # Every (threading.Thread, threading.Event) pair for a stream that hasn't
-        # finished self-cleanup yet, oldest first. Guarded by _workers_lock since
-        # generate_stream() (append), _drain()'s finally (remove, from whatever
-        # thread is draining it), cancel() (read the tail), and unload() (snapshot
-        # + clear) can all run concurrently on different threads.
-        self._workers: list[tuple[threading.Thread, threading.Event]] = []
+        self._family = None
+        self._voice_set = False   # R16: True once set_voice()/set_builtin_voice() lands
+        # Every (threading.Thread, threading.Event | None) pair for a generate() or
+        # generate_stream() call that hasn't finished self-cleanup yet, oldest first.
+        # A one-shot generate() entry's event is always None (I3): it has no
+        # cancellation hook (an offline family cannot be interrupted mid-run), so it
+        # exists in this registry purely so unload() also JOINS it -- cancel() and
+        # unload() both tolerate a None event and skip the .set() for that entry.
+        # Guarded by _workers_lock since generate()/generate_stream() (append),
+        # _drain()'s finally or generate()'s finally (remove, from whatever thread is
+        # running it), cancel() (read the tail), and unload() (snapshot + clear) can
+        # all run concurrently on different threads.
+        self._workers: list[tuple[threading.Thread, threading.Event | None]] = []
         self._workers_lock = threading.Lock()
+
+    def _ensure_voice_ready(self) -> None:
+        """R16: raise BEFORE ever reaching the native layer when this family has no
+        usable default voice and none has been set yet -- see _VOICE_REQUIRED_FAMILIES
+        and the module docstring."""
+        if self._family in _VOICE_REQUIRED_FAMILIES and not self._voice_set:
+            raise BackendLoadError(f"{self._family} requires a voice clip before synthesis")
 
     def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self.unload()
@@ -124,6 +178,8 @@ class NativeTtsBackend:
             self.STREAMING = bool(caps.streaming)
             self.CLONES = bool(caps.clones)
             self.sample_rate = int(caps.sample_rate)
+            self._family = family              # R16: which _ensure_voice_ready() gates on
+            self._voice_set = False             # a freshly loaded model has no voice yet
         except BackendLoadError:
             self.unload()
             raise
@@ -134,18 +190,35 @@ class NativeTtsBackend:
     def generate(self, text: str, speed: float = 1.0):
         if self._model is None:
             raise BackendLoadError("native_tts not loaded")
-        t0 = time.time()
-        samples, _rate = self._model.synth(text, language=self._language, speed=speed)
-        return np.asarray(samples, dtype=np.float32), int((time.time() - t0) * 1000)
+        self._ensure_voice_ready()   # R16
+        # I3: register THIS call in the same worker registry generate_stream() uses,
+        # with no cancel event (an offline family cannot be interrupted mid-run) --
+        # purely so unload() also joins it and can never free the handle out from
+        # under a still-running sk_tts_synth on another thread.
+        entry = (threading.current_thread(), None)
+        with self._workers_lock:
+            self._workers.append(entry)
+        try:
+            t0 = time.time()
+            samples, rate = self._model.synth(text, language=self._language, speed=speed)
+            return np.asarray(samples, dtype=np.float32), int(rate), int((time.time() - t0) * 1000)
+        finally:
+            with self._workers_lock:
+                if entry in self._workers:
+                    self._workers.remove(entry)
 
     def generate_stream(self, text: str, speed: float = 1.0):
         if self._model is None:
             raise BackendLoadError("native_tts not loaded")
+        self._ensure_voice_ready()   # R16
         q: "queue.Queue" = queue.Queue()
         cancelled = threading.Event()
 
-        def on_chunk(pcm, _sr):
-            q.put(("chunk", np.asarray(pcm, dtype=np.float32)))
+        def on_chunk(pcm, sr):
+            # I2: forward the ACTUAL per-chunk rate (audio.cpp's own return value,
+            # which can differ from the family's advertised caps.sample_rate) instead
+            # of discarding it -- tts_engine resamples with this, not the caps default.
+            q.put(("chunk", (np.asarray(pcm, dtype=np.float32), int(sr))))
             return not cancelled.is_set()
 
         def worker():
@@ -201,21 +274,27 @@ class NativeTtsBackend:
         between sk_audio_cb calls (see the module docstring). Safe to call as
         the supersede step for a new stream: tts_engine always calls this
         BEFORE starting the new stream, so self._workers[-1] can only be the
-        stream being superseded, never the one about to replace it."""
+        stream being superseded, never the one about to replace it. A harmless
+        no-op if that entry is a one-shot generate() (I3: its event is always
+        None -- a one-shot cannot be interrupted mid-run anyway)."""
         with self._workers_lock:
             if self._workers:
-                self._workers[-1][1].set()
+                ev = self._workers[-1][1]
+                if ev is not None:
+                    ev.set()
 
     def set_voice(self, audio, sr, ref_text: str = "") -> None:
         if self._model is None:
             raise BackendLoadError("native_tts not loaded")
         pcm = np.ascontiguousarray(np.asarray(audio, dtype=np.float32).reshape(-1))
         self._model.set_voice(pcm, int(sr), ref_text=ref_text or None)
+        self._voice_set = True   # R16
 
     def set_builtin_voice(self, name: str) -> None:
         if self._model is None:
             raise BackendLoadError("native_tts not loaded")
         self._model.set_preset(name)
+        self._voice_set = True   # R16
 
     def set_language(self, lang: str) -> None:
         """Store the per-synth language hint (sk_tts_synth's own `language`
@@ -252,7 +331,8 @@ class NativeTtsBackend:
             workers = list(self._workers)
             self._workers.clear()
         for _thread, ev in workers:
-            ev.set()
+            if ev is not None:   # I3: a one-shot generate()'s entry has no cancel event
+                ev.set()
         deadline = time.monotonic() + 10.0
         for thread, _ev in workers:
             thread.join(timeout=max(0.0, deadline - time.monotonic()))

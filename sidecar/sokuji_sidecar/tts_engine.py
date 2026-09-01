@@ -45,7 +45,6 @@ def _to_int16_24k_mono(samples, src_sr, target_sr=TARGET_RATE) -> bytes:
 class TtsEngine:
     def __init__(self):
         self._backend = None
-        self._native_sr = TARGET_RATE
         self.sample_rate = TARGET_RATE      # reported contract rate (always 24k)
         self.streaming = False
         self.clones = False
@@ -65,7 +64,11 @@ class TtsEngine:
         self._backend, plan, notice, mem = accel.load_measured(plans, stage="tts")
         if hasattr(self._backend, "set_language"):
             self._backend.set_language(language or "")
-        self._native_sr = getattr(self._backend, "sample_rate", TARGET_RATE)
+        # I2 (fix wave): the family's advertised caps.sample_rate is no longer read
+        # here for resampling -- generate()/generate_stream() now resample with the
+        # ACTUAL per-synth rate the backend itself returns, which can differ from
+        # this default. Nothing else in this class needs the advertised default, so
+        # it is no longer cached as an instance attribute.
         self.streaming = bool(getattr(self._backend, "STREAMING", False))
         self.clones = bool(getattr(self._backend, "CLONES", False))
         self.model_id = mid
@@ -84,11 +87,13 @@ class TtsEngine:
         return int((time.time() - t0) * 1000)
 
     def set_voice(self, audio, sr, ref_text=None):
-        # native_tts's set_voice always takes ref_text (spec's backend contract), but
-        # the ONNX backends this engine still resolves to pre-Task-5 don't all agree:
-        # MOSS/OmniVoice are clip-only (no ref_text parameter at all) while Qwen3/
-        # CosyVoice3/GPT-SoVITS are ICL cloning. Signature-sniff until the catalog
-        # rewire makes every resolvable backend uniform.
+        # native_tts's set_voice always takes ref_text; the ONNX/sherpa/MLX backends
+        # that used to disagree (MOSS/OmniVoice clip-only, no ref_text parameter at
+        # all; Qwen3/CosyVoice3/GPT-SoVITS ICL cloning) are gone (slice 4's catalog
+        # rewire). The signature-sniff below is now dead weight against native_tts
+        # itself -- every one of its five families accepts ref_text (native/src/
+        # sk_tts.cpp's set_voice always takes one) -- and serves only the hand-rolled
+        # test fakes in this module's own test suite that still model both shapes.
         wav = np.asarray(audio, dtype=np.float32)
         sr = int(sr)
         params = inspect.signature(self._backend.set_voice).parameters
@@ -102,13 +107,14 @@ class TtsEngine:
 
     def list_builtin_voices(self):
         """Delegate to the loaded backend's own list_builtin_voices() when it has
-        one. native_tts always does (it's `.presets()`); pre-Task-5, not every
-        ONNX backend this engine can still resolve to agrees -- MOSS has no such
-        method at all, and Qwen3/CosyVoice3/OmniVoice ship a stub that always
-        returns [] (their own comments: "descriptors come from tts_voices...
-        (manifest-based)"). A missing method degrades to [] rather than raising;
-        tts_voices.py only reaches this once it already decided the loaded model
-        is the one being asked about."""
+        one. native_tts always does (it's `.presets()`, present on every one of its
+        five families' backend instances) -- the ONNX/sherpa/MLX backends that used
+        to disagree (MOSS with no such method at all; Qwen3/CosyVoice3/OmniVoice's
+        stub always returning []) are gone (slice 4). The `hasattr` degrade-to-[]
+        below is now dead weight against native_tts itself and serves only the
+        hand-rolled test fakes in this module's own test suite that still model a
+        backend without the method; tts_voices.py only reaches this once it already
+        decided the loaded model is the one being asked about."""
         if hasattr(self._backend, "list_builtin_voices"):
             return self._backend.list_builtin_voices()
         return []
@@ -128,8 +134,13 @@ class TtsEngine:
                 pass
 
     def generate(self, text, speed=1.0):
-        samples, gen_ms = self._backend.generate(text, speed)
-        return _to_int16_24k_mono(samples, self._native_sr), gen_ms
+        # I2: resample with the ACTUAL rate this synth returned, not self._native_sr
+        # (the family's advertised caps default, set once at init() and never
+        # updated) -- a family whose real output rate differs from its own
+        # capabilities.sample_rate would otherwise be resampled from the WRONG
+        # source rate and come out pitch-shifted.
+        samples, rate, gen_ms = self._backend.generate(text, speed)
+        return _to_int16_24k_mono(samples, rate), gen_ms
 
     async def generate_stream(self, text, speed, send, should_cancel, msg_id):
         """Drive the backend's frame generator in a worker thread; push tts_chunk
@@ -142,10 +153,10 @@ class TtsEngine:
 
         def worker():
             try:
-                for chunk in self._backend.generate_stream(text, speed):
+                for chunk, rate in self._backend.generate_stream(text, speed):
                     if should_cancel():
                         break
-                    q.put(("chunk", chunk))
+                    q.put(("chunk", (chunk, rate)))
             except Exception as e:            # surface, then terminate the stream
                 q.put(("error", str(e)))
             finally:
@@ -164,7 +175,10 @@ class TtsEngine:
                 await send({"type": "error", "id": msg_id, "message": payload})
                 errored = True
                 break
-            pcm = _to_int16_24k_mono(payload, self._native_sr)
+            # I2: resample each chunk with ITS OWN actual rate (see generate()'s
+            # comment above) -- not self._native_sr.
+            chunk, rate = payload
+            pcm = _to_int16_24k_mono(chunk, rate)
             total += len(pcm) // 2
             await send({"type": "tts_chunk", "id": msg_id, "seq": seq}, binary=pcm)
             seq += 1

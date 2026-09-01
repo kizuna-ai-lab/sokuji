@@ -292,8 +292,9 @@ def test_generate_oneshot_calls_synth_without_on_chunk(native_env):
     created["model_factory"] = lambda *a: _FakeTtsModel(*a, chunks=[np.ones(50, np.float32), np.ones(50, np.float32)])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
-    samples, ms = b.generate("hello", speed=1.5)
+    samples, rate, ms = b.generate("hello", speed=1.5)
     assert samples.dtype == np.float32 and samples.shape == (100,)
+    assert rate == created["caps"].sample_rate   # I2: the actual per-synth rate
     assert ms >= 0
     assert log[-1] == ("synth", "hello", None, 1.5, False)
 
@@ -314,9 +315,12 @@ def test_generate_stream_yields_all_chunks(native_env):
         *a, chunks=[np.ones(10, np.float32), np.ones(10, np.float32), np.ones(10, np.float32)])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(10, np.float32), 24000, ref_text="hi")   # R16: omnivoice needs a voice first
     chunks = list(b.generate_stream("hello"))
     assert len(chunks) == 3
-    assert all(isinstance(c, np.ndarray) and c.dtype == np.float32 for c in chunks)
+    # I2: each chunk is (pcm, actual_rate), not a bare array.
+    assert all(isinstance(c, np.ndarray) and c.dtype == np.float32 and sr == created["caps"].sample_rate
+               for c, sr in chunks)
     assert log[-1] == ("synth", "hello", None, 1.0, True)
 
 
@@ -327,10 +331,11 @@ def test_generate_stream_cancel_stops_before_the_next_chunk(native_env):
         *a, chunks=[np.ones(10, np.float32), np.ones(10, np.float32), np.ones(10, np.float32)])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(10, np.float32), 24000, ref_text="hi")   # R16: omnivoice needs a voice first
     model = created["model"]
 
     gen = b.generate_stream("hello")
-    first = next(gen)                        # chunk 0, produced before the gate
+    first, _sr = next(gen)                   # chunk 0, produced before the gate
     assert isinstance(first, np.ndarray)
     assert model.before_gate.wait(timeout=5)
 
@@ -426,9 +431,10 @@ def test_generate_stream_real_failure_raises_not_swallowed(native_env):
     created["model_factory"] = lambda *a: _BoomingStreamModel(*a, chunks=[np.ones(10, np.float32)])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(10, np.float32), 24000, ref_text="hi")   # R16: omnivoice needs a voice first
 
     gen = b.generate_stream("hello")
-    first = next(gen)                     # the one chunk emitted before the boom
+    first, _sr = next(gen)                # the one chunk emitted before the boom
     assert isinstance(first, np.ndarray)
     with pytest.raises(RuntimeError, match="decoder blew up"):
         next(gen)
@@ -447,10 +453,10 @@ def test_tts_engine_worker_turns_backend_raise_into_error_event(native_env):
     created["model_factory"] = lambda *a: _BoomingStreamModel(*a, chunks=[np.ones(10, np.float32)])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(10, np.float32), 24000, ref_text="hi")   # R16: omnivoice needs a voice first
 
     eng = tts_engine.TtsEngine()
     eng._backend = b
-    eng._native_sr = b.sample_rate
     sent = []
 
     async def send(obj=None, binary=None):
@@ -471,10 +477,11 @@ def test_generate_stream_close_cancels_the_worker(native_env):
         *a, chunks=[np.ones(10, np.float32), np.ones(10, np.float32)])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(10, np.float32), 24000, ref_text="hi")   # R16: omnivoice needs a voice first
     model = created["model"]
 
     gen = b.generate_stream("hello")
-    first = next(gen)
+    first, _sr = next(gen)
     assert isinstance(first, np.ndarray)
     assert model.before_gate.wait(timeout=5)
 
@@ -494,6 +501,7 @@ def test_unload_during_active_stream_joins_worker_before_model_unload(native_env
         *a, chunks=[np.ones(10, np.float32), np.ones(10, np.float32)])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(10, np.float32), 24000, ref_text="hi")   # R16: omnivoice needs a voice first
     model = created["model"]
 
     order = []
@@ -534,6 +542,7 @@ def test_generate_stream_eagerly_binds_cancel_event_before_first_next(native_env
         *a, chunks=[np.ones(10, np.float32), np.ones(10, np.float32)])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(10, np.float32), 24000, ref_text="hi")   # R16: omnivoice needs a voice first
     model = created["model"]
 
     gen = b.generate_stream("hello")     # NOT iterated yet
@@ -558,7 +567,7 @@ def test_generate_passes_through_2d_stereo_samples_unchanged(native_env):
     created["model_factory"] = lambda *a: _FakeTtsModel(*a, chunks=[stereo])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
-    samples, _ms = b.generate("hello")
+    samples, _rate, _ms = b.generate("hello")
     assert samples.ndim == 2 and samples.shape == (5, 2)
 
 
@@ -570,7 +579,7 @@ def test_generate_stream_passes_through_2d_stereo_chunks_unchanged(native_env):
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
     chunks = list(b.generate_stream("hello"))
-    assert [c.shape for c in chunks] == [(5, 2), (5, 2)]
+    assert [c.shape for c, _sr in chunks] == [(5, 2), (5, 2)]
 
 
 def test_fake_model_raises_native_error_after_unload():
@@ -624,6 +633,7 @@ def test_unload_joins_every_outstanding_worker_including_a_superseded_orphan(nat
         *a, chunks=[np.ones(10, np.float32), np.ones(10, np.float32)])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(10, np.float32), 24000, ref_text="hi")   # R16: omnivoice needs a voice first
     model = created["model"]
 
     # Stream A: the one about to be superseded ("the orphan").
@@ -687,5 +697,204 @@ def test_registry_self_cleans_up_after_a_completed_stream(native_env):
     created["model_factory"] = lambda *a: _FakeTtsModel(*a, chunks=[np.ones(10, np.float32)])
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(10, np.float32), 24000, ref_text="hi")   # R16: omnivoice needs a voice first
     list(b.generate_stream("hello"))   # drain to completion
+    assert b._workers == []
+
+
+# ── fix wave (2026-09-01): R16 (clone-only families need a voice before synth),
+# I2 (per-synth sample rate authoritative), I3 (one-shot generate() joined by unload) ──
+
+def test_generate_raises_when_clone_only_family_has_no_voice_set(native_env):
+    """R16: qwen3_tts's base checkpoint has no default built-in voice -- a plain
+    generate() with no set_voice()/set_builtin_voice() called first must raise a
+    clear, family-named error BEFORE ever reaching the native layer, not whatever
+    audio.cpp happens to throw that day (live-verified: "Qwen3 base TTS requires
+    voice clone reference audio", task-7-report.md §3)."""
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="qwen3_tts"))
+    with pytest.raises(backends.BackendLoadError, match="qwen3_tts"):
+        b.generate("hello")
+    assert log == []          # never reached the native synth() call
+    assert b._workers == []   # and never registered a worker for it either
+
+
+def test_generate_succeeds_after_set_voice_for_clone_only_family(native_env):
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="qwen3_tts"))
+    b.set_voice(np.ones(2400, np.float32), 24000, ref_text="hello there")
+    samples, rate, ms = b.generate("hello")
+    assert samples.dtype == np.float32
+    assert rate == created["caps"].sample_rate
+    assert ms >= 0
+
+
+def test_generate_stream_raises_when_clone_only_family_has_no_voice_set(native_env):
+    """Same as above for the streaming family (omnivoice) -- generate_stream() is a
+    PLAIN function (not a generator, see the module docstring), so the check must
+    fire on the CALL itself, not lazily on the caller's first iteration."""
+    created, log = native_env
+    created["caps"] = _caps(streaming=True)
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    with pytest.raises(backends.BackendLoadError, match="omnivoice"):
+        b.generate_stream("hello")
+    assert log == []
+    assert b._workers == []   # no worker thread was ever registered
+
+
+def test_generate_stream_succeeds_after_set_voice_for_clone_only_family(native_env):
+    created, log = native_env
+    created["caps"] = _caps(streaming=True)
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(2400, np.float32), 24000, ref_text="hello there")
+    chunks = list(b.generate_stream("hello"))
+    assert len(chunks) == 1
+
+
+def test_moss_and_pocket_are_not_gated_by_r16_despite_also_reporting_clones(native_env):
+    """moss_tts_nano and pocket_tts also report CLONES=True but ship a working
+    built-in default voice -- R16 must NOT gate them (task-7-report.md §3: "a
+    default built-in voice covers a plain synth call")."""
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+    samples, _rate, _ms = b.generate("hello")   # must not raise
+    assert samples.dtype == np.float32
+
+
+def test_generate_returns_actual_synth_rate_not_caps_default(native_env):
+    """I2: the per-synth returned rate must be authoritative -- a fake model
+    returning a rate DIFFERENT from caps' advertised default must be forwarded
+    unchanged, not silently replaced by the caps default."""
+    created, log = native_env
+    created["caps"] = _caps(sample_rate=24000)   # advertised default: 24000
+
+    class _OddRateModel(_FakeTtsModel):
+        def synth(self, text, language=None, speed=1.0, on_chunk=None):
+            self._check_loaded("sk_tts_synth")
+            self.log.append(("synth", text, language, speed, False))
+            return np.concatenate(self.chunks), 16000   # actual rate differs from caps
+
+    created["model_factory"] = _OddRateModel
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+    _samples, rate, _ms = b.generate("hello")
+    assert rate == 16000   # forwarded, not clobbered by caps' 24000
+
+
+def test_generate_stream_yields_the_actual_per_chunk_rate(native_env):
+    """I2, streaming leg: each chunk carries the rate audio.cpp handed to on_chunk
+    for THAT chunk, not the family's advertised caps default."""
+    created, log = native_env
+    created["caps"] = _caps(streaming=True, sample_rate=24000)
+
+    class _OddRateStreamModel(_FakeTtsModel):
+        def synth(self, text, language=None, speed=1.0, on_chunk=None):
+            self._check_loaded("sk_tts_synth")
+            for chunk in self.chunks:
+                on_chunk(chunk, 16000)   # actual rate differs from caps
+            return np.concatenate(self.chunks), 16000
+
+    created["model_factory"] = lambda *a: _OddRateStreamModel(*a, chunks=[np.ones(10, np.float32)])
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    b.set_voice(np.ones(10, np.float32), 24000, ref_text="hi")   # R16
+    chunks = list(b.generate_stream("hello"))
+    assert len(chunks) == 1
+    _pcm, sr = chunks[0]
+    assert sr == 16000
+
+
+def test_unload_during_inflight_oneshot_generate_joins_before_model_unload(native_env):
+    """I3: NativeTtsBackend.unload() used to join only STREAMING workers -- a
+    one-shot generate() running on another executor thread could still be mid-
+    sk_tts_synth when unload() nulled the model handle and freed it underneath it
+    (a native use-after-free). One-shot generates are now tracked in the same
+    worker registry so unload() joins them too."""
+    created, log = native_env
+
+    class _SlowOneShotModel(_FakeTtsModel):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            self.started = threading.Event()
+            self.release = threading.Event()
+
+        def synth(self, text, language=None, speed=1.0, on_chunk=None):
+            self._check_loaded("sk_tts_synth")
+            self.started.set()
+            self.release.wait(timeout=5)
+            samples = np.concatenate(self.chunks) if self.chunks else np.empty(0, np.float32)
+            return samples, self.capabilities.sample_rate
+
+    created["model_factory"] = _SlowOneShotModel
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+    model = created["model"]
+
+    order = []
+    orig_unload = model.unload
+
+    def tracked_unload():
+        order.append("model.unload")
+        orig_unload()
+
+    model.unload = tracked_unload
+
+    gen_thread = threading.Thread(target=b.generate, args=("hello",))
+    gen_thread.start()
+    assert model.started.wait(timeout=5)     # generate() is now inside synth()
+
+    unload_thread = threading.Thread(target=b.unload)
+    unload_thread.start()
+    time.sleep(0.1)                          # unload() should be blocked joining the in-flight call
+    assert unload_thread.is_alive()
+    assert order == []                       # model.unload() not reached yet
+
+    model.release.set()                      # let the in-flight generate() finish
+    gen_thread.join(timeout=5)
+    unload_thread.join(timeout=5)
+
+    assert not unload_thread.is_alive()
+    assert order == ["model.unload"]         # joined BEFORE calling model.unload
+    assert b.is_loaded is False
+
+
+def test_cancel_during_inflight_oneshot_is_a_harmless_noop(native_env):
+    """A one-shot generate()'s registry entry has no cancel event (I3) -- cancel()
+    must not crash when the most-recently-started entry is a one-shot."""
+    created, log = native_env
+
+    class _SlowOneShotModel(_FakeTtsModel):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            self.started = threading.Event()
+            self.release = threading.Event()
+
+        def synth(self, text, language=None, speed=1.0, on_chunk=None):
+            self._check_loaded("sk_tts_synth")
+            self.started.set()
+            self.release.wait(timeout=5)
+            samples = np.concatenate(self.chunks) if self.chunks else np.empty(0, np.float32)
+            return samples, self.capabilities.sample_rate
+
+    created["model_factory"] = _SlowOneShotModel
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+    model = created["model"]
+
+    gen_thread = threading.Thread(target=b.generate, args=("hello",))
+    gen_thread.start()
+    assert model.started.wait(timeout=5)
+    b.cancel()          # must not raise
+    model.release.set()
+    gen_thread.join(timeout=5)
+
+
+def test_oneshot_registry_self_cleans_up_after_completion(native_env):
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+    b.generate("hello")
     assert b._workers == []
