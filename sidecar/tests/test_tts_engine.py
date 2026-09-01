@@ -1021,6 +1021,86 @@ def test_m5_teardown_without_generation_still_closes_unconditionally():
     assert order == ["cancel_active", "close"]
 
 
+def test_m5b_generation_captured_atomically_with_dispatch_not_after_completion(monkeypatch):
+    """M5 TOCTOU (ledgered in slice 5's final review): _h_tts_init used to read
+    `eng.generation` AFTER its own `await loop.run_in_executor(...)` call
+    returned. eng.init() bumped `self._generation` as the very FIRST thing it
+    did, but ran OFF the event loop -- so two concurrent tts_inits (init N,
+    init N+1) could interleave such that N's own init() body was still
+    running (blocked deep inside model loading) when init N+1 ran to
+    completion on a different executor thread and bumped the counter past
+    N's. N's handler would then read the ALREADY-BUMPED value belonging to
+    N+1, register a teardown carrying N+1's generation instead of its own,
+    and a later disconnect on N's connection would incorrectly pass the
+    staleness guard in _tts_teardown and tear down N+1's still-live engine.
+
+    This test constructs exactly that interleaving with two threading.Events:
+    init N ("model-a")'s fake accel.load_measured blocks until init N+1
+    ("model-b") has fully returned -- which can only happen after N+1's own
+    generation bump, since that bump is the first thing _h_tts_init does for
+    it. It checks behavior (does firing each teardown actually tear the
+    engine down), the same style as the sibling M5 test above, rather than
+    asserting which of the two racing backends physically ends up installed
+    in `eng._backend` -- that "who wins the install" question is a separate,
+    pre-existing hazard this task does not address (see task-5-report.md)."""
+    st = {"tts_engine": tts_engine.TtsEngine(), "handlers": {}}
+    tts_engine.register(st)
+    eng = st["tts_engine"]
+
+    a_started = threading.Event()
+    b_done = threading.Event()
+
+    backend_a = _FakeOneShot()
+    backend_b = _FakeOneShot()
+    plan_a = accel.Plan("blocking-a", "cpu", "cpu", "fp32", "repo", 1.0)
+    plan_b = accel.Plan("fast-b", "cpu", "cpu", "fp32", "repo", 1.0)
+
+    def fake_resolve(model_id, override="auto", pin=None):
+        return [plan_a] if model_id == "model-a" else [plan_b]
+
+    def fake_load_measured(plans, **kw):
+        plan = plans[0]
+        if plan is plan_a:                     # init N: block until N+1 is done
+            a_started.set()
+            assert b_done.wait(timeout=5), "init N+1 never completed"
+            return backend_a, plan_a, None, None
+        return backend_b, plan_b, None, None   # init N+1: no blocking
+
+    monkeypatch.setattr(accel, "resolve_tts", fake_resolve)
+    monkeypatch.setattr(accel, "load_measured", fake_load_measured)
+    monkeypatch.setattr(accel, "measure_rtf_tts", lambda *a, **k: 0.1)
+
+    conn_a = _FakeConn()
+    conn_b = _FakeConn()
+
+    async def run():
+        task_a = asyncio.create_task(st["handlers"]["tts_init"](
+            st, {"type": "tts_init", "id": 1, "model": "model-a"}, None, conn_a))
+        # Let init N actually dispatch to the executor and reach the blocking
+        # point before init N+1 starts (without this wait, N+1 might run and
+        # even finish before N's executor call is even scheduled, which would
+        # prove nothing about the race this test targets).
+        await asyncio.get_running_loop().run_in_executor(None, a_started.wait)
+        await st["handlers"]["tts_init"](
+            st, {"type": "tts_init", "id": 2, "model": "model-b"}, None, conn_b)
+        b_done.set()
+        await task_a
+
+    asyncio.run(run())
+
+    assert len(conn_a._on_close) == 1 and len(conn_b._on_close) == 1
+    teardown_a = conn_a._on_close[0]   # registered by init N   (must carry generation 1)
+    teardown_b = conn_b._on_close[0]   # registered by init N+1 (must carry generation 2)
+
+    assert eng.is_loaded is True       # some backend is currently loaded
+
+    teardown_a()                       # STALE (conn N closes) -- must no-op:
+    assert eng.is_loaded is True       # the live engine must be untouched
+
+    teardown_b()                       # CURRENT (conn N+1 closes) -- must actually close
+    assert eng.is_loaded is False
+
+
 # ---------------------------------------------------------------------------
 # Live gate (spec rollout row 4, Task 7): TTS -> ASR loopback per audio.cpp
 # family. Opt-in via SOKUJI_RUN_TTS_LOOPBACK=1 -- this loads real GGUF models

@@ -134,6 +134,20 @@ async def _h_translate_init(state, msg, _b, conn=None):
         if mid:
             planned[stage] = native_models.model_size(mid) or 0
     reserve = accel.ledger_effective_reserve("translate", planned)
+    # M5b TOCTOU verdict (tts_engine.py's twin defect -- see TtsEngine.__init__'s
+    # docstring for the full trace): NOT applicable here. TtsEngine's init()
+    # (and its own bump of self._generation) runs OFF the event loop via
+    # run_in_executor, so a second, concurrently-dispatched tts_init could run
+    # its own bump-and-close-and-load body on a different executor thread
+    # in between this coroutine's dispatch and its resumption, racing the
+    # generation counter. TranslateEngine.init() below has no such gap: it is
+    # called directly (not `await`ed, not dispatched to an executor) and runs
+    # to completion synchronously on the single-threaded asyncio loop before
+    # this coroutine ever yields -- there is no `await` between dispatch and
+    # the `generation = ...` capture two lines down, so no other coroutine can
+    # possibly run in between and bump self._generation on this engine first.
+    # The capture below is therefore already atomic with this call, with no
+    # lock and no loop-thread-side bump-before-dispatch needed.
     ms = state["translate_engine"].init(
         msg.get("model"), msg.get("sourceLang", ""), msg.get("targetLang", ""),
         msg.get("device", "auto"), reserved_bytes=reserve, pin=msg.get("variant"))

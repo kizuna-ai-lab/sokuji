@@ -62,6 +62,24 @@ class TtsEngine:
         # teardown closure captured by an EARLIER tts_init compares the generation
         # it captured against this CURRENT value and no-ops if a fresher init has
         # since run. See _tts_teardown()'s own docstring for the race this guards.
+        #
+        # M5b (TOCTOU fix): the bump itself must happen on the asyncio LOOP
+        # thread, synchronized with DISPATCHING init() to the executor, not
+        # inside init() itself -- init() runs off-loop (see _h_tts_init), so two
+        # concurrent tts_inits could otherwise interleave such that init N's
+        # own bump-and-close-and-load body was still running (blocked deep in
+        # model loading) when init N+1 ran to completion on a different
+        # executor thread and bumped this same counter past N's. N's handler
+        # would then read the ALREADY-BUMPED value belonging to N+1 -- it only
+        # read `self.generation` AFTER its own executor call returned -- and
+        # register a teardown carrying N+1's generation instead of its own; a
+        # later disconnect on N's connection would then incorrectly pass
+        # _tts_teardown's staleness guard and tear down N+1's still-live
+        # engine (ledgered in slice 5's final review as the M5 TOCTOU window).
+        # next_generation() is the fix: it is called synchronously by
+        # _h_tts_init, on the loop thread, BEFORE dispatch, and contains no
+        # `await` -- see its own docstring for why that makes the capture
+        # atomic with dispatch order without needing a lock.
         self._generation = 0
 
     @property
@@ -72,10 +90,40 @@ class TtsEngine:
     def generation(self) -> int:
         return self._generation
 
-    def init(self, model_id=None, device="auto", language="", pin=None):
+    def next_generation(self) -> int:
+        """M5b: bump-and-return the generation token, meant to be called on the
+        asyncio LOOP thread by _h_tts_init BEFORE it dispatches init() to the
+        executor (see the TOCTOU trace in __init__'s docstring above). This
+        needs no lock: asyncio's event loop is single-threaded and this method
+        contains no `await`, so no other coroutine can ever run between two
+        calls to it -- each call is a single, uninterruptible read-increment-
+        write of a plain Python int. Once a generation number is reserved this
+        way, the executor threads that later run init() for it never write
+        `self._generation` themselves (see init()'s own comment) -- only this
+        method ever does -- so there is no cross-thread race on the field
+        either."""
+        self._generation += 1
+        return self._generation
+
+    def init(self, model_id=None, device="auto", language="", pin=None, generation=None):
         from . import accel, catalog
         t0 = time.time()
-        self._generation += 1               # M5: bump BEFORE close() -- see docstring above
+        if generation is None:
+            # Legacy self-bump path: every direct call that predates M5b (this
+            # module's own test suite calls eng.init(...) this way throughout,
+            # and any future in-process caller that bypasses _h_tts_init). Not
+            # atomic against a concurrent init on another thread -- exactly the
+            # pre-M5b behavior -- but nothing calls init() this way concurrently.
+            self._generation += 1
+        # else: _h_tts_init already reserved this exact generation number via
+        # next_generation(), synchronously on the loop thread, before
+        # dispatching this call to the executor -- see __init__'s docstring.
+        # Deliberately NOT reassigning self._generation here: this method body
+        # runs off-loop, potentially in a DIFFERENT executor thread than a
+        # slower-or-faster sibling init() dispatched around the same time, and
+        # writing here could clobber a generation number a fresher, already-
+        # dispatched init() bumped past this one in the meantime with this
+        # (older) call's own, now-stale number.
         self.close()                        # VRAM hygiene: free any prior model first
         mid = model_id or "moss-tts-nano"
         plans = accel.resolve_tts(mid, override=device or "auto", pin=pin)
@@ -267,22 +315,36 @@ def _tts_teardown(state, conn, generation=None):
 async def _h_tts_init(state, msg, _b, conn=None):
     eng = state["tts_engine"]
     loop = asyncio.get_running_loop()
+    # M5b (TOCTOU fix): reserve this init's generation number on the LOOP
+    # thread, BEFORE dispatching init() to the executor below -- see
+    # TtsEngine.next_generation()'s docstring for why this is atomic without a
+    # lock. getattr-guarded: a bare test double standing in for the engine
+    # (every pre-M5 direct handler call in this module's test suite) has no
+    # `.next_generation`, so `generation` stays None -- init()'s own legacy
+    # self-bump kicks in instead, and _tts_teardown's staleness check is
+    # disabled entirely, preserving pre-M5 behavior for it (see that
+    # function's docstring).
+    next_gen = getattr(eng, "next_generation", None)
+    generation = next_gen() if next_gen is not None else None
     # Off the event loop: model load (and the full synthesis measure_rtf_tts runs
     # inside it) must not stall this connection's ASR/translate traffic while it's
     # happening -- defect 1.
     ms = await loop.run_in_executor(
         None, lambda: eng.init(msg.get("model"), msg.get("device", "auto"),
-                               msg.get("language", ""), pin=msg.get("variant")))
+                               msg.get("language", ""), pin=msg.get("variant"),
+                               generation=generation))
     # M2: this connection now owns the loaded model -- tts_generate/tts_cancel from
     # a DIFFERENT live connection are rejected (see the ownership check in both
     # handlers below). A later tts_init, from this connection or another, still
     # evicts unconditionally (eng.init()'s own close-on-entry, unchanged) and simply
     # records the new owner here.
     eng._owner_conn = conn
-    # M5: capture the generation THIS init produced (getattr-guarded: a bare test
-    # double standing in for the engine has no `.generation`, and None disables
-    # _tts_teardown's staleness check entirely, preserving pre-M5 behavior for it).
-    generation = getattr(eng, "generation", None)
+    # M5b: use the generation number reserved ABOVE, before dispatch -- not a
+    # fresh read of eng.generation now that the executor call has returned.
+    # Reading it now (the pre-M5b bug) would risk observing a LATER init's own
+    # bump if one raced this one and finished first (see the TOCTOU trace in
+    # TtsEngine.__init__'s docstring); the local `generation` variable captured
+    # above cannot be affected by anything that happened after it was read.
     # This connection owns the TTS model: closing it frees the model from VRAM.
     if conn is not None:
         conn.on_close(lambda: _tts_teardown(state, conn, generation))
