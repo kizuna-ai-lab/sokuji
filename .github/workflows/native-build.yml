@@ -13,6 +13,7 @@ on:
   workflow_dispatch:
   push:
     tags: ['native-v*']
+    branches: ['refactor/sidecar-ggml-only-slice4']
 
 env:
   VULKAN_SDK_VERSION: 1.4.321.1
