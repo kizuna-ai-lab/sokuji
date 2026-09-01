@@ -208,9 +208,11 @@ int main(int argc, char **argv) {
                  moss_out.calls, moss_out.samples.size(), moss_out.rate);
 
     // 1-second 440Hz sine, 24kHz mono — the brief's clone reference clip.
+    // MSVC's <cmath> has no M_PI without _USE_MATH_DEFINES; spell the constant out.
+    constexpr double kPi = 3.14159265358979323846;
     std::vector<float> ref(24000);
     for (size_t i = 0; i < ref.size(); ++i)
-        ref[i] = static_cast<float>(std::sin(2.0 * M_PI * 440.0 * static_cast<double>(i) / 24000.0));
+        ref[i] = static_cast<float>(std::sin(2.0 * kPi * 440.0 * static_cast<double>(i) / 24000.0));
     if (sk_tts_set_voice(moss, ref.data(), ref.size(), 24000, "test") != SK_OK) {
         std::fprintf(stderr, "moss set_voice failed: %s\n", sk_last_error());
         return 1;
