@@ -1185,3 +1185,143 @@ def test_load_transparently_restages_after_the_staging_dir_is_wiped(native_env):
 
     assert staged_path2 == staged_path
     assert os.path.isfile(staged_path2)
+
+
+# ── Task 4 (slice 5b, 2026-09-02): GPU warm-up synth at load() time (W-1) ────
+# windows-vulkan-validation.md's W-1: the FIRST synth per family on a cold GPU
+# pays a one-time pipeline-compile cost (moss_tts_nano measured 16.52s on
+# Vulkan, vs 0.63-0.73s on every later process once NVIDIA's on-disk shader
+# cache is warm). Ruling R33: warm up ONLY when the resolved device is not
+# CPU, and NEVER for a clone-only family (_VOICE_REQUIRED_FAMILIES) -- those
+# have no usable voice yet at load() time.
+
+def test_load_on_gpu_device_runs_one_warmup_synth_and_discards_result(native_env):
+    """A GPU load performs exactly one short warm-up synth through generate()'s
+    own one-shot path -- the fake records it with a fixed short phrase, and its
+    result never reaches load()'s own caller (load() returns None either way).
+    The registry entry self-cleans before load() returns (step e): a concurrent
+    unload() racing the warm-up would join/wait on it via the shared registry
+    (see test_load_racing_unload_joins_the_warmup_before_freeing_the_model),
+    but nothing is left registered once load() itself has returned."""
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+    assert b.is_loaded
+    assert log == [("synth", "Warm-up.", None, 1.0, False)]
+    assert b._workers == []
+
+
+def test_load_on_metal_device_also_runs_the_warmup(native_env):
+    """R33 gates on "not cpu", not on a specific GPU kind -- metal counts too."""
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "metal", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+    assert log == [("synth", "Warm-up.", None, 1.0, False)]
+
+
+def test_load_on_cpu_device_skips_the_warmup(native_env):
+    """CPU pays nothing extra for a first synth (W-1), so load() must not spend
+    any extra time synthesizing on a CPU-resolved device."""
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+    assert b.is_loaded
+    assert log == []
+
+
+def test_load_on_gpu_skips_the_warmup_for_a_clone_only_family(native_env):
+    """qwen3_tts/omnivoice (_VOICE_REQUIRED_FAMILIES) have no usable voice at
+    load() time -- warming them up would immediately hit R16's own
+    _ensure_voice_ready() guard, so the warm-up must be skipped outright, not
+    attempted-and-swallowed. Also proves set_voice() state is untouched."""
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="qwen3_tts"))
+    assert b.is_loaded
+    assert log == []
+    assert b._voice_set is False
+
+
+def test_load_on_gpu_skips_the_warmup_for_the_other_clone_only_family(native_env):
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="omnivoice"))
+    assert b.is_loaded
+    assert log == []
+
+
+def test_load_on_gpu_warmup_failure_does_not_fail_the_load(native_env, capsys):
+    """A warm-up is an optimization, not a correctness requirement: a fake
+    model that raises on synth() must not turn a successful load() into a
+    BackendLoadError -- the failure is logged to stderr and swallowed."""
+    created, log = native_env
+
+    class _BoomOnSynth(_FakeTtsModel):
+        def synth(self, *a, **kw):
+            raise RuntimeError("gpu pipeline compile wedged")
+
+    created["model_factory"] = _BoomOnSynth
+    b = backends.make_backend("native_tts")
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))   # must not raise
+    assert b.is_loaded
+    assert b._workers == []
+    err = capsys.readouterr().err
+    assert "warm-up" in err.lower() and "gpu pipeline compile wedged" in err
+
+
+def test_load_on_gpu_warmup_success_logs_duration_to_stderr(native_env, capsys):
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+    err = capsys.readouterr().err
+    assert "warm-up" in err.lower()
+    assert "moss_tts_nano" in err
+
+
+def test_load_racing_unload_joins_the_warmup_before_freeing_the_model(native_env):
+    """Step (e): the warm-up call registers in the SAME self._workers registry
+    any other generate() uses -- a concurrent unload() (e.g. a second
+    connection tearing down the process-singleton engine while this load() is
+    still warming up) must wait for the warm-up's `done` Event before touching
+    the model, exactly like any other in-flight one-shot generate() (mirrors
+    test_unload_during_inflight_oneshot_generate_joins_before_model_unload)."""
+    created, log = native_env
+    created["model_factory"] = _SlowOneShotModel
+    b = backends.make_backend("native_tts")
+
+    def do_load():
+        b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+
+    load_thread = threading.Thread(target=do_load)
+    load_thread.start()
+
+    deadline = time.monotonic() + 5
+    while created.get("model") is None and time.monotonic() < deadline:
+        time.sleep(0.01)
+    model = created.get("model")
+    assert model is not None
+    assert model.started.wait(timeout=5)   # warm-up now inside synth(), blocked
+
+    order = []
+    orig_unload = model.unload
+
+    def tracked_unload():
+        order.append("model.unload")
+        orig_unload()
+
+    model.unload = tracked_unload
+
+    unload_thread = threading.Thread(target=b.unload)
+    unload_thread.start()
+    time.sleep(0.1)
+    assert unload_thread.is_alive()   # blocked waiting on the warm-up's done Event
+    assert order == []
+
+    model.release.set()               # let the warm-up's synth() finish
+    unload_thread.join(timeout=5)
+    load_thread.join(timeout=5)
+
+    assert not unload_thread.is_alive()
+    assert not load_thread.is_alive()
+    assert order == ["model.unload"]
+    assert b.is_loaded is False

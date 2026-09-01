@@ -139,6 +139,34 @@ whichever rate accompanies each result/chunk, not the caps-table default -- the 
 stays valid for planning/UI (it's what the family's own capabilities/tts_init reply
 report before any synth has actually run).
 
+Task 4 (slice 5b, 2026-09-02), ruling R33 -- W-1 (windows-vulkan-validation.md):
+the FIRST synth per family on a cold GPU pays a one-time pipeline-compile cost
+(moss_tts_nano measured 16.52s on Vulkan before NVIDIA's on-disk shader cache
+warmed up, vs 0.63-0.73s on every later process) that a plain load() + first
+real synth would otherwise hand straight to the user as extra latency on their
+first utterance. load() now runs one short, discarded synth ("Warm-up.")
+through the EXACT one-shot path generate() itself uses -- same self._workers
+registration, same `done` Event -- right after the model and its capability
+attributes are set, but ONLY when BOTH hold: the resolved device is not CPU
+(CPU pays nothing extra for a first synth per W-1's own measurements, so
+warming it up there would only slow down every CPU load for no benefit), and
+the family is not one of _VOICE_REQUIRED_FAMILIES (qwen3_tts/omnivoice have no
+usable default voice at load() time -- see R16 above -- so warming them up
+would immediately hit _ensure_voice_ready()'s own guard; their first REAL
+synth, which always follows a client set_voice() call, still pays the
+one-time compile once, exactly as it did before this change). "the resolved
+device is not CPU" is read off the SAME `device` string already passed into
+this call's own native.device_for(device) lookup a few lines above (not off
+the returned Device object) -- device_for() only returns successfully when
+`device` names an actual device of that kind in this process, so `device` and
+the resolved Device's own `.kind` are guaranteed identical at this point;
+comparing the string sidesteps needing every device_for() stand-in (including
+tests') to return an object shaped like a real Device. A warm-up is purely an
+optimization, never a correctness requirement: _warm_up() catches everything
+generate() can raise, logs it to stderr, and returns -- load() must still
+succeed and hand back a backend ready to serve a (merely slower) first real
+synth even if the warm-up itself failed.
+
 Round 2 (2026-09-01), ruling R18 -- see the module docstring's second paragraph above
 for the full defect trace. _stage_for_native() hard-links the resolved gguf (+ any
 PlanConfig.tts_extra_files sidecars) into a deterministic, idempotent staging path
@@ -157,6 +185,7 @@ _prune_staged_files()/_prune_staged_repo()."""
 import os
 import queue
 import shutil
+import sys
 import threading
 import time
 
@@ -181,6 +210,11 @@ _UNLOAD_DEADLINE_S = 10.0
 # moss_tts_nano/pocket_tts also report CLONES=True but are NOT included: both ship a
 # working built-in default and must stay callable without a voice ever being set.
 _VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice"})
+
+# R33 / W-1: the fixed short phrase load() synthesizes once, on a non-CPU
+# device, purely to pay the first-synth GPU pipeline-compile cost at load
+# time instead of on the user's own first utterance. Its output is discarded.
+_WARM_UP_TEXT = "Warm-up."
 
 
 def _staging_root() -> str:
@@ -372,12 +406,38 @@ class NativeTtsBackend:
             self.sample_rate = int(caps.sample_rate)
             self._family = family              # R16: which _ensure_voice_ready() gates on
             self._voice_set = False             # a freshly loaded model has no voice yet
+            # R33 / W-1: warm up ONLY on a non-CPU device, and never for a
+            # clone-only family -- see the module docstring's "Task 4" paragraph.
+            if device != "cpu" and family not in _VOICE_REQUIRED_FAMILIES:
+                self._warm_up()
         except BackendLoadError:
             self.unload()
             raise
         except Exception as e:  # missing wheel/gguf, no vulkan/metal device, NativeError → resolver falls back
             self.unload()
             raise BackendLoadError(str(e))
+
+    def _warm_up(self) -> None:
+        """R33 / W-1: one short, discarded synth through the EXACT one-shot path
+        generate() uses -- same self._workers registration, same `done` Event --
+        so a concurrent unload() racing this call (e.g. a second connection
+        tearing down the process-singleton engine while another connection's
+        load() is still warming up) waits for it exactly like any other
+        in-flight generate(), instead of freeing the handle out from under it.
+        Purely an optimization: any failure (a family/device shape never
+        live-verified, a transient native error, ...) is logged to stderr and
+        swallowed here -- load() must still succeed regardless."""
+        t0 = time.time()
+        try:
+            self.generate(_WARM_UP_TEXT)
+        except Exception as exc:
+            print(f"native_tts: warm-up synth failed for family={self._family!r}, "
+                  f"continuing without it: {exc}", file=sys.stderr, flush=True)
+            return
+        print(f"native_tts: warm-up synth for family={self._family!r} took "
+              f"{time.time() - t0:.2f}s (hides the first-synth GPU pipeline "
+              "compile, see W-1 in windows-vulkan-validation.md)",
+              file=sys.stderr, flush=True)
 
     def generate(self, text: str, speed: float = 1.0):
         if self._model is None:
