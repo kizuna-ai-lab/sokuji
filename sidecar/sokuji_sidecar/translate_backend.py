@@ -17,13 +17,41 @@ inventory.md §10(b)) -- a translate() twin of tts_backend.NativeTtsBackend's I3
 fix: unload() used to free the native handle unconditionally, while an executor
 thread could still be inside self._t.chat()/complete() -- the same native
 use-after-free class I3 fixed for TTS's one-shot generate(). translate() now
-registers (threading.current_thread(), threading.Event()) in self._workers on
-entry and deregisters in a finally on exit -- the worker thread IS the executor
-thread translate_engine._h_translate schedules it on, so there is no separate
-"start the worker" step to do this eagerly at, unlike tts_backend's streaming
-generate_stream(). unload() sets every live entry's event then joins every
-thread against ONE shared 10s deadline before touching the model, exactly
-mirroring NativeTtsBackend.unload()'s own docstring.
+registers a (cancel Event, done Event) pair in self._workers on entry and
+deregisters in a finally on exit -- there is no separate "start the worker" step
+to do this eagerly at, unlike tts_backend's streaming generate_stream(). unload()
+sets every live entry's cancel Event, then waits on every entry's done Event
+against ONE shared 10s deadline before touching the model.
+
+Final fix wave (2026-09-01), ruling I-1 -- the FIRST version of this fix (and
+tts_backend.NativeTtsBackend's still-live twin for its one-shot generate(), fixed
+alongside this one) registered (threading.current_thread(), cancel Event) and had
+unload() call thread.join(timeout=...) on that thread. In production translate()
+always runs via translate_engine._h_translate's `loop.run_in_executor(None, ...)`
+(translate_engine.py) -- i.e. on a ThreadPoolExecutor worker -- and a pool worker
+thread returns to the pool, IDLE, once the callable returns; it does NOT
+terminate (only pool shutdown or interpreter exit actually ends it).
+threading.Thread.join() waits for the underlying OS thread to terminate, not for
+"the callable I care about finished" -- so unload() was joining a thread that
+(in production) essentially never dies within the wait window, burning the FULL
+10s deadline on every single unload(), regardless of whether translate() had
+already returned. Both unload() triggers (_translate_teardown and _h_translate's
+close-race branch) run ON the event loop, so this stalled the entire event loop
+for up to 10s per teardown, and hollowed the very backstop the deadline exists to
+enforce: the model got freed only after the full 10s had elapsed, whether or not
+the in-flight native call had actually exited by then. The existing regression
+test masked this because it ran translate() on a real, short-lived, dedicated
+threading.Thread (which DOES terminate when its target returns) instead of
+through a real executor -- see
+test_unload_during_inflight_translate_joins_before_model_unload's rewrite.
+
+Fixed by tracking completion with a `done` Event instead of the thread object:
+translate()'s own finally sets `done` once the native call has actually returned
+(successfully, cancelled, or raised) -- unload() then waits on
+`done.wait(remaining)` per entry, which resolves the moment the callable itself
+finishes, independent of what the underlying OS thread does afterward. The
+shared-deadline semantics (ONE budget across every outstanding worker, not
+_UNLOAD_DEADLINE_S each) are unchanged.
 
 Unlike TTS's one-shot generate() (I3: event=None, offline generation cannot be
 interrupted mid-run), a translate() IS interruptible mid-run: on_token is called
@@ -51,7 +79,7 @@ That race is instead caught by translate_engine._h_translate itself, which
 awaits the executor future racing conn.wait_closed() (server.Conn -- resolves
 independent of _conn's recv() loop) and calls cancel_active() directly the
 moment the close-waiter wins -- see that function's own docstring for the
-full trace. unload()'s own cancel-everything-then-join is the correctness
+full trace. unload()'s own cancel-everything-then-wait is the correctness
 backstop common to both triggers, regardless of which (if either) fired first.
 
 A cancellation this backend itself triggered is not a generation failure: the
@@ -87,6 +115,12 @@ from .catalog import split_artifact
 from .planner import PlanConfig
 
 _TRANSCRIPT_TAG = re.compile(r"</?transcript>", re.IGNORECASE)
+
+# I-1: the single shared budget unload() gives EVERY outstanding translate()
+# worker, combined, to self-report done before the model is freed regardless.
+# A module constant (not inlined in unload()) so a test can shrink it to
+# exercise the "still-blocked native call" path without a real 10s wait.
+_UNLOAD_DEADLINE_S = 10.0
 
 
 def _default_prompt(src: str, tgt: str) -> str:
@@ -201,13 +235,17 @@ class NativeTranslateBackend:
         self._t = None
         self._config = PlanConfig()
         self._strategy = STRATEGIES["qwen"]
-        # Every (threading.Thread, threading.Event) pair for a translate() call
-        # that hasn't finished self-cleanup yet, oldest first -- see the module
-        # docstring's "Worker registry" section. Guarded by _workers_lock since
-        # translate() (append/remove, from whatever executor thread is running
-        # it), cancel() (read the tail), and unload() (snapshot + clear) can all
-        # run concurrently on different threads.
-        self._workers: list[tuple[threading.Thread, threading.Event]] = []
+        # Every (cancel Event, done Event) pair for a translate() call that
+        # hasn't finished self-cleanup yet, oldest first -- see the module
+        # docstring's "Worker registry" and "Final fix wave" sections. `done`
+        # is set once the call has actually returned -- I-1: unload() waits on
+        # THIS, not on joining the calling thread (in production a
+        # ThreadPoolExecutor worker, which returns to the pool instead of
+        # terminating). Guarded by _workers_lock since translate() (append/
+        # remove, from whatever executor thread is running it), cancel() (read
+        # the tail), and unload() (snapshot + clear) can all run concurrently
+        # on different threads.
+        self._workers: list[tuple[threading.Event, threading.Event]] = []
         self._workers_lock = threading.Lock()
 
     def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
@@ -256,6 +294,12 @@ class NativeTranslateBackend:
         # before touching acc/on_partial, so a cancelled call never emits one more
         # partial after the cancel was requested.
         cancelled = threading.Event()
+        # I-1: set in the finally below once this call has actually returned --
+        # unload() waits on THIS, not on joining the calling thread (see the
+        # module docstring's "Final fix wave" paragraph for why that was wrong:
+        # in production this thread is a ThreadPoolExecutor worker, which
+        # returns to the pool instead of terminating).
+        done = threading.Event()
 
         def on_token(piece):
             if cancelled.is_set():
@@ -274,11 +318,10 @@ class NativeTranslateBackend:
             return True
 
         # Register THIS call in the worker registry BEFORE reaching the native
-        # layer (module docstring): the worker thread running translate() IS the
-        # executor thread translate_engine._h_translate schedules it on, so
-        # register-on-entry/deregister-on-exit lives right here, mirroring
-        # tts_backend.NativeTtsBackend.generate()'s I3 registration.
-        entry = (threading.current_thread(), cancelled)
+        # layer (module docstring): register-on-entry/deregister-on-exit lives
+        # right here, mirroring tts_backend.NativeTtsBackend.generate()'s I3/I-1
+        # registration.
+        entry = (cancelled, done)
         with self._workers_lock:
             self._workers.append(entry)
         try:
@@ -321,6 +364,7 @@ class NativeTranslateBackend:
                 raise
             return _clean_output(full), n[0]
         finally:
+            done.set()
             with self._workers_lock:
                 if entry in self._workers:
                     self._workers.remove(entry)
@@ -330,34 +374,38 @@ class NativeTranslateBackend:
         token boundary (see the module docstring). Used by
         TranslateEngine.cancel_active(), itself called by _translate_teardown
         BEFORE eng.close() — signalling as early as possible, ahead of
-        unload()'s own (also correct, but later) cancel+join. A harmless no-op
+        unload()'s own (also correct, but later) cancel+wait. A harmless no-op
         when nothing is in flight."""
         with self._workers_lock:
             if self._workers:
-                self._workers[-1][1].set()
+                self._workers[-1][0].set()
 
     def unload(self) -> None:
-        # I3 twin (tts_backend.NativeTtsBackend.unload()'s own docstring has the
-        # full defect trace): cancel and JOIN every outstanding translate()
-        # worker BEFORE touching the model at all — sk_translate_unload takes
-        # the same per-handle mutex a chat()/complete() call in flight is
-        # holding, so unloading before every worker has actually stopped would
-        # either block this call on that mutex or — worse — free the handle out
-        # from under a still-live chat()/complete() call (use-after-free; see
+        # I3 twin / I-1 fix (module docstring's "Final fix wave" paragraph has
+        # the full defect trace): cancel every outstanding translate() worker,
+        # then WAIT for each one's own `done` Event — NOT join its calling
+        # thread, which in production is a ThreadPoolExecutor worker that
+        # returns to the pool instead of terminating — BEFORE touching the
+        # model at all. sk_translate_unload takes the same per-handle mutex a
+        # chat()/complete() call in flight is holding, so unloading before
+        # every worker has actually finished would either block this call on
+        # that mutex or — worse — free the handle out from under a still-live
+        # chat()/complete() call (use-after-free; see
         # .superpowers/slice5-surface-inventory.md §10(b)).
         #
         # Snapshot-then-clear under the lock so a concurrent translate() can't
-        # observe a half-cleared registry; cancel every entry, then join every
-        # thread against ONE shared deadline (not N * 10s) so unload()'s total
-        # worst case doesn't grow with the number of outstanding workers.
+        # observe a half-cleared registry; cancel every entry, then wait on
+        # every done Event against ONE shared deadline (not N *
+        # _UNLOAD_DEADLINE_S) so unload()'s total worst case doesn't grow with
+        # the number of outstanding workers.
         with self._workers_lock:
             workers = list(self._workers)
             self._workers.clear()
-        for _thread, ev in workers:
-            ev.set()
-        deadline = time.monotonic() + 10.0
-        for thread, _ev in workers:
-            thread.join(timeout=max(0.0, deadline - time.monotonic()))
+        for cancelled, _done in workers:
+            cancelled.set()
+        deadline = time.monotonic() + _UNLOAD_DEADLINE_S
+        for _cancelled, done in workers:
+            done.wait(timeout=max(0.0, deadline - time.monotonic()))
         t, self._t = self._t, None
         if t is not None:
             try:

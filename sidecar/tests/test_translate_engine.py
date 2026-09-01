@@ -580,9 +580,12 @@ def test_h_translate_cancels_inflight_generation_when_connection_closes(monkeypa
         conn.close_now()          # the client disconnects mid-generation
         # Bounded wait on a real asyncio primitive -- proves cancel_active()
         # (hence the worker's cancel Event) fires promptly once asyncio.wait()
-        # inside _h_translate notices the close-waiter is done.
+        # inside _h_translate notices the close-waiter is done. I-1: the
+        # registry entry is now (cancel Event, done Event) -- index [0] is the
+        # cancel Event this assertion cares about (was [1] before I-1 dropped
+        # the thread reference from the tuple).
         await asyncio.wait_for(cancel_signal.wait(), timeout=5)
-        assert backend._workers and backend._workers[-1][1].is_set()
+        assert backend._workers and backend._workers[-1][0].is_set()
 
         translator.release.set()   # let the worker observe the cancel and exit
         return await asyncio.wait_for(h_task, timeout=5)

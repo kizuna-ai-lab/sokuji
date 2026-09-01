@@ -1,3 +1,4 @@
+import asyncio
 import threading
 import time
 import types
@@ -75,6 +76,38 @@ class _SlowFakeTranslator:
         if on_token is not None and on_token("piece") is False:
             raise NativeError("sk_translate_chat: cancelled")
         return "full text"
+
+    def chat(self, messages, max_tokens=512, assistant_prefill=None, on_token=None):
+        return self._run("chat", messages, on_token)
+
+    def complete(self, prompt, max_tokens=512, on_token=None):
+        return self._run("complete", prompt, on_token)
+
+    def unload(self):
+        self.unloaded = True
+
+
+class _WedgedFakeTranslator:
+    """chat()/complete() blocks FOREVER and never observes on_token's cancel
+    signal -- models a native call that is truly wedged (or one whose per-token
+    cancel check the binding never reaches for some pathological input). Exists
+    ONLY to prove unload()'s _UNLOAD_DEADLINE_S backstop actually bounds the
+    wait regardless -- see
+    test_unload_waits_out_the_deadline_when_the_native_call_never_finishes.
+    The worker thread that calls into this is always started as a daemon (see
+    that test) so the wedged call never prevents the test process from
+    exiting."""
+
+    def __init__(self, log):
+        self.log = log
+        self.started = threading.Event()
+        self.unloaded = False
+
+    def _run(self, kind, payload, on_token):
+        self.log.append((kind, payload))
+        self.started.set()
+        threading.Event().wait()   # never released
+        return "unreachable"       # pragma: no cover
 
     def chat(self, messages, max_tokens=512, assistant_prefill=None, on_token=None):
         return self._run("chat", messages, on_token)
@@ -341,13 +374,40 @@ def _load_slow(native_env, monkeypatch):
     return b, log
 
 
+def _load_wedged(native_env, monkeypatch):
+    """Swap in a _WedgedFakeTranslator whose chat()/complete() never returns and
+    never observes cancellation -- see that class's own docstring."""
+    gguf, log = native_env
+    from sokuji_sidecar import native
+    box = {}
+
+    def wedged_translate_load(path, device=None, n_ctx=0):
+        log.append(("load", path))
+        box["t"] = _WedgedFakeTranslator(log)
+        return box["t"]
+
+    mod = types.SimpleNamespace(translate_load=wedged_translate_load)
+    monkeypatch.setattr(native, "module", lambda: mod)
+    b = backends.make_backend("native_translate")
+    b.load(gguf, "cpu", "q8_0", config=PlanConfig(prompt_family="qwen"))
+    return b, box["t"]
+
+
 def test_unload_during_inflight_translate_joins_before_model_unload(native_env, monkeypatch):
-    """I3 twin: unload() used to free the native handle unconditionally, even
-    while an executor thread was still inside self._t.chat(). translate() is
-    now tracked in the same shape of worker registry tts_backend.py uses, so
-    unload() must cancel AND join the in-flight call before touching the model
-    at all -- otherwise sk_translate_unload could block on (or race) the native
-    mutex a chat() call in flight is holding."""
+    """I3 twin / I-1 (final fix wave): the ORIGINAL version of this test ran
+    translate() on a dedicated threading.Thread, which terminates on its own
+    once its target function returns -- that MASKED the I-1 defect, because
+    unload()'s old thread.join(timeout=...) genuinely worked correctly against
+    that kind of thread. In production translate() always runs via
+    translate_engine._h_translate's real `loop.run_in_executor(None, ...)`,
+    i.e. on a ThreadPoolExecutor worker that returns to the POOL, IDLE, once
+    the callable returns -- it does NOT terminate, so joining THAT thread burns
+    unload()'s full deadline every single time regardless of whether
+    translate() had already finished (see translate_backend.py's module
+    docstring, "Final fix wave" paragraph, for the full trace). Reproduce the
+    real shape here: schedule translate() through asyncio's actual default
+    executor, not a bare Thread, so this test would have caught the original
+    regression."""
     b, _log = _load_slow(native_env, monkeypatch)
     translator = b._t
 
@@ -362,16 +422,18 @@ def test_unload_during_inflight_translate_joins_before_model_unload(native_env, 
 
     result = {}
 
-    def run_translate():
-        result["out"] = b.translate("hello", "", "en", "fr", False)
+    async def run_translate():
+        loop = asyncio.get_running_loop()
+        result["out"] = await loop.run_in_executor(
+            None, lambda: b.translate("hello", "", "en", "fr", False))
 
-    gen_thread = threading.Thread(target=run_translate)
+    gen_thread = threading.Thread(target=lambda: asyncio.run(run_translate()))
     gen_thread.start()
     assert translator.started.wait(timeout=5)   # translate() is now inside chat()
 
     unload_thread = threading.Thread(target=b.unload)
     unload_thread.start()
-    time.sleep(0.1)                              # unload() should be blocked joining
+    time.sleep(0.1)                              # unload() should be blocked waiting
     assert unload_thread.is_alive()               # proves unload() actually waits
     assert order == []                            # model.unload() not reached yet
 
@@ -379,11 +441,38 @@ def test_unload_during_inflight_translate_joins_before_model_unload(native_env, 
     unload_thread.join(timeout=5)
     gen_thread.join(timeout=5)
 
-    assert not unload_thread.is_alive()
-    assert order == ["model.unload"]               # joined BEFORE calling model.unload
+    assert not unload_thread.is_alive()            # I-1: returned promptly, not after the full deadline
+    assert order == ["model.unload"]               # waited BEFORE calling model.unload
     assert b.is_loaded is False
     text, n = result["out"]
     assert text == "" and n == 0                   # cancelled before any token was collected
+
+
+def test_unload_waits_out_the_deadline_when_the_native_call_never_finishes(native_env, monkeypatch):
+    """I-1: unload()'s wait is bounded by _UNLOAD_DEADLINE_S regardless of
+    whether the in-flight native call ever actually stops -- the deadline is
+    the UAF backstop of last resort (module docstring), not merely an
+    optimization for the common case. Shrink the deadline so this test doesn't
+    need a real 10s wait; _WedgedFakeTranslator's chat() deliberately never
+    observes on_token's cancellation, so `done` is never set. unload() must
+    still return once ITS (shrunk) deadline elapses, and the handle must still
+    be freed even though the worker never actually stopped."""
+    monkeypatch.setattr(tb, "_UNLOAD_DEADLINE_S", 0.3)
+    b, translator = _load_wedged(native_env, monkeypatch)
+
+    gen_thread = threading.Thread(
+        target=lambda: b.translate("hello", "", "en", "fr", False), daemon=True)
+    gen_thread.start()
+    assert translator.started.wait(timeout=5)   # translate() is now inside chat(), wedged
+
+    t0 = time.monotonic()
+    b.unload()
+    elapsed = time.monotonic() - t0
+
+    assert elapsed >= 0.25          # waited out (approximately) the shrunk deadline
+    assert elapsed < 3.0            # ... but did not hang indefinitely either
+    assert translator.unloaded is True   # backstop: freed regardless of the wedged worker
+    assert b.is_loaded is False
 
 
 def test_on_token_cancels_via_backend_cancel_and_returns_partial(native_env, monkeypatch):

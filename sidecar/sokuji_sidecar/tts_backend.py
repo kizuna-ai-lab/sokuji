@@ -97,6 +97,29 @@ streaming workers share one registry and one shared deadline. cancel() also tole
 None event (a one-shot at self._workers[-1] makes cancel() a harmless no-op, matching
 "one-shot generation is never cancelled").
 
+Final fix wave (2026-09-01), ruling I-1 -- I3's fix above registered the one-shot
+entry as (threading.current_thread(), None) and had unload() call
+thread.join(timeout=...) on it, exactly the defect translate_backend.py's
+translate() had (see that module's own "Final fix wave" paragraph for the full
+trace, which applies identically here). In production generate() always runs
+via tts_engine's `loop.run_in_executor(None, ...)` -- a ThreadPoolExecutor
+worker that returns to the pool, IDLE, once generate() returns, rather than
+terminating -- so thread.join() burned the FULL 10s deadline on every
+unload(), whether or not generate() had already finished, stalling the event
+loop and hollowing the very UAF backstop the deadline exists to enforce.
+Fixed the same way as translate_backend.py: the one-shot entry now carries a
+`done` Event (set in generate()'s own finally, once self._model.synth(...)
+has actually returned) instead of a thread reference, and unload() waits on
+that instead of joining. generate_stream()'s STREAMING entries are UNCHANGED
+and still correct as-is -- `thread` there is a real, dedicated
+threading.Thread this module itself creates and starts (see
+generate_stream()'s own docstring below), which DOES terminate on its own
+once its target function returns; joining it was never the bug.
+self._workers now holds a 3-tuple, (thread, cancel, done), so unload()'s
+single loop can tell the two shapes apart: a STREAMING entry has a real
+thread (and no done Event) and gets joined; a ONE-SHOT entry has thread=None
+(and no cancel Event) and gets waited on via its done Event instead.
+
 R16 -- qwen3_tts and omnivoice have NO usable default voice: a synth() attempted with
 neither set_voice() nor set_builtin_voice() called first fails deep inside audio.cpp
 with a none-too-friendly, native-layer-specific message (live-verified,
@@ -146,6 +169,13 @@ from .planner import PlanConfig
 
 _SENTINEL = object()
 
+# I-1: the single shared budget unload() gives EVERY outstanding generate()/
+# generate_stream() worker, combined, to self-report done (or actually
+# terminate, for a streaming Thread) before the model is freed regardless. A
+# module constant (not inlined in unload()) so a test can shrink it to
+# exercise the "still-blocked native call" path without a real 10s wait.
+_UNLOAD_DEADLINE_S = 10.0
+
 # R16: families whose native default voice raises when synth() is attempted with no
 # clone/preset set first -- live-verified only for these two (task-7-report.md §3).
 # moss_tts_nano/pocket_tts also report CLONES=True but are NOT included: both ship a
@@ -160,6 +190,31 @@ def _staging_root() -> str:
     any particular OS temp-dir/cache-dir relationship."""
     from huggingface_hub import constants
     return os.path.join(constants.HF_HUB_CACHE, TTS_STAGING_DIRNAME)
+
+
+def _copy_atomic(source: str, dest: str) -> None:
+    """T4iii: copy `source` to `dest` via a temp file in the SAME directory, then
+    os.replace() -- never opens `dest` itself for writing. `dest` can already exist
+    as a hard link a concurrent loader is actively reading through (F2's race: the
+    "another loader won" branch below reaches here on a genuine content mismatch,
+    not just "absent"), or as a stale entry left over from an interrupted run.
+    shutil.copyfile(source, dest) opens `dest` IN PLACE and truncates it before
+    writing -- if anything else on the system still holds that path open (mid
+    sk_tts_load/synth on the same inode), it would observe a truncated/partially
+    overwritten file mid-copy, not merely a delayed update. os.replace() instead
+    swaps the directory entry in one atomic syscall: an existing reader keeps its
+    own (now-unlinked) inode fully intact, and the path only ever resolves to a
+    complete file, at every point in time."""
+    tmp = f"{dest}.tmp{os.getpid()}.{threading.get_ident()}"
+    try:
+        shutil.copyfile(source, tmp)
+        os.replace(tmp, dest)
+    except BaseException:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def _stage_for_native(repo: str, rev: str, rel_path: str, source: str) -> str:
@@ -220,14 +275,14 @@ def _stage_for_native(repo: str, rev: str, rel_path: str, source: str) -> str:
                 return staged
         except OSError:
             pass
-        shutil.copyfile(real_source, staged)
+        _copy_atomic(real_source, staged)   # T4iii: never truncate a live hard link in place
     except OSError:
         # EXDEV (staging ended up on a different filesystem than the blob it links
         # to -- should not happen given _staging_root()'s placement, but a hostile or
         # unusual HF_HUB_CACHE override could still trigger it) or a filesystem
         # without hard-link support: fall back to a real copy. Slower and spends real
         # disk space, but still correct.
-        shutil.copyfile(real_source, staged)
+        _copy_atomic(real_source, staged)   # T4iii: never truncate a live hard link in place
     return staged
 
 
@@ -246,17 +301,29 @@ class NativeTtsBackend:
         self._language = None
         self._family = None
         self._voice_set = False   # R16: True once set_voice()/set_builtin_voice() lands
-        # Every (threading.Thread, threading.Event | None) pair for a generate() or
-        # generate_stream() call that hasn't finished self-cleanup yet, oldest first.
-        # A one-shot generate() entry's event is always None (I3): it has no
-        # cancellation hook (an offline family cannot be interrupted mid-run), so it
-        # exists in this registry purely so unload() also JOINS it -- cancel() and
-        # unload() both tolerate a None event and skip the .set() for that entry.
-        # Guarded by _workers_lock since generate()/generate_stream() (append),
-        # _drain()'s finally or generate()'s finally (remove, from whatever thread is
-        # running it), cancel() (read the tail), and unload() (snapshot + clear) can
-        # all run concurrently on different threads.
-        self._workers: list[tuple[threading.Thread, threading.Event | None]] = []
+        # Every (thread, cancel, done) 3-tuple for a generate() or generate_stream()
+        # call that hasn't finished self-cleanup yet, oldest first -- see the module
+        # docstring's I3 and "Final fix wave" (I-1) paragraphs. Two distinct shapes:
+        #   STREAMING (generate_stream()): (threading.Thread, threading.Event, None)
+        #     -- `thread` is a real, dedicated worker Thread this module itself
+        #     creates and starts, which DOES terminate on its own once its target
+        #     function returns, so unload() JOINS it directly (that was never the
+        #     I-1 bug). `cancel` is checked by on_chunk between pulled chunks.
+        #   ONE-SHOT (generate()): (None, None, threading.Event) -- no thread
+        #     reference at all (I-1: the calling thread is a ThreadPoolExecutor
+        #     worker in production, which returns to the pool instead of
+        #     terminating -- joining it would burn unload()'s full deadline every
+        #     time regardless of whether generate() had already finished) and no
+        #     cancel Event (an offline family cannot be interrupted mid-run) --
+        #     only a `done` Event, set once self._model.synth(...) has actually
+        #     returned. unload() waits on THAT instead of joining.
+        # cancel()/unload() both tolerate a None cancel Event (skip the .set()) and
+        # a None thread (wait on `done` instead of joining). Guarded by
+        # _workers_lock since generate()/generate_stream() (append), _drain()'s
+        # finally or generate()'s finally (remove, from whatever thread is running
+        # it), cancel() (read the tail), and unload() (snapshot + clear) can all run
+        # concurrently on different threads.
+        self._workers: list[tuple[threading.Thread | None, threading.Event | None, threading.Event | None]] = []
         self._workers_lock = threading.Lock()
 
     def _ensure_voice_ready(self) -> None:
@@ -316,11 +383,16 @@ class NativeTtsBackend:
         if self._model is None:
             raise BackendLoadError("native_tts not loaded")
         self._ensure_voice_ready()   # R16
-        # I3: register THIS call in the same worker registry generate_stream() uses,
-        # with no cancel event (an offline family cannot be interrupted mid-run) --
-        # purely so unload() also joins it and can never free the handle out from
-        # under a still-running sk_tts_synth on another thread.
-        entry = (threading.current_thread(), None)
+        # I3 / I-1: register THIS call in the same worker registry generate_stream()
+        # uses, with no cancel event (an offline family cannot be interrupted
+        # mid-run) and no thread reference (I-1: the calling thread is a
+        # ThreadPoolExecutor worker in production, which returns to the pool
+        # instead of terminating -- see the module docstring's "Final fix wave"
+        # paragraph). `done` is set in the finally below once this call has
+        # actually returned -- unload() waits on THAT, purely so it can never free
+        # the handle out from under a still-running sk_tts_synth on another thread.
+        done = threading.Event()
+        entry = (None, None, done)
         with self._workers_lock:
             self._workers.append(entry)
         try:
@@ -328,6 +400,7 @@ class NativeTtsBackend:
             samples, rate = self._model.synth(text, language=self._language, speed=speed)
             return np.asarray(samples, dtype=np.float32), int(rate), int((time.time() - t0) * 1000)
         finally:
+            done.set()
             with self._workers_lock:
                 if entry in self._workers:
                     self._workers.remove(entry)
@@ -362,7 +435,10 @@ class NativeTtsBackend:
                 q.put(_SENTINEL)
 
         thread = threading.Thread(target=worker, daemon=True)
-        entry = (thread, cancelled)
+        # STREAMING shape (module docstring / __init__ comment): a real, dedicated
+        # Thread -- unload() JOINS this directly, no `done` Event needed (that's
+        # what actually terminates it).
+        entry = (thread, cancelled, None)
         # Register BEFORE starting the thread and BEFORE returning to the caller:
         # a cancel() arriving before the first pull must still land on THIS
         # stream's event, not be dropped (review round 1, CQ-6), and unload()
@@ -434,8 +510,8 @@ class NativeTtsBackend:
         return self._model.presets()
 
     def unload(self) -> None:
-        # Cancel and JOIN every OUTSTANDING streaming worker BEFORE touching the
-        # model at all -- not just the most recently started one: a superseded
+        # Cancel every OUTSTANDING worker, then wait for each one BEFORE touching
+        # the model at all -- not just the most recently started one: a superseded
         # stream's worker can still be an "orphan" here, cancelled but not yet
         # actually stopped, and a single _cancel_event/_worker_thread slot would
         # lose track of it the moment a newer stream registered (review round 2
@@ -448,19 +524,31 @@ class NativeTtsBackend:
         # worse -- free the handle out from under a still-live synth() call
         # (use-after-free).
         #
-        # Snapshot-then-clear under the lock so a concurrent generate_stream()
-        # can't observe a half-cleared registry; cancel every entry, then join
-        # every thread against ONE shared deadline (not 10s each) so unload()'s
-        # total worst case doesn't grow with the number of outstanding orphans.
+        # I-1 (module docstring's "Final fix wave" paragraph): a STREAMING entry
+        # (thread is not None) gets JOINED -- it's a real, dedicated Thread that
+        # terminates on its own. A ONE-SHOT entry (thread is None) is instead
+        # WAITED on via its own `done` Event -- joining the CALLING thread there
+        # was the bug, since in production that thread is a ThreadPoolExecutor
+        # worker that returns to the pool instead of terminating.
+        #
+        # Snapshot-then-clear under the lock so a concurrent generate()/
+        # generate_stream() can't observe a half-cleared registry; cancel every
+        # entry, then join/wait every entry against ONE shared deadline (not
+        # _UNLOAD_DEADLINE_S each) so unload()'s total worst case doesn't grow
+        # with the number of outstanding orphans.
         with self._workers_lock:
             workers = list(self._workers)
             self._workers.clear()
-        for _thread, ev in workers:
+        for _thread, ev, _done in workers:
             if ev is not None:   # I3: a one-shot generate()'s entry has no cancel event
                 ev.set()
-        deadline = time.monotonic() + 10.0
-        for thread, _ev in workers:
-            thread.join(timeout=max(0.0, deadline - time.monotonic()))
+        deadline = time.monotonic() + _UNLOAD_DEADLINE_S
+        for thread, _ev, done in workers:
+            remaining = max(0.0, deadline - time.monotonic())
+            if thread is not None:
+                thread.join(timeout=remaining)
+            else:
+                done.wait(timeout=remaining)
         model, self._model = self._model, None
         if model is not None:
             try:

@@ -1,6 +1,7 @@
 """NativeTtsBackend: sokuji_native's TtsModel faked at the module level (the venv
 wheel is Vulkan-lane 0.4.0 and has no TtsModel yet — Task 3 lands the real 0.5.0
 build). Mirrors test_translate_backend.py's native_env fixture shape."""
+import asyncio
 import os
 import threading
 import time
@@ -10,6 +11,7 @@ import numpy as np
 import pytest
 
 from sokuji_sidecar import backends
+from sokuji_sidecar import tts_backend
 from sokuji_sidecar.planner import PlanConfig
 
 REF = "acme/pocket-tts-en-gguf/pocket_tts-en/model.gguf"
@@ -128,6 +130,44 @@ class _PreGatedTtsModel(_FakeTtsModel):
                 self.stop_seen.set()
                 raise NativeError(-7, "sk_tts_synth: cancelled")
         return np.concatenate(self.chunks), self.capabilities.sample_rate
+
+
+class _SlowOneShotModel(_FakeTtsModel):
+    """A one-shot (no on_chunk) synth() that blocks until released, then returns
+    normally -- used by the I3/I-1 unload-joins/waits-before-model-unload tests."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.started = threading.Event()
+        self.release = threading.Event()
+
+    def synth(self, text, language=None, speed=1.0, on_chunk=None):
+        self._check_loaded("sk_tts_synth")
+        self.started.set()
+        self.release.wait(timeout=5)
+        samples = np.concatenate(self.chunks) if self.chunks else np.empty(0, np.float32)
+        return samples, self.capabilities.sample_rate
+
+
+class _WedgedOneShotModel(_FakeTtsModel):
+    """A one-shot synth() that blocks FOREVER and never returns -- models a
+    native call that is truly wedged. Exists ONLY to prove unload()'s
+    _UNLOAD_DEADLINE_S backstop actually bounds the wait for a one-shot
+    generate() regardless -- see
+    test_unload_waits_out_the_deadline_when_the_oneshot_native_call_never_finishes.
+    The worker thread that calls into this is always started as a daemon (see
+    that test) so the wedged call never prevents the test process from
+    exiting."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.started = threading.Event()
+
+    def synth(self, text, language=None, speed=1.0, on_chunk=None):
+        self._check_loaded("sk_tts_synth")
+        self.started.set()
+        threading.Event().wait()   # never released
+        return np.empty(0, np.float32), self.capabilities.sample_rate   # pragma: no cover
 
 
 class _BoomingStreamModel(_FakeTtsModel):
@@ -848,26 +888,20 @@ def test_generate_stream_yields_the_actual_per_chunk_rate(native_env):
 
 
 def test_unload_during_inflight_oneshot_generate_joins_before_model_unload(native_env):
-    """I3: NativeTtsBackend.unload() used to join only STREAMING workers -- a
-    one-shot generate() running on another executor thread could still be mid-
-    sk_tts_synth when unload() nulled the model handle and freed it underneath it
-    (a native use-after-free). One-shot generates are now tracked in the same
-    worker registry so unload() joins them too."""
+    """I3 / I-1 (final fix wave): the ORIGINAL version of this test ran generate()
+    on a dedicated threading.Thread, which terminates on its own once its target
+    function returns -- that MASKED the I-1 defect, because unload()'s old
+    thread.join(timeout=...) genuinely worked correctly against that kind of
+    thread. In production generate() always runs via tts_engine's real
+    `loop.run_in_executor(None, ...)`, i.e. on a ThreadPoolExecutor worker that
+    returns to the POOL, IDLE, once the callable returns -- it does NOT
+    terminate, so joining THAT thread burns unload()'s full deadline every
+    single time regardless of whether generate() had already finished (see
+    tts_backend.py's module docstring, "Final fix wave" paragraph, for the full
+    trace). Reproduce the real shape here: schedule generate() through
+    asyncio's actual default executor, not a bare Thread, so this test would
+    have caught the original regression."""
     created, log = native_env
-
-    class _SlowOneShotModel(_FakeTtsModel):
-        def __init__(self, *a, **kw):
-            super().__init__(*a, **kw)
-            self.started = threading.Event()
-            self.release = threading.Event()
-
-        def synth(self, text, language=None, speed=1.0, on_chunk=None):
-            self._check_loaded("sk_tts_synth")
-            self.started.set()
-            self.release.wait(timeout=5)
-            samples = np.concatenate(self.chunks) if self.chunks else np.empty(0, np.float32)
-            return samples, self.capabilities.sample_rate
-
     created["model_factory"] = _SlowOneShotModel
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
@@ -882,22 +916,60 @@ def test_unload_during_inflight_oneshot_generate_joins_before_model_unload(nativ
 
     model.unload = tracked_unload
 
-    gen_thread = threading.Thread(target=b.generate, args=("hello",))
+    result = {}
+
+    async def run_generate():
+        loop = asyncio.get_running_loop()
+        result["out"] = await loop.run_in_executor(None, b.generate, "hello")
+
+    gen_thread = threading.Thread(target=lambda: asyncio.run(run_generate()))
     gen_thread.start()
     assert model.started.wait(timeout=5)     # generate() is now inside synth()
 
     unload_thread = threading.Thread(target=b.unload)
     unload_thread.start()
-    time.sleep(0.1)                          # unload() should be blocked joining the in-flight call
+    time.sleep(0.1)                          # unload() should be blocked waiting on the in-flight call
     assert unload_thread.is_alive()
     assert order == []                       # model.unload() not reached yet
 
     model.release.set()                      # let the in-flight generate() finish
-    gen_thread.join(timeout=5)
     unload_thread.join(timeout=5)
+    gen_thread.join(timeout=5)
 
-    assert not unload_thread.is_alive()
-    assert order == ["model.unload"]         # joined BEFORE calling model.unload
+    assert not unload_thread.is_alive()      # I-1: returned promptly, not after the full deadline
+    assert order == ["model.unload"]         # waited BEFORE calling model.unload
+    assert b.is_loaded is False
+    assert "out" in result                   # generate() itself completed normally
+
+
+def test_unload_waits_out_the_deadline_when_the_oneshot_native_call_never_finishes(
+        native_env, monkeypatch):
+    """I-1: unload()'s wait is bounded by _UNLOAD_DEADLINE_S regardless of
+    whether the in-flight one-shot native call ever actually stops -- the
+    deadline is the UAF backstop of last resort (module docstring), not merely
+    an optimization for the common case. Shrink the deadline so this test
+    doesn't need a real 10s wait; _WedgedOneShotModel's synth() deliberately
+    never returns, so `done` is never set. unload() must still return once ITS
+    (shrunk) deadline elapses, and the handle must still be freed even though
+    the worker never actually stopped."""
+    monkeypatch.setattr(tts_backend, "_UNLOAD_DEADLINE_S", 0.3)
+    created, log = native_env
+    created["model_factory"] = _WedgedOneShotModel
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
+    model = created["model"]
+
+    gen_thread = threading.Thread(target=b.generate, args=("hello",), daemon=True)
+    gen_thread.start()
+    assert model.started.wait(timeout=5)     # generate() is now inside synth(), wedged
+
+    t0 = time.monotonic()
+    b.unload()
+    elapsed = time.monotonic() - t0
+
+    assert elapsed >= 0.25          # waited out (approximately) the shrunk deadline
+    assert elapsed < 3.0            # ... but did not hang indefinitely either
+    assert model.unloaded is True   # backstop: freed regardless of the wedged worker
     assert b.is_loaded is False
 
 
@@ -905,20 +977,6 @@ def test_cancel_during_inflight_oneshot_is_a_harmless_noop(native_env):
     """A one-shot generate()'s registry entry has no cancel event (I3) -- cancel()
     must not crash when the most-recently-started entry is a one-shot."""
     created, log = native_env
-
-    class _SlowOneShotModel(_FakeTtsModel):
-        def __init__(self, *a, **kw):
-            super().__init__(*a, **kw)
-            self.started = threading.Event()
-            self.release = threading.Event()
-
-        def synth(self, text, language=None, speed=1.0, on_chunk=None):
-            self._check_loaded("sk_tts_synth")
-            self.started.set()
-            self.release.wait(timeout=5)
-            samples = np.concatenate(self.chunks) if self.chunks else np.empty(0, np.float32)
-            return samples, self.capabilities.sample_rate
-
     created["model_factory"] = _SlowOneShotModel
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
