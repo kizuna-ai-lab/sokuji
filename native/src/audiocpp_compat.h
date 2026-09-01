@@ -287,9 +287,18 @@ static inline struct ggml_tensor *ggml_convrot_linear(
  * qwen3_tts, omnivoice, pocket_tts) fired the guard exactly ONCE — this ggml_sub, this
  * node. ggml_add / ggml_mul / ggml_div never see a non-row-contiguous src0, so they are
  * left alone; should one ever start, upstream aborts loudly the same way, which is a
- * discoverable failure rather than a silent one. The guard itself is inert on
- * row-contiguous operands: it returns them untouched and adds no node, so the CPU and
- * Vulkan lanes build exactly the graph they built before. */
+ * discoverable failure rather than a silent one.
+ *
+ * What the src1 clause costs the non-Metal lanes, stated exactly: it is NOT a no-op there.
+ * `quantized_bct` is a fresh permute view on every codebook iteration, so the clause fires
+ * on CPU and Vulkan too and adds one ggml_cont node per iteration — a graph the CPU lane
+ * did not build before this change. It is an exact copy, so the VALUES cannot move, and
+ * that was measured rather than assumed: on an Apple M4, all five families on the CPU
+ * device, this build against the same build with only this clause removed, output is
+ * bit-identical (max abs diff 0.000e+00, sample counts equal). The GB10 parity gate agrees
+ * from the other side — supertonic still compares sample-exact (max_abs == 0) against the
+ * official CLI. Only for operands that are already row-contiguous is the guard truly
+ * inert: it returns them untouched and adds nothing. */
 static inline struct ggml_tensor *sokuji_ggml_sub(
         struct ggml_context *ctx, struct ggml_tensor *a, struct ggml_tensor *b) {
     if (a->nb[0] != ggml_type_size(a->type)) {

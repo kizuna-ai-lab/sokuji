@@ -360,19 +360,27 @@ def test_tts_moss_offline_and_clone():
 
 TTS_GPU = os.environ.get("SK_TEST_TTS_GPU") == "1"
 GPU_TTS_TEXT = "The quick brown fox jumps over the lazy dog."
-GPU_TTS_MIN_SECONDS, GPU_TTS_MAX_SECONDS = 0.5, 30.0
+GPU_TTS_MIN_SECONDS = 0.5
+GPU_TTS_MIN_PEAK = 0.01          # an all-zeros buffer of the right length must not pass
 
-# family -> (env var name, model dir, preset or None, clones?). supertonic/pocket_tts select
-# a named preset; moss_tts_nano has a usable built-in voice; qwen3_tts (base checkpoint) and
-# omnivoice are clone-only and additionally require the reference's transcript, so the
-# child synthesizes its own reference clip with supertonic on the CPU device first and
-# clones it with that clip's exact text.
+# family -> (env var name, model dir, preset or None, clones?, max seconds). supertonic and
+# pocket_tts select a named preset; moss_tts_nano has a usable built-in voice; qwen3_tts
+# (base checkpoint) and omnivoice are clone-only and additionally require the reference's
+# transcript, so the child synthesizes its own reference clip with supertonic on the CPU
+# device first and clones it with that clip's exact text.
+#
+# The max-duration bar is 30s (a generous "did not run away" bound) except for
+# moss_tts_nano, where 10s is a real signal: ruling R23 switched that family to sampled
+# decode precisely because greedy argmax never reaches its end-of-content token and runs to
+# audio.cpp's 300-frame / 24.000s max_new_frames cap. A ~24s clip for this one sentence is
+# that cap's signature, so the tighter bound catches a backend on which the stop decision
+# stops working — same threshold the CPU test above uses.
 GPU_TTS_FAMILIES = {
-    "supertonic": ("SK_TEST_TTS_SUPERTONIC_DIR", TTS_SUPERTONIC_DIR, "M1", False),
-    "pocket_tts": ("SK_TEST_TTS_POCKET_DIR", TTS_POCKET_DIR, "alba", False),
-    "moss_tts_nano": ("SK_TEST_TTS_MOSS_DIR", TTS_MOSS_DIR, None, False),
-    "qwen3_tts": ("SK_TEST_TTS_QWEN3_DIR", TTS_QWEN3_DIR, None, True),
-    "omnivoice": ("SK_TEST_TTS_OMNIVOICE_DIR", TTS_OMNIVOICE_DIR, None, True),
+    "supertonic": ("SK_TEST_TTS_SUPERTONIC_DIR", TTS_SUPERTONIC_DIR, "M1", False, 30.0),
+    "pocket_tts": ("SK_TEST_TTS_POCKET_DIR", TTS_POCKET_DIR, "alba", False, 30.0),
+    "moss_tts_nano": ("SK_TEST_TTS_MOSS_DIR", TTS_MOSS_DIR, None, False, 10.0),
+    "qwen3_tts": ("SK_TEST_TTS_QWEN3_DIR", TTS_QWEN3_DIR, None, True, 30.0),
+    "omnivoice": ("SK_TEST_TTS_OMNIVOICE_DIR", TTS_OMNIVOICE_DIR, None, True, 30.0),
 }
 
 _GPU_TTS_RUNNER = r'''
@@ -439,7 +447,7 @@ def _gpu_device():
 
 @pytest.mark.parametrize("family", sorted(GPU_TTS_FAMILIES))
 def test_tts_synthesises_on_a_gpu_device(family):
-    env_name, model_dir, preset, clones = GPU_TTS_FAMILIES[family]
+    env_name, model_dir, preset, clones, max_seconds = GPU_TTS_FAMILIES[family]
     if not (HAVE_TREE and TTS_GPU):
         pytest.skip("needs a built tree and SK_TEST_TTS_GPU=1")
     if not model_dir:
@@ -474,5 +482,11 @@ def test_tts_synthesises_on_a_gpu_device(family):
     got = json.loads(line[len("SK_GPU_TTS_RESULT "):])
     print(f"  gpu-tts {family:14s} {got['device']:16s} {got['seconds']:6.2f}s audio  "
           f"{got['load_s']:7.2f}s load  {got['synth_s']:7.2f}s synth  peak={got['peak']:.3f}")
+    # The child resolves the device by index; make it prove it did not silently land on the
+    # CPU one, or a "GPU" pass would mean nothing.
+    assert not got["device"].startswith("cpu/"), got
     assert got["frames"] > 0 and got["rate"] > 0, got
-    assert GPU_TTS_MIN_SECONDS <= got["seconds"] <= GPU_TTS_MAX_SECONDS, got
+    assert GPU_TTS_MIN_SECONDS <= got["seconds"] <= max_seconds, got
+    # Silence of the right length is the failure mode a duration check cannot see: a backend
+    # that runs every kernel and writes zeros passes everything above.
+    assert got["peak"] > GPU_TTS_MIN_PEAK, got

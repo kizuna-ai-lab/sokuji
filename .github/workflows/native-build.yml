@@ -21,15 +21,6 @@ env:
   SK_TEST_TRANSLATE_GGUF: ${{ github.workspace }}/native/build/models/Qwen3-0.6B-Q8_0.gguf
   SK_TEST_TTS_SUPERTONIC_DIR: ${{ github.workspace }}/native/build/models/tts/supertonic-3
   SK_TEST_TTS_MOSS_DIR: ${{ github.workspace }}/native/build/models/tts/moss-tts-nano
-  # Opt-in gate for test_tts_synthesises_on_a_gpu_device: place each TTS family whose model
-  # dir is set on the first NON-CPU device and synthesize there. It is what the slice-4
-  # metal lane was missing — that lane went green while three of the five families aborted
-  # on Metal, because nothing ever put a TTS session on a Metal device. Set for every lane:
-  # the Linux/Windows runners are headless (no Vulkan device) and the test skips itself
-  # there, mac-x64 builds lane `none`, so in practice only mac-arm64/metal exercises it —
-  # on the two families the cache above holds (qwen3/omnivoice/pocket are multi-GB and are
-  # deliberately NOT cached; the test covers whichever dirs happen to be set).
-  SK_TEST_TTS_GPU: '1'
 
 jobs:
   build:
@@ -99,6 +90,20 @@ jobs:
           "C:\VulkanSDK\$env:VULKAN_SDK_VERSION\Bin" | Out-File -FilePath $env:GITHUB_PATH -Append
       - name: Build, test, wheel (POSIX)
         if: runner.os != 'Windows'
+        env:
+          # Opt-in gate for test_tts_synthesises_on_a_gpu_device: place each TTS family whose
+          # model dir is set on the first NON-CPU device and synthesize there. It is what the
+          # slice-4 metal lane was missing — that lane went green while three of the five
+          # families aborted on Metal, because nothing ever put a TTS session on a Metal
+          # device. METAL LANE ONLY, and deliberately not "set everywhere, skips itself":
+          # a headless Linux runner with a software rasterizer installed (llvmpipe/lavapipe)
+          # reports a non-CPU Vulkan device, so the test would start running whole TTS
+          # families on a CPU emulator — slow, and green for a GPU that is not there. An
+          # empty value leaves the test skipped (it compares against "1"). Only the two
+          # families the model cache above holds are exercised; qwen3/omnivoice/pocket are
+          # multi-GB and are deliberately NOT cached, and the test covers whichever dirs
+          # happen to be set.
+          SK_TEST_TTS_GPU: ${{ matrix.lane == 'metal' && '1' || '' }}
         run: native/ci/build.sh ${{ matrix.lane }} ${{ matrix.plat }}
       - name: Build, test, wheel (Windows)
         if: runner.os == 'Windows'

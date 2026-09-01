@@ -26,31 +26,36 @@ from pathlib import Path
 
 def main():
     source_dir = Path(sys.argv[1])
+    # Each entry is carried with the spec it came from: several specs now patch the same
+    # upstream file (the two Metal ones share four), so a message naming only the target
+    # file would not say which spec has to be revisited.
     entries = []
     for spec in sys.argv[2:]:
-        entries += json.loads(Path(spec).read_text(encoding="utf-8"))
+        for entry in json.loads(Path(spec).read_text(encoding="utf-8")):
+            entries.append((Path(spec).name, entry))
 
     ok = True
-    for entry in entries:
+    for spec_name, entry in entries:
+        where = f"{spec_name} -> {entry['file']}"
         path = source_dir / entry["file"]
         old, new = entry["old"], entry["new"]
         text = path.read_text(encoding="utf-8")
         if new in text:
             residual = text.replace(new, "").count(old)   # <old> outside every <new> occurrence
             if residual == 0:
-                print(f"patch_upstream: {entry['file']}: already patched")
+                print(f"patch_upstream: {where}: already patched")
             else:
-                print(f"patch_upstream: {entry['file']}: new text present but {old!r} still occurs "
+                print(f"patch_upstream: {where}: new text present but {old!r} still occurs "
                       f"{residual}x outside it — ambiguous, revisit the patch")
                 ok = False
             continue
         count = text.count(old)
         if count != 1:
-            print(f"patch_upstream: {entry['file']}: expected exactly one occurrence of {old!r}, found {count}")
+            print(f"patch_upstream: {where}: expected exactly one occurrence of {old!r}, found {count}")
             ok = False
             continue
         path.write_text(text.replace(old, new), encoding="utf-8")
-        print(f"patch_upstream: {entry['file']}: patched")
+        print(f"patch_upstream: {where}: patched")
 
     sys.exit(0 if ok else 1)
 

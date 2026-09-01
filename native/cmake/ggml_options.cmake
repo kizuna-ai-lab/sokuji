@@ -51,8 +51,9 @@ endif()
 
 # ggml 0.22.0's Metal backend implements no GGML_OP_DIAG_MASK_INF at all - no supports_op
 # case, no kernel - while ggml-cpu, ggml-vulkan and ggml-cuda all do. Every audio.cpp
-# attention block reached without an explicit mask builds that op (17 call sites; on our
-# five families the live ones are moss_tts_nano and qwen3_tts), and audio.cpp never uses
+# attention block reached without an explicit mask builds that op (16 call sites across 13
+# files under audio.cpp 0.7.0's src/, external/ excluded; on our five families the live
+# ones are moss_tts_nano and qwen3_tts), and audio.cpp never uses
 # ggml_backend_sched, so there is no per-node CPU fallback: the single missing kernel
 # aborts the process. The patch re-adds the kernel ggml's own Metal backend carried until
 # llama.cpp moved to masked soft_max_ext, so it restores an op every other backend has

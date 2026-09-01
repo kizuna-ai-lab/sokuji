@@ -223,10 +223,12 @@ compiles):
   `GGML_OP_DIAG_MASK_INF` *not at all*: no `supports_op` case, no kernel. ggml-cpu,
   ggml-vulkan and ggml-cuda all have it; Metal is the only backend that dropped it, because
   llama.cpp itself moved to masked `soft_max_ext` and stopped needing it. audio.cpp did not:
-  every attention block it reaches without an explicit mask builds the op (17 call sites; of
-  our five families the live ones are `moss_tts_nano`'s global transformer and `qwen3_tts`'s
-  talker). The spec restores the kernel Metal used to carry — it is still in audio.cpp's own
-  fork — so it puts back an op every other backend has rather than inventing one.
+  every attention block it reaches without an explicit mask builds the op — **16 call sites
+  across 13 files** under audio.cpp 0.7.0's `src/` (`external/` excluded), of which the live
+  ones for our five families are `moss_tts_nano`'s global transformer and local frame decoder
+  and `qwen3_tts`'s `qwen_decoder`. The spec restores the kernel Metal used to carry — it is
+  still in audio.cpp's own fork — so it puts back an op every other backend has rather than
+  inventing one.
 - **`ggml-metal-pad-leading.json`** — ggml 0.22.0's Metal `GGML_OP_PAD` pads only at the END
   of an axis (`supports_op` rejects any non-zero leading pad), while ggml-cpu and ggml-vulkan
   implement the full lp/rp form `ggml_pad_ext` builds. `qwen3_tts`'s speech-tokenizer decoder
@@ -236,7 +238,14 @@ compiles):
   including walking `src0` through `nb00` instead of assuming an element stride of
   `sizeof(T)`, which a permuted `src0` really does reach here; circular padding stays
   unimplemented, as upstream leaves it. Both kernels were checked against the CPU reference
-  with ggml's own `test-backend-ops` (DIAG_MASK_INF 3/3, PAD 21/21 non-circular).
+  with ggml's own `test-backend-ops` — DIAG_MASK_INF 3/3, PAD 21/21 non-circular (the 6
+  `circular=1` cases report "not supported", as they do upstream). Those runs were made
+  during the experiment phase on an Apple M4, from a ggml tree patched with the
+  diag-mask-inf spec **byte for byte as it ships here** and the pad spec differing only by a
+  later-added `GGML_ASSERT(args.lp0 % 4 == 0)` inside the `pipeline.c4` branch, which ggml
+  0.22.0 never enters (`is_c4` is hard-coded `false`) — so the kernels measured are the
+  kernels built. They are not re-run per build: treat them as evidence about the kernels,
+  not as a gate that runs in CI.
 
 **Why a single missing kernel is fatal here and nowhere else.** transcribe.cpp and llama.cpp
 drive ggml through `ggml_backend_sched`, which splits an unsupported node onto CPU. audio.cpp
@@ -259,14 +268,18 @@ registered no log sink, which is the only reason an abort names its op in a CI l
 or src on such a device — three of the five checkpoints carry BF16 tensors
 (`pocket-tts-english-q8_0`, `moss-tts-nano-100m-q8_0`, `qwen3-tts-12hz-0.6b-base-q8_0`). So a
 green M4 is not a green M1. What closes it is `test_tts_synthesises_on_a_gpu_device` in
-`python/tests/test_sokuji_native.py`: gated on `SK_TEST_TTS_GPU=1` (set for every lane in
-`.github/workflows/native-build.yml`), it places each family whose model dir is set on the
-**first non-CPU device** and synthesizes there, one subprocess per family so an abort is a
-named per-family failure instead of a dead pytest run. It skips itself where `devices()`
-reports no non-CPU device, so in practice only the mac-arm64/metal lane runs it — on the two
-families CI caches (supertonic, moss); the other three are multi-GB and stay local. Nothing
-before it ever put a TTS session on a GPU device, which is exactly how the slice-4 metal lane
-went green while three of five families aborted on Metal.
+`python/tests/test_sokuji_native.py`: gated on `SK_TEST_TTS_GPU=1`, it places each family
+whose model dir is set on the **first non-CPU device** and synthesizes there, one subprocess
+per family so an abort is a named per-family failure instead of a dead pytest run. It asserts
+the child really ran off-CPU, a duration inside the family's bound, and a non-silent peak. It
+also skips itself where `devices()` reports no non-CPU device, but CI does not rely on that:
+`.github/workflows/native-build.yml` sets the variable on the **metal lane only**, because a
+Linux runner carrying a software rasterizer (llvmpipe/lavapipe) would advertise a non-CPU
+Vulkan device and the test would then run whole TTS families on a CPU emulator. Locally,
+point it at whatever GPU you have. In CI it covers the two families the model cache holds
+(supertonic, moss); the other three are multi-GB and stay local. Nothing before it ever put a
+TTS session on a GPU device, which is exactly how the slice-4 metal lane went green while
+three of five families aborted on Metal.
 
 Background and measurements: `.superpowers/metal-tts-validation.md` (diagnosis) and
 `.superpowers/metal-fix-experiments.md` (the fixes, `test-backend-ops` runs, CPU
@@ -280,5 +293,8 @@ non-emptiness, never a transcript.
 1. Change the commit SHA (and the version string beside it) in `cmake/upstreams.cmake`.
 2. Rebuild; if `patch_upstream.py` fails, the anchored text in `native/patches/<upstream>.json` moved — fix the spec.
 3. Run the parity suite (slice 4 onward) — a bump that fails parity is not shipped.
-4. Bump `project(sokuji_native VERSION …)` in `CMakeLists.txt` — the only place a version
-   is written; the wheel's comes from the staged `contract.json` — and tag `native-vX.Y.Z`.
+4. Bump the version in the **two** places that hard-code it — `project(sokuji_native VERSION …)`
+   in `CMakeLists.txt` and the `sk_version()` assertion in `tests/test_common.cpp` (the CTest
+   fails on the old string otherwise) — then tag `native-vX.Y.Z`. Nothing else needs editing:
+   the staged `contract.json` and the wheel version are both generated from the CMake project
+   version, and the tag/version match is checked by `native-build.yml`.
