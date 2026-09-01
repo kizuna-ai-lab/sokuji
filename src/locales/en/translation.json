@@ -1024,6 +1024,7 @@
     "clipSilent": "No voice detected — check your microphone and try again.",
     "clipTooLong": "Recording is too long — keep it under {seconds} seconds.",
     "clipTooShort": "Recording is too short — speak for at least {seconds} seconds.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Need a custom voice?",
     "decodeFailed": "Could not read that audio file — try a WAV, MP3, or other common format.",
     "delete": "Delete",

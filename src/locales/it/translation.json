@@ -888,6 +888,7 @@
     "clipSilent": "Nessuna voce rilevata — controlla il microfono e riprova.",
     "clipTooLong": "La registrazione è troppo lunga — mantienila sotto i {seconds} secondi.",
     "clipTooShort": "La registrazione è troppo breve — parla per almeno {seconds} secondi.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Ti serve una voce personalizzata?",
     "decodeFailed": "Impossibile leggere quel file audio — prova con un WAV, MP3 o altro formato comune.",
     "delete": "Elimina",

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { voiceCapability, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, pinsFromSelections, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
+import { voiceCapability, isCloneOnlyVoice, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, pinsFromSelections, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -403,6 +403,19 @@ describe('nativeCatalog', () => {
       .toEqual({ builtin: 'none', custom: 'clip', transcriptRequired: true });
   });
 
+  describe('isCloneOnlyVoice', () => {
+    it('is true only for builtin:none + custom:clip (qwen3_tts/omnivoice-shaped)', () => {
+      expect(isCloneOnlyVoice({ builtin: 'none', custom: 'clip' })).toBe(true);
+    });
+    it('is false for a model with a built-in voice, even if it also clones (MOSS-shaped)', () => {
+      expect(isCloneOnlyVoice({ builtin: 'named', custom: 'clip' })).toBe(false);
+    });
+    it('is false for a model with no custom-voice capability at all', () => {
+      expect(isCloneOnlyVoice({ builtin: 'none', custom: 'none' })).toBe(false);
+      expect(isCloneOnlyVoice({ builtin: 'named', custom: 'none' })).toBe(false);
+    });
+  });
+
   it('nativeTranslationCards: jap alias resolves en→ja Opus-MT card', () => {
     // Helsinki Opus rows emit "jap" as the target language token; the alias
     // jap→ja must make the card visible for the en→ja pair.
@@ -442,8 +455,12 @@ describe('frameworkLabel', () => {
     };
     for (const [id, label] of Object.entries(cases)) expect(frameworkLabel(id)).toBe(label);
   });
-  it('derives future ids by prefix, else echoes the raw id', () => {
-    expect(frameworkLabel('foo_onnx')).toBe('ONNXRuntime');
+  it('derives transcribe_cpp_X ids by prefix; a plain unknown id just echoes', () => {
+    // The old `X_onnx` -> 'ONNXRuntime' fallback died with the ONNX backends
+    // themselves (slice 5) — no backend id ends in _onnx anymore, so an id
+    // shaped like one now falls through to the same raw-echo path as any
+    // other unknown id.
+    expect(frameworkLabel('foo_onnx')).toBe('foo_onnx');
     expect(frameworkLabel('transcribe_cpp_x')).toBe('transcribe.cpp');
     expect(frameworkLabel('brand_new_backend')).toBe('brand_new_backend');
   });
@@ -508,11 +525,13 @@ describe('buildBackendTooltipRows', () => {
     const rows = buildBackendTooltipRows({ tier: 'gpu-vulkan', backendId: 'moss_onnx', resolved: { rtf: 0 } });
     expect(rows.find((r) => r.key === 'speed')).toBeUndefined();
   });
-  it('shows the repo row for every current backend (the MLX ONNX TTS tiers this once hid it for are gone)', () => {
-    // The #287 MLX repo-hiding guard keyed off frameworkLabel(id) === 'MLX' --
-    // no id maps to 'MLX' anymore now that mlx_audio_tts died with the other
-    // ONNX/MLX TTS backends (Task 5's catalog rewire onto native_tts), so the
-    // guard is permanently inert and the repo row is shown unconditionally.
+  it('shows the repo row for every current backend (the #287 MLX guard was deleted, not just left inert)', () => {
+    // The #287 MLX repo-hiding guard (`repo && !(backendId && frameworkLabel(backendId)
+    // === 'MLX')`) had been inert since Task 5's catalog rewire onto native_tts
+    // (mlx_audio_tts died, and frameworkLabel can no longer produce 'MLX') —
+    // slice 5 removed the dead guard from the source entirely rather than
+    // leaving unreachable code behind. Behavior is unchanged: the repo row
+    // still shows unconditionally.
     const nativeTts = buildBackendTooltipRows({ tier: 'gpu-metal', backendId: 'native_tts', resolved: null, repo: 'org/model' });
     expect(nativeTts.find((r) => r.key === 'repo')?.value).toBe('org/model');
     const onnx = buildBackendTooltipRows({ tier: 'cpu', backendId: 'moss_onnx', resolved: null, repo: 'org/onnx-assets' });

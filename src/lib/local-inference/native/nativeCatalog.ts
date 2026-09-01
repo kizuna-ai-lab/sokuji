@@ -73,6 +73,16 @@ export function voiceCapability(model: NativeModelInfo | undefined): VoiceCapabi
   return { builtin, custom };
 }
 
+/** True when a TTS model can ONLY speak via a cloned voice — no built-in voice
+ *  exists at all (the sidecar's R16 `_VOICE_REQUIRED_FAMILIES`, e.g. qwen3_tts,
+ *  omnivoice). Such a model produces no audio until the user records/imports at
+ *  least one usable clip; pairs with an eligible-clip count (respecting
+ *  `transcriptRequired` — a clip with no transcript doesn't count for a model
+ *  that needs one) to decide whether that clip actually exists yet. */
+export function isCloneOnlyVoice(capability: VoiceCapability): boolean {
+  return capability.builtin === 'none' && capability.custom === 'clip';
+}
+
 /** TTS models supporting the target language, recommended+order first. */
 export function nativeTtsModels(tgt: string, catalog: Record<string, NativeModelInfo>): NativeModelInfo[] {
   return catalogModels(catalog, 'tts').filter((m) => supportsLanguage(m, tgt));
@@ -303,11 +313,12 @@ const FRAMEWORK_LABELS: Record<string, string> = {
 };
 
 /** Engine/library label for a sidecar backend id. Falls back by prefix so a new
- *  X_onnx or transcribe_cpp_X id still resolves, else echoes the raw id. */
+ *  transcribe_cpp_X id still resolves, else echoes the raw id. The old
+ *  `X_onnx` → 'ONNXRuntime' fallback died with the ONNX backends themselves
+ *  (slice 5) — no backend id ends in `_onnx` anymore. */
 export function frameworkLabel(backendId: string): string {
   if (FRAMEWORK_LABELS[backendId]) return FRAMEWORK_LABELS[backendId];
   if (backendId.startsWith('transcribe_cpp')) return 'transcribe.cpp';
-  if (backendId.endsWith('_onnx')) return 'ONNXRuntime';
   return backendId;
 }
 
@@ -351,11 +362,12 @@ export function buildBackendTooltipRows(input: {
   }
   if (resolved?.memoryBytes) rows.push({ key: 'memory', value: formatMemMb(Math.round(resolved.memoryBytes / 1_048_576)) });
   if (sizeMb != null) rows.push({ key: 'size', value: formatMemMb(sizeMb) });
-  // TODO(#287): the frontend catalog only exposes the model-level repo
-  // (info.repo = the ONNX/primary repo). MLX TTS tiers on Apple Silicon load a
-  // different per-tier artifact, so info.repo would mislabel them — hide the repo
-  // row for MLX until the sidecar sends a per-tier repo, then drop this guard.
-  if (repo && !(backendId && frameworkLabel(backendId) === 'MLX')) rows.push({ key: 'repo', value: repo });
+  // The #287 MLX repo-hiding guard (`repo && !(backendId && frameworkLabel(backendId)
+  // === 'MLX')`) died with the ONNX/MLX TTS backends that were its only possible
+  // match (Task 5's catalog rewire onto native_tts; frameworkLabel can no longer
+  // produce 'MLX') — removed in slice 5 rather than left as dead code. The repo
+  // row now shows unconditionally.
+  if (repo) rows.push({ key: 'repo', value: repo });
   if (resolved?.fallbackReason) rows.push({ key: 'fallback', value: resolved.fallbackReason, warn: true });
   return rows;
 }

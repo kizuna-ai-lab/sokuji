@@ -888,6 +888,7 @@
     "clipSilent": "কোনো কণ্ঠস্বর শনাক্ত হয়নি — আপনার মাইক্রোফোন পরীক্ষা করে আবার চেষ্টা করুন।",
     "clipTooLong": "রেকর্ডিং খুব দীর্ঘ — এটি {seconds} সেকেন্ডের মধ্যে রাখুন।",
     "clipTooShort": "রেকর্ডিং খুব ছোট — কমপক্ষে {seconds} সেকেন্ড কথা বলুন।",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "কাস্টম কণ্ঠস্বর দরকার?",
     "decodeFailed": "সেই অডিও ফাইলটি পড়া যায়নি — WAV, MP3 বা অন্য প্রচলিত ফরম্যাট চেষ্টা করুন।",
     "delete": "মুছুন",

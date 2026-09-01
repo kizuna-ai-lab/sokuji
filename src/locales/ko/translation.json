@@ -888,6 +888,7 @@
     "clipSilent": "음성이 감지되지 않았습니다 — 마이크를 확인하고 다시 시도하세요.",
     "clipTooLong": "녹음이 너무 깁니다 — {seconds}초 이내로 유지하세요.",
     "clipTooShort": "녹음이 너무 짧습니다 — 최소 {seconds}초 이상 말하세요.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "맞춤 음성이 필요하신가요?",
     "decodeFailed": "이 오디오 파일을 읽을 수 없습니다 — WAV, MP3 등 일반적인 형식을 사용해 보세요.",
     "delete": "삭제",

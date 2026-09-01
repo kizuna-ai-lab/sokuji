@@ -5,6 +5,7 @@ import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import {
   curatedBuiltinVoices,
   defaultTtsVoice,
+  isCloneOnlyVoice,
   type VoiceCapability,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import type { NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -218,6 +219,18 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
 
   if (capability.builtin === 'none' && capability.custom === 'none') return null;
 
+  // Renderer-side mirror of the sidecar's R16 pre-check (tts_backend.py's
+  // `_ensure_voice_ready`/`_VOICE_REQUIRED_FAMILIES`): a clone-only model (no
+  // built-in voice at all — qwen3_tts, omnivoice) can't speak until at least
+  // one eligible clip exists. Same eligibility filter as the pickable list
+  // above (transcriptRequired models don't count a clip with no transcript),
+  // so this banner and the dropdown's actual contents never disagree.
+  const eligibleCustomVoiceCount = (capability.transcriptRequired
+    ? customVoices.filter((v) => v.hasTranscript)
+    : customVoices
+  ).length;
+  const needsClipBeforeUse = isCloneOnlyVoice(capability) && eligibleCustomVoiceCount === 0;
+
   // Reconcile for display: an empty choice shows the language default as selected.
   const selectedId = selected || defaultTtsVoice(targetLanguage, builtinVoices);
   // Only widen the capability object when the model actually requires a
@@ -242,6 +255,11 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
         capability={libraryCapability}
         isSessionActive={isSessionActive}
       />
+      {needsClipBeforeUse && (
+        <div className="voice-capture-error" role="alert">
+          {t('voiceLibrary.cloneVoiceRequired', 'This voice needs a clip before it can speak — record or import one below.')}
+        </div>
+      )}
       {captureError && (
         <div className="voice-capture-error" role="alert">{captureError}</div>
       )}

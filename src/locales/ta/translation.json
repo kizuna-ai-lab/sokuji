@@ -888,6 +888,7 @@
     "clipSilent": "குரல் கண்டறியப்படவில்லை — உங்கள் மைக்ரோஃபோனைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
     "clipTooLong": "பதிவு மிக நீளமானது — {seconds} வினாடிகளுக்குள் வைக்கவும்.",
     "clipTooShort": "பதிவு மிகக் குறுகியது — குறைந்தது {seconds} வினாடிகள் பேசவும்.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "தனிப்பயன் குரல் வேண்டுமா?",
     "decodeFailed": "அந்த ஆடியோ கோப்பைப் படிக்க முடியவில்லை — WAV, MP3 அல்லது வேறு பொதுவான வடிவத்தை முயற்சிக்கவும்.",
     "delete": "நீக்கு",

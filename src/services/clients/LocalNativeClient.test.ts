@@ -967,3 +967,72 @@ describe('LocalNativeClient native-vad worker (no worker available)', () => {
     expect(() => client.appendInputAudio(new Int16Array(10))).not.toThrow();
   });
 });
+
+// ── Slice 5: clone-only voice gate (renderer mirror of the sidecar R16 pre-check) ──
+//
+// A model whose catalog entry reports voice: { builtin: 'none', custom: 'clip' }
+// (qwen3_tts/omnivoice-shaped) can ONLY speak via a cloned voice. Without a
+// stored clip, the sidecar's own tts_backend.py raises a clean error from
+// generate() (R16) — but only once generate() is actually called, per
+// sentence. This gate catches it up front, before the model even loads, so
+// connect() never calls tts.init()/tts.generate() for that session at all.
+// A never-reused model id keeps this independent of catalog state any other
+// test in this file may have left behind.
+describe('LocalNativeClient clone-only voice gate', () => {
+  const CLONE_ONLY_MODEL = 'qwen3-tts-gate-test';
+
+  it('skips loading TTS entirely when a clone-only model has no stored clip', async () => {
+    useNativeModelStore.setState({
+      catalog: { [CLONE_ONLY_MODEL]: { id: CLONE_ONLY_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [], voice: { builtin: 'none', custom: 'clip' } } as any },
+    } as any);
+    const m = mocks();
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices').mockResolvedValue([]);
+    const errors: string[] = [];
+    const diagnostics: string[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({
+      onError: (e: any) => errors.push(String(e?.message ?? e)),
+      onDiagnostic: (d: any) => diagnostics.push(`${d.code}: ${d.message}`),
+    } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: CLONE_ONLY_MODEL } as any);
+    expect(m.tts.init).not.toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/needs a voice clip/i);
+    expect(diagnostics.some((d) => d.startsWith('tts_degraded:'))).toBe(true);
+  });
+
+  it('proceeds normally when the clone-only model already has a stored clip', async () => {
+    useNativeModelStore.setState({
+      catalog: { [CLONE_ONLY_MODEL]: { id: CLONE_ONLY_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [], voice: { builtin: 'none', custom: 'clip' } } as any },
+    } as any);
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
+    m.tts.setReferenceVoice = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
+      .mockResolvedValue([{ id: 3, name: 'Mine', audio: new Float32Array([0.1, 0.2]).buffer, sampleRate: 16000, createdAt: 0 }]);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'getNativeVoice')
+      .mockResolvedValue({ id: 3, name: 'Mine', audio: new Float32Array([0.1, 0.2]).buffer, sampleRate: 16000, createdAt: 0 });
+    const errors: string[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({ onError: (e: any) => errors.push(String(e?.message ?? e)) } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: CLONE_ONLY_MODEL, ttsVoice: 'custom:3' } as any);
+    expect(m.tts.init).toHaveBeenCalledWith(CLONE_ONLY_MODEL, undefined, 'en', undefined);
+    expect(m.tts.setReferenceVoice).toHaveBeenCalled();
+    expect(errors).toHaveLength(0);
+  });
+
+  it('a preset/named-voice family (no voice field, no clones) is unaffected by the gate', async () => {
+    // No catalog entry at all for this id -> voiceCapability(undefined) is
+    // {builtin:'none', custom:'none'}, which isCloneOnlyVoice rejects (custom
+    // must be 'clip') -- the gate never engages, matching pre-slice-5 behavior.
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, clones: false });
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({});
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: 'piper-en-amy' } as any);
+    expect(m.tts.init).toHaveBeenCalled();
+  });
+});

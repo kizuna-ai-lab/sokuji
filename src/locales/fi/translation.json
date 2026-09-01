@@ -888,6 +888,7 @@
     "clipSilent": "Ääntä ei havaittu — tarkista mikrofonisi ja yritä uudelleen.",
     "clipTooLong": "Tallenne on liian pitkä — pidä se alle {seconds} sekunnissa.",
     "clipTooShort": "Tallenne on liian lyhyt — puhu vähintään {seconds} sekuntia.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Tarvitsetko mukautetun äänen?",
     "decodeFailed": "Äänitiedostoa ei voitu lukea — kokeile WAV-, MP3- tai muuta yleistä muotoa.",
     "delete": "Poista",

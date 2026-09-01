@@ -888,6 +888,7 @@
     "clipSilent": "Geen stem gedetecteerd — controleer uw microfoon en probeer het opnieuw.",
     "clipTooLong": "Opname is te lang — houd deze onder {seconds} seconden.",
     "clipTooShort": "Opname is te kort — spreek minstens {seconds} seconden.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Een aangepaste stem nodig?",
     "decodeFailed": "Kon dat audiobestand niet lezen — probeer een WAV, MP3 of ander gangbaar formaat.",
     "delete": "Verwijderen",

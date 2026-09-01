@@ -888,6 +888,7 @@
     "clipSilent": "صدایی شناسایی نشد — میکروفون خود را بررسی کرده و دوباره تلاش کنید.",
     "clipTooLong": "ضبط خیلی طولانی است — آن را زیر {seconds} ثانیه نگه دارید.",
     "clipTooShort": "ضبط خیلی کوتاه است — حداقل {seconds} ثانیه صحبت کنید.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "به صدای سفارشی نیاز دارید؟",
     "decodeFailed": "خواندن آن فایل صوتی ممکن نشد — یک WAV، MP3 یا قالب رایج دیگر را امتحان کنید.",
     "delete": "حذف",

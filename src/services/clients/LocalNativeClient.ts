@@ -7,7 +7,7 @@ import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTr
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { reconcileTtsVoice } from '../../lib/local-inference/native/nativeTtsVoiceReconciliation';
-import { voiceCapability } from '../../lib/local-inference/native/nativeCatalog';
+import { voiceCapability, isCloneOnlyVoice } from '../../lib/local-inference/native/nativeCatalog';
 import { voiceStoreFor } from '../../lib/local-inference/native/nativeVoiceStores';
 import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import { splitSentences } from '../../utils/splitSentences';
@@ -132,6 +132,34 @@ export class LocalNativeClient implements IClient {
       await initAsr();
     }
     this.ttsEnabled = !!config.ttsModelId && !config.textOnly;
+    if (this.ttsEnabled) {
+      // Renderer-side mirror of the sidecar's R16 pre-check (tts_backend.py's
+      // `_ensure_voice_ready`/`_VOICE_REQUIRED_FAMILIES`): a clone-only model
+      // (no built-in voice at all — qwen3_tts, omnivoice) can never speak
+      // without a stored clip. Checked BEFORE loading the model: catching it
+      // here turns what would otherwise be a `tts_degraded` diagnostic on
+      // EVERY sentence of the session into one clear, up-front notice, and
+      // skips a model load that could only ever fail to synthesize. Skipped
+      // entirely when the catalog hasn't loaded yet (voiceCapability then
+      // resolves to none/none) — the unchanged init path below still applies
+      // in that case, same as before this check existed.
+      const gateCap = voiceCapability(store.catalog[config.ttsModelId!]);
+      if (isCloneOnlyVoice(gateCap)) {
+        const gateStore = voiceStoreFor(gateCap.custom, config.ttsModelId!);
+        let eligibleClips = 0;
+        if (gateStore) {
+          try {
+            const clips = await gateStore.list();
+            eligibleClips = (gateCap.transcriptRequired ? clips.filter((v) => v.hasTranscript) : clips).length;
+          } catch { /* storage unavailable — treated as no clip, matches R16 */ }
+        }
+        if (eligibleClips === 0) {
+          this.ttsEnabled = false;
+          this.diagnose('tts_degraded', `TTS unavailable, continuing without it: "${config.ttsModelId}" needs a voice clip — record or import one in Settings first`);
+          this.handlers.onError?.(new Error(`"${config.ttsModelId}" needs a voice clip — record or import one in Settings before it can speak`));
+        }
+      }
+    }
     if (this.ttsEnabled) {
       store.setTtsLoading(true);
       try {

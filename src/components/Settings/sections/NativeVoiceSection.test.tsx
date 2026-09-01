@@ -180,4 +180,43 @@ describe('NativeVoiceSection', () => {
     expect((await screen.findAllByText('WithText')).length).toBeGreaterThan(0);
     expect(screen.queryByText('NoText')).toBeNull();
   });
+
+  describe('clone-only voice gate (slice 5 — renderer mirror of the sidecar R16 pre-check)', () => {
+    it('warns when a clone-only model (builtin:none, custom:clip) has no clip yet', async () => {
+      const store = makeClipStore({ list: vi.fn().mockResolvedValue([]) });
+      render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip' }}
+        builtinVoices={[]} store={store} selected="" targetLanguage="en"
+        onSelect={() => {}} onCustomChanged={() => {}} />);
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/needs a clip/i));
+    });
+
+    it('does not warn once a clip is stored for that clone-only model', async () => {
+      const store = makeClipStore({ list: vi.fn().mockResolvedValue([{ id: 1, name: 'MyClone' }]) });
+      render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip' }}
+        builtinVoices={[]} store={store} selected="" targetLanguage="en"
+        onSelect={() => {}} onCustomChanged={() => {}} />);
+      // 'MyClone' appears twice in dropdown presentation (the <select> option
+      // AND the "manage imported voices" row) — same duplication as the
+      // transcriptRequired filter test above.
+      await waitFor(() => expect(screen.getAllByText('MyClone').length).toBeGreaterThan(0));
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('a transcriptRequired clone-only model still warns when clips exist but none carry a transcript', async () => {
+      const store = makeClipStore({
+        list: vi.fn().mockResolvedValue([{ id: 1, name: 'NoText', hasTranscript: false }]),
+      });
+      render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip', transcriptRequired: true }}
+        builtinVoices={[]} store={store} selected="" targetLanguage="en"
+        onSelect={() => {}} onCustomChanged={() => {}} />);
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/needs a clip/i));
+    });
+
+    it('a preset/named-voice family (MOSS-shaped) is unaffected even with zero custom clips', async () => {
+      const store = makeClipStore({ list: vi.fn().mockResolvedValue([]) });
+      render(<NativeVoiceSection {...baseProps} store={store} />);
+      await screen.findByText('Ava');
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
 });
