@@ -126,10 +126,21 @@ with a none-too-friendly, native-layer-specific message (live-verified,
 task-7-report.md §3: "Qwen3 base TTS requires voice clone reference audio").
 _ensure_voice_ready() raises a clear, family-named BackendLoadError here, BEFORE ever
 reaching the native layer, so the wire error is deterministic and readable regardless
-of what audio.cpp happens to throw that day. moss_tts_nano and pocket_tts also report
-CLONES=True but are NOT gated -- both ship a working built-in default voice (moss:
-native/tests/test_tts.cpp's own case synths before ever calling set_voice; pocket:
-every package can run clone-free).
+of what audio.cpp happens to throw that day. moss_tts_nano also reports CLONES=True
+but is NOT gated -- native/tests/test_tts.cpp's own case synths before ever calling
+set_voice, so a bare synth() genuinely works with no preset. pocket_tts ALSO reports
+CLONES=True and was ORIGINALLY believed to be in that same "ships a working built-in
+default" camp -- live-verified WRONG in slice 5b's Task 4 review round, against real
+ggufs: a bare pocket_tts synth() with no preset/voice set fails, just like qwen3/
+omnivoice, with its own audio.cpp message ("PocketTTS session prepare() requires a
+session voice via --voice-id or --voice-ref"). pocket_tts is deliberately NOT added
+to _VOICE_REQUIRED_FAMILIES for this -- that would only turn the failure into a clean
+error, not make a bare synth actually work. See ruling R34 below for how load()
+instead gives pocket_tts a genuinely working default voice. Summary of what a bare
+generate() (no set_voice()/set_builtin_voice() ever called by the client) does today:
+moss_tts_nano and supertonic synth for real with no preset; qwen3_tts/omnivoice raise
+_ensure_voice_ready()'s clean BackendLoadError; pocket_tts synths for real too, but
+only because load() (R34) already applied its one default preset on its behalf.
 
 I2 -- the per-synth ACTUAL sample rate (audio.cpp's own returned rate, which can differ
 from the family's advertised caps.sample_rate) is now forwarded end-to-end instead of
@@ -167,6 +178,28 @@ generate() can raise, logs it to stderr, and returns -- load() must still
 succeed and hand back a backend ready to serve a (merely slower) first real
 synth even if the warm-up itself failed.
 
+Fix round 1 (2026-09-02), ruling R34 -- reviewer live-verification against real ggufs
+caught Task 4's own docstring overclaiming "none of the five families requires a
+preset before a plain generate()": pocket_tts's engine genuinely requires a session
+voice (see R16's corrected paragraph above), so the warm-up above was a SILENT NO-OP
+for pocket_tts on a GPU load -- _warm_up()'s own try/except caught the native failure
+and logged it, never actually exercising (or hiding the cost of) pocket's GPU
+pipeline compile. moss_tts_nano and supertonic's bare synth() calls were separately
+live-verified to genuinely work with no preset. _DEFAULT_PRESET_FAMILIES =
+{"pocket_tts"} names the one family whose engine needs a preset before ANY synth can
+run at all, not merely the warm-up -- load() now calls
+set_builtin_voice(presets()[0]) for a family in that set (pocket's own card ships a
+single "alba" preset, read off presets()'s own listing -- embeddings/*.safetensors
+basenames -- not hardcoded) BEFORE _warm_up() runs, and unconditionally (both CPU and
+GPU loads: a bare CPU generate() was exactly as broken as a bare GPU one, so this is
+a correctness fix, not warm-up-only plumbing). supertonic is deliberately NOT in this
+set: its engine already has a working built-in default voice, and applying a preset
+here would silently change what a bare synth's DEFAULT voice sounds like for every
+caller that never asked for one. Consequence: a client that never calls set_voice()/
+set_builtin_voice() on pocket_tts now gets a real, working synth (using the "alba"
+preset) instead of the native session-prepare error -- previously-broken, untested
+behavior that this fix makes both correct and covered.
+
 Round 2 (2026-09-01), ruling R18 -- see the module docstring's second paragraph above
 for the full defect trace. _stage_for_native() hard-links the resolved gguf (+ any
 PlanConfig.tts_extra_files sidecars) into a deterministic, idempotent staging path
@@ -203,6 +236,14 @@ _SENTINEL = object()
 # terminate, for a streaming Thread) before the model is freed regardless. A
 # module constant (not inlined in unload()) so a test can shrink it to
 # exercise the "still-blocked native call" path without a real 10s wait.
+# R33 note: the warm-up's own documented worst case (16.52s, moss_tts_nano cold
+# on Vulkan, windows-vulkan-validation.md's W-1) EXCEEDS this deadline, but that
+# is unreachable in practice today: accel.load_*() only assigns a backend to its
+# engine (making it visible to a concurrent unload()) AFTER load() -- and
+# therefore the warm-up inside it -- has already returned (reviewer's trace).
+# There is no window in which unload() can observe an in-flight warm-up and race
+# this deadline against it. Not a reason to raise the deadline; a reason this
+# specific interaction needs no code change.
 _UNLOAD_DEADLINE_S = 10.0
 
 # R16: families whose native default voice raises when synth() is attempted with no
@@ -215,6 +256,18 @@ _VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice"})
 # device, purely to pay the first-synth GPU pipeline-compile cost at load
 # time instead of on the user's own first utterance. Its output is discarded.
 _WARM_UP_TEXT = "Warm-up."
+
+# R34: families whose engine raises on a synth() attempted with no preset/voice
+# set first, live-verified against real ggufs -- pocket_tts's audio.cpp session
+# prepare raises "PocketTTS session prepare() requires a session voice via
+# --voice-id or --voice-ref" (NOT the same message as _VOICE_REQUIRED_FAMILIES'
+# families, and NOT handled by adding pocket_tts there -- that would only make
+# the failure clean, not make a bare synth work). load() applies each of these
+# families' FIRST listed preset automatically so a bare generate()/warm-up
+# actually succeeds. supertonic is deliberately excluded: its engine already
+# ships a working built-in default voice, and forcing a preset here would
+# silently change what a bare synth's DEFAULT voice sounds like.
+_DEFAULT_PRESET_FAMILIES = frozenset({"pocket_tts"})
 
 
 def _staging_root() -> str:
@@ -406,6 +459,18 @@ class NativeTtsBackend:
             self.sample_rate = int(caps.sample_rate)
             self._family = family              # R16: which _ensure_voice_ready() gates on
             self._voice_set = False             # a freshly loaded model has no voice yet
+            # R34: give a family whose engine needs one a genuinely working
+            # default voice BEFORE any synth (warm-up or a client's own bare
+            # generate()) is attempted -- unconditionally, on every device, not
+            # just ahead of the GPU-only warm-up below (a bare CPU generate()
+            # was exactly as broken as a bare GPU one). Only runs when no voice
+            # has been set yet -- always true here, since load() just reset
+            # self._voice_set above, but written this way to match the ruling
+            # and stay correct if that ever changes.
+            if family in _DEFAULT_PRESET_FAMILIES and not self._voice_set:
+                presets = self._model.presets()
+                if presets:
+                    self.set_builtin_voice(presets[0])
             # R33 / W-1: warm up ONLY on a non-CPU device, and never for a
             # clone-only family -- see the module docstring's "Task 4" paragraph.
             if device != "cpu" and family not in _VOICE_REQUIRED_FAMILIES:

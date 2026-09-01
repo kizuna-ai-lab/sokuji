@@ -222,6 +222,27 @@ class _MultiStreamTrackingModel(_FakeTtsModel):
                 self.active -= 1
 
 
+class _PocketLikeModel(_FakeTtsModel):
+    """R34 fix round 1: mirrors the REAL pocket_tts engine's session-prepare
+    requirement -- live-verified by the reviewer against real ggufs, a bare
+    synth() with no preset/voice set raises exactly this audio.cpp error
+    ('PocketTTS session prepare() requires a session voice via --voice-id or
+    --voice-ref'), NOT the generic R16 message qwen3_tts/omnivoice raise.
+    Also overrides presets() to return pocket's real single-preset shape
+    (['alba'], the embeddings/*.safetensors basename our card ships) instead
+    of the generic two-preset default _FakeTtsModel.presets() returns."""
+
+    def presets(self):
+        self._check_loaded("sk_tts_presets")
+        return ["alba"]
+
+    def synth(self, text, language=None, speed=1.0, on_chunk=None):
+        if self.preset is None and self.voice is None:
+            raise NativeError(-8, "PocketTTS session prepare() requires a "
+                               "session voice via --voice-id or --voice-ref")
+        return super().synth(text, language, speed, on_chunk)
+
+
 def _caps(streaming=False, clones=True, transcript_required=False, sample_rate=24000):
     return types.SimpleNamespace(streaming=streaming, clones=clones,
                                  transcript_required=transcript_required, sample_rate=sample_rate)
@@ -834,13 +855,34 @@ def test_generate_stream_succeeds_after_set_voice_for_clone_only_family(native_e
     assert len(chunks) == 1
 
 
-def test_moss_and_pocket_are_not_gated_by_r16_despite_also_reporting_clones(native_env):
-    """moss_tts_nano and pocket_tts also report CLONES=True but ship a working
-    built-in default voice -- R16 must NOT gate them (task-7-report.md §3: "a
-    default built-in voice covers a plain synth call")."""
+def test_moss_is_not_gated_by_r16_and_ships_a_genuinely_working_default_voice(native_env):
+    """moss_tts_nano also reports CLONES=True but ships a working built-in
+    default voice -- R16 must NOT gate it (task-7-report.md §3: "a default
+    built-in voice covers a plain synth call"), and (unlike pocket_tts below)
+    it needs no help from R34 either: moss is not in _DEFAULT_PRESET_FAMILIES,
+    and a bare synth() genuinely works with no preset ever applied."""
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
     samples, _rate, _ms = b.generate("hello")   # must not raise
+    assert samples.dtype == np.float32
+
+
+def test_pocket_tts_is_not_gated_by_r16_and_generate_works_via_r34_default_preset(native_env):
+    """R34 fix round 1: unlike moss above, pocket_tts's real engine does NOT
+    ship a usable default voice -- live-verified: a bare synth() raises
+    'PocketTTS session prepare() requires a session voice via --voice-id or
+    --voice-ref' (see _PocketLikeModel). It is still not gated by R16 (that
+    would only turn the failure into a clean error) -- instead load() applies
+    pocket's first preset automatically (_DEFAULT_PRESET_FAMILIES), so a bare
+    generate() genuinely succeeds. This test previously (before this fix)
+    exercised ONLY moss in its body despite claiming to cover pocket too --
+    it never actually loaded a pocket fake, so R34's own bug went uncaught."""
+    created, _log = native_env
+    created["caps"] = _caps(clones=True)
+    created["model_factory"] = _PocketLikeModel
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
+    samples, _rate, _ms = b.generate("hello")   # must not raise (R34)
     assert samples.dtype == np.float32
 
 
@@ -1325,3 +1367,103 @@ def test_load_racing_unload_joins_the_warmup_before_freeing_the_model(native_env
     assert not load_thread.is_alive()
     assert order == ["model.unload"]
     assert b.is_loaded is False
+
+
+# ── Fix round 1 (2026-09-02), ruling R34 ─────────────────────────────────────
+# Reviewer live-verification against real ggufs: pocket_tts's engine genuinely
+# requires a session voice ("PocketTTS session prepare() requires a session
+# voice via --voice-id or --voice-ref") -- Task 4's warm-up was therefore a
+# SILENT NO-OP for pocket_tts (the native failure was caught and logged by
+# _warm_up()'s own try/except, never actually exercising the GPU pipeline
+# compile it exists to hide). moss_tts_nano and supertonic's bare synth() were
+# separately live-verified to genuinely work with no preset. load() now
+# applies _DEFAULT_PRESET_FAMILIES = {"pocket_tts"}'s first preset
+# automatically, unconditionally (both devices), before the warm-up.
+
+def test_load_pocket_tts_gpu_applies_default_preset_then_warms_up_for_real(native_env):
+    """(a) pocket loaded on GPU: set_builtin_voice("alba") must land BEFORE the
+    warm-up synth runs -- proven two ways: the model's preset state reflects
+    it, AND the warm-up synth is present in the log at all (with the
+    _PocketLikeModel fake, it would raise -- and be silently swallowed by
+    _warm_up() -- if the preset had not already been applied by the time the
+    warm-up's synth() call reached the fake)."""
+    created, log = native_env
+    created["caps"] = _caps(clones=True)
+    created["model_factory"] = _PocketLikeModel
+    b = backends.make_backend("native_tts")
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
+    model = created["model"]
+    assert model.preset == "alba"
+    assert b._voice_set is True
+    # The warm-up genuinely ran (not swallowed): exactly the one synth call,
+    # with no stderr failure line, proves the preset landed before it.
+    assert log == [("synth", "Warm-up.", None, 1.0, False)]
+    assert b._workers == []
+
+
+def test_load_pocket_tts_gpu_warmup_not_silently_swallowed(native_env, capsys):
+    """Direct regression check for the bug this fix round exists to close: with
+    the fix, stderr must NOT carry a warm-up-failed line for pocket_tts on GPU
+    -- before R34, _warm_up()'s own try/except caught the native
+    session-prepare failure here and logged it, masking a warm-up that never
+    actually happened."""
+    created, log = native_env
+    created["caps"] = _caps(clones=True)
+    created["model_factory"] = _PocketLikeModel
+    b = backends.make_backend("native_tts")
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
+    err = capsys.readouterr().err
+    assert "warm-up synth failed" not in err
+    assert "warm-up synth for family='pocket_tts'" in err
+
+
+def test_load_pocket_tts_cpu_applies_default_preset_without_warmup(native_env):
+    """(b) pocket loaded on CPU: the default preset is still applied (this is a
+    correctness fix, not GPU-warm-up-only plumbing -- a bare CPU generate() was
+    exactly as broken as a bare GPU one), but no warm-up runs on CPU."""
+    created, log = native_env
+    created["caps"] = _caps(clones=True)
+    created["model_factory"] = _PocketLikeModel
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
+    model = created["model"]
+    assert model.preset == "alba"
+    assert b._voice_set is True
+    assert log == []   # no warm-up on cpu
+    # And the consequence R34 exists for: a bare generate() now genuinely
+    # succeeds where it would previously have raised the native error.
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32
+
+
+# (c) "pocket with a voice already set before load" is not reachable through
+# the public API and is therefore skipped, per the task brief's own escape
+# hatch: set_voice()/set_builtin_voice() both raise BackendLoadError when
+# self._model is None (i.e. before any load() has ever succeeded), and load()
+# unconditionally resets self._voice_set = False on every successful load
+# before the R34 preset step even runs -- there is no sequence of public calls
+# that reaches the preset-application check with self._voice_set already True.
+
+
+def test_load_supertonic_gpu_gets_no_default_preset_and_warms_up_bare(native_env):
+    """(d) supertonic is deliberately excluded from _DEFAULT_PRESET_FAMILIES --
+    its engine already has a working built-in default voice, and load() must
+    not silently pick a preset on the caller's behalf. The warm-up still runs,
+    bare, exactly as it did before this fix round."""
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "vulkan", "q8_0", config=PlanConfig(tts_family="supertonic"))
+    model = created["model"]
+    assert model.preset is None
+    assert b._voice_set is False
+    assert log == [("synth", "Warm-up.", None, 1.0, False)]
+
+
+def test_load_supertonic_cpu_gets_no_default_preset(native_env):
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="supertonic"))
+    model = created["model"]
+    assert model.preset is None
+    assert b._voice_set is False
+    assert log == []
