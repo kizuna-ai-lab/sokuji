@@ -61,6 +61,16 @@ Why faster: 30 % fewer decoder nodes (RMSNorm fused) in a dispatch-bound loop, a
 prefill no longer runs a 622 MB fp32 gather on the GPU — the prompt embedding is built on
 the host from the int8 table (`promptBuildMs` 2–6 ms).
 
+## Task 9 — Hub
+
+`jiangzhuo9357/Qwen3-ASR-0.6B-ONNX` @ 46094255: 17 v2 files + README (2.02 GB), v1 files
+deleted; exact sizes in `v2-hub-files.json`. Browser run on the Mac with
+`base=https://huggingface.co/jiangzhuo9357/Qwen3-ASR-0.6B-ONNX/resolve/main/` (q4f16, three
+clips): CORS and `resolve/main` paths work, transcripts and speed identical to the LAN run
+(median RTF 0.072, 16.5 ms/token). The Hub download itself took ~18 min from the Mac
+(≈0.7 MB/s from this location) — irrelevant to inference, but the product's download UI
+must show progress for ~0.9–1.3 GB.
+
 ## Task 6 — prompt_config.json
 
 prefix `[151644, 9125, 198, 151645, 198, 151644, 882, 198, 151669]`, suffix
