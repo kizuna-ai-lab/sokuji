@@ -19,7 +19,8 @@ const profile = `${process.env.PROFILE_DIR || join(tmpdir(), 'spike-chrome-profi
 const linuxGpuFlags = process.platform === 'linux'
   ? ['--enable-features=Vulkan,WebGPU', '--use-angle=vulkan', '--enable-dawn-features=allow_unsafe_apis']
   : [];
-const flags = ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
+const headless = process.env.NO_HEADLESS ? [] : ['--headless=new'];
+const flags = [...headless, '--no-sandbox', '--disable-dev-shm-usage', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
   '--enable-unsafe-webgpu', '--ignore-gpu-blocklist', ...linuxGpuFlags, '--window-size=800,600', ...extra, 'about:blank'];
 const proc = spawn(chrome, flags, { stdio: ['ignore', 'pipe', 'pipe'] });
 let stderr = '';

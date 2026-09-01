@@ -14,8 +14,8 @@ transformers.js — which as of 4.2.0 has no Qwen3-ASR class and no onnx-communi
 
 ## Answer
 
-Yes, on WebGPU. With an int4 decoder and fp16 encoder the whole pipeline runs at
-**RTF 0.11–0.14 on an RTX 4070 SUPER and on an Apple M4** (warm), transcripts identical to the
+Yes, on WebGPU. With an int4 decoder the whole pipeline runs at **RTF 0.09–0.14 on an
+RTX 4070 SUPER, an Apple M4 and the GB10's own GPU** (warm), transcripts identical to the
 Python reference, Chinese/English/Japanese all correct on the test set except the model's own
 0.6B-class errors. Without WebGPU (wasm EP) it is RTF 3.0 single-threaded and 0.64 with 8
 threads: not usable, so the model stays `requiredDevice: 'webgpu'` like Granite/Voxtral.
@@ -101,9 +101,21 @@ is a few ms of compute — so the win there is fewer, fused kernels, not a faste
 | 1 (no COOP/COEP — what the extension has today) | 2.97 | 1040 | unusable |
 | 8 (COOP/COEP served) | 0.64 | 232 | not live-capable; ~9× slower than native ORT CPU on the same box |
 
-GB10's own WebGPU could not be measured: headless Chromium's GPU process fails
-(`CreateCommandBuffer kTransientFailure`) with every Vulkan flag combination tried. Not a
-product concern (aarch64 Linux desktop).
+### WebGPU, GB10 (Grace + Blackwell GB10, aarch64 Linux, NVIDIA 580 Vulkan), old headless shell 151
+
+| variant | clips | median RTF | max RTF | ms/token | encoder ms (10 s clip) | prefill ms | mean CER |
+|---|---|---|---|---|---|---|---|
+| int4 + fp32 encoder | 8 | 0.091 | 0.149 | 25 | 30–40 | 42–81 | 0.062 |
+| int4 + fp16 encoder, q4f16 | — | refused: adapter has no `shader-f16` ("Program Transpose requires f16") | | | | | |
+
+`chrome --headless=new` never holds a WebGPU adapter on this box (GPU process dies with
+`CreateCommandBuffer kTransientFailure` under every Vulkan flag set tried); the old
+`chromium_headless_shell` binary does, with `--use-vulkan=native --disable-vulkan-surface`.
+Two things this box adds: an NVIDIA/Vulkan adapter can lack `shader-f16`, so the fp16
+artifacts must be gated on the feature, not the vendor; and the same int4 graph picks a
+different token on one Japanese clip than the 4070/M4 did (fp32 accumulation differs per
+backend), so per-device transcripts can differ at knife edges even without quantization
+changes.
 
 ## Sizes (bytes on disk, MiB)
 
@@ -164,7 +176,9 @@ that was expected and does not change with any quantization.
    `feature_size: 128` once proven identical; tokenizer via `AutoTokenizer` (already in the
    shared transformers chunk) or the 40-line decoder; strip / force the `<asr_text>` prefix.
 3. **Manifest + types + engine** (1 day): `modelManifest.ts` row (`requiredDevice: 'webgpu'`,
-   `q4f16` with `requiredFeatures: ['shader-f16']`, `q4` fallback, 16 languages, `hfModelId`),
+   `q4f16` **and the fp16 encoder** together under `requiredFeatures: ['shader-f16']` — the
+   GB10's NVIDIA/Vulkan adapter has no `shader-f16` and ORT-web refuses fp16 graphs there —
+   with `q4` + fp32 encoder as the fallback, 16 languages, `hfModelId`),
    `asrWorkerType` union, `AsrEngine.ts` dispatch, `harness-consolidation.test.ts`, locales,
    `consoleLedger` rows if the worker logs.
 4. **Validation on the fleet** (1 day): the same 13 clips through the real worker on the

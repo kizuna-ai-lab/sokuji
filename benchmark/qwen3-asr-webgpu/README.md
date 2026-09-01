@@ -59,7 +59,11 @@ WebGPU only exists in secure contexts (`navigator.gpu` is undefined over plain L
   exporting or every utterance reads back ~120 MB from the GPU.
 - `onnxconverter_common` cannot serialize the >2 GB FP32 decoders; convert the int4 graphs
   instead, and keep RMSNorm/softmax ops in fp32 or the fp16 variance overflows to NaN.
-- Headless Chromium on the GB10 (aarch64 + NVIDIA) never held a WebGPU adapter; use the
-  Windows/Mac boxes for GPU numbers.
+- On the GB10 (aarch64 + NVIDIA, Vulkan) `chrome --headless=new` never holds a WebGPU
+  adapter (`CreateCommandBuffer kTransientFailure`), whatever the flags. The old
+  `chromium_headless_shell` binary from the same Playwright cache does, reliably, with
+  `--use-vulkan=native --disable-vulkan-surface`. That adapter has **no `shader-f16`**, so the
+  fp16 encoder and the q4f16 decoders refuse to load there ("Program Transpose requires f16")
+  — gate every fp16 artifact on the feature, not on the vendor.
 - `validate.py` wants `embed_tokens_shape` in `config.json`, which this `export.py` version
   does not write.

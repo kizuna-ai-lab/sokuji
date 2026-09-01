@@ -97,10 +97,29 @@
   ja-fleurs1828.wav     10.440         95        321        446       5809         26    232.400      0.639      0.044  インターネットで機体的環境コースについて検索するとおそらく現地企業の住所が出てくるでしょう。
   zh-fleurs1906.wav     10.380        103        316        438       3724         18    219.100      0.441      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
   => median RTF 0.639  max RTF 0.739  mean CER 0.015  median ms/token 232.4
+== page-gb10-webgpu-int4-encf16.log
+  !! Error: Can't create a session. ERROR_CODE: 1, ERROR_MESSAGE: shader_helper.cc:401 GenerateSourceCode Program Transpose requires f16 but the device does not support it.
+    at E (http://127.0.0.1:8765/ort/ort.webgpu.min.mjs:6:26271)
+    at Pe (http://127.0.0.1:8765/ort/ort.webgpu.min.mjs:7:23187)
+    at async Ze.loadModel (http://127.0.0.1:8765/ort/ort.webgpu.min.mjs:7:35885)
+    at async Ke.createInferenceSessionHandler (http://127.0.0.1:8765/ort/ort.webgpu.min.mjs:7:37594)
+    at async t.create (http://127.0.0.1:8765/ort/ort.webgpu.min.mjs:6:19860)
+    at async main (http://127.0.0.1:8765/main.js:122:19)
+  env: ep=webgpu adapter={'vendor': 'nvidia', 'architecture': '', 'device': '', 'description': ''} f16=False threads=1 ua=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
 == page-gb10-webgpu-int4.log
-  !! Error: WebGPU adapter unavailable
-    at main (http://127.0.0.1:8765/main.js:93:38)
-  env: ep=webgpu adapter=None f16=False threads=1 ua=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
+  env: ep=webgpu adapter={'vendor': 'nvidia', 'architecture': '', 'device': '', 'description': ''} f16=False threads=1 ua=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
+  load: {'tokenizerAndEmbedMs': 457, 'encoderMs': 2364, 'initMs': 2021, 'stepMs': 532, 'totalMs': 5374}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  jfk.wav [cold]         11        106        564        781       1026         30     35.400      0.225      0.000  And so, my fellow Americans, ask not what your c
+     jfk.wav         11        103         32         51        724         30         25      0.083      0.000  And so, my fellow Americans, ask not what your c
+  ja-cv2.wav      5.330         63         40         46        647         27     24.900      0.149      0.000  いくら山を掘り返してもどこかで見たような面白みのないものしか見つからなかった。
+  ja-fleurs1828.wav     10.440        204         34         81        715         27     27.500      0.099      0.111  インターネットで機体的環境構成について検索するとおそらく現地企業の住所が出てくるでしょう。
+  ja-fleurs1834.wav     14.220        103         35         51        982         39     25.800      0.082      0.130  また北側に行くなら、世界的に有名なマリアゾの聖地であるファティマの聖母の聖域。神じゃおとずれまし
+  ja-fleurs1813.wav     12.840         93         37         47       1462         58     25.600      0.128      0.169  バルセイアの公用語はカタルウネ語とスペイン語です。約半数がカタルウネ語を好み、大数がカタルウネ語
+  zh-fleurs1906.wav     10.380         75         30         42        418         18     24.600      0.054      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
+  zh-fleurs2006.wav      8.280         60         36         43        576         21     28.800      0.086      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
+  zh-fleurs1852.wav     15.420        111         38         52       1298         53         25      0.097      0.084  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  => median RTF 0.091  max RTF 0.149  mean CER 0.062  median ms/token 25.3
 == page-mac-int4-encf16.log
   env: ep=webgpu adapter={'vendor': 'apple', 'architecture': 'metal-3', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
   load: {'tokenizerAndEmbedMs': 4860, 'encoderMs': 6161, 'initMs': 14502, 'stepMs': 4750, 'totalMs': 30274}
