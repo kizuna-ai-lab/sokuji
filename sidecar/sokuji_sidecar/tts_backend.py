@@ -248,8 +248,18 @@ _UNLOAD_DEADLINE_S = 10.0
 
 # R16: families whose native default voice raises when synth() is attempted with no
 # clone/preset set first -- live-verified only for these two (task-7-report.md §3).
-# moss_tts_nano/pocket_tts also report CLONES=True but are NOT included: both ship a
-# working built-in default and must stay callable without a voice ever being set.
+# moss_tts_nano ALSO reports CLONES=True but is NOT included here: it ships a genuinely
+# working built-in default and stays callable without a voice ever being set.
+# pocket_tts ALSO reports CLONES=True and is likewise NOT included here -- but for a
+# DIFFERENT reason than moss: its audio.cpp engine does NOT have a usable default voice
+# (live-verified: a bare synth() raises "PocketTTS session prepare() requires a session
+# voice via --voice-id or --voice-ref", same shape as qwen3_tts/omnivoice's failure, just
+# its own message). Putting pocket_tts here would only turn that failure into a clean
+# BackendLoadError, not make a bare synth() actually work -- it is instead served by
+# _DEFAULT_PRESET_FAMILIES below (ruling R34), which gives it a REAL default voice at
+# load() time. Neither of these two omissions belongs to the "ships a working built-in
+# default" story: moss earns its omission outright; pocket_tts's is earned by R34, not by
+# its own engine.
 _VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice"})
 
 # R33 / W-1: the fixed short phrase load() synthesizes once, on a non-CPU
@@ -471,6 +481,17 @@ class NativeTtsBackend:
                 presets = self._model.presets()
                 if presets:
                     self.set_builtin_voice(presets[0])
+                else:
+                    # A future card in this family shipped with no embeddings/
+                    # presets at all -- fail LOUD to stderr rather than silently
+                    # falling through to the same bare-synth session-prepare
+                    # error R34 exists to avoid (that failure would otherwise
+                    # look identical to this feature never having run at all).
+                    print(f"native_tts: family={family!r} is in "
+                          "_DEFAULT_PRESET_FAMILIES but presets() returned none -- "
+                          "no default voice could be applied; a bare synth will "
+                          "fail until a client calls set_voice()/set_builtin_voice()",
+                          file=sys.stderr, flush=True)
             # R33 / W-1: warm up ONLY on a non-CPU device, and never for a
             # clone-only family -- see the module docstring's "Task 4" paragraph.
             if device != "cpu" and family not in _VOICE_REQUIRED_FAMILIES:
@@ -491,7 +512,17 @@ class NativeTtsBackend:
         in-flight generate(), instead of freeing the handle out from under it.
         Purely an optimization: any failure (a family/device shape never
         live-verified, a transient native error, ...) is logged to stderr and
-        swallowed here -- load() must still succeed regardless."""
+        swallowed here -- load() must still succeed regardless.
+
+        Accuracy note (linux-x64-vulkan-validation.md §4): the cost this hides
+        is the NVIDIA driver's own on-disk pipeline/shader cache
+        (`__GL_SHADER_DISK_CACHE_PATH`) -- a PER-MACHINE cost, not per-process
+        and not per-session. Measured 2-14s cold (an empty driver cache) vs
+        ~0.06-0.94s once that cache is warm, across all five families. So this
+        warm-up buys the full saving only on a first-ever run on a given
+        machine; on every later process (warm driver cache) it still runs, but
+        it is hiding a steady-state synth (tens to hundreds of ms), not a fresh
+        16s compile -- do not expect a 16s saving on every launch."""
         t0 = time.time()
         try:
             self.generate(_WARM_UP_TEXT)
