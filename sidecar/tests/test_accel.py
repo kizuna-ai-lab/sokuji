@@ -685,13 +685,21 @@ def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
     import numpy as np
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     class FakeBackend:
+        # I2(s4): generate() returns (samples, rate, gen_ms) -- the ACTUAL per-synth
+        # rate, which measure_rtf_tts must use for audio_s. `sample_rate` here is the
+        # class's advertised caps DEFAULT and is DELIBERATELY different from what
+        # generate() actually returns below, so a regression back to
+        # getattr(backend, "sample_rate", ...) computes the WRONG audio_s (24000/24000
+        # = 1.0s instead of 24000/16000 = 1.5s) and the concrete rtf assertion below
+        # catches it instead of just checking "some rtf came back".
         sample_rate = 24000
         def generate(self, text, speed=1.0):
-            return np.zeros(24000, np.float32), 100  # 1.0s audio, 100ms gen
-    plan = accel.Plan("moss_onnx", "cpu", "cpu", "fp32", "repo", 1.0)
+            return np.zeros(24000, np.float32), 16000, 150  # 1.5s audio @ 16000Hz, 150ms gen
+    plan = accel.Plan("native_tts", "cpu", "cpu", "q8_0", "repo", 1.0)
     m = accel.probe()
     rtf = accel.measure_rtf_tts(FakeBackend(), plan, "moss-tts-nano", m)
-    assert rtf is not None and rtf > 0
+    # 24000 samples @ 16000Hz = 1.5s audio; gen_ms=150 -> rtf = 0.15s / 1.5s = 0.1 exactly.
+    assert rtf == pytest.approx(0.1)
 
 
 def _catalog(kind):

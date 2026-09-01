@@ -561,10 +561,18 @@ BENCH_TTS_TEXT = "The weather is lovely today, so I will go for a walk in the pa
 
 def measure_rtf_tts(backend, plan, model_id: str, machine: Machine, *, force: bool = False):
     """Best-effort: synth a fixed sentence, return RTF (gen_seconds / audio_seconds),
-    cached under a 'tts:'-namespaced key. Never raises (returns None)."""
+    cached under a 'tts:'-namespaced key. Never raises (returns None).
+
+    NativeTtsBackend.generate() returns (samples, rate, gen_ms) (ruling I2(s4)): the
+    per-synth ACTUAL rate is authoritative, since it can differ from the family's
+    advertised caps.sample_rate -- audio_s must come from THAT returned rate, not
+    getattr(backend, "sample_rate", ...), per I2's own doctrine (tts_engine.py's
+    generate()/generate_stream() already resample this way; this benchmark must
+    agree with them or its RTF numbers are wrong for exactly the families I2 exists
+    to cover)."""
     def run(backend):
-        samples, gen_ms = backend.generate(BENCH_TTS_TEXT, 1.0)
-        audio_s = len(samples) / float(getattr(backend, "sample_rate", 24000))
+        samples, rate, gen_ms = backend.generate(BENCH_TTS_TEXT, 1.0)
+        audio_s = len(samples) / float(rate)
         if audio_s <= 0:
             return None
         return (gen_ms / 1000.0) / audio_s
