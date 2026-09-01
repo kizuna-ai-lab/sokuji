@@ -92,7 +92,11 @@ kept in fp32. Without WebGPU the wasm execution provider is ~30× too slow for l
 | device | variant | median RTF | ms / generated token | prefill (10–15 s clip) |
 |---|---|---|---|---|
 | Apple M4, Chrome 152, WebGPU | q4 | 0.091 | 18.6 | 88–201 ms |
-| others | see `benchmark/qwen3-asr-webgpu/results/v2-notes.md` in the Sokuji repo | | | |
+| Apple M4, Chrome 152, WebGPU | q4f16 | 0.076 | 16.6 | 59–135 ms |
+| NVIDIA GB10 (aarch64, Vulkan, no shader-f16), WebGPU | q4 | 0.081 | 20.8 | 37–64 ms |
+| GB10 CPU, onnxruntime 1.29 (Python), 8 threads | int4 | 0.071 | — | — |
+
+More (spike layout, RTX 4070 SUPER, wasm EP): `benchmark/qwen3-asr-webgpu/results/` in the Sokuji repo.
 
 ## Provenance
 

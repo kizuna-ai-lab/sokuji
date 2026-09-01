@@ -192,6 +192,56 @@ that was expected and does not change with any quantization.
    `Qwen3ASRForConditionalGeneration` PR to transformers.js modelled on `voxtral` — an outward
    act, needs separate approval.
 
+## Layout v2 (2026-09-02, PR 1 — plan `docs/superpowers/plans/2026-09-02-qwen3-asr-onnx-layout-v2.md`)
+
+What changed versus the spike layout: the prefill graph takes `input_embeds` (the client
+builds the prompt embedding from the one external table, so no embedding lives in any graph
+and the tied `lm_head` is now an int4 MatMulNBits weight instead of an fp32 gather table);
+both decoders of a precision share one weights file; the embedding table ships as per-row
+int8 + fp32 scales; RMSNorm is fused (`SimplifiedLayerNormalization`) and the fp32 encoder
+gets `BiasGelu` / `SkipLayerNormalization` fusions; int4 block size 32; a `prompt_config.json`
+carries the prompt ids, the per-language `language <Name><asr_text>` prefix ids, the audio-token
+formula, embedding and decoder dims, and the per-variant file roles. Tooling:
+`benchmark/qwen3-asr-webgpu/export_v2/`; raw numbers: `results/v2-notes.md`, `results/v2-summary.txt`.
+
+### Sizes (MB on disk)
+
+| variant | encoder | decoder graphs | shared weights | shared files (embedding int8 156 + scales 0.6 + tokenizer/config 14) | total |
+|---|---|---|---|---|---|
+| `q4` | `encoder.onnx` 746 (fused) | 2 × 0.4 | `decoder_weights.int4.data` 382 | 171 | **≈ 1.30 GB** |
+| `q4f16` | `encoder.fp16.onnx` 376 | 2 × 0.4 | `decoder_weights.q4f16.data` 345 | 171 | **≈ 0.89 GB** |
+
+(spike layout: 1.9 GB / 1.5 GB.)
+
+### Correctness
+
+FP32 v2 token-identical to FP32 v1 on the en/ja/zh check clips, before and after fusion,
+with fp32 and with int8 embedding rows; fused encoder output within 6.5e-6 of the unfused
+one. int4/b32 and q4f16: ja and zh token-identical to FP32, en differs by one punctuation
+token; the `zh-fleurs1883` collapse is gone. CPU sweep over 13 clips: mean CER 0.125
+(spike int4/b64: 0.157), no collapses, forced prefixes leave the texts unchanged.
+
+### Speed — the compact layout is faster, not slower
+
+| device | variant | spike RTF / ms·token | v2 RTF / ms·token | prefill spike → v2 |
+|---|---|---|---|---|
+| Mac mini M4 | q4 | 0.127 / 20.1 | **0.091 / 18.6** | 285–696 → 88–201 ms |
+| Mac mini M4 | q4f16 | 0.111 / 19.8 | **0.076 / 16.6** | 455–495 → 59–135 ms |
+| GB10 (NVIDIA Vulkan) | q4 | 0.091 / 25.3 | **0.081 / 20.8** | 39–81 → 37–64 ms |
+| RTX 4070 SUPER | q4 / q4f16 | 0.115 / 34 | not re-measured: the Windows box started rejecting the SSH key mid-run | |
+| GB10 CPU, ORT 1.29, 8 thr | int4 | 0.074 | 0.071 | |
+
+Two causes: 30 % fewer decoder nodes in a dispatch-bound loop, and no 622 MB fp32 gather in
+the prefill (the host builds the prompt embedding from the int8 table in 2–6 ms). The forced
+prefix path was exercised in the browser too (Mac, four Japanese clips, identical text, three
+fewer generated tokens).
+
+### Hub
+
+`jiangzhuo9357/Qwen3-ASR-0.6B-ONNX` now holds only the v2 files (18) — see the model card
+for the graph contracts and `results/v2-hub-files.json` for the exact byte sizes PR 2's
+manifest row uses.
+
 ## How to reproduce
 
 See `benchmark/qwen3-asr-webgpu/README.md`.

@@ -1,0 +1,26 @@
+{
+ "repo": "jiangzhuo9357/Qwen3-ASR-0.6B-ONNX",
+ "sha": "460942559ed3cb83e11be6c9af3e54cffc26a011",
+ "private": false,
+ "files": {
+  ".gitattributes": 1953,
+  "README.md": 5635,
+  "added_tokens.json": 1566,
+  "config.json": 1302,
+  "decoder_init.int4.onnx": 353078,
+  "decoder_init.q4f16.onnx": 348427,
+  "decoder_step.int4.onnx": 354803,
+  "decoder_step.q4f16.onnx": 350380,
+  "decoder_weights.int4.data": 382035968,
+  "decoder_weights.q4f16.data": 344670208,
+  "embed_scales.f32.bin": 607744,
+  "embed_tokens.int8.bin": 155582464,
+  "encoder.fp16.onnx": 376261247,
+  "encoder.onnx": 745766355,
+  "mel_filters.json": 132427,
+  "prompt_config.json": 2578,
+  "tokenizer.json": 11429377,
+  "tokenizer_config.json": 12488,
+  "vocab.json": 2776833
+ }
+}
