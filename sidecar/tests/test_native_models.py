@@ -259,6 +259,144 @@ def test_delete_model_shared_repo_keeps_a_blob_still_referenced_elsewhere(monkey
     assert shared_blob.exists()      # ... and so does the shared blob
 
 
+# ── Round 2 (2026-09-01): R18 -- delete must also free hard-link-staged files ────
+
+def test_delete_model_shared_repo_also_removes_staged_hardlinks(monkeypatch, tmp_path):
+    """Ruling R18 disk-reclamation coupling: tts_backend.py's load() hard-links a
+    card's gguf into sokuji-tts-staging/<repo>__<rev>/<rel_path> (a SECOND directory
+    entry for the SAME inode as the HF-cache blob) so audio.cpp's canonicalizing
+    loader can read a real, extension-bearing path. Removing only the HF-cache-side
+    blob (as _delete_shared_repo_files already does) leaves that inode's disk blocks
+    alive as long as the staged link survives -- 'delete' would free zero bytes on
+    disk even though this function reports `freed` bytes. Builds a REAL blob with
+    TWO hard links (the HF blob-store copy, and a staged copy exactly mirroring what
+    load() would have created) for TWO different cards sharing one repo, and asserts
+    deleting one card removes BOTH of ITS OWN directory entries (blob gone, staged
+    link gone, now-empty staged directory pruned) while the OTHER card's staged
+    entry is untouched."""
+    from sokuji_sidecar import native_models as nm
+
+    moss_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    super_fname = "Supertonic-3-GGUF/supertonic-3-f16.gguf"
+
+    blobs_dir, snap_dir = _real_hf_cache_repo(tmp_path, "audio-cpp/audio.cpp-gguf")
+
+    def _add(rel_path, blob_name, size):
+        blob = blobs_dir / blob_name
+        blob.write_bytes(b"x" * size)
+        link = snap_dir / rel_path
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(blob)
+        return link, blob
+
+    moss_link, moss_blob = _add(moss_fname, "blob-moss", 111)
+    super_link, super_blob = _add(super_fname, "blob-super", 222)
+
+    staging_root = tmp_path / "sokuji-tts-staging" / "audio-cpp--audio.cpp-gguf__rev1"
+    staged_moss = staging_root / moss_fname
+    staged_super = staging_root / super_fname
+    staged_moss.parent.mkdir(parents=True)
+    staged_super.parent.mkdir(parents=True, exist_ok=True)
+    os.link(moss_blob, staged_moss)
+    os.link(super_blob, staged_super)
+    assert moss_blob.stat().st_nlink == 2   # sanity: blob-store copy + staged copy
+    assert super_blob.stat().st_nlink == 2
+
+    monkeypatch.setattr("huggingface_hub.utils._cache_manager.HF_HUB_CACHE", str(tmp_path))
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    freed = nm.delete_model("moss-tts-nano")
+
+    assert freed == 111
+    assert not moss_link.exists() and not moss_blob.exists()
+    assert not staged_moss.exists()        # R18: moss's staged hard link is also gone
+    assert super_link.exists() and super_blob.exists()
+    assert staged_super.exists()           # supertonic's staged link is untouched
+    assert staging_root.exists()           # not pruned -- supertonic's subtree still lives there
+
+
+def test_prune_staged_repo_removes_every_revision_for_that_repo_only(monkeypatch, tmp_path):
+    """Direct unit test of _prune_staged_repo() (the whole-repo delete path's
+    staging counterpart): removes every staged revision directory for the given
+    repo, regardless of revision hash, while leaving a DIFFERENT repo's staged
+    files alone."""
+    from sokuji_sidecar import native_models as nm
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    root = tmp_path / "sokuji-tts-staging"
+    a_rev1 = root / "acme--repo-a__rev1" / "model.gguf"
+    a_rev2 = root / "acme--repo-a__rev2" / "model.gguf"
+    b_rev1 = root / "acme--repo-b__rev1" / "model.gguf"
+    for p in (a_rev1, a_rev2, b_rev1):
+        p.parent.mkdir(parents=True)
+        p.write_bytes(b"x")
+
+    nm._prune_staged_repo("acme/repo-a")
+
+    assert not a_rev1.exists() and not a_rev1.parent.exists()
+    assert not a_rev2.exists() and not a_rev2.parent.exists()
+    assert b_rev1.exists()   # a different repo's staged files are untouched
+
+
+def test_delete_model_whole_repo_path_also_prunes_staging(monkeypatch):
+    """Ruling R18 point 2: the whole-repo delete branch also calls
+    _prune_staged_repo for every repo it deletes -- exercised via a spy since no
+    ASR/translate card actually has staged files today (only TTS cards ever stage
+    anything), so this proves the CALL happens rather than re-deriving a full
+    on-disk staging scenario the file-level test above already covers."""
+    from sokuji_sidecar import native_models as nm
+
+    repo_info = _StubRepo("handy-computer/whisper-base-gguf",
+                          [_StubRevision([], commit_hash="rev1")], size_on_disk=12345)
+
+    class _StubCache:
+        repos = [repo_info]
+
+        def delete_revisions(self, *hashes):
+            class _Bundle:
+                def execute(self_inner):
+                    pass
+            return _Bundle()
+
+    monkeypatch.setattr("huggingface_hub.scan_cache_dir", lambda: _StubCache())
+    pruned = []
+    monkeypatch.setattr(nm, "_prune_staged_repo", lambda r: pruned.append(r))
+
+    nm.delete_model("whisper-base")
+
+    assert pruned == ["handy-computer/whisper-base-gguf"]
+
+
+def test_model_status_unaffected_by_staging_dir_presence(monkeypatch, tmp_path):
+    """Ruling R18 point 4: model_status() must not be confused by the hard-link
+    staging tree's mere existence -- it only ever checks the real HF-cache
+    models--org--repo layout (hf_hub_download, local_files_only=True), never
+    sokuji-tts-staging/."""
+    import huggingface_hub
+    from sokuji_sidecar.catalog import TTS_STAGING_DIRNAME
+
+    cached = {"moss-tts-nano-100m-q8_0.gguf"}
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname.rsplit("/", 1)[-1] in cached:
+            return str(tmp_path / fname.rsplit("/", 1)[-1])
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+    monkeypatch.setattr(huggingface_hub.constants, "HF_HUB_CACHE", str(tmp_path))
+
+    assert native_models.model_status("moss-tts-nano") == "ready"
+
+    # A staging tree now sits alongside the (mocked) cache -- the result must be
+    # unchanged, since model_status() never reads sokuji-tts-staging/ at all.
+    staging = tmp_path / TTS_STAGING_DIRNAME / "audio-cpp--audio.cpp-gguf__rev1"
+    (staging / "MOSS-TTS-Nano-100M-GGUF").mkdir(parents=True)
+    (staging / "MOSS-TTS-Nano-100M-GGUF" / "moss-tts-nano-100m-q8_0.gguf").write_bytes(b"x")
+
+    assert native_models.model_status("moss-tts-nano") == "ready"
+
+
 def test_delete_model_asr_single_card_repo_still_deletes_whole_revision(monkeypatch):
     """A repo used by exactly one card (every ASR/translate card today, and
     the pre-slice-4 TTS shape) keeps the old whole-revision delete — CQ-1's

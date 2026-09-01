@@ -868,14 +868,6 @@ def _loopback_hit(transcript: str) -> bool:
     return any(m in low for m in _LOOPBACK_MARKERS)
 
 
-# Fix wave (2026-09-01), ruling R17(s4) / I1 point 2: families whose loopback leg is
-# a KNOWN, documented open finding, attempted and recorded but excluded from the hard
-# pass/fail assertion below -- not silently skipped. Mirrors the treatment this exact
-# file gave omnivoice's now-fixed crash earlier in this slice (task-7-report.md §3):
-# attempt it, record the result, exempt it by name, and point at the writeup.
-KNOWN_OPEN_FINDINGS = {"pocket_tts (production chain)"}
-
-
 def _run_pocket_production_chain(asr):
     """R17(s4) / I1 point 2: ONE full-production-chain leg, unlike the other four
     (direct sn.tts_load() calls straight into the native module -- cheap, and fine
@@ -910,30 +902,16 @@ def _run_pocket_production_chain(asr):
     late (huggingface_hub is already imported well before this test runs) would
     silently do nothing.
 
-    OPEN FINDING (new; not one of C1/I1-I3/M1): NativeTtsBackend.load()'s
-    snapshot_download() resolves to a SYMLINKED file (HF's default snapshot
-    layout on Linux/macOS). audio.cpp's own prepare_model_directory()
-    (vendored, _deps/audiocpp-src/src/framework/assets/tensor_source.cpp) calls
-    std::filesystem::weakly_canonical() on that symlinked .gguf path, which -- for
-    a path that exists in full -- fully resolves it down to the extensionless,
-    content-addressed blob file; that canonicalized path is then handed to
-    open_tensor_source(), whose format dispatch is a lexical
-    `path.extension() == ".gguf"` check, which now fails ("unsupported tensor
-    source format"). Reproduces for EVERY native_tts card (independently
-    verified against moss-tts-nano too, not just pocket-tts-en) -- i.e.
-    NativeTtsBackend.load() cannot currently load ANY model fetched through a
-    real (symlinked) HF cache on Linux/macOS; every prior test of this backend
-    used either a fully-mocked snapshot_download (test_tts_backend.py) or a
-    hand-placed flat directory (this file's other four legs), so this is the
-    first time the REAL chain has ever run. This directly contradicts this
-    repo's own tts_backend.py module docstring's "no hard-links" ruling: a
-    TARGETED hard link (not the old MOSS backend's whole-tree `_link_tree`)
-    would dodge this specific failure, since a hard link is not a symlink and is
-    not resolved by weakly_canonical() -- but reversing that ruling is a
-    controller-level call this fix wave does not make unilaterally. Recorded
-    here, not silently patched or routed around; see final-fixwave-report.md for
-    the full trace.
-    """
+    Round 2, ruling R18: this leg used to hit a genuine, previously-unknown open
+    finding here -- NativeTtsBackend.load()'s snapshot_download() resolves to a
+    SYMLINKED file (HF's default snapshot layout on Linux/macOS), which broke
+    audio.cpp's own canonicalizing model loader (vendored
+    prepare_model_directory()/open_tensor_source(),
+    _deps/audiocpp-src/src/framework/assets/tensor_source.cpp -- see
+    final-fixwave-report.md's "Round 2: R18" section for the full trace). Fixed by
+    hard-link-staging the resolved gguf (+ extra_files) before ever calling
+    tts_load() (tts_backend.py's _stage_for_native(), ruling R18); this leg is now
+    hard-asserted like the other four, with no exemption."""
     import huggingface_hub.constants as _hfc
     from sokuji_sidecar import backends, catalog, native_models
     from sokuji_sidecar.planner import PlanConfig
@@ -951,17 +929,19 @@ def _run_pocket_production_chain(asr):
         assert native_models.model_status("pocket-tts-en") == "ready", \
             "pocket-tts-en not 'ready' after a completed download"
 
-        artifact = catalog.tts_model("pocket-tts-en").deployments[0].artifact
+        card = catalog.tts_model("pocket-tts-en")
+        artifact = card.deployments[0].artifact
         b = backends.make_backend("native_tts")
         t0 = time.monotonic()
-        try:
-            b.load(artifact, "cpu", "q8_0",
-                   config=PlanConfig(tts_family="pocket_tts", tts_language="english"))
-        except backends.BackendLoadError as e:
-            return dict(family="pocket_tts (production chain)", seconds=0.0, synth_s=0.0,
-                        transcript="", ok=False,
-                        note=f"OPEN FINDING (not C1/I1-I3/M1): backend.load() on a real "
-                             f"(symlinked) HF snapshot raised: {e}")
+        # tts_extra_files straight off the catalog card, matching what
+        # planner._plan_config() would build in production (this leg calls
+        # NativeTtsBackend.load() directly, bypassing the planner, so it must
+        # reconstruct the same PlanConfig by hand) -- without it, pocket-tts-en's
+        # embeddings/alba.safetensors sidecar never gets staged and set_builtin_voice
+        # below fails with "unknown preset 'alba'".
+        b.load(artifact, "cpu", "q8_0",
+               config=PlanConfig(tts_family="pocket_tts", tts_language="english",
+                                 tts_extra_files=card.extra_files))
         try:
             b.set_builtin_voice("alba")
             samples, rate, _gen_ms = b.generate(_LOOPBACK_TEXT)
@@ -1125,8 +1105,9 @@ def test_tts_asr_loopback_per_family():
         skipped.append("omnivoice" if omnivoice_dir else "omnivoice (needs supertonic for a reference clip)")
 
     # pocket_tts (English package): the ONE full-production-chain leg (ruling
-    # R17(s4) / I1 point 2) -- see _run_pocket_production_chain's docstring for
-    # what it proves and the open finding it surfaced. Independent of the
+    # R17(s4) / I1 point 2; the symlinked-snapshot loading defect it surfaced is
+    # fixed by ruling R18's hard-link staging) -- see
+    # _run_pocket_production_chain's docstring. Independent of the
     # SK_TEST_TTS_<FAMILY>_DIR env vars above: this leg downloads its own copy
     # into a dedicated scratch HF cache, so it always runs (given network
     # access) regardless of which of the other four are locally pre-downloaded.
@@ -1141,10 +1122,9 @@ def test_tts_asr_loopback_per_family():
         print(f"  {s:16s} SKIPPED (no local model)")
 
     assert results, "no TTS family had a locally-downloaded model -- nothing to gate"
-    # Every attempted family is hard-asserted here EXCEPT the production-chain
-    # leg's own new, documented open finding (KNOWN_OPEN_FINDINGS, ruling R17(s4)
-    # -- see _run_pocket_production_chain's docstring). omnivoice's former crash
-    # (ggml_sub non-contiguous src0, ruling R13) is fixed, so it carries no
-    # exemption of its own anymore.
-    failures = [r for r in results if not r["ok"] and r["family"] not in KNOWN_OPEN_FINDINGS]
+    # Every attempted family is hard-asserted here, no exemptions: omnivoice's
+    # former crash (ggml_sub non-contiguous src0, ruling R13) and the
+    # production-chain leg's former open finding (symlinked-snapshot loading,
+    # ruling R18) are both fixed now.
+    failures = [r for r in results if not r["ok"]]
     assert not failures, f"missed marker words for: {[r['family'] for r in failures]} -- {failures}"

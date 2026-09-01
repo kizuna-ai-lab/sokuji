@@ -948,6 +948,24 @@ def test_plan_config_tts_fields_default_inert_for_translate_cards():
     assert cfg.tts_family == "" and cfg.tts_language == ""
 
 
+def test_plan_config_reads_tts_extra_files(monkeypatch):
+    # Ruling R18(s4): tts_backend.py's load() hard-link-stages every entry in
+    # PlanConfig.tts_extra_files alongside the gguf -- _plan_config must read it
+    # straight off the resolved TtsModel card's own extra_files field.
+    card = catalog.tts_model("pocket-tts-en")
+    cfg = planner._plan_config(card)
+    assert cfg.tts_extra_files == (("embeddings/alba.safetensors", 6194424),)
+
+
+def test_plan_config_tts_extra_files_defaults_inert_for_cards_without_one():
+    # moss-tts-nano has no extra_files -- must be the empty-tuple default, not
+    # missing/None, so tts_backend.py's `for extra_name, _size in
+    # cfg.tts_extra_files` never needs a None-guard.
+    card = catalog.tts_model("moss-tts-nano")
+    cfg = planner._plan_config(card)
+    assert cfg.tts_extra_files == ()
+
+
 def test_resolve_translate_propagates_qwen3_thinking_config():
     # Resolve-level propagation: a real resolve() call, not a hand-built Plan,
     # must carry the card's derived PlanConfig through to the Plan it returns.

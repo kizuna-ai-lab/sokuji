@@ -1,6 +1,7 @@
 """NativeTtsBackend: sokuji_native's TtsModel faked at the module level (the venv
 wheel is Vulkan-lane 0.4.0 and has no TtsModel yet — Task 3 lands the real 0.5.0
 build). Mirrors test_translate_backend.py's native_env fixture shape."""
+import os
 import threading
 import time
 import types
@@ -187,14 +188,39 @@ def _caps(streaming=False, clones=True, transcript_required=False, sample_rate=2
 
 
 @pytest.fixture
-def native_env(monkeypatch):
+def native_env(monkeypatch, tmp_path):
     from sokuji_sidecar import native
     log = []
-    created = {"model_factory": _FakeTtsModel, "caps": _caps()}
+    # R18: load() hard-links the resolved file out of the snapshot before ever
+    # calling tts_load() -- that needs a REAL file on disk, not a bare string.
+    # Pre-create every path this test file's two fixed model_ref shapes (REF, and
+    # the bare-filename artifact) ever resolve to, as a SYMLINK into a separate
+    # blobs/ directory -- exactly the shape a real HF snapshot_download() produces
+    # (a content-addressed blob store the snapshot symlinks into), not a plain
+    # file. This is deliberate, not incidental: a plain file would have hidden the
+    # platform-specific os.link()-vs-symlink bug _stage_for_native() now works
+    # around (see its own docstring) -- these fixtures must keep exercising the
+    # REAL shape, not a simplified stand-in for it.
+    blobs_dir = tmp_path / "blobs"
+    blobs_dir.mkdir()
+    snap_dir = tmp_path / "snap"
+    for i, rel in enumerate(("pocket_tts-en/model.gguf", "model.gguf")):
+        blob = blobs_dir / f"blob{i}"
+        blob.write_bytes(b"fake gguf bytes")
+        link = snap_dir / rel
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(os.path.relpath(blob, link.parent))
+    # R18: _stage_for_native()'s staging root lives under
+    # huggingface_hub.constants.HF_HUB_CACHE (read at call time) -- point it
+    # somewhere real and test-private too.
+    import huggingface_hub.constants as _hfc
+    monkeypatch.setattr(_hfc, "HF_HUB_CACHE", str(tmp_path / "hub"))
+
+    created = {"model_factory": _FakeTtsModel, "caps": _caps(), "snap_dir": str(snap_dir)}
 
     def fake_snapshot_download(repo, allow_patterns=None, local_files_only=None):
         created["snapshot_call"] = (repo, allow_patterns, local_files_only)
-        return "/snap"
+        return str(snap_dir)
 
     import huggingface_hub
     monkeypatch.setattr(huggingface_hub, "snapshot_download", fake_snapshot_download)
@@ -219,12 +245,22 @@ def test_registry_has_native_tts():
     assert b.is_loaded is False
 
 
-def test_load_resolves_scoped_snapshot_and_passes_path_as_given(native_env):
+def test_load_resolves_scoped_snapshot_and_stages_gguf_before_loading(native_env):
+    """R18: load() no longer passes the raw snapshot path straight through -- a real
+    HF snapshot's file is a symlink into the content-addressed blob store, which
+    breaks audio.cpp's own canonicalizing model loader (see tts_backend.py's module
+    docstring). load() hard-links the resolved file into a staging tree first
+    (_stage_for_native()) and passes THAT path to tts_load()."""
     created, _log = native_env
     b = backends.make_backend("native_tts")
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
     assert created["snapshot_call"] == ("acme/pocket-tts-en-gguf", ["pocket_tts-en/*"], True)
-    assert created["load_call"][0] == "/snap/pocket_tts-en/model.gguf"
+    staged_path = created["load_call"][0]
+    source_path = f"{created['snap_dir']}/pocket_tts-en/model.gguf"
+    assert staged_path != source_path
+    assert staged_path.endswith("/pocket_tts-en/model.gguf")
+    assert os.path.isfile(staged_path)
+    assert os.path.samefile(staged_path, source_path)   # same inode -- a hard link, not a copy
     assert b.is_loaded
 
 
@@ -233,7 +269,10 @@ def test_load_falls_back_to_bare_filename_pattern_when_artifact_has_no_dir(nativ
     b = backends.make_backend("native_tts")
     b.load("acme/flat-repo/model.gguf", "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
     assert created["snapshot_call"] == ("acme/flat-repo", ["model.gguf"], True)
-    assert created["load_call"][0] == "/snap/model.gguf"
+    staged_path = created["load_call"][0]
+    assert staged_path != f"{created['snap_dir']}/model.gguf"
+    assert staged_path.endswith("/model.gguf")
+    assert os.path.isfile(staged_path)
 
 
 def test_load_passes_family_and_explicit_device(native_env):
@@ -898,3 +937,153 @@ def test_oneshot_registry_self_cleans_up_after_completion(native_env):
     b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="moss_tts_nano"))
     b.generate("hello")
     assert b._workers == []
+
+
+# ── Round 2 (2026-09-01): R18 -- hard-link staging for audio.cpp's canonicalizing
+# loader ──────────────────────────────────────────────────────────────────────────
+
+def test_stage_for_native_is_idempotent_and_replaces_a_stale_entry(tmp_path, monkeypatch):
+    """Direct unit test of _stage_for_native()'s own documented contract, below the
+    NativeTtsBackend.load() layer."""
+    from sokuji_sidecar import tts_backend
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path / "hub"))
+
+    source = tmp_path / "snap" / "dir" / "model.gguf"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"real content")
+
+    staged1 = tts_backend._stage_for_native("acme/repo", "rev1", "dir/model.gguf", str(source))
+    assert os.path.isfile(staged1)
+    assert os.path.samefile(staged1, source)   # a hard link, not a copy
+    ino1 = os.stat(staged1).st_ino
+
+    # Idempotent: re-staging the SAME source is a no-op (same inode, not re-linked).
+    staged2 = tts_backend._stage_for_native("acme/repo", "rev1", "dir/model.gguf", str(source))
+    assert staged2 == staged1
+    assert os.stat(staged2).st_ino == ino1
+
+    # A stale/foreign entry at the same staged path (shouldn't happen in practice,
+    # since (repo, rev, rel_path) keys the path deterministically -- but proves the
+    # "clean replace" branch) is cleanly replaced back to point at `source`.
+    other_source = tmp_path / "snap" / "dir2" / "other.gguf"
+    other_source.parent.mkdir(parents=True)
+    other_source.write_bytes(b"different content")
+    os.remove(staged1)
+    os.link(str(other_source), staged1)
+    staged3 = tts_backend._stage_for_native("acme/repo", "rev1", "dir/model.gguf", str(source))
+    assert os.path.samefile(staged3, source)
+
+
+def test_stage_for_native_resolves_a_real_symlinked_source_not_the_platforms_link_quirk(tmp_path, monkeypatch):
+    """Regression: `source` shaped exactly like a REAL HF snapshot entry -- a symlink
+    into a separate blobs/ directory, not a plain file -- must stage to a real,
+    non-symlink file with the correct content. Live-verified gap this test exists to
+    catch: on at least one platform, os.link(symlink_source, dest) (even with the
+    documented follow_symlinks=True default) created ANOTHER SYMLINK sharing the
+    ORIGINAL symlink's inode -- preserving its OLD relative target string -- instead
+    of a hard link to the symlink's TARGET; that target string then resolved to the
+    WRONG path once evaluated relative to the staging directory's different
+    depth/nesting (a broken link). _stage_for_native() must not depend on
+    os.link()'s own symlink-following behavior at all."""
+    from sokuji_sidecar import tts_backend
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path / "hub"))
+
+    blob = tmp_path / "cache" / "blobs" / "abc123"
+    blob.parent.mkdir(parents=True)
+    blob.write_bytes(b"real blob content")
+
+    snap_link = tmp_path / "cache" / "snapshots" / "rev1" / "dir" / "model.gguf"
+    snap_link.parent.mkdir(parents=True)
+    snap_link.symlink_to(os.path.relpath(blob, snap_link.parent))
+    assert os.path.islink(snap_link)
+    assert snap_link.read_bytes() == b"real blob content"   # sanity: the symlink itself resolves fine here
+
+    staged = tts_backend._stage_for_native("acme/repo", "rev1", "dir/model.gguf", str(snap_link))
+
+    assert not os.path.islink(staged)             # a real hard link, never a symlink
+    assert staged.endswith("/dir/model.gguf")      # kept its real, extension-bearing name
+    assert os.path.samefile(staged, blob)          # same inode as the underlying blob
+    with open(staged, "rb") as f:
+        assert f.read() == b"real blob content"
+
+
+def test_load_stages_pocket_extra_files_alongside_the_gguf(native_env):
+    """R18: PlanConfig.tts_extra_files (planner._plan_config, straight off
+    TtsModel.extra_files) carries pocket-tts-en's embeddings/alba.safetensors --
+    load() must stage it as a SIBLING of the staged gguf, matching the relative
+    layout native's own preset discovery expects (gguf_parent_dir / "embeddings",
+    sk_tts.cpp's own comment)."""
+    created, _log = native_env
+    extra_rel = "pocket_tts-en/embeddings/alba.safetensors"
+    extra_source = os.path.join(created["snap_dir"], extra_rel)
+    os.makedirs(os.path.dirname(extra_source), exist_ok=True)
+    with open(extra_source, "wb") as f:
+        f.write(b"fake safetensors bytes")
+
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(
+        tts_family="pocket_tts", tts_language="english",
+        tts_extra_files=(("embeddings/alba.safetensors", 999),)))
+
+    staged_gguf = created["load_call"][0]
+    staged_extra = os.path.join(os.path.dirname(staged_gguf), "embeddings", "alba.safetensors")
+    assert os.path.isfile(staged_extra)
+    assert os.path.samefile(staged_extra, extra_source)
+
+
+def test_load_staging_is_idempotent_across_repeated_loads(native_env):
+    """R18: re-staging over an already-correct hard link is a no-op -- proven by
+    loading twice and checking the staged file's inode never changes (i.e. it was
+    never removed and re-linked)."""
+    created, _log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
+    staged_path = created["load_call"][0]
+    first_ino = os.stat(staged_path).st_ino
+
+    b2 = backends.make_backend("native_tts")
+    b2.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
+    staged_path2 = created["load_call"][0]
+
+    assert staged_path2 == staged_path
+    assert os.stat(staged_path2).st_ino == first_ino
+
+
+def test_load_falls_back_to_copy_when_hardlink_unavailable(native_env, monkeypatch):
+    """R18: a filesystem that rejects os.link() (EXDEV, or no hard-link support)
+    must not break loading -- fall back to a real copy."""
+    created, _log = native_env
+
+    def boom_link(*a, **kw):
+        raise OSError("simulated EXDEV")
+
+    monkeypatch.setattr(os, "link", boom_link)
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
+    assert b.is_loaded
+    staged_path = created["load_call"][0]
+    assert os.path.isfile(staged_path)
+    with open(staged_path, "rb") as f:
+        assert f.read() == b"fake gguf bytes"
+
+
+def test_load_transparently_restages_after_the_staging_dir_is_wiped(native_env):
+    """R18 point 4: a wiped staging tree with an intact HF cache must be
+    transparently re-staged at the next load() -- no user/operator action needed."""
+    created, _log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
+    staged_path = created["load_call"][0]
+    assert os.path.isfile(staged_path)
+
+    os.remove(staged_path)   # simulate an operator/OS wiping the staging tree
+    assert not os.path.exists(staged_path)
+
+    b2 = backends.make_backend("native_tts")
+    b2.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
+    staged_path2 = created["load_call"][0]
+
+    assert staged_path2 == staged_path
+    assert os.path.isfile(staged_path2)
