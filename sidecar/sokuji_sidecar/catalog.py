@@ -598,7 +598,7 @@ class TtsModel(_ModelBase):
     streaming: bool = False           # intra-utterance audio-delta streaming (R5: MOSS is offline-only)
     sample_rate: int = 24000          # audio.cpp's native rate for this family
     named_voices: bool = False        # sk_tts_presets returns a non-empty, curated list (dropdown)
-    transcript_required: bool = False  # sk_tts_set_voice's ref_text is mandatory (omnivoice only)
+    transcript_required: bool = False  # sk_tts_set_voice's ref_text is mandatory (omnivoice, qwen3_tts -- R15(s4))
     license: License | None = None    # non-standard license terms; None = no restriction
     # (relative-to-artifact-dir filename, size_bytes) sidecar assets sk_tts_presets
     # discovers next to the loaded gguf (pocket-tts-en's embeddings/alba.safetensors);
@@ -724,15 +724,20 @@ TTS_MODELS: list[TtsModel] = [
     # Base checkpoint (audio.cpp's dedicated "...-Base-GGUF" repo — NOT
     # CustomVoice/VoiceDesign, which are separate GGUF repos/families as far
     # as sk_tts_load's family_hint is concerned): clones from a reference
-    # clip, ref_text optional (unlike the old ONNX qwen3tts_onnx backend,
-    # which required an ICL transcript), no discoverable presets.
+    # clip, no discoverable presets. ref_text IS mandatory (R15(s4)) — the
+    # base checkpoint has no default built-in voice at all (it must always
+    # clone) and its ICL clone mode separately requires ref_text one level
+    # deeper inside synth() itself, live-verified in task-7-report.md §3; the
+    # old comment here ("ref_text optional, unlike the old ONNX qwen3tts_onnx
+    # backend") was wrong for this GGUF-native family.
     _tts_gguf_row(
         "qwen3-tts-0.6b", "Qwen3-TTS 0.6B",
         ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
         "qwen3_tts", "Qwen3-TTS-12Hz-0.6B-Base-GGUF",
         {"q8_0": ("qwen3-tts-12hz-0.6b-base-q8_0.gguf", 1991211136),
          "bf16": ("qwen3-tts-12hz-0.6b-base-bf16.gguf", 2516154496)},
-        default_quant="q8_0", order=2, clones=True, streaming=False, sample_rate=24000),
+        default_quant="q8_0", order=2, clones=True, streaming=False,
+        sample_rate=24000, transcript_required=True),
     # Same family, larger checkpoint. audio.cpp's Q8_0 file for this size is
     # named "...q8_0_v2.gguf" (a real, distinct LFS object from a v1 the repo
     # no longer ships) — kept verbatim.
@@ -742,9 +747,11 @@ TTS_MODELS: list[TtsModel] = [
         "qwen3_tts", "Qwen3-TTS-12Hz-1.7B-Base-GGUF",
         {"q8_0": ("qwen3-tts-12hz-1.7b-base-q8_0_v2.gguf", 2695175104),
          "bf16": ("qwen3-tts-12hz-1.7b-base-bf16.gguf", 4203158464)},
-        default_quant="q8_0", order=3, clones=True, streaming=False, sample_rate=24000),
-    # Streaming, 600+-language zero-shot cloning; the ONLY family whose
-    # ref_text is mandatory (sk_tts_set_voice), so transcript_required=True.
+        default_quant="q8_0", order=3, clones=True, streaming=False,
+        sample_rate=24000, transcript_required=True),
+    # Streaming, 600+-language zero-shot cloning; ref_text is mandatory
+    # (sk_tts_set_voice), same as qwen3_tts above (R15(s4) made qwen3_tts join
+    # this group — omnivoice is no longer the only one).
     # k2-fsa/OmniVoice ships under CC-BY-NC-4.0 — non-commercial only. This
     # descriptor is DATA the download gate reads generically; it isn't a
     # Sokuji-specific restriction.

@@ -247,7 +247,7 @@ def test_omnivoice_card_shape():
     assert m.family == "omnivoice"
     assert m.languages == ("multi",)
     assert m.clones
-    assert m.transcript_required is True   # the ONLY family whose ref_text is mandatory
+    assert m.transcript_required is True   # ref_text mandatory (also qwen3_tts, R15(s4))
     assert m.named_voices is False         # no discoverable presets
     assert m.streaming is True             # omnivoice + supertonic are the streaming families (R5)
     assert m.sample_rate == 24000
@@ -488,11 +488,14 @@ def test_qwen3_rows_and_capability():
     for mid, rec in (("qwen3-tts-0.6b", False), ("qwen3-tts-1.7b", False)):
         m = catalog.tts_model(mid)
         assert m and m.clones is True and m.streaming is False and m.sample_rate == 24000
-        # Unlike the old ONNX qwen3tts_onnx backend, sk_tts_set_voice's
-        # ref_text is NOT mandatory for qwen3_tts (only omnivoice requires it).
-        assert m.transcript_required is False and m.recommended is rec
+        # R15(s4): qwen3_tts's base checkpoint has no default built-in voice and
+        # its ICL clone mode requires ref_text one level deeper inside synth()
+        # itself (live-verified, task-7-report.md §3) -- ref_text IS mandatory
+        # here, same as omnivoice.
+        assert m.transcript_required is True and m.recommended is rec
         assert {d.backend for d in m.deployments} == {"native_tts"}
-        assert catalog.voice_capability(m) == {"builtin": "none", "custom": "clip"}
+        assert catalog.voice_capability(m) == {"builtin": "none", "custom": "clip",
+                                               "transcriptRequired": True}
     # Only supertonic-3 and moss-tts-nano stay recommended (per spec §11).
     assert catalog.tts_model("moss-tts-nano").recommended is True
     assert catalog.tts_model("supertonic-3").recommended is True

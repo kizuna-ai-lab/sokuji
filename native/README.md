@@ -147,7 +147,8 @@ supertonic — always read the rate off each `sk_audio_cb` call too, these are t
 config-driven per checkpoint); `sk_tts_presets` lists named preset voices (supertonic's
 fixed `M1`-`M5`/`F1`-`F5` style set, or pocket_tts's `embeddings/*.safetensors` — the other
 three families have no enumerable presets and return zero names); `sk_tts_set_voice` stores
-a reference clip (+ optional transcript, mandatory for `omnivoice`) and `sk_tts_set_preset`
+a reference clip (+ optional transcript, mandatory for `omnivoice` and `qwen3_tts` — ruling
+R15(s4): qwen3_tts's ICL clone mode requires it too) and `sk_tts_set_preset`
 stores a preset id — both apply to every subsequent `sk_tts_synth` call on the handle until
 the other is set (each clears the other); `sk_tts_synth` runs greedy/deterministic synthesis
 (`seed=0`, `do_sample=false`, always) and delivers f32 interleaved PCM through `sk_audio_cb`:

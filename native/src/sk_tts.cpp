@@ -55,12 +55,18 @@ struct FamilyInfo {
 
 // Baked-in per report §3/§4: streaming = omnivoice+supertonic only (report §2); clones =
 // every family except supertonic ("does not use external speaker references", report §3);
-// transcript_required = omnivoice only (reference_text is mandatory there when a ref clip is
-// given, report §3); default_rate per report §4 (always re-read the actual result rate too —
-// these families are config-driven and could differ from a future checkpoint).
+// transcript_required = omnivoice AND qwen3_tts (ruling R15(s4)): omnivoice's
+// reference_text is mandatory whenever a ref clip is given (report §3); qwen3_tts's ICL
+// clone mode separately requires ref_text one level deeper, inside synth() itself, even
+// though this flag used to say otherwise (live-verified, task-7-report.md §3: "Qwen3
+// voice clone ICL mode requires reference text"). Flipping it here makes
+// sk_tts_set_voice's OWN validation below catch the missing transcript up front, and
+// flows caps -> wire -> renderer transcript gating automatically. default_rate per
+// report §4 (always re-read the actual result rate too — these families are
+// config-driven and could differ from a future checkpoint).
 constexpr FamilyInfo kFamilies[] = {
     {"moss_tts_nano", false, true,  false, 48000},
-    {"qwen3_tts",      false, true,  false, 24000},
+    {"qwen3_tts",      false, true,  true,  24000},
     {"omnivoice",      true,  true,  true,  24000},
     {"pocket_tts",     false, true,  false, 24000},
     {"supertonic",     true,  false, false, 44100},
@@ -114,7 +120,19 @@ int backend_relative_index(ggml_backend_dev_t dev) {
 // that always apply (Ruling R7(s4)). Caller holds t->mutex.
 rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *language, float speed) {
     rt::TaskRequest req;
-    req.text_input = rt::Transcript{text ? text : "", language ? language : ""};
+    // Ruling R14(s4): qwen3_tts resolves `language` against a per-checkpoint
+    // codec_language_id table keyed by FULL LANGUAGE NAMES baked into the GGUF's own
+    // metadata (qwen3_tts/talker.cpp), not ISO codes -- an ISO code like "en" throws
+    // "Qwen3 talker unsupported language: en" (live-verified, task-7-report.md §3).
+    // "auto" is the talker's own sentinel that skips that lookup entirely via a
+    // "nothink" codec prefix. The production caller always passes an ISO code
+    // (LocalNativeClient.ts -> tts_engine.set_language -> tts_backend.synth), so map
+    // ANY incoming language to "auto" here for this family rather than pass it
+    // through -- proven correct output on a real checkpoint by the T7/fix-round
+    // loopbacks. Refine to a full-name mapping later only if per-language quality
+    // demands it.
+    const char *resolved_language = (t->family == "qwen3_tts") ? "auto" : language;
+    req.text_input = rt::Transcript{text ? text : "", resolved_language ? resolved_language : ""};
 
     if (t->has_clone) {
         rt::VoiceReference ref;
