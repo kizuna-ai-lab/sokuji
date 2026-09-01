@@ -25,7 +25,21 @@ def _translate_teardown(state, generation=None):
     rather than relying solely on unload()'s own (also correct, but later)
     cancel+join. No new wire message this slice (ruling R20): a disconnected
     client's generation is what gets cancelled, never a client-sent
-    translate_cancel."""
+    translate_cancel.
+
+    CORRECTION (ruling R26, fix round 1): this closure only runs from
+    server._conn's on_close list, which fires once _conn's own
+    `async for raw in ws:` loop returns -- i.e. AFTER whatever handler call
+    was in flight when the connection closed already finished. Confirmed live
+    by the round-1 reviewer: it does NOT fire mid-flight for a disconnect
+    racing THIS connection's own currently-running translate(), because
+    server.py's per-connection dispatch is serial (the handler is awaited
+    inline, not scheduled as a background task). This function still matters
+    -- a stale/superseded engine close, and a same-connection disconnect
+    noticed at the next message -- but the mid-flight race is instead handled
+    by _h_translate itself (see its docstring), which races the executor
+    future against conn.wait_closed() directly and calls cancel_active() the
+    moment the close-waiter wins, without ever needing this closure to run."""
     eng = state.get("translate_engine")
     if eng is not None:
         if generation is not None and getattr(eng, "generation", None) != generation:
@@ -138,6 +152,29 @@ async def _h_translate_init(state, msg, _b, conn=None):
 
 
 async def _h_translate(state, msg, _b, conn=None):
+    """Ruling R26 (ground truth .superpowers/slice5-surface-inventory.md
+    §10(b)): a disconnect must be able to cancel a generation THIS coroutine
+    is still awaiting, not merely one server._conn notices at its next
+    iteration. server._conn's `async for raw in ws:` loop awaits this handler
+    call inline and serially -- it cannot notice `conn.on_close()`-registered
+    cleanups (see _translate_teardown) until this coroutine RETURNS, by which
+    point a plain `await loop.run_in_executor(...)` would already have let the
+    generation run to completion for a client that is long gone.
+
+    Fix: race the executor future against `conn.wait_closed()` (server.Conn;
+    see its own docstring for why that resolves independent of _conn's
+    recv() loop) via asyncio.wait(FIRST_COMPLETED). If the close-waiter wins,
+    this connection is the ONLY caller that can be running a translate() on
+    it right now (server._conn's per-connection serialization guarantees
+    that), so eng.cancel_active() unambiguously targets our own in-flight
+    call; the cancelled call still has to be awaited to completion (its
+    worker thread must actually exit -- translate_backend.py's cb-False path
+    makes that quick, within one token) before this coroutine returns, but
+    the result is discarded and no reply is sent (`return None, None` --
+    server.Conn.send() is a no-op for that, and there is nothing left to
+    reply to). If the executor future wins (the overwhelmingly common case),
+    the close-waiter task is cancelled so it doesn't leak, and dispatch
+    proceeds exactly as before this fix."""
     text = msg.get("text", "")
     loop = asyncio.get_running_loop()
     on_partial = None
@@ -166,12 +203,53 @@ async def _h_translate(state, msg, _b, conn=None):
             fut = asyncio.run_coroutine_threadsafe(
                 conn.send({"type": "translate_partial", "text": acc}), loop)
             fut.add_done_callback(_report_partial_failure)
+
+    eng = state["translate_engine"]
     # Off the event loop: a multi-second generation must not stall this connection's
     # ASR traffic (same defect class the spec fixes for TTS in slice 4).
-    translated, ms = await loop.run_in_executor(
-        None, lambda: state["translate_engine"].translate(
+    exec_future = loop.run_in_executor(
+        None, lambda: eng.translate(
             text, msg.get("systemPrompt", ""), bool(msg.get("wrapTranscript", False)),
             on_partial=on_partial))
+
+    if conn is None or not hasattr(conn, "wait_closed"):
+        # No connection to race a close signal against: every direct-call/
+        # test-double path that predates R26 (conn=None), or a conn without
+        # wait_closed() (defensive -- treated as "never closes").
+        translated, ms = await exec_future
+        return {"type": "translate_result", "id": msg.get("id"),
+                "sourceText": text, "translatedText": translated, "inferenceTimeMs": ms}, None
+
+    close_task = asyncio.ensure_future(conn.wait_closed())
+    done, _pending = await asyncio.wait(
+        {exec_future, close_task}, return_when=asyncio.FIRST_COMPLETED)
+
+    if exec_future not in done:
+        # R26: the connection closed WHILE this generation was still running.
+        # cancel_active() reaches the backend's own tail worker -- unambiguous
+        # per server._conn's serial per-connection dispatch (see docstring
+        # above) -- and its on_token cb-False path (translate_backend.py)
+        # turns that into a native-level cancel within one token. Await the
+        # executor future to completion so the worker thread is actually
+        # joined before this coroutine returns (translate_engine.translate()
+        # -> NativeTranslateBackend.translate() never raises on a cancellation
+        # it caused itself -- see that module's docstring -- but tolerate one
+        # anyway rather than trust that invariant here).
+        eng.cancel_active()
+        try:
+            await exec_future
+        except Exception:
+            pass
+        return None, None
+
+    # The generation finished first (the common case): stop racing the close
+    # waiter so it doesn't leak a pending task per translate() call.
+    close_task.cancel()
+    try:
+        await close_task
+    except (asyncio.CancelledError, Exception):
+        pass
+    translated, ms = exec_future.result()
     return {"type": "translate_result", "id": msg.get("id"),
             "sourceText": text, "translatedText": translated, "inferenceTimeMs": ms}, None
 

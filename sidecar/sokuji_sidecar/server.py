@@ -18,8 +18,31 @@ class Conn:
         which ctx keys a stage owns. A cleanup must read conn.ctx/state when it RUNS,
         not when it registers: a stage may create the handle it cancels after init (the
         TTS stream task is created by tts_generate, not tts_init).
+
+        NOTE: this list only runs from _conn's own `finally:` block, which only
+        executes once _conn's `async for raw in ws:` loop actually exits — i.e.
+        AFTER whatever handler call is currently in flight returns. A handler
+        awaiting something slow (translate_engine._h_translate's executor call)
+        will NOT see an on_close callback fire mid-flight just because the
+        client disconnected; see wait_closed() below for that.
         """
         self._on_close.append(cb)
+
+    async def wait_closed(self):
+        """Resolve as soon as the underlying connection is detected as closed —
+        independent of _conn's own message-processing loop and independent of
+        on_close() above (ruling R26; ground truth .superpowers/slice5-surface-
+        inventory.md §10(b)). websockets' legacy protocol implementation runs a
+        background task that notices the TCP/close-handshake teardown on its
+        own (protocol.py's `connection_lost_waiter`, set from
+        `connection_lost()`) and is not gated on this connection's handler ever
+        calling recv()/iterating `async for raw in ws:` again — which is
+        exactly what a handler stuck awaiting a slow generation needs: a
+        disconnect DURING that await must still be observable without first
+        returning from it. translate_engine._h_translate races this against
+        its executor future via asyncio.wait(FIRST_COMPLETED) to cancel an
+        in-flight generation for a client that has already left."""
+        await self._ws.wait_closed()
 
     async def send(self, obj=None, binary=None):
         """The ONE outbound funnel: every JSON message this process sends —

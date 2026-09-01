@@ -386,16 +386,23 @@ def test_teardown_close_still_runs_if_cancel_active_raises():
     assert order == ["close"]
 
 
-def test_teardown_mid_flight_joins_worker_and_discards_cancelled_output(monkeypatch, tmp_path):
-    """End-to-end (ground truth §10(b)): TranslateEngine wired to the REAL
-    NativeTranslateBackend against a slow fake translator -- proves the full
-    disconnect path, not just the backend or the engine in isolation. A
-    teardown firing WHILE this connection's own translate() is still inside the
-    executor (self._t.chat()) must not free the native handle out from under
-    it (the exact use-after-free class Task-I3 fixed for TTS's one-shot
-    generate()), and the cancelled call must come back as a harmless empty
-    result rather than a raised exception that could otherwise surface as an
-    error bubble to a connection that is very possibly already gone."""
+def test_translate_teardown_joins_worker_and_discards_cancelled_output(monkeypatch, tmp_path):
+    """CORRECTED (fix round 1, ruling R26): this exercises _translate_teardown
+    directly against a real TranslateEngine + NativeTranslateBackend, wired
+    together WITHOUT server.py's `_conn`/dispatch loop in the picture at all
+    -- it proves the backend/engine cancel+join plumbing (the I3 UAF fix), but
+    it is NOT the disconnect-during-generation race the ground truth §10(b)
+    defect actually lives in: a real `_translate_teardown` only ever runs from
+    server._conn's on_close list, which cannot fire until the in-flight
+    handler call has already returned (see _translate_teardown's own
+    docstring's "CORRECTION" paragraph). That live race is instead covered by
+    test_h_translate_cancels_inflight_generation_when_connection_closes below,
+    which drives the real _h_translate/asyncio.wait(FIRST_COMPLETED) path this
+    module's docstring documents. Calling _translate_teardown() directly here
+    (as this test still does) must not free the native handle out from under
+    a still-running self._t.chat() call (the exact use-after-free class
+    Task-I3 fixed for TTS's one-shot generate()), and the cancelled call must
+    come back as a harmless empty result rather than a raised exception."""
     import types
     from sokuji_sidecar import backends, native
     from sokuji_sidecar.planner import PlanConfig
@@ -468,3 +475,119 @@ def test_teardown_mid_flight_joins_worker_and_discards_cancelled_output(monkeypa
     assert backend.is_loaded is False
     text, _ms = result["out"]
     assert text == ""                                # cancelled: discarded, not a raised exception
+
+
+def test_h_translate_cancels_inflight_generation_when_connection_closes(monkeypatch, tmp_path):
+    """Fix round 1 (ruling R26): the REAL disconnect-during-generation race,
+    exercised through the actual production _h_translate function (not a
+    reimplementation of its logic) -- this is what
+    test_translate_teardown_joins_worker_and_discards_cancelled_output above
+    (fix round 1's corrected docstring) does NOT cover.
+
+    Ships the "handler-level" floor named in ruling R26, not a full real-
+    websockets-server harness: this codebase's existing server-layer tests
+    (test_server_conn.py) drive `_conn`/`handle_message` with fake transports
+    throughout and never open a real socket, so a FakeConn here matches
+    established style. The one piece that has to be a REAL asyncio primitive
+    -- not a plain flag -- is `wait_closed()`: server.Conn.wait_closed()
+    documents that it resolves independent of _conn's own recv() loop, and an
+    asyncio.Event completed by the test mid-flight is exactly that contract,
+    not a sleep/poll standing in for it.
+
+    Backend: the REAL NativeTranslateBackend (not a mock) against a slow fake
+    translator, so the worker-registry/cancel wiring under test is the actual
+    production code, exactly like the sibling test above."""
+    import types
+    from sokuji_sidecar import backends, native
+    from sokuji_sidecar.planner import PlanConfig
+
+    gguf = tmp_path / "w.gguf"
+    gguf.write_bytes(b"GGUF")
+
+    class _SlowTranslator:
+        def __init__(self):
+            self.started = threading.Event()
+            self.release = threading.Event()
+
+        def chat(self, messages, max_tokens=512, assistant_prefill=None, on_token=None):
+            self.started.set()
+            self.release.wait(timeout=5)
+            if on_token is not None and on_token("piece") is False:
+                raise RuntimeError("sk_translate_chat: cancelled")
+            return "full text"
+
+        def complete(self, prompt, max_tokens=512, on_token=None):
+            return self.chat([], on_token=on_token)
+
+        def unload(self):
+            pass
+
+    translator = _SlowTranslator()
+    mod = types.SimpleNamespace(translate_load=lambda path, device=None, n_ctx=0: translator)
+    monkeypatch.setattr(native, "module", lambda: mod)
+    monkeypatch.setattr(native, "device_for", lambda kind: f"dev:{kind}")
+
+    backend = backends.make_backend("native_translate")
+    backend.load(str(gguf), "cpu", "q8_0", config=PlanConfig(prompt_family="qwen"))
+
+    eng = translate_engine.TranslateEngine()
+    eng._backend = backend
+    eng._src, eng._tgt = "en", "fr"
+
+    # Observability hook: calls the REAL cancel_active() (hence the REAL
+    # backend.cancel(), hence the REAL worker Event) and additionally flips an
+    # asyncio.Event the test can await deterministically -- not a substitute
+    # for the real call, a signal layered on top of it.
+    cancel_signal = asyncio.Event()
+    orig_cancel_active = eng.cancel_active
+
+    def _tracking_cancel_active():
+        orig_cancel_active()
+        cancel_signal.set()
+
+    eng.cancel_active = _tracking_cancel_active
+
+    class FakeConn:
+        """wait_closed() is a real asyncio.Event this test completes
+        explicitly, mid-flight -- the same contract server.Conn.wait_closed()
+        gives _h_translate in production (see its docstring). send() asserts
+        it is never called with a real reply -- belt-and-braces on top of the
+        (None, None) return-value contract this test also checks directly."""
+
+        def __init__(self):
+            self._closed = asyncio.Event()
+
+        async def send(self, obj=None, binary=None):
+            raise AssertionError(f"must not reply to a closed connection: {obj!r}")
+
+        async def wait_closed(self):
+            await self._closed.wait()
+
+        def close_now(self):
+            self._closed.set()
+
+    conn = FakeConn()
+    state = {"translate_engine": eng}
+    msg = {"type": "translate", "id": 9, "text": "hello", "systemPrompt": "",
+           "wrapTranscript": False}
+
+    async def run():
+        h_task = asyncio.ensure_future(translate_engine._h_translate(state, msg, None, conn))
+        # Deterministic: an Event, not a sleep -- off the loop so it doesn't
+        # block it while the executor thread is genuinely running.
+        await asyncio.get_running_loop().run_in_executor(None, translator.started.wait, 5)
+
+        conn.close_now()          # the client disconnects mid-generation
+        # Bounded wait on a real asyncio primitive -- proves cancel_active()
+        # (hence the worker's cancel Event) fires promptly once asyncio.wait()
+        # inside _h_translate notices the close-waiter is done.
+        await asyncio.wait_for(cancel_signal.wait(), timeout=5)
+        assert backend._workers and backend._workers[-1][1].is_set()
+
+        translator.release.set()   # let the worker observe the cancel and exit
+        return await asyncio.wait_for(h_task, timeout=5)
+
+    reply, binary = asyncio.run(run())
+    assert reply is None and binary is None       # no reply -- FakeConn.send would have raised
+    assert backend._workers == []                  # translate() returned; worker deregistered
+    assert backend.is_loaded is True                # cancel != unload -- model stays loaded for reuse

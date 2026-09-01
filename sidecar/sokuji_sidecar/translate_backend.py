@@ -34,10 +34,25 @@ cancel Event first and returns False once it's set, which the binding turns
 into a clean native-level cancel (SK_ERR_CANCELLED, raised out of chat()/
 complete()) within one token -- no new wire message this slice (ruling R20:
 max_tokens bounds worst-case latency and no client sends a cancel). Ruling
-R20 also decided this is disconnect-triggered only, reached via
-TranslateEngine.cancel_active()/_translate_teardown (translate_engine.py) --
-the translate-side twin of tts_engine._tts_teardown's CQ-4 order (cancel_active()
-BEFORE close()) -- and via unload()'s own cancel+join, never a client message.
+R20 also decided this is disconnect-triggered only, never a client message.
+
+Two independent triggers reach this Event, and they matter for DIFFERENT
+races: TranslateEngine.cancel_active()/_translate_teardown (translate_engine.py
+-- the translate-side twin of tts_engine._tts_teardown's CQ-4 order,
+cancel_active() BEFORE close()) fires from server._conn's on_close list, which
+only runs once _conn's own `async for raw in ws:` loop returns -- i.e. AFTER
+whatever handler call was in flight when the connection closed has already
+finished. That covers a stale/superseded-engine close and a same-connection
+disconnect noticed at the NEXT message, but NOT a disconnect racing THIS
+connection's own still-running generation (ruling R26; ground truth
+.superpowers/slice5-surface-inventory.md §10(b) -- confirmed live: on_close
+cannot fire mid-flight through server.py's serial per-connection dispatch).
+That race is instead caught by translate_engine._h_translate itself, which
+awaits the executor future racing conn.wait_closed() (server.Conn -- resolves
+independent of _conn's recv() loop) and calls cancel_active() directly the
+moment the close-waiter wins -- see that function's own docstring for the
+full trace. unload()'s own cancel-everything-then-join is the correctness
+backstop common to both triggers, regardless of which (if either) fired first.
 
 A cancellation this backend itself triggered is not a generation failure: the
 raised exception is caught and the call returns whatever text was collected
