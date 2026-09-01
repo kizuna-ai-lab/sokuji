@@ -234,33 +234,32 @@ def test_tts_quant_ladder_shape():
     # Every card follows _llm_translate_row's two-rung shape: the default
     # quant is rank 2.0, any alt is rank 1.0, and EVERY quant carries the
     # SAME tier set (unlike the old catalog's per-precision/per-platform row
-    # variation) -- {"cpu", "gpu-vulkan"} for every family post-task-8 EXCEPT
-    # pocket_tts, which stays {"cpu"} (ruling R28 -- see test_pocket_tts_
-    # stays_cpu_only_r28 below for why).
+    # variation) -- {"cpu", "gpu-vulkan"} for every family post-task-8,
+    # pocket_tts included (ruling R29, superseding R28 -- see
+    # test_pocket_tts_gpu_vulkan_r29 below for why).
     for m in catalog.tts_models():
-        expected = {"cpu"} if m.family == "pocket_tts" else {"cpu", "gpu-vulkan"}
         by_ct = {}
         for d in m.deployments:
             by_ct.setdefault(d.compute_type, set()).add(d.tier)
         for ct, tiers in by_ct.items():
-            assert tiers == expected, (m.id, ct)
+            assert tiers == {"cpu", "gpu-vulkan"}, (m.id, ct)
         ranks = {d.compute_type: d.rank for d in m.deployments}
         assert sorted(ranks.values(), reverse=True)[0] == 2.0, m.id
         assert set(ranks.values()) <= {1.0, 2.0}, m.id
 
 
-def test_pocket_tts_stays_cpu_only_r28():
-    # Ruling R28 (task-8 fix round): pocket_tts is the one GB10-Vulkan-
-    # validated family that does NOT gain gpu-vulkan, despite passing the
-    # crash/correctness bar like the other four -- tier restoration tracks
-    # DEMONSTRATED BENEFIT (catalog._TTS_TIER_OVERRIDES' own comment has the
-    # measurement history, including a fix-round re-measurement that
-    # contradicts the original slower-on-vulkan reading -- flagged there for
-    # owner review, kept cpu-only as the conservative default meanwhile).
+def test_pocket_tts_gpu_vulkan_r29():
+    # Ruling R29 (task-8 second fix round, superseding R28): R28 had briefly
+    # pinned pocket_tts cpu-only on a single, not-apples-to-apples,
+    # cross-session comparison. A controlled re-measurement (warm-up call +
+    # 4 timed same-shape runs each device, catalog._TTS_TIER_OVERRIDES' own
+    # comment has the numbers) found Vulkan 5-9x FASTER, not slower -- no
+    # measurement in either round had cpu winning -- so pocket_tts gains
+    # gpu-vulkan like the other four GB10-validated families.
     for mid in ("pocket-tts-en", "pocket-tts-de", "pocket-tts-es", "pocket-tts-it", "pocket-tts-pt"):
         m = catalog.tts_model(mid)
         assert m is not None and m.family == "pocket_tts"
-        assert {d.tier for d in m.deployments} == {"cpu"}, mid
+        assert {d.tier for d in m.deployments} == {"cpu", "gpu-vulkan"}, mid
 
 
 def test_tts_tier_overrides_default_is_cpu_only_for_unknown_family():

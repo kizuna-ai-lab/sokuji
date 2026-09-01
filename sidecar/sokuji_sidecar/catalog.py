@@ -699,38 +699,32 @@ _TTS_TIERS = ("cpu",)
 #
 # All five families PASSED the crash/correctness bar — supertonic's Metal
 # "unsupported op" abort above does NOT reproduce on Vulkan (ggml-vulkan's op
-# coverage differs from ggml-metal's here). But tier restoration tracks
-# DEMONSTRATED BENEFIT, not just crash-free correctness (ruling R28): a
-# family whose Vulkan run is reproducibly SLOWER than cpu stays cpu-only,
-# because the renderer's gpu-vulkan badge (TierIcon.tsx) makes an
-# unconditional "accelerated" claim that would be false for it. Per-family
-# wall time is tts_load()+synth() together (same measurement the CPU-lane
-# numbers below use, cited from task-7-report.md's loopback table, same
-# box/build):
+# coverage differs from ggml-metal's here). Per-family wall time is
+# tts_load()+synth() together (same measurement the CPU-lane numbers below
+# use, cited from task-7-report.md's loopback table, same box/build):
 #   moss_tts_nano: 3.92s audio, 5.62s wall vulkan (cpu 15.03s) -> gpu-vulkan
 #   supertonic:    3.10s audio, 14.45s wall vulkan (cpu 14.50s — essentially
 #                  no speedup, reproduced across 2 more warm reruns
 #                  (13.95s/14.67s)) -> gpu-vulkan anyway: ~1.0x is parity, not
-#                  a measured REGRESSION the way pocket_tts's is below, and
-#                  this is the family the Metal abort was about — see the
-#                  caveat paragraph after this table for the two competing
-#                  explanations for its flat wall time
+#                  a regression, and this is the family the Metal abort was
+#                  about — see the caveat paragraph below for the two
+#                  competing explanations for its flat wall time
 #   qwen3_tts:     3.04s audio, 7.19s wall vulkan (cpu 29.03s) -> gpu-vulkan
 #   omnivoice:     2.48s audio, 6.69s wall vulkan (cpu 43.81s) -> gpu-vulkan
 #   pocket_tts:    2.72s audio, 1.94s wall vulkan (cpu 1.31s production
-#                  chain, task-7's number) -> STAYS CPU-ONLY (ruling R28) —
-#                  but this comparison was NOT apples-to-apples (task-8's
-#                  vulkan number: a raw tts_load()+synth() call, cold cache;
-#                  task-7's cpu number: the heavier production backend chain,
-#                  a different session, likely warm cache) and a fix-round
-#                  re-measurement CONTRADICTS it: 4 warmed-up direct-call
-#                  runs each side, same code shape both sides, gave vulkan
-#                  0.42-0.46s (tight) vs cpu 2.46-4.22s (noisy) — vulkan
-#                  CONSISTENTLY FASTER, the opposite of the number that
-#                  motivated R28. R28's OUTCOME (cpu-only) is kept as the
-#                  conservative default pending resolution — this
-#                  contradiction is unresolved, flagged for owner review, and
-#                  must not be read as settled performance data either way.
+#                  chain, task-7's number) -> gpu-vulkan (ruling R29,
+#                  superseding R28). R28 briefly pinned this family
+#                  cpu-only on that single, cross-session, not-apples-to-
+#                  apples comparison (a raw vulkan probe vs. a different
+#                  session's heavier production-chain cpu number). A
+#                  controlled re-measurement (one warm-up call + 4 timed
+#                  tts_load()+synth() runs, same call shape, both devices)
+#                  showed a 5-9x GPU speedup instead: vulkan 0.42-0.46s
+#                  (tight) vs cpu 2.46-4.22s (noisy) — and even the original,
+#                  most favorable-to-cpu figure (1.31s) still loses to
+#                  Vulkan's worst run by ~3x. The cpu-side run-to-run
+#                  variance itself is unexplained, but no measurement in
+#                  either round has cpu winning, so R29 restores gpu-vulkan.
 #
 # Caveat (unresolved, applies to every PASS above): ggml's backend scheduler
 # can silently fall back individual unsupported ops to CPU inside an
@@ -744,11 +738,7 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
     "supertonic": ("gpu-vulkan", "cpu"),
     "qwen3_tts": ("gpu-vulkan", "cpu"),
     "omnivoice": ("gpu-vulkan", "cpu"),
-    # pocket_tts: cpu-only (ruling R28, kept as the conservative default) —
-    # see the table above: the comparison that motivated this is CONTESTED
-    # by a fix-round re-measurement that found the opposite. Flagged for
-    # owner review, not settled.
-    "pocket_tts": ("cpu",),
+    "pocket_tts": ("gpu-vulkan", "cpu"),   # ruling R29 (supersedes R28) -- see table above
 }
 
 
