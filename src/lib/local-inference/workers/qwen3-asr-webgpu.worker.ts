@@ -15,7 +15,7 @@
  * Output messages: AsrWorkerOutMessage (ready, status, speech_start, result, error, disposed)
  */
 
-import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-all';
+import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-webgpu';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
