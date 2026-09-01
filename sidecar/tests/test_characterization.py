@@ -177,10 +177,17 @@ def test_resolve_translate_matrix(model_id, machine, override, expected, monkeyp
 # "unsupported op", ggml-metal-ops.cpp:204 -- and Vulkan TTS was never
 # validated either, since headless CI runners have no GPU to exercise it),
 # then again for the R19 follow-up / R25 (task 8): a GB10 dev box gave the
-# first real Vulkan TTS contact, and all five families passed (see
-# catalog._TTS_TIER_OVERRIDES' own comment for the per-family evidence) --
-# moss_tts_nano/supertonic/qwen3_tts/pocket_tts (the four families this
-# matrix covers; omnivoice-0.6b isn't in it) all gained a gpu-vulkan tier.
+# first real Vulkan TTS contact, and all five families passed the crash/
+# correctness bar (see catalog._TTS_TIER_OVERRIDES' own comment for the
+# per-family evidence) -- but tier restoration tracks DEMONSTRATED BENEFIT,
+# not just crash-free correctness (ruling R28, a task-8 fix-round addition):
+# moss_tts_nano/supertonic/qwen3_tts (three of the four families this matrix
+# covers; omnivoice-0.6b isn't in it) gained a gpu-vulkan tier, but
+# pocket_tts stays cpu-only -- its Vulkan run was originally read as slower
+# than cpu, though catalog._TTS_TIER_OVERRIDES' own comment records that a
+# fix-round re-measurement CONTRADICTS that reading; R28's cpu-only outcome
+# is kept as the conservative default pending resolution, so every
+# pocket-tts-en row below is unchanged from the pre-task-8, cpu-only era.
 # A vulkan-capable machine's 'auto' pick now runs the REAL
 # _llamacpp_variant_row budget fit-walk (previously always short-circuited by
 # `gpu_possible=False`): CUDA_12GB/CUDA_24GB's 12GiB/24GiB budgets fit even
@@ -233,13 +240,16 @@ TTS_MATRIX = [
     ('qwen3-tts-0.6b', APPLE_SILICON, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0)]),
     # pocket-tts-en: load_language="english" rides in PlanConfig (asserted
     # separately below, _plan_tuples doesn't carry config) — the deployment
-    # ladder itself is the same fp32-less two-quant shape as every other card.
+    # ladder itself is the same fp32-less two-quant shape as every other
+    # card, but stays cpu-only everywhere (ruling R28) — unlike moss/
+    # supertonic/qwen3_tts above, none of pocket-tts-en's rows change on a
+    # vulkan-capable machine.
     ('pocket-tts-en', CPU_ONLY, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0)]),
     ('pocket-tts-en', CPU_ONLY, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
-    ('pocket-tts-en', CUDA_12GB, 'auto', [('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
-    ('pocket-tts-en', CUDA_12GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
-    ('pocket-tts-en', CUDA_24GB, 'auto', [('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
-    ('pocket-tts-en', CUDA_24GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
+    ('pocket-tts-en', CUDA_12GB, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0)]),
+    ('pocket-tts-en', CUDA_12GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
+    ('pocket-tts-en', CUDA_24GB, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0)]),
+    ('pocket-tts-en', CUDA_24GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
     ('pocket-tts-en', APPLE_SILICON, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0)]),
     ('pocket-tts-en', APPLE_SILICON, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
 ]
