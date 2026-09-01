@@ -18,7 +18,7 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
   const { t } = useTranslation();
   const {
     bundleStatus, bundleSku, bundleVersion, bundleRequiredVersion, bundleProgress,
-    bundlePhase, bundleError, bundleStagedBytes, bundleGpuName, bundleDevVenv,
+    bundlePhase, bundleError, bundleStagedBytes, bundleDevVenv,
     bundleSize, bundleInstalledSize, sidecarStatus,
     refreshBundle, installBundle, cancelBundle, removeBundle, fetchBundleEntry,
     retrySidecar,
@@ -92,12 +92,6 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
           </span>
         )}
       </div>
-
-      {bundleGpuName && (
-        <div className="engine-section__row">
-          {t('engine.detected', 'Detected: {{gpu}}', { gpu: bundleGpuName })}
-        </div>
-      )}
 
       {bundleStatus === 'absent' && (
         <>

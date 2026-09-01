@@ -810,7 +810,6 @@
   },
   "engine": {
     "title": "Inference Engine",
-    "detected": "Detected: {{gpu}}",
     "package": "Engine package: {{sku}} · {{size}}",
     "sizeUnknown": "size unavailable offline",
     "download": "Download engine",

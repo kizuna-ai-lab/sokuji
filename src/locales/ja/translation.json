@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "推論エンジン",
-    "detected": "検出: {{gpu}}",
     "package": "エンジン: {{sku}} · {{size}}",
     "sizeUnknown": "オフラインのためサイズ不明",
     "download": "エンジンをダウンロード",

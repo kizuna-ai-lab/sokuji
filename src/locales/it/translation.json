@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Motore di inferenza",
-    "detected": "Rilevata: {{gpu}}",
     "package": "Pacchetto motore: {{sku}} · {{size}}",
     "sizeUnknown": "dimensione non disponibile offline",
     "download": "Scarica motore",

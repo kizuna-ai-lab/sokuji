@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Inferenz-Engine",
-    "detected": "Erkannt: {{gpu}}",
     "package": "Engine-Paket: {{sku}} · {{size}}",
     "sizeUnknown": "Größe offline nicht verfügbar",
     "download": "Engine herunterladen",

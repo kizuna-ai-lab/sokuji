@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Silnik wnioskowania",
-    "detected": "Wykryto: {{gpu}}",
     "package": "Pakiet silnika: {{sku}} · {{size}}",
     "sizeUnknown": "rozmiar niedostępny offline",
     "download": "Pobierz silnik",

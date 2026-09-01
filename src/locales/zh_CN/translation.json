@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "推理引擎",
-    "detected": "检测到:{{gpu}}",
     "package": "引擎包:{{sku}} · {{size}}",
     "sizeUnknown": "离线,无法获取体积",
     "download": "下载引擎",

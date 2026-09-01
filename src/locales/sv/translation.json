@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Inferensmotor",
-    "detected": "Identifierad: {{gpu}}",
     "package": "Motorpaket: {{sku}} · {{size}}",
     "sizeUnknown": "storlek ej tillgänglig offline",
     "download": "Ladda ner motor",

@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Çıkarım Motoru",
-    "detected": "Algılanan: {{gpu}}",
     "package": "Motor paketi: {{sku}} · {{size}}",
     "sizeUnknown": "boyut çevrimdışıyken bilinmiyor",
     "download": "Motoru indir",

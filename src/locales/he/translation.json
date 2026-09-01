@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "מנוע הסקה",
-    "detected": "זוהה: {{gpu}}",
     "package": "חבילת מנוע: {{sku}} · {{size}}",
     "sizeUnknown": "הגודל אינו זמין במצב לא מקוון",
     "download": "הורד מנוע",

@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Motor de Inferência",
-    "detected": "Detectado: {{gpu}}",
     "package": "Pacote do motor: {{sku}} · {{size}}",
     "sizeUnknown": "tamanho indisponível offline",
     "download": "Baixar motor",

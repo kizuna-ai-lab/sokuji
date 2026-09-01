@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Päättelymoottori",
-    "detected": "Tunnistettu: {{gpu}}",
     "package": "Moottoripaketti: {{sku}} · {{size}}",
     "sizeUnknown": "koko ei saatavilla offline-tilassa",
     "download": "Lataa moottori",

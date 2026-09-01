@@ -24,7 +24,7 @@ interface NativeModelStore {
   catalog: Record<string, NativeModelInfo>;
   /** Sidecar lifecycle. Drives every native UI surface that depends on the catalog. */
   sidecarStatus: 'idle' | 'starting' | 'ready' | 'unavailable';
-  /** Detected bundle SKU for this machine (linux-nvidia | win-nvidia | win-directml | mac). */
+  /** Detected bundle SKU for this machine (linux-x64 | linux-arm64 | win-x64 | mac-arm64 | mac-x64). */
   bundleSku: string | null;
   /** Self-contained sidecar bundle lifecycle (distribution spec S2/S7/S10). */
   bundleStatus: 'unknown' | 'unsupported' | 'absent' | 'mismatch' | 'paused' | 'installing' | 'ready' | 'error';
@@ -36,8 +36,6 @@ interface NativeModelStore {
   bundleRequiredVersion: string | null;
   /** Bytes already staged from an interrupted download (drives 'paused'). */
   bundleStagedBytes: number;
-  /** Detected GPU marketing name (nvidia-smi), for the engine card. */
-  bundleGpuName: string | null;
   /** True when a dev venv python exists — dev checkout, quiet card note. */
   bundleDevVenv: boolean;
   /** Download / unpacked sizes from the manifest peek (null while unknown). */
@@ -256,7 +254,6 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   bundleVersion: null,
   bundleRequiredVersion: null,
   bundleStagedBytes: 0,
-  bundleGpuName: null,
   bundleDevVenv: false,
   bundleSize: null,
   bundleInstalledSize: null,
@@ -278,7 +275,6 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         bundleVersion: r.installedVersion ?? null,
         bundleRequiredVersion: r.requiredVersion ?? null,
         bundleStagedBytes: r.stagedBytes ?? 0,
-        bundleGpuName: r.gpuName ?? null,
         bundleDevVenv: !!r.devVenvPresent,
         bundleError: '',
         bundleProgress: { downloaded: 0, total: 0 },

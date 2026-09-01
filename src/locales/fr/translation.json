@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Moteur d'inférence",
-    "detected": "Détecté : {{gpu}}",
     "package": "Paquet du moteur : {{sku}} · {{size}}",
     "sizeUnknown": "taille indisponible hors ligne",
     "download": "Télécharger le moteur",

@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Enjin Inferens",
-    "detected": "Dikesan: {{gpu}}",
     "package": "Pakej enjin: {{sku}} · {{size}}",
     "sizeUnknown": "saiz tidak tersedia luar talian",
     "download": "Muat turun enjin",

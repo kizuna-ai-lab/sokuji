@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Motor de inferência",
-    "detected": "Detetado: {{gpu}}",
     "package": "Pacote do motor: {{sku}} · {{size}}",
     "sizeUnknown": "tamanho indisponível offline",
     "download": "Transferir motor",

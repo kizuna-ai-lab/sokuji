@@ -20,21 +20,11 @@ _spec.loader.exec_module(b)
 
 
 def test_sku_triple_mapping():
-    assert b.SKU_TRIPLE["linux-nvidia"] == "x86_64-unknown-linux-gnu"
+    assert b.SKU_TRIPLE["linux-x64"] == "x86_64-unknown-linux-gnu"
     assert b.SKU_TRIPLE["linux-arm64"] == "aarch64-unknown-linux-gnu"
-    assert b.SKU_TRIPLE["win-nvidia"] == "x86_64-pc-windows-msvc"
-    assert b.SKU_TRIPLE["win-directml"] == "x86_64-pc-windows-msvc"
-    assert b.SKU_TRIPLE["mac"] == "aarch64-apple-darwin"
-
-
-def test_sku_requirements_mapping():
-    assert b.sku_requirements("linux-nvidia") == "requirements-nvidia.txt"
-    assert b.sku_requirements("linux-arm64") == "requirements-arm64.txt"
-    assert b.sku_requirements("win-nvidia") == "requirements-nvidia.txt"
-    assert b.sku_requirements("win-directml") == "requirements-directml.txt"
-    assert b.sku_requirements("mac") == "requirements-mac.txt"
-    with pytest.raises(KeyError):
-        b.sku_requirements("bogus")
+    assert b.SKU_TRIPLE["win-x64"] == "x86_64-pc-windows-msvc"
+    assert b.SKU_TRIPLE["mac-arm64"] == "aarch64-apple-darwin"
+    assert b.SKU_TRIPLE["mac-x64"] == "x86_64-apple-darwin"
 
 
 def test_select_python_asset_picks_install_only_not_stripped():
@@ -55,19 +45,23 @@ def test_select_python_asset_picks_install_only_not_stripped():
 
 
 def test_bundle_dirname():
-    assert b.bundle_dirname("linux-nvidia", "0.30.6") == "sidecar-linux-nvidia-v0.30.6"
+    assert b.bundle_dirname("linux-x64", "0.30.6") == "sidecar-linux-x64-v0.30.6"
 
 
 def test_host_supports_sku_matches_platform():
-    # Linux SKUs are machine-gated like mac: an aarch64 box must not build the
-    # x86_64 SKU (wheels are per-arch) and vice versa.
-    assert b.host_supports_sku("linux-nvidia") == (
+    # Linux and mac SKUs are machine-gated: an aarch64 box must not build the
+    # x86_64 SKU (wheels are per-arch) and vice versa. macOS spells its arches
+    # differently from Linux (platform.machine() reports "arm64"/"x86_64", not
+    # "aarch64"/"x86_64").
+    assert b.host_supports_sku("linux-x64") == (
         platform.system() == "Linux" and platform.machine() == "x86_64")
     assert b.host_supports_sku("linux-arm64") == (
         platform.system() == "Linux" and platform.machine() == "aarch64")
-    assert b.host_supports_sku("win-nvidia") == (platform.system() == "Windows")
-    assert b.host_supports_sku("mac") == (
+    assert b.host_supports_sku("win-x64") == (platform.system() == "Windows")
+    assert b.host_supports_sku("mac-arm64") == (
         platform.system() == "Darwin" and platform.machine() == "arm64")
+    assert b.host_supports_sku("mac-x64") == (
+        platform.system() == "Darwin" and platform.machine() == "x86_64")
 
 
 import hashlib
@@ -76,7 +70,7 @@ import tarfile as _tarfile
 
 
 def test_archive_name_matches_js_contract():
-    assert b.archive_name("linux-nvidia", "0.30.6") == "sidecar-linux-nvidia-v0.30.6.tar.zst"
+    assert b.archive_name("linux-x64", "0.30.6") == "sidecar-linux-x64-v0.30.6.tar.zst"
 
 
 def test_pack_zst_round_trips_with_children_at_root(tmp_path):
@@ -99,10 +93,10 @@ def test_pack_zst_round_trips_with_children_at_root(tmp_path):
 
 def test_build_manifest_fields(tmp_path):
     m = b.build_manifest(
-        "mac", "0.1.0", sha256="ab" * 32, size=7, installed_size=20,
+        "mac-arm64", "0.1.0", sha256="ab" * 32, size=7, installed_size=20,
         parts=[{"name": "sidecar-mac-v0.1.0.tar.zst", "size": 7, "sha256": "cd" * 32}])
     assert m == {
-        "sku": "mac", "version": "0.1.0", "sha256": "ab" * 32, "size": 7,
+        "sku": "mac-arm64", "version": "0.1.0", "sha256": "ab" * 32, "size": 7,
         "installedSize": 20,
         "parts": [{"name": "sidecar-mac-v0.1.0.tar.zst", "size": 7, "sha256": "cd" * 32}],
     }
@@ -133,18 +127,18 @@ def test_pack_zst_dereferences_symlinks(tmp_path):
 
 def test_merge_manifests_uniform_version_sorted_by_sku():
     agg = b.merge_manifests([
-        {"sku": "win-directml", "version": "0.1.0"},
-        {"sku": "linux-nvidia", "version": "0.1.0"},
+        {"sku": "win-x64", "version": "0.1.0"},
+        {"sku": "linux-x64", "version": "0.1.0"},
     ])
     assert agg["version"] == "0.1.0"
-    assert [e["sku"] for e in agg["bundles"]] == ["linux-nvidia", "win-directml"]
+    assert [e["sku"] for e in agg["bundles"]] == ["linux-x64", "win-x64"]
 
 
 def test_merge_manifests_rejects_mixed_versions():
     with pytest.raises(SystemExit):
         b.merge_manifests([
-            {"sku": "mac", "version": "0.1.0"},
-            {"sku": "linux-nvidia", "version": "0.2.0"},
+            {"sku": "mac-arm64", "version": "0.1.0"},
+            {"sku": "linux-x64", "version": "0.2.0"},
         ])
 
 
@@ -176,14 +170,14 @@ def test_split_parts_single_when_under_limit(tmp_path):
 
 
 def test_split_parts_chunks_when_over_limit(tmp_path):
-    arc = tmp_path / "sidecar-linux-nvidia-v1.tar.zst"
+    arc = tmp_path / "sidecar-linux-x64-v1.tar.zst"
     payload = bytes(range(256)) * 40  # 10240 bytes
     arc.write_bytes(payload)
     parts = b.split_parts(str(arc), limit=4096)
     assert [p["name"] for p in parts] == [
-        "sidecar-linux-nvidia-v1.tar.zst.001",
-        "sidecar-linux-nvidia-v1.tar.zst.002",
-        "sidecar-linux-nvidia-v1.tar.zst.003",
+        "sidecar-linux-x64-v1.tar.zst.001",
+        "sidecar-linux-x64-v1.tar.zst.002",
+        "sidecar-linux-x64-v1.tar.zst.003",
     ]
     assert [p["size"] for p in parts] == [4096, 4096, 2048]
     assert not arc.exists()  # multi-part: the whole archive is replaced by parts
@@ -208,9 +202,9 @@ def test_dir_size_walks(tmp_path):
 
 def test_cli_merge_fragments(tmp_path):
     f1 = tmp_path / "a.json"
-    f1.write_text(json.dumps({"sku": "mac", "version": "0.1.0"}))
+    f1.write_text(json.dumps({"sku": "mac-arm64", "version": "0.1.0"}))
     f2 = tmp_path / "b.json"
-    f2.write_text(json.dumps({"sku": "linux-nvidia", "version": "0.1.0"}))
+    f2.write_text(json.dumps({"sku": "linux-x64", "version": "0.1.0"}))
     out = tmp_path / "manifest.json"
     assert b._main(["--merge-fragments", str(f1), str(f2),
                     "--merged-out", str(out)]) == 0

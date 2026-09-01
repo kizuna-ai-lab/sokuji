@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Inference Engine",
-    "detected": "Natukoy: {{gpu}}",
     "package": "Package ng engine: {{sku}} · {{size}}",
     "sizeUnknown": "hindi available ang laki offline",
     "download": "I-download ang engine",

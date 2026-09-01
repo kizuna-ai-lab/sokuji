@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Motor de inferencia",
-    "detected": "Detectado: {{gpu}}",
     "package": "Paquete del motor: {{sku}} · {{size}}",
     "sizeUnknown": "tamaño no disponible sin conexión",
     "download": "Descargar motor",

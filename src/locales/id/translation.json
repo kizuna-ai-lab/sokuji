@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Mesin Inferensi",
-    "detected": "Terdeteksi: {{gpu}}",
     "package": "Paket mesin: {{sku}} · {{size}}",
     "sizeUnknown": "ukuran tidak tersedia saat offline",
     "download": "Unduh mesin",

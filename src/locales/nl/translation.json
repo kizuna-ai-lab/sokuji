@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Inferentie-engine",
-    "detected": "Gedetecteerd: {{gpu}}",
     "package": "Engine-pakket: {{sku}} · {{size}}",
     "sizeUnknown": "grootte offline niet beschikbaar",
     "download": "Engine downloaden",

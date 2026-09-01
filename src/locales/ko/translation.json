@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "추론 엔진",
-    "detected": "감지됨: {{gpu}}",
     "package": "엔진 패키지: {{sku}} · {{size}}",
     "sizeUnknown": "오프라인에서는 크기를 확인할 수 없음",
     "download": "엔진 다운로드",

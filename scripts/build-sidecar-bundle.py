@@ -16,7 +16,7 @@ Only the SKU whose triple matches the current OS is buildable on this host
 (wheels are per-platform); win/mac SKUs run on their native CI runners.
 
 Usage:
-    python scripts/build-sidecar-bundle.py --sku linux-nvidia --archive --out out/bundles
+    python scripts/build-sidecar-bundle.py --sku linux-x64 --archive --out out/bundles
 Version defaults to package.json `sidecarVersion`. Archives over PART_LIMIT are
 byte-split into `.001/.002/...` parts. `--merge-fragments a.json b.json` merges
 per-SKU fragments into the release manifest.json.
@@ -35,27 +35,16 @@ import urllib.request
 from pathlib import Path
 
 SKU_TRIPLE = {
-    "linux-nvidia": "x86_64-unknown-linux-gnu",
+    "linux-x64": "x86_64-unknown-linux-gnu",
     "linux-arm64": "aarch64-unknown-linux-gnu",
-    "win-nvidia": "x86_64-pc-windows-msvc",
-    "win-directml": "x86_64-pc-windows-msvc",
-    "mac": "aarch64-apple-darwin",
-}
-SKU_REQUIREMENTS = {
-    "linux-nvidia": "requirements-nvidia.txt",
-    "linux-arm64": "requirements-arm64.txt",
-    "win-nvidia": "requirements-nvidia.txt",
-    "win-directml": "requirements-directml.txt",
-    "mac": "requirements-mac.txt",
+    "win-x64": "x86_64-pc-windows-msvc",
+    "mac-arm64": "aarch64-apple-darwin",
+    "mac-x64": "x86_64-apple-darwin",
 }
 _PBS_LATEST = "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
 
 # GitHub release assets max out at 2 GiB; keep ~100 MiB headroom (spec S5).
 PART_LIMIT = int(1.9 * 1024 ** 3)
-
-
-def sku_requirements(sku: str) -> str:
-    return SKU_REQUIREMENTS[sku]
 
 
 def bundle_dirname(sku: str, version: str) -> str:
@@ -73,8 +62,12 @@ def host_supports_sku(sku: str) -> bool:
     if "windows" in triple:
         return sysname == "Windows"
     if "darwin" in triple:
-        # mac bundle is Apple-Silicon-only (arm64); an Intel Mac must not pass.
-        return sysname == "Darwin" and platform.machine() == "arm64"
+        # Machine-gated like linux above: mac-arm64 and mac-x64 are distinct
+        # triples now, so an Apple-Silicon box must not build the Intel SKU
+        # and vice versa. macOS spells its arches differently from Linux
+        # (platform.machine() reports "arm64"/"x86_64", not "aarch64"/"x86_64").
+        want = "arm64" if triple.startswith("aarch64") else "x86_64"
+        return sysname == "Darwin" and platform.machine() == want
     return False
 
 
@@ -159,7 +152,7 @@ def build_bundle_dir(sku: str, version: str, out_root: str, repo_root: str) -> s
 
     prefix = _fetch_python_prefix(SKU_TRIPLE[sku], out)
     py = str(_bundle_python_exe(prefix))
-    req = repo / "sidecar" / sku_requirements(sku)
+    req = repo / "sidecar" / "requirements.txt"
     subprocess.run([py, "-m", "pip", "install", "--upgrade", "pip"], check=True)
     subprocess.run([py, "-m", "pip", "install", "-r", str(req)],
                    check=True, cwd=str(repo / "sidecar"))

@@ -79,10 +79,10 @@ class NativeHostManager {
       // (dev/manual testing, unit tests) - mirrors the HF_HOME short-circuit above.
       let bundleRoot = null;
       if (!envOverride) {
-        const { detectSku, probeNvidia, bundleRootFor } = require('./sidecar-sku');
-        const sku = detectSku(process.platform, { hasNvidia: probeNvidia(), arch: process.arch });
-        // sku is null on unsupported hardware (e.g. Intel mac) — no bundle to
-        // resolve; fall through to the dev-venv launch path below.
+        const { detectSku, bundleRootFor } = require('./sidecar-sku');
+        const sku = detectSku(process.platform, { arch: process.arch });
+        // sku is null on unsupported hardware (e.g. Windows-on-ARM) — no bundle
+        // to resolve; fall through to the dev-venv launch path below.
         if (sku !== null) {
           const userData = process.env.SOKUJI_USERDATA || app.getPath('userData');
           bundleRoot = bundleRootFor(userData, sku);

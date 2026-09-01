@@ -674,7 +674,6 @@
   },
   "engine": {
     "title": "Công cụ suy luận",
-    "detected": "Đã phát hiện: {{gpu}}",
     "package": "Gói công cụ: {{sku}} · {{size}}",
     "sizeUnknown": "không xem được dung lượng khi ngoại tuyến",
     "download": "Tải công cụ",
