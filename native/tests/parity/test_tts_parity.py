@@ -98,6 +98,7 @@ masquerade as a parity failure on top of the ±1-LSB tolerance this round alread
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import pathlib
@@ -194,34 +195,54 @@ def _write_ref_wav(path: pathlib.Path, sample_rate: int, samples: np.ndarray) ->
     sf.write(str(path), samples, sample_rate, subtype="FLOAT")
 
 
-def _sve_free_copy(src_dir: pathlib.Path, dst_dir: pathlib.Path, key_file: str) -> pathlib.Path:
+def _sve_free_copy(src_dir: pathlib.Path, key_file: str) -> pathlib.Path:
     """A real (non-symlink) copy of src_dir with SVE_CPU_MODULES excluded, cached under
-    dst_dir. A real copy, not symlinks: ggml's default CPU-module search path on Linux is the
-    RUNNING EXECUTABLE's own directory, resolved via /proc/self/exe — which the kernel
-    resolves THROUGH a symlink to the symlink's target, so a symlinked audiocpp_cli would
-    silently defeat this (it would still search the ORIGINAL, SVE-including directory).
-    Copying uniformly for both sides (rather than symlinking the ones that could tolerate it)
-    keeps this one mechanism simple. Idempotent: skipped once dst_dir's own copy of
-    `key_file` is no older than the source's, so a rebuilt source is picked back up."""
-    src_key = src_dir / key_file
+    CACHE_DIR in a subdir keyed by a hash of src_dir's OWN resolved absolute path. A real
+    copy, not symlinks: ggml's default CPU-module search path on Linux is the RUNNING
+    EXECUTABLE's own directory, resolved via /proc/self/exe — which the kernel resolves
+    THROUGH a symlink to the symlink's target, so a symlinked audiocpp_cli would silently
+    defeat this (it would still search the ORIGINAL, SVE-including directory). Copying
+    uniformly for both sides (rather than symlinking the ones that could tolerate it) keeps
+    this one mechanism simple.
+
+    2026-09-02 incident: this cache used to live at one FIXED path per caller (e.g.
+    CACHE_DIR / "sokuji-native-nosve"), refreshed only when the source key file's mtime was
+    `>=` the cached copy's mtime. A scratch build under a different source directory, with a
+    newer libsokuji_native.so, silently repopulated that shared fixed path (leaving a foreign
+    libggml-vulkan.so behind too) — every later parity run against the real staged build then
+    used that foreign build without any signal, producing two spurious failures. Keying the
+    cache subdir by the source directory's own path makes two different sources physically
+    unable to land in the same slot, and refreshing on exact mtime-AND-size equality (not
+    `>=`) — wiping the slot's previous contents before recopying — means a refresh can never
+    leave a stale foreign file behind either."""
+    resolved = src_dir.resolve()
+    digest = hashlib.sha1(str(resolved).encode()).hexdigest()[:12]
+    dst_dir = CACHE_DIR / f"nosve-{digest}-{resolved.name}"
+    src_key = resolved / key_file
     dst_key = dst_dir / key_file
-    if dst_key.exists() and dst_key.stat().st_mtime >= src_key.stat().st_mtime:
-        return dst_dir
-    dst_dir.mkdir(parents=True, exist_ok=True)
-    for entry in src_dir.iterdir():
-        if entry.is_file() and entry.name not in SVE_CPU_MODULES:
-            shutil.copy2(entry, dst_dir / entry.name)
+    src_stat = src_key.stat()
+    fresh = (
+        dst_key.exists()
+        and dst_key.stat().st_mtime == src_stat.st_mtime
+        and dst_key.stat().st_size == src_stat.st_size
+    )
+    if not fresh:
+        if dst_dir.exists():
+            shutil.rmtree(dst_dir)
+        dst_dir.mkdir(parents=True, exist_ok=True)
+        for entry in resolved.iterdir():
+            if entry.is_file() and entry.name not in SVE_CPU_MODULES:
+                shutil.copy2(entry, dst_dir / entry.name)
     return dst_dir
 
 
 def _official_cli_nosve() -> pathlib.Path:
-    dst_dir = CACHE_DIR / "audiocpp-official-nosve"
-    _sve_free_copy(OFFICIAL_CLI.parent, dst_dir, "audiocpp_cli")
+    dst_dir = _sve_free_copy(OFFICIAL_CLI.parent, "audiocpp_cli")
     return dst_dir / "audiocpp_cli"
 
 
 def _candidate_native_dir_nosve() -> pathlib.Path:
-    return _sve_free_copy(sokuji_native.native_dir(), CACHE_DIR / "sokuji-native-nosve", "libsokuji_native.so")
+    return _sve_free_copy(sokuji_native.native_dir(), "libsokuji_native.so")
 
 
 def _run_cli(args: list[str]) -> None:
