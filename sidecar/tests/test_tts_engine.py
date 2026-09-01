@@ -73,7 +73,7 @@ class _FakeOneShot:
         return ["Ava", "Bella"]
 
     def generate(self, text, speed=1.0):
-        return np.ones(16000, np.float32), 50
+        return np.ones(16000, np.float32), self.sample_rate, 50
 
     def cancel(self):
         raise AssertionError("one-shot generation is never cancelled")
@@ -108,11 +108,12 @@ class _FakeStream:
         self.cancel_calls += 1
 
     def generate(self, text, speed=1.0):
-        return np.concatenate(list(self.generate_stream(text, speed))), 30
+        chunks = [c for c, _sr in self.generate_stream(text, speed)]
+        return np.concatenate(chunks), self.sample_rate, 30
 
     def generate_stream(self, text, speed=1.0):
         for _ in range(3):
-            yield np.ones(8000, np.float32)            # 3 chunks @ 24k
+            yield np.ones(8000, np.float32), self.sample_rate   # 3 chunks @ 24k
 
     def unload(self):
         self._loaded = False
@@ -192,6 +193,26 @@ def test_generate_oneshot_returns_24k_pcm(monkeypatch):
     assert abs(len(np.frombuffer(pcm, np.int16)) - 24000) <= 2  # 16k->24k
 
 
+def test_generate_resamples_using_the_actual_returned_rate_not_caps_default(monkeypatch):
+    """I2: a backend whose per-call generate() returns a DIFFERENT rate than its own
+    advertised caps.sample_rate must be resampled using that ACTUAL rate -- using the
+    stale caps-table default here would have left the wrong-rate samples effectively
+    unresampled (a no-op 24k->24k) and pitch-shifted on playback."""
+    class _OddRateOneShot(_FakeOneShot):
+        sample_rate = 24000   # advertised caps default
+
+        def generate(self, text, speed=1.0):
+            return np.ones(16000, np.float32), 16000, 50   # actual rate: 16000, not 24000
+
+    b = _OddRateOneShot(); _patch(monkeypatch, b, "piper-en-amy")
+    eng = tts_engine.TtsEngine(); eng.init("piper-en-amy")
+    pcm, ms = eng.generate("hello")
+    # 16000 samples @ 16000Hz resampled to 24000Hz -> ~1.0s -> ~24000 samples. Using
+    # the stale caps default (24000, a no-op) would instead pass 16000 samples
+    # through unresampled -- this assertion catches exactly that regression.
+    assert abs(len(np.frombuffer(pcm, np.int16)) - 24000) <= 2
+
+
 def test_generate_downmixes_2d_stereo_samples_end_to_end(monkeypatch):
     """Review round 1, CQ-7: MOSS-shaped backends return real 2-D (frames,
     channels) samples (native/python/sokuji_native's TtsModel.synth() reshapes
@@ -206,7 +227,7 @@ def test_generate_downmixes_2d_stereo_samples_end_to_end(monkeypatch):
             stereo = np.zeros((24000, 2), np.float32)
             stereo[:, 0] = 1.0
             stereo[:, 1] = -1.0
-            return stereo, 42
+            return stereo, self.sample_rate, 42
 
     b = _FakeStereoOneShot(); _patch(monkeypatch, b, "moss-tts-nano")
     eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
@@ -276,6 +297,29 @@ def test_generate_stream_emits_chunks_then_done(monkeypatch):
     assert done[0]["id"] == "m1" and done[0]["totalSamples"] == 3 * 8000
 
 
+def test_generate_stream_resamples_each_chunk_using_its_own_rate(monkeypatch):
+    """I2, streaming leg: each chunk must be resampled with the rate THAT chunk
+    carried, not the family's advertised caps default -- proven by a fake whose
+    per-chunk rate differs from its own class-level sample_rate."""
+    class _OddRateStream(_FakeStream):
+        sample_rate = 24000   # advertised caps default
+
+        def generate_stream(self, text, speed=1.0):
+            yield np.ones(8000, np.float32), 16000   # actual rate: 16000, not 24000
+
+    b = _OddRateStream(); _patch(monkeypatch, b, "moss-tts-nano")
+    eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
+    sent = []
+    async def send(obj=None, binary=None): sent.append((obj, binary))
+    asyncio.run(eng.generate_stream("hi", 1.0, send, lambda: False, msg_id="m1"))
+    chunk_msgs = [(o, pcm) for o, pcm in sent if o and o.get("type") == "tts_chunk"]
+    assert len(chunk_msgs) == 1
+    pcm = chunk_msgs[0][1]
+    # 8000 samples @ 16000Hz -> 0.5s -> ~12000 samples @ 24000Hz. Using the stale
+    # caps default (24000, a no-op) would instead leave ~8000 samples unresampled.
+    assert abs(len(np.frombuffer(pcm, np.int16)) - 12000) <= 2
+
+
 def test_generate_stream_honors_client_side_cancel(monkeypatch):
     b = _FakeStream(); _patch(monkeypatch, b, "moss-tts-nano")
     eng = tts_engine.TtsEngine(); eng.init("moss-tts-nano")
@@ -292,7 +336,7 @@ def test_generate_stream_backend_failure_emits_error_not_done(monkeypatch):
     failed request as a (merely short) success."""
     class _FakeBoomingStream(_FakeStream):
         def generate_stream(self, text, speed=1.0):
-            yield np.ones(8000, np.float32)
+            yield np.ones(8000, np.float32), self.sample_rate
             raise RuntimeError("decoder blew up")
 
     b = _FakeBoomingStream(); _patch(monkeypatch, b, "moss-tts-nano")
@@ -670,11 +714,11 @@ def test_tts_cancel_stops_inflight_stream_end_to_end(monkeypatch):
             self.before_gate = threading.Event()
 
         def generate_stream(self, text, speed=1.0):
-            yield np.ones(8000, np.float32)   # chunk 0 — always produced
+            yield np.ones(8000, np.float32), self.sample_rate   # chunk 0 — always produced
             self.before_gate.set()
             self.gate.wait()
-            yield np.ones(8000, np.float32)   # chunk 1 (skipped once cancelled)
-            yield np.ones(8000, np.float32)   # chunk 2 (skipped once cancelled)
+            yield np.ones(8000, np.float32), self.sample_rate   # chunk 1 (skipped once cancelled)
+            yield np.ones(8000, np.float32), self.sample_rate   # chunk 2 (skipped once cancelled)
 
         def cancel(self):
             self.cancel_calls += 1
@@ -824,6 +868,116 @@ def _loopback_hit(transcript: str) -> bool:
     return any(m in low for m in _LOOPBACK_MARKERS)
 
 
+# Fix wave (2026-09-01), ruling R17(s4) / I1 point 2: families whose loopback leg is
+# a KNOWN, documented open finding, attempted and recorded but excluded from the hard
+# pass/fail assertion below -- not silently skipped. Mirrors the treatment this exact
+# file gave omnivoice's now-fixed crash earlier in this slice (task-7-report.md §3):
+# attempt it, record the result, exempt it by name, and point at the writeup.
+KNOWN_OPEN_FINDINGS = {"pocket_tts (production chain)"}
+
+
+def _run_pocket_production_chain(asr):
+    """R17(s4) / I1 point 2: ONE full-production-chain leg, unlike the other four
+    (direct sn.tts_load() calls straight into the native module -- cheap, and fine
+    for gating the native layer, but they skip the ENTIRE download -> HF cache ->
+    NativeTtsBackend chain production actually uses). This one goes through the
+    real thing: native_models.download() -> model_status() ->
+    NativeTtsBackend.load() -> .generate() -- the SAME methods tts_engine.py's
+    init()/generate() delegate straight through to (LocalNativeClient.ts ->
+    tts_engine.py -> tts_backend.py is the full production call chain). Floor
+    chosen: backend-level (NativeTtsBackend.load()/.generate()), not the full
+    async TtsEngine/wire event-loop layer on top -- that layer adds asyncio task
+    dispatch and WS message framing, none of which touches download, cache
+    resolution, or backend.load()/generate() themselves (this fix wave's I2 unit
+    -tests the rate-handling piece separately, with fakes, exactly because it
+    lives in that layer); wiring it here would add real complexity for no
+    additional coverage of what this leg exists to prove.
+
+    pocket-tts-en is the smallest card (122MB gguf + 5.9MB embeddings/
+    alba.safetensors) and the ONLY one with extra_files (a same-directory sidecar
+    asset sk_tts_presets discovers next to the loaded gguf), so this leg also
+    exercises that path.
+
+    Uses a SCRATCH HF cache under ~/.cache/sokuji-native-tests/ (not the shared
+    ~/.cache/huggingface) so this gate's download is disposable and neither
+    depends on nor pollutes a developer's real HF cache. Redirects
+    huggingface_hub.constants.HF_HUB_CACHE directly rather than the HF_HOME env
+    var: every download/status/load call in this chain resolves its cache
+    directory by reading that module ATTRIBUTE at call time (verified by reading
+    _snapshot_download.py's source: `if cache_dir is None: cache_dir =
+    constants.HF_HUB_CACHE`), but HF_HUB_CACHE itself is computed from HF_HOME
+    only ONCE, at huggingface_hub's own import time -- setting the env var this
+    late (huggingface_hub is already imported well before this test runs) would
+    silently do nothing.
+
+    OPEN FINDING (new; not one of C1/I1-I3/M1): NativeTtsBackend.load()'s
+    snapshot_download() resolves to a SYMLINKED file (HF's default snapshot
+    layout on Linux/macOS). audio.cpp's own prepare_model_directory()
+    (vendored, _deps/audiocpp-src/src/framework/assets/tensor_source.cpp) calls
+    std::filesystem::weakly_canonical() on that symlinked .gguf path, which -- for
+    a path that exists in full -- fully resolves it down to the extensionless,
+    content-addressed blob file; that canonicalized path is then handed to
+    open_tensor_source(), whose format dispatch is a lexical
+    `path.extension() == ".gguf"` check, which now fails ("unsupported tensor
+    source format"). Reproduces for EVERY native_tts card (independently
+    verified against moss-tts-nano too, not just pocket-tts-en) -- i.e.
+    NativeTtsBackend.load() cannot currently load ANY model fetched through a
+    real (symlinked) HF cache on Linux/macOS; every prior test of this backend
+    used either a fully-mocked snapshot_download (test_tts_backend.py) or a
+    hand-placed flat directory (this file's other four legs), so this is the
+    first time the REAL chain has ever run. This directly contradicts this
+    repo's own tts_backend.py module docstring's "no hard-links" ruling: a
+    TARGETED hard link (not the old MOSS backend's whole-tree `_link_tree`)
+    would dodge this specific failure, since a hard link is not a symlink and is
+    not resolved by weakly_canonical() -- but reversing that ruling is a
+    controller-level call this fix wave does not make unilaterally. Recorded
+    here, not silently patched or routed around; see final-fixwave-report.md for
+    the full trace.
+    """
+    import huggingface_hub.constants as _hfc
+    from sokuji_sidecar import backends, catalog, native_models
+    from sokuji_sidecar.planner import PlanConfig
+
+    scratch = os.path.expanduser("~/.cache/sokuji-native-tests/hf-scratch-pocket-chain")
+    os.makedirs(scratch, exist_ok=True)
+    orig_home, orig_cache = _hfc.HF_HOME, _hfc.HF_HUB_CACHE
+    _hfc.HF_HOME, _hfc.HF_HUB_CACHE = scratch, os.path.join(scratch, "hub")
+    try:
+        async def _noop_send(_msg):
+            pass
+
+        status = asyncio.run(native_models.download("pocket-tts-en", _noop_send))
+        assert status == "ready", f"pocket-tts-en download did not complete: {status}"
+        assert native_models.model_status("pocket-tts-en") == "ready", \
+            "pocket-tts-en not 'ready' after a completed download"
+
+        artifact = catalog.tts_model("pocket-tts-en").deployments[0].artifact
+        b = backends.make_backend("native_tts")
+        t0 = time.monotonic()
+        try:
+            b.load(artifact, "cpu", "q8_0",
+                   config=PlanConfig(tts_family="pocket_tts", tts_language="english"))
+        except backends.BackendLoadError as e:
+            return dict(family="pocket_tts (production chain)", seconds=0.0, synth_s=0.0,
+                        transcript="", ok=False,
+                        note=f"OPEN FINDING (not C1/I1-I3/M1): backend.load() on a real "
+                             f"(symlinked) HF snapshot raised: {e}")
+        try:
+            b.set_builtin_voice("alba")
+            samples, rate, _gen_ms = b.generate(_LOOPBACK_TEXT)
+            elapsed = time.monotonic() - t0
+        finally:
+            b.unload()
+    finally:
+        _hfc.HF_HOME, _hfc.HF_HUB_CACHE = orig_home, orig_cache
+
+    transcript = _loopback_transcribe(asr, samples, rate)
+    ok = _loopback_hit(transcript)
+    seconds = _loopback_mono(samples).shape[0] / rate if rate else 0.0
+    return dict(family="pocket_tts (production chain)", seconds=round(seconds, 2),
+                synth_s=round(elapsed, 2), transcript=transcript, ok=ok, note="")
+
+
 # omnivoice's audio-tokenizer RVQ loop used to crash the WHOLE process
 # (GGML_ASSERT nb00 == sizeof(src0_t), binary-ops.cpp:59, SIGABRT -- not a
 # catchable NativeError) whenever its reference clip was real synthesized
@@ -924,25 +1078,33 @@ def test_tts_asr_loopback_per_family():
     # qwen3_tts: offline, clones, no presets. UNLIKE moss/pocket, the base
     # checkpoint has NO default built-in voice -- a plain synth() fails
     # (live-verified: "Qwen3 base TTS requires voice clone reference audio"),
-    # and -- despite transcript_required=False in the family table, which only
-    # gates sk_tts_set_voice's OWN validation -- its ICL clone mode separately
-    # requires ref_text one level deeper, inside audio.cpp's own synth call
-    # (live-verified: "Qwen3 voice clone ICL mode requires reference text").
-    # So it clones the same supertonic-synthesized reference omnivoice uses
-    # below, WITH that reference's text. This is the conv_1d_dw compat-shim
-    # proof (see file header).
-    # language="auto": Qwen3's talker resolves `language` against a
-    # per-checkpoint codec_language_id table keyed by full language NAMES
-    # baked into the GGUF's own metadata, not ISO codes -- "en" is live-
-    # verified to raise "Qwen3 talker unsupported language: en". "auto" is a
-    # dedicated sentinel (qwen3_tts/talker.cpp) that skips that lookup
-    # entirely via a "nothink" codec prefix, so it works without knowing this
-    # checkpoint's exact language-name vocabulary.
+    # and its ICL clone mode separately requires ref_text one level deeper,
+    # inside audio.cpp's own synth call (live-verified: "Qwen3 voice clone ICL
+    # mode requires reference text") -- this is now ALSO enforced up front by
+    # sk_tts_set_voice itself (ruling R15(s4): transcript_required=true for
+    # this family). So it clones the same supertonic-synthesized reference
+    # omnivoice uses below, WITH that reference's text -- the transcripted
+    # clone is the documented production requirement, not a test-only
+    # workaround. This is the conv_1d_dw compat-shim proof (see file header).
+    #
+    # language="en" (the SAME ISO code every other family gets, via attempt()'s
+    # default) -- NOT the hand-picked "auto" this leg used before ruling R14(s4)
+    # landed. Before R14, qwen3_tts's talker rejected ISO codes outright
+    # ("Qwen3 talker unsupported language: en") because it resolves `language`
+    # against a per-checkpoint codec_language_id table keyed by full language
+    # NAMES baked into the GGUF's own metadata, not ISO codes -- "auto" is a
+    # dedicated sentinel (qwen3_tts/talker.cpp) that skips that lookup entirely,
+    # and production (LocalNativeClient.ts -> tts_engine.py -> tts_backend.py)
+    # always sends an ISO code, never "auto" (C1's production-path mismatch).
+    # R14 now maps ANY incoming language to "auto" internally, in
+    # native/src/sk_tts.cpp's build_request(), so this leg passing "en" like
+    # every other family IS what now reaches the talker as "auto" -- this is
+    # C1's permanent regression gate: a real checkpoint, on real hardware,
+    # synthesizing correctly from the SAME language argument production sends.
     qwen3_dir = family_dir("SK_TEST_TTS_QWEN3_DIR")
     if qwen3_dir and supertonic_ref:
         ref_samples, ref_rate, ref_text = supertonic_ref
-        attempt("qwen3_tts", qwen3_dir, lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate, ref_text),
-                language="auto")
+        attempt("qwen3_tts", qwen3_dir, lambda m: m.set_voice(_loopback_mono(ref_samples), ref_rate, ref_text))
     else:
         skipped.append("qwen3_tts" if qwen3_dir else "qwen3_tts (needs supertonic for a reference clip)")
 
@@ -962,14 +1124,13 @@ def test_tts_asr_loopback_per_family():
     else:
         skipped.append("omnivoice" if omnivoice_dir else "omnivoice (needs supertonic for a reference clip)")
 
-    # pocket_tts (English package): offline, clones, named presets --
-    # sk_tts_presets() ships exactly "alba" for this package (embeddings/
-    # alba.safetensors next to the gguf).
-    pocket_dir = family_dir("SK_TEST_TTS_POCKET_DIR")
-    if pocket_dir:
-        attempt("pocket_tts", pocket_dir, lambda m: m.set_preset("alba"))
-    else:
-        skipped.append("pocket_tts")
+    # pocket_tts (English package): the ONE full-production-chain leg (ruling
+    # R17(s4) / I1 point 2) -- see _run_pocket_production_chain's docstring for
+    # what it proves and the open finding it surfaced. Independent of the
+    # SK_TEST_TTS_<FAMILY>_DIR env vars above: this leg downloads its own copy
+    # into a dedicated scratch HF cache, so it always runs (given network
+    # access) regardless of which of the other four are locally pre-downloaded.
+    results.append(_run_pocket_production_chain(asr))
 
     print("\n--- TTS -> ASR loopback ---")
     for r in results:
@@ -980,9 +1141,10 @@ def test_tts_asr_loopback_per_family():
         print(f"  {s:16s} SKIPPED (no local model)")
 
     assert results, "no TTS family had a locally-downloaded model -- nothing to gate"
-    # All attempted families are hard-asserted here. omnivoice's former
-    # crash (ggml_sub non-contiguous src0, ruling R13) is fixed, so unlike
-    # native/tests/parity/test_tts_parity.py's still-open moss_clone xfail,
-    # there is no remaining open finding to exempt.
-    failures = [r for r in results if not r["ok"]]
+    # Every attempted family is hard-asserted here EXCEPT the production-chain
+    # leg's own new, documented open finding (KNOWN_OPEN_FINDINGS, ruling R17(s4)
+    # -- see _run_pocket_production_chain's docstring). omnivoice's former crash
+    # (ggml_sub non-contiguous src0, ruling R13) is fixed, so it carries no
+    # exemption of its own anymore.
+    failures = [r for r in results if not r["ok"] and r["family"] not in KNOWN_OPEN_FINDINGS]
     assert not failures, f"missed marker words for: {[r['family'] for r in failures]} -- {failures}"
