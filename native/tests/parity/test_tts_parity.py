@@ -47,7 +47,8 @@ Round 4 / ruling R23 (jiangzhuo 2026-09-01, .superpowers/moss-eoc-verdict.md): m
 switched from greedy to SAMPLED decode in production (native/src/sk_tts.cpp's `sample_decode`
 family flag) because greedy argmax never reaches this checkpoint's own end-of-content token
 for ordinary input — it runs to audio.cpp's 300-frame/24.000s `max_new_frames` cap instead
-(measured 3/3), while sampling reaches real EOC in 2.6-3.7s (measured 3/3). Seed stays fixed
+(measured once, E1; corroborated by the pre-existing parity baseline's own greedy-decode
+runaway), while sampling reaches real EOC in 2.6-3.7s (measured 3/3, E2a/b/c). Seed stays fixed
 at "0" either way, so both `test_moss_text_only` and `test_moss_clone` below now pass
 `--request-option do_sample=true` to the reference CLI to match what the candidate binding
 does internally. Measured directly for this file's two fixed test inputs: both cases
@@ -470,7 +471,7 @@ def test_moss_text_only(tmp_path):
     # Round 4 / Ruling R23 (jiangzhuo 2026-09-01, .superpowers/moss-eoc-verdict.md): moss's own
     # greedy-decode stop logic never reaches real end-of-content for ordinary input — it is a
     # genuine defect in audio.cpp's own session/prompt/stop path (E1 there: 300-frame/24.000s
-    # cap, 3/3, transcript "The quick."), not a ggml-swap regression and not something
+    # cap, measured once, transcript "The quick."), not a ggml-swap regression and not something
     # native/src/sk_tts.cpp could fix by staying greedy. Sampling reaches real EOC instead (E2:
     # 3/3, 2.6-3.7s, full correct transcript), so moss_tts_nano now runs do_sample=true in
     # production (native/src/sk_tts.cpp's `sample_decode` family flag) and this case's CLI

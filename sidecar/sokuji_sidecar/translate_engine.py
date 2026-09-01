@@ -164,17 +164,42 @@ async def _h_translate(state, msg, _b, conn=None):
     Fix: race the executor future against `conn.wait_closed()` (server.Conn;
     see its own docstring for why that resolves independent of _conn's
     recv() loop) via asyncio.wait(FIRST_COMPLETED). If the close-waiter wins,
-    this connection is the ONLY caller that can be running a translate() on
-    it right now (server._conn's per-connection serialization guarantees
-    that), so eng.cancel_active() unambiguously targets our own in-flight
-    call; the cancelled call still has to be awaited to completion (its
-    worker thread must actually exit -- translate_backend.py's cb-False path
-    makes that quick, within one token) before this coroutine returns, but
-    the result is discarded and no reply is sent (`return None, None` --
-    server.Conn.send() is a no-op for that, and there is nothing left to
-    reply to). If the executor future wins (the overwhelmingly common case),
-    the close-waiter task is cancelled so it doesn't leak, and dispatch
-    proceeds exactly as before this fix."""
+    server._conn's per-connection serialization guarantees THIS CONNECTION has
+    at most one translate() in flight at a time, so eng.cancel_active() targets
+    an in-flight call that is either ours or -- see M-3 correction below --
+    already finished/superseded; the cancelled (or already-done) call still
+    has to be awaited to completion (its worker thread must actually exit --
+    translate_backend.py's cb-False path makes that quick, within one token)
+    before this coroutine returns, but the result is discarded and no reply is
+    sent (`return None, None` -- server.Conn.send() is a no-op for that, and
+    there is nothing left to reply to). If the executor future wins (the
+    overwhelmingly common case), the close-waiter task is cancelled so it
+    doesn't leak, and dispatch proceeds exactly as before this fix.
+
+    CORRECTION (ruling M-3, final fix wave): the paragraph above used to claim
+    "this connection is the ONLY caller that can be running a translate() on
+    it right now" -- true PER-CONNECTION (server._conn's serial dispatch means
+    THIS connection can never have two translate() calls in flight at once),
+    but false PER-PROCESS. `state["translate_engine"]` is a process-wide
+    singleton (`__main__.py`'s construction, shared by every connection the
+    sidecar serves, exactly like `state["tts_engine"]` -- ground truth
+    .superpowers/slice5-surface-inventory.md §10(c)/M2, "cross-conn cancel
+    crosstalk -- singleton evicts"), so a SECOND connection can be concurrently
+    running its own translate() against that same shared `self._backend`
+    whenever both connections are using an already-loaded model without an
+    intervening translate_init. `eng.cancel_active()` -> `backend.cancel()`
+    targets `self._workers[-1]` -- the MOST RECENTLY STARTED call across every
+    connection sharing that backend, not "our own" by identity -- so under
+    that concurrent-connection condition this can cancel a DIFFERENT
+    connection's in-flight generation instead of (or as well as) this one's
+    own. This is the identical root cause and shape as M2, accepted there as
+    a "larger design question" needing a per-connection engine or an explicit
+    ownership token (ground truth, same section) rather than a one-liner fix;
+    not fixed here for the same reason. unload()'s own cancel-everything
+    backstop (translate_backend.py's I-1 fix) still guarantees no worker is
+    ever freed out from under a live native call regardless of which
+    connection's tail got mistargeted -- only the CHOICE of which in-flight
+    call gets cancelled early is what this correction narrows."""
     text = msg.get("text", "")
     loop = asyncio.get_running_loop()
     on_partial = None
@@ -212,22 +237,38 @@ async def _h_translate(state, msg, _b, conn=None):
             text, msg.get("systemPrompt", ""), bool(msg.get("wrapTranscript", False)),
             on_partial=on_partial))
 
-    if conn is None or not hasattr(conn, "wait_closed"):
+    close_task = None
+    if conn is not None and hasattr(conn, "wait_closed"):
+        try:
+            close_task = asyncio.ensure_future(conn.wait_closed())
+        except Exception:
+            # T5a: `hasattr` only proves the attribute exists, not that calling
+            # it succeeds -- a conn/transport that exposes wait_closed() but
+            # raises the moment it's actually called (e.g. not really
+            # implemented) must not propagate out of this handler, and must
+            # not silently win the race below as a false "already closed"
+            # either. Fall back to the no-race path exactly like a conn
+            # without wait_closed() at all.
+            close_task = None
+
+    if close_task is None:
         # No connection to race a close signal against: every direct-call/
-        # test-double path that predates R26 (conn=None), or a conn without
-        # wait_closed() (defensive -- treated as "never closes").
+        # test-double path that predates R26 (conn=None), a conn without
+        # wait_closed() (defensive -- treated as "never closes"), or one whose
+        # wait_closed() itself failed synchronously (T5a).
         translated, ms = await exec_future
         return {"type": "translate_result", "id": msg.get("id"),
                 "sourceText": text, "translatedText": translated, "inferenceTimeMs": ms}, None
 
-    close_task = asyncio.ensure_future(conn.wait_closed())
     done, _pending = await asyncio.wait(
         {exec_future, close_task}, return_when=asyncio.FIRST_COMPLETED)
 
     if exec_future not in done:
         # R26: the connection closed WHILE this generation was still running.
-        # cancel_active() reaches the backend's own tail worker -- unambiguous
-        # per server._conn's serial per-connection dispatch (see docstring
+        # cancel_active() reaches the backend's own tail worker -- per
+        # server._conn's serial per-connection dispatch this connection itself
+        # never has a second translate() in flight, but the backend can be
+        # process-wide-shared with another connection (see the M-3 correction
         # above) -- and its on_token cb-False path (translate_backend.py)
         # turns that into a native-level cancel within one token. Await the
         # executor future to completion so the worker thread is actually
@@ -238,8 +279,15 @@ async def _h_translate(state, msg, _b, conn=None):
         eng.cancel_active()
         try:
             await exec_future
-        except Exception:
-            pass
+        except Exception as e:
+            # T5c: translate_backend.py's own docstring says a cancellation WE
+            # triggered never raises past this point -- an exception surfacing
+            # here anyway is UNEXPECTED, e.g. a genuine backend failure that
+            # happened to land in the same window as the disconnect. There is
+            # no client left to reply to either way, but silently swallowing a
+            # real failure here would erase the only signal it ever happened.
+            print(f"[sokuji-sidecar] translate cancel-on-disconnect: in-flight "
+                  f"call raised {e!r}", file=sys.stderr, flush=True)
         return None, None
 
     # The generation finished first (the common case): stop racing the close
@@ -247,8 +295,14 @@ async def _h_translate(state, msg, _b, conn=None):
     close_task.cancel()
     try:
         await close_task
-    except (asyncio.CancelledError, Exception):
+    except asyncio.CancelledError:
         pass
+    except Exception as e:
+        # T5b: a genuine failure inside conn.wait_closed() itself (not just our
+        # own .cancel() landing) -- log rather than silently swallow so a
+        # transport-level wait_closed() defect doesn't vanish with zero signal.
+        print(f"[sokuji-sidecar] translate close-waiter failed: {e!r}",
+              file=sys.stderr, flush=True)
     translated, ms = exec_future.result()
     return {"type": "translate_result", "id": msg.get("id"),
             "sourceText": text, "translatedText": translated, "inferenceTimeMs": ms}, None

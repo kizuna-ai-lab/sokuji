@@ -444,7 +444,13 @@ def delete_model(model_id, repo=None):
         from .catalog import tts_model as _tts_model
         _tm = _tts_model(model_id) if model_id else None
         if _tm is not None:
-            seen = set()
+            # T4ii: pre-seed with what the _base_specs loop above (specs.get
+            # ("files", [])) already contributed to files_by_repo -- otherwise
+            # the deployment whose (repo, fname) matches the default rung
+            # download_specs() already resolved gets appended to
+            # files_by_repo[r] a SECOND time below (a harmless but wasteful
+            # duplicate delete-file entry).
+            seen = {(r, fname) for r, fname in specs.get("files", [])}
             for dep in _tm.deployments:
                 r, fname = split_artifact(dep.artifact)
                 if fname is None or (r, fname) in seen:

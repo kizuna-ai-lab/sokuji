@@ -71,10 +71,12 @@ struct FamilyInfo {
 // moss_tts_nano ONLY. That investigation measured, on audio.cpp's own fork ggml with
 // SVE excluded (so the matmul is provably correct on both sides), that greedy/argmax
 // decoding of moss_tts_nano's end-of-content decision reaches audio.cpp's 300-frame /
-// 24.000s max_new_frames cap 3/3 for a plain sentence ("The quick brown fox jumps over
-// the lazy dog."), producing a truncated transcript ("The quick."/"They quick.") —
-// while audio.cpp's own DOCUMENTED DEFAULT (do_sample=true) reached the model's real
-// end-of-content token 3/3 in 2.6-3.7s with the full sentence transcribed correctly.
+// 24.000s max_new_frames cap (measured directly once, E1; corroborated by the
+// pre-existing parity baseline's own greedy-decode runaway, not a fresh 3x repeat) for
+// a plain sentence ("The quick brown fox jumps over the lazy dog."), producing a
+// truncated transcript ("The quick."/"They quick.") — while audio.cpp's own DOCUMENTED
+// DEFAULT (do_sample=true) reached the model's real end-of-content token 3/3 (E2a/b/c)
+// in 2.6-3.7s with the full sentence transcribed correctly.
 // The runaway lives in local_frame_decoder.cpp's argmax-vs-sample choice between the
 // "continue" and "stop" logits, not in anything native/src/sk_tts.cpp or the ggml swap
 // introduced. MOSS is staying in the recommended roster (controller ruling, same date),
@@ -175,10 +177,11 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // harness's precondition (Task 3 compares this binding's output against the official
     // CLI) — EXCEPT moss_tts_nano (Ruling R23, .superpowers/moss-eoc-verdict.md): greedy
     // decode never reaches this checkpoint's own end-of-content token for ordinary input
-    // (measured: 300-frame/24.000s cap, 3/3), while sampling does (measured: real EOC,
-    // 2.6-3.7s, 3/3, full correct transcript). Seed stays "0" for every family either way —
-    // t->sample_decode only picks argmax vs. sample for the two-logit stop decision, it does
-    // not reintroduce nondeterminism.
+    // (measured: 300-frame/24.000s cap, once, E1; corroborated by the pre-existing parity
+    // baseline), while sampling does (measured: real EOC, 2.6-3.7s, 3/3, E2a/b/c, full
+    // correct transcript). Seed stays "0" for every family either way — t->sample_decode
+    // only picks argmax vs. sample for the two-logit stop decision, it does not
+    // reintroduce nondeterminism.
     req.options["do_sample"] = t->sample_decode ? "true" : "false";
     req.options["seed"] = "0";
     return req;

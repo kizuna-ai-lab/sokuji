@@ -62,6 +62,11 @@ jobs:
   sidecar-tests:
     name: sidecar-tests
     runs-on: ubuntu-24.04
+    # T3a: least-privilege override -- this job only checks out and runs
+    # pytest, never git/write operations, so it needs none of the top-level
+    # permissions block's write/write/write escalation.
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
         with:
@@ -89,7 +94,7 @@ jobs:
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
              || ! git rev-parse --verify -q "$BASE" >/dev/null; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "$BASE" HEAD | grep -qE '^(sidecar/|scripts/build-sidecar-bundle\.py)'; then
+          elif git diff --name-only "$BASE" HEAD | grep -qE '^(sidecar/|scripts/build-sidecar-bundle\.py|\.github/workflows/sidecar-bundles\.yml)'; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"

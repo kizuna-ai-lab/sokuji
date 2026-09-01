@@ -16,7 +16,11 @@ function detectSku(platform, { arch }) {
   // so the UI shows the honest "unsupported" card instead.
   if (arch !== 'x64') return null;
   if (platform === 'win32') return 'win-x64';
-  return 'linux-x64';
+  // M-1: only linux gets the x64 bundle -- any other platform (freebsd, aix,
+  // sunos, ...) has no bundle at all, and would previously fall through to
+  // 'linux-x64' here and die at spawn with an exec-format error.
+  if (platform === 'linux') return 'linux-x64';
+  return null;
 }
 
 function bundleRootFor(userDataDir, sku) {

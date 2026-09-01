@@ -24,6 +24,11 @@ describe('detectSku (spec §7 — platform-named SKUs)', () => {
     expect(detectSku('linux', { arch: 'riscv64' })).toBeNull();
     expect(detectSku('darwin', { arch: 'arm' })).toBeNull();
   });
+  it('unsupported x64 platforms -> null, not the linux-x64 fallthrough (M-1)', () => {
+    expect(detectSku('freebsd', { arch: 'x64' })).toBeNull();
+    expect(detectSku('sunos', { arch: 'x64' })).toBeNull();
+    expect(detectSku('aix', { arch: 'x64' })).toBeNull();
+  });
 });
 
 describe('detectSku no longer takes a GPU-vendor signal', () => {

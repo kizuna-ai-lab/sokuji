@@ -18,10 +18,13 @@ import pathlib
 # onnxruntime — every SKU's requirements file is now just the shared base
 # (sidecar/requirements.txt); ASR, translation, and TTS all run through
 # sokuji_native, so no backend needs an ONNX runtime anymore.
+# M-2 (final fix wave): spec §9.3 bans the whole `mlx*` family, not just
+# `mlx_audio` — bare `import mlx.core` (Apple's own MLX framework, distinct
+# from the mlx_audio TTS wrapper) previously passed this gate uncaught.
 BANNED = {"torch", "torchaudio", "transformers", "funasr", "librosa",
           "faster_whisper", "modelscope", "mistral_common", "transcribe_cpp",
           "ctranslate2", "sherpa_onnx", "jieba", "pypinyin", "g2pM", "nltk",
-          "pyopenjtalk", "mlx_audio", "sentencepiece", "tokenizers",
+          "pyopenjtalk", "mlx", "mlx_audio", "sentencepiece", "tokenizers",
           "onnxruntime"}
 SIDE = pathlib.Path(__file__).resolve().parents[1]
 PKG = SIDE / "sokuji_sidecar"

@@ -1223,6 +1223,10 @@ def test_tts_asr_loopback_per_family():
     # before ever calling set_voice), no presets.
     moss_dir = family_dir("SK_TEST_TTS_MOSS_DIR")
     if moss_dir:
+        # T7ii: the 8s-retry fallback above (see attempt()'s own comment) was
+        # removed after 3 deterministic clean runs with the retry never
+        # triggering; reinstate it from git history (commit 92c9c2f4) if a
+        # future checkpoint reintroduces transcript flakiness here.
         attempt("moss_tts_nano", moss_dir, lambda m: None)
     else:
         skipped.append("moss_tts_nano")

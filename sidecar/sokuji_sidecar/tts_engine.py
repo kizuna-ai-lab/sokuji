@@ -215,6 +215,7 @@ class TtsEngine:
         backend = self._backend
         self._backend = None
         self.model_id = None
+        self._owner_conn = None   # T4-info: no backend left for _owner_conn to refer to
         if backend is not None:
             try:
                 backend.unload()
