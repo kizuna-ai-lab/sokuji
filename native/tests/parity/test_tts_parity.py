@@ -589,8 +589,9 @@ def test_pocket_preset_alba(tmp_path):
 @needs_omnivoice
 def test_omnivoice_clone(tmp_path):
     """omnivoice clone — reference_text is MANDATORY here (report §3: prompt_builder.cpp
-    throws otherwise). Model download deferred to the live-gate task (Task 7) — this case only
-    exercises the harness's env-var skip until SK_TEST_TTS_OMNIVOICE_DIR is set."""
+    throws otherwise). SK_TEST_TTS_OMNIVOICE_DIR-gated (see needs_omnivoice) since CI does
+    not download this model today; when it does run, expect ruling R13's xfail below, not
+    a pass — see that block for why."""
     text = "Hello from OmniVoice."
     ref_clip = _sine_wav_f32()
     ref_clip_wav = tmp_path / "voice-ref.wav"
@@ -612,4 +613,35 @@ def test_omnivoice_clone(tmp_path):
     )
 
     failure = _compare_lsb_tolerant(ref_wav, got_wav)
-    assert not failure, failure
+    if not failure:
+        return
+
+    # Ruling R13 — PERMANENT xfail, and not a defect in anything this repo owns (the
+    # opposite of moss_clone's R12: there the two ggml trees are both "right", just on
+    # different chaotic trajectories; here the fork reference is demonstrably WRONG).
+    #
+    # native/src/audiocpp_compat.h's ggml_sub compat shim (block (C)) ggml_conts src0
+    # before the omnivoice audio-tokenizer RVQ loop's ggml_sub whenever src0 is a
+    # non-row-contiguous view — exactly what happens at audio_tokenizer.cpp:1924-1928,
+    # where residual_bct is a bare PERMUTE view (ne=[T,1024], nb=[4096,4]). Upstream ggml's
+    # binary-ops.cpp asserts nb00 == sizeof(src0_t) and would otherwise SIGABRT the whole
+    # process; the fork this reference CLI links against only asserts nb00 %
+    # sizeof(src0_t) == 0, so it accepts the same tensor but its vec_binary_op_non_contiguous
+    # indexes src0 as a contiguous x[i] walk — wrong for a 4096-byte first-dim stride.
+    # Measured directly (omnivoice-crash-investigation.md, standalone op-level test against
+    # both ggml trees on the identical node): 60416 of 61440 output elements come out wrong
+    # on the fork (max abs err 5.9e4), while upstream's stricter assert would have aborted
+    # instead of silently corrupting. So the fork-built official CLI reference this test
+    # compares against is the INCORRECT waveform, not ours — waveform parity is the wrong
+    # invariant here, same reasoning as R12, but with the roles of "reference" and
+    # "candidate" reversed: our candidate is right, the reference is wrong. Functional
+    # quality for the clone path is gated by the TTS->ASR loopback instead, which asks the
+    # only question that actually matters here — does it say the right words (it does,
+    # exactly, and more accurately than the fork-built CLI: see the investigation's §5).
+    pytest.xfail(
+        "R13: ggml_sub compat shim (audiocpp_compat.h) makes omnivoice clone output "
+        "intentionally diverge from the fork-built official CLI reference, because fork "
+        "ggml computes the non-contiguous sub wrong (60416/61440 elements, max abs err "
+        "5.9e4) — the official reference waveform is the incorrect one, not our candidate; "
+        f"see omnivoice-crash-investigation.md. {failure}"
+    )
