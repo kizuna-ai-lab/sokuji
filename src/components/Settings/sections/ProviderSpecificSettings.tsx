@@ -2046,6 +2046,28 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <div className="setting-item">
             <div className="setting-label">
               <span>
+                {t('settings.sonioxEndpointMaxDelay', 'Max Pause Before Finalizing')}
+                <Tooltip
+                  content={t('settings.sonioxEndpointMaxDelayTooltip', 'How long Soniox may wait at a pause before closing the utterance. Higher values keep sentences with mid-sentence pauses intact; lower values finalize sooner. 2000 ms is the Soniox default.')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
+              <span className="setting-value">{`${activeSonioxSettings.endpointMaxDelayMs} ms`}</span>
+            </div>
+            <input
+              id="soniox-endpoint-max-delay"
+              aria-label={t('settings.sonioxEndpointMaxDelay', 'Max Pause Before Finalizing')}
+              type="range" min="500" max="3000" step="100"
+              value={activeSonioxSettings.endpointMaxDelayMs}
+              onChange={(e) => updateActiveSonioxSettings({ endpointMaxDelayMs: parseInt(e.target.value, 10) })}
+              className="slider" disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
                 {t('settings.sonioxEndpointLatencyLevel', 'Latency Reduction Level')}
                 <Tooltip
                   content={t('settings.sonioxEndpointLatencyLevelTooltip', 'Progressively more aggressive latency reduction when closing an utterance. 0 is the default behavior.')}

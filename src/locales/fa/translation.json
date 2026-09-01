@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "تنظیم تشخیص پایان گفتار",
     "sonioxEndpointSensitivity": "حساسیت تشخیص پایان گفتار",
     "sonioxEndpointSensitivityTooltip": "مقادیر بالاتر گفته‌ها را زودتر پایان می‌دهند — تأخیر کمتر اما خطر بیشتر قطع‌شدن زودهنگام. مقادیر پایین‌تر پیش از نهایی‌سازی مدت بیشتری منتظر می‌مانند. 0 مقدار پیش‌فرض Soniox است.",
+    "sonioxEndpointMaxDelay": "حداکثر مکث پیش از نهایی‌سازی",
+    "sonioxEndpointMaxDelayTooltip": "مدت زمانی که Soniox می‌تواند هنگام مکث پیش از بستن گفتار صبر کند. مقادیر بالاتر جمله‌های دارای مکث را یکپارچه نگه می‌دارند؛ مقادیر پایین‌تر زودتر نهایی می‌کنند. 2000 میلی‌ثانیه مقدار پیش‌فرض Soniox است.",
     "sonioxEndpointLatencyLevel": "سطح کاهش تأخیر",
     "sonioxEndpointLatencyLevelTooltip": "کاهش تأخیر به‌طور تدریجی تهاجمی‌تر هنگام پایان دادن به یک گفته. 0 رفتار پیش‌فرض است.",
     "sonioxLatencyLevelDefault": "پیش‌فرض",

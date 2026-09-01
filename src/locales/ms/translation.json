@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Penalaan Pengesanan Akhir Ujaran",
     "sonioxEndpointSensitivity": "Sensitiviti Pengesanan Akhir Ujaran",
     "sonioxEndpointSensitivityTooltip": "Nilai lebih tinggi mengakhiri ujaran lebih awal — kependaman lebih rendah tetapi risiko lebih tinggi untuk pemotongan pramatang. Nilai lebih rendah menunggu lebih lama sebelum memuktamadkan. 0 ialah nilai lalai Soniox.",
+    "sonioxEndpointMaxDelay": "Jeda maksimum sebelum dimuktamadkan",
+    "sonioxEndpointMaxDelayTooltip": "Berapa lama Soniox boleh menunggu semasa jeda sebelum menutup ujaran. Nilai lebih tinggi mengekalkan ayat yang mengandungi jeda; nilai lebih rendah memuktamadkan lebih awal. 2000 ms ialah lalai Soniox.",
     "sonioxEndpointLatencyLevel": "Tahap Pengurangan Kependaman",
     "sonioxEndpointLatencyLevelTooltip": "Pengurangan kependaman yang semakin agresif apabila menutup sesuatu ujaran. 0 ialah kelakuan lalai.",
     "sonioxLatencyLevelDefault": "Lalai",

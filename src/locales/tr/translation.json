@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Konuşma Bitişi Algılama Ayarı",
     "sonioxEndpointSensitivity": "Konuşma Bitişi Algılama Hassasiyeti",
     "sonioxEndpointSensitivityTooltip": "Daha yüksek değerler konuşmaları daha erken bitirir — daha düşük gecikme ama erken kesilme riski daha yüksek. Daha düşük değerler sonlandırmadan önce daha uzun süre bekler. 0, Soniox'un varsayılan değeridir.",
+    "sonioxEndpointMaxDelay": "Sonlandırmadan önceki en uzun duraklama",
+    "sonioxEndpointMaxDelayTooltip": "Soniox'un bir duraklamada ifadeyi kapatmadan önce en fazla ne kadar bekleyebileceği. Yüksek değerler duraklamalı cümleleri bütün tutar; düşük değerler daha erken sonlandırır. 2000 ms Soniox varsayılanıdır.",
     "sonioxEndpointLatencyLevel": "Gecikme Azaltma Düzeyi",
     "sonioxEndpointLatencyLevelTooltip": "Bir konuşmayı kapatırken giderek daha agresif gecikme azaltma. 0 varsayılan davranıştır.",
     "sonioxLatencyLevelDefault": "Varsayılan",

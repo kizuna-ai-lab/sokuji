@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Justering av yttrandeavkänning",
     "sonioxEndpointSensitivity": "Känslighet för yttrandeavkänning",
     "sonioxEndpointSensitivityTooltip": "Högre värden avslutar yttranden snabbare — lägre latens men större risk för avbrott i förtid. Lägre värden väntar längre innan de slutförs. 0 är Sonioxs standardvärde.",
+    "sonioxEndpointMaxDelay": "Maximal paus före slutförande",
+    "sonioxEndpointMaxDelayTooltip": "Hur länge Soniox får vänta vid en paus innan yttrandet avslutas. Högre värden håller meningar med pauser intakta; lägre värden slutför tidigare. 2000 ms är Sonioxs standardvärde.",
     "sonioxEndpointLatencyLevel": "Nivå för latensreducering",
     "sonioxEndpointLatencyLevelTooltip": "Successivt mer aggressiv latensreducering när ett yttrande avslutas. 0 är standardbeteendet.",
     "sonioxLatencyLevelDefault": "Standard",

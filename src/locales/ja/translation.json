@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "発話終了検出の調整",
     "sonioxEndpointSensitivity": "発話終了検出の感度",
     "sonioxEndpointSensitivityTooltip": "値を高くすると発話をより早く区切ります——低遅延になりますが、途中で打ち切られるリスクが高まります。値を低くすると確定までより長く待ちます。0 が Soniox の初期値です。",
+    "sonioxEndpointMaxDelay": "確定までの最大ポーズ時間",
+    "sonioxEndpointMaxDelayTooltip": "ポーズ時に Soniox が発話を確定するまで待つ最大時間。値が大きいほど文中のポーズで途切れにくくなり、小さいほど早く確定します。2000 ミリ秒が Soniox のデフォルトです。",
     "sonioxEndpointLatencyLevel": "遅延削減レベル",
     "sonioxEndpointLatencyLevelTooltip": "発話を区切る際の遅延削減を段階的に強めます。0 が標準の動作です。",
     "sonioxLatencyLevelDefault": "標準",

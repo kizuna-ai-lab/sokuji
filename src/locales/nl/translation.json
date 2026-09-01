@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Afstelling van uitingsdetectie",
     "sonioxEndpointSensitivity": "Gevoeligheid van uitingsdetectie",
     "sonioxEndpointSensitivityTooltip": "Hogere waarden beëindigen uitingen eerder — lagere latentie, maar meer risico op voortijdige afkap. Lagere waarden wachten langer voordat ze afronden. 0 is de standaardwaarde van Soniox.",
+    "sonioxEndpointMaxDelay": "Maximale pauze vóór afronding",
+    "sonioxEndpointMaxDelayTooltip": "Hoe lang Soniox bij een pauze mag wachten voordat de uiting wordt afgesloten. Hogere waarden houden zinnen met pauzes intact; lagere waarden ronden eerder af. 2000 ms is de standaard van Soniox.",
     "sonioxEndpointLatencyLevel": "Niveau van latentiereductie",
     "sonioxEndpointLatencyLevelTooltip": "Steeds agressievere latentiereductie bij het afsluiten van een uiting. 0 is het standaardgedrag.",
     "sonioxLatencyLevelDefault": "Standaard",

@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Feinabstimmung der Sprachende-Erkennung",
     "sonioxEndpointSensitivity": "Empfindlichkeit der Sprachende-Erkennung",
     "sonioxEndpointSensitivityTooltip": "Höhere Werte beenden Äußerungen schneller – geringere Latenz, aber höheres Risiko vorzeitiger Abbrüche. Niedrigere Werte warten länger, bevor sie abschließen. 0 ist die Soniox-Standardeinstellung.",
+    "sonioxEndpointMaxDelay": "Maximale Pause vor dem Abschluss",
+    "sonioxEndpointMaxDelayTooltip": "Wie lange Soniox bei einer Pause warten darf, bevor die Äußerung abgeschlossen wird. Höhere Werte halten Sätze mit Pausen zusammen; niedrigere Werte schließen früher ab. 2000 ms ist der Soniox-Standard.",
     "sonioxEndpointLatencyLevel": "Stufe der Latenzreduzierung",
     "sonioxEndpointLatencyLevelTooltip": "Zunehmend aggressivere Latenzreduzierung beim Abschluss einer Äußerung. 0 ist das Standardverhalten.",
     "sonioxLatencyLevelDefault": "Standard",

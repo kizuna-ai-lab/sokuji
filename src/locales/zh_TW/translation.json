@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "斷句偵測調整",
     "sonioxEndpointSensitivity": "斷句靈敏度",
     "sonioxEndpointSensitivityTooltip": "數值越高，斷句結束得越快——延遲較低，但過早截斷的風險也較高。數值越低，確定前等待的時間越長。0 為 Soniox 的預設值。",
+    "sonioxEndpointMaxDelay": "斷句前最大停頓時長",
+    "sonioxEndpointMaxDelayTooltip": "語音停頓時 Soniox 最多等待多久才結束目前話語。數值越高，句中停頓越不易被截斷；數值越低，斷句越快。2000 毫秒為 Soniox 的預設值。",
     "sonioxEndpointLatencyLevel": "延遲降低等級",
     "sonioxEndpointLatencyLevelTooltip": "結束一句話時，逐級更積極地降低延遲。0 為預設行為。",
     "sonioxLatencyLevelDefault": "預設",

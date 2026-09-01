@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Ajuste de detección de fin de intervención",
     "sonioxEndpointSensitivity": "Sensibilidad de fin de intervención",
     "sonioxEndpointSensitivityTooltip": "Valores más altos finalizan las intervenciones antes: menor latencia, pero más riesgo de cortes prematuros. Valores más bajos esperan más antes de finalizar. 0 es el valor predeterminado de Soniox.",
+    "sonioxEndpointMaxDelay": "Pausa máxima antes de finalizar",
+    "sonioxEndpointMaxDelayTooltip": "Cuánto tiempo puede esperar Soniox en una pausa antes de cerrar el enunciado. Valores más altos mantienen intactas las frases con pausas; valores más bajos finalizan antes. 2000 ms es el valor predeterminado de Soniox.",
     "sonioxEndpointLatencyLevel": "Nivel de reducción de latencia",
     "sonioxEndpointLatencyLevelTooltip": "Reducción de latencia progresivamente más agresiva al cerrar una intervención. 0 es el comportamiento predeterminado.",
     "sonioxLatencyLevelDefault": "Predeterminado",

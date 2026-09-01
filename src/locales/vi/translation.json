@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Tinh chỉnh phát hiện kết thúc câu nói",
     "sonioxEndpointSensitivity": "Độ nhạy phát hiện kết thúc câu nói",
     "sonioxEndpointSensitivityTooltip": "Giá trị cao hơn kết thúc câu nói sớm hơn — độ trễ thấp hơn nhưng rủi ro bị cắt ngang sớm cao hơn. Giá trị thấp hơn chờ lâu hơn trước khi hoàn tất. 0 là giá trị mặc định của Soniox.",
+    "sonioxEndpointMaxDelay": "Khoảng dừng tối đa trước khi chốt câu",
+    "sonioxEndpointMaxDelayTooltip": "Thời gian tối đa Soniox có thể chờ khi có khoảng dừng trước khi kết thúc phát ngôn. Giá trị cao giữ nguyên các câu có khoảng dừng giữa chừng; giá trị thấp chốt câu sớm hơn. 2000 ms là mặc định của Soniox.",
     "sonioxEndpointLatencyLevel": "Mức giảm độ trễ",
     "sonioxEndpointLatencyLevelTooltip": "Giảm độ trễ ngày càng mạnh hơn khi kết thúc một câu nói. 0 là hành vi mặc định.",
     "sonioxLatencyLevelDefault": "Mặc định",

@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "כוונון זיהוי סיום דיבור",
     "sonioxEndpointSensitivity": "רגישות זיהוי סיום דיבור",
     "sonioxEndpointSensitivityTooltip": "ערכים גבוהים יותר מסיימים אמירות מהר יותר — השהייה נמוכה יותר אך סיכון גבוה יותר לחיתוך מוקדם מדי. ערכים נמוכים יותר ממתינים זמן רב יותר לפני הסיום. 0 הוא ברירת המחדל של Soniox.",
+    "sonioxEndpointMaxDelay": "השהיה מרבית לפני סיום",
+    "sonioxEndpointMaxDelayTooltip": "כמה זמן Soniox רשאי להמתין בהפסקה לפני סגירת המבע. ערכים גבוהים שומרים על משפטים עם הפסקות שלמים; ערכים נמוכים מסיימים מוקדם יותר. 2000 מ״ש הוא ברירת המחדל של Soniox.",
     "sonioxEndpointLatencyLevel": "רמת הפחתת השהייה",
     "sonioxEndpointLatencyLevelTooltip": "הפחתת השהייה אגרסיבית יותר בהדרגה בעת סיום אמירה. 0 הוא ההתנהגות המוגדרת כברירת מחדל.",
     "sonioxLatencyLevelDefault": "ברירת מחדל",

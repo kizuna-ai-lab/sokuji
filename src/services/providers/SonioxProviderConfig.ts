@@ -43,6 +43,8 @@ export interface SonioxSettings {
   endpointSensitivity: number;
   /** Soniox endpoint_latency_adjustment_level, 0..3; 0 = server default. */
   endpointLatencyAdjustmentLevel: number;
+  /** Soniox max_endpoint_delay_ms, 500..3000; 2000 = server default. */
+  endpointMaxDelayMs: number;
   /** TTS speaking rate, 0.7..1.3; 1.0 = normal. */
   ttsSpeed: number;
 }
@@ -64,6 +66,7 @@ export const defaultSonioxSettings: SonioxSettings = {
   contextText: '',
   endpointSensitivity: 0,
   endpointLatencyAdjustmentLevel: 0,
+  endpointMaxDelayMs: 2000,
   ttsSpeed: 1.0,
 };
 
@@ -276,6 +279,9 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
       endpointSensitivity: clampNumber(settings.endpointSensitivity, -1, 1, 0),
       endpointLatencyAdjustmentLevel: Math.round(
         clampNumber(settings.endpointLatencyAdjustmentLevel, 0, 3, 0)
+      ),
+      endpointMaxDelayMs: Math.round(
+        clampNumber(settings.endpointMaxDelayMs, 500, 3000, 2000)
       ),
       ttsSpeed: clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0),
     } as SonioxSessionConfig;

@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "উক্তি সমাপ্তি শনাক্তকরণ সমন্বয়",
     "sonioxEndpointSensitivity": "উক্তি সমাপ্তি সংবেদনশীলতা",
     "sonioxEndpointSensitivityTooltip": "উচ্চতর মান উক্তি দ্রুত শেষ করে — কম বিলম্ব কিন্তু অকালে কেটে যাওয়ার ঝুঁকি বেশি। কম মান চূড়ান্ত করার আগে বেশি সময় অপেক্ষা করে। 0 হলো Soniox-এর ডিফল্ট মান।",
+    "sonioxEndpointMaxDelay": "চূড়ান্ত করার আগে সর্বোচ্চ বিরতি",
+    "sonioxEndpointMaxDelayTooltip": "বিরতির সময় Soniox উক্তি শেষ করার আগে সর্বোচ্চ কতক্ষণ অপেক্ষা করতে পারে। বেশি মান বিরতিযুক্ত বাক্যকে অক্ষত রাখে; কম মান দ্রুত চূড়ান্ত করে। 2000 ms হল Soniox-এর ডিফল্ট।",
     "sonioxEndpointLatencyLevel": "বিলম্ব হ্রাস স্তর",
     "sonioxEndpointLatencyLevelTooltip": "একটি উক্তি শেষ করার সময় ক্রমান্বয়ে আরও আক্রমণাত্মক বিলম্ব হ্রাস। 0 হলো ডিফল্ট আচরণ।",
     "sonioxLatencyLevelDefault": "ডিফল্ট",

@@ -667,6 +667,7 @@ describe('SonioxClient advanced-feature passthrough (#342)', () => {
       },
       endpointSensitivity: 0.5,
       endpointLatencyAdjustmentLevel: 3,
+      endpointMaxDelayMs: 3000,
     });
     expect(stt.config).toMatchObject({
       context: {
@@ -675,6 +676,7 @@ describe('SonioxClient advanced-feature passthrough (#342)', () => {
       },
       endpointSensitivity: 0.5,
       endpointLatencyAdjustmentLevel: 3,
+      endpointMaxDelayMs: 3000,
     });
   });
 

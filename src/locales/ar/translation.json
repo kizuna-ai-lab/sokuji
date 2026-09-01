@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "ضبط اكتشاف نهاية الكلام",
     "sonioxEndpointSensitivity": "حساسية اكتشاف نهاية الكلام",
     "sonioxEndpointSensitivityTooltip": "القيم الأعلى تنهي العبارات بشكل أسرع — تأخير أقل لكن خطر أكبر للقطع المبكر. القيم الأقل تنتظر مدة أطول قبل الإنهاء. القيمة 0 هي الإعداد الافتراضي في Soniox.",
+    "sonioxEndpointMaxDelay": "أقصى مدة توقف قبل الإنهاء",
+    "sonioxEndpointMaxDelayTooltip": "المدة القصوى التي يمكن أن ينتظرها Soniox عند التوقف قبل إنهاء العبارة. القيم الأعلى تحافظ على الجمل التي تتخللها وقفات؛ والقيم الأدنى تُنهي العبارة أسرع. القيمة الافتراضية لدى Soniox هي 2000 مللي ثانية.",
     "sonioxEndpointLatencyLevel": "مستوى تقليل التأخير",
     "sonioxEndpointLatencyLevelTooltip": "تقليل تدريجي وأكثر قوة للتأخير عند إنهاء العبارة. القيمة 0 هي السلوك الافتراضي.",
     "sonioxLatencyLevelDefault": "افتراضي",

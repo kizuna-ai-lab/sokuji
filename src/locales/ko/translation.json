@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "발화 종료 감지 조정",
     "sonioxEndpointSensitivity": "발화 종료 감도",
     "sonioxEndpointSensitivityTooltip": "값이 높을수록 발화를 더 빨리 종료합니다 — 지연 시간은 줄지만 조기 절단 위험이 커집니다. 값이 낮을수록 확정까지 더 오래 기다립니다. 0은 Soniox의 기본값입니다.",
+    "sonioxEndpointMaxDelay": "확정 전 최대 일시정지 시간",
+    "sonioxEndpointMaxDelayTooltip": "일시정지 시 Soniox가 발화를 종료하기 전에 기다리는 최대 시간입니다. 값이 클수록 문장 중간의 멈춤에도 문장이 끊기지 않으며, 작을수록 더 빨리 확정됩니다. 2000ms가 Soniox 기본값입니다.",
     "sonioxEndpointLatencyLevel": "지연 감소 수준",
     "sonioxEndpointLatencyLevelTooltip": "발화를 마무리할 때 점점 더 적극적으로 지연 시간을 줄입니다. 0은 기본 동작입니다.",
     "sonioxLatencyLevelDefault": "기본값",

@@ -235,6 +235,8 @@ export interface SonioxSessionConfig extends BaseSessionConfig {
   endpointSensitivity?: number;
   /** Clamped integer 0..3; 0 (default) is omitted from the wire. */
   endpointLatencyAdjustmentLevel?: number;
+  /** Clamped integer 500..3000; 2000 (server default) is omitted from the wire. */
+  endpointMaxDelayMs?: number;
   /** Clamped 0.7..1.3; 1.0 (default) is omitted from the wire. */
   ttsSpeed?: number;
 }

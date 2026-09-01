@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Pagtutuning ng Pag-detect ng Pagtatapos ng Pagsasalita",
     "sonioxEndpointSensitivity": "Sensitivity ng Pag-detect ng Pagtatapos ng Pagsasalita",
     "sonioxEndpointSensitivityTooltip": "Mas mataas na value ang mas maagang magtatapos ng mga pagbigkas — mas mababang latency ngunit mas malaking panganib ng maagang pagkaputol. Mas mababang value ang mas matagal maghihintay bago i-finalize. 0 ang default ng Soniox.",
+    "sonioxEndpointMaxDelay": "Pinakamahabang paghinto bago tapusin",
+    "sonioxEndpointMaxDelayTooltip": "Kung gaano katagal maaaring maghintay ang Soniox sa isang paghinto bago isara ang pahayag. Mas matataas na halaga ay nagpapanatiling buo sa mga pangungusap na may paghinto; mas mabababa ay mas maagang nagtatapos. 2000 ms ang default ng Soniox.",
     "sonioxEndpointLatencyLevel": "Antas ng Pagbawas ng Latency",
     "sonioxEndpointLatencyLevelTooltip": "Unti-unting mas agresibong pagbawas ng latency kapag tinatapos ang isang pagbigkas. 0 ang default na gawi.",
     "sonioxLatencyLevelDefault": "Default",

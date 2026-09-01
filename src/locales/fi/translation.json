@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Puheenvuoron päättymisen tunnistuksen säätö",
     "sonioxEndpointSensitivity": "Puheenvuoron päättymisen herkkyys",
     "sonioxEndpointSensitivityTooltip": "Suuremmat arvot päättävät puheenvuorot nopeammin — pienempi viive, mutta suurempi riski ennenaikaisesta katkeamisesta. Pienemmät arvot odottavat pidempään ennen viimeistelyä. 0 on Sonioxin oletusarvo.",
+    "sonioxEndpointMaxDelay": "Enimmäistauko ennen viimeistelyä",
+    "sonioxEndpointMaxDelayTooltip": "Kuinka kauan Soniox voi odottaa tauon aikana ennen lausuman päättämistä. Suuremmat arvot pitävät taukoja sisältävät lauseet ehjinä; pienemmät viimeistelevät aiemmin. 2000 ms on Sonioxin oletusarvo.",
     "sonioxEndpointLatencyLevel": "Viiveen vähennystaso",
     "sonioxEndpointLatencyLevelTooltip": "Asteittain aggressiivisempi viiveen vähennys puheenvuoroa päätettäessä. 0 on oletustoiminto.",
     "sonioxLatencyLevelDefault": "Oletus",

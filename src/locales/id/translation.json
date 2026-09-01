@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Penyetelan Deteksi Akhir Ucapan",
     "sonioxEndpointSensitivity": "Sensitivitas Deteksi Akhir Ucapan",
     "sonioxEndpointSensitivityTooltip": "Nilai lebih tinggi mengakhiri ucapan lebih cepat — latensi lebih rendah tetapi risiko pemotongan dini lebih besar. Nilai lebih rendah menunggu lebih lama sebelum difinalisasi. 0 adalah nilai default Soniox.",
+    "sonioxEndpointMaxDelay": "Jeda maksimum sebelum finalisasi",
+    "sonioxEndpointMaxDelayTooltip": "Berapa lama Soniox boleh menunggu saat jeda sebelum menutup ujaran. Nilai lebih tinggi menjaga kalimat dengan jeda tetap utuh; nilai lebih rendah memfinalkan lebih cepat. 2000 md adalah bawaan Soniox.",
     "sonioxEndpointLatencyLevel": "Tingkat Pengurangan Latensi",
     "sonioxEndpointLatencyLevelTooltip": "Pengurangan latensi yang semakin agresif saat menutup sebuah ucapan. 0 adalah perilaku default.",
     "sonioxLatencyLevelDefault": "Default",

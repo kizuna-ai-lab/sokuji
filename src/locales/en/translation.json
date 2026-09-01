@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Endpoint Detection Tuning",
     "sonioxEndpointSensitivity": "Endpoint Sensitivity",
     "sonioxEndpointSensitivityTooltip": "Higher values end utterances sooner — lower latency but more risk of premature cut-offs. Lower values wait longer before finalizing. 0 is the Soniox default.",
+    "sonioxEndpointMaxDelay": "Max Pause Before Finalizing",
+    "sonioxEndpointMaxDelayTooltip": "How long Soniox may wait at a pause before closing the utterance. Higher values keep sentences with mid-sentence pauses intact; lower values finalize sooner. 2000 ms is the Soniox default.",
     "sonioxEndpointLatencyLevel": "Latency Reduction Level",
     "sonioxEndpointLatencyLevelTooltip": "Progressively more aggressive latency reduction when closing an utterance. 0 is the default behavior.",
     "sonioxLatencyLevelDefault": "Default",

@@ -235,6 +235,8 @@
     "sonioxEndpointTuning": "Réglage de la détection de fin de parole",
     "sonioxEndpointSensitivity": "Sensibilité de détection de fin de parole",
     "sonioxEndpointSensitivityTooltip": "Des valeurs plus élevées terminent les énoncés plus tôt — latence plus faible, mais risque accru de coupures prématurées. Des valeurs plus basses attendent plus longtemps avant de finaliser. 0 est la valeur par défaut de Soniox.",
+    "sonioxEndpointMaxDelay": "Pause maximale avant finalisation",
+    "sonioxEndpointMaxDelayTooltip": "Durée maximale pendant laquelle Soniox peut attendre lors d'une pause avant de clore l'énoncé. Des valeurs élevées préservent les phrases contenant des pauses ; des valeurs basses finalisent plus tôt. 2000 ms est la valeur par défaut de Soniox.",
     "sonioxEndpointLatencyLevel": "Niveau de réduction de la latence",
     "sonioxEndpointLatencyLevelTooltip": "Réduction de la latence progressivement plus agressive lors de la clôture d'un énoncé. 0 est le comportement par défaut.",
     "sonioxLatencyLevelDefault": "Par défaut",
