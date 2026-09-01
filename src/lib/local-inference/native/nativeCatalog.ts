@@ -83,6 +83,20 @@ export function isCloneOnlyVoice(capability: VoiceCapability): boolean {
   return capability.builtin === 'none' && capability.custom === 'clip';
 }
 
+/** The clips that actually count as a usable clone source, given
+ *  `transcriptRequired`: a clip with no transcript doesn't count for a model
+ *  that needs one. One predicate shared by the pre-init voice-required gate,
+ *  the voice-selection reconciliation, and the picker UI, so "eligible" means
+ *  the same thing everywhere a stored selection or clip count is decided —
+ *  computing it separately at each call site is how a stale/ineligible clip
+ *  (no transcript) can slip past a gate that only checked a DIFFERENT clip's
+ *  eligibility and get applied anyway. */
+export function eligibleCustomVoices<T extends { hasTranscript?: boolean }>(
+  clips: T[], transcriptRequired?: boolean,
+): T[] {
+  return transcriptRequired ? clips.filter((v) => v.hasTranscript) : clips;
+}
+
 /** TTS models supporting the target language, recommended+order first. */
 export function nativeTtsModels(tgt: string, catalog: Record<string, NativeModelInfo>): NativeModelInfo[] {
   return catalogModels(catalog, 'tts').filter((m) => supportsLanguage(m, tgt));

@@ -7,7 +7,7 @@ import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTr
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { reconcileTtsVoice } from '../../lib/local-inference/native/nativeTtsVoiceReconciliation';
-import { voiceCapability, isCloneOnlyVoice } from '../../lib/local-inference/native/nativeCatalog';
+import { voiceCapability, isCloneOnlyVoice, eligibleCustomVoices } from '../../lib/local-inference/native/nativeCatalog';
 import { voiceStoreFor } from '../../lib/local-inference/native/nativeVoiceStores';
 import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import { splitSentences } from '../../utils/splitSentences';
@@ -150,7 +150,7 @@ export class LocalNativeClient implements IClient {
         if (gateStore) {
           try {
             const clips = await gateStore.list();
-            eligibleClips = (gateCap.transcriptRequired ? clips.filter((v) => v.hasTranscript) : clips).length;
+            eligibleClips = eligibleCustomVoices(clips, gateCap.transcriptRequired).length;
           } catch { /* storage unavailable — treated as no clip, matches R16 */ }
         }
         if (eligibleClips === 0) {
@@ -184,9 +184,15 @@ export class LocalNativeClient implements IClient {
           ?? ({ clones: r.clones } as unknown as NativeModelInfo);
         const cap = voiceCapability(ttsModel);
         const voiceStore = voiceStoreFor(cap.custom, config.ttsModelId!);
+        // Filtered by the SAME eligibility predicate as the pre-init gate above:
+        // an unfiltered list would let a stored `custom:X` survive reconciliation
+        // even when X lacks a transcript this model requires, as long as some
+        // OTHER clip happens to be eligible (the gate only checks "does at
+        // least one eligible clip exist", not "is the STORED selection one of
+        // them") — reconcileTtsVoice would then keep applying the ineligible X.
         let customIds: number[] = [];
         if (voiceStore) {
-          try { customIds = (await voiceStore.list()).map((v) => v.id); }
+          try { customIds = eligibleCustomVoices(await voiceStore.list(), cap.transcriptRequired).map((v) => v.id); }
           catch { /* storage unavailable → built-in voices only */ }
         }
         const voiceList = cap.builtin === 'named' ? await nativeListTtsVoices(config.ttsModelId) : [];

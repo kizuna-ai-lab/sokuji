@@ -1036,3 +1036,72 @@ describe('LocalNativeClient clone-only voice gate', () => {
     expect(m.tts.init).toHaveBeenCalled();
   });
 });
+
+// ── Task 7 (slice 5b debt): reconcileTtsVoice must not keep a stale/ineligible
+// custom selection just because SOME other clip happens to be eligible ──
+//
+// The pre-init gate above only asks "does at least one eligible clip exist"
+// (R16's own question). It says nothing about whether the STORED selection
+// (config.ttsVoice) is itself one of those eligible clips. Before this fix,
+// `customIds` was built from the unfiltered voice list, so a stored
+// `custom:X` where X lacks a transcript this model requires survived
+// reconciliation — and got applied — as long as some other clip Y happened to
+// be eligible (which is exactly what made the gate pass in the first place).
+describe('LocalNativeClient reconcileTtsVoice — stale custom selection (transcript-required families)', () => {
+  const TRANSCRIPT_GATE_MODEL = 'qwen3-tts-transcript-gate-test';
+
+  it('never applies a stored custom:X whose clip lacks a transcript, even though another eligible clip exists', async () => {
+    useNativeModelStore.setState({
+      catalog: { [TRANSCRIPT_GATE_MODEL]: {
+        id: TRANSCRIPT_GATE_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [],
+        voice: { builtin: 'none', custom: 'clip', transcriptRequired: true },
+      } as any },
+    } as any);
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
+    m.tts.setReferenceVoice = vi.fn().mockResolvedValue(undefined);
+    // X (id 10) has no transcript — ineligible for this transcriptRequired
+    // family; Y (id 11) does — the pre-init gate counts it and lets TTS load.
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
+      .mockResolvedValue([
+        { id: 10, name: 'X (no transcript)', audio: new Float32Array([0.1]).buffer, sampleRate: 16000, createdAt: 0 },
+        { id: 11, name: 'Y (has transcript)', audio: new Float32Array([0.2]).buffer, sampleRate: 16000, createdAt: 0, transcript: 'hello there' },
+      ]);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'getNativeVoice')
+      .mockResolvedValue({ id: 10, name: 'X (no transcript)', audio: new Float32Array([0.1]).buffer, sampleRate: 16000, createdAt: 0 });
+    const errors: string[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({ onError: (e: any) => errors.push(String(e?.message ?? e)) } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: TRANSCRIPT_GATE_MODEL, ttsVoice: 'custom:10' } as any);
+
+    // The pre-init gate passed (Y is eligible) — TTS loaded at all.
+    expect(m.tts.init).toHaveBeenCalled();
+    expect(errors).toHaveLength(0);
+    // X must never be applied as the reference voice, ineligible or not.
+    expect(m.tts.setReferenceVoice).not.toHaveBeenCalled();
+  });
+
+  it('keeps a stored custom:X selection when X itself is eligible', async () => {
+    useNativeModelStore.setState({
+      catalog: { [TRANSCRIPT_GATE_MODEL]: {
+        id: TRANSCRIPT_GATE_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [],
+        voice: { builtin: 'none', custom: 'clip', transcriptRequired: true },
+      } as any },
+    } as any);
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
+    m.tts.setReferenceVoice = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
+      .mockResolvedValue([
+        { id: 12, name: 'X (has transcript)', audio: new Float32Array([0.3]).buffer, sampleRate: 16000, createdAt: 0, transcript: 'the transcript' },
+      ]);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'getNativeVoice')
+      .mockResolvedValue({ id: 12, name: 'X (has transcript)', audio: new Float32Array([0.3]).buffer, sampleRate: 16000, createdAt: 0, transcript: 'the transcript' });
+    const c = new LocalNativeClient(m);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: TRANSCRIPT_GATE_MODEL, ttsVoice: 'custom:12' } as any);
+
+    expect(m.tts.setReferenceVoice).toHaveBeenCalledWith(expect.any(Float32Array), 16000, 'the transcript');
+  });
+});
