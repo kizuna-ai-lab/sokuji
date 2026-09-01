@@ -26,6 +26,24 @@ be reproduced and so the worker implementation can start from working code.
 | `upload_hf.py`, `hf_README.md`, `rename_ext.py` | pushes the chosen files + model card to the Hub (`jiangzhuo9357/Qwen3-ASR-0.6B-ONNX`); `rename_ext.py` renames a model together with its external-data file |
 | `qwen3-asr-onnx-last-token-logits.patch` | the one change applied to andrewleech/qwen3-asr-onnx before exporting |
 
+## Layout v2 (`export_v2/`) — what the product consumes
+
+The spike layout carried the embedding table three times. v2 (plan:
+`docs/superpowers/plans/2026-09-02-qwen3-asr-onnx-layout-v2.md`) fixes that:
+
+| script | does |
+|---|---|
+| `export_v2.py --src <v1 dir> --out <v2 dir>` | prefill graph on `input_embeds` (no embedding inside any graph), last-token logits; step graph unchanged; copies encoder/tokenizer/config |
+| `decode_v2.py` | the reference greedy loop the worker mirrors: prompt ids → rows of the external table, encoder output spliced over the pads, init once, step per token |
+| `check_tokens.py <v1> <v2> [.int4] [--force zh]` | token-exact comparison against the v1 FP32 graphs on en/ja/zh clips |
+| `quantize_v2.sh` | int4 RTN block 32 + `share_weights.py` → `decoder_weights.int4.data` |
+| `q4f16_v2.sh` | fp16 activations on the int4 graphs (norm/softmax/rotary in fp32), duplicate Casts removed, shared `decoder_weights.q4f16.data` |
+| `embed_int8.py` | `embed_tokens.int8.bin` + `embed_scales.f32.bin` (per-row symmetric) |
+| `make_prompt_config.py` | `prompt_config.json`: prompt ids, per-language `language <Name><asr_text>` prefix ids, audio-token formula, embedding dtype, decoder dims, per-variant file roles |
+
+The page (`www/main.js`) speaks both layouts: when `prompt_config.json` exists next to the
+model it uses v2 (`?variant=q4|q4f16`, `&force=<iso>`), otherwise the v1 parameters.
+
 ## Reproduce
 
 ```bash

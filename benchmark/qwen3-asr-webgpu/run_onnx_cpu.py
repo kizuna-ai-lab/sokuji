@@ -20,6 +20,9 @@ import soundfile as sf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "qwen3-asr-onnx"))
+sys.path.insert(0, os.path.join(HERE, "export_v2"))
+sys.path.insert(0, "/home/jiangzhuo/Desktop/kizunaai/sokuji/.claude/worktrees/spike-qwen3-asr-webgpu/benchmark/qwen3-asr-webgpu/export_v2")
+from decode_v2 import greedy_decode as greedy_decode_v2, load_embed as load_embed_v2, load_prompt_config  # noqa: E402
 from src.inference import greedy_decode_onnx  # noqa: E402
 from src.mel import log_mel_spectrogram  # noqa: E402
 from src.prompt import ASR_TEXT_TOKEN_ID, EOS_TOKEN_IDS, build_prompt_ids, get_feat_extract_output_lengths  # noqa: E402
@@ -34,6 +37,8 @@ ap.add_argument("--clips", default="*.wav")
 ap.add_argument("--max-tokens", type=int, default=256)
 ap.add_argument("--out", default=None)
 ap.add_argument("--force-lang", default=None, help="force the assistant prefix 'language <Name><asr_text>' (e.g. Chinese)")
+ap.add_argument("--layout", choices=["v1", "v2"], default="v1", help="v2: prefill on host-built embeddings, prompt_config.json")
+ap.add_argument("--force-from-manifest", action="store_true", help="v2: force the language prefix from each clip's manifest lang")
 a = ap.parse_args()
 
 from transformers import AutoTokenizer  # noqa: E402
@@ -42,8 +47,13 @@ tok = AutoTokenizer.from_pretrained(a.dir)
 cfg = json.load(open(os.path.join(a.dir, "config.json")))
 hidden = cfg["decoder"]["hidden_size"]
 emb_path = os.path.join(a.dir, a.embed)
-dtype = np.float16 if "fp16" in a.embed else np.float32
-embed = np.fromfile(emb_path, dtype=dtype).reshape(-1, hidden).astype(np.float32)
+if a.layout == "v2":
+    pc = load_prompt_config(a.dir)
+    embed = load_embed_v2(a.dir)
+else:
+    pc = None
+    dtype = np.float16 if "fp16" in a.embed else np.float32
+    embed = np.fromfile(emb_path, dtype=dtype).reshape(-1, hidden).astype(np.float32)
 
 so = ort.SessionOptions()
 so.intra_op_num_threads = a.threads
@@ -99,8 +109,15 @@ for k, path in enumerate(files):
         prompt = build_prompt_ids(n_audio)
         if a.force_lang:  # teacher-force the model's own prefix: "language <Name><asr_text>"
             prompt = prompt + tok.encode(f"language {a.force_lang}", add_special_tokens=False) + [ASR_TEXT_TOKEN_ID]
+        if a.layout == "v2":
+            lang = manifest.get(name, {}).get("lang")
+            if a.force_from_manifest and lang in pc["language_prefix_ids"]:
+                prompt = prompt + pc["language_prefix_ids"][lang]
         t = time.perf_counter()
-        gen = greedy_decode_onnx(sessions, embed, af, prompt, max_tokens=a.max_tokens)
+        if a.layout == "v2":
+            gen = greedy_decode_v2(sessions, embed, af, prompt, max_tokens=a.max_tokens)
+        else:
+            gen = greedy_decode_onnx(sessions, embed, af, prompt, max_tokens=a.max_tokens)
         t_dec = time.perf_counter() - t
         cut = gen.index(ASR_TEXT_TOKEN_ID) if ASR_TEXT_TOKEN_ID in gen else -1
         prefix = tok.decode(gen[:cut]) if cut >= 0 else None
