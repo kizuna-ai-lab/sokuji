@@ -667,14 +667,59 @@ TTS_STAGING_DIRNAME = "sokuji-tts-staging"
 # graph hit ggml_abort inside synthesize_supertonic_chunk ("unsupported op",
 # ggml-metal-ops.cpp:204) in upstream ggml's Metal backend. The C tests never
 # hit this because they load with an explicit CPU device (see
-# native/python/tests/test_sokuji_native.py). Vulkan TTS is equally
-# unvalidated — the Linux lanes only pass because headless CI runners have no
-# GPU, so accel auto-detection falls back to CPU regardless of the tier
-# offered. ASR (_TC_TIERS) and translate (native_translate's own three-tier
-# tuple in _llm_translate_row) are untouched by this ruling — Metal ran
-# moonshine (ASR) clean on the same lane. GPU tiers return here per family
-# once that family is actually validated on that lane.
+# native/python/tests/test_sokuji_native.py). ASR (_TC_TIERS) and translate
+# (native_translate's own three-tier tuple in _llm_translate_row) are
+# untouched by this ruling — Metal ran moonshine (ASR) clean on the same
+# lane. `_TTS_TIERS` below is the default (still cpu-only, for any family not
+# in `_TTS_TIER_OVERRIDES`) — Metal restoration stays out of scope everywhere
+# (ruling R25, task-8: no Apple-GPU box in this fleet), so no card ever gains
+# "gpu-metal".
 _TTS_TIERS = ("cpu",)
+
+# R19 follow-up / ruling R25 (2026-09-01, task 8): the first real Vulkan TTS
+# contact — CI's Linux lanes are headless (no GPU), so accel auto-detection
+# had only ever fallen back to CPU there; this is a GB10 (NVIDIA GB10,
+# aarch64, manylinux_2_39_aarch64) dev box with a real Vulkan device. Built
+# `native/ci/build.sh vulkan manylinux_2_39_aarch64` locally (ctest 4/4,
+# native/python/tests + native/tests/parity: 23 passed/2 xfailed/4 failed —
+# the 4 failures are native/tests/parity's own CPU-reference-vs-"auto"-device
+# sample compares, expected to diverge once "auto" resolves to Vulkan instead
+# of CPU on this lane; not this task's gate). Then, per family, in its OWN
+# subprocess (a GGML abort is an uncatchable SIGABRT — isolating per family
+# means one family's crash can't take down the others or the other four
+# results, same precedent as test_tts_parity.py's `_run_candidate`
+# subprocess isolation): loaded with the EXPLICIT Vulkan device
+# (`sokuji_native.devices()`, kind == "vulkan" — "Vulkan0" / NVIDIA GB10),
+# did the family's normal voice setup (supertonic/pocket: `set_preset`;
+# qwen3_tts/omnivoice: `set_voice` cloning a reference clip synthesized by
+# supertonic on the CPU device first, with that clip's own text as
+# `ref_text`), synthesized "The quick brown fox jumps over the lazy dog.",
+# and whisper-tiny (CPU device) transcribed the result. PASS bar: clean exit
+# + transcript contains "quick"/"fox" + audio duration in [0.5s, 30s].
+#
+# All five families PASSED — supertonic's Metal "unsupported op" abort above
+# does NOT reproduce on Vulkan (ggml-vulkan's op coverage differs from
+# ggml-metal's here). Per-family wall time is tts_load()+synth() together
+# (same measurement the CPU-lane numbers below use, cited from
+# task-7-report.md's loopback table, same box/build):
+#   moss_tts_nano: 3.92s audio, 5.62s wall vulkan (cpu 15.03s)
+#   supertonic:    3.10s audio, 14.45s wall vulkan (cpu 14.50s — essentially
+#                  no speedup, reproduced across 2 more warm reruns
+#                  (13.95s/14.67s); streaming's many small per-chunk Vulkan
+#                  dispatches plausibly dominate over any compute win here —
+#                  not investigated further, and irrelevant to the PASS bar)
+#   qwen3_tts:     3.04s audio, 7.19s wall vulkan (cpu 29.03s)
+#   omnivoice:     2.48s audio, 6.69s wall vulkan (cpu 43.81s)
+#   pocket_tts:    2.72s audio, 1.94s wall vulkan (cpu 1.31s production chain
+#                  — Vulkan slightly SLOWER for this small/fast model; GPU
+#                  dispatch overhead isn't worth it here, still a clean pass)
+_TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
+    "moss_tts_nano": ("gpu-vulkan", "cpu"),
+    "supertonic": ("gpu-vulkan", "cpu"),
+    "qwen3_tts": ("gpu-vulkan", "cpu"),
+    "omnivoice": ("gpu-vulkan", "cpu"),
+    "pocket_tts": ("gpu-vulkan", "cpu"),
+}
 
 
 def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
@@ -694,15 +739,18 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     the "default" q8_0) once it fits. `extra_files` are (relative-to-`dir_`
     filename, bytes) sidecar assets sk_tts_presets discovers next to the
     loaded gguf (only pocket-tts-en has one: embeddings/alba.safetensors) —
-    downloaded alongside every quant and counted once in size_bytes."""
+    downloaded alongside every quant and counted once in size_bytes. Tiers come from
+    `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default, gpu-vulkan added
+    back per family once GB10-validated (see that dict's own comment, R19/R25)."""
     deps = []
+    tiers = _TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)
     order_keys = [default_quant] + [q for q in quants if q != default_quant]
     for i, q in enumerate(order_keys):
         fname, nbytes = quants[q]
         artifact = f"{_AUDIOCPP_GGUF_REPO}/{dir_}/{fname}"
         rank = 2.0 if i == 0 else 1.0
         deps += [Deployment("native_tts", tier, q, artifact, rank, est_bytes=nbytes)
-                 for tier in _TTS_TIERS]
+                 for tier in tiers]
     total_bytes = quants[default_quant][1] + sum(sz for _n, sz in extra_files)
     return TtsModel(mid, name, langs, tuple(deps), family=family,
                     load_language=load_language, clones=clones, streaming=streaming,

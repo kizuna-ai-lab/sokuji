@@ -208,10 +208,10 @@ def test_tts_models_have_deployments_languages_and_family():
         assert m.family, f"{m.id} has no family"
         for d in m.deployments:
             assert d.backend == "native_tts"
-            # R19: TTS is cpu-only until GPU execution is validated per family
-            # per lane (mac-arm64 metal aborted on supertonic's first real-GPU
-            # contact).
-            assert d.tier == "cpu"
+            # R19 follow-up / R25 (task 8): every family was GB10-Vulkan-
+            # validated (catalog._TTS_TIER_OVERRIDES), so every deployment is
+            # now cpu or gpu-vulkan — never gpu-metal (R25: no Apple-GPU box).
+            assert d.tier in ("cpu", "gpu-vulkan")
 
 
 def test_tts_artifacts_are_audiocpp_gguf_files():
@@ -222,8 +222,8 @@ def test_tts_artifacts_are_audiocpp_gguf_files():
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
-    # R19: every card is cpu-only for now (GPU tiers return per family once
-    # validated), so a cpu floor trivially always exists.
+    # Every card keeps a cpu floor even after task 8's gpu-vulkan restoration
+    # (_TTS_TIER_OVERRIDES always includes "cpu" alongside "gpu-vulkan").
     ids = [m.id for m in catalog.tts_models()]
     assert len(ids) == len(set(ids)), "duplicate tts model ids"
     for m in catalog.tts_models():
@@ -234,13 +234,13 @@ def test_tts_quant_ladder_shape():
     # Every card follows _llm_translate_row's two-rung shape: the default
     # quant is rank 2.0, any alt is rank 1.0, and EVERY quant carries the
     # SAME tier set (unlike the old catalog's per-precision/per-platform row
-    # variation) -- which R19 currently pins to cpu-only.
+    # variation) -- {"cpu", "gpu-vulkan"} for every family post-task-8.
     for m in catalog.tts_models():
         by_ct = {}
         for d in m.deployments:
             by_ct.setdefault(d.compute_type, set()).add(d.tier)
         for ct, tiers in by_ct.items():
-            assert tiers == {"cpu"}, (m.id, ct)
+            assert tiers == {"cpu", "gpu-vulkan"}, (m.id, ct)
         ranks = {d.compute_type: d.rank for d in m.deployments}
         assert sorted(ranks.values(), reverse=True)[0] == 2.0, m.id
         assert set(ranks.values()) <= {1.0, 2.0}, m.id
@@ -488,8 +488,10 @@ def test_supertonic_row():
     assert m.family == "supertonic"
     assert {d.backend for d in m.deployments} == {"native_tts"}
     # R19: supertonic is the card that triggered the cpu-only ruling (Metal
-    # aborted on its first real-GPU contact) -- cpu-only until re-validated.
-    assert {d.tier for d in m.deployments} == {"cpu"}
+    # aborted on its first real-GPU contact). R19 follow-up / R25 (task 8):
+    # GB10 Vulkan validation passed for supertonic too -- the Metal abort
+    # does not reproduce on Vulkan -- so it now carries a gpu-vulkan tier.
+    assert {d.tier for d in m.deployments} == {"cpu", "gpu-vulkan"}
     # Single quant only: Q8 is upstream-broken for supertonic (docs/gguf.md);
     # the repo's own "-q8_0.gguf" is in fact a byte-identical copy of "-orig.gguf".
     assert {d.compute_type for d in m.deployments} == {"f16"}

@@ -170,51 +170,65 @@ def test_resolve_translate_matrix(model_id, machine, override, expected, monkeyp
     assert _plan_tuples(plans) == expected
 
 
-# Re-recorded 2026-09-01, TWICE, same day: first for slice 4 landing TTS on
-# the native library (every card a single-file audio.cpp GGUF), then again
+# Re-recorded 2026-09-01, THREE times, same day: first for slice 4 landing
+# TTS on the native library (every card a single-file audio.cpp GGUF), then
 # for R19 (the slice-4 CI dry run's mac-arm64 metal lane: supertonic's first
 # real-GPU contact aborted hard inside upstream ggml's Metal backend --
 # "unsupported op", ggml-metal-ops.cpp:204 -- and Vulkan TTS was never
-# validated either, since headless CI runners have no GPU to exercise it).
-# R19 pins every native_tts card to cpu-only (catalog._TTS_TIERS) until a
-# family is validated on a lane (slice-5/6 task), so every row below now
-# resolves to cpu regardless of the machine's GPU: an 'auto' pick collapses
-# to a single cpu-tier plan at the rank-default quant (no GPU pick, no
-# separate cpu-floor entry -- the single pick already IS the floor), and a
-# 'cpu' override behaves exactly as it already did on a CPU_ONLY machine.
-# Every row below was captured by RUNNING accel.resolve_tts against these
-# exact fixtures post-R19 (accel._downloaded_quants pinned to "nothing
-# downloaded" by the autouse fixture below, same as ASR/translate), not
-# hand-derived. The old sherpa ad-hoc-synthesis rows have no equivalent:
-# sherpa_tts is gone and resolve_tts_card no longer synthesizes ad-hoc cards
-# for unknown ids.
+# validated either, since headless CI runners have no GPU to exercise it),
+# then again for the R19 follow-up / R25 (task 8): a GB10 dev box gave the
+# first real Vulkan TTS contact, and all five families passed (see
+# catalog._TTS_TIER_OVERRIDES' own comment for the per-family evidence) --
+# moss_tts_nano/supertonic/qwen3_tts/pocket_tts (the four families this
+# matrix covers; omnivoice-0.6b isn't in it) all gained a gpu-vulkan tier.
+# A vulkan-capable machine's 'auto' pick now runs the REAL
+# _llamacpp_variant_row budget fit-walk (previously always short-circuited by
+# `gpu_possible=False`): CUDA_12GB/CUDA_24GB's 12GiB/24GiB budgets fit even
+# the LARGER bf16 (or single-quant f16 for supertonic) rung fully resident,
+# so 'auto' now picks that larger quant on gpu-vulkan, paired with a
+# same-quant cpu floor -- a real behaviour change from the once-universal
+# "rank-default quant, cpu-only" pick. A 'cpu' override still pins the cpu
+# rows to the front (both quants, in rank order) but, matching
+# resolve_deployments' pre-existing generic reordering (see ASR_MATRIX /
+# TRANSLATE_MATRIX above for the identical shape), no longer FILTERS OUT the
+# gpu-vulkan rows -- they land as trailing fallback entries instead. Neither
+# CPU_ONLY (no "vulkan" in tc_kinds) nor APPLE_SILICON (metal+cpu only, and
+# no native_tts card ever gains a gpu-metal tier -- R25, no Apple-GPU box in
+# this fleet) can resolve gpu-vulkan, so their rows are UNCHANGED from the
+# cpu-only era. Every row below was captured by RUNNING accel.resolve_tts
+# against these exact fixtures post-task-8 (accel._downloaded_quants pinned
+# to "nothing downloaded" by the autouse fixture below, same as ASR/
+# translate), not hand-derived. The old sherpa ad-hoc-synthesis rows have no
+# equivalent: sherpa_tts is gone and resolve_tts_card no longer synthesizes
+# ad-hoc cards for unknown ids.
 TTS_MATRIX = [
     ('moss-tts-nano', CPU_ONLY, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0)]),
     ('moss-tts-nano', CPU_ONLY, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0)]),
-    ('moss-tts-nano', CUDA_12GB, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0)]),
-    ('moss-tts-nano', CUDA_12GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0)]),
-    ('moss-tts-nano', CUDA_24GB, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0)]),
-    ('moss-tts-nano', CUDA_24GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0)]),
+    ('moss-tts-nano', CUDA_12GB, 'auto', [('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0)]),
+    ('moss-tts-nano', CUDA_12GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0)]),
+    ('moss-tts-nano', CUDA_24GB, 'auto', [('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0)]),
+    ('moss-tts-nano', CUDA_24GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0)]),
     ('moss-tts-nano', APPLE_SILICON, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0)]),
     ('moss-tts-nano', APPLE_SILICON, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf', 1.0)]),
     # supertonic-3: single quant (Q8 is upstream-broken — catalog.py's comment
     # on the row) — the auto path still runs cleanly through the same
     # _llamacpp_variant_row-shaped code with only one candidate. This is also
-    # the card whose real-GPU (Metal) contact triggered R19.
+    # the card whose real-GPU (Metal) contact triggered R19; task 8 confirmed
+    # the Metal abort does NOT reproduce on Vulkan.
     ('supertonic-3', CPU_ONLY, 'auto', [('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
     ('supertonic-3', CPU_ONLY, 'cpu', [('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
-    ('supertonic-3', CUDA_12GB, 'auto', [('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
-    ('supertonic-3', CUDA_12GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
-    ('supertonic-3', CUDA_24GB, 'auto', [('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
-    ('supertonic-3', CUDA_24GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
+    ('supertonic-3', CUDA_12GB, 'auto', [('native_tts', 'gpu-vulkan', 'vulkan', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
+    ('supertonic-3', CUDA_12GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
+    ('supertonic-3', CUDA_24GB, 'auto', [('native_tts', 'gpu-vulkan', 'vulkan', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
+    ('supertonic-3', CUDA_24GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
     ('supertonic-3', APPLE_SILICON, 'auto', [('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
     ('supertonic-3', APPLE_SILICON, 'cpu', [('native_tts', 'cpu', 'cpu', 'f16', 'audio-cpp/audio.cpp-gguf/Supertonic-3-GGUF/supertonic-3-f16.gguf', 2.0)]),
     ('qwen3-tts-0.6b', CPU_ONLY, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0)]),
     ('qwen3-tts-0.6b', CPU_ONLY, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0)]),
-    ('qwen3-tts-0.6b', CUDA_12GB, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0)]),
-    ('qwen3-tts-0.6b', CUDA_12GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0)]),
-    ('qwen3-tts-0.6b', CUDA_24GB, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0)]),
-    ('qwen3-tts-0.6b', CUDA_24GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0)]),
+    ('qwen3-tts-0.6b', CUDA_12GB, 'auto', [('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0)]),
+    ('qwen3-tts-0.6b', CUDA_12GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0)]),
+    ('qwen3-tts-0.6b', CUDA_24GB, 'auto', [('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0)]),
+    ('qwen3-tts-0.6b', CUDA_24GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0)]),
     ('qwen3-tts-0.6b', APPLE_SILICON, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0)]),
     ('qwen3-tts-0.6b', APPLE_SILICON, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-bf16.gguf', 1.0)]),
     # pocket-tts-en: load_language="english" rides in PlanConfig (asserted
@@ -222,10 +236,10 @@ TTS_MATRIX = [
     # ladder itself is the same fp32-less two-quant shape as every other card.
     ('pocket-tts-en', CPU_ONLY, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0)]),
     ('pocket-tts-en', CPU_ONLY, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
-    ('pocket-tts-en', CUDA_12GB, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0)]),
-    ('pocket-tts-en', CUDA_12GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
-    ('pocket-tts-en', CUDA_24GB, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0)]),
-    ('pocket-tts-en', CUDA_24GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
+    ('pocket-tts-en', CUDA_12GB, 'auto', [('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
+    ('pocket-tts-en', CUDA_12GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
+    ('pocket-tts-en', CUDA_24GB, 'auto', [('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
+    ('pocket-tts-en', CUDA_24GB, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'gpu-vulkan', 'vulkan', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
     ('pocket-tts-en', APPLE_SILICON, 'auto', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0)]),
     ('pocket-tts-en', APPLE_SILICON, 'cpu', [('native_tts', 'cpu', 'cpu', 'q8_0', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf', 2.0), ('native_tts', 'cpu', 'cpu', 'bf16', 'audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf', 1.0)]),
 ]

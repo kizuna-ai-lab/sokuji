@@ -384,7 +384,12 @@ def test_m4_delete_model_with_explicit_repo_still_deletes_only_that_rung(monkeyp
     import huggingface_hub.constants as hfc
     monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
 
-    bf16_artifact = catalog.tts_model("moss-tts-nano").deployments[1].artifact
+    # Index into deployments by compute_type, not a fixed position: task 8
+    # restored a gpu-vulkan tier for moss-tts-nano, so each quant now has TWO
+    # deployment rows (gpu-vulkan + cpu) instead of one, and deployments[1] is
+    # no longer necessarily bf16.
+    bf16_artifact = next(d.artifact for d in catalog.tts_model("moss-tts-nano").deployments
+                         if d.compute_type == "bf16")
     assert "bf16" in bf16_artifact
     freed = nm.delete_model("moss-tts-nano", repo=bf16_artifact)
 
