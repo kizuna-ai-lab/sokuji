@@ -51,7 +51,14 @@ are better; the block-64 collapse on `zh-fleurs1883` is gone.
 | Mac mini M4, Chrome 152 | q4 (int4 + fp32 enc) | 0.127 / 20.1 | **0.091 / 18.6** | 285–696 → 88–201 ms |
 | Mac mini M4, Chrome 152 | q4f16 (fp16 enc) | 0.111 / 19.8 | **0.076 / 16.6** | 455–495 → 59–135 ms |
 | GB10 (NVIDIA Vulkan, headless shell) | q4 (int4 + fp32 enc) | 0.091 / 25.3 | **0.081 / 20.8** | 39–81 → 37–64 ms |
-| Windows RTX 4070 SUPER | q4 / q4f16 | 0.115 / 34 (int4+fp16enc) | pending — the box rejects the SSH key since 07:40 | |
+| Windows RTX 4070 SUPER, Chrome 152 | q4 (int4 + fp32 enc) | 0.139 / 38.3 | **0.095 / 24.1** | 28–78 → 25–71 ms |
+| Windows RTX 4070 SUPER, Chrome 152 | q4f16 (fp16 enc) | 0.133 / 40.5 | **0.087 / 21.4** | 52–80 → 25–73 ms |
+
+(The Windows box had to be re-keyed first: its sshd host key changed when jiangzhuo repaired
+it; `ssh-keygen -R 192.168.1.13` + `ssh-keyscan` fixed the client side.) The 4070 gains the
+most per token (−37 % / −47 %): its step loop was the most dispatch-bound of the three GPUs.
+One more knife-edge: `ja-cv2` transcribes differently on the 4070 with q4 (CER 0.105) than on
+the M4 / GB10 / the 4070 q4f16 (all 0.000).
 
 Forced prefix in the browser (Mac, q4f16, `&force=ja`, 4 Japanese clips): all four ran the
 forced path, transcripts identical to the unforced run, 3 fewer generated tokens each

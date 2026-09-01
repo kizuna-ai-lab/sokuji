@@ -1,3 +1,31 @@
+== page-win-v2-q4.log
+  env: ep=webgpu adapter={'vendor': 'nvidia', 'architecture': 'lovelace', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+  load: {'tokenizerAndEmbedMs': 1584, 'encoderMs': 8306, 'initMs': 4059, 'stepMs': 313, 'totalMs': 14262}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  jfk.wav [cold]         11        250        803        861       1181         30     40.700      0.281      0.000  And so, my fellow Americans, ask not what your c
+     jfk.wav         11        233         25         25        625         30     21.600      0.083      0.000  And so, my fellow Americans, ask not what your c
+  ja-cv2.wav      5.330         71         22         31        719         29     25.700      0.158      0.105  いくら山を掘り返してもどこかで見たようなおもしろみのないものしか見つからなかった。
+  ja-fleurs1828.wav     10.440        463         45         71        625         29     22.300      0.115      0.067  インターネットで敵対的環境構築について検索するとおそらく現地企業の住所が出てくるでしょう。
+  ja-fleurs1834.wav     14.220        128         33         38        939         36     26.800      0.080      0.043  また北側に行くなら世界的に有名なマリアゾの聖地であるファティマの聖母の聖域、神聖を訪れましょう。
+  ja-fleurs1813.wav     12.840        169         31         32       1216         52     23.800      0.113      0.324  バルセイの公用語は語り語とスペイン語です。約半数が語り語がお好み、大数が語り語を理解し、ほぼ全員
+  zh-fleurs1906.wav     10.380         93         29         30        417         18     24.500      0.055      0.000  这并不是告别，这是一个篇章的结束，也是新篇章的开始。
+  zh-fleurs2006.wav      8.280        109         35         32        647         21     32.400      0.099      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
+  zh-fleurs1852.wav     15.420        139         59         40       1159         52     22.700      0.091      0.133  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  => median RTF 0.095  max RTF 0.158  mean CER 0.084  median ms/token 24.1
+== page-win-v2-q4f16.log
+  env: ep=webgpu adapter={'vendor': 'nvidia', 'architecture': 'lovelace', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+  load: {'tokenizerAndEmbedMs': 1581, 'encoderMs': 4525, 'initMs': 3363, 'stepMs': 308, 'totalMs': 9777}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  jfk.wav [cold]         11        260        812        783       1149         30     39.600      0.273      0.000  And so, my fellow Americans, ask not what your c
+     jfk.wav         11        238         26         39        702         30     24.200      0.091      0.000  And so, my fellow Americans, ask not what your c
+  ja-cv2.wav      5.330         76         23         36        567         27     21.800      0.132      0.000  いくら山を掘り返してもどこかで見たような面白みのないものしか見つからなかった。
+  ja-fleurs1828.wav     10.440        175         26         73        605         30     20.900      0.084      0.067  インターネットで敵対的環境構築について検索すると、おそらく現地企業の住所が出てくるでしょう。
+  ja-fleurs1834.wav     14.220        127         33         42        788         36     22.500      0.070      0.043  また北側に行くなら世界的に有名なマリアゾの聖地であるファティマの聖母の聖域、神聖を訪れましょう。
+  ja-fleurs1813.wav     12.840        214         24         33       1006         52     19.700      0.099      0.324  バルセイの公用語は語り語とスペイン語です。約半数が語り語がお好み、大数が語り語を理解し、ほぼ全員
+  zh-fleurs1906.wav     10.380         94         24         32        312         18     18.400      0.045      0.000  这并不是告别，这是一个篇章的结束，也是新篇章的开始。
+  zh-fleurs2006.wav      8.280         72         25         25        400         21         20      0.063      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
+  zh-fleurs1852.wav     15.420        136         23         37       1188         52     23.300      0.090      0.133  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  => median RTF 0.087  max RTF 0.132  mean CER 0.071  median ms/token 21.4
 == page-mac-v2-q4.log
   env: ep=webgpu adapter={'vendor': 'apple', 'architecture': 'metal-3', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
   load: {'tokenizerAndEmbedMs': 1534, 'encoderMs': 7280, 'initMs': 3514, 'stepMs': 133, 'totalMs': 12461}
@@ -40,6 +68,23 @@
   zh-fleurs2006.wav      8.280         60         36         41        513         21     25.600      0.079      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
   zh-fleurs1852.wav     15.420        112         58         53       1053         52     20.600      0.083      0.133  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
   => median RTF 0.081  max RTF 0.120  mean CER 0.073  median ms/token 20.8
+== page-mac-v2-q4f16-forced-ja.log
+  env: ep=webgpu adapter={'vendor': 'apple', 'architecture': 'metal-3', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
+  load: {'tokenizerAndEmbedMs': 1518, 'encoderMs': 3882, 'initMs': 3100, 'stepMs': 118, 'totalMs': 8618}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  ja-cv2.wav      5.330         60         73         80        323         24         14      0.101      0.000  いくら山を掘り返してもどこかで見たような面白みのないものしか見つからなかった。
+  ja-fleurs1828.wav     10.440         97        100         97        428         27     16.500      0.069      0.067  インターネットで敵対的環境構築について検索すると、おそらく現地企業の住所が出てくるでしょう。
+  ja-fleurs1834.wav     14.220        135        107        133        587         33     18.300      0.068      0.043  また北側に行くなら世界的に有名なマリアゾの聖地であるファティマの聖母の聖域、神聖を訪れましょう。
+  ja-fleurs1813.wav     12.840        133         98        121        914         51     18.300      0.099      0.338  バルセイの公用語は語りネゴとスペイン語です。約半数が語りネゴを好み、大数が語りネゴを理解し、ほぼ
+  => median RTF 0.084  max RTF 0.101  mean CER 0.112  median ms/token 17.4
+== page-mac-v2-hub-q4f16.log
+  env: ep=webgpu adapter={'vendor': 'apple', 'architecture': 'metal-3', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
+  load: {'tokenizerAndEmbedMs': 10877, 'encoderMs': 547137, 'initMs': 539096, 'stepMs': 1921, 'totalMs': 1099031}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+     jfk.wav         11        106        110        117        494         30         17      0.075      0.000  And so, my fellow Americans, ask not what your c
+  ja-fleurs1828.wav     10.440         99         90         99        460         30     15.900      0.072      0.067  インターネットで敵対的環境構築について検索すると、おそらく現地企業の住所が出てくるでしょう。
+  zh-fleurs1906.wav     10.380        125         92         96        281         18     16.500      0.057      0.000  这并不是告别，这是一个篇章的结束，也是新篇章的开始。
+  => median RTF 0.072  max RTF 0.075  mean CER 0.022  median ms/token 16.5
 == v2-cpu-int4.json
   v2 suffix='.int4' enc=encoder.onnx threads=8 ort=1.29.0 load=2.9s
         clip   audioSec      melMs  encoderMs   decodeMs  genTokens        rtf        cer  text

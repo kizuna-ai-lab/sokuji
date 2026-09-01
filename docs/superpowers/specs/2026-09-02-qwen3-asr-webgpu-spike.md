@@ -228,7 +228,8 @@ token; the `zh-fleurs1883` collapse is gone. CPU sweep over 13 clips: mean CER 0
 | Mac mini M4 | q4 | 0.127 / 20.1 | **0.091 / 18.6** | 285–696 → 88–201 ms |
 | Mac mini M4 | q4f16 | 0.111 / 19.8 | **0.076 / 16.6** | 455–495 → 59–135 ms |
 | GB10 (NVIDIA Vulkan) | q4 | 0.091 / 25.3 | **0.081 / 20.8** | 39–81 → 37–64 ms |
-| RTX 4070 SUPER | q4 / q4f16 | 0.115 / 34 | not re-measured: the Windows box started rejecting the SSH key mid-run | |
+| RTX 4070 SUPER | q4 | 0.139 / 38.3 | **0.095 / 24.1** | 28–78 → 25–71 ms |
+| RTX 4070 SUPER | q4f16 | 0.133 / 40.5 | **0.087 / 21.4** | 52–80 → 25–73 ms |
 | GB10 CPU, ORT 1.29, 8 thr | int4 | 0.074 | 0.071 | |
 
 Two causes: 30 % fewer decoder nodes in a dispatch-bound loop, and no 622 MB fp32 gather in
