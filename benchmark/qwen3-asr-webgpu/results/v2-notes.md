@@ -26,6 +26,41 @@ mean 1.9e-4; 155.6 MB + 0.61 MB scales (fp16 would be 311 MB). With int8 rows us
 both the prefill prompt and the step lookups the FP32 v2 decoders stay token-identical to
 v1 on the three clips → **int8 shipped**.
 
+## Task 3 / 4 — decoders
+
+- int4 RTN block 32, accuracy level 4, shared file: `decoder_weights.int4.data` 365 MiB,
+  graphs ~1 MiB each (v1: 834 + 340 MiB). `onnx.checker` rejects SimplifiedLayerNormalization
+  (contrib op, expected); ORT loads both sessions.
+- q4f16 on top (norm/softmax/rotary fp32, duplicate Casts removed, shared file):
+  `decoder_weights.q4f16.data` 329 MiB.
+- Transcripts vs v1 FP32 on the three check clips (int4 and q4f16 alike): ja and zh
+  token-identical, en differs by one punctuation token (`;` → `,` at token 19); `zh-fleurs1883`
+  no longer collapses. Forced `zh` prefix → correct transcript.
+
+## Task 7 — CPU sweep (GB10, ORT 1.29, 8 threads, 13 clips)
+
+int4 v2: median RTF 0.071 (v1 int4/b64: 0.074), mean CER 0.125 (v1: 0.157 with the
+collapse). Forced-from-manifest: identical texts, mean CER 0.125, no collapses. One hard
+Japanese clip (`ja-fleurs1813`) is worse with block 32 (CER 0.338 vs 0.169), two others
+are better; the block-64 collapse on `zh-fleurs1883` is gone.
+
+## Task 8 — browser, v2 vs spike (acceptance: within 15 %; result: faster everywhere)
+
+| device | variant | spike median RTF / ms·token | v2 median RTF / ms·token | prefill (10–15 s) spike → v2 |
+|---|---|---|---|---|
+| Mac mini M4, Chrome 152 | q4 (int4 + fp32 enc) | 0.127 / 20.1 | **0.091 / 18.6** | 285–696 → 88–201 ms |
+| Mac mini M4, Chrome 152 | q4f16 (fp16 enc) | 0.111 / 19.8 | **0.076 / 16.6** | 455–495 → 59–135 ms |
+| GB10 (NVIDIA Vulkan, headless shell) | q4 (int4 + fp32 enc) | 0.091 / 25.3 | **0.081 / 20.8** | 39–81 → 37–64 ms |
+| Windows RTX 4070 SUPER | q4 / q4f16 | 0.115 / 34 (int4+fp16enc) | pending — the box rejects the SSH key since 07:40 | |
+
+Forced prefix in the browser (Mac, q4f16, `&force=ja`, 4 Japanese clips): all four ran the
+forced path, transcripts identical to the unforced run, 3 fewer generated tokens each
+(`page-mac-v2-q4f16-forced-ja.log`).
+
+Why faster: 30 % fewer decoder nodes (RMSNorm fused) in a dispatch-bound loop, and the
+prefill no longer runs a 622 MB fp32 gather on the GPU — the prompt embedding is built on
+the host from the int8 table (`promptBuildMs` 2–6 ms).
+
 ## Task 6 — prompt_config.json
 
 prefix `[151644, 9125, 198, 151645, 198, 151644, 882, 198, 151669]`, suffix
