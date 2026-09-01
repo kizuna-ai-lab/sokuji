@@ -10,6 +10,8 @@
 
 export interface Qwen3AsrPromptConfig {
   layout_version: number;
+  /** Log-mel parameters; `filters_file` names the 128×201 Slaney filterbank JSON in the repo. */
+  mel?: { sample_rate: number; n_fft: number; hop_length: number; n_mels: number; filters_file: string; drop_last_frame: boolean };
   prompt: {
     /** `<|im_start|>system\n<|im_end|>\n<|im_start|>user\n<|audio_start|>` */
     prefix_ids: number[];

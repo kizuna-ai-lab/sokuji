@@ -45,6 +45,7 @@ const ASR_WORKERS = [
   'voxtral-3b-webgpu.worker.ts',
   'voxtral-webgpu.worker.ts',
   'granite-speech-webgpu.worker.ts',
+  'qwen3-asr-webgpu.worker.ts',
 ];
 
 describe('ASR worker ortEnv wasmPaths', () => {

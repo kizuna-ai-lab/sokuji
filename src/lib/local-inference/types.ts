@@ -84,6 +84,14 @@ export interface WhisperAsrInitMessage {
   vadModelUrl?: string;
 }
 
+/**
+ * Qwen3-ASR (raw onnxruntime-web worker) takes the same init fields as the Whisper worker;
+ * `dtype` carries the manifest variant key ('q4' | 'q4f16') that selects the file set in
+ * the model repo's prompt_config.json, and `language` (when not 'auto') forces the model's
+ * `language <Name><asr_text>` prefix.
+ */
+export type Qwen3AsrInitMessage = WhisperAsrInitMessage;
+
 export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | VoxtralAsrInitMessage | Voxtral3BAsrInitMessage | CohereTranscribeAsrInitMessage | GraniteSpeechInitMessage | AsrAudioMessage | AsrDisposeMessage;
 
 // ─── ASR Worker Messages (Worker → Main) ─────────────────────────────────────
