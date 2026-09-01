@@ -14,11 +14,26 @@ def _translate_teardown(state, generation=None):
     _h_translate_init at the time IT finished loading, and a stale teardown from
     an earlier init (superseded by a fresher one since) no-ops instead of tearing
     down the newer, currently-live backend. generation=None (every pre-M5 direct
-    call) disables the check, matching the old unconditional-close behavior."""
+    call) disables the check, matching the old unconditional-close behavior.
+
+    Disconnect-triggered cancel (slice-5 task 5; ground truth
+    .superpowers/slice5-surface-inventory.md §10(b) -- the translate-side twin of
+    tts_engine._tts_teardown's own CQ-4 fix): cancel the backend's own in-flight
+    generation BEFORE closing the engine. close() -> backend.unload() cancels and
+    joins every outstanding worker itself (translate_backend.py's I3 twin), but
+    reaching into cancel_active() first signals it to stop as early as possible
+    rather than relying solely on unload()'s own (also correct, but later)
+    cancel+join. No new wire message this slice (ruling R20): a disconnected
+    client's generation is what gets cancelled, never a client-sent
+    translate_cancel."""
     eng = state.get("translate_engine")
     if eng is not None:
         if generation is not None and getattr(eng, "generation", None) != generation:
             return
+        try:
+            eng.cancel_active()
+        except Exception:
+            pass
         try:
             eng.close()
         except Exception:
@@ -60,6 +75,18 @@ class TranslateEngine:
         if notice:
             self.resolved["fallbackReason"] = notice
         return int((time.time() - t0) * 1000)
+
+    def cancel_active(self) -> None:
+        """Reach through to the loaded backend's own cancel() (see
+        NativeTranslateBackend.cancel's docstring) — mirrors
+        TtsEngine.cancel_active() (tts_engine.py) for the translate side. Called
+        by _translate_teardown BEFORE close()."""
+        backend = self._backend
+        if backend is not None and hasattr(backend, "cancel"):
+            try:
+                backend.cancel()
+            except Exception:
+                pass
 
     def translate(self, text, system_prompt="", wrap_transcript=False, on_partial=None):
         t0 = time.time()

@@ -1,3 +1,5 @@
+import threading
+import time
 import types
 
 import pytest
@@ -43,6 +45,45 @@ class _FakeTranslator:
 
     def unload(self):
         self.log.append(("unload",))
+
+
+class NativeError(RuntimeError):
+    """Local stand-in for sokuji_native.NativeError -- mirrors
+    test_tts_backend.py's own NativeError stand-in. The real Translator.chat()/
+    complete() raise this (via _raise()) when on_token returns False (SK_ERR_
+    CANCELLED) -- see native/python/sokuji_native/__init__.py's Translator.
+    _make_cb docstring."""
+
+
+class _SlowFakeTranslator:
+    """chat()/complete() block until released, then call on_token exactly once
+    -- same shape as test_tts_backend.py's _GatedTtsModel/slow-oneshot fakes.
+    Lets a test deterministically land unload()/cancel()'s cancel Event BEFORE
+    the native call would otherwise produce its next (here: only) token, mirroring
+    the real binding's per-token on_token(piece) is not False contract."""
+
+    def __init__(self, log):
+        self.log = log
+        self.started = threading.Event()
+        self.release = threading.Event()
+        self.unloaded = False
+
+    def _run(self, kind, payload, on_token):
+        self.log.append((kind, payload))
+        self.started.set()
+        self.release.wait(timeout=5)
+        if on_token is not None and on_token("piece") is False:
+            raise NativeError("sk_translate_chat: cancelled")
+        return "full text"
+
+    def chat(self, messages, max_tokens=512, assistant_prefill=None, on_token=None):
+        return self._run("chat", messages, on_token)
+
+    def complete(self, prompt, max_tokens=512, on_token=None):
+        return self._run("complete", prompt, on_token)
+
+    def unload(self):
+        self.unloaded = True
 
 
 @pytest.fixture
@@ -279,3 +320,110 @@ def test_registry_has_native_translate_and_drops_llamacpp():
     assert backends.make_backend("native_translate") is not None
     with pytest.raises(backends.BackendLoadError):
         backends.make_backend("llamacpp_qwen")
+
+
+# ── Task 5: translate teardown UAF fix + disconnect-triggered cancel ─────────
+# (ground truth .superpowers/slice5-surface-inventory.md §10(b); ruling R20 --
+# no new wire message, cancel is reached only via cancel()/unload()).
+
+def _load_slow(native_env, monkeypatch):
+    """Swap the native_env fixture's translate_load() to hand back a
+    _SlowFakeTranslator instead of the default _FakeTranslator, then load the
+    real NativeTranslateBackend against it -- exercises the actual worker-
+    registry/cancel wiring end to end, not a mock."""
+    gguf, log = native_env
+    from sokuji_sidecar import native
+    mod = types.SimpleNamespace(translate_load=lambda path, device=None, n_ctx=0:
+                                (log.append(("load", path)) or _SlowFakeTranslator(log)))
+    monkeypatch.setattr(native, "module", lambda: mod)
+    b = backends.make_backend("native_translate")
+    b.load(gguf, "cpu", "q8_0", config=PlanConfig(prompt_family="qwen"))
+    return b, log
+
+
+def test_unload_during_inflight_translate_joins_before_model_unload(native_env, monkeypatch):
+    """I3 twin: unload() used to free the native handle unconditionally, even
+    while an executor thread was still inside self._t.chat(). translate() is
+    now tracked in the same shape of worker registry tts_backend.py uses, so
+    unload() must cancel AND join the in-flight call before touching the model
+    at all -- otherwise sk_translate_unload could block on (or race) the native
+    mutex a chat() call in flight is holding."""
+    b, _log = _load_slow(native_env, monkeypatch)
+    translator = b._t
+
+    order = []
+    orig_unload = translator.unload
+
+    def tracked_unload():
+        order.append("model.unload")
+        orig_unload()
+
+    translator.unload = tracked_unload
+
+    result = {}
+
+    def run_translate():
+        result["out"] = b.translate("hello", "", "en", "fr", False)
+
+    gen_thread = threading.Thread(target=run_translate)
+    gen_thread.start()
+    assert translator.started.wait(timeout=5)   # translate() is now inside chat()
+
+    unload_thread = threading.Thread(target=b.unload)
+    unload_thread.start()
+    time.sleep(0.1)                              # unload() should be blocked joining
+    assert unload_thread.is_alive()               # proves unload() actually waits
+    assert order == []                            # model.unload() not reached yet
+
+    translator.release.set()                      # let chat() proceed; on_token sees cancel -> False
+    unload_thread.join(timeout=5)
+    gen_thread.join(timeout=5)
+
+    assert not unload_thread.is_alive()
+    assert order == ["model.unload"]               # joined BEFORE calling model.unload
+    assert b.is_loaded is False
+    text, n = result["out"]
+    assert text == "" and n == 0                   # cancelled before any token was collected
+
+
+def test_on_token_cancels_via_backend_cancel_and_returns_partial(native_env, monkeypatch):
+    """cancel() (used by TranslateEngine.cancel_active()) sets the most
+    recently registered worker's event -- on_token observes it and returns
+    False, the fake raises exactly as the real binding would on SK_ERR_
+    CANCELLED, and translate() returns the (here: empty) partial instead of
+    propagating."""
+    b, _log = _load_slow(native_env, monkeypatch)
+    translator = b._t
+
+    result = {}
+    gen_thread = threading.Thread(
+        target=lambda: result.update(out=b.translate("hello", "", "en", "fr", False)))
+    gen_thread.start()
+    assert translator.started.wait(timeout=5)
+
+    b.cancel()                    # signal cancellation while still gated before the token
+    translator.release.set()      # let chat() reach on_token, which now sees cancelled=True
+    gen_thread.join(timeout=5)
+
+    assert result["out"] == ("", 0)
+    assert b._workers == []       # self-cleaned on the cancelled path too
+
+
+def test_cancel_without_active_translate_is_a_noop(native_env):
+    gguf, _log = native_env
+    b = backends.make_backend("native_translate")
+    b.load(gguf, "cpu", "q8_0", config=PlanConfig(prompt_family="qwen"))
+    b.cancel()   # must not raise
+    assert b._workers == []
+
+
+def test_happy_path_translate_unaffected_and_self_cleans_registry(native_env):
+    """Regression: the worker-registry plumbing must be invisible on the
+    ordinary (non-cancelled) path -- same output as before, and the registry
+    is empty again once the call returns."""
+    gguf, log = native_env
+    b = backends.make_backend("native_translate")
+    b.load(gguf, "cpu", "q8_0", config=PlanConfig(prompt_family="qwen"))
+    text, n = b.translate("hello", "", "en", "fr", False)
+    assert text == "Bonjour." and n == 3
+    assert b._workers == []

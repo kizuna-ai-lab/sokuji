@@ -1,4 +1,4 @@
-import asyncio, json, os
+import asyncio, json, os, threading, time
 import pytest
 from unittest.mock import MagicMock, patch
 from sokuji_sidecar import server, translate_engine
@@ -333,3 +333,138 @@ def test_translate_init_reserve_is_ledger_aware(monkeypatch):
         state, {"model": "qwen2.5-0.5b", "asrModel": "a", "ttsModel": "t"}, None, None))
     assert seen["reserve"] == 4 << 30             # tts est only; cpu-loaded asr = 0
     accel.ledger_reset()
+
+
+# ── Task 5: translate teardown UAF fix + disconnect-triggered cancel ─────────
+# (ground truth .superpowers/slice5-surface-inventory.md §10(b); ruling R20 --
+# no new wire message). Mirrors tts_engine.py's own CQ-4/I3 test shapes.
+
+def test_cancel_active_reaches_backend_cancel():
+    eng = translate_engine.TranslateEngine()
+    eng._backend = MagicMock()
+    eng.cancel_active()
+    eng._backend.cancel.assert_called_once()
+
+
+def test_cancel_active_is_noop_when_nothing_loaded():
+    eng = translate_engine.TranslateEngine()
+    eng.cancel_active()   # must not raise -- self._backend is None
+
+
+def test_teardown_cancels_active_generation_before_closing():
+    """The translate-side twin of tts_engine.py's own CQ-4 test
+    (test_teardown_cancels_active_generation_before_closing): _translate_teardown
+    must call eng.cancel_active() BEFORE eng.close(), so an in-flight generation
+    is signalled to stop as early as possible rather than relying solely on
+    close()->backend.unload()'s own (also correct, but later) cancel+join."""
+    order = []
+
+    class FakeEng:
+        def cancel_active(self):
+            order.append("cancel_active")
+
+        def close(self):
+            order.append("close")
+
+    state = {"translate_engine": FakeEng()}
+    translate_engine._translate_teardown(state)
+    assert order == ["cancel_active", "close"]
+
+
+def test_teardown_close_still_runs_if_cancel_active_raises():
+    order = []
+
+    class FakeEng:
+        def cancel_active(self):
+            raise RuntimeError("boom")
+
+        def close(self):
+            order.append("close")
+
+    state = {"translate_engine": FakeEng()}
+    translate_engine._translate_teardown(state)   # must not raise
+    assert order == ["close"]
+
+
+def test_teardown_mid_flight_joins_worker_and_discards_cancelled_output(monkeypatch, tmp_path):
+    """End-to-end (ground truth §10(b)): TranslateEngine wired to the REAL
+    NativeTranslateBackend against a slow fake translator -- proves the full
+    disconnect path, not just the backend or the engine in isolation. A
+    teardown firing WHILE this connection's own translate() is still inside the
+    executor (self._t.chat()) must not free the native handle out from under
+    it (the exact use-after-free class Task-I3 fixed for TTS's one-shot
+    generate()), and the cancelled call must come back as a harmless empty
+    result rather than a raised exception that could otherwise surface as an
+    error bubble to a connection that is very possibly already gone."""
+    import types
+    from sokuji_sidecar import backends, native
+    from sokuji_sidecar.planner import PlanConfig
+
+    gguf = tmp_path / "w.gguf"
+    gguf.write_bytes(b"GGUF")
+
+    class _SlowTranslator:
+        def __init__(self):
+            self.started = threading.Event()
+            self.release = threading.Event()
+            self.unloaded = False
+
+        def chat(self, messages, max_tokens=512, assistant_prefill=None, on_token=None):
+            self.started.set()
+            self.release.wait(timeout=5)
+            if on_token is not None and on_token("piece") is False:
+                raise RuntimeError("sk_translate_chat: cancelled")
+            return "full text"
+
+        def complete(self, prompt, max_tokens=512, on_token=None):
+            return self.chat([], on_token=on_token)
+
+        def unload(self):
+            self.unloaded = True
+
+    translator = _SlowTranslator()
+    mod = types.SimpleNamespace(translate_load=lambda path, device=None, n_ctx=0: translator)
+    monkeypatch.setattr(native, "module", lambda: mod)
+    monkeypatch.setattr(native, "device_for", lambda kind: f"dev:{kind}")
+
+    backend = backends.make_backend("native_translate")
+    backend.load(str(gguf), "cpu", "q8_0", config=PlanConfig(prompt_family="qwen"))
+
+    eng = translate_engine.TranslateEngine()
+    eng._backend = backend
+    eng._src, eng._tgt = "en", "fr"
+
+    order = []
+    orig_unload = translator.unload
+
+    def tracked_unload():
+        order.append("model.unload")
+        orig_unload()
+
+    translator.unload = tracked_unload
+
+    result = {}
+
+    def run_translate():
+        result["out"] = eng.translate("hello")
+
+    gen_thread = threading.Thread(target=run_translate)
+    gen_thread.start()
+    assert translator.started.wait(timeout=5)     # eng.translate() is now inside chat()
+
+    state = {"translate_engine": eng}
+    teardown_thread = threading.Thread(target=lambda: translate_engine._translate_teardown(state))
+    teardown_thread.start()
+    time.sleep(0.1)                                 # teardown should be blocked joining
+    assert teardown_thread.is_alive()                # proves close()->unload() actually waits
+    assert order == []                               # model.unload() not reached yet
+
+    translator.release.set()                         # let chat() reach on_token -> cancelled -> False
+    teardown_thread.join(timeout=5)
+    gen_thread.join(timeout=5)
+
+    assert not teardown_thread.is_alive()
+    assert order == ["model.unload"]                 # joined BEFORE freeing the native handle
+    assert backend.is_loaded is False
+    text, _ms = result["out"]
+    assert text == ""                                # cancelled: discarded, not a raised exception

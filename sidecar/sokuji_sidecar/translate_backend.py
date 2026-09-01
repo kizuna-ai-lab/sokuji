@@ -12,6 +12,40 @@ there is no child process, no --no-jinja/--completion transport split, and no
 CTranslate2 Opus-MT pair-baked models (those 13 catalog rows are gone with the
 runtime).
 
+Worker registry (slice-5 task 5; ground truth .superpowers/slice5-surface-
+inventory.md §10(b)) -- a translate() twin of tts_backend.NativeTtsBackend's I3
+fix: unload() used to free the native handle unconditionally, while an executor
+thread could still be inside self._t.chat()/complete() -- the same native
+use-after-free class I3 fixed for TTS's one-shot generate(). translate() now
+registers (threading.current_thread(), threading.Event()) in self._workers on
+entry and deregisters in a finally on exit -- the worker thread IS the executor
+thread translate_engine._h_translate schedules it on, so there is no separate
+"start the worker" step to do this eagerly at, unlike tts_backend's streaming
+generate_stream(). unload() sets every live entry's event then joins every
+thread against ONE shared 10s deadline before touching the model, exactly
+mirroring NativeTtsBackend.unload()'s own docstring.
+
+Unlike TTS's one-shot generate() (I3: event=None, offline generation cannot be
+interrupted mid-run), a translate() IS interruptible mid-run: on_token is called
+once per generated token (native/python/sokuji_native/__init__.py's
+Translator._make_cb documents the contract -- `on_token(piece) is not False`,
+i.e. returning anything but True cancels), so on_token here checks its own
+cancel Event first and returns False once it's set, which the binding turns
+into a clean native-level cancel (SK_ERR_CANCELLED, raised out of chat()/
+complete()) within one token -- no new wire message this slice (ruling R20:
+max_tokens bounds worst-case latency and no client sends a cancel). Ruling
+R20 also decided this is disconnect-triggered only, reached via
+TranslateEngine.cancel_active()/_translate_teardown (translate_engine.py) --
+the translate-side twin of tts_engine._tts_teardown's CQ-4 order (cancel_active()
+BEFORE close()) -- and via unload()'s own cancel+join, never a client message.
+
+A cancellation this backend itself triggered is not a generation failure: the
+raised exception is caught and the call returns whatever text was collected
+before the cancel landed (empty if none) instead of propagating -- the caller
+(translate_engine.py) is very possibly racing a connection that is already
+gone and has no use for a full reply at that point (see _h_translate's own
+comments on where replies go).
+
   QwenStrategy    — Qwen 2.5 / 3 / 3.5 chat template. Qwen3 and Qwen3.5 both default
                     to thinking mode on; disabled via an empty <think> block forced as
                     the assistant's prefill (config.disable_thinking) — the native
@@ -29,6 +63,8 @@ runtime).
 """
 import os
 import re
+import threading
+import time
 
 from . import native
 from .backends import BackendLoadError, register_backend
@@ -150,6 +186,14 @@ class NativeTranslateBackend:
         self._t = None
         self._config = PlanConfig()
         self._strategy = STRATEGIES["qwen"]
+        # Every (threading.Thread, threading.Event) pair for a translate() call
+        # that hasn't finished self-cleanup yet, oldest first -- see the module
+        # docstring's "Worker registry" section. Guarded by _workers_lock since
+        # translate() (append/remove, from whatever executor thread is running
+        # it), cancel() (read the tail), and unload() (snapshot + clear) can all
+        # run concurrently on different threads.
+        self._workers: list[tuple[threading.Thread, threading.Event]] = []
+        self._workers_lock = threading.Lock()
 
     def load(self, model_ref: str, device: str, compute_type: str, config=None) -> None:
         self.unload()
@@ -192,8 +236,15 @@ class NativeTranslateBackend:
         kind, payload, prefill = self._strategy.build(text, system_prompt, src, tgt, wrap, self._config)
         n = [0]
         acc = []
+        # Disconnect-triggered cancel (module docstring's "Worker registry"
+        # section): set by cancel()/unload() from another thread. Checked FIRST,
+        # before touching acc/on_partial, so a cancelled call never emits one more
+        # partial after the cancel was requested.
+        cancelled = threading.Event()
 
         def on_token(piece):
+            if cancelled.is_set():
+                return False
             acc.append(piece)
             n[0] += 1
             if on_partial is not None:
@@ -207,28 +258,91 @@ class NativeTranslateBackend:
                     pass
             return True
 
-        # A generation failure here is not a load failure: it is not wrapped into
-        # BackendLoadError — it propagates to the engine's caller, mirroring the
-        # old backends' _send()/translate() raising straight through.
-        if kind == "chat":
+        # Register THIS call in the worker registry BEFORE reaching the native
+        # layer (module docstring): the worker thread running translate() IS the
+        # executor thread translate_engine._h_translate schedules it on, so
+        # register-on-entry/deregister-on-exit lives right here, mirroring
+        # tts_backend.NativeTtsBackend.generate()'s I3 registration.
+        entry = (threading.current_thread(), cancelled)
+        with self._workers_lock:
+            self._workers.append(entry)
+        try:
+            # A generation failure here is not a load failure: it is not wrapped
+            # into BackendLoadError — it propagates to the engine's caller,
+            # mirroring the old backends' _send()/translate() raising straight
+            # through. A CANCELLED generation (our own doing, via unload()/
+            # cancel()) is the one exception: caught below and turned into a
+            # harmless partial/empty result instead of propagating.
             try:
-                full = self._t.chat(payload, max_tokens=self._strategy.max_tokens,
-                                    assistant_prefill=prefill, on_token=on_token)
-            except Exception as e:
-                if "chat template not supported" not in str(e):
-                    raise
-                # sk_translate.cpp validates the chat template BEFORE decoding the
-                # first token, so this fallback always fires token-free — no
-                # already-streamed partial can ever regress when acc/n reset here.
-                acc.clear()
-                n[0] = 0
-                prompt = _chatml_fallback(payload, prefill)
-                full = self._t.complete(prompt, max_tokens=self._strategy.max_tokens, on_token=on_token)
-        else:
-            full = self._t.complete(payload, max_tokens=self._strategy.max_tokens, on_token=on_token)
-        return _clean_output(full), n[0]
+                if kind == "chat":
+                    try:
+                        full = self._t.chat(payload, max_tokens=self._strategy.max_tokens,
+                                            assistant_prefill=prefill, on_token=on_token)
+                    except Exception as e:
+                        if cancelled.is_set():
+                            raise
+                        if "chat template not supported" not in str(e):
+                            raise
+                        # sk_translate.cpp validates the chat template BEFORE
+                        # decoding the first token, so this fallback always fires
+                        # token-free — no already-streamed partial can ever
+                        # regress when acc/n reset here.
+                        acc.clear()
+                        n[0] = 0
+                        prompt = _chatml_fallback(payload, prefill)
+                        full = self._t.complete(prompt, max_tokens=self._strategy.max_tokens,
+                                                on_token=on_token)
+                else:
+                    full = self._t.complete(payload, max_tokens=self._strategy.max_tokens,
+                                            on_token=on_token)
+            except Exception:
+                if cancelled.is_set():
+                    # Cancelled by cancel()/unload() (disconnect-triggered
+                    # teardown — see the module docstring): the native call
+                    # raised instead of returning, but this is not a generation
+                    # failure. Return whatever was collected before the cancel
+                    # landed (empty if none yet).
+                    return _clean_output("".join(acc)), n[0]
+                raise
+            return _clean_output(full), n[0]
+        finally:
+            with self._workers_lock:
+                if entry in self._workers:
+                    self._workers.remove(entry)
+
+    def cancel(self) -> None:
+        """Signal the MOST RECENTLY STARTED translate() call to stop at its next
+        token boundary (see the module docstring). Used by
+        TranslateEngine.cancel_active(), itself called by _translate_teardown
+        BEFORE eng.close() — signalling as early as possible, ahead of
+        unload()'s own (also correct, but later) cancel+join. A harmless no-op
+        when nothing is in flight."""
+        with self._workers_lock:
+            if self._workers:
+                self._workers[-1][1].set()
 
     def unload(self) -> None:
+        # I3 twin (tts_backend.NativeTtsBackend.unload()'s own docstring has the
+        # full defect trace): cancel and JOIN every outstanding translate()
+        # worker BEFORE touching the model at all — sk_translate_unload takes
+        # the same per-handle mutex a chat()/complete() call in flight is
+        # holding, so unloading before every worker has actually stopped would
+        # either block this call on that mutex or — worse — free the handle out
+        # from under a still-live chat()/complete() call (use-after-free; see
+        # .superpowers/slice5-surface-inventory.md §10(b)).
+        #
+        # Snapshot-then-clear under the lock so a concurrent translate() can't
+        # observe a half-cleared registry; cancel every entry, then join every
+        # thread against ONE shared deadline (not N * 10s) so unload()'s total
+        # worst case doesn't grow with the number of outstanding workers.
+        with self._workers_lock:
+            workers = list(self._workers)
+            self._workers.clear()
+        for _thread, ev in workers:
+            ev.set()
+        deadline = time.monotonic() + 10.0
+        for thread, _ev in workers:
+            thread.join(timeout=max(0.0, deadline - time.monotonic()))
         t, self._t = self._t, None
         if t is not None:
             try:
