@@ -64,6 +64,8 @@ export interface SonioxSttConfig {
   endpointSensitivity?: number;
   /** endpoint_latency_adjustment_level, 0..3. 0/undefined = omit (server default). v5-only. */
   endpointLatencyAdjustmentLevel?: number;
+  /** max_endpoint_delay_ms, 500..3000. 2000/undefined = omit (server default). */
+  endpointMaxDelayMs?: number;
   /** Label tokens with a speaker id ("1", "2", …). Enabled only for the
    *  Both shared session; falsy = key omitted (wire unchanged). */
   enableSpeakerDiarization?: boolean;
@@ -124,12 +126,17 @@ export class SonioxSttStream {
           sample_rate: config.sampleRate,
           num_channels: 1,
           enable_endpoint_detection: true,
-          max_endpoint_delay_ms: 500,
           // 0 is the server default for both tuning knobs, so falsy checks
           // double as the "omit at default" rule (negative sensitivity is truthy).
           ...(config.endpointSensitivity ? { endpoint_sensitivity: config.endpointSensitivity } : {}),
           ...(config.endpointLatencyAdjustmentLevel
             ? { endpoint_latency_adjustment_level: config.endpointLatencyAdjustmentLevel }
+            : {}),
+          // Max delay's server default is 2000, not 0, so its omit-at-default
+          // check is an explicit comparison (issue #464: a hardcoded 500 here
+          // used to cap how long the endpoint model could wait at a pause).
+          ...(config.endpointMaxDelayMs && config.endpointMaxDelayMs !== 2000
+            ? { max_endpoint_delay_ms: config.endpointMaxDelayMs }
             : {}),
           ...(config.context ? { context: config.context } : {}),
           ...(config.enableSpeakerDiarization ? { enable_speaker_diarization: true } : {}),

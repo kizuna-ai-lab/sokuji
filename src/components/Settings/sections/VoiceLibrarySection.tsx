@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 
 import { useTranslation } from 'react-i18next';
 import { Mic, Play, Plus, RefreshCw, Square, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
+import { supportsBaseSelect } from '../../../utils/supportsBaseSelect';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 
 /**
@@ -96,6 +97,12 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   isSessionActive = false,
 }) => {
   const { t } = useTranslation();
+
+  // Whether the dropdown's optgroups get a <legend> label — see the dropdown
+  // branch below. Read once, like ProviderSection does: the answer is a
+  // property of the engine, so re-reading it per render only risks the markup
+  // changing shape mid-life.
+  const [richSelect] = useState(() => supportsBaseSelect());
 
   // ---- local playback (listen back to a voice's sample) -------------------
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -620,7 +627,15 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
             onChange={(e) => onSelect(e.target.value)}
             disabled={isSessionActive}
           >
+            {/* The `label` attribute names the group and is what a classic
+                popup paints; the <legend> twin is what CSS can reach under
+                appearance: base-select, where the UA paints the attribute in
+                black — invisible on our dark picker. Chromium renders the
+                legend INSTEAD of the attribute, so the two never double up.
+                Gated: without base-select the legend has no renderer, and
+                React's validateDOMNesting rejects it inside <optgroup>. */}
             <optgroup label={t('voiceLibrary.presets', 'Presets')}>
+              {richSelect && <legend>{t('voiceLibrary.presets', 'Presets')}</legend>}
               {builtins.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
@@ -629,6 +644,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
             </optgroup>
             {customs.length > 0 && (
               <optgroup label={t('voiceLibrary.myVoices', 'My Voices')}>
+                {richSelect && <legend>{t('voiceLibrary.myVoices', 'My Voices')}</legend>}
                 {customs.map((v) => (
                   <option key={v.id} value={v.id} disabled={v.disabled}>
                     {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}

@@ -73,6 +73,7 @@ describe('SonioxProviderConfig.buildSessionConfig', () => {
     expect(cfg.context).toBeUndefined();
     expect(cfg.endpointSensitivity).toBe(0);
     expect(cfg.endpointLatencyAdjustmentLevel).toBe(0);
+    expect(cfg.endpointMaxDelayMs).toBe(2000);
     expect(cfg.ttsSpeed).toBe(1.0);
   });
 
@@ -94,26 +95,37 @@ describe('SonioxProviderConfig.buildSessionConfig', () => {
   });
 
   it('clamps numbers to their documented ranges', () => {
-    const cfg = build({ endpointSensitivity: 5, endpointLatencyAdjustmentLevel: 7, ttsSpeed: 2.0 });
+    const cfg = build({
+      endpointSensitivity: 5, endpointLatencyAdjustmentLevel: 7,
+      endpointMaxDelayMs: 9999, ttsSpeed: 2.0,
+    });
     expect(cfg.endpointSensitivity).toBe(1);
     expect(cfg.endpointLatencyAdjustmentLevel).toBe(3);
+    expect(cfg.endpointMaxDelayMs).toBe(3000);
     expect(cfg.ttsSpeed).toBe(1.3);
-    const lo = build({ endpointSensitivity: -5, endpointLatencyAdjustmentLevel: -2, ttsSpeed: 0.1 });
+    const lo = build({
+      endpointSensitivity: -5, endpointLatencyAdjustmentLevel: -2,
+      endpointMaxDelayMs: 100, ttsSpeed: 0.1,
+    });
     expect(lo.endpointSensitivity).toBe(-1);
     expect(lo.endpointLatencyAdjustmentLevel).toBe(0);
+    expect(lo.endpointMaxDelayMs).toBe(500);
     expect(lo.ttsSpeed).toBe(0.7);
   });
 
   it('rounds fractional latency levels and falls back to defaults on non-finite input', () => {
     expect(build({ endpointLatencyAdjustmentLevel: 1.6 }).endpointLatencyAdjustmentLevel).toBe(2);
+    expect(build({ endpointMaxDelayMs: 1234.6 }).endpointMaxDelayMs).toBe(1235);
     for (const nonFinite of [NaN, Infinity, -Infinity]) {
       const bad = build({
         endpointSensitivity: nonFinite as unknown as number,
         endpointLatencyAdjustmentLevel: nonFinite as unknown as number,
+        endpointMaxDelayMs: nonFinite as unknown as number,
         ttsSpeed: nonFinite as unknown as number,
       });
       expect(bad.endpointSensitivity).toBe(0);
       expect(bad.endpointLatencyAdjustmentLevel).toBe(0);
+      expect(bad.endpointMaxDelayMs).toBe(2000);
       expect(bad.ttsSpeed).toBe(1.0);
     }
   });
@@ -152,12 +164,14 @@ describe('SonioxProviderConfig.buildSessionConfig', () => {
     delete legacy.vocabularyTranslations;
     delete legacy.endpointSensitivity;
     delete legacy.endpointLatencyAdjustmentLevel;
+    delete legacy.endpointMaxDelayMs;
     delete legacy.ttsSpeed;
     delete legacy.contextText;
     const cfg = descriptor.buildSessionConfig(legacy, '') as SonioxSessionConfig;
     expect(cfg.context).toBeUndefined();
     expect(cfg.endpointSensitivity).toBe(0);
     expect(cfg.endpointLatencyAdjustmentLevel).toBe(0);
+    expect(cfg.endpointMaxDelayMs).toBe(2000);
     expect(cfg.ttsSpeed).toBe(1.0);
   });
 

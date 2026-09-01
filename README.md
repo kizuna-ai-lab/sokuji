@@ -58,7 +58,7 @@ graph LR
 | | |
 |---|---|
 | **Providers** | 9 — OpenAI, Gemini, Palabra.ai, Kizuna AI, Doubao AST 2.0, Soniox, Zoom AI, OpenAI Compatible, Local Inference |
-| **Local Models** | 48 ASR models, 55+ translation pairs, 136 TTS voices |
+| **Local Models** | 44 ASR models, 75 translation models, 137 TTS models |
 | **Languages** | 99+ (speech recognition) · 55+ (translation) · 53 (text-to-speech) |
 | **Platforms** | Linux · Windows · macOS · Chrome · Edge |
 | **Privacy** | Local Inference = 100% on-device, no API key, no internet |
@@ -149,9 +149,9 @@ audio and microphone together, and everyone follows along.
 
 Run everything on your device — no API keys, no internet, no expensive GPU, complete privacy. Powered by WASM and WebGPU, Sokuji runs efficiently on any modern browser using your existing CPU and integrated graphics.
 
-- **50 ASR models** (32 offline + 10 streaming + 8 WebGPU including Whisper, Cohere Transcribe, Voxtral Mini 4B) covering 99+ languages
-- **55+ translation pairs** via Opus-MT + 5 multilingual LLMs (Qwen 2.5 / 3 / 3.5, GemmaTranslate) with WebGPU
-- **136 TTS voices** across 53 languages (Piper, Piper-Plus, Coqui, Mimic3, Matcha engines)
+- **44 ASR models** (23 offline + 10 streaming + 11 WebGPU including Whisper, Cohere Transcribe, Voxtral, Granite Speech) covering 99+ languages
+- **75 translation models** — 69 Opus-MT language pairs + 6 multilingual LLMs (Qwen 2.5 / 3 / 3.5, Hunyuan-MT 1.5, TranslateGemma) with WebGPU
+- **137 TTS models** across 53 languages (Piper, Piper-Plus, Coqui, Mimic3, Matcha, MMS, VITS, Supertonic engines)
 - One-click model download with IndexedDB caching
 
 ### Cloud Providers
@@ -236,7 +236,7 @@ We welcome contributions! Please read our [Contributing Guidelines](.github/CONT
 - **Cloud APIs**: [OpenAI](https://openai.com), [Google Gemini](https://ai.google.dev), [Volcengine](https://www.volcengine.com)
 - **ASR**: [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx), [OpenAI Whisper](https://github.com/openai/whisper), [SenseVoice](https://github.com/FunAudioLLM/SenseVoice), [Moonshine](https://github.com/usefulsensors/moonshine), [Cohere Transcribe](https://cohere.com), [Voxtral Mini 4B](https://github.com/mistralai)
 - **TTS**: [Piper](https://github.com/rhasspy/piper), [Piper-Plus](https://github.com/ayutaz/piper-plus), [Matcha-TTS](https://github.com/shivammehta25/Matcha-TTS), [Coqui TTS](https://github.com/coqui-ai/TTS), [Mimic 3](https://github.com/MycroftAI/mimic3)
-- **Translation**: [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT), [Qwen](https://github.com/QwenLM/Qwen), [GemmaTranslate](https://github.com/google-research/translate-gemma)
+- **Translation**: [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT), [Qwen](https://github.com/QwenLM/Qwen), [TranslateGemma](https://github.com/google-research/translate-gemma)
 - **Infra**: [Transformers.js](https://github.com/huggingface/transformers.js), [ONNX Runtime](https://github.com/microsoft/onnxruntime), [Electron](https://www.electronjs.org), [React](https://react.dev)
 
 For detailed model licenses, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

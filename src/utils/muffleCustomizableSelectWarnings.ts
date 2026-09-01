@@ -8,8 +8,10 @@
  * Verified against react-dom 19.2.8 (latest stable) and the newest 19.3
  * canary (2026-05-29): the `case "select"` whitelist still ends at
  * option/optgroup/hr/script/template/#text and neither build mentions
- * <selectedcontent> at all. Until React catches up, every render of the
- * provider or variant select logs two alarming-but-false errors.
+ * <selectedcontent> at all. Nor does `case "optgroup"`, which still admits
+ * only option/#text — so the <legend> that labels a group is a third false
+ * positive. Until React catches up, every render of the provider, variant or
+ * voice select logs alarming-but-false errors.
  *
  * The "will cause a hydration error" part of the message does not apply
  * either: this app client-renders through createRoot, so no hydration ever
@@ -25,6 +27,11 @@
 const MUFFLED_PAIRS: Array<[child: string, parent: string]> = [
   ['<button>', '<select>'],
   ['<span>', '<option>'],
+  // <legend> is how a customizable select labels an <optgroup> in a way CSS
+  // can reach (the `label` attribute is UA-painted black and unstylable).
+  // React's `case "optgroup"` still allows only option/#text — read out of
+  // the react-dom this repo pins, 19.2.7.
+  ['<legend>', '<optgroup>'],
 ];
 
 /**

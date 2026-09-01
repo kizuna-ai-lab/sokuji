@@ -3,6 +3,7 @@ const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 const { setupSubtitleHandlers } = require('./subtitle-window.js');
 const { setupCaptionDoubleClick } = require('./window-caption-dblclick.js');
+const { setupCaptionContextMenu } = require('./window-caption-menu.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
@@ -387,6 +388,11 @@ function createWindow() {
   // WS_CAPTION style, and with it the native double-click-to-maximize on the
   // custom title bar. Linux and macOS keep it for free — see the module.
   setupCaptionDoubleClick(mainWindow);
+  // Linux only: right-clicking the drag-region title bar would show GNOME's
+  // window menu, whose "Take Screenshot" wedges mutter's input grab on X11
+  // and freezes the whole session — see the module for the measured details.
+  // An Electron-drawn Minimize/Maximize/Close menu takes its place.
+  setupCaptionContextMenu(mainWindow);
   setupPopoverWindowHandlers(mainWindow);
 
   // Set custom User Agent for the window
@@ -523,7 +529,10 @@ app.whenReady().then(async () => {
   // Create the application menu
   createApplicationMenu();
 
-  // Request microphone permission on macOS before creating window
+  // Request microphone permission on macOS before creating window. Under the
+  // Hardened Runtime this prompt (and the renderer's getUserMedia) is denied
+  // with no dialog at all unless the bundle carries the audio-input
+  // entitlement -- see electron/entitlements.mac.plist (#458).
   if (process.platform === 'darwin') {
     const micStatus = systemPreferences.getMediaAccessStatus('microphone');
     console.log('[Sokuji] [Main] Microphone permission status:', micStatus);

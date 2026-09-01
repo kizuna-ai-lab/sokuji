@@ -2026,7 +2026,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               <span>
                 {t('settings.sonioxEndpointSensitivity', 'Endpoint Sensitivity')}
                 <Tooltip
-                  content={t('settings.sonioxEndpointSensitivityTooltip', 'Higher values end utterances sooner — lower latency but more risk of premature cut-offs. Lower values wait longer before finalizing. 0 is the Soniox default.')}
+                  content={t('settings.sonioxEndpointSensitivityTooltip', 'How readily a pause is judged as the end of an utterance — higher splits on weaker evidence (snappier, more premature cut-offs), lower demands stronger evidence. Time is bounded by the max-pause setting below. 0 is the Soniox default.')}
                   position="top"
                 >
                   <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
@@ -2040,6 +2040,28 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               type="range" min="-1" max="1" step="0.1"
               value={activeSonioxSettings.endpointSensitivity}
               onChange={(e) => updateActiveSonioxSettings({ endpointSensitivity: parseFloat(e.target.value) })}
+              className="slider" disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.sonioxEndpointMaxDelay', 'Max Pause Before Finalizing')}
+                <Tooltip
+                  content={t('settings.sonioxEndpointMaxDelayTooltip', 'A hard ceiling: once speech stops, the utterance closes after at most this long, however the sensitivity judgment leans. Raise it to keep sentences with mid-sentence pauses whole; lower it for faster finalization. 2000 ms is the Soniox default.')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
+              <span className="setting-value">{`${activeSonioxSettings.endpointMaxDelayMs} ms`}</span>
+            </div>
+            <input
+              id="soniox-endpoint-max-delay"
+              aria-label={t('settings.sonioxEndpointMaxDelay', 'Max Pause Before Finalizing')}
+              type="range" min="500" max="3000" step="100"
+              value={activeSonioxSettings.endpointMaxDelayMs}
+              onChange={(e) => updateActiveSonioxSettings({ endpointMaxDelayMs: parseInt(e.target.value, 10) })}
               className="slider" disabled={isSessionActive}
             />
           </div>

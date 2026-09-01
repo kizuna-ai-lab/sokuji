@@ -134,6 +134,7 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
         contextText: '',
         endpointSensitivity: 0,
         endpointLatencyAdjustmentLevel: 0,
+        endpointMaxDelayMs: 2000,
         ttsSpeed: 1.0,
       },
     }));
@@ -164,6 +165,17 @@ describe('ProviderSpecificSettings — Soniox advanced settings wiring (#342)', 
     const el = container.querySelector('#soniox-endpoint-sensitivity') as HTMLInputElement;
     fireEvent.change(el, { target: { value: '0.5' } });
     expect(useSettingsStore.getState().soniox.endpointSensitivity).toBe(0.5);
+  });
+
+  it('writes the max-delay slider (500–3000 range, #464) to soniox.endpointMaxDelayMs as a number', () => {
+    const { container } = mount();
+    const el = container.querySelector('#soniox-endpoint-max-delay') as HTMLInputElement;
+    expect(el).not.toBeNull();
+    expect(el.getAttribute('min')).toBe('500');
+    expect(el.getAttribute('max')).toBe('3000');
+    expect(el.getAttribute('step')).toBe('100');
+    fireEvent.change(el, { target: { value: '3000' } });
+    expect(useSettingsStore.getState().soniox.endpointMaxDelayMs).toBe(3000);
   });
 
   it('writes the latency-level select to soniox.endpointLatencyAdjustmentLevel as a number', () => {

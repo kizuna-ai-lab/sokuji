@@ -918,3 +918,50 @@ describe('GeminiClient — Live Translate silence segmentation', () => {
     expect(itemsOf('assistant')[0].status).toBe('completed');
   });
 });
+
+// ─────────────────────────────────────────────
+describe('GeminiClient — model filtering', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  function stubModelsEndpoint(models: Array<{ name: string; version: string }>) {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ models }),
+    })));
+  }
+
+  it('keeps dialogue and live-translate models but excludes transcribe models', async () => {
+    stubModelsEndpoint([
+      { name: 'models/gemini-2.5-flash-native-audio-preview-09-2025', version: '09-2025' },
+      { name: 'models/gemini-3.5-live-translate-preview', version: '3.5' },
+      // STT-only models: transcribe-live matches the "live" substring but has
+      // no translation or audio output, so a session on it silently breaks.
+      { name: 'models/gemini-3.5-transcribe-live', version: '3.5' },
+      { name: 'models/gemini-3.5-transcribe', version: '3.5' },
+      { name: 'models/gemini-2.5-pro', version: '2.5' },
+    ]);
+
+    const { models } = await GeminiClient.validateApiKeyAndFetchModels('test-key');
+    const ids = models.map(m => m.id);
+
+    expect(ids).toContain('gemini-2.5-flash-native-audio-preview-09-2025');
+    expect(ids).toContain('gemini-3.5-live-translate-preview');
+    expect(ids).not.toContain('gemini-3.5-transcribe-live');
+    expect(ids).not.toContain('gemini-3.5-transcribe');
+  });
+
+  it('does not count transcribe-live as the realtime model that validates a key', async () => {
+    stubModelsEndpoint([
+      { name: 'models/gemini-3.5-transcribe-live', version: '3.5' },
+      { name: 'models/gemini-2.5-pro', version: '2.5' },
+    ]);
+
+    const { validation, models } = await GeminiClient.validateApiKeyAndFetchModels('test-key');
+
+    expect(models).toEqual([]);
+    expect(validation.valid).toBe(false);
+  });
+});
