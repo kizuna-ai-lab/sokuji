@@ -470,6 +470,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       ...(sttContext ? { context: sttContext } : {}),
       endpointSensitivity: cfg.endpointSensitivity,
       endpointLatencyAdjustmentLevel: cfg.endpointLatencyAdjustmentLevel,
+      endpointMaxDelayMs: cfg.endpointMaxDelayMs,
       // Inert on the wire — Soniox attributes usage to the reference bound to
       // the KEY (probed 2026-08-11). Kept as a harmless hedge; nothing relies on it.
       clientReferenceId: this.credentials.clientReferenceId,

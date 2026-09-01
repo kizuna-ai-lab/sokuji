@@ -59,11 +59,13 @@ describe('SonioxSttStream', () => {
     expect(first).toMatchObject({
       api_key: 'k', model: 'stt-rt-v5',
       audio_format: 'pcm_s16le', sample_rate: 24000, num_channels: 1,
-      enable_endpoint_detection: true, max_endpoint_delay_ms: 500,
+      enable_endpoint_detection: true,
       enable_language_identification: true,
       language_hints: ['zh'],
       translation: { type: 'one_way', target_language: 'en' },
     });
+    // Unset max delay defers to the Soniox server default (issue #464).
+    expect('max_endpoint_delay_ms' in first).toBe(false);
   });
 
   it('omits language_hints when not provided and supports two_way', async () => {
@@ -173,6 +175,7 @@ describe('SonioxSttStream', () => {
       },
       endpointSensitivity: -0.5,
       endpointLatencyAdjustmentLevel: 2,
+      endpointMaxDelayMs: 3000,
     });
     const first = JSON.parse(ws.sent[0] as string);
     expect(first.context).toEqual({
@@ -183,6 +186,7 @@ describe('SonioxSttStream', () => {
     expect(first.context.text).toBe('Quarterly sync');
     expect(first.endpoint_sensitivity).toBe(-0.5);
     expect(first.endpoint_latency_adjustment_level).toBe(2);
+    expect(first.max_endpoint_delay_ms).toBe(3000);
   });
 
   it('omits context and endpoint-tuning keys at their defaults (wire unchanged for existing users)', async () => {
@@ -190,11 +194,13 @@ describe('SonioxSttStream', () => {
       ...CONFIG,
       endpointSensitivity: 0,
       endpointLatencyAdjustmentLevel: 0,
+      endpointMaxDelayMs: 2000,
     });
     const first = JSON.parse(ws.sent[0] as string);
     expect('context' in first).toBe(false);
     expect('endpoint_sensitivity' in first).toBe(false);
     expect('endpoint_latency_adjustment_level' in first).toBe(false);
+    expect('max_endpoint_delay_ms' in first).toBe(false);
   });
 
   it('includes enable_speaker_diarization when configured', async () => {
