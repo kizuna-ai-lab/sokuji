@@ -280,7 +280,18 @@ def _quantize(samples):
 
 
 s.init(n_threads=cfg["threads"])
-t = s.tts_load(cfg["model_dir"], cfg["family"])
+
+# The parity gate is a CPU-only comparison against the official CPU-only reference CLI (module
+# docstring). device=None resolves to sk_tts_load's own BackendType::BestAvailable
+# (native/src/sk_tts.cpp), which prefers a GPU backend (Vulkan/Metal) over CPU whenever one is
+# discoverable. 2026-09-02 incident: on a Vulkan-capable GB10 box, pointing this candidate at
+# the vulkan build stage made BestAvailable silently run synthesis on the GPU instead of CPU,
+# diverging from the CPU-only reference and looking like a real regression. Pin CPU explicitly
+# — mirroring native/tests/test_tts.cpp's own `for (...) if (devs[i].kind == SK_DEVICE_CPU)`
+# device pick — so which native_dir this subprocess is pointed at can never change which
+# backend actually runs the comparison.
+cpu_device = next(d for d in s.devices() if d.kind == "cpu")
+t = s.tts_load(cfg["model_dir"], cfg["family"], device=cpu_device)
 chunks = []
 try:
     if cfg.get("preset"):
