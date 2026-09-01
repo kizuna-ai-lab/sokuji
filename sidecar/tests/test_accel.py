@@ -470,6 +470,10 @@ def test_models_catalog_kind_defaults_to_asr(monkeypatch):
 
 
 def test_new_translate_backends_installed_and_resolvable():
+    # Genuinely needs the sokuji-native wheel: without it accel._installed()
+    # never reports native_translate on any host (slice 5 CI job runs the
+    # suite wheel-less, see test_runtime_gate.py).
+    pytest.importorskip("sokuji_native")
     # Force a REAL probe: an earlier test in this module may have left the
     # module-global probe() cache pointing at a monkeypatched fake Machine
     # (probe(force=True) with fake detectors is a lasting side effect, not
@@ -501,6 +505,9 @@ def test_omnivoice_backend_installed_and_resolvable():
     accel._installed() renders in the catalog but NoUsablePlan everywhere.
     Every TTS card (not just omnivoice) now shares the one native_tts
     backend, so this doubles as the general native_tts-resolvability check."""
+    # Genuinely needs the sokuji-native wheel: see
+    # test_new_translate_backends_installed_and_resolvable.
+    pytest.importorskip("sokuji_native")
     from sokuji_sidecar import planner
 
     installed = accel._installed()          # REAL probe of this host's venv
@@ -587,6 +594,9 @@ def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
 
 
 def test_supertonic_installed_and_resolvable():
+    # Genuinely needs the sokuji-native wheel: see
+    # test_new_translate_backends_installed_and_resolvable.
+    pytest.importorskip("sokuji_native")
     # Force a REAL probe (see test_new_translate_backends_installed_and_resolvable
     # for why this module-global cache needs a fresh read here).
     accel.probe(force=True)
@@ -598,6 +608,9 @@ def test_supertonic_installed_and_resolvable():
 
 
 def test_qwen3_backend_installed_and_resolvable():
+    # Genuinely needs the sokuji-native wheel: see
+    # test_new_translate_backends_installed_and_resolvable.
+    pytest.importorskip("sokuji_native")
     accel.probe(force=True)
     assert "native_tts" in accel._installed()
     plans = accel.resolve_tts("qwen3-tts-0.6b", override="cpu")
@@ -605,6 +618,9 @@ def test_qwen3_backend_installed_and_resolvable():
 
 
 def test_pocket_onnx_installed_and_resolvable():
+    # Genuinely needs the sokuji-native wheel: see
+    # test_new_translate_backends_installed_and_resolvable.
+    pytest.importorskip("sokuji_native")
     # Force a REAL probe: the characterization fixtures below hand-author their
     # own `installed` sets, so they would stay green even if accel._installed()
     # itself gated native_tts off — which would make resolve_tts raise

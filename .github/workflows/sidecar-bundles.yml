@@ -1,6 +1,9 @@
 # .github/workflows/sidecar-bundles.yml
 # Build the self-contained sidecar bundles per SKU (spec D10 + the distribution
-# spec). Two lanes (spec S11):
+# spec). Five platform SKUs (spec §7 rename — no more GPU-vendor SKU names;
+# Vulkan/Metal cover every vendor uniformly, mirroring native-build.yml's
+# runner choices): linux-x64, linux-arm64, win-x64, mac-arm64, mac-x64.
+# Two lanes (spec S11):
 #   - workflow_dispatch: dry run — Actions artifacts only (size measurement, smoke).
 #   - sidecar-vX.Y.Z tag push: build all SKUs and publish a PRERELEASE GitHub
 #     Release with the archives + merged manifest.json. Always prerelease:
@@ -23,8 +26,8 @@ on:
     tags: ['sidecar-v*']
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
+  build-linux-x64:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -38,19 +41,24 @@ jobs:
       - uses: actions/setup-python@v6
         with: { python-version: '3.12' }
       - run: python -m pip install zstandard
-      - name: Build linux-nvidia bundle
+      - name: Build linux-x64 bundle
         env:
           VERSION: ${{ inputs.version }}
           # Authenticates the python-build-standalone release lookup: hosted
           # runners share egress IPs whose anonymous API quota is exhausted.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python scripts/build-sidecar-bundle.py --sku linux-nvidia --version "$VERSION" --archive --out out/bundles
+        run: python scripts/build-sidecar-bundle.py --sku linux-x64 --version "$VERSION" --archive --out out/bundles
+      - name: Bundle size
+        shell: bash
+        run: |
+          ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
+          cat out/bundles/sidecar-linux-x64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v6
         with:
-          name: sidecar-linux-nvidia
-          path: out/bundles/sidecar-linux-nvidia-v*
+          name: sidecar-linux-x64
+          path: out/bundles/sidecar-linux-x64-v*
 
-  build-linux-arm:
+  build-linux-arm64:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v5
@@ -70,6 +78,11 @@ jobs:
           VERSION: ${{ inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/build-sidecar-bundle.py --sku linux-arm64 --version "$VERSION" --archive --out out/bundles
+      - name: Bundle size
+        shell: bash
+        run: |
+          ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
+          cat out/bundles/sidecar-linux-arm64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Boot smoke the packed bundle
         # This runner IS the target arch (unlike the cross-hosted x64 lanes), so
         # unpack the archive we just built and boot the bundled interpreter to
@@ -104,11 +117,8 @@ jobs:
           name: sidecar-linux-arm64
           path: out/bundles/sidecar-linux-arm64-v*
 
-  build-windows:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        sku: [win-nvidia, win-directml]
+  build-win-x64:
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v5
         with:
@@ -123,17 +133,22 @@ jobs:
       - uses: actions/setup-python@v6
         with: { python-version: '3.12' }
       - run: python -m pip install zstandard
-      - name: Build ${{ matrix.sku }} bundle
+      - name: Build win-x64 bundle
         env:
           VERSION: ${{ inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python scripts/build-sidecar-bundle.py --sku ${{ matrix.sku }} --version "$env:VERSION" --archive --out out/bundles
+        run: python scripts/build-sidecar-bundle.py --sku win-x64 --version "$env:VERSION" --archive --out out/bundles
+      - name: Bundle size
+        shell: bash
+        run: |
+          ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
+          cat out/bundles/sidecar-win-x64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v6
         with:
-          name: sidecar-${{ matrix.sku }}
-          path: out/bundles/sidecar-${{ matrix.sku }}-v*
+          name: sidecar-win-x64
+          path: out/bundles/sidecar-win-x64-v*
 
-  build-mac:
+  build-mac-arm64:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v5
@@ -148,19 +163,54 @@ jobs:
       - uses: actions/setup-python@v6
         with: { python-version: '3.12' }
       - run: python -m pip install zstandard
-      - name: Build mac bundle
+      - name: Build mac-arm64 bundle
         env:
           VERSION: ${{ inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python scripts/build-sidecar-bundle.py --sku mac --version "$VERSION" --archive --out out/bundles
+        run: python scripts/build-sidecar-bundle.py --sku mac-arm64 --version "$VERSION" --archive --out out/bundles
+      - name: Bundle size
+        shell: bash
+        run: |
+          ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
+          cat out/bundles/sidecar-mac-arm64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v6
         with:
-          name: sidecar-mac
-          path: out/bundles/sidecar-mac-v*
+          name: sidecar-mac-arm64
+          path: out/bundles/sidecar-mac-arm64-v*
+
+  build-mac-x64:
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Verify tag matches package.json sidecarVersion
+        if: startsWith(github.ref, 'refs/tags/sidecar-v')
+        run: |
+          WANT="${GITHUB_REF_NAME#sidecar-v}"
+          HAVE="$(node -p "require('./package.json').sidecarVersion")"
+          [ "$WANT" = "$HAVE" ] || { echo "tag $WANT != package.json sidecarVersion $HAVE"; exit 1; }
+      - uses: actions/setup-python@v6
+        with: { python-version: '3.12' }
+      - run: python -m pip install zstandard
+      - name: Build mac-x64 bundle
+        env:
+          VERSION: ${{ inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/build-sidecar-bundle.py --sku mac-x64 --version "$VERSION" --archive --out out/bundles
+      - name: Bundle size
+        shell: bash
+        run: |
+          ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
+          cat out/bundles/sidecar-mac-x64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: sidecar-mac-x64
+          path: out/bundles/sidecar-mac-x64-v*
 
   release:
     if: startsWith(github.ref, 'refs/tags/sidecar-v')
-    needs: [build-linux, build-linux-arm, build-windows, build-mac]
+    needs: [build-linux-x64, build-linux-arm64, build-win-x64, build-mac-arm64, build-mac-x64]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -174,6 +224,10 @@ jobs:
           merge-multiple: true
       - name: Merge per-SKU manifest fragments
         run: python scripts/build-sidecar-bundle.py --merge-fragments out/bundles/sidecar-*.json --merged-out out/bundles/manifest.json
+      - name: Bundle sizes summary
+        run: |
+          ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
+          cat out/bundles/manifest.json | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Publish prerelease
         uses: softprops/action-gh-release@v3
         with:

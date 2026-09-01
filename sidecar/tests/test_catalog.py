@@ -1,3 +1,5 @@
+import pytest
+
 from sokuji_sidecar import catalog
 
 
@@ -398,6 +400,10 @@ def test_split_artifact():
 
 
 def test_all_translate_backends_installed_names():
+    # Genuinely needs the sokuji-native wheel: accel._installed() only ever
+    # reports native_translate when the real probe finds it importable (slice
+    # 5 CI job runs the suite wheel-less, see test_runtime_gate.py).
+    pytest.importorskip("sokuji_native")
     from sokuji_sidecar import accel
     installed = accel._installed()
     assert "native_translate" in installed
