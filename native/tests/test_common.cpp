@@ -1,17 +1,24 @@
 // Slice-1 surface test. Plain asserts on purpose: no test framework to fetch.
 #undef NDEBUG
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include "sokuji_native.h"
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <thread>
 
 static int g_log_calls = 0;
 static bool log_sink(int, const char *, void *) { ++g_log_calls; return true; }
 
 int main(int argc, char **argv) {
     const char *module_dir = argc > 1 ? argv[1] : ".";
+    // argv[2], optional: the n_threads to request from sk_init. Two ctest cases share this
+    // binary — "test_common" (explicit, default 3) and "test_common_threads_policy" (0) —
+    // to exercise both branches of R32's thread policy without needing a second process
+    // inside one already-idempotent sk_init.
+    int requested_threads = argc > 2 ? std::atoi(argv[2]) : 3;
 
     assert(sk_abi_version() == SK_ABI_VERSION);
     assert(std::string(sk_version()) == "0.6.0");
@@ -34,11 +41,23 @@ int main(int argc, char **argv) {
 
     sk_init_options opts = {};
     opts.abi_version = SK_ABI_VERSION;
-    opts.n_threads = 4;
+    opts.n_threads = requested_threads;
     opts.module_dir = module_dir;
     opts.log = log_sink;
     assert(sk_init(&opts) == SK_OK);
     assert(sk_init(&opts) == SK_OK);                                 // idempotent
+
+    // R32: n_threads > 0 is always honored verbatim; n_threads == 0 resolves to
+    // min(hardware_concurrency, the measured knee) — see sk_common.cpp's kThreadKnee.
+    int32_t threads = sk_threads();
+    if (requested_threads > 0) {
+        assert(threads == requested_threads);
+    } else {
+        constexpr int kThreadKnee = 12;   // keep in sync with sk_common.cpp's kThreadKnee
+        unsigned hw = std::thread::hardware_concurrency();
+        int expect = static_cast<int>(hw == 0 ? 1u : std::min(hw, static_cast<unsigned>(kThreadKnee)));
+        assert(threads == expect);
+    }
 
     sk_device devs[8];
     int n = sk_devices(devs, 8);

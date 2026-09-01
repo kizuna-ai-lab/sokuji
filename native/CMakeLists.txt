@@ -118,10 +118,24 @@ add_subdirectory(tests)
 # rules (headers, static libs, cmake configs) in the default component; installing with
 # `cmake --install <build> --prefix <dir> --component sokuji` runs only ours.
 set(SK_ABI_VERSION_NUM 1)
-if(GGML_VULKAN)
-    set(SOKUJI_BACKENDS_JSON "[\"vulkan\", \"cpu\"]")
-elseif(GGML_METAL)
-    set(SOKUJI_BACKENDS_JSON "[\"metal\", \"cpu\"]")
+# Deliberately keyed on SOKUJI_GPU_RESOLVED (a plain variable, set once in
+# ggml_options.cmake and never touched again), NOT on the GGML_VULKAN/GGML_METAL cache
+# variables. Both of the fetched upstreams re-FORCE those two shared cache entries from
+# their own flags after ggml_options.cmake has already set them correctly:
+# transcribe.cpp's CMakeLists.txt does `set(GGML_VULKAN ${TRANSCRIBE_VULKAN} CACHE BOOL ""
+# FORCE)` (TRANSCRIBE_VULKAN is deliberately forced OFF in upstreams.cmake — "backends
+# come from the shared ggml, not from transcribe's own flags" — but the force clobbers the
+# shared variable instead of respecting it), and audio.cpp's CMakeLists.txt does the same
+# from its own ENGINE_ENABLE_VULKAN/ENGINE_ENABLE_METAL. Both happen during
+# FetchContent_MakeAvailable() calls in upstreams.cmake, i.e. AFTER ggml's own
+# CMakeLists.txt already read the correct value and configured its real backend targets,
+# so the actual build is unaffected — only a value read afterwards (like this one used to
+# be) sees the clobbered cache. SOKUJI_LANE, right below, was already keyed off the same
+# SOKUJI_GPU_RESOLVED variable for exactly this reason and has always been correct.
+if(SOKUJI_GPU_RESOLVED STREQUAL "vulkan")
+    set(SOKUJI_BACKENDS_JSON "[\"cpu\", \"vulkan\"]")
+elseif(SOKUJI_GPU_RESOLVED STREQUAL "metal")
+    set(SOKUJI_BACKENDS_JSON "[\"cpu\", \"metal\"]")
 else()
     set(SOKUJI_BACKENDS_JSON "[\"cpu\"]")
 endif()

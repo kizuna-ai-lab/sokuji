@@ -1,8 +1,15 @@
 add_executable(test_common test_common.cpp)
 target_link_libraries(test_common PRIVATE sokuji_native)
-# The module dir is where ggml's backend .so/.dll/.dylib files were written.
-add_test(NAME test_common COMMAND test_common ${CMAKE_BINARY_DIR}/lib)
+# The module dir is where ggml's backend .so/.dll/.dylib files were written. Second arg is
+# the requested n_threads: "3" (test_common) exercises "an explicit value is always honored
+# verbatim"; "0" (test_common_threads_policy, same binary) exercises R32's
+# min(hardware_concurrency, knee) policy — see test_common.cpp and sk_common.cpp's
+# kThreadKnee, and vulkan-perf-investigation.md §Q2 for the spin-barrier oversubscription
+# this guards against.
+add_test(NAME test_common COMMAND test_common ${CMAKE_BINARY_DIR}/lib 3)
 set_tests_properties(test_common PROPERTIES ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib")
+add_test(NAME test_common_threads_policy COMMAND test_common ${CMAKE_BINARY_DIR}/lib 0)
+set_tests_properties(test_common_threads_policy PROPERTIES ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib")
 
 # Slice 2: ASR surface. Needs SK_TEST_ASR_GGUF (and, from Task 3, SK_TEST_ASR_STREAM_GGUF);
 # exit code 77 = skipped, so a developer without the models still gets a green ctest.

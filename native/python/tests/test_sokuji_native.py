@@ -33,6 +33,27 @@ def test_contract_ok(tmp_path):
 
 
 @needs_tree
+def test_contract_backends_match_lane():
+    """CMake scoping bug (fixed in slice5b task 3): a vulkan/metal build's contract.json
+    used to advertise backends=["cpu"] regardless of the lane, because GGML_VULKAN/
+    GGML_METAL — the cache variables native/CMakeLists.txt read to build this field — get
+    re-forced OFF by transcribe.cpp's own CMakeLists.txt (from its TRANSCRIBE_VULKAN/
+    TRANSCRIBE_METAL, deliberately OFF) after ggml_options.cmake already set them
+    correctly. The real ggml build is unaffected (transcribe's clobber lands after ggml's
+    own CMakeLists.txt already read the correct value), so only this manifest field lied."""
+    c = sokuji_native.contract()
+    lane = c["lane"]                    # "cpu" | "cpu-vulkan" | "metal"
+    backends = c["backends"]
+    assert "cpu" in backends
+    if lane == "cpu-vulkan":
+        assert "vulkan" in backends, backends
+    elif lane == "metal":
+        assert "metal" in backends, backends
+    else:
+        assert backends == ["cpu"], backends
+
+
+@needs_tree
 def test_version_and_engines():
     assert sokuji_native.version().startswith("0.")
     ev = sokuji_native.engine_versions()

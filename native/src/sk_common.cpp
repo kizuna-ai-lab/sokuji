@@ -8,6 +8,7 @@
 #include "transcribe.h"
 #include "llama.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -23,6 +24,26 @@
 #endif
 
 namespace {
+
+/* R32 (slice5b task 3): ggml_barrier() in ggml-cpu.c is a pure spin-wait — no futex, no
+ * sched_yield — crossed at every op boundary. Once the worker count reaches the core
+ * count there is no spare core to absorb the main thread, the Python interpreter, or any
+ * other process on the box; a single descheduled worker makes every other worker
+ * spin-burn its full timeslice, and the whole graph stalls until it is rescheduled.
+ * Measured on GB10 (nproc=20; moss_tts_nano, pocket_tts, supertonic synth, whisper-tiny
+ * ASR; n_threads in {4,6,8,12,16,20}, 4 runs/cell, fresh process per row): n_threads==20
+ * (==nproc) is catastrophic everywhere (run-to-run spread 1.18x-4.32x); n_threads==12 is
+ * the best point that is simultaneously within ~2% of ASR's own best (12 vs 16: ASR
+ * 0.361s vs 0.354s median) AND tight/non-noisy for every TTS family (spread <=1.04x at
+ * 12 vs 1.15-1.16x at 16, where pocket_tts is also ~18% *slower* in absolute terms than
+ * at 12). 8, this constant's original hypothesis, is tight for TTS too but costs ASR
+ * ~26% (0.447s vs 0.354s) — ASR is the latency-critical engine, so 12 wins. Full table:
+ * .superpowers/sdd/2026-09-02-sidecar-ggml-only-slice5b-debt/task-3-report.md.
+ * kThreadKnee is that measured knee, NOT hardware_concurrency: sk_init() caps an
+ * unspecified (0) n_threads at this value so a caller never has to know about the
+ * underlying ggml quirk. A positive n_threads is always honored verbatim (see
+ * sokuji_native.h's sk_init_options doc) — this policy applies only to the 0 case. */
+constexpr int kThreadKnee = 12;
 
 thread_local std::string t_last_error;
 std::mutex g_mutex;
@@ -108,6 +129,10 @@ void log_line(int32_t level, const char *msg) { ::log_line(level, msg); }
 extern "C" {
 
 SK_API int32_t sk_abi_version(void) { return SK_ABI_VERSION; }
+/* Not locked: g_threads is written once (under g_mutex) during sk_init and never again,
+ * so an unlocked read here is safe and, unlike sk::threads(), lets a caller that is
+ * already inside a locked section (there are none today) call this without deadlocking. */
+SK_API int32_t sk_threads(void) { return sk::threads(); }
 SK_API const char *sk_version(void) { return SK_VERSION_STRING; }
 SK_API const char *sk_last_error(void) { return t_last_error.c_str(); }
 SK_API void sk_free(void *p) { std::free(p); }
@@ -139,7 +164,13 @@ SK_API sk_status sk_init(const sk_init_options *options) {
 
     g_log = options->log;
     g_log_user = options->log_user;
-    g_threads = options->n_threads > 0 ? options->n_threads : static_cast<int>(std::thread::hardware_concurrency());
+    bool threads_explicit = options->n_threads > 0;
+    unsigned hw = std::thread::hardware_concurrency();
+    if (threads_explicit) {
+        g_threads = options->n_threads;
+    } else {
+        g_threads = static_cast<int>(hw == 0 ? 1u : std::min(hw, static_cast<unsigned>(kThreadKnee)));
+    }
     ggml_log_set(ggml_log_bridge, nullptr);
 
     std::string dir = options->module_dir && options->module_dir[0] ? options->module_dir : own_directory();
@@ -168,9 +199,13 @@ SK_API sk_status sk_init(const sk_init_options *options) {
         set_error("sk_init: no ggml backend modules found in " + dir);
         return SK_ERR_BACKEND;
     }
+    std::string thread_reason = threads_explicit
+        ? "explicit"
+        : "native policy: min(hw=" + std::to_string(hw) + ", knee=" + std::to_string(kThreadKnee) +
+          ") — ggml's spin-wait barrier degrades once worker count reaches core count";
     log_line(1, ("sk_init: " + std::to_string(g_devices.size()) + " device(s), " +
                  std::to_string(skipped) + " accelerator(s) not listed, modules from " + dir +
-                 ", " + std::to_string(g_threads) + " threads").c_str());
+                 ", " + std::to_string(g_threads) + " threads (" + thread_reason + ")").c_str());
     g_initialised = true;
     t_last_error.clear();
     return SK_OK;

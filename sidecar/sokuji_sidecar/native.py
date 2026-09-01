@@ -1,8 +1,9 @@
 """The sidecar's one door to sokuji_native (spec §5.2). Lazily imports the wheel, calls
-sk_init exactly once per process with the SOKUJI_NATIVE_THREADS policy (0 = hardware
-concurrency) and a log sink into `logging`, and answers device questions. Every other
-module goes through here; none imports sokuji_native directly (test_torch_free_gate keeps
-that honest from slice 5 on)."""
+sk_init exactly once per process with the SOKUJI_NATIVE_THREADS policy (0 = native policy,
+i.e. min(hardware_concurrency, a measured knee) — no longer raw hardware concurrency, see
+sk_init_options.n_threads's doc in sokuji_native.h for why) and a log sink into `logging`,
+and answers device questions. Every other module goes through here; none imports
+sokuji_native directly (test_torch_free_gate keeps that honest from slice 5 on)."""
 import logging
 import os
 import threading

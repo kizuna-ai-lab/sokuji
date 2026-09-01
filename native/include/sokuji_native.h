@@ -58,7 +58,19 @@ typedef bool (*sk_log_cb)(int32_t level, const char *message, void *user);
 
 typedef struct sk_init_options {
     int32_t     abi_version;   /* must equal SK_ABI_VERSION */
-    int32_t     n_threads;     /* 0 = hardware concurrency */
+    int32_t     n_threads;     /* 0 = native policy: min(hardware_concurrency, an internal
+                                 * knee measured on real CPU hardware) rather than raw
+                                 * hardware_concurrency. ggml's ggml_barrier() is a pure
+                                 * spin-wait with no futex/sched_yield fallback, so once the
+                                 * worker count reaches the core count a single descheduled
+                                 * worker (the main thread, the Python interpreter, any other
+                                 * process) makes every other worker spin-burn its timeslice —
+                                 * measured 2.55x run-to-run spread at n_threads==nproc vs
+                                 * ~1.03x at the knee (vulkan-perf-investigation.md §Q2). A
+                                 * positive value here is always honored verbatim — this
+                                 * policy applies ONLY to the 0 (unspecified) case — so a
+                                 * caller that wants raw hardware_concurrency can still pass
+                                 * it explicitly. See sk_threads() for the resolved value. */
     const char *module_dir;    /* directory holding the ggml backend modules; NULL = next to this library */
     sk_log_cb   log;           /* optional */
     void       *log_user;
@@ -76,6 +88,7 @@ typedef struct sk_device {
 } sk_device;
 
 SK_API sk_status   sk_init(const sk_init_options *options);              /* idempotent; first call wins (see top) */
+SK_API int32_t     sk_threads(void);   /* resolved n_threads after sk_init (see its doc for the 0 policy); 0 before init */
 /* sk_devices lists placement targets only: CPU and GPU devices. ggml accelerator devices
  * (the Accelerate BLAS backend on macOS) are not listed — they are not something a stage
  * is placed on and they report no memory — but they remain loaded and the engines use
