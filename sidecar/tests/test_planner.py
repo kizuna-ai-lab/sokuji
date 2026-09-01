@@ -821,30 +821,36 @@ def test_resolve_arm_nvidia_translate_leads_with_vulkan_and_keeps_cpu_floor():
 
 
 # ── resolve_tts: collapsed onto the GGUF-LLM path (slice 4) ─────────────
-# Every native_tts card is now a single-file audio.cpp GGUF shipping the
-# SAME three tiers (gpu-metal/gpu-vulkan/cpu) for every quant — there is no
-# more per-platform/per-precision row variation (no CUDA-only bf16, no
-# macOS-only MLX row, no windows-only gpu-dml row) for resolve_tts to
-# narrow around. _tts_pick_quant is GONE: resolve_tts's quant/tier selection
-# is now literally _llamacpp_variant_row (the same byte-budget fit-walk
-# resolve_translate's auto path uses) + a same-/any-quant cpu floor, so this
-# section tests resolve_tts directly against REAL catalog cards rather than
-# re-deriving _tts_pick_quant's old test matrix (that logic, and its tests,
-# now live once, shared, under the resolve_translate/_llamacpp_variant_row
-# tests above). The old sherpa-ad-hoc-synthesis and gpu-dml/ort_cuda tests
-# have no equivalent: sherpa_tts and every ORT/MLX TTS backend are gone.
+# Every native_tts card is now a single-file audio.cpp GGUF, and the same
+# card shape (no more per-platform/per-precision row variation: no
+# CUDA-only bf16, no macOS-only MLX row, no windows-only gpu-dml row) would
+# ship uniform tiers per quant if any GPU tier were lit -- but R19
+# (2026-09-01, mac-arm64 metal lane abort on supertonic's first real-GPU
+# contact) pins every native_tts deployment to cpu-only until a family is
+# validated on a lane, so _llamacpp_variant_row's `gpu_possible` check is
+# always False here and every resolve_tts pick lands on cpu with the
+# rank-default quant. _tts_pick_quant is GONE: resolve_tts's quant/tier
+# selection is now literally _llamacpp_variant_row (the same byte-budget
+# fit-walk resolve_translate's auto path uses) + a same-/any-quant cpu
+# floor, so this section tests resolve_tts directly against REAL catalog
+# cards rather than re-deriving _tts_pick_quant's old test matrix (that
+# logic, and its tests, now live once, shared, under the
+# resolve_translate/_llamacpp_variant_row tests above). The old
+# sherpa-ad-hoc-synthesis and gpu-dml/ort_cuda tests have no equivalent:
+# sherpa_tts and every ORT/MLX TTS backend are gone.
 
 
 def test_resolve_tts_prefers_largest_fitting_quant_with_cpu_floor():
     # moss-tts-nano: q8_0 (~184MiB, rank 2.0/default) + bf16 (~317MiB, rank
-    # 1.0). A roomy machine still lands on bf16 — _llamacpp_variant_row picks
-    # the LARGEST quant that fits, not the rank-default, exactly like a real
-    # translate GGUF card (see test_select_variant_prefers_bf16_when_it_fits).
+    # 1.0). R19: TTS is cpu-only, so even a roomy GPU machine never reaches
+    # the budget fit-walk (_llamacpp_variant_row's gpu_possible is False for
+    # every native_tts card) -- it lands on the rank-default quant (q8_0) on
+    # cpu, with no separate GPU pick and no extra cpu-floor entry (the single
+    # pick already IS the cpu floor).
     plans = planner.resolve_tts("moss-tts-nano", machine=CUDA_12GB, platform="linux", cache={})
-    assert plans[0].tier == "gpu-vulkan" and plans[0].device == "vulkan"
-    assert plans[0].compute_type == "bf16"
-    assert plans[-1].tier == "cpu"    # cpu floor survives, same compute_type
-    assert plans[-1].compute_type == "bf16"
+    assert [p.tier for p in plans] == ["cpu"]
+    assert plans[0].device == "cpu"
+    assert plans[0].compute_type == "q8_0"
     assert all(p.backend == "native_tts" for p in plans)
     assert all(p.config.tts_family == "moss_tts_nano" for p in plans)
 
@@ -852,8 +858,10 @@ def test_resolve_tts_prefers_largest_fitting_quant_with_cpu_floor():
 def test_resolve_tts_single_quant_card_still_gets_cpu_floor():
     # supertonic-3 ships only "f16" (Q8 is upstream-broken — see catalog.py) —
     # the single-quant case still goes through the same auto path cleanly.
+    # R19: cpu-only, so a "GPU-capable" machine makes no difference — this is
+    # also the card whose real-GPU (Metal) contact triggered the ruling.
     plans = planner.resolve_tts("supertonic-3", machine=CUDA_12GB, platform="linux", cache={})
-    assert [p.tier for p in plans] == ["gpu-vulkan", "cpu"]
+    assert [p.tier for p in plans] == ["cpu"]
     assert all(p.compute_type == "f16" for p in plans)
     assert all(p.config.tts_family == "supertonic" for p in plans)
 
@@ -870,14 +878,23 @@ def test_resolve_tts_unknown_model_raises():
 
 
 def test_resolve_tts_pin_overrides_the_budget_fit_pick():
+    # R19: with TTS cpu-only, gpu_possible is False so the unpinned pick would
+    # already land on q8_0 (the rank-default) -- this pin no longer overrides
+    # a would-be-bf16 budget pick the way its translate-card counterpart
+    # does, but it still exercises the pin path and the assertion still holds.
     plans = planner.resolve_tts("moss-tts-nano", machine=CUDA_12GB, platform="linux",
                                 cache={}, pin="q8_0")
     assert plans[0].compute_type == "q8_0"
 
 
 def test_resolve_tts_downloaded_restricts_the_fit_walk():
-    # bf16 would otherwise win (it fits and is larger); restricting to the
-    # downloaded set keeps the pick honest to what's actually on disk.
+    # Pre-R19: bf16 would otherwise win (it fits and is larger); restricting
+    # to the downloaded set kept the pick honest to what's actually on disk.
+    # R19: TTS is cpu-only, so gpu_possible is False and
+    # _llamacpp_variant_row returns the rank-default quant before ever
+    # consulting `downloaded` -- this now exercises that early-return path
+    # rather than the fit-walk restriction, but the assertion (q8_0, the
+    # rank-default) still holds either way.
     plans = planner.resolve_tts("moss-tts-nano", machine=CUDA_12GB, platform="linux",
                                 cache={}, downloaded=frozenset({"q8_0"}))
     assert plans[0].compute_type == "q8_0"

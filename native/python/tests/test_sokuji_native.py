@@ -247,7 +247,12 @@ needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="ne
 @needs_tts_supertonic
 def test_tts_supertonic_streams_presets_and_cancel():
     sokuji_native.init()
-    t = sokuji_native.tts_load(TTS_SUPERTONIC_DIR, "supertonic")
+    # NULL device = engine auto (slice-3 ruling), which picks Metal on mac
+    # lanes where supertonic aborts (R19 — ggml-metal-ops.cpp:204,
+    # "unsupported op", inside synthesize_supertonic_chunk); this binding test
+    # pins cpu explicitly, like the CTest (native/tests/test_tts.cpp) does.
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(TTS_SUPERTONIC_DIR, "supertonic", cpu)
     caps = t.capabilities
     assert caps.streaming and not caps.clones and caps.sample_rate == 44100
     names = t.presets()
@@ -290,7 +295,12 @@ def test_tts_supertonic_streams_presets_and_cancel():
 @needs_tts_moss
 def test_tts_moss_offline_and_clone():
     sokuji_native.init()
-    t = sokuji_native.tts_load(TTS_MOSS_DIR, "moss_tts_nano")
+    # NULL device = engine auto (slice-3 ruling), which would pick Metal on
+    # mac lanes; R19 keeps every TTS family cpu-only in production until
+    # validated per family per lane, so this binding test pins cpu explicitly
+    # too, like the CTest (native/tests/test_tts.cpp) does.
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(TTS_MOSS_DIR, "moss_tts_nano", cpu)
     assert not t.capabilities.streaming and t.capabilities.clones
     assert t.presets() == []
     samples, rate = t.synth("Hello from MOSS.")

@@ -656,12 +656,25 @@ _AUDIOCPP_GGUF_REPO = "audio-cpp/audio.cpp-gguf"
 # both already import from, so neither has to import the other just for this name.
 TTS_STAGING_DIRNAME = "sokuji-tts-staging"
 
-# Every native_tts card ships the SAME three tiers for EVERY quant — audio.cpp
-# has no CUDA-only/DirectML-only TTS kernel path, unlike the deleted ONNX
-# backends' per-platform/per-precision restrictions (bf16-CUDA-only,
-# macOS-only MLX rows, ...). Order is cosmetic; accel.TIER_RANK decides actual
-# preference.
-_TTS_TIERS = ("gpu-metal", "gpu-vulkan", "cpu")
+# R19 (2026-09-01): TTS is CPU-ONLY until GPU execution is validated per
+# family per lane (a slice-5/6 task) — every native_tts card COULD ship the
+# same tiers for every quant, since audio.cpp has no CUDA-only/DirectML-only
+# TTS kernel path (unlike the deleted ONNX backends' per-platform/
+# per-precision restrictions: bf16-CUDA-only, macOS-only MLX rows, ...), but
+# the slice-4 CI dry run's mac-arm64 metal lane gave the FIRST-EVER real-GPU
+# TTS contact and it aborted hard: the Python binding tests pass device=None
+# (NULL -> engine auto, per A1), which picked Metal for supertonic, and that
+# graph hit ggml_abort inside synthesize_supertonic_chunk ("unsupported op",
+# ggml-metal-ops.cpp:204) in upstream ggml's Metal backend. The C tests never
+# hit this because they load with an explicit CPU device (see
+# native/python/tests/test_sokuji_native.py). Vulkan TTS is equally
+# unvalidated — the Linux lanes only pass because headless CI runners have no
+# GPU, so accel auto-detection falls back to CPU regardless of the tier
+# offered. ASR (_TC_TIERS) and translate (native_translate's own three-tier
+# tuple in _llm_translate_row) are untouched by this ruling — Metal ran
+# moonshine (ASR) clean on the same lane. GPU tiers return here per family
+# once that family is actually validated on that lane.
+_TTS_TIERS = ("cpu",)
 
 
 def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,

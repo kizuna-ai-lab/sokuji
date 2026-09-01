@@ -512,7 +512,10 @@ def test_omnivoice_backend_installed_and_resolvable():
         tc_kinds=("vulkan",), gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),))
     plans = planner.resolve_tts("omnivoice-0.6b", machine=machine, platform="linux", cache={})
     assert plans, "omnivoice-0.6b resolved to no usable plan"
-    assert plans[0].backend == "native_tts" and plans[0].tier == "gpu-vulkan"
+    # R19: TTS is cpu-only until GPU execution is validated per family per
+    # lane, so even this vulkan-capable machine resolves to cpu, not
+    # gpu-vulkan.
+    assert plans[0].backend == "native_tts" and plans[0].tier == "cpu"
 
 
 # ── select_variant tests ────────────────────────────────────────────────────
