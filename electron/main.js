@@ -623,6 +623,15 @@ const _currentSku = () =>
   _detectSku(process.platform, { arch: process.arch });
 ipcMain.handle('sidecar-bundle:status', () => {
   const sku = _currentSku();
+  // Dev machines that lived through the slice-5 sku rename (linux-nvidia/
+  // win-nvidia/win-directml/mac -> linux-x64/linux-arm64/win-x64/mac-arm64/
+  // mac-x64) keep every old sku's multi-GB bundle tree forever, since install/
+  // remove only ever touch the CURRENT sku's dir. Prune once here, at the
+  // first bundle-resolution call the renderer makes each launch; never throws.
+  if (sku !== null) {
+    sidecarBundle.pruneStaleSkuDirs(
+      path.dirname(sidecarBundle.bundleInstallDir(app.getPath('userData'), sku)), sku);
+  }
   if (sku === null) {
     // Even without a bundle SKU (ARM windows) a dev checkout
     // with a venv keeps the whole native lane usable — report it so the UI

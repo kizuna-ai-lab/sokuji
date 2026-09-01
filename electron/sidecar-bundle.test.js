@@ -7,7 +7,7 @@ import { createRequire } from 'module';
 import {
   archiveName, bundleInstallDir, pickBundle, verifySha256, extractTarZst, installBundle,
   requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
-  downloadPart, concatParts, removeBundle,
+  downloadPart, concatParts, removeBundle, pruneStaleSkuDirs,
 } from './sidecar-bundle.js';
 
 // Shares the Node module cache with sidecar-bundle.js's own `require('fs')` (core
@@ -206,6 +206,59 @@ describe('requiredSidecarVersion / bundleBaseUrl (spec S1/S4/S11)', () => {
       .toBe('https://github.com/kizuna-ai-lab/sokuji/releases/download/sidecar-v0.1.0');
     expect(bundleBaseUrl('0.1.0', { SOKUJI_SIDECAR_BUNDLE_BASE_URL: 'http://localhost:8000/' }))
       .toBe('http://localhost:8000');
+  });
+});
+
+describe('pruneStaleSkuDirs (orphaned old-SKU bundle dirs)', () => {
+  it('removes old-vocabulary sku dirs, keeps the current sku dir and in-flight staged files', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-prune-'));
+    const root = path.join(u, 'sidecar');
+    mkdirSync(path.join(root, 'linux-nvidia'), { recursive: true });
+    mkdirSync(path.join(root, 'mac'), { recursive: true });
+    mkdirSync(path.join(root, 'mac-arm64'), { recursive: true }); // current sku
+    writeFileSync(path.join(root, 'mac-arm64', 'bundle.json'), '{}');
+    // In-flight download staging: a whole staging dir plus a part file inside it.
+    mkdirSync(path.join(root, '.staging'), { recursive: true });
+    writeFileSync(path.join(root, '.staging', 'sidecar-mac-arm64-v1.0.0.tar.zst.part'), 'x');
+
+    pruneStaleSkuDirs(root, 'mac-arm64');
+
+    expect(existsSync(path.join(root, 'linux-nvidia'))).toBe(false);
+    expect(existsSync(path.join(root, 'mac'))).toBe(false);
+    expect(existsSync(path.join(root, 'mac-arm64'))).toBe(true);
+    expect(readFileSync(path.join(root, 'mac-arm64', 'bundle.json'), 'utf8')).toBe('{}');
+    expect(existsSync(path.join(root, '.staging', 'sidecar-mac-arm64-v1.0.0.tar.zst.part'))).toBe(true);
+  });
+
+  it('removes any dir name outside the five-SKU set, not just the known-old names', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-prune-'));
+    const root = path.join(u, 'sidecar');
+    mkdirSync(path.join(root, 'some-future-sku'), { recursive: true });
+    mkdirSync(path.join(root, 'win-x64'), { recursive: true }); // current
+
+    pruneStaleSkuDirs(root, 'win-x64');
+
+    expect(existsSync(path.join(root, 'some-future-sku'))).toBe(false);
+    expect(existsSync(path.join(root, 'win-x64'))).toBe(true);
+  });
+
+  it('never touches anything outside root', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-prune-'));
+    const root = path.join(u, 'sidecar');
+    mkdirSync(root, { recursive: true });
+    const sibling = path.join(u, 'other-dir');
+    mkdirSync(sibling, { recursive: true });
+    writeFileSync(path.join(sibling, 'keep.txt'), 'keep');
+
+    pruneStaleSkuDirs(root, 'mac-arm64');
+
+    expect(existsSync(sibling)).toBe(true);
+    expect(readFileSync(path.join(sibling, 'keep.txt'), 'utf8')).toBe('keep');
+  });
+
+  it('is non-fatal when root does not exist yet', () => {
+    const missing = path.join(tmpdir(), `sb-prune-missing-${Date.now()}`);
+    expect(() => pruneStaleSkuDirs(missing, 'mac-arm64')).not.toThrow();
   });
 });
 

@@ -81,6 +81,45 @@ function pickBundle(manifest, sku) {
   return (manifest.bundles || []).find((e) => e.sku === sku);
 }
 
+// Directory names under the sidecar root that are not SKU dirs but must never
+// be pruned: '.staging' holds resumable in-flight downloads (stagingDir above),
+// whose own lifecycle is managed by pruneStaging — not by SKU identity.
+const RESERVED_ROOT_DIRS = new Set(['.staging']);
+
+// Slice 5 renamed the SKU vocabulary (linux-nvidia/win-nvidia/win-directml/mac
+// -> linux-x64/linux-arm64/win-x64/mac-arm64/mac-x64), but bundle install only
+// ever removed the CURRENT sku's dir (installBundle's tmp/old swap, removeBundle).
+// A dev machine that lived through the rename keeps every old sku's multi-GB
+// tree under userData/sidecar forever. Called once at bundle resolution (spec
+// debt task 6): removes any directory under `root` that is neither the current
+// sku nor a reserved name — old-vocabulary names and any future/unknown sku
+// alike, since "not this machine's sku" is the only fact that matters. Never
+// throws: a locked/in-use directory (or a `root` that doesn't exist yet) must
+// not block the bundle status/install/remove flow that called this.
+function pruneStaleSkuDirs(root, currentSku) {
+  let entries;
+  try {
+    entries = fs.readdirSync(root, { withFileTypes: true });
+  } catch {
+    return; // no sidecar dir yet — nothing to prune
+  }
+  const removed = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;   // leaves loose files (e.g. an in-flight part) alone
+    const name = entry.name;
+    if (name === currentSku || RESERVED_ROOT_DIRS.has(name)) continue;
+    try {
+      fs.rmSync(path.join(root, name), { recursive: true, force: true });
+      removed.push(name);
+    } catch {
+      // Non-fatal: a locked directory should not block bundle resolution.
+    }
+  }
+  if (removed.length > 0) {
+    console.log(`[sidecar-bundle] pruned stale sku dir(s): ${removed.join(', ')}`);
+  }
+}
+
 function verifySha256(filePath, wantHex) {
   return new Promise((resolve, reject) => {
     const h = crypto.createHash('sha256');
@@ -359,5 +398,5 @@ module.exports = {
   archiveName, bundleInstallDir, bundleStatus, pickBundle,
   verifySha256, extractTarZst, installBundle,
   requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
-  downloadPart, concatParts, removeBundle,
+  downloadPart, concatParts, removeBundle, pruneStaleSkuDirs,
 };
