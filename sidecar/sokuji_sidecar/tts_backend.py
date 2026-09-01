@@ -12,10 +12,30 @@ family_hint); PlanConfig.tts_language is pocket_tts's load-time language package
 model_ref is the artifact "org/repo/<dir>/<file>.gguf" the catalog resolves to. The
 files a family ships besides the gguf (voice presets, embeddings, ...) live under the
 SAME <dir> in its HF repo, so load() resolves a SCOPED local snapshot — only that one
-directory, not the whole repo — via `allow_patterns=[f"{dir}/*"]`, and passes the
-gguf's path inside that snapshot AS GIVEN. HF's local cache already links snapshot
-files back to the shared blob store; no additional hard-link staging (the old MOSS
-backend's `_link_tree` trick) is needed or wanted here (ruling: no hard-links).
+directory, not the whole repo — via `allow_patterns=[f"{dir}/*"]`.
+
+Ruling R18(s4) — SUPERSEDES the prior "no hard-links" ruling: the gguf (and, for
+pocket_tts, its embeddings/*.safetensors sidecar) are hard-link-staged into a small
+sokuji-owned tree under the SAME cache root before ever reaching the native layer (see
+_stage_for_native()). The prior ruling's own reasoning — "HF's local cache already
+links snapshot files back to the shared blob store, no additional staging is needed" —
+is still correct about directory LAYOUT (pocket_tts's embeddings/ sits correctly next
+to its gguf either way); it just never anticipated audio.cpp's own model loader
+canonicalizing the path before sniffing its format by extension. HF's real
+snapshot_download() snapshot entries are SYMLINKS into a content-addressed blob store
+(no `.gguf`/`.safetensors` extension on the blob itself); audio.cpp's vendored
+prepare_model_directory() (`_deps/audiocpp-src/src/framework/assets/tensor_source.cpp`)
+calls `std::filesystem::weakly_canonical()` on that symlinked path before handing it to
+open_tensor_source(), which dispatches purely on `path.extension()` — for a path that
+exists in full, weakly_canonical() behaves like canonical() and fully resolves the
+symlink down to the extensionless blob, so the extension check always fails
+("unsupported tensor source format"). Live-verified against every native_tts family
+this reaches (not just pocket-tts-en); ASR (transcribe.cpp) is unaffected by the
+identical symlinked-cache shape, so this is specific to audio.cpp's own loader.
+A HARD link is a second directory entry for the SAME inode, not a symlink, and is
+therefore NOT resolved by weakly_canonical() — the staged path keeps its real
+extension all the way through canonicalization, with no copy of the (up to several-GB)
+weight data. See final-fixwave-report.md's "Round 2: R18" section for the full trace.
 
 generate_stream() bridges sokuji_native's synth() callback — invoked on the CALLING
 thread, from C, once per pulled chunk — into a Python generator. A generator cannot
@@ -94,8 +114,26 @@ discarded: generate() returns it as its own return value, and generate_stream()'
 on_chunk callback forwards it into each queued/yielded chunk. tts_engine resamples with
 whichever rate accompanies each result/chunk, not the caps-table default -- the default
 stays valid for planning/UI (it's what the family's own capabilities/tts_init reply
-report before any synth has actually run)."""
+report before any synth has actually run).
+
+Round 2 (2026-09-01), ruling R18 -- see the module docstring's second paragraph above
+for the full defect trace. _stage_for_native() hard-links the resolved gguf (+ any
+PlanConfig.tts_extra_files sidecars) into a deterministic, idempotent staging path
+under the same HF cache root, keyed by (repo, snapshot revision, file's path within the
+repo): re-staging over an already-correct link (same inode, checked via
+os.path.samefile) is a no-op; a stale/missing/foreign entry is removed and re-created.
+`source` is resolved via os.path.realpath() before linking, not trusted to os.link()'s
+own `follow_symlinks` handling (live-verified platform gap: see
+_stage_for_native()'s own docstring). Falls back to a real copy if os.link() fails
+(EXDEV -- a filesystem boundary between the staging tree and the cache blob it links
+to -- or a filesystem without hard-link support). native_models.py's delete paths
+must remove a card's staged entries too (a
+hard link keeps the blob's inode alive even after the HF-cache-side symlink/blob is
+deleted, so "delete" would otherwise silently free nothing) -- see that module's own
+_prune_staged_files()/_prune_staged_repo()."""
+import os
 import queue
+import shutil
 import threading
 import time
 
@@ -103,7 +141,7 @@ import numpy as np
 
 from . import native
 from .backends import BackendLoadError, register_backend
-from .catalog import split_artifact
+from .catalog import TTS_STAGING_DIRNAME, split_artifact
 from .planner import PlanConfig
 
 _SENTINEL = object()
@@ -113,6 +151,68 @@ _SENTINEL = object()
 # moss_tts_nano/pocket_tts also report CLONES=True but are NOT included: both ship a
 # working built-in default and must stay callable without a voice ever being set.
 _VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice"})
+
+
+def _staging_root() -> str:
+    """R18: catalog.TTS_STAGING_DIRNAME, a sibling of HF's own models--*/ directories
+    directly under the SAME cache root -- guarantees os.link() below stays on one
+    filesystem (a hard link cannot cross filesystem boundaries) without depending on
+    any particular OS temp-dir/cache-dir relationship."""
+    from huggingface_hub import constants
+    return os.path.join(constants.HF_HUB_CACHE, TTS_STAGING_DIRNAME)
+
+
+def _stage_for_native(repo: str, rev: str, rel_path: str, source: str) -> str:
+    """R18: hard-link (falling back to a copy) `source` -- a path inside HF's real
+    snapshot cache, almost always a symlink into the content-addressed blob store --
+    into the deterministic staged location for (repo, rev, rel_path), returning that
+    staged path. `rel_path` is the file's path WITHIN the repo (e.g.
+    "PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf") -- the same shape
+    native_models.py's download_specs()/_delete_shared_repo_files() already use for
+    this exact repo, so the two modules agree on identity without sharing code.
+
+    `source` is resolved via os.path.realpath() BEFORE linking, ourselves, rather
+    than trusting os.link()'s documented `follow_symlinks=True` default to do it:
+    live-verified on this platform that os.link() given a symlink `source` instead
+    created ANOTHER SYMLINK sharing the ORIGINAL symlink's inode (same nlink-counted
+    directory-entry behavior as a hard link, but still `os.path.islink() == True`,
+    with the ORIGINAL relative target string) -- which then resolved to the WRONG
+    path once evaluated relative to the staging directory's different depth/nesting
+    (a broken link, not merely "still symlinked"). Resolving ourselves and linking
+    the REAL underlying file sidesteps this platform's `AT_SYMLINK_FOLLOW` gap
+    entirely: the staged path is a genuine hard link to the blob's inode, with no
+    symlink anywhere in it, so audio.cpp's weakly_canonical() has nothing left to
+    resolve away regardless of what any particular OS/filesystem's linkat() does.
+
+    Idempotent: if `staged` already exists and is the SAME file as `source` (compared
+    by device+inode, not path string, via os.path.samefile -- which follows symlinks
+    on both sides itself, so this check is correct whether or not `staged` happens to
+    be a leftover symlink from a run predating this fix), this is a no-op --
+    re-staging on every load() call never re-links/re-copies unnecessarily, and a
+    wiped staging directory transparently re-stages on the next load() (the "already
+    staged" check simply fails and falls through to (re-)creation)."""
+    staged = os.path.join(_staging_root(), f"{repo.replace('/', '--')}__{rev}", rel_path)
+    try:
+        if os.path.exists(staged) and os.path.samefile(staged, source):
+            return staged
+    except OSError:
+        pass
+    os.makedirs(os.path.dirname(staged), exist_ok=True)
+    try:
+        os.remove(staged)
+    except FileNotFoundError:
+        pass
+    real_source = os.path.realpath(source)
+    try:
+        os.link(real_source, staged)
+    except OSError:
+        # EXDEV (staging ended up on a different filesystem than the blob it links
+        # to -- should not happen given _staging_root()'s placement, but a hostile or
+        # unusual HF_HUB_CACHE override could still trigger it) or a filesystem
+        # without hard-link support: fall back to a real copy. Slower and spends real
+        # disk space, but still correct.
+        shutil.copyfile(real_source, staged)
+    return staged
 
 
 @register_backend
@@ -166,7 +266,16 @@ class NativeTtsBackend:
             allow = [f"{model_dir}/*"] if model_dir else [fname]
             from huggingface_hub import snapshot_download
             snap = snapshot_download(repo, allow_patterns=allow, local_files_only=True)
-            path = f"{snap}/{fname}"
+            # R18: stage the gguf (+ any sidecar, e.g. pocket_tts's
+            # embeddings/*.safetensors) as HARD LINKS before ever handing a path to
+            # the native layer -- see _stage_for_native()'s docstring and the module
+            # docstring's second paragraph for why a real HF snapshot's symlinked
+            # path breaks audio.cpp's own model loader.
+            rev = os.path.basename(snap)
+            path = _stage_for_native(repo, rev, fname, f"{snap}/{fname}")
+            for extra_name, _size in cfg.tts_extra_files:
+                extra_rel = f"{model_dir}/{extra_name}" if model_dir else extra_name
+                _stage_for_native(repo, rev, extra_rel, f"{snap}/{extra_rel}")
             # Always resolve an explicit device — including "cpu" (the slice-3 F1
             # lesson, translate_backend.load carries the same comment): passing
             # NULL leaves the native default in place, which can silently place a

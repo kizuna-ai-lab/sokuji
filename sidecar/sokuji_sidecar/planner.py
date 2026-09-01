@@ -38,15 +38,19 @@ class PlanConfig:
     """Declarative per-load hints, read from the resolved catalog card and
     consumed by backends at load time: native_translate reads the two thinking
     flags and prompt_family (which of its three prompt strategies to use);
-    native_tts reads tts_family (sk_tts_load's required family_hint) and
+    native_tts reads tts_family (sk_tts_load's required family_hint),
     tts_language (pocket_tts's load-time language package, e.g. "english";
-    ignored by every other family). All-inert defaults so a bare
-    `PlanConfig()` changes no behavior."""
+    ignored by every other family), and tts_extra_files (ruling R18(s4):
+    same-directory sidecar assets, e.g. pocket-tts-en's
+    embeddings/alba.safetensors, that must be hard-link-staged alongside the
+    gguf — see tts_backend.py's module docstring). All-inert defaults so a
+    bare `PlanConfig()` changes no behavior."""
     disable_thinking: bool = False
     append_no_think: bool = False
     prompt_family: str = ""
     tts_family: str = ""
     tts_language: str = ""
+    tts_extra_files: tuple[tuple[str, int], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -79,6 +83,7 @@ def _plan_config(model) -> PlanConfig:
         prompt_family=getattr(model, "prompt_family", ""),
         tts_family=getattr(model, "family", ""),
         tts_language=getattr(model, "load_language", ""),
+        tts_extra_files=getattr(model, "extra_files", ()),
     )
 
 

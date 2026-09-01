@@ -6,8 +6,9 @@ LOCAL_INFERENCE's manage-before-use UX, but server-side (HF cache).
 """
 import fnmatch
 import os
+import shutil
 
-from .catalog import asr_model as _asr_model, split_artifact
+from .catalog import TTS_STAGING_DIRNAME, asr_model as _asr_model, split_artifact
 
 
 def _ignored(filename, patterns):
@@ -313,6 +314,73 @@ def _delete_shared_repo_files(cache, repo: str, fnames) -> int:
     return freed
 
 
+def _staging_root() -> str:
+    from huggingface_hub import constants
+    return os.path.join(constants.HF_HUB_CACHE, TTS_STAGING_DIRNAME)
+
+
+def _prune_staged_files(repo: str, fnames) -> None:
+    """Ruling R18: disk-reclamation coupling. tts_backend.py's load() hard-links a
+    card's gguf (+ pocket_tts's embeddings sidecar) into a small staging tree under
+    this SAME cache root (its own module docstring has the full defect trace) so
+    audio.cpp's canonicalizing loader sees a real, extension-bearing path instead of
+    an HF snapshot symlink. A hard link is a SECOND directory entry for the SAME
+    inode, so removing only the HF-cache-side symlink/blob (as
+    _delete_shared_repo_files just did) does not reclaim the underlying disk blocks
+    while a staged link still references that inode -- "delete" would silently free
+    nothing. Scoped to exactly `fnames` (never a whole staged revision at once), for
+    the identical reason _delete_shared_repo_files is file-scoped: a repo can be
+    shared by several catalog cards (every TTS card downloads from
+    audio-cpp/audio.cpp-gguf), and deleting one must never remove another's staged
+    files -- `fnames` are relative-to-repo paths, the same shape
+    _stage_for_native()'s own `rel_path` uses, so identity matches without the two
+    modules sharing code."""
+    root = _staging_root()
+    prefix = repo.replace("/", "--") + "__"
+    try:
+        entries = os.listdir(root)
+    except OSError:
+        return
+    wanted = set(fnames)
+    for entry in entries:
+        if not entry.startswith(prefix):
+            continue
+        rev_dir = os.path.join(root, entry)
+        for rel in wanted:
+            try:
+                os.remove(os.path.join(rev_dir, rel))
+            except OSError:
+                pass
+        # Prune now-empty directories bottom-up (topdown=False visits rev_dir itself
+        # last) so a fully-deleted card doesn't leave an empty <repo>__<rev>/<subdir>
+        # tree behind forever; a directory another card still has files under simply
+        # fails to rmdir (not empty) and is left alone.
+        for dirpath, _dirs, _files in os.walk(rev_dir, topdown=False):
+            try:
+                os.rmdir(dirpath)
+            except OSError:
+                pass
+
+
+def _prune_staged_repo(repo: str) -> None:
+    """Ruling R18: whole-repo delete's staging counterpart to
+    _prune_staged_files -- safe to remove EVERY staged revision for `repo` outright
+    here because delete_model() only takes the whole-repo path when
+    `_repo_owner_cards(repo)` reports at most one owning card (see delete_model's own
+    docstring): there is no OTHER card's staged files under this repo's prefix to
+    protect. A harmless no-op for a repo nothing has ever staged (every non-TTS
+    repo, today)."""
+    root = _staging_root()
+    prefix = repo.replace("/", "--") + "__"
+    try:
+        entries = os.listdir(root)
+    except OSError:
+        return
+    for entry in entries:
+        if entry.startswith(prefix):
+            shutil.rmtree(os.path.join(root, entry), ignore_errors=True)
+
+
 def delete_model(model_id, repo=None):
     """Remove a model's cached files from the HF cache.
 
@@ -337,6 +405,14 @@ def delete_model(model_id, repo=None):
     another's cached files from the same shared snapshot (fix round 1, CQ-1
     — this claim used to read "per-card siblings, not shared across
     different cards", which is no longer true for TTS).
+
+    Ruling R18: either delete path also removes the card's own hard-link-staged
+    entries under TTS_STAGING_DIRNAME (`_prune_staged_files`/`_prune_staged_repo`) —
+    tts_backend.py's load() stages a card's gguf (+ sidecars) as hard links so
+    audio.cpp's canonicalizing loader can read them; a hard link keeps the
+    underlying blob's inode (and its disk blocks) alive even after the HF-cache-side
+    symlink/blob above is removed, so skipping this would make "delete" free zero
+    bytes for any TTS card whose model was ever loaded.
     """
     from huggingface_hub import scan_cache_dir
     specs = download_specs(model_id, repo)
@@ -356,6 +432,7 @@ def delete_model(model_id, repo=None):
     for r, fnames in files_by_repo.items():
         if len(_repo_owner_cards(r)) > 1:
             freed += _delete_shared_repo_files(cache, r, fnames)
+            _prune_staged_files(r, fnames)
         else:
             wanted_repos.add(r)
 
@@ -367,6 +444,8 @@ def delete_model(model_id, repo=None):
                 revisions.extend(rev.commit_hash for rev in repo_info.revisions)
         if revisions:
             cache.delete_revisions(*revisions).execute()
+        for r in wanted_repos:
+            _prune_staged_repo(r)
     return freed
 
 

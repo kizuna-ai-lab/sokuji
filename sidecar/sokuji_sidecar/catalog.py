@@ -648,6 +648,14 @@ def license_dict(model: "TtsModel") -> dict | None:
 # (see the pocket-tts-en row below).
 _AUDIOCPP_GGUF_REPO = "audio-cpp/audio.cpp-gguf"
 
+# Ruling R18(s4): name of the sokuji-owned hard-link staging tree tts_backend.py's
+# load() creates as a sibling of HF's own models--*/ directories, directly under the
+# SAME cache root. Shared between tts_backend.py (creates/refreshes staged entries)
+# and native_models.py (removes a deleted card's staged entries so a hard link never
+# outlives the HF-cache-side file it was staged from) — defined here, the one module
+# both already import from, so neither has to import the other just for this name.
+TTS_STAGING_DIRNAME = "sokuji-tts-staging"
+
 # Every native_tts card ships the SAME three tiers for EVERY quant — audio.cpp
 # has no CUDA-only/DirectML-only TTS kernel path, unlike the deleted ONNX
 # backends' per-platform/per-precision restrictions (bf16-CUDA-only,
