@@ -2026,7 +2026,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               <span>
                 {t('settings.sonioxEndpointSensitivity', 'Endpoint Sensitivity')}
                 <Tooltip
-                  content={t('settings.sonioxEndpointSensitivityTooltip', 'Higher values end utterances sooner — lower latency but more risk of premature cut-offs. Lower values wait longer before finalizing. 0 is the Soniox default.')}
+                  content={t('settings.sonioxEndpointSensitivityTooltip', 'How readily a pause is judged as the end of an utterance — higher splits on weaker evidence (snappier, more premature cut-offs), lower demands stronger evidence. Time is bounded by the max-pause setting below. 0 is the Soniox default.')}
                   position="top"
                 >
                   <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
@@ -2048,7 +2048,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               <span>
                 {t('settings.sonioxEndpointMaxDelay', 'Max Pause Before Finalizing')}
                 <Tooltip
-                  content={t('settings.sonioxEndpointMaxDelayTooltip', 'How long Soniox may wait at a pause before closing the utterance. Higher values keep sentences with mid-sentence pauses intact; lower values finalize sooner. 2000 ms is the Soniox default.')}
+                  content={t('settings.sonioxEndpointMaxDelayTooltip', 'A hard ceiling: once speech stops, the utterance closes after at most this long, however the sensitivity judgment leans. Raise it to keep sentences with mid-sentence pauses whole; lower it for faster finalization. 2000 ms is the Soniox default.')}
                   position="top"
                 >
                   <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
