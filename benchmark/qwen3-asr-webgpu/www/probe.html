@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>webgpu probe</title>
+<pre id="M"></pre>
+<script>
+window.__result = { done: false };
+(async () => {
+  const r = { hasGpu: !!navigator.gpu, ua: navigator.userAgent };
+  try {
+    const a = navigator.gpu ? await navigator.gpu.requestAdapter() : null;
+    r.adapter = a ? { info: a.info ? { vendor: a.info.vendor, architecture: a.info.architecture, device: a.info.device, description: a.info.description } : null, f16: a.features.has('shader-f16'), isFallback: a.isFallbackAdapter, maxBuf: a.limits.maxBufferSize, maxStorage: a.limits.maxStorageBufferBindingSize } : null;
+    if (!a && navigator.gpu) {
+      const fb = await navigator.gpu.requestAdapter({ forceFallbackAdapter: true });
+      r.fallback = fb ? { info: fb.info ? { vendor: fb.info.vendor, description: fb.info.description } : null } : null;
+    }
+  } catch (e) { r.error = String(e); }
+  document.getElementById('M').textContent = JSON.stringify(r);
+  console.log('RESULT ' + JSON.stringify(r));
+  window.__result = { done: true, clips: [], probe: r };
+})();
+</script>

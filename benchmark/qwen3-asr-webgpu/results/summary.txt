@@ -1,0 +1,178 @@
+== cpu-fp32-t8.json
+  qwen3-asr-0.6b suffix='' enc=encoder.onnx threads=8 ort=1.29.0 load=3.9s
+        clip   audioSec      melMs  encoderMs   decodeMs  genTokens        rtf        cer  text
+  ja-cv0.wav [cold]      9.900         66        213       1963         47      0.227      0.234  あの洋家の屋根の屋上には10万ほどの革らが箱の蓋のように開く仕掛けになっていて、その下に屋根裏の
+  ja-cv0.wav      9.900         11        186       2432         47      0.266      0.234  あの洋家の屋根の屋上には10万ほどの革らが箱の蓋のように開く仕掛けになっていて、その下に屋根裏の
+  ja-cv1.wav      8.570         17        175       1914         37      0.246      0.130  私たちは無一文で結婚しなければならないし、家計を無から作り上げなければならないのです。先生、村に
+  ja-cv2.wav      5.330         13         89       1125         27      0.230      0.000  いくら山を掘り返してもどこかで見たような面白みのないものしか見つからなかった。
+  ja-cv3.wav      5.980          9         91       1001         22      0.184      0.036  知性は構成されたものによって所用のものを超える力であるが。
+  ja-fleurs1813.wav     12.840         10        179       3207         61      0.265      0.056  バルセイナの公用語はカタルーニャ語とスペイン語です。約半数がカタルーニャがお好み、大数がカタルー
+  ja-fleurs1828.wav     10.440          9        167       1422         30      0.153      0.067  インターネットで敵対的環境構築について検索すると、おそらく現地企業の住所が出てくるでしょう。
+  ja-fleurs1834.wav     14.220         14        182       1484         37      0.118      0.000  また北側に行くなら、世界的に有名なマリア像の聖地であるファティマの聖母の聖域、神社を訪れましょう
+  ja-fleurs1869.wav     12.540         14        202       1909         40      0.169      0.250  その長いあごには70本以上の数と牙が並び、後骸には別の市立があり、つまりここを通ったらネギめちゃ
+     jfk.wav     11.000          9        176       1437         30      0.147      0.000  And so, my fellow Americans, ask not what your c
+  zh-fleurs1852.wav     15.420         16        195       3167         53      0.219      0.133  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  zh-fleurs1883.wav     13.860         11        178       1754         34      0.140      0.324  桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+  zh-fleurs1906.wav     10.380         15        168       1082         18      0.122      0.000  这并不是告别，这是一个篇章的结束，也是新篇章的开始。
+  zh-fleurs2006.wav      8.280         22        208        994         21      0.148      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
+  => median RTF 0.169  max RTF 0.266  mean CER 0.095
+== cpu-int4-encf16.json
+  qwen3-asr-0.6b suffix='.int4' enc=encoder.fp16.onnx threads=8 ort=1.29.0 load=3.4s
+        clip   audioSec      melMs  encoderMs   decodeMs  genTokens        rtf        cer  text
+  jfk.wav [cold]     11.000         70        213        552         30      0.076      0.000  And so, my fellow Americans, ask not what your c
+     jfk.wav     11.000         11        216        581         30      0.073      0.000  And so, my fellow Americans, ask not what your c
+  ja-fleurs1828.wav     10.440         10        207        595         32      0.078      0.067  インターネットで「敵対的環境構築」について検索すると、おそらく現地企業の住所が出てくるでしょう。
+  => median RTF 0.075  max RTF 0.078  mean CER 0.034
+== cpu-int4-forceja.json
+  qwen3-asr-0.6b suffix='.int4' enc=encoder.onnx threads=8 ort=1.29.0 load=3.8s
+        clip   audioSec      melMs  encoderMs   decodeMs  genTokens        rtf        cer  text
+  ja-fleurs1869.wav [cold]     12.540         79        271        811         36      0.093      0.268  その長い屋根は70本以上の数と葉が並び、境界には別の市立があり。つまりここを通ったらねぎめちゃん
+  ja-fleurs1869.wav     12.540         13        194        721         36      0.074      0.268  その長い屋根は70本以上の数と葉が並び、境界には別の市立があり。つまりここを通ったらねぎめちゃん
+  ja-cv0.wav      9.900         11        168        700         43      0.089      0.188  あの洋家の屋根の屋上には十万ほどの革が箱の蓋のように開く仕掛けになっていてその下に屋根裏の秘密通
+  => median RTF 0.081  max RTF 0.089  mean CER 0.228
+== cpu-int4-forcezh.json
+  qwen3-asr-0.6b suffix='.int4' enc=encoder.onnx threads=8 ort=1.29.0 load=3.9s
+        clip   audioSec      melMs  encoderMs   decodeMs  genTokens        rtf        cer  text
+  zh-fleurs1883.wav [cold]     13.860         75        444        733         31      0.090      0.324  桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+  zh-fleurs1883.wav     13.860         15        288        618         31      0.066      0.324  桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+  zh-fleurs1852.wav     15.420         20        329        984         50      0.086      0.084  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  => median RTF 0.076  max RTF 0.086  mean CER 0.204
+== cpu-int4-t8.json
+  qwen3-asr-0.6b suffix='.int4' enc=encoder.onnx threads=8 ort=1.29.0 load=3.6s
+        clip   audioSec      melMs  encoderMs   decodeMs  genTokens        rtf        cer  text
+  ja-cv0.wav [cold]      9.900         63        188        829         46      0.109      0.188  あの洋家の屋根の屋上には十万ほどの革が箱の蓋のように開く仕掛けになっていてその下に屋根裏の秘密通
+  ja-cv0.wav      9.900         13        187        738         46      0.095      0.188  あの洋家の屋根の屋上には十万ほどの革が箱の蓋のように開く仕掛けになっていてその下に屋根裏の秘密通
+  ja-cv1.wav      8.570         11        172        598         36      0.091      0.148  私たちは無一問で結婚しなければならないし、家計を無から作り上げなければならないのです。先生、村に
+  ja-cv2.wav      5.330         13         95        371         27      0.090      0.000  いくら山を掘り返してもどこかで見たような面白みのないものしか見つからなかった。
+  ja-cv3.wav      5.980         10         93        340         22      0.074      0.071  知性は構成されたものによって書よのものを超える力であるが。
+  ja-fleurs1813.wav     12.840         13        181       1040         58      0.096      0.169  バルセイアの公用語はカタルウネ語とスペイン語です。約半数がカタルウネ語を好み、大数がカタルウネ語
+  ja-fleurs1828.wav     10.440         14        173        516         26      0.067      0.044  インターネットで機体的環境コースについて検索するとおそらく現地企業の住所が出てくるでしょう。
+  ja-fleurs1834.wav     14.220         11        182        742         36      0.066      0.065  また北側に行くなら世界的に有名なマリアゾの聖地であるファティマの聖母の聖域。神じゃを訪れましょう
+  ja-fleurs1869.wav     12.540         12        174        761         39      0.076      0.268  その長い屋根は70本以上の数と葉が並び、境界には別の市立があり。つまりここを通ったらねぎめちゃん
+     jfk.wav     11.000         10        169        578         30      0.069      0.000  And so, my fellow Americans, ask not what your c
+  zh-fleurs1852.wav     15.420         12        184        992         53      0.077      0.084  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  zh-fleurs1883.wav     13.860         13        181        191          4      0.028      1.000  Current.
+  zh-fleurs1906.wav     10.380         17        175        336         18      0.051      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
+  zh-fleurs2006.wav      8.280         17        205        367         21      0.071      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
+  => median RTF 0.074  max RTF 0.096  mean CER 0.157
+== cpu-int8-forcezh.json
+  int8 suffix='.int8' enc=encoder.onnx threads=8 ort=1.29.0 load=3.8s
+        clip   audioSec      melMs  encoderMs   decodeMs  genTokens        rtf        cer  text
+  zh-fleurs1883.wav [cold]     13.860         75        271        753         31      0.079      0.324  桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+  zh-fleurs1883.wav     13.860         16        428        684         31      0.081      0.324  桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+  => median RTF 0.081  max RTF 0.081  mean CER 0.324
+== cpu-int8.json
+  int8 suffix='.int8' enc=encoder.onnx threads=8 ort=1.29.0 load=3.6s
+        clip   audioSec      melMs  encoderMs   decodeMs  genTokens        rtf        cer  text
+  zh-fleurs1883.wav [cold]     13.860         60        235        236          4      0.038      1.000  Current.
+  zh-fleurs1883.wav     13.860          9        197        185          4      0.028      1.000  Current.
+  ja-fleurs1869.wav     12.540         15        181        768         39      0.077      0.268  その長い屋根は70本以上の数と葉が並び、境界には別の市立があり。つまりここを通ったらねぎめちゃん
+  ja-cv0.wav      9.900         10        168        711         46      0.090      0.188  あの洋家の屋根の屋上には十万ほどの革が箱の蓋のように開く仕掛けになっていてその下に屋根裏の秘密通
+     jfk.wav     11.000         12        176        539         30      0.066      0.000  And so, my fellow Americans, ask not what your c
+  zh-fleurs1852.wav     15.420         15        240       1091         53      0.087      0.084  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  => median RTF 0.077  max RTF 0.090  mean CER 0.308
+== cpu-q4b32.json
+  q4b32 suffix='.int4' enc=encoder.onnx threads=8 ort=1.29.0 load=3.9s
+        clip   audioSec      melMs  encoderMs   decodeMs  genTokens        rtf        cer  text
+  zh-fleurs1883.wav [cold]     13.860         73        430        809         34      0.095      0.324  桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+  zh-fleurs1883.wav     13.860         16        462        791         34      0.092      0.324  桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+  ja-fleurs1869.wav     12.540         17        211        774         38      0.080      0.268  その長い屋根には七十本以上の数と斧が並び、後街には別の秩序があり。つまりここを通ったらネギめちは
+  ja-cv0.wav      9.900         20        373        761         47      0.117      0.203  あの洋家の屋根の屋上には十万ほどの瓦が箱の蓋のように開く仕掛けになっていて、その下に屋根裏の秘密
+     jfk.wav     11.000         11        267        552         30      0.075      0.000  And so, my fellow Americans, ask not what your c
+  zh-fleurs1852.wav     15.420         13        242       1012         52      0.082      0.133  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  => median RTF 0.082  max RTF 0.117  mean CER 0.186
+== page-gb10-wasm-t1.log
+  env: ep=wasm adapter={'vendor': 'nvidia', 'architecture': '', 'device': '', 'description': ''} f16=False threads=1 ua=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
+  load: {'tokenizerAndEmbedMs': 395, 'encoderMs': 2080, 'initMs': 1955, 'stepMs': 508, 'totalMs': 4938}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+     jfk.wav         11        116       2067       3041      30470         30   1050.700      3.245      0.000  And so, my fellow Americans, ask not what your c
+  ja-fleurs1828.wav     10.440         99       2017       2890      25946         26   1037.800      2.965      0.044  インターネットで機体的環境コースについて検索するとおそらく現地企業の住所が出てくるでしょう。
+  zh-fleurs1906.wav     10.380        104       2011       2883      17679         18   1039.900      2.185      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
+  => median RTF 2.965  max RTF 3.245  mean CER 0.015  median ms/token 1039.9
+== page-gb10-wasm-t8.log
+  env: ep=wasm adapter={'vendor': 'nvidia', 'architecture': '', 'device': '', 'description': ''} f16=False threads=8 ua=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
+  load: {'tokenizerAndEmbedMs': 503, 'encoderMs': 2016, 'initMs': 2001, 'stepMs': 538, 'totalMs': 5059}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+     jfk.wav         11        106        393        474       7157         30    246.800      0.739      0.000  And so, my fellow Americans, ask not what your c
+  ja-fleurs1828.wav     10.440         95        321        446       5809         26    232.400      0.639      0.044  インターネットで機体的環境コースについて検索するとおそらく現地企業の住所が出てくるでしょう。
+  zh-fleurs1906.wav     10.380        103        316        438       3724         18    219.100      0.441      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
+  => median RTF 0.639  max RTF 0.739  mean CER 0.015  median ms/token 232.4
+== page-gb10-webgpu-int4.log
+  !! Error: WebGPU adapter unavailable
+    at main (http://127.0.0.1:8765/main.js:93:38)
+  env: ep=webgpu adapter=None f16=False threads=1 ua=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
+== page-mac-int4-encf16.log
+  env: ep=webgpu adapter={'vendor': 'apple', 'architecture': 'metal-3', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
+  load: {'tokenizerAndEmbedMs': 4860, 'encoderMs': 6161, 'initMs': 14502, 'stepMs': 4750, 'totalMs': 30274}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  jfk.wav [cold]         11        109        519        540        597         30     20.600      0.160      0.000  And so, my fellow Americans, ask not what your c
+     jfk.wav         11        103         97        515        558         30     19.200      0.116      0.000  And so, my fellow Americans, ask not what your c
+  ja-fleurs1828.wav     10.440        106        128        514        472         26     18.900      0.117      0.044  インターネットで機体的環境コースについて検索するとおそらく現地企業の住所が出てくるでしょう。
+  zh-fleurs1906.wav     10.380        191         89        489        311         18     18.300      0.104      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
+  => median RTF 0.116  max RTF 0.117  mean CER 0.015  median ms/token 18.9
+== page-mac-int4.log
+  env: ep=webgpu adapter={'vendor': 'apple', 'architecture': 'metal-3', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
+  load: {'tokenizerAndEmbedMs': 4490, 'encoderMs': 13726, 'initMs': 15376, 'stepMs': 5492, 'totalMs': 39084}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  jfk.wav [cold]         11        111        645        945        788         30     27.200      0.226      0.000  And so, my fellow Americans, ask not what your c
+     jfk.wav         11        103        150        520        569         30     19.600      0.122      0.000  And so, my fellow Americans, ask not what your c
+  ja-cv2.wav      5.330         61         84        285        442         27         17      0.164      0.000  いくら山を掘り返してもどこかで見たような面白みのないものしか見つからなかった。
+  ja-fleurs1828.wav     10.440        189        139        534        512         26     20.500      0.132      0.044  インターネットで機体的環境コースについて検索するとおそらく現地企業の住所が出てくるでしょう。
+  ja-fleurs1834.wav     14.220        100        144        650        789         37     21.900      0.118      0.065  また北側に行くなら、世界的に有名なマリアゾの聖地であるファティマの聖母の聖域。神じゃ訪れましょう
+  ja-fleurs1813.wav     12.840         91        135        597       1228         58     21.500      0.160      0.169  バルセイアの公用語はカタルウネ語とスペイン語です。約半数がカタルウネ語を好み、大数がカタルウネ語
+  zh-fleurs1906.wav     10.380         73        129        496        313         18     18.400      0.097      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
+  zh-fleurs2006.wav      8.280         60        138        401        372         21     18.600      0.117      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
+  zh-fleurs1852.wav     15.420        108        160        696       1199         53     23.100      0.140      0.084  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  => median RTF 0.127  max RTF 0.164  mean CER 0.045  median ms/token 20.1
+== page-mac-q4f16b.log
+  env: ep=webgpu adapter={'vendor': 'apple', 'architecture': 'metal-3', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
+  load: {'tokenizerAndEmbedMs': 2847, 'encoderMs': 3863, 'initMs': 5530, 'stepMs': 3162, 'totalMs': 15403}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  jfk.wav [cold]         11        109        114        495        591         30     20.400      0.119      0.000  And so, my fellow Americans, ask not what your c
+     jfk.wav         11        108         90        470        558         30     19.200      0.111      0.000  And so, my fellow Americans, ask not what your c
+  ja-fleurs1828.wav     10.440        131         92        455        494         26     19.800      0.112      0.044  インターネットで機体的環境コースについて検索するとおそらく現地企業の住所が出てくるでしょう。
+  zh-fleurs1906.wav     10.380        193         91        458        341         18     20.100      0.104      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
+  => median RTF 0.111  max RTF 0.112  mean CER 0.015  median ms/token 19.8
+== page-win-int4-encf16.log
+  env: ep=webgpu adapter={'vendor': 'nvidia', 'architecture': 'lovelace', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+  load: {'tokenizerAndEmbedMs': 3004, 'encoderMs': 8182, 'initMs': 17593, 'stepMs': 5785, 'totalMs': 34564}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  jfk.wav [cold]         11        231        745        619       1297         30     44.700      0.263      0.000  And so, my fellow Americans, ask not what your c
+     jfk.wav         11        135         38         49        998         30     34.400      0.111      0.000  And so, my fellow Americans, ask not what your c
+  ja-fleurs1828.wav     10.440        142         37         62        971         26     38.800      0.116      0.044  インターネットで機体的環境コースについて検索するとおそらく現地企業の住所が出てくるでしょう。
+  zh-fleurs1906.wav     10.380        636         35         44        477         18     28.100      0.115      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
+  => median RTF 0.115  max RTF 0.116  mean CER 0.015  median ms/token 34.4
+== page-win-int4.log
+  env: ep=webgpu adapter={'vendor': 'nvidia', 'architecture': 'lovelace', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+  load: {'tokenizerAndEmbedMs': 3932, 'encoderMs': 14230, 'initMs': 16977, 'stepMs': 5060, 'totalMs': 40199}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  jfk.wav [cold]         11        183        833        989       1410         30     48.600      0.310      0.000  And so, my fellow Americans, ask not what your c
+     jfk.wav         11        241         31         28       1006         30     34.700      0.119      0.000  And so, my fellow Americans, ask not what your c
+  ja-cv2.wav      5.330        127         34         74        890         27     34.200      0.211      0.000  いくら山を掘り返してもどこかで見たような面白みのないものしか見つからなかった。
+  ja-fleurs1828.wav     10.440        463         45         78        998         27     38.400      0.152      0.044  インターネットで機体的環境コースについて検索すると、おそらく現地企業の住所が出てくるでしょう。
+  ja-fleurs1834.wav     14.220        142         43         46       1338         37     37.200      0.110      0.065  また北側に行くなら、世界的に有名なマリアゾの聖地であるファティマの聖母の聖域。神じゃを訪れましょ
+  ja-fleurs1813.wav     12.840        126         43         49       2234         58     39.200      0.191      0.169  バルセイアの公用語はカタルウネ語とスペイン語です。約半数がカタルウネ語を好み、大数がカタルウネ語
+  zh-fleurs1906.wav     10.380         98         47         46        650         18     38.200      0.081      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
+  zh-fleurs2006.wav      8.280         87         50         39        859         21         43      0.125      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
+  zh-fleurs1852.wav     15.420        257         50         57       2016         53     38.800      0.154      0.084  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  => median RTF 0.139  max RTF 0.211  mean CER 0.045  median ms/token 38.3
+== page-win-int4-worst.log
+  env: ep=webgpu adapter={'vendor': 'nvidia', 'architecture': 'lovelace', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+  load: {'tokenizerAndEmbedMs': 2982, 'encoderMs': 4591, 'initMs': 10649, 'stepMs': 3388, 'totalMs': 21610}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  zh-fleurs1883.wav     13.860        308        426        681        278          4     92.700      0.122      1.000  Current.
+  ja-fleurs1869.wav     12.540        267        103        128       1349         39     35.500      0.147      0.250  その長い屋根は70本以上の数と葉が並び、境界には別の市立があり。つまりここを通ったらねぎめちゃは
+  ja-cv0.wav      9.900        190         29         74       1716         47     37.300      0.203      0.219  あの洋家の屋根の屋上には十万ほどの革が箱の蓋のように開く仕掛けになっていてその下に屋根裏の秘密通
+  ja-cv1.wav      8.570        177         31         38       1178         36     33.700      0.166      0.148  私たちは無一問で結婚しなければならないし、家計を無から作り上げなければならないのです。先生、村に
+  ja-cv3.wav      5.980        131         26         29        795         21     39.800      0.164      0.036  知性は構成されたものによって所有のものを超える力であるが。
+  => median RTF 0.164  max RTF 0.203  mean CER 0.331  median ms/token 37.3
+== page-win-q4f16b.log
+  env: ep=webgpu adapter={'vendor': 'nvidia', 'architecture': 'lovelace', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+  load: {'tokenizerAndEmbedMs': 2995, 'encoderMs': 4536, 'initMs': 6773, 'stepMs': 3331, 'totalMs': 17635}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  jfk.wav [cold]         11        245        358        588       1400         30     48.300      0.236      0.000  And so, my fellow Americans, ask not what your c
+     jfk.wav         11        301         40         52       1059         30     36.500      0.132      0.000  And so, my fellow Americans, ask not what your c
+  ja-fleurs1828.wav     10.440        228         28         56       1092         26     43.700      0.134      0.044  インターネットで機体的環境コースについて検索するとおそらく現地企業の住所が出てくるでしょう。
+  zh-fleurs1906.wav     10.380        459         39         52        755         18     44.400      0.126      0.000  这并不是告别。这是一个篇章的结束，也是新篇章的开始。
+  zh-fleurs1852.wav     15.420        136         80         80       1947         53     37.400      0.145      0.084  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  => median RTF 0.133  max RTF 0.145  mean CER 0.032  median ms/token 40.5
