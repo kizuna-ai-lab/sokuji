@@ -24,7 +24,6 @@ on:
         default: ''
   push:
     tags: ['sidecar-v*']
-    branches: ['refactor/sidecar-ggml-only-slice5']
 
 jobs:
   build-linux-x64:
