@@ -638,17 +638,111 @@ def test_tts_cancel_without_conn_context_does_not_call_engine_cancel_active():
     assert calls == []
 
 
+# ── M2: ownership token -- singleton engine, cross-connection crosstalk ──────
+
+def test_m2_cross_connection_tts_generate_rejected_with_not_owner(monkeypatch):
+    """state["tts_engine"] is a process singleton (module docstring) shared by
+    every connection -- tts_generate from a connection OTHER than the one that
+    called tts_init must be rejected outright, not silently dispatched against
+    the owner's loaded model."""
+    st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
+    owner_conn = _FakeConn()
+    other_conn = _FakeConn()
+
+    async def run():
+        await st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                    "model": "moss-tts-nano"}, None, owner_conn)
+        reply, binary = await st["handlers"]["tts_generate"](
+            st, {"type": "tts_generate", "id": "intruder", "text": "hi"}, None, other_conn)
+        assert binary is None
+        assert reply["type"] == "error" and reply["id"] == "intruder"
+        assert "not_owner" in reply["message"]
+        assert other_conn.ctx == {}                       # nothing dispatched for the intruder
+        assert "tts_stream_task" not in owner_conn.ctx     # owner's engine untouched
+
+    asyncio.run(run())
+
+
+def test_m2_cross_connection_tts_cancel_does_not_touch_owners_stream(monkeypatch):
+    """A second connection's tts_cancel for a guessed/replayed id must not reach
+    the owner's stream at all -- state["tts_cancels"] is a single dict shared by
+    every connection, so even CQ-8's active_mid gate on its own isn't enough (it
+    only stops cancel_active(), not the shared dict write the intruder's call
+    would otherwise make)."""
+    st = _state(_FakeStream(), monkeypatch, "moss-tts-nano")
+    owner_conn = _FakeConn()
+    other_conn = _FakeConn()
+
+    async def run():
+        await st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                    "model": "moss-tts-nano"}, None, owner_conn)
+        reply, _ = await st["handlers"]["tts_generate"](
+            st, {"type": "tts_generate", "id": "owner-stream", "text": "hi"}, None, owner_conn)
+        assert reply is None   # dispatched as a background task
+
+        cancel_reply, _ = await st["handlers"]["tts_cancel"](
+            st, {"type": "tts_cancel", "id": "owner-stream"}, None, other_conn)
+        assert cancel_reply["type"] == "error" and "not_owner" in cancel_reply["message"]
+        assert st["tts_cancels"]["owner-stream"] is False   # untouched by the intruder
+
+        await owner_conn.ctx["tts_stream_task"]             # owner's stream finishes normally
+        kinds = [o.get("type") for o, _ in owner_conn.sent if o]
+        assert kinds.count("tts_chunk") == 3 and kinds.count("tts_done") == 1
+
+    asyncio.run(run())
+
+
+def test_m2_tts_init_from_another_connection_evicts_and_takes_ownership(monkeypatch):
+    """tts_init still evicts unconditionally regardless of who calls it (today's
+    behavior, unchanged) -- but it now also transfers ownership, so the FORMER
+    owner's further tts_generate/tts_cancel calls are rejected while the NEW
+    owner's go through normally."""
+    b1 = _FakeOneShot()
+    st = _state(b1, monkeypatch, "piper-en-amy")
+    first_conn = _FakeConn()
+    second_conn = _FakeConn()
+
+    async def run():
+        await st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                    "model": "piper-en-amy"}, None, first_conn)
+
+        b2 = _FakeOneShot()
+        _patch(monkeypatch, b2, "piper-en-amy")
+        await st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 2,
+                    "model": "piper-en-amy"}, None, second_conn)
+        assert st["tts_engine"]._backend is b2   # evicted, exactly as before M2
+
+        stale_reply, _ = await st["handlers"]["tts_generate"](
+            st, {"type": "tts_generate", "id": "stale", "text": "hi"}, None, first_conn)
+        assert stale_reply["type"] == "error" and "not_owner" in stale_reply["message"]
+
+        fresh_reply, fresh_binary = await st["handlers"]["tts_generate"](
+            st, {"type": "tts_generate", "id": "fresh", "text": "hi"}, None, second_conn)
+        assert fresh_reply["type"] == "tts_generate_result"   # the new owner works fine
+        assert fresh_binary is not None
+
+    asyncio.run(run())
+
+
 # ── defect 2: supersede stops the OLD generation, not just its asyncio Task ──
 
 class _FakeTask:
     def __init__(self):
         self.cancel_called = False
+        # M3: the supersede path now registers a done-callback on the prior task
+        # (see _pop_stale_cancel_flag) -- recorded, not invoked, here; this fake
+        # never actually "completes", and the M3 leak scenario itself is covered
+        # by a real asyncio.Task below (test_m3_...), not this one.
+        self.done_callbacks = []
 
     def done(self):
         return False
 
     def cancel(self):
         self.cancel_called = True
+
+    def add_done_callback(self, cb):
+        self.done_callbacks.append(cb)
 
 
 class _FakeEngineForSupersede:
@@ -689,6 +783,53 @@ def test_supersede_sets_prior_cancel_flag_and_calls_engine_cancel_active():
     assert eng.cancel_active_calls == 1                 # reaches the backend itself
     assert prior_task.cancel_called is True             # asyncio Task detached last
     assert eng.generate_stream_calls == ["new-id"]
+
+
+def test_m3_supersede_never_scheduled_task_does_not_leak_stale_cancel_flag():
+    """M3: a superseded task cancelled BEFORE the event loop ever ran its
+    coroutine body closes WITHOUT ever entering _run_tts_stream()'s own
+    `finally: cancels.pop(mid, None)` -- cancels[prior_mid] would otherwise
+    survive forever (a per-stream dict entry never read again once that mid is
+    dead, but never freed either). Reproduced for real, not simulated: two
+    tts_generate calls processed back-to-back with NO intervening
+    await-that-suspends between them (the streaming branch of _h_tts_generate
+    itself never awaits) means asyncio.create_task() has only SCHEDULED the
+    first task via call_soon -- the event loop hasn't stepped it even once -- by
+    the time the second call's supersede path calls prior.cancel() on it."""
+    class _NeverPreemptedEngine:
+        streaming = True
+        sample_rate = 24000
+
+        def cancel_active(self):
+            pass
+
+        async def generate_stream(self, text, speed, send, should_cancel, msg_id):
+            await send({"type": "tts_done", "id": msg_id, "totalSamples": 0, "generationTimeMs": 0})
+
+    eng = _NeverPreemptedEngine()
+    state = {"tts_engine": eng, "handlers": {}}
+    tts_engine.register(state)
+    conn = _FakeConn()
+
+    async def run():
+        await state["handlers"]["tts_generate"](
+            state, {"type": "tts_generate", "id": "prior-id", "text": "a"}, None, conn)
+        prior_task = conn.ctx["tts_stream_task"]
+        assert not prior_task.done()   # merely scheduled -- never stepped
+
+        await state["handlers"]["tts_generate"](
+            state, {"type": "tts_generate", "id": "new-id", "text": "b"}, None, conn)
+        new_task = conn.ctx["tts_stream_task"]
+        assert new_task is not prior_task
+
+        await new_task                          # let the surviving stream finish
+        for _ in range(5):                      # let the cancelled task's own
+            await asyncio.sleep(0)              # done-callback run to completion
+
+        assert prior_task.cancelled()
+        assert "prior-id" not in state["tts_cancels"]
+
+    asyncio.run(run())
 
 
 def test_tts_cancel_stops_inflight_stream_end_to_end(monkeypatch):
@@ -825,6 +966,59 @@ def test_conn_close_frees_tts_model():
 
     asyncio.run(server._conn(st, WS()))
     assert closed["n"] == 1
+
+
+# ── M5: generation-token guard against a stale teardown racing a fresher init ─
+
+def test_m5_stale_teardown_after_reinit_does_not_close_the_newer_engine(monkeypatch):
+    """eng.init() bumps a generation token BEFORE its own close-on-entry;
+    _h_tts_init captures the generation the engine had once ITS init finished
+    and threads it into the teardown closure it registers. A teardown captured
+    by an EARLIER tts_init, firing (e.g. on disconnect) AFTER a fresher tts_init
+    has since re-loaded the engine, must no-op instead of tearing down the
+    model the fresher init loaded."""
+    b1 = _FakeOneShot()
+    st = _state(b1, monkeypatch, "piper-en-amy")
+    eng = st["tts_engine"]
+    conn = _FakeConn()
+
+    async def run():
+        await st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 1,
+                    "model": "piper-en-amy"}, None, conn)
+        assert len(conn._on_close) == 1
+        stale_teardown = conn._on_close[0]        # captured generation 1
+
+        b2 = _FakeOneShot()
+        _patch(monkeypatch, b2, "piper-en-amy")
+        await st["handlers"]["tts_init"](st, {"type": "tts_init", "id": 2,
+                    "model": "piper-en-amy"}, None, conn)   # bumps to generation 2
+        assert eng._backend is b2 and b1.is_loaded is False   # b1 evicted normally
+
+        stale_teardown()          # the FIRST tts_init's now-stale close callback fires
+
+        assert eng._backend is b2          # still the CURRENT (second) backend
+        assert b2.is_loaded is True        # untouched -- not unloaded by the stale call
+
+    asyncio.run(run())
+
+
+def test_m5_teardown_without_generation_still_closes_unconditionally():
+    """generation=None (every pre-M5 direct call to _tts_teardown, and every
+    bare test double with no `.generation`) disables the staleness check
+    entirely -- preserves the exact pre-M5 unconditional-close behavior."""
+    order = []
+
+    class FakeEng:
+        def cancel_active(self): order.append("cancel_active")
+        def close(self): order.append("close")
+
+    state = {"tts_engine": FakeEng()}
+
+    class FakeConn:
+        ctx = {}
+
+    tts_engine._tts_teardown(state, FakeConn())
+    assert order == ["cancel_active", "close"]
 
 
 # ---------------------------------------------------------------------------

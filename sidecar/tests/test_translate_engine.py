@@ -159,6 +159,75 @@ def test_close_unloads_prior_backend_before_reinit(monkeypatch):
     assert eng._backend is second
 
 
+def test_m5_twin_generation_bumps_on_every_init(monkeypatch):
+    """M5 twin (tts_engine.py's _tts_teardown carries the full race trace; see
+    .superpowers/slice5-surface-inventory.md §10(a) for the confirmation that
+    TranslateEngine.init()/_translate_teardown share the identical shape):
+    TranslateEngine.generation must increment on every init(), BEFORE close()
+    runs, so a teardown captured at generation N can tell it's been superseded
+    once a later init has bumped past it."""
+    from sokuji_sidecar import accel
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
+    monkeypatch.setattr(accel, "load_measured",
+                        lambda plans, **kw: (MagicMock(),
+                                             MagicMock(backend="native_translate", device="cpu",
+                                                       compute_type="float32"), None, None))
+    monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
+
+    eng = translate_engine.TranslateEngine()
+    assert eng.generation == 0
+    eng.init(model_id="qwen2.5-0.5b", source_lang="ja", target_lang="en")
+    assert eng.generation == 1
+    eng.init(model_id="qwen3-0.6b", source_lang="ja", target_lang="en")
+    assert eng.generation == 2
+
+
+def test_m5_twin_stale_teardown_after_reinit_does_not_close_the_newer_engine(monkeypatch):
+    """A teardown closure registered by an EARLIER translate_init, firing (e.g.
+    on disconnect) AFTER a fresher translate_init has since re-loaded the
+    engine, must no-op instead of tearing down the model the fresher init
+    loaded -- the exact translate-side twin of tts_engine.py's M5 fix."""
+    from sokuji_sidecar import accel
+    first, second = MagicMock(), MagicMock()
+    plan = MagicMock(backend="native_translate", device="cpu", compute_type="float32")
+    backends_iter = iter([(first, plan, None, None), (second, plan, None, None)])
+    monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
+    monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: next(backends_iter))
+    monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
+
+    state = {"translate_engine": translate_engine.TranslateEngine(), "handlers": {}}
+    translate_engine.register(state)
+
+    class _FakeConn:
+        def on_close(self, cb):
+            pass   # _translate_teardown is invoked directly below, not via this callback
+
+    conn = _FakeConn()
+
+    async def run():
+        await state["handlers"]["translate_init"](
+            state, {"type": "translate_init", "id": 1, "sourceLang": "ja", "targetLang": "en"},
+            None, conn)
+        # Simulate capturing the FIRST init's teardown closure directly (mirrors
+        # what conn.on_close(lambda: _translate_teardown(state, generation)) would
+        # have registered, without needing a real on_close-tracking fake conn).
+        stale_generation = state["translate_engine"].generation
+        assert stale_generation == 1
+
+        await state["handlers"]["translate_init"](
+            state, {"type": "translate_init", "id": 2, "sourceLang": "ja", "targetLang": "en"},
+            None, conn)
+        assert state["translate_engine"].generation == 2
+        assert state["translate_engine"]._backend is second
+
+        translate_engine._translate_teardown(state, stale_generation)   # fires the STALE one
+
+        assert state["translate_engine"]._backend is second   # still current
+        second.unload.assert_not_called()                     # untouched by the stale teardown
+
+    asyncio.run(run())
+
+
 def test_translate_delegates_to_backend_when_loaded():
     eng = translate_engine.TranslateEngine()
     eng._backend = MagicMock()

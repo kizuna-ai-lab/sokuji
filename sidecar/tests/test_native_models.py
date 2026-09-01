@@ -316,6 +316,137 @@ def test_delete_model_shared_repo_also_removes_staged_hardlinks(monkeypatch, tmp
     assert staging_root.exists()           # not pruned -- supertonic's subtree still lives there
 
 
+# ── M4: repo=None must delete EVERY cached rung, not just the default one ───────
+
+def test_m4_delete_model_repo_none_deletes_every_cached_rung(monkeypatch, tmp_path):
+    """M4: delete_model(model_id, repo=None) must delete EVERY cached quant rung
+    of the model, not just the default-resolved one (download_specs()'s single-
+    rung shape, right for status/download, is wrong here) -- a user who
+    downloaded a non-default rung (e.g. bf16) and then deletes via the
+    default-repo path (repo=None, e.g. after the renderer's variant selector
+    reverted to 'default') must not be left with an orphaned cached rung that
+    keeps model_status() reporting 'ready' forever (_ladder_artifacts' any-
+    rung-cached relaxation treats ANY cached quant as sufficient)."""
+    from sokuji_sidecar import native_models as nm
+
+    q8_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    bf16_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf"
+    blobs_dir, snap_dir = _real_hf_cache_repo(tmp_path, "audio-cpp/audio.cpp-gguf")
+
+    def _add(rel_path, blob_name, size):
+        blob = blobs_dir / blob_name
+        blob.write_bytes(b"x" * size)
+        link = snap_dir / rel_path
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(blob)
+        return link, blob
+
+    q8_link, q8_blob = _add(q8_fname, "blob-q8", 111)
+    bf16_link, bf16_blob = _add(bf16_fname, "blob-bf16", 222)
+
+    monkeypatch.setattr("huggingface_hub.utils._cache_manager.HF_HUB_CACHE", str(tmp_path))
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    assert nm.model_status("moss-tts-nano") == "ready"   # any rung cached counts
+
+    freed = nm.delete_model("moss-tts-nano")   # repo=None: whole-model delete
+
+    assert freed == 111 + 222
+    assert not q8_link.exists() and not q8_blob.exists()
+    assert not bf16_link.exists() and not bf16_blob.exists()
+    assert nm.model_status("moss-tts-nano") == "absent"
+
+
+def test_m4_delete_model_with_explicit_repo_still_deletes_only_that_rung(monkeypatch, tmp_path):
+    """The M4 whole-model expansion is gated on `repo is None` -- when the wire
+    message DOES carry a chosen variant's repo (today's single-rung behavior),
+    only that rung is touched and every OTHER cached rung survives."""
+    from sokuji_sidecar import native_models as nm
+    from sokuji_sidecar import catalog
+
+    q8_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    bf16_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf"
+    blobs_dir, snap_dir = _real_hf_cache_repo(tmp_path, "audio-cpp/audio.cpp-gguf")
+
+    def _add(rel_path, blob_name, size):
+        blob = blobs_dir / blob_name
+        blob.write_bytes(b"x" * size)
+        link = snap_dir / rel_path
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(blob)
+        return link, blob
+
+    q8_link, q8_blob = _add(q8_fname, "blob-q8", 111)
+    bf16_link, bf16_blob = _add(bf16_fname, "blob-bf16", 222)
+
+    monkeypatch.setattr("huggingface_hub.utils._cache_manager.HF_HUB_CACHE", str(tmp_path))
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    bf16_artifact = catalog.tts_model("moss-tts-nano").deployments[1].artifact
+    assert "bf16" in bf16_artifact
+    freed = nm.delete_model("moss-tts-nano", repo=bf16_artifact)
+
+    assert freed == 222
+    assert not bf16_link.exists() and not bf16_blob.exists()
+    assert q8_link.exists() and q8_blob.exists()   # the OTHER rung is untouched
+
+
+# ── F4: staged-tree pruning must not depend on a successful cache scan ──────────
+
+def test_f4_delete_model_prunes_staged_tree_when_cache_scan_fails(monkeypatch, tmp_path):
+    """F4: delete_model's `except Exception: cache = None` -> `return 0` early
+    return used to skip staged-tree pruning entirely -- a transient (or out-of-
+    band-cache-wipe-triggered) scan_cache_dir() failure would leave a TTS
+    card's staged hard link (and the disk blocks it keeps alive) behind
+    forever, with no other path left to reach it once the HF-cache-side file
+    it mirrors is gone. The staged tree lives OUTSIDE scan_cache_dir()'s view
+    (a sibling of models--org--repo/ under the same cache root, R18), so
+    pruning it needs no cache scan at all."""
+    from sokuji_sidecar import native_models as nm
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    q8_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    staging_root = tmp_path / "sokuji-tts-staging" / "audio-cpp--audio.cpp-gguf__rev1"
+    staged = staging_root / q8_fname
+    staged.parent.mkdir(parents=True)
+    staged.write_bytes(b"x" * 111)
+
+    monkeypatch.setattr("huggingface_hub.scan_cache_dir",
+                        lambda: (_ for _ in ()).throw(RuntimeError("cache scan failed")))
+
+    freed = nm.delete_model("moss-tts-nano")
+
+    assert freed == 0
+    assert not staged.exists()
+    assert not staging_root.exists()   # now-empty staged dir pruned too
+
+
+def test_f4_delete_model_prunes_whole_repo_staging_when_cache_scan_fails(monkeypatch, tmp_path):
+    """F4's twin for the whole-revision (solo-owner-repo) delete path: a repo
+    used by exactly one catalog card also has its staged tree pruned via
+    _prune_staged_repo even when scan_cache_dir() fails."""
+    from sokuji_sidecar import native_models as nm
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    staging_root = tmp_path / "sokuji-tts-staging" / "handy-computer--whisper-base-gguf__rev1"
+    staged = staging_root / "whisper-base-Q8_0.gguf"
+    staged.parent.mkdir(parents=True)
+    staged.write_bytes(b"x")
+
+    monkeypatch.setattr("huggingface_hub.scan_cache_dir",
+                        lambda: (_ for _ in ()).throw(RuntimeError("cache scan failed")))
+
+    freed = nm.delete_model("whisper-base")
+
+    assert freed == 0
+    assert not staged.exists()
+    assert not staging_root.exists()
+
+
 def test_prune_staged_repo_removes_every_revision_for_that_repo_only(monkeypatch, tmp_path):
     """Direct unit test of _prune_staged_repo() (the whole-repo delete path's
     staging counterpart): removes every staged revision directory for the given

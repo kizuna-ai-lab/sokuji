@@ -3,10 +3,22 @@ import sys
 import time
 
 
-def _translate_teardown(state):
-    """Free this connection's translate model when the connection closes."""
+def _translate_teardown(state, generation=None):
+    """Free this connection's translate model when the connection closes.
+
+    M5 twin (see tts_engine.py's _tts_teardown docstring for the full trace of
+    the race this guards -- ledgered against this exact line, tts_engine.py's own
+    _h_tts_init comment history, and .superpowers/slice5-surface-inventory.md
+    §10(a)): TranslateEngine.init() below also calls close() on entry for VRAM
+    hygiene; `generation` is the engine's generation token captured by
+    _h_translate_init at the time IT finished loading, and a stale teardown from
+    an earlier init (superseded by a fresher one since) no-ops instead of tearing
+    down the newer, currently-live backend. generation=None (every pre-M5 direct
+    call) disables the check, matching the old unconditional-close behavior."""
     eng = state.get("translate_engine")
     if eng is not None:
+        if generation is not None and getattr(eng, "generation", None) != generation:
+            return
         try:
             eng.close()
         except Exception:
@@ -21,10 +33,17 @@ class TranslateEngine:
         self._src = ""
         self._tgt = ""
         self.resolved = None
+        # M5 twin: see _translate_teardown()'s docstring.
+        self._generation = 0
+
+    @property
+    def generation(self) -> int:
+        return self._generation
 
     def init(self, model_id=None, source_lang="", target_lang="", device="auto",
              reserved_bytes=0, pin=None):
         t0 = time.time()
+        self._generation += 1              # M5 twin: bump BEFORE close(), see docstring above
         self.close()                       # VRAM hygiene: free any prior model first
         self._src, self._tgt = source_lang, target_lang
         from . import accel
@@ -77,9 +96,13 @@ async def _h_translate_init(state, msg, _b, conn=None):
     ms = state["translate_engine"].init(
         msg.get("model"), msg.get("sourceLang", ""), msg.get("targetLang", ""),
         msg.get("device", "auto"), reserved_bytes=reserve, pin=msg.get("variant"))
+    # M5 twin: capture the generation THIS init produced (getattr-guarded: a bare
+    # test double has no `.generation`, and None disables _translate_teardown's
+    # staleness check entirely -- see its docstring).
+    generation = getattr(state["translate_engine"], "generation", None)
     # This connection owns the translate model: closing it frees the model from VRAM.
     if conn is not None:
-        conn.on_close(lambda: _translate_teardown(state))
+        conn.on_close(lambda: _translate_teardown(state, generation))
     reply = {"type": "ready", "id": msg.get("id"), "loadTimeMs": ms}
     resolved = getattr(state["translate_engine"], "resolved", None)
     if resolved:

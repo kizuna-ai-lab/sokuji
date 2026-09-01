@@ -50,14 +50,32 @@ class TtsEngine:
         self.clones = False
         self.model_id = None
         self.resolved = None
+        # M2: the connection that currently owns the loaded model (set by
+        # _h_tts_init, compared by identity -- never an id, which can be reused
+        # after reconnection -- in _h_tts_generate/_h_tts_cancel). None means "no
+        # owner recorded yet" (nothing has ever called tts_init through the
+        # handler layer), which disables the check entirely -- matches every
+        # pre-M2 test double that talks to this engine directly, bypassing
+        # tts_init.
+        self._owner_conn = None
+        # M5: bumped at the START of every init() (before close()) -- a stale
+        # teardown closure captured by an EARLIER tts_init compares the generation
+        # it captured against this CURRENT value and no-ops if a fresher init has
+        # since run. See _tts_teardown()'s own docstring for the race this guards.
+        self._generation = 0
 
     @property
     def is_loaded(self) -> bool:
         return self._backend is not None
 
+    @property
+    def generation(self) -> int:
+        return self._generation
+
     def init(self, model_id=None, device="auto", language="", pin=None):
         from . import accel, catalog
         t0 = time.time()
+        self._generation += 1               # M5: bump BEFORE close() -- see docstring above
         self.close()                        # VRAM hygiene: free any prior model first
         mid = model_id or "moss-tts-nano"
         plans = accel.resolve_tts(mid, override=device or "auto", pin=pin)
@@ -204,17 +222,32 @@ class TtsEngine:
                 pass
 
 
-def _tts_teardown(state, conn):
+def _tts_teardown(state, conn, generation=None):
     """Free this connection's TTS model when the connection closes.
 
     Reads the stream task from conn.ctx at close time: tts_generate creates it after
     tts_init registered this cleanup.
+
+    M5: `generation` is the engine's generation token AT THE TIME the tts_init that
+    registered THIS closure finished loading (see _h_tts_init). eng.init() calls
+    close() on entry for VRAM hygiene, and that now runs off the event loop, so a
+    stale teardown from a PRIOR tts_init on this (or another) connection could
+    otherwise still be in flight -- or fire later, e.g. on disconnect -- racing a
+    fresher init's own close()+load() sequence and tearing down a model that
+    fresher init has since loaded. Comparing the captured generation against the
+    engine's CURRENT one (getattr-guarded so a caller/test double with no
+    `.generation` at all -- i.e. every pre-M5 direct call -- behaves exactly as
+    before, generation=None disabling the check) makes a superseded teardown a
+    no-op: whichever tts_init is CURRENT owns cleanup, and its own teardown will
+    run later.
     """
     task = conn.ctx.get("tts_stream_task")
     if task is not None:
         task.cancel()
     eng = state.get("tts_engine")
     if eng is not None:
+        if generation is not None and getattr(eng, "generation", None) != generation:
+            return
         # Cancel the backend's own in-flight generation BEFORE closing the
         # engine (review round 1, CQ-4): close() -> backend.unload() cancels and
         # joins the streaming worker itself, but reaching into cancel_active()
@@ -236,18 +269,22 @@ async def _h_tts_init(state, msg, _b, conn=None):
     # Off the event loop: model load (and the full synthesis measure_rtf_tts runs
     # inside it) must not stall this connection's ASR/translate traffic while it's
     # happening -- defect 1.
-    #
-    # Ownership-window caveat (ledgered slice-5 debt, not fixed here): eng.init()
-    # calls close() on entry for VRAM hygiene, but that now runs off-loop too, so a
-    # stale teardown from a PRIOR tts_init on this same connection could in
-    # principle still be racing a fresh init's on_close registration below --
-    # translate_engine's init/teardown pair has the same unfixed ownership window.
     ms = await loop.run_in_executor(
         None, lambda: eng.init(msg.get("model"), msg.get("device", "auto"),
                                msg.get("language", ""), pin=msg.get("variant")))
+    # M2: this connection now owns the loaded model -- tts_generate/tts_cancel from
+    # a DIFFERENT live connection are rejected (see the ownership check in both
+    # handlers below). A later tts_init, from this connection or another, still
+    # evicts unconditionally (eng.init()'s own close-on-entry, unchanged) and simply
+    # records the new owner here.
+    eng._owner_conn = conn
+    # M5: capture the generation THIS init produced (getattr-guarded: a bare test
+    # double standing in for the engine has no `.generation`, and None disables
+    # _tts_teardown's staleness check entirely, preserving pre-M5 behavior for it).
+    generation = getattr(eng, "generation", None)
     # This connection owns the TTS model: closing it frees the model from VRAM.
     if conn is not None:
-        conn.on_close(lambda: _tts_teardown(state, conn))
+        conn.on_close(lambda: _tts_teardown(state, conn, generation))
     reply = {"type": "ready", "id": msg.get("id"), "sampleRate": eng.sample_rate,
              "loadTimeMs": ms}
     if eng.resolved:
@@ -277,12 +314,32 @@ async def _h_set_voice(state, msg, binary_in, conn=None):
     return {"type": "ok", "id": msg.get("id")}, None
 
 
+def _not_owner_error(mid, msg_type):
+    # M2: stable, greppable marker embedded in the message text -- wire_schema.json's
+    # "error" shape only carries {message, id, model} (no `code` field), so there is
+    # nowhere else to put a distinct code string.
+    return {"type": "error", "id": mid,
+            "message": f"not_owner: {msg_type} from a connection that does not "
+                       "own the loaded TTS model"}
+
+
 async def _h_tts_generate(state, msg, _b, conn=None):
     eng = state["tts_engine"]
     loop = asyncio.get_running_loop()
     text = msg.get("text", "")
     speed = float(msg.get("speed", 1.0))
     mid = msg.get("id")
+    # M2: cross-connection crosstalk guard. `state["tts_engine"]` is a PROCESS
+    # SINGLETON (module docstring), so without this check a second connection's
+    # tts_generate could poison the first connection's `state["tts_cancels"]` entry
+    # (keyed globally by mid, not per-connection) or, in the one-shot branch below,
+    # just run a completely different connection's request against the model the
+    # OWNER loaded. getattr-guarded: a bare test double with no `._owner_conn` (every
+    # pre-M2 direct handler call) reads None, which -- same as "no owner recorded
+    # yet" -- disables the check.
+    owner = getattr(eng, "_owner_conn", None)
+    if owner is not None and conn is not None and conn is not owner:
+        return _not_owner_error(mid, "tts_generate"), None
     if eng.streaming and conn is not None:
         cancels = state.setdefault("tts_cancels", {})
         # Cancel any prior in-flight stream on this connection (one active stream per
@@ -296,6 +353,25 @@ async def _h_tts_generate(state, msg, _b, conn=None):
             prior_mid = conn.ctx.get("tts_stream_mid")
             if prior_mid is not None:
                 cancels[prior_mid] = True
+
+                def _pop_stale_cancel_flag(task, _mid=prior_mid):
+                    # M3: a task cancelled via .cancel() BEFORE the event loop ever
+                    # scheduled its coroutine body (e.g. two tts_generate calls
+                    # processed back-to-back with no intervening await-that-
+                    # suspends) closes WITHOUT ever entering _run_tts_stream(), so
+                    # that coroutine's own `finally: cancels.pop(mid, None)` never
+                    # runs -- cancels[_mid] would otherwise leak for the rest of
+                    # the process (dead but bounded: _mid is never read again once
+                    # the stream it named is gone). done_callback fires once the
+                    # task is fully finished, whether or not its body ever ran;
+                    # task.cancelled() is True in the already-running case too
+                    # (CancelledError propagates out uncaught), where the
+                    # coroutine's own finally already popped it -- this is then
+                    # just a harmless, idempotent no-op second pop.
+                    if task.cancelled():
+                        cancels.pop(_mid, None)
+
+                prior.add_done_callback(_pop_stale_cancel_flag)
             eng.cancel_active()
             prior.cancel()
 
@@ -332,12 +408,22 @@ async def _h_tts_cancel(state, msg, _b, conn=None):
     for a stale/already-completed/superseded id would stop a DIFFERENT, still-
     wanted stream instead of doing nothing. The client-side relay flag
     (state["tts_cancels"], polled by generate_stream's should_cancel()) has no
-    such ambiguity -- it is keyed by id and stays set unconditionally."""
-    cancels = state.get("tts_cancels") or {}
+    such ambiguity -- it is keyed by id and stays set unconditionally.
+
+    M2: a cancel from a connection other than the one that owns the loaded model is
+    rejected outright (not_owner error) rather than merely gated on active_mid below
+    -- state["tts_cancels"] is a single dict shared by every connection (the engine
+    is a process singleton), so a foreign connection guessing/replaying an id could
+    otherwise still flip the OWNER's cancel flag even though CQ-8's active_mid check
+    already stops it from reaching cancel_active()."""
     mid = msg.get("id")
+    eng = state.get("tts_engine")
+    owner = getattr(eng, "_owner_conn", None) if eng is not None else None
+    if owner is not None and conn is not None and conn is not owner:
+        return _not_owner_error(mid, "tts_cancel"), None
+    cancels = state.get("tts_cancels") or {}
     if mid in cancels:
         cancels[mid] = True
-    eng = state.get("tts_engine")
     active_mid = conn.ctx.get("tts_stream_mid") if conn is not None else None
     if eng is not None and mid is not None and mid == active_mid:
         eng.cancel_active()

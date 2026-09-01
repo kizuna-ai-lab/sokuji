@@ -413,6 +413,25 @@ def delete_model(model_id, repo=None):
     underlying blob's inode (and its disk blocks) alive even after the HF-cache-side
     symlink/blob above is removed, so skipping this would make "delete" free zero
     bytes for any TTS card whose model was ever loaded.
+
+    M4: `repo=None` means "delete the whole model", not just whichever ONE rung
+    download_specs()/model_status() resolve as the default for status/download
+    purposes. For a TTS card every quant deployment shares the SAME (multi-card-
+    shared) HF repo but a DIFFERENT fname — download_specs's single-rung shape
+    (the default quant's artifact only) is right for status/download (which only
+    ever want ONE resolved rung at a time), but wrong here: a previously
+    downloaded NON-default rung (e.g. an f16 pin the user downloaded, then
+    deleted after the renderer's variant selector reverted to "default") would
+    otherwise survive untouched and keep model_status reporting the card "ready"
+    forever (_ladder_artifacts' any-rung-cached relaxation). Expand to every
+    rung's (repo, fname) [+ extra_files] below when the caller asked for the
+    whole model, not a specific chosen variant.
+
+    F4: staged-tree pruning must not depend on scan_cache_dir() succeeding — the
+    staged hard-link tree is a SEPARATE tree from the one scan_cache_dir() reads
+    (a sibling of models--org--repo/ under the same cache root, R18), so a
+    transient/out-of-band scan failure must not skip pruning it too (previously
+    the `cache is None` branch returned 0 before ever reaching either prune call).
     """
     from huggingface_hub import scan_cache_dir
     specs = download_specs(model_id, repo)
@@ -421,20 +440,57 @@ def delete_model(model_id, repo=None):
     for r, fname in specs.get("files", []):
         files_by_repo.setdefault(r, []).append(fname)
 
+    if repo is None:
+        from .catalog import tts_model as _tts_model
+        _tm = _tts_model(model_id) if model_id else None
+        if _tm is not None:
+            seen = set()
+            for dep in _tm.deployments:
+                r, fname = split_artifact(dep.artifact)
+                if fname is None or (r, fname) in seen:
+                    continue
+                seen.add((r, fname))
+                files_by_repo.setdefault(r, []).append(fname)
+                for extra in _tts_extra_files(_tm, fname):
+                    if (r, extra) not in seen:
+                        seen.add((r, extra))
+                        files_by_repo[r].append(extra)
+
+    # F4: classify repos into "file-scoped" (shared by >1 catalog card) vs
+    # "whole-revision" (solo owner) BEFORE the cache scan below — this
+    # classification is pure catalog data (_repo_owner_cards never touches the
+    # cache), so it, and the staged-tree prune that follows from it, must not be
+    # skipped just because scan_cache_dir() itself fails.
+    shared_repo_fnames: dict = {}
+    solo_repos = set()
+    for r, fnames in files_by_repo.items():
+        if len(_repo_owner_cards(r)) > 1:
+            shared_repo_fnames[r] = fnames
+        else:
+            solo_repos.add(r)
+    wanted_repos |= solo_repos
+
     try:
         cache = scan_cache_dir()
     except Exception:
         cache = None
     if cache is None:
+        # F4: can't compute HF-cache-side byte counts or delete cache blobs
+        # without a successful scan, but the staged tree lives outside what
+        # scan_cache_dir() reads at all -- prune it anyway so a scan failure
+        # (or an out-of-band HF-cache wipe that makes the NEXT scan fail) never
+        # leaves a TTS card's staged hard link (and the disk it keeps alive)
+        # behind with no other path left to reach it.
+        for r, fnames in shared_repo_fnames.items():
+            _prune_staged_files(r, fnames)
+        for r in wanted_repos:
+            _prune_staged_repo(r)
         return 0
 
     freed = 0
-    for r, fnames in files_by_repo.items():
-        if len(_repo_owner_cards(r)) > 1:
-            freed += _delete_shared_repo_files(cache, r, fnames)
-            _prune_staged_files(r, fnames)
-        else:
-            wanted_repos.add(r)
+    for r, fnames in shared_repo_fnames.items():
+        freed += _delete_shared_repo_files(cache, r, fnames)
+        _prune_staged_files(r, fnames)
 
     if wanted_repos:
         revisions = []

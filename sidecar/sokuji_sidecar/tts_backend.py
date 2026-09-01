@@ -205,6 +205,22 @@ def _stage_for_native(repo: str, rev: str, rel_path: str, source: str) -> str:
     real_source = os.path.realpath(source)
     try:
         os.link(real_source, staged)
+    except FileExistsError:
+        # F2: another loader won the same race -- two concurrent load() calls for
+        # the SAME card (plausible precisely because the TTS engine is a process
+        # singleton, see (c)/M2: two connections both loading the same model at
+        # once) can both pass the exists+samefile check above (staged path absent
+        # yet) and then both reach here; the loser's os.link() raises
+        # FileExistsError once the winner's link has already landed. Re-run the
+        # SAME idempotency check rather than falling straight to the (possibly
+        # multi-GB) copy fallback below: if it's already the right file, we're
+        # done. Only a genuine mismatch (or a samefile() failure) falls through.
+        try:
+            if os.path.samefile(staged, source):
+                return staged
+        except OSError:
+            pass
+        shutil.copyfile(real_source, staged)
     except OSError:
         # EXDEV (staging ended up on a different filesystem than the blob it links
         # to -- should not happen given _staging_root()'s placement, but a hostile or

@@ -1009,6 +1009,46 @@ def test_stage_for_native_resolves_a_real_symlinked_source_not_the_platforms_lin
         assert f.read() == b"real blob content"
 
 
+def test_f2_stage_for_native_race_recovers_from_file_exists_error_without_copy(tmp_path, monkeypatch):
+    """F2: a concurrent load() for the SAME card -- plausible precisely because
+    the TTS engine is a process singleton (see (c)/M2: two connections both
+    loading the same model at once) -- can have both callers pass the initial
+    exists+samefile check (staged path absent yet) and then race into
+    os.link(): the loser gets FileExistsError (an OSError subclass) once the
+    winner's link has already landed. Before this fix that fell into the SAME
+    `except OSError` branch as 'no hard-link support', wastefully falling back
+    to a full (possibly multi-GB) file copy of a file that's already correctly
+    staged. The fix re-runs the idempotency check specifically on
+    FileExistsError and returns without copying when it already matches."""
+    import shutil
+    from sokuji_sidecar import tts_backend
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path / "hub"))
+
+    source = tmp_path / "snap" / "dir" / "model.gguf"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"real content")
+
+    real_link = os.link
+
+    def racing_link(src, dst, *a, **kw):
+        # Simulate another loader's os.link() landing between our exists+
+        # samefile check and this call: create the REAL correct link (as the
+        # winner would have) and THEN raise, exactly what a real race's loser
+        # observes.
+        real_link(src, dst)
+        raise FileExistsError(17, "File exists")
+
+    monkeypatch.setattr(os, "link", racing_link)
+    copy_calls = []
+    monkeypatch.setattr(shutil, "copyfile", lambda *a, **k: copy_calls.append(a))
+
+    staged = tts_backend._stage_for_native("acme/repo", "rev1", "dir/model.gguf", str(source))
+
+    assert os.path.samefile(staged, source)
+    assert copy_calls == []          # no copy performed -- the race was recovered from
+
+
 def test_load_stages_pocket_extra_files_alongside_the_gguf(native_env):
     """R18: PlanConfig.tts_extra_files (planner._plan_config, straight off
     TtsModel.extra_files) carries pocket-tts-en's embeddings/alba.safetensors --
