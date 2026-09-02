@@ -628,9 +628,15 @@ ipcMain.handle('sidecar-bundle:status', () => {
   // mac-x64) keep every old sku's multi-GB bundle tree forever, since install/
   // remove only ever touch the CURRENT sku's dir. Prune once here, at the
   // first bundle-resolution call the renderer makes each launch; never throws.
+  // `installing: _bundleInstalling` (fix round 1): a renderer reload (Ctrl+R /
+  // View menu reload, not dev-gated) resets the renderer's own in-memory
+  // "install in progress" guard while main's install promise keeps running —
+  // the remounted settings panel's status query must not race a live install's
+  // `.tmp` extraction target with this prune.
   if (sku !== null) {
     sidecarBundle.pruneStaleSkuDirs(
-      path.dirname(sidecarBundle.bundleInstallDir(app.getPath('userData'), sku)), sku);
+      path.dirname(sidecarBundle.bundleInstallDir(app.getPath('userData'), sku)), sku,
+      { installing: _bundleInstalling });
   }
   if (sku === null) {
     // Even without a bundle SKU (ARM windows) a dev checkout

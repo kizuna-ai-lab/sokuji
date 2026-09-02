@@ -260,6 +260,43 @@ describe('pruneStaleSkuDirs (orphaned old-SKU bundle dirs)', () => {
     const missing = path.join(tmpdir(), `sb-prune-missing-${Date.now()}`);
     expect(() => pruneStaleSkuDirs(missing, 'mac-arm64')).not.toThrow();
   });
+
+  // Fix round 1 (reviewer-reproduced BLOCKING finding): installBundle's
+  // two-rename swap creates `${dest}.tmp` (the live extraction target, for as
+  // long as a multi-GB archive takes to unpack) and `${dest}.old` (kept for
+  // rollback until the swap commits) as siblings of the sku dirs under this
+  // same root. Neither name equals a bare sku, so an unpatched prune reads
+  // them as "not the current sku" and deletes them out from under a live
+  // install.
+  it('exempts <sku>.tmp/.old siblings (any known sku, not just the current one) from an installBundle swap in progress', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-prune-'));
+    const root = path.join(u, 'sidecar');
+    mkdirSync(path.join(root, 'mac-arm64'), { recursive: true }); // current sku, already installed
+    mkdirSync(path.join(root, 'mac-arm64.tmp'), { recursive: true }); // live extraction target
+    writeFileSync(path.join(root, 'mac-arm64.tmp', 'partial.bin'), 'still extracting');
+    mkdirSync(path.join(root, 'mac-arm64.old'), { recursive: true }); // pending rollback
+    mkdirSync(path.join(root, 'win-x64.tmp'), { recursive: true }); // a DIFFERENT (but still current-vocabulary) sku's swap artifact
+    mkdirSync(path.join(root, 'linux-nvidia'), { recursive: true }); // an old-vocabulary bundle — not a known sku at all
+
+    pruneStaleSkuDirs(root, 'mac-arm64');
+
+    expect(existsSync(path.join(root, 'mac-arm64.tmp', 'partial.bin'))).toBe(true);
+    expect(existsSync(path.join(root, 'mac-arm64.old'))).toBe(true);
+    expect(existsSync(path.join(root, 'win-x64.tmp'))).toBe(true);
+    // The exemption is narrowly for known-sku .tmp/.old swap artifacts — an
+    // old-vocabulary dir that isn't a recognized sku at all is still pruned.
+    expect(existsSync(path.join(root, 'linux-nvidia'))).toBe(false);
+  });
+
+  it('is a complete no-op while an install is in flight ({ installing: true })', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-prune-'));
+    const root = path.join(u, 'sidecar');
+    mkdirSync(path.join(root, 'linux-nvidia'), { recursive: true }); // would normally be pruned
+
+    pruneStaleSkuDirs(root, 'mac-arm64', { installing: true });
+
+    expect(existsSync(path.join(root, 'linux-nvidia'))).toBe(true);
+  });
 });
 
 describe('staging (spec S6)', () => {
