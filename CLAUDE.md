@@ -133,17 +133,20 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      (`cmake/patch_upstream.py`, anchored `old`→`new`, must match exactly once or the build fails
      loudly — "the pin moved, fix the spec"): always-on `ggml-gguf-bulk-array-read.json`
      (bulk-reads GGUF array KVs instead of one `fread`/element — cuts `supertonic`'s TTS load
-     ~12x) and Metal-only `ggml-metal-{diag-mask-inf,pad-leading}.json` (restores ops ggml's
-     Metal backend dropped that audio.cpp needs).
+     ~9-12x depending on the box) and Metal-only `ggml-metal-{diag-mask-inf,pad-leading}.json`
+     (DIAG_MASK_INF, which ggml's Metal backend dropped, and leading-edge PAD, which it never
+     had — both needed by audio.cpp).
    - **Five SKUs** (`electron/sidecar-sku.js`): linux-x64/linux-arm64 (Vulkan,
      `manylinux_2_35_*` floor, ubuntu-22.04 CI + a from-source Khronos toolchain for `glslc` —
      R37/R38, LunarG's apt has no arm64), win-x64 (Vulkan, LunarG SDK), mac-arm64 (Metal),
-     mac-x64 (CPU only, GPU lane `none`). Tiers `cpu`/`gpu-vulkan`/`gpu-metal`, ranked in that
-     order by `TIER_RANK` (`planner.py`); a Metal device reporting `/paravirtual/i` (every CI
-     macOS runner) is excluded from `gpu-metal` so a VM shim is never handed a plan that
-     hard-aborts. Real-GPU smoke: five TTS families pass on GB10 (linux-arm64), an RTX 4070
-     SUPER over win-x64 and linux-x64, and an Apple M4 (mac-arm64) — bf16 rungs too; CI's own
-     Metal runner is a paravirtual VM and can never supply real-hardware evidence.
+     mac-x64 (CPU only, GPU lane `none`). Tiers `gpu-metal`/`gpu-vulkan`/`cpu`, ranked in that
+     order (highest first) by `TIER_RANK` (`planner.py`: 3.0/2.5/1.0); a Metal device reporting
+     `/paravirtual/i` (every CI macOS runner) is excluded from `gpu-metal` so a VM shim is never
+     handed a plan that hard-aborts. Real-GPU smoke (default q8_0/f16 rungs): five TTS families
+     pass on GB10 (linux-arm64), an RTX 4070 SUPER over win-x64 and linux-x64, and an Apple M4
+     (mac-arm64). bf16 rungs validated 4/4 families on GB10/Vulkan and M4/Metal only (supertonic
+     ships no bf16; not yet run on win-x64/linux-x64). CI's own Metal runner is a paravirtual VM
+     and can never supply real-hardware evidence.
    - **Versions**: native's lives in `CMakeLists.txt`'s `project(sokuji_native VERSION …)` (+
      the `sk_version()` literal in `tests/test_common.cpp`) → tag `native-vX.Y.Z` →
      `native-build.yml` publishes five wheels as a **prerelease** (never "latest", so
@@ -165,10 +168,14 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      family/quant — a GGML abort is an uncatchable SIGABRT); `native/tests/parity`
      (sample-exact vs. `audiocpp_cli`, its own per-source-keyed "nosve" cache); the sidecar's
      live TTS→ASR loopback (`SOKUJI_RUN_TTS_LOOPBACK=1`, `sidecar/tests/test_tts_engine.py`).
-     `sidecar-tests` in CI needs `PYTHONPATH=sidecar` — it isn't installed as a package.
+     `sidecar-tests` in CI needs `PYTHONPATH=sidecar` — it isn't installed as a package; it
+     installs `sidecar/requirements.txt` but sets neither `SK_TEST_TTS_GPU` nor
+     `SOKUJI_RUN_TTS_LOOPBACK`, and every native-gated test `importorskip`s silently when no
+     `sokuji_native` wheel resolves.
    - **Thread policy**: `n_threads=0` (default) resolves to `min(hardware_concurrency, 12)` —
-     `ggml_barrier()` spin-waits with no yield, so going past ~12 workers costs 2-5x;
-     `SOKUJI_NATIVE_THREADS` overrides. A GPU TTS load runs one discarded warm-up `synth()`
+     `ggml_barrier()` spin-waits with no yield, so at `n_threads == nproc` timing turns unstable
+     (1.2-4.3x run-to-run spread measured at nproc=20 on GB10 vs. ~1.03x at the 12-thread knee;
+     a 10-core M4 never crosses it); `SOKUJI_NATIVE_THREADS` overrides. A GPU TTS load runs one discarded warm-up `synth()`
      (skipped for CPU and the two clone-only voice-required families) to pay the driver's
      one-time pipeline-compile cost at load, not on the user's first utterance.
    - **Voice rules** (`tts_backend.py`): `qwen3_tts`/`omnivoice` are clone-only — a bare
