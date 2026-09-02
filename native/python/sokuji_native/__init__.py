@@ -389,7 +389,7 @@ class Translator:
                     try:
                         on_token(tail)
                     except Exception:
-                        pass
+                        pass  # deliberate: parity with the trampoline, where ctypes swallows the raise
 
         return _ffi.TEXT_CB(_cb), got, _flush
 

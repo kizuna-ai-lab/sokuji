@@ -215,6 +215,11 @@ int main(int argc, char **argv) {
     // 10.000s, while its supertonic output had identical sample counts to gcc-13's — no
     // bit-level comparison was made). A greedy regression trips BOTH prompts; sampling
     // variance trips at most one. So: one tripped prompt is a warning, two is the failure.
+    if (moss_out.channels <= 0 || moss_out.rate <= 0) {
+        std::fprintf(stderr, "moss synth reported invalid layout: channels=%d rate=%d\n",
+                     moss_out.channels, moss_out.rate);
+        return 1;
+    }
     const double moss_duration_s =
         static_cast<double>(moss_out.samples.size()) / moss_out.channels / moss_out.rate;
     const bool moss_capped = moss_duration_s >= 10.0;
@@ -249,6 +254,11 @@ int main(int argc, char **argv) {
     }
     // Second half of the R23/R39 guard: the clone prompt (a synthetic sine reference, so a
     // degenerate voice prompt) is the one most likely to run away under sampling variance.
+    if (moss_out2.channels <= 0 || moss_out2.rate <= 0) {
+        std::fprintf(stderr, "moss clone synth reported invalid layout: channels=%d rate=%d\n",
+                     moss_out2.channels, moss_out2.rate);
+        return 1;
+    }
     const double moss_clone_duration_s =
         static_cast<double>(moss_out2.samples.size()) / moss_out2.channels / moss_out2.rate;
     const bool moss_clone_capped = moss_clone_duration_s >= 10.0;

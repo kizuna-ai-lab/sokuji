@@ -235,7 +235,7 @@ def check_boot_handshake(py: pathlib.Path, app_dir: pathlib.Path,
             try:
                 seen.extend(l.rstrip("\n") for l in proc.stdout.readlines())
             except Exception:
-                pass
+                pass  # deliberate: best-effort drain on a failure path; the pump thread may hold the pipe
 
     if port is None:
         tail = "\n".join(seen[-40:]) if seen else "(no output captured)"

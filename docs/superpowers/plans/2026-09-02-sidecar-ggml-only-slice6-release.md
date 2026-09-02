@@ -28,8 +28,12 @@ hollow-bundle finding, version plumbing, blockers) + the memory decisions of 202
   first, the app's `sidecarVersion` bump rides the next normal app release; Metal ships
   M4-validated with the real-M1 gap documented; win-x64 GPU smoke on the .13 box
   (jiangzhuo boots it on request).
-- Ruling R37: the two Linux lanes move to **ubuntu-22.04 + LunarG's jammy apt repo for
-  glslc**, wheel tags **manylinux_2_35_{x86_64,aarch64}** — evidence: the Ubuntu box
+- Ruling R37 (as executed, see R38 below): the two Linux lanes move to **ubuntu-22.04**,
+  wheel tags **manylinux_2_35_{x86_64,aarch64}**. The original text said "LunarG's jammy apt
+  repo for glslc"; that was rejected in Task 1's review (LunarG's jammy repo has no arm64
+  index and its libvulkan-dev ships no headers) and replaced by **Ruling R38**: glslc plus the
+  Vulkan/SPIRV headers are built from pinned Khronos sources by `native/ci/vulkan-toolchain.sh`
+  and cached per pin — `native/README.md` documents the shipped recipe. Evidence: the Ubuntu box
   built the vulkan lane green on 22.04/gcc-11 with max glibc symbol 2.34
   (.superpowers/linux-x64-vulkan-validation.md §9); 2.39 wheels excluded 22.04/Debian-12
   /RHEL-9 users for no reason. sidecar-bundles.yml linux jobs move to 22.04 too (the
