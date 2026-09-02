@@ -14,6 +14,14 @@ describe('Qwen3-ASR 0.6B (WebGPU) manifest entry', () => {
     expect(entry.cdnPath).toBeUndefined();
   });
 
+  it('is recommended and holds the ranking slot Voxtral Mini 3B held; Voxtral 3B moves to the non-recommended slot Qwen3 had (decided 2026-09-02)', () => {
+    const voxtral3b = getManifestEntry('voxtral-mini-3b-webgpu')!;
+    expect(entry.recommended).toBe(true);
+    expect(entry.sortOrder).toBe(3);
+    expect(voxtral3b.recommended).toBe(false);
+    expect(voxtral3b.sortOrder).toBe(5);
+  });
+
   it("lists the 16 languages the model card names, spelled the way the app's language list spells them ('cantonese', not 'yue')", () => {
     expect(entry.languages).toEqual(['zh', 'en', 'ja', 'ko', 'cantonese', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id']);
     expect(entry.multilingual).toBeFalsy();
