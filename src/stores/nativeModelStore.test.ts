@@ -469,23 +469,29 @@ describe('nativeModelStore engineInfo (hardware_info identity)', () => {
     expect(useNativeModelStore.getState().engineInfo).toBeNull();
   });
 
-  it('logs one info line on the ready transition — release bundle', async () => {
+  it('records one local.engine.ready event on the ready transition — release bundle', async () => {
     mockModelsCatalogResolve();
     mockHardwareInfoResolve();
     mockElectronBundleStatus({ installedVersion: '0.2.0', requiredVersion: '0.2.0', devVenvPresent: false });
     await useNativeModelStore.getState().ensureCatalog();
-    const lines = useLogStore.getState().allLogs.map((l) => l.message);
+    const lines = useLogStore.getState().allLogs
+      .flatMap((l) => l.events ?? [])
+      .filter((e) => e.type === 'local.engine.ready')
+      .map((e) => e.data?.message);
     expect(lines).toContain(
       'sidecar 0.2.0 ready: sokuji-native 1.0.1 (ggml 0.22.0, transcribe 0.2.2, llama 0.3.0, audiocpp 0.7.0) lane=cpu-vulkan device="NVIDIA GB10"'
     );
   });
 
-  it('logs one info line on the ready transition — dev venv (no bundleVersion)', async () => {
+  it('records one local.engine.ready event on the ready transition — dev venv (no bundleVersion)', async () => {
     mockModelsCatalogResolve();
     mockHardwareInfoResolve();
     mockElectronBundleStatus({ installedVersion: null, requiredVersion: null, devVenvPresent: true });
     await useNativeModelStore.getState().ensureCatalog();
-    const lines = useLogStore.getState().allLogs.map((l) => l.message);
+    const lines = useLogStore.getState().allLogs
+      .flatMap((l) => l.events ?? [])
+      .filter((e) => e.type === 'local.engine.ready')
+      .map((e) => e.data?.message);
     expect(lines).toContain(
       'sidecar dev venv ready: sokuji-native 1.0.1 (ggml 0.22.0, transcribe 0.2.2, llama 0.3.0, audiocpp 0.7.0) lane=cpu-vulkan device="NVIDIA GB10"'
     );

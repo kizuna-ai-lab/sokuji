@@ -463,7 +463,20 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         engineInfo,
       }));
       const { bundleVersion, bundleDevVenv } = get();
-      useLogStore.getState().addLog(formatEngineReadyLog(bundleVersion, bundleDevVenv, engineInfo), 'info');
+      // An info record, not a failure (diagnostics design #441): it rides the
+      // events stream, which LogsPanel shows and 'copy logs' exports, never the
+      // plain error/warning entries that report.ts owns.
+      useLogStore.getState().addRealtimeEvent({
+        type: 'local.engine.ready',
+        data: {
+          message: formatEngineReadyLog(bundleVersion, bundleDevVenv, engineInfo),
+          sidecarVersion: bundleVersion ?? (bundleDevVenv ? 'dev venv' : null),
+          nativeVersion: engineInfo?.nativeVersion ?? null,
+          engineVersions: engineInfo?.engineVersions ?? null,
+          lane: engineInfo?.lane ?? null,
+          device: engineInfo?.preferredDevice?.description ?? null,
+        },
+      }, 'client', 'local.engine.ready');
     } catch {
       set({ sidecarStatus: 'unavailable', engineInfo: null });
     }
