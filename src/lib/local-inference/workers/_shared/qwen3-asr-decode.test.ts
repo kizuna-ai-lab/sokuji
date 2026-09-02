@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { argmax, f16ToF32, f32ToF16, greedyDecode, type DecodeDeps, type RunnableSession, type RunnableTensor } from './qwen3-asr-decode';
+import { argmax, f16ToF32, f32ToF16, f32ToF16Fallback, greedyDecode, type DecodeDeps, type RunnableSession, type RunnableTensor } from './qwen3-asr-decode';
 
 const HIDDEN = 4;
 const VOCAB = 10;
@@ -92,6 +92,53 @@ describe('float16 helpers and argmax', () => {
     const src = new Float32Array([0, 1, -1, 0.5, 65504, 1e-4, -3.25]);
     const back = f16ToF32(f32ToF16(src));
     for (let i = 0; i < src.length; i++) expect(back[i]).toBeCloseTo(src[i], src[i] > 1000 ? -2 : 3);
+  });
+
+  // The portable fallback must be bit-identical to the engine's Float16Array (present in
+  // Node ≥ 22 and Chromium ≥ 135) so q4f16 tensors do not depend on which path built them.
+  const F16 = (globalThis as unknown as { Float16Array?: new (a: ArrayLike<number>) => { buffer: ArrayBuffer } }).Float16Array;
+  const nativeBits = (v: number[]) => new Uint16Array(new F16!(v).buffer);
+  const fallbackBits = (v: number[]) => f32ToF16Fallback(Float32Array.from(v));
+
+  it.skipIf(!F16)('fallback matches Float16Array bit-for-bit: rounding (nearest-even), subnormals, NaN, Inf, overflow, signed zero', () => {
+    const values = [
+      0, -0, 1, -1, 0.5, 3.25, 65504, -65504,
+      65520,                      // rounds up past max → Inf
+      1.00048828125,              // exactly between two halves (1 + 2^-11) → ties-to-even
+      1.00146484375,              // 1 + 3·2^-11 → ties-to-even the other way
+      1.0009765625 + 1e-7,        // just above a halfway point → rounds up
+      6.103515625e-5,             // smallest half normal (2^-14)
+      6.0975551605224609375e-5,   // largest half subnormal
+      5.960464477539063e-8,       // smallest half subnormal (2^-24)
+      2.980232238769531e-8,       // exactly half of the smallest subnormal → ties-to-even → 0
+      2.98023e-8 * 1.5,           // above that halfway → smallest subnormal
+      1e-9,                       // far below → signed zero
+      -1e-9,
+      NaN, Infinity, -Infinity,
+      0.1, 0.2, 0.3, 123.456, -0.000123,
+    ];
+    const a = fallbackBits(values);
+    const b = nativeBits(values);
+    for (let i = 0; i < values.length; i++) {
+      // NaN payloads may differ between engines; only require both to be NaN.
+      if (Number.isNaN(values[i])) {
+        expect((a[i] & 0x7c00) === 0x7c00 && (a[i] & 0x3ff) !== 0).toBe(true);
+        expect((b[i] & 0x7c00) === 0x7c00 && (b[i] & 0x3ff) !== 0).toBe(true);
+        continue;
+      }
+      expect(a[i], `value ${values[i]} (index ${i})`).toBe(b[i]);
+    }
+  });
+
+  it('fallback encodes the documented corner cases even without Float16Array', () => {
+    const bits = fallbackBits([65520, 5.960464477539063e-8, 6.103515625e-5, 1e-9, -1e-9, NaN, -Infinity]);
+    expect(bits[0]).toBe(0x7c00);       // overflow → +Inf
+    expect(bits[1]).toBe(0x0001);       // smallest subnormal, not flushed to zero
+    expect(bits[2]).toBe(0x0400);       // smallest normal
+    expect(bits[3]).toBe(0x0000);       // +0
+    expect(bits[4]).toBe(0x8000);       // -0 keeps its sign
+    expect(bits[5] & 0x7fff).toBeGreaterThan(0x7c00); // NaN, not Inf
+    expect(bits[6]).toBe(0xfc00);       // -Inf
   });
   it('argmax returns the first maximum', () => {
     expect(argmax([1, 3, 3, 2])).toBe(1);

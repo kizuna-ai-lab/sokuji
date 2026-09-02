@@ -39,12 +39,12 @@ export interface DecodeResult {
 
 const hasFloat16Array = typeof (globalThis as { Float16Array?: unknown }).Float16Array !== 'undefined';
 
-/** float32 → IEEE half, as the Uint16 bit pattern onnxruntime-web expects for 'float16' tensors. */
-export function f32ToF16(src: Float32Array): Uint16Array {
-  if (hasFloat16Array) {
-    const F16 = (globalThis as unknown as { Float16Array: new (a: ArrayLike<number>) => { buffer: ArrayBuffer } }).Float16Array;
-    return new Uint16Array(new F16(src).buffer);
-  }
+/**
+ * Portable float32 → IEEE 754 binary16 with round-to-nearest-even, half subnormals and NaN
+ * preserved — bit-identical to `Float16Array` so the two paths yield the same tensors.
+ * Used where `Float16Array` is missing (Chromium < 135; the extension supports 116+).
+ */
+export function f32ToF16Fallback(src: Float32Array): Uint16Array {
   const out = new Uint16Array(src.length);
   const f32 = new Float32Array(1);
   const u32 = new Uint32Array(f32.buffer);
@@ -52,11 +52,48 @@ export function f32ToF16(src: Float32Array): Uint16Array {
     f32[0] = src[i];
     const x = u32[0];
     const sign = (x >>> 16) & 0x8000;
-    const exp = ((x >>> 23) & 0xff) - 112;
-    const mant = (x >>> 13) & 0x3ff;
-    out[i] = exp <= 0 ? sign : exp >= 31 ? sign | 0x7c00 : sign | (exp << 10) | mant;
+    const exp = (x >>> 23) & 0xff;
+    const mant = x & 0x7fffff;
+    if (exp === 0xff) {
+      // Inf stays Inf; NaN keeps a quiet payload instead of collapsing to Inf.
+      out[i] = sign | 0x7c00 | (mant ? 0x200 : 0);
+      continue;
+    }
+    const e = exp - 112; // rebias 127 → 15
+    if (e >= 0x1f) {
+      out[i] = sign | 0x7c00; // overflow → Inf
+      continue;
+    }
+    if (e <= 0) {
+      if (e < -10) {
+        out[i] = sign; // below the smallest half subnormal → signed zero
+        continue;
+      }
+      // Half subnormal: shift the 24-bit significand into the 10-bit field with RNE.
+      const m = mant | 0x800000;
+      const shift = 14 - e;
+      let half = m >>> shift;
+      const rem = m & ((1 << shift) - 1);
+      const halfway = 1 << (shift - 1);
+      if (rem > halfway || (rem === halfway && (half & 1))) half++;
+      out[i] = sign | half;
+      continue;
+    }
+    let half = (e << 10) | (mant >>> 13);
+    const rem = mant & 0x1fff;
+    if (rem > 0x1000 || (rem === 0x1000 && (half & 1))) half++; // carry may bump the exponent; that is correct
+    out[i] = sign | half;
   }
   return out;
+}
+
+/** float32 → IEEE half, as the Uint16 bit pattern onnxruntime-web expects for 'float16' tensors. */
+export function f32ToF16(src: Float32Array): Uint16Array {
+  if (hasFloat16Array) {
+    const F16 = (globalThis as unknown as { Float16Array: new (a: ArrayLike<number>) => { buffer: ArrayBuffer } }).Float16Array;
+    return new Uint16Array(new F16(src).buffer);
+  }
+  return f32ToF16Fallback(src);
 }
 
 /** IEEE half bit patterns → float32. */

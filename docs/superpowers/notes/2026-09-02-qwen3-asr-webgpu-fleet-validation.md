@@ -19,7 +19,9 @@ page used; it also carries the wasm EP the VAD session needs).
 
 ## Results (real worker, per-utterance recognition time; auto = no forced language)
 
-All clips transcribed with no errors, no timeouts, one VAD segment per clip, no `!` collapse.
+No worker or runtime errors and no timeouts on any clip; each clip produced one VAD segment and
+no output collapsed to `!`. (Recognition quality is discussed below — "no errors" here means
+the pipeline, not the transcript.)
 
 | box | variant | jfk (en) | zh-1906 | zh-1883 (was the collapse clip) | ja-1828 | rec time |
 |---|---|---|---|---|---|---|

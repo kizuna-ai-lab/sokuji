@@ -368,6 +368,15 @@ async function handleInit(msg: Qwen3AsrInitMessage): Promise<void> {
       : null;
     const embF16 = emb.dtype === 'float16' ? new Uint16Array(embBytes.buffer, embBytes.byteOffset, embBytes.byteLength / 2) : null;
     const embF32 = emb.dtype === 'float32' ? new Float32Array(embBytes.buffer, embBytes.byteOffset, embBytes.byteLength / 4) : null;
+    // prompt_config.json is parsed JSON, not validated: an unknown dtype would leave every
+    // table null, embedRowInto would write zeros, and the worker would decode garbage while
+    // reporting ready. Fail loudly instead.
+    if (!embI8 && !embF16 && !embF32) {
+      throw new Error(`Qwen3-ASR: unsupported embedding dtype "${String(emb.dtype)}" in prompt_config.json`);
+    }
+    if (embI8 && !embScales) {
+      throw new Error('Qwen3-ASR: int8 embedding table requires embedding.scales_file in prompt_config.json');
+    }
 
     post({ type: 'status', message: `Loading Qwen3-ASR model (WebGPU, ${variant})...` });
     const weights = await bytes(v.weights);
