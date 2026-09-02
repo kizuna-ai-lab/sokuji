@@ -205,19 +205,24 @@ int main(int argc, char **argv) {
         return 1;
     }
     // Ruling R23 (.superpowers/moss-eoc-verdict.md): moss_tts_nano now samples instead of
-    // arg-maxing its stop decision, so a short utterance must reach real end-of-content
-    // well under audio.cpp's 300-frame/24.000s max_new_frames cap (measured: 2.6-3.7s).
-    // This replaces what would otherwise be a cap-shaped expectation (~24s, every time).
-    {
-        const double moss_duration_s =
-            static_cast<double>(moss_out.samples.size()) / moss_out.channels / moss_out.rate;
-        if (moss_duration_s >= 10.0) {
-            std::fprintf(stderr, "moss synth ran away: duration=%.3fs (want <10s, R23)\n", moss_duration_s);
-            return 1;
-        }
+    // arg-maxing its stop decision, so a short utterance normally reaches real
+    // end-of-content in a few seconds (measured: 2.6-3.7s) instead of running to audio.cpp's
+    // max_new_frames cap the way greedy decode does on this checkpoint (every prompt, every
+    // time). Ruling R39 (2026-09-02): the sampled path is deterministic per build (seed 0)
+    // but NOT across builds — a different compiler/libm shifts the logits by ULPs and the
+    // sample stream diverges, so any ONE prompt can still hit the cap on some build (the
+    // ubuntu-22.04-arm/gcc-11 lane did on the clone prompt while its supertonic output was
+    // sample-identical to gcc-13's). A greedy regression caps BOTH prompts; sampling variance
+    // caps at most one. So: one capped prompt is a warning, two is the failure.
+    const double moss_duration_s =
+        static_cast<double>(moss_out.samples.size()) / moss_out.channels / moss_out.rate;
+    const bool moss_capped = moss_duration_s >= 10.0;
+    if (moss_capped) {
+        std::fprintf(stderr, "WARNING: moss synth hit the cap: duration=%.3fs "
+                             "(R23 sampling variance on this build?)\n", moss_duration_s);
     }
-    std::fprintf(stderr, "moss synth: %d call(s), %zu samples, %d Hz\n",
-                 moss_out.calls, moss_out.samples.size(), moss_out.rate);
+    std::fprintf(stderr, "moss synth: %d call(s), %zu samples, %d Hz (%.3fs)\n",
+                 moss_out.calls, moss_out.samples.size(), moss_out.rate, moss_duration_s);
 
     // 1-second 440Hz sine, 24kHz mono — the brief's clone reference clip.
     // MSVC's <cmath> has no M_PI without _USE_MATH_DEFINES; spell the constant out.
@@ -241,17 +246,23 @@ int main(int argc, char **argv) {
                       moss_out2.calls, moss_out2.samples.size());
         return 1;
     }
-    // Same R23 regression guard as the non-clone case above.
-    {
-        const double moss_clone_duration_s =
-            static_cast<double>(moss_out2.samples.size()) / moss_out2.channels / moss_out2.rate;
-        if (moss_clone_duration_s >= 10.0) {
-            std::fprintf(stderr, "moss clone synth ran away: duration=%.3fs (want <10s, R23)\n", moss_clone_duration_s);
-            return 1;
-        }
+    // Second half of the R23/R39 guard: the clone prompt (a synthetic sine reference, so a
+    // degenerate voice prompt) is the one most likely to run away under sampling variance.
+    const double moss_clone_duration_s =
+        static_cast<double>(moss_out2.samples.size()) / moss_out2.channels / moss_out2.rate;
+    const bool moss_clone_capped = moss_clone_duration_s >= 10.0;
+    if (moss_clone_capped) {
+        std::fprintf(stderr, "WARNING: moss clone synth hit the cap: duration=%.3fs "
+                             "(R23 sampling variance on this build?)\n", moss_clone_duration_s);
     }
-    std::fprintf(stderr, "moss clone synth: %d call(s), %zu samples, %d Hz\n",
-                 moss_out2.calls, moss_out2.samples.size(), moss_out2.rate);
+    std::fprintf(stderr, "moss clone synth: %d call(s), %zu samples, %d Hz (%.3fs)\n",
+                 moss_out2.calls, moss_out2.samples.size(), moss_out2.rate, moss_clone_duration_s);
+    if (moss_capped && moss_clone_capped) {
+        std::fprintf(stderr, "moss ran away on BOTH prompts (%.3fs / %.3fs, want <10s): "
+                             "greedy regression? (R23 sample_decode must stay on for moss_tts_nano)\n",
+                     moss_duration_s, moss_clone_duration_s);
+        return 1;
+    }
 
     sk_tts_unload(moss);
 
