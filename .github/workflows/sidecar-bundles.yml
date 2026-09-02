@@ -34,6 +34,7 @@ on:
         default: ''
   push:
     tags: ['sidecar-v*']
+    branches: ['refactor/sidecar-ggml-only-slice6']  # TEMP: slice-6 dry run, remove before merge
 
 jobs:
   build-linux-x64:
