@@ -381,7 +381,15 @@ class Translator:
             if tail:
                 got.append(tail)
                 if on_token is not None:
-                    on_token(tail)
+                    # Same tolerance as the trampoline above, where ctypes swallows a
+                    # raise: the native call has already returned, so there is nothing
+                    # left to cancel — an on_token failure here must not turn a finished
+                    # translation into an exception. Return value is ignored for the same
+                    # reason.
+                    try:
+                        on_token(tail)
+                    except Exception:
+                        pass
 
         return _ffi.TEXT_CB(_cb), got, _flush
 
