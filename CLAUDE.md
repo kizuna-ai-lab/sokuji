@@ -116,8 +116,74 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - Automatic device switching and reconnection, including dynamic switching during active sessions
 
 6. **Native runtime (`native/`)**
-   - One CMake super-project builds transcribe.cpp, llama.cpp and audio.cpp on a single upstream ggml into `libsokuji_native` (C ABI `sk_*`, Python package `sokuji_native`)
-   - Design: `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md` (Amendment A1: VAD runs in the renderer via `native-vad.worker.ts`, not in the sidecar); build: `native/README.md`; ASR goes through `sokuji_sidecar/native.py` → `asr_backend.py`
+   - One CMake super-project builds three engines on ONE pristine upstream ggml 0.22 behind
+     the `sk_*` C ABI (`native/include/sokuji_native.h`) in `libsokuji_native` / Python package
+     `sokuji_native`: transcribe.cpp (ASR), llama.cpp (translation), audio.cpp (TTS — five
+     families: moss_tts_nano, qwen3_tts, omnivoice, pocket_tts, supertonic). Design:
+     `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md` (Amendment A1: VAD runs in
+     the renderer via `native-vad.worker.ts`, not here); build/layout/per-stage detail:
+     `native/README.md`. `sokuji_sidecar/native.py` is the sidecar's one door in — nothing else
+     imports `sokuji_native` directly; `asr_backend.py`/`translate_backend.py`/`tts_backend.py`
+     are what the catalog and engines talk to.
+   - **Two patch mechanisms** keep three upstreams building on one ggml: `src/audiocpp_compat.h`
+     shims the symbols audio.cpp's ggml fork adds, plus four symbols whose behaviour changed
+     upstream (`ggml_conv_1d`/`_dw`/`ggml_conv_2d`/`_3d` — im2col runs F16 upstream vs. the
+     fork's kernel dtype — and Metal's `ggml_sub`, needing `src1` `ggml_cont`ed too); re-scan it
+     on every ggml pin bump. `native/patches/*.json` are exact-text patches
+     (`cmake/patch_upstream.py`, anchored `old`→`new`, must match exactly once or the build fails
+     loudly — "the pin moved, fix the spec"): always-on `ggml-gguf-bulk-array-read.json`
+     (bulk-reads GGUF array KVs instead of one `fread`/element — cuts `supertonic`'s TTS load
+     ~12x) and Metal-only `ggml-metal-{diag-mask-inf,pad-leading}.json` (restores ops ggml's
+     Metal backend dropped that audio.cpp needs).
+   - **Five SKUs** (`electron/sidecar-sku.js`): linux-x64/linux-arm64 (Vulkan,
+     `manylinux_2_35_*` floor, ubuntu-22.04 CI + a from-source Khronos toolchain for `glslc` —
+     R37/R38, LunarG's apt has no arm64), win-x64 (Vulkan, LunarG SDK), mac-arm64 (Metal),
+     mac-x64 (CPU only, GPU lane `none`). Tiers `cpu`/`gpu-vulkan`/`gpu-metal`, ranked in that
+     order by `TIER_RANK` (`planner.py`); a Metal device reporting `/paravirtual/i` (every CI
+     macOS runner) is excluded from `gpu-metal` so a VM shim is never handed a plan that
+     hard-aborts. Real-GPU smoke: five TTS families pass on GB10 (linux-arm64), an RTX 4070
+     SUPER over win-x64 and linux-x64, and an Apple M4 (mac-arm64) — bf16 rungs too; CI's own
+     Metal runner is a paravirtual VM and can never supply real-hardware evidence.
+   - **Versions**: native's lives in `CMakeLists.txt`'s `project(sokuji_native VERSION …)` (+
+     the `sk_version()` literal in `tests/test_common.cpp`) → tag `native-vX.Y.Z` →
+     `native-build.yml` publishes five wheels as a **prerelease** (never "latest", so
+     electron-updater's own lookup can't land on it). Sidecar's lives in root `package.json`'s
+     `sidecarVersion` (the only file carrying it) → tag `sidecar-vX.Y.Z` →
+     `sidecar-bundles.yml` publishes five bundles + a merged `manifest.json`, also prerelease.
+     App version is the five-site rule above, independent of both. Order is fixed: native tag
+     first (wheels must exist) → `sidecar/requirements.txt` pins the five wheel URLs by
+     `sys_platform`/`platform_machine` → sidecar tag (a bundle built before `requirements.txt`
+     carries those URLs ships hollow, no `sokuji_native` inside) → the app's `sidecarVersion`
+     bump rides an ordinary future app release. First ggml-only pair: `native-v1.0.0` /
+     `sidecar-v0.2.0` — a clean break from the ONNX-era `sidecar-v0.1.x` line.
+   - **Dev loop**: `native/ci/build.sh <none|vulkan|metal> <plat tag>` (`.ps1` on Windows)
+     builds and runs CTest + the Python suite against a fresh stage;
+     `SOKUJI_NATIVE_DIR=.../stage` points a wheel-less `import sokuji_native` at it. Models
+     cache under `~/.cache/sokuji-native-tests/` (`native/README.md` has the `curl` lines).
+     Gates: `ctest` (skip rc 77 without models); `native/python/tests`, incl.
+     `test_tts_synthesises_on_a_gpu_device` (`SK_TEST_TTS_GPU=1`, one subprocess per
+     family/quant — a GGML abort is an uncatchable SIGABRT); `native/tests/parity`
+     (sample-exact vs. `audiocpp_cli`, its own per-source-keyed "nosve" cache); the sidecar's
+     live TTS→ASR loopback (`SOKUJI_RUN_TTS_LOOPBACK=1`, `sidecar/tests/test_tts_engine.py`).
+     `sidecar-tests` in CI needs `PYTHONPATH=sidecar` — it isn't installed as a package.
+   - **Thread policy**: `n_threads=0` (default) resolves to `min(hardware_concurrency, 12)` —
+     `ggml_barrier()` spin-waits with no yield, so going past ~12 workers costs 2-5x;
+     `SOKUJI_NATIVE_THREADS` overrides. A GPU TTS load runs one discarded warm-up `synth()`
+     (skipped for CPU and the two clone-only voice-required families) to pay the driver's
+     one-time pipeline-compile cost at load, not on the user's first utterance.
+   - **Voice rules** (`tts_backend.py`): `qwen3_tts`/`omnivoice` are clone-only — a bare
+     `synth()` with no `set_voice()` raises a clean error before reaching the native layer.
+     `pocket_tts` gets its first listed preset (`alba`) applied automatically at load, since it
+     also has no working default. `moss_tts_nano` and `supertonic` synth with nothing set.
+     `moss_tts_nano` alone samples its stop decision rather than greedy-argmax (R23) — same
+     seed, so still build-reproducible.
+   - **Known gaps**: no real M1/M2/M3 Metal hardware has run this suite (only an M4 — the
+     architectural Apple7/Apple6 capability gates are what R36 relies on instead);
+     `moss_tts_nano`'s bf16-on-Vulkan peak (1.228) clips, likely R23 sampling variance,
+     unconfirmed; `qwen3-tts-1.7b`'s bf16 rung was never loaded (only 0.6b was); an
+     install-order race in the sidecar's native-backend singleton (last `load()` wins); every
+     sidecar bundle built before `sidecar-v0.2.0` shipped hollow — no `sokuji_native` wheel
+     installed inside at all.
 
 ## Important Patterns and Conventions
 
