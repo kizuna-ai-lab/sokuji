@@ -671,9 +671,10 @@ TTS_STAGING_DIRNAME = "sokuji-tts-staging"
 # (native_translate's own three-tier tuple in _llm_translate_row) are
 # untouched by this ruling — Metal ran moonshine (ASR) clean on the same
 # lane. `_TTS_TIERS` below is the default (still cpu-only, for any family not
-# in `_TTS_TIER_OVERRIDES`) — Metal restoration stays out of scope everywhere
-# (ruling R25, task-8: no Apple-GPU box in this fleet), so no card ever gains
-# "gpu-metal".
+# in `_TTS_TIER_OVERRIDES`) — no card gains "gpu-metal" yet: slice-5b task 1
+# fixed the two missing Metal kernels and got 5/5 families synthesizing on an
+# M4, but ruling R31 holds tiers back until the CI mac-arm64 lane confirms an
+# M1 (Apple7; the M4 is Apple9 evidence only). See the fleet table below.
 _TTS_TIERS = ("cpu",)
 
 # R19 follow-up / ruling R25 (2026-09-01, task 8): the first real Vulkan TTS
@@ -681,10 +682,11 @@ _TTS_TIERS = ("cpu",)
 # had only ever fallen back to CPU there; this is a GB10 (NVIDIA GB10,
 # aarch64, manylinux_2_39_aarch64) dev box with a real Vulkan device. Built
 # `native/ci/build.sh vulkan manylinux_2_39_aarch64` locally (ctest 4/4,
-# native/python/tests + native/tests/parity: 23 passed/2 xfailed/4 failed —
-# the 4 failures are native/tests/parity's own CPU-reference-vs-"auto"-device
-# sample compares, expected to diverge once "auto" resolves to Vulkan instead
-# of CPU on this lane; not this task's gate). Then, per family, in its OWN
+# native/python/tests + native/tests/parity: 23 passed/2 xfailed/4 failed at
+# the time — since fixed by slice-5b task 2, which pinned the parity
+# candidate to the CPU device (device=NULL was resolving to the GPU on a
+# Vulkan stage) and keyed the nosve cache per source; the vulkan stage now
+# runs 13 passed/3 skipped like the cpu one). Then, per family, in its OWN
 # subprocess (a GGML abort is an uncatchable SIGABRT — isolating per family
 # means one family's crash can't take down the others or the other four
 # results, same precedent as test_tts_parity.py's `_run_candidate`
@@ -703,12 +705,14 @@ _TTS_TIERS = ("cpu",)
 # tts_load()+synth() together (same measurement the CPU-lane numbers below
 # use, cited from task-7-report.md's loopback table, same box/build):
 #   moss_tts_nano: 3.92s audio, 5.62s wall vulkan (cpu 15.03s) -> gpu-vulkan
-#   supertonic:    3.10s audio, 14.45s wall vulkan (cpu 14.50s — essentially
-#                  no speedup, reproduced across 2 more warm reruns
-#                  (13.95s/14.67s)) -> gpu-vulkan anyway: ~1.0x is parity, not
-#                  a regression, and this is the family the Metal abort was
-#                  about — see the caveat paragraph below for the two
-#                  competing explanations for its flat wall time
+#   supertonic:    3.10s audio, 14.45s wall vulkan (cpu 14.50s) -> gpu-vulkan.
+#                  That ~1.0x is a MEASUREMENT ARTEFACT, not parity: 99% of
+#                  the wall was model load, a device-independent CPU-side path
+#                  (.superpowers/vulkan-perf-investigation.md, Q1). Split at
+#                  n_threads=8: load 14.0s on BOTH devices, synth 0.097s
+#                  vulkan vs 0.981s cpu = 10.1x on this short text and 19.0x
+#                  on a 2-chunk 380-char one (each chunk 17-20x), with the GPU
+#                  83% busy under vulkan synth and 2% under cpu synth
 #   qwen3_tts:     3.04s audio, 7.19s wall vulkan (cpu 29.03s) -> gpu-vulkan
 #   omnivoice:     2.48s audio, 6.69s wall vulkan (cpu 43.81s) -> gpu-vulkan
 #   pocket_tts:    2.72s audio, 1.94s wall vulkan (cpu 1.31s production
@@ -722,17 +726,51 @@ _TTS_TIERS = ("cpu",)
 #                  showed a 5-9x GPU speedup instead: vulkan 0.42-0.46s
 #                  (tight) vs cpu 2.46-4.22s (noisy) — and even the original,
 #                  most favorable-to-cpu figure (1.31s) still loses to
-#                  Vulkan's worst run by ~3x. The cpu-side run-to-run
-#                  variance itself is unexplained, but no measurement in
-#                  either round has cpu winning, so R29 restores gpu-vulkan.
+#                  Vulkan's worst run by ~3x. The cpu-side run-to-run variance
+#                  is now explained (vulkan-perf-investigation.md, Q2): it was
+#                  thread OVERSUBSCRIPTION against ggml's spin-wait barrier at
+#                  n_threads=nproc; at the knee it is tight (cpu 1.014s vs
+#                  vulkan 0.234s synth = 4.3x). No measurement in either round
+#                  has cpu winning, so R29 restores gpu-vulkan.
 #
-# Caveat (unresolved, applies to every PASS above): ggml's backend scheduler
-# can silently fall back individual unsupported ops to CPU inside an
-# otherwise-Vulkan session without erroring, so a clean exit + correct
-# transcript is a BEHAVIORAL pass, not proof every op actually ran on the
-# GPU — supertonic's ~1.0x wall parity with cpu is consistent with either
-# per-dispatch streaming overhead (many small chunks, each its own Vulkan
-# submit) or partial CPU fallback inside the graph; not distinguished here.
+# The old caveat here — "ggml's scheduler may have silently fallen individual
+# ops back to CPU, so a clean run is only a BEHAVIORAL pass" — is retracted:
+# `ggml_backend_sched` appears nowhere in native/src or in the whole vendored
+# audio.cpp tree, so a session holds exactly ONE backend and an op Vulkan
+# cannot service ABORTS ("Missing op" -> GGML_ABORT), exactly as Metal did.
+# A clean run is therefore proof the graph ran on the GPU. Per-dispatch
+# streaming overhead is ruled out too: the advantage WIDENS with more chunks.
+#
+# The 14s load was a real defect, and it is fixed (native 0.6.1): ggml 0.22.0
+# read GGUF array KVs one element at a time — one locked fread each — and
+# audio.cpp reopens a model GGUF 14 times per load, so supertonic's 57MB
+# `audiocpp.embedded_files.data` sidecar KV cost ~800M freads. With
+# native/patches/ggml-gguf-bulk-array-read.json: supertonic load 13.85s ->
+# 1.50s, omnivoice 3.85 -> 1.42, qwen3 2.35 -> 1.21, moss 0.93 -> 0.19,
+# pocket 0.16 -> 0.14 (GB10, cpu lane, n_threads=12; see native/README.md
+# "GGUF array reads"). Every wall figure in the table above is PRE-fix.
+#
+# Fleet validation on real GPUs, 2026-09-02 — 5/5 families everywhere (clean
+# exit, whisper-checked transcript, duration in bar). Long form in
+# .superpowers/{vulkan-perf-investigation,windows-vulkan-validation,
+# linux-x64-vulkan-validation,metal-fix-experiments}.md and the slice-5b
+# task-1 report. Speedups are warm SYNTH, GPU vs cpu device on the same box;
+# CPU rows use the measured thread knee n_threads=12 (ruling R32) — at
+# nproc=20 ggml's spin-wait barrier makes CPU 3-5x slower AND noisy, which is
+# what made several earlier CPU baselines unreliable:
+#
+#   lane         GPU                                      result  synth speedup
+#   linux-arm64  NVIDIA GB10, Vulkan                      5/5     4.3-19x
+#   win-x64      RTX 4070 SUPER, Vulkan (Win 11)          5/5     14-56x
+#   linux-x64    RTX 4070 SUPER, Vulkan (Ubuntu 22.04)    5/5     7.5-65.8x
+#   mac-arm64    Apple M4, Metal                          5/5     0.83-3.9x
+#
+# The mac row holds only AFTER slice-5b task 1's two Metal kernel patches
+# (before them moss/qwen3/omnivoice aborted); its tiers stay off pending the
+# CI M1 (R31), so `_TTS_TIER_OVERRIDES` below still lists gpu-vulkan only.
+# First-ever synth on an NVIDIA box additionally pays a one-time, per-machine
+# driver pipeline-cache compile of 2-14s (W-1, linux-x64-vulkan-validation.md);
+# the load-time warm-up synth (R33) absorbs it.
 _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
     "moss_tts_nano": ("gpu-vulkan", "cpu"),
     "supertonic": ("gpu-vulkan", "cpu"),
