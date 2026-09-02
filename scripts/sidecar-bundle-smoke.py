@@ -18,13 +18,17 @@ disk. This script:
        (a) `import sokuji_sidecar` succeeds and report its on-disk entry
            point.
        (b) sokuji_native is importable and reports version()/
-           engine_versions(). This is a WARN, not a failure, by default:
-           until Task 2/3 land the requirements.txt wheel URLs, every
-           bundle is "hollow" (native.py imports sokuji_native lazily on
-           first use — see its module docstring — precisely so the sidecar
-           still boots without it). Pass --require-native, or set
-           SIDECAR_SMOKE_REQUIRE_NATIVE=1, to turn a missing sokuji_native
-           into a hard failure once the wheel is wired in.
+           engine_versions(). `requirements.txt` pins the five
+           `sokuji-native` release wheels by platform marker (since
+           sidecar-v0.2.0), so a real, non-hollow `sokuji_native` is the
+           expected state of every bundle — a missing one is a bug, not
+           an expected condition. By default a missing `sokuji_native` is
+           only a WARN (native.py still imports it lazily on first use —
+           see its module docstring — so the sidecar itself boots without
+           it); pass --require-native, or set
+           SIDECAR_SMOKE_REQUIRE_NATIVE=1 (what CI's `sidecar-bundles.yml`
+           runs with), to turn a missing sokuji_native into a hard
+           failure instead.
        (c) `python -m sokuji_sidecar` boots to its `{"port": n}` handshake
            line. There is no --version/--help entrypoint (see __main__.py)
            to probe instead, so this full boot is the floor — and it is
@@ -37,10 +41,11 @@ Usage:
     python scripts/sidecar-bundle-smoke.py --sku linux-arm64 --bundles-dir out/bundles
     python scripts/sidecar-bundle-smoke.py --sku linux-x64 --bundles-dir out/bundles --require-native
 
-Exit 0 on success (a missing sokuji_native is a warning, not a failure,
-unless --require-native / SIDECAR_SMOKE_REQUIRE_NATIVE is set). Exit 1 with
-a clear message on any real failure. No model downloads; both checks are
-bounded well under a minute combined.
+Exit 0 on success. A missing sokuji_native is a hard failure when
+--require-native / SIDECAR_SMOKE_REQUIRE_NATIVE=1 is set (CI's default);
+otherwise it is only a warning. Exit 1 with a clear message on any other
+real failure. No model downloads; both checks are bounded well under a
+minute combined.
 """
 from __future__ import annotations
 
