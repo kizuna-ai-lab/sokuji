@@ -729,17 +729,22 @@ _TTS_TIERS = ("cpu",)
 #                  Vulkan's worst run by ~3x. The cpu-side run-to-run variance
 #                  is now explained (vulkan-perf-investigation.md, Q2): it was
 #                  thread OVERSUBSCRIPTION against ggml's spin-wait barrier at
-#                  n_threads=nproc; at the knee it is tight (cpu 1.014s vs
-#                  vulkan 0.234s synth = 4.3x). No measurement in either round
-#                  has cpu winning, so R29 restores gpu-vulkan.
+#                  n_threads=nproc(=20). Held at n_threads=8 it is tight (cpu
+#                  1.014s vs vulkan 0.234s synth = 4.3x). No measurement in
+#                  either round has cpu winning, so R29 restores gpu-vulkan.
 #
 # The old caveat here — "ggml's scheduler may have silently fallen individual
 # ops back to CPU, so a clean run is only a BEHAVIORAL pass" — is retracted:
-# `ggml_backend_sched` appears nowhere in native/src or in the whole vendored
-# audio.cpp tree, so a session holds exactly ONE backend and an op Vulkan
-# cannot service ABORTS ("Missing op" -> GGML_ABORT), exactly as Metal did.
-# A clean run is therefore proof the graph ran on the GPU. Per-dispatch
-# streaming overhead is ruled out too: the advantage WIDENS with more chunks.
+# `ggml_backend_sched` has ZERO hits in native/src, native/include and
+# audiocpp-src/{src,include,app,tools,tests}, i.e. in every line that is
+# compiled into libsokuji_native. (It does appear under
+# audiocpp-src/external/ggml — audio.cpp's own bundled ggml fork, which this
+# project does not build: 2 of those hits are its mnist/gpt-2 examples, the
+# rest are ggml-backend.h/ggml-cpp.h declarations.) So a session holds exactly
+# ONE backend and an op Vulkan cannot service ABORTS ("Missing op" ->
+# GGML_ABORT), exactly as Metal did. A clean run is therefore proof the graph
+# ran on the GPU. Per-dispatch streaming overhead is ruled out too: the
+# advantage WIDENS with more chunks.
 #
 # The 14s load was a real defect, and it is fixed (native 0.6.1): ggml 0.22.0
 # read GGUF array KVs one element at a time — one locked fread each — and
@@ -754,16 +759,24 @@ _TTS_TIERS = ("cpu",)
 # exit, whisper-checked transcript, duration in bar). Long form in
 # .superpowers/{vulkan-perf-investigation,windows-vulkan-validation,
 # linux-x64-vulkan-validation,metal-fix-experiments}.md and the slice-5b
-# task-1 report. Speedups are warm SYNTH, GPU vs cpu device on the same box;
-# CPU rows use the measured thread knee n_threads=12 (ruling R32) — at
-# nproc=20 ggml's spin-wait barrier makes CPU 3-5x slower AND noisy, which is
-# what made several earlier CPU baselines unreliable:
+# task-1 report. Speedups are warm SYNTH, GPU vs cpu device on the same box.
+# The CPU side of a ratio depends on the thread count, and these four runs did
+# NOT share one, so each row carries its own — only linux-x64 ran at the
+# measured knee (ruling R32: n_threads=0 -> min(hw, 12); the knee is 12 and
+# only 12). Any cross-row comparison of the CPU columns is invalid:
 #
-#   lane         GPU                                      result  synth speedup
-#   linux-arm64  NVIDIA GB10, Vulkan                      5/5     4.3-19x
-#   win-x64      RTX 4070 SUPER, Vulkan (Win 11)          5/5     14-56x
-#   linux-x64    RTX 4070 SUPER, Vulkan (Ubuntu 22.04)    5/5     7.5-65.8x
-#   mac-arm64    Apple M4, Metal                          5/5     0.83-3.9x
+#   lane         GPU                                    result  cpu threads  synth speedup
+#   linux-arm64  NVIDIA GB10, Vulkan                    5/5      8           4.3-19x
+#   win-x64      RTX 4070 SUPER, Vulkan (Win 11)        5/5     28 (hw)      14-56x
+#   linux-x64    RTX 4070 SUPER, Vulkan (Ubuntu 22.04)  5/5     12 (knee)    7.5-65.8x
+#   mac-arm64    Apple M4, Metal                        5/5      unrecorded  0.83-3.9x
+#
+# The win-x64 row predates R32 entirely — it is the 0.5.0 CI wheel, whose
+# sk_init logged "28 threads" (= hw), so its CPU numbers are the pessimistic
+# oversubscribed ones and its ratios are, if anything, flattering to the GPU.
+# The GB10 row is n_threads=8, the value that sweep found optimal on that
+# 20-core big.LITTLE box before the knee was fixed at 12 fleet-wide. The M4
+# probe did not record a thread count at all.
 #
 # The mac row holds only AFTER slice-5b task 1's two Metal kernel patches
 # (before them moss/qwen3/omnivoice aborted); its tiers stay off pending the
