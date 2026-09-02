@@ -210,10 +210,11 @@ int main(int argc, char **argv) {
     // max_new_frames cap the way greedy decode does on this checkpoint (every prompt, every
     // time). Ruling R39 (2026-09-02): the sampled path is deterministic per build (seed 0)
     // but NOT across builds — a different compiler/libm shifts the logits by ULPs and the
-    // sample stream diverges, so any ONE prompt can still hit the cap on some build (the
-    // ubuntu-22.04-arm/gcc-11 lane did on the clone prompt while its supertonic output was
-    // sample-identical to gcc-13's). A greedy regression caps BOTH prompts; sampling variance
-    // caps at most one. So: one capped prompt is a warning, two is the failure.
+    // sample stream diverges, so any ONE prompt can still hit this guard's own 10s threshold
+    // on some build (the ubuntu-22.04-arm/gcc-11 lane did on the clone prompt, at exactly
+    // 10.000s, while its supertonic output had identical sample counts to gcc-13's — no
+    // bit-level comparison was made). A greedy regression trips BOTH prompts; sampling
+    // variance trips at most one. So: one tripped prompt is a warning, two is the failure.
     const double moss_duration_s =
         static_cast<double>(moss_out.samples.size()) / moss_out.channels / moss_out.rate;
     const bool moss_capped = moss_duration_s >= 10.0;

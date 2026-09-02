@@ -26,12 +26,15 @@ Output: a wheel in `native/python/dist/`; the staged binaries in
 `native/build/<lane>/stage/` (`native/build/cpu/stage/` for `none`).
 
 **Linux wheel floor (R37): `manylinux_2_35`, built on `ubuntu-22.04`/`ubuntu-22.04-arm`.**
-That covers Ubuntu 22.04, Debian 12 (glibc 2.36) and RHEL 9 (2.34 — one notch under the
-tag, but within this tree's own measured margin: no shipped object references a glibc
-symbol newer than 2.34). `check_linux_deps.py` (below) enforces both the glibc floor and
-a per-tag C++ runtime ceiling (`CXX_CEILINGS`) on every staged `.so` before the wheel is
-built. 22.04's own apt has no `glslc` package at all, and its `spirv-headers` package
-ships no CMake config ggml-vulkan's `find_package(SPIRV-Headers CONFIG REQUIRED)` needs —
+`pip install` needs glibc ≥ 2.35 (Ubuntu 22.04+, Debian 12+) no matter which symbols are
+actually used — pip enforces the manylinux tag itself, not the object's real references.
+RHEL 9 (2.34, one notch under the tag but within this tree's own measured margin: no
+shipped object references a glibc symbol newer than 2.34) can run this wheel only via a
+bundle — files copied in, no pip tag check — never via `pip install` directly.
+`check_linux_deps.py` (below) enforces both the glibc floor and a per-tag C++ runtime
+ceiling (`CXX_CEILINGS`) on every staged `.so` before the wheel is built. 22.04's own apt
+has no `glslc` package at all, and its `spirv-headers` package ships no CMake config
+ggml-vulkan's `find_package(SPIRV-Headers CONFIG REQUIRED)` needs —
 CI does **not** paper over that with an apt source (R38): LunarG's jammy repo has no
 arm64 index at all, and its `libvulkan-dev` ships no headers, either of which breaks the
 build outright. Instead, `native/ci/vulkan-toolchain.sh <prefix>` builds pinned
@@ -400,4 +403,5 @@ in the sidecar's own release, not part of this workflow. `native-v1.0.1` follows
 immediately: a Python-binding-only fix (R41) for streamed translation tokens that split a
 multibyte UTF-8 character across pieces being decoded independently instead of
 incrementally, corrupting CJK output with U+FFFD — see `python/sokuji_native/__init__.py`'s
-`Translator._make_cb`. Current native version is 1.0.1.
+`Translator._make_cb`. Current native version is 1.0.1; `sidecar/requirements.txt` pinned
+straight to 1.0.1, so no sidecar bundle ever shipped with 1.0.0 inside.

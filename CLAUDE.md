@@ -133,9 +133,13 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      (`cmake/patch_upstream.py`, anchored `old`→`new`, must match exactly once or the build fails
      loudly — "the pin moved, fix the spec"): always-on `ggml-gguf-bulk-array-read.json`
      (bulk-reads GGUF array KVs instead of one `fread`/element — cuts `supertonic`'s TTS load
-     ~9-12x depending on the box) and Metal-only `ggml-metal-{diag-mask-inf,pad-leading}.json`
+     ~9-12x depending on the box), Metal-only `ggml-metal-{diag-mask-inf,pad-leading}.json`
      (DIAG_MASK_INF, which ggml's Metal backend dropped, and leading-edge PAD, which it never
-     had — both needed by audio.cpp).
+     had — both needed by audio.cpp), and arm64-conditional `ggml-drop-sme.json` (Linux, when
+     the compiler rejects `+sme`) / `ggml-drop-sme-apple.json` (macOS), both dropping ggml's
+     hard-coded SME CPU variants (`cmake/ggml_options.cmake`). The two non-ggml upstreams get
+     their own specs applied the same way, unconditionally: `audio.cpp.json` and
+     `transcribe.cpp.json` (`cmake/upstreams.cmake`).
    - **Five SKUs** (`electron/sidecar-sku.js`): linux-x64/linux-arm64 (Vulkan,
      `manylinux_2_35_*` floor, ubuntu-22.04 CI + a from-source Khronos toolchain for `glslc` —
      R37/R38, LunarG's apt has no arm64), win-x64 (Vulkan, LunarG SDK), mac-arm64 (Metal),
@@ -157,14 +161,13 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      first (wheels must exist) → `sidecar/requirements.txt` pins the five wheel URLs by
      `sys_platform`/`platform_machine` → sidecar tag (a bundle built before `requirements.txt`
      carries those URLs ships hollow, no `sokuji_native` inside) → the app's `sidecarVersion`
-     bump rides an ordinary future app release. First ggml-only pair: `native-v1.0.0` /
-     `sidecar-v0.2.0` — a clean break from the ONNX-era `sidecar-v0.1.x` line. `native-v1.0.1`
-     (R41) follows immediately: the Python binding's `Translator._make_cb` used to
-     `.decode("utf-8", "replace")` each streamed token piece independently, so a byte-level
-     BPE boundary landing inside a multibyte character (routine for CJK output) corrupted it
-     to U+FFFD in both the `on_token` stream and `chat()`/`complete()`'s joined return value;
-     fixed with a per-call `codecs.getincrementaldecoder("utf-8")`, flushed once after the
-     native call returns. Current native version is 1.0.1.
+     bump rides an ordinary future app release. The first *shipped* ggml-only pair is
+     `native-v1.0.1` / `sidecar-v0.2.0` — a clean break from the ONNX-era `sidecar-v0.1.x`
+     line; `native-v1.0.0` was published the same day but never pinned by any bundle, superseded
+     by 1.0.1 (R41: the Python binding's `Translator._make_cb` used to decode each streamed
+     token piece independently, corrupting a BPE boundary landing inside a multibyte CJK
+     character to U+FFFD; fixed with a per-call incremental UTF-8 decoder) before any bundle
+     pinned it. Current native version is 1.0.1.
    - **Dev loop**: `native/ci/build.sh <none|vulkan|metal> <plat tag>` (`.ps1` on Windows)
      builds and runs CTest + the Python suite against a fresh stage;
      `SOKUJI_NATIVE_DIR=.../stage` points a wheel-less `import sokuji_native` at it. Models

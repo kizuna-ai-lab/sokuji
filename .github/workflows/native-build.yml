@@ -30,9 +30,11 @@ jobs:
         include:
           # 22.04, not 24.04 (R37): manylinux_2_35 is the lowest floor this tree's own
           # glibc symbols support (measured max is 2.34, one notch under the tag — see
-          # .superpowers/linux-x64-vulkan-validation.md §5) and it covers Ubuntu 22.04,
-          # Debian 12 (2.36) and RHEL 9 (2.34, just short of 2.35 but within the tree's
-          # real margin), where the previous 2.39 floor (24.04) covered none of those.
+          # .superpowers/linux-x64-vulkan-validation.md §5). `pip install` still needs
+          # glibc >= 2.35 (Ubuntu 22.04+, Debian 12+) — pip enforces the manylinux tag,
+          # not actual symbol references — so RHEL 9 (2.34) can run this wheel only via a
+          # bundle (files copied in, no pip tag check), never via pip; the previous 2.39
+          # floor (24.04) covered none of Ubuntu 22.04, Debian 12 or RHEL 9 at all.
           # 22.04's own apt has no glslc package at all — that was the old floor's
           # reason for 24.04 — so the Vulkan toolchain step below builds glslc plus the
           # spirv-headers CMake config 22.04's own package lacks, from pinned Khronos/
@@ -99,7 +101,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vk-prefix
-          key: vk-toolchain-v1-${{ matrix.sku }}-vulkan-headers-v1.4.313-spirv-headers-vulkan-sdk-1.4.313.0-shaderc-v2025.2
+          key: vk-toolchain-v1-${{ matrix.sku }}-vulkan-headers-v1.4.313-spirv-headers-vulkan-sdk-1.4.313.0-shaderc-v2025.2-${{ hashFiles('native/ci/vulkan-toolchain.sh') }}
       - name: Vulkan toolchain (glslc + headers, Linux)
         if: runner.os == 'Linux' && matrix.lane == 'vulkan'
         run: |

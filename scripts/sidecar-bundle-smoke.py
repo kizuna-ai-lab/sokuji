@@ -42,8 +42,10 @@ Usage:
     python scripts/sidecar-bundle-smoke.py --sku linux-x64 --bundles-dir out/bundles --require-native
 
 Exit 0 on success. A missing sokuji_native is a hard failure when
---require-native / SIDECAR_SMOKE_REQUIRE_NATIVE=1 is set (CI's default);
-otherwise it is only a warning. Exit 1 with a clear message on any other
+--require-native / SIDECAR_SMOKE_REQUIRE_NATIVE is set (CI's default). The
+env var is on only for "1", "true" or "yes" (case-insensitive); anything
+else — including "0", "" or unset — is off. Otherwise a missing
+sokuji_native is only a warning. Exit 1 with a clear message on any other
 real failure. No model downloads; both checks are bounded well under a
 minute combined.
 """
@@ -163,7 +165,8 @@ def check_imports(py: pathlib.Path, app_dir: pathlib.Path, require_native: bool)
     stays a single fast subprocess."""
     try:
         proc = subprocess.run([str(py), "-c", _IMPORT_PROBE], cwd=str(app_dir),
-                              capture_output=True, text=True, timeout=IMPORT_TIMEOUT_S)
+                              capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=IMPORT_TIMEOUT_S)
     except subprocess.TimeoutExpired as e:
         raise SmokeFailure(
             f"import probe did not finish within {IMPORT_TIMEOUT_S}s:\n"
@@ -202,7 +205,8 @@ def check_boot_handshake(py: pathlib.Path, app_dir: pathlib.Path,
     the handshake never arrives. stdout/stderr stay merged (simplest); a
     genuine boot hang is the failure most in need of a log."""
     proc = subprocess.Popen([str(py), "-m", "sokuji_sidecar"], cwd=str(app_dir),
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                            encoding="utf-8", errors="replace")
     seen: list[str] = []
     port = None
     try:
@@ -271,7 +275,9 @@ def main(argv=None) -> int:
     ap.add_argument("--require-native", action="store_true",
                     help="fail (not warn) if sokuji_native is missing from the bundle")
     args = ap.parse_args(argv)
-    require_native = args.require_native or bool(os.environ.get("SIDECAR_SMOKE_REQUIRE_NATIVE"))
+    env_require_native = os.environ.get("SIDECAR_SMOKE_REQUIRE_NATIVE", "").strip().lower() in (
+        "1", "true", "yes")
+    require_native = args.require_native or env_require_native
     try:
         smoke_one(args.sku, args.bundles_dir, require_native)
     except SmokeFailure as e:
