@@ -67,79 +67,68 @@ def test_fit_walk(sized, budget, downloaded, expected):
 # ── Machine fixtures ─────────────────────────────────────────────────────
 # Mirrors tests/test_characterization.py's four-machine matrix (not imported
 # from there — that file is frozen and must stay standalone).
+# Every in-process backend, ASR/translate/TTS alike, runs through the one
+# sokuji_native wheel (slice 4 retired the nine ONNX/sherpa/MLX TTS
+# backends — accel._installed()'s map collapsed to these four names).
 _ALL_BACKENDS = frozenset({
-    "transcribe_cpp", "transcribe_cpp_stream", "sherpa_tts", "moss_onnx",
-    "supertonic", "qwen3tts_onnx", "onnx", "llamacpp_qwen", "llamacpp_hunyuan",
-    "llamacpp_gemma", "ct2_opus_translate",
+    "native_asr", "native_asr_stream", "native_translate", "native_tts",
 })
-_APPLE_BACKENDS = _ALL_BACKENDS | {"mlx_audio_tts", "mlx"}
+_APPLE_BACKENDS = _ALL_BACKENDS
 
 CPU_ONLY = accel.Machine(
     os="Linux", arch="x86_64", cpu_cores=8, apple_silicon=False,
-    dml_adapters=(), installed=_ALL_BACKENDS, fingerprint="p-cpu",
-    tc_kinds=("cpu",), gpus=(), ort_cuda=False,
+    installed=_ALL_BACKENDS, fingerprint="p-cpu",
+    tc_kinds=("cpu",), gpus=(),
 )
 CUDA_12GB = accel.Machine(
     os="Linux", arch="x86_64", cpu_cores=16, apple_silicon=False,
-    dml_adapters=(), installed=_ALL_BACKENDS, fingerprint="p-cuda12",
+    installed=_ALL_BACKENDS, fingerprint="p-cuda12",
     tc_kinds=("vulkan", "cpu"),
     gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12 * (1 << 30)),),
-    ort_cuda=False,
 )
 CUDA_24GB = accel.Machine(
     os="Linux", arch="x86_64", cpu_cores=32, apple_silicon=False,
-    dml_adapters=(), installed=_ALL_BACKENDS, fingerprint="p-cuda24",
+    installed=_ALL_BACKENDS, fingerprint="p-cuda24",
     tc_kinds=("vulkan", "cpu"),
     gpus=(("vulkan", "NVIDIA GeForce RTX 4090", 24 * (1 << 30)),),
-    ort_cuda=False,
 )
 APPLE_SILICON = accel.Machine(
     os="Darwin", arch="arm64", cpu_cores=10, apple_silicon=True,
-    dml_adapters=(), installed=_APPLE_BACKENDS, fingerprint="p-apple",
-    tc_kinds=("metal", "cpu"), gpus=(("metal", "Apple M2", 16 << 30),), ort_cuda=False,
+    installed=_APPLE_BACKENDS, fingerprint="p-apple",
+    tc_kinds=("metal", "cpu"), gpus=(("metal", "Apple M2", 16 << 30),),
 )
 
 ARM_NV = accel.Machine(
-    # Linux/aarch64 NVIDIA box (DGX Spark shape): Vulkan-capable, no sbsa
-    # onnxruntime-gpu wheel installed (ort_cuda=False).
+    # Linux/aarch64 NVIDIA box (DGX Spark shape): Vulkan-capable.
     os="Linux", arch="aarch64", cpu_cores=20, apple_silicon=False,
-    dml_adapters=(), installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream", "llamacpp_qwen"}),
+    installed=frozenset({"native_asr", "native_asr_stream", "native_translate"}),
     fingerprint="p-arm-nv", tc_kinds=("cpu", "vulkan"),
-    gpus=(("vulkan", "NVIDIA GB10", 97 << 30),), ort_cuda=False,
+    gpus=(("vulkan", "NVIDIA GB10", 97 << 30),),
 )
 
 WOA = accel.Machine(
     # Windows-on-ARM: reports vulkan in tc_kinds but has no vulkan asset lane
     # (arch-gated to x86_64 / Linux-aarch64 only).
     os="Windows", arch="ARM64", cpu_cores=8, apple_silicon=False,
-    dml_adapters=(), installed=frozenset(), fingerprint="p-woa",
+    installed=frozenset(), fingerprint="p-woa",
     tc_kinds=("cpu", "vulkan"), gpus=(),
 )
 
 _INTEL_MAC = accel.Machine(
     os="Darwin", arch="x86_64", cpu_cores=8, apple_silicon=False,
-    dml_adapters=(), installed=frozenset(), fingerprint="p-intel-mac",
+    installed=frozenset(), fingerprint="p-intel-mac",
     tc_kinds=("cpu", "metal"), gpus=(),
 )
 
 
-def _arm_nv_ort_cuda(installed=None):
-    return accel.Machine(
-        os="Linux", arch="aarch64", cpu_cores=20, apple_silicon=False,
-        dml_adapters=(), installed=installed if installed is not None else ARM_NV.installed,
-        fingerprint="p-arm-nv-ort", tc_kinds=("cpu", "vulkan"),
-        gpus=(("vulkan", "NVIDIA GB10", 97 << 30),), ort_cuda=True,
-    )
-
-
 def _machine(*, os_name="Linux", arch="x86_64", apple=False, dml=(),
-            installed=_ALL_BACKENDS, tc=(), gpus=(), ort_cuda=False,
+            installed=_ALL_BACKENDS, tc=(), gpus=(),
             fingerprint="p-generic"):
     """Generic one-off Machine builder for tests that don't fit the named
     fixtures above."""
     return accel.Machine(os=os_name, arch=arch, cpu_cores=8, apple_silicon=apple,
-                         dml_adapters=dml, installed=installed, fingerprint=fingerprint,
-                         tc_kinds=tc, gpus=gpus, ort_cuda=ort_cuda)
+                         installed=installed, fingerprint=fingerprint,
+                         tc_kinds=tc, gpus=gpus)
 
 
 def _nv_machine(vram_mb, installed=_ALL_BACKENDS):
@@ -148,27 +137,27 @@ def _nv_machine(vram_mb, installed=_ALL_BACKENDS):
     memory figure — has_nvidia is still True, but _quant_budget_bytes is
     None)."""
     return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, apple_silicon=False,
-                         dml_adapters=(), installed=installed, fingerprint=f"p-nv-{vram_mb}",
+                         installed=installed, fingerprint=f"p-nv-{vram_mb}",
                          tc_kinds=("vulkan", "cpu"),
                          gpus=(("vulkan", "NVIDIA GeForce RTX 4070", vram_mb << 20),))
 
 
 def _llm_machine(gpu=False, apple=False, vram_mb=12282,
-                 installed=frozenset({"llamacpp_qwen", "llamacpp_hunyuan", "llamacpp_gemma"})):
+                 installed=frozenset({"native_translate"})):
     if apple:
         return accel.Machine(os="Darwin", arch="arm64", cpu_cores=10, apple_silicon=True,
-                             dml_adapters=(), installed=installed, fingerprint="p-llm-apple",
+                             installed=installed, fingerprint="p-llm-apple",
                              tc_kinds=("cpu", "metal"), gpus=(("metal", "Apple M2", 16 << 30),))
     gpus = (("vulkan", "NVIDIA GeForce RTX 4070", vram_mb << 20),) if gpu else ()
     return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, apple_silicon=False,
-                         dml_adapters=(), installed=installed,
+                         installed=installed,
                          fingerprint=f"p-llm-{gpu}-{vram_mb}",
                          tc_kinds=("vulkan", "cpu") if gpu else ("cpu",), gpus=gpus)
 
 
 def _win_dml_machine(installed):
     return accel.Machine(os="Windows", arch="AMD64", cpu_cores=8, apple_silicon=False,
-                         dml_adapters=("dml",), installed=installed, fingerprint="p-win-dml")
+                         installed=installed, fingerprint="p-win-dml")
 
 
 # ── _platform_ok ─────────────────────────────────────────────────────────
@@ -186,20 +175,17 @@ def test_platform_ok_filters_to_declared_platforms():
     assert planner._platform_ok(d, _win_dml_machine(frozenset()), "linux") is False
 
 
-def test_platform_ok_requires_apple_silicon_when_declared():
-    d = catalog.Deployment("x", "gpu-metal", "q4", "repo", 1.0,
-                           platforms=("macos",), requires_apple_silicon=True)
-    assert planner._platform_ok(d, _INTEL_MAC, "macos") is False   # Darwin, but not Apple Silicon
-    assert planner._platform_ok(d, APPLE_SILICON, "macos") is True
-
-
 # ── _tier_available ──────────────────────────────────────────────────────
 # replaces test_accel.py::test_gpu_vulkan_tier_covers_linux_aarch64,
-# test_gpu_cuda_tier_backend_split_on_aarch64,
-# test_gpu_cuda_tier_capability_unlock_on_aarch64,
 # test_gpu_vulkan_tier_not_lit_by_dml_alone,
 # test_gpu_metal_tier_available_on_apple_silicon,
 # test_gpu_metal_tier_available_via_tc_metal_kind
+# gpu-cuda died with the ONNX TTS backends (its last catalog consumers,
+# slice 4 — R4): the tier string, has_nvidia, dml_adapters, ort_cuda, and the
+# aarch64 ORT-CUDA special case are all gone from planner.py, so
+# test_tier_available_gpu_cuda_backend_split_on_aarch64 and
+# test_tier_available_gpu_cuda_capability_unlock_on_aarch64 (which existed
+# only to cover that branch) are deleted, not rewritten.
 
 
 def test_tier_available_gpu_vulkan_covers_linux_aarch64():
@@ -210,32 +196,29 @@ def test_tier_available_gpu_vulkan_covers_linux_aarch64():
     assert planner._tier_available("gpu-vulkan", WOA) is False
 
 
-def test_tier_available_gpu_cuda_backend_split_on_aarch64():
-    # x86: NVIDIA presence is the whole gate. Linux/aarch64 splits by backend:
-    # llamacpp_* is allowed (bucket ships sm_121 builds), a call with no
-    # backend info stays conservative, and bare ORT backends need the
-    # capability unlock covered separately below.
-    assert planner._tier_available("gpu-cuda", _nv_machine(12288)) is True
-    assert planner._tier_available("gpu-cuda", ARM_NV, backend="llamacpp_qwen") is True
-    assert planner._tier_available("gpu-cuda", ARM_NV) is False
+def test_tier_available_gpu_cuda_and_gpu_dml_are_never_available():
+    # Both tier strings are recognized by nothing anymore — _tier_available
+    # falls through to its generic `return False` for any unknown tier.
+    assert planner._tier_available("gpu-cuda", _nv_machine(12288)) is False
+    assert planner._tier_available("gpu-dml", _win_dml_machine(frozenset())) is False
 
 
-def test_tier_available_gpu_cuda_capability_unlock_on_aarch64():
-    # Installing NVIDIA's sbsa onnxruntime-gpu wheel (ort_cuda=True) unlocks
-    # the cuda tier for ORT backends on Linux/aarch64; llamacpp doesn't need
-    # it (its cuda lane is the bucket binary, not onnxruntime).
-    m = _arm_nv_ort_cuda(installed=frozenset({"qwen3tts_onnx", "moss_onnx", "llamacpp_qwen"}))
-    assert planner._tier_available("gpu-cuda", m, backend="qwen3tts_onnx") is True
-    assert planner._tier_available("gpu-cuda", m, backend="moss_onnx") is True
-    assert planner._tier_available("gpu-cuda", m) is False               # no backend info
-    assert planner._tier_available("gpu-cuda", ARM_NV, backend="qwen3tts_onnx") is False  # CPU wheel
+def test_tier_available_gpu_vulkan_requires_the_tc_probes_own_signal():
+    # NVIDIA-by-description is no longer a vulkan fallback (it died with
+    # has_nvidia, slice 4 — R4): a machine whose `gpus` names an NVIDIA card
+    # but whose tc probe does NOT itself report "vulkan" in tc_kinds is not
+    # vulkan-available. A real box never has this inconsistent shape (both
+    # signals come from the same native probe) — this only matters for a
+    # synthetic fixture built with just `gpus=`, no `tc=`.
+    inconsistent = _machine(gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),))
+    assert planner._tier_available("gpu-vulkan", inconsistent) is False
 
 
 def test_tier_available_gpu_vulkan_not_lit_by_dml_alone():
     # A DirectX12/DML adapter is NOT a Vulkan signal: llama.cpp has no DML
     # flavor and the vulkan binary is fetched only when the tc probe itself
     # reports "vulkan". A genuinely Vulkan-capable box still reports it.
-    dml_only = _machine(dml=("Intel Arc",), installed=frozenset({"llamacpp_qwen"}))
+    dml_only = _machine(dml=("Intel Arc",), installed=frozenset({"native_translate"}))
     assert planner._tier_available("gpu-vulkan", dml_only) is False
     assert planner._tier_available("gpu-vulkan", _machine(tc=("cpu", "vulkan"))) is True
     plans = planner.resolve_translate("qwen3-0.6b", "auto", machine=dml_only, platform="linux",
@@ -256,40 +239,94 @@ def test_tier_available_gpu_metal_via_tc_metal_kind():
     assert planner._tier_available("gpu-metal", m) is True
 
 
+# ── gpu-metal on a paravirtual (virtualized-Mac) GPU ─────────────────────
+# Ruling R36: GitHub's macos-14 arm64 runner is a VM whose Metal device
+# reports as "Apple Paravirtual device" and lacks has_simdgroup_reduction, so
+# ggml refuses NORM/RMS_NORM/ARGMAX and every TTS family aborts the process
+# there. apple_silicon is still True on such a host (Darwin + arm64) and the
+# device still reports kind "metal", so only the description separates it.
+
+def _paravirtual_mac(desc="Apple Paravirtual device"):
+    return accel.Machine(
+        os="Darwin", arch="arm64", cpu_cores=3, apple_silicon=True,
+        installed=_APPLE_BACKENDS, fingerprint="p-paravirt",
+        tc_kinds=("metal", "cpu"), gpus=(("metal", desc, 8 << 30),))
+
+
+def test_tier_available_gpu_metal_excluded_on_a_paravirtual_device():
+    assert planner._tier_available("gpu-metal", _paravirtual_mac()) is False
+    # case-insensitive, and a substring match (the exact string a hosted
+    # runner reports has varied across macOS releases)
+    assert planner._tier_available("gpu-metal", _paravirtual_mac("APPLE PARAVIRTUAL DEVICE")) is False
+    assert planner._tier_available("gpu-metal", _paravirtual_mac("Paravirtual GPU (VZ)")) is False
+    # ...and the exclusion is scoped to gpu-metal: the cpu floor survives.
+    assert planner._tier_available("cpu", _paravirtual_mac()) is True
+
+
+def test_tier_available_gpu_metal_kept_on_real_apple_silicon():
+    # The named fixture (Apple M2) and the real M4 description both pass.
+    assert planner._tier_available("gpu-metal", APPLE_SILICON) is True
+    assert planner._tier_available("gpu-metal", _paravirtual_mac("Apple M4")) is True
+    # A probe that reported no device descriptions at all is not evidence of a
+    # shim — the tier stays available (Intel-Mac/tc-only fixtures rely on this).
+    assert planner._tier_available("gpu-metal", _INTEL_MAC) is True
+
+
+def test_paravirtual_exclusion_removes_gpu_metal_plans_end_to_end():
+    # The whole point: a TTS card whose catalog rows include gpu-metal (R36)
+    # resolves cpu-only on a paravirtual Mac, instead of handing the loader a
+    # plan that aborts the process.
+    m = _paravirtual_mac()
+    plans = planner.resolve_tts("moss-tts-nano", "auto", machine=m, platform="macos",
+                                cache={}, downloaded=frozenset())
+    assert [p.tier for p in plans] == ["cpu"]
+    # An explicit GPU override cannot resurrect it either.
+    plans = planner.resolve_tts("moss-tts-nano", "cuda", machine=m, platform="macos",
+                                cache={}, downloaded=frozenset())
+    assert {p.tier for p in plans} == {"cpu"}
+    # The same card on a real M4 still leads with metal.
+    real = _paravirtual_mac("Apple M4")
+    plans = planner.resolve_tts("moss-tts-nano", "auto", machine=real, platform="macos",
+                                cache={}, downloaded=frozenset())
+    assert plans[0].tier == "gpu-metal"
+
+
 # ── resolve_deployments: tier gating + override pinning ─────────────────
 # replaces test_accel.py::test_resolve_prefers_gpu_when_nvidia_present,
 # test_resolve_cpu_only_machine_drops_gpu_plan, test_resolve_override_pins_cpu,
 # test_resolve_gpu_only_model_on_cpu_machine_is_empty
 
 
-def _model_cpu_and_cuda():
+def _model_cpu_and_vulkan():
     # synthetic rows exercising the generic resolver mechanics (tier ranking,
     # override pinning) — backend name only needs to be in `installed`.
+    # gpu-vulkan (not gpu-cuda, dead since slice 4 — R4) is the accelerator
+    # tier every real card actually ships.
     return catalog.AsrModel("m", "M", ("multi",), (
-        catalog.Deployment("transcribe_cpp", "gpu-cuda", "float16", "large-v3", 1.0),
-        catalog.Deployment("transcribe_cpp", "cpu", "int8", "large-v3", 1.0),
+        catalog.Deployment("native_asr", "gpu-vulkan", "float16", "large-v3", 1.0),
+        catalog.Deployment("native_asr", "cpu", "int8", "large-v3", 1.0),
     ))
 
 
 def test_resolve_deployments_prefers_gpu_when_nvidia_present():
-    plans = planner.resolve_deployments(_model_cpu_and_cuda(), _nv_machine(12288), platform="linux")
-    assert [p.device for p in plans] == ["cuda", "cpu"]   # GPU first, CPU floor last
+    plans = planner.resolve_deployments(_model_cpu_and_vulkan(), _nv_machine(12288), platform="linux")
+    assert [p.device for p in plans] == ["vulkan", "cpu"]   # GPU first, CPU floor last
 
 
 def test_resolve_deployments_cpu_only_machine_drops_gpu_plan():
-    plans = planner.resolve_deployments(_model_cpu_and_cuda(), CPU_ONLY, platform="linux")
-    assert [p.device for p in plans] == ["cpu"]            # no NVIDIA -> only the floor
+    plans = planner.resolve_deployments(_model_cpu_and_vulkan(), CPU_ONLY, platform="linux")
+    assert [p.device for p in plans] == ["cpu"]            # no vulkan -> only the floor
 
 
 def test_resolve_deployments_override_pins_cpu():
-    plans = planner.resolve_deployments(_model_cpu_and_cuda(), _nv_machine(12288),
+    plans = planner.resolve_deployments(_model_cpu_and_vulkan(), _nv_machine(12288),
                                         override="cpu", platform="linux")
-    assert [p.device for p in plans] == ["cpu", "cuda"]    # CPU pinned to front, GPU still present
+    assert [p.device for p in plans] == ["cpu", "vulkan"]    # CPU pinned to front, GPU still present
 
 
 def test_resolve_deployments_gpu_only_model_on_cpu_machine_is_empty():
     gpu_only = catalog.AsrModel("v", "Voxtral", ("multi",),
-                                (catalog.Deployment("llamacpp", "gpu-cuda", "q4", "v", 1.0),))
+                                (catalog.Deployment("llamacpp", "gpu-vulkan", "q4", "v", 1.0),))
     assert planner.resolve_deployments(gpu_only, CPU_ONLY, platform="linux") == []
 
 
@@ -333,7 +370,7 @@ def test_resolve_whisper_base_tier_and_override(machine, override, expected_devi
     plans = planner.resolve("whisper-base", override, machine=machine, platform="linux",
                             cache={}, downloaded=set())
     assert [p.device for p in plans] == expected_devices
-    assert all(p.backend == "transcribe_cpp" for p in plans)
+    assert all(p.backend == "native_asr" for p in plans)
     if expected_quant is not None:
         assert all(p.compute_type == expected_quant for p in plans)
 
@@ -355,8 +392,8 @@ def test_resolve_leads_with_vulkan_from_tc_probe_alone_no_nvidia():
 def test_resolve_demotes_gpu_when_bench_cache_says_slower():
     m = CUDA_12GB
     cache = {
-        planner._bench_key(m.fingerprint, "whisper-base", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
-        planner._bench_key(m.fingerprint, "whisper-base", "transcribe_cpp", "cpu", "q8_0"): 0.3,
+        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
+        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
     }
     plans = planner.resolve("whisper-base", machine=m, platform="linux", cache=cache, downloaded=set())
     assert plans[0].device == "cpu"    # demoted: measured slower on GPU than CPU
@@ -365,8 +402,8 @@ def test_resolve_demotes_gpu_when_bench_cache_says_slower():
 def test_resolve_override_beats_bench_demotion():
     m = CUDA_12GB
     cache = {
-        planner._bench_key(m.fingerprint, "whisper-base", "transcribe_cpp", "vulkan", "q8_0"): 0.8,
-        planner._bench_key(m.fingerprint, "whisper-base", "transcribe_cpp", "cpu", "q8_0"): 0.3,
+        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
+        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
     }
     # UI sends 'cuda' for GPU — it pins ANY accelerator tier (vulkan here);
     # the benchmark never overrides the user's forced device.
@@ -380,12 +417,12 @@ def test_resolve_override_beats_bench_demotion():
     "cohere-transcribe-03-2026", "fun-asr-mlt-nano",
 ])
 def test_resolve_speech_llm_family_vulkan_then_cpu_on_nvidia(model_id):
-    # granite/qwen3-asr/voxtral/cohere/fun-asr all share the transcribe_cpp
+    # granite/qwen3-asr/voxtral/cohere/fun-asr all share the native_asr
     # rows — on an NVIDIA box they resolve vulkan first with a cpu floor.
-    m = _machine(gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12288 << 20),))
+    m = _machine(tc=("vulkan", "cpu"), gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12288 << 20),))
     plans = planner.resolve(model_id, machine=m, platform="linux", cache={}, downloaded=set())
     assert [p.device for p in plans] == ["vulkan", "cpu"]
-    assert all(p.backend.startswith("transcribe_cpp") for p in plans)
+    assert all(p.backend.startswith("native_asr") for p in plans)
 
 
 def test_resolve_arm_nvidia_leads_with_vulkan():
@@ -472,16 +509,16 @@ def test_resolve_asr_bench_demotion_uses_quant_keyed_entries():
     m = _nv_machine(12282)
     cache = {
         planner._bench_key(m.fingerprint, "cohere-transcribe-03-2026",
-                           "transcribe_cpp", "vulkan", "q4_k_m"): 0.9,
+                           "native_asr", "vulkan", "q4_k_m"): 0.9,
         planner._bench_key(m.fingerprint, "cohere-transcribe-03-2026",
-                           "transcribe_cpp", "cpu", "q4_k_m"): 0.2,
+                           "native_asr", "cpu", "q4_k_m"): 0.2,
     }
     plans = planner.resolve("cohere-transcribe-03-2026", machine=m, platform="linux",
                             cache=cache, downloaded={"q4_k_m"})
     assert plans[0].device == "cpu"    # measured slower on GPU -> demoted
 
 
-# ── select_variant: non-llamacpp (generic VRAM/format-aware) path ───────
+# ── select_variant: non-GGUF-LLM (generic VRAM/format-aware) path ───────
 # replaces test_accel.py::test_select_variant_budget_from_tc_probe_totals,
 # test_select_variant_fp8_dropped_when_compressed_tensors_absent,
 # test_select_variant_prefers_bf16_when_it_fits, test_select_variant_pin_honored_when_valid,
@@ -490,16 +527,18 @@ def test_resolve_asr_bench_demotion_uses_quant_keyed_entries():
 
 
 def _hymt2_7b_synthetic():
-    """Synthetic (non-catalog) TranslateModel replicating the pre-llamacpp
-    shape of hy-mt2-7b: a gpu-cuda bf16 variant, a cpu float32 floor, and a
-    gpu-cuda fp8 variant. The real hy-mt2-7b catalog row now uses
-    llamacpp/GGUF quants (bypasses this VRAM/format-aware logic entirely —
-    see planner._is_llamacpp), so this fixture is what keeps select_variant's
-    still-live generic (non-llamacpp) path under test."""
+    """Synthetic (non-catalog) TranslateModel replicating the pre-native_translate
+    shape of hy-mt2-7b: a gpu-vulkan bf16 variant, a cpu float32 floor, and a
+    gpu-vulkan fp8 variant (gpu-cuda died with the ONNX backends in slice 4 —
+    R4; this fixture's GPU tier moved to the one accelerator tier that still
+    exists, same as every real card). The real hy-mt2-7b catalog row now uses
+    native_translate GGUF quants (bypasses this VRAM/format-aware logic
+    entirely — see planner._is_gguf_llm), so this fixture is what keeps
+    select_variant's still-live generic (non-GGUF-LLM) path under test."""
     return catalog.TranslateModel("hy-mt2-7b-synthetic", "Hunyuan-MT2 7B (synthetic)", ("multi",), (
-        catalog.Deployment("hunyuan_translate", "gpu-cuda", "bfloat16", "tencent/Hy-MT2-7B", 1.0),
+        catalog.Deployment("hunyuan_translate", "gpu-vulkan", "bfloat16", "tencent/Hy-MT2-7B", 1.0),
         catalog.Deployment("hunyuan_translate", "cpu", "float32", "tencent/Hy-MT2-7B", 1.0),
-        catalog.Deployment("hunyuan_translate", "gpu-cuda", "fp8", "tencent/Hy-MT2-7B-FP8", 1.0),
+        catalog.Deployment("hunyuan_translate", "gpu-vulkan", "fp8", "tencent/Hy-MT2-7B-FP8", 1.0),
     ))
 
 
@@ -562,7 +601,7 @@ FP8_WEIGHT_FACTOR_MATRIX = [
     # 12GiB Ada, no reserve: budget=11GiB. fp8 (8GiB*1.5=12GiB) exceeds it -> cpu.
     pytest.param(12, "cpu", None, id="fp8_1_5x_factor_too_big_at_12gib"),
     # 16GiB Ada: budget=15GiB. fp8 (12GiB) fits -> fp8 chosen.
-    pytest.param(16, "gpu-cuda", "fp8", id="fp8_1_5x_factor_fits_at_16gib"),
+    pytest.param(16, "gpu-vulkan", "fp8", id="fp8_1_5x_factor_fits_at_16gib"),
 ]
 
 
@@ -577,13 +616,18 @@ def test_select_variant_fp8_weight_factor_larger_than_bf16(vram_gb, expected_tie
         assert d.compute_type == expected_ct
 
 
-# ── select_variant / _llamacpp_variant_row: llamacpp path ───────────────
+# ── select_variant / _llamacpp_variant_row: GGUF LLM (native_translate) path ─
 # replaces test_accel.py::test_select_variant_llamacpp_default_and_pin,
 # test_select_variant_llamacpp_metal_and_cpu, test_variant_plenty_of_budget_picks_largest_quant,
 # test_variant_tight_budget_steps_down_to_default, test_variant_half_fits_keeps_gpu_via_fit,
 # test_variant_starved_budget_goes_cpu, test_variant_pin_beats_budget,
 # test_variant_no_budget_reading_keeps_rank_default, test_variant_reserved_subtracts_from_budget,
 # test_llamacpp_unified_memory_never_degrades_to_cpu_for_memory
+#
+# `_llm_machine(gpu=True)` models its NVIDIA device via Vulkan (tc_kinds), not
+# cuda — matching the real tc probe (post-A1, no probe ever reports "cuda") —
+# so native_translate's GPU tier here is gpu-vulkan, never gpu-cuda (R2: that
+# tier has no deployment row left for native_translate at all).
 
 _GEMMA = catalog.translate_model("translategemma-4b")
 _QWEN35_2B = catalog.translate_model("qwen3.5-2b")
@@ -594,10 +638,10 @@ def test_select_variant_llamacpp_default_and_pin():
     mach = _llm_machine(gpu=True)
     chosen = planner.select_variant(_GEMMA, mach, reserved_bytes=0,
                                     est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
-    assert (chosen.compute_type, chosen.tier) == ("q4_k_m", "gpu-cuda")
+    assert (chosen.compute_type, chosen.tier) == ("q4_k_m", "gpu-vulkan")
     pinned = planner.select_variant(_GEMMA, mach, reserved_bytes=0, pin="q8_0",
                                     est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
-    assert (pinned.compute_type, pinned.tier) == ("q8_0", "gpu-cuda")
+    assert (pinned.compute_type, pinned.tier) == ("q8_0", "gpu-vulkan")
 
 
 def test_select_variant_llamacpp_metal_and_cpu():
@@ -611,23 +655,23 @@ def test_select_variant_llamacpp_metal_and_cpu():
 
 def test_llamacpp_variant_row_direct_pin_wins_over_budget():
     # A pin to the (rank 1.0, non-default) q4_k_m quant is honored
-    # unconditionally -- the user's will, --fit copes with memory -- even
-    # though q8_0 is the rank-default for qwen3-0.6b.
+    # unconditionally -- the user's will -- even though q8_0 is the
+    # rank-default for qwen3-0.6b.
     m = _llm_machine(gpu=True)
     d = planner._llamacpp_variant_row(_QWEN06, m, "q4_k_m", 0,
                                       planner._quant_budget_bytes(m), est_bytes=lambda d: d.est_bytes)
-    assert (d.compute_type, d.tier) == ("q4_k_m", "gpu-cuda")
+    assert (d.compute_type, d.tier) == ("q4_k_m", "gpu-vulkan")
 
 
 # translategemma-4b: q4_k_m (default, ~2.32GiB) / q8_0 (~3.85GiB) x 1.1 resident factor.
 LLAMACPP_BUDGET_MATRIX = [
-    pytest.param(10 << 30, 0, None, "q8_0", "gpu-cuda", id="plenty_of_budget_picks_largest_quant"),
-    pytest.param(3 << 30, 0, None, "q4_k_m", "gpu-cuda", id="tight_budget_steps_down_to_default"),
-    pytest.param(int(1.5 * (1 << 30)), 0, None, "q4_k_m", "gpu-cuda", id="half_fits_keeps_gpu_via_fit"),
+    pytest.param(10 << 30, 0, None, "q8_0", "gpu-vulkan", id="plenty_of_budget_picks_largest_quant"),
+    pytest.param(3 << 30, 0, None, "q4_k_m", "gpu-vulkan", id="tight_budget_steps_down_to_default"),
+    pytest.param(int(1.5 * (1 << 30)), 0, None, "q4_k_m", "gpu-vulkan", id="half_fits_keeps_gpu_via_fit"),
     pytest.param(1 << 29, 0, None, "q4_k_m", "cpu", id="starved_budget_goes_cpu"),
-    pytest.param(1 << 29, 0, "q8_0", "q8_0", "gpu-cuda", id="pin_beats_budget"),
-    pytest.param(None, 0, None, "q4_k_m", "gpu-cuda", id="no_budget_reading_keeps_rank_default"),
-    pytest.param(10 << 30, 7 << 30, None, "q4_k_m", "gpu-cuda", id="reserved_subtracts_from_budget"),
+    pytest.param(1 << 29, 0, "q8_0", "q8_0", "gpu-vulkan", id="pin_beats_budget"),
+    pytest.param(None, 0, None, "q4_k_m", "gpu-vulkan", id="no_budget_reading_keeps_rank_default"),
+    pytest.param(10 << 30, 7 << 30, None, "q4_k_m", "gpu-vulkan", id="reserved_subtracts_from_budget"),
 ]
 
 
@@ -667,19 +711,20 @@ def test_select_variant_llamacpp_apple_unified_memory_never_degrades_to_cpu():
 
 def test_resolve_translate_prefers_gpu():
     # select_variant needs a GPU with known VRAM (tc-probe total) to prefer a
-    # GPU tier; the 12GB device below qualifies qwen2.5-0.5b for cuda.
-    m = _nv_machine(12288, installed=frozenset({"llamacpp_qwen"}))
+    # GPU tier; the 12GB device below qualifies qwen2.5-0.5b for its
+    # (Vulkan-reported, per R2 — no probe ever reports "cuda") GPU tier.
+    m = _nv_machine(12288, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("qwen2.5-0.5b", "auto", machine=m, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: 1 * 1024**3, format_ready=lambda ct: True)
-    assert plans[0].device == "cuda"
+    assert plans[0].device == "vulkan"
     assert plans[-1].device == "cpu"
     # qwen2.5-0.5b defaults to q8_0 (small-Qwen default); artifact is the upstream GGUF file.
     assert plans[0].artifact == "Qwen/Qwen2.5-0.5B-Instruct-GGUF/qwen2.5-0.5b-instruct-q8_0.gguf"
 
 
 def test_resolve_translate_cpu_only_machine():
-    m = _machine(installed=frozenset({"llamacpp_qwen"}))
+    m = _machine(installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("qwen3-0.6b", "auto", machine=m, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
@@ -689,25 +734,26 @@ def test_resolve_translate_cpu_only_machine():
 def test_resolve_translate_override_cpu_pins_front():
     # An explicit device override bypasses select_variant/quant-default
     # picking and returns every installed+tier-available deployment (both
-    # quants), CPU pinned to the front.
-    m = _nv_machine(0, installed=frozenset({"llamacpp_qwen"}))
+    # quants), CPU pinned to the front. Only cpu/gpu-vulkan tiers exist for
+    # native_translate (R2: no gpu-cuda row at all).
+    m = _nv_machine(0, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("qwen3-0.6b", "cpu", machine=m, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
-    assert [p.device for p in plans] == ["cpu", "cpu", "cuda", "cuda", "vulkan", "vulkan"]
+    assert [p.device for p in plans] == ["cpu", "cpu", "vulkan", "vulkan"]
     assert plans[0].device == "cpu" and plans[-1].device == "vulkan"
 
 
 def test_resolve_translate_qwen35_no_longer_self_gates():
-    # qwen3.5 lives on a GGUF card behind llamacpp_qwen, an external binary
-    # that is always "installed" (no Python-runtime dependency) — it
-    # resolves like any other LLM translate card, no self-gating.
+    # qwen3.5 lives on a GGUF card behind native_translate, which self-gates
+    # only on the sokuji_native wheel — it resolves like any other LLM
+    # translate card, no self-gating on a Python runtime.
     m = _nv_machine(0, installed=_ALL_BACKENDS)
     plans = planner.resolve_translate("qwen3.5-0.8b", "auto", machine=m, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
-    assert plans[0].device == "cuda"
-    assert any(p.backend == "llamacpp_qwen" for p in plans)
+    assert plans[0].device == "vulkan"
+    assert any(p.backend == "native_translate" for p in plans)
 
 
 def test_resolve_translate_unknown_id_raises():
@@ -719,8 +765,8 @@ def test_resolve_translate_unknown_id_raises():
 
 def test_resolve_translate_explicit_device_override_unchanged():
     # device override ("cuda"/"cpu") keeps prior tier-pinning behavior, not
-    # variant selection. hy-mt2-7b's real backend is llamacpp_hunyuan.
-    m = _nv_machine(12 * 1024, installed=frozenset({"llamacpp_hunyuan"}))
+    # variant selection. hy-mt2-7b's real backend is native_translate.
+    m = _nv_machine(12 * 1024, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("hy-mt2-7b", "cpu", machine=m, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
@@ -730,45 +776,33 @@ def test_resolve_translate_explicit_device_override_unchanged():
 def test_resolve_translate_override_honors_quant_pin():
     # Regression: the explicit device-override path used to drop `pin`
     # entirely. override='cpu' + pin='q8_0' must yield ONLY q8_0 rows, cpu
-    # pinned to the front.
-    m = _nv_machine(0, installed=frozenset({"llamacpp_qwen"}))
+    # pinned to the front. Only cpu/gpu-vulkan tiers exist for native_translate.
+    m = _nv_machine(0, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("qwen3-0.6b", "cpu", machine=m, platform="linux",
                                       cache={}, downloaded=set(), pin="q8_0",
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
-    assert [p.device for p in plans] == ["cpu", "cuda", "vulkan"]
+    assert [p.device for p in plans] == ["cpu", "vulkan"]
     assert all(p.compute_type == "q8_0" for p in plans)
 
 
 def test_resolve_translate_override_without_pin_unchanged():
     # No pin -> unchanged behavior: every installed+tier-available deployment
     # across BOTH quants.
-    m = _nv_machine(0, installed=frozenset({"llamacpp_qwen"}))
+    m = _nv_machine(0, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("qwen3-0.6b", "cpu", machine=m, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
     assert {p.compute_type for p in plans} == {"q8_0", "q4_k_m"}
 
 
-def test_resolve_translate_opus_is_cpu_only():
-    # Opus-MT is a single cpu/int8 CTranslate2 deployment (no GPU tier) —
-    # a gpu-cuda deployment simply doesn't exist for this model.
-    m = _nv_machine(12288, installed=frozenset({"ct2_opus_translate"}))
-    plans = planner.resolve_translate("opus-mt-zh-en", "auto", machine=m, platform="linux",
-                                      cache={}, downloaded=set(),
-                                      est_bytes=lambda d: 1 * 1024**3, format_ready=lambda ct: True)
-    assert [p.device for p in plans] == ["cpu"]
-    assert all(p.backend == "ct2_opus_translate" for p in plans)
-    assert plans[0].artifact == "jiangzhuo9357/opus-mt-zh-en-ct2"
-
-
 def test_resolve_translate_hymt15_prefers_gpu():
-    m = _nv_machine(12288, installed=frozenset({"llamacpp_hunyuan"}))
+    m = _nv_machine(12288, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("hy-mt15-1.8b", "auto", machine=m, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
-    assert plans[0].device == "cuda"
+    assert plans[0].device == "vulkan"
     assert plans[-1].device == "cpu"
-    assert all(p.backend == "llamacpp_hunyuan" for p in plans)
+    assert all(p.backend == "native_translate" for p in plans)
     assert plans[0].artifact.startswith("tencent/HY-MT1.5-1.8B-GGUF/")
 
 
@@ -777,13 +811,13 @@ def test_resolve_translate_same_quant_cpu_floor():
     plans = planner.resolve_translate("hy-mt2-1.8b", "auto", machine=m, platform="linux",
                                       cache={}, downloaded=set(), pin="q8_0",
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
-    assert [(p.tier, p.compute_type) for p in plans] == [("gpu-cuda", "q8_0"), ("cpu", "q8_0")]
+    assert [(p.tier, p.compute_type) for p in plans] == [("gpu-vulkan", "q8_0"), ("cpu", "q8_0")]
 
 
 def test_resolve_translate_auto_matches_recommendation_basis():
     # LOAD uses the SAME stable mem_total basis as the download recommendation
     # (we always run the downloaded file): a 12GB card recommends+loads q8_0.
-    m = _nv_machine(12282, installed=frozenset({"llamacpp_gemma"}))
+    m = _nv_machine(12282, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("translategemma-4b", "auto", machine=m, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
@@ -792,7 +826,7 @@ def test_resolve_translate_auto_matches_recommendation_basis():
 
 def test_resolve_translate_auto_loads_the_downloaded_file():
     # ... but when the user has (only) q4 downloaded, that IS the model we run.
-    m = _nv_machine(12282, installed=frozenset({"llamacpp_gemma"}))
+    m = _nv_machine(12282, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("translategemma-4b", "auto", machine=m, platform="linux",
                                       cache={}, downloaded={"q4_k_m"},
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
@@ -800,7 +834,7 @@ def test_resolve_translate_auto_loads_the_downloaded_file():
 
 
 def test_resolve_translate_quant_pick_prefers_downloaded():
-    m = _nv_machine(12282, installed=frozenset({"llamacpp_gemma"}))
+    m = _nv_machine(12282, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("translategemma-4b", "auto", machine=m, platform="linux",
                                       cache={}, downloaded={"q4_k_m"},
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
@@ -808,10 +842,10 @@ def test_resolve_translate_quant_pick_prefers_downloaded():
 
 
 def test_resolve_translate_bench_demotes_gpu_when_cpu_decodes_faster():
-    m = _nv_machine(12282, installed=frozenset({"llamacpp_gemma"}))
+    m = _nv_machine(12282, installed=frozenset({"native_translate"}))
     cache = {
-        "tps:" + planner._bench_key(m.fingerprint, "translategemma-4b", "llamacpp_gemma", "cuda", "q8_0"): 5.0,
-        "tps:" + planner._bench_key(m.fingerprint, "translategemma-4b", "llamacpp_gemma", "cpu", "q8_0"): 12.0,
+        "tps:" + planner._bench_key(m.fingerprint, "translategemma-4b", "native_translate", "vulkan", "q8_0"): 5.0,
+        "tps:" + planner._bench_key(m.fingerprint, "translategemma-4b", "native_translate", "cpu", "q8_0"): 12.0,
     }
     plans = planner.resolve_translate("translategemma-4b", "auto", machine=m, platform="linux",
                                       cache=cache, downloaded=set(),
@@ -820,41 +854,78 @@ def test_resolve_translate_bench_demotes_gpu_when_cpu_decodes_faster():
 
 
 def test_resolve_translate_keeps_gpu_without_bench_measurement():
-    m = _nv_machine(12282, installed=frozenset({"llamacpp_gemma"}))
+    m = _nv_machine(12282, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("translategemma-4b", "auto", machine=m, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
-    assert plans[0].device == "cuda"       # no measurements -> estimate order
+    assert plans[0].device == "vulkan"     # no measurements -> estimate order
 
 
-def test_resolve_arm_nvidia_translate_leads_with_cuda_and_keeps_cpu_floor():
+def test_resolve_arm_nvidia_translate_leads_with_vulkan_and_keeps_cpu_floor():
+    # ARM_NV's NVIDIA device is seen via Vulkan (tc_kinds), not cuda — and no
+    # gpu-cuda row exists for native_translate at all (R2) — so the GPU tier
+    # here is gpu-vulkan.
     tr = planner.resolve_translate("qwen2.5-0.5b", "auto", machine=ARM_NV, platform="linux",
                                    cache={}, downloaded=set(),
                                    est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
-    assert tr[0].device == "cuda"
+    assert tr[0].device == "vulkan"
     assert any(p.device == "cpu" for p in tr)
 
 
-# ── resolve_tts: sherpa synthesis, cpu-only ordering, unknown ids, D9 DML ──
-# replaces test_accel.py::test_resolve_tts_orders_gpu_over_cpu, test_resolve_tts_cpu_only_machine,
-# test_resolve_tts_unknown_model_raises, test_resolve_tts_arbitrary_sherpa_repo_synthesizes_model,
-# test_resolve_tts_sherpa_cards_cpu_only_even_on_gpu_machine,
-# test_resolve_tts_unknown_non_sherpa_id_still_raises, test_resolve_tts_surfaces_gpu_dml_on_windows,
-# test_resolve_tts_override_cuda_pins_gpu_dml, test_resolve_tts_gpu_dml_absent_on_linux,
-# test_arm_ort_cuda_resolves_tts_cuda
+# ── resolve_tts: collapsed onto the GGUF-LLM path (slice 4) ─────────────
+# Every native_tts card is now a single-file audio.cpp GGUF, and the same
+# card shape (no more per-platform/per-precision row variation: no
+# CUDA-only bf16, no macOS-only MLX row, no windows-only gpu-dml row) ships
+# uniform tiers per quant. R19 (2026-09-01, mac-arm64 metal lane abort on
+# supertonic's first real-GPU contact) originally pinned every native_tts
+# deployment to cpu-only, which made _llamacpp_variant_row's `gpu_possible`
+# check always False here; the R19 follow-up / R25 (task 8, GB10 Vulkan
+# validation, see catalog._TTS_TIER_OVERRIDES) restored a gpu-vulkan tier for
+# every family, so `gpu_possible` is now True on a vulkan-capable machine and
+# these tests exercise the REAL budget fit-walk again, same as
+# resolve_translate's. _tts_pick_quant is GONE: resolve_tts's quant/tier
+# selection is now literally _llamacpp_variant_row (the same byte-budget
+# fit-walk resolve_translate's auto path uses) + a same-/any-quant cpu
+# floor, so this section tests resolve_tts directly against REAL catalog
+# cards rather than re-deriving _tts_pick_quant's old test matrix (that
+# logic, and its tests, now live once, shared, under the
+# resolve_translate/_llamacpp_variant_row tests above). The old
+# sherpa-ad-hoc-synthesis and gpu-dml/ort_cuda tests have no equivalent:
+# sherpa_tts and every ORT/MLX TTS backend are gone.
 
 
-def test_resolve_tts_orders_gpu_over_cpu():
-    m = _nv_machine(12000, installed=frozenset({"sherpa_tts", "moss_onnx"}))
-    plans = planner.resolve_tts("moss-tts-nano", machine=m, platform="linux", cache={})
-    assert plans[0].tier == "gpu-cuda" and plans[0].device == "cuda"
-    assert plans[-1].tier == "cpu"    # cpu floor survives
+def test_resolve_tts_prefers_largest_fitting_quant_with_cpu_floor():
+    # moss-tts-nano: q8_0 (~184MiB, rank 2.0/default) + bf16 (~317MiB, rank
+    # 1.0). Post-task-8, CUDA_12GB is vulkan-capable and gpu_possible is True,
+    # so the real budget fit-walk runs: bf16*1.1 resident factor (~365MiB)
+    # comfortably fits the 12GiB budget and is the LARGER quant, so it wins
+    # over the rank-default q8_0 -- gpu-vulkan bf16, paired with a same-quant
+    # cpu floor (two plans, not the old single cpu-only pick).
+    plans = planner.resolve_tts("moss-tts-nano", machine=CUDA_12GB, platform="linux", cache={})
+    assert [p.tier for p in plans] == ["gpu-vulkan", "cpu"]
+    assert plans[0].device == "vulkan"
+    assert all(p.compute_type == "bf16" for p in plans)
+    assert all(p.backend == "native_tts" for p in plans)
+    assert all(p.config.tts_family == "moss_tts_nano" for p in plans)
+
+
+def test_resolve_tts_single_quant_card_still_gets_cpu_floor():
+    # supertonic-3 ships only "f16" (Q8 is upstream-broken — see catalog.py) —
+    # the single-quant case still goes through the same auto path cleanly.
+    # This is also the card whose real-GPU (Metal) contact triggered R19;
+    # task 8's GB10 Vulkan validation passed for it (the Metal abort does not
+    # reproduce on Vulkan), so a vulkan-capable machine now picks gpu-vulkan
+    # over cpu, with a cpu floor alongside it.
+    plans = planner.resolve_tts("supertonic-3", machine=CUDA_12GB, platform="linux", cache={})
+    assert [p.tier for p in plans] == ["gpu-vulkan", "cpu"]
+    assert all(p.compute_type == "f16" for p in plans)
+    assert all(p.config.tts_family == "supertonic" for p in plans)
 
 
 def test_resolve_tts_cpu_only_machine():
-    m = _machine(installed=frozenset({"sherpa_tts", "moss_onnx"}))
-    plans = planner.resolve_tts("moss-tts-nano", machine=m, platform="linux", cache={})
+    plans = planner.resolve_tts("moss-tts-nano", machine=CPU_ONLY, platform="linux", cache={})
     assert [p.tier for p in plans] == ["cpu"]
+    assert plans[0].compute_type == "q8_0"    # no GPU -> rank-default (also the smallest)
 
 
 def test_resolve_tts_unknown_model_raises():
@@ -862,246 +933,44 @@ def test_resolve_tts_unknown_model_raises():
         planner.resolve_tts("nope", machine=CPU_ONLY, platform="linux", cache={})
 
 
-def test_resolve_tts_arbitrary_sherpa_repo_synthesizes_model():
-    # The renderer's piper voice cards carry full HF repo paths as ids; these
-    # are not in the short sidecar catalog, but SherpaTtsBackend downloads/
-    # loads any repo, so resolve_tts must synthesize an ad-hoc model.
-    repo = "csukuangfj/vits-piper-en_US-libritts_r-medium"
-    m = _nv_machine(12000, installed=frozenset({"sherpa_tts", "moss_onnx"}))
-    plans = planner.resolve_tts(repo, machine=m, platform="linux", cache={})
-    assert plans, "expected at least one plan for an arbitrary sherpa repo"
-    assert all(p.backend == "sherpa_tts" for p in plans)
-    assert all(p.artifact == repo for p in plans)
-    assert [p.tier for p in plans] == ["cpu"]    # sherpa is CPU-only (D11)
+def test_resolve_tts_pin_overrides_the_budget_fit_pick():
+    # `_llamacpp_variant_row`'s pin branch returns `_row(pin)` unconditionally,
+    # before `gpu_possible` is even computed -- so this pin has always landed
+    # on q8_0 regardless of the cpu-only/gpu-vulkan ruling. What DID change
+    # post-task-8: `_row("q8_0")` now picks the best AVAILABLE tier for that
+    # quant, which is gpu-vulkan (not cpu) on this vulkan-capable machine.
+    plans = planner.resolve_tts("moss-tts-nano", machine=CUDA_12GB, platform="linux",
+                                cache={}, pin="q8_0")
+    assert plans[0].compute_type == "q8_0"
+    assert plans[0].tier == "gpu-vulkan"
 
 
-def test_resolve_tts_sherpa_cards_cpu_only_even_on_gpu_machine():
-    m = _nv_machine(12288, installed=frozenset({"sherpa_tts"}))
-    plans = planner.resolve_tts("csukuangfj/vits-piper-en_US-amy-low", machine=m,
-                                platform="linux", cache={})
-    assert [p.tier for p in plans] == ["cpu"]
-    plans2 = planner.resolve_tts("csukuangfj/vits-piper-en_US-kristin-medium", machine=m,
-                                 platform="linux", cache={})
-    assert [p.tier for p in plans2] == ["cpu"]
+def test_resolve_tts_downloaded_restricts_the_fit_walk():
+    # Post-task-8, gpu_possible is True on CUDA_12GB, so this now exercises
+    # the REAL fit-walk (unlike the once-universal cpu-only early return):
+    # `downloaded={"q8_0"}` restricts the fit-walk's candidate quants to just
+    # q8_0 (bf16 would otherwise win — it fits and is larger), which is the
+    # only candidate left and trivially fits, so it wins by restriction, not
+    # by being the rank-default. Tier is now gpu-vulkan (the fit-walk's best
+    # available tier for the picked quant), not cpu.
+    plans = planner.resolve_tts("moss-tts-nano", machine=CUDA_12GB, platform="linux",
+                                cache={}, downloaded=frozenset({"q8_0"}))
+    assert plans[0].compute_type == "q8_0"
+    assert plans[0].tier == "gpu-vulkan"
 
 
-def test_resolve_tts_unknown_non_sherpa_id_still_raises():
-    # An id with no sherpa-family hint must still raise (no blind synthesis).
-    m = _machine(installed=frozenset({"sherpa_tts", "moss_onnx"}))
-    with pytest.raises(ValueError):
-        planner.resolve_tts("some-org/random-llm-model", machine=m, platform="linux", cache={})
+def test_resolve_tts_override_cpu_pins_cpu_tier():
+    plans = planner.resolve_tts("moss-tts-nano", "cpu", machine=CUDA_12GB, platform="linux", cache={})
+    assert plans[0].tier == "cpu"
 
 
-def test_resolve_tts_surfaces_gpu_dml_on_windows():
-    m = _win_dml_machine(frozenset({"moss_onnx"}))
-    plans = planner.resolve_tts("moss-tts-nano", machine=m, platform="windows", cache={})
-    # no NVIDIA -> gpu-cuda filtered; gpu-dml (2.5) leads, cpu floor survives
-    assert [p.tier for p in plans] == ["gpu-dml", "cpu"]
-    assert plans[0].device == "dml"
-
-
-def test_resolve_tts_override_cuda_pins_gpu_dml():
-    # The renderer's GPU control sends 'cuda'; the "cuda == any accelerator"
-    # override rule must pin the gpu-dml plan to the front too.
-    m = _win_dml_machine(frozenset({"supertonic"}))
-    plans = planner.resolve_tts("supertonic-3", "cuda", machine=m, platform="windows", cache={})
-    assert plans[0].tier == "gpu-dml" and plans[0].device == "dml"
-
-
-def test_resolve_tts_gpu_dml_absent_on_linux():
-    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, apple_silicon=False,
-                      dml_adapters=(), installed=frozenset({"moss_onnx"}), fingerprint="p-linux-nodml",
-                      gpus=(("cuda", "NVIDIA x", 12 << 30),))
-    plans = planner.resolve_tts("moss-tts-nano", machine=m, platform="linux", cache={})
-    # the windows-only gpu-dml row is dropped on Linux; only gpu-cuda + cpu remain.
-    assert [p.tier for p in plans] == ["gpu-cuda", "cpu"]
-    assert all(p.tier != "gpu-dml" for p in plans)
-
-
-def test_resolve_arm_ort_cuda_resolves_tts_cuda():
-    # With the sbsa wheel installed (ort_cuda=True), ORT TTS leads with cuda
-    # on aarch64.
-    m = _arm_nv_ort_cuda(installed=frozenset({
-        "transcribe_cpp", "transcribe_cpp_stream", "llamacpp_qwen", "qwen3tts_onnx"}))
-    tts = planner.resolve_tts("qwen3-tts-0.6b", machine=m, platform="linux", cache={})
-    assert tts[0].device == "cuda"
-
-
-# ── _tts_pick_quant / resolve_tts: multi-compute-type TTS card narrowing ──
-# A "variant" TTS card lists the SAME logical model at several compute_types
-# (bf16/fp32/int8 qwen3-tts ONNX repos, plus a macOS mlx row) rather than one
-# compute_type per tier. _tts_pick_quant narrows to a single compute_type
-# BEFORE the generic tier resolver runs, mirroring resolve()'s ASR
-# _tc_pick_quant narrowing. Reuses the CUDA_12GB/CPU_ONLY/APPLE_SILICON
-# fixtures above (their `installed` sets already cover qwen3tts_onnx and
-# mlx_audio_tts) rather than adding new machine fixtures.
-
-
-def _tts_variant_card():
-    return catalog.TtsModel(
-        "fake-tts", "Fake TTS", ("en",),
-        (catalog.Deployment("mlx_audio_tts", "gpu-metal", "fp32", "org/fake-mlx", 1.0,
-                            platforms=("macos",), requires_apple_silicon=True),
-         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
-         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
-        repos=("org/fake-fp32",), clones=True, streaming=False)
-
-
-def test_tts_pick_quant_cuda_machine_prefers_bf16():
-    assert planner._tts_pick_quant(_tts_variant_card(), CUDA_12GB) == "bf16"
-
-
-def test_tts_pick_quant_cpu_machine_prefers_smallest():
-    assert planner._tts_pick_quant(_tts_variant_card(), CPU_ONLY) == "int8"
-
-
-def test_tts_pick_quant_apple_silicon_prefers_fp32():
-    # the metal/mlx row is fp32 — narrowing must keep it alive on macOS
-    assert planner._tts_pick_quant(_tts_variant_card(), APPLE_SILICON) == "fp32"
-
-
-def test_tts_pick_quant_pin_wins():
-    assert planner._tts_pick_quant(_tts_variant_card(), CUDA_12GB, pin="fp32") == "fp32"
-
-
-def test_tts_pick_quant_restricts_to_downloaded():
-    got = planner._tts_pick_quant(_tts_variant_card(), CUDA_12GB, downloaded=frozenset({"fp32"}))
-    assert got == "fp32"    # bf16 not downloaded -> never chosen
-
-
-def test_resolve_tts_narrows_multi_ct_card(monkeypatch):
-    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
-    plans = planner.resolve_tts("fake-tts", machine=CUDA_12GB, platform="linux", cache={})
-    assert {p.compute_type for p in plans} == {"bf16"}
-    assert plans[0].artifact == "org/fake-bf16"
-
-
-def test_resolve_tts_downloaded_int8_lands_on_cpu(monkeypatch):
-    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
-    plans = planner.resolve_tts("fake-tts", machine=CUDA_12GB, platform="linux",
-                                cache={}, downloaded=frozenset({"int8"}))
-    assert [p.device for p in plans] == ["cpu"] and plans[0].compute_type == "int8"
-
-
-# ── _tts_pick_quant: fp32/bf16-only ladder (post-int8-cut shipping ladder) ──
-# The real catalog's TTS ladder changed to fp32 (cpu + gpu-cuda + gpu-dml
-# rows) + bf16 (gpu-cuda row ONLY) — int8, which had the card's only other
-# cpu row, was cut. This exposed two bugs in _tts_pick_quant: (1) the
-# smallest-est_bytes fallback could pick bf16 on a CPU-only machine even
-# though bf16 has no cpu row at all, narrowing the model to zero runnable
-# deployments; (2) the GPU-preference walk trusted tuple declaration order
-# instead of rank, so a card that happened to declare fp32-cuda before
-# bf16-cuda would land on fp32 even though bf16 outranks it. fp32-cuda is
-# declared BEFORE bf16-cuda below specifically so these tests can tell a
-# rank-ordered walk apart from a declaration-order one.
-def _tts_variant_card_v2():
-    return catalog.TtsModel(
-        "fake-tts-v2", "Fake TTS v2", ("en",),
-        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
-         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
-        repos=("org/fake-fp32",), clones=True, streaming=False)
-
-
-def test_tts_pick_quant_cpu_only_avoids_unrunnable_bf16():
-    # bf16 (5_000 bytes) is smaller than fp32 (8_000 bytes), but bf16 has no
-    # cpu row -> unrunnable on a CPU-only machine. Narrowing to it would leave
-    # zero runnable deployments (NoUsablePlan for every CPU-only user).
-    assert planner._tts_pick_quant(_tts_variant_card_v2(), CPU_ONLY) == "fp32"
-
-
-def test_tts_pick_quant_rank_beats_declaration_order():
-    # fp32-cuda (rank 1.0) is declared before bf16-cuda (rank 1.2); the
-    # preference walk must land on bf16 because it outranks fp32, not because
-    # of tuple position.
-    assert planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB) == "bf16"
-
-
-def test_tts_pick_quant_runnable_beats_downloaded_but_unrunnable():
-    got = planner._tts_pick_quant(_tts_variant_card_v2(), CPU_ONLY,
-                                  downloaded=frozenset({"bf16"}))
-    assert got == "fp32"    # bf16 downloaded but unrunnable here -> not chosen
-
-
-def test_tts_pick_quant_pin_absent_from_ladder_falls_through():
-    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, pin="int8")
-    assert got == "bf16"    # int8 isn't a compute_type on this card -> pin ignored
-
-
-# ── _tts_pick_quant / resolve_tts: override-aware narrowing ─────────────
-# The multi-compute-type narrowing runs BEFORE _resolve_model applies the
-# device override. On _tts_variant_card_v2 (fp32: cpu+cuda rows, bf16:
-# cuda-only row) a CUDA machine's un-scoped narrowing always prefers bf16 —
-# so an explicit override='cpu' arrived at _resolve_model already narrowed
-# to a compute_type with no cpu row, and the override had nothing to pin:
-# it was silently ignored and the plan landed on gpu-cuda bf16 anyway. The
-# override must instead scope the narrowing itself to variants that have a
-# row on the pinned device.
-
-
-def test_tts_pick_quant_cuda_machine_override_cpu_picks_fp32():
-    # bf16 has no cpu row -> override='cpu' must scope the narrowing away
-    # from it, landing on fp32 (which does have a cpu row), NOT bf16.
-    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, override="cpu")
-    assert got == "fp32"
-
-
-def test_resolve_tts_cuda_machine_override_cpu_lands_on_cpu_fp32(monkeypatch):
-    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
-    plans = planner.resolve_tts("fake-tts-v2", "cpu", machine=CUDA_12GB, platform="linux", cache={})
-    assert plans[0].device == "cpu"
-    assert plans[0].compute_type == "fp32"
-
-
-def test_tts_pick_quant_cuda_machine_override_cuda_still_picks_bf16():
-    # override='cuda' is already a superset of the un-scoped GPU-preferring
-    # walk on this fixture -> unchanged behavior.
-    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, override="cuda")
-    assert got == "bf16"
-
-
-def test_tts_pick_quant_override_with_no_matching_device_falls_back():
-    # The fixture has no gpu-dml row at all -> the override-scoped runnable
-    # set is empty, so this gracefully falls back to the machine-wide
-    # (un-scoped) narrowing rather than raising or picking nothing.
-    got = planner._tts_pick_quant(_tts_variant_card_v2(), CUDA_12GB, override="dml")
-    assert got == "bf16"
-
-
-# ── resolve_tts: downloaded-fp32 cpu tail for a cpu-less narrowed ct ─────
-# _tts_variant_card_v2's bf16 row is gpu-cuda ONLY (no cpu row at all); a CUDA
-# machine narrows to it because it outranks fp32 (see
-# test_tts_pick_quant_rank_beats_declaration_order). A bf16-only download
-# then has nothing to fall back to on a load failure -- an honest single
-# plan. But when fp32 (which DOES have a cpu row) is ALSO already downloaded
-# alongside bf16, that cpu-loadable file is already sitting on disk, so
-# resolve_tts appends it as a last-resort tail: a CUDA machine with BOTH
-# variants downloaded degrades to cpu fp32 on a bf16 load failure instead of
-# hard-failing. The tail only ever uses an ALREADY-DOWNLOADED variant, so
-# bf16-only downloads and fresh (nothing downloaded) recommendations are
-# unaffected.
-
-
-def test_resolve_tts_appends_cpu_fp32_tail_when_both_variants_downloaded(monkeypatch):
-    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
-    plans = planner.resolve_tts("fake-tts-v2", machine=CUDA_12GB, platform="linux", cache={},
-                                downloaded=frozenset({"fp32", "bf16"}))
-    assert [(p.device, p.compute_type) for p in plans] == [("cuda", "bf16"), ("cpu", "fp32")]
-
-
-def test_resolve_tts_no_cpu_tail_when_only_bf16_downloaded(monkeypatch):
-    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
-    plans = planner.resolve_tts("fake-tts-v2", machine=CUDA_12GB, platform="linux", cache={},
-                                downloaded=frozenset({"bf16"}))
-    assert [(p.device, p.compute_type) for p in plans] == [("cuda", "bf16")]
-
-
-def test_resolve_tts_no_cpu_tail_when_nothing_downloaded(monkeypatch):
-    monkeypatch.setattr(planner.catalog, "resolve_tts_card", lambda mid: _tts_variant_card_v2())
-    plans = planner.resolve_tts("fake-tts-v2", machine=CUDA_12GB, platform="linux", cache={})
-    assert [(p.device, p.compute_type) for p in plans] == [("cuda", "bf16")]
+def test_resolve_tts_propagates_load_language_for_pocket():
+    # pocket-tts-en's card carries load_language="english" (PlanConfig.tts_language,
+    # sk_tts_load's language package) — a real resolve() must thread it through,
+    # not just the direct _plan_config unit test.
+    plans = planner.resolve_tts("pocket-tts-en", machine=CPU_ONLY, platform="linux", cache={})
+    assert all(p.config.tts_family == "pocket_tts" for p in plans)
+    assert all(p.config.tts_language == "english" for p in plans)
 
 
 # ── _plan_config: card → PlanConfig derivation (direct + resolve-level) ──
@@ -1116,20 +985,61 @@ def test_plan_config_qwen3_06b_disables_thinking_and_appends_no_think():
     # qwen3-0.6b is plain Qwen3: belt-and-braces both the chat-template kill
     # switch AND the /no_think soft switch (see catalog.TranslateModel docstring).
     card = catalog.translate_model("qwen3-0.6b")
-    assert planner._plan_config(card) == planner.PlanConfig(disable_thinking=True, append_no_think=True)
+    assert planner._plan_config(card) == planner.PlanConfig(
+        disable_thinking=True, append_no_think=True, prompt_family="qwen")
 
 
 def test_plan_config_qwen35_08b_disables_thinking_without_no_think():
     # qwen3.5 only needs the chat-template switch -- append_no_think stays False.
     card = catalog.translate_model("qwen3.5-0.8b")
-    assert planner._plan_config(card) == planner.PlanConfig(disable_thinking=True, append_no_think=False)
+    assert planner._plan_config(card) == planner.PlanConfig(
+        disable_thinking=True, append_no_think=False, prompt_family="qwen")
 
 
 def test_plan_config_qwen25_05b_is_fully_inert():
-    # A plain (non-thinking-mode) translate card carries an all-default,
-    # behaviour-inert PlanConfig.
+    # A plain (non-thinking-mode) translate card carries a PlanConfig whose
+    # THINKING flags are all-default (prompt_family="qwen" is not "inert" as a
+    # value, but selects the same QwenStrategy shape a bare PlanConfig() would
+    # fall back to anyway — see NativeTranslateBackend.load's unknown-family
+    # default).
     card = catalog.translate_model("qwen2.5-0.5b")
-    assert planner._plan_config(card) == planner.PlanConfig()
+    assert planner._plan_config(card) == planner.PlanConfig(prompt_family="qwen")
+
+
+def test_plan_config_reads_tts_family_and_load_language(monkeypatch):
+    # TtsModel gains family/load_language in the slice-4 catalog task (not yet); a
+    # card shaped that way already threads through today via the same defensive
+    # getattr _plan_config uses for the translate-only fields.
+    import types
+    card = types.SimpleNamespace(family="pocket_tts", load_language="english")
+    assert planner._plan_config(card) == planner.PlanConfig(
+        tts_family="pocket_tts", tts_language="english")
+
+
+def test_plan_config_tts_fields_default_inert_for_translate_cards():
+    # A TranslateModel card has neither attribute; both PlanConfig fields fall
+    # back to their all-inert "" default, same as the thinking flags do today.
+    card = catalog.translate_model("qwen2.5-0.5b")
+    cfg = planner._plan_config(card)
+    assert cfg.tts_family == "" and cfg.tts_language == ""
+
+
+def test_plan_config_reads_tts_extra_files(monkeypatch):
+    # Ruling R18(s4): tts_backend.py's load() hard-link-stages every entry in
+    # PlanConfig.tts_extra_files alongside the gguf -- _plan_config must read it
+    # straight off the resolved TtsModel card's own extra_files field.
+    card = catalog.tts_model("pocket-tts-en")
+    cfg = planner._plan_config(card)
+    assert cfg.tts_extra_files == (("embeddings/alba.safetensors", 6194424),)
+
+
+def test_plan_config_tts_extra_files_defaults_inert_for_cards_without_one():
+    # moss-tts-nano has no extra_files -- must be the empty-tuple default, not
+    # missing/None, so tts_backend.py's `for extra_name, _size in
+    # cfg.tts_extra_files` never needs a None-guard.
+    card = catalog.tts_model("moss-tts-nano")
+    cfg = planner._plan_config(card)
+    assert cfg.tts_extra_files == ()
 
 
 def test_resolve_translate_propagates_qwen3_thinking_config():
@@ -1138,6 +1048,7 @@ def test_resolve_translate_propagates_qwen3_thinking_config():
     plans = planner.resolve_translate("qwen3-0.6b", "auto", machine=CUDA_12GB, platform="linux",
                                       cache={}, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
-    assert plans[0].config == planner.PlanConfig(disable_thinking=True, append_no_think=True)
+    assert plans[0].config == planner.PlanConfig(
+        disable_thinking=True, append_no_think=True, prompt_family="qwen")
     # every plan for this model shares the same card-derived config.
     assert all(p.config == plans[0].config for p in plans)

@@ -1,138 +1,118 @@
-import json, os
-from sokuji_sidecar import tts_voices
+import types
 
-def test_list_builtin_voice_names_reads_manifest_without_model_load(tmp_path, monkeypatch):
-    # Lay out a fake snapshot with a manifest containing two voices.
-    snap = tmp_path / "snap"
-    (snap / "MOSS-TTS-Nano-100M-ONNX").mkdir(parents=True)
-    manifest = {"builtin_voices": [{"voice": "Ava"}, {"voice": "Junhao"}]}
-    (snap / "MOSS-TTS-Nano-100M-ONNX" / "browser_poc_manifest.json").write_text(json.dumps(manifest))
-    monkeypatch.setattr(tts_voices, "_snapshot_dir", lambda repo: str(snap))
-    assert tts_voices.list_builtin_voice_names("any/repo") == ["Ava", "Junhao"]
-
-def test_list_builtin_voice_names_empty_when_absent(monkeypatch):
-    def boom(repo):
-        raise FileNotFoundError("not downloaded")
-    monkeypatch.setattr(tts_voices, "_snapshot_dir", boom)
-    assert tts_voices.list_builtin_voice_names("any/repo") == []
+from sokuji_sidecar import catalog, tts_voices
 
 
-def test_list_builtin_voice_names_resolves_catalog_id_to_repo(tmp_path, monkeypatch):
-    # The renderer passes the catalog SHORT id ('moss-tts-nano'), not the HF repo.
-    # list_builtin_voice_names must resolve it to the catalog's LM repo before
-    # snapshot_download, else snapshot_download('moss-tts-nano') fails → [].
-    from sokuji_sidecar import tts_voices, catalog
-    snap = tmp_path / "snap"
-    (snap / "MOSS-TTS-Nano-100M-ONNX").mkdir(parents=True)
-    (snap / "MOSS-TTS-Nano-100M-ONNX" / "browser_poc_manifest.json").write_text(
-        '{"builtin_voices": [{"voice": "Ava"}, {"voice": "Bella"}]}')
+class _FakeEngine:
+    def __init__(self, model_id, voices, is_loaded=True):
+        self.model_id = model_id
+        self.is_loaded = is_loaded
+        self._voices = voices
+
+    def list_builtin_voices(self):
+        return self._voices
+
+
+def test_engine_loaded_model_matches_asks_backend_directly():
+    eng = _FakeEngine("pocket-tts-en", ["alba", "azelma"])
+    assert tts_voices.list_builtin_voices("pocket-tts-en", eng) == ["alba", "azelma"]
+
+
+def test_engine_loaded_but_different_model_falls_through(monkeypatch):
+    eng = _FakeEngine("pocket-tts-en", ["alba"])
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: None)
+    assert tts_voices.list_builtin_voices("supertonic-3", eng) == []
+
+
+def test_no_model_id_uses_whatever_is_loaded():
+    eng = _FakeEngine("moss-tts-nano", ["Ava", "Bella"])
+    assert tts_voices.list_builtin_voices(None, eng) == ["Ava", "Bella"]
+
+
+def test_no_engine_and_no_model_id_returns_empty():
+    assert tts_voices.list_builtin_voices(None, None) == []
+
+
+def _fake_card(family, artifact="acme/repo/pocket_tts-en/model.gguf"):
+    return types.SimpleNamespace(
+        family=family, deployments=[types.SimpleNamespace(artifact=artifact)])
+
+
+def test_supertonic_load_free_listing_returns_fixed_names(monkeypatch):
+    # fix round 1 (CQ-4): supertonic's presets are baked into the GGUF, not a
+    # sibling `voice_styles/` directory on the HF repo -- the load-free path
+    # must never touch the snapshot for this family at all.
+    card = _fake_card("supertonic", artifact="acme/repo/supertonic/model.gguf")
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
+
+    def _boom(repo, subdir):
+        raise AssertionError("supertonic's load-free path must not touch the snapshot")
+    monkeypatch.setattr(tts_voices, "_scoped_snapshot_dir", _boom)
+
+    out = tts_voices.list_builtin_voices("supertonic-3", None)
+    assert out == ["F1", "F2", "F3", "F4", "F5", "M1", "M2", "M3", "M4", "M5"]
+
+
+def test_supertonic_load_free_listing_needs_no_deployments(monkeypatch):
+    # The fixed list is returned even for a card with no deployments at all --
+    # unlike pocket_tts, supertonic's load-free path never inspects them.
+    card = types.SimpleNamespace(family="supertonic", deployments=())
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
+    assert tts_voices.list_builtin_voices("supertonic-3", None) == \
+        ["F1", "F2", "F3", "F4", "F5", "M1", "M2", "M3", "M4", "M5"]
+
+
+def test_pocket_load_free_listing_reads_embeddings(monkeypatch, tmp_path):
+    card = _fake_card("pocket_tts", artifact="acme/repo/pocket_tts-en/model.gguf")
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
+    vdir = tmp_path / "pocket_tts-en" / "embeddings"
+    vdir.mkdir(parents=True)
+    (vdir / "alba.safetensors").write_bytes(b"")
+    (vdir / "azelma.safetensors").write_bytes(b"")
+    monkeypatch.setattr(tts_voices, "_scoped_snapshot_dir", lambda repo, subdir: tmp_path)
+    out = tts_voices.list_builtin_voices("pocket-tts-en", None)
+    assert out == ["alba", "azelma"]
+
+
+def test_scoped_snapshot_dir_receives_repo_and_scoped_subdir(monkeypatch):
+    card = _fake_card("pocket_tts", artifact="acme/pocket-repo/pocket_tts-en/model.gguf")
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
     seen = {}
-    def fake_snap(repo):
-        seen["repo"] = repo
-        return str(snap)
-    monkeypatch.setattr(tts_voices, "_snapshot_dir", fake_snap)
-    out = tts_voices.list_builtin_voice_names("moss-tts-nano")
-    assert out == ["Ava", "Bella"]
-    expected_repo = catalog.tts_model("moss-tts-nano").repos[0]
-    assert seen["repo"] == expected_repo and seen["repo"] != "moss-tts-nano"
+
+    def fake_scoped(repo, subdir):
+        seen["repo"], seen["subdir"] = repo, subdir
+        return None
+
+    monkeypatch.setattr(tts_voices, "_scoped_snapshot_dir", fake_scoped)
+    assert tts_voices.list_builtin_voices("pocket-tts-en", None) == []
+    assert seen == {"repo": "acme/pocket-repo", "subdir": "pocket_tts-en/embeddings"}
 
 
-def test_list_builtin_voices_annotates_names_with_metadata(monkeypatch):
-    monkeypatch.setattr(tts_voices, "list_builtin_voice_names",
-                        lambda model=None: ["Ava", "Adam", "Xiaoyu", "Mortis"])
-    out = {v["name"]: v for v in tts_voices.list_builtin_voices("moss-tts-nano")}
-    assert out["Ava"] == {"name": "Ava", "language": "en", "curated": True,
-                          "unstable": False, "default": True}
-    assert out["Adam"]["unstable"] is True and out["Adam"]["curated"] is False
-    assert out["Xiaoyu"]["default"] is True and out["Xiaoyu"]["language"] == "zh"
-    # A voice with no language entry is never a per-language default.
-    assert out["Mortis"]["language"] is None and out["Mortis"]["default"] is False
+def test_families_without_load_free_presets_return_empty(monkeypatch):
+    for family in ("moss_tts_nano", "qwen3_tts", "omnivoice", ""):
+        card = _fake_card(family)
+        monkeypatch.setattr(catalog, "tts_model", lambda mid, c=card: c)
+        assert tts_voices.list_builtin_voices("some-model", None) == []
 
 
-def test_supertonic_presets_without_download():
-    v = tts_voices.list_builtin_voices("supertonic-3")
-    assert [x["name"] for x in v] == ["Sarah", "Lily", "Jessica", "Olivia", "Emily",
-                                       "Alex", "James", "Robert", "Sam", "Daniel"]
-    assert next(x for x in v if x["name"] == "Robert")["default"] is True
-    assert all(x["gender"] in ("F", "M") for x in v)
+def test_no_deployments_returns_empty(monkeypatch):
+    # pocket_tts (unlike supertonic, fix round 1) still needs a real snapshot
+    # lookup, so its own deployments-missing guard still applies.
+    card = types.SimpleNamespace(family="pocket_tts", deployments=())
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
+    assert tts_voices.list_builtin_voices("pocket-tts-en", None) == []
 
 
-def test_qwen3_bundled_preset_voices_from_manifest(tmp_path, monkeypatch):
-    # Generic voices/manifest.json branch: any TTS model may bundle ICL preset
-    # voices this way, not just qwen3 — verified against the qwen3 catalog row.
-    entries = [
-        {"name": "Orion", "gender": "M", "default": True},
-        {"name": "Leo", "gender": "M"},
-        {"name": "Atlas", "gender": "M"},
-        {"name": "Luna", "gender": "F"},
-        {"name": "Nova", "gender": "F"},
-        {"name": "Iris", "gender": "F"},
-    ]
-    snap = tmp_path / "snap"
-    (snap / "voices").mkdir(parents=True)
-    (snap / "voices" / "manifest.json").write_text(json.dumps(entries))
-    monkeypatch.setattr(tts_voices, "_snapshot_dir", lambda repo: str(snap))
-    out = tts_voices.list_builtin_voices("qwen3-tts-0.6b")
-    assert [v["name"] for v in out] == ["Orion", "Leo", "Atlas", "Luna", "Nova", "Iris"]
-    assert all(v["language"] is None and v["curated"] is True and v["unstable"] is False for v in out)
-    genders = {v["name"]: v["gender"] for v in out}
-    assert genders == {"Orion": "M", "Leo": "M", "Atlas": "M", "Luna": "F", "Nova": "F", "Iris": "F"}
-    defaults = {v["name"]: v["default"] for v in out}
-    assert defaults == {"Orion": True, "Leo": False, "Atlas": False,
-                        "Luna": False, "Nova": False, "Iris": False}
+def test_snapshot_resolution_failure_returns_empty(monkeypatch):
+    card = _fake_card("pocket_tts")
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
+    monkeypatch.setattr(tts_voices, "_scoped_snapshot_dir", lambda repo, subdir: None)
+    assert tts_voices.list_builtin_voices("pocket-tts-en", None) == []
 
 
-def test_qwen3_without_bundled_voices_dir_falls_through_to_empty(tmp_path, monkeypatch):
-    # Snapshot exists but has no voices/ dir (and no MOSS-style manifest either)
-    # → generic branch falls through, MOSS-manifest path also fails → [].
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    monkeypatch.setattr(tts_voices, "_snapshot_dir", lambda repo: str(snap))
-    assert tts_voices.list_builtin_voices("qwen3-tts-0.6b") == []
-
-
-def _tts_variant_card():
-    # Same synthetic multi-variant TTS card shape as test_native_models.py /
-    # test_accel.py's _tts_variant_card(): 3 non-mlx deployments (bf16/fp32/int8).
-    from sokuji_sidecar import catalog
-    return catalog.TtsModel(
-        "fake-tts", "Fake TTS", ("en",),
-        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000)),
-        repos=("org/fake-fp32",), clones=True, streaming=False)
-
-
-def test_repo_for_prefers_cached_variant_over_default(monkeypatch):
-    # repos[0] (fp32, the card's default) isn't cached, but bf16 is -- the
-    # resolver must return the cached variant so voice listing doesn't
-    # require downloading the default repo too (voices/ is identical across
-    # a card's variant repos).
-    from sokuji_sidecar import tts_voices, catalog
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
-    monkeypatch.setattr(tts_voices, "_repo_cached", lambda r: r == "org/fake-bf16")
-    assert tts_voices._repo_for("fake-tts") == "org/fake-bf16"
-
-
-def test_repo_for_falls_back_to_default_repo_when_none_cached(monkeypatch):
-    from sokuji_sidecar import tts_voices, catalog
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
-    monkeypatch.setattr(tts_voices, "_repo_cached", lambda r: False)
-    assert tts_voices._repo_for("fake-tts") == "org/fake-fp32"
-
-
-def test_pocket_bundled_voice_manifest_listing(monkeypatch, tmp_path):
-    # Pocket rides the generic bundled-voices branch: the mirror repo ships
-    # voices/manifest.json (staged by scripts/mirror_pocket_tts.py), so voice
-    # listing needs no pocket-specific code path.
-    from sokuji_sidecar import tts_voices
-    vdir = tmp_path / "voices"
-    vdir.mkdir()
-    (vdir / "manifest.json").write_text(json.dumps(
-        [{"name": "alba", "default": True}] + [{"name": n} for n in
-         ["azelma", "cosette", "eponine", "fantine", "javert", "jean", "marius"]]))
-    monkeypatch.setattr(tts_voices, "_snapshot_dir", lambda repo: str(tmp_path))
-    out = tts_voices.list_builtin_voices("pocket-tts-en")
-    assert len(out) == 8
-    assert [v["name"] for v in out][:2] == ["alba", "azelma"]
-    assert out[0]["default"] is True and out[1]["default"] is False
+def test_missing_voices_dir_returns_empty(monkeypatch, tmp_path):
+    card = _fake_card("pocket_tts", artifact="acme/repo/pocket_tts-en/model.gguf")
+    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
+    monkeypatch.setattr(tts_voices, "_scoped_snapshot_dir", lambda repo, subdir: tmp_path)
+    # tmp_path/pocket_tts-en/embeddings was never created.
+    assert tts_voices.list_builtin_voices("pocket-tts-en", None) == []

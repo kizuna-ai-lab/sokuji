@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { voiceCapability, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, pinsFromSelections, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
+import { voiceCapability, isCloneOnlyVoice, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, pinsFromSelections, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -46,12 +46,14 @@ const TR_CAT: Record<string, NativeModelInfo> = {
 
 /**
  * TTS-specific fixture catalog for voiceCapability / nativeTtsCards / resolveNativeTts tests.
- * Exercises: named+clip (clones), range (numSpeakers>1), none (single speaker, no clones), ordering.
+ * Exercises: named+clip (clones), none (single speaker, no clones), ordering.
+ * numSpeakers died server-side (Task 5/6) and was removed from NativeModelInfo
+ * in Task 7's sweep (R4) — these fixtures no longer carry it.
  */
 const TTS_CAT: Record<string, NativeModelInfo> = {
-  'moss-tts-nano': M('moss-tts-nano', 'tts', ['en', 'ja'], 0, true, { clones: true, streaming: true, numSpeakers: 1 }),
-  'csukuangfj/vits-piper-en_US-amy-low': M('csukuangfj/vits-piper-en_US-amy-low', 'tts', ['en'], 10, false, { clones: false, numSpeakers: 1 }),
-  'csukuangfj/vits-piper-en_US-libritts_r-medium': M('csukuangfj/vits-piper-en_US-libritts_r-medium', 'tts', ['en'], 11, false, { clones: false, numSpeakers: 904 }),
+  'moss-tts-nano': M('moss-tts-nano', 'tts', ['en', 'ja'], 0, true, { clones: true, streaming: true }),
+  'csukuangfj/vits-piper-en_US-amy-low': M('csukuangfj/vits-piper-en_US-amy-low', 'tts', ['en'], 10, false, { clones: false }),
+  'csukuangfj/vits-piper-en_US-libritts_r-medium': M('csukuangfj/vits-piper-en_US-libritts_r-medium', 'tts', ['en'], 11, false, { clones: false }),
 };
 
 describe('nativeCatalog', () => {
@@ -145,11 +147,12 @@ describe('nativeCatalog', () => {
 
   it('maps hardware tiers to display labels', () => {
     expect(tierLabel('cpu')).toEqual({ label: 'CPU', accel: false });
-    expect(tierLabel('gpu-cuda')).toEqual({ label: 'GPU · CUDA', accel: true });
     expect(tierLabel('gpu-metal')).toEqual({ label: 'GPU · Metal', accel: true });
-    expect(tierLabel('gpu-dml')).toEqual({ label: 'GPU · DirectML', accel: true });
     expect(tierLabel('gpu-vulkan')).toEqual({ label: 'GPU · Vulkan', accel: true });
-    // unknown tier → echo the raw string, not accelerated
+    // gpu-cuda/gpu-dml died with the ONNX/MLX TTS backends that were their
+    // last catalog producers (slice 4 — R4); an unrecognized tier (including
+    // those two now) echoes the raw string, not accelerated.
+    expect(tierLabel('gpu-cuda')).toEqual({ label: 'gpu-cuda', accel: false });
     expect(tierLabel('mystery')).toEqual({ label: 'mystery', accel: false });
   });
 
@@ -158,18 +161,18 @@ describe('nativeCatalog', () => {
     expect(gpuTierAvailable({ a: { id: 'a', name: 'A', languages: ['en'], recommended: false,
       tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] } } as any)).toBe(false);
     expect(gpuTierAvailable({ g: { id: 'g', name: 'G', languages: ['en'], recommended: false,
-      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: true }] } } as any)).toBe(true);
+      tiers: [{ tier: 'gpu-vulkan', backend: 'transformers', available: true }] } } as any)).toBe(true);
     expect(gpuTierAvailable({ g: { id: 'g', name: 'G', languages: ['en'], recommended: false,
-      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: false }] } } as any)).toBe(false);
+      tiers: [{ tier: 'gpu-vulkan', backend: 'transformers', available: false }] } } as any)).toBe(false);
   });
 
   it('hardwareGated is true only when a model has tiers but none are available', () => {
     expect(hardwareGated(undefined)).toBe(false);                       // unknown → not gated
     expect(hardwareGated({ id: 'x', name: 'X', languages: ['en'], recommended: false, tiers: [] } as any)).toBe(false);
     expect(hardwareGated({ id: 'g', name: 'G', languages: ['en'], recommended: false,
-      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: false }] } as any)).toBe(true);   // GPU-only, no GPU
+      tiers: [{ tier: 'gpu-vulkan', backend: 'transformers', available: false }] } as any)).toBe(true);   // GPU-only, no GPU
     expect(hardwareGated({ id: 'g', name: 'G', languages: ['en'], recommended: false,
-      tiers: [{ tier: 'gpu-cuda', backend: 'transformers', available: true }] } as any)).toBe(false);   // GPU present
+      tiers: [{ tier: 'gpu-vulkan', backend: 'transformers', available: true }] } as any)).toBe(false);   // GPU present
     expect(hardwareGated({ id: 's', name: 'S', languages: ['en'], recommended: false,
       tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] } as any)).toBe(false);              // CPU floor
   });
@@ -195,9 +198,9 @@ describe('nativeCatalog', () => {
     const info = (id: string, tiers: { tier: string; backend: string; available: boolean }[]): NativeModelInfo =>
       ({ id, name: id, languages: [], recommended: false, tiers });
     const gpuCatalog = {
-      voxtral: info('voxtral', [tier('gpu-cuda')]),                 // GPU-only, available
-      qwen: info('qwen', [tier('gpu-cuda'), tier('cpu')]),          // GPU + CPU floor
-      cpuonly: info('cpuonly', [tier('cpu')]),                      // CPU-only
+      voxtral: info('voxtral', [tier('gpu-vulkan')]),                 // GPU-only, available
+      qwen: info('qwen', [tier('gpu-vulkan'), tier('cpu')]),          // GPU + CPU floor
+      cpuonly: info('cpuonly', [tier('cpu')]),                        // CPU-only
     };
 
     it('routes auto GPU-capable models to VRAM and CPU-only models to RAM', () => {
@@ -224,7 +227,7 @@ describe('nativeCatalog', () => {
     });
 
     it('treats auto models with no usable GPU tier as RAM (CPU-only machine)', () => {
-      const cpuOnly = { qwen: info('qwen', [tier('gpu-cuda', false), tier('cpu', true)]) };
+      const cpuOnly = { qwen: info('qwen', [tier('gpu-vulkan', false), tier('cpu', true)]) };
       const est = estimateNativeMemoryByDevice(
         [{ id: 'qwen', device: 'auto' }], { qwen: 4000 * MB }, cpuOnly,
       );
@@ -325,9 +328,12 @@ describe('nativeCatalog', () => {
     });
   });
 
-  it('voiceCapability derives builtin/custom for named/range/none TTS models', () => {
+  it('voiceCapability derives builtin/custom for named/none TTS models', () => {
+    // A model with no `clones` and no `voice` field is just 'none' -- the old
+    // numSpeakers-driven 'range' builtin died with the ONNX range-model
+    // backends (Task 5/6) and the field itself was removed in Task 7's sweep.
     expect(voiceCapability(TTS_CAT['moss-tts-nano'])).toEqual({ builtin: 'named', custom: 'clip' });
-    expect(voiceCapability(TTS_CAT['csukuangfj/vits-piper-en_US-libritts_r-medium'])).toEqual({ builtin: 'range', custom: 'none' });
+    expect(voiceCapability(TTS_CAT['csukuangfj/vits-piper-en_US-libritts_r-medium'])).toEqual({ builtin: 'none', custom: 'none' });
     expect(voiceCapability(TTS_CAT['csukuangfj/vits-piper-en_US-amy-low'])).toEqual({ builtin: 'none', custom: 'none' });
     expect(voiceCapability(undefined)).toEqual({ builtin: 'none', custom: 'none' });
   });
@@ -381,17 +387,33 @@ describe('nativeCatalog', () => {
     expect(curated.every((v) => all.map((x) => x.name).includes(v.name))).toBe(true);
   });
   it('voiceCapability reads the capability from the sidecar voice field', () => {
-    expect(voiceCapability({ voice: { builtin: 'named', custom: 'style' } } as any)).toEqual({ builtin: 'named', custom: 'style' });
+    expect(voiceCapability({ voice: { builtin: 'named', custom: 'clip' } } as any)).toEqual({ builtin: 'named', custom: 'clip' });
   });
   it('voiceCapability falls back to derive when voice is absent', () => {
     expect(voiceCapability({ clones: true } as any)).toEqual({ builtin: 'named', custom: 'clip' });
-    expect(voiceCapability({ numSpeakers: 174 } as any)).toEqual({ builtin: 'range', custom: 'none' });
+    // numSpeakers died server-side (Task 5/6) and was removed from
+    // NativeModelInfo (Task 7's sweep, R4) -- a stale/legacy payload still
+    // carrying it derives 'none', same as any other unrecognized shape.
+    expect(voiceCapability({ numSpeakers: 174 } as any)).toEqual({ builtin: 'none', custom: 'none' });
     expect(voiceCapability({} as any)).toEqual({ builtin: 'none', custom: 'none' });
   });
 
   it('voiceCapability passes transcriptRequired through', () => {
     expect(voiceCapability({ voice: { builtin: 'none', custom: 'clip', transcriptRequired: true } } as any))
       .toEqual({ builtin: 'none', custom: 'clip', transcriptRequired: true });
+  });
+
+  describe('isCloneOnlyVoice', () => {
+    it('is true only for builtin:none + custom:clip (qwen3_tts/omnivoice-shaped)', () => {
+      expect(isCloneOnlyVoice({ builtin: 'none', custom: 'clip' })).toBe(true);
+    });
+    it('is false for a model with a built-in voice, even if it also clones (MOSS-shaped)', () => {
+      expect(isCloneOnlyVoice({ builtin: 'named', custom: 'clip' })).toBe(false);
+    });
+    it('is false for a model with no custom-voice capability at all', () => {
+      expect(isCloneOnlyVoice({ builtin: 'none', custom: 'none' })).toBe(false);
+      expect(isCloneOnlyVoice({ builtin: 'named', custom: 'none' })).toBe(false);
+    });
   });
 
   it('nativeTranslationCards: jap alias resolves en→ja Opus-MT card', () => {
@@ -428,21 +450,17 @@ describe('frameworkLabel', () => {
     const cases: Record<string, string> = {
       transcribe_cpp: 'transcribe.cpp',
       transcribe_cpp_stream: 'transcribe.cpp',
-      ct2_opus_translate: 'CTranslate2',
-      llamacpp_qwen: 'llama.cpp',
-      llamacpp_hunyuan: 'llama.cpp',
-      llamacpp_gemma: 'llama.cpp',
-      moss_onnx: 'ONNXRuntime',
-      qwen3tts_onnx: 'ONNXRuntime',
-      sherpa_tts: 'sherpa-onnx',
-      supertonic: 'Supertonic',
-      mlx_audio_tts: 'MLX',
+      native_translate: 'llama.cpp',
+      native_tts: 'audio.cpp',
     };
     for (const [id, label] of Object.entries(cases)) expect(frameworkLabel(id)).toBe(label);
   });
-  it('derives future ids by prefix, else echoes the raw id', () => {
-    expect(frameworkLabel('llamacpp_newmodel')).toBe('llama.cpp');
-    expect(frameworkLabel('foo_onnx')).toBe('ONNXRuntime');
+  it('derives transcribe_cpp_X ids by prefix; a plain unknown id just echoes', () => {
+    // The old `X_onnx` -> 'ONNXRuntime' fallback died with the ONNX backends
+    // themselves (slice 5) — no backend id ends in _onnx anymore, so an id
+    // shaped like one now falls through to the same raw-echo path as any
+    // other unknown id.
+    expect(frameworkLabel('foo_onnx')).toBe('foo_onnx');
     expect(frameworkLabel('transcribe_cpp_x')).toBe('transcribe.cpp');
     expect(frameworkLabel('brand_new_backend')).toBe('brand_new_backend');
   });
@@ -450,11 +468,12 @@ describe('frameworkLabel', () => {
 
 describe('accelApiLabel', () => {
   it('names the GPU API and returns null for cpu/unknown', () => {
-    expect(accelApiLabel('gpu-cuda')).toBe('CUDA');
     expect(accelApiLabel('gpu-metal')).toBe('Metal');
     expect(accelApiLabel('gpu-vulkan')).toBe('Vulkan');
-    expect(accelApiLabel('gpu-dml')).toBe('DirectML');
     expect(accelApiLabel('cpu')).toBeNull();
+    // gpu-cuda/gpu-dml died with the ONNX/MLX TTS backends that were their
+    // last catalog producers (slice 4 — R4); both are now unknown tiers.
+    expect(accelApiLabel('gpu-cuda')).toBeNull();
     expect(accelApiLabel('weird')).toBeNull();
   });
 });
@@ -462,7 +481,7 @@ describe('accelApiLabel', () => {
 describe('buildBackendTooltipRows', () => {
   it('idle GPU tier: framework/device/api/size/repo, no runtime rows', () => {
     const rows = buildBackendTooltipRows({
-      tier: 'gpu-vulkan', backendId: 'llamacpp_gemma', resolved: null, sizeMb: 1843, repo: 'org/model',
+      tier: 'gpu-vulkan', backendId: 'native_translate', resolved: null, sizeMb: 1843, repo: 'org/model',
     });
     expect(rows.map((r) => r.key)).toEqual(['framework', 'device', 'api', 'size', 'repo']);
     expect(rows[0]).toEqual({ key: 'framework', value: 'llama.cpp' });
@@ -471,14 +490,14 @@ describe('buildBackendTooltipRows', () => {
     expect(rows.find((r) => r.key === 'size')?.value).toBe('1.8 GB');
   });
   it('idle CPU tier: no api row, still has framework/device/size', () => {
-    const rows = buildBackendTooltipRows({ tier: 'cpu', backendId: 'ct2_opus_translate', resolved: null, sizeMb: 300 });
+    const rows = buildBackendTooltipRows({ tier: 'cpu', backendId: 'native_translate', resolved: null, sizeMb: 300 });
     expect(rows.map((r) => r.key)).toEqual(['framework', 'device', 'size']);
     expect(rows[1]).toEqual({ key: 'device', value: 'CPU' });
-    expect(rows[0].value).toBe('CTranslate2');
+    expect(rows[0].value).toBe('llama.cpp');
   });
   it('active tier adds precision/speed/memory from the resolved plan', () => {
     const rows = buildBackendTooltipRows({
-      tier: 'gpu-cuda', backendId: 'moss_onnx',
+      tier: 'gpu-vulkan', backendId: 'moss_onnx',
       resolved: { computeType: 'int8', rtf: 0.02, memoryBytes: 3_400_000_000 },
       sizeMb: 100, repo: 'org/tts',
     });
@@ -488,13 +507,13 @@ describe('buildBackendTooltipRows', () => {
     expect(byKey.memory).toBe('3.2 GB');
   });
   it('translate speed uses tok/s; empty tps omits the speed row', () => {
-    const withTps = buildBackendTooltipRows({ tier: 'cpu', backendId: 'ct2_opus_translate', resolved: { tokensPerSec: 131 } });
+    const withTps = buildBackendTooltipRows({ tier: 'cpu', backendId: 'native_translate', resolved: { tokensPerSec: 131 } });
     expect(withTps.find((r) => r.key === 'speed')?.value).toBe('131 tok/s');
-    const zeroTps = buildBackendTooltipRows({ tier: 'cpu', backendId: 'ct2_opus_translate', resolved: { tokensPerSec: 0 } });
+    const zeroTps = buildBackendTooltipRows({ tier: 'cpu', backendId: 'native_translate', resolved: { tokensPerSec: 0 } });
     expect(zeroTps.find((r) => r.key === 'speed')).toBeUndefined();
   });
   it('fallbackReason becomes a trailing warn row', () => {
-    const rows = buildBackendTooltipRows({ tier: 'cpu', backendId: 'llamacpp_gemma', resolved: { fallbackReason: 'Low VRAM → CPU' } });
+    const rows = buildBackendTooltipRows({ tier: 'cpu', backendId: 'native_translate', resolved: { fallbackReason: 'Low VRAM → CPU' } });
     const last = rows[rows.length - 1];
     expect(last).toEqual({ key: 'fallback', value: 'Low VRAM → CPU', warn: true });
   });
@@ -503,13 +522,18 @@ describe('buildBackendTooltipRows', () => {
     expect(rows.find((r) => r.key === 'framework')).toBeUndefined();
   });
   it('omits the speed row for an unmeasured (zero) rtf, like zero tps', () => {
-    const rows = buildBackendTooltipRows({ tier: 'gpu-cuda', backendId: 'moss_onnx', resolved: { rtf: 0 } });
+    const rows = buildBackendTooltipRows({ tier: 'gpu-vulkan', backendId: 'moss_onnx', resolved: { rtf: 0 } });
     expect(rows.find((r) => r.key === 'speed')).toBeUndefined();
   });
-  it('hides the repo row on MLX tiers (info.repo is the ONNX repo, would mislabel)', () => {
-    const mlx = buildBackendTooltipRows({ tier: 'gpu-metal', backendId: 'mlx_audio_tts', resolved: null, repo: 'org/onnx-assets' });
-    expect(mlx.find((r) => r.key === 'repo')).toBeUndefined();
-    // non-MLX still shows repo
+  it('shows the repo row for every current backend (the #287 MLX guard was deleted, not just left inert)', () => {
+    // The #287 MLX repo-hiding guard (`repo && !(backendId && frameworkLabel(backendId)
+    // === 'MLX')`) had been inert since Task 5's catalog rewire onto native_tts
+    // (mlx_audio_tts died, and frameworkLabel can no longer produce 'MLX') —
+    // slice 5 removed the dead guard from the source entirely rather than
+    // leaving unreachable code behind. Behavior is unchanged: the repo row
+    // still shows unconditionally.
+    const nativeTts = buildBackendTooltipRows({ tier: 'gpu-metal', backendId: 'native_tts', resolved: null, repo: 'org/model' });
+    expect(nativeTts.find((r) => r.key === 'repo')?.value).toBe('org/model');
     const onnx = buildBackendTooltipRows({ tier: 'cpu', backendId: 'moss_onnx', resolved: null, repo: 'org/onnx-assets' });
     expect(onnx.find((r) => r.key === 'repo')?.value).toBe('org/onnx-assets');
   });

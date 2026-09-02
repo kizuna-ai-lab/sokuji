@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Çıkarım Motoru",
-    "detected": "Algılanan: {{gpu}}",
     "package": "Motor paketi: {{sku}} · {{size}}",
     "sizeUnknown": "boyut çevrimdışıyken bilinmiyor",
     "download": "Motoru indir",
@@ -891,6 +890,7 @@
     "clipSilent": "Ses algılanmadı — mikrofonunuzu kontrol edip tekrar deneyin.",
     "clipTooLong": "Kayıt çok uzun — {seconds} saniyenin altında tutun.",
     "clipTooShort": "Kayıt çok kısa — en az {seconds} saniye konuşun.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Özel bir ses mi lazım?",
     "decodeFailed": "Bu ses dosyası okunamadı — WAV, MP3 veya başka yaygın bir format deneyin.",
     "delete": "Sil",

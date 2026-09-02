@@ -79,10 +79,10 @@ class NativeHostManager {
       // (dev/manual testing, unit tests) - mirrors the HF_HOME short-circuit above.
       let bundleRoot = null;
       if (!envOverride) {
-        const { detectSku, probeNvidia, bundleRootFor } = require('./sidecar-sku');
-        const sku = detectSku(process.platform, { hasNvidia: probeNvidia(), arch: process.arch });
-        // sku is null on unsupported hardware (e.g. Intel mac) — no bundle to
-        // resolve; fall through to the dev-venv launch path below.
+        const { detectSku, bundleRootFor } = require('./sidecar-sku');
+        const sku = detectSku(process.platform, { arch: process.arch });
+        // sku is null on unsupported hardware (e.g. Windows-on-ARM) — no bundle
+        // to resolve; fall through to the dev-venv launch path below.
         if (sku !== null) {
           const userData = process.env.SOKUJI_USERDATA || app.getPath('userData');
           bundleRoot = bundleRootFor(userData, sku);
@@ -106,8 +106,10 @@ class NativeHostManager {
         devCwd: path.join(__dirname, '..', 'sidecar'),
         existsSync: fs.existsSync,
       });
-      // No CUDA/cuDNN LD_LIBRARY_PATH surgery: the sidecar pins them in-process
-      // via onnxruntime.preload_dlls() at startup (spec D8).
+      // No CUDA/cuDNN LD_LIBRARY_PATH surgery: onnxruntime (the sole prior
+      // CUDA consumer, via preload_dlls() at startup, spec D8) is gone —
+      // every stage (ASR/translate/TTS) runs through sokuji-native, which
+      // accelerates NVIDIA/AMD/Intel through Vulkan and needs no CUDA runtime.
       const env = { ...process.env, HF_HOME: hfHome };
       const spawnedAt = Date.now();
       const child = spawn(launch.python, ['-m', 'sokuji_sidecar'], {

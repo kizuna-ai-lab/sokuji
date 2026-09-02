@@ -12,7 +12,7 @@ describe('NativeTranslateClient', () => {
     const sent = conn.sent[0];
     expect(sent).toMatchObject({ type: 'translate_init', sourceLang: 'en', targetLang: 'ja', model: 'qwen2.5-0.5b', device: 'cuda', asrModel: 'sense-voice', variant: 'q8' });
     expect(conn.requestOpts[0]?.timeoutMs).toBe(INIT_REQUEST_TIMEOUT_MS);
-    conn.emit({ type: 'ready', id: sent.id, loadTimeMs: 7, backend: 'llamacpp_qwen', device: 'cuda', computeType: 'q8', tokensPerSec: 42 });
+    conn.emit({ type: 'ready', id: sent.id, loadTimeMs: 7, backend: 'native_translate', device: 'cuda', computeType: 'q8', tokensPerSec: 42 });
     await expect(p).resolves.toMatchObject({ loadTimeMs: 7, device: 'cuda', tokensPerSec: 42 });
   });
 
@@ -44,6 +44,15 @@ describe('NativeTranslateClient', () => {
     await expect(p).rejects.toThrow('boom');
     conn.emit({ type: 'error', id: conn.sent[0].id, message: 'late boom' }); // stray late reply, no longer pending
     expect(errs).toEqual([]);
+  });
+
+  it('routes an id-less translate_partial push to onPartial', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeTranslateClient(conn);
+    const partials: string[] = [];
+    c.onPartial = (text) => partials.push(text);
+    conn.emit({ type: 'translate_partial', text: 'Bon' });
+    expect(partials).toEqual(['Bon']);
   });
 
   it('dispose() rejects an unsettled request', async () => {

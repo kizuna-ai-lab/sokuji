@@ -1,6 +1,6 @@
 """Backend registry + shared contract. Per-backend coverage lives in
-test_transcribe_backend.py (ASR), test_tts_backends.py / test_qwen3_backend.py
-(TTS) and test_translate_backends.py — the torch-era ASR backends
+test_asr_backend.py (ASR), test_tts_backends.py / test_qwen3_backend.py
+(TTS) and test_translate_backend.py — the torch-era ASR backends
 (ctranslate2/sherpa/transformers/qwen3asr/voxtral/funasr) are gone with the
 2026-07-04 transcribe.cpp decision."""
 import numpy as np
@@ -35,3 +35,15 @@ def test_register_and_make_returns_instance():
 def test_asr_result_defaults():
     r = backends.AsrResult("hello")
     assert r.text == "hello" and r.language is None
+
+
+def test_registry_has_native_tts_not_the_old_onnx_backends():
+    # Slice 4: the nine ONNX/sherpa/MLX TTS backends are gone; every TTS card
+    # now resolves through the one native_tts backend (backends.py's bottom
+    # import list — asr_backend/translate_backend/tts_backend only).
+    assert backends.make_backend("native_tts") is not None
+    for name in ("sherpa_tts", "moss_onnx", "supertonic", "qwen3tts_onnx",
+                 "cosyvoice3_onnx", "omnivoice_onnx", "gpt_sovits_onnx",
+                 "pocket_onnx", "mlx_audio_tts"):
+        with pytest.raises(backends.BackendLoadError):
+            backends.make_backend(name)

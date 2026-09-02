@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "מנוע הסקה",
-    "detected": "זוהה: {{gpu}}",
     "package": "חבילת מנוע: {{sku}} · {{size}}",
     "sizeUnknown": "הגודל אינו זמין במצב לא מקוון",
     "download": "הורד מנוע",
@@ -891,6 +890,7 @@
     "clipSilent": "לא זוהה קול — בדוק את המיקרופון שלך ונסה שוב.",
     "clipTooLong": "ההקלטה ארוכה מדי — שמור אותה מתחת ל-{seconds} שניות.",
     "clipTooShort": "ההקלטה קצרה מדי — דבר לפחות {seconds} שניות.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "צריך קול מותאם אישית?",
     "decodeFailed": "לא ניתן לקרוא את קובץ השמע הזה — נסה WAV, MP3 או פורמט נפוץ אחר.",
     "delete": "מחק",

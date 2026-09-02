@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Inferensmotor",
-    "detected": "Identifierad: {{gpu}}",
     "package": "Motorpaket: {{sku}} · {{size}}",
     "sizeUnknown": "storlek ej tillgänglig offline",
     "download": "Ladda ner motor",
@@ -891,6 +890,7 @@
     "clipSilent": "Ingen röst upptäcktes — kontrollera din mikrofon och försök igen.",
     "clipTooLong": "Inspelningen är för lång — håll den under {seconds} sekunder.",
     "clipTooShort": "Inspelningen är för kort — tala i minst {seconds} sekunder.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Behöver du en anpassad röst?",
     "decodeFailed": "Kunde inte läsa den ljudfilen — prova WAV, MP3 eller ett annat vanligt format.",
     "delete": "Radera",

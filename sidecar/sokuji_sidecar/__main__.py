@@ -1,41 +1,5 @@
-import os
-# Reduce CUDA allocator fragmentation when loading large quantized models (e.g. FP8).
-os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
-
 import signal
 import sys
-
-
-def _preload_cuda_dlls() -> str:
-    """Officialized cuDNN/CUDA handling (spec D8): when the CUDA EP is present,
-    ORT's own preload_dlls() pins the wheel-shipped cuDNN/cuBLAS/MSVC runtime
-    BEFORE any session is created — replacing the hand-rolled _cudnn_preload
-    ctypes loader and the Electron LD_LIBRARY_PATH injection. No-op on the
-    DirectML / CPU / macOS SKUs (no CUDA EP) and on ORT builds without the
-    helper. Best-effort: never raises. Returns a short status string."""
-    try:
-        import onnxruntime as ort
-    except Exception as e:  # onnxruntime is a base dep, but stay defensive
-        return f"cuda-dll-preload: skipped (onnxruntime import failed: {e})"
-    # Everything below runs at module import, before serve(): keep the whole
-    # probe inside try/except so a misbehaving get_available_providers/preload
-    # can never crash startup (honors the "never raises" contract).
-    try:
-        if "CUDAExecutionProvider" not in ort.get_available_providers():
-            return "cuda-dll-preload: skipped (no CUDA execution provider)"
-        preload = getattr(ort, "preload_dlls", None)
-        if not callable(preload):
-            return "cuda-dll-preload: skipped (preload_dlls unavailable)"
-        preload()
-        return "cuda-dll-preload: onnxruntime.preload_dlls() done"
-    except Exception as e:
-        return f"cuda-dll-preload: failed ({e})"
-
-
-# Pin one consistent CUDA/cuDNN set for the whole process BEFORE any engine
-# imports onnxruntime, so onnxruntime-gpu never mixes the wheel's cuDNN with a
-# different system copy and silently drops the CUDA EP to CPU.
-print(_preload_cuda_dlls(), file=sys.stderr, flush=True)
 
 import asyncio, json
 from .server import serve
@@ -63,19 +27,19 @@ async def _run():
 
 
 def _install_exit_handlers():
-    """Make SIGTERM/SIGINT run atexit cleanups (notably LlamaServerProc.stop,
-    which kills the llama-server child).
+    """Make SIGTERM/SIGINT run atexit cleanups.
 
-    Python's default handling of a raw signal kill (as opposed to a normal
-    sys.exit()/return-from-main exit) skips atexit entirely. Electron's
+    Historically this existed for LlamaServerProc.stop (killing the
+    llama-server child process on shutdown); slice 3 moved translation
+    in-process through sokuji_native, so there is no separate child process
+    to clean up here anymore. Kept as defensive infrastructure: Python's
+    default handling of a raw signal kill (as opposed to a normal
+    sys.exit()/return-from-main exit) skips atexit entirely, and Electron's
     native-host-manager stops this sidecar with SIGTERM (POSIX) /
-    TerminateProcess (Windows) at ordinary app shutdown — not KeyboardInterrupt.
-    On Linux, LlamaServerProc.start()'s PDEATHSIG saves us regardless (the
-    child dies with its parent); macOS has no such mechanism, so translate
-    SIGTERM/SIGINT into a clean sys.exit(0) here so atexit runs there too.
-    SIGTERM is mostly theoretical on Windows (TerminateProcess bypasses
-    signal handling outright) — that platform instead relies on the Job
-    Object installed in LlamaServerProc.start().
+    TerminateProcess (Windows) at ordinary app shutdown — not
+    KeyboardInterrupt — so any future atexit-registered cleanup (in-process
+    model unload, temp files, etc.) still needs this translation into a clean
+    sys.exit(0) to actually run.
 
     Guarded to only replace the default handler (SIG_DFL): this must not
     clobber a handler something else in the process already installed."""

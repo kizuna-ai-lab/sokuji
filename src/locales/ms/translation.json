@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Enjin Inferens",
-    "detected": "Dikesan: {{gpu}}",
     "package": "Pakej enjin: {{sku}} · {{size}}",
     "sizeUnknown": "saiz tidak tersedia luar talian",
     "download": "Muat turun enjin",
@@ -891,6 +890,7 @@
     "clipSilent": "Tiada suara dikesan — semak mikrofon anda dan cuba lagi.",
     "clipTooLong": "Rakaman terlalu panjang — pastikan ia kurang daripada {seconds} saat.",
     "clipTooShort": "Rakaman terlalu pendek — bercakap sekurang-kurangnya {seconds} saat.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Perlukan suara tersuai?",
     "decodeFailed": "Tidak dapat membaca fail audio itu — cuba WAV, MP3 atau format biasa yang lain.",
     "delete": "Padam",

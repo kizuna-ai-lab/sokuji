@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "ఇన్ఫరెన్స్ ఇంజిన్",
-    "detected": "గుర్తించబడింది: {{gpu}}",
     "package": "ఇంజిన్ ప్యాకేజీ: {{sku}} · {{size}}",
     "sizeUnknown": "ఆఫ్‌లైన్‌లో పరిమాణం అందుబాటులో లేదు",
     "download": "ఇంజిన్ డౌన్‌లోడ్ చేయి",
@@ -891,6 +890,7 @@
     "clipSilent": "వాయిస్ గుర్తించబడలేదు — మీ మైక్రోఫోన్‌ను తనిఖీ చేసి మళ్ళీ ప్రయత్నించండి.",
     "clipTooLong": "రికార్డింగ్ చాలా పొడవుగా ఉంది — దాన్ని {seconds} సెకన్ల లోపు ఉంచండి.",
     "clipTooShort": "రికార్డింగ్ చాలా చిన్నది — కనీసం {seconds} సెకన్లు మాట్లాడండి.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "అనుకూల వాయిస్ కావాలా?",
     "decodeFailed": "ఆ ఆడియో ఫైల్‌ను చదవలేకపోయాము — WAV, MP3 లేదా ఇతర సాధారణ ఫార్మాట్‌ను ప్రయత్నించండి.",
     "delete": "తొలగించు",

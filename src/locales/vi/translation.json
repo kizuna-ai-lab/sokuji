@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Công cụ suy luận",
-    "detected": "Đã phát hiện: {{gpu}}",
     "package": "Gói công cụ: {{sku}} · {{size}}",
     "sizeUnknown": "không xem được dung lượng khi ngoại tuyến",
     "download": "Tải công cụ",
@@ -891,6 +890,7 @@
     "clipSilent": "Không phát hiện giọng nói — kiểm tra micro của bạn và thử lại.",
     "clipTooLong": "Bản ghi quá dài — hãy giữ dưới {seconds} giây.",
     "clipTooShort": "Bản ghi quá ngắn — hãy nói ít nhất {seconds} giây.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Cần một giọng nói tùy chỉnh?",
     "decodeFailed": "Không thể đọc tệp âm thanh đó — hãy thử WAV, MP3 hoặc định dạng phổ biến khác.",
     "delete": "Xóa",

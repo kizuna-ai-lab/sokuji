@@ -24,6 +24,7 @@ never imports accel."""
 from __future__ import annotations
 
 import dataclasses
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -36,10 +37,21 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class PlanConfig:
     """Declarative per-load hints, read from the resolved catalog card and
-    consumed by backends at load time: llama.cpp reads the two thinking flags.
-    All-inert defaults so a bare `PlanConfig()` changes no behavior."""
+    consumed by backends at load time: native_translate reads the two thinking
+    flags and prompt_family (which of its three prompt strategies to use);
+    native_tts reads tts_family (sk_tts_load's required family_hint),
+    tts_language (pocket_tts's load-time language package, e.g. "english";
+    ignored by every other family), and tts_extra_files (ruling R18(s4):
+    same-directory sidecar assets, e.g. pocket-tts-en's
+    embeddings/alba.safetensors, that must be hard-link-staged alongside the
+    gguf — see tts_backend.py's module docstring). All-inert defaults so a
+    bare `PlanConfig()` changes no behavior."""
     disable_thinking: bool = False
     append_no_think: bool = False
+    prompt_family: str = ""
+    tts_family: str = ""
+    tts_language: str = ""
+    tts_extra_files: tuple[tuple[str, int], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -62,90 +74,82 @@ def _plan_config(model) -> PlanConfig:
     """Build a Plan's PlanConfig from its resolved catalog card. Card types
     differ (an AsrModel and a TtsModel have no thinking flags), so every
     field is read defensively via getattr with an inert default — this stays
-    correct for any current or future card shape."""
+    correct for any current or future card shape. `family`/`load_language`
+    land on TtsModel in slice 4's catalog task; reading them defensively now
+    means native_tts's backend already gets tts_family/tts_language the
+    moment those catalog fields exist, with no further planner change."""
     return PlanConfig(
         disable_thinking=getattr(model, "disable_thinking", False),
         append_no_think=getattr(model, "append_no_think", False),
+        prompt_family=getattr(model, "prompt_family", ""),
+        tts_family=getattr(model, "family", ""),
+        tts_language=getattr(model, "load_language", ""),
+        tts_extra_files=getattr(model, "extra_files", ()),
     )
 
 
-def has_nvidia(machine: Machine) -> bool:
-    """NVIDIA presence, from the transcribe.cpp probe: any accelerator device
-    whose description names NVIDIA (case-insensitive substring — the D7
-    contract). Replaces the removed NVML enumeration; the tc probe is the
-    single all-vendor device-truth source."""
-    return any("nvidia" in name.lower() for _kind, name, _total in machine.gpus)
+TIER_RANK = {"gpu-metal": 3.0, "gpu-vulkan": 2.5, "cpu": 1.0}
+TIER_DEVICE = {"cpu": "cpu", "gpu-metal": "metal", "gpu-vulkan": "vulkan"}
 
 
-TIER_RANK = {"gpu-cuda": 3.0, "gpu-metal": 3.0, "gpu-vulkan": 2.5, "gpu-dml": 2.5, "cpu": 1.0}
-TIER_DEVICE = {"cpu": "cpu", "gpu-cuda": "cuda", "gpu-metal": "metal",
-               "gpu-vulkan": "vulkan", "gpu-dml": "dml"}
+# A hosted-macOS VM (GitHub Actions' macos-14 runner, and every other
+# virtualized Mac) exposes its GPU as "Apple Paravirtual device" — a
+# virtualization shim, not a downlevel real GPU. It lacks
+# has_simdgroup_reduction (ggml-metal-device.m requires MTLGPUFamilyApple7 or
+# Metal3), so ggml refuses GGML_OP_NORM/RMS_NORM/ARGMAX there and every TTS
+# family that normalizes ABORTS the process (ruling R36). Matching by
+# description is the only signal available: the device still reports kind
+# "metal", and the host still reports as Apple Silicon.
+_PARAVIRTUAL_GPU_RE = re.compile(r"paravirtual", re.IGNORECASE)
+
+
+def _paravirtual_metal_only(machine: Machine) -> bool:
+    """True when every Metal device this machine reports is a paravirtual shim.
+
+    Reads `machine.gpus` — (kind, description, mem_total) straight from the
+    native probe (accel._native_gpus). An empty/absent Metal entry means the
+    probe told us nothing about descriptions (wheel absent, or a synthetic
+    fixture built from tc_kinds alone), which is NOT evidence of a shim, so
+    the tier stays available: this exclusion only fires on a positive match.
+    `all` rather than `any` so a hypothetical box with a real Metal GPU
+    alongside a paravirtual one keeps the tier.
+    """
+    metal = [desc for kind, desc, _mem in machine.gpus if kind == "metal"]
+    return bool(metal) and all(_PARAVIRTUAL_GPU_RE.search(desc or "") for desc in metal)
 
 
 def _tier_available(tier: str, machine: Machine, backend: str | None = None) -> bool:
     if tier == "cpu":
         return True
-    if tier == "gpu-cuda":
-        if not has_nvidia(machine):
-            return False
-        # x86_64: the nvidia bundle ships onnxruntime-gpu and the llama
-        # bucket's cuda builds work — device presence is the whole gate.
-        if machine.arch in ("x86_64", "AMD64"):
-            return True
-        # Linux/aarch64 (DGX Spark, Jetson) splits by backend family:
-        #   llamacpp_* -> allowed. Its cuda lane is the llama bucket binary,
-        #     and the b9940+ buckets ship sm_121 builds with a correct probe
-        #     (llama-install.sh #60; the pre-fix bucket handed GB10 an
-        #     sm_120-only binary that crashed with "no kernel image").
-        #   ORT backends -> need the CUDA EP in the RUNNING onnxruntime:
-        #     PyPI has no aarch64 onnxruntime-gpu, so this means NVIDIA's
-        #     hand-installed sbsa wheel. Field-tested on a GB10: Qwen3-TTS
-        #     0.6B runs 0.38x realtime on CPU (unusable) vs 1.15x on CUDA.
-        #   `backend is None` (capability summaries without a deployment in
-        #     hand) stays conservative.
-        if machine.os == "Linux" and machine.arch == "aarch64":
-            if backend is None:
-                return False
-            if backend.startswith("llamacpp"):
-                return True
-            return machine.ort_cuda
-        return False
     if tier == "gpu-metal":
+        if _paravirtual_metal_only(machine):
+            return False
         return machine.apple_silicon or "metal" in machine.tc_kinds
-    if tier == "gpu-dml":
-        return bool(machine.dml_adapters)
     if tier == "gpu-vulkan":
-        # transcribe.cpp's own probe is authoritative (sees AMD/Intel Vulkan
-        # devices); NVIDIA-by-description is the fallback. DML is deliberately
-        # NOT a signal here: a DirectX12 adapter doesn't imply a usable Vulkan
-        # runtime, llama.cpp has no DML flavor, and the vulkan binary is fetched
-        # only when the tc probe reports "vulkan" — so lighting this tier off
-        # dml_adapters alone made resolve_translate lead with a missing-binary
-        # vulkan plan on DML-only boxes (P5). A genuinely Vulkan-capable box
-        # already reports "vulkan" in tc_kinds. Arch-gated to hosts whose vulkan
-        # binaries actually exist: x86_64 everywhere, plus Linux/aarch64 (the
-        # transcribe-cpp aarch64 wheel bundles the ggml Vulkan backend and
-        # llama.cpp ships ubuntu-vulkan-arm64 — the DGX Spark / Jetson lane).
-        # Other arches (Windows-on-ARM) are never offered an unrunnable plan.
-        return (("vulkan" in machine.tc_kinds or has_nvidia(machine))
+        # the native library's own probe is authoritative (sees AMD/Intel/NVIDIA
+        # Vulkan devices) — a genuinely Vulkan-capable box reports "vulkan" in
+        # tc_kinds. Arch-gated to hosts whose vulkan binaries actually exist:
+        # x86_64 everywhere, plus Linux/aarch64 (the sokuji-native aarch64 wheel
+        # bundles the ggml Vulkan backend and llama.cpp ships
+        # ubuntu-vulkan-arm64 — the DGX Spark / Jetson lane). Other arches
+        # (Windows-on-ARM) are never offered an unrunnable plan.
+        return ("vulkan" in machine.tc_kinds
                 and (machine.arch in ("x86_64", "AMD64")
                      or (machine.os == "Linux" and machine.arch == "aarch64")))
+    # gpu-cuda/gpu-dml died with the ONNX TTS backends (their last catalog
+    # consumers) — spec §5.2: has_nvidia/dml_adapters/ort_cuda/the aarch64
+    # ORT-CUDA special case are deleted along with the tier strings.
     return False
 
 
 def _platform_ok(d, machine: Machine, platform: str) -> bool:
-    """Whether deployment `d` is runnable on THIS host's OS (D9). A row is dropped
-    when this platform is not in its `platforms` set, or when it demands Apple
-    Silicon and the machine lacks it. Every shipped card defaults to all three
-    OSes + no AS requirement, so this is a no-op until platform-specific tiers
-    (windows-only gpu-dml, macOS/AS-only mlx) land in P5/P6. `platform` is the
-    caller's current-OS tag (accel.current_platform() on the real host) —
-    injected so this function stays a pure lookup."""
-    if platform not in d.platforms:
-        return False
-    if d.requires_apple_silicon and not machine.apple_silicon:
-        return False
-    return True
+    """Whether deployment `d` is runnable on THIS host's OS (D9). A row is
+    dropped when this platform is not in its `platforms` set. Every shipped
+    card defaults to all three OSes, so this is currently a no-op — kept for
+    the next platform-specific tier (a future windows-only or macOS-only row).
+    `platform` is the caller's current-OS tag (accel.current_platform() on the
+    real host) — injected so this function stays a pure lookup."""
+    return platform in d.platforms
 
 
 def resolve_deployments(model, machine: Machine, override: str = "auto",
@@ -160,7 +164,7 @@ def resolve_deployments(model, machine: Machine, override: str = "auto",
     if override != "auto":
         # The renderer's device control is auto/cpu/GPU and sends 'cuda' for
         # GPU — treat it as "any accelerator tier" so it also pins
-        # vulkan/metal deployments (transcribe.cpp cards have no cuda rows).
+        # vulkan/metal deployments (native ASR cards have no cuda rows).
         def _pinned(d):
             return TIER_DEVICE.get(d.tier) == override or (override == "cuda" and d.tier != "cpu")
         pinned = [d for d in usable if _pinned(d)]
@@ -222,12 +226,12 @@ _TC_RESIDENT_FACTOR = 1.15
 
 def _quant_budget_bytes(machine: Machine):
     """The STABLE per-machine basis for quant selection: the primary device's
-    TOTAL memory, from the transcribe.cpp probe (all vendors). Quant choice
+    TOTAL memory, from the native library's device probe (all vendors). Quant choice
     only decides WHICH FILE we recommend the user download — and we always run
     exactly the file the user downloaded — so the basis must never flap with
     transient VRAM pressure (that would recommend re-downloads). Runtime
-    pressure is placement's job (--fit / cpu fallback), never a silent switch
-    to a different model file."""
+    pressure is placement's job (load_with_fallback's GPU->cpu tier
+    fallback), never a silent switch to a different model file."""
     # Largest-device basis: correct for the ~universal single-GPU case. On a rare
     # dual-DISCRETE-vendor box (AMD + NVIDIA) this can budget a gpu-cuda download
     # against the non-CUDA card's VRAM — accepted as a documented limitation
@@ -238,7 +242,7 @@ def _quant_budget_bytes(machine: Machine):
 
 def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
                    downloaded: set | None = None) -> str:
-    """Quant for a multi-quant transcribe.cpp card. pin wins; on a GPU-capable
+    """Quant for a multi-quant native ASR card. pin wins; on a GPU-capable
     machine walk quality-descending (largest first) and take the first that
     fits FULLY resident within the budget, else the rank-default; without a
     GPU the smallest quant wins (CPU is bandwidth-bound: smaller = faster)."""
@@ -284,7 +288,7 @@ def resolve(model_id: str, override: str = "auto", *, machine: Machine, platform
     model = catalog.asr_model(model_id)
     if model is None:
         raise ValueError(f"unknown asr model: {model_id}")
-    # Multi-quant ladder (big transcribe.cpp cards): narrow to ONE quant before
+    # Multi-quant ladder (big native ASR cards): narrow to ONE quant before
     # the generic tier resolution, so plans stay one-per-tier.
     if len({d.compute_type for d in model.deployments}) > 1:
         # Quant = the DOWNLOAD recommendation (stable, total-memory basis),
@@ -313,8 +317,10 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
     if override == "auto":
         # Same STABLE basis as the download recommendation (_h_list_variants):
         # we always run exactly the file the user downloaded, so choose it the
-        # same way we recommended it. Runtime VRAM pressure is handled by
-        # llama-server's --fit at placement, never by switching files.
+        # same way we recommended it. reserved_bytes only sizes THIS quant
+        # selection; an over-budget GPU load fails cleanly at load time and
+        # the resolver falls to the cpu plan below — never a silent switch to
+        # a different downloaded file.
         chosen = select_variant(model, machine, reserved_bytes, pin,
                                 budget_bytes=_quant_budget_bytes(machine),
                                 downloaded=downloaded, est_bytes=est_bytes,
@@ -347,151 +353,67 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
                 plans = [plans[1], plans[0]]
         return plans
     # Explicit device override: unchanged tier-pinning path, EXCEPT a quant
-    # `pin` (llamacpp cards only) must still be honored — otherwise a pinned
+    # `pin` (GGUF LLM cards only) must still be honored — otherwise a pinned
     # q8_0 silently resolves through whatever quant _resolve_model's plain
     # tier-pin ranking picks by default (the highest-rank row across ALL
     # quants), ignoring the user's pin entirely. Filter the model down to just
     # the pinned (or rank-default, if the pin is invalid) quant's rows first,
     # then run the existing tier-pinned resolution over that narrowed model.
-    if pin is not None and _is_llamacpp(model):
+    if pin is not None and _is_gguf_llm(model):
         quant = _llamacpp_quant(model, pin)
         model = dataclasses.replace(
             model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
     return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
 
 
-def _tts_pick_quant(model, machine: Machine, pin: str | None = None,
-                    downloaded: frozenset | None = None,
-                    override: str = "auto") -> str:
-    """Quant for a multi-compute-type TTS card.
-
-    Candidates are first narrowed to `runnable` compute_types — those with at
-    least one deployment row whose tier is available on this machine (a cpu
-    row is always tier-available, so any compute_type shipping a cpu row is
-    always runnable). This narrowing happens BEFORE anything else, because a
-    compute_type with no runnable row can never be loaded no matter how small
-    its footprint or how eagerly the user downloaded it (e.g. an fp32+bf16
-    ladder where only fp32 ships a cpu row: on a CPU-only machine bf16 would
-    otherwise "win" the smallest-est_bytes fallback below and leave zero
-    runnable deployments — the exact dead end this narrowing exists to avoid).
-
-    An explicit device `override` narrows the variant choice further, to
-    variants that can actually run on the device being pinned — using the
-    SAME predicate `resolve_deployments` uses to pin rows (tier's device ==
-    override, or override == 'cuda' matching any non-cpu tier). Without this,
-    the narrowing above can hand back a compute_type that has no row at all
-    on the overridden device (e.g. bf16 outranks fp32 on a CUDA machine, but
-    bf16 ships no cpu row) — the model is then narrowed to bf16-only rows
-    BEFORE the override ever gets a chance to pin anything, so the pin has
-    nothing to attach to and is silently dropped: override='cpu' would still
-    resolve to gpu-cuda. If the override-scoped runnable set is empty (the
-    override names a device this model has no row for at all, e.g.
-    override='dml' on a card with no dml deployments), fall back to the
-    machine-wide runnable set exactly as when override is 'auto' — the
-    override then has nothing to pin downstream regardless of which
-    compute_type is chosen here, so this is a graceful no-op rather than a
-    dead end.
-
-    pin wins when it names a runnable (override-scoped, when applicable)
-    compute_type; a pin naming an unrunnable (or unknown) compute_type is
-    ignored and falls through to the rest of this function, rather than
-    being honored into a dead end.
-
-    Otherwise, restrict to `downloaded` variants that are also runnable, when
-    that intersection is non-empty (we prefer to LOAD the repo the user
-    DOWNLOADED); if the user downloaded only unrunnable variants, fall back to
-    the full runnable set instead — the one exception to the
-    load-what-you-downloaded rule, since a downloaded-but-unrunnable variant
-    cannot be loaded anyway and recommending a runnable one is the honest
-    behavior.
-
-    From the surviving candidates, take the compute_type of the
-    highest-rank candidate deployment whose own accelerator row is usable on
-    this machine — deployments are walked in RANK order, not tuple
-    declaration order, so a card whose rows happen to be declared fp32-before
-    -bf16 still lands cuda machines on bf16 when bf16 outranks fp32 (Apple
-    Silicon similarly lands on whichever runnable row ranks highest, e.g. the
-    fp32 mlx row). With no usable accelerator row, the smallest candidate
-    wins (CPU is bandwidth-bound: smaller = faster)."""
-    uniq = list(dict.fromkeys(d.compute_type for d in model.deployments))
-    runnable = {c for c in uniq
-                if any(d.compute_type == c and _tier_available(d.tier, machine, d.backend)
-                       for d in model.deployments)}
-    if override != "auto":
-        def _pinned(d):
-            return TIER_DEVICE.get(d.tier) == override or (override == "cuda" and d.tier != "cpu")
-        scoped = {c for c in runnable
-                  if any(d.compute_type == c and _pinned(d)
-                         and _tier_available(d.tier, machine, d.backend)
-                         for d in model.deployments)}
-        if scoped:
-            runnable = scoped
-    runnable_cands = [c for c in uniq if c in runnable] or uniq
-    if pin in runnable:
-        return pin
-    cands = [c for c in runnable_cands if downloaded and c in downloaded] or runnable_cands
-    for d in sorted(model.deployments, key=lambda d: -d.rank):
-        if (d.compute_type in cands and d.tier != "cpu"
-                and _tier_available(d.tier, machine, d.backend)):
-            return d.compute_type
-    sized = {}
-    for c in cands:
-        sizes = [d.est_bytes for d in model.deployments
-                 if d.compute_type == c and d.est_bytes]
-        if sizes:
-            sized[c] = max(sizes)
-    if len(sized) == len(cands) and sized:
-        return min(sized, key=sized.get)
-    return cands[0]
-
-
 def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, platform: str,
                 cache: dict, downloaded: frozenset = frozenset(),
-                pin: str | None = None) -> list[Plan]:
+                pin: str | None = None, est_bytes=None) -> list[Plan]:
+    """Resolve Plans for a TTS card.
+
+    Every native_tts card is a single-file audio.cpp GGUF shipping the SAME
+    three tiers per quant (unlike the deleted ONNX backends' bf16-CUDA-only /
+    macOS-only-MLX rows), so quant/tier selection collapses to exactly
+    resolve_translate's GGUF-LLM auto path: the largest fully-resident quant
+    (`_llamacpp_variant_row`) plus a same- (or any-) quant cpu floor, with a
+    plain tier-pinned resolve on an explicit device override. This works
+    unchanged for a single-quant card too (supertonic-3 ships only "f16") —
+    `_llamacpp_quant`/`_llamacpp_variant_row` don't require more than one
+    rung."""
     model = catalog.resolve_tts_card(model_id)
     if model is None:
         raise ValueError(f"unknown tts model: {model_id}")
-    # Multi-variant card: narrow to ONE compute_type before tier resolution,
-    # mirroring resolve()'s ASR multi-quant narrowing. `override` is threaded
-    # through so the narrowing itself is device-aware (see _tts_pick_quant's
-    # docstring) — otherwise an explicit override='cpu' can arrive at
-    # _resolve_model after the model has already been narrowed to a
-    # cpu-less compute_type, leaving the override with nothing to pin.
-    if len({d.compute_type for d in model.deployments}) > 1:
-        pre_narrow = model
-        quant = _tts_pick_quant(model, machine, pin, downloaded, override)
+    model = dataclasses.replace(
+        model, deployments=tuple(d for d in model.deployments if _platform_ok(d, machine, platform)))
+    # Every TTS deployment carries est_bytes directly (catalog.py's
+    # _tts_gguf_row sets it for every quant), so the caller may omit
+    # est_bytes and get the obvious default; accel.py's wrapper still injects
+    # its own (native_models.model_size-backed) callable for parity with
+    # resolve_translate.
+    est_bytes = est_bytes or (lambda d: d.est_bytes)
+    if override == "auto":
+        chosen = _llamacpp_variant_row(model, machine, pin, budget_bytes=_quant_budget_bytes(machine),
+                                       downloaded=downloaded, est_bytes=est_bytes)
+        cpu = next((d for d in model.deployments
+                    if d.tier == "cpu" and d.compute_type == chosen.compute_type), None) \
+            if chosen is not None else None
+        if cpu is None:
+            cpu = next((d for d in model.deployments if d.tier == "cpu"), None)
+        picks = [chosen] + ([cpu] if cpu is not None and cpu is not chosen else [])
+        picks = [d for d in picks if d is not None and d.backend in machine.installed]
+        if not picks:
+            raise NoUsablePlan(model_id)
+        config = _plan_config(model)
+        return [Plan(d.backend, d.tier, TIER_DEVICE[d.tier], d.compute_type, d.artifact, d.rank, config)
+                for d in picks]
+    # Explicit device override: unchanged tier-pinning path, except a pinned
+    # quant must still be honored first (mirrors resolve_translate's override
+    # branch) — otherwise a pinned bf16 silently resolves to whatever quant
+    # _resolve_model's plain tier-pin ranking picks by default.
+    if pin is not None:
+        quant = _llamacpp_quant(model, pin)
         model = dataclasses.replace(
             model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
-        plans = _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
-        # The narrowed compute_type can be GPU-only (e.g. bf16 ships no cpu
-        # row at all), leaving nothing to fall back to on a load failure --
-        # ordinarily the honest outcome. But when a DIFFERENT compute_type
-        # that DOES have a cpu row (e.g. fp32) is already downloaded
-        # alongside it, that cpu-loadable file is already sitting on disk:
-        # append its cpu plan as a last-resort tail so a CUDA machine with
-        # BOTH variants downloaded degrades to cpu on a bf16 load failure
-        # instead of hard-failing. Guarded on `downloaded` being non-empty
-        # and actually containing such a compute_type -- the tail only ever
-        # uses an ALREADY-DOWNLOADED variant, so a bf16-only download still
-        # gets the honest single plan, and so does a fresh (nothing
-        # downloaded yet) recommendation.
-        if downloaded and all(p.device != "cpu" for p in plans):
-            cpu_ct = next((d.compute_type for d in sorted(pre_narrow.deployments, key=lambda d: -d.rank)
-                          if d.tier == "cpu" and d.compute_type != quant
-                          and d.compute_type in downloaded), None)
-            if cpu_ct is not None:
-                cpu_model = dataclasses.replace(
-                    pre_narrow, deployments=tuple(d for d in pre_narrow.deployments
-                                                  if d.compute_type == cpu_ct))
-                try:
-                    cpu_plans = _resolve_model(cpu_model, model_id, override, machine,
-                                               cache=cache, platform=platform)
-                except NoUsablePlan:
-                    cpu_plans = []
-                tail = next((p for p in cpu_plans if p.device == "cpu"), None)
-                if tail is not None:
-                    plans = plans + [tail]
-        return plans
     return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
 
 
@@ -514,12 +436,17 @@ def _weight_factor(compute_type: str) -> float:
 _VARIANT_QUALITY = {"bfloat16": 3.0, "float16": 3.0, "fp8": 2.0, "int4": 1.5, "nvfp4": 1.8}
 
 
-def _is_llamacpp(model) -> bool:
-    return model.deployments[0].backend.startswith("llamacpp_")
+def _is_gguf_llm(model) -> bool:
+    """True for a single-file GGUF card whose quant/tier selection is the
+    budget-fit-walk shape (`_llamacpp_variant_row`/`_llamacpp_quant`) rather
+    than ASR's resident-factor walk (`_tc_pick_quant`): native_translate (the
+    original GGUF LLM cards) and, since slice 4, native_tts (every TTS card
+    is now the identical single-file-GGUF-with-uniform-tiers shape)."""
+    return model.deployments[0].backend in ("native_translate", "native_tts")
 
 
 def _llamacpp_quant(model, pin: str | None) -> str:
-    """Which compute_type (quant) to use for a llamacpp model: `pin` when it
+    """Which compute_type (quant) to use for a GGUF LLM card: `pin` when it
     names one of the model's available quants, else the rank-default quant
     (the compute_type of the highest-rank deployment row). Shared by
     _llamacpp_variant_row (the auto path's tier selection) and
@@ -546,16 +473,24 @@ _LLAMA_MIN_FIT_FRACTION = 0.5
 def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
                           reserved_bytes: int = 0, budget_bytes: int | None = None,
                           downloaded: set | None = None, *, est_bytes):
-    """Pick (quant, tier) for a llamacpp card.
+    """Pick (quant, tier) for a GGUF LLM card.
 
-    pin → that quant unconditionally (user's will; --fit copes with memory).
+    This is a pre-load DOWNLOAD/PLACEMENT heuristic, not a runtime memory
+    manager — the "--fit"/partial-offload language below is historical
+    (llama-server's own memory placement, which no partial-offload
+    replacement exists for in sokuji_native's sk_translate_load: a GPU tier
+    either loads fully or fails, and load_with_fallback's tier fallback to
+    cpu is the only runtime safety net today).
+
+    pin → that quant unconditionally (the user's will).
     budget known → the LARGEST quant that fits FULLY resident
         (est_bytes x 1.1 <= budget - reserved): a fully-resident smaller quant
-        beats a partially-offloaded bigger one. Nothing fits → keep the GPU
-        tier with the rank-default quant via --fit only while the budget still
-        covers ≥50% of the smallest quant; below that, fully-CPU is faster.
+        beats a bigger one that wouldn't fit. Nothing fits → keep the GPU
+        tier with the rank-default quant while the budget still covers ≥50%
+        of the smallest quant (historically --fit's partial-offload territory);
+        below that, fully-CPU is faster.
     budget unknown (no GPU memory reading) → the rank-default quant, best tier
-        (previous behavior; --fit is the safety net).
+        (previous behavior).
 
     `est_bytes` is an injected callable (Deployment -> int | None): the
     caller's estimate of a deployment's on-disk/VRAM weight size.
@@ -622,14 +557,15 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
     format's runtime is missing. `pin` (a compute_type) forces that variant when
     it's valid.
 
-    llamacpp-backed models (all current LLM translate cards) take a separate,
-    VRAM-math-free path: llama-server's --fit handles memory via partial offload,
-    so quant/tier selection is purely rank + tier-availability, never a byte budget.
+    GGUF LLM models (native_translate, all current LLM translate cards) take a
+    separate, VRAM-math-free path: sokuji_native's llama.cpp runtime loads the
+    whole GGUF (no partial-offload placement math today), so quant/tier
+    selection is purely rank + tier-availability, never a byte budget.
 
     `est_bytes` (Deployment -> int | None) and `format_ready` (compute_type ->
     bool) are injected callables — the caller's VRAM-footprint estimate and
     runtime-importability check, respectively."""
-    if _is_llamacpp(model):
+    if _is_gguf_llm(model):
         return _llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
                                      downloaded=downloaded, est_bytes=est_bytes)
     total = _quant_budget_bytes(machine)

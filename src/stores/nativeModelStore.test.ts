@@ -70,8 +70,8 @@ class FakeWS {
       let models;
       if (msg.kind === 'translate') {
         models = [{ id: 'qwen2.5-0.5b', name: 'Qwen 2.5 0.5B', kind: 'translate', languages: ['multi'], recommended: true,
-             tiers: [{ tier: 'gpu-cuda', backend: 'llamacpp_qwen', available: true },
-                     { tier: 'cpu', backend: 'llamacpp_qwen', available: true }], sizeBytes: 999604126 }];
+             tiers: [{ tier: 'gpu-cuda', backend: 'native_translate', available: true },
+                     { tier: 'cpu', backend: 'native_translate', available: true }], sizeBytes: 999604126 }];
       } else if (msg.kind === 'tts') {
         models = [{ id: 'moss-tts-nano', name: 'MOSS TTS Nano', kind: 'tts', languages: ['ja', 'zh'], recommended: true,
              tiers: [{ tier: 'cpu', backend: 'moss_tts', available: true }], sizeBytes: 763206064 }];
@@ -400,8 +400,8 @@ describe('nativeModelStore resolved plans retain backend and computeType', () =>
     const s = useNativeModelStore.getState();
     s.setAsrResolved({ model: 'a', device: 'cuda', backend: 'moss_onnx', computeType: 'int8', rtf: 0.02 });
     expect(useNativeModelStore.getState().asrResolved).toMatchObject({ backend: 'moss_onnx', computeType: 'int8' });
-    s.setTranslationResolved({ model: 't', device: 'cpu', backend: 'ct2_opus_translate', computeType: 'int8', tokensPerSec: 120 });
-    expect(useNativeModelStore.getState().translationResolved).toMatchObject({ backend: 'ct2_opus_translate', computeType: 'int8' });
+    s.setTranslationResolved({ model: 't', device: 'cpu', backend: 'native_translate', computeType: 'int8', tokensPerSec: 120 });
+    expect(useNativeModelStore.getState().translationResolved).toMatchObject({ backend: 'native_translate', computeType: 'int8' });
     s.setTtsResolved({ model: 'v', device: 'metal', backend: 'mlx_audio_tts', computeType: 'fp32' });
     expect(useNativeModelStore.getState().ttsResolved).toMatchObject({ backend: 'mlx_audio_tts', computeType: 'fp32' });
   });
@@ -720,16 +720,16 @@ describe('ensureSelectionReady (facade)', () => {
 
 describe('nativeModelStore bundle state machine (distribution spec)', () => {
   const statusReply = (over: Record<string, unknown> = {}) => ({
-    ok: true, sku: 'linux-nvidia', state: 'ready', installed: true,
+    ok: true, sku: 'linux-x64', state: 'ready', installed: true,
     installedVersion: '0.1.0', requiredVersion: '0.1.0',
-    gpuName: 'NVIDIA GeForce RTX 4070', stagedBytes: 0, devVenvPresent: false,
+    stagedBytes: 0, devVenvPresent: false,
     ...over,
   });
 
   beforeEach(() => {
     useNativeModelStore.setState({
       bundleStatus: 'unknown', bundlePhase: null, bundleSku: null, bundleVersion: null,
-      bundleRequiredVersion: null, bundleStagedBytes: 0, bundleGpuName: null,
+      bundleRequiredVersion: null, bundleStagedBytes: 0,
       bundleDevVenv: false, bundleSize: null, bundleInstalledSize: null,
       bundleProgress: { downloaded: 0, total: 0 }, bundleError: '',
     });
@@ -758,7 +758,7 @@ describe('nativeModelStore bundle state machine (distribution spec)', () => {
     expect(s.bundleStatus).toBe('absent');
   });
 
-  it('refreshBundle maps ready + carries gpu/dev metadata', async () => {
+  it('refreshBundle maps ready + carries dev metadata', async () => {
     (globalThis as any).window.electron = {
       invoke: vi.fn().mockResolvedValue(statusReply()),
     };
@@ -767,7 +767,6 @@ describe('nativeModelStore bundle state machine (distribution spec)', () => {
     expect(s.bundleStatus).toBe('ready');
     expect(s.bundleVersion).toBe('0.1.0');
     expect(s.bundleRequiredVersion).toBe('0.1.0');
-    expect(s.bundleGpuName).toBe('NVIDIA GeForce RTX 4070');
   });
 
   it('refreshBundle maps mismatch and unsupported', async () => {
@@ -808,7 +807,7 @@ describe('nativeModelStore bundle state machine (distribution spec)', () => {
   it('installBundle streams phased progress then flips to ready', async () => {
     let progressCb: ((p: any) => void) | null = null;
     (globalThis as any).window.electron = {
-      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'linux-nvidia', version: '0.1.0' }),
+      invoke: vi.fn().mockResolvedValue({ ok: true, sku: 'linux-x64', version: '0.1.0' }),
       receive: (ch: string, f: any) => { if (ch === 'sidecar-bundle-progress') progressCb = f; },
       removeListener: () => {},
     };
@@ -828,7 +827,7 @@ describe('nativeModelStore bundle state machine (distribution spec)', () => {
 
   it('installBundle cancelled -> paused with staged bytes kept', async () => {
     (globalThis as any).window.electron = {
-      invoke: vi.fn().mockResolvedValue({ ok: false, sku: 'linux-nvidia', cancelled: true }),
+      invoke: vi.fn().mockResolvedValue({ ok: false, sku: 'linux-x64', cancelled: true }),
       receive: (ch: string, f: any) => { if (ch === 'sidecar-bundle-progress') f({ phase: 'download', downloaded: 812, total: 2000 }); },
       removeListener: () => {},
     };

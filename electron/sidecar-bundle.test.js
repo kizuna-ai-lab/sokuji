@@ -7,7 +7,7 @@ import { createRequire } from 'module';
 import {
   archiveName, bundleInstallDir, pickBundle, verifySha256, extractTarZst, installBundle,
   requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
-  downloadPart, concatParts, removeBundle,
+  downloadPart, concatParts, removeBundle, pruneStaleSkuDirs,
 } from './sidecar-bundle.js';
 
 // Shares the Node module cache with sidecar-bundle.js's own `require('fs')` (core
@@ -18,18 +18,18 @@ const req = createRequire(import.meta.url);
 
 describe('archiveName / bundleInstallDir', () => {
   it('archiveName matches the python packer contract', () => {
-    expect(archiveName('linux-nvidia', '0.30.6')).toBe('sidecar-linux-nvidia-v0.30.6.tar.zst');
+    expect(archiveName('linux-x64', '0.30.6')).toBe('sidecar-linux-x64-v0.30.6.tar.zst');
   });
   it('bundleInstallDir installs under userData/sidecar/<sku>', () => {
-    expect(bundleInstallDir('/u', 'mac')).toBe(path.join('/u', 'sidecar', 'mac'));
+    expect(bundleInstallDir('/u', 'mac-arm64')).toBe(path.join('/u', 'sidecar', 'mac-arm64'));
   });
 });
 
 describe('pickBundle', () => {
   it('selects the entry matching the sku', () => {
-    const m = { bundles: [{ sku: 'nvidia', version: '1', url: 'u' }, { sku: 'mac', version: '1', url: 'v' }] };
-    expect(pickBundle(m, 'mac').url).toBe('v');
-    expect(pickBundle(m, 'directml')).toBeUndefined();
+    const m = { bundles: [{ sku: 'win-x64', version: '1', url: 'u' }, { sku: 'mac-arm64', version: '1', url: 'v' }] };
+    expect(pickBundle(m, 'mac-arm64').url).toBe('v');
+    expect(pickBundle(m, 'linux-x64')).toBeUndefined();
   });
 });
 
@@ -100,7 +100,7 @@ describe('installBundle rollback', () => {
     const realRenameSync = fsMod.renameSync;
 
     const root = mkdtempSync(path.join(tmpdir(), 'sb-install-'));
-    const sku = 'mac';
+    const sku = 'mac-arm64';
     const version = `rollback-test-${Date.now()}`;
     const dest = path.join(root, 'sidecar', sku);
 
@@ -209,17 +209,107 @@ describe('requiredSidecarVersion / bundleBaseUrl (spec S1/S4/S11)', () => {
   });
 });
 
+describe('pruneStaleSkuDirs (orphaned old-SKU bundle dirs)', () => {
+  it('removes old-vocabulary sku dirs, keeps the current sku dir and in-flight staged files', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-prune-'));
+    const root = path.join(u, 'sidecar');
+    mkdirSync(path.join(root, 'linux-nvidia'), { recursive: true });
+    mkdirSync(path.join(root, 'mac'), { recursive: true });
+    mkdirSync(path.join(root, 'mac-arm64'), { recursive: true }); // current sku
+    writeFileSync(path.join(root, 'mac-arm64', 'bundle.json'), '{}');
+    // In-flight download staging: a whole staging dir plus a part file inside it.
+    mkdirSync(path.join(root, '.staging'), { recursive: true });
+    writeFileSync(path.join(root, '.staging', 'sidecar-mac-arm64-v1.0.0.tar.zst.part'), 'x');
+
+    pruneStaleSkuDirs(root, 'mac-arm64');
+
+    expect(existsSync(path.join(root, 'linux-nvidia'))).toBe(false);
+    expect(existsSync(path.join(root, 'mac'))).toBe(false);
+    expect(existsSync(path.join(root, 'mac-arm64'))).toBe(true);
+    expect(readFileSync(path.join(root, 'mac-arm64', 'bundle.json'), 'utf8')).toBe('{}');
+    expect(existsSync(path.join(root, '.staging', 'sidecar-mac-arm64-v1.0.0.tar.zst.part'))).toBe(true);
+  });
+
+  it('removes any dir name outside the five-SKU set, not just the known-old names', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-prune-'));
+    const root = path.join(u, 'sidecar');
+    mkdirSync(path.join(root, 'some-future-sku'), { recursive: true });
+    mkdirSync(path.join(root, 'win-x64'), { recursive: true }); // current
+
+    pruneStaleSkuDirs(root, 'win-x64');
+
+    expect(existsSync(path.join(root, 'some-future-sku'))).toBe(false);
+    expect(existsSync(path.join(root, 'win-x64'))).toBe(true);
+  });
+
+  it('never touches anything outside root', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-prune-'));
+    const root = path.join(u, 'sidecar');
+    mkdirSync(root, { recursive: true });
+    const sibling = path.join(u, 'other-dir');
+    mkdirSync(sibling, { recursive: true });
+    writeFileSync(path.join(sibling, 'keep.txt'), 'keep');
+
+    pruneStaleSkuDirs(root, 'mac-arm64');
+
+    expect(existsSync(sibling)).toBe(true);
+    expect(readFileSync(path.join(sibling, 'keep.txt'), 'utf8')).toBe('keep');
+  });
+
+  it('is non-fatal when root does not exist yet', () => {
+    const missing = path.join(tmpdir(), `sb-prune-missing-${Date.now()}`);
+    expect(() => pruneStaleSkuDirs(missing, 'mac-arm64')).not.toThrow();
+  });
+
+  // Fix round 1 (reviewer-reproduced BLOCKING finding): installBundle's
+  // two-rename swap creates `${dest}.tmp` (the live extraction target, for as
+  // long as a multi-GB archive takes to unpack) and `${dest}.old` (kept for
+  // rollback until the swap commits) as siblings of the sku dirs under this
+  // same root. Neither name equals a bare sku, so an unpatched prune reads
+  // them as "not the current sku" and deletes them out from under a live
+  // install.
+  it('exempts <sku>.tmp/.old siblings (any known sku, not just the current one) from an installBundle swap in progress', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-prune-'));
+    const root = path.join(u, 'sidecar');
+    mkdirSync(path.join(root, 'mac-arm64'), { recursive: true }); // current sku, already installed
+    mkdirSync(path.join(root, 'mac-arm64.tmp'), { recursive: true }); // live extraction target
+    writeFileSync(path.join(root, 'mac-arm64.tmp', 'partial.bin'), 'still extracting');
+    mkdirSync(path.join(root, 'mac-arm64.old'), { recursive: true }); // pending rollback
+    mkdirSync(path.join(root, 'win-x64.tmp'), { recursive: true }); // a DIFFERENT (but still current-vocabulary) sku's swap artifact
+    mkdirSync(path.join(root, 'linux-nvidia'), { recursive: true }); // an old-vocabulary bundle — not a known sku at all
+
+    pruneStaleSkuDirs(root, 'mac-arm64');
+
+    expect(existsSync(path.join(root, 'mac-arm64.tmp', 'partial.bin'))).toBe(true);
+    expect(existsSync(path.join(root, 'mac-arm64.old'))).toBe(true);
+    expect(existsSync(path.join(root, 'win-x64.tmp'))).toBe(true);
+    // The exemption is narrowly for known-sku .tmp/.old swap artifacts — an
+    // old-vocabulary dir that isn't a recognized sku at all is still pruned.
+    expect(existsSync(path.join(root, 'linux-nvidia'))).toBe(false);
+  });
+
+  it('is a complete no-op while an install is in flight ({ installing: true })', () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-prune-'));
+    const root = path.join(u, 'sidecar');
+    mkdirSync(path.join(root, 'linux-nvidia'), { recursive: true }); // would normally be pruned
+
+    pruneStaleSkuDirs(root, 'mac-arm64', { installing: true });
+
+    expect(existsSync(path.join(root, 'linux-nvidia'))).toBe(true);
+  });
+});
+
 describe('staging (spec S6)', () => {
   it('stagedBytes counts only files of this sku+version; pruneStaging drops the rest', () => {
     const u = mkdtempSync(path.join(tmpdir(), 'sb-stage-'));
     mkdirSync(stagingDir(u), { recursive: true });
-    const keep = archiveName('mac', '0.1.0');
+    const keep = archiveName('mac-arm64', '0.1.0');
     writeFileSync(path.join(stagingDir(u), `${keep}.001`), Buffer.alloc(10));
     writeFileSync(path.join(stagingDir(u), `${keep}.002`), Buffer.alloc(5));
-    writeFileSync(path.join(stagingDir(u), archiveName('mac', '0.0.9')), Buffer.alloc(99));
-    expect(stagedBytes(u, 'mac', '0.1.0')).toBe(15);
+    writeFileSync(path.join(stagingDir(u), archiveName('mac-arm64', '0.0.9')), Buffer.alloc(99));
+    expect(stagedBytes(u, 'mac-arm64', '0.1.0')).toBe(15);
     pruneStaging(u, keep);
-    expect(existsSync(path.join(stagingDir(u), archiveName('mac', '0.0.9')))).toBe(false);
+    expect(existsSync(path.join(stagingDir(u), archiveName('mac-arm64', '0.0.9')))).toBe(false);
     expect(existsSync(path.join(stagingDir(u), `${keep}.001`))).toBe(true);
   });
 });
@@ -300,7 +390,7 @@ describe('installBundle v2 pipeline (spec S4-S9)', () => {
     return {
       version,
       bundles: [{
-        sku: 'mac', version, sha256: sha(fixture), size: fixture.length,
+        sku: 'mac-arm64', version, sha256: sha(fixture), size: fixture.length,
         installedSize: 64, parts,
       }],
     };
@@ -323,24 +413,24 @@ describe('installBundle v2 pipeline (spec S4-S9)', () => {
 
   it('single part: downloads, extracts, swaps, writes bundle.json, stops sidecar', async () => {
     const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
-    const name = archiveName('mac', '9.9.9');
+    const name = archiveName('mac-arm64', '9.9.9');
     const manifest = manifestFor([{ name, size: fixture.length, sha256: sha(fixture) }]);
     const stopSidecar = vi.fn();
     const phases = [];
     const r = await installBundle({
-      sku: 'mac', version: '9.9.9', userDataDir: u,
+      sku: 'mac-arm64', version: '9.9.9', userDataDir: u,
       fetchImpl: fetchFor(manifest, { [name]: fixture }),
       statfs: bigStatfs, stopSidecar, env: {},
       onProgress: (p) => phases.push(p.phase),
     });
     expect(r).toEqual({ version: '9.9.9' });
-    expect(readFileSync(path.join(u, 'sidecar', 'mac', 'app', 'hi.txt'), 'utf8')).toBe('hi');
-    expect(JSON.parse(readFileSync(path.join(u, 'sidecar', 'mac', 'bundle.json'), 'utf8')))
-      .toEqual({ sku: 'mac', version: '9.9.9' });
+    expect(readFileSync(path.join(u, 'sidecar', 'mac-arm64', 'app', 'hi.txt'), 'utf8')).toBe('hi');
+    expect(JSON.parse(readFileSync(path.join(u, 'sidecar', 'mac-arm64', 'bundle.json'), 'utf8')))
+      .toEqual({ sku: 'mac-arm64', version: '9.9.9' });
     expect(stopSidecar).toHaveBeenCalled();
     expect(phases).toContain('download');
     expect(phases).toContain('extract');
-    expect(stagedBytes(u, 'mac', '9.9.9')).toBe(0);          // staging cleaned
+    expect(stagedBytes(u, 'mac-arm64', '9.9.9')).toBe(0);          // staging cleaned
   });
 
   it('waits for extracted files to close before promoting the bundle', async () => {
@@ -348,7 +438,7 @@ describe('installBundle v2 pipeline (spec S4-S9)', () => {
     const realCreateWriteStream = fsMod.createWriteStream;
     const realRenameSync = fsMod.renameSync;
     const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
-    const sku = 'mac';
+    const sku = 'mac-arm64';
     const version = '9.9.9';
     const name = archiveName(sku, version);
     const dest = path.join(u, 'sidecar', sku);
@@ -390,7 +480,7 @@ describe('installBundle v2 pipeline (spec S4-S9)', () => {
 
   it('multi part: reassembles, verifies the whole archive, installs', async () => {
     const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
-    const name = archiveName('mac', '9.9.9');
+    const name = archiveName('mac-arm64', '9.9.9');
     const cut = Math.floor(fixture.length / 2);
     const p1 = fixture.subarray(0, cut);
     const p2 = fixture.subarray(cut);
@@ -399,30 +489,30 @@ describe('installBundle v2 pipeline (spec S4-S9)', () => {
       { name: `${name}.002`, size: p2.length, sha256: sha(p2) },
     ]);
     await installBundle({
-      sku: 'mac', version: '9.9.9', userDataDir: u,
+      sku: 'mac-arm64', version: '9.9.9', userDataDir: u,
       fetchImpl: fetchFor(manifest, { [`${name}.001`]: p1, [`${name}.002`]: p2 }),
       statfs: bigStatfs, env: {},
     });
-    expect(readFileSync(path.join(u, 'sidecar', 'mac', 'app', 'hi.txt'), 'utf8')).toBe('hi');
+    expect(readFileSync(path.join(u, 'sidecar', 'mac-arm64', 'app', 'hi.txt'), 'utf8')).toBe('hi');
   });
 
   it('rejects a manifest whose entry version differs (strict matching, spec S2)', async () => {
     const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
-    const name = archiveName('mac', '8.8.8');
+    const name = archiveName('mac-arm64', '8.8.8');
     const manifest = manifestFor([{ name, size: fixture.length, sha256: sha(fixture) }],
       { version: '8.8.8' });
     await expect(installBundle({
-      sku: 'mac', version: '9.9.9', userDataDir: u,
+      sku: 'mac-arm64', version: '9.9.9', userDataDir: u,
       fetchImpl: fetchFor(manifest, { [name]: fixture }), statfs: bigStatfs, env: {},
     })).rejects.toThrow(/strict matching/);
   });
 
   it('fails early with exact numbers when disk is short (spec S8)', async () => {
     const u = mkdtempSync(path.join(tmpdir(), 'sb-inst-'));
-    const name = archiveName('mac', '9.9.9');
+    const name = archiveName('mac-arm64', '9.9.9');
     const manifest = manifestFor([{ name, size: fixture.length, sha256: sha(fixture) }]);
     await expect(installBundle({
-      sku: 'mac', version: '9.9.9', userDataDir: u,
+      sku: 'mac-arm64', version: '9.9.9', userDataDir: u,
       fetchImpl: fetchFor(manifest, { [name]: fixture }),
       statfs: () => ({ bavail: 1, bsize: 4096 }),          // ~4 KB free
       env: {},
@@ -431,9 +521,9 @@ describe('installBundle v2 pipeline (spec S4-S9)', () => {
 
   it('removeBundle deletes the installed tree', async () => {
     const u = mkdtempSync(path.join(tmpdir(), 'sb-rm-'));
-    mkdirSync(path.join(u, 'sidecar', 'mac'), { recursive: true });
-    writeFileSync(path.join(u, 'sidecar', 'mac', 'bundle.json'), '{}');
-    removeBundle(u, 'mac');
-    expect(existsSync(path.join(u, 'sidecar', 'mac'))).toBe(false);
+    mkdirSync(path.join(u, 'sidecar', 'mac-arm64'), { recursive: true });
+    writeFileSync(path.join(u, 'sidecar', 'mac-arm64', 'bundle.json'), '{}');
+    removeBundle(u, 'mac-arm64');
+    expect(existsSync(path.join(u, 'sidecar', 'mac-arm64'))).toBe(false);
   });
 });

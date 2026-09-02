@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "推理引擎",
-    "detected": "偵測到:{{gpu}}",
     "package": "引擎套件:{{sku}} · {{size}}",
     "sizeUnknown": "離線,無法取得大小",
     "download": "下載引擎",
@@ -891,6 +890,7 @@
     "clipSilent": "未偵測到語音 — 請檢查麥克風後再試一次。",
     "clipTooLong": "錄音太長 — 請控制在 {seconds} 秒以內。",
     "clipTooShort": "錄音太短 — 請至少說滿 {seconds} 秒。",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "需要自訂語音嗎？",
     "decodeFailed": "無法讀取該音訊檔案 — 請改用 WAV、MP3 或其他常見格式。",
     "delete": "刪除",

@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Inferenz-Engine",
-    "detected": "Erkannt: {{gpu}}",
     "package": "Engine-Paket: {{sku}} · {{size}}",
     "sizeUnknown": "Größe offline nicht verfügbar",
     "download": "Engine herunterladen",
@@ -891,6 +890,7 @@
     "clipSilent": "Keine Stimme erkannt — prüfen Sie Ihr Mikrofon und versuchen Sie es erneut.",
     "clipTooLong": "Aufnahme ist zu lang — halten Sie sie unter {seconds} Sekunden.",
     "clipTooShort": "Aufnahme ist zu kurz — sprechen Sie mindestens {seconds} Sekunden.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Brauchen Sie eine eigene Stimme?",
     "decodeFailed": "Audiodatei konnte nicht gelesen werden — versuchen Sie WAV, MP3 oder ein anderes gängiges Format.",
     "delete": "Löschen",

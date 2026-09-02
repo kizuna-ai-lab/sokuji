@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Mesin Inferensi",
-    "detected": "Terdeteksi: {{gpu}}",
     "package": "Paket mesin: {{sku}} · {{size}}",
     "sizeUnknown": "ukuran tidak tersedia saat offline",
     "download": "Unduh mesin",
@@ -891,6 +890,7 @@
     "clipSilent": "Tidak ada suara terdeteksi — periksa mikrofon Anda dan coba lagi.",
     "clipTooLong": "Rekaman terlalu panjang — jaga di bawah {seconds} detik.",
     "clipTooShort": "Rekaman terlalu pendek — bicaralah setidaknya {seconds} detik.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Butuh suara kustom?",
     "decodeFailed": "Tidak dapat membaca file audio itu — coba WAV, MP3, atau format umum lainnya.",
     "delete": "Hapus",

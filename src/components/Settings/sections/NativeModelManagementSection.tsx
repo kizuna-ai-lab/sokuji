@@ -717,7 +717,6 @@ export const NativeModelManagementSection: React.FC<{
   const renderTtsBody = () => (capability.builtin !== 'none' || capability.custom !== 'none' ? (
     <NativeVoiceSection
       capability={capability}
-      numSpeakers={catalog[reserveTtsId || '']?.numSpeakers}
       builtinVoices={builtinVoices}
       store={store}
       selected={settings.ttsVoice}

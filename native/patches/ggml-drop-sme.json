@@ -1,0 +1,12 @@
+[
+  {
+    "file": "src/CMakeLists.txt",
+    "old": "ggml_add_cpu_backend_variant(armv9.2_1    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SME)",
+    "new": "# armv9.2_1 dropped by sokuji-native: compiler lacks +sme"
+  },
+  {
+    "file": "src/CMakeLists.txt",
+    "old": "ggml_add_cpu_backend_variant(armv9.2_2    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SVE2 SME)",
+    "new": "# armv9.2_2 dropped by sokuji-native: compiler lacks +sme"
+  }
+]

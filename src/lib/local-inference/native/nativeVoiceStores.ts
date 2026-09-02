@@ -1,10 +1,15 @@
 /**
- * NativeVoiceStore — uniform abstraction over the two native custom-voice
- * persistence backends so the voice UI can drive either one generically:
+ * NativeVoiceStore — uniform abstraction over the native custom-voice
+ * persistence backend so the voice UI can drive it generically:
  *   - 'clip'  (nativeVoiceStorage): user-recorded/imported reference audio,
  *     applied as a zero-shot voice-cloning prompt (e.g. MOSS-TTS-Nano).
- *   - 'style' (voiceStorage): imported Supertonic style cards (JSON blobs of
- *     precomputed style vectors), applied directly without cloning.
+ *
+ * The old 'style' backend (voiceStorage-imported Supertonic style cards,
+ * JSON blobs of precomputed style vectors) died with the ONNX Supertonic
+ * backend (Task 5's catalog rewire onto native_tts, which has no
+ * set_style_voice equivalent) and the renderer's setStyleVoice sender
+ * (Task 6). `voiceStorage.ts` itself is unaffected — the WASM/browser lane's
+ * own Supertonic implementation still uses it directly.
  *
  * `validateVoiceClip` / `downmixToMono` used to live in NativeVoiceSection.tsx;
  * they moved here so both the clip store and any future caller share one
@@ -16,27 +21,22 @@ import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import {
   listNativeVoices, addNativeVoice, renameNativeVoice, deleteNativeVoice, getNativeVoice,
 } from '../nativeVoiceStorage';
-import {
-  listVoices, addVoice, renameVoice, deleteVoice, getVoice,
-  type StoredVoice,
-} from '../voiceStorage';
 import type { VoiceCustom } from './nativeCatalog';
 
 export interface NativeCustomVoice {
   id: number;
   name: string;
-  /** Whether this voice carries a reference transcript. Only ever set by the
-   *  clip store (`true`/`false`); the style store leaves it undefined since
-   *  Supertonic style cards have no notion of a transcript. */
+  /** Whether this voice carries a reference transcript (the clip store's
+   *  clone-with-transcript models set it; clip-only models leave it false). */
   hasTranscript?: boolean;
 }
 
-export type VoiceApplyPayload =
-  | { kind: 'clip'; audio: Float32Array; sampleRate: number; transcript?: string }
-  | { kind: 'style'; styleTtl: { dims: number[]; data: number[] }; styleDp: { dims: number[]; data: number[] } };
+export interface VoiceApplyPayload {
+  kind: 'clip'; audio: Float32Array; sampleRate: number; transcript?: string;
+}
 
 export interface NativeVoiceStore {
-  kind: 'clip' | 'style';
+  kind: 'clip';
   capability: VoiceLibraryCapability;
   list(): Promise<NativeCustomVoice[]>;
   onImport(file: File, transcript?: string): Promise<void>;
@@ -210,77 +210,15 @@ class ClipVoiceStore implements NativeVoiceStore {
 }
 
 /* ------------------------------------------------------------------------ */
-/* Style store — wraps voiceStorage                                          */
-/* ------------------------------------------------------------------------ */
-
-class StyleVoiceStore implements NativeVoiceStore {
-  readonly kind = 'style' as const;
-  readonly capability: VoiceLibraryCapability = {
-    importModes: ['upload'],
-    curation: false,
-    presentation: 'dropdown',
-  };
-
-  constructor(private readonly modelId: string) {}
-
-  async list(): Promise<NativeCustomVoice[]> {
-    const voices = await listVoices(this.modelId as StoredVoice['engine']);
-    return voices.map((v) => ({ id: v.id, name: v.name }));
-  }
-
-  async onImport(file: File): Promise<void> {
-    const name = file.name.replace(/\.[^./\\]+$/, '') || 'Imported voice';
-    // addVoice throws voiceStorage.VoiceImportError on validation failure;
-    // let it propagate so the UI can surface it by `code`.
-    await addVoice(this.modelId as StoredVoice['engine'], name, file);
-  }
-
-  async rename(id: number, name: string): Promise<void> {
-    await renameVoice(id, name);
-  }
-
-  async delete(id: number): Promise<void> {
-    await deleteVoice(id);
-  }
-
-  async resolveApply(id: number): Promise<VoiceApplyPayload | null> {
-    const stored = await getVoice(id);
-    if (!stored) return null;
-    const text = await readBlobAsText(stored.jsonData);
-    const parsed = JSON.parse(text) as {
-      style_ttl: { dims: number[]; data: number[] };
-      style_dp: { dims: number[]; data: number[] };
-    };
-    return { kind: 'style', styleTtl: parsed.style_ttl, styleDp: parsed.style_dp };
-  }
-}
-
-/**
- * Read a Blob as text, compatible with both browser and jsdom environments.
- * jsdom's Blob may not implement `text()`; fall back to FileReader.
- */
-function readBlobAsText(blob: Blob): Promise<string> {
-  if (typeof blob.text === 'function') {
-    return blob.text();
-  }
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsText(blob);
-  });
-}
-
-/* ------------------------------------------------------------------------ */
 
 /** Returns the store matching a model's `custom` voice capability (from
- *  `nativeCatalog`), or `null` when the model has no custom-voice support. */
+ *  `nativeCatalog`), or `null` when the model has no custom-voice support
+ *  (including a stale/unrecognized value — the old 'style' capability died
+ *  server-side and has no store implementation left to construct). */
 export function voiceStoreFor(custom: VoiceCustom, modelId: string): NativeVoiceStore | null {
   switch (custom) {
     case 'clip':
       return new ClipVoiceStore(modelId);
-    case 'style':
-      return new StyleVoiceStore(modelId);
     case 'none':
     default:
       return null;

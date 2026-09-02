@@ -178,28 +178,28 @@ describe('resolveSidecarLaunch launch order', () => {
 
   it('uses the installed bundle python when present (linux)', () => {
     const l = resolveSidecarLaunch({
-      platform: 'linux', envOverride: undefined, bundleRoot: '/u/sidecar/nvidia',
+      platform: 'linux', envOverride: undefined, bundleRoot: '/u/sidecar/linux-x64',
       devVenvPython: devVenv, devCwd,
-      existsSync: (p) => p === '/u/sidecar/nvidia/python/bin/python3',
+      existsSync: (p) => p === '/u/sidecar/linux-x64/python/bin/python3',
     });
-    expect(l.python).toBe('/u/sidecar/nvidia/python/bin/python3');
-    expect(l.cwd).toBe('/u/sidecar/nvidia/app');
+    expect(l.python).toBe('/u/sidecar/linux-x64/python/bin/python3');
+    expect(l.cwd).toBe('/u/sidecar/linux-x64/app');
     expect(l.source).toBe('bundle');
   });
 
   it('windows bundle python is python/python.exe', () => {
     const l = resolveSidecarLaunch({
-      platform: 'win32', envOverride: undefined, bundleRoot: 'C:\\u\\sidecar\\directml',
+      platform: 'win32', envOverride: undefined, bundleRoot: 'C:\\u\\sidecar\\win-x64',
       devVenvPython: devVenv, devCwd, existsSync: () => true,
     });
-    expect(l.python).toBe(path.win32.join('C:\\u\\sidecar\\directml', 'python', 'python.exe'));
-    expect(l.cwd).toBe(path.win32.join('C:\\u\\sidecar\\directml', 'app'));
+    expect(l.python).toBe(path.win32.join('C:\\u\\sidecar\\win-x64', 'python', 'python.exe'));
+    expect(l.cwd).toBe(path.win32.join('C:\\u\\sidecar\\win-x64', 'app'));
     expect(l.source).toBe('bundle');
   });
 
   it('falls back to the dev venv when no bundle is installed', () => {
     const l = resolveSidecarLaunch({
-      platform: 'linux', envOverride: undefined, bundleRoot: '/u/sidecar/nvidia',
+      platform: 'linux', envOverride: undefined, bundleRoot: '/u/sidecar/linux-x64',
       devVenvPython: devVenv, devCwd, existsSync: () => false,
     });
     expect(l).toEqual({ python: devVenv, cwd: devCwd, source: 'venv' });
@@ -208,7 +208,7 @@ describe('resolveSidecarLaunch launch order', () => {
 
 describe('resolveSidecarLaunch strict version matching (spec S2)', () => {
   const base = {
-    platform: 'linux', envOverride: undefined, bundleRoot: '/u/sidecar/linux-nvidia',
+    platform: 'linux', envOverride: undefined, bundleRoot: '/u/sidecar/linux-x64',
     devVenvPython: '/repo/sidecar/.venv/bin/python', devCwd: '/repo/sidecar',
     existsSync: () => true,
   };

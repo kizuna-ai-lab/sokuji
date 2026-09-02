@@ -51,6 +51,72 @@ jobs:
           src/stores/sanitizeEvent.test.ts
           src/components/LogsPanel
 
+  # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
+  # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return
+  # zero hits. Path-gated on sidecar/** (and the one script that consumes its
+  # requirements.txt) so app-only PRs don't pay for it. Runs wheel-less
+  # (no sokuji-native installed, unlike the dev .venv setup.sh builds): the
+  # handful of tests that need the real native wheel skip via
+  # pytest.importorskip("sokuji_native") instead of failing — see
+  # sidecar/tests/test_accel.py and test_catalog.py.
+  sidecar-tests:
+    name: sidecar-tests
+    runs-on: ubuntu-24.04
+    # T3a: least-privilege override -- this job only checks out and runs
+    # pytest, never git/write operations, so it needs none of the top-level
+    # permissions block's write/write/write escalation.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          # Full history: the change-detection step below diffs against the
+          # base branch (PR) or previous commit (push), neither of which a
+          # shallow checkout can resolve.
+          fetch-depth: 0
+
+      - name: Check for sidecar changes
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE="origin/$PR_BASE_REF"
+          else
+            BASE="$PUSH_BEFORE_SHA"
+          fi
+          # No resolvable base (new branch's first push, force-push past
+          # history, or an event shape without one) — default to running
+          # rather than silently skipping.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
+             || ! git rev-parse --verify -q "$BASE" >/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$BASE" HEAD | grep -qE '^(sidecar/|scripts/build-sidecar-bundle\.py|\.github/workflows/sidecar-bundles\.yml)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Python
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/setup-python@v6
+        with: { python-version: '3.12' }
+
+      - name: Install sidecar dependencies
+        if: steps.changes.outputs.changed == 'true'
+        run: pip install -r sidecar/requirements.txt pytest scipy
+
+      - name: Run sidecar tests
+        if: steps.changes.outputs.changed == 'true'
+        # sokuji_sidecar is not installed as a package; every local invocation runs with
+        # PYTHONPATH=sidecar and CI must too, or collection fails on the first import.
+        env:
+          PYTHONPATH: ${{ github.workspace }}/sidecar
+        run: python -m pytest sidecar/tests -q
+
   build:
     name: build (${{ matrix.name }})
     strategy:

@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Moteur d'inférence",
-    "detected": "Détecté : {{gpu}}",
     "package": "Paquet du moteur : {{sku}} · {{size}}",
     "sizeUnknown": "taille indisponible hors ligne",
     "download": "Télécharger le moteur",
@@ -891,6 +890,7 @@
     "clipSilent": "Aucune voix détectée — vérifiez votre microphone et réessayez.",
     "clipTooLong": "L'enregistrement est trop long — restez sous {seconds} secondes.",
     "clipTooShort": "L'enregistrement est trop court — parlez pendant au moins {seconds} secondes.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Besoin d'une voix personnalisée ?",
     "decodeFailed": "Impossible de lire ce fichier audio — essayez un WAV, un MP3 ou un autre format courant.",
     "delete": "Supprimer",

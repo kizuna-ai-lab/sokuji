@@ -136,3 +136,12 @@ resources/bin/win32-x64/sokuji-audio-host.exe
 resources/bin/darwin-arm64/sokuji-audio-host
 resources/bin/darwin-x64/sokuji-audio-host
 native/audio-host/*/out/
+
+# native super-project build outputs
+native/build/
+native/python/sokuji_native/_native/
+native/python/dist/
+native/python/build/
+# A stray copy of native/README.md that older build scripts made; never tracked again.
+native/python/README.md
+native/python/*.egg-info/

@@ -32,7 +32,6 @@ export const NativeTtsProto: React.FC<{ onClose: () => void }> = ({ onClose }) =
     aclient.current = new NativeAsrClient();
     aclient.current.onStatus = push;
     aclient.current.onError = (e) => push('ERROR: ' + e);
-    aclient.current.onSpeechStart = () => push('· speech_start');
     aclient.current.onResult = (r) => push(`asr: "${r.text}" (${r.recognitionTimeMs}ms)`);
     const stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 24000 } });
     const ac = new AudioContext({ sampleRate: 24000 });

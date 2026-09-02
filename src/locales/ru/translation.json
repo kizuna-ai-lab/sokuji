@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Движок вывода",
-    "detected": "Обнаружено: {{gpu}}",
     "package": "Пакет движка: {{sku}} · {{size}}",
     "sizeUnknown": "размер недоступен офлайн",
     "download": "Скачать движок",
@@ -891,6 +890,7 @@
     "clipSilent": "Голос не обнаружен — проверьте микрофон и попробуйте снова.",
     "clipTooLong": "Запись слишком длинная — не более {seconds} секунд.",
     "clipTooShort": "Запись слишком короткая — говорите не менее {seconds} секунд.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Нужен свой голос?",
     "decodeFailed": "Не удалось прочитать этот аудиофайл — попробуйте WAV, MP3 или другой распространённый формат.",
     "delete": "Удалить",

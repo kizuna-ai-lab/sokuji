@@ -22,7 +22,7 @@ def test_download_specs_mapping(monkeypatch):
     assert nm.download_specs('csukuangfj/vits-piper-en_US-amy-low')['repos'] == ['csukuangfj/vits-piper-en_US-amy-low']
     sv = nm.download_specs('sense-voice')
     assert sv['files'] == [('handy-computer/SenseVoiceSmall-gguf', 'SenseVoiceSmall-Q8_0.gguf')]
-    assert sv['urls'] == [nm.VAD_URL]
+    assert sv['urls'] == []
     # Speech-LLM ids map to their handy-computer GGUF (one pinned file each).
     assert nm.download_specs('granite-speech-4.1-2b')['files'] == \
         [('handy-computer/granite-speech-4.1-2b-gguf', 'granite-speech-4.1-2b-Q4_K_M.gguf')]
@@ -31,40 +31,30 @@ def test_download_specs_mapping(monkeypatch):
 
 
 def test_download_specs_cohere():
-    # One pinned GGUF (the repo ships 6 quants). ASR model -> shared VAD appended.
-    import sokuji_sidecar.native_models as nm
+    # One pinned GGUF (the repo ships 6 quants); no separate urls asset.
     spec = native_models.download_specs("cohere-transcribe-03-2026")
-    assert spec["repos"] == [] and spec["urls"] == [nm.VAD_URL]
+    assert spec["repos"] == [] and spec["urls"] == []
     assert spec["files"] == [("handy-computer/cohere-transcribe-03-2026-gguf",
                               "cohere-transcribe-03-2026-Q4_K_M.gguf")]
 
 
-def test_download_specs_appends_shared_vad_for_asr_models():
-    """The silero VAD is a shared dependency of EVERY ASR model (AsrEngine._init_vad
-    loads it for offline + streaming). download_specs must append it for any ASR
-    model, not just SenseVoice; non-ASR ids (translation/TTS) must NOT get it."""
+def test_download_specs_returns_no_urls_for_any_model():
+    """silero now ships inside the sokuji_native wheel (not a downloadable file), so
+    download_specs must never populate `urls` for ASR ids or anything else — this
+    pins that invariant for both. (Formerly asserted ASR ids got a shared VAD url
+    appended; that mechanism is gone — see native_models.py module history.)"""
     for asr_id in ('sense-voice', 'fun-asr-mlt-nano', 'whisper-base', 'qwen3-asr-1.7b',
                    'voxtral-mini-4b-realtime', 'granite-speech-4.1-2b'):
-        assert nm.download_specs(asr_id)['urls'] == [nm.VAD_URL], asr_id
+        assert nm.download_specs(asr_id)['urls'] == [], asr_id
     for non_asr in ('', 'qwen', 'translategemma-4b', 'csukuangfj/vits-piper-en_US-amy-low'):
         assert nm.download_specs(non_asr)['urls'] == [], non_asr
     # single-GGUF specs never need an ignore list
     assert 'ignore' not in nm.download_specs('voxtral-mini-4b-realtime')
 
 
-def test_delete_model_keeps_shared_vad(monkeypatch, tmp_path):
-    """Deleting an ASR model must NOT remove the shared silero VAD — another
-    installed ASR model still depends on it."""
-    vad = tmp_path / 'silero_vad.onnx'
-    vad.write_bytes(b'x' * 16)
-
-    def _no_cache():
-        raise RuntimeError('no HF cache in this env')
-
-    monkeypatch.setattr(nm, '_vad_cache_path', lambda: str(vad))
-    monkeypatch.setattr('huggingface_hub.scan_cache_dir', _no_cache)
-    nm.delete_model('fun-asr-mlt-nano')
-    assert vad.exists()  # VAD survives the delete
+# test_delete_model_keeps_shared_vad was removed here: its premise (silero is a
+# shared downloadable file that delete_model must not strand other models
+# without) is gone now that silero ships inside the sokuji_native wheel.
 
 
 def test_download_specs_qwen25_ignores_stale_translate_model_env(monkeypatch):
@@ -147,6 +137,431 @@ def test_delete_model_honors_variant_repo(monkeypatch):
     monkeypatch.setattr("huggingface_hub.scan_cache_dir", lambda: (_ for _ in ()).throw(RuntimeError("no cache")))
     nm.delete_model("hy-mt2-7b", repo="tencent/Hy-MT2-7B-FP8")
     assert seen["repo"] == "tencent/Hy-MT2-7B-FP8"   # the variant repo, not the bf16 default
+
+
+class _StubRevision:
+    def __init__(self, files, commit_hash="rev1"):
+        self.files = files
+        self.commit_hash = commit_hash
+
+
+class _StubRepo:
+    def __init__(self, repo_id, revisions, repo_type="model", size_on_disk=0):
+        self.repo_id = repo_id
+        self.repo_type = repo_type
+        self.revisions = revisions
+        self.size_on_disk = size_on_disk
+
+
+def _real_hf_cache_repo(tmp_path, repo_id, commit_hash="rev1"):
+    """Build a REAL on-disk HF cache layout for one repo — blobs/ +
+    snapshots/<rev>/ + refs/main — and return (blobs_dir, snapshot_dir) so a
+    test can add files with plain Path/symlink calls. `tmp_path` itself is
+    the cache ROOT (multiple repos can share it); point
+    huggingface_hub.utils._cache_manager.HF_HUB_CACHE at `tmp_path` to make
+    the PUBLIC, un-mocked `scan_cache_dir()` (called with no args by
+    delete_model) scan this fixture — the only way to exercise the real
+    `CachedFileInfo`/`CachedRevisionInfo` shapes `_delete_shared_repo_files`
+    actually receives in production (fix round 2: a hand-built stub cannot
+    catch a bug in what shape those objects really have — see
+    test_delete_model_shared_repo_removes_only_this_cards_files)."""
+    repo_dir = tmp_path / f"models--{repo_id.replace('/', '--')}"
+    blobs_dir = repo_dir / "blobs"
+    snap_dir = repo_dir / "snapshots" / commit_hash
+    refs_dir = repo_dir / "refs"
+    blobs_dir.mkdir(parents=True)
+    snap_dir.mkdir(parents=True)
+    refs_dir.mkdir(parents=True)
+    (refs_dir / "main").write_text(commit_hash)
+    return blobs_dir, snap_dir
+
+
+def test_delete_model_shared_repo_removes_only_this_cards_files(monkeypatch, tmp_path):
+    """Regression (fix round 2 — re-reviewer verified via the library source
+    AND a live repro): `CachedFileInfo.file_name` is the BASENAME only
+    (huggingface_hub's own `_scan_cached_repo` sets it to `file_path.name`),
+    never the dir-prefixed relative path (e.g. "MOSS-TTS-Nano-100M-GGUF/
+    moss-tts-nano-100m-q8_0.gguf") our `wanted` set holds — fix round 1's
+    file_name-based matching was therefore ALWAYS empty in production,
+    making delete_model() on every TTS card a silent no-op (freed=0, nothing
+    removed; reviewer's original probe — deleting pocket-tts-de freed 5GB of
+    OTHER cards' files — was actually a symptom of the round-0 bug never
+    even engaging the fix). Round 1's regression test only passed because
+    its hand-built `_StubFile` fabricated `file_name` as the full relative
+    path, a cache shape that does not exist in the real library.
+
+    This test instead builds a REAL on-disk HF cache (blobs/ + snapshots/
+    <rev>/<dir>/<file> symlinks + refs/main) for 3 TTS cards sharing one
+    repo, points `HF_HUB_CACHE` at it, and drives the PUBLIC, un-mocked
+    `huggingface_hub.scan_cache_dir()` through `delete_model()` — the only
+    way to actually catch what `CachedFileInfo.file_name` contains."""
+    from sokuji_sidecar import native_models as nm
+
+    moss_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    super_fname = "Supertonic-3-GGUF/supertonic-3-f16.gguf"
+    qwen_fname = "Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf"
+
+    blobs_dir, snap_dir = _real_hf_cache_repo(tmp_path, "audio-cpp/audio.cpp-gguf")
+
+    def _add(rel_path, blob_name, size):
+        blob = blobs_dir / blob_name
+        blob.write_bytes(b"x" * size)
+        link = snap_dir / rel_path
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(blob)
+        return link, blob
+
+    moss_link, moss_blob = _add(moss_fname, "blob-moss", 111)
+    super_link, super_blob = _add(super_fname, "blob-super", 222)
+    qwen_link, qwen_blob = _add(qwen_fname, "blob-qwen", 333)
+
+    monkeypatch.setattr("huggingface_hub.utils._cache_manager.HF_HUB_CACHE", str(tmp_path))
+
+    freed = nm.delete_model("moss-tts-nano")
+
+    assert freed == 111
+    assert not moss_link.exists() and not moss_blob.exists()
+    assert super_link.exists() and super_blob.exists()
+    assert qwen_link.exists() and qwen_blob.exists()
+
+
+def test_delete_model_shared_repo_keeps_a_blob_still_referenced_elsewhere(monkeypatch, tmp_path):
+    """Edge case (fix round 2): two cards' files symlinked to the SAME blob
+    (HF's cache is content-addressed — this only happens for byte-identical
+    content, never true for distinct per-card GGUFs in practice, but the
+    kept-blob refcount guard must still hold). Deleting one card removes
+    only its own symlink; the shared blob survives because the other card's
+    file still points at it, and freed bytes must NOT count it."""
+    from sokuji_sidecar import native_models as nm
+
+    moss_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    super_fname = "Supertonic-3-GGUF/supertonic-3-f16.gguf"
+
+    blobs_dir, snap_dir = _real_hf_cache_repo(tmp_path, "audio-cpp/audio.cpp-gguf")
+    shared_blob = blobs_dir / "blob-shared"
+    shared_blob.write_bytes(b"x" * 555)
+
+    moss_link = snap_dir / moss_fname
+    moss_link.parent.mkdir(parents=True, exist_ok=True)
+    moss_link.symlink_to(shared_blob)
+
+    super_link = snap_dir / super_fname
+    super_link.parent.mkdir(parents=True, exist_ok=True)
+    super_link.symlink_to(shared_blob)
+
+    monkeypatch.setattr("huggingface_hub.utils._cache_manager.HF_HUB_CACHE", str(tmp_path))
+
+    freed = nm.delete_model("moss-tts-nano")
+
+    assert freed == 0                # the blob is still referenced by supertonic-3's file
+    assert not moss_link.exists()    # moss's own symlink IS removed
+    assert super_link.exists()       # supertonic's symlink survives
+    assert shared_blob.exists()      # ... and so does the shared blob
+
+
+# ── Round 2 (2026-09-01): R18 -- delete must also free hard-link-staged files ────
+
+def test_delete_model_shared_repo_also_removes_staged_hardlinks(monkeypatch, tmp_path):
+    """Ruling R18 disk-reclamation coupling: tts_backend.py's load() hard-links a
+    card's gguf into sokuji-tts-staging/<repo>__<rev>/<rel_path> (a SECOND directory
+    entry for the SAME inode as the HF-cache blob) so audio.cpp's canonicalizing
+    loader can read a real, extension-bearing path. Removing only the HF-cache-side
+    blob (as _delete_shared_repo_files already does) leaves that inode's disk blocks
+    alive as long as the staged link survives -- 'delete' would free zero bytes on
+    disk even though this function reports `freed` bytes. Builds a REAL blob with
+    TWO hard links (the HF blob-store copy, and a staged copy exactly mirroring what
+    load() would have created) for TWO different cards sharing one repo, and asserts
+    deleting one card removes BOTH of ITS OWN directory entries (blob gone, staged
+    link gone, now-empty staged directory pruned) while the OTHER card's staged
+    entry is untouched."""
+    from sokuji_sidecar import native_models as nm
+
+    moss_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    super_fname = "Supertonic-3-GGUF/supertonic-3-f16.gguf"
+
+    blobs_dir, snap_dir = _real_hf_cache_repo(tmp_path, "audio-cpp/audio.cpp-gguf")
+
+    def _add(rel_path, blob_name, size):
+        blob = blobs_dir / blob_name
+        blob.write_bytes(b"x" * size)
+        link = snap_dir / rel_path
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(blob)
+        return link, blob
+
+    moss_link, moss_blob = _add(moss_fname, "blob-moss", 111)
+    super_link, super_blob = _add(super_fname, "blob-super", 222)
+
+    staging_root = tmp_path / "sokuji-tts-staging" / "audio-cpp--audio.cpp-gguf__rev1"
+    staged_moss = staging_root / moss_fname
+    staged_super = staging_root / super_fname
+    staged_moss.parent.mkdir(parents=True)
+    staged_super.parent.mkdir(parents=True, exist_ok=True)
+    os.link(moss_blob, staged_moss)
+    os.link(super_blob, staged_super)
+    assert moss_blob.stat().st_nlink == 2   # sanity: blob-store copy + staged copy
+    assert super_blob.stat().st_nlink == 2
+
+    monkeypatch.setattr("huggingface_hub.utils._cache_manager.HF_HUB_CACHE", str(tmp_path))
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    freed = nm.delete_model("moss-tts-nano")
+
+    assert freed == 111
+    assert not moss_link.exists() and not moss_blob.exists()
+    assert not staged_moss.exists()        # R18: moss's staged hard link is also gone
+    assert super_link.exists() and super_blob.exists()
+    assert staged_super.exists()           # supertonic's staged link is untouched
+    assert staging_root.exists()           # not pruned -- supertonic's subtree still lives there
+
+
+# ── M4: repo=None must delete EVERY cached rung, not just the default one ───────
+
+def test_m4_delete_model_repo_none_deletes_every_cached_rung(monkeypatch, tmp_path):
+    """M4: delete_model(model_id, repo=None) must delete EVERY cached quant rung
+    of the model, not just the default-resolved one (download_specs()'s single-
+    rung shape, right for status/download, is wrong here) -- a user who
+    downloaded a non-default rung (e.g. bf16) and then deletes via the
+    default-repo path (repo=None, e.g. after the renderer's variant selector
+    reverted to 'default') must not be left with an orphaned cached rung that
+    keeps model_status() reporting 'ready' forever (_ladder_artifacts' any-
+    rung-cached relaxation treats ANY cached quant as sufficient)."""
+    from sokuji_sidecar import native_models as nm
+
+    q8_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    bf16_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf"
+    blobs_dir, snap_dir = _real_hf_cache_repo(tmp_path, "audio-cpp/audio.cpp-gguf")
+
+    def _add(rel_path, blob_name, size):
+        blob = blobs_dir / blob_name
+        blob.write_bytes(b"x" * size)
+        link = snap_dir / rel_path
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(blob)
+        return link, blob
+
+    q8_link, q8_blob = _add(q8_fname, "blob-q8", 111)
+    bf16_link, bf16_blob = _add(bf16_fname, "blob-bf16", 222)
+
+    monkeypatch.setattr("huggingface_hub.utils._cache_manager.HF_HUB_CACHE", str(tmp_path))
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    assert nm.model_status("moss-tts-nano") == "ready"   # any rung cached counts
+
+    freed = nm.delete_model("moss-tts-nano")   # repo=None: whole-model delete
+
+    assert freed == 111 + 222
+    assert not q8_link.exists() and not q8_blob.exists()
+    assert not bf16_link.exists() and not bf16_blob.exists()
+    assert nm.model_status("moss-tts-nano") == "absent"
+
+
+def test_m4_delete_model_with_explicit_repo_still_deletes_only_that_rung(monkeypatch, tmp_path):
+    """The M4 whole-model expansion is gated on `repo is None` -- when the wire
+    message DOES carry a chosen variant's repo (today's single-rung behavior),
+    only that rung is touched and every OTHER cached rung survives."""
+    from sokuji_sidecar import native_models as nm
+    from sokuji_sidecar import catalog
+
+    q8_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    bf16_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf"
+    blobs_dir, snap_dir = _real_hf_cache_repo(tmp_path, "audio-cpp/audio.cpp-gguf")
+
+    def _add(rel_path, blob_name, size):
+        blob = blobs_dir / blob_name
+        blob.write_bytes(b"x" * size)
+        link = snap_dir / rel_path
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(blob)
+        return link, blob
+
+    q8_link, q8_blob = _add(q8_fname, "blob-q8", 111)
+    bf16_link, bf16_blob = _add(bf16_fname, "blob-bf16", 222)
+
+    monkeypatch.setattr("huggingface_hub.utils._cache_manager.HF_HUB_CACHE", str(tmp_path))
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    # Index into deployments by compute_type, not a fixed position: task 8
+    # restored a gpu-vulkan tier for moss-tts-nano, so each quant now has TWO
+    # deployment rows (gpu-vulkan + cpu) instead of one, and deployments[1] is
+    # no longer necessarily bf16.
+    bf16_artifact = next(d.artifact for d in catalog.tts_model("moss-tts-nano").deployments
+                         if d.compute_type == "bf16")
+    assert "bf16" in bf16_artifact
+    freed = nm.delete_model("moss-tts-nano", repo=bf16_artifact)
+
+    assert freed == 222
+    assert not bf16_link.exists() and not bf16_blob.exists()
+    assert q8_link.exists() and q8_blob.exists()   # the OTHER rung is untouched
+
+
+# ── F4: staged-tree pruning must not depend on a successful cache scan ──────────
+
+def test_f4_delete_model_prunes_staged_tree_when_cache_scan_fails(monkeypatch, tmp_path):
+    """F4: delete_model's `except Exception: cache = None` -> `return 0` early
+    return used to skip staged-tree pruning entirely -- a transient (or out-of-
+    band-cache-wipe-triggered) scan_cache_dir() failure would leave a TTS
+    card's staged hard link (and the disk blocks it keeps alive) behind
+    forever, with no other path left to reach it once the HF-cache-side file
+    it mirrors is gone. The staged tree lives OUTSIDE scan_cache_dir()'s view
+    (a sibling of models--org--repo/ under the same cache root, R18), so
+    pruning it needs no cache scan at all."""
+    from sokuji_sidecar import native_models as nm
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    q8_fname = "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    staging_root = tmp_path / "sokuji-tts-staging" / "audio-cpp--audio.cpp-gguf__rev1"
+    staged = staging_root / q8_fname
+    staged.parent.mkdir(parents=True)
+    staged.write_bytes(b"x" * 111)
+
+    monkeypatch.setattr("huggingface_hub.scan_cache_dir",
+                        lambda: (_ for _ in ()).throw(RuntimeError("cache scan failed")))
+
+    freed = nm.delete_model("moss-tts-nano")
+
+    assert freed == 0
+    assert not staged.exists()
+    assert not staging_root.exists()   # now-empty staged dir pruned too
+
+
+def test_f4_delete_model_prunes_whole_repo_staging_when_cache_scan_fails(monkeypatch, tmp_path):
+    """F4's twin for the whole-revision (solo-owner-repo) delete path: a repo
+    used by exactly one catalog card also has its staged tree pruned via
+    _prune_staged_repo even when scan_cache_dir() fails."""
+    from sokuji_sidecar import native_models as nm
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    staging_root = tmp_path / "sokuji-tts-staging" / "handy-computer--whisper-base-gguf__rev1"
+    staged = staging_root / "whisper-base-Q8_0.gguf"
+    staged.parent.mkdir(parents=True)
+    staged.write_bytes(b"x")
+
+    monkeypatch.setattr("huggingface_hub.scan_cache_dir",
+                        lambda: (_ for _ in ()).throw(RuntimeError("cache scan failed")))
+
+    freed = nm.delete_model("whisper-base")
+
+    assert freed == 0
+    assert not staged.exists()
+    assert not staging_root.exists()
+
+
+def test_prune_staged_repo_removes_every_revision_for_that_repo_only(monkeypatch, tmp_path):
+    """Direct unit test of _prune_staged_repo() (the whole-repo delete path's
+    staging counterpart): removes every staged revision directory for the given
+    repo, regardless of revision hash, while leaving a DIFFERENT repo's staged
+    files alone."""
+    from sokuji_sidecar import native_models as nm
+    import huggingface_hub.constants as hfc
+    monkeypatch.setattr(hfc, "HF_HUB_CACHE", str(tmp_path))
+
+    root = tmp_path / "sokuji-tts-staging"
+    a_rev1 = root / "acme--repo-a__rev1" / "model.gguf"
+    a_rev2 = root / "acme--repo-a__rev2" / "model.gguf"
+    b_rev1 = root / "acme--repo-b__rev1" / "model.gguf"
+    for p in (a_rev1, a_rev2, b_rev1):
+        p.parent.mkdir(parents=True)
+        p.write_bytes(b"x")
+
+    nm._prune_staged_repo("acme/repo-a")
+
+    assert not a_rev1.exists() and not a_rev1.parent.exists()
+    assert not a_rev2.exists() and not a_rev2.parent.exists()
+    assert b_rev1.exists()   # a different repo's staged files are untouched
+
+
+def test_delete_model_whole_repo_path_also_prunes_staging(monkeypatch):
+    """Ruling R18 point 2: the whole-repo delete branch also calls
+    _prune_staged_repo for every repo it deletes -- exercised via a spy since no
+    ASR/translate card actually has staged files today (only TTS cards ever stage
+    anything), so this proves the CALL happens rather than re-deriving a full
+    on-disk staging scenario the file-level test above already covers."""
+    from sokuji_sidecar import native_models as nm
+
+    repo_info = _StubRepo("handy-computer/whisper-base-gguf",
+                          [_StubRevision([], commit_hash="rev1")], size_on_disk=12345)
+
+    class _StubCache:
+        repos = [repo_info]
+
+        def delete_revisions(self, *hashes):
+            class _Bundle:
+                def execute(self_inner):
+                    pass
+            return _Bundle()
+
+    monkeypatch.setattr("huggingface_hub.scan_cache_dir", lambda: _StubCache())
+    pruned = []
+    monkeypatch.setattr(nm, "_prune_staged_repo", lambda r: pruned.append(r))
+
+    nm.delete_model("whisper-base")
+
+    assert pruned == ["handy-computer/whisper-base-gguf"]
+
+
+def test_model_status_unaffected_by_staging_dir_presence(monkeypatch, tmp_path):
+    """Ruling R18 point 4: model_status() must not be confused by the hard-link
+    staging tree's mere existence -- it only ever checks the real HF-cache
+    models--org--repo layout (hf_hub_download, local_files_only=True), never
+    sokuji-tts-staging/."""
+    import huggingface_hub
+    from sokuji_sidecar.catalog import TTS_STAGING_DIRNAME
+
+    cached = {"moss-tts-nano-100m-q8_0.gguf"}
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname.rsplit("/", 1)[-1] in cached:
+            return str(tmp_path / fname.rsplit("/", 1)[-1])
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+    monkeypatch.setattr(huggingface_hub.constants, "HF_HUB_CACHE", str(tmp_path))
+
+    assert native_models.model_status("moss-tts-nano") == "ready"
+
+    # A staging tree now sits alongside the (mocked) cache -- the result must be
+    # unchanged, since model_status() never reads sokuji-tts-staging/ at all.
+    staging = tmp_path / TTS_STAGING_DIRNAME / "audio-cpp--audio.cpp-gguf__rev1"
+    (staging / "MOSS-TTS-Nano-100M-GGUF").mkdir(parents=True)
+    (staging / "MOSS-TTS-Nano-100M-GGUF" / "moss-tts-nano-100m-q8_0.gguf").write_bytes(b"x")
+
+    assert native_models.model_status("moss-tts-nano") == "ready"
+
+
+def test_delete_model_asr_single_card_repo_still_deletes_whole_revision(monkeypatch):
+    """A repo used by exactly one card (every ASR/translate card today, and
+    the pre-slice-4 TTS shape) keeps the old whole-revision delete — CQ-1's
+    file-level path only applies to a repo _repo_owner_cards says is shared
+    by more than one card. This path never depended on the file_name-vs-
+    relative-path shape (round 2's fix), so a stub is fine here."""
+    from sokuji_sidecar import native_models as nm
+
+    repo_info = _StubRepo("handy-computer/whisper-base-gguf",
+                          [_StubRevision([], commit_hash="rev1")], size_on_disk=12345)
+
+    executed = []
+
+    class _StubCache:
+        repos = [repo_info]
+
+        def delete_revisions(self, *hashes):
+            assert hashes == ("rev1",)
+            class _Bundle:
+                def execute(self_inner):
+                    executed.append(True)
+            return _Bundle()
+
+    monkeypatch.setattr("huggingface_hub.scan_cache_dir", lambda: _StubCache())
+
+    freed = nm.delete_model("whisper-base")
+
+    assert freed == 12345
+    assert executed == [True]
 
 
 def test_h_model_delete_forwards_repo(monkeypatch):
@@ -252,7 +667,7 @@ def test_download_specs_voxtral_single_gguf():
     spec = nm.download_specs("voxtral-mini-4b-realtime")
     assert spec["files"] == [("handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf",
                               "Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf")]
-    assert spec["urls"] == [nm.VAD_URL]  # ASR model → shared VAD appended
+    assert spec["urls"] == []  # no separate download — silero ships inside sokuji_native
 
 
 def test_existing_specs_have_no_ignore_key():
@@ -308,7 +723,6 @@ def test_download_glob_excludes_nested_dirs(monkeypatch):
     """A directory glob (train/*) keeps nested training files out of the fetch —
     the exact-match filter this replaced would have downloaded them."""
     import huggingface_hub
-    from sokuji_sidecar import llama_runtime as rt
     fetched = []
 
     class _Api:
@@ -321,10 +735,6 @@ def test_download_glob_excludes_nested_dirs(monkeypatch):
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
     monkeypatch.setattr(huggingface_hub, "hf_hub_download",
                         lambda repo, fname: fetched.append(fname))
-    # hy-mt2-1.8b is a llamacpp card — pretend every required flavor is already
-    # installed so this file-glob test doesn't also exercise (or, worse,
-    # actually hit the network for) the llama-binary install path.
-    monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")
 
     async def send(_m):
         pass
@@ -363,9 +773,8 @@ def test_download_specs_fun_asr_mlt_nano():
     spec = nm.download_specs('fun-asr-mlt-nano')
     assert spec['files'] == [('handy-computer/Fun-ASR-MLT-Nano-2512-gguf',
                               'Fun-ASR-MLT-Nano-2512-Q6_K.gguf')]
-    # AsrEngine._init_vad() loads silero for the offline path too, so a Nano-only
-    # offline install must pre-fetch the shared VAD (not rely on a session-time download).
-    assert spec['urls'] == [nm.VAD_URL]
+    # VAD runs in the renderer (spec Amendment A1) — no VAD artifact anywhere in the sidecar.
+    assert spec['urls'] == []
 def _file_spec(mid, quant):
     """Helper: the expected files-shaped download_specs entry for an LLM translate card."""
     from sokuji_sidecar import catalog
@@ -414,7 +823,6 @@ def test_download_fetches_chosen_variant_repo(monkeypatch):
     """download(model, send, repo=...) must fetch files from the CHOSEN variant repo,
     not the model's default — the end-to-end wiring that makes the FP8 quant load."""
     import huggingface_hub
-    from sokuji_sidecar import llama_runtime as rt
     fetched = []
 
     class _Api:
@@ -424,9 +832,6 @@ def test_download_fetches_chosen_variant_repo(monkeypatch):
     monkeypatch.setattr(huggingface_hub, "HfApi", _Api)
     monkeypatch.setattr(huggingface_hub, "hf_hub_download",
                         lambda repo, fname: fetched.append((repo, fname)))
-    # hy-mt2-7b is a llamacpp card — pretend every required flavor is already
-    # installed (see test_download_glob_excludes_nested_dirs for why).
-    monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")
 
     async def send(_m):
         pass
@@ -463,27 +868,6 @@ def test_h_model_download_passes_repo_through(monkeypatch):
 
     asyncio.run(scenario())
     assert captured["repo"] == "tencent/Hy-MT2-7B-FP8"
-
-
-def test_download_specs_opus_maps_to_mirrored_repo():
-    from sokuji_sidecar import native_models as nm
-    from sokuji_sidecar import catalog
-    # Opus-MT now resolves directly to our self-hosted CT2 repo, pinned to
-    # the 5 files the ct2_opus_translate backend needs (OPUS_FILES).
-    zh_en = {"repos": [], "urls": [],
-             "files": [("jiangzhuo9357/opus-mt-zh-en-ct2", f) for f in nm.OPUS_FILES]}
-    en_jap = {"repos": [], "urls": [],
-              "files": [("jiangzhuo9357/opus-mt-en-jap-ct2", f) for f in nm.OPUS_FILES]}
-    assert nm.download_specs("opus-mt-zh-en") == zh_en
-    assert nm.download_specs("opus-mt-en-jap") == en_jap
-    assert "ignore" not in nm.download_specs("opus-mt-zh-en")
-
-
-def test_opus_files_are_the_ct2_set():
-    from sokuji_sidecar import native_models
-    assert native_models.OPUS_FILES == [
-        "config.json", "model.bin", "shared_vocabulary.json",
-        "source.spm", "target.spm"]
 
 
 def test_download_specs_hymt15():
@@ -526,46 +910,57 @@ def test_h_model_status_applies_repos_map(monkeypatch):
     assert reply["statuses"] == {"hy-mt2-1.8b": "ready", "sense-voice": "ready"}
 
 
-def test_download_specs_for_tts_moss_nano_has_two_repos_no_vad(monkeypatch):
+def test_download_specs_for_tts_moss_nano_is_single_file_no_extras(monkeypatch):
+    # TTS artifacts are single-file audio.cpp GGUFs (exactly ASR/translate's
+    # shape, slice 4): {"repos": [], "urls": [], "files": [(repo, fname)]} —
+    # no whole-repo download, no ONNX/audio-tokenizer sibling repo, no VAD url.
     from sokuji_sidecar import native_models, accel
     monkeypatch.setattr(accel, "current_platform", lambda: "linux")  # deterministic on any host
     spec = native_models.download_specs("moss-tts-nano")
-    assert len(spec["repos"]) == 2
-    assert any("MOSS-TTS-Nano-100M-ONNX" in r for r in spec["repos"])
-    assert any("MOSS-Audio-Tokenizer-Nano-ONNX" in r for r in spec["repos"])
-    assert spec["urls"] == []          # TTS gets no silero VAD
+    assert spec["repos"] == [] and spec["urls"] == []
+    assert spec["files"] == [
+        ("audio-cpp/audio.cpp-gguf", "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf")]
 
 
-def test_download_specs_for_tts_sherpa_single_repo():
+def test_download_specs_for_tts_pocket_en_includes_the_embeddings_sidecar():
+    # pocket-tts-en is the one TTS card with a real sidecar asset
+    # (extra_files): the download spec must list BOTH the gguf and the
+    # embeddings/alba.safetensors preset next to it, same repo.
     from sokuji_sidecar import native_models
-    spec = native_models.download_specs("piper-en-amy")
-    assert spec["repos"] == ["csukuangfj/vits-piper-en_US-amy-low"]
-    assert spec["urls"] == []
+    spec = native_models.download_specs("pocket-tts-en")
+    assert spec["files"] == [
+        ("audio-cpp/audio.cpp-gguf", "PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf"),
+        ("audio-cpp/audio.cpp-gguf", "PocketTTS-GGUF/english/embeddings/alba.safetensors"),
+    ]
 
 
-def test_supertonic_download_ignores_samples_and_images():
-    # The Supertonic HF repo ships ~14MB of audio_samples/*.wav + img/*.png
-    # the runtime never loads — download_specs must skip them.
-    spec = native_models.download_specs("supertonic-3")
-    assert "Supertone/supertonic-3" in spec["repos"]
-    assert "audio_samples/*" in spec.get("ignore", []) and "img/*" in spec.get("ignore", [])
+def test_download_specs_for_tts_pocket_de_has_no_sidecar():
+    # german/italian/portuguese/spanish are clone-only by design (R9) — no
+    # extra_files, so no embeddings entry in the download spec.
+    from sokuji_sidecar import native_models
+    spec = native_models.download_specs("pocket-tts-de")
+    assert spec["files"] == [
+        ("audio-cpp/audio.cpp-gguf", "PocketTTS-GGUF/german/pocket-tts-german-q8_0.gguf")]
 
 
-def test_base_specs_ignore_is_read_from_the_card():
-    # _base_specs derives spec["ignore"] from the TtsModel card's download_ignore
-    # field (populated in catalog.py), not from model-id string branches. Assert
-    # the exact list value + order for both cards that carry ignore patterns.
-    assert native_models._base_specs("supertonic-3")["ignore"] == [
-        "audio_samples/*", "img/*"]
-    assert native_models._base_specs("csukuangfj/vits-zh-aishell3")["ignore"] == [
-        "G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx"]
+def test_download_specs_for_tts_variant_override_keeps_the_sidecar():
+    # Choosing a non-default quant (bf16) via the `repo` override must still
+    # carry pocket-tts-en's embeddings sidecar alongside the chosen quant.
+    from sokuji_sidecar import native_models, catalog
+    m = catalog.tts_model("pocket-tts-en")
+    bf16_artifact = next(d.artifact for d in m.deployments if d.compute_type == "bf16")
+    spec = native_models.download_specs("pocket-tts-en", repo=bf16_artifact)
+    assert spec["files"] == [
+        ("audio-cpp/audio.cpp-gguf", "PocketTTS-GGUF/english/pocket-tts-english-bf16.gguf"),
+        ("audio-cpp/audio.cpp-gguf", "PocketTTS-GGUF/english/embeddings/alba.safetensors"),
+    ]
 
 
-def test_base_specs_omits_ignore_key_when_card_has_none():
-    # A TTS card with an empty download_ignore (the default) must not gain an
-    # "ignore" key — consumers use .get("ignore", []), so a stray empty list
-    # would be harmless, but the key's mere presence is still worth pinning.
-    spec = native_models._base_specs("csukuangfj/vits-piper-en_US-amy-low")
+def test_base_specs_omits_ignore_key_for_tts_cards():
+    # No TTS card sets download_ignore anymore (single-file downloads have
+    # nothing to filter) — consumers use .get("ignore", []), so the key's
+    # mere absence is still worth pinning.
+    spec = native_models._base_specs("moss-tts-nano")
     assert "ignore" not in spec
     # Non-TTS ids (ASR/translate) must not raise (tts_model() returns None for
     # them) and also get no ignore key.
@@ -585,7 +980,7 @@ def test_model_size_hardcoded_returns_without_network(monkeypatch):
     nm._SIZE_CACHE.clear()
     assert nm.model_size("sense-voice") == 252684608
     assert nm.model_size("hy-mt2-1.8b") == 1133080448
-    assert nm.model_size("csukuangfj/vits-piper-en_US-amy-low") == 81105784
+    assert nm.model_size("moss-tts-nano") == 193337984
 
 
 def test_model_size_file_artifact_uses_get_paths_info(monkeypatch):
@@ -610,68 +1005,19 @@ def test_model_size_file_artifact_uses_get_paths_info(monkeypatch):
     assert nm.model_size("unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf") == 811843840
 
 
-def test_qwen3_download_specs_point_at_per_size_repos(monkeypatch):
-    from sokuji_sidecar import accel, catalog
-    monkeypatch.setattr(accel, "current_platform", lambda: "linux")  # deterministic on any host
-    # Exact repo id, not a loose substring: the auto (fresh-recommendation)
-    # download spec must point at the fp32 variant specifically — fp32 is the
-    # only compute_type with a cpu row, so it's the one every CPU-only user
-    # (and every fresh recommendation, per _tts_pick_quant's runnable
-    # narrowing) can actually load. A substring check would also pass for the
-    # cuda-only bf16 repo, silently missing a regression that swapped in bf16.
-    assert native_models.download_specs("qwen3-tts-0.6b")["repos"][0] == catalog._QWEN3_TTS_06B_FP32
-    assert native_models.download_specs("qwen3-tts-1.7b")["repos"][0] == catalog._QWEN3_TTS_17B_FP32
-
-
-def test_download_specs_moss_mlx_on_apple_silicon(monkeypatch):
-    import types
+def test_download_specs_tts_never_probes_hardware(monkeypatch):
+    # The macOS/Apple-Silicon MLX repo-swap special case (and its accel.probe()
+    # call) died with the MLX lane (slice 4) — _base_specs' TTS branch is now
+    # a pure catalog lookup, on every platform.
     from sokuji_sidecar import native_models as nm, accel
-    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
-    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=True))
-    spec = nm.download_specs("moss-tts-nano")
-    assert spec["repos"] == ["mlx-community/MOSS-TTS-Nano-100M"]
-    assert spec["urls"] == []
-
-
-def test_download_specs_qwen_mlx_on_apple_silicon(monkeypatch):
-    import types
-    from sokuji_sidecar import native_models as nm, accel
-    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
-    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=True))
-    assert nm.download_specs("qwen3-tts-0.6b")["repos"] == \
-        ["mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit"]
-    assert nm.download_specs("qwen3-tts-1.7b")["repos"] == \
-        ["mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit"]
-
-
-def test_download_specs_moss_onnx_on_intel_mac(monkeypatch):
-    import types
-    from sokuji_sidecar import native_models as nm, accel
-    # Intel Mac: platform is macos but NOT Apple Silicon → the MLX row isn't the
-    # runnable one, so download the ONNX assets (both repos), same as elsewhere.
-    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
-    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=False))
-    spec = nm.download_specs("moss-tts-nano")
-    assert len(spec["repos"]) == 2
-    assert any("MOSS-TTS-Nano-100M-ONNX" in r for r in spec["repos"])
-
-
-def test_download_specs_moss_onnx_on_linux_without_probing(monkeypatch):
-    from sokuji_sidecar import native_models as nm, accel
-    monkeypatch.setattr(accel, "current_platform", lambda: "linux")
 
     def boom(force=False):
-        raise AssertionError("probe() must not run on non-macOS (short-circuit)")
+        raise AssertionError("probe() must not run for a TTS download spec")
     monkeypatch.setattr(accel, "probe", boom)
-    spec = nm.download_specs("moss-tts-nano")
-    assert len(spec["repos"]) == 2   # ONNX assets; probe was short-circuited
-
-
-def test_aishell3_download_ignores_unused_large_files():
-    spec = native_models.download_specs("csukuangfj/vits-zh-aishell3")
-    assert spec["repos"] == ["csukuangfj/vits-zh-aishell3"]
-    for pat in ("G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx"):
-        assert pat in spec.get("ignore", [])
+    for platform in ("linux", "windows", "macos"):
+        monkeypatch.setattr(accel, "current_platform", lambda platform=platform: platform)
+        spec = nm.download_specs("moss-tts-nano")
+        assert spec["files"], platform
 
 
 import pytest
@@ -685,8 +1031,6 @@ def test_translate_specs_come_from_catalog():
     assert spec["files"] == [catalog.split_artifact(catalog._gguf_artifact("translategemma-4b", "q4_k_m"))]
     spec = nm.download_specs("qwen2.5-0.5b")
     assert spec["files"] == [catalog.split_artifact(catalog._gguf_artifact("qwen2.5-0.5b", "q8_0"))]
-    spec = nm.download_specs("opus-mt-ja-en")
-    assert spec["files"] == [("jiangzhuo9357/opus-mt-ja-en-ct2", f) for f in nm.OPUS_FILES]
     assert "ignore" not in spec  # the pinned file set needs no further filtering
 
 
@@ -697,81 +1041,16 @@ def test_variant_repo_override_still_wins():
     assert nm.download_specs("hy-mt2-7b", repo=artifact)["files"] == [catalog.split_artifact(artifact)]
 
 
-def test_needs_llama_binary():
-    assert nm._needs_llama_binary("translategemma-4b")
-    assert not nm._needs_llama_binary("opus-mt-ja-en")
-    assert not nm._needs_llama_binary("sense-voice")
-
-
-def test_download_installs_cpu_flavor_alongside_default(monkeypatch):
-    """Regression: download() used to install only llama_runtime.default_flavor()
-    (e.g. 'cuda' on an NVIDIA box), leaving the tiny (~15-17MB) 'cpu' flavor
-    never fetched. Picking device=cpu in the UI, or the gpu->cpu fallback
-    chain's 'always available' floor, then hard-failed at load time even
-    though the GGUF was fully cached. Both required flavors must be installed,
-    each counted as its own progress unit."""
-    import huggingface_hub
-    from sokuji_sidecar import llama_runtime as rt
-
-    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda repo, fname: None)
-    monkeypatch.setattr(rt, "default_flavor", lambda: "cuda")
-    monkeypatch.setattr(rt, "binary_path", lambda flavor: None)  # neither flavor installed
-    installed = []
-    monkeypatch.setattr(rt, "ensure_binary", lambda flavor, progress=None: installed.append(flavor))
-
-    sent = []
-
-    async def send(m):
-        sent.append(m)
-
-    # translategemma-4b is a real llamacpp catalog row (files-shaped spec: one
-    # pinned GGUF file, no repo listing / VAD needed).
-    status = asyncio.run(nm.download("translategemma-4b", send))
-    assert status == "ready"
-    assert installed == ["cuda", "cpu"]
-    # byte mode: total = GGUF size + 2 nominal flavor units; final pins to total
-    expected = 2489909760 + 2 * nm._LLAMA_FLAVOR_EST_BYTES
-    assert sent[-1]["total"] == expected
-    assert sent[-1]["downloaded"] == expected
-
-
-def test_status_absent_without_binary(monkeypatch):
-    """model_status needs EVERY required llama flavor installed (the machine's
-    default flavor AND the tiny cpu floor, see llama_runtime.required_flavors)
-    — a card whose GGUF is fully cached but is missing even one flavor must
-    still read 'absent', since that flavor's device (e.g. device=cpu in the
-    UI) would otherwise hard-fail to load."""
-    from sokuji_sidecar import llama_runtime as rt
-    import huggingface_hub
-    # files present (both the legacy repos-shaped check and the files-shaped
-    # GGUF file check the qwen2.5-0.5b card actually uses)...
-    monkeypatch.setattr(nm, "_repos_cached", lambda specs: True)
-    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
-                        lambda repo, fname, local_files_only=True: "/cache/" + fname)
-    monkeypatch.setattr(rt, "default_flavor", lambda: "cuda")
-    # neither flavor present
-    monkeypatch.setattr(rt, "binary_path", lambda flavor: None)
-    assert nm.model_status("qwen2.5-0.5b") == "absent"
-    # only the default (cuda) flavor present, cpu still missing -> still absent
-    monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama" if flavor == "cuda" else None)
-    assert nm.model_status("qwen2.5-0.5b") == "absent"
-    # both required flavors present -> ready
-    monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")
-    assert nm.model_status("qwen2.5-0.5b") == "ready"
-
-
 def test_status_absent_when_gguf_file_missing(monkeypatch):
-    """A files-shaped spec (GGUF/Opus card) reports 'absent' when the pinned
-    file isn't cached — hf_hub_download(local_files_only=True) raising must not
-    propagate, it must read back as a normal absent status."""
-    from sokuji_sidecar import llama_runtime as rt
+    """A files-shaped spec (a GGUF ASR/translate card) reports 'absent' when the
+    pinned file isn't cached — hf_hub_download(local_files_only=True) raising
+    must not propagate, it must read back as a normal absent status."""
     import huggingface_hub
 
     def boom(repo, fname, local_files_only=True):
         raise RuntimeError("not cached")
 
     monkeypatch.setattr(huggingface_hub, "hf_hub_download", boom)
-    monkeypatch.setattr(rt, "binary_path", lambda flavor: "/x/llama")  # binary present
     assert nm.model_status("qwen2.5-0.5b") == "absent"
 
 
@@ -803,26 +1082,11 @@ def test_download_reports_byte_progress(monkeypatch, tmp_path):
     assert prog[-1] == (1000, 1000)    # completion pinned to exactly total
 
 
-def test_download_byte_total_includes_shared_vad(monkeypatch, tmp_path):
-    """Catalog ASR rows download the GGUF plus the shared silero VAD; the
-    byte total must count both (model_size covers the model files only)."""
-    import huggingface_hub
-
-    f1 = tmp_path / "a.gguf"
-    f1.write_bytes(b"x" * 600)
-    monkeypatch.setattr(nm, "download_specs",
-                        lambda mid, repo=None: {"repos": [], "urls": [nm.VAD_URL],
-                                                "files": [("org/r", "a.gguf")]})
-    monkeypatch.setattr(nm, "model_size", lambda mid: 600)
-    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda r, f: str(f1))
-    monkeypatch.setattr(nm, "_download_url", lambda url: None)
-
-    sent = []
-    async def send(m): sent.append(m)
-    assert asyncio.run(nm.download("whisper-base", send)) == "ready"
-    prog = [(m["downloaded"], m["total"]) for m in sent if m["type"] == "model_progress"]
-    total = 600 + nm._SILERO_VAD_BYTES
-    assert prog[-1] == (total, total)
+# test_download_byte_total_includes_shared_vad was removed here: its premise (the
+# byte total must add the shared silero VAD's size on top of model_size) is gone
+# now that silero ships inside the sokuji_native wheel — download_specs never
+# returns a VAD url to add, so there is nothing left to assert here that
+# test_download_reports_byte_progress above doesn't already cover.
 
 
 def test_download_streams_incomplete_blob_growth(monkeypatch, tmp_path):
@@ -887,9 +1151,6 @@ def test_model_status_ready_when_any_ladder_quant_cached(monkeypatch, tmp_path):
             return str(tmp_path / fname)
         raise FileNotFoundError(fname)
     monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
-    vad = tmp_path / "silero_vad.onnx"
-    vad.write_bytes(b"vad")
-    monkeypatch.setattr(native_models, "_vad_cache_path", lambda: str(vad))
 
     # default rung (Q6_K) absent, Q8_0 cached -> runnable
     assert native_models.model_status("fun-asr-mlt-nano") == "ready"
@@ -916,121 +1177,90 @@ def test_model_status_repo_override_keeps_specific_quant_semantics(monkeypatch, 
     assert native_models.model_status("fun-asr-mlt-nano", repo=q8) == "ready"
 
 
-def test_model_status_translate_ladder_still_needs_llama_binary(monkeypatch, tmp_path):
-    """The any-rung relaxation covers the FILE requirement only: a llamacpp
-    card with a cached rung but missing llama-server flavors stays absent."""
-    import huggingface_hub
-    from sokuji_sidecar import native_models, llama_runtime
-
-    monkeypatch.setattr(huggingface_hub, "hf_hub_download",
-                        lambda repo, fname, **kw: str(tmp_path / fname))
-    monkeypatch.setattr(llama_runtime, "required_flavors", lambda: ["cpu"])
-    monkeypatch.setattr(llama_runtime, "binary_path", lambda f: None)
-    assert native_models.model_status("qwen2.5-0.5b") == "absent"
-    monkeypatch.setattr(llama_runtime, "binary_path", lambda f: "/x/llama")
-    assert native_models.model_status("qwen2.5-0.5b") == "ready"
-
-
 # ── TTS multi-variant status: any cached variant repo satisfies the card ─────
 
 
-def _tts_variant_card():
-    # Mirrors test_accel.py's synthetic multi-variant TTS card: 3 deployments
-    # (bf16/fp32/int8), all non-mlx, so len(unique artifacts) > 1 exercises the
-    # any-variant status branch without depending on the production catalog
-    # shape (which currently ships fp32/bf16 only, int8 cut — see catalog.py).
-    return catalog.TtsModel(
-        "fake-tts", "Fake TTS", ("en",),
-        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000)),
-        repos=("org/fake-fp32",), clones=True, streaming=False)
+def test_model_status_tts_ready_when_any_ladder_quant_cached(monkeypatch, tmp_path):
+    """TTS artifacts are single-file GGUFs (exactly ASR/translate's shape,
+    slice 4) — a multi-quant card (moss-tts-nano: q8_0 default + bf16 alt) is
+    RUNNABLE when ANY rung is cached, sharing _ladder_artifacts with ASR/
+    translate (see test_model_status_ready_when_any_ladder_quant_cached
+    above) — no TTS-specific status branch is left at all."""
+    import huggingface_hub
+
+    cached = {"moss-tts-nano-100m-bf16.gguf"}
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname.rsplit("/", 1)[-1] in cached:
+            return str(tmp_path / fname.rsplit("/", 1)[-1])
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+
+    # default rung (q8_0) absent, bf16 cached -> runnable
+    assert native_models.model_status("moss-tts-nano") == "ready"
+    cached.clear()
+    assert native_models.model_status("moss-tts-nano") == "absent"
 
 
-def test_model_status_tts_any_variant_repo_counts(monkeypatch):
-    """A multi-variant TTS card (fp32/bf16 self-contained repos, e.g. qwen3-tts)
-    is 'ready' when ANY variant repo is fully cached — mirrors the ASR/translate
-    any-rung ladder semantics above, but per-whole-repo rather than per-file,
-    since load-time resolution (accel.resolve_tts) only ever loads a downloaded
-    variant, not necessarily the card's default repos[0]."""
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
-    cached = {"org/fake-int8"}
-    monkeypatch.setattr(native_models, "_repos_cached",
-                        lambda specs: all(r in cached for r in specs["repos"]))
-    assert native_models.model_status("fake-tts") == "ready"
+def test_model_status_tts_bare_path_also_requires_the_sidecar_file(monkeypatch, tmp_path):
+    """Regression (fix round 1, CQ-2): the ladder's any-rung relaxation only
+    ever checked each quant's PRIMARY gguf file — a card whose extra_files
+    sidecar (pocket-tts-en's embeddings/alba.safetensors) is missing still
+    read 'ready' from a BARE (no repo override) status query as long as one
+    gguf rung was cached. The override path was already correct (its
+    `specs["files"]` already lists the extras) — see
+    test_model_status_tts_repo_override_requires_the_sidecar_file_too."""
+    import huggingface_hub
+
+    cached = {"pocket-tts-english-q8_0.gguf"}   # embeddings/alba.safetensors missing
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname.rsplit("/", 1)[-1] in cached:
+            return str(tmp_path / fname.rsplit("/", 1)[-1])
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+
+    assert native_models.model_status("pocket-tts-en") == "absent"
+    cached.add("alba.safetensors")
+    assert native_models.model_status("pocket-tts-en") == "ready"
 
 
-def test_model_status_tts_any_variant_survives_a_repo_raising(monkeypatch):
-    """A LATER cached variant repo must still report 'ready' even when an
-    EARLIER variant's _repos_cached call raises — which is exactly what the
-    real _repos_cached does via snapshot_download(local_files_only=True) for
-    an uncached repo (raises rather than returning False). Regression for a
-    bug where `any(_repos_cached({"repos": [r]}) for r in variant_repos)` let
-    that exception escape the generator, abort the any(), and fall through to
-    the outer try/except -> 'absent', even though a later variant WAS cached
-    (the normal post-download state: e.g. fp32 absent + bf16 cached)."""
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
-
-    def _repos_cached(specs):
-        r = specs["repos"][0]
-        if r == "org/fake-bf16":
-            raise RuntimeError("simulated snapshot_download(local_files_only=True) miss")
-        return r == "org/fake-fp32"
-    monkeypatch.setattr(native_models, "_repos_cached", _repos_cached)
-    assert native_models.model_status("fake-tts") == "ready"
-
-
-def test_model_status_tts_single_variant_card_unaffected(monkeypatch):
-    """A single-variant TTS card (moss/supertonic/pocket/gpt-sovits — every
-    non-mlx deployment shares one artifact) must NOT take the any-variant
-    branch: status stays gated on the card's one real repos entry, same as
-    before this feature existed."""
-    single = catalog.TtsModel(
-        "fake-single-tts", "Fake Single TTS", ("en",),
-        (catalog.Deployment("moss_onnx", "gpu-cuda", "fp32", "org/fake-only", 1.0),
-         catalog.Deployment("moss_onnx", "cpu", "fp32", "org/fake-only", 1.0)),
-        repos=("org/fake-only",))
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: single)
-    monkeypatch.setattr(native_models, "_repos_cached", lambda specs: False)
-    assert native_models.model_status("fake-single-tts") == "absent"
-
-
-def test_model_status_tts_any_variant_on_macos_mlx_lane_checks_mlx_repo(monkeypatch):
-    """On macOS/Apple Silicon, _base_specs swaps a multi-variant TTS card's
-    download to the single MLX repo (see _base_specs docstring) — the ONNX
-    variant_repos are never fetched there. The any-rung branch must therefore
-    NOT apply on that lane (checking only the ONNX repos would report a
-    permanently-absent card even with the MLX repo fully cached); status must
-    fall through to the normal _repos_cached(specs) check, which correctly
-    evaluates the MLX repo. Regression for a reviewer-caught defect where
-    qwen3-tts-0.6b/1.7b read 'absent' forever on macOS despite the MLX repo
-    being fully cached."""
-    import types
-    from sokuji_sidecar import accel
-    monkeypatch.setattr(accel, "current_platform", lambda: "macos")
-    monkeypatch.setattr(accel, "probe", lambda force=False: types.SimpleNamespace(apple_silicon=True))
-    mlx_repo = "mlx-community/fake-mlx"
-    card = catalog.TtsModel(
-        "fake-tts-mlx", "Fake TTS MLX", ("en",),
-        (catalog.Deployment("mlx_audio_tts", "gpu-metal", "fp32", mlx_repo, 1.0,
-                             platforms=("macos",), requires_apple_silicon=True),
-         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
-        repos=("org/fake-fp32",), clones=True, streaming=False)
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: card)
-    # Only the MLX repo is cached; both ONNX variant repos are absent.
-    monkeypatch.setattr(native_models, "_repos_cached",
-                        lambda specs: specs["repos"] == [mlx_repo])
-    assert native_models.model_status("fake-tts-mlx") == "ready"
-
-
-def test_model_status_tts_repo_override_keeps_specific_variant_semantics(monkeypatch):
-    """With an explicit repo override (the download button's 'is THIS variant
-    downloaded?' question) the any-variant relaxation must NOT apply — mirrors
+def test_model_status_tts_repo_override_keeps_specific_quant_semantics(monkeypatch, tmp_path):
+    """With an explicit repo override (the download button's 'is THIS quant
+    downloaded?' question) the any-rung relaxation must NOT apply — mirrors
     test_model_status_repo_override_keeps_specific_quant_semantics above."""
-    monkeypatch.setattr(catalog, "tts_model", lambda mid: _tts_variant_card())
-    cached = {"org/fake-int8"}
-    monkeypatch.setattr(native_models, "_repos_cached",
-                        lambda specs: all(r in cached for r in specs["repos"]))
-    assert native_models.model_status("fake-tts", repo="org/fake-bf16") == "absent"
-    assert native_models.model_status("fake-tts", repo="org/fake-int8") == "ready"
+    import huggingface_hub
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname.endswith("bf16.gguf"):
+            return str(tmp_path / fname.rsplit("/", 1)[-1])
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+
+    q8_0 = "audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+    bf16 = "audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-bf16.gguf"
+    assert native_models.model_status("moss-tts-nano", repo=q8_0) == "absent"
+    assert native_models.model_status("moss-tts-nano", repo=bf16) == "ready"
+
+
+def test_model_status_tts_repo_override_requires_the_sidecar_file_too(monkeypatch, tmp_path):
+    """With an explicit repo override the ladder's any-rung relaxation does
+    NOT apply (repo is not None -> ladder=[]) — model_status falls to the
+    generic files-shape check, which requires ALL files in `specs["files"]`.
+    pocket-tts-en's extra_files sidecar (embeddings/alba.safetensors) makes
+    this the interesting case: with only the gguf cached, the pinned q8_0
+    override must report 'absent' until the sidecar is cached too."""
+    import huggingface_hub
+
+    cached = {"pocket-tts-english-q8_0.gguf"}   # embeddings/alba.safetensors missing
+
+    def fake_hf_download(repo, fname, local_files_only=False, **kw):
+        if fname.rsplit("/", 1)[-1] in cached:
+            return str(tmp_path / fname.rsplit("/", 1)[-1])
+        raise FileNotFoundError(fname)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+
+    q8_0 = "audio-cpp/audio.cpp-gguf/PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf"
+    assert native_models.model_status("pocket-tts-en", repo=q8_0) == "absent"
+    cached.add("alba.safetensors")
+    assert native_models.model_status("pocket-tts-en", repo=q8_0) == "ready"

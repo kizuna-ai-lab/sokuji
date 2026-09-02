@@ -81,6 +81,85 @@ function pickBundle(manifest, sku) {
   return (manifest.bundles || []).find((e) => e.sku === sku);
 }
 
+// Directory names under the sidecar root that are not SKU dirs but must never
+// be pruned: '.staging' holds resumable in-flight downloads (stagingDir above),
+// whose own lifecycle is managed by pruneStaging — not by SKU identity.
+const RESERVED_ROOT_DIRS = new Set(['.staging']);
+
+// The current bundle SKU vocabulary (mirrors electron/sidecar-sku.js's
+// detectSku output set; not imported from there since that module is
+// main-process-only and this one is also loaded from plain-node tests).
+// Used only to recognize install-artifact siblings below — pruneStaleSkuDirs
+// itself removes anything that isn't the CURRENT sku regardless of whether the
+// name is a recognized sku, so a rename to this list never needs to happen in
+// lockstep with sidecar-sku.js for the main prune logic to stay correct.
+const KNOWN_SKUS = new Set(['linux-x64', 'linux-arm64', 'win-x64', 'mac-arm64', 'mac-x64']);
+
+// installBundle's two-rename swap creates `${dest}.tmp` (the live extraction
+// target, for as long as a multi-GB archive takes to unpack) and `${dest}.old`
+// (the previous bundle, kept until the swap commits) as SIBLINGS of the sku
+// dirs under this same root — e.g. `mac-arm64.tmp`, `mac-arm64.old`. Neither
+// name equals a bare sku, so without this check they read as "unknown dir,
+// not the current sku" and would be deleted out from under an install that is
+// actively extracting into `.tmp`, or whose rollback still needs `.old`.
+// Exempts ANY known-sku-based `.tmp`/`.old`, not just the current sku's: an
+// install for a DIFFERENT sku is not something this function has any business
+// racing either, and installBundle already cleans its own sku's stale
+// tmp/old at the start of each install (see installBundle above) — this
+// function does not need to duplicate that.
+function isInstallArtifactDir(name) {
+  const m = /^(.+)\.(tmp|old)$/.exec(name);
+  return !!m && KNOWN_SKUS.has(m[1]);
+}
+
+// Slice 5 renamed the SKU vocabulary (linux-nvidia/win-nvidia/win-directml/mac
+// -> linux-x64/linux-arm64/win-x64/mac-arm64/mac-x64), but bundle install only
+// ever removed the CURRENT sku's dir (installBundle's tmp/old swap, removeBundle).
+// A dev machine that lived through the rename keeps every old sku's multi-GB
+// tree under userData/sidecar forever. Called once at bundle resolution (spec
+// debt task 6): removes any directory under `root` that is neither the current
+// sku nor a reserved name — old-vocabulary names and any future/unknown sku
+// alike, since "not this machine's sku" is the only fact that matters. Never
+// throws: a locked/in-use directory (or a `root` that doesn't exist yet) must
+// not block the bundle status/install/remove flow that called this.
+//
+// `installing` (spec debt task 6, fix round 1): the renderer's in-memory
+// "install in progress" guard resets on a renderer reload (Ctrl+R / View menu
+// reload is not dev-gated) even while main's install promise is still
+// running, so a remounted settings panel can re-issue the status query that
+// triggers this prune mid-install. Pass main's own `_bundleInstalling` flag
+// here so a real in-flight install always wins over the prune, independent of
+// the `.tmp`/`.old` name exemption above (defense in depth, not a substitute
+// for it — a future caller of this function must not have to rediscover the
+// same race).
+function pruneStaleSkuDirs(root, currentSku, { installing = false } = {}) {
+  if (installing) {
+    console.log('[sidecar-bundle] prune skipped: install in flight');
+    return;
+  }
+  let entries;
+  try {
+    entries = fs.readdirSync(root, { withFileTypes: true });
+  } catch {
+    return; // no sidecar dir yet — nothing to prune
+  }
+  const removed = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;   // leaves loose files (e.g. an in-flight part) alone
+    const name = entry.name;
+    if (name === currentSku || RESERVED_ROOT_DIRS.has(name) || isInstallArtifactDir(name)) continue;
+    try {
+      fs.rmSync(path.join(root, name), { recursive: true, force: true });
+      removed.push(name);
+    } catch {
+      // Non-fatal: a locked directory should not block bundle resolution.
+    }
+  }
+  if (removed.length > 0) {
+    console.log(`[sidecar-bundle] pruned stale sku dir(s): ${removed.join(', ')}`);
+  }
+}
+
 function verifySha256(filePath, wantHex) {
   return new Promise((resolve, reject) => {
     const h = crypto.createHash('sha256');
@@ -359,5 +438,9 @@ module.exports = {
   archiveName, bundleInstallDir, bundleStatus, pickBundle,
   verifySha256, extractTarZst, installBundle,
   requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
-  downloadPart, concatParts, removeBundle,
+  downloadPart, concatParts, removeBundle, pruneStaleSkuDirs,
+  // Exported for sidecar-sku.consistency.test.js only (nothing in the app reads
+  // it from outside this file): the test proves this hand-maintained mirror
+  // still equals detectSku's real output set.
+  KNOWN_SKUS,
 };

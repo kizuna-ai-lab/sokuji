@@ -14,45 +14,41 @@ os.environ.setdefault("SOKUJI_BENCH_DIR", tempfile.mkdtemp())
 
 
 def test_probe_assembles_machine(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "vulkan"))
-    monkeypatch.setattr(accel, "_tc_gpus",
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "vulkan"))
+    monkeypatch.setattr(accel, "_native_gpus",
                         lambda: (("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_translate", "native_tts"}))
     m = accel.probe(force=True)
     assert m.gpus == (("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),)
-    assert accel.has_nvidia(m)
-    assert "sherpa" in m.installed
+    assert "native_tts" in m.installed
     assert m.fingerprint  # non-empty, stable hash
 
 
 def test_probe_degrades_when_detector_throws(monkeypatch):
     def boom(): raise RuntimeError("probe broken")
-    monkeypatch.setattr(accel, "_tc_gpus", boom)
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ())
+    monkeypatch.setattr(accel, "_native_gpus", boom)
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset())
     m = accel.probe(force=True)
     assert m.gpus == ()  # broken GPU detection → treated as absent, no crash
 
 
 def test_probe_is_cached(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ())
+    monkeypatch.setattr(accel, "_native_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset())
     first = accel.probe(force=True)
-    monkeypatch.setattr(accel, "_tc_gpus",
+    monkeypatch.setattr(accel, "_native_gpus",
                         lambda: (("vulkan", "NVIDIA x", 1 << 30),))
     assert accel.probe() is first  # cached: no re-probe without force
 
 
-def _machine(*, apple=False, dml=(), installed=frozenset({"transcribe_cpp", "transcribe_cpp_stream"}), tc=(), gpus=()):
+def _machine(*, apple=False, installed=frozenset({"native_asr", "native_asr_stream"}), tc=(), gpus=()):
     return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8,
-                         apple_silicon=apple, dml_adapters=dml, installed=installed,
+                         apple_silicon=apple, installed=installed,
                          fingerprint="test", tc_kinds=tc, gpus=gpus)
 
 
@@ -62,48 +58,23 @@ def _nv_gpus(vram_mb=0):
     return (("vulkan", "NVIDIA GeForce RTX 4070", vram_mb << 20),)
 
 
-def test_has_nvidia_from_tc_description():
-    m = _machine(gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),))
-    assert accel.has_nvidia(m) is True
-
-
-def test_has_nvidia_case_insensitive():
-    m = _machine(gpus=(("cuda", "nVidia geforce rtx 5080", 16 << 30),))
-    assert accel.has_nvidia(m) is True
-
-
-def test_has_nvidia_false_for_amd():
-    m = _machine(gpus=(("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),))
-    assert accel.has_nvidia(m) is False
-
-
-def test_tc_gpus_coerces_none_description(monkeypatch):
-    # A None description from the native lib must not reach has_nvidia/_gpu_vendor
-    # (they call .lower()/`in`) — _tc_gpus coerces it to "" at the source.
-    class B:
-        kind = "vulkan"
-        description = None
-        memory_total = 8 << 30
-        device_type = "gpu"
-    monkeypatch.setattr(accel, "_tc_devices", lambda: [B()])
-    gpus = accel._tc_gpus()
-    assert gpus == (("vulkan", "", 8 << 30),)
-    assert accel.has_nvidia(_machine(gpus=gpus)) is False   # no AttributeError
-
-
-def test_has_nvidia_false_without_devices():
-    assert accel.has_nvidia(_machine()) is False
+# has_nvidia/_dml_adapters died with the ONNX TTS backends (their last
+# consumers, slice 4 — R4): the gpu-cuda tier's NVIDIA-presence gate and the
+# gpu-dml tier's adapter probe are both gone, so test_has_nvidia_* and
+# test_native_gpus_coerces_none_description (which existed solely to prove
+# has_nvidia never crashes on a None description) have no equivalent.
+# _gpu_vendor (still used by _h_hardware_info) has its own None-description
+# coverage in test_hardware_info_reports_amd_gpu_from_tc_probe below.
 
 
 def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))   # no accelerator
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_asr"}))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu",))   # no accelerator
     accel.probe(force=True)
     plans = accel.resolve("sense-voice")
-    assert plans[0].backend == "transcribe_cpp" and plans[0].device == "cpu"
+    assert plans[0].backend == "native_asr" and plans[0].device == "cpu"
 
 
 def _plan(device):
@@ -254,11 +225,10 @@ def test_load_measured_omits_nonpositive_delta(monkeypatch):
 
 
 def test_hardware_info_handler(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_gpus",
+    monkeypatch.setattr(accel, "_native_gpus",
                         lambda: (("cuda", "NVIDIA GeForce RTX 4070", 12288 << 20),))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "cuda"))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "cuda"))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
     accel.probe(force=True)
     st = {"handlers": {}}
@@ -275,11 +245,10 @@ def test_hardware_info_handler(monkeypatch):
 def test_hardware_info_reports_amd_gpu_from_tc_probe(monkeypatch):
     # THE D7 bugfix: gpus[] used to come from NVML, so mac/AMD boxes reported
     # an empty list. The tc probe sees every vendor.
-    monkeypatch.setattr(accel, "_tc_gpus",
+    monkeypatch.setattr(accel, "_native_gpus",
                         lambda: (("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "vulkan"))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "vulkan"))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset())
     accel.probe(force=True)
     reply, _ = asyncio.run(accel._h_hardware_info({}, {"id": 1}, None))
@@ -289,11 +258,10 @@ def test_hardware_info_reports_amd_gpu_from_tc_probe(monkeypatch):
 
 
 def test_models_catalog_handler_cpu_machine(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_asr"}))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu",))
     accel.probe(force=True)
     st = {"handlers": {}}
     accel.register(st)
@@ -304,9 +272,9 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
     assert by_id["sense-voice"]["languages"] == ["zh", "en", "ja", "ko", "yue"]
     sv_tiers = by_id["sense-voice"]["tiers"]
     assert sv_tiers == [
-        {"tier": "gpu-vulkan", "backend": "transcribe_cpp", "available": False},
-        {"tier": "gpu-metal", "backend": "transcribe_cpp", "available": False},
-        {"tier": "cpu", "backend": "transcribe_cpp", "available": True},
+        {"tier": "gpu-vulkan", "backend": "native_asr", "available": False},
+        {"tier": "gpu-metal", "backend": "native_asr", "available": False},
+        {"tier": "cpu", "backend": "native_asr", "available": True},
     ]
     # 2026-07-05 roster: the whisper star moved to large-v3-turbo
     assert by_id["whisper-large-v3-turbo"]["recommended"] is True
@@ -316,9 +284,8 @@ def test_models_catalog_handler_cpu_machine(monkeypatch):
 
 
 def test_models_catalog_filter_narrows_results(monkeypatch):
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
     accel.probe(force=True)
     st = {"handlers": {}}
@@ -327,19 +294,6 @@ def test_models_catalog_filter_narrows_results(monkeypatch):
         st, json.dumps({"type": "models_catalog", "id": 4, "models": ["sense-voice"]}), None, None))
     ids = [m["id"] for m in reply["models"]]
     assert ids == ["sense-voice"]
-
-
-def test_probe_helper_reads_ort_cuda_capability(monkeypatch):
-    import sys
-    import types as _types
-    fake_gpu = _types.SimpleNamespace(get_available_providers=lambda: [
-        "TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"])
-    monkeypatch.setitem(sys.modules, "onnxruntime", fake_gpu)
-    assert accel._ort_cuda() is True
-    fake_cpu = _types.SimpleNamespace(get_available_providers=lambda: [
-        "AzureExecutionProvider", "CPUExecutionProvider"])
-    monkeypatch.setitem(sys.modules, "onnxruntime", fake_cpu)
-    assert accel._ort_cuda() is False
 
 
 def test_bench_cache_roundtrip(tmp_path, monkeypatch):
@@ -463,21 +417,25 @@ def test_qwen3asr_model_unavailable_without_runtime(monkeypatch):
 
 def test_installed_find_spec_raise_does_not_nuke_whole_set(monkeypatch):
     """_installed() must never raise when find_spec raises for a module —
-    the guarded _has_mod() helper absorbs the exception and keeps every other
-    present backend in the returned frozenset."""
+    the guarded _has_mod() helper absorbs the exception. Since slice 4 every
+    backend name (ASR/translate/TTS alike) gates on the SAME sokuji_native
+    wheel (accel._installed's map collapsed to one entry per name, all
+    "sokuji_native" — see the module's own comment), a raise for that one
+    module now excludes every backend, not just one of several — this is the
+    honest post-collapse behavior, not a bug: there genuinely is only one
+    external dependency left to probe."""
     import importlib.util as iu
     from sokuji_sidecar import accel
     real = iu.find_spec
 
     def raising_find_spec(name, *a, **k):
-        if name == "transcribe_cpp":
-            raise ModuleNotFoundError("no module named transformers.models.qwen3_asr")
+        if name == "sokuji_native":
+            raise ModuleNotFoundError("no module named sokuji_native")
         return real(name, *a, **k)
 
     monkeypatch.setattr(accel.importlib.util, "find_spec", raising_find_spec)
     result = accel._installed()          # must NOT raise
-    assert "transcribe_cpp" not in result   # the raising entry is excluded …
-    assert "sherpa_tts" in result           # … but other present backends survive
+    assert result == frozenset()
 
 
 def test_voxtral_model_unavailable_without_runtime():
@@ -490,14 +448,17 @@ def test_voxtral_model_unavailable_without_runtime():
 
 def test_models_catalog_kind_translate_returns_qwen_rows(monkeypatch):
     monkeypatch.setattr(accel, "probe", lambda force=False: _machine(
-        gpus=_nv_gpus(), installed=frozenset({"llamacpp_qwen"})))
+        gpus=_nv_gpus(), tc=("vulkan", "cpu"), installed=frozenset({"native_translate"})))
     reply, _ = asyncio.run(accel._h_models_catalog(
         {}, {"type": "models_catalog", "id": 1, "kind": "translate"}, None))
     ids = [m["id"] for m in reply["models"]]
     assert "qwen2.5-0.5b" in ids and "qwen3-0.6b" in ids
     row = next(m for m in reply["models"] if m["id"] == "qwen2.5-0.5b")
     tiers = {t["tier"]: t["available"] for t in row["tiers"]}
-    assert tiers["gpu-cuda"] is True and tiers["cpu"] is True
+    # No gpu-cuda tier row exists for native_translate at all (R2); the NVIDIA
+    # device this fixture reports is seen via Vulkan.
+    assert "gpu-cuda" not in tiers
+    assert tiers["gpu-vulkan"] is True and tiers["cpu"] is True
 
 
 def test_models_catalog_kind_defaults_to_asr(monkeypatch):
@@ -509,105 +470,97 @@ def test_models_catalog_kind_defaults_to_asr(monkeypatch):
 
 
 def test_new_translate_backends_installed_and_resolvable():
+    # Genuinely needs the sokuji-native wheel: without it accel._installed()
+    # never reports native_translate on any host (slice 5 CI job runs the
+    # suite wheel-less, see test_runtime_gate.py).
+    pytest.importorskip("sokuji_native")
     # Force a REAL probe: an earlier test in this module may have left the
     # module-global probe() cache pointing at a monkeypatched fake Machine
     # (probe(force=True) with fake detectors is a lasting side effect, not
     # reverted by monkeypatch teardown) — this test wants the ACTUAL host's
     # installed set, not whatever an earlier test's fixture happened to leave.
     accel.probe(force=True)
-    # llamacpp_* backends run an external binary, not a Python runtime → always "installed".
+    # native_translate self-gates on the sokuji_native wheel — the dev venv's
+    # installed wheel (see module docstring) makes it always "installed" here.
     inst = accel._installed()
-    assert "llamacpp_gemma" in inst
-    assert "llamacpp_hunyuan" in inst
+    assert "native_translate" in inst
     # and the resolver now produces plans instead of raising NoUsablePlan
     plans = accel.resolve_translate("hy-mt2-1.8b", "auto")
-    assert any(p.backend == "llamacpp_hunyuan" for p in plans)
+    assert any(p.backend == "native_translate" for p in plans)
     g = accel.resolve_translate("translategemma-4b", "auto")
-    assert any(p.backend == "llamacpp_gemma" for p in g)
+    assert any(p.backend == "native_translate" for p in g)
 
 
-def test_cosyvoice3_backend_installed_and_resolvable():
-    """Catches the three-site registration gotcha: a backend missing from
-    accel._installed() renders in the catalog but NoUsablePlan everywhere."""
-    from sokuji_sidecar import planner
-
-    installed = accel._installed()          # REAL probe of this host's venv
-    assert "cosyvoice3_onnx" in installed
-
-    # Resolution needs an NVIDIA machine; synthesize one but keep the REAL
-    # installed set so a missing mods entry still fails this test.
-    machine = accel.Machine(
-        os="Linux", arch="x86_64", cpu_cores=8, apple_silicon=False,
-        dml_adapters=(), installed=frozenset(installed), fingerprint="t",
-        tc_kinds=("cuda",), gpus=(("cuda", "NVIDIA GeForce RTX 4070", 12 << 30),),
-        ort_cuda=True)
-    plans = planner.resolve_tts("cosyvoice3-0.5b", machine=machine, platform="linux", cache={})
-    assert plans, "cosyvoice3-0.5b resolved to no usable plan"
-    assert plans[0].backend == "cosyvoice3_onnx" and plans[0].tier == "gpu-cuda"
+# cosyvoice3-0.5b and gpt-sovits-v2pp cards, and the cosyvoice3_onnx/
+# gpt_sovits_onnx backends they exercised the "three-site registration
+# gotcha" against, are gone (slice 4 — the CosyVoice3/GPT-SoVITS ONNX TTS
+# stack was never promoted to a native_tts family). omnivoice-0.6b survives
+# but now resolves through the single native_tts backend, covered by
+# test_omnivoice_backend_installed_and_resolvable below alongside every
+# other TTS card, not a per-backend registration test of its own.
 
 
 def test_omnivoice_backend_installed_and_resolvable():
-    """Catches the three-site registration gotcha: a backend missing from
-    accel._installed() renders in the catalog but NoUsablePlan everywhere."""
+    """Catches the registration gotcha: a backend missing from
+    accel._installed() renders in the catalog but NoUsablePlan everywhere.
+    Every TTS card (not just omnivoice) now shares the one native_tts
+    backend, so this doubles as the general native_tts-resolvability check."""
+    # Genuinely needs the sokuji-native wheel: see
+    # test_new_translate_backends_installed_and_resolvable.
+    pytest.importorskip("sokuji_native")
     from sokuji_sidecar import planner
 
     installed = accel._installed()          # REAL probe of this host's venv
-    assert "omnivoice_onnx" in installed
+    assert "native_tts" in installed
 
-    # Resolution needs an NVIDIA machine; synthesize one but keep the REAL
-    # installed set so a missing mods entry still fails this test.
     machine = accel.Machine(
         os="Linux", arch="x86_64", cpu_cores=8, apple_silicon=False,
-        dml_adapters=(), installed=frozenset(installed), fingerprint="t",
-        tc_kinds=("cuda",), gpus=(("cuda", "NVIDIA GeForce RTX 4070", 12 << 30),),
-        ort_cuda=True)
+        installed=frozenset(installed), fingerprint="t",
+        tc_kinds=("vulkan",), gpus=(("vulkan", "NVIDIA GeForce RTX 4070", 12 << 30),))
     plans = planner.resolve_tts("omnivoice-0.6b", machine=machine, platform="linux", cache={})
     assert plans, "omnivoice-0.6b resolved to no usable plan"
-    assert plans[0].backend == "omnivoice_onnx" and plans[0].tier == "gpu-cuda"
+    # R19 follow-up / R25 (task 8): omnivoice was GB10-Vulkan-validated
+    # (catalog._TTS_TIER_OVERRIDES), so this vulkan-capable machine now
+    # resolves to gpu-vulkan, not cpu.
+    assert plans[0].backend == "native_tts" and plans[0].tier == "gpu-vulkan"
 
 
 # ── select_variant tests ────────────────────────────────────────────────────
 
 
 def _gpu_machine(vram_mb, installed=("hunyuan_translate",)):
-    return _machine(gpus=_nv_gpus(vram_mb), installed=frozenset(installed))
+    # tc=("vulkan", "cpu") alongside gpus: a real native probe never reports a
+    # GPU via `gpus` without ALSO reporting "vulkan" in tc_kinds (both come
+    # from the same device list) — has_nvidia's now-deleted NVIDIA-by-
+    # description vulkan fallback (slice 4 — R4) used to paper over this gap
+    # for a `gpus`-only fixture; a real vulkan signal is required now.
+    return _machine(gpus=_nv_gpus(vram_mb), tc=("vulkan", "cpu"), installed=frozenset(installed))
 
 
 def _hymt2_7b():
-    """Synthetic (non-catalog) TranslateModel replicating the pre-llamacpp shape of
-    hy-mt2-7b: a gpu-cuda bf16 variant, a cpu float32 floor, and a gpu-cuda fp8
-    variant. The real hy-mt2-7b catalog row moved to llamacpp/GGUF quants
-    (Task 9), which bypasses this VRAM/format-aware logic entirely (see
-    _is_llamacpp in accel.py) — this fixture keeps select_variant's still-live
-    generic (non-llamacpp) path under test."""
+    """Synthetic (non-catalog) TranslateModel replicating the pre-native_translate
+    shape of hy-mt2-7b: a gpu-vulkan bf16 variant, a cpu float32 floor, and a
+    gpu-vulkan fp8 variant (gpu-cuda died with the ONNX backends, slice 4 —
+    R4; moved to the one accelerator tier that still exists). The real
+    hy-mt2-7b catalog row moved to native_translate GGUF quants (Task 9 /
+    slice 3), which bypasses this VRAM/format-aware logic entirely (see
+    planner._is_gguf_llm) — this fixture keeps select_variant's still-live
+    generic (non-GGUF-LLM) path under test."""
     from sokuji_sidecar import catalog
     return catalog.TranslateModel("hy-mt2-7b-synthetic", "Hunyuan-MT2 7B (synthetic)", ("multi",), (
-        catalog.Deployment("hunyuan_translate", "gpu-cuda", "bfloat16", "tencent/Hy-MT2-7B", 1.0),
+        catalog.Deployment("hunyuan_translate", "gpu-vulkan", "bfloat16", "tencent/Hy-MT2-7B", 1.0),
         catalog.Deployment("hunyuan_translate", "cpu", "float32", "tencent/Hy-MT2-7B", 1.0),
-        catalog.Deployment("hunyuan_translate", "gpu-cuda", "fp8", "tencent/Hy-MT2-7B-FP8", 1.0),
+        catalog.Deployment("hunyuan_translate", "gpu-vulkan", "fp8", "tencent/Hy-MT2-7B-FP8", 1.0),
     ))
 
 
-def test_resolve_translate_override_cuda_sets_reserved(monkeypatch):
-    # Regression: set_reserved_bytes used to run only on the 'auto' branch,
-    # leaving the explicit device-override path (translationDevice: cuda|cpu,
-    # a first-class UI control) with a stale/zero reserved-bytes figure, so
-    # --fit-target would be sized wrong for a llamacpp cuda load.
-    from sokuji_sidecar import llama_runtime as rt
-    m = _machine(gpus=_nv_gpus(12288),
-                 installed=frozenset({"llamacpp_qwen"}))
-    accel.resolve_translate("qwen3-0.6b", override="cuda", reserved_bytes=654321, machine=m)
-    assert rt.get_reserved_bytes() == 654321
-    rt.set_reserved_bytes(0)
-
-
 def test_list_variants_marks_supported_and_recommended(monkeypatch):
-    # hy-mt2-7b's real catalog row moved to llamacpp/GGUF quants (Task 9), which
-    # bypasses the VRAM-based supported/reason math via the _is_llamacpp dedupe
-    # branch (see test_list_variants_dedupes_llamacpp). This test keeps the
-    # generic (non-llamacpp) list_variants branch under test via a synthetic model,
-    # monkeypatching catalog.translate_model since _h_list_variants looks models up
-    # by id.
+    # hy-mt2-7b's real catalog row moved to native_translate GGUF quants
+    # (Task 9 / slice 3), which bypasses the VRAM-based supported/reason math
+    # via the _is_gguf_llm dedupe branch (see test_list_variants_dedupes_llamacpp).
+    # This test keeps the generic (non-GGUF-LLM) list_variants branch under
+    # test via a synthetic model, monkeypatching catalog.translate_model since
+    # _h_list_variants looks models up by id.
     from sokuji_sidecar import native_models as nm
     model = _hymt2_7b()
     monkeypatch.setattr(catalog, "translate_model", lambda mid: model if mid == model.id else None)
@@ -640,138 +593,110 @@ def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
     assert notice and "CPU" in notice
 
 
-def test_opus_translate_self_gates_on_ctranslate2_and_sentencepiece(monkeypatch):
-    from sokuji_sidecar import accel
-    real = accel.importlib.util.find_spec
-
-    def present(name, *a, **k):
-        if name in ("ctranslate2", "sentencepiece"):
-            return object()
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
-    assert "ct2_opus_translate" in accel._installed()
-
-    # ...and gates OFF when a required dep is missing — this half fails if the
-    # dependency map names the wrong module, which the present-only check
-    # (deps happen to be installed in the dev venv) would silently pass.
-    def hide_ct2(name, *a, **k):
-        return None if name == "ctranslate2" else object()
-    monkeypatch.setattr(accel.importlib.util, "find_spec", hide_ct2)
-    assert "ct2_opus_translate" not in accel._installed()
-
-
 def test_supertonic_installed_and_resolvable():
+    # Genuinely needs the sokuji-native wheel: see
+    # test_new_translate_backends_installed_and_resolvable.
+    pytest.importorskip("sokuji_native")
     # Force a REAL probe (see test_new_translate_backends_installed_and_resolvable
     # for why this module-global cache needs a fresh read here).
     accel.probe(force=True)
-    # onnxruntime is a sidecar dependency → supertonic self-gates ON here, and
-    # resolve_tts must produce a runnable plan (not raise NoUsablePlan).
-    assert "supertonic" in accel._installed()
+    # sokuji_native is a sidecar dependency → native_tts self-gates ON here,
+    # and resolve_tts must produce a runnable plan (not raise NoUsablePlan).
+    assert "native_tts" in accel._installed()
     plans = accel.resolve_tts("supertonic-3", override="cpu")
-    assert plans and plans[0].backend == "supertonic"
+    assert plans and plans[0].backend == "native_tts" and plans[0].compute_type == "f16"
 
 
 def test_qwen3_backend_installed_and_resolvable():
+    # Genuinely needs the sokuji-native wheel: see
+    # test_new_translate_backends_installed_and_resolvable.
+    pytest.importorskip("sokuji_native")
     accel.probe(force=True)
-    assert "qwen3tts_onnx" in accel._installed()
+    assert "native_tts" in accel._installed()
     plans = accel.resolve_tts("qwen3-tts-0.6b", override="cpu")
-    assert plans and plans[0].backend == "qwen3tts_onnx"
+    assert plans and plans[0].backend == "native_tts"
 
 
 def test_pocket_onnx_installed_and_resolvable():
+    # Genuinely needs the sokuji-native wheel: see
+    # test_new_translate_backends_installed_and_resolvable.
+    pytest.importorskip("sokuji_native")
     # Force a REAL probe: the characterization fixtures below hand-author their
-    # own `installed` sets, so they would stay green even if accel._installed()'s
-    # pocket_onnx gate-map entry were reverted or typo'd — which would make
-    # resolve_tts raise NoUsablePlan for every real machine (this exact bug
-    # already happened once while wiring pocket_onnx into _installed()).
+    # own `installed` sets, so they would stay green even if accel._installed()
+    # itself gated native_tts off — which would make resolve_tts raise
+    # NoUsablePlan for every real machine.
     accel.probe(force=True)
-    # onnxruntime + sentencepiece are sidecar dependencies → pocket_onnx
-    # self-gates ON here, and resolve_tts must produce the single cpu/int8
-    # plan the catalog declares (not raise NoUsablePlan).
-    assert "pocket_onnx" in accel._installed()
+    assert "native_tts" in accel._installed()
     plans = accel.resolve_tts("pocket-tts-en", override="cpu")
-    assert plans and plans[0].backend == "pocket_onnx"
-    assert plans[0].tier == "cpu" and plans[0].compute_type == "int8"
+    assert plans and plans[0].backend == "native_tts"
+    assert plans[0].tier == "cpu" and plans[0].compute_type == "q8_0"
 
 
 # ── resolve_tts Loader wrapper: downloaded-variant detection + pin plumbing ──
-# Mirrors resolve()'s _downloaded_quants/multi_quant wiring above, but for TTS
-# variant cards, whose repos are whole-repo deployments (not per-file quants
-# like translate) — hence native_models.model_status(repo=...) instead of
-# hf_hub_download(local_files_only=True).
+# TTS artifacts are single-file GGUFs (exactly ASR/translate's shape, slice
+# 4) — the old whole-repo _downloaded_tts_variants/native_models.model_status
+# machinery is gone; resolve_tts now shares _downloaded_quants (per-file
+# hf_hub_download(local_files_only=True)) with every other multi-quant kind.
 
 
 def _tts_variant_card():
-    # 3-ct ladder (fp32/bf16/int8): the shipping ladder itself is fp32/bf16
-    # only (int8 was cut, see planner.py), but this SYNTHETIC fixture keeps
-    # int8's cpu-only row on purpose — it exercises the generic multi-ct
-    # machinery (including a compute_type that only ever runs on cpu)
-    # without depending on production catalog shape.
+    # Same 2-quant ladder shape as every real card (default rank 2.0, alt
+    # rank 1.0), backed by native_tts, uniform 3-tier-per-quant — used where
+    # a test wants a controlled fixture rather than a real catalog row.
     return catalog.TtsModel(
-        "fake-tts", "Fake TTS", ("en",),
-        (catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "int8", "org/fake-int8", 1.1, est_bytes=2_000)),
-        repos=("org/fake-fp32",), clones=True, streaming=False)
+        "fake-tts", "Fake TTS", ("en",), (
+            catalog.Deployment("native_tts", "gpu-vulkan", "bf16", "org/fake/repo/fake-bf16.gguf", 1.0, est_bytes=5_000),
+            catalog.Deployment("native_tts", "cpu", "bf16", "org/fake/repo/fake-bf16.gguf", 1.0, est_bytes=5_000),
+            catalog.Deployment("native_tts", "gpu-vulkan", "q8_0", "org/fake/repo/fake-q8_0.gguf", 2.0, est_bytes=2_000),
+            catalog.Deployment("native_tts", "cpu", "q8_0", "org/fake/repo/fake-q8_0.gguf", 2.0, est_bytes=2_000)),
+        family="fake_family", clones=True, streaming=False)
 
 
-def test_downloaded_tts_variants_checks_each_repo(monkeypatch):
-    from sokuji_sidecar import native_models
-    card = _tts_variant_card()
-    ready = {"org/fake-bf16"}
-    monkeypatch.setattr(native_models, "model_status",
-                        lambda mid, repo=None: "ready" if repo in ready else "absent")
-    m = _machine()
-    assert accel._downloaded_tts_variants(card, m, "linux") == frozenset({"bf16"})
+def test_downloaded_quants_checks_each_tts_artifact_file(monkeypatch):
+    # _downloaded_quants (shared with ASR/translate) must work unmodified for
+    # a TTS card's single-file artifacts: only the cached quant's file is
+    # reported downloaded.
+    from huggingface_hub import constants as _hf_constants  # noqa: F401
+    import sokuji_sidecar.accel as accel_mod
 
+    def fake_hf_hub_download(repo, fname, local_files_only=False):
+        # split_artifact("org/fake/repo/fake-q8_0.gguf") -> ("org/fake", "repo/fake-q8_0.gguf")
+        # (the first TWO segments are always the repo, everything else is the path).
+        if (repo, fname) == ("org/fake", "repo/fake-q8_0.gguf"):
+            return "/fake/cache/path"
+        raise Exception("not cached")
 
-def test_downloaded_tts_variants_ignores_off_platform_artifact(monkeypatch):
-    # An MLX snapshot (macOS-only, requires_apple_silicon) cached on a Linux
-    # box shares compute_type "fp32" with the ONNX cpu deployment. Without the
-    # _platform_ok filter, model_status("ready") for the MLX repo would mark
-    # "fp32" downloaded even though the platform's own ONNX repo isn't cached
-    # at all — resolve_tts would then think it can load a variant that
-    # doesn't exist on this platform.
-    from sokuji_sidecar import native_models
-    card = catalog.TtsModel(
-        "fake-tts-mlx", "Fake TTS MLX", ("en",),
-        (catalog.Deployment("mlx_audio_tts", "gpu-metal", "fp32", "mlx-community/fake-mlx", 1.0,
-                             platforms=("macos",), requires_apple_silicon=True),
-         catalog.Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", "org/fake-bf16", 1.2, est_bytes=5_000),
-         catalog.Deployment("qwen3tts_onnx", "cpu", "fp32", "org/fake-fp32", 1.0, est_bytes=8_000)),
-        repos=("org/fake-fp32",), clones=True, streaming=False)
-    ready = {"mlx-community/fake-mlx"}  # only the off-platform MLX repo is cached
-    monkeypatch.setattr(native_models, "model_status",
-                        lambda mid, repo=None: "ready" if repo in ready else "absent")
-    m = _machine(apple=False)  # Linux box, not Apple Silicon
-    result = accel._downloaded_tts_variants(card, m, "linux")
-    assert "fp32" not in result
-    assert result == frozenset()
+    monkeypatch.setattr("huggingface_hub.hf_hub_download", fake_hf_hub_download)
+    got = accel_mod._downloaded_quants(_tts_variant_card())
+    assert got == {"q8_0"}
 
 
 def test_resolve_tts_wrapper_passes_pin_and_downloaded(monkeypatch):
     seen = {}
-    def fake(mid, override, *, machine, platform, cache, downloaded, pin):
+    def fake(mid, override, *, machine, platform, cache, downloaded, pin, est_bytes):
         seen.update(downloaded=downloaded, pin=pin)
         return ["sentinel"]
     monkeypatch.setattr(accel.planner, "resolve_tts", fake)
-    monkeypatch.setattr(accel, "_downloaded_tts_variants", lambda m, machine, platform: frozenset({"int8"}))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q8_0"})
     monkeypatch.setattr(catalog, "resolve_tts_card", lambda mid: _tts_variant_card())
-    assert accel.resolve_tts("fake-tts", pin="fp32") == ["sentinel"]
-    assert seen == {"downloaded": frozenset({"int8"}), "pin": "fp32"}
+    assert accel.resolve_tts("fake-tts", pin="bf16") == ["sentinel"]
+    assert seen == {"downloaded": {"q8_0"}, "pin": "bf16"}
 
 
 def test_models_catalog_emits_tts_variants(monkeypatch):
-    cuda_machine = _machine(gpus=_nv_gpus(12000))
+    cuda_machine = _machine(gpus=_nv_gpus(12000), tc=("vulkan", "cpu"))
     monkeypatch.setattr(accel, "probe", lambda force=False: cuda_machine)
     monkeypatch.setattr(catalog, "tts_models", lambda: [_tts_variant_card()])
     reply, _ = asyncio.run(accel._h_models_catalog({}, {"kind": "tts", "id": 1}, None))
     entry = reply["models"][0]
     by_id = {v["id"]: v for v in entry["variants"]}
-    assert set(by_id) == {"fp32", "bf16", "int8"}
-    assert by_id["bf16"]["recommended"] and by_id["bf16"]["supported"]
-    assert by_id["int8"]["supported"]           # cpu tier always runs
-    assert by_id["bf16"]["repo"] == "org/fake-bf16"
+    assert set(by_id) == {"bf16", "q8_0"}
+    # GGUF-LLM-shaped cards (native_tts, since slice 4) are unconditionally
+    # "supported" — the tier fallback (GPU->cpu) handles capacity, no VRAM
+    # fit gate — and `recommended` mirrors _llamacpp_variant_row's budget walk.
+    assert all(v["supported"] for v in by_id.values())
+    assert by_id["bf16"]["recommended"] and not by_id["q8_0"]["recommended"]
+    assert by_id["bf16"]["repo"] == "org/fake/repo/fake-bf16.gguf"
 
 
 def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
@@ -779,13 +704,21 @@ def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
     import numpy as np
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     class FakeBackend:
+        # I2(s4): generate() returns (samples, rate, gen_ms) -- the ACTUAL per-synth
+        # rate, which measure_rtf_tts must use for audio_s. `sample_rate` here is the
+        # class's advertised caps DEFAULT and is DELIBERATELY different from what
+        # generate() actually returns below, so a regression back to
+        # getattr(backend, "sample_rate", ...) computes the WRONG audio_s (24000/24000
+        # = 1.0s instead of 24000/16000 = 1.5s) and the concrete rtf assertion below
+        # catches it instead of just checking "some rtf came back".
         sample_rate = 24000
         def generate(self, text, speed=1.0):
-            return np.zeros(24000, np.float32), 100  # 1.0s audio, 100ms gen
-    plan = accel.Plan("moss_onnx", "cpu", "cpu", "fp32", "repo", 1.0)
+            return np.zeros(24000, np.float32), 16000, 150  # 1.5s audio @ 16000Hz, 150ms gen
+    plan = accel.Plan("native_tts", "cpu", "cpu", "q8_0", "repo", 1.0)
     m = accel.probe()
     rtf = accel.measure_rtf_tts(FakeBackend(), plan, "moss-tts-nano", m)
-    assert rtf is not None and rtf > 0
+    # 24000 samples @ 16000Hz = 1.5s audio; gen_ms=150 -> rtf = 0.15s / 1.5s = 0.1 exactly.
+    assert rtf == pytest.approx(0.1)
 
 
 def _catalog(kind):
@@ -807,21 +740,22 @@ def test_models_catalog_tts_kind_lists_models_with_voice_fields():
     tts = _catalog("tts")
     moss = tts["moss-tts-nano"]
     assert moss["kind"] == "tts" and moss["clones"] is True
-    assert moss["numSpeakers"] >= 1 and "streaming" in moss
+    assert "streaming" in moss and "numSpeakers" not in moss  # dropped with style_voices (slice 4)
+    assert moss["voice"] == {"builtin": "none", "custom": "clip"}
 
 
 def test_models_catalog_carries_size_bytes_per_model():
     asr = _catalog("asr")
     tts = _catalog("tts")
     assert asr["sense-voice"]["sizeBytes"] > 0
-    assert tts["csukuangfj/vits-piper-en_US-amy-low"]["sizeBytes"] == 81105784
-    assert tts["csukuangfj/vits-zh-aishell3"]["sizeBytes"] == 123663994
-    amy = tts["csukuangfj/vits-piper-en_US-amy-low"]
-    assert amy["clones"] is False and amy["numSpeakers"] == 1
-    assert amy["repo"] == "csukuangfj/vits-piper-en_US-amy-low"
+    assert tts["supertonic-3"]["sizeBytes"] == 312784196
+    assert tts["moss-tts-nano"]["sizeBytes"] == 193337984
+    moss = tts["moss-tts-nano"]
+    assert moss["clones"] is True
+    assert moss["repo"] == "audio-cpp/audio.cpp-gguf/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
 
 
-# ── llamacpp-aware resolution/variant selection (Task 10) ──────────────────
+# ── GGUF-LLM-aware resolution/variant selection (Task 10 / slice 3) ─────────
 # Named `_llm_machine` (not `_machine`) — the file already has a `_machine`
 # helper with a different (kwargs-of-tuples) signature; redefining `_machine`
 # here would silently replace it for the whole module and break every earlier
@@ -830,20 +764,14 @@ def test_models_catalog_carries_size_bytes_per_model():
 
 def _llm_machine(gpu=False, apple=False):
     return _machine(gpus=_nv_gpus(12282) if gpu else (),
+                    tc=("vulkan", "cpu") if gpu else (),
                     apple=apple, installed=accel._installed())
 
 
-def test_resolve_translate_sets_reserved(monkeypatch):
-    from sokuji_sidecar import llama_runtime as rt
-    monkeypatch.setattr(accel, "probe", lambda force=False: _llm_machine(gpu=True))
-    accel.resolve_translate("qwen2.5-0.5b", reserved_bytes=123456)
-    assert rt.get_reserved_bytes() == 123456
-    rt.set_reserved_bytes(0)
-
-
 def test_vram_gate_skipped_for_llamacpp(monkeypatch):
-    """The proactive free-VRAM check must not pre-skip llamacpp cuda plans —
-    llama-server's --fit handles memory by partial offload."""
+    """The proactive free-VRAM check must not pre-skip native_translate cuda
+    plans (a defensive no-op today: no catalog row offers native_translate a
+    gpu-cuda tier at all, see planner._tier_available's aarch64 comment)."""
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)  # 1 GiB free
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 << 30)
     loaded = []
@@ -852,8 +780,8 @@ def test_vram_gate_skipped_for_llamacpp(monkeypatch):
         def load(self, ref, device, ct, config=None):
             loaded.append(device)
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
-    plans = [accel.Plan("llamacpp_gemma", "gpu-cuda", "cuda", "q4_k_m", "repo", 2.0),
-             accel.Plan("llamacpp_gemma", "cpu", "cpu", "q4_k_m", "repo", 2.0)]
+    plans = [accel.Plan("native_translate", "gpu-cuda", "cuda", "q4_k_m", "repo", 2.0),
+             accel.Plan("native_translate", "cpu", "cpu", "q4_k_m", "repo", 2.0)]
     _b, plan, notice = accel.load_with_fallback(plans)
     assert plan.device == "cuda" and notice is None
     assert loaded == ["cuda"]
@@ -874,10 +802,9 @@ def test_models_catalog_variant_ids(monkeypatch):
     reply, _ = asyncio.run(accel._h_models_catalog({}, {"kind": "translate"}, None, None))
     by_id = {m["id"]: m for m in reply["models"]}
     assert by_id["translategemma-4b"]["variantIds"] == ["q4_k_m", "q8_0"]
-    assert by_id["opus-mt-ja-en"]["variantIds"] == ["int8"]
 
 
-def test_asr_unavailable_without_transcribe_cpp():
+def test_asr_unavailable_without_native():
     # wheel missing → no ASR model resolves (installed gate)
     m = _machine(installed=frozenset())
     import pytest as _pytest
@@ -888,66 +815,60 @@ def test_asr_unavailable_without_transcribe_cpp():
 # ── Phase E1: GPU identity + fresh memory reads ──────────────────────────────
 
 
-class _FakeTcDev:
-    def __init__(self, kind, desc, total, free, device_type="gpu"):
-        self.kind = kind
-        self.description = desc
-        self.memory_total = total
-        self.memory_free = free
-        self.device_type = device_type
+class _FakeDev:
+    def __init__(self, index, kind, desc, total, free):
+        self.index, self.kind, self.name = index, kind, f"{kind}{index}"
+        self.description, self.mem_total, self.mem_free = desc, total, free
 
 
-def _fake_tc_module(devs):
-    import types
-    mod = types.ModuleType("transcribe_cpp")
-    mod.backends = lambda: devs
+def _fake_native_module(monkeypatch, devs):
+    import sys, types
+    from sokuji_sidecar import native
+    mod = types.ModuleType("sokuji_native")
+    mod.init = lambda n_threads=0, log=None: None
+    mod.devices = lambda: list(devs)
+    mod.device_free_mem = lambda i: next(d.mem_free for d in devs if d.index == i)
+    monkeypatch.setitem(sys.modules, "sokuji_native", mod)
+    native.reset_for_tests()
     return mod
 
 
 def test_machine_gpus_stable_identity(monkeypatch):
-    import sys
-    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
-        _FakeTcDev("vulkan", "AMD Radeon RX 7800 XT", 16 << 30, 15 << 30),
-        _FakeTcDev("cpu", "Ryzen 7", 64 << 30, 60 << 30, device_type="cpu"),
-    ]))
+    _fake_native_module(monkeypatch, [
+        _FakeDev(0, "vulkan", "AMD Radeon RX 7800 XT", 16 << 30, 15 << 30),
+        _FakeDev(1, "cpu", "Ryzen 7", 64 << 30, 60 << 30),
+    ])
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp"}))
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_asr"}))
     m = accel.probe(force=True)
-    # gpus: STABLE identity only (kind, name, mem_total) — no volatile free
     assert m.gpus == (("vulkan", "AMD Radeon RX 7800 XT", 16 << 30),)
     assert m.tc_kinds == ("cpu", "vulkan")
 
 
 def test_fingerprint_ignores_volatile_free(monkeypatch):
-    import sys
     def probe_with_free(free):
-        monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
-            _FakeTcDev("vulkan", "RTX 4070", 12 << 30, free)]))
+        _fake_native_module(monkeypatch, [_FakeDev(0, "vulkan", "RTX 4070", 12 << 30, free)])
         monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-        monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
         monkeypatch.setattr(accel, "_installed", lambda: frozenset())
         return accel.probe(force=True).fingerprint
     assert probe_with_free(10 << 30) == probe_with_free(2 << 30)
 
 
-def test_device_free_bytes_prefers_tc(monkeypatch):
-    import sys
-    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
-        _FakeTcDev("vulkan", "RTX 4070", 12 << 30, 9 << 30)]))
+def test_device_free_bytes_prefers_native(monkeypatch):
+    _fake_native_module(monkeypatch, [_FakeDev(0, "vulkan", "RTX 4070", 12 << 30, 9 << 30)])
     assert accel.device_free_bytes() == 9 << 30
 
 
-def test_device_free_bytes_none_without_tc(monkeypatch):
+def test_device_free_bytes_none_without_native(monkeypatch):
     import sys
-    monkeypatch.setitem(sys.modules, "transcribe_cpp", None)   # import fails
-    assert accel.device_free_bytes() is None   # no NVML fallback: degrade to None
+    from sokuji_sidecar import native
+    monkeypatch.setitem(sys.modules, "sokuji_native", None)   # import fails
+    native.reset_for_tests()
+    assert accel.device_free_bytes() is None
 
 
 def test_device_free_bytes_none_without_gpu(monkeypatch):
-    import sys
-    monkeypatch.setitem(sys.modules, "transcribe_cpp", _fake_tc_module([
-        _FakeTcDev("cpu", "Ryzen", 64 << 30, 60 << 30, device_type="cpu")]))
+    _fake_native_module(monkeypatch, [_FakeDev(0, "cpu", "Ryzen", 64 << 30, 60 << 30)])
     assert accel.device_free_bytes() is None
 
 
@@ -959,7 +880,7 @@ def test_ram_free_bytes_positive():
 def test_list_variants_recommends_on_stable_total(monkeypatch):
     # recommendation keys on mem_total (12GB → q8 recommended) even when the
     # transient free is tiny — download advice must not flap session-to-session.
-    m = _machine(gpus=_nv_gpus(12288), installed=frozenset({"llamacpp_gemma"}))
+    m = _machine(gpus=_nv_gpus(12288), tc=("vulkan", "cpu"), installed=frozenset({"native_translate"}))
     monkeypatch.setattr(accel, "probe", lambda force=False: m)
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)
     import asyncio as _a, json as _j
@@ -973,10 +894,9 @@ def test_list_variants_recommends_on_stable_total(monkeypatch):
 
 def test_models_catalog_exposes_asr_variant_ids_and_deduped_tiers(monkeypatch):
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
-    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"transcribe_cpp", "transcribe_cpp_stream"}))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu",))
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: ())
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_asr", "native_asr_stream"}))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu",))
+    monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     accel.probe(force=True)
     st = {"handlers": {}}
     accel.register(st)
@@ -1041,7 +961,7 @@ def test_load_measured_claims_into_ledger(monkeypatch):
     class _B:
         def load(self, a, d, c, config=None): pass
     monkeypatch.setattr(accel, "make_backend", lambda name: _B())
-    plans = [accel.Plan("transcribe_cpp", "gpu-vulkan", "vulkan", "q8_0", "org/r/f.gguf", 1.0)]
+    plans = [accel.Plan("native_asr", "gpu-vulkan", "vulkan", "q8_0", "org/r/f.gguf", 1.0)]
     _b, plan, _n, mem = accel.load_measured(plans, stage="asr")
     assert mem == 2 << 30                          # vulkan delta measured (not cuda-only)
     assert accel.ledger_other("translate") == 2 << 30
@@ -1055,7 +975,7 @@ def test_load_measured_cpu_claims_zero(monkeypatch):
     class _B:
         def load(self, a, d, c, config=None): pass
     monkeypatch.setattr(accel, "make_backend", lambda name: _B())
-    plans = [accel.Plan("transcribe_cpp", "cpu", "cpu", "q8_0", "org/r/f.gguf", 1.0)]
+    plans = [accel.Plan("native_asr", "cpu", "cpu", "q8_0", "org/r/f.gguf", 1.0)]
     accel.load_measured(plans, stage="asr")
     assert accel.ledger_other("translate") == 0    # present but holds no VRAM
     assert "asr" in accel._LEDGER
@@ -1067,11 +987,10 @@ def test_load_measured_cpu_claims_zero(monkeypatch):
 
 def _catalog_reply(monkeypatch, gpus=(), kind="asr", models=None):
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
-    monkeypatch.setattr(accel, "_dml_adapters", lambda: ())
     monkeypatch.setattr(accel, "_installed",
-                        lambda: frozenset({"transcribe_cpp", "transcribe_cpp_stream", "llamacpp_gemma"}))
-    monkeypatch.setattr(accel, "_tc_kinds", lambda: ("cpu", "vulkan") if gpus else ("cpu",))
-    monkeypatch.setattr(accel, "_tc_gpus", lambda: gpus)
+                        lambda: frozenset({"native_asr", "native_asr_stream", "native_translate"}))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "vulkan") if gpus else ("cpu",))
+    monkeypatch.setattr(accel, "_native_gpus", lambda: gpus)
     accel.probe(force=True)
     st = {"handlers": {}}
     accel.register(st)
@@ -1110,12 +1029,11 @@ def test_catalog_variants_cpu_only_recommends_smallest(monkeypatch):
 
 
 def test_catalog_variants_translate_kind_included(monkeypatch):
-    # translate needs an NVIDIA/Metal machine (no vulkan llama flavor yet)
     by_id = _catalog_reply(monkeypatch, gpus=_nv_gpus(12288),
                            kind="translate", models=["translategemma-4b"])
     v = by_id["translategemma-4b"]["variants"]
     assert [x["id"] for x in v] == ["q8_0", "q4_k_m"]
-    assert all(x["supported"] for x in v)     # llama always runs via --fit
+    assert all(x["supported"] for x in v)     # tier fallback (GPU->cpu) handles capacity
     assert [x["id"] for x in v if x["recommended"]] == ["q8_0"]
 
 
@@ -1141,37 +1059,20 @@ def test_no_nvml_left_in_package():
     assert hits == []
 
 
-def test_dml_tier_constants_place_dml_below_cuda():
-    # P5 relies on these pre-existing constants; guard them.
-    assert accel.TIER_RANK["gpu-cuda"] > accel.TIER_RANK["gpu-dml"] > accel.TIER_RANK["cpu"]
-    assert accel.TIER_DEVICE["gpu-dml"] == "dml"
-
-
-# Post-P2 Machine shape: no `nvidia` field / accel.Gpu class — NVIDIA presence
-# comes from `gpus` (kind, description, mem_total) via accel.has_nvidia. tc_kinds
-# and gpus default to (); a DML box needs only dml_adapters.
-def test_mlx_audio_tts_gated_on_mlx_audio(monkeypatch):
-    from sokuji_sidecar import accel
-    real = accel.importlib.util.find_spec
-
-    def present(name, *a, **k):
-        if name == "mlx_audio":
-            return object()
-        return real(name, *a, **k)
-    monkeypatch.setattr(accel.importlib.util, "find_spec", present)
-    assert "mlx_audio_tts" in accel._installed()
-
-
-def test_mlx_audio_tts_absent_without_wheel():
-    from sokuji_sidecar import accel
-    # mlx_audio is not installed in the Linux dev venv → the backend is filtered out.
-    assert "mlx_audio_tts" not in accel._installed()
+# TIER_RANK/TIER_DEVICE's gpu-cuda/gpu-dml entries, and the mlx_audio_tts
+# backend they and _dml_adapters/has_nvidia existed to serve, all died with
+# the ONNX/MLX TTS backends (their last catalog consumers, slice 4 — R4):
+# test_dml_tier_constants_place_dml_below_cuda and the two
+# test_mlx_audio_tts_* tests have no equivalent. Post-slice-4 Machine shape:
+# no `nvidia`/`dml_adapters`/`ort_cuda` fields — accelerator identity is
+# `gpus` (kind, description, mem_total) plus `tc_kinds`, both from the same
+# native probe.
 
 
 def test_gpu_metal_tier_available_on_apple_silicon():
     from sokuji_sidecar import accel
     m = accel.Machine(os="Darwin", arch="arm64", cpu_cores=8,
-                      apple_silicon=True, dml_adapters=(), installed=frozenset(),
+                      apple_silicon=True, installed=frozenset(),
                       fingerprint="as", tc_kinds=())
     assert accel._tier_available("gpu-metal", m) is True
 
@@ -1182,7 +1083,7 @@ def test_gpu_metal_tier_available_via_tc_metal_kind():
     # available — the Apple-Silicon requirement is enforced separately by
     # _platform_ok(requires_apple_silicon), not here.
     m = accel.Machine(os="Darwin", arch="arm64", cpu_cores=8,
-                      apple_silicon=False, dml_adapters=(), installed=frozenset(),
+                      apple_silicon=False, installed=frozenset(),
                       fingerprint="intel-mac", tc_kinds=("cpu", "metal"))
     assert accel._tier_available("gpu-metal", m) is True
 

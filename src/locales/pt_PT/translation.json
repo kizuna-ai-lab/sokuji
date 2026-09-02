@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Motor de inferência",
-    "detected": "Detetado: {{gpu}}",
     "package": "Pacote do motor: {{sku}} · {{size}}",
     "sizeUnknown": "tamanho indisponível offline",
     "download": "Transferir motor",
@@ -891,6 +890,7 @@
     "clipSilent": "Nenhuma voz detetada — verifique o microfone e tente novamente.",
     "clipTooLong": "A gravação é demasiado longa — mantenha-a abaixo dos {seconds} segundos.",
     "clipTooShort": "A gravação é demasiado curta — fale durante pelo menos {seconds} segundos.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Precisa de uma voz personalizada?",
     "decodeFailed": "Não foi possível ler esse ficheiro de áudio — experimente WAV, MP3 ou outro formato comum.",
     "delete": "Eliminar",

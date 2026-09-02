@@ -1,0 +1,148 @@
+# .github/workflows/native-build.yml
+# Build the sokuji-native wheels (spec §4.6): one ggml + transcribe.cpp + llama.cpp +
+# audio.cpp behind the sk_* C ABI, per platform. Two lanes, mirroring sidecar-bundles.yml:
+#   - workflow_dispatch: dry run — artifacts only.
+#   - native-vX.Y.Z tag push: build all five and publish a PRERELEASE GitHub Release
+#     (prerelease so electron-updater's "latest release" lookup never lands on it).
+name: native-build
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['native-v*']
+
+env:
+  VULKAN_SDK_VERSION: 1.4.321.1
+  SK_TEST_ASR_GGUF: ${{ github.workspace }}/native/build/models/whisper-tiny-Q8_0.gguf
+  SK_TEST_ASR_STREAM_GGUF: ${{ github.workspace }}/native/build/models/moonshine-streaming-tiny-Q8_0.gguf
+  SK_TEST_TRANSLATE_GGUF: ${{ github.workspace }}/native/build/models/Qwen3-0.6B-Q8_0.gguf
+  SK_TEST_TTS_SUPERTONIC_DIR: ${{ github.workspace }}/native/build/models/tts/supertonic-3
+  SK_TEST_TTS_MOSS_DIR: ${{ github.workspace }}/native/build/models/tts/moss-tts-nano
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 24.04, not 22.04: glslc is only packaged from 24.04 on, and the repo's
+          # sidecar-bundles.yml already builds Linux on 24.04 runners, so the glibc floor
+          # this implies (2.39) is the one users already have.
+          - { sku: linux-x64,   runner: ubuntu-24.04,     lane: vulkan, plat: manylinux_2_39_x86_64 }
+          - { sku: linux-arm64, runner: ubuntu-24.04-arm, lane: vulkan, plat: manylinux_2_39_aarch64 }
+          - { sku: win-x64,     runner: windows-2022,     lane: vulkan, plat: win_amd64 }
+          - { sku: mac-arm64,   runner: macos-14,         lane: metal,  plat: macosx_11_0_arm64 }
+          - { sku: mac-x64,     runner: macos-15-intel,   lane: none,   plat: macosx_11_0_x86_64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Verify tag matches native/CMakeLists.txt project version
+        if: startsWith(github.ref, 'refs/tags/native-v')
+        shell: bash
+        run: |
+          WANT="${GITHUB_REF_NAME#native-v}"
+          HAVE="$(sed -nE 's/^project\(sokuji_native VERSION ([0-9.]+).*/\1/p' native/CMakeLists.txt)"
+          [ "$WANT" = "$HAVE" ] || { echo "tag $WANT != CMake project version $HAVE"; exit 1; }
+      - uses: actions/setup-python@v6
+        with: { python-version: '3.12' }
+      - name: CTest models (whisper-tiny Q8_0, moonshine-streaming-tiny Q8_0, Qwen3-0.6B Q8_0, supertonic-3 F16, MOSS-TTS-Nano Q8_0)
+        id: models
+        uses: actions/cache@v4
+        with:
+          path: native/build/models
+          key: ctest-models-v3-whisper-tiny-Q8_0-moonshine-streaming-tiny-Q8_0-qwen3-0.6b-Q8_0-supertonic-3-f16-moss-tts-nano-q8_0
+      - name: Download CTest models
+        if: steps.models.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          mkdir -p native/build/models native/build/models/tts/supertonic-3 native/build/models/tts/moss-tts-nano
+          curl -sSL -o native/build/models/whisper-tiny-Q8_0.gguf https://huggingface.co/handy-computer/whisper-tiny-gguf/resolve/main/whisper-tiny-Q8_0.gguf
+          curl -sSL -o native/build/models/moonshine-streaming-tiny-Q8_0.gguf https://huggingface.co/handy-computer/moonshine-streaming-tiny-gguf/resolve/main/moonshine-streaming-tiny-Q8_0.gguf
+          curl -sSL -o native/build/models/Qwen3-0.6B-Q8_0.gguf https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf
+          # supertonic Q8_0 is not viable (audio.cpp docs/gguf.md: "Q8 blockers unresolved" in
+          # the text/vector graph paths) — F16 is the smallest tested-passing quant. Each
+          # directory holds only the .gguf: audio.cpp materializes the family's
+          # config/voice-style sidecars from the GGUF's own embedded metadata at load time.
+          curl -sSL -o native/build/models/tts/supertonic-3/supertonic-3-f16.gguf https://huggingface.co/audio-cpp/audio.cpp-gguf/resolve/main/Supertonic-3-GGUF/supertonic-3-f16.gguf
+          curl -sSL -o native/build/models/tts/moss-tts-nano/moss-tts-nano-100m-q8_0.gguf https://huggingface.co/audio-cpp/audio.cpp-gguf/resolve/main/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf
+          ls -la native/build/models native/build/models/tts/supertonic-3 native/build/models/tts/moss-tts-nano
+      - name: Vulkan SDK (Linux)
+        if: runner.os == 'Linux' && matrix.lane == 'vulkan'
+        run: |
+          sudo apt-get update
+          # spirv-headers: ggml-vulkan does find_package(SPIRV-Headers CONFIG REQUIRED);
+          # the 24.04 package ships the CMake config under /usr/share/cmake/SPIRV-Headers.
+          sudo apt-get install -y libvulkan-dev glslc spirv-headers
+      - name: Vulkan SDK (Windows)
+        if: runner.os == 'Windows' && matrix.lane == 'vulkan'
+        shell: pwsh
+        run: |
+          # LunarG renamed the installer: VulkanSDK-<ver>-Installer.exe now 404s.
+          $url = "https://sdk.lunarg.com/sdk/download/$env:VULKAN_SDK_VERSION/windows/vulkansdk-windows-X64-$env:VULKAN_SDK_VERSION.exe"
+          Invoke-WebRequest -Uri $url -OutFile vulkansdk-windows-X64.exe
+          Start-Process -Wait -FilePath .\vulkansdk-windows-X64.exe -ArgumentList '--accept-licenses','--default-answer','--confirm-command','install'
+          "VULKAN_SDK=C:\VulkanSDK\$env:VULKAN_SDK_VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "C:\VulkanSDK\$env:VULKAN_SDK_VERSION\Bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Build, test, wheel (POSIX)
+        if: runner.os != 'Windows'
+        env:
+          # Opt-in gate for test_tts_synthesises_on_a_gpu_device: place each TTS family whose
+          # model dir is set on the first NON-CPU device and synthesize there. It is what the
+          # slice-4 metal lane was missing — that lane went green while three of the five
+          # families aborted on Metal, because nothing ever put a TTS session on a Metal
+          # device. METAL LANE ONLY, and deliberately not "set everywhere, skips itself":
+          # a headless Linux runner with a software rasterizer installed (llvmpipe/lavapipe)
+          # reports a non-CPU Vulkan device, so the test would start running whole TTS
+          # families on a CPU emulator — slow, and green for a GPU that is not there. An
+          # empty value leaves the test skipped (it compares against "1"). Only the two
+          # families the model cache above holds are exercised; qwen3/omnivoice/pocket are
+          # multi-GB and are deliberately NOT cached, and the test covers whichever dirs
+          # happen to be set.
+          #
+          # Expect SKIPPED here, not PASSED (ruling R36): this runner is a VM whose Metal
+          # device reports as "Apple Paravirtual device" and lacks has_simdgroup_reduction,
+          # so ggml refuses NORM/RMS_NORM/ARGMAX and every family would abort regardless of
+          # the code under test. The test detects that description and skips, so this lane
+          # can never validate Metal TTS — real hardware does (an M4; see native/README.md's
+          # "Which Macs this is proved on"). The variable stays set so the day a
+          # non-paravirtual macOS runner exists, the coverage turns on by itself.
+          SK_TEST_TTS_GPU: ${{ matrix.lane == 'metal' && '1' || '' }}
+        run: native/ci/build.sh ${{ matrix.lane }} ${{ matrix.plat }}
+      - name: Build, test, wheel (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: native\ci\build.ps1 -Lane ${{ matrix.lane }} -Plat ${{ matrix.plat }}
+      - name: Wheel size
+        shell: bash
+        run: ls -la native/python/dist/ | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: sokuji-native-${{ matrix.sku }}
+          path: native/python/dist/*.whl
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/native-v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: wheels
+          merge-multiple: true
+      - run: ls -la wheels
+      - uses: softprops/action-gh-release@v3
+        with:
+          prerelease: true
+          name: ${{ github.ref_name }}
+          files: wheels/*.whl
+          body: |
+            sokuji-native ${{ github.ref_name }} — one ggml + transcribe.cpp + llama.cpp + audio.cpp behind the sk_* C ABI.
+            Pins: see native/cmake/upstreams.cmake at this tag. Wheels are py3-none-<platform>; install with pip.

@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LocalNativeClient } from './LocalNativeClient';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
 
+// Worker is not available in jsdom — stub the module that creates it. Tests
+// that need a real (fake) worker instance inject one via deps.vadWorker instead.
+vi.mock('./createNativeVadWorker', () => ({ createNativeVadWorker: () => null }));
+
 const LOCAL_NATIVE_CONFIG: any = {
   provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',
   asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
@@ -9,15 +13,20 @@ const LOCAL_NATIVE_CONFIG: any = {
 
 function mocks() {
   const asr: any = {
-    onResult: null, onSpeechStart: null, onStatus: null, onError: null, onPartialResult: null,
-    init: vi.fn().mockResolvedValue({ loadTimeMs: 1 }), feedAudio: vi.fn(), flush: vi.fn(), dispose: vi.fn(),
+    onResult: null, onStatus: null, onError: null, onPartialResult: null,
+    marks: [] as string[], fed: [] as Int16Array[], flushed: false,
+    init: vi.fn().mockResolvedValue({ loadTimeMs: 1 }),
+    feedAudio: vi.fn((pcm: Int16Array) => { asr.fed.push(pcm); }),
+    flush: vi.fn(() => { asr.flushed = true; }),
+    dispose: vi.fn(),
+    sendVadMark: vi.fn((e: string) => { asr.marks.push(e); }),
   };
   const translate: any = {
     onError: null, init: vi.fn().mockResolvedValue({ loadTimeMs: 1 }),
     translate: vi.fn().mockResolvedValue({ sourceText: 'hola', translatedText: 'hello', inferenceTimeMs: 2 }),
     dispose: vi.fn(),
   };
-  const tts: any = { onError: null, init: vi.fn(), generate: vi.fn(), dispose: vi.fn(), setVoice: vi.fn(), setSpeaker: vi.fn() };
+  const tts: any = { onError: null, init: vi.fn(), generate: vi.fn(), dispose: vi.fn(), setVoice: vi.fn() };
   return { asr, translate, tts };
 }
 
@@ -168,6 +177,68 @@ describe('LocalNativeClient', () => {
     expect(new Set(userItems.map((i) => i.id)).size).toBe(1);  // one user item across partials+final
   });
 
+  it('streams translate_partial into one live assistant item, then finalizes it on resolve', async () => {
+    const asr: any = { init: async () => ({ device: 'cuda' }), feedAudio() {}, flush() {}, dispose() {}, onResult: null, onPartialResult: null, onError: null };
+    const translate: any = {
+      onError: null, onPartial: null,
+      init: async () => ({ device: 'cpu' }),
+      translate: vi.fn(async () => {
+        translate.onPartial?.('Bon');
+        translate.onPartial?.('Bonjour');
+        return { translatedText: 'Bonjour !', inferenceTimeMs: 1 };
+      }),
+      dispose() {},
+    };
+    const client = new LocalNativeClient({ asr, translate });
+    const items: any[] = [];
+    client.setEventHandlers({ onConversationUpdated: ({ item }) => items.push({ id: item.id, status: item.status, text: item.formatted?.transcript }) });
+    await client.connect(LOCAL_NATIVE_CONFIG);
+    expect(typeof translate.onPartial).toBe('function'); // wired in connect(), next to onError
+
+    await asr.onResult({ text: 'bonjour', durationMs: 1, recognitionTimeMs: 1 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const assistantItems = items.filter((i) => i.id.startsWith('asst'));
+    // Two partial emissions with growing transcripts...
+    expect(assistantItems[0].text).toBe('Bon');
+    expect(assistantItems[1].text).toBe('Bonjour');
+    // ...and a final completed item whose transcript is the resolved text.
+    const last = assistantItems[assistantItems.length - 1];
+    expect(last.status).toBe('completed');
+    expect(last.text).toBe('Bonjour !');
+    // Same item reused throughout — no separate item created on resolve.
+    expect(new Set(assistantItems.map((i) => i.id)).size).toBe(1);
+  });
+
+  it('finalizes a streamed item as completed (with the last partial text) when translate() rejects', async () => {
+    const asr: any = { init: async () => ({ device: 'cuda' }), feedAudio() {}, flush() {}, dispose() {}, onResult: null, onPartialResult: null, onError: null };
+    const translate: any = {
+      onError: null, onPartial: null,
+      init: async () => ({ device: 'cpu' }),
+      translate: vi.fn(async () => {
+        translate.onPartial?.('Bon');
+        throw new Error('backend crashed');
+      }),
+      dispose() {},
+    };
+    const client = new LocalNativeClient({ asr, translate });
+    const items: any[] = [];
+    const errors: string[] = [];
+    client.setEventHandlers({
+      onConversationUpdated: ({ item }) => items.push({ id: item.id, status: item.status, text: item.formatted?.transcript }),
+      onError: (e: any) => errors.push(String(e)),
+    });
+    await client.connect(LOCAL_NATIVE_CONFIG);
+    await asr.onResult({ text: 'bonjour', durationMs: 1, recognitionTimeMs: 1 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(errors).toContain('backend crashed'); // existing error surfacing preserved
+    const assistantItems = items.filter((i) => i.id.startsWith('asst'));
+    const last = assistantItems[assistantItems.length - 1];
+    expect(last.status).toBe('completed'); // a half-streamed bubble beats a vanishing one
+    expect(last.text).toBe('Bon');
+  });
+
   it('drops the stale partial after clearConversationItems so the next final still lands', async () => {
     const translate = { init: async () => ({ device: 'cpu' }), translate: vi.fn(async () => ({ translatedText: 'T', inferenceTimeMs: 1 })), onError: null, dispose() {} };
     const asr: any = { init: async () => ({ device: 'cuda' }), feedAudio() {}, flush() {}, dispose() {}, onResult: null, onPartialResult: null, onError: null };
@@ -257,8 +328,8 @@ describe('LocalNativeClient load order', () => {
         'voxtral-mini-4b-realtime': { id: 'voxtral-mini-4b-realtime', name: '', languages: [], recommended: false,
           tiers: [{ tier: 'gpu-cuda', backend: 'voxtral_realtime', available: true }] },
         'qwen3.5-2b': { id: 'qwen3.5-2b', name: '', languages: [], recommended: false,
-          tiers: [{ tier: 'gpu-cuda', backend: 'llamacpp_qwen', available: true },
-                  { tier: 'cpu', backend: 'llamacpp_qwen', available: true }] },
+          tiers: [{ tier: 'gpu-cuda', backend: 'native_translate', available: true },
+                  { tier: 'cpu', backend: 'native_translate', available: true }] },
       },
     } as any);
     const order: string[] = [];
@@ -606,14 +677,15 @@ describe('LocalNativeClient voice selection', () => {
     expect(m.tts.setVoice).toHaveBeenCalledWith('Ava');
   });
 
-  it('sid: voice calls setSpeaker on a range (multi-speaker) model', async () => {
+  it('a stale sid:<n> voice (native_tts has no speaker-id equivalent) sends no voice command', async () => {
+    // The setSpeaker sender died with the ONNX range-model backends (Task 5's
+    // catalog rewire onto native_tts) and its NativeTtsClient method (Task 6) --
+    // a leftover sid:<n> settings value now just falls through untouched.
     const m = mocks();
     m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, clones: false });
-    m.tts.setSpeaker = vi.fn().mockResolvedValue(undefined);
     const c = new LocalNativeClient(m);
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: 'piper-en', ttsVoice: 'sid:3' } as any);
-    expect(m.tts.setSpeaker).toHaveBeenCalledWith(3);
     expect(m.tts.setVoice).not.toHaveBeenCalled();
   });
 
@@ -624,7 +696,6 @@ describe('LocalNativeClient voice selection', () => {
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: 'piper-en-amy' } as any);
     expect(m.tts.setVoice).not.toHaveBeenCalled();
-    expect(m.tts.setSpeaker).not.toHaveBeenCalled();
   });
 
   it('applies a custom cloned voice via setReferenceVoice', async () => {
@@ -742,7 +813,7 @@ describe('LocalNativeClient enriched log fields', () => {
     };
     const translate = {
       onError: null as any,
-      init: async () => ({ loadTimeMs: 9, device: 'cpu', backend: 'llamacpp', computeType: 'q4', tokensPerSec: 12.5, memoryBytes: 4_000_000_000, fallbackReason: 'cuda skipped; using CPU' }),
+      init: async () => ({ loadTimeMs: 9, device: 'cpu', backend: 'native_translate', computeType: 'q4', tokensPerSec: 12.5, memoryBytes: 4_000_000_000, fallbackReason: 'cuda skipped; using CPU' }),
       translate: async () => ({ translatedText: 'x', inferenceTimeMs: 1 }), dispose() {},
     };
     const c = new LocalNativeClient({ asr, translate, tts: fakeTts() });
@@ -754,7 +825,7 @@ describe('LocalNativeClient enriched log fields', () => {
     const asrReady = events.find((e) => e.type === 'local.native.init.asr.ready');
     expect(asrReady.data).toMatchObject({ model: 'granite', device: 'cuda', backend: 'ort', computeType: 'fp16', rtf: 0.02, memoryBytes: 8_000_000_000, loadTimeMs: 5 });
     const trReady = events.find((e) => e.type === 'local.native.init.translation.ready');
-    expect(trReady.data).toMatchObject({ model: 'q', device: 'cpu', backend: 'llamacpp', tokensPerSec: 12.5, loadTimeMs: 9 });
+    expect(trReady.data).toMatchObject({ model: 'q', device: 'cpu', backend: 'native_translate', tokensPerSec: 12.5, loadTimeMs: 9 });
     const fb = events.find((e) => e.type === 'local.native.init.translation.fallback');
     expect(fb.data).toMatchObject({ model: 'q', fallbackReason: 'cuda skipped; using CPU' });
   });
@@ -807,5 +878,278 @@ describe('LocalNativeClient enriched log fields', () => {
     expect(err).toBeDefined();
     expect(err.data.modelId).toBe('qwen2.5-0.5b');
     expect(err.data.error).toContain('translate boom');
+  });
+});
+
+// ── Task 4: native-vad worker drives sidecar segmentation via vad_mark ───────
+
+class FakeVadWorker {
+  posted: any[] = [];
+  onmessage: ((e: { data: any }) => void) | null = null;
+  onerror: ((e: any) => void) | null = null;
+  postMessage(m: any) {
+    this.posted.push(m);
+    if (m.type === 'init') queueMicrotask(() => this.onmessage?.({ data: { type: 'ready' } }));
+  }
+  terminate() { this.posted.push({ type: '__terminated' }); }
+  emit(data: any) { this.onmessage?.({ data }); }
+}
+
+const VAD_LOCAL_NATIVE_CONFIG: any = {
+  ...LOCAL_NATIVE_CONFIG,
+  vadThreshold: 0.35, vadMinSilenceDuration: 1.2, vadMinSpeechDuration: 0.5,
+};
+
+describe('LocalNativeClient native-vad worker wiring', () => {
+  let worker: FakeVadWorker;
+  let fakeAsr: ReturnType<typeof mocks>['asr'];
+  let client: LocalNativeClient;
+
+  beforeEach(async () => {
+    const m = mocks();
+    fakeAsr = m.asr;
+    worker = new FakeVadWorker();
+    client = new LocalNativeClient({ ...m, vadWorker: () => worker as unknown as Worker });
+    client.setEventHandlers({});
+    await client.connect({ ...VAD_LOCAL_NATIVE_CONFIG });
+  });
+
+  it('connect() boots the VAD worker with the session vad knobs', () => {
+    const init = worker.posted.find((m) => m.type === 'init');
+    expect(init.vadConfig).toEqual({
+      threshold: VAD_LOCAL_NATIVE_CONFIG.vadThreshold,
+      minSilenceDuration: VAD_LOCAL_NATIVE_CONFIG.vadMinSilenceDuration,
+      minSpeechDuration: VAD_LOCAL_NATIVE_CONFIG.vadMinSpeechDuration,
+    });
+  });
+
+  it('worker edges become vad_mark sends (start/end/cancel)', () => {
+    worker.emit({ type: 'speech_start' });
+    worker.emit({ type: 'speech_end' });
+    worker.emit({ type: 'speech_cancel' });
+    expect(fakeAsr.marks).toEqual(['start', 'end', 'cancel']);
+  });
+
+  it('appendInputAudio() feeds both the sidecar and the worker', () => {
+    const pcm = new Int16Array(2400);
+    client.appendInputAudio(pcm);
+    expect(fakeAsr.fed).toHaveLength(1);
+    expect(worker.posted.some((m) => m.type === 'audio' && m.pcm === pcm)).toBe(true);
+  });
+
+  it('createResponse() flushes the worker before the sidecar flush', () => {
+    client.createResponse();
+    expect(worker.posted.some((m) => m.type === 'flush')).toBe(true);
+    expect(fakeAsr.flushed).toBe(true);
+  });
+
+  it('disconnect() disposes and terminates the worker', async () => {
+    await client.disconnect();
+    expect(worker.posted.some((m) => m.type === 'dispose')).toBe(true);
+    expect(worker.posted.some((m) => m.type === '__terminated')).toBe(true);
+  });
+
+  it('a worker error after ready surfaces via handlers.onError', () => {
+    const errs: string[] = [];
+    client.setEventHandlers({ onError: (e: any) => errs.push(String(e)) } as any);
+    worker.onerror?.({ message: 'wasm crashed' });
+    expect(errs).toHaveLength(1);
+    expect(errs[0]).toContain('VAD worker');
+  });
+});
+
+describe('LocalNativeClient native-vad worker (no worker available)', () => {
+  it('a null worker factory (test env) still connects', async () => {
+    const m = mocks();
+    const client = new LocalNativeClient({ ...m, vadWorker: () => null });
+    client.setEventHandlers({});
+    await expect(client.connect({ ...VAD_LOCAL_NATIVE_CONFIG })).resolves.toBeUndefined();
+    expect(() => client.appendInputAudio(new Int16Array(10))).not.toThrow();
+  });
+});
+
+// ── Slice 5: clone-only voice gate (renderer mirror of the sidecar R16 pre-check) ──
+//
+// A model whose catalog entry reports voice: { builtin: 'none', custom: 'clip' }
+// (qwen3_tts/omnivoice-shaped) can ONLY speak via a cloned voice. Without a
+// stored clip, the sidecar's own tts_backend.py raises a clean error from
+// generate() (R16) — but only once generate() is actually called, per
+// sentence. This gate catches it up front, before the model even loads, so
+// connect() never calls tts.init()/tts.generate() for that session at all.
+// A never-reused model id keeps this independent of catalog state any other
+// test in this file may have left behind.
+describe('LocalNativeClient clone-only voice gate', () => {
+  const CLONE_ONLY_MODEL = 'qwen3-tts-gate-test';
+
+  it('skips loading TTS entirely when a clone-only model has no stored clip', async () => {
+    useNativeModelStore.setState({
+      catalog: { [CLONE_ONLY_MODEL]: { id: CLONE_ONLY_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [], voice: { builtin: 'none', custom: 'clip' } } as any },
+    } as any);
+    const m = mocks();
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices').mockResolvedValue([]);
+    const errors: string[] = [];
+    const diagnostics: string[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({
+      onError: (e: any) => errors.push(String(e?.message ?? e)),
+      onDiagnostic: (d: any) => diagnostics.push(`${d.code}: ${d.message}`),
+    } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: CLONE_ONLY_MODEL } as any);
+    expect(m.tts.init).not.toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/needs a voice clip/i);
+    expect(diagnostics.some((d) => d.startsWith('tts_degraded:'))).toBe(true);
+  });
+
+  it('proceeds normally when the clone-only model already has a stored clip', async () => {
+    useNativeModelStore.setState({
+      catalog: { [CLONE_ONLY_MODEL]: { id: CLONE_ONLY_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [], voice: { builtin: 'none', custom: 'clip' } } as any },
+    } as any);
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
+    m.tts.setReferenceVoice = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
+      .mockResolvedValue([{ id: 3, name: 'Mine', audio: new Float32Array([0.1, 0.2]).buffer, sampleRate: 16000, createdAt: 0 }]);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'getNativeVoice')
+      .mockResolvedValue({ id: 3, name: 'Mine', audio: new Float32Array([0.1, 0.2]).buffer, sampleRate: 16000, createdAt: 0 });
+    const errors: string[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({ onError: (e: any) => errors.push(String(e?.message ?? e)) } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: CLONE_ONLY_MODEL, ttsVoice: 'custom:3' } as any);
+    expect(m.tts.init).toHaveBeenCalledWith(CLONE_ONLY_MODEL, undefined, 'en', undefined);
+    expect(m.tts.setReferenceVoice).toHaveBeenCalled();
+    expect(errors).toHaveLength(0);
+  });
+
+  it('a preset/named-voice family (no voice field, no clones) is unaffected by the gate', async () => {
+    // No catalog entry at all for this id -> voiceCapability(undefined) is
+    // {builtin:'none', custom:'none'}, which isCloneOnlyVoice rejects (custom
+    // must be 'clip') -- the gate never engages, matching pre-slice-5 behavior.
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, clones: false });
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({});
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: 'piper-en-amy' } as any);
+    expect(m.tts.init).toHaveBeenCalled();
+  });
+});
+
+// ── Task 7 (slice 5b debt) + R35: reconcileTtsVoice must not keep a
+// stale/ineligible custom selection just because SOME other clip happens to
+// be eligible — and when it drops that selection, it must auto-pick the
+// first eligible clip (never strand a model on no voice at all when one
+// exists) and report the substitution as one diagnostic ──
+//
+// The pre-init gate above only asks "does at least one eligible clip exist"
+// (R16's own question). It says nothing about whether the STORED selection
+// (config.ttsVoice) is itself one of those eligible clips. Before Task 7's
+// fix, `customIds` was built from the unfiltered voice list, so a stored
+// `custom:X` where X lacks a transcript this model requires survived
+// reconciliation — and got applied — as long as some other clip Y happened to
+// be eligible (which is exactly what made the gate pass in the first place).
+describe('LocalNativeClient reconcileTtsVoice — stale custom selection (transcript-required families)', () => {
+  const TRANSCRIPT_GATE_MODEL = 'qwen3-tts-transcript-gate-test';
+
+  // Both clips' getNativeVoice payloads, keyed by id — resolveApply(id) must
+  // resolve to the RIGHT clip's audio/transcript, not a fixed mock value.
+  const CLIP_X = { id: 10, name: 'X (no transcript)', audio: new Float32Array([0.1]).buffer, sampleRate: 16000, createdAt: 0 };
+  const CLIP_Y = { id: 11, name: 'Y (has transcript)', audio: new Float32Array([0.2]).buffer, sampleRate: 16000, createdAt: 0, transcript: 'hello there' };
+
+  it('R35: auto-picks the first eligible clip and reports the substitution when the stored clip lacks a transcript', async () => {
+    useNativeModelStore.setState({
+      catalog: { [TRANSCRIPT_GATE_MODEL]: {
+        id: TRANSCRIPT_GATE_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [],
+        voice: { builtin: 'none', custom: 'clip', transcriptRequired: true },
+      } as any },
+    } as any);
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
+    m.tts.setReferenceVoice = vi.fn().mockResolvedValue(undefined);
+    // X (id 10) has no transcript — ineligible for this transcriptRequired
+    // family; Y (id 11) does — the pre-init gate counts it and lets TTS load,
+    // and it's also the first (only) ELIGIBLE entry reconcile should pick.
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
+      .mockResolvedValue([CLIP_X, CLIP_Y]);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'getNativeVoice')
+      .mockImplementation(async (id: number) => (id === CLIP_Y.id ? CLIP_Y : id === CLIP_X.id ? CLIP_X : null) as any);
+    const errors: string[] = [];
+    const diagnostics: { code: string; message: string }[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({
+      onError: (e: any) => errors.push(String(e?.message ?? e)),
+      onDiagnostic: (d: any) => diagnostics.push({ code: d.code, message: d.message }),
+    } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: TRANSCRIPT_GATE_MODEL, ttsVoice: 'custom:10' } as any);
+
+    // The pre-init gate passed (Y is eligible) — TTS loaded at all.
+    expect(m.tts.init).toHaveBeenCalled();
+    expect(errors).toHaveLength(0);
+    // X (ineligible) is never applied; Y (the first eligible clip) is instead.
+    expect(m.tts.setReferenceVoice).toHaveBeenCalledWith(expect.any(Float32Array), 16000, 'hello there');
+    expect(m.tts.setReferenceVoice).not.toHaveBeenCalledWith(expect.any(Float32Array), 16000, undefined);
+    // Exactly one diagnostic naming both the dropped and substitute voices.
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].code).toBe('voice_fallback');
+    expect(diagnostics[0].message).toContain('10');
+    expect(diagnostics[0].message).toContain('11');
+  });
+
+  it('keeps a stored custom:X selection when X itself is eligible (no substitution, no diagnostic)', async () => {
+    useNativeModelStore.setState({
+      catalog: { [TRANSCRIPT_GATE_MODEL]: {
+        id: TRANSCRIPT_GATE_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [],
+        voice: { builtin: 'none', custom: 'clip', transcriptRequired: true },
+      } as any },
+    } as any);
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
+    m.tts.setReferenceVoice = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
+      .mockResolvedValue([
+        { id: 12, name: 'X (has transcript)', audio: new Float32Array([0.3]).buffer, sampleRate: 16000, createdAt: 0, transcript: 'the transcript' },
+      ]);
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'getNativeVoice')
+      .mockResolvedValue({ id: 12, name: 'X (has transcript)', audio: new Float32Array([0.3]).buffer, sampleRate: 16000, createdAt: 0, transcript: 'the transcript' });
+    const diagnostics: { code: string }[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({ onDiagnostic: (d: any) => diagnostics.push({ code: d.code }) } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: TRANSCRIPT_GATE_MODEL, ttsVoice: 'custom:12' } as any);
+
+    expect(m.tts.setReferenceVoice).toHaveBeenCalledWith(expect.any(Float32Array), 16000, 'the transcript');
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it('R35: with no eligible clip at all, the existing pre-init gate still disables TTS (one visible bubble, no reconcile substitution)', async () => {
+    useNativeModelStore.setState({
+      catalog: { [TRANSCRIPT_GATE_MODEL]: {
+        id: TRANSCRIPT_GATE_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [],
+        voice: { builtin: 'none', custom: 'clip', transcriptRequired: true },
+      } as any },
+    } as any);
+    const m = mocks();
+    // Only X exists, and it has no transcript — zero eligible clips.
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
+      .mockResolvedValue([CLIP_X]);
+    const errors: string[] = [];
+    const diagnostics: { code: string; message: string }[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({
+      onError: (e: any) => errors.push(String(e?.message ?? e)),
+      onDiagnostic: (d: any) => diagnostics.push({ code: d.code, message: d.message }),
+    } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: TRANSCRIPT_GATE_MODEL, ttsVoice: 'custom:10' } as any);
+
+    // The pre-init gate catches it before TTS ever loads — unchanged from Task 7.
+    expect(m.tts.init).not.toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/needs a voice clip/i);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].code).toBe('tts_degraded');
   });
 });

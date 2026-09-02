@@ -7,18 +7,20 @@ import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTr
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { reconcileTtsVoice } from '../../lib/local-inference/native/nativeTtsVoiceReconciliation';
-import { sidFromTtsVoice, voiceCapability } from '../../lib/local-inference/native/nativeCatalog';
+import { voiceCapability, isCloneOnlyVoice, eligibleCustomVoices } from '../../lib/local-inference/native/nativeCatalog';
 import { voiceStoreFor } from '../../lib/local-inference/native/nativeVoiceStores';
 import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import { splitSentences } from '../../utils/splitSentences';
 import { useNativeModelStore, nativeListTtsVoices, nativeHardwareInfo } from '../../stores/nativeModelStore';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { createNativeVadWorker } from './createNativeVadWorker';
 
 interface Deps {
   asr?: NativeAsrClient | any;
   translate?: NativeTranslateClient | any;
   tts?: NativeTtsClient | any;
+  vadWorker?: () => Worker | null;
 }
 
 /**
@@ -43,11 +45,19 @@ export class LocalNativeClient implements IClient {
   private keepReplayAudio: boolean = false;
   private queue: Promise<void> = Promise.resolve();
   private partialUserItem: ConversationItem | null = null;
+  /** The assistant item created on the first translate_partial of the job
+   *  currently running, cleared once that job finishes (success or failure).
+   *  The job queue serializes runJob calls, so one field suffices. */
+  private currentTranslateItem: ConversationItem | null = null;
+  private vadWorkerFactory: () => Worker | null;
+  private vadWorker: Worker | null = null;
+  private vadReady = false;
 
   constructor(deps: Deps = {}) {
     this.asr = deps.asr ?? new NativeAsrClient();
     this.translate = deps.translate ?? new NativeTranslateClient();
     this.tts = deps.tts ?? new NativeTtsClient();
+    this.vadWorkerFactory = deps.vadWorker ?? createNativeVadWorker;
   }
 
 
@@ -66,6 +76,7 @@ export class LocalNativeClient implements IClient {
     this.asr.onPartialResult = (text: string) => this.onAsrPartial(text);
     this.asr.onError = (e: string) => this.handlers.onError?.(e);
     this.translate.onError = (e: string) => this.handlers.onError?.(e);
+    this.translate.onPartial = (text: string) => this.onTranslatePartial(text);
     this.tts.onError = (e: string) => this.handlers.onError?.(e);
     this.emitEvent('local.native.init.start', 'client', {
       asr: config.asrModelId, translation: config.translationModelId, tts: config.ttsModelId,
@@ -101,11 +112,8 @@ export class LocalNativeClient implements IClient {
     const initAsr = async () => {
       store.setAsrLoading(true);
       try {
-        const res = await this.asr.init(config.sourceLanguage, config.asrModelId, 24000, {
-          threshold: config.vadThreshold,
-          minSilence: config.vadMinSilenceDuration,
-          minSpeech: config.vadMinSpeechDuration,
-        }, config.asrDevice, config.asrVariant);
+        const res = await this.asr.init(config.sourceLanguage, config.asrModelId, 24000,
+          config.asrDevice, config.asrVariant);
         store.setAsrResolved({ model: config.asrModelId, device: res.device ?? 'cpu', backend: res.backend, computeType: res.computeType, rtf: res.rtf, memoryBytes: res.memoryBytes, fallbackReason: res.fallbackReason });
         this.emitInitReady('asr', config.asrModelId ?? '', res);
       } finally {
@@ -125,6 +133,34 @@ export class LocalNativeClient implements IClient {
     }
     this.ttsEnabled = !!config.ttsModelId && !config.textOnly;
     if (this.ttsEnabled) {
+      // Renderer-side mirror of the sidecar's R16 pre-check (tts_backend.py's
+      // `_ensure_voice_ready`/`_VOICE_REQUIRED_FAMILIES`): a clone-only model
+      // (no built-in voice at all — qwen3_tts, omnivoice) can never speak
+      // without a stored clip. Checked BEFORE loading the model: catching it
+      // here turns what would otherwise be a `tts_degraded` diagnostic on
+      // EVERY sentence of the session into one clear, up-front notice, and
+      // skips a model load that could only ever fail to synthesize. Skipped
+      // entirely when the catalog hasn't loaded yet (voiceCapability then
+      // resolves to none/none) — the unchanged init path below still applies
+      // in that case, same as before this check existed.
+      const gateCap = voiceCapability(store.catalog[config.ttsModelId!]);
+      if (isCloneOnlyVoice(gateCap)) {
+        const gateStore = voiceStoreFor(gateCap.custom, config.ttsModelId!);
+        let eligibleClips = 0;
+        if (gateStore) {
+          try {
+            const clips = await gateStore.list();
+            eligibleClips = eligibleCustomVoices(clips, gateCap.transcriptRequired).length;
+          } catch { /* storage unavailable — treated as no clip, matches R16 */ }
+        }
+        if (eligibleClips === 0) {
+          this.ttsEnabled = false;
+          this.diagnose('tts_degraded', `TTS unavailable, continuing without it: "${config.ttsModelId}" needs a voice clip — record or import one in Settings first`);
+          this.handlers.onError?.(new Error(`"${config.ttsModelId}" needs a voice clip — record or import one in Settings before it can speak`));
+        }
+      }
+    }
+    if (this.ttsEnabled) {
       store.setTtsLoading(true);
       try {
         const r = await this.tts.init(config.ttsModelId, config.ttsDevice, config.targetLanguage, config.ttsVariant);
@@ -133,7 +169,8 @@ export class LocalNativeClient implements IClient {
           rtf: r.rtf, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason });
         this.emitInitReady('tts', config.ttsModelId!, r);
         // Apply the selected voice (next-session semantics), driven by the
-        // model's capability (built-in named/range and/or custom clip/style)
+        // model's capability (built-in named and/or custom clip — native_tts
+        // has no range/style equivalent, see nativeCatalog.voiceCapability)
         // rather than a MOSS-specific "clones" flag, so any current or future
         // voice-capable model resolves through the same path. Custom ids
         // resolve against the capability's own store; a missing/deleted
@@ -147,24 +184,39 @@ export class LocalNativeClient implements IClient {
           ?? ({ clones: r.clones } as unknown as NativeModelInfo);
         const cap = voiceCapability(ttsModel);
         const voiceStore = voiceStoreFor(cap.custom, config.ttsModelId!);
+        // Filtered by the SAME eligibility predicate as the pre-init gate above:
+        // an unfiltered list would let a stored `custom:X` survive reconciliation
+        // even when X lacks a transcript this model requires, as long as some
+        // OTHER clip happens to be eligible (the gate only checks "does at
+        // least one eligible clip exist", not "is the STORED selection one of
+        // them") — reconcileTtsVoice would then keep applying the ineligible X.
         let customIds: number[] = [];
         if (voiceStore) {
-          try { customIds = (await voiceStore.list()).map((v) => v.id); }
+          try { customIds = eligibleCustomVoices(await voiceStore.list(), cap.transcriptRequired).map((v) => v.id); }
           catch { /* storage unavailable → built-in voices only */ }
         }
         const voiceList = cap.builtin === 'named' ? await nativeListTtsVoices(config.ttsModelId) : [];
-        const voice = reconcileTtsVoice(config.ttsVoice ?? '', customIds, config.targetLanguage, voiceList, cap.custom !== 'none');
+        const storedVoice = config.ttsVoice ?? '';
+        const voice = reconcileTtsVoice(storedVoice, customIds, config.targetLanguage, voiceList, cap.custom !== 'none');
+        // R35: the stored selection was a custom clip and reconcile swapped it
+        // for a DIFFERENT eligible one (never '' or the same id — this is
+        // exactly the "your ineligible clip got substituted" case, not the
+        // ordinary "no selection yet" default resolution). One diagnostic per
+        // session start, session continues normally on the substitute.
+        if (storedVoice.startsWith('custom:') && voice.startsWith('custom:') && voice !== storedVoice) {
+          this.diagnose('voice_fallback',
+            `Configured voice ${storedVoice.slice('custom:'.length)} is no longer usable with this model (deleted, or missing a required transcript); substituted voice ${voice.slice('custom:'.length)}. Update the selection in settings.`);
+        }
         this.ttsVoiceLabel = voice;   // e.g. builtin:Bella | custom:7 | sid:3 — logged on tts.start
         if (voice.startsWith('builtin:')) {
           await this.tts.setVoice?.(voice.slice('builtin:'.length));
         } else if (voice.startsWith('custom:') && voiceStore) {
           const payload = await voiceStore.resolveApply(Number(voice.slice('custom:'.length)));
           if (payload?.kind === 'clip') await this.tts.setReferenceVoice(payload.audio, payload.sampleRate, payload.transcript);
-          else if (payload?.kind === 'style') await this.tts.setStyleVoice(payload.styleTtl, payload.styleDp);
-        } else if (voice.startsWith('sid:')) {
-          await this.tts.setSpeaker(sidFromTtsVoice(voice));
         }
-        // else single-voice model with no selection: send nothing (backend uses speaker 0)
+        // else: single-voice model with no selection, or a stale sid:<n> setting
+        // from before native_tts (which has no speaker-id equivalent) — send
+        // nothing (backend uses speaker 0).
       } catch (e) {
         this.ttsEnabled = false;
         this.handlers.onError?.(`native TTS init failed: ${e}`);
@@ -172,6 +224,43 @@ export class LocalNativeClient implements IClient {
         store.setTtsLoading(false);
       }
     }
+    await new Promise<void>((resolve, reject) => {
+      const worker = this.vadWorkerFactory();
+      if (!worker) { resolve(); return; }               // test/no-worker env
+      this.vadWorker = worker;
+      const timer = setTimeout(() => reject(new Error('VAD worker init timeout')), 15000);
+      worker.onmessage = (e: MessageEvent) => {
+        const msg = e.data;
+        if (msg.type === 'ready') { clearTimeout(timer); resolve(); }
+        else if (msg.type === 'speech_start') {
+          this.asr.sendVadMark?.('start');
+          this.emitEvent('local.native.speech_start', 'client', {});
+        }
+        else if (msg.type === 'speech_end') { this.asr.sendVadMark?.('end'); }
+        else if (msg.type === 'speech_cancel') { this.asr.sendVadMark?.('cancel'); }
+        else if (msg.type === 'error') {
+          if (this.vadReady) { this.handlers.onError?.(`VAD worker: ${msg.message}`); }
+          else { clearTimeout(timer); reject(new Error(msg.message)); }
+        }
+      };
+      worker.onerror = (err) => {
+        // Post-ready the connect promise is settled — reject() would be a silent
+        // no-op and the session would keep feeding a dead segmenter. Surface it.
+        if (this.vadReady) { this.handlers.onError?.(`VAD worker: ${(err as ErrorEvent)?.message ?? err}`); return; }
+        clearTimeout(timer); reject(err as any);
+      };
+      worker.postMessage({
+        type: 'init',
+        ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+        vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
+        vadConfig: {
+          threshold: config.vadThreshold,
+          minSilenceDuration: config.vadMinSilenceDuration,
+          minSpeechDuration: config.vadMinSpeechDuration,
+        },
+      });
+    });
+    this.vadReady = true;
     this.connected = true;
     this.emitEvent('local.native.init.ready', 'client', { ttsEnabled: this.ttsEnabled });
     this.handlers.onOpen?.();
@@ -267,6 +356,33 @@ export class LocalNativeClient implements IClient {
     }
   }
 
+  /**
+   * Live-update the assistant bubble as translate() streams tokens: create the
+   * item lazily on the first partial, then update transcript in place — mirrors
+   * onAsrPartial's cadence (one emit per push). translate_partial is id-less and
+   * one in-flight translate per connection is the job queue's guarantee, so
+   * currentTranslateItem never sees two jobs interleave.
+   * Cadence note: the sidecar pushes one partial per generated token (up to
+   * 512/translation); at that rate an emit-per-partial is cheap for the UI to
+   * render (same as ASR partials, which already update per chunk). If token-level
+   * updates ever overwhelm the renderer, throttle here (e.g. only emit every Nth
+   * partial or batch on rAF) — the sidecar side deliberately does not throttle.
+   */
+  private onTranslatePartial(text: string): void {
+    this.emitEvent('local.native.translation.partial', 'server', { text });
+    if (!this.currentTranslateItem) {
+      this.currentTranslateItem = {
+        id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'in_progress',
+        createdAt: Date.now(), formatted: { transcript: text },
+      };
+      this.items.push(this.currentTranslateItem);
+      this.emit(this.currentTranslateItem);
+    } else {
+      this.currentTranslateItem.formatted!.transcript = text;
+      this.emit(this.currentTranslateItem, { transcript: text });
+    }
+  }
+
   private onAsrResult(r: { text: string; durationMs?: number; recognitionTimeMs?: number; startSample?: number }): void {
     if (!r.text?.trim()) return;
     // rtf = compute time / audio duration — the single "can it keep up with
@@ -318,6 +434,15 @@ export class LocalNativeClient implements IClient {
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);
       this.emitEvent('local.native.error', 'client', { stage: 'translation', modelId: this.cfg?.translationModelId, sourceText: text, error });
+      // A half-streamed bubble beats a vanishing one: if partials already reached
+      // the renderer, finalize the item with what we have instead of leaving it
+      // stuck in_progress forever (or discarding it).
+      if (this.currentTranslateItem) {
+        const streamedItem = this.currentTranslateItem;
+        this.currentTranslateItem = null;
+        streamedItem.status = 'completed';
+        this.emit(streamedItem);
+      }
       this.handlers.onError?.(error);
       return;
     }
@@ -325,11 +450,22 @@ export class LocalNativeClient implements IClient {
       sourceText: tr.sourceText ?? text, translatedText: tr.translatedText,
       inferenceTimeMs: tr.inferenceTimeMs, modelId: this.cfg?.translationModelId,
     });
-    const item: ConversationItem = {
-      id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'in_progress',
-      createdAt: Date.now(), formatted: { transcript: tr.translatedText },
-    };
-    this.items.push(item);
+    let item: ConversationItem;
+    if (this.currentTranslateItem) {
+      // Reuse the item partials already streamed into — the renderer bubble
+      // keeps its identity across the last token and the final resolved text.
+      item = this.currentTranslateItem;
+      this.currentTranslateItem = null;
+      item.formatted!.transcript = tr.translatedText;
+    } else {
+      // No partial ever arrived (e.g. a fake translate in tests, or a job that
+      // resolved before its first token push) — create the item as before.
+      item = {
+        id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'in_progress',
+        createdAt: Date.now(), formatted: { transcript: tr.translatedText },
+      };
+      this.items.push(item);
+    }
     this.emit(item);
     if (this.ttsEnabled) {
       const displayText = tr.translatedText;
@@ -422,22 +558,34 @@ export class LocalNativeClient implements IClient {
     this.emit(item);
   }
 
-  appendInputAudio(audioData: Int16Array): void { if (this.connected) this.asr.feedAudio(audioData, 24000); }
+  appendInputAudio(audioData: Int16Array): void {
+    if (!this.connected) return;
+    this.asr.feedAudio(audioData, 24000);
+    this.vadWorker?.postMessage({ type: 'audio', pcm: audioData, sampleRate: 24000 });
+  }
   appendInputText(text: string): void { this.onAsrResult({ text }); }
-  createResponse(_config?: ResponseConfig): void { this.asr.flush?.(); }
+  createResponse(_config?: ResponseConfig): void {
+    this.vadWorker?.postMessage({ type: 'flush' });
+    this.asr.flush?.();
+  }
   cancelResponse(): void { try { this.tts?.cancel?.(); } catch (_) {} }
   async disconnect(): Promise<void> {
     this.connected = false;
     this.partialUserItem = null;
+    this.currentTranslateItem = null;
     this.emitEvent('local.native.session.closed', 'client', { reason: 'user_disconnect' });
+    this.vadWorker?.postMessage({ type: 'dispose' });
+    this.vadWorker?.terminate();
+    this.vadWorker = null;
+    this.vadReady = false;
     this.asr.dispose?.(); this.translate.dispose?.(); this.tts.dispose?.();
     this.handlers.onClose?.({});
   }
   isConnected(): boolean { return this.connected; }
   updateSession(_config: Partial<SessionConfig>): void {}
-  reset(): void { this.items = []; this.partialUserItem = null; }
+  reset(): void { this.items = []; this.partialUserItem = null; this.currentTranslateItem = null; }
   getConversationItems(): ConversationItem[] { return [...this.items]; }  // fresh ref so setItems() re-renders
-  clearConversationItems(): void { this.items = []; this.partialUserItem = null; }  // drop the in-progress partial too, else the next final mutates a detached item
+  clearConversationItems(): void { this.items = []; this.partialUserItem = null; this.currentTranslateItem = null; }  // drop in-progress partials too, else the next final mutates a detached item
   setEventHandlers(handlers: ClientEventHandlers): void { this.handlers = handlers; }
   getProvider(): ProviderType { return Provider.LOCAL_NATIVE; }
 }

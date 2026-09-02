@@ -27,20 +27,6 @@ vi.mock('../../../utils/environment', async (orig) => ({
   isLocalNativeEnabled: () => true,
 }));
 
-// The Supertonic-shaped style-import path (Task 13) goes through voiceStorage
-// (not nativeVoiceStorage, which backs the MOSS clip-clone path). Mocked so
-// NativeVoiceSection's injected store resolves imported voices without a real
-// IndexedDB (jsdom has none here, unlike nativeVoiceStorage.test.tsx which
-// polyfills it via fake-indexeddb/auto).
-vi.mock('../../../lib/local-inference/voiceStorage', () => ({
-  listVoices: vi.fn().mockResolvedValue([{ id: 3, name: 'MyVoice', jsonData: new Blob(['{}']) }]),
-  addVoice: vi.fn(),
-  renameVoice: vi.fn(),
-  deleteVoice: vi.fn(),
-  getVoice: vi.fn(),
-  VoiceImportError: class extends Error {},
-}));
-
 // ---------------------------------------------------------------------------
 // Stable mock data (names start with "mock" so vitest hoists them alongside vi.mock)
 // ---------------------------------------------------------------------------
@@ -131,7 +117,6 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 0,
     repo: 'csukuangfj/vits-piper-en_US-amy-low',
     kind: 'tts',
-    numSpeakers: 1,
     sizeBytes: 81105784,
   },
   'moss-tts-nano': {
@@ -143,7 +128,6 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 1,
     repo: 'moss-tts-nano',
     kind: 'tts',
-    numSpeakers: 1,
     clones: true,
     streaming: true,
     sizeBytes: 763206064,
@@ -157,8 +141,10 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 2,
     repo: 'supertonic-3',
     kind: 'tts',
-    numSpeakers: 1,
-    voice: { builtin: 'named', custom: 'style' },
+    // native_tts's supertonic card: named presets (sk_tts_presets), no
+    // cloning and no custom-voice import (the old style-vector upload path
+    // died with the ONNX Supertonic backend, Task 5/6).
+    voice: { builtin: 'named', custom: 'none' },
     sizeBytes: 100000000,
   },
   // Multi-variant TTS card (Task 10) — same shape as the hy-mt2-7b translation
@@ -172,7 +158,6 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     order: 3,
     repo: 'qwen3-tts-1.7b',
     kind: 'tts',
-    numSpeakers: 1,
     sizeBytes: 3600000000,
     variantIds: ['bf16', 'fp32', 'int8'],
     variants: [
@@ -627,29 +612,6 @@ describe('NativeModelManagementSection — embedded voice section on the selecte
   });
 });
 
-describe('NativeModelManagementSection — store-driven voice wiring (Task 13)', () => {
-  // supertonic-3 declares voice: { builtin: 'named', custom: 'style' } — the
-  // style-import backend (voiceStorage), distinct from MOSS's clip-clone
-  // backend (nativeVoiceStorage). Selecting it must route NativeVoiceSection
-  // to the style store and render its imported voices.
-  it('renders imported style voices for a selected Supertonic-shaped model', async () => {
-    const prevSelections = mockSettings.selections;
-    mockSettings.selections = {
-      'ja→en': { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'supertonic-3' } },
-    };
-    mockStatuses['supertonic-3'] = 'ready';
-    try {
-      render(<NativeModelManagementSection />);
-      // 'MyVoice' appears both as a <select> option and in the "manage imported
-      // voices" list (dropdown presentation) — either confirms the style store's
-      // imported voice reached the UI.
-      expect((await screen.findAllByText('MyVoice')).length).toBeGreaterThan(0);
-    } finally {
-      mockSettings.selections = prevSelections;
-    }
-  });
-});
-
 describe('NativeModelManagementSection — tier badge tooltip (Task 3)', () => {
   // sense-voice is a ja-compatible ASR card already exercised elsewhere in
   // this file (its "selected" state is irrelevant here — the tier badge and
@@ -661,7 +623,7 @@ describe('NativeModelManagementSection — tier badge tooltip (Task 3)', () => {
       ...mockCatalog,
       'sense-voice': {
         ...mockCatalog['sense-voice'],
-        tiers: [{ tier: 'gpu-vulkan', backend: 'llamacpp_gemma', available: true }],
+        tiers: [{ tier: 'gpu-vulkan', backend: 'native_translate', available: true }],
       },
     };
     try {

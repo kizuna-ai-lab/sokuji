@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "محرك الاستدلال",
-    "detected": "تم اكتشاف: {{gpu}}",
     "package": "حزمة المحرك: {{sku}} · {{size}}",
     "sizeUnknown": "الحجم غير متاح دون اتصال",
     "download": "تنزيل المحرك",
@@ -891,6 +890,7 @@
     "clipSilent": "لم يتم اكتشاف صوت — تحقق من الميكروفون وحاول مرة أخرى.",
     "clipTooLong": "التسجيل طويل جدًا — أبقِه أقل من {seconds} ثانية.",
     "clipTooShort": "التسجيل قصير جدًا — تحدّث لمدة {seconds} ثانية على الأقل.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "تحتاج صوتًا مخصصًا؟",
     "decodeFailed": "تعذّرت قراءة ذلك الملف الصوتي — جرّب WAV أو MP3 أو تنسيقًا شائعًا آخر.",
     "delete": "حذف",

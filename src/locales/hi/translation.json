@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "इंफरेंस इंजन",
-    "detected": "पहचाना गया: {{gpu}}",
     "package": "इंजन पैकेज: {{sku}} · {{size}}",
     "sizeUnknown": "ऑफ़लाइन में आकार अनुपलब्ध",
     "download": "इंजन डाउनलोड करें",
@@ -891,6 +890,7 @@
     "clipSilent": "कोई आवाज़ नहीं मिली — अपना माइक्रोफ़ोन जाँचें और पुनः प्रयास करें।",
     "clipTooLong": "रिकॉर्डिंग बहुत लंबी है — इसे {seconds} सेकंड से कम रखें।",
     "clipTooShort": "रिकॉर्डिंग बहुत छोटी है — कम से कम {seconds} सेकंड बोलें।",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "कस्टम आवाज़ चाहिए?",
     "decodeFailed": "वह ऑडियो फ़ाइल पढ़ी नहीं जा सकी — WAV, MP3 या कोई अन्य सामान्य प्रारूप आज़माएं।",
     "delete": "हटाएं",

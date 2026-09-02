@@ -3,13 +3,14 @@ export interface ReadyMsg {
   type: 'ready'; id: number; sampleRate?: number; loadTimeMs: number;   // sampleRate only on audio (ASR/TTS) ready; translate_init omits it
   backend?: string; device?: string; computeType?: string; rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string;
   streaming?: boolean; clones?: boolean;
+  family?: string;   // native_tts only: the resolved card's family (moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic)
 }
 export interface NativeTier { tier: string; backend: string; available: boolean; }
 export interface NativeModelInfo {
   id: string; name: string; languages: string[]; recommended: boolean; tiers: NativeTier[];
   order: number; repo: string; kind: 'asr' | 'translate' | 'tts';
-  numSpeakers?: number; clones?: boolean; streaming?: boolean;   // tts only
-  voice?: { builtin: 'none' | 'range' | 'named'; custom: 'none' | 'clip' | 'style'; transcriptRequired?: boolean };   // tts only
+  clones?: boolean; streaming?: boolean;   // tts only
+  voice?: { builtin: 'none' | 'named'; custom: 'none' | 'clip'; transcriptRequired?: boolean };   // tts only; native_tts has no style-vector custom voice equivalent
   license?: { spdx: string; name: string; url: string; nonCommercial: boolean; sourceRepo: string; attribution: string };  // non-commercial / restricted models only
   sizeBytes?: number;   // total download size; 0/absent = unknown
   variantIds?: string[];   // quant variants (default first), >1 → show the picker
@@ -48,7 +49,9 @@ export interface OkMsg { type: 'ok'; id: number; }
 export interface TtsGenerateResultMsg { type: 'tts_generate_result'; id: number; sampleRate: number; generationTimeMs: number; samples: number; }
 export interface ErrorMsg { type: 'error'; id?: number; model?: string; message: string; }
 export interface TranslateResultMsg { type: 'translate_result'; id: number; sourceText: string; translatedText: string; inferenceTimeMs: number; }
-export interface SpeechStartMsg { type: 'speech_start'; }
+/** Id-less push during translate() generation: one per token, each carrying the
+ *  cleaned full accumulation so far (not a delta) — same shape choice as AsrPartialMsg. */
+export interface TranslatePartialMsg { type: 'translate_partial'; text: string; }
 export interface AsrPartialMsg { type: 'partial'; text: string; }
 export interface AsrResultMsg { type: 'result'; text: string; startSample?: number; durationMs: number; recognitionTimeMs: number; }
 export type NativeModelState = 'ready' | 'absent';
@@ -60,4 +63,4 @@ export interface ModelDownloadDoneMsg { type: 'model_download_done'; model: stri
 export interface TtsChunkMsg { type: 'tts_chunk'; id: number; seq: number; }
 export interface TtsDoneMsg { type: 'tts_done'; id: number; totalSamples: number; generationTimeMs: number; }
 export interface ListTtsVoicesResultMsg { type: 'list_tts_voices_result'; id: number; voices: NativeVoiceInfo[]; }
-export type ServerMsg = ReadyMsg | OkMsg | TtsGenerateResultMsg | TranslateResultMsg | SpeechStartMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg | ListVariantsResultMsg | TtsChunkMsg | TtsDoneMsg | ListTtsVoicesResultMsg;
+export type ServerMsg = ReadyMsg | OkMsg | TtsGenerateResultMsg | TranslateResultMsg | TranslatePartialMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg | ListVariantsResultMsg | TtsChunkMsg | TtsDoneMsg | ListTtsVoicesResultMsg;

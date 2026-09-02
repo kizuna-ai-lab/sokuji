@@ -22,25 +22,17 @@ class Machine:
     arch: str
     cpu_cores: int
     apple_silicon: bool
-    dml_adapters: tuple[str, ...]
     installed: frozenset
     fingerprint: str
-    # Accelerator kinds transcribe.cpp reports on this machine ("vulkan",
+    # Accelerator kinds the native library reports on this machine ("vulkan",
     # "metal", "cuda", "cpu") — the ground truth for the gpu-vulkan/gpu-metal
     # tiers (covers AMD/Intel via Vulkan).
     tc_kinds: tuple[str, ...] = ()
     # STABLE GPU identity from the same probe: (kind, description, mem_total)
-    # per accelerator device. NVIDIA presence = has_nvidia() over these
-    # descriptions. Volatile mem_free is intentionally NOT here (the Machine
-    # is cached + fingerprinted) — planners read device_free_bytes() fresh at
-    # plan time instead.
+    # per accelerator device. Volatile mem_free is intentionally NOT here (the
+    # Machine is cached + fingerprinted) — planners read device_free_bytes()
+    # fresh at plan time instead.
     gpus: tuple[tuple[str, str, int], ...] = ()
-    # Whether the RUNNING onnxruntime build exposes the CUDA execution
-    # provider (build capability, not device presence — the x64 nvidia bundle
-    # lists it even on a GPU-less box). On Linux/aarch64 this is the signal
-    # that NVIDIA's sbsa onnxruntime-gpu wheel was hand-installed (DGX Spark,
-    # Jetson), unlocking the ORT cuda lane there.
-    ort_cuda: bool = False
 
 
 def _apple_silicon() -> bool:
@@ -60,42 +52,40 @@ def current_platform() -> str:
     return _PLATFORM_MAP.get(sysname, sysname.lower())
 
 
-def _dml_adapters() -> tuple[str, ...]:
-    import onnxruntime
-    return ("dml",) if "DmlExecutionProvider" in onnxruntime.get_available_providers() else ()
-
-
-def _tc_devices():
-    """transcribe.cpp's device list — the vendor-agnostic ground truth (sees
-    AMD/Intel/Apple where NVML can't). Raises when the wheel is absent
+def _native_devices():
+    """sokuji_native's device list — one process, one ggml registry, the vendor-agnostic
+    ground truth (sees AMD/Intel/Apple where NVML can't). Raises when the wheel is absent
     (probe() degrades via _safe)."""
-    import transcribe_cpp
-    return list(transcribe_cpp.backends())
+    from . import native
+    return native.devices()
 
 
-def _tc_kinds() -> tuple[str, ...]:
-    """Accelerator kinds transcribe.cpp can actually use here. Sorted for a
-    stable fingerprint; () when the wheel is absent (probe degrades)."""
-    return tuple(sorted({b.kind for b in _tc_devices()}))
+def _native_kinds() -> tuple[str, ...]:
+    """Accelerator kinds the native library can actually use here. Sorted for a stable
+    fingerprint; () when the wheel is absent (probe degrades)."""
+    return tuple(sorted({d.kind for d in _native_devices()}))
 
 
-def _tc_gpus() -> tuple[tuple[str, str, int], ...]:
-    """Stable identity of the non-cpu devices: (kind, name, mem_total)."""
-    # Coerce description to str at the source (like memory_total): a None from
-    # the native lib would otherwise crash every has_nvidia/_gpu_vendor consumer.
-    return tuple((b.kind, b.description or "", int(b.memory_total or 0))
-                 for b in _tc_devices() if getattr(b, "device_type", "gpu") != "cpu")
+def _native_gpus() -> tuple[tuple[str, str, int], ...]:
+    """Stable identity of the non-cpu devices: (kind, DESCRIPTION, mem_total) — the
+    human-readable description ("NVIDIA GB10", "Apple M4", "Apple Paravirtual device"),
+    not the terse `Device.name` ("Vulkan0", "MTL0"). Matches Machine.gpus' own docstring;
+    an earlier version of this line said "name" and was wrong. planner._tier_available
+    reads the middle element to refuse a paravirtual Metal GPU (R36), so which of the two
+    strings lands here is load-bearing."""
+    return tuple((d.kind, d.description or "", int(d.mem_total or 0))
+                 for d in _native_devices() if d.kind != "cpu")
 
 
 def device_free_bytes():
-    """FRESH free memory (bytes) of the primary accelerator device, or None
-    when there is none (tc wheel absent, or no accelerator device). Volatile
-    by design — call at plan/load time, never cache in Machine. Callers treat
-    None as 'skip VRAM gating/measurement'."""
+    """FRESH free memory (bytes) of the primary accelerator device, or None when there is
+    none (wheel absent, or no accelerator device). Volatile by design — call at plan/load
+    time, never cache in Machine. Callers treat None as 'skip VRAM gating/measurement'."""
     try:
-        for b in _tc_devices():
-            if getattr(b, "device_type", "gpu") != "cpu":
-                free = int(b.memory_free or 0)
+        from . import native
+        for d in _native_devices():
+            if d.kind != "cpu":
+                free = int(native.module().device_free_mem(d.index) or 0)
                 if free > 0:
                     return free
     except Exception:
@@ -122,39 +112,21 @@ def _has_mod(mod: str) -> bool:
 
 
 def _installed() -> frozenset:
-    mods = {"transcribe_cpp": "transcribe_cpp",
-            "transcribe_cpp_stream": "transcribe_cpp",
-            "sherpa_tts": "sherpa_onnx",
-            "moss_onnx": "onnxruntime",
-            "supertonic": "onnxruntime",
-            "qwen3tts_onnx": "onnxruntime",
-            "cosyvoice3_onnx": "onnxruntime",
-            "omnivoice_onnx": "onnxruntime",
-            "gpt_sovits_onnx": "onnxruntime",
-            "pocket_onnx": ("onnxruntime", "sentencepiece"),
-            "mlx_audio_tts": ("mlx_audio",),
-            "onnx": "onnxruntime", "llamacpp": "llama_cpp", "mlx": "mlx_lm",
-            # llamacpp_* backends run an external llama-server binary — a
-            # downloadable artifact, not a Python runtime. Always "installed";
-            # a missing binary fails at load() with a clear error instead of
-            # being silently filtered out of the plans.
-            "llamacpp_qwen": None,
-            "llamacpp_hunyuan": None,
-            "llamacpp_gemma": None,
-            "ct2_opus_translate": ("ctranslate2", "sentencepiece")}
+    # Every in-process backend (ASR, translation, and — since slice 4 — TTS)
+    # runs through the one sokuji_native wheel; the nine ONNX/sherpa/MLX
+    # per-backend entries this map used to carry (sherpa_tts->sherpa_onnx,
+    # moss_onnx/supertonic/qwen3tts_onnx/.../->onnxruntime, mlx_audio_tts->
+    # mlx_audio, ...) collapsed to this one entry (spec §5.2).
+    mods = {"native_asr": "sokuji_native",
+            "native_asr_stream": "sokuji_native",
+            "native_translate": "sokuji_native",
+            "native_tts": "sokuji_native"}
 
     def _ready(spec):
         if spec is None:
             return True
         return all(_has_mod(m) for m in ((spec,) if isinstance(spec, str) else spec))
     return frozenset(b for b, spec in mods.items() if _ready(spec))
-
-
-def _ort_cuda() -> bool:
-    """Whether the running onnxruntime BUILD exposes the CUDA EP. Session
-    creation can still fail (missing libs / no device); pair with has_nvidia."""
-    import onnxruntime
-    return "CUDAExecutionProvider" in onnxruntime.get_available_providers()
 
 
 def _safe(fn, default):
@@ -174,21 +146,18 @@ def probe(force: bool = False) -> Machine:
     if _MACHINE is not None and not force:
         return _MACHINE
     apple = _safe(_apple_silicon, False)
-    dml = _safe(_dml_adapters, ())
     installed = _safe(_installed, frozenset())
-    tc_kinds = _safe(_tc_kinds, ())
-    tc_gpus = _safe(_tc_gpus, ())
-    ort_cuda = _safe(_ort_cuda, False)
+    tc_kinds = _safe(_native_kinds, ())
+    tc_gpus = _safe(_native_gpus, ())
     fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
-              f"{','.join(sorted(dml))}|{','.join(sorted(installed))}|"
+              f"{','.join(sorted(installed))}|"
               f"{','.join(tc_kinds)}|"
-              f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}|"
-              f"{int(ort_cuda)}")
+              f"{','.join(f'{k}:{n}:{t}' for k, n, t in tc_gpus)}")
     fp = hashlib.blake2s(fp_src.encode(), digest_size=6).hexdigest()   # 12 hex chars
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
-        apple_silicon=apple, dml_adapters=dml, installed=installed,
-        fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus, ort_cuda=ort_cuda)
+        apple_silicon=apple, installed=installed,
+        fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus)
     return _MACHINE
 
 
@@ -197,8 +166,8 @@ def probe(force: bool = False) -> Machine:
 # import of this module). Imported back here (a) so this module's own Loader
 # code (load_measured, the _h_* RPC handlers below) can keep calling the
 # genuinely pure names unqualified, and (b) so `accel.<name>` keeps resolving
-# for every external caller of the pre-split surface (engines, llama_runtime,
-# and the test suite — including the frozen characterisation suite, which
+# for every external caller of the pre-split surface (engines, and the test
+# suite — including the frozen characterisation suite, which
 # calls accel.resolve/accel.resolve_translate/accel.resolve_tts/
 # accel._tc_pick_quant/accel.select_variant/accel._llamacpp_variant_row
 # directly). This is an intentional re-export, not a smell.
@@ -210,11 +179,11 @@ def probe(force: bool = False) -> Machine:
 # functions (right below) that fetch those facts and delegate.
 from . import planner  # noqa: E402
 from .planner import (  # noqa: E402,F401
-    Plan, NoUsablePlan, has_nvidia, TIER_RANK, TIER_DEVICE,
+    Plan, NoUsablePlan, TIER_RANK, TIER_DEVICE,
     _tier_available, _platform_ok, _bench_key,
     _TC_RESIDENT_FACTOR, _quant_budget_bytes, _tc_pick_quant,
-    _VRAM_CONTEXT_BYTES, _weight_factor, _is_llamacpp,
-    _LLAMA_RESIDENT_FACTOR,
+    _VRAM_CONTEXT_BYTES, _weight_factor, _is_gguf_llm,
+    _LLAMA_RESIDENT_FACTOR, _llamacpp_quant,
 )
 
 
@@ -270,15 +239,9 @@ def resolve(model_id, override="auto", machine=None, pin=None):
 
 
 def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0, pin=None):
-    from . import catalog as _cat, llama_runtime
+    from . import catalog as _cat
     m = machine or probe()
     model = _cat.translate_model(model_id)
-    if model is not None:
-        # Set regardless of override branch: the explicit device path loads a
-        # llamacpp backend exactly like the auto path, so --fit-target must be
-        # sized off the same reserved-VRAM figure. Kept in this Loader wrapper
-        # (not the pure planner) so planner.resolve_translate stays side-effect-free.
-        llama_runtime.set_reserved_bytes(reserved_bytes)
     downloaded = (_downloaded_quants(model)
                  if override == "auto" and model is not None else set())
     return planner.resolve_translate(
@@ -287,41 +250,20 @@ def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0,
         est_bytes=_est_bytes, format_ready=_format_ready)
 
 
-def _downloaded_tts_variants(model, machine, platform) -> frozenset:
-    """compute_types of `model` whose variant repo is fully cached locally.
-    TTS variants are whole repos (unlike translate's per-file quants), so the
-    check is native_models.model_status with the repo override — which carries
-    the partial-snapshot/.incomplete guards a bare snapshot_download lacks.
-
-    Deployments are filtered through _platform_ok(d, machine, platform) first:
-    without it, an off-platform artifact that happens to share a compute_type
-    with an on-platform one (e.g. a macOS MLX snapshot cached on a Linux box —
-    both can be "fp32") would mark that compute_type downloaded even though
-    the platform's own repo isn't cached at all."""
-    from . import native_models
-    out = set()
-    for d in model.deployments:
-        if d.compute_type in out:
-            continue
-        if not _platform_ok(d, machine, platform):
-            continue
-        try:
-            if native_models.model_status(model.id, repo=d.artifact) == "ready":
-                out.add(d.compute_type)
-        except Exception:
-            pass  # treat an unreadable/broken cache entry as "not downloaded", not a crash
-    return frozenset(out)
-
-
 def resolve_tts(model_id, override="auto", machine=None, pin=None):
+    """TTS's artifacts are single-file GGUFs (exactly ASR/translate's shape,
+    since slice 4), so the downloaded-rung check is the SAME
+    `_downloaded_quants` every other multi-quant kind uses — the old
+    whole-repo/`model_status(repo=...)`-based `_downloaded_tts_variants` died
+    with the multi-repo-per-variant ONNX catalog it existed for."""
     from . import catalog as _cat
     m = machine or probe()
     model = _cat.resolve_tts_card(model_id)
-    multi = model is not None and len({d.compute_type for d in model.deployments}) > 1
-    platform = current_platform()
-    downloaded = _downloaded_tts_variants(model, m, platform) if multi else frozenset()
-    return planner.resolve_tts(model_id, override, machine=m, platform=platform,
-                               cache=bench_load(), downloaded=downloaded, pin=pin)
+    multi_quant = model is not None and len({d.compute_type for d in model.deployments}) > 1
+    downloaded = _downloaded_quants(model) if multi_quant else set()
+    return planner.resolve_tts(model_id, override, machine=m, platform=current_platform(),
+                               cache=bench_load(), downloaded=downloaded, pin=pin,
+                               est_bytes=_est_bytes)
 
 
 def select_variant(model, machine, reserved_bytes, pin=None, budget_bytes=None, downloaded=None):
@@ -362,14 +304,17 @@ def ledger_other(stage: str) -> int:
 
 
 def ledger_effective_reserve(stage: str, planned_est: dict) -> int:
-    """Free-VRAM margin `stage` should leave for the OTHER stages (feeds
-    llama's --fit-target, whose unit is "free MiB to keep"). A stage that
-    already LOADED holds its memory NOW — it is already out of every free
-    reading --fit takes, so re-reserving its claim double-counts (measured on
-    the 4070: voxtral Q8's 6.2GB claim re-reserved pushed a 0.8B translate
-    LLM fully off a GPU with 3.2GB free, then its CUDA remnants crashed
-    llama-server). Loaded stages (any ledger entry, incl. 0 for cpu) reserve
-    NOTHING; not-yet-loaded stages reserve their planned estimate."""
+    """Free-VRAM margin `stage` should leave for the OTHER stages — sizes the
+    byte budget quant/tier selection reserves against (see
+    _llamacpp_variant_row / select_variant), not a literal flag on an
+    external process. A stage that already LOADED holds its memory NOW — it
+    is already out of every free reading placement takes, so re-reserving its
+    claim double-counts (measured on the 4070, back when translation ran
+    through llama-server: voxtral Q8's 6.2GB claim re-reserved pushed a 0.8B
+    translate LLM fully off a GPU with 3.2GB free, then its CUDA remnants
+    crashed the child process). Loaded stages (any ledger entry, incl. 0 for
+    cpu) reserve NOTHING; not-yet-loaded stages reserve their planned
+    estimate."""
     total = 0
     for other, est in planned_est.items():
         if other == stage or other in _LEDGER:
@@ -435,8 +380,10 @@ def load_measured(plans: list, stage: str | None = None):
 
 # Weight files dominate a model's GPU footprint; the rest (config/tokenizer) is
 # negligible. .gguf/.pt cover llama.cpp / raw-torch artifacts alongside HF
-# safetensors; .onnx.data is the external-data payload of >2GB ONNX graphs
-# (e.g. the qwen3-tts 1.7B talker) — its .onnx proto alone is tiny.
+# safetensors. .onnx/.onnx.data (the external-data payload of a >2GB ONNX
+# graph, proto alone tiny) have no current producer — every ONNX backend
+# (including qwen3-tts, now audio.cpp/GGUF via native_tts) died in slice 4 —
+# kept as a harmless no-op match for whatever a future/local model ships.
 _WEIGHT_EXTS = (".safetensors", ".bin", ".pt", ".gguf", ".onnx", ".onnx.data")
 
 
@@ -487,13 +434,15 @@ def load_with_fallback(plans: list):
         # proactive gate and the honest OOM message reuse them. Capture free
         # BEFORE the load: a failed load can leave allocator caches/fragments
         # that make an after-the-fact reading meaningless.
-        # llamacpp plans are exempt from the proactive gate: llama-server's --fit
-        # handles memory itself via partial offload, so a rough weights-vs-free-VRAM
-        # guess here would only wrongly route a fittable model to CPU.
-        is_llamacpp = plan.backend.startswith("llamacpp_")
-        free = device_free_bytes() if (plan.device == "cuda" and not is_llamacpp) else None
+        # native_translate plans are exempt from the proactive gate (no catalog
+        # row offers it a gpu-cuda tier at all today, but the exemption itself
+        # is kept as a defensive no-op — see planner._tier_available's
+        # aarch64 comment): a rough weights-vs-free-VRAM guess here would only
+        # wrongly route a fittable model to CPU.
+        is_gguf_llm = plan.backend == "native_translate"
+        free = device_free_bytes() if (plan.device == "cuda" and not is_gguf_llm) else None
         need = (_model_weight_bytes(plan.artifact)
-                if (plan.device == "cuda" and not is_llamacpp) else None)
+                if (plan.device == "cuda" and not is_gguf_llm) else None)
         budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
         if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
             if free < budget:
@@ -617,10 +566,18 @@ BENCH_TTS_TEXT = "The weather is lovely today, so I will go for a walk in the pa
 
 def measure_rtf_tts(backend, plan, model_id: str, machine: Machine, *, force: bool = False):
     """Best-effort: synth a fixed sentence, return RTF (gen_seconds / audio_seconds),
-    cached under a 'tts:'-namespaced key. Never raises (returns None)."""
+    cached under a 'tts:'-namespaced key. Never raises (returns None).
+
+    NativeTtsBackend.generate() returns (samples, rate, gen_ms) (ruling I2(s4)): the
+    per-synth ACTUAL rate is authoritative, since it can differ from the family's
+    advertised caps.sample_rate -- audio_s must come from THAT returned rate, not
+    getattr(backend, "sample_rate", ...), per I2's own doctrine (tts_engine.py's
+    generate()/generate_stream() already resample this way; this benchmark must
+    agree with them or its RTF numbers are wrong for exactly the families I2 exists
+    to cover)."""
     def run(backend):
-        samples, gen_ms = backend.generate(BENCH_TTS_TEXT, 1.0)
-        audio_s = len(samples) / float(getattr(backend, "sample_rate", 24000))
+        samples, rate, gen_ms = backend.generate(BENCH_TTS_TEXT, 1.0)
+        audio_s = len(samples) / float(rate)
         if audio_s <= 0:
             return None
         return (gen_ms / 1000.0) / audio_s
@@ -664,11 +621,12 @@ async def _h_list_variants(state, msg, _b, conn=None):
     # resolve_translate guards the same case) — never dereference chosen.compute_type then.
     if chosen is None:
         return {"type": "error", "id": msg.get("id"), "message": "no runnable variant"}, None
-    if _is_llamacpp(model):
-        # llamacpp quants are cross-tier (the same GGUF serves gpu-cuda/gpu-metal/cpu);
-        # dedupe by compute_type instead of listing one row per (tier, compute_type)
-        # pair, and skip the VRAM-based supported/reason math entirely (no VRAM math
-        # for llamacpp — see select_variant/_llamacpp_variant_row).
+    if _is_gguf_llm(model):
+        # native_translate quants are cross-tier (the same GGUF serves
+        # gpu-metal/gpu-vulkan/cpu); dedupe by compute_type instead of listing
+        # one row per (tier, compute_type) pair, and skip the VRAM-based
+        # supported/reason math entirely (no VRAM math for a GGUF LLM card —
+        # see select_variant/_llamacpp_variant_row).
         seen = {}
         for d in model.deployments:
             if d.compute_type not in seen:
@@ -724,7 +682,7 @@ async def _h_hardware_info(state, msg, _b, conn=None):
             "gpus": [{"vendor": _gpu_vendor(name), "name": name,
                       "vramMb": total >> 20} for _kind, name, total in m.gpus],
             "backendsInstalled": sorted(m.installed),
-            "accelAvailable": bool(m.gpus or m.apple_silicon or m.dml_adapters)}, None
+            "accelAvailable": bool(m.gpus or m.apple_silicon)}, None
 
 
 async def _h_models_catalog(state, msg, _b, conn=None):
@@ -750,19 +708,17 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         seen_tiers = set()
         for d in mdl.deployments:
             if not _platform_ok(d, m, platform_tag):
-                continue                      # off-platform tier (e.g. windows-only gpu-dml on linux)
+                continue                      # off-platform tier (e.g. a future windows-only row)
             if d.tier in seen_tiers:
                 continue                      # multi-quant ladders repeat tiers
             seen_tiers.add(d.tier)
             tiers.append({"tier": d.tier, "backend": d.backend,
                           "available": d.backend in m.installed and _tier_available(d.tier, m, d.backend)})
-        repo = mdl.repos[0] if kind == "tts" else mdl.deployments[0].artifact
         entry = {"id": mdl.id, "name": mdl.name, "languages": list(mdl.languages),
                  "recommended": mdl.recommended, "tiers": tiers,
-                 "order": mdl.sort_order, "repo": repo, "kind": kind,
+                 "order": mdl.sort_order, "repo": mdl.deployments[0].artifact, "kind": kind,
                  "sizeBytes": mdl.size_bytes}
         if kind == "tts":
-            entry["numSpeakers"] = mdl.num_speakers
             entry["clones"] = mdl.clones
             entry["streaming"] = mdl.streaming
             entry["voice"] = catalog.voice_capability(mdl)
@@ -791,55 +747,37 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             # that flapped with the OTHER stages' selections would read as
             # noise. Renderer renders; it computes nothing.
             budget = _quant_budget_bytes(m)
-            if kind == "tts":
-                # TTS variants are whole-repo downloads, not resident-weight
-                # quants (no _TC_RESIDENT_FACTOR/_LLAMA_RESIDENT_FACTOR
-                # inflation) — needBytes is just the download size. A ct is
-                # "supported" when ANY of its deployment rows is tier-available
-                # on this machine (a cpu row makes it always supported);
-                # recommended mirrors the same narrowing resolve_tts uses at
-                # load time (planner._tts_pick_quant), EXCEPT this call omits
-                # `downloaded` — same convention as translate's rec below, and
-                # for the same reason: this is the FRESH-recommendation default,
-                # not a reflection of this machine's download state. resolve_tts
-                # itself still narrows by `downloaded` at load time, and (since
-                # the downloaded-fp32 cpu tail) can append a cpu fallback plan
-                # this recommendation doesn't know about.
-                rec = planner._tts_pick_quant(mdl, m)
-                variants = []
-                for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
-                    supported = any(
-                        _tier_available(d.tier, m, d.backend)
-                        for d in mdl.deployments if d.compute_type == ct)
-                    variants.append({"id": ct, "sizeBytes": size, "needBytes": size,
-                                     "repo": artifact_by_ct.get(ct),
-                                     "supported": supported, "recommended": ct == rec})
-                entry["variants"] = variants
-                entry["deviceMemBytes"] = budget
+            # GGUF-LLM cards (native_translate, and — since slice 4 — every
+            # native_tts card, all single-file-with-uniform-tiers) need no
+            # VRAM-fit math: sokuji_native loads the whole GGUF and
+            # load_with_fallback's tier fallback (GPU -> cpu) is the runtime
+            # safety net, so `supported` is unconditionally True and
+            # `needBytes` is just the weight size with _LLAMA_RESIDENT_FACTOR
+            # headroom. Every other kind (ASR) uses `_tc_pick_quant`'s
+            # resident-factor budget-fit walk instead.
+            is_llama = _is_gguf_llm(mdl)
+            if is_llama:
+                chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
+                rec = chosen.compute_type if chosen is not None else None
             else:
-                is_llama = _is_llamacpp(mdl)
+                rec = _tc_pick_quant(mdl, m, None, budget)
+            variants = []
+            factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
+            for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
+                need = int(size * factor)                  # fit-check figure, for UI reasons
                 if is_llama:
-                    chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
-                    rec = chosen.compute_type if chosen is not None else None
+                    supported = True                       # tier fallback (GPU->cpu) handles capacity
+                elif budget is None:
+                    supported = True                       # no GPU → CPU runs anything
                 else:
-                    rec = _tc_pick_quant(mdl, m, None, budget)
-                variants = []
-                factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
-                for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
-                    need = int(size * factor)                  # fit-check figure, for UI reasons
-                    if is_llama:
-                        supported = True                       # --fit always runs
-                    elif budget is None:
-                        supported = True                       # no GPU → CPU runs anything
-                    else:
-                        supported = need <= budget
-                    variants.append({"id": ct, "sizeBytes": size, "needBytes": need,
-                                     "repo": artifact_by_ct.get(ct),
-                                     "supported": supported, "recommended": ct == rec})
-                entry["variants"] = variants
-                # Machine context for the renderer's localized reason strings
-                # ("needs ~X — this machine has Y"); null on cpu-only machines.
-                entry["deviceMemBytes"] = budget
+                    supported = need <= budget
+                variants.append({"id": ct, "sizeBytes": size, "needBytes": need,
+                                 "repo": artifact_by_ct.get(ct),
+                                 "supported": supported, "recommended": ct == rec})
+            entry["variants"] = variants
+            # Machine context for the renderer's localized reason strings
+            # ("needs ~X — this machine has Y"); null on cpu-only machines.
+            entry["deviceMemBytes"] = budget
         out.append(entry)
     return {"type": "models_catalog_result", "id": msg.get("id"), "models": out}, None
 

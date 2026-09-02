@@ -1,0 +1,3 @@
+# ld64 exported-symbols list (macOS). The Mach-O twin of src/sokuji_native.map: only the
+# sk_* C ABI is exported, with the platform's leading underscore.
+_sk_*

@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Motor de Inferência",
-    "detected": "Detectado: {{gpu}}",
     "package": "Pacote do motor: {{sku}} · {{size}}",
     "sizeUnknown": "tamanho indisponível offline",
     "download": "Baixar motor",
@@ -891,6 +890,7 @@
     "clipSilent": "Nenhuma voz detectada — verifique seu microfone e tente novamente.",
     "clipTooLong": "A gravação é muito longa — mantenha-a abaixo de {seconds} segundos.",
     "clipTooShort": "A gravação é muito curta — fale por pelo menos {seconds} segundos.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Precisa de uma voz personalizada?",
     "decodeFailed": "Não foi possível ler esse arquivo de áudio — tente WAV, MP3 ou outro formato comum.",
     "delete": "Excluir",

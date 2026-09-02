@@ -115,6 +115,10 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - Cross-platform compatibility without virtual devices
    - Automatic device switching and reconnection, including dynamic switching during active sessions
 
+6. **Native runtime (`native/`)**
+   - One CMake super-project builds transcribe.cpp, llama.cpp and audio.cpp on a single upstream ggml into `libsokuji_native` (C ABI `sk_*`, Python package `sokuji_native`)
+   - Design: `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md` (Amendment A1: VAD runs in the renderer via `native-vad.worker.ts`, not in the sidecar); build: `native/README.md`; ASR goes through `sokuji_sidecar/native.py` → `asr_backend.py`
+
 ## Important Patterns and Conventions
 
 ### Code Organization

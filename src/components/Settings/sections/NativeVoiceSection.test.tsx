@@ -1,10 +1,11 @@
 /**
  * Tests for NativeVoiceSection — the native adapter over the generalized
- * VoiceLibrarySection. It switches on the selected TTS model's
- * VoiceCapability: `builtin === 'range'` renders the classic speaker-id
- * slider; otherwise it composes a VoiceLibrarySection from `builtinVoices` +
- * the injected `store`'s custom voices, wiring import/record/rename/delete
- * to the store and surfacing capture errors inline.
+ * VoiceLibrarySection. It composes a VoiceLibrarySection from `builtinVoices`
+ * + the injected `store`'s custom voices, wiring import/record/rename/delete
+ * to the store and surfacing capture errors inline. (The old speaker-id
+ * slider for a `builtin === 'range'` capability died with the ONNX backends
+ * that were its only producers — Task 5's catalog rewire onto native_tts,
+ * swept out of this component in Task 7 — R4.)
  *
  * The real VoiceLibrarySection is used (not mocked) so these tests also
  * exercise the capability wiring (dropdown presentation, upload-only vs
@@ -38,20 +39,6 @@ function makeClipStore(overrides: Partial<NativeVoiceStore> = {}): NativeVoiceSt
   };
 }
 
-/** A minimal style-store double (upload only, throws VoiceImportError on invalid files). */
-function makeStyleStore(overrides: Partial<NativeVoiceStore> = {}): NativeVoiceStore {
-  return {
-    kind: 'style',
-    capability: { importModes: ['upload'], curation: false, presentation: 'dropdown' },
-    list: vi.fn().mockResolvedValue([{ id: 3, name: 'MyVoice' }]),
-    onImport: vi.fn().mockResolvedValue(undefined),
-    rename: vi.fn().mockResolvedValue(undefined),
-    delete: vi.fn().mockResolvedValue(undefined),
-    resolveApply: vi.fn().mockResolvedValue(null),
-    ...overrides,
-  };
-}
-
 const baseProps = {
   capability: { builtin: 'named' as const, custom: 'clip' as const },
   builtinVoices,
@@ -76,39 +63,10 @@ describe('NativeVoiceSection', () => {
     vi.clearAllMocks();
   });
 
-  it('named+style renders presets + custom voices via VoiceLibrarySection', async () => {
-    const styleStore = makeStyleStore();
-    render(<NativeVoiceSection capability={{ builtin: 'named', custom: 'style' }}
-      builtinVoices={[{ name: 'Sarah', curated: true, unstable: false, default: false } as any]}
-      store={styleStore} selected="" targetLanguage="en" numSpeakers={10}
-      onSelect={() => {}} onCustomChanged={() => {}} />);
-    expect(await screen.findByText('Sarah')).toBeInTheDocument();
-    // 'MyVoice' appears twice in dropdown presentation (the <select> option AND the
-    // "manage imported voices" row) — both are custom-voice presence, so any match suffices.
-    expect((await screen.findAllByText('MyVoice')).length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: /record/i })).toBeNull(); // upload-only
-  });
-
-  it('range renders the speaker slider', () => {
-    render(<NativeVoiceSection capability={{ builtin: 'range', custom: 'none' }} builtinVoices={[]} store={null}
-      selected="sid:2" targetLanguage="en" numSpeakers={174} onSelect={() => {}} onCustomChanged={() => {}} />);
-    expect(screen.getByRole('slider')).toBeInTheDocument();
-  });
-
   it('renders nothing when the model has neither built-in nor custom voices', () => {
     const { container } = render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'none' }}
       builtinVoices={[]} store={null} selected="" targetLanguage="en" onSelect={() => {}} onCustomChanged={() => {}} />);
     expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders a speaker-id slider for a range model and writes sid:<n>', () => {
-    const onSelect = vi.fn();
-    render(<NativeVoiceSection {...baseProps} capability={{ builtin: 'range', custom: 'none' }}
-      store={null} numSpeakers={904} selected="sid:3" onSelect={onSelect} builtinVoices={[]} />);
-    const slider = screen.getByRole('slider');
-    expect(slider).toHaveAttribute('max', '903');
-    fireEvent.change(slider, { target: { value: '7' } });
-    expect(onSelect).toHaveBeenCalledWith('sid:7');
   });
 
   it('lists builtin voices and writes ttsVoice on select', async () => {
@@ -141,14 +99,17 @@ describe('NativeVoiceSection', () => {
     expect(onCustomChanged).not.toHaveBeenCalled();
   });
 
-  it('surfaces the store-provided message when a style import fails validation', async () => {
-    const store = makeStyleStore({
+  it('surfaces a VoiceImportError message from a clip store (shared error type with the WASM lane)', async () => {
+    // VoiceImportError itself lives in the shared voiceStorage.ts (the WASM
+    // lane's own error type) — NativeVoiceSection imports only the type, not
+    // a style-import flow, so any store can in principle throw it. The old
+    // style-store producer of this error died in Task 5/6.
+    const store = makeClipStore({
       onImport: vi.fn().mockRejectedValue(new VoiceImportError('not_json', 'Not a valid JSON file')),
     });
     const onCustomChanged = vi.fn();
-    render(<NativeVoiceSection capability={{ builtin: 'named', custom: 'style' }}
-      builtinVoices={[]} store={store} selected="" targetLanguage="en"
-      onSelect={() => {}} onCustomChanged={onCustomChanged} />);
+    render(<NativeVoiceSection {...baseProps} store={store} onCustomChanged={onCustomChanged} />);
+    await screen.findByText('Ava');
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File([new Uint8Array(8)], 'voice.json');
     fireEvent.change(fileInput, { target: { files: [file] } });
@@ -218,5 +179,44 @@ describe('NativeVoiceSection', () => {
     // above) — any match confirms it's present. 'NoText' must have zero matches.
     expect((await screen.findAllByText('WithText')).length).toBeGreaterThan(0);
     expect(screen.queryByText('NoText')).toBeNull();
+  });
+
+  describe('clone-only voice gate (slice 5 — renderer mirror of the sidecar R16 pre-check)', () => {
+    it('warns when a clone-only model (builtin:none, custom:clip) has no clip yet', async () => {
+      const store = makeClipStore({ list: vi.fn().mockResolvedValue([]) });
+      render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip' }}
+        builtinVoices={[]} store={store} selected="" targetLanguage="en"
+        onSelect={() => {}} onCustomChanged={() => {}} />);
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/needs a clip/i));
+    });
+
+    it('does not warn once a clip is stored for that clone-only model', async () => {
+      const store = makeClipStore({ list: vi.fn().mockResolvedValue([{ id: 1, name: 'MyClone' }]) });
+      render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip' }}
+        builtinVoices={[]} store={store} selected="" targetLanguage="en"
+        onSelect={() => {}} onCustomChanged={() => {}} />);
+      // 'MyClone' appears twice in dropdown presentation (the <select> option
+      // AND the "manage imported voices" row) — same duplication as the
+      // transcriptRequired filter test above.
+      await waitFor(() => expect(screen.getAllByText('MyClone').length).toBeGreaterThan(0));
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('a transcriptRequired clone-only model still warns when clips exist but none carry a transcript', async () => {
+      const store = makeClipStore({
+        list: vi.fn().mockResolvedValue([{ id: 1, name: 'NoText', hasTranscript: false }]),
+      });
+      render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip', transcriptRequired: true }}
+        builtinVoices={[]} store={store} selected="" targetLanguage="en"
+        onSelect={() => {}} onCustomChanged={() => {}} />);
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/needs a clip/i));
+    });
+
+    it('a preset/named-voice family (MOSS-shaped) is unaffected even with zero custom clips', async () => {
+      const store = makeClipStore({ list: vi.fn().mockResolvedValue([]) });
+      render(<NativeVoiceSection {...baseProps} store={store} />);
+      await screen.findByText('Ava');
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
   });
 });

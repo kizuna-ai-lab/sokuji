@@ -54,20 +54,47 @@ export function nativeAsrForLanguage(srcLang: string, current: string, catalog: 
   return (catalogModels(catalog, 'asr').filter((m) => supportsLanguage(m, srcLang))[0])?.id || current;
 }
 
-export type VoiceBuiltin = 'none' | 'range' | 'named';
-export type VoiceCustom = 'none' | 'clip' | 'style';
+export type VoiceBuiltin = 'none' | 'named';
+export type VoiceCustom = 'none' | 'clip';
 export interface VoiceCapability { builtin: VoiceBuiltin; custom: VoiceCustom; transcriptRequired?: boolean; }
 
 /** A TTS model's voice capability: which built-in voice control it exposes
- *  (none/range/named) and which custom-voice mechanism it supports
- *  (none/clip clone/style prompt). Reads the sidecar-reported `voice` field
- *  when present; otherwise derives a safe approximation from `clones` /
- *  `numSpeakers`. */
+ *  (none/named) and which custom-voice mechanism it supports (none/clip
+ *  clone). Reads the sidecar-reported `voice` field when present; otherwise
+ *  derives a safe approximation from `clones`. The old range/style axes (a
+ *  sid-range slider, Supertonic's uploaded style-vector JSON) died with the
+ *  ONNX backends that were their only producers (Task 5's catalog rewire
+ *  onto native_tts) — the `numSpeakers` field they relied on is gone from
+ *  the model info entirely, so there is nothing to read here. */
 export function voiceCapability(model: NativeModelInfo | undefined): VoiceCapability {
   if (model?.voice) return model.voice;
   const custom: VoiceCustom = model?.clones ? 'clip' : 'none';
-  const builtin: VoiceBuiltin = model?.clones ? 'named' : (model?.numSpeakers ?? 1) > 1 ? 'range' : 'none';
+  const builtin: VoiceBuiltin = model?.clones ? 'named' : 'none';
   return { builtin, custom };
+}
+
+/** True when a TTS model can ONLY speak via a cloned voice — no built-in voice
+ *  exists at all (the sidecar's R16 `_VOICE_REQUIRED_FAMILIES`, e.g. qwen3_tts,
+ *  omnivoice). Such a model produces no audio until the user records/imports at
+ *  least one usable clip; pairs with an eligible-clip count (respecting
+ *  `transcriptRequired` — a clip with no transcript doesn't count for a model
+ *  that needs one) to decide whether that clip actually exists yet. */
+export function isCloneOnlyVoice(capability: VoiceCapability): boolean {
+  return capability.builtin === 'none' && capability.custom === 'clip';
+}
+
+/** The clips that actually count as a usable clone source, given
+ *  `transcriptRequired`: a clip with no transcript doesn't count for a model
+ *  that needs one. One predicate shared by the pre-init voice-required gate,
+ *  the voice-selection reconciliation, and the picker UI, so "eligible" means
+ *  the same thing everywhere a stored selection or clip count is decided —
+ *  computing it separately at each call site is how a stale/ineligible clip
+ *  (no transcript) can slip past a gate that only checked a DIFFERENT clip's
+ *  eligibility and get applied anyway. */
+export function eligibleCustomVoices<T extends { hasTranscript?: boolean }>(
+  clips: T[], transcriptRequired?: boolean,
+): T[] {
+  return transcriptRequired ? clips.filter((v) => v.hasTranscript) : clips;
 }
 
 /** TTS models supporting the target language, recommended+order first. */
@@ -295,34 +322,28 @@ export type BackendTooltipRow = { key: string; value: string; warn?: boolean };
 const FRAMEWORK_LABELS: Record<string, string> = {
   transcribe_cpp: 'transcribe.cpp',
   transcribe_cpp_stream: 'transcribe.cpp',
-  ct2_opus_translate: 'CTranslate2',
-  llamacpp_qwen: 'llama.cpp',
-  llamacpp_hunyuan: 'llama.cpp',
-  llamacpp_gemma: 'llama.cpp',
-  moss_onnx: 'ONNXRuntime',
-  qwen3tts_onnx: 'ONNXRuntime',
-  sherpa_tts: 'sherpa-onnx',
-  supertonic: 'Supertonic',
-  mlx_audio_tts: 'MLX',
+  native_translate: 'llama.cpp',
+  native_tts: 'audio.cpp',
 };
 
 /** Engine/library label for a sidecar backend id. Falls back by prefix so a new
- *  llamacpp_X, X_onnx, or transcribe_cpp_X id still resolves, else echoes the raw id. */
+ *  transcribe_cpp_X id still resolves, else echoes the raw id. The old
+ *  `X_onnx` → 'ONNXRuntime' fallback died with the ONNX backends themselves
+ *  (slice 5) — no backend id ends in `_onnx` anymore. */
 export function frameworkLabel(backendId: string): string {
   if (FRAMEWORK_LABELS[backendId]) return FRAMEWORK_LABELS[backendId];
-  if (backendId.startsWith('llamacpp_')) return 'llama.cpp';
   if (backendId.startsWith('transcribe_cpp')) return 'transcribe.cpp';
-  if (backendId.endsWith('_onnx')) return 'ONNXRuntime';
   return backendId;
 }
 
-/** Hardware acceleration API for a GPU tier; null for cpu/unknown (no API row). */
+/** Hardware acceleration API for a GPU tier; null for cpu/unknown (no API row).
+ *  gpu-cuda/gpu-dml died with the ONNX/MLX TTS backends that were their last
+ *  catalog producers (slice 4 — R4): every sidecar tier is now cpu/gpu-metal/
+ *  gpu-vulkan. */
 export function accelApiLabel(tier: string): string | null {
   switch (tier) {
-    case 'gpu-cuda': return 'CUDA';
     case 'gpu-metal': return 'Metal';
     case 'gpu-vulkan': return 'Vulkan';
-    case 'gpu-dml': return 'DirectML';
     default: return null;
   }
 }
@@ -355,29 +376,24 @@ export function buildBackendTooltipRows(input: {
   }
   if (resolved?.memoryBytes) rows.push({ key: 'memory', value: formatMemMb(Math.round(resolved.memoryBytes / 1_048_576)) });
   if (sizeMb != null) rows.push({ key: 'size', value: formatMemMb(sizeMb) });
-  // TODO(#287): the frontend catalog only exposes the model-level repo
-  // (info.repo = the ONNX/primary repo). MLX TTS tiers on Apple Silicon load a
-  // different per-tier artifact, so info.repo would mislabel them — hide the repo
-  // row for MLX until the sidecar sends a per-tier repo, then drop this guard.
-  if (repo && !(backendId && frameworkLabel(backendId) === 'MLX')) rows.push({ key: 'repo', value: repo });
+  // The #287 MLX repo-hiding guard (`repo && !(backendId && frameworkLabel(backendId)
+  // === 'MLX')`) died with the ONNX/MLX TTS backends that were its only possible
+  // match (Task 5's catalog rewire onto native_tts; frameworkLabel can no longer
+  // produce 'MLX') — removed in slice 5 rather than left as dead code. The repo
+  // row now shows unconditionally.
+  if (repo) rows.push({ key: 'repo', value: repo });
   if (resolved?.fallbackReason) rows.push({ key: 'fallback', value: resolved.fallbackReason, warn: true });
   return rows;
 }
 
-/** sid encoded as the suffix of a `sid:<n>` ttsVoice ('sid:5' → 5; anything else → 0). */
-export function sidFromTtsVoice(v: string): number {
-  return v.startsWith('sid:') ? (Number(v.slice(4)) || 0) : 0;
-}
-export function ttsVoiceForSid(n: number): string { return `sid:${n}`; }
-
-/** Display label for a hardware tier string from the sidecar models_catalog. */
+/** Display label for a hardware tier string from the sidecar models_catalog.
+ *  gpu-cuda/gpu-dml died with the ONNX/MLX TTS backends that were their last
+ *  catalog producers (slice 4 — R4). */
 export function tierLabel(tier: string): { label: string; accel: boolean } {
   switch (tier) {
     case 'cpu': return { label: 'CPU', accel: false };
-    case 'gpu-cuda': return { label: 'GPU · CUDA', accel: true };
     case 'gpu-metal': return { label: 'GPU · Metal', accel: true };
     case 'gpu-vulkan': return { label: 'GPU · Vulkan', accel: true };
-    case 'gpu-dml': return { label: 'GPU · DirectML', accel: true };
     default: return { label: tier, accel: false };
   }
 }

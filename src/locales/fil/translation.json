@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Inference Engine",
-    "detected": "Natukoy: {{gpu}}",
     "package": "Package ng engine: {{sku}} · {{size}}",
     "sizeUnknown": "hindi available ang laki offline",
     "download": "I-download ang engine",
@@ -891,6 +890,7 @@
     "clipSilent": "Walang natukoy na boses — suriin ang iyong mikropono at subukang muli.",
     "clipTooLong": "Masyadong mahaba ang recording — panatilihin itong wala pang {seconds} segundo.",
     "clipTooShort": "Masyadong maikli ang recording — magsalita nang hindi bababa sa {seconds} segundo.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Kailangan ng custom na boses?",
     "decodeFailed": "Hindi mabasa ang audio file na iyon — subukan ang WAV, MP3, o ibang karaniwang format.",
     "delete": "I-delete",

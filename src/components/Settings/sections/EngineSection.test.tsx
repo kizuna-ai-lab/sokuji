@@ -20,7 +20,7 @@ const setBundle = (patch: Record<string, unknown>) =>
 
 describe('EngineSection states (spec S10)', () => {
   beforeEach(() => setBundle({
-    bundleStatus: 'unknown', bundleDevVenv: false, bundleGpuName: null,
+    bundleStatus: 'unknown', bundleDevVenv: false,
     bundleSku: null, bundleVersion: null, bundleRequiredVersion: null,
     bundleSize: null, bundleInstalledSize: null, bundleStagedBytes: 0,
     bundlePhase: null, bundleProgress: { downloaded: 0, total: 0 }, bundleError: '',
@@ -52,15 +52,14 @@ describe('EngineSection states (spec S10)', () => {
     expect(screen.queryByText(/not supported/)).toBeNull();
   });
 
-  it('absent: download CTA with sku, gpu and size', () => {
+  it('absent: download CTA with sku and size', () => {
     setBundle({
-      bundleStatus: 'absent', bundleSku: 'linux-nvidia',
-      bundleGpuName: 'NVIDIA GeForce RTX 4070', bundleSize: 2 * 1024 ** 3,
+      bundleStatus: 'absent', bundleSku: 'linux-x64',
+      bundleSize: 2 * 1024 ** 3,
     });
     render(<EngineSection />);
     expect(screen.getByText(/Download engine/)).toBeTruthy();
-    expect(screen.getByText(/linux-nvidia/)).toBeTruthy();
-    expect(screen.getByText(/RTX 4070/)).toBeTruthy();
+    expect(screen.getByText(/linux-x64/)).toBeTruthy();
     expect(screen.getByText(/2\.0 GB/)).toBeTruthy();
   });
 

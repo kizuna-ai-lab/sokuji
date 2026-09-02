@@ -9,20 +9,18 @@ Apple Silicon (no CUDA runtime shipped; Vulkan measured 100x realtime on a
 speech-LLMs, Q8_0 for whisper/SenseVoice, Q6_K for Fun-ASR-MLT (its card shows
 q6_k beating bf16). Note: transcribe.cpp SenseVoice emits raw text (no ITN /
 punctuation normalization) — accepted with the all-in decision."""
-import os
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class Deployment:
-    backend: str        # backend NAME: "transcribe_cpp" | "sherpa_tts" | "moss_onnx" | "supertonic" | "qwen3tts_onnx" | "mlx_audio_tts" | "llamacpp_qwen" | "llamacpp_hunyuan" | "llamacpp_gemma" | "ct2_opus_translate"
-    tier: str           # "cpu" | "gpu-vulkan" | "gpu-metal" | "gpu-cuda" | "gpu-dml"
-    compute_type: str   # quant/dtype label ("q4_k_m", "q8_0", "int8", ...)
+    backend: str        # backend NAME: "native_asr" | "native_asr_stream" | "native_translate" | "native_tts"
+    tier: str           # "cpu" | "gpu-vulkan" | "gpu-metal" (gpu-cuda/gpu-dml died with the ONNX TTS backends — slice 4)
+    compute_type: str   # quant/dtype label ("q4_k_m", "q8_0", "bf16", ...)
     artifact: str       # backend.load() model_ref (repo id or "org/repo/file.gguf")
     rank: float         # tie-breaker within a tier (higher = preferred)
     est_bytes: int | None = None                     # footprint estimate; None → model_size(artifact)
     platforms: tuple[str, ...] = ("linux", "windows", "macos")  # OSes this deployment runs on (D9)
-    requires_apple_silicon: bool = False             # gate: needs Apple Silicon (mlx / metal-only rows)
 
 
 @dataclass(frozen=True)
@@ -68,7 +66,7 @@ _TC_CURATED_MIN_RANK = 1.0
 
 
 def _tc_row(mid, name, langs, repo, base, order, quants, default,
-            recommended=False, backend="transcribe_cpp", tiers=_TC_TIERS):
+            recommended=False, backend="native_asr", tiers=_TC_TIERS):
     """One transcribe.cpp ASR card with its FULL quant ladder. `quants` maps
     QUANT (filename token, e.g. "Q8_0") -> size_bytes; `default` names the
     curated default. The same GGUF serves every tier. Deployments are ordered
@@ -191,11 +189,33 @@ ASR_MODELS: list[AsrModel] = [
             80, {"F16": 1255869856, "Q8_0": 739508576, "Q6_K": 610342240,
                  "Q5_K_M": 548946272, "Q4_K_M": 485425504},
             default="Q8_0", recommended=True),
+    # German fine-tune of v3 (primeline, CC-BY-4.0; transcribe.cpp >= 0.2.0):
+    # FLEURS-de WER 6.00 vs NeMo's 5.98 — not a librispeech figure, so it sits
+    # right behind its base rather than in the WER order. Keeps the other 24
+    # v3 languages usable. Inherits v3's `ss`-for-`ß` orthography quirk.
+    _tc_row("parakeet-primeline", "Parakeet Primeline (de)",
+            ("bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
+             "hu", "it", "lv", "lt", "mt", "pl", "pt", "ro", "ru", "sk", "sl",
+             "es", "sv", "uk"),
+            "handy-computer/parakeet-primeline-gguf", "parakeet-primeline",
+            81, {"F16": 1255869920, "Q8_0": 739508640, "Q6_K": 610342304,
+                 "Q5_K_M": 548946336, "Q4_K_M": 485425568}, default="Q8_0"),
+    # WER 1.93 @ Q8_0 — en/zh audio-LLM (Whisper-medium encoder + Qwen3-0.6B;
+    # Apache-2.0; transcribe.cpp >= 0.2.0). Batch-only upstream, and its
+    # optional inline speaker markers stay OFF (session.run's diarize default),
+    # so it transcribes like any other card. Q4_K_M degrades to 2.59 and the
+    # author warns of edge-case failures below Q5_K_M — Q8_0 is the default.
+    _tc_row("moss-transcribe-diarize", "MOSS Transcribe (0.9B)", ("en", "zh"),
+            "handy-computer/moss-transcribe-diarize-gguf", "MOSS-Transcribe-Diarize",
+            85, {"F16": 1833665696, "Q8_0": 986899616, "Q6_K": 768151712,
+                 "Q5_K_M": 700313760, "Q4_K_M": 617345184}, default="Q8_0"),
     # WER 2.01 — 99-language mainstay: ~large-v3 quality at 4x the speed.
+    # Sizes are the 2026-07-21 re-upload of the repo (quants 64 bytes shorter per
+    # file; F16 was re-encoded, ~10.8 MB smaller) — all five match the live tree.
     _tc_row("whisper-large-v3-turbo", "Whisper large-v3 turbo", ("multi",),
             "handy-computer/whisper-large-v3-turbo-gguf", "whisper-large-v3-turbo",
-            90, {"F16": 1636749024, "Q8_0": 886381824, "Q6_K": 692536992,
-                 "Q5_K_M": 619628192, "Q4_K_M": 536069792},
+            90, {"F16": 1625935520, "Q8_0": 886381760, "Q6_K": 692536928,
+                 "Q5_K_M": 619628128, "Q4_K_M": 536069728},
             default="Q8_0", recommended=True),
     # WER 2.07 — heavy streaming flagship (committed/tentative partials).
     _tc_row("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
@@ -203,7 +223,7 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf", "Voxtral-Mini-4B-Realtime-2602",
             100, {"F16": 8879114528, "Q8_0": 4731791648, "Q6_K": 3661018912,
                   "Q5_K_M": 3281439008, "Q4_K_M": 2830493984},
-            default="Q4_K_M", recommended=True, backend="transcribe_cpp_stream"),
+            default="Q4_K_M", recommended=True, backend="native_asr_stream"),
     # WER 2.10 — light CJK quality rung.
     _tc_row("qwen3-asr-0.6b", "Qwen3-ASR 0.6B",
             ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
@@ -216,7 +236,18 @@ ASR_MODELS: list[AsrModel] = [
     _tc_row("moonshine-streaming-medium", "Moonshine Streaming Medium", ("en",),
             "handy-computer/moonshine-streaming-medium-gguf", "moonshine-streaming-medium",
             113, {"F16": 533781408, "Q8_0": 295793568},
-            default="Q8_0", backend="transcribe_cpp_stream"),
+            default="Q8_0", backend="native_asr_stream"),
+    # WER 2.18 @ Q8_0 — en-only cache-aware STREAMING, cased+punct (NVIDIA
+    # Open Model License; transcribe.cpp >= 0.2.0). The ROOT GGUFs: the repo's
+    # bundle/ twins embed a Sortformer diarizer whose multi-speaker output is
+    # offline-API only upstream — the stream API is single-speaker either way.
+    _tc_row("multitalker-parakeet-streaming-0.6b-v1",
+            "Parakeet Multitalker Streaming 0.6B (en)", ("en",),
+            "handy-computer/multitalker-parakeet-streaming-0.6b-v1-gguf",
+            "multitalker-parakeet-streaming-0.6b-v1",
+            114, {"F16": 1246058304, "Q8_0": 734123712, "Q6_K": 603878080,
+                  "Q5_K_M": 541890240, "Q4_K_M": 477812416},
+            default="Q8_0", backend="native_asr_stream"),
     # WER 2.25 — Taiwanese Mandarin + zh/en code-switching (Whisper-large-v2
     # ft); the quant ladder is WER-flat so the smallest curated rung wins.
     _tc_row("breeze-asr-25", "Breeze ASR 25", ("zh", "en"),
@@ -231,7 +262,7 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf", "nemotron-3.5-asr-streaming-0.6b",
             128, {"F16": 1277750240, "Q8_0": 751094240, "Q6_K": 621356512,
                   "Q5_K_M": 559647200, "Q4_K_M": 495831520},
-            default="Q8_0", recommended=True, backend="transcribe_cpp_stream"),
+            default="Q8_0", recommended=True, backend="native_asr_stream"),
     # WER 3.13 at RTF 289 (metal) — fastest/lightest CJK+yue (no ITN/punct).
     _tc_row("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
             "handy-computer/SenseVoiceSmall-gguf", "SenseVoiceSmall",
@@ -308,7 +339,7 @@ ASR_MODELS: list[AsrModel] = [
     # WER 2.29 — en-only cache-aware STREAMING (NVIDIA Open Model License)
     _tc_row("nemotron-speech-streaming-en", "Nemotron Speech Streaming (en)", ("en",),
             "handy-computer/nemotron-speech-streaming-en-0.6b-gguf", "nemotron-speech-streaming-en-0.6b",
-            117, {"F16": 1237652608, "Q8_0": 729650176, "Q6_K": 600420352, "Q5_K_M": 538989568, "Q4_K_M": 475436032}, default="Q8_0", backend="transcribe_cpp_stream"),
+            117, {"F16": 1237652608, "Q8_0": 729650176, "Q6_K": 600420352, "Q5_K_M": 538989568, "Q4_K_M": 475436032}, default="Q8_0", backend="native_asr_stream"),
     # WER 2.43 — en, small/fast, cased+punct
     _tc_row("parakeet-tdt_ctc-110m", "Parakeet TDT-CTC 110M", ("en",),
             "handy-computer/parakeet-tdt_ctc-110m-gguf", "parakeet-tdt_ctc-110m",
@@ -320,7 +351,7 @@ ASR_MODELS: list[AsrModel] = [
     # WER 2.53 — en STREAMING 123M (F16/Q8_0 only)
     _tc_row("moonshine-streaming-small", "Moonshine Streaming Small", ("en",),
             "handy-computer/moonshine-streaming-small-gguf", "moonshine-streaming-small",
-            121, {"F16": 282092128, "Q8_0": 198506848}, default="Q8_0", backend="transcribe_cpp_stream"),
+            121, {"F16": 282092128, "Q8_0": 198506848}, default="Q8_0", backend="native_asr_stream"),
     # WER 2.59 — 99-lang 769M
     _tc_row("whisper-medium", "Whisper medium", ("multi",),
             "handy-computer/whisper-medium-gguf", "whisper-medium",
@@ -352,7 +383,7 @@ ASR_MODELS: list[AsrModel] = [
     # WER 4.52 — en STREAMING 34M (F16/Q8_0 only)
     _tc_row("moonshine-streaming-tiny", "Moonshine Streaming Tiny", ("en",),
             "handy-computer/moonshine-streaming-tiny-gguf", "moonshine-streaming-tiny",
-            134, {"F16": 89784416, "Q8_0": 50462816}, default="Q8_0", backend="transcribe_cpp_stream"),
+            134, {"F16": 89784416, "Q8_0": 50462816}, default="Q8_0", backend="native_asr_stream"),
     # WER 4.58 — en OFFLINE 27M (F16/Q8_0 only)
     _tc_row("moonshine-tiny", "Moonshine Tiny", ("en",),
             "handy-computer/moonshine-tiny-gguf", "moonshine-tiny",
@@ -429,13 +460,17 @@ def asr_model(model_id: str) -> AsrModel | None:
 
 @dataclass(frozen=True)
 class TranslateModel(_ModelBase):
-    # Qwen3/Qwen3.5 chat-template thinking-mode kill switch (mirrors the
-    # substring checks in translate_backends.LlamaCppQwenBackend._payload):
-    # disable_thinking sends chat_template_kwargs.enable_thinking=false,
-    # append_no_think additionally appends the "/no_think" soft switch to the
-    # system prompt (plain Qwen3 only, belt-and-braces per Qwen3's own docs).
+    # Qwen3/Qwen3.5 chat-template thinking-mode kill switch (mirrors
+    # translate_backend.QwenStrategy.build): disable_thinking forces an empty
+    # <think></think> block as the assistant's prefill, append_no_think
+    # additionally appends the "/no_think" soft switch to the system prompt
+    # (plain Qwen3 only, belt-and-braces per Qwen3's own docs).
     disable_thinking: bool = False
     append_no_think: bool = False
+    # Which of translate_backend.STRATEGIES to build the prompt with
+    # ("qwen" | "hunyuan" | "gemma"); read off the card by
+    # planner._plan_config into PlanConfig.prompt_family.
+    prompt_family: str = ""
 
 
 def split_artifact(artifact: str) -> tuple[str, str | None]:
@@ -479,53 +514,34 @@ def _gguf_artifact(mid: str, quant: str) -> str:
     return f"{repo}/{fname}"
 
 
-def _opus_repo(mid: str) -> str:
-    return f"jiangzhuo9357/{mid}-ct2"
-
-
 def _llm_translate_row(mid, name, family, sort_order, default_quant, default_bytes,
                        alt_quant, alt_bytes, recommended=False,
                        disable_thinking=False, append_no_think=False):
-    """An LLM card: one llamacpp backend, two GGUF quant variants, four tiers
-    each (gpu-cuda / gpu-metal / gpu-vulkan / cpu). The same GGUF serves every
-    tier; rank 2.0 marks the default quant. Plan ORDER across tiers is decided
-    by accel.TIER_RANK (gpu-cuda/gpu-metal 3.0 > gpu-vulkan 2.5 > cpu 1.0), not
-    by the order of this tuple."""
-    backend = f"llamacpp_{family}"
+    """A GGUF LLM translate card: the native_translate backend (sokuji_native's
+    in-process llama.cpp runtime, spec §4.3), two GGUF quant variants, three
+    tiers each (gpu-metal / gpu-vulkan / cpu — no gpu-cuda: post-A1 no probe
+    ever reports a "cuda" device kind, so that tier was unreachable). The same
+    GGUF serves every tier; rank 2.0 marks the default quant. Plan ORDER across
+    tiers is decided by accel.TIER_RANK (gpu-metal 3.0 > gpu-vulkan 2.5 >
+    cpu 1.0), not by the order of this tuple. `family` selects the prompt
+    strategy (translate_backend.STRATEGIES) via PlanConfig.prompt_family."""
     deps = []
     for quant, nbytes, rank in ((default_quant, default_bytes, 2.0),
                                 (alt_quant, alt_bytes, 1.0)):
         artifact = _gguf_artifact(mid, quant)
-        deps += [Deployment(backend, tier, quant, artifact, rank, est_bytes=nbytes)
-                 for tier in ("gpu-cuda", "gpu-metal", "gpu-vulkan", "cpu")]
+        deps += [Deployment("native_translate", tier, quant, artifact, rank, est_bytes=nbytes)
+                 for tier in ("gpu-metal", "gpu-vulkan", "cpu")]
     return TranslateModel(mid, name, ("multi",), tuple(deps),
                           recommended=recommended, sort_order=sort_order,
                           size_bytes=default_bytes, disable_thinking=disable_thinking,
-                          append_no_think=append_no_think)
-
-
-def _opus_row(src, tgt, sort_order, size_bytes=115_000_000):
-    mid = f"opus-mt-{src}-{tgt}"
-    name = f"Opus-MT ({_opus_disp(src)} → {_opus_disp(tgt)})"
-    return TranslateModel(mid, name, (src, tgt), (
-        Deployment("ct2_opus_translate", "cpu", "int8", _opus_repo(mid), 1.0),
-    ), sort_order=sort_order, size_bytes=size_bytes)
-
-
-# Opus-MT display: the en→ja repo keeps Helsinki's "jap" token, but the card
-# should read "ja". Only this one code is remapped for the label.
-_OPUS_DISP = {"jap": "ja"}
-
-
-def _opus_disp(code):
-    return _OPUS_DISP.get(code, code)
+                          append_no_think=append_no_think, prompt_family=family)
 
 
 # Sizes are the exact upstream GGUF file byte counts (HF API size fetch,
-# 2026-07-03 — see _GGUF_SOURCES). Opus size_bytes are the 5-file CT2 sums
-# (config.json + model.bin + shared_vocabulary.json + source.spm + target.spm)
-# of the jiangzhuo9357/opus-mt-*-ct2 repos, HF API fetch 2026-07-06 (see
-# OPUS_FILES in native_models.py).
+# 2026-07-03 — see _GGUF_SOURCES). The 13 Opus-MT (CTranslate2) rows that used
+# to live here were removed in slice 3 along with the ct2_opus_translate
+# backend and the ctranslate2 dependency: translation now runs entirely
+# through native_translate (sokuji_native's in-process llama.cpp runtime).
 TRANSLATE_MODELS: list[TranslateModel] = [
     _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B", "qwen", 1,
                        "q8_0", 675710816, "q4_k_m", 491400032, recommended=True),
@@ -548,13 +564,6 @@ TRANSLATE_MODELS: list[TranslateModel] = [
                        "q4_k_m", 1133080512, "q8_0", 1908528288),
     _llm_translate_row("hy-mt15-7b", "Hunyuan-MT1.5 7B", "hunyuan", 9,
                        "q4_k_m", 4624649312, "q8_0", 7981929344),
-    _opus_row("ru", "en", 20, 82459917), _opus_row("zh", "en", 21, 82483063),
-    _opus_row("en", "zh", 22, 82482780), _opus_row("hu", "en", 23, 81185270),
-    _opus_row("en", "es", 24, 82471554), _opus_row("en", "ar", 25, 81957408),
-    _opus_row("en", "ru", 26, 82459917), _opus_row("es", "en", 27, 82471554),
-    _opus_row("en", "vi", 28, 76183416), _opus_row("ar", "en", 29, 81988818),
-    _opus_row("ja", "en", 30, 80132256), _opus_row("en", "jap", 31, 72783549),
-    _opus_row("ko", "en", 32, 82628751),
 ]
 
 
@@ -583,37 +592,31 @@ class License:
 
 @dataclass(frozen=True)
 class TtsModel(_ModelBase):
-    repos: tuple[str, ...] = ()      # HF repos to download
-    urls: tuple[str, ...] = ()       # extra files (e.g. a vocoder .onnx)
-    clones: bool = False             # zero-shot voice cloning from a reference clip
-    streaming: bool = False          # intra-utterance audio-delta streaming
-    sample_rate: int = 24000         # native rate (engine resamples to 24k)
-    num_speakers: int = 1            # 1 = single voice; >1 = a 0..N-1 speaker range
-    named_voices: bool = False       # has named preset voices (dropdown), not a bare sid range
-    style_voices: bool = False       # custom voices are uploaded style-vector JSONs (Supertonic)
-    transcript_required: bool = False  # ICL voice cloning needs the reference clip's transcript
-    license: License | None = None   # non-standard license terms; None = no restriction
-
-
-def _sherpa_tts_row(mid, name, langs, repo, sort_order, sr, urls=(), recommended=False,
-                     num_speakers=1, size_bytes=0, download_ignore=()):
-    # CPU-only by reality: the stock sherpa-onnx wheel bundles a CPU-only ORT
-    # (runtime-verified, D11) — no GPU tier row.
-    return TtsModel(mid, name, langs, (
-        Deployment("sherpa_tts", "cpu", "fp32", repo, 1.0),
-    ), repos=(repo,), urls=tuple(urls), sample_rate=sr,
-       recommended=recommended, sort_order=sort_order, num_speakers=num_speakers,
-       size_bytes=size_bytes, download_ignore=download_ignore)
+    family: str = ""                  # sk_tts_load's family_hint: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic
+    load_language: str = ""           # pocket_tts's load-time language package ("english", ...); "" elsewhere
+    clones: bool = False              # zero-shot voice cloning from a reference clip (sk_tts_set_voice)
+    streaming: bool = False           # intra-utterance audio-delta streaming (R5: MOSS is offline-only)
+    sample_rate: int = 24000          # audio.cpp's native rate for this family
+    named_voices: bool = False        # sk_tts_presets returns a non-empty, curated list (dropdown)
+    transcript_required: bool = False  # sk_tts_set_voice's ref_text is mandatory (omnivoice, qwen3_tts -- R15(s4))
+    license: License | None = None    # non-standard license terms; None = no restriction
+    # (relative-to-artifact-dir filename, size_bytes) sidecar assets sk_tts_presets
+    # discovers next to the loaded gguf (pocket-tts-en's embeddings/alba.safetensors);
+    # () for every other card (single self-sufficient GGUF — see native/README.md's
+    # "GGUF-embedded sidecars" note).
+    extra_files: tuple[tuple[str, int], ...] = ()
 
 
 def voice_capability(model: "TtsModel") -> dict:
     """Two-axis native voice capability derived from static catalog facts.
-    builtin: named (preset dropdown) | range (sid slider) | none (single voice).
-    custom:  clip (reference audio)  | style (uploaded JSON) | none."""
-    custom = "clip" if model.clones else "style" if model.style_voices else "none"
-    builtin = "named" if model.named_voices else "range" if model.num_speakers > 1 else "none"
+    builtin: named (sk_tts_presets dropdown) | none. custom: clip (reference
+    audio, sk_tts_set_voice) | none. The old style/range axes (Supertonic's
+    uploaded style-vector JSON, a sid-range slider) died with the ONNX
+    backends that were their only consumers."""
+    custom = "clip" if model.clones else "none"
+    builtin = "named" if model.named_voices else "none"
     out = {"builtin": builtin, "custom": custom}
-    if custom == "clip" and getattr(model, "transcript_required", False):
+    if custom == "clip" and model.transcript_required:
         out["transcriptRequired"] = True
     return out
 
@@ -634,342 +637,426 @@ def license_dict(model: "TtsModel") -> dict | None:
     }
 
 
-_MOSS_NANO_LM_REPO = os.environ.get(
-    "SOKUJI_MOSS_TTS_NANO_REPO", "OpenMOSS-Team/MOSS-TTS-Nano-100M-ONNX")
-_MOSS_NANO_TOK_REPO = os.environ.get(
-    "SOKUJI_MOSS_TTS_NANO_TOK_REPO", "OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano-ONNX")
+# All 10 cards are single-file GGUFs from audio.cpp's official mirror,
+# verified 2026-09-01 via the HF tree API (`GET
+# api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`) — every (dir, file)
+# pair below resolves to a real LFS object and the byte count shown is its
+# exact `lfs.size`. Cross-checked against the repo's own `model_specs/
+# <family>.json` package list (vendored at
+# native/build/cpu/_deps/audiocpp-src/model_specs/) for the curated default
+# per family and, for pocket_tts, exactly which languages ship a preset asset
+# (see the pocket-tts-en row below).
+_AUDIOCPP_GGUF_REPO = "audio-cpp/audio.cpp-gguf"
 
-# Per-variant self-contained repos (spec P7): the repo IS the variant, rather
-# than one repo with a CUDA-only bf16 subdir picked at load time. int8 was CUT
-# from the shipping ladder — validated slower than fp32 on both aarch64 and
-# x86 — so only fp32 (cpu + gpu-cuda + gpu-dml) and bf16 (gpu-cuda only) ship.
-_QWEN3_TTS_06B_FP32 = os.environ.get(
-    "SOKUJI_QWEN3_TTS_06B_REPO", "jiangzhuo9357/qwen3-tts-0.6b-onnx-fp32")
-_QWEN3_TTS_06B_BF16 = "jiangzhuo9357/qwen3-tts-0.6b-onnx-bf16"
-_QWEN3_TTS_17B_FP32 = os.environ.get(
-    "SOKUJI_QWEN3_TTS_17B_REPO", "jiangzhuo9357/qwen3-tts-1.7b-onnx-fp32")
-_QWEN3_TTS_17B_BF16 = "jiangzhuo9357/qwen3-tts-1.7b-onnx-bf16"
+# Ruling R18(s4): name of the sokuji-owned hard-link staging tree tts_backend.py's
+# load() creates as a sibling of HF's own models--*/ directories, directly under the
+# SAME cache root. Shared between tts_backend.py (creates/refreshes staged entries)
+# and native_models.py (removes a deleted card's staged entries so a hard link never
+# outlives the HF-cache-side file it was staged from) — defined here, the one module
+# both already import from, so neither has to import the other just for this name.
+TTS_STAGING_DIRNAME = "sokuji-tts-staging"
 
-_GPT_SOVITS_REPO = os.environ.get(
-    "SOKUJI_GPT_SOVITS_REPO", "jiangzhuo9357/gpt-sovits-v2pp-onnx")
+# R19 (2026-09-01): TTS is CPU-ONLY until GPU execution is validated per
+# family per lane (a slice-5/6 task) — every native_tts card COULD ship the
+# same tiers for every quant, since audio.cpp has no CUDA-only/DirectML-only
+# TTS kernel path (unlike the deleted ONNX backends' per-platform/
+# per-precision restrictions: bf16-CUDA-only, macOS-only MLX rows, ...), but
+# the slice-4 CI dry run's mac-arm64 metal lane gave the FIRST-EVER real-GPU
+# TTS contact and it aborted hard: the Python binding tests pass device=None
+# (NULL -> engine auto, per A1), which picked Metal for supertonic, and that
+# graph hit ggml_abort inside synthesize_supertonic_chunk ("unsupported op",
+# ggml-metal-ops.cpp:204) in upstream ggml's Metal backend. The C tests never
+# hit this because they load with an explicit CPU device (see
+# native/python/tests/test_sokuji_native.py). ASR (_TC_TIERS) and translate
+# (native_translate's own three-tier tuple in _llm_translate_row) are
+# untouched by this ruling — Metal ran moonshine (ASR) clean on the same
+# lane. (Retroactive correction, R36 below: that "first-ever real-GPU TTS
+# contact" was never M1 evidence either — GitHub's macos-14 arm64 runner is
+# the same paravirtual VM described there, and this abort is that VM's
+# GGML_OP_NORM gate, not a real-hardware finding.)
+#
+# `_TTS_TIERS` below is the cpu-only default for any family not listed in
+# `_TTS_TIER_OVERRIDES` — every one of the ten current cards IS listed there
+# (see that dict, below the fleet table), so this default currently applies
+# to no shipped card; it exists for the next new family, which starts
+# cpu-only until it, too, earns a tier through real-GPU evidence.
+_TTS_TIERS = ("cpu",)
 
-_COSYVOICE3_REPO = os.environ.get(
-    "SOKUJI_COSYVOICE3_REPO", "jiangzhuo9357/cosyvoice3-0.5b-onnx")
+# R19 follow-up / ruling R25 (2026-09-01, task 8): the first real Vulkan TTS
+# contact — CI's Linux lanes are headless (no GPU), so accel auto-detection
+# had only ever fallen back to CPU there; this is a GB10 (NVIDIA GB10,
+# aarch64, manylinux_2_39_aarch64) dev box with a real Vulkan device. Built
+# `native/ci/build.sh vulkan manylinux_2_39_aarch64` locally (ctest 4/4,
+# native/python/tests + native/tests/parity: 23 passed/2 xfailed/4 failed at
+# the time — since fixed by slice-5b task 2, which pinned the parity
+# candidate to the CPU device (device=NULL was resolving to the GPU on a
+# Vulkan stage) and keyed the nosve cache per source; the vulkan stage now
+# runs 13 passed/3 skipped like the cpu one). Then, per family, in its OWN
+# subprocess (a GGML abort is an uncatchable SIGABRT — isolating per family
+# means one family's crash can't take down the others or the other four
+# results, same precedent as test_tts_parity.py's `_run_candidate`
+# subprocess isolation): loaded with the EXPLICIT Vulkan device
+# (`sokuji_native.devices()`, kind == "vulkan" — "Vulkan0" / NVIDIA GB10),
+# did the family's normal voice setup (supertonic/pocket: `set_preset`;
+# qwen3_tts/omnivoice: `set_voice` cloning a reference clip synthesized by
+# supertonic on the CPU device first, with that clip's own text as
+# `ref_text`), synthesized "The quick brown fox jumps over the lazy dog.",
+# and whisper-tiny (CPU device) transcribed the result. PASS bar: clean exit
+# + transcript contains "quick"/"fox" + audio duration in [0.5s, 30s].
+#
+# All five families PASSED the crash/correctness bar — supertonic's Metal
+# "unsupported op" abort above does NOT reproduce on Vulkan (ggml-vulkan's op
+# coverage differs from ggml-metal's here). Per-family wall time is
+# tts_load()+synth() together (same measurement the CPU-lane numbers below
+# use, cited from task-7-report.md's loopback table, same box/build):
+#   moss_tts_nano: 3.92s audio, 5.62s wall vulkan (cpu 15.03s) -> gpu-vulkan
+#   supertonic:    3.10s audio, 14.45s wall vulkan (cpu 14.50s) -> gpu-vulkan.
+#                  That ~1.0x is a MEASUREMENT ARTEFACT, not parity: 99% of
+#                  the wall was model load, a device-independent CPU-side path
+#                  (.superpowers/vulkan-perf-investigation.md, Q1). Split at
+#                  n_threads=8: load 14.0s on BOTH devices, synth 0.097s
+#                  vulkan vs 0.981s cpu = 10.1x on this short text and 19.0x
+#                  on a 2-chunk 380-char one (each chunk 17-20x), with the GPU
+#                  83% busy under vulkan synth and 2% under cpu synth
+#   qwen3_tts:     3.04s audio, 7.19s wall vulkan (cpu 29.03s) -> gpu-vulkan
+#   omnivoice:     2.48s audio, 6.69s wall vulkan (cpu 43.81s) -> gpu-vulkan
+#   pocket_tts:    2.72s audio, 1.94s wall vulkan (cpu 1.31s production
+#                  chain, task-7's number) -> gpu-vulkan (ruling R29,
+#                  superseding R28). R28 briefly pinned this family
+#                  cpu-only on that single, cross-session, not-apples-to-
+#                  apples comparison (a raw vulkan probe vs. a different
+#                  session's heavier production-chain cpu number). A
+#                  controlled re-measurement (one warm-up call + 4 timed
+#                  tts_load()+synth() runs, same call shape, both devices)
+#                  showed a 5-9x GPU speedup instead: vulkan 0.42-0.46s
+#                  (tight) vs cpu 2.46-4.22s (noisy) — and even the original,
+#                  most favorable-to-cpu figure (1.31s) still loses to
+#                  Vulkan's worst run by ~3x. The cpu-side run-to-run variance
+#                  is now explained (vulkan-perf-investigation.md, Q2): it was
+#                  thread OVERSUBSCRIPTION against ggml's spin-wait barrier at
+#                  n_threads=nproc(=20). Held at n_threads=8 it is tight (cpu
+#                  1.014s vs vulkan 0.234s synth = 4.3x). No measurement in
+#                  either round has cpu winning, so R29 restores gpu-vulkan.
+#
+# The old caveat here — "ggml's scheduler may have silently fallen individual
+# ops back to CPU, so a clean run is only a BEHAVIORAL pass" — is retracted:
+# `ggml_backend_sched` has ZERO hits in native/src, native/include and
+# audiocpp-src/{src,include,app,tools,tests}, i.e. in every line that is
+# compiled into libsokuji_native. (It does appear under
+# audiocpp-src/external/ggml — audio.cpp's own bundled ggml fork, which this
+# project does not build. Those hits are ggml's OWN scheduler, in files this
+# build never compiles: 3 example programs that drive it
+# (examples/{gpt-2/main-sched.cpp, mnist/mnist-common.h,
+# simple/simple-backend.cpp}) plus tests/test-opt.cpp, the
+# include/ggml-{backend,cpp,opt}.h declarations, and the two IMPLEMENTATION
+# files behind them, src/ggml-{backend,opt}.cpp — an earlier version of this
+# footnote called that whole tail "declarations", which understated it.) So a
+# session holds exactly
+# ONE backend and an op Vulkan cannot service ABORTS ("Missing op" ->
+# GGML_ABORT), exactly as Metal did. A clean run is therefore proof the graph
+# ran on the GPU. Per-dispatch streaming overhead is ruled out too: the
+# advantage WIDENS with more chunks.
+#
+# The 14s load was a real defect, and it is fixed (native 0.6.1): ggml 0.22.0
+# read GGUF array KVs one element at a time — one locked fread each — and
+# audio.cpp reopens a model GGUF 14 times per load, so supertonic's 57MB
+# `audiocpp.embedded_files.data` sidecar KV cost ~800M freads. With
+# native/patches/ggml-gguf-bulk-array-read.json: supertonic load 13.85s ->
+# 1.50s, omnivoice 3.85 -> 1.42, qwen3 2.35 -> 1.21, moss 0.93 -> 0.19,
+# pocket 0.16 -> 0.14 (GB10, cpu lane, n_threads=12; see native/README.md
+# "GGUF array reads"). Every wall figure in the table above is PRE-fix.
+#
+# Fleet validation on real GPUs, 2026-09-02 — 5/5 families everywhere (clean
+# exit, whisper-checked transcript, duration in bar). Long form in
+# .superpowers/{vulkan-perf-investigation,windows-vulkan-validation,
+# linux-x64-vulkan-validation,metal-fix-experiments}.md and the slice-5b
+# task-1 report. Speedups are warm SYNTH, GPU vs cpu device on the same box.
+# The CPU side of a ratio depends on the thread count, and these four runs did
+# NOT share one, so each row carries its own — only linux-x64 ran at the
+# measured knee (ruling R32: n_threads=0 -> min(hw, 12); the knee is 12 and
+# only 12). Any cross-row comparison of the CPU columns is invalid:
+#
+#   lane         GPU                                    result  cpu threads  synth speedup
+#   linux-arm64  NVIDIA GB10, Vulkan                    5/5      8           4.3-19x
+#   win-x64      RTX 4070 SUPER, Vulkan (Win 11)        5/5     28 (hw)      14-56x
+#   linux-x64    RTX 4070 SUPER, Vulkan (Ubuntu 22.04)  5/5     12 (knee)    7.5-65.8x
+#   mac-arm64    Apple M4, Metal                        5/5      unrecorded  1.3-3.9x
+#
+# The win-x64 row predates R32 entirely — it is the 0.5.0 CI wheel, whose
+# sk_init logged "28 threads" (= hw), so its CPU numbers are the pessimistic
+# oversubscribed ones and its ratios are, if anything, flattering to the GPU.
+# The GB10 row is n_threads=8, the value that sweep found optimal on that
+# 20-core big.LITTLE box before the knee was fixed at 12 fleet-wide. The M4
+# probe did not record a thread count at all. The mac row's lower bound was
+# briefly written as 0.83x (i.e. "Metal loses to CPU on pocket_tts"); that
+# came from a single-shot pocket measurement and was RETRACTED in task 1's
+# fix round — the controlled rerun on the same box put pocket at 0.25s Metal
+# vs 0.39s CPU, so 1.3x is the honest floor and no family is slower on Metal.
+#
+# The mac row holds only AFTER slice-5b task 1's two Metal kernel patches
+# (before them moss/qwen3/omnivoice aborted): the resurrected
+# GGML_OP_DIAG_MASK_INF/PAD kernels (ruling R30 — native/patches/ggml-metal-
+# {diag-mask-inf,pad-leading}.json) plus audiocpp_compat.h's ggml_sub now
+# ggml_cont-ing src1 too (Metal wants both operands row-contiguous) took the
+# M4 from 2/5 aborting to 5/5 clean.
+#
+# Ruling R36 (2026-09-02, slice-5b task 10) supersedes R31's deferral above:
+# gpu-metal is RESTORED for all five families on the strength of that M4
+# (Apple9) evidence. R31 held tiers back pending a CI mac-arm64 run to
+# confirm an M1; that run happened (native-build.yml dry run round 2) and
+# could NOT confirm or deny an M1 either way, for a hardware reason, not a
+# code reason: GitHub's macos-14 arm64 runner is a VM whose Metal device
+# reports as "Apple Paravirtual device", which lacks has_simdgroup_reduction
+# (ggml-metal-device.m:1044-1045 requires MTLGPUFamilyApple7 or Metal3).
+# ggml gates GGML_OP_NORM/RMS_NORM/ARGMAX on that capability, so every
+# family that normalizes (all five) aborts there ("unsupported op 'NORM'",
+# run 33581291942) regardless of which macOS or Xcode version the runner
+# carries. That paravirtual GPU is not evidence about real Apple silicon in
+# either direction — it is a virtualization shim the CI vendor puts in front
+# of every hosted macOS VM, not a downlevel real GPU, and (retroactive
+# correction to R19 above) it is also almost certainly what produced R19's
+# original "supertonic aborts on Metal" contact: the slice-4 dry run used
+# the same runner class.
+#
+# The capability gates our Metal kernels/shims actually consult are Apple7
+# (simdgroup reduction and simdgroup matrix-multiply — what the resurrected
+# diag-mask-inf/pad kernels and the ops they unblock need) and Apple6
+# (bfloat — three of the five checkpoints carry BF16 tensors). Every real
+# Mac from the M1 onward satisfies both: the M1/M2/M3 GPU family is Apple7
+# (M1 is also where Apple's Metal bfloat support began), and the M4 tested
+# here is Apple9, a strict superset. Intel Macs are unaffected either way —
+# they have no eligible Metal compute device at all and build the `none`
+# lane (CPU only; no gpu-metal tier is ever reachable there, paravirtual or
+# real).
+#
+# What this evidence does NOT include: no real M1, M2, or M3 has run this
+# suite — the M4 is the only real-hardware data point, and CI's own Metal
+# lane structurally cannot supply one (see above), so this gap cannot close
+# via CI. R36 accepts it deliberately: the gates that matter are
+# architectural (Apple7/Apple6), not M4-specific, so satisfying them is the
+# bar this ruling relies on, not "measured on every generation". A future
+# real M1/M2/M3 check is a slice-6 nice-to-have, not a blocker. If one ever
+# aborts on a kernel here despite reporting Apple7, that is new information
+# this ruling did not have, and the fix is cheap and scoped: drop that one
+# family's gpu-metal row back out of `_TTS_TIER_OVERRIDES`.
+#
+# native/python/tests/test_sokuji_native.py::test_tts_synthesises_on_a_gpu_device
+# skips outright when the resolved device's description matches
+# /paravirtual/i, precisely so a future CI run reports "skipped" there
+# instead of a green pass that would misrepresent a VM shim as validating
+# real Metal hardware. The PLANNER refuses that device for real, too:
+# `planner._tier_available("gpu-metal", ...)` drops the tier when every Metal
+# device the probe reports has a /paravirtual/i description, so a virtualized
+# Mac (CI, or a user in a VM) resolves these cards cpu-only instead of being
+# handed a plan that aborts the process.
+#
+#   lane        macOS runner GPU               tier decision
+#   mac-arm64   Apple Paravirtual device       gpu-metal restored anyway (R36,
+#                                               on M4 real-hardware evidence —
+#                                               this GPU cannot confirm OR
+#                                               deny it; see above)
+#
+# First-ever synth on an NVIDIA box additionally pays a one-time, per-machine
+# driver pipeline-cache compile of 2-14s (W-1, linux-x64-vulkan-validation.md);
+# the load-time warm-up synth (R33) absorbs it.
+#
+# WHICH QUANT those fleet runs loaded, and the gap that closed on 2026-09-02:
+# every row in the table above loaded the card's DEFAULT rung (q8_0; f16 for
+# supertonic). That is not what a GPU machine actually resolves — `resolve_tts`
+# auto runs `_llamacpp_variant_row`, which picks the LARGEST quant that fits the
+# device budget, so on every GPU fixture in test_characterization.py
+# (CUDA_12GB/CUDA_24GB/APPLE_SILICON) the recommended and resolved rung is
+# **bf16** for the four families that ship one. BF16 is a distinct ggml tensor
+# type with its own per-backend kernel coverage, so those green q8_0 runs said
+# nothing about the rung users would actually get. The bf16 rungs are now
+# validated directly, same bar as the table above (clean exit, non-silent audio
+# of a sane duration), via the second `quant` dimension of
+# test_tts_synthesises_on_a_gpu_device:
+#
+#   family          bf16 rung shipped   GB10/Vulkan   M4/Metal
+#   moss_tts_nano   yes                 PASS          PASS
+#   pocket_tts      yes                 PASS          PASS
+#   qwen3_tts       yes (0.6b tested)   PASS          PASS
+#   omnivoice       yes                 PASS          PASS
+#   supertonic      NO (f16 only)       n/a           n/a
+#
+# 4/4 on both devices, so no family loses its bf16 GPU rung; the ladders below
+# are unchanged. qwen3-tts-1.7b was not loaded — same family, same graph, same
+# tensor types as the 0.6b that was. Numbers:
+# .superpowers/sdd/2026-09-02-sidecar-ggml-only-slice5b-debt/final-fixwave-report.md.
+_TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
+    "moss_tts_nano": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "supertonic": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "qwen3_tts": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "omnivoice": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "pocket_tts": ("gpu-vulkan", "gpu-metal", "cpu"),   # ruling R29 (supersedes R28) -- see table above
+}
 
-# OmniVoice (issue #351): corrected bidirectional re-export of k2-fsa/OmniVoice
-# (the community onnx-community/OmniVoice-Onnx export bakes a causal mask into
-# llm_decoder, which produces noise under this model's non-autoregressive
-# iterative-unmasking decode — see scripts/reexport-omnivoice/out/README.md).
-# 600+ language zero-shot cloning, transcript-free (no ICL reference text).
-# Three self-contained per-variant repos (backbone at the repo ROOT + shared
-# audio_tokenizer/ + voices/): only the CHOSEN precision downloads (qwen3-tts
-# pattern). bf16 is the default (fastest + clean on CUDA); a naive fp16 export
-# is CUDA-broken (RMSNorm x^2 overflow -> all-zero llm), so no fp16 variant.
-_OMNIVOICE_BF16 = os.environ.get("SOKUJI_OMNIVOICE_BF16_REPO", "jiangzhuo9357/omnivoice-onnx-bidi-bf16")
-_OMNIVOICE_FP32 = os.environ.get("SOKUJI_OMNIVOICE_FP32_REPO", "jiangzhuo9357/omnivoice-onnx-bidi-fp32")
-_OMNIVOICE_INT4 = os.environ.get("SOKUJI_OMNIVOICE_INT4_REPO", "jiangzhuo9357/omnivoice-onnx-bidi-int4")
 
-# macOS MLX TTS repos (spec D5): Apple-Silicon-only mlx-audio deployments of the
-# same qwen3-tts / moss cards. Env-overridable like the ONNX repos above.
-_MOSS_NANO_MLX_REPO = os.environ.get(
-    "SOKUJI_MOSS_TTS_NANO_MLX_REPO", "mlx-community/MOSS-TTS-Nano-100M")
-_QWEN3_TTS_06B_MLX_REPO = os.environ.get(
-    "SOKUJI_QWEN3_TTS_06B_MLX_REPO", "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit")
-_QWEN3_TTS_17B_MLX_REPO = os.environ.get(
-    "SOKUJI_QWEN3_TTS_17B_MLX_REPO", "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit")
+def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
+                  order, load_language="", clones=False, streaming=False,
+                  sample_rate=24000, named_voices=False, transcript_required=False,
+                  recommended=False, extra_files=(), license=None):
+    """One native_tts card. `quants` maps QUANT token (the filename's own
+    suffix, e.g. "q8_0") -> (filename, bytes) under `dir_` in
+    `_AUDIOCPP_GGUF_REPO`; `default_quant` gets rank 2.0, any other listed
+    quant gets rank 1.0 — exactly `_llm_translate_row`'s two-rung shape,
+    INCLUDING that shape's quant-picking semantics (fix round 1: this is not
+    simply "the curated default always wins"): `default_quant` is the RANK
+    default — the pin-absent/no-budget-known/nothing-fits fallback
+    (`planner._llamacpp_quant`) — while `resolve_tts`'s real auto path
+    (`_llamacpp_variant_row`) picks the LARGEST quant that fits the machine's
+    budget, which is routinely the bigger, rank-1.0 alt quant (e.g. bf16 over
+    the "default" q8_0) once it fits. `extra_files` are (relative-to-`dir_`
+    filename, bytes) sidecar assets sk_tts_presets discovers next to the
+    loaded gguf (only pocket-tts-en has one: embeddings/alba.safetensors) —
+    downloaded alongside every quant and counted once in size_bytes. Tiers come from
+    `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default, gpu-vulkan and
+    gpu-metal added back per family once GB10/M4-validated (see that dict's own
+    comment, R19/R25/R36)."""
+    deps = []
+    tiers = _TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)
+    order_keys = [default_quant] + [q for q in quants if q != default_quant]
+    for i, q in enumerate(order_keys):
+        fname, nbytes = quants[q]
+        artifact = f"{_AUDIOCPP_GGUF_REPO}/{dir_}/{fname}"
+        rank = 2.0 if i == 0 else 1.0
+        deps += [Deployment("native_tts", tier, q, artifact, rank, est_bytes=nbytes)
+                 for tier in tiers]
+    total_bytes = quants[default_quant][1] + sum(sz for _n, sz in extra_files)
+    return TtsModel(mid, name, langs, tuple(deps), family=family,
+                    load_language=load_language, clones=clones, streaming=streaming,
+                    sample_rate=sample_rate, named_voices=named_voices,
+                    transcript_required=transcript_required, recommended=recommended,
+                    sort_order=order, size_bytes=total_bytes, extra_files=extra_files,
+                    license=license)
+
 
 SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et",
                     "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl",
                     "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi")
 
-# Pocket TTS (Kyutai CALM zero-shot voice cloning), int8 ONNX, one bundle per
-# language — the flow-LM is language-specific; every bundle ships the same
-# eight predefined voices (KV-cache prefixes in voices.bin). Upstream lives in
-# SUBFOLDERS of the KevinAHM/pocket-tts-web SPACE, a shape the download path
-# deliberately does not speak, so scripts/mirror_pocket_tts.py stages flat
-# model-repo mirrors (bundle files + the voices/manifest.json the voice
-# listing reads). size_bytes = the 9 upstream files + that 263-byte manifest.
-# CPU-only by measurement: int8 seqlen-1 AR decode is memory-bound, 2.5-6.6x
-# realtime on CPU, and the int8 operator set has no validated GPU kernel path.
-_POCKET_TTS_ROWS = (
-    ("en", "English",    4, 198645821),
-    ("de", "German",     5, 198646300),
-    ("es", "Spanish",    6, 198647361),
-    ("it", "Italian",    7, 198646544),
-    ("pt", "Portuguese", 8, 198647467),
-)
-
-
-def _pocket_tts_row(lang: str, label: str, order: int, size: int) -> TtsModel:
-    repo = os.environ.get(f"SOKUJI_POCKET_TTS_{lang.upper()}_REPO",
-                          f"jiangzhuo9357/pocket-tts-{lang}-onnx")
-    return TtsModel(
-        f"pocket-tts-{lang}", f"Pocket TTS ({label})", (lang,),
-        (Deployment("pocket_onnx", "cpu", "int8", repo, 1.0),),
-        repos=(repo,), clones=True, streaming=False, named_voices=True,
-        sample_rate=24000, sort_order=order, size_bytes=size)
-
-
 TTS_MODELS: list[TtsModel] = [
-    TtsModel("moss-tts-nano", "MOSS-TTS-Nano (100M)",
-             ("zh", "en", "ja", "ko", "de", "fr", "es", "pt", "it", "ru",
-              "ar", "pl", "cs", "da", "sv", "el", "tr", "hu", "fa", "nl"),
-             (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _MOSS_NANO_MLX_REPO, 1.0,
-                         platforms=("macos",), requires_apple_silicon=True),
-              Deployment("moss_onnx", "gpu-cuda", "fp32", _MOSS_NANO_LM_REPO, 1.0),
-              Deployment("moss_onnx", "gpu-dml", "fp32", _MOSS_NANO_LM_REPO, 1.0,
-                         platforms=("windows",)),
-              Deployment("moss_onnx", "cpu", "fp32", _MOSS_NANO_LM_REPO, 1.0)),
-             repos=(_MOSS_NANO_LM_REPO, _MOSS_NANO_TOK_REPO),
-             clones=True, streaming=True, named_voices=True, sample_rate=48000,
-             recommended=True, sort_order=0, size_bytes=763206064),
-    TtsModel("supertonic-3", "Supertonic 3", SUPERTONIC_LANGS,
-             (Deployment("supertonic", "gpu-cuda", "fp32", "Supertone/supertonic-3", 1.0),
-              Deployment("supertonic", "gpu-dml", "fp32", "Supertone/supertonic-3", 1.0,
-                         platforms=("windows",)),
-              Deployment("supertonic", "cpu", "fp32", "Supertone/supertonic-3", 1.0)),
-             repos=("Supertone/supertonic-3",), clones=False, streaming=False,
-             named_voices=True, style_voices=True, sample_rate=44100, num_speakers=10,
-             recommended=True, sort_order=1, size_bytes=400_600_000,
-             download_ignore=("audio_samples/*", "img/*")),
-    TtsModel("qwen3-tts-0.6b", "Qwen3-TTS 0.6B",
-             ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
-             (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _QWEN3_TTS_06B_MLX_REPO, 1.0,
-                         platforms=("macos",), requires_apple_silicon=True),
-              # Per-variant self-contained repos (fp32/bf16) — the repo IS the
-              # variant; bf16 has CUDA-only kernels (no cpu/dml row).
-              Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", _QWEN3_TTS_06B_BF16, 1.2,
-                         est_bytes=3_208_592_970),
-              Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_06B_FP32, 1.0,
-                         est_bytes=4_318_015_468),
-              Deployment("qwen3tts_onnx", "gpu-dml", "fp32", _QWEN3_TTS_06B_FP32, 1.0,
-                         platforms=("windows",), est_bytes=4_318_015_468),
-              Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_06B_FP32, 1.0,
-                         est_bytes=4_318_015_468)),
-             repos=(_QWEN3_TTS_06B_FP32,), clones=True, streaming=False,
-             transcript_required=True, named_voices=True, sample_rate=24000,
-             recommended=True, sort_order=2, size_bytes=4_318_015_468),
-    TtsModel("qwen3-tts-1.7b", "Qwen3-TTS 1.7B",
-             ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
-             (Deployment("mlx_audio_tts", "gpu-metal", "fp32", _QWEN3_TTS_17B_MLX_REPO, 1.0,
-                         platforms=("macos",), requires_apple_silicon=True),
-              # Per-variant self-contained repos (fp32/bf16) — the repo IS the
-              # variant; bf16 has CUDA-only kernels (no cpu/dml row).
-              Deployment("qwen3tts_onnx", "gpu-cuda", "bf16", _QWEN3_TTS_17B_BF16, 1.2,
-                         est_bytes=5_316_372_654),
-              Deployment("qwen3tts_onnx", "gpu-cuda", "fp32", _QWEN3_TTS_17B_FP32, 1.0,
-                         est_bytes=8_374_470_096),
-              Deployment("qwen3tts_onnx", "gpu-dml", "fp32", _QWEN3_TTS_17B_FP32, 1.0,
-                         platforms=("windows",), est_bytes=8_374_470_096),
-              Deployment("qwen3tts_onnx", "cpu", "fp32", _QWEN3_TTS_17B_FP32, 1.0,
-                         est_bytes=8_374_470_096)),
-             repos=(_QWEN3_TTS_17B_FP32,), clones=True, streaming=False,
-             transcript_required=True, named_voices=True, sample_rate=24000,
-             recommended=False, sort_order=3, size_bytes=8_374_470_096),
-    TtsModel("cosyvoice3-0.5b", "CosyVoice 3 0.5B",
-             ("zh", "en", "ja", "ko", "de", "es", "fr", "it", "ru"),
-             (
-                 # GPU-only by design (issue #323): CPU RTF ~3.5 misses the
-                 # realtime bar even on a 20-core box; no cpu row on purpose.
-                 Deployment("cosyvoice3_onnx", "gpu-cuda", "fp32",
-                            _COSYVOICE3_REPO, 1.0),
-             ),
-             repos=(_COSYVOICE3_REPO,),
-             clones=True, named_voices=True, transcript_required=True,
-             streaming=False, sample_rate=24000, num_speakers=1,
-             # exact live-repo total (build output 3_721_010_968 + the
-             # HF-generated .gitattributes the downloader also fetches)
-             size_bytes=3_721_012_656,
-             sort_order=9),
-    # OmniVoice (issue #351): 600+ language zero-shot cloning, Qwen3-0.6B
-    # backbone + Higgs Audio V2 codec, 32-step non-autoregressive iterative
-    # unmasking. Transcript-free cloning (no ICL reference text needed) —
-    # unlike CosyVoice3/Qwen3-TTS/GPT-SoVITS above. GPU-only by design: the
-    # backbone variants are CUDA-tuned and no cpu row is shipped. Curated
-    # presets (issue #351 follow-up): each variant repo ships
-    # voices/{classic-zh,classic-ja,sarah}.wav (transcript-free — no .txt,
-    # unlike CosyVoice3's ICL presets) + voices/manifest.json, so named_voices.
-    # The variant picker is driven by compute_type (variantIds = seen_cts);
-    # rank order sets the default via planner._tts_pick_quant: bf16 > fp32 > int4.
-    #   bf16 — DEFAULT: fastest AND clean on CUDA (RTF 0.198 vs fp32 0.258 /
-    #     int4 0.334, GB10). bf16's fp32-range exponent avoids the deep-layer
-    #     RMSNorm x^2 overflow that makes a naive fp16 export emit an all-zero
-    #     llm output on the CUDA EP — so there is deliberately no fp16 variant.
-    #     bf16 + int4 also ship a bf16 audio_embeddings (verified lossless).
-    #   fp32 — un-quantized reference. int4 — smallest download / low-VRAM.
-    # THREE self-contained per-variant repos (qwen3-tts pattern) — DISTINCT
-    # artifacts, so only the chosen precision downloads and the picker/status
-    # flow (accel._downloaded_tts_variants / native_models.model_status's
-    # any-variant-repo-cached branch) works with zero infra changes. Backend
-    # loads the backbone from the repo ROOT (each repo IS one variant).
-    # est_bytes = each repo's live total (HF files_metadata 2026-07-23):
-    #   bf16 1.995 GB, fp32 3.208 GB, int4 1.352 GB (backbone + shared
-    #   audio_tokenizer/ + voices/).
-    TtsModel("omnivoice-0.6b", "OmniVoice 0.6B", ("multi",),
-             (Deployment("omnivoice_onnx", "gpu-cuda", "bf16", _OMNIVOICE_BF16, 3.0, est_bytes=1_995_363_769),
-              Deployment("omnivoice_onnx", "gpu-cuda", "fp32", _OMNIVOICE_FP32, 2.0, est_bytes=3_207_687_266),
-              Deployment("omnivoice_onnx", "gpu-cuda", "int4", _OMNIVOICE_INT4, 1.0, est_bytes=1_352_217_204)),
-             repos=(_OMNIVOICE_BF16,),   # default-variant (bf16) download repo
-             clones=True, named_voices=True, transcript_required=False,
-             streaming=False, sample_rate=24000, num_speakers=1,
-             size_bytes=1_995_363_769,   # default (bf16) variant download
-             sort_order=66,
-             # k2-fsa/OmniVoice ships under CC-BY-NC-4.0 — non-commercial only.
-             # This descriptor is DATA the download gate (Task 2) reads
-             # generically; it isn't a Sokuji-specific restriction.
-             license=License(
-                 spdx="CC-BY-NC-4.0",
-                 name="Creative Commons Attribution-NonCommercial 4.0 International",
-                 url="https://creativecommons.org/licenses/by-nc/4.0/",
-                 non_commercial=True,
-                 source_repo="jiangzhuo9357/omnivoice-onnx-bidi-bf16",
-                 attribution="k2-fsa/OmniVoice")),
-    # GPT-SoVITS v2ProPlus via the vendored Genie-TTS ONNX runtime (issue #322).
-    # gpu-cuda: measured 3x vs CPU on unified-memory aarch64 (GB10, RTF 0.2);
-    # x86 discrete-GPU benefit unverified (per-step KV round-trip). The bench
-    # reports rtf via the default builtin voice; bench-based tier demotion for
-    # TTS is currently disconnected upstream (tts:-prefixed cache keys vs
-    # unprefixed reads) — tracked as a follow-up. recommended stays False
-    # until en/ja quality is validated (upstream reports; sudachi kanji
-    # readings).
-    TtsModel("gpt-sovits-v2pp", "GPT-SoVITS v2ProPlus",
-             ("zh", "en", "ja"),
-             (Deployment("gpt_sovits_onnx", "gpu-cuda", "fp32", _GPT_SOVITS_REPO, 1.0,
-                         est_bytes=2_500_000_000),
-              Deployment("gpt_sovits_onnx", "cpu", "fp32", _GPT_SOVITS_REPO, 1.0)),
-             repos=(_GPT_SOVITS_REPO,), clones=True, streaming=False,
-             transcript_required=True, named_voices=True, sample_rate=32000,
-             recommended=False, sort_order=4, size_bytes=1_349_081_598),
-    *(_pocket_tts_row(*row) for row in _POCKET_TTS_ROWS),
-    # piper / vits single-voice models (one repo = one model = one voice).
-    _sherpa_tts_row("csukuangfj/vits-piper-en_US-amy-low", "Amy (US)", ("en",),
-                    "csukuangfj/vits-piper-en_US-amy-low", 10, 16000, recommended=True,
-                    size_bytes=81105784),
-    _sherpa_tts_row("csukuangfj/vits-piper-en_US-libritts_r-medium", "LibriTTS (US)", ("en",),
-                    "csukuangfj/vits-piper-en_US-libritts_r-medium", 11, 22050, num_speakers=904,
-                    size_bytes=96598330),
-    _sherpa_tts_row("csukuangfj/vits-piper-en_US-ryan-low", "Ryan (US)", ("en",),
-                    "csukuangfj/vits-piper-en_US-ryan-low", 12, 16000, size_bytes=81105775),
-    _sherpa_tts_row("csukuangfj/vits-piper-en_US-lessac-medium", "Lessac (US)", ("en",),
-                    "csukuangfj/vits-piper-en_US-lessac-medium", 13, 22050, size_bytes=81203669),
-    _sherpa_tts_row("csukuangfj/vits-piper-en_GB-alan-low", "Alan (GB)", ("en",),
-                    "csukuangfj/vits-piper-en_GB-alan-low", 14, 16000, size_bytes=81105800),
-    _sherpa_tts_row("csukuangfj/vits-piper-de_DE-thorsten-low", "Thorsten", ("de",),
-                    "csukuangfj/vits-piper-de_DE-thorsten-low", 15, 16000, size_bytes=81105739),
-    _sherpa_tts_row("csukuangfj/vits-piper-de_DE-eva_k-x_low", "Eva K", ("de",),
-                    "csukuangfj/vits-piper-de_DE-eva_k-x_low", 16, 16000, size_bytes=38629997),
-    _sherpa_tts_row("csukuangfj/vits-piper-de_DE-kerstin-low", "Kerstin", ("de",),
-                    "csukuangfj/vits-piper-de_DE-kerstin-low", 17, 16000, size_bytes=81105736),
-    _sherpa_tts_row("csukuangfj/vits-piper-es_ES-davefx-medium", "DaveFX (ES)", ("es",),
-                    "csukuangfj/vits-piper-es_ES-davefx-medium", 18, 22050, size_bytes=81203135),
-    _sherpa_tts_row("csukuangfj/vits-piper-es_ES-carlfm-x_low", "CarlFM (ES)", ("es",),
-                    "csukuangfj/vits-piper-es_ES-carlfm-x_low", 19, 16000, size_bytes=46131805),
-    _sherpa_tts_row("csukuangfj/vits-piper-es_MX-ald-medium", "Ald (MX)", ("es",),
-                    "csukuangfj/vits-piper-es_MX-ald-medium", 20, 22050, size_bytes=81203240),
-    _sherpa_tts_row("csukuangfj/vits-piper-fr_FR-siwis-medium", "Siwis", ("fr",),
-                    "csukuangfj/vits-piper-fr_FR-siwis-medium", 21, 22050, size_bytes=81204462),
-    _sherpa_tts_row("csukuangfj/vits-piper-fr_FR-gilles-low", "Gilles", ("fr",),
-                    "csukuangfj/vits-piper-fr_FR-gilles-low", 22, 16000, size_bytes=81106835),
-    _sherpa_tts_row("csukuangfj/vits-piper-fr_FR-tom-medium", "Tom", ("fr",),
-                    "csukuangfj/vits-piper-fr_FR-tom-medium", 23, 22050, size_bytes=81514557),
-    _sherpa_tts_row("csukuangfj/vits-piper-it_IT-riccardo-x_low", "Riccardo", ("it",),
-                    "csukuangfj/vits-piper-it_IT-riccardo-x_low", 24, 16000, size_bytes=46133363),
-    _sherpa_tts_row("csukuangfj/vits-piper-it_IT-paola-medium", "Paola", ("it",),
-                    "csukuangfj/vits-piper-it_IT-paola-medium", 25, 22050, size_bytes=81516749),
-    _sherpa_tts_row("csukuangfj/vits-piper-ru_RU-denis-medium", "Denis", ("ru",),
-                    "csukuangfj/vits-piper-ru_RU-denis-medium", 26, 22050, size_bytes=81203281),
-    _sherpa_tts_row("csukuangfj/vits-piper-ru_RU-irina-medium", "Irina", ("ru",),
-                    "csukuangfj/vits-piper-ru_RU-irina-medium", 27, 22050, size_bytes=81203392),
-    _sherpa_tts_row("csukuangfj/vits-piper-ru_RU-dmitri-medium", "Dmitri", ("ru",),
-                    "csukuangfj/vits-piper-ru_RU-dmitri-medium", 28, 22050, size_bytes=81203283),
-    _sherpa_tts_row("csukuangfj/vits-piper-zh_CN-huayan-medium", "Huayan", ("zh",),
-                    "csukuangfj/vits-piper-zh_CN-huayan-medium", 29, 22050, size_bytes=81204688),
-    # NOTE: the previous id (csukuangfj/vits-icefall-zh-aishell3) 404s on HF —
-    # this row was never downloadable. csukuangfj/vits-zh-aishell3 is the live
-    # repo with the sherpa-ready flat layout (onnx + tokens.txt + lexicon.txt);
-    # size is the kept subset (download ignores the torch ckpt/rule.far/int8).
-    _sherpa_tts_row("csukuangfj/vits-zh-aishell3", "VITS (zh, aishell3)", ("zh",),
-                    "csukuangfj/vits-zh-aishell3", 30, 16000, num_speakers=174,
-                    size_bytes=123663994,
-                    download_ignore=("G_AISHELL.pth", "rule.far", "vits-aishell3.int8.onnx")),
-    # 2026-07-17 piper expansion (35 voices): first dedicated voices for
-    # cs/da/el/fa/fi/hu/is/lv/no/ro/sk/sl/sv/vi plus nl/pl/pt/uk, and en/es/de
-    # upgrades. Per-voice dataset licenses vetted commercial-clean (CC0 /
-    # CC-BY / public domain; jenny_dioco's custom license permits commercial
-    # use with attribution). Sizes are full-repo HF file sums (API, 2026-07-17).
-    _sherpa_tts_row("csukuangfj/vits-piper-en_US-ljspeech-high", "LJSpeech HQ (US)", ("en",),
-                    "csukuangfj/vits-piper-en_US-ljspeech-high", 31, 22050, size_bytes=132202824),
-    _sherpa_tts_row("csukuangfj/vits-piper-en_GB-cori-high", "Cori (GB)", ("en",),
-                    "csukuangfj/vits-piper-en_GB-cori-high", 32, 22050, size_bytes=132223111),
-    _sherpa_tts_row("csukuangfj/vits-piper-en_GB-jenny_dioco-medium", "Jenny (GB)", ("en",),
-                    "csukuangfj/vits-piper-en_GB-jenny_dioco-medium", 33, 22050, size_bytes=81203440),
-    _sherpa_tts_row("csukuangfj/vits-piper-es_ES-sharvard-medium", "Sharvard (ES)", ("es",),
-                    "csukuangfj/vits-piper-es_ES-sharvard-medium", 34, 22050, num_speakers=2,
-                    size_bytes=94735673),
-    _sherpa_tts_row("csukuangfj/vits-piper-de_DE-thorsten-medium", "Thorsten HQ", ("de",),
-                    "csukuangfj/vits-piper-de_DE-thorsten-medium", 35, 22050, size_bytes=81203378),
-    _sherpa_tts_row("csukuangfj/vits-piper-nl_NL-mls-medium", "MLS (NL)", ("nl",),
-                    "csukuangfj/vits-piper-nl_NL-mls-medium", 36, 22050, num_speakers=52,
-                    size_bytes=94588149),
-    _sherpa_tts_row("csukuangfj/vits-piper-nl_BE-nathalie-medium", "Nathalie (BE)", ("nl",),
-                    "csukuangfj/vits-piper-nl_BE-nathalie-medium", 37, 22050, size_bytes=81204764),
-    _sherpa_tts_row("csukuangfj/vits-piper-nl_BE-rdh-medium", "RDH (BE)", ("nl",),
-                    "csukuangfj/vits-piper-nl_BE-rdh-medium", 38, 22050, size_bytes=81107078),
-    _sherpa_tts_row("csukuangfj/vits-piper-pl_PL-darkman-medium", "Darkman", ("pl",),
-                    "csukuangfj/vits-piper-pl_PL-darkman-medium", 39, 22050, size_bytes=81204680),
-    _sherpa_tts_row("csukuangfj/vits-piper-pl_PL-gosia-medium", "Gosia", ("pl",),
-                    "csukuangfj/vits-piper-pl_PL-gosia-medium", 40, 22050, size_bytes=81204676),
-    _sherpa_tts_row("csukuangfj/vits-piper-pl_PL-mc_speech-medium", "MC Speech", ("pl",),
-                    "csukuangfj/vits-piper-pl_PL-mc_speech-medium", 41, 22050, size_bytes=81204878),
-    _sherpa_tts_row("csukuangfj/vits-piper-pt_BR-faber-medium", "Faber (BR)", ("pt",),
-                    "csukuangfj/vits-piper-pt_BR-faber-medium", 42, 22050, size_bytes=81204728),
-    _sherpa_tts_row("csukuangfj/vits-piper-pt_BR-cadu-medium", "Cadu (BR)", ("pt",),
-                    "csukuangfj/vits-piper-pt_BR-cadu-medium", 43, 22050, size_bytes=80950326),
-    _sherpa_tts_row("csukuangfj/vits-piper-pt_PT-tugao-medium", "Tugao (PT)", ("pt",),
-                    "csukuangfj/vits-piper-pt_PT-tugao-medium", 44, 22050, size_bytes=81204946),
-    _sherpa_tts_row("csukuangfj/vits-piper-uk_UA-ukrainian_tts-medium", "Ukrainian TTS", ("uk",),
-                    "csukuangfj/vits-piper-uk_UA-ukrainian_tts-medium", 45, 22050, num_speakers=3,
-                    size_bytes=94734178),
-    _sherpa_tts_row("csukuangfj/vits-piper-uk_UA-lada-x_low", "Lada", ("uk",),
-                    "csukuangfj/vits-piper-uk_UA-lada-x_low", 46, 16000, size_bytes=38630003),
-    _sherpa_tts_row("csukuangfj/vits-piper-cs_CZ-jirka-medium", "Jirka", ("cs",),
-                    "csukuangfj/vits-piper-cs_CZ-jirka-medium", 47, 22050, size_bytes=81203535),
-    _sherpa_tts_row("csukuangfj/vits-piper-da_DK-talesyntese-medium", "Talesyntese (DA)", ("da",),
-                    "csukuangfj/vits-piper-da_DK-talesyntese-medium", 48, 22050, size_bytes=81204788),
-    _sherpa_tts_row("csukuangfj/vits-piper-el_GR-rapunzelina-low", "Rapunzelina", ("el",),
-                    "csukuangfj/vits-piper-el_GR-rapunzelina-low", 49, 16000, size_bytes=81107191),
-    _sherpa_tts_row("csukuangfj/vits-piper-fa_IR-amir-medium", "Amir", ("fa",),
-                    "csukuangfj/vits-piper-fa_IR-amir-medium", 50, 22050, size_bytes=81534929),
-    _sherpa_tts_row("csukuangfj/vits-piper-fi_FI-harri-medium", "Harri", ("fi",),
-                    "csukuangfj/vits-piper-fi_FI-harri-medium", 51, 22050, size_bytes=81204780),
-    _sherpa_tts_row("csukuangfj/vits-piper-hu_HU-anna-medium", "Anna", ("hu",),
-                    "csukuangfj/vits-piper-hu_HU-anna-medium", 52, 22050, size_bytes=81204933),
-    _sherpa_tts_row("csukuangfj/vits-piper-hu_HU-berta-medium", "Berta", ("hu",),
-                    "csukuangfj/vits-piper-hu_HU-berta-medium", 53, 22050, size_bytes=81204863),
-    _sherpa_tts_row("csukuangfj/vits-piper-hu_HU-imre-medium", "Imre", ("hu",),
-                    "csukuangfj/vits-piper-hu_HU-imre-medium", 54, 22050, size_bytes=81204934),
-    _sherpa_tts_row("csukuangfj/vits-piper-is_IS-bui-medium", "Bui", ("is",),
-                    "csukuangfj/vits-piper-is_IS-bui-medium", 55, 22050, size_bytes=94498026),
-    _sherpa_tts_row("csukuangfj/vits-piper-is_IS-salka-medium", "Salka", ("is",),
-                    "csukuangfj/vits-piper-is_IS-salka-medium", 56, 22050, size_bytes=94498023),
-    _sherpa_tts_row("csukuangfj/vits-piper-is_IS-steinn-medium", "Steinn", ("is",),
-                    "csukuangfj/vits-piper-is_IS-steinn-medium", 57, 22050, size_bytes=94498025),
-    _sherpa_tts_row("csukuangfj/vits-piper-is_IS-ugla-medium", "Ugla", ("is",),
-                    "csukuangfj/vits-piper-is_IS-ugla-medium", 58, 22050, size_bytes=94498021),
-    _sherpa_tts_row("csukuangfj/vits-piper-lv_LV-aivars-medium", "Aivars", ("lv",),
-                    "csukuangfj/vits-piper-lv_LV-aivars-medium", 59, 22050, size_bytes=81516346),
-    _sherpa_tts_row("csukuangfj/vits-piper-no_NO-talesyntese-medium", "Talesyntese (NO)", ("no",),
-                    "csukuangfj/vits-piper-no_NO-talesyntese-medium", 60, 22050, size_bytes=81204797),
-    _sherpa_tts_row("csukuangfj/vits-piper-ro_RO-mihai-medium", "Mihai", ("ro",),
-                    "csukuangfj/vits-piper-ro_RO-mihai-medium", 61, 22050, size_bytes=81204758),
-    _sherpa_tts_row("csukuangfj/vits-piper-sk_SK-lili-medium", "Lili", ("sk",),
-                    "csukuangfj/vits-piper-sk_SK-lili-medium", 62, 22050, size_bytes=81204859),
-    _sherpa_tts_row("csukuangfj/vits-piper-sl_SI-artur-medium", "Artur", ("sl",),
-                    "csukuangfj/vits-piper-sl_SI-artur-medium", 63, 22050, size_bytes=81204121),
-    _sherpa_tts_row("csukuangfj/vits-piper-sv_SE-nst-medium", "NST (SV)", ("sv",),
-                    "csukuangfj/vits-piper-sv_SE-nst-medium", 64, 22050, size_bytes=81107140),
-    _sherpa_tts_row("csukuangfj/vits-piper-vi_VN-vais1000-medium", "VAIS 1000", ("vi",),
-                    "csukuangfj/vits-piper-vi_VN-vais1000-medium", 65, 22050, size_bytes=81204827),
+    # Offline, clones from a reference clip, no presets (sk_tts_presets() ==
+    # []). audio.cpp ships Q8_0 (default) and BF16; languages per
+    # model_specs/moss_tts_nano.json (19 — the old catalog's "nl" entry was
+    # never in audio.cpp's own list).
+    _tts_gguf_row(
+        "moss-tts-nano", "MOSS-TTS-Nano (100M)",
+        ("ar", "cs", "da", "de", "el", "en", "es", "fa", "fr", "hu", "it",
+         "ja", "ko", "pl", "pt", "ru", "sv", "tr", "zh"),
+        "moss_tts_nano", "MOSS-TTS-Nano-100M-GGUF",
+        {"q8_0": ("moss-tts-nano-100m-q8_0.gguf", 193337984),
+         "bf16": ("moss-tts-nano-100m-bf16.gguf", 332423040)},
+        default_quant="q8_0", order=0, clones=True, streaming=False,
+        sample_rate=48000, recommended=True),
+    # Streaming, no cloning, 10 named presets (F1-F5/M1-M5, sk_tts_presets()).
+    # audio.cpp's own Q8_0 conversion hits unresolved CUDA copy/layout
+    # blockers (docs/gguf.md: "Q8 blockers unresolved") — the repo's
+    # "supertonic-3-q8_0.gguf" is in fact a byte-for-byte copy of "-orig.gguf"
+    # (same LFS oid), not a real quant. F16 is the smallest WORKING rung, so
+    # it is the only quant offered (no ladder) — matches Task 1's CTest model.
+    _tts_gguf_row(
+        "supertonic-3", "Supertonic 3", SUPERTONIC_LANGS,
+        "supertonic", "Supertonic-3-GGUF",
+        {"f16": ("supertonic-3-f16.gguf", 312784196)},
+        default_quant="f16", order=1, clones=False, streaming=True,
+        sample_rate=44100, named_voices=True, recommended=True),
+    # Base checkpoint (audio.cpp's dedicated "...-Base-GGUF" repo — NOT
+    # CustomVoice/VoiceDesign, which are separate GGUF repos/families as far
+    # as sk_tts_load's family_hint is concerned): clones from a reference
+    # clip, no discoverable presets. ref_text IS mandatory (R15(s4)) — the
+    # base checkpoint has no default built-in voice at all (it must always
+    # clone) and its ICL clone mode separately requires ref_text one level
+    # deeper inside synth() itself, live-verified in task-7-report.md §3; the
+    # old comment here ("ref_text optional, unlike the old ONNX qwen3tts_onnx
+    # backend") was wrong for this GGUF-native family.
+    _tts_gguf_row(
+        "qwen3-tts-0.6b", "Qwen3-TTS 0.6B",
+        ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
+        "qwen3_tts", "Qwen3-TTS-12Hz-0.6B-Base-GGUF",
+        {"q8_0": ("qwen3-tts-12hz-0.6b-base-q8_0.gguf", 1991211136),
+         "bf16": ("qwen3-tts-12hz-0.6b-base-bf16.gguf", 2516154496)},
+        default_quant="q8_0", order=2, clones=True, streaming=False,
+        sample_rate=24000, transcript_required=True),
+    # Same family, larger checkpoint. audio.cpp's Q8_0 file for this size is
+    # named "...q8_0_v2.gguf" (a real, distinct LFS object from a v1 the repo
+    # no longer ships) — kept verbatim.
+    _tts_gguf_row(
+        "qwen3-tts-1.7b", "Qwen3-TTS 1.7B",
+        ("zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"),
+        "qwen3_tts", "Qwen3-TTS-12Hz-1.7B-Base-GGUF",
+        {"q8_0": ("qwen3-tts-12hz-1.7b-base-q8_0_v2.gguf", 2695175104),
+         "bf16": ("qwen3-tts-12hz-1.7b-base-bf16.gguf", 4203158464)},
+        default_quant="q8_0", order=3, clones=True, streaming=False,
+        sample_rate=24000, transcript_required=True),
+    # Streaming, 600+-language zero-shot cloning; ref_text is mandatory
+    # (sk_tts_set_voice), same as qwen3_tts above (R15(s4) made qwen3_tts join
+    # this group — omnivoice is no longer the only one).
+    # k2-fsa/OmniVoice ships under CC-BY-NC-4.0 — non-commercial only. This
+    # descriptor is DATA the download gate reads generically; it isn't a
+    # Sokuji-specific restriction.
+    _tts_gguf_row(
+        "omnivoice-0.6b", "OmniVoice 0.6B", ("multi",),
+        "omnivoice", "OmniVoice-GGUF",
+        {"q8_0": ("omnivoice-q8_0.gguf", 1350288416),
+         "bf16": ("omnivoice-bf16.gguf", 1639548640)},
+        default_quant="q8_0", order=4, clones=True, streaming=True,
+        sample_rate=24000, transcript_required=True,
+        license=License(
+            spdx="CC-BY-NC-4.0",
+            name="Creative Commons Attribution-NonCommercial 4.0 International",
+            url="https://creativecommons.org/licenses/by-nc/4.0/",
+            non_commercial=True,
+            source_repo=_AUDIOCPP_GGUF_REPO,
+            attribution="k2-fsa/OmniVoice")),
+    # Pocket TTS (Kyutai CALM): offline, clones from a reference clip, one
+    # bundle per load-time language package. Per model_specs/pocket_tts.json's
+    # own `packages[]`, only the "english" package's files[] lists a preset
+    # asset (embeddings/alba.safetensors, ships "alba" as sk_tts_presets()'
+    # one name) — german/italian/portuguese/spanish package specs list ONLY
+    # their gguf, even though the audio-cpp/audio.cpp-gguf mirror happens to
+    # also host (materially DIFFERENT, verified by LFS content hash — not a
+    # copy-paste) embeddings/*.safetensors files under those language
+    # directories too; audio.cpp's own package spec is the authority for what
+    # ships, so only English gets extra_files/named_voices here — the other
+    # four are clone-only BY DESIGN (R9).
+    _tts_gguf_row(
+        "pocket-tts-en", "Pocket TTS (English)", ("en",),
+        "pocket_tts", "PocketTTS-GGUF/english",
+        {"q8_0": ("pocket-tts-english-q8_0.gguf", 127856704),
+         "bf16": ("pocket-tts-english-bf16.gguf", 219096064)},
+        default_quant="q8_0", order=5, load_language="english",
+        clones=True, streaming=False, sample_rate=24000, named_voices=True,
+        extra_files=(("embeddings/alba.safetensors", 6194424),)),
+    _tts_gguf_row(
+        "pocket-tts-de", "Pocket TTS (German)", ("de",),
+        "pocket_tts", "PocketTTS-GGUF/german",
+        {"q8_0": ("pocket-tts-german-q8_0.gguf", 127857184),
+         "bf16": ("pocket-tts-german-bf16.gguf", 219096544)},
+        default_quant="q8_0", order=6, load_language="german",
+        clones=True, streaming=False, sample_rate=24000),
+    _tts_gguf_row(
+        "pocket-tts-es", "Pocket TTS (Spanish)", ("es",),
+        "pocket_tts", "PocketTTS-GGUF/spanish",
+        {"q8_0": ("pocket-tts-spanish-q8_0.gguf", 127858240),
+         "bf16": ("pocket-tts-spanish-bf16.gguf", 219097600)},
+        default_quant="q8_0", order=7, load_language="spanish",
+        clones=True, streaming=False, sample_rate=24000),
+    _tts_gguf_row(
+        "pocket-tts-it", "Pocket TTS (Italian)", ("it",),
+        "pocket_tts", "PocketTTS-GGUF/italian",
+        {"q8_0": ("pocket-tts-italian-q8_0.gguf", 127857440),
+         "bf16": ("pocket-tts-italian-bf16.gguf", 219096800)},
+        default_quant="q8_0", order=8, load_language="italian",
+        clones=True, streaming=False, sample_rate=24000),
+    _tts_gguf_row(
+        "pocket-tts-pt", "Pocket TTS (Portuguese)", ("pt",),
+        "pocket_tts", "PocketTTS-GGUF/portuguese",
+        {"q8_0": ("pocket-tts-portuguese-q8_0.gguf", 127858368),
+         "bf16": ("pocket-tts-portuguese-bf16.gguf", 219097728)},
+        default_quant="q8_0", order=9, load_language="portuguese",
+        clones=True, streaming=False, sample_rate=24000),
 ]
 
 
@@ -981,24 +1068,9 @@ def tts_model(model_id: str) -> TtsModel | None:
     return next((m for m in TTS_MODELS if m.id == model_id), None)
 
 
-# Sherpa-onnx TTS covers a large family of community repos (piper VITS, icefall
-# VITS, matcha, kokoro) that the renderer exposes as per-voice cards keyed by
-# their full HF repo path. SherpaTtsBackend downloads/loads any such repo, so we
-# synthesize an ad-hoc model for repo ids that the short catalog doesn't list
-# rather than forcing every voice into the catalog.
-_SHERPA_TTS_HINTS = ("piper", "vits", "matcha", "kokoro", "icefall")
-
-
 def resolve_tts_card(model_id: str) -> "TtsModel | None":
-    """The static TTS card for `model_id`, or a synthesised ad-hoc card for an
-    uncatalogued sherpa-onnx community voice (piper/vits/matcha/kokoro/icefall),
-    or None for an unknown non-sherpa id."""
-    model = tts_model(model_id)
-    if model is not None:
-        return model
-    if any(h in model_id.lower() for h in _SHERPA_TTS_HINTS):
-        return TtsModel(
-            id=model_id, name=model_id, languages=("multi",),
-            deployments=(Deployment("sherpa_tts", "cpu", "fp32", model_id, 1.0),),
-            repos=(model_id,), sample_rate=16000)
-    return None
+    """The static TTS card for `model_id`, or None for an unknown id. The
+    sherpa-onnx ad-hoc community-voice fallback (piper/vits/matcha/kokoro/
+    icefall) died with the sherpa_tts backend — every TTS id is now a
+    catalog row or unknown."""
+    return tts_model(model_id)

@@ -1,0 +1,10 @@
+{
+  "abi": @SK_ABI_VERSION_NUM@,
+  "version": "@PROJECT_VERSION@",
+  "ggml": "@SOKUJI_GGML_VERSION@",
+  "transcribe": "@SOKUJI_TRANSCRIBE_VERSION@",
+  "llama": "@SOKUJI_LLAMA_VERSION@",
+  "audiocpp": "@SOKUJI_AUDIOCPP_VERSION@",
+  "backends": @SOKUJI_BACKENDS_JSON@,
+  "lane": "@SOKUJI_LANE@"
+}

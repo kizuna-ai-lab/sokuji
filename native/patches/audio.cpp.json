@@ -1,0 +1,12 @@
+[
+  {
+    "file": "CMakeLists.txt",
+    "old": "add_subdirectory(\"${AUDIOCPP_GGML_SOURCE_DIR}\" \"${CMAKE_CURRENT_BINARY_DIR}/ggml\")",
+    "new": "if(NOT TARGET ggml)\n    add_subdirectory(\"${AUDIOCPP_GGML_SOURCE_DIR}\" \"${CMAKE_CURRENT_BINARY_DIR}/ggml\")\nendif()"
+  },
+  {
+    "file": "src/framework/debug/trace.cpp",
+    "old": "    char buffer[64];\n    const auto result = std::to_chars(buffer, buffer + sizeof(buffer), value, std::chars_format::general);\n    if (result.ec == std::errc()) {\n        return std::string(buffer, result.ptr);\n    }\n    std::ostringstream out;",
+    "new": "    // sokuji-native: std::to_chars(double) is macOS 13.3+ in Apple's libc++ and the wheels\n    // target 11.0. This is a trace-log formatter; its own ostringstream fallback is enough.\n    std::ostringstream out;"
+  }
+]

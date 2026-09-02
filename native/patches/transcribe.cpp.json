@@ -1,0 +1,12 @@
+[
+  {
+    "file": "CMakeLists.txt",
+    "old": "# ggml's CMake declares its own warning flags; let it.\nadd_subdirectory(ggml)",
+    "new": "# ggml's CMake declares its own warning flags; let it.\nif(NOT TARGET ggml)\n    add_subdirectory(ggml)\nendif()"
+  },
+  {
+    "file": "src/CMakeLists.txt",
+    "old": "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>",
+    "new": "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+  }
+]

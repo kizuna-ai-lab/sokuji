@@ -34,6 +34,23 @@ class _IterWS:
         self.sent.append(d)
 
 
+def test_conn_wait_closed_delegates_to_the_underlying_ws():
+    """Ruling R26 (ground truth .superpowers/slice5-surface-inventory.md
+    §10(b)): translate_engine._h_translate races an in-flight generation
+    against conn.wait_closed() to catch a disconnect DURING that generation,
+    something conn.on_close() cannot do (see on_close()'s own docstring note).
+    A minimal, direct check that the accessor is exactly a delegation, not a
+    reimplementation of websockets' own close-detection."""
+    calls = []
+
+    class WS:
+        async def wait_closed(self):
+            calls.append("waited")
+
+    asyncio.run(Conn(WS()).wait_closed())
+    assert calls == ["waited"]
+
+
 def test_conn_send_json_and_binary():
     ws = FakeWS()
     conn = Conn(ws)
@@ -184,7 +201,7 @@ def test_translate_connection_close_frees_engine():
     closed = {"n": 0}
 
     class FakeTranslate:
-        resolved = {"backend": "llamacpp_qwen", "device": "cuda", "computeType": "q8_0"}
+        resolved = {"backend": "native_translate", "device": "cuda", "computeType": "q8_0"}
 
         def init(self, *a, **k):
             return 5

@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "Рушій інференсу",
-    "detected": "Виявлено: {{gpu}}",
     "package": "Пакет рушія: {{sku}} · {{size}}",
     "sizeUnknown": "розмір недоступний офлайн",
     "download": "Завантажити рушій",
@@ -891,6 +890,7 @@
     "clipSilent": "Голос не виявлено — перевірте мікрофон і спробуйте ще раз.",
     "clipTooLong": "Запис задовгий — не довше {seconds} секунд.",
     "clipTooShort": "Запис закороткий — говоріть щонайменше {seconds} секунд.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "customVoiceCta": "Потрібен власний голос?",
     "decodeFailed": "Не вдалося прочитати цей аудіофайл — спробуйте WAV, MP3 або інший поширений формат.",
     "delete": "Видалити",

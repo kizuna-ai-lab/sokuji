@@ -616,21 +616,36 @@ nativeHost.registerIpc(ipcMain);
 // SKU detection + bundle download live in the main process because the sidecar
 // (which the bundle provides) is not yet running. Progress is pushed to the
 // renderer on 'sidecar-bundle-progress', mirroring the model-download UX.
-const { detectSku: _detectSku, probeNvidia: _probeNvidia, nvidiaGpuName: _nvidiaGpuName } = require('./sidecar-sku');
+const { detectSku: _detectSku } = require('./sidecar-sku');
 const { resolvePython: _resolveSidecarPython } = require('./native-host-manager');
 const sidecarBundle = require('./sidecar-bundle');
 const _currentSku = () =>
-  _detectSku(process.platform, { hasNvidia: _probeNvidia(), arch: process.arch });
+  _detectSku(process.platform, { arch: process.arch });
 ipcMain.handle('sidecar-bundle:status', () => {
   const sku = _currentSku();
+  // Dev machines that lived through the slice-5 sku rename (linux-nvidia/
+  // win-nvidia/win-directml/mac -> linux-x64/linux-arm64/win-x64/mac-arm64/
+  // mac-x64) keep every old sku's multi-GB bundle tree forever, since install/
+  // remove only ever touch the CURRENT sku's dir. Prune once here, at the
+  // first bundle-resolution call the renderer makes each launch; never throws.
+  // `installing: _bundleInstalling` (fix round 1): a renderer reload (Ctrl+R /
+  // View menu reload, not dev-gated) resets the renderer's own in-memory
+  // "install in progress" guard while main's install promise keeps running —
+  // the remounted settings panel's status query must not race a live install's
+  // `.tmp` extraction target with this prune.
+  if (sku !== null) {
+    sidecarBundle.pruneStaleSkuDirs(
+      path.dirname(sidecarBundle.bundleInstallDir(app.getPath('userData'), sku)), sku,
+      { installing: _bundleInstalling });
+  }
   if (sku === null) {
-    // Even without a bundle SKU (ARM linux/windows, Intel mac) a dev checkout
+    // Even without a bundle SKU (ARM windows) a dev checkout
     // with a venv keeps the whole native lane usable — report it so the UI
     // shows the dev note + unlocked model area instead of a dead end.
     let devVenvPresent = false;
     try { devVenvPresent = require('fs').existsSync(_resolveSidecarPython()); } catch { /* keep false */ }
     return { ok: true, sku: null, state: 'unsupported', installed: false,
-             installedVersion: null, requiredVersion: null, gpuName: null,
+             installedVersion: null, requiredVersion: null,
              stagedBytes: 0, devVenvPresent };
   }
   let requiredVersion = null;
@@ -646,7 +661,6 @@ ipcMain.handle('sidecar-bundle:status', () => {
   return {
     ok: true, sku, state,
     installed: st.installed, installedVersion: st.version, requiredVersion,
-    gpuName: _nvidiaGpuName(),
     stagedBytes: requiredVersion === null ? 0
       : sidecarBundle.stagedBytes(app.getPath('userData'), sku, requiredVersion),
     devVenvPresent,

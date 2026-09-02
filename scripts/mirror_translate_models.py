@@ -3,8 +3,8 @@
 """Mirror the chosen translate artifacts into the owned HF namespace.
 
 GGUF: one repo per card-variant holding exactly one .gguf.
-(Opus-MT is no longer mirrored here — it is converted to CTranslate2 and
-self-hosted by scripts/convert-opus-ct2.py.)
+(Opus-MT/CTranslate2 hosting died with the ggml-only refactor — translation
+now runs through llama.cpp/sokuji-native instead.)
 
 Requires: `huggingface-cli login` with write access to NS.
 Usage: python3 scripts/mirror_translate_models.py [--dry-run] [--only CARD_ID]

@@ -5,8 +5,8 @@ import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import {
   curatedBuiltinVoices,
   defaultTtsVoice,
-  sidFromTtsVoice,
-  ttsVoiceForSid,
+  eligibleCustomVoices,
+  isCloneOnlyVoice,
   type VoiceCapability,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import type { NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -25,28 +25,33 @@ export type { ClipValidationError };
 /**
  * Native (Electron sidecar) adapter over the generalized VoiceLibrarySection.
  * Switches on the selected TTS model's `VoiceCapability` (Task 10):
- *   - `builtin === 'range'` → the classic speaker-id slider (`sid:<n>`).
- *   - otherwise            → VoiceLibrarySection composed from the sidecar's
- *     built-in voice list (`builtin:<Name>` entries, curated-first) plus the
- *     injected `store`'s custom voices (`custom:<id>` entries, removable).
  *   - `{builtin:'none', custom:'none'}` → nothing to render.
+ *   - otherwise                        → VoiceLibrarySection composed from
+ *     the sidecar's built-in voice list (`builtin:<Name>` entries,
+ *     curated-first) plus the injected `store`'s custom voices
+ *     (`custom:<id>` entries, removable). The old speaker-id slider
+ *     (`builtin === 'range'`, `sid:<n>`) died with the ONNX backends that
+ *     were its only producers (Task 5's catalog rewire onto native_tts;
+ *     swept in Task 7 — R4).
  *
- * The `store` (from `voiceStoreFor`, Task 11) abstracts over the two custom
- * -voice backends — clip cloning (MOSS) vs style import (Supertonic-shaped
- * native models) — so this component no longer needs to know which one it's
- * talking to. It owns loading/refreshing the custom list locally (via
+ * The `store` (from `voiceStoreFor`, Task 11) abstracts over the native
+ * custom-voice backend — clip cloning (MOSS and the other native_tts clone-
+ * capable families) — so this component doesn't need its own store-specific
+ * branches. The old style-import backend (Supertonic-shaped native models,
+ * uploaded style-vector JSON) died with the ONNX Supertonic backend (Task 5's
+ * catalog rewire onto native_tts) and the renderer's setStyleVoice sender
+ * (Task 6). It owns loading/refreshing the custom list locally (via
  * `store.list()`) and calls the parent's `onCustomChanged` after a
  * successful mutation so any parent-side cache stays in sync.
  *
- * Capture errors (`VoiceCaptureError` from the clip store, `VoiceImportError`
- * from the style store) are caught here and surfaced inline; nothing is
- * written to the voice list when validation fails.
+ * Capture errors (`VoiceCaptureError` from the clip store; `VoiceImportError`
+ * is a shared error type any store could in principle throw) are caught here
+ * and surfaced inline; nothing is written to the voice list when validation
+ * fails.
  */
 export interface NativeVoiceSectionProps {
   /** The selected TTS model's voice capability (built-in shape + custom-voice kind). */
   capability: VoiceCapability;
-  /** Total speaker count for a 'range' model (the slider runs 0 .. numSpeakers-1). */
-  numSpeakers?: number;
   /** Built-in voice descriptors from the sidecar (empty when the model isn't downloaded). */
   builtinVoices: NativeVoiceInfo[];
   /** Custom-voice backend for this model; null when `capability.custom === 'none'`. */
@@ -69,7 +74,6 @@ const DEFAULT_LIBRARY_CAPABILITY: VoiceLibraryCapability = {
 
 const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   capability,
-  numSpeakers,
   builtinVoices,
   store,
   selected,
@@ -111,9 +115,9 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   }, [t, store]);
 
   // Turn a capture failure into a user-facing message: clip validation errors
-  // (record/upload on the clip store) map by code; style-import failures
-  // (VoiceImportError) show their own message; anything else falls back to a
-  // generic "couldn't read that file" notice.
+  // (record/upload on the clip store) map by code; a VoiceImportError (the
+  // shared error type from voiceStorage.ts) shows its own message; anything
+  // else falls back to a generic "couldn't read that file" notice.
   const captureErrorMessage = useCallback((err: unknown): string => {
     if (err instanceof VoiceCaptureError) return clipErrorMessage(err.code);
     if (err instanceof VoiceImportError) return err.message;
@@ -201,11 +205,11 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     // `transcriptRequired`) can only clone from clips that carry one — a clip
     // recorded/imported before the model required transcripts (or under a
     // different model) would otherwise silently fail to clone. Hide it from
-    // the pickable list rather than let it fail at apply time.
-    const eligibleCustomVoices = capability.transcriptRequired
-      ? customVoices.filter((v) => v.hasTranscript)
-      : customVoices;
-    const customEntries: VoiceEntry[] = eligibleCustomVoices.map((v) => ({
+    // the pickable list rather than let it fail at apply time. The predicate
+    // is nativeCatalog's, shared with the pre-init gate and the selection
+    // reconciliation, so "eligible" cannot mean two things.
+    const eligible = eligibleCustomVoices(customVoices, capability.transcriptRequired);
+    const customEntries: VoiceEntry[] = eligible.map((v) => ({
       id: `custom:${v.id}`,
       label: v.name,
       group: 'custom',
@@ -216,21 +220,15 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
 
   if (capability.builtin === 'none' && capability.custom === 'none') return null;
 
-  if (capability.builtin === 'range') {
-    const max = Math.max(1, (numSpeakers ?? 1) - 1);
-    const sid = Math.min(sidFromTtsVoice(selected), max);
-    return (
-      <div className="setting-item">
-        <div className="setting-label">
-          <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
-          <span className="setting-value">{sid}</span>
-        </div>
-        <input type="range" min="0" max={max} step="1" value={sid}
-          onChange={(e) => onSelect(ttsVoiceForSid(parseInt(e.target.value, 10)))}
-          className="slider" disabled={isSessionActive} />
-      </div>
-    );
-  }
+  // Renderer-side mirror of the sidecar's R16 pre-check (tts_backend.py's
+  // `_ensure_voice_ready`/`_VOICE_REQUIRED_FAMILIES`): a clone-only model (no
+  // built-in voice at all — qwen3_tts, omnivoice) can't speak until at least
+  // one eligible clip exists. Same eligibility filter as the pickable list
+  // above (transcriptRequired models don't count a clip with no transcript),
+  // so this banner and the dropdown's actual contents never disagree.
+  const eligibleCustomVoiceCount =
+    eligibleCustomVoices(customVoices, capability.transcriptRequired).length;
+  const needsClipBeforeUse = isCloneOnlyVoice(capability) && eligibleCustomVoiceCount === 0;
 
   // Reconcile for display: an empty choice shows the language default as selected.
   const selectedId = selected || defaultTtsVoice(targetLanguage, builtinVoices);
@@ -256,6 +254,11 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
         capability={libraryCapability}
         isSessionActive={isSessionActive}
       />
+      {needsClipBeforeUse && (
+        <div className="voice-capture-error" role="alert">
+          {t('voiceLibrary.cloneVoiceRequired', 'This voice needs a clip before it can speak — record or import one below.')}
+        </div>
+      )}
       {captureError && (
         <div className="voice-capture-error" role="alert">{captureError}</div>
       )}

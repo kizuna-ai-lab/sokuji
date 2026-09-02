@@ -676,7 +676,6 @@
   },
   "engine": {
     "title": "推理引擎",
-    "detected": "检测到:{{gpu}}",
     "package": "引擎包:{{sku}} · {{size}}",
     "sizeUnknown": "离线,无法获取体积",
     "download": "下载引擎",
@@ -891,6 +890,7 @@
     "clipSilent": "未检测到人声 — 请检查麦克风后重试。",
     "clipTooLong": "录音过长 — 请控制在 {seconds} 秒以内。",
     "clipTooShort": "录音过短 — 请至少说满 {seconds} 秒。",
+    "cloneVoiceRequired": "此声音尚无法发声 — 请先在下方录制或导入一段语音片段。",
     "customVoiceCta": "需要自定义声音？",
     "decodeFailed": "无法读取该音频文件 — 请尝试 WAV、MP3 等常见格式。",
     "delete": "删除",
