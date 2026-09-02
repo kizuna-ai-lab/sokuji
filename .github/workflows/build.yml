@@ -2,7 +2,7 @@ name: Build and Release
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, refactor/sidecar-ggml-only-slice5]
     tags:
       - 'v*'
   pull_request:
@@ -111,6 +111,10 @@ jobs:
 
       - name: Run sidecar tests
         if: steps.changes.outputs.changed == 'true'
+        # sokuji_sidecar is not installed as a package; every local invocation runs with
+        # PYTHONPATH=sidecar and CI must too, or collection fails on the first import.
+        env:
+          PYTHONPATH: ${{ github.workspace }}/sidecar
         run: python -m pytest sidecar/tests -q
 
   build:
