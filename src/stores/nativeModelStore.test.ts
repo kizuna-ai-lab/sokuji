@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useNativeModelStore, deriveVariantRepos } from './nativeModelStore';
+import { useNativeModelStore, deriveVariantRepos, formatEngineReadyLog } from './nativeModelStore';
+import useLogStore from './logStore';
 import { requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
 import { directionKey, emptyDirection } from '../lib/local-inference/selection/types';
 
@@ -46,6 +47,23 @@ function mockModelsCatalogReject() { _shouldReject = true; }
 function modelsCatalogCallCount() { return _catalogCallCount; }
 function mockModelNotReady(id: string) { _notReadyModels.add(id); }
 
+// hardware_info controls — default response mirrors a real ready sidecar
+// (nativeVersion/engineVersions/lane/preferredDevice all populated); tests
+// override or reject to exercise the best-effort engineInfo path.
+let _hardwareInfoReject = false;
+const DEFAULT_HARDWARE_INFO = {
+  nativeVersion: '1.0.1',
+  engineVersions: { ggml: '0.22.0', transcribe: '0.2.2', llama: '0.3.0', audiocpp: '0.7.0' },
+  lane: 'cpu-vulkan',
+  preferredDevice: { kind: 'vulkan', name: 'gpu0', description: 'NVIDIA GB10' },
+};
+let _hardwareInfoResponse: typeof DEFAULT_HARDWARE_INFO = { ...DEFAULT_HARDWARE_INFO };
+function mockHardwareInfoReject() { _hardwareInfoReject = true; }
+function mockHardwareInfoResolve(overrides?: Partial<typeof DEFAULT_HARDWARE_INFO>) {
+  _hardwareInfoReject = false;
+  _hardwareInfoResponse = { ...DEFAULT_HARDWARE_INFO, ...overrides };
+}
+
 class FakeWS {
   static OPEN = 1;
   readyState = 1;
@@ -90,6 +108,17 @@ class FakeWS {
     }
     if (msg.type === 'model_delete') queueMicrotask(() =>
       this.emit({ type: 'model_delete_result', id: msg.id, freed: 0 }));
+    if (msg.type === 'hardware_info') {
+      if (_hardwareInfoReject) {
+        queueMicrotask(() => this.emit({ type: 'error', id: msg.id, message: 'mock hardware_info error' }));
+        return;
+      }
+      queueMicrotask(() => this.emit({
+        type: 'hardware_info_result', id: msg.id,
+        os: 'linux', arch: 'x64', cpuCores: 8, gpus: [], backendsInstalled: [], accelAvailable: true,
+        ..._hardwareInfoResponse,
+      }));
+    }
   }
   close() {}
 }
@@ -103,7 +132,10 @@ beforeEach(() => {
   _asrExtraModels = [];
   _catalogCallCount = 0;
   _notReadyModels = new Set();
-  useNativeModelStore.setState({ catalog: {}, sidecarStatus: 'idle', sizes: {}, statusRepos: {}, statuses: {} } as any);
+  _hardwareInfoReject = false;
+  _hardwareInfoResponse = { ...DEFAULT_HARDWARE_INFO };
+  useNativeModelStore.setState({ catalog: {}, sidecarStatus: 'idle', sizes: {}, statusRepos: {}, statuses: {}, engineInfo: null } as any);
+  useLogStore.getState().clearLogs();
 });
 
 describe('nativeModelStore.isReady', () => {
@@ -392,6 +424,89 @@ describe('nativeModelStore sidecar lifecycle', () => {
     await useNativeModelStore.getState().retrySidecar();
     expect(useNativeModelStore.getState().sidecarStatus).toBe('ready');
     expect(validateApiKey).toHaveBeenCalled();
+  });
+});
+
+// refreshBundle (called at the top of every ensureCatalog) re-derives
+// bundleVersion/bundleDevVenv from the IPC 'sidecar-bundle:status' reply, so
+// the log-line tests below must mock that channel explicitly rather than
+// preset the store fields directly — a preset would be clobbered before the
+// ready log is ever written.
+function mockElectronBundleStatus(over: Record<string, unknown>) {
+  (globalThis as any).window.electron = {
+    invoke: vi.fn((channel: string) => {
+      if (channel === 'sidecar-bundle:status') {
+        return Promise.resolve({
+          ok: true, sku: 'linux-x64', state: 'ready', installed: true,
+          installedVersion: null, requiredVersion: null, stagedBytes: 0, devVenvPresent: false,
+          ...over,
+        });
+      }
+      return Promise.resolve({ ok: true, port: 9 });
+    }),
+  };
+}
+
+describe('nativeModelStore engineInfo (hardware_info identity)', () => {
+  it('ensureCatalog populates engineInfo from hardware_info on ready', async () => {
+    mockModelsCatalogResolve();
+    mockHardwareInfoResolve();
+    await useNativeModelStore.getState().ensureCatalog();
+    expect(useNativeModelStore.getState().sidecarStatus).toBe('ready');
+    expect(useNativeModelStore.getState().engineInfo).toEqual({
+      nativeVersion: '1.0.1',
+      engineVersions: { ggml: '0.22.0', transcribe: '0.2.2', llama: '0.3.0', audiocpp: '0.7.0' },
+      lane: 'cpu-vulkan',
+      preferredDevice: { kind: 'vulkan', name: 'gpu0', description: 'NVIDIA GB10' },
+    });
+  });
+
+  it('a hardware_info failure leaves engineInfo null but the sidecar still ready (best-effort)', async () => {
+    mockModelsCatalogResolve();
+    mockHardwareInfoReject();
+    await useNativeModelStore.getState().ensureCatalog();
+    expect(useNativeModelStore.getState().sidecarStatus).toBe('ready');
+    expect(useNativeModelStore.getState().engineInfo).toBeNull();
+  });
+
+  it('logs one info line on the ready transition — release bundle', async () => {
+    mockModelsCatalogResolve();
+    mockHardwareInfoResolve();
+    mockElectronBundleStatus({ installedVersion: '0.2.0', requiredVersion: '0.2.0', devVenvPresent: false });
+    await useNativeModelStore.getState().ensureCatalog();
+    const lines = useLogStore.getState().allLogs.map((l) => l.message);
+    expect(lines).toContain(
+      'sidecar 0.2.0 ready: sokuji-native 1.0.1 (ggml 0.22.0, transcribe 0.2.2, llama 0.3.0, audiocpp 0.7.0) lane=cpu-vulkan device="NVIDIA GB10"'
+    );
+  });
+
+  it('logs one info line on the ready transition — dev venv (no bundleVersion)', async () => {
+    mockModelsCatalogResolve();
+    mockHardwareInfoResolve();
+    mockElectronBundleStatus({ installedVersion: null, requiredVersion: null, devVenvPresent: true });
+    await useNativeModelStore.getState().ensureCatalog();
+    const lines = useLogStore.getState().allLogs.map((l) => l.message);
+    expect(lines).toContain(
+      'sidecar dev venv ready: sokuji-native 1.0.1 (ggml 0.22.0, transcribe 0.2.2, llama 0.3.0, audiocpp 0.7.0) lane=cpu-vulkan device="NVIDIA GB10"'
+    );
+  });
+});
+
+describe('formatEngineReadyLog', () => {
+  it('omits the parenthesis when engineVersions is null', () => {
+    expect(formatEngineReadyLog('0.2.0', false, {
+      nativeVersion: '1.0.1', engineVersions: null, lane: 'cpu', preferredDevice: null,
+    })).toBe('sidecar 0.2.0 ready: sokuji-native 1.0.1 lane=cpu');
+  });
+
+  it('omits device when preferredDevice is null', () => {
+    expect(formatEngineReadyLog('0.2.0', false, {
+      nativeVersion: '1.0.1', engineVersions: { ggml: '0.22.0' }, lane: 'cpu', preferredDevice: null,
+    })).toBe('sidecar 0.2.0 ready: sokuji-native 1.0.1 (ggml 0.22.0) lane=cpu');
+  });
+
+  it('omits the sokuji-native segment entirely when engineInfo is null (best-effort failure)', () => {
+    expect(formatEngineReadyLog('0.2.0', false, null)).toBe('sidecar 0.2.0 ready');
   });
 });
 

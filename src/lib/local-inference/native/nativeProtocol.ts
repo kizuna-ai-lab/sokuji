@@ -30,6 +30,11 @@ export interface HardwareInfoResultMsg {
   os: string; arch: string; cpuCores: number;
   gpus: { vendor: string; name: string; vramMb: number }[];
   backendsInstalled: string[]; accelAvailable: boolean;
+  // sokuji_native identity, reported once hardware_info succeeds against a loaded native runtime.
+  nativeVersion?: string | null;
+  engineVersions?: Record<string, string> | null;
+  lane?: string | null;
+  preferredDevice?: { kind: string; name: string; description: string } | null;
 }
 export interface ModelsCatalogResultMsg {
   type: 'models_catalog_result'; id: number; models: NativeModelInfo[];
