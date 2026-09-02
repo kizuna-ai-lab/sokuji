@@ -1,0 +1,49 @@
+{
+ "dir": "qwen3-asr-onnx/output/int8",
+ "suffix": ".int8",
+ "encoder": "encoder.onnx",
+ "embed": "embed_tokens.bin",
+ "threads": 8,
+ "loadSec": 3.8,
+ "ort": "1.29.0",
+ "results": [
+  {
+   "clip": "zh-fleurs1883.wav [cold]",
+   "lang": "zh",
+   "audioSec": 13.86,
+   "melFrames": 1386,
+   "audioTokens": 180,
+   "promptTokens": 198,
+   "genTokens": 31,
+   "melMs": 75,
+   "encoderMs": 271,
+   "decodeMs": 753,
+   "totalMs": 1099,
+   "rtf": 0.079,
+   "prefix": null,
+   "text": "桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。",
+   "ref": "桥 下 垂 直 净 空 15 米 该 项 目 于 2011 年 8 月 完 工 但 直 到 2017 年 3 月 才 开 始 通 车",
+   "hitEos": true,
+   "cer": 0.324
+  },
+  {
+   "clip": "zh-fleurs1883.wav",
+   "lang": "zh",
+   "audioSec": 13.86,
+   "melFrames": 1386,
+   "audioTokens": 180,
+   "promptTokens": 198,
+   "genTokens": 31,
+   "melMs": 16,
+   "encoderMs": 428,
+   "decodeMs": 684,
+   "totalMs": 1129,
+   "rtf": 0.081,
+   "prefix": null,
+   "text": "桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。",
+   "ref": "桥 下 垂 直 净 空 15 米 该 项 目 于 2011 年 8 月 完 工 但 直 到 2017 年 3 月 才 开 始 通 车",
+   "hitEos": true,
+   "cer": 0.324
+  }
+ ]
+}

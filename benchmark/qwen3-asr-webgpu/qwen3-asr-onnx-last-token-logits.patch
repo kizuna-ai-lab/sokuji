@@ -1,0 +1,17 @@
+Applied on top of https://github.com/andrewleech/qwen3-asr-onnx (main, 2026-09-02) before
+running `export.py`. The upstream prefill graph emits logits for every prompt position
+([1, T, 151936] fp32 — ~120 MB for a 200-token prompt), which on WebGPU is a per-utterance
+GPU→CPU readback that would dominate the prefill time. Greedy decoding only needs the last
+position, so slice before lm_head.
+
+--- a/src/decoder_wrapper.py
++++ b/src/decoder_wrapper.py
+@@ -205,7 +205,7 @@ class DecoderInitWrapper(nn.Module):
+             all_values.append(value_states)
+
+         hidden_states = self.norm(hidden_states)
+-        logits = self.lm_head(hidden_states)
++        logits = self.lm_head(hidden_states[:, -1:, :])  # spike: last position only
+
+         present_keys = torch.stack(all_keys, dim=0)
+         present_values = torch.stack(all_values, dim=0)
