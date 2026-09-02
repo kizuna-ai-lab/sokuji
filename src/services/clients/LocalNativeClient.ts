@@ -196,7 +196,17 @@ export class LocalNativeClient implements IClient {
           catch { /* storage unavailable → built-in voices only */ }
         }
         const voiceList = cap.builtin === 'named' ? await nativeListTtsVoices(config.ttsModelId) : [];
-        const voice = reconcileTtsVoice(config.ttsVoice ?? '', customIds, config.targetLanguage, voiceList, cap.custom !== 'none');
+        const storedVoice = config.ttsVoice ?? '';
+        const voice = reconcileTtsVoice(storedVoice, customIds, config.targetLanguage, voiceList, cap.custom !== 'none');
+        // R35: the stored selection was a custom clip and reconcile swapped it
+        // for a DIFFERENT eligible one (never '' or the same id — this is
+        // exactly the "your ineligible clip got substituted" case, not the
+        // ordinary "no selection yet" default resolution). One diagnostic per
+        // session start, session continues normally on the substitute.
+        if (storedVoice.startsWith('custom:') && voice.startsWith('custom:') && voice !== storedVoice) {
+          this.diagnose('voice_fallback',
+            `Configured voice ${storedVoice.slice('custom:'.length)} is no longer usable with this model (deleted, or missing a required transcript); substituted voice ${voice.slice('custom:'.length)}. Update the selection in settings.`);
+        }
         this.ttsVoiceLabel = voice;   // e.g. builtin:Bella | custom:7 | sid:3 — logged on tts.start
         if (voice.startsWith('builtin:')) {
           await this.tts.setVoice?.(voice.slice('builtin:'.length));

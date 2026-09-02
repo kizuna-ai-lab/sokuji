@@ -1037,20 +1037,28 @@ describe('LocalNativeClient clone-only voice gate', () => {
   });
 });
 
-// ── Task 7 (slice 5b debt): reconcileTtsVoice must not keep a stale/ineligible
-// custom selection just because SOME other clip happens to be eligible ──
+// ── Task 7 (slice 5b debt) + R35: reconcileTtsVoice must not keep a
+// stale/ineligible custom selection just because SOME other clip happens to
+// be eligible — and when it drops that selection, it must auto-pick the
+// first eligible clip (never strand a model on no voice at all when one
+// exists) and report the substitution as one diagnostic ──
 //
 // The pre-init gate above only asks "does at least one eligible clip exist"
 // (R16's own question). It says nothing about whether the STORED selection
-// (config.ttsVoice) is itself one of those eligible clips. Before this fix,
-// `customIds` was built from the unfiltered voice list, so a stored
+// (config.ttsVoice) is itself one of those eligible clips. Before Task 7's
+// fix, `customIds` was built from the unfiltered voice list, so a stored
 // `custom:X` where X lacks a transcript this model requires survived
 // reconciliation — and got applied — as long as some other clip Y happened to
 // be eligible (which is exactly what made the gate pass in the first place).
 describe('LocalNativeClient reconcileTtsVoice — stale custom selection (transcript-required families)', () => {
   const TRANSCRIPT_GATE_MODEL = 'qwen3-tts-transcript-gate-test';
 
-  it('never applies a stored custom:X whose clip lacks a transcript, even though another eligible clip exists', async () => {
+  // Both clips' getNativeVoice payloads, keyed by id — resolveApply(id) must
+  // resolve to the RIGHT clip's audio/transcript, not a fixed mock value.
+  const CLIP_X = { id: 10, name: 'X (no transcript)', audio: new Float32Array([0.1]).buffer, sampleRate: 16000, createdAt: 0 };
+  const CLIP_Y = { id: 11, name: 'Y (has transcript)', audio: new Float32Array([0.2]).buffer, sampleRate: 16000, createdAt: 0, transcript: 'hello there' };
+
+  it('R35: auto-picks the first eligible clip and reports the substitution when the stored clip lacks a transcript', async () => {
     useNativeModelStore.setState({
       catalog: { [TRANSCRIPT_GATE_MODEL]: {
         id: TRANSCRIPT_GATE_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [],
@@ -1061,28 +1069,36 @@ describe('LocalNativeClient reconcileTtsVoice — stale custom selection (transc
     m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1 });
     m.tts.setReferenceVoice = vi.fn().mockResolvedValue(undefined);
     // X (id 10) has no transcript — ineligible for this transcriptRequired
-    // family; Y (id 11) does — the pre-init gate counts it and lets TTS load.
+    // family; Y (id 11) does — the pre-init gate counts it and lets TTS load,
+    // and it's also the first (only) ELIGIBLE entry reconcile should pick.
     vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
-      .mockResolvedValue([
-        { id: 10, name: 'X (no transcript)', audio: new Float32Array([0.1]).buffer, sampleRate: 16000, createdAt: 0 },
-        { id: 11, name: 'Y (has transcript)', audio: new Float32Array([0.2]).buffer, sampleRate: 16000, createdAt: 0, transcript: 'hello there' },
-      ]);
+      .mockResolvedValue([CLIP_X, CLIP_Y]);
     vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'getNativeVoice')
-      .mockResolvedValue({ id: 10, name: 'X (no transcript)', audio: new Float32Array([0.1]).buffer, sampleRate: 16000, createdAt: 0 });
+      .mockImplementation(async (id: number) => (id === CLIP_Y.id ? CLIP_Y : id === CLIP_X.id ? CLIP_X : null) as any);
     const errors: string[] = [];
+    const diagnostics: { code: string; message: string }[] = [];
     const c = new LocalNativeClient(m);
-    c.setEventHandlers({ onError: (e: any) => errors.push(String(e?.message ?? e)) } as any);
+    c.setEventHandlers({
+      onError: (e: any) => errors.push(String(e?.message ?? e)),
+      onDiagnostic: (d: any) => diagnostics.push({ code: d.code, message: d.message }),
+    } as any);
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: TRANSCRIPT_GATE_MODEL, ttsVoice: 'custom:10' } as any);
 
     // The pre-init gate passed (Y is eligible) — TTS loaded at all.
     expect(m.tts.init).toHaveBeenCalled();
     expect(errors).toHaveLength(0);
-    // X must never be applied as the reference voice, ineligible or not.
-    expect(m.tts.setReferenceVoice).not.toHaveBeenCalled();
+    // X (ineligible) is never applied; Y (the first eligible clip) is instead.
+    expect(m.tts.setReferenceVoice).toHaveBeenCalledWith(expect.any(Float32Array), 16000, 'hello there');
+    expect(m.tts.setReferenceVoice).not.toHaveBeenCalledWith(expect.any(Float32Array), 16000, undefined);
+    // Exactly one diagnostic naming both the dropped and substitute voices.
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].code).toBe('voice_fallback');
+    expect(diagnostics[0].message).toContain('10');
+    expect(diagnostics[0].message).toContain('11');
   });
 
-  it('keeps a stored custom:X selection when X itself is eligible', async () => {
+  it('keeps a stored custom:X selection when X itself is eligible (no substitution, no diagnostic)', async () => {
     useNativeModelStore.setState({
       catalog: { [TRANSCRIPT_GATE_MODEL]: {
         id: TRANSCRIPT_GATE_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [],
@@ -1098,10 +1114,42 @@ describe('LocalNativeClient reconcileTtsVoice — stale custom selection (transc
       ]);
     vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'getNativeVoice')
       .mockResolvedValue({ id: 12, name: 'X (has transcript)', audio: new Float32Array([0.3]).buffer, sampleRate: 16000, createdAt: 0, transcript: 'the transcript' });
+    const diagnostics: { code: string }[] = [];
     const c = new LocalNativeClient(m);
+    c.setEventHandlers({ onDiagnostic: (d: any) => diagnostics.push({ code: d.code }) } as any);
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: TRANSCRIPT_GATE_MODEL, ttsVoice: 'custom:12' } as any);
 
     expect(m.tts.setReferenceVoice).toHaveBeenCalledWith(expect.any(Float32Array), 16000, 'the transcript');
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it('R35: with no eligible clip at all, the existing pre-init gate still disables TTS (one visible bubble, no reconcile substitution)', async () => {
+    useNativeModelStore.setState({
+      catalog: { [TRANSCRIPT_GATE_MODEL]: {
+        id: TRANSCRIPT_GATE_MODEL, name: 'Qwen3 TTS', languages: ['en'], recommended: false, tiers: [],
+        voice: { builtin: 'none', custom: 'clip', transcriptRequired: true },
+      } as any },
+    } as any);
+    const m = mocks();
+    // Only X exists, and it has no transcript — zero eligible clips.
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices')
+      .mockResolvedValue([CLIP_X]);
+    const errors: string[] = [];
+    const diagnostics: { code: string; message: string }[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({
+      onError: (e: any) => errors.push(String(e?.message ?? e)),
+      onDiagnostic: (d: any) => diagnostics.push({ code: d.code, message: d.message }),
+    } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: TRANSCRIPT_GATE_MODEL, ttsVoice: 'custom:10' } as any);
+
+    // The pre-init gate catches it before TTS ever loads — unchanged from Task 7.
+    expect(m.tts.init).not.toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/needs a voice clip/i);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].code).toBe('tts_degraded');
   });
 });

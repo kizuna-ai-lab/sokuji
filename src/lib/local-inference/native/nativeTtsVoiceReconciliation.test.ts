@@ -28,3 +28,13 @@ it('drops a stale builtin name from a previously selected model', () => {
 it('cannot validate builtin names against an empty voice list (pass through)', () => {
   expect(reconcileTtsVoice('builtin:Style1', [], 'en', [], true)).toBe('builtin:Style1');
 });
+// R35: a clone-only family (no builtin voices at all) has no builtin default
+// to fall back to — landing on '' would silently strand a model the caller's
+// pre-init gate already confirmed CAN speak (it found an eligible clip).
+it('R35: a clone-only family (no builtin voices) falls back to the first eligible custom clip, not empty', () => {
+  expect(reconcileTtsVoice('custom:99', [7, 8], 'en', [], true)).toBe('custom:7');
+  expect(reconcileTtsVoice('', [7, 8], 'en', [], true)).toBe('custom:7');
+  // No eligible clip at all (caller's gate would have disabled TTS before
+  // reaching here in practice) — still degrades to '' rather than throwing.
+  expect(reconcileTtsVoice('custom:99', [], 'en', [], true)).toBe('');
+});
