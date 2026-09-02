@@ -42,7 +42,20 @@ namespace {
  * kThreadKnee is that measured knee, NOT hardware_concurrency: sk_init() caps an
  * unspecified (0) n_threads at this value so a caller never has to know about the
  * underlying ggml quirk. A positive n_threads is always honored verbatim (see
- * sokuji_native.h's sk_init_options doc) — this policy applies only to the 0 case. */
+ * sokuji_native.h's sk_init_options doc) — this policy applies only to the 0 case.
+ *
+ * SCOPE (slice-5b final fix wave, I-3): min(hw, 12) is a NO-OP on any box with 12 or
+ * fewer hardware threads — those run at hw, unchanged from before this policy existed.
+ * The collapse it guards against is a >12-thread phenomenon, and the GB10 sweep above is
+ * the only measurement of it. The same sweep re-run on a 10-core Apple M4 (4P+6E; same
+ * script, same text, same 4-runs-after-a-warm-up shape, CPU device pinned) found NO
+ * oversubscription at n_threads==hw==10 there: moss/supertonic/whisper are all fastest at
+ * 10, pocket_tts peaks at 8 and is only 2.9% slower at 10, and the run-to-run spread stays
+ * <=1.025x at every rung (vs GB10's 1.18x-4.32x at nproc). So this constant is not "the
+ * right thread count for every machine" — it is a ceiling that keeps a many-core box off
+ * the spin-barrier cliff, and it is not evidence that 12 beats hw on a smaller box. The
+ * M4 table lives in
+ * .superpowers/sdd/2026-09-02-sidecar-ggml-only-slice5b-debt/final-fixwave-report.md. */
 constexpr int kThreadKnee = 12;
 
 thread_local std::string t_last_error;
@@ -129,9 +142,9 @@ void log_line(int32_t level, const char *msg) { ::log_line(level, msg); }
 extern "C" {
 
 SK_API int32_t sk_abi_version(void) { return SK_ABI_VERSION; }
-/* Not locked: g_threads is written once (under g_mutex) during sk_init and never again,
- * so an unlocked read here is safe and, unlike sk::threads(), lets a caller that is
- * already inside a locked section (there are none today) call this without deadlocking. */
+/* Not locked — and neither is sk::threads(), which this forwards to: g_threads is written
+ * once (under g_mutex) during sk_init and never read before, so an unlocked read of it is
+ * safe from anywhere, including from inside an already-locked section. */
 SK_API int32_t sk_threads(void) { return sk::threads(); }
 SK_API const char *sk_version(void) { return SK_VERSION_STRING; }
 SK_API const char *sk_last_error(void) { return t_last_error.c_str(); }

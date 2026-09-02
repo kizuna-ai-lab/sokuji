@@ -104,6 +104,14 @@ jobs:
           # families the model cache above holds are exercised; qwen3/omnivoice/pocket are
           # multi-GB and are deliberately NOT cached, and the test covers whichever dirs
           # happen to be set.
+          #
+          # Expect SKIPPED here, not PASSED (ruling R36): this runner is a VM whose Metal
+          # device reports as "Apple Paravirtual device" and lacks has_simdgroup_reduction,
+          # so ggml refuses NORM/RMS_NORM/ARGMAX and every family would abort regardless of
+          # the code under test. The test detects that description and skips, so this lane
+          # can never validate Metal TTS — real hardware does (an M4; see native/README.md's
+          # "Which Macs this is proved on"). The variable stays set so the day a
+          # non-paravirtual macOS runner exists, the coverage turns on by itself.
           SK_TEST_TTS_GPU: ${{ matrix.lane == 'metal' && '1' || '' }}
         run: native/ci/build.sh ${{ matrix.lane }} ${{ matrix.plat }}
       - name: Build, test, wheel (Windows)

@@ -66,11 +66,18 @@ typedef struct sk_init_options {
                                  * worker (the main thread, the Python interpreter, any other
                                  * process) makes every other worker spin-burn its timeslice —
                                  * measured 2.55x run-to-run spread at n_threads==nproc vs
-                                 * ~1.03x at the knee (vulkan-perf-investigation.md §Q2). A
-                                 * positive value here is always honored verbatim — this
-                                 * policy applies ONLY to the 0 (unspecified) case — so a
-                                 * caller that wants raw hardware_concurrency can still pass
-                                 * it explicitly. See sk_threads() for the resolved value. */
+                                 * ~1.03x at the knee (vulkan-perf-investigation.md §Q2).
+                                 * The cap is 12, so it only CHANGES anything on a box with
+                                 * more than 12 hardware threads: the collapse above is a
+                                 * 20-thread Linux/aarch64 measurement (GB10), and a 10-core
+                                 * Apple M4 re-run of the same sweep showed no collapse at
+                                 * all at n_threads==hw (every family within 1.03x of its own
+                                 * best, spreads <=1.025x), which is exactly what min(hw, 12)
+                                 * already does there — it runs at hw. A positive value here
+                                 * is always honored verbatim — this policy applies ONLY to
+                                 * the 0 (unspecified) case — so a caller that wants raw
+                                 * hardware_concurrency can still pass it explicitly. See
+                                 * sk_threads() for the resolved value. */
     const char *module_dir;    /* directory holding the ggml backend modules; NULL = next to this library */
     sk_log_cb   log;           /* optional */
     void       *log_user;

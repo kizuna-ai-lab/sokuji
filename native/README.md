@@ -296,24 +296,47 @@ Two supporting changes ride along: `sokuji_ggml_sub` (in `src/audiocpp_compat.h`
 `log_line` (in `src/sk_common.cpp`) now forwards warn/error to stderr when the caller
 registered no log sink, which is the only reason an abort names its op in a CI log.
 
-**M1 vs M4.** All five families were proved on an Apple **M4** (`MTLGPUFamilyApple9`,
-`has_bfloat = true`). CI's `macos-14` arm64 runners are Apple **M1** (`Apple7`,
-`has_bfloat = false`), and `ggml_metal_device_supports_op` rejects any node with a BF16 dst
-or src on such a device — three of the five checkpoints carry BF16 tensors
-(`pocket-tts-english-q8_0`, `moss-tts-nano-100m-q8_0`, `qwen3-tts-12hz-0.6b-base-q8_0`). So a
-green M4 is not a green M1. What closes it is `test_tts_synthesises_on_a_gpu_device` in
+**Which Macs this is proved on.** All five families were proved on an Apple **M4**
+(`MTLGPUFamilyApple9`). That is the only real Apple-silicon data point, and **CI cannot add
+one**: GitHub's `macos-14` arm64 runners are VMs whose Metal device reports as *"Apple
+Paravirtual device"* — a virtualization shim, not a downlevel real GPU. It lacks
+`has_simdgroup_reduction` (`ggml-metal-device.m` wants `MTLGPUFamilyApple7` or Metal3), and
+ggml gates `GGML_OP_NORM`/`RMS_NORM`/`ARGMAX` on that capability, so **every** family that
+normalizes — all five — aborts there with `unsupported op 'NORM'` no matter what the code
+under test does. (An earlier note here guessed the runner was a real M1 without bfloat; both
+halves were wrong. Real Apple silicon from the M1 on is `Apple7` with Metal bfloat support,
+which is `Apple6`-level, so the BF16 tensors three of the checkpoints carry are fine there —
+and BF16 rungs are separately validated, see below.)
+
+The capability gates our kernels and shims actually consult are `Apple7` (simdgroup
+reduction / simdgroup matmul) and `Apple6` (bfloat); every Mac from the M1 onward satisfies
+both, which is the architectural argument ruling **R36** relies on to ship `gpu-metal` tiers
+for all five families (`sidecar/sokuji_sidecar/catalog.py`, `_TTS_TIER_OVERRIDES`). What is
+*not* covered: no real **M1, M2 or M3** has ever run this suite. If one aborts on a kernel
+despite reporting `Apple7`, the fix is scoped — drop that family's `gpu-metal` row.
+
+The gate itself is `test_tts_synthesises_on_a_gpu_device` in
 `python/tests/test_sokuji_native.py`: gated on `SK_TEST_TTS_GPU=1`, it places each family
 whose model dir is set on the **first non-CPU device** and synthesizes there, one subprocess
-per family so an abort is a named per-family failure instead of a dead pytest run. It asserts
-the child really ran off-CPU, a duration inside the family's bound, and a non-silent peak. It
-also skips itself where `devices()` reports no non-CPU device, but CI does not rely on that:
-`.github/workflows/native-build.yml` sets the variable on the **metal lane only**, because a
-Linux runner carrying a software rasterizer (llvmpipe/lavapipe) would advertise a non-CPU
-Vulkan device and the test would then run whole TTS families on a CPU emulator. Locally,
-point it at whatever GPU you have. In CI it covers the two families the model cache holds
-(supertonic, moss); the other three are multi-GB and stay local. Nothing before it ever put a
-TTS session on a GPU device, which is exactly how the slice-4 metal lane went green while
-three of five families aborted on Metal.
+per case so an abort is a named per-case failure instead of a dead pytest run. It asserts the
+child really ran off-CPU, a duration inside the family's bound, and a non-silent peak. Each
+family runs twice where a second rung exists: once at the catalog's default quant and once at
+**bf16** (`SK_TEST_TTS_<FAMILY>_BF16_DIR`), because a GPU machine's `auto` plan resolves the
+largest quant that fits — bf16 — not the q8_0 the earlier fleet runs all loaded. It skips
+itself where `devices()` reports no non-CPU device **and** where that device's description
+matches `/paravirtual/i`, so CI's Metal lane reports *skipped* rather than a pass that would
+misrepresent a VM shim; `planner._tier_available` refuses the same description in production.
+`.github/workflows/native-build.yml` sets `SK_TEST_TTS_GPU` on the **metal lane only**,
+because a Linux runner carrying a software rasterizer (llvmpipe/lavapipe) would advertise a
+non-CPU Vulkan device and the test would then run whole TTS families on a CPU emulator.
+Locally, point it at whatever GPU you have. Nothing before this test ever put a TTS session on
+a GPU device, which is exactly how the slice-4 metal lane went green while three of five
+families aborted on Metal.
+
+**BF16 rungs, validated 2026-09-02.** 4/4 families that ship one (moss_tts_nano, pocket_tts,
+qwen3_tts, omnivoice) synthesize cleanly at bf16 on both GB10/Vulkan and M4/Metal;
+`supertonic` ships no bf16 (F16 is its only working rung). Table in
+`.superpowers/sdd/2026-09-02-sidecar-ggml-only-slice5b-debt/final-fixwave-report.md`.
 
 Background and measurements: `.superpowers/metal-tts-validation.md` (diagnosis) and
 `.superpowers/metal-fix-experiments.md` (the fixes, `test-backend-ops` runs, CPU
