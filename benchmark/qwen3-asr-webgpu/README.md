@@ -44,6 +44,10 @@ The spike layout carried the embedding table three times. v2 (plan:
 The page (`www/main.js`) speaks both layouts: when `prompt_config.json` exists next to the
 model it uses v2 (`?variant=q4|q4f16`, `&force=<iso>`), otherwise the v1 parameters.
 
+`export_v2.py` finds the `andrewleech/qwen3-asr-onnx` checkout via `--pipeline <dir>`,
+`$QWEN3_ASR_ONNX_DIR`, or the current directory — run it from inside your clone (as the
+Reproduce steps do), no path is hard-coded.
+
 ## Reproduce
 
 ```bash

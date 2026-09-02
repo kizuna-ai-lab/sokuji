@@ -2,6 +2,10 @@
 
 Reuses the andrewleech/qwen3-asr-onnx pipeline (layer forward, step export, Reshape fixup);
 only the prefill wrapper is new. usage: export_v2.py --src <v1 dir> --out <v2 dir>
+
+The pipeline checkout is located via, in order: --pipeline, $QWEN3_ASR_ONNX_DIR, or the
+current working directory (run this from inside your qwen3-asr-onnx clone). export.py resolves
+its own helpers relative to that directory, so we chdir into it before importing.
 """
 import argparse
 import os
@@ -11,7 +15,22 @@ import sys
 import torch
 import torch.nn as nn
 
-PIPE = "/home/jiangzhuo/.claude/jobs/c6177dc7/tmp/qwen3-asr-onnx"
+
+def _resolve_pipeline_dir() -> str:
+    """Locate the qwen3-asr-onnx checkout without a hard-coded absolute path."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--pipeline")
+    pipeline = parser.parse_known_args()[0].pipeline or os.environ.get("QWEN3_ASR_ONNX_DIR") or os.getcwd()
+    pipeline = os.path.abspath(pipeline)
+    if not os.path.exists(os.path.join(pipeline, "export.py")):
+        raise SystemExit(
+            f"qwen3-asr-onnx checkout not found at {pipeline!r}. Pass --pipeline <dir>, set "
+            "QWEN3_ASR_ONNX_DIR, or run from inside the clone (see README)."
+        )
+    return pipeline
+
+
+PIPE = _resolve_pipeline_dir()
 sys.path.insert(0, PIPE)
 os.chdir(PIPE)  # export.py resolves its helpers relative to the checkout
 from export import load_model  # noqa: E402
@@ -51,6 +70,7 @@ def main():
     ap.add_argument("--src", required=True, help="v1 output dir (encoder.onnx, tokenizer, config, embed_tokens.bin)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--opset", type=int, default=17)
+    ap.add_argument("--pipeline", help="qwen3-asr-onnx checkout (else $QWEN3_ASR_ONNX_DIR or cwd)")
     a = ap.parse_args()
     src, out = os.path.abspath(a.src), os.path.abspath(a.out)
     os.makedirs(out, exist_ok=True)
