@@ -225,10 +225,13 @@ GGUF **14 times** during one `sk_tts_load`, so the reader pays 14 × (array byte
 `fread`s. On the GB10 dev box that was 800 M of them for supertonic-3 = **13.7 s of its
 14.0 s load** (106 % CPU, zero major faults; 12 of 14 poor-man's-profiler samples sat in
 `_IO_acquire_lock_fct` under `gguf_read_emplace_helper<unsigned char>`). The patch reads the
-whole array in one `read_raw` when `T` is a fixed-size element type; `std::string`
-(length-prefixed) and `std::vector<bool>` (not contiguous) keep the per-element loop. Same
-bytes, same order, same `data_offset`/`nbytes_remain` — a read-*shape* change only, which is
-why the sample-exact parity gate is the proof it is inert.
+whole array in one `read_raw`, guarded by an **inclusion** list rather than an exclusion one
+—`std::is_arithmetic_v<T> && !std::is_same_v<T, bool>`, which covers exactly the ten types
+`gguf_read_emplace_helper` instantiates besides `bool` and `std::string`. Anything else keeps
+the per-element loop, so a future pin that adds an element type with a *converting* `read()`
+overload (as `bool`, `ggml_type` and `gguf_type` already have) cannot silently start getting
+raw bytes instead. Same bytes, same order, same `data_offset`/`nbytes_remain` — a read-*shape*
+change only, which is why the sample-exact parity gate is the proof it is inert.
 
 Measured on the GB10 (cpu lane, `tts_load` only, `n_threads=12`):
 
