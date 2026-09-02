@@ -327,6 +327,7 @@ class AsrEngine:
                 try:
                     self._stream.abort()
                 except Exception:
+                    # Best-effort: the stale stream is discarded on the next line either way.
                     pass
                 self._stream = None
                 self._partial_acc = []
@@ -343,6 +344,8 @@ class AsrEngine:
                 try:
                     self._stream.abort()
                 except Exception:
+                    # Best-effort: the stream is discarded on the next line either way,
+                    # and a raise here would break cancel handling itself.
                     pass
                 self._stream = None
                 self._partial_acc = []

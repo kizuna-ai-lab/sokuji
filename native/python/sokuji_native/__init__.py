@@ -253,7 +253,7 @@ class AsrStream:
         try:
             self.close()
         except Exception:
-            pass
+            pass  # finalizers must never raise (see TtsModel.__del__)
 
 
 class AsrModel:
@@ -310,7 +310,7 @@ class AsrModel:
         try:
             self.unload()
         except Exception:
-            pass
+            pass  # finalizers must never raise (see TtsModel.__del__)
 
 
 def asr_load(path: str, device: Device | None = None) -> AsrModel:
@@ -402,7 +402,7 @@ class Translator:
         try:
             self.unload()
         except Exception:
-            pass
+            pass  # finalizers must never raise (see TtsModel.__del__)
 
 
 def translate_load(path: str, device: Device | None = None, n_ctx: int = 0) -> Translator:
@@ -526,6 +526,8 @@ class TtsModel:
         try:
             self.unload()
         except Exception:
+            # __del__ must never raise: finalizers can run during interpreter shutdown
+            # when module globals are already gone, and an exception here is unreportable.
             pass
 
 

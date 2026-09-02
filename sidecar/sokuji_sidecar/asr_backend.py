@@ -140,6 +140,8 @@ class _NativeStream:
         try:
             self._raw.close()
         except Exception:
+            # Best-effort teardown: _done is already set, the handle is unusable either
+            # way, and close() runs from finalization paths that must not raise.
             pass
 
 
