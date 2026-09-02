@@ -673,8 +673,49 @@ def _gpu_vendor(description: str) -> str:
     return "unknown"
 
 
+# kind -> planner tier, for _engine_identity's device ranking below. "cuda"/"dml"
+# died with the ONNX TTS backends (see planner._tier_available); an unmapped kind
+# (a future accelerator the native probe learns about before planner does) is
+# simply never a preferredDevice candidate, same as an unavailable tier.
+_ENGINE_TIER_FOR_KIND = {"metal": "gpu-metal", "vulkan": "gpu-vulkan", "cpu": "cpu"}
+
+
+def _engine_identity(m: Machine):
+    """(nativeVersion, engineVersions, lane, preferredDevice) — sokuji_native's own
+    identity, for hardware_info's optional fields. All four come back None together
+    on ANY native failure (no wheel installed, or a raised NativeError) so a
+    missing/stale native module degrades this reply instead of breaking it —
+    mirrors probe()'s own _safe policy. preferredDevice is the device with the
+    highest TIER_RANK among those whose tier planner._tier_available accepts on
+    THIS machine — the same gate the deployment planner itself uses, so e.g. a
+    paravirtual Metal GPU on a CI VM (R36) is never reported as preferred; falls
+    back to the CPU device when no accelerator tier is available."""
+    try:
+        from . import native
+        mod = native.module()
+        native_version = mod.version()
+        engine_versions = dict(mod.engine_versions())
+        lane = engine_versions.get("lane")
+        devices = list(_native_devices())
+        ranked = []
+        for d in devices:
+            tier = _ENGINE_TIER_FOR_KIND.get(d.kind)
+            if tier is not None and _tier_available(tier, m):
+                ranked.append((TIER_RANK.get(tier, 0.0), d))
+        if ranked:
+            best = max(ranked, key=lambda t: t[0])[1]
+        else:
+            best = next((d for d in devices if d.kind == "cpu"), None)
+        preferred_device = ({"kind": best.kind, "name": best.name, "description": best.description}
+                            if best is not None else None)
+        return native_version, engine_versions, lane, preferred_device
+    except Exception:
+        return None, None, None, None
+
+
 async def _h_hardware_info(state, msg, _b, conn=None):
     m = probe()
+    native_version, engine_versions, lane, preferred_device = _engine_identity(m)
     return {"type": "hardware_info_result", "id": msg.get("id"),
             "os": m.os, "arch": m.arch, "cpuCores": m.cpu_cores,
             # All-vendor gpus[] from the tc probe (Machine.gpus) — NVML only
@@ -682,7 +723,11 @@ async def _h_hardware_info(state, msg, _b, conn=None):
             "gpus": [{"vendor": _gpu_vendor(name), "name": name,
                       "vramMb": total >> 20} for _kind, name, total in m.gpus],
             "backendsInstalled": sorted(m.installed),
-            "accelAvailable": bool(m.gpus or m.apple_silicon)}, None
+            "accelAvailable": bool(m.gpus or m.apple_silicon),
+            "nativeVersion": native_version,
+            "engineVersions": engine_versions,
+            "lane": lane,
+            "preferredDevice": preferred_device}, None
 
 
 async def _h_models_catalog(state, msg, _b, conn=None):

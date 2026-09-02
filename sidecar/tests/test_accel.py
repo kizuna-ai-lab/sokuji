@@ -257,6 +257,69 @@ def test_hardware_info_reports_amd_gpu_from_tc_probe(monkeypatch):
     assert reply["accelAvailable"] is True
 
 
+def test_hardware_info_reports_engine_identity_prefers_available_gpu_tier(monkeypatch):
+    # A paravirtual Metal device (R36 — CI's own macOS VM GPU) must be excluded by
+    # the same planner._tier_available gate the real deployment planner uses, so a
+    # genuinely-usable Vulkan device is preferred over it and ranked ahead of CPU.
+    devices = [
+        _FakeDev(0, "metal", "Apple Paravirtual device", 8 << 30, 8 << 30),
+        _FakeDev(1, "vulkan", "NVIDIA GB10", 96 << 30, 90 << 30),
+        _FakeDev(2, "cpu", "CPU", 120 << 30, 100 << 30),
+    ]
+    _fake_native_module(monkeypatch, devices, version="1.0.1", engine_versions={
+        "ggml": "0.22.0", "transcribe": "0.2.2", "llama": "0.3.0",
+        "audiocpp": "0.7.0", "lane": "cpu-vulkan",
+    })
+    m = _machine(tc=("cpu", "metal", "vulkan"),
+                gpus=(("metal", "Apple Paravirtual device", 8 << 30),
+                      ("vulkan", "NVIDIA GB10", 96 << 30)))
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    reply, _ = asyncio.run(accel._h_hardware_info({}, {"id": 1}, None))
+    assert reply["nativeVersion"] == "1.0.1"
+    assert reply["engineVersions"] == {
+        "ggml": "0.22.0", "transcribe": "0.2.2", "llama": "0.3.0",
+        "audiocpp": "0.7.0", "lane": "cpu-vulkan",
+    }
+    assert reply["lane"] == "cpu-vulkan"
+    assert reply["preferredDevice"] == {"kind": "vulkan", "name": "vulkan1",
+                                        "description": "NVIDIA GB10"}
+
+
+def test_hardware_info_reports_engine_identity_falls_back_to_cpu(monkeypatch):
+    # No GPU tier available at all (e.g. a mac-x64/CPU-only lane) -> preferredDevice
+    # falls back to the CPU device rather than coming back null.
+    devices = [_FakeDev(0, "cpu", "CPU", 64 << 30, 60 << 30)]
+    _fake_native_module(monkeypatch, devices, version="1.0.1",
+                        engine_versions={"ggml": "0.22.0", "transcribe": "0.2.2",
+                                        "llama": "0.3.0", "audiocpp": "0.7.0", "lane": "cpu"})
+    m = _machine(tc=("cpu",), gpus=())
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    reply, _ = asyncio.run(accel._h_hardware_info({}, {"id": 1}, None))
+    assert reply["lane"] == "cpu"
+    assert reply["preferredDevice"] == {"kind": "cpu", "name": "cpu0", "description": "CPU"}
+
+
+def test_hardware_info_engine_identity_null_when_native_unavailable(monkeypatch):
+    # No sokuji_native wheel at all: the four engine-identity fields degrade to
+    # null (mirrors probe()'s own _safe policy) while the rest of the reply is
+    # unaffected -- a missing/stale native module must never break hardware_info.
+    import sys
+    from sokuji_sidecar import native
+    monkeypatch.setitem(sys.modules, "sokuji_native", None)   # import fails
+    native.reset_for_tests()
+    m = _machine(tc=(), gpus=(), installed=frozenset({"native_asr"}))
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    reply, _ = asyncio.run(accel._h_hardware_info({}, {"id": 1}, None))
+    assert reply["nativeVersion"] is None
+    assert reply["engineVersions"] is None
+    assert reply["lane"] is None
+    assert reply["preferredDevice"] is None
+    # everything else is still reported normally
+    assert reply["os"] == m.os and reply["arch"] == m.arch
+    assert reply["cpuCores"] == m.cpu_cores
+    assert reply["backendsInstalled"] == sorted(m.installed)
+
+
 def test_models_catalog_handler_cpu_machine(monkeypatch):
     monkeypatch.setattr(accel, "_native_gpus", lambda: ())
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
@@ -821,13 +884,21 @@ class _FakeDev:
         self.description, self.mem_total, self.mem_free = desc, total, free
 
 
-def _fake_native_module(monkeypatch, devs):
+_DEFAULT_FAKE_ENGINE_VERSIONS = {
+    "ggml": "0.22.0", "transcribe": "0.2.2", "llama": "0.3.0",
+    "audiocpp": "0.7.0", "lane": "cpu-vulkan",
+}
+
+
+def _fake_native_module(monkeypatch, devs, *, version="1.0.1", engine_versions=None):
     import sys, types
     from sokuji_sidecar import native
     mod = types.ModuleType("sokuji_native")
     mod.init = lambda n_threads=0, log=None: None
     mod.devices = lambda: list(devs)
     mod.device_free_mem = lambda i: next(d.mem_free for d in devs if d.index == i)
+    mod.version = lambda: version
+    mod.engine_versions = lambda: dict(engine_versions or _DEFAULT_FAKE_ENGINE_VERSIONS)
     monkeypatch.setitem(sys.modules, "sokuji_native", mod)
     native.reset_for_tests()
     return mod

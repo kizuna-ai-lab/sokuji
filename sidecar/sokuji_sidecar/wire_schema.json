@@ -1,7 +1,7 @@
 {
   "_comment": "Outbound wire contract: every JSON message the sidecar sends, top-level field names only (values are not typed here). Single source of truth shared by wire.validate_outbound (runtime, fail-open in prod / strict in tests) and the renderer-side field test in nativeProtocol.consistency.test.ts, which pins this file against the ServerMsg interfaces. 'pong' answers the ping health check and is deliberately absent from ServerMsg (see the type-name net). Keep keys sorted.",
   "error": {"required": ["message"], "optional": ["id", "model"]},
-  "hardware_info_result": {"required": ["id", "os", "arch", "cpuCores", "gpus", "backendsInstalled", "accelAvailable"], "optional": []},
+  "hardware_info_result": {"required": ["id", "os", "arch", "cpuCores", "gpus", "backendsInstalled", "accelAvailable"], "optional": ["nativeVersion", "engineVersions", "lane", "preferredDevice"]},
   "list_tts_voices_result": {"required": ["id", "voices"], "optional": []},
   "list_variants_result": {"required": ["id", "variants", "recommended"], "optional": []},
   "model_delete_result": {"required": ["id", "model", "freed"], "optional": []},
