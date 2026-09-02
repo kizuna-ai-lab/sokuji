@@ -265,6 +265,80 @@ def test_translate_unload_idempotent_and_del_safe():
     t.unload()
 
 
+# _make_cb is pure Python (no native call): construct a Translator with lib=None to
+# exercise it directly, without a built tree. Header contract (sokuji_native.h,
+# translation section, ~line 163): sk_text_cb is invoked once per decoded token piece
+# and a piece MAY split a multibyte UTF-8 character across pieces -- concatenate before
+# display. R41 regression: the binding used to decode each piece independently with
+# .decode("utf-8", "replace"), so a byte-level BPE token boundary landing inside a
+# multibyte character (routine for CJK output) turned it into U+FFFD in both the
+# on_token stream and chat()/complete()'s joined return value.
+def test_translate_make_cb_reassembles_utf8_split_across_pieces():
+    t = sokuji_native.Translator(lib=None, handle=object())
+    seen = []
+    cb, got, flush = t._make_cb(lambda p: seen.append(p))
+
+    # "こ" = E3 81 93, split after the first byte.
+    assert cb(b"\xe3\x81", None) is True
+    assert got == [] and seen == []          # nothing complete yet -- not even ""
+    assert cb(b"\x93", None) is True
+    assert got == ["こ"] and seen == ["こ"]      # こ
+
+    # "にち" = E3 81 AB E3 81 A1, split mid-second-character.
+    assert cb(b"\xe3\x81\xab\xe3", None) is True          # に completes; ち's lead byte pends
+    assert cb(b"\x81\xa1", None) is True                   # ち completes
+
+    # "は" = E3 81 AF, delivered whole in one piece.
+    assert cb(b"\xe3\x81\xaf", None) is True
+
+    flush()
+    joined = "".join(got)
+    assert joined == "こにちは"
+    assert "".join(seen) == joined
+    assert "�" not in joined
+    assert "�" not in "".join(seen)
+
+
+def test_translate_make_cb_cancel_via_on_token_still_works():
+    t = sokuji_native.Translator(lib=None, handle=object())
+    seen = []
+
+    def stop_after_first(piece):
+        seen.append(piece)
+        return False
+
+    cb, got, flush = t._make_cb(stop_after_first)
+    assert cb("こんにちは".encode("utf-8"), None) is False
+    assert seen == ["こんにちは"]
+    assert got == ["こんにちは"]
+
+
+def test_translate_make_cb_trailing_incomplete_utf8_flushes_to_one_replacement_char():
+    t = sokuji_native.Translator(lib=None, handle=object())
+    seen = []
+    cb, got, flush = t._make_cb(lambda p: seen.append(p))
+
+    assert cb(b"hello ", None) is True
+    assert cb(b"\xe3\x81", None) is True     # generation ends mid-character
+    assert got == ["hello "]                  # dangling lead bytes not emitted yet -- no crash
+    flush()
+    assert got == ["hello ", "�"]
+    assert seen == ["hello ", "�"]
+
+
+def test_translate_make_cb_ascii_stream_unaffected():
+    t = sokuji_native.Translator(lib=None, handle=object())
+    seen = []
+    cb, got, flush = t._make_cb(lambda p: seen.append(p))
+
+    for piece in (b"Hello", b", ", b"world", b"!"):
+        assert cb(piece, None) is True
+    flush()
+    assert got == ["Hello", ", ", "world", "!"]
+    assert seen == got
+    assert "".join(got) == "Hello, world!"
+
+
 TTS_SUPERTONIC_DIR = os.environ.get("SK_TEST_TTS_SUPERTONIC_DIR")
 TTS_MOSS_DIR = os.environ.get("SK_TEST_TTS_MOSS_DIR")
 TTS_QWEN3_DIR = os.environ.get("SK_TEST_TTS_QWEN3_DIR")
