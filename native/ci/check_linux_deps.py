@@ -27,7 +27,15 @@ ALLOWED_PREFIXES = ("ld-linux-",)
 # versions to what the tag era's toolchain ships — GCC 13 (Ubuntu 24.04, the build
 # runner) for the 2.39 tags: GLIBCXX_3.4.33 / CXXABI_1.3.15. A tag missing here gets
 # no C++ bound (and says so), never a wrong one.
-CXX_CEILINGS = {(2, 39): {"GLIBCXX": (3, 4, 33), "CXXABI": (1, 3, 15)}}
+# The 2.35 row (R37, Ubuntu 22.04's floor) is GCC 12's runtime — Ubuntu 22.04 ships
+# libstdc++6 from gcc-12 even though its default g++ is 11.4, so a build with the
+# distro's default compiler still links the gcc-12 shared library. Measured on the
+# real jammy validation box (glibc 2.35, gcc 11.4.0):
+# GLIBCXX_3.4.30 / CXXABI_1.3.13 — see .superpowers/linux-x64-vulkan-validation.md §5.
+CXX_CEILINGS = {
+    (2, 39): {"GLIBCXX": (3, 4, 33), "CXXABI": (1, 3, 15)},
+    (2, 35): {"GLIBCXX": (3, 4, 30), "CXXABI": (1, 3, 13)},
+}
 
 
 def readelf(*args: str) -> str:

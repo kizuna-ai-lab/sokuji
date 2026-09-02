@@ -14,10 +14,36 @@ see Amendment A1 in the client-VAD-unification spec.
     native/ci/build.sh vulkan manylinux_2_39_x86_64     # Linux/macOS: <none|vulkan|metal> <wheel plat tag>
     native\ci\build.ps1 -Lane vulkan -Plat win_amd64    # Windows
 
-Requires CMake ≥ 3.28, a C++17 compiler, Python 3.10+, and for the Vulkan lane
-`libvulkan-dev` + `glslc` (Ubuntu) or the LunarG SDK (Windows). Output: a wheel in
-`native/python/dist/`; the staged binaries in `native/build/<lane>/stage/`
-(`native/build/cpu/stage/` for `none`).
+The plat tag above is illustrative, not a requirement: it is only baked into the wheel's
+filename and the floor `check_linux_deps.py` enforces, so a local/dev build can pass
+whatever `manylinux_2_<N>_*` matches its own machine (see the R37 floor note below for
+what CI actually publishes).
+
+Requires CMake ≥ 3.28, a C++17 compiler, Python 3.10+, and for the Vulkan lane a Vulkan
+loader + `glslc` — on Linux that's `libvulkan-dev` (apt) plus the pinned Khronos-source
+toolchain `native/ci/vulkan-toolchain.sh` builds (see below); on Windows, the LunarG SDK.
+Output: a wheel in `native/python/dist/`; the staged binaries in
+`native/build/<lane>/stage/` (`native/build/cpu/stage/` for `none`).
+
+**Linux wheel floor (R37): `manylinux_2_35`, built on `ubuntu-22.04`/`ubuntu-22.04-arm`.**
+`pip install` needs glibc ≥ 2.35 (Ubuntu 22.04+, Debian 12+) no matter which symbols are
+actually used — pip enforces the manylinux tag itself, not the object's real references.
+RHEL 9 (2.34, one notch under the tag but within this tree's own measured margin: no
+shipped object references a glibc symbol newer than 2.34) can run this wheel only via a
+bundle — files copied in, no pip tag check — never via `pip install` directly.
+`check_linux_deps.py` (below) enforces both the glibc floor and a per-tag C++ runtime
+ceiling (`CXX_CEILINGS`) on every staged `.so` before the wheel is built. 22.04's own apt
+has no `glslc` package at all, and its `spirv-headers` package ships no CMake config
+ggml-vulkan's `find_package(SPIRV-Headers CONFIG REQUIRED)` needs —
+CI does **not** paper over that with an apt source (R38): LunarG's jammy repo has no
+arm64 index at all, and its `libvulkan-dev` ships no headers, either of which breaks the
+build outright. Instead, `native/ci/vulkan-toolchain.sh <prefix>` builds pinned
+Vulkan-Headers, SPIRV-Headers and shaderc (for `glslc`) from source into a small prefix —
+arch-native, cached across runs via `actions/cache` since the shaderc build is the
+expensive part (several minutes uncached). Only the Vulkan **loader** (`libvulkan-dev`'s
+`.so`) still comes from 22.04's own apt, so the wheel keeps linking the same system
+loader every target machine already has. Full recipe, per-object glibc/GLIBCXX evidence
+and the validation run: `.superpowers/linux-x64-vulkan-validation.md`.
 
 Developer loop without a wheel:
 
@@ -70,6 +96,11 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   staged shared object may depend only on glibc/libstdc++/libgcc, the system Vulkan loader
   and its siblings, and may reference no glibc symbol newer than the wheel tag's floor.
   (The Vulkan loader is external by design, which is why `auditwheel` is not the gate.)
+- `ci/vulkan-toolchain.sh <prefix>` — CI's Linux+Vulkan build-time toolchain (R38):
+  builds pinned Vulkan-Headers/SPIRV-Headers/shaderc from source into `<prefix>` (`glslc`
+  plus the headers and CMake config 22.04's own packages lack or don't ship). Point CMake
+  at it with `VULKAN_SDK=<prefix>` and `CMAKE_PREFIX_PATH=<prefix>`; see the script's own
+  header for the full rationale, exact pins and output layout.
 - `src/sk_selftest.cpp` — `sk_audio_families()`, reporting every family compiled in (companions such as `marblenet_vad` / `moss_tts_local` ride along with the selected ones; the sidecar catalog decides what is supported).
 - `src/sk_internal.h` — internal-only helpers shared by the `sk_*.cpp` files (locking, the
   device table, `own_directory()`, the log sink); never installed.
@@ -355,3 +386,22 @@ non-emptiness, never a transcript.
    fails on the old string otherwise) — then tag `native-vX.Y.Z`. Nothing else needs editing:
    the staged `contract.json` and the wheel version are both generated from the CMake project
    version, and the tag/version match is checked by `native-build.yml`.
+
+## Release
+
+Tagging `native-vX.Y.Z` (a `workflow_dispatch` dry run first, verifying all five wheel
+names and a green build across every SKU) makes `native-build.yml`'s `release` job publish
+the five wheels — one per SKU, `py3-none-<platform>` — as a **prerelease** GitHub Release
+(never the repo's "latest", so electron-updater's app-update lookup can't land on it). The
+tag-vs-version guard reads `project(sokuji_native VERSION …)` straight out of
+`CMakeLists.txt`, so a mismatched tag fails fast instead of shipping a mislabeled wheel.
+`native-v1.0.0` is the first release built under the R37 floor above: the two Linux wheels
+carry `manylinux_2_35_*` instead of the earlier `manylinux_2_39_*`, everything else
+(win-x64, mac-arm64, mac-x64) is unchanged. Downstream, these wheel URLs are what
+`sidecar/requirements.txt` pins — bumping that pin to the new release tag is the next step
+in the sidecar's own release, not part of this workflow. `native-v1.0.1` follows
+immediately: a Python-binding-only fix (R41) for streamed translation tokens that split a
+multibyte UTF-8 character across pieces being decoded independently instead of
+incrementally, corrupting CJK output with U+FFFD — see `python/sokuji_native/__init__.py`'s
+`Translator._make_cb`. Current native version is 1.0.1; `sidecar/requirements.txt` pinned
+straight to 1.0.1, so no sidecar bundle ever shipped with 1.0.0 inside.

@@ -5,6 +5,7 @@ development tree), refuses a contract.json whose ABI differs from _ffi.SK_ABI_VE
 and exposes the C surface as plain Python. Slice 4 adds tts."""
 from __future__ import annotations
 
+import codecs
 import ctypes
 import json
 import os
@@ -347,10 +348,26 @@ class Translator:
         self._h = handle
 
     def _make_cb(self, on_token):
+        """Builds the ctypes trampoline for sk_text_cb, plus the machinery to reassemble
+        it. Per sokuji_native.h (translation section, ~line 163): sk_text_cb is invoked
+        once per decoded token piece, and a piece MAY split a multibyte UTF-8 character
+        across pieces — concatenate before display. A byte-level BPE tokenizer routinely
+        does this mid-CJK-character, so pieces must be decoded with a stateful
+        incremental decoder, not independently — decoding each piece on its own turns a
+        split boundary into U+FFFD (R41).
+
+        Returns (trampoline, got, flush): `got` accumulates decoded text as pieces
+        arrive — the same text on_token sees, piece for piece. `flush()` must be called
+        once after the native call returns (chat()/complete() do this) to emit whatever
+        trailing bytes never completed a character — generation ending mid-character is
+        abnormal but must not crash; it surfaces as a single replacement character."""
         got: list[str] = []
+        dec = codecs.getincrementaldecoder("utf-8")("replace")
 
         def _cb(text, _user):
-            piece = (text or b"").decode("utf-8", "replace")
+            piece = dec.decode(text or b"")
+            if not piece:
+                return True   # bytes buffered mid-character; nothing complete yet
             got.append(piece)
             if on_token is None:
                 return True
@@ -359,7 +376,22 @@ class Translator:
             # SK_ERR_CANCELLED. Callers should not raise from on_token.
             return on_token(piece) is not False
 
-        return _ffi.TEXT_CB(_cb), got
+        def _flush():
+            tail = dec.decode(b"", final=True)
+            if tail:
+                got.append(tail)
+                if on_token is not None:
+                    # Same tolerance as the trampoline above, where ctypes swallows a
+                    # raise: the native call has already returned, so there is nothing
+                    # left to cancel — an on_token failure here must not turn a finished
+                    # translation into an exception. Return value is ignored for the same
+                    # reason.
+                    try:
+                        on_token(tail)
+                    except Exception:
+                        pass  # deliberate: parity with the trampoline, where ctypes swallows the raise
+
+        return _ffi.TEXT_CB(_cb), got, _flush
 
     def chat(self, messages, max_tokens: int = 512, assistant_prefill: str | None = None, on_token=None) -> str:
         if self._h is None:
@@ -375,10 +407,11 @@ class Translator:
         gen.max_tokens = int(max_tokens)
         prefill = assistant_prefill.encode() if assistant_prefill is not None else None
         gen.assistant_prefill = prefill
-        cb, got = self._make_cb(on_token)
+        cb, got, flush = self._make_cb(on_token)
         status = self._lib.sk_translate_chat(self._h, msgs, len(encoded), ctypes.byref(gen), cb, None)
         if status != _ffi.SK_OK:
             _raise(self._lib, status, "sk_translate_chat")
+        flush()
         return "".join(got)
 
     def complete(self, prompt: str, max_tokens: int = 512, on_token=None) -> str:
@@ -387,10 +420,11 @@ class Translator:
         gen = _ffi.sk_gen_options()
         gen.max_tokens = int(max_tokens)
         gen.assistant_prefill = None
-        cb, got = self._make_cb(on_token)
+        cb, got, flush = self._make_cb(on_token)
         status = self._lib.sk_translate_complete(self._h, prompt.encode(), ctypes.byref(gen), cb, None)
         if status != _ffi.SK_OK:
             _raise(self._lib, status, "sk_translate_complete")
+        flush()
         return "".join(got)
 
     def unload(self) -> None:

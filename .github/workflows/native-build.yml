@@ -28,11 +28,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # 24.04, not 22.04: glslc is only packaged from 24.04 on, and the repo's
-          # sidecar-bundles.yml already builds Linux on 24.04 runners, so the glibc floor
-          # this implies (2.39) is the one users already have.
-          - { sku: linux-x64,   runner: ubuntu-24.04,     lane: vulkan, plat: manylinux_2_39_x86_64 }
-          - { sku: linux-arm64, runner: ubuntu-24.04-arm, lane: vulkan, plat: manylinux_2_39_aarch64 }
+          # 22.04, not 24.04 (R37): manylinux_2_35 is the lowest floor this tree's own
+          # glibc symbols support (measured max is 2.34, one notch under the tag — see
+          # .superpowers/linux-x64-vulkan-validation.md §5). `pip install` still needs
+          # glibc >= 2.35 (Ubuntu 22.04+, Debian 12+) — pip enforces the manylinux tag,
+          # not actual symbol references — so RHEL 9 (2.34) can run this wheel only via a
+          # bundle (files copied in, no pip tag check), never via pip; the previous 2.39
+          # floor (24.04) covered none of Ubuntu 22.04, Debian 12 or RHEL 9 at all.
+          # 22.04's own apt has no glslc package at all — that was the old floor's
+          # reason for 24.04 — so the Vulkan toolchain step below builds glslc plus the
+          # spirv-headers CMake config 22.04's own package lacks, from pinned Khronos/
+          # Google sources (R38 — see native/ci/vulkan-toolchain.sh's header for why
+          # not an apt repo: LunarG's jammy apt repo has no arm64 index at all, and its
+          # libvulkan-dev ships no headers). sidecar-bundles.yml's Linux runners move
+          # to 22.04 too, though its interpreter is python-build-standalone (portable)
+          # and only this wheel's floor matters there.
+          - { sku: linux-x64,   runner: ubuntu-22.04,     lane: vulkan, plat: manylinux_2_35_x86_64 }
+          - { sku: linux-arm64, runner: ubuntu-22.04-arm, lane: vulkan, plat: manylinux_2_35_aarch64 }
           - { sku: win-x64,     runner: windows-2022,     lane: vulkan, plat: win_amd64 }
           - { sku: mac-arm64,   runner: macos-14,         lane: metal,  plat: macosx_11_0_arm64 }
           - { sku: mac-x64,     runner: macos-15-intel,   lane: none,   plat: macosx_11_0_x86_64 }
@@ -71,13 +83,42 @@ jobs:
           curl -sSL -o native/build/models/tts/supertonic-3/supertonic-3-f16.gguf https://huggingface.co/audio-cpp/audio.cpp-gguf/resolve/main/Supertonic-3-GGUF/supertonic-3-f16.gguf
           curl -sSL -o native/build/models/tts/moss-tts-nano/moss-tts-nano-100m-q8_0.gguf https://huggingface.co/audio-cpp/audio.cpp-gguf/resolve/main/MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf
           ls -la native/build/models native/build/models/tts/supertonic-3 native/build/models/tts/moss-tts-nano
-      - name: Vulkan SDK (Linux)
+      - name: Vulkan loader + build deps (Linux)
         if: runner.os == 'Linux' && matrix.lane == 'vulkan'
         run: |
+          # R38: only the Vulkan LOADER comes from 22.04's own apt — libvulkan-dev's
+          # library + its dev symlink (.so), so the wheel keeps linking the exact
+          # system loader every target machine already has. Its bundled headers
+          # (1.3.204-era) are NOT relied on: the next step's VULKAN_SDK env var makes
+          # CMake prefer the fresher headers native/ci/vulkan-toolchain.sh builds.
+          # ninja-build/python3 are that script's own build deps (git-sync-deps is a
+          # python3 script; ninja is much faster than the Unix-Makefiles fallback for
+          # glslang+SPIRV-Tools+shaderc).
           sudo apt-get update
-          # spirv-headers: ggml-vulkan does find_package(SPIRV-Headers CONFIG REQUIRED);
-          # the 24.04 package ships the CMake config under /usr/share/cmake/SPIRV-Headers.
-          sudo apt-get install -y libvulkan-dev glslc spirv-headers
+          sudo apt-get install -y libvulkan-dev ninja-build python3
+      - name: Cache Vulkan build-time toolchain (glslc + headers)
+        if: runner.os == 'Linux' && matrix.lane == 'vulkan'
+        uses: actions/cache@v4
+        with:
+          path: ~/vk-prefix
+          key: vk-toolchain-v1-${{ matrix.sku }}-vulkan-headers-v1.4.313-spirv-headers-vulkan-sdk-1.4.313.0-shaderc-v2025.2-${{ hashFiles('native/ci/vulkan-toolchain.sh') }}
+      - name: Vulkan toolchain (glslc + headers, Linux)
+        if: runner.os == 'Linux' && matrix.lane == 'vulkan'
+        run: |
+          # R38: replaces an apt-only recipe (LunarG's jammy repo) that a review
+          # caught two real breaks in — LunarG's jammy repo has no arm64 index at
+          # all (this job's own linux-arm64 row would fail outright), and its
+          # libvulkan-dev ships no headers (vulkan/vulkan.h would vanish, failing
+          # ggml-vulkan's find_package(Vulkan COMPONENTS glslc REQUIRED) even on
+          # x64). Builds pinned Vulkan-Headers/SPIRV-Headers/shaderc from source
+          # instead — arch-native, no apt-source dependency. See the script's own
+          # header for the full rationale, exact pins and output layout. Idempotent
+          # against the actions/cache restore above: a cache hit makes this a
+          # few-hundred-ms no-op; a miss rebuilds (several minutes, mostly
+          # glslang+SPIRV-Tools+shaderc — that cost is why it's cached at all).
+          native/ci/vulkan-toolchain.sh ~/vk-prefix
+          echo "VULKAN_SDK=$HOME/vk-prefix" >> "$GITHUB_ENV"
+          echo "CMAKE_PREFIX_PATH=$HOME/vk-prefix" >> "$GITHUB_ENV"
       - name: Vulkan SDK (Windows)
         if: runner.os == 'Windows' && matrix.lane == 'vulkan'
         shell: pwsh

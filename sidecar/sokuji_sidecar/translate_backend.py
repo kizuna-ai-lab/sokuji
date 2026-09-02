@@ -305,6 +305,13 @@ class NativeTranslateBackend:
             if cancelled.is_set():
                 return False
             acc.append(piece)
+            # Counts on_token deliveries, which since sokuji-native 1.0.1 are
+            # complete-character events, not raw llama.cpp token pieces: a piece
+            # that ends mid-multibyte-character is buffered and delivered with the
+            # next one (R41). For Latin-script text the two counts coincide; for
+            # CJK output this undercounts native tokens slightly. accel.measure_tps
+            # compares GPU and CPU lanes on the same fixed text, so the ranking is
+            # unaffected — only the absolute tokens/s figure moved.
             n[0] += 1
             if on_partial is not None:
                 try:

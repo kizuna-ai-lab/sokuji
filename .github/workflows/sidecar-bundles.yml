@@ -15,6 +15,15 @@ name: sidecar-bundles
 permissions:
   contents: read
 
+env:
+  # Every build job boot-smokes the archive it just packed (scripts/sidecar-
+  # bundle-smoke.py) through its OWN embedded interpreter: import
+  # sokuji_sidecar, probe sokuji_native, boot to the {"port": n} handshake.
+  # sidecar/requirements.txt now pins the sokuji-native release wheel per
+  # platform (native-v1.0.1), so a bundle with no sokuji_native inside is a
+  # bug, not an expected state — this gate is a hard failure in every job.
+  SIDECAR_SMOKE_REQUIRE_NATIVE: '1'
+
 on:
   workflow_dispatch:
     inputs:
@@ -27,7 +36,10 @@ on:
 
 jobs:
   build-linux-x64:
-    runs-on: ubuntu-24.04
+    # ubuntu-22.04, matching native-build.yml's R37 linux lanes (glibc 2.35 floor);
+    # this job's own interpreter is python-build-standalone (portable), so only the
+    # sokuji-native wheel it installs is floor-sensitive, not this runner's own glibc.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -53,13 +65,19 @@ jobs:
         run: |
           ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
           cat out/bundles/sidecar-linux-x64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Boot smoke the packed bundle
+        # ubuntu-22.04 IS x86_64 hardware (GH-hosted runners are native, not
+        # cross-hosted), so this job can boot its own bundle's embedded
+        # interpreter just like linux-arm64 always could.
+        run: python scripts/sidecar-bundle-smoke.py --sku linux-x64 --bundles-dir out/bundles
       - uses: actions/upload-artifact@v6
         with:
           name: sidecar-linux-x64
           path: out/bundles/sidecar-linux-x64-v*
 
   build-linux-arm64:
-    runs-on: ubuntu-24.04-arm
+    # ubuntu-22.04-arm, matching native-build.yml's R37 linux lanes (glibc 2.35 floor).
+    runs-on: ubuntu-22.04-arm
     steps:
       - uses: actions/checkout@v5
         with:
@@ -84,34 +102,11 @@ jobs:
           ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
           cat out/bundles/sidecar-linux-arm64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Boot smoke the packed bundle
-        # This runner IS the target arch (unlike the cross-hosted x64 lanes), so
-        # unpack the archive we just built and boot the bundled interpreter to
-        # the {"port": n} handshake — catches exec-format, symlink and perm
-        # regressions before release. `cat` concatenates split .001/.002 parts
-        # transparently (single archives match the same glob).
-        run: |
-          mkdir smoke
-          cat out/bundles/sidecar-linux-arm64-v*.tar.zst* > smoke-joined.tar.zst
-          python - <<'EOF'
-          import tarfile, zstandard
-          with open("smoke-joined.tar.zst", "rb") as f, \
-               zstandard.ZstdDecompressor().stream_reader(f) as z:
-              with tarfile.open(fileobj=z, mode="r|") as t:
-                  t.extractall("smoke", filter="data")
-          EOF
-          cd smoke
-          timeout 120 python - <<'EOF'
-          import json, pathlib, subprocess
-          py = str(pathlib.Path("python/bin/python3").resolve())
-          p = subprocess.Popen([py, "-m", "sokuji_sidecar"], cwd="app",
-                               stdout=subprocess.PIPE, text=True)
-          line = p.stdout.readline()
-          port = json.loads(line)["port"]
-          assert isinstance(port, int), line
-          print("boot smoke OK, port", port)
-          p.terminate()
-          p.wait(timeout=10)
-          EOF
+        # This runner IS the target arch, so unpack the archive we just built
+        # and boot the bundled interpreter to the {"port": n} handshake —
+        # catches exec-format, symlink and perm regressions before release.
+        # scripts/sidecar-bundle-smoke.py joins split .001/.002 parts itself.
+        run: python scripts/sidecar-bundle-smoke.py --sku linux-arm64 --bundles-dir out/bundles
       - uses: actions/upload-artifact@v6
         with:
           name: sidecar-linux-arm64
@@ -143,6 +138,12 @@ jobs:
         run: |
           ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
           cat out/bundles/sidecar-win-x64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Boot smoke the packed bundle
+        # windows-2022 IS x86_64 hardware. No system tar/zstd needed: the
+        # script unpacks with the `zstandard` package already pip-installed
+        # into this job's host python, then runs the bundle's own
+        # python/python.exe.
+        run: python scripts/sidecar-bundle-smoke.py --sku win-x64 --bundles-dir out/bundles
       - uses: actions/upload-artifact@v6
         with:
           name: sidecar-win-x64
@@ -173,6 +174,10 @@ jobs:
         run: |
           ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
           cat out/bundles/sidecar-mac-arm64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Boot smoke the packed bundle
+        # macos-14 IS Apple Silicon hardware (CPU-only smoke: these runners
+        # are paravirtual VMs with no real GPU, so no Metal-device claim here).
+        run: python scripts/sidecar-bundle-smoke.py --sku mac-arm64 --bundles-dir out/bundles
       - uses: actions/upload-artifact@v6
         with:
           name: sidecar-mac-arm64
@@ -203,6 +208,10 @@ jobs:
         run: |
           ls -la out/bundles/ | tee -a "$GITHUB_STEP_SUMMARY"
           cat out/bundles/sidecar-mac-x64-v*.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Boot smoke the packed bundle
+        # macos-15-intel IS x86_64 hardware (CPU-only smoke: paravirtual VM,
+        # no real GPU — no Metal-device claim here, same as mac-arm64).
+        run: python scripts/sidecar-bundle-smoke.py --sku mac-x64 --bundles-dir out/bundles
       - uses: actions/upload-artifact@v6
         with:
           name: sidecar-mac-x64
