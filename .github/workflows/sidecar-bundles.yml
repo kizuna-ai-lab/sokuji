@@ -19,11 +19,10 @@ env:
   # Every build job boot-smokes the archive it just packed (scripts/sidecar-
   # bundle-smoke.py) through its OWN embedded interpreter: import
   # sokuji_sidecar, probe sokuji_native, boot to the {"port": n} handshake.
-  # Today's bundles are "hollow" (sidecar/requirements.txt has no
-  # sokuji_native wheel URL yet), so a missing sokuji_native is a WARN, not a
-  # failure. Flip this to '1' once Task 2/3 land those URLs, to turn it into
-  # a hard failure in every job at once.
-  SIDECAR_SMOKE_REQUIRE_NATIVE: ''
+  # sidecar/requirements.txt now pins the sokuji-native release wheel per
+  # platform (native-v1.0.0), so a bundle with no sokuji_native inside is a
+  # bug, not an expected state — this gate is a hard failure in every job.
+  SIDECAR_SMOKE_REQUIRE_NATIVE: '1'
 
 on:
   workflow_dispatch:

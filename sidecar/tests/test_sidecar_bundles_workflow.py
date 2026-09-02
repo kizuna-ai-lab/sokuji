@@ -100,16 +100,16 @@ def test_boot_smoke_step_runs_after_build_and_before_upload():
         assert build_idx < smoke_idx < upload_idx, job_name
 
 
-def test_smoke_require_native_gate_is_off_by_default_and_flippable():
-    """Task 2/3 haven't wired the sokuji_native wheel into requirements.txt
-    yet, so every bundle built today is "hollow" by design: the gate starts
-    off (a missing sokuji_native only WARNs) and is meant to flip to '1' in
-    one place once those tasks land."""
+def test_smoke_require_native_gate_is_a_hard_failure():
+    """Task 2 wired the sokuji_native release wheel into requirements.txt, so
+    a bundle missing sokuji_native is a bug from this commit on, not an
+    expected "hollow" state — the gate is flipped to '1' in this one place,
+    making every build job's boot-smoke fail hard on a missing native lib."""
     text = WF.read_text()
     assert "SIDECAR_SMOKE_REQUIRE_NATIVE" in text
     yaml = pytest.importorskip("yaml")
     doc = yaml.safe_load(text)
-    assert doc["env"]["SIDECAR_SMOKE_REQUIRE_NATIVE"] == ""
+    assert doc["env"]["SIDECAR_SMOKE_REQUIRE_NATIVE"] == "1"
 
 
 def test_workflow_publishes_prerelease_on_sidecar_tags():

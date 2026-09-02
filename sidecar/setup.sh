@@ -28,12 +28,16 @@ echo "[setup] venv python: $($PY --version 2>&1)"
 
 "$PY" -m pip install -q --upgrade pip
 
-echo "[setup] base requirements (numpy, websockets, huggingface_hub) + pytest"
+echo "[setup] base requirements (numpy, websockets, huggingface_hub, sokuji-native, ...) + pytest"
 # scipy is a test-only dep (tests/test_qwen3_backend.py builds WAV fixtures with
 # scipy.io.wavfile); it is NOT in requirements.txt so bundles never ship it.
+# requirements.txt itself pins the sokuji-native release wheel per platform
+# (spec §4.6), so this one install already gets ASR/translate/TTS working.
 "$PY" -m pip install -q -r requirements.txt pytest scipy
 
-# sokuji-native: local wheel until a release exists (spec §4.6). Build it with
+# sokuji-native local-wheel OVERRIDE: only for developers testing an unreleased
+# native build. When present, install it AFTER requirements.txt so it shadows
+# the pinned release wheel above. Build a local wheel with
 #   native/ci/build.sh none <plat>     (CPU)   or   native/ci/build.sh vulkan <plat>
 # or point SOKUJI_NATIVE_WHEEL at a wheel file / URL.
 NATIVE_WHEEL="${SOKUJI_NATIVE_WHEEL:-}"
@@ -44,10 +48,8 @@ if [ -z "$NATIVE_WHEEL" ]; then
     NATIVE_WHEEL="$(ls ../native/python/dist/sokuji_native-*.whl 2>/dev/null | head -1 || true)"
 fi
 if [ -n "$NATIVE_WHEEL" ]; then
-    echo "[setup] stage runtimes: sokuji-native ($NATIVE_WHEEL)"
+    echo "[setup] override: local sokuji-native wheel ($NATIVE_WHEEL) shadows the release pin"
     "$PY" -m pip install -q --force-reinstall "$NATIVE_WHEEL"
-else
-    echo "[setup] WARNING: no sokuji-native wheel found; ASR/VAD will not be available (see native/README.md)" >&2
 fi
 
 # Stage runtimes (torch-free since 2026-07-04; ONNX-free since slice 4):
