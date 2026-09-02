@@ -3,6 +3,9 @@
 cd /home/jiangzhuo/.claude/jobs/c6177dc7/tmp || exit 1
 label="$1"; qs="$2"
 URL="http://192.168.1.19:8765/index.html?$qs"
-scp -q -o BatchMode=yes run_page.mjs run_probe.cmd jiang@192.168.1.13:sokuji-vulkan-probe/
-ssh -o BatchMode=yes jiang@192.168.1.13 "sokuji-vulkan-probe\\run_probe.cmd \"$URL\" 1200" > "page-win-$label.log" 2>&1
+scp -q -o BatchMode=yes run_page.mjs run_probe.cmd kill_stale_chrome.ps1 jiang@192.168.1.13:sokuji-vulkan-probe/
+# An interrupted run_page leaves its Chrome (and the model in its GPU process) behind; kill
+# those first or they contaminate memory measurements (see kill_stale_chrome.ps1).
+ssh -o BatchMode=yes jiang@192.168.1.13 "powershell -NoProfile -ExecutionPolicy Bypass -File sokuji-vulkan-probe\\kill_stale_chrome.ps1"
+ssh -o BatchMode=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=6 jiang@192.168.1.13 "sokuji-vulkan-probe\\run_probe.cmd \"$URL\" 1200" > "page-win-$label.log" 2>&1
 grep -v '^STATUS' "page-win-$label.log" | grep -v '^FINAL' | cut -c1-700

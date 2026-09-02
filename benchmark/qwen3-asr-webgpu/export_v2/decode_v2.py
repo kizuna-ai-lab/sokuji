@@ -18,7 +18,11 @@ def load_prompt_config(model_dir: str) -> dict:
 def load_embed(model_dir: str) -> np.ndarray:
     """Return the embedding table as float32 [vocab, hidden], whatever dtype it is stored in."""
     cfg = load_prompt_config(model_dir)
-    emb = cfg.get("embedding", {"file": "embed_tokens.bin", "dtype": "float32", "shape": [151936, 1024]})
+    if "embedding" in cfg:
+        emb = cfg["embedding"]
+    else:  # v1 dir: fp32 table, shape from the pipeline's config.json
+        dec = json.load(open(os.path.join(model_dir, "config.json")))["decoder"]
+        emb = {"file": "embed_tokens.bin", "dtype": "float32", "shape": [dec["vocab_size"], dec["hidden_size"]]}
     shape = tuple(emb["shape"])
     p = os.path.join(model_dir, emb["file"])
     if emb["dtype"] == "float32":

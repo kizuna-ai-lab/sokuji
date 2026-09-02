@@ -6,12 +6,13 @@ The encoder is always the v1 FP32 encoder so only the decoder path is compared.
 import os
 import sys
 
+import json
 import numpy as np
 import onnxruntime as ort
 import soundfile as sf
 
-PIPE = "/home/jiangzhuo/.claude/jobs/c6177dc7/tmp/qwen3-asr-onnx"
-CLIPS = "/home/jiangzhuo/.claude/jobs/c6177dc7/tmp/clips"
+PIPE = os.environ.get("QWEN3_ASR_ONNX_DIR", "/home/jiangzhuo/.claude/jobs/c6177dc7/tmp/qwen3-asr-onnx")
+CLIPS = os.environ.get("QWEN3_ASR_CLIPS", "/home/jiangzhuo/.claude/jobs/c6177dc7/tmp/clips")
 sys.path.insert(0, PIPE)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.inference import greedy_decode_onnx  # noqa: E402
@@ -37,7 +38,8 @@ def S(d, n):
 enc = S(v1, "encoder.onnx")
 s1 = {"decoder_init": S(v1, "decoder_init.onnx"), "decoder_step": S(v1, "decoder_step.onnx")}
 s2 = {"decoder_init": S(v2, f"decoder_init{suffix}.onnx"), "decoder_step": S(v2, f"decoder_step{suffix}.onnx")}
-e1 = np.fromfile(os.path.join(v1, "embed_tokens.bin"), dtype=np.float32).reshape(-1, 1024)
+hidden = json.load(open(os.path.join(v1, "config.json")))["decoder"]["hidden_size"]
+e1 = np.fromfile(os.path.join(v1, "embed_tokens.bin"), dtype=np.float32).reshape(-1, hidden)
 e2 = load_embed(v2)
 pc = load_prompt_config(v2)
 tok = AutoTokenizer.from_pretrained(v1)

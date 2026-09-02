@@ -23,6 +23,15 @@ flags = [chrome, "--headless=new", "--no-sandbox", "--disable-dev-shm-usage", f"
          "--enable-unsafe-webgpu", "--ignore-gpu-blocklist", "--window-size=800,600", *extra, "about:blank"]
 proc = subprocess.Popen(flags, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
+# Chrome must not outlive this script: a dropped SSH session (SIGHUP) or a timeout kill used
+# to leave a headless Chrome behind, holding the model in its GPU process for hours and
+# contaminating the next run's memory measurements.
+import atexit  # noqa: E402
+import signal  # noqa: E402
+atexit.register(lambda: proc.poll() is None and proc.kill())
+for _sig in (signal.SIGHUP, signal.SIGTERM, signal.SIGINT):
+    signal.signal(_sig, lambda *_: sys.exit(130))
+
 ws_url = None
 for _ in range(150):
     try:

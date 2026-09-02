@@ -1,0 +1,2 @@
+253 samples; peak chrome dedicated GPU memory: sum 2,348 MB, largest process 1,918 MB (pid_16316_luid_0x00000000_0x0000d59a_phys_0)
+NVIDIA GeForce RTX 4070 SUPER, 1513 MiB, 12282 MiB
