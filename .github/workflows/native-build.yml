@@ -13,7 +13,6 @@ on:
   workflow_dispatch:
   push:
     tags: ['native-v*']
-    branches: ['refactor/sidecar-ggml-only-slice6']  # TEMP: slice-6 dry run, remove before merge
 
 env:
   VULKAN_SDK_VERSION: 1.4.321.1
