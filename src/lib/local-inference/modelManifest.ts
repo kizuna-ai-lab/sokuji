@@ -32,7 +32,7 @@ export type AsrEngineType =
   | 'paraformer' | 'telespeech' | 'moonshine' | 'moonshine-v2'
   | 'dolphin' | 'zipformer-ctc' | 'nemo-ctc' | 'canary'
   | 'wenet-ctc' | 'omnilingual' | 'granite-speech'
-  | 'cohere-transcribe' | 'voxtral-3b';
+  | 'cohere-transcribe' | 'voxtral-3b' | 'qwen3-asr';
 
 /** Streaming ASR engine types — for future use when streaming gets explicit config. */
 export type StreamAsrEngineType =
@@ -109,7 +109,7 @@ export interface ModelManifestEntry {
   /** ASR engine type — determines which config builder the worker uses */
   asrEngine?: AsrEngineType | StreamAsrEngineType;
   /** Which ASR worker to use. Defaults to 'sherpa-onnx' if omitted. */
-  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu' | 'voxtral-webgpu' | 'voxtral-3b-webgpu' | 'cohere-transcribe-webgpu' | 'granite-speech-webgpu';
+  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu' | 'voxtral-webgpu' | 'voxtral-3b-webgpu' | 'cohere-transcribe-webgpu' | 'granite-speech-webgpu' | 'qwen3-asr-webgpu';
   /** AST (speech translation) language support. When present, model appears as a translation option when selected as ASR. */
   astLanguages?: {
     /** Languages the model can transcribe */
@@ -1323,6 +1323,68 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
           { filename: 'onnx/embed_tokens_q4f16.onnx_data', sizeBytes: 118_817_952 },
           { filename: 'onnx/decoder_model_merged_q4f16.onnx', sizeBytes: 437_181 },
           { filename: 'onnx/decoder_model_merged_q4f16.onnx_data', sizeBytes: 944_641_184 },
+        ],
+        requiredFeatures: ['shader-f16'],
+      },
+    },
+  },
+
+  // ─── Qwen3-ASR 0.6B (WebGPU) ──────────────────────────────────────────────
+  // Layout v2 of jiangzhuo9357/Qwen3-ASR-0.6B-ONNX (contract in its prompt_config.json;
+  // background in docs/superpowers/specs/2026-09-02-qwen3-asr-webgpu-spike.md). Runs on a
+  // raw onnxruntime-web worker: encoder + prefill + step graphs, KV cache kept on the GPU,
+  // prompt embeddings built from the int8 table. The two variants share tokenizer, config,
+  // filterbank and embedding files and differ only in encoder + decoders; q4f16 (fp16
+  // encoder + fp16-activation int4 decoders) needs shader-f16 and is ~410 MB smaller.
+  // `dtype` is the variant key the worker looks up in prompt_config.json.
+  {
+    id: 'qwen3-asr-0.6b-webgpu',
+    type: 'asr',
+    name: 'Qwen3-ASR 0.6B (WebGPU)',
+    shortName: 'Qwen3-ASR 0.6B',
+    languages: ['zh', 'en', 'ja', 'ko', 'cantonese', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'],
+    hfModelId: 'jiangzhuo9357/Qwen3-ASR-0.6B-ONNX',
+    requiredDevice: 'webgpu',
+    asrEngine: 'qwen3-asr',
+    asrWorkerType: 'qwen3-asr-webgpu',
+    recommended: false,
+    sortOrder: 5,
+    variants: {
+      'q4': {
+        dtype: 'q4',
+        files: [
+          { filename: 'prompt_config.json', sizeBytes: 2_578 },
+          { filename: 'config.json', sizeBytes: 1_302 },
+          { filename: 'tokenizer.json', sizeBytes: 11_429_377 },
+          { filename: 'tokenizer_config.json', sizeBytes: 12_488 },
+          { filename: 'vocab.json', sizeBytes: 2_776_833 },
+          { filename: 'added_tokens.json', sizeBytes: 1_566 },
+          { filename: 'mel_filters.json', sizeBytes: 132_427 },
+          { filename: 'embed_tokens.int8.bin', sizeBytes: 155_582_464 },
+          { filename: 'embed_scales.f32.bin', sizeBytes: 607_744 },
+          { filename: 'encoder.onnx', sizeBytes: 745_766_355 },
+          { filename: 'decoder_init.int4.onnx', sizeBytes: 353_078 },
+          { filename: 'decoder_step.int4.onnx', sizeBytes: 354_803 },
+          { filename: 'decoder_weights.int4.data', sizeBytes: 382_035_968 },
+        ],
+        requiredFeatures: [],
+      },
+      'q4f16': {
+        dtype: 'q4f16',
+        files: [
+          { filename: 'prompt_config.json', sizeBytes: 2_578 },
+          { filename: 'config.json', sizeBytes: 1_302 },
+          { filename: 'tokenizer.json', sizeBytes: 11_429_377 },
+          { filename: 'tokenizer_config.json', sizeBytes: 12_488 },
+          { filename: 'vocab.json', sizeBytes: 2_776_833 },
+          { filename: 'added_tokens.json', sizeBytes: 1_566 },
+          { filename: 'mel_filters.json', sizeBytes: 132_427 },
+          { filename: 'embed_tokens.int8.bin', sizeBytes: 155_582_464 },
+          { filename: 'embed_scales.f32.bin', sizeBytes: 607_744 },
+          { filename: 'encoder.fp16.onnx', sizeBytes: 376_261_247 },
+          { filename: 'decoder_init.q4f16.onnx', sizeBytes: 348_427 },
+          { filename: 'decoder_step.q4f16.onnx', sizeBytes: 350_380 },
+          { filename: 'decoder_weights.q4f16.data', sizeBytes: 344_670_208 },
         ],
         requiredFeatures: ['shader-f16'],
       },

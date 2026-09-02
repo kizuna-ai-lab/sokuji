@@ -137,6 +137,11 @@ export class AsrEngine {
             new URL('../workers/granite-speech-webgpu.worker.ts', import.meta.url),
             { type: 'module' },
           );
+        case 'qwen3-asr-webgpu':
+          return new Worker(
+            new URL('../workers/qwen3-asr-webgpu.worker.ts', import.meta.url),
+            { type: 'module' },
+          );
         default: // sherpa-onnx
           return new Worker('./workers/sherpa-onnx-asr.worker.js');
       }
@@ -184,7 +189,7 @@ export class AsrEngine {
     // between `new WorkerSession(...)` above and any `session.start(...)`
     // call below, on any path.
     let ready: { loadTimeMs: number };
-    if (workerType === 'whisper-webgpu' || workerType === 'cohere-transcribe-webgpu' || workerType === 'voxtral-3b-webgpu') {
+    if (workerType === 'whisper-webgpu' || workerType === 'cohere-transcribe-webgpu' || workerType === 'voxtral-3b-webgpu' || workerType === 'qwen3-asr-webgpu') {
       ready = await session.start({
         type: 'init',
         fileUrls,
