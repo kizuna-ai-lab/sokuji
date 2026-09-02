@@ -15,9 +15,22 @@ see Amendment A1 in the client-VAD-unification spec.
     native\ci\build.ps1 -Lane vulkan -Plat win_amd64    # Windows
 
 Requires CMake ≥ 3.28, a C++17 compiler, Python 3.10+, and for the Vulkan lane
-`libvulkan-dev` + `glslc` (Ubuntu) or the LunarG SDK (Windows). Output: a wheel in
+`libvulkan-dev` + `glslc` (Linux) or the LunarG SDK (Windows). Output: a wheel in
 `native/python/dist/`; the staged binaries in `native/build/<lane>/stage/`
 (`native/build/cpu/stage/` for `none`).
+
+**Linux wheel floor (R37): `manylinux_2_35`, built on `ubuntu-22.04`/`ubuntu-22.04-arm`.**
+That covers Ubuntu 22.04, Debian 12 (glibc 2.36) and RHEL 9 (2.34 — one notch under the
+tag, but within this tree's own measured margin: no shipped object references a glibc
+symbol newer than 2.34). `check_linux_deps.py` (below) enforces both the glibc floor and
+a per-tag C++ runtime ceiling (`CXX_CEILINGS`) on every staged `.so` before the wheel is
+built. 22.04's own apt has no `glslc` package at all, and its `spirv-headers` package
+ships no CMake config — CI adds LunarG's jammy apt repo (`shaderc` for a statically
+linked `glslc`, plus `spirv-headers`/`libvulkan-dev`) instead of Ubuntu's. Full recipe,
+per-object glibc/GLIBCXX evidence and the validation run:
+`.superpowers/linux-x64-vulkan-validation.md`. A developer building locally is not held
+to this floor — any `manylinux_2_<N>_*` tag works with `build.sh`/`build.ps1`; only the
+CI-published wheels carry the 2.35 promise.
 
 Developer loop without a wheel:
 
@@ -355,3 +368,17 @@ non-emptiness, never a transcript.
    fails on the old string otherwise) — then tag `native-vX.Y.Z`. Nothing else needs editing:
    the staged `contract.json` and the wheel version are both generated from the CMake project
    version, and the tag/version match is checked by `native-build.yml`.
+
+## Release
+
+Tagging `native-vX.Y.Z` (a `workflow_dispatch` dry run first, verifying all five wheel
+names and a green build across every SKU) makes `native-build.yml`'s `release` job publish
+the five wheels — one per SKU, `py3-none-<platform>` — as a **prerelease** GitHub Release
+(never the repo's "latest", so electron-updater's app-update lookup can't land on it). The
+tag-vs-version guard reads `project(sokuji_native VERSION …)` straight out of
+`CMakeLists.txt`, so a mismatched tag fails fast instead of shipping a mislabeled wheel.
+`native-v1.0.0` is the first release built under the R37 floor above: the two Linux wheels
+carry `manylinux_2_35_*` instead of the earlier `manylinux_2_39_*`, everything else
+(win-x64, mac-arm64, mac-x64) is unchanged. Downstream, these wheel URLs are what
+`sidecar/requirements.txt` pins — bumping that pin to the new release tag is the next step
+in the sidecar's own release, not part of this workflow.

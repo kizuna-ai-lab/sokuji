@@ -14,7 +14,7 @@ def test_workflow_names_all_skus_and_runners():
     text = WF.read_text()
     for sku in ("linux-x64", "linux-arm64", "win-x64", "mac-arm64", "mac-x64"):
         assert sku in text, sku
-    for runner in ("ubuntu-24.04", "ubuntu-24.04-arm", "windows-2022", "macos-14", "macos-15-intel"):
+    for runner in ("ubuntu-22.04", "ubuntu-22.04-arm", "windows-2022", "macos-14", "macos-15-intel"):
         assert runner in text, runner
     assert "build-sidecar-bundle.py" in text
     assert "--archive" in text
@@ -45,8 +45,8 @@ def test_runner_choices_mirror_native_build_workflow():
     yaml = pytest.importorskip("yaml")
     doc = yaml.safe_load(WF.read_text())
     expected = {
-        "build-linux-x64": "ubuntu-24.04",
-        "build-linux-arm64": "ubuntu-24.04-arm",
+        "build-linux-x64": "ubuntu-22.04",
+        "build-linux-arm64": "ubuntu-22.04-arm",
         "build-win-x64": "windows-2022",
         "build-mac-arm64": "macos-14",
         "build-mac-x64": "macos-15-intel",
@@ -62,7 +62,7 @@ def test_linux_arm_job_boot_smokes_the_packed_bundle():
     yaml = pytest.importorskip("yaml")
     doc = yaml.safe_load(WF.read_text())
     job = doc["jobs"]["build-linux-arm64"]
-    assert job["runs-on"] == "ubuntu-24.04-arm"
+    assert job["runs-on"] == "ubuntu-22.04-arm"
     smoke = [s for s in job["steps"]
              if "sokuji_sidecar" in str(s.get("run", "")) and "port" in str(s.get("run", ""))]
     assert smoke, "arm job must boot the bundle to the port handshake"

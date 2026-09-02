@@ -56,7 +56,10 @@ def test_contract_backends_match_lane():
 
 @needs_tree
 def test_version_and_engines():
-    assert sokuji_native.version().startswith("0.")
+    # Shape check, not a value pin (native crossed 0.x -> 1.0.0 at R37): the CMake
+    # project version is a plain X.Y.Z, and the two places that hard-code it are
+    # native/CMakeLists.txt and tests/test_common.cpp's own assert.
+    assert re.fullmatch(r"\d+\.\d+\.\d+", sokuji_native.version())
     ev = sokuji_native.engine_versions()
     assert ev["ggml"] == "0.22.0"
     assert ev["transcribe"] == "0.2.2"

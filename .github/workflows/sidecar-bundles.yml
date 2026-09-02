@@ -27,7 +27,10 @@ on:
 
 jobs:
   build-linux-x64:
-    runs-on: ubuntu-24.04
+    # ubuntu-22.04, matching native-build.yml's R37 linux lanes (glibc 2.35 floor);
+    # this job's own interpreter is python-build-standalone (portable), so only the
+    # sokuji-native wheel it installs is floor-sensitive, not this runner's own glibc.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -59,7 +62,8 @@ jobs:
           path: out/bundles/sidecar-linux-x64-v*
 
   build-linux-arm64:
-    runs-on: ubuntu-24.04-arm
+    # ubuntu-22.04-arm, matching native-build.yml's R37 linux lanes (glibc 2.35 floor).
+    runs-on: ubuntu-22.04-arm
     steps:
       - uses: actions/checkout@v5
         with:
