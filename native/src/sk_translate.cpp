@@ -117,7 +117,9 @@ sk_status generate(sk_translate *t, const std::string &prompt, const sk_gen_opti
     // the literal 512 we requested — read it back rather than assuming our own request stuck.
     const int32_t n_batch = static_cast<int32_t>(llama_n_batch(t->ctx));
     for (int32_t off = 0; off < static_cast<int32_t>(tokens.size()); off += n_batch) {
-        int32_t chunk = std::min(n_batch, static_cast<int32_t>(tokens.size()) - off);
+        // Parenthesized: MSVC builds pull in <windows.h>'s min/max macros transitively
+        // via the STL on that platform, which would otherwise clobber std::min here.
+        int32_t chunk = (std::min)(n_batch, static_cast<int32_t>(tokens.size()) - off);
         llama_batch batch = llama_batch_get_one(tokens.data() + off, chunk);
         int32_t rc = llama_decode(t->ctx, batch);
         if (rc != 0) return fail_decode("sk_translate: prompt eval", rc);

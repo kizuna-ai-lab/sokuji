@@ -169,7 +169,9 @@ SK_API sk_status sk_init(const sk_init_options *options) {
     if (threads_explicit) {
         g_threads = options->n_threads;
     } else {
-        g_threads = static_cast<int>(hw == 0 ? 1u : std::min(hw, static_cast<unsigned>(kThreadKnee)));
+        // Parenthesized to defeat windows.h's min/max macros (MSVC C2589/C2059 otherwise —
+        // this file includes <windows.h> above on _WIN32).
+        g_threads = static_cast<int>(hw == 0 ? 1u : (std::min)(hw, static_cast<unsigned>(kThreadKnee)));
     }
     ggml_log_set(ggml_log_bridge, nullptr);
 

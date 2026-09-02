@@ -4,6 +4,7 @@ contract logic is exercised."""
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -492,11 +493,23 @@ def test_tts_synthesises_on_a_gpu_device(family):
     env = dict(os.environ, SK_GPU_TTS_CONFIG=json.dumps(cfg))
     proc = subprocess.run([sys.executable, "-c", _GPU_TTS_RUNNER],
                           capture_output=True, text=True, timeout=1800, env=env)
-    tail = "\n".join((proc.stderr or "").strip().splitlines()[-25:])
+    # A missing backend kernel aborts the child (SIGABRT); ggml prints the actual reason —
+    # "unsupported op 'X'" or a GGML_ASSERT — to stderr well before the backtrace that
+    # follows it, so a fixed-size tail alone can crop the one line that says what broke.
+    # Surface that line up front, and widen the tail so the backtrace itself still fits.
+    stderr_lines = (proc.stderr or "").strip().splitlines()
+    abort_line = next(
+        (l for l in stderr_lines if re.search(r"unsupported op|GGML_ASSERT|ggml_abort|error:", l)),
+        None,
+    )
+    head = "\n".join(stderr_lines[:15])
+    tail = "\n".join(stderr_lines[-80:])
     assert proc.returncode == 0, (
+        f"{'abort: ' + abort_line + chr(10) if abort_line else ''}"
         f"{family} on {device.kind} device {device.index} ({device.name}) failed: exit {proc.returncode}"
         f"{' (SIGABRT — a missing backend kernel aborts the process)' if proc.returncode in (-6, 134) else ''}\n"
-        f"--- stderr tail ---\n{tail}\n--- stdout ---\n{proc.stdout}")
+        f"--- stderr head (first 15) ---\n{head}\n"
+        f"--- stderr tail (last 80) ---\n{tail}\n--- stdout ---\n{proc.stdout}")
 
     line = next((l for l in proc.stdout.splitlines() if l.startswith("SK_GPU_TTS_RESULT ")), None)
     assert line, f"{family}: runner produced no result line\n--- stdout ---\n{proc.stdout}\n--- stderr tail ---\n{tail}"
