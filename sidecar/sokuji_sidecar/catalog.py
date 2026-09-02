@@ -670,11 +670,16 @@ TTS_STAGING_DIRNAME = "sokuji-tts-staging"
 # native/python/tests/test_sokuji_native.py). ASR (_TC_TIERS) and translate
 # (native_translate's own three-tier tuple in _llm_translate_row) are
 # untouched by this ruling — Metal ran moonshine (ASR) clean on the same
-# lane. `_TTS_TIERS` below is the default (still cpu-only, for any family not
-# in `_TTS_TIER_OVERRIDES`) — no card gains "gpu-metal" yet: slice-5b task 1
-# fixed the two missing Metal kernels and got 5/5 families synthesizing on an
-# M4, but ruling R31 holds tiers back until the CI mac-arm64 lane confirms an
-# M1 (Apple7; the M4 is Apple9 evidence only). See the fleet table below.
+# lane. (Retroactive correction, R36 below: that "first-ever real-GPU TTS
+# contact" was never M1 evidence either — GitHub's macos-14 arm64 runner is
+# the same paravirtual VM described there, and this abort is that VM's
+# GGML_OP_NORM gate, not a real-hardware finding.)
+#
+# `_TTS_TIERS` below is the cpu-only default for any family not listed in
+# `_TTS_TIER_OVERRIDES` — every one of the ten current cards IS listed there
+# (see that dict, below the fleet table), so this default currently applies
+# to no shipped card; it exists for the next new family, which starts
+# cpu-only until it, too, earns a tier through real-GPU evidence.
 _TTS_TIERS = ("cpu",)
 
 # R19 follow-up / ruling R25 (2026-09-01, task 8): the first real Vulkan TTS
@@ -779,17 +784,73 @@ _TTS_TIERS = ("cpu",)
 # probe did not record a thread count at all.
 #
 # The mac row holds only AFTER slice-5b task 1's two Metal kernel patches
-# (before them moss/qwen3/omnivoice aborted); its tiers stay off pending the
-# CI M1 (R31), so `_TTS_TIER_OVERRIDES` below still lists gpu-vulkan only.
+# (before them moss/qwen3/omnivoice aborted): the resurrected
+# GGML_OP_DIAG_MASK_INF/PAD kernels (ruling R30 — native/patches/ggml-metal-
+# {diag-mask-inf,pad-leading}.json) plus audiocpp_compat.h's ggml_sub now
+# ggml_cont-ing src1 too (Metal wants both operands row-contiguous) took the
+# M4 from 2/5 aborting to 5/5 clean.
+#
+# Ruling R36 (2026-09-02, slice-5b task 10) supersedes R31's deferral above:
+# gpu-metal is RESTORED for all five families on the strength of that M4
+# (Apple9) evidence. R31 held tiers back pending a CI mac-arm64 run to
+# confirm an M1; that run happened (native-build.yml dry run round 2) and
+# could NOT confirm or deny an M1 either way, for a hardware reason, not a
+# code reason: GitHub's macos-14 arm64 runner is a VM whose Metal device
+# reports as "Apple Paravirtual device", which lacks has_simdgroup_reduction
+# (ggml-metal-device.m:1044-1045 requires MTLGPUFamilyApple7 or Metal3).
+# ggml gates GGML_OP_NORM/RMS_NORM/ARGMAX on that capability, so every
+# family that normalizes (all five) aborts there ("unsupported op 'NORM'",
+# run 33581291942) regardless of which macOS or Xcode version the runner
+# carries. That paravirtual GPU is not evidence about real Apple silicon in
+# either direction — it is a virtualization shim the CI vendor puts in front
+# of every hosted macOS VM, not a downlevel real GPU, and (retroactive
+# correction to R19 above) it is also almost certainly what produced R19's
+# original "supertonic aborts on Metal" contact: the slice-4 dry run used
+# the same runner class.
+#
+# The capability gates our Metal kernels/shims actually consult are Apple7
+# (simdgroup reduction and simdgroup matrix-multiply — what the resurrected
+# diag-mask-inf/pad kernels and the ops they unblock need) and Apple6
+# (bfloat — three of the five checkpoints carry BF16 tensors). Every real
+# Mac from the M1 onward satisfies both: the M1/M2/M3 GPU family is Apple7
+# (M1 is also where Apple's Metal bfloat support began), and the M4 tested
+# here is Apple9, a strict superset. Intel Macs are unaffected either way —
+# they have no eligible Metal compute device at all and build the `none`
+# lane (CPU only; no gpu-metal tier is ever reachable there, paravirtual or
+# real).
+#
+# What this evidence does NOT include: no real M1, M2, or M3 has run this
+# suite — the M4 is the only real-hardware data point, and CI's own Metal
+# lane structurally cannot supply one (see above), so this gap cannot close
+# via CI. R36 accepts it deliberately: the gates that matter are
+# architectural (Apple7/Apple6), not M4-specific, so satisfying them is the
+# bar this ruling relies on, not "measured on every generation". A future
+# real M1/M2/M3 check is a slice-6 nice-to-have, not a blocker. If one ever
+# aborts on a kernel here despite reporting Apple7, that is new information
+# this ruling did not have, and the fix is cheap and scoped: drop that one
+# family's gpu-metal row back out of `_TTS_TIER_OVERRIDES`.
+#
+# native/python/tests/test_sokuji_native.py::test_tts_synthesises_on_a_gpu_device
+# skips outright when the resolved device's description matches
+# /paravirtual/i, precisely so a future CI run reports "skipped" there
+# instead of a green pass that would misrepresent a VM shim as validating
+# real Metal hardware.
+#
+#   lane        macOS runner GPU               tier decision
+#   mac-arm64   Apple Paravirtual device       gpu-metal restored anyway (R36,
+#                                               on M4 real-hardware evidence —
+#                                               this GPU cannot confirm OR
+#                                               deny it; see above)
+#
 # First-ever synth on an NVIDIA box additionally pays a one-time, per-machine
 # driver pipeline-cache compile of 2-14s (W-1, linux-x64-vulkan-validation.md);
 # the load-time warm-up synth (R33) absorbs it.
 _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
-    "moss_tts_nano": ("gpu-vulkan", "cpu"),
-    "supertonic": ("gpu-vulkan", "cpu"),
-    "qwen3_tts": ("gpu-vulkan", "cpu"),
-    "omnivoice": ("gpu-vulkan", "cpu"),
-    "pocket_tts": ("gpu-vulkan", "cpu"),   # ruling R29 (supersedes R28) -- see table above
+    "moss_tts_nano": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "supertonic": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "qwen3_tts": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "omnivoice": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "pocket_tts": ("gpu-vulkan", "gpu-metal", "cpu"),   # ruling R29 (supersedes R28) -- see table above
 }
 
 
@@ -811,8 +872,9 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
     filename, bytes) sidecar assets sk_tts_presets discovers next to the
     loaded gguf (only pocket-tts-en has one: embeddings/alba.safetensors) —
     downloaded alongside every quant and counted once in size_bytes. Tiers come from
-    `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default, gpu-vulkan added
-    back per family once GB10-validated (see that dict's own comment, R19/R25)."""
+    `_TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)` — cpu-only by default, gpu-vulkan and
+    gpu-metal added back per family once GB10/M4-validated (see that dict's own
+    comment, R19/R25/R36)."""
     deps = []
     tiers = _TTS_TIER_OVERRIDES.get(family, _TTS_TIERS)
     order_keys = [default_quant] + [q for q in quants if q != default_quant]

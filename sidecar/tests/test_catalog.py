@@ -209,9 +209,11 @@ def test_tts_models_have_deployments_languages_and_family():
         for d in m.deployments:
             assert d.backend == "native_tts"
             # R19 follow-up / R25 (task 8): every family was GB10-Vulkan-
-            # validated (catalog._TTS_TIER_OVERRIDES), so every deployment is
-            # now cpu or gpu-vulkan — never gpu-metal (R25: no Apple-GPU box).
-            assert d.tier in ("cpu", "gpu-vulkan")
+            # validated. R36 (slice-5b task 10): every family also gained
+            # gpu-metal back, on M4 real-hardware evidence (catalog.
+            # _TTS_TIER_OVERRIDES) — so every deployment is cpu, gpu-vulkan,
+            # or gpu-metal.
+            assert d.tier in ("cpu", "gpu-vulkan", "gpu-metal")
 
 
 def test_tts_artifacts_are_audiocpp_gguf_files():
@@ -222,8 +224,9 @@ def test_tts_artifacts_are_audiocpp_gguf_files():
 
 
 def test_tts_system_has_cpu_floor_and_unique_ids():
-    # Every card keeps a cpu floor even after task 8's gpu-vulkan restoration
-    # (_TTS_TIER_OVERRIDES always includes "cpu" alongside "gpu-vulkan").
+    # Every card keeps a cpu floor even after task 8's gpu-vulkan and task
+    # 10's gpu-metal restorations (_TTS_TIER_OVERRIDES always includes "cpu"
+    # alongside the two GPU tiers).
     ids = [m.id for m in catalog.tts_models()]
     assert len(ids) == len(set(ids)), "duplicate tts model ids"
     for m in catalog.tts_models():
@@ -234,15 +237,16 @@ def test_tts_quant_ladder_shape():
     # Every card follows _llm_translate_row's two-rung shape: the default
     # quant is rank 2.0, any alt is rank 1.0, and EVERY quant carries the
     # SAME tier set (unlike the old catalog's per-precision/per-platform row
-    # variation) -- {"cpu", "gpu-vulkan"} for every family post-task-8,
-    # pocket_tts included (ruling R29, superseding R28 -- see
-    # test_pocket_tts_gpu_vulkan_r29 below for why).
+    # variation) -- {"cpu", "gpu-vulkan", "gpu-metal"} for every family
+    # post-task-10 (R36 restored gpu-metal fleet-wide), pocket_tts included
+    # (ruling R29, superseding R28 -- see test_pocket_tts_gpu_vulkan_r29
+    # below for why).
     for m in catalog.tts_models():
         by_ct = {}
         for d in m.deployments:
             by_ct.setdefault(d.compute_type, set()).add(d.tier)
         for ct, tiers in by_ct.items():
-            assert tiers == {"cpu", "gpu-vulkan"}, (m.id, ct)
+            assert tiers == {"cpu", "gpu-vulkan", "gpu-metal"}, (m.id, ct)
         ranks = {d.compute_type: d.rank for d in m.deployments}
         assert sorted(ranks.values(), reverse=True)[0] == 2.0, m.id
         assert set(ranks.values()) <= {1.0, 2.0}, m.id
@@ -255,11 +259,12 @@ def test_pocket_tts_gpu_vulkan_r29():
     # 4 timed same-shape runs each device, catalog._TTS_TIER_OVERRIDES' own
     # comment has the numbers) found Vulkan 5-9x FASTER, not slower -- no
     # measurement in either round had cpu winning -- so pocket_tts gains
-    # gpu-vulkan like the other four GB10-validated families.
+    # gpu-vulkan like the other four GB10-validated families (and, per R36,
+    # gpu-metal too).
     for mid in ("pocket-tts-en", "pocket-tts-de", "pocket-tts-es", "pocket-tts-it", "pocket-tts-pt"):
         m = catalog.tts_model(mid)
         assert m is not None and m.family == "pocket_tts"
-        assert {d.tier for d in m.deployments} == {"cpu", "gpu-vulkan"}, mid
+        assert {d.tier for d in m.deployments} == {"cpu", "gpu-vulkan", "gpu-metal"}, mid
 
 
 def test_tts_tier_overrides_default_is_cpu_only_for_unknown_family():
@@ -514,10 +519,14 @@ def test_supertonic_row():
     assert m.family == "supertonic"
     assert {d.backend for d in m.deployments} == {"native_tts"}
     # R19: supertonic is the card that triggered the cpu-only ruling (Metal
-    # aborted on its first real-GPU contact). R19 follow-up / R25 (task 8):
-    # GB10 Vulkan validation passed for supertonic too -- the Metal abort
-    # does not reproduce on Vulkan -- so it now carries a gpu-vulkan tier.
-    assert {d.tier for d in m.deployments} == {"cpu", "gpu-vulkan"}
+    # aborted on its first real-GPU contact, later attributed to CI's
+    # paravirtual Metal VM rather than real hardware -- see catalog.py).
+    # R19 follow-up / R25 (task 8): GB10 Vulkan validation passed for
+    # supertonic too -- the abort does not reproduce on Vulkan -- so it
+    # carries a gpu-vulkan tier. R36 (task 10): the M4 fix (resurrected
+    # DIAG_MASK_INF/PAD kernels + ggml_sub's src1 cont) restores gpu-metal
+    # too, fleet-wide.
+    assert {d.tier for d in m.deployments} == {"cpu", "gpu-vulkan", "gpu-metal"}
     # Single quant only: Q8 is upstream-broken for supertonic (docs/gguf.md);
     # the repo's own "-q8_0.gguf" is in fact a byte-identical copy of "-orig.gguf".
     assert {d.compute_type for d in m.deployments} == {"f16"}
