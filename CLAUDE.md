@@ -158,7 +158,13 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      `sys_platform`/`platform_machine` → sidecar tag (a bundle built before `requirements.txt`
      carries those URLs ships hollow, no `sokuji_native` inside) → the app's `sidecarVersion`
      bump rides an ordinary future app release. First ggml-only pair: `native-v1.0.0` /
-     `sidecar-v0.2.0` — a clean break from the ONNX-era `sidecar-v0.1.x` line.
+     `sidecar-v0.2.0` — a clean break from the ONNX-era `sidecar-v0.1.x` line. `native-v1.0.1`
+     (R41) follows immediately: the Python binding's `Translator._make_cb` used to
+     `.decode("utf-8", "replace")` each streamed token piece independently, so a byte-level
+     BPE boundary landing inside a multibyte character (routine for CJK output) corrupted it
+     to U+FFFD in both the `on_token` stream and `chat()`/`complete()`'s joined return value;
+     fixed with a per-call `codecs.getincrementaldecoder("utf-8")`, flushed once after the
+     native call returns. Current native version is 1.0.1.
    - **Dev loop**: `native/ci/build.sh <none|vulkan|metal> <plat tag>` (`.ps1` on Windows)
      builds and runs CTest + the Python suite against a fresh stage;
      `SOKUJI_NATIVE_DIR=.../stage` points a wheel-less `import sokuji_native` at it. Models

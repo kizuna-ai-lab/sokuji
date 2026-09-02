@@ -396,4 +396,8 @@ tag-vs-version guard reads `project(sokuji_native VERSION …)` straight out of
 carry `manylinux_2_35_*` instead of the earlier `manylinux_2_39_*`, everything else
 (win-x64, mac-arm64, mac-x64) is unchanged. Downstream, these wheel URLs are what
 `sidecar/requirements.txt` pins — bumping that pin to the new release tag is the next step
-in the sidecar's own release, not part of this workflow.
+in the sidecar's own release, not part of this workflow. `native-v1.0.1` follows
+immediately: a Python-binding-only fix (R41) for streamed translation tokens that split a
+multibyte UTF-8 character across pieces being decoded independently instead of
+incrementally, corrupting CJK output with U+FFFD — see `python/sokuji_native/__init__.py`'s
+`Translator._make_cb`. Current native version is 1.0.1.
