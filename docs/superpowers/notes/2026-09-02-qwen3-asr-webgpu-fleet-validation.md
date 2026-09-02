@@ -38,6 +38,46 @@ Load time (cold, model already in IndexedDB): ~11 s on the fleet boxes, ~4.7 s o
 first utterance pays WebGPU shader compilation; the worker warms up on 1 s of silence during
 init so the first real utterance is not slow.
 
+## Second bug: audio dropped while a decode is running (and why the obvious fix hung)
+
+The first worker version, cloned from the granite scaffold, `await`ed the transcription inside
+`feedAudio` while holding `processingVad`, so every audio chunk that arrived during a decode
+(0.5–2.5 s) was silently dropped. On the microphone path a natural pause usually follows an
+utterance and hides this; on gapless system audio the loss lands on the next sentence's first
+words. Fixed the way voxtral-3b does it: `void transcribe(...)` on SpeechEnd / the 20 s cap /
+flush, decodes serialized through `currentDecodePromise`, and `handleFlush`/`handleDispose`
+await the in-flight decode before releasing the sessions.
+
+That change alone **hung the worker permanently** (zero results, no error, every later decode
+pending). Cause: `onnxruntime-web/webgpu` runs `session.run()` on the Asyncify build of the wasm
+runtime (`ort-wasm-simd-threaded.asyncify.wasm`; `_OrtRun` is awaited, and the bundle has no run
+mutex). A VAD frame's wasm-EP `run()` arriving while the GPU decode is Asyncify-suspended
+re-enters the same wasm instance, which Emscripten defines as undefined behaviour. The old
+`processingVad` drop was the only thing keeping the two apart. voxtral-3b never hits this
+because its VAD lives on the bare `onnxruntime-web` (wasm-only bundle, its own instance) while
+Transformers.js holds its own `onnxruntime-web/webgpu`. The worker now uses the same split: VAD
+via `_shared/onnxruntime-all`, the model via `_shared/onnxruntime-webgpu`, `wasmPaths` set on
+both envs. Rule for any future raw-ORT WebGPU worker: never run a second session on the webgpu
+ORT instance while a decode is in flight — give the VAD its own instance.
+
+A/B on the GB10 (q4, auto language), old = commit 7e032376, new = this fix, identical audio
+fed as one continuous stream at 1.7× real time:
+
+| stream | old worker | new worker |
+|---|---|---|
+| 4 clips back to back with their own silences (45.7 s) | 4 segments; Japanese clip lost its first second ("インターネットで" missing, segment 6.5 s) | 4 segments; Japanese complete (8.8 s); no hang; dispose clean |
+| same 4 clips with head/tail silence trimmed, 34.2 s of continuous speech | 3 segments totalling 31.2 s of audio (2.9 s lost); Japanese head missing again | 3 segments totalling 33.9 s (all of it); Japanese complete |
+| all 13 clips trimmed, 112.3 s of continuous speech — the 20 s cap fires twice | 8 segments, 93.6 s captured (18.7 s lost): the JFK clip and one short Japanese clip vanish entirely, and text is missing across a cap boundary ("…敲下垂直。" → "二零一一年八月完工…") | 9 segments, 109.7 s captured (the rest is VAD edge trimming); text continues across the cap boundary ("…找到自己的" → "立场，并能够…"); no hang; dispose clean |
+
+The 20 s cap still splits a sentence mid-way — that is the cap's job — but no audio is lost on
+either side of the split any more.
+
+Where the two zh clips were hard-spliced into one segment, both workers skipped the end of the
+first sentence. That is the model on an abrupt splice, not dropped audio: the new worker's
+segment durations account for all of the input, the same two clips are transcribed in full when
+a pause separates them, and feeding just that spliced pair as the very first segment (no decode
+in flight at all) reproduces the identical omission on a 12.96 s segment out of 13.12 s.
+
 ## Coverage and gaps (stated honestly)
 
 - The worker + the AsrEngine message contract are validated end to end on real GPUs.

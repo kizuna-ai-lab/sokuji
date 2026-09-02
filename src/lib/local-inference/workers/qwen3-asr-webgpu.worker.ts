@@ -16,6 +16,13 @@
  */
 
 import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-webgpu';
+// The VAD deliberately runs on a SEPARATE onnxruntime-web instance (the wasm-only bundle the
+// other workers use for their VAD). The webgpu bundle runs `session.run()` under Emscripten
+// Asyncify, and re-entering that wasm instance while a decode is suspended (which is exactly
+// what a VAD frame arriving mid-decode does) is undefined behaviour — observed as a permanent
+// hang of every later decode. Two instances cannot re-enter each other, so VAD frames and the
+// GPU decode may overlap freely, the same layout voxtral-3b relies on.
+import { InferenceSession as VadInferenceSession, Tensor as VadTensor, env as vadOrtEnv } from './_shared/onnxruntime-all';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
@@ -52,8 +59,8 @@ const VAD_FRAME_SAMPLES = 512; // 32ms @ 16kHz
 const VAD_FRAME_MS = (VAD_FRAME_SAMPLES / VAD_SAMPLE_RATE) * 1000;
 
 interface VadSession {
-  session: InferenceSession;
-  state: Tensor;
+  session: VadInferenceSession;
+  state: VadTensor;
 }
 
 let vadSession: VadSession | null = null;
@@ -67,8 +74,8 @@ let speechStartSample = 0;
 async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
   if (!vadSession) return { isSpeech: 0, notSpeech: 1 };
 
-  const input = new Tensor('float32', frame, [1, VAD_FRAME_SAMPLES]);
-  const sr = new Tensor('int64', BigInt64Array.from([BigInt(VAD_SAMPLE_RATE)]), []);
+  const input = new VadTensor('float32', frame, [1, VAD_FRAME_SAMPLES]);
+  const sr = new VadTensor('int64', BigInt64Array.from([BigInt(VAD_SAMPLE_RATE)]), []);
 
   const result = await vadSession.session.run({
     input,
@@ -76,24 +83,24 @@ async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpe
     state: vadSession.state,
   });
 
-  vadSession.state = result.stateN as Tensor;
-  const prob = (result.output as Tensor).data[0] as number;
+  vadSession.state = result.stateN as VadTensor;
+  const prob = (result.output as VadTensor).data[0] as number;
   return { isSpeech: prob, notSpeech: 1 - prob };
 }
 
 function vadResetStates() {
   if (!vadSession) return;
-  vadSession.state = new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
+  vadSession.state = new VadTensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
 }
 
 async function initVad(vadConfig?: Qwen3AsrInitMessage['vadConfig'], vadModelUrl?: string): Promise<void> {
-  const session = await InferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
+  const session = await VadInferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
     executionProviders: ['wasm'],
   });
 
   vadSession = {
     session,
-    state: new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]),
+    state: new VadTensor('float32', new Float32Array(2 * 128), [2, 1, 128]),
   };
 
   const { positive: positiveSpeechThreshold, negative: negativeSpeechThreshold } = resolveVadThresholds(vadConfig);
@@ -169,6 +176,8 @@ interface LoadedModel {
 
 let model: LoadedModel | null = null;
 let processingVad = false;
+/** The decode currently running or queued; decodes are serialized through it (see transcribe). */
+let currentDecodePromise: Promise<void> | null = null;
 
 async function hasWebGPU(): Promise<boolean> {
   try {
@@ -212,7 +221,30 @@ function asRunnable(session: InferenceSession): RunnableSession {
 
 // ─── Speech Segment Processing ──────────────────────────────────────────────
 
-async function transcribe(audio: Float32Array, startSample: number, warmup = false): Promise<void> {
+/**
+ * Decode one speech segment, serialized behind whatever decode is already running.
+ *
+ * Callers on the VAD path fire-and-forget this (`void transcribe(...)`): a decode takes
+ * 0.5–2.5 s, and awaiting it inside `feedAudio` would keep `processingVad` true for that
+ * long, so every audio message arriving meanwhile would hit the guard and be dropped — on
+ * gapless audio that loses the start of the next utterance. Same pattern as the Voxtral 3B
+ * worker (`runVoxtral3B` / `currentDecodePromise`). Chaining on the previous promise keeps
+ * decodes strictly ordered and never overlapping on the shared sessions and KV buffers.
+ * The returned promise never rejects: `transcribeSegment` reports its own errors.
+ */
+function transcribe(audio: Float32Array, startSample: number, warmup = false): Promise<void> {
+  const previous = currentDecodePromise;
+  const promise = (async () => {
+    if (previous) {
+      try { await previous; } catch { /* already reported by its own catch */ }
+    }
+    await transcribeSegment(audio, startSample, warmup);
+  })();
+  currentDecodePromise = promise;
+  return promise;
+}
+
+async function transcribeSegment(audio: Float32Array, startSample: number, warmup = false): Promise<void> {
   const m = model;
   if (!m) return;
 
@@ -293,7 +325,10 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             break;
           case Message.SpeechEnd:
             speechFramesSinceStart = 0;
-            await transcribe(ev.audio, speechStartSample);
+            // Fire-and-forget: awaiting here would hold `processingVad` for the whole decode
+            // and the guard at the top of this function would drop the audio arriving
+            // meanwhile. `transcribe` serializes decodes via `currentDecodePromise`.
+            void transcribe(ev.audio, speechStartSample);
             break;
           case Message.VADMisfire:
             speechFramesSinceStart = 0;
@@ -309,7 +344,8 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              await transcribe(ev.audio, speechStartSample);
+              // See the SpeechEnd comment above: fire-and-forget so no audio is dropped.
+              void transcribe(ev.audio, speechStartSample);
             }
           }
           speechFramesSinceStart = 0;
@@ -329,9 +365,11 @@ async function handleInit(msg: Qwen3AsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
 
-    // ortEnv wasmPaths must be set before initVad's InferenceSession.
-    if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
-      ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
+    // wasmPaths must be set on BOTH runtime instances before their first session: the VAD's
+    // wasm-only instance and the model's webgpu instance each load their own binary from there.
+    if (msg.ortWasmBaseUrl) {
+      if (vadOrtEnv?.wasm) vadOrtEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
+      if (ortEnv?.wasm) ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
     }
 
     const webgpuAvailable = await hasWebGPU();
@@ -422,20 +460,38 @@ async function handleInit(msg: Qwen3AsrInitMessage): Promise<void> {
 }
 
 async function handleFlush(): Promise<void> {
+  // Force-finalize any pending speech (PTT release path). Fire-and-forget: `transcribe`
+  // assigns `currentDecodePromise` before returning, so the await below picks up the decode
+  // we just kicked off, and the flush resolves once the utterance's text has been posted.
   if (frameProcessor?.speaking) {
     const endEvents: FrameProcessorEvent[] = [];
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        await transcribe(ev.audio, speechStartSample);
+        void transcribe(ev.audio, speechStartSample);
       }
     }
+  }
+  if (currentDecodePromise) {
+    try { await currentDecodePromise; } catch { /* already reported */ }
   }
 }
 
 async function handleDispose(): Promise<void> {
-  // Flush remaining speech
+  // Flush remaining speech; handleFlush waits for that decode to finish.
   await handleFlush();
+
+  // Stop accepting new segments before touching the sessions: with `model` null, feedAudio
+  // returns early and a queued transcribeSegment exits at its first line.
+  const m = model;
+  model = null;
+
+  // A decode may have been queued between the flush's await and the line above; wait for it
+  // so nothing runs against released sessions or disposes their GPU buffers afterwards.
+  if (currentDecodePromise) {
+    try { await currentDecodePromise; } catch { /* already reported */ }
+    currentDecodePromise = null;
+  }
 
   frameProcessor = null;
   speechFramesSinceStart = 0;
@@ -445,9 +501,7 @@ async function handleDispose(): Promise<void> {
     vadSession = null;
   }
 
-  if (model) {
-    const m = model;
-    model = null;
+  if (m) {
     await Promise.all([m.encoder.release(), m.decoderInit.release(), m.decoderStep.release()]).catch(() => undefined);
   }
 
