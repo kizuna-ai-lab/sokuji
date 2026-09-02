@@ -14,10 +14,16 @@ see Amendment A1 in the client-VAD-unification spec.
     native/ci/build.sh vulkan manylinux_2_39_x86_64     # Linux/macOS: <none|vulkan|metal> <wheel plat tag>
     native\ci\build.ps1 -Lane vulkan -Plat win_amd64    # Windows
 
-Requires CMake ≥ 3.28, a C++17 compiler, Python 3.10+, and for the Vulkan lane
-`libvulkan-dev` + `glslc` (Linux) or the LunarG SDK (Windows). Output: a wheel in
-`native/python/dist/`; the staged binaries in `native/build/<lane>/stage/`
-(`native/build/cpu/stage/` for `none`).
+The plat tag above is illustrative, not a requirement: it is only baked into the wheel's
+filename and the floor `check_linux_deps.py` enforces, so a local/dev build can pass
+whatever `manylinux_2_<N>_*` matches its own machine (see the R37 floor note below for
+what CI actually publishes).
+
+Requires CMake ≥ 3.28, a C++17 compiler, Python 3.10+, and for the Vulkan lane a Vulkan
+loader + `glslc` — on Linux that's `libvulkan-dev` (apt) plus the pinned Khronos-source
+toolchain `native/ci/vulkan-toolchain.sh` builds (see below); on Windows, the LunarG SDK.
+Output: a wheel in `native/python/dist/`; the staged binaries in
+`native/build/<lane>/stage/` (`native/build/cpu/stage/` for `none`).
 
 **Linux wheel floor (R37): `manylinux_2_35`, built on `ubuntu-22.04`/`ubuntu-22.04-arm`.**
 That covers Ubuntu 22.04, Debian 12 (glibc 2.36) and RHEL 9 (2.34 — one notch under the
@@ -25,12 +31,16 @@ tag, but within this tree's own measured margin: no shipped object references a 
 symbol newer than 2.34). `check_linux_deps.py` (below) enforces both the glibc floor and
 a per-tag C++ runtime ceiling (`CXX_CEILINGS`) on every staged `.so` before the wheel is
 built. 22.04's own apt has no `glslc` package at all, and its `spirv-headers` package
-ships no CMake config — CI adds LunarG's jammy apt repo (`shaderc` for a statically
-linked `glslc`, plus `spirv-headers`/`libvulkan-dev`) instead of Ubuntu's. Full recipe,
-per-object glibc/GLIBCXX evidence and the validation run:
-`.superpowers/linux-x64-vulkan-validation.md`. A developer building locally is not held
-to this floor — any `manylinux_2_<N>_*` tag works with `build.sh`/`build.ps1`; only the
-CI-published wheels carry the 2.35 promise.
+ships no CMake config ggml-vulkan's `find_package(SPIRV-Headers CONFIG REQUIRED)` needs —
+CI does **not** paper over that with an apt source (R38): LunarG's jammy repo has no
+arm64 index at all, and its `libvulkan-dev` ships no headers, either of which breaks the
+build outright. Instead, `native/ci/vulkan-toolchain.sh <prefix>` builds pinned
+Vulkan-Headers, SPIRV-Headers and shaderc (for `glslc`) from source into a small prefix —
+arch-native, cached across runs via `actions/cache` since the shaderc build is the
+expensive part (several minutes uncached). Only the Vulkan **loader** (`libvulkan-dev`'s
+`.so`) still comes from 22.04's own apt, so the wheel keeps linking the same system
+loader every target machine already has. Full recipe, per-object glibc/GLIBCXX evidence
+and the validation run: `.superpowers/linux-x64-vulkan-validation.md`.
 
 Developer loop without a wheel:
 
@@ -83,6 +93,11 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   staged shared object may depend only on glibc/libstdc++/libgcc, the system Vulkan loader
   and its siblings, and may reference no glibc symbol newer than the wheel tag's floor.
   (The Vulkan loader is external by design, which is why `auditwheel` is not the gate.)
+- `ci/vulkan-toolchain.sh <prefix>` — CI's Linux+Vulkan build-time toolchain (R38):
+  builds pinned Vulkan-Headers/SPIRV-Headers/shaderc from source into `<prefix>` (`glslc`
+  plus the headers and CMake config 22.04's own packages lack or don't ship). Point CMake
+  at it with `VULKAN_SDK=<prefix>` and `CMAKE_PREFIX_PATH=<prefix>`; see the script's own
+  header for the full rationale, exact pins and output layout.
 - `src/sk_selftest.cpp` — `sk_audio_families()`, reporting every family compiled in (companions such as `marblenet_vad` / `moss_tts_local` ride along with the selected ones; the sidecar catalog decides what is supported).
 - `src/sk_internal.h` — internal-only helpers shared by the `sk_*.cpp` files (locking, the
   device table, `own_directory()`, the log sink); never installed.
