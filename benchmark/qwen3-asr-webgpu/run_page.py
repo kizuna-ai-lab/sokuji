@@ -19,7 +19,10 @@ timeout = int(sys.argv[3]) if len(sys.argv) > 3 else 900
 extra = sys.argv[4:]
 port = 9222 + random.randint(0, 500)
 profile = os.path.join(tempfile.gettempdir(), f"spike-chrome-profile-{port}")
-flags = [chrome, "--headless=new", "--no-sandbox", "--disable-dev-shm-usage", f"--remote-debugging-port={port}", f"--user-data-dir={profile}",
+# NO_HEADLESS=1 opens a real window (needed on Linux boxes where headless Chrome only gets a
+# SwiftShader adapter; run it on the box's own display, same as run_page.mjs).
+headless = [] if os.environ.get("NO_HEADLESS") else ["--headless=new"]
+flags = [chrome, *headless, "--no-sandbox", "--disable-dev-shm-usage", f"--remote-debugging-port={port}", f"--user-data-dir={profile}",
          "--enable-unsafe-webgpu", "--ignore-gpu-blocklist", "--window-size=800,600", *extra, "about:blank"]
 proc = subprocess.Popen(flags, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 

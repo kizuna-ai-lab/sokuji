@@ -36,6 +36,44 @@
   zh-fleurs1906.wav     10.380         75         40         63        447         19     24.800      0.060      0.000  这并不是告别，这是一个篇章的结束，也是新篇章的开始。
   zh-fleurs2006.wav      8.280         60         37         55        447         21     22.400      0.072      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
   => median RTF 0.093  max RTF 0.146  mean CER 0.075  median ms/token 22.4
+== page-ubuntu-06b-q4.log
+  env: ep=webgpu adapter={'vendor': 'nvidia', 'architecture': 'lovelace', 'device': '', 'description': ''} f16=False threads=1 ua=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
+  load: {'tokenizerAndEmbedMs': 1596, 'encoderMs': 8136, 'initMs': 3971, 'stepMs': 217, 'totalMs': 13921}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  ja-cv0.wav [cold]      9.900        150        915        409        980         47     21.300      0.248      0.188  あの洋家の屋根の屋上には十万ほどの瓦が箱の蓋のように開く仕掛けになっていて、その下に屋根裏の秘密
+  ja-cv0.wav      9.900        113         20         26        823         47     17.900      0.099      0.188  あの洋家の屋根の屋上には十万ほどの瓦が箱の蓋のように開く仕掛けになっていて、その下に屋根裏の秘密
+  ja-cv1.wav      8.570        108         23         33        603         36     17.200      0.089      0.148  私たちは無一問で結婚しなければならないし、家を無から作り上げなければならないのです。先生、村に願
+  ja-cv2.wav      5.330         62         16         21        468         29     16.700      0.106      0.105  いくら山を掘り返してもどこかで見たようなおもしろみのないものしか見つからなかった。
+  ja-cv3.wav      5.980         53         14         47        383         22     18.200      0.083      0.107  次声は構成されたものによって所用のものを超える力であるが。
+  ja-fleurs1813.wav     12.840        113         34         30        821         52     16.100      0.078      0.324  バルセイの公用語は語り語とスペイン語です。約半数が語り語がお好み、大数が語り語を理解し、ほぼ全員
+  ja-fleurs1828.wav     10.440         91         19         25        509         30     17.600      0.062      0.067  インターネットで敵対的環境構築について検索すると、おそらく現地企業の住所が出てくるでしょう。
+  ja-fleurs1834.wav     14.220        124         23         29        568         36     16.200      0.052      0.043  また北側に行くなら世界的に有名なマリアゾの聖地であるファティマの聖母の聖域、神聖を訪れましょう。
+  ja-fleurs1869.wav     12.540        110         21         28        689         39     18.100      0.068      0.286  その長い屋根には七十本以上の数と斧が並び、後街には別の市立があり。つまりここを通ったらネギめちゃ
+     jfk.wav         11         97         20         29        461         30     15.900      0.055      0.000  And so, my fellow Americans, ask not what your c
+  zh-fleurs1852.wav     15.420        135         38         33        822         52     16.100      0.067      0.133  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  zh-fleurs1883.wav     13.860        122         23         31        577         34     17.500      0.054      0.324  桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+  zh-fleurs1906.wav     10.380        100         20         28        308         18     18.100      0.044      0.000  这并不是告别，这是一个篇章的结束，也是新篇章的开始。
+  zh-fleurs2006.wav      8.280         77         18         25        333         21     16.600      0.055      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
+  => median RTF 0.067  max RTF 0.106  mean CER 0.133  median ms/token 17.2
+== page-ubuntu-17b-q4.log
+  env: ep=webgpu adapter={'vendor': 'nvidia', 'architecture': 'lovelace', 'device': '', 'description': ''} f16=False threads=1 ua=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
+  load: {'tokenizerAndEmbedMs': 2976, 'encoderMs': 13491, 'initMs': 10231, 'stepMs': 475, 'totalMs': 27173}
+        clip   audioSec      melMs  encoderMs  prefillMs   decodeMs  genTokens msPerToken        rtf        cer  text
+  ja-cv0.wav [cold]      9.900        151        800        146        953         46     21.200      0.207      0.234  あの八日の屋根の屋上には十枚ほどの瓦が箱の蓋のように開く仕掛けになっていて、その下に屋根裏の秘密
+  ja-cv0.wav      9.900        126         35         46        842         46     18.700      0.106      0.234  あの八日の屋根の屋上には十枚ほどの瓦が箱の蓋のように開く仕掛けになっていて、その下に屋根裏の秘密
+  ja-cv1.wav      8.570        118         30         45        733         37     20.400      0.108      0.093  私たちは無一文で結婚しなければならないし、家計を無から作り上げなければならないのです。先生、村に
+  ja-cv2.wav      5.330        137         22         42        515         28     19.100      0.134      0.026  いくら山を掘り返しても、どこかで見たような面白味のないものしか見つからなかった。
+  ja-cv3.wav      5.980         62         21         43        391         21     19.600      0.086      0.036  知性は構成されたものによって所有のものを超える力であるが。
+  ja-fleurs1813.wav     12.840        128         40         55       1220         60     20.700      0.112      0.014  バルセアナの公用語はカタルーニャ語とスペイン語です。約半数がカタルーニャ語を好み、大多数がカタル
+  ja-fleurs1828.wav     10.440        103         32         46        510         28     18.900      0.066      0.111  インターネットで適体的環境構成について検索すると、おそらく現地企業の住所が出てくるでしょう。
+  ja-fleurs1834.wav     14.220        147         33         60        684         37         19      0.065      0.000  また、北側に行くなら、世界的に有名なマリア像の聖地であるファティマの聖母の聖域神社を訪れましょう
+  ja-fleurs1869.wav     12.540        127         32         53        824         42     20.100      0.083      0.143  その長い顎には70本以上の鋭い歯が並び、口蓋には別の支離石があり、つまりここを通ったらネギメじゃ
+     jfk.wav         11        109         29         47        540         30     18.600      0.066      0.000  And so, my fellow Americans, ask not what your c
+  zh-fleurs1852.wav     15.420        150         40         56       1042         53         20      0.084      0.084  适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上
+  zh-fleurs1883.wav     13.860        136         33         58        646         34     19.600      0.063      0.324  桥下垂直净空十五米，该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+  zh-fleurs1906.wav     10.380         99         27         47        384         19     21.300      0.054      0.000  这并不是告别，这是一个篇章的结束，也是新篇章的开始。
+  zh-fleurs2006.wav      8.280         82         30         43        395         21     19.800      0.066      0.000  钙、钾等元素属于金属，银和金等元素当然也是金属。
+  => median RTF 0.083  max RTF 0.134  mean CER 0.082  median ms/token 19.6
 == page-mac-06b-q4f16-r3.log
   env: ep=webgpu adapter={'vendor': 'apple', 'architecture': 'metal-3', 'device': '', 'description': ''} f16=True threads=1 ua=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
   load: {'tokenizerAndEmbedMs': 1533, 'encoderMs': 3897, 'initMs': 3103, 'stepMs': 116, 'totalMs': 8650}
@@ -126,6 +164,27 @@ median prefill:  0.6B 43 ms  1.7B 63 ms;  median encoder: 0.6B 32 ms  1.7B 42 ms
 median RTF:      0.6B 0.075  1.7B 0.093
 mean CER:        0.6B 0.126  1.7B 0.075   (ja clips: 0.6B 0.147  1.7B 0.070)
 load total:      0.6B 3536 ms  1.7B 5315 ms  (encoder 2470/3139, init 582/1452, step 163/246)
+##### paired: RTX 4070 SUPER under Ubuntu, q4
+clip                    ms/tok 0.6B  ms/tok 1.7B  ratio | prefill 0.6B prefill 1.7B | enc 0.6B enc 1.7B | CER 0.6B CER 1.7B
+ja-cv0.wav                     17.9         18.7   1.04 |         26         46 |      20      35 |   0.188   0.234
+ja-cv1.wav                     17.2         20.4   1.19 |         33         45 |      23      30 |   0.148   0.093
+ja-cv2.wav                     16.7         19.1   1.14 |         21         42 |      16      22 |   0.105   0.026
+ja-cv3.wav                     18.2         19.6   1.08 |         47         43 |      14      21 |   0.107   0.036
+ja-fleurs1813.wav              16.1         20.7   1.29 |         30         55 |      34      40 |   0.324   0.014
+ja-fleurs1828.wav              17.6         18.9   1.07 |         25         46 |      19      32 |   0.067   0.111
+ja-fleurs1834.wav              16.2         19.0   1.17 |         29         60 |      23      33 |   0.043   0.000
+ja-fleurs1869.wav              18.1         20.1   1.11 |         28         53 |      21      32 |   0.286   0.143
+jfk.wav                        15.9         18.6   1.17 |         29         47 |      20      29 |   0.000   0.000
+zh-fleurs1852.wav              16.1         20.0   1.24 |         33         56 |      38      40 |   0.133   0.084
+zh-fleurs1883.wav              17.5         19.6   1.12 |         31         58 |      23      33 |   0.324   0.324
+zh-fleurs1906.wav              18.1         21.3   1.18 |         28         47 |      20      27 |   0.000   0.000
+zh-fleurs2006.wav              16.6         19.8   1.19 |         25         43 |      18      30 |   0.000   0.000
+
+median ms/token: 0.6B 17.2  1.7B 19.6  (median per-clip ratio 1.17)
+median prefill:  0.6B 29 ms  1.7B 47 ms;  median encoder: 0.6B 20 ms  1.7B 32 ms
+median RTF:      0.6B 0.067  1.7B 0.083
+mean CER:        0.6B 0.133  1.7B 0.082   (ja clips: 0.6B 0.159  1.7B 0.082)
+load total:      0.6B 13921 ms  1.7B 27173 ms  (encoder 8136/13491, init 3971/10231, step 217/475)
 ##### paired: Mac M4 q4f16 (run 3)
 clip                    ms/tok 0.6B  ms/tok 1.7B  ratio | prefill 0.6B prefill 1.7B | enc 0.6B enc 1.7B | CER 0.6B CER 1.7B
 ja-cv0.wav                     15.9         23.2   1.46 |         90        216 |      76     107 |   0.203   0.234
@@ -147,7 +206,7 @@ median prefill:  0.6B 96 ms  1.7B 234 ms;  median encoder: 0.6B 79 ms  1.7B 112 
 median RTF:      0.6B 0.076  1.7B 0.111
 mean CER:        0.6B 0.127  1.7B 0.080   (ja clips: 0.6B 0.149  1.7B 0.079)
 load total:      0.6B 8650 ms  1.7B 18368 ms  (encoder 3897/6247, init 3103/9095, step 116/160)
-##### paired: Win 4070 q4f16 (1.7B partial, 7 clips, unpaired box state)
+##### paired: RTX 4070 SUPER under Windows, q4f16 (1.7B partial, 7 clips)
 clip                    ms/tok 0.6B  ms/tok 1.7B  ratio | prefill 0.6B prefill 1.7B | enc 0.6B enc 1.7B | CER 0.6B CER 1.7B
 ja-cv0.wav                     22.5         17.8   0.79 |         38         49 |      26      29 |   0.188   0.234
 ja-cv1.wav                     20.8         16.9   0.81 |         35         56 |      21      45 |   0.130   0.148
@@ -176,8 +235,11 @@ system MemAvailable: first=109960 MB  min=100661 MB  steady=100793 MB  -> run co
 utility   first=   277 MB  peak=   344 MB  steady=   342 MB  last=   277 MB  samples=43
 zygote    first=   148 MB  peak=   222 MB  steady=   222 MB  last=   148 MB  samples=43
 (steady window: 13 samples while the GPU process was loaded)
+##### memory: RTX 4070 SUPER under Ubuntu (nvidia-smi total used)
+1474 samples; GPU memory used: baseline 896 MiB, peak 4112 MiB (+3216), steady 4021 MiB (+3125)
+921 samples; GPU memory used: baseline 904 MiB, peak 5911 MiB (+5007), steady 5803 MiB (+4899)
 ##### memory: Mac run 3 (footprint of the harness GPU process)
 samples=711 idle(min)=0 MB  peak=2253 MB  steady(last third while loaded)=2216 MB  -> model cost: peak 2253 MB, steady 2216 MB
 samples=811 idle(min)=0 MB  peak=3905 MB  steady(last third while loaded)=3857 MB  -> model cost: peak 3905 MB, steady 3857 MB
-##### memory: Win 0.6B (peak only)
+##### memory: Windows 0.6B (dedicated, peak only)
 253 samples; peak chrome dedicated GPU memory: sum 2,348 MB, largest process 1,918 MB (pid_16316_luid_0x00000000_0x0000d59a_phys_0)
