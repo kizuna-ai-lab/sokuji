@@ -693,8 +693,18 @@
     "remove": "엔진 제거",
     "removeConfirm": "엔진을 제거하고 디스크 공간을 확보하시겠습니까?",
     "unsupported": "이 장치에서는 로컬 추론을 지원하지 않습니다",
-    "devMode": "개발 모드 · 로컬 venv",
-    "installHint": "모델을 찾아보고 다운로드하려면 엔진을 설치하세요"
+    "installHint": "모델을 찾아보고 다운로드하려면 엔진을 설치하세요",
+    "status": {
+      "native": "네이티브 {{version}}",
+      "devVenv": "dev venv",
+      "starting": "엔진 {{version}} · 시작 중…",
+      "notInstalled": "엔진이 설치되지 않음",
+      "updateRequired": "엔진 업데이트 {{from}} → {{to}}",
+      "downloadPaused": "다운로드 일시중지",
+      "downloading": "다운로드 중 {{pct}}%",
+      "error": "엔진 오류",
+      "unavailable": "엔진 사용 불가"
+    }
   },
   "models": {
     "deletePartial": "부분 파일 삭제",

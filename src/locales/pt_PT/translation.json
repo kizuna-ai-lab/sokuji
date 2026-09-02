@@ -693,8 +693,18 @@
     "remove": "Remover motor",
     "removeConfirm": "Remover o motor e libertar espaço em disco?",
     "unsupported": "A inferência local não é suportada neste dispositivo",
-    "devMode": "Modo de desenvolvimento · venv local",
-    "installHint": "Instale o motor para explorar e transferir modelos"
+    "installHint": "Instale o motor para explorar e transferir modelos",
+    "status": {
+      "native": "nativo {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Motor {{version}} · a iniciar…",
+      "notInstalled": "Motor não instalado",
+      "updateRequired": "Atualização do motor {{from}} → {{to}}",
+      "downloadPaused": "Transferência em pausa",
+      "downloading": "A transferir {{pct}}%",
+      "error": "Erro do motor",
+      "unavailable": "Motor indisponível"
+    }
   },
   "models": {
     "deletePartial": "Eliminar ficheiros parciais",

@@ -693,8 +693,18 @@
     "remove": "إزالة المحرك",
     "removeConfirm": "إزالة المحرك وتحرير مساحة القرص؟",
     "unsupported": "الاستدلال المحلي غير مدعوم على هذا الجهاز",
-    "devMode": "وضع التطوير · venv محلي",
-    "installHint": "ثبّت المحرك لتصفح النماذج وتنزيلها"
+    "installHint": "ثبّت المحرك لتصفح النماذج وتنزيلها",
+    "status": {
+      "native": "أصلي {{version}}",
+      "devVenv": "dev venv",
+      "starting": "المحرك {{version}} · جارٍ البدء…",
+      "notInstalled": "المحرك غير مثبت",
+      "updateRequired": "تحديث المحرك {{from}} → {{to}}",
+      "downloadPaused": "التنزيل متوقف مؤقتًا",
+      "downloading": "جارٍ التنزيل {{pct}}%",
+      "error": "خطأ في المحرك",
+      "unavailable": "المحرك غير متاح"
+    }
   },
   "models": {
     "deletePartial": "حذف الملفات الجزئية",

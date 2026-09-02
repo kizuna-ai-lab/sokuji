@@ -213,4 +213,37 @@ describe('StoragePage (native)', () => {
     fireEvent.click(screen.getByTestId('storage-delete-qwen2.5-0.5b'));
     expect(screen.getByTestId('storage-confirm').textContent).toMatch(/falls back to/);
   });
+
+  // Task (design amendment): the engine's ready-state "on disk · Remove
+  // engine" row moved out of EngineSection's card and onto this page (the
+  // card renders nothing once the sidecar is healthy — see EngineSection.tsx).
+  it('native storage shows engine size and remove', () => {
+    const removeBundle = vi.fn(async () => {});
+    useNativeModelStore.setState({
+      catalog: CATALOG, statuses: {},
+      bundleStatus: 'ready', bundleVersion: '0.2.0', bundleDevVenv: false,
+      bundleInstalledSize: 5 * 1024 ** 3, removeBundle,
+    } as never);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<StoragePage provider="native" />);
+    const engineRow = screen.getByTestId('storage-engine-row');
+    expect(engineRow).toHaveTextContent('Engine 0.2.0');
+    expect(engineRow).toHaveTextContent('5.0 GB on disk');
+    fireEvent.click(screen.getByRole('button', { name: /Remove engine/ }));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(removeBundle).toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it('no engine row for wasm storage, or when the native engine is not ready', () => {
+    useNativeModelStore.setState({
+      catalog: CATALOG, statuses: {}, bundleStatus: 'absent', bundleVersion: null,
+    } as never);
+    const { rerender } = render(<StoragePage provider="native" />);
+    expect(screen.queryByTestId('storage-engine-row')).toBeNull();
+
+    useNativeModelStore.setState({ bundleStatus: 'ready', bundleVersion: '0.2.0' } as never);
+    rerender(<StoragePage provider="wasm" />);
+    expect(screen.queryByTestId('storage-engine-row')).toBeNull();
+  });
 });

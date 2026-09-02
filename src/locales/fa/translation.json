@@ -693,8 +693,18 @@
     "remove": "حذف موتور",
     "removeConfirm": "موتور حذف شود و فضای دیسک آزاد گردد؟",
     "unsupported": "استنتاج محلی روی این دستگاه پشتیبانی نمی‌شود",
-    "devMode": "حالت توسعه · venv محلی",
-    "installHint": "برای مرور و دانلود مدل‌ها، موتور را نصب کنید"
+    "installHint": "برای مرور و دانلود مدل‌ها، موتور را نصب کنید",
+    "status": {
+      "native": "بومی {{version}}",
+      "devVenv": "dev venv",
+      "starting": "موتور {{version}} · در حال شروع…",
+      "notInstalled": "موتور نصب نشده است",
+      "updateRequired": "به‌روزرسانی موتور {{from}} → {{to}}",
+      "downloadPaused": "دانلود متوقف شد",
+      "downloading": "در حال دانلود {{pct}}%",
+      "error": "خطای موتور",
+      "unavailable": "موتور در دسترس نیست"
+    }
   },
   "models": {
     "deletePartial": "حذف فایل‌های ناقص",

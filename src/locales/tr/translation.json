@@ -693,8 +693,18 @@
     "remove": "Motoru kaldır",
     "removeConfirm": "Motor kaldırılsın ve disk alanı boşaltılsın mı?",
     "unsupported": "Bu cihazda yerel çıkarım desteklenmiyor",
-    "devMode": "Geliştirme modu · yerel venv",
-    "installHint": "Modellere göz atmak ve indirmek için motoru kurun"
+    "installHint": "Modellere göz atmak ve indirmek için motoru kurun",
+    "status": {
+      "native": "yerel {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Motor {{version}} · başlatılıyor…",
+      "notInstalled": "Motor kurulu değil",
+      "updateRequired": "Motor güncellemesi {{from}} → {{to}}",
+      "downloadPaused": "İndirme duraklatıldı",
+      "downloading": "İndiriliyor {{pct}}%",
+      "error": "Motor hatası",
+      "unavailable": "Motor kullanılamıyor"
+    }
   },
   "models": {
     "deletePartial": "Kısmi dosyaları sil",

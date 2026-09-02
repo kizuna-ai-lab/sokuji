@@ -1,0 +1,138 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNativeModelStore, useNativeEngineInfo } from '../../../stores/nativeModelStore';
+import { useNavigateToSettings, useUIMode } from '../../../stores/settingsStore';
+
+/** Proper-noun/acronym backend labels — kept out of i18n like the app's other
+ *  technical tokens (framework names, GB/MB, tok/s — see nativeCatalog.ts's
+ *  FRAMEWORK_LABELS and formatRtf/formatTps). */
+const BACKEND_LABELS: Record<string, string> = { vulkan: 'Vulkan', metal: 'Metal', cpu: 'CPU' };
+const backendLabel = (kind: string): string => BACKEND_LABELS[kind] ?? kind;
+
+type DotKind = 'ready' | 'hollow' | 'warn' | 'error';
+
+/**
+ * One-line engine status shown under the provider picker for local_native:
+ * the installed engine (sidecar bundle) version, the sokuji-native runtime
+ * version, its backend and device once ready, or an actionable one-liner for
+ * every other bundle/sidecar state.
+ *
+ * Reads the native store directly — the same shape as its sibling
+ * EngineSection — so the caller only decides WHETHER to mount it
+ * (`provider === Provider.LOCAL_NATIVE`); it takes no props.
+ *
+ * Clicking opens the Engine page, but only where that navigation already
+ * exists: Advanced mode's provider tab renders the Engine surface
+ * unconditionally, so switching to it (`navigateToSettings('provider')`) is
+ * enough. Simple mode has no equivalent — its engine surface only opens via
+ * a concrete (direction, stage) slot deep-link (see ProviderSection's
+ * `openSlot` / SimpleSettings' `engineOpen`), and this status line has no
+ * slot to offer — so the line stays a plain, non-interactive status there
+ * rather than inventing a new navigation path.
+ */
+export const EngineStatusLine: React.FC = () => {
+  const { t } = useTranslation();
+  const {
+    bundleStatus, bundleVersion, bundleRequiredVersion, bundleDevVenv,
+    bundleProgress, bundlePhase, sidecarStatus,
+  } = useNativeModelStore();
+  const engineInfo = useNativeEngineInfo();
+  const navigateToSettings = useNavigateToSettings();
+  const uiMode = useUIMode();
+  const isSimpleMode = uiMode === 'basic';
+
+  if (bundleStatus === 'unknown' || bundleStatus === 'unsupported') return null;
+
+  const devVenvLabel = t('engine.status.devVenv', 'dev venv');
+  const version = bundleVersion ?? (bundleDevVenv ? devVenvLabel : '');
+
+  let dot: DotKind;
+  let text: string;
+  let device: string | null = null;
+  let mono = false;
+  let chevron = false;
+
+  if (sidecarStatus === 'ready') {
+    dot = 'ready';
+    const parts = [t('engine.ready', 'Engine {{version}}', { version })];
+    if (engineInfo?.nativeVersion) {
+      parts.push(t('engine.status.native', 'native {{version}}', { version: engineInfo.nativeVersion }));
+    }
+    const backend = engineInfo?.preferredDevice?.kind ? backendLabel(engineInfo.preferredDevice.kind) : null;
+    if (backend) parts.push(backend);
+    const rawDevice = engineInfo?.preferredDevice?.description ?? null;
+    // Omit a device string that just repeats the backend label (e.g. a CPU
+    // lane whose "device" is literally "CPU") — nothing new to say.
+    device = rawDevice && rawDevice !== backend ? rawDevice : null;
+    mono = true;
+    text = parts.join(' · ');
+  } else if (sidecarStatus === 'starting' || (sidecarStatus === 'idle' && bundleStatus === 'ready')) {
+    dot = 'hollow';
+    mono = true;
+    text = t('engine.status.starting', 'Engine {{version}} · starting…', { version });
+  } else if (bundleStatus === 'absent') {
+    dot = 'hollow';
+    chevron = true;
+    text = t('engine.status.notInstalled', 'Engine not installed');
+  } else if (bundleStatus === 'mismatch') {
+    dot = 'warn';
+    chevron = true;
+    mono = true;
+    text = t('engine.status.updateRequired', 'Engine update {{from}} → {{to}}',
+      { from: bundleVersion, to: bundleRequiredVersion });
+  } else if (bundleStatus === 'paused') {
+    dot = 'warn';
+    chevron = true;
+    text = t('engine.status.downloadPaused', 'Download paused');
+  } else if (bundleStatus === 'installing') {
+    dot = 'warn';
+    chevron = true;
+    if (bundlePhase === 'verify') {
+      text = t('engine.verifying', 'Verifying…');
+    } else if (bundlePhase === 'extract') {
+      text = t('engine.extracting', 'Extracting…');
+    } else {
+      const pct = bundleProgress.total > 0
+        ? Math.min(100, Math.round((bundleProgress.downloaded / bundleProgress.total) * 100))
+        : 0;
+      mono = true;
+      text = t('engine.status.downloading', 'Downloading {{pct}}%', { pct });
+    }
+  } else if (bundleStatus === 'error') {
+    dot = 'error';
+    chevron = true;
+    text = t('engine.status.error', 'Engine error');
+  } else if (sidecarStatus === 'unavailable') {
+    dot = 'error';
+    chevron = true;
+    text = t('engine.status.unavailable', 'Engine unavailable');
+  } else {
+    // No other combination is informative or actionable yet (e.g. bundle
+    // 'ready' with a sidecarStatus this component doesn't otherwise handle).
+    return null;
+  }
+
+  const clickable = !isSimpleMode;
+  const fullText = device ? `${text} · ${device}` : text;
+  const activate = () => navigateToSettings('provider');
+
+  return (
+    <div
+      className={`engine-status-line${clickable ? ' engine-status-line--clickable' : ''}`}
+      title={fullText}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={clickable ? activate : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } } : undefined}
+    >
+      <span className={`engine-status-line__dot engine-status-line__dot--${dot}`} />
+      <span className={`engine-status-line__text${mono ? ' engine-status-line__text--mono' : ''}`}>
+        {text}
+        {device && <span className="engine-status-line__device"> · {device}</span>}
+      </span>
+      {chevron && clickable && <span className="engine-status-line__chevron">›</span>}
+    </div>
+  );
+};
+
+export default EngineStatusLine;

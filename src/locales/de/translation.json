@@ -693,8 +693,18 @@
     "remove": "Engine entfernen",
     "removeConfirm": "Engine entfernen und Speicherplatz freigeben?",
     "unsupported": "Lokale Inferenz wird auf diesem Gerät nicht unterstützt",
-    "devMode": "Entwicklungsmodus · lokales venv",
-    "installHint": "Installieren Sie die Engine, um Modelle zu durchsuchen und herunterzuladen"
+    "installHint": "Installieren Sie die Engine, um Modelle zu durchsuchen und herunterzuladen",
+    "status": {
+      "native": "nativ {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Engine {{version}} · wird gestartet…",
+      "notInstalled": "Engine nicht installiert",
+      "updateRequired": "Engine-Update {{from}} → {{to}}",
+      "downloadPaused": "Download pausiert",
+      "downloading": "Wird heruntergeladen {{pct}}%",
+      "error": "Engine-Fehler",
+      "unavailable": "Engine nicht verfügbar"
+    }
   },
   "models": {
     "deletePartial": "Unvollständige Dateien löschen",

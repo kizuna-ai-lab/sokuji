@@ -693,8 +693,18 @@
     "remove": "エンジンを削除",
     "removeConfirm": "エンジンを削除してディスク容量を解放しますか?",
     "unsupported": "このデバイスはローカル推論に対応していません",
-    "devMode": "開発モード · ローカル venv",
-    "installHint": "エンジンをインストールするとモデルを閲覧・ダウンロードできます"
+    "installHint": "エンジンをインストールするとモデルを閲覧・ダウンロードできます",
+    "status": {
+      "native": "ネイティブ {{version}}",
+      "devVenv": "dev venv",
+      "starting": "エンジン {{version}} · 起動中…",
+      "notInstalled": "エンジン未インストール",
+      "updateRequired": "エンジン更新 {{from}} → {{to}}",
+      "downloadPaused": "ダウンロード一時停止",
+      "downloading": "ダウンロード中 {{pct}}%",
+      "error": "エンジンエラー",
+      "unavailable": "エンジン利用不可"
+    }
   },
   "models": {
     "deletePartial": "未完了のファイルを削除",

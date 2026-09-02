@@ -693,8 +693,18 @@
     "remove": "ইঞ্জিন সরান",
     "removeConfirm": "ইঞ্জিন সরিয়ে ডিস্কের জায়গা খালি করবেন?",
     "unsupported": "এই ডিভাইসে স্থানীয় ইনফারেন্স সমর্থিত নয়",
-    "devMode": "ডেভেলপমেন্ট মোড · স্থানীয় venv",
-    "installHint": "মডেল ব্রাউজ ও ডাউনলোড করতে ইঞ্জিন ইনস্টল করুন"
+    "installHint": "মডেল ব্রাউজ ও ডাউনলোড করতে ইঞ্জিন ইনস্টল করুন",
+    "status": {
+      "native": "নেটিভ {{version}}",
+      "devVenv": "dev venv",
+      "starting": "ইঞ্জিন {{version}} · শুরু হচ্ছে…",
+      "notInstalled": "ইঞ্জিন ইনস্টল করা নেই",
+      "updateRequired": "ইঞ্জিন আপডেট {{from}} → {{to}}",
+      "downloadPaused": "ডাউনলোড বিরতিতে আছে",
+      "downloading": "ডাউনলোড হচ্ছে {{pct}}%",
+      "error": "ইঞ্জিন ত্রুটি",
+      "unavailable": "ইঞ্জিন অনুপলব্ধ"
+    }
   },
   "models": {
     "deletePartial": "আংশিক ফাইল মুছুন",

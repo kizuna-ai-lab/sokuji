@@ -693,8 +693,18 @@
     "remove": "Engine verwijderen",
     "removeConfirm": "Engine verwijderen en schijfruimte vrijmaken?",
     "unsupported": "Lokale inferentie wordt niet ondersteund op dit apparaat",
-    "devMode": "Ontwikkelmodus · lokale venv",
-    "installHint": "Installeer de engine om modellen te bekijken en te downloaden"
+    "installHint": "Installeer de engine om modellen te bekijken en te downloaden",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Engine {{version}} · start op…",
+      "notInstalled": "Engine niet geïnstalleerd",
+      "updateRequired": "Engine-update {{from}} → {{to}}",
+      "downloadPaused": "Download gepauzeerd",
+      "downloading": "Downloaden {{pct}}%",
+      "error": "Engine-fout",
+      "unavailable": "Engine niet beschikbaar"
+    }
   },
   "models": {
     "deletePartial": "Gedeeltelijke bestanden verwijderen",

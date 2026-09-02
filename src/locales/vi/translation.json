@@ -693,8 +693,18 @@
     "remove": "Gỡ công cụ",
     "removeConfirm": "Gỡ công cụ và giải phóng dung lượng ổ đĩa?",
     "unsupported": "Suy luận cục bộ không được hỗ trợ trên thiết bị này",
-    "devMode": "Chế độ phát triển · venv cục bộ",
-    "installHint": "Cài đặt công cụ để duyệt và tải xuống mô hình"
+    "installHint": "Cài đặt công cụ để duyệt và tải xuống mô hình",
+    "status": {
+      "native": "gốc {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Công cụ {{version}} · đang khởi động…",
+      "notInstalled": "Công cụ chưa được cài đặt",
+      "updateRequired": "Cập nhật công cụ {{from}} → {{to}}",
+      "downloadPaused": "Đã tạm dừng tải xuống",
+      "downloading": "Đang tải xuống {{pct}}%",
+      "error": "Lỗi công cụ",
+      "unavailable": "Công cụ không khả dụng"
+    }
   },
   "models": {
     "deletePartial": "Xóa các tệp tải dở",

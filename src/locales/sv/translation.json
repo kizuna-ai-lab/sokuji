@@ -693,8 +693,18 @@
     "remove": "Ta bort motor",
     "removeConfirm": "Ta bort motorn och frigöra diskutrymme?",
     "unsupported": "Lokal inferens stöds inte på den här enheten",
-    "devMode": "Utvecklingsläge · lokal venv",
-    "installHint": "Installera motorn för att bläddra bland och ladda ner modeller"
+    "installHint": "Installera motorn för att bläddra bland och ladda ner modeller",
+    "status": {
+      "native": "nativ {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Motor {{version}} · startar…",
+      "notInstalled": "Motorn är inte installerad",
+      "updateRequired": "Motoruppdatering {{from}} → {{to}}",
+      "downloadPaused": "Nedladdning pausad",
+      "downloading": "Laddar ner {{pct}}%",
+      "error": "Motorfel",
+      "unavailable": "Motorn är inte tillgänglig"
+    }
   },
   "models": {
     "deletePartial": "Radera ofullständiga filer",

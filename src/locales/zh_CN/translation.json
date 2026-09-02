@@ -693,8 +693,18 @@
     "remove": "删除引擎",
     "removeConfirm": "删除引擎并释放磁盘空间?",
     "unsupported": "此设备不支持本地推理",
-    "devMode": "开发模式 · 本地 venv",
-    "installHint": "安装引擎后可浏览和下载模型"
+    "installHint": "安装引擎后可浏览和下载模型",
+    "status": {
+      "native": "原生 {{version}}",
+      "devVenv": "dev venv",
+      "starting": "引擎 {{version}} · 启动中…",
+      "notInstalled": "引擎未安装",
+      "updateRequired": "引擎更新 {{from}} → {{to}}",
+      "downloadPaused": "下载已暂停",
+      "downloading": "下载中 {{pct}}%",
+      "error": "引擎错误",
+      "unavailable": "引擎不可用"
+    }
   },
   "models": {
     "deletePartial": "删除已导入的部分文件",

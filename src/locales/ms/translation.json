@@ -693,8 +693,18 @@
     "remove": "Buang enjin",
     "removeConfirm": "Buang enjin dan bebaskan ruang cakera?",
     "unsupported": "Inferens tempatan tidak disokong pada peranti ini",
-    "devMode": "Mod pembangunan · venv tempatan",
-    "installHint": "Pasang enjin untuk melayari dan memuat turun model"
+    "installHint": "Pasang enjin untuk melayari dan memuat turun model",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Enjin {{version}} · memulakan…",
+      "notInstalled": "Enjin tidak dipasang",
+      "updateRequired": "Kemas kini enjin {{from}} → {{to}}",
+      "downloadPaused": "Muat turun dijeda",
+      "downloading": "Memuat turun {{pct}}%",
+      "error": "Ralat enjin",
+      "unavailable": "Enjin tidak tersedia"
+    }
   },
   "models": {
     "deletePartial": "Padam fail separa",

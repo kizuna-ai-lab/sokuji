@@ -693,8 +693,18 @@
     "remove": "Supprimer le moteur",
     "removeConfirm": "Supprimer le moteur et libérer de l'espace disque ?",
     "unsupported": "L'inférence locale n'est pas prise en charge sur cet appareil",
-    "devMode": "Mode développement · venv local",
-    "installHint": "Installez le moteur pour parcourir et télécharger les modèles"
+    "installHint": "Installez le moteur pour parcourir et télécharger les modèles",
+    "status": {
+      "native": "natif {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Moteur {{version}} · démarrage…",
+      "notInstalled": "Moteur non installé",
+      "updateRequired": "Mise à jour du moteur {{from}} → {{to}}",
+      "downloadPaused": "Téléchargement en pause",
+      "downloading": "Téléchargement {{pct}}%",
+      "error": "Erreur du moteur",
+      "unavailable": "Moteur indisponible"
+    }
   },
   "models": {
     "deletePartial": "Supprimer les fichiers partiels",

@@ -693,8 +693,18 @@
     "remove": "Usuń silnik",
     "removeConfirm": "Usunąć silnik i zwolnić miejsce na dysku?",
     "unsupported": "Lokalne wnioskowanie nie jest obsługiwane na tym urządzeniu",
-    "devMode": "Tryb deweloperski · lokalne venv",
-    "installHint": "Zainstaluj silnik, aby przeglądać i pobierać modele"
+    "installHint": "Zainstaluj silnik, aby przeglądać i pobierać modele",
+    "status": {
+      "native": "natywny {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Silnik {{version}} · uruchamianie…",
+      "notInstalled": "Silnik niezainstalowany",
+      "updateRequired": "Aktualizacja silnika {{from}} → {{to}}",
+      "downloadPaused": "Pobieranie wstrzymane",
+      "downloading": "Pobieranie {{pct}}%",
+      "error": "Błąd silnika",
+      "unavailable": "Silnik niedostępny"
+    }
   },
   "models": {
     "deletePartial": "Usuń niekompletne pliki",

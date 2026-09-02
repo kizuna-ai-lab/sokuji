@@ -693,8 +693,18 @@
     "remove": "הסר מנוע",
     "removeConfirm": "להסיר את המנוע ולפנות מקום בדיסק?",
     "unsupported": "הסקה מקומית אינה נתמכת במכשיר זה",
-    "devMode": "מצב פיתוח · venv מקומי",
-    "installHint": "התקן את המנוע כדי לעיין במודלים ולהוריד אותם"
+    "installHint": "התקן את המנוע כדי לעיין במודלים ולהוריד אותם",
+    "status": {
+      "native": "מקורי {{version}}",
+      "devVenv": "dev venv",
+      "starting": "מנוע {{version}} · מתחיל…",
+      "notInstalled": "המנוע לא מותקן",
+      "updateRequired": "עדכון מנוע {{from}} → {{to}}",
+      "downloadPaused": "ההורדה מושהית",
+      "downloading": "מוריד {{pct}}%",
+      "error": "שגיאת מנוע",
+      "unavailable": "המנוע אינו זמין"
+    }
   },
   "models": {
     "deletePartial": "מחק קבצים חלקיים",

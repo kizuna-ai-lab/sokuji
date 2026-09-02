@@ -304,6 +304,29 @@
 }
 
 .engine-storage-page {
+  // The engine (sidecar bundle) itself — one row above the model list.
+  // Moved here from EngineSection's ready-state row (that card renders
+  // nothing once the engine is healthy; see EngineSection.tsx).
+  &__engine {
+    @include vars.option-row;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    color: vars.$text-secondary;
+
+    &-version { font-size: 13px; color: vars.$text-primary; font-weight: vars.$weight-medium; }
+    &-size { font-size: vars.$font-caption; color: vars.$text-muted; }
+
+    &-remove {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 4px;
+      background: none; border: none; padding: 0; cursor: pointer;
+      color: vars.$text-muted; font-size: vars.$font-caption;
+      transition: color vars.$transition-fast;
+
+      &:hover:not(:disabled) { color: vars.$color-error; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+
   &__summary {
     display: flex; align-items: center; gap: 8px; padding: 8px 4px;
     font-size: 13px; color: vars.$text-muted;

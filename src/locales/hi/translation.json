@@ -693,8 +693,18 @@
     "remove": "इंजन हटाएं",
     "removeConfirm": "इंजन हटाएं और डिस्क स्थान खाली करें?",
     "unsupported": "इस डिवाइस पर स्थानीय इंफरेंस समर्थित नहीं है",
-    "devMode": "डेवलपमेंट मोड · स्थानीय venv",
-    "installHint": "मॉडल ब्राउज़ और डाउनलोड करने के लिए इंजन इंस्टॉल करें"
+    "installHint": "मॉडल ब्राउज़ और डाउनलोड करने के लिए इंजन इंस्टॉल करें",
+    "status": {
+      "native": "नेटिव {{version}}",
+      "devVenv": "dev venv",
+      "starting": "इंजन {{version}} · शुरू हो रहा है…",
+      "notInstalled": "इंजन इंस्टॉल नहीं है",
+      "updateRequired": "इंजन अपडेट {{from}} → {{to}}",
+      "downloadPaused": "डाउनलोड रुका हुआ है",
+      "downloading": "डाउनलोड हो रहा है {{pct}}%",
+      "error": "इंजन त्रुटि",
+      "unavailable": "इंजन उपलब्ध नहीं है"
+    }
   },
   "models": {
     "deletePartial": "आंशिक फ़ाइलें हटाएं",

@@ -693,8 +693,18 @@
     "remove": "Alisin ang engine",
     "removeConfirm": "Alisin ang engine at magbakante ng disk space?",
     "unsupported": "Hindi sinusuportahan ang local inference sa device na ito",
-    "devMode": "Development mode · local venv",
-    "installHint": "I-install ang engine para mag-browse at mag-download ng mga modelo"
+    "installHint": "I-install ang engine para mag-browse at mag-download ng mga modelo",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Engine {{version}} · nagsisimula…",
+      "notInstalled": "Hindi naka-install ang engine",
+      "updateRequired": "Update ng engine {{from}} → {{to}}",
+      "downloadPaused": "Naka-pause ang download",
+      "downloading": "Dina-download {{pct}}%",
+      "error": "Error sa engine",
+      "unavailable": "Hindi available ang engine"
+    }
   },
   "models": {
     "deletePartial": "I-delete ang mga bahagyang file",
