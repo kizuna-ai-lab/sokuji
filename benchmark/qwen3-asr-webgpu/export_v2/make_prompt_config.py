@@ -20,7 +20,8 @@ d = sys.argv[1]
 embed_dtype = sys.argv[2] if len(sys.argv) > 2 else "int8"
 model_id = sys.argv[3] if len(sys.argv) > 3 else "Qwen/Qwen3-ASR-0.6B"
 tok = AutoTokenizer.from_pretrained(d)
-dec = json.load(open(os.path.join(d, "config.json")))["decoder"]
+with open(os.path.join(d, "config.json")) as f:
+    dec = json.load(f)["decoder"]
 vocab, hidden = dec["vocab_size"], dec["hidden_size"]
 
 ids0 = build_prompt_ids(0)  # no audio pads: prefix and suffix back to back
@@ -62,7 +63,8 @@ cfg = {
                   "weights": "decoder_weights.q4f16.data", "required_features": ["shader-f16"]},
     },
 }
-json.dump(cfg, open(os.path.join(d, "prompt_config.json"), "w"), indent=1, ensure_ascii=False)
+with open(os.path.join(d, "prompt_config.json"), "w") as f:
+    json.dump(cfg, f, indent=1, ensure_ascii=False)
 print("prefix", prefix)
 print("suffix", suffix)
 print("language prefixes:", {k: v for k, v in list(lang_prefix.items())[:4]}, "... 16 total, embedding:", embed_dtype)

@@ -25,7 +25,7 @@ describe('Qwen3-ASR 1.7B (WebGPU) manifest entry', () => {
     expect(entry.multilingual).toBeFalsy();
   });
 
-  it('is the quality tier, not the default: not recommended, listed right after the 0.6B', () => {
+  it('is the quality tier, not the default: not recommended (the list splits recommended/others), sortOrder 4 among the others', () => {
     expect(entry.recommended).toBe(false);
     expect(entry.sortOrder).toBe(4);
     expect(small.recommended).toBe(true);

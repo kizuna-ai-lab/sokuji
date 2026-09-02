@@ -3,7 +3,7 @@
 # processes MB, largest chrome process MB) and prints the peaks at the end.
 # usage: powershell -File gpumem_watch.ps1 <seconds> [csv path]
 param([int]$Seconds = 120, [string]$Csv = "$PSScriptRoot\gpumem_series.csv")
-$peakSum = 0; $peakOne = 0; $peakOneName = ''; $n = 0
+$peakSum = 0; $peakOne = 0; $peakOneName = ''; $n = 0; $errors = 0; $lastError = ''
 't_ms,sum_mb,largest_mb' | Set-Content -Path $Csv
 $end = (Get-Date).AddSeconds($Seconds)
 while ((Get-Date) -lt $end) {
@@ -23,8 +23,14 @@ while ((Get-Date) -lt $end) {
     $t = [int64]((Get-Date).ToUniversalTime() - [datetime]'1970-01-01').TotalMilliseconds
     ('{0},{1:F0},{2:F0}' -f $t, ($sum/1MB), ($one/1MB)) | Add-Content -Path $Csv
     $n++
-  } catch { }
+  } catch {
+    # A failed counter read or CSV append is a lost sample, not a measurement of 0 MB.
+    $lastError = $_.Exception.Message
+    $errors++
+  }
   Start-Sleep -Milliseconds 500
 }
+if ($errors -gt 0) { Write-Warning ('{0} samples failed; last error: {1}' -f $errors, $lastError) }
+if ($n -eq 0) { Write-Error 'no sample succeeded'; exit 1 }
 '{0} samples; peak chrome dedicated GPU memory: sum {1:N0} MB, largest process {2:N0} MB ({3})' -f $n, ($peakSum/1MB), ($peakOne/1MB), $peakOneName
 nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader

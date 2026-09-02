@@ -1396,7 +1396,9 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // prompt_config.json); the quality tier: half the 0.6B's Japanese errors for ~1.2–1.4× the
   // per-token time, ~2.2× the download and about +1.4–1.8 GB of GPU memory (measurements in
   // benchmark/qwen3-asr-webgpu/results/1.7b-notes.md). Not recommended: the 0.6B stays the
-  // default, this sits right after it in the list.
+  // default pick; this is offered in the "others" group of the model list, where sortOrder 4
+  // orders it among the other non-recommended WebGPU ASR models (before Granite 1B and
+  // Voxtral 3B, which carry 5).
   {
     id: 'qwen3-asr-1.7b-webgpu',
     type: 'asr',

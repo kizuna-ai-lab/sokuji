@@ -5,7 +5,9 @@
 # usage: q4f16_v2.sh <v2 model dir>
 #   QWEN3_ASR_ONNX_DIR  andrewleech/qwen3-asr-onnx checkout (default: current directory)
 #   PY                  python with the export deps (default: $QWEN3_ASR_ONNX_DIR/.venv/bin/python)
-set -e
+# pipefail: the converter is piped through grep/tail for readable output; without it a failed
+# to_q4f16_ort.py would be hidden behind tail's exit 0 and stale graphs would be deduped/shared.
+set -eo pipefail
 D=$(cd "$1" && pwd)
 P=${QWEN3_ASR_ONNX_DIR:-$PWD}
 PY=${PY:-$P/.venv/bin/python}

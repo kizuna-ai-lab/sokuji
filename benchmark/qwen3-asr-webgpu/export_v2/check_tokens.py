@@ -38,7 +38,8 @@ def S(d, n):
 enc = S(v1, "encoder.onnx")
 s1 = {"decoder_init": S(v1, "decoder_init.onnx"), "decoder_step": S(v1, "decoder_step.onnx")}
 s2 = {"decoder_init": S(v2, f"decoder_init{suffix}.onnx"), "decoder_step": S(v2, f"decoder_step{suffix}.onnx")}
-hidden = json.load(open(os.path.join(v1, "config.json")))["decoder"]["hidden_size"]
+with open(os.path.join(v1, "config.json")) as f:
+    hidden = json.load(f)["decoder"]["hidden_size"]
 e1 = np.fromfile(os.path.join(v1, "embed_tokens.bin"), dtype=np.float32).reshape(-1, hidden)
 e2 = load_embed(v2)
 pc = load_prompt_config(v2)

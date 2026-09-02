@@ -9,12 +9,13 @@ import sys
 from collections import defaultdict
 
 samples = defaultdict(list)
-for line in open(sys.argv[1]):
-    parts = line.split()
-    if len(parts) != 3:
-        continue
-    t, typ, kb = float(parts[0]), parts[1], int(parts[2])
-    samples[(t, typ)].append(kb // 1024)
+with open(sys.argv[1]) as f:
+    for line in f:
+        parts = line.split()
+        if len(parts) != 3:
+            continue
+        t, typ, kb = float(parts[0]), parts[1], int(parts[2])
+        samples[(t, typ)].append(kb // 1024)
 per_type = defaultdict(list)
 for (t, typ), v in samples.items():
     per_type[typ].append((t, sum(v)))

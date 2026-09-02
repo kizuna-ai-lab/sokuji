@@ -6,6 +6,8 @@ label="$1"; qs="$2"
 B=$(cd "$(dirname "$0")" && pwd)
 GB10=http://192.168.1.19:8765
 URL="$GB10/index.html?$qs"
-scp -q -o BatchMode=yes run_page.py "$B/ubuntu_run_page.sh" jiangzhuo@192.168.1.13:sokuji-webgpu-spike/
+scp -q -o BatchMode=yes run_page.py "$B/ubuntu_run_page.sh" jiangzhuo@192.168.1.13:sokuji-webgpu-spike/ || exit 1
 ssh -o BatchMode=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=6 jiangzhuo@192.168.1.13 "bash sokuji-webgpu-spike/ubuntu_run_page.sh '$URL' 1200" > "page-ubuntu-$label.log" 2>&1
+status=$?
 grep -v '^STATUS' "page-ubuntu-$label.log" | grep -v '^FINAL' | cut -c1-700
+exit "$status"

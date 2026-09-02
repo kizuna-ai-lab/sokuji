@@ -11,7 +11,8 @@ import sys
 import numpy as np
 
 d = sys.argv[1]
-hidden = json.load(open(os.path.join(d, "config.json")))["decoder"]["hidden_size"]
+with open(os.path.join(d, "config.json")) as f:
+    hidden = json.load(f)["decoder"]["hidden_size"]
 w = np.fromfile(os.path.join(d, "embed_tokens.bin"), dtype=np.float32).reshape(-1, hidden)
 scales = (np.abs(w).max(axis=1) / 127.0).astype(np.float32)
 scales[scales == 0] = 1.0

@@ -7,11 +7,14 @@ import csv
 import statistics
 import sys
 
-rows = [r for r in csv.DictReader(open(sys.argv[1])) if r.get("t_ms")]
-col = next(c for c in ("harness_mb", "largest_mb", "used_mib") if rows and c in rows[0])
-vals = [float(r[col]) for r in rows]
-if not vals:
+with open(sys.argv[1], newline="") as f:
+    rows = [r for r in csv.DictReader(f) if r.get("t_ms")]
+if not rows:
     print("no samples"); sys.exit(0)
+col = next((c for c in ("harness_mb", "largest_mb", "used_mib") if c in rows[0]), None)
+if col is None:
+    raise SystemExit(f"no supported value column in {sys.argv[1]} (expected one of harness_mb, largest_mb, used_mib; got {list(rows[0])})")
+vals = [float(r[col]) for r in rows]
 peak = max(vals)
 idle = min(vals)
 plateau = [v for v in vals if v > peak * 0.5]
