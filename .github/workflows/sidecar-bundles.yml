@@ -20,7 +20,7 @@ env:
   # bundle-smoke.py) through its OWN embedded interpreter: import
   # sokuji_sidecar, probe sokuji_native, boot to the {"port": n} handshake.
   # sidecar/requirements.txt now pins the sokuji-native release wheel per
-  # platform (native-v1.0.0), so a bundle with no sokuji_native inside is a
+  # platform (native-v1.0.1), so a bundle with no sokuji_native inside is a
   # bug, not an expected state — this gate is a hard failure in every job.
   SIDECAR_SMOKE_REQUIRE_NATIVE: '1'
 
