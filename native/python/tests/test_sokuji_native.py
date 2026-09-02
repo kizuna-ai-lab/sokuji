@@ -361,15 +361,25 @@ def test_tts_moss_offline_and_clone():
 # on Metal, precisely because nothing here ever placed a TTS session on a Metal device
 # (.superpowers/metal-tts-validation.md §1, .superpowers/metal-fix-experiments.md §1).
 #
-# Gating, three independent conditions so the test disappears where it cannot mean anything:
+# Gating, four independent conditions so the test disappears where it cannot mean anything:
 #   - SK_TEST_TTS_GPU=1 (opt-in: this loads models onto a GPU, which a plain dev run
 #     of the binding tests should not do behind the developer's back);
-#   - the family's own SK_TEST_TTS_<FAMILY>_DIR, same pattern as the CPU tests above —
-#     CI caches only supertonic and moss, so the other three simply skip there;
+#   - the case's own model dir — SK_TEST_TTS_<FAMILY>_DIR for the default rung, or
+#     SK_TEST_TTS_<FAMILY>_BF16_DIR for the bf16 one (see GPU_TTS_BF16_ENV below), same
+#     pattern as the CPU tests above — CI caches only supertonic and moss at the default
+#     rung and no bf16 at all, so everything else simply skips there;
 #   - devices() reporting a non-CPU device at all. The Linux/Windows CI runners are
-#     headless with no Vulkan device, so they skip; the mac-arm64 runner always has Metal.
+#     headless with no Vulkan device, so they skip;
+#   - the device not being a PARAVIRTUAL one. The mac-arm64 runner does report a Metal
+#     device, but GitHub's macos-14 arm64 host is a VM whose GPU is "Apple Paravirtual
+#     device" — it lacks has_simdgroup_reduction, so ggml refuses NORM/RMS_NORM/ARGMAX
+#     and every family aborts there regardless of the code under test (ruling R36;
+#     catalog.py's _TTS_TIER_OVERRIDES comment has the full reasoning). CI's Metal lane
+#     therefore reports "skipped" here rather than a pass or a failure that would say
+#     nothing about real Apple silicon; Metal is validated on real hardware (M4) instead,
+#     and planner._tier_available refuses gpu-metal on that same description in production.
 #
-# One subprocess per family. A backend that lacks a kernel does not raise: ggml logs
+# One subprocess per case. A backend that lacks a kernel does not raise: ggml logs
 # "unsupported op '<OP>'" and calls GGML_ABORT, i.e. SIGABRT of the whole process, so an
 # in-process failure would take the pytest session with it and report nothing. The child
 # registers NO log sink, exactly like the rest of this file — the abort line reaching its
@@ -403,6 +413,30 @@ GPU_TTS_FAMILIES = {
     "moss_tts_nano": ("SK_TEST_TTS_MOSS_DIR", TTS_MOSS_DIR, None, False, 10.0),
     "qwen3_tts": ("SK_TEST_TTS_QWEN3_DIR", TTS_QWEN3_DIR, None, True, 30.0),
     "omnivoice": ("SK_TEST_TTS_OMNIVOICE_DIR", TTS_OMNIVOICE_DIR, None, True, 30.0),
+}
+
+# The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is
+# what every fleet validation so far loaded (q8_0 everywhere, f16 for supertonic).
+# That is NOT what a GPU machine actually resolves: `_llamacpp_variant_row` picks
+# the LARGEST quant that fits the device budget, so planner `auto` and the
+# renderer's "recommended" rung on any real GPU box (CUDA_12GB/CUDA_24GB/
+# APPLE_SILICON in sidecar/tests/test_characterization.py) is the BF16 one for
+# every family that ships it. BF16 is a distinct tensor type with its own kernel
+# coverage per backend, so a green q8_0 run says nothing about it — hence this
+# second dimension, pointed at a parallel tree of BF16 checkpoints:
+#
+#   SK_TEST_TTS_<FAMILY>_BF16_DIR=<dir holding that family's *-bf16.gguf>
+#
+# Unset => that (family, bf16) case skips, exactly like the default rung's own
+# dir does. supertonic has no entry at all: audio.cpp ships only F16 for it (its
+# Q8_0/BF16 conversions are upstream-unresolved — see catalog.py's row comment),
+# so its single rung is already the "default" case above and a bf16 case would be
+# a permanently-skipping placeholder for a file that does not exist.
+GPU_TTS_BF16_ENV = {
+    "pocket_tts": "SK_TEST_TTS_POCKET_BF16_DIR",
+    "moss_tts_nano": "SK_TEST_TTS_MOSS_BF16_DIR",
+    "qwen3_tts": "SK_TEST_TTS_QWEN3_BF16_DIR",
+    "omnivoice": "SK_TEST_TTS_OMNIVOICE_BF16_DIR",
 }
 
 _GPU_TTS_RUNNER = r'''
@@ -467,11 +501,19 @@ def _gpu_device():
     return next((d for d in sokuji_native.devices() if d.kind != "cpu"), None)
 
 
+@pytest.mark.parametrize("quant", ["default", "bf16"])
 @pytest.mark.parametrize("family", sorted(GPU_TTS_FAMILIES))
-def test_tts_synthesises_on_a_gpu_device(family):
+def test_tts_synthesises_on_a_gpu_device(family, quant):
     env_name, model_dir, preset, clones, max_seconds = GPU_TTS_FAMILIES[family]
+    # The broadest gate first, so a CPU/no-GPU run reports one reason per case rather than a
+    # mix of "no bf16 rung" and "needs SK_TEST_TTS_GPU=1" for the same absent opt-in.
     if not (HAVE_TREE and TTS_GPU):
         pytest.skip("needs a built tree and SK_TEST_TTS_GPU=1")
+    if quant == "bf16":
+        env_name = GPU_TTS_BF16_ENV.get(family)
+        if env_name is None:
+            pytest.skip(f"{family} ships no bf16 rung (see GPU_TTS_BF16_ENV)")
+        model_dir = os.environ.get(env_name)
     if not model_dir:
         pytest.skip(f"needs {env_name}")
     if clones and not TTS_SUPERTONIC_DIR:
@@ -512,16 +554,17 @@ def test_tts_synthesises_on_a_gpu_device(family):
     tail = "\n".join(stderr_lines[-80:])
     assert proc.returncode == 0, (
         f"{'abort: ' + abort_line + chr(10) if abort_line else ''}"
-        f"{family} on {device.kind} device {device.index} ({device.name} — {device.description}) "
-        f"failed: exit {proc.returncode}"
+        f"{family} [{quant}] on {device.kind} device {device.index} "
+        f"({device.name} — {device.description}) failed: exit {proc.returncode}"
         f"{' (SIGABRT — a missing backend kernel aborts the process)' if proc.returncode in (-6, 134) else ''}\n"
         f"--- stderr head (first 15) ---\n{head}\n"
         f"--- stderr tail (last 80) ---\n{tail}\n--- stdout ---\n{proc.stdout}")
 
     line = next((l for l in proc.stdout.splitlines() if l.startswith("SK_GPU_TTS_RESULT ")), None)
-    assert line, f"{family}: runner produced no result line\n--- stdout ---\n{proc.stdout}\n--- stderr tail ---\n{tail}"
+    assert line, (f"{family} [{quant}]: runner produced no result line\n"
+                  f"--- stdout ---\n{proc.stdout}\n--- stderr tail ---\n{tail}")
     got = json.loads(line[len("SK_GPU_TTS_RESULT "):])
-    print(f"  gpu-tts {family:14s} {got['device']:16s} ({device.description})  "
+    print(f"  gpu-tts {family:14s} {quant:7s} {got['device']:16s} ({device.description})  "
           f"{got['seconds']:6.2f}s audio  "
           f"{got['load_s']:7.2f}s load  {got['synth_s']:7.2f}s synth  peak={got['peak']:.3f}")
     # The child resolves the device by index; make it prove it did not silently land on the

@@ -195,6 +195,18 @@ def _write_ref_wav(path: pathlib.Path, sample_rate: int, samples: np.ndarray) ->
     sf.write(str(path), samples, sample_rate, subtype="FLOAT")
 
 
+def _nosve_signature(d: pathlib.Path) -> tuple[tuple[str, int, float], ...]:
+    """(name, size, mtime) for every file `_sve_free_copy` would put in — or has put in —
+    directory `d`, sorted. The SVE modules are filtered out on both sides so a source
+    directory and its cached copy compare equal exactly when the copy is up to date."""
+    out = []
+    for entry in sorted(d.iterdir(), key=lambda e: e.name):
+        if entry.is_file() and entry.name not in SVE_CPU_MODULES:
+            st = entry.stat()
+            out.append((entry.name, st.st_size, st.st_mtime))
+    return tuple(out)
+
+
 def _sve_free_copy(src_dir: pathlib.Path, key_file: str) -> pathlib.Path:
     """A real (non-symlink) copy of src_dir with SVE_CPU_MODULES excluded, cached under
     CACHE_DIR in a subdir keyed by a hash of src_dir's OWN resolved absolute path. A real
@@ -212,21 +224,27 @@ def _sve_free_copy(src_dir: pathlib.Path, key_file: str) -> pathlib.Path:
     libggml-vulkan.so behind too) — every later parity run against the real staged build then
     used that foreign build without any signal, producing two spurious failures. Keying the
     cache subdir by the source directory's own path makes two different sources physically
-    unable to land in the same slot, and refreshing on exact mtime-AND-size equality (not
-    `>=`) — wiping the slot's previous contents before recopying — means a refresh can never
-    leave a stale foreign file behind either."""
+    unable to land in the same slot, and wiping the slot before recopying means a refresh can
+    never leave a stale foreign file behind either.
+
+    FRESHNESS covers the WHOLE copied set, not just `key_file`. The staged tree is a
+    libsokuji_native plus a dozen ggml modules that ggml `dlopen`s at runtime by directory
+    search, so a rebuild that changes only `libggml-cpu-armv8.2_2.so` (or drops a module, or
+    adds one) changes what the parity run actually executes while leaving
+    libsokuji_native.so untouched — and a key_file-only check would happily reuse the stale
+    copy. The signature below is (name, size, mtime) for every file the copy contains,
+    computed the SAME way on both sides (shutil.copy2 preserves both), so it catches an
+    added file, a removed file, a resized file, and a same-size rewrite whose mtime is
+    older than some other file's in the directory — none of which an aggregate
+    max-mtime/total-size pair reliably would. `key_file` no longer keys anything; it is the
+    caller's assertion about which directory this is, checked loudly here."""
     resolved = src_dir.resolve()
     digest = hashlib.sha1(str(resolved).encode()).hexdigest()[:12]
     dst_dir = CACHE_DIR / f"nosve-{digest}-{resolved.name}"
-    src_key = resolved / key_file
-    dst_key = dst_dir / key_file
-    src_stat = src_key.stat()
-    fresh = (
-        dst_key.exists()
-        and dst_key.stat().st_mtime == src_stat.st_mtime
-        and dst_key.stat().st_size == src_stat.st_size
-    )
-    if not fresh:
+    assert (resolved / key_file).exists(), (
+        f"_sve_free_copy: {key_file} is missing from {resolved} — wrong directory?")
+    src_sig = _nosve_signature(resolved)
+    if not dst_dir.exists() or _nosve_signature(dst_dir) != src_sig:
         if dst_dir.exists():
             shutil.rmtree(dst_dir)
         dst_dir.mkdir(parents=True, exist_ok=True)
@@ -290,7 +308,8 @@ s.init(n_threads=cfg["threads"])
 # — mirroring native/tests/test_tts.cpp's own `for (...) if (devs[i].kind == SK_DEVICE_CPU)`
 # device pick — so which native_dir this subprocess is pointed at can never change which
 # backend actually runs the comparison.
-cpu_device = next(d for d in s.devices() if d.kind == "cpu")
+cpu_device = next((d for d in s.devices() if d.kind == "cpu"), None)
+assert cpu_device is not None, f"no CPU device in this build: {s.devices()}"
 t = s.tts_load(cfg["model_dir"], cfg["family"], device=cpu_device)
 chunks = []
 try:

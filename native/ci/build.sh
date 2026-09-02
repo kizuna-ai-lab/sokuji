@@ -33,7 +33,12 @@ cp -r "$BUILD/stage" "$ROOT/python/sokuji_native/_native"
 export SK_TEST_SAMPLE_WAV="$BUILD/_deps/transcribe-src/samples/jfk.wav"
 # -s: keep pytest from capturing stderr — a GGML_ASSERT abort otherwise dies with
 # its message trapped in the capture buffer, unrecoverable from the CI log.
-PYTHONPATH="$ROOT/python" SOKUJI_NATIVE_DIR="$BUILD/stage" "$PYTHON" -m pytest "$ROOT/python/tests" "$ROOT/tests/parity" -q -s
+# -rs: print the REASON for every skip. Most of this suite's coverage is opt-in on a
+# model dir or a device being present, so "N skipped" alone cannot distinguish "this
+# runner has no Vulkan device" from "the model cache silently missed" from "the Metal
+# lane hit its paravirtual GPU" — all three are expected on some lane, and only the
+# reasons say which one actually happened.
+PYTHONPATH="$ROOT/python" SOKUJI_NATIVE_DIR="$BUILD/stage" "$PYTHON" -m pytest "$ROOT/python/tests" "$ROOT/tests/parity" -q -s -rs
 ( cd "$ROOT/python" && rm -rf dist && SOKUJI_NATIVE_PLAT="$PLAT" "$PYTHON" -m pip wheel . --no-deps -w dist )
 ls -la "$ROOT/python/dist"
 # Import the wheel we just built, from a clean interpreter, and print the device table.
