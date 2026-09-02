@@ -49,12 +49,14 @@ import glob
 import json
 import os
 import pathlib
+import queue
 import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
 import threading
+import time
 
 IMPORT_TIMEOUT_S = 30
 BOOT_TIMEOUT_S = 30
@@ -98,16 +100,41 @@ def embedded_python(root: pathlib.Path) -> pathlib.Path:
     return win if win.exists() else root / "python" / "bin" / "python3"
 
 
-def _readline_with_timeout(stream, timeout: float) -> str | None:
-    box: dict = {}
+def _decode(x) -> str:
+    """subprocess.TimeoutExpired's .stdout/.stderr are str when the call used
+    text=True, like ours — but stay defensive: decode if bytes, empty if None."""
+    if x is None:
+        return ""
+    return x.decode(errors="replace") if isinstance(x, bytes) else x
 
-    def _read() -> None:
-        box["line"] = stream.readline()
 
-    t = threading.Thread(target=_read, daemon=True)
-    t.start()
-    t.join(timeout)
-    return None if t.is_alive() else box.get("line")
+def _iter_lines_with_deadline(stream, deadline: float):
+    """Yields lines from `stream` until EOF or `deadline` (a time.monotonic()
+    cutoff) passes. The blocking readline() runs in a background daemon
+    thread so a hung child can't block the main thread past the deadline;
+    the thread exits on its own once the stream closes (EOF) or a caller
+    stops pulling from this generator, so nothing needs joining."""
+    q: queue.Queue = queue.Queue()
+
+    def _pump() -> None:
+        try:
+            for line in iter(stream.readline, ""):
+                q.put(line)
+        finally:
+            q.put(None)  # EOF sentinel
+
+    threading.Thread(target=_pump, daemon=True).start()
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
+        try:
+            line = q.get(timeout=remaining)
+        except queue.Empty:
+            return
+        if line is None:
+            return
+        yield line
 
 
 _IMPORT_PROBE = """
@@ -129,8 +156,13 @@ def check_imports(py: pathlib.Path, app_dir: pathlib.Path, require_native: bool)
     """(a) import sokuji_sidecar, and (b) probe sokuji_native — both pure
     accessors (no sk_init needed for version()/engine_versions()), so this
     stays a single fast subprocess."""
-    proc = subprocess.run([str(py), "-c", _IMPORT_PROBE], cwd=str(app_dir),
-                          capture_output=True, text=True, timeout=IMPORT_TIMEOUT_S)
+    try:
+        proc = subprocess.run([str(py), "-c", _IMPORT_PROBE], cwd=str(app_dir),
+                              capture_output=True, text=True, timeout=IMPORT_TIMEOUT_S)
+    except subprocess.TimeoutExpired as e:
+        raise SmokeFailure(
+            f"import probe did not finish within {IMPORT_TIMEOUT_S}s:\n"
+            f"stdout: {_decode(e.stdout)}\nstderr: {_decode(e.stderr)}") from e
     if proc.returncode != 0:
         raise SmokeFailure(
             f"import probe failed (exit {proc.returncode}):\nstdout: {proc.stdout}\nstderr: {proc.stderr}")
@@ -154,20 +186,32 @@ def check_imports(py: pathlib.Path, app_dir: pathlib.Path, require_native: bool)
 def check_boot_handshake(py: pathlib.Path, app_dir: pathlib.Path,
                          timeout: float = BOOT_TIMEOUT_S) -> None:
     """(c) `python -m sokuji_sidecar` to the {"port": n} handshake line —
-    same probe the linux-arm64 job already ran inline, now shared by all five."""
+    same probe the linux-arm64 job already ran inline, now shared by all five.
+
+    Tolerant of stray non-JSON output before the handshake (a stray
+    DeprecationWarning etc. must never masquerade as a bad handshake): reads
+    lines until one parses as {"port": <int>, ...}, bounded by `timeout`
+    overall. Non-handshake lines are kept either way — printed as a WARNING
+    after a successful handshake, or folded into the failure message
+    (tail, after draining whatever the child had buffered post-kill) when
+    the handshake never arrives. stdout/stderr stay merged (simplest); a
+    genuine boot hang is the failure most in need of a log."""
     proc = subprocess.Popen([str(py), "-m", "sokuji_sidecar"], cwd=str(app_dir),
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    seen: list[str] = []
+    port = None
     try:
-        line = _readline_with_timeout(proc.stdout, timeout)
-        if line is None:
-            raise SmokeFailure(f"sidecar entrypoint printed no handshake line within {timeout}s")
-        try:
-            port = json.loads(line)["port"]
-            if not isinstance(port, int):
-                raise TypeError(f"port is {type(port).__name__}, not int")
-        except Exception as e:
-            raise SmokeFailure(f"unexpected handshake line {line!r}: {e}")
-        print(f"sokuji_sidecar boot smoke OK, port {port}")
+        deadline = time.monotonic() + timeout
+        for line in _iter_lines_with_deadline(proc.stdout, deadline):
+            stripped = line.rstrip("\n")
+            try:
+                data = json.loads(stripped)
+            except json.JSONDecodeError:
+                data = None
+            if isinstance(data, dict) and isinstance(data.get("port"), int):
+                port = data["port"]
+                break
+            seen.append(stripped)
     finally:
         proc.terminate()
         try:
@@ -175,6 +219,24 @@ def check_boot_handshake(py: pathlib.Path, app_dir: pathlib.Path,
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait(timeout=10)
+        if port is None:
+            # The child is dead now, so draining the rest of its buffered
+            # output can't block — pick up anything written just before (or
+            # during) the kill that the deadline loop didn't get to yet.
+            try:
+                seen.extend(l.rstrip("\n") for l in proc.stdout.readlines())
+            except Exception:
+                pass
+
+    if port is None:
+        tail = "\n".join(seen[-40:]) if seen else "(no output captured)"
+        raise SmokeFailure(
+            f'sidecar entrypoint printed no {{"port": n}} handshake within {timeout}s; '
+            f"output tail:\n{tail}")
+    if seen:
+        print(f"WARNING: sidecar entrypoint printed {len(seen)} non-handshake line(s) "
+             "before the handshake:\n" + "\n".join(seen))
+    print(f"sokuji_sidecar boot smoke OK, port {port}")
 
 
 def smoke_one(sku: str, bundles_dir: str, require_native: bool) -> None:
