@@ -977,8 +977,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
         ],
       },
     },
-    recommended: true,
-    sortOrder: 3,
+    recommended: false,
+    sortOrder: 5,
   },
 
   // ── Cohere Transcribe WebGPU ASR ───────────────────────────────────────────
@@ -1347,8 +1347,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     requiredDevice: 'webgpu',
     asrEngine: 'qwen3-asr',
     asrWorkerType: 'qwen3-asr-webgpu',
-    recommended: false,
-    sortOrder: 5,
+    recommended: true,
+    sortOrder: 3,
     variants: {
       'q4': {
         dtype: 'q4',

@@ -95,8 +95,18 @@ in flight at all) reproduces the identical omission on a 12.96 s segment out of 
 
 ## `recommended` decision
 
-Kept **`recommended: false`** for now. English and Chinese are excellent; Japanese is usable
-but the 0.6B makes proper-noun errors on hard sentences (the 1.7B is the CJK quality tier).
-It is also WebGPU-only, so it does not fill the "no GPU-free recommended model" gap for
-Japanese users. A reasonable candidate to recommend for zh/en later; leaving the call to
-jiangzhuo rather than flipping it unprompted.
+PR #469 shipped with **`recommended: false`**: English and Chinese are excellent, Japanese is
+usable but the 0.6B makes proper-noun errors on hard sentences (the 1.7B is the CJK quality
+tier), and it is WebGPU-only, so it does not fill the "no GPU-free recommended model" gap for
+Japanese users.
+
+**Decision after the merge (jiangzhuo, 2026-09-02):** Qwen3-ASR 0.6B becomes recommended and
+takes the ranking slot Voxtral Mini 3B 2507 held (`sortOrder: 3`); Voxtral Mini 3B 2507 drops
+to non-recommended with Qwen3's former `sortOrder: 5`. Effect on the shared ranking
+(recommended → sortOrder → size): cohere (1) and Voxtral 4B (2) still rank first wherever they
+apply, so the default pick is unchanged for zh/en/ja/ko/de/fr/es/it/pt/nl/hi/ru/ar/vi; for
+th, id and Cantonese the first-ranked recommended WebGPU model changes from Whisper Large V3
+Turbo to Qwen3 (same `sortOrder`, Qwen3 is smaller with shader-f16). Dutch is the one Voxtral
+3B language Qwen3 does not cover; cohere and Voxtral 4B still recommend for it. In the model
+list Qwen3 sits exactly where Voxtral 3B sat (recommended group, after cohere and Voxtral 4B,
+before Whisper Turbo by the language-tier tie-break).
