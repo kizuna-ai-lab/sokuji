@@ -49,6 +49,18 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
     endif()
 endif()
 
+# Every lane, every model: ggml 0.22.0's GGUF reader fills an array KV one element at a
+# time (`gguf_reader::read(std::vector<T>&, n)` loops `read(dst[i])`, and each of those is
+# a read_raw through the reader callback — one locked fread() per element). audio.cpp
+# stores a model's sidecar files as ONE `audiocpp.embedded_files.data` UINT8 array KV, and
+# it reopens the model GGUF 14 times per load, so the cost is 14 * (array bytes) freads:
+# 800M of them for supertonic-3, which is 13.7s of its 14.0s load on the GB10 dev box
+# (measured: 106% CPU, 0 major faults, 12/14 poor-man's-profiler samples inside
+# _IO_acquire_lock_fct under gguf_read_emplace_helper<unsigned char>). The patch reads the
+# whole array in one call for fixed-size element types; strings and vector<bool> keep the
+# loop. Byte-identical output — it is a read-shape change only.
+list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-gguf-bulk-array-read.json")
+
 # ggml 0.22.0's Metal backend implements no GGML_OP_DIAG_MASK_INF at all - no supports_op
 # case, no kernel - while ggml-cpu, ggml-vulkan and ggml-cuda all do. Every audio.cpp
 # attention block reached without an explicit mask builds that op (16 call sites across 13

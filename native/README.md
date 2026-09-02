@@ -36,6 +36,7 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
 - `cmake/upstreams.cmake` — the four commit pins and the JSON patch specs in `native/patches/`:
   - `ggml-drop-sme.json` — drops the Linux armv9.2 +sme CPU variants when the compiler cannot build them
   - `ggml-drop-sme-apple.json` — drops the apple_m4 (+sme) CPU variant; Apple clang cannot build it
+  - `ggml-gguf-bulk-array-read.json` — every lane; see [GGUF array reads](#gguf-array-reads)
   - `ggml-metal-diag-mask-inf.json`, `ggml-metal-pad-leading.json` — metal lane only; see
     [Metal (Apple Silicon)](#metal-apple-silicon). `SOKUJI_GGML_PATCH_SPEC` (set in
     `cmake/ggml_options.cmake`) is a **list**: ggml can carry an always-on portability spec
@@ -211,6 +212,36 @@ CTest only exercises `sk_tts` in isolation, against nothing. The parity gate tha
 output to the official `audiocpp_cli`, sample-exact on CPU, lives at
 `native/tests/parity/` — see `native/tests/parity/README.md` for how to build the reference
 binary and run the suite.
+
+## GGUF array reads
+
+`ggml-gguf-bulk-array-read.json` is the one **always-on, every-lane** ggml patch. ggml
+0.22.0's GGUF reader fills an array KV one element at a time —
+`gguf_reader::read(std::vector<T> &, n)` loops `read(dst[i])`, and each of those is a
+`read_raw` through the reader callback, i.e. one *locked* `fread()` per element. audio.cpp
+stores a model's sidecar files as a single `audiocpp.embedded_files.data` UINT8 array KV
+(57 MB for supertonic-3, 11 MB for omnivoice, 59 KB for pocket-tts) and reopens the model
+GGUF **14 times** during one `sk_tts_load`, so the reader pays 14 × (array bytes) one-byte
+`fread`s. On the GB10 dev box that was 800 M of them for supertonic-3 = **13.7 s of its
+14.0 s load** (106 % CPU, zero major faults; 12 of 14 poor-man's-profiler samples sat in
+`_IO_acquire_lock_fct` under `gguf_read_emplace_helper<unsigned char>`). The patch reads the
+whole array in one `read_raw` when `T` is a fixed-size element type; `std::string`
+(length-prefixed) and `std::vector<bool>` (not contiguous) keep the per-element loop. Same
+bytes, same order, same `data_offset`/`nbytes_remain` — a read-*shape* change only, which is
+why the sample-exact parity gate is the proof it is inert.
+
+Measured on the GB10 (cpu lane, `tts_load` only, `n_threads=12`):
+
+| family | embedded sidecar KV | load before | load after |
+|---|---|---|---|
+| supertonic-3   | 57.06 MB | 13.85 s | **1.50 s** |
+| omnivoice      | 11.46 MB |  3.85 s | **1.42 s** |
+| qwen3-tts      |  4.47 MB |  2.35 s | **1.21 s** |
+| moss-tts-nano  |  3.44 MB |  0.93 s | **0.19 s** |
+| pocket-tts-en  |  0.06 MB |  0.16 s | **0.14 s** |
+
+The 14 reopens are audio.cpp's own doing and are still there; they now cost mmap'd
+page-cache reads instead of 57 M stdio calls each, so they no longer dominate.
 
 ## Metal (Apple Silicon)
 
