@@ -67,7 +67,12 @@ def _native_kinds() -> tuple[str, ...]:
 
 
 def _native_gpus() -> tuple[tuple[str, str, int], ...]:
-    """Stable identity of the non-cpu devices: (kind, name, mem_total)."""
+    """Stable identity of the non-cpu devices: (kind, DESCRIPTION, mem_total) — the
+    human-readable description ("NVIDIA GB10", "Apple M4", "Apple Paravirtual device"),
+    not the terse `Device.name` ("Vulkan0", "MTL0"). Matches Machine.gpus' own docstring;
+    an earlier version of this line said "name" and was wrong. planner._tier_available
+    reads the middle element to refuse a paravirtual Metal GPU (R36), so which of the two
+    strings lands here is load-bearing."""
     return tuple((d.kind, d.description or "", int(d.mem_total or 0))
                  for d in _native_devices() if d.kind != "cpu")
 

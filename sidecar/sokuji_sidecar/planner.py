@@ -24,6 +24,7 @@ never imports accel."""
 from __future__ import annotations
 
 import dataclasses
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -91,10 +92,38 @@ TIER_RANK = {"gpu-metal": 3.0, "gpu-vulkan": 2.5, "cpu": 1.0}
 TIER_DEVICE = {"cpu": "cpu", "gpu-metal": "metal", "gpu-vulkan": "vulkan"}
 
 
+# A hosted-macOS VM (GitHub Actions' macos-14 runner, and every other
+# virtualized Mac) exposes its GPU as "Apple Paravirtual device" — a
+# virtualization shim, not a downlevel real GPU. It lacks
+# has_simdgroup_reduction (ggml-metal-device.m requires MTLGPUFamilyApple7 or
+# Metal3), so ggml refuses GGML_OP_NORM/RMS_NORM/ARGMAX there and every TTS
+# family that normalizes ABORTS the process (ruling R36). Matching by
+# description is the only signal available: the device still reports kind
+# "metal", and the host still reports as Apple Silicon.
+_PARAVIRTUAL_GPU_RE = re.compile(r"paravirtual", re.IGNORECASE)
+
+
+def _paravirtual_metal_only(machine: Machine) -> bool:
+    """True when every Metal device this machine reports is a paravirtual shim.
+
+    Reads `machine.gpus` — (kind, description, mem_total) straight from the
+    native probe (accel._native_gpus). An empty/absent Metal entry means the
+    probe told us nothing about descriptions (wheel absent, or a synthetic
+    fixture built from tc_kinds alone), which is NOT evidence of a shim, so
+    the tier stays available: this exclusion only fires on a positive match.
+    `all` rather than `any` so a hypothetical box with a real Metal GPU
+    alongside a paravirtual one keeps the tier.
+    """
+    metal = [desc for kind, desc, _mem in machine.gpus if kind == "metal"]
+    return bool(metal) and all(_PARAVIRTUAL_GPU_RE.search(desc or "") for desc in metal)
+
+
 def _tier_available(tier: str, machine: Machine, backend: str | None = None) -> bool:
     if tier == "cpu":
         return True
     if tier == "gpu-metal":
+        if _paravirtual_metal_only(machine):
+            return False
         return machine.apple_silicon or "metal" in machine.tc_kinds
     if tier == "gpu-vulkan":
         # the native library's own probe is authoritative (sees AMD/Intel/NVIDIA

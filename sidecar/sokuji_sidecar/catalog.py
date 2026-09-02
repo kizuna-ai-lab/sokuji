@@ -744,8 +744,14 @@ _TTS_TIERS = ("cpu",)
 # audiocpp-src/{src,include,app,tools,tests}, i.e. in every line that is
 # compiled into libsokuji_native. (It does appear under
 # audiocpp-src/external/ggml — audio.cpp's own bundled ggml fork, which this
-# project does not build: 2 of those hits are its mnist/gpt-2 examples, the
-# rest are ggml-backend.h/ggml-cpp.h declarations.) So a session holds exactly
+# project does not build. Those hits are ggml's OWN scheduler, in files this
+# build never compiles: 3 example programs that drive it
+# (examples/{gpt-2/main-sched.cpp, mnist/mnist-common.h,
+# simple/simple-backend.cpp}) plus tests/test-opt.cpp, the
+# include/ggml-{backend,cpp,opt}.h declarations, and the two IMPLEMENTATION
+# files behind them, src/ggml-{backend,opt}.cpp — an earlier version of this
+# footnote called that whole tail "declarations", which understated it.) So a
+# session holds exactly
 # ONE backend and an op Vulkan cannot service ABORTS ("Missing op" ->
 # GGML_ABORT), exactly as Metal did. A clean run is therefore proof the graph
 # ran on the GPU. Per-dispatch streaming overhead is ruled out too: the
@@ -774,14 +780,18 @@ _TTS_TIERS = ("cpu",)
 #   linux-arm64  NVIDIA GB10, Vulkan                    5/5      8           4.3-19x
 #   win-x64      RTX 4070 SUPER, Vulkan (Win 11)        5/5     28 (hw)      14-56x
 #   linux-x64    RTX 4070 SUPER, Vulkan (Ubuntu 22.04)  5/5     12 (knee)    7.5-65.8x
-#   mac-arm64    Apple M4, Metal                        5/5      unrecorded  0.83-3.9x
+#   mac-arm64    Apple M4, Metal                        5/5      unrecorded  1.3-3.9x
 #
 # The win-x64 row predates R32 entirely — it is the 0.5.0 CI wheel, whose
 # sk_init logged "28 threads" (= hw), so its CPU numbers are the pessimistic
 # oversubscribed ones and its ratios are, if anything, flattering to the GPU.
 # The GB10 row is n_threads=8, the value that sweep found optimal on that
 # 20-core big.LITTLE box before the knee was fixed at 12 fleet-wide. The M4
-# probe did not record a thread count at all.
+# probe did not record a thread count at all. The mac row's lower bound was
+# briefly written as 0.83x (i.e. "Metal loses to CPU on pocket_tts"); that
+# came from a single-shot pocket measurement and was RETRACTED in task 1's
+# fix round — the controlled rerun on the same box put pocket at 0.25s Metal
+# vs 0.39s CPU, so 1.3x is the honest floor and no family is slower on Metal.
 #
 # The mac row holds only AFTER slice-5b task 1's two Metal kernel patches
 # (before them moss/qwen3/omnivoice aborted): the resurrected
@@ -834,7 +844,11 @@ _TTS_TIERS = ("cpu",)
 # skips outright when the resolved device's description matches
 # /paravirtual/i, precisely so a future CI run reports "skipped" there
 # instead of a green pass that would misrepresent a VM shim as validating
-# real Metal hardware.
+# real Metal hardware. The PLANNER refuses that device for real, too:
+# `planner._tier_available("gpu-metal", ...)` drops the tier when every Metal
+# device the probe reports has a /paravirtual/i description, so a virtualized
+# Mac (CI, or a user in a VM) resolves these cards cpu-only instead of being
+# handed a plan that aborts the process.
 #
 #   lane        macOS runner GPU               tier decision
 #   mac-arm64   Apple Paravirtual device       gpu-metal restored anyway (R36,
@@ -845,6 +859,31 @@ _TTS_TIERS = ("cpu",)
 # First-ever synth on an NVIDIA box additionally pays a one-time, per-machine
 # driver pipeline-cache compile of 2-14s (W-1, linux-x64-vulkan-validation.md);
 # the load-time warm-up synth (R33) absorbs it.
+#
+# WHICH QUANT those fleet runs loaded, and the gap that closed on 2026-09-02:
+# every row in the table above loaded the card's DEFAULT rung (q8_0; f16 for
+# supertonic). That is not what a GPU machine actually resolves — `resolve_tts`
+# auto runs `_llamacpp_variant_row`, which picks the LARGEST quant that fits the
+# device budget, so on every GPU fixture in test_characterization.py
+# (CUDA_12GB/CUDA_24GB/APPLE_SILICON) the recommended and resolved rung is
+# **bf16** for the four families that ship one. BF16 is a distinct ggml tensor
+# type with its own per-backend kernel coverage, so those green q8_0 runs said
+# nothing about the rung users would actually get. The bf16 rungs are now
+# validated directly, same bar as the table above (clean exit, non-silent audio
+# of a sane duration), via the second `quant` dimension of
+# test_tts_synthesises_on_a_gpu_device:
+#
+#   family          bf16 rung shipped   GB10/Vulkan   M4/Metal
+#   moss_tts_nano   yes                 PASS          PASS
+#   pocket_tts      yes                 PASS          PASS
+#   qwen3_tts       yes (0.6b tested)   PASS          PASS
+#   omnivoice       yes                 PASS          PASS
+#   supertonic      NO (f16 only)       n/a           n/a
+#
+# 4/4 on both devices, so no family loses its bf16 GPU rung; the ladders below
+# are unchanged. qwen3-tts-1.7b was not loaded — same family, same graph, same
+# tensor types as the 0.6b that was. Numbers:
+# .superpowers/sdd/2026-09-02-sidecar-ggml-only-slice5b-debt/final-fixwave-report.md.
 _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
     "moss_tts_nano": ("gpu-vulkan", "gpu-metal", "cpu"),
     "supertonic": ("gpu-vulkan", "gpu-metal", "cpu"),

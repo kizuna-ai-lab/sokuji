@@ -239,6 +239,58 @@ def test_tier_available_gpu_metal_via_tc_metal_kind():
     assert planner._tier_available("gpu-metal", m) is True
 
 
+# ── gpu-metal on a paravirtual (virtualized-Mac) GPU ─────────────────────
+# Ruling R36: GitHub's macos-14 arm64 runner is a VM whose Metal device
+# reports as "Apple Paravirtual device" and lacks has_simdgroup_reduction, so
+# ggml refuses NORM/RMS_NORM/ARGMAX and every TTS family aborts the process
+# there. apple_silicon is still True on such a host (Darwin + arm64) and the
+# device still reports kind "metal", so only the description separates it.
+
+def _paravirtual_mac(desc="Apple Paravirtual device"):
+    return accel.Machine(
+        os="Darwin", arch="arm64", cpu_cores=3, apple_silicon=True,
+        installed=_APPLE_BACKENDS, fingerprint="p-paravirt",
+        tc_kinds=("metal", "cpu"), gpus=(("metal", desc, 8 << 30),))
+
+
+def test_tier_available_gpu_metal_excluded_on_a_paravirtual_device():
+    assert planner._tier_available("gpu-metal", _paravirtual_mac()) is False
+    # case-insensitive, and a substring match (the exact string a hosted
+    # runner reports has varied across macOS releases)
+    assert planner._tier_available("gpu-metal", _paravirtual_mac("APPLE PARAVIRTUAL DEVICE")) is False
+    assert planner._tier_available("gpu-metal", _paravirtual_mac("Paravirtual GPU (VZ)")) is False
+    # ...and the exclusion is scoped to gpu-metal: the cpu floor survives.
+    assert planner._tier_available("cpu", _paravirtual_mac()) is True
+
+
+def test_tier_available_gpu_metal_kept_on_real_apple_silicon():
+    # The named fixture (Apple M2) and the real M4 description both pass.
+    assert planner._tier_available("gpu-metal", APPLE_SILICON) is True
+    assert planner._tier_available("gpu-metal", _paravirtual_mac("Apple M4")) is True
+    # A probe that reported no device descriptions at all is not evidence of a
+    # shim — the tier stays available (Intel-Mac/tc-only fixtures rely on this).
+    assert planner._tier_available("gpu-metal", _INTEL_MAC) is True
+
+
+def test_paravirtual_exclusion_removes_gpu_metal_plans_end_to_end():
+    # The whole point: a TTS card whose catalog rows include gpu-metal (R36)
+    # resolves cpu-only on a paravirtual Mac, instead of handing the loader a
+    # plan that aborts the process.
+    m = _paravirtual_mac()
+    plans = planner.resolve_tts("moss-tts-nano", "auto", machine=m, platform="macos",
+                                cache={}, downloaded=frozenset())
+    assert [p.tier for p in plans] == ["cpu"]
+    # An explicit GPU override cannot resurrect it either.
+    plans = planner.resolve_tts("moss-tts-nano", "cuda", machine=m, platform="macos",
+                                cache={}, downloaded=frozenset())
+    assert {p.tier for p in plans} == {"cpu"}
+    # The same card on a real M4 still leads with metal.
+    real = _paravirtual_mac("Apple M4")
+    plans = planner.resolve_tts("moss-tts-nano", "auto", machine=real, platform="macos",
+                                cache={}, downloaded=frozenset())
+    assert plans[0].tier == "gpu-metal"
+
+
 # ── resolve_deployments: tier gating + override pinning ─────────────────
 # replaces test_accel.py::test_resolve_prefers_gpu_when_nvidia_present,
 # test_resolve_cpu_only_machine_drops_gpu_plan, test_resolve_override_pins_cpu,
