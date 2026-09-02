@@ -479,6 +479,12 @@ def test_tts_synthesises_on_a_gpu_device(family):
     device = _gpu_device()
     if device is None:
         pytest.skip(f"no non-CPU device on this box: {sokuji_native.devices()}")
+    if re.search(r"paravirtual", device.description, re.IGNORECASE):
+        pytest.skip(
+            "GitHub-hosted macOS VMs expose an Apple Paravirtual GPU without simdgroup "
+            "reduction (NORM unsupported); Metal is validated on real hardware instead "
+            "(see catalog)."
+        )
 
     cfg = {
         "native_python_dir": str(pathlib.Path(sokuji_native.__file__).resolve().parents[1]),
@@ -506,7 +512,8 @@ def test_tts_synthesises_on_a_gpu_device(family):
     tail = "\n".join(stderr_lines[-80:])
     assert proc.returncode == 0, (
         f"{'abort: ' + abort_line + chr(10) if abort_line else ''}"
-        f"{family} on {device.kind} device {device.index} ({device.name}) failed: exit {proc.returncode}"
+        f"{family} on {device.kind} device {device.index} ({device.name} — {device.description}) "
+        f"failed: exit {proc.returncode}"
         f"{' (SIGABRT — a missing backend kernel aborts the process)' if proc.returncode in (-6, 134) else ''}\n"
         f"--- stderr head (first 15) ---\n{head}\n"
         f"--- stderr tail (last 80) ---\n{tail}\n--- stdout ---\n{proc.stdout}")
@@ -514,7 +521,8 @@ def test_tts_synthesises_on_a_gpu_device(family):
     line = next((l for l in proc.stdout.splitlines() if l.startswith("SK_GPU_TTS_RESULT ")), None)
     assert line, f"{family}: runner produced no result line\n--- stdout ---\n{proc.stdout}\n--- stderr tail ---\n{tail}"
     got = json.loads(line[len("SK_GPU_TTS_RESULT "):])
-    print(f"  gpu-tts {family:14s} {got['device']:16s} {got['seconds']:6.2f}s audio  "
+    print(f"  gpu-tts {family:14s} {got['device']:16s} ({device.description})  "
+          f"{got['seconds']:6.2f}s audio  "
           f"{got['load_s']:7.2f}s load  {got['synth_s']:7.2f}s synth  peak={got['peak']:.3f}")
     # The child resolves the device by index; make it prove it did not silently land on the
     # CPU one, or a "GPU" pass would mean nothing.
