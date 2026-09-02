@@ -85,6 +85,24 @@ def find_archive_parts(bundles_dir: str, sku: str) -> list[str]:
     return parts
 
 
+def _safe_members(t: "tarfile.TarFile", dest: pathlib.Path):
+    """Fallback for a host python without PEP 706's `filter=` (older than 3.12 / the
+    3.8-3.11 security backports): refuse anything the 'data' filter would refuse that
+    matters for a bundle — absolute names, `..` escapes, and links of any kind (bundles
+    are packed with dereference=True, so a link member is itself a red flag)."""
+    root = dest.resolve()
+    for m in t:
+        name = pathlib.PurePosixPath(m.name)
+        if name.is_absolute() or ".." in name.parts:
+            raise SmokeFailure(f"refusing archive member outside the bundle: {m.name!r}")
+        if m.issym() or m.islnk():
+            raise SmokeFailure(f"refusing link member in a bundle archive: {m.name!r}")
+        target = (dest / m.name).resolve()
+        if target != root and root not in target.parents:
+            raise SmokeFailure(f"refusing archive member that escapes {dest}: {m.name!r}")
+        yield m
+
+
 def extract_bundle(parts: list[str], dest: pathlib.Path) -> None:
     import zstandard
 
@@ -98,7 +116,9 @@ def extract_bundle(parts: list[str], dest: pathlib.Path) -> None:
             try:
                 t.extractall(dest, filter="data")
             except TypeError:
-                t.extractall(dest)  # host python predates PEP 706's filter kwarg
+                # Host python predates the filter kwarg; the TypeError fires before any
+                # member is read, so the stream is still at the start.
+                t.extractall(dest, members=_safe_members(t, dest))
     joined.unlink()
 
 
@@ -217,8 +237,9 @@ def check_boot_handshake(py: pathlib.Path, app_dir: pathlib.Path,
                 data = json.loads(stripped)
             except json.JSONDecodeError:
                 data = None
-            if isinstance(data, dict) and isinstance(data.get("port"), int):
-                port = data["port"]
+            port_value = data.get("port") if isinstance(data, dict) else None
+            if type(port_value) is int:   # not isinstance: bool is an int subclass, {"port": true} must fail
+                port = port_value
                 break
             seen.append(stripped)
     finally:
