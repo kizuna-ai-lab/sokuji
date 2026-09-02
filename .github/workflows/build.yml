@@ -2,7 +2,7 @@ name: Build and Release
 
 on:
   push:
-    branches: [main, master, refactor/sidecar-ggml-only-slice5]
+    branches: [main, master]
     tags:
       - 'v*'
   pull_request:
