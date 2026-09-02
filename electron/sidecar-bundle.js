@@ -439,4 +439,8 @@ module.exports = {
   verifySha256, extractTarZst, installBundle,
   requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
   downloadPart, concatParts, removeBundle, pruneStaleSkuDirs,
+  // Exported for sidecar-sku.consistency.test.js only (nothing in the app reads
+  // it from outside this file): the test proves this hand-maintained mirror
+  // still equals detectSku's real output set.
+  KNOWN_SKUS,
 };

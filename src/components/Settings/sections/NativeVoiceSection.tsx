@@ -5,6 +5,7 @@ import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import {
   curatedBuiltinVoices,
   defaultTtsVoice,
+  eligibleCustomVoices,
   isCloneOnlyVoice,
   type VoiceCapability,
 } from '../../../lib/local-inference/native/nativeCatalog';
@@ -204,11 +205,11 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     // `transcriptRequired`) can only clone from clips that carry one — a clip
     // recorded/imported before the model required transcripts (or under a
     // different model) would otherwise silently fail to clone. Hide it from
-    // the pickable list rather than let it fail at apply time.
-    const eligibleCustomVoices = capability.transcriptRequired
-      ? customVoices.filter((v) => v.hasTranscript)
-      : customVoices;
-    const customEntries: VoiceEntry[] = eligibleCustomVoices.map((v) => ({
+    // the pickable list rather than let it fail at apply time. The predicate
+    // is nativeCatalog's, shared with the pre-init gate and the selection
+    // reconciliation, so "eligible" cannot mean two things.
+    const eligible = eligibleCustomVoices(customVoices, capability.transcriptRequired);
+    const customEntries: VoiceEntry[] = eligible.map((v) => ({
       id: `custom:${v.id}`,
       label: v.name,
       group: 'custom',
@@ -225,10 +226,8 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   // one eligible clip exists. Same eligibility filter as the pickable list
   // above (transcriptRequired models don't count a clip with no transcript),
   // so this banner and the dropdown's actual contents never disagree.
-  const eligibleCustomVoiceCount = (capability.transcriptRequired
-    ? customVoices.filter((v) => v.hasTranscript)
-    : customVoices
-  ).length;
+  const eligibleCustomVoiceCount =
+    eligibleCustomVoices(customVoices, capability.transcriptRequired).length;
   const needsClipBeforeUse = isCloneOnlyVoice(capability) && eligibleCustomVoiceCount === 0;
 
   // Reconcile for display: an empty choice shows the language default as selected.
