@@ -1395,10 +1395,10 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // Same layout v2 and the same worker as the 0.6B (every dimension comes from
   // prompt_config.json); the quality tier: half the 0.6B's Japanese errors for ~1.2–1.4× the
   // per-token time, ~2.2× the download and about +1.4–1.8 GB of GPU memory (measurements in
-  // benchmark/qwen3-asr-webgpu/results/1.7b-notes.md). Not recommended: the 0.6B stays the
-  // default pick; this is offered in the "others" group of the model list, where sortOrder 4
-  // orders it among the other non-recommended WebGPU ASR models (before Granite 1B and
-  // Voxtral 3B, which carry 5).
+  // benchmark/qwen3-asr-webgpu/results/1.7b-notes.md). Recommended like the 0.6B and with the
+  // same sortOrder, so the two list together; the ranking's size tie-break (recommended →
+  // sortOrder → size) keeps the smaller 0.6B the default pick everywhere, and cohere /
+  // Voxtral 4B still rank ahead of both where they apply.
   {
     id: 'qwen3-asr-1.7b-webgpu',
     type: 'asr',
@@ -1409,8 +1409,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     requiredDevice: 'webgpu',
     asrEngine: 'qwen3-asr',
     asrWorkerType: 'qwen3-asr-webgpu',
-    recommended: false,
-    sortOrder: 4,
+    recommended: true,
+    sortOrder: 3,
     variants: {
       'q4': {
         dtype: 'q4',

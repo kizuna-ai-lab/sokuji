@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getManifestEntry, getModelSizeMb, isVariantEligible, selectVariant } from './modelManifest';
+import { getAsrModelsForLanguage, getManifestEntry, getModelSizeMb, isVariantEligible, pickBestModel, selectVariant } from './modelManifest';
 
 // Sizes are the Hub's files_metadata for jiangzhuo9357/Qwen3-ASR-1.7B-ONNX
 // (benchmark/qwen3-asr-webgpu/results/1.7b-hub-files.json).
@@ -25,11 +25,20 @@ describe('Qwen3-ASR 1.7B (WebGPU) manifest entry', () => {
     expect(entry.multilingual).toBeFalsy();
   });
 
-  it('is the quality tier, not the default: not recommended (the list splits recommended/others), sortOrder 4 among the others', () => {
-    expect(entry.recommended).toBe(false);
-    expect(entry.sortOrder).toBe(4);
+  it('is recommended alongside the 0.6B and shares its sortOrder, so it lists right after it (decided 2026-09-03)', () => {
+    expect(entry.recommended).toBe(true);
+    expect(entry.sortOrder).toBe(3);
     expect(small.recommended).toBe(true);
     expect(small.sortOrder).toBe(3);
+  });
+
+  it('never displaces a default pick: for every language it covers, the shared ranking still prefers another model', () => {
+    // recommended -> sortOrder -> size: at equal sortOrder the smaller 0.6B wins, and cohere /
+    // Voxtral 4B rank ahead of both where they apply.
+    for (const lang of entry.languages) {
+      const best = pickBestModel(getAsrModelsForLanguage(lang));
+      expect(best?.id, lang).not.toBe(entry.id);
+    }
   });
 
   it('picks q4f16 with shader-f16 and falls back to q4 without it', () => {
