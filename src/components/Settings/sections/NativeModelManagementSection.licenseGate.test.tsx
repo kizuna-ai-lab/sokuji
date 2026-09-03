@@ -75,6 +75,28 @@ const mockCatalog: Record<string, NativeModelInfo> = {
       attribution: 'Some Vendor',
     },
   },
+  // A license descriptor with NO requiresConsent field at all — what an older
+  // (or a hand-rolled) producer would send. It must still gate: the flag is
+  // opt-OUT, never opt-in, or a dropped field silently un-gates OmniVoice.
+  'legacy-lic-asr': {
+    id: 'legacy-lic-asr',
+    name: 'Legacy Licensed ASR Model',
+    languages: ['en'],
+    recommended: false,
+    tiers: [],
+    order: 3,
+    repo: 'org/legacy-lic-asr-repo',
+    kind: 'asr',
+    sizeBytes: 200000000,
+    license: {
+      spdx: 'CC-BY-NC-4.0',
+      name: 'Creative Commons Attribution-NonCommercial 4.0',
+      url: 'https://creativecommons.org/licenses/by-nc/4.0/',
+      nonCommercial: true,
+      sourceRepo: 'org/legacy-lic-asr-repo',
+      attribution: 'Some Org',
+    },
+  },
   'plain-asr': {
     id: 'plain-asr',
     name: 'Plain ASR Model',
@@ -255,6 +277,16 @@ describe('NativeModelManagementSection — non-commercial license consent gate',
     expect(screen.getByRole('button', { name: /accept the license/i })).toBeInTheDocument();
     expect(screen.getByText(/Vendor Model Use License/)).toBeInTheDocument();
     expect(screen.queryByText(/non-commercial/i)).not.toBeInTheDocument();
+  });
+
+  it('a license descriptor with no requiresConsent field still gates', () => {
+    render(<NativeModelManagementSection />);
+    const card = screen.getByTestId('model-card-legacy-lic-asr');
+
+    fireEvent.click(within(card).getByRole('button', { name: /download/i }));
+
+    expect(mockDownload).not.toHaveBeenCalled();
+    expect(acceptButtonQuery()).toBeInTheDocument();
   });
 
   it('a card with no license downloads immediately — the modal never shows', () => {

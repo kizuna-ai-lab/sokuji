@@ -6,7 +6,7 @@ import {
   curatedBuiltinVoices,
   defaultTtsVoice,
   eligibleCustomVoices,
-  isCloneOnlyVoice,
+  requiresVoiceClip,
   type VoiceCapability,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import type { NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -221,14 +221,16 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   if (capability.builtin === 'none' && capability.custom === 'none') return null;
 
   // Renderer-side mirror of the sidecar's R16 pre-check (tts_backend.py's
-  // `_ensure_voice_ready`/`_VOICE_REQUIRED_FAMILIES`): a clone-only model (no
-  // built-in voice at all — qwen3_tts, omnivoice) can't speak until at least
-  // one eligible clip exists. Same eligibility filter as the pickable list
+  // `_ensure_voice_ready`, over `catalog.VOICE_REQUIRED_FAMILIES`, read off the
+  // wire as `voice.required`): a model that requires a clip — qwen3_tts,
+  // omnivoice, index_tts2 — can't speak until at least one eligible clip
+  // exists. Families that merely clone (MOSS, VoxCPM, Irodori) do not qualify,
+  // even though their voice shape is identical. Same eligibility filter as the pickable list
   // above (transcriptRequired models don't count a clip with no transcript),
   // so this banner and the dropdown's actual contents never disagree.
   const eligibleCustomVoiceCount =
     eligibleCustomVoices(customVoices, capability.transcriptRequired).length;
-  const needsClipBeforeUse = isCloneOnlyVoice(capability) && eligibleCustomVoiceCount === 0;
+  const needsClipBeforeUse = requiresVoiceClip(capability) && eligibleCustomVoiceCount === 0;
 
   // Reconcile for display: an empty choice shows the language default as selected.
   const selectedId = selected || defaultTtsVoice(targetLanguage, builtinVoices);

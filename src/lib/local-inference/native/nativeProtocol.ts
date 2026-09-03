@@ -14,14 +14,25 @@ export interface NativeTier { tier: string; backend: string; available: boolean;
  *  only picks which wording the modal shows. */
 export interface NativeModelLicense {
   spdx: string; name: string; url: string;
-  nonCommercial: boolean; requiresConsent: boolean;
+  nonCommercial: boolean;
+  /** Optional so a producer that omits it cannot silently drop an existing
+   *  card's gate: every consumer must treat `undefined` as "gate it" (test
+   *  `!== false`), which is also what the Python side's default True emits. */
+  requiresConsent?: boolean;
   sourceRepo: string; attribution: string;
 }
 export interface NativeModelInfo {
   id: string; name: string; languages: string[]; recommended: boolean; tiers: NativeTier[];
   order: number; repo: string; kind: 'asr' | 'translate' | 'tts';
   clones?: boolean; streaming?: boolean;   // tts only
-  voice?: { builtin: 'none' | 'named'; custom: 'none' | 'clip'; transcriptRequired?: boolean };   // tts only; native_tts has no style-vector custom voice equivalent
+  /** tts only; native_tts has no style-vector custom voice equivalent.
+   *  `required` (catalog.VOICE_REQUIRED_FAMILIES) is its OWN axis, not a shape
+   *  inference: moss_tts_nano, voxcpm1, voxcpm2 and irodori_tts all report
+   *  builtin 'none' + custom 'clip' and still speak with nothing set, while
+   *  qwen3_tts/omnivoice/index_tts2 report the identical shape and cannot.
+   *  Optional here only because a sidecar older than 2026-09-03 does not send
+   *  it — absent means "cannot say", not "false" (see requiresVoiceClip). */
+  voice?: { builtin: 'none' | 'named'; custom: 'none' | 'clip'; required?: boolean; transcriptRequired?: boolean };
   license?: NativeModelLicense;  // non-commercial / restricted models only
   sizeBytes?: number;   // total download size; 0/absent = unknown
   variantIds?: string[];   // quant variants (default first), >1 → show the picker

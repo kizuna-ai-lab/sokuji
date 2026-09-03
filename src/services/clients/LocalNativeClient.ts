@@ -7,7 +7,7 @@ import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTr
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { reconcileTtsVoice } from '../../lib/local-inference/native/nativeTtsVoiceReconciliation';
-import { voiceCapability, isCloneOnlyVoice, eligibleCustomVoices } from '../../lib/local-inference/native/nativeCatalog';
+import { voiceCapability, requiresVoiceClip, eligibleCustomVoices } from '../../lib/local-inference/native/nativeCatalog';
 import { voiceStoreFor } from '../../lib/local-inference/native/nativeVoiceStores';
 import type { NativeModelInfo } from '../../lib/local-inference/native/nativeProtocol';
 import { splitSentences } from '../../utils/splitSentences';
@@ -134,9 +134,12 @@ export class LocalNativeClient implements IClient {
     this.ttsEnabled = !!config.ttsModelId && !config.textOnly;
     if (this.ttsEnabled) {
       // Renderer-side mirror of the sidecar's R16 pre-check (tts_backend.py's
-      // `_ensure_voice_ready`/`_VOICE_REQUIRED_FAMILIES`): a clone-only model
-      // (no built-in voice at all — qwen3_tts, omnivoice) can never speak
-      // without a stored clip. Checked BEFORE loading the model: catching it
+      // `_ensure_voice_ready`, over `catalog.VOICE_REQUIRED_FAMILIES`): a model
+      // that reports `voice.required` — qwen3_tts, omnivoice, index_tts2 — can
+      // never speak without a stored clip. That flag comes off the wire; it is
+      // NOT inferred from the voice shape, which looks identical for the
+      // families that clone but speak fine with nothing set (MOSS, VoxCPM,
+      // Irodori). Checked BEFORE loading the model: catching it
       // here turns what would otherwise be a `tts_degraded` diagnostic on
       // EVERY sentence of the session into one clear, up-front notice, and
       // skips a model load that could only ever fail to synthesize. Skipped
@@ -144,7 +147,7 @@ export class LocalNativeClient implements IClient {
       // resolves to none/none) — the unchanged init path below still applies
       // in that case, same as before this check existed.
       const gateCap = voiceCapability(store.catalog[config.ttsModelId!]);
-      if (isCloneOnlyVoice(gateCap)) {
+      if (requiresVoiceClip(gateCap)) {
         const gateStore = voiceStoreFor(gateCap.custom, config.ttsModelId!);
         let eligibleClips = 0;
         if (gateStore) {

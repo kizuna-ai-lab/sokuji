@@ -228,6 +228,10 @@ const NativeModelCard: React.FC<{
   // MAU/revenue ceiling yet still has to be acknowledged, and gating on
   // nonCommercial would either skip its gate or mislabel it in the modal.
   // nonCommercial only decides which wording LicenseConsentModal shows.
+  //
+  // Tested `!== false`, not truthily: the Python side always emits the field
+  // (default True), but a producer that omitted it would otherwise silently drop
+  // OmniVoice's gate. A license descriptor is opt-OUT of the gate, never opt-in.
   const [consentOpen, setConsentOpen] = useState(false);
 
   // The download button fetches the chosen variant's repo (undefined → default repo,
@@ -236,7 +240,7 @@ const NativeModelCard: React.FC<{
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (spec.license?.requiresConsent && !hasAcceptedLicense(spec.downloadId as string)) {
+    if (spec.license && spec.license.requiresConsent !== false && !hasAcceptedLicense(spec.downloadId as string)) {
       setConsentOpen(true);
       return;
     }
