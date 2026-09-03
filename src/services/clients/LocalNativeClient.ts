@@ -200,7 +200,8 @@ export class LocalNativeClient implements IClient {
         }
         const voiceList = cap.builtin === 'named' ? await nativeListTtsVoices(config.ttsModelId) : [];
         const storedVoice = config.ttsVoice ?? '';
-        const voice = reconcileTtsVoice(storedVoice, customIds, config.targetLanguage, voiceList, cap.custom !== 'none');
+        const voice = reconcileTtsVoice(storedVoice, customIds, config.targetLanguage, voiceList,
+                                       cap.custom !== 'none', cap.builtin === 'named');
         // R35: the stored selection was a custom clip and reconcile swapped it
         // for a DIFFERENT eligible one (never '' or the same id — this is
         // exactly the "your ineligible clip got substituted" case, not the

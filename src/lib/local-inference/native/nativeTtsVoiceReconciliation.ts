@@ -10,6 +10,12 @@ import type { NativeVoiceInfo } from './nativeProtocol';
  *    model, e.g. pocket's 'eponine' arriving at gpt-sovits) → the language's
  *    default built-in. Builtin names are only validated when a voice list is
  *    available — an empty list can't distinguish "unknown" from "not loaded".
+ *  - `hasBuiltin=false` IS that distinction: the family exposes no built-in
+ *    voices at all (capability `builtin: 'none'` — every clone-only family,
+ *    qwen3_tts/omnivoice/moss and the four added 2026-09-03), so a stored
+ *    `builtin:` name is not merely unverifiable, it is unusable: applying it
+ *    means setVoice() against an empty preset list, which fails and takes TTS
+ *    down with it. Such a selection falls back like any other dead one.
  *  - `customVoiceIds` must already be filtered to ELIGIBLE clips (the caller's
  *    job — see LocalNativeClient's use of `eligibleCustomVoices`), in the same
  *    order the voice picker lists them: `customVoiceIds[0]` IS "the first
@@ -22,7 +28,7 @@ import type { NativeVoiceInfo } from './nativeProtocol';
  *    already knows CAN speak would be worse than picking one deterministically. */
 export function reconcileTtsVoice(
   ttsVoice: string, customVoiceIds: number[], targetLanguage: string,
-  voices: NativeVoiceInfo[], hasCustom: boolean,
+  voices: NativeVoiceInfo[], hasCustom: boolean, hasBuiltin = true,
 ): string {
   if (!hasCustom) return ttsVoice;
   const fallback = (): string => {
@@ -35,9 +41,10 @@ export function reconcileTtsVoice(
     const id = Number(ttsVoice.slice('custom:'.length));
     if (!Number.isFinite(id) || !customVoiceIds.includes(id)) return fallback();
   }
-  if (ttsVoice.startsWith('builtin:') && voices.length > 0) {
+  if (ttsVoice.startsWith('builtin:')) {
+    if (!hasBuiltin) return fallback();
     const name = ttsVoice.slice('builtin:'.length);
-    if (!voices.some((v) => v.name === name)) return fallback();
+    if (voices.length > 0 && !voices.some((v) => v.name === name)) return fallback();
   }
   return ttsVoice;
 }
