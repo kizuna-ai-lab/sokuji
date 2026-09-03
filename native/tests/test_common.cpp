@@ -80,10 +80,11 @@ int main(int argc, char **argv) {
     sk_free(nullptr);                                                 // and null
 
     assert(std::strstr(sk_engine_versions(), "audiocpp=0.7.1") != nullptr);
-    const char *fams[16];
-    int nf = sk_audio_families(fams, 16);
-    assert(nf >= 6);                                                  // may include companion families too
-    const char *want[] = {"moss_tts_nano", "omnivoice", "pocket_tts", "qwen3_tts", "silero_vad", "supertonic"};
+    const char *fams[32];
+    int nf = sk_audio_families(fams, 32);
+    assert(nf >= 10);                                                 // may include companion families too
+    const char *want[] = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
+                          "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2"};
     for (const char *w : want) {
         bool found = false;
         for (int i = 0; i < nf; ++i) if (std::strcmp(fams[i], w) == 0) found = true;

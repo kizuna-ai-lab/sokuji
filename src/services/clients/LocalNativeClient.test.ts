@@ -970,12 +970,19 @@ describe('LocalNativeClient native-vad worker (no worker available)', () => {
 
 // ── Slice 5: clone-only voice gate (renderer mirror of the sidecar R16 pre-check) ──
 //
-// A model whose catalog entry reports voice: { builtin: 'none', custom: 'clip' }
-// (qwen3_tts/omnivoice-shaped) can ONLY speak via a cloned voice. Without a
-// stored clip, the sidecar's own tts_backend.py raises a clean error from
-// generate() (R16) — but only once generate() is actually called, per
-// sentence. This gate catches it up front, before the model even loads, so
-// connect() never calls tts.init()/tts.generate() for that session at all.
+// A model whose catalog entry reports voice.required (the sidecar's
+// catalog.VOICE_REQUIRED_FAMILIES — qwen3_tts, omnivoice, index_tts2) can ONLY
+// speak via a cloned voice. Without a stored clip, the sidecar's own
+// tts_backend.py raises a clean error from generate() (R16) — but only once
+// generate() is actually called, per sentence. This gate catches it up front,
+// before the model even loads, so connect() never calls tts.init()/
+// tts.generate() for that session at all.
+//
+// The gate reads voice.required and not the voice SHAPE. Shape was the original
+// implementation and it was wrong in the expensive direction: MOSS-TTS-Nano,
+// VoxCPM 0.5B, VoxCPM2 and Irodori all report builtin 'none' + custom 'clip'
+// while speaking fine with nothing set, and every one of them was refused a
+// session outright. See the required:false case below.
 // A never-reused model id keeps this independent of catalog state any other
 // test in this file may have left behind.
 describe('LocalNativeClient clone-only voice gate', () => {
@@ -1023,9 +1030,47 @@ describe('LocalNativeClient clone-only voice gate', () => {
     expect(errors).toHaveLength(0);
   });
 
+  it('does NOT gate a clone-capable family that reports required:false (voxcpm/irodori/moss)', async () => {
+    // Identical voice SHAPE to the gated case above — builtin 'none', custom
+    // 'clip', no stored clip — and it must still load. This is the regression
+    // that shipped: the four families added on 2026-09-03 all look like this.
+    const OPTIONAL_REF_MODEL = 'voxcpm2-gate-test';
+    useNativeModelStore.setState({
+      catalog: { [OPTIONAL_REF_MODEL]: { id: OPTIONAL_REF_MODEL, name: 'VoxCPM2', languages: ['en'], recommended: false, tiers: [], voice: { builtin: 'none', custom: 'clip', required: false } } as any },
+    } as any);
+    const m = mocks();
+    m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 48000, loadTimeMs: 1 });
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices').mockResolvedValue([]);
+    const errors: string[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({ onError: (e: any) => errors.push(String(e?.message ?? e)) } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: OPTIONAL_REF_MODEL } as any);
+    expect(m.tts.init).toHaveBeenCalled();
+    expect(errors).toHaveLength(0);
+  });
+
+  it('still gates a family that reports required:true, with no stored clip', async () => {
+    // The other direction, read off the axis rather than inferred: index_tts2
+    // needs the clip but NOT a transcript for it (transcriptRequired absent).
+    const REQUIRED_MODEL = 'index-tts2-gate-test';
+    useNativeModelStore.setState({
+      catalog: { [REQUIRED_MODEL]: { id: REQUIRED_MODEL, name: 'IndexTTS 2.5', languages: ['en'], recommended: false, tiers: [], voice: { builtin: 'none', custom: 'clip', required: true } } as any },
+    } as any);
+    const m = mocks();
+    vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices').mockResolvedValue([]);
+    const errors: string[] = [];
+    const c = new LocalNativeClient(m);
+    c.setEventHandlers({ onError: (e: any) => errors.push(String(e?.message ?? e)) } as any);
+    await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
+      asrModelId: 'sense-voice', ttsModelId: REQUIRED_MODEL } as any);
+    expect(m.tts.init).not.toHaveBeenCalled();
+    expect(errors[0]).toMatch(/needs a voice clip/i);
+  });
+
   it('a preset/named-voice family (no voice field, no clones) is unaffected by the gate', async () => {
     // No catalog entry at all for this id -> voiceCapability(undefined) is
-    // {builtin:'none', custom:'none'}, which isCloneOnlyVoice rejects (custom
+    // {builtin:'none', custom:'none'}, which requiresVoiceClip rejects (custom
     // must be 'clip') -- the gate never engages, matching pre-slice-5 behavior.
     const m = mocks();
     m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, clones: false });

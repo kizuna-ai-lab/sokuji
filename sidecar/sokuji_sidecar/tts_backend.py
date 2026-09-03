@@ -226,7 +226,7 @@ import numpy as np
 
 from . import native
 from .backends import BackendLoadError, register_backend
-from .catalog import TTS_STAGING_DIRNAME, split_artifact
+from .catalog import TTS_STAGING_DIRNAME, VOICE_REQUIRED_FAMILIES, split_artifact
 from .planner import PlanConfig
 
 _SENTINEL = object()
@@ -247,20 +247,16 @@ _SENTINEL = object()
 _UNLOAD_DEADLINE_S = 10.0
 
 # R16: families whose native default voice raises when synth() is attempted with no
-# clone/preset set first -- live-verified only for these two (task-7-report.md §3).
-# moss_tts_nano ALSO reports CLONES=True but is NOT included here: it ships a genuinely
-# working built-in default and stays callable without a voice ever being set.
-# pocket_tts ALSO reports CLONES=True and is likewise NOT included here -- but for a
-# DIFFERENT reason than moss: its audio.cpp engine does NOT have a usable default voice
-# (live-verified: a bare synth() raises "PocketTTS session prepare() requires a session
-# voice via --voice-id or --voice-ref", same shape as qwen3_tts/omnivoice's failure, just
-# its own message). Putting pocket_tts here would only turn that failure into a clean
-# BackendLoadError, not make a bare synth() actually work -- it is instead served by
-# _DEFAULT_PRESET_FAMILIES below (ruling R34), which gives it a REAL default voice at
-# load() time. Neither of these two omissions belongs to the "ships a working built-in
-# default" story: moss earns its omission outright; pocket_tts's is earned by R34, not by
-# its own engine.
-_VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice"})
+# clone/preset set first. The set itself, its per-family evidence, and the reasons
+# moss_tts_nano / pocket_tts / voxcpm1 / voxcpm2 / irodori_tts are deliberately NOT in it
+# now live in catalog.VOICE_REQUIRED_FAMILIES -- read that comment for the full story.
+# It moved there because the RENDERER needs the same fact: catalog.voice_capability() puts
+# it on the wire as voice["required"], so LocalNativeClient's pre-init gate reads it
+# instead of inferring it from voice SHAPE (builtin=none + custom=clip) -- an inference
+# that refused to start TTS for every family that merely looks clone-only while speaking
+# fine with nothing set. catalog is the module both consumers can import; the reverse
+# import would be a cycle. This alias keeps the historical private name used below.
+_VOICE_REQUIRED_FAMILIES = VOICE_REQUIRED_FAMILIES
 
 # R33 / W-1: the fixed short phrase load() synthesizes once, on a non-CPU
 # device, purely to pay the first-synth GPU pipeline-compile cost at load

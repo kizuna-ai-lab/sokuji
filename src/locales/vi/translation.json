@@ -790,14 +790,17 @@
     "upgradeVariant": "Thiết bị của bạn hỗ trợ định dạng mô hình nhanh hơn. Xóa và tải lại để có hiệu năng tốt hơn.",
     "licenseConsent": {
       "title": "Giấy phép phi thương mại",
+      "restrictedTitle": "Giấy phép hạn chế",
       "modelRepo": "{{model}} sẽ được tải xuống từ {{repo}}.",
       "licenseName": "Được phân phối theo giấy phép {{name}} ({{spdx}}).",
       "viewLicense": "Xem toàn văn giấy phép",
       "nonCommercial": "Giấy phép này chỉ cho phép sử dụng phi thương mại — không sử dụng mô hình này trong bất kỳ sản phẩm hoặc dịch vụ thương mại nào.",
+      "restrictedTerms": "Đây không phải giấy phép nguồn mở. Giấy phép này đặt ra điều kiện về cách sử dụng mô hình và kết quả đầu ra của nó — hãy đọc toàn văn trước khi dựa vào nó.",
       "disclaimer": "Sokuji không liên kết với các tác giả của mô hình và không có bất kỳ quan hệ nào với họ. Tích hợp này không chính thức và được cung cấp nguyên trạng, không kèm bất kỳ bảo đảm nào.",
       "attribution": "Ghi công: {{attribution}}",
       "cancel": "Hủy",
-      "accept": "Tôi hiểu — chỉ dùng phi thương mại"
+      "accept": "Tôi hiểu — chỉ dùng phi thương mại",
+      "acceptRestricted": "Tôi hiểu — chấp nhận giấy phép"
     }
   },
   "notes": {

@@ -790,14 +790,17 @@
     "upgradeVariant": "Uw apparaat ondersteunt een sneller modelformaat. Verwijder en download opnieuw voor betere prestaties.",
     "licenseConsent": {
       "title": "Niet-commerciële licentie",
+      "restrictedTitle": "Beperkte licentie",
       "modelRepo": "{{model}} wordt gedownload van {{repo}}.",
       "licenseName": "Het wordt verspreid onder {{name}} ({{spdx}}).",
       "viewLicense": "Bekijk de volledige licentietekst",
       "nonCommercial": "Deze licentie staat alleen niet-commercieel gebruik toe — gebruik dit model niet in commerciële producten of diensten.",
+      "restrictedTerms": "Dit is geen opensourcelicentie. Ze stelt voorwaarden aan het gebruik van het model en de uitvoer ervan — lees de volledige tekst voordat u erop vertrouwt.",
       "disclaimer": "Sokuji is niet gelieerd aan de auteurs van het model en heeft geen relatie met hen. Deze integratie is onofficieel en wordt geleverd zoals ze is, zonder enige garantie.",
       "attribution": "Naamsvermelding: {{attribution}}",
       "cancel": "Annuleren",
-      "accept": "Begrepen — alleen niet-commercieel"
+      "accept": "Begrepen — alleen niet-commercieel",
+      "acceptRestricted": "Begrepen — licentie accepteren"
     }
   },
   "notes": {

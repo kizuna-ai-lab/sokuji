@@ -190,15 +190,23 @@ def test_fun_asr_mlt_nano_row():
 
 TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.7b",
                 "omnivoice-0.6b", "pocket-tts-en", "pocket-tts-de", "pocket-tts-es",
-                "pocket-tts-it", "pocket-tts-pt")
+                "pocket-tts-it", "pocket-tts-pt",
+                # 2026-09-03 batch
+                "voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small", "index-tts2.5")
+
+# The 2026-09-03 batch arrives CPU-ONLY: no entry in _TTS_TIER_OVERRIDES, so
+# _tts_gguf_row falls through to _TTS_TIERS == ("cpu",). Tier assertions below
+# split on this set rather than asserting one tier shape for every card.
+NEW_2026_09_03_TTS_CARD_IDS = ("voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small", "index-tts2.5")
 
 
-def test_tts_models_are_the_ten_native_tts_cards():
+def test_tts_models_are_the_fourteen_native_tts_cards():
     # 68 rows -> 10, slice 4 (spec §5.4 corrected 2026-08-31): every ONNX/
     # sherpa/MLX backend and its cards died with the ONNX/sherpa/MLX stacks.
+    # 10 -> 14 on 2026-09-03: four more audio.cpp families.
     ids = [m.id for m in catalog.tts_models()]
     assert set(ids) == set(TTS_CARD_IDS)
-    assert len(ids) == len(set(ids)) == 10
+    assert len(ids) == len(set(ids)) == 14
 
 
 def test_tts_models_have_deployments_languages_and_family():
@@ -240,7 +248,8 @@ def test_tts_quant_ladder_shape():
     # variation) -- {"cpu", "gpu-vulkan", "gpu-metal"} for every family
     # post-task-10 (R36 restored gpu-metal fleet-wide), pocket_tts included
     # (ruling R29, superseding R28 -- see test_pocket_tts_gpu_vulkan_r29
-    # below for why).
+    # below for why), and the four added 2026-09-03 once both accelerator
+    # lanes had been measured for them. No family is a tier exception.
     for m in catalog.tts_models():
         by_ct = {}
         for d in m.deployments:
@@ -307,11 +316,13 @@ def test_omnivoice_license():
     assert lic.non_commercial is True
     assert lic.source_repo == "audio-cpp/audio.cpp-gguf"
     assert lic.attribution == "k2-fsa/OmniVoice"
+    assert lic.requires_consent is True     # a License descriptor gates by default
     assert catalog.license_dict(m) == {
         "spdx": "CC-BY-NC-4.0",
         "name": "Creative Commons Attribution-NonCommercial 4.0 International",
         "url": "https://creativecommons.org/licenses/by-nc/4.0/",
         "nonCommercial": True,
+        "requiresConsent": True,
         "sourceRepo": "audio-cpp/audio.cpp-gguf",
         "attribution": "k2-fsa/OmniVoice",
     }
@@ -319,6 +330,98 @@ def test_omnivoice_license():
     # None, not a default-constructed License.
     assert catalog.tts_model("moss-tts-nano").license is None
     assert catalog.license_dict(catalog.tts_model("moss-tts-nano")) is None
+
+
+def test_new_2026_09_03_tts_cards_carry_every_tier():
+    # These four shipped cpu-only for as long as no lane had been measured. Both
+    # accelerator lanes have been now (GB10 Vulkan and an M4's Metal, with the
+    # native-1.0.2 wheels), so they carry the same three tiers as every other
+    # family: a tier list states what CAN run. Whether a given machine SHOULD use
+    # its GPU, and at which quant, is the planner's and the recommendation's call
+    # (jiangzhuo's ruling, 2026-09-03) -- not something a family opts out of by
+    # having a slow lane, which would only push that machine onto a slower one.
+    for mid in NEW_2026_09_03_TTS_CARD_IDS:
+        m = catalog.tts_model(mid)
+        assert m is not None, mid
+        assert catalog._TTS_TIER_OVERRIDES[m.family] == ("gpu-vulkan", "gpu-metal", "cpu"), mid
+        assert {d.tier for d in m.deployments} == {"gpu-vulkan", "gpu-metal", "cpu"}, mid
+
+
+def test_voxcpm_cards_shape():
+    # Both VoxCPMs stream and clone from an OPTIONAL reference clip with no
+    # transcript, and neither exposes built-in voices. Their sample rates are the
+    # two outliers of the roster: 16 kHz for v1, 48 kHz for v2.
+    v1 = catalog.tts_model("voxcpm1-0.5b")
+    assert v1 is not None
+    assert v1.family == "voxcpm1"
+    assert v1.languages == ("zh", "en", "ja", "ko")
+    assert v1.streaming is True and v1.clones is True
+    assert v1.transcript_required is False and v1.named_voices is False
+    assert v1.sample_rate == 16000
+    assert v1.recommended is False
+    # The repo ships exactly one file for voxcpm1 — a single-rung card, like supertonic.
+    assert {d.compute_type for d in v1.deployments} == {"q8_0"}
+    assert v1.size_bytes == 847_888_032
+
+    v2 = catalog.tts_model("voxcpm2")
+    assert v2 is not None
+    assert v2.family == "voxcpm2"
+    assert len(v2.languages) == 30 and "ja" in v2.languages and "zh" in v2.languages
+    # model_specs/voxcpm2.json's 31st entry is the non-code "zh dialects"; these
+    # tuples carry language CODES the renderer matches on, so it is dropped.
+    assert all(" " not in code for code in v2.languages)
+    assert v2.streaming is True and v2.clones is True
+    assert v2.transcript_required is False and v2.named_voices is False
+    assert v2.sample_rate == 48000
+    assert {d.compute_type for d in v2.deployments} == {"q8_0", "bf16"}
+    assert next(d for d in v2.deployments if d.rank == 2.0).compute_type == "q8_0"
+    assert v2.size_bytes == 2_955_000_480
+
+
+def test_irodori_card_is_japanese_only_and_offline():
+    m = catalog.tts_model("irodori-tts-v4-small")
+    assert m is not None
+    assert m.family == "irodori_tts"
+    assert m.languages == ("ja",)      # audio.cpp throws for any other language
+    assert m.streaming is False        # offline-only per model_specs/irodori_tts.json
+    assert m.clones is True and m.transcript_required is False
+    assert m.named_voices is False
+    assert m.sample_rate == 48000
+    assert {d.compute_type for d in m.deployments} == {"q8_0", "f16"}
+    assert m.size_bytes == 1_368_991_360
+
+
+def test_index_tts2_card_and_license():
+    m = catalog.tts_model("index-tts2.5")
+    assert m is not None
+    assert m.family == "index_tts2"
+    assert m.languages == ("zh", "en", "ja", "es", "ar")   # the 2.5 checkpoint's five
+    assert m.streaming is False
+    # Needs the clip, not a transcript of it. The "clip is mandatory" axis lives in
+    # tts_backend._VOICE_REQUIRED_FAMILIES; there is no catalog field for it.
+    assert m.clones is True and m.transcript_required is False
+    assert m.named_voices is False
+    assert m.sample_rate == 22050
+    assert m.size_bytes == 3_502_955_328
+
+    lic = m.license
+    assert lic is not None
+    # NOT an OSI license and not in the SPDX list, hence LicenseRef-. It permits
+    # commercial use below a MAU/revenue ceiling, so non_commercial must stay False
+    # (the modal would otherwise tell the user something untrue) while
+    # requires_consent still raises the download gate.
+    assert lic.spdx == "LicenseRef-bilibili-Model-Use-License"
+    assert lic.non_commercial is False
+    assert lic.requires_consent is True
+    assert catalog.license_dict(m)["requiresConsent"] is True
+    assert catalog.license_dict(m)["nonCommercial"] is False
+
+
+def test_index_tts2_is_the_only_new_card_with_a_license():
+    for mid in ("voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small"):
+        m = catalog.tts_model(mid)
+        assert m is not None and m.license is None, mid
+        assert catalog.license_dict(m) is None, mid
 
 
 def test_tts_moss_nano_is_offline_cloning():
@@ -505,12 +608,53 @@ def test_size_bytes_regression_values():
 
 def test_voice_capability_map():
     cap = catalog.voice_capability
-    assert cap(catalog.tts_model("moss-tts-nano")) == {"builtin": "none", "custom": "clip"}
-    assert cap(catalog.tts_model("supertonic-3")) == {"builtin": "named", "custom": "none"}
-    assert cap(catalog.tts_model("pocket-tts-en")) == {"builtin": "named", "custom": "clip"}
-    assert cap(catalog.tts_model("pocket-tts-de")) == {"builtin": "none", "custom": "clip"}
+    assert cap(catalog.tts_model("moss-tts-nano")) == {"builtin": "none", "custom": "clip",
+                                                       "required": False}
+    assert cap(catalog.tts_model("supertonic-3")) == {"builtin": "named", "custom": "none",
+                                                      "required": False}
+    assert cap(catalog.tts_model("pocket-tts-en")) == {"builtin": "named", "custom": "clip",
+                                                       "required": False}
+    assert cap(catalog.tts_model("pocket-tts-de")) == {"builtin": "none", "custom": "clip",
+                                                       "required": False}
     assert cap(catalog.tts_model("omnivoice-0.6b")) == {"builtin": "none", "custom": "clip",
+                                                        "required": True,
                                                         "transcriptRequired": True}
+
+
+def test_voice_required_is_its_own_axis_not_a_shape_inference():
+    """The bug this axis exists to kill: `builtin == 'none' and custom == 'clip'` is the
+    shape of BOTH a family that must be handed a clip and one that speaks fine without one,
+    so the renderer's old shape-based pre-init gate disabled TTS for the second group.
+    These six cards all share that shape and split 3/3 on `required`."""
+    cap = catalog.voice_capability
+    same_shape = ("moss-tts-nano", "voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small",
+                  "omnivoice-0.6b", "index-tts2.5")
+    for mid in same_shape:
+        c = cap(catalog.tts_model(mid))
+        assert (c["builtin"], c["custom"]) == ("none", "clip"), mid
+
+    not_required = ("moss-tts-nano", "voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small",
+                    "supertonic-3", "pocket-tts-en", "pocket-tts-de")
+    required = ("qwen3-tts-0.6b", "qwen3-tts-1.7b", "omnivoice-0.6b", "index-tts2.5")
+    for mid in not_required:
+        assert cap(catalog.tts_model(mid))["required"] is False, mid
+    for mid in required:
+        assert cap(catalog.tts_model(mid))["required"] is True, mid
+
+    # Every card carries the axis — absent must mean "sidecar too old", never "false".
+    for m in catalog.tts_models():
+        assert "required" in cap(m), m.id
+
+
+def test_voice_required_families_is_the_single_source_of_truth():
+    """tts_backend's own R16 gate and the wire field must be the same set, or the sidecar
+    would refuse a synth the renderer had already decided was fine (or vice versa)."""
+    from sokuji_sidecar import tts_backend
+    assert tts_backend._VOICE_REQUIRED_FAMILIES is catalog.VOICE_REQUIRED_FAMILIES
+    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2"}
+    for m in catalog.tts_models():
+        assert (catalog.voice_capability(m)["required"]
+                is (m.family in catalog.VOICE_REQUIRED_FAMILIES)), m.id
 
 
 def test_supertonic_row():
@@ -544,6 +688,7 @@ def test_qwen3_rows_and_capability():
         assert m.transcript_required is True and m.recommended is rec
         assert {d.backend for d in m.deployments} == {"native_tts"}
         assert catalog.voice_capability(m) == {"builtin": "none", "custom": "clip",
+                                               "required": True,
                                                "transcriptRequired": True}
     # Only supertonic-3 and moss-tts-nano stay recommended (per spec §11).
     assert catalog.tts_model("moss-tts-nano").recommended is True

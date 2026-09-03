@@ -17,22 +17,33 @@ interface LicenseConsentModalProps {
 
 /**
  * Acknowledge-gate shown before downloading a native model card whose catalog
- * descriptor carries a non-commercial license (WarningModal-style, built on the
- * shared Modal primitive). The caller (NativeModelCard in
+ * descriptor carries a license that has to be acknowledged (WarningModal-style,
+ * built on the shared Modal primitive). The caller (NativeModelCard in
  * NativeModelManagementSection.tsx) only opens this when
- * `spec.license?.nonCommercial` is true and the model id hasn't already been
+ * `spec.license?.requiresConsent` is true and the model id hasn't already been
  * accepted (see stores/licenseConsentStore.ts); it does not gate this itself.
+ *
+ * Two wordings, picked by `license.nonCommercial`. A non-commercial license
+ * (OmniVoice's CC-BY-NC-4.0) says so outright. A license that is merely
+ * restricted — not OSI, with conditions, but commercial use permitted — must NOT
+ * be described as non-commercial: IndexTTS 2.5's bilibili Model Use License
+ * allows commercial use below a MAU/revenue ceiling, and telling the user
+ * otherwise would be wrong in the direction that costs them a usable model.
  */
 const LicenseConsentModal: React.FC<LicenseConsentModalProps> = ({ isOpen, license, modelName, onAccept, onClose }) => {
   const { t } = useTranslation();
 
   if (!license) return null;
 
+  const nonCommercial = license.nonCommercial;
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={t('models.licenseConsent.title', 'Non-commercial license')}
+      title={nonCommercial
+        ? t('models.licenseConsent.title', 'Non-commercial license')
+        : t('models.licenseConsent.restrictedTitle', 'Restricted license')}
     >
       <div className="license-consent-modal">
         <div className="license-consent-modal__icon">
@@ -61,10 +72,15 @@ const LicenseConsentModal: React.FC<LicenseConsentModalProps> = ({ isOpen, licen
           )}
         </p>
         <p>
-          {t(
-            'models.licenseConsent.nonCommercial',
-            'This license permits non-commercial use only — do not use this model in any commercial product or service.'
-          )}
+          {nonCommercial
+            ? t(
+                'models.licenseConsent.nonCommercial',
+                'This license permits non-commercial use only — do not use this model in any commercial product or service.'
+              )
+            : t(
+                'models.licenseConsent.restrictedTerms',
+                'This is not an open-source license. It sets conditions on how the model and its output may be used — read the full text before you rely on it.'
+              )}
         </p>
         <p>
           {t(
@@ -80,7 +96,9 @@ const LicenseConsentModal: React.FC<LicenseConsentModalProps> = ({ isOpen, licen
             {t('models.licenseConsent.cancel', 'Cancel')}
           </button>
           <button type="button" className="license-consent-modal__accept" onClick={onAccept}>
-            {t('models.licenseConsent.accept', 'I understand — non-commercial only')}
+            {nonCommercial
+              ? t('models.licenseConsent.accept', 'I understand — non-commercial only')
+              : t('models.licenseConsent.acceptRestricted', 'I understand — accept the license')}
           </button>
         </div>
       </div>

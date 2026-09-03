@@ -3,7 +3,7 @@
  * turn settings into concrete model ids. Centralized so settings UI + session
  * config share one source of truth.
  */
-import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
+import type { NativeModelInfo, NativeModelLicense, NativeVoiceInfo } from './nativeProtocol';
 import type { ResolutionNote, Selections } from '../selection/types';
 
 /**
@@ -56,7 +56,15 @@ export function nativeAsrForLanguage(srcLang: string, current: string, catalog: 
 
 export type VoiceBuiltin = 'none' | 'named';
 export type VoiceCustom = 'none' | 'clip';
-export interface VoiceCapability { builtin: VoiceBuiltin; custom: VoiceCustom; transcriptRequired?: boolean; }
+export interface VoiceCapability {
+  builtin: VoiceBuiltin;
+  custom: VoiceCustom;
+  /** The model cannot speak until a clip/preset is set (the sidecar's R16
+   *  `catalog.VOICE_REQUIRED_FAMILIES`). Optional: a sidecar older than
+   *  2026-09-03 does not send it, and absent means "cannot say". */
+  required?: boolean;
+  transcriptRequired?: boolean;
+}
 
 /** A TTS model's voice capability: which built-in voice control it exposes
  *  (none/named) and which custom-voice mechanism it supports (none/clip
@@ -73,13 +81,26 @@ export function voiceCapability(model: NativeModelInfo | undefined): VoiceCapabi
   return { builtin, custom };
 }
 
-/** True when a TTS model can ONLY speak via a cloned voice — no built-in voice
- *  exists at all (the sidecar's R16 `_VOICE_REQUIRED_FAMILIES`, e.g. qwen3_tts,
- *  omnivoice). Such a model produces no audio until the user records/imports at
- *  least one usable clip; pairs with an eligible-clip count (respecting
+/** True when a TTS model produces no audio at all until the user records/imports
+ *  a usable clip — the sidecar's R16 `catalog.VOICE_REQUIRED_FAMILIES`
+ *  (qwen3_tts, omnivoice, index_tts2), reported on the wire as
+ *  `voice.required`. Pairs with an eligible-clip count (respecting
  *  `transcriptRequired` — a clip with no transcript doesn't count for a model
- *  that needs one) to decide whether that clip actually exists yet. */
-export function isCloneOnlyVoice(capability: VoiceCapability): boolean {
+ *  that needs one) to decide whether that clip actually exists yet.
+ *
+ *  This used to be inferred from voice SHAPE (`builtin === 'none' && custom ===
+ *  'clip'`), which is not the same question and answered it wrong: MOSS-TTS-Nano
+ *  has always had that shape while shipping a working built-in voice, and the
+ *  four families added on 2026-09-03 made it three more — VoxCPM 0.5B, VoxCPM2
+ *  and Irodori all clone, expose no presets, and speak fine with nothing set.
+ *  Every one of them was refused a session with "needs a voice clip".
+ *
+ *  The shape check survives only as the fallback for a sidecar too old to send
+ *  the axis: `undefined` keeps the historical behaviour rather than silently
+ *  un-gating qwen3_tts/omnivoice, which would trade a false refusal for a
+ *  per-sentence synth failure. */
+export function requiresVoiceClip(capability: VoiceCapability): boolean {
+  if (typeof capability.required === 'boolean') return capability.required;
   return capability.builtin === 'none' && capability.custom === 'clip';
 }
 
@@ -424,7 +445,7 @@ export interface NativeModelCardSpec {
   streaming?: boolean;
   clones?: boolean;
   variantIds?: string[];
-  license?: { spdx: string; name: string; url: string; nonCommercial: boolean; sourceRepo: string; attribution: string };
+  license?: NativeModelLicense;
 }
 
 /** Map a catalog NativeModelInfo entry to a NativeModelCardSpec. */

@@ -1,8 +1,12 @@
 /**
  * LicenseConsentModal (Task 2 of the OmniVoice license-consent plan) — the
  * WarningModal-style acknowledge dialog shown before downloading a native
- * model card whose catalog descriptor carries a non-commercial license
- * (NativeModelCardSpec.license.nonCommercial).
+ * model card whose catalog descriptor carries a license that has to be
+ * acknowledged (NativeModelCardSpec.license.requiresConsent).
+ *
+ * Two wordings, picked by `nonCommercial`: a non-commercial license says so, a
+ * merely restricted one must not — IndexTTS 2.5's bilibili Model Use License
+ * permits commercial use below a MAU/revenue ceiling.
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -23,8 +27,20 @@ const license: ModelLicense = {
   name: 'Creative Commons Attribution-NonCommercial 4.0',
   url: 'https://creativecommons.org/licenses/by-nc/4.0/',
   nonCommercial: true,
+  requiresConsent: true,
   sourceRepo: 'k2-fsa/some-model-repo',
   attribution: 'k2-fsa / sherpa-onnx',
+};
+
+/** Restricted but NOT non-commercial: acknowledged, yet usable commercially. */
+const restrictedLicense: ModelLicense = {
+  spdx: 'LicenseRef-bilibili-Model-Use-License',
+  name: 'bilibili Model Use License',
+  url: 'https://huggingface.co/IndexTeam/IndexTTS-2/blob/main/LICENSE',
+  nonCommercial: false,
+  requiresConsent: true,
+  sourceRepo: 'audio-cpp/audio.cpp-gguf',
+  attribution: 'bilibili IndexTeam',
 };
 
 describe('LicenseConsentModal', () => {
@@ -83,6 +99,29 @@ describe('LicenseConsentModal', () => {
     // Footer actions.
     expect(screen.getByRole('button', { name: /i understand/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+  });
+
+  it('never calls a restricted license non-commercial', () => {
+    render(
+      <LicenseConsentModal
+        isOpen
+        license={restrictedLicense}
+        modelName="IndexTTS 2.5"
+        onAccept={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    // The whole point of the second wording: this license DOES allow commercial
+    // use below a threshold, so the modal must not tell the user otherwise.
+    expect(screen.queryByText(/non-commercial/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/not an open-source license/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /accept the license/i })).toBeInTheDocument();
+    // The shared parts stay: repo, license name/SPDX, disclaimer, attribution, link.
+    expect(screen.getByText(/audio-cpp\/audio\.cpp-gguf/)).toBeInTheDocument();
+    expect(screen.getByText(/bilibili Model Use License/)).toBeInTheDocument();
+    expect(screen.getByText(/not affiliated/i)).toBeInTheDocument();
+    expect(screen.getByText(/bilibili IndexTeam/)).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute('href', restrictedLicense.url);
   });
 
   it('calls onAccept when the primary button is clicked', () => {

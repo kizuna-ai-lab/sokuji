@@ -594,17 +594,26 @@ class License:
     TtsModel.license as None; only a card that needs it (OmniVoice, issue
     #351) sets one, and the download gate (Task 2) reads this rather than
     special-casing a model id."""
-    spdx: str             # SPDX identifier ("CC-BY-NC-4.0")
+    spdx: str             # SPDX identifier ("CC-BY-NC-4.0"), or a LicenseRef-* for a
+                          # vendor licence with no SPDX id of its own
     name: str             # human-readable license name
     url: str              # license text URL
     non_commercial: bool  # True gates commercial use
     source_repo: str      # upstream repo this license traces back to
     attribution: str      # required attribution string (author/project)
+    # Whether the download gate must show an acknowledgement before this card is
+    # fetched. Separate from `non_commercial` on purpose: a licence can be
+    # restrictive enough to need acknowledging while still permitting commercial use
+    # (IndexTTS 2.5's bilibili Model Use License allows it below a MAU/revenue
+    # threshold), and calling that "non-commercial" in the UI would be a lie. The
+    # renderer gates on THIS flag and picks its wording from `non_commercial`.
+    requires_consent: bool = True
 
 
 @dataclass(frozen=True)
 class TtsModel(_ModelBase):
-    family: str = ""                  # sk_tts_load's family_hint: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic
+    family: str = ""                  # sk_tts_load's family_hint: moss_tts_nano | qwen3_tts | omnivoice |
+                                      # pocket_tts | supertonic | voxcpm1 | voxcpm2 | irodori_tts | index_tts2
     load_language: str = ""           # pocket_tts's load-time language package ("english", ...); "" elsewhere
     clones: bool = False              # zero-shot voice cloning from a reference clip (sk_tts_set_voice)
     streaming: bool = False           # intra-utterance audio-delta streaming (R5: MOSS is offline-only)
@@ -619,15 +628,59 @@ class TtsModel(_ModelBase):
     extra_files: tuple[tuple[str, int], ...] = ()
 
 
+# Ruling R16: families whose engine CANNOT synthesize until a voice is set --
+# they ship no usable built-in voice at all, so a bare generate() can only ever
+# fail. tts_backend._ensure_voice_ready() turns that into a clean, family-named
+# BackendLoadError before the native layer is reached, and voice_capability()
+# below puts the same fact on the wire as `required` so the renderer's own
+# pre-init gate reads it instead of guessing.
+#
+# It lives HERE, not in tts_backend, because two consumers need it and this is
+# the module both can import (tts_backend already imports from .catalog; the
+# reverse would be a cycle). tts_backend re-exports it under its historical
+# private name.
+#
+# Membership is by ENGINE BEHAVIOUR, live-verified per family, not by voice
+# shape -- which is exactly the distinction the renderer used to get wrong:
+#   qwen3_tts   base checkpoint has no default voice, and its ICL clone mode
+#               additionally requires ref_text (R15(s4), task-7-report.md §3).
+#   omnivoice   same, ref_text likewise mandatory.
+#   index_tts2  (2026-09-03) request parser refuses outright -- "IndexTTS2
+#               request requires --voice-ref or voice.speaker.audio" -- and
+#               audio.cpp exposes no built-in voices for it. Needs the CLIP
+#               only, not a transcript: transcript_required stays False.
+# Deliberately NOT members, though all five report clones=True and expose no
+# presets (i.e. they LOOK identical to the three above from the outside):
+#   moss_tts_nano  ships a genuinely working built-in default (CPU-verified).
+#   pocket_tts     does NOT -- but adding it here would only make the failure
+#                  clean, not make a bare synth work; ruling R34 gives it a real
+#                  default voice at load() instead (_DEFAULT_PRESET_FAMILIES).
+#   voxcpm1, voxcpm2, irodori_tts  (2026-09-03) all synthesize with nothing set;
+#                  their speaker reference is optional (irodori's own request
+#                  default is no_ref=true). CPU-verified against the real GGUFs.
+VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2"})
+
+
 def voice_capability(model: "TtsModel") -> dict:
-    """Two-axis native voice capability derived from static catalog facts.
+    """Native voice capability derived from static catalog facts.
     builtin: named (sk_tts_presets dropdown) | none. custom: clip (reference
-    audio, sk_tts_set_voice) | none. The old style/range axes (Supertonic's
+    audio, sk_tts_set_voice) | none. required: whether a clip/preset MUST be set
+    before the model can speak at all. The old style/range axes (Supertonic's
     uploaded style-vector JSON, a sid-range slider) died with the ONNX
-    backends that were their only consumers."""
+    backends that were their only consumers.
+
+    `required` is its own axis and always present, because it is NOT derivable
+    from the other two: moss_tts_nano, voxcpm1, voxcpm2 and irodori_tts all
+    report builtin=none + custom=clip (they clone and expose no presets) and yet
+    speak fine with nothing set, while qwen3_tts/omnivoice/index_tts2 report the
+    identical shape and cannot. The renderer's pre-init gate used to infer it
+    from that shape and so refused to start TTS for the four ungated ones. It is
+    emitted unconditionally (unlike transcriptRequired) so an absent field means
+    "sidecar too old to say", not "false"."""
     custom = "clip" if model.clones else "none"
     builtin = "named" if model.named_voices else "none"
-    out = {"builtin": builtin, "custom": custom}
+    out = {"builtin": builtin, "custom": custom,
+           "required": model.family in VOICE_REQUIRED_FAMILIES}
     if custom == "clip" and model.transcript_required:
         out["transcriptRequired"] = True
     return out
@@ -644,13 +697,15 @@ def license_dict(model: "TtsModel") -> dict | None:
         "name": lic.name,
         "url": lic.url,
         "nonCommercial": lic.non_commercial,
+        "requiresConsent": lic.requires_consent,
         "sourceRepo": lic.source_repo,
         "attribution": lic.attribution,
     }
 
 
-# All 10 cards are single-file GGUFs from audio.cpp's official mirror,
-# verified 2026-09-01 via the HF tree API (`GET
+# All 14 cards are single-file GGUFs from audio.cpp's official mirror,
+# verified 2026-09-01 (the first ten) and 2026-09-03 (the four added then)
+# via the HF tree API (`GET
 # api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`) — every (dir, file)
 # pair below resolves to a real LFS object and the byte count shown is its
 # exact `lfs.size`. Cross-checked against the repo's own `model_specs/
@@ -688,10 +743,14 @@ TTS_STAGING_DIRNAME = "sokuji-tts-staging"
 # GGML_OP_NORM gate, not a real-hardware finding.)
 #
 # `_TTS_TIERS` below is the cpu-only default for any family not listed in
-# `_TTS_TIER_OVERRIDES` — every one of the ten current cards IS listed there
-# (see that dict, below the fleet table), so this default currently applies
-# to no shipped card; it exists for the next new family, which starts
-# cpu-only until it, too, earns a tier through real-GPU evidence.
+# `_TTS_TIER_OVERRIDES` — it exists for a new family, which starts cpu-only
+# until it, too, earns a tier through real-GPU evidence. It is no longer a
+# dormant default: the four families added on 2026-09-03 (voxcpm1, voxcpm2,
+# irodori_tts, index_tts2) are deliberately absent from that dict, so four
+# shipped cards resolve through this line today. They gain GPU tiers once the
+# native-v1.0.2 wheels are validated per family on the fleet; a family that
+# fails every GPU lane loses its card at that point rather than keeping a
+# tier it cannot serve.
 _TTS_TIERS = ("cpu",)
 
 # R19 follow-up / ruling R25 (2026-09-01, task 8): the first real Vulkan TTS
@@ -902,6 +961,28 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
     "qwen3_tts": ("gpu-vulkan", "gpu-metal", "cpu"),
     "omnivoice": ("gpu-vulkan", "gpu-metal", "cpu"),
     "pocket_tts": ("gpu-vulkan", "gpu-metal", "cpu"),   # ruling R29 (supersedes R28) -- see table above
+    # The four added 2026-09-03. Measured per lane with the native-1.0.2 wheels
+    # this branch's own CI dry run built -- necessarily so: 1.0.1, which
+    # requirements.txt still pins, compiles only the five older families
+    # (AUDIOCPP_MODELS gained these four here), so it cannot load them at all.
+    # The pin moves to 1.0.2 when the native-v1.0.2 tag publishes those wheels,
+    # which is the release order native/README.md sets out: tag, then pin.
+    # Warm RTF = synth / audio, so <1 is faster than speech:
+    #                GB10 Vulkan   M4 Metal   M4 CPU
+    #   voxcpm1          0.47         0.91      1.55
+    #   voxcpm2          0.63         1.42      3.27
+    #   irodori_tts      0.28         0.97      2.32
+    #   index_tts2       0.45         1.77      4.94
+    # Vulkan clears real time for all four. Metal does not for voxcpm2 and
+    # index_tts2 -- but it still beats the same machine's CPU by 1.7-2.8x, and a
+    # tier list says what CAN run, not what is worth choosing. Keeping Metal shut
+    # would only push a Mac onto the slower path. Which device and which quant a
+    # machine SHOULD use is the planner's and the download recommendation's
+    # decision (jiangzhuo's ruling, 2026-09-03).
+    "voxcpm1": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "voxcpm2": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "irodori_tts": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "index_tts2": ("gpu-vulkan", "gpu-metal", "cpu"),
 }
 
 
@@ -1069,6 +1150,79 @@ TTS_MODELS: list[TtsModel] = [
          "bf16": ("pocket-tts-portuguese-bf16.gguf", 219097728)},
         default_quant="q8_0", order=9, load_language="portuguese",
         clones=True, streaming=False, sample_rate=24000),
+    # ---- 2026-09-03 batch ----------------------------------------------------
+    # Four more audio.cpp families, all CPU-ONLY on arrival: none of them appears
+    # in _TTS_TIER_OVERRIDES, so `_tts_gguf_row` gives each the default
+    # `_TTS_TIERS = ("cpu",)`. They earn gpu-vulkan/gpu-metal rows the same way
+    # the first five did -- one fleet run per family per lane (R19), not by
+    # analogy with a sibling family. Every byte count below is the exact `lfs.size`
+    # from `GET api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`, read
+    # 2026-09-03, and every family was loaded and synthesized on this repo's CPU
+    # lane (linux-arm64) before the row was written.
+    #
+    # VoxCPM 0.5B (community model in audio.cpp: src/community_models/voxcpm1).
+    # Streaming, optional reference clip (continuation-mode cloning), no presets.
+    # The repo ships exactly ONE file for it, so there is no quant ladder. 16 kHz
+    # is genuinely this family's native rate, not a typo -- it is the lowest of
+    # any card here.
+    _tts_gguf_row(
+        "voxcpm1-0.5b", "VoxCPM 0.5B", ("zh", "en", "ja", "ko"),
+        "voxcpm1", "VoxCPM1-GGUF",
+        {"q8_0": ("voxcpm-0.5b-q8_0-audiovae-f16.gguf", 847888032)},
+        default_quant="q8_0", order=10, clones=True, streaming=True,
+        sample_rate=16000),
+    # VoxCPM2: the same lineage at 48 kHz across 30 languages
+    # (model_specs/voxcpm2.json lists 31 entries; the non-code "zh dialects" one
+    # is dropped here because these tuples are BCP-47-ish codes the renderer
+    # matches against, not prose).
+    _tts_gguf_row(
+        "voxcpm2", "VoxCPM2",
+        ("ar", "my", "zh", "da", "nl", "en", "fi", "fr", "de", "el", "he", "hi",
+         "id", "it", "ja", "km", "ko", "lo", "ms", "no", "pl", "pt", "ru", "es",
+         "sw", "sv", "tl", "th", "tr", "vi"),
+        "voxcpm2", "VoxCPM2-GGUF",
+        {"q8_0": ("voxcpm2-q8_0.gguf", 2955000480),
+         "bf16": ("voxcpm2-bf16.gguf", 4772288288)},
+        default_quant="q8_0", order=11, clones=True, streaming=True,
+        sample_rate=48000),
+    # Irodori-TTS v4 Small: Japanese only (audio.cpp throws "Irodori-TTS language
+    # must be ja" for anything else), offline, 48 kHz. Its reference clip is
+    # optional -- the request default is no_ref=true, so a bare synth works.
+    _tts_gguf_row(
+        "irodori-tts-v4-small", "Irodori TTS v4 Small", ("ja",),
+        "irodori_tts", "Irodori-TTS-v4-Small-GGUF",
+        {"q8_0": ("irodori-tts-v4-small-q8_0.gguf", 1368991360),
+         "f16": ("irodori-tts-v4-small-f16.gguf", 1762148352)},
+        default_quant="q8_0", order=12, clones=True, streaming=False,
+        sample_rate=48000),
+    # IndexTTS 2.5: offline, 22.05 kHz, and the only card here whose reference
+    # clip is MANDATORY -- audio.cpp exposes no built-in voices for it and its
+    # request parser refuses without one, so tts_backend._VOICE_REQUIRED_FAMILIES
+    # turns that into a clean error before the native layer. `clones=True` with
+    # `transcript_required=False`: it needs the clip, not a transcript of it.
+    #
+    # bilibili's Model Use License is NOT an OSI licence and is not in the SPDX
+    # list, hence the LicenseRef- id. It DOES permit commercial use and
+    # redistribution below 100M MAU / RMB 1B revenue, so `non_commercial` is
+    # False and the consent modal must not call it non-commercial;
+    # `requires_consent` is what actually raises the gate (see License's own
+    # comment). Terms worth the acknowledgement: the MAU/revenue ceiling, the
+    # prohibition on high-risk uses, and the ban on using outputs to train other
+    # models.
+    _tts_gguf_row(
+        "index-tts2.5", "IndexTTS 2.5", ("zh", "en", "ja", "es", "ar"),
+        "index_tts2", "IndexTTS2.5-GGUF",
+        {"q8_0": ("index-tts2_5-q8_0.gguf", 3502955328),
+         "f16": ("index-tts2_5-f16.gguf", 4547355072)},
+        default_quant="q8_0", order=13, clones=True, streaming=False,
+        sample_rate=22050,
+        license=License(
+            spdx="LicenseRef-bilibili-Model-Use-License",
+            name="bilibili Model Use License",
+            url="https://huggingface.co/IndexTeam/IndexTTS-2/blob/main/LICENSE",
+            non_commercial=False,
+            source_repo=_AUDIOCPP_GGUF_REPO,
+            attribution="bilibili IndexTeam")),
 ]
 
 

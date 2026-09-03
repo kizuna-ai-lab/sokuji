@@ -8,6 +8,7 @@
 #include "engine/framework/runtime/session.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -32,6 +33,7 @@ struct sk_tts {
     bool    clones               = false;
     bool    transcript_required  = false;
     bool    sample_decode        = false;
+    bool    strict_options       = false;   // see FamilyInfo::strict_options
     int32_t default_rate         = 0;
     std::vector<std::string> preset_names;   // cached at load; see report §3
 
@@ -53,6 +55,13 @@ struct FamilyInfo {
     bool        transcript_required;
     int32_t     default_rate;
     bool        sample_decode;
+    // The family runs runtime::validate_spec_backed_request_options() over the whole request
+    // and throws "unknown <Family> request option: <key>" for any key its own
+    // model_specs/<family>.json does not declare. Only irodori_tts does this today, and it
+    // declares neither "do_sample" nor "reference_text" — so build_request must send a
+    // strict family ONLY options its spec lists. Adding an unconditional option below is
+    // therefore a live break for such a family, not a no-op it would ignore.
+    bool        strict_options;
 };
 
 // Baked-in per report §3/§4: streaming = omnivoice+supertonic only (report §2); clones =
@@ -84,12 +93,34 @@ struct FamilyInfo {
 // Seed stays fixed at "0" regardless (see build_request) — sampling here means "not
 // argmax", not "not reproducible": a fixed seed still makes a given build's RNG stream,
 // and therefore its output, deterministic run to run.
+//
+// The four families below joined in the 2026-09-03 batch. Their flags come from
+// audio.cpp v0.7.1's own sources, not from the upstream model cards:
+//   voxcpm1     src/community_models/voxcpm1/session.cpp  offline+streaming; speaker
+//               reference optional (continuation-mode cloning, transcript optional via
+//               the reference_text request option); 16 kHz.
+//   voxcpm2     src/models/voxcpm2/{loader,session}.cpp   offline+streaming; speaker
+//               reference optional; 48 kHz.
+//   irodori_tts src/models/irodori_tts/session.cpp        offline only; speaker
+//               reference optional (no_ref defaults to true, so a bare synth works);
+//               48 kHz; Japanese only.
+//   index_tts2  src/models/index_tts2/request.cpp         offline only; speaker
+//               reference MANDATORY ("IndexTTS2 request requires --voice-ref or
+//               voice.speaker.audio"); 22.05 kHz. transcript_required stays false:
+//               the reference clip needs no transcript, only the clip itself. Making
+//               the missing clip a clean caller error is the sidecar's job
+//               (tts_backend._VOICE_REQUIRED_FAMILIES) — this ABI has no
+//               "clone is mandatory" capability bit to carry it.
 constexpr FamilyInfo kFamilies[] = {
-    {"moss_tts_nano", false, true,  false, 48000, true},
-    {"qwen3_tts",      false, true,  true,  24000, false},
-    {"omnivoice",      true,  true,  true,  24000, false},
-    {"pocket_tts",     false, true,  false, 24000, false},
-    {"supertonic",     true,  false, false, 44100, false},
+    {"moss_tts_nano", false, true,  false, 48000, true,  false},
+    {"qwen3_tts",      false, true,  true,  24000, false, false},
+    {"omnivoice",      true,  true,  true,  24000, false, false},
+    {"pocket_tts",     false, true,  false, 24000, false, false},
+    {"supertonic",     true,  false, false, 44100, false, false},
+    {"voxcpm1",        true,  true,  false, 16000, false, false},
+    {"voxcpm2",        true,  true,  false, 48000, false, false},
+    {"irodori_tts",    false, true,  false, 48000, false, true},
+    {"index_tts2",     false, true,  false, 22050, false, false},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -154,13 +185,45 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     const char *resolved_language = (t->family == "qwen3_tts") ? "auto" : language;
     req.text_input = rt::Transcript{text ? text : "", resolved_language ? resolved_language : ""};
 
+    // Two of the 2026-09-03 families read the language from the REQUEST OPTIONS instead of
+    // text_input.language, which they never look at (grep for "language" under
+    // src/models/<family>). Without this block they would silently ignore the caller.
+    // voxcpm1/voxcpm2 are the opposite case: neither reads a language anywhere (both
+    // loaders advertise `languages = {"Auto"}`), so their text_input.language above is a
+    // harmless no-op and nothing extra is set here.
+    if (t->family == "irodori_tts") {
+        // Japanese only: irodori's generation_options_from_request throws
+        // "Irodori-TTS language must be ja" for any other value. Set explicitly rather than
+        // relying on the default so a future change that forwards the caller's code here
+        // fails loudly instead of mislabelling the text.
+        req.options["language"] = "ja";
+    } else if (t->family == "index_tts2" && language && *language) {
+        // ISO code (lowercased) or "auto". Left unset, the 2.5 tokenizer guesses
+        // "zh when the text contains Han characters, else en" (tokenizer_text.cpp,
+        // encode_for_inference_v2_5) — which mislabels every Japanese utterance as zh.
+        std::string lang(language);
+        std::transform(lang.begin(), lang.end(), lang.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        req.options["language"] = lang;
+    }
+
     if (t->has_clone) {
         rt::VoiceReference ref;
         ref.audio = t->clone_audio;
         rt::VoiceCondition voice;
         voice.speaker = std::move(ref);
         req.voice = std::move(voice);
-        if (!t->clone_ref_text.empty()) req.options["reference_text"] = t->clone_ref_text;
+        // "reference_text" is an OPTION, so a strict family rejects it outright even when
+        // the clip itself is perfectly acceptable to it: irodori_tts takes the speaker
+        // reference through req.voice (session.cpp's make_request) but declares no
+        // reference_text in its spec, and the renderer attaches a transcript to every clip
+        // it has one for (LocalNativeClient's setReferenceVoice) out of a single shared clip
+        // store — so a clip saved for OmniVoice and then used with Irodori would throw
+        // "unknown Irodori-TTS request option: reference_text". The transcript is optional
+        // for every family that is not transcript_required, so dropping it here costs a
+        // strict family nothing it could have used.
+        if (!t->clone_ref_text.empty() && !t->strict_options)
+            req.options["reference_text"] = t->clone_ref_text;
     } else if (t->has_preset) {
         rt::VoiceReference ref;
         ref.cached_voice_id = t->preset_name;
@@ -173,6 +236,19 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
         req.options["speaking_rate"] = std::to_string(speed);
     }
 
+    // VoxCPM2's STREAMING path hard-rejects its own struct default:
+    // "VoxCPM2 streaming generation requires retry_badcase=false"
+    // (voxcpm2/generator.cpp). A bad-case retry regenerates from scratch and discards what
+    // was already emitted, which is impossible once chunks have gone out to the caller, so
+    // the generator refuses rather than silently dropping the retry. voxcpm1 relaxes the
+    // same default by itself for streaming sessions; voxcpm2 does not, so say it here.
+    // Scoped to the streaming session on purpose: the retry is a real quality feature on
+    // the offline path, and hard-coding it off would silently give up bad-case recovery if
+    // voxcpm2 is ever switched to Offline in kFamilies.
+    if (t->family == "voxcpm2" && t->streaming_family) {
+        req.options["retry_badcase"] = "false";
+    }
+
     // Ruling R7(s4): deterministic synthesis by default — product behavior AND the parity
     // harness's precondition (Task 3 compares this binding's output against the official
     // CLI) — EXCEPT moss_tts_nano (Ruling R23, .superpowers/moss-eoc-verdict.md): greedy
@@ -182,7 +258,14 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // correct transcript). Seed stays "0" for every family either way — t->sample_decode
     // only picks argmax vs. sample for the two-logit stop decision, it does not
     // reintroduce nondeterminism.
-    req.options["do_sample"] = t->sample_decode ? "true" : "false";
+    //
+    // `do_sample` is skipped for a strict-options family (see FamilyInfo::strict_options):
+    // model_specs/irodori_tts.json declares `seed` but not `do_sample`, and sending it
+    // throws. irodori is greedy-free anyway (rectified-flow sampling with a seed), and the
+    // seed below — which its spec DOES declare — is what makes it reproducible.
+    if (!t->strict_options) {
+        req.options["do_sample"] = t->sample_decode ? "true" : "false";
+    }
     req.options["seed"] = "0";
     return req;
 }
@@ -279,8 +362,13 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
 
     const FamilyInfo *info = find_family(opts->family);
     if (!info) {
+        std::string valid;
+        for (const auto &f : kFamilies) {
+            if (!valid.empty()) valid += " | ";
+            valid += f.name;
+        }
         sk::set_error(std::string("sk_tts_load: unknown family '") + opts->family +
-                      "'; valid families: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic");
+                      "'; valid families: " + valid);
         return SK_ERR_INVALID_ARGUMENT;
     }
 
@@ -377,6 +465,7 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
         h->transcript_required = info->transcript_required;
         h->default_rate        = info->default_rate;
         h->sample_decode       = info->sample_decode;
+        h->strict_options      = info->strict_options;
     } catch (const std::exception &ex) {
         const sk_status rc = fail("sk_tts_load", ex.what());
         delete h;

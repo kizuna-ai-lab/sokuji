@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { voiceCapability, isCloneOnlyVoice, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, pinsFromSelections, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
+import { voiceCapability, requiresVoiceClip, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, pinsFromSelections, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -407,17 +407,35 @@ describe('nativeCatalog', () => {
       .toEqual({ builtin: 'none', custom: 'clip', transcriptRequired: true });
   });
 
-  describe('isCloneOnlyVoice', () => {
-    it('is true only for builtin:none + custom:clip (qwen3_tts/omnivoice-shaped)', () => {
-      expect(isCloneOnlyVoice({ builtin: 'none', custom: 'clip' })).toBe(true);
+  describe('requiresVoiceClip', () => {
+    it('reads the sidecar\'s own required axis when present, in both directions', () => {
+      // The whole point: identical SHAPE, opposite answers. voxcpm1/voxcpm2/
+      // irodori/moss all look like this and speak with nothing set; qwen3_tts,
+      // omnivoice and index_tts2 look like this and cannot.
+      expect(requiresVoiceClip({ builtin: 'none', custom: 'clip', required: true })).toBe(true);
+      expect(requiresVoiceClip({ builtin: 'none', custom: 'clip', required: false })).toBe(false);
     });
-    it('is false for a model with a built-in voice, even if it also clones (MOSS-shaped)', () => {
-      expect(isCloneOnlyVoice({ builtin: 'named', custom: 'clip' })).toBe(false);
+    it('lets required override the shape in the other direction too', () => {
+      // A family with presets that still cannot speak without one would be a
+      // named+clip shape the old inference called "fine".
+      expect(requiresVoiceClip({ builtin: 'named', custom: 'clip', required: true })).toBe(true);
     });
-    it('is false for a model with no custom-voice capability at all', () => {
-      expect(isCloneOnlyVoice({ builtin: 'none', custom: 'none' })).toBe(false);
-      expect(isCloneOnlyVoice({ builtin: 'named', custom: 'none' })).toBe(false);
+    it('falls back to the shape heuristic when the sidecar is too old to send required', () => {
+      // Absent must keep the historical answer, not silently un-gate qwen3_tts /
+      // omnivoice — a false refusal beats a per-sentence synth failure.
+      expect(requiresVoiceClip({ builtin: 'none', custom: 'clip' })).toBe(true);
+      expect(requiresVoiceClip({ builtin: 'named', custom: 'clip' })).toBe(false);
+      expect(requiresVoiceClip({ builtin: 'none', custom: 'none' })).toBe(false);
+      expect(requiresVoiceClip({ builtin: 'named', custom: 'none' })).toBe(false);
     });
+  });
+
+  it('voiceCapability passes the required axis through untouched', () => {
+    expect(voiceCapability({ voice: { builtin: 'none', custom: 'clip', required: false } } as any))
+      .toEqual({ builtin: 'none', custom: 'clip', required: false });
+    // Derived fallback (no `voice` field at all): no axis to report, so the
+    // shape heuristic in requiresVoiceClip is what decides.
+    expect(voiceCapability({ clones: true } as any).required).toBeUndefined();
   });
 
   it('nativeTranslationCards: jap alias resolves en→ja Opus-MT card', () => {

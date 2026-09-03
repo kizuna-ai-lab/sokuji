@@ -835,7 +835,11 @@ def test_models_catalog_tts_kind_lists_models_with_voice_fields():
     moss = tts["moss-tts-nano"]
     assert moss["kind"] == "tts" and moss["clones"] is True
     assert "streaming" in moss and "numSpeakers" not in moss  # dropped with style_voices (slice 4)
-    assert moss["voice"] == {"builtin": "none", "custom": "clip"}
+    # `required` rides the same wire field. moss looks clone-only (no presets, clones=True)
+    # but speaks with nothing set, which is precisely why this is its own axis and not a
+    # shape inference — see catalog.voice_capability.
+    assert moss["voice"] == {"builtin": "none", "custom": "clip", "required": False}
+    assert tts["index-tts2.5"]["voice"]["required"] is True
 
 
 def test_models_catalog_carries_size_bytes_per_model():
