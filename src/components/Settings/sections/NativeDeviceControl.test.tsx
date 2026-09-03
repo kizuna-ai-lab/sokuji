@@ -1,9 +1,6 @@
 /**
  * Tests for NativeDeviceControl — the per-stage Auto/CPU/GPU segmented
- * control. Covers the 'gpu' override value (renamed from the legacy 'cuda'
- * — see settingsStore's migrateLegacyCudaDevice and planner.py's override
- * handling): the control must both render 'gpu' as the active option and
- * write 'gpu' (not 'cuda') back through updateLocalNative.
+ * control: Auto / CPU / GPU per stage, writing 'gpu' for GPU.
  */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -50,7 +47,7 @@ beforeEach(() => {
 });
 
 describe('NativeDeviceControl — gpu override value', () => {
-  it('writes asrDevice: gpu (not cuda) when GPU is clicked for the asr stage', () => {
+  it('writes asrDevice: gpu when GPU is clicked for the asr stage', () => {
     render(<NativeDeviceControl stage="asr" />);
     fireEvent.click(screen.getByText('GPU'));
     expect(mockUpdate).toHaveBeenCalledWith({ asrDevice: 'gpu' });

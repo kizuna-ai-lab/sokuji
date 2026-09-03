@@ -432,26 +432,6 @@ export function migratePalabraAuthMode(
   return { authMode: 'platform' };
 }
 
-/** Migrate a persisted localNative device override from the legacy `'cuda'`
- *  value to `'gpu'`. `'cuda'` was a leftover from the ONNX/CUDA era; the
- *  sidecar now runs ggml over Vulkan (Windows/Linux) or Metal (Apple
- *  silicon), so the override no longer names a specific accelerator API.
- *  Applied to all three per-stage overrides (asr/translation/tts) on load, so
- *  a user who previously forced GPU keeps that choice instead of silently
- *  reverting to auto. planner.py accepts both `'gpu'` and the legacy `'cuda'`
- *  as "any accelerator tier", so this migration is a display/consistency
- *  concern, not a functional requirement. */
-export function migrateLegacyCudaDevice(
-  slice: Pick<LocalNativeSettings, 'asrDevice' | 'translationDevice' | 'ttsDevice'>,
-): Pick<LocalNativeSettings, 'asrDevice' | 'translationDevice' | 'ttsDevice'> {
-  const fix = (d: LocalNativeSettings['asrDevice']) => (d as string) === 'cuda' ? 'gpu' : d;
-  return {
-    asrDevice: fix(slice.asrDevice),
-    translationDevice: fix(slice.translationDevice),
-    ttsDevice: fix(slice.ttsDevice),
-  };
-}
-
 /** Move a persisted OpenAI-Translate transcript model off the legacy
  *  `gpt-realtime-whisper`. OpenAI reclassified it as legacy on 2026-07-31 and
  *  names `gpt-live-transcribe` as the replacement: identical $0.017/min, lower
@@ -1196,14 +1176,6 @@ const useSettingsStore = create<SettingsStore>()(
           // default-injected 'platform' isn't mistaken for a user choice.
           const storedAuthMode = await service.getSetting('settings.palabraai.authMode', '');
           Object.assign(palabraSlice, migratePalabraAuthMode(storedAuthMode, palabraSlice));
-        }
-
-        // Rewrite a persisted localNative device override of legacy 'cuda' to
-        // 'gpu' so an existing user's forced-GPU choice keeps displaying
-        // correctly under the renamed value.
-        const localNativeSlice = loadedSlices.localNative as LocalNativeSettings | undefined;
-        if (localNativeSlice) {
-          Object.assign(localNativeSlice, migrateLegacyCudaDevice(localNativeSlice));
         }
 
         set({

@@ -35,9 +35,7 @@ export const NativeDeviceControl: React.FC<{ stage: Stage; disabled?: boolean }>
   const rawValue = stage === 'asr' ? settings.asrDevice
     : stage === 'translation' ? settings.translationDevice
     : settings.ttsDevice;
-  // Coerce a stale 'gpu' (including a persisted legacy 'cuda', already
-  // normalized to 'gpu' by settingsStore's hydration migration) to 'auto' for
-  // display when no GPU tier is available.
+  // Coerce a stale 'gpu' to 'auto' for display when no GPU tier is available.
   const deviceValue: DeviceMode = rawValue === 'gpu' && !gpuAvail ? 'auto' : rawValue;
   const opts: Array<[DeviceMode, string]> = [
     ['auto', t('models.deviceAuto', 'Auto')],

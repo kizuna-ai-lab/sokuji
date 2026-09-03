@@ -219,9 +219,9 @@ describe('nativeCatalog', () => {
       expect(est).toEqual({ vramMb: 0, ramMb: 4000 });
     });
 
-    it('honors an explicit cuda override even without a catalog entry', () => {
+    it('honors an explicit gpu override even without a catalog entry', () => {
       const est = estimateNativeMemoryByDevice(
-        [{ id: 'unknown', device: 'cuda' }], { unknown: 2000 * MB }, {},
+        [{ id: 'unknown', device: 'gpu' }], { unknown: 2000 * MB }, {},
       );
       expect(est).toEqual({ vramMb: 2000, ramMb: 0 });
     });
