@@ -234,7 +234,7 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 1px 6px;
+    padding: vars.$chip-padding-y 6px;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
     font-size: vars.$chip-font-size;
@@ -243,15 +243,19 @@
   }
 
   // Chip icons (the tier glyph, the Recommended star, the Auto bolt): block
-  // flex items, centred on the chip, then 0.5px up. Inline they rode the
-  // baseline 1.5px high; centred exactly, the star still read low because a
-  // glyph's optical centre sits above its box centre. Measured on the text
-  // node's rect: icon and text mid-lines now coincide.
+  // flex items centred on the chip - inline, they rode the baseline 1.5px
+  // above the text. Measured as ink on 8x captures against the text's ink:
+  // the star and the bolt land within 0.06px of the text's centre as is; the
+  // tier glyph sat 0.31px low and gets a quarter-pixel lift (SVGs render at
+  // sub-pixel offsets, text baselines do not).
   &__lang-tag svg,
   &__recommended-badge svg,
   &__auto-badge svg {
     display: block;
-    transform: translateY(-0.5px);
+  }
+
+  &__lang-tag svg {
+    transform: translateY(-0.25px);
   }
 
   // Two or more languages collapse into this one chip; the tooltip (LanguageTags)
@@ -268,7 +272,7 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 1px 6px;
+    padding: vars.$chip-padding-y 6px;
     background: rgba(vars.$color-recommended, 0.15);
     border-radius: 3px;
     font-size: vars.$chip-font-size;
@@ -281,7 +285,7 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 1px 6px;
+    padding: vars.$chip-padding-y 6px;
     background: rgba(vars.$color-primary, 0.15);
     border-radius: 3px;
     font-size: vars.$chip-font-size;

@@ -62,9 +62,14 @@ $font-caption: 12px;
 // The model cards' chips (language, tier, Recommended / Auto badges) share one
 // fixed line box: with `normal`, the 12px and 10px chips came out 15px and
 // ~14px tall in Latin script and a CJK chip ("多语言") 19px, because the
-// fallback CJK font carries a taller default line height. 13px + the chips'
-// 1px vertical padding = 15px for every chip in every script.
-$chip-line-height: 13px;
+// fallback CJK font carries a taller default line height. 14px + the chips'
+// 0.5px vertical padding = 15px for every chip in every script. Why 14 + 0.5
+// and not 13 + 1: text baselines snap to whole CSS pixels, and of the two
+// positions the glyphs can take inside a 15px chip this one leaves the ink
+// centre 0.25-0.44px below the chip's centre; the other left it 0.56-0.75px
+// above (the font's ascent outweighs its descent). Measured on 8x captures.
+$chip-line-height: 14px;
+$chip-padding-y: 0.5px;
 // ...and one type size: the information chips were 12px and the coloured
 // badges 10px, which read as two unrelated kinds of thing on one row.
 $chip-font-size: 11px;
