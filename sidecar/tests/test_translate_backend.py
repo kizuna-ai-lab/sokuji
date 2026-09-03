@@ -223,7 +223,7 @@ def test_device_fallback_raises_backend_load_error(native_env):
     gguf, _log = native_env
     b = backends.make_backend("native_translate")
     with pytest.raises(backends.BackendLoadError):
-        b.load(gguf, "cuda", "q4_k_m", config=PlanConfig(prompt_family="qwen"))
+        b.load(gguf, "nope", "q4_k_m", config=PlanConfig(prompt_family="qwen"))
 
 
 def test_load_cpu_passes_explicit_cpu_device_not_null(native_env):

@@ -9,7 +9,7 @@ class FakeTranslate:
              reserved_bytes=0, pin=None, **kw):
         self.langs = (source_lang, target_lang)
         self.device = device
-        self.resolved = {"backend": "native_translate", "device": "cuda", "computeType": "q8_0"}
+        self.resolved = {"backend": "native_translate", "device": "vulkan", "computeType": "q8_0"}
         return 21
 
     def translate(self, text, system_prompt="", wrap_transcript=False, on_partial=None):
@@ -116,26 +116,26 @@ def test_translate_init_echoes_device_and_resolved():
     st = make_state()
     reply, _ = asyncio.run(server.handle_message(
         st, json.dumps({"type": "translate_init", "id": 1, "sourceLang": "ja",
-                        "targetLang": "en", "device": "cuda"})))
+                        "targetLang": "en", "device": "vulkan"})))
     assert reply["type"] == "ready" and reply["id"] == 1 and reply["loadTimeMs"] == 21
     assert reply["backend"] == "native_translate"
-    assert reply["device"] == "cuda"
+    assert reply["device"] == "vulkan"
     assert reply["computeType"] == "q8_0"
-    assert st["translate_engine"].device == "cuda"
+    assert st["translate_engine"].device == "vulkan"
 
 
 def test_init_uses_resolver_and_sets_resolved(monkeypatch):
     from sokuji_sidecar import accel
     fake_backend = MagicMock()
-    fake_plan = MagicMock(backend="native_translate", device="cuda", compute_type="q8_0")
+    fake_plan = MagicMock(backend="native_translate", device="vulkan", compute_type="q8_0")
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (fake_backend, fake_plan, None, None))
     # Isolate from the real tps benchmark/cache so resolved is deterministic here.
     monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
 
     eng = translate_engine.TranslateEngine()
-    eng.init(model_id="qwen2.5-0.5b", source_lang="ja", target_lang="en", device="cuda")
-    assert eng.resolved == {"backend": "native_translate", "device": "cuda", "computeType": "q8_0"}
+    eng.init(model_id="qwen2.5-0.5b", source_lang="ja", target_lang="en", device="vulkan")
+    assert eng.resolved == {"backend": "native_translate", "device": "vulkan", "computeType": "q8_0"}
     assert eng._backend is fake_backend
 
     fake_backend.translate.return_value = ("hola->hi", 5)   # (text, generated-token count)
@@ -264,7 +264,7 @@ def test_init_stores_memory_and_fallback_reason(monkeypatch):
     fake_plan = MagicMock(backend="native_translate", device="cpu", compute_type="float32")
     monkeypatch.setattr(accel, "resolve_translate", lambda mid, override=None, **_: ["plan"])
     monkeypatch.setattr(accel, "load_measured",
-                        lambda plans, **kw: (MagicMock(), fake_plan, "cuda skipped (needs ~6.1 GiB, 2.1 GiB free); using CPU", 4_200_000_000))
+                        lambda plans, **kw: (MagicMock(), fake_plan, "vulkan skipped (needs ~6.1 GiB, 2.1 GiB free); using CPU", 4_200_000_000))
     monkeypatch.setattr(accel, "measure_tps", lambda *a, **k: None)
     eng = translate_engine.TranslateEngine()
     eng.init(model_id="qwen3.5-2b", source_lang="ja", target_lang="en")

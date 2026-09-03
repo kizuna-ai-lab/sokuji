@@ -372,7 +372,7 @@ def test_load_requires_dir_plus_file_artifact(native_env):
 def test_load_unknown_device_raises_backend_load_error(native_env):
     b = backends.make_backend("native_tts")
     with pytest.raises(backends.BackendLoadError):
-        b.load(REF, "cuda", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
+        b.load(REF, "nope", "q8_0", config=PlanConfig(tts_family="pocket_tts"))
     assert not b.is_loaded
 
 

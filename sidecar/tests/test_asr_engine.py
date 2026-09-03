@@ -237,7 +237,7 @@ def test_engine_init_uses_resolver(monkeypatch):
 class _ResolvedAsr(FakeAsr):
     def init(self, *a, **k):
         ms = super().init(*a, **k)
-        self.resolved = {"backend": "ctranslate2", "device": "cuda", "computeType": "float16"}
+        self.resolved = {"backend": "ctranslate2", "device": "vulkan", "computeType": "float16"}
         return ms
 
 
@@ -248,7 +248,7 @@ def test_ready_includes_resolved_plan_when_present():
     reply, _ = asyncio.run(server.handle_message(
         st, json.dumps({"type": "asr_init", "id": 1}), None, conn))
     assert reply["backend"] == "ctranslate2"
-    assert reply["device"] == "cuda" and reply["computeType"] == "float16"
+    assert reply["device"] == "vulkan" and reply["computeType"] == "float16"
 
 
 def test_ready_unchanged_when_engine_has_no_resolved():
@@ -262,12 +262,12 @@ def test_ready_unchanged_when_engine_has_no_resolved():
 def test_engine_init_measures_and_stores_rtf(monkeypatch):
     from sokuji_sidecar import asr_engine as ae, accel
     eng = ae.AsrEngine()
-    fake_plan = accel.Plan("ctranslate2", "gpu-cuda", "cuda", "float16", "tiny", 1.0)
+    fake_plan = accel.Plan("ctranslate2", "gpu-vulkan", "vulkan", "float16", "tiny", 1.0)
     monkeypatch.setattr(accel, "resolve", lambda model_id, override="auto", **kw: [fake_plan])
     monkeypatch.setattr(accel, "load_measured", lambda plans, **kw: (_FakeBackend(), fake_plan, None, None))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: 0.25)
     eng.init(model_id="whisper-base", language="en", device="auto")
-    assert eng.resolved["device"] == "cuda"
+    assert eng.resolved["device"] == "vulkan"
     assert eng.resolved["rtf"] == 0.25
 
 
@@ -347,7 +347,7 @@ def test_offline_init_stores_memory_and_fallback_reason(monkeypatch):
     fake_plan = type("P", (), {"backend": "ctranslate2", "device": "cpu", "compute_type": "int8"})()
     monkeypatch.setattr(accel, "resolve", lambda mid, override=None, **kw: ["plan"])
     monkeypatch.setattr(accel, "load_measured",
-                        lambda plans, **kw: (_FakeBackend(), fake_plan, "cuda skipped; using CPU", 4_200_000_000))
+                        lambda plans, **kw: (_FakeBackend(), fake_plan, "vulkan skipped; using CPU", 4_200_000_000))
     monkeypatch.setattr(accel, "measure_rtf", lambda *a, **k: None)
     eng = asr_engine.AsrEngine()
     eng.init("sense-voice", "en", 16000, "auto")
@@ -360,11 +360,11 @@ def test_streaming_init_sets_resolved_device_and_memory(monkeypatch):
     eng = asr_engine.AsrEngine()
     backend = type("B", (), {"STREAMING": True, "open_stream": lambda self, language=None: object(),
                              "unload": lambda self: None})()
-    fake_plan = type("P", (), {"backend": "voxtral_realtime", "device": "cuda", "compute_type": "bfloat16"})()
+    fake_plan = type("P", (), {"backend": "voxtral_realtime", "device": "vulkan", "compute_type": "bfloat16"})()
     monkeypatch.setattr(eng, "_resolve_streaming_backend",
                         lambda model, device, *a, **kw: (backend, fake_plan, None, 8_000_000_000))
     eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", device="auto")
-    assert eng.resolved["device"] == "cuda"
+    assert eng.resolved["device"] == "vulkan"
     assert eng.resolved["memoryBytes"] == 8_000_000_000
 
 
@@ -440,7 +440,7 @@ def test_conn_close_frees_streaming_asr_model():
     class WS:
         def __init__(self):
             self._msgs = [json.dumps({"type": "asr_init", "id": 1,
-                                       "model": "voxtral-mini-4b-realtime", "device": "cuda"})]
+                                       "model": "voxtral-mini-4b-realtime", "device": "vulkan"})]
 
         def __aiter__(self):
             return self
@@ -512,7 +512,7 @@ def _streaming_engine(monkeypatch, fake_stream):
                              "unload": lambda self: None})()
     # bypass real resolve: inject the backend
     fake_plan = type("P", (), {"backend": "voxtral_realtime",
-                               "device": "cuda", "compute_type": "bfloat16"})()
+                               "device": "vulkan", "compute_type": "bfloat16"})()
     monkeypatch.setattr(eng, "_resolve_streaming_backend",
                         lambda model, device, *a, **kw: (backend, fake_plan, None, None))
     return eng
@@ -532,7 +532,7 @@ def test_streaming_emits_partials_and_result_per_utterance(monkeypatch):
     eng = _streaming_engine(monkeypatch, fs)
     sent = []
     async def send(msg): sent.append(msg)
-    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", device="cuda")
+    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", device="vulkan")
     eng._mode = "per_utterance"
     eng.mark("start")
     eng.feed_stream(np.zeros(16000, np.int16).tobytes())
@@ -551,7 +551,7 @@ def test_gated_cancel_aborts_without_result(monkeypatch):
     eng = _streaming_engine(monkeypatch, fs)
     sent = []
     async def send(msg): sent.append(msg)
-    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", device="cuda")
+    eng.init_streaming(model_id="voxtral-mini-4b-realtime", language="en", device="vulkan")
     eng._mode = "per_utterance"
     eng.mark("start")
     eng.feed_stream(np.zeros(1600, np.int16).tobytes())
@@ -766,7 +766,7 @@ def test_asr_init_starts_streaming_task_for_streaming_backend():
     started = {"task": False, "init_streaming": None}
 
     class FakeEng:
-        resolved = {"backend": "voxtral_realtime", "device": "cuda", "computeType": "bfloat16"}
+        resolved = {"backend": "voxtral_realtime", "device": "vulkan", "computeType": "bfloat16"}
 
         def resolves_to_streaming(self, model_id, device, pin=None):
             started["precheck_pin"] = pin
@@ -798,7 +798,7 @@ def test_asr_init_starts_streaming_task_for_streaming_backend():
         conn = server.Conn(type("WS", (), {"send": lambda self, d: None})())
         reply, _ = await server.handle_message(
             state, json.dumps({"type": "asr_init", "id": 1, "model": "voxtral-mini-4b-realtime",
-                               "language": "en", "device": "cuda", "variant": "q8_0"}), None, conn)
+                               "language": "en", "device": "vulkan", "variant": "q8_0"}), None, conn)
         await asyncio.sleep(0)            # let the created task run once
         return reply, conn
 
@@ -813,7 +813,7 @@ def test_asr_init_starts_streaming_task_for_streaming_backend():
     assert "offline" not in started
     # init_streaming was called with the right params
     assert started["init_streaming"]["model"] == "voxtral-mini-4b-realtime"
-    assert started["init_streaming"]["device"] == "cuda"
+    assert started["init_streaming"]["device"] == "vulkan"
     # the pre-check received the user-pinned quant (must match what loads)
     assert started["precheck_pin"] == "q8_0"
 

@@ -25,8 +25,8 @@ class Machine:
     installed: frozenset
     fingerprint: str
     # Accelerator kinds the native library reports on this machine ("vulkan",
-    # "metal", "cuda", "cpu") — the ground truth for the gpu-vulkan/gpu-metal
-    # tiers (covers AMD/Intel via Vulkan).
+    # "metal", "cpu") — the ground truth for the gpu-vulkan/gpu-metal tiers
+    # (covers AMD/Intel/NVIDIA via Vulkan).
     tc_kinds: tuple[str, ...] = ()
     # STABLE GPU identity from the same probe: (kind, description, mem_total)
     # per accelerator device. Volatile mem_free is intentionally NOT here (the
@@ -349,8 +349,8 @@ def _rss_bytes():
 
 def load_measured(plans: list, stage: str | None = None):
     """load_with_fallback + measure the loaded model's footprint on its RESOLVED
-    device: device-free delta for any accelerator (vulkan/metal/cuda — read via
-    the vendor-agnostic device_free_bytes), RSS delta for cpu. Best-effort —
+    device: device-free delta for any accelerator (vulkan/metal — read via the
+    vendor-agnostic device_free_bytes), RSS delta for cpu. Best-effort —
     memory is None when unmeasurable or non-positive. When `stage` is given the
     result is recorded in the cross-stage ledger (actual bytes on an
     accelerator; an explicit 0 for a cpu landing, so reserve math knows the
@@ -418,11 +418,11 @@ def load_with_fallback(plans: list):
     higher-ranked plan was skipped. Raises AllPlansFailed if none load.
 
     Two VRAM-aware safeguards layer on top of plain try/next:
-      • Proactive gate — before a CUDA plan that still has a CPU plan after it,
+      • Proactive gate — before a GPU plan that still has a CPU plan after it,
         skip the GPU attempt when free VRAM clearly can't hold the weights. A
         flexible model (e.g. translation) thus routes to CPU without provoking an
         OOM when a larger GPU-only model (e.g. Voxtral) already claimed the card.
-      • Honest exhaustion — if every plan failed on a CUDA OOM and there was no
+      • Honest exhaustion — if every plan failed on a GPU OOM and there was no
         CPU floor (a GPU-only model that lost the VRAM race), raise a message that
         names the shortfall instead of the misleading 'falling back'."""
     notice = None
@@ -430,23 +430,23 @@ def load_with_fallback(plans: list):
     oom_need = oom_free = None  # weights estimate + free VRAM seen just before an OOM
     for i, plan in enumerate(plans):
         has_cpu_fallback = any(p.device == "cpu" for p in plans[i + 1:])
-        # Read free VRAM and weights estimate ONCE per cuda plan; both the
+        is_gpu = plan.device != "cpu"
+        # Read free VRAM and weights estimate ONCE per GPU plan; both the
         # proactive gate and the honest OOM message reuse them. Capture free
         # BEFORE the load: a failed load can leave allocator caches/fragments
         # that make an after-the-fact reading meaningless.
-        # native_translate plans are exempt from the proactive gate (no catalog
-        # row offers it a gpu-cuda tier at all today, but the exemption itself
-        # is kept as a defensive no-op — see planner._tier_available's
-        # aarch64 comment): a rough weights-vs-free-VRAM guess here would only
-        # wrongly route a fittable model to CPU.
+        # native_translate plans are exempt from the proactive gate: llama.cpp
+        # loads a GGUF fully or not at all (no partial-offload placement math),
+        # so a rough weights-vs-free-VRAM guess here would only wrongly route a
+        # fittable model to CPU.
         is_gguf_llm = plan.backend == "native_translate"
-        free = device_free_bytes() if (plan.device == "cuda" and not is_gguf_llm) else None
+        free = device_free_bytes() if (is_gpu and not is_gguf_llm) else None
         need = (_model_weight_bytes(plan.artifact)
-                if (plan.device == "cuda" and not is_gguf_llm) else None)
+                if (is_gpu and not is_gguf_llm) else None)
         budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
-        if plan.device == "cuda" and has_cpu_fallback and free is not None and budget is not None:
+        if is_gpu and has_cpu_fallback and free is not None and budget is not None:
             if free < budget:
-                notice = (f"cuda skipped (needs ~{_gib(budget)} GiB, "
+                notice = (f"{plan.device} skipped (needs ~{_gib(budget)} GiB, "
                           f"{_gib(free)} GiB free); using CPU")
                 continue
         try:
@@ -455,7 +455,11 @@ def load_with_fallback(plans: list):
             return backend, plan, notice
         except BackendLoadError as e:
             notice = f"{plan.device} unavailable ({e.reason}); falling back"
-            if "out of memory" in e.reason.lower():
+            # String-matched, not device-gated: ggml/Vulkan/Metal allocation
+            # failures don't share one exception type across platforms, but do
+            # consistently say one of these two things.
+            reason_lower = e.reason.lower()
+            if "out of memory" in reason_lower or "failed to allocate" in reason_lower:
                 oom, oom_need, oom_free = True, budget, free
             continue
     if oom:
@@ -548,7 +552,7 @@ def measure_tps(backend, plan, model_id: str, machine: Machine, *, force: bool =
     'tps:' prefix so it never collides with the RTF entries. One-time per key
     unless force. Never raises (returns None).
 
-    The warmup matters: the first generation pays one-time CUDA kernel/graph
+    The warmup matters: the first generation pays one-time GPU kernel/pipeline
     compilation, so timing it would badly understate steady-state throughput."""
     def run(backend):
         backend.translate(BENCH_TRANSLATE_TEXT, "", BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, False)  # warmup

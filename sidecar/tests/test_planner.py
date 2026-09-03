@@ -281,7 +281,7 @@ def test_paravirtual_exclusion_removes_gpu_metal_plans_end_to_end():
                                 cache={}, downloaded=frozenset())
     assert [p.tier for p in plans] == ["cpu"]
     # An explicit GPU override cannot resurrect it either.
-    plans = planner.resolve_tts("moss-tts-nano", "cuda", machine=m, platform="macos",
+    plans = planner.resolve_tts("moss-tts-nano", "gpu", machine=m, platform="macos",
                                 cache={}, downloaded=frozenset())
     assert {p.tier for p in plans} == {"cpu"}
     # The same card on a real M4 still leads with metal.
@@ -399,23 +399,10 @@ def test_resolve_demotes_gpu_when_bench_cache_says_slower():
     assert plans[0].device == "cpu"    # demoted: measured slower on GPU than CPU
 
 
-def test_resolve_override_beats_bench_demotion():
-    m = CUDA_12GB
-    cache = {
-        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
-        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
-    }
-    # UI sends 'cuda' for GPU — it pins ANY accelerator tier (vulkan here);
-    # the benchmark never overrides the user's forced device.
-    plans = planner.resolve("whisper-base", "cuda", machine=m, platform="linux",
-                            cache=cache, downloaded=set())
-    assert plans[0].device == "vulkan"
-
-
-def test_resolve_override_gpu_alias_beats_bench_demotion():
-    # 'gpu' is the current renderer override value (post-rename); it must
-    # behave identically to the legacy 'cuda' alias above — same "any
-    # accelerator tier" pin, same immunity to bench-cache demotion.
+def test_resolve_override_gpu_pins_any_accelerator_tier_beats_bench_demotion():
+    # 'gpu' is the renderer's override value for "any accelerator tier" — it
+    # pins vulkan here, and the benchmark never overrides the user's forced
+    # device.
     m = CUDA_12GB
     cache = {
         planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
@@ -778,7 +765,7 @@ def test_resolve_translate_unknown_id_raises():
 
 
 def test_resolve_translate_explicit_device_override_unchanged():
-    # device override ("cuda"/"cpu") keeps prior tier-pinning behavior, not
+    # An explicit device override keeps prior tier-pinning behavior, not
     # variant selection. hy-mt2-7b's real backend is native_translate.
     m = _nv_machine(12 * 1024, installed=frozenset({"native_translate"}))
     plans = planner.resolve_translate("hy-mt2-7b", "cpu", machine=m, platform="linux",
