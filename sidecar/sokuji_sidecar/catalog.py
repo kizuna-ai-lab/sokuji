@@ -628,15 +628,59 @@ class TtsModel(_ModelBase):
     extra_files: tuple[tuple[str, int], ...] = ()
 
 
+# Ruling R16: families whose engine CANNOT synthesize until a voice is set --
+# they ship no usable built-in voice at all, so a bare generate() can only ever
+# fail. tts_backend._ensure_voice_ready() turns that into a clean, family-named
+# BackendLoadError before the native layer is reached, and voice_capability()
+# below puts the same fact on the wire as `required` so the renderer's own
+# pre-init gate reads it instead of guessing.
+#
+# It lives HERE, not in tts_backend, because two consumers need it and this is
+# the module both can import (tts_backend already imports from .catalog; the
+# reverse would be a cycle). tts_backend re-exports it under its historical
+# private name.
+#
+# Membership is by ENGINE BEHAVIOUR, live-verified per family, not by voice
+# shape -- which is exactly the distinction the renderer used to get wrong:
+#   qwen3_tts   base checkpoint has no default voice, and its ICL clone mode
+#               additionally requires ref_text (R15(s4), task-7-report.md §3).
+#   omnivoice   same, ref_text likewise mandatory.
+#   index_tts2  (2026-09-03) request parser refuses outright -- "IndexTTS2
+#               request requires --voice-ref or voice.speaker.audio" -- and
+#               audio.cpp exposes no built-in voices for it. Needs the CLIP
+#               only, not a transcript: transcript_required stays False.
+# Deliberately NOT members, though all five report clones=True and expose no
+# presets (i.e. they LOOK identical to the three above from the outside):
+#   moss_tts_nano  ships a genuinely working built-in default (CPU-verified).
+#   pocket_tts     does NOT -- but adding it here would only make the failure
+#                  clean, not make a bare synth work; ruling R34 gives it a real
+#                  default voice at load() instead (_DEFAULT_PRESET_FAMILIES).
+#   voxcpm1, voxcpm2, irodori_tts  (2026-09-03) all synthesize with nothing set;
+#                  their speaker reference is optional (irodori's own request
+#                  default is no_ref=true). CPU-verified against the real GGUFs.
+VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2"})
+
+
 def voice_capability(model: "TtsModel") -> dict:
-    """Two-axis native voice capability derived from static catalog facts.
+    """Native voice capability derived from static catalog facts.
     builtin: named (sk_tts_presets dropdown) | none. custom: clip (reference
-    audio, sk_tts_set_voice) | none. The old style/range axes (Supertonic's
+    audio, sk_tts_set_voice) | none. required: whether a clip/preset MUST be set
+    before the model can speak at all. The old style/range axes (Supertonic's
     uploaded style-vector JSON, a sid-range slider) died with the ONNX
-    backends that were their only consumers."""
+    backends that were their only consumers.
+
+    `required` is its own axis and always present, because it is NOT derivable
+    from the other two: moss_tts_nano, voxcpm1, voxcpm2 and irodori_tts all
+    report builtin=none + custom=clip (they clone and expose no presets) and yet
+    speak fine with nothing set, while qwen3_tts/omnivoice/index_tts2 report the
+    identical shape and cannot. The renderer's pre-init gate used to infer it
+    from that shape and so refused to start TTS for the four ungated ones. It is
+    emitted unconditionally (unlike transcriptRequired) so an absent field means
+    "sidecar too old to say", not "false"."""
     custom = "clip" if model.clones else "none"
     builtin = "named" if model.named_voices else "none"
-    out = {"builtin": builtin, "custom": custom}
+    out = {"builtin": builtin, "custom": custom,
+           "required": model.family in VOICE_REQUIRED_FAMILIES}
     if custom == "clip" and model.transcript_required:
         out["transcriptRequired"] = True
     return out
@@ -699,10 +743,14 @@ TTS_STAGING_DIRNAME = "sokuji-tts-staging"
 # GGML_OP_NORM gate, not a real-hardware finding.)
 #
 # `_TTS_TIERS` below is the cpu-only default for any family not listed in
-# `_TTS_TIER_OVERRIDES` — every one of the ten current cards IS listed there
-# (see that dict, below the fleet table), so this default currently applies
-# to no shipped card; it exists for the next new family, which starts
-# cpu-only until it, too, earns a tier through real-GPU evidence.
+# `_TTS_TIER_OVERRIDES` — it exists for a new family, which starts cpu-only
+# until it, too, earns a tier through real-GPU evidence. It is no longer a
+# dormant default: the four families added on 2026-09-03 (voxcpm1, voxcpm2,
+# irodori_tts, index_tts2) are deliberately absent from that dict, so four
+# shipped cards resolve through this line today. They gain GPU tiers once the
+# native-v1.0.2 wheels are validated per family on the fleet; a family that
+# fails every GPU lane loses its card at that point rather than keeping a
+# tier it cannot serve.
 _TTS_TIERS = ("cpu",)
 
 # R19 follow-up / ruling R25 (2026-09-01, task 8): the first real Vulkan TTS

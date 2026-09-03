@@ -605,12 +605,53 @@ def test_size_bytes_regression_values():
 
 def test_voice_capability_map():
     cap = catalog.voice_capability
-    assert cap(catalog.tts_model("moss-tts-nano")) == {"builtin": "none", "custom": "clip"}
-    assert cap(catalog.tts_model("supertonic-3")) == {"builtin": "named", "custom": "none"}
-    assert cap(catalog.tts_model("pocket-tts-en")) == {"builtin": "named", "custom": "clip"}
-    assert cap(catalog.tts_model("pocket-tts-de")) == {"builtin": "none", "custom": "clip"}
+    assert cap(catalog.tts_model("moss-tts-nano")) == {"builtin": "none", "custom": "clip",
+                                                       "required": False}
+    assert cap(catalog.tts_model("supertonic-3")) == {"builtin": "named", "custom": "none",
+                                                      "required": False}
+    assert cap(catalog.tts_model("pocket-tts-en")) == {"builtin": "named", "custom": "clip",
+                                                       "required": False}
+    assert cap(catalog.tts_model("pocket-tts-de")) == {"builtin": "none", "custom": "clip",
+                                                       "required": False}
     assert cap(catalog.tts_model("omnivoice-0.6b")) == {"builtin": "none", "custom": "clip",
+                                                        "required": True,
                                                         "transcriptRequired": True}
+
+
+def test_voice_required_is_its_own_axis_not_a_shape_inference():
+    """The bug this axis exists to kill: `builtin == 'none' and custom == 'clip'` is the
+    shape of BOTH a family that must be handed a clip and one that speaks fine without one,
+    so the renderer's old shape-based pre-init gate disabled TTS for the second group.
+    These six cards all share that shape and split 3/3 on `required`."""
+    cap = catalog.voice_capability
+    same_shape = ("moss-tts-nano", "voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small",
+                  "omnivoice-0.6b", "index-tts2.5")
+    for mid in same_shape:
+        c = cap(catalog.tts_model(mid))
+        assert (c["builtin"], c["custom"]) == ("none", "clip"), mid
+
+    not_required = ("moss-tts-nano", "voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small",
+                    "supertonic-3", "pocket-tts-en", "pocket-tts-de")
+    required = ("qwen3-tts-0.6b", "qwen3-tts-1.7b", "omnivoice-0.6b", "index-tts2.5")
+    for mid in not_required:
+        assert cap(catalog.tts_model(mid))["required"] is False, mid
+    for mid in required:
+        assert cap(catalog.tts_model(mid))["required"] is True, mid
+
+    # Every card carries the axis — absent must mean "sidecar too old", never "false".
+    for m in catalog.tts_models():
+        assert "required" in cap(m), m.id
+
+
+def test_voice_required_families_is_the_single_source_of_truth():
+    """tts_backend's own R16 gate and the wire field must be the same set, or the sidecar
+    would refuse a synth the renderer had already decided was fine (or vice versa)."""
+    from sokuji_sidecar import tts_backend
+    assert tts_backend._VOICE_REQUIRED_FAMILIES is catalog.VOICE_REQUIRED_FAMILIES
+    assert catalog.VOICE_REQUIRED_FAMILIES == {"qwen3_tts", "omnivoice", "index_tts2"}
+    for m in catalog.tts_models():
+        assert (catalog.voice_capability(m)["required"]
+                is (m.family in catalog.VOICE_REQUIRED_FAMILIES)), m.id
 
 
 def test_supertonic_row():
@@ -644,6 +685,7 @@ def test_qwen3_rows_and_capability():
         assert m.transcript_required is True and m.recommended is rec
         assert {d.backend for d in m.deployments} == {"native_tts"}
         assert catalog.voice_capability(m) == {"builtin": "none", "custom": "clip",
+                                               "required": True,
                                                "transcriptRequired": True}
     # Only supertonic-3 and moss-tts-nano stay recommended (per spec §11).
     assert catalog.tts_model("moss-tts-nano").recommended is True
