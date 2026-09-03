@@ -695,22 +695,26 @@ def _engine_identity(m: Machine):
         mod = native.module()
         native_version = mod.version()
         engine_versions = dict(mod.engine_versions())
-        lane = engine_versions.get("lane")
         devices = list(_native_devices())
-        ranked = []
-        for d in devices:
-            tier = _ENGINE_TIER_FOR_KIND.get(d.kind)
-            if tier is not None and _tier_available(tier, m):
-                ranked.append((TIER_RANK.get(tier, 0.0), d))
-        if ranked:
-            best = max(ranked, key=lambda t: t[0])[1]
-        else:
-            best = next((d for d in devices if d.kind == "cpu"), None)
-        preferred_device = ({"kind": best.kind, "name": best.name, "description": best.description}
-                            if best is not None else None)
-        return native_version, engine_versions, lane, preferred_device
     except Exception:
+        # Only the native boundary is guarded: no wheel, or the binding raising.
+        # The ranking below is plain Python and must fail loudly if it is wrong.
         return None, None, None, None
+    # The binding folds its build lane into engine_versions() ("lane": "cpu-vulkan");
+    # the wire carries it as its own field, so the pins dict holds pins only.
+    lane = engine_versions.pop("lane", None)
+    ranked = []
+    for d in devices:
+        tier = _ENGINE_TIER_FOR_KIND.get(d.kind)
+        if tier is not None and _tier_available(tier, m):
+            ranked.append((TIER_RANK.get(tier, 0.0), d))
+    if ranked:
+        best = max(ranked, key=lambda t: t[0])[1]
+    else:
+        best = next((d for d in devices if d.kind == "cpu"), None)
+    preferred_device = ({"kind": best.kind, "name": best.name, "description": best.description}
+                        if best is not None else None)
+    return native_version, engine_versions, lane, preferred_device
 
 
 async def _h_hardware_info(state, msg, _b, conn=None):

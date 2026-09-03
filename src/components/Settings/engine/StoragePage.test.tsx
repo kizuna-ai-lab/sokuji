@@ -235,6 +235,20 @@ describe('StoragePage (native)', () => {
     confirmSpy.mockRestore();
   });
 
+  it('isSessionActive disables the engine remove button', () => {
+    const removeBundle = vi.fn(async () => {});
+    useNativeModelStore.setState({
+      catalog: CATALOG, statuses: {},
+      bundleStatus: 'ready', bundleVersion: '0.2.0', bundleDevVenv: false,
+      bundleInstalledSize: 5 * 1024 ** 3, removeBundle,
+    } as never);
+    render(<StoragePage provider="native" isSessionActive />);
+    const btn = screen.getByRole('button', { name: /Remove engine/ });
+    expect(btn).toBeDisabled();
+    fireEvent.click(btn);
+    expect(removeBundle).not.toHaveBeenCalled();
+  });
+
   it('no engine row for wasm storage, or when the native engine is not ready', () => {
     useNativeModelStore.setState({
       catalog: CATALOG, statuses: {}, bundleStatus: 'absent', bundleVersion: null,

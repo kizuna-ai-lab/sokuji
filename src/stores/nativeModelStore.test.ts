@@ -499,6 +499,14 @@ describe('nativeModelStore engineInfo (hardware_info identity)', () => {
 });
 
 describe('formatEngineReadyLog', () => {
+  it('never prints lane twice when the pins dict still carries a lane key (older bundles)', () => {
+    expect(formatEngineReadyLog('0.2.0', false, {
+      nativeVersion: '1.0.1',
+      engineVersions: { ggml: '0.22.0', transcribe: '0.2.2', llama: '0.3.0', audiocpp: '0.7.0', lane: 'cpu-vulkan' },
+      lane: 'cpu-vulkan', preferredDevice: { kind: 'vulkan', name: 'Vulkan0', description: 'NVIDIA GB10' },
+    })).toBe('sidecar 0.2.0 ready: sokuji-native 1.0.1 (ggml 0.22.0, transcribe 0.2.2, llama 0.3.0, audiocpp 0.7.0) lane=cpu-vulkan device="NVIDIA GB10"');
+  });
+
   it('omits the parenthesis when engineVersions is null', () => {
     expect(formatEngineReadyLog('0.2.0', false, {
       nativeVersion: '1.0.1', engineVersions: null, lane: 'cpu', preferredDevice: null,

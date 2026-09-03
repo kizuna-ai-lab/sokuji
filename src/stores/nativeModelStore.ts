@@ -39,7 +39,12 @@ export function formatEngineReadyLog(
   if (engineInfo?.nativeVersion) {
     let native = `sokuji-native ${engineInfo.nativeVersion}`;
     if (engineInfo.engineVersions) {
-      const parts = Object.entries(engineInfo.engineVersions).map(([k, v]) => `${k} ${v}`).join(', ');
+      // The binding's engine_versions() carries its build lane as a key; the sidecar
+      // strips it into the top-level `lane`, and this guard keeps the pins list clean
+      // even if a bundle predating that strip is running.
+      const parts = Object.entries(engineInfo.engineVersions)
+        .filter(([k]) => k !== 'lane')
+        .map(([k, v]) => `${k} ${v}`).join(', ');
       native += ` (${parts})`;
     }
     line += `: ${native}`;

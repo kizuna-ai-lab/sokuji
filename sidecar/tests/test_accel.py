@@ -276,9 +276,11 @@ def test_hardware_info_reports_engine_identity_prefers_available_gpu_tier(monkey
     monkeypatch.setattr(accel, "probe", lambda force=False: m)
     reply, _ = asyncio.run(accel._h_hardware_info({}, {"id": 1}, None))
     assert reply["nativeVersion"] == "1.0.1"
+    # The binding folds "lane" into engine_versions(); the wire strips it into its
+    # own field so the pins dict carries pins only (the renderer prints the dict
+    # verbatim and appends lane= itself).
     assert reply["engineVersions"] == {
-        "ggml": "0.22.0", "transcribe": "0.2.2", "llama": "0.3.0",
-        "audiocpp": "0.7.0", "lane": "cpu-vulkan",
+        "ggml": "0.22.0", "transcribe": "0.2.2", "llama": "0.3.0", "audiocpp": "0.7.0",
     }
     assert reply["lane"] == "cpu-vulkan"
     assert reply["preferredDevice"] == {"kind": "vulkan", "name": "vulkan1",
@@ -296,6 +298,7 @@ def test_hardware_info_reports_engine_identity_falls_back_to_cpu(monkeypatch):
     monkeypatch.setattr(accel, "probe", lambda force=False: m)
     reply, _ = asyncio.run(accel._h_hardware_info({}, {"id": 1}, None))
     assert reply["lane"] == "cpu"
+    assert "lane" not in reply["engineVersions"]
     assert reply["preferredDevice"] == {"kind": "cpu", "name": "cpu0", "description": "CPU"}
 
 
