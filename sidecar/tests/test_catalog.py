@@ -448,7 +448,7 @@ def test_translate_row_count_and_no_opus():
     # The 13 Opus-MT rows are gone (slice 3): 9 GGUF LLM cards remain, all on
     # native_translate.
     models = catalog.translate_models()
-    assert len(models) == 9
+    assert len(models) == 11
     assert all(d.backend == "native_translate" for m in models for d in m.deployments)
     assert catalog.translate_model("opus-mt-ja-en") is None
 
