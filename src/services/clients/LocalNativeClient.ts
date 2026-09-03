@@ -159,7 +159,13 @@ export class LocalNativeClient implements IClient {
         if (eligibleClips === 0) {
           this.ttsEnabled = false;
           this.diagnose('tts_degraded', `TTS unavailable, continuing without it: "${config.ttsModelId}" needs a voice clip — record or import one in Settings first`);
-          this.handlers.onError?.(new Error(`"${config.ttsModelId}" needs a voice clip — record or import one in Settings before it can speak`));
+          // A notice, not onError: the session goes on (text-only), so the
+          // user is owed a sentence they can still find, not a session-broken
+          // signal. onError's bubble lives only in MainPanel's React state and
+          // connectConversation's setItems(getConversationItems()) wipes it
+          // the moment connect() resolves — which is exactly how this notice
+          // used to vanish before anyone read it (#481 has the full inventory).
+          this.emitSystemNotice(`"${config.ttsModelId}" needs a voice clip — record or import one in Settings before it can speak`);
         }
       }
     }
@@ -299,6 +305,29 @@ export class LocalNativeClient implements IClient {
 
   private emit(item: ConversationItem, delta?: any): void {
     this.handlers.onConversationUpdated?.({ item, delta });
+  }
+
+  /**
+   * A system notice the CLIENT holds. Pushed into `items` before it is
+   * emitted, so it is part of every `getConversationItems()` read and survives
+   * MainPanel's wholesale `setItems(getConversationItems())` — both the one in
+   * connectConversation right after connect() and the one on every later
+   * conversation update. Same contract as SonioxClient.emitSystemNotice; `error`
+   * is the one system-item type the bubble renderer and subtitleIdleState both
+   * understand. Cleared with the rest of the conversation.
+   */
+  private emitSystemNotice(text: string): void {
+    const item: ConversationItem = {
+      id: this.nextId('notice'),
+      role: 'system',
+      type: 'error',
+      status: 'completed',
+      createdAt: Date.now(),
+      formatted: { text },
+      content: [{ type: 'text', text }],
+    };
+    this.items.push(item);
+    this.emit(item);
   }
 
   /** Mirror the LocalInferenceClient logging contract so events reach the Logs panel. */
