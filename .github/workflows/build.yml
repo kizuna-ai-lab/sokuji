@@ -307,7 +307,18 @@ jobs:
       # This is NOT notarization and buys nothing with Gatekeeper. Its only job is
       # to give the app a signing identity that stays the same between builds, which
       # is what Squirrel.Mac and TCC key on.
-      - name: Trust the self-signed signing certificate (macOS)
+      #
+      # The step also BUILDS the keychain electron-builder signs from, instead of
+      # letting electron-builder build one from CSC_LINK: app-builder-lib 26.x
+      # (through 26.16.0) creates that keychain with a random password and then
+      # runs `security set-key-partition-list -k <p12 password>` against it --
+      # electron-builder#10066, fixed by #10101 on master only. macOS <= 26.5
+      # tolerated the mismatch; the macos-26 runner image 20260831 (macOS 26.6.2)
+      # rejects it with "SecKeychainUnlock: The user name or passphrase you
+      # entered is not correct", which took every macos-arm64 build down on
+      # 2026-09-03 (both main pushes, #479, #480). Revert to plain CSC_LINK once
+      # electron-builder 26.x ships the #10101 backport.
+      - name: Trust the self-signed signing certificate and build the signing keychain (macOS)
         if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
         env:
           MACOS_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
@@ -324,28 +335,33 @@ jobs:
             -passin "pass:$MACOS_CSC_KEY_PASSWORD" -out "$RUNNER_TEMP/signing.pem"
           sudo security add-trusted-cert -d -r trustRoot -p codeSign \
             -k /Library/Keychains/System.keychain "$RUNNER_TEMP/signing.pem"
-          # Prove the trust actually took, in the same shape electron-builder
-          # will see it: import into a scratch keychain and ask for VALID
-          # identities. Checking the default search list here would always say
-          # "0 valid identities found" -- nothing is imported into it, since
-          # electron-builder makes its own keychain from CSC_LINK at build time.
-          SCRATCH="$RUNNER_TEMP/trust-check.keychain"
-          security create-keychain -p check "$SCRATCH"
-          security unlock-keychain -p check "$SCRATCH"
-          security set-keychain-settings "$SCRATCH"
-          security import "$RUNNER_TEMP/signing.p12" -k "$SCRATCH" \
-            -P "$MACOS_CSC_KEY_PASSWORD" -T /usr/bin/codesign >/dev/null
+          # Build the keychain electron-builder will sign from, the same way its
+          # own createKeychain() does -- except that set-key-partition-list gets
+          # the keychain's password, which is the whole fix. The password never
+          # leaves this step: no timeout and no lock-on-sleep are set, so nothing
+          # downstream needs to unlock it again. The keychain also joins the user
+          # search list, which is where productbuild (the pkg target) looks.
+          # Asking it for VALID identities doubles as the proof that the trust
+          # above actually took.
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings "$KEYCHAIN"
+          security import "$RUNNER_TEMP/signing.p12" -k "$KEYCHAIN" \
+            -P "$MACOS_CSC_KEY_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productbuild >/dev/null
           security set-key-partition-list -S apple-tool:,apple:,codesign: \
-            -s -k check "$SCRATCH" >/dev/null 2>&1
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
           echo "valid identities visible to electron-builder:"
-          security find-identity -v -p codesigning "$SCRATCH" | sed 's/^/  /'
-          if ! security find-identity -v -p codesigning "$SCRATCH" | grep -q "Sokuji Code Signing"; then
+          security find-identity -v -p codesigning "$KEYCHAIN" | sed 's/^/  /'
+          if ! security find-identity -v -p codesigning "$KEYCHAIN" | grep -q "Sokuji Code Signing"; then
             echo "FAIL: the certificate is still not a valid identity after trusting it." >&2
-            security delete-keychain "$SCRATCH" || true
+            security delete-keychain "$KEYCHAIN" || true
             exit 1
           fi
-          security delete-keychain "$SCRATCH"
           rm -f "$RUNNER_TEMP/signing.p12" "$RUNNER_TEMP/signing.pem"
+          echo "CSC_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
 
       - name: Build macOS artifacts (electron-builder)
         if: runner.os == 'macOS'
@@ -361,16 +377,20 @@ jobs:
         # still looks green. The zip is what electron-updater actually installs.
         run: |
           set -euo pipefail
-          # The signing pair is exported here instead of being declared in `env:`
-          # below, because an empty-but-defined CSC_LINK is not "unset" to
-          # electron-builder: getCscLink() keeps "" on purpose ("allow to specify
-          # as empty string"), macPackager guards only `cscLink == null`, and the
-          # pkg target forces the keychain open even when the .app itself skips
-          # signing. loadCscLink("") then resolves the empty path against the
-          # project dir and the build dies with "<projectDir> not a file" -- which
-          # is every fork PR, since GitHub passes it no secrets at all (#453).
+          # CSC_LINK is deliberately NOT handed to electron-builder (see the trust
+          # step above): with it unset, macPackager takes the keychain from
+          # CSC_KEYCHAIN -- exported to GITHUB_ENV by that step -- and never runs
+          # its broken createKeychain(). CSC_NAME is what tells the afterPack hook
+          # (scripts/electron-builder-fuses.js) a real identity is configured, so
+          # it leaves the bundle for electron-builder to sign instead of ad-hoc
+          # signing it; electron-builder itself resolves the identity through
+          # build.mac.identity, which names the same certificate. Nothing here is
+          # declared under `env:` because an empty-but-defined CSC_LINK is not
+          # "unset" to electron-builder (loadCscLink("") dies on every fork PR,
+          # which gets no secrets at all -- #453); the same applies to the
+          # variables below, so they stay conditional on HAS_MAC_CERT.
           if [ "$HAS_MAC_CERT" = 'true' ]; then
-            export CSC_LINK="$MACOS_CSC_LINK" CSC_KEY_PASSWORD="$MACOS_CSC_KEY_PASSWORD"
+            export CSC_NAME="Sokuji Code Signing"
           fi
           npx electron-builder --mac pkg zip --${{ matrix.arch }} --publish never -c.directories.output=out/make-mac
         env:
@@ -380,8 +400,6 @@ jobs:
           # macOS auto-update stays off; scripts/electron-builder-fuses.js
           # ad-hoc signs in that case.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MACOS_CSC_LINK != '' && 'true' || 'false' }}
-          MACOS_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
-          MACOS_CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
           # electron-builder refuses to sign pull-request builds unless this is
           # set, so that untrusted forks cannot get at signing credentials. That
           # protection is redundant here -- GitHub does not pass secrets to fork
@@ -471,6 +489,12 @@ jobs:
             echo "FAIL: latest-mac.yml does not reference $(basename "$ZIP")." >&2; exit 1; }
           echo "OK: manifest references the zip."
 
+
+      # The keychain holds the signing key; the runner is ephemeral, but do not
+      # leave it behind on the search list for whatever runs after us.
+      - name: Remove the signing keychain (macOS)
+        if: always() && runner.os == 'macOS' && env.CSC_KEYCHAIN != ''
+        run: security delete-keychain "$CSC_KEYCHAIN" || true
       - name: Build Chrome Extension
         if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
         run: |

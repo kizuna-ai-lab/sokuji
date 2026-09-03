@@ -600,6 +600,18 @@ steps replaced by a certificate you issue yourself (§2.5). Concretely:
    `sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain cert.pem`
    — because electron-builder discovers identities with `find-identity -v`,
    which does not list an untrusted certificate (verified; §2.5e(a)).
+   *Workaround in force since 2026-09-04:* the workflow does not hand
+   `CSC_LINK` to electron-builder at all. app-builder-lib 26.x (through
+   26.16.0) builds its temporary keychain with a random password and then runs
+   `security set-key-partition-list -k <p12 password>` against it
+   (electron-builder#10066; fix #10101 is on master only). macOS ≤ 26.5
+   tolerated the mismatch, the `macos-26` runner image 20260831 (macOS 26.6.2)
+   rejects it with `SecKeychainUnlock: The user name or passphrase you entered
+   is not correct`. So the trust step also imports the `.p12` into a keychain
+   it builds itself and passes to electron-builder as `CSC_KEYCHAIN`, with
+   `CSC_NAME` set so `scripts/electron-builder-fuses.js` still takes the
+   real-identity branch. Revert to plain `CSC_LINK` once electron-builder 26.x
+   ships the #10101 backport.
 3. **Signing**: replace the ad-hoc `codesign --force --deep --sign -` in
    `scripts/electron-builder-fuses.js` with electron-builder's normal
    inside-out signing. Pin the DR with `codesign -r` using a requirement dumped
