@@ -112,7 +112,7 @@ def version() -> str:
 
 
 def engine_versions() -> dict[str, str]:
-    raw = _load().sk_engine_versions().decode()   # "ggml=0.22.0;transcribe=0.2.2;...;lane=cpu"
+    raw = _load().sk_engine_versions().decode()   # "ggml=0.22.0;transcribe=0.2.3;...;lane=cpu"
     out: dict[str, str] = {}
     for seg in raw.split(";"):
         key, _, val = seg.partition("=")
