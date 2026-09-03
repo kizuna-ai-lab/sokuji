@@ -776,14 +776,17 @@
     "upgradeVariant": "Cihazınız daha hızlı bir model formatını destekliyor. Daha iyi performans için silip yeniden indirin.",
     "licenseConsent": {
       "title": "Ticari olmayan lisans",
+      "restrictedTitle": "Kısıtlı lisans",
       "modelRepo": "{{model}}, {{repo}} adresinden indirilecek.",
       "licenseName": "{{name}} ({{spdx}}) lisansı altında dağıtılmaktadır.",
       "viewLicense": "Lisans metninin tamamını görüntüle",
       "nonCommercial": "Bu lisans yalnızca ticari olmayan kullanıma izin verir — bu modeli hiçbir ticari ürün veya hizmette kullanmayın.",
+      "restrictedTerms": "Bu bir açık kaynak lisansı değildir. Modelin ve çıktısının nasıl kullanılabileceğine koşullar getirir — ona güvenmeden önce metnin tamamını okuyun.",
       "disclaimer": "Sokuji, model yazarlarıyla bağlantılı değildir ve onlarla hiçbir ilişkisi yoktur. Bu entegrasyon resmî değildir ve hiçbir garanti olmaksızın olduğu gibi sunulur.",
       "attribution": "Atıf: {{attribution}}",
       "cancel": "İptal",
-      "accept": "Anladım — yalnızca ticari olmayan kullanım"
+      "accept": "Anladım — yalnızca ticari olmayan kullanım",
+      "acceptRestricted": "Anladım — lisansı kabul ediyorum"
     }
   },
   "notes": {

@@ -912,14 +912,17 @@
     "upgradeVariant": "Your device supports a faster model format. Delete and re-download for better performance.",
     "licenseConsent": {
       "title": "Non-commercial license",
+      "restrictedTitle": "Restricted license",
       "modelRepo": "{{model}} downloads from {{repo}}.",
       "licenseName": "It is distributed under {{name}} ({{spdx}}).",
       "viewLicense": "View the full license text",
       "nonCommercial": "This license permits non-commercial use only — do not use this model in any commercial product or service.",
+      "restrictedTerms": "This is not an open-source license. It sets conditions on how the model and its output may be used — read the full text before you rely on it.",
       "disclaimer": "Sokuji is not affiliated with the model authors and has no relationship with them. This integration is unofficial and provided as-is, without warranty of any kind.",
       "attribution": "Attribution: {{attribution}}",
       "cancel": "Cancel",
-      "accept": "I understand — non-commercial only"
+      "accept": "I understand — non-commercial only",
+      "acceptRestricted": "I understand — accept the license"
     }
   },
   "notes": {

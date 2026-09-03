@@ -3,7 +3,7 @@
  * turn settings into concrete model ids. Centralized so settings UI + session
  * config share one source of truth.
  */
-import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
+import type { NativeModelInfo, NativeModelLicense, NativeVoiceInfo } from './nativeProtocol';
 import type { ResolutionNote, Selections } from '../selection/types';
 
 /**
@@ -416,7 +416,7 @@ export interface NativeModelCardSpec {
   streaming?: boolean;
   clones?: boolean;
   variantIds?: string[];
-  license?: { spdx: string; name: string; url: string; nonCommercial: boolean; sourceRepo: string; attribution: string };
+  license?: NativeModelLicense;
 }
 
 /** Map a catalog NativeModelInfo entry to a NativeModelCardSpec. */

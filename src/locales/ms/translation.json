@@ -776,14 +776,17 @@
     "upgradeVariant": "Peranti anda menyokong format model yang lebih pantas. Padam dan muat turun semula untuk prestasi lebih baik.",
     "licenseConsent": {
       "title": "Lesen bukan komersial",
+      "restrictedTitle": "Lesen terhad",
       "modelRepo": "{{model}} akan dimuat turun dari {{repo}}.",
       "licenseName": "Diedarkan di bawah {{name}} ({{spdx}}).",
       "viewLicense": "Lihat teks lesen penuh",
       "nonCommercial": "Lesen ini hanya membenarkan penggunaan bukan komersial — jangan gunakan model ini dalam mana-mana produk atau perkhidmatan komersial.",
+      "restrictedTerms": "Ini bukan lesen sumber terbuka. Ia menetapkan syarat tentang cara model dan outputnya boleh digunakan — baca teks penuh sebelum anda bergantung padanya.",
       "disclaimer": "Sokuji tidak bergabung dengan pengarang model dan tiada sebarang hubungan dengan mereka. Integrasi ini tidak rasmi dan disediakan sebagaimana adanya, tanpa sebarang jaminan.",
       "attribution": "Atribusi: {{attribution}}",
       "cancel": "Batal",
-      "accept": "Saya faham — bukan komersial sahaja"
+      "accept": "Saya faham — bukan komersial sahaja",
+      "acceptRestricted": "Saya faham — saya menerima lesen ini"
     }
   },
   "notes": {

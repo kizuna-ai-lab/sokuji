@@ -220,10 +220,14 @@ const NativeModelCard: React.FC<{
     return `${chosenVariant.computeType.toUpperCase()} · ${formatMemMb(sizeMb)}`;
   }, [chosenVariant, ready, sizeMb]);
 
-  // Non-commercial-licensed cards (spec.license.nonCommercial) gate the first
-  // download behind an acknowledge modal — remembered per model id (Task 2 of
-  // the OmniVoice license-consent plan). Everything else downloads immediately,
-  // as before.
+  // Cards whose license needs acknowledging (spec.license.requiresConsent) gate
+  // the first download behind an acknowledge modal — remembered per model id
+  // (Task 2 of the OmniVoice license-consent plan). Everything else downloads
+  // immediately, as before. The trigger is requiresConsent and NOT nonCommercial:
+  // IndexTTS 2.5's bilibili Model Use License permits commercial use below a
+  // MAU/revenue ceiling yet still has to be acknowledged, and gating on
+  // nonCommercial would either skip its gate or mislabel it in the modal.
+  // nonCommercial only decides which wording LicenseConsentModal shows.
   const [consentOpen, setConsentOpen] = useState(false);
 
   // The download button fetches the chosen variant's repo (undefined → default repo,
@@ -232,7 +236,7 @@ const NativeModelCard: React.FC<{
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (spec.license?.nonCommercial && !hasAcceptedLicense(spec.downloadId as string)) {
+    if (spec.license?.requiresConsent && !hasAcceptedLicense(spec.downloadId as string)) {
       setConsentOpen(true);
       return;
     }

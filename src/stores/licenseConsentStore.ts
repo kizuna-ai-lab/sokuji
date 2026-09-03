@@ -1,8 +1,11 @@
 /**
  * Per-device consent for downloading native model cards whose catalog descriptor
- * carries a non-commercial license (NativeModelCardSpec.license.nonCommercial —
- * see src/lib/local-inference/native/nativeCatalog.ts). Acknowledged once per
- * model id, persisted to localStorage so it survives a reload.
+ * carries a license that has to be acknowledged
+ * (NativeModelCardSpec.license.requiresConsent — see
+ * src/lib/local-inference/native/nativeCatalog.ts; that flag, not
+ * `nonCommercial`, is the gate, since a license can need acknowledging while
+ * still permitting commercial use). Acknowledged once per model id, persisted
+ * to localStorage so it survives a reload.
  *
  * This is a per-device UI acknowledgment, not a legal record — a fresh browser
  * profile/device (or cleared storage) re-prompts, which is the intended

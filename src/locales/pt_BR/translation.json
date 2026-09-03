@@ -776,14 +776,17 @@
     "upgradeVariant": "Seu dispositivo suporta um formato de modelo mais rápido. Exclua e baixe novamente para obter melhor desempenho.",
     "licenseConsent": {
       "title": "Licença não comercial",
+      "restrictedTitle": "Licença restrita",
       "modelRepo": "{{model}} será baixado de {{repo}}.",
       "licenseName": "É distribuído sob {{name}} ({{spdx}}).",
       "viewLicense": "Ver o texto completo da licença",
       "nonCommercial": "Esta licença permite apenas uso não comercial — não use este modelo em nenhum produto ou serviço comercial.",
+      "restrictedTerms": "Esta não é uma licença de código aberto. Ela impõe condições sobre como o modelo e sua saída podem ser usados — leia o texto completo antes de depender dele.",
       "disclaimer": "O Sokuji não é afiliado aos autores do modelo e não tem relação com eles. Esta integração não é oficial e é fornecida como está, sem garantia de qualquer tipo.",
       "attribution": "Atribuição: {{attribution}}",
       "cancel": "Cancelar",
-      "accept": "Entendi — apenas uso não comercial"
+      "accept": "Entendi — apenas uso não comercial",
+      "acceptRestricted": "Entendi — aceito a licença"
     }
   },
   "notes": {

@@ -776,14 +776,17 @@
     "upgradeVariant": "Perangkat Anda mendukung format model yang lebih cepat. Hapus dan unduh ulang untuk performa lebih baik.",
     "licenseConsent": {
       "title": "Lisensi nonkomersial",
+      "restrictedTitle": "Lisensi terbatas",
       "modelRepo": "{{model}} akan diunduh dari {{repo}}.",
       "licenseName": "Didistribusikan di bawah {{name}} ({{spdx}}).",
       "viewLicense": "Lihat teks lisensi lengkap",
       "nonCommercial": "Lisensi ini hanya mengizinkan penggunaan nonkomersial — jangan gunakan model ini dalam produk atau layanan komersial apa pun.",
+      "restrictedTerms": "Ini bukan lisensi sumber terbuka. Lisensi ini menetapkan syarat tentang cara model dan keluarannya boleh digunakan — baca teks lengkapnya sebelum Anda mengandalkannya.",
       "disclaimer": "Sokuji tidak berafiliasi dengan pembuat model dan tidak memiliki hubungan apa pun dengan mereka. Integrasi ini tidak resmi dan disediakan apa adanya, tanpa jaminan apa pun.",
       "attribution": "Atribusi: {{attribution}}",
       "cancel": "Batal",
-      "accept": "Saya mengerti — hanya nonkomersial"
+      "accept": "Saya mengerti — hanya nonkomersial",
+      "acceptRestricted": "Saya mengerti — saya menerima lisensinya"
     }
   },
   "notes": {

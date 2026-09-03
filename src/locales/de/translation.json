@@ -776,14 +776,17 @@
     "upgradeVariant": "Ihr Gerät unterstützt ein schnelleres Modellformat. Löschen und erneut herunterladen für bessere Leistung.",
     "licenseConsent": {
       "title": "Nichtkommerzielle Lizenz",
+      "restrictedTitle": "Eingeschränkte Lizenz",
       "modelRepo": "{{model}} wird von {{repo}} heruntergeladen.",
       "licenseName": "Es wird unter {{name}} ({{spdx}}) vertrieben.",
       "viewLicense": "Vollständigen Lizenztext ansehen",
       "nonCommercial": "Diese Lizenz erlaubt nur nichtkommerzielle Nutzung — verwenden Sie dieses Modell nicht in kommerziellen Produkten oder Diensten.",
+      "restrictedTerms": "Dies ist keine Open-Source-Lizenz. Sie knüpft Bedingungen an die Nutzung des Modells und seiner Ausgaben — lesen Sie den vollständigen Text, bevor Sie sich darauf verlassen.",
       "disclaimer": "Sokuji ist nicht mit den Modellautoren verbunden und steht in keiner Beziehung zu ihnen. Diese Integration ist inoffiziell und wird ohne jegliche Gewährleistung bereitgestellt.",
       "attribution": "Namensnennung: {{attribution}}",
       "cancel": "Abbrechen",
-      "accept": "Verstanden — nur nichtkommerziell"
+      "accept": "Verstanden — nur nichtkommerziell",
+      "acceptRestricted": "Verstanden — Lizenz akzeptieren"
     }
   },
   "notes": {
