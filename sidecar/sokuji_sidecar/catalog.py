@@ -962,7 +962,12 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
     "omnivoice": ("gpu-vulkan", "gpu-metal", "cpu"),
     "pocket_tts": ("gpu-vulkan", "gpu-metal", "cpu"),   # ruling R29 (supersedes R28) -- see table above
     # The four added 2026-09-03. Measured per lane with the native-1.0.2 wheels
-    # before opening them (warm RTF = synth / audio, so <1 is faster than speech):
+    # this branch's own CI dry run built -- necessarily so: 1.0.1, which
+    # requirements.txt still pins, compiles only the five older families
+    # (AUDIOCPP_MODELS gained these four here), so it cannot load them at all.
+    # The pin moves to 1.0.2 when the native-v1.0.2 tag publishes those wheels,
+    # which is the release order native/README.md sets out: tag, then pin.
+    # Warm RTF = synth / audio, so <1 is faster than speech:
     #                GB10 Vulkan   M4 Metal   M4 CPU
     #   voxcpm1          0.47         0.91      1.55
     #   voxcpm2          0.63         1.42      3.27
