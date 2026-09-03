@@ -203,8 +203,10 @@ export function hardwareGated(info: NativeModelInfo | undefined): boolean {
 
 /** One active native stage for the memory estimate: the model's download id and
  *  the device override chosen for that stage ('auto' resolves to GPU when one is
- *  available). TTS has no device override, so callers pass 'cpu'. */
-export interface NativeMemoryStage { id?: string | null; device: 'auto' | 'cpu' | 'cuda'; }
+ *  available). TTS has no device override, so callers pass 'cpu'. 'cuda' is the
+ *  pre-rename value ('gpu' is current) — kept accepted here defensively so a
+ *  caller holding a stale value still counts it as VRAM instead of RAM. */
+export interface NativeMemoryStage { id?: string | null; device: 'auto' | 'cpu' | 'gpu' | 'cuda'; }
 
 /**
  * Split the active native models into VRAM vs RAM, mirroring LOCAL_INFERENCE's
@@ -212,7 +214,8 @@ export interface NativeMemoryStage { id?: string | null; device: 'auto' | 'cpu' 
  * the GPU/CPU split comes from the per-stage device override and the sidecar's
  * tier availability instead of a static manifest flag.
  *
- * A stage counts toward VRAM when the user forced `cuda`, OR left it on `auto`
+ * A stage counts toward VRAM when the user forced `gpu` (or the legacy
+ * `cuda`, accepted defensively — see NativeMemoryStage), OR left it on `auto`
  * AND the model has an available non-cpu tier on this machine (so the resolver
  * would land it on the GPU). Everything else — explicit `cpu`, an auto model
  * with no usable GPU tier, or an unknown model (no catalog entry) — counts as
@@ -231,7 +234,7 @@ export function estimateNativeMemoryByDevice(
     const mb = Math.round((sizes[id] || 0) / 1_048_576);
     if (mb === 0) continue;
     const gpuAvailable = !!catalog[id]?.tiers.some((t) => t.available && t.tier !== 'cpu');
-    const usesGpu = device === 'cuda' || (device === 'auto' && gpuAvailable);
+    const usesGpu = device === 'gpu' || device === 'cuda' || (device === 'auto' && gpuAvailable);
     if (usesGpu) vramMb += mb; else ramMb += mb;
   }
   return { vramMb, ramMb };

@@ -114,12 +114,17 @@ export const EngineStatusLine: React.FC = () => {
 
   const clickable = !isSimpleMode;
   const fullText = device ? `${text} · ${device}` : text;
+  // Hover-only addition (see the component doc comment) — the visible text
+  // stays exactly `fullText`; this sentence only ever reaches the title
+  // attribute's tooltip.
+  const preferredHint = t('engine.status.preferredHint',
+    'Preferred device for this machine; per-stage overrides live in the model library.');
   const activate = () => navigateToSettings('provider');
 
   return (
     <div
       className={`engine-status-line${clickable ? ' engine-status-line--clickable' : ''}`}
-      title={fullText}
+      title={`${fullText} ${preferredHint}`}
       role={clickable ? 'button' : undefined}
       tabIndex={clickable ? 0 : undefined}
       onClick={clickable ? activate : undefined}

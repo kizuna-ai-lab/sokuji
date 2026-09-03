@@ -703,7 +703,8 @@
       "downloadPaused": "Pobieranie wstrzymane",
       "downloading": "Pobieranie {{pct}}%",
       "error": "Błąd silnika",
-      "unavailable": "Silnik niedostępny"
+      "unavailable": "Silnik niedostępny",
+      "preferredHint": "Preferowane urządzenie dla tego komputera; zastąpienia dla poszczególnych etapów znajdują się w bibliotece modeli."
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "Rozmiar",
     "hwRepo": "Repozytorium",
     "computeDevice": "Urządzenie obliczeniowe",
-    "computeDeviceTooltip": "Urządzenie, na którym działa model mowy. Auto wybiera najszybsze dostępne (GPU, jeśli jest obecne); CPU działa wszędzie, ale jest wolniejsze dla dużych modeli; GPU wymaga karty CUDA.",
-    "computeDeviceTooltipTranslation": "Urządzenie, na którym działa model tłumaczenia. Auto wybiera najszybsze dostępne (GPU, jeśli jest obecne); CPU działa wszędzie, ale jest wolniejsze dla dużych modeli; GPU wymaga karty CUDA.",
-    "computeDeviceTooltipTts": "Urządzenie, na którym działa model syntezy mowy. Auto wybiera najszybsze dostępne (GPU, jeśli jest obecne); CPU działa wszędzie, ale jest wolniejsze dla dużych modeli; GPU wymaga karty CUDA.",
+    "computeDeviceTooltip": "Urządzenie, na którym działa model mowy. Auto wybiera najszybsze dostępne urządzenie (GPU, jeśli jest obecne); CPU działa wszędzie, ale jest wolniejsze dla dużych modeli; GPU korzysta z Vulkan w systemach Windows i Linux oraz z Metal na układach Apple silicon.",
+    "computeDeviceTooltipTranslation": "Urządzenie, na którym działa model tłumaczenia. Auto wybiera najszybsze dostępne urządzenie (GPU, jeśli jest obecne); CPU działa wszędzie, ale jest wolniejsze dla dużych modeli; GPU korzysta z Vulkan w systemach Windows i Linux oraz z Metal na układach Apple silicon.",
+    "computeDeviceTooltipTts": "Urządzenie, na którym działa model syntezy mowy. Auto wybiera najszybsze dostępne urządzenie (GPU, jeśli jest obecne); CPU działa wszędzie, ale jest wolniejsze dla dużych modeli; GPU korzysta z Vulkan w systemach Windows i Linux oraz z Metal na układach Apple silicon.",
     "deviceAuto": "Auto",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

@@ -703,7 +703,8 @@
       "downloadPaused": "下载已暂停",
       "downloading": "下载中 {{pct}}%",
       "error": "引擎错误",
-      "unavailable": "引擎不可用"
+      "unavailable": "引擎不可用",
+      "preferredHint": "本机的首选运行设备；各阶段的单独覆盖设置位于模型库中。"
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "模型大小",
     "hwRepo": "仓库",
     "computeDevice": "计算设备",
-    "computeDeviceTooltip": "运行语音模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：需要支持 CUDA 的 GPU。",
-    "computeDeviceTooltipTranslation": "运行翻译模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：需要支持 CUDA 的 GPU。",
-    "computeDeviceTooltipTts": "运行语音合成（TTS）模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：需要支持 CUDA 的 GPU。",
+    "computeDeviceTooltip": "运行语音模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：在 Windows 和 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
+    "computeDeviceTooltipTranslation": "运行翻译模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：在 Windows 和 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
+    "computeDeviceTooltipTts": "运行语音合成（TTS）模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：在 Windows 和 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
     "deviceAuto": "自动",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

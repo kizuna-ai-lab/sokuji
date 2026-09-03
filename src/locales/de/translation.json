@@ -703,7 +703,8 @@
       "downloadPaused": "Download pausiert",
       "downloading": "Wird heruntergeladen {{pct}}%",
       "error": "Engine-Fehler",
-      "unavailable": "Engine nicht verfügbar"
+      "unavailable": "Engine nicht verfügbar",
+      "preferredHint": "Bevorzugtes Gerät für diesen Computer; Übersteuerungen je Stufe finden Sie in der Modellbibliothek."
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "Größe",
     "hwRepo": "Repo",
     "computeDevice": "Recheneinheit",
-    "computeDeviceTooltip": "Legt fest, welches Gerät das Spracherkennungsmodell ausführt. Auto wählt die schnellste verfügbare Option (GPU, falls vorhanden); CPU funktioniert überall, ist aber bei großen Modellen langsamer; GPU erfordert eine CUDA-GPU.",
-    "computeDeviceTooltipTranslation": "Legt fest, welches Gerät das Übersetzungsmodell ausführt. Auto wählt die schnellste verfügbare Option (GPU, falls vorhanden); CPU funktioniert überall, ist aber bei großen Modellen langsamer; GPU erfordert eine CUDA-GPU.",
-    "computeDeviceTooltipTts": "Legt fest, welches Gerät das Sprachsynthesemodell ausführt. Auto wählt die schnellste verfügbare Option (GPU, falls vorhanden); CPU funktioniert überall, ist aber bei großen Modellen langsamer; GPU erfordert eine CUDA-GPU.",
+    "computeDeviceTooltip": "Legt fest, welches Gerät das Spracherkennungsmodell ausführt. Auto wählt das schnellste verfügbare Gerät (GPU, falls vorhanden); CPU funktioniert überall, ist aber bei großen Modellen langsamer; GPU nutzt Vulkan unter Windows und Linux sowie Metal auf Apple-Silicon-Geräten.",
+    "computeDeviceTooltipTranslation": "Legt fest, welches Gerät das Übersetzungsmodell ausführt. Auto wählt das schnellste verfügbare Gerät (GPU, falls vorhanden); CPU funktioniert überall, ist aber bei großen Modellen langsamer; GPU nutzt Vulkan unter Windows und Linux sowie Metal auf Apple-Silicon-Geräten.",
+    "computeDeviceTooltipTts": "Legt fest, welches Gerät das Sprachsynthesemodell ausführt. Auto wählt das schnellste verfügbare Gerät (GPU, falls vorhanden); CPU funktioniert überall, ist aber bei großen Modellen langsamer; GPU nutzt Vulkan unter Windows und Linux sowie Metal auf Apple-Silicon-Geräten.",
     "deviceAuto": "Auto",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

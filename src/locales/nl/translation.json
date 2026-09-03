@@ -703,7 +703,8 @@
       "downloadPaused": "Download gepauzeerd",
       "downloading": "Downloaden {{pct}}%",
       "error": "Engine-fout",
-      "unavailable": "Engine niet beschikbaar"
+      "unavailable": "Engine niet beschikbaar",
+      "preferredHint": "Voorkeursapparaat voor deze computer; overschrijvingen per fase vindt u in de modelbibliotheek."
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "Grootte",
     "hwRepo": "Repo",
     "computeDevice": "Rekenapparaat",
-    "computeDeviceTooltip": "Welk apparaat het spraakmodel uitvoert. Auto kiest het snelste beschikbare apparaat (GPU indien aanwezig); CPU werkt overal maar is trager voor grote modellen; GPU vereist een CUDA-GPU.",
-    "computeDeviceTooltipTranslation": "Welk apparaat het vertaalmodel uitvoert. Auto kiest het snelste beschikbare apparaat (GPU indien aanwezig); CPU werkt overal maar is trager voor grote modellen; GPU vereist een CUDA-GPU.",
-    "computeDeviceTooltipTts": "Welk apparaat het spraaksynthesemodel uitvoert. Auto kiest het snelste beschikbare apparaat (GPU indien aanwezig); CPU werkt overal maar is trager voor grote modellen; GPU vereist een CUDA-GPU.",
+    "computeDeviceTooltip": "Welk apparaat het spraakmodel uitvoert. Auto kiest het snelste beschikbare apparaat (GPU indien aanwezig); CPU werkt overal maar is trager voor grote modellen; GPU gebruikt Vulkan op Windows en Linux en Metal op Apple silicon.",
+    "computeDeviceTooltipTranslation": "Welk apparaat het vertaalmodel uitvoert. Auto kiest het snelste beschikbare apparaat (GPU indien aanwezig); CPU werkt overal maar is trager voor grote modellen; GPU gebruikt Vulkan op Windows en Linux en Metal op Apple silicon.",
+    "computeDeviceTooltipTts": "Welk apparaat het spraaksynthesemodel uitvoert. Auto kiest het snelste beschikbare apparaat (GPU indien aanwezig); CPU werkt overal maar is trager voor grote modellen; GPU gebruikt Vulkan op Windows en Linux en Metal op Apple silicon.",
     "deviceAuto": "Auto",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

@@ -412,6 +412,20 @@ def test_resolve_override_beats_bench_demotion():
     assert plans[0].device == "vulkan"
 
 
+def test_resolve_override_gpu_alias_beats_bench_demotion():
+    # 'gpu' is the current renderer override value (post-rename); it must
+    # behave identically to the legacy 'cuda' alias above — same "any
+    # accelerator tier" pin, same immunity to bench-cache demotion.
+    m = CUDA_12GB
+    cache = {
+        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
+        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
+    }
+    plans = planner.resolve("whisper-base", "gpu", machine=m, platform="linux",
+                            cache=cache, downloaded=set())
+    assert plans[0].device == "vulkan"
+
+
 @pytest.mark.parametrize("model_id", [
     "granite-speech-4.1-2b", "qwen3-asr-1.7b", "voxtral-mini-4b-realtime",
     "cohere-transcribe-03-2026", "fun-asr-mlt-nano",

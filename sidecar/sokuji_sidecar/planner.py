@@ -162,11 +162,13 @@ def resolve_deployments(model, machine: Machine, override: str = "auto",
               and _platform_ok(d, machine, platform)]
     usable.sort(key=lambda d: (TIER_RANK.get(d.tier, 0.0), d.rank), reverse=True)
     if override != "auto":
-        # The renderer's device control is auto/cpu/GPU and sends 'cuda' for
-        # GPU — treat it as "any accelerator tier" so it also pins
-        # vulkan/metal deployments (native ASR cards have no cuda rows).
+        # The renderer's device control is auto/cpu/GPU and sends 'gpu' for
+        # GPU (older renderer builds — and any settings persisted before the
+        # rename — send the legacy 'cuda') — treat either as "any accelerator
+        # tier" so it also pins vulkan/metal deployments (native ASR cards
+        # have no cuda rows).
         def _pinned(d):
-            return TIER_DEVICE.get(d.tier) == override or (override == "cuda" and d.tier != "cpu")
+            return TIER_DEVICE.get(d.tier) == override or (override in ("gpu", "cuda") and d.tier != "cpu")
         pinned = [d for d in usable if _pinned(d)]
         rest = [d for d in usable if not _pinned(d)]
         usable = pinned + rest

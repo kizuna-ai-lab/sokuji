@@ -898,7 +898,8 @@
       "downloadPaused": "Download paused",
       "downloading": "Downloading {{pct}}%",
       "error": "Engine error",
-      "unavailable": "Engine unavailable"
+      "unavailable": "Engine unavailable",
+      "preferredHint": "Preferred device for this machine; per-stage overrides live in the model library."
     }
   },
   "models": {
@@ -964,9 +965,9 @@
     "hwSize": "Size",
     "hwRepo": "Repo",
     "computeDevice": "Compute device",
-    "computeDeviceTooltip": "Which device runs the speech model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.",
-    "computeDeviceTooltipTranslation": "Which device runs the translation model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.",
-    "computeDeviceTooltipTts": "Which device runs the speech-synthesis model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.",
+    "computeDeviceTooltip": "Which device runs the speech model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",
+    "computeDeviceTooltipTranslation": "Which device runs the translation model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",
+    "computeDeviceTooltipTts": "Which device runs the speech-synthesis model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",
     "deviceAuto": "Auto",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

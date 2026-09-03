@@ -703,7 +703,8 @@
       "downloadPaused": "Lataus keskeytetty",
       "downloading": "Ladataan {{pct}}%",
       "error": "Moottorivirhe",
-      "unavailable": "Moottori ei ole käytettävissä"
+      "unavailable": "Moottori ei ole käytettävissä",
+      "preferredHint": "Tälle koneelle suositeltu laite; vaihekohtaiset ohitukset löytyvät mallikirjastosta."
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "Koko",
     "hwRepo": "Tietovarasto",
     "computeDevice": "Laskentalaite",
-    "computeDeviceTooltip": "Mikä laite suorittaa puhemallin. Auto valitsee nopeimman käytettävissä olevan (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU vaatii CUDA-näytönohjaimen.",
-    "computeDeviceTooltipTranslation": "Mikä laite suorittaa käännösmallin. Auto valitsee nopeimman käytettävissä olevan (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU vaatii CUDA-näytönohjaimen.",
-    "computeDeviceTooltipTts": "Mikä laite suorittaa puhesynteesimallin. Auto valitsee nopeimman käytettävissä olevan (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU vaatii CUDA-näytönohjaimen.",
+    "computeDeviceTooltip": "Mikä laite suorittaa puhemallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
+    "computeDeviceTooltipTranslation": "Mikä laite suorittaa käännösmallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
+    "computeDeviceTooltipTts": "Mikä laite suorittaa puhesynteesimallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
     "deviceAuto": "Auto",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

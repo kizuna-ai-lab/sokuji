@@ -703,7 +703,8 @@
       "downloadPaused": "Download in pausa",
       "downloading": "Download {{pct}}%",
       "error": "Errore del motore",
-      "unavailable": "Motore non disponibile"
+      "unavailable": "Motore non disponibile",
+      "preferredHint": "Dispositivo preferito per questa macchina; le sostituzioni per singola fase si trovano nella libreria dei modelli."
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "Dimensione",
     "hwRepo": "Repo",
     "computeDevice": "Dispositivo di calcolo",
-    "computeDeviceTooltip": "Quale dispositivo esegue il modello vocale. Auto sceglie il più veloce disponibile (GPU se presente); la CPU funziona ovunque ma è più lenta con i modelli grandi; la GPU richiede una GPU CUDA.",
-    "computeDeviceTooltipTranslation": "Quale dispositivo esegue il modello di traduzione. Auto sceglie il più veloce disponibile (GPU se presente); la CPU funziona ovunque ma è più lenta con i modelli grandi; la GPU richiede una GPU CUDA.",
-    "computeDeviceTooltipTts": "Quale dispositivo esegue il modello di sintesi vocale. Auto sceglie il più veloce disponibile (GPU se presente); la CPU funziona ovunque ma è più lenta con i modelli grandi; la GPU richiede una GPU CUDA.",
+    "computeDeviceTooltip": "Quale dispositivo esegue il modello vocale. Auto sceglie il dispositivo più veloce disponibile (GPU se presente); la CPU funziona ovunque ma è più lenta con i modelli grandi; la GPU usa Vulkan su Windows e Linux e Metal su Apple silicon.",
+    "computeDeviceTooltipTranslation": "Quale dispositivo esegue il modello di traduzione. Auto sceglie il dispositivo più veloce disponibile (GPU se presente); la CPU funziona ovunque ma è più lenta con i modelli grandi; la GPU usa Vulkan su Windows e Linux e Metal su Apple silicon.",
+    "computeDeviceTooltipTts": "Quale dispositivo esegue il modello di sintesi vocale. Auto sceglie il dispositivo più veloce disponibile (GPU se presente); la CPU funziona ovunque ma è più lenta con i modelli grandi; la GPU usa Vulkan su Windows e Linux e Metal su Apple silicon.",
     "deviceAuto": "Auto",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

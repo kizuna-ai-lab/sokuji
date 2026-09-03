@@ -703,7 +703,8 @@
       "downloadPaused": "Naka-pause ang download",
       "downloading": "Dina-download {{pct}}%",
       "error": "Error sa engine",
-      "unavailable": "Hindi available ang engine"
+      "unavailable": "Hindi available ang engine",
+      "preferredHint": "Ang mas gustong device para sa makinang ito; ang mga override kada yugto ay nasa aklatan ng modelo."
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "Laki",
     "hwRepo": "Repo",
     "computeDevice": "Compute device",
-    "computeDeviceTooltip": "Kung aling device ang nagpapatakbo ng speech model. Ang Auto ay pumipili ng pinakamabilis na available (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; ang GPU ay nangangailangan ng CUDA GPU.",
-    "computeDeviceTooltipTranslation": "Kung aling device ang nagpapatakbo ng modelo ng pagsasalin. Ang Auto ay pumipili ng pinakamabilis na available (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; ang GPU ay nangangailangan ng CUDA GPU.",
-    "computeDeviceTooltipTts": "Kung aling device ang nagpapatakbo ng modelo ng sintesis ng pagsasalita. Ang Auto ay pumipili ng pinakamabilis na available (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; ang GPU ay nangangailangan ng CUDA GPU.",
+    "computeDeviceTooltip": "Kung aling device ang nagpapatakbo ng speech model. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
+    "computeDeviceTooltipTranslation": "Kung aling device ang nagpapatakbo ng modelo ng pagsasalin. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
+    "computeDeviceTooltipTts": "Kung aling device ang nagpapatakbo ng modelo ng sintesis ng pagsasalita. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
     "deviceAuto": "Auto",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

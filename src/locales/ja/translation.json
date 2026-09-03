@@ -703,7 +703,8 @@
       "downloadPaused": "ダウンロード一時停止",
       "downloading": "ダウンロード中 {{pct}}%",
       "error": "エンジンエラー",
-      "unavailable": "エンジン利用不可"
+      "unavailable": "エンジン利用不可",
+      "preferredHint": "この端末で優先されるデバイスです。ステージごとの上書きはモデルライブラリで設定できます。"
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "サイズ",
     "hwRepo": "リポジトリ",
     "computeDevice": "計算デバイス",
-    "computeDeviceTooltip": "音声認識（ASR）モデルを実行するデバイス。自動は利用可能な最速のものを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUにはCUDA対応GPUが必要です。",
-    "computeDeviceTooltipTranslation": "翻訳モデルを実行するデバイス。自動は利用可能な最速のものを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUにはCUDA対応GPUが必要です。",
-    "computeDeviceTooltipTts": "音声合成（TTS）モデルを実行するデバイス。自動は利用可能な最速のものを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUにはCUDA対応GPUが必要です。",
+    "computeDeviceTooltip": "音声認識（ASR）モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
+    "computeDeviceTooltipTranslation": "翻訳モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
+    "computeDeviceTooltipTts": "音声合成（TTS）モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
     "deviceAuto": "自動",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

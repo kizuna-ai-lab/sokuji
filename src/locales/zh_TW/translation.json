@@ -703,7 +703,8 @@
       "downloadPaused": "下載已暫停",
       "downloading": "下載中 {{pct}}%",
       "error": "引擎錯誤",
-      "unavailable": "引擎無法使用"
+      "unavailable": "引擎無法使用",
+      "preferredHint": "本機的偏好運算裝置；各階段的個別覆寫設定位於模型庫中。"
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "模型大小",
     "hwRepo": "倉庫",
     "computeDevice": "運算裝置",
-    "computeDeviceTooltip": "決定由哪個裝置執行語音模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：需要 CUDA GPU。",
-    "computeDeviceTooltipTranslation": "決定由哪個裝置執行翻譯模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：需要 CUDA GPU。",
-    "computeDeviceTooltipTts": "決定由哪個裝置執行語音合成模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：需要 CUDA GPU。",
+    "computeDeviceTooltip": "決定由哪個裝置執行語音模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：在 Windows 與 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
+    "computeDeviceTooltipTranslation": "決定由哪個裝置執行翻譯模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：在 Windows 與 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
+    "computeDeviceTooltipTts": "決定由哪個裝置執行語音合成模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：在 Windows 與 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
     "deviceAuto": "自動",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

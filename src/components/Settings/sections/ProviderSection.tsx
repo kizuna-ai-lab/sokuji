@@ -191,7 +191,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   // Memory estimate for native — same "footprint ≈ on-disk model size" heuristic
   // as LOCAL_INFERENCE, but split into VRAM vs RAM per stage: a model lands in
-  // VRAM when its device is forced to cuda, or left on auto AND the sidecar
+  // VRAM when its device is forced to gpu, or left on auto AND the sidecar
   // reports an available GPU tier for it (so the resolver would run it on the
   // GPU). Each stage (ASR/translation/TTS) carries its own device override.
   const nativeMemoryEstimate = useMemo(() => {

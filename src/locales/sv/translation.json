@@ -703,7 +703,8 @@
       "downloadPaused": "Nedladdning pausad",
       "downloading": "Laddar ner {{pct}}%",
       "error": "Motorfel",
-      "unavailable": "Motorn är inte tillgänglig"
+      "unavailable": "Motorn är inte tillgänglig",
+      "preferredHint": "Föredragen enhet för den här datorn; åsidosättanden per steg finns i modellbiblioteket."
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "Storlek",
     "hwRepo": "Repo",
     "computeDevice": "Beräkningsenhet",
-    "computeDeviceTooltip": "Vilken enhet som kör talmodellen. Auto väljer den snabbaste tillgängliga (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU kräver en CUDA-GPU.",
-    "computeDeviceTooltipTranslation": "Vilken enhet som kör översättningsmodellen. Auto väljer den snabbaste tillgängliga (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU kräver en CUDA-GPU.",
-    "computeDeviceTooltipTts": "Vilken enhet som kör talsyntesmodellen. Auto väljer den snabbaste tillgängliga (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU kräver en CUDA-GPU.",
+    "computeDeviceTooltip": "Vilken enhet som kör talmodellen. Auto väljer den snabbaste tillgängliga enheten (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU använder Vulkan i Windows och Linux samt Metal på Apple silicon.",
+    "computeDeviceTooltipTranslation": "Vilken enhet som kör översättningsmodellen. Auto väljer den snabbaste tillgängliga enheten (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU använder Vulkan i Windows och Linux samt Metal på Apple silicon.",
+    "computeDeviceTooltipTts": "Vilken enhet som kör talsyntesmodellen. Auto väljer den snabbaste tillgängliga enheten (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU använder Vulkan i Windows och Linux samt Metal på Apple silicon.",
     "deviceAuto": "Auto",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

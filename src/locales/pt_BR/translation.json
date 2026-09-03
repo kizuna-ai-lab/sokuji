@@ -703,7 +703,8 @@
       "downloadPaused": "Download pausado",
       "downloading": "Baixando {{pct}}%",
       "error": "Erro no motor",
-      "unavailable": "Motor indisponível"
+      "unavailable": "Motor indisponível",
+      "preferredHint": "Dispositivo preferido para esta máquina; substituições por etapa ficam na biblioteca de modelos."
     }
   },
   "models": {
@@ -769,9 +770,9 @@
     "hwSize": "Tamanho",
     "hwRepo": "Repo",
     "computeDevice": "Dispositivo de computação",
-    "computeDeviceTooltip": "Qual dispositivo executa o modelo de fala. Auto escolhe o mais rápido disponível (GPU quando houver); a CPU funciona em qualquer lugar, mas é mais lenta para modelos grandes; a GPU exige uma GPU CUDA.",
-    "computeDeviceTooltipTranslation": "Qual dispositivo executa o modelo de tradução. Auto escolhe o mais rápido disponível (GPU quando houver); a CPU funciona em qualquer lugar, mas é mais lenta para modelos grandes; a GPU exige uma GPU CUDA.",
-    "computeDeviceTooltipTts": "Qual dispositivo executa o modelo de síntese de fala. Auto escolhe o mais rápido disponível (GPU quando houver); a CPU funciona em qualquer lugar, mas é mais lenta para modelos grandes; a GPU exige uma GPU CUDA.",
+    "computeDeviceTooltip": "Qual dispositivo executa o modelo de fala. Auto escolhe o dispositivo mais rápido disponível (GPU quando houver); a CPU funciona em qualquer lugar, mas é mais lenta para modelos grandes; a GPU usa Vulkan no Windows e no Linux, e Metal em chips Apple silicon.",
+    "computeDeviceTooltipTranslation": "Qual dispositivo executa o modelo de tradução. Auto escolhe o dispositivo mais rápido disponível (GPU quando houver); a CPU funciona em qualquer lugar, mas é mais lenta para modelos grandes; a GPU usa Vulkan no Windows e no Linux, e Metal em chips Apple silicon.",
+    "computeDeviceTooltipTts": "Qual dispositivo executa o modelo de síntese de fala. Auto escolhe o dispositivo mais rápido disponível (GPU quando houver); a CPU funciona em qualquer lugar, mas é mais lenta para modelos grandes; a GPU usa Vulkan no Windows e no Linux, e Metal em chips Apple silicon.",
     "deviceAuto": "Auto",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
