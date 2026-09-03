@@ -2,7 +2,7 @@
   "name": "sokuji",
   "productName": "Sokuji",
   "version": "0.40.0",
-  "sidecarVersion": "0.2.0",
+  "sidecarVersion": "0.2.1",
   "private": true,
   "main": "dist-electron/main.js",
   "homepage": "./",

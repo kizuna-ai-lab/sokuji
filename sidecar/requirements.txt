@@ -17,8 +17,8 @@ soxr>=0.5
 # sys_platform/platform_machine so pip installs exactly one per target. setup.sh's
 # local-wheel override (dist/ or $SOKUJI_NATIVE_WHEEL) still exists for developers
 # testing an unreleased native build, but by default this is what ships.
-sokuji-native @ https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.1/sokuji_native-1.0.1-py3-none-manylinux_2_35_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64"
-sokuji-native @ https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.1/sokuji_native-1.0.1-py3-none-manylinux_2_35_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
-sokuji-native @ https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.1/sokuji_native-1.0.1-py3-none-win_amd64.whl ; sys_platform == "win32" and platform_machine == "AMD64"
-sokuji-native @ https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.1/sokuji_native-1.0.1-py3-none-macosx_11_0_arm64.whl ; sys_platform == "darwin" and platform_machine == "arm64"
-sokuji-native @ https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.1/sokuji_native-1.0.1-py3-none-macosx_11_0_x86_64.whl ; sys_platform == "darwin" and platform_machine == "x86_64"
+sokuji-native @ https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.2/sokuji_native-1.0.2-py3-none-manylinux_2_35_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64"
+sokuji-native @ https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.2/sokuji_native-1.0.2-py3-none-manylinux_2_35_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
+sokuji-native @ https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.2/sokuji_native-1.0.2-py3-none-win_amd64.whl ; sys_platform == "win32" and platform_machine == "AMD64"
+sokuji-native @ https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.2/sokuji_native-1.0.2-py3-none-macosx_11_0_arm64.whl ; sys_platform == "darwin" and platform_machine == "arm64"
+sokuji-native @ https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.2/sokuji_native-1.0.2-py3-none-macosx_11_0_x86_64.whl ; sys_platform == "darwin" and platform_machine == "x86_64"
