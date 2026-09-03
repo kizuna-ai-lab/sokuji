@@ -947,6 +947,7 @@
     "autoValue": "อัตโนมัติ · {{name}}",
     "autoOptionNone": "อัตโนมัติ",
     "browseLibrary": "เรียกดูคลังโมเดล",
+    "deviceBadgeHint": "อุปกรณ์ประมวลผล: {{setting}}{{actual}} — เปลี่ยนได้ในคลังโมเดล",
     "storageUsedLine": "พื้นที่จัดเก็บ: ใช้ไป {{summary}}",
     "manageStorage": "จัดการ",
     "back": "กลับ",

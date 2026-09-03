@@ -209,4 +209,35 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
 
     expect(document.querySelector('.engine-slot.highlight')).not.toBeInTheDocument();
   });
+
+  it('never renders the old per-slot extras row (the compute-device control lives in the library only)', () => {
+    surface();
+    expect(document.querySelector('.engine-slot__extras')).not.toBeInTheDocument();
+  });
+});
+
+describe('EnginePage — per-slot compute-device badge (B\'2, 2026-09-03)', () => {
+  const Badge = ({ stage, onOpen }: { stage: string; onOpen?: () => void }) => (
+    <button type="button" data-testid={`badge-${stage}`} onClick={onOpen}>badge:{stage}</button>
+  );
+
+  it('renders the adapter-supplied badge for every slot, real onOpen wired to onBrowse', () => {
+    const a = adapter({ slotBadge: (slot) => <Badge stage={slot.stage} /> });
+    surface(a);
+    // One badge per rendered slot: 3 for the speaker leg (asr/translation/tts), 2 for participant.
+    expect(screen.getAllByTestId(/^badge-/)).toHaveLength(5);
+  });
+
+  it('clicking a slot\'s badge opens that slot\'s library page — the same onBrowse the select\'s "Browse library" option uses', async () => {
+    const a = adapter({ slotBadge: (slot) => <Badge stage={slot.stage} /> });
+    surface(a);
+    fireEvent.click(screen.getAllByTestId('badge-translation')[0]);
+    expect(await screen.findByTestId('library')).toHaveTextContent('translation');
+    expect(a.select).not.toHaveBeenCalled();
+  });
+
+  it('an adapter without slotBadge (WASM-shaped) renders no badge at all', () => {
+    surface(adapter());
+    expect(screen.queryByTestId(/^badge-/)).not.toBeInTheDocument();
+  });
 });

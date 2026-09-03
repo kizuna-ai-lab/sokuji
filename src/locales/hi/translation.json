@@ -947,6 +947,7 @@
     "autoValue": "ऑटो · {{name}}",
     "autoOptionNone": "ऑटो",
     "browseLibrary": "लाइब्रेरी देखें",
+    "deviceBadgeHint": "कंप्यूट डिवाइस: {{setting}}{{actual}} — इसे लाइब्रेरी में बदलें",
     "storageUsedLine": "स्टोरेज: {{summary}} उपयोग में",
     "manageStorage": "प्रबंधित करें",
     "back": "वापस",

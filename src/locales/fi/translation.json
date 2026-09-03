@@ -947,6 +947,7 @@
     "autoValue": "Automaattinen · {{name}}",
     "autoOptionNone": "Automaattinen",
     "browseLibrary": "Selaa kirjastoa",
+    "deviceBadgeHint": "Laskentalaite: {{setting}}{{actual}} — muuta se kirjastossa",
     "storageUsedLine": "Tallennustila: {{summary}} käytössä",
     "manageStorage": "Hallinnoi",
     "back": "Takaisin",

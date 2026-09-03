@@ -947,6 +947,7 @@
     "autoValue": "Automatisch · {{name}}",
     "autoOptionNone": "Automatisch",
     "browseLibrary": "Bibliothek durchsuchen",
+    "deviceBadgeHint": "Recheneinheit: {{setting}}{{actual}} — in der Bibliothek ändern",
     "storageUsedLine": "Speicher: {{summary}} belegt",
     "manageStorage": "Verwalten",
     "back": "Zurück",

@@ -947,6 +947,7 @@
     "autoValue": "자동 · {{name}}",
     "autoOptionNone": "자동",
     "browseLibrary": "라이브러리 보기",
+    "deviceBadgeHint": "연산 장치: {{setting}}{{actual}} — 라이브러리에서 변경하세요",
     "storageUsedLine": "저장 공간: {{summary}} 사용 중",
     "manageStorage": "관리",
     "back": "뒤로",

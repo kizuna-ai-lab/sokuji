@@ -947,6 +947,7 @@
     "autoValue": "స్వయంచాలక · {{name}}",
     "autoOptionNone": "స్వయంచాలక",
     "browseLibrary": "లైబ్రరీని బ్రౌజ్ చేయండి",
+    "deviceBadgeHint": "కంప్యూట్ పరికరం: {{setting}}{{actual}} — దీన్ని లైబ్రరీలో మార్చండి",
     "storageUsedLine": "నిల్వ: {{summary}} వాడుకలో ఉంది",
     "manageStorage": "నిర్వహించండి",
     "back": "వెనుకకు",

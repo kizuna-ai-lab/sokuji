@@ -947,6 +947,7 @@
     "autoValue": "Auto · {{name}}",
     "autoOptionNone": "Auto",
     "browseLibrary": "Przeglądaj bibliotekę",
+    "deviceBadgeHint": "Urządzenie obliczeniowe: {{setting}}{{actual}} — zmień je w bibliotece",
     "storageUsedLine": "Pamięć: wykorzystano {{summary}}",
     "manageStorage": "Zarządzaj",
     "back": "Wstecz",

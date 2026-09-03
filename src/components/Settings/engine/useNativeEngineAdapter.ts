@@ -4,20 +4,13 @@ import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/se
 import { nativeCandidates } from '../../../lib/local-inference/selection/candidates.native';
 import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { EngineSection } from '../sections/EngineSection';
-import { NativeDeviceControl } from '../sections/NativeDeviceControl';
+import { SlotDeviceBadge } from './SlotDeviceBadge';
 import { languageNameFor } from './languageName';
 import { shortenModelName } from '../../../lib/local-inference/modelName';
 import type { EngineAdapter } from './EngineTypes';
 
 const fmtBytes = (b?: number): string | undefined =>
   b && b > 0 ? `${Math.round(b / 1_048_576)} MB` : undefined;
-
-/** stageExtras' per-slot compute-device control — a plain React element
- *  (NativeDeviceControl mounts as its own component instance), not a direct
- *  hook call, since this file is `.ts` (no JSX) and `stageExtras` is invoked
- *  synchronously inside EnginePage's render. */
-const nativeDeviceControl = (stage: Stage, disabled: boolean) =>
-  React.createElement(NativeDeviceControl, { stage, disabled });
 
 /** LOCAL_NATIVE's EngineAdapter — sidecar catalog + statuses, EngineSection gate. */
 export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
@@ -81,7 +74,13 @@ export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
       // sketch): the standalone <EngineSection/> this replaced disabled the
       // install/remove buttons mid-session, and this gate must keep doing so.
       gate: React.createElement(EngineSection, { isSessionActive }),
-      stageExtras: (slot) => nativeDeviceControl(slot.stage, isSessionActive),
+      // A plain React element (SlotDeviceBadge mounts as its own component
+      // instance), not a direct hook call, since this file is `.ts` (no JSX)
+      // and `slotBadge` is invoked synchronously inside EnginePage's render.
+      // `onOpen` is a placeholder: EnginePage clones this element to inject
+      // the real handler (it owns the Library push/pop navigation, which
+      // this adapter has no access to).
+      slotBadge: (slot) => React.createElement(SlotDeviceBadge, { stage: slot.stage, onOpen: () => {} }),
       storageSummary: fmtBytes(storageBytes) ?? '0 MB',
       stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
       disabled: isSessionActive,

@@ -947,6 +947,7 @@
     "autoValue": "স্বয়ংক্রিয় · {{name}}",
     "autoOptionNone": "স্বয়ংক্রিয়",
     "browseLibrary": "লাইব্রেরি দেখুন",
+    "deviceBadgeHint": "কম্পিউট ডিভাইস: {{setting}}{{actual}} — লাইব্রেরিতে পরিবর্তন করুন",
     "storageUsedLine": "সংরক্ষণাগার: {{summary}} ব্যবহৃত",
     "manageStorage": "পরিচালনা",
     "back": "পেছনে",

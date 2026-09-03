@@ -947,6 +947,7 @@
     "autoValue": "Awtomatiko · {{name}}",
     "autoOptionNone": "Awtomatiko",
     "browseLibrary": "Tingnan ang library",
+    "deviceBadgeHint": "Compute device: {{setting}}{{actual}} — baguhin ito sa library",
     "storageUsedLine": "Storage: {{summary}} ang nagamit",
     "manageStorage": "Pamahalaan",
     "back": "Bumalik",

@@ -947,6 +947,7 @@
     "autoValue": "אוטומטי · {{name}}",
     "autoOptionNone": "אוטומטי",
     "browseLibrary": "עיון בספרייה",
+    "deviceBadgeHint": "התקן חישוב: {{setting}}{{actual}} — שנה אותו בספרייה",
     "storageUsedLine": "אחסון: {{summary}} בשימוש",
     "manageStorage": "ניהול",
     "back": "חזרה",

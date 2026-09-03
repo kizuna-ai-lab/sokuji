@@ -947,6 +947,7 @@
     "autoValue": "Auto · {{name}}",
     "autoOptionNone": "Auto",
     "browseLibrary": "Parcourir la bibliothèque",
+    "deviceBadgeHint": "Périphérique de calcul : {{setting}}{{actual}} — modifiez-le dans la bibliothèque",
     "storageUsedLine": "Stockage : {{summary}} utilisés",
     "manageStorage": "Gérer",
     "back": "Retour",

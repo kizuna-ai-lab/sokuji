@@ -947,6 +947,7 @@
     "autoValue": "Tự động · {{name}}",
     "autoOptionNone": "Tự động",
     "browseLibrary": "Duyệt thư viện",
+    "deviceBadgeHint": "Thiết bị tính toán: {{setting}}{{actual}} — thay đổi trong thư viện",
     "storageUsedLine": "Bộ nhớ: đã dùng {{summary}}",
     "manageStorage": "Quản lý",
     "back": "Quay lại",

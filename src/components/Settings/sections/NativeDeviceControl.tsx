@@ -21,10 +21,11 @@ const TOOLTIP_KEY: Record<Stage, [string, string]> = {
  * writing asrDevice/translationDevice/ttsDevice on the localNative slice.
  *
  * Extracted (Task 8, Step 3b) from NativeModelManagementSection's group
- * headers so the Engine surface's native adapter can reuse the identical
- * control as a slot's `stageExtras` without the two copies drifting apart —
- * markup here is byte-identical to the inline block it replaced. NMMS keeps
- * rendering it in its group headers when used standalone as the Library.
+ * headers; markup here is byte-identical to the inline block it replaced.
+ * This is now the control's ONLY mount (B'2 decision, 2026-09-03): the Engine
+ * page dropped its own copy in favor of a read-only SlotDeviceBadge that
+ * links back here, so this control lives solely in the model library, in
+ * NMMS's group headers.
  */
 export const NativeDeviceControl: React.FC<{ stage: Stage; disabled?: boolean }> = ({ stage, disabled = false }) => {
   const { t } = useTranslation();

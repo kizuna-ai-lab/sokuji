@@ -65,9 +65,15 @@
   // column would wrap it - see the @container block at the end of this file.
   &__label-short { display: none; }
 
+  // Holds the select and (native only) the read-only device badge side by
+  // side — the select takes the slack (its own &__select rule below), the
+  // badge sizes to its content (.slot-device-badge's flex: 0 0 auto).
   &__control {
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   // Doubled class beats the base .select-dropdown rule regardless of which
@@ -75,6 +81,10 @@
   // it on specificity and silently loses to import order (measured: the
   // 14px/8px base values were winning).
   &__select.engine-slot__select {
+    // Takes the slack in &__control's flex row; min-width: 0 lets it shrink
+    // below its content size instead of pushing the badge out of the row.
+    flex: 1;
+    min-width: 0;
     // The app-wide .select-dropdown look, one size down from the Provider
     // control (body 13px, not title 14px, tighter padding) so five of these
     // read as rows, not five heroes — matching .model-card__name and the
@@ -168,12 +178,39 @@
   }
 }
 
-// Native's per-stage compute-device control, previously inside the expanded
-// accordion body — now a compact always-visible line under its slot row.
-.engine-slot__extras {
-  margin: -4px 0 8px 138px;
+// Native's read-only per-slot compute-device badge (B'2 decision,
+// 2026-09-03): the control itself lives only in the model library now — this
+// just names the current setting + resolved device and links back there.
+// flex: 0 0 auto keeps it its own content width so the select (flex: 1)
+// keeps the row's remaining space.
+.slot-device-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+  background: none;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-md;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: border-color vars.$transition-fast;
 
-  &:empty { display: none; }
+  b {
+    color: vars.$text-secondary;
+    font-weight: vars.$weight-semibold;
+  }
+
+  &:hover {
+    border-color: vars.$text-muted;
+  }
+
+  // Amber outline: the user pinned an explicit device for this stage,
+  // rather than leaving it on Auto.
+  &--pinned {
+    border-color: vars.$color-warning;
+  }
 }
 
 // Slide-in transitions for the push stack (B decision, 2026-08-23): only
@@ -434,5 +471,7 @@
   .engine-slot__label { flex-basis: 40px; }
   .engine-slot__label-long { display: none; }
   .engine-slot__label-short { display: inline; }
-  .engine-slot__extras { margin-left: 50px; }
+  // Keep the badge but drop the actual-device word so the row stays one
+  // line — the setting alone (bold) still fits beside the shrunk select.
+  .slot-device-badge span { display: none; }
 }
