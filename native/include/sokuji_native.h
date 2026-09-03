@@ -201,14 +201,16 @@ SK_API void      sk_translate_unload(sk_translate *);
  * arguments and touch caller-owned state. */
 typedef struct sk_tts sk_tts;
 typedef struct sk_tts_options {
-    const char *family;    /* required: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic */
+    const char *family;    /* required: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts |
+                            * supertonic | voxcpm1 | voxcpm2 | irodori_tts | index_tts2 */
     const char *language;  /* pocket_tts load-time language package ("english", ...); ignored elsewhere; NULL ok */
 } sk_tts_options;
 typedef struct sk_tts_caps {
-    bool streaming;            /* omnivoice, supertonic */
-    bool clones;               /* moss_tts_nano, qwen3_tts (Base), omnivoice, pocket_tts */
-    bool transcript_required;  /* omnivoice: reference_text is mandatory with a ref clip */
-    int32_t sample_rate;       /* family default: 48000 moss / 24000 qwen3+omnivoice+pocket / 44100 supertonic */
+    bool streaming;            /* omnivoice, supertonic, voxcpm1, voxcpm2 */
+    bool clones;               /* everything except supertonic */
+    bool transcript_required;  /* omnivoice, qwen3_tts: reference_text is mandatory with a ref clip */
+    int32_t sample_rate;       /* family default: 48000 moss+voxcpm2+irodori / 24000 qwen3+omnivoice+pocket /
+                                * 44100 supertonic / 22050 index_tts2 / 16000 voxcpm1 */
 } sk_tts_caps;
 typedef bool (*sk_audio_cb)(const float *pcm, size_t n_samples, int32_t sample_rate,
                             int32_t channels, void *user);

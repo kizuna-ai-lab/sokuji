@@ -8,6 +8,7 @@
 #include "engine/framework/runtime/session.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -84,12 +85,34 @@ struct FamilyInfo {
 // Seed stays fixed at "0" regardless (see build_request) — sampling here means "not
 // argmax", not "not reproducible": a fixed seed still makes a given build's RNG stream,
 // and therefore its output, deterministic run to run.
+//
+// The four families below joined in the 2026-09-03 batch. Their flags come from
+// audio.cpp v0.7.1's own sources, not from the upstream model cards:
+//   voxcpm1     src/community_models/voxcpm1/session.cpp  offline+streaming; speaker
+//               reference optional (continuation-mode cloning, transcript optional via
+//               the reference_text request option); 16 kHz.
+//   voxcpm2     src/models/voxcpm2/{loader,session}.cpp   offline+streaming; speaker
+//               reference optional; 48 kHz.
+//   irodori_tts src/models/irodori_tts/session.cpp        offline only; speaker
+//               reference optional (no_ref defaults to true, so a bare synth works);
+//               48 kHz; Japanese only.
+//   index_tts2  src/models/index_tts2/request.cpp         offline only; speaker
+//               reference MANDATORY ("IndexTTS2 request requires --voice-ref or
+//               voice.speaker.audio"); 22.05 kHz. transcript_required stays false:
+//               the reference clip needs no transcript, only the clip itself. Making
+//               the missing clip a clean caller error is the sidecar's job
+//               (tts_backend._VOICE_REQUIRED_FAMILIES) — this ABI has no
+//               "clone is mandatory" capability bit to carry it.
 constexpr FamilyInfo kFamilies[] = {
     {"moss_tts_nano", false, true,  false, 48000, true},
     {"qwen3_tts",      false, true,  true,  24000, false},
     {"omnivoice",      true,  true,  true,  24000, false},
     {"pocket_tts",     false, true,  false, 24000, false},
     {"supertonic",     true,  false, false, 44100, false},
+    {"voxcpm1",        true,  true,  false, 16000, false},
+    {"voxcpm2",        true,  true,  false, 48000, false},
+    {"irodori_tts",    false, true,  false, 48000, false},
+    {"index_tts2",     false, true,  false, 22050, false},
 };
 
 const FamilyInfo *find_family(const char *name) {
@@ -154,6 +177,28 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     const char *resolved_language = (t->family == "qwen3_tts") ? "auto" : language;
     req.text_input = rt::Transcript{text ? text : "", resolved_language ? resolved_language : ""};
 
+    // Two of the 2026-09-03 families read the language from the REQUEST OPTIONS instead of
+    // text_input.language, which they never look at (grep for "language" under
+    // src/models/<family>). Without this block they would silently ignore the caller.
+    // voxcpm1/voxcpm2 are the opposite case: neither reads a language anywhere (both
+    // loaders advertise `languages = {"Auto"}`), so their text_input.language above is a
+    // harmless no-op and nothing extra is set here.
+    if (t->family == "irodori_tts") {
+        // Japanese only: irodori's generation_options_from_request throws
+        // "Irodori-TTS language must be ja" for any other value. Set explicitly rather than
+        // relying on the default so a future change that forwards the caller's code here
+        // fails loudly instead of mislabelling the text.
+        req.options["language"] = "ja";
+    } else if (t->family == "index_tts2" && language && *language) {
+        // ISO code (lowercased) or "auto". Left unset, the 2.5 tokenizer guesses
+        // "zh when the text contains Han characters, else en" (tokenizer_text.cpp,
+        // encode_for_inference_v2_5) — which mislabels every Japanese utterance as zh.
+        std::string lang(language);
+        std::transform(lang.begin(), lang.end(), lang.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        req.options["language"] = lang;
+    }
+
     if (t->has_clone) {
         rt::VoiceReference ref;
         ref.audio = t->clone_audio;
@@ -173,6 +218,16 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
         req.options["speaking_rate"] = std::to_string(speed);
     }
 
+    // VoxCPM2's streaming path hard-rejects its own struct default:
+    // "VoxCPM2 streaming generation requires retry_badcase=false"
+    // (voxcpm2/generator.cpp). A bad-case retry regenerates from scratch and discards what
+    // was already emitted, which is impossible once chunks have gone out to the caller, so
+    // the generator refuses rather than silently dropping the retry. voxcpm1 relaxes the
+    // same default by itself for streaming sessions; voxcpm2 does not, so say it here.
+    if (t->family == "voxcpm2") {
+        req.options["retry_badcase"] = "false";
+    }
+
     // Ruling R7(s4): deterministic synthesis by default — product behavior AND the parity
     // harness's precondition (Task 3 compares this binding's output against the official
     // CLI) — EXCEPT moss_tts_nano (Ruling R23, .superpowers/moss-eoc-verdict.md): greedy
@@ -182,7 +237,16 @@ rt::TaskRequest build_request(const sk_tts *t, const char *text, const char *lan
     // correct transcript). Seed stays "0" for every family either way — t->sample_decode
     // only picks argmax vs. sample for the two-logit stop decision, it does not
     // reintroduce nondeterminism.
-    req.options["do_sample"] = t->sample_decode ? "true" : "false";
+    //
+    // irodori_tts is the one family here that VALIDATES its request options against its
+    // model spec (runtime::validate_spec_backed_request_options, session.cpp) and throws
+    // "unknown Irodori-TTS request option: <key>" for anything the spec does not declare.
+    // model_specs/irodori_tts.json declares `seed` but not `do_sample`, so the sampling
+    // knob is omitted there; irodori is greedy-free anyway (rectified-flow sampling with a
+    // seed), and the seed below is what makes it reproducible.
+    if (t->family != "irodori_tts") {
+        req.options["do_sample"] = t->sample_decode ? "true" : "false";
+    }
     req.options["seed"] = "0";
     return req;
 }
@@ -279,8 +343,13 @@ SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
 
     const FamilyInfo *info = find_family(opts->family);
     if (!info) {
+        std::string valid;
+        for (const auto &f : kFamilies) {
+            if (!valid.empty()) valid += " | ";
+            valid += f.name;
+        }
         sk::set_error(std::string("sk_tts_load: unknown family '") + opts->family +
-                      "'; valid families: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic");
+                      "'; valid families: " + valid);
         return SK_ERR_INVALID_ARGUMENT;
     }
 

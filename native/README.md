@@ -1,8 +1,8 @@
 # sokuji-native
 
 One native library for the Sokuji sidecar: **transcribe.cpp** (ASR), **llama.cpp**
-(translation) and **audio.cpp** (TTS, five families: moss_tts_nano, qwen3_tts, omnivoice,
-pocket_tts, supertonic) linked into `libsokuji_native`
+(translation) and **audio.cpp** (TTS, nine families: moss_tts_nano, qwen3_tts, omnivoice,
+pocket_tts, supertonic, voxcpm1, voxcpm2, irodori_tts, index_tts2) linked into `libsokuji_native`
 behind the `sk_*` C ABI in `include/sokuji_native.h`, on top of one pristine upstream ggml
 with dynamically loaded backends (CPU per-ISA modules, Vulkan on Linux/Windows, Metal on
 Apple Silicon). Design: `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md`.
@@ -171,23 +171,28 @@ CTest needs a real chat GGUF for `test_translate` (skips with exit code 77 when 
 
 ## TTS (slice 4)
 
-**TTS** — seven entry points, one loaded model per handle, over audio.cpp's five kept
-families (`moss_tts_nano`, `qwen3_tts`, `omnivoice`, `pocket_tts`, `supertonic`):
+**TTS** — seven entry points, one loaded model per handle, over audio.cpp's nine kept
+families (`moss_tts_nano`, `qwen3_tts`, `omnivoice`, `pocket_tts`, `supertonic`, and since
+2026-09-03 `voxcpm1`, `voxcpm2`, `irodori_tts`, `index_tts2`):
 `sk_tts_load` opens a model with a REQUIRED `family` (audio.cpp's `family_hint` — always
 pass it explicitly, family auto-detection is fragile and order-dependent) and creates one
 long-lived session at load time, offline or streaming depending on the family
-(`sk_tts_capabilities().streaming`: only `omnivoice` and `supertonic` stream, the other
-three are offline-only); `sk_tts_capabilities` reports streaming/clones/transcript_required
-and the family's default sample rate (48000 moss / 24000 qwen3+omnivoice+pocket / 44100
-supertonic — always read the rate off each `sk_audio_cb` call too, these are technically
+(`sk_tts_capabilities().streaming`: `omnivoice`, `supertonic`, `voxcpm1` and `voxcpm2`
+stream, the other five are offline-only); `sk_tts_capabilities` reports
+streaming/clones/transcript_required
+and the family's default sample rate (48000 moss+voxcpm2+irodori / 24000
+qwen3+omnivoice+pocket / 44100 supertonic / 22050 index_tts2 / 16000 voxcpm1 — always read
+the rate off each `sk_audio_cb` call too, these are technically
 config-driven per checkpoint); `sk_tts_presets` lists named preset voices (supertonic's
 fixed `M1`-`M5`/`F1`-`F5` style set, or pocket_tts's `embeddings/*.safetensors` — the other
-three families have no enumerable presets and return zero names); `sk_tts_set_voice` stores
+seven families have no enumerable presets and return zero names); `sk_tts_set_voice` stores
 a reference clip (+ optional transcript, mandatory for `omnivoice` and `qwen3_tts` — ruling
 R15(s4): qwen3_tts's ICL clone mode requires it too) and `sk_tts_set_preset`
 stores a preset id — both apply to every subsequent `sk_tts_synth` call on the handle until
 the other is set (each clears the other); `sk_tts_synth` runs greedy/deterministic synthesis
-(`seed=0`, `do_sample=false`) for every family EXCEPT `moss_tts_nano`, which runs sampled
+(`seed=0`, `do_sample=false`) for every family EXCEPT `irodori_tts` (which validates every
+request option against its own model spec and does not declare `do_sample`, so only `seed=0`
+is sent — see `sk_tts.cpp`'s `build_request`) and `moss_tts_nano`, which runs sampled
 decoding (`seed=0`, `do_sample=true` — Ruling R23, `.superpowers/moss-eoc-verdict.md`: greedy
 argmax decode never reaches this checkpoint's own end-of-content token for ordinary input,
 running to the 300-frame/24.000s `max_new_frames` cap instead; sampling reaches real EOC in
@@ -204,6 +209,14 @@ offline families, which cannot be interrupted mid-run. `speed` only affects `sup
 `sk_tts_unload` frees the session and model. Python: `sokuji_native.tts_load()` returns a
 `TtsModel` (`.capabilities`, `.presets()`, `.set_voice()`, `.set_preset()`, `.synth()`,
 `.unload()`).
+
+`language` reaches each family by whichever route that family actually reads. Most take it
+on `text_input.language`; `qwen3_tts` is forced to its own `"auto"` sentinel (Ruling R14(s4));
+`voxcpm1` and `voxcpm2` read no language at all (both advertise `languages = {"Auto"}`), so
+theirs is a no-op; and `irodori_tts` / `index_tts2` read the `language` REQUEST OPTION
+instead, so `build_request` sets that one for them — fixed `"ja"` for irodori (any other
+value throws) and the caller's lowercased ISO code for index_tts2, without which its 2.5
+tokenizer guesses "zh if the text has Han characters, else en" and mislabels Japanese.
 
 Model directories: `sk_tts_load`'s `model_path` may be a `.gguf` file directly, or a
 directory holding exactly one. Self-sufficiency is a **per-file** property, not a per-family
@@ -345,6 +358,11 @@ both, which is the architectural argument ruling **R36** relies on to ship `gpu-
 for all five families (`sidecar/sokuji_sidecar/catalog.py`, `_TTS_TIER_OVERRIDES`). What is
 *not* covered: no real **M1, M2 or M3** has ever run this suite. If one aborts on a kernel
 despite reporting `Apple7`, the fix is scoped — drop that family's `gpu-metal` row.
+
+Every "five families" claim in this GPU section means the **original** five. The four added
+on 2026-09-03 (`voxcpm1`, `voxcpm2`, `irodori_tts`, `index_tts2`) are deliberately absent
+from `_TTS_TIER_OVERRIDES`, i.e. **cpu-only**, and no GPU claim above extends to them; they
+earn `gpu-vulkan`/`gpu-metal` rows only after the fleet validates each one the same way.
 
 The gate itself is `test_tts_synthesises_on_a_gpu_device` in
 `python/tests/test_sokuji_native.py`: gated on `SK_TEST_TTS_GPU=1`, it places each family

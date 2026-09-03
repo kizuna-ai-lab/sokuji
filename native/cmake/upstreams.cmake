@@ -114,7 +114,13 @@ set(AUDIOCPP_MODEL_SET "custom" CACHE STRING "" FORCE)
 # registered via audiocpp_add_model(). sk_selftest.cpp filters the registry down to our
 # six supported families at run time instead (see its comment for the full story,
 # including "moss_tts_nano" sharing its CMake target/loader list with "moss_tts_local").
-set(AUDIOCPP_MODELS "moss_tts_nano;qwen3_tts;omnivoice;pocket_tts;supertonic" CACHE STRING "" FORCE)
+#
+# "voxcpm1" is a COMMUNITY model (src/community_models/voxcpm1). audio.cpp registers it
+# through the same audiocpp_add_model() call as the rest, so the custom set resolves it
+# through the same AUDIOCPP_MODEL_ALIAS_* table and no separate knob is needed.
+set(AUDIOCPP_MODELS
+    "moss_tts_nano;qwen3_tts;omnivoice;pocket_tts;supertonic;voxcpm1;voxcpm2;irodori_tts;index_tts2"
+    CACHE STRING "" FORCE)
 set(AUDIOCPP_DEPLOYMENT_BUILD ON CACHE BOOL "" FORCE)        # model specs compiled in: no runtime JSON dir to ship
 set(AUDIOCPP_BUILD_NATIVE_MODEL_MANAGER OFF CACHE BOOL "" FORCE)
 set(ENGINE_ENABLE_CPU_ALL_VARIANTS OFF CACHE BOOL "" FORCE)  # we own the ggml knobs (ggml_options.cmake)
