@@ -72,4 +72,33 @@ describe('NativeModelClient', () => {
     conn.emit({ type: 'model_delete_result', id: conn.sent[0].id, model: 'sense-voice', freed: 1234 });
     await expect(p).resolves.toBe(1234);
   });
+
+  it('listTtsVoices() sends list_tts_voices and lifts the wire\'s preset names into voice descriptors', async () => {
+    // The ggml-only sidecar (spec 2026-08-30 §5.5, sidecar-v0.2.0) answers
+    // list_tts_voices with a flat list of preset NAMES — audio.cpp publishes
+    // nothing else. Every renderer consumer (curatedBuiltinVoices' sort,
+    // defaultTtsVoice, reconcileTtsVoice) reads `.name` off a NativeVoiceInfo,
+    // so the lift has to happen here, once, at the protocol boundary. Passing
+    // the strings through crashed the settings panel the first time a family
+    // with a non-empty load-free listing (supertonic) was selected:
+    // "Cannot read properties of undefined (reading 'localeCompare')".
+    const conn = new FakeSidecarConnection();
+    const c = new NativeModelClient(conn);
+    const p = c.listTtsVoices('supertonic-3');
+    expect(conn.sent[0]).toMatchObject({ type: 'list_tts_voices', model: 'supertonic-3' });
+    conn.emit({ type: 'list_tts_voices_result', id: conn.sent[0].id, voices: ['F1', 'M1'] });
+    await expect(p).resolves.toEqual([
+      { name: 'F1', curated: false, unstable: false, default: false },
+      { name: 'M1', curated: false, unstable: false, default: false },
+    ]);
+  });
+
+  it('listTtsVoices() omits the model field when none is given (whatever is loaded)', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeModelClient(conn);
+    const p = c.listTtsVoices();
+    expect(conn.sent[0]).not.toHaveProperty('model');
+    conn.emit({ type: 'list_tts_voices_result', id: conn.sent[0].id, voices: [] });
+    await expect(p).resolves.toEqual([]);
+  });
 });
