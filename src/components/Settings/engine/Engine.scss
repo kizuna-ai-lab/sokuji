@@ -230,6 +230,8 @@
   color: inherit; text-align: left;
   font-size: vars.$font-title;
   font-weight: vars.$weight-semibold;
+  // Breathing room before the Models surface's own heading below it.
+  margin-bottom: vars.$space-3;
 
   &:hover {
     color: vars.$color-primary;
