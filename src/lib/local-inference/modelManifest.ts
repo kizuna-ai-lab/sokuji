@@ -92,12 +92,20 @@ export interface ModelManifestEntry {
   // Models are hosted in two ways:
   //   1. Self-hosted HF datasets: cdnPath → {type-specific-base}/{cdnPath}/{file}
   //      Used by: sherpa-onnx ASR, streaming ASR, TTS
-  //   2. Third-party HF Hub repos: hfModelId → {hf-hub-base}/{hfModelId}/resolve/main/{file}
+  //   2. Third-party HF Hub repos: hfModelId → {hf-hub-base}/{hfModelId}/resolve/{hfRevision ?? main}/{file}
   //      Used by: Whisper WebGPU ASR, Opus-MT translation, Qwen translation
   /** Self-hosted HF dataset path segment (e.g. 'wasm-sensevoice-int8') */
   cdnPath?: string;
   /** Third-party HuggingFace Hub model ID (e.g. 'onnx-community/whisper-tiny.en', 'Xenova/opus-mt-ja-en') */
   hfModelId?: string;
+  /**
+   * Git revision to download from instead of `main`. The download path
+   * validates size and shape only, so a mutable branch ref lets any later push
+   * to the repo change what users cache; a commit sha cannot move. Set it on
+   * repos we mirror ourselves, where the verified commit is known — bumping it
+   * is then a deliberate manifest edit, not an upstream push.
+   */
+  hfRevision?: string;
 
   // ─── Hardware requirements ─────────────────────────────────────────────
   /** Hardware requirement — model filtered out if device unavailable */
@@ -236,12 +244,13 @@ function getHfHubBase(): string {
  * Exactly one of hfModelId or cdnPath should be set on each manifest entry.
  */
 export function getModelDownloadUrl(
-  entry: { type: ModelType; cdnPath?: string; hfModelId?: string },
+  entry: { type: ModelType; cdnPath?: string; hfModelId?: string; hfRevision?: string },
   filename: string,
 ): string {
-  // Third-party HF Hub models (Whisper WebGPU, Opus-MT, Qwen)
+  // Third-party HF Hub models (Whisper WebGPU, Opus-MT, Qwen); our own mirrors
+  // pin a commit so the cached bytes can only change through a manifest edit.
   if (entry.hfModelId) {
-    return `${getHfHubBase()}/${entry.hfModelId}/resolve/main/${filename}`;
+    return `${getHfHubBase()}/${entry.hfModelId}/resolve/${entry.hfRevision ?? 'main'}/${filename}`;
   }
 
   // Self-hosted HF dataset models (sherpa-onnx ASR, streaming ASR, TTS)
@@ -3020,7 +3029,10 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     // sha256-checked against the upstream tree). Supertone Inc. resolved to
     // dissolve on 2026-07-15 and its GitHub repo is slated for archival, so the
     // upstream HF org may vanish with the liquidation; the mirror is ours.
+    // hfRevision is the mirror commit those checks were run against — a
+    // re-upload cannot change what users download until this line does.
     hfModelId: 'jiangzhuo9357/supertonic-3',
+    hfRevision: '95e49bbdc2a88e24f25f5469d01a6427d14d9d3a',
     name: 'Supertonic 3',
     languages: [...SUPERTONIC_LANGUAGES],
     numSpeakers: 10,

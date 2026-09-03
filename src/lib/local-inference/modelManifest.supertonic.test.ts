@@ -68,10 +68,23 @@ describe('Supertonic 3 manifest entry', () => {
     expect(total).toBeLessThanOrEqual(383 * 1024 * 1024);
   });
 
+  it('pins the mirror to the verified, immutable commit', () => {
+    // The download path validates size and shape only, so a mutable branch
+    // ref would let a later push to the mirror change what users cache. A
+    // commit ref cannot move: this is the commit whose 39 files were
+    // sha256-checked against upstream, and bumping it is a deliberate edit.
+    expect(entry!.hfRevision).toBe('95e49bbdc2a88e24f25f5469d01a6427d14d9d3a');
+  });
+
   it('builds the expected HF download URL', () => {
     const url = getModelDownloadUrl(entry!, 'onnx/duration_predictor.onnx');
     expect(url).toBe(
-      'https://huggingface.co/jiangzhuo9357/supertonic-3/resolve/main/onnx/duration_predictor.onnx',
+      'https://huggingface.co/jiangzhuo9357/supertonic-3/resolve/95e49bbdc2a88e24f25f5469d01a6427d14d9d3a/onnx/duration_predictor.onnx',
     );
+  });
+
+  it('unpinned HF entries still resolve against main', () => {
+    const url = getModelDownloadUrl({ type: 'tts', hfModelId: 'org/model' }, 'x.onnx');
+    expect(url).toBe('https://huggingface.co/org/model/resolve/main/x.onnx');
   });
 });
