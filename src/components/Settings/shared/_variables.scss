@@ -65,6 +65,9 @@ $font-caption: 12px;
 // fallback CJK font carries a taller default line height. 13px + the chips'
 // 1px vertical padding = 15px for every chip in every script.
 $chip-line-height: 13px;
+// ...and one type size: the information chips were 12px and the coloured
+// badges 10px, which read as two unrelated kinds of thing on one row.
+$chip-font-size: 11px;
 
 $weight-normal:   400;
 $weight-medium:   500;

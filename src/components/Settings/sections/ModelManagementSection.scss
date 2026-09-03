@@ -233,7 +233,7 @@
     padding: 1px 6px;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
-    font-size: vars.$font-caption;
+    font-size: vars.$chip-font-size;
     line-height: vars.$chip-line-height;
     color: vars.$text-muted;
   }
@@ -255,7 +255,7 @@
     padding: 1px 6px;
     background: rgba(vars.$color-recommended, 0.15);
     border-radius: 3px;
-    font-size: 10px;
+    font-size: vars.$chip-font-size;
     line-height: vars.$chip-line-height;
     color: vars.$color-recommended;
     font-weight: vars.$weight-medium;
@@ -268,7 +268,7 @@
     padding: 1px 6px;
     background: rgba(vars.$color-primary, 0.15);
     border-radius: 3px;
-    font-size: 10px;
+    font-size: vars.$chip-font-size;
     line-height: vars.$chip-line-height;
     color: vars.$color-primary;
     font-weight: vars.$weight-medium;
