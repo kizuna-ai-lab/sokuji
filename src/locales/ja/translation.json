@@ -695,7 +695,7 @@
     "unsupported": "このデバイスはローカル推論に対応していません",
     "installHint": "エンジンをインストールするとモデルを閲覧・ダウンロードできます",
     "status": {
-      "native": "ネイティブ {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "エンジン {{version}} · 起動中…",
       "notInstalled": "エンジン未インストール",

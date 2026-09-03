@@ -695,7 +695,7 @@
     "unsupported": "Lokale Inferenz wird auf diesem Gerät nicht unterstützt",
     "installHint": "Installieren Sie die Engine, um Modelle zu durchsuchen und herunterzuladen",
     "status": {
-      "native": "nativ {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Engine {{version}} · wird gestartet…",
       "notInstalled": "Engine nicht installiert",

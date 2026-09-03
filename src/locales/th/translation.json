@@ -695,7 +695,7 @@
     "unsupported": "อุปกรณ์นี้ไม่รองรับการประมวลผลในเครื่อง",
     "installHint": "ติดตั้งเอนจินเพื่อเรียกดูและดาวน์โหลดโมเดล",
     "status": {
-      "native": "เนทีฟ {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "เอนจิน {{version}} · กำลังเริ่มต้น…",
       "notInstalled": "ยังไม่ได้ติดตั้งเอนจิน",

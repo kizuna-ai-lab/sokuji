@@ -695,7 +695,7 @@
     "unsupported": "இந்தச் சாதனத்தில் உள்ளூர் அனுமானம் ஆதரிக்கப்படவில்லை",
     "installHint": "மாடல்களை உலாவி பதிவிறக்க இயந்திரத்தை நிறுவவும்",
     "status": {
-      "native": "நேட்டிவ் {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "இயந்திரம் {{version}} · தொடங்குகிறது…",
       "notInstalled": "இயந்திரம் நிறுவப்படவில்லை",

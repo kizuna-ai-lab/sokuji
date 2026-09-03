@@ -695,7 +695,7 @@
     "unsupported": "Paikallista päättelyä ei tueta tällä laitteella",
     "installHint": "Asenna moottori selataksesi ja ladataksesi malleja",
     "status": {
-      "native": "natiivi {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Moottori {{version}} · käynnistyy…",
       "notInstalled": "Moottoria ei ole asennettu",

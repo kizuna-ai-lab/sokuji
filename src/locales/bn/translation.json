@@ -695,7 +695,7 @@
     "unsupported": "এই ডিভাইসে স্থানীয় ইনফারেন্স সমর্থিত নয়",
     "installHint": "মডেল ব্রাউজ ও ডাউনলোড করতে ইঞ্জিন ইনস্টল করুন",
     "status": {
-      "native": "নেটিভ {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "ইঞ্জিন {{version}} · শুরু হচ্ছে…",
       "notInstalled": "ইঞ্জিন ইনস্টল করা নেই",

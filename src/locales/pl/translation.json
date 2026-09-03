@@ -695,7 +695,7 @@
     "unsupported": "Lokalne wnioskowanie nie jest obsługiwane na tym urządzeniu",
     "installHint": "Zainstaluj silnik, aby przeglądać i pobierać modele",
     "status": {
-      "native": "natywny {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Silnik {{version}} · uruchamianie…",
       "notInstalled": "Silnik niezainstalowany",

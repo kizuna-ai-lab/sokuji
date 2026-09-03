@@ -49,7 +49,6 @@ export const EngineStatusLine: React.FC = () => {
   let dot: DotKind;
   let text: string;
   let device: string | null = null;
-  let mono = false;
   let chevron = false;
 
   if (sidecarStatus === 'ready') {
@@ -64,11 +63,10 @@ export const EngineStatusLine: React.FC = () => {
     // Omit a device string that just repeats the backend label (e.g. a CPU
     // lane whose "device" is literally "CPU") — nothing new to say.
     device = rawDevice && rawDevice !== backend ? rawDevice : null;
-    mono = true;
     text = parts.join(' · ');
   } else if (sidecarStatus === 'starting' || (sidecarStatus === 'idle' && bundleStatus === 'ready')) {
+    chevron = true;
     dot = 'hollow';
-    mono = true;
     text = t('engine.status.starting', 'Engine {{version}} · starting…', { version });
   } else if (bundleStatus === 'absent') {
     dot = 'hollow';
@@ -77,7 +75,6 @@ export const EngineStatusLine: React.FC = () => {
   } else if (bundleStatus === 'mismatch') {
     dot = 'warn';
     chevron = true;
-    mono = true;
     text = t('engine.status.updateRequired', 'Engine update {{from}} → {{to}}',
       { from: bundleVersion, to: bundleRequiredVersion });
   } else if (bundleStatus === 'paused') {
@@ -95,7 +92,6 @@ export const EngineStatusLine: React.FC = () => {
       const pct = bundleProgress.total > 0
         ? Math.min(100, Math.round((bundleProgress.downloaded / bundleProgress.total) * 100))
         : 0;
-      mono = true;
       text = t('engine.status.downloading', 'Downloading {{pct}}%', { pct });
     }
   } else if (bundleStatus === 'error') {
@@ -131,7 +127,7 @@ export const EngineStatusLine: React.FC = () => {
       onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } } : undefined}
     >
       <span className={`engine-status-line__dot engine-status-line__dot--${dot}`} />
-      <span className={`engine-status-line__text${mono ? ' engine-status-line__text--mono' : ''}`}>
+      <span className="engine-status-line__text">
         {text}
         {device && <span className="engine-status-line__device"> · {device}</span>}
       </span>

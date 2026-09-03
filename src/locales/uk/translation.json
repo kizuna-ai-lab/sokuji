@@ -695,7 +695,7 @@
     "unsupported": "Локальний інференс не підтримується на цьому пристрої",
     "installHint": "Встановіть рушій, щоб переглядати та завантажувати моделі",
     "status": {
-      "native": "нативний {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Рушій {{version}} · запуск…",
       "notInstalled": "Рушій не встановлено",

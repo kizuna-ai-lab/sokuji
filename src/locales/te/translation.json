@@ -695,7 +695,7 @@
     "unsupported": "ఈ పరికరంలో లోకల్ ఇన్ఫరెన్స్‌కు మద్దతు లేదు",
     "installHint": "మోడల్‌లను బ్రౌజ్ చేసి డౌన్‌లోడ్ చేయడానికి ఇంజిన్‌ను ఇన్‌స్టాల్ చేయండి",
     "status": {
-      "native": "నేటివ్ {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "ఇంజిన్ {{version}} · ప్రారంభమవుతోంది…",
       "notInstalled": "ఇంజిన్ ఇన్‌స్టాల్ కాలేదు",

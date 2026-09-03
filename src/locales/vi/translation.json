@@ -695,7 +695,7 @@
     "unsupported": "Suy luận cục bộ không được hỗ trợ trên thiết bị này",
     "installHint": "Cài đặt công cụ để duyệt và tải xuống mô hình",
     "status": {
-      "native": "gốc {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Công cụ {{version}} · đang khởi động…",
       "notInstalled": "Công cụ chưa được cài đặt",

@@ -695,7 +695,7 @@
     "unsupported": "L'inférence locale n'est pas prise en charge sur cet appareil",
     "installHint": "Installez le moteur pour parcourir et télécharger les modèles",
     "status": {
-      "native": "natif {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Moteur {{version}} · démarrage…",
       "notInstalled": "Moteur non installé",

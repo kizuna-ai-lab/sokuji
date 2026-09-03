@@ -695,7 +695,7 @@
     "unsupported": "La inferencia local no es compatible con este dispositivo",
     "installHint": "Instala el motor para explorar y descargar modelos",
     "status": {
-      "native": "nativo {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Motor {{version}} · iniciando…",
       "notInstalled": "Motor no instalado",

@@ -695,7 +695,7 @@
     "unsupported": "此裝置不支援本機推理",
     "installHint": "安裝引擎後可瀏覽和下載模型",
     "status": {
-      "native": "原生 {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "引擎 {{version}} · 啟動中…",
       "notInstalled": "引擎未安裝",

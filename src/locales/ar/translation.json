@@ -695,7 +695,7 @@
     "unsupported": "الاستدلال المحلي غير مدعوم على هذا الجهاز",
     "installHint": "ثبّت المحرك لتصفح النماذج وتنزيلها",
     "status": {
-      "native": "أصلي {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "المحرك {{version}} · جارٍ البدء…",
       "notInstalled": "المحرك غير مثبت",

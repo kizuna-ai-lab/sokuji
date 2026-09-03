@@ -695,7 +695,7 @@
     "unsupported": "הסקה מקומית אינה נתמכת במכשיר זה",
     "installHint": "התקן את המנוע כדי לעיין במודלים ולהוריד אותם",
     "status": {
-      "native": "מקורי {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "מנוע {{version}} · מתחיל…",
       "notInstalled": "המנוע לא מותקן",

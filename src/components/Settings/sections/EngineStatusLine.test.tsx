@@ -99,6 +99,7 @@ describe('EngineStatusLine', () => {
     const { container } = render(<EngineStatusLine />);
     expect(lineText(container)).toContain('Engine 0.2.0 · starting…');
     expect(dotClass(container)).toContain('engine-status-line__dot--hollow');
+    expect(container.querySelector('.engine-status-line__chevron')).toBeTruthy();
   });
 
   it('starting (idle + bundle ready): same starting text', () => {

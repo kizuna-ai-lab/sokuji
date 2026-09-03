@@ -695,7 +695,7 @@
     "unsupported": "이 장치에서는 로컬 추론을 지원하지 않습니다",
     "installHint": "모델을 찾아보고 다운로드하려면 엔진을 설치하세요",
     "status": {
-      "native": "네이티브 {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "엔진 {{version}} · 시작 중…",
       "notInstalled": "엔진이 설치되지 않음",

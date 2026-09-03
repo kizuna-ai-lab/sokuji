@@ -695,7 +695,7 @@
     "unsupported": "A inferência local não é compatível com este dispositivo",
     "installHint": "Instale o motor para navegar e baixar modelos",
     "status": {
-      "native": "nativo {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Motor {{version}} · iniciando…",
       "notInstalled": "Motor não instalado",

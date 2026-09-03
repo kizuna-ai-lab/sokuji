@@ -695,7 +695,7 @@
     "unsupported": "Локальный вывод не поддерживается на этом устройстве",
     "installHint": "Установите движок, чтобы просматривать и скачивать модели",
     "status": {
-      "native": "нативный {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Движок {{version}} · запуск…",
       "notInstalled": "Движок не установлен",

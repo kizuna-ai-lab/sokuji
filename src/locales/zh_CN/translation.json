@@ -695,7 +695,7 @@
     "unsupported": "此设备不支持本地推理",
     "installHint": "安装引擎后可浏览和下载模型",
     "status": {
-      "native": "原生 {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "引擎 {{version}} · 启动中…",
       "notInstalled": "引擎未安装",

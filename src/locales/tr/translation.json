@@ -695,7 +695,7 @@
     "unsupported": "Bu cihazda yerel çıkarım desteklenmiyor",
     "installHint": "Modellere göz atmak ve indirmek için motoru kurun",
     "status": {
-      "native": "yerel {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Motor {{version}} · başlatılıyor…",
       "notInstalled": "Motor kurulu değil",

@@ -695,7 +695,7 @@
     "unsupported": "Lokal inferens stöds inte på den här enheten",
     "installHint": "Installera motorn för att bläddra bland och ladda ner modeller",
     "status": {
-      "native": "nativ {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "Motor {{version}} · startar…",
       "notInstalled": "Motorn är inte installerad",

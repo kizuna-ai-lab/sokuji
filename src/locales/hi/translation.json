@@ -695,7 +695,7 @@
     "unsupported": "इस डिवाइस पर स्थानीय इंफरेंस समर्थित नहीं है",
     "installHint": "मॉडल ब्राउज़ और डाउनलोड करने के लिए इंजन इंस्टॉल करें",
     "status": {
-      "native": "नेटिव {{version}}",
+      "native": "native {{version}}",
       "devVenv": "dev venv",
       "starting": "इंजन {{version}} · शुरू हो रहा है…",
       "notInstalled": "इंजन इंस्टॉल नहीं है",
