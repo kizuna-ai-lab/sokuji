@@ -1,10 +1,17 @@
 #!/bin/bash
 # int4 RTN block 32 (accuracy level 4) for both v2 decoders, then dedupe the identical
 # tensors of decoder_init / decoder_step into one shared data file (decoder_weights.int4.data).
-set -e
-cd /home/jiangzhuo/.claude/jobs/c6177dc7/tmp/qwen3-asr-onnx
-PY=/home/jiangzhuo/.claude/jobs/c6177dc7/tmp/qwen3-venv/bin/python
-$PY quantize_nbits.py --input output/v2 --output output/v2 --bits 4 --block-size 32 --accuracy-level 4 2>&1 | grep -v 'Progress:' | tail -8
-$PY share_weights.py output/v2 --suffix int4 --verify 2>&1 | tail -12
+# usage: quantize_v2.sh <v2 model dir>
+#   QWEN3_ASR_ONNX_DIR  andrewleech/qwen3-asr-onnx checkout (default: current directory)
+#   PY                  python with the export deps (default: $QWEN3_ASR_ONNX_DIR/.venv/bin/python)
+# pipefail: the producers are piped through grep/tail for readable output; without it a failed
+# quantize_nbits.py would be hidden behind tail's exit 0 and stale int4 files would be shared.
+set -eo pipefail
+D=$(cd "$1" && pwd)
+P=${QWEN3_ASR_ONNX_DIR:-$PWD}
+PY=${PY:-$P/.venv/bin/python}
+cd "$P"
+$PY quantize_nbits.py --input "$D" --output "$D" --bits 4 --block-size 32 --accuracy-level 4 2>&1 | grep -v 'Progress:' | tail -8
+$PY share_weights.py "$D" --suffix int4 --verify 2>&1 | tail -12
 echo "== int4 files"
-ls -l --block-size=M output/v2 | awk '{print $5, $9}' | grep -E 'int4|weights'
+ls -l --block-size=M "$D" | awk '{print $5, $9}' | grep -E 'int4|weights'

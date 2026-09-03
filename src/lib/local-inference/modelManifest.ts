@@ -1391,6 +1391,68 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     },
   },
 
+  // ─── Qwen3-ASR 1.7B (WebGPU) ──────────────────────────────────────────────
+  // Same layout v2 and the same worker as the 0.6B (every dimension comes from
+  // prompt_config.json); the quality tier: half the 0.6B's Japanese errors for ~1.2–1.4× the
+  // per-token time, ~2.2× the download and about +1.4–1.8 GB of GPU memory (measurements in
+  // benchmark/qwen3-asr-webgpu/results/1.7b-notes.md). Not recommended: the 0.6B stays the
+  // default pick; this is offered in the "others" group of the model list, where sortOrder 4
+  // orders it among the other non-recommended WebGPU ASR models (before Granite 1B and
+  // Voxtral 3B, which carry 5).
+  {
+    id: 'qwen3-asr-1.7b-webgpu',
+    type: 'asr',
+    name: 'Qwen3-ASR 1.7B (WebGPU)',
+    shortName: 'Qwen3-ASR 1.7B',
+    languages: ['zh', 'en', 'ja', 'ko', 'cantonese', 'ar', 'de', 'es', 'fr', 'it', 'pt', 'ru', 'th', 'vi', 'hi', 'id'],
+    hfModelId: 'jiangzhuo9357/Qwen3-ASR-1.7B-ONNX',
+    requiredDevice: 'webgpu',
+    asrEngine: 'qwen3-asr',
+    asrWorkerType: 'qwen3-asr-webgpu',
+    recommended: false,
+    sortOrder: 4,
+    variants: {
+      'q4': {
+        dtype: 'q4',
+        files: [
+          { filename: 'prompt_config.json', sizeBytes: 2_578 },
+          { filename: 'config.json', sizeBytes: 1_216 },
+          { filename: 'tokenizer.json', sizeBytes: 11_429_377 },
+          { filename: 'tokenizer_config.json', sizeBytes: 12_488 },
+          { filename: 'vocab.json', sizeBytes: 2_776_833 },
+          { filename: 'added_tokens.json', sizeBytes: 1_566 },
+          { filename: 'mel_filters.json', sizeBytes: 132_427 },
+          { filename: 'embed_tokens.int8.bin', sizeBytes: 311_164_928 },
+          { filename: 'embed_scales.f32.bin', sizeBytes: 607_744 },
+          { filename: 'encoder.onnx', sizeBytes: 1_270_245_440 },
+          { filename: 'decoder_init.int4.onnx', sizeBytes: 353_522 },
+          { filename: 'decoder_step.int4.onnx', sizeBytes: 355_247 },
+          { filename: 'decoder_weights.int4.data', sizeBytes: 1_102_630_912 },
+        ],
+        requiredFeatures: [],
+      },
+      'q4f16': {
+        dtype: 'q4f16',
+        files: [
+          { filename: 'prompt_config.json', sizeBytes: 2_578 },
+          { filename: 'config.json', sizeBytes: 1_216 },
+          { filename: 'tokenizer.json', sizeBytes: 11_429_377 },
+          { filename: 'tokenizer_config.json', sizeBytes: 12_488 },
+          { filename: 'vocab.json', sizeBytes: 2_776_833 },
+          { filename: 'added_tokens.json', sizeBytes: 1_566 },
+          { filename: 'mel_filters.json', sizeBytes: 132_427 },
+          { filename: 'embed_tokens.int8.bin', sizeBytes: 311_164_928 },
+          { filename: 'embed_scales.f32.bin', sizeBytes: 607_744 },
+          { filename: 'encoder.fp16.onnx', sizeBytes: 639_098_881 },
+          { filename: 'decoder_init.q4f16.onnx', sizeBytes: 348_875 },
+          { filename: 'decoder_step.q4f16.onnx', sizeBytes: 350_828 },
+          { filename: 'decoder_weights.q4f16.data', sizeBytes: 994_869_248 },
+        ],
+        requiredFeatures: ['shader-f16'],
+      },
+    },
+  },
+
   // ── TTS Models — self-hosted (136) ──────────────────────────────────────
   // Downloaded from jiangzhuo9357/sherpa-onnx-tts-models dataset. Uses cdnPath.
   // 136 models across 53 languages, selected by speed benchmark.

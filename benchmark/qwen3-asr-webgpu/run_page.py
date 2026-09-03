@@ -19,9 +19,21 @@ timeout = int(sys.argv[3]) if len(sys.argv) > 3 else 900
 extra = sys.argv[4:]
 port = 9222 + random.randint(0, 500)
 profile = os.path.join(tempfile.gettempdir(), f"spike-chrome-profile-{port}")
-flags = [chrome, "--headless=new", "--no-sandbox", "--disable-dev-shm-usage", f"--remote-debugging-port={port}", f"--user-data-dir={profile}",
+# NO_HEADLESS=1 opens a real window (needed on Linux boxes where headless Chrome only gets a
+# SwiftShader adapter; run it on the box's own display, same as run_page.mjs).
+headless = [] if os.environ.get("NO_HEADLESS") else ["--headless=new"]
+flags = [chrome, *headless, "--no-sandbox", "--disable-dev-shm-usage", f"--remote-debugging-port={port}", f"--user-data-dir={profile}",
          "--enable-unsafe-webgpu", "--ignore-gpu-blocklist", "--window-size=800,600", *extra, "about:blank"]
 proc = subprocess.Popen(flags, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+# Chrome must not outlive this script: a dropped SSH session (SIGHUP) or a timeout kill used
+# to leave a headless Chrome behind, holding the model in its GPU process for hours and
+# contaminating the next run's memory measurements.
+import atexit  # noqa: E402
+import signal  # noqa: E402
+atexit.register(lambda: proc.poll() is None and proc.kill())
+for _sig in (signal.SIGHUP, signal.SIGTERM, signal.SIGINT):
+    signal.signal(_sig, lambda *_: sys.exit(130))
 
 ws_url = None
 for _ in range(150):

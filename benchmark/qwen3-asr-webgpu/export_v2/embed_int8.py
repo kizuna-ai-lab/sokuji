@@ -1,15 +1,19 @@
 """Per-row symmetric int8 quantization of the embedding table (dequant = q * scale).
 
-usage: embed_int8.py <model_dir>   reads embed_tokens.bin (fp32 [vocab, 1024]),
-writes embed_tokens.int8.bin (int8 row-major) and embed_scales.f32.bin (one fp32 per row).
+usage: embed_int8.py <model_dir>   reads embed_tokens.bin (fp32 [vocab, hidden], hidden taken
+from config.json's decoder.hidden_size), writes embed_tokens.int8.bin (int8 row-major) and
+embed_scales.f32.bin (one fp32 per row).
 """
+import json
 import os
 import sys
 
 import numpy as np
 
 d = sys.argv[1]
-w = np.fromfile(os.path.join(d, "embed_tokens.bin"), dtype=np.float32).reshape(-1, 1024)
+with open(os.path.join(d, "config.json")) as f:
+    hidden = json.load(f)["decoder"]["hidden_size"]
+w = np.fromfile(os.path.join(d, "embed_tokens.bin"), dtype=np.float32).reshape(-1, hidden)
 scales = (np.abs(w).max(axis=1) / 127.0).astype(np.float32)
 scales[scales == 0] = 1.0
 q = np.clip(np.rint(w / scales[:, None]), -127, 127).astype(np.int8)

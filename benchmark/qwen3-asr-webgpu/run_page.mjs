@@ -23,6 +23,11 @@ const headless = process.env.NO_HEADLESS ? [] : ['--headless=new'];
 const flags = [...headless, '--no-sandbox', '--disable-dev-shm-usage', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
   '--enable-unsafe-webgpu', '--ignore-gpu-blocklist', ...linuxGpuFlags, '--window-size=800,600', ...extra, 'about:blank'];
 const proc = spawn(chrome, flags, { stdio: ['ignore', 'pipe', 'pipe'] });
+// Chrome must not outlive this script: a dropped SSH session (SIGHUP) or a timeout kill used to
+// leave a headless Chrome behind, holding the model in its GPU process and contaminating the
+// next run's memory measurements.
+process.on('exit', () => { if (proc.exitCode === null) proc.kill('SIGKILL'); });
+for (const sig of ['SIGHUP', 'SIGTERM', 'SIGINT']) process.on(sig, () => process.exit(130));
 let stderr = '';
 proc.stderr.on('data', (d) => { stderr += d; });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

@@ -1,0 +1,49 @@
+===== check_tokens suffix=''  00:25:54
+v2 decoders: *.onnx  embedding: int8  force=None
+jfk.wav                v1  30 tok | v2  30 tok | IDENTICAL
+    v1: language English<asr_text>And so, my fellow Americans, ask not what your country can do fo
+    v2: language English<asr_text>And so, my fellow Americans, ask not what your country can do fo
+ja-fleurs1828.wav      v1  27 tok | v2  27 tok | IDENTICAL
+    v1: language Japanese<asr_text>インターネットで適体適環境コースについて検索すると、おそらく現地企業の住所が出てくるでしょう。
+    v2: language Japanese<asr_text>インターネットで適体適環境コースについて検索すると、おそらく現地企業の住所が出てくるでしょう。
+zh-fleurs1883.wav      v1  34 tok | v2  34 tok | IDENTICAL
+    v1: language Chinese<asr_text>桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+    v2: language Chinese<asr_text>桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+PASS
+===== check_tokens suffix='.int4'  00:26:42
+v2 decoders: *.int4.onnx  embedding: int8  force=None
+jfk.wav                v1  30 tok | v2  30 tok | IDENTICAL
+    v1: language English<asr_text>And so, my fellow Americans, ask not what your country can do fo
+    v2: language English<asr_text>And so, my fellow Americans, ask not what your country can do fo
+ja-fleurs1828.wav      v1  27 tok | v2  28 tok | DIFF at token 7
+    v1: language Japanese<asr_text>インターネットで適体適環境コースについて検索すると、おそらく現地企業の住所が出てくるでしょう。
+    v2: language Japanese<asr_text>インターネットで適体的環境構成について検索すると、おそらく現地企業の住所が出てくるでしょう。
+zh-fleurs1883.wav      v1  34 tok | v2  34 tok | IDENTICAL
+    v1: language Chinese<asr_text>桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+    v2: language Chinese<asr_text>桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+FAIL (see per-clip verdicts; not fatal for quantized variants)
+===== check_tokens suffix='.q4f16'  00:27:20
+v2 decoders: *.q4f16.onnx  embedding: int8  force=None
+jfk.wav                v1  30 tok | v2  30 tok | IDENTICAL
+    v1: language English<asr_text>And so, my fellow Americans, ask not what your country can do fo
+    v2: language English<asr_text>And so, my fellow Americans, ask not what your country can do fo
+ja-fleurs1828.wav      v1  27 tok | v2  28 tok | DIFF at token 7
+    v1: language Japanese<asr_text>インターネットで適体適環境コースについて検索すると、おそらく現地企業の住所が出てくるでしょう。
+    v2: language Japanese<asr_text>インターネットで適体的環境構成について検索すると、おそらく現地企業の住所が出てくるでしょう。
+zh-fleurs1883.wav      v1  34 tok | v2  34 tok | IDENTICAL
+    v1: language Chinese<asr_text>桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+    v2: language Chinese<asr_text>桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+FAIL (see per-clip verdicts; not fatal for quantized variants)
+===== check_tokens .int4 --force zh  00:27:57
+v2 decoders: *.int4.onnx  embedding: int8  force=zh
+jfk.wav                v1  30 tok | v2  27 tok | DIFF at token 0
+    v1: language English<asr_text>And so, my fellow Americans, ask not what your country can do fo
+    v2: And so, my fellow Americans, ask not what your country can do for you. Ask what you can do
+ja-fleurs1828.wav      v1  27 tok | v2  24 tok | DIFF at token 0
+    v1: language Japanese<asr_text>インターネットで適体適環境コースについて検索すると、おそらく現地企業の住所が出てくるでしょう。
+    v2: インターネットで適体的環境コースについて検索すると、おそらく現地企業の住所が出てくるでしょう。
+zh-fleurs1883.wav      v1  34 tok | v2  31 tok | DIFF at token 0
+    v1: language Chinese<asr_text>桥下垂直净空十五米。该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+    v2: 桥下垂直净空十五米，该项目于二零一一年八月完工，但直到二零一七年三月才开始通车。
+FAIL (see per-clip verdicts; not fatal for quantized variants)
+DONE 00:28:35

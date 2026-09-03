@@ -1,0 +1,21 @@
+{
+ ".gitattributes": 1695,
+ "README.md": 6703,
+ "added_tokens.json": 1566,
+ "config.json": 1216,
+ "decoder_init.int4.onnx": 353522,
+ "decoder_init.q4f16.onnx": 348875,
+ "decoder_step.int4.onnx": 355247,
+ "decoder_step.q4f16.onnx": 350828,
+ "decoder_weights.int4.data": 1102630912,
+ "decoder_weights.q4f16.data": 994869248,
+ "embed_scales.f32.bin": 607744,
+ "embed_tokens.int8.bin": 311164928,
+ "encoder.fp16.onnx": 639098881,
+ "encoder.onnx": 1270245440,
+ "mel_filters.json": 132427,
+ "prompt_config.json": 2578,
+ "tokenizer.json": 11429377,
+ "tokenizer_config.json": 12488,
+ "vocab.json": 2776833
+}
