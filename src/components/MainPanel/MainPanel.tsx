@@ -2715,6 +2715,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           id: `error-${Date.now()}`,
           role: 'system',
           type: 'error',
+          // The speaker leg is up and the session is running one-way; the
+          // subtitle window must not read this trailing row as a failed start.
+          severity: 'warning',
           status: 'completed',
           createdAt: Date.now(),
           formatted: { text: participantErrorMessage },
@@ -2732,8 +2735,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // including SonioxClient's own emitSystemNotice — it is the only
           // system-item type the bubble renderer and subtitleIdleState both
           // understand. A friendlier-sounding type nobody renders would be a
-          // notice the user never sees.
+          // notice the user never sees. `severity: 'warning'` keeps the
+          // subtitle window from reading it as a failed start — the session
+          // is running, on a built-in voice.
           type: 'error',
+          severity: 'warning',
           status: 'completed',
           createdAt: Date.now(),
           formatted: { text: prepareNotice },

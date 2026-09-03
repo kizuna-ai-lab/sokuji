@@ -1013,7 +1013,9 @@ describe('LocalNativeClient clone-only voice gate', () => {
     // contract.
     expect(errors).toHaveLength(0);
     expect(emitted).toHaveLength(1);
-    expect(emitted[0]).toMatchObject({ role: 'system', type: 'error', status: 'completed' });
+    // severity 'warning': the session runs, so subtitleIdleState must not read
+    // this trailing row as a failed start (Codex review on #482).
+    expect(emitted[0]).toMatchObject({ role: 'system', type: 'error', status: 'completed', severity: 'warning' });
     expect(emitted[0].formatted.text).toMatch(/needs a voice clip/i);
     expect(c.getConversationItems()).toEqual([emitted[0]]);
     expect(diagnostics.some((d) => d.startsWith('tts_degraded:'))).toBe(true);

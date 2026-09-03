@@ -313,14 +313,17 @@ export class LocalNativeClient implements IClient {
    * MainPanel's wholesale `setItems(getConversationItems())` — both the one in
    * connectConversation right after connect() and the one on every later
    * conversation update. Same contract as SonioxClient.emitSystemNotice; `error`
-   * is the one system-item type the bubble renderer and subtitleIdleState both
-   * understand. Cleared with the rest of the conversation.
+   * is the one system-item type the bubble renderer draws. `severity: 'warning'`
+   * because the session goes on: without it, subtitleIdleState would read this
+   * row, when it trails a session stopped before its first transcript, as a
+   * failed start and offer Retry. Cleared with the rest of the conversation.
    */
   private emitSystemNotice(text: string): void {
     const item: ConversationItem = {
       id: this.nextId('notice'),
       role: 'system',
       type: 'error',
+      severity: 'warning',
       status: 'completed',
       createdAt: Date.now(),
       formatted: { text },
