@@ -21,6 +21,7 @@ import {
   type NativeModelCardSpec,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import { NativeDeviceControl } from './NativeDeviceControl';
+import { LanguageTags } from './LanguageTags';
 import { directionKey, emptyDirection, splitDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { languageNameFor } from '../engine/languageName';
@@ -283,7 +284,7 @@ const NativeModelCard: React.FC<{
             </div>
             <div className="model-card__meta">
               <div className="model-card__languages">
-                {(spec.languages || []).map((l) => (<span key={l} className="model-card__lang-tag">{l}</span>))}
+                <LanguageTags languages={spec.languages || []} />
                 {spec.note && <span className="model-card__lang-tag">{spec.note}</span>}
               </div>
               {(() => {

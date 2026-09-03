@@ -679,33 +679,70 @@
         "desc": "This is the language of menus and buttons. You choose the languages to translate between later.",
         "label": "Interface language"
       },
-      "scenario": { "title": "What do you want to do?", "desc": "Pick the closest match. You can change any of this later." },
-      "path": { "title": "Choose an AI service provider" },
+      "scenario": {
+        "title": "What do you want to do?",
+        "desc": "Pick the closest match. You can change any of this later."
+      },
+      "path": {
+        "title": "Choose an AI service provider"
+      },
       "credentials": {
         "offlineTitle": "Nothing to enter",
         "managedTitle": "Your Kizuna AI account",
         "ownKeyTitle": "Your API key"
       },
-      "languagePair": { "title": "Which languages?", "desc": "What you (or they) speak, and what it should become." },
-      "finish": { "title": "Ready", "persistFailed": "Could not save your setup. Please try again." }
+      "languagePair": {
+        "title": "Which languages?",
+        "desc": "What you (or they) speak, and what it should become."
+      },
+      "finish": {
+        "title": "Ready",
+        "persistFailed": "Could not save your setup. Please try again."
+      }
     },
     "scenarios": {
       "sets": "Sets: {{mode}} mode · {{output}}",
-      "understand-others": { "title": "Understand what others say", "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear." },
-      "be-heard": { "title": "Be understood in a meeting", "desc": "They hear your translated voice through a virtual microphone." },
-      "subtitle-myself": { "title": "Subtitle my own speech", "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated." },
-      "two-way-voice": { "title": "Two-way online conversation", "desc": "They hear your translated voice; you read subtitles generated from what they say." },
-      "two-way-text": { "title": "Two-way online conversation, subtitles only", "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice." }
+      "understand-others": {
+        "title": "Understand what others say",
+        "desc": "Online meetings, classes, talks, videos, streams — read a live translation of what you hear."
+      },
+      "be-heard": {
+        "title": "Be understood in a meeting",
+        "desc": "They hear your translated voice through a virtual microphone."
+      },
+      "subtitle-myself": {
+        "title": "Subtitle my own speech",
+        "desc": "Talks, streams, presentations — your audience reads translated subtitles; no audio is generated."
+      },
+      "two-way-voice": {
+        "title": "Two-way online conversation",
+        "desc": "They hear your translated voice; you read subtitles generated from what they say."
+      },
+      "two-way-text": {
+        "title": "Two-way online conversation, subtitles only",
+        "desc": "Bilingual captions, meeting minutes — both sides as text, no synthetic voice."
+      }
     },
-    "output": { "voice": "voice and subtitles", "subtitles": "subtitles only" },
+    "output": {
+      "voice": "voice and subtitles",
+      "subtitles": "subtitles only"
+    },
     "paths": {
       "recommended": "Recommended",
       "pickProvider": "Which provider?",
       "ownKeyNote": "Pick the provider you have an account with. Each one issues its own key:",
       "ownKeyGuides": "guides for every provider",
       "offlineFlavor": "Which engine?",
-      "managed": { "title": "Start right away", "desc": "Kizuna AI runs the translation for you.", "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use." },
-      "own-key": { "title": "I have my own API key", "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.", "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI." },
+      "managed": {
+        "title": "Start right away",
+        "desc": "Kizuna AI runs the translation for you.",
+        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
+      },
+      "own-key": {
+        "title": "I have my own API key",
+        "desc": "Bring your own key from OpenAI, Gemini, Doubao (Volcengine) and others.",
+        "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI."
+      },
       "offline": {
         "title": "Free, offline",
         "desc": "Runs on your own machine. Nothing leaves it.",
@@ -746,7 +783,8 @@
       "scenario": "Scenario",
       "mode": "Mode",
       "provider": "Provider",
-      "languages": "Languages", "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "languages": "Languages",
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
       "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
       "pendingSignIn": "Not signed in — sign in from the account button before you start."
     }
@@ -758,13 +796,25 @@
     "finish": "Finish",
     "restart": "Restart Setup Guide",
     "steps": {
-      "welcome": { "title": "You're set up", "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute." },
-      "mode-picker": { "title": "Translation mode", "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode, together with the Text Only switch, decides whether it is also spoken aloud.",
+      "welcome": {
+        "title": "You're set up",
+        "content": "Sokuji is configured for your scenario. Here is a short look around — it takes under a minute."
+      },
+      "mode-picker": {
+        "title": "Translation mode",
+        "content": "This is set for you, and you can switch it any time. The translation always appears here as text; the mode, together with the Text Only switch, decides whether it is also spoken aloud.",
         "modeMe": "Me — what you say is translated for the other side.",
         "modeOthers": "Other — what they say is translated for you.",
-        "modeBoth": "Both — both directions at once." },
-      "microphone": { "title": "Your microphone", "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app." },
-      "monitor": { "title": "Hear yourself translated", "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it." },
+        "modeBoth": "Both — both directions at once."
+      },
+      "microphone": {
+        "title": "Your microphone",
+        "content": "Your speech comes in here. The system default is already selected. Do not pick the Sokuji virtual microphone — that one is for your meeting app."
+      },
+      "monitor": {
+        "title": "Hear yourself translated",
+        "content": "Play the translated voice to your own headphones so you can check how it sounds. Turn it off if you do not need it."
+      },
       "output-routing": {
         "title": "How the other side hears you",
         "content": "Your translated voice goes to a virtual microphone; pick it as the mic in your meeting app.",
@@ -778,7 +828,10 @@
         "content_electron": "Choose the app to translate, or all system audio. Their original voice keeps playing as usual.",
         "content_extension": "Sokuji translates the audio of the current tab. Their original voice keeps playing as usual."
       },
-      "subtitle": { "title": "Subtitle mode", "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it." },
+      "subtitle": {
+        "title": "Subtitle mode",
+        "content": "Opens a floating subtitle view — a window on desktop, an overlay on the page in the extension. OBS and screen sharing can capture it."
+      },
       "account": {
         "title": "Your account",
         "content": "Your balance and top-up live here.",
@@ -789,7 +842,10 @@
         "content": "Change your key or switch provider here.",
         "content_pending": "Paste your API key here. Start unlocks once it validates."
       },
-      "models": { "title": "Models", "content": "Download models here — one per stage. Try a few; the first pick is not the only good one." },
+      "models": {
+        "title": "Models",
+        "content": "Download models here — one per stage. Try a few; the first pick is not the only good one."
+      },
       "start": {
         "title": "Start",
         "content": "Press here to start translating. If the button stays greyed out, hover it: the note names what is still missing and where to put it right.",
@@ -797,7 +853,10 @@
         "content_signedOut": "This lights up once you sign in. Hover it while it is grey to see what it is waiting for.",
         "content_pendingKey": "This lights up once your API key validates. Hover it while it is grey to see what it is waiting for."
       },
-      "done": { "title": "That's it", "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top-right of Settings. Replay this guide any time from Help." }
+      "done": {
+        "title": "That's it",
+        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top-right of Settings. Replay this guide any time from Help."
+      }
     }
   },
   "tokenUsage": {
@@ -829,8 +888,19 @@
     "remove": "Remove engine",
     "removeConfirm": "Remove the engine and free disk space?",
     "unsupported": "Local inference is not supported on this device",
-    "devMode": "Development mode · local venv",
-    "installHint": "Install the engine to browse and download models"
+    "installHint": "Install the engine to browse and download models",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Engine {{version}} · starting…",
+      "notInstalled": "Engine not installed",
+      "updateRequired": "Engine update {{from}} → {{to}}",
+      "downloadPaused": "Download paused",
+      "downloading": "Downloading {{pct}}%",
+      "error": "Engine error",
+      "unavailable": "Engine unavailable",
+      "preferredHint": "Preferred device for this machine; per-stage overrides live in the model library."
+    }
   },
   "models": {
     "deletePartial": "Delete partial files",
@@ -895,10 +965,13 @@
     "hwSize": "Size",
     "hwRepo": "Repo",
     "computeDevice": "Compute device",
-    "computeDeviceTooltip": "Which device runs the speech model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.",
-    "computeDeviceTooltipTranslation": "Which device runs the translation model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.",
-    "computeDeviceTooltipTts": "Which device runs the speech-synthesis model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.",
+    "computeDeviceTooltip": "Which device runs the speech model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",
+    "computeDeviceTooltipTranslation": "Which device runs the translation model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",
+    "computeDeviceTooltipTts": "Which device runs the speech-synthesis model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",
     "deviceAuto": "Auto",
+    "multiLanguage": "Multi",
+    "multilingual": "Multilingual",
+    "languagesCount": "{{count}} languages",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "GPU acceleration unavailable — running on the CPU",

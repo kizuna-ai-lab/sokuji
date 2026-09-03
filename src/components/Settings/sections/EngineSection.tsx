@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Cpu, Download, X, RefreshCw, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Cpu, Download, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useNativeModelStore } from '../../../stores/nativeModelStore';
 import './EngineSection.scss';
 
@@ -11,16 +11,20 @@ const fmtMB = (n: number) => `${Math.round(n / MB)} MB`;
 
 /**
  * Engine (sidecar bundle) install/update card — the gate above the native
- * model list (distribution spec S10). One surface for every engine state:
- * unsupported / absent / mismatch / paused / installing (phased) / error / ready.
+ * model list (distribution spec S10). Only appears for an ACTIONABLE state:
+ * unsupported / absent / mismatch / paused / installing (phased) / error, or a
+ * sidecar runtime failure needing retry. A healthy ready engine renders
+ * nothing here — its identity/version live in the status line under the
+ * provider picker, and its on-disk size + remove affordance live on the
+ * Storage page.
  */
 export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessionActive = false }) => {
   const { t } = useTranslation();
   const {
     bundleStatus, bundleSku, bundleVersion, bundleRequiredVersion, bundleProgress,
     bundlePhase, bundleError, bundleStagedBytes, bundleDevVenv,
-    bundleSize, bundleInstalledSize, sidecarStatus,
-    refreshBundle, installBundle, cancelBundle, removeBundle, fetchBundleEntry,
+    bundleSize, sidecarStatus,
+    refreshBundle, installBundle, cancelBundle, fetchBundleEntry,
     retrySidecar,
   } = useNativeModelStore();
 
@@ -35,11 +39,16 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
 
   if (bundleStatus === 'unknown') return null;
 
+  const sidecarUnavailable = sidecarStatus === 'unavailable';
+
+  // A healthy, ready engine has nothing actionable to show here.
+  if (bundleStatus === 'ready' && !sidecarUnavailable) return null;
+
   // Sidecar-RUNTIME failure is an engine concern, so its error lives inside this
   // card (not as a floating banner in the model area below). Only rendered in
   // states where the engine itself is fine (ready / dev venv) — in absent/
   // mismatch states the card's own CTA is the message.
-  const sidecarError = sidecarStatus === 'unavailable' ? (
+  const sidecarError = sidecarUnavailable ? (
     <>
       <div className="engine-section__row engine-section__row--error">
         {t('settings.localNativeUnavailable', 'Native engine unavailable — retry in settings')}
@@ -50,19 +59,14 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
     </>
   ) : null;
 
-  // Dev checkout with a venv: quiet note, no download nag — the venv launch
-  // path keeps working (spec S2 exemption). Checked BEFORE 'unsupported' so an
-  // ARM dev box (sku=null, venv built) gets a working dev lane, not a dead end.
+  // Dev checkout with a venv: the venv launch path keeps working (spec S2
+  // exemption) with nothing to show here beyond a runtime error, if any — the
+  // status line under the provider picker already carries "dev venv" as the
+  // engine's version segment. Checked BEFORE 'unsupported' so an ARM dev box
+  // (sku=null, venv built) gets a working dev lane, not a dead end.
   if (bundleDevVenv && (bundleStatus === 'unsupported' || bundleStatus === 'absent' || bundleStatus === 'paused')) {
-    return (
-      <div className="engine-section">
-        <div className="engine-section__row engine-section__row--muted">
-          <Cpu size={14} />
-          <span>{t('engine.devMode', 'Development mode · local venv')}</span>
-        </div>
-        {sidecarError}
-      </div>
-    );
+    if (!sidecarError) return null;
+    return <div className="engine-section">{sidecarError}</div>;
   }
 
   if (bundleStatus === 'unsupported') {
@@ -86,11 +90,6 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
       <div className="engine-section__header">
         <Cpu size={16} />
         <span className="engine-section__title">{t('engine.title', 'Inference Engine')}</span>
-        {bundleStatus === 'ready' && (
-          <span className="engine-section__version">
-            <CheckCircle size={14} /> {t('engine.ready', 'Engine {{version}}', { version: bundleVersion })}
-          </span>
-        )}
       </div>
 
       {bundleStatus === 'absent' && (
@@ -164,24 +163,6 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
             <RefreshCw size={14} /> {t('engine.retry', 'Retry')}
           </button>
         </>
-      )}
-
-      {bundleStatus === 'ready' && (
-        <div className="engine-section__row engine-section__row--muted">
-          {bundleInstalledSize != null && (
-            <span>{t('engine.onDisk', '{{size}} on disk', { size: fmtGB(bundleInstalledSize) })}</span>
-          )}
-          <button
-            className="engine-section__link" disabled={isSessionActive}
-            onClick={() => {
-              if (window.confirm(t('engine.removeConfirm', 'Remove the engine and free disk space?'))) {
-                void removeBundle();
-              }
-            }}
-          >
-            <Trash2 size={13} /> {t('engine.remove', 'Remove engine')}
-          </button>
-        </div>
       )}
 
       {bundleStatus === 'ready' && sidecarError}

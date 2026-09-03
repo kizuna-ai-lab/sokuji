@@ -93,4 +93,14 @@ describe('useNativeEngineAdapter', () => {
     await act(() => result.current.select({ dir: 'ja→en', stage: 'translation' }, 'other-model'));
     expect(useSettingsStore.getState().localNative.selections['ja→en'].translation.variant).toBeUndefined();
   });
+
+  // B'2 decision (2026-09-03): the per-slot compute-device control moved out
+  // of the Engine page entirely — this adapter offers a read-only badge
+  // instead, and no longer offers the old `stageExtras` control at all.
+  it('offers a slotBadge (the read-only device badge) and no longer offers stageExtras', () => {
+    const { result } = renderHook(() => useNativeEngineAdapter());
+    expect(result.current.slotBadge).toBeTypeOf('function');
+    expect(result.current.slotBadge!({ dir: 'ja→en', stage: 'asr' }, 'badge-id')).toBeTruthy();
+    expect((result.current as unknown as { stageExtras?: unknown }).stageExtras).toBeUndefined();
+  });
 });

@@ -60,9 +60,18 @@
     color: vars.$text-secondary;
   }
 
+  // The full label ("Speech Recognition (ASR)") needs the wide column; the
+  // abbreviation takes over below the container width where even the wide
+  // column would wrap it - see the @container block at the end of this file.
+  &__label-short { display: none; }
+
+  // Holds the select and (native only) the read-only device badge, which
+  // sits INSIDE the select's box: absolutely placed over its right end,
+  // left of the caret, clicks falling through to the select.
   &__control {
     flex: 1;
     min-width: 0;
+    position: relative;
   }
 
   // Doubled class beats the base .select-dropdown rule regardless of which
@@ -70,6 +79,7 @@
   // it on specificity and silently loses to import order (measured: the
   // 14px/8px base values were winning).
   &__select.engine-slot__select {
+    min-width: 0;
     // The app-wide .select-dropdown look, one size down from the Provider
     // control (body 13px, not title 14px, tighter padding) so five of these
     // read as rows, not five heroes — matching .model-card__name and the
@@ -83,6 +93,14 @@
       color: vars.$color-error;
       border-color: rgba(vars.$color-error, 0.45);
     }
+
+    // Room for the badge SlotDeviceBadge draws over the right end: its own
+    // measured width (the custom property it publishes on &__control) plus
+    // the caret's 32px (10px inset + 12px glyph + 10px breathing room).
+    &.engine-slot__select--badged {
+      padding-right: calc(var(--slot-badge-w, 0px) + 32px + 8px);
+      text-overflow: ellipsis;
+    }
   }
 }
 
@@ -95,6 +113,25 @@
 //   #3 the current pick is green in the list (beside the built-in check)
 //   #4 the closed control's 'auto ·' prefix stays muted, name stays bright
 @supports (appearance: base-select) {
+  // base-select draws its chevron as ::picker-icon, a flex item the UA
+  // pushes to the end with an auto start margin — not a background pinned
+  // to the right edge — so the classic padding-right would park the chevron
+  // LEFT of the badge. Give the text its normal padding back, keep the auto
+  // margin, and widen the chevron's own box by the badge's width so the
+  // text stops short of it; the badge (absolutely placed, right: 32px)
+  // lands in that reserved strip, between the text and the glyph. Tripled
+  // class: same (0,3,0) specificity as the doubled rule's `--badged`
+  // compound above — this one wins on source order alone, so it must stay
+  // below that rule in this file.
+  .engine-slot__select.engine-slot__select.engine-slot__select--badged {
+    padding-right: 10px;
+
+    &::picker-icon {
+      margin-inline-start: auto;
+      padding-inline-start: calc(var(--slot-badge-w, 0px) + 8px);
+    }
+  }
+
   .engine-slot__select.engine-slot__select {
     // The picker flips above the control only when its FULL preferred height
     // does not fit below (UA anchor rule: block-end + flip-block) — and the
@@ -163,13 +200,61 @@
   }
 }
 
-// Native's per-stage compute-device control, previously inside the expanded
-// accordion body — now a compact always-visible line under its slot row.
-.engine-slot__extras {
-  margin: -4px 0 8px 138px;
+// The per-slot compute-device badge (SlotDeviceBadge), drawn inside the
+// slot's select box: absolutely placed over the select's right end, left of
+// the caret. Not interactive — pointer events fall through to the select —
+// so no hover state; the amber outline is the only state it carries.
+.slot-device-badge {
+  position: absolute;
+  top: 50%;
+  right: 32px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: vars.$font-caption;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: vars.$text-muted;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-md;
+  padding: 1px 7px;
+  pointer-events: none;
 
-  &:empty { display: none; }
+  b {
+    color: vars.$text-secondary;
+    font-weight: vars.$weight-semibold;
+  }
+
+  // "Compute device:" for assistive tech only — the select points its
+  // aria-describedby at this badge, and sighted users already read the
+  // badge as part of the control.
+  &__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  // Amber outline: the user pinned an explicit device for this stage,
+  // rather than leaving it on Auto.
+  &--pinned {
+    border-color: vars.$color-warning;
+
+    b { color: vars.$color-warning; }
+  }
 }
+
+// A disabled select (session running) dims its badge with it.
+.engine-slot__select:disabled + .slot-device-badge {
+  opacity: 0.5;
+}
+
 
 // Slide-in transitions for the push stack (B decision, 2026-08-23): only
 // the INCOMING content animates — from the right going deeper, from the
@@ -225,6 +310,8 @@
   color: inherit; text-align: left;
   font-size: vars.$font-title;
   font-weight: vars.$weight-semibold;
+  // Breathing room before the Models surface's own heading below it.
+  margin-bottom: vars.$space-3;
 
   &:hover {
     color: vars.$color-primary;
@@ -304,6 +391,29 @@
 }
 
 .engine-storage-page {
+  // The engine (sidecar bundle) itself — one row above the model list.
+  // Moved here from EngineSection's ready-state row (that card renders
+  // nothing once the engine is healthy; see EngineSection.tsx).
+  &__engine {
+    @include vars.option-row;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    color: vars.$text-secondary;
+
+    &-version { font-size: 13px; color: vars.$text-primary; font-weight: vars.$weight-medium; }
+    &-size { font-size: vars.$font-caption; color: vars.$text-muted; }
+
+    &-remove {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 4px;
+      background: none; border: none; padding: 0; cursor: pointer;
+      color: vars.$text-muted; font-size: vars.$font-caption;
+      transition: color vars.$transition-fast;
+
+      &:hover:not(:disabled) { color: vars.$color-error; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+
   &__summary {
     display: flex; align-items: center; gap: 8px; padding: 8px 4px;
     font-size: 13px; color: vars.$text-muted;
@@ -393,4 +503,15 @@
     outline: 1px solid rgba(59, 130, 246, 0.2);
     outline-offset: 2px;
   }
+}
+
+// Narrow settings panel: abbreviations (ASR / MT / TTS) in a short label
+// column, and the per-slot extras indent to match. The engine surface is
+// the query container so the threshold follows the panel, not the window.
+.engine-surface { container-type: inline-size; }
+
+@container (max-width: 440px) {
+  .engine-slot__label { flex-basis: 40px; }
+  .engine-slot__label-long { display: none; }
+  .engine-slot__label-short { display: inline; }
 }

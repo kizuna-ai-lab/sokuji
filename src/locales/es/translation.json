@@ -693,8 +693,19 @@
     "remove": "Eliminar motor",
     "removeConfirm": "¿Eliminar el motor y liberar espacio en disco?",
     "unsupported": "La inferencia local no es compatible con este dispositivo",
-    "devMode": "Modo de desarrollo · venv local",
-    "installHint": "Instala el motor para explorar y descargar modelos"
+    "installHint": "Instala el motor para explorar y descargar modelos",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Motor {{version}} · iniciando…",
+      "notInstalled": "Motor no instalado",
+      "updateRequired": "Actualización del motor {{from}} → {{to}}",
+      "downloadPaused": "Descarga en pausa",
+      "downloading": "Descargando {{pct}}%",
+      "error": "Error del motor",
+      "unavailable": "Motor no disponible",
+      "preferredHint": "Dispositivo preferido para este equipo; las anulaciones por etapa están en la biblioteca de modelos."
+    }
   },
   "models": {
     "deletePartial": "Eliminar archivos parciales",
@@ -759,10 +770,13 @@
     "hwSize": "Tamaño",
     "hwRepo": "Repo",
     "computeDevice": "Dispositivo de cómputo",
-    "computeDeviceTooltip": "Qué dispositivo ejecuta el modelo de voz. Auto elige el más rápido disponible (GPU si la hay); la CPU funciona en todas partes pero es más lenta con modelos grandes; la GPU requiere una GPU CUDA.",
-    "computeDeviceTooltipTranslation": "Qué dispositivo ejecuta el modelo de traducción. Auto elige el más rápido disponible (GPU si la hay); la CPU funciona en todas partes pero es más lenta con modelos grandes; la GPU requiere una GPU CUDA.",
-    "computeDeviceTooltipTts": "Qué dispositivo ejecuta el modelo de síntesis de voz. Auto elige el más rápido disponible (GPU si la hay); la CPU funciona en todas partes pero es más lenta con modelos grandes; la GPU requiere una GPU CUDA.",
+    "computeDeviceTooltip": "Qué dispositivo ejecuta el modelo de voz. Auto elige el dispositivo más rápido disponible (GPU si la hay); la CPU funciona en todas partes pero es más lenta con modelos grandes; la GPU usa Vulkan en Windows y Linux, y Metal en chips Apple silicon.",
+    "computeDeviceTooltipTranslation": "Qué dispositivo ejecuta el modelo de traducción. Auto elige el dispositivo más rápido disponible (GPU si la hay); la CPU funciona en todas partes pero es más lenta con modelos grandes; la GPU usa Vulkan en Windows y Linux, y Metal en chips Apple silicon.",
+    "computeDeviceTooltipTts": "Qué dispositivo ejecuta el modelo de síntesis de voz. Auto elige el dispositivo más rápido disponible (GPU si la hay); la CPU funciona en todas partes pero es más lenta con modelos grandes; la GPU usa Vulkan en Windows y Linux, y Metal en chips Apple silicon.",
     "deviceAuto": "Auto",
+    "multiLanguage": "Multi",
+    "multilingual": "Multilingüe",
+    "languagesCount": "{{count}} idiomas",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "Aceleración por GPU no disponible: se ejecuta en la CPU",

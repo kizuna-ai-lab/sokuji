@@ -693,8 +693,19 @@
     "remove": "Ta bort motor",
     "removeConfirm": "Ta bort motorn och frigöra diskutrymme?",
     "unsupported": "Lokal inferens stöds inte på den här enheten",
-    "devMode": "Utvecklingsläge · lokal venv",
-    "installHint": "Installera motorn för att bläddra bland och ladda ner modeller"
+    "installHint": "Installera motorn för att bläddra bland och ladda ner modeller",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Motor {{version}} · startar…",
+      "notInstalled": "Motorn är inte installerad",
+      "updateRequired": "Motoruppdatering {{from}} → {{to}}",
+      "downloadPaused": "Nedladdning pausad",
+      "downloading": "Laddar ner {{pct}}%",
+      "error": "Motorfel",
+      "unavailable": "Motorn är inte tillgänglig",
+      "preferredHint": "Föredragen enhet för den här datorn; åsidosättanden per steg finns i modellbiblioteket."
+    }
   },
   "models": {
     "deletePartial": "Radera ofullständiga filer",
@@ -759,10 +770,13 @@
     "hwSize": "Storlek",
     "hwRepo": "Repo",
     "computeDevice": "Beräkningsenhet",
-    "computeDeviceTooltip": "Vilken enhet som kör talmodellen. Auto väljer den snabbaste tillgängliga (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU kräver en CUDA-GPU.",
-    "computeDeviceTooltipTranslation": "Vilken enhet som kör översättningsmodellen. Auto väljer den snabbaste tillgängliga (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU kräver en CUDA-GPU.",
-    "computeDeviceTooltipTts": "Vilken enhet som kör talsyntesmodellen. Auto väljer den snabbaste tillgängliga (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU kräver en CUDA-GPU.",
+    "computeDeviceTooltip": "Vilken enhet som kör talmodellen. Auto väljer den snabbaste tillgängliga enheten (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU använder Vulkan i Windows och Linux samt Metal på Apple silicon.",
+    "computeDeviceTooltipTranslation": "Vilken enhet som kör översättningsmodellen. Auto väljer den snabbaste tillgängliga enheten (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU använder Vulkan i Windows och Linux samt Metal på Apple silicon.",
+    "computeDeviceTooltipTts": "Vilken enhet som kör talsyntesmodellen. Auto väljer den snabbaste tillgängliga enheten (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU använder Vulkan i Windows och Linux samt Metal på Apple silicon.",
     "deviceAuto": "Auto",
+    "multiLanguage": "Multi",
+    "multilingual": "Flerspråkig",
+    "languagesCount": "{{count}} språk",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "GPU-acceleration är inte tillgänglig — körs på processorn",

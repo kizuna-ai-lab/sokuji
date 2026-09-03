@@ -93,6 +93,7 @@ export interface EventData {
     | 'output_audio_data'
     | 'current_task'
     // LocalInference pipeline event types
+    | 'local.engine.ready'
     | 'local.session.opened'
     | 'local.session.closed'
     | 'local.asr.start'

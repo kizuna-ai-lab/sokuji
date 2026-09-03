@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HardDrive, Trash2, FolderInput } from 'lucide-react';
+import { HardDrive, Trash2, FolderInput, Cpu } from 'lucide-react';
 import {
   useModelStore, useModelStatuses, useStorageUsedMb, useWebGPUAvailable, useDeviceFeatures,
 } from '../../../stores/modelStore';
@@ -23,6 +23,9 @@ const STAGE_NOUN_KEY: Record<Stage, [string, string]> = {
   tts: ['notes.stageTts', 'speech output'],
 };
 const STAGES: Stage[] = ['asr', 'translation', 'tts'];
+
+const GB = 1024 ** 3;
+const fmtGB = (n: number) => `${(n / GB).toFixed(1)} GB`;
 
 interface Row {
   id: string;
@@ -88,6 +91,23 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
   const nativeStatuses = useNativeModelStore((s) => s.statuses);
   const nativeCatalog = useNativeCatalog();
   const nativeSettings = useLocalNativeSettings();
+  // The engine (sidecar bundle) itself, not a model — its own row above the
+  // model list (moved here from EngineSection's ready-state row: the card
+  // now renders nothing once healthy, see EngineSection.tsx).
+  const nativeBundleStatus = useNativeModelStore((s) => s.bundleStatus);
+  const nativeBundleVersion = useNativeModelStore((s) => s.bundleVersion);
+  const nativeBundleDevVenv = useNativeModelStore((s) => s.bundleDevVenv);
+  const nativeBundleInstalledSize = useNativeModelStore((s) => s.bundleInstalledSize);
+  const fetchBundleEntry = useNativeModelStore((s) => s.fetchBundleEntry);
+  // refreshBundle() learns the installed VERSION but not the on-disk size,
+  // and EngineSection only peeks the manifest when it must offer a download
+  // — so a cold start with a ready bundle reaches this row with no size.
+  // Fetch it here, once, for the row that shows it.
+  useEffect(() => {
+    if (provider === 'native' && nativeBundleStatus === 'ready' && nativeBundleInstalledSize === null) {
+      void fetchBundleEntry();
+    }
+  }, [provider, nativeBundleStatus, nativeBundleInstalledSize, fetchBundleEntry]);
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [clearAllPending, setClearAllPending] = useState(false);
@@ -174,6 +194,34 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
 
   return (
     <div className="engine-storage-page">
+      {!isWasm && nativeBundleStatus === 'ready' && (
+        <div className="engine-storage-page__engine" data-testid="storage-engine-row">
+          <Cpu size={14} />
+          <span className="engine-storage-page__engine-version">
+            {t('engine.ready', 'Engine {{version}}', {
+              version: nativeBundleVersion ?? (nativeBundleDevVenv ? t('engine.status.devVenv', 'dev venv') : ''),
+            })}
+          </span>
+          {nativeBundleInstalledSize != null && (
+            <span className="engine-storage-page__engine-size">
+              {t('engine.onDisk', '{{size}} on disk', { size: fmtGB(nativeBundleInstalledSize) })}
+            </span>
+          )}
+          <button
+            type="button"
+            className="engine-storage-page__engine-remove"
+            disabled={isSessionActive}
+            onClick={() => {
+              if (window.confirm(t('engine.removeConfirm', 'Remove the engine and free disk space?'))) {
+                void useNativeModelStore.getState().removeBundle();
+              }
+            }}
+          >
+            <Trash2 size={12} /> {t('engine.remove', 'Remove engine')}
+          </button>
+        </div>
+      )}
+
       <div className="engine-storage-page__summary">
         <HardDrive size={14} />
         <span>{t('models.storageUsed', 'Storage: {{size}} MB used', { size: storageMb })}</span>

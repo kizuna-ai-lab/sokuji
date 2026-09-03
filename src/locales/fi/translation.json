@@ -693,8 +693,19 @@
     "remove": "Poista moottori",
     "removeConfirm": "Poistetaanko moottori ja vapautetaanko levytilaa?",
     "unsupported": "Paikallista päättelyä ei tueta tällä laitteella",
-    "devMode": "Kehitystila · paikallinen venv",
-    "installHint": "Asenna moottori selataksesi ja ladataksesi malleja"
+    "installHint": "Asenna moottori selataksesi ja ladataksesi malleja",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Moottori {{version}} · käynnistyy…",
+      "notInstalled": "Moottoria ei ole asennettu",
+      "updateRequired": "Moottorin päivitys {{from}} → {{to}}",
+      "downloadPaused": "Lataus keskeytetty",
+      "downloading": "Ladataan {{pct}}%",
+      "error": "Moottorivirhe",
+      "unavailable": "Moottori ei ole käytettävissä",
+      "preferredHint": "Tälle koneelle suositeltu laite; vaihekohtaiset ohitukset löytyvät mallikirjastosta."
+    }
   },
   "models": {
     "deletePartial": "Poista keskeneräiset tiedostot",
@@ -759,10 +770,13 @@
     "hwSize": "Koko",
     "hwRepo": "Tietovarasto",
     "computeDevice": "Laskentalaite",
-    "computeDeviceTooltip": "Mikä laite suorittaa puhemallin. Auto valitsee nopeimman käytettävissä olevan (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU vaatii CUDA-näytönohjaimen.",
-    "computeDeviceTooltipTranslation": "Mikä laite suorittaa käännösmallin. Auto valitsee nopeimman käytettävissä olevan (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU vaatii CUDA-näytönohjaimen.",
-    "computeDeviceTooltipTts": "Mikä laite suorittaa puhesynteesimallin. Auto valitsee nopeimman käytettävissä olevan (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU vaatii CUDA-näytönohjaimen.",
+    "computeDeviceTooltip": "Mikä laite suorittaa puhemallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
+    "computeDeviceTooltipTranslation": "Mikä laite suorittaa käännösmallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
+    "computeDeviceTooltipTts": "Mikä laite suorittaa puhesynteesimallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
     "deviceAuto": "Auto",
+    "multiLanguage": "Multi",
+    "multilingual": "Monikielinen",
+    "languagesCount": "{{count}} kieltä",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "GPU-kiihdytys ei ole käytettävissä — suoritetaan suorittimella",

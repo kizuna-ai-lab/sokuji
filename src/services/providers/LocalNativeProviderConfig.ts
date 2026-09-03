@@ -34,9 +34,9 @@ export interface LocalNativeSettings {
   vadMinSpeechDuration: number;        // seconds — silero min_speech_duration
   useTemplateMode: boolean;            // true = Simple (default), false = Advanced
   systemPrompt: string;                // Advanced-mode prompt (Qwen path only; '' = default)
-  asrDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's device selection
-  translationDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's translation device selection
-  ttsDevice: 'auto' | 'cpu' | 'cuda'; // override the sidecar's tts device selection
+  asrDevice: 'auto' | 'cpu' | 'gpu'; // override the sidecar's device selection
+  translationDevice: 'auto' | 'cpu' | 'gpu'; // override the sidecar's translation device selection
+  ttsDevice: 'auto' | 'cpu' | 'gpu'; // override the sidecar's tts device selection
   ttsVoice: string;                   // override the sidecar's tts voice selection ('' = per-language default)
 }
 

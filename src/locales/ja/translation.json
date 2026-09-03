@@ -693,8 +693,19 @@
     "remove": "エンジンを削除",
     "removeConfirm": "エンジンを削除してディスク容量を解放しますか?",
     "unsupported": "このデバイスはローカル推論に対応していません",
-    "devMode": "開発モード · ローカル venv",
-    "installHint": "エンジンをインストールするとモデルを閲覧・ダウンロードできます"
+    "installHint": "エンジンをインストールするとモデルを閲覧・ダウンロードできます",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "エンジン {{version}} · 起動中…",
+      "notInstalled": "エンジン未インストール",
+      "updateRequired": "エンジン更新 {{from}} → {{to}}",
+      "downloadPaused": "ダウンロード一時停止",
+      "downloading": "ダウンロード中 {{pct}}%",
+      "error": "エンジンエラー",
+      "unavailable": "エンジン利用不可",
+      "preferredHint": "この端末で優先されるデバイスです。ステージごとの上書きはモデルライブラリで設定できます。"
+    }
   },
   "models": {
     "deletePartial": "未完了のファイルを削除",
@@ -759,10 +770,13 @@
     "hwSize": "サイズ",
     "hwRepo": "リポジトリ",
     "computeDevice": "計算デバイス",
-    "computeDeviceTooltip": "音声認識（ASR）モデルを実行するデバイス。自動は利用可能な最速のものを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUにはCUDA対応GPUが必要です。",
-    "computeDeviceTooltipTranslation": "翻訳モデルを実行するデバイス。自動は利用可能な最速のものを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUにはCUDA対応GPUが必要です。",
-    "computeDeviceTooltipTts": "音声合成（TTS）モデルを実行するデバイス。自動は利用可能な最速のものを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUにはCUDA対応GPUが必要です。",
+    "computeDeviceTooltip": "音声認識（ASR）モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
+    "computeDeviceTooltipTranslation": "翻訳モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
+    "computeDeviceTooltipTts": "音声合成（TTS）モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
     "deviceAuto": "自動",
+    "multiLanguage": "多言語",
+    "multilingual": "多言語対応",
+    "languagesCount": "{{count}} 言語",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "GPU アクセラレーションを利用できません — CPU で実行中",

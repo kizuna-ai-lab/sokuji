@@ -79,7 +79,7 @@ class AsrEngine:
             self.resolved["fallbackReason"] = notice
         # Surface the ACTUAL backend/device the session resolved to. A non-'auto'
         # compute-device choice only reorders plans, so a GPU-only model still loads
-        # on CUDA even when 'cpu' was requested — this line makes that visible.
+        # on the GPU even when 'cpu' was requested — this line makes that visible.
         import sys
         print(f"[sokuji-sidecar] ASR ready: model={model_id or 'sense-voice'} "
               f"backend={plan.backend} device={plan.device} compute={plan.compute_type}"

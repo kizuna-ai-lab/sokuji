@@ -162,9 +162,11 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
             </div>
           )}
 
-          <button type="button" className="engine-back-row" onClick={() => setEngineOpen(null)}>
+          {/* Names the PARENT the click lands on (iOS-style, the same rule as
+              EngineSurface's own back chip); the Models title is the surface's. */}
+          <button type="button" className="engine-back-row" aria-label={t('engineUi.back', 'Back')} onClick={() => setEngineOpen(null)}>
             <ArrowLeft size={14} />
-            {t('models.management', 'Models')}
+            {t('settings.title', 'Settings')}
           </button>
 
           {isNative ? (

@@ -693,8 +693,19 @@
     "remove": "הסר מנוע",
     "removeConfirm": "להסיר את המנוע ולפנות מקום בדיסק?",
     "unsupported": "הסקה מקומית אינה נתמכת במכשיר זה",
-    "devMode": "מצב פיתוח · venv מקומי",
-    "installHint": "התקן את המנוע כדי לעיין במודלים ולהוריד אותם"
+    "installHint": "התקן את המנוע כדי לעיין במודלים ולהוריד אותם",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "מנוע {{version}} · מתחיל…",
+      "notInstalled": "המנוע לא מותקן",
+      "updateRequired": "עדכון מנוע {{from}} → {{to}}",
+      "downloadPaused": "ההורדה מושהית",
+      "downloading": "מוריד {{pct}}%",
+      "error": "שגיאת מנוע",
+      "unavailable": "המנוע אינו זמין",
+      "preferredHint": "ההתקן המועדף למחשב זה; החריגות לכל שלב נמצאות בספריית המודלים."
+    }
   },
   "models": {
     "deletePartial": "מחק קבצים חלקיים",
@@ -759,10 +770,13 @@
     "hwSize": "גודל",
     "hwRepo": "מאגר",
     "computeDevice": "התקן חישוב",
-    "computeDeviceTooltip": "איזה התקן מריץ את מודל הדיבור. אוטומטי בוחר את המהיר ביותר הזמין (GPU כשקיים); CPU עובד בכל מקום אך איטי יותר עבור מודלים גדולים; GPU דורש GPU עם CUDA.",
-    "computeDeviceTooltipTranslation": "איזה התקן מריץ את מודל התרגום. אוטומטי בוחר את המהיר ביותר הזמין (GPU כשקיים); CPU עובד בכל מקום אך איטי יותר עבור מודלים גדולים; GPU דורש GPU עם CUDA.",
-    "computeDeviceTooltipTts": "איזה התקן מריץ את מודל סינתזת הדיבור. אוטומטי בוחר את המהיר ביותר הזמין (GPU כשקיים); CPU עובד בכל מקום אך איטי יותר עבור מודלים גדולים; GPU דורש GPU עם CUDA.",
+    "computeDeviceTooltip": "איזה התקן מריץ את מודל הדיבור. אוטומטי בוחר את ההתקן המהיר ביותר הזמין (GPU כשקיים); CPU עובד בכל מקום אך איטי יותר עבור מודלים גדולים; GPU משתמש ב-Vulkan ב-Windows וב-Linux וב-Metal בשבבי Apple silicon.",
+    "computeDeviceTooltipTranslation": "איזה התקן מריץ את מודל התרגום. אוטומטי בוחר את ההתקן המהיר ביותר הזמין (GPU כשקיים); CPU עובד בכל מקום אך איטי יותר עבור מודלים גדולים; GPU משתמש ב-Vulkan ב-Windows וב-Linux וב-Metal בשבבי Apple silicon.",
+    "computeDeviceTooltipTts": "איזה התקן מריץ את מודל סינתזת הדיבור. אוטומטי בוחר את ההתקן המהיר ביותר הזמין (GPU כשקיים); CPU עובד בכל מקום אך איטי יותר עבור מודלים גדולים; GPU משתמש ב-Vulkan ב-Windows וב-Linux וב-Metal בשבבי Apple silicon.",
     "deviceAuto": "אוטומטי",
+    "multiLanguage": "רב-לשוני",
+    "multilingual": "רב-לשוני",
+    "languagesCount": "{{count}} שפות",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "האצת GPU אינה זמינה — פועל על המעבד",

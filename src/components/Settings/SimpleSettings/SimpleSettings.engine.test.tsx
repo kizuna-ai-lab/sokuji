@@ -103,7 +103,7 @@ describe('SimpleSettings — engine host (Task 9)', () => {
     render(<SimpleSettings />);
     expect(screen.queryByTestId('provider-section')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Models' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
     expect(screen.getByTestId('provider-section')).not.toBeNull();
   });

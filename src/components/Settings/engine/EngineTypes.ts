@@ -27,8 +27,11 @@ export interface EngineAdapter {
   readyCandidates(slot: SlotId): SlotCandidate[];
   /** Write an explicit pick ('' = back to auto). */
   select(slot: SlotId, modelId: string): void | Promise<void>;
-  /** Per-stage extra controls row (native compute device); absent for WASM. */
-  stageExtras?(slot: SlotId): ReactNode;
+  /** Read-only per-slot compute-device badge, drawn inside the slot's select
+   *  box (native only; absent for WASM). Informational — see SlotDeviceBadge.
+   *  `id` is the element id the page points the select's aria-describedby
+   *  at; the badge must render it on its root. */
+  slotBadge?(slot: SlotId, id: string): ReactNode;
   /** Gate banner above the blocks (native engine bundle); absent for WASM. */
   gate?: ReactNode;
   /** Storage summary line for the storage row. */

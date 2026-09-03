@@ -78,7 +78,7 @@ def test_resolve_real_catalog_sense_voice_cpu(monkeypatch):
 
 
 def _plan(device):
-    return accel.Plan("ctranslate2", "cpu" if device == "cpu" else "gpu-cuda",
+    return accel.Plan("ctranslate2", "cpu" if device == "cpu" else "gpu-vulkan",
                       device, "int8", "large-v3", 1.0)
 
 
@@ -91,7 +91,7 @@ def test_fallback_steps_to_cpu_and_sets_notice(monkeypatch):
             self.loaded = True
     seq = iter([FakeBackend(False), FakeBackend(True)])
     monkeypatch.setattr(accel, "make_backend", lambda name: next(seq))
-    backend, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+    backend, plan, notice = accel.load_with_fallback([_plan("vulkan"), _plan("cpu")])
     assert backend.loaded and plan.device == "cpu"
     assert "falling back" in notice
 
@@ -110,49 +110,49 @@ def test_fallback_all_fail_raises(monkeypatch):
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
     import pytest
     with pytest.raises(accel.AllPlansFailed):
-        accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+        accel.load_with_fallback([_plan("vulkan"), _plan("cpu")])
 
 
 _GIB = 1 << 30
 
 
-def test_vram_gate_skips_cuda_to_cpu_when_insufficient(monkeypatch):
-    # A flexible model (cuda + cpu floor) whose weights can't fit free VRAM is
-    # routed straight to CPU — the cuda plan is never even attempted (no OOM).
+def test_vram_gate_skips_gpu_to_cpu_when_insufficient(monkeypatch):
+    # A flexible model (gpu + cpu floor) whose weights can't fit free VRAM is
+    # routed straight to CPU — the gpu plan is never even attempted (no OOM).
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 * _GIB)
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
     attempted = []
     class FakeBackend:
         def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
-    backend, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+    backend, plan, notice = accel.load_with_fallback([_plan("vulkan"), _plan("cpu")])
     assert plan.device == "cpu" and attempted == ["cpu"]
     assert notice and "CPU" in notice
 
 
-def test_vram_gate_allows_cuda_when_sufficient(monkeypatch):
+def test_vram_gate_allows_gpu_when_sufficient(monkeypatch):
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 10 * _GIB)
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 4 * _GIB)
     class FakeBackend:
         def load(self, a, device, ct, config=None): self.device = device; self.loaded = True
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
-    backend, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
-    assert plan.device == "cuda" and notice is None
+    backend, plan, notice = accel.load_with_fallback([_plan("vulkan"), _plan("cpu")])
+    assert plan.device == "vulkan" and notice is None
 
 
 def test_vram_gate_inert_without_estimates(monkeypatch):
-    # No CUDA / unknown footprint → gate stays out of the way; the existing
-    # try/except path still steps cuda → cpu on a real OOM.
+    # No GPU / unknown footprint → gate stays out of the way; the existing
+    # try/except path still steps gpu → cpu on a real OOM.
     monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: None)
     class FakeBackend:
         def __init__(self, ok): self.ok = ok
         def load(self, a, device, ct, config=None):
-            if not self.ok: raise backends.BackendLoadError("CUDA out of memory")
+            if not self.ok: raise backends.BackendLoadError("vulkan out of memory")
             self.loaded = True
     seq = iter([FakeBackend(False), FakeBackend(True)])
     monkeypatch.setattr(accel, "make_backend", lambda name: next(seq))
-    backend, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+    backend, plan, notice = accel.load_with_fallback([_plan("vulkan"), _plan("cpu")])
     assert plan.device == "cpu"
 
 
@@ -164,9 +164,37 @@ def test_vram_gate_reads_vendor_agnostic_free(monkeypatch):
     class FakeBackend:
         def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
-    _b, plan, notice = accel.load_with_fallback([_plan("cuda"), _plan("cpu")])
+    _b, plan, notice = accel.load_with_fallback([_plan("vulkan"), _plan("cpu")])
     assert plan.device == "cpu" and attempted == ["cpu"]
     assert notice and "CPU" in notice
+
+
+def test_vram_gate_keeps_metal_on_unified_memory(monkeypatch):
+    # Apple silicon: CPU and Metal share one pool, so the proactive gate
+    # must not demote a Metal plan that looks too big for "free" — that
+    # frees nothing and loses the accelerator (planner's unified-memory rule).
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
+    attempted = []
+    class FakeBackend:
+        def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    _b, plan, notice = accel.load_with_fallback([_plan("metal"), _plan("cpu")])
+    assert plan.device == "metal" and attempted == ["metal"] and notice is None
+
+
+def test_cpu_allocation_failure_is_not_a_gpu_oom(monkeypatch):
+    # A CPU-only plan that cannot allocate is a plain load failure: no
+    # "GPU memory" story, no advice to switch to CPU.
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
+    class FakeBackend:
+        def load(self, a, device, ct, config=None):
+            raise backends.BackendLoadError("failed to allocate 3.00 GiB")
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    import pytest
+    with pytest.raises(accel.AllPlansFailed) as ei:
+        accel.load_with_fallback([_plan("cpu")])
+    assert "GPU memory" not in str(ei.value)
 
 
 def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
@@ -175,23 +203,23 @@ def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 * _GIB)
     class FakeBackend:
         def load(self, a, device, ct, config=None):
-            raise backends.BackendLoadError("CUDA out of memory. Tried to allocate 54.00 MiB")
+            raise backends.BackendLoadError("vulkan out of memory. Failed to allocate 54.00 MiB")
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
     import pytest
     with pytest.raises(accel.AllPlansFailed) as ei:
-        accel.load_with_fallback([_plan("cuda")])
+        accel.load_with_fallback([_plan("vulkan")])
     msg = str(ei.value)
     assert "GPU memory" in msg and "falling back" not in msg
 
 
-def test_load_measured_reports_vram_delta_for_cuda(monkeypatch):
+def test_load_measured_reports_vram_delta_for_gpu(monkeypatch):
     free = iter([10 * _GIB, 2 * _GIB])  # before, after -> 8 GiB used
     monkeypatch.setattr(accel, "device_free_bytes", lambda: next(free))
     monkeypatch.setattr(accel, "_rss_bytes", lambda: 1000)
     monkeypatch.setattr(accel, "load_with_fallback",
-                        lambda plans: ("BE", _plan("cuda"), None))
-    backend, plan, notice, mem = accel.load_measured([_plan("cuda")])
-    assert backend == "BE" and plan.device == "cuda" and notice is None
+                        lambda plans: ("BE", _plan("vulkan"), None))
+    backend, plan, notice, mem = accel.load_measured([_plan("vulkan")])
+    assert backend == "BE" and plan.device == "vulkan" and notice is None
     assert mem == 8 * _GIB
 
 
@@ -200,9 +228,9 @@ def test_load_measured_reports_rss_delta_for_cpu(monkeypatch):
     monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
     monkeypatch.setattr(accel, "_rss_bytes", lambda: next(rss))
     monkeypatch.setattr(accel, "load_with_fallback",
-                        lambda plans: ("BE", _plan("cpu"), "cuda skipped; using CPU"))
+                        lambda plans: ("BE", _plan("cpu"), "vulkan skipped; using CPU"))
     _b, plan, notice, mem = accel.load_measured([_plan("cpu")])
-    assert plan.device == "cpu" and notice == "cuda skipped; using CPU"
+    assert plan.device == "cpu" and notice == "vulkan skipped; using CPU"
     assert mem == 400 * _GIB // 1000
 
 
@@ -210,8 +238,8 @@ def test_load_measured_omits_memory_when_unmeasurable(monkeypatch):
     monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
     monkeypatch.setattr(accel, "_rss_bytes", lambda: None)
     monkeypatch.setattr(accel, "load_with_fallback",
-                        lambda plans: ("BE", _plan("cuda"), None))
-    _b, _p, _n, mem = accel.load_measured([_plan("cuda")])
+                        lambda plans: ("BE", _plan("vulkan"), None))
+    _b, _p, _n, mem = accel.load_measured([_plan("vulkan")])
     assert mem is None
 
 
@@ -219,15 +247,15 @@ def test_load_measured_omits_nonpositive_delta(monkeypatch):
     free = iter([2 * _GIB, 3 * _GIB])  # "after" higher than "before" -> delta < 0
     monkeypatch.setattr(accel, "device_free_bytes", lambda: next(free))
     monkeypatch.setattr(accel, "load_with_fallback",
-                        lambda plans: ("BE", _plan("cuda"), None))
-    _b, _p, _n, mem = accel.load_measured([_plan("cuda")])
+                        lambda plans: ("BE", _plan("vulkan"), None))
+    _b, _p, _n, mem = accel.load_measured([_plan("vulkan")])
     assert mem is None
 
 
 def test_hardware_info_handler(monkeypatch):
     monkeypatch.setattr(accel, "_native_gpus",
-                        lambda: (("cuda", "NVIDIA GeForce RTX 4070", 12288 << 20),))
-    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "cuda"))
+                        lambda: (("vulkan", "NVIDIA GeForce RTX 4070", 12288 << 20),))
+    monkeypatch.setattr(accel, "_native_kinds", lambda: ("cpu", "vulkan"))
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"ctranslate2", "sherpa"}))
     accel.probe(force=True)
@@ -255,6 +283,72 @@ def test_hardware_info_reports_amd_gpu_from_tc_probe(monkeypatch):
     assert reply["gpus"] == [{"vendor": "amd", "name": "AMD Radeon RX 7800 XT",
                               "vramMb": 16384}]
     assert reply["accelAvailable"] is True
+
+
+def test_hardware_info_reports_engine_identity_prefers_available_gpu_tier(monkeypatch):
+    # A paravirtual Metal device (R36 — CI's own macOS VM GPU) must be excluded by
+    # the same planner._tier_available gate the real deployment planner uses, so a
+    # genuinely-usable Vulkan device is preferred over it and ranked ahead of CPU.
+    devices = [
+        _FakeDev(0, "metal", "Apple Paravirtual device", 8 << 30, 8 << 30),
+        _FakeDev(1, "vulkan", "NVIDIA GB10", 96 << 30, 90 << 30),
+        _FakeDev(2, "cpu", "CPU", 120 << 30, 100 << 30),
+    ]
+    _fake_native_module(monkeypatch, devices, version="1.0.1", engine_versions={
+        "ggml": "0.22.0", "transcribe": "0.2.2", "llama": "0.3.0",
+        "audiocpp": "0.7.0", "lane": "cpu-vulkan",
+    })
+    m = _machine(tc=("cpu", "metal", "vulkan"),
+                gpus=(("metal", "Apple Paravirtual device", 8 << 30),
+                      ("vulkan", "NVIDIA GB10", 96 << 30)))
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    reply, _ = asyncio.run(accel._h_hardware_info({}, {"id": 1}, None))
+    assert reply["nativeVersion"] == "1.0.1"
+    # The binding folds "lane" into engine_versions(); the wire strips it into its
+    # own field so the pins dict carries pins only (the renderer prints the dict
+    # verbatim and appends lane= itself).
+    assert reply["engineVersions"] == {
+        "ggml": "0.22.0", "transcribe": "0.2.2", "llama": "0.3.0", "audiocpp": "0.7.0",
+    }
+    assert reply["lane"] == "cpu-vulkan"
+    assert reply["preferredDevice"] == {"kind": "vulkan", "name": "vulkan1",
+                                        "description": "NVIDIA GB10"}
+
+
+def test_hardware_info_reports_engine_identity_falls_back_to_cpu(monkeypatch):
+    # No GPU tier available at all (e.g. a mac-x64/CPU-only lane) -> preferredDevice
+    # falls back to the CPU device rather than coming back null.
+    devices = [_FakeDev(0, "cpu", "CPU", 64 << 30, 60 << 30)]
+    _fake_native_module(monkeypatch, devices, version="1.0.1",
+                        engine_versions={"ggml": "0.22.0", "transcribe": "0.2.2",
+                                        "llama": "0.3.0", "audiocpp": "0.7.0", "lane": "cpu"})
+    m = _machine(tc=("cpu",), gpus=())
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    reply, _ = asyncio.run(accel._h_hardware_info({}, {"id": 1}, None))
+    assert reply["lane"] == "cpu"
+    assert "lane" not in reply["engineVersions"]
+    assert reply["preferredDevice"] == {"kind": "cpu", "name": "cpu0", "description": "CPU"}
+
+
+def test_hardware_info_engine_identity_null_when_native_unavailable(monkeypatch):
+    # No sokuji_native wheel at all: the four engine-identity fields degrade to
+    # null (mirrors probe()'s own _safe policy) while the rest of the reply is
+    # unaffected -- a missing/stale native module must never break hardware_info.
+    import sys
+    from sokuji_sidecar import native
+    monkeypatch.setitem(sys.modules, "sokuji_native", None)   # import fails
+    native.reset_for_tests()
+    m = _machine(tc=(), gpus=(), installed=frozenset({"native_asr"}))
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    reply, _ = asyncio.run(accel._h_hardware_info({}, {"id": 1}, None))
+    assert reply["nativeVersion"] is None
+    assert reply["engineVersions"] is None
+    assert reply["lane"] is None
+    assert reply["preferredDevice"] is None
+    # everything else is still reported normally
+    assert reply["os"] == m.os and reply["arch"] == m.arch
+    assert reply["cpuCores"] == m.cpu_cores
+    assert reply["backendsInstalled"] == sorted(m.installed)
 
 
 def test_models_catalog_handler_cpu_machine(monkeypatch):
@@ -392,7 +486,7 @@ def test_real_gpu_cpu_override_forces_cpu(tmp_path, monkeypatch):
 
 
 def test_granite_gated_off_on_cpu_only_machine():
-    # no nvidia → gpu-cuda filtered → no plan → NoUsablePlan (gated off)
+    # no GPU on this machine → gpu-vulkan filtered → no plan → NoUsablePlan (gated off)
     with pytest.raises(accel.NoUsablePlan):
         accel.resolve("granite-speech-4.1-2b",
                       machine=_machine(installed=frozenset({"transformers"})))
@@ -577,12 +671,12 @@ def test_list_variants_marks_supported_and_recommended(monkeypatch):
     assert reply["recommended"] == "fp8"
 
 
-def test_load_with_fallback_fp8_factor_gates_cuda(monkeypatch):
+def test_load_with_fallback_fp8_factor_gates_vulkan(monkeypatch):
     # An fp8 plan should use factor 1.5; on a 12GiB free machine with 8GiB weights:
-    # budget = 8*1.5 + 1GiB_context = 13GiB > 12GiB free → cuda proactively skipped.
+    # budget = 8*1.5 + 1GiB_context = 13GiB > 12GiB free → vulkan proactively skipped.
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 12 * _GIB)
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 * _GIB)
-    fp8_plan = accel.Plan("hunyuan_translate", "gpu-cuda", "cuda", "fp8", "repo", 1.0)
+    fp8_plan = accel.Plan("hunyuan_translate", "gpu-vulkan", "vulkan", "fp8", "repo", 1.0)
     cpu_pl = _plan("cpu")
     attempted = []
     class FakeBackend:
@@ -684,8 +778,8 @@ def test_resolve_tts_wrapper_passes_pin_and_downloaded(monkeypatch):
 
 
 def test_models_catalog_emits_tts_variants(monkeypatch):
-    cuda_machine = _machine(gpus=_nv_gpus(12000), tc=("vulkan", "cpu"))
-    monkeypatch.setattr(accel, "probe", lambda force=False: cuda_machine)
+    vulkan_machine = _machine(gpus=_nv_gpus(12000), tc=("vulkan", "cpu"))
+    monkeypatch.setattr(accel, "probe", lambda force=False: vulkan_machine)
     monkeypatch.setattr(catalog, "tts_models", lambda: [_tts_variant_card()])
     reply, _ = asyncio.run(accel._h_models_catalog({}, {"kind": "tts", "id": 1}, None))
     entry = reply["models"][0]
@@ -769,9 +863,10 @@ def _llm_machine(gpu=False, apple=False):
 
 
 def test_vram_gate_skipped_for_llamacpp(monkeypatch):
-    """The proactive free-VRAM check must not pre-skip native_translate cuda
-    plans (a defensive no-op today: no catalog row offers native_translate a
-    gpu-cuda tier at all, see planner._tier_available's aarch64 comment)."""
+    """The proactive free-VRAM check must not pre-skip native_translate GPU
+    plans, regardless of device: llama.cpp loads a GGUF fully or not at all
+    (no partial-offload placement math), so a rough weights-vs-free-VRAM
+    guess would only wrongly route a fittable model to CPU."""
     monkeypatch.setattr(accel, "device_free_bytes", lambda: 1 << 30)  # 1 GiB free
     monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 8 << 30)
     loaded = []
@@ -780,11 +875,11 @@ def test_vram_gate_skipped_for_llamacpp(monkeypatch):
         def load(self, ref, device, ct, config=None):
             loaded.append(device)
     monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
-    plans = [accel.Plan("native_translate", "gpu-cuda", "cuda", "q4_k_m", "repo", 2.0),
+    plans = [accel.Plan("native_translate", "gpu-vulkan", "vulkan", "q4_k_m", "repo", 2.0),
              accel.Plan("native_translate", "cpu", "cpu", "q4_k_m", "repo", 2.0)]
     _b, plan, notice = accel.load_with_fallback(plans)
-    assert plan.device == "cuda" and notice is None
-    assert loaded == ["cuda"]
+    assert plan.device == "vulkan" and notice is None
+    assert loaded == ["vulkan"]
 
 
 def test_list_variants_dedupes_llamacpp(monkeypatch):
@@ -821,13 +916,21 @@ class _FakeDev:
         self.description, self.mem_total, self.mem_free = desc, total, free
 
 
-def _fake_native_module(monkeypatch, devs):
+_DEFAULT_FAKE_ENGINE_VERSIONS = {
+    "ggml": "0.22.0", "transcribe": "0.2.2", "llama": "0.3.0",
+    "audiocpp": "0.7.0", "lane": "cpu-vulkan",
+}
+
+
+def _fake_native_module(monkeypatch, devs, *, version="1.0.1", engine_versions=None):
     import sys, types
     from sokuji_sidecar import native
     mod = types.ModuleType("sokuji_native")
     mod.init = lambda n_threads=0, log=None: None
     mod.devices = lambda: list(devs)
     mod.device_free_mem = lambda i: next(d.mem_free for d in devs if d.index == i)
+    mod.version = lambda: version
+    mod.engine_versions = lambda: dict(engine_versions or _DEFAULT_FAKE_ENGINE_VERSIONS)
     monkeypatch.setitem(sys.modules, "sokuji_native", mod)
     native.reset_for_tests()
     return mod
@@ -954,8 +1057,15 @@ def test_ledger_effective_reserve_cpu_loaded_stage_reserves_nothing():
 
 def test_load_measured_claims_into_ledger(monkeypatch):
     accel.ledger_reset()
-    frees = iter([10 << 30, 8 << 30])              # 2GB delta during the load
+    # 3 reads, in order: load_measured's own "before", load_with_fallback's
+    # proactive-gate read for this (now real, generic) GPU plan, then
+    # load_measured's "after". The gate itself stays inert here regardless of
+    # its reading — _model_weight_bytes is mocked to None below, so its
+    # budget never resolves — only the outer before/after pair (10GiB ->
+    # 8GiB, a 2GiB delta) is asserted on.
+    frees = iter([10 << 30, 10 << 30, 8 << 30])
     monkeypatch.setattr(accel, "device_free_bytes", lambda: next(frees))
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: None)
     monkeypatch.setattr(accel, "_rss_bytes", lambda: None)
 
     class _B:
@@ -963,7 +1073,7 @@ def test_load_measured_claims_into_ledger(monkeypatch):
     monkeypatch.setattr(accel, "make_backend", lambda name: _B())
     plans = [accel.Plan("native_asr", "gpu-vulkan", "vulkan", "q8_0", "org/r/f.gguf", 1.0)]
     _b, plan, _n, mem = accel.load_measured(plans, stage="asr")
-    assert mem == 2 << 30                          # vulkan delta measured (not cuda-only)
+    assert mem == 2 << 30                          # vulkan delta measured (not device-specific)
     assert accel.ledger_other("translate") == 2 << 30
     accel.ledger_release("asr")
 

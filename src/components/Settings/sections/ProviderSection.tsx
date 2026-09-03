@@ -3,6 +3,7 @@ import { Cpu, Zap, HelpCircle, CheckCircle, AlertCircle, ExternalLink, X } from 
 import { supportsBaseSelect } from '../../../utils/supportsBaseSelect';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon, ZoomIcon, SonioxIcon, KIZUNA_HOSTED_ICONS } from '../../Icons/ProviderIcons';
 import { PoweredBy } from './PoweredBy';
+import { EngineStatusLine } from './EngineStatusLine';
 import { asSonioxRegion } from '../../../lib/soniox/regions';
 import { sonioxKeyField } from '../../../services/providers/SonioxProviderConfig';
 import { directionKey, type Stage, type DirectionResult } from '../../../lib/local-inference/selection/types';
@@ -190,7 +191,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   // Memory estimate for native — same "footprint ≈ on-disk model size" heuristic
   // as LOCAL_INFERENCE, but split into VRAM vs RAM per stage: a model lands in
-  // VRAM when its device is forced to cuda, or left on auto AND the sidecar
+  // VRAM when its device is forced to gpu, or left on auto AND the sidecar
   // reports an available GPU tier for it (so the resolver would run it on the
   // GPU). Each stage (ASR/translation/TTS) carries its own device override.
   const nativeMemoryEstimate = useMemo(() => {
@@ -649,6 +650,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           )}
           {availableProviders.map((p) => renderProviderOption(p.id as ProviderType))}
         </select>
+        {provider === Provider.LOCAL_NATIVE && <EngineStatusLine />}
       </div>
 
       {/* API Endpoint Input - Only for OpenAI Compatible */}

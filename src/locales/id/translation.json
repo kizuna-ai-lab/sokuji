@@ -693,8 +693,19 @@
     "remove": "Hapus mesin",
     "removeConfirm": "Hapus mesin dan bebaskan ruang disk?",
     "unsupported": "Inferensi lokal tidak didukung di perangkat ini",
-    "devMode": "Mode pengembangan · venv lokal",
-    "installHint": "Instal mesin untuk menjelajahi dan mengunduh model"
+    "installHint": "Instal mesin untuk menjelajahi dan mengunduh model",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Mesin {{version}} · memulai…",
+      "notInstalled": "Mesin belum terpasang",
+      "updateRequired": "Pembaruan mesin {{from}} → {{to}}",
+      "downloadPaused": "Unduhan dijeda",
+      "downloading": "Mengunduh {{pct}}%",
+      "error": "Kesalahan mesin",
+      "unavailable": "Mesin tidak tersedia",
+      "preferredHint": "Perangkat yang lebih diutamakan untuk mesin ini; penggantian per tahap ada di pustaka model."
+    }
   },
   "models": {
     "deletePartial": "Hapus file parsial",
@@ -759,10 +770,13 @@
     "hwSize": "Ukuran",
     "hwRepo": "Repo",
     "computeDevice": "Perangkat komputasi",
-    "computeDeviceTooltip": "Perangkat mana yang menjalankan model ucapan. Otomatis memilih yang tercepat yang tersedia (GPU jika ada); CPU berfungsi di mana saja tetapi lebih lambat untuk model besar; GPU memerlukan GPU CUDA.",
-    "computeDeviceTooltipTranslation": "Perangkat mana yang menjalankan model terjemahan. Otomatis memilih yang tercepat yang tersedia (GPU jika ada); CPU berfungsi di mana saja tetapi lebih lambat untuk model besar; GPU memerlukan GPU CUDA.",
-    "computeDeviceTooltipTts": "Perangkat mana yang menjalankan model sintesis ucapan. Otomatis memilih yang tercepat yang tersedia (GPU jika ada); CPU berfungsi di mana saja tetapi lebih lambat untuk model besar; GPU memerlukan GPU CUDA.",
+    "computeDeviceTooltip": "Perangkat mana yang menjalankan model ucapan. Otomatis memilih perangkat tercepat yang tersedia (GPU jika ada); CPU berfungsi di mana saja tetapi lebih lambat untuk model besar; GPU menggunakan Vulkan di Windows dan Linux, serta Metal di Apple silicon.",
+    "computeDeviceTooltipTranslation": "Perangkat mana yang menjalankan model terjemahan. Otomatis memilih perangkat tercepat yang tersedia (GPU jika ada); CPU berfungsi di mana saja tetapi lebih lambat untuk model besar; GPU menggunakan Vulkan di Windows dan Linux, serta Metal di Apple silicon.",
+    "computeDeviceTooltipTts": "Perangkat mana yang menjalankan model sintesis ucapan. Otomatis memilih perangkat tercepat yang tersedia (GPU jika ada); CPU berfungsi di mana saja tetapi lebih lambat untuk model besar; GPU menggunakan Vulkan di Windows dan Linux, serta Metal di Apple silicon.",
     "deviceAuto": "Otomatis",
+    "multiLanguage": "Multi",
+    "multilingual": "Multibahasa",
+    "languagesCount": "{{count}} bahasa",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "Akselerasi GPU tidak tersedia — berjalan di CPU",
