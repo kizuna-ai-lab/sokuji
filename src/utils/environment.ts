@@ -253,14 +253,39 @@ export function isPalabraAIEnabled(): boolean {
 }
 
 /**
+ * Tester switch for the Local Native provider in packaged builds (temporary, 2026-09).
+ *
+ * The provider is otherwise gated at build time (`VITE_ENABLE_LOCAL_NATIVE`, off in every
+ * release), and a packaged app cannot read process env from the renderer. So, for the few
+ * people testing the sidecar on release builds: View → Toggle Developer Tools, run
+ * `localStorage.setItem('debug:local-native', '1')`, restart the app;
+ * `localStorage.removeItem('debug:local-native')` and a restart hide it again. Electron only.
+ * Same convention as `debug:webgpu-features` in `webgpu.ts`.
+ * Remove together with the build-time gate once Local Native ships.
+ */
+export const LOCAL_NATIVE_DEBUG_KEY = 'debug:local-native';
+
+function hasLocalNativeDebugSwitch(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(LOCAL_NATIVE_DEBUG_KEY) === '1';
+  } catch {
+    return false; // localStorage unavailable in restricted contexts
+  }
+}
+
+/**
  * Check if Local Native (Electron sidecar) provider should be enabled.
- * Development: always true. Production: requires VITE_ENABLE_LOCAL_NATIVE === 'true'.
+ * Development: always true. Production: requires VITE_ENABLE_LOCAL_NATIVE === 'true' at
+ * build time, or the tester switch above at run time (Electron only).
  */
 export function isLocalNativeEnabled(): boolean {
   if (isDevelopmentMode()) {
     return true;
   }
-  return import.meta.env.VITE_ENABLE_LOCAL_NATIVE === 'true';
+  if (import.meta.env.VITE_ENABLE_LOCAL_NATIVE === 'true') {
+    return true;
+  }
+  return isElectron() && hasLocalNativeDebugSwitch();
 }
 
 // ============================================================================
