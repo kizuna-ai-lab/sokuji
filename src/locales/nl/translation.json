@@ -908,7 +908,6 @@
     "clipTooLong": "Opname is te lang — houd deze onder {seconds} seconden.",
     "clipTooShort": "Opname is te kort — spreek minstens {seconds} seconden.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "Een aangepaste stem nodig?",
     "decodeFailed": "Kon dat audiobestand niet lezen — probeer een WAV, MP3 of ander gangbaar formaat.",
     "delete": "Verwijderen",
     "deleteConfirm": "Stem \"{name}\" verwijderen?",
@@ -918,7 +917,6 @@
     "importVoice": "Stem importeren…",
     "manageImported": "Geïmporteerde stemmen beheren",
     "myVoices": "Mijn stemmen",
-    "openVoiceBuilder": "Maak er een in Voice Builder",
     "play": "Afspelen",
     "presets": "Presets",
     "recordVoice": "Stem opnemen…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "Typ precies wat de clip zegt…",
     "unstable": "onstabiel",
     "voice": "Stem",
-    "voiceBuilderDisclaimer": "Betaalde Supertone-dienst. Sokuji is niet betrokken bij die transactie.",
+    "voiceBuilderClosed": "Supertone heeft zijn Voice Builder-dienst op 31 augustus 2026 gesloten. Al gedownloade stembestanden kunnen nog steeds worden geïmporteerd.",
     "refreshList": "Stemlijst vernieuwen"
   },
   "echoNotice": {

@@ -908,7 +908,6 @@
     "clipTooLong": "రికార్డింగ్ చాలా పొడవుగా ఉంది — దాన్ని {seconds} సెకన్ల లోపు ఉంచండి.",
     "clipTooShort": "రికార్డింగ్ చాలా చిన్నది — కనీసం {seconds} సెకన్లు మాట్లాడండి.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "అనుకూల వాయిస్ కావాలా?",
     "decodeFailed": "ఆ ఆడియో ఫైల్‌ను చదవలేకపోయాము — WAV, MP3 లేదా ఇతర సాధారణ ఫార్మాట్‌ను ప్రయత్నించండి.",
     "delete": "తొలగించు",
     "deleteConfirm": "\"{name}\" వాయిస్‌ను తొలగించాలా?",
@@ -918,7 +917,6 @@
     "importVoice": "వాయిస్ దిగుమతి చేయి…",
     "manageImported": "దిగుమతి చేసిన వాయిస్‌లను నిర్వహించండి",
     "myVoices": "నా వాయిస్‌లు",
-    "openVoiceBuilder": "Voice Builder లో ఒకటి సృష్టించండి",
     "play": "ప్లే చేయి",
     "presets": "ప్రీసెట్‌లు",
     "recordVoice": "వాయిస్ రికార్డ్ చేయి…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "క్లిప్‌లో ఏం చెప్పారో అచ్చంగా టైప్ చేయండి…",
     "unstable": "అస్థిరం",
     "voice": "వాయిస్",
-    "voiceBuilderDisclaimer": "చెల్లింపు Supertone సేవ. ఆ లావాదేవీలో Sokuji ప్రమేయం లేదు.",
+    "voiceBuilderClosed": "Supertone తన Voice Builder సేవను 31 ఆగస్టు 2026న నిలిపివేసింది. ఇప్పటికే డౌన్‌లోడ్ చేసిన వాయిస్ ఫైళ్లను ఇప్పటికీ దిగుమతి చేసుకోవచ్చు.",
     "refreshList": "వాయిస్ జాబితాను రిఫ్రెష్ చేయండి"
   },
   "echoNotice": {

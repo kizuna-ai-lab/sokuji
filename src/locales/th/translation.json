@@ -908,7 +908,6 @@
     "clipTooLong": "การบันทึกยาวเกินไป — ให้สั้นกว่า {seconds} วินาที",
     "clipTooShort": "การบันทึกสั้นเกินไป — พูดอย่างน้อย {seconds} วินาที",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "ต้องการเสียงที่กำหนดเอง?",
     "decodeFailed": "ไม่สามารถอ่านไฟล์เสียงนั้นได้ — ลองใช้ WAV, MP3 หรือรูปแบบทั่วไปอื่นๆ",
     "delete": "ลบ",
     "deleteConfirm": "ลบเสียง \"{name}\"?",
@@ -918,7 +917,6 @@
     "importVoice": "นำเข้าเสียง…",
     "manageImported": "จัดการเสียงที่นำเข้า",
     "myVoices": "เสียงของฉัน",
-    "openVoiceBuilder": "สร้างได้ที่ Voice Builder",
     "play": "เล่น",
     "presets": "พรีเซ็ต",
     "recordVoice": "บันทึกเสียง…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "พิมพ์ให้ตรงกับที่พูดในคลิป…",
     "unstable": "ไม่เสถียร",
     "voice": "เสียง",
-    "voiceBuilderDisclaimer": "บริการแบบเสียเงินของ Supertone Sokuji ไม่มีส่วนเกี่ยวข้องกับธุรกรรมนั้น",
+    "voiceBuilderClosed": "Supertone ปิดบริการ Voice Builder เมื่อวันที่ 31 สิงหาคม 2026 ไฟล์เสียงที่คุณดาวน์โหลดไว้แล้วยังคงนำเข้าได้",
     "refreshList": "รีเฟรชรายการเสียง"
   },
   "echoNotice": {

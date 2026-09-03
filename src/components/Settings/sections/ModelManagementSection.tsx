@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight, AlertTriangle, Zap, Star, ExternalLink, FolderInput } from 'lucide-react';
+import { Download, Trash2, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight, AlertTriangle, Zap, Star, FolderInput } from 'lucide-react';
 import {
   useModelStore,
   useModelStatuses,
@@ -38,7 +38,6 @@ import { importedSidFromDbKey, dbKeyFromImportedSid } from '../../../lib/local-i
 import { getEdgeTtsVoices, filterVoicesByLanguage, getVoiceDisplayName } from '../../../lib/edge-tts/voiceList';
 import type { Voice } from '../../../lib/edge-tts/edgeTts';
 import { reportError, describeCause } from '../../../lib/diagnostics/report';
-import { isElectron } from '../../../utils/environment';
 import './ModelManagementSection.scss';
 import { LanguageTags } from './LanguageTags';
 
@@ -890,29 +889,15 @@ export function ModelManagementSection({
       />
       {isSupertonicTts && (
         <>
+          {/* Supertone's Voice Builder — the only source of custom
+              voice_style.json files — closed on 2026-08-31 with the company's
+              liquidation, so there is nothing to link to any more. Files a
+              user already downloaded still import through the section above. */}
           <div className="voice-library-info">
-            {t('voiceLibrary.customVoiceCta', 'Need a custom voice?')}{' '}
-            <a
-              href="https://supertonic.supertone.ai/voice-builder"
-              onClick={(e) => {
-                e.preventDefault();
-                const url = 'https://supertonic.supertone.ai/voice-builder';
-                if (isElectron() && (window as any).electron?.invoke) {
-                  (window as any).electron.invoke('open-external', url);
-                } else {
-                  window.open(url, '_blank', 'noopener,noreferrer');
-                }
-              }}
-            >
-              {t('voiceLibrary.openVoiceBuilder', 'Create one at Voice Builder')}
-              <ExternalLink size={14} />
-            </a>
-            <div className="voice-library-info-sub">
-              {t(
-                'voiceLibrary.voiceBuilderDisclaimer',
-                'Paid Supertone service. Sokuji is not involved in that transaction.',
-              )}
-            </div>
+            {t(
+              'voiceLibrary.voiceBuilderClosed',
+              'Supertone closed its Voice Builder service on August 31, 2026. Voice files you already downloaded can still be imported.',
+            )}
           </div>
           {importError && (
             <div className="setting-item error">

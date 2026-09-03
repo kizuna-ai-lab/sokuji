@@ -908,7 +908,6 @@
     "clipTooLong": "பதிவு மிக நீளமானது — {seconds} வினாடிகளுக்குள் வைக்கவும்.",
     "clipTooShort": "பதிவு மிகக் குறுகியது — குறைந்தது {seconds} வினாடிகள் பேசவும்.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "தனிப்பயன் குரல் வேண்டுமா?",
     "decodeFailed": "அந்த ஆடியோ கோப்பைப் படிக்க முடியவில்லை — WAV, MP3 அல்லது வேறு பொதுவான வடிவத்தை முயற்சிக்கவும்.",
     "delete": "நீக்கு",
     "deleteConfirm": "\"{name}\" குரலை நீக்கவா?",
@@ -918,7 +917,6 @@
     "importVoice": "குரலை இறக்குமதி செய்…",
     "manageImported": "இறக்குமதி செய்த குரல்களை நிர்வகி",
     "myVoices": "என் குரல்கள்",
-    "openVoiceBuilder": "Voice Builder இல் ஒன்றை உருவாக்கவும்",
     "play": "இயக்கு",
     "presets": "முன்னமைவுகள்",
     "recordVoice": "குரலைப் பதிவு செய்…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "கிளிப் சொல்வதை அப்படியே தட்டச்சு செய்யவும்…",
     "unstable": "நிலையற்றது",
     "voice": "குரல்",
-    "voiceBuilderDisclaimer": "கட்டணச் Supertone சேவை. அந்தப் பரிவர்த்தனையில் Sokuji ஈடுபடவில்லை.",
+    "voiceBuilderClosed": "Supertone தனது Voice Builder சேவையை 31 ஆகஸ்ட் 2026 அன்று நிறுத்தியது. ஏற்கனவே பதிவிறக்கிய குரல் கோப்புகளை இன்னும் இறக்குமதி செய்யலாம்.",
     "refreshList": "குரல் பட்டியலைப் புதுப்பிக்கவும்"
   },
   "echoNotice": {

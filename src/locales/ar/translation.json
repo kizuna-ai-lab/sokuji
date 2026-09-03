@@ -908,7 +908,6 @@
     "clipTooLong": "التسجيل طويل جدًا — أبقِه أقل من {seconds} ثانية.",
     "clipTooShort": "التسجيل قصير جدًا — تحدّث لمدة {seconds} ثانية على الأقل.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "تحتاج صوتًا مخصصًا؟",
     "decodeFailed": "تعذّرت قراءة ذلك الملف الصوتي — جرّب WAV أو MP3 أو تنسيقًا شائعًا آخر.",
     "delete": "حذف",
     "deleteConfirm": "حذف الصوت \"{name}\"؟",
@@ -918,7 +917,6 @@
     "importVoice": "استيراد صوت…",
     "manageImported": "إدارة الأصوات المستوردة",
     "myVoices": "أصواتي",
-    "openVoiceBuilder": "أنشئ واحدًا في Voice Builder",
     "play": "تشغيل",
     "presets": "الإعدادات المسبقة",
     "recordVoice": "تسجيل صوت…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "اكتب بالضبط ما يقوله المقطع…",
     "unstable": "غير مستقر",
     "voice": "الصوت",
-    "voiceBuilderDisclaimer": "خدمة Supertone مدفوعة. Sokuji ليس طرفًا في تلك المعاملة.",
+    "voiceBuilderClosed": "أغلقت Supertone خدمة Voice Builder في 31 أغسطس 2026. لا يزال بالإمكان استيراد ملفات الصوت التي نزّلتها من قبل.",
     "refreshList": "تحديث قائمة الأصوات"
   },
   "echoNotice": {

@@ -908,7 +908,6 @@
     "clipTooLong": "Inspelningen är för lång — håll den under {seconds} sekunder.",
     "clipTooShort": "Inspelningen är för kort — tala i minst {seconds} sekunder.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "Behöver du en anpassad röst?",
     "decodeFailed": "Kunde inte läsa den ljudfilen — prova WAV, MP3 eller ett annat vanligt format.",
     "delete": "Radera",
     "deleteConfirm": "Radera rösten \"{name}\"?",
@@ -918,7 +917,6 @@
     "importVoice": "Importera röst…",
     "manageImported": "Hantera importerade röster",
     "myVoices": "Mina röster",
-    "openVoiceBuilder": "Skapa en i Voice Builder",
     "play": "Spela upp",
     "presets": "Förinställningar",
     "recordVoice": "Spela in röst…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "Skriv exakt vad klippet säger…",
     "unstable": "instabil",
     "voice": "Röst",
-    "voiceBuilderDisclaimer": "Betald Supertone-tjänst. Sokuji är inte inblandat i den transaktionen.",
+    "voiceBuilderClosed": "Supertone stängde sin Voice Builder-tjänst den 31 augusti 2026. Röstfiler som du redan har laddat ned kan fortfarande importeras.",
     "refreshList": "Uppdatera röstlistan"
   },
   "echoNotice": {

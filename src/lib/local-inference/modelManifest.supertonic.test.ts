@@ -22,8 +22,12 @@ describe('Supertonic 3 manifest entry', () => {
     expect(entry!.numSpeakers).toBe(10);
   });
 
-  it('uses Supertone/supertonic-3 as the HF model id', () => {
-    expect(entry!.hfModelId).toBe('Supertone/supertonic-3');
+  it('downloads from our verbatim mirror, not the dissolving upstream org', () => {
+    // Supertone Inc. resolved to dissolve on 2026-07-15; Supertone/supertonic-3
+    // may disappear with the liquidation. jiangzhuo9357/supertonic-3 is a
+    // sha256-verified byte-for-byte copy of upstream @ 3cadd1ee with the same
+    // file layout, so every path below resolves unchanged.
+    expect(entry!.hfModelId).toBe('jiangzhuo9357/supertonic-3');
   });
 
   it('selects the only variant (default) on any device', () => {
@@ -64,10 +68,23 @@ describe('Supertonic 3 manifest entry', () => {
     expect(total).toBeLessThanOrEqual(383 * 1024 * 1024);
   });
 
+  it('pins the mirror to the verified, immutable commit', () => {
+    // The download path validates size and shape only, so a mutable branch
+    // ref would let a later push to the mirror change what users cache. A
+    // commit ref cannot move: this is the commit whose 39 files were
+    // sha256-checked against upstream, and bumping it is a deliberate edit.
+    expect(entry!.hfRevision).toBe('95e49bbdc2a88e24f25f5469d01a6427d14d9d3a');
+  });
+
   it('builds the expected HF download URL', () => {
     const url = getModelDownloadUrl(entry!, 'onnx/duration_predictor.onnx');
     expect(url).toBe(
-      'https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/duration_predictor.onnx',
+      'https://huggingface.co/jiangzhuo9357/supertonic-3/resolve/95e49bbdc2a88e24f25f5469d01a6427d14d9d3a/onnx/duration_predictor.onnx',
     );
+  });
+
+  it('unpinned HF entries still resolve against main', () => {
+    const url = getModelDownloadUrl({ type: 'tts', hfModelId: 'org/model' }, 'x.onnx');
+    expect(url).toBe('https://huggingface.co/org/model/resolve/main/x.onnx');
   });
 });

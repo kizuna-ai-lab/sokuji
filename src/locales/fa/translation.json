@@ -908,7 +908,6 @@
     "clipTooLong": "ضبط خیلی طولانی است — آن را زیر {seconds} ثانیه نگه دارید.",
     "clipTooShort": "ضبط خیلی کوتاه است — حداقل {seconds} ثانیه صحبت کنید.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "به صدای سفارشی نیاز دارید؟",
     "decodeFailed": "خواندن آن فایل صوتی ممکن نشد — یک WAV، MP3 یا قالب رایج دیگر را امتحان کنید.",
     "delete": "حذف",
     "deleteConfirm": "صدای \"{name}\" حذف شود؟",
@@ -918,7 +917,6 @@
     "importVoice": "وارد کردن صدا…",
     "manageImported": "مدیریت صداهای وارد‌شده",
     "myVoices": "صداهای من",
-    "openVoiceBuilder": "یکی را در Voice Builder بسازید",
     "play": "پخش",
     "presets": "پیش‌تنظیم‌ها",
     "recordVoice": "ضبط صدا…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "دقیقاً آنچه در کلیپ گفته می‌شود را تایپ کنید…",
     "unstable": "ناپایدار",
     "voice": "صدا",
-    "voiceBuilderDisclaimer": "سرویس پولی Supertone. Sokuji در آن تراکنش دخالتی ندارد.",
+    "voiceBuilderClosed": "Supertone سرویس Voice Builder را در ۳۱ اوت ۲۰۲۶ تعطیل کرد. فایل‌های صدایی که قبلاً دانلود کرده‌اید همچنان قابل وارد کردن هستند.",
     "refreshList": "به‌روزرسانی فهرست صداها"
   },
   "echoNotice": {

@@ -908,7 +908,6 @@
     "clipTooLong": "रिकॉर्डिंग बहुत लंबी है — इसे {seconds} सेकंड से कम रखें।",
     "clipTooShort": "रिकॉर्डिंग बहुत छोटी है — कम से कम {seconds} सेकंड बोलें।",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "कस्टम आवाज़ चाहिए?",
     "decodeFailed": "वह ऑडियो फ़ाइल पढ़ी नहीं जा सकी — WAV, MP3 या कोई अन्य सामान्य प्रारूप आज़माएं।",
     "delete": "हटाएं",
     "deleteConfirm": "आवाज़ \"{name}\" हटाएं?",
@@ -918,7 +917,6 @@
     "importVoice": "आवाज़ आयात करें…",
     "manageImported": "आयातित आवाज़ें प्रबंधित करें",
     "myVoices": "मेरी आवाज़ें",
-    "openVoiceBuilder": "Voice Builder में एक बनाएं",
     "play": "चलाएं",
     "presets": "प्रीसेट",
     "recordVoice": "आवाज़ रिकॉर्ड करें…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "क्लिप में जो कहा गया है ठीक वही टाइप करें…",
     "unstable": "अस्थिर",
     "voice": "आवाज़",
-    "voiceBuilderDisclaimer": "सशुल्क Supertone सेवा। Sokuji उस लेन-देन में शामिल नहीं है।",
+    "voiceBuilderClosed": "Supertone ने अपनी Voice Builder सेवा 31 अगस्त 2026 को बंद कर दी। पहले डाउनलोड की गई आवाज़ फ़ाइलें अब भी इंपोर्ट की जा सकती हैं।",
     "refreshList": "आवाज़ सूची रीफ़्रेश करें"
   },
   "echoNotice": {

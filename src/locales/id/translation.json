@@ -908,7 +908,6 @@
     "clipTooLong": "Rekaman terlalu panjang — jaga di bawah {seconds} detik.",
     "clipTooShort": "Rekaman terlalu pendek — bicaralah setidaknya {seconds} detik.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "Butuh suara kustom?",
     "decodeFailed": "Tidak dapat membaca file audio itu — coba WAV, MP3, atau format umum lainnya.",
     "delete": "Hapus",
     "deleteConfirm": "Hapus suara \"{name}\"?",
@@ -918,7 +917,6 @@
     "importVoice": "Impor suara…",
     "manageImported": "Kelola suara yang diimpor",
     "myVoices": "Suara Saya",
-    "openVoiceBuilder": "Buat di Voice Builder",
     "play": "Putar",
     "presets": "Preset",
     "recordVoice": "Rekam suara…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "Ketik persis apa yang diucapkan dalam klip…",
     "unstable": "tidak stabil",
     "voice": "Suara",
-    "voiceBuilderDisclaimer": "Layanan berbayar Supertone. Sokuji tidak terlibat dalam transaksi tersebut.",
+    "voiceBuilderClosed": "Supertone menutup layanan Voice Builder pada 31 Agustus 2026. File suara yang sudah Anda unduh masih dapat diimpor.",
     "refreshList": "Segarkan daftar suara"
   },
   "echoNotice": {

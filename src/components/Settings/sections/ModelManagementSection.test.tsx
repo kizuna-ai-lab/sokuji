@@ -167,6 +167,28 @@ describe('ModelManagementSection — embedded voice', () => {
     // The voice control renders only in the selected TTS card, nowhere else.
     expect(screen.getAllByText('Voice')).toHaveLength(1);
   });
+
+  it('tells Supertonic users Voice Builder is gone instead of linking to it', async () => {
+    // Supertone (HYBE) resolved to dissolve on 2026-07-15 and shut Voice
+    // Builder on 2026-08-31 — supertonic.supertone.ai is a 404. The card must
+    // say so and must not send anyone to the dead service; already-downloaded
+    // voice_style.json files still import fine, and that is what the notice
+    // should leave the user with.
+    mockSettings.selections = {
+      [directionKey('en', 'en')]: {
+        asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'supertonic-3' },
+      },
+    };
+    mockStatuses['supertonic-3'] = 'downloaded';
+
+    render(<ModelManagementSection isSessionActive={false} />);
+
+    const card = await waitFor(() => screen.getByTestId('model-card-supertonic-3'));
+    expect(within(card).getByText(/Voice Builder/)).toHaveTextContent(/closed/i);
+    expect(within(card).getByText(/Voice Builder/)).toHaveTextContent(/can still be imported/i);
+    expect(card.querySelector('a[href*="supertone.ai"]')).toBeNull();
+    expect(within(card).queryByText('Need a custom voice?')).toBeNull();
+  });
 });
 
 describe('ModelManagementSection — selected state comes from resolve(), not settings writes (Task 11)', () => {
