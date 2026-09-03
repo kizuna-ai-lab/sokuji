@@ -6,6 +6,7 @@ import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/se
 import { useNativeCatalog } from '../../../stores/nativeModelStore';
 import { gpuTierAvailable } from '../../../lib/local-inference/native/nativeCatalog';
 import type { Stage } from '../../../lib/local-inference/selection/types';
+import './NativeDeviceControl.scss';
 
 type DeviceMode = 'auto' | 'cpu' | 'gpu';
 

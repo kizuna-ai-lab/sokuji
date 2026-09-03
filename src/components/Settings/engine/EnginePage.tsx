@@ -24,6 +24,15 @@ export const STAGE_FULL_LABEL_KEY: Record<string, [string, string]> = {
   tts: ['models.ttsModels', 'Speech Synthesis (TTS)'],
 };
 
+/** The abbreviations the model chips already use ("ASR" / "MT" / "TTS"). A
+ *  narrow panel shows these instead of the full label — see SlotRow and the
+ *  container query in Engine.scss — so the label column stops wrapping. */
+export const STAGE_SHORT_LABEL_KEY: Record<string, [string, string]> = {
+  asr: ['providers.local_inference.modelAsr', 'ASR'],
+  translation: ['providers.local_inference.modelTranslation', 'MT'],
+  tts: ['providers.local_inference.modelTts', 'TTS'],
+};
+
 /** The dropdown option value that means "push the Library" — never a model
  *  id (manifest/catalog ids are lowercase-kebab, this is namespaced). */
 export const BROWSE_OPTION_VALUE = '__browse__';
@@ -79,6 +88,7 @@ export const EnginePage: React.FC<{
             const slot: SlotId = { dir, stage };
             const resolved = adapter.resolved(slot);
             const label = t(STAGE_FULL_LABEL_KEY[stage][0], STAGE_FULL_LABEL_KEY[stage][1]);
+            const shortLabel = t(STAGE_SHORT_LABEL_KEY[stage][0], STAGE_SHORT_LABEL_KEY[stage][1]);
             // Controlled value: explicit picks are the model id, auto is ''.
             // A stale explicit pick can't reach here as `explicit` — the
             // resolver only reports explicit when the pick is usable, so the
@@ -86,7 +96,7 @@ export const EnginePage: React.FC<{
             const value = resolved?.source === 'explicit' ? resolved.modelId : '';
             return (
               <React.Fragment key={stage}>
-                <SlotRow slot={slot} label={label} flashSlot={flashSlot}>
+                <SlotRow slot={slot} label={label} shortLabel={shortLabel} flashSlot={flashSlot}>
                   <select
                     className={`select-dropdown engine-slot__select${resolved ? '' : ' engine-slot__select--missing'}`}
                     value={value}

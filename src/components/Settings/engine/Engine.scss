@@ -60,6 +60,11 @@
     color: vars.$text-secondary;
   }
 
+  // The full label ("Speech Recognition (ASR)") needs the wide column; the
+  // abbreviation takes over below the container width where even the wide
+  // column would wrap it - see the @container block at the end of this file.
+  &__label-short { display: none; }
+
   &__control {
     flex: 1;
     min-width: 0;
@@ -416,4 +421,16 @@
     outline: 1px solid rgba(59, 130, 246, 0.2);
     outline-offset: 2px;
   }
+}
+
+// Narrow settings panel: abbreviations (ASR / MT / TTS) in a short label
+// column, and the per-slot extras indent to match. The engine surface is
+// the query container so the threshold follows the panel, not the window.
+.engine-surface { container-type: inline-size; }
+
+@container (max-width: 440px) {
+  .engine-slot__label { flex-basis: 40px; }
+  .engine-slot__label-long { display: none; }
+  .engine-slot__label-short { display: inline; }
+  .engine-slot__extras { margin-left: 50px; }
 }
