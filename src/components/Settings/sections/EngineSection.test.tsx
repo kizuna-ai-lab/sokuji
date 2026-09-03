@@ -38,17 +38,19 @@ describe('EngineSection states (spec S10)', () => {
     expect(screen.getByText(/not supported/)).toBeTruthy();
   });
 
-  it('dev venv without a bundle: quiet dev note, no download nag', () => {
+  it('dev venv without a bundle: no dev note, no download nag — the status line carries the identity', () => {
     setBundle({ bundleStatus: 'absent', bundleDevVenv: true });
-    render(<EngineSection />);
-    expect(screen.getByText(/Development mode/)).toBeTruthy();
+    const { container } = render(<EngineSection />);
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByText(/Development mode/)).toBeNull();
     expect(screen.queryByText(/Download engine/)).toBeNull();
   });
 
-  it('dev venv on an unsupported-SKU machine (ARM dev box): dev note, not "unsupported"', () => {
+  it('dev venv on an unsupported-SKU machine (ARM dev box): no dev note, not "unsupported" either', () => {
     setBundle({ bundleStatus: 'unsupported', bundleDevVenv: true });
-    render(<EngineSection />);
-    expect(screen.getByText(/Development mode/)).toBeTruthy();
+    const { container } = render(<EngineSection />);
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByText(/Development mode/)).toBeNull();
     expect(screen.queryByText(/not supported/)).toBeNull();
   });
 
@@ -104,11 +106,10 @@ describe('EngineSection states (spec S10)', () => {
     expect(screen.getByText(/Retry/)).toBeTruthy();
   });
 
-  it('ready: version badge + remove affordance', () => {
-    setBundle({ bundleStatus: 'ready', bundleVersion: '0.1.0', bundleInstalledSize: 4.9 * 1e9 });
-    render(<EngineSection />);
-    expect(screen.getByText(/Engine 0\.1\.0/)).toBeTruthy();
-    expect(screen.getByText(/Remove engine/)).toBeTruthy();
+  it('ready + healthy sidecar: renders nothing', () => {
+    setBundle({ bundleStatus: 'ready', bundleVersion: '0.1.0', bundleInstalledSize: 4.9 * 1e9, sidecarStatus: 'ready' });
+    const { container } = render(<EngineSection />);
+    expect(container.firstChild).toBeNull();
   });
 
   it('ready + sidecar unavailable: runtime error + retry live inside the card', () => {
@@ -123,13 +124,16 @@ describe('EngineSection states (spec S10)', () => {
     expect(retrySidecar).toHaveBeenCalled();
   });
 
-  it('dev venv + sidecar unavailable: error + retry inside the quiet dev card', () => {
+  it('dev venv + sidecar unavailable: error + retry render, without the (now-removed) dev note', () => {
+    const retrySidecar = vi.fn(async () => {});
     setBundle({
       bundleStatus: 'absent', bundleDevVenv: true,
-      sidecarStatus: 'unavailable', retrySidecar: vi.fn(async () => {}),
+      sidecarStatus: 'unavailable', retrySidecar,
     });
     render(<EngineSection />);
-    expect(screen.getByText(/Development mode/)).toBeTruthy();
+    expect(screen.queryByText(/Development mode/)).toBeNull();
     expect(screen.getByText(/unavailable/)).toBeTruthy();
+    fireEvent.click(screen.getByText(/Retry/));
+    expect(retrySidecar).toHaveBeenCalled();
   });
 });

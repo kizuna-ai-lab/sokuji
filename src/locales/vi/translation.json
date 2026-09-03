@@ -693,8 +693,19 @@
     "remove": "Gỡ công cụ",
     "removeConfirm": "Gỡ công cụ và giải phóng dung lượng ổ đĩa?",
     "unsupported": "Suy luận cục bộ không được hỗ trợ trên thiết bị này",
-    "devMode": "Chế độ phát triển · venv cục bộ",
-    "installHint": "Cài đặt công cụ để duyệt và tải xuống mô hình"
+    "installHint": "Cài đặt công cụ để duyệt và tải xuống mô hình",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Công cụ {{version}} · đang khởi động…",
+      "notInstalled": "Công cụ chưa được cài đặt",
+      "updateRequired": "Cập nhật công cụ {{from}} → {{to}}",
+      "downloadPaused": "Đã tạm dừng tải xuống",
+      "downloading": "Đang tải xuống {{pct}}%",
+      "error": "Lỗi công cụ",
+      "unavailable": "Công cụ không khả dụng",
+      "preferredHint": "Thiết bị ưu tiên cho máy này; các ghi đè theo từng giai đoạn có trong thư viện mô hình."
+    }
   },
   "models": {
     "deletePartial": "Xóa các tệp tải dở",
@@ -759,10 +770,13 @@
     "hwSize": "Dung lượng",
     "hwRepo": "Kho lưu trữ",
     "computeDevice": "Thiết bị tính toán",
-    "computeDeviceTooltip": "Thiết bị nào chạy mô hình nhận dạng giọng nói. Tự động chọn thiết bị nhanh nhất hiện có (GPU nếu có); CPU hoạt động ở mọi nơi nhưng chậm hơn với mô hình lớn; GPU yêu cầu GPU hỗ trợ CUDA.",
-    "computeDeviceTooltipTranslation": "Thiết bị nào chạy mô hình dịch. Tự động chọn thiết bị nhanh nhất hiện có (GPU nếu có); CPU hoạt động ở mọi nơi nhưng chậm hơn với mô hình lớn; GPU yêu cầu GPU hỗ trợ CUDA.",
-    "computeDeviceTooltipTts": "Thiết bị nào chạy mô hình tổng hợp giọng nói. Tự động chọn thiết bị nhanh nhất hiện có (GPU nếu có); CPU hoạt động ở mọi nơi nhưng chậm hơn với mô hình lớn; GPU yêu cầu GPU hỗ trợ CUDA.",
+    "computeDeviceTooltip": "Thiết bị nào chạy mô hình nhận dạng giọng nói. Tự động chọn thiết bị nhanh nhất hiện có (GPU nếu có); CPU hoạt động ở mọi nơi nhưng chậm hơn với mô hình lớn; GPU sử dụng Vulkan trên Windows và Linux, và Metal trên Apple silicon.",
+    "computeDeviceTooltipTranslation": "Thiết bị nào chạy mô hình dịch. Tự động chọn thiết bị nhanh nhất hiện có (GPU nếu có); CPU hoạt động ở mọi nơi nhưng chậm hơn với mô hình lớn; GPU sử dụng Vulkan trên Windows và Linux, và Metal trên Apple silicon.",
+    "computeDeviceTooltipTts": "Thiết bị nào chạy mô hình tổng hợp giọng nói. Tự động chọn thiết bị nhanh nhất hiện có (GPU nếu có); CPU hoạt động ở mọi nơi nhưng chậm hơn với mô hình lớn; GPU sử dụng Vulkan trên Windows và Linux, và Metal trên Apple silicon.",
     "deviceAuto": "Tự động",
+    "multiLanguage": "Đa ngôn ngữ",
+    "multilingual": "Đa ngôn ngữ",
+    "languagesCount": "{{count}} ngôn ngữ",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "Không có tăng tốc GPU — đang chạy trên CPU",

@@ -34,8 +34,8 @@ describe('ttsDevice setting', () => {
     expect(useSettingsStore.getState().localNative.ttsDevice).toBe('auto');
   });
   it('is updatable', async () => {
-    await useSettingsStore.getState().updateLocalNative({ ttsDevice: 'cuda' });
-    expect(useSettingsStore.getState().localNative.ttsDevice).toBe('cuda');
+    await useSettingsStore.getState().updateLocalNative({ ttsDevice: 'gpu' });
+    expect(useSettingsStore.getState().localNative.ttsDevice).toBe('gpu');
   });
   it('local_native session config carries the ttsDevice override', () => {
     useSettingsStore.setState({

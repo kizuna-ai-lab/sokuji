@@ -162,11 +162,11 @@ def resolve_deployments(model, machine: Machine, override: str = "auto",
               and _platform_ok(d, machine, platform)]
     usable.sort(key=lambda d: (TIER_RANK.get(d.tier, 0.0), d.rank), reverse=True)
     if override != "auto":
-        # The renderer's device control is auto/cpu/GPU and sends 'cuda' for
-        # GPU — treat it as "any accelerator tier" so it also pins
-        # vulkan/metal deployments (native ASR cards have no cuda rows).
+        # The renderer's device control is auto/cpu/gpu. 'gpu' pins ANY
+        # accelerator tier (not just one device name), so it also pins
+        # vulkan/metal deployments alike.
         def _pinned(d):
-            return TIER_DEVICE.get(d.tier) == override or (override == "cuda" and d.tier != "cpu")
+            return TIER_DEVICE.get(d.tier) == override or (override == "gpu" and d.tier != "cpu")
         pinned = [d for d in usable if _pinned(d)]
         rest = [d for d in usable if not _pinned(d)]
         usable = pinned + rest
@@ -233,9 +233,9 @@ def _quant_budget_bytes(machine: Machine):
     pressure is placement's job (load_with_fallback's GPU->cpu tier
     fallback), never a silent switch to a different model file."""
     # Largest-device basis: correct for the ~universal single-GPU case. On a rare
-    # dual-DISCRETE-vendor box (AMD + NVIDIA) this can budget a gpu-cuda download
-    # against the non-CUDA card's VRAM — accepted as a documented limitation
-    # (per-tier/vendor budgeting is out of P2's NVML-removal scope).
+    # dual-DISCRETE-vendor box (two GPUs) this can budget a download against the
+    # wrong card's VRAM — accepted as a documented limitation (per-tier/vendor
+    # budgeting is out of P2's NVML-removal scope).
     total = max((t for _k, _n, t in machine.gpus), default=0)
     return total or None
 
@@ -418,7 +418,8 @@ def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, plat
 
 
 # Free VRAM must clear weights x this factor (transient activation/workspace) plus
-# a fixed slab for the CUDA context before we commit a GPU load proactively.
+# a fixed slab for the GPU runtime's own context before we commit a GPU load
+# proactively.
 _VRAM_WEIGHT_FACTOR = 1.2
 _VRAM_CONTEXT_BYTES = 1 << 30  # ~1 GiB
 

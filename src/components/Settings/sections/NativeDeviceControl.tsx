@@ -6,13 +6,14 @@ import { useLocalNativeSettings, useUpdateLocalNative } from '../../../stores/se
 import { useNativeCatalog } from '../../../stores/nativeModelStore';
 import { gpuTierAvailable } from '../../../lib/local-inference/native/nativeCatalog';
 import type { Stage } from '../../../lib/local-inference/selection/types';
+import './NativeDeviceControl.scss';
 
-type DeviceMode = 'auto' | 'cpu' | 'cuda';
+type DeviceMode = 'auto' | 'cpu' | 'gpu';
 
 const TOOLTIP_KEY: Record<Stage, [string, string]> = {
-  asr: ['models.computeDeviceTooltip', 'Which device runs the speech model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.'],
-  translation: ['models.computeDeviceTooltipTranslation', 'Which device runs the translation model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.'],
-  tts: ['models.computeDeviceTooltipTts', 'Which device runs the speech-synthesis model. Auto picks the fastest available (GPU when present); CPU works everywhere but is slower for large models; GPU requires a CUDA GPU.'],
+  asr: ['models.computeDeviceTooltip', 'Which device runs the speech model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.'],
+  translation: ['models.computeDeviceTooltipTranslation', 'Which device runs the translation model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.'],
+  tts: ['models.computeDeviceTooltipTts', 'Which device runs the speech-synthesis model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.'],
 };
 
 /**
@@ -20,10 +21,11 @@ const TOOLTIP_KEY: Record<Stage, [string, string]> = {
  * writing asrDevice/translationDevice/ttsDevice on the localNative slice.
  *
  * Extracted (Task 8, Step 3b) from NativeModelManagementSection's group
- * headers so the Engine surface's native adapter can reuse the identical
- * control as a slot's `stageExtras` without the two copies drifting apart —
- * markup here is byte-identical to the inline block it replaced. NMMS keeps
- * rendering it in its group headers when used standalone as the Library.
+ * headers; markup here is byte-identical to the inline block it replaced.
+ * This is now the control's ONLY mount (B'2 decision, 2026-09-03): the Engine
+ * page dropped its own copy in favor of a read-only SlotDeviceBadge that
+ * links back here, so this control lives solely in the model library, in
+ * NMMS's group headers.
  */
 export const NativeDeviceControl: React.FC<{ stage: Stage; disabled?: boolean }> = ({ stage, disabled = false }) => {
   const { t } = useTranslation();
@@ -35,12 +37,12 @@ export const NativeDeviceControl: React.FC<{ stage: Stage; disabled?: boolean }>
   const rawValue = stage === 'asr' ? settings.asrDevice
     : stage === 'translation' ? settings.translationDevice
     : settings.ttsDevice;
-  // Coerce a stale 'cuda' to 'auto' for display when no GPU tier is available.
-  const deviceValue: DeviceMode = rawValue === 'cuda' && !gpuAvail ? 'auto' : rawValue;
+  // Coerce a stale 'gpu' to 'auto' for display when no GPU tier is available.
+  const deviceValue: DeviceMode = rawValue === 'gpu' && !gpuAvail ? 'auto' : rawValue;
   const opts: Array<[DeviceMode, string]> = [
     ['auto', t('models.deviceAuto', 'Auto')],
     ['cpu', t('models.deviceCpu', 'CPU')],
-    ...(gpuAvail ? [['cuda', t('models.deviceGpu', 'GPU')] as [DeviceMode, string]] : []),
+    ...(gpuAvail ? [['gpu', t('models.deviceGpu', 'GPU')] as [DeviceMode, string]] : []),
   ];
   const [ttKey, ttDefault] = TOOLTIP_KEY[stage];
 

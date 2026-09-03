@@ -693,8 +693,19 @@
     "remove": "엔진 제거",
     "removeConfirm": "엔진을 제거하고 디스크 공간을 확보하시겠습니까?",
     "unsupported": "이 장치에서는 로컬 추론을 지원하지 않습니다",
-    "devMode": "개발 모드 · 로컬 venv",
-    "installHint": "모델을 찾아보고 다운로드하려면 엔진을 설치하세요"
+    "installHint": "모델을 찾아보고 다운로드하려면 엔진을 설치하세요",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "엔진 {{version}} · 시작 중…",
+      "notInstalled": "엔진이 설치되지 않음",
+      "updateRequired": "엔진 업데이트 {{from}} → {{to}}",
+      "downloadPaused": "다운로드 일시중지",
+      "downloading": "다운로드 중 {{pct}}%",
+      "error": "엔진 오류",
+      "unavailable": "엔진 사용 불가",
+      "preferredHint": "이 컴퓨터에서 우선 사용할 장치입니다. 단계별 재정의는 모델 라이브러리에서 확인할 수 있습니다."
+    }
   },
   "models": {
     "deletePartial": "부분 파일 삭제",
@@ -759,10 +770,13 @@
     "hwSize": "크기",
     "hwRepo": "저장소",
     "computeDevice": "연산 장치",
-    "computeDeviceTooltip": "음성 모델을 실행할 장치입니다. 자동은 사용 가능한 가장 빠른 장치를 선택합니다(GPU가 있으면 GPU). CPU는 어디서나 작동하지만 큰 모델에서는 느립니다. GPU는 CUDA GPU가 필요합니다.",
-    "computeDeviceTooltipTranslation": "번역 모델을 실행할 장치입니다. 자동은 사용 가능한 가장 빠른 장치를 선택합니다(GPU가 있으면 GPU). CPU는 어디서나 작동하지만 큰 모델에서는 느립니다. GPU는 CUDA GPU가 필요합니다.",
-    "computeDeviceTooltipTts": "음성 합성 모델을 실행할 장치입니다. 자동은 사용 가능한 가장 빠른 장치를 선택합니다(GPU가 있으면 GPU). CPU는 어디서나 작동하지만 큰 모델에서는 느립니다. GPU는 CUDA GPU가 필요합니다.",
+    "computeDeviceTooltip": "음성 모델을 실행할 장치입니다. 자동은 사용 가능한 가장 빠른 장치를 선택합니다(GPU가 있으면 GPU). CPU는 어디서나 작동하지만 큰 모델에서는 느립니다. GPU는 Windows와 Linux에서는 Vulkan을, Apple 실리콘에서는 Metal을 사용합니다.",
+    "computeDeviceTooltipTranslation": "번역 모델을 실행할 장치입니다. 자동은 사용 가능한 가장 빠른 장치를 선택합니다(GPU가 있으면 GPU). CPU는 어디서나 작동하지만 큰 모델에서는 느립니다. GPU는 Windows와 Linux에서는 Vulkan을, Apple 실리콘에서는 Metal을 사용합니다.",
+    "computeDeviceTooltipTts": "음성 합성 모델을 실행할 장치입니다. 자동은 사용 가능한 가장 빠른 장치를 선택합니다(GPU가 있으면 GPU). CPU는 어디서나 작동하지만 큰 모델에서는 느립니다. GPU는 Windows와 Linux에서는 Vulkan을, Apple 실리콘에서는 Metal을 사용합니다.",
     "deviceAuto": "자동",
+    "multiLanguage": "다국어",
+    "multilingual": "다국어 지원",
+    "languagesCount": "{{count}}개 언어",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "GPU 가속을 사용할 수 없음 — CPU에서 실행 중",

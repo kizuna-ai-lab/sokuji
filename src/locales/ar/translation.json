@@ -693,8 +693,19 @@
     "remove": "إزالة المحرك",
     "removeConfirm": "إزالة المحرك وتحرير مساحة القرص؟",
     "unsupported": "الاستدلال المحلي غير مدعوم على هذا الجهاز",
-    "devMode": "وضع التطوير · venv محلي",
-    "installHint": "ثبّت المحرك لتصفح النماذج وتنزيلها"
+    "installHint": "ثبّت المحرك لتصفح النماذج وتنزيلها",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "المحرك {{version}} · جارٍ البدء…",
+      "notInstalled": "المحرك غير مثبت",
+      "updateRequired": "تحديث المحرك {{from}} → {{to}}",
+      "downloadPaused": "التنزيل متوقف مؤقتًا",
+      "downloading": "جارٍ التنزيل {{pct}}%",
+      "error": "خطأ في المحرك",
+      "unavailable": "المحرك غير متاح",
+      "preferredHint": "الجهاز المفضّل لهذا الحاسوب؛ يمكن ضبط كل مرحلة على حدة من مكتبة النماذج."
+    }
   },
   "models": {
     "deletePartial": "حذف الملفات الجزئية",
@@ -759,10 +770,13 @@
     "hwSize": "الحجم",
     "hwRepo": "المستودع",
     "computeDevice": "جهاز الحوسبة",
-    "computeDeviceTooltip": "الجهاز الذي يشغّل نموذج الكلام. تلقائي يختار الأسرع المتاح (GPU عند توفره)؛ CPU يعمل في كل مكان لكنه أبطأ للنماذج الكبيرة؛ GPU يتطلب بطاقة CUDA.",
-    "computeDeviceTooltipTranslation": "الجهاز الذي يشغّل نموذج الترجمة. تلقائي يختار الأسرع المتاح (GPU عند توفره)؛ CPU يعمل في كل مكان لكنه أبطأ للنماذج الكبيرة؛ GPU يتطلب بطاقة CUDA.",
-    "computeDeviceTooltipTts": "الجهاز الذي يشغّل نموذج تركيب الكلام. تلقائي يختار الأسرع المتاح (GPU عند توفره)؛ CPU يعمل في كل مكان لكنه أبطأ للنماذج الكبيرة؛ GPU يتطلب بطاقة CUDA.",
+    "computeDeviceTooltip": "الجهاز الذي يشغّل نموذج الكلام. تلقائي يختار أسرع جهاز متاح (GPU عند توفره)؛ CPU يعمل في كل مكان لكنه أبطأ للنماذج الكبيرة؛ يستخدم GPU تقنية Vulkan على ويندوز ولينكس وMetal على شرائح آبل (Apple silicon).",
+    "computeDeviceTooltipTranslation": "الجهاز الذي يشغّل نموذج الترجمة. تلقائي يختار أسرع جهاز متاح (GPU عند توفره)؛ CPU يعمل في كل مكان لكنه أبطأ للنماذج الكبيرة؛ يستخدم GPU تقنية Vulkan على ويندوز ولينكس وMetal على شرائح آبل (Apple silicon).",
+    "computeDeviceTooltipTts": "الجهاز الذي يشغّل نموذج تركيب الكلام. تلقائي يختار أسرع جهاز متاح (GPU عند توفره)؛ CPU يعمل في كل مكان لكنه أبطأ للنماذج الكبيرة؛ يستخدم GPU تقنية Vulkan على ويندوز ولينكس وMetal على شرائح آبل (Apple silicon).",
     "deviceAuto": "تلقائي",
+    "multiLanguage": "متعدد",
+    "multilingual": "متعدد اللغات",
+    "languagesCount": "{{count}} لغة",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "تسريع GPU غير متاح — يعمل على المعالج",

@@ -11,6 +11,9 @@ import './Engine.scss';
 export const SlotRow: React.FC<{
   slot: SlotId;
   label: string;
+  /** Abbreviation shown instead of `label` in a narrow panel (container
+   *  query in Engine.scss); omitted = the full label is used everywhere. */
+  shortLabel?: string;
   /**
    * One-shot deep-link signal: the slot a chip click just targeted, so the
    * flash lands on THIS row. Compared by dir+stage, but the effect below
@@ -21,7 +24,7 @@ export const SlotRow: React.FC<{
    */
   flashSlot?: SlotId | null;
   children: React.ReactNode;
-}> = ({ slot, label, flashSlot = null, children }) => {
+}> = ({ slot, label, shortLabel, flashSlot = null, children }) => {
   const [flashing, setFlashing] = useState(false);
 
   useEffect(() => {
@@ -40,7 +43,10 @@ export const SlotRow: React.FC<{
 
   return (
     <div className={`engine-slot ${flashing ? 'highlight' : ''}`} data-slot={`${slot.dir}:${slot.stage}`}>
-      <span className="engine-slot__label">{label}</span>
+      <span className="engine-slot__label" title={shortLabel ? label : undefined}>
+        <span className="engine-slot__label-long">{label}</span>
+        {shortLabel && <span className="engine-slot__label-short" aria-hidden="true">{shortLabel}</span>}
+      </span>
       <div className="engine-slot__control">{children}</div>
     </div>
   );

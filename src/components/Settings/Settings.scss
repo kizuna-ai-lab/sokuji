@@ -1437,6 +1437,66 @@
 .provider-selection-area {
   margin-bottom: vars.$space-2;
   position: relative;
+  // Lets .engine-status-line's device segment respond to THIS area's own
+  // width rather than the whole settings panel's — the picker can be
+  // narrower than the panel (e.g. inside a pushed sub-page).
+  container-type: inline-size;
+}
+
+/* Engine status line (local_native only): one line under the provider
+ * <select> — installed engine version, sokuji-native version, backend and
+ * device once ready, or a compact actionable status otherwise. Sits a notch
+ * below body text (muted, slightly smaller than .provider-select__description)
+ * since it is a live status, not descriptive copy. */
+.engine-status-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: vars.$text-muted;
+
+  &__dot {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    box-sizing: border-box;
+    background: vars.$text-muted;
+    border: 1px solid transparent;
+
+    &--ready { background: vars.$color-primary; }
+    // Hollow = "not actively wrong, just not there yet" (starting / not
+    // installed) — an outline reads as pending, not filled colour states.
+    &--hollow { background: transparent; border-color: vars.$text-muted; }
+    &--warn { background: #e6a23c; }
+    &--error { background: #e74c3c; }
+  }
+
+  &__text {
+    font-variant-numeric: tabular-nums;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    // Version/backend/device tokens read better tabular — same convention
+    // as .model-chip-value for the same kind of content.
+  }
+
+  &__device {
+    // Hidden entirely below 360px (see the container query) rather than
+    // ellipsis-truncated mid-word — the backend label alone still reads.
+  }
+
+}
+
+@container (max-width: 360px) {
+  .engine-status-line__device {
+    display: none;
+  }
 }
 
 /* Provider name + engine credit sharing one line.

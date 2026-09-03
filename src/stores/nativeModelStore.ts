@@ -12,8 +12,47 @@ import { resolveDirection } from '../lib/local-inference/selection/resolveStage'
 import { nativeCandidates } from '../lib/local-inference/selection/candidates.native';
 import { directionKey, emptyDirection, type DirectionResult, type ResolutionNote, type Selections, type Stage } from '../lib/local-inference/selection/types';
 import { reportWarning, describeCause } from '../lib/diagnostics/report';
+import useLogStore from './logStore';
 
 export type NativeModelStatus = NativeModelState | 'downloading';
+
+/** sokuji-native identity as last reported by hardware_info on a ready sidecar. */
+export interface NativeEngineInfo {
+  nativeVersion: string | null;
+  engineVersions: Record<string, string> | null;
+  lane: string | null;
+  preferredDevice: { kind: string; name: string; description: string } | null;
+}
+
+/**
+ * One-line diagnostic for the moment a sidecar becomes ready, e.g.:
+ *   sidecar 0.2.0 ready: sokuji-native 1.0.1 (ggml 0.22.0, transcribe 0.2.2, llama 0.3.0, audiocpp 0.7.0) lane=cpu-vulkan device="NVIDIA GB10"
+ * Exported for direct unit testing of the formatting rules (dev-venv fallback,
+ * omitted parenthesis/device segments) without going through the full
+ * ensureCatalog() async flow.
+ */
+export function formatEngineReadyLog(
+  bundleVersion: string | null, bundleDevVenv: boolean, engineInfo: NativeEngineInfo | null,
+): string {
+  const sidecarVersion = bundleVersion ?? (bundleDevVenv ? 'dev venv' : 'unknown');
+  let line = `sidecar ${sidecarVersion} ready`;
+  if (engineInfo?.nativeVersion) {
+    let native = `sokuji-native ${engineInfo.nativeVersion}`;
+    if (engineInfo.engineVersions) {
+      // The binding's engine_versions() carries its build lane as a key; the sidecar
+      // strips it into the top-level `lane`, and this guard keeps the pins list clean
+      // even if a bundle predating that strip is running.
+      const parts = Object.entries(engineInfo.engineVersions)
+        .filter(([k]) => k !== 'lane')
+        .map(([k, v]) => `${k} ${v}`).join(', ');
+      native += ` (${parts})`;
+    }
+    line += `: ${native}`;
+  }
+  if (engineInfo?.lane) line += ` lane=${engineInfo.lane}`;
+  if (engineInfo?.preferredDevice?.description) line += ` device="${engineInfo.preferredDevice.description}"`;
+  return line;
+}
 
 interface NativeModelStore {
   statuses: Record<string, NativeModelStatus>;
@@ -24,6 +63,11 @@ interface NativeModelStore {
   catalog: Record<string, NativeModelInfo>;
   /** Sidecar lifecycle. Drives every native UI surface that depends on the catalog. */
   sidecarStatus: 'idle' | 'starting' | 'ready' | 'unavailable';
+  /** sokuji-native identity (version, per-engine versions, lane, preferred device) from
+   *  hardware_info, populated best-effort on the ready transition. Reset to null whenever
+   *  sidecarStatus goes back to 'idle'/'unavailable' — a stale identity from a previous
+   *  sidecar instance must not survive past that instance. */
+  engineInfo: NativeEngineInfo | null;
   /** Detected bundle SKU for this machine (linux-x64 | linux-arm64 | win-x64 | mac-arm64 | mac-x64). */
   bundleSku: string | null;
   /** Self-contained sidecar bundle lifecycle (distribution spec S2/S7/S10). */
@@ -241,6 +285,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   errors: {},
   catalog: {},
   sidecarStatus: 'idle',
+  engineInfo: null,
   statusRepos: {},
   lastResolutionNotes: [],
   asrLoading: false,
@@ -336,7 +381,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         // tree. A stale 'ready' would let ensureCatalog early-return and keep
         // the Start gate open against a nonexistent engine, so force the
         // lifecycle back to a state the next validation re-derives from.
-        set({ sidecarStatus: 'idle', catalog: {}, statuses: {} });
+        set({ sidecarStatus: 'idle', catalog: {}, statuses: {}, engineInfo: null });
         await get().refreshBundle();
         void revalidateNativeProvider();
       }
@@ -382,7 +427,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     set({ sidecarStatus: 'starting' });
     await get().refreshBundle();
     if (get().bundleStatus === 'mismatch') {
-      set({ sidecarStatus: 'unavailable' });
+      set({ sidecarStatus: 'unavailable', engineInfo: null });
       return;
     }
     try {
@@ -400,19 +445,50 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       const sizes = Object.fromEntries(
         list.filter((m) => m.sizeBytes).map((m) => [m.id, m.sizeBytes as number]));
       const derivedRepos = await catalogStatusRepos(list);
+      // hardware_info identifies the engine (sokuji-native + per-component
+      // versions + lane + preferred device) for the status line and the ready
+      // log below. Best-effort and caught separately: a hardware_info failure
+      // must not flip a working sidecar to 'unavailable' — engineInfo simply
+      // stays null.
+      let engineInfo: NativeEngineInfo | null = null;
+      try {
+        const hw = await client.hardwareInfo();
+        engineInfo = {
+          nativeVersion: hw.nativeVersion ?? null,
+          engineVersions: hw.engineVersions ?? null,
+          lane: hw.lane ?? null,
+          preferredDevice: hw.preferredDevice ?? null,
+        };
+      } catch { /* best-effort — the status line simply omits engine identity */ }
       set((s) => ({
         catalog: Object.fromEntries(list.map((m) => [m.id, m])),
         sizes,
         sidecarStatus: 'ready',
         statusRepos: { ...s.statusRepos, ...derivedRepos },
+        engineInfo,
       }));
+      const { bundleVersion, bundleDevVenv } = get();
+      // An info record, not a failure (diagnostics design #441): it rides the
+      // events stream, which LogsPanel shows and 'copy logs' exports, never the
+      // plain error/warning entries that report.ts owns.
+      useLogStore.getState().addRealtimeEvent({
+        type: 'local.engine.ready',
+        data: {
+          message: formatEngineReadyLog(bundleVersion, bundleDevVenv, engineInfo),
+          sidecarVersion: bundleVersion ?? (bundleDevVenv ? 'dev venv' : null),
+          nativeVersion: engineInfo?.nativeVersion ?? null,
+          engineVersions: engineInfo?.engineVersions ?? null,
+          lane: engineInfo?.lane ?? null,
+          device: engineInfo?.preferredDevice?.description ?? null,
+        },
+      }, 'client', 'local.engine.ready');
     } catch {
-      set({ sidecarStatus: 'unavailable' });
+      set({ sidecarStatus: 'unavailable', engineInfo: null });
     }
   },
 
   retrySidecar: async () => {
-    set({ sidecarStatus: 'idle' });
+    set({ sidecarStatus: 'idle', engineInfo: null });
     await get().ensureCatalog();
     // validateApiKey owns settingsStore's validationMessage / isApiKeyValid
     // (the Start-button gate and the provider banner); nothing else re-runs it
@@ -698,6 +774,7 @@ export async function nativeHardwareInfo(): Promise<HardwareInfoResultMsg | null
 }
 
 export const useNativeSidecarStatus = () => useNativeModelStore((s) => s.sidecarStatus);
+export const useNativeEngineInfo = () => useNativeModelStore((s) => s.engineInfo);
 export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuses);
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);
 export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);

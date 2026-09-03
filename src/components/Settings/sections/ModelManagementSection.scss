@@ -67,59 +67,6 @@
       }
     }
 
-    // Compute-device selector (LOCAL_NATIVE ASR group): a caption label + a
-    // segmented control. The global .segmented-control rules are scoped to the
-    // noise-suppression section, so we restyle locally with the same visuals.
-    &__device-control {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin: 6px 0 8px;
-
-      .segmented-control {
-        display: flex;
-        border-radius: vars.$radius-md;
-        overflow: hidden;
-        border: 1px solid vars.$border-default;
-      }
-
-      .segmented-option {
-        flex: 1;
-        padding: 6px 12px;
-        font-size: vars.$font-caption;
-        border: none;
-        background: vars.$bg-control;
-        color: vars.$text-secondary;
-        cursor: pointer;
-        transition: background vars.$transition-fast, color vars.$transition-fast;
-
-        &:not(:last-child) {
-          border-right: 1px solid vars.$border-default;
-        }
-
-        &:hover:not(.active):not(:disabled) {
-          background: vars.$bg-elevated;
-        }
-
-        &.active {
-          background: vars.$color-primary-fill;
-          color: vars.$color-on-primary;
-          font-weight: vars.$weight-medium;
-        }
-
-        &:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-      }
-    }
-
-    &__device-label {
-      display: flex;
-      align-items: center;
-      font-size: vars.$font-caption;
-      color: vars.$text-muted;
-    }
   }
 
   .model-subgroup {
@@ -251,6 +198,11 @@
     display: flex;
     align-items: center;
     gap: 8px;
+
+    // The variant dropdown's row height, so a card with the dropdown and a
+    // card with plain size text stand the same height (59px), the name
+    // centred on the dropdown either way.
+    min-height: 18px;
   }
 
   &__name {
@@ -283,11 +235,34 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 1px 6px;
+    padding: vars.$chip-padding-y 6px;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
-    font-size: vars.$font-caption;
+    font-size: vars.$chip-font-size;
+    line-height: vars.$chip-line-height;
     color: vars.$text-muted;
+  }
+
+  // Chip icons (the tier glyph, the Recommended star, the Auto bolt): block
+  // flex items centred on the chip - inline, they rode the baseline 1.5px
+  // above the text. Measured as ink on 8x captures against the text's ink:
+  // the star and the bolt land within 0.06px of the text's centre as is; the
+  // tier glyph sat 0.31px low and gets a quarter-pixel lift (SVGs render at
+  // sub-pixel offsets, text baselines do not).
+  &__lang-tag svg,
+  &__recommended-badge svg,
+  &__auto-badge svg {
+    display: block;
+  }
+
+  &__lang-tag svg {
+    transform: translateY(-0.25px);
+  }
+
+  // Two or more languages collapse into this one chip; the tooltip (LanguageTags)
+  // carries the list.
+  &__lang-tag--multi {
+    cursor: help;
   }
 
   &__lang-tag--live { border: 1px solid currentColor; font-weight: 600; }  // highlighted (neutral): chosen-CPU
@@ -298,10 +273,11 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 1px 6px;
+    padding: vars.$chip-padding-y 6px;
     background: rgba(vars.$color-recommended, 0.15);
     border-radius: 3px;
-    font-size: 10px;
+    font-size: vars.$chip-font-size;
+    line-height: vars.$chip-line-height;
     color: vars.$color-recommended;
     font-weight: vars.$weight-medium;
   }
@@ -310,10 +286,11 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 1px 6px;
+    padding: vars.$chip-padding-y 6px;
     background: rgba(vars.$color-primary, 0.15);
     border-radius: 3px;
-    font-size: 10px;
+    font-size: vars.$chip-font-size;
+    line-height: vars.$chip-line-height;
     color: vars.$color-primary;
     font-weight: vars.$weight-medium;
   }
@@ -518,7 +495,14 @@
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-sm;
-    padding: 2px 6px;
+
+    // 18px closed control (14px line + 1px padding + 1px border each side),
+    // level with the 14px model name beside it. base-select's UA stylesheet
+    // pins the control to `min-height: calc-size(auto, max(size, 24px, 13px))`
+    // - a 24px floor - so the floor has to go too.
+    min-height: 0;
+    padding: 1px 6px;
+    line-height: 14px;
     cursor: pointer;
     transition: border-color vars.$transition-fast, background vars.$transition-fast;
 
@@ -810,5 +794,18 @@
     cursor: pointer;
 
     &:hover { background: rgba(vars.$color-error, 0.1); }
+  }
+}
+
+// The Multi chip's tooltip body (LanguageTags). Rendered through Tooltip's
+// portal, outside .model-management-section, hence top-level. A 99-language
+// ASR model lists every name: the count stays put, the names scroll.
+.model-card__lang-list {
+  max-height: 240px;
+  overflow-y: auto;
+
+  &-count {
+    color: vars.$text-muted;
+    margin-bottom: 4px;
   }
 }

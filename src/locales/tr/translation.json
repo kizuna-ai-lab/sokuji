@@ -693,8 +693,19 @@
     "remove": "Motoru kaldır",
     "removeConfirm": "Motor kaldırılsın ve disk alanı boşaltılsın mı?",
     "unsupported": "Bu cihazda yerel çıkarım desteklenmiyor",
-    "devMode": "Geliştirme modu · yerel venv",
-    "installHint": "Modellere göz atmak ve indirmek için motoru kurun"
+    "installHint": "Modellere göz atmak ve indirmek için motoru kurun",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Motor {{version}} · başlatılıyor…",
+      "notInstalled": "Motor kurulu değil",
+      "updateRequired": "Motor güncellemesi {{from}} → {{to}}",
+      "downloadPaused": "İndirme duraklatıldı",
+      "downloading": "İndiriliyor {{pct}}%",
+      "error": "Motor hatası",
+      "unavailable": "Motor kullanılamıyor",
+      "preferredHint": "Bu makine için tercih edilen cihaz; aşama başına geçersiz kılmalar model kitaplığında bulunur."
+    }
   },
   "models": {
     "deletePartial": "Kısmi dosyaları sil",
@@ -759,10 +770,13 @@
     "hwSize": "Boyut",
     "hwRepo": "Depo",
     "computeDevice": "Hesaplama cihazı",
-    "computeDeviceTooltip": "Konuşma modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlısını seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU için CUDA destekli bir GPU gerekir.",
-    "computeDeviceTooltipTranslation": "Çeviri modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlısını seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU için CUDA destekli bir GPU gerekir.",
-    "computeDeviceTooltipTts": "Konuşma sentezi modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlısını seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU için CUDA destekli bir GPU gerekir.",
+    "computeDeviceTooltip": "Konuşma modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlı cihazı seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU, Windows ve Linux'ta Vulkan'ı, Apple silicon'da ise Metal'i kullanır.",
+    "computeDeviceTooltipTranslation": "Çeviri modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlı cihazı seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU, Windows ve Linux'ta Vulkan'ı, Apple silicon'da ise Metal'i kullanır.",
+    "computeDeviceTooltipTts": "Konuşma sentezi modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlı cihazı seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU, Windows ve Linux'ta Vulkan'ı, Apple silicon'da ise Metal'i kullanır.",
     "deviceAuto": "Otomatik",
+    "multiLanguage": "Çoklu",
+    "multilingual": "Çok dilli",
+    "languagesCount": "{{count}} dil",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "GPU hızlandırma kullanılamıyor — CPU üzerinde çalışıyor",

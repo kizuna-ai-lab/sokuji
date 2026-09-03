@@ -693,8 +693,19 @@
     "remove": "Alisin ang engine",
     "removeConfirm": "Alisin ang engine at magbakante ng disk space?",
     "unsupported": "Hindi sinusuportahan ang local inference sa device na ito",
-    "devMode": "Development mode · local venv",
-    "installHint": "I-install ang engine para mag-browse at mag-download ng mga modelo"
+    "installHint": "I-install ang engine para mag-browse at mag-download ng mga modelo",
+    "status": {
+      "native": "native {{version}}",
+      "devVenv": "dev venv",
+      "starting": "Engine {{version}} · nagsisimula…",
+      "notInstalled": "Hindi naka-install ang engine",
+      "updateRequired": "Update ng engine {{from}} → {{to}}",
+      "downloadPaused": "Naka-pause ang download",
+      "downloading": "Dina-download {{pct}}%",
+      "error": "Error sa engine",
+      "unavailable": "Hindi available ang engine",
+      "preferredHint": "Ang mas gustong device para sa makinang ito; ang mga override kada yugto ay nasa aklatan ng modelo."
+    }
   },
   "models": {
     "deletePartial": "I-delete ang mga bahagyang file",
@@ -759,10 +770,13 @@
     "hwSize": "Laki",
     "hwRepo": "Repo",
     "computeDevice": "Compute device",
-    "computeDeviceTooltip": "Kung aling device ang nagpapatakbo ng speech model. Ang Auto ay pumipili ng pinakamabilis na available (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; ang GPU ay nangangailangan ng CUDA GPU.",
-    "computeDeviceTooltipTranslation": "Kung aling device ang nagpapatakbo ng modelo ng pagsasalin. Ang Auto ay pumipili ng pinakamabilis na available (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; ang GPU ay nangangailangan ng CUDA GPU.",
-    "computeDeviceTooltipTts": "Kung aling device ang nagpapatakbo ng modelo ng sintesis ng pagsasalita. Ang Auto ay pumipili ng pinakamabilis na available (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; ang GPU ay nangangailangan ng CUDA GPU.",
+    "computeDeviceTooltip": "Kung aling device ang nagpapatakbo ng speech model. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
+    "computeDeviceTooltipTranslation": "Kung aling device ang nagpapatakbo ng modelo ng pagsasalin. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
+    "computeDeviceTooltipTts": "Kung aling device ang nagpapatakbo ng modelo ng sintesis ng pagsasalita. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
     "deviceAuto": "Auto",
+    "multiLanguage": "Multi",
+    "multilingual": "Maraming wika",
+    "languagesCount": "{{count}} wika",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "Hindi available ang GPU acceleration — tumatakbo sa CPU",

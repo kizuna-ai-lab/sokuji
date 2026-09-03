@@ -111,9 +111,9 @@ describe('LocalNativeClient', () => {
     const c = new LocalNativeClient(m);
     await c.connect({
       provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
-      asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano', ttsDevice: 'cuda',
+      asrModelId: 'sense-voice', ttsModelId: 'moss-tts-nano', ttsDevice: 'gpu',
     } as any);
-    expect(m.tts.init).toHaveBeenCalledWith('moss-tts-nano', 'cuda', 'en', undefined);
+    expect(m.tts.init).toHaveBeenCalledWith('moss-tts-nano', 'gpu', 'en', undefined);
   });
 
   it('forwards the ttsVariant pin to tts.init', async () => {
@@ -268,7 +268,7 @@ const fakeTts = () => ({ init: async () => {}, generate: async () => ({ samples:
 const cfg: any = {
   provider: 'local_native', model: 'native-asr-translate', instructions: '',
   sourceLanguage: 'en', targetLanguage: 'ja', asrModelId: 'granite-speech-4.1-2b',
-  translationModelId: 'qwen2.5-0.5b', asrDevice: 'cuda', textOnly: true,
+  translationModelId: 'qwen2.5-0.5b', asrDevice: 'gpu', textOnly: true,
 };
 
 describe('LocalNativeClient session channel', () => {

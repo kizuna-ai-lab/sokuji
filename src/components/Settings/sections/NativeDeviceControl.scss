@@ -1,0 +1,63 @@
+@use '../shared/variables' as vars;
+@use '../../../styles/tokens' as tk;
+
+// Compute-device selector (Auto / CPU / GPU per stage). Owned by the control
+// itself so it looks the same wherever it mounts: the library list header
+// and the Engine page slot extras. Top-level selectors on purpose - the
+// previous home under `.model-management-section .model-group` left the
+// Engine mount unstyled.
+.model-group__device-control {
+  // One row: caption + help icon on the left, the segmented control on the
+  // right, so the selector reads as a single setting line above the list.
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 0 8px;
+
+  .segmented-control {
+    display: inline-flex;
+    flex: 0 0 auto;
+    border-radius: vars.$radius-md;
+    overflow: hidden;
+    border: 1px solid vars.$border-default;
+  }
+
+  .segmented-option {
+    flex: 0 0 auto;
+    padding: 4px 10px;
+    font-size: vars.$font-caption;
+    border: none;
+    background: vars.$bg-control;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    transition: background vars.$transition-fast, color vars.$transition-fast;
+
+    &:not(:last-child) {
+      border-right: 1px solid vars.$border-default;
+    }
+
+    &:hover:not(.active):not(:disabled) {
+      background: vars.$bg-elevated;
+    }
+
+    &.active {
+      background: vars.$color-primary-fill;
+      color: vars.$color-on-primary;
+      font-weight: vars.$weight-medium;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.model-group__device-label {
+  display: flex;
+  align-items: center;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}
