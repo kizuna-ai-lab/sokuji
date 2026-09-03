@@ -71,21 +71,26 @@
     // segmented control. The global .segmented-control rules are scoped to the
     // noise-suppression section, so we restyle locally with the same visuals.
     &__device-control {
+      // One row: caption + help icon on the left, the segmented control on the
+      // right, so the selector reads as a single setting line above the list.
       display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin: 6px 0 8px;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 4px 0 8px;
 
       .segmented-control {
-        display: flex;
+        display: inline-flex;
+        flex: 0 0 auto;
         border-radius: vars.$radius-md;
         overflow: hidden;
         border: 1px solid vars.$border-default;
       }
 
       .segmented-option {
-        flex: 1;
-        padding: 6px 12px;
+        flex: 0 0 auto;
+        padding: 4px 10px;
         font-size: vars.$font-caption;
         border: none;
         background: vars.$bg-control;
