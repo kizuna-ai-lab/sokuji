@@ -774,6 +774,8 @@
     "computeDeviceTooltipTranslation": "কোন ডিভাইস অনুবাদ মডেলটি চালাবে। স্বয়ংক্রিয় সবচেয়ে দ্রুত উপলব্ধ ডিভাইসটি বেছে নেয় (GPU থাকলে তা); CPU সর্বত্র কাজ করে কিন্তু বড় মডেলের জন্য ধীর; GPU উইন্ডোজ ও লিনাক্সে Vulkan এবং Apple silicon-এ Metal ব্যবহার করে।",
     "computeDeviceTooltipTts": "কোন ডিভাইস বাক সংশ্লেষণ (TTS) মডেলটি চালাবে। স্বয়ংক্রিয় সবচেয়ে দ্রুত উপলব্ধ ডিভাইসটি বেছে নেয় (GPU থাকলে তা); CPU সর্বত্র কাজ করে কিন্তু বড় মডেলের জন্য ধীর; GPU উইন্ডোজ ও লিনাক্সে Vulkan এবং Apple silicon-এ Metal ব্যবহার করে।",
     "deviceAuto": "স্বয়ংক্রিয়",
+    "multiLanguage": "বহুভাষিক",
+    "languagesCount": "{{count}}টি ভাষা",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "GPU ত্বরণ উপলব্ধ নয় — CPU-তে চলছে",

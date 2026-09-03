@@ -237,6 +237,14 @@
     color: vars.$text-muted;
   }
 
+  // Two or more languages collapse into this one chip; the tooltip (LanguageTags)
+  // carries the list. The dotted underline is the only hint that it opens one.
+  &__lang-tag--multi {
+    cursor: help;
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+  }
+
   &__lang-tag--live { border: 1px solid currentColor; font-weight: 600; }  // highlighted (neutral): chosen-CPU
   &__lang-tag--accel { border-color: tk.$color-success; color: tk.$color-success; }  // GPU live
   &__lang-tag--warn  { border-color: #e74c3c; color: #e74c3c; }  // degraded CPU
@@ -757,5 +765,18 @@
     cursor: pointer;
 
     &:hover { background: rgba(vars.$color-error, 0.1); }
+  }
+}
+
+// The Multi chip's tooltip body (LanguageTags). Rendered through Tooltip's
+// portal, outside .model-management-section, hence top-level. A 99-language
+// ASR model lists every name: the count stays put, the names scroll.
+.model-card__lang-list {
+  max-height: 240px;
+  overflow-y: auto;
+
+  &-count {
+    color: vars.$text-muted;
+    margin-bottom: 4px;
   }
 }

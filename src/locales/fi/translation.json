@@ -774,6 +774,8 @@
     "computeDeviceTooltipTranslation": "Mikä laite suorittaa käännösmallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
     "computeDeviceTooltipTts": "Mikä laite suorittaa puhesynteesimallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
     "deviceAuto": "Auto",
+    "multiLanguage": "Multi",
+    "languagesCount": "{{count}} kieltä",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "GPU-kiihdytys ei ole käytettävissä — suoritetaan suorittimella",

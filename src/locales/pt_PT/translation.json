@@ -774,6 +774,8 @@
     "computeDeviceTooltipTranslation": "Qual o dispositivo que executa o modelo de tradução. Auto escolhe o dispositivo mais rápido disponível (GPU quando existe); a CPU funciona em qualquer dispositivo, mas é mais lenta com modelos grandes; a GPU utiliza Vulkan no Windows e no Linux, e Metal em chips Apple silicon.",
     "computeDeviceTooltipTts": "Qual o dispositivo que executa o modelo de síntese de fala. Auto escolhe o dispositivo mais rápido disponível (GPU quando existe); a CPU funciona em qualquer dispositivo, mas é mais lenta com modelos grandes; a GPU utiliza Vulkan no Windows e no Linux, e Metal em chips Apple silicon.",
     "deviceAuto": "Auto",
+    "multiLanguage": "Multi",
+    "languagesCount": "{{count}} idiomas",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "Aceleração de GPU indisponível — a executar no CPU",

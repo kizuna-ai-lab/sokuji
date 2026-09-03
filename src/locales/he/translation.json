@@ -774,6 +774,8 @@
     "computeDeviceTooltipTranslation": "איזה התקן מריץ את מודל התרגום. אוטומטי בוחר את ההתקן המהיר ביותר הזמין (GPU כשקיים); CPU עובד בכל מקום אך איטי יותר עבור מודלים גדולים; GPU משתמש ב-Vulkan ב-Windows וב-Linux וב-Metal בשבבי Apple silicon.",
     "computeDeviceTooltipTts": "איזה התקן מריץ את מודל סינתזת הדיבור. אוטומטי בוחר את ההתקן המהיר ביותר הזמין (GPU כשקיים); CPU עובד בכל מקום אך איטי יותר עבור מודלים גדולים; GPU משתמש ב-Vulkan ב-Windows וב-Linux וב-Metal בשבבי Apple silicon.",
     "deviceAuto": "אוטומטי",
+    "multiLanguage": "רב-לשוני",
+    "languagesCount": "{{count}} שפות",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "האצת GPU אינה זמינה — פועל על המעבד",

@@ -774,6 +774,8 @@
     "computeDeviceTooltipTranslation": "الجهاز الذي يشغّل نموذج الترجمة. تلقائي يختار أسرع جهاز متاح (GPU عند توفره)؛ CPU يعمل في كل مكان لكنه أبطأ للنماذج الكبيرة؛ يستخدم GPU تقنية Vulkan على ويندوز ولينكس وMetal على شرائح آبل (Apple silicon).",
     "computeDeviceTooltipTts": "الجهاز الذي يشغّل نموذج تركيب الكلام. تلقائي يختار أسرع جهاز متاح (GPU عند توفره)؛ CPU يعمل في كل مكان لكنه أبطأ للنماذج الكبيرة؛ يستخدم GPU تقنية Vulkan على ويندوز ولينكس وMetal على شرائح آبل (Apple silicon).",
     "deviceAuto": "تلقائي",
+    "multiLanguage": "متعدد",
+    "languagesCount": "{{count}} لغة",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "تسريع GPU غير متاح — يعمل على المعالج",

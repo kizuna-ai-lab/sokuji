@@ -774,6 +774,8 @@
     "computeDeviceTooltipTranslation": "決定由哪個裝置執行翻譯模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：在 Windows 與 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
     "computeDeviceTooltipTts": "決定由哪個裝置執行語音合成模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：在 Windows 與 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
     "deviceAuto": "自動",
+    "multiLanguage": "多語言",
+    "languagesCount": "{{count}} 種語言",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "GPU 加速不可用 — 正在使用 CPU 執行",

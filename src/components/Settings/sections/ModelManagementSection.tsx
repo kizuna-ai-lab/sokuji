@@ -40,6 +40,7 @@ import type { Voice } from '../../../lib/edge-tts/edgeTts';
 import { reportError, describeCause } from '../../../lib/diagnostics/report';
 import { isElectron } from '../../../utils/environment';
 import './ModelManagementSection.scss';
+import { LanguageTags } from './LanguageTags';
 
 // ─── Props ─────────────────────────────────────────────────────────────────
 
@@ -142,9 +143,7 @@ function ModelCard({
             </div>
             <div className="model-card__meta">
               <div className="model-card__languages">
-                {entry.languages.map(lang => (
-                  <span key={lang} className="model-card__lang-tag">{lang}</span>
-                ))}
+                <LanguageTags languages={entry.languages} />
               </div>
               {entry.recommended && (
                 <span className="model-card__recommended-badge">

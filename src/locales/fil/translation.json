@@ -774,6 +774,8 @@
     "computeDeviceTooltipTranslation": "Kung aling device ang nagpapatakbo ng modelo ng pagsasalin. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
     "computeDeviceTooltipTts": "Kung aling device ang nagpapatakbo ng modelo ng sintesis ng pagsasalita. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
     "deviceAuto": "Auto",
+    "multiLanguage": "Multi",
+    "languagesCount": "{{count}} wika",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "Hindi available ang GPU acceleration — tumatakbo sa CPU",

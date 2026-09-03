@@ -774,6 +774,8 @@
     "computeDeviceTooltipTranslation": "Çeviri modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlı cihazı seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU, Windows ve Linux'ta Vulkan'ı, Apple silicon'da ise Metal'i kullanır.",
     "computeDeviceTooltipTts": "Konuşma sentezi modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlı cihazı seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU, Windows ve Linux'ta Vulkan'ı, Apple silicon'da ise Metal'i kullanır.",
     "deviceAuto": "Otomatik",
+    "multiLanguage": "Çoklu",
+    "languagesCount": "{{count}} dil",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "GPU hızlandırma kullanılamıyor — CPU üzerinde çalışıyor",

@@ -774,6 +774,8 @@
     "computeDeviceTooltipTranslation": "کدام دستگاه مدل ترجمه را اجرا کند. خودکار سریع‌ترین دستگاه موجود را انتخاب می‌کند (GPU در صورت وجود)؛ CPU همه‌جا کار می‌کند اما برای مدل‌های بزرگ کندتر است؛ GPU در ویندوز و لینوکس از Vulkan و در تراشه‌های Apple silicon از Metal استفاده می‌کند.",
     "computeDeviceTooltipTts": "کدام دستگاه مدل سنتز گفتار را اجرا کند. خودکار سریع‌ترین دستگاه موجود را انتخاب می‌کند (GPU در صورت وجود)؛ CPU همه‌جا کار می‌کند اما برای مدل‌های بزرگ کندتر است؛ GPU در ویندوز و لینوکس از Vulkan و در تراشه‌های Apple silicon از Metal استفاده می‌کند.",
     "deviceAuto": "خودکار",
+    "multiLanguage": "چندزبانه",
+    "languagesCount": "{{count}} زبان",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",
     "gpuSoftwareOnly": "شتاب‌دهی GPU در دسترس نیست — اجرا روی CPU",
