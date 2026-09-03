@@ -197,7 +197,7 @@ TTS_CARD_IDS = ("moss-tts-nano", "supertonic-3", "qwen3-tts-0.6b", "qwen3-tts-1.
 # The 2026-09-03 batch arrives CPU-ONLY: no entry in _TTS_TIER_OVERRIDES, so
 # _tts_gguf_row falls through to _TTS_TIERS == ("cpu",). Tier assertions below
 # split on this set rather than asserting one tier shape for every card.
-NEW_CPU_ONLY_TTS_CARD_IDS = ("voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small", "index-tts2.5")
+NEW_2026_09_03_TTS_CARD_IDS = ("voxcpm1-0.5b", "voxcpm2", "irodori-tts-v4-small", "index-tts2.5")
 
 
 def test_tts_models_are_the_fourteen_native_tts_cards():
@@ -248,15 +248,14 @@ def test_tts_quant_ladder_shape():
     # variation) -- {"cpu", "gpu-vulkan", "gpu-metal"} for every family
     # post-task-10 (R36 restored gpu-metal fleet-wide), pocket_tts included
     # (ruling R29, superseding R28 -- see test_pocket_tts_gpu_vulkan_r29
-    # below for why).
+    # below for why), and the four added 2026-09-03 once both accelerator
+    # lanes had been measured for them. No family is a tier exception.
     for m in catalog.tts_models():
         by_ct = {}
         for d in m.deployments:
             by_ct.setdefault(d.compute_type, set()).add(d.tier)
-        want = ({"cpu"} if m.id in NEW_CPU_ONLY_TTS_CARD_IDS
-                else {"cpu", "gpu-vulkan", "gpu-metal"})
         for ct, tiers in by_ct.items():
-            assert tiers == want, (m.id, ct)
+            assert tiers == {"cpu", "gpu-vulkan", "gpu-metal"}, (m.id, ct)
         ranks = {d.compute_type: d.rank for d in m.deployments}
         assert sorted(ranks.values(), reverse=True)[0] == 2.0, m.id
         assert set(ranks.values()) <= {1.0, 2.0}, m.id
@@ -333,16 +332,19 @@ def test_omnivoice_license():
     assert catalog.license_dict(catalog.tts_model("moss-tts-nano")) is None
 
 
-def test_new_2026_09_03_tts_cards_are_cpu_only():
-    # R19's rule, applied to the four families added on 2026-09-03: a family with
-    # no _TTS_TIER_OVERRIDES entry ships cpu-only until the fleet validates it on
-    # a GPU lane. This test is what fails if someone gives one of them a GPU tier
-    # by copying a sibling row instead of running the validation.
-    for mid in NEW_CPU_ONLY_TTS_CARD_IDS:
+def test_new_2026_09_03_tts_cards_carry_every_tier():
+    # These four shipped cpu-only for as long as no lane had been measured. Both
+    # accelerator lanes have been now (GB10 Vulkan and an M4's Metal, with the
+    # native-1.0.2 wheels), so they carry the same three tiers as every other
+    # family: a tier list states what CAN run. Whether a given machine SHOULD use
+    # its GPU, and at which quant, is the planner's and the recommendation's call
+    # (jiangzhuo's ruling, 2026-09-03) -- not something a family opts out of by
+    # having a slow lane, which would only push that machine onto a slower one.
+    for mid in NEW_2026_09_03_TTS_CARD_IDS:
         m = catalog.tts_model(mid)
         assert m is not None, mid
-        assert m.family not in catalog._TTS_TIER_OVERRIDES, mid
-        assert {d.tier for d in m.deployments} == {"cpu"}, mid
+        assert catalog._TTS_TIER_OVERRIDES[m.family] == ("gpu-vulkan", "gpu-metal", "cpu"), mid
+        assert {d.tier for d in m.deployments} == {"gpu-vulkan", "gpu-metal", "cpu"}, mid
 
 
 def test_voxcpm_cards_shape():

@@ -961,6 +961,23 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
     "qwen3_tts": ("gpu-vulkan", "gpu-metal", "cpu"),
     "omnivoice": ("gpu-vulkan", "gpu-metal", "cpu"),
     "pocket_tts": ("gpu-vulkan", "gpu-metal", "cpu"),   # ruling R29 (supersedes R28) -- see table above
+    # The four added 2026-09-03. Measured per lane with the native-1.0.2 wheels
+    # before opening them (warm RTF = synth / audio, so <1 is faster than speech):
+    #                GB10 Vulkan   M4 Metal   M4 CPU
+    #   voxcpm1          0.47         0.91      1.55
+    #   voxcpm2          0.63         1.42      3.27
+    #   irodori_tts      0.28         0.97      2.32
+    #   index_tts2       0.45         1.77      4.94
+    # Vulkan clears real time for all four. Metal does not for voxcpm2 and
+    # index_tts2 -- but it still beats the same machine's CPU by 1.7-2.8x, and a
+    # tier list says what CAN run, not what is worth choosing. Keeping Metal shut
+    # would only push a Mac onto the slower path. Which device and which quant a
+    # machine SHOULD use is the planner's and the download recommendation's
+    # decision (jiangzhuo's ruling, 2026-09-03).
+    "voxcpm1": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "voxcpm2": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "irodori_tts": ("gpu-vulkan", "gpu-metal", "cpu"),
+    "index_tts2": ("gpu-vulkan", "gpu-metal", "cpu"),
 }
 
 
