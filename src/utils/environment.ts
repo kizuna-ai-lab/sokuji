@@ -258,8 +258,9 @@ export function isPalabraAIEnabled(): boolean {
  * The provider is otherwise gated at build time (`VITE_ENABLE_LOCAL_NATIVE`, off in every
  * release), and a packaged app cannot read process env from the renderer. So, for the few
  * people testing the sidecar on release builds: View → Toggle Developer Tools, run
- * `localStorage.setItem('debug:local-native', '1')`, restart the app; `removeItem` hides it
- * again. Electron only. Same convention as `debug:webgpu-features` in `webgpu.ts`.
+ * `localStorage.setItem('debug:local-native', '1')`, restart the app;
+ * `localStorage.removeItem('debug:local-native')` and a restart hide it again. Electron only.
+ * Same convention as `debug:webgpu-features` in `webgpu.ts`.
  * Remove together with the build-time gate once Local Native ships.
  */
 export const LOCAL_NATIVE_DEBUG_KEY = 'debug:local-native';
