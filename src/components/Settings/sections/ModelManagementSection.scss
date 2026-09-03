@@ -234,10 +234,7 @@
     background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
     font-size: vars.$font-caption;
-    // Explicit, not `normal`: a CJK chip ("多语言") falls back to a font with a
-    // taller default line box and rendered visibly taller than its Latin
-    // neighbours ("ja"); a fixed multiple makes every chip the same height.
-    line-height: 1.4;
+    line-height: vars.$chip-line-height;
     color: vars.$text-muted;
   }
 
@@ -259,6 +256,7 @@
     background: rgba(vars.$color-recommended, 0.15);
     border-radius: 3px;
     font-size: 10px;
+    line-height: vars.$chip-line-height;
     color: vars.$color-recommended;
     font-weight: vars.$weight-medium;
   }
@@ -271,6 +269,7 @@
     background: rgba(vars.$color-primary, 0.15);
     border-radius: 3px;
     font-size: 10px;
+    line-height: vars.$chip-line-height;
     color: vars.$color-primary;
     font-weight: vars.$weight-medium;
   }

@@ -59,6 +59,12 @@ $border-strong:  #555;   // hover-emphasized borders
 $font-title:   14px;
 $font-body:    13px;
 $font-caption: 12px;
+// The model cards' chips (language, tier, Recommended / Auto badges) share one
+// fixed line box: with `normal`, the 12px and 10px chips came out 15px and
+// ~14px tall in Latin script and a CJK chip ("多语言") 19px, because the
+// fallback CJK font carries a taller default line height. 13px + the chips'
+// 1px vertical padding = 15px for every chip in every script.
+$chip-line-height: 13px;
 
 $weight-normal:   400;
 $weight-medium:   500;
