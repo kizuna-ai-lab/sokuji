@@ -222,14 +222,14 @@ describe('EnginePage — per-slot compute-device badge (B\'2, 2026-09-03)', () =
   );
 
   it('renders the adapter-supplied badge for every slot, real onOpen wired to onBrowse', () => {
-    const a = adapter({ slotBadge: (slot) => <Badge stage={slot.stage} /> });
+    const a = adapter({ slotBadge: (slot, onOpen) => <Badge stage={slot.stage} onOpen={onOpen} /> });
     surface(a);
     // One badge per rendered slot: 3 for the speaker leg (asr/translation/tts), 2 for participant.
     expect(screen.getAllByTestId(/^badge-/)).toHaveLength(5);
   });
 
   it('clicking a slot\'s badge opens that slot\'s library page — the same onBrowse the select\'s "Browse library" option uses', async () => {
-    const a = adapter({ slotBadge: (slot) => <Badge stage={slot.stage} /> });
+    const a = adapter({ slotBadge: (slot, onOpen) => <Badge stage={slot.stage} onOpen={onOpen} /> });
     surface(a);
     fireEvent.click(screen.getAllByTestId('badge-translation')[0]);
     expect(await screen.findByTestId('library')).toHaveTextContent('translation');

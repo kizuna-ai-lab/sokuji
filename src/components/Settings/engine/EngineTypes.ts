@@ -28,10 +28,9 @@ export interface EngineAdapter {
   /** Write an explicit pick ('' = back to auto). */
   select(slot: SlotId, modelId: string): void | Promise<void>;
   /** Read-only per-slot compute-device badge (native only; absent for WASM).
-   *  EnginePage clones the returned element to inject the real `onOpen`
-   *  handler (opening that slot's library page) — see SlotDeviceBadge and
-   *  EnginePage's rendering of it. */
-  slotBadge?(slot: SlotId): ReactNode;
+   *  `onOpen` is the page's own "open this slot's library" navigation, which
+   *  the adapter cannot reach on its own — see SlotDeviceBadge. */
+  slotBadge?(slot: SlotId, onOpen: () => void): ReactNode;
   /** Gate banner above the blocks (native engine bundle); absent for WASM. */
   gate?: ReactNode;
   /** Storage summary line for the storage row. */

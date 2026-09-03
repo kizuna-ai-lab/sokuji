@@ -27,6 +27,10 @@ type Resolved = { model: string; device: string } | null;
 let mockAsrResolved: Resolved = null;
 let mockTranslationResolved: Resolved = null;
 let mockTtsResolved: Resolved = null;
+// One catalog entry with an available accelerator tier = "this box has a GPU".
+const GPU_CATALOG = { m: { tiers: [{ tier: 'gpu-vulkan', available: true }] } };
+const CPU_CATALOG = { m: { tiers: [{ tier: 'cpu', available: true }] } };
+let mockCatalog: Record<string, unknown> = GPU_CATALOG;
 
 vi.mock('../../../stores/settingsStore', () => ({
   useLocalNativeSettings: () => mockSettings,
@@ -36,6 +40,7 @@ vi.mock('../../../stores/nativeModelStore', () => ({
   useNativeAsrResolved: () => mockAsrResolved,
   useNativeTranslationResolved: () => mockTranslationResolved,
   useNativeTtsResolved: () => mockTtsResolved,
+  useNativeCatalog: () => mockCatalog,
 }));
 
 beforeEach(() => {
@@ -43,6 +48,7 @@ beforeEach(() => {
   mockAsrResolved = null;
   mockTranslationResolved = null;
   mockTtsResolved = null;
+  mockCatalog = GPU_CATALOG;
 });
 
 describe('SlotDeviceBadge', () => {
@@ -70,6 +76,23 @@ describe('SlotDeviceBadge', () => {
     expect(btn.querySelector('b')).toHaveTextContent('CPU');
     expect(btn.querySelector('span')).toHaveTextContent('CPU');
     expect(btn.className).toContain('slot-device-badge--pinned');
+  });
+
+  it('a pinned gpu setting shows "GPU" pinned while a GPU tier exists', () => {
+    mockSettings = { ...mockSettings, asrDevice: 'gpu' };
+    render(<SlotDeviceBadge stage="asr" onOpen={vi.fn()} />);
+    const btn = screen.getByRole('button');
+    expect(btn.querySelector('b')).toHaveTextContent('GPU');
+    expect(btn.className).toContain('slot-device-badge--pinned');
+  });
+
+  it('a stale gpu pin on a box with no GPU tier reads as Auto, unpinned — the same coercion the library control applies', () => {
+    mockSettings = { ...mockSettings, asrDevice: 'gpu' };
+    mockCatalog = CPU_CATALOG;
+    render(<SlotDeviceBadge stage="asr" onOpen={vi.fn()} />);
+    const btn = screen.getByRole('button');
+    expect(btn.querySelector('b')).toHaveTextContent('Auto');
+    expect(btn.className).not.toContain('--pinned');
   });
 
   it('a resolved metal device maps to "Metal"', () => {

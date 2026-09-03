@@ -94,17 +94,9 @@ export const EnginePage: React.FC<{
             // resolver only reports explicit when the pick is usable, so the
             // value always matches one of the rendered options.
             const value = resolved?.source === 'explicit' ? resolved.modelId : '';
-            // The badge is native-only (adapter.slotBadge is absent for
-            // WASM) and comes back with a placeholder `onOpen` — the adapter
-            // has no access to the Library push/pop navigation EnginePage
-            // owns, so this clones the element to inject the real handler
-            // (same isValidElement + cloneElement pattern as Tooltip.tsx).
-            const badgeNode = adapter.slotBadge?.(slot);
-            const badge = badgeNode && React.isValidElement(badgeNode)
-              ? React.cloneElement(badgeNode as React.ReactElement<{ onOpen: () => void }>, {
-                  onOpen: () => onBrowse(slot),
-                })
-              : null;
+            // Native only (absent for WASM); opens this slot's library page,
+            // the same navigation the select's "Browse library" option uses.
+            const badge = adapter.slotBadge?.(slot, () => onBrowse(slot)) ?? null;
             return (
               <SlotRow key={stage} slot={slot} label={label} shortLabel={shortLabel} flashSlot={flashSlot}>
                 <select

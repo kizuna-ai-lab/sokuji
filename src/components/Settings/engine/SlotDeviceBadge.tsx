@@ -1,7 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocalNativeSettings } from '../../../stores/settingsStore';
-import { useNativeAsrResolved, useNativeTranslationResolved, useNativeTtsResolved } from '../../../stores/nativeModelStore';
+import { useNativeAsrResolved, useNativeCatalog, useNativeTranslationResolved, useNativeTtsResolved } from '../../../stores/nativeModelStore';
+import { gpuTierAvailable } from '../../../lib/local-inference/native/nativeCatalog';
 import type { Stage } from '../../../lib/local-inference/selection/types';
 import './Engine.scss';
 
@@ -35,15 +36,19 @@ const actualDeviceLabel = (kind: string): string =>
 export const SlotDeviceBadge: React.FC<{ stage: Stage; onOpen: () => void }> = ({ stage, onOpen }) => {
   const { t } = useTranslation();
   const settings = useLocalNativeSettings();
+  const catalog = useNativeCatalog();
   // Hook rules require all three selectors to be called unconditionally;
   // only the one matching `stage` is used below.
   const asrResolved = useNativeAsrResolved();
   const translationResolved = useNativeTranslationResolved();
   const ttsResolved = useNativeTtsResolved();
 
-  const setting: DeviceSetting = stage === 'asr' ? settings.asrDevice
+  const rawSetting: DeviceSetting = stage === 'asr' ? settings.asrDevice
     : stage === 'translation' ? settings.translationDevice
     : settings.ttsDevice;
+  // A stale 'gpu' pin on a box with no GPU tier reads as Auto, exactly as
+  // NativeDeviceControl shows it in the library.
+  const setting: DeviceSetting = rawSetting === 'gpu' && !gpuTierAvailable(catalog) ? 'auto' : rawSetting;
   const resolved = stage === 'asr' ? asrResolved
     : stage === 'translation' ? translationResolved
     : ttsResolved;
