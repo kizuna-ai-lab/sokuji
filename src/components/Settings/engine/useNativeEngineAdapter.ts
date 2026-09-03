@@ -77,7 +77,13 @@ export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
       // A plain React element (SlotDeviceBadge mounts as its own component
       // instance), not a direct hook call, since this file is `.ts` (no JSX)
       // and `slotBadge` is invoked synchronously inside EnginePage's render.
-      slotBadge: (slot) => React.createElement(SlotDeviceBadge, { stage: slot.stage }),
+      // `modelId` is this slot's effective pick (explicit or auto): the badge
+      // shows the store's resolved device only when the report is about it.
+      slotBadge: (slot, id) => {
+        const [src, tgt] = split(slot.dir);
+        const modelId = useNativeModelStore.getState().resolve(src, tgt, selections)[slot.stage]?.modelId ?? null;
+        return React.createElement(SlotDeviceBadge, { stage: slot.stage, modelId, id });
+      },
       storageSummary: fmtBytes(storageBytes) ?? '0 MB',
       stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
       disabled: isSessionActive,

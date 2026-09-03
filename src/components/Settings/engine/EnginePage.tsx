@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, HardDrive } from 'lucide-react';
 import type { EngineAdapter, SlotId } from './EngineTypes';
@@ -60,6 +60,8 @@ export const EnginePage: React.FC<{
   effectiveMode: AudioMode;
 }> = ({ adapter, onBrowse, onStorage, flashSlot = null, effectiveMode }) => {
   const { t } = useTranslation();
+  // Prefix for the per-slot badge ids the selects describe themselves by.
+  const pageId = useId();
   // Rich option markup only where the runtime renders customizable selects
   // (same gating and reason as ProviderSection's provider-select: classic
   // OS popups flatten or hide rich children).
@@ -77,7 +79,7 @@ export const EnginePage: React.FC<{
   return (
     <div className="engine-page">
       {adapter.gate}
-      {visibleDirections.map(({ dir, src, tgt }) => (
+      {visibleDirections.map(({ dir, src, tgt }, blockIndex) => (
         <div key={dir} className="engine-direction">
           <div className="engine-direction__title">
             {t('engineUi.speakerHeading', '{{src}} → {{tgt}}', {
@@ -95,8 +97,10 @@ export const EnginePage: React.FC<{
             // value always matches one of the rendered options.
             const value = resolved?.source === 'explicit' ? resolved.modelId : '';
             // Native only (absent for WASM). Drawn over the select's right end
-            // (Engine.scss); `--badged` pads the select by the badge's width.
-            const badge = adapter.slotBadge?.(slot) ?? null;
+            // (Engine.scss); `--badged` pads the select by the badge's width,
+            // and the select describes itself by the badge for assistive tech.
+            const badgeId = `${pageId}-${blockIndex}-${stage}`;
+            const badge = adapter.slotBadge?.(slot, badgeId) ?? null;
             return (
               <SlotRow key={stage} slot={slot} label={label} shortLabel={shortLabel} flashSlot={flashSlot}>
                 <select
@@ -104,6 +108,7 @@ export const EnginePage: React.FC<{
                   value={value}
                   disabled={adapter.disabled}
                   aria-label={label}
+                  aria-describedby={badge ? badgeId : undefined}
                   onChange={(e) => {
                     const picked = e.target.value;
                     if (picked === BROWSE_OPTION_VALUE) {

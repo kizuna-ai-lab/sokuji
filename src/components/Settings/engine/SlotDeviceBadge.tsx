@@ -21,10 +21,17 @@ const ACTUAL_DEVICE_LABEL: Record<string, string> = {
 };
 
 /** Maps a resolved device kind to its display label — known kinds get their
- *  proper name (Vulkan/Metal/CPU), anything else is capitalised as-is so a
- *  future backend never renders blank. */
+ *  proper name (Vulkan/Metal/CPU); an unknown short token reads as an
+ *  acronym (cuda → CUDA), a longer one is capitalised, so a future backend
+ *  never renders blank or as "Cuda". */
 const actualDeviceLabel = (kind: string): string =>
-  ACTUAL_DEVICE_LABEL[kind] ?? (kind.length ? kind[0].toUpperCase() + kind.slice(1) : kind);
+  ACTUAL_DEVICE_LABEL[kind] ?? (kind.length <= 4 ? kind.toUpperCase() : kind[0].toUpperCase() + kind.slice(1));
+
+/** A resolved device that contradicts the current setting is a leftover from
+ *  before the user changed it (the store keeps the last session's report),
+ *  so it is not shown: "CPU · Vulkan" would read as a live contradiction. */
+const consistentWith = (setting: DeviceSetting, device: string): boolean =>
+  setting === 'auto' || (setting === 'cpu' ? device === 'cpu' : device !== 'cpu');
 
 /** The CSS custom property the badge writes its rendered width into, on the
  *  slot control that hosts it; Engine.scss pads the select by it so the
@@ -39,8 +46,17 @@ export const BADGE_WIDTH_VAR = '--slot-badge-w';
  * CPU / GPU) plus the ACTUAL resolved device once known (Vulkan / Metal /
  * CPU); amber-outlined when the user pinned a device. The control itself
  * lives only in the model library.
+ *
+ * The store's resolved report is one app-global value per stage, written at
+ * session start for whichever model loaded and never cleared — so the actual
+ * device shows only when that report is about THIS slot's model (`modelId`,
+ * the same gate the library card applies) and agrees with the setting.
+ *
+ * `id` is what the select's aria-describedby points at: sighted users read
+ * the badge as part of the control, so assistive tech gets it as the
+ * control's description, prefixed with what it is.
  */
-export const SlotDeviceBadge: React.FC<{ stage: Stage }> = ({ stage }) => {
+export const SlotDeviceBadge: React.FC<{ stage: Stage; modelId: string | null; id: string }> = ({ stage, modelId, id }) => {
   const { t } = useTranslation();
   const settings = useLocalNativeSettings();
   const catalog = useNativeCatalog();
@@ -63,7 +79,9 @@ export const SlotDeviceBadge: React.FC<{ stage: Stage }> = ({ stage }) => {
 
   const [settingKey, settingDefault] = SETTING_LABEL_KEY[setting];
   const settingLabel = t(settingKey, settingDefault);
-  const actualLabel = resolved ? actualDeviceLabel(resolved.device) : null;
+  const actualLabel = resolved && modelId !== null && resolved.model === modelId && consistentWith(setting, resolved.device)
+    ? actualDeviceLabel(resolved.device)
+    : null;
   const pinned = setting !== 'auto';
 
   // Publish the badge's width to the host control (see BADGE_WIDTH_VAR).
@@ -84,9 +102,10 @@ export const SlotDeviceBadge: React.FC<{ stage: Stage }> = ({ stage }) => {
   }, [settingLabel, actualLabel]);
 
   return (
-    <span ref={ref} className={`slot-device-badge${pinned ? ' slot-device-badge--pinned' : ''}`}>
-      <b>{settingLabel}</b>
-      {actualLabel && <span>{actualLabel}</span>}
+    <span ref={ref} id={id} className={`slot-device-badge${pinned ? ' slot-device-badge--pinned' : ''}`}>
+      <span className="slot-device-badge__sr">{t('models.computeDevice', 'Compute device')}: </span>
+      <b className="slot-device-badge__setting">{settingLabel}</b>
+      {actualLabel && <span className="slot-device-badge__actual">{actualLabel}</span>}
     </span>
   );
 };

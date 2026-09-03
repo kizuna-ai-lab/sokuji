@@ -120,8 +120,9 @@
   // margin, and widen the chevron's own box by the badge's width so the
   // text stops short of it; the badge (absolutely placed, right: 32px)
   // lands in that reserved strip, between the text and the glyph. Tripled
-  // class: it has to outrank the doubled rule above that set the classic
-  // padding.
+  // class: same (0,3,0) specificity as the doubled rule's `--badged`
+  // compound above — this one wins on source order alone, so it must stay
+  // below that rule in this file.
   .engine-slot__select.engine-slot__select.engine-slot__select--badged {
     padding-right: 10px;
 
@@ -223,6 +224,21 @@
   b {
     color: vars.$text-secondary;
     font-weight: vars.$weight-semibold;
+  }
+
+  // "Compute device:" for assistive tech only — the select points its
+  // aria-describedby at this badge, and sighted users already read the
+  // badge as part of the control.
+  &__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   // Amber outline: the user pinned an explicit device for this stage,
