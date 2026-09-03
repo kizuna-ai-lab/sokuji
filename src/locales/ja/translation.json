@@ -947,7 +947,6 @@
     "autoValue": "自動・{{name}}",
     "autoOptionNone": "自動",
     "browseLibrary": "ライブラリを見る",
-    "deviceBadgeHint": "計算デバイス：{{setting}}{{actual}} — ライブラリで変更できます",
     "storageUsedLine": "ストレージ：{{summary}} 使用中",
     "manageStorage": "管理",
     "back": "戻る",

@@ -77,7 +77,7 @@ export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
       // A plain React element (SlotDeviceBadge mounts as its own component
       // instance), not a direct hook call, since this file is `.ts` (no JSX)
       // and `slotBadge` is invoked synchronously inside EnginePage's render.
-      slotBadge: (slot, onOpen) => React.createElement(SlotDeviceBadge, { stage: slot.stage, onOpen }),
+      slotBadge: (slot) => React.createElement(SlotDeviceBadge, { stage: slot.stage }),
       storageSummary: fmtBytes(storageBytes) ?? '0 MB',
       stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
       disabled: isSessionActive,

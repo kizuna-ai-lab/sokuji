@@ -947,7 +947,6 @@
     "autoValue": "Auto · {{name}}",
     "autoOptionNone": "Auto",
     "browseLibrary": "Bläddra i biblioteket",
-    "deviceBadgeHint": "Beräkningsenhet: {{setting}}{{actual}} — ändra det i biblioteket",
     "storageUsedLine": "Lagring: {{summary}} använt",
     "manageStorage": "Hantera",
     "back": "Tillbaka",

@@ -947,7 +947,6 @@
     "autoValue": "تلقائي · {{name}}",
     "autoOptionNone": "تلقائي",
     "browseLibrary": "تصفح المكتبة",
-    "deviceBadgeHint": "جهاز الحوسبة: {{setting}}{{actual}} — غيّره من المكتبة",
     "storageUsedLine": "التخزين: {{summary}} مستخدَمة",
     "manageStorage": "إدارة",
     "back": "رجوع",

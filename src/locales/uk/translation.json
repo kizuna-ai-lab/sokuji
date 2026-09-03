@@ -947,7 +947,6 @@
     "autoValue": "Авто · {{name}}",
     "autoOptionNone": "Авто",
     "browseLibrary": "Переглянути бібліотеку",
-    "deviceBadgeHint": "Обчислювальний пристрій: {{setting}}{{actual}} — змінити в бібліотеці",
     "storageUsedLine": "Сховище: використано {{summary}}",
     "manageStorage": "Керувати",
     "back": "Назад",

@@ -94,13 +94,13 @@ export const EnginePage: React.FC<{
             // resolver only reports explicit when the pick is usable, so the
             // value always matches one of the rendered options.
             const value = resolved?.source === 'explicit' ? resolved.modelId : '';
-            // Native only (absent for WASM); opens this slot's library page,
-            // the same navigation the select's "Browse library" option uses.
-            const badge = adapter.slotBadge?.(slot, () => onBrowse(slot)) ?? null;
+            // Native only (absent for WASM). Drawn over the select's right end
+            // (Engine.scss); `--badged` pads the select by the badge's width.
+            const badge = adapter.slotBadge?.(slot) ?? null;
             return (
               <SlotRow key={stage} slot={slot} label={label} shortLabel={shortLabel} flashSlot={flashSlot}>
                 <select
-                  className={`select-dropdown engine-slot__select${resolved ? '' : ' engine-slot__select--missing'}`}
+                  className={`select-dropdown engine-slot__select${resolved ? '' : ' engine-slot__select--missing'}${badge ? ' engine-slot__select--badged' : ''}`}
                   value={value}
                   disabled={adapter.disabled}
                   aria-label={label}

@@ -947,7 +947,6 @@
     "autoValue": "Automatik · {{name}}",
     "autoOptionNone": "Automatik",
     "browseLibrary": "Lihat pustaka",
-    "deviceBadgeHint": "Peranti pengiraan: {{setting}}{{actual}} — tukar di pustaka",
     "storageUsedLine": "Storan: {{summary}} digunakan",
     "manageStorage": "Urus",
     "back": "Kembali",

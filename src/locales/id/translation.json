@@ -947,7 +947,6 @@
     "autoValue": "Otomatis · {{name}}",
     "autoOptionNone": "Otomatis",
     "browseLibrary": "Jelajahi pustaka",
-    "deviceBadgeHint": "Perangkat komputasi: {{setting}}{{actual}} — ubah di pustaka",
     "storageUsedLine": "Penyimpanan: {{summary}} terpakai",
     "manageStorage": "Kelola",
     "back": "Kembali",

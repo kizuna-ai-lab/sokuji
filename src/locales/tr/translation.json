@@ -947,7 +947,6 @@
     "autoValue": "Otomatik · {{name}}",
     "autoOptionNone": "Otomatik",
     "browseLibrary": "Kitaplığa göz at",
-    "deviceBadgeHint": "Hesaplama cihazı: {{setting}}{{actual}} — kitaplıktan değiştirin",
     "storageUsedLine": "Depolama: {{summary}} kullanılıyor",
     "manageStorage": "Yönet",
     "back": "Geri",

@@ -947,7 +947,6 @@
     "autoValue": "தானியங்கி · {{name}}",
     "autoOptionNone": "தானியங்கி",
     "browseLibrary": "நூலகத்தை உலாவு",
-    "deviceBadgeHint": "கணக்கீட்டு சாதனம்: {{setting}}{{actual}} — நூலகத்தில் மாற்றவும்",
     "storageUsedLine": "சேமிப்பகம்: {{summary}} பயன்படுத்தப்பட்டது",
     "manageStorage": "நிர்வகி",
     "back": "பின்செல்",

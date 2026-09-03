@@ -947,7 +947,6 @@
     "autoValue": "خودکار · {{name}}",
     "autoOptionNone": "خودکار",
     "browseLibrary": "مرور کتابخانه",
-    "deviceBadgeHint": "دستگاه پردازش: {{setting}}{{actual}} — آن را در کتابخانه تغییر دهید",
     "storageUsedLine": "فضای ذخیره‌سازی: {{summary}} استفاده شده",
     "manageStorage": "مدیریت",
     "back": "بازگشت",

@@ -947,7 +947,6 @@
     "autoValue": "Auto · {{name}}",
     "autoOptionNone": "Auto",
     "browseLibrary": "Sfoglia libreria",
-    "deviceBadgeHint": "Dispositivo di calcolo: {{setting}}{{actual}} — modificalo nella libreria",
     "storageUsedLine": "Archiviazione: {{summary}} usati",
     "manageStorage": "Gestisci",
     "back": "Indietro",

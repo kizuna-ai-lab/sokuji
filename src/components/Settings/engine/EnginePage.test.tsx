@@ -217,27 +217,24 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
 });
 
 describe('EnginePage — per-slot compute-device badge (B\'2, 2026-09-03)', () => {
-  const Badge = ({ stage, onOpen }: { stage: string; onOpen?: () => void }) => (
-    <button type="button" data-testid={`badge-${stage}`} onClick={onOpen}>badge:{stage}</button>
-  );
+  const Badge = ({ stage }: { stage: string }) => <span data-testid={`badge-${stage}`}>badge:{stage}</span>;
 
-  it('renders the adapter-supplied badge for every slot, real onOpen wired to onBrowse', () => {
-    const a = adapter({ slotBadge: (slot, onOpen) => <Badge stage={slot.stage} onOpen={onOpen} /> });
+  it('renders the adapter-supplied badge for every slot, inside that slot\'s control, and pads the select for it', () => {
+    const a = adapter({ slotBadge: (slot) => <Badge stage={slot.stage} /> });
     surface(a);
     // One badge per rendered slot: 3 for the speaker leg (asr/translation/tts), 2 for participant.
-    expect(screen.getAllByTestId(/^badge-/)).toHaveLength(5);
+    const badges = screen.getAllByTestId(/^badge-/);
+    expect(badges).toHaveLength(5);
+    for (const b of badges) {
+      const control = b.closest('.engine-slot__control');
+      expect(control).not.toBeNull();
+      expect(control!.querySelector('select')).toHaveClass('engine-slot__select--badged');
+    }
   });
 
-  it('clicking a slot\'s badge opens that slot\'s library page — the same onBrowse the select\'s "Browse library" option uses', async () => {
-    const a = adapter({ slotBadge: (slot, onOpen) => <Badge stage={slot.stage} onOpen={onOpen} /> });
-    surface(a);
-    fireEvent.click(screen.getAllByTestId('badge-translation')[0]);
-    expect(await screen.findByTestId('library')).toHaveTextContent('translation');
-    expect(a.select).not.toHaveBeenCalled();
-  });
-
-  it('an adapter without slotBadge (WASM-shaped) renders no badge at all', () => {
+  it('an adapter without slotBadge (WASM-shaped) renders no badge and leaves the select unpadded', () => {
     surface(adapter());
     expect(screen.queryByTestId(/^badge-/)).not.toBeInTheDocument();
+    expect(document.querySelector('.engine-slot__select--badged')).toBeNull();
   });
 });

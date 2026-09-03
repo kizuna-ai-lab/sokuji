@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocalNativeSettings } from '../../../stores/settingsStore';
 import { useNativeAsrResolved, useNativeCatalog, useNativeTranslationResolved, useNativeTtsResolved } from '../../../stores/nativeModelStore';
@@ -26,14 +26,21 @@ const ACTUAL_DEVICE_LABEL: Record<string, string> = {
 const actualDeviceLabel = (kind: string): string =>
   ACTUAL_DEVICE_LABEL[kind] ?? (kind.length ? kind[0].toUpperCase() + kind.slice(1) : kind);
 
+/** The CSS custom property the badge writes its rendered width into, on the
+ *  slot control that hosts it; Engine.scss pads the select by it so the
+ *  model name never runs under the badge, in any locale. */
+export const BADGE_WIDTH_VAR = '--slot-badge-w';
+
 /**
- * Read-only per-slot compute-device badge on the Engine page (B'2 decision,
- * 2026-09-03): the SETTING in bold (Auto / CPU / GPU) plus the ACTUAL
- * resolved device once known (Vulkan / Metal / CPU), amber-outlined when the
- * user pinned a device. The control itself lives only in the model library —
- * clicking this badge opens that slot's library page via `onOpen`.
+ * Read-only per-slot compute-device badge, drawn inside the slot's select box
+ * on the Engine page (B'2 decision, 2026-09-03, amended the same day: in-box
+ * placement won over click-to-open, so the badge is purely informational and
+ * clicks fall through to the select). Two words: the SETTING in bold (Auto /
+ * CPU / GPU) plus the ACTUAL resolved device once known (Vulkan / Metal /
+ * CPU); amber-outlined when the user pinned a device. The control itself
+ * lives only in the model library.
  */
-export const SlotDeviceBadge: React.FC<{ stage: Stage; onOpen: () => void }> = ({ stage, onOpen }) => {
+export const SlotDeviceBadge: React.FC<{ stage: Stage }> = ({ stage }) => {
   const { t } = useTranslation();
   const settings = useLocalNativeSettings();
   const catalog = useNativeCatalog();
@@ -42,6 +49,7 @@ export const SlotDeviceBadge: React.FC<{ stage: Stage; onOpen: () => void }> = (
   const asrResolved = useNativeAsrResolved();
   const translationResolved = useNativeTranslationResolved();
   const ttsResolved = useNativeTtsResolved();
+  const ref = useRef<HTMLSpanElement>(null);
 
   const rawSetting: DeviceSetting = stage === 'asr' ? settings.asrDevice
     : stage === 'translation' ? settings.translationDevice
@@ -58,20 +66,28 @@ export const SlotDeviceBadge: React.FC<{ stage: Stage; onOpen: () => void }> = (
   const actualLabel = resolved ? actualDeviceLabel(resolved.device) : null;
   const pinned = setting !== 'auto';
 
-  const title = t('engineUi.deviceBadgeHint',
-    'Compute device: {{setting}}{{actual}} — change it in the library',
-    { setting: settingLabel, actual: actualLabel ? ` → ${actualLabel}` : '' });
+  // Publish the badge's width to the host control (see BADGE_WIDTH_VAR).
+  // Re-measured whenever the words change and, where the platform has a
+  // ResizeObserver (not jsdom), whenever a font swap resizes the text.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const host = el?.parentElement;
+    if (!el || !host) return;
+    const apply = () => host.style.setProperty(BADGE_WIDTH_VAR, `${el.offsetWidth}px`);
+    apply();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(apply) : null;
+    ro?.observe(el);
+    return () => {
+      ro?.disconnect();
+      host.style.removeProperty(BADGE_WIDTH_VAR);
+    };
+  }, [settingLabel, actualLabel]);
 
   return (
-    <button
-      type="button"
-      className={`slot-device-badge${pinned ? ' slot-device-badge--pinned' : ''}`}
-      title={title}
-      onClick={onOpen}
-    >
+    <span ref={ref} className={`slot-device-badge${pinned ? ' slot-device-badge--pinned' : ''}`}>
       <b>{settingLabel}</b>
       {actualLabel && <span>{actualLabel}</span>}
-    </button>
+    </span>
   );
 };
 

@@ -947,7 +947,6 @@
     "autoValue": "Automático · {{name}}",
     "autoOptionNone": "Automático",
     "browseLibrary": "Explorar biblioteca",
-    "deviceBadgeHint": "Dispositivo de computação: {{setting}}{{actual}} — altere na biblioteca",
     "storageUsedLine": "Armazenamento: {{summary}} usados",
     "manageStorage": "Gerenciar",
     "back": "Voltar",

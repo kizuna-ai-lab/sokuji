@@ -947,7 +947,6 @@
     "autoValue": "Automatisch · {{name}}",
     "autoOptionNone": "Automatisch",
     "browseLibrary": "Bibliotheek doorzoeken",
-    "deviceBadgeHint": "Rekenapparaat: {{setting}}{{actual}} — wijzig dit in de bibliotheek",
     "storageUsedLine": "Opslag: {{summary}} gebruikt",
     "manageStorage": "Beheren",
     "back": "Terug",

@@ -1142,7 +1142,6 @@
     "autoValue": "Auto · {{name}}",
     "autoOptionNone": "Auto",
     "browseLibrary": "Browse library",
-    "deviceBadgeHint": "Compute device: {{setting}}{{actual}} — change it in the library",
     "storageUsedLine": "Storage: {{summary}} used",
     "manageStorage": "Manage",
     "back": "Back",

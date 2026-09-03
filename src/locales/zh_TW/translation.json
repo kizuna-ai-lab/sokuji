@@ -947,7 +947,6 @@
     "autoValue": "自動 · {{name}}",
     "autoOptionNone": "自動",
     "browseLibrary": "瀏覽模型庫",
-    "deviceBadgeHint": "運算裝置：{{setting}}{{actual}} — 在模型庫中變更",
     "storageUsedLine": "儲存空間：已使用 {{summary}}",
     "manageStorage": "管理",
     "back": "返回",

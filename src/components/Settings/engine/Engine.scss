@@ -65,15 +65,13 @@
   // column would wrap it - see the @container block at the end of this file.
   &__label-short { display: none; }
 
-  // Holds the select and (native only) the read-only device badge side by
-  // side — the select takes the slack (its own &__select rule below), the
-  // badge sizes to its content (.slot-device-badge's flex: 0 0 auto).
+  // Holds the select and (native only) the read-only device badge, which
+  // sits INSIDE the select's box: absolutely placed over its right end,
+  // left of the caret, clicks falling through to the select.
   &__control {
     flex: 1;
     min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    position: relative;
   }
 
   // Doubled class beats the base .select-dropdown rule regardless of which
@@ -81,9 +79,6 @@
   // it on specificity and silently loses to import order (measured: the
   // 14px/8px base values were winning).
   &__select.engine-slot__select {
-    // Takes the slack in &__control's flex row; min-width: 0 lets it shrink
-    // below its content size instead of pushing the badge out of the row.
-    flex: 1;
     min-width: 0;
     // The app-wide .select-dropdown look, one size down from the Provider
     // control (body 13px, not title 14px, tighter padding) so five of these
@@ -98,6 +93,14 @@
       color: vars.$color-error;
       border-color: rgba(vars.$color-error, 0.45);
     }
+
+    // Room for the badge SlotDeviceBadge draws over the right end: its own
+    // measured width (the custom property it publishes on &__control) plus
+    // the caret's 32px (10px inset + 12px glyph + 10px breathing room).
+    &.engine-slot__select--badged {
+      padding-right: calc(var(--slot-badge-w, 0px) + 32px + 8px);
+      text-overflow: ellipsis;
+    }
   }
 }
 
@@ -110,6 +113,24 @@
 //   #3 the current pick is green in the list (beside the built-in check)
 //   #4 the closed control's 'auto ·' prefix stays muted, name stays bright
 @supports (appearance: base-select) {
+  // base-select draws its chevron as ::picker-icon, a flex item the UA
+  // pushes to the end with an auto start margin — not a background pinned
+  // to the right edge — so the classic padding-right would park the chevron
+  // LEFT of the badge. Give the text its normal padding back, keep the auto
+  // margin, and widen the chevron's own box by the badge's width so the
+  // text stops short of it; the badge (absolutely placed, right: 32px)
+  // lands in that reserved strip, between the text and the glyph. Tripled
+  // class: it has to outrank the doubled rule above that set the classic
+  // padding.
+  .engine-slot__select.engine-slot__select.engine-slot__select--badged {
+    padding-right: 10px;
+
+    &::picker-icon {
+      margin-inline-start: auto;
+      padding-inline-start: calc(var(--slot-badge-w, 0px) + 8px);
+    }
+  }
+
   .engine-slot__select.engine-slot__select {
     // The picker flips above the control only when its FULL preferred height
     // does not fit below (UA anchor rule: block-end + flip-block) — and the
@@ -178,40 +199,46 @@
   }
 }
 
-// Native's read-only per-slot compute-device badge (B'2 decision,
-// 2026-09-03): the control itself lives only in the model library now — this
-// just names the current setting + resolved device and links back there.
-// flex: 0 0 auto keeps it its own content width so the select (flex: 1)
-// keeps the row's remaining space.
+// The per-slot compute-device badge (SlotDeviceBadge), drawn inside the
+// slot's select box: absolutely placed over the select's right end, left of
+// the caret. Not interactive — pointer events fall through to the select —
+// so no hover state; the amber outline is the only state it carries.
 .slot-device-badge {
-  flex: 0 0 auto;
+  position: absolute;
+  top: 50%;
+  right: 32px;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: vars.$font-caption;
+  line-height: 1.2;
+  white-space: nowrap;
   color: vars.$text-muted;
-  background: none;
   border: 1px solid vars.$border-default;
   border-radius: vars.$radius-md;
-  padding: 2px 7px;
-  cursor: pointer;
-  transition: border-color vars.$transition-fast;
+  padding: 1px 7px;
+  pointer-events: none;
 
   b {
     color: vars.$text-secondary;
     font-weight: vars.$weight-semibold;
   }
 
-  &:hover {
-    border-color: vars.$text-muted;
-  }
-
   // Amber outline: the user pinned an explicit device for this stage,
   // rather than leaving it on Auto.
   &--pinned {
     border-color: vars.$color-warning;
+
+    b { color: vars.$color-warning; }
   }
 }
+
+// A disabled select (session running) dims its badge with it.
+.engine-slot__select:disabled + .slot-device-badge {
+  opacity: 0.5;
+}
+
 
 // Slide-in transitions for the push stack (B decision, 2026-08-23): only
 // the INCOMING content animates — from the right going deeper, from the
@@ -471,7 +498,4 @@
   .engine-slot__label { flex-basis: 40px; }
   .engine-slot__label-long { display: none; }
   .engine-slot__label-short { display: inline; }
-  // Keep the badge but drop the actual-device word so the row stays one
-  // line — the setting alone (bold) still fits beside the shrunk select.
-  .slot-device-badge span { display: none; }
 }

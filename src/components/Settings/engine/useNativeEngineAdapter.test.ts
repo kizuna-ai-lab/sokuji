@@ -100,7 +100,7 @@ describe('useNativeEngineAdapter', () => {
   it('offers a slotBadge (the read-only device badge) and no longer offers stageExtras', () => {
     const { result } = renderHook(() => useNativeEngineAdapter());
     expect(result.current.slotBadge).toBeTypeOf('function');
-    expect(result.current.slotBadge!({ dir: 'ja→en', stage: 'asr' }, () => {})).toBeTruthy();
+    expect(result.current.slotBadge!({ dir: 'ja→en', stage: 'asr' })).toBeTruthy();
     expect((result.current as unknown as { stageExtras?: unknown }).stageExtras).toBeUndefined();
   });
 });
