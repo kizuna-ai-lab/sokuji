@@ -996,16 +996,28 @@ describe('LocalNativeClient clone-only voice gate', () => {
     vi.spyOn(await import('../../lib/local-inference/nativeVoiceStorage'), 'listNativeVoices').mockResolvedValue([]);
     const errors: string[] = [];
     const diagnostics: string[] = [];
+    const emitted: any[] = [];
     const c = new LocalNativeClient(m);
     c.setEventHandlers({
       onError: (e: any) => errors.push(String(e?.message ?? e)),
       onDiagnostic: (d: any) => diagnostics.push(`${d.code}: ${d.message}`),
+      onConversationUpdated: ({ item }: any) => emitted.push(item),
     } as any);
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: CLONE_ONLY_MODEL } as any);
     expect(m.tts.init).not.toHaveBeenCalled();
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(/needs a voice clip/i);
+    // The session continues, degraded: not an onError (which would raise a
+    // React-state-only bubble MainPanel wipes the moment connect() resolves,
+    // plus an api_error), but a system notice the CLIENT holds, so every
+    // setItems(getConversationItems()) keeps it — SonioxClient.emitSystemNotice's
+    // contract.
+    expect(errors).toHaveLength(0);
+    expect(emitted).toHaveLength(1);
+    // severity 'warning': the session runs, so subtitleIdleState must not read
+    // this trailing row as a failed start (Codex review on #482).
+    expect(emitted[0]).toMatchObject({ role: 'system', type: 'error', status: 'completed', severity: 'warning' });
+    expect(emitted[0].formatted.text).toMatch(/needs a voice clip/i);
+    expect(c.getConversationItems()).toEqual([emitted[0]]);
     expect(diagnostics.some((d) => d.startsWith('tts_degraded:'))).toBe(true);
   });
 
@@ -1065,7 +1077,10 @@ describe('LocalNativeClient clone-only voice gate', () => {
     await c.connect({ provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',
       asrModelId: 'sense-voice', ttsModelId: REQUIRED_MODEL } as any);
     expect(m.tts.init).not.toHaveBeenCalled();
-    expect(errors[0]).toMatch(/needs a voice clip/i);
+    expect(errors).toHaveLength(0);
+    const notices = c.getConversationItems().filter((i) => i.role === 'system' && i.type === 'error');
+    expect(notices).toHaveLength(1);
+    expect(notices[0].formatted?.text).toMatch(/needs a voice clip/i);
   });
 
   it('a preset/named-voice family (no voice field, no clones) is unaffected by the gate', async () => {
@@ -1192,8 +1207,10 @@ describe('LocalNativeClient reconcileTtsVoice — stale custom selection (transc
 
     // The pre-init gate catches it before TTS ever loads — unchanged from Task 7.
     expect(m.tts.init).not.toHaveBeenCalled();
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(/needs a voice clip/i);
+    expect(errors).toHaveLength(0);
+    const notices = c.getConversationItems().filter((i) => i.role === 'system' && i.type === 'error');
+    expect(notices).toHaveLength(1);
+    expect(notices[0].formatted?.text).toMatch(/needs a voice clip/i);
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].code).toBe('tts_degraded');
   });

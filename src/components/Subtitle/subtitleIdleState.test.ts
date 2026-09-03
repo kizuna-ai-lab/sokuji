@@ -92,6 +92,29 @@ describe('deriveSubtitleIdleState', () => {
     ).toEqual({ kind: 'ended' });
   });
 
+  // A session that started fine but degraded (Local Native without a voice
+  // clip, a Soniox custom voice that could not be prepared) leaves a client-
+  // or MainPanel-held notice in items. It is typed `error` because that is
+  // the only system row the bubble renderer draws, but it is not a failed
+  // start: the session ran. Stopping it before the first transcript leaves
+  // that notice trailing, and Retry would be the wrong offer.
+  it('does not read a trailing warning-severity notice as a failed start', () => {
+    const degraded = item({
+      id: 'n-600', role: 'system', type: 'error', severity: 'warning', createdAt: 600,
+      formatted: { text: '"qwen3-tts" needs a voice clip' },
+    });
+    expect(
+      deriveSubtitleIdleState({ ...base, hasRunSession: true, startRequestedAt: 500, items: [degraded] }),
+    ).toEqual({ kind: 'ended' });
+  });
+
+  it('still reads a trailing error-severity item after the start request as failed', () => {
+    const hard = { ...errorItem(600, 'sidecar exited'), severity: 'error' as const };
+    expect(
+      deriveSubtitleIdleState({ ...base, hasRunSession: true, startRequestedAt: 500, items: [hard] }),
+    ).toEqual({ kind: 'failed', message: 'sidecar exited' });
+  });
+
   it('only considers the trailing item, not an error buried in history', () => {
     expect(
       deriveSubtitleIdleState({

@@ -57,10 +57,16 @@ export function deriveSubtitleIdleState(input: IdleStateInput): SubtitleIdleStat
     };
   }
 
+  // `severity: 'warning'` is a notice about a session that started and ran
+  // degraded (see ConversationItem.severity). It is typed `error` only so
+  // the bubble renderer draws it; stopping such a session before its first
+  // transcript leaves that notice trailing, and offering Retry for a start
+  // that succeeded would be wrong.
   const last = items[items.length - 1];
   const isFreshStartFailure =
     startRequestedAt !== null &&
     last?.type === 'error' &&
+    last.severity !== 'warning' &&
     (last.createdAt ?? 0) >= startRequestedAt;
   if (isFreshStartFailure) {
     return { kind: 'failed', message: last.formatted?.text ?? '' };

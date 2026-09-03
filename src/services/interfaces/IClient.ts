@@ -11,6 +11,16 @@ export interface ConversationItem {
   id: string;
   role: 'user' | 'assistant' | 'system';
   type: 'message' | 'function_call' | 'function_call_output' | 'error';
+  /**
+   * For `type: 'error'` system rows only. `'warning'` marks a notice about a
+   * session that is RUNNING, degraded (Local Native without a voice clip, a
+   * Soniox custom voice that could not be prepared, a participant leg that
+   * never came up) — the row still renders as the red error bubble, the one
+   * system row the renderer draws, but subtitleIdleState must not read it as
+   * a failed start. Absent means `'error'`: the session is broken, or never
+   * started. A real `notice` item type replaces this flag under #481.
+   */
+  severity?: 'error' | 'warning';
   status: 'in_progress' | 'completed' | 'incomplete' | 'cancelled';
   source?: 'speaker' | 'participant'; // Source of the conversation item (speaker's mic or participant's system audio)
   createdAt?: number; // Timestamp for accurate sorting
