@@ -94,7 +94,7 @@ def test_cohere_asr_row():
 def test_roster_is_wer_ranked():
     ids = [m.id for m in catalog.asr_models()]
     assert ids[0] == "cohere-transcribe-03-2026"           # WER 1.25, benchmark best
-    assert len(ids) == 67
+    assert len(ids) == 66
     orders = [m.sort_order for m in catalog.asr_models()]
     assert orders == sorted(orders)                        # rows stay rank-ordered
     assert sum(1 for m in catalog.asr_models() if m.recommended) == 7
@@ -445,10 +445,11 @@ def test_all_translate_backends_installed_names():
 
 
 def test_translate_row_count_and_no_opus():
-    # The 13 Opus-MT rows are gone (slice 3): 9 GGUF LLM cards remain, all on
+    # The 13 Opus-MT rows are gone (slice 3): 11 GGUF LLM cards remain (9 + Qwen 3.5
+    # 4B and EuroLLM 1.7B, 2026-09-03), all on
     # native_translate.
     models = catalog.translate_models()
-    assert len(models) == 9
+    assert len(models) == 11
     assert all(d.backend == "native_translate" for m in models for d in m.deployments)
     assert catalog.translate_model("opus-mt-ja-en") is None
 

@@ -100,13 +100,6 @@ ASR_MODELS: list[AsrModel] = [
             10, {"F16": 4106644992, "Q8_0": 2410655232, "Q6_K": 1972524544,
                  "Q5_K_M": 1770270208, "Q4_K_M": 1558162944},
             default="Q4_K_M", recommended=True),
-    # Arabic specialist from the Cohere family — no librispeech figure (ar
-    # model); slotted top of its language view beside the flagship.
-    _tc_row("cohere-transcribe-arabic-07-2026", "Cohere Transcribe (Arabic)",
-            ("ar", "en"),
-            "handy-computer/cohere-transcribe-arabic-07-2026-gguf", "cohere-transcribe-arabic-07-2026",
-            12, {"F16": 4106644896, "Q8_0": 2410655136, "Q6_K": 1972524448,
-                 "Q5_K_M": 1770270112, "Q4_K_M": 1558162848}, default="Q4_K_M"),
     # Russian specialist (GigaAM v3, end-to-end w/ punctuation) — no librispeech
     # figure (ru model); slotted top of its language view.
     _tc_row("gigaam-v3-e2e-rnnt", "GigaAM v3 (Russian)", ("ru",),
@@ -496,8 +489,14 @@ _GGUF_SOURCES = {
     ("qwen3.5-0.8b", "q8_0"):   ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q8_0.gguf"),
     ("qwen3.5-2b", "q4_k_m"):   ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf"),
     ("qwen3.5-2b", "q8_0"):     ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q8_0.gguf"),
+    ("qwen3.5-4b", "q4_k_m"): ("unsloth/Qwen3.5-4B-GGUF", "Qwen3.5-4B-Q4_K_M.gguf"),
+    ("qwen3.5-4b", "q8_0"): ("unsloth/Qwen3.5-4B-GGUF", "Qwen3.5-4B-Q8_0.gguf"),
     ("translategemma-4b", "q4_k_m"): ("mradermacher/translategemma-4b-it-GGUF", "translategemma-4b-it.Q4_K_M.gguf"),
     ("translategemma-4b", "q8_0"):   ("mradermacher/translategemma-4b-it-GGUF", "translategemma-4b-it.Q8_0.gguf"),
+    # utter-project publishes no GGUFs of its own; mradermacher's are the same
+    # community source the TranslateGemma rows already use.
+    ("eurollm-1.7b", "q4_k_m"): ("mradermacher/EuroLLM-1.7B-Instruct-GGUF", "EuroLLM-1.7B-Instruct.Q4_K_M.gguf"),
+    ("eurollm-1.7b", "q8_0"): ("mradermacher/EuroLLM-1.7B-Instruct-GGUF", "EuroLLM-1.7B-Instruct.Q8_0.gguf"),
     ("hy-mt2-1.8b", "q4_k_m"):  ("tencent/Hy-MT2-1.8B-GGUF", "Hy-MT2-1.8B-Q4_K_M.gguf"),
     ("hy-mt2-1.8b", "q8_0"):    ("tencent/Hy-MT2-1.8B-GGUF", "Hy-MT2-1.8B-Q8_0.gguf"),
     ("hy-mt2-7b", "q4_k_m"):    ("tencent/Hy-MT2-7B-GGUF", "Hy-MT2-7B-Q4_K_M.gguf"),
@@ -554,15 +553,28 @@ TRANSLATE_MODELS: list[TranslateModel] = [
     _llm_translate_row("qwen3.5-2b", "Qwen 3.5 2B", "qwen", 4,
                        "q4_k_m", 1280835840, "q8_0", 2012012800,
                        disable_thinking=True),
-    _llm_translate_row("translategemma-4b", "TranslateGemma 4B", "gemma", 5,
+    # Same family and thinking handling as the 0.8B / 2B rows: Qwen3.5 has
+    # no /no_think soft switch, so only the empty-<think> prefill applies.
+    # The GGUF's text tower loads without the vision mmproj (added 2026-09-03).
+    _llm_translate_row("qwen3.5-4b", "Qwen 3.5 4B", "qwen", 5,
+                       "q4_k_m", 2740937888, "q8_0", 4482403488,
+                       disable_thinking=True),
+    _llm_translate_row("translategemma-4b", "TranslateGemma 4B", "gemma", 6,
                        "q4_k_m", 2489909760, "q8_0", 4130417920),
-    _llm_translate_row("hy-mt2-1.8b", "Hunyuan-MT2 1.8B", "hunyuan", 6,
+    # EuroLLM-1.7B-Instruct (utter-project, Apache-2.0): a translation-tuned
+    # Llama-architecture model covering 35 languages (the EU set plus zh, ja,
+    # ko, ru, uk, ar, hi). Its chat template is ChatML, which is what the
+    # "qwen" strategy renders; no thinking mode. 4096-token context
+    # (added 2026-09-03).
+    _llm_translate_row("eurollm-1.7b", "EuroLLM 1.7B", "qwen", 7,
+                       "q4_k_m", 1045157088, "q8_0", 1763775712),
+    _llm_translate_row("hy-mt2-1.8b", "Hunyuan-MT2 1.8B", "hunyuan", 8,
                        "q4_k_m", 1133080448, "q8_0", 1908528192),
-    _llm_translate_row("hy-mt2-7b", "Hunyuan-MT2 7B", "hunyuan", 7,
+    _llm_translate_row("hy-mt2-7b", "Hunyuan-MT2 7B", "hunyuan", 9,
                        "q4_k_m", 4624648896, "q8_0", 7981928896),
-    _llm_translate_row("hy-mt15-1.8b", "Hunyuan-MT1.5 1.8B", "hunyuan", 8,
+    _llm_translate_row("hy-mt15-1.8b", "Hunyuan-MT1.5 1.8B", "hunyuan", 10,
                        "q4_k_m", 1133080512, "q8_0", 1908528288),
-    _llm_translate_row("hy-mt15-7b", "Hunyuan-MT1.5 7B", "hunyuan", 9,
+    _llm_translate_row("hy-mt15-7b", "Hunyuan-MT1.5 7B", "hunyuan", 11,
                        "q4_k_m", 4624649312, "q8_0", 7981929344),
 ]
 
