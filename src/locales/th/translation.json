@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "อุปกรณ์ที่ใช้รันโมเดลสังเคราะห์เสียงพูด อัตโนมัติจะเลือกอุปกรณ์ที่เร็วที่สุดที่มีอยู่ (GPU หากมี); CPU ใช้ได้ทุกที่แต่ช้ากว่าสำหรับโมเดลขนาดใหญ่; GPU ใช้ Vulkan บน Windows และ Linux และใช้ Metal บนชิป Apple silicon",
     "deviceAuto": "อัตโนมัติ",
     "multiLanguage": "หลายภาษา",
+    "multilingual": "รองรับหลายภาษา",
     "languagesCount": "{{count}} ภาษา",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

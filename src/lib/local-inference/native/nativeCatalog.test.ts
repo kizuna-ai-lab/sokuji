@@ -177,8 +177,12 @@ describe('nativeCatalog', () => {
       tiers: [{ tier: 'cpu', backend: 'sherpa', available: true }] } as any)).toBe(false);              // CPU floor
   });
 
-  it('formatRtf renders a realtime multiple', () => {
+  it('formatRtf renders a realtime multiple: one decimal below 10×, whole numbers above', () => {
     expect(formatRtf(0.5)).toBe('2× realtime');
+    expect(formatRtf(0.625)).toBe('1.6× realtime');
+    expect(formatRtf(2.5)).toBe('0.4× realtime');
+    expect(formatRtf(0.105)).toBe('9.5× realtime');
+    expect(formatRtf(0.1)).toBe('10× realtime');
     expect(formatRtf(0.015)).toBe('67× realtime');
     expect(formatRtf(1)).toBe('1× realtime');
     expect(formatRtf(0)).toBe('realtime');

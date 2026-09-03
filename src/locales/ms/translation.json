@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "Peranti yang menjalankan model sintesis pertuturan. Auto memilih peranti terpantas yang tersedia (GPU jika ada); CPU berfungsi di mana-mana tetapi lebih perlahan untuk model besar; GPU menggunakan Vulkan pada Windows dan Linux, serta Metal pada Apple silicon.",
     "deviceAuto": "Auto",
     "multiLanguage": "Multi",
+    "multilingual": "Pelbagai bahasa",
     "languagesCount": "{{count}} bahasa",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

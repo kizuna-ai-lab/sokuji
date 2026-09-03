@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "Urządzenie, na którym działa model syntezy mowy. Auto wybiera najszybsze dostępne urządzenie (GPU, jeśli jest obecne); CPU działa wszędzie, ale jest wolniejsze dla dużych modeli; GPU korzysta z Vulkan w systemach Windows i Linux oraz z Metal na układach Apple silicon.",
     "deviceAuto": "Auto",
     "multiLanguage": "Multi",
+    "multilingual": "Wielojęzyczny",
     "languagesCount": "{{count}} języków",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

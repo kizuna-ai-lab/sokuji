@@ -970,6 +970,7 @@
     "computeDeviceTooltipTts": "Which device runs the speech-synthesis model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",
     "deviceAuto": "Auto",
     "multiLanguage": "Multi",
+    "multilingual": "Multilingual",
     "languagesCount": "{{count}} languages",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

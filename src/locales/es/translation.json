@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "Qué dispositivo ejecuta el modelo de síntesis de voz. Auto elige el dispositivo más rápido disponible (GPU si la hay); la CPU funciona en todas partes pero es más lenta con modelos grandes; la GPU usa Vulkan en Windows y Linux, y Metal en chips Apple silicon.",
     "deviceAuto": "Auto",
     "multiLanguage": "Multi",
+    "multilingual": "Multilingüe",
     "languagesCount": "{{count}} idiomas",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

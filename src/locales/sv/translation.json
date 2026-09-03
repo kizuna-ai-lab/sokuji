@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "Vilken enhet som kör talsyntesmodellen. Auto väljer den snabbaste tillgängliga enheten (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU använder Vulkan i Windows och Linux samt Metal på Apple silicon.",
     "deviceAuto": "Auto",
     "multiLanguage": "Multi",
+    "multilingual": "Flerspråkig",
     "languagesCount": "{{count}} språk",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

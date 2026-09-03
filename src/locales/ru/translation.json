@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "Какое устройство выполняет модель синтеза речи. «Авто» выбирает самое быстрое доступное устройство (GPU, если есть); CPU работает везде, но медленнее на больших моделях; GPU использует Vulkan в Windows и Linux и Metal на чипах Apple silicon.",
     "deviceAuto": "Авто",
     "multiLanguage": "Мульти",
+    "multilingual": "Многоязычная",
     "languagesCount": "{{count}} языков",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

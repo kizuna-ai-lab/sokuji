@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "Konuşma sentezi modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlı cihazı seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU, Windows ve Linux'ta Vulkan'ı, Apple silicon'da ise Metal'i kullanır.",
     "deviceAuto": "Otomatik",
     "multiLanguage": "Çoklu",
+    "multilingual": "Çok dilli",
     "languagesCount": "{{count}} dil",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

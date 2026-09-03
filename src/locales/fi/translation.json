@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "Mikä laite suorittaa puhesynteesimallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
     "deviceAuto": "Auto",
     "multiLanguage": "Multi",
+    "multilingual": "Monikielinen",
     "languagesCount": "{{count}} kieltä",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

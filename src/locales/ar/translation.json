@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "الجهاز الذي يشغّل نموذج تركيب الكلام. تلقائي يختار أسرع جهاز متاح (GPU عند توفره)؛ CPU يعمل في كل مكان لكنه أبطأ للنماذج الكبيرة؛ يستخدم GPU تقنية Vulkan على ويندوز ولينكس وMetal على شرائح آبل (Apple silicon).",
     "deviceAuto": "تلقائي",
     "multiLanguage": "متعدد",
+    "multilingual": "متعدد اللغات",
     "languagesCount": "{{count}} لغة",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

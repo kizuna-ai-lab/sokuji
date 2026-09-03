@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "Perangkat mana yang menjalankan model sintesis ucapan. Otomatis memilih perangkat tercepat yang tersedia (GPU jika ada); CPU berfungsi di mana saja tetapi lebih lambat untuk model besar; GPU menggunakan Vulkan di Windows dan Linux, serta Metal di Apple silicon.",
     "deviceAuto": "Otomatis",
     "multiLanguage": "Multi",
+    "multilingual": "Multibahasa",
     "languagesCount": "{{count}} bahasa",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

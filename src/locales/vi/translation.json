@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "Thiết bị nào chạy mô hình tổng hợp giọng nói. Tự động chọn thiết bị nhanh nhất hiện có (GPU nếu có); CPU hoạt động ở mọi nơi nhưng chậm hơn với mô hình lớn; GPU sử dụng Vulkan trên Windows và Linux, và Metal trên Apple silicon.",
     "deviceAuto": "Tự động",
     "multiLanguage": "Đa ngôn ngữ",
+    "multilingual": "Đa ngôn ngữ",
     "languagesCount": "{{count}} ngôn ngữ",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

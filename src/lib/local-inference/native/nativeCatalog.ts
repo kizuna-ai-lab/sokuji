@@ -285,7 +285,12 @@ export function resolvedTierState(
  *  faster than real-time. rtf 0.015 → "67× realtime". */
 export function formatRtf(rtf: number): string {
   if (!(rtf > 0) || !Number.isFinite(rtf)) return 'realtime';
-  return `${Math.round(1 / rtf)}× realtime`;
+  const speed = 1 / rtf;
+  // One decimal below 10× — there "1.6×" and "0.4×" carry the information
+  // a rounded "2×" / "0×" threw away; whole numbers above, where the
+  // decimal is noise.
+  const shown = speed >= 10 ? String(Math.round(speed)) : String(Math.round(speed * 10) / 10);
+  return `${shown}× realtime`;
 }
 
 /**

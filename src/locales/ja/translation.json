@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "音声合成（TTS）モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
     "deviceAuto": "自動",
     "multiLanguage": "多言語",
+    "multilingual": "多言語対応",
     "languagesCount": "{{count}} 言語",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

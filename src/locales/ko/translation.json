@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "음성 합성 모델을 실행할 장치입니다. 자동은 사용 가능한 가장 빠른 장치를 선택합니다(GPU가 있으면 GPU). CPU는 어디서나 작동하지만 큰 모델에서는 느립니다. GPU는 Windows와 Linux에서는 Vulkan을, Apple 실리콘에서는 Metal을 사용합니다.",
     "deviceAuto": "자동",
     "multiLanguage": "다국어",
+    "multilingual": "다국어 지원",
     "languagesCount": "{{count}}개 언어",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

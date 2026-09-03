@@ -48,11 +48,12 @@ describe('LanguageTags', () => {
   });
 
   it.each([['multilingual', 'the WASM manifest'], ['multi', 'the native catalog (Whisper)']])(
-    'a lone "%s" marker (%s) reads as Multi with no list to show', (marker) => {
-      const { container, queryByTestId } = render(<LanguageTags languages={[marker]} />);
+    'a lone "%s" marker (%s) reads as Multi, its tooltip just says Multilingual', (marker) => {
+      const { container, getByTestId } = render(<LanguageTags languages={[marker]} />);
       expect(tags(container)).toEqual(['Multi']);
-      expect(container.querySelector('.model-card__lang-tag--multi')).toBeNull();
-      expect(queryByTestId('tooltip-trigger')).toBeNull();
+      expect(container.querySelector('.model-card__lang-tag--multi')).not.toBeNull();
+      expect(getByTestId('tooltip-content')).toHaveTextContent('Multilingual');
+      expect(getByTestId('tooltip-content').querySelector('.model-card__lang-list')).toBeNull();
     });
 
   it('two or more languages: one Multi chip, the tooltip lists them by name with a count', () => {

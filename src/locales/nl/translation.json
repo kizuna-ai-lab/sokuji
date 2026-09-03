@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "Welk apparaat het spraaksynthesemodel uitvoert. Auto kiest het snelste beschikbare apparaat (GPU indien aanwezig); CPU werkt overal maar is trager voor grote modellen; GPU gebruikt Vulkan op Windows en Linux en Metal op Apple silicon.",
     "deviceAuto": "Auto",
     "multiLanguage": "Multi",
+    "multilingual": "Meertalig",
     "languagesCount": "{{count}} talen",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

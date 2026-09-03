@@ -775,6 +775,7 @@
     "computeDeviceTooltipTts": "कौन-सा डिवाइस वाक् संश्लेषण मॉडल चलाता है। ऑटो सबसे तेज़ उपलब्ध डिवाइस चुनता है (GPU मौजूद होने पर); CPU हर जगह काम करता है लेकिन बड़े मॉडलों के लिए धीमा है; GPU, Windows और Linux पर Vulkan और Apple silicon पर Metal का उपयोग करता है।",
     "deviceAuto": "ऑटो",
     "multiLanguage": "बहुभाषी",
+    "multilingual": "बहुभाषी",
     "languagesCount": "{{count}} भाषाएँ",
     "deviceCpu": "CPU",
     "deviceGpu": "GPU",

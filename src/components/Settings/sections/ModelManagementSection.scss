@@ -234,15 +234,17 @@
     background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
     font-size: vars.$font-caption;
+    // Explicit, not `normal`: a CJK chip ("多语言") falls back to a font with a
+    // taller default line box and rendered visibly taller than its Latin
+    // neighbours ("ja"); a fixed multiple makes every chip the same height.
+    line-height: 1.4;
     color: vars.$text-muted;
   }
 
   // Two or more languages collapse into this one chip; the tooltip (LanguageTags)
-  // carries the list. The dotted underline is the only hint that it opens one.
+  // carries the list.
   &__lang-tag--multi {
     cursor: help;
-    text-decoration: underline dotted;
-    text-underline-offset: 2px;
   }
 
   &__lang-tag--live { border: 1px solid currentColor; font-weight: 600; }  // highlighted (neutral): chosen-CPU
