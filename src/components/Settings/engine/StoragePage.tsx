@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HardDrive, Trash2, FolderInput, Cpu } from 'lucide-react';
 import {
@@ -98,6 +98,16 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
   const nativeBundleVersion = useNativeModelStore((s) => s.bundleVersion);
   const nativeBundleDevVenv = useNativeModelStore((s) => s.bundleDevVenv);
   const nativeBundleInstalledSize = useNativeModelStore((s) => s.bundleInstalledSize);
+  const fetchBundleEntry = useNativeModelStore((s) => s.fetchBundleEntry);
+  // refreshBundle() learns the installed VERSION but not the on-disk size,
+  // and EngineSection only peeks the manifest when it must offer a download
+  // — so a cold start with a ready bundle reaches this row with no size.
+  // Fetch it here, once, for the row that shows it.
+  useEffect(() => {
+    if (provider === 'native' && nativeBundleStatus === 'ready' && nativeBundleInstalledSize === null) {
+      void fetchBundleEntry();
+    }
+  }, [provider, nativeBundleStatus, nativeBundleInstalledSize, fetchBundleEntry]);
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [clearAllPending, setClearAllPending] = useState(false);

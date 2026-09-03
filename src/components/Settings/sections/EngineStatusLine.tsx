@@ -41,7 +41,10 @@ export const EngineStatusLine: React.FC = () => {
   const uiMode = useUIMode();
   const isSimpleMode = uiMode === 'basic';
 
-  if (bundleStatus === 'unknown' || bundleStatus === 'unsupported') return null;
+  // 'unsupported' (no bundle SKU for this platform) still has an engine to
+  // report when a dev venv runs the sidecar — that is exactly the
+  // unsupported-SKU development path; without the venv there is nothing.
+  if (bundleStatus === 'unknown' || (bundleStatus === 'unsupported' && !bundleDevVenv)) return null;
 
   const devVenvLabel = t('engine.status.devVenv', 'dev venv');
   const version = bundleVersion ?? (bundleDevVenv ? devVenvLabel : '');
@@ -64,7 +67,7 @@ export const EngineStatusLine: React.FC = () => {
     // lane whose "device" is literally "CPU") — nothing new to say.
     device = rawDevice && rawDevice !== backend ? rawDevice : null;
     text = parts.join(' · ');
-  } else if (sidecarStatus === 'starting' || (sidecarStatus === 'idle' && bundleStatus === 'ready')) {
+  } else if (sidecarStatus === 'starting' || (sidecarStatus === 'idle' && (bundleStatus === 'ready' || bundleDevVenv))) {
     chevron = true;
     dot = 'hollow';
     text = t('engine.status.starting', 'Engine {{version}} · starting…', { version });

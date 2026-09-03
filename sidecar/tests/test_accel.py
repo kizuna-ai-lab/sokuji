@@ -169,6 +169,34 @@ def test_vram_gate_reads_vendor_agnostic_free(monkeypatch):
     assert notice and "CPU" in notice
 
 
+def test_vram_gate_keeps_metal_on_unified_memory(monkeypatch):
+    # Apple silicon: CPU and Metal share one pool, so the proactive gate
+    # must not demote a Metal plan that looks too big for "free" — that
+    # frees nothing and loses the accelerator (planner's unified-memory rule).
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: 2 * _GIB)
+    monkeypatch.setattr(accel, "_model_weight_bytes", lambda a: 5 * _GIB)
+    attempted = []
+    class FakeBackend:
+        def load(self, a, device, ct, config=None): attempted.append(device); self.loaded = True
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    _b, plan, notice = accel.load_with_fallback([_plan("metal"), _plan("cpu")])
+    assert plan.device == "metal" and attempted == ["metal"] and notice is None
+
+
+def test_cpu_allocation_failure_is_not_a_gpu_oom(monkeypatch):
+    # A CPU-only plan that cannot allocate is a plain load failure: no
+    # "GPU memory" story, no advice to switch to CPU.
+    monkeypatch.setattr(accel, "device_free_bytes", lambda: None)
+    class FakeBackend:
+        def load(self, a, device, ct, config=None):
+            raise backends.BackendLoadError("failed to allocate 3.00 GiB")
+    monkeypatch.setattr(accel, "make_backend", lambda name: FakeBackend())
+    import pytest
+    with pytest.raises(accel.AllPlansFailed) as ei:
+        accel.load_with_fallback([_plan("cpu")])
+    assert "GPU memory" not in str(ei.value)
+
+
 def test_gpu_only_oom_raises_honest_vram_message(monkeypatch):
     # A GPU-only model (no cpu plan) that OOMs must NOT claim it is "falling
     # back" — there is nowhere to fall back to. Surface an honest VRAM message.

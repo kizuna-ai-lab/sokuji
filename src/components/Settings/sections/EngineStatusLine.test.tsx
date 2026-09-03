@@ -48,6 +48,20 @@ describe('EngineStatusLine', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('unsupported SKU with a dev venv: the venv is the engine — ready line, and "starting" while idle', () => {
+    setNative({
+      bundleStatus: 'unsupported', bundleDevVenv: true, sidecarStatus: 'ready',
+      engineInfo: { nativeVersion: '1.0.1', engineVersions: {}, lane: 'cpu', preferredDevice: null },
+    });
+    const ready = render(<EngineStatusLine />);
+    expect(lineText(ready.container)).toContain('dev venv');
+    expect(lineText(ready.container)).toContain('native 1.0.1');
+    ready.unmount();
+    setNative({ bundleStatus: 'unsupported', bundleDevVenv: true, sidecarStatus: 'idle', engineInfo: null });
+    const idle = render(<EngineStatusLine />);
+    expect(lineText(idle.container)).toContain('starting');
+  });
+
   it('ready: version, native, backend and device — green dot, no chevron', () => {
     setNative({
       bundleStatus: 'ready', bundleVersion: '0.2.0', sidecarStatus: 'ready',

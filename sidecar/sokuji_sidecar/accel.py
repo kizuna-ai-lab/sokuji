@@ -431,6 +431,11 @@ def load_with_fallback(plans: list):
     for i, plan in enumerate(plans):
         has_cpu_fallback = any(p.device == "cpu" for p in plans[i + 1:])
         is_gpu = plan.device != "cpu"
+        # Metal means unified memory (Apple silicon): the CPU shares the same
+        # pool, so demoting a plan there frees nothing and only loses Metal
+        # throughput — the planner's own unified-memory rule
+        # (_llamacpp_variant_row). The proactive gate is for discrete VRAM.
+        unified = plan.device == "metal"
         # Read free VRAM and weights estimate ONCE per GPU plan; both the
         # proactive gate and the honest OOM message reuse them. Capture free
         # BEFORE the load: a failed load can leave allocator caches/fragments
@@ -444,7 +449,7 @@ def load_with_fallback(plans: list):
         need = (_model_weight_bytes(plan.artifact)
                 if (is_gpu and not is_gguf_llm) else None)
         budget = (need * _weight_factor(plan.compute_type) + _VRAM_CONTEXT_BYTES) if need is not None else None
-        if is_gpu and has_cpu_fallback and free is not None and budget is not None:
+        if is_gpu and not unified and has_cpu_fallback and free is not None and budget is not None:
             if free < budget:
                 notice = (f"{plan.device} skipped (needs ~{_gib(budget)} GiB, "
                           f"{_gib(free)} GiB free); using CPU")
@@ -459,7 +464,9 @@ def load_with_fallback(plans: list):
             # failures don't share one exception type across platforms, but do
             # consistently say one of these two things.
             reason_lower = e.reason.lower()
-            if "out of memory" in reason_lower or "failed to allocate" in reason_lower:
+            # A CPU plan can fail to allocate too; that is not a GPU OOM and
+            # must not produce the "switch to CPU" advice.
+            if is_gpu and ("out of memory" in reason_lower or "failed to allocate" in reason_lower):
                 oom, oom_need, oom_free = True, budget, free
             continue
     if oom:

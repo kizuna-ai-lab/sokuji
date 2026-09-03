@@ -217,6 +217,21 @@ describe('StoragePage (native)', () => {
   // Task (design amendment): the engine's ready-state "on disk · Remove
   // engine" row moved out of EngineSection's card and onto this page (the
   // card renders nothing once the sidecar is healthy — see EngineSection.tsx).
+  it('native storage fetches the engine\'s on-disk size when a ready bundle has none yet, and only then', () => {
+    const fetchBundleEntry = vi.fn(async () => {});
+    useNativeModelStore.setState({
+      catalog: CATALOG, statuses: {},
+      bundleStatus: 'ready', bundleVersion: '0.2.0', bundleDevVenv: false,
+      bundleInstalledSize: null, fetchBundleEntry,
+    } as never);
+    const first = render(<StoragePage provider="native" />);
+    expect(fetchBundleEntry).toHaveBeenCalledTimes(1);
+    first.unmount();
+    useNativeModelStore.setState({ bundleInstalledSize: 5 * 1024 ** 3 } as never);
+    render(<StoragePage provider="native" />);
+    expect(fetchBundleEntry).toHaveBeenCalledTimes(1);
+  });
+
   it('native storage shows engine size and remove', () => {
     const removeBundle = vi.fn(async () => {});
     useNativeModelStore.setState({
