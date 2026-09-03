@@ -100,13 +100,6 @@ ASR_MODELS: list[AsrModel] = [
             10, {"F16": 4106644992, "Q8_0": 2410655232, "Q6_K": 1972524544,
                  "Q5_K_M": 1770270208, "Q4_K_M": 1558162944},
             default="Q4_K_M", recommended=True),
-    # Arabic specialist from the Cohere family — no librispeech figure (ar
-    # model); slotted top of its language view beside the flagship.
-    _tc_row("cohere-transcribe-arabic-07-2026", "Cohere Transcribe (Arabic)",
-            ("ar", "en"),
-            "handy-computer/cohere-transcribe-arabic-07-2026-gguf", "cohere-transcribe-arabic-07-2026",
-            12, {"F16": 4106644896, "Q8_0": 2410655136, "Q6_K": 1972524448,
-                 "Q5_K_M": 1770270112, "Q4_K_M": 1558162848}, default="Q4_K_M"),
     # Russian specialist (GigaAM v3, end-to-end w/ punctuation) — no librispeech
     # figure (ru model); slotted top of its language view.
     _tc_row("gigaam-v3-e2e-rnnt", "GigaAM v3 (Russian)", ("ru",),
