@@ -3016,7 +3016,11 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     type: 'tts',
     engine: 'supertonic',
     recommended: true,
-    hfModelId: 'Supertone/supertonic-3',
+    // Verbatim mirror of Supertone/supertonic-3 @ 3cadd1ee (every file
+    // sha256-checked against the upstream tree). Supertone Inc. resolved to
+    // dissolve on 2026-07-15 and its GitHub repo is slated for archival, so the
+    // upstream HF org may vanish with the liquidation; the mirror is ours.
+    hfModelId: 'jiangzhuo9357/supertonic-3',
     name: 'Supertonic 3',
     languages: [...SUPERTONIC_LANGUAGES],
     numSpeakers: 10,

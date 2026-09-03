@@ -22,8 +22,12 @@ describe('Supertonic 3 manifest entry', () => {
     expect(entry!.numSpeakers).toBe(10);
   });
 
-  it('uses Supertone/supertonic-3 as the HF model id', () => {
-    expect(entry!.hfModelId).toBe('Supertone/supertonic-3');
+  it('downloads from our verbatim mirror, not the dissolving upstream org', () => {
+    // Supertone Inc. resolved to dissolve on 2026-07-15; Supertone/supertonic-3
+    // may disappear with the liquidation. jiangzhuo9357/supertonic-3 is a
+    // sha256-verified byte-for-byte copy of upstream @ 3cadd1ee with the same
+    // file layout, so every path below resolves unchanged.
+    expect(entry!.hfModelId).toBe('jiangzhuo9357/supertonic-3');
   });
 
   it('selects the only variant (default) on any device', () => {
@@ -67,7 +71,7 @@ describe('Supertonic 3 manifest entry', () => {
   it('builds the expected HF download URL', () => {
     const url = getModelDownloadUrl(entry!, 'onnx/duration_predictor.onnx');
     expect(url).toBe(
-      'https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx/duration_predictor.onnx',
+      'https://huggingface.co/jiangzhuo9357/supertonic-3/resolve/main/onnx/duration_predictor.onnx',
     );
   });
 });
