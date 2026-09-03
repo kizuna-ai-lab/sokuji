@@ -198,6 +198,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+
     // The variant dropdown's row height, so a card with the dropdown and a
     // card with plain size text stand the same height (59px), the name
     // centred on the dropdown either way.
@@ -494,6 +495,7 @@
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-sm;
+
     // 18px closed control (14px line + 1px padding + 1px border each side),
     // level with the 14px model name beside it. base-select's UA stylesheet
     // pins the control to `min-height: calc-size(auto, max(size, 24px, 13px))`
