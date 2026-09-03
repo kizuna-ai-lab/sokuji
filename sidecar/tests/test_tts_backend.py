@@ -855,6 +855,39 @@ def test_generate_stream_succeeds_after_set_voice_for_clone_only_family(native_e
     assert len(chunks) == 1
 
 
+def test_index_tts2_is_gated_by_r16(native_env):
+    """index_tts2 (2026-09-03) is the third clone-only family: audio.cpp exposes
+    no built-in voices for it and its request parser refuses outright ("IndexTTS2
+    request requires --voice-ref or voice.speaker.audio"), so a bare generate()
+    must raise the same clean, family-named error before the native layer."""
+    created, log = native_env
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family="index_tts2"))
+    with pytest.raises(backends.BackendLoadError, match="index_tts2"):
+        b.generate("hello")
+    assert log == []
+    assert b._workers == []
+    # It needs the clip, not a transcript of it, so set_voice() without ref_text
+    # is enough to un-gate it.
+    b.set_voice(np.ones(2400, np.float32), 24000)
+    samples, _rate, _ms = b.generate("hello")
+    assert samples.dtype == np.float32
+
+
+@pytest.mark.parametrize("family", ["voxcpm1", "voxcpm2", "irodori_tts"])
+def test_new_optional_reference_families_are_not_gated_by_r16(native_env, family):
+    """The other three 2026-09-03 families take an OPTIONAL reference clip and
+    synthesize with nothing set (CPU-verified against the real GGUFs: irodori's
+    own request default is no_ref=true, and both VoxCPMs treat the speaker
+    reference as optional). Gating them would break a plain generate() for no
+    reason, so they must stay out of _VOICE_REQUIRED_FAMILIES."""
+    assert family not in tts_backend._VOICE_REQUIRED_FAMILIES
+    b = backends.make_backend("native_tts")
+    b.load(REF, "cpu", "q8_0", config=PlanConfig(tts_family=family))
+    samples, _rate, _ms = b.generate("hello")   # must not raise
+    assert samples.dtype == np.float32
+
+
 def test_moss_is_not_gated_by_r16_and_ships_a_genuinely_working_default_voice(native_env):
     """moss_tts_nano also reports CLONES=True but ships a working built-in
     default voice -- R16 must NOT gate it (task-7-report.md §3: "a default

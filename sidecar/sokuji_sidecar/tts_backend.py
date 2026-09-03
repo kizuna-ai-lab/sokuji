@@ -260,7 +260,17 @@ _UNLOAD_DEADLINE_S = 10.0
 # load() time. Neither of these two omissions belongs to the "ships a working built-in
 # default" story: moss earns its omission outright; pocket_tts's is earned by R34, not by
 # its own engine.
-_VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice"})
+#
+# index_tts2 joined on 2026-09-03 for the same reason as the first two: its request parser
+# refuses outright ("IndexTTS2 request requires --voice-ref or voice.speaker.audio",
+# index_tts2/request.cpp) and audio.cpp exposes no built-in voices for it at all, so a bare
+# synth can never work. It does NOT require the reference's transcript, only the clip --
+# that axis is TtsModel.transcript_required / sk_tts_caps.transcript_required, which stays
+# false for it, so the renderer asks for a clip and not for text to go with it.
+# The other three 2026-09-03 families are absent on purpose and CPU-verified so:
+# voxcpm1, voxcpm2 and irodori_tts all synthesize with nothing set (irodori's own request
+# default is no_ref=true; both VoxCPMs treat the speaker reference as optional).
+_VOICE_REQUIRED_FAMILIES = frozenset({"qwen3_tts", "omnivoice", "index_tts2"})
 
 # R33 / W-1: the fixed short phrase load() synthesizes once, on a non-CPU
 # device, purely to pay the first-synth GPU pipeline-compile cost at load

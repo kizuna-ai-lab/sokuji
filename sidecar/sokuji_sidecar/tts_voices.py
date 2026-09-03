@@ -13,8 +13,10 @@ note and native/tests/test_tts.cpp's own CTest, which enumerates exactly this
 list), so they are hardcoded here (fix round 1, CQ-4) -- mirroring the old ONNX
 SupertonicBackend's own hardcoded list, which likewise needed no download.
 pocket_tts ships a REAL sibling `embeddings/*.safetensors` directory in its HF
-snapshot, read straight off disk. moss_tts_nano / qwen3_tts / omnivoice have no
-load-free listing (voice cloning only, or no bundled catalogue) and report []."""
+snapshot, read straight off disk. Every other family -- moss_tts_nano, qwen3_tts,
+omnivoice, and the 2026-09-03 batch (voxcpm1, voxcpm2, irodori_tts, index_tts2,
+none of which audio.cpp exposes built-in voices for) -- has no load-free listing
+(voice cloning only, or no bundled catalogue) and reports []."""
 from pathlib import Path
 
 from .catalog import split_artifact

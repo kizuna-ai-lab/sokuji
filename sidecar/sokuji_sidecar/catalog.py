@@ -594,17 +594,26 @@ class License:
     TtsModel.license as None; only a card that needs it (OmniVoice, issue
     #351) sets one, and the download gate (Task 2) reads this rather than
     special-casing a model id."""
-    spdx: str             # SPDX identifier ("CC-BY-NC-4.0")
+    spdx: str             # SPDX identifier ("CC-BY-NC-4.0"), or a LicenseRef-* for a
+                          # vendor licence with no SPDX id of its own
     name: str             # human-readable license name
     url: str              # license text URL
     non_commercial: bool  # True gates commercial use
     source_repo: str      # upstream repo this license traces back to
     attribution: str      # required attribution string (author/project)
+    # Whether the download gate must show an acknowledgement before this card is
+    # fetched. Separate from `non_commercial` on purpose: a licence can be
+    # restrictive enough to need acknowledging while still permitting commercial use
+    # (IndexTTS 2.5's bilibili Model Use License allows it below a MAU/revenue
+    # threshold), and calling that "non-commercial" in the UI would be a lie. The
+    # renderer gates on THIS flag and picks its wording from `non_commercial`.
+    requires_consent: bool = True
 
 
 @dataclass(frozen=True)
 class TtsModel(_ModelBase):
-    family: str = ""                  # sk_tts_load's family_hint: moss_tts_nano | qwen3_tts | omnivoice | pocket_tts | supertonic
+    family: str = ""                  # sk_tts_load's family_hint: moss_tts_nano | qwen3_tts | omnivoice |
+                                      # pocket_tts | supertonic | voxcpm1 | voxcpm2 | irodori_tts | index_tts2
     load_language: str = ""           # pocket_tts's load-time language package ("english", ...); "" elsewhere
     clones: bool = False              # zero-shot voice cloning from a reference clip (sk_tts_set_voice)
     streaming: bool = False           # intra-utterance audio-delta streaming (R5: MOSS is offline-only)
@@ -644,13 +653,15 @@ def license_dict(model: "TtsModel") -> dict | None:
         "name": lic.name,
         "url": lic.url,
         "nonCommercial": lic.non_commercial,
+        "requiresConsent": lic.requires_consent,
         "sourceRepo": lic.source_repo,
         "attribution": lic.attribution,
     }
 
 
-# All 10 cards are single-file GGUFs from audio.cpp's official mirror,
-# verified 2026-09-01 via the HF tree API (`GET
+# All 14 cards are single-file GGUFs from audio.cpp's official mirror,
+# verified 2026-09-01 (the first ten) and 2026-09-03 (the four added then)
+# via the HF tree API (`GET
 # api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`) — every (dir, file)
 # pair below resolves to a real LFS object and the byte count shown is its
 # exact `lfs.size`. Cross-checked against the repo's own `model_specs/
@@ -1069,6 +1080,79 @@ TTS_MODELS: list[TtsModel] = [
          "bf16": ("pocket-tts-portuguese-bf16.gguf", 219097728)},
         default_quant="q8_0", order=9, load_language="portuguese",
         clones=True, streaming=False, sample_rate=24000),
+    # ---- 2026-09-03 batch ----------------------------------------------------
+    # Four more audio.cpp families, all CPU-ONLY on arrival: none of them appears
+    # in _TTS_TIER_OVERRIDES, so `_tts_gguf_row` gives each the default
+    # `_TTS_TIERS = ("cpu",)`. They earn gpu-vulkan/gpu-metal rows the same way
+    # the first five did -- one fleet run per family per lane (R19), not by
+    # analogy with a sibling family. Every byte count below is the exact `lfs.size`
+    # from `GET api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`, read
+    # 2026-09-03, and every family was loaded and synthesized on this repo's CPU
+    # lane (linux-arm64) before the row was written.
+    #
+    # VoxCPM 0.5B (community model in audio.cpp: src/community_models/voxcpm1).
+    # Streaming, optional reference clip (continuation-mode cloning), no presets.
+    # The repo ships exactly ONE file for it, so there is no quant ladder. 16 kHz
+    # is genuinely this family's native rate, not a typo -- it is the lowest of
+    # any card here.
+    _tts_gguf_row(
+        "voxcpm1-0.5b", "VoxCPM 0.5B", ("zh", "en", "ja", "ko"),
+        "voxcpm1", "VoxCPM1-GGUF",
+        {"q8_0": ("voxcpm-0.5b-q8_0-audiovae-f16.gguf", 847888032)},
+        default_quant="q8_0", order=10, clones=True, streaming=True,
+        sample_rate=16000),
+    # VoxCPM2: the same lineage at 48 kHz across 30 languages
+    # (model_specs/voxcpm2.json lists 31 entries; the non-code "zh dialects" one
+    # is dropped here because these tuples are BCP-47-ish codes the renderer
+    # matches against, not prose).
+    _tts_gguf_row(
+        "voxcpm2", "VoxCPM2",
+        ("ar", "my", "zh", "da", "nl", "en", "fi", "fr", "de", "el", "he", "hi",
+         "id", "it", "ja", "km", "ko", "lo", "ms", "no", "pl", "pt", "ru", "es",
+         "sw", "sv", "tl", "th", "tr", "vi"),
+        "voxcpm2", "VoxCPM2-GGUF",
+        {"q8_0": ("voxcpm2-q8_0.gguf", 2955000480),
+         "bf16": ("voxcpm2-bf16.gguf", 4772288288)},
+        default_quant="q8_0", order=11, clones=True, streaming=True,
+        sample_rate=48000),
+    # Irodori-TTS v4 Small: Japanese only (audio.cpp throws "Irodori-TTS language
+    # must be ja" for anything else), offline, 48 kHz. Its reference clip is
+    # optional -- the request default is no_ref=true, so a bare synth works.
+    _tts_gguf_row(
+        "irodori-tts-v4-small", "Irodori TTS v4 Small", ("ja",),
+        "irodori_tts", "Irodori-TTS-v4-Small-GGUF",
+        {"q8_0": ("irodori-tts-v4-small-q8_0.gguf", 1368991360),
+         "f16": ("irodori-tts-v4-small-f16.gguf", 1762148352)},
+        default_quant="q8_0", order=12, clones=True, streaming=False,
+        sample_rate=48000),
+    # IndexTTS 2.5: offline, 22.05 kHz, and the only card here whose reference
+    # clip is MANDATORY -- audio.cpp exposes no built-in voices for it and its
+    # request parser refuses without one, so tts_backend._VOICE_REQUIRED_FAMILIES
+    # turns that into a clean error before the native layer. `clones=True` with
+    # `transcript_required=False`: it needs the clip, not a transcript of it.
+    #
+    # bilibili's Model Use License is NOT an OSI licence and is not in the SPDX
+    # list, hence the LicenseRef- id. It DOES permit commercial use and
+    # redistribution below 100M MAU / RMB 1B revenue, so `non_commercial` is
+    # False and the consent modal must not call it non-commercial;
+    # `requires_consent` is what actually raises the gate (see License's own
+    # comment). Terms worth the acknowledgement: the MAU/revenue ceiling, the
+    # prohibition on high-risk uses, and the ban on using outputs to train other
+    # models.
+    _tts_gguf_row(
+        "index-tts2.5", "IndexTTS 2.5", ("zh", "en", "ja", "es", "ar"),
+        "index_tts2", "IndexTTS2.5-GGUF",
+        {"q8_0": ("index-tts2_5-q8_0.gguf", 3502955328),
+         "f16": ("index-tts2_5-f16.gguf", 4547355072)},
+        default_quant="q8_0", order=13, clones=True, streaming=False,
+        sample_rate=22050,
+        license=License(
+            spdx="LicenseRef-bilibili-Model-Use-License",
+            name="bilibili Model Use License",
+            url="https://huggingface.co/IndexTeam/IndexTTS-2/blob/main/LICENSE",
+            non_commercial=False,
+            source_repo=_AUDIOCPP_GGUF_REPO,
+            attribution="bilibili IndexTeam")),
 ]
 
 
