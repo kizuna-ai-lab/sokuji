@@ -343,6 +343,10 @@ useSettingsStore.subscribe(
 ### Environment Variables
 - `VITE_BACKEND_URL`: Backend API URL (default: `https://sokuji.kizuna.ai`)
 - `VITE_ENABLE_KIZUNA_AI`: Enable Kizuna AI provider in production (`true`/`false`)
+- `VITE_ENABLE_LOCAL_NATIVE`: Register the Local Native (Electron sidecar) provider in
+  production builds; unset in releases. Temporary run-time alternative for testers on a
+  packaged Electron build: DevTools → `localStorage.setItem('debug:local-native', '1')` →
+  restart (`removeItem` to hide again). Remove the switch with the gate when Local Native ships.
 - Environment detection via `src/utils/environment.ts`
 
 ### TypeScript Configuration
