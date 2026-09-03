@@ -26,7 +26,13 @@ export default defineConfig({
     setupFiles: './src/setupTests.ts',
     css: true,
     // .claude/ holds gitignored worktree checkouts whose stale test copies
-    // would otherwise be collected alongside the real suite.
-    exclude: [...configDefaults.exclude, '**/.claude/**'],
+    // would otherwise be collected alongside the real suite. native/build/
+    // is the same shape: a gitignored tree, but of the FETCHED UPSTREAMS --
+    // building the native lane leaves transcribe.cpp's own node-binding
+    // tests at native/build/<lane>/_deps/transcribe-src/bindings/typescript/,
+    // and vitest collected all 78 of them and failed every one (they need a
+    // node runtime and a built .node addon, not jsdom). A real file-level
+    // failure had 78 fake ones to hide among.
+    exclude: [...configDefaults.exclude, '**/.claude/**', '**/native/build/**'],
   },
 })
