@@ -509,6 +509,47 @@ def test_tts_new_family_synthesises_on_cpu(family, env_name, model_dir, text, la
     assert float(np.max(np.abs(samples))) > 0.01
 
 
+@pytest.mark.parametrize(
+    "family,env_name,model_dir,text,language,rate",
+    [(f, e, d, t, l, r) for f, e, d, t, l, r, _needs_ref in NEW_CPU_TTS_FAMILIES],
+    ids=[row[0] for row in NEW_CPU_TTS_FAMILIES],
+)
+def test_tts_new_family_accepts_a_clip_that_carries_a_transcript(
+        family, env_name, model_dir, text, language, rate):
+    """Every one of the four takes a reference clip, and the renderer attaches a transcript
+    to every clip it has one for out of ONE shared clip store (LocalNativeClient's
+    setReferenceVoice) — so a clip saved for OmniVoice can be applied to any of these next.
+    None of the four is transcript_required, so the transcript is never NEEDED here; the
+    point is that carrying one must not break the synth.
+
+    It did: sk_tts_synth forwarded the transcript as the "reference_text" request OPTION for
+    every family, and irodori_tts validates request options against its own model spec,
+    which declares no reference_text — "unknown Irodori-TTS request option: reference_text",
+    on a clip the family would otherwise have accepted. The no-transcript case above cannot
+    see this, hence this second pass."""
+    if not HAVE_TREE:
+        pytest.skip("needs a built tree")
+    if not model_dir:
+        pytest.skip(f"needs {env_name}")
+    if not TTS_SUPERTONIC_DIR:
+        pytest.skip("needs SK_TEST_TTS_SUPERTONIC_DIR for a real-speech reference clip")
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    pcm, ref_rate, ref_text = _cpu_reference_clip()
+
+    t = sokuji_native.tts_load(model_dir, family, cpu)
+    try:
+        t.set_voice(pcm, ref_rate, ref_text=ref_text)
+        samples, out_rate = t.synth(text, language=language)
+    finally:
+        t.unload()
+
+    assert out_rate == rate
+    frames = int(samples.shape[0])
+    assert 0.3 < frames / out_rate < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
+
+
 @needs_tts_index
 def test_tts_index_tts2_without_a_voice_fails_cleanly():
     """index_tts2 cannot synthesize without a reference clip. The native layer must turn
@@ -617,11 +658,23 @@ GPU_TTS_FAMILIES = {
 # Q8_0/BF16 conversions are upstream-unresolved — see catalog.py's row comment),
 # so its single rung is already the "default" case above and a bf16 case would be
 # a permanently-skipping placeholder for a file that does not exist.
+#
+# voxcpm2 is here for the same reason the original four are: it ships voxcpm2-bf16.gguf, so
+# on any GPU box with the budget for it that is the rung `_llamacpp_variant_row` actually
+# resolves, and leaving it out reported a false "ships no bf16 rung" for the exact rung a
+# user would run.
+#
+# voxcpm1, irodori_tts and index_tts2 have no entry, but only voxcpm1's absence means what
+# this table says: audio.cpp ships ONE file for it. irodori_tts and index_tts2 DO ship a
+# larger alt rung — an F16 one, not BF16 — which this bf16-shaped table cannot express. The
+# `quant` parametrization is "default | bf16", so their f16 alts are simply not covered by
+# this gate; covering them needs a per-family alt-rung dimension, not another entry here.
 GPU_TTS_BF16_ENV = {
     "pocket_tts": "SK_TEST_TTS_POCKET_BF16_DIR",
     "moss_tts_nano": "SK_TEST_TTS_MOSS_BF16_DIR",
     "qwen3_tts": "SK_TEST_TTS_QWEN3_BF16_DIR",
     "omnivoice": "SK_TEST_TTS_OMNIVOICE_BF16_DIR",
+    "voxcpm2": "SK_TEST_TTS_VOXCPM2_BF16_DIR",
 }
 
 _GPU_TTS_RUNNER = r'''

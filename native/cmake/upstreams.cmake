@@ -111,9 +111,12 @@ set(AUDIOCPP_MODEL_SET "custom" CACHE STRING "" FORCE)
 # (see CMakeLists.txt around its "kept outside the selectable composite list for now"
 # comment, and src/framework/runtime/registry.cpp). Listing "silero_vad" here would hit
 # `message(FATAL_ERROR "Unknown AUDIOCPP_MODELS entry: silero_vad")` since it was never
-# registered via audiocpp_add_model(). sk_selftest.cpp filters the registry down to our
-# six supported families at run time instead (see its comment for the full story,
-# including "moss_tts_nano" sharing its CMake target/loader list with "moss_tts_local").
+# registered via audiocpp_add_model(). sk_audio_families() (sk_selftest.cpp) reports the
+# registry verbatim instead — a raw "what got compiled" diagnostic that includes those
+# companions, NOT a support list; which families are supported is the sidecar's Python
+# catalog's job. See that function's own comment for the full story, including
+# "moss_tts_nano" sharing its CMake target/loader list with "moss_tts_local". The nine
+# names selected below currently surface as twelve registry families for that reason.
 #
 # "voxcpm1" is a COMMUNITY model (src/community_models/voxcpm1). audio.cpp registers it
 # through the same audiocpp_add_model() call as the rest, so the custom set resolves it
