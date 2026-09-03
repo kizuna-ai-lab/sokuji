@@ -45,12 +45,12 @@ set_property(TARGET ggml ggml-base PROPERTY SOVERSION)
 # own include path, which breaks when it is nested instead of top-level.
 FetchContent_Declare(transcribe
     GIT_REPOSITORY https://github.com/handy-computer/transcribe.cpp.git
-    GIT_TAG        c6a9257cdf8e9c6918c0f8f876246db048a22103   # v0.2.2
+    GIT_TAG        63a44d9239d610b3908e8a66b384924cd4a77217   # v0.2.3
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
     PATCH_COMMAND  ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
                    <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/transcribe.cpp.json)
-set(SOKUJI_TRANSCRIBE_VERSION "0.2.2")
+set(SOKUJI_TRANSCRIBE_VERSION "0.2.3")
 
 # transcribe.cpp options: static, dynamic ggml backends, nothing but the library.
 #
@@ -87,13 +87,13 @@ set(BUILD_SHARED_LIBS OFF)   # engines are static; ggml above was added while th
 FetchContent_MakeAvailable(llama)
 
 # audio.cpp's CMake adds AUDIOCPP_GGML_SOURCE_DIR as a subdirectory unconditionally
-# (CMakeLists.txt line 283 at v0.7.0); the JSON patch guards that one line with
+# (CMakeLists.txt line 283 at v0.7.0, unchanged at v0.7.1); the JSON patch guards that one line with
 # `if(NOT TARGET ggml)` so it reuses our ggml target instead of building its own copy.
 # The directory-exists check just above that line stays satisfied because we point
 # AUDIOCPP_GGML_SOURCE_DIR at our already-fetched upstream tree below.
 FetchContent_Declare(audiocpp
     GIT_REPOSITORY https://github.com/0xShug0/audio.cpp.git
-    GIT_TAG        d2ff37009c69d464bcab6aa4a44a13746e84a914   # v0.7.0
+    GIT_TAG        c4dde1c2608a97f430f63f486f2912f531cb5e02   # v0.7.1
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
     # audio.cpp declares its CLI/server/converter executables unconditionally; we only
@@ -101,7 +101,7 @@ FetchContent_Declare(audiocpp
     EXCLUDE_FROM_ALL
     PATCH_COMMAND  ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
                    <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/audio.cpp.json)
-set(SOKUJI_AUDIOCPP_VERSION "0.7.0")
+set(SOKUJI_AUDIOCPP_VERSION "0.7.1")
 
 set(AUDIOCPP_GGML_SOURCE_DIR "${SOKUJI_GGML_SOURCE_DIR}" CACHE PATH "" FORCE)
 set(AUDIOCPP_MODEL_SET "custom" CACHE STRING "" FORCE)
