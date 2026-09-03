@@ -908,7 +908,6 @@
     "clipTooLong": "録音が長すぎます — {seconds}秒以内にしてください。",
     "clipTooShort": "録音が短すぎます — {seconds}秒以上話してください。",
     "cloneVoiceRequired": "この音声はまだ話せません — 下から音声クリップを録音またはインポートしてください。",
-    "customVoiceCta": "カスタム音声が必要ですか？",
     "decodeFailed": "その音声ファイルを読み込めませんでした — WAV、MP3 などの一般的な形式をお試しください。",
     "delete": "削除",
     "deleteConfirm": "音声「{name}」を削除しますか？",
@@ -918,7 +917,6 @@
     "importVoice": "音声をインポート…",
     "manageImported": "インポートした音声を管理",
     "myVoices": "マイ音声",
-    "openVoiceBuilder": "Voice Builder で作成する",
     "play": "再生",
     "presets": "プリセット",
     "recordVoice": "音声を録音…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "クリップの内容をそのまま入力してください…",
     "unstable": "不安定",
     "voice": "音声",
-    "voiceBuilderDisclaimer": "Supertone の有料サービスです。Sokuji はこの取引に関与しません。",
+    "voiceBuilderClosed": "Supertone の Voice Builder サービスは 2026年8月31日に終了しました。すでにダウンロード済みの音声ファイルは引き続きインポートできます。",
     "refreshList": "音声リストを更新"
   },
   "echoNotice": {

@@ -908,7 +908,6 @@
     "clipTooLong": "录音过长 — 请控制在 {seconds} 秒以内。",
     "clipTooShort": "录音过短 — 请至少说满 {seconds} 秒。",
     "cloneVoiceRequired": "此声音尚无法发声 — 请先在下方录制或导入一段语音片段。",
-    "customVoiceCta": "需要自定义声音？",
     "decodeFailed": "无法读取该音频文件 — 请尝试 WAV、MP3 等常见格式。",
     "delete": "删除",
     "deleteConfirm": "删除声音「{name}」？",
@@ -918,7 +917,6 @@
     "importVoice": "导入声音…",
     "manageImported": "管理导入的声音",
     "myVoices": "我的声音",
-    "openVoiceBuilder": "前往 Voice Builder 创建",
     "play": "播放",
     "presets": "预设",
     "recordVoice": "录制声音…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "请逐字输入音频中说的内容…",
     "unstable": "不稳定",
     "voice": "语音",
-    "voiceBuilderDisclaimer": "Supertone 的付费服务。Sokuji 不参与该交易。",
+    "voiceBuilderClosed": "Supertone 的 Voice Builder 服务已于 2026 年 8 月 31 日关闭。已下载的音色文件仍可导入。",
     "refreshList": "刷新声音列表"
   },
   "echoNotice": {

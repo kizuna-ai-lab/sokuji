@@ -908,7 +908,6 @@
     "clipTooLong": "Bản ghi quá dài — hãy giữ dưới {seconds} giây.",
     "clipTooShort": "Bản ghi quá ngắn — hãy nói ít nhất {seconds} giây.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "Cần một giọng nói tùy chỉnh?",
     "decodeFailed": "Không thể đọc tệp âm thanh đó — hãy thử WAV, MP3 hoặc định dạng phổ biến khác.",
     "delete": "Xóa",
     "deleteConfirm": "Xóa giọng nói \"{name}\"?",
@@ -918,7 +917,6 @@
     "importVoice": "Nhập giọng nói…",
     "manageImported": "Quản lý giọng nói đã nhập",
     "myVoices": "Giọng nói của tôi",
-    "openVoiceBuilder": "Tạo một giọng tại Voice Builder",
     "play": "Phát",
     "presets": "Mẫu có sẵn",
     "recordVoice": "Ghi giọng nói…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "Nhập chính xác nội dung của đoạn ghi…",
     "unstable": "không ổn định",
     "voice": "Giọng nói",
-    "voiceBuilderDisclaimer": "Dịch vụ trả phí của Supertone. Sokuji không tham gia vào giao dịch đó.",
+    "voiceBuilderClosed": "Supertone đã đóng dịch vụ Voice Builder vào ngày 31 tháng 8 năm 2026. Các tệp giọng nói bạn đã tải xuống vẫn có thể nhập được.",
     "refreshList": "Làm mới danh sách giọng nói"
   },
   "echoNotice": {

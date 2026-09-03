@@ -908,7 +908,6 @@
     "clipTooLong": "Kayıt çok uzun — {seconds} saniyenin altında tutun.",
     "clipTooShort": "Kayıt çok kısa — en az {seconds} saniye konuşun.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "Özel bir ses mi lazım?",
     "decodeFailed": "Bu ses dosyası okunamadı — WAV, MP3 veya başka yaygın bir format deneyin.",
     "delete": "Sil",
     "deleteConfirm": "\"{name}\" sesi silinsin mi?",
@@ -918,7 +917,6 @@
     "importVoice": "Ses içe aktar…",
     "manageImported": "İçe aktarılan sesleri yönet",
     "myVoices": "Seslerim",
-    "openVoiceBuilder": "Voice Builder'da oluşturun",
     "play": "Oynat",
     "presets": "Hazır ayarlar",
     "recordVoice": "Ses kaydet…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "Klipte söylenenleri tam olarak yazın…",
     "unstable": "kararsız",
     "voice": "Ses",
-    "voiceBuilderDisclaimer": "Ücretli Supertone hizmeti. Sokuji bu işleme dahil değildir.",
+    "voiceBuilderClosed": "Supertone, Voice Builder hizmetini 31 Ağustos 2026'da kapattı. Daha önce indirdiğiniz ses dosyaları yine de içe aktarılabilir.",
     "refreshList": "Ses listesini yenile"
   },
   "echoNotice": {

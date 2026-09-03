@@ -908,7 +908,6 @@
     "clipTooLong": "Tallenne on liian pitkä — pidä se alle {seconds} sekunnissa.",
     "clipTooShort": "Tallenne on liian lyhyt — puhu vähintään {seconds} sekuntia.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "Tarvitsetko mukautetun äänen?",
     "decodeFailed": "Äänitiedostoa ei voitu lukea — kokeile WAV-, MP3- tai muuta yleistä muotoa.",
     "delete": "Poista",
     "deleteConfirm": "Poistetaanko ääni \"{name}\"?",
@@ -918,7 +917,6 @@
     "importVoice": "Tuo ääni…",
     "manageImported": "Hallitse tuotuja ääniä",
     "myVoices": "Omat äänet",
-    "openVoiceBuilder": "Luo sellainen Voice Builderissa",
     "play": "Toista",
     "presets": "Esiasetukset",
     "recordVoice": "Nauhoita ääni…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "Kirjoita tarkalleen se, mitä leike sanoo…",
     "unstable": "epävakaa",
     "voice": "Ääni",
-    "voiceBuilderDisclaimer": "Maksullinen Supertone-palvelu. Sokuji ei ole osallisena tässä liiketoimessa.",
+    "voiceBuilderClosed": "Supertone sulki Voice Builder -palvelunsa 31. elokuuta 2026. Jo ladatut äänitiedostot voi edelleen tuoda.",
     "refreshList": "Päivitä äänilista"
   },
   "echoNotice": {

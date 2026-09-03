@@ -18,22 +18,6 @@
   border-radius: 4px;
   font-size: 13px;
   line-height: 1.4;
-
-  a {
-    color: tk.$color-primary;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    &:hover { text-decoration: underline; }
-  }
-}
-
-.voice-library-info-sub {
-  margin-top: 4px;
-  font-size: 11px;
-  opacity: 0.7;
 }
 
 .voice-library-manage {

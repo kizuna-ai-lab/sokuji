@@ -908,7 +908,6 @@
     "clipTooLong": "Masyadong mahaba ang recording — panatilihin itong wala pang {seconds} segundo.",
     "clipTooShort": "Masyadong maikli ang recording — magsalita nang hindi bababa sa {seconds} segundo.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "Kailangan ng custom na boses?",
     "decodeFailed": "Hindi mabasa ang audio file na iyon — subukan ang WAV, MP3, o ibang karaniwang format.",
     "delete": "I-delete",
     "deleteConfirm": "I-delete ang boses na \"{name}\"?",
@@ -918,7 +917,6 @@
     "importVoice": "Mag-import ng boses…",
     "manageImported": "Pamahalaan ang mga na-import na boses",
     "myVoices": "Aking mga Boses",
-    "openVoiceBuilder": "Gumawa ng isa sa Voice Builder",
     "play": "I-play",
     "presets": "Mga Preset",
     "recordVoice": "Mag-record ng boses…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "I-type nang eksakto ang sinasabi ng clip…",
     "unstable": "hindi matatag",
     "voice": "Boses",
-    "voiceBuilderDisclaimer": "Bayad na serbisyo ng Supertone. Hindi kasangkot ang Sokuji sa transaksyong iyon.",
+    "voiceBuilderClosed": "Isinara ng Supertone ang serbisyo nitong Voice Builder noong Agosto 31, 2026. Maaari pa ring i-import ang mga voice file na na-download mo na.",
     "refreshList": "I-refresh ang listahan ng boses"
   },
   "echoNotice": {

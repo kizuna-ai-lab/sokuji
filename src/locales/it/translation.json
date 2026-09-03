@@ -908,7 +908,6 @@
     "clipTooLong": "La registrazione è troppo lunga — mantienila sotto i {seconds} secondi.",
     "clipTooShort": "La registrazione è troppo breve — parla per almeno {seconds} secondi.",
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
-    "customVoiceCta": "Ti serve una voce personalizzata?",
     "decodeFailed": "Impossibile leggere quel file audio — prova con un WAV, MP3 o altro formato comune.",
     "delete": "Elimina",
     "deleteConfirm": "Eliminare la voce \"{name}\"?",
@@ -918,7 +917,6 @@
     "importVoice": "Importa voce…",
     "manageImported": "Gestisci le voci importate",
     "myVoices": "Le Mie Voci",
-    "openVoiceBuilder": "Creane una su Voice Builder",
     "play": "Riproduci",
     "presets": "Preimpostazioni",
     "recordVoice": "Registra voce…",
@@ -934,7 +932,7 @@
     "transcriptPlaceholder": "Scrivi esattamente ciò che dice il clip…",
     "unstable": "instabile",
     "voice": "Voce",
-    "voiceBuilderDisclaimer": "Servizio Supertone a pagamento. Sokuji non è coinvolta in tale transazione.",
+    "voiceBuilderClosed": "Supertone ha chiuso il servizio Voice Builder il 31 agosto 2026. I file voce già scaricati possono ancora essere importati.",
     "refreshList": "Aggiorna elenco voci"
   },
   "echoNotice": {
