@@ -10,15 +10,6 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-// EngineStatusLine's navigation depends only on these two settingsStore
-// selectors — mocking the whole module keeps the test isolated from
-// settingsStore's own (heavy) import graph, the same way ProviderSection's
-// suites mock out unrelated dependencies rather than booting the real store.
-const nav = vi.hoisted(() => ({ navigateToSettings: vi.fn(), uiMode: 'advanced' as 'advanced' | 'basic' }));
-vi.mock('../../../stores/settingsStore', () => ({
-  useNavigateToSettings: () => nav.navigateToSettings,
-  useUIMode: () => nav.uiMode,
-}));
 
 const setNative = (patch: Record<string, unknown>) => useNativeModelStore.setState({ ...patch } as never);
 
@@ -28,8 +19,6 @@ const dotClass = (container: HTMLElement) =>
 
 describe('EngineStatusLine', () => {
   beforeEach(() => {
-    nav.navigateToSettings = vi.fn();
-    nav.uiMode = 'advanced';
     setNative({
       bundleStatus: 'unknown', bundleVersion: null, bundleRequiredVersion: null,
       bundleDevVenv: false, bundleProgress: { downloaded: 0, total: 0 }, bundlePhase: null,
@@ -62,7 +51,7 @@ describe('EngineStatusLine', () => {
     expect(lineText(idle.container)).toContain('starting');
   });
 
-  it('ready: version, native, backend and device — green dot, no chevron', () => {
+  it('ready: version, native, backend and device — green dot', () => {
     setNative({
       bundleStatus: 'ready', bundleVersion: '0.2.0', sidecarStatus: 'ready',
       engineInfo: {
@@ -77,7 +66,6 @@ describe('EngineStatusLine', () => {
     expect(text).toContain('Vulkan');
     expect(text).toContain('NVIDIA GB10');
     expect(dotClass(container)).toContain('engine-status-line__dot--ready');
-    expect(container.querySelector('.engine-status-line__chevron')).toBeNull();
   });
 
   it('ready: dev venv (no bundleVersion) uses the "dev venv" label', () => {
@@ -108,12 +96,11 @@ describe('EngineStatusLine', () => {
     expect(container.querySelector('.engine-status-line__device')).toBeNull();
   });
 
-  it('starting (sidecarStatus starting): hollow dot, chevron, "starting…"', () => {
+  it('starting (sidecarStatus starting): hollow dot, "starting…"', () => {
     setNative({ bundleStatus: 'ready', bundleVersion: '0.2.0', sidecarStatus: 'starting' });
     const { container } = render(<EngineStatusLine />);
     expect(lineText(container)).toContain('Engine 0.2.0 · starting…');
     expect(dotClass(container)).toContain('engine-status-line__dot--hollow');
-    expect(container.querySelector('.engine-status-line__chevron')).toBeTruthy();
   });
 
   it('starting (idle + bundle ready): same starting text', () => {
@@ -122,12 +109,11 @@ describe('EngineStatusLine', () => {
     expect(lineText(container)).toContain('starting…');
   });
 
-  it('absent: hollow dot, "Engine not installed", chevron', () => {
+  it('absent: hollow dot, "Engine not installed"', () => {
     setNative({ bundleStatus: 'absent', sidecarStatus: 'idle' });
     const { container } = render(<EngineStatusLine />);
     expect(lineText(container)).toContain('Engine not installed');
     expect(dotClass(container)).toContain('engine-status-line__dot--hollow');
-    expect(container.querySelector('.engine-status-line__chevron')).toBeTruthy();
   });
 
   it('mismatch: amber dot, from → to versions', () => {
@@ -183,25 +169,17 @@ describe('EngineStatusLine', () => {
     expect(dotClass(container)).toContain('engine-status-line__dot--error');
   });
 
-  it('advanced mode: clicking the line opens the Engine page (provider tab)', () => {
-    setNative({ bundleStatus: 'absent' });
-    nav.uiMode = 'advanced';
-    const { container } = render(<EngineStatusLine />);
-    const line = container.querySelector('.engine-status-line') as HTMLElement;
-    expect(line.getAttribute('role')).toBe('button');
-    fireEvent.click(line);
-    expect(nav.navigateToSettings).toHaveBeenCalledWith('provider');
-  });
-
-  it('simple mode: no reusable navigation exists — the line is plain, non-interactive, no chevron', () => {
-    setNative({ bundleStatus: 'absent' });
-    nav.uiMode = 'basic';
-    const { container } = render(<EngineStatusLine />);
-    const line = container.querySelector('.engine-status-line') as HTMLElement;
-    expect(line.getAttribute('role')).toBeNull();
-    expect(line.className).not.toContain('engine-status-line--clickable');
-    expect(container.querySelector('.engine-status-line__chevron')).toBeNull();
-    fireEvent.click(line);
-    expect(nav.navigateToSettings).not.toHaveBeenCalled();
+  it('is display only in every state: no role, no tab stop, no chevron, and a click does nothing', () => {
+    for (const status of ['absent', 'mismatch', 'error'] as const) {
+      setNative({ bundleStatus: status, bundleVersion: '0.1.0', bundleRequiredVersion: '0.2.0' });
+      const { container, unmount } = render(<EngineStatusLine />);
+      const line = container.querySelector('.engine-status-line') as HTMLElement;
+      expect(line.getAttribute('role')).toBeNull();
+      expect(line.getAttribute('tabindex')).toBeNull();
+      expect(line.className).toBe('engine-status-line');
+      expect(container.querySelector('.engine-status-line__chevron')).toBeNull();
+      expect(() => fireEvent.click(line)).not.toThrow();
+      unmount();
+    }
   });
 });

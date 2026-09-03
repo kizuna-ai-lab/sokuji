@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNativeModelStore, useNativeEngineInfo } from '../../../stores/nativeModelStore';
-import { useNavigateToSettings, useUIMode } from '../../../stores/settingsStore';
 
 /** Proper-noun/acronym backend labels — kept out of i18n like the app's other
  *  technical tokens (framework names, GB/MB, tok/s — see nativeCatalog.ts's
@@ -21,14 +20,10 @@ type DotKind = 'ready' | 'hollow' | 'warn' | 'error';
  * EngineSection — so the caller only decides WHETHER to mount it
  * (`provider === Provider.LOCAL_NATIVE`); it takes no props.
  *
- * Clicking opens the Engine page, but only where that navigation already
- * exists: Advanced mode's provider tab renders the Engine surface
- * unconditionally, so switching to it (`navigateToSettings('provider')`) is
- * enough. Simple mode has no equivalent — its engine surface only opens via
- * a concrete (direction, stage) slot deep-link (see ProviderSection's
- * `openSlot` / SimpleSettings' `engineOpen`), and this status line has no
- * slot to offer — so the line stays a plain, non-interactive status there
- * rather than inventing a new navigation path.
+ * Display only, in both UI modes (decision 2026-09-03): the Engine page is
+ * one tab away in Advanced mode and Simple mode has no reusable route to
+ * it, so a click target on a status line bought nothing — the actionable
+ * states name what to do, and the Engine page's own controls do it.
  */
 export const EngineStatusLine: React.FC = () => {
   const { t } = useTranslation();
@@ -37,9 +32,6 @@ export const EngineStatusLine: React.FC = () => {
     bundleProgress, bundlePhase, sidecarStatus,
   } = useNativeModelStore();
   const engineInfo = useNativeEngineInfo();
-  const navigateToSettings = useNavigateToSettings();
-  const uiMode = useUIMode();
-  const isSimpleMode = uiMode === 'basic';
 
   // 'unsupported' (no bundle SKU for this platform) still has an engine to
   // report when a dev venv runs the sidecar — that is exactly the
@@ -52,7 +44,6 @@ export const EngineStatusLine: React.FC = () => {
   let dot: DotKind;
   let text: string;
   let device: string | null = null;
-  let chevron = false;
 
   if (sidecarStatus === 'ready') {
     dot = 'ready';
@@ -68,25 +59,20 @@ export const EngineStatusLine: React.FC = () => {
     device = rawDevice && rawDevice !== backend ? rawDevice : null;
     text = parts.join(' · ');
   } else if (sidecarStatus === 'starting' || (sidecarStatus === 'idle' && (bundleStatus === 'ready' || bundleDevVenv))) {
-    chevron = true;
     dot = 'hollow';
     text = t('engine.status.starting', 'Engine {{version}} · starting…', { version });
   } else if (bundleStatus === 'absent') {
     dot = 'hollow';
-    chevron = true;
     text = t('engine.status.notInstalled', 'Engine not installed');
   } else if (bundleStatus === 'mismatch') {
     dot = 'warn';
-    chevron = true;
     text = t('engine.status.updateRequired', 'Engine update {{from}} → {{to}}',
       { from: bundleVersion, to: bundleRequiredVersion });
   } else if (bundleStatus === 'paused') {
     dot = 'warn';
-    chevron = true;
     text = t('engine.status.downloadPaused', 'Download paused');
   } else if (bundleStatus === 'installing') {
     dot = 'warn';
-    chevron = true;
     if (bundlePhase === 'verify') {
       text = t('engine.verifying', 'Verifying…');
     } else if (bundlePhase === 'extract') {
@@ -99,11 +85,9 @@ export const EngineStatusLine: React.FC = () => {
     }
   } else if (bundleStatus === 'error') {
     dot = 'error';
-    chevron = true;
     text = t('engine.status.error', 'Engine error');
   } else if (sidecarStatus === 'unavailable') {
     dot = 'error';
-    chevron = true;
     text = t('engine.status.unavailable', 'Engine unavailable');
   } else {
     // No other combination is informative or actionable yet (e.g. bundle
@@ -111,30 +95,20 @@ export const EngineStatusLine: React.FC = () => {
     return null;
   }
 
-  const clickable = !isSimpleMode;
   const fullText = device ? `${text} · ${device}` : text;
   // Hover-only addition (see the component doc comment) — the visible text
   // stays exactly `fullText`; this sentence only ever reaches the title
   // attribute's tooltip.
   const preferredHint = t('engine.status.preferredHint',
     'Preferred device for this machine; per-stage overrides live in the model library.');
-  const activate = () => navigateToSettings('provider');
 
   return (
-    <div
-      className={`engine-status-line${clickable ? ' engine-status-line--clickable' : ''}`}
-      title={`${fullText}\n${preferredHint}`}
-      role={clickable ? 'button' : undefined}
-      tabIndex={clickable ? 0 : undefined}
-      onClick={clickable ? activate : undefined}
-      onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } } : undefined}
-    >
+    <div className="engine-status-line" title={`${fullText}\n${preferredHint}`}>
       <span className={`engine-status-line__dot engine-status-line__dot--${dot}`} />
       <span className="engine-status-line__text">
         {text}
         {device && <span className="engine-status-line__device"> · {device}</span>}
       </span>
-      {chevron && clickable && <span className="engine-status-line__chevron">›</span>}
     </div>
   );
 };

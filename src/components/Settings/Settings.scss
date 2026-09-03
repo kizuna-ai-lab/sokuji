@@ -1457,16 +1457,6 @@
   font-size: 11.5px;
   color: vars.$text-muted;
 
-  &--clickable {
-    cursor: pointer;
-
-    &:hover {
-      color: vars.$text-secondary;
-
-      .engine-status-line__dot--ready { background: vars.$color-primary-hover; }
-    }
-  }
-
   &__dot {
     flex: none;
     width: 7px;
@@ -1501,10 +1491,6 @@
     // ellipsis-truncated mid-word — the backend label alone still reads.
   }
 
-  &__chevron {
-    flex: none;
-    color: vars.$text-muted;
-  }
 }
 
 @container (max-width: 360px) {
