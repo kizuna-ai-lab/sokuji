@@ -120,7 +120,7 @@ export const EngineStatusLine: React.FC = () => {
   return (
     <div
       className={`engine-status-line${clickable ? ' engine-status-line--clickable' : ''}`}
-      title={`${fullText} ${preferredHint}`}
+      title={`${fullText}\n${preferredHint}`}
       role={clickable ? 'button' : undefined}
       tabIndex={clickable ? 0 : undefined}
       onClick={clickable ? activate : undefined}
