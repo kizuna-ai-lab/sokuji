@@ -90,11 +90,12 @@ def test_audio_families():
     families = sokuji_native.audio_families()
     # This build compiles in every audio.cpp family, including companions that ride
     # along with a selected one (controller Ruling 8), so the exact list is longer than
-    # our six targets — assert the six required names are present and the list is sorted.
+    # our ten targets — assert the ten required names are present and the list is sorted.
     # "silero_vad" stays in this set even though sokuji-native dropped sk_vad_*: audio.cpp
     # always compiles silero_vad in regardless of AUDIOCPP_MODELS (see upstreams.cmake), so
     # the family rides along unused, reported by sk_audio_families() but never called.
-    required = {"moss_tts_nano", "omnivoice", "pocket_tts", "qwen3_tts", "silero_vad", "supertonic"}
+    required = {"index_tts2", "irodori_tts", "moss_tts_nano", "omnivoice", "pocket_tts",
+                "qwen3_tts", "silero_vad", "supertonic", "voxcpm1", "voxcpm2"}
     assert required <= set(families)
     assert families == sorted(families)
 
@@ -344,8 +345,13 @@ TTS_MOSS_DIR = os.environ.get("SK_TEST_TTS_MOSS_DIR")
 TTS_QWEN3_DIR = os.environ.get("SK_TEST_TTS_QWEN3_DIR")
 TTS_POCKET_DIR = os.environ.get("SK_TEST_TTS_POCKET_DIR")
 TTS_OMNIVOICE_DIR = os.environ.get("SK_TEST_TTS_OMNIVOICE_DIR")
+TTS_VOXCPM1_DIR = os.environ.get("SK_TEST_TTS_VOXCPM1_DIR")
+TTS_VOXCPM2_DIR = os.environ.get("SK_TEST_TTS_VOXCPM2_DIR")
+TTS_IRODORI_DIR = os.environ.get("SK_TEST_TTS_IRODORI_DIR")
+TTS_INDEX_DIR = os.environ.get("SK_TEST_TTS_INDEX_DIR")
 needs_tts_supertonic = pytest.mark.skipif(not (HAVE_TREE and TTS_SUPERTONIC_DIR), reason="needs a built tree and SK_TEST_TTS_SUPERTONIC_DIR")
 needs_tts_moss = pytest.mark.skipif(not (HAVE_TREE and TTS_MOSS_DIR), reason="needs a built tree and SK_TEST_TTS_MOSS_DIR")
+needs_tts_index = pytest.mark.skipif(not (HAVE_TREE and TTS_INDEX_DIR), reason="needs a built tree and SK_TEST_TTS_INDEX_DIR")
 
 
 @needs_tts_supertonic
@@ -429,6 +435,95 @@ def test_tts_moss_offline_and_clone():
     t.unload()
 
 
+# The four families added on 2026-09-03. One CPU synth per family, same shape as the two
+# hand-written tests above and pinned to the CPU device for the same reason (R19: no TTS
+# family runs on a GPU tier until the fleet validates that family on that lane, and these
+# four are deliberately absent from catalog.py's _TTS_TIER_OVERRIDES).
+#
+# (family, env var, model dir, text, language, expected rate, needs a reference clip).
+# The text is in a language the family actually covers — irodori_tts is Japanese-only, and
+# for index_tts2 the language is what picks its <|lang|> prefix (left unset its tokenizer
+# guesses "zh for Han text, else en"). index_tts2 is the one family whose reference clip is
+# MANDATORY ("IndexTTS2 request requires --voice-ref or voice.speaker.audio"), and a clone
+# reference has to be real speech, so — exactly like the GPU runner below — supertonic
+# synthesizes one on the CPU device first rather than passing a sine wave off as a voice.
+NEW_CPU_TTS_FAMILIES = [
+    ("voxcpm1", "SK_TEST_TTS_VOXCPM1_DIR", TTS_VOXCPM1_DIR, "Hello from VoxCPM.", "en", 16000, False),
+    ("voxcpm2", "SK_TEST_TTS_VOXCPM2_DIR", TTS_VOXCPM2_DIR, "你好，世界。", "zh", 48000, False),
+    ("irodori_tts", "SK_TEST_TTS_IRODORI_DIR", TTS_IRODORI_DIR, "こんにちは、世界。", "ja", 48000, False),
+    ("index_tts2", "SK_TEST_TTS_INDEX_DIR", TTS_INDEX_DIR, "Hello from IndexTTS.", "en", 22050, True),
+]
+
+
+def _cpu_reference_clip():
+    """A real-speech reference clip plus its transcript, synthesized with supertonic on the
+    CPU device. Returns (pcm, rate, text)."""
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    ref_text = "The quick brown fox jumps over the lazy dog."
+    ref = sokuji_native.tts_load(TTS_SUPERTONIC_DIR, "supertonic", cpu)
+    try:
+        ref.set_preset("M1")
+        pcm, rate = ref.synth(ref_text, language="en")
+    finally:
+        ref.unload()
+    if pcm.ndim > 1:
+        pcm = pcm.mean(axis=1)
+    return np.ascontiguousarray(pcm, dtype=np.float32), int(rate), ref_text
+
+
+@pytest.mark.parametrize(
+    "family,env_name,model_dir,text,language,rate,needs_ref",
+    NEW_CPU_TTS_FAMILIES,
+    ids=[row[0] for row in NEW_CPU_TTS_FAMILIES],
+)
+def test_tts_new_family_synthesises_on_cpu(family, env_name, model_dir, text, language, rate, needs_ref):
+    if not HAVE_TREE:
+        pytest.skip("needs a built tree")
+    if not model_dir:
+        pytest.skip(f"needs {env_name}")
+    if needs_ref and not TTS_SUPERTONIC_DIR:
+        pytest.skip(f"{family} is clone-only and needs SK_TEST_TTS_SUPERTONIC_DIR for a reference clip")
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    voice = _cpu_reference_clip() if needs_ref else None
+
+    t = sokuji_native.tts_load(model_dir, family, cpu)
+    try:
+        caps = t.capabilities
+        assert caps.clones and not caps.transcript_required
+        assert caps.sample_rate == rate
+        # None of the four exposes built-in voices, so the preset list is authoritative-empty.
+        assert t.presets() == []
+        if voice is not None:
+            t.set_voice(voice[0], voice[1], ref_text=voice[2])
+        samples, out_rate = t.synth(text, language=language)
+    finally:
+        t.unload()
+
+    assert out_rate == rate
+    frames = int(samples.shape[0])
+    assert frames > 0
+    # Non-silent audio of a plausible length for one short sentence. The upper bound is the
+    # "did not run away to the decoder's token cap" check the CPU MOSS test makes too.
+    assert 0.3 < frames / out_rate < 20.0
+    assert float(np.max(np.abs(samples))) > 0.01
+
+
+@needs_tts_index
+def test_tts_index_tts2_without_a_voice_fails_cleanly():
+    """index_tts2 cannot synthesize without a reference clip. The native layer must turn
+    that into a NativeError rather than anything the sidecar has to guess at — this is the
+    error tts_backend._VOICE_REQUIRED_FAMILIES exists to pre-empt."""
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    t = sokuji_native.tts_load(TTS_INDEX_DIR, "index_tts2", cpu)
+    try:
+        with pytest.raises(sokuji_native.NativeError, match="voice-ref|speaker"):
+            t.synth("Hello from IndexTTS.", language="en")
+    finally:
+        t.unload()
+
+
 # --------------------------------------------------------------------------------------
 # TTS on a real GPU device.
 #
@@ -472,11 +567,15 @@ GPU_TTS_TEXT = "The quick brown fox jumps over the lazy dog."
 GPU_TTS_MIN_SECONDS = 0.5
 GPU_TTS_MIN_PEAK = 0.01          # an all-zeros buffer of the right length must not pass
 
-# family -> (env var name, model dir, preset or None, clones?, max seconds). supertonic and
-# pocket_tts select a named preset; moss_tts_nano has a usable built-in voice; qwen3_tts
-# (base checkpoint) and omnivoice are clone-only and additionally require the reference's
-# transcript, so the child synthesizes its own reference clip with supertonic on the CPU
-# device first and clones it with that clip's exact text.
+# family -> (env var name, model dir, preset or None, clones?, max seconds, text, language).
+# supertonic and pocket_tts select a named preset; moss_tts_nano, voxcpm1, voxcpm2 and
+# irodori_tts have a usable built-in voice; qwen3_tts (base checkpoint), omnivoice and
+# index_tts2 are clone-only, so the child synthesizes its own reference clip with supertonic
+# on the CPU device first and clones it with that clip's exact text (qwen3_tts and omnivoice
+# additionally require that transcript; index_tts2 only needs the clip).
+#
+# text/language are per family because irodori_tts is Japanese-only and index_tts2 picks its
+# <|lang|> prefix from the language; everything else uses the shared English sentence.
 #
 # The max-duration bar is 30s (a generous "did not run away" bound) except for
 # moss_tts_nano, where 10s is a real signal: ruling R23 switched that family to sampled
@@ -484,12 +583,21 @@ GPU_TTS_MIN_PEAK = 0.01          # an all-zeros buffer of the right length must 
 # audio.cpp's 300-frame / 24.000s max_new_frames cap. A ~24s clip for this one sentence is
 # that cap's signature, so the tighter bound catches a backend on which the stop decision
 # stops working — same threshold the CPU test above uses.
+#
+# The four 2026-09-03 families are cpu-only in production (they are absent from catalog.py's
+# _TTS_TIER_OVERRIDES). They are listed here anyway so the fleet run that would earn them a
+# GPU tier is one env var away, exactly as it was for the original five.
 GPU_TTS_FAMILIES = {
-    "supertonic": ("SK_TEST_TTS_SUPERTONIC_DIR", TTS_SUPERTONIC_DIR, "M1", False, 30.0),
-    "pocket_tts": ("SK_TEST_TTS_POCKET_DIR", TTS_POCKET_DIR, "alba", False, 30.0),
-    "moss_tts_nano": ("SK_TEST_TTS_MOSS_DIR", TTS_MOSS_DIR, None, False, 10.0),
-    "qwen3_tts": ("SK_TEST_TTS_QWEN3_DIR", TTS_QWEN3_DIR, None, True, 30.0),
-    "omnivoice": ("SK_TEST_TTS_OMNIVOICE_DIR", TTS_OMNIVOICE_DIR, None, True, 30.0),
+    "supertonic": ("SK_TEST_TTS_SUPERTONIC_DIR", TTS_SUPERTONIC_DIR, "M1", False, 30.0, GPU_TTS_TEXT, "en"),
+    "pocket_tts": ("SK_TEST_TTS_POCKET_DIR", TTS_POCKET_DIR, "alba", False, 30.0, GPU_TTS_TEXT, "en"),
+    "moss_tts_nano": ("SK_TEST_TTS_MOSS_DIR", TTS_MOSS_DIR, None, False, 10.0, GPU_TTS_TEXT, "en"),
+    "qwen3_tts": ("SK_TEST_TTS_QWEN3_DIR", TTS_QWEN3_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
+    "omnivoice": ("SK_TEST_TTS_OMNIVOICE_DIR", TTS_OMNIVOICE_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
+    "voxcpm1": ("SK_TEST_TTS_VOXCPM1_DIR", TTS_VOXCPM1_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
+    "voxcpm2": ("SK_TEST_TTS_VOXCPM2_DIR", TTS_VOXCPM2_DIR, None, False, 30.0, GPU_TTS_TEXT, "en"),
+    "irodori_tts": ("SK_TEST_TTS_IRODORI_DIR", TTS_IRODORI_DIR, None, False, 30.0,
+                    "こんにちは、世界。今日はいい天気ですね。", "ja"),
+    "index_tts2": ("SK_TEST_TTS_INDEX_DIR", TTS_INDEX_DIR, None, True, 30.0, GPU_TTS_TEXT, "en"),
 }
 
 # The dirs above hold the DEFAULT rung — the catalog's `default_quant`, which is
@@ -531,12 +639,13 @@ voice = None
 if cfg["clones"]:
     # A clone reference has to be real speech (a sine wave is not one), so supertonic
     # makes one on the CPU device in this same process; its text is the ref_text, which
-    # both clone-only families require.
+    # the clone-only families that demand a transcript require. The reference is always
+    # the English sentence even when the family under test synthesizes another language.
     cpu = next(d for d in s.devices() if d.kind == "cpu")
     ref = s.tts_load(cfg["supertonic_dir"], "supertonic", cpu)
     try:
         ref.set_preset("M1")
-        pcm, rate = ref.synth(cfg["text"], language="en")
+        pcm, rate = ref.synth(cfg["ref_text"], language="en")
         if pcm.ndim > 1:
             pcm = pcm.mean(axis=1)
         voice = (np.ascontiguousarray(pcm, dtype=np.float32), int(rate))
@@ -550,9 +659,9 @@ try:
     if cfg["preset"]:
         model.set_preset(cfg["preset"])
     if voice is not None:
-        model.set_voice(voice[0], voice[1], ref_text=cfg["text"])
+        model.set_voice(voice[0], voice[1], ref_text=cfg["ref_text"])
     t0 = time.perf_counter()
-    samples, rate = model.synth(cfg["text"], language="en")
+    samples, rate = model.synth(cfg["text"], language=cfg["language"])
     synth_s = time.perf_counter() - t0
 finally:
     model.unload()
@@ -581,7 +690,7 @@ def _gpu_device():
 @pytest.mark.parametrize("quant", ["default", "bf16"])
 @pytest.mark.parametrize("family", sorted(GPU_TTS_FAMILIES))
 def test_tts_synthesises_on_a_gpu_device(family, quant):
-    env_name, model_dir, preset, clones, max_seconds = GPU_TTS_FAMILIES[family]
+    env_name, model_dir, preset, clones, max_seconds, text, language = GPU_TTS_FAMILIES[family]
     # The broadest gate first, so a CPU/no-GPU run reports one reason per case rather than a
     # mix of "no bf16 rung" and "needs SK_TEST_TTS_GPU=1" for the same absent opt-in.
     if not (HAVE_TREE and TTS_GPU):
@@ -613,7 +722,9 @@ def test_tts_synthesises_on_a_gpu_device(family, quant):
         "preset": preset,
         "clones": clones,
         "supertonic_dir": TTS_SUPERTONIC_DIR,
-        "text": GPU_TTS_TEXT,
+        "text": text,
+        "language": language,
+        "ref_text": GPU_TTS_TEXT,
     }
     env = dict(os.environ, SK_GPU_TTS_CONFIG=json.dumps(cfg))
     proc = subprocess.run([sys.executable, "-c", _GPU_TTS_RUNNER],
