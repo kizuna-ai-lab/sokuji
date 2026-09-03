@@ -74,12 +74,18 @@ export class NativeModelClient {
     return { variants: r.variants, recommended: r.recommended };
   }
 
-  /** Built-in TTS voice descriptors for a voice-capable model (empty if not downloaded). */
+  /** Built-in TTS voice descriptors for a voice-capable model (empty if not
+   *  downloaded). The wire carries preset names only (ListTtsVoicesResultMsg);
+   *  this is the one place they become NativeVoiceInfo, so every consumer
+   *  downstream can read `.name` — handing the raw strings through crashed
+   *  curatedBuiltinVoices' `a.name.localeCompare` the first time a family with
+   *  a non-empty listing (supertonic) was selected. */
   async listTtsVoices(model?: string): Promise<NativeVoiceInfo[]> {
     const payload: { type: 'list_tts_voices'; model?: string } = { type: 'list_tts_voices' };
     if (model) payload.model = model;
     const msg = await this.conn.request(payload);
-    return (msg as Extract<ServerMsg, { type: 'list_tts_voices_result' }>).voices;
+    const names = (msg as Extract<ServerMsg, { type: 'list_tts_voices_result' }>).voices;
+    return names.map((name) => ({ name, curated: false, unstable: false, default: false }));
   }
 
   /** Remove a model from the sidecar's cache; resolves to the bytes freed. */

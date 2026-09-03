@@ -44,6 +44,13 @@ export interface NativeModelInfo {
    *  were computed against — feeds the localized "this machine has X" reason. */
   deviceMemBytes?: number | null;
 }
+/** A built-in TTS voice as the renderer consumes it. NOT a wire shape: the
+ *  ggml-only sidecar publishes preset NAMES only (spec 2026-08-30 §5.5 —
+ *  audio.cpp's sk_tts_presets carries no language/curation metadata), and
+ *  NativeModelClient.listTtsVoices lifts each name into one of these with every
+ *  flag false. The flags survive so a renderer-side curation table can fill
+ *  them in later without touching the consumers (curatedBuiltinVoices,
+ *  defaultTtsVoice, reconcileTtsVoice), which all read `.name`. */
 export interface NativeVoiceInfo {
   name: string; language?: string; curated: boolean; unstable: boolean; default: boolean;
 }
@@ -89,5 +96,7 @@ export type ModelDownloadStatus = 'ready' | 'cancelled';
 export interface ModelDownloadDoneMsg { type: 'model_download_done'; model: string; status: ModelDownloadStatus; }
 export interface TtsChunkMsg { type: 'tts_chunk'; id: number; seq: number; }
 export interface TtsDoneMsg { type: 'tts_done'; id: number; totalSamples: number; generationTimeMs: number; }
-export interface ListTtsVoicesResultMsg { type: 'list_tts_voices_result'; id: number; voices: NativeVoiceInfo[]; }
+/** `voices` is the flat preset-name list the sidecar's tts_voices.list_builtin_voices
+ *  returns (sidecar-v0.2.0+); see NativeVoiceInfo for why it is not the descriptor. */
+export interface ListTtsVoicesResultMsg { type: 'list_tts_voices_result'; id: number; voices: string[]; }
 export type ServerMsg = ReadyMsg | OkMsg | TtsGenerateResultMsg | TranslateResultMsg | TranslatePartialMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg | ListVariantsResultMsg | TtsChunkMsg | TtsDoneMsg | ListTtsVoicesResultMsg;
