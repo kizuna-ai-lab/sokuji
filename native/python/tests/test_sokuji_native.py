@@ -7,6 +7,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import warnings
 
 import numpy as np
 import pytest
@@ -419,18 +420,36 @@ def test_tts_moss_offline_and_clone():
     # audiocpp_cli's own --metrics output, native/tests/parity/): synth() must hand back a
     # numpy-natural 2-D (frames, channels) array, not a flat buffer mislabeled as mono.
     assert samples.ndim == 2 and samples.shape[1] == 2
-    # Ruling R23 (.superpowers/moss-eoc-verdict.md): moss_tts_nano samples its stop decision
-    # instead of arg-maxing it, so a short utterance reaches real end-of-content well under
-    # audio.cpp's 300-frame/24.000s max_new_frames cap (measured there: 2.6-3.7s). This
-    # duration<10s check replaces what a greedy build would otherwise show as a cap-shaped
-    # ~24.0s expectation, every time.
-    assert samples.shape[0] / rate < 10.0
     ref = np.sin(np.linspace(0, 2 * np.pi * 440, 24000)).astype(np.float32)
     t.set_voice(ref, 24000, ref_text="test")
     samples2, rate2 = t.synth("Hello again.")
     assert len(samples2) > 0
     assert samples2.ndim == 2 and samples2.shape[1] == 2
-    assert samples2.shape[0] / rate2 < 10.0
+    # Ruling R23 (.superpowers/moss-eoc-verdict.md): moss_tts_nano samples its stop decision
+    # instead of arg-maxing it, so a short utterance reaches real end-of-content well under
+    # audio.cpp's 300-frame/24.000s max_new_frames cap (measured there: 2.6-3.7s) — where a
+    # greedy build runs to the cap on every prompt, every time.
+    #
+    # Ruling R39 (2026-09-02, native/tests/test_tts.cpp, which has carried this guard since):
+    # that sampled stream is deterministic per build (seed 0) but NOT across builds — another
+    # compiler/libm shifts the logits by ULPs and the draw diverges — so any ONE prompt can
+    # run long on some lane. A greedy regression trips BOTH prompts; sampling variance trips
+    # at most one. The clone prompt is the likelier of the two: its reference is a synthetic
+    # 440 Hz sine, a degenerate voice prompt. Measured at audio.cpp 0.7.1: the clone prompt
+    # alone capped on linux-x64 (10.000s) and mac-arm64 (18.720s) while the plain prompt
+    # stayed short on both, and both prompts stayed short on linux-arm64, mac-x64 and win-x64.
+    # So: one long prompt is a warning, two is the failure.
+    plain_s = samples.shape[0] / rate
+    clone_s = samples2.shape[0] / rate2
+    long_prompts = [name for name, secs in (("plain", plain_s), ("clone", clone_s)) if secs >= 10.0]
+    if long_prompts:
+        warnings.warn(
+            f"moss synth ran long on {'/'.join(long_prompts)} "
+            f"(plain {plain_s:.3f}s, clone {clone_s:.3f}s) — R23 sampling variance on this build?",
+            stacklevel=1)
+    assert len(long_prompts) < 2, (
+        f"both moss prompts ran to the cap (plain {plain_s:.3f}s, clone {clone_s:.3f}s): "
+        "that is the greedy-decode shape R23 replaced, not sampling variance")
     t.unload()
     t.unload()
 
