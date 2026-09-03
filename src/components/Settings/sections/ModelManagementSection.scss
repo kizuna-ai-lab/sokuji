@@ -198,6 +198,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    // The variant dropdown's row height, so a card with the dropdown and a
+    // card with plain size text stand the same height (59px), the name
+    // centred on the dropdown either way.
+    min-height: 18px;
   }
 
   &__name {
@@ -236,6 +240,18 @@
     font-size: vars.$chip-font-size;
     line-height: vars.$chip-line-height;
     color: vars.$text-muted;
+  }
+
+  // Chip icons (the tier glyph, the Recommended star, the Auto bolt): block
+  // flex items, centred on the chip, then 0.5px up. Inline they rode the
+  // baseline 1.5px high; centred exactly, the star still read low because a
+  // glyph's optical centre sits above its box centre. Measured on the text
+  // node's rect: icon and text mid-lines now coincide.
+  &__lang-tag svg,
+  &__recommended-badge svg,
+  &__auto-badge svg {
+    display: block;
+    transform: translateY(-0.5px);
   }
 
   // Two or more languages collapse into this one chip; the tooltip (LanguageTags)
@@ -474,7 +490,13 @@
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-sm;
-    padding: 2px 6px;
+    // 18px closed control (14px line + 1px padding + 1px border each side),
+    // level with the 14px model name beside it. base-select's UA stylesheet
+    // pins the control to `min-height: calc-size(auto, max(size, 24px, 13px))`
+    // - a 24px floor - so the floor has to go too.
+    min-height: 0;
+    padding: 1px 6px;
+    line-height: 14px;
     cursor: pointer;
     transition: border-color vars.$transition-fast, background vars.$transition-fast;
 
