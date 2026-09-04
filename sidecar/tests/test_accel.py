@@ -486,6 +486,26 @@ def test_bench_save_is_atomic(tmp_path, monkeypatch):
     assert not (tmp_path / "accel-bench.json.tmp").exists()
 
 
+def test_bench_save_persists_the_empty_generation(tmp_path, monkeypatch):
+    """machine.generation == "" ("identity unknown", the real value compute_generation
+    returns when _native_identity() fails) must rotate through gens/keep like any other
+    generation — a prior bug's `if generation and ...` treated "" as "nothing to add" and
+    silently dropped every "" entry on save."""
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    accel.bench_save({"|fp|m|b|d|c": 1.0}, generation="")
+    entries, gens = accel.bench_read()
+    assert entries == {"|fp|m|b|d|c": 1.0} and gens == [""]
+    # a legacy key (non-empty first segment, no generation prefix at all) is still dropped
+    accel.bench_save({**entries, "fp|m|b|d|c": 2.0}, generation="")
+    entries, gens = accel.bench_read()
+    assert entries == {"|fp|m|b|d|c": 1.0} and gens == [""]
+    # a later save under a real generation keeps both "" and "G1" in gens
+    accel.bench_save({**entries, "G1|fp|m|b|d|c": 3.0}, generation="G1")
+    entries, gens = accel.bench_read()
+    assert gens == ["", "G1"]
+    assert entries == {"|fp|m|b|d|c": 1.0, "G1|fp|m|b|d|c": 3.0}
+
+
 def test_measure_keys_by_generation(monkeypatch, tmp_path):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     m1 = accel.Machine(os="Linux", arch="x86_64", cpu_cores=4, apple_silicon=False, installed=frozenset(), fingerprint="fp", generation="G1")
@@ -499,6 +519,26 @@ def test_measure_keys_by_generation(monkeypatch, tmp_path):
     assert accel._measure(None, plan, "whisper-base", m1, ns="", run=run) == 0.42 and len(calls) == 1   # hit
     assert accel._measure(None, plan, "whisper-base", m2, ns="", run=run) == 0.42 and len(calls) == 2   # miss across generations
     assert accel.planner._cache_key(m1, "", "whisper-base", "native_asr", "cpu", "q8_0") in accel.bench_load()
+
+
+def test_measure_persists_for_the_empty_generation_across_reload(monkeypatch, tmp_path):
+    """Regression for the bug where bench_save's `if generation and ...` dropped every ""
+    entry: a machine with generation == "" (identity unknown) must still be a cache HIT on
+    a second _measure call, which does its own fresh bench_load() from disk each time —
+    proving the first save actually persisted under the "" generation."""
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=4, apple_silicon=False, installed=frozenset(), fingerprint="fp", generation="")
+    plan = accel.Plan("native_asr", "cpu", "cpu", "q8_0", "r/f.gguf", 2.0, None)
+    calls = []
+    def run(backend):
+        calls.append(1)
+        return 0.42
+    assert accel._measure(None, plan, "whisper-base", m, ns="", run=run) == 0.42
+    assert len(calls) == 1
+    key = accel.planner._cache_key(m, "", "whisper-base", "native_asr", "cpu", "q8_0")
+    assert key in accel.bench_load()                          # persisted to disk, not just in-memory
+    assert accel._measure(None, plan, "whisper-base", m, ns="", run=run) == 0.42
+    assert len(calls) == 1   # still a hit — the "" generation survived the save/reload round-trip
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),

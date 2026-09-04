@@ -572,12 +572,17 @@ def bench_load() -> dict:
 def bench_save(entries: dict, *, generation: str) -> None:
     """Best-effort write. Rotates the generation list (last 3 kept), keeps a key iff its first
     `|` segment is in the post-rotation list (legacy and rotated-out keys are dropped), and
-    writes through a temp file + os.replace so a crash never leaves a torn file. Never raises."""
+    writes through a temp file + os.replace so a crash never leaves a torn file. Never raises.
+
+    An empty-string `generation` ("identity unknown", e.g. compute_generation when
+    _native_identity() fails) is a legitimate value and rotates through gens/keep like any
+    other — it is NOT "nothing to add". A legacy flat-file key is told apart from a "" entry
+    by its first `|`-segment: a legacy key's is the non-empty fingerprint hash, never ""."""
     path = _bench_cache_path()
     tmp = path + ".tmp"
     try:
         _old, gens = bench_read()
-        if generation and generation not in gens:
+        if generation not in gens:
             gens.append(generation)
         gens = gens[-_KEEP_GENERATIONS:]
         keep = set(gens)
