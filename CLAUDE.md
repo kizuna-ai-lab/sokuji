@@ -118,8 +118,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 6. **Native runtime (`native/`)**
    - One CMake super-project builds three engines on ONE pristine upstream ggml 0.22 behind
      the `sk_*` C ABI (`native/include/sokuji_native.h`) in `libsokuji_native` / Python package
-     `sokuji_native`: transcribe.cpp (ASR), llama.cpp (translation), audio.cpp (TTS — five
-     families: moss_tts_nano, qwen3_tts, omnivoice, pocket_tts, supertonic). Design:
+     `sokuji_native`: transcribe.cpp (ASR), llama.cpp (translation), audio.cpp (TTS — nine
+     families: moss_tts_nano, qwen3_tts, omnivoice, pocket_tts, supertonic, voxcpm1,
+     voxcpm2, irodori_tts, index_tts2). Design:
      `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md` (Amendment A1: VAD runs in
      the renderer via `native-vad.worker.ts`, not here); build/layout/per-stage detail:
      `native/README.md`. `sokuji_sidecar/native.py` is the sidecar's one door in — nothing else
@@ -167,7 +168,10 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      by 1.0.1 (R41: the Python binding's `Translator._make_cb` used to decode each streamed
      token piece independently, corrupting a BPE boundary landing inside a multibyte CJK
      character to U+FFFD; fixed with a per-call incremental UTF-8 decoder) before any bundle
-     pinned it. Current native version is 1.0.1.
+     pinned it. `native-v1.0.2` / `sidecar-v0.2.1` (2026-09-03) follow: engine pins to
+     transcribe.cpp 0.2.3 and audio.cpp 0.7.1, and four more TTS families compiled in
+     (voxcpm1, voxcpm2, irodori_tts, index_tts2 — nine in total). Current native version
+     is 1.0.2.
    - **Dev loop**: `native/ci/build.sh <none|vulkan|metal> <plat tag>` (`.ps1` on Windows)
      builds and runs CTest + the Python suite against a fresh stage;
      `SOKUJI_NATIVE_DIR=.../stage` points a wheel-less `import sokuji_native` at it. Models

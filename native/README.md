@@ -421,5 +421,8 @@ in the sidecar's own release, not part of this workflow. `native-v1.0.1` follows
 immediately: a Python-binding-only fix (R41) for streamed translation tokens that split a
 multibyte UTF-8 character across pieces being decoded independently instead of
 incrementally, corrupting CJK output with U+FFFD — see `python/sokuji_native/__init__.py`'s
-`Translator._make_cb`. Current native version is 1.0.1; `sidecar/requirements.txt` pinned
-straight to 1.0.1, so no sidecar bundle ever shipped with 1.0.0 inside.
+`Translator._make_cb`. `sidecar/requirements.txt` pinned straight to 1.0.1, so no sidecar
+bundle ever shipped with 1.0.0 inside. `native-v1.0.2` (2026-09-03) moved the engine pins
+to transcribe.cpp 0.2.3 and audio.cpp 0.7.1 and added four TTS families to the build set
+(voxcpm1, voxcpm2, irodori_tts, index_tts2), taking it to nine. Current native version is
+1.0.2.
