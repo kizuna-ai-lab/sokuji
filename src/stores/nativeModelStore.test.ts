@@ -588,6 +588,60 @@ describe('nativeModelStore device profiles (spec A §3.4)', () => {
     expect(s.reportedUnsupportedOps.has('tts/index_tts2/q8_0')).toBe(true);
   });
 
+  // The warning is one line in a panel a user pastes into a bug report. A refused rung
+  // repeats the same spelling many times (voxcpm2's false integer-dtype refusal listed
+  // one MUL_MAT 16 times) and a genuinely missing op can produce hundreds, so the names
+  // are deduplicated and capped.
+  it('caps the listed unsupported op names at five distinct entries plus a count', async () => {
+    mockModelsCatalogResolve();
+    const unsupported = [
+      'A_OP[f32,-,-,-,-]->f32', 'B_OP[f32,-,-,-,-]->f32', 'C_OP[f32,-,-,-,-]->f32',
+      'D_OP[f32,-,-,-,-]->f32', 'E_OP[f32,-,-,-,-]->f32', 'F_OP[f32,-,-,-,-]->f32',
+      'G_OP[f32,-,-,-,-]->f32',
+    ];
+    const devices = [{
+      index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: [],
+      driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'ee'.repeat(16), cpuFeatures: '',
+      opCoverage: { 'tts/pocket_tts/q8_0': { allSupported: false, unsupported } },
+    }];
+    mockHardwareInfoResolve({ devices });
+    await useNativeModelStore.getState().ensureCatalog();
+    await settleReports();
+    const warnings = useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('cannot run on'));
+    expect(warnings).toHaveLength(1);
+    const { message } = warnings[0];
+    expect(typeof message).toBe('string');
+    for (const name of unsupported.slice(0, 5)) expect(message).toContain(name);
+    expect(message).not.toContain('F_OP');
+    expect(message).not.toContain('G_OP');
+    expect(message).toContain('… and 2 more');
+  });
+
+  it('collapses repeats before capping, so five distinct names carry no "and N more"', async () => {
+    mockModelsCatalogResolve();
+    const devices = [{
+      index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: [],
+      driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'ff'.repeat(16), cpuFeatures: '',
+      opCoverage: {
+        // 8 entries, 2 distinct — what a real refusal looks like.
+        'tts/pocket_tts/bf16': {
+          allSupported: false,
+          unsupported: ['CPY[bf16,f16,-,-,-]->f16', 'CPY[bf16,f16,-,-,-]->f16', 'CPY[bf16,f16,-,-,-]->f16',
+                        'CONV_TRANSPOSE_1D[f16,f32,-,-,-]->f32', 'CPY[bf16,f16,-,-,-]->f16',
+                        'CONV_TRANSPOSE_1D[f16,f32,-,-,-]->f32', 'CONV_TRANSPOSE_1D[f16,f32,-,-,-]->f32',
+                        'CONV_TRANSPOSE_1D[f16,f32,-,-,-]->f32'],
+        },
+      },
+    }];
+    mockHardwareInfoResolve({ devices });
+    await useNativeModelStore.getState().ensureCatalog();
+    await settleReports();
+    const warnings = useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('cannot run on'));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].message).toContain('CPY[bf16,f16,-,-,-]->f16, CONV_TRANSPOSE_1D[f16,f32,-,-,-]->f32 unsupported');
+    expect(warnings[0].message).not.toContain('more');
+  });
+
   it('the same unsupported key reported by two devices still yields one warning', async () => {
     mockModelsCatalogResolve();
     const devices = [

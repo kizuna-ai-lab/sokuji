@@ -491,8 +491,15 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
           if (cov.allSupported || !key.startsWith('tts/')) continue;
           if (get().reportedUnsupportedOps.has(key)) continue;
           get().reportedUnsupportedOps.add(key);
+          // One line, not a wall: the refused spellings repeat (voxcpm2's false refusal
+          // listed the same MUL_MAT 16 times) and a genuinely missing op can produce
+          // hundreds. Name the first few DISTINCT ones — enough to identify the op — and
+          // count the rest.
+          const distinct = [...new Set(cov.unsupported)];
+          const shown = distinct.slice(0, 5).join(', ');
+          const names = distinct.length > 5 ? `${shown} … and ${distinct.length - 5} more` : shown;
           reportWarning('NativeModelStore',
-            `${key} cannot run on ${dev.description}: ${cov.unsupported.join(', ')} unsupported; it will load on CPU`,
+            `${key} cannot run on ${dev.description}: ${names} unsupported; it will load on CPU`,
             { dedupeKey: `native.ops.unsupported:${key}` });
         }
       }
