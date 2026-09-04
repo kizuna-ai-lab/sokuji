@@ -1,3 +1,7 @@
+import glob
+import os
+import pathlib
+
 import pytest
 
 from sokuji_sidecar import catalog
@@ -711,3 +715,86 @@ def test_shipped_deployments_are_all_platform():
     for m in catalog.asr_models() + catalog.translate_models() + catalog.tts_models():
         for d in m.deployments:
             assert d.platforms == ("linux", "windows", "macos"), (m.id, d.tier)
+
+
+_CACHE = os.path.expanduser("~/.cache/sokuji-native-tests")
+_REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def test_every_card_has_a_graph_family():
+    for m in catalog.asr_models() + catalog.translate_models() + catalog.tts_models():
+        assert m.graph_family, m.id
+
+
+def test_translate_prompt_family_unchanged_by_graph_family():
+    fams = {m.id: m.prompt_family for m in catalog.translate_models()}
+    assert fams["qwen3.5-4b"] == "qwen" and fams["eurollm-1.7b"] == "qwen" and fams["hy-mt2-7b"] == "hunyuan"
+    graph = {m.id: m.graph_family for m in catalog.translate_models()}
+    assert graph["eurollm-1.7b"] == "llama" and graph["qwen3-0.6b"] == "qwen3" and graph["translategemma-4b"] == "gemma3"
+    assert graph["qwen3.5-4b"] != "qwen"                      # a llama.cpp architecture, never the prompt family
+
+
+def test_tts_graph_family_is_the_audiocpp_family():
+    for m in catalog.tts_models():
+        assert m.graph_family == m.family
+
+
+def test_every_tts_family_has_an_op_recording():
+    """Spec A §3.3: the tts gate has teeth only where a recording exists; every shipped TTS
+    card must have one (native/src/ops/tts-<family>.ops)."""
+    for m in catalog.tts_models():
+        assert (_REPO_ROOT / "native" / "src" / "ops" / f"tts-{m.graph_family}.ops").is_file(), m.id
+
+
+@pytest.mark.skipif(not os.path.exists(f"{_CACHE}/Qwen3-0.6B-Q8_0.gguf"), reason="cached model absent")
+def test_translate_graph_family_matches_gguf_header():
+    from sokuji_sidecar import gguf_header
+    assert gguf_header.read_header(f"{_CACHE}/Qwen3-0.6B-Q8_0.gguf").architecture == catalog.translate_model("qwen3-0.6b").graph_family
+
+
+@pytest.mark.parametrize("gguf,card_id", [("whisper-tiny-Q8_0.gguf", "whisper-tiny"),
+                                          ("moonshine-streaming-tiny-Q8_0.gguf", "moonshine-streaming-tiny")])
+def test_asr_graph_family_matches_native_arch(gguf, card_id):
+    """sk_asr_caps.arch for the cached file equals the card's graph_family — the string the
+    recording is keyed by. Needs the wheel and the cached model."""
+    path = f"{_CACHE}/{gguf}"
+    if not os.path.exists(path):
+        pytest.skip("cached model absent")
+    sokuji_native = pytest.importorskip("sokuji_native")
+    from sokuji_sidecar import native
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    m = sokuji_native.asr_load(path, cpu)
+    try:
+        assert m.capabilities.arch == catalog.asr_model(card_id).graph_family
+    finally:
+        m.unload()
+
+
+def test_rung_fallback_sets_cover_cached_ggufs():
+    """Premise 7: a rung is a dtype SET. Every cached GGUF's header set must be within its
+    rung's fallback set, or the pre-download answer would refuse a file it later accepts."""
+    from sokuji_sidecar import gguf_header
+    if not os.path.isdir(_CACHE):
+        pytest.skip("no cached models")
+    checked = 0
+    for path in glob.glob(f"{_CACHE}/**/*.gguf", recursive=True):
+        name = os.path.basename(path).lower().replace("-", "_")
+        rung = next((r for r in ("q4_k_m", "q5_k_m", "q6_k", "q8_0", "bf16", "f16") if r in name), None)
+        if rung is None:
+            continue
+        h = gguf_header.read_header(path)
+        assert h.tensor_types <= catalog.RUNG_FALLBACK_DTYPES[rung], (path, sorted(h.tensor_types - catalog.RUNG_FALLBACK_DTYPES[rung]))
+        checked += 1
+    assert checked > 0
+
+
+def test_widest_fallback_matches_gen_ops_data():
+    """native/cmake/gen_ops_data.py's WIDEST_FALLBACK constant must equal
+    len(RUNG_FALLBACK_DTYPES["q4_k_m"]) — it is baked into the generated static_asserts at
+    build time and the two must stay in sync by hand (comment in gen_ops_data.py says so)."""
+    import re
+    text = (_REPO_ROOT / "native" / "cmake" / "gen_ops_data.py").read_text()
+    m = re.search(r"WIDEST_FALLBACK\s*=\s*(\d+)", text)
+    assert m, "WIDEST_FALLBACK constant not found in gen_ops_data.py"
+    assert int(m.group(1)) == len(catalog.RUNG_FALLBACK_DTYPES["q4_k_m"])

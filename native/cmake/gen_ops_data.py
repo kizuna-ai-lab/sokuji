@@ -5,7 +5,7 @@ usage: gen_ops_data.py <ops-dir> <out.cpp> <sk_ops_data.h path>"""
 import pathlib
 import sys
 
-WIDEST_FALLBACK = 7   # len(RUNG_FALLBACK_DTYPES["q4_k_m"]) in sidecar/sokuji_sidecar/catalog.py — keep in sync
+WIDEST_FALLBACK = 9   # len(RUNG_FALLBACK_DTYPES["q4_k_m"]) in sidecar/sokuji_sidecar/catalog.py — keep in sync
 
 ops_dir, out, header = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3]
 files = sorted(ops_dir.glob("*.ops"))
