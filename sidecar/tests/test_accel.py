@@ -395,8 +395,9 @@ def test_models_catalog_filter_narrows_results(monkeypatch):
 def test_bench_cache_roundtrip(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     assert accel.bench_load() == {}  # nothing yet
-    key = accel._bench_key("fp123", "whisper-base", "ctranslate2", "cuda", "float16")
-    accel.bench_save({key: 0.12})
+    m = dataclasses.replace(_machine(), generation="G1")
+    key = accel._cache_key(m, "", "whisper-base", "ctranslate2", "cuda", "float16")
+    accel.bench_save({key: 0.12}, generation="G1")
     assert accel.bench_load()[key] == 0.12
 
 
@@ -420,13 +421,13 @@ def test_measure_rtf_runs_and_caches(tmp_path, monkeypatch):
             from sokuji_sidecar.backends import AsrResult
             return AsrResult("")  # near-instant → small rtf
 
-    m = _machine()
+    m = dataclasses.replace(_machine(), generation="G1")
     plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     rtf = accel.measure_rtf(_FakeBackend(), plan, "whisper-base", m)
     assert rtf is not None and rtf >= 0.0
     # cached: a second call returns the same value without re-running
     cache = accel.bench_load()
-    assert accel._bench_key(m.fingerprint, "whisper-base", "ctranslate2", "cpu", "int8") in cache
+    assert accel._cache_key(m, "", "whisper-base", "ctranslate2", "cpu", "int8") in cache
 
 
 def test_measure_tps_warms_up_benchmarks_and_caches(tmp_path, monkeypatch):
@@ -440,7 +441,7 @@ def test_measure_tps_warms_up_benchmarks_and_caches(tmp_path, monkeypatch):
             self.calls += 1
             return "bonjour le monde", 12  # 12 "generated" tokens
 
-    m = _machine()
+    m = dataclasses.replace(_machine(), generation="G1")
     plan = accel.Plan("qwen_translate", "gpu-cuda", "cuda", "bfloat16", "repo", 1.0)
     b = _FakeBackend()
     tps = accel.measure_tps(b, plan, "qwen2.5-0.5b", m)
@@ -449,12 +450,55 @@ def test_measure_tps_warms_up_benchmarks_and_caches(tmp_path, monkeypatch):
 
     # cached under a 'tps:'-namespaced key so it never collides with RTF entries
     cache = accel.bench_load()
-    assert any(k.startswith("tps:") for k in cache)
+    assert any("|tps:" in k for k in cache)
 
     # second call serves from cache — backend untouched, same value
     b2 = _FakeBackend()
     assert accel.measure_tps(b2, plan, "qwen2.5-0.5b", m) == tps
     assert b2.calls == 0
+
+
+def test_bench_save_rotates_generations_and_drops_legacy_keys(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    (tmp_path / "accel-bench.json").write_text('{"fp|whisper-base|native_asr|cpu|q8_0": 0.5}')   # legacy flat file
+    entries, gens = accel.bench_read()
+    assert entries == {"fp|whisper-base|native_asr|cpu|q8_0": 0.5} and gens == []
+    accel.bench_save({**entries, "G1|fp|m|b|d|c": 1.0}, generation="G1")
+    entries, gens = accel.bench_read()
+    assert gens == ["G1"] and entries == {"G1|fp|m|b|d|c": 1.0}          # legacy key gone
+    for g in ("G2", "G3", "G4"):
+        accel.bench_save({**accel.bench_read()[0], f"{g}|fp|m|b|d|c": 1.0}, generation=g)
+    entries, gens = accel.bench_read()
+    assert gens == ["G2", "G3", "G4"]
+    assert set(entries) == {"G2|fp|m|b|d|c", "G3|fp|m|b|d|c", "G4|fp|m|b|d|c"}
+    assert accel.bench_load() == entries                                 # dict shape, no _generations key
+
+
+def test_bench_save_is_atomic(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    accel.bench_save({"G1|k": 1.0}, generation="G1")
+    def broken_dump(*a, **k):
+        raise OSError("disk full")
+    with monkeypatch.context() as mp:                      # scope ONLY the json.dump patch; the env stays
+        mp.setattr(accel.json, "dump", broken_dump)
+        accel.bench_save({"G1|k": 2.0}, generation="G1")   # never raises
+    assert accel.bench_read()[0] == {"G1|k": 1.0}          # the old file survived intact
+    assert not (tmp_path / "accel-bench.json.tmp").exists()
+
+
+def test_measure_keys_by_generation(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m1 = accel.Machine(os="Linux", arch="x86_64", cpu_cores=4, apple_silicon=False, installed=frozenset(), fingerprint="fp", generation="G1")
+    m2 = dataclasses.replace(m1, generation="G2")
+    plan = accel.Plan("native_asr", "cpu", "cpu", "q8_0", "r/f.gguf", 2.0, None)
+    calls = []
+    def run(backend):
+        calls.append(1)
+        return 0.42
+    assert accel._measure(None, plan, "whisper-base", m1, ns="", run=run) == 0.42
+    assert accel._measure(None, plan, "whisper-base", m1, ns="", run=run) == 0.42 and len(calls) == 1   # hit
+    assert accel._measure(None, plan, "whisper-base", m2, ns="", run=run) == 0.42 and len(calls) == 2   # miss across generations
+    assert accel.planner._cache_key(m1, "", "whisper-base", "native_asr", "cpu", "q8_0") in accel.bench_load()
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),

@@ -239,7 +239,7 @@ def probe(force: bool = False) -> Machine:
 from . import planner  # noqa: E402
 from .planner import (  # noqa: E402,F401
     Plan, NoUsablePlan, TIER_RANK, TIER_DEVICE,
-    _tier_available, _platform_ok, _bench_key,
+    _tier_available, _platform_ok, _bench_key, _cache_key,
     _TC_RESIDENT_FACTOR, _quant_budget_bytes, _tc_pick_quant,
     _VRAM_CONTEXT_BYTES, _weight_factor, _is_gguf_llm,
     _LLAMA_RESIDENT_FACTOR, _llamacpp_quant,
@@ -546,25 +546,51 @@ def _bench_cache_path() -> str:
     return os.path.join(base, "accel-bench.json")
 
 
-def bench_load() -> dict:
-    """Best-effort read of the RTF cache. Missing/corrupt file → {}."""
+_GENERATIONS_KEY = "_generations"
+_KEEP_GENERATIONS = 3
+
+
+def bench_read() -> tuple:
+    """(entries, generations). Missing/corrupt file → ({}, []). A legacy flat file (no
+    _generations) reads as generation-less: its keys can never match a prefixed read."""
     try:
         with open(_bench_cache_path()) as f:
             data = json.load(f)
-        return data if isinstance(data, dict) else {}
+        if not isinstance(data, dict):
+            return {}, []
+        gens = data.pop(_GENERATIONS_KEY, [])
+        return data, list(gens) if isinstance(gens, list) else []
     except Exception:
-        return {}
+        return {}, []
 
 
-def bench_save(cache: dict) -> None:
-    """Best-effort write of the RTF cache. Never raises."""
+def bench_load() -> dict:
+    """Best-effort read of the bench cache — entries only (the planner receives this)."""
+    return bench_read()[0]
+
+
+def bench_save(entries: dict, *, generation: str) -> None:
+    """Best-effort write. Rotates the generation list (last 3 kept), keeps a key iff its first
+    `|` segment is in the post-rotation list (legacy and rotated-out keys are dropped), and
+    writes through a temp file + os.replace so a crash never leaves a torn file. Never raises."""
+    path = _bench_cache_path()
+    tmp = path + ".tmp"
     try:
-        path = _bench_cache_path()
+        _old, gens = bench_read()
+        if generation and generation not in gens:
+            gens.append(generation)
+        gens = gens[-_KEEP_GENERATIONS:]
+        keep = set(gens)
+        kept = {k: v for k, v in entries.items() if k.split("|", 1)[0] in keep}
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
-            json.dump(cache, f)
+        with open(tmp, "w") as f:
+            json.dump({_GENERATIONS_KEY: gens, **kept}, f)
+        os.replace(tmp, path)
     except Exception:
-        pass
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
 
 
 def _measure(backend, plan, model_id: str, machine: Machine, *, ns: str, run, force: bool = False):
@@ -572,7 +598,7 @@ def _measure(backend, plan, model_id: str, machine: Machine, *, ns: str, run, fo
     (""/"tps:"/"tts:"); `run(backend)` performs the driver + metric and
     returns a float, or None to skip caching. Never raises (returns None)."""
     try:
-        key = ns + _bench_key(machine.fingerprint, model_id, plan.backend, plan.device, plan.compute_type)
+        key = _cache_key(machine, ns, model_id, plan.backend, plan.device, plan.compute_type)
         cache = bench_load()
         if not force and key in cache:
             return cache[key]
@@ -580,7 +606,7 @@ def _measure(backend, plan, model_id: str, machine: Machine, *, ns: str, run, fo
         if val is None:
             return None
         cache[key] = val
-        bench_save(cache)
+        bench_save(cache, generation=machine.generation)
         return val
     except Exception:
         return None

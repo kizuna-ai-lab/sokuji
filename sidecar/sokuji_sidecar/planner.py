@@ -184,12 +184,18 @@ def _bench_key(fingerprint: str, model_id: str, backend: str, device: str, compu
     return f"{fingerprint}|{model_id}|{backend}|{device}|{compute_type}"
 
 
+def _cache_key(machine: Machine, ns: str, model_id: str, backend: str, device: str, compute_type: str) -> str:
+    """Every bench entry, read AND written: the generation identifies the software that
+    produced the number, the fingerprint inside _bench_key identifies the hardware."""
+    return f"{machine.generation}|{ns}{_bench_key(machine.fingerprint, model_id, backend, device, compute_type)}"
+
+
 def _resolve_model(model, model_id: str, override: str, machine: Machine, *,
                    cache: dict, platform: str) -> list[Plan]:
     bench = {}
     for d in model.deployments:
         device = TIER_DEVICE[d.tier]
-        key = _bench_key(machine.fingerprint, model_id, d.backend, device, d.compute_type)
+        key = _cache_key(machine, "", model_id, d.backend, device, d.compute_type)
         if key in cache:
             bench[(d.backend, device, d.compute_type)] = cache[key]
     plans = resolve_deployments(model, machine, override, bench=bench or None, platform=platform)
@@ -346,8 +352,8 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
         # lead with CPU. tps is higher-is-better (unlike ASR's RTF).
         if len(plans) > 1 and plans[0].device != "cpu":
             def _tps(p):
-                return cache.get("tps:" + _bench_key(
-                    machine.fingerprint, model_id, p.backend, p.device, p.compute_type))
+                return cache.get(_cache_key(
+                    machine, "tps:", model_id, p.backend, p.device, p.compute_type))
             gpu_tps, cpu_tps = _tps(plans[0]), _tps(plans[1])
             if gpu_tps is not None and cpu_tps is not None and gpu_tps <= cpu_tps:
                 plans = [plans[1], plans[0]]

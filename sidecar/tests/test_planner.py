@@ -31,6 +31,8 @@ tests/test_characterization.py's CPU_ONLY/CUDA_12GB/CUDA_24GB/APPLE_SILICON
 a few extra shapes (aarch64 NVIDIA, Windows-on-ARM, Windows DML, AMD/Intel
 Vulkan-only) needed for the platform/tier-filter branches.
 """
+import dataclasses
+
 import pytest
 
 from sokuji_sidecar import accel, catalog, planner
@@ -392,8 +394,8 @@ def test_resolve_leads_with_vulkan_from_tc_probe_alone_no_nvidia():
 def test_resolve_demotes_gpu_when_bench_cache_says_slower():
     m = CUDA_12GB
     cache = {
-        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
-        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
+        planner._cache_key(m, "", "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
+        planner._cache_key(m, "", "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
     }
     plans = planner.resolve("whisper-base", machine=m, platform="linux", cache=cache, downloaded=set())
     assert plans[0].device == "cpu"    # demoted: measured slower on GPU than CPU
@@ -405,8 +407,8 @@ def test_resolve_override_gpu_pins_any_accelerator_tier_beats_bench_demotion():
     # device.
     m = CUDA_12GB
     cache = {
-        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
-        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
+        planner._cache_key(m, "", "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
+        planner._cache_key(m, "", "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
     }
     plans = planner.resolve("whisper-base", "gpu", machine=m, platform="linux",
                             cache=cache, downloaded=set())
@@ -509,14 +511,26 @@ def test_resolve_asr_bench_demotion_uses_quant_keyed_entries():
     # q4_k_m here); bench keys must match that narrowed quant.
     m = _nv_machine(12282)
     cache = {
-        planner._bench_key(m.fingerprint, "cohere-transcribe-03-2026",
+        planner._cache_key(m, "", "cohere-transcribe-03-2026",
                            "native_asr", "vulkan", "q4_k_m"): 0.9,
-        planner._bench_key(m.fingerprint, "cohere-transcribe-03-2026",
+        planner._cache_key(m, "", "cohere-transcribe-03-2026",
                            "native_asr", "cpu", "q4_k_m"): 0.2,
     }
     plans = planner.resolve("cohere-transcribe-03-2026", machine=m, platform="linux",
                             cache=cache, downloaded={"q4_k_m"})
     assert plans[0].device == "cpu"    # measured slower on GPU -> demoted
+
+
+def test_bench_entries_are_read_only_within_their_generation():
+    m = dataclasses.replace(_nv_machine(24576), generation="G1")
+    key = planner._cache_key(m, "", "whisper-base", "native_asr", "vulkan", "q8_0")
+    cpu_key = planner._cache_key(m, "", "whisper-base", "native_asr", "cpu", "q8_0")
+    cache = {key: 0.8, cpu_key: 0.3}                                 # GPU slower than CPU → demoted
+    plans = planner.resolve("whisper-base", machine=m, platform="linux", cache=cache, downloaded=set())
+    assert plans[0].device == "cpu"
+    m2 = dataclasses.replace(m, generation="G2")
+    plans = planner.resolve("whisper-base", machine=m2, platform="linux", cache=cache, downloaded=set())
+    assert plans[0].device == "vulkan"                               # G1 numbers are invisible under G2
 
 
 # ── select_variant: non-GGUF-LLM (generic VRAM/format-aware) path ───────
@@ -845,13 +859,25 @@ def test_resolve_translate_quant_pick_prefers_downloaded():
 def test_resolve_translate_bench_demotes_gpu_when_cpu_decodes_faster():
     m = _nv_machine(12282, installed=frozenset({"native_translate"}))
     cache = {
-        "tps:" + planner._bench_key(m.fingerprint, "translategemma-4b", "native_translate", "vulkan", "q8_0"): 5.0,
-        "tps:" + planner._bench_key(m.fingerprint, "translategemma-4b", "native_translate", "cpu", "q8_0"): 12.0,
+        planner._cache_key(m, "tps:", "translategemma-4b", "native_translate", "vulkan", "q8_0"): 5.0,
+        planner._cache_key(m, "tps:", "translategemma-4b", "native_translate", "cpu", "q8_0"): 12.0,
     }
     plans = planner.resolve_translate("translategemma-4b", "auto", machine=m, platform="linux",
                                       cache=cache, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
     assert plans[0].device == "cpu"        # demoted: cpu decodes faster here
+
+
+def test_translate_tps_entries_are_read_only_within_their_generation():
+    m = dataclasses.replace(_nv_machine(12282, installed=frozenset({"native_translate"})), generation="G1")
+    cache = {
+        planner._cache_key(m, "tps:", "translategemma-4b", "native_translate", "vulkan", "q8_0"): 5.0,
+        planner._cache_key(m, "tps:", "translategemma-4b", "native_translate", "cpu", "q8_0"): 12.0,
+    }
+    kw = dict(platform="linux", cache=cache, downloaded=set(), est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
+    assert planner.resolve_translate("translategemma-4b", "auto", machine=m, **kw)[0].device == "cpu"          # E6 swap under G1
+    m2 = dataclasses.replace(m, generation="G2")
+    assert planner.resolve_translate("translategemma-4b", "auto", machine=m2, **kw)[0].device == "vulkan"     # invisible under G2
 
 
 def test_resolve_translate_keeps_gpu_without_bench_measurement():
