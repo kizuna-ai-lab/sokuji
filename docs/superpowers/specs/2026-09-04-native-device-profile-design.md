@@ -91,8 +91,8 @@ Three things this buys:
    "runs"; `supports_op` encodes each backend's real rule including its build flags
    and env overrides — but it reads the whole node: op kind and parameters, dst type,
    every source type, shapes, contiguity, and buffer-size limits. A hand-written
-   `(op, dtype)` table cannot reproduce that, in either direction. So the manifest is
-   a **recording of the family's real graph nodes**, and the query rebuilds those nodes.
+   `(op, dtype)` table cannot reproduce that, in either direction. So the model side is an
+   **op recording** of the family's real graph nodes, and the query rebuilds those nodes.
    The **raw Vulkan feature bits** in the profile are diagnostics and never gate. The
    **two Metal bits** are `supports_op` answers themselves (§3.1), and exactly one of
    them — `mtl_simdgroup_reduction` — gates, at tier level in `_tier_available`,
@@ -334,9 +334,9 @@ Cost: one Vulkan enumeration through the loader (tens of milliseconds, once per
 process), two Metal `supports_op` predicates, one proc-address call. Nothing executes
 on the device and no Vulkan device is initialised by this call.
 
-### 3.2 Native: recorded op manifests and `sk_device_supports_ops`
+### 3.2 Native: op recordings and `sk_device_supports_ops`
 
-**The manifest is a recording, not a table.** For each `(stage, family)` a file
+**An op recording, not a table.** For each `(stage, family)` a file
 `native/src/ops/<stage>-<family>.ops` holds the de-duplicated set of **node
 descriptors** observed during one real forward pass of that family (§3.2.2):
 
@@ -374,7 +374,7 @@ typedef struct sk_op_coverage {
  * ggml_backend_dev_supports_op. Unknown (stage, family) → SK_ERR_NOT_FOUND; bad
  * index, NULL out, n_weight_dtypes == 0 or an unknown dtype name →
  * SK_ERR_INVALID_ARGUMENT; more than SK_OP_COVERAGE_MAX expanded entries →
- * SK_ERR_INTERNAL (a static_assert keeps every shipped manifest under the cap for
+ * SK_ERR_INTERNAL (a static_assert keeps every shipped op recording under the cap for
  * the largest fallback set); a backend exception → SK_ERR_BACKEND. The caller treats
  * every error as "unknown", never as "unsupported". */
 SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const char *family,
@@ -382,7 +382,7 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
                                         sk_op_coverage *out);
 ```
 
-The manifests are compiled into `libsokuji_native` (a generated `sk_ops_data.cpp`
+The recordings are compiled into `libsokuji_native` (a generated `sk_ops_data.cpp`
 from the `.ops` files at build time), so the query needs no files at runtime.
 
 **Cost and hazard, stated plainly.** On Vulkan, `ggml_backend_vk_device_supports_op`
@@ -398,14 +398,14 @@ predicate is cheap. On no backend does the query execute a graph, so it cannot
 
 #### 3.2.1 Families
 
-The manifests to ship are the catalog's graph families (§3.3): the nine audio.cpp
+The recordings to ship are the catalog's graph families (§3.3): the nine audio.cpp
 families for `tts`; for `translate` the llama.cpp architectures behind the eleven
 cards (`qwen2`, `qwen3`, `qwen35`, `gemma3`, `llama` for EuroLLM, `hunyuan` for the
 four Hunyuan cards — the exact `general.architecture` strings are read from the GGUFs
 by the implementation plan and become the keys); for `asr` the transcribe.cpp
 architectures behind the 66 cards, which `sk_asr_caps.arch` reports after a load.
-Manifests land incrementally (§3.3 says what a missing one means); **all nine TTS
-manifests exist before the first release**, because that is the stage the gate fires
+Recordings land incrementally (§3.3 says what a missing one means); **all nine TTS
+recordings exist before the first release**, because that is the stage the gate fires
 for, and all nine models are cached (§2).
 
 #### 3.2.2 Recording
@@ -437,23 +437,23 @@ Two mechanisms, because the engines take devices, not backends (§2):
 Both mechanisms produce the same descriptor stream; a `--record-ops <stage> <family>
 <model-dir>` flag on the test binary writes the `.ops` file, header included.
 
-#### 3.2.3 Keeping manifests honest
+#### 3.2.3 Keeping recordings honest
 
 - **`test_ops_coverage`** (CTest) re-records every family whose model is cached
   (**all nine TTS families live on every run**, plus the cached ASR/translate models)
-  and asserts the recorded descriptor set **equals** the shipped manifest's set — an
+  and asserts the recorded descriptor set **equals** the shipped op recording's set — an
   op added or removed by a pin bump turns the test red naming the line, the same
   discipline as the exact-text patches in `native/patches/`. It also asserts the
-  cached GGUF's tensor-dtype set equals the manifest header's `dtypes-in-file` line,
+  cached GGUF's tensor-dtype set equals the op recording header's `dtypes-in-file` line,
   so a re-quantised upstream file is noticed. Skip rule: return code 77 only when no
   family's model is present; otherwise the present families are asserted and each
   absent one prints `SKIPPED: <stage>/<family>`. The pin-bump checklist in
-  `native/README.md` gains "re-record every manifest whose model is cached; for the
+  `native/README.md` gains "re-record every op recording whose model is cached; for the
   rest, re-record once with the model present at least once per bump".
 - **Per-dtype-set coverage**: `sk_device_supports_ops` on the CPU device returns
-  `all_supported == 1` for every manifest with its recorded `dtypes-in-file` set
+  `all_supported == 1` for every op recording with its recorded `dtypes-in-file` set
   (CTest).
-- **Manifests are data, not code**: reviewed as diffs; the generated `sk_ops_data.cpp`
+- **Recordings are data, not code**: reviewed as diffs; the generated `sk_ops_data.cpp`
   is not checked in.
 
 ### 3.3 Sidecar: graph families, `DeviceProfile`, cache generations, the gate
@@ -463,7 +463,7 @@ Both mechanisms produce the same descriptor stream; a `--record-ops <stage> <fam
 `_llm_translate_row` gains `arch=` (the llama.cpp `general.architecture`);
 `_tts_gguf_row` sets `graph_family = family`. `TranslateModel.prompt_family` is
 untouched — it is a prompt strategy, not a graph. Tests: `graph_family` is non-empty
-on every card; every TTS card's `("tts", graph_family)` has a manifest; for each
+on every card; every TTS card's `("tts", graph_family)` has a op recording; for each
 cached ASR model, `sk_asr_caps.arch` equals the `graph_family` of every `_tc_row` of
 that architecture (whisper-tiny → the whisper cards); for the cached translate model,
 `general.architecture` read from the GGUF equals the `arch=` of the same-architecture
@@ -558,7 +558,7 @@ rotated-out, is dropped. No shape test on keys is needed.
   weight_dtypes) -> OpCoverage | None`: calls `native.device_supports_ops` and caches
   the result under `f"{machine.generation}|ops:{device_index}:{stage}:{family}:{compute_type}:{'+'.join(sorted(weight_dtypes))}"`
   as `{"allSupported": bool, "unsupported": [...]}`. `SK_ERR_BACKEND` (the Vulkan
-  first-init exception) and `SK_ERR_NOT_FOUND` (no manifest yet — the common case for
+  first-init exception) and `SK_ERR_NOT_FOUND` (no op recording yet — the common case for
   asr/translate at first release) both return `None` and are **not cached**;
   `SK_ERR_INVALID_ARGUMENT` and `SK_ERR_INTERNAL` are programming errors: raise under
   `SOKUJI_WIRE_STRICT`, `None` plus one `logging.warning` otherwise.
@@ -611,7 +611,7 @@ def _deployment_available(model, d: Deployment, machine: Machine, *, op_coverage
         return True                                   # fixture backends ("be", "ctranslate2"): pass-through
     cov = op_coverage(dev.index, stage, model.graph_family, d.compute_type)
     if cov is None:
-        return True                                   # not computed, no manifest yet, or backend exception
+        return True                                   # not computed, no op recording yet, or backend exception
     if stage in _ABORTS_ON_UNSUPPORTED:
         return cov.all_supported                      # the only stage where "unsupported" means "aborts"
     return True                                       # asr/translate: runs with CPU fallback; recorded for diagnostics
@@ -635,7 +635,7 @@ as supertonic-3; an unpinned `override="gpu"` leads with another rung's GPU row,
 which is today's ranking and stays spec B's business) all resolve to the rung's cpu
 row instead of aborting the process. There is deliberately no feature-bit rule:
 Vulkan accepts a bf16 `MUL_MAT` unconditionally (the extension only selects a faster
-kernel), so a bit-based bf16 gate would refuse rungs ggml runs — the manifest's
+kernel), so a bit-based bf16 gate would refuse rungs ggml runs — the op recording's
 recorded nodes, expanded over the file's real dtypes, are the answer.
 
 **On the wire (catalog).** `variants[].supported` keeps its meaning — "loadable on
@@ -721,11 +721,11 @@ recomputed on every sidecar start and keyed by (hardware, native version, driver
   a fake llvmpipe (type CPU) ahead of a real GPU is dropped; `GGML_VK_VISIBLE_DEVICES`
   bypasses filtering; an empty filtered list falls back to the first non-CPU device;
   a count mismatch yields `known == 0`. `sk_device_supports_ops`: for every shipped
-  manifest with its `dtypes-in-file` set, `all_supported == 1` on the CPU device;
+  op recording with its `dtypes-in-file` set, `all_supported == 1` on the CPU device;
   `SK_ERR_NOT_FOUND` for an unknown pair; `SK_ERR_INVALID_ARGUMENT` for an empty or
-  unknown dtype list; every manifest expanded over the widest fallback set fits
+  unknown dtype list; every op recording expanded over the widest fallback set fits
   `SK_OP_COVERAGE_MAX` (`static_assert`). `test_ops_coverage` as in §3.2.3 (both
-  recording mechanisms; set equality against the shipped manifests; dtype-set
+  recording mechanisms; set equality against the shipped op recordings; dtype-set
   equality against the headers). The configure-time ABI check fails a deliberately
   mismatched configure (a CMake script test). `check_linux_deps.py` fails a staged
   `libsokuji_native.so` with a `libvulkan.so.1` DT_NEEDED and still passes the
@@ -735,7 +735,7 @@ recomputed on every sidecar start and keyed by (hardware, native version, driver
   `contract.json` ABI 2; `sk_version()` `"1.1.0"`.
 - **sidecar catalog.** Every card has a non-empty `graph_family`; `prompt_family`
   unchanged on every translate card; every TTS card's `("tts", graph_family)` has a
-  manifest; the arch-equality tests of §3.3; every cached GGUF's header dtype set ⊆
+  op recording; the arch-equality tests of §3.3; every cached GGUF's header dtype set ⊆
   its rung's fallback set; `weight_dtypes` returns the header set when the file
   exists and the fallback otherwise.
 - **sidecar planner.** `_deployment_available`: unknown profile → identical to
@@ -811,22 +811,22 @@ recomputed on every sidecar start and keyed by (hardware, native version, driver
   compile), paid in the resolve wrapper of the first GPU-considered load of a
   process. A model that then lands on the cpu row in `auto` mode has paid it without
   a GPU load following; explicit CPU loads never pay it.
-- **The recorded shapes are one model's.** A manifest is recorded from one file of
+- **The recorded shapes are one model's.** A op recording is recorded from one file of
   the family (the cached one); the buffer-range checks are asked at that file's
   sizes. A larger sibling of the same family (a 1.7B beside a 0.6B) can exceed a
-  device's `maxStorageBufferRange` where the recorded one did not; the manifest
+  device's `maxStorageBufferRange` where the recorded one did not; the op recording
   header names its source file so this is visible, and recording from the largest
   cached sibling is the checklist's rule.
 - **Dual-ICD and identical GPUs.** The selection helper replicates ggml's rule; if a
   ggml bump changes it the pinned copy must move with it (the checklist covers it).
   Two physically distinct identical cards under one driver are indistinguishable and
   interchangeable by construction.
-- **Manifests drift with pins.** Mitigated by `test_ops_coverage` (live for all nine
+- **Recordings drift with pins.** Mitigated by `test_ops_coverage` (live for all nine
   TTS families and the cached ASR/translate models) and the pin-bump checklist for
-  the rest; a stale manifest fails closed on a *new* node only if the test runs — the
+  the rest; a stale op recording fails closed on a *new* node only if the test runs — the
   checklist is a procedural gate, not an automatic one.
-- **Missing manifests are silent.** Until an asr/translate architecture has one,
-  `SK_ERR_NOT_FOUND` → `None` → pass-through; only TTS manifests are required before
+- **Missing recordings are silent.** Until an asr/translate architecture has one,
+  `SK_ERR_NOT_FOUND` → `None` → pass-through; only TTS op recordings are required before
   release (catalog test).
 - **Raw Vulkan bits can over-promise.** A build whose `glslc` lacked an extension, or
   a `GGML_VK_DISABLE_*` variable, means ggml does not use a feature the profile
@@ -844,7 +844,7 @@ recomputed on every sidecar start and keyed by (hardware, native version, driver
 - 2026-09-04 — probe capability, not throughput; probe everything once per device and
   compare with per-model requirements (jiangzhuo).
 - 2026-09-04 — per-rung acceleration paths and kernel micro-benchmarks dropped after
-  adversarial review; the manifest side becomes per-family op coverage, the device
+  adversarial review; the model side becomes per-family op recordings, the device
   side becomes structured features + `supports_op` (Claude, agreed by jiangzhuo).
 - 2026-09-04 — no RTF prior table (jiangzhuo).
 - 2026-09-04 — split into A (this), B, C; order A → B → C (jiangzhuo).
@@ -856,7 +856,9 @@ recomputed on every sidecar start and keyed by (hardware, native version, driver
   added; two recording mechanisms; coverage precomputed by the wrappers and skipped
   for `override="cpu"` and non-first devices; `_native_identity` detector;
   `bench_save` takes the generation; premise 6 names the single gating bit (Claude).
-- 2026-09-04 — fourth draft: **the manifest is a recording of real nodes** (op,
+- 2026-09-04 — "manifest" renamed "op recording" throughout: the word collided with
+  the HF model manifest and the sidecar bundle's `manifest.json` (jiangzhuo).
+- 2026-09-04 — fourth draft: **the model side is an op recording of real nodes** (op,
   params, dst, all sources, shapes, contiguity, max bytes), rebuilt exactly for the
   query — hand-written `(op, dtype)` tables cannot reproduce `supports_op`; weight
   dtypes come from the GGUF header (q8_0 TTS files carry BF16), with a wide per-rung
