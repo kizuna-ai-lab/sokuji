@@ -316,6 +316,15 @@ def _stage_of_model(model) -> str:
 _OK_TO_MISS = (-4, -3)          # SK_ERR_NOT_FOUND (no recording), SK_ERR_BACKEND (Vulkan first-init threw)
 
 
+def _op_coverage_from_dict(v) -> "OpCoverage | None":
+    """Decode one bench-cache entry into an OpCoverage, or None when `v` is not the dict
+    shape a cache-write produces (hand-edited file, future schema drift, partial
+    corruption) — a non-dict is treated as a miss, never an AttributeError."""
+    if not isinstance(v, dict):
+        return None
+    return OpCoverage(bool(v.get("allSupported")), tuple(v.get("unsupported", ())))
+
+
 def compute_op_coverage(machine: Machine, device_index: int, stage: str, family: str,
                         compute_type: str, weight_dtypes_):
     """native.device_supports_ops once per key, cached in the bench file. NOT_FOUND and
@@ -325,8 +334,9 @@ def compute_op_coverage(machine: Machine, device_index: int, stage: str, family:
     key = _ops_key(machine, device_index, stage, family, compute_type, weight_dtypes_)
     entries = bench_load()
     if key in entries:
-        v = entries[key]
-        return OpCoverage(bool(v.get("allSupported")), tuple(v.get("unsupported", ())))
+        cached = _op_coverage_from_dict(entries[key])
+        if cached is not None:
+            return cached
     try:
         cov = native.device_supports_ops(device_index, stage, family, weight_dtypes_)
     except Exception as e:                       # NativeError carries .status
@@ -391,8 +401,9 @@ def cached_op_coverage(machine: Machine, models):
             for dev, _tier in _gpu_targets(machine, model):
                 for ct in sorted({x.compute_type for x in model.deployments}):
                     v = entries.get(_ops_key(machine, dev.index, stage, model.graph_family, ct, weight_dtypes(model, ct)))
-                    if isinstance(v, dict):
-                        results[(dev.index, stage, model.graph_family, ct)] = OpCoverage(bool(v.get("allSupported")), tuple(v.get("unsupported", ())))
+                    cov = _op_coverage_from_dict(v)
+                    if cov is not None:
+                        results[(dev.index, stage, model.graph_family, ct)] = cov
     return lambda index, stage_, family, ct: results.get((index, stage_, family, ct))
 
 

@@ -1441,6 +1441,36 @@ def test_compute_op_coverage_caches_ok_and_not_errors(monkeypatch, tmp_path):
     assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0",)) is None   # production: degrade
 
 
+def test_op_coverage_treats_a_non_dict_cache_entry_as_a_miss_at_both_read_sites(monkeypatch, tmp_path):
+    # A bench-cache entry under an _ops_key-shaped key that is not the {"allSupported", "unsupported"}
+    # dict shape (hand-edited file, future schema drift, partial corruption) must degrade to a miss at
+    # BOTH read sites, never raise AttributeError from a bare v.get(...).
+    import types
+    from sokuji_sidecar import native
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
+    m = _known_gpu_machine()
+    card = catalog.tts_model("voxcpm2")
+    dts = accel.weight_dtypes(card, "q8_0")                     # the fallback set both call sites key by
+    key = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", dts)
+    accel.bench_save({key: 0.5}, generation="G1")                # non-dict entry: corrupt/hand-edited/legacy
+
+    # cached_op_coverage: read-only, must treat it as a miss, never raise, never touch native
+    monkeypatch.setattr(native, "device_supports_ops", lambda *a: pytest.fail("read-only callable reached native"))
+    assert accel.cached_op_coverage(m, [card])(0, "tts", "voxcpm2", "q8_0") is None
+
+    # compute_op_coverage: the non-dict "hit" falls through to native, then overwrites the
+    # entry with the proper dict form (call count increments — it was NOT treated as cached).
+    calls = []
+    def supports(i, s, f, dtseq):
+        calls.append((i, s, f, tuple(dtseq)))
+        return types.SimpleNamespace(all_supported=True, unsupported=(), checked=())
+    monkeypatch.setattr(native, "device_supports_ops", supports)
+    cov = accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", dts)
+    assert cov == accel.OpCoverage(True, ()) and len(calls) == 1
+    assert accel.bench_load()[key] == {"allSupported": True, "unsupported": []}
+
+
 def test_op_coverage_for_precomputes_only_what_the_planner_may_gate(monkeypatch, tmp_path):
     import types
     from sokuji_sidecar import native
