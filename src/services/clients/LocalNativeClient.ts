@@ -91,6 +91,7 @@ export class LocalNativeClient implements IClient {
         this.emitEvent('local.native.hardware', 'client', {
           os: hw.os, arch: hw.arch, cpuCores: hw.cpuCores,
           gpus: hw.gpus, backendsInstalled: hw.backendsInstalled, accelAvailable: hw.accelAvailable,
+          generation: hw.generation ?? null, devices: hw.devices ?? null,
         });
       }
     }).catch(() => { /* diagnostics only — ignore probe failures */ });

@@ -956,6 +956,7 @@
     "variantWontFitNoMem": "Needs ~{{need}} of GPU memory",
     "wontFit": "Won't fit on this machine",
     "variantNoGpuFits": "No GPU variant fits — runs on CPU.",
+    "variantRunsOnCpu": "Runs on CPU on this machine",
     "hwFramework": "Engine",
     "hwDevice": "Device",
     "hwApi": "Acceleration",

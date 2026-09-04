@@ -399,11 +399,33 @@ non-emptiness, never a transcript.
 1. Change the commit SHA (and the version string beside it) in `cmake/upstreams.cmake`.
 2. Rebuild; if `patch_upstream.py` fails, the anchored text in `native/patches/<upstream>.json` moved — fix the spec.
 3. Run the parity suite (slice 4 onward) — a bump that fails parity is not shipped.
-4. Bump the version in the **two** places that hard-code it — `project(sokuji_native VERSION …)`
+4. Bump the version in the **two** places that hard-code it (plus `SK_ABI_VERSION_NUM` in
+   `CMakeLists.txt` and `_ffi.py` when the ABI changes) — `project(sokuji_native VERSION …)`
    in `CMakeLists.txt` and the `sk_version()` assertion in `tests/test_common.cpp` (the CTest
    fails on the old string otherwise) — then tag `native-vX.Y.Z`. Nothing else needs editing:
    the staged `contract.json` and the wheel version are both generated from the CMake project
    version, and the tag/version match is checked by `native-build.yml`.
+5. Op recordings (`src/ops/*.ops`, spec A §3.2): configure `build/record` with
+   `-DSOKUJI_RECORD_OPS=ON`, run `bash ci/ops-env.sh ctest --test-dir build/record -R test_ops_coverage`
+   with every cached model present — a DIFF means the engine's graph changed; re-record that
+   family with `build/record/lib/record_ops` (see tests/record_ops.cpp for the argument order)
+   and commit the new .ops file with the bump. **TTS re-recording happens on a GPU box**: the
+   nine tts recordings are taken with the model on a real non-host device, because audio.cpp
+   builds a different graph for a host backend than for a device one (`uses_host_graph_plan` /
+   `is_host_backend`: f16 conv kernels and bf16→f16 casts on host, f32 on a device). Configure
+   `build/record-vk` with `-DSOKUJI_GPU=vulkan -DSOKUJI_RECORD_OPS=ON` (or `metal` on macOS)
+   and run the gate there; a CPU-only runner prints `SKIPPED (no device)` for every tts family
+   and gates **asr/translate drift only**, which is what CI's CPU lanes do. A tts .ops file
+   whose `# recorded-on:` says `cpu` is rejected by the gate.
+   All nine TTS families are cached under
+   `~/.cache/sokuji-native-tests/tts/` — `ci/ops-env.sh` reads that path from
+   `$SOKUJI_NATIVE_TEST_CACHE`, defaulting to `$HOME/.cache/sokuji-native-tests`, so set the
+   variable if the cache lives elsewhere — and MUST be re-recorded on every bump (the gate fires
+   only for tts); asr/translate families are recorded as their models become available — a
+   missing recording is a pass-through in the sidecar, never a gate. A new .ops file needs a
+   build/record reconfigure to be picked up by the generator — CMakeLists.txt's `file(GLOB …)`
+   for src/ops carries CONFIGURE_DEPENDS, so an ordinary `cmake --build build/record` re-checks
+   the glob on its own; no manual `cmake -S ... -B build/record` re-run is required.
 
 ## Release
 
@@ -425,4 +447,5 @@ incrementally, corrupting CJK output with U+FFFD — see `python/sokuji_native/_
 bundle ever shipped with 1.0.0 inside. `native-v1.0.2` (2026-09-03) moved the engine pins
 to transcribe.cpp 0.2.3 and audio.cpp 0.7.1 and added four TTS families to the build set
 (voxcpm1, voxcpm2, irodori_tts, index_tts2), taking it to nine. Current native version is
-1.0.2.
+1.1.0 (ABI 2: device profile and op coverage — spec
+docs/superpowers/specs/2026-09-04-native-device-profile-design.md).

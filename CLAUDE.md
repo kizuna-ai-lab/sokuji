@@ -171,7 +171,8 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      pinned it. `native-v1.0.2` / `sidecar-v0.2.1` (2026-09-03) follow: engine pins to
      transcribe.cpp 0.2.3 and audio.cpp 0.7.1, and four more TTS families compiled in
      (voxcpm1, voxcpm2, irodori_tts, index_tts2 — nine in total). Current native version
-     is 1.0.2.
+     is 1.1.0 (ABI 2: device profile and op coverage — spec
+     docs/superpowers/specs/2026-09-04-native-device-profile-design.md).
    - **Dev loop**: `native/ci/build.sh <none|vulkan|metal> <plat tag>` (`.ps1` on Windows)
      builds and runs CTest + the Python suite against a fresh stage;
      `SOKUJI_NATIVE_DIR=.../stage` points a wheel-less `import sokuji_native` at it. Models

@@ -31,9 +31,13 @@ tests/test_characterization.py's CPU_ONLY/CUDA_12GB/CUDA_24GB/APPLE_SILICON
 a few extra shapes (aarch64 NVIDIA, Windows-on-ARM, Windows DML, AMD/Intel
 Vulkan-only) needed for the platform/tier-filter branches.
 """
+import dataclasses
+
 import pytest
 
 from sokuji_sidecar import accel, catalog, planner
+from sokuji_sidecar.accel import OpCoverage
+from _fixtures import _known_gpu_machine
 
 
 FIT_WALK_MATRIX = [
@@ -392,8 +396,8 @@ def test_resolve_leads_with_vulkan_from_tc_probe_alone_no_nvidia():
 def test_resolve_demotes_gpu_when_bench_cache_says_slower():
     m = CUDA_12GB
     cache = {
-        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
-        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
+        planner._cache_key(m, "", "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
+        planner._cache_key(m, "", "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
     }
     plans = planner.resolve("whisper-base", machine=m, platform="linux", cache=cache, downloaded=set())
     assert plans[0].device == "cpu"    # demoted: measured slower on GPU than CPU
@@ -405,8 +409,8 @@ def test_resolve_override_gpu_pins_any_accelerator_tier_beats_bench_demotion():
     # device.
     m = CUDA_12GB
     cache = {
-        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
-        planner._bench_key(m.fingerprint, "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
+        planner._cache_key(m, "", "whisper-base", "native_asr", "vulkan", "q8_0"): 0.8,
+        planner._cache_key(m, "", "whisper-base", "native_asr", "cpu", "q8_0"): 0.3,
     }
     plans = planner.resolve("whisper-base", "gpu", machine=m, platform="linux",
                             cache=cache, downloaded=set())
@@ -509,14 +513,26 @@ def test_resolve_asr_bench_demotion_uses_quant_keyed_entries():
     # q4_k_m here); bench keys must match that narrowed quant.
     m = _nv_machine(12282)
     cache = {
-        planner._bench_key(m.fingerprint, "cohere-transcribe-03-2026",
+        planner._cache_key(m, "", "cohere-transcribe-03-2026",
                            "native_asr", "vulkan", "q4_k_m"): 0.9,
-        planner._bench_key(m.fingerprint, "cohere-transcribe-03-2026",
+        planner._cache_key(m, "", "cohere-transcribe-03-2026",
                            "native_asr", "cpu", "q4_k_m"): 0.2,
     }
     plans = planner.resolve("cohere-transcribe-03-2026", machine=m, platform="linux",
                             cache=cache, downloaded={"q4_k_m"})
     assert plans[0].device == "cpu"    # measured slower on GPU -> demoted
+
+
+def test_bench_entries_are_read_only_within_their_generation():
+    m = dataclasses.replace(_nv_machine(24576), generation="G1")
+    key = planner._cache_key(m, "", "whisper-base", "native_asr", "vulkan", "q8_0")
+    cpu_key = planner._cache_key(m, "", "whisper-base", "native_asr", "cpu", "q8_0")
+    cache = {key: 0.8, cpu_key: 0.3}                                 # GPU slower than CPU → demoted
+    plans = planner.resolve("whisper-base", machine=m, platform="linux", cache=cache, downloaded=set())
+    assert plans[0].device == "cpu"
+    m2 = dataclasses.replace(m, generation="G2")
+    plans = planner.resolve("whisper-base", machine=m2, platform="linux", cache=cache, downloaded=set())
+    assert plans[0].device == "vulkan"                               # G1 numbers are invisible under G2
 
 
 # ── select_variant: non-GGUF-LLM (generic VRAM/format-aware) path ───────
@@ -845,13 +861,25 @@ def test_resolve_translate_quant_pick_prefers_downloaded():
 def test_resolve_translate_bench_demotes_gpu_when_cpu_decodes_faster():
     m = _nv_machine(12282, installed=frozenset({"native_translate"}))
     cache = {
-        "tps:" + planner._bench_key(m.fingerprint, "translategemma-4b", "native_translate", "vulkan", "q8_0"): 5.0,
-        "tps:" + planner._bench_key(m.fingerprint, "translategemma-4b", "native_translate", "cpu", "q8_0"): 12.0,
+        planner._cache_key(m, "tps:", "translategemma-4b", "native_translate", "vulkan", "q8_0"): 5.0,
+        planner._cache_key(m, "tps:", "translategemma-4b", "native_translate", "cpu", "q8_0"): 12.0,
     }
     plans = planner.resolve_translate("translategemma-4b", "auto", machine=m, platform="linux",
                                       cache=cache, downloaded=set(),
                                       est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
     assert plans[0].device == "cpu"        # demoted: cpu decodes faster here
+
+
+def test_translate_tps_entries_are_read_only_within_their_generation():
+    m = dataclasses.replace(_nv_machine(12282, installed=frozenset({"native_translate"})), generation="G1")
+    cache = {
+        planner._cache_key(m, "tps:", "translategemma-4b", "native_translate", "vulkan", "q8_0"): 5.0,
+        planner._cache_key(m, "tps:", "translategemma-4b", "native_translate", "cpu", "q8_0"): 12.0,
+    }
+    kw = dict(platform="linux", cache=cache, downloaded=set(), est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
+    assert planner.resolve_translate("translategemma-4b", "auto", machine=m, **kw)[0].device == "cpu"          # E6 swap under G1
+    m2 = dataclasses.replace(m, generation="G2")
+    assert planner.resolve_translate("translategemma-4b", "auto", machine=m2, **kw)[0].device == "vulkan"     # invisible under G2
 
 
 def test_resolve_translate_keeps_gpu_without_bench_measurement():
@@ -1053,3 +1081,91 @@ def test_resolve_translate_propagates_qwen3_thinking_config():
         disable_thinking=True, append_no_think=True, prompt_family="qwen")
     # every plan for this model shares the same card-derived config.
     assert all(p.config == plans[0].config for p in plans)
+
+
+# ── _deployment_available: the op-coverage gate (spec A §3.3) ────────────
+# _tier_available answers "does this machine have that kind of device";
+# _deployment_available adds "and can THAT device execute THIS rung's recorded
+# graph". Only the tts stage refuses (audio.cpp computes single-backend and
+# aborts on an unsupported node); asr/translate keep running because
+# llama.cpp/transcribe.cpp schedule an unsupported op onto the CPU, so their
+# coverage is recorded for diagnostics only. Every unknown — no profile, an
+# unknown device, an unmapped backend, nothing computed — passes through
+# (premise 5).
+
+_NONE = planner._NO_COVERAGE if hasattr(planner, "_NO_COVERAGE") else (lambda *a: None)
+
+
+def _cov(all_supported, unsupported=()):
+    return lambda i, s, f, ct: OpCoverage(all_supported, tuple(unsupported))
+
+
+def _cov_for(mapping):   # {(stage, family, ct): OpCoverage}
+    return lambda i, s, f, ct: mapping.get((s, f, ct))
+
+
+def test_deployment_available_unknown_profile_is_tier_available():
+    m = _nv_machine(24576)                                        # devices=() by default
+    for card in (catalog.tts_model("voxcpm2"), catalog.translate_model("qwen3-0.6b"), catalog.asr_model("whisper-base")):
+        for d in card.deployments:
+            assert planner._deployment_available(card, d, m, op_coverage=_NONE) == planner._tier_available(d.tier, m, d.backend)
+
+
+def test_deployment_available_tts_refuses_gpu_on_unsupported_node_only():
+    m = _known_gpu_machine()
+    card = catalog.tts_model("voxcpm2")
+    gpu = next(d for d in card.deployments if d.tier == "gpu-vulkan" and d.compute_type == "q8_0")
+    cpu = next(d for d in card.deployments if d.tier == "cpu" and d.compute_type == "q8_0")
+    assert planner._deployment_available(card, gpu, m, op_coverage=_cov(False, ["NORM[f32,-,-,-,-]->f32"])) is False
+    assert planner._deployment_available(card, cpu, m, op_coverage=_cov(False)) is True
+    assert planner._deployment_available(card, gpu, m, op_coverage=_cov(True)) is True
+    assert planner._deployment_available(card, gpu, m, op_coverage=_NONE) is True        # not computed → pass
+
+
+def test_deployment_available_asr_translate_never_refuse():
+    m = _known_gpu_machine()
+    for card in (catalog.translate_model("qwen3-0.6b"), catalog.asr_model("whisper-base")):
+        gpu = next(d for d in card.deployments if d.tier == "gpu-vulkan")
+        assert planner._deployment_available(card, gpu, m, op_coverage=_cov(False, ["X"])) is True
+
+
+def test_deployment_available_unknown_backend_passes():
+    m = _known_gpu_machine()
+    d = catalog.Deployment("ctranslate2", "gpu-vulkan", "int8", "r", 1.0, est_bytes=1)
+
+    class Card:
+        graph_family = "x"
+        deployments = (d,)
+    assert planner._deployment_available(Card, d, m, op_coverage=_cov(False)) is True
+
+
+def test_refused_tts_rung_lands_on_cpu_row_under_pin_downloaded_and_gpu_override_with_pin():
+    m = _known_gpu_machine()
+    cov = _cov_for({("tts", "voxcpm2", "bf16"): OpCoverage(False, ("MUL_MAT[bf16,f32,-,-,-]->f32",)),
+                    ("tts", "voxcpm2", "q8_0"): OpCoverage(True, ())})
+    kw = dict(machine=m, platform="linux", cache={}, est_bytes=lambda d: d.est_bytes, op_coverage=cov)
+    plans = planner.resolve_tts("voxcpm2", pin="bf16", downloaded=set(), **kw)                         # pin
+    assert plans[0].device == "cpu" and plans[0].compute_type == "bf16"
+    plans = planner.resolve_tts("voxcpm2", downloaded=frozenset({"bf16"}), **kw)                        # downloaded
+    assert plans[0].device == "cpu" and plans[0].compute_type == "bf16"
+    plans = planner.resolve_tts("voxcpm2", "gpu", pin="bf16", downloaded=set(), **kw)                   # override gpu + pin
+    assert plans[0].device == "cpu" and plans[0].compute_type == "bf16"
+
+
+def test_fit_walk_sees_only_runnable_rungs():
+    m = _known_gpu_machine()                                      # 96 GiB: bf16 fits
+    cov = _cov_for({("tts", "voxcpm2", "bf16"): OpCoverage(False, ("X",)), ("tts", "voxcpm2", "q8_0"): OpCoverage(True, ())})
+    plans = planner.resolve_tts("voxcpm2", machine=m, platform="linux", cache={}, downloaded=set(),
+                                est_bytes=lambda d: d.est_bytes, op_coverage=cov)
+    assert plans[0].device == "vulkan" and plans[0].compute_type == "q8_0"       # not bf16-on-cpu
+
+
+def test_tier_available_metal_uses_the_structured_bit_when_known():
+    dev_ok = accel.DeviceProfile(0, "metal", "MTL0", "Apple M4", 16 << 30, True, frozenset({"mtl_simdgroup_reduction", "uma"}), "Metal", "25A", "", "")
+    dev_vm = dataclasses.replace(dev_ok, description="Apple Paravirtual device", features=frozenset({"uma"}))
+    base = accel.Machine(os="Darwin", arch="arm64", cpu_cores=10, apple_silicon=True, installed=frozenset({"native_tts"}), fingerprint="fp",
+                         tc_kinds=("metal", "cpu"), gpus=(("metal", "Apple M4", 16 << 30),))
+    assert planner._tier_available("gpu-metal", dataclasses.replace(base, devices=(dev_ok,))) is True
+    assert planner._tier_available("gpu-metal", dataclasses.replace(base, devices=(dev_vm,))) is False              # bit absent
+    vm_named = dataclasses.replace(base, gpus=(("metal", "Apple Paravirtual device", 8 << 30),), devices=(dataclasses.replace(dev_ok, description="Apple Paravirtual device"),))
+    assert planner._tier_available("gpu-metal", vm_named) is False                                                   # string rule kept

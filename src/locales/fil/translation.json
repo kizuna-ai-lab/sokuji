@@ -761,6 +761,7 @@
     "variantWontFitNoMem": "Kailangan ng ~{{need}} na GPU memory",
     "wontFit": "Hindi kasya sa makinang ito",
     "variantNoGpuFits": "Walang GPU variant na kasya — tatakbo sa CPU.",
+    "variantRunsOnCpu": "Tatakbo sa CPU sa makinang ito.",
     "hwFramework": "Engine",
     "hwDevice": "Device",
     "hwApi": "Acceleration",

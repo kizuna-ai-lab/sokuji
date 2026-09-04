@@ -3,6 +3,8 @@ import { useNativeModelStore, deriveVariantRepos, formatEngineReadyLog } from '.
 import useLogStore from './logStore';
 import { requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
 import { directionKey, emptyDirection } from '../lib/local-inference/selection/types';
+import type { HardwareInfoResultMsg, NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
+import { settleReports, resetReportThrottle } from '../lib/diagnostics/report';
 
 // resolve()/applyPrunes()/ensureSelectionReady() now reach settingsStore via a
 // dynamic import, which drags in its real static import graph — including
@@ -51,7 +53,7 @@ function mockModelNotReady(id: string) { _notReadyModels.add(id); }
 // (nativeVersion/engineVersions/lane/preferredDevice all populated); tests
 // override or reject to exercise the best-effort engineInfo path.
 let _hardwareInfoReject = false;
-const DEFAULT_HARDWARE_INFO = {
+const DEFAULT_HARDWARE_INFO: Partial<Omit<HardwareInfoResultMsg, 'type' | 'id'>> = {
   nativeVersion: '1.0.1',
   engineVersions: { ggml: '0.22.0', transcribe: '0.2.2', llama: '0.3.0', audiocpp: '0.7.0' },
   lane: 'cpu-vulkan',
@@ -134,7 +136,14 @@ beforeEach(() => {
   _notReadyModels = new Set();
   _hardwareInfoReject = false;
   _hardwareInfoResponse = { ...DEFAULT_HARDWARE_INFO };
-  useNativeModelStore.setState({ catalog: {}, sidecarStatus: 'idle', sizes: {}, statusRepos: {}, statuses: {}, engineInfo: null } as any);
+  // deviceProfiles/profileGeneration/reportedUnsupportedOps reset here are test isolation
+  // only — reportedUnsupportedOps is deliberately NOT reset by the store itself anywhere
+  // (it's per-session by design); resetting it between tests just keeps one test's reported
+  // keys from silently starving another test's assertions on the same key.
+  useNativeModelStore.setState({
+    catalog: {}, sidecarStatus: 'idle', sizes: {}, statusRepos: {}, statuses: {}, engineInfo: null,
+    deviceProfiles: null, profileGeneration: null, reportedUnsupportedOps: new Set(),
+  } as any);
   useLogStore.getState().clearLogs();
 });
 
@@ -309,6 +318,22 @@ describe('deriveVariantRepos', () => {
 
   it('falls back to recommended with no pin at all', () => {
     expect(deriveVariantRepos([CARD], {})).toEqual({ card: 'org/fake-fp32' });
+  });
+
+  // Regression guard: deriveVariantRepos ignores fields it does not read, so
+  // adding `unsupportedTiers` to the wire/store type must not disturb the pin
+  // logic — a variant refused on one GPU tier still runs (on CPU) and is still
+  // pickable/pinnable.
+  it('a variant with unsupportedTiers stays pickable and keeps its pin', () => {
+    const card: NativeModelInfo = {
+      ...CARD,
+      id: 'voxcpm2', kind: 'tts', repo: 'r/voxcpm2',
+      variants: [
+        { id: 'q8_0', sizeBytes: 1, needBytes: 1, repo: 'r/voxcpm2', supported: true, recommended: true },
+        { id: 'bf16', sizeBytes: 2, needBytes: 2, repo: 'r/voxcpm2-bf16', supported: true, recommended: false, unsupportedTiers: ['gpu-vulkan'] },
+      ],
+    };
+    expect(deriveVariantRepos([card], { voxcpm2: 'bf16' })['voxcpm2']).toBe('r/voxcpm2-bf16');
   });
 });
 
@@ -495,6 +520,161 @@ describe('nativeModelStore engineInfo (hardware_info identity)', () => {
     expect(lines).toContain(
       'sidecar dev venv ready: sokuji-native 1.0.1 (ggml 0.22.0, transcribe 0.2.2, llama 0.3.0, audiocpp 0.7.0) lane=cpu-vulkan device="NVIDIA GB10"'
     );
+  });
+});
+
+describe('nativeModelStore device profiles (spec A §3.4)', () => {
+  it('keeps device profiles and the generation beside engineInfo, and reports an unsupported tts node once per session', async () => {
+    mockModelsCatalogResolve();
+    const devices = [{
+      index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: ['vk_coopmat'],
+      driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'ab'.repeat(16), cpuFeatures: '',
+      opCoverage: { 'tts/voxcpm2/q8_0': { allSupported: false, unsupported: ['NORM[f32,-,-,-,-]->f32'] } },
+    }];
+    mockHardwareInfoResolve({ generation: 'G1', devices });
+    useLogStore.getState().clearLogs();
+    await useNativeModelStore.getState().ensureCatalog();
+    const s = useNativeModelStore.getState();
+    expect(s.engineInfo).toEqual({
+      nativeVersion: '1.0.1',
+      engineVersions: { ggml: '0.22.0', transcribe: '0.2.2', llama: '0.3.0', audiocpp: '0.7.0' },
+      lane: 'cpu-vulkan',
+      preferredDevice: { kind: 'vulkan', name: 'gpu0', description: 'NVIDIA GB10' },
+    });
+    expect(s.profileGeneration).toBe('G1');
+    expect(s.deviceProfiles?.[0].deviceUuid).toBe('ab'.repeat(16));
+    await settleReports();
+    const warnings = useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('NORM[f32,-,-,-,-]->f32'));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].message).toContain('GB10');
+    expect(useNativeModelStore.getState().reportedUnsupportedOps.has('tts/voxcpm2/q8_0')).toBe(true);
+    // A second hardware_info in the same session with the same key must not add a
+    // second line. The report throttle (5s per dedupeKey) would hide a second call
+    // on its own, so reset it first — this assertion is about the store's per-
+    // session set, not the throttle.
+    useNativeModelStore.setState({ sidecarStatus: 'idle' });
+    resetReportThrottle();
+    await useNativeModelStore.getState().ensureCatalog();
+    await settleReports();
+    expect(useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('NORM[f32,-,-,-,-]->f32'))).toHaveLength(1);
+  });
+
+  // Regression for a static dedupeKey: report.ts throttles the panel per
+  // `${clientId}|${scope}|${dedupeKey}`, so a dedupeKey that does not vary per
+  // key collapses every distinct unsupported-op warning from one hardware_info
+  // response into whichever key happened to reach reportWarning() first within
+  // the 5s throttle window — silently dropping the rest from the panel forever
+  // (reportedUnsupportedOps.add(key) runs unconditionally before the
+  // throttled call, so a dropped key is never retried on a later probe).
+  it('reports each distinct unsupported tts key once, even from one hardware_info response', async () => {
+    mockModelsCatalogResolve();
+    const devices = [{
+      index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: [],
+      driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'ab'.repeat(16), cpuFeatures: '',
+      opCoverage: {
+        'tts/voxcpm2/q8_0': { allSupported: false, unsupported: ['NORM[f32,-,-,-,-]->f32'] },
+        'tts/index_tts2/q8_0': { allSupported: false, unsupported: ['CONV_2D[f32,-,-,-,-]->f32'] },
+      },
+    }];
+    mockHardwareInfoResolve({ devices });
+    await useNativeModelStore.getState().ensureCatalog();
+    await settleReports();
+    const warnings = useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('cannot run on'));
+    expect(warnings).toHaveLength(2);
+    expect(warnings.some((w) => w.message.includes('tts/voxcpm2/q8_0'))).toBe(true);
+    expect(warnings.some((w) => w.message.includes('tts/index_tts2/q8_0'))).toBe(true);
+    const s = useNativeModelStore.getState();
+    expect(s.reportedUnsupportedOps.has('tts/voxcpm2/q8_0')).toBe(true);
+    expect(s.reportedUnsupportedOps.has('tts/index_tts2/q8_0')).toBe(true);
+  });
+
+  // The warning is one line in a panel a user pastes into a bug report. A refused rung
+  // repeats the same spelling many times (voxcpm2's false integer-dtype refusal listed
+  // one MUL_MAT 16 times) and a genuinely missing op can produce hundreds, so the names
+  // are deduplicated and capped.
+  it('caps the listed unsupported op names at five distinct entries plus a count', async () => {
+    mockModelsCatalogResolve();
+    const unsupported = [
+      'A_OP[f32,-,-,-,-]->f32', 'B_OP[f32,-,-,-,-]->f32', 'C_OP[f32,-,-,-,-]->f32',
+      'D_OP[f32,-,-,-,-]->f32', 'E_OP[f32,-,-,-,-]->f32', 'F_OP[f32,-,-,-,-]->f32',
+      'G_OP[f32,-,-,-,-]->f32',
+    ];
+    const devices = [{
+      index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: [],
+      driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'ee'.repeat(16), cpuFeatures: '',
+      opCoverage: { 'tts/pocket_tts/q8_0': { allSupported: false, unsupported } },
+    }];
+    mockHardwareInfoResolve({ devices });
+    await useNativeModelStore.getState().ensureCatalog();
+    await settleReports();
+    const warnings = useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('cannot run on'));
+    expect(warnings).toHaveLength(1);
+    const { message } = warnings[0];
+    expect(typeof message).toBe('string');
+    for (const name of unsupported.slice(0, 5)) expect(message).toContain(name);
+    expect(message).not.toContain('F_OP');
+    expect(message).not.toContain('G_OP');
+    expect(message).toContain('… and 2 more');
+  });
+
+  it('collapses repeats before capping, so five distinct names carry no "and N more"', async () => {
+    mockModelsCatalogResolve();
+    const devices = [{
+      index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: [],
+      driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'ff'.repeat(16), cpuFeatures: '',
+      opCoverage: {
+        // 8 entries, 2 distinct — what a real refusal looks like.
+        'tts/pocket_tts/bf16': {
+          allSupported: false,
+          unsupported: ['CPY[bf16,f16,-,-,-]->f16', 'CPY[bf16,f16,-,-,-]->f16', 'CPY[bf16,f16,-,-,-]->f16',
+                        'CONV_TRANSPOSE_1D[f16,f32,-,-,-]->f32', 'CPY[bf16,f16,-,-,-]->f16',
+                        'CONV_TRANSPOSE_1D[f16,f32,-,-,-]->f32', 'CONV_TRANSPOSE_1D[f16,f32,-,-,-]->f32',
+                        'CONV_TRANSPOSE_1D[f16,f32,-,-,-]->f32'],
+        },
+      },
+    }];
+    mockHardwareInfoResolve({ devices });
+    await useNativeModelStore.getState().ensureCatalog();
+    await settleReports();
+    const warnings = useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('cannot run on'));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].message).toContain('CPY[bf16,f16,-,-,-]->f16, CONV_TRANSPOSE_1D[f16,f32,-,-,-]->f32 unsupported');
+    expect(warnings[0].message).not.toContain('more');
+  });
+
+  it('the same unsupported key reported by two devices still yields one warning', async () => {
+    mockModelsCatalogResolve();
+    const devices = [
+      {
+        index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: [],
+        driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'aa'.repeat(16), cpuFeatures: '',
+        opCoverage: { 'tts/voxcpm2/q8_0': { allSupported: false, unsupported: ['NORM[f32,-,-,-,-]->f32'] } },
+      },
+      {
+        index: 1, kind: 'vulkan', name: 'Vulkan1', description: 'GB10-2', memTotalMb: 98304, known: true, features: [],
+        driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'bb'.repeat(16), cpuFeatures: '',
+        opCoverage: { 'tts/voxcpm2/q8_0': { allSupported: false, unsupported: ['NORM[f32,-,-,-,-]->f32'] } },
+      },
+    ];
+    mockHardwareInfoResolve({ devices });
+    await useNativeModelStore.getState().ensureCatalog();
+    await settleReports();
+    const warnings = useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('tts/voxcpm2/q8_0'));
+    expect(warnings).toHaveLength(1);
+  });
+
+  it('a refused non-tts key (e.g. asr) produces no warning', async () => {
+    mockModelsCatalogResolve();
+    const devices = [{
+      index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: [],
+      driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'cc'.repeat(16), cpuFeatures: '',
+      opCoverage: { 'asr/whisper/q8_0': { allSupported: false, unsupported: ['SOME_OP[f32]->f32'] } },
+    }];
+    mockHardwareInfoResolve({ devices });
+    await useNativeModelStore.getState().ensureCatalog();
+    await settleReports();
+    expect(useLogStore.getState().logs.filter((l) => l.type === 'warning')).toHaveLength(0);
+    expect(useNativeModelStore.getState().reportedUnsupportedOps.has('asr/whisper/q8_0')).toBe(false);
   });
 });
 

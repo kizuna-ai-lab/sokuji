@@ -14,7 +14,31 @@ JOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
 cmake -S "$ROOT" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release -DSOKUJI_GPU="$LANE"
 cmake --build "$BUILD" -j"$JOBS"
 ctest --test-dir "$BUILD" --output-on-failure
-rm -rf "$BUILD/stage" "$ROOT/python/sokuji_native/_native"
+# Op recordings (spec A §3.2, README's "Bumping a pin" checklist): re-record every family
+# whose SK_TEST_* model is present and diff against the shipped src/ops/*.ops. Always its own
+# CPU-only build/record tree (SOKUJI_GPU=none) regardless of this script's own LANE, since the
+# recordings were captured on CPU and must match there.
+#
+# This is a SECOND full configure+build of ggml and all three engines (~30 min a lane), so it
+# only runs when it can actually check something: the reference clip for the recorder lives in
+# SK_TEST_TTS_SUPERTONIC_DIR and the gate fires for tts only, so an unset variable means every
+# family would skip (SKIP_RETURN_CODE 77) and the whole tree would be built to prove nothing.
+# SOKUJI_BUILD_RECORD=0 forces it off even when the models are present.
+RECORD_BUILD="$ROOT/build/record"
+if [ -z "${SK_TEST_TTS_SUPERTONIC_DIR:-}" ]; then
+    echo "ci/build.sh: skipping the op-recording drift gate — SK_TEST_TTS_SUPERTONIC_DIR is not set (no cached TTS models)."
+elif [ "${SOKUJI_BUILD_RECORD:-1}" = "0" ]; then
+    echo "ci/build.sh: skipping the op-recording drift gate — SOKUJI_BUILD_RECORD=0."
+else
+    cmake -S "$ROOT" -B "$RECORD_BUILD" -DCMAKE_BUILD_TYPE=Release -DSOKUJI_GPU=none -DSOKUJI_RECORD_OPS=ON
+    cmake --build "$RECORD_BUILD" -j"$JOBS"
+    ctest --test-dir "$RECORD_BUILD" -R test_ops_coverage --output-on-failure
+fi
+# python/build is setuptools' own scratch tree and is NOT keyed by lane: a stale
+# build/lib.*/sokuji_native/_native left by an earlier lane carries that lane's
+# libggml-*.so into this lane's wheel (a CPU-lane wheel was seen reporting a Vulkan device
+# for exactly this reason). Clear it with the staged tree it feeds.
+rm -rf "$BUILD/stage" "$ROOT/python/sokuji_native/_native" "$ROOT/python/build"
 # Only the sokuji component: the fetched upstreams carry their own install() rules
 # (headers, static libs, cmake configs) in the default component, which must not run.
 cmake --install "$BUILD" --prefix "$BUILD/stage" --component sokuji

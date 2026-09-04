@@ -36,7 +36,7 @@ Determinism notes:
 """
 import pytest
 
-from sokuji_sidecar import accel, catalog
+from sokuji_sidecar import accel, catalog, native
 
 
 # ── Machine fixtures ─────────────────────────────────────────────────────
@@ -80,6 +80,14 @@ APPLE_SILICON = accel.Machine(
 _ALL_MACHINES = (CPU_ONLY, CUDA_12GB, CUDA_24GB, APPLE_SILICON)
 
 
+def test_machines_carry_no_profile():
+    # What makes every row below immune to the device-profile work (spec A
+    # premise 5): these fixtures predate DeviceProfile and must keep the
+    # field defaults, so the op-coverage gate and the generation-keyed cache
+    # both see "nothing known" and resolve exactly as they did before.
+    assert all(m.devices == () and m.generation == "" for m in _ALL_MACHINES)
+
+
 def _platform_for(machine) -> str:
     """The OS accel.current_platform() must report for `machine`'s catalog
     platform filter (D9) to behave as it would on real hardware of that kind."""
@@ -91,9 +99,16 @@ def _nothing_downloaded(monkeypatch):
     """Default: no quant/variant is in the local HF cache, and the RTF/tps
     bench cache is empty. Isolates every test in this file from this dev box's
     ambient ~/.cache/huggingface and SOKUJI_BENCH_DIR state (see module
-    docstring)."""
+    docstring).
+
+    Also the op-coverage guard (spec A premise 5): every Machine here carries
+    devices=(), so the gate must never reach the native library — not through
+    accel.compute_op_coverage, not through native.module(). Either being called
+    is the failure, not a matrix row moving."""
     monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
     monkeypatch.setattr(accel, "bench_load", lambda: {})
+    monkeypatch.setattr(accel, "compute_op_coverage", lambda *a, **k: pytest.fail("native reached with devices=()"))
+    monkeypatch.setattr(native, "module", lambda: pytest.fail("native reached with devices=()"))
 
 
 def _plan_tuples(plans):

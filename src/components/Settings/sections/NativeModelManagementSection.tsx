@@ -138,6 +138,9 @@ const VariantDropdown: React.FC<{
               {!v.supported && (
                 <span className="model-card__variant-reason">{v.reason || t('models.wontFit', "Won't fit on this machine")}</span>
               )}
+              {v.supported && v.unsupportedTiers && v.unsupportedTiers.length > 0 && (
+                <span className="model-card__variant-reason">{t('models.variantRunsOnCpu', 'Runs on CPU on this machine')}</span>
+              )}
             </option>
           );
         })}
@@ -540,7 +543,7 @@ export const NativeModelManagementSection: React.FC<{
             : t('models.variantWontFitNoMem', 'Needs ~{{need}} of GPU memory', { need }));
           return {
             id: v.id, computeType: v.id, repo: v.repo ?? '', sizeBytes: v.sizeBytes,
-            supported: v.supported, reason,
+            supported: v.supported, reason, unsupportedTiers: v.unsupportedTiers,
           };
         }),
         recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,

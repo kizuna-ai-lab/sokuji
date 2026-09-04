@@ -5,7 +5,19 @@ cmake_minimum_required(VERSION 3.28)   # FetchContent_Declare(EXCLUDE_FROM_ALL)
 if(CMAKE_HOST_APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version" FORCE)
 endif()
-project(sokuji_native VERSION 1.0.2 LANGUAGES C CXX)
+project(sokuji_native VERSION 1.1.0 LANGUAGES C CXX)
+
+# The ABI number lives in three places nothing used to cross-check: SK_ABI_VERSION_NUM (stamped
+# into contract.json, set below), the header (what the library reports), and the binding's
+# _ffi.py (what the binding demands). The binding refuses a mismatch at import — after a full
+# five-SKU build. Catch the header/CMake drift here, before any upstream is fetched.
+set(SK_ABI_VERSION_NUM 2)
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/include/sokuji_native.h _sk_abi_line
+     REGEX "^#define SK_ABI_VERSION [0-9]+")
+string(REGEX REPLACE "^#define SK_ABI_VERSION ([0-9]+).*$" "\\1" _sk_abi_header "${_sk_abi_line}")
+if(NOT _sk_abi_header STREQUAL "${SK_ABI_VERSION_NUM}")
+    message(FATAL_ERROR "SK_ABI_VERSION_NUM (${SK_ABI_VERSION_NUM}) != include/sokuji_native.h SK_ABI_VERSION (${_sk_abi_header})")
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -47,7 +59,7 @@ add_library(sokuji_native SHARED
     src/sk_common.cpp)
 target_include_directories(sokuji_native
     PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
-    PRIVATE ${CMAKE_BINARY_DIR}/generated)
+    PRIVATE ${CMAKE_BINARY_DIR}/generated ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(sokuji_native PRIVATE SOKUJI_NATIVE_BUILD=1)
 target_link_libraries(sokuji_native PRIVATE ggml)
 target_link_libraries(sokuji_native PRIVATE transcribe)
@@ -77,7 +89,22 @@ foreach(_t IN LISTS _audiocpp_engine_targets)
         target_compile_options(${_t} PRIVATE -include ${CMAKE_CURRENT_SOURCE_DIR}/src/audiocpp_compat.h)
     endif()
 endforeach()
-target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_translate.cpp src/sk_tts.cpp)
+# Op recordings (spec A §3.2) are data under src/ops/*.ops, baked into the library at build
+# time so the query needs no files at runtime. Any .ops change re-runs the generator.
+# CONFIGURE_DEPENDS: this glob is otherwise evaluated once at configure time, so a NEW .ops
+# file (a pin bump's newly recorded family) is invisible to the build until a reconfigure —
+# CONFIGURE_DEPENDS makes the build system re-check the glob on every build.
+file(GLOB _sk_ops_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/ops/*.ops)
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_ops_data.py
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ops ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/sk_ops_data.h
+    DEPENDS ${_sk_ops_files} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_ops_data.py
+    COMMENT "sokuji-native: baking op recordings")
+target_sources(sokuji_native PRIVATE src/sk_ops.cpp ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp)
+target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_translate.cpp src/sk_tts.cpp
+                                     src/sk_profile.cpp src/sk_vk_enum.cpp src/sk_ops_format.cpp)
 target_link_libraries(sokuji_native PRIVATE engine_runtime)
 target_include_directories(sokuji_native PRIVATE ${audiocpp_SOURCE_DIR}/include)
 
@@ -86,6 +113,33 @@ set_target_properties(sokuji_native PROPERTIES
     VISIBILITY_INLINES_HIDDEN ON)   # rpath: the project-wide CMAKE_INSTALL_RPATH above
 if(NOT WIN32)
     target_link_libraries(sokuji_native PRIVATE ${CMAKE_DL_LIBS})
+endif()
+
+# Spec A §3.1: the device profile enumerates Vulkan devices through the LOADER, never by
+# linking it, and needs headers new enough for the bfloat16 / NV coopmat2 feature structs
+# (Ubuntu 22.04's distro headers are 1.3.204). Headers only; VK_NO_PROTOTYPES.
+# Pinned by commit SHA, not tag name, for the reason cmake/upstreams.cmake states.
+#
+# SOURCE_SUBDIR deliberately names a directory the tree does not have, so
+# FetchContent_MakeAvailable populates the sources and skips add_subdirectory(): the
+# Vulkan-Headers project unconditionally declares `add_library(Vulkan::Headers ALIAS
+# Vulkan-Headers)`, which collides with the IMPORTED target FindVulkan.cmake has already
+# created whenever ggml_options.cmake's `find_package(Vulkan QUIET)` ran — i.e. on the
+# default SOKUJI_GPU=auto path, on every non-Apple box with a usable Vulkan SDK. Adding the
+# include directory by hand is all this needs, and it keeps the pinned headers ahead of any
+# system copy (an `if(NOT TARGET Vulkan::Headers)` guard would silently compile against the
+# system's older headers instead, defeating the point of the pin). src/sk_vk_enum.cpp
+# static_asserts VK_HEADER_VERSION so a wrong include path fails the build, not a device.
+if(SOKUJI_GPU_RESOLVED STREQUAL "vulkan")
+    include(FetchContent)
+    FetchContent_Declare(vulkan_headers
+        GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
+        GIT_TAG        71176a07dc482d0ddaf0b28555e734adc0533238   # v1.4.311
+        GIT_SHALLOW    TRUE
+        SOURCE_SUBDIR  headers-only-no-cmake-entry-point)
+    FetchContent_MakeAvailable(vulkan_headers)
+    target_include_directories(sokuji_native PRIVATE ${vulkan_headers_SOURCE_DIR}/include)
+    target_compile_definitions(sokuji_native PRIVATE SK_HAVE_VULKAN_HEADERS=1 VK_NO_PROTOTYPES=1)
 endif()
 
 # Exported surface: sk_* and nothing else. The three engines are static archives compiled
@@ -110,6 +164,24 @@ elseif(APPLE)
                  LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/sokuji_native.exports)
 endif()
 
+# ---- op-recording variant (spec A §3.2) ------------------------------------------------
+# Never the shipping build: it rewires ggml_backend_graph_compute inside every audio.cpp
+# translation unit, so a configure that sets this has to live in its own build directory.
+option(SOKUJI_RECORD_OPS "Build the op-recording variant of the library (tests only)" OFF)
+if(SOKUJI_RECORD_OPS)
+    # Same sources + the recorder; every audio.cpp TU of THIS configure sees SK_RECORD_OPS, so
+    # this must be a separate build directory (build/record), never the shipping one.
+    target_compile_definitions(sokuji_native PUBLIC SK_RECORD_OPS=1)
+    target_sources(sokuji_native PRIVATE src/sk_ops_record.cpp)
+    target_include_directories(sokuji_native PRIVATE ${SOKUJI_GGML_SOURCE_DIR}/src)   # ggml-backend-impl.h
+    foreach(_t IN LISTS _audiocpp_engine_targets)
+        target_compile_definitions(${_t} PRIVATE SK_RECORD_OPS=1)
+    endforeach()
+    # The recorder's own TU must not see the redirect (it forwards to the real function).
+    set_source_files_properties(src/sk_ops_record.cpp PROPERTIES COMPILE_OPTIONS
+        "$<IF:$<CXX_COMPILER_ID:MSVC>,/USK_RECORD_OPS,-USK_RECORD_OPS>")
+endif()
+
 enable_testing()
 add_subdirectory(tests)
 
@@ -117,7 +189,6 @@ add_subdirectory(tests)
 # Everything here is COMPONENT sokuji. The fetched upstreams carry their own install()
 # rules (headers, static libs, cmake configs) in the default component; installing with
 # `cmake --install <build> --prefix <dir> --component sokuji` runs only ours.
-set(SK_ABI_VERSION_NUM 1)
 # Deliberately keyed on SOKUJI_GPU_RESOLVED (a plain variable, set once in
 # ggml_options.cmake and never touched again), NOT on the GGML_VULKAN/GGML_METAL cache
 # variables. Both of the fetched upstreams re-FORCE those two shared cache entries from

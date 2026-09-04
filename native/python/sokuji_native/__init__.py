@@ -20,6 +20,8 @@ from . import _ffi
 
 __all__ = ["NativeError", "Device", "init", "devices", "device_free_mem", "version",
            "engine_versions", "contract", "audio_families", "native_dir",
+           "DeviceProfile", "device_profiles",
+           "OpCoverage", "device_supports_ops",
            "AsrCaps", "AsrModel", "AsrStream", "StreamText", "asr_load",
            "Translator", "translate_load",
            "TtsCaps", "TtsModel", "tts_load"]
@@ -39,6 +41,28 @@ class Device:
     description: str
     mem_total: int
     mem_free: int
+
+
+@dataclass(frozen=True)
+class DeviceProfile:
+    index: int
+    kind: str
+    name: str
+    description: str
+    mem_total: int
+    known: bool
+    features: frozenset[str]
+    driver_name: str
+    driver_version: str
+    device_uuid: str
+    cpu_features: str
+
+
+@dataclass(frozen=True)
+class OpCoverage:
+    all_supported: bool
+    unsupported: tuple[str, ...]
+    checked: tuple[str, ...]
 
 
 class _State:
@@ -167,6 +191,41 @@ def device_free_mem(index: int) -> int:
     if status != _ffi.SK_OK:
         _raise(lib, status, "sk_device_free_mem")
     return int(out.value)
+
+
+def device_profiles() -> list[DeviceProfile]:
+    """One profile per devices() entry (same order, same index). A device whose profile could
+    not be read comes back with known=False and every other field empty — never an error."""
+    lib = _load()
+    out = []
+    for d in devices():
+        raw = _ffi.sk_device_profile()
+        status = lib.sk_device_profile_get(int(d.index), ctypes.byref(raw))
+        if status != _ffi.SK_OK:
+            _raise(lib, status, "sk_device_profile_get")
+        bits = frozenset(name for bit, name in _ffi.FEATURE_BITS.items() if raw.features & bit)
+        out.append(DeviceProfile(d.index, d.kind, d.name, d.description, d.mem_total, bool(raw.known),
+                                 bits if raw.known else frozenset(),
+                                 raw.driver_name.decode("utf-8", "replace"),
+                                 raw.driver_version.decode("utf-8", "replace"),
+                                 raw.device_uuid.decode("utf-8", "replace"),
+                                 raw.cpu_features.decode("utf-8", "replace")))
+    return out
+
+
+def device_supports_ops(index: int, stage: str, family: str, weight_dtypes) -> OpCoverage:
+    """Ask the device's own supports_op about the family's recorded graph nodes, WEIGHT sources
+    expanded over `weight_dtypes` (ggml type names). NativeError with the status on every
+    documented error (NOT_FOUND = no recording, INVALID_ARGUMENT, INTERNAL, BACKEND)."""
+    lib = _load()
+    names = [str(t).encode() for t in weight_dtypes]
+    arr = (ctypes.c_char_p * max(1, len(names)))(*names)
+    raw = _ffi.sk_op_coverage()
+    status = lib.sk_device_supports_ops(int(index), stage.encode(), family.encode(), arr, len(names), ctypes.byref(raw))
+    if status != _ffi.SK_OK:
+        _raise(lib, status, "sk_device_supports_ops")
+    checks = [(raw.ops[i].name.decode("utf-8", "replace"), bool(raw.ops[i].supported)) for i in range(raw.n_ops)]
+    return OpCoverage(bool(raw.all_supported), tuple(n for n, ok in checks if not ok), tuple(n for n, _ in checks))
 
 
 def audio_families() -> list[str]:
@@ -448,6 +507,7 @@ def translate_load(path: str, device: Device | None = None, n_ctx: int = 0) -> T
         dev.index = int(device.index)
     opts = _ffi.sk_translate_options()
     opts.n_ctx = int(n_ctx)
+    opts.flash_attn = 0
     status = lib.sk_translate_load(str(path).encode(), ctypes.byref(dev) if dev is not None else None,
                                    ctypes.byref(opts), ctypes.byref(out))
     if status != _ffi.SK_OK:

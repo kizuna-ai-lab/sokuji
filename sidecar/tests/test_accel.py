@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import json
 import os
 import tempfile
@@ -9,6 +10,7 @@ from sokuji_sidecar import accel
 from sokuji_sidecar import catalog
 from sokuji_sidecar import backends
 from sokuji_sidecar import server
+from _fixtures import _known_gpu_machine
 
 os.environ.setdefault("SOKUJI_BENCH_DIR", tempfile.mkdtemp())
 
@@ -393,8 +395,9 @@ def test_models_catalog_filter_narrows_results(monkeypatch):
 def test_bench_cache_roundtrip(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     assert accel.bench_load() == {}  # nothing yet
-    key = accel._bench_key("fp123", "whisper-base", "ctranslate2", "cuda", "float16")
-    accel.bench_save({key: 0.12})
+    m = dataclasses.replace(_machine(), generation="G1")
+    key = accel._cache_key(m, "", "whisper-base", "ctranslate2", "cuda", "float16")
+    accel.bench_save({key: 0.12}, generation="G1")
     assert accel.bench_load()[key] == 0.12
 
 
@@ -418,13 +421,13 @@ def test_measure_rtf_runs_and_caches(tmp_path, monkeypatch):
             from sokuji_sidecar.backends import AsrResult
             return AsrResult("")  # near-instant → small rtf
 
-    m = _machine()
+    m = dataclasses.replace(_machine(), generation="G1")
     plan = accel.Plan("ctranslate2", "cpu", "cpu", "int8", "tiny", 1.0)
     rtf = accel.measure_rtf(_FakeBackend(), plan, "whisper-base", m)
     assert rtf is not None and rtf >= 0.0
     # cached: a second call returns the same value without re-running
     cache = accel.bench_load()
-    assert accel._bench_key(m.fingerprint, "whisper-base", "ctranslate2", "cpu", "int8") in cache
+    assert accel._cache_key(m, "", "whisper-base", "ctranslate2", "cpu", "int8") in cache
 
 
 def test_measure_tps_warms_up_benchmarks_and_caches(tmp_path, monkeypatch):
@@ -438,7 +441,7 @@ def test_measure_tps_warms_up_benchmarks_and_caches(tmp_path, monkeypatch):
             self.calls += 1
             return "bonjour le monde", 12  # 12 "generated" tokens
 
-    m = _machine()
+    m = dataclasses.replace(_machine(), generation="G1")
     plan = accel.Plan("qwen_translate", "gpu-cuda", "cuda", "bfloat16", "repo", 1.0)
     b = _FakeBackend()
     tps = accel.measure_tps(b, plan, "qwen2.5-0.5b", m)
@@ -447,12 +450,95 @@ def test_measure_tps_warms_up_benchmarks_and_caches(tmp_path, monkeypatch):
 
     # cached under a 'tps:'-namespaced key so it never collides with RTF entries
     cache = accel.bench_load()
-    assert any(k.startswith("tps:") for k in cache)
+    assert any("|tps:" in k for k in cache)
 
     # second call serves from cache — backend untouched, same value
     b2 = _FakeBackend()
     assert accel.measure_tps(b2, plan, "qwen2.5-0.5b", m) == tps
     assert b2.calls == 0
+
+
+def test_bench_save_rotates_generations_and_drops_legacy_keys(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    (tmp_path / "accel-bench.json").write_text('{"fp|whisper-base|native_asr|cpu|q8_0": 0.5}')   # legacy flat file
+    entries, gens = accel.bench_read()
+    assert entries == {"fp|whisper-base|native_asr|cpu|q8_0": 0.5} and gens == []
+    accel.bench_save({**entries, "G1|fp|m|b|d|c": 1.0}, generation="G1")
+    entries, gens = accel.bench_read()
+    assert gens == ["G1"] and entries == {"G1|fp|m|b|d|c": 1.0}          # legacy key gone
+    for g in ("G2", "G3", "G4"):
+        accel.bench_save({**accel.bench_read()[0], f"{g}|fp|m|b|d|c": 1.0}, generation=g)
+    entries, gens = accel.bench_read()
+    assert gens == ["G2", "G3", "G4"]
+    assert set(entries) == {"G2|fp|m|b|d|c", "G3|fp|m|b|d|c", "G4|fp|m|b|d|c"}
+    assert accel.bench_load() == entries                                 # dict shape, no _generations key
+
+
+def test_bench_save_is_atomic(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    accel.bench_save({"G1|k": 1.0}, generation="G1")
+    def broken_dump(*a, **k):
+        raise OSError("disk full")
+    with monkeypatch.context() as mp:                      # scope ONLY the json.dump patch; the env stays
+        mp.setattr(accel.json, "dump", broken_dump)
+        accel.bench_save({"G1|k": 2.0}, generation="G1")   # never raises
+    assert accel.bench_read()[0] == {"G1|k": 1.0}          # the old file survived intact
+    assert not (tmp_path / "accel-bench.json.tmp").exists()
+
+
+def test_bench_save_persists_the_empty_generation(tmp_path, monkeypatch):
+    """machine.generation == "" ("identity unknown", the real value compute_generation
+    returns when _native_identity() fails) must rotate through gens/keep like any other
+    generation — a prior bug's `if generation and ...` treated "" as "nothing to add" and
+    silently dropped every "" entry on save."""
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    accel.bench_save({"|fp|m|b|d|c": 1.0}, generation="")
+    entries, gens = accel.bench_read()
+    assert entries == {"|fp|m|b|d|c": 1.0} and gens == [""]
+    # a legacy key (non-empty first segment, no generation prefix at all) is still dropped
+    accel.bench_save({**entries, "fp|m|b|d|c": 2.0}, generation="")
+    entries, gens = accel.bench_read()
+    assert entries == {"|fp|m|b|d|c": 1.0} and gens == [""]
+    # a later save under a real generation keeps both "" and "G1" in gens
+    accel.bench_save({**entries, "G1|fp|m|b|d|c": 3.0}, generation="G1")
+    entries, gens = accel.bench_read()
+    assert gens == ["", "G1"]
+    assert entries == {"|fp|m|b|d|c": 1.0, "G1|fp|m|b|d|c": 3.0}
+
+
+def test_measure_keys_by_generation(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m1 = accel.Machine(os="Linux", arch="x86_64", cpu_cores=4, apple_silicon=False, installed=frozenset(), fingerprint="fp", generation="G1")
+    m2 = dataclasses.replace(m1, generation="G2")
+    plan = accel.Plan("native_asr", "cpu", "cpu", "q8_0", "r/f.gguf", 2.0, None)
+    calls = []
+    def run(backend):
+        calls.append(1)
+        return 0.42
+    assert accel._measure(None, plan, "whisper-base", m1, ns="", run=run) == 0.42
+    assert accel._measure(None, plan, "whisper-base", m1, ns="", run=run) == 0.42 and len(calls) == 1   # hit
+    assert accel._measure(None, plan, "whisper-base", m2, ns="", run=run) == 0.42 and len(calls) == 2   # miss across generations
+    assert accel.planner._cache_key(m1, "", "whisper-base", "native_asr", "cpu", "q8_0") in accel.bench_load()
+
+
+def test_measure_persists_for_the_empty_generation_across_reload(monkeypatch, tmp_path):
+    """Regression for the bug where bench_save's `if generation and ...` dropped every ""
+    entry: a machine with generation == "" (identity unknown) must still be a cache HIT on
+    a second _measure call, which does its own fresh bench_load() from disk each time —
+    proving the first save actually persisted under the "" generation."""
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = accel.Machine(os="Linux", arch="x86_64", cpu_cores=4, apple_silicon=False, installed=frozenset(), fingerprint="fp", generation="")
+    plan = accel.Plan("native_asr", "cpu", "cpu", "q8_0", "r/f.gguf", 2.0, None)
+    calls = []
+    def run(backend):
+        calls.append(1)
+        return 0.42
+    assert accel._measure(None, plan, "whisper-base", m, ns="", run=run) == 0.42
+    assert len(calls) == 1
+    key = accel.planner._cache_key(m, "", "whisper-base", "native_asr", "cpu", "q8_0")
+    assert key in accel.bench_load()                          # persisted to disk, not just in-memory
+    assert accel._measure(None, plan, "whisper-base", m, ns="", run=run) == 0.42
+    assert len(calls) == 1   # still a hit — the "" generation survived the save/reload round-trip
 
 
 @pytest.mark.skipif(not os.environ.get("SOKUJI_RUN_GPU"),
@@ -767,7 +853,7 @@ def test_downloaded_quants_checks_each_tts_artifact_file(monkeypatch):
 
 def test_resolve_tts_wrapper_passes_pin_and_downloaded(monkeypatch):
     seen = {}
-    def fake(mid, override, *, machine, platform, cache, downloaded, pin, est_bytes):
+    def fake(mid, override, *, machine, platform, cache, downloaded, pin, est_bytes, op_coverage):
         seen.update(downloaded=downloaded, pin=pin)
         return ["sentinel"]
     monkeypatch.setattr(accel.planner, "resolve_tts", fake)
@@ -915,18 +1001,22 @@ def test_asr_unavailable_without_native():
 
 
 class _FakeDev:
-    def __init__(self, index, kind, desc, total, free):
+    def __init__(self, index, kind, desc, total, free, *, known=True, features=(), driver_name="", driver_version="", device_uuid="", cpu_features=""):
         self.index, self.kind, self.name = index, kind, f"{kind}{index}"
         self.description, self.mem_total, self.mem_free = desc, total, free
+        self.known, self.features = known, frozenset(features)
+        self.driver_name, self.driver_version, self.device_uuid, self.cpu_features = driver_name, driver_version, device_uuid, cpu_features
 
 
 _DEFAULT_FAKE_ENGINE_VERSIONS = {
-    "ggml": "0.22.0", "transcribe": "0.2.2", "llama": "0.3.0",
-    "audiocpp": "0.7.0", "lane": "cpu-vulkan",
+    "ggml": "0.22.0", "transcribe": "0.2.3", "llama": "0.3.0",
+    "audiocpp": "0.7.1", "lane": "cpu-vulkan",
 }
 
 
-def _fake_native_module(monkeypatch, devs, *, version="1.0.1", engine_versions=None):
+def _fake_native_module(monkeypatch, devs, *, version="1.0.2", engine_versions=None, profiles=True, supports=None):
+    """`profiles=False` mimics a 1.0.x wheel (no device_profiles / device_supports_ops at all).
+    `supports(index, stage, family, dtypes)` returns an object with .all_supported/.unsupported/.checked."""
     import sys, types
     from sokuji_sidecar import native
     mod = types.ModuleType("sokuji_native")
@@ -935,9 +1025,92 @@ def _fake_native_module(monkeypatch, devs, *, version="1.0.1", engine_versions=N
     mod.device_free_mem = lambda i: next(d.mem_free for d in devs if d.index == i)
     mod.version = lambda: version
     mod.engine_versions = lambda: dict(engine_versions or _DEFAULT_FAKE_ENGINE_VERSIONS)
+    if profiles:
+        mod.device_profiles = lambda: list(devs)          # _FakeDev carries the profile fields too
+        mod.device_supports_ops = supports or (lambda i, s, f, dts: types.SimpleNamespace(all_supported=True, unsupported=(), checked=("NORM[f32,-,-,-,-]->f32",)))
     monkeypatch.setitem(sys.modules, "sokuji_native", mod)
     native.reset_for_tests()
     return mod
+
+
+@pytest.fixture(autouse=True)
+def _isolate_profiles(monkeypatch):
+    """The two spec-A detectors default to 'nothing' for every test in this module, so the
+    pre-existing probe(force=True) tests keep their machines. A test that wants the real
+    detectors calls monkeypatch.undo() first — the same MonkeyPatch instance serves the
+    fixture and the test, so undo() drops exactly these two patches."""
+    monkeypatch.setattr(accel, "_native_profiles", lambda: ())
+    monkeypatch.setattr(accel, "_native_identity", lambda: None)
+
+
+def test_probe_fills_devices_and_generation(monkeypatch):
+    monkeypatch.undo()   # real detectors over the fake module
+    _fake_native_module(monkeypatch, [
+        _FakeDev(0, "vulkan", "NVIDIA GB10", 96 << 30, 90 << 30, features={"vk_integer_dot", "vk_coopmat"},
+                 driver_name="NVIDIA", driver_version="580.65.06", device_uuid="ab" * 16),
+        _FakeDev(1, "cpu", "CPU", 120 << 30, 100 << 30, cpu_features="NEON=1,DOTPROD=1"),
+    ], version="1.1.0")
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_tts"}))
+    m = accel.probe(force=True)
+    assert [d.kind for d in m.devices] == ["vulkan", "cpu"]
+    assert m.devices[0].known and "vk_coopmat" in m.devices[0].features and m.devices[0].device_uuid == "ab" * 16
+    assert m.devices[1].cpu_features.startswith("NEON=1")
+    assert m.generation and len(m.generation) == 12
+    assert m.gpus == (("vulkan", "NVIDIA GB10", 96 << 30),)     # derived tuple unchanged
+
+
+def test_generation_moves_with_version_pin_driver_and_env_but_not_free_memory(monkeypatch):
+    monkeypatch.undo()
+    def gen(version="1.1.0", pins=None, driver="580", free=90 << 30, env=None):
+        for k in list(os.environ):
+            if k.startswith("GGML_"):
+                monkeypatch.delenv(k)
+        for k, v in (env or {}).items():
+            monkeypatch.setenv(k, v)
+        _fake_native_module(monkeypatch, [_FakeDev(0, "vulkan", "GB10", 96 << 30, free, driver_name="NVIDIA", driver_version=driver, device_uuid="ab" * 16)],
+                            version=version, engine_versions=pins)
+        monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+        monkeypatch.setattr(accel, "_installed", lambda: frozenset())
+        return accel.probe(force=True).generation
+    base = gen()
+    assert gen() == base
+    assert gen(free=1 << 30) == base
+    assert gen(version="1.1.1") != base
+    assert gen(pins={**_DEFAULT_FAKE_ENGINE_VERSIONS, "audiocpp": "0.7.2"}) != base
+    assert gen(driver="581") != base
+    assert gen(env={"GGML_VK_DISABLE_COOPMAT": "1"}) != base
+    assert gen(env={"GGML_METAL_BF16_DISABLE": "1"}) != base
+
+
+def test_probe_degrades_per_detector(monkeypatch):
+    monkeypatch.undo()
+    _fake_native_module(monkeypatch, [_FakeDev(0, "cpu", "CPU", 8 << 30, 7 << 30)], version="1.1.0")
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset())
+    def boom():
+        raise RuntimeError("no")
+    monkeypatch.setattr(accel, "_native_profiles", boom)
+    m = accel.probe(force=True)
+    assert m.devices == () and m.generation != ""            # profiles failed, identity still keyed
+    monkeypatch.setattr(accel, "_native_identity", boom)
+    m = accel.probe(force=True)
+    assert m.generation == ""
+
+
+def test_old_wheel_without_profiles_degrades_to_todays_plans(monkeypatch):
+    """Spec A §4: a 1.0.x wheel (no device_profiles / device_supports_ops) yields devices=(),
+    a version-keyed generation, and EXACTLY the plans a profile-less machine gets."""
+    monkeypatch.undo()
+    _fake_native_module(monkeypatch, [_FakeDev(0, "vulkan", "GB10", 96 << 30, 90 << 30)], version="1.0.2", profiles=False)
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_tts"}))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    monkeypatch.setattr(accel, "bench_load", lambda: {})
+    m = accel.probe(force=True)
+    assert m.devices == () and m.generation != ""
+    bare = dataclasses.replace(m, devices=(), generation="")
+    assert accel.resolve_tts("voxcpm2", machine=m) == accel.resolve_tts("voxcpm2", machine=bare)
 
 
 def test_machine_gpus_stable_identity(monkeypatch):
@@ -1209,3 +1382,249 @@ def test_model_weight_bytes_without_variant_dir_counts_everything(tmp_path):
     (onnx_dir / "talker.onnx.data").write_bytes(b"x" * 50)
     from sokuji_sidecar import accel
     assert accel._model_weight_bytes(str(tmp_path)) == 150
+
+
+def test_weight_dtypes_prefers_the_file_header_over_the_fallback(monkeypatch, tmp_path):
+    card = catalog.tts_model("voxcpm2")
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)                 # not on disk
+    assert set(accel.weight_dtypes(card, "q8_0")) == catalog.RUNG_FALLBACK_DTYPES["q8_0"]
+    hdr = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"q8_0", "bf16", "f32"}), 3)
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: str(tmp_path / "x.gguf"))
+    monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: hdr)
+    assert accel.weight_dtypes(card, "q8_0") == ("bf16", "f32", "q8_0")                   # sorted
+
+
+def test_weight_dtypes_never_yields_an_integer_type(monkeypatch, tmp_path):
+    """The expansion set is the header set INTERSECTED with the weight-capable types. A GGUF
+    lists its i32/i64 index tables too, and a WEIGHT node is the src0 of a MUL_MAT/MUL_MAT_ID/
+    GET_ROWS — ggml's Vulkan backend answers `false` to an integer one, which refused every TTS
+    family on every Vulkan device until the filter went in."""
+    card = catalog.tts_model("voxcpm2")
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: str(tmp_path / "x.gguf"))
+
+    hdr = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"q8_0", "bf16", "f32", "i32", "i64"}), 5)
+    monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: hdr)
+    assert accel.weight_dtypes(card, "q8_0") == ("bf16", "f32", "q8_0")                   # i32/i64 gone
+
+    # A header of nothing but index tables leaves no question to ask: the rung's fallback set
+    # stands in rather than an empty tuple (n_weight_dtypes <= 0 is SK_ERR_INVALID_ARGUMENT).
+    only_int = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"i32", "i64"}), 2)
+    monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: only_int)
+    assert set(accel.weight_dtypes(card, "q8_0")) == catalog.RUNG_FALLBACK_DTYPES["q8_0"]
+
+    # And no rung's fallback set carries one either.
+    for ct in sorted({d.compute_type for d in card.deployments}):
+        monkeypatch.setattr(accel, "_artifact_path", lambda model, c: None)
+        assert not set(accel.weight_dtypes(card, ct)) & {"i8", "i16", "i32", "i64", "f64"}
+
+
+def test_ops_key_carries_the_dtype_set():
+    m = _known_gpu_machine()
+    a = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0", "bf16", "f32"))
+    b = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0", "bf16", "f16", "f32"))
+    assert a == "G1|ops:0:tts:voxcpm2:q8_0:bf16+f32+q8_0" and a != b                   # pre- and post-download differ
+
+
+def test_compute_op_coverage_caches_ok_and_not_errors(monkeypatch, tmp_path):
+    import types
+    from sokuji_sidecar import native
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = _known_gpu_machine()
+    calls = []
+    def supports(i, s, f, dts):
+        calls.append((i, s, f, tuple(dts)))
+        return types.SimpleNamespace(all_supported=False, unsupported=("NORM[f32,-,-,-,-]->f32",), checked=("NORM[f32,-,-,-,-]->f32",))
+    monkeypatch.setattr(native, "device_supports_ops", supports)
+    cov = accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("f32", "q8_0"))
+    assert cov == accel.OpCoverage(False, ("NORM[f32,-,-,-,-]->f32",))
+    assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("f32", "q8_0")) == cov and len(calls) == 1
+    key = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("f32", "q8_0"))
+    assert accel.bench_load()[key] == {"allSupported": False, "unsupported": ["NORM[f32,-,-,-,-]->f32"]}
+    # a different dtype set is a different question
+    accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("bf16", "f32", "q8_0"))
+    assert len(calls) == 2
+    # errors are None and never cached
+    class E(Exception):
+        def __init__(self, status):
+            self.status = status
+    def not_found(i, s, f, dts):
+        raise E(-4)      # SK_ERR_NOT_FOUND
+    monkeypatch.setattr(native, "device_supports_ops", not_found)
+    assert accel.compute_op_coverage(m, 0, "asr", "whisper", "q8_0", ("q8_0",)) is None
+    assert accel._ops_key(m, 0, "asr", "whisper", "q8_0", ("q8_0",)) not in accel.bench_load()
+    def backend(i, s, f, dts):
+        raise E(-3)      # SK_ERR_BACKEND
+    monkeypatch.setattr(native, "device_supports_ops", backend)
+    assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "bf16", ("bf16",)) is None
+    def invalid(i, s, f, dts):
+        raise E(-1)      # SK_ERR_INVALID_ARGUMENT: a programming error
+    monkeypatch.setattr(native, "device_supports_ops", invalid)
+    with pytest.raises(E):                                                 # conftest sets SOKUJI_WIRE_STRICT=1
+        accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0",))
+    monkeypatch.setenv("SOKUJI_WIRE_STRICT", "0")
+    assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0",)) is None   # production: degrade
+
+
+def test_op_coverage_treats_a_non_dict_cache_entry_as_a_miss_at_both_read_sites(monkeypatch, tmp_path):
+    # A bench-cache entry under an _ops_key-shaped key that is not the {"allSupported", "unsupported"}
+    # dict shape (hand-edited file, future schema drift, partial corruption) must degrade to a miss at
+    # BOTH read sites, never raise AttributeError from a bare v.get(...).
+    import types
+    from sokuji_sidecar import native
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
+    m = _known_gpu_machine()
+    card = catalog.tts_model("voxcpm2")
+    dts = accel.weight_dtypes(card, "q8_0")                     # the fallback set both call sites key by
+    key = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", dts)
+    accel.bench_save({key: 0.5}, generation="G1")                # non-dict entry: corrupt/hand-edited/legacy
+
+    # cached_op_coverage: read-only, must treat it as a miss, never raise, never touch native
+    monkeypatch.setattr(native, "device_supports_ops", lambda *a: pytest.fail("read-only callable reached native"))
+    assert accel.cached_op_coverage(m, [card])(0, "tts", "voxcpm2", "q8_0") is None
+
+    # compute_op_coverage: the non-dict "hit" falls through to native, then overwrites the
+    # entry with the proper dict form (call count increments — it was NOT treated as cached).
+    calls = []
+    def supports(i, s, f, dtseq):
+        calls.append((i, s, f, tuple(dtseq)))
+        return types.SimpleNamespace(all_supported=True, unsupported=(), checked=())
+    monkeypatch.setattr(native, "device_supports_ops", supports)
+    cov = accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", dts)
+    assert cov == accel.OpCoverage(True, ()) and len(calls) == 1
+    assert accel.bench_load()[key] == {"allSupported": True, "unsupported": []}
+
+
+def test_op_coverage_for_precomputes_only_what_the_planner_may_gate(monkeypatch, tmp_path):
+    import types
+    from sokuji_sidecar import native
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    calls = []
+    def supports(i, s, f, dts):
+        calls.append((i, f, s))
+        return types.SimpleNamespace(all_supported=True, unsupported=(), checked=())
+    monkeypatch.setattr(native, "device_supports_ops", supports)
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
+    card = catalog.tts_model("voxcpm2")                    # two rungs: q8_0, bf16
+    m = _known_gpu_machine()
+    cb = accel.op_coverage_for(m, card, "auto")
+    assert len(calls) == 2 and all(c == (0, "voxcpm2", "tts") for c in calls)      # first vulkan device only, both rungs
+    assert cb(0, "tts", "voxcpm2", "q8_0").all_supported is True
+    assert cb(0, "tts", "voxcpm2", "f16") is None                                   # never asked → None
+    calls.clear()
+    accel.op_coverage_for(m, card, "cpu")
+    assert calls == []                                                              # explicit CPU: nothing computed
+    m2 = dataclasses.replace(m, devices=())
+    accel.op_coverage_for(m2, card, "auto")
+    assert calls == []
+    m3 = dataclasses.replace(m, devices=(dataclasses.replace(m.devices[0], known=False), m.devices[1]))
+    accel.op_coverage_for(m3, card, "auto")
+    assert calls == []
+    second = dataclasses.replace(m.devices[0], index=2, name="vulkan2", description="other")
+    m4 = dataclasses.replace(m, devices=(m.devices[0], second, m.devices[1]), generation="G2")   # fresh generation: the G1 answers are cached
+    accel.op_coverage_for(m4, card, "auto")
+    assert calls and {c[0] for c in calls} == {0}                                   # two GPUs of one kind: only the first
+
+
+def test_op_coverage_for_is_callable_with_four_args_on_every_path(monkeypatch, tmp_path):
+    # planner._deployment_available calls the callable as (index, stage, family,
+    # compute_type). Every "nothing computed" path must answer that shape too —
+    # an explicit CPU load on profile-carrying hardware still evaluates the gate
+    # for the card's GPU rows before pinning the cpu tier.
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = _known_gpu_machine()
+    card = catalog.tts_model("voxcpm2")
+    for cb in (accel.op_coverage_for(m, card, "cpu"),
+               accel.op_coverage_for(m, None, "auto"),
+               accel.op_coverage_for(dataclasses.replace(m, devices=()), card, "auto")):
+        assert cb(0, "tts", "voxcpm2", "q8_0") is None
+
+
+def test_resolve_tts_cpu_override_resolves_on_profile_carrying_hardware(monkeypatch, tmp_path):
+    # End-to-end guard for the same thing through the wrapper the engines call.
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    monkeypatch.setattr(accel, "current_platform", lambda: "linux")
+    plans = accel.resolve_tts("voxcpm2", "cpu", machine=_known_gpu_machine())
+    assert plans[0].device == "cpu"
+
+
+def test_cached_op_coverage_reads_only(monkeypatch, tmp_path):
+    from sokuji_sidecar import native
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
+    m = _known_gpu_machine()
+    card = catalog.tts_model("voxcpm2")
+    monkeypatch.setattr(native, "device_supports_ops", lambda *a: pytest.fail("read-only callable reached native"))
+    assert accel.cached_op_coverage(m, [card])(0, "tts", "voxcpm2", "q8_0") is None
+    dts = accel.weight_dtypes(card, "q8_0")                                         # the fallback set: what the miss was keyed by
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", dts): {"allSupported": False, "unsupported": ["X"]}}, generation="G1")
+    assert accel.cached_op_coverage(m, [card])(0, "tts", "voxcpm2", "q8_0") == accel.OpCoverage(False, ("X",))
+
+
+async def _call(handler, msg):
+    out, _ = await handler(None, msg, None)
+    return out
+
+
+def test_hardware_info_carries_profiles_and_cached_coverage(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = _known_gpu_machine()
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    monkeypatch.setattr(accel, "_engine_identity", lambda m: ("1.1.0", {"ggml": "0.22.0"}, "cpu-vulkan", {"kind": "vulkan", "name": "vulkan0", "description": "GB10"}))
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("bf16", "f32", "q8_0")): {"allSupported": False, "unsupported": ["NORM[f32,-,-,-,-]->f32"]}}, generation="G1")
+    monkeypatch.setattr(accel, "compute_op_coverage", lambda *a, **k: pytest.fail("hardware_info must not compute coverage"))
+    out = asyncio.run(_call(accel._h_hardware_info, {"type": "hardware_info", "id": 7}))
+    assert out["generation"] == "G1"
+    dev = out["devices"][0]
+    assert dev["kind"] == "vulkan" and dev["known"] and dev["deviceUuid"] == "ab" * 16 and dev["driverName"] == "NVIDIA"
+    assert dev["opCoverage"] == {"tts/voxcpm2/q8_0": {"allSupported": False, "unsupported": ["NORM[f32,-,-,-,-]->f32"]}}
+    assert out["devices"][1]["cpuFeatures"] == "NEON=1" and out["devices"][1]["opCoverage"] == {}
+    from sokuji_sidecar import wire
+    wire.validate_outbound(out)                                       # schema lists the two new optional fields
+
+
+def test_hardware_info_without_profiles_is_todays_wire_plus_nulls(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = dataclasses.replace(_known_gpu_machine(), devices=(), generation="")
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    monkeypatch.setattr(accel, "_engine_identity", lambda m: (None, None, None, None))
+    out = asyncio.run(_call(accel._h_hardware_info, {"type": "hardware_info", "id": 8}))
+    assert out["generation"] is None and out["devices"] is None
+
+
+def test_models_catalog_marks_unsupported_tiers_but_keeps_supported_true(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)          # both rungs keyed by their fallback sets
+    m = _known_gpu_machine()
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    card = catalog.tts_model("voxcpm2")
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "bf16", accel.weight_dtypes(card, "bf16")): {"allSupported": False, "unsupported": ["X"]},
+                      accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", accel.weight_dtypes(card, "q8_0")): {"allSupported": True, "unsupported": []}}, generation="G1")
+    out = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 1, "kind": "tts", "models": ["voxcpm2"]}))
+    card_out = out["models"][0]
+    vulkan = next(t for t in card_out["tiers"] if t["tier"] == "gpu-vulkan")
+    assert vulkan["available"] is True                                # q8_0 can execute there
+    by_id = {v["id"]: v for v in card_out["variants"]}
+    assert by_id["bf16"]["supported"] is True and by_id["bf16"]["unsupportedTiers"] == ["gpu-vulkan"]
+    assert by_id["q8_0"]["supported"] is True and "unsupportedTiers" not in by_id["q8_0"]
+    from sokuji_sidecar import wire
+    wire.validate_outbound(out)
+    # cache miss → exactly today's wire
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path / "empty"))
+    out2 = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 2, "kind": "tts", "models": ["voxcpm2"]}))
+    assert all("unsupportedTiers" not in v for v in out2["models"][0]["variants"])
+    assert next(t for t in out2["models"][0]["tiers"] if t["tier"] == "gpu-vulkan")["available"] is True
+
+
+def test_models_catalog_tier_unavailable_when_every_rung_is_refused(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
+    m = _known_gpu_machine()
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    card = catalog.tts_model("voxcpm2")
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", ct, accel.weight_dtypes(card, ct)): {"allSupported": False, "unsupported": ["X"]}
+                      for ct in {d.compute_type for d in card.deployments}}, generation="G1")
+    out = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 3, "kind": "tts", "models": ["voxcpm2"]}))
+    assert next(t for t in out["models"][0]["tiers"] if t["tier"] == "gpu-vulkan")["available"] is False
+    assert next(t for t in out["models"][0]["tiers"] if t["tier"] == "cpu")["available"] is True

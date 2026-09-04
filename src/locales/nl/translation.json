@@ -761,6 +761,7 @@
     "variantWontFitNoMem": "Vereist ~{{need}} GPU-geheugen",
     "wontFit": "Past niet op deze machine",
     "variantNoGpuFits": "Geen GPU-variant past — draait op de CPU.",
+    "variantRunsOnCpu": "Draait op de CPU op deze machine.",
     "hwFramework": "Engine",
     "hwDevice": "Apparaat",
     "hwApi": "Versnelling",

@@ -761,6 +761,7 @@
     "variantWontFitNoMem": "~{{need}} GPU মেমরি প্রয়োজন",
     "wontFit": "এই মেশিনে জায়গা হবে না",
     "variantNoGpuFits": "কোনো GPU ভ্যারিয়েন্ট মানানসই নয় — CPU-তে চলবে।",
+    "variantRunsOnCpu": "এই ডিভাইসে CPU-তে চলবে।",
     "hwFramework": "ইঞ্জিন",
     "hwDevice": "ডিভাইস",
     "hwApi": "অ্যাক্সিলারেশন",

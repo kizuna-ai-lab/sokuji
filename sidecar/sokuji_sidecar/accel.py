@@ -6,6 +6,7 @@ docstring for the accel/planner ownership boundary."""
 import hashlib
 import importlib.util
 import json
+import logging
 import os
 import platform
 import time
@@ -14,6 +15,30 @@ from dataclasses import dataclass
 import numpy as np
 
 from .backends import make_backend, BackendLoadError
+from . import gguf_header
+
+
+@dataclass(frozen=True)
+class DeviceProfile:
+    """One sk_device_profile (spec A §3.1) as the planner reads it. `known=False` means every
+    consumer passes through (premise 5)."""
+    index: int
+    kind: str
+    name: str
+    description: str
+    mem_total: int
+    known: bool
+    features: frozenset
+    driver_name: str
+    driver_version: str
+    device_uuid: str
+    cpu_features: str
+
+
+@dataclass(frozen=True)
+class OpCoverage:
+    all_supported: bool
+    unsupported: tuple
 
 
 @dataclass(frozen=True)
@@ -33,6 +58,12 @@ class Machine:
     # Machine is cached + fingerprinted) — planners read device_free_bytes()
     # fresh at plan time instead.
     gpus: tuple[tuple[str, str, int], ...] = ()
+    # Spec A: structured per-device profiles, () when the wheel is absent or predates
+    # sk_device_profile_get; and the CACHE GENERATION — every bench key is prefixed with
+    # it, so a native/engine/driver change invalidates measured numbers. "" only when the
+    # identity detector failed (wheel absent).
+    devices: tuple = ()
+    generation: str = ""
 
 
 def _apple_silicon() -> bool:
@@ -75,6 +106,33 @@ def _native_gpus() -> tuple[tuple[str, str, int], ...]:
     strings lands here is load-bearing."""
     return tuple((d.kind, d.description or "", int(d.mem_total or 0))
                  for d in _native_devices() if d.kind != "cpu")
+
+
+def _native_profiles() -> tuple:
+    from . import native
+    return tuple(DeviceProfile(p.index, p.kind, p.name, p.description, int(p.mem_total), bool(p.known),
+                               frozenset(p.features), p.driver_name, p.driver_version, p.device_uuid, p.cpu_features)
+                 for p in native.device_profiles())
+
+
+def _native_identity():
+    """(sk_version, engine_versions) or a raise (the wheel is absent)."""
+    from . import native
+    mod = native.module()
+    return mod.version(), dict(mod.engine_versions())
+
+
+def compute_generation(identity, devices: tuple) -> str:
+    """Pure. blake2s over sk_version | engine pins | per-device driver identity | GGML_* env
+    (spec A §3.3). `devices=()` hashes as an empty list, so a wheel without profiles still
+    gets a version-keyed generation."""
+    if identity is None:
+        return ""
+    version, pins = identity
+    dev_part = [(d.kind, d.device_uuid, d.driver_name, d.driver_version) for d in sorted(devices, key=lambda d: d.index)]
+    env_part = sorted((k, v) for k, v in os.environ.items() if k.startswith("GGML_"))
+    src = f"{version}|{sorted(pins.items())}|{dev_part}|{env_part}"
+    return hashlib.blake2s(src.encode(), digest_size=6).hexdigest()
 
 
 def device_free_bytes():
@@ -149,6 +207,8 @@ def probe(force: bool = False) -> Machine:
     installed = _safe(_installed, frozenset())
     tc_kinds = _safe(_native_kinds, ())
     tc_gpus = _safe(_native_gpus, ())
+    devices = _safe(_native_profiles, ())
+    identity = _safe(_native_identity, None)
     fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
               f"{','.join(sorted(installed))}|"
               f"{','.join(tc_kinds)}|"
@@ -157,7 +217,8 @@ def probe(force: bool = False) -> Machine:
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
         apple_silicon=apple, installed=installed,
-        fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus)
+        fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus,
+        devices=devices, generation=compute_generation(identity, devices))
     return _MACHINE
 
 
@@ -180,7 +241,7 @@ def probe(force: bool = False) -> Machine:
 from . import planner  # noqa: E402
 from .planner import (  # noqa: E402,F401
     Plan, NoUsablePlan, TIER_RANK, TIER_DEVICE,
-    _tier_available, _platform_ok, _bench_key,
+    _tier_available, _platform_ok, _bench_key, _cache_key,
     _TC_RESIDENT_FACTOR, _quant_budget_bytes, _tc_pick_quant,
     _VRAM_CONTEXT_BYTES, _weight_factor, _is_gguf_llm,
     _LLAMA_RESIDENT_FACTOR, _llamacpp_quant,
@@ -212,6 +273,159 @@ def _downloaded_quants(model) -> set:
     return out
 
 
+def _artifact_path(model, compute_type: str):
+    """Local path of the rung's GGUF if it is in the HF cache, else None."""
+    from . import catalog as _cat
+    from huggingface_hub import hf_hub_download
+    for d in model.deployments:
+        if d.compute_type != compute_type:
+            continue
+        repo, fname = _cat.split_artifact(d.artifact)
+        if not fname:
+            return None
+        try:
+            return hf_hub_download(repo, fname, local_files_only=True)
+        except Exception:
+            return None
+    return None
+
+
+def weight_dtypes(model, compute_type: str) -> tuple:
+    """The dtype set WEIGHT expands over (spec A premise 7): the file's real header set,
+    INTERSECTED with the weight-capable types, when the rung is on disk; else the rung's
+    deliberately wide fallback set. Sorted, so it keys.
+
+    The intersection is not cosmetic. A GGUF header also lists its i32/i64 index tables, and a
+    WEIGHT node is the src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS — never an integer tensor. Asking
+    a backend to MUL_MAT an i64 is a question no real graph poses, and ggml's Vulkan backend
+    answers `false`, which would refuse every TTS family on every Vulkan device. An all-integer
+    header set (impossible for a real model, but not for a corrupt or hand-made file) leaves
+    nothing to ask, so the fallback set stands in."""
+    from . import catalog as _cat
+    fallback = tuple(sorted(_cat.RUNG_FALLBACK_DTYPES.get(compute_type, frozenset({"f32"}))))
+    path = _artifact_path(model, compute_type)
+    if path:
+        try:
+            header = gguf_header.read_header(path).tensor_types & _cat.WEIGHT_CAPABLE_DTYPES
+            if header:
+                return tuple(sorted(header))
+        except Exception:
+            pass
+    return fallback
+
+
+def _ops_key(machine: Machine, device_index: int, stage: str, family: str, compute_type: str, weight_dtypes_) -> str:
+    """gen|ops:idx:stage:family:ct:dt1+dt2 — the dtype set is part of the question, so the
+    pre-download (fallback-set) answer and the post-download (header-set) answer coexist."""
+    return f"{machine.generation}|ops:{device_index}:{stage}:{family}:{compute_type}:{'+'.join(sorted(weight_dtypes_))}"
+
+
+def _stage_of_model(model) -> str:
+    return planner._STAGE_OF_BACKEND.get(model.deployments[0].backend, "")
+
+
+_OK_TO_MISS = (-4, -3)          # SK_ERR_NOT_FOUND (no recording), SK_ERR_BACKEND (Vulkan first-init threw)
+
+
+def _op_coverage_from_dict(v) -> "OpCoverage | None":
+    """Decode one bench-cache entry into an OpCoverage, or None when `v` is not the dict
+    shape a cache-write produces (hand-edited file, future schema drift, partial
+    corruption) — a non-dict is treated as a miss, never an AttributeError."""
+    if not isinstance(v, dict):
+        return None
+    return OpCoverage(bool(v.get("allSupported")), tuple(v.get("unsupported", ())))
+
+
+def compute_op_coverage(machine: Machine, device_index: int, stage: str, family: str,
+                        compute_type: str, weight_dtypes_):
+    """native.device_supports_ops once per key, cached in the bench file. NOT_FOUND and
+    BACKEND return None uncached; every other error is a programming error — raise under
+    SOKUJI_WIRE_STRICT (the test suite), log and degrade in production."""
+    from . import native
+    key = _ops_key(machine, device_index, stage, family, compute_type, weight_dtypes_)
+    entries = bench_load()
+    if key in entries:
+        cached = _op_coverage_from_dict(entries[key])
+        if cached is not None:
+            return cached
+    try:
+        cov = native.device_supports_ops(device_index, stage, family, weight_dtypes_)
+    except Exception as e:                       # NativeError carries .status
+        if getattr(e, "status", None) in _OK_TO_MISS:
+            return None
+        if os.environ.get("SOKUJI_WIRE_STRICT") == "1":
+            raise
+        logging.getLogger("sokuji_sidecar.accel").warning("device_supports_ops failed: %s", e)
+        return None
+    out = OpCoverage(bool(cov.all_supported), tuple(cov.unsupported))
+    entries[key] = {"allSupported": out.all_supported, "unsupported": list(out.unsupported)}
+    bench_save(entries, generation=machine.generation)
+    return out
+
+
+def _first_device_of_kind(machine: Machine, kind: str):
+    return next((d for d in machine.devices if d.kind == kind), None)
+
+
+def _gpu_targets(machine: Machine, model):
+    """(device, tier) for each GPU tier the card lists that _tier_available accepts — the FIRST
+    known device of that kind (native.device_for picks the first too). Empty without profiles."""
+    out, seen = [], set()
+    for d in model.deployments:
+        if d.tier == "cpu" or not _tier_available(d.tier, machine, d.backend):
+            continue
+        kind = TIER_DEVICE[d.tier]
+        if kind in seen:
+            continue
+        seen.add(kind)
+        dev = _first_device_of_kind(machine, kind)
+        if dev is not None and dev.known:
+            out.append((dev, d.tier))
+    return out
+
+
+def op_coverage_for(machine: Machine, model, override: str):
+    """What the resolve wrappers hand the planner: a dict.get over results PRECOMPUTED here —
+    per accepted GPU tier, this card's graph_family, every rung the card lists, each keyed by
+    that rung's current dtype set. Nothing is computed for an explicit CPU load, without
+    profiles, or when the device is not known (spec A §3.3)."""
+    results = {}
+
+    def lookup(index, stage_, family, ct):
+        return results.get((index, stage_, family, ct))
+
+    # ONE callable shape on every path: the planner calls it with four positional
+    # arguments, so the "nothing computed" answer must be this closure too — a bare
+    # `results.get` takes at most two and would raise TypeError the moment a known
+    # device made the gate ask (explicit CPU on profile-carrying hardware).
+    if override == "cpu" or not machine.devices or model is None:
+        return lookup
+    stage = _stage_of_model(model)
+    for dev, _tier in _gpu_targets(machine, model):
+        for ct in sorted({x.compute_type for x in model.deployments}):
+            results[(dev.index, stage, model.graph_family, ct)] = compute_op_coverage(
+                machine, dev.index, stage, model.graph_family, ct, weight_dtypes(model, ct))
+    return lookup
+
+
+def cached_op_coverage(machine: Machine, models):
+    """Read-only twin of op_coverage_for for the wire producers (_h_models_catalog,
+    _h_list_variants): the same keys, looked up in the bench file, never computed. A miss is
+    None. `models` is the list of cards the reply covers."""
+    entries = bench_load()
+    results = {}
+    if machine.devices:
+        for model in models:
+            stage = _stage_of_model(model)
+            for dev, _tier in _gpu_targets(machine, model):
+                for ct in sorted({x.compute_type for x in model.deployments}):
+                    v = entries.get(_ops_key(machine, dev.index, stage, model.graph_family, ct, weight_dtypes(model, ct)))
+                    cov = _op_coverage_from_dict(v)
+                    if cov is not None:
+                        results[(dev.index, stage, model.graph_family, ct)] = cov
+    return lambda index, stage_, family, ct: results.get((index, stage_, family, ct))
+
+
 # ── Loader wrappers for planner.py's pure resolve/pick functions ────────────
 # Same public names + call signatures as before the purification split.
 # Each fetches its I/O by calling the env-fact functions below AS BARE
@@ -222,10 +436,11 @@ def _downloaded_quants(model) -> set:
 # as it was before this split.
 
 
-def resolve_deployments(model, machine, override="auto", bench=None, *, platform=None):
+def resolve_deployments(model, machine, override="auto", bench=None, *, platform=None, op_coverage=None):
     return planner.resolve_deployments(
         model, machine, override, bench,
-        platform=platform if platform is not None else current_platform())
+        platform=platform if platform is not None else current_platform(),
+        op_coverage=op_coverage or planner._NO_COVERAGE)
 
 
 def resolve(model_id, override="auto", machine=None, pin=None):
@@ -235,7 +450,8 @@ def resolve(model_id, override="auto", machine=None, pin=None):
     multi_quant = model is not None and len({d.compute_type for d in model.deployments}) > 1
     downloaded = _downloaded_quants(model) if multi_quant else set()
     return planner.resolve(model_id, override, machine=m, platform=current_platform(),
-                           cache=bench_load(), downloaded=downloaded, pin=pin)
+                           cache=bench_load(), downloaded=downloaded, pin=pin,
+                           op_coverage=op_coverage_for(m, model, override))
 
 
 def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0, pin=None):
@@ -247,7 +463,8 @@ def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0,
     return planner.resolve_translate(
         model_id, override, machine=m, platform=current_platform(), cache=bench_load(),
         downloaded=downloaded, reserved_bytes=reserved_bytes, pin=pin,
-        est_bytes=_est_bytes, format_ready=_format_ready)
+        est_bytes=_est_bytes, format_ready=_format_ready,
+        op_coverage=op_coverage_for(m, model, override))
 
 
 def resolve_tts(model_id, override="auto", machine=None, pin=None):
@@ -263,17 +480,22 @@ def resolve_tts(model_id, override="auto", machine=None, pin=None):
     downloaded = _downloaded_quants(model) if multi_quant else set()
     return planner.resolve_tts(model_id, override, machine=m, platform=current_platform(),
                                cache=bench_load(), downloaded=downloaded, pin=pin,
-                               est_bytes=_est_bytes)
+                               est_bytes=_est_bytes,
+                               op_coverage=op_coverage_for(m, model, override))
 
 
-def select_variant(model, machine, reserved_bytes, pin=None, budget_bytes=None, downloaded=None):
+def select_variant(model, machine, reserved_bytes, pin=None, budget_bytes=None, downloaded=None,
+                   op_coverage=None):
     return planner.select_variant(model, machine, reserved_bytes, pin, budget_bytes, downloaded,
-                                  est_bytes=_est_bytes, format_ready=_format_ready)
+                                  est_bytes=_est_bytes, format_ready=_format_ready,
+                                  op_coverage=op_coverage or planner._NO_COVERAGE)
 
 
-def _llamacpp_variant_row(model, machine, pin, reserved_bytes=0, budget_bytes=None, downloaded=None):
+def _llamacpp_variant_row(model, machine, pin, reserved_bytes=0, budget_bytes=None, downloaded=None,
+                          op_coverage=None):
     return planner._llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
-                                         downloaded=downloaded, est_bytes=_est_bytes)
+                                         downloaded=downloaded, est_bytes=_est_bytes,
+                                         op_coverage=op_coverage or planner._NO_COVERAGE)
 
 
 # ── Cross-stage VRAM ledger ──────────────────────────────────────────────────
@@ -487,25 +709,56 @@ def _bench_cache_path() -> str:
     return os.path.join(base, "accel-bench.json")
 
 
-def bench_load() -> dict:
-    """Best-effort read of the RTF cache. Missing/corrupt file → {}."""
+_GENERATIONS_KEY = "_generations"
+_KEEP_GENERATIONS = 3
+
+
+def bench_read() -> tuple:
+    """(entries, generations). Missing/corrupt file → ({}, []). A legacy flat file (no
+    _generations) reads as generation-less: its keys can never match a prefixed read."""
     try:
         with open(_bench_cache_path()) as f:
             data = json.load(f)
-        return data if isinstance(data, dict) else {}
+        if not isinstance(data, dict):
+            return {}, []
+        gens = data.pop(_GENERATIONS_KEY, [])
+        return data, list(gens) if isinstance(gens, list) else []
     except Exception:
-        return {}
+        return {}, []
 
 
-def bench_save(cache: dict) -> None:
-    """Best-effort write of the RTF cache. Never raises."""
+def bench_load() -> dict:
+    """Best-effort read of the bench cache — entries only (the planner receives this)."""
+    return bench_read()[0]
+
+
+def bench_save(entries: dict, *, generation: str) -> None:
+    """Best-effort write. Rotates the generation list (last 3 kept), keeps a key iff its first
+    `|` segment is in the post-rotation list (legacy and rotated-out keys are dropped), and
+    writes through a temp file + os.replace so a crash never leaves a torn file. Never raises.
+
+    An empty-string `generation` ("identity unknown", e.g. compute_generation when
+    _native_identity() fails) is a legitimate value and rotates through gens/keep like any
+    other — it is NOT "nothing to add". A legacy flat-file key is told apart from a "" entry
+    by its first `|`-segment: a legacy key's is the non-empty fingerprint hash, never ""."""
+    path = _bench_cache_path()
+    tmp = path + ".tmp"
     try:
-        path = _bench_cache_path()
+        _old, gens = bench_read()
+        if generation not in gens:
+            gens.append(generation)
+        gens = gens[-_KEEP_GENERATIONS:]
+        keep = set(gens)
+        kept = {k: v for k, v in entries.items() if k.split("|", 1)[0] in keep}
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
-            json.dump(cache, f)
+        with open(tmp, "w") as f:
+            json.dump({_GENERATIONS_KEY: gens, **kept}, f)
+        os.replace(tmp, path)
     except Exception:
-        pass
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
 
 
 def _measure(backend, plan, model_id: str, machine: Machine, *, ns: str, run, force: bool = False):
@@ -513,7 +766,7 @@ def _measure(backend, plan, model_id: str, machine: Machine, *, ns: str, run, fo
     (""/"tps:"/"tts:"); `run(backend)` performs the driver + metric and
     returns a float, or None to skip caching. Never raises (returns None)."""
     try:
-        key = ns + _bench_key(machine.fingerprint, model_id, plan.backend, plan.device, plan.compute_type)
+        key = _cache_key(machine, ns, model_id, plan.backend, plan.device, plan.compute_type)
         cache = bench_load()
         if not force and key in cache:
             return cache[key]
@@ -521,7 +774,7 @@ def _measure(backend, plan, model_id: str, machine: Machine, *, ns: str, run, fo
         if val is None:
             return None
         cache[key] = val
-        bench_save(cache)
+        bench_save(cache, generation=machine.generation)
         return val
     except Exception:
         return None
@@ -624,10 +877,11 @@ async def _h_list_variants(state, msg, _b, conn=None):
         return {"type": "error", "id": msg.get("id"), "message": "unknown model"}, None
     reserve = sum((native_models.model_size(msg.get(k)) or 0)
                   for k in ("asrId", "ttsId") if msg.get(k))
+    cov = cached_op_coverage(m, [model])
     # RECOMMENDATION basis must be STABLE across sessions (it drives which
     # quant the user downloads): device mem_total, not the volatile free.
     chosen = select_variant(model, m, reserve, pin=msg.get("pin"),
-                            budget_bytes=_quant_budget_bytes(m))
+                            budget_bytes=_quant_budget_bytes(m), op_coverage=cov)
     # select_variant can return None for a model with no cpu floor (none today, but
     # resolve_translate guards the same case) — never dereference chosen.compute_type then.
     if chosen is None:
@@ -728,6 +982,28 @@ def _engine_identity(m: Machine):
     return native_version, engine_versions, lane, preferred_device
 
 
+def _devices_wire(m: Machine) -> list:
+    """Spec A §3.4: the profile plus whatever op coverage is already cached — read-only. The
+    wire key drops the dtype segment; when both a pre-download and a post-download entry
+    exist for one rung, the later-written one wins (JSON preserves write order)."""
+    if not m.devices:
+        return []
+    entries = bench_load()
+    prefix = f"{m.generation}|ops:"
+    per_device = {d.index: {} for d in m.devices}
+    for k, v in entries.items():
+        if not (k.startswith(prefix) and isinstance(v, dict)):
+            continue
+        _ops, idx, stage, family, ct, _dtypes = k.split("|", 1)[1].split(":", 5)
+        if int(idx) in per_device:
+            per_device[int(idx)][f"{stage}/{family}/{ct}"] = {"allSupported": bool(v.get("allSupported")), "unsupported": list(v.get("unsupported", ()))}
+    return [{"index": d.index, "kind": d.kind, "name": d.name, "description": d.description,
+             "memTotalMb": d.mem_total >> 20, "known": d.known, "features": sorted(d.features),
+             "driverName": d.driver_name, "driverVersion": d.driver_version, "deviceUuid": d.device_uuid,
+             "cpuFeatures": d.cpu_features, "opCoverage": per_device[d.index]}
+            for d in m.devices]
+
+
 async def _h_hardware_info(state, msg, _b, conn=None):
     m = probe()
     native_version, engine_versions, lane, preferred_device = _engine_identity(m)
@@ -742,7 +1018,9 @@ async def _h_hardware_info(state, msg, _b, conn=None):
             "nativeVersion": native_version,
             "engineVersions": engine_versions,
             "lane": lane,
-            "preferredDevice": preferred_device}, None
+            "preferredDevice": preferred_device,
+            "generation": m.generation or None,
+            "devices": _devices_wire(m) or None}, None
 
 
 async def _h_models_catalog(state, msg, _b, conn=None):
@@ -763,6 +1041,7 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         models = [x for x in models if x.id in wanted]
     out = []
     platform_tag = current_platform()
+    cov = cached_op_coverage(m, models)
     for mdl in models:
         tiers = []
         seen_tiers = set()
@@ -772,8 +1051,12 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             if d.tier in seen_tiers:
                 continue                      # multi-quant ladders repeat tiers
             seen_tiers.add(d.tier)
-            tiers.append({"tier": d.tier, "backend": d.backend,
-                          "available": d.backend in m.installed and _tier_available(d.tier, m, d.backend)})
+            # "available" now means "some rung can execute there" — a tier stays
+            # available even when one quant is op-refused, as long as another
+            # quant at the same tier is not.
+            any_rung = any(x.backend in m.installed and planner._deployment_available(mdl, x, m, op_coverage=cov)
+                           for x in mdl.deployments if x.tier == d.tier and _platform_ok(x, m, platform_tag))
+            tiers.append({"tier": d.tier, "backend": d.backend, "available": any_rung})
         entry = {"id": mdl.id, "name": mdl.name, "languages": list(mdl.languages),
                  "recommended": mdl.recommended, "tiers": tiers,
                  "order": mdl.sort_order, "repo": mdl.deployments[0].artifact, "kind": kind,
@@ -817,10 +1100,10 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             # resident-factor budget-fit walk instead.
             is_llama = _is_gguf_llm(mdl)
             if is_llama:
-                chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
+                chosen = _llamacpp_variant_row(mdl, m, None, 0, budget, op_coverage=cov)
                 rec = chosen.compute_type if chosen is not None else None
             else:
-                rec = _tc_pick_quant(mdl, m, None, budget)
+                rec = _tc_pick_quant(mdl, m, None, budget, op_coverage=cov)
             variants = []
             factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
             for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
@@ -831,9 +1114,19 @@ async def _h_models_catalog(state, msg, _b, conn=None):
                     supported = True                       # no GPU → CPU runs anything
                 else:
                     supported = need <= budget
-                variants.append({"id": ct, "sizeBytes": size, "needBytes": need,
-                                 "repo": artifact_by_ct.get(ct),
-                                 "supported": supported, "recommended": ct == rec})
+                entry_v = {"id": ct, "sizeBytes": size, "needBytes": need,
+                          "repo": artifact_by_ct.get(ct),
+                          "supported": supported, "recommended": ct == rec}
+                # A tier-refused rung stays "supported" (it still fits, and CPU
+                # fallback still runs it) — unsupportedTiers is a narrower,
+                # additive signal for which GPU tiers specifically refuse it.
+                refused = sorted({x.tier for x in mdl.deployments
+                                  if x.compute_type == ct and x.tier != "cpu" and _platform_ok(x, m, platform_tag)
+                                  and _tier_available(x.tier, m, x.backend)
+                                  and not planner._deployment_available(mdl, x, m, op_coverage=cov)})
+                if refused:
+                    entry_v["unsupportedTiers"] = refused
+                variants.append(entry_v)
             entry["variants"] = variants
             # Machine context for the renderer's localized reason strings
             # ("needs ~X — this machine has Y"); null on cpu-only machines.

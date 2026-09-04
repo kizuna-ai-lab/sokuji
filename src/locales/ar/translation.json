@@ -761,6 +761,7 @@
     "variantWontFitNoMem": "يحتاج إلى ~{{need}} من ذاكرة GPU",
     "wontFit": "لن يناسب هذا الجهاز",
     "variantNoGpuFits": "لا توجد نسخة تناسب وحدة معالجة الرسومات — سيعمل على المعالج.",
+    "variantRunsOnCpu": "يعمل على المعالج على هذا الجهاز.",
     "hwFramework": "المحرك",
     "hwDevice": "الجهاز",
     "hwApi": "التسريع",

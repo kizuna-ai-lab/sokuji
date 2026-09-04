@@ -39,7 +39,9 @@ export interface NativeModelInfo {
   /** Precomputed machine-aware quant ladder (quality-desc): the sidecar owns
    *  supported (fits this machine) + recommended (stable download pick). */
   variants?: { id: string; sizeBytes: number; needBytes?: number; repo?: string;
-               supported: boolean; recommended: boolean }[];
+               supported: boolean; recommended: boolean;
+               // gpu tiers the sidecar's op coverage refused for this rung (spec A); the rung still runs on cpu
+               unsupportedTiers?: string[] }[];
   /** Stable budget basis (primary device total memory) the supported flags
    *  were computed against — feeds the localized "this machine has X" reason. */
   deviceMemBytes?: number | null;
@@ -54,6 +56,14 @@ export interface NativeModelInfo {
 export interface NativeVoiceInfo {
   name: string; language?: string; curated: boolean; unstable: boolean; default: boolean;
 }
+/** One device's profile as hardware_info reports it (spec A §3.4). `known=false` means the
+ *  sidecar could not read it; every field but index/kind/name/description is then empty. */
+export interface NativeDeviceProfile {
+  index: number; kind: string; name: string; description: string; memTotalMb: number;
+  known: boolean; features: string[]; driverName: string; driverVersion: string; deviceUuid: string;
+  cpuFeatures: string;
+  opCoverage: Record<string, { allSupported: boolean; unsupported: string[] }>;   // "stage/family/compute_type"
+}
 export interface HardwareInfoResultMsg {
   type: 'hardware_info_result'; id: number;
   os: string; arch: string; cpuCores: number;
@@ -64,6 +74,9 @@ export interface HardwareInfoResultMsg {
   engineVersions?: Record<string, string> | null;
   lane?: string | null;
   preferredDevice?: { kind: string; name: string; description: string } | null;
+  // Spec A §3.4: bench-cache generation + per-device profiles (op coverage etc.).
+  generation?: string | null;
+  devices?: NativeDeviceProfile[] | null;
 }
 export interface ModelsCatalogResultMsg {
   type: 'models_catalog_result'; id: number; models: NativeModelInfo[];
@@ -75,6 +88,7 @@ export interface VariantInfo {
   sizeBytes: number;
   supported: boolean;
   reason: string;
+  unsupportedTiers?: string[];
 }
 export interface ListVariantsResultMsg {
   type: 'list_variants_result'; id: number; variants: VariantInfo[]; recommended: string;

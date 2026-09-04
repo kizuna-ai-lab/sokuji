@@ -11,6 +11,8 @@ q6_k beating bf16). Note: transcribe.cpp SenseVoice emits raw text (no ITN /
 punctuation normalization) — accepted with the all-in decision."""
 from dataclasses import dataclass
 
+from .gguf_header import GGML_TYPE_NAMES as _GGML_TYPE_NAMES
+
 
 @dataclass(frozen=True)
 class Deployment:
@@ -37,6 +39,11 @@ class _ModelBase:
     size_bytes: int = 0          # total download size; 0 = unknown
     download_ignore: tuple[str, ...] = ()  # fnmatch patterns skipped by the downloader
                                             # (mirrors native_models._base_specs' spec["ignore"])
+    # The GRAPH this card runs — the key of its op recording (spec A §3.2): transcribe.cpp's
+    # architecture for ASR (what sk_asr_caps.arch reports), llama.cpp's general.architecture
+    # for translate, audio.cpp's family for TTS. Not a prompt strategy (that is
+    # TranslateModel.prompt_family).
+    graph_family: str = ""
 
 
 @dataclass(frozen=True)
@@ -65,13 +72,48 @@ def _tc_quant(fname):
 _TC_CURATED_MIN_RANK = 1.0
 
 
+# Premise 7 (spec A): a rung is not one dtype. The dtype set a pre-download query expands
+# WEIGHT over, when the file is not on disk yet; deliberately wide (a *_M file mixes K-quants,
+# the q8_0 TTS files carry BF16 weights, everything carries F32). Once the file exists its
+# header's real set — intersected with WEIGHT_CAPABLE_DTYPES — replaces this
+# (accel.weight_dtypes). Spellings are ggml_type_name()'s.
+# A GGUF also carries INTEGER tensors (i32/i64: omnivoice, index-tts2, voxcpm2, supertonic-3),
+# but those are index/position tables — never the src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS, i.e.
+# never a rung weight — and asking a backend to MUL_MAT an i64 is a question no real graph
+# poses. Vulkan answers `false` to it (ggml-vulkan's supports_op has no integer MUL_MAT case),
+# which would refuse every TTS family on every Vulkan device. Integer types are therefore
+# filtered out before expansion, on both layers (accel.weight_dtypes and sk_ops.cpp), and
+# these sets carry only weight-capable types.
+# gen_ops_data.py's WIDEST_FALLBACK is len() of the q4_k_m set — keep them in step.
+RUNG_FALLBACK_DTYPES: dict[str, frozenset[str]] = {
+    "q4_k_m": frozenset({"q4_K", "q5_K", "q6_K", "q8_0", "bf16", "f16", "f32"}),
+    "q5_k_m": frozenset({"q5_K", "q6_K", "q8_0", "bf16", "f16", "f32"}),
+    "q6_k":   frozenset({"q6_K", "q8_0", "bf16", "f16", "f32"}),
+    "q8_0":   frozenset({"q8_0", "bf16", "f16", "f32"}),
+    "f16":    frozenset({"f16", "f32"}),
+    "bf16":   frozenset({"bf16", "f16", "f32"}),
+}
+
+# The ggml types a rung-bearing WEIGHT tensor can actually hold: the float types a graph
+# computes in, plus every quantized type. Everything else in GGML_TYPE_NAMES (f64 and the
+# i8/i16/i32/i64 index tables) is filtered out of a header set before it becomes an expansion
+# set. Derived from gguf_header.GGML_TYPE_NAMES so a new quant spelling needs one edit there.
+_NON_WEIGHT_DTYPES = frozenset({"f64", "i8", "i16", "i32", "i64"})
+WEIGHT_CAPABLE_DTYPES: frozenset[str] = frozenset({"f32", "f16", "bf16"}) | frozenset(
+    n for n in _GGML_TYPE_NAMES.values()
+    if n not in _NON_WEIGHT_DTYPES and n not in {"f32", "f16", "bf16"}
+)
+
+
 def _tc_row(mid, name, langs, repo, base, order, quants, default,
-            recommended=False, backend="native_asr", tiers=_TC_TIERS):
+            recommended=False, backend="native_asr", tiers=_TC_TIERS, arch=""):
     """One transcribe.cpp ASR card with its FULL quant ladder. `quants` maps
     QUANT (filename token, e.g. "Q8_0") -> size_bytes; `default` names the
     curated default. The same GGUF serves every tier. Deployments are ordered
     default-first so downloads/size_bytes key off the default; q6_k/q4_k_m/q8_0
-    are curated recommendation candidates, f16/q5_k_m are listed-only."""
+    are curated recommendation candidates, f16/q5_k_m are listed-only.
+    `arch` is transcribe.cpp's `src/arch/<name>` directory for this family — what
+    sk_asr_caps.arch reports at runtime (graph_family)."""
     curated = {"q8_0", "q6_k", "q4_k_m"}
     deps = []
     order_keys = [default] + [q for q in ("F16", "Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M")
@@ -82,7 +124,7 @@ def _tc_row(mid, name, langs, repo, base, order, quants, default,
         deps += [Deployment(backend, tier, quant, f"{repo}/{base}-{q}.gguf", rank,
                             est_bytes=quants[q]) for tier in tiers]
     return AsrModel(mid, name, langs, tuple(deps), recommended=recommended,
-                    sort_order=order, size_bytes=quants[default])
+                    sort_order=order, size_bytes=quants[default], graph_family=arch)
 
 
 # Curated ASR roster (2026-07-05 re-pick from the full transcribe.cpp family).
@@ -99,39 +141,39 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/cohere-transcribe-03-2026-gguf", "cohere-transcribe-03-2026",
             10, {"F16": 4106644992, "Q8_0": 2410655232, "Q6_K": 1972524544,
                  "Q5_K_M": 1770270208, "Q4_K_M": 1558162944},
-            default="Q4_K_M", recommended=True),
+            default="Q4_K_M", recommended=True, arch="cohere"),
     # Russian specialist (GigaAM v3, end-to-end w/ punctuation) — no librispeech
     # figure (ru model); slotted top of its language view.
     _tc_row("gigaam-v3-e2e-rnnt", "GigaAM v3 (Russian)", ("ru",),
             "handy-computer/gigaam-v3-e2e-rnnt-gguf", "gigaam-v3-e2e-rnnt",
             15, {"F16": 452381408, "Q8_0": 273724832, "Q6_K": 227953952,
-                 "Q5_K_M": 206392736, "Q4_K_M": 183948704}, default="Q8_0"),
+                 "Q5_K_M": 206392736, "Q4_K_M": 183948704}, default="Q8_0", arch="gigaam"),
     # Russian second rung — plain RNNT variant (no e2e punctuation head).
     _tc_row("gigaam-v3-rnnt", "GigaAM v3 RNNT (Russian)", ("ru",),
             "handy-computer/gigaam-v3-rnnt-gguf", "gigaam-v3-rnnt",
             16, {"F16": 451084832, "Q8_0": 273022880, "Q6_K": 227252000,
-                 "Q5_K_M": 205690784, "Q4_K_M": 183246752}, default="Q8_0"),
+                 "Q5_K_M": 205690784, "Q4_K_M": 183246752}, default="Q8_0", arch="gigaam"),
     # WER 1.29 / 1.46 — English/European quality alternates.
     _tc_row("granite-speech-4.1-2b", "Granite Speech 4.1 (2B)",
             ("en", "fr", "de", "es", "pt", "ja"),
             "handy-computer/granite-speech-4.1-2b-gguf", "granite-speech-4.1-2b",
             20, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936,
-                 "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M"),
+                 "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M", arch="granite"),
     # WER 1.38 — the big English parakeet; second-best English figure in the roster.
     _tc_row("parakeet-tdt-1.1b", "Parakeet TDT 1.1B", ("en",),
             "handy-computer/parakeet-tdt-1.1b-gguf", "parakeet-tdt-1.1b",
             25, {"F16": 2145162976, "Q8_0": 1267288736, "Q6_K": 1042509472,
-                 "Q5_K_M": 935758496, "Q4_K_M": 825248416}, default="Q8_0"),
+                 "Q5_K_M": 935758496, "Q4_K_M": 825248416}, default="Q8_0", arch="parakeet"),
     _tc_row("granite-speech-4.1-2b-plus", "Granite Speech 4.1 (2B+)",
             ("en", "fr", "de", "es", "pt"),
             "handy-computer/granite-speech-4.1-2b-plus-gguf", "granite-speech-4.1-2b-plus",
             30, {"F16": 4229971808, "Q8_0": 2345973152, "Q6_K": 1859821504,
-                 "Q5_K_M": 1691297088, "Q4_K_M": 1489663424}, default="Q4_K_M"),
+                 "Q5_K_M": 1691297088, "Q4_K_M": 1489663424}, default="Q4_K_M", arch="granite"),
     # WER 1.59 (q4_k_m beats q8_0's 1.62 per the author's table) — en/de/es/fr.
     _tc_row("canary-1b-flash", "Canary 1B Flash", ("en", "de", "es", "fr"),
             "handy-computer/canary-1b-flash-gguf", "canary-1b-flash",
             35, {"F16": 1785657120, "Q8_0": 1048131360, "Q6_K": 857603872,
-                 "Q5_K_M": 769563424, "Q4_K_M": 677141280}, default="Q4_K_M"),
+                 "Q5_K_M": 769563424, "Q4_K_M": 677141280}, default="Q4_K_M", arch="canary"),
     # WER 1.61 — CJK quality mainstay (verified all-5-langs correct on real clips).
     _tc_row("qwen3-asr-1.7b", "Qwen3-ASR 1.7B",
             ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
@@ -139,7 +181,7 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/Qwen3-ASR-1.7B-gguf", "Qwen3-ASR-1.7B",
             40, {"F16": 4091390944, "Q8_0": 2185030624, "Q6_K": 1692554208,
                  "Q5_K_M": 1517290464, "Q4_K_M": 1319830496},
-            default="Q4_K_M", recommended=True),
+            default="Q4_K_M", recommended=True, arch="qwen3_asr"),
     # WER 1.69 (q6_k beats bf16 per the author's table) — 31-language coverage king.
     _tc_row("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
             ("zh", "en", "yue", "ja", "ko", "vi", "id", "th", "ms", "fil", "ar",
@@ -148,23 +190,23 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/Fun-ASR-MLT-Nano-2512-gguf", "Fun-ASR-MLT-Nano-2512",
             50, {"F16": 1667504192, "Q8_0": 891271232, "Q6_K": 690744384,
                  "Q5_K_M": 631129152, "Q4_K_M": 556975168},
-            default="Q6_K", recommended=True),
+            default="Q6_K", recommended=True, arch="funasr_nano"),
     # WER 1.78 (q6_k ties bf16 — same quirk as the MLT sibling) — light zh/en/ja.
     _tc_row("fun-asr-nano", "Fun-ASR Nano", ("zh", "en", "ja"),
             "handy-computer/Fun-ASR-Nano-2512-gguf", "Fun-ASR-Nano-2512",
             55, {"F16": 1667503872, "Q8_0": 891270912, "Q6_K": 690744064,
-                 "Q5_K_M": 631128832, "Q4_K_M": 556974848}, default="Q6_K"),
+                 "Q5_K_M": 631128832, "Q4_K_M": 556974848}, default="Q6_K", arch="funasr_nano"),
     # WER 1.81 — 99-language quality reference.
     _tc_row("whisper-large-v3", "Whisper large-v3", ("multi",),
             "handy-computer/whisper-large-v3-gguf", "whisper-large-v3",
             60, {"F16": 3107236640, "Q8_0": 1668741440, "Q6_K": 1297130208,
-                 "Q5_K_M": 1161143008, "Q4_K_M": 997303008}, default="Q8_0"),
+                 "Q5_K_M": 1161143008, "Q4_K_M": 997303008}, default="Q8_0", arch="whisper"),
     # WER 1.90 (q5_k_m best rung; default q8_0 lands 1.93) — the tiny/fastest
     # canary rung (en/de/es/fr).
     _tc_row("canary-180m-flash", "Canary 180M Flash", ("en", "de", "es", "fr"),
             "handy-computer/canary-180m-flash-gguf", "canary-180m-flash",
             65, {"F16": 381632192, "Q8_0": 218447552, "Q6_K": 176291520,
-                 "Q5_K_M": 158704320, "Q4_K_M": 139223744}, default="Q8_0"),
+                 "Q5_K_M": 158704320, "Q4_K_M": 139223744}, default="Q8_0", arch="canary"),
     # WER 1.91 — European quality tier (NVIDIA Canary, 25 langs).
     _tc_row("canary-1b-v2", "Canary 1B v2",
             ("bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
@@ -172,7 +214,7 @@ ASR_MODELS: list[AsrModel] = [
              "sv", "ru", "uk"),
             "handy-computer/canary-1b-v2-gguf", "canary-1b-v2",
             70, {"F16": 1966111456, "Q8_0": 1144290016, "Q6_K": 931986144,
-                 "Q5_K_M": 836664032, "Q4_K_M": 735476448}, default="Q8_0"),
+                 "Q5_K_M": 836664032, "Q4_K_M": 735476448}, default="Q8_0", arch="canary"),
     # WER 1.92 at RTF 151 (metal) — the European SPEED tier (NVIDIA TDT).
     _tc_row("parakeet-tdt-0.6b-v3", "Parakeet TDT 0.6B v3",
             ("bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
@@ -181,7 +223,7 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/parakeet-tdt-0.6b-v3-gguf", "parakeet-tdt-0.6b-v3",
             80, {"F16": 1255869856, "Q8_0": 739508576, "Q6_K": 610342240,
                  "Q5_K_M": 548946272, "Q4_K_M": 485425504},
-            default="Q8_0", recommended=True),
+            default="Q8_0", recommended=True, arch="parakeet"),
     # German fine-tune of v3 (primeline, CC-BY-4.0; transcribe.cpp >= 0.2.0):
     # FLEURS-de WER 6.00 vs NeMo's 5.98 — not a librispeech figure, so it sits
     # right behind its base rather than in the WER order. Keeps the other 24
@@ -192,7 +234,7 @@ ASR_MODELS: list[AsrModel] = [
              "es", "sv", "uk"),
             "handy-computer/parakeet-primeline-gguf", "parakeet-primeline",
             81, {"F16": 1255869920, "Q8_0": 739508640, "Q6_K": 610342304,
-                 "Q5_K_M": 548946336, "Q4_K_M": 485425568}, default="Q8_0"),
+                 "Q5_K_M": 548946336, "Q4_K_M": 485425568}, default="Q8_0", arch="parakeet"),
     # WER 1.93 @ Q8_0 — en/zh audio-LLM (Whisper-medium encoder + Qwen3-0.6B;
     # Apache-2.0; transcribe.cpp >= 0.2.0). Batch-only upstream, and its
     # optional inline speaker markers stay OFF (session.run's diarize default),
@@ -201,7 +243,7 @@ ASR_MODELS: list[AsrModel] = [
     _tc_row("moss-transcribe-diarize", "MOSS Transcribe (0.9B)", ("en", "zh"),
             "handy-computer/moss-transcribe-diarize-gguf", "MOSS-Transcribe-Diarize",
             85, {"F16": 1833665696, "Q8_0": 986899616, "Q6_K": 768151712,
-                 "Q5_K_M": 700313760, "Q4_K_M": 617345184}, default="Q8_0"),
+                 "Q5_K_M": 700313760, "Q4_K_M": 617345184}, default="Q8_0", arch="moss"),
     # WER 2.01 — 99-language mainstay: ~large-v3 quality at 4x the speed.
     # Sizes are the 2026-07-21 re-upload of the repo (quants 64 bytes shorter per
     # file; F16 was re-encoded, ~10.8 MB smaller) — all five match the live tree.
@@ -209,27 +251,27 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/whisper-large-v3-turbo-gguf", "whisper-large-v3-turbo",
             90, {"F16": 1625935520, "Q8_0": 886381760, "Q6_K": 692536928,
                  "Q5_K_M": 619628128, "Q4_K_M": 536069728},
-            default="Q8_0", recommended=True),
+            default="Q8_0", recommended=True, arch="whisper"),
     # WER 2.07 — heavy streaming flagship (committed/tentative partials).
     _tc_row("voxtral-mini-4b-realtime", "Voxtral Mini 4B Realtime",
             ("en", "fr", "es", "de", "ru", "zh", "ja", "it", "pt", "nl", "ar", "hi", "ko"),
             "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf", "Voxtral-Mini-4B-Realtime-2602",
             100, {"F16": 8879114528, "Q8_0": 4731791648, "Q6_K": 3661018912,
                   "Q5_K_M": 3281439008, "Q4_K_M": 2830493984},
-            default="Q4_K_M", recommended=True, backend="native_asr_stream"),
+            default="Q4_K_M", recommended=True, backend="native_asr_stream", arch="voxtral_realtime"),
     # WER 2.10 — light CJK quality rung.
     _tc_row("qwen3-asr-0.6b", "Qwen3-ASR 0.6B",
             ("zh", "en", "ja", "ko", "yue", "ar", "de", "es",
              "fr", "it", "pt", "ru", "th", "vi", "hi", "id"),
             "handy-computer/Qwen3-ASR-0.6B-gguf", "Qwen3-ASR-0.6B",
             110, {"F16": 1579793056, "Q8_0": 850423456, "Q6_K": 690417824,
-                  "Q5_K_M": 645356192, "Q4_K_M": 589560480}, default="Q8_0"),
+                  "Q5_K_M": 645356192, "Q4_K_M": 589560480}, default="Q8_0", arch="qwen3_asr"),
     # WER 2.16 — English STREAMING mid rung (MIT); upstream ships only
     # F16/Q8_0 rungs (plus an F32 we skip — the WER table is flat across all).
     _tc_row("moonshine-streaming-medium", "Moonshine Streaming Medium", ("en",),
             "handy-computer/moonshine-streaming-medium-gguf", "moonshine-streaming-medium",
             113, {"F16": 533781408, "Q8_0": 295793568},
-            default="Q8_0", backend="native_asr_stream"),
+            default="Q8_0", backend="native_asr_stream", arch="moonshine_streaming"),
     # WER 2.18 @ Q8_0 — en-only cache-aware STREAMING, cased+punct (NVIDIA
     # Open Model License; transcribe.cpp >= 0.2.0). The ROOT GGUFs: the repo's
     # bundle/ twins embed a Sortformer diarizer whose multi-speaker output is
@@ -240,13 +282,13 @@ ASR_MODELS: list[AsrModel] = [
             "multitalker-parakeet-streaming-0.6b-v1",
             114, {"F16": 1246058304, "Q8_0": 734123712, "Q6_K": 603878080,
                   "Q5_K_M": 541890240, "Q4_K_M": 477812416},
-            default="Q8_0", backend="native_asr_stream"),
+            default="Q8_0", backend="native_asr_stream", arch="parakeet"),
     # WER 2.25 — Taiwanese Mandarin + zh/en code-switching (Whisper-large-v2
     # ft); the quant ladder is WER-flat so the smallest curated rung wins.
     _tc_row("breeze-asr-25", "Breeze ASR 25", ("zh", "en"),
             "handy-computer/Breeze-ASR-25-gguf", "Breeze-ASR-25",
             116, {"F16": 3106458208, "Q8_0": 1667964224, "Q6_K": 1296353280,
-                 "Q5_K_M": 1160366080, "Q4_K_M": 996526080}, default="Q4_K_M"),
+                 "Q5_K_M": 1160366080, "Q4_K_M": 996526080}, default="Q4_K_M", arch="whisper"),
     # WER 3.03 — LIGHT streaming, 27 languages incl. zh/ja/ko (author-recommended).
     _tc_row("nemotron-3.5-asr-streaming", "Nemotron 3.5 ASR Streaming",
             ("en", "es", "fr", "it", "pt", "nl", "de", "tr", "ru", "ar", "hi",
@@ -255,40 +297,40 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf", "nemotron-3.5-asr-streaming-0.6b",
             128, {"F16": 1277750240, "Q8_0": 751094240, "Q6_K": 621356512,
                   "Q5_K_M": 559647200, "Q4_K_M": 495831520},
-            default="Q8_0", recommended=True, backend="native_asr_stream"),
+            default="Q8_0", recommended=True, backend="native_asr_stream", arch="parakeet"),
     # WER 3.13 at RTF 289 (metal) — fastest/lightest CJK+yue (no ITN/punct).
     _tc_row("sense-voice", "SenseVoice", ("zh", "en", "ja", "ko", "yue"),
             "handy-computer/SenseVoiceSmall-gguf", "SenseVoiceSmall",
             130, {"F16": 470412128, "Q8_0": 252684608, "Q6_K": 196438336,
-                  "Q5_K_M": 172474880, "Q4_K_M": 145738304}, default="Q8_0"),
+                  "Q5_K_M": 172474880, "Q4_K_M": 145738304}, default="Q8_0", arch="sensevoice"),
     # WER 5.1 — the minimal 99-language floor for long-tail source languages.
     _tc_row("whisper-base", "Whisper base", ("multi",),
             "handy-computer/whisper-base-gguf", "whisper-base",
             140, {"F16": 151145760, "Q8_0": 84962880, "Q6_K": 67865664,
-                  "Q5_K_M": 63786048, "Q4_K_M": 58870848}, default="Q8_0"),
+                  "Q5_K_M": 63786048, "Q4_K_M": 58870848}, default="Q8_0", arch="whisper"),
     # --- Expanded roster (2026-07-20): the rest of the transcribe.cpp
     # family. Excludes canary-1b (CC-BY-NC, non-commercial) and medasr
     # (gated). All recommended=False; ordered via asr_models() sort.
     # WER 1.25 (q5_k_m = best rung & default; q4_k_m 1.35 worst) — NAR editor, ASR-only
     _tc_row("granite-speech-4.1-2b-nar", "Granite Speech 4.1 (2B NAR)", ("en", "fr", "de", "es", "pt"),
             "handy-computer/granite-speech-4.1-2b-nar-gguf", "granite-speech-4.1-2b-nar",
-            11, {"F16": 4515792768, "Q8_0": 2498105472, "Q6_K": 1977417568, "Q5_K_M": 1782089344, "Q4_K_M": 1560008832}, default="Q5_K_M"),
+            11, {"F16": 4515792768, "Q8_0": 2498105472, "Q6_K": 1977417568, "Q5_K_M": 1782089344, "Q4_K_M": 1560008832}, default="Q5_K_M", arch="granite_nar"),
     # Russian (FLEURS-ru 5.50) — e2e w/ punct; slotted in RU view
     _tc_row("gigaam-v3-e2e-ctc", "GigaAM v3 E2E-CTC (Russian)", ("ru",),
             "handy-computer/gigaam-v3-e2e-ctc-gguf", "gigaam-v3-e2e-ctc",
-            17, {"F16": 449098336, "Q8_0": 272151136, "Q6_K": 226439776, "Q5_K_M": 204911200, "Q4_K_M": 182497888}, default="Q8_0"),
+            17, {"F16": 449098336, "Q8_0": 272151136, "Q6_K": 226439776, "Q5_K_M": 204911200, "Q4_K_M": 182497888}, default="Q8_0", arch="gigaam"),
     # Russian (FLEURS-ru 8.29) — plain CTC, lowercase/no-punct; RU view
     _tc_row("gigaam-v3-ctc", "GigaAM v3 CTC (Russian)", ("ru",),
             "handy-computer/gigaam-v3-ctc-gguf", "gigaam-v3-ctc",
-            18, {"F16": 448750528, "Q8_0": 271803328, "Q6_K": 226091968, "Q5_K_M": 204563392, "Q4_K_M": 182150080}, default="Q8_0"),
+            18, {"F16": 448750528, "Q8_0": 271803328, "Q6_K": 226091968, "Q5_K_M": 204563392, "Q4_K_M": 182150080}, default="Q8_0", arch="gigaam"),
     # WER 1.41 — en, lowercase/no-punct
     _tc_row("parakeet-rnnt-1.1b", "Parakeet RNNT 1.1B", ("en",),
             "handy-computer/parakeet-rnnt-1.1b-gguf", "parakeet-rnnt-1.1b",
-            26, {"F16": 2145156480, "Q8_0": 1267285248, "Q6_K": 1042505984, "Q5_K_M": 935755008, "Q4_K_M": 825244928}, default="Q8_0"),
+            26, {"F16": 2145156480, "Q8_0": 1267285248, "Q6_K": 1042505984, "Q5_K_M": 935755008, "Q4_K_M": 825244928}, default="Q8_0", arch="parakeet"),
     # WER 1.41 — en+EU speech-LLM
     _tc_row("granite-4.0-1b-speech", "Granite Speech 4.0 (1B)", ("en", "fr", "de", "es", "pt", "ja"),
             "handy-computer/granite-4.0-1b-speech-gguf", "granite-4.0-1b-speech",
-            27, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936, "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M"),
+            27, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936, "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M", arch="granite"),
     # WER 1.56 — GPU-class 24B (Q5_K_M 17GB+); q4_k_m dropped (2.11 cliff).
     # GPU-only tiers: hardware-gated off CPU-only machines (a 17GB CPU download
     # for a 24B is unusable); big-GPU machines still see it, small-GPU ones get
@@ -296,147 +338,147 @@ ASR_MODELS: list[AsrModel] = [
     _tc_row("voxtral-small-24b", "Voxtral Small 24B", ("en", "fr", "de", "es", "it", "pt", "nl", "hi"),
             "handy-computer/Voxtral-Small-24B-2507-gguf", "Voxtral-Small-24B-2507",
             31, {"F16": 48548098528, "Q8_0": 25810383328, "Q6_K": 19936473568, "Q5_K_M": 17138659808},
-            default="Q5_K_M", tiers=_TC_GPU_TIERS),
+            default="Q5_K_M", tiers=_TC_GPU_TIERS, arch="voxtral"),
     # WER 1.58 offline — run batch (zero-lookahead streaming collapses to 5.76)
     _tc_row("parakeet-unified-en-0.6b", "Parakeet Unified 0.6B (en)", ("en",),
             "handy-computer/parakeet-unified-en-0.6b-gguf", "parakeet-unified-en-0.6b",
-            32, {"F16": 1239114240, "Q8_0": 731357568, "Q6_K": 602191232, "Q5_K_M": 540795264, "Q4_K_M": 477274496}, default="Q8_0"),
+            32, {"F16": 1239114240, "Q8_0": 731357568, "Q6_K": 602191232, "Q5_K_M": 540795264, "Q4_K_M": 477274496}, default="Q8_0", arch="parakeet"),
     # WER 1.59 — en, lowercase/no-punct
     _tc_row("parakeet-rnnt-0.6b", "Parakeet RNNT 0.6B", ("en",),
             "handy-computer/parakeet-rnnt-0.6b-gguf", "parakeet-rnnt-0.6b",
-            34, {"F16": 1235969568, "Q8_0": 729687456, "Q6_K": 600902048, "Q5_K_M": 539714976, "Q4_K_M": 476390816}, default="Q8_0"),
+            34, {"F16": 1235969568, "Q8_0": 729687456, "Q6_K": 600902048, "Q5_K_M": 539714976, "Q4_K_M": 476390816}, default="Q8_0", arch="parakeet"),
     # WER 1.63 — SALM audio-LLM, en-only (all quants 1.63)
     _tc_row("canary-qwen-2.5b", "Canary-Qwen 2.5B", ("en",),
             "handy-computer/canary-qwen-2.5b-gguf", "canary-qwen-2.5b",
-            41, {"F16": 5076972928, "Q8_0": 2797548928, "Q6_K": 2208697728, "Q5_K_M": 1983729024, "Q4_K_M": 1737575808}, default="Q4_K_M"),
+            41, {"F16": 5076972928, "Q8_0": 2797548928, "Q6_K": 2208697728, "Q5_K_M": 1983729024, "Q4_K_M": 1737575808}, default="Q4_K_M", arch="canary_qwen"),
     # WER 1.68 — en, cased+punct+timestamps (v3 is multilingual)
     _tc_row("parakeet-tdt-0.6b-v2", "Parakeet TDT 0.6B v2", ("en",),
             "handy-computer/parakeet-tdt-0.6b-v2-gguf", "parakeet-tdt-0.6b-v2",
-            42, {"F16": 1237334592, "Q8_0": 729574912, "Q6_K": 600408576, "Q5_K_M": 539012608, "Q4_K_M": 475491840}, default="Q8_0"),
+            42, {"F16": 1237334592, "Q8_0": 729574912, "Q6_K": 600408576, "Q5_K_M": 539012608, "Q4_K_M": 475491840}, default="Q8_0", arch="parakeet"),
     # WER 1.84 — en, fastest 0.6B head, lowercase/no-punct
     _tc_row("parakeet-ctc-0.6b", "Parakeet CTC 0.6B", ("en",),
             "handy-computer/parakeet-ctc-0.6b-gguf", "parakeet-ctc-0.6b",
-            61, {"F16": 1220181184, "Q8_0": 722271424, "Q6_K": 593644736, "Q5_K_M": 532544704, "Q4_K_M": 469302464}, default="Q8_0"),
+            61, {"F16": 1220181184, "Q8_0": 722271424, "Q6_K": 593644736, "Q5_K_M": 532544704, "Q4_K_M": 469302464}, default="Q8_0", arch="parakeet"),
     # WER 1.84 — en, lowercase/no-punct
     _tc_row("parakeet-ctc-1.1b", "Parakeet CTC 1.1B", ("en",),
             "handy-computer/parakeet-ctc-1.1b-gguf", "parakeet-ctc-1.1b",
-            62, {"F16": 2129368096, "Q8_0": 1259869216, "Q6_K": 1035248672, "Q5_K_M": 928584736, "Q4_K_M": 818156576}, default="Q8_0"),
+            62, {"F16": 2129368096, "Q8_0": 1259869216, "Q6_K": 1035248672, "Q5_K_M": 928584736, "Q4_K_M": 818156576}, default="Q8_0", arch="parakeet"),
     # WER 1.87 — en, hybrid TDT+CTC, cased+punct
     _tc_row("parakeet-tdt_ctc-1.1b", "Parakeet TDT-CTC 1.1B", ("en",),
             "handy-computer/parakeet-tdt_ctc-1.1b-gguf", "parakeet-tdt_ctc-1.1b",
-            63, {"F16": 2145162560, "Q8_0": 1267288320, "Q6_K": 1042509056, "Q5_K_M": 935758080, "Q4_K_M": 825248000}, default="Q8_0"),
+            63, {"F16": 2145162560, "Q8_0": 1267288320, "Q6_K": 1042509056, "Q5_K_M": 935758080, "Q4_K_M": 825248000}, default="Q8_0", arch="parakeet"),
     # WER 1.87 — offline audio-LLM (q4_k_m 2.98GB)
     _tc_row("voxtral-mini-3b", "Voxtral Mini 3B", ("en", "fr", "de", "es", "it", "pt", "nl", "hi"),
             "handy-computer/Voxtral-Mini-3B-2507-gguf", "Voxtral-Mini-3B-2507",
-            64, {"F16": 9376578208, "Q8_0": 5000084128, "Q6_K": 3869489824, "Q5_K_M": 3464182432, "Q4_K_M": 2984721056}, default="Q4_K_M"),
+            64, {"F16": 9376578208, "Q8_0": 5000084128, "Q6_K": 3869489824, "Q5_K_M": 3464182432, "Q4_K_M": 2984721056}, default="Q4_K_M", arch="voxtral"),
     # WER 2.29 — en-only cache-aware STREAMING (NVIDIA Open Model License)
     _tc_row("nemotron-speech-streaming-en", "Nemotron Speech Streaming (en)", ("en",),
             "handy-computer/nemotron-speech-streaming-en-0.6b-gguf", "nemotron-speech-streaming-en-0.6b",
-            117, {"F16": 1237652608, "Q8_0": 729650176, "Q6_K": 600420352, "Q5_K_M": 538989568, "Q4_K_M": 475436032}, default="Q8_0", backend="native_asr_stream"),
+            117, {"F16": 1237652608, "Q8_0": 729650176, "Q6_K": 600420352, "Q5_K_M": 538989568, "Q4_K_M": 475436032}, default="Q8_0", backend="native_asr_stream", arch="parakeet"),
     # WER 2.43 — en, small/fast, cased+punct
     _tc_row("parakeet-tdt_ctc-110m", "Parakeet TDT-CTC 110M", ("en",),
             "handy-computer/parakeet-tdt_ctc-110m-gguf", "parakeet-tdt_ctc-110m",
-            118, {"F16": 229334560, "Q8_0": 135373280, "Q6_K": 112311264, "Q5_K_M": 101335520, "Q4_K_M": 89989600}, default="Q8_0"),
+            118, {"F16": 229334560, "Q8_0": 135373280, "Q6_K": 112311264, "Q5_K_M": 101335520, "Q4_K_M": 89989600}, default="Q8_0", arch="parakeet"),
     # WER 2.46 — 99-lang 1.55B (pre-v3)
     _tc_row("whisper-large-v2", "Whisper large-v2", ("multi",),
             "handy-computer/whisper-large-v2-gguf", "whisper-large-v2",
-            119, {"F16": 3106458208, "Q8_0": 1667964224, "Q6_K": 1296353280, "Q5_K_M": 1160366080, "Q4_K_M": 996526080}, default="Q8_0"),
+            119, {"F16": 3106458208, "Q8_0": 1667964224, "Q6_K": 1296353280, "Q5_K_M": 1160366080, "Q4_K_M": 996526080}, default="Q8_0", arch="whisper"),
     # WER 2.53 — en STREAMING 123M (F16/Q8_0 only)
     _tc_row("moonshine-streaming-small", "Moonshine Streaming Small", ("en",),
             "handy-computer/moonshine-streaming-small-gguf", "moonshine-streaming-small",
-            121, {"F16": 282092128, "Q8_0": 198506848}, default="Q8_0", backend="native_asr_stream"),
+            121, {"F16": 282092128, "Q8_0": 198506848}, default="Q8_0", backend="native_asr_stream", arch="moonshine_streaming"),
     # WER 2.59 — 99-lang 769M
     _tc_row("whisper-medium", "Whisper medium", ("multi",),
             "handy-computer/whisper-medium-gguf", "whisper-medium",
-            122, {"F16": 1541931424, "Q8_0": 831538144, "Q6_K": 648019904, "Q5_K_M": 582746048, "Q4_K_M": 504102848}, default="Q8_0"),
+            122, {"F16": 1541931424, "Q8_0": 831538144, "Q6_K": 648019904, "Q5_K_M": 582746048, "Q4_K_M": 504102848}, default="Q8_0", arch="whisper"),
     # WER 2.62 — 99-lang 1.55B (v1)
     _tc_row("whisper-large", "Whisper large", ("multi",),
             "handy-computer/whisper-large-gguf", "whisper-large",
-            123, {"F16": 3106458176, "Q8_0": 1667964192, "Q6_K": 1296353248, "Q5_K_M": 1160366048, "Q4_K_M": 996526048}, default="Q8_0"),
+            123, {"F16": 3106458176, "Q8_0": 1667964192, "Q6_K": 1296353248, "Q5_K_M": 1160366048, "Q4_K_M": 996526048}, default="Q8_0", arch="whisper"),
     # WER 2.72 — en-only 769M
     _tc_row("whisper-medium.en", "Whisper medium.en", ("en",),
             "handy-computer/whisper-medium.en-gguf", "whisper-medium.en",
-            124, {"F16": 1541853248, "Q8_0": 831460928, "Q6_K": 647942912, "Q5_K_M": 582669056, "Q4_K_M": 504025856}, default="Q8_0"),
+            124, {"F16": 1541853248, "Q8_0": 831460928, "Q6_K": 647942912, "Q5_K_M": 582669056, "Q4_K_M": 504025856}, default="Q8_0", arch="whisper"),
     # WER 2.97 — en-only 244M
     _tc_row("whisper-small.en", "Whisper small.en", ("en",),
             "handy-computer/whisper-small.en-gguf", "whisper-small.en",
-            125, {"F16": 492810784, "Q8_0": 269674144, "Q6_K": 212030528, "Q5_K_M": 193672256, "Q4_K_M": 171553856}, default="Q8_0"),
+            125, {"F16": 492810784, "Q8_0": 269674144, "Q6_K": 212030528, "Q5_K_M": 193672256, "Q4_K_M": 171553856}, default="Q8_0", arch="whisper"),
     # WER 3.26 — en OFFLINE 61M (F16/Q8_0 only)
     _tc_row("moonshine-base", "Moonshine Base", ("en",),
             "handy-computer/moonshine-base-gguf", "moonshine-base",
-            131, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0"),
+            131, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0", arch="moonshine"),
     # WER 3.33 — 99-lang 244M
     _tc_row("whisper-small", "Whisper small", ("multi",),
             "handy-computer/whisper-small-gguf", "whisper-small",
-            132, {"F16": 492888480, "Q8_0": 269751136, "Q6_K": 212107328, "Q5_K_M": 193749056, "Q4_K_M": 171630656}, default="Q8_0"),
+            132, {"F16": 492888480, "Q8_0": 269751136, "Q6_K": 212107328, "Q5_K_M": 193749056, "Q4_K_M": 171630656}, default="Q8_0", arch="whisper"),
     # WER 4.13 — en-only 74M
     _tc_row("whisper-base.en", "Whisper base.en", ("en",),
             "handy-computer/whisper-base.en-gguf", "whisper-base.en",
-            133, {"F16": 151068608, "Q8_0": 84886208, "Q6_K": 67789088, "Q5_K_M": 63709472, "Q4_K_M": 58794272}, default="Q8_0"),
+            133, {"F16": 151068608, "Q8_0": 84886208, "Q6_K": 67789088, "Q5_K_M": 63709472, "Q4_K_M": 58794272}, default="Q8_0", arch="whisper"),
     # WER 4.52 — en STREAMING 34M (F16/Q8_0 only)
     _tc_row("moonshine-streaming-tiny", "Moonshine Streaming Tiny", ("en",),
             "handy-computer/moonshine-streaming-tiny-gguf", "moonshine-streaming-tiny",
-            134, {"F16": 89784416, "Q8_0": 50462816}, default="Q8_0", backend="native_asr_stream"),
+            134, {"F16": 89784416, "Q8_0": 50462816}, default="Q8_0", backend="native_asr_stream", arch="moonshine_streaming"),
     # WER 4.58 — en OFFLINE 27M (F16/Q8_0 only)
     _tc_row("moonshine-tiny", "Moonshine Tiny", ("en",),
             "handy-computer/moonshine-tiny-gguf", "moonshine-tiny",
-            135, {"F16": 59244192, "Q8_0": 35466912}, default="Q8_0"),
+            135, {"F16": 59244192, "Q8_0": 35466912}, default="Q8_0", arch="moonshine"),
     # WER 5.72 — en-only 39M
     _tc_row("whisper-tiny.en", "Whisper tiny.en", ("en",),
             "handy-computer/whisper-tiny.en-gguf", "whisper-tiny.en",
-            141, {"F16": 80058464, "Q8_0": 45904544, "Q6_K": 44761760, "Q5_K_M": 44135072, "Q4_K_M": 43545248}, default="Q8_0"),
+            141, {"F16": 80058464, "Q8_0": 45904544, "Q6_K": 44761760, "Q5_K_M": 44135072, "Q4_K_M": 43545248}, default="Q8_0", arch="whisper"),
     # WER 7.49 — 99-lang 39M (least accurate whisper)
     _tc_row("whisper-tiny", "Whisper tiny", ("multi",),
             "handy-computer/whisper-tiny-gguf", "whisper-tiny",
-            142, {"F16": 80135360, "Q8_0": 45981088, "Q6_K": 44838304, "Q5_K_M": 44211616, "Q4_K_M": 43621792}, default="Q8_0"),
+            142, {"F16": 80135360, "Q8_0": 45981088, "Q6_K": 44838304, "Q5_K_M": 44211616, "Q4_K_M": 43621792}, default="Q8_0", arch="whisper"),
     # per-language fine-tune (ar); no upstream WER/doc
     _tc_row("moonshine-base-ar", "Moonshine Base (ar)", ("ar",),
             "handy-computer/moonshine-base-ar-gguf", "moonshine-base-ar",
-            150, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0"),
+            150, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (ja); no upstream WER/doc
     _tc_row("moonshine-base-ja", "Moonshine Base (ja)", ("ja",),
             "handy-computer/moonshine-base-ja-gguf", "moonshine-base-ja",
-            151, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0"),
+            151, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (ko); no upstream WER/doc
     _tc_row("moonshine-base-ko", "Moonshine Base (ko)", ("ko",),
             "handy-computer/moonshine-base-ko-gguf", "moonshine-base-ko",
-            152, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0"),
+            152, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (uk); no upstream WER/doc
     _tc_row("moonshine-base-uk", "Moonshine Base (uk)", ("uk",),
             "handy-computer/moonshine-base-uk-gguf", "moonshine-base-uk",
-            153, {"F16": 131789472, "Q8_0": 77476512}, default="Q8_0"),
+            153, {"F16": 131789472, "Q8_0": 77476512}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (vi); no upstream WER/doc
     _tc_row("moonshine-base-vi", "Moonshine Base (vi)", ("vi",),
             "handy-computer/moonshine-base-vi-gguf", "moonshine-base-vi",
-            154, {"F16": 131789472, "Q8_0": 77476512}, default="Q8_0"),
+            154, {"F16": 131789472, "Q8_0": 77476512}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (zh); no upstream WER/doc
     _tc_row("moonshine-base-zh", "Moonshine Base (zh)", ("zh",),
             "handy-computer/moonshine-base-zh-gguf", "moonshine-base-zh",
-            155, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0"),
+            155, {"F16": 131789440, "Q8_0": 77476480}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (ar); no upstream WER/doc
     _tc_row("moonshine-tiny-ar", "Moonshine Tiny (ar)", ("ar",),
             "handy-computer/moonshine-tiny-ar-gguf", "moonshine-tiny-ar",
-            156, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+            156, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (ja); no upstream WER/doc
     _tc_row("moonshine-tiny-ja", "Moonshine Tiny (ja)", ("ja",),
             "handy-computer/moonshine-tiny-ja-gguf", "moonshine-tiny-ja",
-            157, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+            157, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (ko); no upstream WER/doc
     _tc_row("moonshine-tiny-ko", "Moonshine Tiny (ko)", ("ko",),
             "handy-computer/moonshine-tiny-ko-gguf", "moonshine-tiny-ko",
-            158, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+            158, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (uk); no upstream WER/doc
     _tc_row("moonshine-tiny-uk", "Moonshine Tiny (uk)", ("uk",),
             "handy-computer/moonshine-tiny-uk-gguf", "moonshine-tiny-uk",
-            159, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+            159, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (vi); no upstream WER/doc
     _tc_row("moonshine-tiny-vi", "Moonshine Tiny (vi)", ("vi",),
             "handy-computer/moonshine-tiny-vi-gguf", "moonshine-tiny-vi",
-            160, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+            160, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0", arch="moonshine"),
     # per-language fine-tune (zh); no upstream WER/doc
     _tc_row("moonshine-tiny-zh", "Moonshine Tiny (zh)", ("zh",),
             "handy-computer/moonshine-tiny-zh-gguf", "moonshine-tiny-zh",
-            161, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0"),
+            161, {"F16": 59244224, "Q8_0": 35466944}, default="Q8_0", arch="moonshine"),
 ]
 
 
@@ -515,7 +557,7 @@ def _gguf_artifact(mid: str, quant: str) -> str:
 
 def _llm_translate_row(mid, name, family, sort_order, default_quant, default_bytes,
                        alt_quant, alt_bytes, recommended=False,
-                       disable_thinking=False, append_no_think=False):
+                       disable_thinking=False, append_no_think=False, arch=""):
     """A GGUF LLM translate card: the native_translate backend (sokuji_native's
     in-process llama.cpp runtime, spec §4.3), two GGUF quant variants, three
     tiers each (gpu-metal / gpu-vulkan / cpu — no gpu-cuda: post-A1 no probe
@@ -523,7 +565,9 @@ def _llm_translate_row(mid, name, family, sort_order, default_quant, default_byt
     GGUF serves every tier; rank 2.0 marks the default quant. Plan ORDER across
     tiers is decided by accel.TIER_RANK (gpu-metal 3.0 > gpu-vulkan 2.5 >
     cpu 1.0), not by the order of this tuple. `family` selects the prompt
-    strategy (translate_backend.STRATEGIES) via PlanConfig.prompt_family."""
+    strategy (translate_backend.STRATEGIES) via PlanConfig.prompt_family. `arch`
+    is llama.cpp's `general.architecture` string for this GGUF (graph_family) —
+    unrelated to `family`, which is a prompt strategy, not a graph."""
     deps = []
     for quant, nbytes, rank in ((default_quant, default_bytes, 2.0),
                                 (alt_quant, alt_bytes, 1.0)):
@@ -533,7 +577,8 @@ def _llm_translate_row(mid, name, family, sort_order, default_quant, default_byt
     return TranslateModel(mid, name, ("multi",), tuple(deps),
                           recommended=recommended, sort_order=sort_order,
                           size_bytes=default_bytes, disable_thinking=disable_thinking,
-                          append_no_think=append_no_think, prompt_family=family)
+                          append_no_think=append_no_think, prompt_family=family,
+                          graph_family=arch)
 
 
 # Sizes are the exact upstream GGUF file byte counts (HF API size fetch,
@@ -543,39 +588,39 @@ def _llm_translate_row(mid, name, family, sort_order, default_quant, default_byt
 # through native_translate (sokuji_native's in-process llama.cpp runtime).
 TRANSLATE_MODELS: list[TranslateModel] = [
     _llm_translate_row("qwen2.5-0.5b", "Qwen 2.5 0.5B", "qwen", 1,
-                       "q8_0", 675710816, "q4_k_m", 491400032, recommended=True),
+                       "q8_0", 675710816, "q4_k_m", 491400032, recommended=True, arch="qwen2"),
     _llm_translate_row("qwen3-0.6b", "Qwen 3 0.6B", "qwen", 2,
                        "q8_0", 639446688, "q4_k_m", 396705472, recommended=True,
-                       disable_thinking=True, append_no_think=True),
+                       disable_thinking=True, append_no_think=True, arch="qwen3"),
     _llm_translate_row("qwen3.5-0.8b", "Qwen 3.5 0.8B", "qwen", 3,
                        "q4_k_m", 532517120, "q8_0", 811843840,
-                       disable_thinking=True),
+                       disable_thinking=True, arch="qwen35"),
     _llm_translate_row("qwen3.5-2b", "Qwen 3.5 2B", "qwen", 4,
                        "q4_k_m", 1280835840, "q8_0", 2012012800,
-                       disable_thinking=True),
+                       disable_thinking=True, arch="qwen35"),
     # Same family and thinking handling as the 0.8B / 2B rows: Qwen3.5 has
     # no /no_think soft switch, so only the empty-<think> prefill applies.
     # The GGUF's text tower loads without the vision mmproj (added 2026-09-03).
     _llm_translate_row("qwen3.5-4b", "Qwen 3.5 4B", "qwen", 5,
                        "q4_k_m", 2740937888, "q8_0", 4482403488,
-                       disable_thinking=True),
+                       disable_thinking=True, arch="qwen35"),
     _llm_translate_row("translategemma-4b", "TranslateGemma 4B", "gemma", 6,
-                       "q4_k_m", 2489909760, "q8_0", 4130417920),
+                       "q4_k_m", 2489909760, "q8_0", 4130417920, arch="gemma3"),
     # EuroLLM-1.7B-Instruct (utter-project, Apache-2.0): a translation-tuned
     # Llama-architecture model covering 35 languages (the EU set plus zh, ja,
     # ko, ru, uk, ar, hi). Its chat template is ChatML, which is what the
     # "qwen" strategy renders; no thinking mode. 4096-token context
     # (added 2026-09-03).
     _llm_translate_row("eurollm-1.7b", "EuroLLM 1.7B", "qwen", 7,
-                       "q4_k_m", 1045157088, "q8_0", 1763775712),
+                       "q4_k_m", 1045157088, "q8_0", 1763775712, arch="llama"),
     _llm_translate_row("hy-mt2-1.8b", "Hunyuan-MT2 1.8B", "hunyuan", 8,
-                       "q4_k_m", 1133080448, "q8_0", 1908528192),
+                       "q4_k_m", 1133080448, "q8_0", 1908528192, arch="hunyuan-dense"),
     _llm_translate_row("hy-mt2-7b", "Hunyuan-MT2 7B", "hunyuan", 9,
-                       "q4_k_m", 4624648896, "q8_0", 7981928896),
+                       "q4_k_m", 4624648896, "q8_0", 7981928896, arch="hunyuan-dense"),
     _llm_translate_row("hy-mt15-1.8b", "Hunyuan-MT1.5 1.8B", "hunyuan", 10,
-                       "q4_k_m", 1133080512, "q8_0", 1908528288),
+                       "q4_k_m", 1133080512, "q8_0", 1908528288, arch="hunyuan-dense"),
     _llm_translate_row("hy-mt15-7b", "Hunyuan-MT1.5 7B", "hunyuan", 11,
-                       "q4_k_m", 4624649312, "q8_0", 7981929344),
+                       "q4_k_m", 4624649312, "q8_0", 7981929344, arch="hunyuan-dense"),
 ]
 
 
@@ -1022,7 +1067,7 @@ def _tts_gguf_row(mid, name, langs, family, dir_, quants, default_quant, *,
                     sample_rate=sample_rate, named_voices=named_voices,
                     transcript_required=transcript_required, recommended=recommended,
                     sort_order=order, size_bytes=total_bytes, extra_files=extra_files,
-                    license=license)
+                    license=license, graph_family=family)
 
 
 SUPERTONIC_LANGS = ("en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et",
