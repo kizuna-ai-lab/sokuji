@@ -493,7 +493,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
           get().reportedUnsupportedOps.add(key);
           reportWarning('NativeModelStore',
             `${key} cannot run on ${dev.description}: ${cov.unsupported.join(', ')} unsupported; it will load on CPU`,
-            { dedupeKey: 'native.ops.unsupported' });
+            { dedupeKey: `native.ops.unsupported:${key}` });
         }
       }
       const { bundleVersion, bundleDevVenv } = get();
