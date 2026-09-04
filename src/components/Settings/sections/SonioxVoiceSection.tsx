@@ -106,6 +106,61 @@ const MAX_CLIP_SECONDS = 120;
 // so recordings clear this with room to spare and only imports can hit it.
 const MAX_UPLOAD_BYTES = 35 * 1000 * 1000;
 
+/** How long to wait for a container's metadata before giving up and letting the
+ *  decode decide. Metadata is the first few KB of the file, so this is generous. */
+const DURATION_PROBE_TIMEOUT_MS = 5_000;
+
+/** Duration from container metadata, WITHOUT decoding the audio.
+ *
+ *  `decodeAudioData` materializes the entire file as Float32 PCM: a 34 MB
+ *  32 kbps MP3 holds ~2.4 hours, which expands past 3 GB and can take the
+ *  renderer down before we ever get to reject it for length. Under the old
+ *  10 MiB size gate a file that long was refused on size alone; at 35 MB it is
+ *  not, so duration has to be knowable BEFORE the decode.
+ *
+ *  Returns null whenever the browser won't say — a non-Blob, no metadata event,
+ *  a duration of Infinity/NaN (streamed containers), or an unparseable file. The
+ *  caller then falls through to the decode, which is exactly the old behavior:
+ *  this probe can reject early, never accept early, so a browser that declines
+ *  to answer costs correctness nothing. */
+async function probeDurationSeconds(file: File): Promise<number | null> {
+  // createObjectURL is specified over Blob; test doubles and exotic File-likes
+  // are not, and calling it on one throws rather than returning null.
+  if (typeof URL.createObjectURL !== 'function' || !(file instanceof Blob)) return null;
+  let url: string;
+  try {
+    url = URL.createObjectURL(file);
+  } catch {
+    return null;
+  }
+  try {
+    return await new Promise<number | null>((resolve) => {
+      const el = new Audio();
+      el.preload = 'metadata';
+      let settled = false;
+      const finish = (v: number | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        // Stop the element from holding the (about to be revoked) URL.
+        el.removeAttribute('src');
+        resolve(v);
+      };
+      const timer = setTimeout(() => finish(null), DURATION_PROBE_TIMEOUT_MS);
+      el.addEventListener('loadedmetadata', () => {
+        const d = el.duration;
+        finish(Number.isFinite(d) && d > 0 ? d : null);
+      });
+      el.addEventListener('error', () => finish(null));
+      el.src = url;
+    });
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 function isReady(v: SonioxVoice): boolean {
   return v.models?.some((m) => m.model === TTS_MODEL && m.status === 'ready') ?? false;
 }
@@ -418,6 +473,13 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
           )
         );
       }
+      // Cheap length gate before the expensive one. Only `too_long` is worth
+      // catching here: an over-long file is precisely the one whose decode can
+      // exhaust the renderer, while a too-short or silent file is small by
+      // construction and is caught below on the decoded samples, where the
+      // measurement is exact.
+      const probed = await probeDurationSeconds(file);
+      if (probed !== null && probed > MAX_CLIP_SECONDS) throw new Error(mapClipError('too_long'));
       const arrayBuffer = await file.arrayBuffer();
       const ctx = new AudioContext();
       let buffer: AudioBuffer;
