@@ -405,6 +405,17 @@ non-emptiness, never a transcript.
    fails on the old string otherwise) — then tag `native-vX.Y.Z`. Nothing else needs editing:
    the staged `contract.json` and the wheel version are both generated from the CMake project
    version, and the tag/version match is checked by `native-build.yml`.
+5. Op recordings (`src/ops/*.ops`, spec A §3.2): configure `build/record` with
+   `-DSOKUJI_RECORD_OPS=ON`, run `bash ci/ops-env.sh ctest --test-dir build/record -R test_ops_coverage`
+   with every cached model present — a DIFF means the engine's graph changed; re-record that
+   family with `build/record/lib/record_ops` (see tests/record_ops.cpp for the argument order)
+   and commit the new .ops file with the bump. All nine TTS families are cached under
+   ~/.cache/sokuji-native-tests/tts/ and MUST be re-recorded on every bump (the gate fires
+   only for tts); asr/translate families are recorded as their models become available — a
+   missing recording is a pass-through in the sidecar, never a gate. A new .ops file needs a
+   build/record reconfigure to be picked up by the generator — CMakeLists.txt's `file(GLOB …)`
+   for src/ops carries CONFIGURE_DEPENDS, so an ordinary `cmake --build build/record` re-checks
+   the glob on its own; no manual `cmake -S ... -B build/record` re-run is required.
 
 ## Release
 

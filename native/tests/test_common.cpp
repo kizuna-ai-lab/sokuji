@@ -122,7 +122,9 @@ int main(int argc, char **argv) {
         const char *f16[] = {"f16", "f32"};
         // Ruling: sk_op_coverage is ~136 KB (SK_OP_COVERAGE_MAX == 2048); both instances below
         // are declared once at this scope and reused, never redeclared per loop iteration.
-        sk_op_coverage cov = {};
+        // static: five such locals would otherwise sit in this one function's frame at once,
+        // ~680 KB total — over win-x64's 1 MB default thread stack.
+        static sk_op_coverage cov = {};
         assert(sk_device_supports_ops(-1, "tts", "supertonic", f16, 2, &cov) == SK_ERR_INVALID_ARGUMENT);
         assert(sk_device_supports_ops(0, "tts", "no-such-family", f16, 2, &cov) == SK_ERR_NOT_FOUND);
         assert(sk_device_supports_ops(0, "tts", "supertonic", f16, 0, &cov) == SK_ERR_INVALID_ARGUMENT);
@@ -131,7 +133,7 @@ int main(int argc, char **argv) {
         int cpu_index = -1;
         for (int i = 0; i < n; ++i) if (devs[i].kind == SK_DEVICE_CPU) cpu_index = i;
         int n_tts = 0;
-        sk_op_coverage c = {};
+        static sk_op_coverage c = {};
         for (int b = 0; b < sk_ops_blob_count(); ++b) {
             const char *stage = nullptr, *family = nullptr, *text = nullptr;
             sk_ops_blob_at(b, &stage, &family, &text);
@@ -199,7 +201,7 @@ int main(int argc, char **argv) {
             // A duplicate in weight_dtypes must not double the expansion.
             const char *dup[] = {"q8_0", "q8_0", "f32"};
             const char *nodup[] = {"q8_0", "f32"};
-            sk_op_coverage cd = {}, cn = {};
+            static sk_op_coverage cd = {}, cn = {};
             assert(sk_device_supports_ops(cpu_index, "tts", "index_tts2", dup, 3, &cd) == SK_OK);
             assert(sk_device_supports_ops(cpu_index, "tts", "index_tts2", nodup, 2, &cn) == SK_OK);
             assert(cd.n_ops == cn.n_ops);
@@ -215,7 +217,7 @@ int main(int argc, char **argv) {
     // already used in the profile assertions above).
     {
         const char *f16[] = {"f16", "f32"};
-        sk_op_coverage c = {};
+        static sk_op_coverage c = {};
         for (int i = 0; i < n; ++i) {
             if (devs[i].kind != SK_DEVICE_VULKAN && devs[i].kind != SK_DEVICE_METAL) continue;
             c = {};

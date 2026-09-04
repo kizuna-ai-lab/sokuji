@@ -17,6 +17,19 @@ cmake --build $Build --config Release --parallel
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 ctest --test-dir $Build -C Release --output-on-failure
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
+# Op recordings (spec A §3.2, README's "Bumping a pin" checklist): re-record every family
+# whose SK_TEST_* model is present and diff against the shipped src\ops\*.ops. Always its own
+# CPU-only build\record tree (SOKUJI_GPU=none) regardless of this script's own Lane, since the
+# recordings were captured on CPU and must match there; test_ops_coverage's SKIP_RETURN_CODE
+# 77 turns "no SK_TEST_* var set at all" into a ctest skip rather than a failure, so this is
+# harmless on a developer box with no cached models.
+$RecordBuild = Join-Path $Root "build\record"
+cmake -S $Root -B $RecordBuild -G "Visual Studio 17 2022" -A x64 "-DSOKUJI_GPU=none" "-DSOKUJI_RECORD_OPS=ON"
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+cmake --build $RecordBuild --config Release --parallel
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+ctest --test-dir $RecordBuild -C Release -R test_ops_coverage --output-on-failure
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Remove-Item -Recurse -Force "$Build\stage", "$Root\python\sokuji_native\_native" -ErrorAction SilentlyContinue
 # Only the sokuji component: the fetched upstreams carry their own install() rules
 # (headers, static libs, cmake configs) in the default component, which must not run.

@@ -61,6 +61,18 @@ if(SOKUJI_RECORD_OPS)
     target_include_directories(record_ops PRIVATE ../src)
 endif()
 
+# Spec A §3.2: re-record every cached family and diff against the shipped src/ops/*.ops — the
+# pin-bump gate. Only the SOKUJI_RECORD_OPS configure builds it (same reason as record_ops
+# above); exit code 77 = no model at all present, so a developer without the cache still gets
+# a green ctest.
+if(SOKUJI_RECORD_OPS)
+    add_executable(test_ops_coverage test_ops_coverage.cpp ../src/sk_ops_format.cpp)
+    target_link_libraries(test_ops_coverage PRIVATE sokuji_native ggml)
+    target_include_directories(test_ops_coverage PRIVATE ../src)
+    add_test(NAME test_ops_coverage COMMAND test_ops_coverage ${CMAKE_BINARY_DIR}/lib)
+    set_tests_properties(test_ops_coverage PROPERTIES ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib" SKIP_RETURN_CODE 77)
+endif()
+
 # Spec A: the pure Vulkan-selection helper (no loader, no GPU) — runs on every lane.
 add_executable(test_vk_select test_vk_select.cpp ../src/sk_vk_enum.cpp)
 target_include_directories(test_vk_select PRIVATE ../src ../include)

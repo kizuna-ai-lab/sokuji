@@ -91,7 +91,10 @@ foreach(_t IN LISTS _audiocpp_engine_targets)
 endforeach()
 # Op recordings (spec A §3.2) are data under src/ops/*.ops, baked into the library at build
 # time so the query needs no files at runtime. Any .ops change re-runs the generator.
-file(GLOB _sk_ops_files ${CMAKE_CURRENT_SOURCE_DIR}/src/ops/*.ops)
+# CONFIGURE_DEPENDS: this glob is otherwise evaluated once at configure time, so a NEW .ops
+# file (a pin bump's newly recorded family) is invisible to the build until a reconfigure —
+# CONFIGURE_DEPENDS makes the build system re-check the glob on every build.
+file(GLOB _sk_ops_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/ops/*.ops)
 add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_ops_data.py

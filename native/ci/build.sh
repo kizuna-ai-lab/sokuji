@@ -14,6 +14,16 @@ JOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
 cmake -S "$ROOT" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release -DSOKUJI_GPU="$LANE"
 cmake --build "$BUILD" -j"$JOBS"
 ctest --test-dir "$BUILD" --output-on-failure
+# Op recordings (spec A §3.2, README's "Bumping a pin" checklist): re-record every family
+# whose SK_TEST_* model is present and diff against the shipped src/ops/*.ops. Always its own
+# CPU-only build/record tree (SOKUJI_GPU=none) regardless of this script's own LANE, since the
+# recordings were captured on CPU and must match there; test_ops_coverage's SKIP_RETURN_CODE
+# 77 turns "no SK_TEST_* var set at all" into a ctest skip rather than a failure, so this is
+# harmless on a developer box with no cached models.
+RECORD_BUILD="$ROOT/build/record"
+cmake -S "$ROOT" -B "$RECORD_BUILD" -DCMAKE_BUILD_TYPE=Release -DSOKUJI_GPU=none -DSOKUJI_RECORD_OPS=ON
+cmake --build "$RECORD_BUILD" -j"$JOBS"
+ctest --test-dir "$RECORD_BUILD" -R test_ops_coverage --output-on-failure
 rm -rf "$BUILD/stage" "$ROOT/python/sokuji_native/_native"
 # Only the sokuji component: the fetched upstreams carry their own install() rules
 # (headers, static libs, cmake configs) in the default component, which must not run.
