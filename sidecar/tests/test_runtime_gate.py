@@ -1,7 +1,7 @@
 """Verification gate (spec §9.3/§11): no heavyweight legacy-runtime import may
 reappear anywhere under sokuji_sidecar/, and requirements.txt stays pinned to
 its end state: 7 PyPI packages + 5 sokuji-native release-wheel URL lines (one
-per SKU, pinned to the native-v1.0.1 GitHub Release, gated by sys_platform/
+per SKU, pinned to the native-v1.0.2 GitHub Release, gated by sys_platform/
 platform_machine markers). AST-based so comments/docstrings mentioning the
 names stay allowed."""
 import ast
@@ -54,22 +54,22 @@ def test_no_torch_era_imports():
 
 
 NATIVE_RELEASE_BASE = (
-    "https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.1/"
+    "https://github.com/kizuna-ai-lab/sokuji/releases/download/native-v1.0.2/"
 )
 
 # filename -> expected PEP 508 marker (sys_platform/platform_machine values are
 # the literal sys.platform / platform.machine() strings CPython reports —
 # packaging.markers.default_environment() sources both from those same calls).
 NATIVE_WHEELS = {
-    "sokuji_native-1.0.1-py3-none-manylinux_2_35_x86_64.whl":
+    "sokuji_native-1.0.2-py3-none-manylinux_2_35_x86_64.whl":
         'sys_platform == "linux" and platform_machine == "x86_64"',
-    "sokuji_native-1.0.1-py3-none-manylinux_2_35_aarch64.whl":
+    "sokuji_native-1.0.2-py3-none-manylinux_2_35_aarch64.whl":
         'sys_platform == "linux" and platform_machine == "aarch64"',
-    "sokuji_native-1.0.1-py3-none-win_amd64.whl":
+    "sokuji_native-1.0.2-py3-none-win_amd64.whl":
         'sys_platform == "win32" and platform_machine == "AMD64"',
-    "sokuji_native-1.0.1-py3-none-macosx_11_0_arm64.whl":
+    "sokuji_native-1.0.2-py3-none-macosx_11_0_arm64.whl":
         'sys_platform == "darwin" and platform_machine == "arm64"',
-    "sokuji_native-1.0.1-py3-none-macosx_11_0_x86_64.whl":
+    "sokuji_native-1.0.2-py3-none-macosx_11_0_x86_64.whl":
         'sys_platform == "darwin" and platform_machine == "x86_64"',
 }
 
@@ -77,7 +77,7 @@ NATIVE_WHEELS = {
 def test_base_requirements_is_the_seven_pypi_plus_five_native_wheel_end_state():
     # numpy, websockets, huggingface_hub, psutil, zstandard, soundfile, soxr
     # (7 PyPI packages, version-pinned or floor-pinned) + sokuji-native, five
-    # direct-URL lines (one per SKU) pinned to the native-v1.0.1 release and
+    # direct-URL lines (one per SKU) pinned to the native-v1.0.2 release and
     # gated by a sys_platform/platform_machine marker so pip installs exactly
     # one per target — this is what keeps sidecar bundles from shipping
     # hollow (no sokuji_native inside).
