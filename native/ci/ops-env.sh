@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The models test_ops_coverage re-records from (native/README.md's cache layout).
-C=/home/jiangzhuo/.cache/sokuji-native-tests
+C=${SOKUJI_NATIVE_TEST_CACHE:-$HOME/.cache/sokuji-native-tests}
 export SK_TEST_ASR_GGUF=$C/whisper-tiny-Q8_0.gguf
 export SK_TEST_ASR_STREAM_GGUF=$C/moonshine-streaming-tiny-Q8_0.gguf
 export SK_TEST_TRANSLATE_GGUF=$C/Qwen3-0.6B-Q8_0.gguf

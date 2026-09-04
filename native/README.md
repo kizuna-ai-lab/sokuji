@@ -410,7 +410,9 @@ non-emptiness, never a transcript.
    with every cached model present — a DIFF means the engine's graph changed; re-record that
    family with `build/record/lib/record_ops` (see tests/record_ops.cpp for the argument order)
    and commit the new .ops file with the bump. All nine TTS families are cached under
-   ~/.cache/sokuji-native-tests/tts/ and MUST be re-recorded on every bump (the gate fires
+   `~/.cache/sokuji-native-tests/tts/` — `ci/ops-env.sh` reads that path from
+   `$SOKUJI_NATIVE_TEST_CACHE`, defaulting to `$HOME/.cache/sokuji-native-tests`, so set the
+   variable if the cache lives elsewhere — and MUST be re-recorded on every bump (the gate fires
    only for tts); asr/translate families are recorded as their models become available — a
    missing recording is a pass-through in the sidecar, never a gate. A new .ops file needs a
    build/record reconfigure to be picked up by the generator — CMakeLists.txt's `file(GLOB …)`
