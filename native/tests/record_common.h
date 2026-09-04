@@ -91,7 +91,13 @@ static int record_family(const std::string &stage, const std::string &family, co
         sk_translate_unload(m);
     }
     const int count = sk_record_node_count();
-    sk_record_end_to_file(out_path.c_str(), stage.c_str(), family.c_str(),
-                          std::filesystem::path(gguf).filename().string().c_str(), dtype_ptrs.data(), (int32_t)dtype_ptrs.size());
+    /* The exit code is the regeneration procedure's only automated signal, so a file that did
+     * not reach the disk has to read as a failure — not as `count` nodes recorded. */
+    if (sk_record_end_to_file(out_path.c_str(), stage.c_str(), family.c_str(),
+                              std::filesystem::path(gguf).filename().string().c_str(),
+                              dtype_ptrs.data(), (int32_t)dtype_ptrs.size()) != SK_OK) {
+        std::fprintf(stderr, "record_family: %s\n", sk_last_error());
+        return 0;
+    }
     return count;
 }

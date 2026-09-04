@@ -7,6 +7,7 @@
  *    backend type and computes single-backend (audiocpp_compat.h, under SK_RECORD_OPS). */
 #define SOKUJI_NATIVE_BUILD 1
 #include "sokuji_native.h"
+#include "sk_internal.h"
 #include "sk_ops.h"
 #include "ggml.h"
 #include "ggml-backend.h"
@@ -174,14 +175,24 @@ SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, cons
     {
         std::lock_guard<std::mutex> l(g_rec_mutex);
         g_recording = false;
-        r.nodes = g_nodes; g_nodes.clear();
-    }
+        r.nodes = g_nodes;   // COPIED, not moved: a recording costs minutes of model loading and
+    }                        // synthesis, so a failed write must leave it retryable in memory.
     r.stage = stage; r.family = family; r.engine = sk_engine_versions(); r.source_file = source_file;
     for (int32_t i = 0; i < n_dtypes; ++i) r.dtypes_in_file.push_back(dtypes[i]);
     std::sort(r.dtypes_in_file.begin(), r.dtypes_in_file.end());
     std::ofstream f(path);
-    if (!f) return SK_ERR_INTERNAL;
+    if (!f) {
+        sk::set_error(std::string("sk_record_end_to_file: cannot open ") + path + " for writing");
+        return SK_ERR_INTERNAL;
+    }
     f << sk_ops_format(r);
+    f.close();   // a short write or ENOSPC only surfaces on flush; the insertion above cannot see it
+    if (!f.good()) {
+        sk::set_error(std::string("sk_record_end_to_file: failed to write ") + path);
+        return SK_ERR_INTERNAL;
+    }
+    std::lock_guard<std::mutex> l(g_rec_mutex);
+    g_nodes.clear();
     return SK_OK;
 }
 
