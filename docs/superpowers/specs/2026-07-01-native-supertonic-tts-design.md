@@ -36,7 +36,7 @@ fp32/CUDA is 17× faster than CPU and fully real-time; **fp16 measured no benefi
 
 - fp16 / int8 / TensorRT Supertonic variants (fp16 measured no benefit; int8 is CPU-only).
 - Implementing Qwen3-TTS / CosyVoice3 here (only their fit into the capability model is designed).
-- A style encoder in the app (Supertonic has none; custom voices are pre-computed JSONs from the external Supertone Voice Builder, as in WASM).
+- A style encoder in the app (Supertonic has none; custom voices are pre-computed JSONs — until 2026-08-31 from Supertone's Voice Builder, since then only the files users already hold, later from the Sokuji-hosted builder designed separately — as in WASM).
 - Changing WASM Supertonic behavior.
 
 ## The voice-capability model

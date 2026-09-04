@@ -60,7 +60,7 @@ This is structurally identical to the native branch (`NativeModelManagementSecti
 ### `LocalInferenceVoiceSection` (new — symmetric with `NativeVoiceSection`)
 - Pure presentation that switches on the selected TTS engine (`getManifestEntry(ttsModel)?.engine`):
   - `edge-tts` → the `<select>` voice dropdown with loading/error/no-voices placeholders; `onChange` → `edgeTtsVoice`.
-  - `supertonic` → `VoiceLibrarySection` (`capability: { importModes: ['upload'], curation: false, presentation: 'dropdown' }`) + the "Voice Builder" CTA link; `onSelect`/`onImport`/`onRename`/`onDelete` map through `sidFromVoiceId`.
+  - `supertonic` → `VoiceLibrarySection` (`capability: { importModes: ['upload'], curation: false, presentation: 'dropdown' }`) + the "Voice Builder" CTA link (a closure notice since 2026-09-04, PR #479, after Supertone shut the service on 2026-08-31); `onSelect`/`onImport`/`onRename`/`onDelete` map through `sidFromVoiceId`.
   - other → the speaker slider writing `ttsSpeakerId`.
 - Receives the voice list/state + handlers from `ModelManagementSection` as props (file import handled here, mirroring how `NativeVoiceSection` owns capture).
 

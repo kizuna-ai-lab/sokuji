@@ -3,6 +3,18 @@
 **Date**: 2026-05-21
 **Status**: Design
 
+> **Amendment (2026-09-04).** Supertone Inc. resolved to dissolve on 2026-07-15
+> (HYBE is liquidating it) and shut Voice Builder, Supertone Play and the API on
+> 2026-08-31; `supertonic.supertone.ai/voice-builder` is a 404. Every mention of
+> Voice Builder below is therefore historical. What changed in the product
+> (PR #479): the "Create one at Voice Builder" link became a closure notice,
+> imported `voice_style.json` files keep working, and the weights now download
+> from our verbatim mirror `jiangzhuo9357/supertonic-3` pinned to a commit via
+> the manifest's `hfRevision`, which supersedes the "no self-hosted mirror" goal
+> and non-goal below. A Sokuji-operated custom-voice service (style-tensor
+> inversion through the open weights, hosted by sokuji-backend) is being designed
+> separately; until it ships there is no way to create a new custom voice.
+
 ## Summary
 
 Integrate **Supertonic 3** (Supertone Inc., HYBE subsidiary) as a new local
@@ -29,7 +41,8 @@ This spec covers two phases shipped together:
   reusing `ModelManager`, manifest, and storage with zero refactor of the
   existing engines.
 - Load directly from `Supertone/supertonic-3` via the existing `hfModelId`
-  path — no self-hosted mirror.
+  path — no self-hosted mirror. *(Superseded 2026-09-04: the manifest now
+  points at our pinned mirror; see the amendment above.)*
 - WebGPU auto-detection with automatic fallback to WASM, modeled on the
   official static Space.
 - User voice import: drag/drop or file picker, stored in IndexedDB, surfaces
@@ -41,10 +54,15 @@ This spec covers two phases shipped together:
 
 - **Self-hosted CDN mirror** of Supertonic 3 ONNX bundle: not needed since
   HuggingFace `resolve/main` URLs serve CORS. Avoids engaging the OpenRAIL-M
-  redistribution question for a 401 MB blob.
+  redistribution question for a 401 MB blob. *(Superseded 2026-09-04: the
+  mirror exists after all, because the upstream organisation may disappear
+  with the liquidation. OpenRAIL-M permits redistribution with the license
+  attached, and the mirror README carries it plus the use restrictions.)*
 - **Voice cloning encoder**: not open-sourced by Supertone. We do not attempt
   to reconstruct it. Users wanting custom voices must use the (paid) hosted
-  Voice Builder.
+  Voice Builder. *(Amended 2026-09-04: Voice Builder no longer exists; the
+  replacement is a Sokuji-hosted service designed separately, and it stays
+  out of this app.)*
 - **Brand voice packs** (Kizuna AI's own preset voices bundled with sokuji):
   legal review required first; out of scope for this spec.
 - **Voice Mixer** (community PyQt5 tool for blending existing voice JSONs):
@@ -79,6 +97,8 @@ This spec covers two phases shipped together:
 
 ### Voice Builder (external, optional)
 
+- **Closed on 2026-08-31** with Supertone's liquidation. Kept as the record
+  of the `voice_style.json` contract, which is unchanged.
 - Hosted Supertone web service at `supertonic.supertone.ai/voice-builder`
 - Login required; one-time per-voice purchase
 - Outputs offline-usable `voice_style.json` containing `style_ttl` + `style_dp`
@@ -369,8 +389,9 @@ Visible only when the active TTS engine is `supertonic`. Layout:
 ```
 ┌─ Voice Library ──────────────────────────────────────────────┐
 │ ┌─ Info ──────────────────────────────────────────────────┐  │
-│ │ Need a custom voice? Create one at Voice Builder ↗      │  │
-│ │ (paid Supertone service; we don't host it)               │  │
+│ │ Supertone closed its Voice Builder service on           │  │
+│ │ August 31, 2026. Voice files you already downloaded     │  │
+│ │ can still be imported.                                  │  │
 │ └──────────────────────────────────────────────────────────┘  │
 │                                                                │
 │  Presets (10)                                                  │
@@ -621,7 +642,10 @@ Supertonic 3 to its commercial userbase. Conservative read: shipping the
 ONNX runtime locally and letting users synthesize their own text is
 defensible; bundling celebrity-impersonation voices would not be. This
 spec only ships the 10 official presets, leaving voice cloning to the
-user's own Voice Builder transaction with Supertone.
+user's own Voice Builder transaction with Supertone. *(Amended 2026-09-04:
+that transaction is no longer possible; cloning moves to the Sokuji-hosted
+service designed separately, which inherits the same OpenRAIL-M use
+restrictions.)*
 
 **Action**: legal review before merging implementation PR. Block on this.
 
@@ -631,6 +655,9 @@ Voice Builder is paid and login-gated. We don't have visibility into the
 "What rights do I have for purchased voices?" FAQ answer. Users may discover
 restrictions only after purchase. Our docs should disclaim that we're not
 party to that transaction.
+
+*Moot since 2026-08-31: the service is closed. Users who bought voices keep
+the JSON they downloaded; nothing new can be purchased.*
 
 ### Diffusion latency on low-end devices
 
