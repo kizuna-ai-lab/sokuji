@@ -16,7 +16,8 @@
 - `libsokuji_native.so` must never gain a `libvulkan.so.1` DT_NEEDED or a `vulkan-1.dll` import — the loader is `dlopen`'d at profile time (spec §3.1); `native/ci/check_linux_deps.py` enforces it per file.
 - Vulkan headers come from a `FetchContent` of `Vulkan-Headers` pinned at **v1.4.311** (spec §3.1); native compiles with `VK_NO_PROTOTYPES`.
 - Feature structs are chained into `vkGetPhysicalDeviceFeatures2` **only** when the device lists the matching extension; all structs zero-initialised (spec §3.1).
-- **`WEIGHT` marks only rung-bearing positions**: `src0` of `MUL_MAT`, `MUL_MAT_ID` and `GET_ROWS`. Every other model tensor (norm weights, biases, embeddings used elsewhere) is recorded with its literal dtype. Expanding a norm weight to q8_0 would make every GPU backend refuse it (Vulkan and Metal accept `ADD`/`MUL` only for F32/F16 sources).
+- **`WEIGHT` marks only rung-bearing positions**: `src0` of `MUL_MAT`, `MUL_MAT_ID` and `GET_ROWS`, and only when that source's ROOT (walked through `view_src`: reshape/view/permute) is a parameter leaf — `op == GGML_OP_NONE`, not `GGML_TENSOR_FLAG_INPUT`, and either named in the GGUF's tensor list (llama.cpp / transcribe.cpp name every tensor) or living in a buffer whose usage is `GGML_BACKEND_BUFFER_USAGE_WEIGHTS` (audio.cpp creates its weights UNNAMED, `backend_weight_store.h` `make_backend_tensor`, in a WEIGHTS-tagged buffer). Every other tensor (norm weights, biases, activations, caches) is recorded with its literal dtype. Expanding a norm weight to q8_0 would make every GPU backend refuse it (Vulkan and Metal accept `ADD`/`MUL` only for F32/F16 sources). Every `tts-*.ops` MUST contain at least one `WEIGHT` line (Task 5's CTest asserts it).
+- **audio.cpp has two compute entry points**: `ggml_backend_graph_compute` (most families) and `ggml_backend_graph_plan_create` + `plan_compute` (pocket_tts's FlowLM on a host backend). The recorder intercepts BOTH; the graph is only visible at plan creation.
 - **Node identity excludes the sequence axes**: `(op, op_params, dst type, src types, contiguity, ne[0] of src0/src1/dst)`; `ne[1..3]` are recorded as maxima and `max_bytes` as the largest seen, so one forward pass (prefill + N decode steps) yields tens of nodes, not thousands.
 - Premise 5: an absent or unknown profile changes nothing. `Machine` gains `devices: tuple[DeviceProfile, ...] = ()` and `generation: str = ""` with those defaults; `sidecar/tests/test_characterization.py` must not change a single matrix row (spec §1.1(5), §4).
 - `bench_load() -> dict` keeps its signature and returns entries only; `bench_read()` is new for writers; `bench_save(entries, *, generation)` (spec §3.3).
@@ -218,11 +219,11 @@ SK_API sk_status sk_device_supports_ops(int32_t, const char *, const char *, con
 In `native/src/sk_translate.cpp`, where `llama_context_params` is built from `opts` (the block that reads `opts->n_ctx`), add:
 
 ```cpp
-    if (opts && opts->flash_attn == 1) cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_ENABLED;
-    if (opts && opts->flash_attn == 2) cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
+    if (opts && opts->flash_attn == 1) cp.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_ENABLED;
+    if (opts && opts->flash_attn == 2) cp.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
 ```
 
-(If the pinned llama.cpp 0.3.0 `llama_context_params` still has the boolean `flash_attn` instead of `flash_attn_type`, set `cparams.flash_attn = (opts->flash_attn == 1)` for 1 and `false` for 2 — check `build/cpu/_deps/llama-src/include/llama.h`.)
+(`cp` is the `llama_context_params` local in `sk_translate.cpp`'s loader; place the two lines right after `cp.n_threads_batch = threads;`. The pinned llama.cpp 0.3.0 has `flash_attn_type` with the `LLAMA_FLASH_ATTN_TYPE_ENABLED/DISABLED` enumerators.)
 
 In `native/CMakeLists.txt`: `project(sokuji_native VERSION 1.1.0 …)`; add `src/sk_profile.cpp` to `target_sources(sokuji_native ...)`; add `${CMAKE_CURRENT_SOURCE_DIR}/src` to the `PRIVATE` include directories of `sokuji_native` (generated sources include `sk_ops_data.h` from there in Task 5); `set(SK_ABI_VERSION_NUM 2)`.
 
@@ -290,7 +291,7 @@ In `__init__.py`, wherever `sk_translate_options` is filled (the `translate_load
 
 - [ ] **Step 8: Update the version sentences**
 
-In `native/README.md` and `CLAUDE.md`, find the sentence that begins `Current native version is` (in the README it is wrapped across two lines) and rewrite the whole sentence as: `Current native version is 1.1.0 (ABI 2: device profile and op coverage — spec docs/superpowers/specs/2026-09-04-native-device-profile-design.md).` In `native/README.md`'s "Bumping a pin" step 4, change "the **two** places" to "the **two** places (plus `SK_ABI_VERSION_NUM` in `CMakeLists.txt` and `_ffi.py` when the ABI changes)".
+In `native/README.md` and `CLAUDE.md`, find the sentence that begins `Current native version is` (`grep -n 'Current native version' native/README.md CLAUDE.md`; in BOTH files it is wrapped across two lines, so edit the whole sentence, not one line) and rewrite the whole sentence as: `Current native version is 1.1.0 (ABI 2: device profile and op coverage — spec docs/superpowers/specs/2026-09-04-native-device-profile-design.md).` In `native/README.md`'s "Bumping a pin" step 4, change "the **two** places" to "the **two** places (plus `SK_ABI_VERSION_NUM` in `CMakeLists.txt` and `_ffi.py` when the ABI changes)".
 
 - [ ] **Step 9: Build, run the CTest, prove the ABI check fires**
 
@@ -355,8 +356,10 @@ In `test_common.cpp`, just after the pre-init `sk_device_free_mem` assertions (l
             assert(p.driver_name[0] != '\0');
         }
     }
-    assert(sk_device_profile_get(n + 5, &prof) == SK_ERR_INVALID_ARGUMENT);
+    { sk_device_profile bad = {}; assert(sk_device_profile_get(n + 5, &bad) == SK_ERR_INVALID_ARGUMENT); }
 ```
+
+(Task 1's block sits at the same anchor; put this one directly BELOW it — the two are independent, each declares its own variables.)
 
 - [ ] **Step 2: Run it to see it fail**
 
@@ -658,6 +661,21 @@ int main() {
         auto sel = sk_vk_select_like_ggml(raw, nullptr);
         assert(sel.size() == 2);
     }
+    {   // ORDINALS follow ggml: a later duplicate that wins on priority erases the loser and is
+        // APPENDED, so on a multi-GPU box the RADV entry lands after the NVIDIA card; a later
+        // duplicate that loses is skipped and the earlier winner keeps its slot.
+        std::vector<sk_vk_record> raw = { rec("RTX", "nnnn", 2, 4), rec("RX", "aaaa", 2, 2), rec("RX", "aaaa", 2, 3) };
+        auto sel = sk_vk_select_like_ggml(raw, nullptr);
+        assert(sel.size() == 2 && sel[0] == 0 && sel[1] == 2);
+        std::vector<sk_vk_record> raw2 = { rec("RX", "aaaa", 2, 3), rec("RX", "aaaa", 2, 2), rec("RTX", "nnnn", 2, 4) };
+        auto sel2 = sk_vk_select_like_ggml(raw2, nullptr);
+        assert(sel2.size() == 2 && sel2[0] == 0 && sel2[1] == 2);
+    }
+    {   // An unknown driver id ranks INT32_MAX: it loses even to Dozen (23) for the same UUID.
+        std::vector<sk_vk_record> raw = { rec("X", "gggg", 2, 99), rec("X", "gggg", 2, 23) };
+        auto sel = sk_vk_select_like_ggml(raw, nullptr);
+        assert(sel.size() == 1 && sel[0] == 1);
+    }
     return 0;
 }
 ```
@@ -753,7 +771,7 @@ int priority(int32_t driver_id) {
         case kQualcommProprietary:     return 1;
         case kMesaTurnip:              return 2;
         case kMesaDozen:               return 100;
-        default:                       return 50;
+        default:                       return INT32_MAX;   // ggml: an unknown driver loses even to Dozen
     }
 }
 
@@ -776,21 +794,25 @@ std::vector<size_t> sk_vk_select_like_ggml(const std::vector<sk_vk_record> &raw,
         const auto &r = raw[i];
         if ((r.device_type == kTypeDiscrete || r.device_type == kTypeIntegrated) && r.storage16) eligible.push_back(i);
     }
+    /* ggml_vk_instance_init's dedup, ORDER INCLUDED: a duplicate that wins on driver priority
+     * ERASES the loser and is APPENDED at the end (not swapped in place); a duplicate that
+     * loses is skipped. Ordinals must match ggml's or the positional profile match degrades
+     * every Vulkan device to known=0. */
     std::vector<size_t> kept;
     for (size_t i : eligible) {
-        bool merged = false;
-        for (size_t &k : kept) {
-            const auto &a = raw[k], &b = raw[i];
+        bool skip = false;
+        for (auto it = kept.begin(); it != kept.end(); ++it) {
+            const auto &a = raw[*it], &b = raw[i];
             const bool same = (!a.uuid_hex.empty() && a.uuid_hex == b.uuid_hex) ||
                               (a.luid_valid && b.luid_valid && a.luid_hex == b.luid_hex);
             const bool both_moltenvk = a.driver_id == kMoltenVk && b.driver_id == kMoltenVk;
             if (same && !both_moltenvk) {
-                if (priority(b.driver_id) < priority(a.driver_id)) k = i;
-                merged = true;
+                if (priority(b.driver_id) < priority(a.driver_id)) { kept.erase(it); kept.push_back(i); }
+                skip = true;
                 break;
             }
         }
-        if (!merged) kept.push_back(i);
+        if (!skip) kept.push_back(i);
     }
     if (!kept.empty()) return kept;
     for (size_t i = 0; i < raw.size(); ++i) if (raw[i].device_type != kTypeCpu) return {i};
@@ -1388,11 +1410,25 @@ std::vector<sk_op_desc> g_nodes;
 bool g_recording = false;
 ggml_backend_t g_cpu = nullptr;
 
+/* WEIGHT = src0 of a rung op whose ROOT (through reshape/view/permute) is a parameter leaf.
+ * llama.cpp / transcribe.cpp name every GGUF tensor, so the root's name is in the file's
+ * tensor list. audio.cpp creates its weights UNNAMED (backend_weight_store.h
+ * make_backend_tensor: ggml_new_tensor + wrap_tensor, no ggml_set_name) inside a buffer
+ * tagged GGML_BACKEND_BUFFER_USAGE_WEIGHTS (backend_weight_store.h:158), so the buffer usage
+ * is the signal there. A named leaf NOT in the file (a KV slot, a streaming-state tensor)
+ * keeps its literal dtype; so does anything computed (op != NONE) or flagged INPUT. */
 int32_t src_type_of(const ggml_tensor *node, int i) {
     const ggml_tensor *t = node->src[i];
     if (!t) return SK_SRC_ABSENT;
-    const char *name = ggml_get_name(t);
-    if (i == 0 && g_rung_ops.count(node->op) && name && *name && g_weight_names.count(name)) return SK_SRC_WEIGHT;
+    if (i == 0 && g_rung_ops.count(node->op)) {
+        const ggml_tensor *root = t;
+        while (root->view_src) root = root->view_src;
+        const bool leaf = root->op == GGML_OP_NONE && !(root->flags & GGML_TENSOR_FLAG_INPUT);
+        const char *name = ggml_get_name(root);
+        const bool named_in_file = name && *name && g_weight_names.count(name);
+        const bool weights_buffer = root->buffer && ggml_backend_buffer_get_usage(root->buffer) == GGML_BACKEND_BUFFER_USAGE_WEIGHTS;
+        if (leaf && (named_in_file || weights_buffer)) return SK_SRC_WEIGHT;
+    }
     return static_cast<int32_t>(t->type);
 }
 
@@ -1421,12 +1457,21 @@ void record_node(const ggml_tensor *node) {
 }
 }  // namespace
 
-/* audio.cpp path: every graph_compute in every audio.cpp TU lands here (compat header). This
- * TU is compiled WITHOUT the redirect, so the call below is the real function. */
+/* audio.cpp path: every graph_compute AND every graph_plan_create in every audio.cpp TU lands
+ * here (compat header). pocket_tts's FlowLM goes through create_backend_graph_plan_if_host →
+ * ggml_backend_graph_plan_create + plan_compute on a host backend (audio.cpp
+ * src/models/pocket_tts/flow_lm.cpp:431,688 → src/framework/core/backend.cpp:455-488), and
+ * plan_compute carries no graph, so the plan-create hook is where those nodes are seen. This
+ * TU is compiled WITHOUT the redirect, so the calls below are the real functions. */
 extern "C" enum ggml_status sk_recording_graph_compute(ggml_backend_t backend, struct ggml_cgraph *cgraph) {
     for (int i = 0; i < ggml_graph_n_nodes(cgraph); ++i) record_node(ggml_graph_node(cgraph, i));
     return ggml_backend_graph_compute(backend, cgraph);
 }
+extern "C" ggml_backend_graph_plan_t sk_recording_graph_plan_create(ggml_backend_t backend, struct ggml_cgraph *cgraph) {
+    for (int i = 0; i < ggml_graph_n_nodes(cgraph); ++i) record_node(ggml_graph_node(cgraph, i));
+    return ggml_backend_graph_plan_create(backend, cgraph);
+}
+/* (copy the `cgraph` parameter's const-ness from ggml-backend.h's prototype verbatim) */
 
 /* llama.cpp / transcribe.cpp path: a device that accepts everything and forwards to CPU.
  * Member orders below are ggml v0.22.0's ggml-backend-impl.h (GGML_BACKEND_API_VERSION 2):
@@ -1535,7 +1580,9 @@ SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, cons
  * header and forwards to the real function. */
 #include "ggml-backend.h"
 extern "C" enum ggml_status sk_recording_graph_compute(ggml_backend_t backend, struct ggml_cgraph *cgraph);
-#define ggml_backend_graph_compute sk_recording_graph_compute
+extern "C" ggml_backend_graph_plan_t sk_recording_graph_plan_create(ggml_backend_t backend, struct ggml_cgraph *cgraph);
+#define ggml_backend_graph_compute      sk_recording_graph_compute
+#define ggml_backend_graph_plan_create  sk_recording_graph_plan_create   /* pocket_tts FlowLM on a host backend */
 #endif
 ```
 
@@ -1702,7 +1749,7 @@ if(SOKUJI_RECORD_OPS)
 endif()
 ```
 
-A note the implementer must act on: the recording device is `SK_DEVICE_OTHER` in `sk::kind_of`, so `sk_asr.cpp` passes it as `TRANSCRIBE_BACKEND_AUTO` + `lp.device`. If the ASR recording comes back with 0 nodes, transcribe.cpp ignored the explicit device under AUTO; then, under `SK_RECORD_OPS` only, make `kind_of` map registry name `"SKREC"` to `SK_DEVICE_VULKAN` (`sk_common.cpp:120-127`) so `backend_for` requests an explicit backend, and re-record.
+The recording device is `SK_DEVICE_OTHER` in `sk::kind_of`, so `sk_asr.cpp` passes it as `TRANSCRIBE_BACKEND_AUTO` + `lp.device`; transcribe.cpp 0.2.3 honours `lp.device` under AUTO (`init_backends_explicit_device`), so nothing in `kind_of` changes. A 0-node ASR recording means the recorder was registered AFTER `sk_init` (first call wins), not a device-selection problem.
 
 - [ ] **Step 7: Build the recording variant and record the shipped `.ops` files**
 
@@ -1726,7 +1773,10 @@ build/record/lib/record_ops build/record/lib translate qwen3 /home/jiangzhuo/.ca
 build/record/lib/record_ops build/record/lib translate qwen3 /home/jiangzhuo/.cache/sokuji-native-tests/Qwen3-0.6B-Q8_0.gguf /home/jiangzhuo/.claude/jobs/387091ff/tmp/qwen3-fa-off.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3 2
 ```
 
-Merge the flash-attention-off translate recording into the shipped file: `grep '^op=' /home/jiangzhuo/.claude/jobs/387091ff/tmp/qwen3-fa-off.ops >> src/ops/translate-qwen3.ops` (Task 5's parser de-duplicates through `sk_ops_add`; the header line stays the FA-on run's). Every invocation must print a non-zero node count and exit 0. Inspect one: `head -6 src/ops/tts-voxcpm2.ops` — four header lines, then `op=` lines with `WEIGHT` only on `MUL_MAT`/`GET_ROWS` src0 and `bf16` present in `dtypes-in-file`; `grep -c '^op=' src/ops/tts-voxcpm2.ops` should be in the tens, not thousands (identity excludes sequence axes).
+Merge the flash-attention-off translate recording into the shipped file: `grep '^op=' /home/jiangzhuo/.claude/jobs/387091ff/tmp/qwen3-fa-off.ops >> src/ops/translate-qwen3.ops` (Task 5's parser de-duplicates through `sk_ops_add`; the header line stays the FA-on run's). Every invocation must print a non-zero node count and exit 0. Then three checks:
+- `grep -c WEIGHT src/ops/tts-*.ops` — every file ≥ 1. A zero means that family's weights bypassed the leaf rule (a differently tagged buffer); inspect the family's weight store in `build/record/_deps/audiocpp-src` before touching the rule, and never ship a tts file with no `WEIGHT` line (Task 5's CTest refuses it).
+- `head -6 src/ops/tts-voxcpm2.ops` — four header lines, then `op=` lines with `WEIGHT` only on `MUL_MAT`/`GET_ROWS` src0 and `bf16` present in `dtypes-in-file`; `grep -c '^op=' src/ops/tts-voxcpm2.ops` in the tens, not thousands (identity excludes sequence axes).
+- `grep -c 'op=ROPE\|op=SOFT_MAX\|op=FLASH_ATTN_EXT' src/ops/tts-pocket_tts.ops` ≥ 1 — pocket_tts's FlowLM transformer runs through the plan-create hook; a file holding only the mimi decoder's conv/norm nodes means that hook did not fire.
 
 - [ ] **Step 8: Commit**
 
@@ -1772,6 +1822,7 @@ In `test_common.cpp` after the profile loop:
             sk_ops_blob_at(b, &stage, &family, &text);
             // the dtypes-in-file line: "# dtypes-in-file: a b c"
             std::string t(text);
+            if (std::string(stage) == "tts") assert(t.find("WEIGHT") != std::string::npos);   // the leaf rule fired for this family
             auto pos = t.find("# dtypes-in-file:");
             assert(pos != std::string::npos);
             std::string line = t.substr(pos + 17, t.find('\n', pos) - pos - 17);
@@ -2100,6 +2151,7 @@ Create `native/tests/test_ops_coverage.cpp`:
 #undef NDEBUG
 #include <cassert>
 #include <cstdlib>
+#include <fstream>
 #include <set>
 #include <sstream>
 #include <string>
@@ -2888,6 +2940,20 @@ def test_measure_keys_by_generation(monkeypatch, tmp_path):
 
 (`accel.Plan` and `_measure`'s `run=` seam are the existing names at `accel.py:511`; if `Plan` is only importable from `planner`, use `accel.planner.Plan`.)
 
+Three pre-existing tests in the same file write or read generation-less keys and must move with the API (spec §4: `test_accel.py:393-398, 407-410, 427 move to _cache_key`). Rewrite them as:
+
+```python
+def test_bench_cache_roundtrip(tmp_path, monkeypatch):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    assert accel.bench_load() == {}  # nothing yet
+    m = dataclasses.replace(_machine(), generation="G1")
+    key = accel._cache_key(m, "", "whisper-base", "ctranslate2", "cuda", "float16")
+    accel.bench_save({key: 0.12}, generation="G1")
+    assert accel.bench_load()[key] == 0.12
+```
+
+and in `test_measure_rtf_runs_and_caches` / `test_measure_tps_warms_up_benchmarks_and_caches` replace `m = _machine()` with `m = dataclasses.replace(_machine(), generation="G1")`, the rtf assertion with `assert accel._cache_key(m, "", "whisper-base", "ctranslate2", "cpu", "int8") in cache`, and the tps assertion with `assert any("|tps:" in k for k in cache)` (`accel._cache_key` is the name `accel.py` imports from `planner` in Step 2; `test_bench_key_is_stable_and_distinct` keeps testing `_bench_key`, which is unchanged).
+
 `sidecar/tests/test_planner.py` — add `import dataclasses`; update the four cache-building sites from `planner._bench_key(m.fingerprint, ...)` to `planner._cache_key(m, "", ...)` (:393-396, :405-408, :509-514) and from `"tps:" + planner._bench_key(m.fingerprint, ...)` to `planner._cache_key(m, "tps:", ...)` (:846-849) — those machines have `generation=""`, so the keys read `|fp|...` and the tests keep passing; then add:
 
 ```python
@@ -3099,9 +3165,9 @@ def test_op_coverage_for_precomputes_only_what_the_planner_may_gate(monkeypatch,
     accel.op_coverage_for(m3, card, "auto")
     assert calls == []
     second = dataclasses.replace(m.devices[0], index=2, name="vulkan2", description="other")
-    m4 = dataclasses.replace(m, devices=(m.devices[0], second, m.devices[1]))
+    m4 = dataclasses.replace(m, devices=(m.devices[0], second, m.devices[1]), generation="G2")   # fresh generation: the G1 answers are cached
     accel.op_coverage_for(m4, card, "auto")
-    assert {c[0] for c in calls} == {0}                                             # two GPUs of one kind: only the first
+    assert calls and {c[0] for c in calls} == {0}                                   # two GPUs of one kind: only the first
 
 
 def test_cached_op_coverage_reads_only(monkeypatch, tmp_path):
@@ -3681,14 +3747,18 @@ it('keeps device profiles and the generation beside engineInfo, and reports an u
   expect(s.profileGeneration).toBe('G1');
   expect(s.deviceProfiles?.[0].deviceUuid).toBe('ab'.repeat(16));
   await settleReports();
-  const warnings = useLogStore.getState().logs.filter((l) => l.level === 'warning' && l.message.includes('NORM[f32,-,-,-,-]->f32'));
+  const warnings = useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('NORM[f32,-,-,-,-]->f32'));   // LogEntry keeps severity in `type`
   expect(warnings).toHaveLength(1);
   expect(warnings[0].message).toContain('GB10');
-  // a second hardware_info in the same session with the same key: no second line
+  expect(useNativeModelStore.getState().reportedUnsupportedOps.has('tts/voxcpm2/q8_0')).toBe(true);
+  // a second hardware_info in the same session with the same key: no second line. The report
+  // throttle (5 s per dedupeKey) would hide a second call on its own, so reset it first — the
+  // assertion is about the store's per-session set, not the throttle.
   useNativeModelStore.setState({ sidecarStatus: 'idle' });   // the field/value the file uses to force ensureCatalog to re-probe — copy from the retry test in this file
+  resetReportThrottle();
   await useNativeModelStore.getState().ensureCatalog();
   await settleReports();
-  expect(useLogStore.getState().logs.filter((l) => l.level === 'warning' && l.message.includes('NORM[f32,-,-,-,-]->f32'))).toHaveLength(1);
+  expect(useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('NORM[f32,-,-,-,-]->f32'))).toHaveLength(1);
 });
 
 it('a variant with unsupportedTiers stays pickable and keeps its pin', () => {
@@ -3704,7 +3774,21 @@ it('a variant with unsupportedTiers stays pickable and keeps its pin', () => {
 });
 ```
 
-(`useLogStore` is imported from `'./logStore'` and `settleReports` from `'../lib/diagnostics/report'` — both are already imported in this file if any existing test asserts a report; add them if not. `CARD` and `deriveVariantRepos` are the file's own literal and the store's export at `nativeModelStore.ts:215`.)
+(`useLogStore` is already imported from `'./logStore'`; add `import { settleReports, resetReportThrottle } from '../lib/diagnostics/report';` (`report.ts:98, 146`). `CARD` and `deriveVariantRepos` are the file's own literal and the store's export at `nativeModelStore.ts:215`. The pin test is a regression guard — it passes today because `deriveVariantRepos` ignores fields it does not read, and it must keep passing once `unsupportedTiers` exists on the type.)
+
+The fixture `DEFAULT_HARDWARE_INFO` (line 54) is an untyped literal, so `mockHardwareInfoResolve({ generation, devices })` is an excess-property error under `tsc`. Retype it in the same step:
+
+```ts
+import type { HardwareInfoResultMsg } from '../lib/local-inference/native/nativeProtocol';
+const DEFAULT_HARDWARE_INFO: Partial<Omit<HardwareInfoResultMsg, 'type' | 'id'>> = {
+  nativeVersion: '1.0.1',
+  engineVersions: { ggml: '0.22.0', transcribe: '0.2.2', llama: '0.3.0', audiocpp: '0.7.0' },
+  lane: 'cpu-vulkan',
+  preferredDevice: { kind: 'vulkan', name: 'gpu0', description: 'NVIDIA GB10' },
+};
+```
+
+(`_hardwareInfoResponse: typeof DEFAULT_HARDWARE_INFO` and `overrides?: Partial<typeof DEFAULT_HARDWARE_INFO>` then admit the two new optional fields unchanged.)
 
 `NativeModelManagementSection.test.tsx` fixtures its catalog through the hoisted `mockCatalog` record consumed by `vi.mock`, and every test renders `<NativeModelManagementSection />` then reaches rows through `within(screen.getByTestId('model-card-<id>')).getByTestId('variant-row-<id>')` (line ~492 is the template). The `qwen3-tts-1.7b` entry lists variants `bf16`, `fp32`, `int8`. Give its `bf16` variant `unsupportedTiers: ['gpu-vulkan']` in `mockCatalog` and add:
 
@@ -3721,7 +3805,7 @@ it('renders "runs on CPU here" on an enabled option when the sidecar refused its
 
 If an existing test in that file asserts the exact `textContent` of `variant-row-bf16` for `qwen3-tts-1.7b`, give the `unsupportedTiers` to a variant no existing test pins instead, and point both assertions at that one.
 
-Run: `npx vitest run src/stores/nativeModelStore.test.ts src/components/Settings/sections/NativeModelManagementSection.test.tsx` — Expected: FAIL (fields missing; the tsc-in-vitest step rejects `unsupportedTiers` on the literal).
+Run: `npx vitest run src/stores/nativeModelStore.test.ts src/components/Settings/sections/NativeModelManagementSection.test.tsx` — Expected: the profile test and the section test FAIL (`profileGeneration` undefined; no "Runs on CPU" text); the pin test passes already (vitest strips types and does not type-check — `unsupportedTiers` on the literal is caught only by `tsc` in Step 5).
 
 - [ ] **Step 2: Types**
 
@@ -3810,7 +3894,7 @@ Every outward act below (push, PR, merge, tag, `workflow_dispatch`) is done only
 - [ ] **Step 1: Dry run the wheels** — ask to run `native-build.yml` via `workflow_dispatch` on the feature branch; expect five green lanes (`test_common` with the profile assertions passes on the paravirtual Metal runner through the inverse assertion; `test_ops_coverage` runs for the five CI-downloaded models on every lane and skips the rest).
 - [ ] **Step 2: PR into `main`** — ask to push the branch and open the PR (title: `native+sidecar: device profile, op recordings, cache generations (spec A)`); after review, ask to merge with a merge commit.
 - [ ] **Step 3: Tag `native-v1.1.0` on `main`** — verify first: `grep -n 'VERSION 1.1.0' native/CMakeLists.txt`, `grep -c 'SK_ABI_VERSION 2\|sk_version.*1.1.0' native/include/sokuji_native.h native/tests/test_common.cpp`, `ls native/src/ops/tts-*.ops | wc -l` prints 9; ask; push the tag; wait for the five wheels (prerelease).
-- [ ] **Step 4: Pin the sidecar** — on a `chore/sidecar-v0.3.0` branch. The pins in the tree are `native-v1.0.2/sokuji_native-1.0.2-` (five lines in `requirements.txt`, the prefix in `test_runtime_gate.py`); confirm before editing: `grep -c 'native-v1\.0\.2/sokuji_native-1\.0\.2-' sidecar/requirements.txt` prints 5. Then `sed -i -E 's|native-v1\.0\.[0-9]+/sokuji_native-1\.0\.[0-9]+-|native-v1.1.0/sokuji_native-1.1.0-|g' sidecar/requirements.txt sidecar/tests/test_runtime_gate.py`, update the `native-v1.0.2` prose in `test_runtime_gate.py`'s docstring, set `"sidecarVersion": "0.3.0"` in `package.json`; `grep -c 'native-v1.1.0' sidecar/requirements.txt` must print 5; run the sidecar suite (`cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests -q -p no:cacheprovider`, all pass); ask to push + PR + merge.
+- [ ] **Step 4: Pin the sidecar** — on a `chore/sidecar-v0.3.0` branch. `requirements.txt` carries the release path and the wheel name on one line (`native-v1.0.2/sokuji_native-1.0.2-…`, five lines); `test_runtime_gate.py` splits them — the release base string at line 57 and five wheel-name literals at lines 64-72, plus prose at lines 4 and 80. Confirm before editing: `grep -c 'native-v1\.0\.2/sokuji_native-1\.0\.2-' sidecar/requirements.txt` prints 5 and `grep -c '1\.0\.2' sidecar/tests/test_runtime_gate.py` prints 8. Then two substitutions on both files: `sed -i -e 's|native-v1\.0\.2/|native-v1.1.0/|g' -e 's|sokuji_native-1\.0\.2-|sokuji_native-1.1.0-|g' sidecar/requirements.txt sidecar/tests/test_runtime_gate.py`; set `"sidecarVersion": "0.3.0"` in `package.json`; verify `grep -c 'native-v1.1.0' sidecar/requirements.txt` prints 5 and `grep -c '1\.1\.0' sidecar/tests/test_runtime_gate.py` prints 8 (the two prose lines change with the same sed); run the sidecar suite (`cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests -q -p no:cacheprovider`, all pass); ask to push + PR + merge.
 - [ ] **Step 5: Tag `sidecar-v0.3.0` on the merge commit** — verify `git show <sha>:sidecar/requirements.txt | grep -c native-v1.1.0` prints 5 and `git show <sha>:package.json | grep sidecarVersion` prints 0.3.0; ask; push the tag; wait for `sidecar-bundles.yml` (five bundles + `manifest.json`).
 - [ ] **Step 6: Fleet smoke** — the smoke harness from the 0.2.1 release (`/home/jiangzhuo/.claude/jobs/387091ff/tmp/esl-b2/smoke/smoke.sh <sku> <device> <workdir>`, with `wire_check.py`'s `nativeVersion` assertion bumped to `1.1.0`) plus one `hardware_info` assertion: `devices[]` present with `known: true` on GB10 (Vulkan), the Ubuntu 4070 (Vulkan, glibc 2.35) and the M4 (Metal, `mtl_simdgroup_reduction` in `features`), and `generation` a 12-hex string.
 
