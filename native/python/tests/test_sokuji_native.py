@@ -123,6 +123,20 @@ def test_device_profiles_one_per_device():
 
 
 @needs_tree
+def test_device_supports_ops_cpu_all_supported_and_errors():
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    cov = sokuji_native.device_supports_ops(cpu.index, "tts", "supertonic", ["f16", "f32"])
+    assert cov.all_supported and cov.unsupported == () and len(cov.checked) > 0
+    assert any(c.startswith("MUL_MAT[") and c.endswith("->f32") for c in cov.checked)
+    with pytest.raises(sokuji_native.NativeError) as e:
+        sokuji_native.device_supports_ops(cpu.index, "tts", "no-such-family", ["f16"])
+    assert e.value.status == sokuji_native._ffi.SK_ERR_NOT_FOUND
+    with pytest.raises(sokuji_native.NativeError):
+        sokuji_native.device_supports_ops(cpu.index, "tts", "supertonic", [])
+
+
+@needs_tree
 def test_second_init_log_keeps_first_trampoline_alive():
     # sk_init stores the callback pointer from its first successful call only, so that
     # trampoline must stay referenced for the life of the process, and a later

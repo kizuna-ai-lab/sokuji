@@ -107,10 +107,4 @@ SK_API sk_status sk_device_profile_get(int32_t index, sk_device_profile *out) {
     return SK_OK;
 }
 
-SK_API sk_status sk_device_supports_ops(int32_t, const char *, const char *, const char *const *, int32_t,
-                                        sk_op_coverage *) {
-    sk::set_error("sk_device_supports_ops: not implemented yet");   // Task 5 replaces this body
-    return SK_ERR_INTERNAL;
-}
-
 }  // extern "C"

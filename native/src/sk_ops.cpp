@@ -1,0 +1,140 @@
+#define SOKUJI_NATIVE_BUILD 1
+#include "sokuji_native.h"
+#include "sk_internal.h"
+#include "sk_ops.h"
+#include "sk_ops_data.h"
+
+#include "ggml.h"
+#include "ggml-backend.h"
+
+#include <algorithm>
+#include <cstdio>
+#include <cstring>
+#include <map>
+#include <mutex>
+#include <string>
+#include <vector>
+
+namespace {
+
+std::mutex g_ops_mutex;
+std::map<std::string, sk_op_recording> g_parsed;   // "stage/family" -> parsed once
+
+const sk_op_recording *recording_for(const std::string &stage, const std::string &family, std::string &err) {
+    std::lock_guard<std::mutex> l(g_ops_mutex);
+    const std::string key = stage + "/" + family;
+    auto it = g_parsed.find(key);
+    if (it != g_parsed.end()) return &it->second;
+    for (int i = 0; i < sk_ops_blob_count_; ++i) {
+        if (stage == sk_ops_blobs[i].stage && family == sk_ops_blobs[i].family) {
+            sk_op_recording r;
+            if (!sk_ops_parse(sk_ops_blobs[i].text, r, err)) return nullptr;   // a shipped file that fails to parse is SK_ERR_INTERNAL
+            return &(g_parsed[key] = std::move(r));
+        }
+    }
+    return nullptr;
+}
+
+int32_t type_by_name(const char *name) {
+    for (int t = 0; t < GGML_TYPE_COUNT; ++t) {
+        const char *n = ggml_type_name(static_cast<ggml_type>(t));
+        if (n && std::strcmp(n, name) == 0) return t;
+    }
+    return -1;
+}
+
+/* Rebuild one recorded node with a concrete weight type at the recorded ne[0] (block sizes
+ * stay valid) and the recorded maxima on the other axes, grown so nbytes reaches max_bytes
+ * (buffer-range checks are asked at the real size), and ask the device. Nothing is allocated
+ * on the device; nothing runs. */
+bool ask(ggml_backend_dev_t dev, const sk_op_desc &d, int32_t weight_type, std::string &spelling_out) {
+    ggml_init_params ip = { 64 * 1024, nullptr, /*no_alloc*/ true };
+    ggml_context *ctx = ggml_init(ip);
+    if (!ctx) return false;
+    auto concrete = [&](int32_t t) -> ggml_type { return static_cast<ggml_type>(t == SK_SRC_WEIGHT ? weight_type : t); };
+    auto grow = [&](std::array<int64_t, 4> ne, ggml_type t) {
+        const int64_t row_bytes = ggml_row_size(t, ne[0]);
+        if (row_bytes > 0) {
+            const int64_t have = row_bytes * ne[1] * ne[2] * ne[3];
+            if (have < static_cast<int64_t>(d.max_bytes)) ne[1] = (static_cast<int64_t>(d.max_bytes) + row_bytes * ne[2] * ne[3] - 1) / (row_bytes * ne[2] * ne[3]);
+        }
+        return ne;
+    };
+    auto mk = [&](int32_t t, const std::array<int64_t, 4> &ne0, bool contig) -> ggml_tensor * {
+        if (t == SK_SRC_ABSENT) return nullptr;
+        std::array<int64_t, 4> ne = grow(ne0, concrete(t));
+        ggml_tensor *x = ggml_new_tensor_4d(ctx, concrete(t), ne[0], ne[1], ne[2], ne[3]);
+        return contig ? x : ggml_transpose(ctx, x);   // a non-contiguous view, as recorded
+    };
+    ggml_tensor *node = ggml_new_tensor_4d(ctx, concrete(d.dst_type), d.max_ne_dst[0], d.max_ne_dst[1], d.max_ne_dst[2], d.max_ne_dst[3]);
+    node->op = static_cast<ggml_op>(d.op);
+    std::memcpy(node->op_params, d.op_params.data(), sizeof node->op_params);
+    node->src[0] = mk(d.src_type[0], d.max_ne_src0, d.contig_src0);
+    node->src[1] = mk(d.src_type[1], d.max_ne_src1, d.contig_src1);
+    for (int i = 2; i < 5; ++i) node->src[i] = mk(d.src_type[i], {d.max_ne_src1[0], 1, 1, 1}, true);
+    bool ok = ggml_backend_dev_supports_op(dev, node);
+    spelling_out = sk_op_spelling(d, weight_type >= 0 ? ggml_type_name(static_cast<ggml_type>(weight_type)) : nullptr);
+    ggml_free(ctx);
+    return ok;
+}
+
+}  // namespace
+
+extern "C" {
+
+SK_API int32_t sk_ops_blob_count(void) { return sk_ops_blob_count_; }
+
+SK_API sk_status sk_ops_blob_at(int32_t i, const char **stage, const char **family, const char **text) {
+    if (i < 0 || i >= sk_ops_blob_count_ || !stage || !family || !text) return SK_ERR_INVALID_ARGUMENT;
+    *stage = sk_ops_blobs[i].stage; *family = sk_ops_blobs[i].family; *text = sk_ops_blobs[i].text;
+    return SK_OK;
+}
+
+SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const char *family,
+                                        const char *const *weight_dtypes, int32_t n_weight_dtypes,
+                                        sk_op_coverage *out) {
+    std::lock_guard<std::mutex> lock(sk::mutex());
+    if (!out || !stage || !family || !weight_dtypes || n_weight_dtypes <= 0 || index < 0) {
+        sk::set_error("sk_device_supports_ops: bad argument");
+        return SK_ERR_INVALID_ARGUMENT;
+    }
+    if (!sk::require_init("sk_device_supports_ops")) return SK_ERR_NOT_INITIALISED;
+    const auto &devs = sk::devices();
+    if (static_cast<size_t>(index) >= devs.size()) { sk::set_error("sk_device_supports_ops: bad index"); return SK_ERR_INVALID_ARGUMENT; }
+    std::vector<int32_t> wtypes;
+    for (int32_t i = 0; i < n_weight_dtypes; ++i) {
+        int32_t t = weight_dtypes[i] ? type_by_name(weight_dtypes[i]) : -1;
+        if (t < 0) { sk::set_error(std::string("sk_device_supports_ops: unknown dtype ") + (weight_dtypes[i] ? weight_dtypes[i] : "NULL")); return SK_ERR_INVALID_ARGUMENT; }
+        wtypes.push_back(t);
+    }
+    std::string err;
+    const sk_op_recording *rec = recording_for(stage, family, err);
+    if (!rec) {
+        if (!err.empty()) { sk::set_error("sk_device_supports_ops: shipped recording unparseable: " + err); return SK_ERR_INTERNAL; }
+        sk::set_error(std::string("sk_device_supports_ops: no recording for ") + stage + "/" + family);
+        return SK_ERR_NOT_FOUND;
+    }
+    std::memset(out, 0, sizeof *out);
+    out->all_supported = 1;
+    try {
+        for (const sk_op_desc &d : rec->nodes) {
+            const bool has_weight = std::find(d.src_type.begin(), d.src_type.end(), SK_SRC_WEIGHT) != d.src_type.end();
+            const std::vector<int32_t> expand = has_weight ? wtypes : std::vector<int32_t>{-1};
+            for (int32_t wt : expand) {
+                if (out->n_ops >= SK_OP_COVERAGE_MAX) { sk::set_error("sk_device_supports_ops: recording exceeds SK_OP_COVERAGE_MAX"); return SK_ERR_INTERNAL; }
+                std::string spelling;
+                const bool ok = ask(devs[index], d, wt, spelling);
+                sk_op_check &c = out->ops[out->n_ops++];
+                std::snprintf(c.name, sizeof c.name, "%s", spelling.c_str());
+                c.supported = ok ? 1 : 0;
+                if (!ok) out->all_supported = 0;
+            }
+        }
+    } catch (...) {
+        sk::set_error("sk_device_supports_ops: backend threw during supports_op (Vulkan device init?)");
+        return SK_ERR_BACKEND;
+    }
+    return SK_OK;
+}
+
+}  // extern "C"

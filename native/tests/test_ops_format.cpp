@@ -40,5 +40,10 @@ int main() {
     std::vector<sk_op_desc> v = {d}; sk_ops_add(v, d2);
     assert(v.size() == 1 && v[0].max_ne_src1[1] == 300 && v[0].max_bytes == 9000000);
     assert(!sk_ops_parse("op=NOPE dst=f32\n", back, err) && !err.empty());
+    // Controller ruling: non-numeric params=/maxbytes= fields must fail cleanly (false +
+    // error), not throw std::invalid_argument/std::out_of_range out of sk_ops_parse.
+    std::string bad_params_line = "op=MUL_MAT params=" + std::string(128, 'z') + " dst=f32 src=[f32,-,-,-,-]\n";
+    assert(!sk_ops_parse(bad_params_line, back, err) && !err.empty());
+    assert(!sk_ops_parse("op=MUL_MAT maxbytes=abc dst=f32 src=[f32,-,-,-,-]\n", back, err) && !err.empty());
     return 0;
 }

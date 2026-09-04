@@ -89,6 +89,17 @@ foreach(_t IN LISTS _audiocpp_engine_targets)
         target_compile_options(${_t} PRIVATE -include ${CMAKE_CURRENT_SOURCE_DIR}/src/audiocpp_compat.h)
     endif()
 endforeach()
+# Op recordings (spec A §3.2) are data under src/ops/*.ops, baked into the library at build
+# time so the query needs no files at runtime. Any .ops change re-runs the generator.
+file(GLOB _sk_ops_files ${CMAKE_CURRENT_SOURCE_DIR}/src/ops/*.ops)
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_ops_data.py
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ops ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/sk_ops_data.h
+    DEPENDS ${_sk_ops_files} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_ops_data.py
+    COMMENT "sokuji-native: baking op recordings")
+target_sources(sokuji_native PRIVATE src/sk_ops.cpp ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp)
 target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_translate.cpp src/sk_tts.cpp
                                      src/sk_profile.cpp src/sk_vk_enum.cpp src/sk_ops_format.cpp)
 target_link_libraries(sokuji_native PRIVATE engine_runtime)

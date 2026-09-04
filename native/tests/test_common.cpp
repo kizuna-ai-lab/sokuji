@@ -6,8 +6,10 @@
 #include "sokuji_native.h"
 #include <cstdio>
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <thread>
+#include <vector>
 
 static int g_log_calls = 0;
 static bool log_sink(int, const char *, void *) { ++g_log_calls; return true; }
@@ -112,6 +114,44 @@ int main(int argc, char **argv) {
         }
     }
     { sk_device_profile bad = {}; assert(sk_device_profile_get(n + 5, &bad) == SK_ERR_INVALID_ARGUMENT); }
+
+    // Op coverage: every shipped recording, expanded over its own dtypes-in-file set, is fully
+    // supported on the CPU device; error paths are the documented statuses.
+    {
+        const char *f16[] = {"f16", "f32"};
+        // Ruling: sk_op_coverage is ~136 KB (SK_OP_COVERAGE_MAX == 2048); both instances below
+        // are declared once at this scope and reused, never redeclared per loop iteration.
+        sk_op_coverage cov = {};
+        assert(sk_device_supports_ops(-1, "tts", "supertonic", f16, 2, &cov) == SK_ERR_INVALID_ARGUMENT);
+        assert(sk_device_supports_ops(0, "tts", "no-such-family", f16, 2, &cov) == SK_ERR_NOT_FOUND);
+        assert(sk_device_supports_ops(0, "tts", "supertonic", f16, 0, &cov) == SK_ERR_INVALID_ARGUMENT);
+        const char *bad[] = {"q9_9"};
+        assert(sk_device_supports_ops(0, "tts", "supertonic", bad, 1, &cov) == SK_ERR_INVALID_ARGUMENT);
+        int cpu_index = -1;
+        for (int i = 0; i < n; ++i) if (devs[i].kind == SK_DEVICE_CPU) cpu_index = i;
+        int n_tts = 0;
+        sk_op_coverage c = {};
+        for (int b = 0; b < sk_ops_blob_count(); ++b) {
+            const char *stage = nullptr, *family = nullptr, *text = nullptr;
+            sk_ops_blob_at(b, &stage, &family, &text);
+            // the dtypes-in-file line: "# dtypes-in-file: a b c"
+            std::string t(text);
+            if (std::string(stage) == "tts") assert(t.find("WEIGHT") != std::string::npos);   // the leaf rule fired for this family
+            auto pos = t.find("# dtypes-in-file:");
+            assert(pos != std::string::npos);
+            std::string line = t.substr(pos + 17, t.find('\n', pos) - pos - 17);
+            std::vector<std::string> dts; std::string tok; std::istringstream ss(line);
+            while (ss >> tok) dts.push_back(tok);
+            std::vector<const char *> ptrs; for (auto &s : dts) ptrs.push_back(s.c_str());
+            c = {};
+            assert(sk_device_supports_ops(cpu_index, stage, family, ptrs.data(), (int32_t)ptrs.size(), &c) == SK_OK);
+            assert(c.n_ops > 0 && c.n_ops <= SK_OP_COVERAGE_MAX);
+            for (int i = 0; i < c.n_ops; ++i) if (!c.ops[i].supported) std::fprintf(stderr, "%s/%s unsupported on cpu: %s\n", stage, family, c.ops[i].name);
+            assert(c.all_supported == 1);
+            if (std::string(stage) == "tts") ++n_tts;
+        }
+        assert(n_tts == 9);
+    }
 
     char *buf = static_cast<char *>(std::malloc(4));
     sk_free(buf);                                                     // must accept malloc'd memory

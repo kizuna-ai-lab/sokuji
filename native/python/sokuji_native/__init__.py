@@ -21,6 +21,7 @@ from . import _ffi
 __all__ = ["NativeError", "Device", "init", "devices", "device_free_mem", "version",
            "engine_versions", "contract", "audio_families", "native_dir",
            "DeviceProfile", "device_profiles",
+           "OpCoverage", "device_supports_ops",
            "AsrCaps", "AsrModel", "AsrStream", "StreamText", "asr_load",
            "Translator", "translate_load",
            "TtsCaps", "TtsModel", "tts_load"]
@@ -55,6 +56,13 @@ class DeviceProfile:
     driver_version: str
     device_uuid: str
     cpu_features: str
+
+
+@dataclass(frozen=True)
+class OpCoverage:
+    all_supported: bool
+    unsupported: tuple[str, ...]
+    checked: tuple[str, ...]
 
 
 class _State:
@@ -203,6 +211,21 @@ def device_profiles() -> list[DeviceProfile]:
                                  raw.device_uuid.decode("utf-8", "replace"),
                                  raw.cpu_features.decode("utf-8", "replace")))
     return out
+
+
+def device_supports_ops(index: int, stage: str, family: str, weight_dtypes) -> OpCoverage:
+    """Ask the device's own supports_op about the family's recorded graph nodes, WEIGHT sources
+    expanded over `weight_dtypes` (ggml type names). NativeError with the status on every
+    documented error (NOT_FOUND = no recording, INVALID_ARGUMENT, INTERNAL, BACKEND)."""
+    lib = _load()
+    names = [str(t).encode() for t in weight_dtypes]
+    arr = (ctypes.c_char_p * max(1, len(names)))(*names)
+    raw = _ffi.sk_op_coverage()
+    status = lib.sk_device_supports_ops(int(index), stage.encode(), family.encode(), arr, len(names), ctypes.byref(raw))
+    if status != _ffi.SK_OK:
+        _raise(lib, status, "sk_device_supports_ops")
+    checks = [(raw.ops[i].name.decode("utf-8", "replace"), bool(raw.ops[i].supported)) for i in range(raw.n_ops)]
+    return OpCoverage(bool(raw.all_supported), tuple(n for n, ok in checks if not ok), tuple(n for n, _ in checks))
 
 
 def audio_families() -> list[str]:

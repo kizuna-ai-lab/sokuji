@@ -28,7 +28,9 @@ class sk_device(Structure):
                 ("mem_total", c_uint64), ("mem_free", c_uint64)]
 
 
-SK_OP_COVERAGE_MAX = 512
+# tts/index_tts2 (499 identities, 67 WEIGHT) expands to 901 entries over the widest fallback
+# dtype set (7) and 700 over q8_0's 4-dtype rung set — both exceed 512, so the cap is 2048.
+SK_OP_COVERAGE_MAX = 2048
 
 
 class sk_device_profile(Structure):
@@ -100,6 +102,10 @@ def bind(lib: CDLL) -> CDLL:
     lib.sk_device_supports_ops.argtypes = [c_int32, c_char_p, c_char_p, POINTER(c_char_p), c_int32,
                                            POINTER(sk_op_coverage)]
     lib.sk_device_supports_ops.restype = c_int32
+    lib.sk_ops_blob_count.argtypes = []
+    lib.sk_ops_blob_count.restype = c_int32
+    lib.sk_ops_blob_at.argtypes = [c_int32, POINTER(c_char_p), POINTER(c_char_p), POINTER(c_char_p)]
+    lib.sk_ops_blob_at.restype = c_int32
     lib.sk_abi_version.argtypes = []
     lib.sk_abi_version.restype = c_int32
     lib.sk_version.argtypes = []

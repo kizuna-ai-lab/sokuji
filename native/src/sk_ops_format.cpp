@@ -4,9 +4,11 @@
 #include "ggml.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <sstream>
+#include <stdexcept>
 
 namespace {
 
@@ -50,11 +52,22 @@ std::string hexparams(const sk_op_desc &d) {
     for (int v : d.op_params) { std::snprintf(buf, sizeof buf, "%08x", static_cast<uint32_t>(v)); s += buf; }
     return s;
 }
+/* Hardened against a garbage payload: every caller trusts this bool + error contract, and
+ * sk_device_supports_ops parses a shipped .ops file at first use — a bad field must never
+ * throw std::invalid_argument/std::out_of_range through it. */
 bool parse_params(const std::string &s, std::array<int32_t, 16> &out) {
     out.fill(0);
     if (s == "-") return true;
     if (s.size() != 16 * 8) return false;
-    for (int i = 0; i < 16; ++i) out[i] = static_cast<int32_t>(std::stoul(s.substr(i * 8, 8), nullptr, 16));
+    for (int i = 0; i < 16; ++i) {
+        const std::string chunk = s.substr(i * 8, 8);
+        if (!std::all_of(chunk.begin(), chunk.end(), [](unsigned char c) { return std::isxdigit(c) != 0; })) return false;
+        try {
+            out[i] = static_cast<int32_t>(std::stoul(chunk, nullptr, 16));
+        } catch (const std::exception &) {
+            return false;
+        }
+    }
     return true;
 }
 void max_into(std::array<int64_t, 4> &a, const std::array<int64_t, 4> &b) { for (int i = 0; i < 4; ++i) a[i] = std::max(a[i], b[i]); }
@@ -134,8 +147,19 @@ bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &er
             else if (k == "max0") { if (!parse_ne(v, d.max_ne_src0)) return fail("bad max0"); }
             else if (k == "max1") { if (!parse_ne(v, d.max_ne_src1)) return fail("bad max1"); }
             else if (k == "maxd") { if (!parse_ne(v, d.max_ne_dst)) return fail("bad maxd"); }
-            else if (k == "contig") { int a = 1, b = 1; std::sscanf(v.c_str(), "[%d,%d]", &a, &b); d.contig_src0 = a; d.contig_src1 = b; }
-            else if (k == "maxbytes") { d.max_bytes = std::stoull(v); }
+            else if (k == "contig") {
+                int a = 1, b = 1;
+                if (std::sscanf(v.c_str(), "[%d,%d]", &a, &b) != 2) return fail("bad contig");
+                d.contig_src0 = a; d.contig_src1 = b;
+            }
+            else if (k == "maxbytes") {
+                if (v.empty() || !std::all_of(v.begin(), v.end(), [](unsigned char c) { return std::isdigit(c) != 0; })) return fail("bad maxbytes");
+                try {
+                    d.max_bytes = std::stoull(v);
+                } catch (const std::exception &) {
+                    return fail("bad maxbytes");
+                }
+            }
             else return fail("unknown field " + k);
         }
         if (seen < 2) return fail("op and dst are required");
