@@ -91,6 +91,12 @@ def _plan_config(model) -> PlanConfig:
 TIER_RANK = {"gpu-metal": 3.0, "gpu-vulkan": 2.5, "cpu": 1.0}
 TIER_DEVICE = {"cpu": "cpu", "gpu-metal": "metal", "gpu-vulkan": "vulkan"}
 
+# Deployment.backend -> op-recording stage name (spec A §3.3's third key segment), for
+# accel._stage_of_model. Used by both this task (op coverage) and Task 11 (threading
+# op_coverage through the resolve wrappers).
+_STAGE_OF_BACKEND = {"native_asr": "asr", "native_asr_stream": "asr",
+                     "native_translate": "translate", "native_tts": "tts"}
+
 
 # A hosted-macOS VM (GitHub Actions' macos-14 runner, and every other
 # virtualized Mac) exposes its GPU as "Apple Paravirtual device" — a

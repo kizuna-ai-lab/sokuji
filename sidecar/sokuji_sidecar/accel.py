@@ -6,6 +6,7 @@ docstring for the accel/planner ownership boundary."""
 import hashlib
 import importlib.util
 import json
+import logging
 import os
 import platform
 import time
@@ -14,6 +15,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .backends import make_backend, BackendLoadError
+from . import gguf_header
 
 
 @dataclass(frozen=True)
@@ -269,6 +271,129 @@ def _downloaded_quants(model) -> set:
         except Exception:
             pass
     return out
+
+
+def _artifact_path(model, compute_type: str):
+    """Local path of the rung's GGUF if it is in the HF cache, else None."""
+    from . import catalog as _cat
+    from huggingface_hub import hf_hub_download
+    for d in model.deployments:
+        if d.compute_type != compute_type:
+            continue
+        repo, fname = _cat.split_artifact(d.artifact)
+        if not fname:
+            return None
+        try:
+            return hf_hub_download(repo, fname, local_files_only=True)
+        except Exception:
+            return None
+    return None
+
+
+def weight_dtypes(model, compute_type: str) -> tuple:
+    """The dtype set WEIGHT expands over (spec A premise 7): the file's real header set when
+    the rung is on disk, else the rung's deliberately wide fallback set. Sorted, so it keys."""
+    from . import catalog as _cat
+    path = _artifact_path(model, compute_type)
+    if path:
+        try:
+            return tuple(sorted(gguf_header.read_header(path).tensor_types))
+        except Exception:
+            pass
+    return tuple(sorted(_cat.RUNG_FALLBACK_DTYPES.get(compute_type, frozenset({"f32"}))))
+
+
+def _ops_key(machine: Machine, device_index: int, stage: str, family: str, compute_type: str, weight_dtypes_) -> str:
+    """gen|ops:idx:stage:family:ct:dt1+dt2 — the dtype set is part of the question, so the
+    pre-download (fallback-set) answer and the post-download (header-set) answer coexist."""
+    return f"{machine.generation}|ops:{device_index}:{stage}:{family}:{compute_type}:{'+'.join(sorted(weight_dtypes_))}"
+
+
+def _stage_of_model(model) -> str:
+    return planner._STAGE_OF_BACKEND.get(model.deployments[0].backend, "")
+
+
+_OK_TO_MISS = (-4, -3)          # SK_ERR_NOT_FOUND (no recording), SK_ERR_BACKEND (Vulkan first-init threw)
+
+
+def compute_op_coverage(machine: Machine, device_index: int, stage: str, family: str,
+                        compute_type: str, weight_dtypes_):
+    """native.device_supports_ops once per key, cached in the bench file. NOT_FOUND and
+    BACKEND return None uncached; every other error is a programming error — raise under
+    SOKUJI_WIRE_STRICT (the test suite), log and degrade in production."""
+    from . import native
+    key = _ops_key(machine, device_index, stage, family, compute_type, weight_dtypes_)
+    entries = bench_load()
+    if key in entries:
+        v = entries[key]
+        return OpCoverage(bool(v.get("allSupported")), tuple(v.get("unsupported", ())))
+    try:
+        cov = native.device_supports_ops(device_index, stage, family, weight_dtypes_)
+    except Exception as e:                       # NativeError carries .status
+        if getattr(e, "status", None) in _OK_TO_MISS:
+            return None
+        if os.environ.get("SOKUJI_WIRE_STRICT") == "1":
+            raise
+        logging.getLogger("sokuji_sidecar.accel").warning("device_supports_ops failed: %s", e)
+        return None
+    out = OpCoverage(bool(cov.all_supported), tuple(cov.unsupported))
+    entries[key] = {"allSupported": out.all_supported, "unsupported": list(out.unsupported)}
+    bench_save(entries, generation=machine.generation)
+    return out
+
+
+def _first_device_of_kind(machine: Machine, kind: str):
+    return next((d for d in machine.devices if d.kind == kind), None)
+
+
+def _gpu_targets(machine: Machine, model):
+    """(device, tier) for each GPU tier the card lists that _tier_available accepts — the FIRST
+    known device of that kind (native.device_for picks the first too). Empty without profiles."""
+    out, seen = [], set()
+    for d in model.deployments:
+        if d.tier == "cpu" or not _tier_available(d.tier, machine, d.backend):
+            continue
+        kind = TIER_DEVICE[d.tier]
+        if kind in seen:
+            continue
+        seen.add(kind)
+        dev = _first_device_of_kind(machine, kind)
+        if dev is not None and dev.known:
+            out.append((dev, d.tier))
+    return out
+
+
+def op_coverage_for(machine: Machine, model, override: str):
+    """What the resolve wrappers hand the planner: a dict.get over results PRECOMPUTED here —
+    per accepted GPU tier, this card's graph_family, every rung the card lists, each keyed by
+    that rung's current dtype set. Nothing is computed for an explicit CPU load, without
+    profiles, or when the device is not known (spec A §3.3)."""
+    results = {}
+    if override == "cpu" or not machine.devices or model is None:
+        return results.get
+    stage = _stage_of_model(model)
+    for dev, _tier in _gpu_targets(machine, model):
+        for ct in sorted({x.compute_type for x in model.deployments}):
+            results[(dev.index, stage, model.graph_family, ct)] = compute_op_coverage(
+                machine, dev.index, stage, model.graph_family, ct, weight_dtypes(model, ct))
+    return lambda index, stage_, family, ct: results.get((index, stage_, family, ct))
+
+
+def cached_op_coverage(machine: Machine, models):
+    """Read-only twin of op_coverage_for for the wire producers (_h_models_catalog,
+    _h_list_variants): the same keys, looked up in the bench file, never computed. A miss is
+    None. `models` is the list of cards the reply covers."""
+    entries = bench_load()
+    results = {}
+    if machine.devices:
+        for model in models:
+            stage = _stage_of_model(model)
+            for dev, _tier in _gpu_targets(machine, model):
+                for ct in sorted({x.compute_type for x in model.deployments}):
+                    v = entries.get(_ops_key(machine, dev.index, stage, model.graph_family, ct, weight_dtypes(model, ct)))
+                    if isinstance(v, dict):
+                        results[(dev.index, stage, model.graph_family, ct)] = OpCoverage(bool(v.get("allSupported")), tuple(v.get("unsupported", ())))
+    return lambda index, stage_, family, ct: results.get((index, stage_, family, ct))
 
 
 # ── Loader wrappers for planner.py's pure resolve/pick functions ────────────

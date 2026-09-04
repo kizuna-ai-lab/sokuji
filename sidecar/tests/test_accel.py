@@ -1382,3 +1382,104 @@ def test_model_weight_bytes_without_variant_dir_counts_everything(tmp_path):
     (onnx_dir / "talker.onnx.data").write_bytes(b"x" * 50)
     from sokuji_sidecar import accel
     assert accel._model_weight_bytes(str(tmp_path)) == 150
+
+
+def test_weight_dtypes_prefers_the_file_header_over_the_fallback(monkeypatch, tmp_path):
+    card = catalog.tts_model("voxcpm2")
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)                 # not on disk
+    assert set(accel.weight_dtypes(card, "q8_0")) == catalog.RUNG_FALLBACK_DTYPES["q8_0"]
+    hdr = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"q8_0", "bf16", "f32"}), 3)
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: str(tmp_path / "x.gguf"))
+    monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: hdr)
+    assert accel.weight_dtypes(card, "q8_0") == ("bf16", "f32", "q8_0")                   # sorted
+
+
+def test_ops_key_carries_the_dtype_set():
+    m = _known_gpu_machine()
+    a = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0", "bf16", "f32"))
+    b = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0", "bf16", "f16", "f32"))
+    assert a == "G1|ops:0:tts:voxcpm2:q8_0:bf16+f32+q8_0" and a != b                   # pre- and post-download differ
+
+
+def test_compute_op_coverage_caches_ok_and_not_errors(monkeypatch, tmp_path):
+    import types
+    from sokuji_sidecar import native
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = _known_gpu_machine()
+    calls = []
+    def supports(i, s, f, dts):
+        calls.append((i, s, f, tuple(dts)))
+        return types.SimpleNamespace(all_supported=False, unsupported=("NORM[f32,-,-,-,-]->f32",), checked=("NORM[f32,-,-,-,-]->f32",))
+    monkeypatch.setattr(native, "device_supports_ops", supports)
+    cov = accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("f32", "q8_0"))
+    assert cov == accel.OpCoverage(False, ("NORM[f32,-,-,-,-]->f32",))
+    assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("f32", "q8_0")) == cov and len(calls) == 1
+    key = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("f32", "q8_0"))
+    assert accel.bench_load()[key] == {"allSupported": False, "unsupported": ["NORM[f32,-,-,-,-]->f32"]}
+    # a different dtype set is a different question
+    accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("bf16", "f32", "q8_0"))
+    assert len(calls) == 2
+    # errors are None and never cached
+    class E(Exception):
+        def __init__(self, status):
+            self.status = status
+    def not_found(i, s, f, dts):
+        raise E(-4)      # SK_ERR_NOT_FOUND
+    monkeypatch.setattr(native, "device_supports_ops", not_found)
+    assert accel.compute_op_coverage(m, 0, "asr", "whisper", "q8_0", ("q8_0",)) is None
+    assert accel._ops_key(m, 0, "asr", "whisper", "q8_0", ("q8_0",)) not in accel.bench_load()
+    def backend(i, s, f, dts):
+        raise E(-3)      # SK_ERR_BACKEND
+    monkeypatch.setattr(native, "device_supports_ops", backend)
+    assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "bf16", ("bf16",)) is None
+    def invalid(i, s, f, dts):
+        raise E(-1)      # SK_ERR_INVALID_ARGUMENT: a programming error
+    monkeypatch.setattr(native, "device_supports_ops", invalid)
+    with pytest.raises(E):                                                 # conftest sets SOKUJI_WIRE_STRICT=1
+        accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0",))
+    monkeypatch.setenv("SOKUJI_WIRE_STRICT", "0")
+    assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0",)) is None   # production: degrade
+
+
+def test_op_coverage_for_precomputes_only_what_the_planner_may_gate(monkeypatch, tmp_path):
+    import types
+    from sokuji_sidecar import native
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    calls = []
+    def supports(i, s, f, dts):
+        calls.append((i, f, s))
+        return types.SimpleNamespace(all_supported=True, unsupported=(), checked=())
+    monkeypatch.setattr(native, "device_supports_ops", supports)
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
+    card = catalog.tts_model("voxcpm2")                    # two rungs: q8_0, bf16
+    m = _known_gpu_machine()
+    cb = accel.op_coverage_for(m, card, "auto")
+    assert len(calls) == 2 and all(c == (0, "voxcpm2", "tts") for c in calls)      # first vulkan device only, both rungs
+    assert cb(0, "tts", "voxcpm2", "q8_0").all_supported is True
+    assert cb(0, "tts", "voxcpm2", "f16") is None                                   # never asked → None
+    calls.clear()
+    accel.op_coverage_for(m, card, "cpu")
+    assert calls == []                                                              # explicit CPU: nothing computed
+    m2 = dataclasses.replace(m, devices=())
+    accel.op_coverage_for(m2, card, "auto")
+    assert calls == []
+    m3 = dataclasses.replace(m, devices=(dataclasses.replace(m.devices[0], known=False), m.devices[1]))
+    accel.op_coverage_for(m3, card, "auto")
+    assert calls == []
+    second = dataclasses.replace(m.devices[0], index=2, name="vulkan2", description="other")
+    m4 = dataclasses.replace(m, devices=(m.devices[0], second, m.devices[1]), generation="G2")   # fresh generation: the G1 answers are cached
+    accel.op_coverage_for(m4, card, "auto")
+    assert calls and {c[0] for c in calls} == {0}                                   # two GPUs of one kind: only the first
+
+
+def test_cached_op_coverage_reads_only(monkeypatch, tmp_path):
+    from sokuji_sidecar import native
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
+    m = _known_gpu_machine()
+    card = catalog.tts_model("voxcpm2")
+    monkeypatch.setattr(native, "device_supports_ops", lambda *a: pytest.fail("read-only callable reached native"))
+    assert accel.cached_op_coverage(m, [card])(0, "tts", "voxcpm2", "q8_0") is None
+    dts = accel.weight_dtypes(card, "q8_0")                                         # the fallback set: what the miss was keyed by
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", dts): {"allSupported": False, "unsupported": ["X"]}}, generation="G1")
+    assert accel.cached_op_coverage(m, [card])(0, "tts", "voxcpm2", "q8_0") == accel.OpCoverage(False, ("X",))
