@@ -3,6 +3,8 @@ import { useNativeModelStore, deriveVariantRepos, formatEngineReadyLog } from '.
 import useLogStore from './logStore';
 import { requiredNativeModels } from '../lib/local-inference/native/nativeCatalog';
 import { directionKey, emptyDirection } from '../lib/local-inference/selection/types';
+import type { HardwareInfoResultMsg, NativeModelInfo } from '../lib/local-inference/native/nativeProtocol';
+import { settleReports, resetReportThrottle } from '../lib/diagnostics/report';
 
 // resolve()/applyPrunes()/ensureSelectionReady() now reach settingsStore via a
 // dynamic import, which drags in its real static import graph — including
@@ -51,7 +53,7 @@ function mockModelNotReady(id: string) { _notReadyModels.add(id); }
 // (nativeVersion/engineVersions/lane/preferredDevice all populated); tests
 // override or reject to exercise the best-effort engineInfo path.
 let _hardwareInfoReject = false;
-const DEFAULT_HARDWARE_INFO = {
+const DEFAULT_HARDWARE_INFO: Partial<Omit<HardwareInfoResultMsg, 'type' | 'id'>> = {
   nativeVersion: '1.0.1',
   engineVersions: { ggml: '0.22.0', transcribe: '0.2.2', llama: '0.3.0', audiocpp: '0.7.0' },
   lane: 'cpu-vulkan',
@@ -310,6 +312,22 @@ describe('deriveVariantRepos', () => {
   it('falls back to recommended with no pin at all', () => {
     expect(deriveVariantRepos([CARD], {})).toEqual({ card: 'org/fake-fp32' });
   });
+
+  // Regression guard: deriveVariantRepos ignores fields it does not read, so
+  // adding `unsupportedTiers` to the wire/store type must not disturb the pin
+  // logic — a variant refused on one GPU tier still runs (on CPU) and is still
+  // pickable/pinnable.
+  it('a variant with unsupportedTiers stays pickable and keeps its pin', () => {
+    const card: NativeModelInfo = {
+      ...CARD,
+      id: 'voxcpm2', kind: 'tts', repo: 'r/voxcpm2',
+      variants: [
+        { id: 'q8_0', sizeBytes: 1, needBytes: 1, repo: 'r/voxcpm2', supported: true, recommended: true },
+        { id: 'bf16', sizeBytes: 2, needBytes: 2, repo: 'r/voxcpm2-bf16', supported: true, recommended: false, unsupportedTiers: ['gpu-vulkan'] },
+      ],
+    };
+    expect(deriveVariantRepos([card], { voxcpm2: 'bf16' })['voxcpm2']).toBe('r/voxcpm2-bf16');
+  });
 });
 
 describe('nativeModelStore.deleteModel', () => {
@@ -495,6 +513,43 @@ describe('nativeModelStore engineInfo (hardware_info identity)', () => {
     expect(lines).toContain(
       'sidecar dev venv ready: sokuji-native 1.0.1 (ggml 0.22.0, transcribe 0.2.2, llama 0.3.0, audiocpp 0.7.0) lane=cpu-vulkan device="NVIDIA GB10"'
     );
+  });
+});
+
+describe('nativeModelStore device profiles (spec A §3.4)', () => {
+  it('keeps device profiles and the generation beside engineInfo, and reports an unsupported tts node once per session', async () => {
+    mockModelsCatalogResolve();
+    const devices = [{
+      index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: ['vk_coopmat'],
+      driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'ab'.repeat(16), cpuFeatures: '',
+      opCoverage: { 'tts/voxcpm2/q8_0': { allSupported: false, unsupported: ['NORM[f32,-,-,-,-]->f32'] } },
+    }];
+    mockHardwareInfoResolve({ generation: 'G1', devices });
+    useLogStore.getState().clearLogs();
+    await useNativeModelStore.getState().ensureCatalog();
+    const s = useNativeModelStore.getState();
+    expect(s.engineInfo).toEqual({
+      nativeVersion: '1.0.1',
+      engineVersions: { ggml: '0.22.0', transcribe: '0.2.2', llama: '0.3.0', audiocpp: '0.7.0' },
+      lane: 'cpu-vulkan',
+      preferredDevice: { kind: 'vulkan', name: 'gpu0', description: 'NVIDIA GB10' },
+    });
+    expect(s.profileGeneration).toBe('G1');
+    expect(s.deviceProfiles?.[0].deviceUuid).toBe('ab'.repeat(16));
+    await settleReports();
+    const warnings = useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('NORM[f32,-,-,-,-]->f32'));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].message).toContain('GB10');
+    expect(useNativeModelStore.getState().reportedUnsupportedOps.has('tts/voxcpm2/q8_0')).toBe(true);
+    // A second hardware_info in the same session with the same key must not add a
+    // second line. The report throttle (5s per dedupeKey) would hide a second call
+    // on its own, so reset it first — this assertion is about the store's per-
+    // session set, not the throttle.
+    useNativeModelStore.setState({ sidecarStatus: 'idle' });
+    resetReportThrottle();
+    await useNativeModelStore.getState().ensureCatalog();
+    await settleReports();
+    expect(useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('NORM[f32,-,-,-,-]->f32'))).toHaveLength(1);
   });
 });
 

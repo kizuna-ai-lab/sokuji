@@ -761,6 +761,7 @@
     "variantWontFitNoMem": "Necesita ~{{need}} de memoria GPU",
     "wontFit": "No cabe en este equipo",
     "variantNoGpuFits": "Ninguna variante cabe en la GPU — se ejecuta en la CPU.",
+    "variantRunsOnCpu": "Se ejecuta en la CPU en esta máquina.",
     "hwFramework": "Motor",
     "hwDevice": "Dispositivo",
     "hwApi": "Aceleración",

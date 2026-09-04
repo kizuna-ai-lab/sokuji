@@ -761,6 +761,7 @@
     "variantWontFitNoMem": "需要约 {{need}} 显存",
     "wontFit": "本机无法运行",
     "variantNoGpuFits": "没有适配 GPU 的版本 — 将在 CPU 上运行。",
+    "variantRunsOnCpu": "在此设备上运行于 CPU。",
     "hwFramework": "推理引擎",
     "hwDevice": "设备",
     "hwApi": "加速 API",

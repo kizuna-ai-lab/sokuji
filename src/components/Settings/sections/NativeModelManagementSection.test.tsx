@@ -161,7 +161,7 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     sizeBytes: 3600000000,
     variantIds: ['bf16', 'fp32', 'int8'],
     variants: [
-      { id: 'bf16', sizeBytes: 3.6e9, repo: 'org/qwen3-tts-1.7b-bf16', supported: true, recommended: true },
+      { id: 'bf16', sizeBytes: 3.6e9, repo: 'org/qwen3-tts-1.7b-bf16', supported: true, recommended: true, unsupportedTiers: ['gpu-vulkan'] },
       { id: 'fp32', sizeBytes: 7.2e9, repo: 'org/qwen3-tts-1.7b-fp32', supported: true, recommended: false },
       { id: 'int8', sizeBytes: 1.9e9, repo: 'org/qwen3-tts-1.7b-int8', supported: false, recommended: false },
     ],
@@ -525,6 +525,15 @@ describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', ()
     fireEvent.click(downloadBtn);
 
     expect(mockDownload).toHaveBeenCalledWith('qwen3-tts-1.7b', 'org/qwen3-tts-1.7b-bf16');
+  });
+
+  it('renders "runs on CPU here" on an enabled option when the sidecar refused its GPU tier', () => {
+    render(<NativeModelManagementSection />);
+    const opt = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-bf16') as HTMLOptionElement;
+    expect(opt.disabled).toBe(false);
+    expect(opt.textContent).toContain('Runs on CPU on this machine');
+    const other = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-int8');
+    expect(other.textContent).not.toContain('Runs on CPU');
   });
 });
 

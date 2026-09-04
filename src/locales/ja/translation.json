@@ -761,6 +761,7 @@
     "variantWontFitNoMem": "約 {{need}} のGPUメモリが必要",
     "wontFit": "このマシンでは実行できません",
     "variantNoGpuFits": "GPU に収まるバリアントがありません — CPU で実行します。",
+    "variantRunsOnCpu": "このマシンでは CPU で実行します。",
     "hwFramework": "エンジン",
     "hwDevice": "デバイス",
     "hwApi": "アクセラレーション",

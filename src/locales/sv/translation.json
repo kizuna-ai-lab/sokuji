@@ -761,6 +761,7 @@
     "variantWontFitNoMem": "Kräver ~{{need}} GPU-minne",
     "wontFit": "Får inte plats på den här maskinen",
     "variantNoGpuFits": "Ingen GPU-variant får plats — körs på CPU.",
+    "variantRunsOnCpu": "Körs på CPU på den här enheten.",
     "hwFramework": "Motor",
     "hwDevice": "Enhet",
     "hwApi": "Acceleration",

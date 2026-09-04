@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
-import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, HardwareInfoResultMsg } from '../lib/local-inference/native/nativeProtocol';
+import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, HardwareInfoResultMsg, NativeDeviceProfile } from '../lib/local-inference/native/nativeProtocol';
 import {
   statusReposFor,
   nativeAsrCards, nativeTranslationCards, nativeTtsCards,
@@ -68,6 +68,12 @@ interface NativeModelStore {
    *  sidecarStatus goes back to 'idle'/'unavailable' — a stale identity from a previous
    *  sidecar instance must not survive past that instance. */
   engineInfo: NativeEngineInfo | null;
+  /** Spec A: per-device profiles + the bench-cache generation from the same hardware_info call
+   *  that fills engineInfo. Kept BESIDE engineInfo (whose shape is pinned by tests). */
+  deviceProfiles: NativeDeviceProfile[] | null;
+  profileGeneration: string | null;
+  /** "stage/family/compute_type" keys already reported this session (once per key; dedupeKey only throttles bursts). */
+  reportedUnsupportedOps: Set<string>;
   /** Detected bundle SKU for this machine (linux-x64 | linux-arm64 | win-x64 | mac-arm64 | mac-x64). */
   bundleSku: string | null;
   /** Self-contained sidecar bundle lifecycle (distribution spec S2/S7/S10). */
@@ -286,6 +292,9 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   catalog: {},
   sidecarStatus: 'idle',
   engineInfo: null,
+  deviceProfiles: null,
+  profileGeneration: null,
+  reportedUnsupportedOps: new Set(),
   statusRepos: {},
   lastResolutionNotes: [],
   asrLoading: false,
@@ -381,7 +390,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         // tree. A stale 'ready' would let ensureCatalog early-return and keep
         // the Start gate open against a nonexistent engine, so force the
         // lifecycle back to a state the next validation re-derives from.
-        set({ sidecarStatus: 'idle', catalog: {}, statuses: {}, engineInfo: null });
+        set({ sidecarStatus: 'idle', catalog: {}, statuses: {}, engineInfo: null, deviceProfiles: null, profileGeneration: null });
         await get().refreshBundle();
         void revalidateNativeProvider();
       }
@@ -427,7 +436,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     set({ sidecarStatus: 'starting' });
     await get().refreshBundle();
     if (get().bundleStatus === 'mismatch') {
-      set({ sidecarStatus: 'unavailable', engineInfo: null });
+      set({ sidecarStatus: 'unavailable', engineInfo: null, deviceProfiles: null, profileGeneration: null });
       return;
     }
     try {
@@ -451,6 +460,8 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       // must not flip a working sidecar to 'unavailable' — engineInfo simply
       // stays null.
       let engineInfo: NativeEngineInfo | null = null;
+      let deviceProfiles: NativeDeviceProfile[] | null = null;
+      let profileGeneration: string | null = null;
       try {
         const hw = await client.hardwareInfo();
         engineInfo = {
@@ -459,6 +470,8 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
           lane: hw.lane ?? null,
           preferredDevice: hw.preferredDevice ?? null,
         };
+        deviceProfiles = hw.devices ?? null;
+        profileGeneration = hw.generation ?? null;
       } catch { /* best-effort — the status line simply omits engine identity */ }
       set((s) => ({
         catalog: Object.fromEntries(list.map((m) => [m.id, m])),
@@ -466,7 +479,23 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         sidecarStatus: 'ready',
         statusRepos: { ...s.statusRepos, ...derivedRepos },
         engineInfo,
+        deviceProfiles,
+        profileGeneration,
       }));
+      // Best-effort: a GPU tier the sidecar's own op-coverage probe refused for a
+      // TTS rung degrades silently to CPU (the model still loads and speaks) — flag
+      // it once per key per session so a user chasing "why is this on CPU" has a
+      // line to find, without repeating it on every hardware_info re-probe.
+      for (const dev of deviceProfiles ?? []) {
+        for (const [key, cov] of Object.entries(dev.opCoverage ?? {})) {
+          if (cov.allSupported || !key.startsWith('tts/')) continue;
+          if (get().reportedUnsupportedOps.has(key)) continue;
+          get().reportedUnsupportedOps.add(key);
+          reportWarning('NativeModelStore',
+            `${key} cannot run on ${dev.description}: ${cov.unsupported.join(', ')} unsupported; it will load on CPU`,
+            { dedupeKey: 'native.ops.unsupported' });
+        }
+      }
       const { bundleVersion, bundleDevVenv } = get();
       // An info record, not a failure (diagnostics design #441): it rides the
       // events stream, which LogsPanel shows and 'copy logs' exports, never the
@@ -483,12 +512,12 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         },
       }, 'client', 'local.engine.ready');
     } catch {
-      set({ sidecarStatus: 'unavailable', engineInfo: null });
+      set({ sidecarStatus: 'unavailable', engineInfo: null, deviceProfiles: null, profileGeneration: null });
     }
   },
 
   retrySidecar: async () => {
-    set({ sidecarStatus: 'idle', engineInfo: null });
+    set({ sidecarStatus: 'idle', engineInfo: null, deviceProfiles: null, profileGeneration: null });
     await get().ensureCatalog();
     // validateApiKey owns settingsStore's validationMessage / isApiKeyValid
     // (the Start-button gate and the provider banner); nothing else re-runs it
