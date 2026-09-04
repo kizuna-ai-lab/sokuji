@@ -6,12 +6,41 @@
 #undef NDEBUG
 #include <cassert>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <set>
 #include <sstream>
 #include <string>
+#include <system_error>
+#include <vector>
+#if defined(_WIN32)
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
 #include "record_common.h"
 #include "sk_ops.h"
+
+/* Fix round 1: scratch files carry the pid so two concurrent test_ops_coverage runs on the
+ * same host (e.g. two build/record-configured ctest invocations) never interleave writes to
+ * the same path — a race that would otherwise look like a real op-graph regression. */
+static long sk_getpid() {
+#if defined(_WIN32)
+    return _getpid();
+#else
+    return static_cast<long>(getpid());
+#endif
+}
+static std::filesystem::path sk_scratch_dir() {
+    if (const char *d = std::getenv("SK_TEST_SCRATCH_DIR"); d && *d) return std::filesystem::path(d);
+    return std::filesystem::temp_directory_path();
+}
+/* Removes its tracked paths when the per-case scope ends (including every early `continue`),
+ * so a failed or aborted case never leaves scratch files behind. */
+struct ScratchFiles {
+    std::vector<std::string> paths;
+    ~ScratchFiles() { for (const auto &p : paths) { std::error_code ec; std::filesystem::remove(p, ec); } }
+};
 
 struct Case { const char *stage, *family, *env; };
 static const Case CASES[] = {
@@ -60,14 +89,17 @@ int main(int argc, char **argv) {
         if (!found) { std::printf("FAIL: %s/%s has a model but no shipped recording\n", c.stage, c.family); ++failures; continue; }
         sk_op_recording shipped; std::string err;
         assert(sk_ops_parse(text, shipped, err));
-        const std::string tmp = std::string("/tmp/sk-live-") + c.stage + "-" + c.family + ".ops";
+        const std::string tmp = (sk_scratch_dir() / ("sk-live-" + std::to_string(sk_getpid()) + "-" + c.stage + "-" + c.family + ".ops")).string();
+        ScratchFiles scratch; scratch.paths.push_back(tmp);
         const sk_device *dev = std::string(c.stage) == "tts" ? cpu : rec;
         int count = record_family(c.stage, c.family, model, dev, tmp, 1, supertonic);
         if (std::string(c.stage) == "translate") {
             const std::string tmp2 = tmp + ".off";
-            record_family(c.stage, c.family, model, dev, tmp2, 2, supertonic);
+            scratch.paths.push_back(tmp2);
+            int count2 = record_family(c.stage, c.family, model, dev, tmp2, 2, supertonic);
+            if (count2 <= 0) { std::printf("FAIL %s/%s: flash-attention-off recording failed\n", c.stage, c.family); ++failures; continue; }
             std::string a, b; read_file(tmp, a); read_file(tmp2, b);
-            for (const auto &line : {b}) { std::istringstream ls(line); std::string l; while (std::getline(ls, l)) if (l.rfind("op=", 0) == 0) a += l + "\n"; }
+            std::istringstream ls(b); std::string l; while (std::getline(ls, l)) if (l.rfind("op=", 0) == 0) a += l + "\n";
             std::ofstream(tmp) << a;
         }
         if (count <= 0) { std::printf("FAIL %s/%s: recorded nothing\n", c.stage, c.family); ++failures; continue; }
