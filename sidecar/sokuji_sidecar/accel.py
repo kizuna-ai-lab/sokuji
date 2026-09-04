@@ -17,6 +17,29 @@ from .backends import make_backend, BackendLoadError
 
 
 @dataclass(frozen=True)
+class DeviceProfile:
+    """One sk_device_profile (spec A §3.1) as the planner reads it. `known=False` means every
+    consumer passes through (premise 5)."""
+    index: int
+    kind: str
+    name: str
+    description: str
+    mem_total: int
+    known: bool
+    features: frozenset
+    driver_name: str
+    driver_version: str
+    device_uuid: str
+    cpu_features: str
+
+
+@dataclass(frozen=True)
+class OpCoverage:
+    all_supported: bool
+    unsupported: tuple
+
+
+@dataclass(frozen=True)
 class Machine:
     os: str
     arch: str
@@ -33,6 +56,12 @@ class Machine:
     # Machine is cached + fingerprinted) — planners read device_free_bytes()
     # fresh at plan time instead.
     gpus: tuple[tuple[str, str, int], ...] = ()
+    # Spec A: structured per-device profiles, () when the wheel is absent or predates
+    # sk_device_profile_get; and the CACHE GENERATION — every bench key is prefixed with
+    # it, so a native/engine/driver change invalidates measured numbers. "" only when the
+    # identity detector failed (wheel absent).
+    devices: tuple = ()
+    generation: str = ""
 
 
 def _apple_silicon() -> bool:
@@ -75,6 +104,33 @@ def _native_gpus() -> tuple[tuple[str, str, int], ...]:
     strings lands here is load-bearing."""
     return tuple((d.kind, d.description or "", int(d.mem_total or 0))
                  for d in _native_devices() if d.kind != "cpu")
+
+
+def _native_profiles() -> tuple:
+    from . import native
+    return tuple(DeviceProfile(p.index, p.kind, p.name, p.description, int(p.mem_total), bool(p.known),
+                               frozenset(p.features), p.driver_name, p.driver_version, p.device_uuid, p.cpu_features)
+                 for p in native.device_profiles())
+
+
+def _native_identity():
+    """(sk_version, engine_versions) or a raise (the wheel is absent)."""
+    from . import native
+    mod = native.module()
+    return mod.version(), dict(mod.engine_versions())
+
+
+def compute_generation(identity, devices: tuple) -> str:
+    """Pure. blake2s over sk_version | engine pins | per-device driver identity | GGML_* env
+    (spec A §3.3). `devices=()` hashes as an empty list, so a wheel without profiles still
+    gets a version-keyed generation."""
+    if identity is None:
+        return ""
+    version, pins = identity
+    dev_part = [(d.kind, d.device_uuid, d.driver_name, d.driver_version) for d in sorted(devices, key=lambda d: d.index)]
+    env_part = sorted((k, v) for k, v in os.environ.items() if k.startswith("GGML_"))
+    src = f"{version}|{sorted(pins.items())}|{dev_part}|{env_part}"
+    return hashlib.blake2s(src.encode(), digest_size=6).hexdigest()
 
 
 def device_free_bytes():
@@ -149,6 +205,8 @@ def probe(force: bool = False) -> Machine:
     installed = _safe(_installed, frozenset())
     tc_kinds = _safe(_native_kinds, ())
     tc_gpus = _safe(_native_gpus, ())
+    devices = _safe(_native_profiles, ())
+    identity = _safe(_native_identity, None)
     fp_src = (f"{platform.system()}|{platform.machine()}|{int(apple)}|"
               f"{','.join(sorted(installed))}|"
               f"{','.join(tc_kinds)}|"
@@ -157,7 +215,8 @@ def probe(force: bool = False) -> Machine:
     _MACHINE = Machine(
         os=platform.system(), arch=platform.machine(), cpu_cores=os.cpu_count() or 1,
         apple_silicon=apple, installed=installed,
-        fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus)
+        fingerprint=fp, tc_kinds=tc_kinds, gpus=tc_gpus,
+        devices=devices, generation=compute_generation(identity, devices))
     return _MACHINE
 
 

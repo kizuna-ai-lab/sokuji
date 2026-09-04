@@ -45,6 +45,16 @@ def device_for(kind: str):
     raise BackendLoadError(f"no {kind} device in this process")
 
 
+def device_profiles() -> list:
+    """sokuji_native.device_profiles(); AttributeError on a wheel older than ABI 2 (the caller,
+    accel.probe, degrades through _safe)."""
+    return list(module().device_profiles())
+
+
+def device_supports_ops(index: int, stage: str, family: str, weight_dtypes):
+    return module().device_supports_ops(index, stage, family, list(weight_dtypes))
+
+
 def reset_for_tests() -> None:
     global _module
     with _lock:

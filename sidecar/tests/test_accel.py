@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import json
 import os
 import tempfile
@@ -9,6 +10,7 @@ from sokuji_sidecar import accel
 from sokuji_sidecar import catalog
 from sokuji_sidecar import backends
 from sokuji_sidecar import server
+from _fixtures import _known_gpu_machine
 
 os.environ.setdefault("SOKUJI_BENCH_DIR", tempfile.mkdtemp())
 
@@ -915,18 +917,22 @@ def test_asr_unavailable_without_native():
 
 
 class _FakeDev:
-    def __init__(self, index, kind, desc, total, free):
+    def __init__(self, index, kind, desc, total, free, *, known=True, features=(), driver_name="", driver_version="", device_uuid="", cpu_features=""):
         self.index, self.kind, self.name = index, kind, f"{kind}{index}"
         self.description, self.mem_total, self.mem_free = desc, total, free
+        self.known, self.features = known, frozenset(features)
+        self.driver_name, self.driver_version, self.device_uuid, self.cpu_features = driver_name, driver_version, device_uuid, cpu_features
 
 
 _DEFAULT_FAKE_ENGINE_VERSIONS = {
-    "ggml": "0.22.0", "transcribe": "0.2.2", "llama": "0.3.0",
-    "audiocpp": "0.7.0", "lane": "cpu-vulkan",
+    "ggml": "0.22.0", "transcribe": "0.2.3", "llama": "0.3.0",
+    "audiocpp": "0.7.1", "lane": "cpu-vulkan",
 }
 
 
-def _fake_native_module(monkeypatch, devs, *, version="1.0.1", engine_versions=None):
+def _fake_native_module(monkeypatch, devs, *, version="1.0.2", engine_versions=None, profiles=True, supports=None):
+    """`profiles=False` mimics a 1.0.x wheel (no device_profiles / device_supports_ops at all).
+    `supports(index, stage, family, dtypes)` returns an object with .all_supported/.unsupported/.checked."""
     import sys, types
     from sokuji_sidecar import native
     mod = types.ModuleType("sokuji_native")
@@ -935,9 +941,92 @@ def _fake_native_module(monkeypatch, devs, *, version="1.0.1", engine_versions=N
     mod.device_free_mem = lambda i: next(d.mem_free for d in devs if d.index == i)
     mod.version = lambda: version
     mod.engine_versions = lambda: dict(engine_versions or _DEFAULT_FAKE_ENGINE_VERSIONS)
+    if profiles:
+        mod.device_profiles = lambda: list(devs)          # _FakeDev carries the profile fields too
+        mod.device_supports_ops = supports or (lambda i, s, f, dts: types.SimpleNamespace(all_supported=True, unsupported=(), checked=("NORM[f32,-,-,-,-]->f32",)))
     monkeypatch.setitem(sys.modules, "sokuji_native", mod)
     native.reset_for_tests()
     return mod
+
+
+@pytest.fixture(autouse=True)
+def _isolate_profiles(monkeypatch):
+    """The two spec-A detectors default to 'nothing' for every test in this module, so the
+    pre-existing probe(force=True) tests keep their machines. A test that wants the real
+    detectors calls monkeypatch.undo() first — the same MonkeyPatch instance serves the
+    fixture and the test, so undo() drops exactly these two patches."""
+    monkeypatch.setattr(accel, "_native_profiles", lambda: ())
+    monkeypatch.setattr(accel, "_native_identity", lambda: None)
+
+
+def test_probe_fills_devices_and_generation(monkeypatch):
+    monkeypatch.undo()   # real detectors over the fake module
+    _fake_native_module(monkeypatch, [
+        _FakeDev(0, "vulkan", "NVIDIA GB10", 96 << 30, 90 << 30, features={"vk_integer_dot", "vk_coopmat"},
+                 driver_name="NVIDIA", driver_version="580.65.06", device_uuid="ab" * 16),
+        _FakeDev(1, "cpu", "CPU", 120 << 30, 100 << 30, cpu_features="NEON=1,DOTPROD=1"),
+    ], version="1.1.0")
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_tts"}))
+    m = accel.probe(force=True)
+    assert [d.kind for d in m.devices] == ["vulkan", "cpu"]
+    assert m.devices[0].known and "vk_coopmat" in m.devices[0].features and m.devices[0].device_uuid == "ab" * 16
+    assert m.devices[1].cpu_features.startswith("NEON=1")
+    assert m.generation and len(m.generation) == 12
+    assert m.gpus == (("vulkan", "NVIDIA GB10", 96 << 30),)     # derived tuple unchanged
+
+
+def test_generation_moves_with_version_pin_driver_and_env_but_not_free_memory(monkeypatch):
+    monkeypatch.undo()
+    def gen(version="1.1.0", pins=None, driver="580", free=90 << 30, env=None):
+        for k in list(os.environ):
+            if k.startswith("GGML_"):
+                monkeypatch.delenv(k)
+        for k, v in (env or {}).items():
+            monkeypatch.setenv(k, v)
+        _fake_native_module(monkeypatch, [_FakeDev(0, "vulkan", "GB10", 96 << 30, free, driver_name="NVIDIA", driver_version=driver, device_uuid="ab" * 16)],
+                            version=version, engine_versions=pins)
+        monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+        monkeypatch.setattr(accel, "_installed", lambda: frozenset())
+        return accel.probe(force=True).generation
+    base = gen()
+    assert gen() == base
+    assert gen(free=1 << 30) == base
+    assert gen(version="1.1.1") != base
+    assert gen(pins={**_DEFAULT_FAKE_ENGINE_VERSIONS, "audiocpp": "0.7.2"}) != base
+    assert gen(driver="581") != base
+    assert gen(env={"GGML_VK_DISABLE_COOPMAT": "1"}) != base
+    assert gen(env={"GGML_METAL_BF16_DISABLE": "1"}) != base
+
+
+def test_probe_degrades_per_detector(monkeypatch):
+    monkeypatch.undo()
+    _fake_native_module(monkeypatch, [_FakeDev(0, "cpu", "CPU", 8 << 30, 7 << 30)], version="1.1.0")
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset())
+    def boom():
+        raise RuntimeError("no")
+    monkeypatch.setattr(accel, "_native_profiles", boom)
+    m = accel.probe(force=True)
+    assert m.devices == () and m.generation != ""            # profiles failed, identity still keyed
+    monkeypatch.setattr(accel, "_native_identity", boom)
+    m = accel.probe(force=True)
+    assert m.generation == ""
+
+
+def test_old_wheel_without_profiles_degrades_to_todays_plans(monkeypatch):
+    """Spec A §4: a 1.0.x wheel (no device_profiles / device_supports_ops) yields devices=(),
+    a version-keyed generation, and EXACTLY the plans a profile-less machine gets."""
+    monkeypatch.undo()
+    _fake_native_module(monkeypatch, [_FakeDev(0, "vulkan", "GB10", 96 << 30, 90 << 30)], version="1.0.2", profiles=False)
+    monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
+    monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_tts"}))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    monkeypatch.setattr(accel, "bench_load", lambda: {})
+    m = accel.probe(force=True)
+    assert m.devices == () and m.generation != ""
+    bare = dataclasses.replace(m, devices=(), generation="")
+    assert accel.resolve_tts("voxcpm2", machine=m) == accel.resolve_tts("voxcpm2", machine=bare)
 
 
 def test_machine_gpus_stable_identity(monkeypatch):
