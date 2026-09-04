@@ -134,6 +134,11 @@ def test_device_supports_ops_cpu_all_supported_and_errors():
     assert e.value.status == sokuji_native._ffi.SK_ERR_NOT_FOUND
     with pytest.raises(sokuji_native.NativeError):
         sokuji_native.device_supports_ops(cpu.index, "tts", "supertonic", [])
+    # Fix round 1: a WEIGHT dtype whose block size does not divide the recorded ne0_src0 must
+    # be skipped rather than asked (tts/index_tts2 has WEIGHT rows that are not 256-aligned,
+    # some not even 32-aligned) — the call must still succeed and report full coverage.
+    cov2 = sokuji_native.device_supports_ops(cpu.index, "tts", "index_tts2", ["q4_K", "q8_0", "f32"])
+    assert cov2.all_supported
 
 
 @needs_tree

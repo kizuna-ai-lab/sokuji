@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdlib>
 #include "sokuji_native.h"
+#include "ggml.h"
 #include <cstdio>
 #include <cstring>
 #include <sstream>
@@ -151,6 +152,83 @@ int main(int argc, char **argv) {
             if (std::string(stage) == "tts") ++n_tts;
         }
         assert(n_tts == 9);
+
+        // Fix round 1: a WEIGHT dtype whose block size does not divide the recorded ne0_src0
+        // must be skipped, not asked (no GGUF can hold that tensor in it) — compute the
+        // expected n_ops straight from tts/index_tts2's own baked text (it has WEIGHT rows
+        // that are not 256-aligned, and at least one not even 32-aligned) and check it
+        // against the real call. Plain string parsing, as the fix instructs: "src=[WEIGHT"
+        // marks a weight line, "ne0=[<a>," gives its recorded ne0_src0.
+        {
+            const char *stage = nullptr, *family = nullptr, *text = nullptr;
+            for (int b = 0; b < sk_ops_blob_count(); ++b) {
+                sk_ops_blob_at(b, &stage, &family, &text);
+                if (std::string(stage) == "tts" && std::string(family) == "index_tts2") break;
+            }
+            assert(std::string(family) == "index_tts2");
+            std::string t(text);
+            const ggml_type check_types[] = {GGML_TYPE_Q4_K, GGML_TYPE_Q8_0, GGML_TYPE_F32};
+            int expected = 0, weight_lines_256 = 0;
+            std::istringstream lines(t);
+            std::string line;
+            while (std::getline(lines, line)) {
+                if (line.rfind("op=", 0) != 0) continue;
+                const bool is_weight = line.find("src=[WEIGHT") != std::string::npos;
+                auto pos = line.find("ne0=[");
+                assert(pos != std::string::npos);
+                const long long a = std::atoll(line.c_str() + pos + 5);
+                if (is_weight) {
+                    int aligned = 0;
+                    for (ggml_type ty : check_types) if (a % ggml_blck_size(ty) == 0) ++aligned;
+                    expected += aligned;
+                    if (a % 256 == 0) ++weight_lines_256;
+                } else {
+                    expected += 1;
+                }
+            }
+            const char *dts3[] = {"q4_K", "q8_0", "f32"};
+            c = {};
+            assert(sk_device_supports_ops(cpu_index, "tts", "index_tts2", dts3, 3, &c) == SK_OK);
+            std::fprintf(stderr, "test_common: tts/index_tts2 q4_K/q8_0/f32 on cpu: expected=%d actual n_ops=%d\n", expected, c.n_ops);
+            assert(c.n_ops == expected);
+            assert(c.all_supported == 1);
+            int q4k_names = 0;
+            for (int i = 0; i < c.n_ops; ++i) if (std::strstr(c.ops[i].name, "[q4_K,") != nullptr) ++q4k_names;
+            assert(q4k_names == weight_lines_256);
+
+            // A duplicate in weight_dtypes must not double the expansion.
+            const char *dup[] = {"q8_0", "q8_0", "f32"};
+            const char *nodup[] = {"q8_0", "f32"};
+            sk_op_coverage cd = {}, cn = {};
+            assert(sk_device_supports_ops(cpu_index, "tts", "index_tts2", dup, 3, &cd) == SK_OK);
+            assert(sk_device_supports_ops(cpu_index, "tts", "index_tts2", nodup, 2, &cn) == SK_OK);
+            assert(cd.n_ops == cn.n_ops);
+        }
+    }
+
+    // Fix round 1 addendum: the block-size skip and the ask()/grow() rebuild must also work
+    // on a real GPU device — the CPU lane cannot exercise this, so the assertion below is a
+    // no-op there (no Vulkan/Metal device present) and only bites on those lanes. supertonic
+    // is the f16 family every real GPU in the fleet (GB10 Vulkan, RTX 4070 Vulkan, M4 Metal)
+    // synthesises today, so all_supported == 1 is the ground truth there — except CI's own
+    // Metal runner, a paravirtual device that legitimately refuses ops (the same R36 signal
+    // already used in the profile assertions above).
+    {
+        const char *f16[] = {"f16", "f32"};
+        sk_op_coverage c = {};
+        for (int i = 0; i < n; ++i) {
+            if (devs[i].kind != SK_DEVICE_VULKAN && devs[i].kind != SK_DEVICE_METAL) continue;
+            c = {};
+            assert(sk_device_supports_ops(i, "tts", "supertonic", f16, 2, &c) == SK_OK);
+            assert(c.n_ops > 0);
+            const bool paravirtual = std::strstr(devs[i].description, "aravirtual") != nullptr;
+            if (!c.all_supported) {
+                for (int j = 0; j < c.n_ops; ++j)
+                    if (!c.ops[j].supported) std::fprintf(stderr, "tts/supertonic unsupported on device %d (%s): %s\n", i, devs[i].description, c.ops[j].name);
+            }
+            std::fprintf(stderr, "test_common: tts/supertonic n_ops=%d all_supported=%d on device %d (%s)\n", c.n_ops, c.all_supported, i, devs[i].description);
+            if (!paravirtual) assert(c.all_supported == 1);
+        }
     }
 
     char *buf = static_cast<char *>(std::malloc(4));

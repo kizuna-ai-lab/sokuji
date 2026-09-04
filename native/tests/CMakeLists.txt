@@ -1,5 +1,7 @@
 add_executable(test_common test_common.cpp)
 target_link_libraries(test_common PRIVATE sokuji_native)
+# ggml.h for ggml_blck_size()/GGML_TYPE_* (fix round 1: the op-coverage block-size check).
+target_link_libraries(test_common PRIVATE ggml)
 # The module dir is where ggml's backend .so/.dll/.dylib files were written. Second arg is
 # the requested n_threads: "3" (test_common) exercises "an explicit value is always honored
 # verbatim"; "0" (test_common_threads_policy, same binary) exercises R32's

@@ -105,7 +105,7 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
     for (int32_t i = 0; i < n_weight_dtypes; ++i) {
         int32_t t = weight_dtypes[i] ? type_by_name(weight_dtypes[i]) : -1;
         if (t < 0) { sk::set_error(std::string("sk_device_supports_ops: unknown dtype ") + (weight_dtypes[i] ? weight_dtypes[i] : "NULL")); return SK_ERR_INVALID_ARGUMENT; }
-        wtypes.push_back(t);
+        if (std::find(wtypes.begin(), wtypes.end(), t) == wtypes.end()) wtypes.push_back(t);   // dedupe, first-seen order
     }
     std::string err;
     const sk_op_recording *rec = recording_for(stage, family, err);
@@ -121,6 +121,16 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
             const bool has_weight = std::find(d.src_type.begin(), d.src_type.end(), SK_SRC_WEIGHT) != d.src_type.end();
             const std::vector<int32_t> expand = has_weight ? wtypes : std::vector<int32_t>{-1};
             for (int32_t wt : expand) {
+                // A GGUF quantizer keeps a block-misaligned row length in f16/f32, never in a
+                // blocked dtype (ggml_new_tensor's GGML_ASSERT(ne % blck_size == 0), compiled
+                // out in Release, aborts in Debug): no GGUF can hold this WEIGHT tensor in a
+                // dtype whose block size does not divide its recorded ne[0], so that dtype is
+                // not a real possibility for this node and must not be asked — skip it, not the
+                // node. f32/f16 (block size 1) are in every rung's fallback set, so the node is
+                // still asked in the dtype the real file would actually use. WEIGHT is always
+                // src0 by the recorder's rule (see SK_SRC_WEIGHT's doc in sk_ops.h), so only
+                // ne0_src0 needs the check.
+                if (has_weight && d.ne0_src0 % ggml_blck_size(static_cast<ggml_type>(wt)) != 0) continue;
                 if (out->n_ops >= SK_OP_COVERAGE_MAX) { sk::set_error("sk_device_supports_ops: recording exceeds SK_OP_COVERAGE_MAX"); return SK_ERR_INTERNAL; }
                 std::string spelling;
                 const bool ok = ask(devs[index], d, wt, spelling);

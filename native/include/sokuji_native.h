@@ -146,10 +146,14 @@ typedef struct sk_op_coverage {
 
 /* stage: "asr" | "translate" | "tts". family: the catalog card's graph_family.
  * weight_dtypes: the ggml type names WEIGHT expands over ("q4_K", "q8_0", "bf16", "f16",
- * "f32", ...). Unknown (stage, family) → SK_ERR_NOT_FOUND; bad index, NULL out,
- * n_weight_dtypes <= 0 or an unknown dtype name → SK_ERR_INVALID_ARGUMENT; more than
- * SK_OP_COVERAGE_MAX expanded entries → SK_ERR_INTERNAL; a backend exception →
- * SK_ERR_BACKEND. Callers treat every error as "unknown", never as "unsupported". */
+ * "f32", ...), deduplicated internally (first-seen order) before expansion. A WEIGHT node
+ * whose recorded row length is not a multiple of a dtype's block size is skipped for that
+ * dtype only (no GGUF can hold that tensor in it; f32/f16 have block size 1, so the node is
+ * still asked in whichever dtype the real file would use). Unknown (stage, family) →
+ * SK_ERR_NOT_FOUND; bad index, NULL out, n_weight_dtypes <= 0 or an unknown dtype name →
+ * SK_ERR_INVALID_ARGUMENT; more than SK_OP_COVERAGE_MAX expanded entries → SK_ERR_INTERNAL;
+ * a backend exception → SK_ERR_BACKEND. Callers treat every error as "unknown", never as
+ * "unsupported". */
 SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const char *family,
                                         const char *const *weight_dtypes, int32_t n_weight_dtypes,
                                         sk_op_coverage *out);
