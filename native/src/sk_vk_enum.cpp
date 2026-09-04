@@ -83,6 +83,11 @@ std::vector<size_t> sk_vk_select_like_ggml(const std::vector<sk_vk_record> &raw,
 
 #if !defined(SK_VK_ENUM_NO_LOADER) && defined(SK_HAVE_VULKAN_HEADERS)
 #include <vulkan/vulkan.h>
+/* The pinned Vulkan-Headers (v1.4.311) must win over any system copy — jammy's are 1.3.204,
+ * and VkPhysicalDeviceShaderBfloat16FeaturesKHR / VkPhysicalDeviceCooperativeMatrix2FeaturesNV
+ * below arrived in 1.4.304. A wrong include order fails here, not on a user's device. */
+static_assert(VK_HEADER_VERSION >= 311, "Vulkan headers older than the pinned v1.4.311");
+
 #if defined(_WIN32)
 #  include <windows.h>
 #else

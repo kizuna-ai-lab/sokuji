@@ -105,14 +105,26 @@ endif()
 # linking it, and needs headers new enough for the bfloat16 / NV coopmat2 feature structs
 # (Ubuntu 22.04's distro headers are 1.3.204). Headers only; VK_NO_PROTOTYPES.
 # Pinned by commit SHA, not tag name, for the reason cmake/upstreams.cmake states.
+#
+# SOURCE_SUBDIR deliberately names a directory the tree does not have, so
+# FetchContent_MakeAvailable populates the sources and skips add_subdirectory(): the
+# Vulkan-Headers project unconditionally declares `add_library(Vulkan::Headers ALIAS
+# Vulkan-Headers)`, which collides with the IMPORTED target FindVulkan.cmake has already
+# created whenever ggml_options.cmake's `find_package(Vulkan QUIET)` ran — i.e. on the
+# default SOKUJI_GPU=auto path, on every non-Apple box with a usable Vulkan SDK. Adding the
+# include directory by hand is all this needs, and it keeps the pinned headers ahead of any
+# system copy (an `if(NOT TARGET Vulkan::Headers)` guard would silently compile against the
+# system's older headers instead, defeating the point of the pin). src/sk_vk_enum.cpp
+# static_asserts VK_HEADER_VERSION so a wrong include path fails the build, not a device.
 if(SOKUJI_GPU_RESOLVED STREQUAL "vulkan")
     include(FetchContent)
     FetchContent_Declare(vulkan_headers
         GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
         GIT_TAG        71176a07dc482d0ddaf0b28555e734adc0533238   # v1.4.311
-        GIT_SHALLOW    TRUE)
+        GIT_SHALLOW    TRUE
+        SOURCE_SUBDIR  headers-only-no-cmake-entry-point)
     FetchContent_MakeAvailable(vulkan_headers)
-    target_link_libraries(sokuji_native PRIVATE Vulkan::Headers)
+    target_include_directories(sokuji_native PRIVATE ${vulkan_headers_SOURCE_DIR}/include)
     target_compile_definitions(sokuji_native PRIVATE SK_HAVE_VULKAN_HEADERS=1 VK_NO_PROTOTYPES=1)
 endif()
 
