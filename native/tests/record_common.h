@@ -63,7 +63,14 @@ static int record_family(const std::string &stage, const std::string &family, co
 
     Clip ref;
     const bool needs_voice = family == "qwen3_tts" || family == "omnivoice" || family == "index_tts2";
-    if (needs_voice) ref = reference_clip(dev, supertonic_dir);
+    if (needs_voice) {
+        ref = reference_clip(dev, supertonic_dir);
+        // An empty clip would quietly degrade a clone-only family to a no-voice run: index_tts2
+        // accepts a missing voice, so it would record a graph with none of the clone-path nodes
+        // and the diff against the shipped recording would read as an engine regression. Fail
+        // the recording instead.
+        if (ref.pcm.empty()) { std::fprintf(stderr, "record_family: reference clip failed for %s\n", family.c_str()); return 0; }
+    }
 
     sk_record_begin(name_ptrs.data(), (int32_t)name_ptrs.size(), RUNG_OPS, 3);
     if (stage == "tts") {
