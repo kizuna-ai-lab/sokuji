@@ -8,7 +8,7 @@
 
 **Tech Stack:** C++17 (`native/`), CMake + FetchContent (Vulkan-Headers), ggml v0.22.0 public API, ctypes binding (`native/python/sokuji_native`), Python 3.12 sidecar with pytest, TypeScript/React renderer with vitest.
 
-**Spec:** `docs/superpowers/specs/2026-09-04-native-device-profile-design.md` (fourth draft, commit `97903372`). Review history: `docs/superpowers/notes/2026-09-04-device-profile-review-findings.md`.
+**Spec:** `docs/superpowers/specs/2026-09-04-native-device-profile-design.md` (fourth draft, commit `97903372`). Review history: `docs/superpowers/notes/2026-09-04-device-profile-review-findings.md`. This plan was itself reviewed once (46 findings, applied — the sk_* signatures, the ggml interface member orders, the WEIGHT rule and the cache key below are the corrected ones).
 
 ## Global Constraints
 
@@ -16,15 +16,20 @@
 - `libsokuji_native.so` must never gain a `libvulkan.so.1` DT_NEEDED or a `vulkan-1.dll` import — the loader is `dlopen`'d at profile time (spec §3.1); `native/ci/check_linux_deps.py` enforces it per file.
 - Vulkan headers come from a `FetchContent` of `Vulkan-Headers` pinned at **v1.4.311** (spec §3.1); native compiles with `VK_NO_PROTOTYPES`.
 - Feature structs are chained into `vkGetPhysicalDeviceFeatures2` **only** when the device lists the matching extension; all structs zero-initialised (spec §3.1).
+- **`WEIGHT` marks only rung-bearing positions**: `src0` of `MUL_MAT`, `MUL_MAT_ID` and `GET_ROWS`. Every other model tensor (norm weights, biases, embeddings used elsewhere) is recorded with its literal dtype. Expanding a norm weight to q8_0 would make every GPU backend refuse it (Vulkan and Metal accept `ADD`/`MUL` only for F32/F16 sources).
+- **Node identity excludes the sequence axes**: `(op, op_params, dst type, src types, contiguity, ne[0] of src0/src1/dst)`; `ne[1..3]` are recorded as maxima and `max_bytes` as the largest seen, so one forward pass (prefill + N decode steps) yields tens of nodes, not thousands.
 - Premise 5: an absent or unknown profile changes nothing. `Machine` gains `devices: tuple[DeviceProfile, ...] = ()` and `generation: str = ""` with those defaults; `sidecar/tests/test_characterization.py` must not change a single matrix row (spec §1.1(5), §4).
 - `bench_load() -> dict` keeps its signature and returns entries only; `bench_read()` is new for writers; `bench_save(entries, *, generation)` (spec §3.3).
+- The op-coverage cache key carries the dtype set: `f"{generation}|ops:{index}:{stage}:{family}:{compute_type}:{'+'.join(sorted(dtypes))}"` (spec §3.3), so the pre-download answer over the wide fallback set is replaced once the file's real header set is known.
 - `wire_schema.json` lists only **top-level** fields: `hardware_info_result` gains optional `generation` and `devices`; `variants[].unsupportedTiers` is a nested TS-level field only (spec §3.4).
 - `variants[].supported` keeps its meaning ("loadable on some tier") and stays `True` for every GGUF card (spec §3.3).
 - Only the `tts` stage is gated on op coverage (`_ABORTS_ON_UNSUPPORTED = {"tts"}`); `asr`/`translate` record but never withhold a tier (spec §3.3).
-- The op-coverage callable is keyword-only with default `lambda *a: None` on every planner function it threads through, so every existing test stays valid (spec §3.3).
+- The op-coverage callable is keyword-only with default `_NO_COVERAGE` (`lambda *a: None`) on every planner function it threads through, so every existing test stays valid (spec §3.3).
 - Coverage is computed by the accel resolve wrappers **before** the planner runs, never inside the planner, never on the `_h_models_catalog` path, never when `override == "cpu"`, and only for the first device of a kind (spec §3.3).
+- `sk_init` is first-call-wins: the recording device must be registered **before** the first `sk_init` of a recording process (Task 4/6).
 - Every user-visible string goes through i18n; the one new key `models.variantRunsOnCpu` is added to all 30 locale files under `src/locales/*/translation.json`.
-- English-only code, comments, commit messages. Conventional commits. Commit with explicit pathspecs. Never `git stash`. Run sidecar tests as `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests -q -p no:cacheprovider`; native tests through `native/ci/build.sh <none|vulkan|metal> <plat tag>` (CTest + the Python suite against the fresh stage); renderer tests with `npx vitest run <path>`.
+- English-only code, comments, commit messages. Conventional commits. Commit with explicit pathspecs. Never `git stash`. Run sidecar tests as `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests -q -p no:cacheprovider`; native tests through `native/ci/build.sh <none|vulkan|metal> <plat tag>` (CTest + the Python suite against the fresh stage); renderer tests with `npx vitest run <path>`. Built executables land in `native/build/<lane>/lib/` (`CMAKE_RUNTIME_OUTPUT_DIRECTORY`), beside the backend modules.
+- The Bash tool in this repository refuses heredocs and commands whose argument positions begin with a shell variable: write scripts to files and invoke them by path; spell paths out literally.
 - Outward acts (push, PR, tag, release) require jiangzhuo's explicit per-act confirmation naming the target (Task 14 says so at each step).
 
 ---
@@ -32,53 +37,50 @@
 ## File structure
 
 **native/**
-- Modify `include/sokuji_native.h` — ABI 2; `sk_feature` enum; `sk_device_profile`, `sk_op_check`, `sk_op_coverage`, `SK_OP_COVERAGE_MAX`; declarations of `sk_device_profile_get` and `sk_device_supports_ops`.
-- Create `src/sk_profile.cpp` — `sk_device_profile_get`: CPU features via proc address, Metal bits via `supports_op` on scratch nodes, UMA, `known`; calls into `sk_vk_enum` for Vulkan.
-- Create `src/sk_vk_enum.h`, `src/sk_vk_enum.cpp` — loader `dlopen`, instance creation, physical-device records, and the pure selection helper `sk_vk_select_like_ggml()` that replicates ggml's device list.
-- Create `src/sk_ops.h`, `src/sk_ops.cpp` — the node-descriptor model, `.ops` text parsing (shared by the generator and the recorder), `WEIGHT` expansion over a dtype set, node rebuild + `supports_op`, `sk_device_supports_ops`.
-- Create `src/ops/<stage>-<family>.ops` — the recordings (data). Nine `tts-*.ops` before release; `asr-*`/`translate-*` as recorded.
-- Create `cmake/gen_ops_data.py` — turns `src/ops/*.ops` into `${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp` at build time (a `static const` array per recording, and the `static_assert` on the cap).
-- Create `src/sk_ops_record.cpp` (test build only, `SK_RECORD_OPS`) — the recording device (`ggml_backend_register`) and `sk_recording_graph_compute`; `tests/record_ops.cpp` — the `--record-ops` / `--dump` driver.
+- Modify `include/sokuji_native.h` — ABI 2; `sk_feature` enum; `sk_device_profile`, `sk_op_check`, `sk_op_coverage`, `SK_OP_COVERAGE_MAX`; `sk_translate_options.flash_attn`; declarations of `sk_device_profile_get`, `sk_device_supports_ops`, and the recorder's C entry points (test build).
+- Create `src/sk_profile.cpp` — `sk_device_profile_get`.
+- Create `src/sk_vk_enum.h`, `src/sk_vk_enum.cpp` — loader `dlopen`, instance creation, physical-device records, the pure `sk_vk_select_like_ggml()`.
+- Create `src/sk_ops.h`, `src/sk_ops_format.cpp` — the descriptor model and the `.ops` text format (pure; compiled into the library AND directly into the test binaries).
+- Create `src/sk_ops.cpp` — `WEIGHT` expansion, node rebuild + `supports_op`, `sk_device_supports_ops`; `src/sk_ops_data.h` — the baked-blob table's declaration.
+- Create `src/ops/<stage>-<family>.ops` — the recordings (data). Nine `tts-*.ops` before release; `asr-whisper.ops`, `asr-moonshine_streaming.ops`, `translate-qwen3.ops`.
+- Create `cmake/gen_ops_data.py` — turns `src/ops/*.ops` into `${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp` (blobs + one `static_assert` per recording on the expanded count).
+- Create `src/sk_ops_record.cpp` (test build only, `SK_RECORD_OPS`) — the recording device and `sk_recording_graph_compute`, with C entry points; `tests/record_common.h` (the per-stage load-and-run), `tests/record_ops.cpp` (the `--record-ops` driver), `tests/test_ops_coverage.cpp`, `tests/test_ops_format.cpp`, `tests/test_vk_select.cpp`.
 - Modify `src/audiocpp_compat.h` — under `SK_RECORD_OPS`, include `ggml-backend.h` then `#define ggml_backend_graph_compute sk_recording_graph_compute`.
-- Modify `CMakeLists.txt` — `SK_ABI_VERSION_NUM 2`, `project(... VERSION 1.1.0)`, the configure-time ABI cross-check, FetchContent `Vulkan-Headers`, the ops generator custom command, `sk_profile.cpp`/`sk_vk_enum.cpp`/`sk_ops.cpp` sources, `SK_RECORD_OPS` test target.
-- Modify `tests/test_common.cpp` — version `"1.1.0"`, profile assertions, `supports_ops` error paths; create `tests/test_vk_select.cpp` (pure selection helper with fake records), `tests/test_ops_coverage.cpp`; modify `tests/CMakeLists.txt`.
-- Modify `python/sokuji_native/_ffi.py` — `SK_ABI_VERSION = 2`, the two structs, `bind()` lines; `python/sokuji_native/__init__.py` — `DeviceProfile`, `OpCoverage`, `device_profiles()`, `device_supports_ops()`; `python/tests/test_sokuji_native.py` — round-trips.
-- Modify `ci/check_linux_deps.py` — `DENY_BY_FILE`.
-- Modify `README.md` — version line, the pin-bump checklist lines for recordings.
+- Modify `src/sk_translate.cpp` — honour `sk_translate_options.flash_attn`.
+- Modify `CMakeLists.txt` — `SK_ABI_VERSION_NUM 2`, `project(... VERSION 1.1.0)`, the configure-time ABI cross-check (right after `project()`), FetchContent `Vulkan-Headers`, the ops generator custom command, new sources, `src/` on the private include path, the `SOKUJI_RECORD_OPS` option.
+- Modify `tests/test_common.cpp`, `tests/CMakeLists.txt`; `python/sokuji_native/_ffi.py`, `python/sokuji_native/__init__.py`, `python/tests/test_sokuji_native.py`; `ci/check_linux_deps.py`; `ci/build.sh` / `ci/build.ps1`; `README.md`.
 
 **sidecar/**
 - Modify `sokuji_sidecar/catalog.py` — `graph_family` on `_ModelBase`; `arch=` on `_tc_row` and `_llm_translate_row`; `_tts_gguf_row` sets it; `RUNG_FALLBACK_DTYPES`.
-- Create `sokuji_sidecar/gguf_header.py` — minimal GGUF header reader: `general.architecture` and the tensor-dtype set.
-- Modify `sokuji_sidecar/native.py` — `device_profiles()`, `device_supports_ops()`.
-- Modify `sokuji_sidecar/accel.py` — `DeviceProfile`, `OpCoverage`, `Machine.devices/generation`, `_native_profiles`, `_native_identity`, `probe()`, `bench_read`/`bench_save`, `_measure` via `_cache_key`, `compute_op_coverage`/`op_coverage_for`/`cached_op_coverage`, `weight_dtypes`, the resolve wrappers, `_h_hardware_info`, `_h_models_catalog`.
-- Modify `sokuji_sidecar/planner.py` — `_cache_key`, `_resolve_model`/`_tps` read side, `_STAGE_OF_BACKEND`, `_ABORTS_ON_UNSUPPORTED`, `_device_for_tier`, `_deployment_available`, the nine threaded signatures, the fit-walk restriction, the structured paravirtual rule.
-- Modify `sokuji_sidecar/wire_schema.json` — `hardware_info_result.optional` += `generation`, `devices`.
-- Modify tests: `tests/test_catalog.py`, `tests/test_accel.py`, `tests/test_planner.py`, `tests/test_characterization.py` (fixture + assertion only); create `tests/test_gguf_header.py`, `tests/test_device_profile.py`.
+- Create `sokuji_sidecar/gguf_header.py` — minimal GGUF header reader.
+- Modify `sokuji_sidecar/native.py`, `sokuji_sidecar/accel.py`, `sokuji_sidecar/planner.py`, `sokuji_sidecar/wire_schema.json`.
+- Create `tests/_fixtures.py` (shared `_known_gpu_machine`), `tests/test_gguf_header.py`; modify `tests/test_catalog.py`, `tests/test_accel.py`, `tests/test_planner.py`, `tests/test_characterization.py` (fixture + one assertion only).
 
 **src/ (renderer)**
-- Modify `lib/local-inference/native/nativeProtocol.ts` — `HardwareInfoResultMsg` fields, `variants[].unsupportedTiers`, `VariantInfo.unsupportedTiers`.
-- Modify `services/clients/LocalNativeClient.ts` — forward `generation`/`devices`.
-- Modify `stores/nativeModelStore.ts` — `deviceProfiles`, `profileGeneration`, `reportedUnsupportedOps`, the once-per-session warning.
-- Modify `components/Settings/sections/NativeModelManagementSection.tsx` — the muted note on enabled options.
-- Modify `src/locales/*/translation.json` (30 files) — `models.variantRunsOnCpu`.
-- Modify tests: `lib/local-inference/native/nativeProtocol.consistency.test.ts` (no code change expected; it reads the schema), `stores/nativeModelStore.test.ts`, `components/Settings/sections/NativeModelManagementSection.test.tsx`.
+- Modify `lib/local-inference/native/nativeProtocol.ts`, `services/clients/LocalNativeClient.ts`, `stores/nativeModelStore.ts`, `components/Settings/sections/NativeModelManagementSection.tsx`, `src/locales/*/translation.json` (30 files); tests `stores/nativeModelStore.test.ts`, `components/Settings/sections/NativeModelManagementSection.test.tsx` (`nativeProtocol.consistency.test.ts` must keep passing unchanged).
 
 ---
 
-### Task 1: ABI 2 scaffolding, version 1.1.0, and the configure-time ABI cross-check
+### Task 1: ABI 2 scaffolding, version 1.1.0, `flash_attn` in the translate options, and the configure-time ABI cross-check
 
 **Files:**
-- Modify: `native/include/sokuji_native.h:42` (`SK_ABI_VERSION`), after line 95 (new types + declarations)
-- Modify: `native/python/sokuji_native/_ffi.py:6, 26-28, 66-72`
-- Modify: `native/CMakeLists.txt:1-10` (project version), `:120` (`SK_ABI_VERSION_NUM`), plus the new check
+- Modify: `native/include/sokuji_native.h:42` (`SK_ABI_VERSION`), `:173` (`sk_translate_options`), after `:95` (new types + declarations)
+- Modify: `native/python/sokuji_native/_ffi.py:6`, the `sk_translate_options` Structure, after `:28`, `:66-72`
+- Modify: `native/CMakeLists.txt` (`project(...)` version, `SK_ABI_VERSION_NUM`, the new check placed right after `project()`, `src/` on the private include path)
+- Modify: `native/src/sk_translate.cpp` (read `opts->flash_attn`)
 - Modify: `native/tests/test_common.cpp:24`
-- Modify: `native/README.md` (the "Current native version is 1.0.2" sentence), `CLAUDE.md` (same sentence in the Native runtime bullet)
+- Modify: `native/README.md`, `CLAUDE.md` (the "Current native version" sentences)
 - Test: `native/tests/test_common.cpp`, `native/python/tests/test_sokuji_native.py`
 
 **Interfaces:**
-- Produces: the C types `sk_feature`, `sk_device_profile`, `sk_op_check`, `sk_op_coverage`, `SK_OP_COVERAGE_MAX`; declarations `sk_device_profile_get(int32_t, sk_device_profile *)` and `sk_device_supports_ops(int32_t, const char *, const char *, const char *const *, int32_t, sk_op_coverage *)`; ctypes mirrors `_ffi.sk_device_profile`, `_ffi.sk_op_check`, `_ffi.sk_op_coverage`, `_ffi.SK_OP_COVERAGE_MAX`, and the `bind()` entries. Tasks 2–5 implement the two functions; until then they return `SK_ERR_INTERNAL` from a stub so the library links.
+- Produces: the C types `sk_feature`, `sk_device_profile`, `sk_op_check`, `sk_op_coverage`, `SK_OP_COVERAGE_MAX` (= 512); declarations `sk_device_profile_get(int32_t, sk_device_profile *)` and `sk_device_supports_ops(int32_t, const char *, const char *, const char *const *, int32_t, sk_op_coverage *)`; `sk_translate_options { int32_t n_ctx; int32_t flash_attn; /* 0 engine default, 1 on, 2 off */ }`; ctypes mirrors and `bind()` entries. Tasks 2–5 implement the two functions; until then stubs return `SK_ERR_INTERNAL` so the library links.
 
-- [ ] **Step 1: Bump the four version/ABI sites and write the failing CTest assertion**
+- [ ] **Step 1: Configure and build the CPU lane once (one-time cost, ~30 min: four upstreams are fetched and built)**
+
+Run: `cd native && cmake -S . -B build/cpu -DCMAKE_BUILD_TYPE=Release -DSOKUJI_GPU=none && cmake --build build/cpu -j8 2>&1 | tail -3`
+Expected: `libsokuji_native.so` and the test binaries under `build/cpu/lib/`.
+
+- [ ] **Step 2: Bump the version sites and write the failing CTest assertions**
 
 In `native/tests/test_common.cpp` change line 24 to:
 
@@ -86,24 +88,33 @@ In `native/tests/test_common.cpp` change line 24 to:
     assert(std::string(sk_version()) == "1.1.0");
 ```
 
-and, after the `assert(saw_cpu);` block (line 75), add:
+and after the `assert(saw_cpu);` block (line 75) add:
 
 ```cpp
-    // ABI 2: the profile call exists, rejects a bad index before anything else,
-    // and refuses to run before sk_init (checked above the init below in Task 2).
+    // ABI 2: the profile call exists and rejects a bad index / NULL out-pointer.
     sk_device_profile prof = {};
     assert(sk_device_profile_get(-1, &prof) == SK_ERR_INVALID_ARGUMENT);
     assert(sk_device_profile_get(0, nullptr) == SK_ERR_INVALID_ARGUMENT);
 ```
 
-- [ ] **Step 2: Run the CTest to see it fail to compile**
+- [ ] **Step 3: Build to see it fail to compile**
 
-Run: `cd native && cmake --build build/cpu --target test_common 2>&1 | tail -5`
-Expected: error: `sk_device_profile` / `sk_device_profile_get` not declared.
+Run: `cd native && cmake --build build/cpu --target test_common 2>&1 | grep -m2 "error"`
+Expected: `'sk_device_profile' was not declared` (or the equivalent for `sk_device_profile_get`).
 
-- [ ] **Step 3: Add the types and declarations to the header**
+- [ ] **Step 4: Add the types and declarations to the header**
 
-In `native/include/sokuji_native.h`, change line 42 to `#define SK_ABI_VERSION 2`, and insert after the `sk_device` typedef (line 95):
+Change line 42 to `#define SK_ABI_VERSION 2`. Change the `sk_translate_options` typedef (line 173) to:
+
+```c
+typedef struct sk_translate_options {
+    int32_t n_ctx;        /* 0 = 4096 */
+    int32_t flash_attn;   /* ABI 2: 0 = llama.cpp's own default, 1 = force on, 2 = force off.
+                           * The op recorder records both settings (spec A §3.2.2). */
+} sk_translate_options;
+```
+
+Insert after the `sk_device` typedef (line 95):
 
 ```c
 /* ---- device profile (ABI 2) -------------------------------------------------------- */
@@ -146,7 +157,7 @@ SK_API sk_status sk_device_profile_get(int32_t index, sk_device_profile *out);
  * ggml_type_name, "-" for an absent source), and whether the device's supports_op
  * accepted it rebuilt with its recorded shapes. */
 typedef struct sk_op_check { char name[64]; int32_t supported; } sk_op_check;
-#define SK_OP_COVERAGE_MAX 128
+#define SK_OP_COVERAGE_MAX 512
 typedef struct sk_op_coverage {
     int32_t n_ops;            /* entries written */
     int32_t all_supported;    /* 1 iff every entry is supported */
@@ -164,7 +175,7 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
                                         sk_op_coverage *out);
 ```
 
-- [ ] **Step 4: Add a stub implementation so the library links**
+- [ ] **Step 5: Stubs so the library links; honour `flash_attn` in the translate loader**
 
 Create `native/src/sk_profile.cpp`:
 
@@ -195,10 +206,8 @@ SK_API sk_status sk_device_profile_get(int32_t index, sk_device_profile *out) {
     return SK_ERR_INTERNAL;
 }
 
-SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const char *family,
-                                        const char *const *weight_dtypes, int32_t n_weight_dtypes,
-                                        sk_op_coverage *out) {
-    (void)index; (void)stage; (void)family; (void)weight_dtypes; (void)n_weight_dtypes; (void)out;
+SK_API sk_status sk_device_supports_ops(int32_t, const char *, const char *, const char *const *, int32_t,
+                                        sk_op_coverage *) {
     sk::set_error("sk_device_supports_ops: not implemented yet");   // Task 5 replaces this body
     return SK_ERR_INTERNAL;
 }
@@ -206,19 +215,27 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
 }  // extern "C"
 ```
 
-Note the argument checks run **before** `require_init` for the NULL/negative cases so the Step 1 assertions hold pre-init too; Task 2 keeps that order.
+In `native/src/sk_translate.cpp`, where `llama_context_params` is built from `opts` (the block that reads `opts->n_ctx`), add:
 
-In `native/CMakeLists.txt` change `target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_translate.cpp src/sk_tts.cpp)` to include `src/sk_profile.cpp`, change `project(sokuji_native VERSION 1.0.2 …)` at the top to `1.1.0`, and change `set(SK_ABI_VERSION_NUM 1)` to `set(SK_ABI_VERSION_NUM 2)`.
+```cpp
+    if (opts && opts->flash_attn == 1) cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_ENABLED;
+    if (opts && opts->flash_attn == 2) cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
+```
 
-- [ ] **Step 5: Add the configure-time ABI cross-check**
+(If the pinned llama.cpp 0.3.0 `llama_context_params` still has the boolean `flash_attn` instead of `flash_attn_type`, set `cparams.flash_attn = (opts->flash_attn == 1)` for 1 and `false` for 2 — check `build/cpu/_deps/llama-src/include/llama.h`.)
 
-In `native/CMakeLists.txt`, directly after `set(SK_ABI_VERSION_NUM 2)`:
+In `native/CMakeLists.txt`: `project(sokuji_native VERSION 1.1.0 …)`; add `src/sk_profile.cpp` to `target_sources(sokuji_native ...)`; add `${CMAKE_CURRENT_SOURCE_DIR}/src` to the `PRIVATE` include directories of `sokuji_native` (generated sources include `sk_ops_data.h` from there in Task 5); `set(SK_ABI_VERSION_NUM 2)`.
+
+- [ ] **Step 6: The configure-time ABI cross-check, placed right after `project()`**
+
+Directly after the `project(...)` line:
 
 ```cmake
-# The ABI number lives in three places nothing used to cross-check: this variable (stamped
-# into contract.json), the header (what the library reports), and the binding's _ffi.py
-# (what the binding demands). The binding refuses a mismatch at import — after a full
-# five-SKU build. Catch the header/CMake drift here, at configure time.
+# The ABI number lives in three places nothing used to cross-check: SK_ABI_VERSION_NUM (stamped
+# into contract.json, set below), the header (what the library reports), and the binding's
+# _ffi.py (what the binding demands). The binding refuses a mismatch at import — after a full
+# five-SKU build. Catch the header/CMake drift here, before any upstream is fetched.
+set(SK_ABI_VERSION_NUM 2)
 file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/include/sokuji_native.h _sk_abi_line
      REGEX "^#define SK_ABI_VERSION [0-9]+")
 string(REGEX REPLACE "^#define SK_ABI_VERSION ([0-9]+).*$" "\\1" _sk_abi_header "${_sk_abi_line}")
@@ -227,12 +244,14 @@ if(NOT _sk_abi_header STREQUAL "${SK_ABI_VERSION_NUM}")
 endif()
 ```
 
-- [ ] **Step 6: Mirror the ABI and the structs in the binding**
+and delete the old `set(SK_ABI_VERSION_NUM 1)` at line 120 (the comment above it stays, moved up with the block).
 
-In `native/python/sokuji_native/_ffi.py`: line 6 → `SK_ABI_VERSION = 2`; after the `sk_device` Structure (line 28) add:
+- [ ] **Step 7: Mirror the ABI and the structs in the binding**
+
+`_ffi.py`: line 6 → `SK_ABI_VERSION = 2`; the `sk_translate_options` Structure gains `("flash_attn", c_int32)` after `n_ctx`; after the `sk_device` Structure add:
 
 ```python
-SK_OP_COVERAGE_MAX = 128
+SK_OP_COVERAGE_MAX = 512
 
 
 class sk_device_profile(Structure):
@@ -250,14 +269,14 @@ class sk_op_coverage(Structure):
                 ("ops", sk_op_check * SK_OP_COVERAGE_MAX)]
 
 
-FEATURE_BITS = {  # sk_feature, lower-case without the SK_FEAT_ prefix (the DeviceProfile.features names)
+FEATURE_BITS = {  # sk_feature, lower-case without the SK_FEAT_ prefix (DeviceProfile.features names)
     1 << 0: "vk_shader_float16", 1 << 1: "vk_shader_bfloat16", 1 << 2: "vk_integer_dot",
     1 << 3: "vk_coopmat", 1 << 4: "vk_coopmat2",
     1 << 5: "mtl_simdgroup_reduction", 1 << 6: "mtl_bfloat", 1 << 7: "uma",
 }
 ```
 
-(`c_uint32` is already imported beside `c_uint64`; add it to the import line if it is not.) In `bind()` after the `sk_device_free_mem` lines add:
+(add `c_uint32` to the ctypes import if absent). In `bind()` after the `sk_device_free_mem` lines:
 
 ```python
     lib.sk_device_profile_get.argtypes = [c_int32, POINTER(sk_device_profile)]
@@ -267,23 +286,27 @@ FEATURE_BITS = {  # sk_feature, lower-case without the SK_FEAT_ prefix (the Devi
     lib.sk_device_supports_ops.restype = c_int32
 ```
 
-- [ ] **Step 7: Update the version sentences**
+In `__init__.py`, wherever `sk_translate_options` is filled (the `translate_load` wrapper), set `opts.flash_attn = 0` beside `opts.n_ctx`.
 
-`native/README.md`: replace `Current native version is 1.0.2.` with `Current native version is 1.1.0 (ABI 2: device profile and op coverage — see docs/superpowers/specs/2026-09-04-native-device-profile-design.md).` In `CLAUDE.md`'s Native runtime bullet, replace `Current native version is 1.0.2.` the same way. In `native/README.md`'s "Bumping a pin" step 4, change "the **two** places" to "the **three** places" and add `SK_ABI_VERSION_NUM` in `CMakeLists.txt` (only when the ABI changes) to the list.
+- [ ] **Step 8: Update the version sentences**
 
-- [ ] **Step 8: Build and run the CTest; run the binding's contract test**
+In `native/README.md` and `CLAUDE.md`, find the sentence that begins `Current native version is` (in the README it is wrapped across two lines) and rewrite the whole sentence as: `Current native version is 1.1.0 (ABI 2: device profile and op coverage — spec docs/superpowers/specs/2026-09-04-native-device-profile-design.md).` In `native/README.md`'s "Bumping a pin" step 4, change "the **two** places" to "the **two** places (plus `SK_ABI_VERSION_NUM` in `CMakeLists.txt` and `_ffi.py` when the ABI changes)".
 
-Run: `cd native && ci/build.sh none linux_aarch64 2>&1 | tail -15` (or the lane/tag for your box)
-Expected: configure passes the ABI check; `test_common` passes (its profile calls return `SK_ERR_INVALID_ARGUMENT` for the two bad-argument cases); the Python suite's `contract()` test reports `abi == 2`.
+- [ ] **Step 9: Build, run the CTest, prove the ABI check fires**
 
-Also run a deliberate mismatch once: `cmake -S native -B /tmp/abi-mismatch -DSOKUJI_GPU=none -DSK_ABI_VERSION_NUM=1 2>&1 | grep FATAL` — expected: the FATAL_ERROR line. Delete `/tmp/abi-mismatch`.
+Run: `cd native && cmake -S . -B build/cpu && cmake --build build/cpu -j8 && ctest --test-dir build/cpu -R '^test_common$' --output-on-failure 2>&1 | tail -3`
+Expected: PASS (the two bad-argument calls return `SK_ERR_INVALID_ARGUMENT`).
 
-- [ ] **Step 9: Commit**
+Prove the check: edit the header to `#define SK_ABI_VERSION 3`, run `cmake -S native -B native/build/cpu 2>&1 | grep -m1 FATAL`, expect the FATAL_ERROR line, then restore the header (`git checkout -- native/include/sokuji_native.h` from the repo root).
+
+Binding: `cd native/python && SOKUJI_NATIVE_DIR=../build/cpu/stage python -m pytest tests/test_sokuji_native.py -q -k "contract or version" 2>&1 | tail -2` — Expected: the ABI/contract tests pass at 2 (if `build/cpu/stage` does not exist yet, `ci/build.sh none <tag>` produces it).
+
+- [ ] **Step 10: Commit**
 
 ```bash
-git add native/include/sokuji_native.h native/src/sk_profile.cpp native/CMakeLists.txt native/tests/test_common.cpp \
-        native/python/sokuji_native/_ffi.py native/README.md CLAUDE.md
-git commit -m "native: ABI 2 — device profile and op coverage types, version 1.1.0, configure-time ABI check"
+git add native/include/sokuji_native.h native/src/sk_profile.cpp native/src/sk_translate.cpp native/CMakeLists.txt \
+        native/tests/test_common.cpp native/python/sokuji_native/_ffi.py native/python/sokuji_native/__init__.py native/README.md CLAUDE.md
+git commit -m "native: ABI 2 — device profile and op coverage types, flash_attn in translate options, version 1.1.0, configure-time ABI check"
 ```
 
 ---
@@ -292,24 +315,16 @@ git commit -m "native: ABI 2 — device profile and op coverage types, version 1
 
 **Files:**
 - Modify: `native/src/sk_profile.cpp` (replace the stub body from Task 1)
-- Modify: `native/tests/test_common.cpp` (profile assertions)
-- Modify: `native/python/sokuji_native/__init__.py` (`DeviceProfile`, `device_profiles()`)
-- Test: `native/tests/test_common.cpp`, `native/python/tests/test_sokuji_native.py`
+- Create: `native/src/sk_vk_enum.h`, `native/src/sk_vk_enum.cpp` (stub; Task 3 fills it)
+- Modify: `native/tests/test_common.cpp`, `native/python/sokuji_native/__init__.py`, `native/python/tests/test_sokuji_native.py`, `native/CMakeLists.txt` (sources)
 
 **Interfaces:**
-- Consumes: Task 1's types; `sk::devices()`, `sk::kind_of()`, `sk::mutex()` from `sk_internal.h`.
-- Produces: `sk_device_profile_get` for CPU and Metal devices (Vulkan devices report `known = 0` until Task 3 fills them); Python `DeviceProfile(index, kind, name, description, mem_total, known, features: frozenset[str], driver_name, driver_version, device_uuid, cpu_features)` and `device_profiles() -> list[DeviceProfile]` (one per `devices()` entry).
+- Consumes: Task 1's types; `sk::devices()`, `sk::kind_of()`, `sk::mutex()`, `sk::log_line()` from `sk_internal.h`.
+- Produces: `sk_device_profile_get` for CPU and Metal devices (Vulkan devices report `known = 0` until Task 3); `bool sk_vk_fill_profile(ggml_backend_dev_t, const char *description, sk_device_profile *)`; Python `DeviceProfile(index, kind, name, description, mem_total, known, features: frozenset[str], driver_name, driver_version, device_uuid, cpu_features)` and `device_profiles() -> list[DeviceProfile]`.
 
 - [ ] **Step 1: Write the failing CTest assertions**
 
-In `native/tests/test_common.cpp`, replace the two Task-1 assertions with (keep the two bad-argument lines, then add):
-
-```cpp
-    // Before init: refused. (Placed before sk_init below by moving this block up: the
-    // two bad-argument asserts stay where they are; this one must precede sk_init.)
-```
-
-Move a single line `assert(sk_device_profile_get(0, &prof) == SK_ERR_NOT_INITIALISED);` to just after the pre-init `sk_device_free_mem` assertions (line 33), with `sk_device_profile prof = {};` declared above it. Then after the device loop (after `assert(saw_cpu);`) add:
+In `test_common.cpp`, just after the pre-init `sk_device_free_mem` assertions (line 33) add `sk_device_profile pre = {}; assert(sk_device_profile_get(0, &pre) == SK_ERR_NOT_INITIALISED);`. After the device loop (after `assert(saw_cpu);`) add:
 
 ```cpp
     for (int i = 0; i < n; ++i) {
@@ -318,22 +333,26 @@ Move a single line `assert(sk_device_profile_get(0, &prof) == SK_ERR_NOT_INITIAL
         assert(p.index == i);
         if (devs[i].kind == SK_DEVICE_CPU) {
             assert(p.known == 1);
-            assert(p.cpu_features[0] != '\0');                    // ggml_backend_get_features reached
-            assert(std::strlen(p.cpu_features) < sizeof p.cpu_features - 1);   // fits, not truncated
+            assert(p.cpu_features[0] != '\0');                                // ggml_backend_get_features reached
+            assert(std::strlen(p.cpu_features) < sizeof p.cpu_features - 1);  // fits, not truncated
             assert(p.driver_name[0] == '\0');
         }
         if (devs[i].kind == SK_DEVICE_METAL) {
             assert(p.known == 1);
             assert(std::strcmp(p.driver_name, "Metal") == 0);
-            assert(p.driver_version[0] != '\0');                  // kern.osversion
+            assert(p.driver_version[0] != '\0');                              // kern.osversion
             assert(p.features & SK_FEAT_UMA);
             const bool paravirtual = std::strstr(devs[i].description, "aravirtual") != nullptr;
             if (paravirtual) {
-                assert(!(p.features & SK_FEAT_MTL_SIMDGROUP_REDUCTION));   // the structured R36 signal
+                assert(!(p.features & SK_FEAT_MTL_SIMDGROUP_REDUCTION));       // the structured R36 signal
             } else {
                 assert(p.features & SK_FEAT_MTL_SIMDGROUP_REDUCTION);
                 assert(p.features & SK_FEAT_MTL_BFLOAT);
             }
+        }
+        if (devs[i].kind == SK_DEVICE_VULKAN && p.known) {                    // Task 3 makes known possible
+            assert(std::strlen(p.device_uuid) == 32);
+            assert(p.driver_name[0] != '\0');
         }
     }
     assert(sk_device_profile_get(n + 5, &prof) == SK_ERR_INVALID_ARGUMENT);
@@ -341,10 +360,27 @@ Move a single line `assert(sk_device_profile_get(0, &prof) == SK_ERR_NOT_INITIAL
 
 - [ ] **Step 2: Run it to see it fail**
 
-Run: `cd native && cmake --build build/cpu --target test_common && ctest --test-dir build/cpu -R '^test_common$' --output-on-failure 2>&1 | tail -5`
-Expected: FAIL — `sk_device_profile_get(i, &p) == SK_OK` (the stub returns `SK_ERR_INTERNAL`).
+Run: `cd native && cmake --build build/cpu --target test_common && ctest --test-dir build/cpu -R '^test_common$' --output-on-failure 2>&1 | tail -4`
+Expected: FAIL at `sk_device_profile_get(i, &p) == SK_OK` (the stub returns `SK_ERR_INTERNAL`).
 
 - [ ] **Step 3: Implement the CPU and Metal branches**
+
+`native/src/sk_vk_enum.h` (declaration only for now):
+
+```cpp
+/* Vulkan device profile through the LOADER, never through ggml-vulkan's private structs
+ * and never by linking libvulkan: sk_vk_enum.cpp dlopens the loader at call time. */
+#pragma once
+#include "sokuji_native.h"
+#include "ggml-backend.h"
+
+/* Fill driver/uuid/features/uma for the ggml Vulkan device `dev` (ggml description
+ * `description`). false — out untouched — when the loader is absent, the enumeration
+ * fails, or the selected device list does not match ggml's (spec §3.1). */
+bool sk_vk_fill_profile(ggml_backend_dev_t dev, const char *description, sk_device_profile *out);
+```
+
+`native/src/sk_vk_enum.cpp` stub: `#include "sk_vk_enum.h"` and `bool sk_vk_fill_profile(ggml_backend_dev_t, const char *, sk_device_profile *) { return false; }`. Add `src/sk_vk_enum.cpp` to `target_sources`.
 
 Replace `native/src/sk_profile.cpp` with:
 
@@ -352,7 +388,7 @@ Replace `native/src/sk_profile.cpp` with:
 #define SOKUJI_NATIVE_BUILD 1
 #include "sokuji_native.h"
 #include "sk_internal.h"
-#include "sk_vk_enum.h"        // Task 3; until then a header with the two declarations below and a stub .cpp
+#include "sk_vk_enum.h"
 
 #include "ggml-backend.h"
 #include "ggml.h"
@@ -368,9 +404,9 @@ Replace `native/src/sk_profile.cpp` with:
 
 namespace {
 
-/* "NAME=value,NAME=value" from the loaded CPU registration — the one capability hook the
- * CPU and Metal registrations expose through get_proc_address (ggml_get_type_traits_cpu
- * is NOT reachable: it lives in the dlopen'd module). Reports the variant ggml chose. */
+/* "NAME=value,NAME=value" from the loaded CPU registration — the one capability hook the CPU
+ * and Metal registrations expose through get_proc_address (ggml_get_type_traits_cpu is NOT
+ * reachable: it lives in the dlopen'd module). Reports the variant ggml actually chose. */
 std::string cpu_feature_string(ggml_backend_dev_t dev) {
     ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
     if (!reg) return "";
@@ -385,8 +421,8 @@ std::string cpu_feature_string(ggml_backend_dev_t dev) {
     return out;
 }
 
-/* One scratch node, asked of the device's own supports_op. `no_alloc`: nothing is
- * allocated on the device and nothing runs, so this cannot GGML_ABORT. */
+/* One scratch node, asked of the device's own supports_op. no_alloc: nothing is allocated
+ * on the device and nothing runs, so this cannot GGML_ABORT. */
 bool ask_supports(ggml_backend_dev_t dev, enum ggml_op op, enum ggml_type t0, enum ggml_type t1) {
     ggml_init_params ip = { /*mem_size*/ 16 * 1024, /*mem_buffer*/ nullptr, /*no_alloc*/ true };
     ggml_context *ctx = ggml_init(ip);
@@ -449,7 +485,7 @@ SK_API sk_status sk_device_profile_get(int32_t index, sk_device_profile *out) {
                 out->known = 1;
                 break;
             case SK_DEVICE_VULKAN:
-                out->known = sk_vk_fill_profile(dev, ggml_backend_dev_description(dev), out) ? 1 : 0;   // Task 3
+                out->known = sk_vk_fill_profile(dev, ggml_backend_dev_description(dev), out) ? 1 : 0;
                 break;
             default:
                 break;                                         // OTHER: known stays 0
@@ -465,38 +501,16 @@ SK_API sk_status sk_device_profile_get(int32_t index, sk_device_profile *out) {
 }  // extern "C"
 ```
 
-Create `native/src/sk_vk_enum.h` (Task 3 fills the implementation; this task ships a stub so the file compiles on every lane):
-
-```cpp
-/* Vulkan device profile through the LOADER, never through ggml-vulkan's private structs
- * and never by linking libvulkan: sk_vk_enum.cpp dlopens the loader at call time. */
-#pragma once
-#include "sokuji_native.h"
-#include "ggml-backend.h"
-
-/* Fill driver/uuid/features/uma for the ggml Vulkan device `dev` (whose ggml description is
- * `description`). Returns false — and leaves `out` untouched — when the loader is absent,
- * the enumeration fails, or the device list does not match ggml's (spec §3.1). */
-bool sk_vk_fill_profile(ggml_backend_dev_t dev, const char *description, sk_device_profile *out);
-```
-
-and a stub `native/src/sk_vk_enum.cpp`:
-
-```cpp
-#include "sk_vk_enum.h"
-bool sk_vk_fill_profile(ggml_backend_dev_t, const char *, sk_device_profile *) { return false; }   // Task 3
-```
-
-Add `src/sk_vk_enum.cpp` to `target_sources(sokuji_native ...)`.
+Delete the `sk_device_profile_get` stub from Task 1's file (this file replaces it; keep the `sk_device_supports_ops` stub in `sk_profile.cpp` until Task 5).
 
 - [ ] **Step 4: Run the CTest to see it pass**
 
-Run: `cd native && cmake --build build/cpu && ctest --test-dir build/cpu -R '^test_common$' --output-on-failure 2>&1 | tail -3`
-Expected: PASS (on the CPU lane only the CPU branch is exercised). On a Metal box (`ci/build.sh metal macosx_11_0_arm64` on the M4) the Metal assertions pass; on CI's paravirtual runner the inverse assertion passes.
+Run: `cd native && cmake --build build/cpu -j8 && ctest --test-dir build/cpu -R '^test_common$' --output-on-failure 2>&1 | tail -3`
+Expected: PASS on the CPU lane. On the M4 (`ci/build.sh metal macosx_11_0_arm64`) the Metal assertions pass; CI's paravirtual runner takes the inverse assertion.
 
 - [ ] **Step 5: Write the failing binding test**
 
-In `native/python/tests/test_sokuji_native.py`, next to the existing devices test, add:
+In `native/python/tests/test_sokuji_native.py`:
 
 ```python
 @needs_tree
@@ -513,11 +527,11 @@ def test_device_profiles_one_per_device():
         assert p.features <= set(sokuji_native._ffi.FEATURE_BITS.values())
 ```
 
-Run: `cd native/python && python -m pytest tests/test_sokuji_native.py -k device_profiles -q` — Expected: FAIL, `AttributeError: device_profiles`.
+Run: `cd native/python && SOKUJI_NATIVE_DIR=../build/cpu/stage python -m pytest tests/test_sokuji_native.py -k device_profiles -q` — Expected: FAIL, `AttributeError: device_profiles`.
 
 - [ ] **Step 6: Add the wrapper**
 
-In `native/python/sokuji_native/__init__.py`, after the `Device` dataclass add:
+In `__init__.py`, after the `Device` dataclass:
 
 ```python
 @dataclass(frozen=True)
@@ -562,8 +576,8 @@ Add `"DeviceProfile"` and `"device_profiles"` to `__all__`.
 
 - [ ] **Step 7: Run the binding test to see it pass**
 
-Run: `cd native/python && SOKUJI_NATIVE_DIR=../build/cpu/stage python -m pytest tests/test_sokuji_native.py -k device_profiles -q`
-Expected: PASS.
+Run: `cd native && ci/build.sh none linux_aarch64 2>&1 | tail -5` (rebuilds the stage and runs both suites; use your lane's tag).
+Expected: PASS including `test_device_profiles_one_per_device`.
 
 - [ ] **Step 8: Commit**
 
@@ -581,19 +595,17 @@ git commit -m "native: sk_device_profile_get — CPU features via get_proc_addre
 - Modify: `native/src/sk_vk_enum.h`, `native/src/sk_vk_enum.cpp` (replace the stub)
 - Modify: `native/CMakeLists.txt` (FetchContent `Vulkan-Headers`, link `Vulkan::Headers` on the vulkan lane)
 - Modify: `native/ci/check_linux_deps.py` (`DENY_BY_FILE`)
-- Create: `native/tests/test_vk_select.cpp`; Modify: `native/tests/CMakeLists.txt`, `native/tests/test_common.cpp`
-- Test: `native/tests/test_vk_select.cpp`, `native/tests/test_common.cpp`
+- Create: `native/tests/test_vk_select.cpp`; Modify: `native/tests/CMakeLists.txt`
+- Test: `native/tests/test_vk_select.cpp`, `native/tests/test_common.cpp` (the Vulkan assertions from Task 2 now fire on a Vulkan box)
 
 **Interfaces:**
-- Consumes: Task 2's `sk_vk_fill_profile` declaration.
-- Produces: the pure selection helper
+- Produces:
   ```cpp
-  struct sk_vk_record { std::string name; std::string uuid_hex; std::string luid_hex; bool luid_valid;
-                        int32_t device_type; int32_t driver_id; bool storage16; uint32_t features;
-                        std::string driver_name, driver_info; };
+  struct sk_vk_record { std::string name, uuid_hex, luid_hex; bool luid_valid; int32_t device_type, driver_id;
+                        bool storage16; uint32_t features; std::string driver_name, driver_info; };
   std::vector<size_t> sk_vk_select_like_ggml(const std::vector<sk_vk_record> &raw, const char *visible_env);
   ```
-  returning the raw indices that survive ggml's selection, in ggml's order; and `sk_vk_fill_profile` implemented over it.
+  (raw indices surviving ggml's selection, in ggml's order) and `sk_vk_fill_profile` over it.
 
 - [ ] **Step 1: Write the failing selection-helper tests**
 
@@ -613,41 +625,35 @@ static sk_vk_record rec(const char *name, const char *uuid, int type, int driver
 }
 // VkPhysicalDeviceType: OTHER 0, INTEGRATED 1, DISCRETE 2, VIRTUAL 3, CPU 4.
 // VkDriverId: AMD_PROPRIETARY 1, AMD_OPEN_SOURCE 2, MESA_RADV 3, NVIDIA_PROPRIETARY 4,
-// INTEL_PROPRIETARY_WINDOWS 5, INTEL_OPEN_SOURCE_MESA 6, MESA_LLVMPIPE 13, MOLTENVK 14,
-// MESA_TURNIP 18, QUALCOMM_PROPRIETARY 12, MESA_NVK 24, MESA_DOZEN 23.
+// INTEL_PROPRIETARY_WINDOWS 5, INTEL_OPEN_SOURCE_MESA 6, QUALCOMM_PROPRIETARY 12,
+// MESA_LLVMPIPE 13, MOLTENVK 14, MESA_TURNIP 18, MESA_DOZEN 23, MESA_NVK 24.
 int main() {
-    // Dual ICD, one card: RADV (3) beats AMDVLK (2) beats proprietary (1).
-    {
+    {   // Dual ICD, one card: RADV (3) beats AMDVLK (2) beats proprietary (1).
         std::vector<sk_vk_record> raw = { rec("RX 7800", "aaaa", 2, 2), rec("RX 7800", "aaaa", 2, 3) };
         auto sel = sk_vk_select_like_ggml(raw, nullptr);
         assert(sel.size() == 1 && sel[0] == 1);
     }
-    // llvmpipe (type CPU) ahead of a real GPU is dropped; virtual GPUs too.
-    {
+    {   // llvmpipe (type CPU) ahead of a real GPU is dropped; virtual GPUs too.
         std::vector<sk_vk_record> raw = { rec("llvmpipe", "bbbb", 4, 13), rec("Arc A770", "cccc", 2, 6), rec("virt", "dddd", 3, 6) };
         auto sel = sk_vk_select_like_ggml(raw, nullptr);
         assert(sel.size() == 1 && sel[0] == 1);
     }
-    // No 16-bit storage → dropped.
-    {
-        std::vector<sk_vk_record> raw = { rec("old", "eeee", 2, 4, /*s16*/ false), rec("new", "ffff", 2, 4) };
+    {   // No 16-bit storage → dropped.
+        std::vector<sk_vk_record> raw = { rec("old", "eeee", 2, 4, false), rec("new", "ffff", 2, 4) };
         auto sel = sk_vk_select_like_ggml(raw, nullptr);
         assert(sel.size() == 1 && sel[0] == 1);
     }
-    // GGML_VK_VISIBLE_DEVICES = raw indices, no filtering at all.
-    {
+    {   // GGML_VK_VISIBLE_DEVICES = raw indices, no filtering at all.
         std::vector<sk_vk_record> raw = { rec("llvmpipe", "bbbb", 4, 13), rec("Arc", "cccc", 2, 6) };
         auto sel = sk_vk_select_like_ggml(raw, "0,1");
         assert(sel.size() == 2 && sel[0] == 0 && sel[1] == 1);
     }
-    // Nothing survives → the first non-CPU device.
-    {
+    {   // Nothing survives → the first non-CPU device.
         std::vector<sk_vk_record> raw = { rec("llvmpipe", "bbbb", 4, 13), rec("virt", "dddd", 3, 6) };
         auto sel = sk_vk_select_like_ggml(raw, nullptr);
         assert(sel.size() == 1 && sel[0] == 1);
     }
-    // Two MoltenVK entries for one UUID are NOT collapsed.
-    {
+    {   // Two MoltenVK entries for one UUID are NOT collapsed.
         std::vector<sk_vk_record> raw = { rec("M4", "1111", 1, 14), rec("M4", "1111", 1, 14) };
         auto sel = sk_vk_select_like_ggml(raw, nullptr);
         assert(sel.size() == 2);
@@ -656,7 +662,7 @@ int main() {
 }
 ```
 
-Register it in `native/tests/CMakeLists.txt`:
+In `native/tests/CMakeLists.txt`:
 
 ```cmake
 # Spec A: the pure Vulkan-selection helper (no loader, no GPU) — runs on every lane.
@@ -667,14 +673,14 @@ target_compile_definitions(test_vk_select PRIVATE SK_VK_ENUM_NO_LOADER=1)   # se
 add_test(NAME test_vk_select COMMAND test_vk_select)
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [ ] **Step 2: Build it to see it fail**
 
-Run: `cd native && cmake -S . -B build/cpu -DSOKUJI_GPU=none && cmake --build build/cpu --target test_vk_select 2>&1 | tail -3`
-Expected: error — `sk_vk_record` / `sk_vk_select_like_ggml` not declared.
+Run: `cd native && cmake -S . -B build/cpu && cmake --build build/cpu --target test_vk_select 2>&1 | grep -m1 error`
+Expected: `sk_vk_record` not declared.
 
-- [ ] **Step 3: Declare the record and helper; implement the selection**
+- [ ] **Step 3: Declare the record and implement the selection**
 
-`native/src/sk_vk_enum.h` becomes:
+`native/src/sk_vk_enum.h`:
 
 ```cpp
 /* Vulkan device profile through the LOADER, never through ggml-vulkan's private structs
@@ -700,54 +706,54 @@ struct sk_vk_record {
 
 /* ggml_vk_instance_init's device list, replicated (ggml-vulkan.cpp:7441-7581 at v0.22.0):
  *  - GGML_VK_VISIBLE_DEVICES set → those raw indices, no filtering;
- *  - else keep DISCRETE/INTEGRATED devices with 16-bit storage, collapse duplicates by
- *    UUID (or LUID when valid; never when both drivers are MoltenVK) keeping the driver
- *    ggml's priority table prefers; if nothing survives, the first non-CPU device.
+ *  - else keep DISCRETE/INTEGRATED devices with 16-bit storage, collapse duplicates by UUID
+ *    (or LUID when valid; never when both drivers are MoltenVK) keeping the driver ggml's
+ *    priority table prefers; if nothing survives, the first non-CPU device.
  * Returns raw indices in ggml's order. Pure: unit-tested with fake records. */
 std::vector<size_t> sk_vk_select_like_ggml(const std::vector<sk_vk_record> &raw, const char *visible_env);
 
-/* Fill driver/uuid/features/uma for ggml Vulkan device `dev`. false (out untouched) when
- * the loader is absent, the enumeration fails, or the selected list does not match
- * ggml's Vulkan device count (a mismatch is logged with both lists). */
+/* Fill driver/uuid/features/uma for ggml Vulkan device `dev`. false (out untouched) when the
+ * loader is absent, the enumeration fails, or the selected list does not match ggml's Vulkan
+ * device count (a mismatch is logged with both lists). */
 bool sk_vk_fill_profile(ggml_backend_dev_t dev, const char *description, sk_device_profile *out);
 ```
 
-`native/src/sk_vk_enum.cpp`, the selection part (the loader part comes in Step 5):
+`native/src/sk_vk_enum.cpp` — the selection (the loader part is Step 5):
 
 ```cpp
 #include "sk_vk_enum.h"
 #include "sk_internal.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <map>
 #include <sstream>
 
 namespace {
 
-// VkPhysicalDeviceType / VkDriverId numeric values (vulkan_core.h); kept as literals so
-// the pure selection compiles without the headers on every lane.
+// VkPhysicalDeviceType / VkDriverId numeric values (vulkan_core.h); literals so the pure
+// selection compiles without the headers on every lane.
 constexpr int32_t kTypeIntegrated = 1, kTypeDiscrete = 2, kTypeCpu = 4;
 constexpr int32_t kAmdProprietary = 1, kAmdOpenSource = 2, kMesaRadv = 3, kNvidiaProprietary = 4,
                   kIntelProprietaryWindows = 5, kIntelOpenSourceMesa = 6, kQualcommProprietary = 12,
                   kMoltenVk = 14, kMesaTurnip = 18, kMesaDozen = 23, kMesaNvk = 24;
 
-/* PINNED to ggml v0.22.0 ggml-vulkan.cpp ggml_vk_instance_init's driver_priorities (lines
- * ~7515-7545): lower is better. Re-check on every ggml pin bump (native/README.md). */
+/* PINNED to ggml v0.22.0 ggml-vulkan.cpp ggml_vk_instance_init's driver priorities (~7515-7545):
+ * lower is better. Re-check on every ggml pin bump (native/README.md). */
 int priority(int32_t driver_id) {
     switch (driver_id) {
-        case kMesaRadv:               return 1;
-        case kAmdOpenSource:          return 2;
-        case kAmdProprietary:         return 3;
-        case kIntelOpenSourceMesa:    return 1;
+        case kMesaRadv:                return 1;
+        case kAmdOpenSource:           return 2;
+        case kAmdProprietary:          return 3;
+        case kIntelOpenSourceMesa:     return 1;
         case kIntelProprietaryWindows: return 2;
-        case kNvidiaProprietary:      return 1;
-        case kMesaNvk:                return 2;
-        case kQualcommProprietary:    return 1;
-        case kMesaTurnip:             return 2;
-        case kMesaDozen:              return 100;
-        default:                      return 50;
+        case kNvidiaProprietary:       return 1;
+        case kMesaNvk:                 return 2;
+        case kQualcommProprietary:     return 1;
+        case kMesaTurnip:              return 2;
+        case kMesaDozen:               return 100;
+        default:                       return 50;
     }
 }
 
@@ -770,7 +776,6 @@ std::vector<size_t> sk_vk_select_like_ggml(const std::vector<sk_vk_record> &raw,
         const auto &r = raw[i];
         if ((r.device_type == kTypeDiscrete || r.device_type == kTypeIntegrated) && r.storage16) eligible.push_back(i);
     }
-    // Collapse duplicates: same UUID, or same LUID when valid; never when both are MoltenVK.
     std::vector<size_t> kept;
     for (size_t i : eligible) {
         bool merged = false;
@@ -793,7 +798,8 @@ std::vector<size_t> sk_vk_select_like_ggml(const std::vector<sk_vk_record> &raw,
 }
 
 #if !defined(SK_VK_ENUM_NO_LOADER)
-// Step 5 adds the loader path here.
+// Step 5 adds the loader path here; until then the stub keeps every lane linking.
+bool sk_vk_fill_profile(ggml_backend_dev_t, const char *, sk_device_profile *) { return false; }
 #endif
 ```
 
@@ -804,7 +810,7 @@ Expected: PASS.
 
 - [ ] **Step 5: Add the Vulkan headers and the loader-driven enumeration**
 
-In `native/CMakeLists.txt`, after `include(cmake/upstreams.cmake)`:
+In `native/CMakeLists.txt`, after the `sokuji_native` target is defined:
 
 ```cmake
 # Spec A §3.1: the device profile enumerates Vulkan devices through the LOADER, never by
@@ -821,7 +827,7 @@ if(SOKUJI_GPU_RESOLVED STREQUAL "vulkan")
 endif()
 ```
 
-(place it after the `add_library(sokuji_native ...)` block, since it links the target). Then replace the `#if !defined(SK_VK_ENUM_NO_LOADER)` block in `sk_vk_enum.cpp` with:
+Replace the `#if !defined(SK_VK_ENUM_NO_LOADER)` block in `sk_vk_enum.cpp` with:
 
 ```cpp
 #if !defined(SK_VK_ENUM_NO_LOADER) && defined(SK_HAVE_VULKAN_HEADERS)
@@ -943,7 +949,6 @@ std::vector<sk_vk_record> enumerate_raw() {
     return out;
 }
 
-/* ggml's own Vulkan device count: the devices whose registry is "Vulkan" among sk::devices(). */
 size_t ggml_vulkan_count() {
     size_t n = 0;
     for (ggml_backend_dev_t d : sk::devices()) if (sk::kind_of(d) == SK_DEVICE_VULKAN) ++n;
@@ -975,7 +980,7 @@ bool sk_vk_fill_profile(ggml_backend_dev_t dev, const char *description, sk_devi
         return false;
     }
     const sk_vk_record &r = raw[selected[ggml_vulkan_ordinal(dev)]];
-    if (r.name != description) {                     // belt and braces: positional match must agree by name
+    if (r.name != description) {                     // positional match must agree by name
         sk::log_line(2, ("sk_device_profile_get: positional match disagrees with ggml description (" + r.name + " vs " + description + ")").c_str());
         return false;
     }
@@ -985,25 +990,14 @@ bool sk_vk_fill_profile(ggml_backend_dev_t dev, const char *description, sk_devi
     out->features = r.features;
     return true;
 }
-#else
+#elif !defined(SK_VK_ENUM_NO_LOADER)
 bool sk_vk_fill_profile(ggml_backend_dev_t, const char *, sk_device_profile *) { return false; }
 #endif
 ```
 
-- [ ] **Step 6: Add the real-device assertions to `test_common.cpp` and the per-file dependency rule**
+- [ ] **Step 6: The per-file dependency rule**
 
-In the profile loop of `test_common.cpp` (Task 2, Step 1) add:
-
-```cpp
-        if (devs[i].kind == SK_DEVICE_VULKAN && p.known) {
-            assert(std::strlen(p.device_uuid) == 32);
-            assert(p.driver_name[0] != '\0');
-        }
-```
-
-(`known` may legitimately be 0 on a Vulkan box without a loader on PATH — CI's Vulkan lanes have one, and the Python suite in Step 7 asserts `known` there.)
-
-In `native/ci/check_linux_deps.py`, after `ALLOWED_PREFIXES` add:
+In `native/ci/check_linux_deps.py`, after `ALLOWED_PREFIXES`:
 
 ```python
 # Spec A §3.1: the profile enumerates Vulkan through the dlopen'd loader; the host library
@@ -1012,7 +1006,7 @@ In `native/ci/check_linux_deps.py`, after `ALLOWED_PREFIXES` add:
 DENY_BY_FILE = {"libsokuji_native.so": {"libvulkan.so.1"}}
 ```
 
-and inside the `for lib in needed:` loop, before the `if lib in ALLOWED ...` line:
+and inside `for lib in needed:` before the `if lib in ALLOWED ...` line:
 
 ```python
             if lib in DENY_BY_FILE.get(path.name, set()):
@@ -1022,16 +1016,15 @@ and inside the `for lib in needed:` loop, before the `if lib in ALLOWED ...` lin
 
 - [ ] **Step 7: Build the Vulkan lane on a Vulkan box and run everything**
 
-On GB10: `cd native && LD_LIBRARY_PATH=/home/jiangzhuo/.claude/jobs/387091ff/tmp/vulkan-tools/lib:$LD_LIBRARY_PATH PATH=/home/jiangzhuo/.claude/jobs/387091ff/tmp/vulkan-tools/bin:$PATH ci/build.sh vulkan manylinux_2_35_aarch64 2>&1 | tail -20` (the glslc note in `native/README.md` / the fleet memory applies).
-Expected: `test_common`, `test_vk_select` pass; `check_linux_deps.py` passes with `libsokuji_native.so` free of `libvulkan.so.1`; the Python `device_profiles` test shows the GB10 profile `known=True`, a 32-char uuid, `driver_name` "NVIDIA".
-
-Then verify the deny rule bites: `readelf -d build/vulkan/stage/libsokuji_native.so | grep -c libvulkan` — Expected: `0`.
+On GB10, the Vulkan lane needs the extracted glslc (fleet memory / `native/README.md`): `cd native && env LD_LIBRARY_PATH=/home/jiangzhuo/.claude/jobs/387091ff/tmp/vulkan-tools/lib PATH=/home/jiangzhuo/.claude/jobs/387091ff/tmp/vulkan-tools/bin:/usr/bin:/bin ci/build.sh vulkan manylinux_2_35_aarch64 2>&1 | tail -20`
+Expected: `test_common`, `test_vk_select` pass; `check_linux_deps.py` passes; the Python `device_profiles` test reports the GB10 profile `known=True` with a 32-char uuid and `driver_name` "NVIDIA".
+Then: `readelf -d native/build/vulkan/stage/libsokuji_native.so | grep -c libvulkan` — Expected: `0`.
 
 - [ ] **Step 8: Commit**
 
 ```bash
 git add native/src/sk_vk_enum.h native/src/sk_vk_enum.cpp native/CMakeLists.txt native/tests/test_vk_select.cpp \
-        native/tests/CMakeLists.txt native/tests/test_common.cpp native/ci/check_linux_deps.py
+        native/tests/CMakeLists.txt native/ci/check_linux_deps.py
 git commit -m "native: Vulkan profile through the dlopen'd loader; device matching replicates ggml's selection"
 ```
 
@@ -1040,32 +1033,34 @@ git commit -m "native: Vulkan profile through the dlopen'd loader; device matchi
 ### Task 4: The op recorder — node descriptors, the `.ops` format, the recording device and the audio.cpp shim
 
 **Files:**
-- Create: `native/src/sk_ops.h` (descriptor model + text format, shared by recorder, generator and query)
-- Create: `native/src/sk_ops_format.cpp` (format/parse; no ggml backend calls)
+- Create: `native/src/sk_ops.h` (descriptor model + text format API), `native/src/sk_ops_format.cpp` (pure; compiled into the library AND directly into the test binaries)
 - Create: `native/src/sk_ops_record.cpp` (recording device + `sk_recording_graph_compute`; compiled only with `SK_RECORD_OPS`)
-- Create: `native/tests/record_ops.cpp` (the `--record-ops` driver)
-- Modify: `native/src/audiocpp_compat.h` (the `SK_RECORD_OPS` shim), `native/CMakeLists.txt`, `native/tests/CMakeLists.txt`
-- Create: `native/src/ops/tts-<family>.ops` ×9, `native/src/ops/asr-whisper.ops`, `native/src/ops/asr-moonshine.ops`, `native/src/ops/translate-qwen3.ops` (recorded data)
-- Test: `native/tests/test_ops_format.cpp` (round-trip of the text format)
+- Create: `native/tests/record_common.h` (per-stage load-and-run), `native/tests/record_ops.cpp` (the driver), `native/tests/test_ops_format.cpp`
+- Modify: `native/include/sokuji_native.h` (recorder C entry points, declared under `SK_RECORD_OPS`), `native/src/audiocpp_compat.h`, `native/CMakeLists.txt`, `native/tests/CMakeLists.txt`
+- Create: `native/src/ops/tts-<family>.ops` ×9, `native/src/ops/asr-whisper.ops`, `native/src/ops/asr-moonshine_streaming.ops`, `native/src/ops/translate-qwen3.ops`
 
 **Interfaces:**
-- Produces:
+- Produces (pure, `sk_ops.h`):
   ```cpp
-  struct sk_op_desc {                       // one recorded node
-      int32_t op;                           // ggml_op
-      std::array<int32_t, 16> op_params;    // raw, as ggml stores them (GGML_MAX_OP_PARAMS / sizeof(int32_t))
-      int32_t dst_type;                     // ggml_type
-      std::array<int32_t, 5> src_type;      // ggml_type per source; -1 = absent; -2 = WEIGHT
-      std::array<int64_t, 4> ne_src0, ne_src1, ne_dst;
-      bool contig_src0, contig_src1;
-      uint64_t max_bytes;                   // largest ggml_nbytes seen among src0/src1/dst
-  };
+  constexpr int32_t SK_SRC_ABSENT = -1, SK_SRC_WEIGHT = -2;
+  struct sk_op_desc { int32_t op; std::array<int32_t,16> op_params; int32_t dst_type; std::array<int32_t,5> src_type;
+                      int64_t ne0_src0, ne0_src1, ne0_dst;                      // identity
+                      std::array<int64_t,4> max_ne_src0, max_ne_src1, max_ne_dst; // maxima, for the rebuild
+                      bool contig_src0, contig_src1; uint64_t max_bytes; };
   struct sk_op_recording { std::string stage, family, engine, source_file; std::vector<std::string> dtypes_in_file; std::vector<sk_op_desc> nodes; };
-  std::string sk_ops_format(const sk_op_recording &);          // the .ops text
+  std::string sk_ops_format(const sk_op_recording &);
   bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &error);
-  std::string sk_op_spelling(const sk_op_desc &, const char *weight_type_name /* or nullptr */);   // "OP.param[src0,...]->dst"
+  std::string sk_op_spelling(const sk_op_desc &, const char *weight_type_name);   // nullptr → "WEIGHT"
+  void sk_ops_add(std::vector<sk_op_desc> &, const sk_op_desc &);                 // dedup on identity; merge maxima
   ```
-  and, under `SK_RECORD_OPS`: `void sk_record_begin(const std::set<std::string> &weight_names); void sk_record_node(const ggml_tensor *); sk_op_recording sk_record_end();` plus `ggml_backend_dev_t sk_register_recording_device();` and `enum ggml_status sk_recording_graph_compute(ggml_backend_t, ggml_cgraph *);`.
+- Produces (C ABI, `SK_RECORD_OPS` builds only, declared in `sokuji_native.h` under `#if defined(SK_RECORD_OPS)`):
+  ```c
+  SK_API int32_t   sk_record_register_device(void);               /* MUST precede the first sk_init; 1 = registered */
+  SK_API void      sk_record_begin(const char *const *weight_names, int32_t n, const char *const *weight_positions_op_names, int32_t n_ops);
+  SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, const char *family, const char *source_file, const char *const *dtypes, int32_t n_dtypes);
+  SK_API int32_t   sk_record_node_count(void);
+  ```
+  (`weight_positions_op_names` is the rung-bearing op list `{"MUL_MAT","MUL_MAT_ID","GET_ROWS"}` — passed in so the rule lives in one place, the driver.)
 
 - [ ] **Step 1: Write the failing format round-trip test**
 
@@ -1081,35 +1076,41 @@ Create `native/tests/test_ops_format.cpp`:
 int main() {
     sk_op_recording r;
     r.stage = "tts"; r.family = "supertonic"; r.engine = "audio.cpp 0.7.1 ; ggml 0.22.0";
-    r.source_file = "supertonic-3-f16.gguf"; r.dtypes_in_file = {"F16", "F32"};
+    r.source_file = "supertonic-3-f16.gguf"; r.dtypes_in_file = {"f16", "f32"};
     sk_op_desc d{};
     d.op = GGML_OP_MUL_MAT; d.dst_type = GGML_TYPE_F32;
-    d.src_type = {-2, GGML_TYPE_F32, -1, -1, -1};
-    d.ne_src0 = {1024, 1024, 1, 1}; d.ne_src1 = {1024, 1, 1, 1}; d.ne_dst = {1024, 1, 1, 1};
+    d.src_type = {SK_SRC_WEIGHT, GGML_TYPE_F32, SK_SRC_ABSENT, SK_SRC_ABSENT, SK_SRC_ABSENT};
+    d.ne0_src0 = 1024; d.ne0_src1 = 1024; d.ne0_dst = 1024;
+    d.max_ne_src0 = {1024, 1024, 1, 1}; d.max_ne_src1 = {1024, 7, 1, 1}; d.max_ne_dst = {1024, 7, 1, 1};
     d.contig_src0 = d.contig_src1 = true; d.max_bytes = 4194304;
     r.nodes.push_back(d);
     sk_op_desc u{};
     u.op = GGML_OP_UNARY; u.op_params[0] = GGML_UNARY_OP_GELU; u.dst_type = GGML_TYPE_F32;
-    u.src_type = {GGML_TYPE_F32, -1, -1, -1, -1};
-    u.ne_src0 = {4096, 1, 1, 1}; u.ne_dst = {4096, 1, 1, 1}; u.contig_src0 = true; u.max_bytes = 16384;
+    u.src_type = {GGML_TYPE_F32, SK_SRC_ABSENT, SK_SRC_ABSENT, SK_SRC_ABSENT, SK_SRC_ABSENT};
+    u.ne0_src0 = 4096; u.ne0_dst = 4096; u.max_ne_src0 = {4096, 7, 1, 1}; u.max_ne_dst = {4096, 7, 1, 1};
+    u.contig_src0 = true; u.max_bytes = 114688;
     r.nodes.push_back(u);
 
     std::string text = sk_ops_format(r);
     assert(text.find("# stage: tts ; family: supertonic") != std::string::npos);
-    assert(text.find("# dtypes-in-file: F16 F32") != std::string::npos);
+    assert(text.find("# dtypes-in-file: f16 f32") != std::string::npos);
     sk_op_recording back; std::string err;
     assert(sk_ops_parse(text, back, err));
     assert(back.nodes.size() == 2 && back.family == "supertonic" && back.dtypes_in_file.size() == 2);
-    assert(back.nodes[0].src_type[0] == -2 && back.nodes[0].max_bytes == 4194304);
+    assert(back.nodes[0].src_type[0] == SK_SRC_WEIGHT && back.nodes[0].max_bytes == 4194304 && back.nodes[0].max_ne_src1[1] == 7);
     assert(back.nodes[1].op_params[0] == GGML_UNARY_OP_GELU);
     assert(sk_op_spelling(back.nodes[0], "q8_0") == "MUL_MAT[q8_0,f32,-,-,-]->f32");
     assert(sk_op_spelling(back.nodes[1], nullptr) == "UNARY.GELU[f32,-,-,-,-]->f32");
+    // identity ignores the sequence axes: a second node differing only in max_ne merges
+    sk_op_desc d2 = d; d2.max_ne_src1 = {1024, 300, 1, 1}; d2.max_bytes = 9000000;
+    std::vector<sk_op_desc> v = {d}; sk_ops_add(v, d2);
+    assert(v.size() == 1 && v[0].max_ne_src1[1] == 300 && v[0].max_bytes == 9000000);
     assert(!sk_ops_parse("op=NOPE dst=f32\n", back, err) && !err.empty());
     return 0;
 }
 ```
 
-Register in `native/tests/CMakeLists.txt`:
+In `native/tests/CMakeLists.txt`:
 
 ```cmake
 add_executable(test_ops_format test_ops_format.cpp ../src/sk_ops_format.cpp)
@@ -1118,43 +1119,45 @@ target_link_libraries(test_ops_format PRIVATE ggml)
 add_test(NAME test_ops_format COMMAND test_ops_format)
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [ ] **Step 2: Build it to see it fail**
 
-Run: `cd native && cmake -S . -B build/cpu -DSOKUJI_GPU=none && cmake --build build/cpu --target test_ops_format 2>&1 | tail -3`
-Expected: error — `sk_ops.h` not found.
+Run: `cd native && cmake -S . -B build/cpu && cmake --build build/cpu --target test_ops_format 2>&1 | grep -m1 error`
+Expected: `sk_ops.h: No such file`.
 
 - [ ] **Step 3: Write the descriptor model and the text format**
 
 `native/src/sk_ops.h`:
 
 ```cpp
-/* Op recordings (spec A §3.2): what a family's graph asked of ggml, node by node, captured
- * on one real forward pass and rebuilt for ggml_backend_dev_supports_op. This header is
- * the shared model; sk_ops_format.cpp is the text form, sk_ops_record.cpp (test build)
- * captures, cmake/gen_ops_data.py bakes the shipped .ops files into the library, and
+/* Op recordings (spec A §3.2): what a family's graph asked of ggml, node by node, captured on
+ * one real forward pass and rebuilt for ggml_backend_dev_supports_op. This header is the
+ * shared model; sk_ops_format.cpp is the text form (pure — also compiled straight into the
+ * test binaries, since the library exports only the sk_* C ABI), sk_ops_record.cpp (test
+ * build) captures, cmake/gen_ops_data.py bakes the shipped .ops files into the library, and
  * sk_ops.cpp answers sk_device_supports_ops. */
 #pragma once
 #include <array>
 #include <cstdint>
-#include <set>
 #include <string>
 #include <vector>
 
 constexpr int32_t SK_SRC_ABSENT = -1;
-constexpr int32_t SK_SRC_WEIGHT = -2;   // dtype comes from the model file: expanded per rung at query time
+constexpr int32_t SK_SRC_WEIGHT = -2;   // rung-bearing weight (src0 of MUL_MAT / MUL_MAT_ID / GET_ROWS): expanded per dtype at query time
 
 struct sk_op_desc {
     int32_t op = 0;
     std::array<int32_t, 16> op_params{};
     int32_t dst_type = 0;
     std::array<int32_t, 5> src_type{SK_SRC_ABSENT, SK_SRC_ABSENT, SK_SRC_ABSENT, SK_SRC_ABSENT, SK_SRC_ABSENT};
-    std::array<int64_t, 4> ne_src0{1, 1, 1, 1}, ne_src1{1, 1, 1, 1}, ne_dst{1, 1, 1, 1};
+    /* Identity includes ne[0] (row length: block sizes, head sizes) but NOT the sequence
+     * axes ne[1..3], which vary per decode step; those are kept as maxima for the rebuild. */
+    int64_t ne0_src0 = 1, ne0_src1 = 1, ne0_dst = 1;
+    std::array<int64_t, 4> max_ne_src0{1, 1, 1, 1}, max_ne_src1{1, 1, 1, 1}, max_ne_dst{1, 1, 1, 1};
     bool contig_src0 = true, contig_src1 = true;
-    uint64_t max_bytes = 0;
-    /* Identity for de-duplication: everything except max_bytes (which is max'ed). */
+    uint64_t max_bytes = 0;      // largest ggml_nbytes seen among src0/src1/dst for this identity
     bool same_node(const sk_op_desc &o) const {
         return op == o.op && op_params == o.op_params && dst_type == o.dst_type && src_type == o.src_type &&
-               ne_src0 == o.ne_src0 && ne_src1 == o.ne_src1 && ne_dst == o.ne_dst &&
+               ne0_src0 == o.ne0_src0 && ne0_src1 == o.ne0_src1 && ne0_dst == o.ne0_dst &&
                contig_src0 == o.contig_src0 && contig_src1 == o.contig_src1;
     }
 };
@@ -1167,11 +1170,12 @@ struct sk_op_recording {
 
 std::string sk_ops_format(const sk_op_recording &r);
 bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &error);
-/* "OP.param[src0,src1,src2,src3,src4]->dst" with ggml_op_name()/ggml_type_name(); "-" for
- * an absent source; WEIGHT sources spelled as `weight_type_name` (nullptr → "WEIGHT").
- * UNARY/GLU carry their kind after the dot; ROPE its mode; everything else no suffix. */
+/* "OP.param[src0,src1,src2,src3,src4]->dst" with ggml_op_name()/ggml_type_name(); "-" for an
+ * absent source; WEIGHT sources spelled as `weight_type_name` (nullptr → "WEIGHT"). UNARY/GLU
+ * carry their kind after the dot; ROPE its mode; everything else no suffix. */
 std::string sk_op_spelling(const sk_op_desc &d, const char *weight_type_name);
-/* The parsed, de-duplicated descriptor with max_bytes merged into an existing equal node. */
+/* Insert or merge: an equal identity keeps one entry and takes the element-wise max of the
+ * ne maxima and max_bytes. */
 void sk_ops_add(std::vector<sk_op_desc> &nodes, const sk_op_desc &d);
 ```
 
@@ -1181,6 +1185,7 @@ void sk_ops_add(std::vector<sk_op_desc> &nodes, const sk_op_desc &d);
 #include "sk_ops.h"
 #include "ggml.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <sstream>
@@ -1190,8 +1195,10 @@ namespace {
 int32_t type_from_name(const std::string &s) {
     if (s == "-") return SK_SRC_ABSENT;
     if (s == "WEIGHT") return SK_SRC_WEIGHT;
-    for (int t = 0; t < GGML_TYPE_COUNT; ++t)
-        if (ggml_type_name(static_cast<ggml_type>(t)) && s == ggml_type_name(static_cast<ggml_type>(t))) return t;
+    for (int t = 0; t < GGML_TYPE_COUNT; ++t) {
+        const char *n = ggml_type_name(static_cast<ggml_type>(t));
+        if (n && s == n) return t;
+    }
     return -100;
 }
 std::string type_name(int32_t t, const char *weight) {
@@ -1209,16 +1216,19 @@ std::string param_suffix(const sk_op_desc &d) {
     if (d.op == GGML_OP_ROPE)  return ".mode" + std::to_string(d.op_params[2]);
     return "";
 }
-std::string ne(const std::array<int64_t, 4> &a) {
+std::string ne_str(const std::array<int64_t, 4> &a) {
     return "[" + std::to_string(a[0]) + "," + std::to_string(a[1]) + "," + std::to_string(a[2]) + "," + std::to_string(a[3]) + "]";
 }
 bool parse_ne(const std::string &s, std::array<int64_t, 4> &out) {
-    return std::sscanf(s.c_str(), "[%lld,%lld,%lld,%lld]", (long long *)&out[0], (long long *)&out[1], (long long *)&out[2], (long long *)&out[3]) == 4;
+    long long a = 0, b = 0, c = 0, e = 0;
+    if (std::sscanf(s.c_str(), "[%lld,%lld,%lld,%lld]", &a, &b, &c, &e) != 4) return false;
+    out = {a, b, c, e};
+    return true;
 }
 std::string hexparams(const sk_op_desc &d) {
     bool any = false; for (int v : d.op_params) any |= v != 0;
     if (!any) return "-";
-    char buf[16 * 9]; std::string s;
+    char buf[16]; std::string s;
     for (int v : d.op_params) { std::snprintf(buf, sizeof buf, "%08x", static_cast<uint32_t>(v)); s += buf; }
     return s;
 }
@@ -1229,6 +1239,7 @@ bool parse_params(const std::string &s, std::array<int32_t, 16> &out) {
     for (int i = 0; i < 16; ++i) out[i] = static_cast<int32_t>(std::stoul(s.substr(i * 8, 8), nullptr, 16));
     return true;
 }
+void max_into(std::array<int64_t, 4> &a, const std::array<int64_t, 4> &b) { for (int i = 0; i < 4; ++i) a[i] = std::max(a[i], b[i]); }
 
 }  // namespace
 
@@ -1239,7 +1250,12 @@ std::string sk_op_spelling(const sk_op_desc &d, const char *weight) {
 }
 
 void sk_ops_add(std::vector<sk_op_desc> &nodes, const sk_op_desc &d) {
-    for (auto &n : nodes) if (n.same_node(d)) { if (d.max_bytes > n.max_bytes) n.max_bytes = d.max_bytes; return; }
+    for (auto &n : nodes) {
+        if (!n.same_node(d)) continue;
+        max_into(n.max_ne_src0, d.max_ne_src0); max_into(n.max_ne_src1, d.max_ne_src1); max_into(n.max_ne_dst, d.max_ne_dst);
+        n.max_bytes = std::max(n.max_bytes, d.max_bytes);
+        return;
+    }
     nodes.push_back(d);
 }
 
@@ -1254,7 +1270,8 @@ std::string sk_ops_format(const sk_op_recording &r) {
         s += " params=" + hexparams(d);
         s += " dst=" + type_name(d.dst_type, nullptr);
         s += " src=["; for (int i = 0; i < 5; ++i) { if (i) s += ","; s += type_name(d.src_type[i], nullptr); } s += "]";
-        s += " ne0=" + ne(d.ne_src0) + " ne1=" + ne(d.ne_src1) + " ned=" + ne(d.ne_dst);
+        s += " ne0=[" + std::to_string(d.ne0_src0) + "," + std::to_string(d.ne0_src1) + "," + std::to_string(d.ne0_dst) + "]";
+        s += " max0=" + ne_str(d.max_ne_src0) + " max1=" + ne_str(d.max_ne_src1) + " maxd=" + ne_str(d.max_ne_dst);
         s += " contig=[" + std::to_string(d.contig_src0 ? 1 : 0) + "," + std::to_string(d.contig_src1 ? 1 : 0) + "]";
         s += " maxbytes=" + std::to_string(d.max_bytes) + "\n";
     }
@@ -1289,15 +1306,16 @@ bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &er
             std::string k = kv.substr(0, eq), v = kv.substr(eq + 1);
             if (k == "op") { d.op = op_from_name(v); if (d.op < 0) return fail("unknown op " + v); ++seen; }
             else if (k == "params") { if (!parse_params(v, d.op_params)) return fail("bad params"); }
-            else if (k == "dst") { d.dst_type = type_from_name(v); if (d.dst_type < 0) return fail("bad dst type " + v); ++seen; }
+            else if (k == "dst") { d.dst_type = type_from_name(v); if (d.dst_type == -100) return fail("bad dst type " + v); ++seen; }
             else if (k == "src") {
                 if (v.size() < 2 || v.front() != '[' || v.back() != ']') return fail("bad src list");
                 std::istringstream ss(v.substr(1, v.size() - 2)); std::string t; int i = 0;
                 while (std::getline(ss, t, ',') && i < 5) { d.src_type[i] = type_from_name(t); if (d.src_type[i] == -100) return fail("bad src type " + t); ++i; }
             }
-            else if (k == "ne0") { if (!parse_ne(v, d.ne_src0)) return fail("bad ne0"); }
-            else if (k == "ne1") { if (!parse_ne(v, d.ne_src1)) return fail("bad ne1"); }
-            else if (k == "ned") { if (!parse_ne(v, d.ne_dst)) return fail("bad ned"); }
+            else if (k == "ne0") { long long a = 1, b = 1, c = 1; if (std::sscanf(v.c_str(), "[%lld,%lld,%lld]", &a, &b, &c) != 3) return fail("bad ne0"); d.ne0_src0 = a; d.ne0_src1 = b; d.ne0_dst = c; }
+            else if (k == "max0") { if (!parse_ne(v, d.max_ne_src0)) return fail("bad max0"); }
+            else if (k == "max1") { if (!parse_ne(v, d.max_ne_src1)) return fail("bad max1"); }
+            else if (k == "maxd") { if (!parse_ne(v, d.max_ne_dst)) return fail("bad maxd"); }
             else if (k == "contig") { int a = 1, b = 1; std::sscanf(v.c_str(), "[%d,%d]", &a, &b); d.contig_src0 = a; d.contig_src1 = b; }
             else if (k == "maxbytes") { d.max_bytes = std::stoull(v); }
             else return fail("unknown field " + k);
@@ -1314,49 +1332,71 @@ bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &er
 Run: `cd native && cmake --build build/cpu --target test_ops_format && ctest --test-dir build/cpu -R test_ops_format --output-on-failure | tail -3`
 Expected: PASS.
 
-- [ ] **Step 5: Write the recorder — capture, the recording device, and the audio.cpp shim**
+- [ ] **Step 5: The recorder — C entry points, the recording device, the audio.cpp shim**
 
-`native/src/sk_ops_record.cpp` (compiled only into the test-build library; see Step 6):
+Add to `native/include/sokuji_native.h`, at the end before the closing `extern "C"`:
+
+```c
+/* ---- op recorder (test builds only: -DSOKUJI_RECORD_OPS=ON) ------------------------- */
+#if defined(SK_RECORD_OPS)
+/* Register the recording device with ggml's registry. MUST be called before the first
+ * sk_init of the process (sk_init enumerates devices once, first call wins). Returns 1. */
+SK_API int32_t   sk_record_register_device(void);
+/* Start capturing. `weight_names`: every tensor name in the model file; `rung_ops`: the op
+ * names whose src0 is a rung-bearing weight ("MUL_MAT", "MUL_MAT_ID", "GET_ROWS") — a src0
+ * of one of those ops whose name is in weight_names is recorded as WEIGHT, every other
+ * tensor with its literal dtype. */
+SK_API void      sk_record_begin(const char *const *weight_names, int32_t n_names,
+                                 const char *const *rung_ops, int32_t n_rung_ops);
+/* Stop capturing and write the .ops file. */
+SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, const char *family,
+                                       const char *source_file, const char *const *dtypes, int32_t n_dtypes);
+SK_API int32_t   sk_record_node_count(void);
+#endif
+```
+
+Create `native/src/sk_ops_record.cpp`:
 
 ```cpp
 /* Test-build-only recorder (SK_RECORD_OPS). Two capture paths feed one descriptor set:
  *  - a registered RECORDING DEVICE (ggml_backend_register) for llama.cpp / transcribe.cpp,
- *    which take a ggml_backend_dev_t and run through ggml_backend_sched — it accepts every
- *    op and every buffer type so the scheduler routes every node to it, records, and forwards
- *    to a real CPU backend;
+ *    which take a ggml_backend_dev_t and run through ggml_backend_sched — it accepts every op
+ *    and every host buffer type so the scheduler routes every node to it, records, and forwards
+ *    to the real CPU backend obtained through the registry;
  *  - a redirected ggml_backend_graph_compute for audio.cpp, which picks its own device by
  *    backend type and computes single-backend (audiocpp_compat.h, under SK_RECORD_OPS). */
+#define SOKUJI_NATIVE_BUILD 1
+#include "sokuji_native.h"
 #include "sk_ops.h"
 #include "ggml.h"
 #include "ggml-backend.h"
 #include "ggml-backend-impl.h"
-#include "ggml-cpu.h"
 
+#include <algorithm>
 #include <cstring>
+#include <fstream>
 #include <mutex>
 #include <set>
+#include <string>
+#include <vector>
 
 namespace {
 std::mutex g_rec_mutex;
 std::set<std::string> g_weight_names;
+std::set<int32_t> g_rung_ops;
 std::vector<sk_op_desc> g_nodes;
 bool g_recording = false;
 ggml_backend_t g_cpu = nullptr;
 
-int32_t src_type_of(const ggml_tensor *t) {
+int32_t src_type_of(const ggml_tensor *node, int i) {
+    const ggml_tensor *t = node->src[i];
     if (!t) return SK_SRC_ABSENT;
     const char *name = ggml_get_name(t);
-    if (name && *name && g_weight_names.count(name)) return SK_SRC_WEIGHT;
+    if (i == 0 && g_rung_ops.count(node->op) && name && *name && g_weight_names.count(name)) return SK_SRC_WEIGHT;
     return static_cast<int32_t>(t->type);
 }
-}  // namespace
 
-void sk_record_begin(const std::set<std::string> &weight_names) {
-    std::lock_guard<std::mutex> l(g_rec_mutex);
-    g_weight_names = weight_names; g_nodes.clear(); g_recording = true;
-}
-
-void sk_record_node(const ggml_tensor *node) {
+void record_node(const ggml_tensor *node) {
     if (!node || node->op == GGML_OP_NONE || node->op == GGML_OP_VIEW || node->op == GGML_OP_RESHAPE ||
         node->op == GGML_OP_PERMUTE || node->op == GGML_OP_TRANSPOSE) return;   // no-op views: never asked of a backend
     std::lock_guard<std::mutex> l(g_rec_mutex);
@@ -1365,12 +1405,13 @@ void sk_record_node(const ggml_tensor *node) {
     d.op = node->op;
     std::memcpy(d.op_params.data(), node->op_params, sizeof d.op_params);
     d.dst_type = node->type;
-    for (int i = 0; i < 5 && i < GGML_MAX_SRC; ++i) d.src_type[i] = src_type_of(node->src[i]);
+    for (int i = 0; i < 5 && i < GGML_MAX_SRC; ++i) d.src_type[i] = src_type_of(node, i);
     for (int i = 0; i < 4; ++i) {
-        d.ne_dst[i] = node->ne[i];
-        d.ne_src0[i] = node->src[0] ? node->src[0]->ne[i] : 1;
-        d.ne_src1[i] = node->src[1] ? node->src[1]->ne[i] : 1;
+        d.max_ne_dst[i] = node->ne[i];
+        d.max_ne_src0[i] = node->src[0] ? node->src[0]->ne[i] : 1;
+        d.max_ne_src1[i] = node->src[1] ? node->src[1]->ne[i] : 1;
     }
+    d.ne0_src0 = d.max_ne_src0[0]; d.ne0_src1 = d.max_ne_src1[0]; d.ne0_dst = d.max_ne_dst[0];
     d.contig_src0 = !node->src[0] || ggml_is_contiguous(node->src[0]);
     d.contig_src1 = !node->src[1] || ggml_is_contiguous(node->src[1]);
     d.max_bytes = ggml_nbytes(node);
@@ -1378,35 +1419,39 @@ void sk_record_node(const ggml_tensor *node) {
     if (node->src[1]) d.max_bytes = std::max<uint64_t>(d.max_bytes, ggml_nbytes(node->src[1]));
     sk_ops_add(g_nodes, d);
 }
+}  // namespace
 
-sk_op_recording sk_record_end() {
-    std::lock_guard<std::mutex> l(g_rec_mutex);
-    g_recording = false;
-    sk_op_recording r; r.nodes = g_nodes; g_nodes.clear();
-    return r;
-}
-
-/* audio.cpp path: every graph_compute in every audio.cpp TU lands here (compat header). */
+/* audio.cpp path: every graph_compute in every audio.cpp TU lands here (compat header). This
+ * TU is compiled WITHOUT the redirect, so the call below is the real function. */
 extern "C" enum ggml_status sk_recording_graph_compute(ggml_backend_t backend, struct ggml_cgraph *cgraph) {
-    for (int i = 0; i < ggml_graph_n_nodes(cgraph); ++i) sk_record_node(ggml_graph_node(cgraph, i));
+    for (int i = 0; i < ggml_graph_n_nodes(cgraph); ++i) record_node(ggml_graph_node(cgraph, i));
     return ggml_backend_graph_compute(backend, cgraph);
 }
 
-/* llama.cpp / transcribe.cpp path: a device that accepts everything and forwards to CPU. */
+/* llama.cpp / transcribe.cpp path: a device that accepts everything and forwards to CPU.
+ * Member orders below are ggml v0.22.0's ggml-backend-impl.h (GGML_BACKEND_API_VERSION 2):
+ *   ggml_backend_i (16): get_name, free, set_tensor_async, get_tensor_async, set_tensor_2d_async,
+ *     get_tensor_2d_async, cpy_tensor_async, synchronize, graph_plan_create, graph_plan_free,
+ *     graph_plan_update, graph_plan_compute, graph_compute, event_record, event_wait, graph_optimize
+ *   ggml_backend_device_i (15): get_name, get_description, get_memory, get_type, get_props,
+ *     init_backend, get_buffer_type, get_host_buffer_type, buffer_from_host_ptr, supports_op,
+ *     supports_buft, offload_op, event_new, event_free, event_synchronize
+ *   ggml_backend_dev_caps (5): async, host_buffer, buffer_from_host_ptr, events, mmap_support
+ *   ggml_backend_dev_props: name, description, device_id, memory_free, memory_total, type, caps */
 namespace {
 const char *rec_name(ggml_backend_t) { return "SKREC"; }
 void rec_free(ggml_backend_t b) { delete b; }
 enum ggml_status rec_compute(ggml_backend_t, struct ggml_cgraph *g) {
-    for (int i = 0; i < ggml_graph_n_nodes(g); ++i) sk_record_node(ggml_graph_node(g, i));
+    for (int i = 0; i < ggml_graph_n_nodes(g); ++i) record_node(ggml_graph_node(g, i));
     return ggml_backend_graph_compute(g_cpu, g);
 }
 ggml_backend_i rec_iface = {
-    /* get_name */ rec_name, /* free */ rec_free,
-    /* set_tensor_async */ nullptr, /* get_tensor_async */ nullptr, /* cpy_tensor_async */ nullptr,
-    /* synchronize */ nullptr, /* graph_plan_create */ nullptr, /* graph_plan_free */ nullptr,
-    /* graph_plan_update */ nullptr, /* graph_plan_compute */ nullptr,
-    /* graph_compute */ rec_compute, /* event_record */ nullptr, /* event_wait */ nullptr,
-    /* graph_optimize */ nullptr,
+    rec_name, rec_free,
+    nullptr, nullptr, nullptr, nullptr,            // set/get_tensor_async, set/get_tensor_2d_async
+    nullptr, nullptr,                              // cpy_tensor_async, synchronize
+    nullptr, nullptr, nullptr, nullptr,            // graph_plan_create/free/update/compute
+    rec_compute,
+    nullptr, nullptr, nullptr,                     // event_record, event_wait, graph_optimize
 };
 ggml_guid_t rec_guid() { static ggml_guid g = {0x53,0x4b,0x52,0x45,0x43,0,0,0,0,0,0,0,0,0,0,1}; return &g; }
 
@@ -1415,213 +1460,280 @@ const char *dev_desc(ggml_backend_dev_t) { return "sokuji op recorder"; }
 void dev_memory(ggml_backend_dev_t, size_t *f, size_t *t) { *f = *t = size_t(64) << 30; }
 enum ggml_backend_dev_type dev_type(ggml_backend_dev_t) { return GGML_BACKEND_DEVICE_TYPE_GPU; }
 void dev_props(ggml_backend_dev_t d, ggml_backend_dev_props *p) {
-    p->name = dev_name(d); p->description = dev_desc(d); dev_memory(d, &p->memory_free, &p->memory_total);
-    p->type = dev_type(d); p->caps = {false, true, false, false};
+    p->name = dev_name(d); p->description = dev_desc(d); p->device_id = nullptr;
+    dev_memory(d, &p->memory_free, &p->memory_total);
+    p->type = dev_type(d); p->caps = {false, false, false, false, false};
 }
 ggml_backend_t dev_init(ggml_backend_dev_t d, const char *) {
-    if (!g_cpu) g_cpu = ggml_backend_cpu_init();
+    if (!g_cpu) g_cpu = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_CPU, nullptr);   // registry-resolved: the dlopen'd CPU module
     return new ggml_backend{rec_guid(), rec_iface, d, nullptr};
 }
 ggml_backend_buffer_type_t dev_buft(ggml_backend_dev_t) { return ggml_backend_cpu_buffer_type(); }
 bool dev_supports_op(ggml_backend_dev_t, const ggml_tensor *) { return true; }      // everything routes here
 bool dev_supports_buft(ggml_backend_dev_t, ggml_backend_buffer_type_t buft) { return ggml_backend_buft_is_host(buft); }
 ggml_backend_device_i dev_iface = {
-    dev_name, dev_desc, dev_memory, dev_type, dev_props, /* get_backend_reg */ nullptr, dev_init, dev_buft,
-    /* get_host_buffer_type */ nullptr, /* buffer_from_host_ptr */ nullptr, dev_supports_op, dev_supports_buft,
-    /* offload_op */ nullptr, /* event_new */ nullptr, /* event_free */ nullptr, /* event_synchronize */ nullptr,
+    dev_name, dev_desc, dev_memory, dev_type, dev_props,
+    dev_init, dev_buft,
+    nullptr, nullptr,                              // get_host_buffer_type, buffer_from_host_ptr
+    dev_supports_op, dev_supports_buft,
+    nullptr, nullptr, nullptr, nullptr,            // offload_op, event_new, event_free, event_synchronize
 };
 const char *reg_name(ggml_backend_reg_t) { return "SKREC"; }
 size_t reg_count(ggml_backend_reg_t) { return 1; }
 ggml_backend_dev_t reg_get(ggml_backend_reg_t r, size_t) { static ggml_backend_device dev{dev_iface, r, nullptr}; return &dev; }
-ggml_backend_reg_i reg_iface = { reg_name, reg_count, reg_get, /* get_proc_address */ nullptr };
+ggml_backend_reg_i reg_iface = { reg_name, reg_count, reg_get, nullptr };
 }  // namespace
 
-ggml_backend_dev_t sk_register_recording_device() {
+extern "C" {
+
+SK_API int32_t sk_record_register_device(void) {
     static ggml_backend_reg reg{GGML_BACKEND_API_VERSION, reg_iface, nullptr};
     static bool done = false;
     if (!done) { ggml_backend_register(&reg); done = true; }
-    return reg_get(&reg, 0);
+    return 1;
 }
+
+SK_API void sk_record_begin(const char *const *names, int32_t n, const char *const *rung_ops, int32_t n_ops) {
+    std::lock_guard<std::mutex> l(g_rec_mutex);
+    g_weight_names.clear(); g_rung_ops.clear(); g_nodes.clear();
+    for (int32_t i = 0; i < n; ++i) if (names[i]) g_weight_names.insert(names[i]);
+    for (int32_t i = 0; i < n_ops; ++i)
+        for (int o = 0; o < GGML_OP_COUNT; ++o)
+            if (rung_ops[i] && std::strcmp(rung_ops[i], ggml_op_name(static_cast<ggml_op>(o))) == 0) g_rung_ops.insert(o);
+    g_recording = true;
+}
+
+SK_API int32_t sk_record_node_count(void) { std::lock_guard<std::mutex> l(g_rec_mutex); return static_cast<int32_t>(g_nodes.size()); }
+
+SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, const char *family,
+                                       const char *source_file, const char *const *dtypes, int32_t n_dtypes) {
+    sk_op_recording r;
+    {
+        std::lock_guard<std::mutex> l(g_rec_mutex);
+        g_recording = false;
+        r.nodes = g_nodes; g_nodes.clear();
+    }
+    r.stage = stage; r.family = family; r.engine = sk_engine_versions(); r.source_file = source_file;
+    for (int32_t i = 0; i < n_dtypes; ++i) r.dtypes_in_file.push_back(dtypes[i]);
+    std::sort(r.dtypes_in_file.begin(), r.dtypes_in_file.end());
+    std::ofstream f(path);
+    if (!f) return SK_ERR_INTERNAL;
+    f << sk_ops_format(r);
+    return SK_OK;
+}
+
+}  // extern "C"
 ```
 
-(The struct field orders above follow `ggml-backend-impl.h` at v0.22.0; the implementer confirms each initializer against that header — a mismatch is a compile error, not a silent one, because the aggregates are positional.)
-
-`native/src/audiocpp_compat.h` — append at the end:
+`native/src/audiocpp_compat.h` — append:
 
 ```cpp
 #if defined(SK_RECORD_OPS)
-/* Test build only: audio.cpp computes single-backend through ggml_backend_graph_compute, so
- * the op recorder intercepts that call here. ggml-backend.h is included FIRST so the real
- * prototype is declared before the macro renames later uses; the recorder's own TU is
- * compiled without this header and forwards to the real function. */
+/* Test build only: audio.cpp computes single-backend through ggml_backend_graph_compute, so the
+ * op recorder intercepts that call. ggml-backend.h is included FIRST so the real prototype is
+ * declared before the macro renames later uses; sk_ops_record.cpp is compiled without this
+ * header and forwards to the real function. */
 #include "ggml-backend.h"
 extern "C" enum ggml_status sk_recording_graph_compute(ggml_backend_t backend, struct ggml_cgraph *cgraph);
 #define ggml_backend_graph_compute sk_recording_graph_compute
 #endif
 ```
 
-- [ ] **Step 6: The test-build library variant and the record driver**
+- [ ] **Step 6: The test-build variant, the shared load-and-run, the driver**
 
-In `native/CMakeLists.txt`, after the `sokuji_native` target is fully defined, add an option and a second library that shares every source but adds the recorder:
+`native/CMakeLists.txt`, after the `sokuji_native` target is fully defined (and after `src/sk_ops_format.cpp` has been added to its sources unconditionally):
 
 ```cmake
 option(SOKUJI_RECORD_OPS "Build the op-recording variant of the library (tests only)" OFF)
 if(SOKUJI_RECORD_OPS)
-    # Same sources + the recorder; the compat header sees SK_RECORD_OPS in every audio.cpp TU
-    # of THIS configure, so this must be a separate build directory (build/record), never the
-    # shipping one — the shipped library must not carry the redirect.
-    target_compile_definitions(sokuji_native PRIVATE SK_RECORD_OPS=1)
+    # Same sources + the recorder; every audio.cpp TU of THIS configure sees SK_RECORD_OPS, so
+    # this must be a separate build directory (build/record), never the shipping one.
+    target_compile_definitions(sokuji_native PUBLIC SK_RECORD_OPS=1)
     target_sources(sokuji_native PRIVATE src/sk_ops_record.cpp)
     foreach(_t IN LISTS _audiocpp_engine_targets)
         target_compile_definitions(${_t} PRIVATE SK_RECORD_OPS=1)
     endforeach()
-    # sk_ops_record.cpp must not see the redirect (it forwards to the real function).
-    set_source_files_properties(src/sk_ops_record.cpp PROPERTIES COMPILE_OPTIONS "-USK_RECORD_OPS")
+    # The recorder's own TU must not see the redirect (it forwards to the real function).
+    set_source_files_properties(src/sk_ops_record.cpp PROPERTIES COMPILE_OPTIONS
+        "$<IF:$<CXX_COMPILER_ID:MSVC>,/USK_RECORD_OPS,-USK_RECORD_OPS>")
 endif()
 ```
 
-(On MSVC use `/USK_RECORD_OPS`; the `set_source_files_properties` line becomes a generator expression `$<IF:$<CXX_COMPILER_ID:MSVC>,/USK_RECORD_OPS,-USK_RECORD_OPS>`.) Also add `src/sk_ops_format.cpp` to `target_sources(sokuji_native ...)` unconditionally (Task 5 needs it in the shipping library too).
-
-`native/tests/record_ops.cpp` — the driver, built only when `SOKUJI_RECORD_OPS`:
+Create `native/tests/record_common.h` — the per-stage load-and-run, shared by the driver and Task 6's coverage test. It assumes `sk_record_register_device()` and `sk_init` have already run (the callers do that once):
 
 ```cpp
-/* record_ops <module_dir> <stage> <family> <model-dir-or-gguf> <out.ops> [--fa on|off]
- * Loads the model through the sk_* API on the recording device (asr/translate) or on the
- * CPU device with the audio.cpp shim (tts), runs one forward pass, writes the .ops file. */
-#undef NDEBUG
-#include <cassert>
+/* One forward pass of one family with the recorder armed. Requires: sk_record_register_device()
+ * called BEFORE sk_init, sk_init done, `devs`/`n` from sk_devices(). Writes the .ops file. */
+#pragma once
+#include <cmath>
 #include <cstdio>
 #include <cstring>
-#include <fstream>
+#include <filesystem>
 #include <set>
 #include <string>
 #include <vector>
 #include "sokuji_native.h"
-#include "sk_ops.h"
 #include "gguf.h"
 #include "ggml.h"
 
-void sk_record_begin(const std::set<std::string> &);
-sk_op_recording sk_record_end();
-ggml_backend_dev_t sk_register_recording_device();
+static const char *const RUNG_OPS[] = {"MUL_MAT", "MUL_MAT_ID", "GET_ROWS"};
 
-static std::string find_gguf(const std::string &path) {   // a directory → its single .gguf; a file → itself
-    if (path.size() > 5 && path.substr(path.size() - 5) == ".gguf") return path;
-    // audio.cpp model dirs hold exactly one .gguf (plus sidecar files); pick it.
-    std::string cmd = "ls " + path + "/*.gguf";
-    FILE *p = popen(cmd.c_str(), "r"); char buf[1024] = {}; std::string out;
-    if (p && fgets(buf, sizeof buf, p)) out = buf; if (p) pclose(p);
-    while (!out.empty() && (out.back() == '\n' || out.back() == '\r')) out.pop_back();
-    return out;
+static std::string find_gguf(const std::string &path) {     // a directory → its single .gguf; a file → itself
+    if (path.size() > 5 && path.compare(path.size() - 5, 5, ".gguf") == 0) return path;
+    for (const auto &e : std::filesystem::directory_iterator(path))
+        if (e.path().extension() == ".gguf") return e.path().string();
+    return "";
 }
 
-int main(int argc, char **argv) {
-    if (argc < 6) { std::fprintf(stderr, "usage: record_ops <module_dir> <stage> <family> <model> <out.ops> [--fa on|off]\n"); return 2; }
-    std::string module_dir = argv[1], stage = argv[2], family = argv[3], model = argv[4], out_path = argv[5];
-    std::string gguf_path = find_gguf(model);
+static bool ignore_text(const char *, void *) { return true; }
+static bool ignore_audio(const float *, size_t, int32_t, int32_t, void *) { return true; }
+struct Clip { std::vector<float> pcm; int32_t rate = 0; };
+static bool grab_audio(const float *pcm, size_t n, int32_t rate, int32_t, void *user) {
+    auto *c = static_cast<Clip *>(user); c->pcm.insert(c->pcm.end(), pcm, pcm + n); c->rate = rate; return true;
+}
 
-    // Weight names + dtype set from the GGUF header (public gguf API).
-    std::set<std::string> weights; std::set<std::string> dtypes;
+/* A real speech clip for the clone-only families: supertonic preset M1 on the CPU device, made
+ * BEFORE recording starts so its nodes never leak into the other family's file. */
+static Clip reference_clip(const sk_device *cpu, const std::string &supertonic_dir) {
+    Clip c;
+    sk_tts_options o{"supertonic", nullptr};
+    sk_tts *m = nullptr;
+    if (sk_tts_load(supertonic_dir.c_str(), cpu, &o, &m) != SK_OK) return c;
+    sk_tts_set_preset(m, "M1");
+    sk_tts_synth(m, "The quick brown fox jumps over the lazy dog.", "en", 1.0f, grab_audio, &c);
+    sk_tts_unload(m);
+    return c;
+}
+
+/* Returns the node count written (0 = nothing recorded — treat as a failure). */
+static int record_family(const std::string &stage, const std::string &family, const std::string &model,
+                         const sk_device *dev, const std::string &out_path, int32_t flash_attn,
+                         const std::string &supertonic_dir) {
+    const std::string gguf = find_gguf(model);
+    std::vector<std::string> names, dtypes_v; std::set<std::string> dtypes;
     {
         gguf_init_params ip = { /*no_alloc*/ true, /*ctx*/ nullptr };
-        gguf_context *g = gguf_init_from_file(gguf_path.c_str(), ip);
-        assert(g && "gguf_init_from_file");
+        gguf_context *g = gguf_init_from_file(gguf.c_str(), ip);
+        if (!g) { std::fprintf(stderr, "record_family: cannot read %s\n", gguf.c_str()); return 0; }
         for (int64_t i = 0; i < gguf_get_n_tensors(g); ++i) {
-            weights.insert(gguf_get_tensor_name(g, i));
+            names.push_back(gguf_get_tensor_name(g, i));
             dtypes.insert(ggml_type_name(gguf_get_tensor_type(g, i)));
         }
         gguf_free(g);
     }
+    dtypes_v.assign(dtypes.begin(), dtypes.end());
+    std::vector<const char *> name_ptrs; for (auto &s : names) name_ptrs.push_back(s.c_str());
+    std::vector<const char *> dtype_ptrs; for (auto &s : dtypes_v) dtype_ptrs.push_back(s.c_str());
 
-    ggml_backend_dev_t recdev = (stage == "tts") ? nullptr : sk_register_recording_device();   // BEFORE sk_init
-    sk_init_options opts = {}; opts.abi_version = SK_ABI_VERSION; opts.n_threads = 4; opts.module_dir = module_dir.c_str();
-    assert(sk_init(&opts) == SK_OK);
-    sk_device devs[16]; int n = sk_devices(devs, 16);
-    int cpu = -1, rec = -1;
-    for (int i = 0; i < n; ++i) {
-        if (devs[i].kind == SK_DEVICE_CPU) cpu = i;
-        if (std::strcmp(devs[i].name, "SKREC0") == 0) rec = i;
-    }
-    assert(cpu >= 0);
-    (void)recdev;
+    Clip ref;
+    const bool needs_voice = family == "qwen3_tts" || family == "omnivoice" || family == "index_tts2";
+    if (needs_voice) ref = reference_clip(dev, supertonic_dir);
 
-    sk_record_begin(weights);
+    sk_record_begin(name_ptrs.data(), (int32_t)name_ptrs.size(), RUNG_OPS, 3);
     if (stage == "tts") {
-        sk_tts_model *m = nullptr;
-        assert(sk_tts_load(model.c_str(), family.c_str(), &devs[cpu], &m) == SK_OK);
-        float *pcm = nullptr; int32_t n_samples = 0, rate = 0;
-        // Families that require a reference voice get a synthetic one, as the Python tests do.
-        sk_tts_caps caps = {}; sk_tts_capabilities(m, &caps);
-        if (caps.clones && caps.transcript_required) {
-            std::vector<float> ref(24000); for (int i = 0; i < 24000; ++i) ref[i] = 0.5f * std::sin(2 * 3.14159f * 440 * i / 24000.f);
-            sk_tts_set_voice(m, ref.data(), 24000, 24000, "test");
-        }
-        assert(sk_tts_synth(m, "The quick brown fox jumps over the lazy dog.", nullptr, &pcm, &n_samples, &rate) == SK_OK);
-        sk_free(pcm); sk_tts_unload(m);
+        sk_tts_options o{family.c_str(), family == "pocket_tts" ? "english" : nullptr};
+        sk_tts *m = nullptr;
+        if (sk_tts_load(model.c_str(), dev, &o, &m) != SK_OK) { std::fprintf(stderr, "tts load: %s\n", sk_last_error()); return 0; }
+        if (needs_voice && !ref.pcm.empty()) sk_tts_set_voice(m, ref.pcm.data(), ref.pcm.size(), ref.rate, "The quick brown fox jumps over the lazy dog.");
+        if (family == "pocket_tts") sk_tts_set_preset(m, "alba");
+        if (sk_tts_synth(m, "The quick brown fox jumps over the lazy dog.", "en", 1.0f, ignore_audio, nullptr) != SK_OK)
+            std::fprintf(stderr, "tts synth: %s\n", sk_last_error());
+        sk_tts_unload(m);
     } else if (stage == "asr") {
-        assert(rec >= 0);
         sk_asr_model *m = nullptr;
-        assert(sk_asr_load(gguf_path.c_str(), &devs[rec], &m) == SK_OK);
-        std::vector<float> audio(16000 * 3, 0.0f); for (size_t i = 0; i < audio.size(); ++i) audio[i] = 0.1f * std::sin(2 * 3.14159f * 440 * i / 16000.f);
-        char *text = nullptr;
-        assert(sk_asr_transcribe(m, audio.data(), (int32_t)audio.size(), 16000, "en", &text) == SK_OK);
-        sk_free(text); sk_asr_unload(m);
+        if (sk_asr_load(gguf.c_str(), dev, &m) != SK_OK) { std::fprintf(stderr, "asr load: %s\n", sk_last_error()); return 0; }
+        std::vector<float> audio(16000 * 3);
+        for (size_t i = 0; i < audio.size(); ++i) audio[i] = 0.1f * std::sin(2 * 3.14159f * 440 * i / 16000.f);
+        sk_asr_run(m, audio.data(), audio.size(), "en", ignore_text, nullptr);
+        sk_asr_unload(m);
     } else {
-        assert(rec >= 0);
-        sk_translate_model *m = nullptr;
-        bool fa = !(argc >= 8 && std::strcmp(argv[6], "--fa") == 0 && std::strcmp(argv[7], "off") == 0);
-        sk_translate_options to = {}; to.flash_attn = fa ? 1 : 0;
-        assert(sk_translate_load(gguf_path.c_str(), &devs[rec], &to, &m) == SK_OK);
-        char *out = nullptr;
-        assert(sk_translate_run(m, "Hello, world.", "en", "fr", nullptr, nullptr, &out) == SK_OK);
-        sk_free(out); sk_translate_unload(m);
+        sk_translate_options to{0, flash_attn};
+        sk_translate *m = nullptr;
+        if (sk_translate_load(gguf.c_str(), dev, &to, &m) != SK_OK) { std::fprintf(stderr, "translate load: %s\n", sk_last_error()); return 0; }
+        sk_gen_options gen{16, nullptr};
+        sk_translate_complete(m, "Translate to French: Hello, world.", &gen, ignore_text, nullptr);
+        sk_translate_unload(m);
     }
-    sk_op_recording r = sk_record_end();
-    r.stage = stage; r.family = family; r.engine = sk_engine_versions();
-    r.source_file = gguf_path.substr(gguf_path.find_last_of("/\\") + 1);
-    r.dtypes_in_file.assign(dtypes.begin(), dtypes.end());
-    std::ofstream(out_path) << sk_ops_format(r);
-    std::printf("record_ops: %zu nodes -> %s\n", r.nodes.size(), out_path.c_str());
-    return 0;
+    const int count = sk_record_node_count();
+    sk_record_end_to_file(out_path.c_str(), stage.c_str(), family.c_str(),
+                          std::filesystem::path(gguf).filename().string().c_str(), dtype_ptrs.data(), (int32_t)dtype_ptrs.size());
+    return count;
 }
 ```
 
-The exact `sk_tts_load` / `sk_asr_load` / `sk_translate_load` / `sk_translate_run` signatures are the ones in `native/include/sokuji_native.h` today; the implementer copies them verbatim (the names above match the header; the options struct for translate is whatever the header calls it — if it has no `flash_attn` field, record once and note that in the `.ops` engine line). Register the driver in `native/tests/CMakeLists.txt` under `if(SOKUJI_RECORD_OPS)`:
+Create `native/tests/record_ops.cpp`:
+
+```cpp
+/* record_ops <module_dir> <stage> <family> <model-dir-or-gguf> <out.ops> <supertonic-dir> [flash_attn 0|1|2]
+ * asr/translate run on the recording device (registered before sk_init); tts runs on the CPU
+ * device with the audio.cpp shim. Records ONE forward pass and writes the .ops file. */
+#undef NDEBUG
+#include <cassert>
+#include <cstdlib>
+#include "record_common.h"
+
+int main(int argc, char **argv) {
+    if (argc < 7) { std::fprintf(stderr, "usage: record_ops <module_dir> <stage> <family> <model> <out.ops> <supertonic-dir> [flash_attn]\n"); return 2; }
+    const std::string stage = argv[2], family = argv[3], model = argv[4], out = argv[5], supertonic = argv[6];
+    const int32_t fa = argc > 7 ? std::atoi(argv[7]) : 0;
+    sk_record_register_device();                                   // BEFORE sk_init: first call wins
+    sk_init_options opts = {}; opts.abi_version = SK_ABI_VERSION; opts.n_threads = 4; opts.module_dir = argv[1];
+    assert(sk_init(&opts) == SK_OK);
+    sk_device devs[16]; const int n = sk_devices(devs, 16);
+    const sk_device *cpu = nullptr, *rec = nullptr;
+    for (int i = 0; i < n; ++i) {
+        if (devs[i].kind == SK_DEVICE_CPU) cpu = &devs[i];
+        if (std::strcmp(devs[i].name, "SKREC0") == 0) rec = &devs[i];
+    }
+    assert(cpu && rec);
+    const int count = record_family(stage, family, model, stage == "tts" ? cpu : rec, out, fa, supertonic);
+    std::printf("record_ops: %d nodes -> %s\n", count, out.c_str());
+    return count > 0 ? 0 : 1;
+}
+```
+
+`native/tests/CMakeLists.txt`:
 
 ```cmake
 if(SOKUJI_RECORD_OPS)
-    add_executable(record_ops record_ops.cpp)
+    add_executable(record_ops record_ops.cpp ../src/sk_ops_format.cpp)
     target_link_libraries(record_ops PRIVATE sokuji_native ggml)
     target_include_directories(record_ops PRIVATE ../src)
 endif()
 ```
 
+A note the implementer must act on: the recording device is `SK_DEVICE_OTHER` in `sk::kind_of`, so `sk_asr.cpp` passes it as `TRANSCRIBE_BACKEND_AUTO` + `lp.device`. If the ASR recording comes back with 0 nodes, transcribe.cpp ignored the explicit device under AUTO; then, under `SK_RECORD_OPS` only, make `kind_of` map registry name `"SKREC"` to `SK_DEVICE_VULKAN` (`sk_common.cpp:120-127`) so `backend_for` requests an explicit backend, and re-record.
+
 - [ ] **Step 7: Build the recording variant and record the shipped `.ops` files**
 
-Run (CPU lane, separate build dir):
+Configure and build (CPU lane, separate build dir): `cd native && cmake -S . -B build/record -DCMAKE_BUILD_TYPE=Release -DSOKUJI_GPU=none -DSOKUJI_RECORD_OPS=ON && cmake --build build/record -j8 2>&1 | tail -3`
 
-```bash
-cd native && cmake -S . -B build/record -DSOKUJI_GPU=none -DSOKUJI_RECORD_OPS=ON && cmake --build build/record -j
-M=~/.cache/sokuji-native-tests
-mkdir -p src/ops
-for f in moss_tts_nano:moss-tts-nano qwen3_tts:qwen3-tts-0.6b omnivoice:omnivoice-0.6b pocket_tts:pocket-tts-en supertonic:supertonic-3 \
-         voxcpm1:voxcpm1-0.5b voxcpm2:voxcpm2 irodori_tts:irodori-tts-v4-small index_tts2:index-tts2.5; do
-  build/record/tests/record_ops build/record/lib tts "${f%%:*}" "$M/tts/${f#*:}" "src/ops/tts-${f%%:*}.ops"
-done
-build/record/tests/record_ops build/record/lib asr whisper "$M/whisper-tiny-Q8_0.gguf" src/ops/asr-whisper.ops
-build/record/tests/record_ops build/record/lib asr moonshine "$M/moonshine-streaming-tiny-Q8_0.gguf" src/ops/asr-moonshine.ops
-build/record/tests/record_ops build/record/lib translate qwen3 "$M/Qwen3-0.6B-Q8_0.gguf" src/ops/translate-qwen3.ops --fa on
-build/record/tests/record_ops build/record/lib translate qwen3 "$M/Qwen3-0.6B-Q8_0.gguf" /tmp/qwen3-fa-off.ops --fa off
+Then, from `native/` (`mkdir -p src/ops` first), run these twelve literal lines one per Bash call (no shell variables in argument positions; `build/record/lib/record_ops` is where `CMAKE_RUNTIME_OUTPUT_DIRECTORY` puts it):
+
+```
+build/record/lib/record_ops build/record/lib tts moss_tts_nano /home/jiangzhuo/.cache/sokuji-native-tests/tts/moss-tts-nano src/ops/tts-moss_tts_nano.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib tts qwen3_tts /home/jiangzhuo/.cache/sokuji-native-tests/tts/qwen3-tts-0.6b src/ops/tts-qwen3_tts.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib tts omnivoice /home/jiangzhuo/.cache/sokuji-native-tests/tts/omnivoice-0.6b src/ops/tts-omnivoice.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib tts pocket_tts /home/jiangzhuo/.cache/sokuji-native-tests/tts/pocket-tts-en src/ops/tts-pocket_tts.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib tts supertonic /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3 src/ops/tts-supertonic.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib tts voxcpm1 /home/jiangzhuo/.cache/sokuji-native-tests/tts/voxcpm1-0.5b src/ops/tts-voxcpm1.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib tts voxcpm2 /home/jiangzhuo/.cache/sokuji-native-tests/tts/voxcpm2 src/ops/tts-voxcpm2.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib tts irodori_tts /home/jiangzhuo/.cache/sokuji-native-tests/tts/irodori-tts-v4-small src/ops/tts-irodori_tts.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib tts index_tts2 /home/jiangzhuo/.cache/sokuji-native-tests/tts/index-tts2.5 src/ops/tts-index_tts2.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib asr whisper /home/jiangzhuo/.cache/sokuji-native-tests/whisper-tiny-Q8_0.gguf src/ops/asr-whisper.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib asr moonshine_streaming /home/jiangzhuo/.cache/sokuji-native-tests/moonshine-streaming-tiny-Q8_0.gguf src/ops/asr-moonshine_streaming.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3
+build/record/lib/record_ops build/record/lib translate qwen3 /home/jiangzhuo/.cache/sokuji-native-tests/Qwen3-0.6B-Q8_0.gguf src/ops/translate-qwen3.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3 1
+build/record/lib/record_ops build/record/lib translate qwen3 /home/jiangzhuo/.cache/sokuji-native-tests/Qwen3-0.6B-Q8_0.gguf /home/jiangzhuo/.claude/jobs/387091ff/tmp/qwen3-fa-off.ops /home/jiangzhuo/.cache/sokuji-native-tests/tts/supertonic-3 2
 ```
 
-Then merge the two translate recordings (both flash-attention settings) into one file: `python3 - <<'EOF'` is not available under the worktree guard — use `cat /tmp/qwen3-fa-off.ops | grep '^op=' >> src/ops/translate-qwen3.ops` and let Task 5's generator de-duplicate (it calls `sk_ops_add`). Inspect one file: `head -6 src/ops/tts-voxcpm2.ops` — expected: four header lines, then `op=` lines with `WEIGHT` sources on the MUL_MATs and `BF16` in `dtypes-in-file`.
+Merge the flash-attention-off translate recording into the shipped file: `grep '^op=' /home/jiangzhuo/.claude/jobs/387091ff/tmp/qwen3-fa-off.ops >> src/ops/translate-qwen3.ops` (Task 5's parser de-duplicates through `sk_ops_add`; the header line stays the FA-on run's). Every invocation must print a non-zero node count and exit 0. Inspect one: `head -6 src/ops/tts-voxcpm2.ops` — four header lines, then `op=` lines with `WEIGHT` only on `MUL_MAT`/`GET_ROWS` src0 and `bf16` present in `dtypes-in-file`; `grep -c '^op=' src/ops/tts-voxcpm2.ops` should be in the tens, not thousands (identity excludes sequence axes).
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add native/src/sk_ops.h native/src/sk_ops_format.cpp native/src/sk_ops_record.cpp native/src/audiocpp_compat.h \
-        native/tests/record_ops.cpp native/tests/test_ops_format.cpp native/tests/CMakeLists.txt native/CMakeLists.txt native/src/ops/
-git commit -m "native: op recorder — node descriptors, the .ops format, a recording device for llama/transcribe and a graph_compute shim for audio.cpp; nine TTS recordings"
+git add native/include/sokuji_native.h native/src/sk_ops.h native/src/sk_ops_format.cpp native/src/sk_ops_record.cpp native/src/audiocpp_compat.h \
+        native/tests/record_common.h native/tests/record_ops.cpp native/tests/test_ops_format.cpp native/tests/CMakeLists.txt native/CMakeLists.txt native/src/ops/
+git commit -m "native: op recorder — node descriptors, the .ops format, a recording device for llama/transcribe and a graph_compute shim for audio.cpp; twelve recordings"
 ```
 
 ---
@@ -1629,21 +1741,20 @@ git commit -m "native: op recorder — node descriptors, the .ops format, a reco
 ### Task 5: `sk_device_supports_ops` — bake the recordings into the library, rebuild nodes, ask `supports_op`
 
 **Files:**
-- Create: `native/cmake/gen_ops_data.py`, `native/src/sk_ops.cpp`
+- Create: `native/cmake/gen_ops_data.py`, `native/src/sk_ops.cpp`, `native/src/sk_ops_data.h`
 - Modify: `native/CMakeLists.txt` (custom command + sources), `native/src/sk_profile.cpp` (drop the stub), `native/tests/test_common.cpp`
 - Modify: `native/python/sokuji_native/__init__.py` (`OpCoverage`, `device_supports_ops()`), `native/python/tests/test_sokuji_native.py`
-- Test: `native/tests/test_common.cpp`, `native/python/tests/test_sokuji_native.py`
 
 **Interfaces:**
 - Consumes: Task 4's `sk_op_recording`, `sk_ops_parse`, `sk_op_spelling`; the `.ops` files.
-- Produces: `sk_device_supports_ops` (§3.2 contract); Python `OpCoverage(all_supported: bool, unsupported: tuple[str, ...], checked: tuple[str, ...])` and `device_supports_ops(index, stage, family, weight_dtypes: Iterable[str]) -> OpCoverage` raising `NativeError` with the status on error.
+- Produces: `sk_device_supports_ops` (§3.2 contract); the C accessors `sk_ops_blob_count()` / `sk_ops_blob_at(i, &stage, &family, &text)` (exported, so tests can read the baked recordings); Python `OpCoverage(all_supported: bool, unsupported: tuple[str, ...], checked: tuple[str, ...])` and `device_supports_ops(index, stage, family, weight_dtypes) -> OpCoverage` raising `NativeError` (whose `.status` is the sk_status) on error.
 
 - [ ] **Step 1: Write the failing CTest assertions**
 
-In `native/tests/test_common.cpp`, after the profile loop, add:
+In `test_common.cpp` after the profile loop:
 
 ```cpp
-    // Op coverage: every shipped recording, expanded over its own dtype set, is fully
+    // Op coverage: every shipped recording, expanded over its own dtypes-in-file set, is fully
     // supported on the CPU device; error paths are the documented statuses.
     {
         const char *f16[] = {"f16", "f32"};
@@ -1655,61 +1766,90 @@ In `native/tests/test_common.cpp`, after the profile loop, add:
         assert(sk_device_supports_ops(0, "tts", "supertonic", bad, 1, &cov) == SK_ERR_INVALID_ARGUMENT);
         int cpu_index = -1;
         for (int i = 0; i < n; ++i) if (devs[i].kind == SK_DEVICE_CPU) cpu_index = i;
-        int n_recordings = 0;
-        for (const char *fam : {"supertonic", "moss_tts_nano", "voxcpm1", "voxcpm2", "irodori_tts", "index_tts2", "qwen3_tts", "omnivoice", "pocket_tts"}) {
-            const char *dts[] = {"q8_0", "bf16", "f16", "f32"};
+        int n_tts = 0;
+        for (int b = 0; b < sk_ops_blob_count(); ++b) {
+            const char *stage = nullptr, *family = nullptr, *text = nullptr;
+            sk_ops_blob_at(b, &stage, &family, &text);
+            // the dtypes-in-file line: "# dtypes-in-file: a b c"
+            std::string t(text);
+            auto pos = t.find("# dtypes-in-file:");
+            assert(pos != std::string::npos);
+            std::string line = t.substr(pos + 17, t.find('\n', pos) - pos - 17);
+            std::vector<std::string> dts; std::string tok; std::istringstream ss(line);
+            while (ss >> tok) dts.push_back(tok);
+            std::vector<const char *> ptrs; for (auto &s : dts) ptrs.push_back(s.c_str());
             sk_op_coverage c = {};
-            sk_status st = sk_device_supports_ops(cpu_index, "tts", fam, dts, 4, &c);
-            assert(st == SK_OK);
+            assert(sk_device_supports_ops(cpu_index, stage, family, ptrs.data(), (int32_t)ptrs.size(), &c) == SK_OK);
             assert(c.n_ops > 0 && c.n_ops <= SK_OP_COVERAGE_MAX);
+            for (int i = 0; i < c.n_ops; ++i) if (!c.ops[i].supported) std::fprintf(stderr, "%s/%s unsupported on cpu: %s\n", stage, family, c.ops[i].name);
             assert(c.all_supported == 1);
-            ++n_recordings;
+            if (std::string(stage) == "tts") ++n_tts;
         }
-        assert(n_recordings == 9);
+        assert(n_tts == 9);
     }
 ```
 
+(add `#include <sstream>` and `#include <vector>` to the test's includes).
+
 - [ ] **Step 2: Run it to see it fail**
 
-Run: `cd native && cmake --build build/cpu --target test_common && ctest --test-dir build/cpu -R '^test_common$' --output-on-failure | tail -4`
-Expected: FAIL — the stub returns `SK_ERR_INTERNAL` for the first `SK_ERR_INVALID_ARGUMENT` assertion.
+Run: `cd native && cmake --build build/cpu --target test_common 2>&1 | grep -m1 error`
+Expected: `sk_ops_blob_count` not declared.
 
-- [ ] **Step 3: The build-time generator**
+- [ ] **Step 3: The generator, the data header, the accessors**
 
-Create `native/cmake/gen_ops_data.py`:
+`native/src/sk_ops_data.h`:
+
+```cpp
+#pragma once
+#include "sokuji_native.h"
+struct sk_ops_blob { const char *stage; const char *family; const char *text; };
+extern const sk_ops_blob sk_ops_blobs[];
+extern const int sk_ops_blob_count_;
+```
+
+Add to `sokuji_native.h` (public, exported — tests read the baked recordings through them):
+
+```c
+/* The op recordings baked into this library (spec A §3.2): count, and the i-th recording's
+ * stage, family and .ops text (pointers owned by the library, valid for its lifetime). */
+SK_API int32_t   sk_ops_blob_count(void);
+SK_API sk_status sk_ops_blob_at(int32_t i, const char **stage, const char **family, const char **text);
+```
+
+`native/cmake/gen_ops_data.py`:
 
 ```python
-"""Bake native/src/ops/*.ops into one C++ translation unit: a string literal per recording
-(parsed at first use by sk_ops_parse, so the text format stays the single source of
-truth) and a static_assert-able count. usage: gen_ops_data.py <ops-dir> <out.cpp>"""
+"""Bake native/src/ops/*.ops into one C++ translation unit (parsed at first use by
+sk_ops_parse, so the text format stays the single source of truth) and emit one static_assert
+per recording that its expansion over the widest fallback set fits SK_OP_COVERAGE_MAX.
+usage: gen_ops_data.py <ops-dir> <out.cpp> <sk_ops_data.h path>"""
 import pathlib
 import sys
 
-ops_dir, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+WIDEST_FALLBACK = 7   # len(RUNG_FALLBACK_DTYPES["q4_k_m"]) in sidecar/sokuji_sidecar/catalog.py — keep in sync
+
+ops_dir, out, header = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3]
 files = sorted(ops_dir.glob("*.ops"))
 lines = ['// GENERATED by cmake/gen_ops_data.py from src/ops/*.ops — do not edit.',
-         '#include "sk_ops_data.h"', '',
-         'const sk_ops_blob sk_ops_blobs[] = {']
+         f'#include "{header}"', '']
+for f in files:
+    body = [l for l in f.read_text(encoding="utf-8").splitlines() if l.startswith("op=")]
+    weight = sum(1 for l in body if "WEIGHT" in l)
+    expanded = weight * WIDEST_FALLBACK + (len(body) - weight)
+    lines.append(f'static_assert({expanded} <= SK_OP_COVERAGE_MAX, "{f.name}: {expanded} expanded entries exceed SK_OP_COVERAGE_MAX");')
+lines += ['', 'const sk_ops_blob sk_ops_blobs[] = {']
 for f in files:
     stage, family = f.stem.split("-", 1)
-    text = f.read_text(encoding="utf-8")
-    body = "".join(f'    "{line}\\n"\n' for line in text.replace("\\", "\\\\").replace('"', '\\"').splitlines())
+    text = f.read_text(encoding="utf-8").replace("\\", "\\\\").replace('"', '\\"')
+    body = "".join(f'    "{line}\\n"\n' for line in text.splitlines())
     lines.append(f'    {{ "{stage}", "{family}",\n{body}    }},')
-lines += ['};', f'const int sk_ops_blob_count = {len(files)};', '']
+lines += ['};', f'const int sk_ops_blob_count_ = {len(files)};', '']
 out.write_text("\n".join(lines), encoding="utf-8")
 print(f"gen_ops_data: {len(files)} recordings -> {out}")
 ```
 
-Create `native/src/sk_ops_data.h`:
-
-```cpp
-#pragma once
-struct sk_ops_blob { const char *stage; const char *family; const char *text; };
-extern const sk_ops_blob sk_ops_blobs[];
-extern const int sk_ops_blob_count;
-```
-
-In `native/CMakeLists.txt`, before `target_sources(sokuji_native ...)`:
+`native/CMakeLists.txt`, before `target_sources(sokuji_native ...)` (a `find_package(Python3 COMPONENTS Interpreter REQUIRED)` already exists for `patch_upstream.py`; if not, add it there):
 
 ```cmake
 # Op recordings (spec A §3.2) are data under src/ops/*.ops, baked into the library at build
@@ -1719,16 +1859,15 @@ add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_ops_data.py
             ${CMAKE_CURRENT_SOURCE_DIR}/src/ops ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/sk_ops_data.h
     DEPENDS ${_sk_ops_files} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_ops_data.py
     COMMENT "sokuji-native: baking op recordings")
-target_sources(sokuji_native PRIVATE src/sk_ops.cpp src/sk_ops_format.cpp ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp)
+target_sources(sokuji_native PRIVATE src/sk_ops.cpp ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp)
 ```
-
-(`find_package(Python3 COMPONENTS Interpreter REQUIRED)` already exists for `patch_upstream.py`; if it does not, add it beside that one.)
 
 - [ ] **Step 4: Implement the query**
 
-Create `native/src/sk_ops.cpp`:
+`native/src/sk_ops.cpp`:
 
 ```cpp
 #define SOKUJI_NATIVE_BUILD 1
@@ -1741,6 +1880,7 @@ Create `native/src/sk_ops.cpp`:
 #include "ggml-backend.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <map>
 #include <mutex>
@@ -1757,7 +1897,7 @@ const sk_op_recording *recording_for(const std::string &stage, const std::string
     const std::string key = stage + "/" + family;
     auto it = g_parsed.find(key);
     if (it != g_parsed.end()) return &it->second;
-    for (int i = 0; i < sk_ops_blob_count; ++i) {
+    for (int i = 0; i < sk_ops_blob_count_; ++i) {
         if (stage == sk_ops_blobs[i].stage && family == sk_ops_blobs[i].family) {
             sk_op_recording r;
             if (!sk_ops_parse(sk_ops_blobs[i].text, r, err)) return nullptr;   // a shipped file that fails to parse is SK_ERR_INTERNAL
@@ -1775,15 +1915,16 @@ int32_t type_by_name(const char *name) {
     return -1;
 }
 
-/* Rebuild one recorded node with a concrete weight type, at shapes that reproduce the
- * recorded max_bytes (ne[1] scaled; ne[0] as recorded so block sizes stay valid), and ask
- * the device. Nothing is allocated on the device; nothing runs. */
+/* Rebuild one recorded node with a concrete weight type at the recorded ne[0] (block sizes
+ * stay valid) and the recorded maxima on the other axes, grown so nbytes reaches max_bytes
+ * (buffer-range checks are asked at the real size), and ask the device. Nothing is allocated
+ * on the device; nothing runs. */
 bool ask(ggml_backend_dev_t dev, const sk_op_desc &d, int32_t weight_type, std::string &spelling_out) {
     ggml_init_params ip = { 64 * 1024, nullptr, /*no_alloc*/ true };
     ggml_context *ctx = ggml_init(ip);
     if (!ctx) return false;
     auto concrete = [&](int32_t t) -> ggml_type { return static_cast<ggml_type>(t == SK_SRC_WEIGHT ? weight_type : t); };
-    auto grow = [&](std::array<int64_t, 4> ne, ggml_type t) {   // rows so that nbytes >= max_bytes
+    auto grow = [&](std::array<int64_t, 4> ne, ggml_type t) {
         const int64_t row_bytes = ggml_row_size(t, ne[0]);
         if (row_bytes > 0) {
             const int64_t have = row_bytes * ne[1] * ne[2] * ne[3];
@@ -1797,12 +1938,12 @@ bool ask(ggml_backend_dev_t dev, const sk_op_desc &d, int32_t weight_type, std::
         ggml_tensor *x = ggml_new_tensor_4d(ctx, concrete(t), ne[0], ne[1], ne[2], ne[3]);
         return contig ? x : ggml_transpose(ctx, x);   // a non-contiguous view, as recorded
     };
-    ggml_tensor *node = ggml_new_tensor_4d(ctx, concrete(d.dst_type), d.ne_dst[0], d.ne_dst[1], d.ne_dst[2], d.ne_dst[3]);
+    ggml_tensor *node = ggml_new_tensor_4d(ctx, concrete(d.dst_type), d.max_ne_dst[0], d.max_ne_dst[1], d.max_ne_dst[2], d.max_ne_dst[3]);
     node->op = static_cast<ggml_op>(d.op);
     std::memcpy(node->op_params, d.op_params.data(), sizeof node->op_params);
-    node->src[0] = mk(d.src_type[0], d.ne_src0, d.contig_src0);
-    node->src[1] = mk(d.src_type[1], d.ne_src1, d.contig_src1);
-    for (int i = 2; i < 5; ++i) node->src[i] = mk(d.src_type[i], {d.ne_src1[0], 1, 1, 1}, true);
+    node->src[0] = mk(d.src_type[0], d.max_ne_src0, d.contig_src0);
+    node->src[1] = mk(d.src_type[1], d.max_ne_src1, d.contig_src1);
+    for (int i = 2; i < 5; ++i) node->src[i] = mk(d.src_type[i], {d.max_ne_src1[0], 1, 1, 1}, true);
     bool ok = ggml_backend_dev_supports_op(dev, node);
     spelling_out = sk_op_spelling(d, weight_type >= 0 ? ggml_type_name(static_cast<ggml_type>(weight_type)) : nullptr);
     ggml_free(ctx);
@@ -1812,6 +1953,14 @@ bool ask(ggml_backend_dev_t dev, const sk_op_desc &d, int32_t weight_type, std::
 }  // namespace
 
 extern "C" {
+
+SK_API int32_t sk_ops_blob_count(void) { return sk_ops_blob_count_; }
+
+SK_API sk_status sk_ops_blob_at(int32_t i, const char **stage, const char **family, const char **text) {
+    if (i < 0 || i >= sk_ops_blob_count_ || !stage || !family || !text) return SK_ERR_INVALID_ARGUMENT;
+    *stage = sk_ops_blobs[i].stage; *family = sk_ops_blobs[i].family; *text = sk_ops_blobs[i].text;
+    return SK_OK;
+}
 
 SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const char *family,
                                         const char *const *weight_dtypes, int32_t n_weight_dtypes,
@@ -1841,7 +1990,7 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
     out->all_supported = 1;
     try {
         for (const sk_op_desc &d : rec->nodes) {
-            const bool has_weight = std::find(d.src_type.begin(), d.src_type.end(), SK_SRC_WEIGHT) != d.src_type.end() || d.dst_type == SK_SRC_WEIGHT;
+            const bool has_weight = std::find(d.src_type.begin(), d.src_type.end(), SK_SRC_WEIGHT) != d.src_type.end();
             const std::vector<int32_t> expand = has_weight ? wtypes : std::vector<int32_t>{-1};
             for (int32_t wt : expand) {
                 if (out->n_ops >= SK_OP_COVERAGE_MAX) { sk::set_error("sk_device_supports_ops: recording exceeds SK_OP_COVERAGE_MAX"); return SK_ERR_INTERNAL; }
@@ -1867,12 +2016,12 @@ Remove the `sk_device_supports_ops` stub from `sk_profile.cpp`.
 
 - [ ] **Step 5: Run the CTest to see it pass**
 
-Run: `cd native && cmake --build build/cpu -j && ctest --test-dir build/cpu -R '^test_common$' --output-on-failure | tail -3`
-Expected: PASS. If a recorded node is refused on CPU, the failing spelling is what the assertion loop should print — add `std::fprintf(stderr, "%s: %s\n", fam, c.ops[i].name)` for unsupported entries before asserting, so the output names it.
+Run: `cd native && cmake -S . -B build/cpu && cmake --build build/cpu -j8 && ctest --test-dir build/cpu -R '^test_common$' --output-on-failure 2>&1 | tail -3`
+Expected: PASS. An `unsupported on cpu:` line names any node the CPU backend refuses — that is a recording defect (a WEIGHT mark on a non-rung tensor), fixed in the recorder, not by editing the `.ops` file.
 
 - [ ] **Step 6: Binding wrapper and its test**
 
-Add to `native/python/tests/test_sokuji_native.py`:
+`native/python/tests/test_sokuji_native.py`:
 
 ```python
 @needs_tree
@@ -1889,7 +2038,7 @@ def test_device_supports_ops_cpu_all_supported_and_errors():
         sokuji_native.device_supports_ops(cpu.index, "tts", "supertonic", [])
 ```
 
-In `__init__.py` add after `DeviceProfile`:
+(`NativeError` is constructed as `NativeError(status, message)` — check its class near the top of `__init__.py` for the attribute name; if it is not `status`, use the name it has.) In `__init__.py` after `DeviceProfile`:
 
 ```python
 @dataclass(frozen=True)
@@ -1903,9 +2052,9 @@ and after `device_profiles`:
 
 ```python
 def device_supports_ops(index: int, stage: str, family: str, weight_dtypes) -> OpCoverage:
-    """Ask the device's own supports_op about the family's recorded graph nodes, WEIGHT
-    sources expanded over `weight_dtypes` (ggml type names). NativeError with the status on
-    every documented error (NOT_FOUND = no recording, INVALID_ARGUMENT, INTERNAL, BACKEND)."""
+    """Ask the device's own supports_op about the family's recorded graph nodes, WEIGHT sources
+    expanded over `weight_dtypes` (ggml type names). NativeError with the status on every
+    documented error (NOT_FOUND = no recording, INVALID_ARGUMENT, INTERNAL, BACKEND)."""
     lib = _load()
     names = [str(t).encode() for t in weight_dtypes]
     arr = (ctypes.c_char_p * max(1, len(names)))(*names)
@@ -1917,19 +2066,18 @@ def device_supports_ops(index: int, stage: str, family: str, weight_dtypes) -> O
     return OpCoverage(bool(raw.all_supported), tuple(n for n, ok in checks if not ok), tuple(n for n, _ in checks))
 ```
 
-(`NativeError` already carries `.status` — check its constructor at the top of the file; if the attribute is named differently, use that name in the test.) Add both names to `__all__`.
+Add both names to `__all__`; add `lib.sk_ops_blob_count`/`sk_ops_blob_at` prototypes to `_ffi.bind()` (`restype c_int32` / `[c_int32, POINTER(c_char_p), POINTER(c_char_p), POINTER(c_char_p)]`).
 
 - [ ] **Step 7: Run the binding test**
 
-Run: `cd native/python && SOKUJI_NATIVE_DIR=../build/cpu/stage python -m pytest tests/test_sokuji_native.py -k supports_ops -q`
-Expected: PASS.
+Run: `cd native && ci/build.sh none linux_aarch64 2>&1 | tail -5` — Expected: PASS including `test_device_supports_ops_cpu_all_supported_and_errors`.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add native/cmake/gen_ops_data.py native/src/sk_ops.cpp native/src/sk_ops_data.h native/src/sk_profile.cpp native/CMakeLists.txt \
-        native/tests/test_common.cpp native/python/sokuji_native/__init__.py native/python/tests/test_sokuji_native.py
-git commit -m "native: sk_device_supports_ops — recordings baked at build time, nodes rebuilt with recorded shapes, WEIGHT expanded over the caller's dtype set"
+git add native/cmake/gen_ops_data.py native/src/sk_ops.cpp native/src/sk_ops_data.h native/src/sk_profile.cpp native/include/sokuji_native.h native/CMakeLists.txt \
+        native/tests/test_common.cpp native/python/sokuji_native/__init__.py native/python/sokuji_native/_ffi.py native/python/tests/test_sokuji_native.py
+git commit -m "native: sk_device_supports_ops — recordings baked at build time with a per-file static_assert, nodes rebuilt with recorded shapes, WEIGHT expanded over the caller's dtype set"
 ```
 
 ---
@@ -1937,36 +2085,26 @@ git commit -m "native: sk_device_supports_ops — recordings baked at build time
 ### Task 6: `test_ops_coverage` — re-record and diff; the pin-bump checklist
 
 **Files:**
-- Create: `native/tests/test_ops_coverage.cpp`; Modify: `native/tests/CMakeLists.txt`, `native/README.md`, `native/ci/build.sh` (and `.ps1`) to configure the record variant when models are present
-- Test: `native/tests/test_ops_coverage.cpp`
+- Create: `native/tests/test_ops_coverage.cpp`; Modify: `native/tests/CMakeLists.txt`, `native/README.md`, `native/ci/build.sh`, `native/ci/build.ps1`
 
-**Interfaces:**
-- Consumes: Task 4's driver logic (shared through `record_ops`'s functions — factor the per-stage load-and-run into `native/tests/record_common.h` so both binaries use it), Task 5's baked blobs.
-
-- [ ] **Step 1: Factor the recording run out of the driver**
-
-Move the body of `record_ops.cpp`'s per-stage block into `native/tests/record_common.h` as
-`sk_op_recording record_family(const std::string &module_dir, const std::string &stage, const std::string &family, const std::string &model, bool fa_on);`
-(returning the recording with `dtypes_in_file` and `source_file` filled). `record_ops.cpp` becomes a thin `main` around it.
-
-- [ ] **Step 2: Write the coverage test**
+- [ ] **Step 1: Write the coverage test**
 
 Create `native/tests/test_ops_coverage.cpp`:
 
 ```cpp
 /* The shipped op recordings equal what the engines do TODAY: re-record every family whose
- * model is cached and diff. rc 77 only when no model at all is present; otherwise each
+ * model is present and diff. rc 77 only when no model at all is present; otherwise each
  * present family is asserted and each absent one prints SKIPPED. Runs against the
- * SK_RECORD_OPS build (build/record), never the shipping one. */
+ * SK_RECORD_OPS build (build/record), never the shipping one. The recording device is
+ * registered ONCE before the single sk_init (first call wins). */
 #undef NDEBUG
 #include <cassert>
-#include <cstdio>
 #include <cstdlib>
 #include <set>
+#include <sstream>
 #include <string>
 #include "record_common.h"
 #include "sk_ops.h"
-#include "sk_ops_data.h"
 
 struct Case { const char *stage, *family, *env; };
 static const Case CASES[] = {
@@ -1975,41 +2113,66 @@ static const Case CASES[] = {
     {"tts", "pocket_tts", "SK_TEST_TTS_POCKET_DIR"},      {"tts", "voxcpm1", "SK_TEST_TTS_VOXCPM1_DIR"},
     {"tts", "voxcpm2", "SK_TEST_TTS_VOXCPM2_DIR"},        {"tts", "irodori_tts", "SK_TEST_TTS_IRODORI_DIR"},
     {"tts", "index_tts2", "SK_TEST_TTS_INDEX_DIR"},
-    {"asr", "whisper", "SK_TEST_ASR_GGUF"},               {"asr", "moonshine", "SK_TEST_ASR_STREAM_GGUF"},
+    {"asr", "whisper", "SK_TEST_ASR_GGUF"},               {"asr", "moonshine_streaming", "SK_TEST_ASR_STREAM_GGUF"},
     {"translate", "qwen3", "SK_TEST_TRANSLATE_GGUF"},
 };
 
 static std::set<std::string> spellings(const sk_op_recording &r) {
     std::set<std::string> s;
-    for (const auto &d : r.nodes) s.insert(sk_op_spelling(d, nullptr) + " ne0=" + std::to_string(d.ne_src0[0]));
+    for (const auto &d : r.nodes) s.insert(sk_op_spelling(d, nullptr) + " ne0=" + std::to_string(d.ne0_src0));
     return s;
+}
+static bool read_file(const std::string &p, std::string &out) {
+    std::ifstream f(p); if (!f) return false; std::stringstream ss; ss << f.rdbuf(); out = ss.str(); return true;
 }
 
 int main(int argc, char **argv) {
     const char *module_dir = argc > 1 ? argv[1] : ".";
+    const char *supertonic = std::getenv("SK_TEST_TTS_SUPERTONIC_DIR");
     int present = 0, failures = 0;
+    for (const Case &c : CASES) if (std::getenv(c.env) && *std::getenv(c.env)) ++present;
+    if (present == 0) { std::printf("test_ops_coverage: no models present, skipping\n"); return 77; }
+    if (!supertonic) { std::printf("test_ops_coverage: SK_TEST_TTS_SUPERTONIC_DIR is required (reference clip)\n"); return 1; }
+
+    sk_record_register_device();
+    sk_init_options opts = {}; opts.abi_version = SK_ABI_VERSION; opts.n_threads = 4; opts.module_dir = module_dir;
+    assert(sk_init(&opts) == SK_OK);
+    sk_device devs[16]; const int n = sk_devices(devs, 16);
+    const sk_device *cpu = nullptr, *rec = nullptr;
+    for (int i = 0; i < n; ++i) { if (devs[i].kind == SK_DEVICE_CPU) cpu = &devs[i]; if (std::strcmp(devs[i].name, "SKREC0") == 0) rec = &devs[i]; }
+    assert(cpu && rec);
+
     for (const Case &c : CASES) {
         const char *model = std::getenv(c.env);
         if (!model || !*model) { std::printf("SKIPPED: %s/%s (%s unset)\n", c.stage, c.family, c.env); continue; }
-        ++present;
-        const sk_ops_blob *blob = nullptr;
-        for (int i = 0; i < sk_ops_blob_count; ++i)
-            if (std::string(sk_ops_blobs[i].stage) == c.stage && std::string(sk_ops_blobs[i].family) == c.family) blob = &sk_ops_blobs[i];
-        if (!blob) { std::printf("FAIL: %s/%s has a model but no shipped recording\n", c.stage, c.family); ++failures; continue; }
-        sk_op_recording shipped; std::string err;
-        assert(sk_ops_parse(blob->text, shipped, err));
-        sk_op_recording live = record_family(module_dir, c.stage, c.family, model, /*fa_on*/ true);
-        if (std::string(c.stage) == "translate") {
-            sk_op_recording off = record_family(module_dir, c.stage, c.family, model, false);
-            for (const auto &d : off.nodes) sk_ops_add(live.nodes, d);
+        const char *stage = nullptr, *family = nullptr, *text = nullptr; bool found = false;
+        for (int b = 0; b < sk_ops_blob_count(); ++b) {
+            sk_ops_blob_at(b, &stage, &family, &text);
+            if (std::string(stage) == c.stage && std::string(family) == c.family) { found = true; break; }
         }
-        const auto a = spellings(shipped), b = spellings(live);
-        for (const auto &s : b) if (!a.count(s)) { std::printf("FAIL %s/%s: engine now uses %s (not in shipped recording)\n", c.stage, c.family, s.c_str()); ++failures; }
-        for (const auto &s : a) if (!b.count(s)) { std::printf("FAIL %s/%s: shipped recording lists %s (engine no longer uses it)\n", c.stage, c.family, s.c_str()); ++failures; }
+        if (!found) { std::printf("FAIL: %s/%s has a model but no shipped recording\n", c.stage, c.family); ++failures; continue; }
+        sk_op_recording shipped; std::string err;
+        assert(sk_ops_parse(text, shipped, err));
+        const std::string tmp = std::string("/tmp/sk-live-") + c.stage + "-" + c.family + ".ops";
+        const sk_device *dev = std::string(c.stage) == "tts" ? cpu : rec;
+        int count = record_family(c.stage, c.family, model, dev, tmp, 1, supertonic);
+        if (std::string(c.stage) == "translate") {
+            const std::string tmp2 = tmp + ".off";
+            record_family(c.stage, c.family, model, dev, tmp2, 2, supertonic);
+            std::string a, b; read_file(tmp, a); read_file(tmp2, b);
+            for (const auto &line : {b}) { std::istringstream ls(line); std::string l; while (std::getline(ls, l)) if (l.rfind("op=", 0) == 0) a += l + "\n"; }
+            std::ofstream(tmp) << a;
+        }
+        if (count <= 0) { std::printf("FAIL %s/%s: recorded nothing\n", c.stage, c.family); ++failures; continue; }
+        std::string live_text; read_file(tmp, live_text);
+        sk_op_recording live; assert(sk_ops_parse(live_text, live, err));
+        const auto a = spellings(shipped), bset = spellings(live);
+        int before = failures;
+        for (const auto &s : bset) if (!a.count(s)) { std::printf("FAIL %s/%s: engine now uses %s (not in shipped recording)\n", c.stage, c.family, s.c_str()); ++failures; }
+        for (const auto &s : a) if (!bset.count(s)) { std::printf("FAIL %s/%s: shipped recording lists %s (engine no longer uses it)\n", c.stage, c.family, s.c_str()); ++failures; }
         if (shipped.dtypes_in_file != live.dtypes_in_file) { std::printf("FAIL %s/%s: dtypes-in-file changed (upstream re-quantised?)\n", c.stage, c.family); ++failures; }
-        std::printf("%s/%s: %zu nodes, %s\n", c.stage, c.family, live.nodes.size(), failures ? "DIFF" : "ok");
+        std::printf("%s/%s: %zu nodes, %s\n", c.stage, c.family, live.nodes.size(), failures == before ? "ok" : "DIFF");
     }
-    if (present == 0) { std::printf("test_ops_coverage: no models present, skipping\n"); return 77; }
     return failures ? 1 : 0;
 }
 ```
@@ -2018,7 +2181,7 @@ Register it (record variant only):
 
 ```cmake
 if(SOKUJI_RECORD_OPS)
-    add_executable(test_ops_coverage test_ops_coverage.cpp)
+    add_executable(test_ops_coverage test_ops_coverage.cpp ../src/sk_ops_format.cpp)
     target_link_libraries(test_ops_coverage PRIVATE sokuji_native ggml)
     target_include_directories(test_ops_coverage PRIVATE ../src)
     add_test(NAME test_ops_coverage COMMAND test_ops_coverage ${CMAKE_BINARY_DIR}/lib)
@@ -2026,55 +2189,75 @@ if(SOKUJI_RECORD_OPS)
 endif()
 ```
 
-- [ ] **Step 3: Run it against the recordings from Task 4**
+- [ ] **Step 2: Run it against the recordings from Task 4**
 
-Run (with the same `SK_TEST_*` variables `native/ci/build.sh` exports, plus the four new-family ones from the TTS branch: `SK_TEST_TTS_VOXCPM1_DIR` etc.):
-`cd native && cmake --build build/record -j && ctest --test-dir build/record -R test_ops_coverage --output-on-failure | tail -15`
-Expected: every present family prints `ok`; PASS. A `DIFF` here right after recording means the recording is not deterministic across runs — investigate before committing (a sampled TTS family such as `moss_tts_nano` can take a different number of decode steps; the node SET is what is compared, and the set is stable).
+Write the twelve variables into a runner script (`native/ci/ops-env.sh`, committed; the values are this box's cache):
 
-- [ ] **Step 4: Wire the record build into `ci/build.sh` and document the checklist**
+```bash
+#!/usr/bin/env bash
+# The models test_ops_coverage re-records from (native/README.md's cache layout).
+C=/home/jiangzhuo/.cache/sokuji-native-tests
+export SK_TEST_ASR_GGUF=$C/whisper-tiny-Q8_0.gguf
+export SK_TEST_ASR_STREAM_GGUF=$C/moonshine-streaming-tiny-Q8_0.gguf
+export SK_TEST_TRANSLATE_GGUF=$C/Qwen3-0.6B-Q8_0.gguf
+export SK_TEST_TTS_MOSS_DIR=$C/tts/moss-tts-nano
+export SK_TEST_TTS_SUPERTONIC_DIR=$C/tts/supertonic-3
+export SK_TEST_TTS_QWEN3_DIR=$C/tts/qwen3-tts-0.6b
+export SK_TEST_TTS_OMNIVOICE_DIR=$C/tts/omnivoice-0.6b
+export SK_TEST_TTS_POCKET_DIR=$C/tts/pocket-tts-en
+export SK_TEST_TTS_VOXCPM1_DIR=$C/tts/voxcpm1-0.5b
+export SK_TEST_TTS_VOXCPM2_DIR=$C/tts/voxcpm2
+export SK_TEST_TTS_IRODORI_DIR=$C/tts/irodori-tts-v4-small
+export SK_TEST_TTS_INDEX_DIR=$C/tts/index-tts2.5
+exec "$@"
+```
 
-In `native/ci/build.sh` (and `.ps1`), after the shipping build's CTest, add a second configure+build+ctest of `build/record` with `-DSOKUJI_RECORD_OPS=ON` that runs only `test_ops_coverage`; it inherits the same `SK_TEST_*` environment, so CI (which downloads whisper-tiny, moonshine, Qwen3-0.6B, supertonic-3, moss-tts-nano) asserts those five recordings on every lane and skips the rest.
+Run: `cd native && cmake --build build/record -j8 && bash ci/ops-env.sh ctest --test-dir build/record -R test_ops_coverage --output-on-failure 2>&1 | tail -15`
+Expected: every present family prints `ok`; PASS. A `DIFF` right after recording means the recording is not deterministic across runs — the identity excludes sequence axes precisely so a sampled family (moss) with a different step count still yields the same set; investigate before committing.
+
+- [ ] **Step 3: Wire the record build into `ci/build.sh` / `.ps1` and document the checklist**
+
+After the shipping build's CTest in `native/ci/build.sh`, add a second configure+build of `build/record` with `-DSOKUJI_RECORD_OPS=ON` and `ctest -R test_ops_coverage`; it inherits the workflow's `SK_TEST_*` variables (`.github/workflows/native-build.yml:19-23` exports five of them: whisper-tiny, moonshine, Qwen3-0.6B, supertonic-3, moss), so CI asserts those five recordings on every lane and skips the rest. Same in `build.ps1`.
 
 In `native/README.md`'s "Bumping a pin" list add:
 
 ```
-5. Op recordings (`src/ops/*.ops`, spec A §3.2): rebuild `build/record` (`-DSOKUJI_RECORD_OPS=ON`)
-   and run `test_ops_coverage` with every cached model present — a DIFF means the engine's
-   graph changed; re-record that family with `build/record/tests/record_ops` and commit the
-   new .ops file with the bump. Families without a cached model must be re-recorded at least
-   once per bump on a box that has the model (all nine TTS families are cached under
-   ~/.cache/sokuji-native-tests/tts/; asr/translate families are recorded as their models
-   become available — a missing recording is a pass-through in the sidecar, never a gate).
+5. Op recordings (`src/ops/*.ops`, spec A §3.2): configure `build/record` with
+   `-DSOKUJI_RECORD_OPS=ON`, run `bash ci/ops-env.sh ctest --test-dir build/record -R test_ops_coverage`
+   with every cached model present — a DIFF means the engine's graph changed; re-record that
+   family with `build/record/lib/record_ops` (see tests/record_ops.cpp for the argument order)
+   and commit the new .ops file with the bump. All nine TTS families are cached under
+   ~/.cache/sokuji-native-tests/tts/ and MUST be re-recorded on every bump (the gate fires
+   only for tts); asr/translate families are recorded as their models become available — a
+   missing recording is a pass-through in the sidecar, never a gate.
 ```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add native/tests/test_ops_coverage.cpp native/tests/record_common.h native/tests/record_ops.cpp native/tests/CMakeLists.txt \
-        native/ci/build.sh native/ci/build.ps1 native/README.md
+git add native/tests/test_ops_coverage.cpp native/tests/CMakeLists.txt native/ci/ops-env.sh native/ci/build.sh native/ci/build.ps1 native/README.md
 git commit -m "native: test_ops_coverage re-records every cached family and diffs against the shipped recordings; pin-bump checklist"
 ```
 
 ---
 
-### Task 7: Catalog — `graph_family` on every card, a GGUF header reader, the rung fallback dtype sets
+### Task 7: Catalog — `graph_family` on every card, a GGUF header reader, the rung fallback dtype sets, the three equality tests
 
 **Files:**
 - Create: `sidecar/sokuji_sidecar/gguf_header.py`, `sidecar/tests/test_gguf_header.py`
-- Modify: `sidecar/sokuji_sidecar/catalog.py` (`_ModelBase`, `_tc_row`, `_llm_translate_row`, `_tts_gguf_row`, every `_tc_row(...)`/`_llm_translate_row(...)` call, `RUNG_FALLBACK_DTYPES`)
+- Modify: `sidecar/sokuji_sidecar/catalog.py` (`_ModelBase`, `_tc_row` at :68, `_llm_translate_row` at :516, `_tts_gguf_row` at :989, every `_tc_row(...)`/`_llm_translate_row(...)` call, new `RUNG_FALLBACK_DTYPES`)
 - Modify: `sidecar/tests/test_catalog.py`
 - Test: `sidecar/tests/test_gguf_header.py`, `sidecar/tests/test_catalog.py`
 
 **Interfaces:**
-- Produces: `_ModelBase.graph_family: str`; `catalog.RUNG_FALLBACK_DTYPES: dict[str, frozenset[str]]` (ggml type names); `gguf_header.read_header(path) -> GgufHeader(architecture: str, tensor_types: frozenset[str], n_tensors: int)` (type names spelled as `ggml_type_name()` spells them: `q8_0`, `q4_K`, `bf16`, `f16`, `f32`, `i32`, `i64`).
+- Produces: `_ModelBase.graph_family: str`; `catalog.RUNG_FALLBACK_DTYPES: dict[str, frozenset[str]]` (ggml type names); `gguf_header.read_header(path) -> GgufHeader(architecture: str, tensor_types: frozenset[str], n_tensors: int)` (type names spelled as `ggml_type_name()` spells them: `q8_0`, `q4_K`, `bf16`, `f16`, `f32`, `i32`, `i64`); `gguf_header.GgufError`.
 
 - [ ] **Step 1: Write the failing header-reader test**
 
 Create `sidecar/tests/test_gguf_header.py`:
 
 ```python
-"""A minimal GGUF v3 header reader: architecture + the tensor dtype set. Tested on a file
+"""A minimal GGUF v2/v3 header reader: architecture + the tensor dtype set. Tested on a file
 written here (no model download) and, when present, on the cached whisper-tiny GGUF."""
 import os
 import struct
@@ -2089,10 +2272,11 @@ GGUF_MAGIC = b"GGUF"
 def _write_gguf(path, arch: str, tensors: list[tuple[str, int]]):
     """tensors: (name, ggml_type id). Writes header + tensor infos, no data."""
     def s(x: str) -> bytes:
-        b = x.encode(); return struct.pack("<Q", len(b)) + b
-    out = bytearray(GGUF_MAGIC + struct.pack("<I", 3) + struct.pack("<Q", len(tensors)) + struct.pack("<Q", 1))
-    # one KV: general.architecture (type 8 = string)
-    out += s("general.architecture") + struct.pack("<I", 8) + s(arch)
+        b = x.encode()
+        return struct.pack("<Q", len(b)) + b
+    out = bytearray(GGUF_MAGIC + struct.pack("<I", 3) + struct.pack("<Q", len(tensors)) + struct.pack("<Q", 2))
+    out += s("general.architecture") + struct.pack("<I", 8) + s(arch)          # type 8 = string
+    out += s("tokenizer.ggml.tokens") + struct.pack("<I", 9) + struct.pack("<I", 8) + struct.pack("<Q", 2) + s("a") + s("b")   # array of strings: must be skipped
     for name, ty in tensors:
         out += s(name) + struct.pack("<I", 2) + struct.pack("<QQ", 4, 4) + struct.pack("<I", ty) + struct.pack("<Q", 0)
     path.write_bytes(bytes(out))
@@ -2108,14 +2292,18 @@ def test_reads_architecture_and_dtype_set(tmp_path):
 
 
 def test_rejects_non_gguf(tmp_path):
-    p = tmp_path / "x.bin"; p.write_bytes(b"NOPE" + b"\0" * 64)
+    p = tmp_path / "x.bin"
+    p.write_bytes(b"NOPE" + b"\0" * 64)
     with pytest.raises(gguf_header.GgufError):
         gguf_header.read_header(str(p))
 
 
-@pytest.mark.skipif(not os.path.exists(os.path.expanduser("~/.cache/sokuji-native-tests/whisper-tiny-Q8_0.gguf")), reason="cached model absent")
+_WHISPER = os.path.expanduser("~/.cache/sokuji-native-tests/whisper-tiny-Q8_0.gguf")
+
+
+@pytest.mark.skipif(not os.path.exists(_WHISPER), reason="cached model absent")
 def test_real_whisper_tiny():
-    h = gguf_header.read_header(os.path.expanduser("~/.cache/sokuji-native-tests/whisper-tiny-Q8_0.gguf"))
+    h = gguf_header.read_header(_WHISPER)
     assert h.architecture == "whisper"
     assert "q8_0" in h.tensor_types and "f32" in h.tensor_types
 ```
@@ -2128,7 +2316,8 @@ Create `sidecar/sokuji_sidecar/gguf_header.py`:
 
 ```python
 """Minimal GGUF header reader (spec A §3.3): `general.architecture` and the set of tensor
-dtypes, without loading anything. Header-only: reads a few KiB. GGUF v2/v3 little-endian."""
+dtypes, without loading anything. Header-only: reads a few hundred KiB at most (the tokenizer
+KVs are skipped, not decoded). GGUF v2/v3 little-endian."""
 from __future__ import annotations
 
 import struct
@@ -2162,17 +2351,31 @@ class _R:
     def __init__(self, f):
         self.f = f
 
-    def u32(self): return struct.unpack("<I", self.f.read(4))[0]
-    def u64(self): return struct.unpack("<Q", self.f.read(8))[0]
-    def s(self): n = self.u64(); return self.f.read(n).decode("utf-8", "replace")
+    def u32(self):
+        return struct.unpack("<I", self.f.read(4))[0]
+
+    def u64(self):
+        return struct.unpack("<Q", self.f.read(8))[0]
+
+    def s(self):
+        n = self.u64()
+        return self.f.read(n).decode("utf-8", "replace")
 
     def skip_value(self, ty: int):
-        if ty == 8: self.u64() and None; self.f.seek(-8, 1); self.s(); return
+        if ty == 8:
+            self.s()
+            return
         if ty == 9:                                    # array: elem type, count, then elems
             et, n = self.u32(), self.u64()
-            for _ in range(n): self.skip_value(et)
+            if et in _KV_SIZES:
+                self.f.seek(_KV_SIZES[et] * n, 1)
+            else:
+                for _ in range(n):
+                    self.skip_value(et)
             return
-        if ty in _KV_SIZES: self.f.seek(_KV_SIZES[ty], 1); return
+        if ty in _KV_SIZES:
+            self.f.seek(_KV_SIZES[ty], 1)
+            return
         raise GgufError(f"unknown KV value type {ty}")
 
 
@@ -2187,7 +2390,8 @@ def read_header(path: str) -> GgufHeader:
         n_tensors, n_kv = r.u64(), r.u64()
         arch = ""
         for _ in range(n_kv):
-            key = r.s(); ty = r.u32()
+            key = r.s()
+            ty = r.u32()
             if key == "general.architecture" and ty == 8:
                 arch = r.s()
             else:
@@ -2196,21 +2400,24 @@ def read_header(path: str) -> GgufHeader:
         for _ in range(n_tensors):
             r.s()                                      # name
             nd = r.u32()
-            for _ in range(nd): r.u64()                # dims
+            for _ in range(nd):
+                r.u64()                                # dims
             types.add(GGML_TYPE_NAMES.get(r.u32(), "unknown"))
             r.u64()                                    # offset
         return GgufHeader(arch, frozenset(types), n_tensors)
 ```
 
-(`skip_value` for strings reads the length then the bytes — the odd-looking first line is a length read followed by the seek-back; simplify to `if ty == 8: self.s(); return` — do that.)
-
 Run the test again — Expected: PASS (3 tests, the real-file one skipped or passing).
 
 - [ ] **Step 3: Write the failing catalog tests**
 
-Add to `sidecar/tests/test_catalog.py`:
+Add to `sidecar/tests/test_catalog.py` (it already imports `pytest` and `catalog`; add `import os`, `import glob` and `import pathlib`):
 
 ```python
+_CACHE = os.path.expanduser("~/.cache/sokuji-native-tests")
+_REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
 def test_every_card_has_a_graph_family():
     for m in catalog.asr_models() + catalog.translate_models() + catalog.tts_models():
         assert m.graph_family, m.id
@@ -2220,7 +2427,8 @@ def test_translate_prompt_family_unchanged_by_graph_family():
     fams = {m.id: m.prompt_family for m in catalog.translate_models()}
     assert fams["qwen3.5-4b"] == "qwen" and fams["eurollm-1.7b"] == "qwen" and fams["hy-mt2-7b"] == "hunyuan"
     graph = {m.id: m.graph_family for m in catalog.translate_models()}
-    assert graph["eurollm-1.7b"] == "llama" and graph["qwen3.5-4b"] == "qwen35" and graph["translategemma-4b"] == "gemma3"
+    assert graph["eurollm-1.7b"] == "llama" and graph["qwen3-0.6b"] == "qwen3" and graph["translategemma-4b"] == "gemma3"
+    assert graph["qwen3.5-4b"] != "qwen"                      # a llama.cpp architecture, never the prompt family
 
 
 def test_tts_graph_family_is_the_audiocpp_family():
@@ -2228,27 +2436,59 @@ def test_tts_graph_family_is_the_audiocpp_family():
         assert m.graph_family == m.family
 
 
+def test_every_tts_family_has_an_op_recording():
+    """Spec A §3.3: the tts gate has teeth only where a recording exists; every shipped TTS
+    card must have one (native/src/ops/tts-<family>.ops)."""
+    for m in catalog.tts_models():
+        assert (_REPO_ROOT / "native" / "src" / "ops" / f"tts-{m.graph_family}.ops").is_file(), m.id
+
+
+@pytest.mark.skipif(not os.path.exists(f"{_CACHE}/Qwen3-0.6B-Q8_0.gguf"), reason="cached model absent")
+def test_translate_graph_family_matches_gguf_header():
+    from sokuji_sidecar import gguf_header
+    assert gguf_header.read_header(f"{_CACHE}/Qwen3-0.6B-Q8_0.gguf").architecture == catalog.translate_model("qwen3-0.6b").graph_family
+
+
+@pytest.mark.parametrize("gguf,card_id", [("whisper-tiny-Q8_0.gguf", "whisper-tiny"),
+                                          ("moonshine-streaming-tiny-Q8_0.gguf", "moonshine-streaming-tiny")])
+def test_asr_graph_family_matches_native_arch(gguf, card_id):
+    """sk_asr_caps.arch for the cached file equals the card's graph_family — the string the
+    recording is keyed by. Needs the wheel and the cached model."""
+    path = f"{_CACHE}/{gguf}"
+    if not os.path.exists(path):
+        pytest.skip("cached model absent")
+    sokuji_native = pytest.importorskip("sokuji_native")
+    from sokuji_sidecar import native
+    sokuji_native.init()
+    cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
+    m = sokuji_native.asr_load(path, cpu)
+    try:
+        assert m.capabilities.arch == catalog.asr_model(card_id).graph_family
+    finally:
+        m.unload()
+
+
 def test_rung_fallback_sets_cover_cached_ggufs():
     """Premise 7: a rung is a dtype SET. Every cached GGUF's header set must be within its
     rung's fallback set, or the pre-download answer would refuse a file it later accepts."""
-    import glob, os
     from sokuji_sidecar import gguf_header
-    cache = os.path.expanduser("~/.cache/sokuji-native-tests")
+    if not os.path.isdir(_CACHE):
+        pytest.skip("no cached models")
     checked = 0
-    for path in glob.glob(f"{cache}/**/*.gguf", recursive=True):
-        name = os.path.basename(path).lower()
-        rung = next((r for r in ("q4_k_m", "q5_k_m", "q6_k", "q8_0", "bf16", "f16") if r in name.replace("-", "_")), None)
+    for path in glob.glob(f"{_CACHE}/**/*.gguf", recursive=True):
+        name = os.path.basename(path).lower().replace("-", "_")
+        rung = next((r for r in ("q4_k_m", "q5_k_m", "q6_k", "q8_0", "bf16", "f16") if r in name), None)
         if rung is None:
             continue
         h = gguf_header.read_header(path)
         assert h.tensor_types <= catalog.RUNG_FALLBACK_DTYPES[rung], (path, sorted(h.tensor_types - catalog.RUNG_FALLBACK_DTYPES[rung]))
         checked += 1
-    if not os.path.isdir(cache):
-        pytest.skip("no cached models")
     assert checked > 0
 ```
 
-Run: `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests/test_catalog.py -k "graph_family or fallback" -q -p no:cacheprovider` — Expected: FAIL, `AttributeError: graph_family`.
+(`sokuji_native.asr_load(path, device)`, `AsrModel.capabilities.arch` and `AsrModel.unload()` are the binding's existing names — `native/python/sokuji_native/__init__.py:199-204, 317-335`.)
+
+Run: `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests/test_catalog.py -k "graph_family or fallback or recording" -q -p no:cacheprovider` — Expected: FAIL, `AttributeError: graph_family`.
 
 - [ ] **Step 4: Add the field, the parameters and the table**
 
@@ -2256,15 +2496,28 @@ In `sidecar/sokuji_sidecar/catalog.py`, `_ModelBase` gains (after `download_igno
 
 ```python
     # The GRAPH this card runs — the key of its op recording (spec A §3.2): transcribe.cpp's
-    # architecture for ASR, llama.cpp's general.architecture for translate, audio.cpp's
-    # family for TTS. Not a prompt strategy (that is TranslateModel.prompt_family).
+    # architecture for ASR (what sk_asr_caps.arch reports), llama.cpp's general.architecture
+    # for translate, audio.cpp's family for TTS. Not a prompt strategy (that is
+    # TranslateModel.prompt_family).
     graph_family: str = ""
 ```
 
 `_tc_row` gains a keyword `arch=""` and passes `graph_family=arch` to `AsrModel(...)`; `_llm_translate_row` gains `arch=""` and passes `graph_family=arch`; `_tts_gguf_row` passes `graph_family=family`. Then every call site gets its value:
 
-- translate: `qwen2.5-0.5b → arch="qwen2"`, `qwen3-0.6b → "qwen3"`, `qwen3.5-0.8b/2b/4b → "qwen35"`, `translategemma-4b → "gemma3"`, `eurollm-1.7b → "llama"`, `hy-mt2-1.8b/7b, hy-mt15-1.8b/7b → "hunyuan-dense"`. These are llama.cpp's `general.architecture` strings; confirm each against the downloaded default rung with `PYTHONPATH=. .venv/bin/python -c "from sokuji_sidecar.gguf_header import read_header; print(read_header('<path>').architecture)"` where the file is cached (Qwen3-0.6B is), and fix the literal if it differs — the test in Step 6 pins the cached ones.
-- ASR: the transcribe.cpp architecture, which is the `src/arch/<name>` directory in the pinned transcribe.cpp source (list it with `ls native/build/cpu/_deps/transcribe-src/src/arch/`). Map by id family: `whisper-*` and `breeze-asr-25` → `whisper`; `moonshine-*` → `moonshine`; `parakeet-*`, `multitalker-parakeet-*` → `parakeet`; `canary-*` (not `canary-qwen`) → `canary`; `canary-qwen-2.5b` → `canary_qwen`; `gigaam-*` → `gigaam`; `granite-*` → `granite`; `sense-voice` → `sensevoice`; `cohere-transcribe-03-2026` → `cohere`; `moss-transcribe-diarize` → `moss`; `qwen3-asr-*` → `qwen3_asr`; `voxtral-*` → `voxtral`; `fun-asr-*` → `fun_asr`; `nemotron-*` → `nemotron`. Where the directory listing spells a name differently, use the directory's spelling — that is the string `sk_asr_caps.arch` reports, which Task 8's test pins for the cached whisper/moonshine files.
+- translate — llama.cpp's `general.architecture` string: `qwen2.5-0.5b → arch="qwen2"`, `qwen3-0.6b → "qwen3"`, `qwen3.5-0.8b/2b/4b → "qwen35"`, `translategemma-4b → "gemma3"`, `eurollm-1.7b → "llama"`, `hy-mt2-1.8b/7b, hy-mt15-1.8b/7b → "hunyuan-dense"`. Only Qwen3-0.6B is cached, so only that one is pinned by a test; for the others confirm against the pinned llama.cpp source once `build/cpu` is configured: `grep -n '"qwen35"\|"gemma3"\|"hunyuan-dense"\|"hunyuan"' native/build/cpu/_deps/llama-src/src/llama-arch.cpp` — use the spelling that file has (the spec's §3.2.1 wrote `hunyuan`; the arch table decides, and the recording file, when one is made, is named after it).
+- ASR — the transcribe.cpp architecture, i.e. the `src/arch/<name>` directory in the pinned transcribe.cpp source (`ls native/build/cpu/_deps/transcribe-src/src/arch/`; at the 0.2.3 pin the names are `canary canary_qwen cohere funasr_nano gigaam granite granite_nar medasr moonshine moonshine_streaming moss parakeet qwen3_asr sensevoice voxtral voxtral_realtime whisper`). Map by card id:
+  - `whisper-*` and `breeze-asr-25` → `whisper`
+  - `moonshine-tiny`, `moonshine-base`, `moonshine-base-*` → `moonshine`; `moonshine-streaming-*` → `moonshine_streaming`
+  - `parakeet-*` and `multitalker-parakeet-streaming-0.6b-v1` → `parakeet`
+  - `canary-180m-flash`, `canary-1b-flash`, `canary-1b-v2` → `canary`; `canary-qwen-2.5b` → `canary_qwen`
+  - `gigaam-*` → `gigaam`
+  - `granite-speech-4.1-2b`, `granite-speech-4.1-2b-plus`, `granite-4.0-1b-speech` → `granite`; `granite-speech-4.1-2b-nar` → `granite_nar`
+  - `sense-voice` → `sensevoice`; `cohere-transcribe-03-2026` → `cohere`; `moss-transcribe-diarize` → `moss`; `qwen3-asr-*` → `qwen3_asr`
+  - `voxtral-mini-3b`, `voxtral-small-24b` → `voxtral`; `voxtral-mini-4b-realtime` → `voxtral_realtime`
+  - `fun-asr-nano`, `fun-asr-mlt-nano` → `funasr_nano`
+  - `nemotron-3.5-asr-streaming`, `nemotron-speech-streaming-en` → there is no `nemotron` directory; find which arch transcribe.cpp registers those repos under with `grep -rn -i "nemotron" native/build/cpu/_deps/transcribe-src/src --include=*.cpp --include=*.h | head` and use that directory's name (expected: `parakeet`, the cache-aware FastConformer family). `arch=""` is not acceptable — `test_every_card_has_a_graph_family` refuses it.
+
+  Where the directory listing spells a name differently from the list above, the directory wins — that is the string `sk_asr_caps.arch` reports, which `test_asr_graph_family_matches_native_arch` pins for the cached whisper and moonshine-streaming files.
 
 Add near `_tc_row`:
 
@@ -2273,6 +2526,7 @@ Add near `_tc_row`:
 # WEIGHT over, when the file is not on disk yet; deliberately wide (a *_M file mixes K-quants,
 # the q8_0 TTS files carry BF16 weights, everything carries F32). Once the file exists its
 # header's real set replaces this (accel.weight_dtypes). Spellings are ggml_type_name()'s.
+# gen_ops_data.py's WIDEST_FALLBACK is len() of the q4_k_m set — keep them in step.
 RUNG_FALLBACK_DTYPES: dict[str, frozenset[str]] = {
     "q4_k_m": frozenset({"q4_K", "q5_K", "q6_K", "q8_0", "bf16", "f16", "f32"}),
     "q5_k_m": frozenset({"q5_K", "q6_K", "q8_0", "bf16", "f16", "f32"}),
@@ -2283,44 +2537,61 @@ RUNG_FALLBACK_DTYPES: dict[str, frozenset[str]] = {
 }
 ```
 
-If Step 3's fallback test reports a cached file with `i32`/`i64` (omnivoice, index, voxcpm2 carry index tensors), add those names to every set — they are never weights a backend refuses, and the test is the authority.
+If `test_rung_fallback_sets_cover_cached_ggufs` reports a cached file with `i32`/`i64` (omnivoice, index, voxcpm2 carry index tensors), add those names to every set — they are never weights a backend refuses, and the test is the authority. If it then reports a larger K-quant in a smaller rung's file, widen that rung's set the same way and bump `WIDEST_FALLBACK` in `native/cmake/gen_ops_data.py` if `q4_k_m` grew.
 
 - [ ] **Step 5: Run the catalog tests**
 
 Run: `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests/test_catalog.py -q -p no:cacheprovider 2>&1 | tail -2`
-Expected: all pass (the existing card-shape tests are unaffected: `graph_family` is keyword-only with a default).
+Expected: all pass (the existing card-shape tests are unaffected: `graph_family` is keyword-only with a default; `test_every_tts_family_has_an_op_recording` passes because Task 4 committed the nine files).
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add sidecar/sokuji_sidecar/gguf_header.py sidecar/sokuji_sidecar/catalog.py sidecar/tests/test_gguf_header.py sidecar/tests/test_catalog.py
-git commit -m "catalog: graph_family on every card, a header-only GGUF reader, and the per-rung fallback dtype sets"
+git commit -m "catalog: graph_family on every card (pinned to sk_asr_caps.arch and the GGUF header), a header-only GGUF reader, the per-rung fallback dtype sets"
 ```
 
 ---
 
-### Task 8: `DeviceProfile` and `generation` on `Machine`; the two new detectors; `native.py` wrappers
+### Task 8: `DeviceProfile` and `generation` on `Machine`; the two new detectors; `native.py` wrappers; the shared test fixture
 
 **Files:**
-- Modify: `sidecar/sokuji_sidecar/accel.py` (`Machine`, new dataclasses, detectors, `probe()`), `sidecar/sokuji_sidecar/native.py`
-- Modify: `sidecar/tests/test_accel.py` (the `_isolate_probe` fixture applied to every `probe(force=True)` test; `_FakeDev` keyword fields; `_fake_native_module` growth; new tests)
+- Modify: `sidecar/sokuji_sidecar/accel.py` (`Machine`, new dataclasses, detectors, `probe()` at :142), `sidecar/sokuji_sidecar/native.py`
+- Modify: `sidecar/tests/test_accel.py` (`_FakeDev` :917, `_fake_native_module` :929, an autouse fixture, new tests; `import dataclasses`)
+- Create: `sidecar/tests/_fixtures.py` (`_known_gpu_machine`, imported by `test_accel.py` and `test_planner.py`; `tests/` has no `__init__.py`, so pytest's default prepend import mode puts `tests/` on `sys.path` and `from _fixtures import ...` resolves)
 - Test: `sidecar/tests/test_accel.py`
 
 **Interfaces:**
 - Consumes: Task 2/5's binding (`sokuji_native.device_profiles()`, `device_supports_ops()`).
 - Produces:
   ```python
-  @dataclass(frozen=True) class DeviceProfile: index, kind, name, description, mem_total, known, features: frozenset[str], driver_name, driver_version, device_uuid, cpu_features
-  @dataclass(frozen=True) class OpCoverage: all_supported: bool; unsupported: tuple[str, ...]
-  Machine.devices: tuple[DeviceProfile, ...] = ();  Machine.generation: str = ""
-  accel._native_profiles() -> tuple[DeviceProfile, ...];  accel._native_identity() -> tuple[str, dict] | None
+  @dataclass(frozen=True) class DeviceProfile: index, kind, name, description, mem_total, known, features: frozenset, driver_name, driver_version, device_uuid, cpu_features
+  @dataclass(frozen=True) class OpCoverage: all_supported: bool; unsupported: tuple
+  Machine.devices: tuple = ();  Machine.generation: str = ""
+  accel._native_profiles() -> tuple;  accel._native_identity() -> tuple[str, dict] | None
   accel.compute_generation(identity, devices) -> str          # pure; used by probe()
   native.device_profiles() -> list;  native.device_supports_ops(index, stage, family, dtypes)
+  tests/_fixtures.py: _known_gpu_machine(kind="vulkan") -> Machine   # two known devices, generation "G1"
   ```
 
 - [ ] **Step 1: Write the failing tests**
 
-In `sidecar/tests/test_accel.py`, extend `_FakeDev` and `_fake_native_module`:
+Create `sidecar/tests/_fixtures.py`:
+
+```python
+"""Machines with a known device profile (spec A). Shared by test_accel.py and test_planner.py."""
+from sokuji_sidecar import accel
+
+
+def _known_gpu_machine(kind="vulkan"):
+    dev = accel.DeviceProfile(0, kind, f"{kind}0", "GB10", 96 << 30, True, frozenset(), "NVIDIA", "580", "ab" * 16, "")
+    cpu = accel.DeviceProfile(1, "cpu", "CPU", "CPU", 120 << 30, True, frozenset(), "", "", "", "NEON=1")
+    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, apple_silicon=False,
+                         installed=frozenset({"native_tts", "native_translate", "native_asr"}), fingerprint="fp",
+                         tc_kinds=(kind, "cpu"), gpus=((kind, "GB10", 96 << 30),), devices=(dev, cpu), generation="G1")
+```
+
+In `sidecar/tests/test_accel.py` add `import dataclasses` and `from _fixtures import _known_gpu_machine` to the imports, then replace `_FakeDev` and `_fake_native_module` (lines 917-942) with:
 
 ```python
 class _FakeDev:
@@ -2331,7 +2602,13 @@ class _FakeDev:
         self.driver_name, self.driver_version, self.device_uuid, self.cpu_features = driver_name, driver_version, device_uuid, cpu_features
 
 
-def _fake_native_module(monkeypatch, devs, *, version="1.0.1", engine_versions=None, profiles=True, supports=None):
+_DEFAULT_FAKE_ENGINE_VERSIONS = {
+    "ggml": "0.22.0", "transcribe": "0.2.3", "llama": "0.3.0",
+    "audiocpp": "0.7.1", "lane": "cpu-vulkan",
+}
+
+
+def _fake_native_module(monkeypatch, devs, *, version="1.0.2", engine_versions=None, profiles=True, supports=None):
     """`profiles=False` mimics a 1.0.x wheel (no device_profiles / device_supports_ops at all).
     `supports(index, stage, family, dtypes)` returns an object with .all_supported/.unsupported/.checked."""
     import sys, types
@@ -2350,13 +2627,17 @@ def _fake_native_module(monkeypatch, devs, *, version="1.0.1", engine_versions=N
     return mod
 ```
 
-Add a fixture used by every existing `probe(force=True)` test (add `_isolate_probe` to each such test's parameters, or make it `autouse=True` in a `probe` marker; simplest: `autouse=True` for the module, since every test in this file that probes already patches the four detectors — the two new ones default to "nothing"):
+(If the existing `version="1.0.1"` / `"0.2.2"` / `"0.7.0"` defaults are asserted by name anywhere in the file, keep those tests' expectations by passing the old values explicitly at those call sites.)
+
+Add one module-level autouse fixture right after `_fake_native_module`:
 
 ```python
 @pytest.fixture(autouse=True)
-def _isolate_probe(monkeypatch):
-    """The two spec-A detectors default to 'nothing' for every test in this module; tests that
-    want profiles patch them (or install a fake native module) explicitly."""
+def _isolate_profiles(monkeypatch):
+    """The two spec-A detectors default to 'nothing' for every test in this module, so the
+    pre-existing probe(force=True) tests keep their machines. A test that wants the real
+    detectors calls monkeypatch.undo() first — the same MonkeyPatch instance serves the
+    fixture and the test, so undo() drops exactly these two patches."""
     monkeypatch.setattr(accel, "_native_profiles", lambda: ())
     monkeypatch.setattr(accel, "_native_identity", lambda: None)
 ```
@@ -2365,7 +2646,7 @@ and the new tests:
 
 ```python
 def test_probe_fills_devices_and_generation(monkeypatch):
-    monkeypatch.undo()   # this test wants the real detectors over the fake module
+    monkeypatch.undo()   # real detectors over the fake module
     _fake_native_module(monkeypatch, [
         _FakeDev(0, "vulkan", "NVIDIA GB10", 96 << 30, 90 << 30, features={"vk_integer_dot", "vk_coopmat"},
                  driver_name="NVIDIA", driver_version="580.65.06", device_uuid="ab" * 16),
@@ -2385,8 +2666,10 @@ def test_generation_moves_with_version_pin_driver_and_env_but_not_free_memory(mo
     monkeypatch.undo()
     def gen(version="1.1.0", pins=None, driver="580", free=90 << 30, env=None):
         for k in list(os.environ):
-            if k.startswith("GGML_"): monkeypatch.delenv(k)
-        for k, v in (env or {}).items(): monkeypatch.setenv(k, v)
+            if k.startswith("GGML_"):
+                monkeypatch.delenv(k)
+        for k, v in (env or {}).items():
+            monkeypatch.setenv(k, v)
         _fake_native_module(monkeypatch, [_FakeDev(0, "vulkan", "GB10", 96 << 30, free, driver_name="NVIDIA", driver_version=driver, device_uuid="ab" * 16)],
                             version=version, engine_versions=pins)
         monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
@@ -2407,7 +2690,8 @@ def test_probe_degrades_per_detector(monkeypatch):
     _fake_native_module(monkeypatch, [_FakeDev(0, "cpu", "CPU", 8 << 30, 7 << 30)], version="1.1.0")
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_installed", lambda: frozenset())
-    def boom(): raise RuntimeError("no")
+    def boom():
+        raise RuntimeError("no")
     monkeypatch.setattr(accel, "_native_profiles", boom)
     m = accel.probe(force=True)
     assert m.devices == () and m.generation != ""            # profiles failed, identity still keyed
@@ -2416,16 +2700,22 @@ def test_probe_degrades_per_detector(monkeypatch):
     assert m.generation == ""
 
 
-def test_old_wheel_without_profiles_degrades(monkeypatch):
+def test_old_wheel_without_profiles_degrades_to_todays_plans(monkeypatch):
+    """Spec A §4: a 1.0.x wheel (no device_profiles / device_supports_ops) yields devices=(),
+    a version-keyed generation, and EXACTLY the plans a profile-less machine gets."""
     monkeypatch.undo()
     _fake_native_module(monkeypatch, [_FakeDev(0, "vulkan", "GB10", 96 << 30, 90 << 30)], version="1.0.2", profiles=False)
     monkeypatch.setattr(accel, "_apple_silicon", lambda: False)
     monkeypatch.setattr(accel, "_installed", lambda: frozenset({"native_tts"}))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    monkeypatch.setattr(accel, "bench_load", lambda: {})
     m = accel.probe(force=True)
     assert m.devices == () and m.generation != ""
+    bare = dataclasses.replace(m, devices=(), generation="")
+    assert accel.resolve_tts("voxcpm2", machine=m) == accel.resolve_tts("voxcpm2", machine=bare)
 ```
 
-Run: `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests/test_accel.py -k "generation or profiles or old_wheel or degrades_per" -q -p no:cacheprovider` — Expected: FAIL (`_native_profiles` missing; `Machine` has no `devices`).
+Run: `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests/test_accel.py -k "generation or profiles or old_wheel or degrades_per" -q -p no:cacheprovider` — Expected: FAIL (`_native_profiles` missing; `Machine` has no `devices`; `_fixtures` imports `accel.DeviceProfile`).
 
 - [ ] **Step 2: Implement**
 
@@ -2479,7 +2769,7 @@ and two fields at the end of `Machine`:
     generation: str = ""
 ```
 
-Two detectors beside `_native_gpus`:
+Two detectors beside `_native_gpus` (:69):
 
 ```python
 def _native_profiles() -> tuple:
@@ -2522,6 +2812,8 @@ and in `probe()`:
         devices=devices, generation=compute_generation(identity, devices))
 ```
 
+(`_safe(fn, default)` is `probe()`'s existing per-detector guard; if it is spelled differently in the file, use that name.)
+
 - [ ] **Step 3: Run the accel suite**
 
 Run: `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests/test_accel.py -q -p no:cacheprovider 2>&1 | tail -2`
@@ -2530,8 +2822,8 @@ Expected: all pass, including every pre-existing `probe(force=True)` test (the a
 - [ ] **Step 4: Commit**
 
 ```bash
-git add sidecar/sokuji_sidecar/accel.py sidecar/sokuji_sidecar/native.py sidecar/tests/test_accel.py
-git commit -m "accel: DeviceProfile and generation on Machine; _native_profiles/_native_identity detectors; native.py wrappers"
+git add sidecar/sokuji_sidecar/accel.py sidecar/sokuji_sidecar/native.py sidecar/tests/test_accel.py sidecar/tests/_fixtures.py
+git commit -m "accel: DeviceProfile and generation on Machine; _native_profiles/_native_identity detectors; native.py wrappers; shared known-GPU fixture"
 ```
 
 ---
@@ -2539,8 +2831,8 @@ git commit -m "accel: DeviceProfile and generation on Machine; _native_profiles/
 ### Task 9: Cache generations — `_cache_key` on both sides, `bench_read`, `bench_save` with rotation and atomic write
 
 **Files:**
-- Modify: `sidecar/sokuji_sidecar/planner.py` (`_cache_key`; `_resolve_model` and `resolve_translate._tps` read side), `sidecar/sokuji_sidecar/accel.py` (`_measure`, `bench_read`, `bench_save`)
-- Modify: `sidecar/tests/test_planner.py:395, 408, 512, 848`, `sidecar/tests/test_accel.py:393-398, 407-410, 427`
+- Modify: `sidecar/sokuji_sidecar/planner.py` (`_cache_key` after `_bench_key` :183; `_resolve_model` :187 and `resolve_translate._tps` :353 read side), `sidecar/sokuji_sidecar/accel.py` (`_measure` :511, `bench_load` :490, `bench_save` :500)
+- Modify: `sidecar/tests/test_planner.py` (`import dataclasses`; the four cache-building sites at :393-396, :405-408, :509-514, :846-849), `sidecar/tests/test_accel.py`
 - Test: both files
 
 **Interfaces:**
@@ -2553,8 +2845,7 @@ git commit -m "accel: DeviceProfile and generation on Machine; _native_profiles/
 ```python
 def test_bench_save_rotates_generations_and_drops_legacy_keys(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
-    # legacy flat file from before generations
-    (tmp_path / "accel-bench.json").write_text('{"fp|whisper-base|native_asr|cpu|q8_0": 0.5}')
+    (tmp_path / "accel-bench.json").write_text('{"fp|whisper-base|native_asr|cpu|q8_0": 0.5}')   # legacy flat file
     entries, gens = accel.bench_read()
     assert entries == {"fp|whisper-base|native_asr|cpu|q8_0": 0.5} and gens == []
     accel.bench_save({**entries, "G1|fp|m|b|d|c": 1.0}, generation="G1")
@@ -2571,11 +2862,13 @@ def test_bench_save_rotates_generations_and_drops_legacy_keys(tmp_path, monkeypa
 def test_bench_save_is_atomic(tmp_path, monkeypatch):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     accel.bench_save({"G1|k": 1.0}, generation="G1")
-    def broken_dump(*a, **k): raise OSError("disk full")
-    monkeypatch.setattr(accel.json, "dump", broken_dump)
-    accel.bench_save({"G1|k": 2.0}, generation="G1")       # never raises
-    monkeypatch.undo()
+    def broken_dump(*a, **k):
+        raise OSError("disk full")
+    with monkeypatch.context() as mp:                      # scope ONLY the json.dump patch; the env stays
+        mp.setattr(accel.json, "dump", broken_dump)
+        accel.bench_save({"G1|k": 2.0}, generation="G1")   # never raises
     assert accel.bench_read()[0] == {"G1|k": 1.0}          # the old file survived intact
+    assert not (tmp_path / "accel-bench.json.tmp").exists()
 
 
 def test_measure_keys_by_generation(monkeypatch, tmp_path):
@@ -2584,26 +2877,42 @@ def test_measure_keys_by_generation(monkeypatch, tmp_path):
     m2 = dataclasses.replace(m1, generation="G2")
     plan = accel.Plan("native_asr", "cpu", "cpu", "q8_0", "r/f.gguf", 2.0, None)
     calls = []
-    run = lambda backend: (calls.append(1), 0.42)[1]
+    def run(backend):
+        calls.append(1)
+        return 0.42
     assert accel._measure(None, plan, "whisper-base", m1, ns="", run=run) == 0.42
     assert accel._measure(None, plan, "whisper-base", m1, ns="", run=run) == 0.42 and len(calls) == 1   # hit
     assert accel._measure(None, plan, "whisper-base", m2, ns="", run=run) == 0.42 and len(calls) == 2   # miss across generations
     assert accel.planner._cache_key(m1, "", "whisper-base", "native_asr", "cpu", "q8_0") in accel.bench_load()
 ```
 
-`sidecar/tests/test_planner.py` — update the four cache-building sites (395, 408, 512, 848) from `_bench_key(m.fingerprint, ...)` to `_cache_key(m, "", ...)` / `_cache_key(m, "tps:", ...)`, and add:
+(`accel.Plan` and `_measure`'s `run=` seam are the existing names at `accel.py:511`; if `Plan` is only importable from `planner`, use `accel.planner.Plan`.)
+
+`sidecar/tests/test_planner.py` — add `import dataclasses`; update the four cache-building sites from `planner._bench_key(m.fingerprint, ...)` to `planner._cache_key(m, "", ...)` (:393-396, :405-408, :509-514) and from `"tps:" + planner._bench_key(m.fingerprint, ...)` to `planner._cache_key(m, "tps:", ...)` (:846-849) — those machines have `generation=""`, so the keys read `|fp|...` and the tests keep passing; then add:
 
 ```python
 def test_bench_entries_are_read_only_within_their_generation():
-    m = _machine_gpu(generation="G1")          # whichever helper the file uses; add generation=
+    m = dataclasses.replace(_nv_machine(24576), generation="G1")
     key = planner._cache_key(m, "", "whisper-base", "native_asr", "vulkan", "q8_0")
     cpu_key = planner._cache_key(m, "", "whisper-base", "native_asr", "cpu", "q8_0")
-    cache = {key: 2.0, cpu_key: 1.0}                                 # GPU slower than CPU → demoted
+    cache = {key: 0.8, cpu_key: 0.3}                                 # GPU slower than CPU → demoted
     plans = planner.resolve("whisper-base", machine=m, platform="linux", cache=cache, downloaded=set())
     assert plans[0].device == "cpu"
     m2 = dataclasses.replace(m, generation="G2")
     plans = planner.resolve("whisper-base", machine=m2, platform="linux", cache=cache, downloaded=set())
     assert plans[0].device == "vulkan"                               # G1 numbers are invisible under G2
+
+
+def test_translate_tps_entries_are_read_only_within_their_generation():
+    m = dataclasses.replace(_nv_machine(12282, installed=frozenset({"native_translate"})), generation="G1")
+    cache = {
+        planner._cache_key(m, "tps:", "translategemma-4b", "native_translate", "vulkan", "q8_0"): 5.0,
+        planner._cache_key(m, "tps:", "translategemma-4b", "native_translate", "cpu", "q8_0"): 12.0,
+    }
+    kw = dict(platform="linux", cache=cache, downloaded=set(), est_bytes=lambda d: d.est_bytes, format_ready=lambda ct: True)
+    assert planner.resolve_translate("translategemma-4b", "auto", machine=m, **kw)[0].device == "cpu"          # E6 swap under G1
+    m2 = dataclasses.replace(m, generation="G2")
+    assert planner.resolve_translate("translategemma-4b", "auto", machine=m2, **kw)[0].device == "vulkan"     # invisible under G2
 ```
 
 Run both files — Expected: FAIL (`bench_read`, `_cache_key`, `generation=` kwargs missing).
@@ -2628,7 +2937,7 @@ _GENERATIONS_KEY = "_generations"
 _KEEP_GENERATIONS = 3
 
 
-def bench_read() -> tuple[dict, list]:
+def bench_read() -> tuple:
     """(entries, generations). Missing/corrupt file → ({}, []). A legacy flat file (no
     _generations) reads as generation-less: its keys can never match a prefixed read."""
     try:
@@ -2651,6 +2960,8 @@ def bench_save(entries: dict, *, generation: str) -> None:
     """Best-effort write. Rotates the generation list (last 3 kept), keeps a key iff its first
     `|` segment is in the post-rotation list (legacy and rotated-out keys are dropped), and
     writes through a temp file + os.replace so a crash never leaves a torn file. Never raises."""
+    path = _bench_cache_path()
+    tmp = path + ".tmp"
     try:
         _old, gens = bench_read()
         if generation and generation not in gens:
@@ -2658,15 +2969,13 @@ def bench_save(entries: dict, *, generation: str) -> None:
         gens = gens[-_KEEP_GENERATIONS:]
         keep = set(gens)
         kept = {k: v for k, v in entries.items() if k.split("|", 1)[0] in keep}
-        path = _bench_cache_path()
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        tmp = path + ".tmp"
         with open(tmp, "w") as f:
             json.dump({_GENERATIONS_KEY: gens, **kept}, f)
         os.replace(tmp, path)
     except Exception:
         try:
-            os.remove(path + ".tmp")
+            os.remove(tmp)
         except Exception:
             pass
 ```
@@ -2685,43 +2994,43 @@ git commit -m "accel/planner: bench keys carry the cache generation on both side
 
 ---
 
-### Task 10: Op coverage in accel — `weight_dtypes`, `compute_op_coverage`, `op_coverage_for`, `cached_op_coverage`
+### Task 10: Op coverage in accel — `weight_dtypes`, the dtype-keyed `_ops_key`, `compute_op_coverage`, `op_coverage_for`, `cached_op_coverage`
 
 **Files:**
-- Modify: `sidecar/sokuji_sidecar/accel.py`
+- Modify: `sidecar/sokuji_sidecar/accel.py` (imports; new functions after `_downloaded_quants`), `sidecar/sokuji_sidecar/planner.py` (`_STAGE_OF_BACKEND`)
 - Test: `sidecar/tests/test_accel.py`
 
 **Interfaces:**
-- Consumes: Task 7's `RUNG_FALLBACK_DTYPES`, `gguf_header.read_header`; Task 8's `OpCoverage`, `native.device_supports_ops`; Task 9's `bench_read`/`bench_save`.
+- Consumes: Task 7's `RUNG_FALLBACK_DTYPES`, `gguf_header.read_header`; Task 8's `OpCoverage`, `native.device_supports_ops`; Task 9's `bench_load`/`bench_save`.
 - Produces:
   ```python
-  accel.weight_dtypes(model, compute_type) -> tuple[str, ...]
+  accel.weight_dtypes(model, compute_type) -> tuple[str, ...]                       # sorted
+  accel._ops_key(machine, index, stage, family, compute_type, weight_dtypes) -> str  # gen|ops:idx:stage:family:ct:dt1+dt2+...
   accel.compute_op_coverage(machine, device_index, stage, family, compute_type, weight_dtypes) -> OpCoverage | None
   accel.op_coverage_for(machine, model, override) -> Callable[[int, str, str, str], OpCoverage | None]   # precomputed dict .get
-  accel.cached_op_coverage(machine) -> Callable[[int, str, str, str], OpCoverage | None]              # read-only
-  accel._ops_key(machine, index, stage, family, compute_type) -> str
+  accel.cached_op_coverage(machine, models) -> Callable[[int, str, str, str], OpCoverage | None]        # read-only, over the given cards
+  planner._STAGE_OF_BACKEND: dict[str, str]
   ```
+  The callable signature is `(device_index, stage, family, compute_type)` everywhere; the dtype set is folded into the key by these two factories and never crosses into the planner.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```python
-def _known_gpu_machine(kind="vulkan"):
-    dev = accel.DeviceProfile(0, kind, f"{kind}0", "GB10", 96 << 30, True, frozenset(), "NVIDIA", "580", "ab" * 16, "")
-    cpu = accel.DeviceProfile(1, "cpu", "CPU", "CPU", 120 << 30, True, frozenset(), "", "", "", "NEON=1")
-    return accel.Machine(os="Linux", arch="x86_64", cpu_cores=8, apple_silicon=False,
-                         installed=frozenset({"native_tts", "native_translate", "native_asr"}), fingerprint="fp",
-                         tc_kinds=(kind, "cpu"), gpus=((kind, "GB10", 96 << 30),), devices=(dev, cpu), generation="G1")
-
-
 def test_weight_dtypes_prefers_the_file_header_over_the_fallback(monkeypatch, tmp_path):
-    from sokuji_sidecar import catalog
     card = catalog.tts_model("voxcpm2")
     monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)                 # not on disk
     assert set(accel.weight_dtypes(card, "q8_0")) == catalog.RUNG_FALLBACK_DTYPES["q8_0"]
     hdr = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"q8_0", "bf16", "f32"}), 3)
     monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: str(tmp_path / "x.gguf"))
     monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: hdr)
-    assert set(accel.weight_dtypes(card, "q8_0")) == {"q8_0", "bf16", "f32"}
+    assert accel.weight_dtypes(card, "q8_0") == ("bf16", "f32", "q8_0")                   # sorted
+
+
+def test_ops_key_carries_the_dtype_set():
+    m = _known_gpu_machine()
+    a = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0", "bf16", "f32"))
+    b = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0", "bf16", "f16", "f32"))
+    assert a == "G1|ops:0:tts:voxcpm2:q8_0:bf16+f32+q8_0" and a != b                   # pre- and post-download differ
 
 
 def test_compute_op_coverage_caches_ok_and_not_errors(monkeypatch, tmp_path):
@@ -2734,35 +3043,45 @@ def test_compute_op_coverage_caches_ok_and_not_errors(monkeypatch, tmp_path):
         calls.append((i, s, f, tuple(dts)))
         return types.SimpleNamespace(all_supported=False, unsupported=("NORM[f32,-,-,-,-]->f32",), checked=("NORM[f32,-,-,-,-]->f32",))
     monkeypatch.setattr(native, "device_supports_ops", supports)
-    cov = accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0", "f32"))
+    cov = accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("f32", "q8_0"))
     assert cov == accel.OpCoverage(False, ("NORM[f32,-,-,-,-]->f32",))
-    assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0", "f32")) == cov and len(calls) == 1
-    key = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0")
+    assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("f32", "q8_0")) == cov and len(calls) == 1
+    key = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("f32", "q8_0"))
     assert accel.bench_load()[key] == {"allSupported": False, "unsupported": ["NORM[f32,-,-,-,-]->f32"]}
+    # a different dtype set is a different question
+    accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("bf16", "f32", "q8_0"))
+    assert len(calls) == 2
     # errors are None and never cached
     class E(Exception):
-        def __init__(self, status): self.status = status
-    def not_found(i, s, f, dts): raise E(-4)      # SK_ERR_NOT_FOUND
+        def __init__(self, status):
+            self.status = status
+    def not_found(i, s, f, dts):
+        raise E(-4)      # SK_ERR_NOT_FOUND
     monkeypatch.setattr(native, "device_supports_ops", not_found)
     assert accel.compute_op_coverage(m, 0, "asr", "whisper", "q8_0", ("q8_0",)) is None
-    assert accel._ops_key(m, 0, "asr", "whisper", "q8_0") not in accel.bench_load()
-    def backend(i, s, f, dts): raise E(-3)        # SK_ERR_BACKEND
+    assert accel._ops_key(m, 0, "asr", "whisper", "q8_0", ("q8_0",)) not in accel.bench_load()
+    def backend(i, s, f, dts):
+        raise E(-3)      # SK_ERR_BACKEND
     monkeypatch.setattr(native, "device_supports_ops", backend)
     assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "bf16", ("bf16",)) is None
-    def invalid(i, s, f, dts): raise E(-1)        # SK_ERR_INVALID_ARGUMENT: a programming error
+    def invalid(i, s, f, dts):
+        raise E(-1)      # SK_ERR_INVALID_ARGUMENT: a programming error
     monkeypatch.setattr(native, "device_supports_ops", invalid)
-    monkeypatch.setenv("SOKUJI_WIRE_STRICT", "1")
-    with pytest.raises(Exception):
+    with pytest.raises(E):                                                 # conftest sets SOKUJI_WIRE_STRICT=1
         accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0",))
+    monkeypatch.setenv("SOKUJI_WIRE_STRICT", "0")
+    assert accel.compute_op_coverage(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0",)) is None   # production: degrade
 
 
 def test_op_coverage_for_precomputes_only_what_the_planner_may_gate(monkeypatch, tmp_path):
     import types
-    from sokuji_sidecar import catalog, native
+    from sokuji_sidecar import native
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     calls = []
-    monkeypatch.setattr(native, "device_supports_ops",
-                        lambda i, s, f, dts: (calls.append((i, f, s)), types.SimpleNamespace(all_supported=True, unsupported=(), checked=()))[1])
+    def supports(i, s, f, dts):
+        calls.append((i, f, s))
+        return types.SimpleNamespace(all_supported=True, unsupported=(), checked=())
+    monkeypatch.setattr(native, "device_supports_ops", supports)
     monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
     card = catalog.tts_model("voxcpm2")                    # two rungs: q8_0, bf16
     m = _known_gpu_machine()
@@ -2774,37 +3093,43 @@ def test_op_coverage_for_precomputes_only_what_the_planner_may_gate(monkeypatch,
     accel.op_coverage_for(m, card, "cpu")
     assert calls == []                                                              # explicit CPU: nothing computed
     m2 = dataclasses.replace(m, devices=())
-    accel.op_coverage_for(m2, card, "auto"); assert calls == []
+    accel.op_coverage_for(m2, card, "auto")
+    assert calls == []
     m3 = dataclasses.replace(m, devices=(dataclasses.replace(m.devices[0], known=False), m.devices[1]))
-    accel.op_coverage_for(m3, card, "auto"); assert calls == []
-    # two GPUs of one kind: only the first is queried
+    accel.op_coverage_for(m3, card, "auto")
+    assert calls == []
     second = dataclasses.replace(m.devices[0], index=2, name="vulkan2", description="other")
     m4 = dataclasses.replace(m, devices=(m.devices[0], second, m.devices[1]))
     accel.op_coverage_for(m4, card, "auto")
-    assert {c[0] for c in calls} == {0}
+    assert {c[0] for c in calls} == {0}                                             # two GPUs of one kind: only the first
 
 
 def test_cached_op_coverage_reads_only(monkeypatch, tmp_path):
     from sokuji_sidecar import native
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
     m = _known_gpu_machine()
+    card = catalog.tts_model("voxcpm2")
     monkeypatch.setattr(native, "device_supports_ops", lambda *a: pytest.fail("read-only callable reached native"))
-    cb = accel.cached_op_coverage(m)
-    assert cb(0, "tts", "voxcpm2", "q8_0") is None
-    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0"): {"allSupported": False, "unsupported": ["X"]}}, generation="G1")
-    assert accel.cached_op_coverage(m)(0, "tts", "voxcpm2", "q8_0") == accel.OpCoverage(False, ("X",))
+    assert accel.cached_op_coverage(m, [card])(0, "tts", "voxcpm2", "q8_0") is None
+    dts = accel.weight_dtypes(card, "q8_0")                                         # the fallback set: what the miss was keyed by
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", dts): {"allSupported": False, "unsupported": ["X"]}}, generation="G1")
+    assert accel.cached_op_coverage(m, [card])(0, "tts", "voxcpm2", "q8_0") == accel.OpCoverage(False, ("X",))
 ```
 
-Run — Expected: FAIL (names missing).
+Run: `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests/test_accel.py -k "coverage or weight_dtypes or ops_key" -q -p no:cacheprovider` — Expected: FAIL (names missing).
 
 - [ ] **Step 2: Implement**
 
-In `accel.py` (after `_downloaded_quants`):
+At the top of `accel.py` add `import logging` to the stdlib imports and `from . import gguf_header` beside the other intra-package imports. In `planner.py` (used by both this task and Task 11):
 
 ```python
-from . import gguf_header  # noqa: E402  (top of file with the other intra-package imports)
+_STAGE_OF_BACKEND = {"native_asr": "asr", "native_asr_stream": "asr", "native_translate": "translate", "native_tts": "tts"}
+```
 
+In `accel.py` after `_downloaded_quants`:
 
+```python
 def _artifact_path(model, compute_type: str):
     """Local path of the rung's GGUF if it is in the HF cache, else None."""
     from . import catalog as _cat
@@ -2824,7 +3149,7 @@ def _artifact_path(model, compute_type: str):
 
 def weight_dtypes(model, compute_type: str) -> tuple:
     """The dtype set WEIGHT expands over (spec A premise 7): the file's real header set when
-    the rung is on disk, else the rung's deliberately wide fallback set."""
+    the rung is on disk, else the rung's deliberately wide fallback set. Sorted, so it keys."""
     from . import catalog as _cat
     path = _artifact_path(model, compute_type)
     if path:
@@ -2835,21 +3160,26 @@ def weight_dtypes(model, compute_type: str) -> tuple:
     return tuple(sorted(_cat.RUNG_FALLBACK_DTYPES.get(compute_type, frozenset({"f32"}))))
 
 
-def _ops_key(machine: Machine, device_index: int, stage: str, family: str, compute_type: str) -> str:
-    return f"{machine.generation}|ops:{device_index}:{stage}:{family}:{compute_type}"
+def _ops_key(machine: Machine, device_index: int, stage: str, family: str, compute_type: str, weight_dtypes_) -> str:
+    """gen|ops:idx:stage:family:ct:dt1+dt2 — the dtype set is part of the question, so the
+    pre-download (fallback-set) answer and the post-download (header-set) answer coexist."""
+    return f"{machine.generation}|ops:{device_index}:{stage}:{family}:{compute_type}:{'+'.join(sorted(weight_dtypes_))}"
 
 
 def _stage_of_model(model) -> str:
     return planner._STAGE_OF_BACKEND.get(model.deployments[0].backend, "")
 
 
+_OK_TO_MISS = (-4, -3)          # SK_ERR_NOT_FOUND (no recording), SK_ERR_BACKEND (Vulkan first-init threw)
+
+
 def compute_op_coverage(machine: Machine, device_index: int, stage: str, family: str,
-                        compute_type: str, weight_dtypes_: tuple):
-    """native.device_supports_ops once per key, cached in the bench file. NOT_FOUND (no
-    recording yet) and BACKEND (the Vulkan first-init exception) return None uncached;
-    INVALID_ARGUMENT / INTERNAL are programming errors: raise under SOKUJI_WIRE_STRICT."""
+                        compute_type: str, weight_dtypes_):
+    """native.device_supports_ops once per key, cached in the bench file. NOT_FOUND and
+    BACKEND return None uncached; every other error is a programming error — raise under
+    SOKUJI_WIRE_STRICT (the test suite), log and degrade in production."""
     from . import native
-    key = _ops_key(machine, device_index, stage, family, compute_type)
+    key = _ops_key(machine, device_index, stage, family, compute_type, weight_dtypes_)
     entries = bench_load()
     if key in entries:
         v = entries[key]
@@ -2857,8 +3187,7 @@ def compute_op_coverage(machine: Machine, device_index: int, stage: str, family:
     try:
         cov = native.device_supports_ops(device_index, stage, family, weight_dtypes_)
     except Exception as e:                       # NativeError carries .status
-        status = getattr(e, "status", None)
-        if status in (-4, -3):                   # SK_ERR_NOT_FOUND, SK_ERR_BACKEND
+        if getattr(e, "status", None) in _OK_TO_MISS:
             return None
         if os.environ.get("SOKUJI_WIRE_STRICT") == "1":
             raise
@@ -2874,91 +3203,105 @@ def _first_device_of_kind(machine: Machine, kind: str):
     return next((d for d in machine.devices if d.kind == kind), None)
 
 
-def op_coverage_for(machine: Machine, model, override: str):
-    """What the resolve wrappers hand the planner: a dict.get over results PRECOMPUTED here —
-    for each GPU tier _tier_available accepts, the FIRST device of that kind, this card's
-    graph_family, and every rung the card lists. Nothing is computed for an explicit CPU
-    load, without profiles, or when the device is not known (spec A §3.3)."""
-    results = {}
-    if override == "cpu" or not machine.devices or model is None:
-        return results.get
-    stage = _stage_of_model(model)
-    seen_kinds = set()
+def _gpu_targets(machine: Machine, model):
+    """(device, tier) for each GPU tier the card lists that _tier_available accepts — the FIRST
+    known device of that kind (native.device_for picks the first too). Empty without profiles."""
+    out, seen = [], set()
     for d in model.deployments:
         if d.tier == "cpu" or not _tier_available(d.tier, machine, d.backend):
             continue
         kind = TIER_DEVICE[d.tier]
-        if kind in seen_kinds:
+        if kind in seen:
             continue
+        seen.add(kind)
         dev = _first_device_of_kind(machine, kind)
-        if dev is None or not dev.known:
-            continue
-        seen_kinds.add(kind)
+        if dev is not None and dev.known:
+            out.append((dev, d.tier))
+    return out
+
+
+def op_coverage_for(machine: Machine, model, override: str):
+    """What the resolve wrappers hand the planner: a dict.get over results PRECOMPUTED here —
+    per accepted GPU tier, this card's graph_family, every rung the card lists, each keyed by
+    that rung's current dtype set. Nothing is computed for an explicit CPU load, without
+    profiles, or when the device is not known (spec A §3.3)."""
+    results = {}
+    if override == "cpu" or not machine.devices or model is None:
+        return results.get
+    stage = _stage_of_model(model)
+    for dev, _tier in _gpu_targets(machine, model):
         for ct in sorted({x.compute_type for x in model.deployments}):
             results[(dev.index, stage, model.graph_family, ct)] = compute_op_coverage(
                 machine, dev.index, stage, model.graph_family, ct, weight_dtypes(model, ct))
     return lambda index, stage_, family, ct: results.get((index, stage_, family, ct))
 
 
-def cached_op_coverage(machine: Machine):
-    """Read-only: what _h_models_catalog / _h_list_variants pass. A miss is None."""
+def cached_op_coverage(machine: Machine, models):
+    """Read-only twin of op_coverage_for for the wire producers (_h_models_catalog,
+    _h_list_variants): the same keys, looked up in the bench file, never computed. A miss is
+    None. `models` is the list of cards the reply covers."""
     entries = bench_load()
-    def get(index, stage, family, ct):
-        v = entries.get(_ops_key(machine, index, stage, family, ct))
-        return OpCoverage(bool(v.get("allSupported")), tuple(v.get("unsupported", ()))) if isinstance(v, dict) else None
-    return get
+    results = {}
+    if machine.devices:
+        for model in models:
+            stage = _stage_of_model(model)
+            for dev, _tier in _gpu_targets(machine, model):
+                for ct in sorted({x.compute_type for x in model.deployments}):
+                    v = entries.get(_ops_key(machine, dev.index, stage, model.graph_family, ct, weight_dtypes(model, ct)))
+                    if isinstance(v, dict):
+                        results[(dev.index, stage, model.graph_family, ct)] = OpCoverage(bool(v.get("allSupported")), tuple(v.get("unsupported", ())))
+    return lambda index, stage_, family, ct: results.get((index, stage_, family, ct))
 ```
 
-`planner._STAGE_OF_BACKEND` is defined in Task 11; for this task's tests it must exist — add it to `planner.py` now (Task 11 uses it):
-
-```python
-_STAGE_OF_BACKEND = {"native_asr": "asr", "native_asr_stream": "asr", "native_translate": "translate", "native_tts": "tts"}
-```
-
-Wire the resolve wrappers (`resolve`, `resolve_translate`, `resolve_tts`, `resolve_deployments`) to pass `op_coverage=op_coverage_for(m, model, override)` — the planner signatures accept it after Task 11; until then add the keyword to the wrappers only when Task 11 lands (do Tasks 10 and 11 on one branch and run the suite after both).
+(`_tier_available` and `TIER_DEVICE` are already imported from `planner` in `accel.py`'s `from .planner import (...)` block; add them if not.) The four resolve wrappers and `select_variant` gain `op_coverage=` in Task 11 — this task's tests exercise the factories directly.
 
 - [ ] **Step 3: Run**
 
-Run: `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests/test_accel.py -k "coverage or weight_dtypes" -q -p no:cacheprovider` — Expected: PASS.
+Run: `cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests/test_accel.py -k "coverage or weight_dtypes or ops_key" -q -p no:cacheprovider` — Expected: PASS.
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add sidecar/sokuji_sidecar/accel.py sidecar/sokuji_sidecar/planner.py sidecar/tests/test_accel.py
-git commit -m "accel: op coverage — weight dtypes from the GGUF header, compute/precomputed/read-only callables over the generation-keyed cache"
+git commit -m "accel: op coverage — weight dtypes from the GGUF header, dtype-keyed cache entries, precomputed and read-only callables over the generation-keyed cache"
 ```
 
 ---
 
-### Task 11: The planner gate — `_deployment_available`, threading through nine functions, the fit walk sees only runnable rungs, structured R36
+### Task 11: The planner gate — `_deployment_available`, threading through ten functions, the fit walk sees only runnable rungs, structured R36
 
 **Files:**
-- Modify: `sidecar/sokuji_sidecar/planner.py` (`_tier_available` Metal branch; new helpers; signatures of `resolve`, `resolve_translate`, `resolve_tts`, `select_variant`, `resolve_deployments`, `_resolve_model`, `_llamacpp_variant_row`, `_tc_pick_quant`), `sidecar/sokuji_sidecar/accel.py` (the wrappers `resolve_deployments`, `_llamacpp_variant_row`, and passing `op_coverage=` from the four resolve wrappers)
-- Test: `sidecar/tests/test_planner.py`, `sidecar/tests/test_characterization.py` (guard fixture only)
+- Modify: `sidecar/sokuji_sidecar/planner.py` (`_tier_available` :121 Metal branch; new helpers; signatures of `resolve_deployments` :155, `_resolve_model` :187, `_tc_pick_quant` :243, `resolve` :286, `resolve_translate` :304, `resolve_tts` :369, `_llamacpp_variant_row` :474, `select_variant` :552)
+- Modify: `sidecar/sokuji_sidecar/accel.py` (the wrappers `resolve_deployments` :225, `resolve` :231, `resolve_translate` :241, `resolve_tts` :253, `select_variant` :269, `_llamacpp_variant_row` :274)
+- Modify: `sidecar/tests/test_planner.py` (`import dataclasses`, `from _fixtures import _known_gpu_machine`, `from sokuji_sidecar.accel import OpCoverage`), `sidecar/tests/test_characterization.py` (guard fixture + one test)
+- Test: `sidecar/tests/test_planner.py`, `sidecar/tests/test_characterization.py`
 
 **Interfaces:**
-- Produces: `planner._ABORTS_ON_UNSUPPORTED`, `_device_for_tier(machine, tier)`, `_deployment_available(model, d, machine, *, op_coverage)`; every listed function gains `*, op_coverage=_NO_COVERAGE` where `_NO_COVERAGE = lambda *a: None`.
+- Produces: `planner._ABORTS_ON_UNSUPPORTED`, `planner._NO_COVERAGE`, `_device_for_tier(machine, tier)`, `_deployment_available(model, d, machine, *, op_coverage)`; every listed planner function gains `*, op_coverage=_NO_COVERAGE`; every listed accel wrapper gains `op_coverage=None` and forwards `op_coverage or planner._NO_COVERAGE` — except the four resolve wrappers, which compute `op_coverage_for(m, model, override)` themselves.
 
 - [ ] **Step 1: Write the failing planner tests**
 
 ```python
-_NONE = lambda *a: None
+_NONE = planner._NO_COVERAGE if hasattr(planner, "_NO_COVERAGE") else (lambda *a: None)
+
+
 def _cov(all_supported, unsupported=()):
-    from sokuji_sidecar.accel import OpCoverage
     return lambda i, s, f, ct: OpCoverage(all_supported, tuple(unsupported))
+
+
 def _cov_for(mapping):   # {(stage, family, ct): OpCoverage}
     return lambda i, s, f, ct: mapping.get((s, f, ct))
 
 
 def test_deployment_available_unknown_profile_is_tier_available():
-    m = _machine_gpu()                                            # devices=() by default
+    m = _nv_machine(24576)                                        # devices=() by default
     for card in (catalog.tts_model("voxcpm2"), catalog.translate_model("qwen3-0.6b"), catalog.asr_model("whisper-base")):
         for d in card.deployments:
             assert planner._deployment_available(card, d, m, op_coverage=_NONE) == planner._tier_available(d.tier, m, d.backend)
 
 
 def test_deployment_available_tts_refuses_gpu_on_unsupported_node_only():
-    m = _known_gpu_machine()                                      # reuse from test_accel or define here
+    m = _known_gpu_machine()
     card = catalog.tts_model("voxcpm2")
     gpu = next(d for d in card.deployments if d.tier == "gpu-vulkan" and d.compute_type == "q8_0")
     cpu = next(d for d in card.deployments if d.tier == "cpu" and d.compute_type == "q8_0")
@@ -2978,7 +3321,9 @@ def test_deployment_available_asr_translate_never_refuse():
 def test_deployment_available_unknown_backend_passes():
     m = _known_gpu_machine()
     d = catalog.Deployment("ctranslate2", "gpu-vulkan", "int8", "r", 1.0, est_bytes=1)
-    class Card: graph_family = "x"; deployments = (d,)
+    class Card:
+        graph_family = "x"
+        deployments = (d,)
     assert planner._deployment_available(Card, d, m, op_coverage=_cov(False)) is True
 
 
@@ -2986,21 +3331,20 @@ def test_refused_tts_rung_lands_on_cpu_row_under_pin_downloaded_and_gpu_override
     m = _known_gpu_machine()
     cov = _cov_for({("tts", "voxcpm2", "bf16"): OpCoverage(False, ("MUL_MAT[bf16,f32,-,-,-]->f32",)),
                     ("tts", "voxcpm2", "q8_0"): OpCoverage(True, ())})
-    # pin
-    plans = planner.resolve_tts("voxcpm2", machine=m, platform="linux", cache={}, pin="bf16", op_coverage=cov)
+    kw = dict(machine=m, platform="linux", cache={}, est_bytes=lambda d: d.est_bytes, op_coverage=cov)
+    plans = planner.resolve_tts("voxcpm2", pin="bf16", downloaded=set(), **kw)                         # pin
     assert plans[0].device == "cpu" and plans[0].compute_type == "bf16"
-    # downloaded
-    plans = planner.resolve_tts("voxcpm2", machine=m, platform="linux", cache={}, downloaded=frozenset({"bf16"}), op_coverage=cov)
+    plans = planner.resolve_tts("voxcpm2", downloaded=frozenset({"bf16"}), **kw)                        # downloaded
     assert plans[0].device == "cpu" and plans[0].compute_type == "bf16"
-    # override gpu with the rung pinned
-    plans = planner.resolve_tts("voxcpm2", "gpu", machine=m, platform="linux", cache={}, pin="bf16", op_coverage=cov)
+    plans = planner.resolve_tts("voxcpm2", "gpu", pin="bf16", downloaded=set(), **kw)                   # override gpu + pin
     assert plans[0].device == "cpu" and plans[0].compute_type == "bf16"
 
 
 def test_fit_walk_sees_only_runnable_rungs():
     m = _known_gpu_machine()                                      # 96 GiB: bf16 fits
     cov = _cov_for({("tts", "voxcpm2", "bf16"): OpCoverage(False, ("X",)), ("tts", "voxcpm2", "q8_0"): OpCoverage(True, ())})
-    plans = planner.resolve_tts("voxcpm2", machine=m, platform="linux", cache={}, op_coverage=cov)
+    plans = planner.resolve_tts("voxcpm2", machine=m, platform="linux", cache={}, downloaded=set(),
+                                est_bytes=lambda d: d.est_bytes, op_coverage=cov)
     assert plans[0].device == "vulkan" and plans[0].compute_type == "q8_0"       # not bf16-on-cpu
 
 
@@ -3015,7 +3359,7 @@ def test_tier_available_metal_uses_the_structured_bit_when_known():
     assert planner._tier_available("gpu-metal", vm_named) is False                                                   # string rule kept
 ```
 
-(`_known_gpu_machine` from Task 10's tests: move it to a shared `sidecar/tests/_fixtures.py` or duplicate it here.) Run — Expected: FAIL.
+(`resolve_tts`'s real keyword set is at `planner.py:369` — `cache`, `downloaded`, `pin`, `est_bytes`; pass exactly those.) Run — Expected: FAIL (`_deployment_available` missing; `op_coverage` unexpected keyword).
 
 - [ ] **Step 2: Implement the gate and thread it**
 
@@ -3065,23 +3409,46 @@ def _deployment_available(model, d, machine: Machine, *, op_coverage=_NO_COVERAG
         return machine.apple_silicon or "metal" in machine.tc_kinds
 ```
 
-Then thread `*, op_coverage=_NO_COVERAGE` through and use it:
+(`_paravirtual_metal_only` is the existing string rule's helper; keep whatever the branch calls today and add the two `dev` lines after it.) Then thread `*, op_coverage=_NO_COVERAGE` through and use it:
+
 - `resolve_deployments(model, machine, override="auto", bench=None, *, platform, op_coverage=_NO_COVERAGE)`: the `usable` comprehension uses `_deployment_available(model, d, machine, op_coverage=op_coverage)` instead of `_tier_available(...)`.
 - `_resolve_model(..., *, cache, platform, op_coverage=_NO_COVERAGE)` passes it to `resolve_deployments`.
-- `_tc_pick_quant(model, machine, pin, budget, downloaded=None, *, op_coverage=_NO_COVERAGE)`: `gpu_possible = any(_deployment_available(model, d, machine, op_coverage=op_coverage) and d.tier != "cpu" for d in model.deployments)`, and **before** the fit walk: `sizes = {q: s for q, s in sizes.items() if any(d.compute_type == q and d.tier != "cpu" and _deployment_available(model, d, machine, op_coverage=op_coverage) for d in model.deployments)} or sizes` — only when `gpu_possible` (the `or sizes` keeps the walk non-empty if nothing has a GPU row, which then falls to the existing default logic).
+- `_tc_pick_quant(model, machine, pin, budget, downloaded=None, *, op_coverage=_NO_COVERAGE)`: `gpu_possible = any(d.tier != "cpu" and _deployment_available(model, d, machine, op_coverage=op_coverage) for d in model.deployments)`, and **before** the fit walk, only when `gpu_possible`: `sizes = {q: s for q, s in sizes.items() if any(d.compute_type == q and d.tier != "cpu" and _deployment_available(model, d, machine, op_coverage=op_coverage) for d in model.deployments)} or sizes` (the `or sizes` keeps the walk non-empty if nothing has a GPU row, which then falls to the existing default logic).
 - `_llamacpp_variant_row(..., *, est_bytes, op_coverage=_NO_COVERAGE)`: `_row()` uses `_deployment_available(model, d, machine, op_coverage=op_coverage)`; `gpu_possible` likewise; and before `_fit_walk`: restrict `quants` to rungs with at least one available GPU row (same shape as above, `or quants`).
 - `select_variant(..., *, est_bytes, format_ready, op_coverage=_NO_COVERAGE)`: pass through to `_llamacpp_variant_row`; `candidate()` uses `_deployment_available`.
-- `resolve`, `resolve_translate`, `resolve_tts`: accept and pass `op_coverage` to `_tc_pick_quant` / `select_variant` / `_llamacpp_variant_row` / `_resolve_model`.
+- `resolve`, `resolve_translate`, `resolve_tts`: accept `op_coverage=_NO_COVERAGE` and pass it to `_tc_pick_quant` / `select_variant` / `_llamacpp_variant_row` / `_resolve_model`.
 
-In `accel.py`: `resolve_deployments(..., *, platform=None, op_coverage=None)` passes `op_coverage=op_coverage or planner._NO_COVERAGE`; `_llamacpp_variant_row(...)` wrapper gains `op_coverage=None` and passes it; the four resolve wrappers compute `cov = op_coverage_for(m, model, override)` and pass `op_coverage=cov`.
+In `accel.py` — six wrappers:
+
+```python
+def resolve_deployments(model, machine, override="auto", bench=None, *, platform=None, op_coverage=None):
+    return planner.resolve_deployments(
+        model, machine, override, bench,
+        platform=platform if platform is not None else current_platform(),
+        op_coverage=op_coverage or planner._NO_COVERAGE)
+
+
+def select_variant(model, machine, reserved_bytes, pin=None, budget_bytes=None, downloaded=None, op_coverage=None):
+    return planner.select_variant(model, machine, reserved_bytes, pin, budget_bytes, downloaded,
+                                  est_bytes=_est_bytes, format_ready=_format_ready,
+                                  op_coverage=op_coverage or planner._NO_COVERAGE)
+
+
+def _llamacpp_variant_row(model, machine, pin, reserved_bytes=0, budget_bytes=None, downloaded=None, op_coverage=None):
+    return planner._llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
+                                         downloaded=downloaded, est_bytes=_est_bytes,
+                                         op_coverage=op_coverage or planner._NO_COVERAGE)
+```
+
+and in `resolve`, `resolve_translate`, `resolve_tts` (:231-266) add `op_coverage=op_coverage_for(m, model, override)` to the `planner.resolve_*` call — computed AFTER `model` is looked up and `m` probed, so a missing card yields `op_coverage_for(m, None, ...)` (returns the empty `.get`) and the planner raises its usual `ValueError`.
 
 - [ ] **Step 3: The characterisation guard**
 
-In `sidecar/tests/test_characterization.py`, extend the autouse fixture:
+In `sidecar/tests/test_characterization.py` add `from sokuji_sidecar import native` to the imports and extend the autouse fixture `_nothing_downloaded` (:89):
 
 ```python
     monkeypatch.setattr(accel, "compute_op_coverage", lambda *a, **k: pytest.fail("native reached with devices=()"))
-    monkeypatch.setattr(accel.native, "module", lambda: pytest.fail("native reached with devices=()"))
+    monkeypatch.setattr(native, "module", lambda: pytest.fail("native reached with devices=()"))
 ```
 
 and add one test:
@@ -3100,7 +3467,7 @@ Expected: all pass; every matrix row unchanged.
 
 ```bash
 git add sidecar/sokuji_sidecar/planner.py sidecar/sokuji_sidecar/accel.py sidecar/tests/test_planner.py sidecar/tests/test_characterization.py
-git commit -m "planner: _deployment_available at every gate (tts refuses on op coverage; asr/translate record), fit walk over runnable rungs, structured R36"
+git commit -m "planner: _deployment_available at every gate (tts refuses on op coverage; asr/translate record), fit walk over runnable rungs, structured R36; wrappers thread op_coverage"
 ```
 
 ---
@@ -3108,8 +3475,11 @@ git commit -m "planner: _deployment_available at every gate (tts refuses on op c
 ### Task 12: Wire producers — `hardware_info_result.generation/devices`, `tiers[].available`, `variants[].unsupportedTiers`, the schema
 
 **Files:**
-- Modify: `sidecar/sokuji_sidecar/accel.py` (`_h_hardware_info`, `_h_models_catalog`), `sidecar/sokuji_sidecar/wire_schema.json`
+- Modify: `sidecar/sokuji_sidecar/accel.py` (`_h_list_variants` :619, `_h_hardware_info` :731, `_h_models_catalog` :748), `sidecar/sokuji_sidecar/wire_schema.json:4`
 - Test: `sidecar/tests/test_accel.py`
+
+**Interfaces:**
+- Produces on the wire: `hardware_info_result.generation: str | null`, `.devices: [{index, kind, name, description, memTotalMb, known, features[], driverName, driverVersion, deviceUuid, cpuFeatures, opCoverage: {"stage/family/ct": {allSupported, unsupported[]}}}] | null`; `models_catalog_result.models[].variants[].unsupportedTiers?: [tier]`; `tiers[].available` now means "some rung can execute there".
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -3120,45 +3490,69 @@ async def _call(handler, msg):
 
 
 def test_hardware_info_carries_profiles_and_cached_coverage(monkeypatch, tmp_path):
-    import asyncio
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
     m = _known_gpu_machine()
     monkeypatch.setattr(accel, "probe", lambda force=False: m)
     monkeypatch.setattr(accel, "_engine_identity", lambda m: ("1.1.0", {"ggml": "0.22.0"}, "cpu-vulkan", {"kind": "vulkan", "name": "vulkan0", "description": "GB10"}))
-    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0"): {"allSupported": False, "unsupported": ["NORM[f32,-,-,-,-]->f32"]}}, generation="G1")
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("bf16", "f32", "q8_0")): {"allSupported": False, "unsupported": ["NORM[f32,-,-,-,-]->f32"]}}, generation="G1")
     monkeypatch.setattr(accel, "compute_op_coverage", lambda *a, **k: pytest.fail("hardware_info must not compute coverage"))
     out = asyncio.run(_call(accel._h_hardware_info, {"type": "hardware_info", "id": 7}))
     assert out["generation"] == "G1"
     dev = out["devices"][0]
     assert dev["kind"] == "vulkan" and dev["known"] and dev["deviceUuid"] == "ab" * 16 and dev["driverName"] == "NVIDIA"
     assert dev["opCoverage"] == {"tts/voxcpm2/q8_0": {"allSupported": False, "unsupported": ["NORM[f32,-,-,-,-]->f32"]}}
-    assert out["devices"][1]["cpuFeatures"] == "NEON=1"
+    assert out["devices"][1]["cpuFeatures"] == "NEON=1" and out["devices"][1]["opCoverage"] == {}
     from sokuji_sidecar import wire
     wire.validate_outbound(out)                                       # schema lists the two new optional fields
 
 
-def test_models_catalog_marks_unsupported_tiers_but_keeps_supported_true(monkeypatch, tmp_path):
-    import asyncio
+def test_hardware_info_without_profiles_is_todays_wire_plus_nulls(monkeypatch, tmp_path):
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = dataclasses.replace(_known_gpu_machine(), devices=(), generation="")
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    monkeypatch.setattr(accel, "_engine_identity", lambda m: (None, None, None, None))
+    out = asyncio.run(_call(accel._h_hardware_info, {"type": "hardware_info", "id": 8}))
+    assert out["generation"] is None and out["devices"] is None
+
+
+def test_models_catalog_marks_unsupported_tiers_but_keeps_supported_true(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)          # both rungs keyed by their fallback sets
     m = _known_gpu_machine()
     monkeypatch.setattr(accel, "probe", lambda force=False: m)
-    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "bf16"): {"allSupported": False, "unsupported": ["X"]},
-                      accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0"): {"allSupported": True, "unsupported": []}}, generation="G1")
+    card = catalog.tts_model("voxcpm2")
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "bf16", accel.weight_dtypes(card, "bf16")): {"allSupported": False, "unsupported": ["X"]},
+                      accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", accel.weight_dtypes(card, "q8_0")): {"allSupported": True, "unsupported": []}}, generation="G1")
     out = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 1, "kind": "tts", "models": ["voxcpm2"]}))
-    card = out["models"][0]
-    vulkan = next(t for t in card["tiers"] if t["tier"] == "gpu-vulkan")
+    card_out = out["models"][0]
+    vulkan = next(t for t in card_out["tiers"] if t["tier"] == "gpu-vulkan")
     assert vulkan["available"] is True                                # q8_0 can execute there
-    by_id = {v["id"]: v for v in card["variants"]}
+    by_id = {v["id"]: v for v in card_out["variants"]}
     assert by_id["bf16"]["supported"] is True and by_id["bf16"]["unsupportedTiers"] == ["gpu-vulkan"]
     assert by_id["q8_0"]["supported"] is True and "unsupportedTiers" not in by_id["q8_0"]
+    from sokuji_sidecar import wire
+    wire.validate_outbound(out)
     # cache miss → exactly today's wire
     monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path / "empty"))
     out2 = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 2, "kind": "tts", "models": ["voxcpm2"]}))
     assert all("unsupportedTiers" not in v for v in out2["models"][0]["variants"])
     assert next(t for t in out2["models"][0]["tiers"] if t["tier"] == "gpu-vulkan")["available"] is True
+
+
+def test_models_catalog_tier_unavailable_when_every_rung_is_refused(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
+    m = _known_gpu_machine()
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    card = catalog.tts_model("voxcpm2")
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", ct, accel.weight_dtypes(card, ct)): {"allSupported": False, "unsupported": ["X"]}
+                      for ct in {d.compute_type for d in card.deployments}}, generation="G1")
+    out = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 3, "kind": "tts", "models": ["voxcpm2"]}))
+    assert next(t for t in out["models"][0]["tiers"] if t["tier"] == "gpu-vulkan")["available"] is False
+    assert next(t for t in out["models"][0]["tiers"] if t["tier"] == "cpu")["available"] is True
 ```
 
-(If the handlers require a `conn`, pass `None` as they already tolerate.) Run — Expected: FAIL.
+(`asyncio` and `dataclasses` are imported at the top of `test_accel.py` after Task 8; the handlers take `(state, msg, _b, conn=None)` and tolerate `None` for all but `msg`.) Run — Expected: FAIL (`generation` missing from the reply; `unsupportedTiers` missing; `wire.validate_outbound` raises on the unknown key under `SOKUJI_WIRE_STRICT=1`).
 
 - [ ] **Step 2: Implement**
 
@@ -3168,44 +3562,44 @@ def test_models_catalog_marks_unsupported_tiers_but_keeps_supported_true(monkeyp
   "hardware_info_result": {"required": ["id", "os", "arch", "cpuCores", "gpus", "backendsInstalled", "accelAvailable"], "optional": ["nativeVersion", "engineVersions", "lane", "preferredDevice", "generation", "devices"]},
 ```
 
-`_h_hardware_info` — add after `"preferredDevice": preferred_device`:
+(and, if the `models_catalog_result` row enumerates variant fields, add `unsupportedTiers` to its optional list the same way — check with `grep -n unsupported sidecar/sokuji_sidecar/wire_schema.json`; if the schema does not descend into variants, nothing else changes.)
+
+`_h_hardware_info` — the reply dict gains, after `"preferredDevice": preferred_device`:
 
 ```python
             "generation": m.generation or None,
             "devices": _devices_wire(m) or None}, None
 ```
 
-with:
+with, above it:
 
 ```python
 def _devices_wire(m: Machine) -> list:
-    """Spec A §3.4: the profile plus whatever op coverage is already cached — read-only."""
+    """Spec A §3.4: the profile plus whatever op coverage is already cached — read-only. The
+    wire key drops the dtype segment; when both a pre-download and a post-download entry
+    exist for one rung, the later-written one wins (JSON preserves write order)."""
     if not m.devices:
         return []
     entries = bench_load()
     prefix = f"{m.generation}|ops:"
-    out = []
-    for d in m.devices:
-        cov = {}
-        for k, v in entries.items():
-            if not (k.startswith(prefix) and isinstance(v, dict)):
-                continue
-            _, _, idx, stage, family, ct = k.split("|", 1)[1].split(":", 5)[0:1] + k.split(":", 5)[1:6] if False else (None, None, *k.split(":", 4)[1:5])
-            if int(idx) == d.index:
-                cov[f"{stage}/{family}/{ct}"] = {"allSupported": bool(v.get("allSupported")), "unsupported": list(v.get("unsupported", ()))}
-        out.append({"index": d.index, "kind": d.kind, "name": d.name, "description": d.description,
-                    "memTotalMb": d.mem_total >> 20, "known": d.known, "features": sorted(d.features),
-                    "driverName": d.driver_name, "driverVersion": d.driver_version, "deviceUuid": d.device_uuid,
-                    "cpuFeatures": d.cpu_features, "opCoverage": cov})
-    return out
+    per_device = {d.index: {} for d in m.devices}
+    for k, v in entries.items():
+        if not (k.startswith(prefix) and isinstance(v, dict)):
+            continue
+        _ops, idx, stage, family, ct, _dtypes = k.split("|", 1)[1].split(":", 5)
+        if int(idx) in per_device:
+            per_device[int(idx)][f"{stage}/{family}/{ct}"] = {"allSupported": bool(v.get("allSupported")), "unsupported": list(v.get("unsupported", ()))}
+    return [{"index": d.index, "kind": d.kind, "name": d.name, "description": d.description,
+             "memTotalMb": d.mem_total >> 20, "known": d.known, "features": sorted(d.features),
+             "driverName": d.driver_name, "driverVersion": d.driver_version, "deviceUuid": d.device_uuid,
+             "cpuFeatures": d.cpu_features, "opCoverage": per_device[d.index]}
+            for d in m.devices]
 ```
 
-(Write the key split plainly: `_, idx, stage, family, ct = k.split("|", 1)[1].split(":", 4)` — the key is `gen|ops:idx:stage:family:ct`, so after removing `gen|` the parts are `ops`, `idx`, `stage`, `family`, `ct`. Replace the obfuscated line above with that.)
-
-`_h_models_catalog`: replace the `tiers` loop and the variants loop so both use `_deployment_available` with the read-only callable:
+`_h_models_catalog`: compute `cov = cached_op_coverage(m, models)` right after `models` is filtered, then make both the `tiers` loop and the variants loop use `_deployment_available` with it:
 
 ```python
-    cov = cached_op_coverage(m)
+    cov = cached_op_coverage(m, models)
     for mdl in models:
         tiers = []
         seen_tiers = set()
@@ -3215,9 +3609,15 @@ def _devices_wire(m: Machine) -> list:
             if d.tier in seen_tiers:
                 continue
             seen_tiers.add(d.tier)
-            any_rung = any(x.tier == d.tier and x.backend in m.installed and planner._deployment_available(mdl, x, m, op_coverage=cov)
-                           for x in mdl.deployments if _platform_ok(x, m, platform_tag))
+            any_rung = any(x.backend in m.installed and planner._deployment_available(mdl, x, m, op_coverage=cov)
+                           for x in mdl.deployments if x.tier == d.tier and _platform_ok(x, m, platform_tag))
             tiers.append({"tier": d.tier, "backend": d.backend, "available": any_rung})
+        ...
+            if is_llama:
+                chosen = _llamacpp_variant_row(mdl, m, None, 0, budget, op_coverage=cov)
+                rec = chosen.compute_type if chosen is not None else None
+            else:
+                rec = _tc_pick_quant(mdl, m, None, budget, op_coverage=cov)
         ...
             for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
                 ...
@@ -3232,7 +3632,7 @@ def _devices_wire(m: Machine) -> list:
                 variants.append(entry_v)
 ```
 
-and pass `op_coverage=cov` to the two direct planner calls (`_llamacpp_variant_row(mdl, m, None, 0, budget, op_coverage=cov)`, `_tc_pick_quant(mdl, m, None, budget, op_coverage=cov)`). `_h_list_variants` passes `op_coverage=cov` to `select_variant`.
+`_h_list_variants`: `cov = cached_op_coverage(m, [model])` after `model` is found, and `select_variant(model, m, reserve, pin=msg.get("pin"), budget_bytes=_quant_budget_bytes(m), op_coverage=cov)`.
 
 - [ ] **Step 3: Run the suite**
 
@@ -3250,75 +3650,82 @@ git commit -m "wire: hardware_info_result carries the device profiles and cached
 ### Task 13: Renderer — wire types, forwarding into LogsPanel, store fields, the once-per-session warning, the enabled "runs on CPU here" note
 
 **Files:**
-- Modify: `src/lib/local-inference/native/nativeProtocol.ts:41-43, 50-60, 71-78`
+- Modify: `src/lib/local-inference/native/nativeProtocol.ts:41-43` (variants), `:58-68` (`HardwareInfoResultMsg`), `:72-79` (`VariantInfo`)
 - Modify: `src/services/clients/LocalNativeClient.ts:89-96`
-- Modify: `src/stores/nativeModelStore.ts` (`NativeEngineInfo` untouched; new fields `deviceProfiles`, `profileGeneration`, `reportedUnsupportedOps`; the ready transition)
+- Modify: `src/stores/nativeModelStore.ts` (`NativeEngineInfo` untouched; new fields `deviceProfiles`, `profileGeneration`, `reportedUnsupportedOps`; the ready transition at ~455)
 - Modify: `src/components/Settings/sections/NativeModelManagementSection.tsx:105-150, 523-550`
 - Modify: `src/locales/*/translation.json` (30 files): `models.variantRunsOnCpu`
 - Test: `src/stores/nativeModelStore.test.ts`, `src/components/Settings/sections/NativeModelManagementSection.test.tsx`, `src/lib/local-inference/native/nativeProtocol.consistency.test.ts` (existing; must keep passing)
 
 **Interfaces:**
-- Consumes: Task 12's wire fields.
+- Consumes: Task 12's wire fields (`hardware_info_result.generation`, `.devices[]` with `opCoverage` keyed `"stage/family/compute_type"`; `variants[].unsupportedTiers`).
 - Produces: `HardwareInfoResultMsg.generation?: string | null`, `.devices?: NativeDeviceProfile[] | null`; `NativeModelInfo.variants[number].unsupportedTiers?: string[]`; `VariantInfo.unsupportedTiers?: string[]`; store fields `deviceProfiles: NativeDeviceProfile[] | null`, `profileGeneration: string | null`.
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Step 1: Write the failing store tests**
 
-`src/stores/nativeModelStore.test.ts` — beside the existing ready-transition test (the one at line ~456 that `toEqual`s `engineInfo`), add:
+`src/stores/nativeModelStore.test.ts` drives the ready path through `mockModelsCatalogResolve()` + `mockHardwareInfoResolve(overrides)` (the `FakeWS` reply table) and `ensureCatalog()`; the engineInfo test near line 452 is the template. Diagnostics are asserted through `settleReports` and `useLogStore`, the way the file's existing report assertions do. Add beside that engineInfo test:
 
 ```ts
-it('keeps device profiles and the generation beside engineInfo, and reports an unsupported tts node once', async () => {
-  const hw = {
-    type: 'hardware_info_result', id: 1, os: 'Linux', arch: 'aarch64', cpuCores: 20, gpus: [], backendsInstalled: [], accelAvailable: true,
-    nativeVersion: '1.1.0', engineVersions: { ggml: '0.22.0' }, lane: 'cpu-vulkan', preferredDevice: null,
-    generation: 'G1',
-    devices: [{ index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: ['vk_coopmat'],
-                driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'ab'.repeat(16), cpuFeatures: '',
-                opCoverage: { 'tts/voxcpm2/q8_0': { allSupported: false, unsupported: ['NORM[f32,-,-,-,-]->f32'] } } }],
-  };
-  const client = fakeClient({ hardwareInfo: async () => hw });        // whatever helper this file already uses for the ready path
-  const warn = vi.spyOn(report, 'reportWarning');
-  await useNativeModelStore.getState().refreshCatalog(client);
+it('keeps device profiles and the generation beside engineInfo, and reports an unsupported tts node once per session', async () => {
+  mockModelsCatalogResolve();
+  const devices = [{
+    index: 0, kind: 'vulkan', name: 'Vulkan0', description: 'GB10', memTotalMb: 98304, known: true, features: ['vk_coopmat'],
+    driverName: 'NVIDIA', driverVersion: '580', deviceUuid: 'ab'.repeat(16), cpuFeatures: '',
+    opCoverage: { 'tts/voxcpm2/q8_0': { allSupported: false, unsupported: ['NORM[f32,-,-,-,-]->f32'] } },
+  }];
+  mockHardwareInfoResolve({ generation: 'G1', devices });
+  useLogStore.getState().clearLogs();
+  await useNativeModelStore.getState().ensureCatalog();
   const s = useNativeModelStore.getState();
-  expect(s.engineInfo).toEqual({ nativeVersion: '1.1.0', engineVersions: { ggml: '0.22.0' }, lane: 'cpu-vulkan', preferredDevice: null });
+  expect(s.engineInfo).toEqual({ nativeVersion: '1.0.2', engineVersions: { ggml: '0.22.0' }, lane: 'cpu-vulkan', preferredDevice: null });  // whatever the file's existing engineInfo expectation is — copy it verbatim
   expect(s.profileGeneration).toBe('G1');
   expect(s.deviceProfiles?.[0].deviceUuid).toBe('ab'.repeat(16));
-  expect(warn).toHaveBeenCalledTimes(1);
-  expect(warn.mock.calls[0][1]).toContain('NORM[f32,-,-,-,-]->f32');
-  await useNativeModelStore.getState().refreshCatalog(client);      // same session, same key → no second report
-  expect(warn).toHaveBeenCalledTimes(1);
+  await settleReports();
+  const warnings = useLogStore.getState().logs.filter((l) => l.level === 'warning' && l.message.includes('NORM[f32,-,-,-,-]->f32'));
+  expect(warnings).toHaveLength(1);
+  expect(warnings[0].message).toContain('GB10');
+  // a second hardware_info in the same session with the same key: no second line
+  useNativeModelStore.setState({ sidecarStatus: 'idle' });   // the field/value the file uses to force ensureCatalog to re-probe — copy from the retry test in this file
+  await useNativeModelStore.getState().ensureCatalog();
+  await settleReports();
+  expect(useLogStore.getState().logs.filter((l) => l.level === 'warning' && l.message.includes('NORM[f32,-,-,-,-]->f32'))).toHaveLength(1);
 });
 
 it('a variant with unsupportedTiers stays pickable and keeps its pin', () => {
-  const info = M('voxcpm2', { variants: [
-    { id: 'q8_0', sizeBytes: 1, supported: true, recommended: true },
-    { id: 'bf16', sizeBytes: 2, supported: true, recommended: false, unsupportedTiers: ['gpu-vulkan'] },
-  ] });
-  useNativeModelStore.setState({ catalog: { voxcpm2: info }, pins: { voxcpm2: 'bf16' } });
-  expect(deriveVariantRepos({ voxcpm2: info }, { voxcpm2: 'bf16' })['voxcpm2']).toBe(info.variants![1].repo ?? info.repo);
+  const card: NativeModelInfo = {
+    ...CARD,                                         // the literal near line 286
+    id: 'voxcpm2', kind: 'tts', repo: 'r/voxcpm2',
+    variants: [
+      { id: 'q8_0', sizeBytes: 1, needBytes: 1, repo: 'r/voxcpm2', supported: true, recommended: true },
+      { id: 'bf16', sizeBytes: 2, needBytes: 2, repo: 'r/voxcpm2-bf16', supported: true, recommended: false, unsupportedTiers: ['gpu-vulkan'] },
+    ],
+  };
+  expect(deriveVariantRepos([card], { voxcpm2: 'bf16' })['voxcpm2']).toBe('r/voxcpm2-bf16');
 });
 ```
 
-(`M(...)` is this file's existing catalog-fixture builder; adapt the pin/derive call to the store's real names — `deriveVariantRepos` and the persisted-pin field are at `nativeModelStore.ts:216-228`.)
+(`useLogStore` is imported from `'./logStore'` and `settleReports` from `'../lib/diagnostics/report'` — both are already imported in this file if any existing test asserts a report; add them if not. `CARD` and `deriveVariantRepos` are the file's own literal and the store's export at `nativeModelStore.ts:215`.)
 
-`NativeModelManagementSection.test.tsx`:
+`NativeModelManagementSection.test.tsx` fixtures its catalog through the hoisted `mockCatalog` record consumed by `vi.mock`, and every test renders `<NativeModelManagementSection />` then reaches rows through `within(screen.getByTestId('model-card-<id>')).getByTestId('variant-row-<id>')` (line ~492 is the template). The `qwen3-tts-1.7b` entry lists variants `bf16`, `fp32`, `int8`. Give its `bf16` variant `unsupportedTiers: ['gpu-vulkan']` in `mockCatalog` and add:
 
 ```tsx
 it('renders "runs on CPU here" on an enabled option when the sidecar refused its GPU tier', () => {
-  renderWithCatalog({ voxcpm2: M('voxcpm2', { variants: [
-    { id: 'q8_0', sizeBytes: 1e9, supported: true, recommended: true },
-    { id: 'bf16', sizeBytes: 2e9, supported: true, recommended: false, unsupportedTiers: ['gpu-vulkan'] },
-  ] }) });
-  const opt = screen.getByTestId('variant-row-bf16') as HTMLOptionElement;
+  render(<NativeModelManagementSection />);
+  const opt = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-bf16') as HTMLOptionElement;
   expect(opt.disabled).toBe(false);
   expect(opt.textContent).toContain('Runs on CPU on this machine');
+  const other = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-int8');
+  expect(other.textContent).not.toContain('Runs on CPU');
 });
 ```
 
-Run: `npx vitest run src/stores/nativeModelStore.test.ts src/components/Settings/sections/NativeModelManagementSection.test.tsx` — Expected: FAIL (fields missing).
+If an existing test in that file asserts the exact `textContent` of `variant-row-bf16` for `qwen3-tts-1.7b`, give the `unsupportedTiers` to a variant no existing test pins instead, and point both assertions at that one.
+
+Run: `npx vitest run src/stores/nativeModelStore.test.ts src/components/Settings/sections/NativeModelManagementSection.test.tsx` — Expected: FAIL (fields missing; the tsc-in-vitest step rejects `unsupportedTiers` on the literal).
 
 - [ ] **Step 2: Types**
 
-`nativeProtocol.ts`: in `NativeModelInfo.variants` add `unsupportedTiers?: string[];` after `recommended: boolean;` with the comment `// gpu tiers the sidecar's op coverage refused for this rung (spec A); the rung still runs on cpu`. Add:
+`nativeProtocol.ts`: in `NativeModelInfo.variants` (line ~41) add `unsupportedTiers?: string[];` after `recommended: boolean;` with the comment `// gpu tiers the sidecar's op coverage refused for this rung (spec A); the rung still runs on cpu`. Add:
 
 ```ts
 /** One device's profile as hardware_info reports it (spec A §3.4). `known=false` means the
@@ -3331,7 +3738,7 @@ export interface NativeDeviceProfile {
 }
 ```
 
-and in `HardwareInfoResultMsg` after `preferredDevice`: `generation?: string | null; devices?: NativeDeviceProfile[] | null;`. In `VariantInfo` add `unsupportedTiers?: string[];`. Run `npx vitest run src/lib/local-inference/native/nativeProtocol.consistency.test.ts` — Expected: PASS (the schema from Task 12 lists both).
+and in `HardwareInfoResultMsg` (lines 58-68) after `preferredDevice`: `generation?: string | null; devices?: NativeDeviceProfile[] | null;`. In `VariantInfo` (72-79) add `unsupportedTiers?: string[];`. Run `npx vitest run src/lib/local-inference/native/nativeProtocol.consistency.test.ts` — Expected: PASS (the schema from Task 12 lists both as optional).
 
 - [ ] **Step 3: Client forwarding and store**
 
@@ -3357,13 +3764,13 @@ with initial values `null`, `null`, `new Set()`; in the ready transition (line ~
           if (get().reportedUnsupportedOps.has(key)) continue;
           get().reportedUnsupportedOps.add(key);
           reportWarning('NativeModelStore',
-            `${key} cannot run on ${dev.description}: ${cov.unsupported.join(', ')} unsupported — it will load on CPU`,
+            `${key} cannot run on ${dev.description}: ${cov.unsupported.join(', ')} unsupported; it will load on CPU`,
             { dedupeKey: 'native.ops.unsupported' });
         }
       }
 ```
 
-Reset the three fields wherever `engineInfo` is reset to `null` (the idle/unavailable transitions).
+`reportWarning` comes from `'../lib/diagnostics/report'` (the store already imports `reportError` from there; extend that import). Reset `deviceProfiles`/`profileGeneration` to `null` wherever `engineInfo` is reset to `null` (the idle/unavailable transitions); `reportedUnsupportedOps` is NOT reset there — it is per session by design.
 
 - [ ] **Step 4: The muted note**
 
@@ -3375,12 +3782,12 @@ Reset the three fields wherever `engineInfo` is reset to `null` (the idle/unavai
               )}
 ```
 
-Add `"variantRunsOnCpu": "Runs on CPU on this machine"` to `models` in `src/locales/en/translation.json` and a translation in each of the other 29 locale files (same key, translated string — follow the pattern of `models.variantNoGpuFits` in each file).
+Add `"variantRunsOnCpu": "Runs on CPU on this machine"` to `models` in `src/locales/en/translation.json` and a translation in each of the other 29 locale files (same key, translated string, placed right after `variantNoGpuFits` in each file so the diff is reviewable).
 
 - [ ] **Step 5: Run the renderer suites and tsc**
 
 Run: `npx vitest run src/stores src/components/Settings src/lib/local-inference && npx tsc --noEmit -p . 2>&1 | grep -c "error TS"`
-Expected: all pass; the `error TS` count is unchanged from `main` (312 today).
+Expected: all pass; the `error TS` count equals the count on `main` (measure it first with `git stash`-free means: run the same grep on a clean `main` worktree, or record the number before Step 2 — it must not grow).
 
 - [ ] **Step 6: Commit**
 
@@ -3396,23 +3803,23 @@ git commit -m "renderer: device profiles and generation from hardware_info into 
 ### Task 14: Release — `native-v1.1.0`, the sidecar pins, `sidecar-v0.3.0`
 
 **Files:**
-- Modify: `sidecar/requirements.txt` (five wheel URLs), `sidecar/tests/test_runtime_gate.py`, `package.json` (`sidecarVersion`), `CLAUDE.md` / `native/README.md` version sentences (if not already at 1.1.0 from Task 1)
+- Modify: `sidecar/requirements.txt` (five wheel URLs), `sidecar/tests/test_runtime_gate.py` (URL prefix at lines 4, 57, 80), `package.json` (`sidecarVersion`)
 
-Every outward act below (push, PR, tag) is done only after jiangzhuo confirms that specific act, naming the target (`kizuna-ai-lab/sokuji`, the branch, the tag).
+Every outward act below (push, PR, merge, tag, `workflow_dispatch`) is done only after jiangzhuo confirms that specific act, naming the target (`kizuna-ai-lab/sokuji`, the branch, the tag). Approval of the work is not approval of the act.
 
-- [ ] **Step 1: Dry run the wheels** — ask to run `native-build.yml` via `workflow_dispatch` on the feature branch; expect five green lanes (`test_common` with the profile assertions passes on the paravirtual Metal runner through the inverse assertion; `test_ops_coverage` runs for the five CI-downloaded models on every lane).
+- [ ] **Step 1: Dry run the wheels** — ask to run `native-build.yml` via `workflow_dispatch` on the feature branch; expect five green lanes (`test_common` with the profile assertions passes on the paravirtual Metal runner through the inverse assertion; `test_ops_coverage` runs for the five CI-downloaded models on every lane and skips the rest).
 - [ ] **Step 2: PR into `main`** — ask to push the branch and open the PR (title: `native+sidecar: device profile, op recordings, cache generations (spec A)`); after review, ask to merge with a merge commit.
-- [ ] **Step 3: Tag `native-v1.1.0` on `main`** — ask; verify first that `main` has `VERSION 1.1.0`, `SK_ABI_VERSION 2` in all three places, and the nine `tts-*.ops` files; push the tag; wait for the five wheels (prerelease).
-- [ ] **Step 4: Pin the sidecar** — on a `chore/sidecar-v0.3.0` branch: `sed -i 's|native-v1\.0\.2/sokuji_native-1\.0\.2-|native-v1.1.0/sokuji_native-1.1.0-|g' sidecar/requirements.txt`, the same in `sidecar/tests/test_runtime_gate.py`, `"sidecarVersion": "0.3.0"` in `package.json`; run the sidecar suite (734+ pass); ask to push + PR + merge.
-- [ ] **Step 5: Tag `sidecar-v0.3.0` on the merge commit** — verify `git show <sha>:sidecar/requirements.txt | grep -c 1.1.0` prints 5 and `sidecarVersion` is 0.3.0; ask; push the tag; wait for `sidecar-bundles.yml` (five bundles + `manifest.json`).
-- [ ] **Step 6: Fleet smoke** — the smoke script from the 0.2.1 release (`smoke.sh <sku> <device> <workdir>`) plus one `hardware_info` assertion: `devices[]` present with `known: true` on GB10 (Vulkan), the Ubuntu 4070 (Vulkan, glibc 2.35) and the M4 (Metal, `mtl_simdgroup_reduction` set).
+- [ ] **Step 3: Tag `native-v1.1.0` on `main`** — verify first: `grep -n 'VERSION 1.1.0' native/CMakeLists.txt`, `grep -c 'SK_ABI_VERSION 2\|sk_version.*1.1.0' native/include/sokuji_native.h native/tests/test_common.cpp`, `ls native/src/ops/tts-*.ops | wc -l` prints 9; ask; push the tag; wait for the five wheels (prerelease).
+- [ ] **Step 4: Pin the sidecar** — on a `chore/sidecar-v0.3.0` branch. The pins in the tree are `native-v1.0.2/sokuji_native-1.0.2-` (five lines in `requirements.txt`, the prefix in `test_runtime_gate.py`); confirm before editing: `grep -c 'native-v1\.0\.2/sokuji_native-1\.0\.2-' sidecar/requirements.txt` prints 5. Then `sed -i -E 's|native-v1\.0\.[0-9]+/sokuji_native-1\.0\.[0-9]+-|native-v1.1.0/sokuji_native-1.1.0-|g' sidecar/requirements.txt sidecar/tests/test_runtime_gate.py`, update the `native-v1.0.2` prose in `test_runtime_gate.py`'s docstring, set `"sidecarVersion": "0.3.0"` in `package.json`; `grep -c 'native-v1.1.0' sidecar/requirements.txt` must print 5; run the sidecar suite (`cd sidecar && PYTHONPATH=. .venv/bin/python -m pytest tests -q -p no:cacheprovider`, all pass); ask to push + PR + merge.
+- [ ] **Step 5: Tag `sidecar-v0.3.0` on the merge commit** — verify `git show <sha>:sidecar/requirements.txt | grep -c native-v1.1.0` prints 5 and `git show <sha>:package.json | grep sidecarVersion` prints 0.3.0; ask; push the tag; wait for `sidecar-bundles.yml` (five bundles + `manifest.json`).
+- [ ] **Step 6: Fleet smoke** — the smoke harness from the 0.2.1 release (`/home/jiangzhuo/.claude/jobs/387091ff/tmp/esl-b2/smoke/smoke.sh <sku> <device> <workdir>`, with `wire_check.py`'s `nativeVersion` assertion bumped to `1.1.0`) plus one `hardware_info` assertion: `devices[]` present with `known: true` on GB10 (Vulkan), the Ubuntu 4070 (Vulkan, glibc 2.35) and the M4 (Metal, `mtl_simdgroup_reduction` in `features`), and `generation` a 12-hex string.
 
 ---
 
 ## Self-review (run after writing; findings fixed inline)
 
-**Spec coverage.** §3.1 profile → Tasks 1–3 (CPU/Metal in 2, Vulkan + matcher + `DENY_BY_FILE` + headers in 3). §3.2 recordings, `WEIGHT` dtype sets, cost/hazard, families, two recording mechanisms, `test_ops_coverage`, checklist → Tasks 4–6. §3.3 `graph_family`/`arch=`, fallback sets, `DeviceProfile`/`OpCoverage`/`Machine` fields, detectors, generation, `_cache_key` both sides, `bench_read`/`bench_save`, `weight_dtypes`, the three coverage callables, nine threaded functions, the gate, fit-walk restriction, structured R36, wire semantics → Tasks 7–12. §3.4 wire + renderer → Tasks 12–13. §3.5 rollout → Task 14. §4 tests: each bullet maps to a test in the task that implements the behaviour; the characterisation guard is Task 11 Step 3; `check_linux_deps` per-file rule is Task 3; the configure-time ABI check is Task 1 Step 8.
+**Spec coverage.** §3.1 profile → Tasks 1–3 (CPU/Metal in 2, Vulkan + matcher + `DENY_BY_FILE` + headers in 3). §3.2 recordings, `WEIGHT` only on rung-bearing src0, identity without sequence axes, dtype sets, the static_assert against `SK_OP_COVERAGE_MAX`, the two recording mechanisms, flash attention on and off, `test_ops_coverage`, the checklist → Tasks 4–6. §3.3 `graph_family`/`arch=`, the three catalog equality tests, fallback sets, `DeviceProfile`/`OpCoverage`/`Machine` fields, detectors, generation, `_cache_key` both sides, `bench_read`/`bench_save`, `weight_dtypes`, the dtype-keyed `_ops_key`, the three coverage callables, ten threaded functions, the gate, fit-walk restriction, structured R36, wire semantics → Tasks 7–12. §3.4 wire + renderer → Tasks 12–13. §3.5 rollout → Task 14. §4 tests: each bullet maps to a test in the task that implements the behaviour (CPU coverage with dtypes-in-file: Task 5; old-wheel `resolve_tts` equality: Task 8; generation under `resolve` AND `resolve_translate`: Task 9; characterisation guard: Task 11 Step 3; `check_linux_deps` per-file rule: Task 3; the configure-time ABI check: Task 1).
 
-**Placeholders.** None: every code step carries the code. Two data-gathering steps are procedural by nature and say exactly what to run and what verifies the result — the ASR/translate `arch=` values (Task 7 Step 4, pinned for cached models by Task 7's tests and `sk_asr_caps.arch`) and the `ggml_backend_i`/`ggml_backend_device_i` initializer orders (Task 4 Step 5, a compile error if wrong).
+**Placeholders.** None: every code step carries the code. Two data-gathering steps are procedural by nature and say exactly what to run and what verifies the result — the ASR/translate `arch=` values (Task 7 Step 4, pinned for the cached whisper/moonshine-streaming/Qwen3 files by Task 7's three equality tests) and the recording invocations (Task 4 Step 7, twelve literal lines whose node counts must be non-zero). The two renderer lines marked "copy from this file" name the exact test they are copied from.
 
-**Type consistency.** `OpCoverage` is `(all_supported, unsupported)` in the sidecar (Tasks 8, 10, 11, 12) and `(all_supported, unsupported, checked)` in the binding (Task 5) — the sidecar's `compute_op_coverage` reads only the first two, as written. The callable signature is `(index, stage, family, compute_type)` everywhere (Tasks 10, 11, 12). `_ops_key` spelling `gen|ops:idx:stage:family:ct` matches `_devices_wire`'s split (Task 12). `DeviceProfile` field order is identical in `accel.py` (Task 8) and the binding (Task 2). Feature-bit names in `_ffi.FEATURE_BITS` (Task 1) match the strings the planner tests (`mtl_simdgroup_reduction`, Task 11) and the C enum comment.
+**Type consistency.** `OpCoverage` is `(all_supported, unsupported)` in the sidecar (Tasks 8, 10, 11, 12) and `(all_supported, unsupported, checked)` in the binding (Task 5) — the sidecar's `compute_op_coverage` reads only the first two. The callable signature is `(index, stage, family, compute_type)` everywhere (Tasks 10, 11, 12); the dtype set is folded into the key by `op_coverage_for` / `cached_op_coverage`, never passed through the planner. `_ops_key` spelling `gen|ops:idx:stage:family:ct:dt1+dt2` matches `_devices_wire`'s `split(':', 5)` (Task 12). `DeviceProfile` field order is identical in `accel.py` (Task 8) and the binding (Task 2). Feature-bit names in `_ffi.FEATURE_BITS` (Task 1) match the strings the planner tests (`mtl_simdgroup_reduction`, Task 11) and the C enum comment. `sk_translate_options{n_ctx, flash_attn}` (Task 1) is what `record_common.h` initialises (Task 4). `sk_record_register_device` / `sk_record_begin` / `sk_record_end_to_file` / `sk_record_node_count` / `sk_ops_blob_count` / `sk_ops_blob_at` are the only recorder symbols crossing the library boundary (Tasks 4–6), all C linkage.
