@@ -866,10 +866,11 @@ async def _h_list_variants(state, msg, _b, conn=None):
         return {"type": "error", "id": msg.get("id"), "message": "unknown model"}, None
     reserve = sum((native_models.model_size(msg.get(k)) or 0)
                   for k in ("asrId", "ttsId") if msg.get(k))
+    cov = cached_op_coverage(m, [model])
     # RECOMMENDATION basis must be STABLE across sessions (it drives which
     # quant the user downloads): device mem_total, not the volatile free.
     chosen = select_variant(model, m, reserve, pin=msg.get("pin"),
-                            budget_bytes=_quant_budget_bytes(m))
+                            budget_bytes=_quant_budget_bytes(m), op_coverage=cov)
     # select_variant can return None for a model with no cpu floor (none today, but
     # resolve_translate guards the same case) — never dereference chosen.compute_type then.
     if chosen is None:
@@ -970,6 +971,28 @@ def _engine_identity(m: Machine):
     return native_version, engine_versions, lane, preferred_device
 
 
+def _devices_wire(m: Machine) -> list:
+    """Spec A §3.4: the profile plus whatever op coverage is already cached — read-only. The
+    wire key drops the dtype segment; when both a pre-download and a post-download entry
+    exist for one rung, the later-written one wins (JSON preserves write order)."""
+    if not m.devices:
+        return []
+    entries = bench_load()
+    prefix = f"{m.generation}|ops:"
+    per_device = {d.index: {} for d in m.devices}
+    for k, v in entries.items():
+        if not (k.startswith(prefix) and isinstance(v, dict)):
+            continue
+        _ops, idx, stage, family, ct, _dtypes = k.split("|", 1)[1].split(":", 5)
+        if int(idx) in per_device:
+            per_device[int(idx)][f"{stage}/{family}/{ct}"] = {"allSupported": bool(v.get("allSupported")), "unsupported": list(v.get("unsupported", ()))}
+    return [{"index": d.index, "kind": d.kind, "name": d.name, "description": d.description,
+             "memTotalMb": d.mem_total >> 20, "known": d.known, "features": sorted(d.features),
+             "driverName": d.driver_name, "driverVersion": d.driver_version, "deviceUuid": d.device_uuid,
+             "cpuFeatures": d.cpu_features, "opCoverage": per_device[d.index]}
+            for d in m.devices]
+
+
 async def _h_hardware_info(state, msg, _b, conn=None):
     m = probe()
     native_version, engine_versions, lane, preferred_device = _engine_identity(m)
@@ -984,7 +1007,9 @@ async def _h_hardware_info(state, msg, _b, conn=None):
             "nativeVersion": native_version,
             "engineVersions": engine_versions,
             "lane": lane,
-            "preferredDevice": preferred_device}, None
+            "preferredDevice": preferred_device,
+            "generation": m.generation or None,
+            "devices": _devices_wire(m) or None}, None
 
 
 async def _h_models_catalog(state, msg, _b, conn=None):
@@ -1005,6 +1030,7 @@ async def _h_models_catalog(state, msg, _b, conn=None):
         models = [x for x in models if x.id in wanted]
     out = []
     platform_tag = current_platform()
+    cov = cached_op_coverage(m, models)
     for mdl in models:
         tiers = []
         seen_tiers = set()
@@ -1014,8 +1040,12 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             if d.tier in seen_tiers:
                 continue                      # multi-quant ladders repeat tiers
             seen_tiers.add(d.tier)
-            tiers.append({"tier": d.tier, "backend": d.backend,
-                          "available": d.backend in m.installed and _tier_available(d.tier, m, d.backend)})
+            # "available" now means "some rung can execute there" — a tier stays
+            # available even when one quant is op-refused, as long as another
+            # quant at the same tier is not.
+            any_rung = any(x.backend in m.installed and planner._deployment_available(mdl, x, m, op_coverage=cov)
+                           for x in mdl.deployments if x.tier == d.tier and _platform_ok(x, m, platform_tag))
+            tiers.append({"tier": d.tier, "backend": d.backend, "available": any_rung})
         entry = {"id": mdl.id, "name": mdl.name, "languages": list(mdl.languages),
                  "recommended": mdl.recommended, "tiers": tiers,
                  "order": mdl.sort_order, "repo": mdl.deployments[0].artifact, "kind": kind,
@@ -1059,10 +1089,10 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             # resident-factor budget-fit walk instead.
             is_llama = _is_gguf_llm(mdl)
             if is_llama:
-                chosen = _llamacpp_variant_row(mdl, m, None, 0, budget)
+                chosen = _llamacpp_variant_row(mdl, m, None, 0, budget, op_coverage=cov)
                 rec = chosen.compute_type if chosen is not None else None
             else:
-                rec = _tc_pick_quant(mdl, m, None, budget)
+                rec = _tc_pick_quant(mdl, m, None, budget, op_coverage=cov)
             variants = []
             factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
             for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
@@ -1073,9 +1103,19 @@ async def _h_models_catalog(state, msg, _b, conn=None):
                     supported = True                       # no GPU → CPU runs anything
                 else:
                     supported = need <= budget
-                variants.append({"id": ct, "sizeBytes": size, "needBytes": need,
-                                 "repo": artifact_by_ct.get(ct),
-                                 "supported": supported, "recommended": ct == rec})
+                entry_v = {"id": ct, "sizeBytes": size, "needBytes": need,
+                          "repo": artifact_by_ct.get(ct),
+                          "supported": supported, "recommended": ct == rec}
+                # A tier-refused rung stays "supported" (it still fits, and CPU
+                # fallback still runs it) — unsupportedTiers is a narrower,
+                # additive signal for which GPU tiers specifically refuse it.
+                refused = sorted({x.tier for x in mdl.deployments
+                                  if x.compute_type == ct and x.tier != "cpu" and _platform_ok(x, m, platform_tag)
+                                  and _tier_available(x.tier, m, x.backend)
+                                  and not planner._deployment_available(mdl, x, m, op_coverage=cov)})
+                if refused:
+                    entry_v["unsupportedTiers"] = refused
+                variants.append(entry_v)
             entry["variants"] = variants
             # Machine context for the renderer's localized reason strings
             # ("needs ~X — this machine has Y"); null on cpu-only machines.

@@ -1536,3 +1536,71 @@ def test_cached_op_coverage_reads_only(monkeypatch, tmp_path):
     dts = accel.weight_dtypes(card, "q8_0")                                         # the fallback set: what the miss was keyed by
     accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", dts): {"allSupported": False, "unsupported": ["X"]}}, generation="G1")
     assert accel.cached_op_coverage(m, [card])(0, "tts", "voxcpm2", "q8_0") == accel.OpCoverage(False, ("X",))
+
+
+async def _call(handler, msg):
+    out, _ = await handler(None, msg, None)
+    return out
+
+
+def test_hardware_info_carries_profiles_and_cached_coverage(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = _known_gpu_machine()
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    monkeypatch.setattr(accel, "_engine_identity", lambda m: ("1.1.0", {"ggml": "0.22.0"}, "cpu-vulkan", {"kind": "vulkan", "name": "vulkan0", "description": "GB10"}))
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("bf16", "f32", "q8_0")): {"allSupported": False, "unsupported": ["NORM[f32,-,-,-,-]->f32"]}}, generation="G1")
+    monkeypatch.setattr(accel, "compute_op_coverage", lambda *a, **k: pytest.fail("hardware_info must not compute coverage"))
+    out = asyncio.run(_call(accel._h_hardware_info, {"type": "hardware_info", "id": 7}))
+    assert out["generation"] == "G1"
+    dev = out["devices"][0]
+    assert dev["kind"] == "vulkan" and dev["known"] and dev["deviceUuid"] == "ab" * 16 and dev["driverName"] == "NVIDIA"
+    assert dev["opCoverage"] == {"tts/voxcpm2/q8_0": {"allSupported": False, "unsupported": ["NORM[f32,-,-,-,-]->f32"]}}
+    assert out["devices"][1]["cpuFeatures"] == "NEON=1" and out["devices"][1]["opCoverage"] == {}
+    from sokuji_sidecar import wire
+    wire.validate_outbound(out)                                       # schema lists the two new optional fields
+
+
+def test_hardware_info_without_profiles_is_todays_wire_plus_nulls(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = dataclasses.replace(_known_gpu_machine(), devices=(), generation="")
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    monkeypatch.setattr(accel, "_engine_identity", lambda m: (None, None, None, None))
+    out = asyncio.run(_call(accel._h_hardware_info, {"type": "hardware_info", "id": 8}))
+    assert out["generation"] is None and out["devices"] is None
+
+
+def test_models_catalog_marks_unsupported_tiers_but_keeps_supported_true(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)          # both rungs keyed by their fallback sets
+    m = _known_gpu_machine()
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    card = catalog.tts_model("voxcpm2")
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", "bf16", accel.weight_dtypes(card, "bf16")): {"allSupported": False, "unsupported": ["X"]},
+                      accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", accel.weight_dtypes(card, "q8_0")): {"allSupported": True, "unsupported": []}}, generation="G1")
+    out = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 1, "kind": "tts", "models": ["voxcpm2"]}))
+    card_out = out["models"][0]
+    vulkan = next(t for t in card_out["tiers"] if t["tier"] == "gpu-vulkan")
+    assert vulkan["available"] is True                                # q8_0 can execute there
+    by_id = {v["id"]: v for v in card_out["variants"]}
+    assert by_id["bf16"]["supported"] is True and by_id["bf16"]["unsupportedTiers"] == ["gpu-vulkan"]
+    assert by_id["q8_0"]["supported"] is True and "unsupportedTiers" not in by_id["q8_0"]
+    from sokuji_sidecar import wire
+    wire.validate_outbound(out)
+    # cache miss → exactly today's wire
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path / "empty"))
+    out2 = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 2, "kind": "tts", "models": ["voxcpm2"]}))
+    assert all("unsupportedTiers" not in v for v in out2["models"][0]["variants"])
+    assert next(t for t in out2["models"][0]["tiers"] if t["tier"] == "gpu-vulkan")["available"] is True
+
+
+def test_models_catalog_tier_unavailable_when_every_rung_is_refused(monkeypatch, tmp_path):
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: None)
+    m = _known_gpu_machine()
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    card = catalog.tts_model("voxcpm2")
+    accel.bench_save({accel._ops_key(m, 0, "tts", "voxcpm2", ct, accel.weight_dtypes(card, ct)): {"allSupported": False, "unsupported": ["X"]}
+                      for ct in {d.compute_type for d in card.deployments}}, generation="G1")
+    out = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 3, "kind": "tts", "models": ["voxcpm2"]}))
+    assert next(t for t in out["models"][0]["tiers"] if t["tier"] == "gpu-vulkan")["available"] is False
+    assert next(t for t in out["models"][0]["tiers"] if t["tier"] == "cpu")["available"] is True
