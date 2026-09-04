@@ -92,7 +92,6 @@ int main(int argc, char **argv) {
     for (const Case &c : CASES) {
         const char *model = std::getenv(c.env);
         if (!model || !*model) { std::printf("SKIPPED: %s/%s (%s unset)\n", c.stage, c.family, c.env); continue; }
-        if (std::string(c.stage) == "tts" && !tts_dev) { std::printf("SKIPPED (no device): %s/%s\n", c.stage, c.family); continue; }
         const char *stage = nullptr, *family = nullptr, *text = nullptr; bool found = false;
         for (int b = 0; b < sk_ops_blob_count(); ++b) {
             sk_ops_blob_at(b, &stage, &family, &text);
@@ -101,6 +100,17 @@ int main(int argc, char **argv) {
         if (!found) { std::printf("FAIL: %s/%s has a model but no shipped recording\n", c.stage, c.family); ++failures; continue; }
         sk_op_recording shipped; std::string err;
         assert(sk_ops_parse(text, shipped, err));
+        /* Checked on EVERY box, before the device skip below: a shipped tts recording taken on
+         * a host backend is the F2 defect itself, and it is readable from the file alone. Behind
+         * the skip it would be unreachable on exactly the CPU-only machines most likely to have
+         * produced it. */
+        if (std::string(c.stage) == "tts" && (shipped.recorded_on.empty() || shipped.recorded_on == "cpu")) {
+            std::printf("FAIL %s/%s: shipped recording is '# recorded-on: %s' — tts must be recorded on a device\n",
+                        c.stage, c.family, shipped.recorded_on.empty() ? "(missing)" : shipped.recorded_on.c_str());
+            ++failures;
+        }
+        // Re-recording a tts family is only meaningful on a real device; the comparison stops here.
+        if (std::string(c.stage) == "tts" && !tts_dev) { std::printf("SKIPPED (no device): %s/%s\n", c.stage, c.family); continue; }
         const std::string tmp = (sk_scratch_dir() / ("sk-live-" + std::to_string(sk_getpid()) + "-" + c.stage + "-" + c.family + ".ops")).string();
         ScratchFiles scratch; scratch.paths.push_back(tmp);
         const sk_device *dev = std::string(c.stage) == "tts" ? tts_dev : rec;
@@ -122,12 +132,6 @@ int main(int argc, char **argv) {
         for (const auto &s : bset) if (!a.count(s)) { std::printf("FAIL %s/%s: engine now uses %s (not in shipped recording)\n", c.stage, c.family, s.c_str()); ++failures; }
         for (const auto &s : a) if (!bset.count(s)) { std::printf("FAIL %s/%s: shipped recording lists %s (engine no longer uses it)\n", c.stage, c.family, s.c_str()); ++failures; }
         if (shipped.dtypes_in_file != live.dtypes_in_file) { std::printf("FAIL %s/%s: dtypes-in-file changed (upstream re-quantised?)\n", c.stage, c.family); ++failures; }
-        // A shipped tts recording taken on a host backend is the F2 defect itself.
-        if (std::string(c.stage) == "tts" && (shipped.recorded_on.empty() || shipped.recorded_on == "cpu")) {
-            std::printf("FAIL %s/%s: shipped recording is '# recorded-on: %s' — tts must be recorded on a device\n",
-                        c.stage, c.family, shipped.recorded_on.empty() ? "(missing)" : shipped.recorded_on.c_str());
-            ++failures;
-        }
         std::printf("%s/%s: %zu nodes, %s\n", c.stage, c.family, live.nodes.size(), failures == before ? "ok" : "DIFF");
     }
     return failures ? 1 : 0;

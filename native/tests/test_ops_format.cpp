@@ -37,6 +37,19 @@ int main() {
     p.host = true;
     p.max_bytes = 1144320;
     r.nodes.push_back(p);
+    /* Round 3: a NON-NATURAL strided descriptor — the shape round 2's rebuild got wrong by
+     * applying the permutation twice. Verbatim from tts-pocket_tts.ops:68 (op=CONT). Its
+     * smallest stride is on axis 1, so perm = {1,0,2,3} and the recorded nb[0] is 2240, the one
+     * shipped row whose innermost recorded stride is not the type size. */
+    sk_op_desc s{};
+    s.op = GGML_OP_CONT; s.dst_type = GGML_TYPE_F32;
+    s.src_type = {GGML_TYPE_F32, SK_SRC_ABSENT, SK_SRC_ABSENT, SK_SRC_ABSENT, SK_SRC_ABSENT};
+    s.ne0_src0 = 512; s.ne0_dst = 512;
+    s.max_ne_src0 = {512, 544, 1, 1}; s.max_ne_dst = {512, 544, 1, 1};
+    s.lay_src0.perm = {1, 0, 2, 3}; s.lay_src0.dense = false;
+    s.lay_src0.nb = {2240, 4, 1146880, 1146880};
+    s.max_bytes = 1114112;
+    r.nodes.push_back(s);
 
     std::string text = sk_ops_format(r);
     assert(text.find("# stage: tts ; family: supertonic") != std::string::npos);
@@ -46,9 +59,11 @@ int main() {
     assert(text.find("nb1=[4,8192,8192,8192]") != std::string::npos);
     assert(text.find("host=1") != std::string::npos);
     assert(text.find("contig=") == std::string::npos);    // the round-1 field is gone
+    assert(text.find("layout=[1023s,0123d,0123d]") != std::string::npos);
+    assert(text.find("nb0=[2240,4,1146880,1146880]") != std::string::npos);
     sk_op_recording back; std::string err;
     assert(sk_ops_parse(text, back, err));
-    assert(back.nodes.size() == 3 && back.family == "supertonic" && back.dtypes_in_file.size() == 2);
+    assert(back.nodes.size() == 4 && back.family == "supertonic" && back.dtypes_in_file.size() == 2);
     assert(back.recorded_on == "vulkan");
     assert(back.nodes[0].src_type[0] == SK_SRC_WEIGHT && back.nodes[0].max_bytes == 4194304 && back.nodes[0].max_ne_src1[1] == 7);
     assert(back.nodes[1].op_params[0] == GGML_UNARY_OP_GELU);
@@ -74,6 +89,50 @@ int main() {
     assert(v.size() == 3);
     // dense-nb helper: the natural order is ggml's own packed layout
     assert((sk_layout_dense_nb({0, 1, 2, 3}, {64, 10, 112, 2}, GGML_TYPE_F32) == std::array<int64_t, 4>{4, 256, 2560, 286720}));
+
+    /* Round 3: the REBUILD itself, not just the text. A descriptor is only worth recording if
+     * the tensor it rebuilds answers the backends' predicates the way the recorded one did, and
+     * for a non-natural strided layout that cannot be reasoned about — round 2's version
+     * produced the recorded ne and nb straight from ggml_view_4d and then permuted a second
+     * time, silently flipping both predicates below. sk_ops_rebuild_node lives beside the text
+     * form precisely so this can be asserted without the library's C ABI. */
+    {
+        ggml_init_params ip = { 16 * 1024 * 1024, nullptr, /*no_alloc*/ true };
+        ggml_context *ctx = ggml_init(ip);
+        assert(ctx);
+
+        // (a) the 1023s row: ne and nb come back exactly as recorded, including nb[0] = 2240.
+        ggml_tensor *node = sk_ops_rebuild_node(ctx, back.nodes[3], -1);
+        assert(node && node->src[0]);
+        const ggml_tensor *a = node->src[0];
+        assert(a->ne[0] == 512 && a->ne[1] == 544 && a->ne[2] == 1 && a->ne[3] == 1);
+        assert(a->nb[0] == 2240 && a->nb[1] == 4 && a->nb[2] == 1146880 && a->nb[3] == 1146880);
+        assert(ggml_is_transposed(a));                     // nb[0] > nb[1], as recorded
+        assert(!ggml_is_contiguous_rows(a));               // nb[0] != type_size and ne[0] != blck_size
+        assert(!ggml_is_contiguous(a));
+        // the node itself keeps the recorded op and is not left as a view of its scaffolding
+        assert(node->op == GGML_OP_CONT && node->view_src == nullptr);
+
+        // (b) the 0213d row (a row-contiguous permute): rows contiguous, tensor not contiguous.
+        ggml_tensor *rope = sk_ops_rebuild_node(ctx, back.nodes[2], -1);
+        assert(rope && rope->src[0]);
+        const ggml_tensor *q = rope->src[0];
+        assert(q->ne[0] == 64 && q->ne[1] == 10 && q->ne[2] == 112 && q->ne[3] == 2);
+        assert(q->nb[0] == ggml_type_size(GGML_TYPE_F32));
+        assert(ggml_is_contiguous_rows(q));
+        assert(!ggml_is_contiguous(q));
+        assert(!ggml_is_transposed(q));                    // a permute, not a transpose
+        // its strided src1 (0123s) keeps the recorded strides too
+        assert(rope->src[1] && rope->src[1]->nb[1] == 8192 && rope->src[1]->ne[0] == 112);
+
+        // (c) a plain dense natural row rebuilds contiguous, and WEIGHT takes the asked dtype.
+        ggml_tensor *mm = sk_ops_rebuild_node(ctx, back.nodes[0], GGML_TYPE_Q8_0);
+        assert(mm && mm->src[0] && mm->src[0]->type == GGML_TYPE_Q8_0);
+        assert(ggml_is_contiguous(mm->src[0]) && ggml_is_contiguous_rows(mm->src[0]));
+        assert(mm->src[0]->ne[0] == 1024 && mm->src[0]->ne[1] == 1024);
+
+        ggml_free(ctx);
+    }
 
     assert(!sk_ops_parse("op=NOPE dst=f32\n", back, err) && !err.empty());
     // A stale round-1 file must fail LOUDLY rather than be read with default layouts.

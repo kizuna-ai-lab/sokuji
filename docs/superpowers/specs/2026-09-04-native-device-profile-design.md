@@ -349,7 +349,7 @@ descriptors** observed during one real forward pass of that family (§3.2.2):
 ```
 # engine: audio.cpp 0.7.1 ; ggml 0.22.0 ; recorded 2026-09-xx from moss-tts-nano-100m-q8_0.gguf
 # dtypes-in-file: Q8_0 BF16 F16 F32                      <- the GGUF's tensor-dtype set at recording time
-op=MUL_MAT      params=-        dst=f32  src=[WEIGHT,f32,-,-,-]     ne0=[1024,1024,1,1] ne1=[1024,1,1,1] ned=[1024,1,1,1] contig=[1,1] maxbytes=4194304
+op=MUL_MAT      params=-        dst=f32  src=[WEIGHT,f32,-,-,-]     ne0=[1024,1024,1,1] ne1=[1024,1,1,1] ned=[1024,1,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=4194304
 op=UNARY.GELU   params=gelu     dst=f32  src=[f32,-,-,-,-]          ne0=[4096,1,1,1] ...
 op=FLASH_ATTN_EXT params=-      dst=f32  src=[f32,f16,f16,f16,-]    ne0=[64,1,16,1] ... maxbytes=...
 ```
@@ -390,7 +390,7 @@ does not contain — Metal needs its own recordings if that path is ever to be g
 
 ```c
 typedef struct sk_op_check { char name[64]; int32_t supported; } sk_op_check;  /* "OP.param[src0,src1,src2,src3,src4]->dst" as recorded */
-#define SK_OP_COVERAGE_MAX 128
+#define SK_OP_COVERAGE_MAX 2048
 typedef struct sk_op_coverage {
     int32_t n_ops;            /* entries written */
     int32_t all_supported;    /* 1 iff every entry is supported */
@@ -403,11 +403,12 @@ typedef struct sk_op_coverage {
  * (§3.3); a dtype that is neither a float nor a quantized type is skipped here too, so
  * a raw header set is safe to pass. Host-tagged nodes are skipped unless the target is
  * a CPU device. Each recorded node is REBUILT with
- * its recorded shapes/params/contiguity (once per weight dtype where it has WEIGHT
+ * its recorded shapes/params/LAYOUTS (once per weight dtype where it has WEIGHT
  * sources; ne0 as recorded keeps K-quant block sizes valid) and asked of
  * ggml_backend_dev_supports_op. Unknown (stage, family) → SK_ERR_NOT_FOUND; bad
  * index, NULL out, n_weight_dtypes == 0 or an unknown dtype name →
- * SK_ERR_INVALID_ARGUMENT; more than SK_OP_COVERAGE_MAX expanded entries →
+ * SK_ERR_INVALID_ARGUMENT; more than SK_OP_COVERAGE_MAX expanded entries, or an
+ * expansion that asked nothing at all (all_supported forced to 0) →
  * SK_ERR_INTERNAL (a static_assert keeps every shipped op recording under the cap for
  * the largest fallback set); a backend exception → SK_ERR_BACKEND. The caller treats
  * every error as "unknown", never as "unsupported". */

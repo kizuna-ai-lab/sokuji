@@ -157,7 +157,9 @@ typedef struct sk_op_coverage {
  * graph there and never sends those nodes to a device — so it is asked only when `index` names
  * a CPU device, and skipped otherwise. Unknown (stage, family) →
  * SK_ERR_NOT_FOUND; bad index, NULL out, n_weight_dtypes <= 0 or an unknown dtype name →
- * SK_ERR_INVALID_ARGUMENT; more than SK_OP_COVERAGE_MAX expanded entries → SK_ERR_INTERNAL;
+ * SK_ERR_INVALID_ARGUMENT; more than SK_OP_COVERAGE_MAX expanded entries, or an expansion that
+ * asked NOTHING (every node skipped — all_supported is then forced to 0, never left at its
+ * initial 1) → SK_ERR_INTERNAL;
  * a backend exception → SK_ERR_BACKEND. Callers treat every error as "unknown", never as
  * "unsupported". */
 SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const char *family,

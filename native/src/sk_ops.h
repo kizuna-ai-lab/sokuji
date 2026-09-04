@@ -78,6 +78,14 @@ std::array<int64_t, 4> sk_layout_dense_nb(const std::array<int32_t, 4> &perm,
                                           const std::array<int64_t, 4> &ne, int32_t type);
 /* Read a live tensor's layout (recorder side; also used by the round-trip tests). */
 sk_layout sk_layout_of(const struct ggml_tensor *t);
+/* Rebuild one recorded node and its sources in `ctx` (which must be no_alloc): each tensor
+ * carries the recorded ne AND the recorded layout, so every predicate a backend's supports_op
+ * reads answers as it did on the real graph. `weight_type` is the concrete ggml type the
+ * WEIGHT sentinel stands for (-1 when the node has none). Returns the node, or nullptr when
+ * the descriptor has no dst type. Lives here, beside the text form, rather than in sk_ops.cpp:
+ * it touches only ggml's tensor constructors, so the tests can link it directly and assert on
+ * the rebuilt shapes — sk_ops.cpp itself is the library's C ABI and drags the whole runtime. */
+struct ggml_tensor *sk_ops_rebuild_node(struct ggml_context *ctx, const sk_op_desc &d, int32_t weight_type);
 
 std::string sk_ops_format(const sk_op_recording &r);
 bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &error);

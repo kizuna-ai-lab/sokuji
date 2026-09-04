@@ -112,6 +112,71 @@ std::array<int64_t, 4> sk_layout_dense_nb(const std::array<int32_t, 4> &perm,
     return nb;
 }
 
+ggml_tensor *sk_ops_rebuild_node(ggml_context *ctx, const sk_op_desc &d, int32_t weight_type) {
+    auto concrete = [&](int32_t t) -> ggml_type { return static_cast<ggml_type>(t == SK_SRC_WEIGHT ? weight_type : t); };
+    /* Build the tensor with the RECORDED layout, so ggml_is_contiguous,
+     * ggml_is_contiguous_rows, ggml_is_contiguous_1/2, ggml_is_transposed and nb[0] ==
+     * type_size all answer as they did on the real graph.
+     *
+     * Both non-natural branches build their base IN STRIDE ORDER and then ggml_permute back.
+     * ggml_permute(a, perm[0..3]) sets result->ne[perm[k]] = a->ne[k] and
+     * result->nb[perm[k]] = a->nb[k] (ggml.c:3840-3848), so a base whose axis k is the
+     * recorded axis perm[k] lands on exactly the recorded ne and nb.
+     *   dense   -> a packed base of ne[perm[0..3]]; its packed strides ARE the recorded ones.
+     *   strided -> ggml_view_4d of ne[perm[0..3]] with nb[perm[1..3]] on a base big enough to
+     *              cover the last addressed byte.
+     * Round 2 got the strided branch wrong by passing the axis-indexed ne/nb straight to
+     * ggml_view_4d — which already yields the recorded ne and nb, the permutation being
+     * implicit in the strides — and THEN permuting, applying it twice: pocket_tts's
+     * CONT `max0=[512,544,1,1] layout=[1023s,…] nb0=[2240,4,1146880,1146880]` came out as
+     * ne=[544,512,1,1] nb=[4,4,…], flipping both ggml_is_transposed and
+     * ggml_is_contiguous_rows.
+     *
+     * ggml_view_4d fixes the VIEW's nb[0] at type_size. That is right here because the view is
+     * built in stride order, so its axis 0 is the recorded smallest-stride axis — type_size in
+     * every shipped row (the recorded nb values are 119x 4, 4x 2 and one 2240, and the 2240 is
+     * an outer axis of that same row). After the permute the innermost recorded stride is
+     * restored, so the 2240 row rebuilds with nb[0] == 2240. A recording whose SMALLEST stride
+     * exceeded one element is not expressible as a ggml view; none occurs. */
+    auto mk = [&](int32_t t, const std::array<int64_t, 4> &ne, const sk_layout &lay) -> ggml_tensor * {
+        if (t == SK_SRC_ABSENT) return nullptr;
+        const ggml_type ct = concrete(t);
+        const bool natural = lay.perm[0] == 0 && lay.perm[1] == 1 && lay.perm[2] == 2 && lay.perm[3] == 3;
+        if (lay.dense) {
+            if (natural) return ggml_new_tensor_4d(ctx, ct, ne[0], ne[1], ne[2], ne[3]);
+            ggml_tensor *base = ggml_new_tensor_4d(ctx, ct, ne[lay.perm[0]], ne[lay.perm[1]], ne[lay.perm[2]], ne[lay.perm[3]]);
+            return ggml_permute(ctx, base, lay.perm[0], lay.perm[1], lay.perm[2], lay.perm[3]);
+        }
+        int64_t span = 0;                                       // last addressed byte, from the recorded strides
+        for (int a = 0; a < 4; ++a) span += (ne[a] - 1) * lay.nb[a];
+        const int64_t ts = static_cast<int64_t>(ggml_type_size(ct));
+        const int64_t blk = static_cast<int64_t>(ggml_blck_size(ct));
+        int64_t elems = ts > 0 ? ((span + ts) / ts) * blk : 1;
+        elems = std::max<int64_t>(elems, blk);
+        if (elems % blk != 0) elems += blk - elems % blk;        // ggml_new_tensor asserts on this
+        ggml_tensor *base = ggml_new_tensor_1d(ctx, ct, elems);
+        ggml_tensor *view = ggml_view_4d(ctx, base,
+                                         ne[lay.perm[0]], ne[lay.perm[1]], ne[lay.perm[2]], ne[lay.perm[3]],
+                                         static_cast<size_t>(lay.nb[lay.perm[1]]),
+                                         static_cast<size_t>(lay.nb[lay.perm[2]]),
+                                         static_cast<size_t>(lay.nb[lay.perm[3]]), 0);
+        if (natural) return view;
+        return ggml_permute(ctx, view, lay.perm[0], lay.perm[1], lay.perm[2], lay.perm[3]);
+    };
+    ggml_tensor *node = mk(d.dst_type, d.max_ne_dst, d.lay_dst);
+    if (!node) return nullptr;
+    // The dst carries the recorded ne/nb, but it must present as a plain node, not as a view of
+    // the scaffolding that gave it that layout: it is about to become the OP itself, and a
+    // node with both an op and a view_src is a shape ggml never builds.
+    node->view_src = nullptr; node->view_offs = 0;
+    node->op = static_cast<ggml_op>(d.op);
+    std::memcpy(node->op_params, d.op_params.data(), sizeof node->op_params);
+    node->src[0] = mk(d.src_type[0], d.max_ne_src0, d.lay_src0);
+    node->src[1] = mk(d.src_type[1], d.max_ne_src1, d.lay_src1);
+    for (int i = 2; i < 5; ++i) node->src[i] = mk(d.src_type[i], {d.max_ne_src1[0], 1, 1, 1}, sk_layout{});
+    return node;
+}
+
 sk_layout sk_layout_of(const ggml_tensor *t) {
     sk_layout l;
     if (!t) return l;
