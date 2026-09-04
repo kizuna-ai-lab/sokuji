@@ -20,17 +20,31 @@ if ($LASTEXITCODE) { exit $LASTEXITCODE }
 # Op recordings (spec A §3.2, README's "Bumping a pin" checklist): re-record every family
 # whose SK_TEST_* model is present and diff against the shipped src\ops\*.ops. Always its own
 # CPU-only build\record tree (SOKUJI_GPU=none) regardless of this script's own Lane, since the
-# recordings were captured on CPU and must match there; test_ops_coverage's SKIP_RETURN_CODE
-# 77 turns "no SK_TEST_* var set at all" into a ctest skip rather than a failure, so this is
-# harmless on a developer box with no cached models.
+# recordings were captured on CPU and must match there.
+#
+# This is a SECOND full configure+build of ggml and all three engines, so it only runs when it
+# can actually check something: the recorder's reference clip lives in
+# SK_TEST_TTS_SUPERTONIC_DIR and the gate fires for tts only, so an unset variable means every
+# family would skip (SKIP_RETURN_CODE 77) and the whole tree would be built to prove nothing.
+# SOKUJI_BUILD_RECORD=0 forces it off even when the models are present.
 $RecordBuild = Join-Path $Root "build\record"
-cmake -S $Root -B $RecordBuild -G "Visual Studio 17 2022" -A x64 "-DSOKUJI_GPU=none" "-DSOKUJI_RECORD_OPS=ON"
-if ($LASTEXITCODE) { exit $LASTEXITCODE }
-cmake --build $RecordBuild --config Release --parallel
-if ($LASTEXITCODE) { exit $LASTEXITCODE }
-ctest --test-dir $RecordBuild -C Release -R test_ops_coverage --output-on-failure
-if ($LASTEXITCODE) { exit $LASTEXITCODE }
+if (-not $env:SK_TEST_TTS_SUPERTONIC_DIR) {
+    Write-Host "ci/build.ps1: skipping the op-recording drift gate - SK_TEST_TTS_SUPERTONIC_DIR is not set (no cached TTS models)."
+} elseif ($env:SOKUJI_BUILD_RECORD -eq "0") {
+    Write-Host "ci/build.ps1: skipping the op-recording drift gate - SOKUJI_BUILD_RECORD=0."
+} else {
+    cmake -S $Root -B $RecordBuild -G "Visual Studio 17 2022" -A x64 "-DSOKUJI_GPU=none" "-DSOKUJI_RECORD_OPS=ON"
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+    cmake --build $RecordBuild --config Release --parallel
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+    ctest --test-dir $RecordBuild -C Release -R test_ops_coverage --output-on-failure
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+}
+# python\build is setuptools' own scratch tree and is NOT keyed by lane: a stale
+# build\lib.*\sokuji_native\_native left by an earlier lane carries that lane's runtime
+# libraries into this lane's wheel. Clear it with the staged tree it feeds.
 Remove-Item -Recurse -Force "$Build\stage", "$Root\python\sokuji_native\_native" -ErrorAction SilentlyContinue
+if (Test-Path "$Root\python\build") { Remove-Item -Recurse -Force "$Root\python\build" }
 # Only the sokuji component: the fetched upstreams carry their own install() rules
 # (headers, static libs, cmake configs) in the default component, which must not run.
 cmake --install $Build --config Release --prefix "$Build\stage" --component sokuji
