@@ -41,3 +41,10 @@ add_test(NAME test_tts COMMAND test_tts ${CMAKE_BINARY_DIR}/lib)
 set_tests_properties(test_tts PROPERTIES
     ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib"
     SKIP_RETURN_CODE 77)
+
+# Spec A: the pure Vulkan-selection helper (no loader, no GPU) — runs on every lane.
+add_executable(test_vk_select test_vk_select.cpp ../src/sk_vk_enum.cpp)
+target_include_directories(test_vk_select PRIVATE ../src ../include)
+target_link_libraries(test_vk_select PRIVATE ggml)
+target_compile_definitions(test_vk_select PRIVATE SK_VK_ENUM_NO_LOADER=1)   # selection only; no dlopen path compiled
+add_test(NAME test_vk_select COMMAND test_vk_select)

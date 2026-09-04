@@ -22,6 +22,11 @@ ALLOWED = {"libc.so.6", "libm.so.6", "libdl.so.2", "libpthread.so.0", "librt.so.
            "libgcc_s.so.1", "libstdc++.so.6", "libvulkan.so.1"}
 ALLOWED_PREFIXES = ("ld-linux-",)
 
+# Spec A §3.1: the profile enumerates Vulkan through the dlopen'd loader; the host library
+# itself must never need it, or a machine without the loader loses the whole wheel instead
+# of just its Vulkan devices. The dlopen'd ggml-vulkan module may (it always has).
+DENY_BY_FILE = {"libsokuji_native.so": {"libvulkan.so.1"}}
+
 # The manylinux tag floors GLIBC, but says nothing about libstdc++ (allowed above as a
 # system library): a glibc-2.39 host may run an older C++ runtime. Bound the C++ symbol
 # versions to what the tag era's toolchain ships — GCC 13 (Ubuntu 24.04, the build
@@ -57,6 +62,9 @@ def main() -> int:
     for path in elves:
         needed = re.findall(r"\(NEEDED\)\s+Shared library: \[([^\]]+)\]", readelf("-d", str(path)))
         for lib in needed:
+            if lib in DENY_BY_FILE.get(path.name, set()):
+                problems.append(f"{path.name}: must not need {lib} (spec A: the loader is dlopen'd at profile time)")
+                continue
             if lib in ALLOWED or lib in shipped or lib.startswith(ALLOWED_PREFIXES):
                 continue
             problems.append(f"{path.name}: needs {lib}, which is neither shipped nor a system library on every host")

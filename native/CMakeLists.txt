@@ -101,6 +101,21 @@ if(NOT WIN32)
     target_link_libraries(sokuji_native PRIVATE ${CMAKE_DL_LIBS})
 endif()
 
+# Spec A §3.1: the device profile enumerates Vulkan devices through the LOADER, never by
+# linking it, and needs headers new enough for the bfloat16 / NV coopmat2 feature structs
+# (Ubuntu 22.04's distro headers are 1.3.204). Headers only; VK_NO_PROTOTYPES.
+# Pinned by commit SHA, not tag name, for the reason cmake/upstreams.cmake states.
+if(SOKUJI_GPU_RESOLVED STREQUAL "vulkan")
+    include(FetchContent)
+    FetchContent_Declare(vulkan_headers
+        GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
+        GIT_TAG        71176a07dc482d0ddaf0b28555e734adc0533238   # v1.4.311
+        GIT_SHALLOW    TRUE)
+    FetchContent_MakeAvailable(vulkan_headers)
+    target_link_libraries(sokuji_native PRIVATE Vulkan::Headers)
+    target_compile_definitions(sokuji_native PRIVATE SK_HAVE_VULKAN_HEADERS=1 VK_NO_PROTOTYPES=1)
+endif()
+
 # Exported surface: sk_* and nothing else. The three engines are static archives compiled
 # with default visibility, so without this their symbols (transcribe_*, llama_*, engine::*)
 # would be exported from our .so and could shadow another copy loaded by the host process.
