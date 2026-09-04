@@ -20,6 +20,7 @@ from . import _ffi
 
 __all__ = ["NativeError", "Device", "init", "devices", "device_free_mem", "version",
            "engine_versions", "contract", "audio_families", "native_dir",
+           "DeviceProfile", "device_profiles",
            "AsrCaps", "AsrModel", "AsrStream", "StreamText", "asr_load",
            "Translator", "translate_load",
            "TtsCaps", "TtsModel", "tts_load"]
@@ -39,6 +40,21 @@ class Device:
     description: str
     mem_total: int
     mem_free: int
+
+
+@dataclass(frozen=True)
+class DeviceProfile:
+    index: int
+    kind: str
+    name: str
+    description: str
+    mem_total: int
+    known: bool
+    features: frozenset[str]
+    driver_name: str
+    driver_version: str
+    device_uuid: str
+    cpu_features: str
 
 
 class _State:
@@ -167,6 +183,26 @@ def device_free_mem(index: int) -> int:
     if status != _ffi.SK_OK:
         _raise(lib, status, "sk_device_free_mem")
     return int(out.value)
+
+
+def device_profiles() -> list[DeviceProfile]:
+    """One profile per devices() entry (same order, same index). A device whose profile could
+    not be read comes back with known=False and every other field empty — never an error."""
+    lib = _load()
+    out = []
+    for d in devices():
+        raw = _ffi.sk_device_profile()
+        status = lib.sk_device_profile_get(int(d.index), ctypes.byref(raw))
+        if status != _ffi.SK_OK:
+            _raise(lib, status, "sk_device_profile_get")
+        bits = frozenset(name for bit, name in _ffi.FEATURE_BITS.items() if raw.features & bit)
+        out.append(DeviceProfile(d.index, d.kind, d.name, d.description, d.mem_total, bool(raw.known),
+                                 bits if raw.known else frozenset(),
+                                 raw.driver_name.decode("utf-8", "replace"),
+                                 raw.driver_version.decode("utf-8", "replace"),
+                                 raw.device_uuid.decode("utf-8", "replace"),
+                                 raw.cpu_features.decode("utf-8", "replace")))
+    return out
 
 
 def audio_families() -> list[str]:

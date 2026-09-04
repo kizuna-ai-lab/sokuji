@@ -89,7 +89,8 @@ foreach(_t IN LISTS _audiocpp_engine_targets)
         target_compile_options(${_t} PRIVATE -include ${CMAKE_CURRENT_SOURCE_DIR}/src/audiocpp_compat.h)
     endif()
 endforeach()
-target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_translate.cpp src/sk_tts.cpp src/sk_profile.cpp)
+target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_translate.cpp src/sk_tts.cpp
+                                     src/sk_profile.cpp src/sk_vk_enum.cpp)
 target_link_libraries(sokuji_native PRIVATE engine_runtime)
 target_include_directories(sokuji_native PRIVATE ${audiocpp_SOURCE_DIR}/include)
 

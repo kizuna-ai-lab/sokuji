@@ -32,6 +32,8 @@ int main(int argc, char **argv) {
     uint64_t before_bytes = 0;                                       // pre-init, argument shape is irrelevant:
     assert(sk_device_free_mem(0, nullptr) == SK_ERR_NOT_INITIALISED);// the library is not initialised
     assert(sk_device_free_mem(0, &before_bytes) == SK_ERR_NOT_INITIALISED);
+    sk_device_profile pre = {};
+    assert(sk_device_profile_get(0, &pre) == SK_ERR_NOT_INITIALISED);
     assert(std::strstr(sk_last_error(), "sk_init") != nullptr);
 
     sk_init_options wrong = {};
@@ -80,6 +82,36 @@ int main(int argc, char **argv) {
     assert(sk_device_profile_get(0, nullptr) == SK_ERR_INVALID_ARGUMENT);
 
     assert(sk_device_free_mem(n + 5, nullptr) == SK_ERR_INVALID_ARGUMENT);
+
+    for (int i = 0; i < n; ++i) {
+        sk_device_profile p = {};
+        assert(sk_device_profile_get(i, &p) == SK_OK);
+        assert(p.index == i);
+        if (devs[i].kind == SK_DEVICE_CPU) {
+            assert(p.known == 1);
+            assert(p.cpu_features[0] != '\0');                                // ggml_backend_get_features reached
+            assert(std::strlen(p.cpu_features) < sizeof p.cpu_features - 1);  // fits, not truncated
+            assert(p.driver_name[0] == '\0');
+        }
+        if (devs[i].kind == SK_DEVICE_METAL) {
+            assert(p.known == 1);
+            assert(std::strcmp(p.driver_name, "Metal") == 0);
+            assert(p.driver_version[0] != '\0');                              // kern.osversion
+            assert(p.features & SK_FEAT_UMA);
+            const bool paravirtual = std::strstr(devs[i].description, "aravirtual") != nullptr;
+            if (paravirtual) {
+                assert(!(p.features & SK_FEAT_MTL_SIMDGROUP_REDUCTION));       // the structured R36 signal
+            } else {
+                assert(p.features & SK_FEAT_MTL_SIMDGROUP_REDUCTION);
+                assert(p.features & SK_FEAT_MTL_BFLOAT);
+            }
+        }
+        if (devs[i].kind == SK_DEVICE_VULKAN && p.known) {                    // Task 3 makes known possible
+            assert(std::strlen(p.device_uuid) == 32);
+            assert(p.driver_name[0] != '\0');
+        }
+    }
+    { sk_device_profile bad = {}; assert(sk_device_profile_get(n + 5, &bad) == SK_ERR_INVALID_ARGUMENT); }
 
     char *buf = static_cast<char *>(std::malloc(4));
     sk_free(buf);                                                     // must accept malloc'd memory

@@ -109,6 +109,20 @@ def test_bad_device_index_raises():
 
 
 @needs_tree
+def test_device_profiles_one_per_device():
+    sokuji_native.init()
+    devs = sokuji_native.devices()
+    profs = sokuji_native.device_profiles()
+    assert [p.index for p in profs] == [d.index for d in devs]
+    assert all(p.name == d.name and p.description == d.description for p, d in zip(profs, devs))
+    cpu = next(p for p in profs if p.kind == "cpu")
+    assert cpu.known and "=" in cpu.cpu_features and cpu.driver_name == ""
+    assert isinstance(cpu.features, frozenset)
+    for p in profs:
+        assert p.features <= set(sokuji_native._ffi.FEATURE_BITS.values())
+
+
+@needs_tree
 def test_second_init_log_keeps_first_trampoline_alive():
     # sk_init stores the callback pointer from its first successful call only, so that
     # trampoline must stay referenced for the life of the process, and a later
