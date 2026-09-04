@@ -42,6 +42,23 @@ set_tests_properties(test_tts PROPERTIES
     ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib"
     SKIP_RETURN_CODE 77)
 
+# Spec A §3.2: the pure .ops text format (no backend, no model) — runs on every lane.
+# sk_ops_format.cpp is compiled straight in: it has C++ linkage, so the shared library
+# (which exports only the sk_* C ABI) cannot hand it to a test binary.
+add_executable(test_ops_format test_ops_format.cpp ../src/sk_ops_format.cpp)
+target_include_directories(test_ops_format PRIVATE ../src ../include)
+target_link_libraries(test_ops_format PRIVATE ggml)
+add_test(NAME test_ops_format COMMAND test_ops_format)
+
+# Spec A §3.2: the op-recording driver. Only the SOKUJI_RECORD_OPS configure builds it —
+# that variant rewires ggml_backend_graph_compute inside audio.cpp and never ships.
+# Not an add_test: it is run by hand, once per family, to regenerate src/ops/*.ops.
+if(SOKUJI_RECORD_OPS)
+    add_executable(record_ops record_ops.cpp ../src/sk_ops_format.cpp)
+    target_link_libraries(record_ops PRIVATE sokuji_native ggml)
+    target_include_directories(record_ops PRIVATE ../src)
+endif()
+
 # Spec A: the pure Vulkan-selection helper (no loader, no GPU) — runs on every lane.
 add_executable(test_vk_select test_vk_select.cpp ../src/sk_vk_enum.cpp)
 target_include_directories(test_vk_select PRIVATE ../src ../include)

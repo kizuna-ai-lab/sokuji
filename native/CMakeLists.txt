@@ -90,7 +90,7 @@ foreach(_t IN LISTS _audiocpp_engine_targets)
     endif()
 endforeach()
 target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_translate.cpp src/sk_tts.cpp
-                                     src/sk_profile.cpp src/sk_vk_enum.cpp)
+                                     src/sk_profile.cpp src/sk_vk_enum.cpp src/sk_ops_format.cpp)
 target_link_libraries(sokuji_native PRIVATE engine_runtime)
 target_include_directories(sokuji_native PRIVATE ${audiocpp_SOURCE_DIR}/include)
 
@@ -148,6 +148,24 @@ elseif(APPLE)
         -Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/src/sokuji_native.exports)
     set_property(TARGET sokuji_native APPEND PROPERTY
                  LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/sokuji_native.exports)
+endif()
+
+# ---- op-recording variant (spec A §3.2) ------------------------------------------------
+# Never the shipping build: it rewires ggml_backend_graph_compute inside every audio.cpp
+# translation unit, so a configure that sets this has to live in its own build directory.
+option(SOKUJI_RECORD_OPS "Build the op-recording variant of the library (tests only)" OFF)
+if(SOKUJI_RECORD_OPS)
+    # Same sources + the recorder; every audio.cpp TU of THIS configure sees SK_RECORD_OPS, so
+    # this must be a separate build directory (build/record), never the shipping one.
+    target_compile_definitions(sokuji_native PUBLIC SK_RECORD_OPS=1)
+    target_sources(sokuji_native PRIVATE src/sk_ops_record.cpp)
+    target_include_directories(sokuji_native PRIVATE ${SOKUJI_GGML_SOURCE_DIR}/src)   # ggml-backend-impl.h
+    foreach(_t IN LISTS _audiocpp_engine_targets)
+        target_compile_definitions(${_t} PRIVATE SK_RECORD_OPS=1)
+    endforeach()
+    # The recorder's own TU must not see the redirect (it forwards to the real function).
+    set_source_files_properties(src/sk_ops_record.cpp PROPERTIES COMPILE_OPTIONS
+        "$<IF:$<CXX_COMPILER_ID:MSVC>,/USK_RECORD_OPS,-USK_RECORD_OPS>")
 endif()
 
 enable_testing()

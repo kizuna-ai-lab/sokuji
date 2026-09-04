@@ -287,6 +287,23 @@ SK_API sk_status sk_tts_synth(sk_tts *, const char *text, const char *language, 
                        sk_audio_cb on_audio, void *user);
 SK_API void      sk_tts_unload(sk_tts *);
 
+/* ---- op recorder (test builds only: -DSOKUJI_RECORD_OPS=ON) ------------------------- */
+#if defined(SK_RECORD_OPS)
+/* Register the recording device with ggml's registry. MUST be called before the first
+ * sk_init of the process (sk_init enumerates devices once, first call wins). Returns 1. */
+SK_API int32_t   sk_record_register_device(void);
+/* Start capturing. `weight_names`: every tensor name in the model file; `rung_ops`: the op
+ * names whose src0 is a rung-bearing weight ("MUL_MAT", "MUL_MAT_ID", "GET_ROWS") — a src0
+ * of one of those ops whose name is in weight_names is recorded as WEIGHT, every other
+ * tensor with its literal dtype. */
+SK_API void      sk_record_begin(const char *const *weight_names, int32_t n_names,
+                                 const char *const *rung_ops, int32_t n_rung_ops);
+/* Stop capturing and write the .ops file. */
+SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, const char *family,
+                                       const char *source_file, const char *const *dtypes, int32_t n_dtypes);
+SK_API int32_t   sk_record_node_count(void);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

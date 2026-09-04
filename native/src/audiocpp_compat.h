@@ -318,3 +318,15 @@ static inline struct ggml_tensor *sokuji_ggml_sub(
 #ifdef __cplusplus
 }
 #endif
+
+#if defined(SK_RECORD_OPS)
+/* Test build only: audio.cpp computes single-backend through ggml_backend_graph_compute, so the
+ * op recorder intercepts that call. ggml-backend.h is included FIRST so the real prototype is
+ * declared before the macro renames later uses; sk_ops_record.cpp is compiled without this
+ * header and forwards to the real function. */
+#include "ggml-backend.h"
+extern "C" enum ggml_status sk_recording_graph_compute(ggml_backend_t backend, struct ggml_cgraph *cgraph);
+extern "C" ggml_backend_graph_plan_t sk_recording_graph_plan_create(ggml_backend_t backend, struct ggml_cgraph *cgraph);
+#define ggml_backend_graph_compute      sk_recording_graph_compute
+#define ggml_backend_graph_plan_create  sk_recording_graph_plan_create   /* pocket_tts FlowLM on a host backend */
+#endif
