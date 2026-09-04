@@ -379,14 +379,22 @@ def op_coverage_for(machine: Machine, model, override: str):
     that rung's current dtype set. Nothing is computed for an explicit CPU load, without
     profiles, or when the device is not known (spec A §3.3)."""
     results = {}
+
+    def lookup(index, stage_, family, ct):
+        return results.get((index, stage_, family, ct))
+
+    # ONE callable shape on every path: the planner calls it with four positional
+    # arguments, so the "nothing computed" answer must be this closure too — a bare
+    # `results.get` takes at most two and would raise TypeError the moment a known
+    # device made the gate ask (explicit CPU on profile-carrying hardware).
     if override == "cpu" or not machine.devices or model is None:
-        return results.get
+        return lookup
     stage = _stage_of_model(model)
     for dev, _tier in _gpu_targets(machine, model):
         for ct in sorted({x.compute_type for x in model.deployments}):
             results[(dev.index, stage, model.graph_family, ct)] = compute_op_coverage(
                 machine, dev.index, stage, model.graph_family, ct, weight_dtypes(model, ct))
-    return lambda index, stage_, family, ct: results.get((index, stage_, family, ct))
+    return lookup
 
 
 def cached_op_coverage(machine: Machine, models):
@@ -417,10 +425,11 @@ def cached_op_coverage(machine: Machine, models):
 # as it was before this split.
 
 
-def resolve_deployments(model, machine, override="auto", bench=None, *, platform=None):
+def resolve_deployments(model, machine, override="auto", bench=None, *, platform=None, op_coverage=None):
     return planner.resolve_deployments(
         model, machine, override, bench,
-        platform=platform if platform is not None else current_platform())
+        platform=platform if platform is not None else current_platform(),
+        op_coverage=op_coverage or planner._NO_COVERAGE)
 
 
 def resolve(model_id, override="auto", machine=None, pin=None):
@@ -430,7 +439,8 @@ def resolve(model_id, override="auto", machine=None, pin=None):
     multi_quant = model is not None and len({d.compute_type for d in model.deployments}) > 1
     downloaded = _downloaded_quants(model) if multi_quant else set()
     return planner.resolve(model_id, override, machine=m, platform=current_platform(),
-                           cache=bench_load(), downloaded=downloaded, pin=pin)
+                           cache=bench_load(), downloaded=downloaded, pin=pin,
+                           op_coverage=op_coverage_for(m, model, override))
 
 
 def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0, pin=None):
@@ -442,7 +452,8 @@ def resolve_translate(model_id, override="auto", machine=None, reserved_bytes=0,
     return planner.resolve_translate(
         model_id, override, machine=m, platform=current_platform(), cache=bench_load(),
         downloaded=downloaded, reserved_bytes=reserved_bytes, pin=pin,
-        est_bytes=_est_bytes, format_ready=_format_ready)
+        est_bytes=_est_bytes, format_ready=_format_ready,
+        op_coverage=op_coverage_for(m, model, override))
 
 
 def resolve_tts(model_id, override="auto", machine=None, pin=None):
@@ -458,17 +469,22 @@ def resolve_tts(model_id, override="auto", machine=None, pin=None):
     downloaded = _downloaded_quants(model) if multi_quant else set()
     return planner.resolve_tts(model_id, override, machine=m, platform=current_platform(),
                                cache=bench_load(), downloaded=downloaded, pin=pin,
-                               est_bytes=_est_bytes)
+                               est_bytes=_est_bytes,
+                               op_coverage=op_coverage_for(m, model, override))
 
 
-def select_variant(model, machine, reserved_bytes, pin=None, budget_bytes=None, downloaded=None):
+def select_variant(model, machine, reserved_bytes, pin=None, budget_bytes=None, downloaded=None,
+                   op_coverage=None):
     return planner.select_variant(model, machine, reserved_bytes, pin, budget_bytes, downloaded,
-                                  est_bytes=_est_bytes, format_ready=_format_ready)
+                                  est_bytes=_est_bytes, format_ready=_format_ready,
+                                  op_coverage=op_coverage or planner._NO_COVERAGE)
 
 
-def _llamacpp_variant_row(model, machine, pin, reserved_bytes=0, budget_bytes=None, downloaded=None):
+def _llamacpp_variant_row(model, machine, pin, reserved_bytes=0, budget_bytes=None, downloaded=None,
+                          op_coverage=None):
     return planner._llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
-                                         downloaded=downloaded, est_bytes=_est_bytes)
+                                         downloaded=downloaded, est_bytes=_est_bytes,
+                                         op_coverage=op_coverage or planner._NO_COVERAGE)
 
 
 # ── Cross-stage VRAM ledger ──────────────────────────────────────────────────

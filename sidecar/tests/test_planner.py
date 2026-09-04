@@ -36,6 +36,8 @@ import dataclasses
 import pytest
 
 from sokuji_sidecar import accel, catalog, planner
+from sokuji_sidecar.accel import OpCoverage
+from _fixtures import _known_gpu_machine
 
 
 FIT_WALK_MATRIX = [
@@ -1079,3 +1081,91 @@ def test_resolve_translate_propagates_qwen3_thinking_config():
         disable_thinking=True, append_no_think=True, prompt_family="qwen")
     # every plan for this model shares the same card-derived config.
     assert all(p.config == plans[0].config for p in plans)
+
+
+# ── _deployment_available: the op-coverage gate (spec A §3.3) ────────────
+# _tier_available answers "does this machine have that kind of device";
+# _deployment_available adds "and can THAT device execute THIS rung's recorded
+# graph". Only the tts stage refuses (audio.cpp computes single-backend and
+# aborts on an unsupported node); asr/translate keep running because
+# llama.cpp/transcribe.cpp schedule an unsupported op onto the CPU, so their
+# coverage is recorded for diagnostics only. Every unknown — no profile, an
+# unknown device, an unmapped backend, nothing computed — passes through
+# (premise 5).
+
+_NONE = planner._NO_COVERAGE if hasattr(planner, "_NO_COVERAGE") else (lambda *a: None)
+
+
+def _cov(all_supported, unsupported=()):
+    return lambda i, s, f, ct: OpCoverage(all_supported, tuple(unsupported))
+
+
+def _cov_for(mapping):   # {(stage, family, ct): OpCoverage}
+    return lambda i, s, f, ct: mapping.get((s, f, ct))
+
+
+def test_deployment_available_unknown_profile_is_tier_available():
+    m = _nv_machine(24576)                                        # devices=() by default
+    for card in (catalog.tts_model("voxcpm2"), catalog.translate_model("qwen3-0.6b"), catalog.asr_model("whisper-base")):
+        for d in card.deployments:
+            assert planner._deployment_available(card, d, m, op_coverage=_NONE) == planner._tier_available(d.tier, m, d.backend)
+
+
+def test_deployment_available_tts_refuses_gpu_on_unsupported_node_only():
+    m = _known_gpu_machine()
+    card = catalog.tts_model("voxcpm2")
+    gpu = next(d for d in card.deployments if d.tier == "gpu-vulkan" and d.compute_type == "q8_0")
+    cpu = next(d for d in card.deployments if d.tier == "cpu" and d.compute_type == "q8_0")
+    assert planner._deployment_available(card, gpu, m, op_coverage=_cov(False, ["NORM[f32,-,-,-,-]->f32"])) is False
+    assert planner._deployment_available(card, cpu, m, op_coverage=_cov(False)) is True
+    assert planner._deployment_available(card, gpu, m, op_coverage=_cov(True)) is True
+    assert planner._deployment_available(card, gpu, m, op_coverage=_NONE) is True        # not computed → pass
+
+
+def test_deployment_available_asr_translate_never_refuse():
+    m = _known_gpu_machine()
+    for card in (catalog.translate_model("qwen3-0.6b"), catalog.asr_model("whisper-base")):
+        gpu = next(d for d in card.deployments if d.tier == "gpu-vulkan")
+        assert planner._deployment_available(card, gpu, m, op_coverage=_cov(False, ["X"])) is True
+
+
+def test_deployment_available_unknown_backend_passes():
+    m = _known_gpu_machine()
+    d = catalog.Deployment("ctranslate2", "gpu-vulkan", "int8", "r", 1.0, est_bytes=1)
+
+    class Card:
+        graph_family = "x"
+        deployments = (d,)
+    assert planner._deployment_available(Card, d, m, op_coverage=_cov(False)) is True
+
+
+def test_refused_tts_rung_lands_on_cpu_row_under_pin_downloaded_and_gpu_override_with_pin():
+    m = _known_gpu_machine()
+    cov = _cov_for({("tts", "voxcpm2", "bf16"): OpCoverage(False, ("MUL_MAT[bf16,f32,-,-,-]->f32",)),
+                    ("tts", "voxcpm2", "q8_0"): OpCoverage(True, ())})
+    kw = dict(machine=m, platform="linux", cache={}, est_bytes=lambda d: d.est_bytes, op_coverage=cov)
+    plans = planner.resolve_tts("voxcpm2", pin="bf16", downloaded=set(), **kw)                         # pin
+    assert plans[0].device == "cpu" and plans[0].compute_type == "bf16"
+    plans = planner.resolve_tts("voxcpm2", downloaded=frozenset({"bf16"}), **kw)                        # downloaded
+    assert plans[0].device == "cpu" and plans[0].compute_type == "bf16"
+    plans = planner.resolve_tts("voxcpm2", "gpu", pin="bf16", downloaded=set(), **kw)                   # override gpu + pin
+    assert plans[0].device == "cpu" and plans[0].compute_type == "bf16"
+
+
+def test_fit_walk_sees_only_runnable_rungs():
+    m = _known_gpu_machine()                                      # 96 GiB: bf16 fits
+    cov = _cov_for({("tts", "voxcpm2", "bf16"): OpCoverage(False, ("X",)), ("tts", "voxcpm2", "q8_0"): OpCoverage(True, ())})
+    plans = planner.resolve_tts("voxcpm2", machine=m, platform="linux", cache={}, downloaded=set(),
+                                est_bytes=lambda d: d.est_bytes, op_coverage=cov)
+    assert plans[0].device == "vulkan" and plans[0].compute_type == "q8_0"       # not bf16-on-cpu
+
+
+def test_tier_available_metal_uses_the_structured_bit_when_known():
+    dev_ok = accel.DeviceProfile(0, "metal", "MTL0", "Apple M4", 16 << 30, True, frozenset({"mtl_simdgroup_reduction", "uma"}), "Metal", "25A", "", "")
+    dev_vm = dataclasses.replace(dev_ok, description="Apple Paravirtual device", features=frozenset({"uma"}))
+    base = accel.Machine(os="Darwin", arch="arm64", cpu_cores=10, apple_silicon=True, installed=frozenset({"native_tts"}), fingerprint="fp",
+                         tc_kinds=("metal", "cpu"), gpus=(("metal", "Apple M4", 16 << 30),))
+    assert planner._tier_available("gpu-metal", dataclasses.replace(base, devices=(dev_ok,))) is True
+    assert planner._tier_available("gpu-metal", dataclasses.replace(base, devices=(dev_vm,))) is False              # bit absent
+    vm_named = dataclasses.replace(base, gpus=(("metal", "Apple Paravirtual device", 8 << 30),), devices=(dataclasses.replace(dev_ok, description="Apple Paravirtual device"),))
+    assert planner._tier_available("gpu-metal", vm_named) is False                                                   # string rule kept

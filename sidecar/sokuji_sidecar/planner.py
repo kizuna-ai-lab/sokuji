@@ -130,6 +130,9 @@ def _tier_available(tier: str, machine: Machine, backend: str | None = None) -> 
     if tier == "gpu-metal":
         if _paravirtual_metal_only(machine):
             return False
+        dev = _device_for_tier(machine, "gpu-metal")
+        if dev is not None and dev.known and "mtl_simdgroup_reduction" not in dev.features:
+            return False                      # the structured R36 signal (spec A premise 6)
         return machine.apple_silicon or "metal" in machine.tc_kinds
     if tier == "gpu-vulkan":
         # the native library's own probe is authoritative (sees AMD/Intel/NVIDIA
@@ -148,6 +151,41 @@ def _tier_available(tier: str, machine: Machine, backend: str | None = None) -> 
     return False
 
 
+# audio.cpp computes single-backend: an op its device cannot execute ABORTS the
+# process, so a refused tts rung must never reach the loader. llama.cpp and
+# transcribe.cpp schedule an unsupported node onto the CPU and keep running, so
+# their coverage is recorded for diagnostics and never gates a plan.
+_ABORTS_ON_UNSUPPORTED = {"tts"}
+_NO_COVERAGE = lambda *a: None       # noqa: E731 — the default: nothing computed, everything passes (premise 5)
+
+
+def _device_for_tier(machine: Machine, tier: str):
+    kind = TIER_DEVICE.get(tier)
+    return next((d for d in machine.devices if d.kind == kind), None)   # first of the kind, as native.device_for
+
+
+def _deployment_available(model, d, machine: Machine, *, op_coverage=_NO_COVERAGE) -> bool:
+    """Spec A §3.3: _tier_available, then — for a GPU tier on a device with a known profile — the
+    family's op coverage for THIS rung. Only the tts stage refuses; asr/translate run with
+    CPU fallback and are recorded for diagnostics. Anything unknown passes through."""
+    if not _tier_available(d.tier, machine, d.backend):
+        return False
+    if d.tier == "cpu":
+        return True
+    dev = _device_for_tier(machine, d.tier)
+    if dev is None or not dev.known:
+        return True
+    stage = _STAGE_OF_BACKEND.get(d.backend)
+    if stage is None:
+        return True
+    cov = op_coverage(dev.index, stage, getattr(model, "graph_family", ""), d.compute_type)
+    if cov is None:
+        return True
+    if stage in _ABORTS_ON_UNSUPPORTED:
+        return bool(cov.all_supported)
+    return True
+
+
 def _platform_ok(d, machine: Machine, platform: str) -> bool:
     """Whether deployment `d` is runnable on THIS host's OS (D9). A row is
     dropped when this platform is not in its `platforms` set. Every shipped
@@ -159,12 +197,14 @@ def _platform_ok(d, machine: Machine, platform: str) -> bool:
 
 
 def resolve_deployments(model, machine: Machine, override: str = "auto",
-                        bench: dict | None = None, *, platform: str) -> list[Plan]:
+                        bench: dict | None = None, *, platform: str,
+                        op_coverage=_NO_COVERAGE) -> list[Plan]:
     """Ordered Plans for `model` on `machine`: filter to runnable, rank by tier
     (GPU/NPU >> CPU), then a non-'auto' override pins its tier to the front, then
     the bench cache demotes a proven-slow GPU plan. CPU floor always survives."""
     usable = [d for d in model.deployments
-              if d.backend in machine.installed and _tier_available(d.tier, machine, d.backend)
+              if d.backend in machine.installed
+              and _deployment_available(model, d, machine, op_coverage=op_coverage)
               and _platform_ok(d, machine, platform)]
     usable.sort(key=lambda d: (TIER_RANK.get(d.tier, 0.0), d.rank), reverse=True)
     if override != "auto":
@@ -197,14 +237,15 @@ def _cache_key(machine: Machine, ns: str, model_id: str, backend: str, device: s
 
 
 def _resolve_model(model, model_id: str, override: str, machine: Machine, *,
-                   cache: dict, platform: str) -> list[Plan]:
+                   cache: dict, platform: str, op_coverage=_NO_COVERAGE) -> list[Plan]:
     bench = {}
     for d in model.deployments:
         device = TIER_DEVICE[d.tier]
         key = _cache_key(machine, "", model_id, d.backend, device, d.compute_type)
         if key in cache:
             bench[(d.backend, device, d.compute_type)] = cache[key]
-    plans = resolve_deployments(model, machine, override, bench=bench or None, platform=platform)
+    plans = resolve_deployments(model, machine, override, bench=bench or None, platform=platform,
+                                op_coverage=op_coverage)
     if not plans:
         raise NoUsablePlan(model_id)
     return plans
@@ -253,7 +294,7 @@ def _quant_budget_bytes(machine: Machine):
 
 
 def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
-                   downloaded: set | None = None) -> str:
+                   downloaded: set | None = None, *, op_coverage=_NO_COVERAGE) -> str:
     """Quant for a multi-quant native ASR card. pin wins; on a GPU-capable
     machine walk quality-descending (largest first) and take the first that
     fits FULLY resident within the budget, else the rank-default; without a
@@ -282,12 +323,21 @@ def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
             sizes = cached
             if default not in sizes:
                 default = max(sizes, key=lambda q: sizes[q])
-    gpu_possible = any(_tier_available(d.tier, machine, d.backend) and d.tier != "cpu"
+    gpu_possible = any(d.tier != "cpu" and _deployment_available(model, d, machine, op_coverage=op_coverage)
                        for d in model.deployments)
     if not gpu_possible:
         return min(sizes, key=sizes.get) if sizes else default
     if budget is None or not sizes:
         return default
+    # The fit walk sees only RUNNABLE rungs (spec A §3.3): a rung whose every
+    # GPU row the device refuses must not win the walk and then resolve to its
+    # cpu row while a sibling rung's GPU row was available. `or sizes` keeps
+    # the walk non-empty when no rung has an available GPU row at all, which
+    # then falls through to the existing default logic.
+    sizes = {q: s for q, s in sizes.items()
+             if any(d.compute_type == q and d.tier != "cpu"
+                    and _deployment_available(model, d, machine, op_coverage=op_coverage)
+                    for d in model.deployments)} or sizes
     # `sizes` is already the final (downloaded-restricted, if applicable)
     # candidate set, so no further downloaded restriction is needed here.
     picked = _fit_walk({q: sz * _TC_RESIDENT_FACTOR for q, sz in sizes.items()},
@@ -296,7 +346,8 @@ def _tc_pick_quant(model, machine: Machine, pin: str | None, budget: int | None,
 
 
 def resolve(model_id: str, override: str = "auto", *, machine: Machine, platform: str,
-           cache: dict, downloaded: set, pin: str | None = None) -> list[Plan]:
+           cache: dict, downloaded: set, pin: str | None = None,
+           op_coverage=_NO_COVERAGE) -> list[Plan]:
     model = catalog.asr_model(model_id)
     if model is None:
         raise ValueError(f"unknown asr model: {model_id}")
@@ -307,15 +358,17 @@ def resolve(model_id: str, override: str = "auto", *, machine: Machine, platform
         # restricted to what's actually cached — we always load the file the
         # user downloaded; recommendation and load thus always agree.
         quant = _tc_pick_quant(model, machine, pin, _quant_budget_bytes(machine),
-                               downloaded=downloaded)
+                               downloaded=downloaded, op_coverage=op_coverage)
         model = dataclasses.replace(
             model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
-    return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
+    return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform,
+                          op_coverage=op_coverage)
 
 
 def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine, platform: str,
                       cache: dict, downloaded: set, reserved_bytes: int = 0,
-                      pin: str | None = None, est_bytes, format_ready) -> list[Plan]:
+                      pin: str | None = None, est_bytes, format_ready,
+                      op_coverage=_NO_COVERAGE) -> list[Plan]:
     model = catalog.translate_model(model_id)
     if model is None:
         raise ValueError(f"unknown translate model: {model_id}")
@@ -336,7 +389,7 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
         chosen = select_variant(model, machine, reserved_bytes, pin,
                                 budget_bytes=_quant_budget_bytes(machine),
                                 downloaded=downloaded, est_bytes=est_bytes,
-                                format_ready=format_ready)
+                                format_ready=format_ready, op_coverage=op_coverage)
         # Prefer a CPU floor at the SAME quant as the chosen GPU/Metal variant (a
         # coherent fallback the user actually picked/expects); fall back to any
         # CPU deployment when that exact quant has none.
@@ -375,12 +428,14 @@ def resolve_translate(model_id: str, override: str = "auto", *, machine: Machine
         quant = _llamacpp_quant(model, pin)
         model = dataclasses.replace(
             model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
-    return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
+    return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform,
+                          op_coverage=op_coverage)
 
 
 def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, platform: str,
                 cache: dict, downloaded: frozenset = frozenset(),
-                pin: str | None = None, est_bytes=None) -> list[Plan]:
+                pin: str | None = None, est_bytes=None,
+                op_coverage=_NO_COVERAGE) -> list[Plan]:
     """Resolve Plans for a TTS card.
 
     Every native_tts card is a single-file audio.cpp GGUF shipping the SAME
@@ -405,7 +460,8 @@ def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, plat
     est_bytes = est_bytes or (lambda d: d.est_bytes)
     if override == "auto":
         chosen = _llamacpp_variant_row(model, machine, pin, budget_bytes=_quant_budget_bytes(machine),
-                                       downloaded=downloaded, est_bytes=est_bytes)
+                                       downloaded=downloaded, est_bytes=est_bytes,
+                                       op_coverage=op_coverage)
         cpu = next((d for d in model.deployments
                     if d.tier == "cpu" and d.compute_type == chosen.compute_type), None) \
             if chosen is not None else None
@@ -426,7 +482,8 @@ def resolve_tts(model_id: str, override: str = "auto", *, machine: Machine, plat
         quant = _llamacpp_quant(model, pin)
         model = dataclasses.replace(
             model, deployments=tuple(d for d in model.deployments if d.compute_type == quant))
-    return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform)
+    return _resolve_model(model, model_id, override, machine, cache=cache, platform=platform,
+                          op_coverage=op_coverage)
 
 
 # Free VRAM must clear weights x this factor (transient activation/workspace) plus
@@ -485,7 +542,8 @@ _LLAMA_MIN_FIT_FRACTION = 0.5
 
 def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
                           reserved_bytes: int = 0, budget_bytes: int | None = None,
-                          downloaded: set | None = None, *, est_bytes):
+                          downloaded: set | None = None, *, est_bytes,
+                          op_coverage=_NO_COVERAGE):
     """Pick (quant, tier) for a GGUF LLM card.
 
     This is a pre-load DOWNLOAD/PLACEMENT heuristic, not a runtime memory
@@ -513,7 +571,8 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
         rows = [d for d in model.deployments if d.compute_type == quant]
         rows.sort(key=lambda d: TIER_RANK.get(d.tier, 0.0), reverse=want_gpu)
         for d in rows:
-            if _tier_available(d.tier, machine, d.backend) and (want_gpu or d.tier == "cpu"):
+            if (_deployment_available(model, d, machine, op_coverage=op_coverage)
+                    and (want_gpu or d.tier == "cpu")):
                 return d
         return next((d for d in rows if d.tier == "cpu"), None)
 
@@ -521,7 +580,7 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
         return _row(pin)
 
     default_quant = _llamacpp_quant(model, None)
-    gpu_possible = any(_tier_available(d.tier, machine, d.backend) and d.tier != "cpu"
+    gpu_possible = any(d.tier != "cpu" and _deployment_available(model, d, machine, op_coverage=op_coverage)
                        for d in model.deployments)
     if budget_bytes is None or not gpu_possible:
         return _row(default_quant)
@@ -540,6 +599,14 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
                 default_quant = max(quants, key=lambda q: quants[q])
     if not quants:
         return _row(default_quant)
+    # The fit walk sees only RUNNABLE rungs (spec A §3.3): without this, a rung
+    # whose every GPU row the device refuses could win the walk and then land on
+    # its cpu row while a sibling rung's GPU row was available. `or quants` keeps
+    # the walk non-empty when no rung has an available GPU row at all.
+    quants = {q: sz for q, sz in quants.items()
+              if any(d.compute_type == q and d.tier != "cpu"
+                     and _deployment_available(model, d, machine, op_coverage=op_coverage)
+                     for d in model.deployments)} or quants
     # largest fully-resident quant wins. `quants` is already the final
     # (downloaded-restricted, if applicable) candidate set, so no further
     # downloaded restriction is needed here.
@@ -563,7 +630,7 @@ def _llamacpp_variant_row(model, machine: Machine, pin: str | None,
 
 def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None = None,
                    budget_bytes: int | None = None, downloaded: set | None = None, *,
-                   est_bytes, format_ready):
+                   est_bytes, format_ready, op_coverage=_NO_COVERAGE):
     """Pick the best downloadable variant of `model` for this machine. Deterministic:
     same (model, machine, reserved_bytes, pin) → same Deployment. Falls back to the
     CPU floor when no GPU variant fits, the device memory total is unknown, or a
@@ -580,7 +647,8 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
     runtime-importability check, respectively."""
     if _is_gguf_llm(model):
         return _llamacpp_variant_row(model, machine, pin, reserved_bytes, budget_bytes,
-                                     downloaded=downloaded, est_bytes=est_bytes)
+                                     downloaded=downloaded, est_bytes=est_bytes,
+                                     op_coverage=op_coverage)
     total = _quant_budget_bytes(machine)
     cpu_floor = next((d for d in model.deployments if d.tier == "cpu"), None)
 
@@ -589,7 +657,7 @@ def select_variant(model, machine: Machine, reserved_bytes: int, pin: str | None
             return False
         if d.backend not in machine.installed or not format_ready(d.compute_type):
             return False
-        if total is None or not _tier_available(d.tier, machine, d.backend):
+        if total is None or not _deployment_available(model, d, machine, op_coverage=op_coverage):
             return False
         need = est_bytes(d)
         if need is None:

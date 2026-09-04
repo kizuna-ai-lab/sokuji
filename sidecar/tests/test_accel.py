@@ -853,7 +853,7 @@ def test_downloaded_quants_checks_each_tts_artifact_file(monkeypatch):
 
 def test_resolve_tts_wrapper_passes_pin_and_downloaded(monkeypatch):
     seen = {}
-    def fake(mid, override, *, machine, platform, cache, downloaded, pin, est_bytes):
+    def fake(mid, override, *, machine, platform, cache, downloaded, pin, est_bytes, op_coverage):
         seen.update(downloaded=downloaded, pin=pin)
         return ["sentinel"]
     monkeypatch.setattr(accel.planner, "resolve_tts", fake)
@@ -1500,6 +1500,29 @@ def test_op_coverage_for_precomputes_only_what_the_planner_may_gate(monkeypatch,
     m4 = dataclasses.replace(m, devices=(m.devices[0], second, m.devices[1]), generation="G2")   # fresh generation: the G1 answers are cached
     accel.op_coverage_for(m4, card, "auto")
     assert calls and {c[0] for c in calls} == {0}                                   # two GPUs of one kind: only the first
+
+
+def test_op_coverage_for_is_callable_with_four_args_on_every_path(monkeypatch, tmp_path):
+    # planner._deployment_available calls the callable as (index, stage, family,
+    # compute_type). Every "nothing computed" path must answer that shape too —
+    # an explicit CPU load on profile-carrying hardware still evaluates the gate
+    # for the card's GPU rows before pinning the cpu tier.
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    m = _known_gpu_machine()
+    card = catalog.tts_model("voxcpm2")
+    for cb in (accel.op_coverage_for(m, card, "cpu"),
+               accel.op_coverage_for(m, None, "auto"),
+               accel.op_coverage_for(dataclasses.replace(m, devices=()), card, "auto")):
+        assert cb(0, "tts", "voxcpm2", "q8_0") is None
+
+
+def test_resolve_tts_cpu_override_resolves_on_profile_carrying_hardware(monkeypatch, tmp_path):
+    # End-to-end guard for the same thing through the wrapper the engines call.
+    monkeypatch.setenv("SOKUJI_BENCH_DIR", str(tmp_path))
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: set())
+    monkeypatch.setattr(accel, "current_platform", lambda: "linux")
+    plans = accel.resolve_tts("voxcpm2", "cpu", machine=_known_gpu_machine())
+    assert plans[0].device == "cpu"
 
 
 def test_cached_op_coverage_reads_only(monkeypatch, tmp_path):
