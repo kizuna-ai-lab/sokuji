@@ -51,7 +51,16 @@ int32_t src_type_of(const ggml_tensor *node, int i) {
     return static_cast<int32_t>(t->type);
 }
 
-void record_node(const ggml_tensor *node) {
+/* Exactly audio.cpp's own `core::is_host_backend` (src/framework/core/backend.cpp:272-278):
+ * the backend's DEVICE type is CPU. Using its definition, not ggml_backend_is_cpu, keeps the
+ * `host` tag meaning the same thing as the branch audio.cpp actually took. */
+bool is_host_backend(ggml_backend_t backend) {
+    if (!backend) return false;
+    ggml_backend_dev_t dev = ggml_backend_get_device(backend);
+    return dev != nullptr && ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU;
+}
+
+void record_node(const ggml_tensor *node, bool host) {
     if (!node || node->op == GGML_OP_NONE || node->op == GGML_OP_VIEW || node->op == GGML_OP_RESHAPE ||
         node->op == GGML_OP_PERMUTE || node->op == GGML_OP_TRANSPOSE) return;   // no-op views: never asked of a backend
     std::lock_guard<std::mutex> l(g_rec_mutex);
@@ -60,6 +69,7 @@ void record_node(const ggml_tensor *node) {
     d.op = node->op;
     std::memcpy(d.op_params.data(), node->op_params, sizeof d.op_params);
     d.dst_type = node->type;
+    d.host = host;
     for (int i = 0; i < 5 && i < GGML_MAX_SRC; ++i) d.src_type[i] = src_type_of(node, i);
     for (int i = 0; i < 4; ++i) {
         d.max_ne_dst[i] = node->ne[i];
@@ -67,8 +77,10 @@ void record_node(const ggml_tensor *node) {
         d.max_ne_src1[i] = node->src[1] ? node->src[1]->ne[i] : 1;
     }
     d.ne0_src0 = d.max_ne_src0[0]; d.ne0_src1 = d.max_ne_src1[0]; d.ne0_dst = d.max_ne_dst[0];
-    d.contig_src0 = !node->src[0] || ggml_is_contiguous(node->src[0]);
-    d.contig_src1 = !node->src[1] || ggml_is_contiguous(node->src[1]);
+    // F1: the exact layout of each tensor, not one "is it contiguous" bool per source.
+    d.lay_dst = sk_layout_of(node);
+    if (node->src[0]) d.lay_src0 = sk_layout_of(node->src[0]);
+    if (node->src[1]) d.lay_src1 = sk_layout_of(node->src[1]);
     d.max_bytes = ggml_nbytes(node);
     if (node->src[0]) d.max_bytes = std::max<uint64_t>(d.max_bytes, ggml_nbytes(node->src[0]));
     if (node->src[1]) d.max_bytes = std::max<uint64_t>(d.max_bytes, ggml_nbytes(node->src[1]));
@@ -83,11 +95,20 @@ void record_node(const ggml_tensor *node) {
  * plan_compute carries no graph, so the plan-create hook is where those nodes are seen. This
  * TU is compiled WITHOUT the redirect, so the calls below are the real functions. */
 extern "C" enum ggml_status sk_recording_graph_compute(ggml_backend_t backend, struct ggml_cgraph *cgraph) {
-    for (int i = 0; i < ggml_graph_n_nodes(cgraph); ++i) record_node(ggml_graph_node(cgraph, i));
+    // F2: audio.cpp branches its graph construction on host-vs-device (uses_host_graph_plan /
+    // is_host_backend), so the node has to carry which side it came from. This path may be
+    // either — the model runs on the device backend, while helper subgraphs can be computed on
+    // a host one.
+    const bool host = is_host_backend(backend);
+    for (int i = 0; i < ggml_graph_n_nodes(cgraph); ++i) record_node(ggml_graph_node(cgraph, i), host);
     return ggml_backend_graph_compute(backend, cgraph);
 }
 extern "C" ggml_backend_graph_plan_t sk_recording_graph_plan_create(ggml_backend_t backend, struct ggml_cgraph *cgraph) {
-    for (int i = 0; i < ggml_graph_n_nodes(cgraph); ++i) record_node(ggml_graph_node(cgraph, i));
+    // Host by construction: audio.cpp only reaches graph_plan_create through
+    // create_backend_graph_plan_if_host (pocket_tts's FlowLM). Tagged from the backend anyway,
+    // so a future non-host plan user records truthfully.
+    const bool host = is_host_backend(backend);
+    for (int i = 0; i < ggml_graph_n_nodes(cgraph); ++i) record_node(ggml_graph_node(cgraph, i), host);
     return ggml_backend_graph_plan_create(backend, cgraph);
 }
 
@@ -106,7 +127,10 @@ namespace {
 const char *rec_name(ggml_backend_t) { return "SKREC"; }
 void rec_free(ggml_backend_t b) { delete b; }
 enum ggml_status rec_compute(ggml_backend_t, struct ggml_cgraph *g) {
-    for (int i = 0; i < ggml_graph_n_nodes(g); ++i) record_node(ggml_graph_node(g, i));
+    // This device advertises itself as a GPU (dev_type below) precisely so llama.cpp /
+    // transcribe.cpp route every node to it and build their DEVICE graph; that it forwards the
+    // computation to CPU is an implementation detail. host = false.
+    for (int i = 0; i < ggml_graph_n_nodes(g); ++i) record_node(ggml_graph_node(g, i), false);
     return ggml_backend_graph_compute(g_cpu, g);
 }
 ggml_backend_i rec_iface = {
@@ -170,7 +194,8 @@ SK_API void sk_record_begin(const char *const *names, int32_t n, const char *con
 SK_API int32_t sk_record_node_count(void) { std::lock_guard<std::mutex> l(g_rec_mutex); return static_cast<int32_t>(g_nodes.size()); }
 
 SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, const char *family,
-                                       const char *source_file, const char *const *dtypes, int32_t n_dtypes) {
+                                       const char *source_file, const char *recorded_on,
+                                       const char *const *dtypes, int32_t n_dtypes) {
     sk_op_recording r;
     {
         std::lock_guard<std::mutex> l(g_rec_mutex);
@@ -178,6 +203,7 @@ SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, cons
         r.nodes = g_nodes;   // COPIED, not moved: a recording costs minutes of model loading and
     }                        // synthesis, so a failed write must leave it retryable in memory.
     r.stage = stage; r.family = family; r.engine = sk_engine_versions(); r.source_file = source_file;
+    r.recorded_on = recorded_on ? recorded_on : "cpu";
     for (int32_t i = 0; i < n_dtypes; ++i) r.dtypes_in_file.push_back(dtypes[i]);
     std::sort(r.dtypes_in_file.begin(), r.dtypes_in_file.end());
     std::ofstream f(path);

@@ -153,7 +153,9 @@ typedef struct sk_op_coverage {
  * (f32/f16/bf16) nor a quantized type is skipped the same way: a WEIGHT node is the src0 of a
  * MUL_MAT/MUL_MAT_ID/GET_ROWS, and the integer types a GGUF header lists (i32/i64) are index
  * tables, never rung weights — so a caller may pass a raw header dtype set straight through.
- * Unknown (stage, family) →
+ * A node the recording tagged `host=1` ran on a host backend — audio.cpp builds a different
+ * graph there and never sends those nodes to a device — so it is asked only when `index` names
+ * a CPU device, and skipped otherwise. Unknown (stage, family) →
  * SK_ERR_NOT_FOUND; bad index, NULL out, n_weight_dtypes <= 0 or an unknown dtype name →
  * SK_ERR_INVALID_ARGUMENT; more than SK_OP_COVERAGE_MAX expanded entries → SK_ERR_INTERNAL;
  * a backend exception → SK_ERR_BACKEND. Callers treat every error as "unknown", never as
@@ -314,9 +316,13 @@ SK_API int32_t   sk_record_register_device(void);
  * tensor with its literal dtype. */
 SK_API void      sk_record_begin(const char *const *weight_names, int32_t n_names,
                                  const char *const *rung_ops, int32_t n_rung_ops);
-/* Stop capturing and write the .ops file. */
+/* Stop capturing and write the .ops file. `recorded_on` is the ggml device kind the model was
+ * loaded on ("vulkan" | "metal" | "cpu"); it becomes the file's `# recorded-on:` header. A tts
+ * recording taken on "cpu" is not a valid shipping recording — audio.cpp builds a different
+ * graph on a host backend (see sk_ops.h's sk_op_desc::host). */
 SK_API sk_status sk_record_end_to_file(const char *path, const char *stage, const char *family,
-                                       const char *source_file, const char *const *dtypes, int32_t n_dtypes);
+                                       const char *source_file, const char *recorded_on,
+                                       const char *const *dtypes, int32_t n_dtypes);
 SK_API int32_t   sk_record_node_count(void);
 #endif
 

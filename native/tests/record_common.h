@@ -28,8 +28,27 @@ static bool grab_audio(const float *pcm, size_t n, int32_t rate, int32_t, void *
     auto *c = static_cast<Clip *>(user); c->pcm.insert(c->pcm.end(), pcm, pcm + n); c->rate = rate; return true;
 }
 
-/* A real speech clip for the clone-only families: supertonic preset M1 on the CPU device, made
- * BEFORE recording starts so its nodes never leak into the other family's file. */
+/* F2: the device a TTS recording must be taken on — the first non-CPU device when the build has
+ * one. audio.cpp branches its graph construction on host-vs-device (uses_host_graph_plan /
+ * is_host_backend: f16 conv kernels and bf16→f16 casts on host, f32 on a device), so a
+ * CPU-recorded tts file describes a graph no GPU is ever asked and must never be shipped. */
+static const sk_device *tts_record_device(const sk_device *devs, int n) {
+    for (int i = 0; i < n; ++i) if (devs[i].kind != SK_DEVICE_CPU && std::strcmp(devs[i].name, "SKREC0") != 0) return &devs[i];
+    return nullptr;
+}
+static const char *device_kind_name(const sk_device *d) {
+    if (!d) return "cpu";
+    switch (d->kind) {
+        case SK_DEVICE_VULKAN: return "vulkan";
+        case SK_DEVICE_METAL:  return "metal";
+        case SK_DEVICE_CPU:    return "cpu";
+        default:               return "gpu";
+    }
+}
+
+/* A real speech clip for the clone-only families: supertonic preset M1, made BEFORE recording
+ * starts so its nodes never leak into the other family's file. Synthesised on the same device
+ * the family will be recorded on. */
 static Clip reference_clip(const sk_device *cpu, const std::string &supertonic_dir) {
     Clip c;
     sk_tts_options o{"supertonic", nullptr};
@@ -102,6 +121,7 @@ static int record_family(const std::string &stage, const std::string &family, co
      * not reach the disk has to read as a failure — not as `count` nodes recorded. */
     if (sk_record_end_to_file(out_path.c_str(), stage.c_str(), family.c_str(),
                               std::filesystem::path(gguf).filename().string().c_str(),
+                              device_kind_name(dev),
                               dtype_ptrs.data(), (int32_t)dtype_ptrs.size()) != SK_OK) {
         std::fprintf(stderr, "record_family: %s\n", sk_last_error());
         return 0;

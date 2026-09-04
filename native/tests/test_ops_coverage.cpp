@@ -55,7 +55,11 @@ static const Case CASES[] = {
 
 static std::set<std::string> spellings(const sk_op_recording &r) {
     std::set<std::string> s;
-    for (const auto &d : r.nodes) s.insert(sk_op_spelling(d, nullptr) + " ne0=" + std::to_string(d.ne0_src0));
+    // host= is part of the compared key: which side of audio.cpp's host/device split a node
+    // came from is exactly what a backend-type refactor upstream would move, and moving it
+    // silently would change what the coverage gate refuses.
+    for (const auto &d : r.nodes)
+        s.insert(sk_op_spelling(d, nullptr) + " ne0=" + std::to_string(d.ne0_src0) + " host=" + std::to_string(d.host ? 1 : 0));
     return s;
 }
 static bool read_file(const std::string &p, std::string &out) {
@@ -77,10 +81,18 @@ int main(int argc, char **argv) {
     const sk_device *cpu = nullptr, *rec = nullptr;
     for (int i = 0; i < n; ++i) { if (devs[i].kind == SK_DEVICE_CPU) cpu = &devs[i]; if (std::strcmp(devs[i].name, "SKREC0") == 0) rec = &devs[i]; }
     assert(cpu && rec);
+    /* F2: a tts recording is only meaningful on a real non-host device — audio.cpp builds a
+     * different graph on a host backend, so re-recording on CPU and diffing against a
+     * device recording would report the backend difference as engine drift. A CPU-only
+     * build (every CI lane without a GPU) therefore SKIPS the tts families outright; it still
+     * gates asr/translate, which record on the fake device and are backend-agnostic. */
+    const sk_device *tts_dev = tts_record_device(devs, n);
+    if (!tts_dev) std::printf("test_ops_coverage: no non-CPU device — tts families will be skipped\n");
 
     for (const Case &c : CASES) {
         const char *model = std::getenv(c.env);
         if (!model || !*model) { std::printf("SKIPPED: %s/%s (%s unset)\n", c.stage, c.family, c.env); continue; }
+        if (std::string(c.stage) == "tts" && !tts_dev) { std::printf("SKIPPED (no device): %s/%s\n", c.stage, c.family); continue; }
         const char *stage = nullptr, *family = nullptr, *text = nullptr; bool found = false;
         for (int b = 0; b < sk_ops_blob_count(); ++b) {
             sk_ops_blob_at(b, &stage, &family, &text);
@@ -91,7 +103,7 @@ int main(int argc, char **argv) {
         assert(sk_ops_parse(text, shipped, err));
         const std::string tmp = (sk_scratch_dir() / ("sk-live-" + std::to_string(sk_getpid()) + "-" + c.stage + "-" + c.family + ".ops")).string();
         ScratchFiles scratch; scratch.paths.push_back(tmp);
-        const sk_device *dev = std::string(c.stage) == "tts" ? cpu : rec;
+        const sk_device *dev = std::string(c.stage) == "tts" ? tts_dev : rec;
         int count = record_family(c.stage, c.family, model, dev, tmp, 1, supertonic);
         if (std::string(c.stage) == "translate") {
             const std::string tmp2 = tmp + ".off";
@@ -110,6 +122,12 @@ int main(int argc, char **argv) {
         for (const auto &s : bset) if (!a.count(s)) { std::printf("FAIL %s/%s: engine now uses %s (not in shipped recording)\n", c.stage, c.family, s.c_str()); ++failures; }
         for (const auto &s : a) if (!bset.count(s)) { std::printf("FAIL %s/%s: shipped recording lists %s (engine no longer uses it)\n", c.stage, c.family, s.c_str()); ++failures; }
         if (shipped.dtypes_in_file != live.dtypes_in_file) { std::printf("FAIL %s/%s: dtypes-in-file changed (upstream re-quantised?)\n", c.stage, c.family); ++failures; }
+        // A shipped tts recording taken on a host backend is the F2 defect itself.
+        if (std::string(c.stage) == "tts" && (shipped.recorded_on.empty() || shipped.recorded_on == "cpu")) {
+            std::printf("FAIL %s/%s: shipped recording is '# recorded-on: %s' — tts must be recorded on a device\n",
+                        c.stage, c.family, shipped.recorded_on.empty() ? "(missing)" : shipped.recorded_on.c_str());
+            ++failures;
+        }
         std::printf("%s/%s: %zu nodes, %s\n", c.stage, c.family, live.nodes.size(), failures == before ? "ok" : "DIFF");
     }
     return failures ? 1 : 0;

@@ -1,6 +1,7 @@
 /* record_ops <module_dir> <stage> <family> <model-dir-or-gguf> <out.ops> <supertonic-dir> [flash_attn 0|1|2]
- * asr/translate run on the recording device (registered before sk_init); tts runs on the CPU
- * device with the audio.cpp shim. Records ONE forward pass and writes the .ops file. */
+ * asr/translate run on the recording device (registered before sk_init); tts runs on the first
+ * real NON-CPU device with the audio.cpp shim, because audio.cpp builds a different graph on a
+ * host backend (F2). Records ONE forward pass and writes the .ops file. */
 #undef NDEBUG
 #include <cassert>
 #include <cstdlib>
@@ -20,7 +21,14 @@ int main(int argc, char **argv) {
         if (std::strcmp(devs[i].name, "SKREC0") == 0) rec = &devs[i];
     }
     assert(cpu && rec);
-    const int count = record_family(stage, family, model, stage == "tts" ? cpu : rec, out, fa, supertonic);
+    const sk_device *gpu = tts_record_device(devs, n);
+    const sk_device *dev = rec;
+    if (stage == "tts") {
+        dev = gpu ? gpu : cpu;
+        if (!gpu) std::fprintf(stderr, "record_ops: WARNING no non-CPU device — this tts recording is HOST-ONLY and must not be shipped\n");
+    }
+    std::printf("record_ops: %s/%s on device %s (%s)\n", stage.c_str(), family.c_str(), dev->name, device_kind_name(dev));
+    const int count = record_family(stage, family, model, dev, out, fa, supertonic);
     std::printf("record_ops: %d nodes -> %s\n", count, out.c_str());
     return count > 0 ? 0 : 1;
 }

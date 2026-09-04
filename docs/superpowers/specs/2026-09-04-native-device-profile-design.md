@@ -356,12 +356,37 @@ op=FLASH_ATTN_EXT params=-      dst=f32  src=[f32,f16,f16,f16,-]    ne0=[64,1,16
 
 Each line carries everything the backends' `supports_op` reads (§2): op kind and
 `op_params` (unary/glu kind, rope mode — spelled into the op name for the wire),
-dst type, all five source types, `ne[0..3]` of src0/src1/dst as recorded,
-contiguity flags of src0/src1, and the largest `ggml_nbytes` seen for that node
-shape (so the buffer-range checks are asked at the real size). Tensors whose dtype
-came from a **weight tensor of the model file** are written as `WEIGHT`; every other
-dtype is literal. The recording is data: reviewed in diffs, regenerated per pin bump,
-never hand-edited.
+dst type, all five source types, `ne[0..3]` of src0/src1/dst as recorded, an exact
+**layout descriptor** per tensor, a **host** flag, and the largest `ggml_nbytes` seen
+for that node shape. Tensors whose dtype came from a **weight tensor of the model
+file** are written as `WEIGHT`; every other dtype is literal. The recording is data:
+reviewed in diffs, regenerated per pin bump, never hand-edited.
+
+The **layout descriptor** is the axis order by ascending stride plus a dense/strided
+flag (`0123d` contiguous, `1023d` transposed, `0213d` a row-contiguous permute,
+`0123s` a strided view, which also records its `nb`). One "is it contiguous" bool per
+source cannot tell a permute from a transpose, and the backends check predicates that
+do — ggml-vulkan's ROPE wants `ggml_is_contiguous_rows(src0)` — so a rebuild that
+models every non-contiguous tensor as a transpose refuses families the device runs.
+The rebuild uses the recorded maxima verbatim: they are element-wise maxima over every
+occurrence of the identity, so they are already at least the real size, and stretching
+each tensor independently would break the relations the backends check between them
+(ggml-vulkan's MUL_MAT requires `src0->ne[3] == src1->ne[3]`).
+
+**Recordings are taken with the model on a non-host device.** audio.cpp branches its
+graph construction on host-vs-device (`uses_host_graph_plan` / `is_host_backend`): it
+keeps f16 conv-transpose kernels and casts bf16→f16 on a host backend but casts to f32
+on a device one, and pocket_tts pins its FlowLM to a host graph plan. A CPU-recorded
+tts file therefore describes a graph no GPU is ever asked. Nodes that genuinely ran on
+a host backend are tagged `host=1` and are **not** gated: `sk_device_supports_ops`
+skips them for a GPU target and asks them for a CPU one. Each file records its
+`# recorded-on:` device kind, and the drift gate compares a tts family only when a
+non-host device is present. One device recording models every device type, with one
+known caveat: `is_conv_transpose1d_col2im_fast_path_eligible`
+(`src/framework/modules/conv_modules.cpp:317-323`) is true for CUDA/HIP **and Metal**
+but not Vulkan, so on Metal the five families that use `ConvTranspose1d` (qwen3_tts,
+omnivoice, pocket_tts, voxcpm2, irodori_tts) take a `COL2IM_1D` path a Vulkan recording
+does not contain — Metal needs its own recordings if that path is ever to be gated.
 
 ```c
 typedef struct sk_op_check { char name[64]; int32_t supported; } sk_op_check;  /* "OP.param[src0,src1,src2,src3,src4]->dst" as recorded */
@@ -376,7 +401,8 @@ typedef struct sk_op_coverage {
  * weight_dtypes: the dtypes WEIGHT expands over — the GGUF header's set intersected
  * with the weight-capable types when the file is on disk, else the rung's fallback set
  * (§3.3); a dtype that is neither a float nor a quantized type is skipped here too, so
- * a raw header set is safe to pass. Each recorded node is REBUILT with
+ * a raw header set is safe to pass. Host-tagged nodes are skipped unless the target is
+ * a CPU device. Each recorded node is REBUILT with
  * its recorded shapes/params/contiguity (once per weight dtype where it has WEIGHT
  * sources; ne0 as recorded keeps K-quant block sizes valid) and asked of
  * ggml_backend_dev_supports_op. Unknown (stage, family) → SK_ERR_NOT_FOUND; bad

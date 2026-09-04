@@ -52,37 +52,73 @@ bool ask(ggml_backend_dev_t dev, const sk_op_desc &d, int32_t weight_type, std::
     ggml_context *ctx = ggml_init(ip);
     if (!ctx) return false;
     auto concrete = [&](int32_t t) -> ggml_type { return static_cast<ggml_type>(t == SK_SRC_WEIGHT ? weight_type : t); };
-    auto grow = [&](std::array<int64_t, 4> ne, ggml_type t) {
-        const int64_t row_bytes = ggml_row_size(t, ne[0]);
-        if (row_bytes > 0) {
-            const int64_t have = row_bytes * ne[1] * ne[2] * ne[3];
-            if (have < static_cast<int64_t>(d.max_bytes)) ne[1] = (static_cast<int64_t>(d.max_bytes) + row_bytes * ne[2] * ne[3] - 1) / (row_bytes * ne[2] * ne[3]);
-        }
-        return ne;
-    };
-    auto mk = [&](int32_t t, const std::array<int64_t, 4> &ne0, bool contig) -> ggml_tensor * {
+    /* Round 1 stretched each tensor along one axis until it reached `max_bytes`, to ask the
+     * buffer-range checks at the real size. Round 2 drops that, because the recorded maxima
+     * already are the real size and the stretch is not safe:
+     *   - max_ne_src0/src1/dst are ELEMENT-WISE maxima over every occurrence of the identity,
+     *     so nbytes of the rebuilt tensor is >= nbytes of any occurrence's. The buffer-range
+     *     check is already asked at least as large as anything the graph held.
+     *   - stretching each tensor by its own factor breaks the relations the backends check
+     *     between them. ggml-vulkan's MUL_MAT requires src0->ne[3] == src1->ne[3]
+     *     (ggml-vulkan.cpp:18178); on index_tts2's [64,77,4,1] x [64,1,4,1] matmul the two
+     *     independent stretches produced ne[3] = 1 and 77 and the family was refused. Taking
+     *     the maxima verbatim preserves every equality and broadcast relation, since an
+     *     element-wise max of equal values is equal.
+     * max_bytes stays in the format: it is the merge's record of the largest tensor seen and
+     * a useful diagnostic, it is simply not a rebuild input any more.
+     *
+     * F1: rebuild the tensor with the RECORDED layout, so every predicate the backends check —
+     * ggml_is_contiguous, ggml_is_contiguous_rows, ggml_is_contiguous_1/2, ggml_is_transposed,
+     * nb[0] == type_size — answers as it did on the real graph, and the view always carries the
+     * recorded ne.
+     *   dense, natural order  -> a packed tensor.
+     *   dense, permuted       -> a packed base allocated in STRIDE order, then ggml_permute back;
+     *                            ggml_permute(a, perm[0..3]) sets result->ne[perm[k]] = a->ne[k],
+     *                            so the view lands on exactly the recorded ne with exactly the
+     *                            dense strides under that permutation. This is what round 1's
+     *                            blanket ggml_transpose got wrong in two different ways: it
+     *                            swapped the ne (index_tts2's FLASH_ATTN_EXT saw HSK = 1518
+     *                            instead of 64) and it turned every row-contiguous permute into
+     *                            a row-strided transpose (irodori_tts's ROPE).
+     *   strided               -> ggml_view_4d with the recorded nb on a base large enough to
+     *                            cover the last element. ggml_view_4d forces nb[0] = type_size,
+     *                            which is what every recorded strided tensor has (a smaller
+     *                            innermost stride is not expressible and none occurs). */
+    auto mk = [&](int32_t t, const std::array<int64_t, 4> &ne, const sk_layout &lay) -> ggml_tensor * {
         if (t == SK_SRC_ABSENT) return nullptr;
         const ggml_type ct = concrete(t);
-        std::array<int64_t, 4> ne = grow(ne0, ct);
-        if (contig) return ggml_new_tensor_4d(ctx, ct, ne[0], ne[1], ne[2], ne[3]);
-        // The recorder stores the ne the NODE saw (sk_ops_record.cpp: src[i]->ne[k], after any
-        // view), so a non-contiguous source must be rebuilt with that same ne. ggml_transpose
-        // swaps ne[0] and ne[1], so the base tensor is allocated with them already swapped and
-        // the view then carries the recorded shape. Transposing a base built at the recorded ne
-        // (as this did before) asks the backend about a DIFFERENT tensor: index_tts2's masked
-        // FLASH_ATTN_EXT records K as non-contiguous [64,1518,20,3], and the swapped rebuild
-        // handed ggml-vulkan HSK = 1518, failing its `HSK % 8 == 0` gate — a false refusal of
-        // the whole family on every Vulkan device. Only src0/src1 carry a recorded contiguity
-        // flag, and no WEIGHT source is ever non-contiguous, so the swapped allocation never
-        // meets a blocked dtype's row-length constraint.
-        return ggml_transpose(ctx, ggml_new_tensor_4d(ctx, ct, ne[1], ne[0], ne[2], ne[3]));
+        const bool natural = lay.perm[0] == 0 && lay.perm[1] == 1 && lay.perm[2] == 2 && lay.perm[3] == 3;
+        if (lay.dense) {
+            if (natural) return ggml_new_tensor_4d(ctx, ct, ne[0], ne[1], ne[2], ne[3]);
+            ggml_tensor *base = ggml_new_tensor_4d(ctx, ct, ne[lay.perm[0]], ne[lay.perm[1]], ne[lay.perm[2]], ne[lay.perm[3]]);
+            return ggml_permute(ctx, base, lay.perm[0], lay.perm[1], lay.perm[2], lay.perm[3]);
+        }
+        // Enough elements that the last addressed byte is inside the base.
+        int64_t span = 0;
+        for (int a = 0; a < 4; ++a) span += (ne[a] - 1) * lay.nb[a];
+        const int64_t ts = static_cast<int64_t>(ggml_type_size(ct));
+        const int64_t blk = static_cast<int64_t>(ggml_blck_size(ct));
+        int64_t elems = ts > 0 ? ((span + ts) / ts) * blk : 1;
+        elems = std::max<int64_t>(elems, blk);
+        if (elems % blk != 0) elems += blk - elems % blk;      // ggml_new_tensor asserts on this
+        ggml_tensor *base = ggml_new_tensor_1d(ctx, ct, elems);
+        ggml_tensor *view = ggml_view_4d(ctx, base, ne[0], ne[1], ne[2], ne[3],
+                                         static_cast<size_t>(lay.nb[1]), static_cast<size_t>(lay.nb[2]),
+                                         static_cast<size_t>(lay.nb[3]), 0);
+        if (natural) return view;
+        return ggml_permute(ctx, view, lay.perm[0], lay.perm[1], lay.perm[2], lay.perm[3]);
     };
-    ggml_tensor *node = ggml_new_tensor_4d(ctx, concrete(d.dst_type), d.max_ne_dst[0], d.max_ne_dst[1], d.max_ne_dst[2], d.max_ne_dst[3]);
+    ggml_tensor *node = mk(d.dst_type, d.max_ne_dst, d.lay_dst);
+    if (!node) { ggml_free(ctx); return false; }
+    // The dst carries the recorded ne/nb, but it must present as a plain node, not as a view of
+    // the scaffolding that gave it that layout: it is about to become the OP itself, and a
+    // node with both an op and a view_src is a shape ggml never builds.
+    node->view_src = nullptr; node->view_offs = 0;
     node->op = static_cast<ggml_op>(d.op);
     std::memcpy(node->op_params, d.op_params.data(), sizeof node->op_params);
-    node->src[0] = mk(d.src_type[0], d.max_ne_src0, d.contig_src0);
-    node->src[1] = mk(d.src_type[1], d.max_ne_src1, d.contig_src1);
-    for (int i = 2; i < 5; ++i) node->src[i] = mk(d.src_type[i], {d.max_ne_src1[0], 1, 1, 1}, true);
+    node->src[0] = mk(d.src_type[0], d.max_ne_src0, d.lay_src0);
+    node->src[1] = mk(d.src_type[1], d.max_ne_src1, d.lay_src1);
+    for (int i = 2; i < 5; ++i) node->src[i] = mk(d.src_type[i], {d.max_ne_src1[0], 1, 1, 1}, sk_layout{});
     bool ok = ggml_backend_dev_supports_op(dev, node);
     spelling_out = sk_op_spelling(d, weight_type >= 0 ? ggml_type_name(static_cast<ggml_type>(weight_type)) : nullptr);
     ggml_free(ctx);
@@ -127,8 +163,19 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
     }
     std::memset(out, 0, sizeof *out);
     out->all_supported = 1;
+    // F2: audio.cpp builds a DIFFERENT graph for a host backend than for a device one, and a
+    // recording carries both — a host-pinned subgraph (pocket_tts's FlowLM graph plan) plus the
+    // device graph around it. Which side asks which:
+    //   * a GPU target skips host-tagged nodes: audio.cpp never sends them to the device, so
+    //     refusing the family over them is a false refusal (this is what made pocket_tts's
+    //     CONV_TRANSPOSE_1D[f16,f32] and CPY[bf16,f16] — the HOST spellings of casts that are
+    //     f32 on a device — refuse the card on every Vulkan box).
+    //   * a CPU target asks them, because that is exactly where they run, and the CPU sweep in
+    //     test_common.cpp asserts the whole recording is supported there.
+    const bool cpu_target = ggml_backend_dev_type(devs[index]) == GGML_BACKEND_DEVICE_TYPE_CPU;
     try {
         for (const sk_op_desc &d : rec->nodes) {
+            if (d.host && !cpu_target) continue;
             const bool has_weight = std::find(d.src_type.begin(), d.src_type.end(), SK_SRC_WEIGHT) != d.src_type.end();
             const std::vector<int32_t> expand = has_weight ? wtypes : std::vector<int32_t>{-1};
             for (int32_t wt : expand) {

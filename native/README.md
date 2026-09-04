@@ -409,7 +409,15 @@ non-emptiness, never a transcript.
    `-DSOKUJI_RECORD_OPS=ON`, run `bash ci/ops-env.sh ctest --test-dir build/record -R test_ops_coverage`
    with every cached model present — a DIFF means the engine's graph changed; re-record that
    family with `build/record/lib/record_ops` (see tests/record_ops.cpp for the argument order)
-   and commit the new .ops file with the bump. All nine TTS families are cached under
+   and commit the new .ops file with the bump. **TTS re-recording happens on a GPU box**: the
+   nine tts recordings are taken with the model on a real non-host device, because audio.cpp
+   builds a different graph for a host backend than for a device one (`uses_host_graph_plan` /
+   `is_host_backend`: f16 conv kernels and bf16→f16 casts on host, f32 on a device). Configure
+   `build/record-vk` with `-DSOKUJI_GPU=vulkan -DSOKUJI_RECORD_OPS=ON` (or `metal` on macOS)
+   and run the gate there; a CPU-only runner prints `SKIPPED (no device)` for every tts family
+   and gates **asr/translate drift only**, which is what CI's CPU lanes do. A tts .ops file
+   whose `# recorded-on:` says `cpu` is rejected by the gate.
+   All nine TTS families are cached under
    `~/.cache/sokuji-native-tests/tts/` — `ci/ops-env.sh` reads that path from
    `$SOKUJI_NATIVE_TEST_CACHE`, defaulting to `$HOME/.cache/sokuji-native-tests`, so set the
    variable if the cache lives elsewhere — and MUST be re-recorded on every bump (the gate fires

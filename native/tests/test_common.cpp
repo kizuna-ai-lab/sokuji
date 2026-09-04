@@ -235,26 +235,20 @@ int main(int argc, char **argv) {
     // proved nothing about the real sets — every family holds i32/i64 index tables, and ggml's
     // Vulkan backend refuses to MUL_MAT those.
     //
-    // all_supported == 1 is asserted for every family EXCEPT the two below, whose refusal on a
-    // real GPU is not something this test can assert away (measured on GB10 / NVIDIA 580.159.03,
-    // ggml 0.22.0). Both are listed as MAY-refuse, not must-refuse, so a device that does
-    // support them still passes:
-    //   * pocket_tts — a genuine ggml-vulkan gap, and exactly what the coverage gate exists to
-    //     catch: CONV_TRANSPOSE_1D wants both sources F32 (ggml-vulkan.cpp:18592) and pocket's
-    //     kernel is f16, and the CPY dtype matrix (:18302) has no bf16 -> f16 pair. The planner
-    //     is right to refuse this card's gpu-vulkan tier.
-    //   * irodori_tts — a rebuild-fidelity limit, NOT a device gap: the recording stores one
-    //     contiguity bool per source, and ask() models "non-contiguous" as ggml_transpose, which
-    //     is the one view shape that breaks ROW contiguity. Vulkan's ROPE requires
-    //     ggml_is_contiguous_rows(src0), so its ROPE.mode0[f32,i32] is refused although the real
-    //     graph's src0 (a permute that keeps ne[0] innermost) satisfies it. Recording a second
-    //     flag would fix it and needs a re-record of every *.ops file.
-    // CI's own Metal runner is excluded wholesale: a paravirtual device legitimately refuses ops
+    // Every one of the nine families is asserted: all nine synthesise on this fleet's real GPUs,
+    // so all_supported == 1 is the ground truth and there is no may-refuse list. Round 2 removed
+    // the two exceptions round 1 had to carry, by fixing what produced them:
+    //   * pocket_tts refused CONV_TRANSPOSE_1D[f16,f32] and CPY[bf16,f16] because the recording
+    //     was taken with the model on the CPU — audio.cpp keeps f16 conv kernels and casts
+    //     bf16 -> f16 on a HOST backend but casts to f32 on a device one, so those spellings are
+    //     the host graph and no GPU is ever asked them. Recorded on the device they are
+    //     CONV_TRANSPOSE_1D[f32,f32], which ggml-vulkan accepts.
+    //   * irodori_tts refused ROPE.mode0[f32,i32] because one contiguity bool per source made
+    //     ask() rebuild every non-contiguous tensor as a transpose, breaking the row contiguity
+    //     ggml-vulkan's ROPE requires. Exact layout descriptors rebuild it as the permute it is.
+    // CI's own Metal runner is still excluded: a paravirtual device legitimately refuses ops
     // (the same R36 signal already used in the profile assertions above).
     {
-        auto may_refuse = [](const char *f) {
-            return std::strcmp(f, "pocket_tts") == 0 || std::strcmp(f, "irodori_tts") == 0;
-        };
         static sk_op_coverage c = {};
         for (int i = 0; i < n; ++i) {
             if (devs[i].kind != SK_DEVICE_VULKAN && devs[i].kind != SK_DEVICE_METAL) continue;
@@ -280,7 +274,7 @@ int main(int argc, char **argv) {
                             std::fprintf(stderr, "tts/%s unsupported on device %d (%s): %s\n", family, i, devs[i].description, c.ops[j].name);
                 std::fprintf(stderr, "test_common: tts/%s [%s] n_ops=%d all_supported=%d on device %d (%s)\n",
                              family, line.c_str(), c.n_ops, c.all_supported, i, devs[i].description);
-                if (!paravirtual && !may_refuse(family)) assert(c.all_supported == 1);
+                if (!paravirtual) assert(c.all_supported == 1);
                 ++n_swept;
             }
             assert(n_swept == 9);

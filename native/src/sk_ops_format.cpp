@@ -72,7 +72,62 @@ bool parse_params(const std::string &s, std::array<int32_t, 16> &out) {
 }
 void max_into(std::array<int64_t, 4> &a, const std::array<int64_t, 4> &b) { for (int i = 0; i < 4; ++i) a[i] = std::max(a[i], b[i]); }
 
+/* "<p0><p1><p2><p3><d|s>", e.g. "0123d" contiguous, "1023d" transposed, "0213d" a
+ * row-contiguous permute, "0123s" a strided view. */
+std::string layout_str(const sk_layout &l) {
+    std::string s;
+    for (int k = 0; k < 4; ++k) s += static_cast<char>('0' + l.perm[k]);
+    s += l.dense ? 'd' : 's';
+    return s;
+}
+bool parse_layout(const std::string &s, sk_layout &out) {
+    if (s.size() != 5) return false;
+    bool seen[4] = {false, false, false, false};
+    for (int k = 0; k < 4; ++k) {
+        if (s[k] < '0' || s[k] > '3') return false;
+        const int a = s[k] - '0';
+        if (seen[a]) return false;                    // must be a permutation
+        seen[a] = true;
+        out.perm[k] = a;
+    }
+    if (s[4] != 'd' && s[4] != 's') return false;
+    out.dense = s[4] == 'd';
+    return true;
+}
+
 }  // namespace
+
+std::array<int64_t, 4> sk_layout_dense_nb(const std::array<int32_t, 4> &perm,
+                                          const std::array<int64_t, 4> &ne, int32_t type) {
+    const ggml_type t = static_cast<ggml_type>(type);
+    std::array<int64_t, 4> nb{0, 0, 0, 0};
+    int64_t acc = static_cast<int64_t>(ggml_type_size(t));
+    for (int k = 0; k < 4; ++k) {
+        const int a = perm[k];
+        if (a < 0 || a > 3) return {0, 0, 0, 0};
+        nb[a] = acc;
+        // ggml's own rule: the innermost axis advances by one BLOCK per blck_size elements.
+        acc *= (k == 0) ? (ne[a] / static_cast<int64_t>(ggml_blck_size(t))) : ne[a];
+    }
+    return nb;
+}
+
+sk_layout sk_layout_of(const ggml_tensor *t) {
+    sk_layout l;
+    if (!t) return l;
+    std::array<int64_t, 4> ne{t->ne[0], t->ne[1], t->ne[2], t->ne[3]}, nb{
+        static_cast<int64_t>(t->nb[0]), static_cast<int64_t>(t->nb[1]),
+        static_cast<int64_t>(t->nb[2]), static_cast<int64_t>(t->nb[3])};
+    // Axis order by ascending stride. Ties (an axis of extent 1 shares its neighbour's stride)
+    // break by axis index, so the natural order wins whenever it can — a tensor ggml itself
+    // would call contiguous never records as permuted.
+    std::array<int32_t, 4> perm{0, 1, 2, 3};
+    std::stable_sort(perm.begin(), perm.end(), [&](int32_t a, int32_t b) { return nb[a] < nb[b]; });
+    l.perm = perm;
+    l.nb = nb;
+    l.dense = sk_layout_dense_nb(perm, ne, t->type) == nb;
+    return l;
+}
 
 std::string sk_op_spelling(const sk_op_desc &d, const char *weight) {
     std::string s = ggml_op_name(static_cast<ggml_op>(d.op)) + param_suffix(d) + "[";
@@ -84,6 +139,7 @@ void sk_ops_add(std::vector<sk_op_desc> &nodes, const sk_op_desc &d) {
     for (auto &n : nodes) {
         if (!n.same_node(d)) continue;
         max_into(n.max_ne_src0, d.max_ne_src0); max_into(n.max_ne_src1, d.max_ne_src1); max_into(n.max_ne_dst, d.max_ne_dst);
+        max_into(n.lay_src0.nb, d.lay_src0.nb); max_into(n.lay_src1.nb, d.lay_src1.nb); max_into(n.lay_dst.nb, d.lay_dst.nb);
         n.max_bytes = std::max(n.max_bytes, d.max_bytes);
         return;
     }
@@ -95,6 +151,7 @@ std::string sk_ops_format(const sk_op_recording &r) {
     s += "# stage: " + r.stage + " ; family: " + r.family + "\n";
     s += "# engine: " + r.engine + "\n";
     s += "# source: " + r.source_file + "\n";
+    s += "# recorded-on: " + (r.recorded_on.empty() ? std::string("cpu") : r.recorded_on) + "\n";
     s += "# dtypes-in-file:"; for (const auto &t : r.dtypes_in_file) s += " " + t; s += "\n";
     for (const auto &d : r.nodes) {
         s += "op=" + std::string(ggml_op_name(static_cast<ggml_op>(d.op)));
@@ -103,7 +160,12 @@ std::string sk_ops_format(const sk_op_recording &r) {
         s += " src=["; for (int i = 0; i < 5; ++i) { if (i) s += ","; s += type_name(d.src_type[i], nullptr); } s += "]";
         s += " ne0=[" + std::to_string(d.ne0_src0) + "," + std::to_string(d.ne0_src1) + "," + std::to_string(d.ne0_dst) + "]";
         s += " max0=" + ne_str(d.max_ne_src0) + " max1=" + ne_str(d.max_ne_src1) + " maxd=" + ne_str(d.max_ne_dst);
-        s += " contig=[" + std::to_string(d.contig_src0 ? 1 : 0) + "," + std::to_string(d.contig_src1 ? 1 : 0) + "]";
+        s += " layout=[" + layout_str(d.lay_src0) + "," + layout_str(d.lay_src1) + "," + layout_str(d.lay_dst) + "]";
+        // Strides only where they are not implied by perm + ne.
+        if (!d.lay_src0.dense) s += " nb0=" + ne_str(d.lay_src0.nb);
+        if (!d.lay_src1.dense) s += " nb1=" + ne_str(d.lay_src1.nb);
+        if (!d.lay_dst.dense)  s += " nbd=" + ne_str(d.lay_dst.nb);
+        s += " host=" + std::to_string(d.host ? 1 : 0);
         s += " maxbytes=" + std::to_string(d.max_bytes) + "\n";
     }
     return s;
@@ -124,6 +186,7 @@ bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &er
                 out.stage = line.substr(9, semi - 9); out.family = line.substr(semi + 11);
             } else if (line.rfind("# engine: ", 0) == 0) out.engine = line.substr(10);
             else if (line.rfind("# source: ", 0) == 0) out.source_file = line.substr(10);
+            else if (line.rfind("# recorded-on: ", 0) == 0) out.recorded_on = line.substr(15);
             else if (line.rfind("# dtypes-in-file:", 0) == 0) {
                 std::istringstream ts(line.substr(17)); std::string t;
                 while (ts >> t) out.dtypes_in_file.push_back(t);
@@ -147,10 +210,22 @@ bool sk_ops_parse(const std::string &text, sk_op_recording &out, std::string &er
             else if (k == "max0") { if (!parse_ne(v, d.max_ne_src0)) return fail("bad max0"); }
             else if (k == "max1") { if (!parse_ne(v, d.max_ne_src1)) return fail("bad max1"); }
             else if (k == "maxd") { if (!parse_ne(v, d.max_ne_dst)) return fail("bad maxd"); }
-            else if (k == "contig") {
-                int a = 1, b = 1;
-                if (std::sscanf(v.c_str(), "[%d,%d]", &a, &b) != 2) return fail("bad contig");
-                d.contig_src0 = a; d.contig_src1 = b;
+            /* `contig=` (the round-1 field) is deliberately NOT accepted: it falls through to
+             * the unknown-field branch below, so a stale .ops file fails loudly instead of
+             * being read with default layouts. */
+            else if (k == "layout") {
+                if (v.size() != 1 + 5 + 1 + 5 + 1 + 5 + 1 || v.front() != '[' || v.back() != ']') return fail("bad layout list");
+                if (!parse_layout(v.substr(1, 5), d.lay_src0)) return fail("bad layout src0");
+                if (v[6] != ',' || v[12] != ',') return fail("bad layout list");
+                if (!parse_layout(v.substr(7, 5), d.lay_src1)) return fail("bad layout src1");
+                if (!parse_layout(v.substr(13, 5), d.lay_dst)) return fail("bad layout dst");
+            }
+            else if (k == "nb0") { if (!parse_ne(v, d.lay_src0.nb)) return fail("bad nb0"); }
+            else if (k == "nb1") { if (!parse_ne(v, d.lay_src1.nb)) return fail("bad nb1"); }
+            else if (k == "nbd") { if (!parse_ne(v, d.lay_dst.nb)) return fail("bad nbd"); }
+            else if (k == "host") {
+                if (v != "0" && v != "1") return fail("bad host");
+                d.host = v == "1";
             }
             else if (k == "maxbytes") {
                 if (v.empty() || !std::all_of(v.begin(), v.end(), [](unsigned char c) { return std::isdigit(c) != 0; })) return fail("bad maxbytes");
