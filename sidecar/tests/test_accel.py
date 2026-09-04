@@ -1394,6 +1394,30 @@ def test_weight_dtypes_prefers_the_file_header_over_the_fallback(monkeypatch, tm
     assert accel.weight_dtypes(card, "q8_0") == ("bf16", "f32", "q8_0")                   # sorted
 
 
+def test_weight_dtypes_never_yields_an_integer_type(monkeypatch, tmp_path):
+    """The expansion set is the header set INTERSECTED with the weight-capable types. A GGUF
+    lists its i32/i64 index tables too, and a WEIGHT node is the src0 of a MUL_MAT/MUL_MAT_ID/
+    GET_ROWS — ggml's Vulkan backend answers `false` to an integer one, which refused every TTS
+    family on every Vulkan device until the filter went in."""
+    card = catalog.tts_model("voxcpm2")
+    monkeypatch.setattr(accel, "_artifact_path", lambda model, ct: str(tmp_path / "x.gguf"))
+
+    hdr = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"q8_0", "bf16", "f32", "i32", "i64"}), 5)
+    monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: hdr)
+    assert accel.weight_dtypes(card, "q8_0") == ("bf16", "f32", "q8_0")                   # i32/i64 gone
+
+    # A header of nothing but index tables leaves no question to ask: the rung's fallback set
+    # stands in rather than an empty tuple (n_weight_dtypes <= 0 is SK_ERR_INVALID_ARGUMENT).
+    only_int = accel.gguf_header.GgufHeader("voxcpm2", frozenset({"i32", "i64"}), 2)
+    monkeypatch.setattr(accel.gguf_header, "read_header", lambda p: only_int)
+    assert set(accel.weight_dtypes(card, "q8_0")) == catalog.RUNG_FALLBACK_DTYPES["q8_0"]
+
+    # And no rung's fallback set carries one either.
+    for ct in sorted({d.compute_type for d in card.deployments}):
+        monkeypatch.setattr(accel, "_artifact_path", lambda model, c: None)
+        assert not set(accel.weight_dtypes(card, ct)) & {"i8", "i16", "i32", "i64", "f64"}
+
+
 def test_ops_key_carries_the_dtype_set():
     m = _known_gpu_machine()
     a = accel._ops_key(m, 0, "tts", "voxcpm2", "q8_0", ("q8_0", "bf16", "f32"))

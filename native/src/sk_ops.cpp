@@ -62,9 +62,20 @@ bool ask(ggml_backend_dev_t dev, const sk_op_desc &d, int32_t weight_type, std::
     };
     auto mk = [&](int32_t t, const std::array<int64_t, 4> &ne0, bool contig) -> ggml_tensor * {
         if (t == SK_SRC_ABSENT) return nullptr;
-        std::array<int64_t, 4> ne = grow(ne0, concrete(t));
-        ggml_tensor *x = ggml_new_tensor_4d(ctx, concrete(t), ne[0], ne[1], ne[2], ne[3]);
-        return contig ? x : ggml_transpose(ctx, x);   // a non-contiguous view, as recorded
+        const ggml_type ct = concrete(t);
+        std::array<int64_t, 4> ne = grow(ne0, ct);
+        if (contig) return ggml_new_tensor_4d(ctx, ct, ne[0], ne[1], ne[2], ne[3]);
+        // The recorder stores the ne the NODE saw (sk_ops_record.cpp: src[i]->ne[k], after any
+        // view), so a non-contiguous source must be rebuilt with that same ne. ggml_transpose
+        // swaps ne[0] and ne[1], so the base tensor is allocated with them already swapped and
+        // the view then carries the recorded shape. Transposing a base built at the recorded ne
+        // (as this did before) asks the backend about a DIFFERENT tensor: index_tts2's masked
+        // FLASH_ATTN_EXT records K as non-contiguous [64,1518,20,3], and the swapped rebuild
+        // handed ggml-vulkan HSK = 1518, failing its `HSK % 8 == 0` gate — a false refusal of
+        // the whole family on every Vulkan device. Only src0/src1 carry a recorded contiguity
+        // flag, and no WEIGHT source is ever non-contiguous, so the swapped allocation never
+        // meets a blocked dtype's row-length constraint.
+        return ggml_transpose(ctx, ggml_new_tensor_4d(ctx, ct, ne[1], ne[0], ne[2], ne[3]));
     };
     ggml_tensor *node = ggml_new_tensor_4d(ctx, concrete(d.dst_type), d.max_ne_dst[0], d.max_ne_dst[1], d.max_ne_dst[2], d.max_ne_dst[3]);
     node->op = static_cast<ggml_op>(d.op);
@@ -131,6 +142,20 @@ SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const 
                 // src0 by the recorder's rule (see SK_SRC_WEIGHT's doc in sk_ops.h), so only
                 // ne0_src0 needs the check.
                 if (has_weight && d.ne0_src0 % ggml_blck_size(static_cast<ggml_type>(wt)) != 0) continue;
+                // Same shape, second rule: a WEIGHT node is the src0 of a MUL_MAT/MUL_MAT_ID/
+                // GET_ROWS, so it can only ever hold a type a graph computes in — a float or a
+                // quantized type. The integer types a GGUF header also lists (i32/i64) belong to
+                // index/position tables, never to a rung weight, and asking a backend to MUL_MAT
+                // an i64 is a question no real graph poses: ggml's Vulkan backend answers `false`
+                // (no integer case in supports_op for MUL_MAT/MUL_MAT_ID; GET_ROWS takes I32 but
+                // not I64), which would refuse every TTS family on every Vulkan device. Skip such
+                // a dtype, not the node — the callers filter too (accel.weight_dtypes), but the
+                // raw `# dtypes-in-file` sets stay the recordings' truth and any future caller
+                // must be safe passing one straight through.
+                if (has_weight) {
+                    const ggml_type t = static_cast<ggml_type>(wt);
+                    if (t != GGML_TYPE_F32 && t != GGML_TYPE_F16 && t != GGML_TYPE_BF16 && !ggml_is_quantized(t)) continue;
+                }
                 if (out->n_ops >= SK_OP_COVERAGE_MAX) { sk::set_error("sk_device_supports_ops: recording exceeds SK_OP_COVERAGE_MAX"); return SK_ERR_INTERNAL; }
                 std::string spelling;
                 const bool ok = ask(devs[index], d, wt, spelling);

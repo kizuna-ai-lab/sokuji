@@ -291,16 +291,27 @@ def _artifact_path(model, compute_type: str):
 
 
 def weight_dtypes(model, compute_type: str) -> tuple:
-    """The dtype set WEIGHT expands over (spec A premise 7): the file's real header set when
-    the rung is on disk, else the rung's deliberately wide fallback set. Sorted, so it keys."""
+    """The dtype set WEIGHT expands over (spec A premise 7): the file's real header set,
+    INTERSECTED with the weight-capable types, when the rung is on disk; else the rung's
+    deliberately wide fallback set. Sorted, so it keys.
+
+    The intersection is not cosmetic. A GGUF header also lists its i32/i64 index tables, and a
+    WEIGHT node is the src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS — never an integer tensor. Asking
+    a backend to MUL_MAT an i64 is a question no real graph poses, and ggml's Vulkan backend
+    answers `false`, which would refuse every TTS family on every Vulkan device. An all-integer
+    header set (impossible for a real model, but not for a corrupt or hand-made file) leaves
+    nothing to ask, so the fallback set stands in."""
     from . import catalog as _cat
+    fallback = tuple(sorted(_cat.RUNG_FALLBACK_DTYPES.get(compute_type, frozenset({"f32"}))))
     path = _artifact_path(model, compute_type)
     if path:
         try:
-            return tuple(sorted(gguf_header.read_header(path).tensor_types))
+            header = gguf_header.read_header(path).tensor_types & _cat.WEIGHT_CAPABLE_DTYPES
+            if header:
+                return tuple(sorted(header))
         except Exception:
             pass
-    return tuple(sorted(_cat.RUNG_FALLBACK_DTYPES.get(compute_type, frozenset({"f32"}))))
+    return fallback
 
 
 def _ops_key(machine: Machine, device_index: int, stage: str, family: str, compute_type: str, weight_dtypes_) -> str:

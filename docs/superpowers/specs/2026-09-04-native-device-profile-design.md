@@ -101,8 +101,14 @@ Three things this buys:
 7. **A rung is not a dtype.** A Q4_K_M file carries Q6_K and Q5_K tensors; the q8_0
    files of five of the nine audio.cpp families carry BF16 weight tensors (moss, qwen3,
    pocket, voxcpm2, index); every file carries F32, and several I32/I64. The weight
-   dtype set a query expands over comes from the **GGUF header** once the file is on
-   disk, and from a conservative per-rung fallback set before that.
+   dtype set a query expands over is the **GGUF header's** set once the file is on disk,
+   **intersected with the weight-capable types** (the floats and the quantized types),
+   and a conservative per-rung fallback set — itself weight-capable only — before that.
+   The intersection is not tidiness: a WEIGHT node is the src0 of a
+   MUL_MAT/MUL_MAT_ID/GET_ROWS, so the I32/I64 tensors a header also lists are index and
+   position tables, never rung weights. Asking a backend to MUL_MAT an integer is a
+   question no real graph poses, and ggml's Vulkan backend answers `false` to it — which
+   would refuse every TTS family on every Vulkan device.
 
 ## 2. What exists today
 
@@ -367,8 +373,10 @@ typedef struct sk_op_coverage {
 } sk_op_coverage;
 
 /* stage: "asr" | "translate" | "tts". family: the card's graph_family (§3.3).
- * weight_dtypes: the dtypes WEIGHT expands over — the GGUF header's set when the file
- * is on disk, else the rung's fallback set (§3.3). Each recorded node is REBUILT with
+ * weight_dtypes: the dtypes WEIGHT expands over — the GGUF header's set intersected
+ * with the weight-capable types when the file is on disk, else the rung's fallback set
+ * (§3.3); a dtype that is neither a float nor a quantized type is skipped here too, so
+ * a raw header set is safe to pass. Each recorded node is REBUILT with
  * its recorded shapes/params/contiguity (once per weight dtype where it has WEIGHT
  * sources; ne0 as recorded keeps K-quant block sizes valid) and asked of
  * ggml_backend_dev_supports_op. Unknown (stage, family) → SK_ERR_NOT_FOUND; bad
@@ -471,13 +479,21 @@ rows.
 
 **Weight dtypes for a query.** `accel.weight_dtypes(model, compute_type) ->
 tuple[str, ...]`: when the rung's GGUF is on disk, the tensor-dtype set read from its
-header (a header-only read; `native_models` already knows the path); otherwise the
-rung's fallback set from one table in `catalog.py`, deliberately wide —
-`q4_k_m → {Q4_K, Q5_K, Q6_K, Q8_0, BF16, F16, F32}`, `q5_k_m → {Q5_K, Q6_K, Q8_0,
-BF16, F16, F32}`, `q6_k → {Q6_K, Q8_0, BF16, F16, F32}`, `q8_0 → {Q8_0, BF16, F16,
-F32}`, `f16 → {F16, F32}`, `bf16 → {BF16, F16, F32}` — so a pre-download answer errs
-toward refusing, and the real set replaces it once the file exists (premise 7). A
-catalog test asserts every cached GGUF's header set ⊆ its rung's fallback set.
+header (a header-only read; `native_models` already knows the path) **intersected with
+`catalog.WEIGHT_CAPABLE_DTYPES`** — `{F32, F16, BF16}` plus every quantized ggml type,
+i.e. everything except F64 and the I8/I16/I32/I64 index tables (premise 7); otherwise
+the rung's fallback set from one table in `catalog.py`, deliberately wide but
+weight-capable throughout — `q4_k_m → {Q4_K, Q5_K, Q6_K, Q8_0, BF16, F16, F32}`,
+`q5_k_m → {Q5_K, Q6_K, Q8_0, BF16, F16, F32}`, `q6_k → {Q6_K, Q8_0, BF16, F16, F32}`,
+`q8_0 → {Q8_0, BF16, F16, F32}`, `f16 → {F16, F32}`, `bf16 → {BF16, F16, F32}` — so a
+pre-download answer errs toward refusing, and the real set replaces it once the file
+exists. An all-integer header set (no real model, but a corrupt file could) leaves
+nothing to ask, so the fallback set stands in. A catalog test asserts every cached
+GGUF's *filtered* header set ⊆ its rung's fallback set.
+
+`sk_device_supports_ops` applies the same rule independently, so a caller that passes a
+raw header set is still safe: a WEIGHT dtype that is neither a float nor a quantized
+type is skipped for that node, exactly as a block-misaligned one is (§3.2).
 
 **Profiles on `Machine`.**
 

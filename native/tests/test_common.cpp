@@ -151,6 +151,23 @@ int main(int argc, char **argv) {
             assert(c.n_ops > 0 && c.n_ops <= SK_OP_COVERAGE_MAX);
             for (int i = 0; i < c.n_ops; ++i) if (!c.ops[i].supported) std::fprintf(stderr, "%s/%s unsupported on cpu: %s\n", stage, family, c.ops[i].name);
             assert(c.all_supported == 1);
+            // Fix round 2 (C1), device-independent so every lane guards it: a WEIGHT node is the
+            // src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS and can only hold a float or a quantized
+            // type, so the integer index-table dtypes a header also lists must be skipped before
+            // expansion. Asking with the raw set and with the integers removed must therefore
+            // produce the SAME expansion. (The CPU device accepts integer MUL_MAT, which is why
+            // this equality — not all_supported — is what catches the regression here; on Vulkan
+            // the same defect refuses the whole family, see the GPU sweep below.)
+            {
+                std::vector<const char *> no_int;
+                for (auto &s : dts)
+                    if (s != "i8" && s != "i16" && s != "i32" && s != "i64" && s != "f64") no_int.push_back(s.c_str());
+                assert(!no_int.empty());
+                static sk_op_coverage cf = {};
+                cf = {};
+                assert(sk_device_supports_ops(cpu_index, stage, family, no_int.data(), (int32_t)no_int.size(), &cf) == SK_OK);
+                assert(cf.n_ops == c.n_ops && cf.all_supported == c.all_supported);
+            }
             if (std::string(stage) == "tts") ++n_tts;
         }
         assert(n_tts == 9);
@@ -208,28 +225,65 @@ int main(int argc, char **argv) {
         }
     }
 
-    // Fix round 1 addendum: the block-size skip and the ask()/grow() rebuild must also work
-    // on a real GPU device — the CPU lane cannot exercise this, so the assertion below is a
-    // no-op there (no Vulkan/Metal device present) and only bites on those lanes. supertonic
-    // is the f16 family every real GPU in the fleet (GB10 Vulkan, RTX 4070 Vulkan, M4 Metal)
-    // synthesises today, so all_supported == 1 is the ground truth there — except CI's own
-    // Metal runner, a paravirtual device that legitimately refuses ops (the same R36 signal
-    // already used in the profile assertions above).
+    // Fix round 2 addendum: the block-size skip, the integer-dtype skip and the ask()/grow()
+    // rebuild must also work on a real GPU device — the CPU lane cannot exercise any of it, so
+    // this block is a no-op there (no Vulkan/Metal device present) and only bites on those
+    // lanes. EVERY tts recording is swept with its OWN "# dtypes-in-file" set, the same text
+    // the CPU sweep above parses: that is the set the sidecar's post-download query sends
+    // (accel.weight_dtypes reads the header), so a set a GPU refuses here is a family the
+    // planner refuses in production. Round 1 hard-coded {f16,f32} for supertonic alone and so
+    // proved nothing about the real sets — every family holds i32/i64 index tables, and ggml's
+    // Vulkan backend refuses to MUL_MAT those.
+    //
+    // all_supported == 1 is asserted for every family EXCEPT the two below, whose refusal on a
+    // real GPU is not something this test can assert away (measured on GB10 / NVIDIA 580.159.03,
+    // ggml 0.22.0). Both are listed as MAY-refuse, not must-refuse, so a device that does
+    // support them still passes:
+    //   * pocket_tts — a genuine ggml-vulkan gap, and exactly what the coverage gate exists to
+    //     catch: CONV_TRANSPOSE_1D wants both sources F32 (ggml-vulkan.cpp:18592) and pocket's
+    //     kernel is f16, and the CPY dtype matrix (:18302) has no bf16 -> f16 pair. The planner
+    //     is right to refuse this card's gpu-vulkan tier.
+    //   * irodori_tts — a rebuild-fidelity limit, NOT a device gap: the recording stores one
+    //     contiguity bool per source, and ask() models "non-contiguous" as ggml_transpose, which
+    //     is the one view shape that breaks ROW contiguity. Vulkan's ROPE requires
+    //     ggml_is_contiguous_rows(src0), so its ROPE.mode0[f32,i32] is refused although the real
+    //     graph's src0 (a permute that keeps ne[0] innermost) satisfies it. Recording a second
+    //     flag would fix it and needs a re-record of every *.ops file.
+    // CI's own Metal runner is excluded wholesale: a paravirtual device legitimately refuses ops
+    // (the same R36 signal already used in the profile assertions above).
     {
-        const char *f16[] = {"f16", "f32"};
+        auto may_refuse = [](const char *f) {
+            return std::strcmp(f, "pocket_tts") == 0 || std::strcmp(f, "irodori_tts") == 0;
+        };
         static sk_op_coverage c = {};
         for (int i = 0; i < n; ++i) {
             if (devs[i].kind != SK_DEVICE_VULKAN && devs[i].kind != SK_DEVICE_METAL) continue;
-            c = {};
-            assert(sk_device_supports_ops(i, "tts", "supertonic", f16, 2, &c) == SK_OK);
-            assert(c.n_ops > 0);
             const bool paravirtual = std::strstr(devs[i].description, "aravirtual") != nullptr;
-            if (!c.all_supported) {
-                for (int j = 0; j < c.n_ops; ++j)
-                    if (!c.ops[j].supported) std::fprintf(stderr, "tts/supertonic unsupported on device %d (%s): %s\n", i, devs[i].description, c.ops[j].name);
+            int n_swept = 0;
+            for (int b = 0; b < sk_ops_blob_count(); ++b) {
+                const char *stage = nullptr, *family = nullptr, *text = nullptr;
+                sk_ops_blob_at(b, &stage, &family, &text);
+                if (std::string(stage) != "tts") continue;
+                std::string t(text);
+                auto pos = t.find("# dtypes-in-file:");
+                assert(pos != std::string::npos);
+                std::string line = t.substr(pos + 17, t.find('\n', pos) - pos - 17);
+                std::vector<std::string> dts; std::string tok; std::istringstream ss(line);
+                while (ss >> tok) dts.push_back(tok);
+                std::vector<const char *> ptrs; for (auto &s : dts) ptrs.push_back(s.c_str());
+                c = {};
+                assert(sk_device_supports_ops(i, stage, family, ptrs.data(), (int32_t)ptrs.size(), &c) == SK_OK);
+                assert(c.n_ops > 0 && c.n_ops <= SK_OP_COVERAGE_MAX);
+                if (!c.all_supported)
+                    for (int j = 0; j < c.n_ops; ++j)
+                        if (!c.ops[j].supported)
+                            std::fprintf(stderr, "tts/%s unsupported on device %d (%s): %s\n", family, i, devs[i].description, c.ops[j].name);
+                std::fprintf(stderr, "test_common: tts/%s [%s] n_ops=%d all_supported=%d on device %d (%s)\n",
+                             family, line.c_str(), c.n_ops, c.all_supported, i, devs[i].description);
+                if (!paravirtual && !may_refuse(family)) assert(c.all_supported == 1);
+                ++n_swept;
             }
-            std::fprintf(stderr, "test_common: tts/supertonic n_ops=%d all_supported=%d on device %d (%s)\n", c.n_ops, c.all_supported, i, devs[i].description);
-            if (!paravirtual) assert(c.all_supported == 1);
+            assert(n_swept == 9);
         }
     }
 

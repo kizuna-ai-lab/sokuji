@@ -772,8 +772,12 @@ def test_asr_graph_family_matches_native_arch(gguf, card_id):
 
 
 def test_rung_fallback_sets_cover_cached_ggufs():
-    """Premise 7: a rung is a dtype SET. Every cached GGUF's header set must be within its
-    rung's fallback set, or the pre-download answer would refuse a file it later accepts."""
+    """Premise 7: a rung is a dtype SET. Every cached GGUF's header set — once the integer
+    index tables are filtered out, which is what accel.weight_dtypes hands the query — must be
+    within its rung's fallback set, or the pre-download answer would refuse a file it later
+    accepts. The filter is the point: the raw header sets DO carry i32/i64, and widening the
+    fallback sets to admit them instead is what made every Vulkan device refuse every TTS
+    family (a MUL_MAT/GET_ROWS with an integer src0 is a question no real graph poses)."""
     from sokuji_sidecar import gguf_header
     if not os.path.isdir(_CACHE):
         pytest.skip("no cached models")
@@ -783,10 +787,24 @@ def test_rung_fallback_sets_cover_cached_ggufs():
         rung = next((r for r in ("q4_k_m", "q5_k_m", "q6_k", "q8_0", "bf16", "f16") if r in name), None)
         if rung is None:
             continue
-        h = gguf_header.read_header(path)
-        assert h.tensor_types <= catalog.RUNG_FALLBACK_DTYPES[rung], (path, sorted(h.tensor_types - catalog.RUNG_FALLBACK_DTYPES[rung]))
+        weights = gguf_header.read_header(path).tensor_types & catalog.WEIGHT_CAPABLE_DTYPES
+        assert weights, path
+        assert weights <= catalog.RUNG_FALLBACK_DTYPES[rung], (path, sorted(weights - catalog.RUNG_FALLBACK_DTYPES[rung]))
         checked += 1
     assert checked > 0
+
+
+def test_weight_capable_dtypes_excludes_every_integer_type():
+    """The predicate itself: floats and quantized types only. Derived from
+    gguf_header.GGML_TYPE_NAMES, so a new quant spelling there joins it automatically while
+    the integer index-table types and f64 stay out."""
+    from sokuji_sidecar import gguf_header
+    assert catalog.WEIGHT_CAPABLE_DTYPES.isdisjoint({"i8", "i16", "i32", "i64", "f64"})
+    assert {"f32", "f16", "bf16", "q4_K", "q8_0", "q6_K", "mxfp4", "iq4_nl", "tq1_0"} <= catalog.WEIGHT_CAPABLE_DTYPES
+    known = set(gguf_header.GGML_TYPE_NAMES.values())
+    assert catalog.WEIGHT_CAPABLE_DTYPES == known - {"i8", "i16", "i32", "i64", "f64"}
+    for rung, dts in catalog.RUNG_FALLBACK_DTYPES.items():
+        assert dts <= catalog.WEIGHT_CAPABLE_DTYPES, (rung, sorted(dts - catalog.WEIGHT_CAPABLE_DTYPES))
 
 
 def test_widest_fallback_matches_gen_ops_data():

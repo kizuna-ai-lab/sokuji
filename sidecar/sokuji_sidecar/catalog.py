@@ -11,6 +11,8 @@ q6_k beating bf16). Note: transcribe.cpp SenseVoice emits raw text (no ITN /
 punctuation normalization) — accepted with the all-in decision."""
 from dataclasses import dataclass
 
+from .gguf_header import GGML_TYPE_NAMES as _GGML_TYPE_NAMES
+
 
 @dataclass(frozen=True)
 class Deployment:
@@ -73,19 +75,34 @@ _TC_CURATED_MIN_RANK = 1.0
 # Premise 7 (spec A): a rung is not one dtype. The dtype set a pre-download query expands
 # WEIGHT over, when the file is not on disk yet; deliberately wide (a *_M file mixes K-quants,
 # the q8_0 TTS files carry BF16 weights, everything carries F32). Once the file exists its
-# header's real set replaces this (accel.weight_dtypes). Spellings are ggml_type_name()'s.
-# i32/i64 are index tensors (omnivoice, index-tts2, voxcpm2, supertonic-3) — never weights a
-# backend refuses, so every rung carries them too (test_rung_fallback_sets_cover_cached_ggufs
-# is the authority; it found both across cached TTS GGUFs and widened this set to match).
+# header's real set — intersected with WEIGHT_CAPABLE_DTYPES — replaces this
+# (accel.weight_dtypes). Spellings are ggml_type_name()'s.
+# A GGUF also carries INTEGER tensors (i32/i64: omnivoice, index-tts2, voxcpm2, supertonic-3),
+# but those are index/position tables — never the src0 of a MUL_MAT/MUL_MAT_ID/GET_ROWS, i.e.
+# never a rung weight — and asking a backend to MUL_MAT an i64 is a question no real graph
+# poses. Vulkan answers `false` to it (ggml-vulkan's supports_op has no integer MUL_MAT case),
+# which would refuse every TTS family on every Vulkan device. Integer types are therefore
+# filtered out before expansion, on both layers (accel.weight_dtypes and sk_ops.cpp), and
+# these sets carry only weight-capable types.
 # gen_ops_data.py's WIDEST_FALLBACK is len() of the q4_k_m set — keep them in step.
 RUNG_FALLBACK_DTYPES: dict[str, frozenset[str]] = {
-    "q4_k_m": frozenset({"q4_K", "q5_K", "q6_K", "q8_0", "bf16", "f16", "f32", "i32", "i64"}),
-    "q5_k_m": frozenset({"q5_K", "q6_K", "q8_0", "bf16", "f16", "f32", "i32", "i64"}),
-    "q6_k":   frozenset({"q6_K", "q8_0", "bf16", "f16", "f32", "i32", "i64"}),
-    "q8_0":   frozenset({"q8_0", "bf16", "f16", "f32", "i32", "i64"}),
-    "f16":    frozenset({"f16", "f32", "i32", "i64"}),
-    "bf16":   frozenset({"bf16", "f16", "f32", "i32", "i64"}),
+    "q4_k_m": frozenset({"q4_K", "q5_K", "q6_K", "q8_0", "bf16", "f16", "f32"}),
+    "q5_k_m": frozenset({"q5_K", "q6_K", "q8_0", "bf16", "f16", "f32"}),
+    "q6_k":   frozenset({"q6_K", "q8_0", "bf16", "f16", "f32"}),
+    "q8_0":   frozenset({"q8_0", "bf16", "f16", "f32"}),
+    "f16":    frozenset({"f16", "f32"}),
+    "bf16":   frozenset({"bf16", "f16", "f32"}),
 }
+
+# The ggml types a rung-bearing WEIGHT tensor can actually hold: the float types a graph
+# computes in, plus every quantized type. Everything else in GGML_TYPE_NAMES (f64 and the
+# i8/i16/i32/i64 index tables) is filtered out of a header set before it becomes an expansion
+# set. Derived from gguf_header.GGML_TYPE_NAMES so a new quant spelling needs one edit there.
+_NON_WEIGHT_DTYPES = frozenset({"f64", "i8", "i16", "i32", "i64"})
+WEIGHT_CAPABLE_DTYPES: frozenset[str] = frozenset({"f32", "f16", "bf16"}) | frozenset(
+    n for n in _GGML_TYPE_NAMES.values()
+    if n not in _NON_WEIGHT_DTYPES and n not in {"f32", "f16", "bf16"}
+)
 
 
 def _tc_row(mid, name, langs, repo, base, order, quants, default,
