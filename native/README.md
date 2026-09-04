@@ -399,7 +399,8 @@ non-emptiness, never a transcript.
 1. Change the commit SHA (and the version string beside it) in `cmake/upstreams.cmake`.
 2. Rebuild; if `patch_upstream.py` fails, the anchored text in `native/patches/<upstream>.json` moved — fix the spec.
 3. Run the parity suite (slice 4 onward) — a bump that fails parity is not shipped.
-4. Bump the version in the **two** places that hard-code it — `project(sokuji_native VERSION …)`
+4. Bump the version in the **two** places that hard-code it (plus `SK_ABI_VERSION_NUM` in
+   `CMakeLists.txt` and `_ffi.py` when the ABI changes) — `project(sokuji_native VERSION …)`
    in `CMakeLists.txt` and the `sk_version()` assertion in `tests/test_common.cpp` (the CTest
    fails on the old string otherwise) — then tag `native-vX.Y.Z`. Nothing else needs editing:
    the staged `contract.json` and the wheel version are both generated from the CMake project
@@ -425,4 +426,5 @@ incrementally, corrupting CJK output with U+FFFD — see `python/sokuji_native/_
 bundle ever shipped with 1.0.0 inside. `native-v1.0.2` (2026-09-03) moved the engine pins
 to transcribe.cpp 0.2.3 and audio.cpp 0.7.1 and added four TTS families to the build set
 (voxcpm1, voxcpm2, irodori_tts, index_tts2), taking it to nine. Current native version is
-1.0.2.
+1.1.0 (ABI 2: device profile and op coverage — spec
+docs/superpowers/specs/2026-09-04-native-device-profile-design.md).

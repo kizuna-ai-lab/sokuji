@@ -448,6 +448,7 @@ def translate_load(path: str, device: Device | None = None, n_ctx: int = 0) -> T
         dev.index = int(device.index)
     opts = _ffi.sk_translate_options()
     opts.n_ctx = int(n_ctx)
+    opts.flash_attn = 0
     status = lib.sk_translate_load(str(path).encode(), ctypes.byref(dev) if dev is not None else None,
                                    ctypes.byref(opts), ctypes.byref(out))
     if status != _ffi.SK_OK:

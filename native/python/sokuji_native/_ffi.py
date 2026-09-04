@@ -1,9 +1,9 @@
 """ctypes declarations for the slice-1 surface of sokuji_native.h. Keep in lock-step with
 the header; SK_ABI_VERSION here is compared against contract.json and sk_abi_version()."""
 from ctypes import (CDLL, CFUNCTYPE, POINTER, Structure, c_bool, c_char, c_char_p, c_float, c_int32,
-                     c_size_t, c_uint64, c_void_p)
+                     c_size_t, c_uint32, c_uint64, c_void_p)
 
-SK_ABI_VERSION = 1
+SK_ABI_VERSION = 2
 
 SK_OK = 0
 SK_ERR_INVALID_ARGUMENT = -1
@@ -28,6 +28,31 @@ class sk_device(Structure):
                 ("mem_total", c_uint64), ("mem_free", c_uint64)]
 
 
+SK_OP_COVERAGE_MAX = 512
+
+
+class sk_device_profile(Structure):
+    _fields_ = [("index", c_int32), ("known", c_int32), ("features", c_uint32),
+                ("driver_name", c_char * 256), ("driver_version", c_char * 256),
+                ("device_uuid", c_char * 40), ("cpu_features", c_char * 512)]
+
+
+class sk_op_check(Structure):
+    _fields_ = [("name", c_char * 64), ("supported", c_int32)]
+
+
+class sk_op_coverage(Structure):
+    _fields_ = [("n_ops", c_int32), ("all_supported", c_int32),
+                ("ops", sk_op_check * SK_OP_COVERAGE_MAX)]
+
+
+FEATURE_BITS = {  # sk_feature, lower-case without the SK_FEAT_ prefix (DeviceProfile.features names)
+    1 << 0: "vk_shader_float16", 1 << 1: "vk_shader_bfloat16", 1 << 2: "vk_integer_dot",
+    1 << 3: "vk_coopmat", 1 << 4: "vk_coopmat2",
+    1 << 5: "mtl_simdgroup_reduction", 1 << 6: "mtl_bfloat", 1 << 7: "uma",
+}
+
+
 class sk_asr_caps(Structure):
     _fields_ = [("n_languages", c_int32), ("languages", POINTER(c_char_p)), ("supports_streaming", c_bool),
                 ("supports_language_detect", c_bool), ("native_sample_rate", c_int32), ("arch", c_char_p)]
@@ -38,7 +63,7 @@ class sk_stream_text(Structure):
 
 
 class sk_translate_options(Structure):
-    _fields_ = [("n_ctx", c_int32)]
+    _fields_ = [("n_ctx", c_int32), ("flash_attn", c_int32)]
 
 
 class sk_message(Structure):
@@ -70,6 +95,11 @@ def bind(lib: CDLL) -> CDLL:
     lib.sk_devices.restype = c_int32
     lib.sk_device_free_mem.argtypes = [c_int32, POINTER(c_uint64)]
     lib.sk_device_free_mem.restype = c_int32
+    lib.sk_device_profile_get.argtypes = [c_int32, POINTER(sk_device_profile)]
+    lib.sk_device_profile_get.restype = c_int32
+    lib.sk_device_supports_ops.argtypes = [c_int32, c_char_p, c_char_p, POINTER(c_char_p), c_int32,
+                                           POINTER(sk_op_coverage)]
+    lib.sk_device_supports_ops.restype = c_int32
     lib.sk_abi_version.argtypes = []
     lib.sk_abi_version.restype = c_int32
     lib.sk_version.argtypes = []

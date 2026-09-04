@@ -39,7 +39,7 @@
 extern "C" {
 #endif
 
-#define SK_ABI_VERSION 1
+#define SK_ABI_VERSION 2
 
 typedef int32_t sk_status;
 enum {
@@ -93,6 +93,63 @@ typedef struct sk_device {
     uint64_t mem_total;
     uint64_t mem_free;         /* snapshot at enumeration time; use sk_device_free_mem for fresh values */
 } sk_device;
+
+/* ---- device profile (ABI 2) -------------------------------------------------------- */
+enum sk_feature {
+    /* Vulkan: RAW feature bits from the physical device. ggml applies further gates
+     * before using any of them (build-time GGML_VULKAN_*_GLSLC_SUPPORT, the
+     * GGML_VK_DISABLE_* environment, per-driver deny-lists for coopmat), so a set bit
+     * means "the device offers it", not "ggml uses it". Diagnostics only; never a gate. */
+    SK_FEAT_VK_SHADER_FLOAT16       = 1u << 0,
+    SK_FEAT_VK_SHADER_BFLOAT16      = 1u << 1,
+    SK_FEAT_VK_INTEGER_DOT          = 1u << 2,
+    SK_FEAT_VK_COOPMAT              = 1u << 3,
+    SK_FEAT_VK_COOPMAT2             = 1u << 4,
+    /* Metal: supports_op ANSWERS (they equal what ggml will do). SIMDGROUP_REDUCTION is
+     * the one profile bit that gates — tier level, in the sidecar's _tier_available,
+     * because NORM is in every family's graph (ruling R36). */
+    SK_FEAT_MTL_SIMDGROUP_REDUCTION = 1u << 5,   /* supports_op(NORM, contiguous f32 src) */
+    SK_FEAT_MTL_BFLOAT              = 1u << 6,   /* supports_op(CONCAT, bf16, bf16): has_bfloat alone */
+    /* Both: */
+    SK_FEAT_UMA                     = 1u << 7,   /* Vulkan: deviceType == INTEGRATED_GPU (ggml's rule); Metal: always */
+};
+
+typedef struct sk_device_profile {
+    int32_t  index;               /* same flat index as sk_device.index */
+    int32_t  known;               /* 0 = nothing below is meaningful; consumers pass through */
+    uint32_t features;            /* sk_feature bits; only meaningful when known */
+    char     driver_name[256];    /* Vulkan: VkPhysicalDeviceDriverProperties.driverName; Metal: "Metal"; CPU: "" */
+    char     driver_version[256]; /* Vulkan: driverInfo; Metal: sysctl kern.osversion; CPU: "" */
+    char     device_uuid[40];     /* Vulkan: deviceUUID as 32 hex chars; else "" */
+    char     cpu_features[512];   /* CPU device only: "AVX2=1,FMA=1,..." from ggml_backend_get_features */
+} sk_device_profile;
+
+/* SK_ERR_INVALID_ARGUMENT for a bad index or NULL out; SK_ERR_NOT_INITIALISED before
+ * sk_init; otherwise SK_OK, with known = 0 when the profile could not be read. Strings
+ * longer than their buffer are truncated (the buffers are Vulkan's own maxima). */
+SK_API sk_status sk_device_profile_get(int32_t index, sk_device_profile *out);
+
+/* ---- op coverage (ABI 2) ------------------------------------------------------------ */
+/* One recorded node, spelled "OP.param[src0,src1,src2,src3,src4]->dst" (ggml_op_name and
+ * ggml_type_name, "-" for an absent source), and whether the device's supports_op
+ * accepted it rebuilt with its recorded shapes. */
+typedef struct sk_op_check { char name[64]; int32_t supported; } sk_op_check;
+#define SK_OP_COVERAGE_MAX 512
+typedef struct sk_op_coverage {
+    int32_t n_ops;            /* entries written */
+    int32_t all_supported;    /* 1 iff every entry is supported */
+    sk_op_check ops[SK_OP_COVERAGE_MAX];
+} sk_op_coverage;
+
+/* stage: "asr" | "translate" | "tts". family: the catalog card's graph_family.
+ * weight_dtypes: the ggml type names WEIGHT expands over ("q4_K", "q8_0", "bf16", "f16",
+ * "f32", ...). Unknown (stage, family) → SK_ERR_NOT_FOUND; bad index, NULL out,
+ * n_weight_dtypes <= 0 or an unknown dtype name → SK_ERR_INVALID_ARGUMENT; more than
+ * SK_OP_COVERAGE_MAX expanded entries → SK_ERR_INTERNAL; a backend exception →
+ * SK_ERR_BACKEND. Callers treat every error as "unknown", never as "unsupported". */
+SK_API sk_status sk_device_supports_ops(int32_t index, const char *stage, const char *family,
+                                        const char *const *weight_dtypes, int32_t n_weight_dtypes,
+                                        sk_op_coverage *out);
 
 SK_API sk_status   sk_init(const sk_init_options *options);              /* idempotent; first call wins (see top) */
 SK_API int32_t     sk_threads(void);   /* resolved n_threads after sk_init (see its doc for the 0 policy); 0 before init */
@@ -170,7 +227,11 @@ SK_API void      sk_asr_unload(sk_asr_model *);
  * not know yields SK_ERR_INVALID_ARGUMENT with a "chat template not supported" message;
  * callers fall back to sk_translate_complete with a self-rendered prompt. */
 typedef struct sk_translate sk_translate;
-typedef struct sk_translate_options { int32_t n_ctx; /* 0 = 4096 */ } sk_translate_options;
+typedef struct sk_translate_options {
+    int32_t n_ctx;        /* 0 = 4096 */
+    int32_t flash_attn;   /* ABI 2: 0 = llama.cpp's own default, 1 = force on, 2 = force off.
+                           * The op recorder records both settings (spec A §3.2.2). */
+} sk_translate_options;
 typedef struct sk_message { const char *role; const char *content; } sk_message;
 typedef struct sk_gen_options {
     int32_t max_tokens;            /* <= 0 = 512 */

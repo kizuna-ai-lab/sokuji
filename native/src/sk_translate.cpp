@@ -198,6 +198,8 @@ SK_API sk_status sk_translate_load(const char *gguf_path, const sk_device *devic
     cp.n_batch         = 512;
     cp.n_threads       = threads;
     cp.n_threads_batch = threads;
+    if (opts && opts->flash_attn == 1) cp.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_ENABLED;
+    if (opts && opts->flash_attn == 2) cp.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
 
     llama_context *ctx = llama_init_from_model(model, cp);
     if (!ctx) {

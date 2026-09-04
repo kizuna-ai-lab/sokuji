@@ -5,7 +5,19 @@ cmake_minimum_required(VERSION 3.28)   # FetchContent_Declare(EXCLUDE_FROM_ALL)
 if(CMAKE_HOST_APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version" FORCE)
 endif()
-project(sokuji_native VERSION 1.0.2 LANGUAGES C CXX)
+project(sokuji_native VERSION 1.1.0 LANGUAGES C CXX)
+
+# The ABI number lives in three places nothing used to cross-check: SK_ABI_VERSION_NUM (stamped
+# into contract.json, set below), the header (what the library reports), and the binding's
+# _ffi.py (what the binding demands). The binding refuses a mismatch at import — after a full
+# five-SKU build. Catch the header/CMake drift here, before any upstream is fetched.
+set(SK_ABI_VERSION_NUM 2)
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/include/sokuji_native.h _sk_abi_line
+     REGEX "^#define SK_ABI_VERSION [0-9]+")
+string(REGEX REPLACE "^#define SK_ABI_VERSION ([0-9]+).*$" "\\1" _sk_abi_header "${_sk_abi_line}")
+if(NOT _sk_abi_header STREQUAL "${SK_ABI_VERSION_NUM}")
+    message(FATAL_ERROR "SK_ABI_VERSION_NUM (${SK_ABI_VERSION_NUM}) != include/sokuji_native.h SK_ABI_VERSION (${_sk_abi_header})")
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -47,7 +59,7 @@ add_library(sokuji_native SHARED
     src/sk_common.cpp)
 target_include_directories(sokuji_native
     PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
-    PRIVATE ${CMAKE_BINARY_DIR}/generated)
+    PRIVATE ${CMAKE_BINARY_DIR}/generated ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(sokuji_native PRIVATE SOKUJI_NATIVE_BUILD=1)
 target_link_libraries(sokuji_native PRIVATE ggml)
 target_link_libraries(sokuji_native PRIVATE transcribe)
@@ -77,7 +89,7 @@ foreach(_t IN LISTS _audiocpp_engine_targets)
         target_compile_options(${_t} PRIVATE -include ${CMAKE_CURRENT_SOURCE_DIR}/src/audiocpp_compat.h)
     endif()
 endforeach()
-target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_translate.cpp src/sk_tts.cpp)
+target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_translate.cpp src/sk_tts.cpp src/sk_profile.cpp)
 target_link_libraries(sokuji_native PRIVATE engine_runtime)
 target_include_directories(sokuji_native PRIVATE ${audiocpp_SOURCE_DIR}/include)
 
@@ -117,7 +129,6 @@ add_subdirectory(tests)
 # Everything here is COMPONENT sokuji. The fetched upstreams carry their own install()
 # rules (headers, static libs, cmake configs) in the default component; installing with
 # `cmake --install <build> --prefix <dir> --component sokuji` runs only ours.
-set(SK_ABI_VERSION_NUM 1)
 # Deliberately keyed on SOKUJI_GPU_RESOLVED (a plain variable, set once in
 # ggml_options.cmake and never touched again), NOT on the GGML_VULKAN/GGML_METAL cache
 # variables. Both of the fetched upstreams re-FORCE those two shared cache entries from

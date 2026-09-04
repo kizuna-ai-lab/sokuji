@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
     int requested_threads = argc > 2 ? std::atoi(argv[2]) : 3;
 
     assert(sk_abi_version() == SK_ABI_VERSION);
-    assert(std::string(sk_version()) == "1.0.2");
+    assert(std::string(sk_version()) == "1.1.0");
     assert(std::strstr(sk_engine_versions(), "ggml=0.22.0") != nullptr);
     assert(std::strstr(sk_engine_versions(), "transcribe=0.2.3") != nullptr);
     assert(std::strstr(sk_engine_versions(), "llama=0.3.0;") != nullptr);   // normalised: no "v", no suffix
@@ -73,6 +73,12 @@ int main(int argc, char **argv) {
         assert(free_bytes > 0);
     }
     assert(saw_cpu);
+
+    // ABI 2: the profile call exists and rejects a bad index / NULL out-pointer.
+    sk_device_profile prof = {};
+    assert(sk_device_profile_get(-1, &prof) == SK_ERR_INVALID_ARGUMENT);
+    assert(sk_device_profile_get(0, nullptr) == SK_ERR_INVALID_ARGUMENT);
+
     assert(sk_device_free_mem(n + 5, nullptr) == SK_ERR_INVALID_ARGUMENT);
 
     char *buf = static_cast<char *>(std::malloc(4));
