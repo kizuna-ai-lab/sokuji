@@ -51,7 +51,8 @@ describe('ManagedVoicesClient.mine', () => {
 
 describe('ManagedVoicesClient.ensure', () => {
   it('posts multipart with pin=1 and no clip on the warm path', async () => {
-    // The clip is up to 10 MB. Uploading it when the slot is already warm
+    // The clip runs to ~11.5 MB for a full 2-minute recording (35 MB for an
+    // import). Uploading it when the slot is already warm
     // would waste the user's uplink on every single session start.
     fetchMock.mockResolvedValue(json(200, { voiceId: 'v1', status: 'ready' }));
     const res = await make().ensure({ pin: true });

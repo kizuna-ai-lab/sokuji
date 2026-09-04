@@ -243,12 +243,12 @@ describe('SonioxVoiceSection', () => {
     });
   });
 
-  it('onImport rejects a file over 10MB before decoding, creating, or opening the modal', async () => {
+  it('onImport rejects a file over 35MB before decoding, creating, or opening the modal', async () => {
     listMock.mockResolvedValue([]);
     const { container } = mount();
     openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    const bigFile = fakeFile('big.wav', 11 * 1024 * 1024);
+    const bigFile = fakeFile('big.wav', 36 * 1000 * 1000);
     fireEvent.change(fileInput, { target: { files: [bigFile] } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too large/i));
     expect(createMock).not.toHaveBeenCalled();
@@ -268,9 +268,9 @@ describe('SonioxVoiceSection', () => {
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
   });
 
-  it('onImport rejects a decoded clip longer than 20s with the localized message, without opening the modal', async () => {
+  it('onImport rejects a decoded clip longer than 2 minutes with the localized message, without opening the modal', async () => {
     listMock.mockResolvedValue([]);
-    stubAudioContext(16000, 16000 * 25); // 25s — above the 20s maximum
+    stubAudioContext(16000, 16000 * 130); // 130s — above the 120s maximum
     const { container } = mount();
     openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -279,6 +279,17 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too long/i));
     expect(createMock).not.toHaveBeenCalled();
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
+  });
+
+  it('onImport accepts a 100s clip — past the old 20s bound, inside the 2-minute one', async () => {
+    listMock.mockResolvedValue([]);
+    stubAudioContext(16000, 16000 * 100);
+    const { container } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    await waitFor(() => expect(screen.getByPlaceholderText(nameInputPlaceholder)).toBeTruthy());
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('selecting multiple files stages only the first (single pending slot; no silent last-wins)', async () => {

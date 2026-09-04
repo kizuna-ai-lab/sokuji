@@ -3,6 +3,11 @@
 **Date**: 2026-07-31
 **Status**: Approved (brainstormed with user; API facts live-probed 2026-07-31)
 **Tracking**: follow-up to issue #342 (API-surface audit, item B4)
+**Amendment A1 (2026-09-05)**: Soniox raised the reference-clip bounds. Every
+"≤20 s, ≤10 MB" below is historical — the limits are now **≤2 min, ≤35 MB**,
+and the two are enforced at different points (size at upload, duration only
+during per-model processing, as `voice_audio_too_long`). See A1 at the end of
+Verified facts.
 
 ## Summary
 
@@ -19,7 +24,8 @@ under Future work.
 ## Verified facts (live probes + docs + SDKs, 2026-07-31)
 
 - `/v1/voices` CRUD: create is `multipart/form-data` with exactly `name`
-  (unique per project, 1-128 chars) + `file` (reference clip, ≤20 s, ≤10 MB);
+  (unique per project, 1-128 chars) + `file` (reference clip, ≤20 s, ≤10 MB
+  as of 2026-07-31 — superseded, see Amendment A1);
   no metadata/owner/reference fields exist. List has only `limit`/`cursor` —
   no filters. No rename API. `DELETE` returns 204.
 - End-to-end proven on a real BYOK key: create from a 4 s clip →
@@ -44,6 +50,50 @@ under Future work.
 - Wire: `SonioxTtsStream.openStream` sends `voice` as an opaque string — a
   UUID passes through the whole `settings.voice → buildSessionConfig →
   createTtsStream → wire` chain untouched (code-audited + live-proven).
+
+### Amendment A1 (2026-09-05) — reference clip is now 2 min / 35 MB
+
+Soniox's published limits changed; verified against the docs on 2026-09-05 and
+against the Console playground by the user (a 2-minute recording clones, and
+the result is good):
+
+- **Duration** — "Use a clip of up to 2 minutes. Longer clips are accepted at
+  upload but fail during processing with `voice_audio_too_long`."
+  (`/docs/tts/concepts/voice-cloning`, matching the `voice_audio_too_long`
+  entry in `/docs/api-reference/errors`: "currently a maximum of 2 minutes".)
+- **Size** — "Stay within 35 MB. Larger uploads are rejected."
+- **Voice quota is unchanged**: 20 per organization, across all projects; each
+  reference clip counts as one voice.
+
+The asymmetry is the part that matters for us. Size is a synchronous upload
+rejection, so a too-large file costs nothing. Duration is *not* checked at
+upload: an over-long clip is accepted, consumes one of the 20 org-wide slots
+and a billable create, then lands in the terminal `failed` status this spec
+already treats as "recreate, never retry". So the client-side duration bound
+is not belt-and-braces — it is the only thing preventing a silent slot leak,
+and it must stay at or below Soniox's number rather than being relaxed to
+"let the server decide".
+
+Consequences accepted with this amendment:
+
+- `MAX_UPLOAD_BYTES` reads 35 MB as **decimal** (35 × 10⁶), the smaller of the
+  two plausible readings of "35 MB", so we never wave through what the server
+  would reject.
+- A full 2-minute capture is ~11.5 MB of PCM16 WAV at a 48 kHz AudioContext
+  (`encodeWavPcm16` does not resample or compress), against ~1.9 MB before. It
+  clears 35 MB with room to spare; what it eats into is the **upload timeout
+  budget**, unchanged at 120 s — and, on the managed cold-upload path only, the
+  60 s whole-preparation ceiling in `managedVoicePrep`. Left as-is: the warm
+  slot is the normal session-start path, and a cold 11.5 MB upload still fits
+  60 s on any link above ~1.5 Mbps up. Revisit if session-start voice-prep
+  failures appear in the field.
+- Recording UI: `VoiceLibrarySection`'s countdown now starts at 120 and reads
+  "Stop recording (120s)". Left in seconds rather than mm:ss — one number, and
+  the copy key (`voiceLibrary.clipTooLong`, "keep it under {seconds} seconds")
+  interpolates the same unit across all 35 locales.
+- The 3 s minimum is retained. Soniox publishes no minimum; 3 s is our own
+  floor for a clip that carries enough timbre.
+
 
 ## Decisions
 

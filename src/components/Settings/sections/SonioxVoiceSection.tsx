@@ -9,7 +9,7 @@
  *
  * Create flow: record/upload are always available once a source exists (the
  * shared voice-library look, no gating checkbox) → client-side validation
- * (upload only: ≤10 MB, decoded duration 3-20s, mirroring NativeVoiceSection's
+ * (upload only: ≤35 MB, decoded duration 3-120s, mirroring NativeVoiceSection's
  * `validateVoiceClip` pattern) → the validated/recorded clip is staged as
  * `pending` rather than uploaded immediately, which opens
  * `SonioxCloneConfirmModal` for playback + naming + the consent statement
@@ -88,11 +88,23 @@ export interface SonioxVoiceSectionProps {
 const BUILTIN_VOICES = new SonioxProviderConfig().getConfig().voices;
 const TTS_MODEL = SONIOX_TTS_MODEL;
 const DEFAULT_VOICE = SONIOX_DEFAULT_VOICE;
-// Reference-clip bounds Soniox enforces server-side; validated client-side on
-// upload too (mirrors NativeVoiceSection / validateVoiceClip's defaults).
+// Reference-clip bounds Soniox documents for `/v1/voices`, validated
+// client-side because the two are enforced at DIFFERENT points server-side:
+// size is rejected at upload, but duration is accepted at upload and only
+// fails later, per model, as `voice_audio_too_long` — a terminal `failed`
+// status that has already spent one of the organization's 20 voice slots and
+// a billable create. So the duration bound below is the only thing standing
+// between a too-long clip and a slot the user has to notice and clean up.
+// (These are Soniox's own numbers — deliberately NOT validateVoiceClip's
+// local-model defaults, which NativeVoiceSection keeps at 3-20s.)
 const MIN_CLIP_SECONDS = 3;
-const MAX_CLIP_SECONDS = 20;
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_CLIP_SECONDS = 120;
+// Soniox says "stay within 35 MB"; read as decimal, the smaller of the two
+// plausible readings, so we never wave through what the server would reject.
+// The bound that actually matters day to day is MAX_CLIP_SECONDS: a full
+// 2-minute capture at a 48 kHz AudioContext encodes to ~11.5 MB of PCM16 WAV,
+// so recordings clear this with room to spare and only imports can hit it.
+const MAX_UPLOAD_BYTES = 35 * 1000 * 1000;
 
 function isReady(v: SonioxVoice): boolean {
   return v.models?.some((m) => m.model === TTS_MODEL && m.status === 'ready') ?? false;
@@ -382,7 +394,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   };
 
   // Client-side upload validation (spec: "client-side decode validates
-  // 3-20s / ≤10MB via the validateVoiceClip pattern"): reject an oversize
+  // 3-120s / ≤35MB via the validateVoiceClip pattern"): reject an oversize
   // file outright (cheap, no decode needed), then decode the file to measure
   // its REAL duration — a file's extension/MIME claims nothing about actual
   // length — and run it through the same validateVoiceClip bounds
@@ -398,7 +410,11 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         throw new Error(
           t('voiceLibrary.importError', 'Import failed: {error}').replace(
             '{error}',
-            `File is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB, max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB)`
+            // Both figures in the SAME unit as the published limit (decimal
+            // MB), so "36.0 MB, max 35 MB" reads as one comparison. Dividing
+            // the cap by 1024^2 while quoting it as "MB" would print 33.4 —
+            // a number that appears nowhere in Soniox's docs.
+            `File is too large (${(file.size / 1_000_000).toFixed(1)} MB, max ${MAX_UPLOAD_BYTES / 1_000_000} MB)`
           )
         );
       }
