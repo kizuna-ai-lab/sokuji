@@ -17,6 +17,7 @@ import type { ManagedVoicesClient, ManagedVoice } from '../../../services/client
 import { SonioxVoicesError } from '../../../services/clients/SonioxVoicesClient';
 import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
 import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
+import { managedVoicePollDelayMs } from '../../../services/clients/managedVoicePolling';
 
 export interface VoiceLibrarySource {
   /** Every voice this source can offer. The managed source returns zero or
@@ -82,9 +83,19 @@ function toSonioxVoice(voice: ManagedVoice): SonioxVoice {
 export function managedVoiceSource(
   client: ManagedVoicesClient,
   accountId: string,
-  opts: { intervalMs?: number; timeoutMs?: number } = {}
+  opts: {
+    /** Wait before readiness poll number `attempt` (0-based). Defaults to the
+     *  schedule shared with session-start preparation. */
+    pollDelayMs?: (attempt: number) => number;
+    timeoutMs?: number;
+    sleep?: (ms: number) => Promise<void>;
+  } = {}
 ): VoiceLibrarySource {
-  const { intervalMs = 1500, timeoutMs = 60_000 } = opts;
+  const {
+    pollDelayMs = managedVoicePollDelayMs,
+    timeoutMs = 60_000,
+    sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
+  } = opts;
   return {
     async list() {
       const voice = await client.mine();
@@ -126,6 +137,7 @@ export function managedVoiceSource(
     // already names it unambiguously — there is nothing to disambiguate by id.
     async waitUntilReady(_id) {
       const deadline = Date.now() + timeoutMs;
+      let attempt = 0;
       for (;;) {
         const voice = await client.mine();
         if (!voice) {
@@ -141,7 +153,7 @@ export function managedVoiceSource(
         if (Date.now() >= deadline) {
           throw new SonioxVoicesError('timeout', 'Voice processing timed out', 408);
         }
-        await new Promise((r) => setTimeout(r, intervalMs));
+        await sleep(pollDelayMs(attempt++));
       }
     },
 
