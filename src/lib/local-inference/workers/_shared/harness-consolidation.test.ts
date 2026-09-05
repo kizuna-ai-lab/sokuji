@@ -162,6 +162,12 @@ describe('ASR worker decode body holds its model in a local', () => {
     const body = sliceBetween(src, 'granite', 'async function runGraniteInferenceSegment', '// ─── Audio Feed Pipeline');
     expect(body, 'capture `model` into a local before the first await').toMatch(/= model;/);
     expect(body, 'capture `processor` into a local before the first await').toMatch(/= processor;/);
+    // Presence is not enough: a capture placed after the first awaited call would reintroduce
+    // the race, so both must precede it. Comments in the body must not spell an `await x(`.
+    const firstAwait = body.search(/\bawait\s+[A-Za-z_$][\w$]*\s*\(/);
+    expect(firstAwait, 'the segment body should contain an awaited call').toBeGreaterThanOrEqual(0);
+    expect(body.indexOf('= model;'), 'capture `model` above the first await').toBeLessThan(firstAwait);
+    expect(body.indexOf('= processor;'), 'capture `processor` above the first await').toBeLessThan(firstAwait);
     expect(body, 'must not dereference the module global `model` (nulled by handleDispose mid-decode)').not.toMatch(/\bmodel\./);
     expect(body, 'must not call or dereference the module global `processor`').not.toMatch(/\bprocessor[.(]/);
   });

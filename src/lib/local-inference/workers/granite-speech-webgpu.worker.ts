@@ -226,7 +226,8 @@ function scheduleGraniteInference(audio: Float32Array, startSample: number): Pro
 async function runGraniteInferenceSegment(audio: Float32Array, startSample: number): Promise<void> {
   // Capture both references before the first await: handleDispose nulls the module globals
   // and only then drains the decode chain, so a decode already past this guard must not read
-  // `model` / `processor` again after `await p(...)` — it would throw and post a spurious error.
+  // `model` / `processor` again once it has suspended — it would throw and post a spurious
+  // error. The guard in harness-consolidation.test.ts pins the captures above the first await.
   const p = processor;
   const m = model;
   if (!p || !m) return;
