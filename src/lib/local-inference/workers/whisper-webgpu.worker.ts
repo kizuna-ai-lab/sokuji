@@ -197,6 +197,7 @@ function resampleInt16ToFloat32_16k(samples: Int16Array, inputRate: number): Flo
 let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
 let currentLanguage: string | undefined;
 let processingVad = false;
+let pendingWhisperDecode: Promise<void> | null = null;
 
 /**
  * Patch config.json and generation_config.json blobs for non-standard Whisper
@@ -263,7 +264,19 @@ async function hasWebGPU(): Promise<boolean> {
 /**
  * Run Whisper on a completed speech audio segment.
  */
-async function runWhisper(audio: Float32Array, startSample: number): Promise<void> {
+function scheduleWhisper(audio: Float32Array, startSample: number): Promise<void> {
+  const previousWhisperDecode = pendingWhisperDecode;
+  const promise = (async () => {
+    if (previousWhisperDecode) {
+      try { await previousWhisperDecode; } catch { /* already reported */ }
+    }
+    await runWhisperSegment(audio, startSample);
+  })();
+  pendingWhisperDecode = promise;
+  return promise;
+}
+
+async function runWhisperSegment(audio: Float32Array, startSample: number): Promise<void> {
   if (!transcriber) return;
 
   const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
@@ -350,7 +363,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             speechFramesSinceStart = 0;
             vadLog('SPEECH_END dur=',
               Math.round((ev.audio.length / VAD_SAMPLE_RATE) * 1000), 'ms');
-            await runWhisper(ev.audio, speechStartSample);
+            void scheduleWhisper(ev.audio, speechStartSample);
             break;
 
           case Message.VADMisfire:
@@ -369,7 +382,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              await runWhisper(ev.audio, speechStartSample);
+              void scheduleWhisper(ev.audio, speechStartSample);
             }
           }
           speechFramesSinceStart = 0;
@@ -467,29 +480,30 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
  * the redemption window, surfacing the transcription one utterance late.
  */
 async function handleFlush(): Promise<void> {
-  if (!frameProcessor?.speaking) return;
-  vadLog('FLUSH finalizing pending speech');
-  const endEvents: FrameProcessorEvent[] = [];
-  frameProcessor.endSegment((ev) => endEvents.push(ev));
-  for (const ev of endEvents) {
-    if (ev.msg === Message.SpeechEnd) {
-      await runWhisper(ev.audio, speechStartSample);
-    }
-  }
-  speechFramesSinceStart = 0;
-}
-
-async function handleDispose(): Promise<void> {
-  // Flush any remaining speech via FrameProcessor
   if (frameProcessor?.speaking) {
-    vadLog('DISPOSE flushing remaining speech');
+    vadLog('FLUSH finalizing pending speech');
     const endEvents: FrameProcessorEvent[] = [];
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        await runWhisper(ev.audio, speechStartSample);
+        void scheduleWhisper(ev.audio, speechStartSample);
       }
     }
+    speechFramesSinceStart = 0;
+  }
+  if (pendingWhisperDecode) {
+    try { await pendingWhisperDecode; } catch { /* already reported */ }
+  }
+}
+
+async function handleDispose(): Promise<void> {
+  await handleFlush();
+
+  const activeTranscriber = transcriber;
+  transcriber = null;
+  if (pendingWhisperDecode) {
+    try { await pendingWhisperDecode; } catch { /* already reported */ }
+    pendingWhisperDecode = null;
   }
 
   // Dispose FrameProcessor
@@ -503,9 +517,8 @@ async function handleDispose(): Promise<void> {
   }
 
   // Dispose Whisper
-  if (transcriber) {
-    await (transcriber as any).dispose?.();
-    transcriber = null;
+  if (activeTranscriber) {
+    await (activeTranscriber as any).dispose?.();
     currentLanguage = undefined;
   }
 

@@ -172,6 +172,7 @@ let model: any = null;
 let currentTask: 'transcribe' | 'translate' = 'transcribe';
 let currentTargetLanguage: string | undefined;
 let processingVad = false;
+let pendingGraniteDecode: Promise<void> | null = null;
 
 function buildPrompt(): string {
   if (currentTask === 'translate' && currentTargetLanguage) {
@@ -194,7 +195,19 @@ async function hasWebGPU(): Promise<boolean> {
 
 // ─── Speech Segment Processing ──────────────────────────────────────────────
 
-async function runGraniteInference(audio: Float32Array, startSample: number): Promise<void> {
+function scheduleGraniteInference(audio: Float32Array, startSample: number): Promise<void> {
+  const previousGraniteDecode = pendingGraniteDecode;
+  const promise = (async () => {
+    if (previousGraniteDecode) {
+      try { await previousGraniteDecode; } catch { /* already reported */ }
+    }
+    await runGraniteInferenceSegment(audio, startSample);
+  })();
+  pendingGraniteDecode = promise;
+  return promise;
+}
+
+async function runGraniteInferenceSegment(audio: Float32Array, startSample: number): Promise<void> {
   if (!processor || !model) return;
 
   const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
@@ -275,7 +288,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             break;
           case Message.SpeechEnd:
             speechFramesSinceStart = 0;
-            await runGraniteInference(ev.audio, speechStartSample);
+            void scheduleGraniteInference(ev.audio, speechStartSample);
             break;
           case Message.VADMisfire:
             speechFramesSinceStart = 0;
@@ -291,7 +304,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              await runGraniteInference(ev.audio, speechStartSample);
+              void scheduleGraniteInference(ev.audio, speechStartSample);
             }
           }
           speechFramesSinceStart = 0;
@@ -372,15 +385,25 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        await runGraniteInference(ev.audio, speechStartSample);
+        void scheduleGraniteInference(ev.audio, speechStartSample);
       }
     }
+  }
+  if (pendingGraniteDecode) {
+    try { await pendingGraniteDecode; } catch { /* already reported */ }
   }
 }
 
 async function handleDispose(): Promise<void> {
   // Flush remaining speech
   await handleFlush();
+
+  const activeModel = model;
+  model = null;
+  if (pendingGraniteDecode) {
+    try { await pendingGraniteDecode; } catch { /* already reported */ }
+    pendingGraniteDecode = null;
+  }
 
   frameProcessor = null;
   speechFramesSinceStart = 0;
@@ -390,9 +413,8 @@ async function handleDispose(): Promise<void> {
     vadSession = null;
   }
 
-  if (model) {
-    await model.dispose?.();
-    model = null;
+  if (activeModel) {
+    await activeModel.dispose?.();
   }
   processor = null;
   currentTask = 'transcribe';

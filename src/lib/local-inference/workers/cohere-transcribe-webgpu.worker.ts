@@ -155,11 +155,11 @@ let currentTranscriptionPromise: Promise<void> | null = null;
  * TextStreamer emits partial results token-by-token during inference.
  * Awaits any in-flight transcription before starting to prevent races with flush/dispose.
  */
-function runTranscribe(audio: Float32Array): Promise<void> {
+function scheduleTranscription(audio: Float32Array): Promise<void> {
+  const previousTranscription = currentTranscriptionPromise;
   const promise = (async () => {
-    // Wait for any in-flight transcription to complete first
-    if (currentTranscriptionPromise) {
-      try { await currentTranscriptionPromise; } catch { /* already reported */ }
+    if (previousTranscription) {
+      try { await previousTranscription; } catch { /* already reported */ }
     }
     if (!transcriber) return;
 
@@ -238,7 +238,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
 
           case Message.SpeechEnd:
             speechFramesSinceStart = 0;
-            await runTranscribe(ev.audio);
+            void scheduleTranscription(ev.audio);
             break;
 
           case Message.VADMisfire:
@@ -255,7 +255,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              await runTranscribe(ev.audio);
+              void scheduleTranscription(ev.audio);
             }
           }
           speechFramesSinceStart = 0;
@@ -339,29 +339,21 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        await runTranscribe(ev.audio);
+        void scheduleTranscription(ev.audio);
       }
     }
   }
   // Wait for any in-flight transcription to complete
   if (currentTranscriptionPromise) {
-    await currentTranscriptionPromise;
+    try { await currentTranscriptionPromise; } catch { /* already reported */ }
   }
 }
 
 async function handleDispose(): Promise<void> {
-  // Flush remaining speech
-  if (frameProcessor?.speaking) {
-    const endEvents: FrameProcessorEvent[] = [];
-    frameProcessor.endSegment((ev) => endEvents.push(ev));
-    for (const ev of endEvents) {
-      if (ev.msg === Message.SpeechEnd) {
-        await runTranscribe(ev.audio);
-      }
-    }
-  }
+  await handleFlush();
 
-  // Wait for any in-flight transcription to complete before disposing
+  const cohereTranscriber = transcriber;
+  transcriber = null;
   if (currentTranscriptionPromise) {
     try { await currentTranscriptionPromise; } catch { /* already reported */ }
     currentTranscriptionPromise = null;
@@ -378,9 +370,8 @@ async function handleDispose(): Promise<void> {
   }
 
   // Dispose transcriber
-  if (transcriber) {
-    await (transcriber as any).dispose?.();
-    transcriber = null;
+  if (cohereTranscriber) {
+    await (cohereTranscriber as any).dispose?.();
     currentLanguage = undefined;
   }
 

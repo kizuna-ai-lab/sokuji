@@ -93,3 +93,27 @@ describe('ASR worker flush handling (PTT finalization)', () => {
       .toMatch(/(?:async\s+)?function\s+handleFlush\b/);
   });
 });
+
+const NON_BLOCKING_DECODE_WORKERS = [
+  ['whisper-webgpu.worker.ts', 'scheduleWhisper', 'pendingWhisperDecode'],
+  ['cohere-transcribe-webgpu.worker.ts', 'scheduleTranscription', 'currentTranscriptionPromise'],
+  ['granite-speech-webgpu.worker.ts', 'scheduleGraniteInference', 'pendingGraniteDecode'],
+] as const;
+
+describe('ASR worker VAD decode handoff', () => {
+  it.each(NON_BLOCKING_DECODE_WORKERS)('%s releases VAD before %s completes', (name, schedule, pending) => {
+    const src = read(name);
+    const speechEnd = src.match(/case Message\.SpeechEnd:([\s\S]*?)case Message\.VADMisfire:/)?.[1] ?? '';
+    const maxSpeech = src.slice(src.indexOf('// Max speech duration cap'), src.indexOf('// ─── Message Handlers'));
+    const flush = src.slice(src.indexOf('async function handleFlush'), src.indexOf('async function handleDispose'));
+    const call = new RegExp(`\\b${schedule}\\(`);
+
+    expect(speechEnd).toMatch(new RegExp(`void\\s+${schedule}\\(`));
+    expect(speechEnd).not.toMatch(new RegExp(`await\\s+${schedule}\\(`));
+    expect(maxSpeech).toMatch(new RegExp(`void\\s+${schedule}\\(`));
+    expect(flush).toMatch(new RegExp(`void\\s+${schedule}\\(`));
+    expect(flush).toMatch(new RegExp(`await ${pending}`));
+    expect(src).toMatch(new RegExp(`const \\w+ = ${pending};`));
+    expect(src).toMatch(call);
+  });
+});
