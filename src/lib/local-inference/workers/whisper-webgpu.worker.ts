@@ -197,6 +197,7 @@ function resampleInt16ToFloat32_16k(samples: Int16Array, inputRate: number): Flo
 let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
 let currentLanguage: string | undefined;
 let processingVad = false;
+let pendingWhisperDecode: Promise<void> | null = null;
 
 /**
  * Patch config.json and generation_config.json blobs for non-standard Whisper
@@ -261,9 +262,35 @@ async function hasWebGPU(): Promise<boolean> {
 // ─── Speech Segment Processing ──────────────────────────────────────────────
 
 /**
- * Run Whisper on a completed speech audio segment.
+ * Queue one speech segment for decoding, serialized behind whatever decode is already running.
+ *
+ * Callers on the VAD path fire-and-forget this (`void scheduleWhisper(...)`): a decode takes
+ * 0.5–2.5 s, and awaiting it inside `feedAudio` would keep `processingVad` true for that long,
+ * so every audio message arriving meanwhile would hit the guard and be dropped — on gapless
+ * audio that loses the start of the next utterance, and at the 20 s cap it loses words at
+ * every boundary (#470). Same pattern as the voxtral-3b and qwen3-asr workers
+ * (`currentDecodePromise`). Chaining on the previous promise keeps decodes strictly ordered
+ * and never overlapping on the pipeline. The returned promise never rejects:
+ * `runWhisperSegment` reports its own errors.
+ *
+ * Overlapping VAD frames with an in-flight decode is safe only because the VAD runs on its own
+ * ORT instance (`_shared/onnxruntime-all`) while the model runs on Transformers.js's — never
+ * put a second session on the model's instance while a decode can be in flight (#469).
  */
-async function runWhisper(audio: Float32Array, startSample: number): Promise<void> {
+function scheduleWhisper(audio: Float32Array, startSample: number): Promise<void> {
+  const previousWhisperDecode = pendingWhisperDecode;
+  const promise = (async () => {
+    if (previousWhisperDecode) {
+      try { await previousWhisperDecode; } catch { /* already reported */ }
+    }
+    await runWhisperSegment(audio, startSample);
+  })();
+  pendingWhisperDecode = promise;
+  return promise;
+}
+
+/** Run Whisper on one completed speech segment and post its result. Reports its own errors. */
+async function runWhisperSegment(audio: Float32Array, startSample: number): Promise<void> {
   if (!transcriber) return;
 
   const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
@@ -350,7 +377,10 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             speechFramesSinceStart = 0;
             vadLog('SPEECH_END dur=',
               Math.round((ev.audio.length / VAD_SAMPLE_RATE) * 1000), 'ms');
-            await runWhisper(ev.audio, speechStartSample);
+            // Fire-and-forget: awaiting here would hold `processingVad` for the whole decode
+            // and the guard at the top of this function would drop the audio arriving
+            // meanwhile (#470). `scheduleWhisper` serializes decodes via `pendingWhisperDecode`.
+            void scheduleWhisper(ev.audio, speechStartSample);
             break;
 
           case Message.VADMisfire:
@@ -365,11 +395,12 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
         speechFramesSinceStart++;
         if (speechFramesSinceStart >= maxSpeechFrames) {
           vadLog('MAX_DURATION flush frames=', speechFramesSinceStart);
+          // See the SpeechEnd case above: fire-and-forget so no audio is dropped at the cap.
           const endEvents: FrameProcessorEvent[] = [];
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              await runWhisper(ev.audio, speechStartSample);
+              void scheduleWhisper(ev.audio, speechStartSample);
             }
           }
           speechFramesSinceStart = 0;
@@ -465,31 +496,45 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
  * close the segment. Without this the current utterance stays buffered in the
  * FrameProcessor until the next press feeds enough leading silence to complete
  * the redemption window, surfacing the transcription one utterance late.
+ *
+ * The decode is fired without awaiting and the chain is drained afterwards: `scheduleWhisper`
+ * assigns `pendingWhisperDecode` before returning, so the await at the bottom picks up the
+ * decode just kicked off (behind anything already queued) and the flush resolves once the
+ * utterance's text has been posted. Draining happens even when nothing was speaking, so a
+ * flush issued mid-decode still waits for that decode.
  */
 async function handleFlush(): Promise<void> {
-  if (!frameProcessor?.speaking) return;
-  vadLog('FLUSH finalizing pending speech');
-  const endEvents: FrameProcessorEvent[] = [];
-  frameProcessor.endSegment((ev) => endEvents.push(ev));
-  for (const ev of endEvents) {
-    if (ev.msg === Message.SpeechEnd) {
-      await runWhisper(ev.audio, speechStartSample);
-    }
-  }
-  speechFramesSinceStart = 0;
-}
-
-async function handleDispose(): Promise<void> {
-  // Flush any remaining speech via FrameProcessor
   if (frameProcessor?.speaking) {
-    vadLog('DISPOSE flushing remaining speech');
+    vadLog('FLUSH finalizing pending speech');
     const endEvents: FrameProcessorEvent[] = [];
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        await runWhisper(ev.audio, speechStartSample);
+        void scheduleWhisper(ev.audio, speechStartSample);
       }
     }
+    speechFramesSinceStart = 0;
+  }
+  if (pendingWhisperDecode) {
+    try { await pendingWhisperDecode; } catch { /* already reported */ }
+  }
+}
+
+async function handleDispose(): Promise<void> {
+  // Flush remaining speech; handleFlush waits for that decode to finish.
+  vadLog('DISPOSE flushing remaining speech');
+  await handleFlush();
+
+  // Stop accepting new segments before touching the pipeline: with `transcriber` null,
+  // feedAudio returns early and a queued runWhisperSegment exits at its first line.
+  const activeTranscriber = transcriber;
+  transcriber = null;
+
+  // A decode may have been queued between the flush's await and the line above; wait for it
+  // so nothing runs against a disposed pipeline. Not redundant with the drain in handleFlush.
+  if (pendingWhisperDecode) {
+    try { await pendingWhisperDecode; } catch { /* already reported */ }
+    pendingWhisperDecode = null;
   }
 
   // Dispose FrameProcessor
@@ -503,9 +548,8 @@ async function handleDispose(): Promise<void> {
   }
 
   // Dispose Whisper
-  if (transcriber) {
-    await (transcriber as any).dispose?.();
-    transcriber = null;
+  if (activeTranscriber) {
+    await (activeTranscriber as any).dispose?.();
     currentLanguage = undefined;
   }
 
