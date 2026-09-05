@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import useAudioStore, { pickDefaultInputDevice, DEFAULT_PARTICIPANT_SOURCE } from './audioStore';
 import type { AudioMode, AudioDevice } from './audioStore';
+import { ServiceFactory } from '../services/ServiceFactory';
 
 // Regression test: on a machine with no physical microphone, the only
 // enumerated "audioinput" device can be a virtual/loopback one — notably
@@ -484,5 +485,38 @@ describe('audioStore - participant source survives a restart', () => {
     const other: AudioDevice = { deviceId: 'app:pid:99', label: 'Google Chrome', appKey: 'org.chromium.Chromium' };
     useAudioStore.getState().setParticipantSources([DEFAULT_PARTICIPANT_SOURCE, other]);
     expect(useAudioStore.getState().selectedParticipantSource?.deviceId).toBe('desktop-audio-loopback');
+  });
+});
+
+describe('audioStore - participant tap audio seen', () => {
+  const KEY = 'audio.participantTapAudioSeen';
+  const fakeService = {
+    initialize: async () => {},
+    getDevices: async () => ({ inputs: [], outputs: [] }),
+    setMonitorVolume: () => {},
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    useAudioStore.setState({ participantTapAudioSeen: false, audioService: fakeService } as any);
+  });
+
+  it('starts out unproven', () => {
+    expect(useAudioStore.getState().participantTapAudioSeen).toBe(false);
+  });
+
+  it('records that a tap has delivered audio, and persists it for the next launch', async () => {
+    useAudioStore.getState().markParticipantTapAudioSeen();
+
+    expect(useAudioStore.getState().participantTapAudioSeen).toBe(true);
+    expect(await ServiceFactory.getSettingsService().getSetting<boolean>(KEY, false)).toBe(true);
+  });
+
+  it('restores the fact on the next launch', async () => {
+    await ServiceFactory.getSettingsService().setSetting(KEY, true);
+
+    await useAudioStore.getState().refreshDevices();
+
+    expect(useAudioStore.getState().participantTapAudioSeen).toBe(true);
   });
 });

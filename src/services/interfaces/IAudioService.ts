@@ -309,6 +309,13 @@ export interface IAudioService {
   onParticipantWarning?: ((code: string) => void) | null;
 
   /**
+   * Fires once per per-application capture when its stream first carries
+   * audible audio. Persisted by the UI: after that, `silent_no_permission`
+   * is a quiet source rather than a denial and earns a notice, not a modal.
+   */
+  onParticipantAudioSeen?: (() => void) | null;
+
+  /**
    * Subscribe to echo-detection verdict changes (null = all clear). One
    * subscriber at a time; pass null to unsubscribe. Causes and thresholds are
    * documented in src/lib/modern-audio/EchoMonitor.ts.
