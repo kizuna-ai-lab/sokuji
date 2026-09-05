@@ -50,6 +50,14 @@ export class ModernBrowserAudioService implements IAudioService {
    * macOS permission denial is invisible: the session runs and stays silent.
    */
   public onParticipantWarning: ((code: string) => void) | null = null;
+
+  /**
+   * Fires once per capture when the per-application helper's stream first
+   * carries audible audio. The UI persists that fact: after a tap has ever
+   * delivered real audio on this machine, `silent_no_permission` is a quiet
+   * source rather than a denial and no longer earns a modal (#492).
+   */
+  public onParticipantAudioSeen: (() => void) | null = null;
   // Chromium deviceId of a per-application capture monitor (Linux), or null.
   private currentMonitorDeviceId: string | null = null;
   private systemAudioCallback: AudioRecordingCallback | null = null;
@@ -1183,6 +1191,7 @@ export class ModernBrowserAudioService implements IAudioService {
       this.systemAudioCallback = callback;
 
       recorder.onWarning = (code) => this.onParticipantWarning?.(code);
+      recorder.onAudioSeen = () => this.onParticipantAudioSeen?.();
 
       recorder.onLost = () => {
         console.warn('[Sokuji] [ModernBrowserAudio] Capture helper lost; falling back to system audio');

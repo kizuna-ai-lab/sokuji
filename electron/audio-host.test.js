@@ -153,6 +153,30 @@ describe('startCapture', () => {
     expect(onPcm).toHaveBeenCalledWith(pcm);
   });
 
+  it('tells the macOS helper which pids are Sokuji itself, sorted, so its own silent output never counts as rendering', () => {
+    const spawn = vi.fn(() => fakeChild());
+    // Electron's audio service is a child process of its own; the helper only
+    // sees pids, so the whole tree goes across.
+    const selfIdentity = makeSelfIdentity({
+      execPath: '/Applications/Sokuji.app/Contents/MacOS/Sokuji',
+      pids: [245, 100],
+      appName: 'Sokuji',
+    });
+
+    startCapture('desktop-audio-loopback', vi.fn(), vi.fn(), { spawn, resolvePath, selfIdentity, platform: 'darwin' });
+
+    expect(spawn.mock.calls[0][1]).toEqual(['--target', 'system', '--exclude-pids', '100,245']);
+  });
+
+  it('passes no exclusion list to the Windows helper, which has no rendering check', () => {
+    const spawn = vi.fn(() => fakeChild());
+    const selfIdentity = makeSelfIdentity({ execPath: 'C:\\app\\Sokuji.exe', pids: [100], appName: 'Sokuji' });
+
+    startCapture('app:pid:42', vi.fn(), vi.fn(), { spawn, resolvePath, selfIdentity, platform: 'win32' });
+
+    expect(spawn.mock.calls[0][1]).toEqual(['--target', 'pid:42']);
+  });
+
   it('parses stderr JSON lines, tolerating split chunks', () => {
     const child = fakeChild();
     const onEvent = vi.fn();

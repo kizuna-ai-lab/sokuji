@@ -71,6 +71,16 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
    */
   public onWarning: ((code: string) => void) | null = null;
 
+  /**
+   * Invoked once, the first time a level window (~2 s) holds audible audio.
+   *
+   * The permission modal that `silent_no_permission` raises is only worth a
+   * modal while nothing has ever proven the tap works on this machine: once
+   * real audio has come through, later silence is a quiet source, not a
+   * denial, and the app downgrades the warning to a notice (#492).
+   */
+  public onAudioSeen: (() => void) | null = null;
+
   constructor(private readonly sampleRate: number = 24000) {}
 
   getSampleRate(): number {
@@ -238,7 +248,10 @@ export class AppAudioRecorder implements IParticipantAudioRecorder {
     if (this.samplesSinceLog < 48000) return;
 
     const peak = this.peakSinceLog / 32768;
-    if (peak > 0.001) this.everHeardAudio = true;
+    if (peak > 0.001 && !this.everHeardAudio) {
+      this.everHeardAudio = true;
+      this.onAudioSeen?.();
+    }
     console.info(
       `[Sokuji] [AppAudioRecorder] captured level: peak=${peak.toFixed(4)}` +
       `${peak <= 0.001 ? ' (silent - the source is not playing, or capture is not permitted)' : ''}`

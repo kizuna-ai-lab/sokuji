@@ -30,6 +30,9 @@ const STORAGE_KEYS = {
   IS_MIC_MUTED: 'audio.isMicMuted',
   IS_MONITOR_MUTED: 'audio.isMonitorMuted',
   IS_PARTICIPANT_MUTED: 'audio.isParticipantMuted',
+  // Set once a per-application capture has delivered audible audio on this
+  // machine. Gates the "System Audio Recording" permission modal (#492).
+  PARTICIPANT_TAP_AUDIO_SEEN: 'audio.participantTapAudioSeen',
 };
 
 export interface AudioDevice {
@@ -105,6 +108,16 @@ interface AudioStore {
   isMonitorMuted: boolean;
   isParticipantMuted: boolean;
 
+  /**
+   * Whether a per-application capture has ever delivered audible audio on this
+   * machine. macOS denies an audio tap with silence rather than an error, so
+   * the helper's `silent_no_permission` warning is the only signal — but it
+   * also fires for a source that is merely quiet. Until a tap has proven the
+   * permission once, that warning earns a modal; afterwards only a notice.
+   * Persisted, so the modal is a first-run experience, not a per-session one.
+   */
+  participantTapAudioSeen: boolean;
+
   // Audio service reference
   audioService: IAudioService | null;
 
@@ -126,6 +139,8 @@ interface AudioStore {
   setMicMuted: (muted: boolean) => void;
   setMonitorMuted: (muted: boolean) => void;
   setParticipantMuted: (muted: boolean) => void;
+  /** Record that a tap has delivered audio; idempotent, persisted. */
+  markParticipantTapAudioSeen: () => void;
 
   // Complex actions
   refreshDevices: () => Promise<{ defaultInputDevice: AudioDevice | null; defaultMonitorDevice: AudioDevice | null }>;
@@ -153,11 +168,17 @@ const useAudioStore = create<AudioStore>()(
     isMicMuted: false,      // default: mic unmuted
     isMonitorMuted: true,   // default: monitor off (opt-in audio)
     isParticipantMuted: false, // default: participant unmuted
+    participantTapAudioSeen: false,
 
     audioService: null,
-    
+
     // Basic setters
     setAudioService: (service) => set({ audioService: service }),
+    markParticipantTapAudioSeen: () => {
+      if (get().participantTapAudioSeen) return;
+      set({ participantTapAudioSeen: true });
+      void persistSetting(STORAGE_KEYS.PARTICIPANT_TAP_AUDIO_SEEN, true);
+    },
     setInputDevices: (devices) => set({ audioInputDevices: devices }),
     setMonitorDevices: (devices) => set({ audioMonitorDevices: devices }),
     setParticipantSources: (sources) => set((state) => {
@@ -388,6 +409,9 @@ const useAudioStore = create<AudioStore>()(
 
         // Load saved device preferences and on/off states
         const settingsService = ServiceFactory.getSettingsService();
+        if (await settingsService.getSetting<boolean>(STORAGE_KEYS.PARTICIPANT_TAP_AUDIO_SEEN, false)) {
+          set({ participantTapAudioSeen: true });
+        }
         const savedInputDeviceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, '');
         const savedMonitorDeviceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_MONITOR_DEVICE_ID, '');
         const savedInputDeviceOn = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_INPUT_DEVICE_ON, null);

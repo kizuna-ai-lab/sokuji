@@ -385,3 +385,29 @@ describe('AppAudioRecorder teardown is not a loss', () => {
     expect(onLost).toHaveBeenCalled();
   });
 });
+
+describe('AppAudioRecorder first audio', () => {
+  // observeLevel judges the captured level once per 48000 samples (~2 s at
+  // 24 kHz), so each pushed chunk here is exactly one judgement window.
+  const window48k = (fill: (samples: Int16Array) => void = () => {}) => {
+    const samples = new Int16Array(48000);
+    fill(samples);
+    return new Uint8Array(samples.buffer);
+  };
+
+  it('reports the first non-silent window once, and never for silence', async () => {
+    const rec = await started();
+    const onAudioSeen = vi.fn();
+    rec.onAudioSeen = onAudioSeen;
+    await rec.record(() => {});
+
+    handlers['app-audio:pcm'](window48k());
+    expect(onAudioSeen).not.toHaveBeenCalled();
+
+    handlers['app-audio:pcm'](window48k((s) => { s[10] = 2000; }));
+    expect(onAudioSeen).toHaveBeenCalledTimes(1);
+
+    handlers['app-audio:pcm'](window48k((s) => { s[10] = 2000; }));
+    expect(onAudioSeen).toHaveBeenCalledTimes(1);
+  });
+});

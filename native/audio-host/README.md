@@ -42,7 +42,18 @@ whole-system capture; it is not an error.
 ```
 sokuji-audio-host --target pid:22972
 sokuji-audio-host --target system
+sokuji-audio-host --target system --exclude-pids 4120,4133
 ```
+
+`--exclude-pids` (macOS only, optional) names processes that must never count as
+"rendering" for the `silent_no_permission` check, together with their
+descendants, resolved against the live parent chain at every poll. Sokuji passes
+its own process tree, because its audio service keeps an output stream open for
+the whole session even while it plays nothing, and on a `system` tap that alone
+used to satisfy the check (#492). The live walk is what keeps the exclusion
+correct when Chromium restarts its audio-service utility process mid-capture:
+the replacement is a new pid, but still a child of the app. A token that is not
+a positive pid is `bad_exclude_pids`, exit 2.
 
 `system` captures everything the machine plays. Windows and Linux serve that
 through the renderer instead (getDisplayMedia / PipeWire), so only macOS
@@ -234,6 +245,16 @@ the script — without it the script says so and keeps only the structural check
   a naive reading fires `silent_no_permission` at the exact moment playback starts
   — the one moment the permission is provably fine. The warning requires the
   contradiction to hold for two seconds.
+- **`IsRunningOutput` is about streams, not content.** A process whose output
+  stream is open but carries digital silence is "running output" — a meeting app
+  between utterances, a browser tab with a paused player, and Sokuji itself: a
+  running `AudioContext` keeps Chromium's audio-service stream open (measured on
+  Electron 40: ~30 s after the last sound before Chromium suspends it, and a
+  fresh context is created at every session start). So the contradiction is
+  weaker than it looks: on a `system` tap the app must pass `--exclude-pids`
+  with its own process tree, and even then a silent target with an open stream
+  still fires the warning. The app therefore treats the warning as a hint, not
+  a verdict (#492).
 - **Whole-system capture uses a global tap, not getDisplayMedia.** Screen
   Recording is a second, heavier permission, and a `stereoGlobalTapButExcludeProcesses: []`
   tap does the same job under the audio-capture grant the per-application path

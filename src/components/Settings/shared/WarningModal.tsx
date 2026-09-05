@@ -100,12 +100,14 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type, note
         };
       case 'audio-capture-denied':
         return {
-          title: t('audioPanel.audioCaptureDeniedNotice', 'Permission Required'),
-          titleText: t('audioPanel.audioCaptureDeniedTitle', 'System Audio Recording Permission Needed'),
+          // Phrased as an observation, not a verdict: the helper cannot tell a
+          // denied tap from a source that is merely quiet (#492).
+          title: t('audioPanel.audioCaptureUnprovenNotice', 'Nothing captured yet'),
+          titleText: t('audioPanel.audioCaptureUnprovenTitle', 'No audio has come through from the selected source yet'),
           paragraphs: [
-            t('audioPanel.audioCaptureDeniedText1', 'Capturing one application needs the "System Audio Recording Only" permission. Without it macOS delivers silence instead of an error, so the session runs but nothing is translated.'),
+            t('audioPanel.audioCaptureUnprovenText1', 'If the source is playing and nothing is translated, macOS is probably delivering silence: capturing an application needs the "System Audio Recording Only" permission, and without it there is no error, only silence.'),
             t('audioPanel.audioCaptureDeniedText2Named', 'Open System Settings > Privacy & Security > System Audio Recording Only and enable "{{app}}".', { app: tccName }),
-            t('audioPanel.audioCaptureDeniedText3Named', '"{{app}}" only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.', { app: tccName })
+            t('audioPanel.audioCaptureUnprovenText3Named', '"{{app}}" only appears in that list after it has tried to capture once, which it just did. Start the session again after enabling it. If the source was simply silent, nothing needs to change.', { app: tccName })
           ],
           // Per-application capture uses a Core Audio tap, not screen capture.
           privacyPane: 'audio-capture' as const,

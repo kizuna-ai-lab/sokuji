@@ -43,6 +43,7 @@ import {
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, useSetItems as useSetStoreItems, useSetParticipantItems as useSetStoreParticipantItems, useLockedMode, useSetLockedMode, useClearConversationVersion, useRequestClearConversation } from '../../stores/sessionStore';
 import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted, useSelectedParticipantSource, useParticipantSources } from '../../stores/audioStore';
 import { resolveParticipantSourceId, needsLoopbackStream } from '../../lib/modern-audio/participantSource';
+import { silentNoPermissionPresentation } from './participantWarnings';
 import { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent, EventData } from '../../stores/logStore';
@@ -455,16 +456,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           type: 'participant.warning',
           data: {
             message: t(
-              'audioPanel.participantSilentNoPermission',
-              'The selected application is sending no audio. If you are on macOS, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only, then restart the session.'
+              'audioPanel.participantNoAudioYet',
+              'No audio has come through from the selected source yet. If it is playing and nothing is translated, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only (macOS), then start the session again.'
             ),
           },
         },
         'client', 'participant.warning'
       );
-      setPermissionWarning('audio-capture-denied');
+      // The notice above always lands. The modal is reserved for the case it
+      // can actually diagnose: no tap has ever delivered audio on this machine,
+      // so the first attempt just got silently denied. After that, silence is
+      // a quiet source and the modal would cry wolf on every quiet start (#492).
+      const tapAudioSeen = useAudioStore.getState().participantTapAudioSeen;
+      if (silentNoPermissionPresentation({ tapAudioSeen }) === 'modal') {
+        setPermissionWarning('audio-capture-denied');
+      }
     };
-    return () => { service.onParticipantWarning = null; };
+    service.onParticipantAudioSeen = () => useAudioStore.getState().markParticipantTapAudioSeen();
+    return () => {
+      service.onParticipantWarning = null;
+      service.onParticipantAudioSeen = null;
+    };
   }, [audioServiceReady, addRealtimeEvent, t]);
 
   // A capture permission the OS denied. Rendered as a modal with a button that
