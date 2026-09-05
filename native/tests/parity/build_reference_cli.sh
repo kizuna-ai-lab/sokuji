@@ -51,8 +51,13 @@ if [[ -x "$OUT_BIN" ]]; then
 fi
 
 if [[ -d "$SRC_DIR/.git" && "$(git -C "$SRC_DIR" rev-parse HEAD)" != "$GIT_SHA" ]]; then
-    echo "build_reference_cli.sh: $SRC_DIR is at $(git -C "$SRC_DIR" rev-parse HEAD), pin is $GIT_SHA — refetching"
-    rm -rf "$SRC_DIR" "$BUILD_DIR"
+    # Move the existing checkout to the pin IN PLACE and keep BUILD_DIR: the source path
+    # is unchanged, so CMake's cache stays valid and the rebuild below is incremental
+    # (only the files that differ between the two commits recompile). `-f` discards the
+    # SME drop applied to external/ggml on the previous run; it is re-applied below.
+    echo "build_reference_cli.sh: $SRC_DIR is at $(git -C "$SRC_DIR" rev-parse HEAD), pin is $GIT_SHA — refetching in place"
+    git -C "$SRC_DIR" fetch --depth 1 origin "$GIT_SHA"
+    git -C "$SRC_DIR" checkout -q -f FETCH_HEAD
 fi
 if [[ ! -d "$SRC_DIR/.git" ]]; then
     rm -rf "$SRC_DIR"
