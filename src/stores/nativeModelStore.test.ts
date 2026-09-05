@@ -229,7 +229,7 @@ describe('catalog-derived statusRepos cache (cold-start variant awareness)', () 
   // full variant ladder, so the store derives the cache when the catalog lands.
   const FUN_ASR = {
     id: 'fun-asr-mlt-nano', name: 'Fun-ASR MLT Nano', kind: 'asr', languages: ['multi'], recommended: true,
-    tiers: [{ tier: 'cpu', backend: 'transcribe_cpp', available: true }], sizeBytes: 690744384,
+    tiers: [{ tier: 'cpu', backend: 'native_asr', available: true }], sizeBytes: 690744384,
     variantIds: ['q6_k', 'q8_0'],
     variants: [
       { id: 'q6_k', sizeBytes: 690744384, repo: 'handy/Fun-ASR-gguf/Fun-ASR-Q6_K.gguf', supported: true, recommended: false },

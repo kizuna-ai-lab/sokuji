@@ -350,27 +350,24 @@ export type BackendTooltipRow = { key: string; value: string; warn?: boolean };
 
 // Keyed by the backend ids the sidecar emits (catalog.py `_tc_row backend=`,
 // `_llm_translate_row`, `_tts_gguf_row`; accel.py `tiers[].backend`). The ASR ids
-// have been native_asr / native_asr_stream since the ggml-only sidecar (slice 2);
-// the transcribe_cpp* rows are the pre-slice-2 spellings, kept so an older
-// bundle's catalog still labels (the app pins the sidecar version, so in practice
-// only the native_* ids arrive).
+// have been native_asr / native_asr_stream since the ggml-only sidecar (#459); the
+// pre-#459 `transcribe_cpp*` spellings have no producer any more — the app's strict
+// sidecar version gate (spec S2) never runs an older bundle — so they are not here.
 const FRAMEWORK_LABELS: Record<string, string> = {
   native_asr: 'transcribe.cpp',
   native_asr_stream: 'transcribe.cpp',
-  transcribe_cpp: 'transcribe.cpp',
-  transcribe_cpp_stream: 'transcribe.cpp',
   native_translate: 'llama.cpp',
   native_tts: 'audio.cpp',
 };
 
 /** Engine/library label for a sidecar backend id. Falls back by prefix so a new
- *  native_asr_X / transcribe_cpp_X id still resolves (the underscore is part of
- *  the prefix: `native_asrfoo` is not a backend id shape and echoes raw), else
- *  echoes the raw id. The old `X_onnx` → 'ONNXRuntime' fallback died with the
- *  ONNX backends themselves (slice 5) — no backend id ends in `_onnx` anymore. */
+ *  native_asr_X id still resolves (the underscore is part of the prefix:
+ *  `native_asrfoo` is not a backend id shape and echoes raw), else echoes the raw
+ *  id. The old `X_onnx` → 'ONNXRuntime' fallback died with the ONNX backends
+ *  themselves (slice 5) — no backend id ends in `_onnx` anymore. */
 export function frameworkLabel(backendId: string): string {
   if (FRAMEWORK_LABELS[backendId]) return FRAMEWORK_LABELS[backendId];
-  if (backendId.startsWith('native_asr_') || backendId.startsWith('transcribe_cpp')) return 'transcribe.cpp';
+  if (backendId.startsWith('native_asr_')) return 'transcribe.cpp';
   return backendId;
 }
 
