@@ -426,6 +426,11 @@ async function handleFlush(): Promise<void> {
 }
 
 async function handleDispose(): Promise<void> {
+  // Only reachable when the host waits for `disposed`. In the app, WorkerSession.dispose()
+  // posts `dispose` and terminates this worker on the next line, so the drain below runs in the
+  // worker harness only; Stop is meant to be immediate, and PTT release finishes an utterance
+  // through flush, not dispose.
+
   // Flush remaining speech; handleFlush waits for that decode to finish.
   await handleFlush();
 

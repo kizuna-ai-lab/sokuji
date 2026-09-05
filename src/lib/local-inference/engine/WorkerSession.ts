@@ -76,6 +76,13 @@ export class WorkerSession {
       this.rejectReady?.(new Error('WorkerSession disposed'));
     }
     this.torn = true;
+    // `dispose` is posted and the worker is terminated on the very next line, deliberately:
+    // Stop is immediate. The ASR workers' handleDispose (flush → drain the decode chain →
+    // release sessions → post `disposed`) therefore never completes in the app — nothing here
+    // waits for `disposed`, no engine consumes it, and a decode still queued at this point is
+    // dropped together with the thread. That drain is exercised only by the worker harness,
+    // which does wait for `disposed` (docs/superpowers/notes/2026-09-06-asr-decode-handoff-
+    // gb10-validation.md). "Finish this utterance" is flush's job (PTT release), not dispose's.
     this.worker.postMessage({ type: 'dispose' });
     this.worker.terminate();
     this._ready = false;
