@@ -46,6 +46,35 @@ function resolveSidecarLaunch({ platform, envOverride, bundleRoot, requiredVersi
   return { python: devVenvPython, cwd: devCwd, source: 'venv' };
 }
 
+// Environment for the sidecar interpreter. The installed bundle ships its own
+// CPython, but CPython still honours the USER's environment: user site-packages
+// (~/.local/lib/pythonX.Y/site-packages, %APPDATA%\Python) precede the
+// interpreter's own site-packages on sys.path, and PYTHONPATH / PYTHONHOME
+// redirect imports and the stdlib. Field case (sidecar-v0.3.0 smoke, 2026-09-05):
+// a stale `pip install --user` of a CPU-lane sokuji_native shadowed the bundled
+// Vulkan wheel — the device profile came back unknown and the lane read "cpu".
+// The bundle interpreter is therefore made hermetic; the developer launch paths
+// (SOKUJI_SIDECAR_PYTHON, dev venv) keep the developer's environment on purpose
+// (PYTHONPATH=native/python is how a stage is pointed at without a wheel).
+// Pure: never mutates the env object it is given.
+//
+// The strip is case-INsensitive: Windows environment names are, but a spread of
+// process.env is a plain object, so `delete env.PYTHONPATH` would leave a
+// `PythonPath` behind — and Node hands the child the lexicographically first
+// case-insensitive match, so that survivor is exactly what CPython would read.
+// Harmless on POSIX, where the variants are distinct variables anyway.
+const PYTHON_REDIRECT_KEYS = /^python(path|home|nousersite)$/i;
+function sidecarEnv(baseEnv, { hfHome, source }) {
+  const env = { ...baseEnv, HF_HOME: hfHome };
+  if (source === 'bundle') {
+    for (const key of Object.keys(env)) {
+      if (PYTHON_REDIRECT_KEYS.test(key)) delete env[key];
+    }
+    env.PYTHONNOUSERSITE = '1';
+  }
+  return env;
+}
+
 function parseHandshake(line) {
   try {
     const obj = JSON.parse(line);
@@ -110,7 +139,7 @@ class NativeHostManager {
       // CUDA consumer, via preload_dlls() at startup, spec D8) is gone —
       // every stage (ASR/translate/TTS) runs through sokuji-native, which
       // accelerates NVIDIA/AMD/Intel through Vulkan and needs no CUDA runtime.
-      const env = { ...process.env, HF_HOME: hfHome };
+      const env = sidecarEnv(process.env, { hfHome, source: launch.source });
       const spawnedAt = Date.now();
       const child = spawn(launch.python, ['-m', 'sokuji_sidecar'], {
         cwd: launch.cwd, env,
@@ -167,4 +196,4 @@ class NativeHostManager {
   }
 }
 
-module.exports = { resolvePython, resolveSidecarLaunch, parseHandshake, NativeHostManager, HANDSHAKE_TIMEOUT_MS };
+module.exports = { resolvePython, resolveSidecarLaunch, sidecarEnv, parseHandshake, NativeHostManager, HANDSHAKE_TIMEOUT_MS };
