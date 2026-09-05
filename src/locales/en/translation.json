@@ -343,8 +343,6 @@
     "audioCaptureUnprovenNotice": "Nothing captured yet",
     "audioCaptureUnprovenTitle": "No audio has come through from the selected source yet",
     "audioCaptureUnprovenText1": "If the source is playing and nothing is translated, macOS is probably delivering silence: capturing an application needs the \"System Audio Recording Only\" permission, and without it there is no error, only silence.",
-    "audioCaptureDeniedText2": "Open System Settings > Privacy & Security > System Audio Recording Only and enable Sokuji.",
-    "audioCaptureDeniedText3": "Sokuji only appears in that list after it has tried to capture once, which it just did. Restart the session after enabling it.",
     "openSystemSettings": "Open System Settings",
     "screenRecordingDeniedText2Named": "Open System Settings > Privacy & Security > Screen Recording and enable \"{{app}}\".",
     "audioCaptureDeniedText2Named": "Open System Settings > Privacy & Security > System Audio Recording Only and enable \"{{app}}\".",
