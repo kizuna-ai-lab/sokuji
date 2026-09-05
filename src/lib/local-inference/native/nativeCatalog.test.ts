@@ -470,20 +470,28 @@ describe('nativeCatalog', () => {
 describe('frameworkLabel', () => {
   it('maps every known backend id to its engine label', () => {
     const cases: Record<string, string> = {
-      transcribe_cpp: 'transcribe.cpp',
-      transcribe_cpp_stream: 'transcribe.cpp',
+      // The ids the sidecar actually emits (catalog.py _tc_row backend=,
+      // accel.py tiers[].backend): native_asr / native_asr_stream since the
+      // ggml-only sidecar (#459). Before this row existed both fell through
+      // to the raw-echo branch and the tooltip showed "native_asr".
+      native_asr: 'transcribe.cpp',
+      native_asr_stream: 'transcribe.cpp',
       native_translate: 'llama.cpp',
       native_tts: 'audio.cpp',
     };
     for (const [id, label] of Object.entries(cases)) expect(frameworkLabel(id)).toBe(label);
   });
-  it('derives transcribe_cpp_X ids by prefix; a plain unknown id just echoes', () => {
+  it('derives native_asr_X ids by prefix; a plain or retired id just echoes', () => {
     // The old `X_onnx` -> 'ONNXRuntime' fallback died with the ONNX backends
-    // themselves (slice 5) — no backend id ends in _onnx anymore, so an id
-    // shaped like one now falls through to the same raw-echo path as any
-    // other unknown id.
+    // themselves (slice 5), and the pre-#459 transcribe_cpp* ids have no
+    // producer the app would run (strict sidecar version gate) — both fall
+    // through to the same raw-echo path as any other unknown id.
     expect(frameworkLabel('foo_onnx')).toBe('foo_onnx');
-    expect(frameworkLabel('transcribe_cpp_x')).toBe('transcribe.cpp');
+    expect(frameworkLabel('transcribe_cpp')).toBe('transcribe_cpp');
+    expect(frameworkLabel('transcribe_cpp_stream')).toBe('transcribe_cpp_stream');
+    expect(frameworkLabel('native_asr_x')).toBe('transcribe.cpp');
+    // Near miss: the underscore is part of the documented prefix.
+    expect(frameworkLabel('native_asrfoo')).toBe('native_asrfoo');
     expect(frameworkLabel('brand_new_backend')).toBe('brand_new_backend');
   });
 });
