@@ -9,7 +9,7 @@
  *
  * Create flow: record/upload are always available once a source exists (the
  * shared voice-library look, no gating checkbox) → client-side validation
- * (upload only: ≤10 MB, decoded duration 3-20s, mirroring NativeVoiceSection's
+ * (upload only: ≤35 MB, decoded duration 3-120s, mirroring NativeVoiceSection's
  * `validateVoiceClip` pattern) → the validated/recorded clip is staged as
  * `pending` rather than uploaded immediately, which opens
  * `SonioxCloneConfirmModal` for playback + naming + the consent statement
@@ -88,11 +88,78 @@ export interface SonioxVoiceSectionProps {
 const BUILTIN_VOICES = new SonioxProviderConfig().getConfig().voices;
 const TTS_MODEL = SONIOX_TTS_MODEL;
 const DEFAULT_VOICE = SONIOX_DEFAULT_VOICE;
-// Reference-clip bounds Soniox enforces server-side; validated client-side on
-// upload too (mirrors NativeVoiceSection / validateVoiceClip's defaults).
+// Reference-clip bounds Soniox documents for `/v1/voices`, validated
+// client-side because the two are enforced at DIFFERENT points server-side:
+// size is rejected at upload, but duration is accepted at upload and only
+// fails later, per model, as `voice_audio_too_long` — a terminal `failed`
+// status that has already spent one of the organization's 20 voice slots and
+// a billable create. So the duration bound below is the only thing standing
+// between a too-long clip and a slot the user has to notice and clean up.
+// (These are Soniox's own numbers — deliberately NOT validateVoiceClip's
+// local-model defaults, which NativeVoiceSection keeps at 3-20s.)
 const MIN_CLIP_SECONDS = 3;
-const MAX_CLIP_SECONDS = 20;
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_CLIP_SECONDS = 120;
+// Soniox says "stay within 35 MB"; read as decimal, the smaller of the two
+// plausible readings, so we never wave through what the server would reject.
+// The bound that actually matters day to day is MAX_CLIP_SECONDS: a full
+// 2-minute capture at a 48 kHz AudioContext encodes to ~11.5 MB of PCM16 WAV,
+// so recordings clear this with room to spare and only imports can hit it.
+const MAX_UPLOAD_BYTES = 35 * 1000 * 1000;
+
+/** How long to wait for a container's metadata before giving up and letting the
+ *  decode decide. Metadata is the first few KB of the file, so this is generous. */
+const DURATION_PROBE_TIMEOUT_MS = 5_000;
+
+/** Duration from container metadata, WITHOUT decoding the audio.
+ *
+ *  `decodeAudioData` materializes the entire file as Float32 PCM: a 34 MB
+ *  32 kbps MP3 holds ~2.4 hours, which expands past 3 GB and can take the
+ *  renderer down before we ever get to reject it for length. Under the old
+ *  10 MiB size gate a file that long was refused on size alone; at 35 MB it is
+ *  not, so duration has to be knowable BEFORE the decode.
+ *
+ *  Returns null whenever the browser won't say — a non-Blob, no metadata event,
+ *  a duration of Infinity/NaN (streamed containers), or an unparseable file. The
+ *  caller then falls through to the decode, which is exactly the old behavior:
+ *  this probe can reject early, never accept early, so a browser that declines
+ *  to answer costs correctness nothing. */
+async function probeDurationSeconds(file: File): Promise<number | null> {
+  // createObjectURL is specified over Blob; test doubles and exotic File-likes
+  // are not, and calling it on one throws rather than returning null.
+  if (typeof URL.createObjectURL !== 'function' || !(file instanceof Blob)) return null;
+  let url: string;
+  try {
+    url = URL.createObjectURL(file);
+  } catch {
+    return null;
+  }
+  try {
+    return await new Promise<number | null>((resolve) => {
+      const el = new Audio();
+      el.preload = 'metadata';
+      let settled = false;
+      const finish = (v: number | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        // Stop the element from holding the (about to be revoked) URL.
+        el.removeAttribute('src');
+        resolve(v);
+      };
+      const timer = setTimeout(() => finish(null), DURATION_PROBE_TIMEOUT_MS);
+      el.addEventListener('loadedmetadata', () => {
+        const d = el.duration;
+        finish(Number.isFinite(d) && d > 0 ? d : null);
+      });
+      el.addEventListener('error', () => finish(null));
+      el.src = url;
+    });
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 function isReady(v: SonioxVoice): boolean {
   return v.models?.some((m) => m.model === TTS_MODEL && m.status === 'ready') ?? false;
@@ -382,7 +449,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   };
 
   // Client-side upload validation (spec: "client-side decode validates
-  // 3-20s / ≤10MB via the validateVoiceClip pattern"): reject an oversize
+  // 3-120s / ≤35MB via the validateVoiceClip pattern"): reject an oversize
   // file outright (cheap, no decode needed), then decode the file to measure
   // its REAL duration — a file's extension/MIME claims nothing about actual
   // length — and run it through the same validateVoiceClip bounds
@@ -398,10 +465,21 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         throw new Error(
           t('voiceLibrary.importError', 'Import failed: {error}').replace(
             '{error}',
-            `File is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB, max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB)`
+            // Both figures in the SAME unit as the published limit (decimal
+            // MB), so "36.0 MB, max 35 MB" reads as one comparison. Dividing
+            // the cap by 1024^2 while quoting it as "MB" would print 33.4 —
+            // a number that appears nowhere in Soniox's docs.
+            `File is too large (${(file.size / 1_000_000).toFixed(1)} MB, max ${MAX_UPLOAD_BYTES / 1_000_000} MB)`
           )
         );
       }
+      // Cheap length gate before the expensive one. Only `too_long` is worth
+      // catching here: an over-long file is precisely the one whose decode can
+      // exhaust the renderer, while a too-short or silent file is small by
+      // construction and is caught below on the decoded samples, where the
+      // measurement is exact.
+      const probed = await probeDurationSeconds(file);
+      if (probed !== null && probed > MAX_CLIP_SECONDS) throw new Error(mapClipError('too_long'));
       const arrayBuffer = await file.arrayBuffer();
       const ctx = new AudioContext();
       let buffer: AudioBuffer;

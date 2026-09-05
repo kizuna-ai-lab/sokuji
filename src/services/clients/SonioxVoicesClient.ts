@@ -8,7 +8,12 @@
  *
  * Facts honored here (docs + live probes):
  * - create is multipart with exactly `name` (unique per project) + `file`
- *   (reference clip <= 20 s / 10 MB); there are no metadata/owner fields.
+ *   (reference clip <= 2 min / 35 MB); there are no metadata/owner fields.
+ *   The two bounds are enforced at DIFFERENT points: size is rejected at
+ *   upload, duration is ACCEPTED at upload and fails later, per model, as
+ *   `voice_audio_too_long` — which lands in the terminal `failed` status
+ *   below, having already spent a voice slot. Hence the client-side duration
+ *   check in SonioxVoiceSection.
  * - readiness is per model: models[].status in
  *   not_computed | processing | ready | failed; `failed` is TERMINAL despite
  *   the API using a 503 for it — recreate, never retry.
@@ -66,7 +71,9 @@ export async function throwApiError(res: Response): Promise<never> {
 // Per-request bounds: without them a hung fetch never settles, and the
 // section's refresh() then sits in 'loading' forever with its own Refresh
 // button disabled — an unrecoverable stall until remount. Uploads get a much
-// longer leash (a 10 MB reference clip on a slow uplink is legitimate).
+// longer leash (a 2-minute reference clip is ~11.5 MB of PCM16 WAV at a
+// 48 kHz AudioContext, and an imported file may be up to 35 MB — both are
+// legitimate on a slow uplink).
 const REQUEST_TIMEOUT_MS = 15_000;
 const UPLOAD_TIMEOUT_MS = 120_000;
 

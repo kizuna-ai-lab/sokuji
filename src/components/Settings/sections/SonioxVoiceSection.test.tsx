@@ -68,6 +68,31 @@ function stubAudioContext(sampleRate: number, numSamples: number) {
   return mockCtx;
 }
 
+// The real constructor, captured before any test replaces it, so beforeEach can
+// put it back — only the metadata-probe tests stub it, and a leaked stub would
+// silently change how later tests reach the probe.
+const REAL_AUDIO = (globalThis as any).Audio;
+
+// Stands in for the <audio> element `probeDurationSeconds` uses to read a
+// container's duration without decoding it. Setting `src` resolves the probe
+// on a later tick, the way a real media element does: 'loadedmetadata' with
+// the given duration, or 'error' for a file the browser can't parse.
+function stubMetadataProbe(duration: number | 'error') {
+  const listeners: Record<string, Array<() => void>> = {};
+  const el: any = {
+    preload: '',
+    duration: duration === 'error' ? NaN : duration,
+    addEventListener: (k: string, fn: () => void) => { (listeners[k] ??= []).push(fn); },
+    removeAttribute: vi.fn(),
+    set src(_v: string) {
+      queueMicrotask(() => (listeners[duration === 'error' ? 'error' : 'loadedmetadata'] ?? []).forEach((fn) => fn()));
+    },
+    get src() { return ''; },
+  };
+  (window as any).Audio = function Audio() { return el; };
+  return el;
+}
+
 // jsdom's File/Blob polyfill doesn't implement `arrayBuffer()` (unlike real
 // browsers), so onImport's `file.arrayBuffer()` call throws under jsdom's
 // real File. Build a minimal File-shaped object instead — only `size`,
@@ -109,6 +134,7 @@ describe('SonioxVoiceSection', () => {
     createMock.mockReset();
     deleteMock.mockReset().mockResolvedValue(undefined);
     waitMock.mockReset();
+    (window as any).Audio = REAL_AUDIO;
     // jsdom has no URL.createObjectURL — the confirm modal's <audio> preview
     // needs it whenever a pending clip opens the modal.
     (URL as any).createObjectURL = vi.fn(() => 'blob:mock');
@@ -243,12 +269,12 @@ describe('SonioxVoiceSection', () => {
     });
   });
 
-  it('onImport rejects a file over 10MB before decoding, creating, or opening the modal', async () => {
+  it('onImport rejects a file over 35MB before decoding, creating, or opening the modal', async () => {
     listMock.mockResolvedValue([]);
     const { container } = mount();
     openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    const bigFile = fakeFile('big.wav', 11 * 1024 * 1024);
+    const bigFile = fakeFile('big.wav', 36 * 1000 * 1000);
     fireEvent.change(fileInput, { target: { files: [bigFile] } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too large/i));
     expect(createMock).not.toHaveBeenCalled();
@@ -268,9 +294,9 @@ describe('SonioxVoiceSection', () => {
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
   });
 
-  it('onImport rejects a decoded clip longer than 20s with the localized message, without opening the modal', async () => {
+  it('onImport rejects a decoded clip longer than 2 minutes with the localized message, without opening the modal', async () => {
     listMock.mockResolvedValue([]);
-    stubAudioContext(16000, 16000 * 25); // 25s — above the 20s maximum
+    stubAudioContext(16000, 16000 * 130); // 130s — above the 120s maximum
     const { container } = mount();
     openManageDetails();
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -279,6 +305,50 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too long/i));
     expect(createMock).not.toHaveBeenCalled();
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
+  });
+
+  it('rejects an over-long import from container metadata, without ever decoding it', async () => {
+    listMock.mockResolvedValue([]);
+    // Short enough to sail through validation IF the decode were ever reached,
+    // so the assertion below can only pass via the metadata probe.
+    const ctx = stubAudioContext(44100, 44100 * 5);
+    stubMetadataProbe(8500); // ~2.4 h: what 34 MB of 32 kbps MP3 actually holds
+    const { container } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const longFile = new File([new Uint8Array(64)], 'podcast.mp3', { type: 'audio/mpeg' });
+    fireEvent.change(fileInput, { target: { files: [longFile] } });
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too long/i));
+    expect(ctx.decodeAudioData).not.toHaveBeenCalled();
+    expect(createMock).not.toHaveBeenCalled();
+    expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
+  });
+
+  it('falls back to the decode when the container reports no usable duration', async () => {
+    listMock.mockResolvedValue([]);
+    const ctx = stubAudioContext(16000, 16000 * 5);
+    stubMetadataProbe('error');
+    const { container } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    // A REAL File, because the probe only runs on a Blob — but jsdom's Blob has
+    // no arrayBuffer(), which the decode path needs, so lend it one.
+    const file = new File([new Uint8Array(64)], 'clip.wav', { type: 'audio/wav' });
+    (file as any).arrayBuffer = async () => new ArrayBuffer(64);
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    await waitFor(() => expect(screen.getByPlaceholderText(nameInputPlaceholder)).toBeTruthy());
+    expect(ctx.decodeAudioData).toHaveBeenCalled();
+  });
+
+  it('onImport accepts a 100s clip — past the old 20s bound, inside the 2-minute one', async () => {
+    listMock.mockResolvedValue([]);
+    stubAudioContext(16000, 16000 * 100);
+    const { container } = mount();
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    await waitFor(() => expect(screen.getByPlaceholderText(nameInputPlaceholder)).toBeTruthy());
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('selecting multiple files stages only the first (single pending slot; no silent last-wins)', async () => {

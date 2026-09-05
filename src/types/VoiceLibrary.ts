@@ -25,8 +25,9 @@ export interface VoiceLibraryCapability {
    *  it's non-empty. Omitted/false → no new UI, unchanged behavior. */
   transcriptRequired?: boolean;
   /** Longest usable reference clip in seconds for THIS model. Cloning models
-   *  differ (e.g. OmniVoice's decode degrades past ~8 s while others accept
-   *  20 s), so the limit is provider-declared: recording shows a countdown and
+   *  differ by orders of magnitude (OmniVoice's decode degrades past ~8 s,
+   *  local models take 20 s, Soniox takes 2 min), so the limit is
+   *  provider-declared: recording shows a countdown and
    *  auto-stops at it; imports longer than it are rejected. Unset → the
    *  store/UI default. */
   maxClipSeconds?: number;

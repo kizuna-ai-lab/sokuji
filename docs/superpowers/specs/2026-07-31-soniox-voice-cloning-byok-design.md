@@ -3,6 +3,11 @@
 **Date**: 2026-07-31
 **Status**: Approved (brainstormed with user; API facts live-probed 2026-07-31)
 **Tracking**: follow-up to issue #342 (API-surface audit, item B4)
+**Amendment A1 (2026-09-05)**: Soniox raised the reference-clip bounds. Every
+"≤20 s, ≤10 MB" below is historical — the limits are now **≤2 min, ≤35 MB**,
+and the two are enforced at different points (size at upload, duration only
+during per-model processing, as `voice_audio_too_long`). See A1 at the end of
+Verified facts.
 
 ## Summary
 
@@ -19,7 +24,8 @@ under Future work.
 ## Verified facts (live probes + docs + SDKs, 2026-07-31)
 
 - `/v1/voices` CRUD: create is `multipart/form-data` with exactly `name`
-  (unique per project, 1-128 chars) + `file` (reference clip, ≤20 s, ≤10 MB);
+  (unique per project, 1-128 chars) + `file` (reference clip, ≤20 s, ≤10 MB
+  as of 2026-07-31 — superseded, see Amendment A1);
   no metadata/owner/reference fields exist. List has only `limit`/`cursor` —
   no filters. No rename API. `DELETE` returns 204.
 - End-to-end proven on a real BYOK key: create from a 4 s clip →
@@ -45,6 +51,58 @@ under Future work.
   UUID passes through the whole `settings.voice → buildSessionConfig →
   createTtsStream → wire` chain untouched (code-audited + live-proven).
 
+### Amendment A1 (2026-09-05) — reference clip is now 2 min / 35 MB
+
+Soniox's published limits changed; verified against the docs on 2026-09-05 and
+against the Console playground by the user (a 2-minute recording clones, and
+the result is good):
+
+- **Duration** — "Use a clip of up to 2 minutes. Longer clips are accepted at
+  upload but fail during processing with `voice_audio_too_long`."
+  (`/docs/tts/concepts/voice-cloning`, matching the `voice_audio_too_long`
+  entry in `/docs/api-reference/errors`: "currently a maximum of 2 minutes".)
+- **Size** — "Stay within 35 MB. Larger uploads are rejected."
+- **Voice quota is unchanged**: 20 per organization, across all projects; each
+  reference clip counts as one voice.
+
+The asymmetry is the part that matters for us. Size is a synchronous upload
+rejection, so a too-large file costs nothing. Duration is *not* checked at
+upload: an over-long clip is accepted, consumes one of the 20 org-wide slots
+and a billable create, then lands in the terminal `failed` status this spec
+already treats as "recreate, never retry". So the client-side duration bound
+is not belt-and-braces — it is the only thing preventing a silent slot leak,
+and it must stay at or below Soniox's number rather than being relaxed to
+"let the server decide".
+
+Consequences accepted with this amendment:
+
+- `MAX_UPLOAD_BYTES` reads 35 MB as **decimal** (35 × 10⁶), the smaller of the
+  two plausible readings of "35 MB", so we never wave through what the server
+  would reject.
+- A full 2-minute capture is ~11.5 MB of PCM16 WAV at a 48 kHz AudioContext
+  (`encodeWavPcm16` does not resample or compress), against ~1.9 MB before. It
+  clears 35 MB with room to spare; what it eats into is the **upload timeout
+  budget**, unchanged at 120 s — and, on the managed cold-upload path only, the
+  60 s whole-preparation ceiling in `managedVoicePrep`. Left as-is: the warm
+  slot is the normal session-start path, and a cold 11.5 MB upload still fits
+  60 s on any link above ~1.5 Mbps up. Revisit if session-start voice-prep
+  failures appear in the field.
+- Import gains a **metadata duration probe** before `decodeAudioData`. Raising
+  the size gate to 35 MB newly admits files that are enormous once decoded — a
+  34 MB 32 kbps MP3 is ~2.4 h and expands past 3 GB of Float32 PCM, enough to
+  take the renderer down purely to reject it for length; the old 10 MiB gate
+  refused such a file on size. The probe reads duration from container metadata
+  via a `preload="metadata"` element and can only reject early, never accept
+  early: no answer (non-Blob, no event, `Infinity`/`NaN`, unparseable, 5 s
+  timeout) falls through to the decode, which is the pre-existing path.
+- Recording UI: `VoiceLibrarySection`'s countdown now starts at 120 and reads
+  "Stop recording (120s)". Left in seconds rather than mm:ss — one number, and
+  the copy key (`voiceLibrary.clipTooLong`, "keep it under {seconds} seconds")
+  interpolates the same unit across all 35 locales.
+- The 3 s minimum is retained. Soniox publishes no minimum; 3 s is our own
+  floor for a clip that carries enough timbre.
+
+
 ## Decisions
 
 | Decision | Choice |
@@ -52,7 +110,7 @@ under Future work.
 | Phase scope | BYOK only. Managed twin: read-only built-ins this phase (creation affordances hidden), same component so Phase 2 only swaps the data source |
 | UI | `hasVoiceSettings` → `false` for Soniox (and twin); new `SonioxVoiceSection` embedded in `renderSonioxSettings`, wrapping `VoiceLibrarySection` in `dropdown` presentation: `builtin` group = the 28 static voices, `custom` group = voices fetched from `/v1/voices` |
 | Source of truth | Soniox. The list is fetched on section mount (+ manual refresh); nothing but the selected id (`settings.voice`) is persisted locally. No local reference-clip storage |
-| Create flow | Record/upload are always available once a client exists (`audio/*`, client-side decode validates 3–20 s / ≤10 MB via the `validateVoiceClip` pattern; recording captures RAW audio — echo cancellation / noise suppression / AGC disabled, since the cloning model mimics processing artifacts) → the validated/recorded clip is staged (not yet uploaded) and opens a post-acquisition confirm modal (`SonioxCloneConfirmModal`) with a design-system player (play/pause, seekable progress, time readout), an empty name field showing only its placeholder (blank → the stripped filename / "My Voice {{n}}" default applies at confirm), and a usage-rights checkbox gating the confirm button → confirm shows an in-flight spinner, `POST /v1/voices`, refreshes the list so the new voice is visible (processing badge) BEFORE the modal closes → background poll until `ready`/`failed` → auto-select on ready. A mapped create failure (e.g. `voice_name_conflict`) keeps the modal open inline so the user can rename and retry without losing the clip |
+| Create flow | Record/upload are always available once a client exists (`audio/*`, client-side validation is 3–120 s / ≤35 MB (Amendment A1; was 3–20 s / ≤10 MB) — size first, then container metadata for an early `too_long`, then the decoded duration via the `validateVoiceClip` pattern; recording captures RAW audio — echo cancellation / noise suppression / AGC disabled, since the cloning model mimics processing artifacts) → the validated/recorded clip is staged (not yet uploaded) and opens a post-acquisition confirm modal (`SonioxCloneConfirmModal`) with a design-system player (play/pause, seekable progress, time readout), an empty name field showing only its placeholder (blank → the stripped filename / "My Voice {{n}}" default applies at confirm), and a usage-rights checkbox gating the confirm button → confirm shows an in-flight spinner, `POST /v1/voices`, refreshes the list so the new voice is visible (processing badge) BEFORE the modal closes → background poll until `ready`/`failed` → auto-select on ready. A mapped create failure (e.g. `voice_name_conflict`) keeps the modal open inline so the user can rename and retry without losing the clip |
 | Failure states | `failed` voices render with an error badge and only a delete affordance (terminal per docs). Quota/4xx on create → explicit "organization voice limit reached — delete one and retry" message, shown inline in the confirm modal. A selected UUID missing from the fetched list renders a "(deleted voice)" placeholder and prompts re-selection; the stored setting is never auto-rewritten |
 | Not doing | Rename (no API; no local aliases — YAGNI), recompute UI (single-model era; noted for when a new TTS model ships), managed-side CRUD |
 | Naming | User-entered display name used as the Soniox `name` verbatim (BYOK org is private to the user); `voice_name_conflict` (409) surfaces as "a voice with this name already exists" |
