@@ -51,9 +51,23 @@ describe('WarningModal permission types', () => {
     expect(invoke).toHaveBeenCalledWith('open-privacy-settings', 'screen-recording');
   });
 
+  it('says nothing has come through yet, rather than declaring a denial', () => {
+    // The helper cannot tell a denied tap from a quiet source (#492), so the
+    // modal states what was observed and leaves the verdict to the user.
+    render(<WarningModal isOpen={true} onClose={vi.fn()} type="audio-capture-denied" />);
+    expect(screen.getByText(/no audio has come through from the selected source yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/permission needed/i)).toBeNull();
+    expect(screen.queryByText(/permission required/i)).toBeNull();
+  });
+
   it('explains that macOS returns silence rather than an error', () => {
     render(<WarningModal isOpen={true} onClose={vi.fn()} type="audio-capture-denied" />);
-    expect(screen.getByText(/silence instead of an error/i)).toBeInTheDocument();
+    expect(screen.getByText(/no error, only silence/i)).toBeInTheDocument();
+  });
+
+  it('tells the user a source that was simply silent needs no action', () => {
+    render(<WarningModal isOpen={true} onClose={vi.fn()} type="audio-capture-denied" />);
+    expect(screen.getByText(/if the source was simply silent, nothing needs to change/i)).toBeInTheDocument();
   });
 
   it('tells the user why the app was missing from the list until now', () => {
