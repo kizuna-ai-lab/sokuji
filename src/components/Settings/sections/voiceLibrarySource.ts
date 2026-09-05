@@ -89,12 +89,14 @@ export function managedVoiceSource(
     pollDelayMs?: (attempt: number) => number;
     timeoutMs?: number;
     sleep?: (ms: number) => Promise<void>;
+    now?: () => number;
   } = {}
 ): VoiceLibrarySource {
   const {
     pollDelayMs = managedVoicePollDelayMs,
     timeoutMs = 60_000,
     sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
+    now = () => Date.now(),
   } = opts;
   return {
     async list() {
@@ -136,9 +138,24 @@ export function managedVoiceSource(
     // `_id` unused: this account has at most one voice, so `client.mine()`
     // already names it unambiguously — there is nothing to disambiguate by id.
     async waitUntilReady(_id) {
-      const deadline = Date.now() + timeoutMs;
+      const deadline = now() + timeoutMs;
       let attempt = 0;
       for (;;) {
+        // Wait FIRST: `create` has just reported `processing`, so a poll
+        // right now would only repeat that answer — at the price of one
+        // Soniox getVoice. The wait is clamped to what is left of the budget
+        // and the deadline is re-checked after it, so no poll begins past the
+        // ceiling (the same rule session-start preparation follows: that
+        // poll carries its own request timeout and would otherwise hold the
+        // panel well past the budget it was just told was spent).
+        const remaining = deadline - now();
+        if (remaining <= 0) {
+          throw new SonioxVoicesError('timeout', 'Voice processing timed out', 408);
+        }
+        await sleep(Math.min(pollDelayMs(attempt++), remaining));
+        if (now() >= deadline) {
+          throw new SonioxVoicesError('timeout', 'Voice processing timed out', 408);
+        }
         const voice = await client.mine();
         if (!voice) {
           // Another device superseded this build, or the LRU evicted the row.
@@ -150,10 +167,6 @@ export function managedVoiceSource(
         if (voice.status === 'failed') {
           throw new SonioxVoicesError('voice_failed', 'Voice processing failed', 503);
         }
-        if (Date.now() >= deadline) {
-          throw new SonioxVoicesError('timeout', 'Voice processing timed out', 408);
-        }
-        await sleep(pollDelayMs(attempt++));
       }
     },
 
