@@ -293,10 +293,15 @@ describe('SonioxVoiceSection', () => {
     expect(cls).toBeTruthy();
     expect(cls).not.toBe('option-button');
 
-    // The chain is read off the real DOM, not assumed: the button must sit in
-    // a `.setting-description` inside a `.settings-section`.
-    expect(btn.closest('.setting-description')).not.toBeNull();
-    expect(btn.closest('.settings-section')).not.toBeNull();
+    // The chain is read off the real DOM, not assumed, and in ORDER: the
+    // button must sit in a `.setting-description` which itself sits in a
+    // `.settings-section`. Two independent `closest()` calls from the button
+    // would only prove both ancestors exist somewhere above it — a reversed
+    // nesting would pass them while the descendant selector below could
+    // never match. Chaining the second lookup from the first pins the order.
+    const description = btn.closest('.setting-description');
+    expect(description).not.toBeNull();
+    expect(description!.closest('.settings-section')).not.toBeNull();
 
     const { css } = compile(resolve(__dirname, '../Settings.scss'));
     expect(css).toMatch(new RegExp(String.raw`\.settings-section \.setting-description \.${cls}(?![\w-])`));
