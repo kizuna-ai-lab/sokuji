@@ -259,6 +259,11 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       if (e.errorType === 'authentication_required') {
         return new Error(t('settings.sonioxVoiceSignInRequired', 'Sign in to build a custom voice.'));
       }
+      // Transport, not a voices-API verdict: the raw `fetch` text ("Failed to
+      // fetch") is what would otherwise reach the banner, untranslated.
+      if (e.errorType === 'network' || e.errorType === 'timeout') {
+        return new Error(t('auth.networkError', 'Network error. Please check your connection'));
+      }
       if (e.errorType === 'clip_clear_failed') {
         // Half a delete: the voice is gone, the recording it was built from
         // is not. Saying "delete failed" would be the wrong half, and saying
@@ -278,6 +283,23 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     }
     return e instanceof Error ? e : new Error(String(e));
   };
+
+  // A failure of the CONNECTION rather than a verdict about the voice: the
+  // wire, a timeout, the backend unable to reach Soniox (`upstream_unavailable`),
+  // or a 5xx that came with no slug at all (`http_error` is what throwApiError
+  // assigns when the body names nothing — the bare-500 shape). These are the
+  // failures the list banner already reports, with its Retry, because the same
+  // fetch fails the same way.
+  //
+  // Judged by errorType, never by status alone: Soniox returns `voice_failed`
+  // — a TERMINAL verdict with its own advice — as a 503, so `status >= 500`
+  // would swallow exactly the message the user most needs to see.
+  const isTransportFailure = (e: unknown): boolean =>
+    e instanceof SonioxVoicesError &&
+    (e.errorType === 'network' ||
+      e.errorType === 'timeout' ||
+      e.errorType === 'upstream_unavailable' ||
+      (e.errorType === 'http_error' && e.status >= 500));
 
   // Separate from mapCreateError: those branches are all voices-CRUD specific
   // (name conflicts, voice quota, terminal processing failure), none of which
@@ -417,7 +439,14 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       try {
         await finishCreate(created, createSource, selectionAtCreate);
       } catch (e) {
-        setCaptureError(mapCreateError(e).message);
+        // finishCreate's `finally` has already re-fetched the list. If the
+        // poll died of a transport failure, that refresh failed the same way
+        // and the list banner (with its Retry) is already up — painting this
+        // banner too showed the same outage twice, once as raw "Failed to
+        // fetch" (seen in production, 2026-09-05). A non-transport outcome —
+        // voice_failed, above all — is not a duplicate of anything and keeps
+        // its own advice here.
+        if (!isTransportFailure(e)) setCaptureError(mapCreateError(e).message);
       }
     } catch (e) {
       setModalError(mapCreateError(e).message);

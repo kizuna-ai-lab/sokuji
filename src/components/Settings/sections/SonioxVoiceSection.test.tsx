@@ -302,6 +302,65 @@ describe('SonioxVoiceSection', () => {
     expect(scss.slice(start, end)).toContain(`.${cls}`);
   });
 
+  // Seen in production 2026-09-05, during the managed-voice incident: with a
+  // voice stuck at "processing", the post-create readiness poll ran for its
+  // whole budget, and when the backend's /mine started answering 500 the poll
+  // rejected with a network error. finishCreate's `finally` then re-fetched the
+  // list — which failed the SAME way and painted the list-error banner with its
+  // Retry — and the rejection went on to paint a SECOND banner: the raw,
+  // untranslated "Failed to fetch" in the capture-error alert. One failure, two
+  // surfaces, one of them unreadable. Connectivity has exactly one home here,
+  // the list banner; a transport failure on the poll must not add a second.
+  it('a transport failure on the readiness poll leaves only the list-error banner, with no raw fetch message', async () => {
+    listMock.mockResolvedValueOnce([]).mockRejectedValue(new SonioxVoicesError('network', 'Failed to fetch', 0));
+    createMock.mockResolvedValue({ id: 'new-id', name: 'Me', models: [] });
+    waitMock.mockRejectedValue(new SonioxVoicesError('network', 'Failed to fetch', 0));
+    stubAudioContext(16000, 16000 * 5);
+    const { container } = mount({ managed: true });
+    // Managed: the manage panel renders only once the first list has settled.
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    // Managed hides the name field (the backend names voices), so the modal's
+    // arrival is marked by its confirm button, not the name input.
+    const confirm = await screen.findByRole('button', { name: confirmButtonName });
+    checkConsent();
+    fireEvent.click(confirm);
+
+    // The one surface: the list banner, translated, with its retry.
+    await screen.findByText(/could not load your voice/i);
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+    // And not the other: no capture-error alert at all, and the raw fetch text
+    // never reaches the DOM.
+    await waitFor(() => expect(waitMock).toHaveBeenCalled());
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(/failed to fetch/i)).toBeNull();
+  });
+
+  // The guard on the guard: a NON-transport poll outcome is not a duplicate of
+  // anything — `voice_failed` carries its own advice ("delete this voice and
+  // try a clearer clip") that the list banner does not — so it must keep its
+  // alert. Suppressing every poll failure would hide this one.
+  it('a voice_failed outcome on the readiness poll still surfaces in the capture-error alert', async () => {
+    listMock.mockResolvedValue([]);
+    createMock.mockResolvedValue({ id: 'new-id', name: 'Me', models: [] });
+    waitMock.mockRejectedValue(new SonioxVoicesError('voice_failed', 'terminal', 503));
+    stubAudioContext(16000, 16000 * 5);
+    const { container } = mount({ managed: true });
+    // Managed: the manage panel renders only once the first list has settled.
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    // Managed hides the name field (the backend names voices), so the modal's
+    // arrival is marked by its confirm button, not the name input.
+    const confirm = await screen.findByRole('button', { name: confirmButtonName });
+    checkConsent();
+    fireEvent.click(confirm);
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/processing failed/i));
+  });
+
   it('onImport rejects a file over 35MB before decoding, creating, or opening the modal', async () => {
     listMock.mockResolvedValue([]);
     const { container } = mount();
