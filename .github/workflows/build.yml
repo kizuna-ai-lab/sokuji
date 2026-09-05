@@ -54,11 +54,12 @@ jobs:
   # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
   # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return
   # zero hits. Path-gated on sidecar/** (and the one script that consumes its
-  # requirements.txt) so app-only PRs don't pay for it. Runs wheel-less
-  # (no sokuji-native installed, unlike the dev .venv setup.sh builds): the
-  # handful of tests that need the real native wheel skip via
-  # pytest.importorskip("sokuji_native") instead of failing — see
-  # sidecar/tests/test_accel.py and test_catalog.py.
+  # requirements.txt) so app-only PRs don't pay for it. It installs
+  # sidecar/requirements.txt, whose pinned linux-x64 sokuji-native wheel DOES
+  # resolve on this runner (verified in the job log), so wheel-gated tests run
+  # here; what the runner lacks is a GPU and a model cache, so device- and
+  # model-gated tests skip (pytest.skip / importorskip) instead of failing —
+  # see sidecar/tests/test_accel.py and test_catalog.py.
   sidecar-tests:
     name: sidecar-tests
     runs-on: ubuntu-24.04

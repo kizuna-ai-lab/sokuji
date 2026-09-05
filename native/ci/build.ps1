@@ -19,13 +19,17 @@ ctest --test-dir $Build -C Release --output-on-failure
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 # Op recordings (spec A §3.2, README's "Bumping a pin" checklist): re-record every family
 # whose SK_TEST_* model is present and diff against the shipped src\ops\*.ops. Always its own
-# CPU-only build\record tree (SOKUJI_GPU=none) regardless of this script's own Lane, since the
-# recordings were captured on CPU and must match there.
+# CPU-only build\record tree (SOKUJI_GPU=none) regardless of this script's own Lane: the
+# asr/translate recordings are backend-agnostic and gate here; the TTS recordings were taken
+# on a real GPU (tests\test_ops_coverage.cpp's F2 note, spec A §3.2's host=1 rule — audio.cpp
+# builds a different graph on a host backend) and are checked on the fleet via a
+# build\record-vk tree, so this tree prints SKIPPED for them.
 #
 # This is a SECOND full configure+build of ggml and all three engines, so it only runs when it
-# can actually check something: the recorder's reference clip lives in
-# SK_TEST_TTS_SUPERTONIC_DIR and the gate fires for tts only, so an unset variable means every
-# family would skip (SKIP_RETURN_CODE 77) and the whole tree would be built to prove nothing.
+# can actually check something: test_ops_coverage hard-requires SK_TEST_TTS_SUPERTONIC_DIR
+# once any model is present (rc 1, not a skip — the clone-only families' reference clip comes
+# from it), and the variable doubles as the "is the test cache populated at all" probe, so an
+# unset one means the whole tree would be built to prove nothing.
 # SOKUJI_BUILD_RECORD=0 forces it off even when the models are present.
 $RecordBuild = Join-Path $Root "build\record"
 if (-not $env:SK_TEST_TTS_SUPERTONIC_DIR) {
@@ -52,7 +56,7 @@ if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Copy-Item -Recurse "$Build\stage" "$Root\python\sokuji_native\_native"
 # The binding's own tests, against the SOURCE package (PYTHONPATH) and this stage — not
 # against whatever sokuji_native happens to be installed in this interpreter.
-& $Python -m pip install -q pytest numpy
+& $Python -m pip install -q pytest numpy soundfile
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 $env:PYTHONPATH = "$Root\python"
 $env:SOKUJI_NATIVE_DIR = "$Build\stage"

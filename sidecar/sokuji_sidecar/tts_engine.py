@@ -157,7 +157,7 @@ class TtsEngine:
         # that used to disagree (MOSS/OmniVoice clip-only, no ref_text parameter at
         # all; Qwen3/CosyVoice3/GPT-SoVITS ICL cloning) are gone (slice 4's catalog
         # rewire). The signature-sniff below is now dead weight against native_tts
-        # itself -- every one of its five families accepts ref_text (native/src/
+        # itself -- every one of its nine families accepts ref_text (native/src/
         # sk_tts.cpp's set_voice always takes one) -- and serves only the hand-rolled
         # test fakes in this module's own test suite that still model both shapes.
         wav = np.asarray(audio, dtype=np.float32)
@@ -174,7 +174,7 @@ class TtsEngine:
     def list_builtin_voices(self):
         """Delegate to the loaded backend's own list_builtin_voices() when it has
         one. native_tts always does (it's `.presets()`, present on every one of its
-        five families' backend instances) -- the ONNX/sherpa/MLX backends that used
+        nine families' backend instances) -- the ONNX/sherpa/MLX backends that used
         to disagree (MOSS with no such method at all; Qwen3/CosyVoice3/OmniVoice's
         stub always returning []) are gone (slice 4). The `hasattr` degrade-to-[]
         below is now dead weight against native_tts itself and serves only the
