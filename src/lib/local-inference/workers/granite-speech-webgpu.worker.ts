@@ -244,7 +244,31 @@ async function runGraniteInferenceSegment(audio: Float32Array, startSample: numb
       tokenize: false,
     });
 
-    const inputs = await p(text, audio, { sampling_rate: VAD_SAMPLE_RATE });
+    // Avoid the Granite ONNX export's block-pad reshape crash. The conformer runs
+    // block attention with context_size = 200, and the export dropped the upstream
+    // `if remainder > 0` guard on the block right-pad, so when the encoder frame
+    // count (the input_features time dim) is an exact multiple of 200 the graph pads
+    // a whole extra block and the reshape {1, T+200, 1024} -> {1, T/200, 200, 8, -1}
+    // aborts in OrtRun. The 20 s max-speech cap hits it every time (T = 1000 = 5x200);
+    // other lengths rarely. Append ~1 encoder frame of trailing silence (320 samples =
+    // 20 ms @ 16 kHz = hop 160 x 2-frame stacking) and re-featurise until the count
+    // clears the multiple. The pad falls in the segment's trailing silence, so the
+    // transcript is unaffected; one append usually suffices (T and T+1 can't both be
+    // multiples), and the 4-iteration bound guards against frame-boundary jitter.
+    const BLOCK_SIZE = 200;
+    const BLOCK_PAD_SAMPLES = 320;
+    let paddedAudio = audio;
+    let inputs = await p(text, paddedAudio, { sampling_rate: VAD_SAMPLE_RATE });
+    for (
+      let guard = 0;
+      guard < 4 && inputs.input_features.dims[1] > 0 && inputs.input_features.dims[1] % BLOCK_SIZE === 0;
+      guard++
+    ) {
+      const grown = new Float32Array(paddedAudio.length + BLOCK_PAD_SAMPLES);
+      grown.set(paddedAudio);
+      paddedAudio = grown;
+      inputs = await p(text, paddedAudio, { sampling_rate: VAD_SAMPLE_RATE });
+    }
 
     // Collect output via streamer
     let accumulated = '';
