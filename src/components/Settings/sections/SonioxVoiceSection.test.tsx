@@ -1,8 +1,8 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { compile } from 'sass';
 import type { VoiceLibrarySource } from './voiceLibrarySource';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 
@@ -278,10 +278,13 @@ describe('SonioxVoiceSection', () => {
   // all, and shipped a browser-default button — invisible to TypeScript, to
   // every render test, and to review, because the class does exist somewhere.
   //
-  // So this asserts the pairing that actually broke: whatever class the retry
-  // button renders must be styled INSIDE the `.setting-description` block that
-  // contains it. A plain `toContain('.' + cls)` on the whole file would have
-  // passed on the bug.
+  // So this asserts the pairing that actually broke, against what the browser
+  // would really receive: Settings.scss is COMPILED, and the emitted CSS must
+  // contain a selector reaching the button through the ancestors the rendered
+  // DOM actually places it under. Compiling (rather than parsing the source
+  // text) makes the check immune to how the stylesheet is formatted or nested,
+  // and it is the only evidence that answers "does the rule reach this element"
+  // — a `toContain('.' + cls)` over the source would have passed on the bug.
   it('styles the list-error retry button where it actually lives', async () => {
     listMock.mockRejectedValue(new Error('offline'));
     mount();
@@ -290,27 +293,15 @@ describe('SonioxVoiceSection', () => {
     expect(cls).toBeTruthy();
     expect(cls).not.toBe('option-button');
 
-    const scss = readFileSync(resolve(__dirname, '../Settings.scss'), 'utf-8');
-    const start = scss.indexOf('.setting-description {');
-    expect(start).toBeGreaterThan(-1);
-    // Walk braces from the block's opening `{` to find where it closes.
-    let depth = 0, end = start;
-    for (let i = scss.indexOf('{', start); i < scss.length; i++) {
-      if (scss[i] === '{') depth++;
-      else if (scss[i] === '}' && --depth === 0) { end = i; break; }
-    }
-    expect(scss.slice(start, end)).toContain(`.${cls}`);
+    // The chain is read off the real DOM, not assumed: the button must sit in
+    // a `.setting-description` inside a `.settings-section`.
+    expect(btn.closest('.setting-description')).not.toBeNull();
+    expect(btn.closest('.settings-section')).not.toBeNull();
+
+    const { css } = compile(resolve(__dirname, '../Settings.scss'));
+    expect(css).toMatch(new RegExp(String.raw`\.settings-section \.setting-description \.${cls}(?![\w-])`));
   });
 
-  // Seen in production 2026-09-05, during the managed-voice incident: with a
-  // voice stuck at "processing", the post-create readiness poll ran for its
-  // whole budget, and when the backend's /mine started answering 500 the poll
-  // rejected with a network error. finishCreate's `finally` then re-fetched the
-  // list — which failed the SAME way and painted the list-error banner with its
-  // Retry — and the rejection went on to paint a SECOND banner: the raw,
-  // untranslated "Failed to fetch" in the capture-error alert. One failure, two
-  // surfaces, one of them unreadable. Connectivity has exactly one home here,
-  // the list banner; a transport failure on the poll must not add a second.
   it('a transport failure on the readiness poll leaves only the list-error banner, with no raw fetch message', async () => {
     // Mount and the post-create refresh both succeed; only the refresh that
     // finishCreate runs AFTER the poll dies fails. That pins the list banner
