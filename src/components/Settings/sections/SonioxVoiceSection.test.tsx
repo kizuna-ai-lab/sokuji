@@ -312,7 +312,17 @@ describe('SonioxVoiceSection', () => {
   // surfaces, one of them unreadable. Connectivity has exactly one home here,
   // the list banner; a transport failure on the poll must not add a second.
   it('a transport failure on the readiness poll leaves only the list-error banner, with no raw fetch message', async () => {
-    listMock.mockResolvedValueOnce([]).mockRejectedValue(new SonioxVoicesError('network', 'Failed to fetch', 0));
+    // Mount and the post-create refresh both succeed; only the refresh that
+    // finishCreate runs AFTER the poll dies fails. That pins the list banner
+    // to the poll-triggered refresh specifically — with an earlier refresh
+    // failing too, the banner would already be up before the poll ran and
+    // the test would prove less than it claims. (refresh() swallows its own
+    // rejection, so an earlier failure would not have stopped the flow — it
+    // would only have muddied what the assertion is about.)
+    listMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockRejectedValue(new SonioxVoicesError('network', 'Failed to fetch', 0));
     createMock.mockResolvedValue({ id: 'new-id', name: 'Me', models: [] });
     waitMock.mockRejectedValue(new SonioxVoicesError('network', 'Failed to fetch', 0));
     stubAudioContext(16000, 16000 * 5);
