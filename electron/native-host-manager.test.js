@@ -254,6 +254,17 @@ describe('sidecarEnv', () => {
     expect(env.LANG).toBe('C');
   });
 
+  it('strips the redirects case-insensitively (Windows env names are), leaving one uppercase key', () => {
+    // Node passes a Windows child the lexicographically first case-insensitive
+    // match, so a surviving `PythonPath` would be what CPython reads.
+    const win = { Path: 'C:\\W', PythonPath: 'C:\\hacks', pythonhome: 'C:\\py', PYTHONNOUSERSITE: '0', PythonNoUserSite: '0' };
+    const env = sidecarEnv(win, { hfHome: 'C:\\hf', source: 'bundle' });
+    const keys = Object.keys(env).filter((k) => /^python/i.test(k));
+    expect(keys).toEqual(['PYTHONNOUSERSITE']);
+    expect(env.PYTHONNOUSERSITE).toBe('1');
+    expect(env.Path).toBe('C:\\W');
+  });
+
   it('leaves the developer paths alone apart from HF_HOME', () => {
     for (const source of ['env', 'venv']) {
       const env = sidecarEnv(base, { hfHome: '/u/hf', source });

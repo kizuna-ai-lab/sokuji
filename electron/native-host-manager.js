@@ -57,12 +57,20 @@ function resolveSidecarLaunch({ platform, envOverride, bundleRoot, requiredVersi
 // (SOKUJI_SIDECAR_PYTHON, dev venv) keep the developer's environment on purpose
 // (PYTHONPATH=native/python is how a stage is pointed at without a wheel).
 // Pure: never mutates the env object it is given.
+//
+// The strip is case-INsensitive: Windows environment names are, but a spread of
+// process.env is a plain object, so `delete env.PYTHONPATH` would leave a
+// `PythonPath` behind — and Node hands the child the lexicographically first
+// case-insensitive match, so that survivor is exactly what CPython would read.
+// Harmless on POSIX, where the variants are distinct variables anyway.
+const PYTHON_REDIRECT_KEYS = /^python(path|home|nousersite)$/i;
 function sidecarEnv(baseEnv, { hfHome, source }) {
   const env = { ...baseEnv, HF_HOME: hfHome };
   if (source === 'bundle') {
+    for (const key of Object.keys(env)) {
+      if (PYTHON_REDIRECT_KEYS.test(key)) delete env[key];
+    }
     env.PYTHONNOUSERSITE = '1';
-    delete env.PYTHONPATH;
-    delete env.PYTHONHOME;
   }
   return env;
 }
