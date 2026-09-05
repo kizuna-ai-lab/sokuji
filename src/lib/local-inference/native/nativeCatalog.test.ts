@@ -491,6 +491,8 @@ describe('frameworkLabel', () => {
     expect(frameworkLabel('foo_onnx')).toBe('foo_onnx');
     expect(frameworkLabel('transcribe_cpp_x')).toBe('transcribe.cpp');
     expect(frameworkLabel('native_asr_x')).toBe('transcribe.cpp');
+    // Near miss: the underscore is part of the documented prefix.
+    expect(frameworkLabel('native_asrfoo')).toBe('native_asrfoo');
     expect(frameworkLabel('brand_new_backend')).toBe('brand_new_backend');
   });
 });
