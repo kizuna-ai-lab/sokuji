@@ -231,3 +231,42 @@ describe('resolveSidecarLaunch strict version matching (spec S2)', () => {
     expect(l.source).toBe('env');
   });
 });
+
+import { sidecarEnv } from './native-host-manager.js';
+
+// The installed bundle ships its own interpreter, but CPython still honours the
+// user's environment: user site-packages precede the bundle's own site-packages
+// on sys.path, and PYTHONPATH / PYTHONHOME redirect imports and the stdlib. A
+// stale `pip install --user sokuji_native` shadowed the bundled Vulkan wheel on a
+// real box (sidecar-v0.3.0 smoke, 2026-09-05): the profile came back unknown and
+// the lane read cpu. The bundle interpreter must be hermetic; the developer
+// paths (env override, dev venv) keep the developer's environment on purpose.
+describe('sidecarEnv', () => {
+  const base = { PATH: '/usr/bin', PYTHONPATH: '/home/u/hacks', PYTHONHOME: '/opt/py', LANG: 'C' };
+
+  it('isolates the bundle interpreter from the user site and PYTHON* redirects', () => {
+    const env = sidecarEnv(base, { hfHome: '/u/hf', source: 'bundle' });
+    expect(env.PYTHONNOUSERSITE).toBe('1');
+    expect(env).not.toHaveProperty('PYTHONPATH');
+    expect(env).not.toHaveProperty('PYTHONHOME');
+    expect(env.HF_HOME).toBe('/u/hf');
+    expect(env.PATH).toBe('/usr/bin');
+    expect(env.LANG).toBe('C');
+  });
+
+  it('leaves the developer paths alone apart from HF_HOME', () => {
+    for (const source of ['env', 'venv']) {
+      const env = sidecarEnv(base, { hfHome: '/u/hf', source });
+      expect(env).not.toHaveProperty('PYTHONNOUSERSITE');
+      expect(env.PYTHONPATH).toBe('/home/u/hacks');
+      expect(env.PYTHONHOME).toBe('/opt/py');
+      expect(env.HF_HOME).toBe('/u/hf');
+    }
+  });
+
+  it('does not mutate the process environment it was given', () => {
+    const before = { ...base };
+    sidecarEnv(base, { hfHome: '/u/hf', source: 'bundle' });
+    expect(base).toEqual(before);
+  });
+});
