@@ -102,6 +102,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -254,7 +255,30 @@ def _sve_free_copy(src_dir: pathlib.Path, key_file: str) -> pathlib.Path:
     return dst_dir
 
 
+_UPSTREAMS_CMAKE = pathlib.Path(__file__).resolve().parents[2] / "cmake" / "upstreams.cmake"
+
+
+def _pinned_audiocpp_sha() -> str:
+    """The audio.cpp commit native/cmake/upstreams.cmake pins — the same parse
+    build_reference_cli.sh does, so the two can never disagree about what "current" means."""
+    text = _UPSTREAMS_CMAKE.read_text()
+    block = text[text.index("FetchContent_Declare(audiocpp"):]
+    m = re.search(r"^\s*GIT_TAG\s+([0-9a-f]{40})", block, re.M)
+    assert m, f"no 40-hex GIT_TAG in the audiocpp block of {_UPSTREAMS_CMAKE}"
+    return m.group(1)
+
+
 def _official_cli_nosve() -> pathlib.Path:
+    # A reference built for another audio.cpp pin is worse than none: the suite would
+    # compare against the wrong engine and report a clean pass. build_reference_cli.sh
+    # stamps the pin it built for; a missing stamp is a pre-2026-09-05 build. Fail, do not
+    # skip — a skip after a pin bump is exactly the silent path this guards against.
+    stamp = OFFICIAL_CLI.parent / "PIN_SHA"
+    built_for = stamp.read_text().strip() if stamp.exists() else "unknown (no PIN_SHA stamp)"
+    pinned = _pinned_audiocpp_sha()
+    if built_for != pinned:
+        pytest.fail(f"reference audiocpp_cli at {OFFICIAL_CLI} was built for audio.cpp {built_for}, "
+                    f"but upstreams.cmake pins {pinned} — re-run native/tests/parity/build_reference_cli.sh")
     dst_dir = _sve_free_copy(OFFICIAL_CLI.parent, "audiocpp_cli")
     return dst_dir / "audiocpp_cli"
 

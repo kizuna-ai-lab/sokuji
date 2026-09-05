@@ -22,8 +22,11 @@ reference is wrong, not `sk_tts`** — read the investigation report before assu
 
 ## Files
 
-- `build_reference_cli.sh` — builds the reference `audiocpp_cli` once and caches it. Idempotent:
-  a second run is a no-op if the binary already exists.
+- `build_reference_cli.sh` — builds the reference `audiocpp_cli` and caches it with a `PIN_SHA`
+  stamp. Idempotent per pin: a second run is a no-op while the stamp equals the audio.cpp commit
+  `native/cmake/upstreams.cmake` pins, and a pin bump rebuilds the reference on the next run
+  (the source and build directories are reused). `test_tts_parity.py` fails — not skips — when
+  the stamp and the pin differ, so a stale reference can never produce a clean pass.
 - `test_tts_parity.py` — the pytest cases, one per family, each independently env-gated.
 - `compare_pcm.py` — the comparator (`--exact` for CPU, `--min-snr <dB>` for the Vulkan leg);
   pre-existing, not part of this gate's own deliverable.
@@ -41,8 +44,9 @@ hardcoded — a future pin bump is picked up automatically), configures it stand
 targets), builds just the `audiocpp_cli` target, and copies the binary plus its dynamically
 loaded CPU backend module(s) to `~/.cache/sokuji-native-tests/audiocpp-official/`. About 15
 minutes the first time on a 20-core box (mostly ggml's multi-ISA-variant CPU backend and
-audio.cpp's engine core); instant on every later run, since it exits immediately once the
-cached binary exists.
+audio.cpp's engine core); instant on every later run at the same pin (the cached binary's
+`PIN_SHA` stamp equals the commit `upstreams.cmake` pins), and an incremental rebuild in the
+reused build directory after a pin bump.
 
 Two things worth knowing if you ever need to touch this script:
 
@@ -66,7 +70,10 @@ Two things worth knowing if you ever need to touch this script:
   comparison exercises, since the tier actually selected at runtime here is `armv8.6_2` either
   way (`ggml_options.cmake`'s own comment says as much for our build).
 
-Force a rebuild by deleting the cached binary (or the whole `~/.cache/sokuji-native-tests/audiocpp-official*` tree for a clean re-clone), or point `SOKUJI_NATIVE_TEST_CACHE` at a
+A pin bump needs no manual step: the stamp no longer matches, so the next run rebuilds (and
+refetches the source if its checkout is at another commit). To force a rebuild at the SAME
+pin, delete `~/.cache/sokuji-native-tests/audiocpp-official/` (or the whole
+`audiocpp-official*` tree for a clean re-clone), or point `SOKUJI_NATIVE_TEST_CACHE` at a
 different root.
 
 ## 2. Run the suite

@@ -7,10 +7,15 @@
 # pulls in and builds audio.cpp's OWN fork of ggml (external/ggml inside its own tree) — the
 # only intentional difference between the two binaries under test.
 #
-# Idempotent: exits immediately if the cached binary already exists (delete it, or point
-# SOKUJI_NATIVE_TEST_CACHE elsewhere, to force a rebuild). First run: a git clone plus a CPU-only
-# build of ggml + engine_runtime + audiocpp_cli (no server/webui/model-manager targets, so no
-# OpenSSL/libyaml/cpp-httplib dependency) — about 15 minutes on a 20-core box.
+# Idempotent PER PIN: the cached binary carries a PIN_SHA stamp, and a second run is a no-op
+# only while that stamp equals the audio.cpp commit pinned in upstreams.cmake. A pin bump
+# therefore rebuilds the reference on the next run instead of leaving a stale one in place
+# (before 2026-09-05 the early exit fired on the binary's mere existence, BEFORE the pin was
+# read — a silently stale reference that the parity suite then "passed" against). Delete
+# $OUT_DIR, or point SOKUJI_NATIVE_TEST_CACHE elsewhere, to force a rebuild at the same pin.
+# First run: a git clone plus a CPU-only build of ggml + engine_runtime + audiocpp_cli (no
+# server/webui/model-manager targets, so no OpenSSL/libyaml/cpp-httplib dependency) — about
+# 15 minutes on a 20-core box; a rebuild for a new pin reuses the build directory.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -21,11 +26,7 @@ SRC_DIR="$CACHE_DIR/audiocpp-official-src"
 BUILD_DIR="$CACHE_DIR/audiocpp-official-build"
 OUT_DIR="$CACHE_DIR/audiocpp-official"
 OUT_BIN="$OUT_DIR/audiocpp_cli"
-
-if [[ -x "$OUT_BIN" ]]; then
-    echo "build_reference_cli.sh: $OUT_BIN already exists — skipping (delete it, or set SOKUJI_NATIVE_TEST_CACHE, to force a rebuild)"
-    exit 0
-fi
+STAMP="$OUT_DIR/PIN_SHA"
 
 # The repo URL and pinned commit are read out of upstreams.cmake, not hardcoded here, so a
 # future pin bump (native/README.md's "Bumping a pin" step 3: "run the parity suite — a bump
@@ -39,6 +40,25 @@ if [[ -z "$REPO_URL" || -z "$GIT_SHA" ]]; then
 fi
 echo "build_reference_cli.sh: pristine audio.cpp @ $GIT_SHA from $REPO_URL"
 
+if [[ -x "$OUT_BIN" ]]; then
+    BUILT_FOR="$(cat "$STAMP" 2>/dev/null || echo "unknown (no PIN_SHA stamp — built before 2026-09-05)")"
+    if [[ "$BUILT_FOR" == "$GIT_SHA" ]]; then
+        echo "build_reference_cli.sh: $OUT_BIN already built for $GIT_SHA — skipping (delete $OUT_DIR, or set SOKUJI_NATIVE_TEST_CACHE, to force a rebuild)"
+        exit 0
+    fi
+    echo "build_reference_cli.sh: $OUT_BIN was built for $BUILT_FOR, pin is $GIT_SHA — rebuilding"
+    rm -rf "$OUT_DIR"
+fi
+
+if [[ -d "$SRC_DIR/.git" && "$(git -C "$SRC_DIR" rev-parse HEAD)" != "$GIT_SHA" ]]; then
+    # Move the existing checkout to the pin IN PLACE and keep BUILD_DIR: the source path
+    # is unchanged, so CMake's cache stays valid and the rebuild below is incremental
+    # (only the files that differ between the two commits recompile). `-f` discards the
+    # SME drop applied to external/ggml on the previous run; it is re-applied below.
+    echo "build_reference_cli.sh: $SRC_DIR is at $(git -C "$SRC_DIR" rev-parse HEAD), pin is $GIT_SHA — refetching in place"
+    git -C "$SRC_DIR" fetch --depth 1 origin "$GIT_SHA"
+    git -C "$SRC_DIR" checkout -q -f FETCH_HEAD
+fi
 if [[ ! -d "$SRC_DIR/.git" ]]; then
     rm -rf "$SRC_DIR"
     mkdir -p "$SRC_DIR"
@@ -51,7 +71,7 @@ if [[ ! -d "$SRC_DIR/.git" ]]; then
 fi
 ACTUAL_SHA="$(git -C "$SRC_DIR" rev-parse HEAD)"
 if [[ "$ACTUAL_SHA" != "$GIT_SHA" ]]; then
-    echo "build_reference_cli.sh: $SRC_DIR is at $ACTUAL_SHA, expected the pin $GIT_SHA — delete it and re-run" >&2
+    echo "build_reference_cli.sh: $SRC_DIR is at $ACTUAL_SHA after refetch, expected the pin $GIT_SHA" >&2
     exit 1
 fi
 
@@ -90,7 +110,9 @@ fi
 
 # Flags mirror native/cmake/upstreams.cmake's audio.cpp block as closely as a standalone
 # configure allows, so the only deliberate difference from our own build is the ggml source:
-#   - AUDIOCPP_MODEL_SET/MODELS: the same five families sokuji_native links.
+#   - AUDIOCPP_MODEL_SET/MODELS: the five families the parity suite compares — a subset of
+#     the nine sokuji_native links (native/cmake/upstreams.cmake AUDIOCPP_MODELS); the four
+#     2026-09-03 families have no parity case yet.
 #   - CPU only, deployment build, no native model manager: matches upstreams.cmake verbatim.
 #   - ENGINE_ENABLE_CPU_ALL_VARIANTS=ON (audio.cpp's own default is OFF): our build gets this
 #     behavior for free because native/cmake/ggml_options.cmake configures ggml itself, before
@@ -137,4 +159,7 @@ if ! "$OUT_BIN" --list-devices >/dev/null 2>&1; then
     echo "build_reference_cli.sh: built binary at $OUT_BIN failed to run --list-devices" >&2
     exit 1
 fi
-echo "build_reference_cli.sh: built $OUT_BIN"
+# Written last, so a build that died half-way leaves no stamp and the next run rebuilds.
+# test_tts_parity.py reads this and FAILS (not skips) when it differs from the pin.
+printf '%s\n' "$GIT_SHA" > "$STAMP"
+echo "build_reference_cli.sh: built $OUT_BIN for audio.cpp $GIT_SHA"
