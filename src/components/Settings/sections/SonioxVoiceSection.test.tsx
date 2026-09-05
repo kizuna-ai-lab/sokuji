@@ -1,6 +1,8 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { resolve } from 'node:path';
+import { compile } from 'sass';
 import type { VoiceLibrarySource } from './voiceLibrarySource';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 
@@ -267,6 +269,122 @@ describe('SonioxVoiceSection', () => {
       const select = container.querySelector('select')!;
       expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true);
     });
+  });
+
+  // A class name is not a style. `.option-button` exists in Settings.scss, but
+  // only nested under `.turn-detection-options`, whose members it stretches with
+  // `flex: 1` and whose shared border the CONTAINER draws. Borrowing that class
+  // for the standalone retry button in `.setting-description` matched no rule at
+  // all, and shipped a browser-default button — invisible to TypeScript, to
+  // every render test, and to review, because the class does exist somewhere.
+  //
+  // So this asserts the pairing that actually broke, against what the browser
+  // would really receive: Settings.scss is COMPILED, and the emitted CSS must
+  // contain a selector reaching the button through the ancestors the rendered
+  // DOM actually places it under. Compiling (rather than parsing the source
+  // text) makes the check immune to how the stylesheet is formatted or nested,
+  // and it is the only evidence that answers "does the rule reach this element"
+  // — a `toContain('.' + cls)` over the source would have passed on the bug.
+  it('styles the list-error retry button where it actually lives', async () => {
+    listMock.mockRejectedValue(new Error('offline'));
+    mount();
+    const btn = await screen.findByRole('button', { name: /retry/i });
+    const cls = btn.className.trim();
+    expect(cls).toBeTruthy();
+    expect(cls).not.toBe('option-button');
+
+    // The chain is read off the real DOM, not assumed, and in ORDER: the
+    // button must sit in a `.setting-description` which itself sits in a
+    // `.settings-section`. Two independent `closest()` calls from the button
+    // would only prove both ancestors exist somewhere above it — a reversed
+    // nesting would pass them while the descendant selector below could
+    // never match. Chaining the second lookup from the first pins the order.
+    const description = btn.closest('.setting-description');
+    expect(description).not.toBeNull();
+    expect(description!.closest('.settings-section')).not.toBeNull();
+
+    const { css } = compile(resolve(__dirname, '../Settings.scss'));
+    expect(css).toMatch(new RegExp(String.raw`\.settings-section \.setting-description \.${cls}(?![\w-])`));
+  });
+
+  it('a transport failure on the readiness poll leaves only the list-error banner, with no raw fetch message', async () => {
+    // Mount and the post-create refresh both succeed; only the refresh that
+    // finishCreate runs AFTER the poll dies fails. That pins the list banner
+    // to the poll-triggered refresh specifically — with an earlier refresh
+    // failing too, the banner would already be up before the poll ran and
+    // the test would prove less than it claims. (refresh() swallows its own
+    // rejection, so an earlier failure would not have stopped the flow — it
+    // would only have muddied what the assertion is about.)
+    listMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockRejectedValue(new SonioxVoicesError('network', 'Failed to fetch', 0));
+    createMock.mockResolvedValue({ id: 'new-id', name: 'Me', models: [] });
+    waitMock.mockRejectedValue(new SonioxVoicesError('network', 'Failed to fetch', 0));
+    stubAudioContext(16000, 16000 * 5);
+    const { container } = mount({ managed: true });
+    // Managed: the manage panel renders only once the first list has settled.
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    // Managed hides the name field (the backend names voices), so the modal's
+    // arrival is marked by its confirm button, not the name input.
+    const confirm = await screen.findByRole('button', { name: confirmButtonName });
+    checkConsent();
+    fireEvent.click(confirm);
+
+    // The one surface: the list banner, translated, with its retry.
+    await screen.findByText(/could not load your voice/i);
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+    // And not the other: no capture-error alert at all, and the raw fetch text
+    // never reaches the DOM.
+    await waitFor(() => expect(waitMock).toHaveBeenCalled());
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(/failed to fetch/i)).toBeNull();
+  });
+
+  // The guard on the guard: a NON-transport poll outcome is not a duplicate of
+  // anything — `voice_failed` carries its own advice ("delete this voice and
+  // try a clearer clip") that the list banner does not — so it must keep its
+  // alert. Suppressing every poll failure would hide this one.
+  it('a voice_failed outcome on the readiness poll still surfaces in the capture-error alert', async () => {
+    listMock.mockResolvedValue([]);
+    createMock.mockResolvedValue({ id: 'new-id', name: 'Me', models: [] });
+    waitMock.mockRejectedValue(new SonioxVoicesError('voice_failed', 'terminal', 503));
+    stubAudioContext(16000, 16000 * 5);
+    const { container } = mount({ managed: true });
+    // Managed: the manage panel renders only once the first list has settled.
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    // Managed hides the name field (the backend names voices), so the modal's
+    // arrival is marked by its confirm button, not the name input.
+    const confirm = await screen.findByRole('button', { name: confirmButtonName });
+    checkConsent();
+    fireEvent.click(confirm);
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/processing failed/i));
+  });
+
+  // Reported from production 2026-09-05: a "Failed to fetch" in the
+  // capture-error alert stayed on screen after the list had reloaded fine.
+  // Nothing ever cleared it — the only `setCaptureError(null)` calls sat at
+  // the START of the next record/import/preview, so an outage message
+  // outlived the outage until the user happened to start a new capture. A
+  // successful list load is positive evidence that whatever last went wrong
+  // has been superseded, so it clears the banner.
+  it('a successful list refresh clears a stale capture-error alert', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    deleteMock.mockRejectedValue(new Error('boom'));
+    mount();
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/boom/));
+
+    fireEvent.click(screen.getByTitle(/refresh voice list/i));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
 
   it('onImport rejects a file over 35MB before decoding, creating, or opening the modal', async () => {

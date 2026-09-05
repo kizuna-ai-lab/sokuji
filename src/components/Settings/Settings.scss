@@ -73,6 +73,39 @@
     color: vars.$text-secondary;
     line-height: 1.5;
     margin-top: 6px;
+
+    // A recovery action offered inside the sentence that explains why it is
+    // needed ("could not load your voice — [Retry]"), so it flows with the
+    // text and inherits its size rather than sitting on its own row.
+    //
+    // Deliberately NOT `.option-button`: those styles exist only under
+    // `.turn-detection-options`, which draws the shared border its members
+    // lack and stretches each one with `flex: 1`. Reused here the class
+    // matched no rule at all and rendered a browser-default button.
+    .inline-action-button {
+      display: inline-flex;
+      align-items: center;
+      font: inherit;
+      color: vars.$text-primary;
+      background-color: vars.$bg-control;
+      border: 1px solid vars.$border-default;
+      border-radius: vars.$radius-sm;
+      padding: 2px 8px;
+      cursor: pointer;
+      transition: background-color vars.$transition-fast;
+
+      &:hover:not(:disabled) {
+        background-color: vars.$bg-elevated;
+      }
+
+      &:disabled {
+        @include vars.disabled-state;
+      }
+
+      &:focus-visible {
+        @include vars.focus-ring;
+      }
+    }
   }
 
   // Why a channel is greyed (e.g. the speaker monitor outside 'You' mode). Sits
