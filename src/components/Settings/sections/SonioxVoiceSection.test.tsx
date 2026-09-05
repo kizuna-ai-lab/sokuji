@@ -1,6 +1,8 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { VoiceLibrarySource } from './voiceLibrarySource';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 
@@ -267,6 +269,37 @@ describe('SonioxVoiceSection', () => {
       const select = container.querySelector('select')!;
       expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true);
     });
+  });
+
+  // A class name is not a style. `.option-button` exists in Settings.scss, but
+  // only nested under `.turn-detection-options`, whose members it stretches with
+  // `flex: 1` and whose shared border the CONTAINER draws. Borrowing that class
+  // for the standalone retry button in `.setting-description` matched no rule at
+  // all, and shipped a browser-default button — invisible to TypeScript, to
+  // every render test, and to review, because the class does exist somewhere.
+  //
+  // So this asserts the pairing that actually broke: whatever class the retry
+  // button renders must be styled INSIDE the `.setting-description` block that
+  // contains it. A plain `toContain('.' + cls)` on the whole file would have
+  // passed on the bug.
+  it('styles the list-error retry button where it actually lives', async () => {
+    listMock.mockRejectedValue(new Error('offline'));
+    mount();
+    const btn = await screen.findByRole('button', { name: /retry/i });
+    const cls = btn.className.trim();
+    expect(cls).toBeTruthy();
+    expect(cls).not.toBe('option-button');
+
+    const scss = readFileSync(resolve(__dirname, '../Settings.scss'), 'utf-8');
+    const start = scss.indexOf('.setting-description {');
+    expect(start).toBeGreaterThan(-1);
+    // Walk braces from the block's opening `{` to find where it closes.
+    let depth = 0, end = start;
+    for (let i = scss.indexOf('{', start); i < scss.length; i++) {
+      if (scss[i] === '{') depth++;
+      else if (scss[i] === '}' && --depth === 0) { end = i; break; }
+    }
+    expect(scss.slice(start, end)).toContain(`.${cls}`);
   });
 
   it('onImport rejects a file over 35MB before decoding, creating, or opening the modal', async () => {

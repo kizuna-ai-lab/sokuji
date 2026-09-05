@@ -666,7 +666,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
             {managed
               ? t('settings.sonioxManagedVoiceListError', 'Could not load your voice — check your connection and try again.')
               : t('settings.sonioxVoiceListError', 'Could not load cloned voices — check the API key.')}{' '}
-            <button className="option-button" onClick={() => void refresh()}>
+            <button className="inline-action-button" onClick={() => void refresh()}>
               {t('common.retry', 'Retry')}
             </button>
           </div>
