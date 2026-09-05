@@ -144,7 +144,12 @@ async function listAppSources({
  * @param {(event: object) => void} onEvent
  * @returns {boolean} false when the helper is unavailable
  */
-function startCapture(deviceId, onPcm, onEvent, { spawn = nodeSpawn, resolvePath = resolveAudioHostPath } = {}) {
+function startCapture(deviceId, onPcm, onEvent, {
+  spawn = nodeSpawn,
+  resolvePath = resolveAudioHostPath,
+  selfIdentity = currentSelfIdentity(),
+  platform = process.platform,
+} = {}) {
   const exe = resolvePath();
   if (!exe) return false;
 
@@ -157,9 +162,22 @@ function startCapture(deviceId, onPcm, onEvent, { spawn = nodeSpawn, resolvePath
   // permission - getDisplayMedia would demand Screen Recording as well.
   const raw = String(deviceId);
   const target = raw === 'desktop-audio-loopback' ? 'system' : raw.replace(/^app:/, '');
+  const args = ['--target', target];
+  // The macOS helper decides "the target is rendering yet every sample is
+  // zero" (its silent_no_permission warning) by asking Core Audio which
+  // processes hold an active output stream. Sokuji's own audio service holds
+  // one from the moment a session starts - a running AudioContext keeps the
+  // stream open even while it plays nothing - so on a whole-system tap that
+  // check was satisfied by Sokuji itself and the warning fired on every quiet
+  // session start (#492). The helper cannot know which pids are its parent app,
+  // so the list crosses here. The Windows helper has no such check.
+  if (platform === 'darwin') {
+    const own = [...selfIdentity.pids].filter((p) => Number.isInteger(p) && p > 0).sort((a, b) => a - b);
+    if (own.length > 0) args.push('--exclude-pids', own.join(','));
+  }
   let child;
   try {
-    child = spawn(exe, ['--target', target]);
+    child = spawn(exe, args);
   } catch {
     return false;
   }
