@@ -861,3 +861,24 @@ def test_every_shipped_rung_has_a_fallback_dtype_set():
     rungs = {d.compute_type for m in cards for d in m.deployments}
     missing = sorted(rungs - set(catalog.RUNG_FALLBACK_DTYPES))
     assert not missing, f"rungs without a RUNG_FALLBACK_DTYPES entry: {missing}"
+
+
+def test_divergent_arch_names_are_pinned_to_arch_name():
+    """The three transcribe.cpp architectures whose Arch::name differs from their src/arch/
+    directory. Pure and cache-free so CI's sidecar-tests runs it: it guards the five rows
+    against regressing to the directory names ("cohere", "granite", "granite_nar"). The
+    strings themselves are proven against transcribe.cpp by
+    test_asr_graph_family_matches_native_arch, which needs the cached GGUFs."""
+    expected = {
+        "cohere-transcribe-03-2026": "cohere_asr",
+        "granite-speech-4.1-2b": "granite_speech",
+        "granite-speech-4.1-2b-plus": "granite_speech",
+        "granite-4.0-1b-speech": "granite_speech",
+        "granite-speech-4.1-2b-nar": "granite_speech_nar",
+    }
+    got = {mid: catalog.asr_model(mid).graph_family for mid in expected}
+    assert got == expected
+    # And no row anywhere still carries one of the directory spellings.
+    directory_names = {"cohere", "granite", "granite_nar"}
+    offenders = sorted(m.id for m in catalog.asr_models() if m.graph_family in directory_names)
+    assert not offenders, offenders
