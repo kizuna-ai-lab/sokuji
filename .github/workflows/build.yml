@@ -23,6 +23,12 @@ jobs:
   # pre-existing failures unrelated to these files, and a job that is red on
   # arrival gets ignored. Widen it as suites are cleaned up — the value is in
   # the diagnostics guards running on every PR, starting now.
+  #
+  # src/lib/local-inference joined on 2026-09-06 (after #497): its 51 files were
+  # green but had never run in CI, so the source guards for the ASR workers
+  # (harness-consolidation.test.ts) could not fail a PR — #497's first version
+  # of the #470 decode-handoff guard was vacuous for two workers and nothing
+  # noticed until a maintainer ran it locally.
   test:
     name: test (diagnostics)
     runs-on: ubuntu-latest
@@ -42,7 +48,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run diagnostics and log-surface tests
+      - name: Run diagnostics, log-surface and local-inference tests
         run: >-
           npx vitest run
           src/lib/diagnostics
@@ -50,6 +56,7 @@ jobs:
           src/stores/logStore.test.ts
           src/stores/sanitizeEvent.test.ts
           src/components/LogsPanel
+          src/lib/local-inference
 
   # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
   # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return
