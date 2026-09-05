@@ -212,6 +212,37 @@ describe('participant capture warnings', () => {
   });
 });
 
+describe('participant capture first audio', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('forwards the recorder\'s first-audio signal, so the UI can stop reading silence as a denial', async () => {
+    setMediaDevices(vi.fn(), vi.fn().mockResolvedValue([]));
+    vi.spyOn(ServiceFactory, 'isElectron').mockReturnValue(true);
+    const handlers: Record<string, (payload: any) => void> = {};
+    (globalThis as any).window = (globalThis as any).window ?? {};
+    (globalThis as any).window.electron = {
+      invoke: vi.fn(async (channel: string) =>
+        channel === 'connect-system-audio-source' ? { success: true, capture: 'app' } : { ok: true }),
+      receive: vi.fn((channel: string, fn: (payload: any) => void) => { handlers[channel] = fn; }),
+      removeListener: vi.fn((channel: string) => { delete handlers[channel]; }),
+    };
+    const svc = new ModernBrowserAudioService();
+    const seen = vi.fn();
+    svc.onParticipantAudioSeen = seen;
+
+    await svc.connectSystemAudioSource('app:pid:42');
+    await svc.startSystemAudioRecording(vi.fn());
+
+    // One level window (~2 s at 24 kHz) with one audible sample in it.
+    const samples = new Int16Array(48000);
+    samples[10] = 2000;
+    handlers['app-audio:pcm'](new Uint8Array(samples.buffer));
+
+    expect(seen).toHaveBeenCalledTimes(1);
+    await svc.stopSystemAudioRecording();
+  });
+});
+
 describe('linux monitor-device resolution', () => {
   function arrange(devices: any[], invokeResult: any) {
     setMediaDevices(vi.fn(), vi.fn().mockResolvedValue(devices));
