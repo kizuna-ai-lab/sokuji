@@ -28,8 +28,8 @@ class sk_device(Structure):
                 ("mem_total", c_uint64), ("mem_free", c_uint64)]
 
 
-# tts/index_tts2 (499 identities, 67 WEIGHT) expands to 901 entries over the widest fallback
-# dtype set (7) and 700 over q8_0's 4-dtype rung set — both exceed 512, so the cap is 2048.
+# tts/index_tts2 (504 identities, 67 WEIGHT) expands to 906 entries over the widest fallback
+# dtype set (7) and 705 over q8_0's 4-dtype rung set — both exceed 512, so the cap is 2048.
 SK_OP_COVERAGE_MAX = 2048
 
 

@@ -454,9 +454,10 @@ never copy that); nothing re-checks them at runtime, so a wrong number is what t
 
 **An ASR model of an architecture already compiled in** — catalog only, ships with a sidecar tag:
 1. One `_tc_row(...)` in `ASR_MODELS`: `repo` must be `handy-computer/<x>-gguf`; `quants` keys
-   are limited to `F16`/`Q8_0`/`Q6_K`/`Q5_K_M`/`Q4_K_M` (any other spelling is silently dropped
-   from the ladder); `default` must be a key of `quants` (`quants[default]` KeyErrors at import
-   otherwise, which aborts collection of the whole sidecar suite); `backend="native_asr_stream"`
+   are limited to `F16`/`Q8_0`/`Q6_K`/`Q5_K_M`/`Q4_K_M` and `default` must be one of them — any
+   other key, or a default not in `quants`, makes `_tc_row` raise `ValueError` at import
+   (which aborts collection of the whole sidecar suite; pinned by
+   `test_tc_row_rejects_a_quant_key_outside_the_ladder`); `backend="native_asr_stream"`
    only for a streaming arch; `tiers=_TC_GPU_TIERS` when the model cannot run on CPU; `arch=`
    per the rule above. `asr_models()` re-sorts by `sort_order`, so place the row anywhere.
 2. `sidecar/tests/test_catalog.py::test_roster_is_wer_ranked` pins the card count and the
@@ -570,15 +571,11 @@ re-recording. Update the per-card pins in `test_catalog.py`, the rung tuple in
 `test_characterization.py` rows. A GPU-tiered TTS rung earns its tiers the way bf16 did: fleet
 run first.
 
-Stale comments, do not follow them: `_tc_row`'s docstring says `arch` is the `src/arch/<name>`
-directory, and the cohere-transcribe and four granite-speech rows still carry directory names
-(`cohere`, `granite`, `granite_nar`) instead of `cohere_asr`/`granite_speech`/`granite_speech_nar`
-— harmless only because no recording exists for them; read the header, do not copy a sibling's
-`arch=`. Several comments (`catalog.py`, `test_catalog.py`, `test_sokuji_native.py`,
-`native/README.md`) still call the four 2026-09-03 families cpu-only — `_TTS_TIER_OVERRIDES` is
-the truth, and its own comment saying `requirements.txt` "still pins" native 1.0.1 is older than
-the 1.1.0 pin. `native/ci/build.sh` and `build.ps1` say the recordings "were captured on CPU" —
-the TTS ones were not. `build.yml` calls `sidecar-tests` wheel-less — it is not.
+If prose and code disagree, the code wins: `gguf_header.read_header` for `arch=`,
+`_TTS_TIER_OVERRIDES` for which families have GPU tiers (all nine, since 2f2b28bc), the
+`# recorded-on:` header of a `.ops` file for where it was recorded, and `sidecar/requirements.txt`
+for which wheel `sidecar-tests` installs. The comments that used to contradict these were
+corrected on 2026-09-05.
 
 ### Modifying Audio Pipeline
 1. Audio processing modules in `src/lib/modern-audio/` (JavaScript files)

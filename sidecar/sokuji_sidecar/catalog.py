@@ -112,12 +112,20 @@ def _tc_row(mid, name, langs, repo, base, order, quants, default,
     curated default. The same GGUF serves every tier. Deployments are ordered
     default-first so downloads/size_bytes key off the default; q6_k/q4_k_m/q8_0
     are curated recommendation candidates, f16/q5_k_m are listed-only.
-    `arch` is transcribe.cpp's `src/arch/<name>` directory for this family — what
-    sk_asr_caps.arch reports at runtime (graph_family)."""
+    `arch` is the GGUF's `general.architecture` — transcribe.cpp's `Arch::name`, the
+    string sk_asr_caps.arch reports at runtime and the op-recording key (graph_family).
+    Read it with `gguf_header.read_header(path).architecture`; it is NOT always the
+    `src/arch/<dir>` directory name (cohere -> "cohere_asr", granite -> "granite_speech",
+    granite_nar -> "granite_speech_nar"). `quants` keys must be ladder tokens: anything
+    else used to be dropped silently, which hid a mistyped rung until download time."""
     curated = {"q8_0", "q6_k", "q4_k_m"}
+    ladder = ("F16", "Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M")
+    unknown = sorted(set(quants) - set(ladder))
+    if unknown or default not in quants:
+        raise ValueError(f"{mid}: quants keys must be in {ladder} and include default "
+                         f"{default!r}; unknown={unknown}, keys={sorted(quants)}")
     deps = []
-    order_keys = [default] + [q for q in ("F16", "Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M")
-                              if q in quants and q != default]
+    order_keys = [default] + [q for q in ladder if q in quants and q != default]
     for q in order_keys:
         quant = q.lower()
         rank = 2.0 if q == default else (1.0 if quant in curated else 0.5)
@@ -141,7 +149,7 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/cohere-transcribe-03-2026-gguf", "cohere-transcribe-03-2026",
             10, {"F16": 4106644992, "Q8_0": 2410655232, "Q6_K": 1972524544,
                  "Q5_K_M": 1770270208, "Q4_K_M": 1558162944},
-            default="Q4_K_M", recommended=True, arch="cohere"),
+            default="Q4_K_M", recommended=True, arch="cohere_asr"),
     # Russian specialist (GigaAM v3, end-to-end w/ punctuation) — no librispeech
     # figure (ru model); slotted top of its language view.
     _tc_row("gigaam-v3-e2e-rnnt", "GigaAM v3 (Russian)", ("ru",),
@@ -158,7 +166,7 @@ ASR_MODELS: list[AsrModel] = [
             ("en", "fr", "de", "es", "pt", "ja"),
             "handy-computer/granite-speech-4.1-2b-gguf", "granite-speech-4.1-2b",
             20, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936,
-                 "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M", arch="granite"),
+                 "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M", arch="granite_speech"),
     # WER 1.38 — the big English parakeet; second-best English figure in the roster.
     _tc_row("parakeet-tdt-1.1b", "Parakeet TDT 1.1B", ("en",),
             "handy-computer/parakeet-tdt-1.1b-gguf", "parakeet-tdt-1.1b",
@@ -168,7 +176,7 @@ ASR_MODELS: list[AsrModel] = [
             ("en", "fr", "de", "es", "pt"),
             "handy-computer/granite-speech-4.1-2b-plus-gguf", "granite-speech-4.1-2b-plus",
             30, {"F16": 4229971808, "Q8_0": 2345973152, "Q6_K": 1859821504,
-                 "Q5_K_M": 1691297088, "Q4_K_M": 1489663424}, default="Q4_K_M", arch="granite"),
+                 "Q5_K_M": 1691297088, "Q4_K_M": 1489663424}, default="Q4_K_M", arch="granite_speech"),
     # WER 1.59 (q4_k_m beats q8_0's 1.62 per the author's table) — en/de/es/fr.
     _tc_row("canary-1b-flash", "Canary 1B Flash", ("en", "de", "es", "fr"),
             "handy-computer/canary-1b-flash-gguf", "canary-1b-flash",
@@ -314,7 +322,7 @@ ASR_MODELS: list[AsrModel] = [
     # WER 1.25 (q5_k_m = best rung & default; q4_k_m 1.35 worst) — NAR editor, ASR-only
     _tc_row("granite-speech-4.1-2b-nar", "Granite Speech 4.1 (2B NAR)", ("en", "fr", "de", "es", "pt"),
             "handy-computer/granite-speech-4.1-2b-nar-gguf", "granite-speech-4.1-2b-nar",
-            11, {"F16": 4515792768, "Q8_0": 2498105472, "Q6_K": 1977417568, "Q5_K_M": 1782089344, "Q4_K_M": 1560008832}, default="Q5_K_M", arch="granite_nar"),
+            11, {"F16": 4515792768, "Q8_0": 2498105472, "Q6_K": 1977417568, "Q5_K_M": 1782089344, "Q4_K_M": 1560008832}, default="Q5_K_M", arch="granite_speech_nar"),
     # Russian (FLEURS-ru 5.50) — e2e w/ punct; slotted in RU view
     _tc_row("gigaam-v3-e2e-ctc", "GigaAM v3 E2E-CTC (Russian)", ("ru",),
             "handy-computer/gigaam-v3-e2e-ctc-gguf", "gigaam-v3-e2e-ctc",
@@ -330,7 +338,7 @@ ASR_MODELS: list[AsrModel] = [
     # WER 1.41 — en+EU speech-LLM
     _tc_row("granite-4.0-1b-speech", "Granite Speech 4.0 (1B)", ("en", "fr", "de", "es", "pt", "ja"),
             "handy-computer/granite-4.0-1b-speech-gguf", "granite-4.0-1b-speech",
-            27, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936, "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M", arch="granite"),
+            27, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936, "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M", arch="granite_speech"),
     # WER 1.56 — GPU-class 24B (Q5_K_M 17GB+); q4_k_m dropped (2.11 cliff).
     # GPU-only tiers: hardware-gated off CPU-only machines (a 17GB CPU download
     # for a 24B is unusable); big-GPU machines still see it, small-GPU ones get
@@ -788,14 +796,13 @@ TTS_STAGING_DIRNAME = "sokuji-tts-staging"
 # GGML_OP_NORM gate, not a real-hardware finding.)
 #
 # `_TTS_TIERS` below is the cpu-only default for any family not listed in
-# `_TTS_TIER_OVERRIDES` — it exists for a new family, which starts cpu-only
-# until it, too, earns a tier through real-GPU evidence. It is no longer a
-# dormant default: the four families added on 2026-09-03 (voxcpm1, voxcpm2,
-# irodori_tts, index_tts2) are deliberately absent from that dict, so four
-# shipped cards resolve through this line today. They gain GPU tiers once the
-# native-v1.0.2 wheels are validated per family on the fleet; a family that
-# fails every GPU lane loses its card at that point rather than keeping a
-# tier it cannot serve.
+# `_TTS_TIER_OVERRIDES` — it exists for the NEXT family, which starts cpu-only
+# until it, too, earns a tier through real-GPU evidence (one fleet run per
+# family per lane, R19). Today it is dormant: all nine shipped families are in
+# that dict — the four added on 2026-09-03 (voxcpm1, voxcpm2, irodori_tts,
+# index_tts2) arrived cpu-only and earned their rows the same evening (commit
+# 2f2b28bc) once the native-1.0.2 wheels were validated per family on the fleet. A family that
+# fails every GPU lane loses its card rather than keeping a tier it cannot serve.
 _TTS_TIERS = ("cpu",)
 
 # R19 follow-up / ruling R25 (2026-09-01, task 8): the first real Vulkan TTS
@@ -1007,11 +1014,10 @@ _TTS_TIER_OVERRIDES: dict[str, tuple[str, ...]] = {
     "omnivoice": ("gpu-vulkan", "gpu-metal", "cpu"),
     "pocket_tts": ("gpu-vulkan", "gpu-metal", "cpu"),   # ruling R29 (supersedes R28) -- see table above
     # The four added 2026-09-03. Measured per lane with the native-1.0.2 wheels
-    # this branch's own CI dry run built -- necessarily so: 1.0.1, which
-    # requirements.txt still pins, compiles only the five older families
-    # (AUDIOCPP_MODELS gained these four here), so it cannot load them at all.
-    # The pin moves to 1.0.2 when the native-v1.0.2 tag publishes those wheels,
-    # which is the release order native/README.md sets out: tag, then pin.
+    # (the first build to compile these four -- AUDIOCPP_MODELS gained them there;
+    # 1.0.1 cannot load them at all). requirements.txt pinned 1.0.1 when this was
+    # measured and has since moved on (1.0.2 with sidecar-v0.2.1, 1.1.0 with
+    # sidecar-v0.3.0) in the release order native/README.md sets out: tag, then pin.
     # Warm RTF = synth / audio, so <1 is faster than speech:
     #                GB10 Vulkan   M4 Metal   M4 CPU
     #   voxcpm1          0.47         0.91      1.55
@@ -1196,11 +1202,11 @@ TTS_MODELS: list[TtsModel] = [
         default_quant="q8_0", order=9, load_language="portuguese",
         clones=True, streaming=False, sample_rate=24000),
     # ---- 2026-09-03 batch ----------------------------------------------------
-    # Four more audio.cpp families, all CPU-ONLY on arrival: none of them appears
-    # in _TTS_TIER_OVERRIDES, so `_tts_gguf_row` gives each the default
-    # `_TTS_TIERS = ("cpu",)`. They earn gpu-vulkan/gpu-metal rows the same way
-    # the first five did -- one fleet run per family per lane (R19), not by
-    # analogy with a sibling family. Every byte count below is the exact `lfs.size`
+    # Four more audio.cpp families. They arrived CPU-ONLY (no _TTS_TIER_OVERRIDES
+    # entry, so `_tts_gguf_row` gave each the default `_TTS_TIERS = ("cpu",)`) and
+    # earned their gpu-vulkan/gpu-metal rows the same evening (commit 2f2b28bc) the
+    # way the first five did -- one fleet run per family per lane (R19), not by analogy with a
+    # sibling family. Every byte count below is the exact `lfs.size`
     # from `GET api/models/audio-cpp/audio.cpp-gguf/tree/main/<dir>`, read
     # 2026-09-03, and every family was loaded and synthesized on this repo's CPU
     # lane (linux-arm64) before the row was written.

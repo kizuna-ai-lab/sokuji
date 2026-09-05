@@ -134,9 +134,10 @@ SK_API sk_status sk_device_profile_get(int32_t index, sk_device_profile *out);
  * ggml_type_name, "-" for an absent source), and whether the device's supports_op
  * accepted it rebuilt with its recorded shapes. */
 typedef struct sk_op_check { char name[64]; int32_t supported; } sk_op_check;
-/* Widest shipped recording (tts/index_tts2: 499 identities, 67 WEIGHT) expanded over the
- * widest fallback dtype set (7, gen_ops_data.py's WIDEST_FALLBACK) reaches 901 entries, and
- * over q8_0's 4-dtype rung set still 700 — both exceed 512, so the cap is 2048. */
+/* Widest shipped recording (tts/index_tts2: 504 identities, 67 WEIGHT) expanded over the
+ * widest fallback dtype set (7, gen_ops_data.py's WIDEST_FALLBACK) reaches 906 entries, and
+ * over q8_0's 4-dtype rung set still 705 — both exceed 512, so the cap is 2048. The
+ * generated static_assert in sk_ops_data.cpp, not this comment, is the gate. */
 #define SK_OP_COVERAGE_MAX 2048
 typedef struct sk_op_coverage {
     int32_t n_ops;            /* entries written */

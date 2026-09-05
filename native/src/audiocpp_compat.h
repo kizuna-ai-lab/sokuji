@@ -1,13 +1,18 @@
 /* audiocpp_compat.h — force-included into every audio.cpp translation unit.
  *
- * audio.cpp v0.7.0 carries a ggml fork (base 0.12.0) that differs from the pristine
- * upstream ggml 0.22.0 we build on in TWO ways. This header covers both, and the
- * distinction matters: (A) fails to LINK if you get it wrong, (B) fails silently.
+ * audio.cpp v0.7.1 (upstream c4dde1c2; re-scanned at the pin bump, sokuji commit c440bc78)
+ * carries a ggml fork (base
+ * 0.12.0) that differs from the pristine upstream ggml 0.22.0 we build on in TWO ways.
+ * This header covers both, and the distinction matters: (A) fails to LINK if you get it
+ * wrong, (B) fails silently.
  *
  * (A) SEVEN SYMBOLS THE FORK ADDS. audio.cpp's *framework* code references them
- *     unconditionally, but none of the six families we build (moss_tts_nano, qwen3_tts,
- *     omnivoice, pocket_tts, supertonic, silero_vad) reaches them at run time on
- *     CPU / Vulkan / Metal — see the spec, §2 and §4.4:
+ *     unconditionally, but none of the five original TTS families we build (moss_tts_nano,
+ *     qwen3_tts, omnivoice, pocket_tts, supertonic) nor silero_vad reaches them at run
+ *     time on CPU / Vulkan / Metal — see the spec, §2 and §4.4. The four families added
+ *     2026-09-03 (voxcpm1, voxcpm2, irodori_tts, index_tts2) were not re-audited against
+ *     this list; they link and synthesize on all three lanes, and their op recordings
+ *     (src/ops/tts-*.ops) are the evidence of what they actually execute:
  *   - col2im_1d is upstream since 0.20.2 (identical signature): nothing to do.
  *     Re-verified 2026-09-01 — the two bodies derive the same output shape from the
  *     same formula; upstream only adds contiguity/dtype/padding asserts the fork

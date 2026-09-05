@@ -651,8 +651,9 @@ def test_models_catalog_kind_defaults_to_asr(monkeypatch):
 
 def test_new_translate_backends_installed_and_resolvable():
     # Genuinely needs the sokuji-native wheel: without it accel._installed()
-    # never reports native_translate on any host (slice 5 CI job runs the
-    # suite wheel-less, see test_runtime_gate.py).
+    # never reports native_translate on any host. The importorskip guards a dev
+    # checkout without the wheel; CI's sidecar-tests installs it from
+    # requirements.txt, so this runs there.
     pytest.importorskip("sokuji_native")
     # Force a REAL probe: an earlier test in this module may have left the
     # module-global probe() cache pointing at a monkeypatched fake Machine

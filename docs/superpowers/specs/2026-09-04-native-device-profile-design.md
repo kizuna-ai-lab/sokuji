@@ -90,7 +90,8 @@ Three things this buys:
    only on the real node.** No public ggml API distinguishes "has a fast kernel" from
    "runs"; `supports_op` encodes each backend's real rule including its build flags
    and env overrides — but it reads the whole node: op kind and parameters, dst type,
-   every source type, shapes, contiguity, and buffer-size limits. A hand-written
+   every source type, shapes, layout (stride order and density, not a single
+   contiguity bit — amendment 2026-09-05), and buffer-size limits. A hand-written
    `(op, dtype)` table cannot reproduce that, in either direction. So the model side is an
    **op recording** of the family's real graph nodes, and the query rebuilds those nodes.
    The **raw Vulkan feature bits** in the profile are diagnostics and never gate. The
@@ -912,3 +913,9 @@ recomputed on every sidecar start and keyed by (hardware, native version, driver
   writers); `unsupportedTiers` is TS-level only; the callable threads through nine
   functions; the fit walk sees only runnable rungs; `MTL_BFLOAT` via `CONCAT`;
   `driver_name[256]` (Claude).
+- 2026-09-05 — amendment: the recorded node layout is a stride-order permutation plus a
+  dense flag (`layout=[…]`, `nb0/nb1/nbd`), not a single contiguity bit — the one-bit model
+  falsely refused irodori_tts's ROPE on Vulkan (PR #486's final fix wave); premise 6's
+  wording updated. Also: `_tc_row`'s `arch` is the GGUF `general.architecture` (transcribe.cpp's
+  `Arch::name`), which differs from the `src/arch/` directory for cohere_asr,
+  granite_speech and granite_speech_nar — five catalog rows corrected (Claude).

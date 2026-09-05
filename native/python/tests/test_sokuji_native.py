@@ -440,9 +440,9 @@ def test_tts_supertonic_streams_presets_and_cancel():
 def test_tts_moss_offline_and_clone():
     sokuji_native.init()
     # NULL device = engine auto (slice-3 ruling), which would pick Metal on
-    # mac lanes; R19 keeps every TTS family cpu-only in production until
-    # validated per family per lane, so this binding test pins cpu explicitly
-    # too, like the CTest (native/tests/test_tts.cpp) does.
+    # mac lanes; this is the CPU synth case (the GPU gate is
+    # test_tts_synthesises_on_a_gpu_device below), so it pins cpu explicitly,
+    # like the CTest (native/tests/test_tts.cpp) does.
     cpu = next(d for d in sokuji_native.devices() if d.kind == "cpu")
     t = sokuji_native.tts_load(TTS_MOSS_DIR, "moss_tts_nano", cpu)
     assert not t.capabilities.streaming and t.capabilities.clones
@@ -488,9 +488,9 @@ def test_tts_moss_offline_and_clone():
 
 
 # The four families added on 2026-09-03. One CPU synth per family, same shape as the two
-# hand-written tests above and pinned to the CPU device for the same reason (R19: no TTS
-# family runs on a GPU tier until the fleet validates that family on that lane, and these
-# four are deliberately absent from catalog.py's _TTS_TIER_OVERRIDES).
+# hand-written tests above and pinned to the CPU device because these ARE the CPU synth
+# cases; the GPU gate for all nine families is test_tts_synthesises_on_a_gpu_device below
+# (their catalog.py _TTS_TIER_OVERRIDES rows came from that fleet run, commit 2f2b28bc).
 #
 # (family, env var, model dir, text, language, expected rate, needs a reference clip).
 # The text is in a language the family actually covers — irodori_tts is Japanese-only, and
@@ -677,9 +677,9 @@ GPU_TTS_MIN_PEAK = 0.01          # an all-zeros buffer of the right length must 
 # that cap's signature, so the tighter bound catches a backend on which the stop decision
 # stops working — same threshold the CPU test above uses.
 #
-# The four 2026-09-03 families are cpu-only in production (they are absent from catalog.py's
-# _TTS_TIER_OVERRIDES). They are listed here anyway so the fleet run that would earn them a
-# GPU tier is one env var away, exactly as it was for the original five.
+# The four 2026-09-03 families arrived cpu-only and earned their GPU tiers the same evening
+# (catalog.py's _TTS_TIER_OVERRIDES, commit 2f2b28bc) through this very table: one fleet run
+# per family per lane, one env var away, exactly as it was for the original five.
 GPU_TTS_FAMILIES = {
     "supertonic": ("SK_TEST_TTS_SUPERTONIC_DIR", TTS_SUPERTONIC_DIR, "M1", False, 30.0, GPU_TTS_TEXT, "en"),
     "pocket_tts": ("SK_TEST_TTS_POCKET_DIR", TTS_POCKET_DIR, "alba", False, 30.0, GPU_TTS_TEXT, "en"),

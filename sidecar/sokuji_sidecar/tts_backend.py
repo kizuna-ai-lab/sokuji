@@ -1,10 +1,11 @@
 """Native TTS backend (spec §5.3/§5.5): sokuji_native's TtsModel wraps audio.cpp's
-five families in-process (moss_tts_nano, qwen3_tts, omnivoice, pocket_tts,
-supertonic). One class covers every family: capability differences (streaming vs
-offline, clones or not, native sample rate) are read off the loaded model's
-`.capabilities` once, at load(), and stored as instance attributes that shadow the
-class defaults — tts_engine reads STREAMING/CLONES/sample_rate per instance, exactly
-so a single `native_tts` NAME can serve all five families. Which family loads is
+nine families in-process (moss_tts_nano, qwen3_tts, omnivoice, pocket_tts,
+supertonic, voxcpm1, voxcpm2, irodori_tts, index_tts2). One class covers every
+family: capability differences (streaming vs offline, clones or not, native sample
+rate) are read off the loaded model's `.capabilities` once, at load(), and stored as
+instance attributes that shadow the class defaults — tts_engine reads
+STREAMING/CLONES/sample_rate per instance, exactly so a single `native_tts` NAME can
+serve all nine families. Which family loads is
 picked by the catalog card via PlanConfig.tts_family (sk_tts_load's required
 family_hint); PlanConfig.tts_language is pocket_tts's load-time language package
 ("english", ...), ignored by every other family.
@@ -514,7 +515,8 @@ class NativeTtsBackend:
         is the NVIDIA driver's own on-disk pipeline/shader cache
         (`__GL_SHADER_DISK_CACHE_PATH`) -- a PER-MACHINE cost, not per-process
         and not per-session. Measured 2-14s cold (an empty driver cache) vs
-        ~0.06-0.94s once that cache is warm, across all five families. So this
+        ~0.06-0.94s once that cache is warm, across the original five families (the
+        four 2026-09-03 additions were not in that measurement). So this
         warm-up buys the full saving only on a first-ever run on a given
         machine; on every later process (warm driver cache) it still runs, but
         it is hiding a steady-state synth (tens to hundreds of ms), not a fresh
