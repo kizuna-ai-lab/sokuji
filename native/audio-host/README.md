@@ -46,10 +46,14 @@ sokuji-audio-host --target system --exclude-pids 4120,4133
 ```
 
 `--exclude-pids` (macOS only, optional) names processes that must never count as
-"rendering" for the `silent_no_permission` check. Sokuji passes its own process
-tree, because its audio service keeps an output stream open for the whole session
-even while it plays nothing, and on a `system` tap that alone used to satisfy the
-check (#492). A token that is not a positive pid is `bad_exclude_pids`, exit 2.
+"rendering" for the `silent_no_permission` check, together with their
+descendants, resolved against the live parent chain at every poll. Sokuji passes
+its own process tree, because its audio service keeps an output stream open for
+the whole session even while it plays nothing, and on a `system` tap that alone
+used to satisfy the check (#492). The live walk is what keeps the exclusion
+correct when Chromium restarts its audio-service utility process mid-capture:
+the replacement is a new pid, but still a child of the app. A token that is not
+a positive pid is `bad_exclude_pids`, exit 2.
 
 `system` captures everything the machine plays. Windows and Linux serve that
 through the renderer instead (getDisplayMedia / PipeWire), so only macOS

@@ -11,13 +11,16 @@
 //       needs only the audio-capture grant - never Screen Recording.
 //
 //   sokuji-audio-host --target <target> --exclude-pids 1234,5678
-//       Optional. Processes that must never count as "rendering" for the
-//       silent_no_permission check below. Sokuji passes its own process tree:
-//       its audio service holds an output stream open from the moment a
-//       session starts, even while it plays nothing, and on a `system` tap
-//       that alone satisfied the check and fired the warning on every quiet
-//       session start (#492). The helper cannot tell which pids are its
-//       parent app, so the list has to come from the app.
+//       Optional. Processes - and, resolved live, their descendants - that
+//       must never count as "rendering" for the silent_no_permission check
+//       below. Sokuji passes its own process tree: its audio service holds an
+//       output stream open from the moment a session starts, even while it
+//       plays nothing, and on a `system` tap that alone satisfied the check
+//       and fired the warning on every quiet session start (#492). Descendants
+//       are matched by walking the parent chain at check time, so a utility
+//       process that restarts mid-capture is still excluded under its new pid.
+//       The helper cannot tell which pids are its parent app, so the roots
+//       have to come from the app.
 //
 //       Writes raw PCM to stdout until killed, fixed at
 //       24000 Hz, 1 channel, signed 16-bit little-endian.
@@ -390,12 +393,30 @@ final class CaptureState: @unchecked Sendable {
 
 var gStop = false
 
+/// Whether `pid` is one of `roots` or descends from one, walking up the
+/// parent chain. The depth bound stops a cycle from hanging us, and eight
+/// levels is far more than Electron's main -> utility nesting ever needs.
+func isDescendant(_ pid: pid_t, of roots: Set<pid_t>) -> Bool {
+    var current = pid
+    for _ in 0..<8 {
+        // launchd is everyone's ancestor; a root of 1 must not match the world.
+        if current <= 1 { return false }
+        if roots.contains(current) { return true }
+        current = ppidOf(current)
+    }
+    return false
+}
+
 /// Is the tapped target actually rendering audio right now?
 ///
 /// For a global tap the question is whether *any* application is, since that is
 /// what such a tap should be picking up - any application except the ones in
-/// `excluded`, which is how the app keeps its own always-open output stream
-/// from answering the question on its behalf (see --exclude-pids above).
+/// `excluded` and their descendants, which is how the app keeps its own
+/// always-open output stream from answering the question on its behalf (see
+/// --exclude-pids above). Resolved against the live parent chain on every call
+/// rather than against a list frozen at spawn: Chromium's audio service is a
+/// utility process that can be restarted mid-capture, and its replacement
+/// would otherwise be a fresh, un-excluded pid holding the same silent stream.
 /// "Running output" is a statement about streams, not content: a process with
 /// an open stream that renders digital silence is counted, which is exactly why
 /// the caller has to be able to leave itself out.
@@ -404,7 +425,7 @@ func isRenderingOutput(_ targets: [AudioObjectID], excluding excluded: Set<pid_t
         ? objectIDs(kAudioHardwarePropertyProcessObjectList)
         : targets
     return objs.contains { obj in
-        if !excluded.isEmpty, let pid = pidOf(obj), excluded.contains(pid) { return false }
+        if !excluded.isEmpty, let pid = pidOf(obj), isDescendant(pid, of: excluded) { return false }
         return boolProp(obj, kAudioProcessPropertyIsRunningOutput)
     }
 }

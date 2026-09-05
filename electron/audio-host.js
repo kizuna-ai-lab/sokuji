@@ -170,7 +170,10 @@ function startCapture(deviceId, onPcm, onEvent, {
   // stream open even while it plays nothing - so on a whole-system tap that
   // check was satisfied by Sokuji itself and the warning fired on every quiet
   // session start (#492). The helper cannot know which pids are its parent app,
-  // so the list crosses here. The Windows helper has no such check.
+  // so the list crosses here; the helper treats each as a root and excludes
+  // its descendants by walking the live parent chain, so a utility process
+  // Chromium restarts mid-capture stays excluded under its new pid. The
+  // Windows helper has no such check.
   if (platform === 'darwin') {
     const own = [...selfIdentity.pids].filter((p) => Number.isInteger(p) && p > 0).sort((a, b) => a - b);
     if (own.length > 0) args.push('--exclude-pids', own.join(','));
