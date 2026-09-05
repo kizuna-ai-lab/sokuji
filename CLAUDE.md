@@ -160,9 +160,14 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      `sidecar-bundles.yml` publishes five bundles + a merged `manifest.json`, also prerelease.
      App version is the five-site rule above, independent of both. Order is fixed: native tag
      first (wheels must exist) → `sidecar/requirements.txt` pins the five wheel URLs by
-     `sys_platform`/`platform_machine` → sidecar tag (a bundle built before `requirements.txt`
-     carries those URLs ships hollow, no `sokuji_native` inside) → the app's `sidecarVersion`
-     bump rides an ordinary future app release. The first *shipped* ggml-only pair is
+     `sys_platform`/`platform_machine` (mirrored by `NATIVE_RELEASE_BASE`/`NATIVE_WHEELS` in
+     `sidecar/tests/test_runtime_gate.py`, which must move with it), in the SAME commit as root
+     `package.json`'s `sidecarVersion` → sidecar tag on that
+     commit — `sidecar-bundles.yml`'s first step refuses a tag whose `sidecarVersion` is not on
+     the tagged commit (the 2026-09-05 `sidecar-v0.3.0` run failed all five lanes for exactly
+     that, and had to be re-cut), and a bundle built before `requirements.txt` carries the URLs
+     ships hollow, no `sokuji_native` inside. The app release that carries that `sidecarVersion`
+     to users is a later, ordinary app version. The first *shipped* ggml-only pair is
      `native-v1.0.1` / `sidecar-v0.2.0` — a clean break from the ONNX-era `sidecar-v0.1.x`
      line; `native-v1.0.0` was published the same day but never pinned by any bundle, superseded
      by 1.0.1 (R41: the Python binding's `Translator._make_cb` used to decode each streamed
@@ -182,20 +187,26 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      family/quant — a GGML abort is an uncatchable SIGABRT); `native/tests/parity`
      (sample-exact vs. `audiocpp_cli`, its own per-source-keyed "nosve" cache); the sidecar's
      live TTS→ASR loopback (`SOKUJI_RUN_TTS_LOOPBACK=1`, `sidecar/tests/test_tts_engine.py`).
-     `sidecar-tests` in CI needs `PYTHONPATH=sidecar` — it isn't installed as a package; it
-     installs `sidecar/requirements.txt` but sets neither `SK_TEST_TTS_GPU` nor
-     `SOKUJI_RUN_TTS_LOOPBACK`, and every native-gated test `importorskip`s silently when no
-     `sokuji_native` wheel resolves.
+     `sidecar-tests` in CI needs `PYTHONPATH=sidecar` — it isn't installed as a package. It
+     installs `sidecar/requirements.txt`, which DOES resolve the pinned linux-x64
+     `sokuji_native` wheel on the ubuntu runner (so `importorskip`-gated tests run there), but
+     it has no model cache, no GPU, and sets neither `SK_TEST_TTS_GPU` nor
+     `SOKUJI_RUN_TTS_LOOPBACK`, so every model- or device-gated test skips silently. It only
+     runs when the diff touches `sidecar/**`, `scripts/build-sidecar-bundle.py` or
+     `sidecar-bundles.yml`; `native-build.yml` has no push/PR trigger at all — native changes
+     get CI only from a `workflow_dispatch` dry run or the `native-v*` tag.
    - **Thread policy**: `n_threads=0` (default) resolves to `min(hardware_concurrency, 12)` —
      `ggml_barrier()` spin-waits with no yield, so at `n_threads == nproc` timing turns unstable
      (1.2-4.3x run-to-run spread measured at nproc=20 on GB10 vs. ~1.03x at the 12-thread knee;
      a 10-core M4 never crosses it); `SOKUJI_NATIVE_THREADS` overrides. A GPU TTS load runs one discarded warm-up `synth()`
-     (skipped for CPU and the two clone-only voice-required families) to pay the driver's
+     (skipped for CPU and the three voice-required families) to pay the driver's
      one-time pipeline-compile cost at load, not on the user's first utterance.
-   - **Voice rules** (`tts_backend.py`): `qwen3_tts`/`omnivoice` are clone-only — a bare
-     `synth()` with no `set_voice()` raises a clean error before reaching the native layer.
-     `pocket_tts` gets its first listed preset (`alba`) applied automatically at load, since it
-     also has no working default. `moss_tts_nano` and `supertonic` synth with nothing set.
+   - **Voice rules** (`catalog.VOICE_REQUIRED_FAMILIES`, consumed by `tts_backend.py`):
+     `qwen3_tts`/`omnivoice` are clone-only (reference clip + its transcript) and `index_tts2`
+     needs the clip only — for all three a bare `synth()` with no `set_voice()` raises a clean
+     error before reaching the native layer. `pocket_tts` gets its first listed preset (`alba`)
+     applied automatically at load, since it also has no working default. `moss_tts_nano`,
+     `supertonic`, `voxcpm1`, `voxcpm2` and `irodori_tts` synth with nothing set.
      `moss_tts_nano` alone samples its stop decision rather than greedy-argmax (R23) — same
      seed, so still build-reproducible.
    - **Known gaps**: no real M1/M2/M3 Metal hardware has run this suite (only an M4 — the
@@ -421,6 +432,153 @@ inbound `answer` has a non-zero `SessionDescription.id`.
 4. Add the enum value in `src/types/Provider.ts` and the settings slice + update action in `settingsStore.ts`
 5. Add `providers.<id>.name/.description` to locales
 The registry invariant test (`descriptorRegistry.test.ts`) fails loudly on anything missed.
+
+### Adding a native model or TTS family
+
+The native stack has three rosters, all in `sidecar/sokuji_sidecar/catalog.py`: ASR cards
+(`ASR_MODELS`, one `_tc_row(...)` each), translation cards (`TRANSLATE_MODELS`,
+`_llm_translate_row(...)` plus `_GGUF_SOURCES`) and TTS cards (`TTS_MODELS`, `_tts_gguf_row(...)`).
+Every card carries a `graph_family`, the key the op-coverage gate looks up in the recordings
+baked from `native/src/ops/<stage>-<family>.ops`. For TTS it is the audio.cpp family name. For
+ASR it is what `sk_asr_caps.arch` reports, i.e. the GGUF's `general.architecture` — read it with
+`gguf_header.read_header(path).architecture`, never from the transcribe.cpp `src/arch/` directory
+name (three differ: `cohere_asr`, `granite_speech`, `granite_speech_nar`). For translation it is
+llama.cpp's `general.architecture` (`qwen2`, `qwen3`, `qwen35`, `gemma3`, `llama`,
+`hunyuan-dense`). A recording is per (stage, family), not per card; a missing ASR or translation
+recording is a pass-through, and only the `tts` stage ever refuses a rung
+(`planner._ABORTS_ON_UNSUPPORTED`). Model names and rung ids cross the wire as plain strings:
+none of the cases below touches a locale, a renderer enum or `wire_schema.json`. Byte counts in
+every row are the exact Hub file sizes: `python benchmark/qwen3-asr-webgpu/hub_sizes.py <org/repo>
+<out.json>` writes every file's exact byte count to `<out.json>` (its console line is rounded MB —
+never copy that); nothing re-checks them at runtime, so a wrong number is what the user sees.
+
+**An ASR model of an architecture already compiled in** — catalog only, ships with a sidecar tag:
+1. One `_tc_row(...)` in `ASR_MODELS`: `repo` must be `handy-computer/<x>-gguf`; `quants` keys
+   are limited to `F16`/`Q8_0`/`Q6_K`/`Q5_K_M`/`Q4_K_M` (any other spelling is silently dropped
+   from the ladder); `default` must be a key of `quants` (`quants[default]` KeyErrors at import
+   otherwise, which aborts collection of the whole sidecar suite); `backend="native_asr_stream"`
+   only for a streaming arch; `tiers=_TC_GPU_TIERS` when the model cannot run on CPU; `arch=`
+   per the rule above. `asr_models()` re-sorts by `sort_order`, so place the row anywhere.
+2. `sidecar/tests/test_catalog.py::test_roster_is_wer_ranked` pins the card count and the
+   recommended count — bump them; add a `test_<card>_row` in the shape of `test_qwen3_asr_row`.
+3. The only check of the `arch=` string: cache the GGUF under `~/.cache/sokuji-native-tests/`
+   and add a `(file, card_id)` pair to `test_asr_graph_family_matches_native_arch` (it skips
+   without the file, so CI never sees it).
+4. A language code the picker does not emit needs an alias in
+   `src/lib/local-inference/native/nativeCatalog.ts` `LANG_ALIASES`, or the card is silently
+   marked incompatible. Nothing else in the renderer enumerates ASR cards.
+
+**An ASR architecture new to Sokuji**: first check that the pinned transcribe.cpp registers it
+(`ls native/build/cpu/_deps/transcribe-src/src/arch/`; at 0.2.3 `medasr` (HF-gated) and
+`sortformer` (a diarization arch, not ASR) are compiled in but have no card). Otherwise it is a
+pin bump first: `GIT_TAG` and `SOKUJI_TRANSCRIBE_VERSION` in `native/cmake/upstreams.cmake`, the
+anchors in `native/patches/transcribe.cpp.json`, the `transcribe=0.2.3` literal in
+`native/tests/test_common.cpp` and `ev["transcribe"] == "0.2.3"` in
+`native/python/tests/test_sokuji_native.py`, then `native/README.md` "Bumping a pin" end to end
+and a `native-v` release. Then the card as above. An op recording is optional for ASR
+(diagnostics only): `record_ops … asr <arch> …` on the CPU record tree (`-DSOKUJI_RECORD_OPS=ON`,
+see the TTS steps for the driver) writes `native/src/ops/asr-<arch>.ops`; its header says
+`recorded-on: gpu` because the recorder device advertises itself as one — leave it. Land it in
+ONE commit with its `CASES[]` row in `native/tests/test_ops_coverage.cpp`, the export in
+`native/ci/ops-env.sh` and, if CI should gate it, the env var, curl line and cache key in
+`.github/workflows/native-build.yml` (a `CASES[]` row whose env var is set but has no `.ops` fails
+the gate; with the env var unset the row is silently SKIPPED, so the CI env var is what gives it
+teeth).
+
+**A translation model** — catalog only: add the two `(card_id, quant) -> (repo, exact filename)`
+pairs to `_GGUF_SOURCES` FIRST (`_gguf_artifact` indexes them at import), then the
+`_llm_translate_row(...)` with `family` (the card's `prompt_family`) from
+`translate_backend.STRATEGIES` (`qwen` for any ChatML template, `hunyuan`, `gemma`), the
+thinking flags (`disable_thinking` for `<think>` models, `append_no_think` only for plain
+Qwen3), `arch=`, and renumber `sort_order`; bump
+`test_translate_row_count_and_no_opus`. Context is fixed at 4096 (`translate_load` is called
+with `n_ctx=0`); a model that needs more is a new card field, not a catalog edit. A recording
+(`translate-<arch>.ops`, flash_attn on and off merged) is optional; only `qwen3` has one.
+
+**A TTS family** — native + sidecar, needs a `native-v` release and a real GPU box. Fix the card
+id first: the test model lives at `~/.cache/sokuji-native-tests/tts/<card-id>/` (one GGUF) and
+every gate keys on that path.
+1. Native: the family must be in the pinned audio.cpp (else a pin bump first: `GIT_TAG` and
+   `SOKUJI_AUDIOCPP_VERSION` in `native/cmake/upstreams.cmake`, the anchors in
+   `native/patches/audio.cpp.json`, the `audiocpp=0.7.1` literal in `native/tests/test_common.cpp`
+   and `ev["audiocpp"] == "0.7.1"` in `native/python/tests/test_sokuji_native.py`, then every
+   existing TTS recording re-recorded and the parity reference rebuilt). Add it to
+   `AUDIOCPP_MODELS` in `native/cmake/upstreams.cmake` and a `kFamilies[]` row in
+   `native/src/sk_tts.cpp` (streaming, clones, transcript_required, default rate, sample_decode,
+   strict_options — read off audio.cpp's `src/models/<family>/` sources (moss_tts_nano's sit one
+   level down, `src/models/moss/moss_tts_nano/`), or `src/community_models/<family>/` for a
+   community model such as voxcpm1, not the model card;
+   check `build_request` for a family that takes its language as a request option or validates
+   options against its spec). Add the env var, a `NEW_CPU_TTS_FAMILIES` row and a
+   `GPU_TTS_FAMILIES` row (+ `GPU_TTS_BF16_ENV` if a bf16 rung ships) in
+   `native/python/tests/test_sokuji_native.py`, and the export in
+   `native/ci/ops-env.sh`. Build the CPU lane and run the CPU synth cases: this is where you learn
+   whether a bare `synth()` works (→ `VOICE_REQUIRED_FAMILIES`), whether a preset must be applied
+   at load (→ `tts_backend._DEFAULT_PRESET_FAMILIES`, `tts_voices._LOAD_FREE_PRESETS`) and
+   whether the family rejects request options.
+2. Record on a real GPU (GB10 Vulkan or M4 Metal), never on the CPU tree — audio.cpp builds a
+   different graph on a host backend, so a CPU recording refuses ops the GPU is never asked for:
+   `cmake -S native -B native/build/record-vk -DSOKUJI_GPU=vulkan -DSOKUJI_RECORD_OPS=ON &&
+   cmake --build native/build/record-vk -j`; a clone-only family first joins `needs_voice` in
+   `native/tests/record_common.h`; then `native/build/record-vk/lib/record_ops
+   native/build/record-vk/lib tts <family> <model-dir> native/src/ops/tts-<family>.ops
+   <supertonic-dir>` — the header must read
+   `# recorded-on: vulkan` (or `metal`). In the SAME commit: the `CASES[]` row in
+   `native/tests/test_ops_coverage.cpp`, and in `native/tests/test_common.cpp` the `n_tts` and
+   `n_swept` counts and the `want[]` roster — the counts iterate the baked blobs, so a tenth
+   `.ops` without them fails CTest on every lane. Rebuild the same tree after the `.ops` lands (the
+   glob is `CONFIGURE_DEPENDS`, a rebuild suffices), then gate: `bash native/ci/ops-env.sh ctest
+   --test-dir native/build/record-vk -R test_ops_coverage`. CI runs that gate CPU-only and with
+   supertonic and moss only; a new family's recording is proven on the fleet, not in CI.
+3. Sidecar: one `_tts_gguf_row(...)` (quants with the exact `lfs.size` bytes from the
+   `audio-cpp/audio.cpp-gguf` tree, languages from audio.cpp's `model_specs/<family>.json`);
+   `VOICE_REQUIRED_FAMILIES` only if a bare synth raises — families that clone but speak with
+   nothing set stay out. The card starts cpu-only (`_TTS_TIERS`): carve it out of
+   `test_tts_quant_ladder_shape` the way `NEW_2026_09_03_TTS_CARD_IDS` once did, and add it to
+   `_TTS_TIER_OVERRIDES` with its measured RTF table only after step 4. Tests: `test_catalog.py`
+   (`TTS_CARD_IDS`, the card count, the voice-required tuples, a per-card shape test),
+   `test_tts_backend.py` (an R16 gated or not-gated case), `test_accel.py` (`voice.required` on
+   the wire if required). `test_every_tts_family_has_an_op_recording` is why step 2 comes first.
+4. Fleet: `SK_TEST_TTS_GPU=1 SK_TEST_TTS_<FAMILY>_DIR=… pytest native/python/tests -k
+   tts_synthesises_on_a_gpu_device` on GB10/Vulkan, the RTX 4070 SUPER and the M4, with the wheels
+   from a `native-build.yml` dry run; optionally a loopback leg in
+   `sidecar/tests/test_tts_engine.py` and a parity case. Only then the GPU tiers.
+5. Prose nothing guards: the family lists and counts in `native/README.md`, the native bullets in
+   this file (nine families, voice rules), the device-profile spec's §3.2.1, and the comments in
+   `native/include/sokuji_native.h` and `src/lib/local-inference/native/nativeProtocol.ts`. Two
+   renderer values to check: the per-card `MODEL_CLIP_LIMITS` in
+   `src/lib/local-inference/native/nativeVoiceStores.ts` (reference-clip ceiling) and the single
+   global `TTS_ASSUMED_RTF` in `NativeTtsClient.ts` (raise it if the family is slower than
+   index_tts2 on CPU).
+6. Release, in the order the Versions bullet fixes: native version + tag → wheels → pins,
+   `test_runtime_gate.py` and `sidecarVersion` in one commit on main → sidecar tag → smoke the
+   published bundles with `PYTHONNOUSERSITE=1` (the bundled interpreter honours user
+   site-packages, which precede its own).
+
+**A quant rung or weight dtype**: add it to the card (ASR: the `quants` dict AND the order tuple
+inside `_tc_row`; translation: `_GGUF_SOURCES`, and widen `_llm_translate_row` for a third rung;
+TTS: the `quants` dict) and give it a `RUNG_FALLBACK_DTYPES` entry — weight-capable ggml
+spellings only (`q4_K`, not `q4_k_m`); a rung without one silently queries coverage over `{f32}`.
+If the `q4_k_m` set changes length, `WIDEST_FALLBACK` in `native/cmake/gen_ops_data.py` moves with
+it (`test_widest_fallback_matches_gen_ops_data`); the generated `static_assert` against
+`SK_OP_COVERAGE_MAX` is the hard cap, and raising that is an ABI change. A dtype ggml 0.22 lacks
+is a ggml pin bump; one it has but `gguf_header.GGML_TYPE_NAMES` lacks is one dict entry. No new
+recording is needed — WEIGHT expands over the caller's dtype set at query time — unless the test
+cache is repointed at the new rung's file, which drifts `dtypes-in-file` and forces a
+re-recording. Update the per-card pins in `test_catalog.py`, the rung tuple in
+`test_rung_fallback_sets_cover_cached_ggufs`, and regenerate the affected
+`test_characterization.py` rows. A GPU-tiered TTS rung earns its tiers the way bf16 did: fleet
+run first.
+
+Stale comments, do not follow them: `_tc_row`'s docstring says `arch` is the `src/arch/<name>`
+directory, and the cohere-transcribe and four granite-speech rows still carry directory names
+(`cohere`, `granite`, `granite_nar`) instead of `cohere_asr`/`granite_speech`/`granite_speech_nar`
+— harmless only because no recording exists for them; read the header, do not copy a sibling's
+`arch=`. Several comments (`catalog.py`, `test_catalog.py`, `test_sokuji_native.py`,
+`native/README.md`) still call the four 2026-09-03 families cpu-only — `_TTS_TIER_OVERRIDES` is
+the truth, and its own comment saying `requirements.txt` "still pins" native 1.0.1 is older than
+the 1.1.0 pin. `native/ci/build.sh` and `build.ps1` say the recordings "were captured on CPU" —
+the TTS ones were not. `build.yml` calls `sidecar-tests` wheel-less — it is not.
 
 ### Modifying Audio Pipeline
 1. Audio processing modules in `src/lib/modern-audio/` (JavaScript files)
