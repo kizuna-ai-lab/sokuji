@@ -348,7 +348,15 @@ export function formatTps(tps: number): string {
  *  label in the component; `warn` marks the degraded/fallback row. */
 export type BackendTooltipRow = { key: string; value: string; warn?: boolean };
 
+// Keyed by the backend ids the sidecar emits (catalog.py `_tc_row backend=`,
+// `_llm_translate_row`, `_tts_gguf_row`; accel.py `tiers[].backend`). The ASR ids
+// have been native_asr / native_asr_stream since the ggml-only sidecar (slice 2);
+// the transcribe_cpp* rows are the pre-slice-2 spellings, kept so an older
+// bundle's catalog still labels (the app pins the sidecar version, so in practice
+// only the native_* ids arrive).
 const FRAMEWORK_LABELS: Record<string, string> = {
+  native_asr: 'transcribe.cpp',
+  native_asr_stream: 'transcribe.cpp',
   transcribe_cpp: 'transcribe.cpp',
   transcribe_cpp_stream: 'transcribe.cpp',
   native_translate: 'llama.cpp',
@@ -356,12 +364,12 @@ const FRAMEWORK_LABELS: Record<string, string> = {
 };
 
 /** Engine/library label for a sidecar backend id. Falls back by prefix so a new
- *  transcribe_cpp_X id still resolves, else echoes the raw id. The old
- *  `X_onnx` → 'ONNXRuntime' fallback died with the ONNX backends themselves
+ *  native_asr_X / transcribe_cpp_X id still resolves, else echoes the raw id. The
+ *  old `X_onnx` → 'ONNXRuntime' fallback died with the ONNX backends themselves
  *  (slice 5) — no backend id ends in `_onnx` anymore. */
 export function frameworkLabel(backendId: string): string {
   if (FRAMEWORK_LABELS[backendId]) return FRAMEWORK_LABELS[backendId];
-  if (backendId.startsWith('transcribe_cpp')) return 'transcribe.cpp';
+  if (backendId.startsWith('native_asr') || backendId.startsWith('transcribe_cpp')) return 'transcribe.cpp';
   return backendId;
 }
 
