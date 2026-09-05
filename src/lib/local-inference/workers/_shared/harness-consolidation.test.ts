@@ -94,26 +94,75 @@ describe('ASR worker flush handling (PTT finalization)', () => {
   });
 });
 
+// #470: an ASR worker must never `await` its model decode from inside feedAudio. Awaiting
+// there holds `processingVad` for the whole decode (0.5–2.5 s on the fleet GPUs), and the guard
+// at the top of feedAudio then drops every audio message arriving meanwhile — on gapless audio
+// that is the first words of the next utterance, and on the 20 s max-speech cap it is words at
+// every boundary. Decodes are fire-and-forget (`void schedule(...)`) on SpeechEnd, on the cap
+// and on flush, serialized behind a worker-local promise that handleFlush drains. voxtral-3b
+// and qwen3-asr established the pattern (#469); whisper, cohere and granite adopted it in #497.
+//
+// Each path gets a positive AND a negative assertion on its own slice, with every anchor
+// required to exist: the first version of this guard anchored the cap slice on a comment that
+// in whisper first appears on the `maxSpeechFrames` declaration and used a section header
+// cohere does not have, so `indexOf` widened the slice until it contained a sibling's `void`
+// and the cap-path assertion passed vacuously for two of the three workers.
 const NON_BLOCKING_DECODE_WORKERS = [
   ['whisper-webgpu.worker.ts', 'scheduleWhisper', 'pendingWhisperDecode'],
   ['cohere-transcribe-webgpu.worker.ts', 'scheduleTranscription', 'currentTranscriptionPromise'],
   ['granite-speech-webgpu.worker.ts', 'scheduleGraniteInference', 'pendingGraniteDecode'],
+  ['qwen3-asr-webgpu.worker.ts', 'transcribe', 'currentDecodePromise'],
+  ['voxtral-3b-webgpu.worker.ts', 'runVoxtral3B', 'currentDecodePromise'],
 ] as const;
 
-describe('ASR worker VAD decode handoff', () => {
-  it.each(NON_BLOCKING_DECODE_WORKERS)('%s releases VAD before %s completes', (name, schedule, pending) => {
-    const src = read(name);
-    const speechEnd = src.match(/case Message\.SpeechEnd:([\s\S]*?)case Message\.VADMisfire:/)?.[1] ?? '';
-    const maxSpeech = src.slice(src.indexOf('// Max speech duration cap'), src.indexOf('// ─── Message Handlers'));
-    const flush = src.slice(src.indexOf('async function handleFlush'), src.indexOf('async function handleDispose'));
-    const call = new RegExp(`\\b${schedule}\\(`);
+/**
+ * `src.slice(from, to)` with both anchors required, in order. A missing anchor must fail the
+ * test loudly — `indexOf` returning -1 silently turns a slice into "the rest of the file".
+ */
+function sliceBetween(src: string, name: string, from: string, to: string): string {
+  const a = src.indexOf(from);
+  expect(a, `${name}: anchor ${JSON.stringify(from)} not found`).toBeGreaterThanOrEqual(0);
+  const b = src.indexOf(to, a + from.length);
+  expect(b, `${name}: anchor ${JSON.stringify(to)} not found after ${JSON.stringify(from)}`)
+    .toBeGreaterThanOrEqual(0);
+  return src.slice(a, b);
+}
 
-    expect(speechEnd).toMatch(new RegExp(`void\\s+${schedule}\\(`));
-    expect(speechEnd).not.toMatch(new RegExp(`await\\s+${schedule}\\(`));
-    expect(maxSpeech).toMatch(new RegExp(`void\\s+${schedule}\\(`));
-    expect(flush).toMatch(new RegExp(`void\\s+${schedule}\\(`));
-    expect(flush).toMatch(new RegExp(`await ${pending}`));
-    expect(src).toMatch(new RegExp(`const \\w+ = ${pending};`));
-    expect(src).toMatch(call);
+describe('ASR worker VAD decode handoff (#470)', () => {
+  it.each(NON_BLOCKING_DECODE_WORKERS)('%s fires %s without awaiting it on every segment-closing path', (name, schedule, pending) => {
+    const src = read(name);
+    const paths: Array<[string, string]> = [
+      ['SpeechEnd', sliceBetween(src, name, 'case Message.SpeechEnd:', 'case Message.VADMisfire:')],
+      ['max-speech cap', sliceBetween(src, name, 'speechFramesSinceStart >= maxSpeechFrames', 'speechFramesSinceStart = 0;')],
+      ['flush', sliceBetween(src, name, 'async function handleFlush', 'async function handleDispose')],
+    ];
+    const voidCall = new RegExp(`\\bvoid\\s+${schedule}\\(`);
+    const awaitCall = new RegExp(`\\bawait\\s+${schedule}\\(`);
+    for (const [label, slice] of paths) {
+      expect(slice, `${name}: the ${label} path must fire-and-forget ${schedule}()`).toMatch(voidCall);
+      expect(slice, `${name}: the ${label} path must not await ${schedule}() (holds processingVad, drops audio)`).not.toMatch(awaitCall);
+    }
+    const [, flush] = paths[2];
+    expect(flush, `${name}: handleFlush must drain ${pending} so PTT release resolves after the utterance's text is posted`)
+      .toMatch(new RegExp(`await\\s+${pending}\\b`));
+  });
+});
+
+// handleDispose nulls the module-level model reference BEFORE its final drain of the decode
+// chain (so a queued decode exits at its guard), which means a decode already past that guard
+// can resume with the global gone. The segment body must therefore read the model through a
+// local captured before its first await — qwen3-asr's `const m = model` — never the module
+// global. granite once did `await processor(...)` and then `model.generate(...)`, which threw
+// inside its try and posted a spurious "Granite inference failed" during dispose (#497 review).
+// whisper and cohere read their global synchronously before the first await, so this guard is
+// granite-specific.
+describe('ASR worker decode body holds its model in a local', () => {
+  it('granite-speech-webgpu.worker.ts never dereferences the module globals after capturing them', () => {
+    const src = read('granite-speech-webgpu.worker.ts');
+    const body = sliceBetween(src, 'granite', 'async function runGraniteInferenceSegment', '// ─── Audio Feed Pipeline');
+    expect(body, 'capture `model` into a local before the first await').toMatch(/= model;/);
+    expect(body, 'capture `processor` into a local before the first await').toMatch(/= processor;/);
+    expect(body, 'must not dereference the module global `model` (nulled by handleDispose mid-decode)').not.toMatch(/\bmodel\./);
+    expect(body, 'must not call or dereference the module global `processor`').not.toMatch(/\bprocessor[.(]/);
   });
 });

@@ -151,9 +151,21 @@ let currentTranscriptionPromise: Promise<void> | null = null;
 // ─── Speech Segment Processing ──────────────────────────────────────────────
 
 /**
- * Run Cohere Transcribe on a completed speech segment with token streaming.
+ * Queue one speech segment for decoding, serialized behind whatever decode is already running.
  * TextStreamer emits partial results token-by-token during inference.
- * Awaits any in-flight transcription before starting to prevent races with flush/dispose.
+ *
+ * Callers on the VAD path fire-and-forget this (`void scheduleTranscription(...)`): a decode
+ * takes 0.5–2.5 s, and awaiting it inside `feedAudio` would keep `processingVad` true for that
+ * long, so every audio message arriving meanwhile would hit the guard and be dropped — on
+ * gapless audio that loses the start of the next utterance, and at the 20 s cap it loses words
+ * at every boundary (#470). Same pattern as the voxtral-3b and qwen3-asr workers
+ * (`currentDecodePromise`). Chaining on the previous promise keeps decodes strictly ordered and
+ * never overlapping on the pipeline; the chain is NOT there so that callers can await it. The
+ * returned promise never rejects: the body reports its own errors.
+ *
+ * Overlapping VAD frames with an in-flight decode is safe only because the VAD runs on its own
+ * ORT instance (`_shared/onnxruntime-all`) while the model runs on Transformers.js's — never
+ * put a second session on the model's instance while a decode can be in flight (#469).
  */
 function scheduleTranscription(audio: Float32Array): Promise<void> {
   const previousTranscription = currentTranscriptionPromise;
@@ -238,6 +250,10 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
 
           case Message.SpeechEnd:
             speechFramesSinceStart = 0;
+            // Fire-and-forget: awaiting here would hold `processingVad` for the whole decode
+            // and the guard at the top of this function would drop the audio arriving
+            // meanwhile (#470). `scheduleTranscription` serializes decodes via
+            // `currentTranscriptionPromise`.
             void scheduleTranscription(ev.audio);
             break;
 
@@ -251,6 +267,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
       if (frameProcessor.speaking) {
         speechFramesSinceStart++;
         if (speechFramesSinceStart >= maxSpeechFrames) {
+          // See the SpeechEnd case above: fire-and-forget so no audio is dropped at the cap.
           const endEvents: FrameProcessorEvent[] = [];
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
@@ -343,17 +360,26 @@ async function handleFlush(): Promise<void> {
       }
     }
   }
-  // Wait for any in-flight transcription to complete
+  // Drain the chain: `scheduleTranscription` assigns `currentTranscriptionPromise` before
+  // returning, so this picks up the decode just kicked off (behind anything already queued)
+  // and the flush resolves once the utterance's text has been posted. Runs even when nothing
+  // was speaking, so a flush issued mid-decode still waits for that decode.
   if (currentTranscriptionPromise) {
     try { await currentTranscriptionPromise; } catch { /* already reported */ }
   }
 }
 
 async function handleDispose(): Promise<void> {
+  // Flush remaining speech; handleFlush waits for that decode to finish.
   await handleFlush();
 
+  // Stop accepting new segments before touching the pipeline: with `transcriber` null,
+  // feedAudio returns early and a queued decode exits at its guard.
   const cohereTranscriber = transcriber;
   transcriber = null;
+
+  // A decode may have been queued between the flush's await and the line above; wait for it
+  // so nothing runs against a disposed pipeline. Not redundant with the drain in handleFlush.
   if (currentTranscriptionPromise) {
     try { await currentTranscriptionPromise; } catch { /* already reported */ }
     currentTranscriptionPromise = null;
