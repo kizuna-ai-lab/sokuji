@@ -218,6 +218,13 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       if (generation !== loadGeneration.current || sourceRef.current !== requestSource) return;
       setClones(voices);
       setListState('idle');
+      // A fresh, successful load supersedes whatever the capture banner was
+      // still reporting. Without this the banner had no way OFF the screen
+      // short of the user starting another record/import/preview — the only
+      // places that reset it — so an outage's "Failed to fetch" outlived the
+      // outage (seen in production, 2026-09-05). Sits after the guard above
+      // on purpose: a superseded refresh must not clear anything either.
+      setCaptureError(null);
     } catch {
       if (generation !== loadGeneration.current || sourceRef.current !== requestSource) return;
       setListState('error');

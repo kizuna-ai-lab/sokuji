@@ -361,6 +361,26 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/processing failed/i));
   });
 
+  // Reported from production 2026-09-05: a "Failed to fetch" in the
+  // capture-error alert stayed on screen after the list had reloaded fine.
+  // Nothing ever cleared it — the only `setCaptureError(null)` calls sat at
+  // the START of the next record/import/preview, so an outage message
+  // outlived the outage until the user happened to start a new capture. A
+  // successful list load is positive evidence that whatever last went wrong
+  // has been superseded, so it clears the banner.
+  it('a successful list refresh clears a stale capture-error alert', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    deleteMock.mockRejectedValue(new Error('boom'));
+    mount();
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/boom/));
+
+    fireEvent.click(screen.getByTitle(/refresh voice list/i));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  });
+
   it('onImport rejects a file over 35MB before decoding, creating, or opening the modal', async () => {
     listMock.mockResolvedValue([]);
     const { container } = mount();
