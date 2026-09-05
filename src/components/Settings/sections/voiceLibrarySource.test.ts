@@ -147,7 +147,7 @@ describe('managedVoiceSource.waitUntilReady', () => {
     const mine = vi.fn()
       .mockResolvedValueOnce({ voiceId: 'v1', status: 'processing', createdAt: 1 })
       .mockResolvedValueOnce({ voiceId: 'v1', status: 'ready', createdAt: 1 });
-    const source = managedVoiceSource(fakeClient({ mine }), ACCOUNT, { intervalMs: 0 });
+    const source = managedVoiceSource(fakeClient({ mine }), ACCOUNT, { pollDelayMs: () => 0 });
     const voice = await source.waitUntilReady('v1');
     expect(voice.models?.[0].status).toBe('ready');
     expect(mine).toHaveBeenCalledTimes(2);
@@ -157,20 +157,59 @@ describe('managedVoiceSource.waitUntilReady', () => {
     // Soniox's `failed` is terminal — retrying the same clip can only fail
     // again. The section maps voice_failed to "try a clearer clip".
     const mine = vi.fn().mockResolvedValue({ voiceId: 'v1', status: 'failed', createdAt: 1 });
-    const source = managedVoiceSource(fakeClient({ mine }), ACCOUNT, { intervalMs: 0 });
+    const source = managedVoiceSource(fakeClient({ mine }), ACCOUNT, { pollDelayMs: () => 0 });
     await expect(source.waitUntilReady('v1')).rejects.toMatchObject({ errorType: 'voice_failed' });
   });
 
   it('rejects when the slot disappears mid-build', async () => {
     // Another device's ensure() can supersede this build, or the LRU can
     // evict the row. Either way there is nothing left to wait for.
-    const source = managedVoiceSource(fakeClient({ mine: vi.fn().mockResolvedValue(null) }), ACCOUNT, { intervalMs: 0 });
+    const source = managedVoiceSource(fakeClient({ mine: vi.fn().mockResolvedValue(null) }), ACCOUNT, { pollDelayMs: () => 0 });
     await expect(source.waitUntilReady('v1')).rejects.toMatchObject({ errorType: 'voice_failed' });
+  });
+
+  it('waits 1.5s before each of the first two polls, then 3s — and never polls before waiting', async () => {
+    // Same schedule as session-start preparation: each poll is one Soniox
+    // getVoice against the voices API's own requests-per-minute limit. The
+    // ORDER matters as much as the delays: `create` has just reported
+    // `processing`, so a poll at t=0 would only repeat that answer.
+    const events: string[] = [];
+    const processing = { voiceId: 'v1', status: 'processing', createdAt: 1 };
+    const mine = vi.fn().mockImplementation(async () => {
+      events.push('mine');
+      return mine.mock.calls.length < 5 ? processing : { voiceId: 'v1', status: 'ready', createdAt: 1 };
+    });
+    let t = 0;
+    const sleep = vi.fn().mockImplementation(async (ms: number) => { events.push(`sleep:${ms}`); t += ms; });
+    const source = managedVoiceSource(fakeClient({ mine }), ACCOUNT, { sleep, now: () => t });
+    await source.waitUntilReady('v1');
+    expect(events).toEqual([
+      'sleep:1500', 'mine',
+      'sleep:1500', 'mine',
+      'sleep:3000', 'mine',
+      'sleep:3000', 'mine',
+      'sleep:3000', 'mine',
+    ]);
+  });
+
+  it('clamps the last wait to the remaining budget and starts no poll past the deadline', async () => {
+    // Checking the deadline only before the wait let a 3s wait step over it
+    // and then start one more `mine` — a request with its own timeout, holding
+    // the panel past the budget it had just been told was spent.
+    let t = 0;
+    const mine = vi.fn().mockResolvedValue({ voiceId: 'v1', status: 'processing', createdAt: 1 });
+    const sleep = vi.fn().mockImplementation(async (ms: number) => { t += ms; });
+    const source = managedVoiceSource(fakeClient({ mine }), ACCOUNT, { sleep, now: () => t, timeoutMs: 4_000 });
+    await expect(source.waitUntilReady('v1')).rejects.toMatchObject({ errorType: 'timeout' });
+    // 1.5s + 1.5s consumed 3s of 4s; the third wait is clamped to the 1s left...
+    expect(sleep.mock.calls.map(([ms]) => ms)).toEqual([1_500, 1_500, 1_000]);
+    // ...and no poll started once that was spent.
+    expect(mine).toHaveBeenCalledTimes(2);
   });
 
   it('gives up after the timeout rather than polling forever', async () => {
     const mine = vi.fn().mockResolvedValue({ voiceId: 'v1', status: 'processing', createdAt: 1 });
-    const source = managedVoiceSource(fakeClient({ mine }), ACCOUNT, { intervalMs: 0, timeoutMs: 0 });
+    const source = managedVoiceSource(fakeClient({ mine }), ACCOUNT, { pollDelayMs: () => 0, timeoutMs: 0 });
     await expect(source.waitUntilReady('v1')).rejects.toMatchObject({ errorType: 'timeout' });
   });
 });

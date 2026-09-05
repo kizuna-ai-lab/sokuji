@@ -17,7 +17,7 @@ const deps = (over: {
   } as unknown as ManagedVoicesClient,
   loadClip: over.loadClip ?? (async () => clip()),
   sleep: async () => {},
-  pollIntervalMs: 0,
+  pollDelayMs: () => 0,
 });
 
 describe('prepareManagedVoice', () => {
@@ -145,7 +145,7 @@ describe('prepareManagedVoice', () => {
       sleep,
       now: () => t,
       timeoutMs: 1_000,
-      pollIntervalMs: 1_500,
+      pollDelayMs: () => 1_500,
     });
     expect(res).toEqual({ ok: false, reason: 'unavailable' });
     // Clamped to what was left rather than sleeping the full interval...
@@ -167,10 +167,36 @@ describe('prepareManagedVoice', () => {
       sleep,
       now: () => t,
       timeoutMs: 5_000,
-      pollIntervalMs: 1_500,
+      pollDelayMs: () => 1_500,
     });
     expect(res).toEqual({ ok: true, voiceId: 'vA' });
     expect(mine).toHaveBeenCalledWith(3_500);
+  });
+
+  it('polls twice at 1.5s, then every 3s', async () => {
+    // Every poll is one Soniox getVoice through the backend, and the voices
+    // API has its own requests-per-minute limit. Two quick polls catch the
+    // builds that finish in a few seconds; the steady 3s keeps a slow build
+    // from spending forty calls a minute on one user.
+    let t = 0;
+    const ensure = vi.fn().mockResolvedValue({ voiceId: 'vB', status: 'processing' });
+    const processing = { voiceId: 'vB', status: 'processing', createdAt: 1 };
+    const mine = vi.fn()
+      .mockResolvedValueOnce(processing)
+      .mockResolvedValueOnce(processing)
+      .mockResolvedValueOnce(processing)
+      .mockResolvedValueOnce(processing)
+      .mockResolvedValueOnce({ voiceId: 'vB', status: 'ready', createdAt: 1 });
+    const sleep = vi.fn().mockImplementation(async (ms: number) => { t += ms; });
+    const res = await prepareManagedVoice({
+      client: { ensure, mine, remove: vi.fn() } as unknown as ManagedVoicesClient,
+      loadClip: async () => clip(),
+      sleep,
+      now: () => t,
+      timeoutMs: 60_000,
+    });
+    expect(res).toEqual({ ok: true, voiceId: 'vB' });
+    expect(sleep.mock.calls.map(([ms]) => ms)).toEqual([1_500, 1_500, 3_000, 3_000, 3_000]);
   });
 
   it('abandons the clip upload when reading the clip itself ran out the clock', async () => {

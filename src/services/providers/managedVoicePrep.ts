@@ -22,6 +22,7 @@
 // Moved beside its caller (KizunaAISonioxProviderConfig.prepareToStart, S5); deliberately React-, store- and i18n-free — a descriptor calls it without cycles.
 import type { ManagedVoicesClient } from '../../services/clients/ManagedVoicesClient';
 import { SonioxVoicesError } from '../../services/clients/SonioxVoicesClient';
+import { managedVoicePollDelayMs } from '../../services/clients/managedVoicePolling';
 import { reportError, describeCause } from '../../lib/diagnostics/report';
 
 export type VoicePrepFailure = 'clip_required' | 'pool_exhausted' | 'voice_failed' | 'unavailable';
@@ -67,7 +68,10 @@ export interface PrepareManagedVoiceDeps {
    *  (`ports.signal`), so 135 s is a bound this codebase's only caller no
    *  longer hits in practice. */
   timeoutMs?: number;
-  pollIntervalMs?: number;
+  /** Wait before readiness poll number `attempt` (0-based). Defaults to the
+   *  schedule shared with the settings panel (`managedVoicePolling.ts`);
+   *  tests inject a constant. */
+  pollDelayMs?: (attempt: number) => number;
 }
 
 const DEFAULT_RETRY_MS = 3000;
@@ -80,7 +84,7 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
     sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
     now = () => Date.now(),
     timeoutMs = 60_000,
-    pollIntervalMs = 1500,
+    pollDelayMs = managedVoicePollDelayMs,
   } = deps;
 
   const deadline = now() + timeoutMs;
@@ -93,6 +97,7 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
 
     if (ensured.value.status === 'ready') return { ok: true, voiceId: ensured.value.voiceId };
 
+    let attempt = 0;
     for (;;) {
       const remaining = deadline - now();
       // A cancelled caller resolves through the exact same degrade result a
@@ -105,7 +110,7 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
       // Start stayed disabled well past the budget it had just been told it
       // was out of. The rule everywhere in this routine is the same: no new
       // attempt may BEGIN after the deadline (or after a cancel).
-      await sleep(Math.min(pollIntervalMs, remaining));
+      await sleep(Math.min(pollDelayMs(attempt++), remaining));
       // The poll gets the budget too, not just permission to start: `mine`
       // otherwise runs its own fixed 15s timeout, so a poll beginning just
       // inside the deadline still finishes outside it.

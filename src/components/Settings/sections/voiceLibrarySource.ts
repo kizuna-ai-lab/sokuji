@@ -17,6 +17,7 @@ import type { ManagedVoicesClient, ManagedVoice } from '../../../services/client
 import { SonioxVoicesError } from '../../../services/clients/SonioxVoicesClient';
 import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
 import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
+import { managedVoicePollDelayMs } from '../../../services/clients/managedVoicePolling';
 
 export interface VoiceLibrarySource {
   /** Every voice this source can offer. The managed source returns zero or
@@ -82,9 +83,21 @@ function toSonioxVoice(voice: ManagedVoice): SonioxVoice {
 export function managedVoiceSource(
   client: ManagedVoicesClient,
   accountId: string,
-  opts: { intervalMs?: number; timeoutMs?: number } = {}
+  opts: {
+    /** Wait before readiness poll number `attempt` (0-based). Defaults to the
+     *  schedule shared with session-start preparation. */
+    pollDelayMs?: (attempt: number) => number;
+    timeoutMs?: number;
+    sleep?: (ms: number) => Promise<void>;
+    now?: () => number;
+  } = {}
 ): VoiceLibrarySource {
-  const { intervalMs = 1500, timeoutMs = 60_000 } = opts;
+  const {
+    pollDelayMs = managedVoicePollDelayMs,
+    timeoutMs = 60_000,
+    sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
+    now = () => Date.now(),
+  } = opts;
   return {
     async list() {
       const voice = await client.mine();
@@ -125,8 +138,24 @@ export function managedVoiceSource(
     // `_id` unused: this account has at most one voice, so `client.mine()`
     // already names it unambiguously — there is nothing to disambiguate by id.
     async waitUntilReady(_id) {
-      const deadline = Date.now() + timeoutMs;
+      const deadline = now() + timeoutMs;
+      let attempt = 0;
       for (;;) {
+        // Wait FIRST: `create` has just reported `processing`, so a poll
+        // right now would only repeat that answer — at the price of one
+        // Soniox getVoice. The wait is clamped to what is left of the budget
+        // and the deadline is re-checked after it, so no poll begins past the
+        // ceiling (the same rule session-start preparation follows: that
+        // poll carries its own request timeout and would otherwise hold the
+        // panel well past the budget it was just told was spent).
+        const remaining = deadline - now();
+        if (remaining <= 0) {
+          throw new SonioxVoicesError('timeout', 'Voice processing timed out', 408);
+        }
+        await sleep(Math.min(pollDelayMs(attempt++), remaining));
+        if (now() >= deadline) {
+          throw new SonioxVoicesError('timeout', 'Voice processing timed out', 408);
+        }
         const voice = await client.mine();
         if (!voice) {
           // Another device superseded this build, or the LRU evicted the row.
@@ -138,10 +167,6 @@ export function managedVoiceSource(
         if (voice.status === 'failed') {
           throw new SonioxVoicesError('voice_failed', 'Voice processing failed', 503);
         }
-        if (Date.now() >= deadline) {
-          throw new SonioxVoicesError('timeout', 'Voice processing timed out', 408);
-        }
-        await new Promise((r) => setTimeout(r, intervalMs));
       }
     },
 
