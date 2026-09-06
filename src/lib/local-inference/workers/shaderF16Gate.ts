@@ -1,6 +1,5 @@
 /**
- * Refuses an f16 model variant in the worker that is about to load it, against
- * the adapter ORT will actually use.
+ * Refuses an f16 model variant in the worker that is about to load it.
  *
  * Variant selection runs on the MAIN thread: `checkWebGPU()` probes
  * `requestAdapter()` once, caches the answer, and `selectVariant()` /
@@ -16,6 +15,18 @@
  * that into a message that says which of the two possible causes it was:
  * reaching this error at all proves the main thread believed `shader-f16` was
  * available, because otherwise the variant could not have been selected.
+ *
+ * SCOPE, precisely. This asks an adapter in the worker that is about to load
+ * the model — the same global scope, moments before the load — not provably the
+ * same `GPUAdapter` object the runtime ends up with. It cannot be: the
+ * transformers.js workers load through the ORT that transformers.js carries
+ * itself (see `_shared/onnxruntime-webgpu.ts`), which is a different instance
+ * from the one this bundle imports, so there is no shared handle to read. What
+ * it does buy is the failure mode that actually bites: in the mismatch case the
+ * adapter the worker is handed is the one WITHOUT f16, which is precisely why
+ * the load fails there, so the check fires. If the worker's adapter has f16 and
+ * the runtime somehow got another, nothing is made worse — the same opaque
+ * error appears as before. It fails safe in both directions.
  */
 
 const SHADER_F16 = 'shader-f16';
@@ -75,12 +86,16 @@ export async function assertShaderF16Supported(
   if (!adapter) return;
 
   if (!adapter.features.has(SHADER_F16)) {
+    // Deliberately does NOT suggest re-downloading. `downloadModel()` re-runs
+    // `selectVariant(entry, getDeviceFeatures())` against the main thread's
+    // cache, which in this very scenario still reports shader-f16 — so it would
+    // pick the same f16 variant again and charge the user another multi-gigabyte
+    // download for no change.
     throw new Error(
       `${modelLabel} was selected in its f16 variant, but the GPU adapter this worker got does not `
       + `support the WebGPU "${SHADER_F16}" feature. The adapter checked when the variant was chosen `
       + `did support it, so this device is handing different adapters to different contexts `
-      + `(hybrid graphics, or a software fallback). Re-download this model to get its non-f16 variant, `
-      + `or switch to a model that does not need f16.`,
+      + `(hybrid graphics, or a software fallback). Choose a model that does not need f16.`,
     );
   }
 }
