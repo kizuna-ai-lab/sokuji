@@ -29,6 +29,7 @@ import type {
   AsrDisposeMessage,
   AsrWorkerOutMessage,
 } from '../types';
+import { assertShaderF16Supported } from './shaderF16Gate';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -454,6 +455,8 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
       encoder_model: webgpuAvailable ? 'fp32' : 'q8',
       decoder_model_merged: webgpuAvailable ? 'q4' : 'q8',
     };
+
+    await assertShaderF16Supported(dtype, 'Whisper');
 
     transcriber = (await pipeline('automatic-speech-recognition', msg.hfModelId, {
       device,
