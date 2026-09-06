@@ -899,13 +899,21 @@ export function ModelManagementSection({
               'Supertone closed its Voice Builder service on August 31, 2026. Voice files you already downloaded can still be imported.',
             )}
           </div>
+          {/* These two used to carry `setting-item error` / `setting-item info`.
+              `.setting-item` only contributes a margin (Settings.scss), and the
+              only `.error` / `.info` rules in the app are nested under
+              `.api-key-status` — so neither modifier reached these elements and
+              both lines rendered at the 16px document default, larger than the
+              model name above them. They use the voice section's own dialect
+              instead: the same alert class as every other clip/import failure,
+              and a hint class on the section's small muted scale. */}
           {importError && (
-            <div className="setting-item error">
+            <div className="voice-capture-error" role="alert">
               {t('voiceLibrary.importError', 'Import failed: {error}').replace('{error}', importError)}
             </div>
           )}
           {hasPendingChanges && (
-            <div className="setting-item info">
+            <div className="voice-library-restart-hint">
               {t('voiceLibrary.restartHint', 'Restart the session to apply imported voice changes.')}
             </div>
           )}

@@ -302,6 +302,19 @@
   color: #e74c3c;
 }
 
+// "Restart the session to apply imported voice changes." — shown only while an
+// import/rename/delete is staged. Same 12px scale and 8px separation as the
+// error above it, in the section's secondary grey rather than a second tinted
+// box: the standing `.voice-library-info` panel is already directly above, and
+// two stacked callouts leave the eye no way to tell which one is the state
+// change. Nothing succeeded or failed here, so it takes neither accent colour.
+.voice-library-restart-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #b0b0b0;
+}
+
 @keyframes voice-preview-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { resolve } from 'node:path';
+import { compile } from 'sass';
 import { ModelManagementSection } from './ModelManagementSection';
 import { getManifestByType, getManifestEntry, type ModelStatus } from '../../../lib/local-inference/modelManifest';
 import { resolveDirection } from '../../../lib/local-inference/selection/resolveStage';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { directionKey, type Selections } from '../../../lib/local-inference/selection/types';
+import * as voiceStorage from '../../../lib/local-inference/voiceStorage';
 
 const defaultSettings = {
   sourceLanguage: 'en', targetLanguage: 'en',
@@ -48,8 +51,11 @@ vi.mock('../../../lib/edge-tts/voiceList', async (importOriginal) => ({
 }));
 
 // Voice storage (Supertonic imported voices) — keep deterministic / IndexedDB-free.
+// Mutable so a test can stage an imported voice; the name starts with "mock" so
+// vitest hoists it alongside the vi.mock factory that closes over it.
+const mockImportedVoices: any[] = [];
 vi.mock('../../../lib/local-inference/voiceStorage', () => ({
-  listVoices: vi.fn(async () => []),
+  listVoices: vi.fn(async () => mockImportedVoices),
   addVoice: vi.fn(async () => undefined),
   renameVoice: vi.fn(async () => undefined),
   deleteVoice: vi.fn(async () => undefined),
@@ -102,6 +108,7 @@ beforeEach(() => {
   Object.assign(mockSettings, defaultSettings, { selections: {} });
   for (const k of Object.keys(mockStatuses)) delete mockStatuses[k];
   for (const k of Object.keys(mockDownloads)) delete mockDownloads[k];
+  mockImportedVoices.length = 0;
 });
 
 describe('ModelManagementSection (self-reads store)', () => {
@@ -413,5 +420,74 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
       expect(voiceWrites.length).toBeGreaterThan(0);
       expect(voiceWrites[0][0].edgeTtsVoice).toBe('ja-JP-NanamiNeural');
     });
+  });
+});
+
+describe('ModelManagementSection — Supertonic voice hints are styled where they live', () => {
+  // Both lines used to carry `setting-item info` / `setting-item error`.
+  // `.setting-item` is only ever emitted nested under `.settings-section`
+  // (Settings.scss) and contributes nothing but a margin; `.info` and `.error`
+  // exist nowhere in the app outside `.api-key-status`. So neither modifier
+  // reached these elements and both rendered at the 16px document default —
+  // larger than the model name above them. Compiling the stylesheet is the only
+  // check that catches that: asserting over the SCSS *source* would have passed
+  // on the bug, since `.setting-item` does appear in it.
+
+  // Every class on the element must be a selector this stylesheet emits. The
+  // card body is itself unstyled, so a class that lives in some other file
+  // (nested under an ancestor this element does not have) or in no file at all
+  // reaches the element with nothing.
+  const expectStyledHere = (el: Element) => {
+    const classes = el.className.trim().split(/\s+/).filter(Boolean);
+    expect(classes.length).toBeGreaterThan(0);
+    const { css } = compile(resolve(__dirname, './VoiceLibrarySection.scss'));
+    for (const cls of classes) {
+      // `(?![\w-])`, not `\b`: `\b` would let `.voice-capture` match inside
+      // `.voice-capture-error` and pass on a class that is never styled.
+      expect(css).toMatch(new RegExp(String.raw`\.${cls}(?![\w-])`));
+    }
+  };
+
+  const mountSupertonicCard = async () => {
+    mockStatuses['supertonic-3'] = 'downloaded';
+    mockImportedVoices.push({
+      id: 1, engine: 'supertonic-3', name: 'voice_style',
+      jsonData: new Blob(['{}']), importedAt: 0,
+    });
+    render(<ModelManagementSection isSessionActive={false} stageFilter="tts" />);
+    return await screen.findByTestId('model-card-supertonic-3');
+  };
+
+  it('the pending-changes hint carries a class VoiceLibrarySection.scss emits', async () => {
+    const card = await mountSupertonicCard();
+
+    // The row's Delete is confirm()-gated; jsdom's stub is falsy, so without
+    // this the handler returns before staging anything.
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    // Delete from the voice manage row, not the card's own delete button — the
+    // row's Delete is what stages a pending change.
+    const row = await waitFor(() => {
+      const el = card.querySelector('.voice-manage-row');
+      if (!el) throw new Error('imported voice row not rendered');
+      return el as HTMLElement;
+    });
+    fireEvent.click(within(row).getByRole('button', { name: /^delete$/i }));
+
+    const hint = await screen.findByText('Restart the session to apply imported voice changes.');
+    expectStyledHere(hint);
+  });
+
+  it('the import-failure line carries a class VoiceLibrarySection.scss emits', async () => {
+    vi.mocked(voiceStorage.addVoice).mockRejectedValueOnce(new Error('bad json'));
+    const card = await mountSupertonicCard();
+
+    const input = card.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(['{}'], 'voice_style.json', { type: 'application/json' })] },
+    });
+
+    const error = await screen.findByText(/Import failed: bad json/);
+    expectStyledHere(error);
   });
 });
