@@ -1552,7 +1552,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (item.createdAt) {
             const translationLatency = Date.now() - new Date(item.createdAt).getTime();
             trackEvent('translation_completed', {
-              session_id: sessionId || '',
+              // Read per invocation, not from the closure: this listener is
+              // registered while the session is being built, and `sessionId`
+              // is only assigned after `isSessionActive` flips — so the
+              // captured value was null for every translation ever recorded.
+              // 1866 of 1866 events in two days shipped an empty session_id,
+              // which is why translation latency could not be attributed to a
+              // model at all.
+              session_id: useSessionStore.getState().sessionId || '',
               source_language: getCurrentProviderSettings().sourceLanguage,
               target_language: getCurrentProviderSettings().targetLanguage,
               latency_ms: translationLatency,
