@@ -4158,8 +4158,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               {conversationCompactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
             </button>
             {/* Export */}
+            {/* filteredItems (not combinedItems): the export must reflect what the
+                speaker/participant display-mode toggles currently show — original
+                only, translation only, both, or hidden — not everything ever
+                captured. */}
             <ExportButton
-              combinedItems={combinedItems}
+              combinedItems={filteredItems}
               provider={provider}
               currentProviderSettings={currentSettings}
               localInferenceSettings={localInferenceSettings}

@@ -35,7 +35,14 @@ import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWind
 import './ExportButton.scss';
 
 interface ExportButtonProps {
-  /** Already-merged-and-sorted items from MainPanel's combinedItems memo. */
+  /**
+   * Already-merged-and-sorted conversation items to export. Callers must pass
+   * the display-mode-filtered list (MainPanel's `filteredItems` /
+   * SubtitleApp's equivalent, both built with `shouldShowItem`), not the raw
+   * combined list — the export should mirror what the speaker/participant
+   * "Original / Translation / Both / Off" toggles currently show on screen,
+   * not everything ever captured.
+   */
   combinedItems: Array<ConversationItem & {
     source?: string;
     sourceLanguage?: string;

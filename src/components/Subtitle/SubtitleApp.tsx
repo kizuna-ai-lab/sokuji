@@ -7,6 +7,7 @@ import SubtitleIdle from './SubtitleIdle';
 import { deriveSubtitleIdleState } from './subtitleIdleState';
 import type { StartBlockReason, DeviceScope } from '../MainPanel/sessionStartGate';
 import { reasonToSettingsTarget } from '../MainPanel/sessionStartGate';
+import { shouldShowItem } from '../MainPanel/conversationFilter';
 import useSettingsStore, {
   useExitSubtitleMode,
   useProvider,
@@ -200,6 +201,14 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     return all.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   }, [items, participantItems, sourceLanguage, targetLanguage]);
 
+  // Export must mirror what the speaker/participant "Original / Translation /
+  // Both / Off" toggles currently show in the subtitle band, not everything
+  // ever captured — same filter SubtitleStream applies for on-screen display.
+  const exportItems = useMemo(
+    () => combinedItems.filter((item) => shouldShowItem(item, speakerMode, participantMode)),
+    [combinedItems, speakerMode, participantMode]
+  );
+
   // Session timer
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -356,7 +365,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
         speakerActive={speakerActive}
         participantActive={participantActive}
         exportProps={{
-          combinedItems,
+          combinedItems: exportItems,
           provider,
           currentProviderSettings: providerSettings,
           localInferenceSettings,
