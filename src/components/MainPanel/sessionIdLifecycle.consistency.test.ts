@@ -22,11 +22,16 @@ import { join } from 'node:path';
  */
 
 const SOURCE = readFileSync(join(__dirname, 'MainPanel.tsx'), 'utf8');
-const lineOf = (needle: string) => {
+const indexOf = (needle: string) => {
   const at = SOURCE.indexOf(needle);
+  // Guards the guard: without this, a needle that no longer exists yields -1,
+  // `slice(-1)` returns the file's last character, and every negative assertion
+  // below passes on it — so deleting the code under test would go unnoticed.
   expect(at, `expected to find ${needle}`).toBeGreaterThan(-1);
-  return SOURCE.slice(0, at).split('\n').length;
+  return at;
 };
+const lineOf = (needle: string) => SOURCE.slice(0, indexOf(needle)).split('\n').length;
+const sliceFrom = (needle: string) => SOURCE.slice(indexOf(needle));
 
 describe('session id lifecycle', () => {
   it('mints the id before any client handler is registered', () => {
@@ -53,7 +58,7 @@ describe('session id lifecycle', () => {
   });
 
   it('does not read the store for translation_completed', () => {
-    const event = SOURCE.slice(SOURCE.indexOf("trackEvent('translation_completed'"));
+    const event = sliceFrom("trackEvent('translation_completed'");
     const call = event.slice(0, event.indexOf('});'));
     expect(call).not.toMatch(/useSessionStore\.getState\(\)/);
     expect(call).not.toMatch(/session_id:\s*sessionId\b/);
@@ -68,7 +73,7 @@ describe('session id lifecycle', () => {
   it('keeps the id after the session ends, so a disconnect flush still resolves', () => {
     // `setSessionId(null)` clears the STORE. Clearing the ref alongside it would
     // reopen the teardown hole.
-    const end = SOURCE.slice(SOURCE.indexOf('setSessionId(null);'));
+    const end = sliceFrom('setSessionId(null);');
     expect(end.slice(0, 400)).not.toMatch(/sessionIdRef\.current = null/);
   });
 });
