@@ -52,6 +52,39 @@ function readAdapterInfo(adapter: any): GpuAdapterInfo | null {
   return Object.keys(out).length > 0 ? out : null;
 }
 
+/**
+ * How many times to ask for an adapter before believing there is none, and how
+ * long to wait between asks.
+ *
+ * Measured on the Windows box (RTX 4070 SUPER, Electron 40.8.5, a shown window
+ * and the app's own GPU flags): a `requestAdapter()` issued in the first
+ * ~50-100 ms of a renderer's life resolves to `null` rather than waiting for
+ * the GPU process — null when asked at 0 ms and at 50 ms, a working adapter
+ * from 100 ms on, and from 250 ms on it answers in under 50 ms. macOS (M4) and
+ * Linux (GB10) answered on the first ask at 0 ms.
+ *
+ * Losing that race used to poison the whole session, because the null was
+ * cached permanently: `getDeviceFeatures()` stayed empty so no f16 variant
+ * could ever be selected, `isModelReady()` reported downloaded f16 models as
+ * missing, and the no-acceleration notice appeared — on a machine with a
+ * 4070 SUPER in it.
+ *
+ * Only a `null` answer is retried. A returned adapter is an answer, including
+ * a software one, and a `requestAdapter()` that throws is a real failure rather
+ * than a machine still waking up.
+ */
+const ADAPTER_ATTEMPTS = 4;
+const ADAPTER_RETRY_MS = 150;
+
+async function requestAdapterWithRetry(gpu: any): Promise<any> {
+  for (let attempt = 0; attempt < ADAPTER_ATTEMPTS; attempt++) {
+    if (attempt > 0) await new Promise(resolve => setTimeout(resolve, ADAPTER_RETRY_MS));
+    const adapter = await gpu.requestAdapter();
+    if (adapter) return adapter;
+  }
+  return null;
+}
+
 let cached: WebGPUCapabilities | null = null;
 // Startup fires several probes at once (the model store, the app_startup
 // telemetry). Caching the promise as well as the result keeps that to one
@@ -72,7 +105,7 @@ async function probeWebGPU(): Promise<WebGPUCapabilities> {
       cached = { available: false, features: [], softwareOnly: false, adapterInfo: null };
       return cached;
     }
-    const adapter = await gpu.requestAdapter();
+    const adapter = await requestAdapterWithRetry(gpu);
     if (!adapter) {
       cached = { available: false, features: [], softwareOnly: false, adapterInfo: null };
       return cached;
