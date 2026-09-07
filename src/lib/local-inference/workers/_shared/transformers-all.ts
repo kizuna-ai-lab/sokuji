@@ -39,6 +39,8 @@ import * as T from '@huggingface/transformers';
   T.VoxtralForConditionalGeneration,
   T.VoxtralProcessor,
   T.Qwen3_5ForConditionalGeneration,
+  T.Tensor,
+  T.DynamicCache,
 ];
 
 export {
@@ -53,6 +55,10 @@ export {
   VoxtralForConditionalGeneration,
   VoxtralProcessor,
   Qwen3_5ForConditionalGeneration,
+  // Both are used only by qwen35-translation.worker.ts, to drive the model's
+  // forward pass directly for chunked prefill (#306).
+  Tensor,
+  DynamicCache,
 } from '@huggingface/transformers';
 
 export type {
