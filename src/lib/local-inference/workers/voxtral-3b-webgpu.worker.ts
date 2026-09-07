@@ -36,6 +36,7 @@ import type {
   AsrDisposeMessage,
   StreamingAsrWorkerOutMessage,
 } from '../types';
+import { assertShaderF16Supported } from './shaderF16Gate';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -350,6 +351,7 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
 
     // 4. Load model (WebGPU)
     post({ type: 'status', message: 'Loading Voxtral 3B model (WebGPU)...' });
+    await assertShaderF16Supported(msg.dtype, 'Voxtral 3B');
     model = await VoxtralForConditionalGeneration.from_pretrained(msg.hfModelId, {
       dtype: msg.dtype as any,
       device: 'webgpu',

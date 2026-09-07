@@ -91,6 +91,7 @@ import ModePicker from './ModePicker';
 import SplitDegradedChip from './SplitDegradedChip';
 import { resolveSplitDegraded, type SplitDegradedReason } from './splitDegraded';
 import { buildChannelTelemetryHandlers, type ChannelTelemetryPorts } from './participantTelemetry';
+import { sessionModelTelemetry, legModelsOf, type LegModels } from './sessionModelTelemetry';
 import { NO_CHANNELS_RECONNECTING, type ReconnectingState } from './reconnectingChannels';
 import ModeDevicePopover from './ModeDevicePopover';
 import WaveformStrip from './WaveformStrip';
@@ -1123,6 +1124,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Participant client ref (for translating other participants)
   const participantClientRef = useRef<IClient | null>(null);
+
+  // The models the participant leg actually resolved, for telemetry.
+  //
+  // A split session runs TWO independently resolved model sets: the
+  // participant direction (`target→source`) is a peer of the speaker
+  // direction, not a reversal of it, and picks its own ASR and translation
+  // models from its own pool (see localParticipantConfig.ts). Reporting only
+  // the speaker's makes half of a split session invisible — and makes an
+  // error raised by the participant leg look like it came from a model the
+  // session was not using at all. Captured at the point the config is built
+  // rather than rebuilt here, because building it emits user-facing notices.
+  const participantModelsRef = useRef<LegModels | null>(null);
 
   // Has THIS session's participant leg lost its stream? Written by the leg's
   // own onClose (below) and read once, at connectConversation's
@@ -2382,6 +2395,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
             // Create and connect with participant session config
             const participantSessionConfig = createParticipantSessionConfig();
+            participantModelsRef.current = legModelsOf(participantSessionConfig as any);
             if (!participantSessionConfig) {
               // Non-fatal failure path #2. Under split this is a par_stt leg
               // that never connects: no started bit is ever set for it, so the
@@ -2390,6 +2404,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               // start window, so it lapses on its own.
               console.info('[Sokuji] [MainPanel] Participant skipped — no suitable models');
               participantClientRef.current = null;
+              participantModelsRef.current = null;
               // Also previously console-only.
               splitParticipantFailure = 'no-participant-config';
             } else {
@@ -3769,7 +3784,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
         const currentSettings = getCurrentProviderSettings();
         const sessionConfig = getSessionConfig();
-        const localConfig = sessionConfig.provider === 'local_inference' ? sessionConfig : null;
+        // Only for a leg that actually came up — a stale capture can never be
+        // reported, because this is false whenever the leg did not start.
+        const participantModels = participantChannelActive ? participantModelsRef.current : null;
         // Symmetric channel composition — which clients actually started.
         // ['speaker'] = scenario 1, ['participant'] = scenario 2, both = scenario 3.
         const channels: string[] = [];
@@ -3781,11 +3798,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           session_id: newSessionId,
           provider: provider,
           model: sessionConfig.model,
-          ...(localConfig && {
-            asr_model: localConfig.asrModelId,
-            translation_model: localConfig.translationModelId || 'unknown',
-            tts_model: localConfig.ttsModelId || 'none',
-          }),
+          ...sessionModelTelemetry(sessionConfig, participantModels),
           noise_suppression_enabled: noiseSuppressionMode !== 'off',
           noise_suppression_mode: noiseSuppressionMode,
           real_voice_passthrough_enabled: isRealVoicePassthroughEnabled,
@@ -3806,6 +3819,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           translation_count: translationCount,
           provider: provider
         });
+        participantModelsRef.current = null;
         // Reset session state
         setSessionId(null);
         setSessionStartTime(null);

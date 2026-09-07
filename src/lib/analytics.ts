@@ -32,6 +32,10 @@ export interface AnalyticsEvents {
     asr_model?: string;
     translation_model?: string;
     tts_model?: string;
+    /** The participant leg resolves its own models — see localParticipantConfig.ts.
+     *  Absent unless a split session's participant channel actually started. */
+    participant_asr_model?: string;
+    participant_translation_model?: string;
     noise_suppression_enabled?: boolean;
     noise_suppression_mode?: string;
     echo_cancellation_enabled?: boolean;

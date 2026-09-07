@@ -31,6 +31,7 @@ import type {
   AsrDisposeMessage,
   StreamingAsrWorkerOutMessage,
 } from '../types';
+import { assertShaderF16Supported } from './shaderF16Gate';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -311,6 +312,8 @@ async function handleInit(msg: CohereTranscribeAsrInitMessage): Promise<void> {
 
     // 3. Load Cohere Transcribe pipeline
     post({ type: 'status', message: 'Loading Cohere Transcribe model (WebGPU)...' });
+
+    await assertShaderF16Supported(msg.dtype, 'Cohere Transcribe');
 
     transcriber = (await pipeline('automatic-speech-recognition', msg.hfModelId, {
       dtype: msg.dtype as any,
