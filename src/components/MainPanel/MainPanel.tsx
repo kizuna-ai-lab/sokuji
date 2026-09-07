@@ -1147,6 +1147,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // a dead participant leg. See splitDegraded.ts's `participantStreamEnded`.
   const participantStreamEndedRef = useRef<boolean>(false);
 
+  // The id of the session currently being built or running, minted at the top
+  // of connectConversation — BEFORE any client exists.
+  //
+  // A ref rather than the store, because the store's `sessionId` is assigned by
+  // the analytics effect, which only runs after `isSessionActive` flips: by then
+  // the clients have been created, their handlers handed over, and recording has
+  // started. Anything those handlers report before that point has no id to read.
+  //
+  // Deliberately NOT cleared when a session ends. Teardown sets `isSessionActive`
+  // false, the effect clears the store's `sessionId`, and only then is
+  // `client.disconnect()` awaited — so a final completion flushed during
+  // disconnect would find nothing. Holding the id until the next session mints
+  // one attributes that last translation to the session it belongs to.
+  const sessionIdRef = useRef<string | null>(null);
+
   // Ref to disconnectConversation — used by client onClose handlers, which are
   // captured inside setupClientListeners (a useCallback that runs before
   // disconnectConversation is defined). This avoids a forward reference cycle.
@@ -1406,6 +1421,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     if (!client || !audioService) return;
 
+    // The session THIS client belongs to, captured at hand-off. The handler
+    // object below goes to `client` — a non-React object — and is frozen there;
+    // recreating this callback later produces a new function nobody calls. So
+    // reading a live value at emit time would report whichever session happens
+    // to be current, which for a late callback is the wrong one.
+    const ownerSessionId = sessionIdRef.current;
+
     const speakerTelemetry = buildChannelTelemetryHandlers('speaker', telemetryPortsFor());
 
     const eventHandlers: ClientEventHandlers = {
@@ -1552,7 +1574,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (item.createdAt) {
             const translationLatency = Date.now() - new Date(item.createdAt).getTime();
             trackEvent('translation_completed', {
-              session_id: sessionId || '',
+              session_id: ownerSessionId ?? '',
               source_language: getCurrentProviderSettings().sourceLanguage,
               target_language: getCurrentProviderSettings().targetLanguage,
               latency_ms: translationLatency,
@@ -1577,7 +1599,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [
     isMonitorMuted,
     provider,
-    sessionId,
+    // `sessionId` is deliberately absent: nothing here reads it any more. It
+    // used to be listed, which made this look like it tracked the current
+    // session — but recreating the callback never re-registers the handler the
+    // client already holds, so the dependency changed nothing except how often
+    // this function was rebuilt.
     getCurrentProviderSettings,
     setTranslationCount,
     trackEvent,
@@ -1803,6 +1829,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // socket cannot arrive later and re-set it, since handleSttClose drops
       // stale closes before reaching onClose.
       participantStreamEndedRef.current = false;
+
+      // Mint this session's id HERE, before a client exists, so the handlers
+      // handed to those clients can carry it. The store's `sessionId` is still
+      // set by the analytics effect below — it stays null until then, which is
+      // the sentinel that effect uses to tell a session start from a re-render.
+      sessionIdRef.current = uuidv4();
 
       // Providers with pre-start work declare prepareToStart; run it FIRST,
       // before the no-channel guard, any audio init, any client. For the
@@ -3776,7 +3808,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (isSessionActive) {
       // Only run on session start transition
       if (sessionId === null) { 
-        const newSessionId = uuidv4();
+        // Adopt the id connectConversation already minted, so this event and
+        // the clients' handlers name the same session. A session that became
+        // active without going through it still gets one.
+        const newSessionId = sessionIdRef.current ?? uuidv4();
+        sessionIdRef.current = newSessionId;
         const startTime = Date.now();
         setSessionId(newSessionId);
         setSessionStartTime(startTime);
