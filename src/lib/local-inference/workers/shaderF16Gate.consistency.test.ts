@@ -92,7 +92,7 @@ describe('the shader-f16 gate covers every WebGPU worker', () => {
   it('every WebGPU worker calls assertShaderF16Supported', () => {
     const missing = candidates()
       .filter(w => !(w.name in EXEMPT))
-      .filter(w => !w.source.includes('assertShaderF16Supported('))
+      .filter(w => !w.source.includes('bindCheckedWebGpuAdapter('))
       .map(w => w.name);
     expect(missing).toEqual([]);
   });
@@ -105,7 +105,7 @@ describe('the shader-f16 gate covers every WebGPU worker', () => {
       .map(([name, { reason, stillHolds }]) => {
         const worker = workerSources().find(w => w.name === name);
         if (!worker) return `${name}: exempted but no such worker`;
-        if (worker.source.includes('assertShaderF16Supported(')) return `${name}: calls the gate, exemption is stale`;
+        if (worker.source.includes('bindCheckedWebGpuAdapter(')) return `${name}: calls the gate, exemption is stale`;
         if (!stillHolds(worker.source)) return `${name}: no longer true that ${reason}`;
         return null;
       })
@@ -115,7 +115,7 @@ describe('the shader-f16 gate covers every WebGPU worker', () => {
 
   it('every worker that calls it also imports it', () => {
     const broken = workerSources()
-      .filter(w => w.source.includes('assertShaderF16Supported('))
+      .filter(w => w.source.includes('bindCheckedWebGpuAdapter('))
       .filter(w => !w.source.includes("from './shaderF16Gate'"))
       .map(w => w.name);
     expect(broken).toEqual([]);
@@ -123,6 +123,35 @@ describe('the shader-f16 gate covers every WebGPU worker', () => {
 
   // The import once landed inside a multi-line `import type { … }` block —
   // a syntax error the bundler catches, but only after a full build.
+  // The trap #513 names: six transformers.js workers ALSO import a raw ORT
+  // (`_shared/onnxruntime-all`) for their Silero VAD. Binding the adapter on
+  // THAT env would look right and configure nothing the model runs on.
+  it('binds the env of the runtime that loads the model, not the VAD\'s', () => {
+    const wrong = workerSources()
+      .filter(w => w.source.includes('bindCheckedWebGpuAdapter('))
+      .map(w => {
+        const call = w.source.match(/bindCheckedWebGpuAdapter\(\s*([A-Za-z0-9_.]+)/);
+        const handle = call?.[1];
+        const drivesOrtDirectly = w.source.includes("from './_shared/onnxruntime-webgpu'");
+        const expected = drivesOrtDirectly ? 'ortEnv' : 'env.backends.onnx';
+        return handle === expected ? null : `${w.name}: binds ${handle}, expected ${expected}`;
+      })
+      .filter(Boolean);
+    expect(wrong).toEqual([]);
+  });
+
+  // A worker that binds an adapter must not also ask for one itself: two
+  // answers to one question can differ, and the gate would then check an
+  // adapter the model does not run on. Acquisition goes through
+  // `acquireWebGpuAdapter`, which remembers it on the runtime env.
+  it('never requests a second adapter behind the gate', () => {
+    const offenders = workerSources()
+      .filter(w => w.source.includes('bindCheckedWebGpuAdapter('))
+      .filter(w => /\brequestAdapter\(/.test(w.source))
+      .map(w => w.name);
+    expect(offenders).toEqual([]);
+  });
+
   it('never puts the import inside another import block', () => {
     const broken = workerSources()
       .filter(w => /import type \{[^}]*\n\s*import \{ assertShaderF16Supported/.test(w.source))

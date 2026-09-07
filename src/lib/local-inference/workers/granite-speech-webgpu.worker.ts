@@ -30,7 +30,7 @@ import type {
   AsrDisposeMessage,
   AsrWorkerOutMessage,
 } from '../types';
-import { assertShaderF16Supported } from './shaderF16Gate';
+import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -183,15 +183,14 @@ function buildPrompt(): string {
   return '<|audio|>Transcribe the speech to text';
 }
 
+/**
+ * Whether this worker can run on the GPU — and, in the same step, WHICH adapter
+ * it will run on. `acquireWebGpuAdapter` remembers it on the runtime env, so the
+ * f16 gate checks the adapter the model actually loads on instead of requesting
+ * a second one that could answer differently (#513).
+ */
 async function hasWebGPU(): Promise<boolean> {
-  try {
-    const gpu = (self as any).navigator?.gpu;
-    if (!gpu) return false;
-    const adapter = await gpu.requestAdapter();
-    return !!adapter;
-  } catch {
-    return false;
-  }
+  return !!(await acquireWebGpuAdapter(env.backends.onnx));
 }
 
 // ─── Speech Segment Processing ──────────────────────────────────────────────
@@ -398,7 +397,7 @@ async function handleInit(msg: GraniteSpeechInitMessage): Promise<void> {
     post({ type: 'status', message: 'Loading Granite Speech model (WebGPU)...' });
 
     processor = await AutoProcessor.from_pretrained(msg.hfModelId);
-    await assertShaderF16Supported(msg.dtype, 'Granite Speech');
+    await bindCheckedWebGpuAdapter(env.backends.onnx, msg.dtype, 'Granite Speech');
     model = await GraniteSpeechForConditionalGeneration.from_pretrained(msg.hfModelId, {
       dtype: msg.dtype as any,
       device: 'webgpu',

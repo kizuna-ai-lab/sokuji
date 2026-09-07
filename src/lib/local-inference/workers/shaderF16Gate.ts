@@ -16,17 +16,21 @@
  * reaching this error at all proves the main thread believed `shader-f16` was
  * available, because otherwise the variant could not have been selected.
  *
- * SCOPE, precisely. This asks an adapter in the worker that is about to load
- * the model — the same global scope, moments before the load — not provably the
- * same `GPUAdapter` object the runtime ends up with. It cannot be: the
- * transformers.js workers load through the ORT that transformers.js carries
- * itself (see `_shared/onnxruntime-webgpu.ts`), which is a different instance
- * from the one this bundle imports, so there is no shared handle to read. What
- * it does buy is the failure mode that actually bites: in the mismatch case the
- * adapter the worker is handed is the one WITHOUT f16, which is precisely why
- * the load fails there, so the check fires. If the worker's adapter has f16 and
- * the runtime somehow got another, nothing is made worse — the same opaque
- * error appears as before. It fails safe in both directions.
+ * The check alone could still be unsound: asking one adapter and letting the
+ * runtime request its own leaves room for a false PASS — check adapter A, run
+ * on adapter B. So the adapter is requested once and handed to the runtime
+ * (`env.webgpu.adapter`, honoured only before the first session is created),
+ * which makes the verdict binding: if this passes, the device the runtime
+ * builds has the feature, because it is built from this adapter (#513).
+ *
+ * SCOPE, precisely. This binds the CHECK to the RUNTIME. It does not bind
+ * either to variant SELECTION, which happens on the main thread and cannot:
+ * a `GPUAdapter` is not structured-cloneable, so it cannot cross into a
+ * worker. A machine whose main thread sees f16 and whose workers do not will
+ * therefore still select an f16 variant — and this will now refuse it with a
+ * message naming the model, every time, instead of refusing it only when two
+ * unrelated adapter requests happened to agree. Making selection itself
+ * correct is the remaining half, and is not this.
  */
 
 const SHADER_F16 = 'shader-f16';
@@ -62,18 +66,32 @@ interface AdapterLike { features: { has(name: string): boolean } }
 interface GpuLike { requestAdapter(): Promise<AdapterLike | null> }
 
 /**
- * Throws when an f16 variant was requested and this worker's adapter does not
- * offer `shader-f16`. A non-f16 dtype is never blocked, and neither is a
- * context with no WebGPU at all — a model that needs a GPU fails on its own
- * terms, and this gate must not become a second, worse way to say that.
+ * The slice of an ONNX Runtime `env` this needs. Optional throughout because
+ * transformers.js types its `backends.onnx` as `Partial<Env>`, so `webgpu` can
+ * legitimately be absent.
  */
-export async function assertShaderF16Supported(
-  dtype: unknown,
-  modelLabel: string,
+export interface RuntimeEnvLike {
+  webgpu?: { adapter?: unknown };
+}
+
+/**
+ * The one adapter this worker will use, remembered on the runtime env.
+ *
+ * Call this wherever a worker needs to know whether WebGPU is available at
+ * all — it answers that question (null means no) AND makes the answer the
+ * runtime's, in one request. A worker that asks `navigator.gpu` for an adapter
+ * itself and then lets the gate ask again has two answers to one question, and
+ * they can differ: the second request coming back empty made the gate return
+ * silently while the worker, having decided on WebGPU from the first, loaded
+ * the model anyway with nothing checked. Acquiring once removes that state.
+ */
+export async function acquireWebGpuAdapter(
+  runtimeEnv: RuntimeEnvLike | undefined,
   gpu: GpuLike | undefined = (globalThis as any).navigator?.gpu,
-): Promise<void> {
-  if (!needsShaderF16(dtype)) return;
-  if (!gpu) return;
+): Promise<AdapterLike | null> {
+  const alreadyBound = runtimeEnv?.webgpu?.adapter as AdapterLike | undefined;
+  if (alreadyBound) return alreadyBound;
+  if (!gpu) return null;
 
   let adapter: AdapterLike | null = null;
   try {
@@ -81,13 +99,41 @@ export async function assertShaderF16Supported(
   } catch {
     // An adapter request that throws is not evidence about f16; let the real
     // load report whatever is actually wrong with the GPU.
-    return;
+    return null;
   }
+  if (!adapter) return null;
+
+  if (runtimeEnv?.webgpu) runtimeEnv.webgpu.adapter = adapter;
+  return adapter;
+}
+
+/**
+ * Gives the runtime an adapter this function has checked, and refuses an f16
+ * variant that adapter cannot run.
+ *
+ * `runtimeEnv` must be the env of the runtime that will LOAD THE MODEL:
+ * `env.backends.onnx` for a transformers.js worker, the `env` exported by
+ * `_shared/onnxruntime-webgpu` for a worker driving ORT directly. Passing the
+ * `_shared/onnxruntime-all` env of a worker's Silero VAD would look right and
+ * bind nothing that matters — see the consistency test, which enforces this.
+ *
+ * Never throws for a missing GPU: no `navigator.gpu`, no adapter, or a
+ * `requestAdapter()` that rejects all return quietly. A model that needs a GPU
+ * fails on its own terms, and this must not become a second, worse way to say
+ * so.
+ */
+export async function bindCheckedWebGpuAdapter(
+  runtimeEnv: RuntimeEnvLike | undefined,
+  dtype: unknown,
+  modelLabel: string,
+  gpu: GpuLike | undefined = (globalThis as any).navigator?.gpu,
+): Promise<void> {
+  const adapter = await acquireWebGpuAdapter(runtimeEnv, gpu);
   if (!adapter) return;
 
-  if (!adapter.features.has(SHADER_F16)) {
+  if (needsShaderF16(dtype) && !adapter.features.has(SHADER_F16)) {
     // Deliberately does NOT suggest re-downloading. `downloadModel()` re-runs
-    // `selectVariant(entry, getDeviceFeatures())` against the main thread's
+    // `selectVariant(entry, getDeviceFeatures())` against the MAIN THREAD's
     // cache, which in this very scenario still reports shader-f16 — so it would
     // pick the same f16 variant again and charge the user another multi-gigabyte
     // download for no change.
@@ -99,3 +145,4 @@ export async function assertShaderF16Supported(
     );
   }
 }
+

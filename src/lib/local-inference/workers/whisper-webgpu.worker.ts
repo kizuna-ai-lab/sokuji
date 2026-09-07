@@ -29,7 +29,7 @@ import type {
   AsrDisposeMessage,
   AsrWorkerOutMessage,
 } from '../types';
-import { assertShaderF16Supported } from './shaderF16Gate';
+import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -249,15 +249,14 @@ async function patchWhisperConfigs(
 }
 
 /** Detect WebGPU availability in this worker context */
+/**
+ * Whether this worker can run on the GPU — and, in the same step, WHICH adapter
+ * it will run on. `acquireWebGpuAdapter` remembers it on the runtime env, so the
+ * f16 gate checks the adapter the model actually loads on instead of requesting
+ * a second one that could answer differently (#513).
+ */
 async function hasWebGPU(): Promise<boolean> {
-  try {
-    const gpu = (self as any).navigator?.gpu;
-    if (!gpu) return false;
-    const adapter = await gpu.requestAdapter();
-    return !!adapter;
-  } catch {
-    return false;
-  }
+  return !!(await acquireWebGpuAdapter(env.backends.onnx));
 }
 
 // ─── Speech Segment Processing ──────────────────────────────────────────────
@@ -456,7 +455,7 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
       decoder_model_merged: webgpuAvailable ? 'q4' : 'q8',
     };
 
-    await assertShaderF16Supported(dtype, 'Whisper');
+    await bindCheckedWebGpuAdapter(env.backends.onnx, dtype, 'Whisper');
 
     transcriber = (await pipeline('automatic-speech-recognition', msg.hfModelId, {
       device,

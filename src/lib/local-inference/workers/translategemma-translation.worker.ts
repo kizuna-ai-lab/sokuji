@@ -12,7 +12,7 @@
 
 import { pipeline, env } from './_shared/transformers-all';
 import { initTransformersEnv } from './_shared/transformers-env';
-import { assertShaderF16Supported } from './shaderF16Gate';
+import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -55,7 +55,9 @@ async function handleInit(msg: InitMessage) {
       self.postMessage({ type: 'error', error: 'WebGPU not available. TranslateGemma requires WebGPU.' });
       return;
     }
-    const adapter = await gpu.requestAdapter();
+    // One acquisition, remembered on the runtime env: the gate below reuses
+    // this adapter rather than asking for a second one that could differ.
+    const adapter = await acquireWebGpuAdapter(env.backends.onnx);
     if (!adapter) {
       self.postMessage({ type: 'error', error: 'No WebGPU adapter found. TranslateGemma requires WebGPU.' });
       return;
@@ -66,7 +68,7 @@ async function handleInit(msg: InitMessage) {
 
     self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId, device: 'webgpu' });
 
-    await assertShaderF16Supported(msg.dtype || 'q4', 'TranslateGemma');
+    await bindCheckedWebGpuAdapter(env.backends.onnx, msg.dtype || 'q4', 'TranslateGemma');
 
     generator = await (pipeline as any)('text-generation', msg.hfModelId, {
       dtype: msg.dtype || 'q4',

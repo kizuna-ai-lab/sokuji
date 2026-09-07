@@ -14,7 +14,7 @@ import {
 } from './_shared/transformers-all';
 import { initTransformersEnv } from './_shared/transformers-env';
 import { buildDefaultLocalPrompt } from '../prompts';
-import { assertShaderF16Supported } from './shaderF16Gate';
+import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -60,7 +60,9 @@ async function handleInit(msg: InitMessage) {
       self.postMessage({ type: 'error', error: 'WebGPU not available. Qwen3.5 translation requires WebGPU.' });
       return;
     }
-    const adapter = await gpu.requestAdapter();
+    // One acquisition, remembered on the runtime env: the gate below reuses
+    // this adapter rather than asking for a second one that could differ.
+    const adapter = await acquireWebGpuAdapter(env.backends.onnx);
     if (!adapter) {
       self.postMessage({ type: 'error', error: 'No WebGPU adapter found. Qwen3.5 translation requires WebGPU.' });
       return;
@@ -80,7 +82,7 @@ async function handleInit(msg: InitMessage) {
       decoder_model_merged: 'q4' as const,
     };
 
-    await assertShaderF16Supported(dtype, 'Qwen3.5 translation');
+    await bindCheckedWebGpuAdapter(env.backends.onnx, dtype, 'Qwen3.5 translation');
 
     model = await Qwen3_5ForConditionalGeneration.from_pretrained(msg.hfModelId, {
       dtype: dtype as any,
