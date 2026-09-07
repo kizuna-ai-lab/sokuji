@@ -110,8 +110,12 @@ async function handleTranslate(msg: TranslateMessage) {
     const resolvedPrompt = msg.systemPrompt && msg.systemPrompt.trim()
       ? msg.systemPrompt
       : buildDefaultLocalPrompt(msg.sourceLang, msg.targetLang);
-    // Qwen3.5 supports /no_think (it's a Qwen3 family model)
-    const systemPrompt = `${resolvedPrompt} /no_think`;
+    // No `/no_think`: that is Qwen3's soft switch, trained into the model. The
+    // Qwen3.5 chat template does not contain the string at all, so appending it
+    // only spends prompt tokens — four of them, and prefill is this model's
+    // whole cost (measured: ~125-140 ms per prompt token on Vulkan/D3D12,
+    // ~29 ms on Metal), so it is not free.
+    const systemPrompt = resolvedPrompt;
 
     const userContent = msg.wrapTranscript
       ? `<transcript>${msg.text}</transcript>`
@@ -123,10 +127,17 @@ async function handleTranslate(msg: TranslateMessage) {
       { role: 'user', content: userContent },
     ];
 
-    // Apply chat template with thinking disabled
+    // `enable_thinking` must sit at the TOP LEVEL to reach the chat template.
+    // transformers.js destructures `tokenizer_kwargs` out of the options and
+    // forwards it to the tokenizer call; only the remaining `...kwargs` become
+    // Jinja variables. Nested, it was inert.
+    //
+    // Thinking is off either way for this model — the template's else branch
+    // pre-fills a closed `<think>\n\n</think>` when `enable_thinking` is
+    // undefined — but code that looks like a switch should be one.
     const text = processor.apply_chat_template(messages, {
       add_generation_prompt: true,
-      tokenizer_kwargs: { enable_thinking: false },
+      enable_thinking: false,
     });
 
     // Process text-only input (no images)
