@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { needsShaderF16, bindCheckedWebGpuAdapter } from './shaderF16Gate';
+import { needsShaderF16, bindCheckedWebGpuAdapter, acquireWebGpuAdapter } from './shaderF16Gate';
 
 const adapterWith = (...features: string[]) => ({
   requestAdapter: async () => ({ features: { has: (n: string) => features.includes(n) } }),
@@ -134,6 +134,55 @@ describe('bindCheckedWebGpuAdapter — binding the runtime to the checked adapte
     await expect(bindCheckedWebGpuAdapter(env, 'q4f16', 'Voxtral', {
       requestAdapter: async () => { throw new Error('device lost'); },
     })).resolves.toBeUndefined();
+    expect(env.webgpu.adapter).toBeUndefined();
+  });
+});
+
+describe('acquireWebGpuAdapter — one question, one answer', () => {
+  const gpuOf = (...answers: any[]) => {
+    const fn = vi.fn();
+    answers.forEach(a => (a instanceof Error ? fn.mockRejectedValueOnce(a) : fn.mockResolvedValueOnce(a)));
+    return { requestAdapter: fn };
+  };
+  const withF16 = () => ({ id: 'A', features: { has: (n: string) => n === 'shader-f16' } });
+
+  it('remembers the adapter on the runtime env', async () => {
+    const adapter = withF16();
+    const env: any = { webgpu: {} };
+    expect(await acquireWebGpuAdapter(env, gpuOf(adapter))).toBe(adapter);
+    expect(env.webgpu.adapter).toBe(adapter);
+  });
+
+  it('asks once however many times it is called', async () => {
+    const gpu = gpuOf(withF16(), withF16());
+    const env: any = { webgpu: {} };
+    const first = await acquireWebGpuAdapter(env, gpu);
+    const second = await acquireWebGpuAdapter(env, gpu);
+    expect(second).toBe(first);
+    expect(gpu.requestAdapter).toHaveBeenCalledTimes(1);
+  });
+
+  // The regression this exists for: whisper decided `device = 'webgpu'` from
+  // its OWN adapter request, then the gate requested a second one. A second
+  // request coming back empty made the gate return silently while the model
+  // loaded on the GPU anyway, unchecked. Sharing the acquisition removes the
+  // second request, so the empty answer can no longer happen between them.
+  it('leaves no second request to fail between the availability check and the gate', async () => {
+    const gpu = gpuOf(withF16(), null);          // a second call would answer null
+    const env: any = { webgpu: {} };
+
+    const available = !!(await acquireWebGpuAdapter(env, gpu));
+    expect(available).toBe(true);
+
+    await bindCheckedWebGpuAdapter(env, 'q4f16', 'Whisper', gpu);
+    expect(gpu.requestAdapter).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports no GPU without remembering anything', async () => {
+    const env: any = { webgpu: {} };
+    expect(await acquireWebGpuAdapter(env, { requestAdapter: async () => null })).toBeNull();
+    expect(await acquireWebGpuAdapter(env, undefined)).toBeNull();
+    expect(await acquireWebGpuAdapter(env, { requestAdapter: async () => { throw new Error('lost'); } })).toBeNull();
     expect(env.webgpu.adapter).toBeUndefined();
   });
 });

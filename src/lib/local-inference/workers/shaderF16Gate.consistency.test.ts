@@ -140,6 +140,18 @@ describe('the shader-f16 gate covers every WebGPU worker', () => {
     expect(wrong).toEqual([]);
   });
 
+  // A worker that binds an adapter must not also ask for one itself: two
+  // answers to one question can differ, and the gate would then check an
+  // adapter the model does not run on. Acquisition goes through
+  // `acquireWebGpuAdapter`, which remembers it on the runtime env.
+  it('never requests a second adapter behind the gate', () => {
+    const offenders = workerSources()
+      .filter(w => w.source.includes('bindCheckedWebGpuAdapter('))
+      .filter(w => /\brequestAdapter\(/.test(w.source))
+      .map(w => w.name);
+    expect(offenders).toEqual([]);
+  });
+
   it('never puts the import inside another import block', () => {
     const broken = workerSources()
       .filter(w => /import type \{[^}]*\n\s*import \{ assertShaderF16Supported/.test(w.source))

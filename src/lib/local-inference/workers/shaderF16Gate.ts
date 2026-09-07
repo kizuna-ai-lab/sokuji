@@ -75,6 +75,39 @@ export interface RuntimeEnvLike {
 }
 
 /**
+ * The one adapter this worker will use, remembered on the runtime env.
+ *
+ * Call this wherever a worker needs to know whether WebGPU is available at
+ * all — it answers that question (null means no) AND makes the answer the
+ * runtime's, in one request. A worker that asks `navigator.gpu` for an adapter
+ * itself and then lets the gate ask again has two answers to one question, and
+ * they can differ: the second request coming back empty made the gate return
+ * silently while the worker, having decided on WebGPU from the first, loaded
+ * the model anyway with nothing checked. Acquiring once removes that state.
+ */
+export async function acquireWebGpuAdapter(
+  runtimeEnv: RuntimeEnvLike | undefined,
+  gpu: GpuLike | undefined = (globalThis as any).navigator?.gpu,
+): Promise<AdapterLike | null> {
+  const alreadyBound = runtimeEnv?.webgpu?.adapter as AdapterLike | undefined;
+  if (alreadyBound) return alreadyBound;
+  if (!gpu) return null;
+
+  let adapter: AdapterLike | null = null;
+  try {
+    adapter = await gpu.requestAdapter();
+  } catch {
+    // An adapter request that throws is not evidence about f16; let the real
+    // load report whatever is actually wrong with the GPU.
+    return null;
+  }
+  if (!adapter) return null;
+
+  if (runtimeEnv?.webgpu) runtimeEnv.webgpu.adapter = adapter;
+  return adapter;
+}
+
+/**
  * Gives the runtime an adapter this function has checked, and refuses an f16
  * variant that adapter cannot run.
  *
@@ -95,12 +128,8 @@ export async function bindCheckedWebGpuAdapter(
   modelLabel: string,
   gpu: GpuLike | undefined = (globalThis as any).navigator?.gpu,
 ): Promise<void> {
-  const adapter = await acquireAdapter(runtimeEnv, gpu);
+  const adapter = await acquireWebGpuAdapter(runtimeEnv, gpu);
   if (!adapter) return;
-
-  // Bind before checking: a refusal creates no session, so an env carrying the
-  // adapter it was refused on is both harmless and easier to reason about.
-  if (runtimeEnv?.webgpu) runtimeEnv.webgpu.adapter = adapter;
 
   if (needsShaderF16(dtype) && !adapter.features.has(SHADER_F16)) {
     // Deliberately does NOT suggest re-downloading. `downloadModel()` re-runs
@@ -117,25 +146,3 @@ export async function bindCheckedWebGpuAdapter(
   }
 }
 
-/**
- * The adapter the runtime will use: the one it already holds if a session has
- * been prepared, otherwise a fresh one. Requested bare, with no
- * `powerPreference`, because that is exactly how ORT requests it when nothing
- * sets `env.webgpu.powerPreference` — as nothing in this repo does — so binding
- * hands over the adapter the runtime would have chosen anyway.
- */
-async function acquireAdapter(
-  runtimeEnv: RuntimeEnvLike | undefined,
-  gpu: GpuLike | undefined,
-): Promise<AdapterLike | null> {
-  const alreadyBound = runtimeEnv?.webgpu?.adapter as AdapterLike | undefined;
-  if (alreadyBound) return alreadyBound;
-  if (!gpu) return null;
-  try {
-    return await gpu.requestAdapter();
-  } catch {
-    // An adapter request that throws is not evidence about f16; let the real
-    // load report whatever is actually wrong with the GPU.
-    return null;
-  }
-}

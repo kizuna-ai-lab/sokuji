@@ -14,7 +14,7 @@
 
 import { pipeline, env } from './_shared/transformers-all';
 import { initTransformersEnv } from './_shared/transformers-env';
-import { bindCheckedWebGpuAdapter } from './shaderF16Gate';
+import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
 // ─── BCP-47 → English language names for the prompt template ────────────────
 // Mirrors manifest.languages one-for-one (36 entries).
@@ -73,7 +73,9 @@ async function handleInit(msg: InitMessage) {
       self.postMessage({ type: 'error', error: 'WebGPU not available. HY-MT translation requires WebGPU.' });
       return;
     }
-    const adapter = await gpu.requestAdapter();
+    // One acquisition, remembered on the runtime env: the gate below reuses
+    // this adapter rather than asking for a second one that could differ.
+    const adapter = await acquireWebGpuAdapter(env.backends.onnx);
     if (!adapter) {
       self.postMessage({ type: 'error', error: 'No WebGPU adapter found. HY-MT translation requires WebGPU.' });
       return;
