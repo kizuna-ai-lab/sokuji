@@ -14,7 +14,7 @@ import {
 } from './_shared/transformers-all';
 import { initTransformersEnv } from './_shared/transformers-env';
 import { buildDefaultLocalPrompt } from '../prompts';
-import { assertShaderF16Supported } from './shaderF16Gate';
+import { bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -80,7 +80,7 @@ async function handleInit(msg: InitMessage) {
       decoder_model_merged: 'q4' as const,
     };
 
-    await assertShaderF16Supported(dtype, 'Qwen3.5 translation');
+    await bindCheckedWebGpuAdapter(env.backends.onnx, dtype, 'Qwen3.5 translation');
 
     model = await Qwen3_5ForConditionalGeneration.from_pretrained(msg.hfModelId, {
       dtype: dtype as any,

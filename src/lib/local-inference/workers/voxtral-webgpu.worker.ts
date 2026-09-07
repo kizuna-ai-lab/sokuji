@@ -33,7 +33,7 @@ import type {
   AsrDisposeMessage,
   StreamingAsrWorkerOutMessage,
 } from '../types';
-import { assertShaderF16Supported } from './shaderF16Gate';
+import { bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -434,7 +434,7 @@ async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
       ? { audio_encoder: msg.dtype, embed_tokens: msg.dtype, decoder_model_merged: msg.dtype }
       : msg.dtype;
 
-    await assertShaderF16Supported(dtype, 'Voxtral');
+    await bindCheckedWebGpuAdapter(env.backends.onnx, dtype, 'Voxtral');
 
     voxtralModel = await VoxtralRealtimeForConditionalGeneration.from_pretrained(
       msg.hfModelId,

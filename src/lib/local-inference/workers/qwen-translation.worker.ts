@@ -9,7 +9,7 @@
 import { pipeline, env } from './_shared/transformers-all';
 import { initTransformersEnv } from './_shared/transformers-env';
 import { buildDefaultLocalPrompt } from '../prompts';
-import { assertShaderF16Supported } from './shaderF16Gate';
+import { bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ async function handleInit(msg: InitMessage) {
 
     self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId, device: 'webgpu' });
 
-    await assertShaderF16Supported(msg.dtype || 'q4', 'the translation model');
+    await bindCheckedWebGpuAdapter(env.backends.onnx, msg.dtype || 'q4', 'the translation model');
 
     generator = await (pipeline as any)('text-generation', msg.hfModelId, {
       dtype: msg.dtype || 'q4',

@@ -43,7 +43,7 @@ import type {
   AsrDisposeMessage,
   AsrWorkerOutMessage,
 } from '../types';
-import { assertShaderF16Supported } from './shaderF16Gate';
+import { bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -398,7 +398,7 @@ async function handleInit(msg: Qwen3AsrInitMessage): Promise<void> {
     // The resolved variant, not msg.dtype: an unknown dtype falls back to q4
     // above, and gating on the request rather than the fallback would refuse a
     // load that is about to run in q4 anyway.
-    await assertShaderF16Supported(variant, 'Qwen3-ASR');
+    await bindCheckedWebGpuAdapter(ortEnv, variant, 'Qwen3-ASR');
     const filters = JSON.parse(await text(cfg.mel?.filters_file ?? 'mel_filters.json')) as MelFilterbank;
     const decoder = createBpeDecoder(JSON.parse(await text('tokenizer.json')));
 

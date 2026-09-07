@@ -30,7 +30,7 @@ import type {
   AsrDisposeMessage,
   AsrWorkerOutMessage,
 } from '../types';
-import { assertShaderF16Supported } from './shaderF16Gate';
+import { bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -398,7 +398,7 @@ async function handleInit(msg: GraniteSpeechInitMessage): Promise<void> {
     post({ type: 'status', message: 'Loading Granite Speech model (WebGPU)...' });
 
     processor = await AutoProcessor.from_pretrained(msg.hfModelId);
-    await assertShaderF16Supported(msg.dtype, 'Granite Speech');
+    await bindCheckedWebGpuAdapter(env.backends.onnx, msg.dtype, 'Granite Speech');
     model = await GraniteSpeechForConditionalGeneration.from_pretrained(msg.hfModelId, {
       dtype: msg.dtype as any,
       device: 'webgpu',
