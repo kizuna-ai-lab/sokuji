@@ -27,6 +27,11 @@ def test_clean_output_strips_transcript_tags():
     assert tb._clean_output("<think>x</think> Hello</transcript>") == "Hello"
 
 
+def test_clean_output_drops_known_no_input_hallucination():
+    assert tb._clean_output("Veuillez fournir le texte anglais à traduire.") == ""
+    assert tb._clean_output("  Veuillez fournir le texte anglais à traduire.\n") == ""
+
+
 class _FakeTranslator:
     def __init__(self, log):
         self.log = log
