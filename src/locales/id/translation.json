@@ -586,13 +586,17 @@
       "speakerYou": "Saya",
       "speakerOther": "Lawan bicara",
       "translationSuffix": "(terj.)",
+      "scopeLabel": "Sertakan",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Tidak ada yang dipilih",
       "headerTitle": "Ekspor percakapan Sokuji",
       "headerGenerated": "Dibuat",
       "headerProvider": "Penyedia",
       "headerModels": "Model",
       "headerSource": "Bahasa saya",
       "headerTarget": "Bahasa lawan bicara",
-      "headerNote": "Catatan: pengaturan mencerminkan kondisi saat ekspor, bukan perubahan selama sesi berlangsung."
+      "headerNote": "Catatan: pengaturan mencerminkan kondisi saat ekspor, bukan perubahan selama sesi berlangsung.",
+      "headerNarrowed": "Catatan: ekspor ini dipersempit saat mengekspor — beberapa baris tidak disertakan."
     },
     "waveformOutputTooltip": "Audio yang dikirim ke mikrofon virtual (terjemahan + passthrough audio asli)",
     "waveformMicTooltip": "Mikrofon Anda — suara Anda yang ditangkap untuk diterjemahkan",

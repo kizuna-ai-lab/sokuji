@@ -586,13 +586,17 @@
       "speakerYou": "Ako",
       "speakerOther": "Kausap",
       "translationSuffix": "(salin)",
+      "scopeLabel": "Isama",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Walang napili",
       "headerTitle": "Sokuji na pag-export ng usapan",
       "headerGenerated": "Nabuo",
       "headerProvider": "Provider",
       "headerModels": "Mga modelo",
       "headerSource": "Aking wika",
       "headerTarget": "Wika ng kausap",
-      "headerNote": "Tandaan: ang mga setting ay sumasalamin sa kasalukuyang estado sa pag-export, hindi sa mga pagbabago sa kalagitnaan ng session."
+      "headerNote": "Tandaan: ang mga setting ay sumasalamin sa kasalukuyang estado sa pag-export, hindi sa mga pagbabago sa kalagitnaan ng session.",
+      "headerNarrowed": "Tandaan: pinaliit ang saklaw ng export na ito noong nag-export — may ilang linyang hindi kasama."
     },
     "waveformOutputTooltip": "Audio na ipinapadala sa virtual microphone (pagsasalin + original audio passthrough)",
     "waveformMicTooltip": "Ang inyong mikropono — ang boses ninyong kinukuha para isalin",

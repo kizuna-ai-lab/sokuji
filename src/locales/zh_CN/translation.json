@@ -586,13 +586,17 @@
       "speakerYou": "我",
       "speakerOther": "对方",
       "translationSuffix": "(译)",
+      "scopeLabel": "包含",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "未选择任何内容",
       "headerTitle": "Sokuji 对话导出",
       "headerGenerated": "生成时间",
       "headerProvider": "服务商",
       "headerModels": "模型",
       "headerSource": "我的语言",
       "headerTarget": "对方语言",
-      "headerNote": "注意：设置反映导出时的当前状态，不包含会话中途的更改。"
+      "headerNote": "注意：设置反映导出时的当前状态，不包含会话中途的更改。",
+      "headerNarrowed": "注意：本次导出在导出时已缩小范围，部分内容未包含。"
     },
     "waveformOutputTooltip": "发送到虚拟麦克风的音频（翻译 + 原声直通）",
     "waveformMicTooltip": "您的麦克风 —— 正在捕获您的声音用于翻译",

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ConversationItem } from '../../services/interfaces/IClient';
-import { shouldShowItem } from './conversationFilter';
+import type { DisplayMode } from '../../stores/settingsStore';
+import { shouldShowItem, modeToToggles, togglesToMode } from './conversationFilter';
 
 const baseItem = (over: Partial<ConversationItem>): ConversationItem => ({
   id: 'i',
@@ -105,5 +106,38 @@ describe('shouldShowItem', () => {
   it('error and system rows still pass when their side is none', () => {
     expect(shouldShowItem(baseItem({ source: 'participant', type: 'error' }), 'both', 'none')).toBe(true);
     expect(shouldShowItem(baseItem({ source: 'participant', role: 'system' }), 'both', 'none')).toBe(true);
+  });
+});
+
+describe('modeToToggles / togglesToMode', () => {
+  it('maps both to src+trans checked', () => {
+    expect(modeToToggles('both')).toEqual({ src: true, trans: true });
+  });
+
+  it('maps source to src checked only', () => {
+    expect(modeToToggles('source')).toEqual({ src: true, trans: false });
+  });
+
+  it('maps translation to trans checked only', () => {
+    expect(modeToToggles('translation')).toEqual({ src: false, trans: true });
+  });
+
+  it('maps none to neither checked', () => {
+    expect(modeToToggles('none')).toEqual({ src: false, trans: false });
+  });
+
+  it('round-trips every mode through the toggles and back', () => {
+    const modes: DisplayMode[] = ['both', 'source', 'translation', 'none'];
+    for (const mode of modes) {
+      expect(togglesToMode(modeToToggles(mode))).toBe(mode);
+    }
+  });
+
+  it('round-trips every toggle pair through the mode and back', () => {
+    for (const src of [true, false]) {
+      for (const trans of [true, false]) {
+        expect(modeToToggles(togglesToMode({ src, trans }))).toEqual({ src, trans });
+      }
+    }
   });
 });

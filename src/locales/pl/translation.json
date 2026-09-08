@@ -586,13 +586,17 @@
       "speakerYou": "Ja",
       "speakerOther": "Rozmówca",
       "translationSuffix": "(tłum.)",
+      "scopeLabel": "Uwzględnij",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Nic nie wybrano",
       "headerTitle": "Eksport rozmowy Sokuji",
       "headerGenerated": "Wygenerowano",
       "headerProvider": "Dostawca",
       "headerModels": "Modele",
       "headerSource": "Mój język",
       "headerTarget": "Język rozmówcy",
-      "headerNote": "Uwaga: ustawienia odzwierciedlają stan w momencie eksportu, a nie zmiany wprowadzone w trakcie sesji."
+      "headerNote": "Uwaga: ustawienia odzwierciedlają stan w momencie eksportu, a nie zmiany wprowadzone w trakcie sesji.",
+      "headerNarrowed": "Uwaga: ten eksport został zawężony podczas eksportowania — pominięto niektóre wiersze."
     },
     "waveformOutputTooltip": "Dźwięk wysyłany do wirtualnego mikrofonu (tłumaczenie + przepuszczanie)",
     "waveformMicTooltip": "Twój mikrofon — Twój głos przechwytywany do tłumaczenia",

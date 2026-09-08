@@ -53,12 +53,107 @@
   cursor: pointer;
   border-radius: 4px;
 
-  &:hover,
-  &:focus {
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
     background: #3a3a3a;
     color: #fff;
     outline: none;
   }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.export-scope {
+  // Grid, not per-row flex: the side label column sizes to the longer of the
+  // two labels, so "Me"/"Other" stay aligned in every locale — uk's
+  // "Співрозмовник" is 6x the width of its "Я" and would overflow any fixed
+  // width chosen for English.
+  display: grid;
+  grid-template-columns: max-content auto auto;
+  gap: 4px 6px;
+  align-items: center;
+  padding: 6px 12px 8px;
+  border-bottom: 1px solid #444;
+  margin-bottom: 4px;
+}
+
+.export-scope-title {
+  grid-column: 1 / -1;
+  // #9aa0a6, not the toolbar's #8a8a8a rest colour: that one is measured
+  // against the #1e1e1e toolbar (4.83:1) and only reaches 4.16:1 on this
+  // menu's #2a2a2a, under the 4.5:1 floor for text this small.
+  color: #9aa0a6;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+}
+
+// Lets the label and its two checkboxes take part in .export-scope's grid, so
+// both rows share one set of column widths.
+.export-scope-row {
+  display: contents;
+}
+
+.export-scope-row-label {
+  color: #9aa0a6;
+  font-size: 12px;
+  padding-right: 2px;
+}
+
+.export-scope-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px 3px 4px;
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 4px;
+  // Same reason as .export-scope-title: 4.5:1 on #2a2a2a, not the toolbar's grey.
+  color: #9aa0a6;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+
+  // Checked state has to be legible on its own — the tick alone is small, so
+  // the label brightens and the border lifts with it.
+  &[aria-checked='true'] {
+    color: #fff;
+    border-color: #10a37f;
+    background: rgba(16, 163, 127, 0.18);
+  }
+
+  &:hover,
+  &:focus {
+    border-color: #666;
+    color: #ccc;
+    outline: none;
+  }
+
+  &[aria-checked='true']:hover,
+  &[aria-checked='true']:focus {
+    border-color: #10a37f;
+    color: #fff;
+  }
+}
+
+.export-scope-check {
+  // Kept in the layout when unchecked so toggling doesn't shift the label.
+  flex: 0 0 auto;
+  visibility: hidden;
+
+  .export-scope-box[aria-checked='true'] & {
+    visibility: visible;
+  }
+}
+
+.export-scope-empty {
+  padding: 6px 12px;
+  color: #9aa0a6;
+  font-size: 12px;
 }
 
 // The floating host's size() clamp writes max-height inline; scroll inside it

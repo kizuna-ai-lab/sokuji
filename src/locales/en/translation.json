@@ -586,13 +586,17 @@
       "speakerYou": "Me",
       "speakerOther": "Other",
       "translationSuffix": "(trans)",
+      "scopeLabel": "Include",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Nothing selected",
       "headerTitle": "Sokuji conversation export",
       "headerGenerated": "Generated",
       "headerProvider": "Provider",
       "headerModels": "Models",
       "headerSource": "My Language",
       "headerTarget": "Other's Language",
-      "headerNote": "Note: settings reflect current state at export, not mid-session changes."
+      "headerNote": "Note: settings reflect current state at export, not mid-session changes.",
+      "headerNarrowed": "Note: this export was narrowed at export time — some lines were left out."
     },
     "waveformOutputTooltip": "Audio sent to the virtual microphone (translation + passthrough)",
     "waveformMicTooltip": "Your microphone — your voice being captured for translation",

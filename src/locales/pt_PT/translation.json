@@ -586,13 +586,17 @@
       "speakerYou": "Eu",
       "speakerOther": "Outro",
       "translationSuffix": "(trad.)",
+      "scopeLabel": "Incluir",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Nada selecionado",
       "headerTitle": "Exportação de conversa do Sokuji",
       "headerGenerated": "Gerado",
       "headerProvider": "Fornecedor",
       "headerModels": "Modelos",
       "headerSource": "Meu idioma",
       "headerTarget": "Idioma do outro",
-      "headerNote": "Nota: as definições refletem o estado atual no momento da exportação, não as alterações efetuadas durante a sessão."
+      "headerNote": "Nota: as definições refletem o estado atual no momento da exportação, não as alterações efetuadas durante a sessão.",
+      "headerNarrowed": "Nota: esta exportação foi restringida no momento da exportação — algumas linhas foram omitidas."
     },
     "waveformOutputTooltip": "Áudio enviado para o microfone virtual (tradução + passagem de áudio original)",
     "waveformMicTooltip": "O seu microfone — a sua voz a ser captada para tradução",

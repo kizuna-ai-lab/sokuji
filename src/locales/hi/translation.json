@@ -586,13 +586,17 @@
       "speakerYou": "मैं",
       "speakerOther": "दूसरा",
       "translationSuffix": "(अनु.)",
+      "scopeLabel": "शामिल करें",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "कुछ भी चयनित नहीं",
       "headerTitle": "Sokuji वार्तालाप निर्यात",
       "headerGenerated": "उत्पन्न",
       "headerProvider": "प्रदाता",
       "headerModels": "मॉडल",
       "headerSource": "मेरी भाषा",
       "headerTarget": "दूसरे की भाषा",
-      "headerNote": "नोट: सेटिंग्स निर्यात के समय की वर्तमान स्थिति दर्शाती हैं, सत्र के दौरान के बदलाव नहीं।"
+      "headerNote": "नोट: सेटिंग्स निर्यात के समय की वर्तमान स्थिति दर्शाती हैं, सत्र के दौरान के बदलाव नहीं।",
+      "headerNarrowed": "ध्यान दें: निर्यात के समय इस निर्यात का दायरा सीमित किया गया — कुछ पंक्तियाँ छोड़ दी गईं।"
     },
     "waveformOutputTooltip": "वर्चुअल माइक्रोफोन को भेजा गया ऑडियो (अनुवाद + मूल ऑडियो पासथ्रू)",
     "waveformMicTooltip": "आपका माइक्रोफ़ोन — अनुवाद के लिए कैप्चर की जा रही आपकी आवाज़",

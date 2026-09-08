@@ -586,13 +586,17 @@
       "speakerYou": "Saya",
       "speakerOther": "Pihak lain",
       "translationSuffix": "(terj.)",
+      "scopeLabel": "Sertakan",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Tiada yang dipilih",
       "headerTitle": "Eksport perbualan Sokuji",
       "headerGenerated": "Dijana",
       "headerProvider": "Pembekal",
       "headerModels": "Model",
       "headerSource": "Bahasa saya",
       "headerTarget": "Bahasa pihak lain",
-      "headerNote": "Nota: tetapan mencerminkan keadaan semasa pada masa eksport, bukan perubahan semasa sesi."
+      "headerNote": "Nota: tetapan mencerminkan keadaan semasa pada masa eksport, bukan perubahan semasa sesi.",
+      "headerNarrowed": "Nota: eksport ini telah dipersempit semasa mengeksport — sesetengah baris tidak disertakan."
     },
     "waveformOutputTooltip": "Audio yang dihantar ke mikrofon maya (terjemahan + passthrough)",
     "waveformMicTooltip": "Mikrofon anda — suara anda yang ditangkap untuk terjemahan",

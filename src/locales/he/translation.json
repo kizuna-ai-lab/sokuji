@@ -586,13 +586,17 @@
       "speakerYou": "אני",
       "speakerOther": "הצד השני",
       "translationSuffix": "(תרג.)",
+      "scopeLabel": "לכלול",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "לא נבחר דבר",
       "headerTitle": "ייצוא שיחת Sokuji",
       "headerGenerated": "נוצר",
       "headerProvider": "ספק",
       "headerModels": "מודלים",
       "headerSource": "השפה שלי",
       "headerTarget": "שפת הצד השני",
-      "headerNote": "הערה: ההגדרות משקפות את המצב הנוכחי בעת הייצוא, לא שינויים שבוצעו במהלך הסשן."
+      "headerNote": "הערה: ההגדרות משקפות את המצב הנוכחי בעת הייצוא, לא שינויים שבוצעו במהלך הסשן.",
+      "headerNarrowed": "הערה: ייצוא זה צומצם בעת הייצוא — חלק מהשורות הושמטו."
     },
     "waveformOutputTooltip": "השמע שנשלח למיקרופון הווירטואלי (תרגום + העברת שמע מקורי)",
     "waveformMicTooltip": "המיקרופון שלך — הקול שלך שנקלט לתרגום",

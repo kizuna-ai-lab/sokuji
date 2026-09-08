@@ -586,13 +586,17 @@
       "speakerYou": "Minä",
       "speakerOther": "Toinen",
       "translationSuffix": "(kään.)",
+      "scopeLabel": "Sisällytä",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Ei valintoja",
       "headerTitle": "Sokuji-keskustelun vienti",
       "headerGenerated": "Luotu",
       "headerProvider": "Palveluntarjoaja",
       "headerModels": "Mallit",
       "headerSource": "Minun kieleni",
       "headerTarget": "Toisen kieli",
-      "headerNote": "Huom: asetukset heijastavat tilaa viennin hetkellä, eivät istunnon aikaisia muutoksia."
+      "headerNote": "Huom: asetukset heijastavat tilaa viennin hetkellä, eivät istunnon aikaisia muutoksia.",
+      "headerNarrowed": "Huomio: tätä vientiä rajattiin vietäessä – osa riveistä jätettiin pois."
     },
     "waveformOutputTooltip": "Virtuaalimikrofoniin lähetetty ääni (käännös + alkuperäisen äänen läpivienti)",
     "waveformMicTooltip": "Mikrofonisi — äänesi, joka kaapataan käännöstä varten",

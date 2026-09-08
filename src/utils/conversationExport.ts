@@ -1,4 +1,5 @@
 import type { ConversationItem } from '../services/interfaces/IClient';
+import type { DisplayMode } from '../stores/settingsStore';
 import { Provider } from '../types/Provider';
 
 // Build-time injected by vite.config.ts (define: { __APP_VERSION__ })
@@ -37,6 +38,18 @@ export interface SessionMetadata {
   targetLanguage: string;
   /** All distinct source→target pairs that appear across the messages, in first-seen order. Empty when no message carries a snapshot. */
   languagePairs: Array<{ sourceLanguage: string; targetLanguage: string }>;
+  /**
+   * The scope the user exported under, present ONLY when it left something
+   * out. A full export carries no scope field, so "absent" reads as "this is
+   * everything" without the reader having to know the mode vocabulary.
+   */
+  scope?: ExportScope;
+}
+
+/** Which lines of each side the export was asked for. */
+export interface ExportScope {
+  speaker: DisplayMode;
+  participant: DisplayMode;
 }
 
 /** i18n strings the txt formatter needs (kept as parameter to keep this module React-free). */
@@ -52,6 +65,8 @@ export interface TxtI18n {
   headerSource: string;
   headerTarget: string;
   headerNote: string;
+  /** Shown only when the export was narrowed by the scope checkboxes. */
+  headerNarrowed: string;
 }
 
 const SPEAKER_COLUMN_WIDTH = 8; // includes trailing colon: "You:    " / "Other:  "
@@ -233,7 +248,9 @@ export function buildSessionMetadata(args: {
   sourceLanguage: string;
   targetLanguage: string;
   languagePairs?: Array<{ sourceLanguage: string; targetLanguage: string }>;
+  scope?: ExportScope;
 }): SessionMetadata {
+  const narrowed = args.scope && !(args.scope.speaker === 'both' && args.scope.participant === 'both');
   return {
     exportedAt: new Date().toISOString(),
     appVersion: getAppVersion(),
@@ -242,6 +259,7 @@ export function buildSessionMetadata(args: {
     sourceLanguage: args.sourceLanguage,
     targetLanguage: args.targetLanguage,
     languagePairs: args.languagePairs ?? [],
+    ...(narrowed ? { scope: args.scope } : {}),
   };
 }
 
@@ -283,6 +301,11 @@ export function formatAsTxt(
       lines.push(`${i18n.headerSource} ${ARROW} ${i18n.headerTarget}: ${pairText}`);
     }
     lines.push(i18n.headerNote);
+    // Only when something was left out — a full export says nothing, so the
+    // line's presence is itself the signal.
+    if (metadata.scope) {
+      lines.push(i18n.headerNarrowed);
+    }
     lines.push('');
   }
 
@@ -327,6 +350,9 @@ export function formatAsJson(
       // Present only when at least one message carries a snapshotted pair.
       // Lets readers detect history that spans multiple language pairs.
       ...(metadata.languagePairs.length > 0 ? { languagePairs: metadata.languagePairs } : {}),
+      // Present only when the export left something out; absence means the
+      // file holds the whole conversation.
+      ...(metadata.scope ? { scope: metadata.scope } : {}),
     },
     messageCount: messages.length,
     messages: messages.map(m => ({

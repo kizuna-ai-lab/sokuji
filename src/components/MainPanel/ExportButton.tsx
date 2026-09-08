@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, ChevronDown, Copy, FileText, FileJson } from 'lucide-react';
+import { Download, ChevronDown, Copy, FileText, FileJson, Check } from 'lucide-react';
 import {
   useFloating,
   autoUpdate,
@@ -17,6 +17,8 @@ import {
   FloatingPortal,
 } from '@floating-ui/react';
 import type { ConversationItem } from '../../services/interfaces/IClient';
+import type { DisplayMode } from '../../stores/settingsStore';
+import { shouldShowItem, modeToToggles, togglesToMode, type ScopeToggles } from './conversationFilter';
 import {
   buildSessionMetadata,
   collectLanguagePairs,
@@ -35,12 +37,20 @@ import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWind
 import './ExportButton.scss';
 
 interface ExportButtonProps {
-  /** Already-merged-and-sorted items from MainPanel's combinedItems memo. */
+  /**
+   * Already-merged-and-sorted items — the FULL list, unfiltered. Which of
+   * them reach the file is decided here, by the scope checkboxes, so that a
+   * caller cannot silently narrow an export by passing a shorter array.
+   */
   combinedItems: Array<ConversationItem & {
     source?: string;
     sourceLanguage?: string;
     targetLanguage?: string;
   }>;
+  /** Speaker-side toolbar filter. Seeds the scope checkboxes; never written back. */
+  speakerMode: DisplayMode;
+  /** Participant-side toolbar filter. Seeds the scope checkboxes; never written back. */
+  participantMode: DisplayMode;
   /** Current provider id from useProvider(). */
   provider: string;
   /** Snapshot of the current provider's settings (from getCurrentProviderSettings()). */
@@ -61,6 +71,8 @@ interface ExportButtonProps {
 
 const ExportButton: React.FC<ExportButtonProps> = ({
   combinedItems,
+  speakerMode,
+  participantMode,
   provider,
   currentProviderSettings,
   localInferenceSettings,
@@ -85,17 +97,113 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     }
   }, [isOpen]);
 
-  // Normalize once per combinedItems change; reused for both the disabled
-  // state and the export payload build at click time.
-  const normalizedMessages = useMemo(
-    () => normalizeMessages(combinedItems),
-    [combinedItems]
+  // What goes in the file. Seeded from the toolbar filter so the default is
+  // "what you are looking at", but held here and never written back — the
+  // toolbar is a viewing preference, not a second place export scope lives.
+  const [speaker, setSpeaker] = useState<ScopeToggles>(() => modeToToggles(speakerMode));
+  const [participant, setParticipant] = useState<ScopeToggles>(() => modeToToggles(participantMode));
+
+  // Apply the scope with the same predicate the conversation view uses, so
+  // "what the file contains" and "what the screen shows" can never drift
+  // apart by having two filters to keep in step.
+  const scopedItems = useMemo(
+    () => combinedItems.filter(
+      (item) => shouldShowItem(item, togglesToMode(speaker), togglesToMode(participant)),
+    ),
+    [combinedItems, speaker, participant]
   );
-  const hasContent = normalizedMessages.length > 0;
+
+  // Normalize once per scope change; this is the export payload.
+  const normalizedMessages = useMemo(
+    () => normalizeMessages(scopedItems),
+    [scopedItems]
+  );
+
+  // Two different questions. The button asks "is there a conversation at all",
+  // so a filter that currently selects nothing cannot lock the user out of the
+  // menu that would let them widen it. The actions ask "does the current scope
+  // select anything".
+  const hasContent = useMemo(() => normalizeMessages(combinedItems).length > 0, [combinedItems]);
+  const scopeHasContent = normalizedMessages.length > 0;
+
+  // Re-seed from the toolbar on every open, so "the default is what you are
+  // looking at" keeps holding after the toolbar changes. Done on the opening
+  // action rather than in an effect, so a toolbar change while the menu is
+  // open cannot wipe an edit the user is in the middle of making.
+  const seedScope = useCallback(() => {
+    setSpeaker(modeToToggles(speakerMode));
+    setParticipant(modeToToggles(participantMode));
+  }, [speakerMode, participantMode]);
+
+  const scopeTitle = t('mainPanel.export.scopeLabel', 'Include');
+  const lines = useMemo(() => ([
+    { key: 'src' as const, label: t('mainPanel.displayMode.source', 'Src') },
+    { key: 'trans' as const, label: t('mainPanel.displayMode.translation', 'Trans') },
+  ]), [t]);
+  const scopeRows = useMemo(() => ([
+    { key: 'speaker', label: t('mainPanel.displayMode.speaker', 'Me'), toggles: speaker, set: setSpeaker },
+    { key: 'participant', label: t('mainPanel.displayMode.participant', 'Other'), toggles: participant, set: setParticipant },
+  ]), [t, speaker, participant]);
+  /** Checkboxes come first in the keyboard ring; the actions follow them. */
+  const scopeRingSize = scopeRows.length * lines.length;
+
+  /**
+   * The scope checkboxes, shared by both menu hosts. `roving` wires them into
+   * floating-ui's list navigation so arrow keys walk the checkboxes and the
+   * actions as one ring; the child window uses native focus instead and passes
+   * false.
+   */
+  const renderScope = (roving: boolean) => (
+    <>
+    <div className="export-scope" role="group" aria-label={scopeTitle}>
+      <div className="export-scope-title">{scopeTitle}</div>
+      {scopeRows.map((row, rowIdx) => (
+        <div className="export-scope-row" key={row.key}>
+          <span className="export-scope-row-label">{row.label}</span>
+          {lines.map((line, lineIdx) => {
+            const ringIndex = rowIdx * lines.length + lineIdx;
+            const toggle = () => row.set((prev) => ({ ...prev, [line.key]: !prev[line.key] }));
+            return (
+              <button
+                key={line.key}
+                type="button"
+                role="menuitemcheckbox"
+                className="export-scope-box"
+                aria-checked={row.toggles[line.key]}
+                aria-label={t('mainPanel.export.scopeItemAria', '{{scope}} — {{line}}', {
+                  scope: row.label,
+                  line: line.label,
+                })}
+                {...(roving
+                  ? {
+                      ref: (node: HTMLButtonElement | null) => { listRef.current[ringIndex] = node; },
+                      tabIndex: activeIndex === ringIndex ? 0 : -1,
+                      ...getItemProps({ onClick: toggle }),
+                    }
+                  : { onClick: toggle })}
+              >
+                <Check size={12} className="export-scope-check" aria-hidden="true" />
+                <span>{line.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+    {!scopeHasContent && (
+      <div className="export-scope-empty">
+        {t('mainPanel.export.scopeEmpty', 'Nothing selected')}
+      </div>
+    )}
+    </>
+  );
 
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
-    onOpenChange: setIsOpen,
+    onOpenChange: (next: boolean) => {
+      if (next) seedScope();
+      setIsOpen(next);
+    },
     placement: 'bottom-end',
     middleware: [
       offset(4),
@@ -140,6 +248,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     headerSource: t('mainPanel.export.headerSource', 'My Language'),
     headerTarget: t('mainPanel.export.headerTarget', "Other's Language"),
     headerNote: t('mainPanel.export.headerNote', 'Note: settings reflect current state at export, not mid-session changes.'),
+    headerNarrowed: t('mainPanel.export.headerNarrowed', 'Note: this export was narrowed at export time — some lines were left out.'),
   }), [t]);
 
   // Close whichever host is active; each call no-ops for the inactive one.
@@ -165,9 +274,12 @@ const ExportButton: React.FC<ExportButtonProps> = ({
       sourceLanguage: sessionPair.sourceLanguage,
       targetLanguage: sessionPair.targetLanguage,
       languagePairs,
+      // Recorded so the file says whether it is the whole conversation. A
+      // full scope is dropped inside buildSessionMetadata.
+      scope: { speaker: togglesToMode(speaker), participant: togglesToMode(participant) },
     });
     return { messages: normalizedMessages, metadata };
-  }, [normalizedMessages, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage]);
+  }, [normalizedMessages, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage, speaker, participant]);
 
   const handleCopy = useCallback(async () => {
     closeMenu();
@@ -211,7 +323,10 @@ const ExportButton: React.FC<ExportButtonProps> = ({
           className="export-btn"
           type="button"
           disabled={!hasContent}
-          onClick={childMenu.toggle}
+          onClick={() => {
+            if (!childMenu.open) seedScope();
+            childMenu.toggle();
+          }}
           title={t('mainPanel.toolbar.export', 'Export conversation')}
           aria-label={t('mainPanel.toolbar.export', 'Export conversation')}
           aria-haspopup="menu"
@@ -235,6 +350,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
             role="menu"
             aria-label={t('mainPanel.toolbar.export', 'Export conversation')}
           >
+            {renderScope(false)}
             {items.map((it) => {
               const { Icon } = it;
               return (
@@ -243,6 +359,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
                   role="menuitem"
                   type="button"
                   className="export-menu-item"
+                  disabled={!scopeHasContent}
                   onClick={it.onClick}
                 >
                   <Icon size={14} />
@@ -282,16 +399,18 @@ const ExportButton: React.FC<ExportButtonProps> = ({
               style={{ ...floatingStyles, zIndex: 9999 }}
               {...getFloatingProps()}
             >
+              {renderScope(true)}
               {items.map((it, idx) => {
                 const { Icon } = it;
                 return (
                   <button
                     key={it.key}
-                    ref={(node) => { listRef.current[idx] = node; }}
+                    ref={(node) => { listRef.current[scopeRingSize + idx] = node; }}
                     role="menuitem"
                     type="button"
                     className="export-menu-item"
-                    tabIndex={activeIndex === idx ? 0 : -1}
+                    disabled={!scopeHasContent}
+                    tabIndex={activeIndex === scopeRingSize + idx ? 0 : -1}
                     {...getItemProps({
                       onClick: it.onClick,
                     })}

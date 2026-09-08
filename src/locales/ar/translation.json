@@ -586,13 +586,17 @@
       "speakerYou": "أنا",
       "speakerOther": "الآخر",
       "translationSuffix": "(ترجمة)",
+      "scopeLabel": "تضمين",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "لم يتم تحديد أي شيء",
       "headerTitle": "تصدير محادثة Sokuji",
       "headerGenerated": "تم الإنشاء",
       "headerProvider": "المزود",
       "headerModels": "النماذج",
       "headerSource": "لغتي",
       "headerTarget": "لغة الآخر",
-      "headerNote": "ملاحظة: تعكس الإعدادات الحالة عند التصدير، وليس التغييرات التي حدثت خلال الجلسة."
+      "headerNote": "ملاحظة: تعكس الإعدادات الحالة عند التصدير، وليس التغييرات التي حدثت خلال الجلسة.",
+      "headerNarrowed": "ملاحظة: تم تضييق نطاق هذا التصدير عند التصدير — تم استبعاد بعض الأسطر."
     },
     "waveformOutputTooltip": "الصوت المُرسَل إلى الميكروفون الافتراضي (الترجمة + تمرير الصوت الأصلي)",
     "waveformMicTooltip": "ميكروفونك — صوتك الذي يُلتقط للترجمة",

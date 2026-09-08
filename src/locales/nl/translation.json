@@ -586,13 +586,17 @@
       "speakerYou": "Ik",
       "speakerOther": "Ander",
       "translationSuffix": "(vert.)",
+      "scopeLabel": "Opnemen",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Niets geselecteerd",
       "headerTitle": "Sokuji gespreksexport",
       "headerGenerated": "Gegenereerd",
       "headerProvider": "Aanbieder",
       "headerModels": "Modellen",
       "headerSource": "Mijn taal",
       "headerTarget": "Taal van de ander",
-      "headerNote": "Opmerking: instellingen weerspiegelen de huidige staat bij export, niet wijzigingen tijdens de sessie."
+      "headerNote": "Opmerking: instellingen weerspiegelen de huidige staat bij export, niet wijzigingen tijdens de sessie.",
+      "headerNarrowed": "Let op: deze export is bij het exporteren beperkt — sommige regels ontbreken."
     },
     "waveformOutputTooltip": "Audio die naar de virtuele microfoon wordt gestuurd (vertaling + doorvoer)",
     "waveformMicTooltip": "Uw microfoon — uw stem die wordt vastgelegd voor vertaling",

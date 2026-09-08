@@ -356,7 +356,11 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
         speakerActive={speakerActive}
         participantActive={participantActive}
         exportProps={{
+          // Full list; the export menu scopes it itself, seeded from the same
+          // two modes the subtitle band filters on.
           combinedItems,
+          speakerMode,
+          participantMode,
           provider,
           currentProviderSettings: providerSettings,
           localInferenceSettings,

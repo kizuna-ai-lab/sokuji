@@ -586,13 +586,17 @@
       "speakerYou": "Ben",
       "speakerOther": "Karşı taraf",
       "translationSuffix": "(çev.)",
+      "scopeLabel": "Dahil et",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Hiçbir şey seçilmedi",
       "headerTitle": "Sokuji sohbet dışa aktarma",
       "headerGenerated": "Oluşturuldu",
       "headerProvider": "Sağlayıcı",
       "headerModels": "Modeller",
       "headerSource": "Benim dilim",
       "headerTarget": "Karşı tarafın dili",
-      "headerNote": "Not: ayarlar dışa aktarma anındaki mevcut durumu yansıtır, oturum sırasındaki değişiklikleri değil."
+      "headerNote": "Not: ayarlar dışa aktarma anındaki mevcut durumu yansıtır, oturum sırasındaki değişiklikleri değil.",
+      "headerNarrowed": "Not: bu dışa aktarmanın kapsamı aktarma sırasında daraltıldı — bazı satırlar dahil edilmedi."
     },
     "waveformOutputTooltip": "Sanal mikrofona gönderilen ses (çeviri + orijinal ses geçişi)",
     "waveformMicTooltip": "Mikrofonunuz — sesiniz çeviri için kaydediliyor",

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ConversationItem } from '../services/interfaces/IClient';
+import type { DisplayMode } from '../stores/settingsStore';
 import {
   buildSessionMetadata,
   collectLanguagePairs,
@@ -42,6 +43,7 @@ const i18n: TxtI18n = {
   headerSource: 'Source',
   headerTarget: 'Target',
   headerNote: 'Note: ...',
+  headerNarrowed: 'Narrowed: ...',
 };
 
 describe('normalizeMessages — language snapshot propagation', () => {
@@ -152,6 +154,49 @@ describe('formatAsTxt — language pair header', () => {
     });
     const out = formatAsTxt([], meta, i18n, { includeHeader: true });
     expect(out).toContain('Source: EN → Target: JA');
+  });
+});
+
+describe('export scope is recorded in the file', () => {
+  const meta = (scope?: { speaker: DisplayMode; participant: DisplayMode }) =>
+    buildSessionMetadata({
+      provider: 'openai',
+      models: {},
+      sourceLanguage: 'EN',
+      targetLanguage: 'JA',
+      languagePairs: [],
+      scope,
+    });
+
+  it('warns in the txt header when the scope left something out', () => {
+    const out = formatAsTxt([], meta({ speaker: 'translation', participant: 'both' }), i18n, {
+      includeHeader: true,
+    });
+    expect(out).toContain('Narrowed: ...');
+  });
+
+  it('leaves the warning out when every line was included', () => {
+    const out = formatAsTxt([], meta({ speaker: 'both', participant: 'both' }), i18n, {
+      includeHeader: true,
+    });
+    expect(out).not.toContain('Narrowed: ...');
+  });
+
+  it('leaves the warning out when no scope was recorded at all', () => {
+    const out = formatAsTxt([], meta(), i18n, { includeHeader: true });
+    expect(out).not.toContain('Narrowed: ...');
+  });
+
+  it('records the scope as machine-readable modes in the json metadata', () => {
+    const parsed = JSON.parse(
+      formatAsJson([], meta({ speaker: 'translation', participant: 'none' })),
+    );
+    expect(parsed.session.scope).toEqual({ speaker: 'translation', participant: 'none' });
+  });
+
+  it('omits the json scope field when nothing was narrowed', () => {
+    const parsed = JSON.parse(formatAsJson([], meta({ speaker: 'both', participant: 'both' })));
+    expect(parsed.session.scope).toBeUndefined();
   });
 });
 
