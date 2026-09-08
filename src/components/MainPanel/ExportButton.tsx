@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, ChevronDown, Copy, FileText, FileJson, Check } from 'lucide-react';
+import { Download, ChevronDown, Copy, FileText, FileJson } from 'lucide-react';
 import {
   useFloating,
   autoUpdate,
@@ -182,8 +182,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
                     }
                   : { onClick: toggle })}
               >
-                <Check size={12} className="export-scope-check" aria-hidden="true" />
-                <span>{line.label}</span>
+                {line.label}
               </button>
             );
           })}

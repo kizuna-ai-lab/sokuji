@@ -71,8 +71,12 @@
   // two labels, so "Me"/"Other" stay aligned in every locale — uk's
   // "Співрозмовник" is 6x the width of its "Я" and would overflow any fixed
   // width chosen for English.
+  //
+  // The two line columns are 1fr, not auto: sized to their own content they
+  // come out ragged ("Src" narrower than "Trans"). Sharing the remaining width
+  // equally makes the four boxes one block, and gives them a bigger hit area.
   display: grid;
-  grid-template-columns: max-content auto auto;
+  grid-template-columns: max-content 1fr 1fr;
   gap: 4px 6px;
   align-items: center;
   padding: 6px 12px 8px;
@@ -107,8 +111,8 @@
 .export-scope-box {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px 7px 3px 4px;
+  justify-content: center;
+  padding: 3px 8px;
   background: transparent;
   border: 1px solid #444;
   border-radius: 4px;
@@ -118,8 +122,8 @@
   cursor: pointer;
   transition: color 0.15s, background-color 0.15s, border-color 0.15s;
 
-  // Checked state has to be legible on its own — the tick alone is small, so
-  // the label brightens and the border lifts with it.
+  // Three things move together, so the state never rests on hue alone: the
+  // label brightens, the border lifts, and the box gains a fill.
   &[aria-checked='true'] {
     color: #fff;
     border-color: #10a37f;
@@ -137,16 +141,6 @@
   &[aria-checked='true']:focus {
     border-color: #10a37f;
     color: #fff;
-  }
-}
-
-.export-scope-check {
-  // Kept in the layout when unchecked so toggling doesn't shift the label.
-  flex: 0 0 auto;
-  visibility: hidden;
-
-  .export-scope-box[aria-checked='true'] & {
-    visibility: visible;
   }
 }
 

@@ -21,12 +21,17 @@ describe('export scope checkbox states are visually distinct', () => {
     );
   });
 
-  it('reveals the tick only for the checked box', () => {
-    // Hidden by default...
-    expect(css).toMatch(/\.export-scope-check\s*\{[^}]*\bvisibility:\s*hidden\b/);
-    // ...and shown under a checked box.
+  it('fills the checked box, so the state is not carried by hue alone', () => {
     expect(css).toMatch(
-      /\.export-scope-box\[aria-checked=["']?true["']?\][^{]*\.export-scope-check\s*\{[^}]*\bvisibility:\s*visible\b/,
+      /\.export-scope-box\[aria-checked=["']?true["']?\]\s*\{[^}]*\bbackground:/,
+    );
+  });
+
+  it('gives the two line columns equal width', () => {
+    // 1fr 1fr, not auto auto: the columns must not size to their own label, or
+    // "Src" renders narrower than "Trans" and the two rows look ragged.
+    expect(css).toMatch(
+      /\.export-scope\s*\{[^}]*\bgrid-template-columns:\s*max-content\s+1fr\s+1fr\b/,
     );
   });
 
