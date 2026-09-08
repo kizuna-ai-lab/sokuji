@@ -27,9 +27,14 @@ def test_clean_output_strips_transcript_tags():
     assert tb._clean_output("<think>x</think> Hello</transcript>") == "Hello"
 
 
-def test_clean_output_drops_known_no_input_hallucination():
+def test_clean_output_drops_known_non_translation_responses():
     assert tb._clean_output("Veuillez fournir le texte anglais à traduire.") == ""
     assert tb._clean_output("  Veuillez fournir le texte anglais à traduire.\n") == ""
+    assert tb._clean_output(
+        'Il n\'y a pas de phrase complète à traduire. "ished" est une forme du passé. '
+        'Sans contexte, il est impossible de fournir une traduction précise. '
+        'Veuillez fournir la phrase complète.'
+    ) == ""
 
 
 class _FakeTranslator:

@@ -115,8 +115,11 @@ from .catalog import split_artifact
 from .planner import PlanConfig
 
 _TRANSCRIPT_TAG = re.compile(r"</?transcript>", re.IGNORECASE)
-_KNOWN_NO_INPUT_HALLUCINATIONS = frozenset({
+_KNOWN_NON_TRANSLATION_RESPONSES = frozenset({
     "Veuillez fournir le texte anglais à traduire.",
+    'Il n\'y a pas de phrase complète à traduire. "ished" est une forme du passé. '
+    'Sans contexte, il est impossible de fournir une traduction précise. '
+    'Veuillez fournir la phrase complète.',
 })
 
 # I-1: the single shared budget unload() gives EVERY outstanding translate()
@@ -136,13 +139,13 @@ def _default_prompt(src: str, tgt: str) -> str:
 def _clean_output(text: str) -> str:
     """Clean a model's raw translation output: drop any <think>…</think> reasoning
     block, strip stray <transcript>/</transcript> tags, then suppress exact known
-    no-input hallucinations. Small Qwen models echo the wrapped input's framing
+    non-translation responses. Small Qwen models echo the wrapped input's framing
     (e.g. trailing '</transcript>') into the output."""
     if "</think>" in text:
         text = text.split("</think>", 1)[1]
     text = _TRANSCRIPT_TAG.sub("", text)
     text = text.strip()
-    return "" if text in _KNOWN_NO_INPUT_HALLUCINATIONS else text
+    return "" if text in _KNOWN_NON_TRANSLATION_RESPONSES else text
 
 
 def _hunyuan_prompt(tgt: str) -> str:
