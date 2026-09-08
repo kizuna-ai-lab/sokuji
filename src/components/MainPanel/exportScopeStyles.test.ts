@@ -39,3 +39,21 @@ describe('export scope checkbox states are visually distinct', () => {
     expect(css).toMatch(/\.export-menu-item:disabled\s*\{[^}]*\bopacity:/);
   });
 });
+
+// Every stop in the menu's roving-tabindex ring is reachable by keyboard, so
+// each one has to show where the focus is. A border colour change is not
+// enough: #666 on the #2a2a2a menu measures 2.5:1, under the 3:1 floor for a
+// non-text indicator.
+describe('menu keyboard focus is visible', () => {
+  for (const sel of ['.export-scope-box', '.export-menu-item']) {
+    const esc = sel.replace(/\./g, '\\.');
+
+    it(`${sel} draws an outline on :focus-visible`, () => {
+      expect(css).toMatch(new RegExp(String.raw`${esc}:focus-visible\s*\{[^}]*\boutline:\s*\S`));
+    });
+
+    it(`${sel} never suppresses the outline`, () => {
+      expect(css).not.toMatch(new RegExp(String.raw`${esc}[^{]*\{[^}]*\boutline:\s*none`));
+    });
+  }
+});

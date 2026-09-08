@@ -57,7 +57,15 @@
   &:focus:not(:disabled) {
     background: #3a3a3a;
     color: #fff;
-    outline: none;
+  }
+
+  // The #3a3a3a hover fill is 1.15:1 against the menu — nowhere near enough to
+  // say "the keyboard is here". Arrow keys walk this ring, so it needs a real
+  // indicator: #fff is 21:1 on #2a2a2a, and stays distinct from the green that
+  // means "checked".
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
   }
 
   &:disabled {
@@ -130,15 +138,20 @@
     background: rgba(16, 163, 127, 0.18);
   }
 
-  &:hover,
-  &:focus {
+  &:hover {
     border-color: #666;
     color: #ccc;
-    outline: none;
   }
 
-  &[aria-checked='true']:hover,
-  &[aria-checked='true']:focus {
+  // Same reason as the menu items: the hover border is #666, 2.5:1 on the menu,
+  // and a focused box may already be green-bordered because it is checked — so
+  // the focus ring has to be a different colour, not a stronger border.
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
+  }
+
+  &[aria-checked='true']:hover {
     border-color: #10a37f;
     color: #fff;
   }
