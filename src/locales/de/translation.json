@@ -586,13 +586,17 @@
       "speakerYou": "Ich",
       "speakerOther": "Gegenüber",
       "translationSuffix": "(Übers.)",
+      "scopeLabel": "Einschließen",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Nichts ausgewählt",
       "headerTitle": "Sokuji-Unterhaltungsexport",
       "headerGenerated": "Erstellt",
       "headerProvider": "Anbieter",
       "headerModels": "Modelle",
       "headerSource": "Meine Sprache",
       "headerTarget": "Sprache des Gegenübers",
-      "headerNote": "Hinweis: Die Einstellungen spiegeln den aktuellen Stand beim Export wider, nicht Änderungen während der Sitzung."
+      "headerNote": "Hinweis: Die Einstellungen spiegeln den aktuellen Stand beim Export wider, nicht Änderungen während der Sitzung.",
+      "headerNarrowed": "Hinweis: Dieser Export wurde beim Exportieren eingeschränkt – einige Zeilen fehlen."
     },
     "waveformOutputTooltip": "Audio, das an das virtuelle Mikrofon gesendet wird (Übersetzung + Durchleitung)",
     "waveformMicTooltip": "Ihr Mikrofon — Ihre Stimme, die zur Übersetzung erfasst wird",

@@ -586,13 +586,17 @@
       "speakerYou": "Tôi",
       "speakerOther": "Đối phương",
       "translationSuffix": "(dịch)",
+      "scopeLabel": "Bao gồm",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Chưa chọn gì",
       "headerTitle": "Xuất hội thoại Sokuji",
       "headerGenerated": "Đã tạo",
       "headerProvider": "Nhà cung cấp",
       "headerModels": "Mô hình",
       "headerSource": "Ngôn ngữ của tôi",
       "headerTarget": "Ngôn ngữ đối phương",
-      "headerNote": "Lưu ý: cài đặt phản ánh trạng thái hiện tại tại thời điểm xuất, không phải các thay đổi trong phiên."
+      "headerNote": "Lưu ý: cài đặt phản ánh trạng thái hiện tại tại thời điểm xuất, không phải các thay đổi trong phiên.",
+      "headerNarrowed": "Lưu ý: bản xuất này đã được thu hẹp khi xuất — một số dòng không được đưa vào."
     },
     "waveformOutputTooltip": "Âm thanh gửi đến microphone ảo (bản dịch + truyền âm thanh gốc)",
     "waveformMicTooltip": "Microphone của bạn — giọng nói của bạn đang được thu để dịch",

@@ -586,13 +586,17 @@
       "speakerYou": "自分",
       "speakerOther": "相手",
       "translationSuffix": "(訳)",
+      "scopeLabel": "含める",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "何も選択されていません",
       "headerTitle": "Sokuji 会話エクスポート",
       "headerGenerated": "生成日時",
       "headerProvider": "プロバイダー",
       "headerModels": "モデル",
       "headerSource": "自分の言語",
       "headerTarget": "相手の言語",
-      "headerNote": "注意: 設定はエクスポート時点の状態を反映しており、セッション中の変更は含まれません。"
+      "headerNote": "注意: 設定はエクスポート時点の状態を反映しており、セッション中の変更は含まれません。",
+      "headerNarrowed": "注: このエクスポートは書き出し時に絞り込まれています。一部の行は含まれていません。"
     },
     "waveformOutputTooltip": "仮想マイクへ送られる音声（翻訳 + パススルー）",
     "waveformMicTooltip": "あなたのマイク — 翻訳のためにキャプチャされるあなたの声",

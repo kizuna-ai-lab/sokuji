@@ -586,13 +586,17 @@
       "speakerYou": "من",
       "speakerOther": "طرف مقابل",
       "translationSuffix": "(ترج.)",
+      "scopeLabel": "شامل کردن",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "چیزی انتخاب نشده است",
       "headerTitle": "خروجی گفتگوی Sokuji",
       "headerGenerated": "تولید شده",
       "headerProvider": "ارائه‌دهنده",
       "headerModels": "مدل‌ها",
       "headerSource": "زبان من",
       "headerTarget": "زبان طرف مقابل",
-      "headerNote": "توجه: تنظیمات وضعیت فعلی هنگام خروجی را نشان می‌دهند، نه تغییرات میانی جلسه."
+      "headerNote": "توجه: تنظیمات وضعیت فعلی هنگام خروجی را نشان می‌دهند، نه تغییرات میانی جلسه.",
+      "headerNarrowed": "توجه: دامنه این خروجی هنگام خروجی‌گیری محدود شد — برخی خطوط حذف شده‌اند."
     },
     "waveformOutputTooltip": "صدای ارسال‌شده به میکروفون مجازی (ترجمه + عبور صدای اصلی)",
     "waveformMicTooltip": "میکروفون شما — صدای شما که برای ترجمه ضبط می‌شود",

@@ -53,12 +53,114 @@
   cursor: pointer;
   border-radius: 4px;
 
-  &:hover,
-  &:focus {
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
     background: #3a3a3a;
     color: #fff;
-    outline: none;
   }
+
+  // The #3a3a3a hover fill is 1.15:1 against the menu — nowhere near enough to
+  // say "the keyboard is here". Arrow keys walk this ring, so it needs a real
+  // indicator: #fff is 21:1 on #2a2a2a, and stays distinct from the green that
+  // means "checked".
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.export-scope {
+  // Grid, not per-row flex: the side label column sizes to the longer of the
+  // two labels, so "Me"/"Other" stay aligned in every locale — uk's
+  // "Співрозмовник" is 6x the width of its "Я" and would overflow any fixed
+  // width chosen for English.
+  //
+  // The two line columns are 1fr, not auto: sized to their own content they
+  // come out ragged ("Src" narrower than "Trans"). Sharing the remaining width
+  // equally makes the four boxes one block, and gives them a bigger hit area.
+  display: grid;
+  grid-template-columns: max-content 1fr 1fr;
+  gap: 4px 6px;
+  align-items: center;
+  padding: 6px 12px 8px;
+  border-bottom: 1px solid #444;
+  margin-bottom: 4px;
+}
+
+.export-scope-title {
+  grid-column: 1 / -1;
+  // #9aa0a6, not the toolbar's #8a8a8a rest colour: that one is measured
+  // against the #1e1e1e toolbar (4.83:1) and only reaches 4.16:1 on this
+  // menu's #2a2a2a, under the 4.5:1 floor for text this small.
+  color: #9aa0a6;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+}
+
+// Lets the label and its two checkboxes take part in .export-scope's grid, so
+// both rows share one set of column widths.
+.export-scope-row {
+  display: contents;
+}
+
+.export-scope-row-label {
+  color: #9aa0a6;
+  font-size: 12px;
+  padding-right: 2px;
+}
+
+.export-scope-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 4px;
+  // Same reason as .export-scope-title: 4.5:1 on #2a2a2a, not the toolbar's grey.
+  color: #9aa0a6;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+
+  // Three things move together, so the state never rests on hue alone: the
+  // label brightens, the border lifts, and the box gains a fill.
+  &[aria-checked='true'] {
+    color: #fff;
+    border-color: #10a37f;
+    background: rgba(16, 163, 127, 0.18);
+  }
+
+  &:hover {
+    border-color: #666;
+    color: #ccc;
+  }
+
+  // Same reason as the menu items: the hover border is #666, 2.5:1 on the menu,
+  // and a focused box may already be green-bordered because it is checked — so
+  // the focus ring has to be a different colour, not a stronger border.
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
+  }
+
+  &[aria-checked='true']:hover {
+    border-color: #10a37f;
+    color: #fff;
+  }
+}
+
+.export-scope-empty {
+  padding: 6px 12px;
+  color: #9aa0a6;
+  font-size: 12px;
 }
 
 // The floating host's size() clamp writes max-height inline; scroll inside it

@@ -586,13 +586,17 @@
       "speakerYou": "Jag",
       "speakerOther": "Den andra",
       "translationSuffix": "(övers.)",
+      "scopeLabel": "Inkludera",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "Inget valt",
       "headerTitle": "Sokuji konversationsexport",
       "headerGenerated": "Genererad",
       "headerProvider": "Leverantör",
       "headerModels": "Modeller",
       "headerSource": "Mitt språk",
       "headerTarget": "Den andras språk",
-      "headerNote": "Obs: inställningarna speglar det aktuella tillståndet vid export, inte ändringar under sessionen."
+      "headerNote": "Obs: inställningarna speglar det aktuella tillståndet vid export, inte ändringar under sessionen.",
+      "headerNarrowed": "Obs: den här exporten begränsades vid exporten – vissa rader utelämnades."
     },
     "waveformOutputTooltip": "Ljud som skickas till den virtuella mikrofonen (översättning + genomströmning av originalljud)",
     "waveformMicTooltip": "Din mikrofon — din röst som fångas för översättning",

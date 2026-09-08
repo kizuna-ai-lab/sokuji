@@ -586,13 +586,17 @@
       "speakerYou": "나",
       "speakerOther": "상대방",
       "translationSuffix": "(번역)",
+      "scopeLabel": "포함",
+      "scopeItemAria": "{{scope}} — {{line}}",
+      "scopeEmpty": "선택된 항목 없음",
       "headerTitle": "Sokuji 대화 내보내기",
       "headerGenerated": "생성됨",
       "headerProvider": "제공자",
       "headerModels": "모델",
       "headerSource": "내 언어",
       "headerTarget": "상대방 언어",
-      "headerNote": "참고: 설정은 내보내기 시점의 현재 상태를 반영하며, 세션 중 변경 사항은 포함되지 않습니다."
+      "headerNote": "참고: 설정은 내보내기 시점의 현재 상태를 반영하며, 세션 중 변경 사항은 포함되지 않습니다.",
+      "headerNarrowed": "참고: 이 내보내기는 내보낼 때 범위가 좁혀졌습니다 — 일부 줄이 제외되었습니다."
     },
     "waveformOutputTooltip": "가상 마이크로 전송되는 오디오 (번역 + 패스스루)",
     "waveformMicTooltip": "내 마이크 — 번역을 위해 캡처되는 내 목소리",

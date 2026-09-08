@@ -4158,8 +4158,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               {conversationCompactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
             </button>
             {/* Export */}
+            {/* combinedItems, not filteredItems: the export menu holds its own
+                scope, seeded from these two modes. Handing it a pre-filtered
+                list would narrow the file with no way for the user to widen it
+                back — and would drag the unrelated basic/advanced uiMode
+                filter into the export as well. */}
             <ExportButton
               combinedItems={combinedItems}
+              speakerMode={speakerDisplayMode}
+              participantMode={participantDisplayMode}
               provider={provider}
               currentProviderSettings={currentSettings}
               localInferenceSettings={localInferenceSettings}
