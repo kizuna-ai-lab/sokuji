@@ -121,6 +121,9 @@ _KNOWN_NON_TRANSLATION_RESPONSES = frozenset({
     'Sans contexte, il est impossible de fournir une traduction précise. '
     'Veuillez fournir la phrase complète.',
 })
+_KNOWN_TRANSLATION_PREAMBLES = (
+    "Voici la traduction en français :",
+)
 
 # I-1: the single shared budget unload() gives EVERY outstanding translate()
 # worker, combined, to self-report done before the model is freed regardless.
@@ -138,13 +141,17 @@ def _default_prompt(src: str, tgt: str) -> str:
 
 def _clean_output(text: str) -> str:
     """Clean a model's raw translation output: drop any <think>…</think> reasoning
-    block, strip stray <transcript>/</transcript> tags, then suppress exact known
-    non-translation responses. Small Qwen models echo the wrapped input's framing
-    (e.g. trailing '</transcript>') into the output."""
+    block, strip stray <transcript>/</transcript> tags and known preambles, then
+    suppress exact known non-translation responses. Small Qwen models echo the
+    wrapped input's framing (e.g. trailing '</transcript>') into the output."""
     if "</think>" in text:
         text = text.split("</think>", 1)[1]
     text = _TRANSCRIPT_TAG.sub("", text)
     text = text.strip()
+    for preamble in _KNOWN_TRANSLATION_PREAMBLES:
+        if text.startswith(preamble):
+            text = text.removeprefix(preamble).lstrip()
+            break
     return "" if text in _KNOWN_NON_TRANSLATION_RESPONSES else text
 
 

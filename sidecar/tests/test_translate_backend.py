@@ -37,6 +37,19 @@ def test_clean_output_drops_known_non_translation_responses():
     ) == ""
 
 
+def test_clean_output_strips_known_translation_preamble():
+    assert tb._clean_output(
+        "Voici la traduction en français : Et, veuillez excuser, indiquer les "
+        "différences de fréquences entre ces trois décalages."
+    ) == (
+        "Et, veuillez excuser, indiquer les différences de fréquences entre ces "
+        "trois décalages."
+    )
+    assert tb._clean_output(
+        "Le locuteur dit : Voici la traduction en français : exemple."
+    ) == "Le locuteur dit : Voici la traduction en français : exemple."
+
+
 class _FakeTranslator:
     def __init__(self, log):
         self.log = log
