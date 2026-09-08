@@ -40,20 +40,54 @@ describe('export scope checkbox states are visually distinct', () => {
   });
 });
 
+/** The body of the first rule whose selector is exactly `selector`, or null. */
+const ruleBody = (selector: string): string | null => {
+  const i = css.indexOf(`\n${selector} {`);
+  if (i === -1) return null;
+  const open = css.indexOf('{', i);
+  const close = css.indexOf('}', open);
+  return close === -1 ? null : css.slice(open + 1, close);
+};
+
+const ABSOLUTE = { thin: 1, medium: 3, thick: 5 } as const;
+
+/**
+ * The outline width a declaration block ends up with, in px. `none` and every
+ * spelling of zero come back 0 — which is the point: "there is an outline
+ * property" is not the same claim as "there is a visible ring", and asserting
+ * the former is how this test first shipped with `outline: 0` passing.
+ */
+const outlineWidthPx = (body: string | null): number => {
+  if (body === null) return 0;
+  const decl = body.match(/\boutline:\s*([^;]+)/)?.[1];
+  if (!decl) return 0;
+  if (/\bnone\b/.test(decl)) return 0;
+  for (const [word, px] of Object.entries(ABSOLUTE)) {
+    if (new RegExp(`\\b${word}\\b`).test(decl)) return px;
+  }
+  const len = decl.match(/(-?[\d.]+)(px|rem|em)\b/);
+  if (len) return parseFloat(len[1]) * (len[2] === 'px' ? 1 : 16);
+  // A bare number is only valid as zero-width in this position.
+  return 0;
+};
+
 // Every stop in the menu's roving-tabindex ring is reachable by keyboard, so
 // each one has to show where the focus is. A border colour change is not
 // enough: #666 on the #2a2a2a menu measures 2.5:1, under the 3:1 floor for a
 // non-text indicator.
 describe('menu keyboard focus is visible', () => {
   for (const sel of ['.export-scope-box', '.export-menu-item']) {
-    const esc = sel.replace(/\./g, '\\.');
-
-    it(`${sel} draws an outline on :focus-visible`, () => {
-      expect(css).toMatch(new RegExp(String.raw`${esc}:focus-visible\s*\{[^}]*\boutline:\s*\S`));
+    it(`${sel} draws an outline with real width on :focus-visible`, () => {
+      expect(outlineWidthPx(ruleBody(`${sel}:focus-visible`))).toBeGreaterThan(0);
     });
 
-    it(`${sel} never suppresses the outline`, () => {
-      expect(css).not.toMatch(new RegExp(String.raw`${esc}[^{]*\{[^}]*\boutline:\s*none`));
+    it(`${sel} does not cancel that outline from its other states`, () => {
+      // A same-specificity :hover rule written later would win, so no other
+      // state on this selector may declare an outline at all.
+      for (const state of ['', ':hover', ':focus']) {
+        const body = ruleBody(`${sel}${state}`);
+        if (body !== null) expect(body).not.toMatch(/\boutline:/);
+      }
     });
   }
 });
