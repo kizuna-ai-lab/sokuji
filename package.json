@@ -171,7 +171,7 @@
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "40.8.5",
-    "electron-builder": "^26.15.3",
+    "electron-builder": "^26.16.1",
     "fake-indexeddb": "^6.2.5",
     "i18next": "^25.2.1",
     "i18next-browser-languagedetector": "^8.1.0",
