@@ -93,18 +93,26 @@ describe('sign-out clears the analytics identity', () => {
       .toBeLessThan(resetUser.mock.invocationCallOrder[0]);
   });
 
-  it('resets it even when signing out fails, because the user is treated as logged out anyway', async () => {
-    // The handler deliberately clears frontend state on failure so a user can
-    // always leave. The analytics identity is frontend state: leaving it behind
-    // means a user who believes they logged out keeps collecting events.
+  it('leaves the identity alone when signing out fails, because the user is still signed in', async () => {
+    // A rejected signOut does not end the session. The catch clears nothing,
+    // and the finally's cleanup works only because a successful signOut has
+    // already ended the session server-side — which is why the existing
+    // failure test expects this component and its retry button to survive.
+    //
+    // Resetting here would make a still-authenticated user report anonymously,
+    // and nothing would identify them again: identifyUser runs only from the
+    // sign-in and sign-up forms. Sign-out failure is far more common than the
+    // shared-machine case this whole change exists for, so getting this branch
+    // wrong would cost more than it buys.
     signOut.mockRejectedValueOnce(new Error('offline'));
     render(<UserAccountInfo />);
     fireEvent.click(signOutButton());
-    await waitFor(() => expect(resetUser).toHaveBeenCalledTimes(1));
 
-    const failedAt = trackEvent.mock.calls.findIndex(([name]) => name === 'sign_out_failed');
-    expect(failedAt).toBeGreaterThanOrEqual(0);
-    expect(trackEvent.mock.invocationCallOrder[failedAt])
-      .toBeLessThan(resetUser.mock.invocationCallOrder[0]);
+    // Wait for the failure to have been handled, so this asserts on a settled
+    // state rather than racing the rejection.
+    await waitFor(() =>
+      expect(trackEvent).toHaveBeenCalledWith('sign_out_failed', expect.anything()),
+    );
+    expect(resetUser).not.toHaveBeenCalled();
   });
 });

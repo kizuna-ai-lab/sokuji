@@ -399,6 +399,19 @@ export function UserAccountInfo({
                 await authClient.signOut();
                 // Track sign out success
                 trackEvent('sign_out_succeeded', {});
+                // Only on the success path. A rejected signOut leaves the
+                // session intact — the catch below clears nothing, and the
+                // finally's cleanup works by refetching a session that
+                // signOut() has actually ended. Resetting after a failure would
+                // make a still-authenticated user report anonymously, and
+                // nothing would identify them again: identifyUser runs only
+                // from the sign-in and sign-up forms.
+                //
+                // After the success event, never before: reset() swaps in a
+                // fresh anonymous distinct_id, so an event sent afterwards
+                // would be attributed to nobody instead of to the user who
+                // just left.
+                resetUser();
               } catch (error: any) {
                 console.error('Sign out error:', error);
                 // Track sign out failure
@@ -413,16 +426,6 @@ export function UserAccountInfo({
                 // availableModels for a managed provider. Reloading also took
                 // any running translation session with it, which is the whole
                 // reason this is being unwound.
-                //
-                // The analytics identity is frontend state too, and it is
-                // cleared here rather than in the try for the same reason the
-                // catch clears the rest: a user who believes they logged out
-                // must stop reporting as themselves, even if the backend call
-                // failed. Both branches have already sent their sign_out event
-                // by now, so resetting cannot orphan one onto a fresh
-                // anonymous id. It runs before refetchSession, which on success
-                // takes this component away with the session.
-                resetUser();
                 refetchSession?.();
                 // On success this component goes away with the session, so
                 // this matters only when signing out failed — and then the
