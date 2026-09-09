@@ -281,9 +281,12 @@ Measured from §2, the exclusivity window is roughly **6–20 s** (≈1 s synthe
   409 too; that path already ships `retryAfterMs: 3000` and a `blocked` poke
   that forces an immediate sweep.
 - If the client obtains audio and then dies before `preview-done`, `started_at`
-  stays NULL, no sweep is triggered, and that charge is lost. This is the same
-  exposure a session already has when a key is fetched and the client dies
-  before `session-started`, and it is tolerated there for the same reason.
+  stays NULL and this lease triggers no sweep of its own — so the charge is
+  **deferred until unrelated traffic in that region sweeps**, not lost. §10
+  works this through. Note this is *not* the same exposure a session has when a
+  key is fetched and the client dies before `session-started`: there the client
+  never connected, so Soniox generates no usage log at all and there is
+  genuinely nothing to charge. Here the synthesis happened and the log exists.
 
 **Why not allow multiple leases per account.** It would remove the exclusivity
 window, and the per-lease lifecycle is already multi-row safe — `markStarted`,
@@ -498,8 +501,11 @@ The voice id is not a parameter: the account holds at most one voice, exactly as
   `{ mode: 'voice_preview' }` → `synthesizeOnce` with the returned `ttsApiKey`
   → `POST /preview-done`. The third step is **not** conditional on the caller
   still wanting the audio: it must run even when the user has already aborted
-  the preview, because it is what releases the account's lease and triggers the
-  charge. Fire it from a `finally`, not from the success path.
+  the preview, because it is what makes the charge prompt and deterministic
+  rather than dependent on unrelated traffic (§10), and what lets the sweep
+  release the account's lease instead of leaving it to expire. Fire it from a
+  `finally`, not from the success path — a user cancelling is far more common
+  than a crash.
 - The key it uses is `ttsApiKey`, not `sttApiKey` — for this mode the latter is
   absent by design (§5.6).
 - Error mapping: `402` → "top up to preview"; `409` → "a session is running,
@@ -604,11 +610,23 @@ the lease-leaking regression through.
 - The balance floor for a preview is a new constant (§5.6). §2C measures one
   preview at ~1356 µUSD charged; pick the floor from that with headroom, and
   state the measurement next to the constant — in both copies.
-- **A client that obtains audio and dies before `preview-done` is never
-  charged** (§5.3). Accepted, because a session has the identical exposure
-  between key issue and `session-started`. If preview volume ever makes this
-  material, the fix is the same one that would fix it for sessions, and should
-  be done for both at once rather than only here.
+- **A client that obtains audio and dies before `preview-done` has its charge
+  deferred, not lost.** `started_at` gates only whether *this lease* makes its
+  region report work, i.e. whether a sweep is triggered. It does not filter
+  which logs a sweep charges: the loop calls `buildCharge` for every log in the
+  window, attribution comes from the log's own `client_reference_id`, and
+  `findLeaseSku` reads `client_ref_id` with no expiry or reconciled filter, so
+  an expired, unreconciled preview row still yields the right SKU. The next
+  sweep triggered by anyone's session in that region therefore charges it
+  correctly — the watermark never advanced past the log. What is lost is
+  determinism, not the money: the billing time becomes a lottery decided by
+  unrelated traffic in that region, and the charge is lost outright only if no
+  sweep runs there before `clampWindow`'s 90-day floor moves past the log. This
+  is the same reasoning §5.2 gives for the no-lease design, and it applies
+  unchanged here. `preview-done` is therefore what makes billing prompt and
+  deterministic, not what makes it happen at all — which is still reason enough
+  to fire it from a `finally` (§6), because a user cancelling a preview is far
+  more common than a crash.
 
 Closed by measurement rather than left open: whether a one-shot REST `/tts`
 call occupies an org TTS slot. It does — §2E.
