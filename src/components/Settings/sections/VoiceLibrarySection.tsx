@@ -71,6 +71,14 @@ export interface VoiceLibrarySectionProps {
    *  disabled. `signal` aborts when the user starts another preview or the
    *  component unmounts; implementations that cannot cancel may ignore it. */
   onPreview?: (id: string, signal?: AbortSignal) => Promise<{ audio: Float32Array; sampleRate: number } | null>;
+  /** When set, the preview control renders DISABLED with this text as its
+   *  label and tooltip, and `onPreview` is never called. Distinct from
+   *  omitting `onPreview`, which renders no control at all: "you cannot
+   *  preview right now, and here is why" is a different message from "this
+   *  source cannot preview". Local Native uses it while a session holds the
+   *  sidecar's TTS engine, and when no language the engine speaks has a
+   *  sample sentence. */
+  previewUnavailableReason?: string;
   /** Re-fetches a remotely-sourced custom-voice list (e.g. Soniox clones live
    *  server-side). When provided, a Refresh button renders in the manage
    *  toolbar next to Import/Record. */
@@ -100,6 +108,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   onRename,
   onDelete,
   onPreview,
+  previewUnavailableReason,
   onRefresh,
   refreshing = false,
   manageNote,
@@ -188,6 +197,21 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     // A disabled entry (a processing/failed clone, or the "(deleted voice)"
     // placeholder) has nothing playable behind it.
     if (!onPreview || !v.removable || v.disabled) return null;
+
+    if (previewUnavailableReason) {
+      return (
+        <button
+          type="button"
+          className="voice-row-btn"
+          disabled
+          aria-label={previewUnavailableReason}
+          title={previewUnavailableReason}
+        >
+          <Play size={14} />
+        </button>
+      );
+    }
+
     const isLoading = previewLoadingId === v.id;
     const isPlaying = playingId === v.id;
     const label = isLoading

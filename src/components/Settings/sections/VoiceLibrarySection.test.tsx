@@ -284,6 +284,51 @@ describe('VoiceLibrarySection', () => {
     unmount();
     expect(signals[0].aborted).toBe(true);
   });
+
+  it('renders a disabled preview control with the reason when previewing is unavailable', () => {
+    const onPreview = vi.fn();
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['record'], curation: false }}
+        onPreview={onPreview}
+        previewUnavailableReason="Stop the session to preview"
+      />,
+    );
+    const btn = screen.getByRole('button', { name: 'Stop the session to preview' });
+    expect(btn).toBeDisabled();
+  });
+
+  it('never calls onPreview while a reason is set', () => {
+    const onPreview = vi.fn();
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['record'], curation: false }}
+        onPreview={onPreview}
+        previewUnavailableReason="Stop the session to preview"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Stop the session to preview' }));
+    expect(onPreview).not.toHaveBeenCalled();
+  });
+
+  it('still renders nothing when onPreview is absent, reason or not', () => {
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['record'], curation: false }}
+        previewUnavailableReason="whatever"
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /preview|play/i })).toBeNull();
+  });
 });
 
 // Recording resources live only in a ref; the teardown effect must release
