@@ -32,7 +32,12 @@ vi.mock('../../contexts/UserProfileContext', () => ({
   }),
 }));
 
-const signOut = vi.fn(async () => {});
+// better-auth resolves with { data, error } rather than rejecting on an HTTP
+// failure — better-fetch's `throw` defaults to false and this client does not
+// set it. The mock has to carry that shape or the component's destructure of
+// the result throws.
+const signedOutOk = { data: { success: true }, error: null };
+const signOut = vi.fn(async () => signedOutOk as any);
 vi.mock('../../lib/auth-client', () => ({
   authClient: {
     signOut: () => signOut(),
@@ -63,7 +68,7 @@ vi.mock('../../utils/environment', () => ({
 beforeEach(() => {
   cleanup();
   signOut.mockClear();
-  signOut.mockImplementation(async () => {});
+  signOut.mockImplementation(async () => signedOutOk as any);
   trackEvent.mockClear();
   resetUser.mockClear();
   refetchSession.mockClear();
@@ -93,7 +98,7 @@ describe('sign-out clears the analytics identity', () => {
       .toBeLessThan(resetUser.mock.invocationCallOrder[0]);
   });
 
-  it('leaves the identity alone when signing out fails, because the user is still signed in', async () => {
+  it('leaves the identity alone when the transport fails, because the user is still signed in', async () => {
     // A rejected signOut does not end the session. The catch clears nothing,
     // and the finally's cleanup works only because a successful signOut has
     // already ended the session server-side — which is why the existing
@@ -114,5 +119,27 @@ describe('sign-out clears the analytics identity', () => {
       expect(trackEvent).toHaveBeenCalledWith('sign_out_failed', expect.anything()),
     );
     expect(resetUser).not.toHaveBeenCalled();
+  });
+
+  it('leaves it alone when the server refuses, which resolves rather than throws', async () => {
+    // The case a try/catch alone cannot see, and the reason the previous
+    // attempt at this fix was incomplete. better-fetch's `throw` defaults to
+    // false and this client never sets it, so a 403 arrives as a RESOLVED
+    // value carrying `error`. Awaiting without inspecting it treats a refused
+    // sign-out as a successful one — which is also why sign_out_failed never
+    // fired for anything but a dead network.
+    signOut.mockResolvedValueOnce({
+      data: null,
+      error: { status: 403, statusText: 'Forbidden' },
+    } as any);
+    render(<UserAccountInfo />);
+    fireEvent.click(signOutButton());
+
+    await waitFor(() =>
+      expect(trackEvent).toHaveBeenCalledWith('sign_out_failed', { error_code: 403 }),
+    );
+    expect(resetUser).not.toHaveBeenCalled();
+    // And it must not have been reported as a success either.
+    expect(trackEvent).not.toHaveBeenCalledWith('sign_out_succeeded', expect.anything());
   });
 });

@@ -21,6 +21,7 @@ import {
 import {formatUsd, formatUsdFloor} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
+import {reportError} from '../../lib/diagnostics/report';
 import {isElectron, getBackendUrl, getApiUrl} from '../../utils/environment';
 import {useToast} from '../Toast';
 import {useSetAuthOverlay} from '../../stores/settingsStore';
@@ -396,28 +397,46 @@ export function UserAccountInfo({
               // Track sign out click
               trackEvent('sign_out_clicked', {});
               try {
-                await authClient.signOut();
-                // Track sign out success
-                trackEvent('sign_out_succeeded', {});
-                // Only on the success path. A rejected signOut leaves the
-                // session intact — the catch below clears nothing, and the
-                // finally's cleanup works by refetching a session that
-                // signOut() has actually ended. Resetting after a failure would
-                // make a still-authenticated user report anonymously, and
-                // nothing would identify them again: identifyUser runs only
-                // from the sign-in and sign-up forms.
-                //
-                // After the success event, never before: reset() swaps in a
-                // fresh anonymous distinct_id, so an event sent afterwards
-                // would be attributed to nobody instead of to the user who
-                // just left.
-                resetUser();
+                // signOut RESOLVES with { data, error } on an HTTP failure — it
+                // does not reject. better-fetch's `throw` defaults to false and
+                // this client never sets it, so a 403 or 500 lands here with a
+                // populated `error`, and only a transport-level failure
+                // (offline, DNS) reaches the catch below. Awaiting without
+                // inspecting `error` treated every rejected sign-out as a
+                // success, which is also why sign_out_failed never fired for
+                // anything but a dead network.
+                const {error} = await authClient.signOut();
+                if (error) {
+                  // An error, not a warning: what the user asked for did not
+                  // happen — they are still signed in and the button comes back.
+                  reportError(
+                    'UserAccountInfo',
+                    `Sign-out refused by the server: ${error.status} ${error.statusText ?? ''}`.trim(),
+                    {cause: error},
+                  );
+                  trackEvent('sign_out_failed', {error_code: error.status});
+                } else {
+                  // Track sign out success
+                  trackEvent('sign_out_succeeded', {});
+                  // Success path only. A failed sign-out leaves the session
+                  // intact: the catch clears nothing, and the finally's cleanup
+                  // works by refetching a session that signOut() has actually
+                  // ended. Resetting after a failure would make a
+                  // still-authenticated user report anonymously, and nothing
+                  // would identify them again — identifyUser runs only from the
+                  // sign-in and sign-up forms.
+                  //
+                  // After the success event, never before: reset() swaps in a
+                  // fresh anonymous distinct_id, so an event sent afterwards
+                  // would be attributed to nobody instead of to the user who
+                  // just left.
+                  resetUser();
+                }
               } catch (error: any) {
+                // Transport-level only; an HTTP error is handled above.
                 console.error('Sign out error:', error);
                 // Track sign out failure
                 trackEvent('sign_out_failed', {error_code: error?.status});
-                // Even if backend returns 403 or other errors, clear frontend state
-                // This ensures users can always "log out"
               } finally {
                 // No reload. Every piece of state it used to clear now clears
                 // itself: authClient.signOut() ends the session, the profile
