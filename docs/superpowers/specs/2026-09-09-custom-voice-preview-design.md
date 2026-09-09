@@ -145,8 +145,47 @@ disabled preview control carrying that text; `onPreview` is not called.
 **`sonioxPreviewSample.ts` moves to `src/lib/tts/previewSample.ts`** and is
 shared by both halves. Its own docstring already anticipated this ("Sentences
 are neutral … so the table can be reused"). The 28-code table and the English
-fallback are unchanged. Native's language set does not match Soniox's; the
-existing fallback covers the difference.
+fallback are unchanged.
+
+**Which language a preview speaks.** The sentence is chosen by the user's
+**target language** — what this voice will actually say in a session — and the
+table returns the `{language, text}` pair together, never a bare string, so no
+caller can hand the model a sentence in one language labelled as another. That
+much is today's behaviour and it is right.
+
+An earlier revision of this section claimed Native's narrower language set was
+"covered by the existing fallback". **It is not.** The English fallback fires
+when a language is *absent from the 28-code table*; Native's failure is a
+language that is *present in the table and unsupported by the chosen TTS
+family* — `ja` is in the table, and a family that cannot speak Japanese would
+still be handed a Japanese sentence labelled `ja`. Two different sets.
+
+The rule, therefore:
+
+> The preview speaks the first language L for which **the engine speaks L** and
+> **the table has a sentence for L**, considered in order: the target language,
+> then `en`, then the engine's own language list in its own order. If no such L
+> exists, there is no preview: the row renders the disabled control with
+> `previewUnavailableReason`.
+
+Ordering the engine's own list last, and requiring a table entry at every tier,
+is what keeps the mismatch unconstructible — synthesising the English sentence
+under some other language code would be exactly the defect the pair-return was
+designed to prevent.
+
+For **managed Soniox** the engine-speaks test is vacuous (Soniox documents
+cloned voices as any-voice-any-language, which is also why the English fallback
+still reads a correct timbre), so the rule collapses to target → `en`, i.e.
+today's `previewSampleFor` unchanged. For **Local Native** the test is the
+predicate the model picker already uses, `supportsLanguage(card, lang)`
+(`src/lib/local-inference/native/nativeCatalog.ts`), which already handles the
+`multi` wildcard and the alias table; the per-card `languages: string[]` it
+reads is already on the wire (`nativeProtocol.ts`).
+
+The preview language is **not** user-selectable. The target language is by
+definition the language this voice will speak in production, so the app already
+knows the answer; a picker would add a control for a settled question, and a
+user who wants to hear another language can change the target language.
 
 **`VoiceLibrarySource` gains `preview(language, speed, signal)`.** `byokVoiceSource`
 implements it with today's `synthesizeOnce`; `managedVoiceSource` implements it
@@ -562,8 +601,35 @@ The voice id is not a parameter: the account holds at most one voice, exactly as
   `mapTtsError`.
 - `manageNote` forks: BYOK keeps "previewing spends your own Soniox quota";
   managed says the preview is charged to the account balance.
-- The existing in-memory `previewCacheRef` (keyed `id|language|speed`) is kept
-  and is what stops a second click from taking another lease and spending again.
+- The existing in-memory preview cache is kept and is what stops a second
+  listen from taking another lease and spending again. Two changes to it:
+
+  **Lifetime is the app session, not the component's.** Today it is a `useRef`
+  inside `SonioxVoiceSection`, so closing the settings panel, switching section
+  or changing provider throws it away and the next listen pays again. That was
+  tolerable while a preview only spent the user's own BYOK tokens; a managed
+  preview spends wallet balance *and* takes the account's exclusivity lease for
+  15-45 s, during which a real session start gets a 409. So the cache moves to
+  its own module and outlives the sections.
+
+  **It is deliberately not persisted.** Surviving a restart would mean handling
+  "same id, different content", and that failure mode — a user re-records a
+  reference clip, previews, and hears the OLD clone, concluding the re-record
+  did not take — is worse than paying twice. Within one app session the hazard
+  cannot arise: `NativeVoiceStore` exposes `rename`/`delete`/`resolveApply` and
+  no in-place replacement, so a re-record is always a new id, and a re-cloned
+  managed voice is a new Soniox UUID. Content is immutable per id; that is what
+  makes the longer lifetime safe, and it is a property of today's stores rather
+  than a guarantee anyone wrote down, so a store that gains in-place replacement
+  must revisit this.
+
+  **The key gains a namespace.** `id|language|speed` was unambiguous only
+  because the `useRef` lived inside one section bound to one source. A
+  module-level cache outlives that, and `custom:1` means different clips under
+  different TTS models (`voiceStoreFor(custom, modelId)`), so the key becomes
+  `source|id|language|speed`. The existing `useEffect(..., [source])` clear is
+  kept as well: it is what stops audio cached against one voice project from
+  replaying under another.
 
 ## 7. A pre-existing defect this work uncovers
 
