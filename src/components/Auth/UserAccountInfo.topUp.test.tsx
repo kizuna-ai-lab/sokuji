@@ -22,7 +22,7 @@ vi.mock('../../contexts/UserProfileContext', () => ({
 vi.mock('../../lib/auth-client', () => ({
   authClient: { oneTimeToken: { generate: async () => ({ data: null, error: 'x' }) } },
 }));
-vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn(), resetUser: vi.fn() }) }));
 // Not decoration: the real settingsStore pulls in the audio stack, which vite
 // refuses to resolve under a worktree, and the suite fails to load at all.
 vi.mock('../../stores/settingsStore', () => ({ useSetAuthOverlay: () => vi.fn() }));

@@ -39,8 +39,13 @@ vi.mock('../../contexts/UserProfileContext', () => ({
 
 // A sign-out we control the timing of, so the in-flight window is observable.
 let releaseSignOut: () => void = () => {};
+// Resolves with better-auth's { data, error } shape, not void: better-fetch's
+// `throw` defaults to false, so an HTTP failure arrives as a resolved value
+// with `error` populated rather than as a rejection.
 const signOut = vi.fn(
-  () => new Promise<void>((resolve) => { releaseSignOut = () => resolve(); }),
+  () => new Promise<any>((resolve) => {
+    releaseSignOut = () => resolve({ data: { success: true }, error: null });
+  }),
 );
 let ottResult: unknown = { data: { token: 'good' }, error: null };
 vi.mock('../../lib/auth-client', () => ({
@@ -58,7 +63,7 @@ vi.mock('../../stores/settingsStore', () => ({
   useSetAuthOverlay: () => setAuthOverlay,
 }));
 
-vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn(), resetUser: vi.fn() }) }));
 vi.mock('../../utils/environment', () => ({
   isElectron: () => false,
   getBackendUrl: () => 'https://sokuji.kizuna.ai',
