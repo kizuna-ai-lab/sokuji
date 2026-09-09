@@ -298,7 +298,19 @@ phases exactly:
    transcription stream is still running.
 
 Measured from §2, the exclusivity window is roughly **6–20 s** (≈1 s synthesis +
-5 s sweep debounce + ~15 s for Soniox to post the log), not the 45 s backstop.
+the 3 s nudge delay + ~15 s for Soniox to post the log), not the 45 s backstop.
+
+Those figures assume `preview-done` nudges the reconciler through the **delayed**
+path — `poke({ delayMs: USAGE_LOG_NUDGE_DELAY_MS })`, the same one `session-end`
+uses. This is load-bearing, not incidental. `SonioxReconcilerDO.fetch` reads a
+poke carrying no usable options as the *cron heartbeat*, the single trigger that
+also runs the unbudgeted voice reaper across every provisioned region; and only
+the delayed path enters `alarm()`, where the fast-retry ladder (3/6/12 s) lives.
+An immediate poke would therefore spend a voices census per preview, look once
+before Soniox has posted anything, and then wait out the next cron beat — making
+the window up to ~60 s rather than the numbers above. An earlier revision of
+this spec named a "5 s sweep debounce"; no such mechanism exists, and the real
+delay is the nudge's.
 
 **Two costs, stated plainly:**
 
@@ -692,7 +704,7 @@ is the point of fixing it.
   lease with `expires_at > now AND reconciled_at IS NULL` — so a preview occupies
   one of the 25 slots for as long as its **lease** lives, not as long as the API
   call does. That is typically **15–25 s** (a second or two to `preview-done`,
-  the 5 s sweep debounce, ~15 s for Soniox to post the log) and **45 s** worst
+  the 3 s nudge delay, ~15 s for Soniox to post the log) and **45 s** worst
   case when the client dies before reporting. An earlier revision of this bullet
   said "about a second" and was wrong by 15–45x. The conclusion that ~25
   concurrent previews are needed to starve a session survives, but the
