@@ -507,8 +507,11 @@ No client change is required: existing clients never send the new mode, and the
 two repos do not share this type.
 
 **`POST /api/soniox/preview-done`** — one new endpoint, and unavoidable. Sets
-`started_at` and `end_signalled_at` together, fenced on `client_ref_id`, with no
-TTL extension. `session-started` extends the lease to the full granted duration
+`started_at` and `end_signalled_at` together, with no TTL extension. Fenced on
+the account **and the preview SKU**, not on `client_ref_id`: the body is empty
+(the server resolves the account's own lease, as `session-end` does), so there
+is no reference to fence on, and scoping to the SKU is what stops a client
+calling it mid-session from forging a session's `started_at`. `session-started` extends the lease to the full granted duration
 and derives a mask bit from the role, both wrong for a 45-second TTS-only lease;
 `session-end` sets only the second timestamp.
 
@@ -575,7 +578,7 @@ returns a `ttsApiKey` and no `sttApiKey`, with `single_use: true` and a 30 s TTL
 on the minted key and a `client_reference_id` derived from the lease's base ref;
 402 below the preview floor; 409 when the account already holds a lease; 503 on
 `tts_full`; region pass-through; and `preview-done` setting both timestamps
-fenced on `client_ref_id`. A companion test that every *other* mode still
+on a preview lease while leaving a session lease untouched. A companion test that every *other* mode still
 returns `sttApiKey` — the optionality must not become general.
 `config/soniox.test.ts`: `expandStreamRoles` yields at least one STT role for
 every session mode (the belt that replaces §5.4's deleted guard), and
