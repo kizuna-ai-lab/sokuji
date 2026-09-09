@@ -98,6 +98,42 @@ exactly as the reconciler expects.
 - `input_audio_duration_ms` is **0**; the generated speech duration lives in
   `output_audio_duration_ms`. See §7 — this invalidates an existing alarm.
 
+**D. Our concurrency mirrors match Soniox's real quotas.** `GET /v1/concurrency-limits`:
+
+```json
+{"organization": {"limits": {"transcribe_concurrent": 100, "tts_concurrent": 25,
+                             "voice_agent_concurrent": 10},
+                  "current": {"transcribe_concurrent": 0, "tts_concurrent": 0,
+                              "voice_agent_concurrent": 0}},
+ "project": {"limits": {"transcribe_concurrent": null, "tts_concurrent": null,
+                        "voice_agent_concurrent": null}}}
+```
+
+`MAX_STT_CONCURRENT = 100` and `MAX_TTS_CONCURRENT = 25` are exactly right.
+Project limits are null, i.e. inherited from the org. The endpoint also reports
+live occupancy, which is what makes E measurable — but it is capped at 20 rpm,
+which is why `countActive` mirrors the ceiling from our own lease table instead
+of asking per issue.
+
+**E. A one-shot REST `/tts` call does occupy an org TTS slot.** Polling
+occupancy across a single synthesis:
+
+```
+before          tts_concurrent: 0
+during +150ms   tts_concurrent: 0
+during +400ms   tts_concurrent: 0
+during +700ms   tts_concurrent: 0
+during +1101ms  tts_concurrent: 1     ← occupied
+synth 200, 1011712 bytes (21.1 s of audio), wall 18082 ms
+after           tts_concurrent: 0     ← released when the call ends
+```
+
+Registration lags by roughly a second, but the slot is real. This is what makes
+§5.3's `usesTts = 1` correct rather than merely conservative. Note also that the
+hold scales with text length — 21 s of audio took 18 s of wall clock, against
+3.33 s in 760 ms for a preview-sized sentence — so a real preview holds its slot
+for about a second.
+
 ## 3. Shared layer
 
 **One new prop on `VoiceLibrarySection`: `previewUnavailableReason?: string`.**
@@ -211,10 +247,12 @@ The window can be made short instead. Lifecycle, mirroring a session's two
 phases exactly:
 
 1. **Mint** — `SessionLeaseService.acquire` with the role set `['preview_tts']`:
-   `usesTts = 1` so the org's `MAX_TTS_CONCURRENT` ceiling counts it,
-   `sttStreamCount = 0`, `sku = "soniox:voice_preview"`, and `startWindowS`
-   matching the key's 30 s TTL, which puts the lease's backstop expiry at
-   ~45 s (`+ LEASE_MARGIN_MS`).
+   `usesTts = 1` so the org's `MAX_TTS_CONCURRENT` ceiling counts it — §2E
+   measures that slot being taken, so this is accurate rather than merely
+   conservative — `sttStreamCount = 0`, `sku = "soniox:voice_preview"`, and
+   `startWindowS` matching the key's 30 s TTL, which puts the lease's backstop
+   expiry at ~45 s (`+ LEASE_MARGIN_MS`). That zero is a legitimate value only
+   after §5.4.
 2. **Synthesize** — the client calls Soniox directly with the single-use key.
 3. **Report** — the client POSTs `preview-done`, which sets `started_at` and
    `end_signalled_at` together. Same semantics as `session-started` +
@@ -264,7 +302,72 @@ to be rewritten. The trade is not worth 6–20 s. If a genuine "one user, severa
 concurrent sessions" requirement ever arrives, that migration should be its own
 project and solve both at once.
 
-### 5.4 Display is wrong today and must change
+### 5.4 The lease invariant widens: STT and TTS are peers
+
+One lease change is needed, and it is not the one §5.3 just declined. The
+primary key stays `account_id` and an account still holds at most one lease;
+what changes is *what a lease is allowed to own*.
+
+`stt_stream_count = 0` is not a legal value today, and the refusal is
+deliberate on both sides:
+
+- **Write.** `acquire` throws twice — `sttStreamCount must be >= 1 when
+  provided`, and `sttRoles must contain at least one transcription role`.
+- **Read.** `countActive` sums
+  `COALESCE(NULLIF(stt_stream_count, 0), 1)`, so a stored `0` is read back
+  as **1**.
+
+Both encode one invariant, stated in the schema: *"A live lease always owns at
+least one transcription stream."* A preview owns none, so it is unrepresentable
+— and if a `0` did reach the table, every in-flight preview would silently
+consume one of the 100 STT slots it never opened.
+
+The fix is not to special-case preview on either side. It is to correct the
+invariant, which was always narrower than the thing it was protecting:
+
+> **A live lease owns at least one stream — STT or TTS. The two are peers, each
+> bounded by its own ceiling.**
+
+Under that reading `0` means zero, the read-side clamp loses its reason to
+exist, and preview stops being a special case. **No schema change and no
+migration**: the column is already `NOT NULL DEFAULT 0`, and writing a truthful
+`0` into it is legal today.
+
+**Changes:**
+
+- **Delete the clamp.** `SUM(stt_stream_count)`; `SUM(uses_tts)` is untouched
+  and already correct. Safe to delete because the clamp defends rows written by
+  a Worker predating the column, during migration 0010's own deploy window: a
+  lease lives at most about an hour, so no such row can still be live, and
+  `acquire` — the only writer — always names the column (its `?? 1` covers a
+  caller who supplies neither form).
+- **Relax `acquire`'s guards to the new invariant.** Drop the
+  transcription-role requirement; keep the refusal of a negative count and of an
+  empty role set; add the invariant itself as one check —
+  `sttStreamCount + (usesTts ? 1 : 0) >= 1`.
+- **Make the two ceiling checks the same shape.** Today one is additive and the
+  other is a threshold, a leftover from TTS being capped at one stream per
+  lease:
+
+  ```ts
+  if (sttStreamCount > 0 && counts.stt + sttStreamCount > MAX_STT_CONCURRENT) → stt_full
+  if (usesTts        && counts.tts + 1                 > MAX_TTS_CONCURRENT) → tts_full
+  ```
+
+  The `sttStreamCount > 0` guard is what makes the STT check a true no-op for a
+  TTS-only lease; today's form would still refuse one when the org is already
+  over its STT ceiling, for a lease adding no STT stream.
+- **Rewrite the comments that state the old invariant** — they are the only
+  thing telling the next reader what `0` means. Five: `sttStreamCount` and the
+  `issued_stt_mask` aside in `db/session.schema.ts`, `AcquireParams.sttStreamCount`,
+  `countActive`'s clamp paragraph (deleted with the clamp), and
+  `MAX_STT_CONCURRENT` in `config/soniox.ts`, which enumerates the shapes that
+  own one stream and now needs the TTS-only case.
+- **Replace the deleted defence with a test**, so the belt moves rather than
+  disappears: `expandStreamRoles` yields at least one STT role for every
+  *session* mode, meaning no session path can produce a zero-STT lease.
+
+### 5.5 Display is wrong today and must change
 
 Ledger rows are grouped by `LEDGER_GROUP_KEY_EXPR = COALESCE(reference_id, id)`,
 and `reference_id` is exactly the `sessionRef` (`<accountId>:<leaseId>`) that
@@ -321,50 +424,84 @@ things are visibly wrong:
   provider cost is unusable and `billableSeconds` is 0, giving 0.
 - **A label for `voice_preview`** in the frontend billing history.
 
-### 5.5 New endpoints
+### 5.6 One route: `session-key` with a third mode
 
-Both mounted under the existing `sonioxVoiceRoutes`, so they inherit its
-`?region=` handling, and both authenticated with a Better Auth session token
-like their siblings.
+A preview travels the existing `POST /api/soniox/session-key`. A separate
+`preview-key` route was considered and rejected: once §5.4 corrects the
+invariant, the expensive parts — role vocabulary, pricing, the lease — are
+shared either way, so a second route would buy nothing but a second copy of the
+acquire → mint → release-on-failure sequence, whose ordering is load-bearing and
+whose second, subtly different copy is how a lease leak gets introduced.
 
-**`POST /api/soniox/voices/preview-key`**
+**Request.** `{ mode: 'voice_preview', region? }`. `normalizeSessionShape` gains
+a third value in the same value-discriminated switch that already separates two
+vocabularies; no `textOnly` or `bothSplit`.
 
-- Balance gate first, following `sonioxManagedMinBalance`'s precedent with a
-  floor far below a session's. Below it, `402`, and the client greys the button.
-- `SessionLeaseService.acquire` with the `['preview_tts']` role set (§5.3). An
-  `active_lease` refusal returns the existing `409` with `retryAfterMs`; a
-  `tts_full` refusal returns the existing `503`.
-- Mints a temporary key with `usage_type: "tts_rt"`, `single_use: true`,
-  `expires_in_seconds: 30`, and `client_reference_id` = the lease's own base ref
-  plus the role segment: `sokuji1:<accountId>:<leaseId>:preview_tts`. The lease
-  id is the one `acquire` just issued, not a separate identifier — that is what
-  lets the sweep find the lease from the log.
-- Returns `{ apiKey, expiresAt }`. Audio never passes through the Worker.
+**Role vocabulary** (`config/soniox.ts`). `preview_tts` joins
+`SONIOX_STREAM_ROLES`, and that one edit turns `npx tsc --noEmit` into the
+worklist for the rest: `ROLE_USAGE_TYPE` (→ `tts_rt`, so `roleKind` derives
+"tts" from the one table rather than a suffix test), `sttRoleBit` (0),
+`expandStreamRoles` (a new case returning `['preview_tts']` — its `never`
+default makes a missed mode a compile error), `skuForRoles` (→
+`soniox:voice_preview`), `maxSessionSecondsFor`, `maxKeyStartWindowS`.
 
-**`POST /api/soniox/voices/preview-done`**
+**Pricing.** Register `soniox:voice_preview` in the rate table, or
+`chargeMicroUsd` throws and the whole charge fails. `sonioxStartFloorMicroUsd`
+would otherwise demand `MIN_SESSION_S` — 60 s — of TTS money to allow a ~3 s
+preview, so preview takes an explicit small floor with §2C's measurement written
+beside it. `computeSessionBudget` returns `durationS = 30` (the key's TTL) and
+honest small numbers for `budgetMicroUsd` / `rateUsdPerHour` rather than nulls:
+changing those field types would leak this change into every client.
 
-- Sets `started_at` and `end_signalled_at` on that lease, fenced on
-  `client_ref_id` the way `markStarted` already is.
-- Empty body, like the shipped `session-end`: the server reads the account's
-  current lease itself rather than trusting the client to name one.
+**The frontend mirrors that floor as literals.**
+`sokuji/src/services/providers/sonioxManagedMinBalance.ts` is import-free by
+design — the subtitle window renders the same gate and must not pull the client
+into its bundle — and its test restates the arithmetic. The preview floor lands
+there in the same change, or the gate lies about its 402.
 
-This is a **separate handler from the session-key route**, not a new branch
-inside it. `primaryRole` throws when a role set contains no STT leg
-(`"primaryRole: role set has no STT stream"`), and the session handler calls it;
-a preview has no STT leg by construction. Keeping the two paths apart is what
-stops that from becoming a runtime throw on a live endpoint.
+**Key parameters become a three-way table.** The mint loop branches on `isTts`
+twice today, and preview needs a third answer on both lines. Two inverted
+booleans in a loop is the shape that gets a third case wrong, so replace them
+with one `keyParamsForRole(role, budget)` beside the role vocabulary:
 
-The voice id is not a parameter to either: the account holds at most one voice,
-exactly as `GET /mine` and `DELETE /mine` already assume.
+| role | `expiresInSeconds` | `singleUse` |
+| --- | --- | --- |
+| `*_stt` | `keyStartWindowForRole(role)` | `true` |
+| `spk_tts` / `mix_tts` | `ttsKeyExpiresInSeconds(budget.durationS)` | `false` |
+| `preview_tts` | `30` | `true` (§2A) |
+
+**Response.** `sttApiKey` becomes optional, and `primaryRole` is never called
+without an STT leg — so the loud guard survives exactly where it applies:
+
+```ts
+const primary = sttCount > 0 ? primaryRole(roles) : null;
+const primaryStream = primary ? streams.find((s) => s.role === primary) : null;
+if (primary && !primaryStream) throw new Error(...);
+```
+
+No client change is required: existing clients never send the new mode, and the
+two repos do not share this type.
+
+**`POST /api/soniox/preview-done`** — one new endpoint, and unavoidable. Sets
+`started_at` and `end_signalled_at` together, fenced on `client_ref_id`, with no
+TTL extension. `session-started` extends the lease to the full granted duration
+and derives a mask bit from the role, both wrong for a 45-second TTS-only lease;
+`session-end` sets only the second timestamp.
+
+The voice id is not a parameter: the account holds at most one voice, exactly as
+`GET /mine` and `DELETE /mine` already assume.
 
 ## 6. Slice 3 — Frontend: managed preview
 
 - `managedVoiceSource.canPreview` becomes `true`.
-- Its `preview()` is three steps: `preview-key` → `synthesizeOnce` with the
-  returned key → `preview-done`. The third step is **not** conditional on the
-  caller still wanting the audio: it must run even when the user has already
-  aborted the preview, because it is what releases the account's lease and
-  triggers the charge. Fire it from a `finally`, not from the success path.
+- Its `preview()` is three steps: `POST /session-key` with
+  `{ mode: 'voice_preview' }` → `synthesizeOnce` with the returned `ttsApiKey`
+  → `POST /preview-done`. The third step is **not** conditional on the caller
+  still wanting the audio: it must run even when the user has already aborted
+  the preview, because it is what releases the account's lease and triggers the
+  charge. Fire it from a `finally`, not from the success path.
+- The key it uses is `ttsApiKey`, not `sttApiKey` — for this mode the latter is
+  absent by design (§5.6).
 - Error mapping: `402` → "top up to preview"; `409` → "a session is running,
   try again in a moment" (the same condition Local Native words as a disabled
   button); `503` → the existing capacity message; everything else reuses
@@ -406,13 +543,21 @@ and abort propagation. `NativeVoiceSection`: synthesis succeeds; synthesis fails
 and falls back to the reference clip; active session renders the disabled state
 without dialling out.
 
-**Slice 2** — `soniox-voices.test.ts`: 402 below the balance floor, 409 when the
-account already holds a lease, 503 on `tts_full`, the minted key's shape
-(`single_use`, TTL, `client_reference_id` derived from the lease's base ref),
-region pass-through, and `preview-done` setting both timestamps fenced on
-`client_ref_id`. `session-lease.test.ts`: `acquire` with the `['preview_tts']`
-role set records `uses_tts = 1` and `stt_stream_count = 0`, and counts toward
-`countActive().tts` but not `.stt`. `soniox-reconcile.test.ts`: a `preview_tts`
+**Slice 2** — `soniox.test.ts` (the session-key route): `mode: 'voice_preview'`
+returns a `ttsApiKey` and no `sttApiKey`, with `single_use: true` and a 30 s TTL
+on the minted key and a `client_reference_id` derived from the lease's base ref;
+402 below the preview floor; 409 when the account already holds a lease; 503 on
+`tts_full`; region pass-through; and `preview-done` setting both timestamps
+fenced on `client_ref_id`. A companion test that every *other* mode still
+returns `sttApiKey` — the optionality must not become general.
+`config/soniox.test.ts`: `expandStreamRoles` yields at least one STT role for
+every session mode (the belt that replaces §5.4's deleted guard), and
+`keyParamsForRole` covers all three rows of its table.
+`session-lease.test.ts`: `acquire` with the `['preview_tts']` role set records
+`uses_tts = 1` and `stt_stream_count = 0`; `countActive` counts it as 0 STT and
+1 TTS with the clamp gone; such a lease is admitted while the STT ceiling is
+full and refused only by `tts_full`; an empty role set still throws; a negative
+count still throws. `soniox-reconcile.test.ts`: a `preview_tts`
 reference produces a charge carrying the lease's `soniox:voice_preview` SKU with
 no special-casing in `buildCharge`; the sweep **releases** that lease after
 charging it (the case the `(ended & started)` predicate cannot cover); and no
@@ -420,7 +565,7 @@ lease alarm is raised. `wallet-ledger.test.ts`: a
 preview row derives `tts_preview`, its group derives `voice_preview` and not
 `session`, and it is not marked `textOnly`; plus the **new** pin enumerating the
 TypeScript `ROLE_KINDS` against the SQL `LEDGER_USE_KIND_EXPR`, which does not
-exist today (§5.4). One test for the §7 alarm gate on `output_audio_duration_ms`.
+exist today (§5.5). One test for the §7 alarm gate on `output_audio_duration_ms`.
 
 **Slice 3** — `voiceLibrarySource.test.ts`: `preview()` for both sources, the
 402/409/503 paths, and — the one that matters most — that an **aborted** preview
@@ -431,11 +576,22 @@ the lease-leaking regression through.
 
 1. **Shared shell + Local Native** (`kizuna-ai-lab/sokuji`) — self-contained,
    shippable alone.
-2. **Backend: preview lease, the two endpoints, and the display fixes**
-   (`kizuna-ai-lab/sokuji-backend`). The lease work (§5.3) and the display work
-   (§5.4) are separable and can land as two PRs in that order — the lease is
-   what makes a preview bill at all, the display work is what makes the
-   resulting ledger row read correctly.
+2. **Backend, in four landable steps** — mostly
+   `kizuna-ai-lab/sokuji-backend`, with one file in `kizuna-ai-lab/sokuji`:
+   1. **Vocabulary and pricing** (§5.6): `preview_tts` into the role union, then
+      follow `tsc --noEmit`; the new SKU and its rate-table entry; the preview
+      floor — *and* its literal mirror in sokuji's
+      `sonioxManagedMinBalance.ts`, which must move in the same change. No
+      behaviour change for sessions.
+   2. **The lease invariant** (§5.4): drop the clamp, relax the guards, make the
+      ceiling checks symmetric, rewrite the five comments. Touches the critical
+      path for every paying session — write the tests first.
+   3. **The route and `preview-done`** (§5.6).
+   4. **Reconciliation** (§5.3 step 5, and §7's alarm gate).
+
+   Steps 1–2 and the display work (§5.5) are independent of each other; the
+   route needs both. The display work is what makes the resulting ledger row
+   read correctly, and can land any time after step 1 defines the SKU.
 3. **Frontend managed wiring** (`kizuna-ai-lab/sokuji`) — depends on 2 being
    deployed.
 
@@ -445,16 +601,14 @@ the lease-leaking regression through.
   genuinely distinct is inferred from `nativeModelStore` holding its own client;
   confirm during Slice 1. The design's failure mode (refuse during a session) is
   correct either way, but the reason stated in the tooltip should be accurate.
-- The balance floor for a preview is a new constant. §2 measures one preview at
-  ~1356 µUSD charged; pick the floor from that with headroom, and state the
-  measurement next to the constant.
-- **Does a one-shot REST `/tts` call occupy one of Soniox's "concurrent realtime
-  TTS streams"?** §5.3 charges the preview against `MAX_TTS_CONCURRENT` on the
-  assumption that it does. If it does not, we are under-serving that ceiling by
-  one slot per in-flight preview — conservative, and the safe direction to be
-  wrong in, but worth confirming with Soniox rather than leaving as a guess.
+- The balance floor for a preview is a new constant (§5.6). §2C measures one
+  preview at ~1356 µUSD charged; pick the floor from that with headroom, and
+  state the measurement next to the constant — in both copies.
 - **A client that obtains audio and dies before `preview-done` is never
   charged** (§5.3). Accepted, because a session has the identical exposure
   between key issue and `session-started`. If preview volume ever makes this
   material, the fix is the same one that would fix it for sessions, and should
   be done for both at once rather than only here.
+
+Closed by measurement rather than left open: whether a one-shot REST `/tts`
+call occupies an org TTS slot. It does — §2E.
