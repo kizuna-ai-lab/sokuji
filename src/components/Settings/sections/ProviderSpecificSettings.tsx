@@ -82,8 +82,8 @@ import {
 import { sonioxKeyField, sonioxVoiceField } from '../../../services/providers/SonioxProviderConfig';
 import { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
 import { TtsSpeedControl, SpeechModeControl, VadControl, TranslationPromptControl, type SpeechMode } from './LocalSettingsControls';  // TranslationPromptControl shared by both local providers
-import { hasNativeTts } from '../../../lib/local-inference/native/nativeCatalog';
-import { useNativeCatalog } from '../../../stores/nativeModelStore';
+import { hasNativeTts, supportsCustomPrompt } from '../../../lib/local-inference/native/nativeCatalog';
+import { useNativeCatalog, useNativeModelStore } from '../../../stores/nativeModelStore';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
 
@@ -309,6 +309,22 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     modelStatuses,
   ]);
   const selectedAsr = speakerResolved.asr?.modelId ?? '';
+
+  // LOCAL_NATIVE's resolved direction. The custom-prompt control needs to know
+  // which translation model would actually run, because not all of them accept
+  // one (#526) — the twin of speakerResolved above, which serves LOCAL_INFERENCE.
+  // Hoisted here because hooks must run unconditionally, even though only the
+  // LOCAL_NATIVE branch reads it.
+  const nativeResolved = useMemo(() => useNativeModelStore.getState().resolve(
+    localNativeSettings.sourceLanguage,
+    localNativeSettings.targetLanguage,
+    localNativeSettings.selections,
+  ), [
+    localNativeSettings.sourceLanguage,
+    localNativeSettings.targetLanguage,
+    localNativeSettings.selections,
+    nativeCatalog,
+  ]);
 
   // LOCAL_INFERENCE's EngineAdapter — hoisted above the return (hooks must
   // run unconditionally) even though it's only rendered in the
@@ -2153,9 +2169,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     // The speed slider is meaningful only when the target language has a native
     // voice (text-only is the common textOnly toggle, not a per-stage Off option).
     const ttsActive = hasNativeTts(localNativeSettings.targetLanguage, nativeCatalog);
-    // Every native translation model is an LLM (Qwen / TranslateGemma / Hunyuan-MT),
-    // so all of them honour the custom prompt.
-    const promptSupported = true;
+    // Not every native translation model accepts a custom prompt: TranslateGemma's
+    // own chat template assembles the whole instruction and refuses a system role,
+    // so the sidecar discards one. Offering the box and dropping what the user
+    // types is worse than not offering it (#526).
+    const promptSupported = supportsCustomPrompt(nativeResolved.translation?.modelId ?? '');
 
     return (
       <>
