@@ -240,6 +240,33 @@ def test_gemma_never_wraps_input_in_transcript_tags():
     assert prompt.endswith("hello<end_of_turn>\n<start_of_turn>model\n")
 
 
+def test_gemma_prompt_is_verbatim_the_upstream_template():
+    """Whole-prompt parity, not fragments.
+
+    This strategy hand-renders what TranslateGemma's own chat template emits, so a
+    reworded instruction or a moved newline is a silent divergence -- and #525/#527
+    were both exactly that. Substring assertions cannot catch it; this one can.
+
+    The fixture is the text branch of `tokenizer.chat_template` as embedded in
+    mradermacher/translategemma-4b-it-GGUF, with source_lang_code='en' and
+    target_lang_code='fr'. To re-derive it after an upstream bump: read that KV out
+    of the GGUF (sidecar/sokuji_sidecar/gguf_header.py has a KV reader), render its
+    user branch for one language pair, and paste the result here.
+    """
+    expected = (
+        "<start_of_turn>user\n"
+        "You are a professional English (en) to French (fr) translator. Your goal is to "
+        "accurately convey the meaning and nuances of the original English text while "
+        "adhering to French grammar, vocabulary, and cultural sensitivities.\n"
+        "Produce only the French translation, without any additional explanations or "
+        "commentary. Please translate the following English text into French:\n"
+        "\n\n"
+        "hello world<end_of_turn>\n"
+        "<start_of_turn>model\n"
+    )
+    assert tb.GemmaStrategy()._render_prompt("hello world", "en", "fr") == expected
+
+
 def test_gemma_trims_the_text_like_the_upstream_template():
     # Upstream renders `content["text"] | trim`. ASR output is not guaranteed to
     # arrive trimmed, and untrimmed text is a materially different prompt.
