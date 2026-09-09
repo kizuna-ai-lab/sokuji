@@ -58,7 +58,7 @@ vi.mock('../../stores/settingsStore', () => ({
   useSetAuthOverlay: () => setAuthOverlay,
 }));
 
-vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn(), resetUser: vi.fn() }) }));
 vi.mock('../../utils/environment', () => ({
   isElectron: () => false,
   getBackendUrl: () => 'https://sokuji.kizuna.ai',

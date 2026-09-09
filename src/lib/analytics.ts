@@ -1,6 +1,8 @@
 import { usePostHog } from '../../shared/index';
 import { isDevelopment, getPlatform } from '../config/analytics';
 import type { DeviceProfile } from '../utils/deviceProfile';
+import { reportWarning } from './diagnostics/report';
+import { describeCause } from './diagnostics/describeCause';
 
 // Analytics event types - Comprehensive product metrics for Sokuji
 export interface AnalyticsEvents {
@@ -414,6 +416,37 @@ export function useAnalytics() {
     }
   };
 
+  /**
+   * Drop the current identity and start a fresh anonymous one.
+   *
+   * The counterpart to identifyUser, and what sign-out was missing: the
+   * distinct_id bound at sign-in otherwise stays bound, so on a shared machine
+   * the next person's events are attributed to the previous user. That is worse
+   * than missing data — nothing on the event says which of them produced it, so
+   * it cannot be separated afterwards.
+   *
+   * The background sync matters as much as the reset does in the extension: the
+   * background script holds a copy of the distinct_id for the uninstall survey
+   * URL, so a stale one attributes an uninstall to whoever signed out earlier.
+   */
+  const resetUser = () => {
+    try {
+      if (posthog) {
+        posthog.reset();
+
+        // The same hand-off identifyUser uses: the background script is a
+        // separate context and reads the id after local state has settled.
+        setTimeout(() => {
+          syncDistinctIdToBackground(posthog);
+        }, 100);
+      }
+    } catch (error) {
+      // A warning, not an error: the sign-out itself succeeded. What failed is
+      // only that this browser goes on reporting under the old identity.
+      reportWarning('Analytics', `Failed to reset the analytics identity: ${describeCause(error)}`, { cause: error });
+    }
+  };
+
   const setUserProperties = (properties: Record<string, any>) => {
     try {
       if (posthog) {
@@ -463,6 +496,7 @@ export function useAnalytics() {
   return {
     trackEvent,
     identifyUser,
+    resetUser,
     setUserProperties,
     syncDistinctIdToBackground: syncDistinctId,
     getDistinctId,
