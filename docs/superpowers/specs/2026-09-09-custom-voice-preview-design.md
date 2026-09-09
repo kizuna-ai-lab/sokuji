@@ -157,7 +157,7 @@ This is the seam `voiceLibrarySource.ts` was created for: *"turns 'where do
 voices come from' into a parameter."* `canPreview` stays as the capability flag
 and becomes `true` for managed.
 
-## 4. Slice 1 — Local Native
+## 4. Local Native
 
 **Behaviour.** The preview button synthesizes one sentence with the selected
 custom voice. If synthesis is impossible or fails, it **falls back to replaying
@@ -176,9 +176,30 @@ nativePreviewTts({ modelId, voice, text, language, speed, signal })
   → collect tts_generate_result + tts_chunk  → Float32Array
 ```
 
-**Loading policy: load on demand, then keep.** A cold `tts_init` costs seconds
-and GB-scale memory; keeping the model resident afterwards means the next
-session starts warm, so the cost is paid once and reused rather than wasted.
+**Loading policy: load on demand, keep for the sitting, unload on leaving.** A
+cold `tts_init` costs seconds and GB-scale memory, and the sidecar ties teardown
+to connection lifetime — `_h_tts_init` registers
+`conn.on_close(lambda: _tts_teardown(...))`, and there is no explicit unload op.
+So `nativePreviewTts` runs on a **dedicated connection**, lazily created, closed
+when the voice section unmounts. A second preview in the same sitting — record,
+listen, re-record, listen again — is then warm, and the memory goes back when
+the user leaves the panel. Never `nativeModelStore`'s own connection: that one
+is the long-lived management channel and closing it would break model
+management.
+
+**A preview never blocks a session, and never warms one.** `_h_tts_init`'s own
+comment settles both: *"A later `tts_init`, from this connection or another,
+still evicts unconditionally … and simply records the new owner here."* A
+session always takes ownership from the panel, which is why refusing previews
+during a session (above) is the only coordination needed — and equally why the
+resident model buys nothing for the next session. The benefit is repeat
+previews, not a warm start.
+
+**One recovery path is required.** Right after a session ends, the engine may
+still record the session's (now closed) connection as owner, so the panel's next
+`tts_generate` can come back `_not_owner_error`. Treat that as "re-`tts_init`
+once, then retry" rather than as a failure: the panel cannot observe another
+connection's ownership, so recovering is the only correct answer.
 
 **Active sessions are refused, not attempted.** The sidecar's TTS engine is a
 process singleton guarded by `_owner_conn`; the settings panel talks over
@@ -192,7 +213,7 @@ transcript, `index_tts2` needs the clip. `eligibleCustomVoices` already decides
 which stored clips qualify; preview reuses it, so an ineligible clip's row is
 already `disabled` and renders no preview control.
 
-## 5. Slice 2 — Backend: lease, billing and display
+## 5. Backend: lease, billing and display
 
 ### 5.1 The money arithmetic needs no change
 
@@ -494,7 +515,7 @@ and derives a mask bit from the role, both wrong for a 45-second TTS-only lease;
 The voice id is not a parameter: the account holds at most one voice, exactly as
 `GET /mine` and `DELETE /mine` already assume.
 
-## 6. Slice 3 — Frontend: managed preview
+## 6. Frontend: managed preview
 
 - `managedVoiceSource.canPreview` becomes `true`.
 - Its `preview()` is three steps: `POST /session-key` with
@@ -533,7 +554,7 @@ given away and the alarm written to catch that cannot fire.
 
 This is not introduced by preview, but preview makes it likelier to matter —
 previews are the smallest TTS calls we will ever issue and therefore the closest
-to a rounding boundary. Fix, in Slice 2: declare `output_audio_duration_ms` on
+to a rounding boundary. Fix, in the backend phase: declare `output_audio_duration_ms` on
 `UsageLog` and gate the alarm on it for TTS logs.
 
 ## 8. Testing
@@ -543,13 +564,13 @@ TDD throughout.
 **Shared shell** — `previewUnavailableReason` renders a disabled control with the
 given text and never invokes `onPreview`.
 
-**Slice 1** — `nativePreviewTts` unit tests over a mocked connection, covering
+**Local Native** — `nativePreviewTts` unit tests over a mocked connection, covering
 the `tts_init → set_voice → tts_generate` order, the skip when already loaded,
 and abort propagation. `NativeVoiceSection`: synthesis succeeds; synthesis fails
 and falls back to the reference clip; active session renders the disabled state
 without dialling out.
 
-**Slice 2** — `soniox.test.ts` (the session-key route): `mode: 'voice_preview'`
+**Backend** — `soniox.test.ts` (the session-key route): `mode: 'voice_preview'`
 returns a `ttsApiKey` and no `sttApiKey`, with `single_use: true` and a 30 s TTL
 on the minted key and a `client_reference_id` derived from the lease's base ref;
 402 below the preview floor; 409 when the account already holds a lease; 503 on
@@ -573,40 +594,67 @@ preview row derives `tts_preview`, its group derives `voice_preview` and not
 TypeScript `ROLE_KINDS` against the SQL `LEDGER_USE_KIND_EXPR`, which does not
 exist today (§5.5). One test for the §7 alarm gate on `output_audio_duration_ms`.
 
-**Slice 3** — `voiceLibrarySource.test.ts`: `preview()` for both sources, the
+**Managed wiring** — `voiceLibrarySource.test.ts`: `preview()` for both sources, the
 402/409/503 paths, and — the one that matters most — that an **aborted** preview
 still issues `preview-done`. A test that only checks the happy path would let
 the lease-leaking regression through.
 
 ## 9. Sequencing
 
-1. **Shared shell + Local Native** (`kizuna-ai-lab/sokuji`) — self-contained,
-   shippable alone.
-2. **Backend, in four landable steps** — mostly
-   `kizuna-ai-lab/sokuji-backend`, with one file in `kizuna-ai-lab/sokuji`:
+**Backend first, then both frontend halves together.** The backend is
+deployable on its own and reachable by nothing users run today, so it can go out
+and settle before any client can call it.
+
+1. **Backend** (`kizuna-ai-lab/sokuji-backend`), in five landable steps:
    1. **Vocabulary and pricing** (§5.6): `preview_tts` into the role union, then
       follow `tsc --noEmit`; the new SKU and its rate-table entry; the preview
-      floor — *and* its literal mirror in sokuji's
-      `sonioxManagedMinBalance.ts`, which must move in the same change. No
-      behaviour change for sessions.
+      balance floor.
    2. **The lease invariant** (§5.4): drop the clamp, relax the guards, make the
       ceiling checks symmetric, rewrite the five comments. Touches the critical
       path for every paying session — write the tests first.
-   3. **The route and `preview-done`** (§5.6).
-   4. **Reconciliation** (§5.3 step 5, and §7's alarm gate).
+   3. **Display** (§5.5): the new entry and group kinds, and the TS↔SQL pin.
+      Needs only step 1's SKU, so it can land beside step 2 rather than after it.
+   4. **The route and `preview-done`** (§5.6). Needs steps 1 and 2.
+   5. **Reconciliation** (§5.3 step 5, and §7's alarm gate).
+2. **Both frontend halves together** (`kizuna-ai-lab/sokuji`): the shared shell
+   and Local Native (§3, §4) alongside the managed wiring (§6). They share the
+   shell change, so splitting them costs a second pass over the same file for no
+   gain once the backend is already deployed. This phase also carries the two
+   frontend files the backend work would otherwise have dragged along — the
+   preview floor's literal mirror in `sonioxManagedMinBalance.ts` and the
+   `voice_preview` label in the billing history. Neither can be exercised until
+   this phase ships, so neither belongs in phase 1.
 
-   Steps 1–2 and the display work (§5.5) are independent of each other; the
-   route needs both. The display work is what makes the resulting ledger row
-   read correctly, and can land any time after step 1 defines the SKU.
-3. **Frontend managed wiring** (`kizuna-ai-lab/sokuji`) — depends on 2 being
-   deployed.
+**Phase 1 changes nothing a shipped client can observe**, which is what makes
+this order safe:
+
+- Existing clients never send `mode: 'voice_preview'`, so the route and every
+  value derived from the role set behave exactly as before. `sttApiKey` becomes
+  optional in the response type but is still always present for every other
+  mode — §8 pins that with its own test.
+- Dropping `countActive`'s clamp is arithmetically identical for every live row:
+  migration 0010 ends with
+  `UPDATE session_leases SET stt_stream_count = 1 WHERE stt_stream_count = 0`,
+  and the only rows the clamp could still be correcting come from a Worker that
+  predates the column, which cannot still be live.
+- Relaxing `acquire`'s guards only admits what was previously refused. Making
+  the ceiling checks symmetric is the same inequality (`counts.tts >= MAX` is
+  `counts.tts + 1 > MAX`), and the added `sttStreamCount > 0` only changes the
+  answer at zero, which no session shape produces.
+- The new entry and group kinds cannot occur until a preview row exists, i.e.
+  until phase 2.
+
+One consequence is not client-facing but should be expected: §7's alarm gate fix
+makes a currently unreachable alarm reachable. If Soniox ever reports a
+`cost_usd` of 0 on a TTS log, phase 1 is when we would start seeing it — which
+is the point of fixing it.
 
 ## 10. Open items
 
-- Whether the sidecar's panel connection and a session's connection are
-  genuinely distinct is inferred from `nativeModelStore` holding its own client;
-  confirm during Slice 1. The design's failure mode (refuse during a session) is
-  correct either way, but the reason stated in the tooltip should be accurate.
+- The preview floor's literal mirror (`sonioxManagedMinBalance.ts`) and the
+  backend's own constant must state the same number and cite the same
+  measurement. Nothing but a test enforces that; §8 covers the arithmetic but
+  not the citation.
 - The balance floor for a preview is a new constant (§5.6). §2C measures one
   preview at ~1356 µUSD charged; pick the floor from that with headroom, and
   state the measurement next to the constant — in both copies.
@@ -628,5 +676,10 @@ the lease-leaking regression through.
   to fire it from a `finally` (§6), because a user cancelling a preview is far
   more common than a crash.
 
-Closed by measurement rather than left open: whether a one-shot REST `/tts`
-call occupies an org TTS slot. It does — §2E.
+Two items were closed rather than left open. Whether a one-shot REST `/tts`
+call occupies an org TTS slot: it does — §2E. And whether the sidecar's panel
+connection is distinct from a session's: it is, stated at
+`nativeModelStore.ts`'s own `const client = new NativeModelClient()` —
+*"Singleton management connection (separate from session-stage clients)"* — so
+§4's refusal during an active session rests on the code rather than on
+inference.
