@@ -190,6 +190,32 @@ export function resolveNativeTranslation(choice: string): string | undefined {
 }
 
 /**
+ * Translation models whose prompt is assembled entirely by the model's own chat
+ * template, leaving nowhere for a user-supplied system prompt to go.
+ *
+ * TranslateGemma's upstream template raises on a system role and builds the whole
+ * instruction from the source/target language codes, so the sidecar's
+ * GemmaStrategy is right to discard `system_prompt` — the UI was wrong to ask for
+ * one and then drop it silently (#526).
+ *
+ * Pinned by id because the renderer cannot see the sidecar's `prompt_family`:
+ * that field is not on the wire. `sidecar/tests/test_catalog.py::
+ * test_only_translategemma_uses_the_gemma_prompt_family` fails if a second gemma
+ * card is added without updating this set.
+ */
+const TEMPLATE_OWNS_PROMPT: ReadonlySet<string> = new Set(['translategemma-4b']);
+
+/**
+ * Whether a translation model honours a user-supplied system prompt.
+ *
+ * An unknown or still-unresolved id answers true: the control's resting state is
+ * "available", not a claim that a model the user has not picked yet refuses it.
+ */
+export function supportsCustomPrompt(translationModelId: string): boolean {
+  return !TEMPLATE_OWNS_PROMPT.has(translationModelId);
+}
+
+/**
  * The native model ids a given config requires (for download/readiness). Always
  * an ASR model + a translation model, plus a TTS model when speech output is on.
  * No substitution: '' now means "resolution found nothing", and the Start gate

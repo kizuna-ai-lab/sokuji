@@ -456,6 +456,23 @@ def test_resolve_tts_card_unknown_id_returns_none():
     assert catalog.resolve_tts_card("totally-unknown-xyz") is None
 
 
+def test_only_translategemma_uses_the_gemma_prompt_family():
+    """Pins the renderer's hardcoded copy of this family.
+
+    TranslateGemma's chat template assembles the whole instruction itself and
+    raises on a system role, so GemmaStrategy discards `system_prompt` and the
+    settings UI must not offer a custom-prompt box for it (#526). The renderer
+    cannot read `prompt_family` -- it is not on the wire -- so it pins the ids in
+    TEMPLATE_OWNS_PROMPT (src/lib/local-inference/native/nativeCatalog.ts).
+
+    If this fails because a new gemma-family card was added, update that set in
+    the same change, or the new card will silently offer a prompt box that gets
+    thrown away.
+    """
+    gemma = {m.id for m in catalog.TRANSLATE_MODELS if m.prompt_family == "gemma"}
+    assert gemma == {"translategemma-4b"}
+
+
 def test_llm_translate_rows_shape():
     m = catalog.translate_model("translategemma-4b")
     assert m is not None

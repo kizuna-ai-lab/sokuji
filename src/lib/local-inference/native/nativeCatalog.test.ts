@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { voiceCapability, requiresVoiceClip, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, pinsFromSelections, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows } from './nativeCatalog';
+import { voiceCapability, requiresVoiceClip, resolveNativeTts, resolveNativeTranslation, requiredNativeModels, nativeAsrCards, nativeTranslationCards, nativeTtsCards, supportsLanguage, compatibleNativeAsr, incompatibleNativeAsr, nativeAsrIncompatibleCards, nativeAsrForLanguage, tierLabel, hardwareGated, gpuTierAvailable, formatRtf, formatTps, estimateNativeMemoryByDevice, formatMemMb, actualNativeMemoryByDevice, resolvedTierState, statusReposFor, pinsFromSelections, defaultTtsVoice, curatedBuiltinVoices, infoToCard, frameworkLabel, accelApiLabel, buildBackendTooltipRows, supportsCustomPrompt } from './nativeCatalog';
 import type { NativeModelInfo, NativeVoiceInfo } from './nativeProtocol';
 
 const V = (name: string, language: string | undefined, curated: boolean, def = false): NativeVoiceInfo =>
@@ -566,5 +566,33 @@ describe('buildBackendTooltipRows', () => {
     expect(nativeTts.find((r) => r.key === 'repo')?.value).toBe('org/model');
     const onnx = buildBackendTooltipRows({ tier: 'cpu', backendId: 'moss_onnx', resolved: null, repo: 'org/onnx-assets' });
     expect(onnx.find((r) => r.key === 'repo')?.value).toBe('org/onnx-assets');
+  });
+});
+
+describe('supportsCustomPrompt', () => {
+  // #526: the UI offered an Advanced custom-prompt box for TranslateGemma and
+  // silently discarded what the user typed. Its upstream chat template raises on
+  // a system role and assembles the whole instruction from the language codes,
+  // so there is nowhere for user wording to go — GemmaStrategy is right to drop
+  // it, the UI was wrong to ask for it.
+  it('refuses TranslateGemma, whose own template assembles the whole prompt', () => {
+    expect(supportsCustomPrompt('translategemma-4b')).toBe(false);
+  });
+
+  it('allows the Qwen and Hunyuan families, which do honour a system prompt', () => {
+    expect(supportsCustomPrompt('qwen2.5-0.5b')).toBe(true);
+    expect(supportsCustomPrompt('qwen3-0.6b')).toBe(true);
+    expect(supportsCustomPrompt('qwen3.5-4b')).toBe(true);
+    expect(supportsCustomPrompt('hy-mt2-1.8b')).toBe(true);
+    expect(supportsCustomPrompt('hy-mt15-7b')).toBe(true);
+    expect(supportsCustomPrompt('eurollm-1.7b')).toBe(true);
+  });
+
+  it('allows an unresolved id rather than showing "unsupported" by default', () => {
+    // Before a direction resolves, the id is ''. Defaulting to false there would
+    // flash "this model does not support custom prompts" at a user who has not
+    // picked anything yet.
+    expect(supportsCustomPrompt('')).toBe(true);
+    expect(supportsCustomPrompt('some-future-model')).toBe(true);
   });
 });
