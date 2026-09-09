@@ -238,3 +238,65 @@ describe('ManagedVoicesClient.remove', () => {
     await expect(make().remove()).rejects.toMatchObject({ errorType: 'voice_pinned', status: 409 });
   });
 });
+
+describe('ManagedVoicesClient.sessionKey', () => {
+  it('posts to /soniox/session-key (never /soniox/voices) with this client\'s own region in the body', async () => {
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk', region: 'eu' }));
+    const client = new ManagedVoicesClient(async () => TOKEN, 'eu');
+    const result = await client.sessionKey({ mode: 'voice_preview' });
+    expect(result).toEqual({ ttsApiKey: 'tk', region: 'eu' });
+    const [url, init] = fetchMock.mock.calls[0];
+    // No /voices segment and no ?region= query param: this route lives
+    // outside the voices-CRUD path shape `request()` builds for mine/ensure/remove.
+    expect(String(url)).toMatch(/\/soniox\/session-key$/);
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(JSON.parse(init.body as string)).toEqual({ mode: 'voice_preview', region: 'eu' });
+  });
+
+  it('defaults to US when constructed with no region, same as every other method', async () => {
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk', region: 'us' }));
+    await make().sessionKey({ mode: 'voice_preview' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({ mode: 'voice_preview', region: 'us' });
+  });
+
+  it('narrows an unrecognized or missing response region to the default rather than trusting it verbatim', async () => {
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk' }));
+    const result = await make().sessionKey({ mode: 'voice_preview' });
+    expect(result.region).toBe('us');
+  });
+
+  it('throws loudly when the response is missing ttsApiKey — a contract break, not a silent undefined credential', async () => {
+    fetchMock.mockResolvedValue(json(200, { region: 'us' }));
+    await expect(make().sessionKey({ mode: 'voice_preview' })).rejects.toBeInstanceOf(SonioxVoicesError);
+  });
+
+  it.each([
+    [402, 'Insufficient balance'],
+    [409, 'Another session is already active'],
+    [503, 'Soniox capacity is temporarily full'],
+  ])('surfaces the backend\'s own %i verdict rather than mapping it away', async (status, message) => {
+    fetchMock.mockResolvedValue(json(status, { error: message }));
+    await expect(make().sessionKey({ mode: 'voice_preview' })).rejects.toMatchObject({
+      errorType: message,
+      status,
+    });
+  });
+});
+
+describe('ManagedVoicesClient.previewDone', () => {
+  it('posts an empty body to /soniox/preview-done — the backend resolves the account\'s own lease', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(make().previewDone()).resolves.toBeUndefined();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toMatch(/\/soniox\/preview-done$/);
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(init.body).toBeUndefined();
+  });
+
+  it('rejects on a 404 (nothing to complete) — the caller is expected to swallow this, not this method', async () => {
+    fetchMock.mockResolvedValue(json(404, { error: 'No preview lease to complete' }));
+    await expect(make().previewDone()).rejects.toMatchObject({ status: 404 });
+  });
+});

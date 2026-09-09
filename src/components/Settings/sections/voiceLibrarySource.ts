@@ -60,6 +60,20 @@ export interface ByokTtsDeps {
   region?: SonioxRegion;
 }
 
+/** What managed preview needs beyond the voices-CRUD client: the TTS REST
+ *  call itself, injectable so tests don't need a network fake, defaulting to
+ *  the real `synthesizeOnce`.
+ *
+ *  Unlike `ByokTtsDeps`, there is no `apiKey`/`region` here for a caller to
+ *  forget — a managed preview holds no standing credential at all. Every
+ *  preview mints its OWN single-use key via `client.sessionKey()` and uses it
+ *  exactly once, so there is nothing about this dependency bag that could
+ *  default to a silently broken credential the way `byokVoiceSource`'s
+ *  `apiKey = ''` default once could. */
+export interface ManagedTtsDeps {
+  synthesize?: typeof synthesizeOnce;
+}
+
 /** BYOK: SonioxVoicesClient already satisfies the interface; this only names
  *  the fact and pins `canPreview`. `ttsDeps` carries what `preview` needs —
  *  see `ByokTtsDeps`. */
@@ -126,13 +140,14 @@ export function managedVoiceSource(
     timeoutMs?: number;
     sleep?: (ms: number) => Promise<void>;
     now?: () => number;
-  } = {}
+  } & ManagedTtsDeps = {}
 ): VoiceLibrarySource {
   const {
     pollDelayMs = managedVoicePollDelayMs,
     timeoutMs = 60_000,
     sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
     now = () => Date.now(),
+    synthesize = synthesizeOnce,
   } = opts;
   return {
     async list() {
@@ -206,8 +221,46 @@ export function managedVoiceSource(
       }
     },
 
-    // Auditioning synthesizes a sample, which needs a Soniox key a managed
-    // user does not have.
-    canPreview: false,
+    // Auditioning works for managed too: unlike BYOK there is no standing
+    // Soniox key to synthesize with, but `preview` mints a single-use one of
+    // its own per call (see below) rather than needing one held statically.
+    canPreview: true,
+
+    async preview({ id, language, text, speed, signal }) {
+      // Mint FIRST and outside the try/finally: a mint that failed leased
+      // nothing, so there is nothing to complete — and `preview-done`
+      // resolves the account's OWN lease server-side, so a stray call here
+      // could complete a DIFFERENT in-flight preview of this same account.
+      const key = await client.sessionKey({ mode: 'voice_preview' });
+      try {
+        // `ttsApiKey`, not `sttApiKey`: this mode mints no transcription key
+        // at all (backend design §5.6) — the field is absent by design, not
+        // an oversight to fall back from.
+        return await synthesize({
+          apiKey: key.ttsApiKey, region: key.region,
+          voice: id, language, text, speed, signal,
+        });
+      } finally {
+        // `finally`, not the success path. This call is the BILLING
+        // TRIGGER: it writes the lease's `started_at`, which is what lets
+        // the reconciler's sweep find the lease at all, and what releases
+        // the account's exclusivity lease instead of leaving it to the ~45s
+        // backstop. A user cancelling mid-synthesis is the common case, not
+        // the rare one — which is exactly why this must not live on the
+        // success path alone.
+        //
+        // Never rethrows: a failed completion must not mask the synthesis
+        // result, nor replace a useful error with a bookkeeping one. The
+        // charge is not lost either way — it is only deferred to the next
+        // sweep triggered by unrelated traffic in this region.
+        await client.previewDone().catch(() => {});
+      }
+    },
+
+    // A different region is a different Soniox project — same reasoning as
+    // byokVoiceSource's own namespace, just read off the client's region
+    // (set once, at construction, from the account's Soniox region setting)
+    // rather than a ttsDeps field of its own.
+    cacheNamespace: `managed:${client.region}`,
   };
 }

@@ -12,6 +12,12 @@ const fakeClient = (over: Partial<ManagedVoicesClient> = {}) => ({
   mine: vi.fn().mockResolvedValue(null),
   ensure: vi.fn(),
   remove: vi.fn().mockResolvedValue(undefined),
+  // Default region matches ManagedVoicesClient's own default, so a test that
+  // doesn't care about the cache namespace still sees a realistic value
+  // rather than `managed:undefined`.
+  region: 'us',
+  sessionKey: vi.fn(),
+  previewDone: vi.fn().mockResolvedValue(undefined),
   ...over,
 } as unknown as ManagedVoicesClient);
 
@@ -226,8 +232,110 @@ describe('managedVoiceSource.waitUntilReady', () => {
 });
 
 describe('managedVoiceSource previewing', () => {
-  it('cannot preview — there is no Soniox key to synthesize with', async () => {
-    expect(managedVoiceSource(fakeClient(), ACCOUNT).canPreview).toBe(false);
+  it('can preview — synthesis goes through a per-preview minted key, not a stored one', () => {
+    expect(managedVoiceSource(fakeClient(), ACCOUNT).canPreview).toBe(true);
+  });
+
+  it('namespaces the preview cache per region, mirroring byokVoiceSource', () => {
+    const client = fakeClient({ region: 'eu' });
+    expect(managedVoiceSource(client, ACCOUNT).cacheNamespace).toBe('managed:eu');
+  });
+
+  it('mints a preview key, synthesizes with ttsApiKey, then reports done', async () => {
+    const calls: string[] = [];
+    const client = fakeClient({
+      sessionKey: vi.fn(async (body: { mode: 'voice_preview' }) => {
+        calls.push(`key:${body.mode}`);
+        return { ttsApiKey: 'tk', region: 'us' as const };
+      }),
+      previewDone: vi.fn(async () => { calls.push('done'); }),
+    });
+    const synthesize = vi.fn(async (a: { apiKey: string }) => {
+      calls.push(`synth:${a.apiKey}`);
+      return { audio: new Float32Array(1), sampleRate: 24000 };
+    });
+    const source = managedVoiceSource(client, ACCOUNT, { synthesize: synthesize as any });
+
+    await source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1.0 });
+
+    expect(calls).toEqual(['key:voice_preview', 'synth:tk', 'done']);
+  });
+
+  it('reports done even when synthesis throws', async () => {
+    // A user cancelling is far more common than a crash, and preview-done is
+    // what makes the charge prompt and releases the account's lease. If it
+    // only ran on success, the common path would leave the lease to expire.
+    const previewDone = vi.fn(async () => {});
+    const client = fakeClient({
+      sessionKey: vi.fn(async () => ({ ttsApiKey: 'tk', region: 'us' as const })),
+      previewDone,
+    });
+    const source = managedVoiceSource(client, ACCOUNT, {
+      synthesize: (async () => { throw new Error('boom'); }) as any,
+    });
+
+    await expect(source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1.0 })).rejects.toThrow('boom');
+    expect(previewDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports done even when the caller aborts', async () => {
+    const previewDone = vi.fn(async () => {});
+    const ac = new AbortController();
+    const client = fakeClient({
+      sessionKey: vi.fn(async () => ({ ttsApiKey: 'tk', region: 'us' as const })),
+      previewDone,
+    });
+    const source = managedVoiceSource(client, ACCOUNT, {
+      synthesize: (async () => {
+        ac.abort();
+        throw new SonioxVoicesError('aborted', 'aborted', 0);
+      }) as any,
+    });
+
+    await expect(
+      source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1.0, signal: ac.signal })
+    ).rejects.toBeTruthy();
+    expect(previewDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not report done when the key was never minted', async () => {
+    // Nothing was leased, so there is nothing to complete; a stray call
+    // would 404 and, worse, could complete a DIFFERENT preview lease of this
+    // account.
+    const previewDone = vi.fn(async () => {});
+    const client = fakeClient({
+      sessionKey: vi.fn(async () => { throw new Error('402'); }),
+      previewDone,
+    });
+    const source = managedVoiceSource(client, ACCOUNT, {
+      synthesize: (async () => { throw new Error('unreachable'); }) as any,
+    });
+
+    await expect(source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1.0 })).rejects.toBeTruthy();
+    expect(previewDone).not.toHaveBeenCalled();
+  });
+
+  it('does not touch the voice slot — a preview is read-only', async () => {
+    // Product ruling: auditioning must not pin, touch, or LRU-reorder the
+    // account's single managed voice slot. `preview` has no reason to call
+    // `ensure`/`mine`/`remove` at all; this pins that it never does.
+    const ensure = vi.fn();
+    const mine = vi.fn();
+    const remove = vi.fn();
+    const client = fakeClient({
+      ensure, mine, remove,
+      sessionKey: vi.fn(async () => ({ ttsApiKey: 'tk', region: 'us' as const })),
+      previewDone: vi.fn(async () => {}),
+    });
+    const source = managedVoiceSource(client, ACCOUNT, {
+      synthesize: (async () => ({ audio: new Float32Array(1), sampleRate: 24000 })) as any,
+    });
+
+    await source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1.0 });
+
+    expect(ensure).not.toHaveBeenCalled();
+    expect(mine).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
   });
 });
 

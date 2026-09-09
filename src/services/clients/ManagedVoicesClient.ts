@@ -19,8 +19,15 @@
  * Errors are thrown as SonioxVoicesError with the backend's own slug as
  * `errorType`, so SonioxVoiceSection's existing error mapping works unchanged
  * whichever source is behind it.
+ *
+ * Also mints a single-use preview key (`sessionKey`) and reports a preview's
+ * completion (`previewDone`) — the two calls a preview travels through on its
+ * way to `POST /soniox/session-key` / `POST /soniox/preview-done`, per the
+ * phase-1 backend (sokuji-backend #68). Those two live on this class rather
+ * than a new one for the same reason `mine`/`ensure`/`remove` do: one class
+ * per Better-Auth-token-authenticated backend surface, one shared HTTP idiom.
  */
-import { DEFAULT_SONIOX_REGION, type SonioxRegion } from '../../lib/soniox/regions';
+import { DEFAULT_SONIOX_REGION, asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { getApiUrl } from '../../utils/environment';
 import { SonioxVoicesError } from './SonioxVoicesClient';
 
@@ -34,6 +41,19 @@ export interface ManagedVoice {
   createdAt: number;
 }
 
+/** What `sessionKey({ mode: 'voice_preview' })` mints. No `sttApiKey` field
+ *  at all — the backend issues exactly one stream (`preview_tts`) for this
+ *  mode, so there is nothing to transcribe (backend design §5.6) — and this
+ *  type says so structurally rather than leaving it optional and hoping no
+ *  caller reaches for it. */
+export interface ManagedPreviewSessionKey {
+  ttsApiKey: string;
+  /** The region THESE KEYS belong to, echoed back by the backend rather than
+   *  assumed to be the request's own `region` — same reasoning as
+   *  `ManagedSonioxSession.fileBundles`'s use of the response's region. */
+  region: SonioxRegion;
+}
+
 const REQUEST_TIMEOUT_MS = 15_000;
 const UPLOAD_TIMEOUT_MS = 120_000;
 
@@ -43,12 +63,33 @@ export class ManagedVoicesClient {
     /** Which Soniox regional project the backend should build this account's
      *  voice in. A cloned voice's UUID exists only inside one project, so a
      *  slot claimed in the wrong region names a voice the session cannot use.
-     *  Defaults to US so existing call sites keep their behaviour. */
-    private readonly region: SonioxRegion = DEFAULT_SONIOX_REGION,
+     *  Defaults to US so existing call sites keep their behaviour.
+     *
+     *  Public (not `private`, unlike `getToken`): `managedVoiceSource` reads
+     *  it to namespace its preview cache per project, the same reason
+     *  `byokVoiceSource` namespaces its own cache by region — a cache entry
+     *  keyed only by voice id would cross projects if the account's region
+     *  setting ever changed between two previews. */
+    public readonly region: SonioxRegion = DEFAULT_SONIOX_REGION,
   ) {}
 
-  private async request(
-    path: string,
+  /**
+   * Shared HTTP idiom for every backend call this client makes: bearer auth
+   * from `getToken()`, a caller-cancellable timeout via an explicit
+   * AbortController (not `AbortSignal.any` — the deadline and the caller's
+   * cancel must stay distinguishable at the catch site below), and every
+   * non-2xx response turned into a SonioxVoicesError carrying the backend's
+   * own slug.
+   *
+   * Takes the full request URL rather than building one, unlike `request()`
+   * below: `sessionKey`/`previewDone` call it directly because neither
+   * endpoint lives under `/soniox/voices` or takes that method's automatic
+   * `region` query param (session-key's region travels in the JSON body;
+   * preview-done needs no region at all — the backend resolves the account's
+   * own lease). `request()` is this method plus that one URL shape.
+   */
+  private async fetchWithAuth(
+    url: string,
     init: RequestInit,
     timeoutMs: number,
     /** Caller cancellation (e.g. the Start this call belongs to was aborted).
@@ -94,7 +135,7 @@ export class ManagedVoicesClient {
     try {
       let res: Response;
       try {
-        res = await fetch(`${getApiUrl()}/soniox/voices${path}${path.includes('?') ? '&' : '?'}region=${this.region}`, {
+        res = await fetch(url, {
           ...init,
           headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${token}` },
           signal: controller.signal,
@@ -122,6 +163,23 @@ export class ManagedVoicesClient {
       clearTimeout(timer);
       signal?.removeEventListener('abort', forwardAbort);
     }
+  }
+
+  /** `fetchWithAuth` plus the one URL shape every voices-CRUD call shares:
+   *  `/soniox/voices<path>`, with this client's own region as a query param
+   *  on every request. */
+  private async request(
+    path: string,
+    init: RequestInit,
+    timeoutMs: number,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    return this.fetchWithAuth(
+      `${getApiUrl()}/soniox/voices${path}${path.includes('?') ? '&' : '?'}region=${this.region}`,
+      init,
+      timeoutMs,
+      signal
+    );
   }
 
   /** Every failing response from this backend carries `{ error: '<slug>' }`,
@@ -205,5 +263,59 @@ export class ManagedVoicesClient {
    *  still holds it. */
   async remove(): Promise<void> {
     await this.request('/mine', { method: 'DELETE' }, REQUEST_TIMEOUT_MS);
+  }
+
+  /**
+   * Mint a single-use Soniox TTS key for one voice preview, via the third
+   * `mode` on `POST /soniox/session-key` (backend design §5.6). Always sends
+   * THIS client's own `region` in the body — never a caller-supplied one —
+   * because a preview must mint from the same project the account's voice
+   * actually lives in; minting from the wrong project would return a key
+   * that cannot resolve the voice's UUID at all.
+   *
+   * Errors surface as SonioxVoicesError, same as every method above, so
+   * `SonioxVoiceSection.mapTtsError` can branch on `.status` the way it
+   * already does for the voices-CRUD errors: 402 (insufficient balance), 409
+   * (another session or preview already holds the account's lease), and 503
+   * (Soniox capacity full) are this route's own documented outcomes.
+   */
+  async sessionKey(request: { mode: 'voice_preview' }): Promise<ManagedPreviewSessionKey> {
+    const res = await this.fetchWithAuth(
+      `${getApiUrl()}/soniox/session-key`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: request.mode, region: this.region }),
+      },
+      REQUEST_TIMEOUT_MS
+    );
+    const body = await res.json();
+    if (typeof body?.ttsApiKey !== 'string') {
+      // A contract break, not a user-facing failure mode: this route always
+      // mints a TTS key for `voice_preview` (backend design §5.6). Loud
+      // rather than a preview that silently tries to synthesize with
+      // `undefined` as its credential.
+      throw new SonioxVoicesError('http_error', 'Preview session-key response is missing ttsApiKey', 0);
+    }
+    return { ttsApiKey: body.ttsApiKey, region: asSonioxRegion(body.region) };
+  }
+
+  /**
+   * Report a preview's synthesis as over — the BILLING TRIGGER for a
+   * preview, not a courtesy notification. It writes the lease's
+   * `started_at`, which is what gives the reconciler's usage-log sweep a
+   * lease to find at all (backend design §5.3), and what lets that sweep
+   * release the account's exclusivity lease instead of leaving it to the
+   * ~45s expiry backstop.
+   *
+   * Empty body, the same rule `session-end` follows: the backend resolves
+   * the account's OWN preview lease, so there is no reference a caller could
+   * name — or forge — here. Answers 404 when there is nothing to complete
+   * (already reconciled, expired, or no preview lease was ever taken); the
+   * caller (`managedVoiceSource.preview`) always calls this from a `finally`
+   * and swallows whatever it throws, so a 404 here is inert by design.
+   */
+  async previewDone(): Promise<void> {
+    await this.fetchWithAuth(`${getApiUrl()}/soniox/preview-done`, { method: 'POST' }, REQUEST_TIMEOUT_MS);
   }
 }

@@ -26,11 +26,12 @@
  *
  * Previewing (auditioning) a voice is a separate capability from the
  * create/delete affordances above: it needs a Soniox key to synthesize a
- * sample, which a managed account's source does not have, so it is gated on
- * `source.preview` existing rather than on `source` merely being non-null —
- * the actual synthesis happens behind that seam (`voiceLibrarySource.ts`),
- * not here; this component only clamps speed, resolves the sample sentence,
- * and maps a rejection to the capture-error banner.
+ * sample — BYOK's own permanent key, or (as of the managed source) one
+ * single-use key minted per preview — so it is gated on `source.preview`
+ * existing rather than on `source` merely being non-null; the actual
+ * synthesis happens behind that seam (`voiceLibrarySource.ts`), not here —
+ * this component only clamps speed, resolves the sample sentence, and maps a
+ * rejection to the capture-error banner.
  */
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -321,6 +322,21 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // a synthesis call can produce.
   const mapTtsError = (e: unknown): Error => {
     if (e instanceof SonioxVoicesError) {
+      // The three outcomes specific to a MANAGED preview's session-key mint
+      // (ManagedVoicesClient.sessionKey) — checked ahead of the generic arms
+      // below, which describe a direct Soniox call and would otherwise
+      // misdescribe these as an auth or rate-limit problem.
+      if (e.status === 402) {
+        return new Error(t('voiceLibrary.previewNeedsBalance', 'Top up your balance to preview this voice.'));
+      }
+      if (e.status === 409) {
+        return new Error(t('voiceLibrary.previewSessionRunning', 'A session is running. Try again in a moment.'));
+      }
+      if (e.status === 503) {
+        // Same wording a managed session-key 503 already uses — see
+        // ManagedSonioxSession.describeError's `mainPanel.sonioxServiceBusy`.
+        return new Error(t('mainPanel.sonioxServiceBusy', 'Soniox is at capacity right now. Please try again shortly.'));
+      }
       if (e.status === 401 || e.errorType === 'unauthenticated') {
         return new Error(t('settings.sonioxVoicePreviewAuthError', 'Preview failed — check the API key'));
       }
@@ -752,9 +768,12 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         // Footnote, not a standalone setting: it describes controls that live
         // inside the expanded manage body (the per-row preview button, the
         // record/import buttons), so it belongs there rather than above the
-        // collapsed expander where they aren't even visible. The two cases
-        // are mutually exclusive — only a managed source can block create,
-        // and a managed source can never preview.
+        // collapsed expander where they aren't even visible. `managed` can
+        // now preview too, so the two cases are no longer mutually
+        // exclusive by construction — `managedVoiceBlocksCreate` still takes
+        // priority, because a managed account with an existing voice has
+        // nothing to gain from the preview cost hint while create is
+        // withdrawn anyway.
         manageNote={
           managedVoiceBlocksCreate
             ? t(
@@ -762,10 +781,15 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
                 'Delete this voice before recording a new one — recording again on its own keeps the voice you already have.'
               )
             : source?.preview
-              ? t(
-                  'settings.sonioxVoicePreviewCostHint',
-                  'Previewing a voice synthesizes a short clip using your own Soniox quota.'
-                )
+              ? managed
+                ? t(
+                    'voiceLibrary.previewChargedToBalance',
+                    'Previewing synthesizes a short sample and is charged to your account balance.'
+                  )
+                : t(
+                    'settings.sonioxVoicePreviewCostHint',
+                    'Previewing a voice synthesizes a short clip using your own Soniox quota.'
+                  )
               : undefined
         }
         capability={{
