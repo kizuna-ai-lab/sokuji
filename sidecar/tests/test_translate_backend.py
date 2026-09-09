@@ -193,20 +193,58 @@ def test_gemma_uses_complete_with_rendered_prompt(native_env):
     gguf, log = native_env
     b = backends.make_backend("native_translate")
     b.load(gguf, "cpu", "q4_k_m", config=PlanConfig(prompt_family="gemma"))
-    b.translate("hello", "ignored-system-prompt", "English", "Japanese", False)
+    b.translate("hello", "ignored-system-prompt", "en", "ja", False)
     kind, prompt, max_tokens = log[-1]
     assert kind == "complete"
     assert "<start_of_turn>user" in prompt
-    assert "(en)" in prompt and "(ja)" in prompt
+    assert "professional English (en) to Japanese (ja) translator" in prompt
     assert max_tokens == 256
 
 
 def test_gemma_prompt_omits_empty_code_for_falsy_src():
     # Regression kept verbatim against the strategy's own prompt renderer.
-    prompt = tb.GemmaStrategy()._render_prompt("hello", "", "Japanese", False)
+    prompt = tb.GemmaStrategy()._render_prompt("hello", "", "ja")
     assert "()" not in prompt
     assert "the source language to Japanese (ja)" in prompt
     assert "(ja)" in prompt
+
+
+def test_gemma_renders_language_names_from_the_iso_codes_the_renderer_sends():
+    # The renderer sends ISO codes, not English names: localNative.sourceLanguage
+    # defaults to 'ja'/'en' and reaches the strategy untouched. The upstream template
+    # resolves code -> name and emits "Name (code)"; feeding a translation-specific
+    # model "en (en)" is a malformed prompt. Asserted on the shape the caller sends.
+    prompt = tb.GemmaStrategy()._render_prompt("hello", "en", "fr")
+    assert "professional English (en) to French (fr) translator" in prompt
+    assert "en (en)" not in prompt
+    assert "following English text into French" in prompt
+
+
+def test_gemma_renders_names_for_languages_outside_the_original_twenty():
+    # The old map held 20 entries; the picker offers 54. Swedish/Czech/Danish were
+    # among those that silently rendered as "sv (sv)".
+    for code, name in (("sv", "Swedish"), ("cs", "Czech"), ("da", "Danish")):
+        prompt = tb.GemmaStrategy()._render_prompt("hello", code, "en")
+        assert f"professional {name} ({code}) to English (en) translator" in prompt
+
+
+def test_gemma_never_wraps_input_in_transcript_tags():
+    # Gemma discards system_prompt (its upstream template raises on one), and that
+    # prompt is the only text that ever explained <transcript> tags to a model.
+    # Wrapping without it makes the model treat the tags as content and translate
+    # the tag name, which _clean_output's literal regex cannot then strip.
+    _kind, prompt, _prefill = tb.GemmaStrategy().build(
+        "hello", "ignored-system-prompt", "en", "fr", True, PlanConfig(prompt_family="gemma"))
+    assert "<transcript>" not in prompt
+    assert "</transcript>" not in prompt
+    assert prompt.endswith("hello<end_of_turn>\n<start_of_turn>model\n")
+
+
+def test_gemma_trims_the_text_like_the_upstream_template():
+    # Upstream renders `content["text"] | trim`. ASR output is not guaranteed to
+    # arrive trimmed, and untrimmed text is a materially different prompt.
+    prompt = tb.GemmaStrategy()._render_prompt("  hello  ", "en", "fr")
+    assert prompt.endswith("hello<end_of_turn>\n<start_of_turn>model\n")
 
 
 def test_streaming_on_partial_gets_cumulative_cleaned_text(native_env):
