@@ -281,15 +281,21 @@ phases exactly:
    lock.
 4. **Sweep** — `unreconciledLeaseQuery` now reports work, the debounced sweep
    runs, `buildCharge` charges `cost × K`.
-5. **Release** — after charging a log whose `rawRole` is `preview_tts`, the sweep
-   releases that lease directly. **This step is new code.** The existing release
-   predicate is `(ended & started) = started AND started != 0`, and TTS roles
-   carry no bit by design — *"a session may legitimately produce zero TTS logs
-   and a bit nothing can clear would build a lease that never releases"* — so a
-   TTS-only lease can never satisfy it and would otherwise sit until expiry. The
-   new step keeps the existing principle intact: **the usage log is the
-   unforgeable proof the work is over.** For STT that clears a mask; for a
-   TTS-only preview it releases the lease outright.
+5. **Release** — after charging a log whose role is `preview_tts`, the sweep
+   releases that lease directly. **This step is new code**, and the reason is
+   subtler than it first looks. `noteStreamEnded`'s release CASE has two arms:
+   `stt_started_mask != 0 AND ((stt_ended_mask | ?) & stt_started_mask) =
+   stt_started_mask`, and `stt_started_mask = 0 AND started_at IS NOT NULL`. The
+   second arm is *exactly* the shape a preview lease has after `preview-done`, so
+   it is not true that a TTS-only lease could never satisfy the predicate — what
+   is true is that **the SQL evaluating it is never reached for a TTS log**,
+   because `noteStreamEnded` is called only under `kind === "stt"`. Without the
+   new step a preview lease would sit until its expiry backstop. The step keeps
+   the existing principle intact: **the usage log is the unforgeable proof the
+   work is over.** For STT that clears a mask; for a TTS-only preview it releases
+   the lease outright. Scope it to the preview role rather than to
+   `kind === "tts"`: a session's TTS log must not release its lease while the
+   transcription stream is still running.
 
 Measured from §2, the exclusivity window is roughly **6–20 s** (≈1 s synthesis +
 5 s sweep debounce + ~15 s for Soniox to post the log), not the 45 s backstop.
@@ -361,10 +367,13 @@ migration**: the column is already `NOT NULL DEFAULT 0`, and writing a truthful
 
 - **Delete the clamp.** `SUM(stt_stream_count)`; `SUM(uses_tts)` is untouched
   and already correct. Safe to delete because the clamp defends rows written by
-  a Worker predating the column, during migration 0010's own deploy window: a
-  lease lives at most about an hour, so no such row can still be live, and
-  `acquire` — the only writer — always names the column (its `?? 1` covers a
-  caller who supplies neither form).
+  a Worker predating the column, during migration 0010's own deploy window. That
+  migration shipped on 2026-08-11 and ends with
+  `UPDATE session_leases SET stt_stream_count = 1 WHERE stt_stream_count = 0`, so
+  every row it could have left at zero is a month old and long expired — a lease
+  runs at most `MAX_TRANSCRIPTION_SESSION_S`, five hours. And `acquire` — the only
+  writer — always names the column (its `?? 1` covers a caller who supplies
+  neither form).
 - **Relax `acquire`'s guards to the new invariant.** Drop the
   transcription-role requirement; keep the refusal of a negative count and of an
   empty role set; add the invariant itself as one check —
@@ -446,7 +455,10 @@ things are visibly wrong:
   unregistered SKU makes `chargeMicroUsd` throw and the whole charge fail. The
   registered rate never affects money here — that path is reached only when the
   provider cost is unusable and `billableSeconds` is 0, giving 0.
-- **A label for `voice_preview`** in the frontend billing history.
+- **A label for `voice_preview`** in
+  `web/src/pages/dashboard/wallet/ledger-labels.ts` — the dashboard sub-app
+  inside this repo, not the client. Without it a preview row falls back to a
+  generic "Usage" label, which breaks nothing and says nothing.
 
 ### 5.6 One route: `session-key` with a third mode
 
@@ -623,10 +635,18 @@ and settle before any client can call it.
    and Local Native (§3, §4) alongside the managed wiring (§6). They share the
    shell change, so splitting them costs a second pass over the same file for no
    gain once the backend is already deployed. This phase also carries the two
-   frontend files the backend work would otherwise have dragged along — the
-   preview floor's literal mirror in `sonioxManagedMinBalance.ts` and the
-   `voice_preview` label in the billing history. Neither can be exercised until
-   this phase ships, so neither belongs in phase 1.
+   frontend file the backend work would otherwise have dragged along: the
+   preview floor's literal mirror in `sonioxManagedMinBalance.ts`, which cannot
+   be exercised until this phase ships.
+
+   **Correction, found during phase 1's Task 4.** The `voice_preview` label was
+   listed here too, on the assumption it lived in the client repo. It does not:
+   the wallet ledger's user-facing labels are
+   `web/src/pages/dashboard/wallet/ledger-labels.ts`, inside `sokuji-backend`'s
+   own dashboard sub-app. It belongs in phase 1, beside the kinds it names.
+   Until it lands, a preview row falls back to a generic "Usage" label by
+   design, so nothing breaks — but the display work of §5.5 is not finished
+   without it.
 
 **Phase 1 changes nothing a shipped client can observe**, which is what makes
 this order safe:
@@ -661,6 +681,31 @@ is the point of fixing it.
 - The balance floor for a preview is a new constant (§5.6). §2C measures one
   preview at ~1356 µUSD charged; pick the floor from that with headroom, and
   state the measurement next to the constant — in both copies.
+- **Previews and speech-to-speech compete for the same 25 TTS slots, with no
+  sub-quota.** `acquire` counts a preview against `MAX_TTS_CONCURRENT` (§5.3),
+  which is correct — §2E measures the slot being taken — but it means a burst of
+  concurrent previews can refuse a paying session with `tts_full`.
+
+  **Two different holds, and the longer one is the one that binds.** §2E measures
+  Soniox's own occupancy: about a second for a preview-sized sentence. But
+  `acquire` refuses on *our* number, and `countActive` sums `uses_tts` over every
+  lease with `expires_at > now AND reconciled_at IS NULL` — so a preview occupies
+  one of the 25 slots for as long as its **lease** lives, not as long as the API
+  call does. That is typically **15–25 s** (a second or two to `preview-done`,
+  the 5 s sweep debounce, ~15 s for Soniox to post the log) and **45 s** worst
+  case when the client dies before reporting. An earlier revision of this bullet
+  said "about a second" and was wrong by 15–45x. The conclusion that ~25
+  concurrent previews are needed to starve a session survives, but the
+  probability it rests on does not, and the phase-2 sub-quota decision has to be
+  made on the lease figure. The hold stays bounded even on the self-inflicted
+  `session-started` path, because a preview lease's `max_duration_s` is
+  `PREVIEW_KEY_TTL_S`, so `markStarted` re-extends it to only ~45 s.
+
+  Phase 1 cannot exhibit any of this, because nothing issues previews until
+  phase 2. Surfaced by the Task 3 review, corrected by the final whole-branch
+  review. The phase-2 plan should decide whether a sub-quota is worth its
+  complexity, rather than discovering the question in production.
+
 - **A client that obtains audio and dies before `preview-done` has its charge
   deferred, not lost.** `started_at` gates only whether *this lease* makes its
   region report work, i.e. whether a sweep is triggered. It does not filter
