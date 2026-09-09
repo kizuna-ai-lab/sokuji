@@ -1163,6 +1163,45 @@ describe('SonioxVoiceSection', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/check the API key/i);
   });
 
+  // The 402/409 arms describe ManagedVoicesClient.sessionKey's own failure
+  // modes — a managed preview's session-key mint, not a direct Soniox call —
+  // so they must only fire for a managed source.
+  it('maps a managed preview\'s 402 to "top up your balance", not the BYOK auth/quota copy', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    synthesizeMock.mockRejectedValue(new SonioxVoicesError('insufficient_balance', 'no funds', 402));
+    mount({ managed: true });
+    // Managed: the manage panel renders only once the first list has settled.
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/top up your balance/i);
+  });
+
+  it('maps a managed preview\'s 409 to "a session is running"', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    synthesizeMock.mockRejectedValue(new SonioxVoicesError('active_lease', 'busy', 409));
+    mount({ managed: true });
+    // Managed: the manage panel renders only once the first list has settled.
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/session is running/i);
+  });
+
+  it('does NOT reinterpret a BYOK preview\'s 402/409 as a balance/session problem — those describe the managed mint, not Soniox\'s own API', async () => {
+    // A BYOK user's own Soniox project can answer 402 (out of Soniox credit)
+    // or 409 directly. Telling them to "top up your balance" points at a
+    // Sokuji billing page that has nothing to do with it.
+    listMock.mockResolvedValue([cloned()]);
+    synthesizeMock.mockRejectedValue(new SonioxVoicesError('insufficient_balance', 'soniox says no funds', 402));
+    mount({ managed: false });
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).not.toHaveTextContent(/top up your balance/i);
+    expect(alert).not.toHaveTextContent(/session is running/i);
+  });
+
   it('keeps the banner empty when the preview was cancelled by the user', async () => {
     listMock.mockResolvedValue([cloned()]);
     synthesizeMock.mockRejectedValue(new SonioxVoicesError('aborted', 'Preview cancelled', 0));

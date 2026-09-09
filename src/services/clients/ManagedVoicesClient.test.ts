@@ -260,10 +260,23 @@ describe('ManagedVoicesClient.sessionKey', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({ mode: 'voice_preview', region: 'us' });
   });
 
-  it('narrows an unrecognized or missing response region to the default rather than trusting it verbatim', async () => {
+  it('narrows a missing response region to THIS CLIENT\'s own region, not the global default', async () => {
+    // Constructed with 'eu', deliberately NOT the default 'us' — `make()`
+    // would leave `this.region` and DEFAULT_SONIOX_REGION both 'us', so the
+    // assertion would pass under either a correct or a regressed
+    // implementation and prove nothing. A eu account whose response omits
+    // `region` must still get a eu-hosted key back, never a US one.
     fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk' }));
-    const result = await make().sessionKey({ mode: 'voice_preview' });
-    expect(result.region).toBe('us');
+    const client = new ManagedVoicesClient(async () => TOKEN, 'eu');
+    const result = await client.sessionKey({ mode: 'voice_preview' });
+    expect(result.region).toBe('eu');
+  });
+
+  it('narrows an unrecognized response region to THIS CLIENT\'s own region too', async () => {
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk', region: 'mars' }));
+    const client = new ManagedVoicesClient(async () => TOKEN, 'jp');
+    const result = await client.sessionKey({ mode: 'voice_preview' });
+    expect(result.region).toBe('jp');
   });
 
   it('throws loudly when the response is missing ttsApiKey — a contract break, not a silent undefined credential', async () => {

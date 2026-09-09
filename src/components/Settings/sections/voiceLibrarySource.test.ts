@@ -5,8 +5,14 @@ import { SonioxVoicesError } from '../../../services/clients/SonioxVoicesClient'
 import { loadVoiceClip, resetVoiceClipStorageForTesting } from '../../../lib/soniox/voiceClipStorage';
 import type { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
 import type { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
+import { settleReports, resetReportThrottle } from '../../../lib/diagnostics/report';
+import useLogStore from '../../../stores/logStore';
 
-beforeEach(async () => { await resetVoiceClipStorageForTesting(); });
+beforeEach(async () => {
+  await resetVoiceClipStorageForTesting();
+  resetReportThrottle();
+  useLogStore.getState().clearLogs();
+});
 
 const fakeClient = (over: Partial<ManagedVoicesClient> = {}) => ({
   mine: vi.fn().mockResolvedValue(null),
@@ -276,6 +282,37 @@ describe('managedVoiceSource previewing', () => {
 
     await expect(source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1.0 })).rejects.toThrow('boom');
     expect(previewDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces a failed preview-done as a warning rather than discarding it, without masking the real result', async () => {
+    // A systemic preview-done failure (route typo, deploy skew, a token the
+    // mint accepts but this route doesn't) must not be invisible: every
+    // preview would keep playing, nothing would ever be billed, and the
+    // account's next Start would 409 for up to the ~45s backstop with
+    // nothing anywhere naming the cause. "Never rethrow" and "discard" are
+    // different decisions — this pins that the failure is reported, not just
+    // swallowed, while the synthesis result (success here) is untouched.
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const client = fakeClient({
+        sessionKey: vi.fn(async () => ({ ttsApiKey: 'tk', region: 'us' as const })),
+        previewDone: vi.fn().mockRejectedValue(new Error('502 from /soniox/preview-done')),
+      });
+      const source = managedVoiceSource(client, ACCOUNT, {
+        synthesize: (async () => ({ audio: new Float32Array(1), sampleRate: 24000 })) as any,
+      });
+
+      await expect(
+        source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1.0 })
+      ).resolves.toEqual({ audio: new Float32Array(1), sampleRate: 24000 });
+
+      await settleReports();
+      const warnings = useLogStore.getState().allLogs.filter((l) => l.type === 'warning');
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0].message).toMatch(/preview completion was not reported/i);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it('reports done even when the caller aborts', async () => {

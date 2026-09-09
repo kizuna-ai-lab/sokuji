@@ -322,14 +322,19 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // a synthesis call can produce.
   const mapTtsError = (e: unknown): Error => {
     if (e instanceof SonioxVoicesError) {
-      // The three outcomes specific to a MANAGED preview's session-key mint
+      // Two outcomes specific to a MANAGED preview's session-key mint
       // (ManagedVoicesClient.sessionKey) — checked ahead of the generic arms
       // below, which describe a direct Soniox call and would otherwise
-      // misdescribe these as an auth or rate-limit problem.
-      if (e.status === 402) {
+      // misdescribe these as an auth or rate-limit problem. Gated on
+      // `managed`: a BYOK user's OWN Soniox account can also answer 402 (out
+      // of Soniox credit) or 409, and telling them to top up their SOKUJI
+      // balance — a page that is perfectly healthy — would be actively
+      // wrong, not just imprecise. 503 stays ungated below: Soniox capacity
+      // being full reads the same regardless of which credential hit it.
+      if (managed && e.status === 402) {
         return new Error(t('voiceLibrary.previewNeedsBalance', 'Top up your balance to preview this voice.'));
       }
-      if (e.status === 409) {
+      if (managed && e.status === 409) {
         return new Error(t('voiceLibrary.previewSessionRunning', 'A session is running. Try again in a moment.'));
       }
       if (e.status === 503) {

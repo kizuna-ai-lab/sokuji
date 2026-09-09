@@ -50,7 +50,12 @@ export interface ManagedPreviewSessionKey {
   ttsApiKey: string;
   /** The region THESE KEYS belong to, echoed back by the backend rather than
    *  assumed to be the request's own `region` — same reasoning as
-   *  `ManagedSonioxSession.fileBundles`'s use of the response's region. */
+   *  `ManagedSonioxSession.fileBundles`'s use of the response's region. A
+   *  missing or unrecognised value narrows to THIS CLIENT's own `region`
+   *  (see `sessionKey` below), never to the global US default: for a eu/jp
+   *  account that default is the one value guaranteed to disagree with both
+   *  the request and the backend, and would route the returned key at the
+   *  wrong TTS host. */
   region: SonioxRegion;
 }
 
@@ -297,7 +302,10 @@ export class ManagedVoicesClient {
       // `undefined` as its credential.
       throw new SonioxVoicesError('http_error', 'Preview session-key response is missing ttsApiKey', 0);
     }
-    return { ttsApiKey: body.ttsApiKey, region: asSonioxRegion(body.region) };
+    // Fall back to THIS CLIENT's own region, not the global default: see
+    // `ManagedPreviewSessionKey.region`'s docstring for why `us` specifically
+    // is the wrong thing to default a eu/jp account to.
+    return { ttsApiKey: body.ttsApiKey, region: asSonioxRegion(body.region, this.region) };
   }
 
   /**

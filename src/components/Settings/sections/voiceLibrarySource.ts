@@ -21,6 +21,7 @@ import { DEFAULT_SONIOX_REGION } from '../../../lib/soniox/regions';
 import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
 import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
 import { managedVoicePollDelayMs } from '../../../services/clients/managedVoicePolling';
+import { reportWarning, describeCause } from '../../../lib/diagnostics/report';
 
 export interface VoiceLibrarySource {
   /** Every voice this source can offer. The managed source returns zero or
@@ -253,7 +254,23 @@ export function managedVoiceSource(
         // result, nor replace a useful error with a bookkeeping one. The
         // charge is not lost either way — it is only deferred to the next
         // sweep triggered by unrelated traffic in this region.
-        await client.previewDone().catch(() => {});
+        //
+        // NOT swallowed silently, though — "never rethrow" and "discard" are
+        // different decisions, and the sibling fire-and-forget calls
+        // (ManagedSonioxSession.markStarted/end) already made the second one
+        // for good reason: unread, a systemic failure here (a route typo, a
+        // deploy skew) would be invisible — every preview keeps playing, no
+        // preview is ever billed, and the account's next Start 409s for up to
+        // the ~45s backstop with nothing anywhere naming why. `reportWarning`
+        // is the sanctioned channel for exactly this ("it happened, or will")
+        // and never shows UI, so it cannot collide with `setCaptureError`.
+        await client.previewDone().catch((error) => {
+          reportWarning(
+            'ManagedVoiceSource',
+            `Preview completion was not reported to the backend: ${describeCause(error)}`,
+            { cause: error }
+          );
+        });
       }
     },
 
