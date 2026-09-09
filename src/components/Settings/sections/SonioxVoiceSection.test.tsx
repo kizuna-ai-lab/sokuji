@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { compile } from 'sass';
 import type { VoiceLibrarySource } from './voiceLibrarySource';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
+import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -29,14 +30,39 @@ const waitMock = vi.fn();
  *  existed — that is the point of this file: BYOK behaviour must come out
  *  bit-identical. Defaults route through the shared mocks above (not fresh
  *  vi.fn()s) so a test's `listMock.mockResolvedValue(...)` etc., set up
- *  before mount(), still reaches the source the component was given. */
+ *  before mount(), still reaches the source the component was given.
+ *
+ *  `preview`/`cacheNamespace` mirror what `byokVoiceSource` bakes in from its
+ *  `ttsDeps` (apiKey 'k', region 'us' — matching this file's default
+ *  `settings.apiKey`) and route through `synthesizeOnce`, which the
+ *  `vi.mock` below replaces with `synthesizeMock` — so every preview
+ *  assertion here keeps observing the same mock it always has. Only present
+ *  when the FINAL `canPreview` (after `over`) is true, so a caller that
+ *  overrides `canPreview: false` — standing in for a managed source — gets
+ *  no `preview` either, exactly as `source?.preview` gates in the component. */
 function fakeSource(over: Partial<VoiceLibrarySource> = {}): VoiceLibrarySource {
+  const canPreview = over.canPreview ?? true;
   return {
     list: listMock,
     create: createMock,
     delete: deleteMock,
     waitUntilReady: waitMock,
-    canPreview: true,
+    canPreview,
+    ...(canPreview
+      ? {
+          preview: (args: { id: string; language: string; text: string; speed: number; signal?: AbortSignal }) =>
+            synthesizeOnce({
+              apiKey: 'k',
+              region: 'us',
+              voice: args.id,
+              language: args.language,
+              text: args.text,
+              speed: args.speed,
+              signal: args.signal,
+            }),
+          cacheNamespace: 'soniox:us',
+        }
+      : {}),
     ...over,
   } as VoiceLibrarySource;
 }

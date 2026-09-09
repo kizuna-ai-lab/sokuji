@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
-import { managedVoiceSource } from './voiceLibrarySource';
+import { byokVoiceSource, managedVoiceSource } from './voiceLibrarySource';
 import { SonioxVoicesError } from '../../../services/clients/SonioxVoicesClient';
 import { loadVoiceClip, resetVoiceClipStorageForTesting } from '../../../lib/soniox/voiceClipStorage';
 import type { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
+import type { SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
 
 beforeEach(async () => { await resetVoiceClipStorageForTesting(); });
 
@@ -13,6 +14,16 @@ const fakeClient = (over: Partial<ManagedVoicesClient> = {}) => ({
   remove: vi.fn().mockResolvedValue(undefined),
   ...over,
 } as unknown as ManagedVoicesClient);
+
+// byokVoiceSource.preview never touches the voices-CRUD client (it only uses
+// the injected `synthesize`), so this fake only needs to satisfy the type —
+// none of its methods are called by the tests below.
+const fakeSonioxClient = () => ({
+  list: vi.fn(),
+  create: vi.fn(),
+  delete: vi.fn(),
+  waitUntilReady: vi.fn(),
+} as unknown as SonioxVoicesClient);
 
 const ACCOUNT = 'user-a';
 
@@ -217,5 +228,23 @@ describe('managedVoiceSource.waitUntilReady', () => {
 describe('managedVoiceSource previewing', () => {
   it('cannot preview — there is no Soniox key to synthesize with', async () => {
     expect(managedVoiceSource(fakeClient(), ACCOUNT).canPreview).toBe(false);
+  });
+});
+
+describe('byokVoiceSource.preview', () => {
+  it('synthesizes through the injected client', async () => {
+    const synth = vi.fn(async () => ({ audio: new Float32Array([0.5]), sampleRate: 24000 }));
+    const src = byokVoiceSource(fakeSonioxClient(), { synthesize: synth, apiKey: 'k', region: 'us' });
+    const out = await src.preview!({ id: 'v1', language: 'ja', text: 'こんにちは', speed: 1.0 });
+    expect(synth).toHaveBeenCalledWith(expect.objectContaining({
+      apiKey: 'k', region: 'us', voice: 'v1', language: 'ja', text: 'こんにちは', speed: 1.0,
+    }));
+    expect(out.sampleRate).toBe(24000);
+  });
+
+  it('reports canPreview true and namespaces the cache per region', () => {
+    const src = byokVoiceSource(fakeSonioxClient(), { apiKey: 'k', region: 'eu' });
+    expect(src.canPreview).toBe(true);
+    expect(src.cacheNamespace).toBe('soniox:eu');
   });
 });

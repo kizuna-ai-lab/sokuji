@@ -15,6 +15,9 @@
 import type { SonioxVoice, SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
 import type { ManagedVoicesClient, ManagedVoice } from '../../../services/clients/ManagedVoicesClient';
 import { SonioxVoicesError } from '../../../services/clients/SonioxVoicesClient';
+import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
+import type { SonioxRegion } from '../../../lib/soniox/regions';
+import { DEFAULT_SONIOX_REGION } from '../../../lib/soniox/regions';
 import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
 import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
 import { managedVoicePollDelayMs } from '../../../services/clients/managedVoicePolling';
@@ -29,17 +32,50 @@ export interface VoiceLibrarySource {
   /** False when auditioning is impossible because this source has no Soniox
    *  key to synthesize a sample with. */
   readonly canPreview: boolean;
+  /** Synthesize one sample sentence in this voice. Rejects rather than
+   *  returning null on failure; the section maps the error to a banner.
+   *
+   *  Optional — not every source can audition (see `canPreview`) — so a
+   *  caller narrows on THIS member, not on `canPreview`: a plain boolean
+   *  cannot narrow the type the way an optional method can, and `canPreview`
+   *  exists precisely because some sources have no `preview` at all. */
+  preview?(args: {
+    id: string; language: string; text: string; speed: number; signal?: AbortSignal;
+  }): Promise<{ audio: Float32Array; sampleRate: number }>;
+  /** Namespace for the shared preview cache — distinct per voice project.
+   *  Paired with `preview`: a source that can preview always sets this too. */
+  readonly cacheNamespace?: string;
+}
+
+/** What BYOK preview needs beyond the voices-CRUD client: the TTS REST call
+ *  itself (injectable so tests don't need a network fake, defaulting to the
+ *  real `synthesizeOnce`) and the credential to synthesize with — the SAME
+ *  project key/region `SonioxVoicesClient` above was constructed with, since
+ *  a preview is just another call against that project. All optional so the
+ *  parameter itself can default and existing callers keep compiling; a
+ *  caller that wants a WORKING preview must supply the real apiKey/region. */
+export interface ByokTtsDeps {
+  synthesize?: typeof synthesizeOnce;
+  apiKey?: string;
+  region?: SonioxRegion;
 }
 
 /** BYOK: SonioxVoicesClient already satisfies the interface; this only names
- *  the fact and pins `canPreview`. */
-export function byokVoiceSource(client: SonioxVoicesClient): VoiceLibrarySource {
+ *  the fact and pins `canPreview`. `ttsDeps` carries what `preview` needs —
+ *  see `ByokTtsDeps`. */
+export function byokVoiceSource(client: SonioxVoicesClient, ttsDeps: ByokTtsDeps = {}): VoiceLibrarySource {
+  const { synthesize = synthesizeOnce, apiKey = '', region = DEFAULT_SONIOX_REGION } = ttsDeps;
   return {
     list: () => client.list(),
     create: (name, clip, fileName) => client.create(name, clip, fileName),
     delete: (id) => client.delete(id),
     waitUntilReady: (id) => client.waitUntilReady(id),
     canPreview: true,
+    preview: ({ id, language, text, speed, signal }) =>
+      synthesize({ apiKey, region, voice: id, language, text, speed, signal }),
+    // A different region is a different Soniox project — its cloned-voice
+    // UUIDs are not the same namespace, so cached audio must not cross.
+    cacheNamespace: `soniox:${region}`,
   };
 }
 

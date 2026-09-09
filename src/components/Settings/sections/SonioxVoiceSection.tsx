@@ -27,7 +27,10 @@
  * Previewing (auditioning) a voice is a separate capability from the
  * create/delete affordances above: it needs a Soniox key to synthesize a
  * sample, which a managed account's source does not have, so it is gated on
- * `source.canPreview` rather than on `source` merely being non-null.
+ * `source.preview` existing rather than on `source` merely being non-null —
+ * the actual synthesis happens behind that seam (`voiceLibrarySource.ts`),
+ * not here; this component only clamps speed, resolves the sample sentence,
+ * and maps a rejection to the capture-error banner.
  */
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,9 +41,8 @@ import {
   encodeWavPcm16,
   type SonioxVoice,
 } from '../../../services/clients/SonioxVoicesClient';
-import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
-import { asSonioxRegion } from '../../../lib/soniox/regions';
-import { previewSampleFor } from '../../../lib/tts/previewSample';
+import { resolvePreviewSample } from '../../../lib/tts/previewSample';
+import { previewCacheKey, getCachedPreview, setCachedPreview, clearPreviewCache } from '../../../lib/tts/previewCache';
 import { clampNumber } from '../../../services/providers/SonioxProviderConfig';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 import { SONIOX_VOICE_ROSTER } from '../../../lib/soniox/sonioxVoiceRoster';
@@ -53,17 +55,18 @@ import type { VoiceLibrarySource } from './voiceLibrarySource';
 
 export interface SonioxVoiceSectionProps {
   /** `targetLanguage` and `ttsSpeed` drive the preview audition so it matches
-   *  what the session would actually speak. `apiKey` is BYOK-only and is
-   *  empty for managed accounts — the preview path is gated on
-   *  `source.canPreview`, not on this field. */
+   *  what the session would actually speak. `apiKey`/`region` are NOT read
+   *  by this component: preview synthesizes through `source.preview`, which
+   *  already carries the credential it was constructed with (see
+   *  `byokVoiceSource` in `voiceLibrarySource.ts`) — the preview path is
+   *  gated on `source.preview` existing, not on either field. Both fields
+   *  stay in the shape only because callers pass the full Soniox settings
+   *  slice here. */
   settings: {
     voice: string;
     apiKey: string;
     targetLanguage: string;
     ttsSpeed: number;
-    /** Which Soniox deployment `apiKey` belongs to, so the preview is
-     *  synthesized on the host that key authenticates against. Optional so the
-     *  existing tests' fixtures keep compiling; absent reads as US. */
     region?: string;
   };
   onUpdate: (patch: { voice: string }) => void;
@@ -334,34 +337,45 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // Synthesized samples are effectively deterministic for a fixed text, so a
   // repeat listen carries no new information but would spend the user's tokens
   // again. Keyed by voice + language + speed so changing either re-synthesizes.
-  const previewCacheRef = useRef(new Map<string, { audio: Float32Array; sampleRate: number }>());
-  // A changed source means a (possibly) different voice project: audio cached
-  // against the old project's UUIDs must not replay under the new key.
-  useEffect(() => { previewCacheRef.current.clear(); }, [source]);
+  // The cache itself now lives outside the component (src/lib/tts/previewCache.ts)
+  // so it survives a panel close/reopen; this effect still clears it whenever
+  // the source changes, since audio cached against the OLD project's UUIDs
+  // must not replay under a new one.
+  useEffect(() => { clearPreviewCache(); }, [source]);
 
   const handlePreview = useCallback(async (
     id: string,
     signal?: AbortSignal
   ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
-    if (!source?.canPreview) return null;
     // Pinned for the post-await staleness check below — same guard the
-    // list/create paths use via sourceRef.
+    // list/create paths use via sourceRef. Narrowed via THIS reference (not
+    // `source` directly) so the `.preview` guard below narrows the exact
+    // expression `preview()` is called through further down — narrowing an
+    // optional method through one variable does not carry over to a copy of
+    // it, since it tracks the access path, not the object's type.
     const requestSource = source;
-    const sample = previewSampleFor(settings.targetLanguage);
+    // Narrows `requestSource` so `.preview` below is known to exist.
+    // Guarding on `canPreview` instead would not narrow the type — see
+    // voiceLibrarySource.ts.
+    if (!requestSource?.preview) return null;
+    // `null`: a cloned Soniox voice is documented any-voice-any-language, so
+    // the language rule collapses to the previous previewSampleFor behaviour.
+    const sample = resolvePreviewSample(settings.targetLanguage, null);
+    // Cannot be null for a null `speaks` predicate (see resolvePreviewSample's
+    // docstring), but narrowed here rather than asserted.
+    if (!sample) return null;
     // Same choke point the session path uses (SonioxProviderConfig.
     // buildSessionConfig): the slider already constrains this in practice, so
     // clamping here is defensive, but the two paths reading the same setting
     // should agree on its bounds rather than one trusting the raw value.
     const speed = clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0);
-    const cacheKey = `${id}|${sample.language}|${speed}`;
+    const cacheKey = previewCacheKey(requestSource.cacheNamespace ?? '', id, sample.language, speed);
     setCaptureError(null);
-    const cached = previewCacheRef.current.get(cacheKey);
+    const cached = getCachedPreview(cacheKey);
     if (cached) return cached;
     try {
-      const result = await synthesizeOnce({
-        apiKey: settings.apiKey,
-        region: asSonioxRegion(settings.region),
-        voice: id,
+      const result = await requestSource.preview({
+        id,
         language: sample.language,
         text: sample.text,
         speed,
@@ -374,7 +388,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       // Discard instead; nothing was cancelled, so the user simply hears
       // nothing and can click again.
       if (sourceRef.current !== requestSource) return null;
-      previewCacheRef.current.set(cacheKey, result);
+      setCachedPreview(cacheKey, result);
       return result;
     } catch (e) {
       // A user-initiated cancel (switching rows, closing the panel) is not a
@@ -383,7 +397,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       setCaptureError(mapTtsError(e).message);
       return null;
     }
-  }, [source, settings.apiKey, settings.targetLanguage, settings.ttsSpeed, t]);
+  }, [source, settings.targetLanguage, settings.ttsSpeed, t]);
 
   // Latest selection, read at auto-select time: the ready-wait below runs for
   // up to a minute in the background, and a choice the user made meanwhile
@@ -732,7 +746,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         onImport={canCreate ? onImport : undefined}
         onRecord={canCreate ? onRecord : undefined}
         onDelete={onDelete}
-        onPreview={source?.canPreview ? handlePreview : undefined}
+        onPreview={source?.preview ? handlePreview : undefined}
         onRefresh={source ? () => void refresh() : undefined}
         refreshing={listState === 'loading'}
         // Footnote, not a standalone setting: it describes controls that live
@@ -747,7 +761,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
                 'settings.sonioxManagedVoiceReplaceHint',
                 'Delete this voice before recording a new one — recording again on its own keeps the voice you already have.'
               )
-            : source?.canPreview
+            : source?.preview
               ? t(
                   'settings.sonioxVoicePreviewCostHint',
                   'Previewing a voice synthesizes a short clip using your own Soniox quota.'
