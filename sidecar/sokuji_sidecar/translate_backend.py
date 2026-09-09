@@ -147,20 +147,34 @@ def _hunyuan_prompt(tgt: str) -> str:
             "output the translated result without any additional explanation: ")
 
 
-# Full English language name -> BCP-47 code for TranslateGemma's chat-template
-# source_lang_code/target_lang_code fields. The engine passes full names; unknown
-# names (or values that are already codes) pass through unchanged.
-_GEMMA_LANG_CODE = {
-    "English": "en", "Chinese": "zh", "Japanese": "ja", "Korean": "ko",
-    "French": "fr", "German": "de", "Spanish": "es", "Portuguese": "pt",
-    "Italian": "it", "Russian": "ru", "Arabic": "ar", "Hindi": "hi",
-    "Dutch": "nl", "Vietnamese": "vi", "Thai": "th", "Indonesian": "id",
-    "Turkish": "tr", "Polish": "pl", "Ukrainian": "uk", "Greek": "el",
+# BCP-47 code -> English language name for TranslateGemma's prompt. Its upstream
+# chat template resolves the code this way and renders "Name (code)"; we render that
+# prompt by hand (the template crashes the legacy chat-template formatter), so the
+# table has to live here too. Names are verbatim from the template's own 581-entry
+# table, restricted to the codes the picker can send (LANGUAGE_OPTIONS in
+# src/utils/languages.ts — all 54 of them).
+#
+# The engine passes CODES, not names: localNative.sourceLanguage is 'ja'/'en' and
+# reaches the strategy untouched. The map that stood here until #525 was keyed on
+# English names, so it never hit once and every prompt read "en (en) to fr (fr)".
+_GEMMA_LANG_NAME = {
+    "af": "Afrikaans", "ar": "Arabic", "bg": "Bulgarian", "bn": "Bengali", "ca": "Catalan",
+    "cs": "Czech", "da": "Danish", "de": "German", "el": "Greek", "en": "English",
+    "es": "Spanish", "et": "Estonian", "fa": "Persian", "fi": "Finnish", "fr": "French",
+    "gu": "Gujarati", "he": "Hebrew", "hi": "Hindi", "hr": "Croatian", "hu": "Hungarian",
+    "id": "Indonesian", "is": "Icelandic", "it": "Italian", "ja": "Japanese",
+    "kn": "Kannada", "ko": "Korean", "lt": "Lithuanian", "lv": "Latvian", "ml": "Malayalam",
+    "mr": "Marathi", "mt": "Maltese", "nl": "Dutch", "no": "Norwegian", "pa": "Punjabi",
+    "pl": "Polish", "pt": "Portuguese", "ro": "Romanian", "ru": "Russian", "sk": "Slovak",
+    "sl": "Slovenian", "sr": "Serbian", "sv": "Swedish", "sw": "Swahili", "ta": "Tamil",
+    "te": "Telugu", "th": "Thai", "tl": "Tagalog", "tr": "Turkish", "uk": "Ukrainian",
+    "ur": "Urdu", "vi": "Vietnamese", "xh": "Xhosa", "zh": "Chinese", "zu": "Zulu",
 }
 
 
-def _gemma_code(name: str) -> str:
-    return _GEMMA_LANG_CODE.get(name, name)
+def _gemma_name(code: str) -> str:
+    """'en' -> 'English'. An unknown code passes through unchanged."""
+    return _GEMMA_LANG_NAME.get(code, code)
 
 
 class QwenStrategy:
@@ -190,25 +204,31 @@ class GemmaStrategy:
     max_tokens = 256
 
     def build(self, text, system_prompt, src, tgt, wrap, config):
-        return "complete", self._render_prompt(text, src, tgt, wrap), None
+        # `wrap` is deliberately NOT forwarded (#527). This strategy drops
+        # system_prompt because the upstream template refuses one — and that
+        # prompt (buildDefaultLocalPrompt) is the only text that ever told a model
+        # what <transcript> tags are. Wrapping without it leaves the model to treat
+        # them as content: on short input it translates the tag name into the
+        # target language, which _clean_output's literal regex cannot strip.
+        # Upstream never wraps either.
+        return "complete", self._render_prompt(text, src, tgt), None
 
-    def _render_prompt(self, text, src, tgt, wrap):
-        body = f"<transcript>{text}</transcript>" if wrap else text
-        s_name, s_code = src or "the source language", _gemma_code(src)
-        t_name, t_code = tgt or "the target language", _gemma_code(tgt)
-        # A falsy src/tgt has no real code — _gemma_code(name) on a falsy name
-        # just passes that same falsy value straight through the dict .get()
-        # fallback — so appending " (code)" unconditionally rendered a leaked
-        # empty parenthetical: "the source language ()". Only append it when
-        # there's both a real language name AND a real code for it.
-        s_label = f"{s_name} ({s_code})" if src and s_code else s_name
-        t_label = f"{t_name} ({t_code})" if tgt and t_code else t_name
+    def _render_prompt(self, text, src, tgt):
+        s_name = _gemma_name(src) if src else "the source language"
+        t_name = _gemma_name(tgt) if tgt else "the target language"
+        # Upstream renders "Name (code)". A falsy side has no code at all, and an
+        # unknown code resolves to itself — appending " (code)" would then either
+        # leak an empty parenthetical ("the source language ()") or repeat the code
+        # ("xx (xx)"). Append it only when a real name was actually resolved.
+        s_label = f"{s_name} ({src})" if src and s_name != src else s_name
+        t_label = f"{t_name} ({tgt})" if tgt and t_name != tgt else t_name
         return (f"<start_of_turn>user\nYou are a professional {s_label} to {t_label} "
                 f"translator. Your goal is to accurately convey the meaning and nuances of the original "
                 f"{s_name} text while adhering to {t_name} grammar, vocabulary, and cultural sensitivities.\n"
                 f"Produce only the {t_name} translation, without any additional explanations or commentary. "
                 f"Please translate the following {s_name} text into {t_name}:\n\n\n"
-                f"{body}<end_of_turn>\n<start_of_turn>model\n")
+                # Upstream renders `content["text"] | trim`.
+                f"{text.strip()}<end_of_turn>\n<start_of_turn>model\n")
 
 
 STRATEGIES = {"qwen": QwenStrategy(), "hunyuan": HunyuanStrategy(), "gemma": GemmaStrategy()}
