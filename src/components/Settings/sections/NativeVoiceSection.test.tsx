@@ -17,6 +17,19 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import NativeVoiceSection, { validateVoiceClip } from './NativeVoiceSection';
 import { VoiceCaptureError, type NativeVoiceStore } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { VoiceImportError } from '../../../lib/local-inference/voiceStorage';
+import { createPreviewTts } from '../../../lib/local-inference/native/nativePreviewTts';
+import { clearPreviewCache } from '../../../lib/tts/previewCache';
+
+// The native preview synthesis path (Task 6) is exercised on its own
+// (nativePreviewTts.test.ts, at the method level against a fake
+// NativeTtsClient). Here it's a seam: NativeVoiceSection.handlePreview only
+// ever calls createPreviewTts() once and drives the returned handle, so
+// mocking the whole module is the established way to observe that without
+// standing up a fake sidecar connection (mirrors nativeModelStore's own
+// "thin wrappers... so the renderer can mock it in tests" precedent).
+vi.mock('../../../lib/local-inference/native/nativePreviewTts', () => ({
+  createPreviewTts: vi.fn(),
+}));
 
 const builtinVoices = [
   { name: 'Ava', language: 'en', curated: true, unstable: false, default: true },
@@ -47,7 +60,43 @@ const baseProps = {
   isSessionActive: false,
   onSelect: vi.fn(),
   onCustomChanged: vi.fn(),
+  ttsModelId: 'moss_tts_nano',
+  ttsLanguages: ['en'],
 };
+
+/** A clip store with one eligible custom voice ("MyClone", id 1) whose
+ *  resolveApply resolves a playable reference clip. */
+function storeWithClip(overrides: Partial<NativeVoiceStore> = {}): NativeVoiceStore {
+  return makeClipStore({
+    list: vi.fn().mockResolvedValue([{ id: 1, name: 'MyClone' }]),
+    resolveApply: vi.fn().mockResolvedValue({
+      kind: 'clip', audio: new Float32Array([0.5, 0.6]), sampleRate: 16000, transcript: 'hi',
+    }),
+    ...overrides,
+  });
+}
+
+/** Shared Web Audio stub — jsdom has no Web Audio API. Mirrors
+ *  VoiceLibrarySection.test.tsx's own stubWebAudio, plus a `playedAudio()`
+ *  accessor (not a shared helper anywhere in the codebase) so a test can
+ *  assert on the actual samples handed to copyToChannel — the only way to
+ *  tell "played the synthesis" apart from "played the clip" from outside. */
+function stubWebAudio() {
+  const mockSource: any = { connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null, buffer: null };
+  let copied: Float32Array | null = null;
+  const mockCtx: any = {
+    state: 'running',
+    resume: vi.fn().mockResolvedValue(undefined),
+    destination: {},
+    createBuffer: vi.fn(() => ({
+      copyToChannel: vi.fn((data: Float32Array) => { copied = new Float32Array(data); }),
+    })),
+    createBufferSource: vi.fn(() => mockSource),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  (window as any).AudioContext = function AudioContext() { return mockCtx; };
+  return { mockCtx, mockSource, playedAudio: () => copied };
+}
 
 describe('validateVoiceClip', () => {
   it('rejects too-short, too-long, and silent clips; accepts a valid one', () => {
@@ -61,11 +110,18 @@ describe('validateVoiceClip', () => {
 describe('NativeVoiceSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The preview cache (src/lib/tts/previewCache.ts) is a module-level
+    // singleton so a synthesized preview survives a panel close/reopen --
+    // several tests below preview the same (modelId, voice id, language,
+    // speed) tuple, so a stale entry from an earlier test would otherwise
+    // short-circuit the next one before it ever calls synthesize().
+    clearPreviewCache();
   });
 
   it('renders nothing when the model has neither built-in nor custom voices', () => {
     const { container } = render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'none' }}
-      builtinVoices={[]} store={null} selected="" targetLanguage="en" onSelect={() => {}} onCustomChanged={() => {}} />);
+      builtinVoices={[]} store={null} selected="" targetLanguage="en" onSelect={() => {}} onCustomChanged={() => {}}
+      ttsModelId="m" ttsLanguages={['en']} />);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -173,7 +229,7 @@ describe('NativeVoiceSection', () => {
     };
     render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip', transcriptRequired: true }}
       builtinVoices={[]} store={store as any} selected="" targetLanguage="en"
-      onSelect={() => {}} onCustomChanged={() => {}} />);
+      onSelect={() => {}} onCustomChanged={() => {}} ttsModelId="m" ttsLanguages={['en']} />);
     // 'WithText' appears twice in dropdown presentation (the <select> option AND
     // the "manage imported voices" row, same duplication as the 'MyVoice' case
     // above) — any match confirms it's present. 'NoText' must have zero matches.
@@ -186,7 +242,7 @@ describe('NativeVoiceSection', () => {
       const store = makeClipStore({ list: vi.fn().mockResolvedValue([]) });
       render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip' }}
         builtinVoices={[]} store={store} selected="" targetLanguage="en"
-        onSelect={() => {}} onCustomChanged={() => {}} />);
+        onSelect={() => {}} onCustomChanged={() => {}} ttsModelId="m" ttsLanguages={['en']} />);
       await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/needs a clip/i));
     });
 
@@ -194,7 +250,7 @@ describe('NativeVoiceSection', () => {
       const store = makeClipStore({ list: vi.fn().mockResolvedValue([{ id: 1, name: 'MyClone' }]) });
       render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip' }}
         builtinVoices={[]} store={store} selected="" targetLanguage="en"
-        onSelect={() => {}} onCustomChanged={() => {}} />);
+        onSelect={() => {}} onCustomChanged={() => {}} ttsModelId="m" ttsLanguages={['en']} />);
       // 'MyClone' appears twice in dropdown presentation (the <select> option
       // AND the "manage imported voices" row) — same duplication as the
       // transcriptRequired filter test above.
@@ -208,7 +264,7 @@ describe('NativeVoiceSection', () => {
       });
       render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip', transcriptRequired: true }}
         builtinVoices={[]} store={store} selected="" targetLanguage="en"
-        onSelect={() => {}} onCustomChanged={() => {}} />);
+        onSelect={() => {}} onCustomChanged={() => {}} ttsModelId="m" ttsLanguages={['en']} />);
       await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/needs a clip/i));
     });
 
@@ -217,6 +273,141 @@ describe('NativeVoiceSection', () => {
       render(<NativeVoiceSection {...baseProps} store={store} />);
       await screen.findByText('Ava');
       expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
+
+  describe('preview (Task 7 — synthesize with the cloned voice, falling back to the clip)', () => {
+    it('synthesizes with the custom voice rather than replaying the clip', async () => {
+      const { playedAudio } = stubWebAudio();
+      const synthesize = vi.fn().mockResolvedValue({ audio: new Float32Array([0.25]), sampleRate: 24000 });
+      vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close: vi.fn() });
+      const store = storeWithClip();
+
+      render(<NativeVoiceSection {...baseProps} store={store} />);
+      const btn = await screen.findByRole('button', { name: /play/i });
+      fireEvent.click(btn);
+
+      // The clip is still read -- it is the reference the clone is built from --
+      // but what plays is the SYNTHESIS, so the model must have been asked.
+      await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
+      expect(synthesize).toHaveBeenCalledWith({
+        modelId: 'moss_tts_nano',
+        language: 'en',
+        text: expect.any(String),
+        speed: expect.any(Number),
+        voice: { kind: 'clip', audio: new Float32Array([0.5, 0.6]), sampleRate: 16000, refText: 'hi' },
+      });
+      await waitFor(() => expect(playedAudio()).toEqual(new Float32Array([0.25])));
+    });
+
+    it('falls back to replaying the reference clip when synthesis fails', async () => {
+      // Deliberate, not a consolation prize: replaying answers "did I record
+      // clearly?", synthesis answers "does the clone sound like me". Keeping the
+      // old path as the failure mode costs nothing and loses nothing.
+      const { playedAudio } = stubWebAudio();
+      const synthesize = vi.fn().mockRejectedValue(new Error('synthesis exploded'));
+      vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close: vi.fn() });
+      const clipAudio = new Float32Array([0.7, 0.8]);
+      const store = storeWithClip({
+        resolveApply: vi.fn().mockResolvedValue({ kind: 'clip', audio: clipAudio, sampleRate: 16000, transcript: 'hi' }),
+      });
+
+      render(<NativeVoiceSection {...baseProps} store={store} />);
+      const btn = await screen.findByRole('button', { name: /play/i });
+      fireEvent.click(btn);
+
+      await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(playedAudio()).toEqual(clipAudio));
+    });
+
+    it('disables preview with a reason while a session is active, and never dials out', async () => {
+      // The sidecar's TTS engine is a process singleton guarded by `_owner_conn`;
+      // a panel-issued tts_generate during a session returns _not_owner_error. So
+      // refuse up front instead of failing slowly.
+      const synthesize = vi.fn();
+      vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close: vi.fn() });
+      const store = storeWithClip();
+
+      render(<NativeVoiceSection {...baseProps} store={store} isSessionActive />);
+      const btn = await screen.findByRole('button', { name: /stop the session/i });
+      expect(btn).toBeDisabled();
+
+      fireEvent.click(btn);
+      expect(synthesize).not.toHaveBeenCalled();
+      expect(store.resolveApply).not.toHaveBeenCalled();
+    });
+
+    it('disables preview with a reason when no language the family speaks has a sample', async () => {
+      // `ttsLanguages` names only a code the 28-entry table has no sentence for,
+      // so `resolvePreviewSample` returns null and there is nothing to synthesize.
+      const store = storeWithClip();
+      render(<NativeVoiceSection {...baseProps} store={store} ttsLanguages={['xx']} />);
+      const btn = await screen.findByRole('button', { name: /no sample sentence/i });
+      expect(btn).toBeDisabled();
+    });
+
+    it('closes the preview client when the section unmounts', async () => {
+      // A resident TTS model is GB-scale; the memory goes back when the user
+      // leaves the panel.
+      stubWebAudio();
+      const synthesize = vi.fn().mockResolvedValue({ audio: new Float32Array([0.25]), sampleRate: 24000 });
+      const close = vi.fn();
+      vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close });
+      const store = storeWithClip();
+
+      const { unmount } = render(<NativeVoiceSection {...baseProps} store={store} />);
+      const btn = await screen.findByRole('button', { name: /play/i });
+      fireEvent.click(btn);
+      await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
+
+      unmount();
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not start a second overlapping synthesize while one is already in flight for another voice', async () => {
+      // Carried from Task 6's review: nativePreviewTts keeps its client as
+      // unguarded closure state, trusting the CALLER to prevent overlap.
+      // VoiceLibrarySection's per-row `disabled={isLoading}` only blocks a
+      // second click on the SAME row -- clicking a DIFFERENT custom voice's
+      // Play button while the first's synthesis is still pending is a real
+      // path to two concurrent synthesize() calls on the same client, so
+      // this component itself must refuse the second one.
+      const { playedAudio } = stubWebAudio();
+      let resolveFirst!: (v: { audio: Float32Array; sampleRate: number }) => void;
+      const firstSynthesis = new Promise<{ audio: Float32Array; sampleRate: number }>((resolve) => { resolveFirst = resolve; });
+      const synthesize = vi.fn()
+        .mockImplementationOnce(() => firstSynthesis)
+        .mockResolvedValue({ audio: new Float32Array([0.9]), sampleRate: 24000 });
+      vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close: vi.fn() });
+
+      const store = makeClipStore({
+        list: vi.fn().mockResolvedValue([{ id: 1, name: 'Voice1' }, { id: 2, name: 'Voice2' }]),
+        resolveApply: vi.fn().mockImplementation((id: number) => Promise.resolve({
+          kind: 'clip', audio: new Float32Array([id === 1 ? 0.1 : 0.2]), sampleRate: 16000, transcript: 'hi',
+        })),
+      });
+
+      render(<NativeVoiceSection {...baseProps} store={store} />);
+      const buttons = await screen.findAllByRole('button', { name: /play/i });
+      expect(buttons).toHaveLength(2);
+
+      fireEvent.click(buttons[0]);
+      await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1)); // first synthesize is now pending
+
+      fireEvent.click(buttons[1]);
+      await waitFor(() => expect(store.resolveApply).toHaveBeenCalledWith(2));
+      // The second request must NOT have started a second, concurrent
+      // synthesize() call against the still-busy shared client -- it falls
+      // back to replaying voice 2's own clip instead.
+      expect(synthesize).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(playedAudio()).toEqual(new Float32Array([0.2])));
+
+      // Once the first settles, the guard clears -- a later preview can use
+      // the shared client again rather than being permanently locked out.
+      resolveFirst({ audio: new Float32Array([0.25]), sampleRate: 24000 });
+      fireEvent.click(buttons[1]); // stop voice 2's clip playback
+      fireEvent.click(buttons[0]); // a fresh request for voice 1
+      await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(2));
     });
   });
 });
