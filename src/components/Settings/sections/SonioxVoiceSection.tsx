@@ -40,7 +40,7 @@ import {
 } from '../../../services/clients/SonioxVoicesClient';
 import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
 import { asSonioxRegion } from '../../../lib/soniox/regions';
-import { previewSampleFor } from './sonioxPreviewSample';
+import { previewSampleFor } from '../../../lib/tts/previewSample';
 import { clampNumber } from '../../../services/providers/SonioxProviderConfig';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 import { SONIOX_VOICE_ROSTER } from '../../../lib/soniox/sonioxVoiceRoster';
