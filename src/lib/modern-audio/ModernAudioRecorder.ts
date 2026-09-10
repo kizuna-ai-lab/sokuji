@@ -39,9 +39,16 @@ interface AudioDataWithMeta {
  * - Performance mode configuration
  */
 export class ModernAudioRecorder extends BaseAudioRecorder {
-  // MediaRecorder
+  /**
+   * Kept for its lifecycle state, not for its output.
+   *
+   * Every method here gates on it ("Session ended: please call .begin() first")
+   * and pause() drives it, but the encoded chunks it produces have no consumer:
+   * all five `recorder.end()` call sites in ModernBrowserAudioService discard
+   * the returned blob. They used to be accumulated for the whole session -- see
+   * setupMediaRecorderEvents, and #531.
+   */
   private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
 
   // Frequency analysis
   private analyser: AnalyserNode | null = null;
@@ -390,8 +397,6 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
         passthroughVolume: this._passthroughVolume
       });
     };
-    this.audioChunks = [];
-
     console.info(`${this.getLogPrefix()} Recording started`);
 
     if (this._isFirstRecording && this.useAudioWorklet) {
@@ -450,15 +455,6 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
       await this.pause();
     }
 
-    let savedAudio: { blob: Blob; url: string } | null = null;
-    try {
-      if (this.audioChunks.length > 0) {
-        savedAudio = await this.save(true);
-      }
-    } catch {
-      savedAudio = { blob: new Blob([], { type: 'audio/webm' }), url: '' };
-    }
-
     // Cleanup RNNoise node
     if (this.rnnoiseNode) {
       this.rnnoiseNode.disconnect();
@@ -481,7 +477,9 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
 
     this.mediaRecorder = null;
 
-    return savedAudio || { blob: new Blob([], { type: 'audio/webm' }), url: '' };
+    // Always empty: nothing accumulates the session's audio any more, and no
+    // caller reads this. The shape is kept so the five call sites don't churn.
+    return { blob: new Blob([], { type: 'audio/webm' }), url: '' };
   }
 
   /**
@@ -501,43 +499,22 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   private setupMediaRecorderEvents(): void {
     if (!this.mediaRecorder) return;
 
-    this.mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        this.audioChunks.push(event.data);
-      }
-    };
+    // Handled and dropped. This used to push every chunk onto a session-long
+    // array, which nothing ever read: a 40-minute session left 19,937 Blob
+    // objects alive (~86MB, in native memory rather than the JS heap, which is
+    // why it showed up as renderer private bytes and not as heap growth), and
+    // they outlived the session because only the next record() cleared the
+    // array. The handler stays so the chunk is released here, explicitly,
+    // rather than looking like an oversight. See #531.
+    this.mediaRecorder.ondataavailable = () => {};
     this.mediaRecorder.onstart = () => console.debug(`${this.getLogPrefix()} MediaRecorder started`);
     this.mediaRecorder.onstop = () => console.debug(`${this.getLogPrefix()} MediaRecorder stopped`);
     this.mediaRecorder.onerror = (event) => console.error(`${this.getLogPrefix()} MediaRecorder error:`, event);
   }
 
-  async clear(): Promise<boolean> {
-    if (!this.mediaRecorder) {
-      throw new Error('Session ended: please call .begin() first');
-    }
-    this.audioChunks = [];
-    return true;
-  }
-
   async read(): Promise<{ meanValues: Float32Array; channels: Float32Array[] }> {
     console.warn(`${this.getLogPrefix()} Read operation not supported`);
     return { meanValues: new Float32Array(0), channels: [] };
-  }
-
-  async save(force = false): Promise<{ blob: Blob; url: string }> {
-    if (!this.mediaRecorder) {
-      throw new Error('Session ended: please call .begin() first');
-    }
-    if (!force && this.recording) {
-      throw new Error('Currently recording: please call .pause() first');
-    }
-    if (this.audioChunks.length === 0) {
-      throw new Error('No audio data to save');
-    }
-
-    const mimeType = this.getSupportedMimeType();
-    const blob = new Blob(this.audioChunks, { type: mimeType });
-    return { blob, url: URL.createObjectURL(blob) };
   }
 
   // ==================== Frequency Analysis (Unique) ====================
