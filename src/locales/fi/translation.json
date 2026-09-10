@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini tuottaa toisen äänelle äänivastauksia, jotka hylätään, mikä lisää token-kulutusta.",
     "help": "Ohje",
     "helpEmailTooltip": "Ilmoita virheistä tai pyydä apua",
+    "diagnosticLogs": "Diagnostiikkalokit",
+    "diagnosticLogsTooltip": "Tallentaa sovelluksen toiminnan, jotta voit liittää sen virheraporttiin. Oletuksena pois päältä. Kun asetus on päällä, otsikkorivillä näkyy ”Lokit”-painike, ja asetus pysyy päällä uudelleenkäynnistyksen jälkeen.",
     "helpDiscussions": "Keskustelut",
     "helpDiscussionsTooltip": "Ominaisuuspyynnöt, palaute ja yhteisökeskustelut",
     "auto": "Auto",

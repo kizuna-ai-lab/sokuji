@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini generuje dla dźwięku rozmówcy odpowiedzi dźwiękowe, które są odrzucane, co powoduje dodatkowe zużycie tokenów.",
     "help": "Pomoc",
     "helpEmailTooltip": "Zgłoś błędy lub uzyskaj pomoc",
+    "diagnosticLogs": "Dzienniki diagnostyczne",
+    "diagnosticLogsTooltip": "Rejestruje działanie aplikacji, aby można było dołączyć dziennik do zgłoszenia błędu. Domyślnie wyłączone. Po włączeniu na pasku tytułu pojawia się przycisk „Logi”, a ustawienie pozostaje włączone po ponownym uruchomieniu.",
     "helpDiscussions": "Dyskusje",
     "helpDiscussionsTooltip": "Propozycje funkcji, opinie i dyskusje społeczności",
     "auto": "Auto",

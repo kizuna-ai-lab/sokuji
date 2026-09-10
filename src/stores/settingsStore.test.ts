@@ -3,6 +3,7 @@ import { renderHook } from '@testing-library/react';
 import { Provider } from '../types/Provider';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { directionKey } from '../lib/local-inference/selection/types';
+import useLogStore from './logStore';
 
 // Force platform detection so environment-gated providers (notably Volcengine
 // AST 2.0, which requires Electron/Extension) are present in the descriptor
@@ -364,6 +365,71 @@ describe('settingsStore', () => {
       await useSettingsStore.getState().setKeepReplayAudio(true);
       // State must roll back to the previous value.
       expect(useSettingsStore.getState().keepReplayAudio).toBe(false);
+    });
+  });
+
+  // Diagnostic logs are opt-in (Help). The setting is the switch the log store
+  // obeys: persisted, off by default, and applied to the log store both when
+  // it changes and when the settings load at startup.
+  describe('diagnosticLogs', () => {
+    afterEach(() => { useLogStore.getState().setEnabled(true); });
+
+    it('defaults to off and switches the log store off when settings load', async () => {
+      useSettingsStore.setState({ diagnosticLogs: true });
+      useLogStore.getState().setEnabled(true);
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+
+      await useSettingsStore.getState().loadSettings();
+
+      expect(useSettingsStore.getState().diagnosticLogs).toBe(false);
+      expect(useLogStore.getState().enabled).toBe(false);
+    });
+
+    it('keeps the log store on when the stored switch is on', async () => {
+      useLogStore.getState().setEnabled(true);
+      mockGetSetting.mockImplementation(async (key: string, fallback: unknown) =>
+        key === 'settings.common.diagnosticLogs' ? true : fallback);
+
+      await useSettingsStore.getState().loadSettings();
+
+      expect(useSettingsStore.getState().diagnosticLogs).toBe(true);
+      expect(useLogStore.getState().enabled).toBe(true);
+    });
+
+    it('setDiagnosticLogs persists and drives the log store', async () => {
+      useLogStore.getState().setEnabled(false);
+      mockSetSetting.mockResolvedValue(undefined);
+
+      await useSettingsStore.getState().setDiagnosticLogs(true);
+      expect(useSettingsStore.getState().diagnosticLogs).toBe(true);
+      expect(mockSetSetting).toHaveBeenCalledWith('settings.common.diagnosticLogs', true);
+      expect(useLogStore.getState().enabled).toBe(true);
+
+      await useSettingsStore.getState().setDiagnosticLogs(false);
+      expect(useLogStore.getState().enabled).toBe(false);
+    });
+
+    it('rolls back the setting and the log store when persistence fails', async () => {
+      useSettingsStore.setState({ diagnosticLogs: false });
+      useLogStore.getState().setEnabled(false);
+      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+
+      await useSettingsStore.getState().setDiagnosticLogs(true);
+
+      expect(useSettingsStore.getState().diagnosticLogs).toBe(false);
+      expect(useLogStore.getState().enabled).toBe(false);
+    });
+
+    // A failed load leaves the app on defaults, and the default is off — the
+    // log store must not keep recording behind a button nobody can see.
+    it('switches the log store off when settings fail to load', async () => {
+      useLogStore.getState().setEnabled(true);
+      mockGetSetting.mockRejectedValue(new Error('storage unavailable'));
+
+      await useSettingsStore.getState().loadSettings();
+
+      expect(useLogStore.getState().enabled).toBe(false);
+      mockGetSetting.mockReset();
     });
   });
 

@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini는 상대방 오디오에 대해 폐기되는 오디오 응답을 생성하므로 추가 토큰이 사용됩니다.",
     "help": "도움말",
     "helpEmailTooltip": "버그 신고 또는 도움 받기",
+    "diagnosticLogs": "진단 로그",
+    "diagnosticLogsTooltip": "앱의 동작을 기록하여 버그 신고에 첨부할 수 있게 합니다. 기본값은 꺼짐입니다. 켜면 제목 표시줄에 ‘로그’ 버튼이 나타나며, 다시 시작한 후에도 켜진 상태로 유지됩니다.",
     "helpDiscussions": "토론",
     "helpDiscussionsTooltip": "기능 요청, 피드백 및 커뮤니티 토론",
     "auto": "자동",

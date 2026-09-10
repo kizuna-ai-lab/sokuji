@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini génère pour l'audio de l'autre des réponses audio qui sont ignorées, entraînant une consommation de jetons supplémentaire.",
     "help": "Aide",
     "helpEmailTooltip": "Signaler un bug ou obtenir de l'aide",
+    "diagnosticLogs": "Journaux de diagnostic",
+    "diagnosticLogsTooltip": "Enregistre l’activité de l’application pour que vous puissiez la joindre à un rapport de bug. Désactivé par défaut. Une fois activé, un bouton « Journaux » apparaît dans la barre de titre, et le réglage reste actif après un redémarrage.",
     "helpDiscussions": "Discussions",
     "helpDiscussionsTooltip": "Demandes de fonctionnalités, retours et discussions communautaires",
     "auto": "Auto",

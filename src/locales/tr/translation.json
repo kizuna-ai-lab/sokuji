@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini, karşı tarafın sesi için atılan ses yanıtları üretir ve bu da ek token kullanımına yol açar.",
     "help": "Yardım",
     "helpEmailTooltip": "Hataları bildirin veya yardım alın",
+    "diagnosticLogs": "Tanılama günlükleri",
+    "diagnosticLogsTooltip": "Uygulamanın ne yaptığını kaydeder, böylece bir hata raporuna ekleyebilirsiniz. Varsayılan olarak kapalıdır. Açıkken başlık çubuğunda “Günlükler” düğmesi görünür ve ayar yeniden başlatmadan sonra da açık kalır.",
     "helpDiscussions": "Tartışmalar",
     "helpDiscussionsTooltip": "Özellik istekleri, geri bildirim ve topluluk tartışmaları",
     "auto": "Otomatik",

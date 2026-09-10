@@ -205,3 +205,55 @@ describe('logStore — bounded memory', () => {
     for (let i = 1; i < ids.length; i++) expect(ids[i]).toBeGreaterThan(ids[i - 1]);
   });
 });
+
+// Diagnostic logs are opt-in (Help → diagnostic logs). While they are off the
+// store records nothing — not the entry, and not the sanitize pass that would
+// build it; a realtime session sends ~20 events a second.
+describe('logStore — diagnostic logs switch', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+  });
+  afterEach(() => {
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+    vi.useRealTimers();
+  });
+
+  it('records nothing while switched off', () => {
+    useLogStore.getState().setEnabled(false);
+    let touched = 0;
+    const event = { type: 'response.created', get data() { touched++; return {}; } } as never;
+    useLogStore.getState().addRealtimeEvent(event, 'server', 'response.created', 'speaker');
+    useLogStore.getState().addLog('settings failed to load', 'error');
+    vi.advanceTimersByTime(1000);
+
+    expect(useLogStore.getState().allLogs).toHaveLength(0);
+    // Not even sanitised: nothing read the event's fields.
+    expect(touched).toBe(0);
+  });
+
+  it('drops what it holds when switched off', () => {
+    useLogStore.getState().addLog('flushed', 'error');
+    vi.advanceTimersByTime(1000);
+    useLogStore.getState().addLog('still pending', 'error');
+    expect(useLogStore.getState().allLogs).toHaveLength(2);
+
+    useLogStore.getState().setEnabled(false);
+
+    expect(useLogStore.getState().allLogs).toHaveLength(0);
+    expect(useLogStore.getState().pendingLogs).toHaveLength(0);
+    vi.advanceTimersByTime(1000);
+    expect(useLogStore.getState().logs).toHaveLength(0);
+  });
+
+  it('records again once switched back on', () => {
+    useLogStore.getState().setEnabled(false);
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().addLog('after', 'error');
+    vi.advanceTimersByTime(1000);
+
+    expect(useLogStore.getState().allLogs.map(l => l.message)).toEqual(['after']);
+  });
+});

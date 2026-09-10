@@ -1,5 +1,5 @@
-// A logs panel opened in advanced mode must not survive a switch to basic:
-// the button that closes it is gone, stranding the panel open.
+// A logs panel must not stay open once diagnostic logs are switched off: the
+// button that closes it is gone, and the store it shows has just been emptied.
 //
 // The hook decides only WHEN to close. Closing itself — the state, the
 // persisted flag, and the panel-view analytics — belongs to the caller, which
@@ -9,42 +9,40 @@
 // to them.
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useCloseLogsOutsideAdvanced } from './useCloseLogsOutsideAdvanced';
+import { useCloseLogsWhenDisabled } from './useCloseLogsWhenDisabled';
 
-describe('useCloseLogsOutsideAdvanced', () => {
-  it('asks the caller to close when the mode becomes basic', () => {
+describe('useCloseLogsWhenDisabled', () => {
+  it('asks the caller to close when diagnostic logs are switched off', () => {
     const onClose = vi.fn();
     // Driven through the actual transition, not just asserted on the first
-    // render: the hook exists for the moment the mode CHANGES, and a
+    // render: the hook exists for the moment the switch CHANGES, and a
     // mount-only assertion would still pass if the effect never re-ran.
     const { rerender } = renderHook(
-      ({ mode }) => useCloseLogsOutsideAdvanced(mode, true, onClose),
-      { initialProps: { mode: 'advanced' } },
+      ({ enabled }) => useCloseLogsWhenDisabled(enabled, true, onClose),
+      { initialProps: { enabled: true } },
     );
     expect(onClose).not.toHaveBeenCalled();
 
-    rerender({ mode: 'basic' });
+    rerender({ enabled: false });
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('closes a panel restored from a previous session while already in basic mode', () => {
+  it('closes a panel restored from a previous session while logs are off', () => {
     const onClose = vi.fn();
-    renderHook(({ mode }) => useCloseLogsOutsideAdvanced(mode, true, onClose), {
-      initialProps: { mode: 'basic' as const },
-    });
+    renderHook(() => useCloseLogsWhenDisabled(false, true, onClose));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('leaves the panel alone in advanced mode', () => {
+  it('leaves the panel alone while logs are on, in either UI mode', () => {
     const onClose = vi.fn();
-    renderHook(() => useCloseLogsOutsideAdvanced('advanced', true, onClose));
+    renderHook(() => useCloseLogsWhenDisabled(true, true, onClose));
     expect(onClose).not.toHaveBeenCalled();
   });
 
   it('does nothing when the panel is already closed', () => {
     const onClose = vi.fn();
-    renderHook(() => useCloseLogsOutsideAdvanced('basic', false, onClose));
+    renderHook(() => useCloseLogsWhenDisabled(false, false, onClose));
     expect(onClose).not.toHaveBeenCalled();
   });
 });

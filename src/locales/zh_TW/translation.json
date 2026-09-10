@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini 會為對方音訊產生並捨棄音訊回應，因此會增加權杖用量。",
     "help": "說明",
     "helpEmailTooltip": "回報問題或取得協助",
+    "diagnosticLogs": "診斷日誌",
+    "diagnosticLogsTooltip": "記錄應用程式的執行情況，方便附在問題回報中。預設關閉；開啟後標題列會出現「日誌」按鈕，重新啟動後仍保持開啟。",
     "helpDiscussions": "討論區",
     "helpDiscussionsTooltip": "功能建議、意見回饋與社群討論",
     "auto": "自動",

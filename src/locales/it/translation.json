@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini genera per l'audio dell'altro risposte audio che vengono scartate, causando un consumo aggiuntivo di token.",
     "help": "Aiuto",
     "helpEmailTooltip": "Segnala bug o ottieni assistenza",
+    "diagnosticLogs": "Log di diagnostica",
+    "diagnosticLogsTooltip": "Registra ciò che fa l’app, così puoi allegarlo a una segnalazione di bug. Disattivato per impostazione predefinita. Quando è attivo, nella barra del titolo compare il pulsante «Log», e l’impostazione resta attiva dopo il riavvio.",
     "helpDiscussions": "Discussioni",
     "helpDiscussionsTooltip": "Richieste di funzionalità, feedback e discussioni della community",
     "auto": "Auto",

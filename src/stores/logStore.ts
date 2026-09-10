@@ -196,6 +196,12 @@ interface LogStore {
   addRealtimeEvent: (event: EventData, source: RealtimeEventSource, eventType: string, clientId?: ClientId) => void;
   clearLogs: () => void;
   flushPendingLogs: () => void;
+  /**
+   * Whether anything is recorded. Diagnostic logs are opt-in (Help), so this
+   * is false for most users; see `setEnabled`.
+   */
+  enabled: boolean;
+  setEnabled: (enabled: boolean) => void;
 }
 
 // Batch update configuration - increased for better performance
@@ -254,6 +260,14 @@ const useLogStore = create<LogStore>(
     pendingLogs: [],
     allLogs: [], // Initialize combined logs
     batchTimer: null,
+    // Recording until the settings load and say otherwise, so a user who has
+    // diagnostic logs on also gets the errors raised during startup.
+    enabled: true,
+    setEnabled: (enabled: boolean) => {
+      set({ enabled });
+      // Off means nothing is kept, including what was recorded before.
+      if (!enabled) get().clearLogs();
+    },
 
     flushPendingLogs: () => {
       const state = get();
@@ -279,6 +293,7 @@ const useLogStore = create<LogStore>(
     },
 
     addLog: (message: string, type: LogEntry['type'] = 'info', clientId?: ClientId) => {
+      if (!get().enabled) return;
       const now = new Date();
       const timestamp = now.toLocaleTimeString();
       const newLog: LogEntry = {
@@ -307,6 +322,10 @@ const useLogStore = create<LogStore>(
     },
 
     addRealtimeEvent: (event: EventData, source: RealtimeEventSource, eventType: string, clientId?: ClientId) => {
+      // Before sanitizeEvent, not after: with diagnostic logs off (the default)
+      // a realtime session would otherwise still clean ~20 events a second
+      // only to discard them.
+      if (!get().enabled) return;
       const now = new Date();
       const timestamp = now.toLocaleTimeString();
       // Undefined stays undefined: an app-scope event (MainPanel's

@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gumagawa ang Gemini ng mga audio response para sa audio ng kausap na itinatapon, kaya may karagdagang paggamit ng token.",
     "help": "Tulong",
     "helpEmailTooltip": "Mag-report ng bug o humingi ng tulong",
+    "diagnosticLogs": "Mga diagnostic log",
+    "diagnosticLogsTooltip": "Itinatala ang ginagawa ng app para mailakip mo ito sa isang ulat ng bug. Naka-off bilang default. Habang naka-on, may lalabas na button na “Mga Log” sa title bar, at mananatili itong naka-on pagkatapos mag-restart.",
     "helpDiscussions": "Mga Talakayan",
     "helpDiscussionsTooltip": "Mga feature request, feedback, at talakayan ng komunidad",
     "auto": "Awtomatiko",

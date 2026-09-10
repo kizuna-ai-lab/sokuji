@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini genereert voor de audio van de ander audioantwoorden die worden weggegooid, wat extra tokenverbruik veroorzaakt.",
     "help": "Help",
     "helpEmailTooltip": "Bugs melden of hulp krijgen",
+    "diagnosticLogs": "Diagnostische logboeken",
+    "diagnosticLogsTooltip": "Legt vast wat de app doet, zodat je het bij een bugmelding kunt voegen. Standaard uit. Zolang dit aan staat, verschijnt er een knop ‘Logs’ in de titelbalk, en de instelling blijft aan na een herstart.",
     "helpDiscussions": "Discussies",
     "helpDiscussionsTooltip": "Functieverzoeken, feedback en communitydiscussies",
     "auto": "Auto",

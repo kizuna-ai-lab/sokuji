@@ -16,6 +16,7 @@ import { type NativeReadinessReason } from '../lib/local-inference/native/native
 import { useNativeModelStore } from './nativeModelStore';
 import useSessionStore from './sessionStore';
 import useAudioStore, { speakerChannelInScope } from './audioStore';
+import useLogStore from './logStore';
 import { effectiveTextOnly } from '../utils/effectiveTextOnly';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
 import { canEnterSubtitleMode } from '../components/Subtitle/subtitleEnterGate';
@@ -110,6 +111,7 @@ export interface CommonSettings {
   participantSystemInstructions: string;
   textOnly: boolean;
   keepReplayAudio: boolean;
+  diagnosticLogs: boolean;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
 }
@@ -135,6 +137,7 @@ const defaultCommonSettings: CommonSettings = {
   uiMode: 'basic',
   textOnly: false,
   keepReplayAudio: false,
+  diagnosticLogs: false,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +
@@ -263,6 +266,10 @@ export interface SettingsStore {
   // on the next session.
   keepReplayAudio: boolean;
 
+  // Diagnostic logs (Help). Opt-in: while off, logStore records nothing and
+  // the title bar offers no logs button.
+  diagnosticLogs: boolean;
+
   // Conversation display mode filters
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
@@ -283,6 +290,7 @@ export interface SettingsStore {
   setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
+  setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
   enterSubtitleMode: () => Promise<void>;
@@ -724,6 +732,18 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    // The log store follows this switch. Applied before the write so the
+    // panel reacts at once, and rolled back with it if the write fails.
+    setDiagnosticLogs: async (diagnosticLogs) => {
+      const previous = get().diagnosticLogs;
+      set({diagnosticLogs});
+      useLogStore.getState().setEnabled(diagnosticLogs);
+      if (!await persistSetting('settings.common.diagnosticLogs', diagnosticLogs)) {
+        set({diagnosticLogs: previous});
+        useLogStore.getState().setEnabled(previous);
+      }
+    },
+
     setSpeakerDisplayMode: async (speakerDisplayMode) => {
       const previous = get().speakerDisplayMode;
       set({speakerDisplayMode});
@@ -1130,6 +1150,7 @@ const useSettingsStore = create<SettingsStore>()(
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
+        const diagnosticLogs = await service.getSetting('settings.common.diagnosticLogs', defaultCommonSettings.diagnosticLogs);
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
         // Subtitle settings now hydrated by subtitleStore.hydrate(); see stores/subtitleStore.ts.
@@ -1190,11 +1211,17 @@ const useSettingsStore = create<SettingsStore>()(
           participantSystemInstructions,
           textOnly,
           keepReplayAudio,
+          diagnosticLogs,
           speakerDisplayMode,
           participantDisplayMode,
           ...loadedSlices,
           settingsLoaded: true,
         });
+
+        // The log store has recorded since startup, so a user with diagnostic
+        // logs on also gets the errors raised while loading. From here it
+        // follows the setting, and off drops what it held.
+        useLogStore.getState().setEnabled(diagnosticLogs);
 
         console.info('[SettingsStore] Settings loaded successfully');
       } catch (error) {
@@ -1203,6 +1230,8 @@ const useSettingsStore = create<SettingsStore>()(
         // applied. The panel entry is the only record until the basic-mode
         // banner lands (see the design's user-facing tier).
         reportError('SettingsStore', `Failed to load settings: ${describeCause(error)}`, { cause: error });
+        // The app now runs on defaults, and diagnostic logs default to off.
+        useLogStore.getState().setEnabled(defaultCommonSettings.diagnosticLogs);
       }
     },
 
@@ -1404,6 +1433,8 @@ export const useSettingsLoaded = () => useSettingsStore((state) => state.setting
 // Actions
 export const useTextOnly = () => useSettingsStore((state) => state.textOnly);
 export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepReplayAudio);
+export const useDiagnosticLogs = () => useSettingsStore((state) => state.diagnosticLogs);
+export const useSetDiagnosticLogs = () => useSettingsStore((state) => state.setDiagnosticLogs);
 
 export const useSetProvider = () => useSettingsStore((state) => state.setProvider);
 export const useSetUILanguage = () => useSettingsStore((state) => state.setUILanguage);
