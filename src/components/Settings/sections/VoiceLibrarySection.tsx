@@ -3,7 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { Mic, Play, Plus, RefreshCw, Square, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
 import { supportsBaseSelect } from '../../../utils/supportsBaseSelect';
-import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
+import type { VoiceLibraryCapability, VoiceFacets, VoiceFacetCriteria } from '../../../types/VoiceLibrary';
+import {
+  matchesVoiceFacets,
+  facetVocabulary,
+  hasActiveFacets,
+  humanizeFacetValue,
+} from '../../../lib/voiceLibrary/voiceFacets';
 
 /**
  * A single voice as presented to the user. `id` is OPAQUE — each provider
@@ -28,6 +34,10 @@ export interface VoiceEntry {
     /** Flagged in the UI so users know the voice may be lower quality. */
     unstable?: boolean;
     language?: string;
+    /** What the voice sounds like, when the provider publishes it. Drives the
+     *  facet filter bar (`capability.facetFilter`) and the description shown
+     *  beneath the name. Absent for cloned voices, which nobody classifies. */
+    facets?: VoiceFacets;
   };
 }
 
@@ -210,7 +220,9 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [recordSecondsLeft, setRecordSecondsLeft] = useState<number | null>(null);
   const [transcript, setTranscript] = useState('');
+  const [facetCriteria, setFacetCriteria] = useState<VoiceFacetCriteria>({});
   const transcriptInputId = useId();
+  const facetId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<{
     ctx: AudioContext;
@@ -238,8 +250,28 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   // → no gating, matching pre-Task-12 behavior exactly.
   const transcriptMissing = !!capability.transcriptRequired && transcript.trim().length === 0;
 
-  const builtins = useMemo(() => voices.filter((v) => v.group === 'builtin'), [voices]);
+  const facetFilterOn = !!capability.facetFilter;
+  const allBuiltins = useMemo(() => voices.filter((v) => v.group === 'builtin'), [voices]);
+  // The filter narrows PRESETS only. Cloned voices carry no facets, so any
+  // selection would sweep every one of them out — hiding the user's own
+  // recordings behind a filter they set to explore the built-ins.
   const customs = useMemo(() => voices.filter((v) => v.group === 'custom'), [voices]);
+
+  /** What the filter vocabulary offers: whatever the presets actually carry. */
+  const facetOptions = useMemo(() => facetVocabulary(allBuiltins), [allBuiltins]);
+  const matchedBuiltins = useMemo(
+    () =>
+      facetFilterOn ? allBuiltins.filter((v) => matchesVoiceFacets(v, facetCriteria)) : allBuiltins,
+    [allBuiltins, facetFilterOn, facetCriteria],
+  );
+  // The selected voice is never filtered out: a <select> whose value names no
+  // option renders blank, which reads as "my voice is gone" rather than as "it
+  // does not match".
+  const builtins = useMemo(() => {
+    if (!facetFilterOn) return allBuiltins;
+    const matched = new Set(matchedBuiltins.map((v) => v.id));
+    return allBuiltins.filter((v) => matched.has(v.id) || v.id === selectedId);
+  }, [allBuiltins, matchedBuiltins, facetFilterOn, selectedId]);
   // Manage list (dropdown mode) shows user-owned voices that can be renamed/deleted.
   const removableVoices = useMemo(() => voices.filter((v) => v.removable), [voices]);
 
@@ -429,6 +461,135 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   useEffect(() => {
     stopRecordingRef.current = stopRecording;
   }, [stopRecording]);
+
+  /**
+   * The selected voice's character description, beside the picker.
+   *
+   * An <option> is one line of plain text, so the sentence that actually
+   * distinguishes 200 voices from one another cannot live inside the dropdown.
+   * Absent for cloned voices, which carry no description — the line simply
+   * does not render rather than reserving empty space.
+   */
+  const renderSelectedDescription = () => {
+    const description = voices.find((v) => v.id === selectedId)?.meta?.facets?.description;
+    if (!description) return null;
+    return <div className="voice-selected-description">{description}</div>;
+  };
+
+  /** A facet value's display text: the locale string when one exists, and
+   *  otherwise the tag itself as words (`middle_aged` → `Middle aged`), so a
+   *  tag Soniox adds tomorrow reads as English rather than as a raw slug. */
+  const facetLabel = (dimension: string, value: string) =>
+    t(`voiceLibrary.filter.${dimension}.${value}`, humanizeFacetValue(value));
+
+  /** Every dimension is a one-of choice. `useCase` and `style` are among them
+   *  even though the criteria hold them as arrays: the array is Soniox's shape
+   *  (its API takes several and ANDs them) and matchesVoiceFacets honours it,
+   *  so a future multi-select needs no change below the UI. */
+  type SingleFacet = 'gender' | 'age' | 'accent' | 'useCase' | 'style';
+  const TAG_FACETS = ['useCase', 'style'] as const;
+  const isTagFacet = (d: SingleFacet): d is 'useCase' | 'style' =>
+    (TAG_FACETS as readonly string[]).includes(d);
+
+  const facetSelectValue = (dimension: SingleFacet) =>
+    isTagFacet(dimension) ? facetCriteria[dimension]?.[0] ?? '' : facetCriteria[dimension] ?? '';
+
+  const setFacet = (dimension: SingleFacet, value: string) =>
+    setFacetCriteria((prev) =>
+      isTagFacet(dimension)
+        ? { ...prev, [dimension]: value ? [value] : [] }
+        : { ...prev, [dimension]: value || null },
+    );
+
+
+  const renderFacetSelect = (dimension: SingleFacet, label: string, anyLabel: string) => {
+    const values = facetOptions[dimension];
+    if (values.length === 0) return null;
+    const id = `${facetId}-${dimension}`;
+    return (
+      <div className="voice-facet-field">
+        <label className="voice-facet-label" htmlFor={id}>
+          {label}
+        </label>
+        <select
+          id={id}
+          // `select-dropdown` first: it carries the opaque background and the
+          // `appearance: base-select` themed picker (Settings.scss). Without
+          // it the OS draws the popup, which inherits the control's colours —
+          // a translucent background lands there as white on white.
+          className="select-dropdown voice-facet-select"
+          value={facetSelectValue(dimension)}
+          onChange={(e) => setFacet(dimension, e.target.value)}
+        >
+          <option value="">{anyLabel}</option>
+          {values.map((value) => (
+            <option key={value} value={value}>
+              {facetLabel(dimension, value)}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  };
+
+
+  const renderFacetBar = () => {
+    if (!facetFilterOn) return null;
+    const active = hasActiveFacets(facetCriteria);
+    return (
+      <div className="voice-facet-bar">
+        <div className="voice-facet-fields">
+          {renderFacetSelect(
+            'gender',
+            t('voiceLibrary.filter.genderLabel', 'Gender'),
+            t('voiceLibrary.filter.anyGender', 'Any gender'),
+          )}
+          {renderFacetSelect(
+            'age',
+            t('voiceLibrary.filter.ageLabel', 'Age'),
+            t('voiceLibrary.filter.anyAge', 'Any age'),
+          )}
+          {renderFacetSelect(
+            'accent',
+            t('voiceLibrary.filter.accentLabel', 'Accent'),
+            t('voiceLibrary.filter.anyAccent', 'Any accent'),
+          )}
+          {renderFacetSelect(
+            'useCase',
+            t('voiceLibrary.filter.useCaseLabel', 'Use case'),
+            t('voiceLibrary.filter.anyUseCase', 'Any use case'),
+          )}
+          {renderFacetSelect(
+            'style',
+            t('voiceLibrary.filter.styleLabel', 'Style'),
+            t('voiceLibrary.filter.anyStyle', 'Any style'),
+          )}
+        </div>
+        <div className="voice-facet-status">
+          {active && matchedBuiltins.length === 0 ? (
+            <span className="voice-facet-empty">
+              {t('voiceLibrary.filter.empty', 'No voices match these filters.')}
+            </span>
+          ) : (
+            <span className="voice-facet-count">
+              {t('voiceLibrary.filter.count', '{shown} of {total} voices')
+                .replace('{shown}', String(matchedBuiltins.length))
+                .replace('{total}', String(allBuiltins.length))}
+            </span>
+          )}
+          {active && (
+            <button
+              type="button"
+              className="voice-facet-clear"
+              onClick={() => setFacetCriteria({})}
+            >
+              {t('voiceLibrary.filter.clear', 'Clear filters')}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderRow = (v: VoiceEntry) => {
     const isSelected = v.id === selectedId;
@@ -621,8 +782,15 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           <div className="setting-label">
             <span>{t('voiceLibrary.voice', 'Voice')}</span>
           </div>
+          {/* Above the picker, not below it: choose what you want, then pick
+              from what is left. */}
+          {renderFacetBar()}
           <select
             className="select-dropdown"
+            // Named for assistive tech: the visible "Voice" label above is a
+            // plain <span>, so without this the picker announces as an unnamed
+            // combobox — and the facet bar above adds five more of them.
+            aria-label={t('voiceLibrary.voice', 'Voice')}
             value={selectedId}
             onChange={(e) => onSelect(e.target.value)}
             disabled={isSessionActive}
@@ -653,6 +821,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
               </optgroup>
             )}
           </select>
+          {renderSelectedDescription()}
         </div>
 
         {/* Manage block also renders when there's nothing left to create but
@@ -701,6 +870,8 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           <span>{t('voiceLibrary.voice', 'Voice')}</span>
         </div>
       </div>
+
+      {renderFacetBar()}
 
       {/* Built-in group */}
       {(curatedBuiltins.length > 0 || hiddenBuiltins.length > 0) && (

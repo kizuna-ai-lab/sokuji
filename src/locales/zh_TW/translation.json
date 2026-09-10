@@ -941,7 +941,77 @@
     "unstable": "不穩定",
     "voice": "語音",
     "voiceBuilderClosed": "Supertone 的 Voice Builder 服務已於 2026 年 8 月 31 日結束。已下載的語音檔案仍可匯入。",
-    "refreshList": "重新整理語音清單"
+    "refreshList": "重新整理語音清單",
+    "filter": {
+      "genderLabel": "性別",
+      "ageLabel": "年齡",
+      "accentLabel": "口音",
+      "useCaseLabel": "用途",
+      "styleLabel": "風格",
+      "anyGender": "不限性別",
+      "anyAge": "不限年齡",
+      "anyAccent": "不限口音",
+      "count": "{total} 個中的 {shown} 個",
+      "empty": "沒有符合條件的聲音。",
+      "clear": "清除篩選",
+      "gender": {
+        "male": "男聲",
+        "female": "女聲",
+        "neutral": "中性"
+      },
+      "age": {
+        "young": "年輕",
+        "middle_aged": "中年",
+        "old": "年長"
+      },
+      "accent": {
+        "african": "非洲",
+        "american": "美式",
+        "arabic": "阿拉伯",
+        "australian": "澳洲",
+        "brazilian": "巴西",
+        "british": "英式",
+        "chinese": "中文",
+        "french": "法語",
+        "german": "德語",
+        "indian": "印度",
+        "italian": "義大利",
+        "japanese": "日語",
+        "korean": "韓語",
+        "latin_american": "拉美",
+        "portuguese": "葡萄牙",
+        "slavic": "斯拉夫",
+        "southeast_asian": "東南亞",
+        "spanish": "西班牙"
+      },
+      "useCase": {
+        "conversational": "對話",
+        "educational": "講解",
+        "entertainment": "娛樂",
+        "narration": "旁白",
+        "social_media": "社群媒體"
+      },
+      "style": {
+        "breathy": "氣聲",
+        "bright": "明亮",
+        "calm": "沉穩",
+        "confident": "自信",
+        "deep": "低沉",
+        "dramatic": "戲劇化",
+        "energetic": "活力",
+        "expressive": "富有表現力",
+        "formal": "正式",
+        "friendly": "親切",
+        "neutral": "中性",
+        "playful": "俏皮",
+        "raspy": "沙啞",
+        "smooth": "流暢",
+        "soft": "柔和",
+        "warm": "溫暖"
+      },
+      "anyUseCase": "不限用途",
+      "anyStyle": "不限風格"
+    }
   },
   "echoNotice": {
     "ttsEcho": "您的喇叭正把 Sokuji 的翻譯語音送回麥克風。",

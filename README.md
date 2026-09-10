@@ -163,7 +163,7 @@ Run everything on your device — no API keys, no internet, no expensive GPU, co
 | **Palabra.ai** | WebRTC low-latency · voice cloning · auto sentence segmentation · partial transcription translation · 60+ source / 40+ target languages |
 | **Kizuna AI** | Sign in and go — API key managed by backend · same OpenAI models with optimized defaults |
 | **Doubao AST 2.0** | Speech-to-speech with speaker voice cloning · bidirectional Chinese↔English · Ogg Opus audio output |
-| **Soniox** | Real-time speech-to-speech · **one-way & two-way translation (auto-detects speaker language)** · 60+ languages / 3,600+ pairs · 12 voices · bring-your-own-key |
+| **Soniox** | Real-time speech-to-speech · **one-way & two-way translation (auto-detects speaker language)** · 60+ languages / 3,600+ pairs · 200 voices (filter by gender, age, accent, use case, style) · voice cloning · bring-your-own-key |
 | **Zoom AI Services** | Text-only live captions · bring your own Zoom Build Platform key · works on any site, not just Zoom · Zoom's native language pairs |
 | **OpenAI Compatible** | Bring your own endpoint — any OpenAI Realtime API-compatible service (Electron only) |
 | **Local Inference** | Fully offline · ASR → Translation → TTS on-device · no API key · no GPU required |

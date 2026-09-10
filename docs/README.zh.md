@@ -146,7 +146,7 @@ npm run electron:build      # 生产构建
 | **Palabra.ai** | WebRTC 低延迟 · 语音克隆 · 自动句子分割 · 部分转录翻译 · 60+ 源语言 / 40+ 目标语言 |
 | **Kizuna AI** | 登录即用 — API 密钥由后端管理 · 使用优化默认设置的 OpenAI 模型 |
 | **豆包 AST 2.0** | 带说话人语音克隆的语音翻译 · 中英双向翻译 · Ogg Opus 音频输出 |
-| **Soniox** | 实时语音到语音互译 · 单向和双向翻译 · 60+ 语言 / 3,600+ 语言对 · 自动语言识别 · 12 种语音 · 自带 API 密钥 |
+| **Soniox** | 实时语音到语音互译 · 单向和双向翻译 · 60+ 语言 / 3,600+ 语言对 · 自动语言识别 · 200 种声音（按性别、年龄、口音、用途、风格筛选）· 声音克隆 · 自带 API 密钥 |
 | **Zoom AI Services** | 纯文本实时字幕 · 自带 Zoom Build Platform 密钥 · 不限于 Zoom，任意网站可用 · Zoom 原生语言对 |
 | **OpenAI 兼容** | 自带端点 — 任何兼容 OpenAI Realtime API 的服务（仅限 Electron） |
 | **本地推理** | 完全离线 · ASR → 翻译 → TTS 设备端运行 · 无需 API 密钥 · 无需 GPU |

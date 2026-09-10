@@ -41,8 +41,9 @@ import {
 import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
 import { asSonioxRegion } from '../../../lib/soniox/regions';
 import { previewSampleFor } from './sonioxPreviewSample';
-import { SonioxProviderConfig, clampNumber } from '../../../services/providers/SonioxProviderConfig';
+import { clampNumber } from '../../../services/providers/SonioxProviderConfig';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
+import { SONIOX_VOICE_ROSTER } from '../../../lib/soniox/sonioxVoiceRoster';
 import {
   validateVoiceClip,
   downmixToMono,
@@ -85,7 +86,11 @@ export interface SonioxVoiceSectionProps {
   isSessionActive: boolean;
 }
 
-const BUILTIN_VOICES = new SonioxProviderConfig().getConfig().voices;
+// Read from the roster rather than the descriptor's `voices`, which projects
+// away the metadata (gender, age, accent, use-case and style tags) the facet
+// filter needs. The two are the same voices in the same order — ttsCatalog
+// derives one from the other — so selection behaviour is unchanged.
+const BUILTIN_VOICES = SONIOX_VOICE_ROSTER;
 const TTS_MODEL = SONIOX_TTS_MODEL;
 const DEFAULT_VOICE = SONIOX_DEFAULT_VOICE;
 // Reference-clip bounds Soniox documents for `/v1/voices`, validated
@@ -631,10 +636,22 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
 
   const entries = useMemo<VoiceEntry[]>(() => {
     const builtin: VoiceEntry[] = BUILTIN_VOICES.map((v) => ({
-      id: v.value,
-      label: v.name,
+      id: v.id,
+      label: v.id,
       group: 'builtin',
       removable: false,
+      // What the facet bar filters on, and where the one-line character
+      // description under each name comes from.
+      meta: {
+        facets: {
+          gender: v.gender,
+          age: v.age,
+          accent: v.accent,
+          useCase: v.useCase,
+          style: v.style,
+          description: v.description,
+        },
+      },
     }));
     const custom: VoiceEntry[] = clones.map((v) => ({
       id: v.id,
@@ -740,6 +757,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         capability={{
           importModes: canCreate ? ['record', 'upload'] : [],
           curation: false,
+          // 200 built-in voices as of 2026-09-10: too many to scan in a flat
+          // dropdown, and each one carries the tags to narrow it down.
+          facetFilter: true,
           presentation: 'dropdown',
           accept: 'audio/*',
           maxClipSeconds: MAX_CLIP_SECONDS,

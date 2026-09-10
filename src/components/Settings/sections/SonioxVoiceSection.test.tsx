@@ -169,7 +169,7 @@ describe('SonioxVoiceSection', () => {
   it('renders the built-ins immediately and cloned voices after fetch', async () => {
     listMock.mockResolvedValue([cloned()]);
     const { container } = mount();
-    const select = container.querySelector('select')!;
+    const select = container.querySelector('select[aria-label="Voice"]')!;
     // Not a count either: any threshold is still a roster-size contract, and
     // which voices exist is Soniox's to change (see ttsCatalog). The property
     // is that built-ins are already rendered before the fetch settles, so the
@@ -183,7 +183,7 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([cloned()]);
     const { container, onUpdate } = mount();
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    const select = container.querySelector('select')!;
+    const select = container.querySelector('select[aria-label="Voice"]')!;
     await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true));
     fireEvent.change(select, { target: { value: 'uuid-1' } });
     expect(onUpdate).toHaveBeenCalledWith({ voice: 'uuid-1' });
@@ -193,7 +193,7 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([]);
     const { container } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    const select = container.querySelector('select')!;
+    const select = container.querySelector('select[aria-label="Voice"]')!;
     await waitFor(() => {
       const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'gone-uuid');
       expect(opt).toBeTruthy();
@@ -209,7 +209,7 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([]);
     const { container } = mount({ settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    const select = container.querySelector('select')!;
+    const select = container.querySelector('select[aria-label="Voice"]')!;
     await waitFor(() => {
       expect([...select.querySelectorAll('option')].some((o) => o.value === 'Maya')).toBe(true);
     });
@@ -227,7 +227,7 @@ describe('SonioxVoiceSection', () => {
   it('marks failed clones and offers no selection benefit (label carries the failed hint)', async () => {
     listMock.mockResolvedValue([cloned({ id: 'bad', name: 'Broken', models: [{ model: SONIOX_TTS_MODEL, status: 'failed' }] })]);
     const { container } = mount();
-    const select = container.querySelector('select')!;
+    const select = container.querySelector('select[aria-label="Voice"]')!;
     await waitFor(() => {
       const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'bad');
       expect(opt?.textContent).toMatch(/failed/i);
@@ -247,7 +247,7 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([cloned()]);
     const { container } = mount();
     await waitFor(() => {
-      const select = container.querySelector('select')!;
+      const select = container.querySelector('select[aria-label="Voice"]')!;
       expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true);
     });
     openManageDetails();
@@ -266,7 +266,7 @@ describe('SonioxVoiceSection', () => {
     fireEvent.click(refreshButton);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
     await waitFor(() => {
-      const select = container.querySelector('select')!;
+      const select = container.querySelector('select[aria-label="Voice"]')!;
       expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true);
     });
   });
@@ -529,7 +529,7 @@ describe('SonioxVoiceSection', () => {
     // The refreshed (still-processing) list is already reflected in the
     // dropdown right after close — proving refresh() landed before the close,
     // not after.
-    const select = container.querySelector('select')!;
+    const select = container.querySelector('select[aria-label="Voice"]')!;
     await waitFor(() => {
       const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'new-id');
       expect(opt?.textContent).toMatch(/processing/i);
@@ -649,7 +649,7 @@ describe('SonioxVoiceSection', () => {
       cloned({ id: 'bad', name: 'Broken', models: [{ model: SONIOX_TTS_MODEL, status: 'failed' }] }),
     ]);
     const { container } = mount();
-    const select = container.querySelector('select')!;
+    const select = container.querySelector('select[aria-label="Voice"]')!;
     await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'bad')).toBe(true));
     const byValue = (v: string) => [...select.querySelectorAll('option')].find((o) => o.value === v)!;
     expect(byValue('uuid-1').disabled).toBe(false);
@@ -662,7 +662,7 @@ describe('SonioxVoiceSection', () => {
     const onUpdate = vi.fn();
     const props = { settings: { voice: SONIOX_DEFAULT_VOICE, apiKey: 'k' }, onUpdate, source: fakeSource(), managed: false, isSessionActive: false };
     const { container, rerender } = render(<SonioxVoiceSection {...props} />);
-    const select = container.querySelector('select')!;
+    const select = container.querySelector('select[aria-label="Voice"]')!;
     await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true));
     // A changed API key means a (possibly) different project — in production
     // this is a fresh SonioxVoicesClient instance behind a fresh memoized
@@ -741,7 +741,7 @@ describe('SonioxVoiceSection', () => {
   // voiceLibrarySource.ts's task brief), not an unnoticed regression.
   it('managed mode with no source shows a stale UUID as a disabled raw-id placeholder (pre-Task-4 state)', async () => {
     const { container } = mount({ managed: true, source: null, settings: { voice: 'stale-uuid', apiKey: '' } });
-    const select = container.querySelector('select')!;
+    const select = container.querySelector('select[aria-label="Voice"]')!;
     const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'stale-uuid');
     expect(opt).toBeTruthy();
     expect(opt!.disabled).toBe(true);

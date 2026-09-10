@@ -941,7 +941,77 @@
     "unstable": "不安定",
     "voice": "音声",
     "voiceBuilderClosed": "Supertone の Voice Builder サービスは 2026年8月31日に終了しました。すでにダウンロード済みの音声ファイルは引き続きインポートできます。",
-    "refreshList": "音声リストを更新"
+    "refreshList": "音声リストを更新",
+    "filter": {
+      "genderLabel": "性別",
+      "ageLabel": "年齢",
+      "accentLabel": "アクセント",
+      "useCaseLabel": "用途",
+      "styleLabel": "スタイル",
+      "anyGender": "性別を問わない",
+      "anyAge": "年齢を問わない",
+      "anyAccent": "アクセントを問わない",
+      "count": "{total}件中{shown}件",
+      "empty": "条件に一致する声がありません。",
+      "clear": "条件をクリア",
+      "gender": {
+        "male": "男性",
+        "female": "女性",
+        "neutral": "中性"
+      },
+      "age": {
+        "young": "若い",
+        "middle_aged": "中年",
+        "old": "年配"
+      },
+      "accent": {
+        "african": "アフリカ系",
+        "american": "アメリカ",
+        "arabic": "アラビア語圏",
+        "australian": "オーストラリア",
+        "brazilian": "ブラジル",
+        "british": "イギリス",
+        "chinese": "中国語圏",
+        "french": "フランス",
+        "german": "ドイツ",
+        "indian": "インド",
+        "italian": "イタリア",
+        "japanese": "日本語",
+        "korean": "韓国語",
+        "latin_american": "中南米",
+        "portuguese": "ポルトガル",
+        "slavic": "スラブ系",
+        "southeast_asian": "東南アジア",
+        "spanish": "スペイン"
+      },
+      "useCase": {
+        "conversational": "会話",
+        "educational": "解説",
+        "entertainment": "エンタメ",
+        "narration": "ナレーション",
+        "social_media": "SNS"
+      },
+      "style": {
+        "breathy": "息づかい",
+        "bright": "明るい",
+        "calm": "落ち着いた",
+        "confident": "自信",
+        "deep": "低音",
+        "dramatic": "ドラマチック",
+        "energetic": "元気",
+        "expressive": "表情豊か",
+        "formal": "フォーマル",
+        "friendly": "親しみやすい",
+        "neutral": "ニュートラル",
+        "playful": "遊び心",
+        "raspy": "かすれ声",
+        "smooth": "なめらか",
+        "soft": "やわらかい",
+        "warm": "温かい"
+      },
+      "anyUseCase": "用途を問わない",
+      "anyStyle": "スタイルを問わない"
+    }
   },
   "echoNotice": {
     "ttsEcho": "スピーカーから出た Sokuji の翻訳音声がマイクに回り込んでいます。",
