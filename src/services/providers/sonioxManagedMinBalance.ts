@@ -92,3 +92,28 @@ export function sonioxManagedMinBalanceMicroUsd(textOnly: boolean, bothSplit = f
     ? SONIOX_MANAGED_MIN_BALANCE_MICRO_USD.one_stt_text_only
     : SONIOX_MANAGED_MIN_BALANCE_MICRO_USD.one_stt_speech_to_speech;
 }
+
+/**
+ * The shortest a PREVIEW is billed for, in seconds — mirrors the backend's
+ * `PREVIEW_MIN_SESSION_S` (`sokuji-backend`'s `src/config/soniox.ts`).
+ *
+ * A preview is one REST call, not a session, so it is deliberately NOT
+ * SONIOX_MANAGED_MIN_SESSION_S: a preview charges about 1,356 microUSD (spec
+ * section 2C), so ten seconds of TTS — about three previews — is headroom
+ * without gating the feature behind a minimum session's worth of balance.
+ */
+export const SONIOX_PREVIEW_MIN_SESSION_S = 10;
+
+/**
+ * Balance floor for a MANAGED preview: one synthesis stream at its
+ * conservative rate for SONIOX_PREVIEW_MIN_SESSION_S seconds, i.e.
+ * `SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR.tts * SONIOX_PREVIEW_MIN_SESSION_S / 3600`,
+ * ceiled the same way every other floor in this file is.
+ *
+ * KEEP IN SYNC with sokuji-backend's `sonioxStartFloorMicroUsd` preview
+ * branch (`src/services/soniox-budget.ts`), which names this file by path in
+ * its own docstring precisely so a change here or there shows up as a failing
+ * test rather than as a Preview control that lies about a 402. This is a UI
+ * pre-check only; the backend's 402 remains the authority.
+ */
+export const SONIOX_MANAGED_PREVIEW_MIN_BALANCE_MICRO_USD = 3_889;

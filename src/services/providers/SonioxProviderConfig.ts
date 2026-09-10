@@ -173,6 +173,8 @@ export {
   SONIOX_MANAGED_MIN_SESSION_S,
   SONIOX_MANAGED_MIN_BALANCE_MICRO_USD,
   sonioxManagedMinBalanceMicroUsd,
+  SONIOX_PREVIEW_MIN_SESSION_S,
+  SONIOX_MANAGED_PREVIEW_MIN_BALANCE_MICRO_USD,
 } from './sonioxManagedMinBalance';
 
 // Moved into sonioxBothMode.ts (its main consumer) so that this class can
