@@ -67,6 +67,20 @@ describe('createPreviewTts', () => {
     expect(client.initCalls).toBe(2);
   });
 
+  it('re-initialises when the language changes, even with the same model', async () => {
+    // The sidecar stores `language` on the engine at init (`set_language`)
+    // and every subsequent synth reuses it -- it is not decorative. Tracking
+    // only `loadedModelId` would let a target-language change (translation
+    // target ja -> en, same TTS card) silently keep synthesizing under the
+    // OLD language's phonology. Catches: an implementation that gates re-init
+    // on modelId alone.
+    const client = fakeTtsClient();
+    const h = createPreviewTts(() => client);
+    await h.synthesize({ modelId: 'm', language: 'ja', text: 'a', speed: 1, voice: { kind: 'name', name: 'x' } });
+    await h.synthesize({ modelId: 'm', language: 'en', text: 'a', speed: 1, voice: { kind: 'name', name: 'x' } });
+    expect(client.initCalls).toBe(2);
+  });
+
   it('recovers from _not_owner_error by re-initialising once and retrying', async () => {
     // Right after a session ends the engine may still record the session's
     // (now closed) connection as owner. The panel cannot observe another

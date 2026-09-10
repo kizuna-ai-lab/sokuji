@@ -288,8 +288,14 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
         speed: PREVIEW_SPEED,
         voice: { kind: 'clip', audio: clip.audio, sampleRate: clip.sampleRate, refText: payload?.transcript },
       });
-      if (signal?.aborted) return null;
+      // Cache a successful result even if THIS request was superseded
+      // meanwhile: the user already waited and the sidecar already spent the
+      // synthesis work, so throwing it away would cost the next click on
+      // this same row a full re-synthesis for nothing. Only the RETURN is
+      // conditioned on abort (so a superseded request never plays over a
+      // newer one) -- caching is unconditional.
       setCachedPreview(cacheKey, result);
+      if (signal?.aborted) return null;
       return result;
     } catch {
       if (signal?.aborted) return null;

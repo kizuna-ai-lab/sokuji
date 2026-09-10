@@ -19,6 +19,7 @@ import { VoiceCaptureError, type NativeVoiceStore } from '../../../lib/local-inf
 import { VoiceImportError } from '../../../lib/local-inference/voiceStorage';
 import { createPreviewTts } from '../../../lib/local-inference/native/nativePreviewTts';
 import { clearPreviewCache } from '../../../lib/tts/previewCache';
+import { PREVIEW_SAMPLES } from '../../../lib/tts/previewSample';
 
 // The native preview synthesis path (Task 6) is exercised on its own
 // (nativePreviewTts.test.ts, at the method level against a fake
@@ -290,11 +291,14 @@ describe('NativeVoiceSection', () => {
       // The clip is still read -- it is the reference the clone is built from --
       // but what plays is the SYNTHESIS, so the model must have been asked.
       await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
+      // Pinned to the actual sample sentence and the actual (fixed) preview
+      // speed -- not `expect.any(...)` -- so a future edit that threads the
+      // wrong text or a wrong/dropped speed through stays red here.
       expect(synthesize).toHaveBeenCalledWith({
         modelId: 'moss_tts_nano',
         language: 'en',
-        text: expect.any(String),
-        speed: expect.any(Number),
+        text: PREVIEW_SAMPLES.en,
+        speed: 1,
         voice: { kind: 'clip', audio: new Float32Array([0.5, 0.6]), sampleRate: 16000, refText: 'hi' },
       });
       await waitFor(() => expect(playedAudio()).toEqual(new Float32Array([0.25])));
@@ -404,10 +408,57 @@ describe('NativeVoiceSection', () => {
 
       // Once the first settles, the guard clears -- a later preview can use
       // the shared client again rather than being permanently locked out.
+      // (Voice 1's own superseded-but-successful result is also cached now --
+      // Finding 2, covered by its own test below -- so re-previewing voice 2,
+      // which never reached a real synthesize() call, is what actually
+      // proves the GUARD itself cleared rather than a cache hit doing it.)
       resolveFirst({ audio: new Float32Array([0.25]), sampleRate: 24000 });
       fireEvent.click(buttons[1]); // stop voice 2's clip playback
-      fireEvent.click(buttons[0]); // a fresh request for voice 1
+      fireEvent.click(buttons[1]); // a fresh request for voice 2
       await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(2));
+    });
+
+    it('caches a superseded-but-successful synthesis instead of discarding it', async () => {
+      // Finding 2: the user already waited and the sidecar already did the
+      // work, so a request that finishes successfully AFTER being superseded
+      // must still be cached -- only the immediate playback is skipped.
+      const { playedAudio } = stubWebAudio();
+      let resolveFirst!: (v: { audio: Float32Array; sampleRate: number }) => void;
+      const firstSynthesis = new Promise<{ audio: Float32Array; sampleRate: number }>((resolve) => { resolveFirst = resolve; });
+      const synthesize = vi.fn().mockImplementationOnce(() => firstSynthesis);
+      vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close: vi.fn() });
+
+      const store = makeClipStore({
+        list: vi.fn().mockResolvedValue([{ id: 1, name: 'Voice1' }, { id: 2, name: 'Voice2' }]),
+        resolveApply: vi.fn().mockImplementation((id: number) => Promise.resolve({
+          kind: 'clip', audio: new Float32Array([id === 1 ? 0.1 : 0.2]), sampleRate: 16000, transcript: 'hi',
+        })),
+      });
+
+      render(<NativeVoiceSection {...baseProps} store={store} />);
+      const buttons = await screen.findAllByRole('button', { name: /play/i });
+
+      fireEvent.click(buttons[0]); // voice 1 -- synthesize() pending
+      await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
+      fireEvent.click(buttons[1]); // supersedes voice 1's request (aborts its signal)
+      await waitFor(() => expect(store.resolveApply).toHaveBeenCalledWith(2));
+
+      // Voice 1's synthesis finishes successfully AFTER being superseded.
+      // Its continuation (await -> cache write -> aborted check -> return
+      // null) has no OTHER observable effect in this test, so flush the
+      // microtask queue explicitly rather than polling for a side effect
+      // that doesn't exist -- a bare `waitFor` here would pass immediately
+      // on the state left over from the earlier assertions and prove
+      // nothing.
+      resolveFirst({ audio: new Float32Array([0.42]), sampleRate: 24000 });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      fireEvent.click(buttons[1]); // stop voice 2's clip playback
+      fireEvent.click(buttons[0]); // voice 1 again -- must be a cache hit
+      await waitFor(() => expect(playedAudio()).toEqual(new Float32Array([0.42])));
+      // Still exactly 1 real synthesize() call -- the cache served the
+      // second voice-1 preview instantly, no re-synthesis.
+      expect(synthesize).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -40,8 +40,12 @@ export type PreviewVoice =
 
 export interface PreviewTtsHandle {
   /** Synthesize one sentence with the given voice, reusing the warm engine
-   *  when `modelId` matches what is already loaded (re-`init`ing only when it
-   *  changes). Rejects on failure -- including a persistent
+   *  when both `modelId` AND `language` match what is already loaded
+   *  (re-`init`ing when either changes). `language` is not decorative: the
+   *  sidecar stores it on the engine at init (`set_language`) and every
+   *  subsequent synth reuses it, so a stale language would silently
+   *  mispronounce the next preview's sentence under the OLD language's
+   *  phonology. Rejects on failure -- including a persistent
    *  `_not_owner_error` after one recovery attempt -- rather than returning a
    *  sentinel; the caller decides the fallback. */
   synthesize(args: {
@@ -83,6 +87,11 @@ function toHandleResult(result: NativeTtsResult): { audio: Float32Array; sampleR
 export function createPreviewTts(make: () => NativeTtsClientLike = () => new NativeTtsClient()): PreviewTtsHandle {
   let client: NativeTtsClientLike | null = null;
   let loadedModelId: string | null = null;
+  // Second half of the "what is this engine initialised for" key -- see
+  // PreviewTtsHandle.synthesize's doc comment. Read alongside loadedModelId,
+  // never alone: a model-only check would keep serving an engine initialised
+  // for a language the caller no longer wants.
+  let loadedLanguage: string | null = null;
 
   async function initFor(modelId: string, language: string): Promise<void> {
     const c = client!;
@@ -93,12 +102,13 @@ export function createPreviewTts(make: () => NativeTtsClientLike = () => new Nat
     // read, for a difference nobody can hear.
     await c.init(modelId, undefined, language);
     loadedModelId = modelId;
+    loadedLanguage = language;
   }
 
   return {
     async synthesize({ modelId, language, text, speed, voice }) {
       if (!client) client = make();
-      if (loadedModelId !== modelId) await initFor(modelId, language);
+      if (loadedModelId !== modelId || loadedLanguage !== language) await initFor(modelId, language);
       await applyVoice(client, voice);
 
       try {
@@ -121,6 +131,7 @@ export function createPreviewTts(make: () => NativeTtsClientLike = () => new Nat
       client?.dispose();
       client = null;
       loadedModelId = null;
+      loadedLanguage = null;
     },
   };
 }
