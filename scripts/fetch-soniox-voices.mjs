@@ -60,7 +60,12 @@ async function fetchAll() {
   return voices;
 }
 
-const esc = (s) => `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+// JSON.stringify rather than hand-rolled quoting: it escapes line breaks and
+// control characters too, and a description carrying one would otherwise be
+// written raw into a single-quoted literal that no longer parses. Soniox
+// rewrote 45 of these descriptions between two roster fetches, so what they
+// may contain is not ours to assume.
+const esc = (s) => JSON.stringify(String(s));
 const list = (xs) => `[${xs.map(esc).join(', ')}]`;
 
 const voices = inputPath ? JSON.parse(readFileSync(inputPath, 'utf8')).voices : await fetchAll();
