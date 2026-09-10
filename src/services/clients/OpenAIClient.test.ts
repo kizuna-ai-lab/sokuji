@@ -26,11 +26,28 @@ vi.mock('openai-realtime-api', () => {
       merged.set(chunk, this.inputAudioBuffer.length);
       this.inputAudioBuffer = merged;
     });
-    handlers: Record<string, (payload: any) => void> = {};
+    // Mirrors the SDK's RealtimeEventHandler contract: an array of handlers per
+    // event, `on` appends, `off(event, cb)` removes only that callback.
+    // OpenAIClient registers two 'realtime.event' handlers - the forwarder and
+    // waitForSessionWithErrorHandling's temporary errorHandler - so a single
+    // slot would silently drop one. (The SDK throws when `cb` is missing; that
+    // is its own defect, and deliberately not modelled here.)
+    handlers: Record<string, Array<(payload: any) => void>> = {};
     constructor(_opts: unknown) {}
-    on(event: string, handler: (payload: any) => void) { this.handlers[event] = handler; }
-    off() {}
-    emit(event: string, payload: any) { this.handlers[event]?.(payload); }
+    on(event: string, handler: (payload: any) => void) {
+      if (!this.handlers[event]) this.handlers[event] = [];
+      this.handlers[event].push(handler);
+    }
+    off(event: string, handler?: (payload: any) => void) {
+      if (!handler) { delete this.handlers[event]; return; }
+      const list = this.handlers[event];
+      if (!list) return;
+      const i = list.indexOf(handler);
+      if (i >= 0) list.splice(i, 1);
+    }
+    emit(event: string, payload: any) {
+      for (const h of [...(this.handlers[event] || [])]) h(payload);
+    }
     getTurnDetectionType() { return this.turnDetectionType; }
   }
   return { RealtimeClient, arrayBufferToBase64: () => 'BASE64' };
