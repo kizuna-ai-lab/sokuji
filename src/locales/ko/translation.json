@@ -941,7 +941,77 @@
     "unstable": "불안정",
     "voice": "음성",
     "voiceBuilderClosed": "Supertone의 Voice Builder 서비스는 2026년 8월 31일에 종료되었습니다. 이미 다운로드한 음성 파일은 계속 가져올 수 있습니다.",
-    "refreshList": "음성 목록 새로고침"
+    "refreshList": "음성 목록 새로고침",
+    "filter": {
+      "genderLabel": "성별",
+      "ageLabel": "연령",
+      "accentLabel": "억양",
+      "useCaseLabel": "용도",
+      "styleLabel": "스타일",
+      "anyGender": "성별 무관",
+      "anyAge": "연령 무관",
+      "anyAccent": "억양 무관",
+      "count": "{total}개 중 {shown}개",
+      "empty": "조건에 맞는 음성이 없습니다.",
+      "clear": "필터 지우기",
+      "gender": {
+        "male": "남성",
+        "female": "여성",
+        "neutral": "중성"
+      },
+      "age": {
+        "young": "젊음",
+        "middle_aged": "중년",
+        "old": "노년"
+      },
+      "accent": {
+        "african": "아프리카",
+        "american": "미국",
+        "arabic": "아랍",
+        "australian": "호주",
+        "brazilian": "브라질",
+        "british": "영국",
+        "chinese": "중국",
+        "french": "프랑스",
+        "german": "독일",
+        "indian": "인도",
+        "italian": "이탈리아",
+        "japanese": "일본",
+        "korean": "한국",
+        "latin_american": "중남미",
+        "portuguese": "포르투갈",
+        "slavic": "슬라브",
+        "southeast_asian": "동남아시아",
+        "spanish": "스페인"
+      },
+      "useCase": {
+        "conversational": "대화",
+        "educational": "설명",
+        "entertainment": "엔터테인먼트",
+        "narration": "내레이션",
+        "social_media": "소셜 미디어"
+      },
+      "style": {
+        "breathy": "숨결",
+        "bright": "밝음",
+        "calm": "차분함",
+        "confident": "자신감",
+        "deep": "저음",
+        "dramatic": "드라마틱",
+        "energetic": "활기참",
+        "expressive": "표현력",
+        "formal": "격식",
+        "friendly": "친근함",
+        "neutral": "중립",
+        "playful": "장난기",
+        "raspy": "거친 음색",
+        "smooth": "부드러움",
+        "soft": "차분한 음색",
+        "warm": "따뜻함"
+      },
+      "anyUseCase": "용도 무관",
+      "anyStyle": "스타일 무관"
+    }
   },
   "echoNotice": {
     "ttsEcho": "스피커에서 나온 Sokuji의 번역 음성이 마이크로 되돌아오고 있습니다.",

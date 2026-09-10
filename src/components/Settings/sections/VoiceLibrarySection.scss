@@ -302,6 +302,97 @@
   color: #e74c3c;
 }
 
+// ---- facet filter bar ------------------------------------------------------
+// Soniox ships 200 built-in voices, each tagged with gender, age, accent,
+// use-case and style. The bar narrows the presets group; the dropdown above it
+// is what the narrowing is FOR, so the bar sits directly beneath it rather
+// than above the "Voice" label.
+
+.voice-selected-description {
+  // The character description of whatever is selected. An <option> is one line
+  // of plain text, so this is the only place the sentence can live.
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #b0b0b0;
+}
+
+.voice-facet-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  // Sits between the "Voice" label and the picker it filters, inside the same
+  // .setting-item — hence its own margin rather than a gap on the parent.
+  margin: 4px 0 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+}
+
+.voice-facet-fields {
+  // Grid, not wrapping flex: with five fields, flex-wrap leaves the last one
+  // alone on its row stretched to full width, which reads as a different kind
+  // of control. auto-fit lays out as many columns as fit and keeps every field
+  // the same size as the others — two columns in the ~340px extension side
+  // panel, more where there is room.
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.voice-facet-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.voice-facet-label {
+  font-size: 11px;
+  color: #b0b0b0;
+}
+
+// The element also carries `.select-dropdown`, which brings the opaque
+// background, the themed picker and the focus ring. Only the sizing differs:
+// five of these share the width one voice picker gets, so they run smaller.
+// Scoped under the bar to beat `.select-dropdown` regardless of which
+// stylesheet the bundler emits first.
+.voice-facet-bar .voice-facet-select {
+  padding: 4px 22px 4px 8px;
+  font-size: 12px;
+  background-position: right 7px center;
+  background-size: 10px;
+}
+
+.voice-facet-status {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.voice-facet-count {
+  font-size: 11px;
+  color: #808080;
+}
+
+.voice-facet-empty {
+  font-size: 11px;
+  color: #e0a106;
+}
+
+.voice-facet-clear {
+  padding: 2px 0;
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  color: tk.$color-primary;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+}
+
 @keyframes voice-preview-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

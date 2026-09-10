@@ -17,6 +17,12 @@ vi.mock('../utils/environment', async (orig) => ({
 }));
 import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
 import en from './en/translation.json';
+import {
+  SONIOX_VOICE_ROSTER,
+  SONIOX_ACCENTS,
+  SONIOX_USE_CASES,
+  SONIOX_STYLES,
+} from '../lib/soniox/sonioxVoiceRoster';
 
 const catalogs = import.meta.glob('./*/translation.json', { eager: true }) as
   Record<string, { default: Record<string, unknown> }>;
@@ -82,6 +88,28 @@ describe('dynamically-built i18n keys resolve in en', () => {
         if (EN[key] === undefined) missing.push(`${id}: ${mode} -> ${key}`);
       }
     }
+    expect(missing).toEqual([]);
+  });
+
+  // VoiceLibrarySection's facet filter derives a label key per tag value
+  // (`voiceLibrary.filter.accent.japanese`). A value with no key falls back to
+  // the humanized slug, which is readable but untranslated — so this is the
+  // reminder that lands when a roster refresh introduces a tag: Soniox grew
+  // its roster from 70 voices to 200, and eighteen accents, without notice.
+  it('every Soniox facet value maps to a key that exists', () => {
+    const missing: string[] = [];
+    const check = (dimension: string, values: string[]) => {
+      for (const value of values) {
+        if (EN[`voiceLibrary.filter.${dimension}.${value}`] === undefined) {
+          missing.push(`${dimension}.${value}`);
+        }
+      }
+    };
+    check('gender', [...new Set(SONIOX_VOICE_ROSTER.map((v) => v.gender))]);
+    check('age', [...new Set(SONIOX_VOICE_ROSTER.map((v) => v.age))]);
+    check('accent', SONIOX_ACCENTS);
+    check('useCase', SONIOX_USE_CASES);
+    check('style', SONIOX_STYLES);
     expect(missing).toEqual([]);
   });
 });
