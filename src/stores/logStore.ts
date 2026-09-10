@@ -180,6 +180,11 @@ export interface LogEntry {
   eventType?: string; // The type of the event (e.g., 'session.created', 'response.text.delta')
   groupingKey?: string; // Custom grouping key for specific event types
   /**
+   * How many events this entry has grouped in total. `events` keeps only the
+   * newest MAX_EVENTS_PER_GROUP of them, so this is the count to show.
+   */
+  groupCount?: number;
+  /**
    * Which session leg produced this, or undefined for an app-scope failure
    * (settings, auth, devices, models). LogsPanel shows undefined under BOTH
    * tabs; it is not a synonym for 'speaker'.
@@ -216,6 +221,17 @@ const BATCH_DELAY_MS = 150; // Batch updates every 150ms for better performance
  * trimming cannot orphan one.
  */
 const MAX_LOG_ENTRIES = 2000;
+
+/**
+ * How many events one grouped entry keeps; `groupCount` still counts them all.
+ *
+ * MAX_LOG_ENTRIES bounds entries, not the events inside one. A session nobody
+ * speaks in sends nothing but mic appends (~12/s), which all share one
+ * groupingKey, so they land in a single entry for as long as the silence
+ * lasts: uncapped, it grew for the whole session and every append copied the
+ * entry's entire history (#531).
+ */
+export const MAX_EVENTS_PER_GROUP = 100;
 
 let nextLogId = 0;
 const takeLogId = (): number => ++nextLogId;
@@ -492,10 +508,17 @@ const useLogStore = create<LogStore>(
           groupingKey !== undefined
         ) {
           // Update the log with new event
+          // Keep only the newest MAX_EVENTS_PER_GROUP events, so each append
+          // copies a bounded array instead of the group's whole history;
+          // groupCount keeps the true total for the panel.
+          const kept = lastLogForClient.events || [];
           const updatedLog = {
             ...lastLogForClient,
             timestamp, // Update timestamp to the latest
-            events: [...(lastLogForClient.events || []), sanitizedEvent]
+            events: kept.length >= MAX_EVENTS_PER_GROUP
+              ? [...kept.slice(kept.length - MAX_EVENTS_PER_GROUP + 1), sanitizedEvent]
+              : [...kept, sanitizedEvent],
+            groupCount: (lastLogForClient.groupCount ?? kept.length) + 1,
           };
 
           const timer = scheduleFlush(state, () => get().flushPendingLogs());
@@ -535,6 +558,7 @@ const useLogStore = create<LogStore>(
           message,
           type: severityForEventType(eventType),
           events: [sanitizedEvent], // Initialize events array with the sanitized event
+          groupCount: 1,
           source,
           eventType,
           groupingKey,

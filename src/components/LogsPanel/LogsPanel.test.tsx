@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import LogsPanel from './LogsPanel';
-import useLogStore from '../../stores/logStore';
+import useLogStore, { MAX_EVENTS_PER_GROUP } from '../../stores/logStore';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -120,6 +120,25 @@ describe('LogsPanel', () => {
       const { container } = render(<LogsPanel toggleLogs={() => {}} />);
       expect(container.querySelector('.event-entry.error')).toBeNull();
       expect(container.querySelector('.event-entry.warning')).toBeNull();
+    });
+  });
+
+  describe('grouped rows', () => {
+    // A silent session's mic appends all land in one row. The store keeps only
+    // the newest MAX_EVENTS_PER_GROUP of them (#531), so the row's count has to
+    // come from groupCount, not from how many events it still holds.
+    it('shows the true event count once a group passes the cap', () => {
+      const total = MAX_EVENTS_PER_GROUP + 5;
+      write(() => {
+        for (let i = 0; i < total; i++) {
+          useLogStore.getState().addRealtimeEvent(
+            { type: 'input_audio_buffer.append', audio: `chunk-${i}` } as never,
+            'client', 'input_audio_buffer.append', 'speaker'
+          );
+        }
+      });
+      const { container } = render(<LogsPanel toggleLogs={() => {}} />);
+      expect(container.querySelector('.event-count')?.textContent).toBe(`(${total})`);
     });
   });
 
