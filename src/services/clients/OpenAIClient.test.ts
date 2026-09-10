@@ -26,9 +26,11 @@ vi.mock('openai-realtime-api', () => {
       merged.set(chunk, this.inputAudioBuffer.length);
       this.inputAudioBuffer = merged;
     });
+    handlers: Record<string, (payload: any) => void> = {};
     constructor(_opts: unknown) {}
-    on() {}
+    on(event: string, handler: (payload: any) => void) { this.handlers[event] = handler; }
     off() {}
+    emit(event: string, payload: any) { this.handlers[event]?.(payload); }
     getTurnDetectionType() { return this.turnDetectionType; }
   }
   return { RealtimeClient, arrayBufferToBase64: () => 'BASE64' };
@@ -298,5 +300,79 @@ describe('OpenAIClient — realtime send failure handling', () => {
 
     expect(() => client.appendInputAudio(chunk())).not.toThrow();
     expect(reportedOps()).toEqual(['input_audio_buffer.append']);
+  });
+});
+
+// The mirror image of #406, on the output side. The SDK's RealtimeConversation
+// keeps every item for the whole session -- `items` and `itemLookup` are only
+// emptied by clear(), which we call at teardown -- and its
+// "response.audio.delta" handler merges each chunk of translated speech onto
+// `item.formatted.audio` (dist/index.js:640). convertToConversationItem already
+// drops that field from the copy handed to the UI, but the SDK's own copy stayed
+// reachable, so an hours-long session retained every second of audio it had ever
+// played. Issue #531.
+describe('OpenAIClient — output audio retention in the SDK conversation (#531)', () => {
+  let client: any;
+  let sdk: any;
+
+  beforeEach(() => {
+    client = new OpenAIClient('test-api-key');
+    sdk = client.client;
+    client.setEventHandlers({ onConversationUpdated: () => {} });
+  });
+
+  /** An SDK item shaped like the one `conversation.updated` carries. */
+  const sdkItem = (samples = 24000) => ({
+    id: 'item_1',
+    role: 'assistant',
+    type: 'message',
+    status: 'in_progress',
+    formatted: { text: '', transcript: 'hello', audio: new Int16Array(samples) },
+    content: [],
+  });
+
+  it('releases the SDK copy of the audio when keepReplayAudio is off', () => {
+    client.keepReplayAudio = false;
+    const item = sdkItem();
+
+    sdk.emit('conversation.updated', { item, delta: { audio: new Int16Array(480) } });
+
+    // Empty, not undefined: the SDK merges the next delta onto this field via
+    // mergeInt16Arrays (which throws on anything but an Int16Array) and
+    // "conversation.item.truncated" slices it.
+    expect(item.formatted.audio).toBeInstanceOf(Int16Array);
+    expect(item.formatted.audio.length).toBe(0);
+  });
+
+  it('does not retain audio across a run of deltas', () => {
+    client.keepReplayAudio = false;
+    const item = sdkItem(0);
+
+    // Stand in for the SDK's own delta handler: merge, then hand us the item.
+    for (let i = 0; i < 100; i++) {
+      const merged = new Int16Array(item.formatted.audio.length + 480);
+      merged.set(item.formatted.audio, 0);
+      item.formatted.audio = merged;
+      sdk.emit('conversation.updated', { item, delta: { audio: new Int16Array(480) } });
+    }
+
+    // Without the fix this is 48000 samples and still climbing.
+    expect(item.formatted.audio.length).toBe(0);
+  });
+
+  it('leaves the audio alone when the user opted into replay', () => {
+    client.keepReplayAudio = true;
+    const item = sdkItem();
+
+    sdk.emit('conversation.updated', { item, delta: { audio: new Int16Array(480) } });
+
+    expect(item.formatted.audio.length).toBe(24000);
+  });
+
+  it('tolerates an item with no formatted block', () => {
+    client.keepReplayAudio = false;
+    const item: any = { id: 'item_2', role: 'user', type: 'message', content: [] };
+
+    expect(() => sdk.emit('conversation.updated', { item, delta: undefined })).not.toThrow();
   });
 });
