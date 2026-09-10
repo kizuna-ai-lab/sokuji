@@ -342,6 +342,17 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         // ManagedSonioxSession.describeError's `mainPanel.sonioxServiceBusy`.
         return new Error(t('mainPanel.sonioxServiceBusy', 'Soniox is at capacity right now. Please try again shortly.'));
       }
+      // Gated on `managed` for the same reason the 402/409 arms above are:
+      // `ManagedVoicesClient.fetchWithAuth` throws `authentication_required`
+      // (401) whenever the Better Auth token is missing or expired — routine,
+      // not exotic — and a backend 401 reaches this same arm through
+      // `throwBackendError`. A managed user has no API key to check, so
+      // "check the API key" points at a fix that does not exist for them;
+      // the correct remedy (sign in) is sitting in the error's own message,
+      // reused from `mapCreateError`'s identical condition above.
+      if (managed && (e.status === 401 || e.errorType === 'authentication_required')) {
+        return new Error(t('settings.sonioxVoiceSignInRequired', 'Sign in to build a custom voice.'));
+      }
       if (e.status === 401 || e.errorType === 'unauthenticated') {
         return new Error(t('settings.sonioxVoicePreviewAuthError', 'Preview failed — check the API key'));
       }
@@ -359,10 +370,44 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // repeat listen carries no new information but would spend the user's tokens
   // again. Keyed by voice + language + speed so changing either re-synthesizes.
   // The cache itself now lives outside the component (src/lib/tts/previewCache.ts)
-  // so it survives a panel close/reopen; this effect still clears it whenever
-  // the source changes, since audio cached against the OLD project's UUIDs
-  // must not replay under a new one.
-  useEffect(() => { clearPreviewCache(); }, [source]);
+  // so it survives a panel close/reopen; this effect clears the LEAVING
+  // source's namespace whenever the source actually changes, since audio
+  // cached against the OLD project's UUIDs must not replay under a new one.
+  //
+  // Deliberately NOT `useEffect(() => clearPreviewCache(), [source])`: a
+  // `useEffect` runs on every MOUNT, not only when its dependency changes,
+  // and the settings panel lives inside `<Activity>` (MainLayout.tsx), which
+  // tears down and recreates this component's effects on every hide/show.
+  // Clearing unconditionally there would wipe the whole app-session cache on
+  // every reopen of the settings panel — spending the user's balance and
+  // taking the account's exclusivity lease again on the very next listen —
+  // which is exactly the cost the cache was moved out of the component to
+  // avoid (see previewCache.ts's module docstring). The ref below is seeded
+  // from the FIRST render's own source, so the effect sees "no change" on
+  // its first run and only clears on a real swap thereafter.
+  //
+  // Also namespace-scoped rather than a full `clearPreviewCache()`: the
+  // cache is shared with Local Native's `native:<modelId>` entries, and a
+  // Soniox source swap has nothing to do with those.
+  //
+  // Tracks the SOURCE OBJECT, not its `cacheNamespace` string: BYOK's
+  // namespace is `soniox:${region}` — keyed on region, not on the API key —
+  // so two different projects in the same region share one namespace
+  // string. Comparing namespace values would then treat a real key swap
+  // (still the same region) as "no change" and skip the clear, silently
+  // reviving the old project's audio under the new key. Comparing object
+  // identity instead means "the caller handed us a materially different
+  // source" is exactly what a real swap looks like — see this component's
+  // own doc comment: "The caller mints a NEW `source` object whenever the
+  // signed-in account changes".
+  const previousSourceRef = useRef(source);
+  useEffect(() => {
+    const leavingSource = previousSourceRef.current;
+    previousSourceRef.current = source;
+    if (leavingSource !== source && leavingSource?.cacheNamespace !== undefined) {
+      clearPreviewCache(leavingSource.cacheNamespace);
+    }
+  }, [source]);
 
   const handlePreview = useCallback(async (
     id: string,

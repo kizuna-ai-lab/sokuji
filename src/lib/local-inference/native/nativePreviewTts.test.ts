@@ -81,7 +81,7 @@ describe('createPreviewTts', () => {
     expect(client.initCalls).toBe(2);
   });
 
-  it('recovers from _not_owner_error by re-initialising once and retrying', async () => {
+  it('recovers from _not_owner_error by re-initialising once and retrying, reapplying the voice', async () => {
     // Right after a session ends the engine may still record the session's
     // (now closed) connection as owner. The panel cannot observe another
     // connection's ownership, so recovering is the only correct answer --
@@ -90,10 +90,23 @@ describe('createPreviewTts', () => {
     // Catches: an implementation that lets the first generate() rejection
     // propagate straight to the caller without attempting recovery at all.
     const client = fakeTtsClient({ failFirstGenerateWith: '_not_owner_error' });
+    const setReferenceVoice = vi.spyOn(client, 'setReferenceVoice');
     const h = createPreviewTts(() => client);
-    const out = await h.synthesize({ modelId: 'm', language: 'ja', text: 'a', speed: 1, voice: { kind: 'name', name: 'x' } });
+    const audio = new Float32Array([0.1, 0.2]);
+    const out = await h.synthesize({
+      modelId: 'm', language: 'ja', text: 'a', speed: 1,
+      voice: { kind: 'clip', audio, sampleRate: 16000, refText: 'hi' },
+    });
     expect(client.initCalls).toBe(2);
     expect(out.audio.length).toBeGreaterThan(0);
+    // A fresh init() has no voice selected -- an implementation that re-inits
+    // on recovery but forgets to reapply the voice would still pass on
+    // initCalls/output alone, and would silently preview the model's DEFAULT
+    // voice instead of the clone: the whole feature failing while looking
+    // like it works. Catches exactly that regression.
+    expect(setReferenceVoice).toHaveBeenCalledTimes(2);
+    expect(setReferenceVoice).toHaveBeenNthCalledWith(1, audio, 16000, 'hi');
+    expect(setReferenceVoice).toHaveBeenNthCalledWith(2, audio, 16000, 'hi');
   });
 
   it('does not retry a second _not_owner_error', async () => {

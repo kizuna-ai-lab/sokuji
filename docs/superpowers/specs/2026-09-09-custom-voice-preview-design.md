@@ -164,14 +164,21 @@ The rule, therefore:
 
 > The preview speaks the first language L for which **the engine speaks L** and
 > **the table has a sentence for L**, considered in order: the target language,
-> then `en`, then the engine's own language list in its own order. If no such L
-> exists, there is no preview: the row renders the disabled control with
+> then `en`, then the sample table's own key order. If no such L exists, there
+> is no preview: the row renders the disabled control with
 > `previewUnavailableReason`.
 
-Ordering the engine's own list last, and requiring a table entry at every tier,
-is what keeps the mismatch unconstructible — synthesising the English sentence
-under some other language code would be exactly the defect the pair-return was
-designed to prevent.
+Requiring a table entry at every tier is what keeps the mismatch
+unconstructible — synthesising the English sentence under some other language
+code would be exactly the defect the pair-return was designed to prevent. The
+third tier iterates the sample table's own key order (`resolvePreviewSample` in
+`previewSample.ts`, via `Object.keys(PREVIEW_SAMPLES)`), not the engine's own
+language list as an earlier revision of this section said: both gates still
+apply, so no mismatch is constructible either way, and the table's order is
+arguably the better choice regardless — it is deterministic independent of
+which TTS card happens to be loaded, where "the engine's own list" would make
+the third-tier pick depend on catalog ordering that has nothing to do with
+preview quality.
 
 For **managed Soniox** the engine-speaks test is vacuous (Soniox documents
 cloned voices as any-voice-any-language, which is also why the English fallback
@@ -203,7 +210,9 @@ custom voice. If synthesis is impossible or fails, it **falls back to replaying
 the reference clip** — today's behaviour. That fallback is deliberate: replaying
 the recording answers "did I record clearly?", synthesis answers "does the clone
 sound like me", and both are worth having. Keeping the old path as the failure
-mode costs nothing and loses nothing.
+mode costs nothing and loses nothing — *except* during an active session; see
+"Active sessions are refused, not attempted" below for the one case where it
+does lose something.
 
 **New helper** in `src/stores/nativeModelStore.ts`, alongside `nativeListTtsVoices`:
 
@@ -245,12 +254,32 @@ process singleton guarded by `_owner_conn`; the settings panel talks over
 `nativeModelStore`'s own connection, not the session's, so a panel-issued
 `tts_generate` during a session returns `_not_owner_error`. `NativeVoiceSection`
 therefore passes `previewUnavailableReason` while `isSessionActive` and never
-dials out.
+dials out — the button is disabled outright, not clicked-then-falls-back.
+
+**The trade this makes, named honestly.** Before this branch, the preview
+button replayed the stored clip during a session, touching no sidecar at all —
+that capability is now gone: mid-session, the button is disabled instead. The
+reason is not a technical limitation (clip replay never needed the sidecar and
+still doesn't) but a deliberate call: during a session the button could only
+ever have played the raw recording, never a synthesis, and a user hearing their
+own recording under a "preview this voice" affordance could reasonably conclude
+that *is* what the clone sounds like — deepening the exact clip-vs-synthesis
+ambiguity this feature exists to resolve, in the one situation (mid-session)
+where that confusion would be guaranteed rather than merely possible on a
+synthesis failure. The controller ruled to accept the regression rather than
+restore clip replay during a session. The follow-up that would let it back in
+without reopening that ambiguity: distinguish clip playback from synthesis in
+the UI (e.g. a visibly different control or label for "hear your recording" vs.
+"hear the clone"), deliberately deferred out of this branch's scope.
 
 **Voice-required families.** `qwen3_tts` and `omnivoice` need a reference
 transcript, `index_tts2` needs the clip. `eligibleCustomVoices` already decides
-which stored clips qualify; preview reuses it, so an ineligible clip's row is
-already `disabled` and renders no preview control.
+which stored clips qualify; preview reuses it. The mechanism is filtering, not
+disabling: `eligibleCustomVoices` (`nativeCatalog.ts`) removes an ineligible
+clip from the array entirely, so its row never reaches the picker at all,
+rather than reaching it and rendering `disabled`. Same outcome for the user —
+no preview control for a clip that cannot back one — by a different
+mechanism.
 
 ## 5. Backend: lease, billing and display
 

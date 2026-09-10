@@ -113,7 +113,12 @@ export const SONIOX_PREVIEW_MIN_SESSION_S = 10;
  * KEEP IN SYNC with sokuji-backend's `sonioxStartFloorMicroUsd` preview
  * branch (`src/services/soniox-budget.ts`), which names this file by path in
  * its own docstring precisely so a change here or there shows up as a failing
- * test rather than as a Preview control that lies about a 402. This is a UI
- * pre-check only; the backend's 402 remains the authority.
+ * test rather than as a Preview control that lies about a 402. Unlike
+ * `sonioxManagedMinBalanceMicroUsd` above, nothing reads this constant to
+ * gate the UI — the design deliberately leaves the managed preview's balance
+ * check to reactive 402 handling (`mapTtsError`), so this constant's only job
+ * today is parity documentation plus the drift test that keeps the two
+ * repositories' money literals honest. A pre-check gate wired to it is a
+ * possible follow-up, not a missing piece of this one.
  */
 export const SONIOX_MANAGED_PREVIEW_MIN_BALANCE_MICRO_USD = 3_889;

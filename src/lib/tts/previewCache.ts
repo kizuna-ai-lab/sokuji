@@ -30,4 +30,21 @@ export function previewCacheKey(source: string, id: string, language: string, sp
 
 export function getCachedPreview(key: string) { return cache.get(key); }
 export function setCachedPreview(key: string, value: { audio: Float32Array; sampleRate: number }) { cache.set(key, value); }
-export function clearPreviewCache(): void { cache.clear(); }
+
+/** With no argument, wipes the whole cache (what every existing test-isolation
+ *  call site wants). With a `prefix` (a `source` value, as passed to
+ *  `previewCacheKey`), clears only that namespace -- the cache is shared
+ *  between managed Soniox (`soniox:<region>`/`managed:<region>`) and Local
+ *  Native (`native:<modelId>`), so a caller leaving ONE namespace (e.g. a
+ *  Soniox account swap) must not also drop the other's entries. Matched on
+ *  `${prefix}|` so `soniox:us` cannot also match a would-be `soniox:us-2`. */
+export function clearPreviewCache(prefix?: string): void {
+  if (prefix === undefined) {
+    cache.clear();
+    return;
+  }
+  const needle = `${prefix}|`;
+  for (const key of cache.keys()) {
+    if (key.startsWith(needle)) cache.delete(key);
+  }
+}
