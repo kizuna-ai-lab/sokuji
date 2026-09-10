@@ -24,6 +24,21 @@ describe('StreamingAudioFeed', () => {
     expect(Array.from(feed.audio)).toEqual([1, 2, 3]);
   });
 
+  it('keeps only bounded recent audio while waiting for speech', () => {
+    const feed = new StreamingAudioFeed();
+    feed.append(f32(1, 2, 3));
+    feed.append(f32(4, 5));
+    feed.retainLatest(3);
+    expect(Array.from(feed.audio)).toEqual([3, 4, 5]);
+  });
+
+  it('does not pad a short pre-roll up to its history limit', () => {
+    const feed = new StreamingAudioFeed();
+    feed.append(f32(1, 2));
+    feed.retainLatest(4);
+    expect(Array.from(feed.audio)).toEqual([1, 2]);
+  });
+
   it('pads the buffer with silence on finish so the model can decode its tail', () => {
     const feed = new StreamingAudioFeed();
     feed.append(f32(1, 2, 3));

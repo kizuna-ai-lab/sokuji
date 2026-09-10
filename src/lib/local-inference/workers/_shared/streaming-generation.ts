@@ -77,6 +77,20 @@ export class StreamingAudioFeed {
     }
   }
 
+  /**
+   * Bound audio retained before a generate run starts.
+   *
+   * The worker continuously receives silence while VAD is idle. Keeping that
+   * entire history makes the next utterance feed an arbitrarily large first
+   * backlog into ORT. Preserve only the recent pre-roll needed for speech onset.
+   */
+  retainLatest(maxSamples: number): void {
+    if (this._finishing || this._stopped) return;
+    const limit = Math.max(0, Math.floor(maxSamples));
+    if (this.active.length <= limit) return;
+    this.active = this.active.slice(this.active.length - limit);
+  }
+
   /** End the run gracefully, padding with `padSamples` of silence first. */
   requestFinish(padSamples: number): void {
     if (this._finishing) return;

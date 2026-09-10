@@ -76,6 +76,7 @@ let vadSession: VadSession | null = null;
 let frameProcessor: FrameProcessor | null = null;
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
+let preSpeechPadSamples = Math.ceil(0.8 * VAD_SAMPLE_RATE);
 
 async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
   if (!vadSession) return { isSpeech: 0, notSpeech: 1 };
@@ -108,6 +109,7 @@ async function initVad(vadConfig?: VoxtralAsrInitMessage['vadConfig'], vadModelU
   const maxSpeechDurationMs = (vadConfig?.maxSpeechDuration ?? 20) * 1000;
 
   maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
+  preSpeechPadSamples = Math.ceil((preSpeechPadMs / 1000) * VAD_SAMPLE_RATE);
 
   frameProcessor = new FrameProcessor(
     vadInfer,
@@ -402,6 +404,13 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
       } else {
         speechFramesSinceStart = 0;
       }
+    }
+
+    // Audio arrives continuously, including potentially hours of idle silence.
+    // Keep enough pre-roll for the VAD onset and Voxtral's first chunk, but do
+    // not hand an unbounded backlog to ORT when speech eventually starts.
+    if (!frameProcessor.speaking && !isGenerating && !pendingStart) {
+      audioFeed.retainLatest(Math.max(preSpeechPadSamples, voxtralProcessor.num_samples_first_audio_chunk));
     }
   } finally {
     processingVad = false;
