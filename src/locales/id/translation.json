@@ -427,7 +427,9 @@
     "textOnlyDesc": "Terjemahkan ke teks saja — tanpa keluaran suara",
     "textOnlyForcedByMode": "Mode \"{{mode}}\" hanya mengubah ucapan peserta menjadi teks untuk Anda dan tidak pernah menghasilkan audio, jadi \"Teks saja\" tetap aktif. Ubah mode terjemahan untuk menerjemahkan suara Anda sendiri dengan ucapan.",
     "keepReplayAudio": "Simpan audio untuk diputar ulang",
-    "keepReplayAudioDesc": "Simpan audio terjemahan di memori sehingga Anda dapat memutarnya kembali nanti dari setiap pesan. Nonaktif secara default untuk mengurangi penggunaan memori selama sesi yang panjang."
+    "keepReplayAudioDesc": "Simpan audio terjemahan di memori sehingga Anda dapat memutarnya kembali nanti dari setiap pesan. Nonaktif secara default untuk mengurangi penggunaan memori selama sesi yang panjang.",
+    "autoSaveOnStop": "Simpan otomatis percakapan saat berhenti",
+    "autoSaveOnStopDesc": "Saat Anda menghentikan sesi, percakapan otomatis diunduh sebagai file .txt — file yang sama seperti yang dihasilkan tombol ekspor .txt. Nonaktif secara default."
   },
   "providers": {
     "kizunaai_openai_translate": {

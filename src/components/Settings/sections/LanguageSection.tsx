@@ -32,7 +32,9 @@ import {
   useTextOnly,
   useSetTextOnly,
   useKeepReplayAudio,
-  useSetKeepReplayAudio
+  useSetKeepReplayAudio,
+  useAutoSaveOnStop,
+  useSetAutoSaveOnStop
 } from '../../../stores/settingsStore';
 import type { SettingsStore } from '../../../stores/settingsStore';
 import { Provider, kizunaBaseProvider } from '../../../types/Provider';
@@ -94,6 +96,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
 
   const keepReplayAudio = useKeepReplayAudio();
   const setKeepReplayAudio = useSetKeepReplayAudio();
+
+  const autoSaveOnStop = useAutoSaveOnStop();
+  const setAutoSaveOnStop = useSetAutoSaveOnStop();
 
   const updateOpenAISettings = useUpdateOpenAI();
   const updateGeminiSettings = useUpdateGemini();
@@ -756,6 +761,13 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             label={t('simpleConfig.keepReplayAudio', 'Keep audio for replay')}
             disabled={isSessionActive}
             tooltip={t('simpleConfig.keepReplayAudioDesc', 'Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions.')}
+          />
+
+          <ToggleSwitch
+            checked={autoSaveOnStop}
+            onChange={() => setAutoSaveOnStop(!autoSaveOnStop)}
+            label={t('simpleConfig.autoSaveOnStop', 'Auto-save conversation on stop')}
+            tooltip={t('simpleConfig.autoSaveOnStopDesc', 'When you stop a session, automatically download the conversation as a .txt file — the same file the .txt export button produces. Off by default.')}
           />
 
           {missingStages.length > 0 && (

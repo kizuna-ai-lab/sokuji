@@ -427,7 +427,9 @@
     "textOnlyDesc": "Nur als Text übersetzen — keine Sprachausgabe",
     "textOnlyForcedByMode": "Der Modus \"{{mode}}\" wandelt das, was die Teilnehmer sagen, nur in Text für Sie um und erzeugt nie Audio — deshalb bleibt \"Nur Text\" aktiviert. Wechseln Sie den Übersetzungsmodus, um Ihre eigene Stimme mit Sprachausgabe zu übersetzen.",
     "keepReplayAudio": "Audio für Wiedergabe behalten",
-    "keepReplayAudioDesc": "Übersetztes Audio im Speicher behalten, damit Sie es später aus jeder Nachricht erneut abspielen können. Standardmäßig deaktiviert, um den Speicherverbrauch bei langen Sitzungen zu reduzieren."
+    "keepReplayAudioDesc": "Übersetztes Audio im Speicher behalten, damit Sie es später aus jeder Nachricht erneut abspielen können. Standardmäßig deaktiviert, um den Speicherverbrauch bei langen Sitzungen zu reduzieren.",
+    "autoSaveOnStop": "Unterhaltung beim Stoppen automatisch speichern",
+    "autoSaveOnStopDesc": "Wenn Sie eine Sitzung beenden, wird die Unterhaltung automatisch als .txt-Datei heruntergeladen — dieselbe Datei, die die .txt-Export-Schaltfläche erzeugt. Standardmäßig deaktiviert."
   },
   "providers": {
     "kizunaai_openai_translate": {

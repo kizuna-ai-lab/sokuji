@@ -22,6 +22,7 @@ import {
   useCurrentTurnDetectionMode,
   useSubtitleModeActive,
   useKeepReplayAudio,
+  useAutoSaveOnStop,
   useTextOnly,
 } from '../../stores/settingsStore';
 import useSettingsStore from '../../stores/settingsStore';
@@ -81,6 +82,18 @@ import DisplayModeButton from './DisplayModeButton';
 import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
 import ExportButton from './ExportButton';
+import {
+  buildSessionMetadata,
+  collectLanguagePairs,
+  deriveAutoSaveTitle,
+  deriveSessionLanguagePair,
+  downloadFile,
+  formatAsTxt,
+  formatTimestampForFilename,
+  getActiveModelInfo,
+  normalizeMessages,
+  type TxtI18n,
+} from '../../utils/conversationExport';
 import {
   useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, shift, size,
   autoUpdate, FloatingPortal,
@@ -279,6 +292,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const uiMode = useUIMode();
   const subtitleModeActive = useSubtitleModeActive();
   const replayEnabled = useKeepReplayAudio();
+  const autoSaveOnStop = useAutoSaveOnStop();
   const subtitleTakeover = subtitleModeActive && isExtension();
   const conversationFontSize = useConversationDisplayFontSize();
   const setConversationFontSize = useSetConversationDisplayFontSize();
@@ -744,6 +758,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+  // Armed by disconnectConversation's speaker-leg teardown, right where it
+  // captures the session's final items into `items` state. Consumed by the
+  // auto-save effect below, which fires on the very next [items,
+  // participantItems] change — i.e. the render that carries those final
+  // items — so the export sees the real end-of-session conversation rather
+  // than a stale snapshot from before teardown finished.
+  const pendingAutoSaveRef = useRef(false);
 
   // Add state variables to track if test tone is playing and currently playing audio item
   const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
@@ -1737,6 +1759,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             throttleTimerRef.current = null;
           }
           setItems(client.getConversationItems());
+          // Arm the auto-save effect: a real speaker client existed, so a
+          // session actually ran and there may be something worth saving.
+          // The effect itself checks the setting and whether there is any
+          // content once the final items land in state.
+          pendingAutoSaveRef.current = true;
           client.reset();
         },
         participant: async () => {
@@ -4077,6 +4104,59 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const targetLanguage = currentSettings.targetLanguage ?? 'EN';
 
   // (renderConversationItem has been extracted to ConversationBubble above the component.)
+
+  // Auto-save the conversation as a .txt file after a session ends — same
+  // pipeline (normalize → format → download) as ExportButton's manual
+  // "Download as .txt" action. Gated on `pendingAutoSaveRef`, armed by
+  // disconnectConversation right where it captures the session's final
+  // items; this effect runs on the resulting [items, participantItems]
+  // change (combinedItems is derived from both), so it sees the real
+  // end-of-session conversation rather than a stale snapshot.
+  useEffect(() => {
+    if (!pendingAutoSaveRef.current) return;
+    pendingAutoSaveRef.current = false;
+    if (!autoSaveOnStop) return;
+
+    const messages = normalizeMessages(combinedItems);
+    if (messages.length === 0) return; // nothing to save
+
+    const models = getActiveModelInfo(provider, currentSettings, localInferenceSettings);
+    // Same as ExportButton.buildPayload: prefer the language pair captured
+    // on the messages over the live config, which may have since changed.
+    const sessionPair = deriveSessionLanguagePair(messages, { sourceLanguage, targetLanguage });
+    const metadata = buildSessionMetadata({
+      provider,
+      models,
+      sourceLanguage: sessionPair.sourceLanguage,
+      targetLanguage: sessionPair.targetLanguage,
+      languagePairs: collectLanguagePairs(messages),
+    });
+    const txtI18n: TxtI18n = {
+      speakerYou: t('mainPanel.export.speakerYou', 'Me'),
+      speakerOther: t('mainPanel.export.speakerOther', 'Other'),
+      translationSuffix: t('mainPanel.export.translationSuffix', '(trans)'),
+      headerTitle: t('mainPanel.export.headerTitle', 'Sokuji conversation export'),
+      headerGenerated: t('mainPanel.export.headerGenerated', 'Generated'),
+      headerProvider: t('mainPanel.export.headerProvider', 'Provider'),
+      headerModels: t('mainPanel.export.headerModels', 'Models'),
+      headerSource: t('mainPanel.export.headerSource', 'My Language'),
+      headerTarget: t('mainPanel.export.headerTarget', "Other's Language"),
+      headerNote: t('mainPanel.export.headerNote', 'Note: settings reflect current state at export, not mid-session changes.'),
+      headerNarrowed: t('mainPanel.export.headerNarrowed', 'Note: this export was narrowed at export time — some lines were left out.'),
+    };
+    const content = formatAsTxt(messages, metadata, txtI18n, { includeHeader: true });
+
+    // The filename's title comes from the conversation itself (the first
+    // original line, trimmed and sanitized) so a folder of auto-saves reads
+    // as a list of what was actually said, not a wall of identical names
+    // differing only by timestamp. Falls back to the manual export's generic
+    // name when no usable title can be derived (e.g. translation-only rows).
+    const title = deriveAutoSaveTitle(messages);
+    const filename = title
+      ? `sokuji-${title}-${formatTimestampForFilename(Date.now())}.txt`
+      : `sokuji-conversation-${formatTimestampForFilename(Date.now())}.txt`;
+    downloadFile(content, filename, 'text/plain;charset=utf-8');
+  }, [combinedItems, autoSaveOnStop, provider, currentSettings, localInferenceSettings, sourceLanguage, targetLanguage, t]);
 
   // Unified render for both modes
   return (

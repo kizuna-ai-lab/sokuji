@@ -4,6 +4,7 @@ import type { DisplayMode } from '../stores/settingsStore';
 import {
   buildSessionMetadata,
   collectLanguagePairs,
+  deriveAutoSaveTitle,
   deriveSessionLanguagePair,
   formatAsJson,
   formatAsTxt,
@@ -245,5 +246,68 @@ describe('formatAsJson — per-message language and pairs', () => {
   it('does not emit the legacy "settings reflect current state" note', () => {
     const out = JSON.parse(formatAsJson([], metadata([])));
     expect(out.session.note).toBeUndefined();
+  });
+});
+
+describe('deriveAutoSaveTitle', () => {
+  const msg = (over: Partial<NormalizedMessage>): NormalizedMessage => ({
+    id: over.id ?? 'm1',
+    createdAt: over.createdAt ?? 1,
+    source: over.source ?? 'speaker',
+    kind: over.kind ?? 'original',
+    text: over.text ?? '',
+  });
+
+  it('returns "" for an empty conversation', () => {
+    expect(deriveAutoSaveTitle([])).toBe('');
+  });
+
+  it('uses the first original message, not a translation that precedes it in kind priority', () => {
+    const out = deriveAutoSaveTitle([
+      msg({ id: '1', kind: 'translation', text: 'Bonjour' }),
+      msg({ id: '2', kind: 'original', text: 'Hello there' }),
+    ]);
+    expect(out).toBe('Hello there');
+  });
+
+  it('skips a blank original message and uses the next one', () => {
+    const out = deriveAutoSaveTitle([
+      msg({ id: '1', kind: 'original', text: '   ' }),
+      msg({ id: '2', kind: 'original', text: 'Second message' }),
+    ]);
+    expect(out).toBe('Second message');
+  });
+
+  it('collapses internal whitespace/newlines to single spaces', () => {
+    const out = deriveAutoSaveTitle([msg({ text: 'Hello\n\n  there   friend' })]);
+    expect(out).toBe('Hello there friend');
+  });
+
+  it('truncates to maxLength (default 40)', () => {
+    const long = 'a'.repeat(80);
+    const out = deriveAutoSaveTitle([msg({ text: long })]);
+    expect(out).toBe('a'.repeat(40));
+  });
+
+  it('honors a custom maxLength', () => {
+    const out = deriveAutoSaveTitle([msg({ text: 'Hello there friend' })], 5);
+    expect(out).toBe('Hello');
+  });
+
+  it('strips characters invalid in filenames', () => {
+    const out = deriveAutoSaveTitle([msg({ text: 'a/b\\c:d*e?f"g<h>i|j' })]);
+    expect(out).toBe('abcdefghij');
+  });
+
+  it('drops trailing dots', () => {
+    const out = deriveAutoSaveTitle([msg({ text: 'trailing dots...' })]);
+    expect(out).toBe('trailing dots');
+  });
+
+  it('returns "" when every message is a translation', () => {
+    const out = deriveAutoSaveTitle([
+      msg({ id: '1', kind: 'translation', text: 'Only a translation' }),
+    ]);
+    expect(out).toBe('');
   });
 });

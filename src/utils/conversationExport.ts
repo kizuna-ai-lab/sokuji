@@ -401,6 +401,29 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 }
 
 /**
+ * Derive a short, filesystem-safe title from the conversation, for use in the
+ * auto-save filename (e.g. "sokuji-hello-there-20260910-153000.txt" instead
+ * of the generic "sokuji-conversation-20260910-153000.txt"). Picks the first
+ * *original* (not translated) message so the title reflects what was
+ * actually said, not a translation of it.
+ *
+ * Returns '' when there is no usable text to derive a title from (empty
+ * conversation, or the first message is itself empty after trimming) — the
+ * caller falls back to the generic filename in that case.
+ */
+export function deriveAutoSaveTitle(messages: NormalizedMessage[], maxLength = 40): string {
+  const first = messages.find(m => m.kind === 'original' && m.text.trim().length > 0);
+  const raw = (first?.text ?? '').trim();
+  if (!raw) return '';
+
+  const collapsed = raw.replace(/\s+/g, ' ').slice(0, maxLength).trim();
+  // Strip characters invalid in Windows/macOS/Linux filenames and drop any
+  // trailing dots (Windows treats "name." as "name" but strips it silently —
+  // better to never emit it) so the result is safe as a single path segment.
+  return collapsed.replace(/[\\/:*?"<>|]/g, '').replace(/\.+$/, '').trim();
+}
+
+/**
  * Trigger a file download using a synthetic anchor + blob URL.
  * Works in both Electron renderer and Chrome extension side panel without
  * any extension permissions (uses HTML's standard `download` attribute).
