@@ -427,7 +427,9 @@
     "textOnlyDesc": "Käännä vain tekstiksi — ei puhuttua ääntä",
     "textOnlyForcedByMode": "Tila \"{{mode}}\" muuttaa osallistujien puheen vain tekstiksi sinulle eikä koskaan tuota ääntä, joten \"Vain teksti\" pysyy päällä. Vaihda käännöstilaa kääntääksesi oman äänesi puheena.",
     "keepReplayAudio": "Säilytä ääni toistoa varten",
-    "keepReplayAudioDesc": "Säilytä käännetty ääni muistissa, jotta voit toistaa sen myöhemmin jokaisesta viestistä. Oletuksena pois päältä, jotta muistinkäyttö pysyy pienenä pitkissä istunnoissa."
+    "keepReplayAudioDesc": "Säilytä käännetty ääni muistissa, jotta voit toistaa sen myöhemmin jokaisesta viestistä. Oletuksena pois päältä, jotta muistinkäyttö pysyy pienenä pitkissä istunnoissa.",
+    "autoSaveOnStop": "Tallenna keskustelu automaattisesti pysäytettäessä",
+    "autoSaveOnStopDesc": "Kun pysäytät istunnon, keskustelu ladataan automaattisesti .txt-tiedostona — samana tiedostona, jonka .txt-vientipainike tuottaa. Oletuksena pois päältä."
   },
   "providers": {
     "kizunaai_openai_translate": {

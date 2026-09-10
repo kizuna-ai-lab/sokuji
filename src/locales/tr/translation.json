@@ -427,7 +427,9 @@
     "textOnlyDesc": "Yalnızca metin olarak çevir — sesli çıkış yok",
     "textOnlyForcedByMode": "\"{{mode}}\" modu katılımcıların söylediklerini yalnızca sizin için metne dönüştürür ve hiçbir zaman ses üretmez; bu nedenle \"Yalnızca metin\" açık kalır. Kendi sesinizi konuşmayla çevirmek için çeviri modunu değiştirin.",
     "keepReplayAudio": "Sesi yeniden oynatma için sakla",
-    "keepReplayAudioDesc": "Çevrilen sesi bellekte saklayın, böylece her mesajdan daha sonra yeniden oynatabilirsiniz. Uzun oturumlarda bellek kullanımını azaltmak için varsayılan olarak kapalıdır."
+    "keepReplayAudioDesc": "Çevrilen sesi bellekte saklayın, böylece her mesajdan daha sonra yeniden oynatabilirsiniz. Uzun oturumlarda bellek kullanımını azaltmak için varsayılan olarak kapalıdır.",
+    "autoSaveOnStop": "Durdurulduğunda konuşmayı otomatik kaydet",
+    "autoSaveOnStopDesc": "Bir oturumu durdurduğunuzda, konuşma otomatik olarak .txt dosyası olarak indirilir — .txt dışa aktarma düğmesinin oluşturduğu dosyayla aynıdır. Varsayılan olarak kapalıdır."
   },
   "providers": {
     "kizunaai_openai_translate": {

@@ -367,6 +367,39 @@ describe('settingsStore', () => {
     });
   });
 
+  describe('autoSaveOnStop', () => {
+    it('defaults to false when storage has no stored value (loadSettings fallback)', async () => {
+      // Mutate state to the OPPOSITE of the expected default first, so that
+      // a passing assertion proves loadSettings() actually wrote the default
+      // through — not that the field happened to already be false.
+      useSettingsStore.setState({ autoSaveOnStop: true });
+
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+
+      await useSettingsStore.getState().loadSettings();
+
+      expect(useSettingsStore.getState().autoSaveOnStop).toBe(false);
+    });
+
+    it('setAutoSaveOnStop(true) updates state and persists', async () => {
+      mockSetSetting.mockResolvedValueOnce(undefined);
+      await useSettingsStore.getState().setAutoSaveOnStop(true);
+      expect(useSettingsStore.getState().autoSaveOnStop).toBe(true);
+      expect(mockSetSetting).toHaveBeenCalledWith(
+        'settings.common.autoSaveOnStop',
+        true,
+      );
+    });
+
+    it('rolls back state when persistence fails', async () => {
+      useSettingsStore.setState({ autoSaveOnStop: false });
+      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+      await useSettingsStore.getState().setAutoSaveOnStop(true);
+      // State must roll back to the previous value.
+      expect(useSettingsStore.getState().autoSaveOnStop).toBe(false);
+    });
+  });
+
   describe('useTransportType', () => {
     it('resolves the active provider slice, not a hardcoded openai slice (bug repro: OpenAI Translate reads its own websocket choice, not OpenAI leftover webrtc)', async () => {
       const store = useSettingsStore.getState();
