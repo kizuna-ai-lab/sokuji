@@ -30,6 +30,13 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
   // Get the latest event for display in collapsed view
   const latestEvent = events[events.length - 1];
   
+  // The cached JSON describes the events it was built from. A capped group
+  // swaps its oldest event for every new one, so drop the cache whenever the
+  // events change and let the effect below rebuild it while expanded.
+  useEffect(() => {
+    setJsonString(null);
+  }, [events]);
+
   // Lazy load JSON string only when expanded
   useEffect(() => {
     if (isExpanded && !jsonString) {

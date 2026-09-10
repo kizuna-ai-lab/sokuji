@@ -140,6 +140,35 @@ describe('LogsPanel', () => {
       const { container } = render(<LogsPanel toggleLogs={() => {}} />);
       expect(container.querySelector('.event-count')?.textContent).toBe(`(${total})`);
     });
+
+    // An expanded row caches its events as JSON. Once the group is capped,
+    // every new event drops the oldest one, so the cache has to follow the
+    // events; otherwise the numbering (from groupCount) and the content (from
+    // the cache) drift apart.
+    it('keeps an expanded capped group in step with its events', async () => {
+      const total = MAX_EVENTS_PER_GROUP + 5;
+      const append = (i: number) =>
+        useLogStore.getState().addRealtimeEvent(
+          { type: 'input_audio_buffer.append', audio: `chunk-${i}` } as never,
+          'client', 'input_audio_buffer.append', 'speaker'
+        );
+      // The row builds its JSON on a zero-delay timer.
+      const settle = () => act(async () => { await new Promise(r => setTimeout(r, 10)); });
+
+      write(() => { for (let i = 0; i < total; i++) append(i); });
+      const { container } = render(<LogsPanel toggleLogs={() => {}} />);
+      fireEvent.click(container.querySelector('.event-header')!);
+      await settle();
+      expect(container.querySelectorAll('.grouped-event pre')).toHaveLength(MAX_EVENTS_PER_GROUP);
+
+      write(() => append(total));
+      await settle();
+
+      const rows = container.querySelectorAll('.grouped-event');
+      const last = rows[rows.length - 1];
+      expect(last.querySelector('.grouped-event-index')?.textContent).toContain(`${total + 1}`);
+      expect(last.querySelector('pre')?.textContent).toContain(`chunk-${total}`);
+    });
   });
 
   describe('row identity', () => {
