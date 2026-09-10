@@ -101,8 +101,13 @@ describe('managed Soniox preview floor', () => {
   const TTS = 1_400_000; // µUSD/hr — same conservative synthesis rate as above
   const floor = Math.ceil((TTS * PREVIEW_MIN_SESSION_S) / 3600);
 
-  it('mirrors the backend PREVIEW_MIN_SESSION_S', () => {
+  it('mirrors the backend PREVIEW_MIN_SESSION_S and the conservative TTS rate', () => {
     expect(SONIOX_PREVIEW_MIN_SESSION_S).toBe(PREVIEW_MIN_SESSION_S);
+    // Without this, a TTS rate change would fail the sibling 'start floor'
+    // block above but leave this block's local TTS and the (now stale)
+    // SONIOX_MANAGED_PREVIEW_MIN_BALANCE_MICRO_USD self-consistent with each
+    // other, so the drift this file exists to catch would pass silently here.
+    expect(SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR.tts).toBe(TTS);
   });
 
   it('matches the backend formula for a single preview synthesis stream', () => {
