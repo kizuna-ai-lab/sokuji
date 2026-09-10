@@ -25,7 +25,13 @@ import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
-import { StreamingAudioFeed, StreamingTextAccumulator, tailPadSamples } from './_shared/streaming-generation';
+import {
+  boundedBatchEndSample,
+  QueuedUtterance,
+  StreamingAudioFeed,
+  StreamingTextAccumulator,
+  tailPadSamples,
+} from './_shared/streaming-generation';
 
 import type {
   VoxtralAsrInitMessage,
@@ -159,8 +165,8 @@ let voxtralProcessor: any = null;
 const PUNCTUATION_ENDPOINT_ENABLED = true;
 
 let isGenerating = false;
-/** A SpeechStart that arrived while the previous run was still draining its tail. */
-let pendingStart = false;
+/** An utterance that arrived while the previous run was still draining its tail. */
+const queuedUtterance = new QueuedUtterance();
 /** Teardown in progress — un-emitted tokens are dropped instead of flushed. */
 let disposing = false;
 
@@ -235,11 +241,7 @@ async function runVoxtralGenerate(): Promise<void> {
         // drained, then let generate() end so the streamer flushes its last tokens.
         if (!audioFeed.hasSamples(endNeeded)) break;
 
-        const availableSamples = audio().length;
-        let batchEndSample = endNeeded;
-        while (batchEndSample + samplesPerTok <= availableSamples) {
-          batchEndSample += samplesPerTok;
-        }
+        const batchEndSample = boundedBatchEndSample(endNeeded, audio().length, samplesPerTok);
 
         const chunkInputs = await voxtralProcessor(
           audio().slice(startIdx, batchEndSample),
@@ -308,9 +310,16 @@ async function runVoxtralGenerate(): Promise<void> {
     isGenerating = false;
     // Audio staged during the finish belongs to the next utterance.
     audioFeed.complete();
-    if (pendingStart && !disposing) {
-      pendingStart = false;
-      runVoxtralGenerate();
+    const queuedState = queuedUtterance.take();
+    if (queuedState && !disposing) {
+      if (queuedState === 'stop') {
+        audioFeed.clear();
+      } else {
+        void runVoxtralGenerate();
+        // SpeechEnd may have arrived while the old run was still draining. Apply
+        // that endpoint to the newly promoted run instead of losing it.
+        if (queuedState === 'finish') audioFeed.requestFinish(utterancePadSamples());
+      }
     }
   }
 }
@@ -320,6 +329,7 @@ async function runVoxtralGenerate(): Promise<void> {
  * decodes the words it is still holding, then let generate() finish on its own.
  */
 function finishGenerate() {
+  if (queuedUtterance.finish()) return;
   if (!isGenerating) {
     audioFeed.clear();
     return;
@@ -329,6 +339,7 @@ function finishGenerate() {
 
 /** Abandon the current utterance without decoding its tail. */
 function abortGenerate() {
+  if (queuedUtterance.stop()) return;
   audioFeed.requestStop();
   if (!isGenerating) audioFeed.clear();
 }
@@ -369,7 +380,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             if (isGenerating) {
               // The previous utterance is still draining its padded tail; its
               // run picks this one up when it completes.
-              pendingStart = true;
+              queuedUtterance.start();
             } else {
               // Start Voxtral generate loop (non-blocking)
               runVoxtralGenerate();
@@ -409,7 +420,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
     // Audio arrives continuously, including potentially hours of idle silence.
     // Keep enough pre-roll for the VAD onset and Voxtral's first chunk, but do
     // not hand an unbounded backlog to ORT when speech eventually starts.
-    if (!frameProcessor.speaking && !isGenerating && !pendingStart) {
+    if (!frameProcessor.speaking && !isGenerating && !queuedUtterance.pending) {
       audioFeed.retainLatest(Math.max(preSpeechPadSamples, voxtralProcessor.num_samples_first_audio_chunk));
     }
   } finally {
@@ -466,7 +477,7 @@ async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
     // Reset buffers
     vadAudioBuffer = new Float32Array(0);
     audioFeed.clear();
-    pendingStart = false;
+    queuedUtterance.clear();
     disposing = false;
 
     const loadTimeMs = Math.round(performance.now() - startTime);
@@ -509,7 +520,7 @@ async function handleDispose(): Promise<void> {
 
   vadAudioBuffer = new Float32Array(0);
   audioFeed.clear();
-  pendingStart = false;
+  queuedUtterance.clear();
   processingVad = false;
   isGenerating = false;
 

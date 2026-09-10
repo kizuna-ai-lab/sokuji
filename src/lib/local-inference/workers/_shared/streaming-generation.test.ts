@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { StreamingAudioFeed, StreamingTextAccumulator, tailPadSamples } from './streaming-generation';
+import {
+  boundedBatchEndSample,
+  QueuedUtterance,
+  StreamingAudioFeed,
+  StreamingTextAccumulator,
+  tailPadSamples,
+} from './streaming-generation';
 
 const f32 = (...values: number[]) => Float32Array.from(values);
 
@@ -13,6 +19,32 @@ describe('tailPadSamples', () => {
 
   it('has nothing to pad when the token length is unknown', () => {
     expect(tailPadSamples(0)).toBe(0);
+  });
+});
+
+describe('boundedBatchEndSample', () => {
+  it('consumes aligned backlog without exceeding the per-call token cap', () => {
+    expect(boundedBatchEndSample(1_000, 100_000, 1_280, 4)).toBe(4_840);
+  });
+
+  it('never extends past the available aligned samples', () => {
+    expect(boundedBatchEndSample(1_000, 3_700, 1_280, 32)).toBe(3_560);
+  });
+});
+
+describe('QueuedUtterance', () => {
+  it('preserves an endpoint observed while the previous run is finishing', () => {
+    const queued = new QueuedUtterance();
+    queued.start();
+    expect(queued.finish()).toBe(true);
+    expect(queued.take()).toBe('finish');
+    expect(queued.pending).toBe(false);
+  });
+
+  it('does not consume an endpoint when no utterance is queued', () => {
+    const queued = new QueuedUtterance();
+    expect(queued.finish()).toBe(false);
+    expect(queued.take()).toBeNull();
   });
 });
 

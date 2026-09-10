@@ -19,9 +19,71 @@
  */
 export const TAIL_PAD_TOKENS = 7;
 
+/** Keep individual audio-encoder calls small even when a backlog accumulated. */
+export const MAX_AUDIO_TOKENS_PER_ENCODER_CALL = 32;
+
 /** Samples of silence to append at an utterance end. */
 export function tailPadSamples(rawAudioLengthPerTok: number): number {
   return TAIL_PAD_TOKENS * rawAudioLengthPerTok;
+}
+
+/**
+ * Extend a required encoder chunk by whole audio-token steps, up to a hard cap.
+ *
+ * The streaming worker used to extend a chunk to all currently buffered audio.
+ * A lifecycle delay could therefore turn one ORT call into a minutes-long input.
+ */
+export function boundedBatchEndSample(
+  endNeeded: number,
+  availableSamples: number,
+  samplesPerTok: number,
+  maxTokens = MAX_AUDIO_TOKENS_PER_ENCODER_CALL,
+): number {
+  if (!Number.isFinite(samplesPerTok) || samplesPerTok <= 0) return endNeeded;
+  const extraAvailable = Math.max(0, Math.floor((availableSamples - endNeeded) / samplesPerTok));
+  const extraAllowed = Math.max(0, Math.floor(maxTokens) - 1);
+  return endNeeded + Math.min(extraAvailable, extraAllowed) * samplesPerTok;
+}
+
+export type QueuedUtteranceState = 'open' | 'finish' | 'stop';
+
+/** Endpoint state for an utterance staged while the preceding run drains. */
+export class QueuedUtterance {
+  private queued = false;
+  private endpoint: Exclude<QueuedUtteranceState, 'open'> | null = null;
+
+  get pending(): boolean {
+    return this.queued;
+  }
+
+  start(): void {
+    this.queued = true;
+    this.endpoint = null;
+  }
+
+  finish(): boolean {
+    if (!this.queued) return false;
+    this.endpoint = 'finish';
+    return true;
+  }
+
+  stop(): boolean {
+    if (!this.queued) return false;
+    this.endpoint = 'stop';
+    return true;
+  }
+
+  take(): QueuedUtteranceState | null {
+    if (!this.queued) return null;
+    const state = this.endpoint ?? 'open';
+    this.clear();
+    return state;
+  }
+
+  clear(): void {
+    this.queued = false;
+    this.endpoint = null;
+  }
 }
 
 function concat(a: Float32Array, b: Float32Array): Float32Array {
