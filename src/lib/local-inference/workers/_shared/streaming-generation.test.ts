@@ -46,6 +46,15 @@ describe('QueuedUtterance', () => {
     expect(queued.finish()).toBe(false);
     expect(queued.take()).toBeNull();
   });
+
+  it('keeps consecutive queued utterances and their endpoints distinct', () => {
+    const queued = new QueuedUtterance();
+    queued.start();
+    queued.finish();
+    queued.start();
+    expect(queued.take()).toBe('finish');
+    expect(queued.take()).toBe('open');
+  });
 });
 
 describe('StreamingAudioFeed', () => {
@@ -71,6 +80,13 @@ describe('StreamingAudioFeed', () => {
     expect(Array.from(feed.audio)).toEqual([1, 2]);
   });
 
+  it('uses a safe finite bound for invalid history limits', () => {
+    const feed = new StreamingAudioFeed();
+    feed.append(f32(1, 2, 3));
+    feed.retainLatest(Number.POSITIVE_INFINITY);
+    expect(feed.audio.length).toBe(0);
+  });
+
   it('pads the buffer with silence on finish so the model can decode its tail', () => {
     const feed = new StreamingAudioFeed();
     feed.append(f32(1, 2, 3));
@@ -94,6 +110,21 @@ describe('StreamingAudioFeed', () => {
     feed.complete();
     expect(Array.from(feed.audio)).toEqual([9, 9]);
     expect(feed.finishing).toBe(false);
+  });
+
+  it('keeps staged utterance boundaries distinct while an old run drains', () => {
+    const feed = new StreamingAudioFeed();
+    feed.append(f32(1));
+    feed.requestFinish(0);
+    feed.append(f32(2));
+    feed.sealStaged(1);
+    feed.append(f32(3));
+
+    feed.complete();
+    expect(Array.from(feed.audio)).toEqual([2, 0]);
+    feed.requestFinish(0);
+    feed.complete();
+    expect(Array.from(feed.audio)).toEqual([3]);
   });
 
   it('keeps consuming whole chunks after a finish until the padded audio runs out', () => {

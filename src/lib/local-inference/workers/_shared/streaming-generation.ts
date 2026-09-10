@@ -49,40 +49,40 @@ export type QueuedUtteranceState = 'open' | 'finish' | 'stop';
 
 /** Endpoint state for an utterance staged while the preceding run drains. */
 export class QueuedUtterance {
-  private queued = false;
-  private endpoint: Exclude<QueuedUtteranceState, 'open'> | null = null;
+  private queue: QueuedUtteranceState[] = [];
 
   get pending(): boolean {
-    return this.queued;
+    return this.queue.length > 0;
   }
 
   start(): void {
-    this.queued = true;
-    this.endpoint = null;
+    this.queue.push('open');
   }
 
   finish(): boolean {
-    if (!this.queued) return false;
-    this.endpoint = 'finish';
-    return true;
+    return this.setLatestOpenEndpoint('finish');
   }
 
   stop(): boolean {
-    if (!this.queued) return false;
-    this.endpoint = 'stop';
-    return true;
+    return this.setLatestOpenEndpoint('stop');
   }
 
   take(): QueuedUtteranceState | null {
-    if (!this.queued) return null;
-    const state = this.endpoint ?? 'open';
-    this.clear();
-    return state;
+    return this.queue.shift() ?? null;
   }
 
   clear(): void {
-    this.queued = false;
-    this.endpoint = null;
+    this.queue = [];
+  }
+
+  private setLatestOpenEndpoint(endpoint: Exclude<QueuedUtteranceState, 'open'>): boolean {
+    for (let i = this.queue.length - 1; i >= 0; i--) {
+      if (this.queue[i] === 'open') {
+        this.queue[i] = endpoint;
+        return true;
+      }
+    }
+    return false;
   }
 }
 
@@ -110,6 +110,7 @@ function concat(a: Float32Array, b: Float32Array): Float32Array {
 export class StreamingAudioFeed {
   private active: Float32Array = new Float32Array(0);
   private staged: Float32Array = new Float32Array(0);
+  private stagedSegments: Float32Array[] = [];
   private _finishing = false;
   private _stopped = false;
 
@@ -148,9 +149,17 @@ export class StreamingAudioFeed {
    */
   retainLatest(maxSamples: number): void {
     if (this._finishing || this._stopped) return;
-    const limit = Math.max(0, Math.floor(maxSamples));
+    const limit = Number.isFinite(maxSamples) ? Math.max(0, Math.floor(maxSamples)) : 0;
     if (this.active.length <= limit) return;
     this.active = this.active.slice(this.active.length - limit);
+  }
+
+  /** Seal the staged utterance at its VAD endpoint while the active run drains. */
+  sealStaged(padSamples: number): void {
+    const padding = Number.isFinite(padSamples) ? Math.max(0, Math.floor(padSamples)) : 0;
+    if (padding > 0) this.staged = concat(this.staged, new Float32Array(padding));
+    this.stagedSegments.push(this.staged);
+    this.staged = new Float32Array(0);
   }
 
   /** End the run gracefully, padding with `padSamples` of silence first. */
@@ -179,8 +188,12 @@ export class StreamingAudioFeed {
 
   /** The run is over: staged audio becomes the next run's starting buffer. */
   complete(): void {
-    this.active = this.staged;
-    this.staged = new Float32Array(0);
+    if (this.stagedSegments.length > 0) {
+      this.active = this.stagedSegments.shift()!;
+    } else {
+      this.active = this.staged;
+      this.staged = new Float32Array(0);
+    }
     this._finishing = false;
     this._stopped = false;
   }
@@ -188,6 +201,7 @@ export class StreamingAudioFeed {
   clear(): void {
     this.active = new Float32Array(0);
     this.staged = new Float32Array(0);
+    this.stagedSegments = [];
     this._finishing = false;
     this._stopped = false;
   }

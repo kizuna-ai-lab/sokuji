@@ -329,7 +329,10 @@ async function runVoxtralGenerate(): Promise<void> {
  * decodes the words it is still holding, then let generate() finish on its own.
  */
 function finishGenerate() {
-  if (queuedUtterance.finish()) return;
+  if (queuedUtterance.finish()) {
+    audioFeed.sealStaged(utterancePadSamples());
+    return;
+  }
   if (!isGenerating) {
     audioFeed.clear();
     return;
@@ -339,7 +342,10 @@ function finishGenerate() {
 
 /** Abandon the current utterance without decoding its tail. */
 function abortGenerate() {
-  if (queuedUtterance.stop()) return;
+  if (queuedUtterance.stop()) {
+    audioFeed.sealStaged(0);
+    return;
+  }
   audioFeed.requestStop();
   if (!isGenerating) audioFeed.clear();
 }
