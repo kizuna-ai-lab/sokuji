@@ -352,6 +352,116 @@ describe('managedVoiceSource previewing', () => {
     expect(previewDone).not.toHaveBeenCalled();
   });
 
+  it('serializes previews: the next mint waits for the superseded preview to report done', async () => {
+    // The section aborts voice A and starts voice B without awaiting A, so
+    // B's session-key would race A's preview-done (sent from A's finally).
+    // If B's mint lands first the account's lease row is still undone and
+    // the backend 409s once. Waiting for A to settle -- outcome ignored --
+    // costs one round trip and removes the only 409 a live audition can hit.
+    const calls: string[] = [];
+    let releaseA!: () => void;
+    const aHeld = new Promise<void>((resolve) => { releaseA = resolve; });
+    const client = fakeClient({
+      sessionKey: vi.fn(async () => { calls.push('key'); return { ttsApiKey: 'tk', region: 'us' as const }; }),
+      previewDone: vi.fn(async () => { calls.push('done'); }),
+    });
+    let synthCalls = 0;
+    const source = managedVoiceSource(client, ACCOUNT, {
+      synthesize: (async () => {
+        synthCalls += 1;
+        if (synthCalls === 1) { await aHeld; throw new SonioxVoicesError('aborted', 'Preview cancelled', 0); }
+        return { audio: new Float32Array(1), sampleRate: 24000 };
+      }) as any,
+    });
+
+    const ac = new AbortController();
+    const a = source.preview!({ id: 'a', language: 'ja', text: 'x', speed: 1, signal: ac.signal });
+    const b = source.preview!({ id: 'b', language: 'ja', text: 'x', speed: 1 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(calls).toEqual(['key']); // B has NOT minted while A is in flight
+
+    ac.abort();
+    releaseA();
+    await expect(a).rejects.toBeTruthy();
+    await expect(b).resolves.toEqual({ audio: new Float32Array(1), sampleRate: 24000 });
+    expect(calls).toEqual(['key', 'done', 'key', 'done']);
+  });
+
+  it('never mints a preview that was cancelled while waiting its turn', async () => {
+    let releaseA!: () => void;
+    const aHeld = new Promise<void>((resolve) => { releaseA = resolve; });
+    const sessionKey = vi.fn(async () => ({ ttsApiKey: 'tk', region: 'us' as const }));
+    const previewDone = vi.fn(async () => {});
+    const client = fakeClient({ sessionKey, previewDone });
+    const source = managedVoiceSource(client, ACCOUNT, {
+      synthesize: (async () => { await aHeld; return { audio: new Float32Array(1), sampleRate: 24000 }; }) as any,
+    });
+
+    const a = source.preview!({ id: 'a', language: 'ja', text: 'x', speed: 1 });
+    const bc = new AbortController();
+    const b = source.preview!({ id: 'b', language: 'ja', text: 'x', speed: 1, signal: bc.signal });
+    bc.abort();
+    releaseA();
+
+    await a;
+    await expect(b).rejects.toMatchObject({ errorType: 'aborted' });
+    expect(sessionKey).toHaveBeenCalledTimes(1);  // A's only
+    expect(previewDone).toHaveBeenCalledTimes(1); // A's only: B leased nothing
+  });
+
+  it('retries a 409 mint once after the backend hint, then surfaces a second 409', async () => {
+    // A preview mint had no retry at all (only Start retries, in
+    // ManagedSonioxSession.acquire), so a mint inside the backend's
+    // PREVIEW_MIN_GAP_MS of the previous preview's mint -- hear the first
+    // syllable, skip to the next voice -- was painted as "A session is
+    // running". One retry after the hint absorbs the gap; a second 409 is
+    // genuinely a live session or a dead preview's 45 s backstop.
+    const waits: number[] = [];
+    const sessionKey = vi.fn()
+      .mockRejectedValueOnce(new SonioxVoicesError('active_lease', 'HTTP 409', 409, 3000))
+      .mockResolvedValueOnce({ ttsApiKey: 'tk', region: 'us' as const });
+    const previewDone = vi.fn(async () => {});
+    const client = fakeClient({ sessionKey, previewDone });
+    const source = managedVoiceSource(client, ACCOUNT, {
+      sleep: async (ms: number) => { waits.push(ms); },
+      synthesize: (async () => ({ audio: new Float32Array(1), sampleRate: 24000 })) as any,
+    });
+
+    await expect(source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1 }))
+      .resolves.toEqual({ audio: new Float32Array(1), sampleRate: 24000 });
+    expect(waits).toEqual([3000]);
+    expect(sessionKey).toHaveBeenCalledTimes(2);
+    expect(previewDone).toHaveBeenCalledTimes(1);
+
+    sessionKey.mockReset();
+    sessionKey.mockRejectedValue(new SonioxVoicesError('active_lease', 'HTTP 409', 409, 3000));
+    await expect(source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1 }))
+      .rejects.toMatchObject({ status: 409 });
+    expect(sessionKey).toHaveBeenCalledTimes(2);  // one retry, then give up
+    expect(previewDone).toHaveBeenCalledTimes(1); // unchanged: nothing was leased
+  });
+
+  it('rejects as aborted, without a second mint, when cancelled during the 409 wait', async () => {
+    let releaseWait!: () => void;
+    const sessionKey = vi.fn().mockRejectedValue(new SonioxVoicesError('active_lease', 'HTTP 409', 409, 3000));
+    const previewDone = vi.fn(async () => {});
+    const client = fakeClient({ sessionKey, previewDone });
+    const source = managedVoiceSource(client, ACCOUNT, {
+      sleep: () => new Promise<void>((resolve) => { releaseWait = resolve; }),
+      synthesize: (async () => ({ audio: new Float32Array(1), sampleRate: 24000 })) as any,
+    });
+
+    const ac = new AbortController();
+    const p = source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1, signal: ac.signal });
+    await new Promise((r) => setTimeout(r, 0)); // the first mint has failed; the wait is in progress
+    ac.abort();
+
+    await expect(p).rejects.toMatchObject({ errorType: 'aborted' });
+    expect(sessionKey).toHaveBeenCalledTimes(1);
+    expect(previewDone).not.toHaveBeenCalled();
+    releaseWait();
+  });
+
   it('does not touch the voice slot — a preview is read-only', async () => {
     // Product ruling: auditioning must not pin, touch, or LRU-reorder the
     // account's single managed voice slot. `preview` has no reason to call

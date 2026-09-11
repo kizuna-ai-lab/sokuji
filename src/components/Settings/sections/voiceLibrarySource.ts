@@ -150,6 +150,47 @@ export function managedVoiceSource(
     now = () => Date.now(),
     synthesize = synthesizeOnce,
   } = opts;
+
+  // Previews on this source run one at a time. Settled-and-swallowed so a
+  // rejected preview never becomes an unhandled rejection through this
+  // chain; the caller still sees its own rejection through the returned
+  // promise. See `preview` below for why.
+  let previousPreview: Promise<void> = Promise.resolve();
+
+  const cancelled = () => new SonioxVoicesError('aborted', 'Preview cancelled', 0);
+
+  // The backend's retry hint, honoured abort-aware: a user who moves on
+  // during the wait must not sit through it (the NEXT preview waits on this
+  // one), and must not mint a key nobody will use. Uses the injected
+  // `sleep` so tests need no fake timers.
+  const retryDelay = (ms: number, signal?: AbortSignal): Promise<void> => {
+    if (!signal) return sleep(ms);
+    return new Promise<void>((resolve, reject) => {
+      const onAbort = () => reject(cancelled());
+      if (signal.aborted) { onAbort(); return; }
+      signal.addEventListener('abort', onAbort, { once: true });
+      sleep(ms).then(() => { signal.removeEventListener('abort', onAbort); resolve(); }, reject);
+    });
+  };
+
+  // One retry on 409, after the backend's own hint. Serialization (in
+  // `preview`) removes the RACE 409; what remains is the GAP 409 -- a mint
+  // inside the backend's PREVIEW_MIN_GAP_MS of the previous preview's mint,
+  // which it refuses once so a scripted client cannot mint faster than it
+  // allows. For a real click that is at most one wait. A second 409 is a
+  // live session or a dead preview's 45 s backstop and surfaces exactly as
+  // before (SonioxVoiceSection's mapTtsError). Nothing was leased by a
+  // refused mint, so there is nothing to report done.
+  const mintPreviewKey = async (signal?: AbortSignal) => {
+    try {
+      return await client.sessionKey({ mode: 'voice_preview' });
+    } catch (error) {
+      if (!(error instanceof SonioxVoicesError) || error.status !== 409) throw error;
+      await retryDelay(error.retryAfterMs ?? 3000, signal);
+      return await client.sessionKey({ mode: 'voice_preview' });
+    }
+  };
+
   return {
     async list() {
       const voice = await client.mine();
@@ -228,50 +269,66 @@ export function managedVoiceSource(
     canPreview: true,
 
     async preview({ id, language, text, speed, signal }) {
-      // Mint FIRST and outside the try/finally: a mint that failed leased
-      // nothing, so there is nothing to complete — and `preview-done`
-      // resolves the account's OWN lease server-side, so a stray call here
-      // could complete a DIFFERENT in-flight preview of this same account.
-      const key = await client.sessionKey({ mode: 'voice_preview' });
-      try {
-        // `ttsApiKey`, not `sttApiKey`: this mode mints no transcription key
-        // at all (backend design §5.6) — the field is absent by design, not
-        // an oversight to fall back from.
-        return await synthesize({
-          apiKey: key.ttsApiKey, region: key.region,
-          voice: id, language, text, speed, signal,
-        });
-      } finally {
-        // `finally`, not the success path. This call is the BILLING
-        // TRIGGER: it writes the lease's `started_at`, which is what lets
-        // the reconciler's sweep find the lease at all, and what releases
-        // the account's exclusivity lease instead of leaving it to the ~45s
-        // backstop. A user cancelling mid-synthesis is the common case, not
-        // the rare one — which is exactly why this must not live on the
-        // success path alone.
-        //
-        // Never rethrows: a failed completion must not mask the synthesis
-        // result, nor replace a useful error with a bookkeeping one. The
-        // charge is not lost either way — it is only deferred to the next
-        // sweep triggered by unrelated traffic in this region.
-        //
-        // NOT swallowed silently, though — "never rethrow" and "discard" are
-        // different decisions, and the sibling fire-and-forget calls
-        // (ManagedSonioxSession.markStarted/end) already made the second one
-        // for good reason: unread, a systemic failure here (a route typo, a
-        // deploy skew) would be invisible — every preview keeps playing, no
-        // preview is ever billed, and the account's next Start 409s for up to
-        // the ~45s backstop with nothing anywhere naming why. `reportWarning`
-        // is the sanctioned channel for exactly this ("it happened, or will")
-        // and never shows UI, so it cannot collide with `setCaptureError`.
-        await client.previewDone().catch((error) => {
-          reportWarning(
-            'ManagedVoiceSource',
-            `Preview completion was not reported to the backend: ${describeCause(error)}`,
-            { cause: error }
-          );
-        });
-      }
+      // Serialize per source. The section aborts a superseded preview and
+      // starts the next one without awaiting it (VoiceLibrarySection's
+      // togglePreview), so voice B's session-key would race voice A's
+      // preview-done, sent from A's finally below. If B's mint lands first
+      // the account's lease row is still undone and the backend 409s
+      // (the row is re-entrant only once preview-done has landed --
+      // backend spec 2026-09-11, §3). Waiting for A to settle, outcome
+      // ignored, costs one round trip and removes the race. A preview
+      // cancelled while it waits leases nothing and reports nothing.
+      const previous = previousPreview;
+      const run = (async () => {
+        await previous;
+        if (signal?.aborted) throw cancelled();
+        // Mint FIRST and outside the try/finally: a mint that failed leased
+        // nothing, so there is nothing to complete — and `preview-done`
+        // resolves the account's OWN lease server-side, so a stray call here
+        // could complete a DIFFERENT in-flight preview of this same account.
+        const key = await mintPreviewKey(signal);
+        try {
+          // `ttsApiKey`, not `sttApiKey`: this mode mints no transcription key
+          // at all (backend design §5.6) — the field is absent by design, not
+          // an oversight to fall back from.
+          return await synthesize({
+            apiKey: key.ttsApiKey, region: key.region,
+            voice: id, language, text, speed, signal,
+          });
+        } finally {
+          // `finally`, not the success path. This call is the BILLING
+          // TRIGGER: it writes the lease's `started_at`, which is what lets
+          // the reconciler's sweep find the lease at all, and what releases
+          // the account's exclusivity lease instead of leaving it to the ~45s
+          // backstop. A user cancelling mid-synthesis is the common case, not
+          // the rare one — which is exactly why this must not live on the
+          // success path alone.
+          //
+          // Never rethrows: a failed completion must not mask the synthesis
+          // result, nor replace a useful error with a bookkeeping one. The
+          // charge is not lost either way — it is only deferred to the next
+          // sweep triggered by unrelated traffic in this region.
+          //
+          // NOT swallowed silently, though — "never rethrow" and "discard" are
+          // different decisions, and the sibling fire-and-forget calls
+          // (ManagedSonioxSession.markStarted/end) already made the second one
+          // for good reason: unread, a systemic failure here (a route typo, a
+          // deploy skew) would be invisible — every preview keeps playing, no
+          // preview is ever billed, and the account's next Start 409s for up to
+          // the ~45s backstop with nothing anywhere naming why. `reportWarning`
+          // is the sanctioned channel for exactly this ("it happened, or will")
+          // and never shows UI, so it cannot collide with `setCaptureError`.
+          await client.previewDone().catch((error) => {
+            reportWarning(
+              'ManagedVoiceSource',
+              `Preview completion was not reported to the backend: ${describeCause(error)}`,
+              { cause: error }
+            );
+          });
+        }
+      })();
+      previousPreview = run.then(() => undefined, () => undefined);
+      return run;
     },
 
     // A different region is a different Soniox project — same reasoning as
