@@ -456,8 +456,8 @@
       "description": "Googlen tekoälyteknologia"
     },
     "openaiCompatible": {
-      "name": "OpenAI-yhteensopiva API",
-      "description": "Mukautettu OpenAI-yhteensopiva päätepiste",
+      "name": "OpenAI-yhteensopiva (vanha Realtime)",
+      "description": "Kolmannen osapuolen päätepiste, joka käyttää OpenAI:n vanhaa beta-Realtime-protokollaa. Ei OpenAI:lle itselleen.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

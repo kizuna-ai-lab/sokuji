@@ -456,8 +456,8 @@
       "description": "Teknologi AI Google"
     },
     "openaiCompatible": {
-      "name": "API Serasi OpenAI",
-      "description": "Titik akhir tersuai yang serasi dengan OpenAI",
+      "name": "Serasi OpenAI (Realtime lama)",
+      "description": "Titik akhir pihak ketiga yang menggunakan protokol Realtime beta lama OpenAI. Bukan untuk OpenAI sendiri.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

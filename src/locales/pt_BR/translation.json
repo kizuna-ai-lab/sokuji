@@ -456,8 +456,8 @@
       "description": "Tecnologia de IA do Google"
     },
     "openaiCompatible": {
-      "name": "API compatível com OpenAI",
-      "description": "Endpoint compatível com OpenAI personalizado",
+      "name": "Compatível com OpenAI (Realtime legado)",
+      "description": "Endpoint de terceiros que usa o antigo protocolo Realtime beta da OpenAI. Não serve para a OpenAI.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

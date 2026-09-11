@@ -456,8 +456,8 @@
       "description": "GoogleのAI技術"
     },
     "openaiCompatible": {
-      "name": "OpenAI 互換 API",
-      "description": "カスタム OpenAI 互換エンドポイント",
+      "name": "OpenAI 互換（旧 Realtime）",
+      "description": "OpenAI の旧 beta Realtime プロトコルを使うサードパーティ製エンドポイント。OpenAI 本体には非対応。",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

@@ -456,8 +456,8 @@
       "description": "Google-ன் AI தகவல்"
     },
     "openaiCompatible": {
-      "name": "OpenAI இணக்கமான API",
-      "description": "தனிப்பயன் OpenAI-இணக்கமான எண்ட்பாயிண்ட்",
+      "name": "OpenAI இணக்கமானது (பழைய Realtime)",
+      "description": "OpenAI-இன் பழைய beta Realtime நெறிமுறையைப் பயன்படுத்தும் மூன்றாம் தரப்பு எண்ட்பாயிண்ட். OpenAI-க்கு அல்ல.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
