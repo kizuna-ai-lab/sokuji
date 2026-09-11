@@ -24,9 +24,12 @@
  *     open. Nothing here prevents that; this gate only stops us walking into it.
  *
  * So the question to ask is whether the socket is actually open, and
- * `IClient.isConnected()` is exactly that: for the OpenAI clients it returns the
- * very flag the SDK's `send()` tests before throwing `RealtimeAPI is not
- * connected`. Asking it here is asking the same question one step earlier.
+ * `IClient.isConnected()` is exactly that. On `OpenAIClient` — the beta-SDK
+ * client behind OpenAI Compatible, and the only one of the three that raises
+ * this error at all, since the GA path catches inside its own `send()` — it
+ * returns the very flag `send()` tests before throwing, so asking it here is
+ * asking the same question one step earlier. `OpenAIGAClient` and
+ * `OpenAIWebRTCClient` answer the same question about their own transport.
  *
  * A refused anchor is NOT consumed: the caller records the count only once this
  * returns true, so a channel that comes up late still gets its opening anchor
