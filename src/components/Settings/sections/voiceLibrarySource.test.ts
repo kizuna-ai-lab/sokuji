@@ -357,7 +357,10 @@ describe('managedVoiceSource previewing', () => {
     // B's session-key would race A's preview-done (sent from A's finally).
     // If B's mint lands first the account's lease row is still undone and
     // the backend 409s once. Waiting for A to settle -- outcome ignored --
-    // costs one round trip and removes the only 409 a live audition can hit.
+    // costs one round trip and removes the RACE 409; the GAP 409 (a mint
+    // inside the backend's PREVIEW_MIN_GAP_MS of the previous mint) is
+    // absorbed by mintPreviewKey's single retry, pinned by 'retries a 409
+    // mint once' below.
     const calls: string[] = [];
     let releaseA!: () => void;
     const aHeld = new Promise<void>((resolve) => { releaseA = resolve; });
@@ -401,12 +404,48 @@ describe('managedVoiceSource previewing', () => {
     const bc = new AbortController();
     const b = source.preview!({ id: 'b', language: 'ja', text: 'x', speed: 1, signal: bc.signal });
     bc.abort();
-    releaseA();
 
-    await a;
+    // B rejects AT ONCE — it does not sit through A, which is still held
+    // (releaseA() has not been called yet).
     await expect(b).rejects.toMatchObject({ errorType: 'aborted' });
-    expect(sessionKey).toHaveBeenCalledTimes(1);  // A's only
+    expect(sessionKey).toHaveBeenCalledTimes(1); // A's only; B never minted
+    expect(previewDone).not.toHaveBeenCalled();  // A is still in flight
+
+    releaseA();
+    await a;
     expect(previewDone).toHaveBeenCalledTimes(1); // A's only: B leased nothing
+  });
+
+  it('keeps a third preview waiting for the ORIGINAL predecessor, even when the one directly ahead of it (B) rejected early', async () => {
+    // B queued behind A, then cancelled while merely waiting its turn — B's
+    // own run settles (rejects) long before A does. C, queued behind B, must
+    // still wait for A: if the chain resolved the instant B's run settled, C
+    // would mint (and synthesize) while A is still in flight — exactly the
+    // race per-source serialization exists to remove.
+    const calls: string[] = [];
+    let releaseA!: () => void;
+    const aHeld = new Promise<void>((resolve) => { releaseA = resolve; });
+    const sessionKey = vi.fn(async () => { calls.push('key'); return { ttsApiKey: 'tk', region: 'us' as const }; });
+    const previewDone = vi.fn(async () => { calls.push('done'); });
+    const client = fakeClient({ sessionKey, previewDone });
+    const source = managedVoiceSource(client, ACCOUNT, {
+      synthesize: (async () => { await aHeld; return { audio: new Float32Array(1), sampleRate: 24000 }; }) as any,
+    });
+
+    const a = source.preview!({ id: 'a', language: 'ja', text: 'x', speed: 1 });
+    const bc = new AbortController();
+    const b = source.preview!({ id: 'b', language: 'ja', text: 'x', speed: 1, signal: bc.signal });
+    bc.abort();
+    await expect(b).rejects.toMatchObject({ errorType: 'aborted' });
+
+    const c = source.preview!({ id: 'c', language: 'ja', text: 'x', speed: 1 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sessionKey).toHaveBeenCalledTimes(1); // A's only — C has NOT minted while A is in flight
+
+    releaseA();
+    await expect(c).resolves.toEqual({ audio: new Float32Array(1), sampleRate: 24000 });
+    await a;
+    expect(calls).toEqual(['key', 'done', 'key', 'done']); // B contributed nothing
   });
 
   it('retries a 409 mint once after the backend hint, then surfaces a second 409', async () => {
@@ -439,6 +478,21 @@ describe('managedVoiceSource previewing', () => {
       .rejects.toMatchObject({ status: 409 });
     expect(sessionKey).toHaveBeenCalledTimes(2);  // one retry, then give up
     expect(previewDone).toHaveBeenCalledTimes(1); // unchanged: nothing was leased
+  });
+
+  it('retries only a 409: a 402 mint surfaces at once, with no wait and no second mint', async () => {
+    const waits: number[] = [];
+    const sessionKey = vi.fn().mockRejectedValue(new SonioxVoicesError('insufficient_balance', 'HTTP 402', 402));
+    const previewDone = vi.fn(async () => {});
+    const client = fakeClient({ sessionKey, previewDone });
+    const source = managedVoiceSource(client, ACCOUNT, {
+      sleep: async (ms: number) => { waits.push(ms); },
+      synthesize: (async () => { throw new Error('unreachable'); }) as any,
+    });
+    await expect(source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1 })).rejects.toMatchObject({ status: 402 });
+    expect(sessionKey).toHaveBeenCalledTimes(1);
+    expect(waits).toEqual([]);
+    expect(previewDone).not.toHaveBeenCalled();
   });
 
   it('rejects as aborted, without a second mint, when cancelled during the 409 wait', async () => {

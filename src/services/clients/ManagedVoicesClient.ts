@@ -79,12 +79,38 @@ export class ManagedVoicesClient {
   ) {}
 
   /**
+   * Normalizes a rejection from either the `fetch()` call or a subsequent
+   * body read into this module's single error shape. The caller's own
+   * signal is checked before sniffing the rejection's name: it survived the
+   * abort (unlike a DOMException instance, which can fail `instanceof`
+   * across realms — observed right here under the jsdom test environment)
+   * and is realm-agnostic, same reasoning as SonioxTtsRest.asSonioxError,
+   * this module's precedent for the shape.
+   */
+  private toTransportError(e: unknown, signal: AbortSignal | undefined, timeoutMs: number): SonioxVoicesError {
+    if (signal?.aborted) return new SonioxVoicesError('aborted', 'Cancelled by the caller', 0);
+    const name = e instanceof DOMException ? e.name : '';
+    if (name === 'TimeoutError') {
+      return new SonioxVoicesError('timeout', `Request timed out after ${timeoutMs / 1000}s`, 408);
+    }
+    if (name === 'AbortError') {
+      return new SonioxVoicesError('aborted', 'Cancelled by the caller', 0);
+    }
+    return new SonioxVoicesError('network', e instanceof Error ? e.message : String(e), 0);
+  }
+
+  /**
    * Shared HTTP idiom for every backend call this client makes: bearer auth
    * from `getToken()`, a caller-cancellable timeout via an explicit
    * AbortController (not `AbortSignal.any` — the deadline and the caller's
-   * cancel must stay distinguishable at the catch site below), and every
-   * non-2xx response turned into a SonioxVoicesError carrying the backend's
-   * own slug.
+   * cancel must stay distinguishable at the catch site below), every non-2xx
+   * response turned into a SonioxVoicesError carrying the backend's own
+   * slug, and the timer/listener released only once `consume(res)` has
+   * settled — not the moment `fetch()` resolves headers — so a caller that
+   * reads the body (`fetchJsonWithAuth` below) stays bounded by the same
+   * deadline while the body streams in. `fetchWithAuth` itself passes an
+   * identity `consume`, so its own timer still clears at headers-arrived
+   * time, same as before this was factored out.
    *
    * Takes the full request URL rather than building one, unlike `request()`
    * below: `sessionKey`/`previewDone` call it directly because neither
@@ -93,15 +119,16 @@ export class ManagedVoicesClient {
    * preview-done needs no region at all — the backend resolves the account's
    * own lease). `request()` is this method plus that one URL shape.
    */
-  private async fetchWithAuth(
+  private async withTimedRequest<T>(
     url: string,
     init: RequestInit,
     timeoutMs: number,
     /** Caller cancellation (e.g. the Start this call belongs to was aborted).
      *  Forwarded into an internal AbortController rather than handed to fetch
      *  directly — see the comment below for why not `AbortSignal.any`. */
-    signal?: AbortSignal
-  ): Promise<Response> {
+    signal: AbortSignal | undefined,
+    consume: (res: Response) => Promise<T>
+  ): Promise<T> {
     if (timeoutMs <= 0) {
       // A caller working to a deadline can hand down a budget that has already
       // run out (its own earlier steps consumed it). Issuing a fetch only to
@@ -146,28 +173,52 @@ export class ManagedVoicesClient {
           signal: controller.signal,
         });
       } catch (e) {
-        // The caller's own signal is checked before sniffing the rejection's
-        // name: it survived the abort (unlike a DOMException instance, which
-        // can fail `instanceof` across realms — observed right here under
-        // the jsdom test environment) and is realm-agnostic, same reasoning
-        // as SonioxTtsRest.asSonioxError, this module's precedent for the
-        // shape.
-        if (signal?.aborted) throw new SonioxVoicesError('aborted', 'Cancelled by the caller', 0);
-        const name = e instanceof DOMException ? e.name : '';
-        if (name === 'TimeoutError') {
-          throw new SonioxVoicesError('timeout', `Request timed out after ${timeoutMs / 1000}s`, 408);
-        }
-        if (name === 'AbortError') {
-          throw new SonioxVoicesError('aborted', 'Cancelled by the caller', 0);
-        }
-        throw new SonioxVoicesError('network', e instanceof Error ? e.message : String(e), 0);
+        throw this.toTransportError(e, signal, timeoutMs);
       }
       if (!res.ok) await this.throwBackendError(res);
-      return res;
+      try {
+        // Still inside the timed section: `consume` reads the body through
+        // the SAME `controller.signal` the fetch above used, so a body read
+        // that stalls past the deadline aborts exactly like a stalled
+        // connect would, and is mapped the same way.
+        return await consume(res);
+      } catch (e) {
+        if (e instanceof SonioxVoicesError) throw e;
+        throw this.toTransportError(e, signal, timeoutMs);
+      }
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener('abort', forwardAbort);
     }
+  }
+
+  private async fetchWithAuth(
+    url: string,
+    init: RequestInit,
+    timeoutMs: number,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    return this.withTimedRequest(url, init, timeoutMs, signal, async (res) => res);
+  }
+
+  /**
+   * Same as `fetchWithAuth`, except the JSON body is read WHILE the timer is
+   * still armed, per "released only once the body has been consumed"
+   * (SonioxTtsRest.synthesizeOnce, this module's precedent). `fetchWithAuth`
+   * releases its timer the moment response headers arrive — fine for
+   * `mine`/`ensure`/`previewDone`, whose callers read the body afterwards on
+   * no deadline of their own — but wrong for `sessionKey`: under per-source
+   * preview serialization (`managedVoiceSource.preview`), a mint that hangs
+   * on an unbounded body read parks every later preview on this source
+   * behind it forever, not just this one call.
+   */
+  private async fetchJsonWithAuth<T>(
+    url: string,
+    init: RequestInit,
+    timeoutMs: number,
+    signal?: AbortSignal
+  ): Promise<T> {
+    return this.withTimedRequest(url, init, timeoutMs, signal, (res) => res.json() as Promise<T>);
   }
 
   /** `fetchWithAuth` plus the one URL shape every voices-CRUD call shares:
@@ -285,7 +336,13 @@ export class ManagedVoicesClient {
    * (Soniox capacity full) are this route's own documented outcomes.
    */
   async sessionKey(request: { mode: 'voice_preview' }): Promise<ManagedPreviewSessionKey> {
-    const res = await this.fetchWithAuth(
+    // `fetchJsonWithAuth`, not `fetchWithAuth` + a separate `res.json()`: see
+    // that method's docstring for why THIS call in particular needs the body
+    // read bounded by the deadline. Un-abortable on purpose (no `signal`
+    // passed) — this call's own caller (`managedVoiceSource.mintPreviewKey`)
+    // must not cancel a mint whose response may already have acquired the
+    // account's lease, since `preview-done` has to follow every acquired one.
+    const body = await this.fetchJsonWithAuth<{ ttsApiKey?: unknown; region?: unknown }>(
       `${getApiUrl()}/soniox/session-key`,
       {
         method: 'POST',
@@ -294,7 +351,6 @@ export class ManagedVoicesClient {
       },
       REQUEST_TIMEOUT_MS
     );
-    const body = await res.json();
     if (typeof body?.ttsApiKey !== 'string') {
       // A contract break, not a user-facing failure mode: this route always
       // mints a TTS key for `voice_preview` (backend design §5.6). Loud

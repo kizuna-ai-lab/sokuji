@@ -198,6 +198,26 @@ export function managedVoiceSource(
     }
   };
 
+  // Wait for the preview queued ahead of this one, but reject AT ONCE if
+  // THIS preview is cancelled first -- a preview cancelled while merely
+  // queued (its predecessor still in flight) must not sit through that
+  // predecessor before finding out it was cancelled. Same listener hygiene
+  // as `retryDelay`: removed on every exit, not just the wait-wins path.
+  const waitTurn = (previous: Promise<void>, signal?: AbortSignal): Promise<void> => {
+    if (!signal) return previous;
+    return new Promise<void>((resolve, reject) => {
+      const settle = (fn: () => void) => { signal.removeEventListener('abort', onAbort); fn(); };
+      const onAbort = () => settle(() => reject(cancelled()));
+      if (signal.aborted) { onAbort(); return; }
+      signal.addEventListener('abort', onAbort, { once: true });
+      // `previous` is always the settled-and-swallowed promise `preview`
+      // produces below, so it never actually rejects -- both branches
+      // resolve regardless, matching retryDelay's shape without leaning on
+      // that invariant.
+      previous.then(() => settle(resolve), () => settle(resolve));
+    });
+  };
+
   return {
     async list() {
       const voice = await client.mine();
@@ -287,7 +307,7 @@ export function managedVoiceSource(
       // cancelled while it waits leases nothing and reports nothing.
       const previous = previousPreview;
       const run = (async () => {
-        await previous;
+        await waitTurn(previous, signal);
         if (signal?.aborted) throw cancelled();
         // Mint FIRST and outside the try/finally: a mint that failed leased
         // nothing, so there is nothing to complete — and `preview-done`
@@ -334,7 +354,16 @@ export function managedVoiceSource(
           });
         }
       })();
-      previousPreview = run.then(() => undefined, () => undefined);
+      // The NEXT preview must wait for BOTH this run and the one already
+      // queued ahead of it -- not just this run -- or a preview cancelled
+      // while merely waiting its turn would let the one behind it start (and
+      // mint) while the ORIGINAL predecessor is still in flight: `run`
+      // settles the instant `waitTurn` rejects it, long before `previous`
+      // (what it was waiting on) has settled.
+      previousPreview = Promise.all([
+        previous,
+        run.then(() => undefined, () => undefined),
+      ]).then(() => undefined);
       return run;
     },
 

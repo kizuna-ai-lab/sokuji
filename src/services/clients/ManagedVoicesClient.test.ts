@@ -295,6 +295,42 @@ describe('ManagedVoicesClient.sessionKey', () => {
       status,
     });
   });
+
+  it('rejects with the same timeout shape as fetchWithAuth when a 2xx body never arrives', async () => {
+    // sessionKey now reads the JSON body through fetchJsonWithAuth, which
+    // keeps the deadline armed until the body settles (fetchWithAuth alone
+    // releases it the moment headers arrive). Without this, a mint whose
+    // response never finishes streaming would hang forever — and under
+    // managedVoiceSource's per-source preview serialization, every later
+    // preview on that source would then queue behind it forever too.
+    //
+    // Same simulation shape as SonioxTtsRest.test.ts's `stalledBodyResponse`:
+    // `json()` only settles when the INTERNAL controller's signal aborts
+    // (the one `withTimedRequest` passes to `fetch()`), which is exactly
+    // what the timer does at the deadline — a real Response's body read is
+    // tied to that same signal.
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => new Promise((_res, rej) => {
+          const internalSignal = init.signal as AbortSignal;
+          if (internalSignal.aborted) { rej(internalSignal.reason); return; }
+          internalSignal.addEventListener('abort', () => rej(internalSignal.reason));
+        }),
+      }));
+      // The assertion is wired up BEFORE advancing the fake timer — see
+      // "still maps to timeout when the caller signal never fires" above for
+      // why (a race against Node's unhandled-rejection detector otherwise).
+      const promise = make().sessionKey({ mode: 'voice_preview' });
+      const assertion = expect(promise).rejects.toMatchObject({ errorType: 'timeout', status: 408 });
+      await vi.advanceTimersByTimeAsync(15_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('ManagedVoicesClient.previewDone', () => {
