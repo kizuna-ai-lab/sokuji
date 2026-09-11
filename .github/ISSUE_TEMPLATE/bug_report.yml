@@ -89,7 +89,7 @@ body:
         >
         > **Two things make an enormous difference:**
         >
-        > 1. **Check whether the same bug happens with an official OpenAI API key.** It runs the identical code path in Sokuji. If it reproduces there, we can debug and verify it properly — please say so in your report.
+        > 1. **Try the same thing against OpenAI's own endpoint.** Keep the provider set to **OpenAI Compatible**, point the endpoint at `https://api.openai.com`, and use an official OpenAI API key. That keeps everything in Sokuji identical and changes only the endpoint, so whether the bug follows tells us a great deal. Please say which way it went. (Switching to the built-in **OpenAI** provider instead is *not* the same test — that path uses a different realtime client, so a bug can vanish for reasons unrelated to your endpoint.)
         > 2. **If you can test changes against your endpoint, opening a PR alongside this report is by far the most reliable way to get it fixed.** A fix verified by someone who can actually run it is worth much more than a blind one from us, and for this category of bug it is realistically the most dependable route to a resolution.
         >
         > Also worth knowing: a fair share of reports in this category turn out to be the endpoint itself (proxy misconfiguration, unimplemented parts of the realtime API, dropped sockets) rather than Sokuji. Raw WebSocket frames are the fastest way to tell the two apart — see the Screenshots/Logs field below.
@@ -173,7 +173,15 @@ body:
       description: |
         Screenshots, browser/DevTools console output, or application logs. Sokuji's own diagnostic logs are off by default — there is a switch in Help that turns on the Logs panel.
 
-        For realtime providers, the raw WebSocket frames are the single most useful thing you can attach. ⚠️ They also contain your own data: `session.update` carries your system instructions including any custom prompt, `conversation.*` and `response.*` carry the transcripts and translations of everything spoken in that session, and **the connection URL can carry your API key — never paste that**. The frames worth sending are `session.created` / `session.update` / `session.updated` plus anything with `"type": "error"`. Feel free to redact the `instructions` text, skip the `input_audio_buffer.append` frames (base64 audio, enormous), or simply capture a throwaway session in which you only say something harmless.
+        For realtime providers, the raw WebSocket frames are the single most useful thing you can attach — but ⚠️ **this issue is public and those frames carry your own data**, so please prepare them first:
+
+        - **Attach only** `session.created` / `session.update` / `session.updated` and anything with `"type": "error"`.
+        - **Redact the `instructions` field** in those frames — it holds your system prompt, including any custom prompt you configured.
+        - **Do not attach `conversation.*` or `response.*` frames at all.** Those are the transcripts and translations of everything spoken in the session.
+        - **Never paste the connection URL — it carries your API key.**
+        - Skip `input_audio_buffer.append` frames; they are base64 audio and enormous.
+
+        If that is more editing than you want to do, capture a throwaway session in which you only say something harmless and send those frames instead.
       placeholder: |
         For Desktop App: Paste screenshots or application logs here...
         For Extension: Include browser console errors, extension popup screenshots, etc.
