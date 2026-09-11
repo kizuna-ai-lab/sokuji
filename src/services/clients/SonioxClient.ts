@@ -133,7 +133,10 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
   // TTS language for the in-flight utterance (two_way: from the first final
   // translation token; one_way: always the target language)
   private utteranceTtsLanguage: string | null = null;
-  private ttsFailedOnce = false;
+  // The notice this TTS failure episode has already shown: null (none yet),
+  // 'segment' (part of the speech was lost) or 'all' (speech has stopped).
+  // Cleared when speech comes back — audio arrives, or a reconnect works.
+  private ttsFailureReported: SonioxTtsErrorScope | null = null;
   // Bidirectional only: which side (my language vs. the other's) the
   // in-flight utterance belongs to, derived from the first original token's
   // language (or the first translation token's source_language, if the
@@ -944,7 +947,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       // produce audio after Stop and leak the socket).
       if (gen !== this.generation) { stream.close(); this.ttsPending = []; return; }
       this.tts = stream;
-      this.ttsFailedOnce = false; // recovered
+      this.ttsFailureReported = null; // recovered
       const pending = this.ttsPending;
       this.ttsPending = [];
       for (const op of pending) {
@@ -1126,7 +1129,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     this.emitRealtime('server', 'tts.audio', { bytes: audio.length });
     // Speech is flowing again, so a later TTS failure is a new episode and
     // must be reported (handleTtsError reports once per episode).
-    this.ttsFailedOnce = false;
+    this.ttsFailureReported = null;
     // Pure-audio edge case that shouldn't happen in practice (audio always
     // follows feedTts, which sets audioItemId) — fall back to minting (and
     // listing) rather than dropping the chunk.
@@ -1325,11 +1328,14 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     // be false. 'all': speech is down — the socket or its reconnect failed, or
     // Soniox rejected the stream for a reason every segment will repeat.
     //
-    // Reported ONCE per failure episode: ttsFailedOnce is re-armed when audio
-    // arrives again (emitAssistantAudio) or a reconnect succeeds, so a later
-    // failure reports again.
-    if (!this.ttsFailedOnce) {
-      this.ttsFailedOnce = true;
+    // Reported ONCE per failure episode — except that a failure stopping all
+    // speech still reports after a lost segment did: the user must learn that
+    // speech has stopped. ttsFailureReported is cleared when audio arrives
+    // again (emitAssistantAudio) or a reconnect succeeds, so a later failure
+    // reports again.
+    const reported = this.ttsFailureReported;
+    if (reported !== 'all' && !(reported === 'segment' && scope === 'segment')) {
+      this.ttsFailureReported = scope;
       // No log line: the tts.degraded event below is the panel row.
       this.emitRealtime('client', 'tts.degraded', { code, message, scope });
       this.eventHandlers.onError?.({
@@ -1467,7 +1473,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     this.ttsSpokenText = '';
     this.ttsPending = [];
     this.ttsConnecting = false;
-    this.ttsFailedOnce = false;
+    this.ttsFailureReported = null;
     // Nothing managed to clear: `credentials` and `session` are readonly
     // constructor fields. reset() runs at the TOP of connect(), so clearing
     // either would leave the very next socket with no key at all.

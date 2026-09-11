@@ -931,6 +931,23 @@ describe('SonioxClient stream-level TTS failures', () => {
     expect(errors).toHaveLength(2);
     expect(errors[1].rawMessage).toBe('Stream killed: no audio output within timeout');
   });
+
+  it('escalates to "has stopped" when a failure that stops all speech follows a lost segment', async () => {
+    // A lost segment already produced this episode's notice; a socket drop or
+    // a persistent rejection after it, with no audio in between, must still
+    // tell the user that speech has stopped — once.
+    const { errors, tts } = await speaking();
+    tts.handlers.onError!('408', 'Request timeout', true, 'segment');
+    tts.handlers.onError!('socket_closed', 'Soniox TTS socket closed unexpectedly', true, 'all');
+    expect(errors).toHaveLength(2);
+    expect(errors[0].message).toMatch(/could not be played/i);
+    expect(errors[1].message).toMatch(/spoken translation has stopped/i);
+    expect(errors[1].rawMessage).toBe('Soniox TTS socket closed unexpectedly');
+    // Once speech is reported stopped, neither kind reports again until it returns.
+    tts.handlers.onError!('401', 'Invalid API key', true, 'all');
+    tts.handlers.onError!('408', 'Request timeout', true, 'segment');
+    expect(errors).toHaveLength(2);
+  });
 });
 
 describe('SonioxClient diarization attribution (#342)', () => {
