@@ -456,8 +456,8 @@
       "description": "Google এর AI প্রযুক্তি"
     },
     "openaiCompatible": {
-      "name": "OpenAI সামঞ্জস্যপূর্ণ API",
-      "description": "কাস্টম OpenAI-সামঞ্জস্যপূর্ণ এন্ডপয়েন্ট",
+      "name": "OpenAI সামঞ্জস্যপূর্ণ (লিগ্যাসি Realtime)",
+      "description": "OpenAI-এর পুরনো beta Realtime প্রোটোকল ব্যবহারকারী তৃতীয় পক্ষের এন্ডপয়েন্ট। OpenAI-এর নিজস্ব API-এর জন্য নয়।",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
