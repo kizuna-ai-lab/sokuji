@@ -1137,6 +1137,13 @@ const useSettingsStore = create<SettingsStore>()(
       try {
         const service = ServiceFactory.getSettingsService();
 
+        // The diagnostic logs switch comes first. Every read below can report a
+        // warning, and nothing may be recorded before the user's choice is
+        // known. The log store starts off, so if even this read fails it stays
+        // off, which is the default.
+        const diagnosticLogs = await service.getSetting('settings.common.diagnosticLogs', defaultCommonSettings.diagnosticLogs);
+        useLogStore.getState().setEnabled(diagnosticLogs);
+
         // Load common settings
         const persistedProvider = await service.getSetting('settings.common.provider', defaultCommonSettings.provider);
         // Migrate legacy realtime 'kizunaai' to the relay-managed Translate twin
@@ -1150,7 +1157,6 @@ const useSettingsStore = create<SettingsStore>()(
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
-        const diagnosticLogs = await service.getSetting('settings.common.diagnosticLogs', defaultCommonSettings.diagnosticLogs);
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
         // Subtitle settings now hydrated by subtitleStore.hydrate(); see stores/subtitleStore.ts.
@@ -1218,11 +1224,6 @@ const useSettingsStore = create<SettingsStore>()(
           settingsLoaded: true,
         });
 
-        // The log store has recorded since startup, so a user with diagnostic
-        // logs on also gets the errors raised while loading. From here it
-        // follows the setting, and off drops what it held.
-        useLogStore.getState().setEnabled(diagnosticLogs);
-
         console.info('[SettingsStore] Settings loaded successfully');
       } catch (error) {
         // `settingsLoaded` stays false forever after this, so the app runs on
@@ -1230,8 +1231,6 @@ const useSettingsStore = create<SettingsStore>()(
         // applied. The panel entry is the only record until the basic-mode
         // banner lands (see the design's user-facing tier).
         reportError('SettingsStore', `Failed to load settings: ${describeCause(error)}`, { cause: error });
-        // The app now runs on defaults, and diagnostic logs default to off.
-        useLogStore.getState().setEnabled(defaultCommonSettings.diagnosticLogs);
       }
     },
 

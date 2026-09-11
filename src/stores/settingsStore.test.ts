@@ -420,15 +420,48 @@ describe('settingsStore', () => {
       expect(useLogStore.getState().enabled).toBe(false);
     });
 
-    // A failed load leaves the app on defaults, and the default is off — the
-    // log store must not keep recording behind a button nobody can see.
-    it('switches the log store off when settings fail to load', async () => {
-      useLogStore.getState().setEnabled(true);
+    // The switch is read before anything else, so every later read — and any
+    // warning a failed read raises — already runs under the user's choice. A
+    // user with logs off has nothing recorded even while loading (PR #538
+    // review: nothing may be logged before consent is known).
+    it('applies the switch before reading any other setting', async () => {
+      useLogStore.getState().setEnabled(false);
+      const seen: Array<[string, boolean]> = [];
+      mockGetSetting.mockImplementation(async (key: string, fallback: unknown) => {
+        seen.push([key, useLogStore.getState().enabled]);
+        return key === 'settings.common.diagnosticLogs' ? true : fallback;
+      });
+
+      await useSettingsStore.getState().loadSettings();
+
+      expect(seen[0][0]).toBe('settings.common.diagnosticLogs');
+      expect(seen.slice(1).every(([, enabled]) => enabled)).toBe(true);
+    });
+
+    // The store starts off. If even the switch cannot be read, it stays off:
+    // the app runs on defaults, and the default is off.
+    it('stays off when settings fail to load', async () => {
+      useLogStore.getState().setEnabled(false);
       mockGetSetting.mockRejectedValue(new Error('storage unavailable'));
 
       await useSettingsStore.getState().loadSettings();
 
       expect(useLogStore.getState().enabled).toBe(false);
+      mockGetSetting.mockReset();
+    });
+
+    // Once the switch has been read as on, a later setting failing to load is
+    // exactly the kind of error an opted-in user turned logs on to see.
+    it('keeps an opted-in user recording when a later setting fails to load', async () => {
+      useLogStore.getState().setEnabled(false);
+      mockGetSetting.mockImplementation(async (key: string) => {
+        if (key === 'settings.common.diagnosticLogs') return true;
+        throw new Error('storage unavailable');
+      });
+
+      await useSettingsStore.getState().loadSettings();
+
+      expect(useLogStore.getState().enabled).toBe(true);
       mockGetSetting.mockReset();
     });
   });

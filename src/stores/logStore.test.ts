@@ -206,6 +206,25 @@ describe('logStore — bounded memory', () => {
   });
 });
 
+// Off until something says otherwise. Only the main window loads the settings
+// that can switch it on; any other context that imports the store — the
+// extension's subtitle overlay, or whatever comes next — must record nothing
+// on its own (PR #538 review).
+describe('logStore — initial state', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('records nothing until told to', async () => {
+    vi.resetModules();
+    vi.useFakeTimers();
+    const { default: fresh } = await import('./logStore');
+
+    expect(fresh.getState().enabled).toBe(false);
+    fresh.getState().addLog('before any setting was read', 'error');
+    vi.advanceTimersByTime(1000);
+    expect(fresh.getState().allLogs).toHaveLength(0);
+  });
+});
+
 // Diagnostic logs are opt-in (Help → diagnostic logs). While they are off the
 // store records nothing — not the entry, and not the sanitize pass that would
 // build it; a realtime session sends ~20 events a second.

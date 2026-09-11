@@ -260,9 +260,11 @@ const useLogStore = create<LogStore>(
     pendingLogs: [],
     allLogs: [], // Initialize combined logs
     batchTimer: null,
-    // Recording until the settings load and say otherwise, so a user who has
-    // diagnostic logs on also gets the errors raised during startup.
-    enabled: true,
+    // Off until the main window's settings say otherwise: settingsStore reads
+    // this switch before any other setting. A context that imports the store
+    // but never loads those settings — the extension's subtitle overlay —
+    // therefore records nothing (PR #538 review).
+    enabled: false,
     setEnabled: (enabled: boolean) => {
       set({ enabled });
       // Off means nothing is kept, including what was recorded before.
