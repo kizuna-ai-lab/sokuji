@@ -343,7 +343,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         return new Error(t('mainPanel.sonioxServiceBusy', 'Soniox is at capacity right now. Please try again shortly.'));
       }
       // Gated on `managed` for the same reason the 402/409 arms above are:
-      // `ManagedVoicesClient.fetchWithAuth` throws `authentication_required`
+      // `ManagedVoicesClient`'s timed request path (`withTimedRequest`, behind
+      // `fetchWithAuth` / `fetchJsonWithAuth`) throws `authentication_required`
       // (401) whenever the Better Auth token is missing or expired — routine,
       // not exotic — and a backend 401 reaches this same arm through
       // `throwBackendError`. A managed user has no API key to check, so

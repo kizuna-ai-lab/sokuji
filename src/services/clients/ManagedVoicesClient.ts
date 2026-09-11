@@ -113,7 +113,8 @@ export class ManagedVoicesClient {
    * time, same as before this was factored out.
    *
    * Takes the full request URL rather than building one, unlike `request()`
-   * below: `sessionKey`/`previewDone` call it directly because neither
+   * below: `sessionKey` (via `fetchJsonWithAuth`) and `previewDone` (via
+   * `fetchWithAuth`) reach it without `request()` because neither
    * endpoint lives under `/soniox/voices` or takes that method's automatic
    * `region` query param (session-key's region travels in the JSON body;
    * preview-done needs no region at all — the backend resolves the account's
