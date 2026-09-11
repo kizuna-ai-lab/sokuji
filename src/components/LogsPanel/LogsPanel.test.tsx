@@ -26,6 +26,12 @@ const write = (fn: () => void) => {
   });
 };
 
+// These tests assert what reaches the log store, which records nothing unless
+// diagnostic logs are switched on (they are off by default in the app).
+beforeEach(() => {
+  useLogStore.getState().setEnabled(true);
+});
+
 describe('LogsPanel', () => {
   let writeText: ReturnType<typeof vi.fn>;
 

@@ -21,6 +21,12 @@ beforeEach(() => {
   useSetupStore.setState({ setup: null, tour: null, loaded: false });
 });
 
+// These tests assert what reaches the log store, which records nothing unless
+// diagnostic logs are switched on (they are off by default in the app).
+beforeEach(() => {
+  useLogStore.getState().setEnabled(true);
+});
+
 describe('setupStore.hydrate', () => {
   it('leaves setup null on a fresh install and marks loaded', async () => {
     await useSetupStore.getState().hydrate();

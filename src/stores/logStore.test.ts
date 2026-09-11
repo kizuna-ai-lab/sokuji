@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import useLogStore from './logStore';
 
+// These tests assert what reaches the log store, which records nothing unless
+// diagnostic logs are switched on (they are off by default in the app).
+beforeEach(() => {
+  useLogStore.getState().setEnabled(true);
+});
+
 // Characterization tests for how addRealtimeEvent groups consecutive events.
 //
 // These pin the per-client "find the last log for this client" behaviour that

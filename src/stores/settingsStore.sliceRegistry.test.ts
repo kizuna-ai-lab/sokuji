@@ -149,6 +149,9 @@ describe('provider settings update actions (behavior lock)', () => {
 
   it('files one panel entry per refused key', async () => {
     const { default: useLogStore } = await import('./logStore');
+    // The log store records nothing unless diagnostic logs are switched on,
+    // and this test asserts the entry a failed write leaves.
+    useLogStore.getState().setEnabled(true);
     const { settleReports, resetReportThrottle } = await import('../lib/diagnostics/report');
     useLogStore.getState().clearLogs();
     resetReportThrottle();

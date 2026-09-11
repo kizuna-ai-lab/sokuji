@@ -147,6 +147,12 @@ beforeEach(() => {
   useLogStore.getState().clearLogs();
 });
 
+// These tests assert what reaches the log store, which records nothing unless
+// diagnostic logs are switched on (they are off by default in the app).
+beforeEach(() => {
+  useLogStore.getState().setEnabled(true);
+});
+
 describe('nativeModelStore.isReady', () => {
   it('is true only when all listed models are ready', () => {
     useNativeModelStore.setState({ statuses: { a: 'ready', b: 'ready', c: 'absent' } });
