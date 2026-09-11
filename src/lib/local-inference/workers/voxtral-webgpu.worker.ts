@@ -117,6 +117,8 @@ async function initVad(vadConfig?: VoxtralAsrInitMessage['vadConfig'], vadModelU
 
   maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
   preSpeechPadSamples = Math.ceil((preSpeechPadMs / 1000) * VAD_SAMPLE_RATE);
+  // NaN would survive the idle trim's Math.max() and discard the first chunk too.
+  if (!Number.isFinite(preSpeechPadSamples) || preSpeechPadSamples < 0) preSpeechPadSamples = 0;
 
   frameProcessor = new FrameProcessor(
     vadInfer,
@@ -429,7 +431,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
     // Keep enough pre-roll for the VAD onset and Voxtral's first chunk, but do
     // not hand an unbounded backlog to ORT when speech eventually starts.
     if (!frameProcessor.speaking && !isGenerating && !queuedUtterance.pending) {
-      audioFeed.retainLatest(Math.max(preSpeechPadSamples, voxtralProcessor.num_samples_first_audio_chunk));
+      audioFeed.retainLatest(Math.max(preSpeechPadSamples, voxtralProcessor?.num_samples_first_audio_chunk ?? 0));
     }
   } finally {
     processingVad = false;
