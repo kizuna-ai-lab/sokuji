@@ -506,6 +506,9 @@ function handleFlush(): void {
 
 async function handleDispose(): Promise<void> {
   disposing = true;
+  // Drop queued utterances first: with one queued, abortGenerate() would only
+  // seal it and leave the run that is still draining untouched.
+  queuedUtterance.clear();
   abortGenerate();
 
   // Wait briefly for generate to stop
