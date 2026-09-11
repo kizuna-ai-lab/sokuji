@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox är för närvarande fullbelastat. Försök igen snart.",
     "sonioxBudgetExhausted": "Ditt sessionssaldo är slut. Fyll på ditt saldo för att fortsätta översätta.",
     "sonioxTtsFailed": "Den talade översättningen har stoppats. Transkribering och textöversättning fungerar fortfarande.",
+    "sonioxTtsSegmentLost": "En del av den talade översättningen kunde inte spelas upp. Transkribering och textöversättning påverkas inte.",
     "sonioxSegmentEnded": "Det här avsnittet har avslutats — tryck på ”Starta session” för att fortsätta.",
     "sonioxConnectionLost": "Anslutningen avbröts — tryck på ”Starta session” om en stund för att fortsätta.",
     "sonioxVoiceClipMissing": "Den här enheten har ingen röstinspelning, så den här sessionen använder en förinställd röst. Spela in en i Inställningar för att tala med din egen röst här.",

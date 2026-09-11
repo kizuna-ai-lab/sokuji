@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox est actuellement à pleine capacité. Veuillez réessayer sous peu.",
     "sonioxBudgetExhausted": "Le solde de votre session est épuisé. Rechargez votre solde pour continuer à traduire.",
     "sonioxTtsFailed": "La traduction vocale s'est arrêtée. La transcription et la traduction textuelle continuent.",
+    "sonioxTtsSegmentLost": "Une partie de la traduction vocale n'a pas pu être lue. La transcription et la traduction du texte ne sont pas affectées.",
     "sonioxSegmentEnded": "Ce segment est terminé — appuyez sur « Démarrer la session » pour continuer.",
     "sonioxConnectionLost": "La connexion a été interrompue — appuyez sur « Démarrer la session » dans un instant pour continuer.",
     "sonioxVoiceClipMissing": "Cet appareil ne dispose d'aucun enregistrement vocal, donc cette session utilise une voix préréglée. Enregistrez-en un dans les Paramètres pour parler ici avec votre propre voix.",

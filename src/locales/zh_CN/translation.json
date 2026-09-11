@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox 当前容量已满。请稍后重试。",
     "sonioxBudgetExhausted": "您的会话余额已用完。请充值以继续翻译。",
     "sonioxTtsFailed": "语音翻译已停止。转录和文字翻译仍在继续。",
+    "sonioxTtsSegmentLost": "有一段语音翻译未能播放。转录和文字翻译不受影响。",
     "sonioxSegmentEnded": "本段已结束——点击“开始会话”以继续。",
     "sonioxConnectionLost": "连接已中断——请稍候点击“开始会话”以继续。",
     "sonioxVoiceClipMissing": "此设备没有语音录音，因此本次会话使用预设声音。请在设置中录制一段，以便在此处使用您自己的声音。",

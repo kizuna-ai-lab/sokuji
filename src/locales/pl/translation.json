@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox jest obecnie w pełni obciążony. Spróbuj ponownie wkrótce.",
     "sonioxBudgetExhausted": "Saldo Twojej sesji zostało wyczerpane. Doładuj saldo, aby kontynuować tłumaczenie.",
     "sonioxTtsFailed": "Tłumaczenie głosowe zostało zatrzymane. Transkrypcja i tłumaczenie tekstu nadal działają.",
+    "sonioxTtsSegmentLost": "Nie udało się odtworzyć części tłumaczenia mówionego. Transkrypcja i tłumaczenie tekstu działają bez zmian.",
     "sonioxSegmentEnded": "Ten segment się zakończył — dotknij „Rozpocznij sesję”, aby kontynuować.",
     "sonioxConnectionLost": "Połączenie zostało przerwane — za chwilę dotknij „Rozpocznij sesję”, aby kontynuować.",
     "sonioxVoiceClipMissing": "To urządzenie nie ma nagrania głosu, więc ta sesja korzysta z głosu z presetu. Nagraj je w Ustawieniach, aby mówić tutaj własnym głosem.",

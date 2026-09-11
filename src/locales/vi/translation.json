@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox hiện đang hoạt động hết công suất. Vui lòng thử lại sau.",
     "sonioxBudgetExhausted": "Số dư phiên của bạn đã hết. Nạp thêm số dư để tiếp tục dịch.",
     "sonioxTtsFailed": "Bản dịch giọng nói đã dừng. Phiên âm và dịch văn bản vẫn đang hoạt động.",
+    "sonioxTtsSegmentLost": "Không phát được một phần bản dịch giọng nói. Phiên âm và bản dịch văn bản không bị ảnh hưởng.",
     "sonioxSegmentEnded": "Đoạn này đã kết thúc — nhấn “Bắt đầu phiên” để tiếp tục.",
     "sonioxConnectionLost": "Kết nối đã bị gián đoạn — hãy nhấn “Bắt đầu phiên” sau giây lát để tiếp tục.",
     "sonioxVoiceClipMissing": "Thiết bị này không có bản ghi âm giọng nói nào, vì vậy phiên này dùng một giọng có sẵn. Hãy ghi âm một bản trong Cài đặt để nói bằng chính giọng của bạn tại đây.",

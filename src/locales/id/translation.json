@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox sedang berada pada kapasitas penuh. Silakan coba lagi sebentar lagi.",
     "sonioxBudgetExhausted": "Saldo sesi Anda telah habis. Isi ulang saldo Anda untuk terus menerjemahkan.",
     "sonioxTtsFailed": "Terjemahan suara telah berhenti. Transkripsi dan terjemahan teks masih berjalan.",
+    "sonioxTtsSegmentLost": "Sebagian terjemahan suara tidak dapat diputar. Transkripsi dan terjemahan teks tidak terpengaruh.",
     "sonioxSegmentEnded": "Segmen ini telah berakhir — ketuk “Mulai sesi” untuk melanjutkan.",
     "sonioxConnectionLost": "Koneksi terputus — ketuk “Mulai sesi” sebentar lagi untuk melanjutkan.",
     "sonioxVoiceClipMissing": "Perangkat ini tidak memiliki rekaman suara, sehingga sesi ini menggunakan suara preset. Rekam satu di Pengaturan untuk berbicara dengan suara Anda sendiri di sini.",
