@@ -394,8 +394,41 @@ export class OpenAIClient implements IClient {
       }
       
       const conversationItem = this.convertToConversationItem(item);
+      this.releaseRetainedItemAudio(item);
       this.eventHandlers.onConversationUpdated?.({ item: conversationItem, delta });
     });
+  }
+
+  /**
+   * Drop the SDK's own copy of an item's output PCM, once the UI copy has been
+   * built from it.
+   *
+   * The mirror image of the input-side fix in #406. `RealtimeConversation` keeps
+   * every item for the whole session -- `items` and `itemLookup` are only
+   * emptied by `clear()`, which we reach at session teardown -- and its
+   * `response.audio.delta` handler merges each chunk of translated speech onto
+   * `item.formatted.audio`. `convertToConversationItem` already drops that field
+   * from the object we hand the UI when `keepReplayAudio` is off, but the SDK's
+   * copy stayed reachable behind it, so an hours-long session retained every
+   * second of audio it had ever played (~2.8MB/min at 24kHz) and each delta
+   * re-copied the item's audio so far. Playback reads `delta.audio`, never this
+   * field, so on the default path nothing downstream loses anything. See #531.
+   *
+   * Left untouched when the user opted into replay audio -- retaining it is
+   * exactly what that setting is for.
+   */
+  private releaseRetainedItemAudio(item: Realtime.Item | FormattedItem): void {
+    if (this.keepReplayAudio) return;
+
+    const formatted = ('formatted' in item ? item.formatted : undefined) as
+      | { audio?: Int16Array }
+      | undefined;
+    if (!formatted?.audio?.length) return;
+
+    // Emptied, not deleted: the SDK merges the next delta onto this field with
+    // mergeInt16Arrays, which throws on anything that is not an Int16Array, and
+    // `conversation.item.truncated` slices it.
+    formatted.audio = new Int16Array(0);
   }
 
   private convertToConversationItem(item: Realtime.Item | FormattedItem): ConversationItem {

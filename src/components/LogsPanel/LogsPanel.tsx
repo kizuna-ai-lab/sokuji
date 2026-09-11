@@ -23,10 +23,20 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
   const isClient = source === 'client';
   const eventTypeDisplay = eventType || t('logsPanel.unknown');
   const hasMultipleEvents = events.length > 1;
+  // A grouped row keeps only its newest events (logStore's MAX_EVENTS_PER_GROUP);
+  // groupCount is how many it has seen.
+  const total = logEntry.groupCount ?? events.length;
   
   // Get the latest event for display in collapsed view
   const latestEvent = events[events.length - 1];
   
+  // The cached JSON describes the events it was built from. A capped group
+  // swaps its oldest event for every new one, so drop the cache whenever the
+  // events change and let the effect below rebuild it while expanded.
+  useEffect(() => {
+    setJsonString(null);
+  }, [events]);
+
   // Lazy load JSON string only when expanded
   useEffect(() => {
     if (isExpanded && !jsonString) {
@@ -62,7 +72,7 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
           <span className="source-label">{isClient ? t('logsPanel.client') : t('logsPanel.server')}:</span>
           <span className="event-type">{eventTypeDisplay}</span>
           {hasMultipleEvents && (
-            <span className="event-count">({events.length})</span>
+            <span className="event-count">({total})</span>
           )}
         </div>
       </div>
@@ -74,7 +84,7 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
                 jsonString.split('\n---\n').map((eventStr, index) => (
                   <div key={index} className="grouped-event">
                     <div className="grouped-event-header">
-                      <span className="grouped-event-index">{t('logsPanel.event')} {index + 1} {t('logsPanel.of')} {events.length}</span>
+                      <span className="grouped-event-index">{t('logsPanel.event')} {index + 1 + total - events.length} {t('logsPanel.of')} {total}</span>
                     </div>
                     <pre>{eventStr}</pre>
                   </div>
@@ -101,7 +111,9 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
     prevProps.logEntry.timestamp === nextProps.logEntry.timestamp &&
     prevProps.logEntry.eventType === nextProps.logEntry.eventType &&
     prevProps.logEntry.source === nextProps.logEntry.source &&
-    prevProps.logEntry.events?.length === nextProps.logEntry.events?.length
+    prevProps.logEntry.events?.length === nextProps.logEntry.events?.length &&
+    // Capped groups stop growing `events`; the count still moves.
+    prevProps.logEntry.groupCount === nextProps.logEntry.groupCount
   );
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import useLogStore from './logStore';
+import useLogStore, { MAX_EVENTS_PER_GROUP } from './logStore';
 
 // These tests assert what reaches the log store, which records nothing unless
 // diagnostic logs are switched on (they are off by default in the app).
@@ -44,6 +44,24 @@ describe('logStore — per-client event grouping', () => {
     expect(speaker).toHaveLength(1);
     expect(speaker[0].events).toHaveLength(3);
     expect(speaker[0].groupingKey).toBe('input_audio_buffer');
+  });
+
+  // A session nobody speaks in sends nothing but mic appends, and they all
+  // share one groupingKey, so they land in ONE entry for as long as the silence
+  // lasts. Uncapped, that entry grew for the whole session and every append
+  // copied its entire history (#531).
+  it('caps the events one group keeps and still counts all of them', () => {
+    const total = MAX_EVENTS_PER_GROUP + 50;
+    for (let i = 0; i < total; i++) append('speaker', i);
+
+    const speaker = entriesFor('speaker');
+    expect(speaker).toHaveLength(1);
+    const events = speaker[0].events!;
+    expect(events).toHaveLength(MAX_EVENTS_PER_GROUP);
+    expect(speaker[0].groupCount).toBe(total);
+    // The newest are kept; the oldest are the ones dropped.
+    expect((events[events.length - 1] as any).audio).toBe(`chunk-${total - 1}`);
+    expect((events[0] as any).audio).toBe('chunk-50');
   });
 
   it('keeps interleaved clients in separate groups', () => {
