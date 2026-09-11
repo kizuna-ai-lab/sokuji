@@ -154,10 +154,13 @@ export class StreamingAudioFeed {
     this.active = this.active.slice(this.active.length - limit);
   }
 
-  /** Seal the staged utterance at its VAD endpoint while the active run drains. */
-  sealStaged(padSamples: number): void {
-    const padding = Number.isFinite(padSamples) ? Math.max(0, Math.floor(padSamples)) : 0;
-    if (padding > 0) this.staged = concat(this.staged, new Float32Array(padding));
+  /**
+   * Seal the staged utterance at its VAD endpoint while the active run drains.
+   *
+   * No padding here: the tail pad is added once, by `requestFinish()`, when the
+   * sealed segment is promoted to a run of its own.
+   */
+  sealStaged(): void {
     this.stagedSegments.push(this.staged);
     this.staged = new Float32Array(0);
   }
@@ -205,6 +208,29 @@ export class StreamingAudioFeed {
     this._finishing = false;
     this._stopped = false;
   }
+}
+
+/**
+ * Hand the feed to the next queued utterance, after a run's `complete()`.
+ *
+ * `QueuedUtterance` and the feed's sealed segments are two FIFOs kept in
+ * lockstep: each sealed entry ('finish' or 'stop') owns one segment, and a
+ * trailing 'open' entry owns the staged audio not yet sealed. A queued misfire
+ * is dropped here and the utterance behind it promoted in the same call, so no
+ * entry is left waiting for a run that will never start.
+ *
+ * Returns how the utterance now in `feed.audio` ends, or null when nothing is
+ * queued — the feed then holds the audio after the last endpoint, as pre-roll.
+ */
+export function promoteQueued(
+  feed: StreamingAudioFeed,
+  queue: QueuedUtterance,
+): Exclude<QueuedUtteranceState, 'stop'> | null {
+  for (let state = queue.take(); state !== null; state = queue.take()) {
+    if (state !== 'stop') return state;
+    feed.complete();
+  }
+  return null;
 }
 
 /** Sentence terminators that finalize a result without waiting for VAD silence. */

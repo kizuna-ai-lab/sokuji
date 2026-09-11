@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   boundedBatchEndSample,
+  promoteQueued,
   QueuedUtterance,
   StreamingAudioFeed,
   StreamingTextAccumulator,
@@ -117,11 +118,11 @@ describe('StreamingAudioFeed', () => {
     feed.append(f32(1));
     feed.requestFinish(0);
     feed.append(f32(2));
-    feed.sealStaged(1);
+    feed.sealStaged();
     feed.append(f32(3));
 
     feed.complete();
-    expect(Array.from(feed.audio)).toEqual([2, 0]);
+    expect(Array.from(feed.audio)).toEqual([2]);
     feed.requestFinish(0);
     feed.complete();
     expect(Array.from(feed.audio)).toEqual([3]);
@@ -170,6 +171,107 @@ describe('StreamingAudioFeed', () => {
     expect(feed.audio.length).toBe(0);
     feed.complete();
     expect(feed.audio.length).toBe(0);
+  });
+});
+
+describe('promoteQueued', () => {
+  /** Run 1 is draining its tail, so the worker queues every new utterance behind it. */
+  function draining() {
+    const feed = new StreamingAudioFeed();
+    const queue = new QueuedUtterance();
+    feed.append(f32(1));
+    feed.requestFinish(0);
+    return { feed, queue };
+  }
+
+  it('drops a queued misfire and promotes the utterance queued behind it', () => {
+    const { feed, queue } = draining();
+    queue.start();
+    feed.append(f32(2));
+    queue.stop();
+    feed.sealStaged();
+    queue.start();
+    feed.append(f32(3, 3));
+    queue.finish();
+    feed.sealStaged();
+
+    feed.complete();
+    expect(promoteQueued(feed, queue)).toBe('finish');
+    expect(Array.from(feed.audio)).toEqual([3, 3]);
+    expect(queue.pending).toBe(false);
+  });
+
+  it('keeps the audio after a lone queued misfire as the next pre-roll', () => {
+    const { feed, queue } = draining();
+    queue.start();
+    feed.append(f32(2));
+    queue.stop();
+    feed.sealStaged();
+    feed.append(f32(7, 7));
+
+    feed.complete();
+    expect(promoteQueued(feed, queue)).toBeNull();
+    expect(Array.from(feed.audio)).toEqual([7, 7]);
+    expect(queue.pending).toBe(false);
+  });
+
+  it('skips consecutive misfires', () => {
+    const { feed, queue } = draining();
+    for (const v of [2, 3]) {
+      queue.start();
+      feed.append(f32(v));
+      queue.stop();
+      feed.sealStaged();
+    }
+    queue.start();
+    feed.append(f32(4));
+
+    feed.complete();
+    expect(promoteQueued(feed, queue)).toBe('open');
+    expect(Array.from(feed.audio)).toEqual([4]);
+  });
+
+  it('promotes queued utterances one run at a time, in order', () => {
+    const { feed, queue } = draining();
+    queue.start();
+    feed.append(f32(2));
+    queue.finish();
+    feed.sealStaged();
+    queue.start();
+    feed.append(f32(3));
+
+    feed.complete();
+    expect(promoteQueued(feed, queue)).toBe('finish');
+    expect(Array.from(feed.audio)).toEqual([2]);
+
+    feed.requestFinish(0);
+    feed.append(f32(3)); // the next utterance keeps talking while this one drains
+    feed.complete();
+    expect(promoteQueued(feed, queue)).toBe('open');
+    expect(Array.from(feed.audio)).toEqual([3, 3]);
+    expect(queue.pending).toBe(false);
+  });
+
+  it('pads a queued finish once, when it is promoted', () => {
+    const { feed, queue } = draining();
+    queue.start();
+    feed.append(f32(2, 2));
+    queue.finish();
+    feed.sealStaged();
+
+    feed.complete();
+    expect(promoteQueued(feed, queue)).toBe('finish');
+    feed.requestFinish(3); // the worker pads here, as it does for a run that was never queued
+    expect(Array.from(feed.audio)).toEqual([2, 2, 0, 0, 0]);
+  });
+
+  it('leaves the feed alone when nothing is queued', () => {
+    const { feed, queue } = draining();
+    feed.append(f32(5));
+
+    feed.complete();
+    expect(promoteQueued(feed, queue)).toBeNull();
+    expect(Array.from(feed.audio)).toEqual([5]);
   });
 });
 

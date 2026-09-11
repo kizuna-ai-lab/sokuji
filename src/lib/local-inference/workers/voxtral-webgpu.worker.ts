@@ -27,6 +27,7 @@ import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processo
 import { resolveVadThresholds } from './_shared/vad-thresholds';
 import {
   boundedBatchEndSample,
+  promoteQueued,
   QueuedUtterance,
   StreamingAudioFeed,
   StreamingTextAccumulator,
@@ -310,16 +311,17 @@ async function runVoxtralGenerate(): Promise<void> {
     isGenerating = false;
     // Audio staged during the finish belongs to the next utterance.
     audioFeed.complete();
-    const queuedState = queuedUtterance.take();
-    if (queuedState && !disposing) {
-      if (queuedState === 'stop') {
-        audioFeed.clear();
-      } else {
-        void runVoxtralGenerate();
-        // SpeechEnd may have arrived while the old run was still draining. Apply
-        // that endpoint to the newly promoted run instead of losing it.
-        if (queuedState === 'finish') audioFeed.requestFinish(utterancePadSamples());
-      }
+    const next = disposing ? null : promoteQueued(audioFeed, queuedUtterance);
+    if (next && (!voxtralModel || !voxtralProcessor)) {
+      // No run can start, so nothing would ever drain the queue: drop it rather
+      // than hold the idle trim off indefinitely.
+      audioFeed.clear();
+      queuedUtterance.clear();
+    } else if (next) {
+      void runVoxtralGenerate();
+      // SpeechEnd arrived while the old run was still draining. Its segment was
+      // sealed at that endpoint, so the promoted run finishes right away.
+      if (next === 'finish') audioFeed.requestFinish(utterancePadSamples());
     }
   }
 }
@@ -330,7 +332,7 @@ async function runVoxtralGenerate(): Promise<void> {
  */
 function finishGenerate() {
   if (queuedUtterance.finish()) {
-    audioFeed.sealStaged(utterancePadSamples());
+    audioFeed.sealStaged();
     return;
   }
   if (!isGenerating) {
@@ -343,7 +345,7 @@ function finishGenerate() {
 /** Abandon the current utterance without decoding its tail. */
 function abortGenerate() {
   if (queuedUtterance.stop()) {
-    audioFeed.sealStaged(0);
+    audioFeed.sealStaged();
     return;
   }
   audioFeed.requestStop();
