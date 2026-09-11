@@ -78,6 +78,22 @@ body:
     validations:
       required: true
 
+  - type: markdown
+    attributes:
+      value: |
+        > ### ⚠️ Using **OpenAI Compatible** (a third-party OpenAI-compatible endpoint)?
+        >
+        > Please read this before continuing — it sets expectations for what we can do.
+        >
+        > We have no stable OpenAI-compatible endpoint to test against, so we **cannot reliably reproduce or verify** a bug that only happens on one. We will still read the code and may be able to fix it from your description alone, but **we cannot promise a fix**, and anything we do ship for such a bug goes out unverified against a real compatible endpoint.
+        >
+        > **Two things make an enormous difference:**
+        >
+        > 1. **Try a different OpenAI-compatible endpoint.** These relays vary a great deal in how faithfully they implement the realtime protocol. If the problem follows you to a second one it is far more likely ours; if it doesn't, that narrows it down just as usefully. Please say which way it went. (Pointing this provider at OpenAI's own API is *not* a useful comparison, and neither is switching to the built-in **OpenAI** provider: this provider speaks the older beta Realtime protocol that OpenAI has since retired, while the built-in one speaks the current API through a different client. Different wire format, different code path.)
+        > 2. **If you can test changes against your endpoint, opening a PR alongside this report is by far the most reliable way to get it fixed.** A fix verified by someone who can actually run it is worth much more than a blind one from us, and for this category of bug it is realistically the most dependable route to a resolution.
+        >
+        > Also worth knowing: a fair share of reports in this category turn out to be the endpoint itself (proxy misconfiguration, unimplemented parts of the realtime API, dropped sockets) rather than Sokuji. Raw WebSocket frames are the fastest way to tell the two apart — see the Screenshots/Logs field below.
+
   - type: input
     id: model
     attributes:
@@ -154,7 +170,18 @@ body:
     id: screenshots
     attributes:
       label: Screenshots/Logs
-      description: If applicable, add screenshots or error logs to help explain your problem
+      description: |
+        Screenshots, browser/DevTools console output, or application logs. Sokuji's own diagnostic logs are off by default — there is a switch in Help that turns on the Logs panel.
+
+        For realtime providers, the raw WebSocket frames are the single most useful thing you can attach — but ⚠️ **this issue is public and those frames carry your own data**, so please prepare them first:
+
+        - **Attach only** `session.created` / `session.update` / `session.updated` and anything with `"type": "error"`.
+        - **Redact the `instructions` field** in those frames — it holds your system prompt, including any custom prompt you configured.
+        - **Do not attach `conversation.*` or `response.*` frames at all.** Those are the transcripts and translations of everything spoken in the session.
+        - **Never paste the connection URL — it carries your API key.**
+        - Skip `input_audio_buffer.append` frames; they are base64 audio and enormous.
+
+        If that is more editing than you want to do, capture a throwaway session in which you only say something harmless and send those frames instead.
       placeholder: |
         For Desktop App: Paste screenshots or application logs here...
         For Extension: Include browser console errors, extension popup screenshots, etc.
