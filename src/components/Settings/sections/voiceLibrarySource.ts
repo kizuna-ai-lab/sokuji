@@ -166,10 +166,17 @@ export function managedVoiceSource(
   const retryDelay = (ms: number, signal?: AbortSignal): Promise<void> => {
     if (!signal) return sleep(ms);
     return new Promise<void>((resolve, reject) => {
-      const onAbort = () => reject(cancelled());
+      // The listener is removed on every exit -- sleep resolves, sleep
+      // rejects, or abort fires -- not just the sleep-wins path, so an
+      // injected `sleep` that can reject doesn't leak it.
+      const settle = (fn: () => void) => { signal.removeEventListener('abort', onAbort); fn(); };
+      const onAbort = () => settle(() => reject(cancelled()));
       if (signal.aborted) { onAbort(); return; }
       signal.addEventListener('abort', onAbort, { once: true });
-      sleep(ms).then(() => { signal.removeEventListener('abort', onAbort); resolve(); }, reject);
+      // On abort, the underlying `sleep` timer runs to completion harmlessly:
+      // the injected-sleep abstraction has no cancel, and by the time it
+      // settles this promise already has, so the callback below is a no-op.
+      sleep(ms).then(() => settle(resolve), (error) => settle(() => reject(error)));
     });
   };
 

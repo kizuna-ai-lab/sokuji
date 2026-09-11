@@ -418,7 +418,7 @@ describe('managedVoiceSource previewing', () => {
     // genuinely a live session or a dead preview's 45 s backstop.
     const waits: number[] = [];
     const sessionKey = vi.fn()
-      .mockRejectedValueOnce(new SonioxVoicesError('active_lease', 'HTTP 409', 409, 3000))
+      .mockRejectedValueOnce(new SonioxVoicesError('active_lease', 'HTTP 409', 409, 1500))
       .mockResolvedValueOnce({ ttsApiKey: 'tk', region: 'us' as const });
     const previewDone = vi.fn(async () => {});
     const client = fakeClient({ sessionKey, previewDone });
@@ -429,7 +429,7 @@ describe('managedVoiceSource previewing', () => {
 
     await expect(source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1 }))
       .resolves.toEqual({ audio: new Float32Array(1), sampleRate: 24000 });
-    expect(waits).toEqual([3000]);
+    expect(waits).toEqual([1500]);
     expect(sessionKey).toHaveBeenCalledTimes(2);
     expect(previewDone).toHaveBeenCalledTimes(1);
 
