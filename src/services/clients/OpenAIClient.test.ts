@@ -26,6 +26,17 @@ vi.mock('openai-realtime-api', () => {
       merged.set(chunk, this.inputAudioBuffer.length);
       this.inputAudioBuffer = merged;
     });
+    // Reproduces the real SDK (dist/index.js:976-988): the item goes out over
+    // `realtime.send` — so it throws on a dead socket exactly like every other
+    // send — and a response is requested afterwards.
+    sendUserMessageContent = vi.fn((content: unknown[]) => {
+      if (content.length) {
+        this.realtime.send('conversation.item.create', {
+          item: { type: 'message', role: 'user', content }
+        });
+      }
+      this.createResponse();
+    });
     // Mirrors the SDK's RealtimeEventHandler contract: an array of handlers per
     // event, `on` appends, `off(event, cb)` removes only that callback.
     // OpenAIClient registers two 'realtime.event' handlers - the forwarder and
@@ -307,6 +318,28 @@ describe('OpenAIClient — realtime send failure handling', () => {
 
     expect(() => client.createResponse()).not.toThrow();
     expect(reportedOps()).toEqual(['response.create']);
+  });
+
+  // #544: the one send path that had no guard. The text box is a speaker-channel
+  // control, so this only fires when the speaker socket dies under a live
+  // session — but it threw straight out of the React event handler, past
+  // MainPanel's catch and into the console as an unhandled rejection shape the
+  // user could do nothing with.
+  it('reports a text-input failure without throwing', () => {
+    failEverySend();
+
+    expect(() => client.appendInputText('hello')).not.toThrow();
+    expect(reportedOps()).toEqual(['conversation.item.create']);
+  });
+
+  it('does not request a response when the text item never went out', () => {
+    failEverySend();
+
+    client.appendInputText('hello');
+
+    // sendUserMessageContent calls createResponse() after the item; a response
+    // over an item the server never received would answer the previous turn.
+    expect(sdk.createResponse).not.toHaveBeenCalled();
   });
 
   it('catches failures on the keepReplayAudio path too', () => {

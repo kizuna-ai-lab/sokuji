@@ -755,10 +755,28 @@ export class OpenAIClient implements IClient {
       return;
     }
 
-    // Send user message content - the library auto-creates ConversationItem
-    this.client.sendUserMessageContent([
-      { type: 'input_text', text: text.trim() }
-    ]);
+    // Send user message content - the library auto-creates ConversationItem.
+    //
+    // Guarded like every other send on this client. `sendUserMessageContent`
+    // puts the item on the wire through `realtime.send`, which throws
+    // `RealtimeAPI is not connected` as soon as the socket is down, and the
+    // beta SDK guards none of its own sends — this was the last unguarded send
+    // path, and it threw straight out of a React event handler (#544).
+    //
+    // Deliberately unlatched, unlike the audio path: this is one call per
+    // deliberate user action, not ~6/second, so every failure is new
+    // information and the user is waiting on an answer for it.
+    //
+    // Letting the throw stop the SDK's own trailing `createResponse()` is the
+    // behaviour we want — a response over an item the server never received
+    // would answer the previous turn.
+    try {
+      this.client.sendUserMessageContent([
+        { type: 'input_text', text: text.trim() }
+      ]);
+    } catch (error) {
+      this.reportSendFailure('conversation.item.create', error);
+    }
   }
 
   /**

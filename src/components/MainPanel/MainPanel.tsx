@@ -90,6 +90,7 @@ import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackSto
 import ModePicker from './ModePicker';
 import SplitDegradedChip from './SplitDegradedChip';
 import { resolveSplitDegraded, type SplitDegradedReason } from './splitDegraded';
+import { canUseTextInput } from './textInputGate';
 import { buildChannelTelemetryHandlers, type ChannelTelemetryPorts } from './participantTelemetry';
 import { sessionModelTelemetry, legModelsOf, type LegModels } from './sessionModelTelemetry';
 import { NO_CHANNELS_RECONNECTING, type ReconnectingState } from './reconnectingChannels';
@@ -1462,6 +1463,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             pendingTextRef.current = null;
             // Small delay to ensure response is fully processed
             setTimeout(() => {
+              // The session can end inside this window. `speakerClientRef` is
+              // not cleared on teardown, so without this the flush would hand
+              // text to a disconnected client 100ms after Stop. Read the store
+              // rather than a captured flag — this closure is built once per
+              // session and would hold a stale value.
+              if (!useSessionStore.getState().isSessionActive) return;
               speakerClientRef.current?.appendInputText(text);
             }, 100);
           }
@@ -3117,8 +3124,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const handleSendText = useCallback((text: string) => {
     const client = speakerClientRef.current;
-    if (!client || !isSessionActive) {
-      console.warn('[MainPanel] Cannot send text: no active session');
+    // Same predicate the row renders on, so a visible box and a working send
+    // cannot drift apart. Unreachable from the UI in practice; a queued flush
+    // or a render racing teardown can still arrive here.
+    //
+    // The old message said "no active session", which was a lie in Others mode
+    // (#544): the session WAS running, it simply had no speaker channel, and
+    // the box stayed on screen swallowing every message.
+    if (!canUseTextInput({ isSessionActive, supportsTextInput, speakerChannelActive }) || !client) {
+      console.warn('[MainPanel] Cannot send text: no live speaker channel');
       return;
     }
 
@@ -3158,7 +3172,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         recoverable: true
       });
     }
-  }, [isSessionActive, isAIResponding, sessionId, provider, trackEvent]);
+  }, [isSessionActive, isAIResponding, sessionId, provider, trackEvent, supportsTextInput, speakerChannelActive]);
 
   /**
    * Submit text input in advanced mode
@@ -4268,8 +4282,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           )}
         </div>
 
-        {/* Text Input Section */}
-        {isSessionActive && supportsTextInput && (
+        {/* Text Input Section — speaker channel only, see textInputGate.ts */}
+        {canUseTextInput({ isSessionActive, supportsTextInput, speakerChannelActive }) && (
           <div className="text-input-section">
             <div className="text-input-container">
               <input
