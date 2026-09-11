@@ -37,7 +37,7 @@ const ttsInstances: MockTts[] = [];
 class MockTts {
   handlers: {
     onAudio?: (a: Int16Array) => void;
-    onError?: (c: string, m: string, hadActiveStream: boolean, scope?: 'stream' | 'connection') => void;
+    onError?: (c: string, m: string, hadActiveStream: boolean, scope?: 'segment' | 'all') => void;
   } = {};
   options: unknown;
   sent: Array<{ text: string; language: string }> = [];
@@ -899,7 +899,7 @@ describe('SonioxClient stream-level TTS failures', () => {
     // The socket survives a stream-level 408 and the next segment speaks, so
     // "spoken translation has stopped" would be false.
     const { errors, tts } = await speaking();
-    tts.handlers.onError!('408', 'Request timeout', true, 'stream');
+    tts.handlers.onError!('408', 'Request timeout', true, 'segment');
     expect(errors).toHaveLength(1);
     expect(errors[0].code).toBe('tts_408');
     expect(errors[0].message).toMatch(/could not be played/i);
@@ -907,20 +907,27 @@ describe('SonioxClient stream-level TTS failures', () => {
     expect(errors[0].rawMessage).toBe('Request timeout');
   });
 
-  it('a connection-level failure still says spoken translation has stopped', async () => {
-    const { errors, tts } = await speaking();
-    tts.handlers.onError!('socket_closed', 'Soniox TTS socket closed unexpectedly', true, 'connection');
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toMatch(/spoken translation has stopped/i);
+  it('a failure that stops all speech still says spoken translation has stopped', async () => {
+    // A dropped socket, or a rejection every segment repeats — e.g. the 400
+    // a voice tts-rt-v2 retired draws on each new stream.
+    for (const [code, message] of [
+      ['socket_closed', 'Soniox TTS socket closed unexpectedly'],
+      ['400', 'Invalid voice'],
+    ]) {
+      const { errors, tts } = await speaking();
+      tts.handlers.onError!(code, message, true, 'all');
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toMatch(/spoken translation has stopped/i);
+    }
   });
 
   it('reports once while speech stays down, and again after it resumed', async () => {
     const { errors, tts } = await speaking();
-    tts.handlers.onError!('408', 'Request timeout', true, 'stream');
-    tts.handlers.onError!('408', 'Request timeout', true, 'stream');
+    tts.handlers.onError!('408', 'Request timeout', true, 'segment');
+    tts.handlers.onError!('408', 'Request timeout', true, 'segment');
     expect(errors).toHaveLength(1);
     tts.handlers.onAudio!(new Int16Array([1, 2])); // a later segment speaks again
-    tts.handlers.onError!('408', 'Stream killed: no audio output within timeout', true, 'stream');
+    tts.handlers.onError!('408', 'Stream killed: no audio output within timeout', true, 'segment');
     expect(errors).toHaveLength(2);
     expect(errors[1].rawMessage).toBe('Stream killed: no audio output within timeout');
   });

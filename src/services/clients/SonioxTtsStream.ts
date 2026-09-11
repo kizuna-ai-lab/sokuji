@@ -63,11 +63,13 @@ export interface SonioxTtsOptions {
 }
 
 /**
- * 'stream': the server killed one stream and the socket is still up — the next
- * segment will speak. 'connection': the socket itself failed, or the error
- * named no stream.
+ * 'segment': Soniox killed one segment for living too long (a 408) and the
+ * socket is still up — the next segment will speak. 'all': spoken output is
+ * down — the socket failed, or Soniox rejected a stream for a reason every
+ * segment would repeat (a voice, key or quota: the api_key rides in every
+ * stream's config).
  */
-export type SonioxTtsErrorScope = 'stream' | 'connection';
+export type SonioxTtsErrorScope = 'segment' | 'all';
 
 export interface SonioxTtsStreamHandlers {
   onAudio?: (audio: Int16Array) => void;
@@ -88,6 +90,10 @@ export const TTS_SEGMENT_TIMING = {
   /** A segment's first text is never held longer — ~2.4 s inside the earliest no-audio kill. */
   maxAgeMs: 8000,
 } as const;
+
+// The one stream error the next segment recovers from: all three kill timers
+// answer 408. Any other error naming a stream would fail every segment alike.
+const SEGMENT_KILL_CODE = '408';
 
 // Sentence ends of every script tts-rt-v2 speaks, plus a few from scripts it
 // does not (Ethiopic, Myanmar, Khmer, Armenian) that cannot occur by accident.
@@ -193,7 +199,9 @@ export class SonioxTtsStream {
           if (id == null || isLive) {
             // Snapshot BEFORE handleStreamFailure clears it.
             const hadActiveStream = this.hasLiveStream();
-            this.handlers.onError?.(String(data.error_code), data.error_message ?? '', hadActiveStream, id == null ? 'connection' : 'stream');
+            const scope: SonioxTtsErrorScope =
+              id != null && String(data.error_code) === SEGMENT_KILL_CODE ? 'segment' : 'all';
+            this.handlers.onError?.(String(data.error_code), data.error_message ?? '', hadActiveStream, scope);
             this.handleStreamFailure(id);
           }
         } else if (data.audio && isLive) {
@@ -214,7 +222,7 @@ export class SonioxTtsStream {
         if (!opened) {
           reject(error instanceof Error ? error : new Error('Soniox TTS connection failed'));
         } else {
-          this.handlers.onError?.('socket_error', String(error), this.hasLiveStream(), 'connection');
+          this.handlers.onError?.('socket_error', String(error), this.hasLiveStream(), 'all');
         }
       };
 
@@ -232,7 +240,7 @@ export class SonioxTtsStream {
           // Snapshot BEFORE clearing — same seam as the error branch above.
           const hadActiveStream = this.hasLiveStream();
           this.resetStreams();
-          this.handlers.onError?.('socket_closed', 'Soniox TTS socket closed unexpectedly', hadActiveStream, 'connection');
+          this.handlers.onError?.('socket_closed', 'Soniox TTS socket closed unexpectedly', hadActiveStream, 'all');
         }
       };
     });

@@ -159,7 +159,7 @@ describe('SonioxTtsStream', () => {
     t.setHandlers({ onError: (...args) => calls.push(args) });
     t.sendText('Hi', 'en'); // opens utt-1-1 — a real utterance in flight
     ws.close(); // unexpected remote close, mid-utterance
-    expect(calls).toEqual([['socket_closed', 'Soniox TTS socket closed unexpectedly', true, 'connection']]);
+    expect(calls).toEqual([['socket_closed', 'Soniox TTS socket closed unexpectedly', true, 'all']]);
   });
 
   it('reports hadActiveStream=false on onclose when no stream was carrying text', async () => {
@@ -167,7 +167,7 @@ describe('SonioxTtsStream', () => {
     const calls: unknown[] = [];
     t.setHandlers({ onError: (...args) => calls.push(args) });
     ws.close();
-    expect(calls).toEqual([['socket_closed', 'Soniox TTS socket closed unexpectedly', false, 'connection']]);
+    expect(calls).toEqual([['socket_closed', 'Soniox TTS socket closed unexpectedly', false, 'all']]);
   });
 
   it('stays silent on an intentional close', async () => {
@@ -362,14 +362,22 @@ describe('SonioxTtsStream segmenting', () => {
     expect(ws.jsonSent().at(-1)).toEqual({ stream_id: 'utt-1-2', text: ' more', text_end: false });
   });
 
-  it('tells a stream-level error (socket still up) from a connection-level one', async () => {
+  it('only a 408 on a live stream loses one segment; any other error means speech is down', async () => {
+    // The 408s are Soniox killing a stream for living too long — the next
+    // segment speaks. Any other error on a stream (a rejected voice, key or
+    // quota; the api_key rides in every stream's config) fails every segment
+    // the same way.
     const { t, ws } = await openTts();
     const scopes: string[] = [];
     t.setHandlers({ onError: (_c, _m, _h, scope) => scopes.push(scope) });
     t.sendText('Hi', 'en');
     ws.message({ stream_id: 'utt-1-1', error_code: 408, error_message: 'Request timeout' });
-    ws.message({ error_code: 401, error_message: 'Invalid API key' });
-    expect(scopes).toEqual(['stream', 'connection']);
+    t.sendText('Hi', 'en');
+    ws.message({ stream_id: 'utt-1-2', error_code: 400, error_message: 'Invalid voice' });
+    t.sendText('Hi', 'en');
+    ws.message({ stream_id: 'utt-1-3', error_code: 401, error_message: 'Invalid API key' });
+    ws.message({ error_code: 500, error_message: 'Internal error' });
+    expect(scopes).toEqual(['segment', 'all', 'all', 'all']);
   });
 
   it('sends nothing to a stream after it failed: its timers are cleared', async () => {

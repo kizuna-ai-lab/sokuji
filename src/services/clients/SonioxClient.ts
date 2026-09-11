@@ -1302,7 +1302,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     code: string,
     message: string,
     hadActiveStream: boolean,
-    scope: SonioxTtsErrorScope = 'connection',
+    scope: SonioxTtsErrorScope = 'all',
   ): void {
     // hadActiveStream — not the wire code — decides whether this is worth
     // surfacing. A drop with no active/draining stream (nothing was being
@@ -1319,11 +1319,11 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     // announceSessionOutcome use, which puts a system bubble in the
     // conversation and a session.error entry in the LogsPanel.
     //
-    // `scope` says how much was lost. 'stream': Soniox killed one segment (one
-    // of its 408s — see SonioxTtsStream) and the socket is still up, so the
-    // next segment speaks; "spoken translation has stopped" would be false.
-    // 'connection': the socket, or its reconnect, failed — speech is down
-    // until a reconnect works.
+    // `scope` says how much was lost. 'segment': Soniox killed one segment for
+    // living too long (a 408 — see SonioxTtsStream) and the socket is still
+    // up, so the next segment speaks; "spoken translation has stopped" would
+    // be false. 'all': speech is down — the socket or its reconnect failed, or
+    // Soniox rejected the stream for a reason every segment will repeat.
     //
     // Reported ONCE per failure episode: ttsFailedOnce is re-armed when audio
     // arrives again (emitAssistantAudio) or a reconnect succeeds, so a later
@@ -1336,7 +1336,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
         // Namespaced so a UI branching on `code` cannot confuse a degraded-TTS
         // report with the STT error of the same wire code.
         code: `tts_${code}`,
-        message: scope === 'stream'
+        message: scope === 'segment'
           ? i18n.t(
             'mainPanel.sonioxTtsSegmentLost',
             'Part of the spoken translation could not be played. Transcription and text translation are unaffected.'
