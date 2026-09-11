@@ -1,6 +1,18 @@
 const { ipcMain, session } = require('electron');
 const { Conf } = require('electron-conf');
 
+/**
+ * The Origin/Referer main.js puts on backend requests from a packaged build.
+ *
+ * A fixed value, never the install path: on Windows that path runs through
+ * C:\Users\<username>\, so deriving it from __dirname sent the account name to
+ * the backend on every request and, when the name was non-ASCII, made the
+ * Workers runtime log a warning per header (#535). The backend trusts desktop
+ * requests on the `file://` prefix alone (better-auth matches non-http(s)
+ * origins with startsWith), so nothing after the scheme is load-bearing.
+ */
+const PACKAGED_ORIGIN = 'file://sokuji';
+
 const cookieJar = new Conf({
   name: '_better_auth',
   ext: ''
@@ -227,4 +239,4 @@ function betterAuthAdapter(opts) {
   console.log('[BetterAuth Adapter] Initialized successfully for:', backendDomain);
 }
 
-module.exports = { betterAuthAdapter };
+module.exports = { betterAuthAdapter, PACKAGED_ORIGIN };
