@@ -90,7 +90,6 @@ import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackSto
 import ModePicker from './ModePicker';
 import SplitDegradedChip from './SplitDegradedChip';
 import { resolveSplitDegraded, type SplitDegradedReason } from './splitDegraded';
-import { shouldSendAnchor } from './anchorGate';
 import { buildChannelTelemetryHandlers, type ChannelTelemetryPorts } from './participantTelemetry';
 import { sessionModelTelemetry, legModelsOf, type LegModels } from './sessionModelTelemetry';
 import { NO_CHANNELS_RECONNECTING, type ReconnectingState } from './reconnectingChannels';
@@ -3882,10 +3881,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     lastAnchorCountRef: React.MutableRefObject<number>,
     interval: number = 5
   ) => {
-    // Reset the anchor count when the session ends, so the next one opens with
-    // an anchor again (-1 means "none yet this session").
-    if (!isActive) {
-      lastAnchorCountRef.current = -1;
+    // Only active during sessions with OpenAI-compatible providers
+    if (!isActive || !isOpenAICompatible(provider)) {
+      // Reset anchor count when session ends (use -1 to trigger initial anchor on next session)
+      if (!isActive) {
+        lastAnchorCountRef.current = -1;
+      }
       return;
     }
 
@@ -3894,41 +3895,29 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       item => item.role === 'assistant' && item.status === 'completed'
     ).length;
 
-    // #546: gated on the socket being OPEN, not merely on the client ref being
-    // non-null. A non-null client can have no socket in three ways — a leg
-    // whose connect failed (non-fatal, so the session runs on and the failed
-    // client stays in its ref), a client left behind by an earlier session
-    // (speakerClientRef is never cleared), and one the endpoint dropped
-    // mid-session. Only the second needs a previous session, which is why this
-    // surfaced on cold starts too. See anchorGate.ts.
-    //
-    // A refused anchor is not consumed: the count below is recorded only once
-    // the gate passes, so a channel that comes up late still gets its opening
-    // anchor instead of losing it.
-    if (!client || !shouldSendAnchor({
-      isActive,
-      providerSendsAnchors: isOpenAICompatible(provider),
-      channelConnected: client.isConnected(),
-      completedTranslations,
-      lastAnchorCount: lastAnchorCountRef.current,
-      interval,
-    })) {
-      return;
+    // Send anchor at session start (when lastAnchorCount is -1)
+    // and every N translations after that
+    const shouldSendAnchorAtStart = lastAnchorCountRef.current === -1;
+    const shouldSendAnchorAfterInterval = completedTranslations > 0 &&
+      completedTranslations % interval === 0 &&
+      completedTranslations !== lastAnchorCountRef.current;
+    const shouldSendAnchor = shouldSendAnchorAtStart || shouldSendAnchorAfterInterval;
+
+    if (shouldSendAnchor && client) {
+      // Mark this count as processed before sending
+      lastAnchorCountRef.current = completedTranslations;
+
+      // Get system instructions for this session type
+      const systemInstructions = getSystemInstructions();
+
+      // Send silent out-of-band anchor response
+      client.createResponse({
+        conversation: 'none',
+        modalities: ['text'],
+        instructions: systemInstructions,
+        metadata: { purpose: 'anchor', sessionType }
+      });
     }
-
-    // Mark this count as processed before sending
-    lastAnchorCountRef.current = completedTranslations;
-
-    // Get system instructions for this session type
-    const systemInstructions = getSystemInstructions();
-
-    // Send silent out-of-band anchor response
-    client.createResponse({
-      conversation: 'none',
-      modalities: ['text'],
-      instructions: systemInstructions,
-      metadata: { purpose: 'anchor', sessionType }
-    });
   }, [provider]);
 
   // Track anchor counts separately for speaker and participant sessions

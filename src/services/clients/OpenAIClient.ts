@@ -767,6 +767,30 @@ export class OpenAIClient implements IClient {
    *               Used for per-turn instructions to prevent model drift
    */
   createResponse(config?: ResponseConfig): void {
+    // #546. An out-of-band response (`conversation: 'none'` — today only the
+    // anchor that re-states the translator role) goes out on the conversation's
+    // own timer: once when a session starts, then every N translations. The
+    // user never asked for it and can do nothing about its failure, so on a
+    // closed socket it is dropped rather than reported. Reporting it raised
+    // `RealtimeAPI is not connected` as a conversation bubble seconds after
+    // Start, with nothing typed and nothing clicked.
+    //
+    // The socket can be closed here in three ways, all of which this covers:
+    // a leg whose connect failed (non-fatal by design, so the session runs on
+    // with the failed client still in its ref), a client left behind by an
+    // earlier session (MainPanel never clears speakerClientRef), and one the
+    // endpoint dropped mid-session.
+    //
+    // The sibling clients already guard in exactly this place — see
+    // OpenAIGAClient.createResponse's opening `if (!this.rt) return` and
+    // OpenAIWebRTCClient.sendEvent's "per-send guard: silent". This was the
+    // only one of the three without one, and the only one that surfaces this
+    // error at all: the GA path catches inside the official SDK's own send().
+    //
+    // Deliberately narrow. A user-initiated response still reports its failure,
+    // because someone is waiting on an answer for it.
+    if (config?.conversation === 'none' && !this.isConnected()) return;
+
     if (config) {
       // When bypassing the library's createResponse(), we need to manually commit
       // the input audio buffer first (same as what the library does internally)
